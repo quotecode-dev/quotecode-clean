@@ -1,7 +1,7 @@
 {
   "src/AIChatWidget.jsx": {
-    "interactive": 19,
-    "markers": 19
+    "interactive": 17,
+    "markers": 17
   },
   "src/App.jsx": {
     "interactive": 3,
@@ -28,8 +28,8 @@
     "markers": 0
   },
   "src/components/AdminOverview.jsx": {
-    "interactive": 3,
-    "markers": 3
+    "interactive": 5,
+    "markers": 5
   },
   "src/components/AdminPlans.jsx": {
     "interactive": 1,
@@ -42,10 +42,6 @@
   "src/components/AdminSidebarNav.jsx": {
     "interactive": 1,
     "markers": 1
-  },
-  "src/components/AdminSubscriptionState.jsx": {
-    "interactive": 0,
-    "markers": 0
   },
   "src/components/AdminSystemActivity.jsx": {
     "interactive": 0,
@@ -79,14 +75,6 @@
     "interactive": 1,
     "markers": 1
   },
-  "src/components/AiQuoteDraftDialog.jsx": {
-    "interactive": 8,
-    "markers": 9
-  },
-  "src/components/AiRobotIcon.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/components/AttachmentCompatRoute.jsx": {
     "interactive": 1,
     "markers": 1
@@ -100,22 +88,6 @@
     "markers": 1
   },
   "src/components/BrandName.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/BusinessCard.jsx": {
-    "interactive": 5,
-    "markers": 5
-  },
-  "src/components/BusinessCardSettings.jsx": {
-    "interactive": 5,
-    "markers": 7
-  },
-  "src/components/CalendarTab.jsx": {
-    "interactive": 14,
-    "markers": 15
-  },
-  "src/components/ChartSquareIcon.jsx": {
     "interactive": 0,
     "markers": 0
   },
@@ -147,10 +119,6 @@
     "interactive": 3,
     "markers": 3
   },
-  "src/components/EditItemPriceDialog.jsx": {
-    "interactive": 3,
-    "markers": 3
-  },
   "src/components/EmailConfirmModal.jsx": {
     "interactive": 2,
     "markers": 2
@@ -158,18 +126,6 @@
   "src/components/FinancesTab.jsx": {
     "interactive": 6,
     "markers": 7
-  },
-  "src/components/Free10UpgradeWindow.jsx": {
-    "interactive": 3,
-    "markers": 3
-  },
-  "src/components/NewQuoteMenu.jsx": {
-    "interactive": 3,
-    "markers": 2
-  },
-  "src/components/NotificationCenter.jsx": {
-    "interactive": 2,
-    "markers": 2
   },
   "src/components/NumericValue.jsx": {
     "interactive": 0,
@@ -184,7 +140,7 @@
     "markers": 0
   },
   "src/components/PlanIdentityBadge.jsx": {
-    "interactive": 0,
+    "interactive": 1,
     "markers": 0
   },
   "src/components/PricingModal.jsx": {
@@ -200,12 +156,8 @@
     "markers": 0
   },
   "src/components/PublicQuoteHeader.jsx": {
-    "interactive": 1,
-    "markers": 1
-  },
-  "src/components/PublicThanksNotice.jsx": {
-    "interactive": 1,
-    "markers": 1
+    "interactive": 2,
+    "markers": 2
   },
   "src/components/PublicTools.jsx": {
     "interactive": 8,
@@ -221,47 +173,23 @@
   },
   "src/components/QuoteForm.jsx": {
     "interactive": 26,
-    "markers": 34
+    "markers": 33
   },
   "src/components/QuotePrintModeModal.jsx": {
     "interactive": 3,
     "markers": 3
   },
-  "src/components/QuoteTemplateDialogs.jsx": {
-    "interactive": 6,
-    "markers": 7
-  },
   "src/components/QuotesTab.jsx": {
-    "interactive": 21,
-    "markers": 23
-  },
-  "src/components/RemindersFirstSetupNotice.jsx": {
-    "interactive": 1,
-    "markers": 1
-  },
-  "src/components/RemindersSettings.jsx": {
-    "interactive": 10,
-    "markers": 17
-  },
-  "src/components/ServiceScheduleFields.jsx": {
-    "interactive": 1,
-    "markers": 1
+    "interactive": 13,
+    "markers": 19
   },
   "src/components/ServicesCatalog.jsx": {
-    "interactive": 8,
-    "markers": 9
+    "interactive": 7,
+    "markers": 8
   },
   "src/components/SettingsTab.jsx": {
-    "interactive": 5,
-    "markers": 7
-  },
-  "src/components/ShareDefaultsSettings.jsx": {
     "interactive": 2,
-    "markers": 2
-  },
-  "src/components/SidebarAccountMenu.jsx": {
-    "interactive": 3,
-    "markers": 3
+    "markers": 4
   },
   "src/components/SignOutModal.jsx": {
     "interactive": 2,
@@ -271,27 +199,11 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/components/StatisticsTab.jsx": {
-    "interactive": 5,
-    "markers": 6
-  },
-  "src/components/TasksTab.jsx": {
-    "interactive": 11,
-    "markers": 20
-  },
-  "src/components/TekangoEyeIcon.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/components/Toast.jsx": {
     "interactive": 0,
     "markers": 0
   },
   "src/components/adminDestinations.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/businessCardSettingsCopy.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -319,10 +231,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/components/landing/landingPlanFacts.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/components/landing/landingQuoteModel.js": {
     "interactive": 0,
     "markers": 0
@@ -335,99 +243,11 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/components/quotePresentation/BusinessQuoteStyleSection.jsx": {
-    "interactive": 1,
-    "markers": 1
-  },
-  "src/components/quotePresentation/CatalogMediaControl.jsx": {
-    "interactive": 2,
-    "markers": 2
-  },
-  "src/components/quotePresentation/IssueQuoteDialog.jsx": {
-    "interactive": 2,
-    "markers": 2
-  },
-  "src/components/quotePresentation/LockedStyleDrawer.jsx": {
-    "interactive": 1,
-    "markers": 1
-  },
-  "src/components/quotePresentation/QuoteCreatorLayout.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/quotePresentation/QuoteMediaManager.jsx": {
-    "interactive": 4,
-    "markers": 4
-  },
-  "src/components/quotePresentation/QuotePresentationPanel.jsx": {
-    "interactive": 7,
-    "markers": 7
-  },
-  "src/components/quotePresentation/QuotePreviewPane.jsx": {
-    "interactive": 4,
-    "markers": 4
-  },
-  "src/components/quotePresentation/QuoteStylePicker.jsx": {
-    "interactive": 3,
-    "markers": 3
-  },
-  "src/components/quotePresentation/SettingsQuotePreview.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/quotePresentation/buildPreviewQuoteData.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/quotePresentation/pendingPresentationStore.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/quotePresentation/presentationCopy.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/quotePresentation/presentationState.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/quotePresentation/qpTheme.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/quotePresentation/useFocusTrap.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/quotePresentation/useQuotePresentationEditor.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/subscriptions/CapabilityUpgradeNotice.jsx": {
-    "interactive": 2,
-    "markers": 2
-  },
   "src/config/professionalPreviewAllowlist.js": {
     "interactive": 0,
     "markers": 0
   },
-  "src/domain/subscriptions/AccountSummaryContext.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/domain/subscriptions/accountSummaryClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/domain/subscriptions/adminAccountSummary.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/domain/subscriptions/capabilityNoticeCopy.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/domain/subscriptions/cutoverCopy.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -436,10 +256,6 @@
     "markers": 0
   },
   "src/domain/subscriptions/localPriceEstimate.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/domain/subscriptions/outputAuthority.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -460,14 +276,6 @@
     "markers": 0
   },
   "src/global/AppGlobal.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/hooks/useAccountSummary.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/hooks/useBusinessCardProfile.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -508,8 +316,8 @@
     "markers": 3
   },
   "src/pages/Dashboard.jsx": {
-    "interactive": 15,
-    "markers": 24
+    "interactive": 19,
+    "markers": 25
   },
   "src/pages/LandingGlobal.jsx": {
     "interactive": 2,
@@ -535,10 +343,6 @@
     "interactive": 2,
     "markers": 2
   },
-  "src/pages/PublicBusinessCard.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/pages/PublicQuote.jsx": {
     "interactive": 11,
     "markers": 14
@@ -546,10 +350,6 @@
   "src/pages/PublicQuoteEn.jsx": {
     "interactive": 11,
     "markers": 13
-  },
-  "src/pages/SampleQuote.jsx": {
-    "interactive": 1,
-    "markers": 1
   },
   "src/pages/Terms.jsx": {
     "interactive": 1,
@@ -659,10 +459,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/aiQuoteDraftClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/attachmentCompatPath.js": {
     "interactive": 0,
     "markers": 0
@@ -671,23 +467,7 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/businessCardClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/businessCardProfileClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/businessCardShare.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/businessProfileCompleteness.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/calendarModel.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -711,10 +491,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/firstView.js": {
-    "interactive": 0,
-    "markers": 1
-  },
   "src/utils/functionError.js": {
     "interactive": 0,
     "markers": 0
@@ -727,31 +503,11 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/guidedIntentReplies.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/imageNormalize.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/itemPrice.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/logoTrim.js": {
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/manualTasks.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/money.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/newQuoteChoices.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -767,6 +523,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/utils/pricingCatalog.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/professionalItemClassifier.js": {
     "interactive": 0,
     "markers": 0
@@ -776,10 +536,6 @@
     "markers": 0
   },
   "src/utils/publicToolsCore.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/qrCode.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -795,10 +551,6 @@
     "interactive": 0,
     "markers": 1
   },
-  "src/utils/quoteDraftSnapshot.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/quoteEmailErrorClassification.js": {
     "interactive": 0,
     "markers": 0
@@ -807,23 +559,11 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/quoteListRows.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/quoteListSort.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/quoteLock.js": {
     "interactive": 0,
     "markers": 0
   },
   "src/utils/quoteNumber.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/quotePresentationClient.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -839,18 +579,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/quoteStatistics.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/quoteTemplates.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/quoteTemplatesClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/quoteValidity.js": {
     "interactive": 0,
     "markers": 0
@@ -860,10 +588,6 @@
     "markers": 0
   },
   "src/utils/regionConfig.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/reminders.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -879,27 +603,11 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/serviceScheduleClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/shareDefaultsClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/shortDate.js": {
     "interactive": 0,
     "markers": 0
   },
   "src/utils/structuredQuoteItemPersistence.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/tasksClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/_shared/activationPhase.ts": {
     "interactive": 0,
     "markers": 0
   },
@@ -915,43 +623,7 @@
     "interactive": 0,
     "markers": 0
   },
-  "supabase/functions/_shared/aiQuoteDraft.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/_shared/assetManifest.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/_shared/businessCard.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/_shared/capabilityToken.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
   "supabase/functions/_shared/productTruthContract.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/_shared/publicApprovalDecision.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/_shared/quoteDraftSnapshot.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/_shared/quoteStyleCapabilities.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/_shared/reminderRules.js": {
-    "interactive": 1,
-    "markers": 0
-  },
-  "supabase/functions/_shared/shareMessage.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -960,10 +632,6 @@
     "markers": 0
   },
   "supabase/functions/_shared/subscriptionContract.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/_shared/subscriptionLifecycleTemplates.ts": {
     "interactive": 0,
     "markers": 0
   },
@@ -979,23 +647,11 @@
     "interactive": 0,
     "markers": 0
   },
-  "supabase/functions/admin-extend-trial/legacyPhaseGuard.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
   "supabase/functions/admin-reauth-verify/index.ts": {
     "interactive": 0,
     "markers": 0
   },
   "supabase/functions/admin-set-lifetime/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/admin-set-lifetime/legacyPhaseGuard.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/ai-quote-draft/index.ts": {
     "interactive": 0,
     "markers": 0
   },
@@ -1091,11 +747,11 @@
     "interactive": 0,
     "markers": 0
   },
-  "supabase/functions/chat-ai/quoteContext.ts": {
+  "supabase/functions/chat-ai/publicPlanTruth.ts": {
     "interactive": 0,
     "markers": 0
   },
-  "supabase/functions/chat-ai/subscriptionTruth.ts": {
+  "supabase/functions/chat-ai/quoteContext.ts": {
     "interactive": 0,
     "markers": 0
   },
@@ -1107,21 +763,9 @@
     "interactive": 0,
     "markers": 0
   },
-  "supabase/functions/get-business-card/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
   "supabase/functions/get-public-quote/index.ts": {
     "interactive": 0,
     "markers": 1
-  },
-  "supabase/functions/get-public-quote/publicAccess.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/get-public-quote/thanks.ts": {
-    "interactive": 0,
-    "markers": 0
   },
   "supabase/functions/get-public-quote/validity.ts": {
     "interactive": 0,
@@ -1139,27 +783,7 @@
     "interactive": 0,
     "markers": 0
   },
-  "supabase/functions/quote-presentation/capabilityGate.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/quote-presentation/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/quote-presentation/lib.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
   "supabase/functions/resend-email-webhook/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/send-quote-email/capabilityLink.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/send-quote-email/emailIntro.ts": {
     "interactive": 0,
     "markers": 0
   },
@@ -1167,17 +791,9 @@
     "interactive": 0,
     "markers": 0
   },
-  "supabase/functions/send-quote-email/emailTemplate.ts": {
-    "interactive": 2,
-    "markers": 0
-  },
   "supabase/functions/send-quote-email/index.ts": {
-    "interactive": 0,
+    "interactive": 2,
     "markers": 1
-  },
-  "supabase/functions/send-quote-email/priceGate.ts": {
-    "interactive": 0,
-    "markers": 0
   },
   "supabase/functions/send-subscription-expiration-email/index.ts": {
     "interactive": 1,
@@ -1204,42 +820,6 @@
     "markers": 0
   },
   "supabase/functions/send-welcome-email/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/subscription-authority/adapters.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/subscription-authority/authority.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/subscription-authority/authorizeOutput.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/subscription-authority/billing.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/subscription-authority/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/subscription-authority/noticeRoute.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/subscription-authority/outputRoute.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/subscription-authority/router.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/subscription-authority/wiring.ts": {
     "interactive": 0,
     "markers": 0
   }

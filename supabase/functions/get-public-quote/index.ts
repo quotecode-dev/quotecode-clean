@@ -1,9 +1,6 @@
 /// <reference types="https://deno.land/std@0.168.0/types.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { isQuoteAcceptanceExpired } from './validity.ts'
-import { resolvePublicThanks, type ThanksRow } from './thanks.ts'
-import { decideLegacyAccess, outputPhaseOf, parsePublicRequest, serveCapability, serveGrant, UNIFORM_NOT_FOUND, type CapabilityDeps } from './publicAccess.ts'
-import { classifyPhaseRead, isMissingFunctionError } from '../_shared/activationPhase.ts'
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -44,10 +41,10 @@ serve(async (req) => {
     } catch {
       return jsonResponse({ error: 'Invalid request body' }, 400);
     }
-    // Subscriptions (CROSSCUT §3): exactly one mode - {capability_token} | {output_grant, channel} | {quote_id} (legacy).
-    // All decisions live in publicAccess.ts (pure, unit-tested); this shell only performs the reads.
-    const request = parsePublicRequest(body);
-    if (request.mode === 'bad_request') return jsonResponse(request.res.body, request.res.status);
+    const quoteId = (body as { quote_id?: unknown })?.quote_id;
+    if (!quoteId || typeof quoteId !== 'string' || !UUID_RE.test(quoteId)) {
+      return jsonResponse({ error: 'Missing or invalid quote_id' }, 400);
+    }
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL');
     const secretKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? '';
@@ -70,72 +67,6 @@ serve(async (req) => {
       } catch {
         callerUserId = null;
       }
-    }
-
-    if (request.mode === 'malformed') return jsonResponse({ ...UNIFORM_NOT_FOUND.body }, UNIFORM_NOT_FOUND.status);
-    // free_issue phase (server read), reported to the page as outputPhase ('off' = subscription schema not applied here).
-    const phase = classifyPhaseRead(await adminClient.from('subscription_activation').select('phase').eq('component', 'free_issue').maybeSingle());
-    const outputPhase = outputPhaseOf(phase);
-    if (!outputPhase) throw new Error('activation phase unavailable');
-    // Task 27/28: the owner's thank-you settings, explicit columns, for one verified owner id (a read error throws -> no thanks)
-    const readThanksRow = async (ownerId: string): Promise<ThanksRow | null> => {
-      const { data, error } = await adminClient.from('business_share_defaults')
-        .select('thanks_text, website_url, show_website_after_signature').eq('user_id', ownerId).maybeSingle();
-      if (error) throw error;
-      return data ?? null;
-    };
-    if (request.mode === 'capability' || request.mode === 'grant') {
-      const deps: CapabilityDeps = {
-        resolve: async (hash, op) => {
-          const { data, error } = await adminClient.rpc('resolve_public_capability', { p_token_hash: hash, p_op: op });
-          if (error) return null; // not deployed / failure -> uniform not-found (never an existence signal)
-          return data;
-        },
-        redeem: async (hash, channel) => {
-          const { data, error } = await adminClient.rpc('redeem_output_grant', { p_grant_hash: hash, p_channel: channel });
-          if (error) return null;
-          return data;
-        },
-        readSnapshot: async (path) => {
-          const { data, error } = await adminClient.storage.from('quote-files').download(path);
-          if (error || !data) return null;
-          return new Uint8Array(await data.arrayBuffer());
-        },
-        readLiveQuote: async (id) => {
-          const { data, error } = await adminClient.from('quotes').select('user_id, status, signature').eq('id', id).maybeSingle();
-          if (error) throw error;
-          return data ?? null;
-        },
-        readLogo: async (path) => {
-          const { data, error } = await adminClient.storage.from('quote-files').download(path);
-          if (error || !data) return null;
-          return new Uint8Array(await data.arrayBuffer());
-        },
-        readThanksRow,
-        callerUserId,
-        outputPhase,
-        onIncident: (code) => console.error(`get-public-quote: ${code}`),
-      };
-      const r = request.mode === 'capability' ? await serveCapability(deps, request.token) : await serveGrant(deps, request.grant, request.channel);
-      return jsonResponse(r.body, r.status);
-    }
-    const quoteId = request.quoteId;
-
-    // Legacy id mode: unchanged while free_issue is not enforced ('absent' = the subscription schema is not applied here).
-    // Enforced: only the verified owner (owner preview, non-consuming) or an is_legacy_public_quote id; everything else gets
-    // the SAME 404 as an unknown id. The same two lookups run for every id before deciding (no enumeration oracle).
-    // Continuation (D): a quote issued through the output authority stays capability-scoped in every phase (rollback-safe).
-    const scopedRes = await adminClient.rpc('is_capability_scoped_quote', { p_quote_id: quoteId });
-    if (scopedRes.error && !isMissingFunctionError(scopedRes.error)) throw new Error('capability scope check unavailable');
-    const capabilityScoped = !scopedRes.error && scopedRes.data === true;
-    if (phase === 'enforced' || capabilityScoped) {
-      const [legacyRes, ownerRes] = await Promise.all([
-        phase === 'enforced' ? adminClient.rpc('is_legacy_public_quote', { p_quote_id: quoteId }) : Promise.resolve({ data: false, error: null }),
-        adminClient.from('quotes').select('user_id').eq('id', quoteId).maybeSingle(),
-      ]);
-      if (legacyRes.error || ownerRes.error) throw new Error('legacy link check unavailable');
-      const decision = decideLegacyAccess({ phase, isLegacy: legacyRes.data, callerUserId, quoteOwnerId: ownerRes.data?.user_id ?? null, capabilityScoped });
-      if (decision !== 'serve') return jsonResponse({ ...UNIFORM_NOT_FOUND.body }, UNIFORM_NOT_FOUND.status);
     }
 
     // עדכון 2026-08-28 (Quote Number Transition audit): quote_number כבר
@@ -168,7 +99,7 @@ serve(async (req) => {
       quote_number, attn_name, attn_role, project_name,
       clients ( company_name, email, phone, address ),
       quote_sections ( id, name, sort_order ),
-      quote_items ( description, quantity, unit_price, total_price, price_missing, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, sort_order, quote_item_measurements ( width, height, unit, calculated_area, label, sort_order, is_pricing_driving ) )
+      quote_items ( description, quantity, unit_price, total_price, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, sort_order, quote_item_measurements ( width, height, unit, calculated_area, label, sort_order, is_pricing_driving ) )
     `;
     const flatSelect = `
       id, user_id, created_at, valid_until, tax_rate, subtotal, total,
@@ -222,10 +153,6 @@ serve(async (req) => {
     // the RPC remains the sole source of truth for the actual
     // authorization decision; this flag is advisory-only for the UI.
     const isOwner = Boolean(callerUserId && callerUserId === quote.user_id);
-
-    // Task 27 (spec §6): the owner's optional thank-you - read ONLY for a quote the server holds as signed; a missing table (migration
-    // 20261011110000 not applied) or any read failure simply means no thank-you (the quote itself is never affected).
-    const thanks = await resolvePublicThanks(quote, quote.user_id, readThanksRow);
 
     const { data: attachmentRows } = await adminClient
       .from('quote_attachments')
@@ -286,8 +213,6 @@ serve(async (req) => {
         .map((s: any) => ({ id: s.id, name: s.name })),
       items: (quote.quote_items || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0)).map((i: any) => ({
         description: i.description, quantity: i.quantity, price: i.unit_price, total_price: i.total_price,
-        // Task 35 (F4): the flag only when true - every existing response stays byte-identical
-        ...(i.price_missing === true ? { price_missing: true } : {}),
         // חוק ברזל (Part E, customer-facing structured display): כל השדות
         // הבאים undefined/[] עבור פריט שטוח (ללא pricing_unit) - זהה-בייט
         // לתצוגה השטוחה הקיימת; PublicQuote.jsx/PublicQuoteEn.jsx חייבים
@@ -302,10 +227,6 @@ serve(async (req) => {
           .map((m: any) => ({ width: m.width, height: m.height, unit: m.unit, calculated_area: m.calculated_area, label: m.label, is_pricing_driving: m.is_pricing_driving !== false })),
       })),
       attachments,
-      // Subscriptions (allowlisted): the page picks the final PDF / Print path from these, never from a client flag
-      viewerIsOwner: isOwner,
-      outputPhase,
-      thanks,
     }, 200);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

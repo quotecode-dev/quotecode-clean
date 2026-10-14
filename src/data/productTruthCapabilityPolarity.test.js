@@ -8,33 +8,26 @@ import { formatPaymentTruthAnswer } from '../../supabase/functions/chat-ai/payme
 import { formatInvoicingTruthAnswer } from '../../supabase/functions/chat-ai/invoicingTruth.ts';
 import { AI_FACTS } from '../../supabase/functions/chat-ai/aiFacts.generated.ts';
 import { PRODUCT_TRUTH_REGISTRY, NON_CURRENT_REGISTRY, getCapabilityById } from './productTruthRegistry.js';
-import { TRUTH_KINDS, analyzeCapabilityProse, checkCapabilityPolarity, deriveExpectedCapabilityTruth, LEGACY_RULESET_ID } from './productTruthCapabilityPolarity.js';
+import { TRUTH_KINDS, analyzeCapabilityProse, checkCapabilityPolarity, deriveExpectedCapabilityTruth } from './productTruthCapabilityPolarity.js';
 
 const FACTS = { capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities };
-// Subscriptions cutover: the account plan the runtime receives is a canonical plan id from the server account summary.
-const TIERS = ['free', 'classic', 'modern', 'visual'];
+const TIERS = ['free', 'basic', 'pro'];
 const ROLES = ['user', 'super_admin'];
 const LANGS = ['en', 'he'];
 const IDS = [...PRODUCT_TRUTH_REGISTRY, ...NON_CURRENT_REGISTRY].map((c) => c.id).filter((i) => i !== 'payment_processing' && i !== 'invoicing');
-const truthOf = (id, tier = 'visual', role = 'user', market = 'Local') => deriveExpectedCapabilityTruth({ expectedResult: id, serverPlan: tier, serverRole: role, market });
-// The pre-cutover plan gates (legacy_v39 ruleset) - the plan-gate polarity machinery still judges the historical evidence with them.
-const legacyTruthOf = (id, tier = 'pro', role = 'user', market = 'Local') => deriveExpectedCapabilityTruth({ expectedResult: id, serverPlan: tier, serverRole: role, market, ruleset: LEGACY_RULESET_ID });
+const truthOf = (id, tier = 'pro', role = 'user', market = 'Local') => deriveExpectedCapabilityTruth({ expectedResult: id, serverPlan: tier, serverRole: role, market });
 const render = (id, lang, tier = 'pro', role = 'user') => formatCapabilityTruthAnswer(id, FACTS, lang === 'he', tier, role === 'super_admin');
 const verdict = (truth, text, lang) => checkCapabilityPolarity(truth, text, lang);
 
 describe('FINDING 3 - expected truth is derived from independent authorities (registry + server facts + structured billing/invoicing)', () => {
   it('derives every truth kind', () => {
     expect(truthOf('editor_calculator').kind).toBe(TRUTH_KINDS.AVAILABLE);
-    // current truth: subscription-gated, plan inclusion not decided (OPEN-02 / OPEN-13) - whatever the account plan
-    for (const tier of TIERS) expect(truthOf('attachments', tier)).toMatchObject({ kind: TRUTH_KINDS.PLAN_NOT_DECIDED, gate: 'subscription', minimumPlan: null });
-    expect(truthOf('measured_quote', 'free').kind).toBe(TRUTH_KINDS.PLAN_NOT_DECIDED);
-    // legacy_v39 (historical evidence only)
-    expect(legacyTruthOf('attachments', 'free').kind).toBe(TRUTH_KINDS.PLAN_LOCKED);
-    expect(legacyTruthOf('attachments', 'pro').kind).toBe(TRUTH_KINDS.AVAILABLE);
-    expect(legacyTruthOf('attachments', 'pro')).toMatchObject({ gate: 'plan', minimumPlan: 'pro' });
-    expect(legacyTruthOf('measured_quote', 'basic').kind).toBe(TRUTH_KINDS.AVAILABLE);
-    expect(legacyTruthOf('measured_quote', 'free').kind).toBe(TRUTH_KINDS.PLAN_LOCKED);
-    expect(truthOf('admin_console', 'visual', 'user').kind).toBe(TRUTH_KINDS.ROLE_LOCKED);
+    expect(truthOf('attachments', 'free').kind).toBe(TRUTH_KINDS.PLAN_LOCKED);
+    expect(truthOf('attachments', 'pro').kind).toBe(TRUTH_KINDS.AVAILABLE);
+    expect(truthOf('attachments', 'pro')).toMatchObject({ gate: 'plan', minimumPlan: 'pro' });
+    expect(truthOf('measured_quote', 'basic').kind).toBe(TRUTH_KINDS.AVAILABLE);
+    expect(truthOf('measured_quote', 'free').kind).toBe(TRUTH_KINDS.PLAN_LOCKED);
+    expect(truthOf('admin_console', 'pro', 'user').kind).toBe(TRUTH_KINDS.ROLE_LOCKED);
     expect(truthOf('admin_console', 'free', 'super_admin').kind).toBe(TRUTH_KINDS.AVAILABLE);
     expect(truthOf('ai_mutation').kind).toBe(TRUTH_KINDS.NOT_AVAILABLE);
     expect(truthOf('payment_truth_sentinel').kind).toBe(TRUTH_KINDS.PAYMENT_NOT_LIVE);
@@ -48,9 +41,7 @@ describe('FINDING 3 - expected truth is derived from independent authorities (re
     expect(deriveExpectedCapabilityTruth({ expectedResult: 'editor_calculator', serverPlan: 'pro', serverRole: 'user', market: 'Local' }).kind).toBe(TRUTH_KINDS.AVAILABLE);
   });
   it('fails closed (UNDERIVABLE) when the facts needed are missing or the id is unknown', () => {
-    expect(deriveExpectedCapabilityTruth({ expectedResult: 'attachments', ruleset: LEGACY_RULESET_ID }).kind).toBe('UNDERIVABLE');
-    // current: no plan fact is needed to state "exists, plan inclusion not decided"
-    expect(deriveExpectedCapabilityTruth({ expectedResult: 'attachments' }).kind).toBe(TRUTH_KINDS.PLAN_NOT_DECIDED);
+    expect(deriveExpectedCapabilityTruth({ expectedResult: 'attachments' }).kind).toBe('UNDERIVABLE');
     expect(deriveExpectedCapabilityTruth({ expectedResult: 'admin_console', serverPlan: 'pro' }).kind).toBe('UNDERIVABLE');
     expect(deriveExpectedCapabilityTruth({ expectedResult: 'not_a_capability' }).kind).toBe('UNDERIVABLE');
     expect(checkCapabilityPolarity({ kind: 'UNDERIVABLE', reason: 'x' }, 'Yes - it exists.', 'en').join(' ')).toMatch(/expected_truth_underivable/);
@@ -62,7 +53,7 @@ describe('FINDING 3 - expected truth is derived from independent authorities (re
 });
 
 describe('FINDING 3 - the REAL runtime answers pass under their own truth (no false rejection)', () => {
-  it(`every registry capability x tier x role x language render (${IDS.length * 2 * TIERS.length * 2} answers) matches its derived truth`, () => {
+  it(`every registry capability x tier x role x language render (${IDS.length * 2 * 3 * 2} answers) matches its derived truth`, () => {
     const failures = [];
     let n = 0;
     for (const id of IDS) for (const lang of LANGS) for (const tier of TIERS) for (const role of ROLES) {
@@ -145,15 +136,15 @@ describe('FINDING 3 - adversarial polarity (EN): the exact Codex attack and its 
     expect(verdict(t, 'AI-executed data mutation is not currently available - it is a future roadmap item, not an active capability today.', 'en')).toEqual([]);
   });
   it('expected PLAN-GATED (account lacks) + "available to everyone" / silent on the gate / says the account has it => FAIL', () => {
-    const t = legacyTruthOf('attachments', 'free');
+    const t = truthOf('attachments', 'free');
     expect(verdict(t, 'Yes - File attachments exists in TEKANGO and is available to all users on every plan.', 'en').join(' ')).toMatch(/claims_universal_availability/);
     expect(verdict(t, 'Yes - File attachments exists in TEKANGO.', 'en').join(' ')).toMatch(/plan_gate_not_disclosed|does_not_say_the_account_lacks_it/);
     expect(verdict(t, 'Yes - File attachments exists in TEKANGO, but it requires the PRO plan or above. Your current plan includes it.', 'en').join(' ')).toMatch(/says_the_account_has_it/);
     expect(verdict(t, 'File attachments does not exist in TEKANGO.', 'en').join(' ')).toMatch(/denies_existence/);
   });
   it('a WRONG plan tier is rejected (measured quotes need BASIC, not PRO)', () => {
-    expect(verdict(legacyTruthOf('measured_quote', 'free'), 'Yes - Measured professional quote exists in TEKANGO, but it requires the PRO plan or above. Your current plan does not include it.', 'en').join(' ')).toMatch(/wrong_plan_tier_stated:pro/);
-    expect(verdict(legacyTruthOf('measured_quote', 'basic'), 'Yes - Measured professional quote exists in TEKANGO, but it requires the PRO plan.', 'en').join(' ')).toMatch(/wrong_plan_tier_stated:pro/);
+    expect(verdict(truthOf('measured_quote', 'free'), 'Yes - Measured professional quote exists in TEKANGO, but it requires the PRO plan or above. Your current plan does not include it.', 'en').join(' ')).toMatch(/wrong_plan_tier_stated:pro/);
+    expect(verdict(truthOf('measured_quote', 'basic'), 'Yes - Measured professional quote exists in TEKANGO, but it requires the PRO plan.', 'en').join(' ')).toMatch(/wrong_plan_tier_stated:pro/);
   });
   it('an ungated capability presented as plan-gated is rejected', () => {
     expect(verdict(truthOf('editor_calculator'), 'Yes - In-editor calculator exists in TEKANGO, but it requires the PRO plan or above.', 'en').join(' ')).toMatch(/plan_gate_claimed_on_ungated_capability/);
@@ -183,9 +174,8 @@ describe('FINDING 3 - adversarial polarity (EN): the exact Codex attack and its 
   it('natural paraphrases with the CORRECT truth PASS (no label needed)', () => {
     expect(verdict(truthOf('editor_calculator'), 'Yes, the editor has a built-in calculator you can use.', 'en')).toEqual([]);
     expect(verdict(truthOf('editor_calculator'), 'Absolutely - a calculator is built into the quote editor.', 'en')).toEqual([]);
-    expect(verdict(legacyTruthOf('attachments', 'free'), 'Yes, you can attach files to a quote, but that is offered on the PRO plan or higher, and your current plan does not include it.', 'en')).toEqual([]);
-    expect(verdict(legacyTruthOf('attachments', 'pro'), 'Yes - you can attach files and drawings to a quote.', 'en')).toEqual([]);
-    expect(verdict(truthOf('attachments'), 'Yes - you can attach files and drawings to a quote. Plan inclusion for it is still undecided.', 'en')).toEqual([]);
+    expect(verdict(truthOf('attachments', 'free'), 'Yes, you can attach files to a quote, but that is offered on the PRO plan or higher, and your current plan does not include it.', 'en')).toEqual([]);
+    expect(verdict(truthOf('attachments', 'pro'), 'Yes - you can attach files and drawings to a quote.', 'en')).toEqual([]);
     expect(verdict(truthOf('ai_mutation'), 'No, the assistant cannot make changes for you - that is not something TEKANGO does today.', 'en')).toEqual([]);
     expect(verdict(truthOf('payment_truth_sentinel'), "No - there's no checkout or online payment in TEKANGO right now.", 'en')).toEqual([]);
     expect(verdict(truthOf('admin_console', 'pro', 'user'), 'Yes - the admin console exists, but it is restricted to the server-verified super_admin role. Your current account does not hold that role.', 'en')).toEqual([]);
@@ -205,11 +195,11 @@ describe('FINDING 3 - adversarial polarity (HE)', () => {
     expect(verdict(t, 'שינוי נתונים על ידי AI אינה זמינה כרגע - זהו יעד עתידי, לא יכולת פעילה היום.', 'he')).toEqual([]);
   });
   it('expected PLAN-GATED + universal availability / no gate => FAIL', () => {
-    const t = legacyTruthOf('attachments', 'free');
+    const t = truthOf('attachments', 'free');
     expect(verdict(t, 'כן - צירוף קבצים קיימת ב-TEKANGO וזמינה לכל המשתמשים בכל תוכנית.', 'he').join(' ')).toMatch(/claims_universal_availability/);
     expect(verdict(t, 'כן - צירוף קבצים קיימת ב-TEKANGO.', 'he').length).toBeGreaterThan(0);
     expect(verdict(t, 'כן - צירוף קבצים קיימת ב-TEKANGO, אך דורשת תוכנית PRO ומעלה. התוכנית הנוכחית שלך כוללת אותה.', 'he').join(' ')).toMatch(/says_the_account_has_it/);
-    expect(verdict(legacyTruthOf('measured_quote', 'free'), 'כן - הצעת מחיר מקצועית/מדודה קיימת ב-TEKANGO, אך דורשת תוכנית PRO ומעלה. התוכנית הנוכחית שלך אינה כוללת אותה.', 'he').join(' ')).toMatch(/wrong_plan_tier_stated:pro/);
+    expect(verdict(truthOf('measured_quote', 'free'), 'כן - הצעת מחיר מקצועית/מדודה קיימת ב-TEKANGO, אך דורשת תוכנית PRO ומעלה. התוכנית הנוכחית שלך אינה כוללת אותה.', 'he').join(' ')).toMatch(/wrong_plan_tier_stated:pro/);
   });
   it('expected ROLE-GATED + "everyone can access" => FAIL', () => {
     const t = truthOf('admin_console', 'pro', 'user');
@@ -223,32 +213,9 @@ describe('FINDING 3 - adversarial polarity (HE)', () => {
   });
   it('natural paraphrases with the CORRECT truth PASS (HE)', () => {
     expect(verdict(truthOf('editor_calculator'), 'כן, יש מחשבון מובנה בעורך שאפשר להשתמש בו.', 'he')).toEqual([]);
-    expect(verdict(legacyTruthOf('attachments', 'free'), 'כן - אפשר לצרף קבצים להצעה, אך זה זמין רק בתוכנית PRO ומעלה. התוכנית הנוכחית שלך אינה כוללת את זה.', 'he')).toEqual([]);
-    expect(verdict(truthOf('attachments'), 'כן - אפשר לצרף קבצים להצעה. אילו מסלולים יכללו את זה - טרם הוחלט.', 'he')).toEqual([]);
+    expect(verdict(truthOf('attachments', 'free'), 'כן - אפשר לצרף קבצים להצעה, אך זה זמין רק בתוכנית PRO ומעלה. התוכנית הנוכחית שלך אינה כוללת את זה.', 'he')).toEqual([]);
     expect(verdict(truthOf('ai_mutation'), 'לא, העוזר לא יכול לבצע שינויים בשבילך - זה לא משהו ש-TEKANGO עושה כיום.', 'he')).toEqual([]);
     expect(verdict(truthOf('payment_truth_sentinel'), 'כרגע אין ב-TEKANGO סליקה או תשלום אונליין.', 'he')).toEqual([]);
-  });
-});
-
-describe('SUBSCRIPTIONS CUTOVER - PLAN_NOT_DECIDED polarity (OPEN-02 / OPEN-13): exists, plan inclusion not decided', () => {
-  const GATED = ['quote_edit', 'quote_duplicate', 'measured_quote', 'professional_reuse', 'attachments', 'owner_whatsapp_share'];
-  it.each(GATED)('the real runtime render of "%s" (EN + HE, every canonical plan) passes PLAN_NOT_DECIDED and names no plan', (id) => {
-    for (const lang of LANGS) for (const tier of [...TIERS, null]) {
-      const text = render(id, lang, tier);
-      expect(verdict(truthOf(id, tier ?? undefined), text, lang), text).toEqual([]);
-      expect(text).not.toMatch(/\b(?:PRO|BASIC|Pro|Basic)\b|trial|ניסיון|unlimited|ללא הגבלה/);
-      expect(text).toMatch(lang === 'he' ? /טרם הוחלט/ : /undecided/);
-    }
-  });
-  it('a legacy plan-gate answer, a "your plan includes it" answer, a universal answer or a silent answer are all REJECTED', () => {
-    const t = truthOf('attachments');
-    expect(verdict(t, 'Yes - File attachments exists in TEKANGO, but it requires the PRO plan or above. Your current plan does not include it.', 'en').join(' ')).toMatch(/plan_tier_stated_while_plan_inclusion_is_not_decided:pro/);
-    expect(verdict(t, 'Yes - File attachments exists in TEKANGO, but it is included from the Visual plan. Plan inclusion is still undecided.', 'en').join(' ')).toMatch(/plan_tier_stated_while_plan_inclusion_is_not_decided:visual/);
-    expect(verdict(t, 'Yes - File attachments exists in TEKANGO and your current plan includes it. Plan inclusion is still undecided.', 'en').join(' ')).toMatch(/says_the_account_has_it/);
-    expect(verdict(t, 'Yes - File attachments exists in TEKANGO and is available to all users on every plan. Plan inclusion is still undecided.', 'en').join(' ')).toMatch(/universal/);
-    expect(verdict(t, 'Yes - File attachments exists in TEKANGO.', 'en').join(' ')).toMatch(/does_not_say_it_is_not_decided/);
-    expect(verdict(t, 'File attachments does not exist in TEKANGO.', 'en').join(' ')).toMatch(/denies_existence/);
-    expect(verdict(t, 'כן - צירוף קבצים קיימת ב-TEKANGO, אך דורשת תוכנית PRO ומעלה.', 'he').length).toBeGreaterThan(0);
   });
 });
 

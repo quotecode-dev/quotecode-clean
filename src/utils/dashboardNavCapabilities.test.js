@@ -16,22 +16,18 @@ const t = {
   financesNav: 'Finances',
   catalogNav: 'Catalog',
   usersAdminNav: 'Users Admin',
-  statisticsNav: 'Statistics',
-  tasksNav: 'Tasks',
-  calendarNav: 'Calendar',
 };
 
 describe('getDashboardNavCapabilities - cross-viewport capability parity', () => {
-  it('an ordinary user (isSuperAdmin=false) resolves exactly the 8 non-admin destinations, none admin-only', () => {
+  it('an ordinary user (isSuperAdmin=false) resolves exactly the 5 non-admin destinations, none admin-only', () => {
     const caps = getDashboardNavCapabilities({ isSuperAdmin: false, t, isHebrew: false });
-    // Task 17 adds Statistics after Finances, Task 18 Tasks after Statistics, Task 19 Calendar after Tasks (approved relative order unchanged)
-    expect(caps.map((c) => c.id)).toEqual(['main', 'clients', 'catalog', 'finances', 'statistics', 'tasks', 'calendar', 'settings']);
+    expect(caps.map((c) => c.id)).toEqual(['main', 'settings', 'clients', 'finances', 'catalog']);
     expect(caps.some((c) => c.id === 'admin_clients')).toBe(false);
   });
 
-  it('a Super Admin resolves the same 8 destinations PLUS admin_clients - never fewer, never a different set', () => {
+  it('a Super Admin resolves the same 5 destinations PLUS admin_clients - never fewer, never a different set', () => {
     const caps = getDashboardNavCapabilities({ isSuperAdmin: true, t, isHebrew: false });
-    expect(caps.map((c) => c.id)).toEqual(['main', 'clients', 'catalog', 'finances', 'statistics', 'tasks', 'calendar', 'settings', 'admin_clients']);
+    expect(caps.map((c) => c.id)).toEqual(['main', 'settings', 'clients', 'finances', 'catalog', 'admin_clients']);
   });
 
   it('every destination has a mobileGroup, so no destination can silently exist for Desktop only', () => {
@@ -85,25 +81,5 @@ describe('getDashboardNavCapabilities - label/market behavior', () => {
     const capsEn = getDashboardNavCapabilities({ isSuperAdmin: true, t, isHebrew: false });
     expect(capsHe.map((c) => c.id)).toEqual(capsEn.map((c) => c.id));
     expect(capsHe.map((c) => c.role)).toEqual(capsEn.map((c) => c.role));
-  });
-});
-
-describe('getDashboardNavCapabilities - approved 980px sidebar order', () => {
-  it('lists Quotes, Clients, Catalog, Expenses & Reports, Business Settings in that order, with single-icon components', () => {
-    const caps = getDashboardNavCapabilities({ isSuperAdmin: false, t: { ...t, financesNav: 'Expenses & Reports' }, isHebrew: false });
-    // the Owner-approved five keep their exact relative order; the authorized additions (Task 17 Statistics, Task 18 Tasks) sit after
-    // Expenses & Reports
-    expect(caps.filter((c) => !['statistics', 'tasks', 'calendar'].includes(c.id)).map((c) => c.label)).toEqual(['Quotes', 'Clients', 'Catalog', 'Expenses & Reports', 'Business Settings']);
-    expect(caps.map((c) => c.label)).toEqual(['Quotes', 'Clients', 'Catalog', 'Expenses & Reports', 'Statistics', 'Tasks', 'Calendar', 'Business Settings']);
-    expect(caps.find((c) => c.id === 'calendar').mobileGroup).toBe('more');
-    expect(caps.find((c) => c.id === 'statistics').mobileGroup).toBe('more'); // the approved mobile bottom row is unchanged
-    expect(caps.find((c) => c.id === 'tasks').mobileGroup).toBe('more');
-    for (const cap of caps) expect(cap.icon).toBeTruthy();
-  });
-
-  it('keeps the short mobile labels for the relabelled destinations (mobile nav text is unchanged)', () => {
-    const caps = getDashboardNavCapabilities({ isSuperAdmin: false, t, isHebrew: true });
-    expect(caps.find((c) => c.id === 'finances').mobileLabel).toBe('פיננסים');
-    expect(caps.find((c) => c.id === 'settings').mobileLabel).toBe('הגדרות');
   });
 });

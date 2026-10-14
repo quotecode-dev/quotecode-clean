@@ -171,38 +171,3 @@ enabled = true
 # The DB credential is read only after every check passed; the endpoint and SQL are fixed in code.
 verify_jwt = false
 entrypoint = "./functions/p0-aqp-0929-broker/index.ts"
-
-[functions.quote-presentation]
-enabled = true
-# verify_jwt=false on purpose (Task 16 Quote Experience V2): the action public_get is the customer-facing
-# presentation read for the public quote page (same quote-id possession model as get-public-quote) and must
-# succeed without a Supabase Auth JWT - the gateway check would reject it before our code runs. Every other
-# action is authenticated IN CODE before anything else: Bearer user JWT verified with auth.getUser, ownership
-# via quotes.user_id and the caller's own t16-presentation/<uid>/ storage prefix, entitlement from the shared
-# capability twin, qa_set_capability only on TEST (ljfizgrdyzxddswcedwr) for business_settings.role = super_admin.
-# Service role is server-side only; the t16-presentation/ prefix is unreachable for every client storage policy.
-verify_jwt = false
-entrypoint = "./functions/quote-presentation/index.ts"
-
-[functions.ai-quote-draft]
-enabled = true
-# Task 21 (local only, NOT deployed): drafts reviewable quote lines for the dashboard "AI smart quote" choice. Read-only; the JWT
-# is verified by the gateway AND in code (auth.getUser); business_settings and the catalog are read with the caller JWT (RLS).
-verify_jwt = true
-entrypoint = "./functions/ai-quote-draft/index.ts"
-
-[functions.get-business-card]
-enabled = true
-# Task 23 (local only, NOT deployed): the PUBLIC digital business card read (/card/:id). verify_jwt=false on purpose - the card is
-# meant to be shared; the function returns only the whitelisted public contact fields (_shared/businessCard.js), uniform 404 otherwise.
-verify_jwt = false
-entrypoint = "./functions/get-business-card/index.ts"
-
-[functions.subscription-authority]
-enabled = true
-# verify_jwt=false on purpose (subscriptions cross-cut, OD-02/OD-15): the provider_event route receives signed provider
-# webhooks that carry no Supabase Auth JWT. Every user action (output_notice, authorize_output, checkout_intent,
-# import_logo) verifies the Bearer user JWT IN CODE with auth.getUser before anything else; the body never names the
-# account. The code-level activation phase is off; the function is not deployed by this change.
-verify_jwt = false
-entrypoint = "./functions/subscription-authority/index.ts"

@@ -17,12 +17,10 @@ import { formatShortDateTime } from '../utils/shortDate';
 const dateTimeLabel = (value, isHebrew) => value && Number.isFinite(new Date(value).getTime())
   ? formatShortDateTime(value, (isHebrew ? 'Local' : 'International')) : '—';
 
-// OD-16: past trial / is_lifetime operations are history of the LEGACY record - labelled as legacy operations with the raw
-// technical field, never as a Lifetime/trial plan identity.
 const ACTION_LABELS = {
-  grant_lifetime: { he: 'פעולת מורשת: is_lifetime=true', en: 'Legacy operation: is_lifetime=true' },
-  revoke_lifetime: { he: 'פעולת מורשת: is_lifetime=false', en: 'Legacy operation: is_lifetime=false' },
-  extend_trial: { he: 'הארכת ניסיון (מורשת)', en: 'Extend legacy trial' },
+  grant_lifetime: { he: 'הענקת Lifetime', en: 'Grant Lifetime' },
+  revoke_lifetime: { he: 'ביטול Lifetime', en: 'Revoke Lifetime' },
+  extend_trial: { he: 'הארכת ניסיון', en: 'Extend Trial' },
   delete_user: { he: 'מחיקת משתמש', en: 'Delete User' },
   reset_quotes: { he: 'איפוס נתוני הצעות', en: 'Reset Quote Data' },
 };
@@ -60,8 +58,8 @@ export default function AdminSystemActivity({ accounts, isHebrew }) {
           <Info size={15} />
           <span>
             {isHebrew
-              ? 'שינויים ברשומת המורשת (plan / trial_ends_at / is_lifetime) שבוצעו לפני הפעלת יומן הביקורת אינם נשמרים היסטורית. רישום חשבון חדש הוא אירוע אמיתי הניתן לשחזור מנתונים קיימים תמיד - זהו פער אמיתי לגבי היסטוריה ישנה, לא הסתרה.'
-              : 'Legacy record changes (plan / trial_ends_at / is_lifetime) made before the audit log existed are not retained historically. Account registration is always a real, reconstructable event - a real, disclosed gap for older history, not hidden.'}
+              ? 'שינויי חבילה/Lifetime/ניסיון שבוצעו לפני הפעלת יומן הביקורת אינם נשמרים היסטורית. רישום חשבון חדש הוא אירוע אמיתי הניתן לשחזור מנתונים קיימים תמיד - זהו פער אמיתי לגבי היסטוריה ישנה, לא הסתרה.'
+              : 'Plan/Lifetime/trial changes made before the audit log existed are not retained historically. Account registration is always a real, reconstructable event - a real, disclosed gap for older history, not hidden.'}
           </span>
         </div>
       )}

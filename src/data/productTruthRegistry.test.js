@@ -1,23 +1,22 @@
 // PRODUCT TRUTH SOURCE COVERAGE + AUTHORITY PARITY (TEKANGO_AI_ARCHITECTURE.md v2.5 §52,
 // implementation task step 14/15). Static gates: every declared capability ID has a complete
-// registry entry; no phantom/duplicate IDs; every subscription-gated capability names a real canonical
-// capability of supabase/functions/_shared/subscriptionContract.ts whose plan eligibility is NOT decided
-// (OPEN-02 / OPEN-13) - no legacy minimum plan / entitlement key survives the subscriptions cutover;
-// aiMayClaimExecution is hard-false for every entry.
+// registry entry; no phantom/duplicate IDs; every plan-gated capability's entitlementKey/
+// minimumPlan matches src/utils/planCatalog.js exactly (never a hand-typed duplicate that can
+// drift); aiMayClaimExecution is hard-false for every entry.
 import { describe, it, expect } from 'vitest';
 import {
-  PRODUCT_TRUTH_REGISTRY, NON_CURRENT_REGISTRY, CANONICAL_38_IDS, PHASE_CAPABILITY_IDS, NON_CURRENT_IDS, CAPABILITY_STATES, getCapabilityById,
+  PRODUCT_TRUTH_REGISTRY, NON_CURRENT_REGISTRY, CANONICAL_38_IDS, NON_CURRENT_IDS, CAPABILITY_STATES, getCapabilityById,
 } from './productTruthRegistry.js';
-import { CAPABILITIES, FREE_QUOTES_TOTAL } from '../../supabase/functions/_shared/subscriptionContract.ts';
+import { PLAN_CATALOG, getEntitlementSet } from '../utils/planCatalog.js';
 
 const REQUIRED_FIELDS = [
   'id', 'heLabel', 'enLabel', 'heDescription', 'enDescription', 'state', 'surfaces', 'markets', 'currencies',
-  'entitlementKey', 'minimumPlan', 'subscriptionCapabilityId', 'planEligibility', 'authorityType', 'requiredRole', 'authoritySource',
+  'entitlementKey', 'minimumPlan', 'authorityType', 'requiredRole', 'authoritySource', 'trialAvailable',
   'operationType', 'userActionAvailable', 'aiMayExplain',
   'aiMayNavigate', 'aiMayClaimExecution', 'safeNavigationId', 'deterministicFactKeys', 'forbiddenClaimCodes',
   'canonicalSources', 'tests', 'lastVerifiedRevision', 'releaseEnvironment',
 ];
-const VALID_AUTHORITY_TYPES = new Set(['subscription', 'role', 'none']);
+const VALID_AUTHORITY_TYPES = new Set(['plan', 'role', 'none']);
 
 const VALID_STATES = new Set(Object.values(CAPABILITY_STATES));
 const VALID_OPERATION_TYPES = new Set(['read', 'mutate']);
@@ -30,11 +29,10 @@ const NAV_ACTIONS = new Set([
 ]);
 
 describe('PRODUCT TRUTH SOURCE COVERAGE (§52.9 / step 14)', () => {
-  it('has exactly the 38 frozen canonical IDs followed by the explicitly pinned Task 20 IDs, no more, no fewer', () => {
+  it('has exactly the 38 frozen canonical IDs, no more, no fewer', () => {
     const ids = PRODUCT_TRUTH_REGISTRY.map((c) => c.id);
-    expect(ids).toEqual([...CANONICAL_38_IDS, ...PHASE_CAPABILITY_IDS]);
-    expect(PHASE_CAPABILITY_IDS).toEqual(['quote_statistics', 'manual_tasks', 'calendar', 'quote_link_view', 'reminders_automation', 'digital_business_card']); // Task 23: Phase 5 card
-    expect(ids.length).toBe(44);
+    expect(ids).toEqual(CANONICAL_38_IDS.slice());
+    expect(ids.length).toBe(38);
   });
 
   it('has no duplicate IDs across the current registry', () => {
@@ -103,59 +101,31 @@ describe('PRODUCT TRUTH SOURCE COVERAGE (§52.9 / step 14)', () => {
 });
 
 describe('PRODUCT TRUTH AUTHORITY PARITY (§52.9 / step 15)', () => {
-  const GATED = PRODUCT_TRUTH_REGISTRY.filter((c) => c.subscriptionCapabilityId);
+  it.each(PRODUCT_TRUTH_REGISTRY.filter((c) => c.entitlementKey && c.entitlementKey !== 'monthlyQuoteLimit'))(
+    'capability "$id" entitlementKey "$entitlementKey" resolves to a real planCatalog.js entitlement field',
+    (c) => {
+      expect(Object.prototype.hasOwnProperty.call(PLAN_CATALOG.pro.entitlements, c.entitlementKey)).toBe(true);
+    },
+  );
 
-  it('exactly the six historically plan-gated capabilities are subscription-gated, each mapped to its canonical capability id', () => {
-    expect(Object.fromEntries(GATED.map((c) => [c.id, c.subscriptionCapabilityId]))).toEqual({
-      quote_edit: 'quote.edit_duplicate',
-      quote_duplicate: 'quote.edit_duplicate',
-      measured_quote: 'professional_quote.use',
-      professional_reuse: 'professional_quote.reuse',
-      attachments: 'quote_attachment.upload',
-      owner_whatsapp_share: 'quote.whatsapp_delete',
-    });
+  it.each(PRODUCT_TRUTH_REGISTRY.filter((c) => c.entitlementKey && c.entitlementKey !== 'monthlyQuoteLimit'))(
+    'capability "$id" minimumPlan matches the LOWEST plan where planCatalog.js actually grants entitlementKey (no hand-typed drift)',
+    (c) => {
+      const grantingPlan = ['free', 'basic', 'pro'].find((p) => getEntitlementSet(p)[c.entitlementKey] === true);
+      expect(c.minimumPlan, `${c.id}: registry says minimumPlan=${c.minimumPlan}, but planCatalog.js says the lowest granting plan is ${grantingPlan}`).toBe(grantingPlan);
+    },
+  );
+
+  it('quote_create ties monthlyQuoteLimit to the real per-plan numeric limits (FREE 5 / BASIC 20 / PRO unlimited)', () => {
+    expect(getEntitlementSet('free').monthlyQuoteLimit).toBe(5);
+    expect(getEntitlementSet('basic').monthlyQuoteLimit).toBe(20);
+    expect(getEntitlementSet('pro').monthlyQuoteLimit).toBe(Infinity);
+    expect(getCapabilityById('quote_create').deterministicFactKeys).toContain('monthlyQuoteLimit');
   });
 
-  it.each(GATED)('subscription-gated capability "$id" names a real canonical capability whose plan eligibility is NOT decided', (c) => {
-    expect(CAPABILITIES[c.subscriptionCapabilityId], c.subscriptionCapabilityId).toBeTruthy();
-    expect(CAPABILITIES[c.subscriptionCapabilityId].eligiblePlans).toBeNull();
-    expect(c.planEligibility).toBe('not_decided');
-    expect(c.authorityType).toBe('subscription');
-  });
-
-  it.each(PRODUCT_TRUTH_REGISTRY)('capability "$id" carries no legacy plan gate (minimumPlan / entitlementKey are null after the cutover)', (c) => {
-    expect(c.minimumPlan).toBeNull();
-    expect(c.entitlementKey).toBeNull();
-    expect(c).not.toHaveProperty('trialAvailable');
-  });
-
-  it('quote_create ties to the Free-10 fact (OD-01), never to a monthly limit', () => {
-    expect(FREE_QUOTES_TOTAL).toBe(10);
-    expect(getCapabilityById('quote_create').deterministicFactKeys).toEqual(['subscriptions.free.quotesTotal']);
-  });
-
-  it('no current label or description states a trial, a legacy plan name, "unlimited" or a monthly quote limit', () => {
-    const BAD = /\btrial\b|\b14[- ]day|\bbasic\b|\bpro\b|\bunlimited\b|monthly quote|ניסיון|ללא הגבלה|\bPRO\b|\bBASIC\b|החודשית/i;
-    for (const c of PRODUCT_TRUTH_REGISTRY) {
-      for (const k of ['heLabel', 'enLabel', 'heDescription', 'enDescription']) expect(c[k], `${c.id}.${k}`).not.toMatch(BAD);
-    }
-  });
-
-  it('plan_trial keeps its frozen technical id but now states the Free-10 plan truth (OD-01) and the inactive plan system', () => {
-    const c = getCapabilityById('plan_trial');
-    expect(c.enLabel).toBe('Plans and Free quotes');
-    // Task 27 (§249 + the Owner's 2026-10-11 amendment): Free-10, then ONE package; HE = ILS only, EN = USD only (market isolation)
-    expect(c.enDescription).toMatch(/10 quotes in total, valid without an expiry date/);
-    expect(c.enDescription).toMatch(/one package with every available capability, billed monthly or annually: 18\.00 USD per month or 184\.00 USD per year/);
-    expect(c.enDescription).toMatch(/still being prepared/);
-    expect(c.enDescription).not.toMatch(/Classic|Modern|Visual|₪|ILS/);
-    expect(c.heDescription).toMatch(/30\.00 ₪ לחודש או 306\.00 ₪ לשנה, כולל מע״מ/);
-    expect(c.heDescription).not.toMatch(/קלאסיק|מודרן|ויזואל|USD|\$/);
-  });
-
-  it('capabilities with no subscription gate found by Codex genuinely have no subscriptionCapabilityId (never invented)', () => {
+  it('capabilities with no plan gate found by Codex genuinely have no entitlementKey (never invented)', () => {
     const NO_GATE_IDS = [
-      'dashboard_overview', 'quote_history', 'quote_create', 'quote_status', 'smart_quote', 'clients', 'catalog', 'finance_views',
+      'dashboard_overview', 'quote_history', 'quote_status', 'smart_quote', 'clients', 'catalog', 'finance_views',
       'expenses', 'quote_csv', 'expense_csv', 'editor_calculator', 'editor_currency_converter',
       'public_currency_converter', 'public_unit_converter', 'public_metals_calculator', 'public_crypto_calculator',
       'business_settings', 'profile_prerequisites', 'plan_trial', 'quote_pdf', 'quote_print', 'quote_email',
@@ -163,7 +133,7 @@ describe('PRODUCT TRUTH AUTHORITY PARITY (§52.9 / step 15)', () => {
       'draft_recovery', 'accessibility_tools', 'ai_chat', 'admin_console',
     ];
     for (const id of NO_GATE_IDS) {
-      expect(getCapabilityById(id).subscriptionCapabilityId, `${id} should have no subscription gate`).toBeNull();
+      expect(getCapabilityById(id).entitlementKey, `${id} should have no plan gate per §52.4`).toBeNull();
     }
   });
 
@@ -171,8 +141,8 @@ describe('PRODUCT TRUTH AUTHORITY PARITY (§52.9 / step 15)', () => {
     const owner = getCapabilityById('owner_whatsapp_share');
     const pub = getCapabilityById('public_whatsapp_contact');
     expect(owner.id).not.toBe(pub.id);
-    expect(owner.subscriptionCapabilityId).toBe('quote.whatsapp_delete');
-    expect(pub.subscriptionCapabilityId).toBeNull();
+    expect(owner.entitlementKey).toBe('whatsappDelete');
+    expect(pub.entitlementKey).toBeNull();
   });
 
   it('calculator/public-tool conversion currencies never carry a payment or quote role (§52.5)', () => {
@@ -192,25 +162,25 @@ describe('PRODUCT TRUTH AUTHORITY PARITY (§52.9 / step 15)', () => {
     expect(VALID_AUTHORITY_TYPES.has(c.authorityType)).toBe(true);
   });
 
-  it.each(PRODUCT_TRUTH_REGISTRY)('capability "$id" never sets BOTH a subscription gate and a role gate on the same entry', (c) => {
-    expect(!(c.subscriptionCapabilityId && c.requiredRole)).toBe(true);
+  it.each(PRODUCT_TRUTH_REGISTRY)('capability "$id" never sets BOTH a plan gate and a role gate on the same entry', (c) => {
+    expect(!(c.entitlementKey && c.requiredRole)).toBe(true);
   });
 
   it.each(PRODUCT_TRUTH_REGISTRY.filter((c) => c.authorityType === 'role'))('role-gated capability "$id" has a requiredRole and an authoritySource, never inferred from plan', (c) => {
     expect(c.requiredRole).toBeTruthy();
     expect(c.authoritySource).toBeTruthy();
     expect(c.minimumPlan).toBeNull();
-    expect(c.subscriptionCapabilityId).toBeNull();
+    expect(c.entitlementKey).toBeNull();
   });
 });
 
 describe('DEFECT-6 ADMIN AUTHORITY PARITY (Codex, 2026-09-22)', () => {
-  it('admin_console is role-gated, not plan-gated (no plan is ever Admin authority)', () => {
+  it('admin_console is role-gated, not plan-gated (Lifetime/PRO entitlement != Admin authority)', () => {
     const admin = getCapabilityById('admin_console');
     expect(admin.authorityType).toBe('role');
     expect(admin.requiredRole).toBe('super_admin');
     expect(admin.minimumPlan).toBeNull();
-    expect(admin.subscriptionCapabilityId).toBeNull();
+    expect(admin.entitlementKey).toBeNull();
   });
 
   it('admin_console authoritySource points at the real server-side role check (accountContext.ts)', () => {

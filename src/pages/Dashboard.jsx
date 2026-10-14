@@ -2,15 +2,17 @@
 // 🚨 חוק ברזל קשוח (Dashboard.jsx): הודעות צפות מודרניות במרכז המסך ושמירה על יציבות.
 // ==============================================================================
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase, rootRecoveryIntent, consumeRootRecoveryIntent, consumeRootSignupIntent, isLocalTestMode } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
+import BrandName from '../components/BrandName';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
 import { publishBlocker, resolveBlockers, clearScope, SAVE_ATTEMPT_CODES, blockerCodeForActionError, blockerCodeForSaveFailure, blockerCodeForEmailError } from '../utils/aiHelpBlockers';
 import AiHelpButton from '../components/AiHelpButton';
+import AiChatIcon from '../components/AiChatIcon';
 import { computeQuoteWorkflowContext } from '../utils/quoteWorkflowContext';
 import { formatShortDate, deviceCalendarDate } from '../utils/shortDate';
 import { resolveAdminMarket } from '../utils/adminMarket';
@@ -20,33 +22,31 @@ import { allowDraftWrites, decideRestore, suppressDraftWrites, flushAllDrafts, f
 import { getBlobStore } from '../utils/draftAttachments';
 import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quoteFormState';
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
+import PlanIdentityBadge from '../components/PlanIdentityBadge';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang } from '../utils/regionConfig';
+import { isProfessionalPreviewEnabled } from '../config/professionalPreviewAllowlist';
 import { isQuoteImmutable } from '../utils/quoteLock';
-import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
-import { itemPricePayload, formPriceFromSavedItem } from '../utils/itemPrice';
+import { isUnfinishedQuoteForm, isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
+import { computeEffectivePlan } from '../utils/planEntitlements';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
-import useAccountSummary from '../hooks/useAccountSummary';
-import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
-import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
-import { decideCapability, outputPhaseOf, decideFree10Action } from '../../supabase/functions/_shared/subscriptionContract.ts';
+import { shouldShowUpgradeCta } from '../utils/planCatalog';
 import { normalizeAuthError } from '../utils/authErrorClassification';
 import { classifyDashboardActionError } from '../utils/dashboardActionErrorClassification';
-import { formatQuoteFallback } from '../utils/quoteNumber';
-import { sortQuotes } from '../utils/quoteListSort';
+import { formatQuoteFallback, getQuoteOrderSortKey } from '../utils/quoteNumber';
 import { quoteMatchesSearch } from '../utils/quoteSearch';
 import { formatMoney, formatMoneyForCurrency, totalsByQuoteCurrency, normalizeQuoteCurrency } from '../utils/money';
 import { CurrencyTotals } from '../components/NumericValue';
 import { compareClients } from '../utils/clientSort';
-import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getEntryRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows } from '../utils/professionalQuoteItem';
+import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows } from '../utils/professionalQuoteItem';
 import { excludeUntouchedPlaceholderItems } from '../utils/structuredQuoteItemPersistence';
 import { getBusinessProfileGateMessage, getMissingBusinessProfileFields } from '../utils/businessProfileCompleteness';
+import { computeTransparentTrimBounds } from '../utils/logoTrim';
 import { getDashboardNavCapabilities } from '../utils/dashboardNavCapabilities';
 import { getFunctionErrorMessage } from '../utils/functionError';
 import { classifyQuoteEmailError } from '../utils/quoteEmailErrorClassification';
 import ExcelJS from 'exceljs';
 
 import PricingModal from '../components/PricingModal';
-import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
@@ -54,30 +54,10 @@ import DeleteConfirmModal from '../components/DeleteConfirmModal';
 import SignOutModal from '../components/SignOutModal';
 import ClientsTab from '../components/ClientsTab';
 import FinancesTab from '../components/FinancesTab';
-import TasksTab from '../components/TasksTab';
-import NotificationCenter from '../components/NotificationCenter';
-import RemindersFirstSetupNotice from '../components/RemindersFirstSetupNotice';
-import CalendarTab from '../components/CalendarTab';
-import { followUpDraftFor } from '../utils/manualTasks';
-import StatisticsTab from '../components/StatisticsTab';
 import QuoteForm from '../components/QuoteForm';
-import useQuotePresentationEditor from '../components/quotePresentation/useQuotePresentationEditor';
-import QuoteCreatorLayout from '../components/quotePresentation/QuoteCreatorLayout';
-import { buildPreviewQuoteData } from '../components/quotePresentation/buildPreviewQuoteData';
-import { createPristinePresentation, normalizePresentationState, hasServerContent } from '../components/quotePresentation/presentationState';
-import { purgePendingPresentations } from '../components/quotePresentation/pendingPresentationStore';
 import { persistQuote, deleteQuoteWithAttachments, newUuid } from '../utils/quoteSaveOrchestrator';
 import { resolveEditorAttachmentOpen } from '../utils/attachmentCompatPath';
 import QuotesTab from '../components/QuotesTab';
-import NewQuoteMenu from '../components/NewQuoteMenu';
-import { newQuoteChoices, templateChoice } from '../utils/newQuoteChoices';
-import { SaveTemplateDialog, TemplatePickerDialog } from '../components/QuoteTemplateDialogs';
-import { templateToFormState } from '../utils/quoteTemplates';
-import AiQuoteDraftDialog from '../components/AiQuoteDraftDialog';
-import { requestAiQuoteDraft, draftLinesToQuoteItems } from '../utils/aiQuoteDraftClient';
-import { buildQuoteDraftSnapshot } from '../utils/quoteDraftSnapshot';
-import { isUntouchedPlaceholderItem } from '../utils/structuredQuoteItemPersistence';
-import SidebarAccountMenu from '../components/SidebarAccountMenu';
 
 import AuthScreen from '../components/AuthScreen';
 import ServicesCatalog from '../components/ServicesCatalog';
@@ -93,19 +73,13 @@ import { ADMIN_NAV_GROUPS, ADMIN_SECTION_IDS, DEFAULT_ADMIN_SECTION } from '../u
 // בלי לגעת בכל אחד מהם בנפרד. AdminUsersTab.jsx (Super Admin) מייבא NEON
 // האמיתי (הכהה) בעצמו ונשאר כך בכוונה - עיצובו מחדש אושר בעיקרון בנפרד
 // ואינו בתחום המשימה הזו.
-import BrandName from '../components/BrandName';
-import { outputGate, authorizeWithNotice, capabilityTokenFromPath, outputBlockedMessage } from '../domain/subscriptions/outputAuthority';
-import { APP as NEON, APP as DARK_ACCENT, FONT_HE, FONT_EN, appHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW, APP_HEADER as SHELL, APP_SHELL as SIDEBAR, APP_FOCUS } from '../theme/neonTheme';
+import { LIGHT as NEON, NEON as DARK_ACCENT, FONT_HE, FONT_EN, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW, SHELL } from '../theme/neonTheme';
 import {
   AlertTriangle, Shield, LogOut,
-  PlusCircle,
-  Accessibility as AccessibilityIcon,
+  PlusCircle, Flame,
+  Accessibility as AccessibilityIcon, Sparkles, Eye,
   MoreHorizontal
 } from 'lucide-react';
-import AiRobotIcon from '../components/AiRobotIcon';
-import { loadServiceSchedule, normalizeServiceSchedule, probeServiceSchedule, saveServiceSchedule } from '../utils/serviceScheduleClient';
-import { loadShareDefaults } from '../utils/shareDefaultsClient';
-import { buildShareText } from '../../supabase/functions/_shared/shareMessage.js';
 
 // IRON-ILS-001: formatNum is now NON-MONEY only (quantities/measurements). Every displayed money
 // amount goes through formatMoneyDisplay (defined in the component, currency-keyed) ->
@@ -146,25 +120,19 @@ const DEFAULT_TERMS_ENG = `General Terms:
 // (AppLocal/AppGlobal) שהציג את הדשבורד - הם נקבעים אך ורק ע"י geo טרי
 // מהשרת, או בבחירה מפורשת של המשתמש אם geo נכשל (ר' fetchSettings ->
 // createNewBusinessSettings / handleRegionChoiceSelect למטה).
-// Header date/time: one line '<weekday>, DD/MM/YYYY | HH:mm' on desktop (weekday + separator hidden on phones, which keep the
-// compact stacked date over time). No seconds, so it refreshes every 30s. Date and time are bidi-isolated LTR atoms
-// (.pf-num) inside the mirrored header, so Hebrew punctuation never reorders them.
+// Stacked, centered Header date/time (DATE over HH:mm:ss). Mounts only when
+// the date/time slot replaces the greeting, and ticks every second itself.
 function HeaderClock({ country, isHebrew }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30000);
+    const id = setInterval(() => setNow(new Date()), 1000);
     return () => clearInterval(id);
   }, []);
-  // weekday NAME only (never a numeric date - that stays with formatShortDate, IRON-DATE-001)
-  const weekday = new Intl.DateTimeFormat(isHebrew ? 'he-IL' : 'en-GB', { weekday: 'long' }).format(now);
-  const time = now.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
   return (
     <>
-      <span className="dash-header-weekday">{weekday}{', '}</span>
       {/* IRON-DATE-001: live clock = the device's own current day, ordered by the ACCOUNT MARKET (unknown -> International). */}
-      <bdi dir="ltr" className="dash-header-date pf-num">{formatShortDate(deviceCalendarDate(now), resolveAdminMarket({ country }).market)}</bdi>
-      <span className="dash-header-sep" aria-hidden="true">|</span>
-      <bdi dir="ltr" className="dash-header-time pf-num">{time}</bdi>
+      <span className="dash-header-date">{formatShortDate(deviceCalendarDate(now), resolveAdminMarket({ country }).market)}</span>
+      <span className="dash-header-time">{now.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })}</span>
     </>
   );
 }
@@ -251,10 +219,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [emailStatuses, setEmailStatuses] = useState({});
 
   const [activeTab, setActiveTab] = useState('main');
-  // Task 18: a follow-up draft handed from a hot quote to the Tasks screen (nothing is created until the user saves there)
-  const [taskFollowUpDraft, setTaskFollowUpDraft] = useState(null);
-  // Task 19: a calendar task opens the existing task flow (the Tasks screen's own edit form)
-  const [taskOpenId, setTaskOpenId] = useState(null);
   // PRODUCT_TRUTH_CAPABILITY: quote_create
   const [isCreatingQuote, setIsCreatingQuote] = useState(false);
   const [financeReportType, setFinanceReportType] = useState('monthly');
@@ -302,8 +266,65 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [bizPhone, setBizPhone] = useState('');
   const [bizAddress, setBizAddress] = useState('');
   const [bizLogoUrl, setBizLogoUrl] = useState('');
-  // Approved 980px dashboard: the sidebar top is the static TEKANGO logo card, so the business-logo load/trim state that used
-  // to feed the sidebar brand block is gone (bizLogoUrl itself is still used by quote documents).
+  // חוק ברזל (Final Dashboard/Sidebar Polish task, §A - No-Logo/Load-Failure
+  // Behavior): true רק כשה-<img> הממשי נכשל בפועל (onError), לא ניחוש/
+  // בדיקה-מוקדמת. מתאפס אוטומטית בכל פעם ש-bizLogoUrl עצמו משתנה (ר'
+  // ה-useEffect למטה + key={bizLogoUrl} על ה-<img> עצמו) - כך שכתובת-לוגו
+  // חדשה תמיד מקבלת ניסיון-טעינה נקי, לעולם לא נשארת "תקועה" על כישלון של
+  // כתובת קודמת שכבר הוחלפה.
+  const [sidebarLogoFailed, setSidebarLogoFailed] = useState(false);
+  useEffect(() => { setSidebarLogoFailed(false); }, [bizLogoUrl]);
+  // חוק ברזל (Authenticated UI Coherence task, Business Logo Presentation):
+  // חיתוך שוליים-שקופים אוטומטי ולא-הרסני, לתצוגת הסיידבר בלבד - לעולם לא
+  // נוגע ב-bizLogoUrl/ברשומת ה-DB/בקובץ המקורי עצמו, רק מחשב, ברצף עצמאי,
+  // תמונת-canvas חתוכה ומחזיקה אותה ב-state נפרד (trimmedLogoSrc). "בטוח-
+  // כשל" במלואו: כל שלב (טעינת התמונה, קריאת ImageData - עלולה להיכשל
+  // עם SecurityError על תמונה חוצה-מקור ללא CORS תואם) עטוף try/catch,
+  // וכל כישלון פשוט משאיר trimmedLogoSrc כ-null, כך שה-JSX למטה נופל חזרה
+  // אוטומטית ל-bizLogoUrl הגולמי - בדיוק ההתנהגות הקיימת מלפני המשימה הזו,
+  // ללא רגרסיה. computeTransparentTrimBounds (utils/logoTrim.js) בודק אך
+  // ורק שקיפות-אמיתית (alpha===0) - לוגו עם רקע-לבן מכוון לעולם לא ייחתך
+  // בטעות, רק padding שקוף אמיתי בתוך קובץ PNG/SVG. גודל-הפלט מוגבל
+  // ל-400px (הצד הארוך) לפני חיתוך, כדי שלא ליצור canvas/dataURL ענק
+  // עבור לוגו מקור ברזולוציה גבוהה במיוחד.
+  const [trimmedLogoSrc, setTrimmedLogoSrc] = useState(null);
+  useEffect(() => {
+    setTrimmedLogoSrc(null);
+    if (!bizLogoUrl) return;
+    let cancelled = false;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      if (cancelled) return;
+      try {
+        const MAX_DIM = 400;
+        const scale = Math.min(1, MAX_DIM / Math.max(img.naturalWidth || 1, img.naturalHeight || 1));
+        const w = Math.max(1, Math.round((img.naturalWidth || 1) * scale));
+        const h = Math.max(1, Math.round((img.naturalHeight || 1) * scale));
+        const sourceCanvas = document.createElement('canvas');
+        sourceCanvas.width = w;
+        sourceCanvas.height = h;
+        const sourceCtx = sourceCanvas.getContext('2d');
+        sourceCtx.drawImage(img, 0, 0, w, h);
+        const imageData = sourceCtx.getImageData(0, 0, w, h);
+        const bounds = computeTransparentTrimBounds(imageData.data, w, h);
+        if (!bounds.trimmed || cancelled) return;
+        const outCanvas = document.createElement('canvas');
+        outCanvas.width = bounds.width;
+        outCanvas.height = bounds.height;
+        const outCtx = outCanvas.getContext('2d');
+        outCtx.drawImage(sourceCanvas, bounds.x, bounds.y, bounds.width, bounds.height, 0, 0, bounds.width, bounds.height);
+        const dataUrl = outCanvas.toDataURL('image/png');
+        if (!cancelled) setTrimmedLogoSrc(dataUrl);
+      } catch {
+        // חוצה-מקור בלי CORS תואם, canvas לא-נתמך, או כל כישלון אחר -
+        // נופל חזרה בשקט ל-bizLogoUrl הגולמי דרך trimmedLogoSrc שנשאר null.
+      }
+    };
+    img.onerror = () => {};
+    img.src = bizLogoUrl;
+    return () => { cancelled = true; };
+  }, [bizLogoUrl]);
   const [bizPlan, setBizPlan] = useState('free');
   const [bizRole, setBizRole] = useState('user');
   // חוק ברזל (Explicit Lifetime Entitlement Model, 2026-09-08, Owner
@@ -396,6 +417,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     upperSectionObserverRef.current = observer;
   }, [measureUpperSection]);
 
+  const [hotQuoteIndex, setHotQuoteIndex] = useState(0);
+  // חוק ברזל (Authenticated UI Coherence task, Dashboard Header Compression):
+  // מצב תצוגה טהור (לא לוגיקה עסקית) - האם ההתראה הדקה של Hot Quote
+  // מורחבת (חושפת טקסט מלא, לא חתוך). מתאפס אוטומטית בכל רוטציה (ר'
+  // ה-useEffect הקיים שמקדם hotQuoteIndex) כדי שמצב-הרחבה לא "ידבק"
+  // להצעה-חמה הבאה שברוטציה, שהיא לרוב הצעה שונה לגמרי.
   // חוק ברזל (Authenticated UI Coherence task, Mobile Navigation Redesign):
   // ניווט-מובייל-תחתון צומצם מ-6 יעדים ל-5 (Owner-required limit) - Settings
   // ו-Catalog (שני היעדים בתדירות-הנמוכה יותר, לפי המבנה הקיים כבר - שניהם
@@ -403,14 +430,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // "More" יחיד, שנפתח כ-popover קומפקטי מעל שורת-הניווט - לא הוסתרו, רק
   // אורגנו מחדש. New Quote נשאר בדיוק כפי שהיה - בולט, לא הוזז לתוך "עוד".
   const [showMobileMoreMenu, setShowMobileMoreMenu] = useState(false);
-  // Task 21: the bottom-row "New" opens the same three choices as the desktop menu (standard / AI / measured) instead of a direct blank quote.
-  const [showMobileNewQuoteMenu, setShowMobileNewQuoteMenu] = useState(false);
-  useEffect(() => {
-    if (showMobileNewQuoteMenu) document.querySelector('.dash-mobile-newquote-menu [role="menuitem"]')?.focus();
-  }, [showMobileNewQuoteMenu]);
-  // Task 21: a quote started from the "measured" choice (drives the wizard's measurement recommendation) and the AI quote-draft dialog.
-  const [measuredQuoteEntry, setMeasuredQuoteEntry] = useState(false);
-  const [showAiQuoteDraft, setShowAiQuoteDraft] = useState(false);
   const [shellDrawerOpen, setShellDrawerOpen] = useState(false);
   const closeShellDrawer = useCallback(() => setShellDrawerOpen(false), []);
 
@@ -427,19 +446,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // same HE/EN copy ("צ׳אט AI"/"AI Chat") this project's own product copy
   // already used for this identical action in every prior location
   // (the now-retired sidebar/topbar buttons), not new wording.
-  // The ONE dispatcher of the existing AI-chat open event (header button on phones + the AI smart-quote menu choice).
-  const openAiChat = () => window.dispatchEvent(new CustomEvent('open-proflow-ai-chat'));
   // PRODUCT_TRUTH_CAPABILITY: ai_chat
   const renderHeaderAIChatButton = () => (
     <button
       type="button"
-      onClick={openAiChat}
+      onClick={() => window.dispatchEvent(new CustomEvent('open-proflow-ai-chat'))}
       className="dash-header-ai-btn"
       title={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
       aria-label={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
     >
-      {/* Task 20 Continuation 2 (Owner correction 2026-10-10): an original illustrated AI-robot icon (inline SVG component, no asset). */}
-      <AiRobotIcon size={20} />
+      <AiChatIcon size={16} rtl={isHebrew} />
       <span>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
     </button>
   );
@@ -466,10 +482,21 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // greeting text/logic (a plain, always-shown "ברוך שובך"/"Welcome back"
   // string) is used completely unchanged - "GREETING SEMANTICS: PRESERVED"
   // by construction.
+  const [showGreeting, setShowGreeting] = useState(true);
+  // The 10s Welcome-back window starts when the greeting is actually
+  // RENDERED (h1 ref callback), not at Dashboard mount - the header can
+  // appear seconds after mount while auth/data load, which would shorten
+  // the visible time.
+  const greetingTimerRef = useRef(null);
+  const greetingRef = useCallback((node) => {
+    if (node && greetingTimerRef.current === null) {
+      greetingTimerRef.current = setTimeout(() => setShowGreeting(false), 10000);
+    }
+  }, []);
+  useEffect(() => () => clearTimeout(greetingTimerRef.current), []);
   // The seconds clock lives in its own component (HeaderClock) so its 1s tick
   // re-renders only the date/time block, not the whole Dashboard.
   const headerDateTimeText = <HeaderClock country={bizCountry} isHebrew={isHebrew} />;
-  const headerAvatarUrl = session?.user?.user_metadata?.avatar_url || session?.user?.user_metadata?.picture || '';
   const [editingClient, setEditingClient] = useState(null);
   // חוק ברזל (Consolidated Open UI Corrections task, §G1): state נפרד
   // (לא "editingClient עם client.id ריק") כדי לשמור על ההבחנה המפורשת בין
@@ -721,6 +748,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     prevSessionDiagRef.current = session;
   }, [session]);
 
+  useEffect(() => {
+    const hotQuotes = quotes.filter(q => (q.view_count || 0) >= 3 && q.status !== 'approved' && q.status !== 'paid');
+    if (hotQuotes.length > 1) {
+      const interval = setInterval(() => {
+        setHotQuoteIndex(prev => (prev + 1) % hotQuotes.length);
+      }, 4000);
+      return () => clearInterval(interval);
+    }
+  }, [quotes]);
+
   const handleToggleDropdown = (e, quoteId) => {
     e.stopPropagation();
     if (openDropdownId === quoteId) {
@@ -788,8 +825,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
-  // Task 27 (§253): the dismissible Free-10 upgrade window - opened only by an attempted paid action, never by a timer or a screen
-  const [free10Window, setFree10Window] = useState(false);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
@@ -910,25 +945,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   
   const [quoteStatus, setQuoteStatus] = useState('Draft');
   const [validUntil, setValidUntil] = useState('');
-  // Task 27 (spec §6): the optional work date of the open quote. NOT part of the quote save payload (separate owner-only table, written
-  // after the quote is saved); serviceScheduleBaselineRef is what the server last returned, so an unchanged value is never re-written.
-  const [serviceSchedule, setServiceSchedule] = useState({ date: '', time: '' });
-  const [serviceScheduleState, setServiceScheduleState] = useState('ready');
-  const serviceScheduleBaselineRef = useRef({ date: '', time: '' });
-  const serviceScheduleTokenRef = useRef(0);
-  const serviceScheduleAvailableRef = useRef(null); // null = not known yet, false = this server has no work-date table
-  // Task 27 (spec §6): the owner's default WhatsApp text (manual sharing). Preloaded so the share click stays synchronous (popup rules);
-  // '' (none / not on this server / not loaded) keeps the built-in message unchanged.
-  const [shareTextDefault, setShareTextDefault] = useState('');
-  const [templateDialog, setTemplateDialog] = useState(null); // Task 27 (spec §6): 'save' | 'pick' | null
-  useEffect(() => {
-    const uid = session?.user?.id;
-    setShareTextDefault('');
-    if (!uid) return undefined;
-    let live = true;
-    loadShareDefaults(supabase, uid).then((r) => { if (live && r.ok) setShareTextDefault(r.value.share_text || ''); });
-    return () => { live = false; };
-  }, [session?.user?.id]);
   const [discount, setDiscount] = useState('');
   const [terms, setTerms] = useState(isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
   const [warranty, setWarranty] = useState('');
@@ -951,13 +967,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // שכבר נשמרו (יש sections אמיתיות => divided; אין => regular).
   const [quoteStructureMode, setQuoteStructureMode] = useState(null);
   const [projectName, setProjectName] = useState('');
-  // Task 16 (Quote Experience V2): presentation draft { style|null, media: MediaRef[], detail|null } - part of the durable
-  // local draft payload (`quotePresentation`). 'server' = an opened edit may hydrate it from the saved record; 'local' = a
-  // restored local draft wins over the server.
-  const [quotePresentation, setQuotePresentation] = useState(createPristinePresentation);
-  const presentationSourceRef = useRef('server');
-  const [issueRequest, setIssueRequest] = useState(null); // { quoteId, prevStatus, started } while "Issue quote" runs
-  const lastSaveOutcomeRef = useRef(null); // 'saved' once handleSaveQuote persisted the quote header
   // ---- Durable drafts (2026-09-21) ----
   const [newDraftUuid, setNewDraftUuid] = useState(null);            // draft UUID of the current NEW-quote editor
   const [pendingAttachmentRemovals, setPendingAttachmentRemovals] = useState([]); // existing attachments staged for removal (deleted only on successful Save)
@@ -990,6 +999,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // 'pro' לצמיתות אחרי הרשמה) והנימוק המלא לכל ענף בנוסחה. SettingsTab.jsx
   // (שער העלאת לוגו) קורא לאותו effectivePlan דרך prop, לא מחשב נוסחה
   // משלו יותר - כדי שלא יהיו שתי נוסחאות סותרות (ר' התיקון המקביל שם).
+  const { effectivePlan, isTrialExpired: rawIsTrialExpired, trialDaysLeft: rawTrialDaysLeft } = computeEffectivePlan({ plan: bizPlan, trialEndsAt, now });
 
   const isSuperAdmin = bizRole === 'super_admin';
 
@@ -1069,7 +1079,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // בפועל (plan/trialEndsAt/role זהים) - לא סתירה, לא שתי נוסחאות עצמאיות,
   // רק שהשנייה חושפת מידע נוסף שכבר קיים בפונקציה המשותפת.
   const resolvedIdentity = resolveAccountEntitlement({ plan: bizPlan, trialEndsAt, role: bizRole, isLifetime: bizIsLifetime, now });
-  const { entitlement } = resolvedIdentity;
+  const { isLifetime, displayIdentity, entitlement } = resolvedIdentity;
 
   // חוק ברזל (Entitlement Audit task, 2026-09-08, ממצא אמיתי): isPro (למטה)
   // ו-isTrialExpired/trialDaysLeft (rawIsTrialExpired/rawTrialDaysLeft,
@@ -1085,33 +1095,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // הסתיים"/"מסתיימת בעוד X ימים" מתחת ל-badge "LIFETIME" עצמו. שני
   // התיקונים כאן מתקנים במקור אחד, לא בכל אתר-צריכה בנפרד - כל צרכן
   // downstream (SettingsTab.jsx כולל) מקבל את הערך הנכון אוטומטית.
-  // OD-15/OD-16/OD-20 (subscriptions cross-cut): the legacy plan/trial record above is kept ONLY as the account's existing
-  // entitlement while the new plan system is not active (no plan is assumed, nothing granted or revoked by this code). Every
-  // account surface (badge, balance, plans view, locked-capability notice) reads the server account summary; every gate goes
-  // through decideCapability (shared contract): enforced -> server capabilities, unprovisioned/invalid -> fail closed,
-  // not active -> the legacy entitlement exactly as before.
-  const { summary: accountSummary, refresh: refreshAccountSummary } = useAccountSummary(supabase, session?.user?.id);
-  const legacyCapabilities = {
-    'quote.edit_duplicate': entitlement.editDuplicate === true,
-    'quote.whatsapp_delete': entitlement.whatsappDelete === true,
-    'quote_attachment.upload': entitlement.attachments === true,
-    'professional_quote.use': entitlement.professionalQuotes === true,
-    'professional_quote.reuse': entitlement.professionalQuoteReuse === true,
-    // catalog product images had no plan gate before the new system: kept unchanged until the server enforces
-    'catalog_product_image.upload': true,
-  };
-  const canUseCapability = (capabilityId) => decideCapability(accountSummary, capabilityId, legacyCapabilities[capabilityId]).allowed;
-  const [lockedCapability, setLockedCapability] = useState(null);
-  const outputPhase = outputPhaseOf(accountSummary);
-  const accountSummaryContextValue = useMemo(() => ({ summary: accountSummary, openPlans: () => setShowPricingModal(true) }), [accountSummary]);
-  // Task 27: an attempted paid action (a NEW quote) after Free-10 is exhausted - decided only from the server account summary (enforced
-  // phase only; off / prepared / shadow / loading never block; a paid plan is never blocked). Returns true when the action must stop.
-  const free10Blocked = () => {
-    if (decideFree10Action(accountSummary).allowed) return false;
-    setFree10Window(true);
-    return true;
-  };
+  const isPro = isSuperAdmin || isLifetime || effectivePlan === 'pro';
+  const isTrialExpired = !isLifetime && rawIsTrialExpired;
+  const trialDaysLeft = isLifetime ? null : rawTrialDaysLeft;
 
+  // חוק ברזל (אותה משימה): כלל-ראייה יחיד לכפתור "שדרג חבילה", גם כאן וגם
+  // ב-SettingsTab.jsx (ר' shouldShowUpgradeCta ב-planCatalog.js) - התחליף
+  // לשני הכללים שהיו סותרים בפועל (§147.1/§148). עבור Dashboard.jsx עצמו,
+  // זו אינה שינוי-התנהגות - !isPro && !isSuperAdmin כבר היה מזהה בדיוק אותם
+  // מקרים (Lifetime/ניסיון-פעיל שניהם effectivePlan==='pro' כבר קודם).
+  const showUpgradeCta = shouldShowUpgradeCta({ tier: effectivePlan, isLifetime, isSuperAdmin });
 
   // חוק ברזל (Trial Notification, TEST Acceptance Package 1 - עבר כמה
   // תיקוני עיצוב לפי הבהרות בעלים במהלך המשימה, האחרון שבהם: הפרדה מפורשת
@@ -1177,12 +1170,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     delete: isHebrew ? 'מחק הצעה' : 'Delete Quote',
     clientsManagement: isHebrew ? 'ניהול לקוחות' : 'Clients Management',
     quotesNav: isHebrew ? 'הצעות מחיר' : 'Quotes',
-    settingsNav: isHebrew ? 'הגדרות העסק' : 'Business Settings',
+    settingsNav: isHebrew ? 'הגדרות עסק' : 'Business Settings',
     clientsNav: isHebrew ? 'לקוחות' : 'Clients',
-    financesNav: isHebrew ? 'הוצאות ודוחות' : 'Expenses & Reports',
-    statisticsNav: isHebrew ? 'סטטיסטיקה' : 'Statistics',
-    tasksNav: isHebrew ? 'משימות' : 'Tasks',
-    calendarNav: isHebrew ? 'יומן' : 'Calendar',
+    financesNav: isHebrew ? 'פיננסים' : 'Finances',
     catalogNav: isHebrew ? 'קטלוג' : 'Catalog',
     usersAdminNav: isHebrew ? 'ניהול משתמשים' : 'Users Admin',
     // חוק ברזל (תיקון בעלים - הצעה חמה): הכותרת "הצעה חמה!"/"Hot Quote!"
@@ -1194,10 +1184,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     // שכן NEON כבר מכונה כאן ל-LIGHT) רק את שם הלקוח ואת מספר הצפיות עצמו
     // - שאר המשפט נשאר בצבע הטקסט הרגיל של הכרטיס, לא כל המשפט בסגול.
     hotQuoteAlert: (name, viewCount) => {
-      // Ledger H02d (base Owner rule "להדגיש בסגול") + accessibility (Codex round 4): the emphasis stays violet, in the
-      // violet-300 tone #c4b5fd so the 0.78rem text keeps >= 4.5:1 on the dark greeting card (8.80:1 on #152229, 7.43:1 on
-      // the hot-quote strip). The literal base #7c3aed measured 2.85:1 / 2.41:1 there - a base colour is no accessibility waiver.
-      const purpleStrong = { color: '#c4b5fd', fontWeight: '800' };
+      const purpleStrong = { color: NEON.violet, fontWeight: '800' };
       if (isHebrew) {
         return (
           <>
@@ -1359,8 +1346,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setBizPhone(data.phone || '');
       setBizAddress(data.address || '');
       setBizLogoUrl(data.logo_url || '');
-      // OD-20: no fallback Pro - a missing legacy plan value is not an entitlement (legacy record = audit history only)
-      setBizPlan(data.plan || null);
+      setBizPlan(data.plan || 'pro');
       setBizRole(data.role || 'user');
       setBizIsLifetime(data.is_lifetime === true);
       // חוק ברזל (Smart Quote Final UX Simplification task, Part B - "the
@@ -1480,6 +1466,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setRegionChoiceError(null);
 
     const nowIso = new Date().toISOString();
+    const trialEndDate = new Date();
+    trialEndDate.setDate(trialEndDate.getDate() + 14);
 
     const detectedTerms = country === 'Local' ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG;
     const detectedCurr = country === 'Local' ? 'ILS' : 'USD';
@@ -1490,11 +1478,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       business_name: country === 'Local' ? 'עסק חדש' : 'New Business',
       country,
       currency: detectedCurr,
-      // OD-01 / OD-15: no 'pro' plan and no 14-day trial at signup. plan / trial_ends_at are omitted, so the legacy record
-      // gets its DB defaults (audit history only); the new plan system treats this account as unprovisioned (no Free
-      // balance, no paid plan) until the approved server-side provisioning maps it.
+      plan: 'pro',
       role: 'user',
       default_terms: detectedTerms,
+      trial_ends_at: trialEndDate.toISOString(),
       last_sign_in: nowIso
     };
 
@@ -2145,7 +2132,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         if (data?.user && data.user.identities && data.user.identities.length === 0) {
           setAuthError(bundleIsHebrew ? 'האימייל כבר קיים! אנא התחבר.' : 'Email already exists! Please sign in.');
         } else {
-          setAuthSuccess(bundleIsHebrew ? 'ההרשמה הצליחה! מאתחל את החשבון...' : 'Sign up successful! Setting up your account...');
+          setAuthSuccess(bundleIsHebrew ? 'ההרשמה הצליחה! מאתחל פרופיל עם תקופת ניסיון...' : 'Sign up successful! Initializing user profile with free trial...');
         }
       }
     } else {
@@ -2334,7 +2321,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     if (uid) {
       suppressDraftWrites(uid); // the unmounting editor must not re-write what we are about to purge
       const { draftIds } = quoteDraft.store.purgeUser(uid);
-      purgePendingPresentations(uid); // Task 16: pending presentation choices never outlive an explicit logout
       await getBlobStore().purgeUser(uid);
       diagLog('draft-purge', { outcome: 'explicit-logout', count: draftIds.length });
     }
@@ -2595,99 +2581,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     });
   }
 
-  // Task 28: ONE message for every manual share of a quote (WhatsApp + "copy message"): the owner's default text through the shared
-  // formatter (supabase/functions/_shared/shareMessage.js, the same one send-quote-email uses), else the existing built-in message -
-  // unchanged. Language, link route and money follow the QUOTE itself, never the signed-in user's UI language.
-  const quoteShareMessage = (proposal, viewLinkOverride = null) => {
-    const clientNameVal = proposal.clients?.company_name || (isHebrew ? 'לקוח' : 'Client');
-    const proposalCurr = (proposal.currency || currency || 'USD').toUpperCase();
-    // הסמל נגזר אך ורק מקוד המטבע השמור על ההצעה עצמה - לא מסיווג העסק
-    // הנוכחי (isLocalIsraeliBusiness), כדי שהצעה ישנה ב-ILS תמשיך להציג ₪
-    // גם אם סיווג העסק שונה מאז ל-International (ולהפך).
-    const proposalSym = proposalCurr === 'ILS' ? '₪' : (proposalCurr === 'EUR' ? '€' : proposalCurr === 'GBP' ? '£' : '$');
-
-    // שפת הקישור נגזרת מנתוני ההצעה עצמה (currency/tax_rate) ולא מהגדרת השפה של המשתמש המחובר
-    const isLocalQuote = Number(proposal.tax_rate) > 0 || proposalCurr === 'ILS';
-    const quoteViewLink = viewLinkOverride || (isLocalQuote
-      ? `${window.location.origin}/public-quote/${proposal.id}`
-      : `${window.location.origin}/en/public-quote/${proposal.id}?lang=en`);
-
-    const senderName = bizName || 'TEKANGO';
-    // כמו הקישור והסמל למעלה - נוסח ההודעה נגזר מנתוני ההצעה עצמה
-    // (isLocalQuote), לא משפת התצוגה הנוכחית של המשתמש המחובר.
-    // formatQuoteFallback משתמש ב-quote_number האמיתי כשקיים (יכול כבר
-    // להיות ערך אמיתי היום, ממקור global-sequence קיים-מראש - ר'
-    // PROFLOW_TODO.md item 17), ונופל בבטחה למספר ה-UUID המקוצר אחרת.
-    const proposalNumberDisplay = formatQuoteFallback(proposal);
-    const ownerText = buildShareText({
-      template: shareTextDefault, link: quoteViewLink, linkLabel: isLocalQuote ? 'צפה בהצעה:' : 'View quote:', rtl: isLocalQuote,
-      vars: { customer: clientNameVal, business: senderName, number: proposalNumberDisplay, total: `${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}` },
-    });
-    // Task 36 (A): a partial total is said in the message itself (its own line, in the quote's language)
-    return appendPartialTotalNote(ownerText ?? (isLocalQuote
-      ? `הצעת מחיר מאת: ${senderName}\n\nהי ${clientNameVal}, הנה הצעת המחיר שלך מספר ${proposalNumberDisplay} בסך ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${quoteViewLink}`
-      : `Quote from: ${senderName}\n\nHi ${clientNameVal}, here is your quote ${proposalNumberDisplay} totaling ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${quoteViewLink}`), proposal, isLocalQuote);
-  };
-
-  // Task 35 (F4): before ANY customer output of a quote with missing prices: one specific notice (which lines, the partial total).
-  // Policy = MISSING_PRICE_OUTPUT_POLICY (Owner decision: 'confirm' = explicit confirmation, cancel = nothing is output; 'block').
-  const confirmMissingPrices = (quote) => {
-    const notice = missingPriceOutputNotice(quote, { isHebrew });
-    if (!notice) return true;
-    if (notice.blocked) { alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, notice.text); return false; }
-    return window.confirm(notice.text);
-  };
-
-  // Task 28: "copy message" - the same message as WhatsApp, copied for the owner to paste and send HIMSELF (nothing is sent). It shares
-  // the quote link, so it passes the same output gate as a public share (enforced phase: the server authorizes 'public_share' first and
-  // the capability link is copied; refused / cancelled -> nothing is copied). "Copy link" semantics are not changed anywhere.
   // PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share
-  const copyQuoteMessage = async (proposal) => {
-    if (isUnfinishedSavedQuote(proposal)) {
-      alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
-      return;
-    }
-    if (!confirmMissingPrices(proposal)) return;
-    let viewLink = null;
-    const gate = outputGate('public_share', outputPhase);
-    if (gate.mode === 'authority_required') {
-      const auth = await authorizeWithNotice({ channel: 'public_share', quoteId: proposal.id, invoke: (name, opts) => supabase.functions.invoke(name, opts), confirm: (t) => window.confirm(t), isHebrew: isHebrew });
-      if (!auth.proceed) {
-        if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
-        if (auth.code === 'free_issue_limit_reached') setFree10Window(true);
-        refreshAccountSummary();
-        return;
-      }
-      viewLink = `${window.location.origin}${auth.publicPath}`;
-      refreshAccountSummary();
-    } else if (!gate.proceed) return;
-    const message = quoteShareMessage(proposal, viewLink);
-    try {
-      await navigator.clipboard.writeText(message);
-      setStatusMsg({ text: isHebrew ? 'ההודעה הועתקה. הדביקו אותה ושלחו בעצמכם.' : 'Message copied. Paste it and send it yourself.', type: 'success' });
-    } catch {
-      // the browser refused the clipboard: show the exact text to copy by hand (never a false "copied")
-      window.prompt(isHebrew ? 'ההעתקה האוטומטית לא הותרה בדפדפן. העתיקו את ההודעה מכאן:' : 'The browser did not allow copying. Copy the message from here:', message);
-    }
-  };
-
-  // PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share
-  const sendWhatsApp = (proposal, authorized = null) => {
-    // OD-02: the ONE output-authority gate (off = unchanged synchronous behavior; any other phase fails closed until wired).
-    // OD-02: the ONE output-authority gate, phase = the SERVER output phase (account summary). Not enforced -> unchanged
-    // legacy behavior. Enforced -> the server authorizes first (reservation -> snapshot -> finalize) and only then is the
-    // capability link handed to WhatsApp; the quote id alone is never sent to a client.
-    if (!authorized) {
-      const gate = outputGate('send', outputPhase);
-      if (gate.mode === 'authority_required') { authorizeAndSendWhatsApp(proposal); return; }
-      if (!gate.proceed) return;
-    }
+  const sendWhatsApp = (proposal) => {
     // SMART-QUOTE-01: an unfinished draft is never sent as if it were a ready quote.
     if (isUnfinishedSavedQuote(proposal)) {
       alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
     }
-    if (!authorized && !confirmMissingPrices(proposal)) return;
+    const clientNameVal = proposal.clients?.company_name || (isHebrew ? 'לקוח' : 'Client');
     let rawPhone = proposal.clients?.phone ? proposal.clients.phone.trim() : '';
     
     let cleanPhone = rawPhone.replace(/[^\d+]/g, '');
@@ -2702,35 +2603,34 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     
     const phoneForUrl = cleanPhone.replace('+', '');
 
-    const text = quoteShareMessage(proposal, authorized?.viewLink || null);
+    const proposalCurr = (proposal.currency || currency || 'USD').toUpperCase();
+    // הסמל נגזר אך ורק מקוד המטבע השמור על ההצעה עצמה - לא מסיווג העסק
+    // הנוכחי (isLocalIsraeliBusiness), כדי שהצעה ישנה ב-ILS תמשיך להציג ₪
+    // גם אם סיווג העסק שונה מאז ל-International (ולהפך).
+    const proposalSym = proposalCurr === 'ILS' ? '₪' : (proposalCurr === 'EUR' ? '€' : proposalCurr === 'GBP' ? '£' : '$');
+
+    // שפת הקישור נגזרת מנתוני ההצעה עצמה (currency/tax_rate) ולא מהגדרת השפה של המשתמש המחובר
+    const isLocalQuote = Number(proposal.tax_rate) > 0 || proposalCurr === 'ILS';
+    const quoteViewLink = isLocalQuote
+      ? `${window.location.origin}/public-quote/${proposal.id}`
+      : `${window.location.origin}/en/public-quote/${proposal.id}?lang=en`;
+
+    const senderName = bizName || 'TEKANGO';
+    // כמו הקישור והסמל למעלה - נוסח ההודעה נגזר מנתוני ההצעה עצמה
+    // (isLocalQuote), לא משפת התצוגה הנוכחית של המשתמש המחובר.
+    // formatQuoteFallback משתמש ב-quote_number האמיתי כשקיים (יכול כבר
+    // להיות ערך אמיתי היום, ממקור global-sequence קיים-מראש - ר'
+    // PROFLOW_TODO.md item 17), ונופל בבטחה למספר ה-UUID המקוצר אחרת.
+    const proposalNumberDisplay = formatQuoteFallback(proposal);
+    const text = isLocalQuote
+      ? `הצעת מחיר מאת: ${senderName}\n\nהי ${clientNameVal}, הנה הצעת המחיר שלך מספר ${proposalNumberDisplay} בסך ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${quoteViewLink}`
+      : `Quote from: ${senderName}\n\nHi ${clientNameVal}, here is your quote ${proposalNumberDisplay} totaling ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${quoteViewLink}`;
     
     const url = phoneForUrl 
       ? `https://api.whatsapp.com/send?phone=${phoneForUrl}&text=${encodeURIComponent(text)}`
       : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
       
-    if (authorized?.win && !authorized.win.closed) authorized.win.location.href = url;
-    else window.open(url, '_blank');
-  };
-
-  // Enforced phase only: authorize on the server, then hand the capability link to WhatsApp. The blank tab is opened inside
-  // the user gesture (popup blockers) and closed again if the server refuses; nothing is sent and nothing is consumed then.
-  const authorizeAndSendWhatsApp = async (proposal) => {
-    if (isUnfinishedSavedQuote(proposal)) {
-      alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
-      return;
-    }
-    if (!confirmMissingPrices(proposal)) return;
-    const win = window.open('', '_blank');
-    const auth = await authorizeWithNotice({ channel: 'send', quoteId: proposal.id, invoke: (name, opts) => supabase.functions.invoke(name, opts), confirm: (text) => window.confirm(text), isHebrew: isHebrew });
-    if (!auth.proceed) {
-      if (win && !win.closed) win.close();
-      if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
-      if (auth.code === 'free_issue_limit_reached') setFree10Window(true); // a first output after Free-10: the paid action itself
-      refreshAccountSummary();
-      return;
-    }
-    sendWhatsApp(proposal, { viewLink: `${window.location.origin}${auth.publicPath}`, win });
-    refreshAccountSummary();
+    window.open(url, '_blank');
   };
 
   // SMART-QUOTE-01: an unfinished draft is stopped BEFORE the send confirmation (executeEmailSend re-checks as a second guard).
@@ -2743,16 +2643,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   };
 
   const executeEmailSend = async (quote) => {
-    // OD-02: the ONE output-authority gate (server output phase; not enforced = unchanged behavior). Enforced: the server
-    // authorizes right before the email is sent (below, after every local check) and the email carries the capability link.
-    const sendGate = outputGate('send', outputPhase);
-    if (!sendGate.proceed && sendGate.mode !== 'authority_required') return;
     if (isUnfinishedSavedQuote(quote)) {
       alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
     }
-    // Task 35 (F4): the ONE point every email path reaches (list chip + statistics) - the missing-price notice before the send
-    if (!confirmMissingPrices(quote)) return;
     const clientEmailVal = quote.clients?.email || quote.client_email || '';
     
     if (!clientEmailVal || !emailEmailValidation(clientEmailVal)) {
@@ -2776,19 +2670,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       
       const clientNameVal = quote.clients?.company_name || quote.client_name || 'Client';
 
-      let capabilityToken = null;
-      if (sendGate.mode === 'authority_required') {
-        const auth = await authorizeWithNotice({ channel: 'send', quoteId: quote.id, invoke: (name, opts) => supabase.functions.invoke(name, opts), confirm: (text) => window.confirm(text), isHebrew: isHebrew });
-        if (!auth.proceed) {
-          setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-          if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
-          if (auth.code === 'free_issue_limit_reached') setFree10Window(true);
-          refreshAccountSummary();
-          return;
-        }
-        capabilityToken = capabilityTokenFromPath(auth.publicPath);
-      }
-
       const payload = {
         to: clientEmailVal,
         clientName: clientNameVal,
@@ -2800,9 +2681,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         logoUrl: bizLogoUrl,
         businessLogo: bizLogoUrl,
         logo: bizLogoUrl,
-        isHebrew: isHebrew,
-        // enforced phase only: the server verifies this token is bound to this quote and this account before using it
-        ...(capabilityToken ? { capabilityToken } : {})
+        isHebrew: isHebrew
       };
 
       const { data, error } = await supabase.functions.invoke('send-quote-email', {
@@ -2852,16 +2731,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // אבל עכשיו נקודת-אמת אחת שגם מוכנה-מראש עבור תיקון-Lifetime עתידי.
   const handleProtectedAction = (quoteId, actionType, callback) => {
     if (actionType === 'edit' || actionType === 'duplicate') {
-      if (!canUseCapability('quote.edit_duplicate')) {
+      if (!entitlement.editDuplicate) {
         publishBlocker('PLAN_FEATURE_LOCKED', { scope: 'surface', surface: 'main' });
-        setLockedCapability('quote.edit_duplicate');
+        setShowPricingModal(true);
         return;
       }
     }
     if (actionType === 'whatsapp' || actionType === 'delete') {
-      if (!canUseCapability('quote.whatsapp_delete')) {
-        publishBlocker('PLAN_FEATURE_LOCKED', { scope: 'surface', surface: 'main' });
-        setLockedCapability('quote.whatsapp_delete');
+      if (!entitlement.whatsappDelete) {
+        publishBlocker(actionType === 'whatsapp' ? 'WHATSAPP_REQUIRES_PRO' : 'PLAN_FEATURE_LOCKED', { scope: 'surface', surface: 'main' });
+        setShowPricingModal(true);
         return;
       }
     }
@@ -2912,15 +2791,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const taxAmount = previewFinancials.taxAmount ?? 0;
   const totalAmount = previewFinancials.total ?? (subtotal - discountAmount);
 
-  // OD-01 / OD-20: the legacy client monthly counter (5/20/∞ per calendar month) is retired. It cannot represent Free-10 and
-  // no client count is a quota: the Free-10 balance is the server ledger (account summary) and is enforced by the server at
-  // the first client output, never at draft creation.
+  const currentMonth = now.getMonth();
+  const currentYear = now.getFullYear();
+  const monthlyQuotesCount = quotes.filter(q => {
+    const qDate = new Date(q.created_at);
+    return qDate.getMonth() === currentMonth && qDate.getFullYear() === currentYear;
+  }).length;
 
   // חוק ברזל (Entitlement/Quota Centralization, §150, סעיף 3 - Fix Item 50):
   // מקור יחיד קנוני - entitlement.monthlyQuoteLimit (resolveAccountEntitlement,
   // למעלה) - במקום נוסחת-ternary עצמאית שהוכפלה כאן ובשער האכיפה למטה
   // (handleSaveQuote) בנפרד. תיקון-חיווט בלבד, לא נוסחה חדשה - ר' התיעוד
   // המלא ב-PROFLOW_PROJECT_CONTEXT.md §149/§150.
+  const planLimit = entitlement.monthlyQuoteLimit === Infinity ? '∞' : entitlement.monthlyQuoteLimit;
 
   const totalQuotesCount = quotes.length;
   // IRON-MARKET-004: revenue (approved/paid - the unchanged definition) is totalled per persisted quote currency; amounts in
@@ -2928,7 +2811,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const isRevenueQuote = (q) => q.status?.toLowerCase() === 'approved' || q.status?.toLowerCase() === 'paid';
   const accountCurrency = isLocalIsraeliBusiness ? 'ILS' : currency;
   const revenueTotals = totalsByQuoteCurrency(quotes, { include: isRevenueQuote, accountCurrency });
-  const revenueMulti = revenueTotals.groups.length > 1 || revenueTotals.unknownCount > 0;
 
   const reportYear = now.getFullYear();
   const reportMonth = now.getMonth();
@@ -3038,7 +2920,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const draftUserId = session?.user?.id || null;
   const draftPayload = {
     clientName, clientEmail, clientPhone, clientType, clientTaxId, clientAddress, quoteSubject, attnName, attnRole, currency,
-    quoteStatus, validUntil, discount, terms, warranty, notes, items, sections, quoteStructureMode, projectName, quotePresentation,
+    quoteStatus, validUntil, discount, terms, warranty, notes, items, sections, quoteStructureMode, projectName,
   };
   const quoteDraft = useQuoteDraftPersistence({
     // never persist an editor that belongs to a DIFFERENT user than the current session (account-switch isolation)
@@ -3059,26 +2941,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     defaults: { defaultTerms, defaultWarranty },
   });
 
-  // Task 16: presentation controller (context/tier, saved record, thumbnails, preview, post-save sync). The network is
-  // only reached through utils/quotePresentationClient.js.
-  const latestDraftPayloadRef = useRef(draftPayload);
-  latestDraftPayloadRef.current = draftPayload;
-  const presentationEditor = useQuotePresentationEditor({
-    enabled: !!draftUserId,
-    userId: draftUserId,
-    isHebrew,
-    editingQuoteId,
-    presentation: quotePresentation,
-    setPresentation: setQuotePresentation,
-    shouldHydrateFromServer: () => presentationSourceRef.current === 'server',
-    onHydrate: (loaded) => {
-      const cur = latestDraftPayloadRef.current;
-      setQuotePresentation(loaded);
-      // the saved presentation belongs to the clean edit baseline - loading it is never an unsaved change
-      setEditCleanHash((h) => (h != null && h === formHash(cur) ? formHash({ ...cur, quotePresentation: loaded }) : h));
-    },
-  });
-
   // AI Chat workflow-awareness snapshot (Track B/C) - a small, pure,
   // derived-only-when-on-the-quote-editor-screen object; never sent for any
   // other tab, never containing client name/email/financial totals/item
@@ -3092,6 +2954,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // resolved when the owner confirms it is no longer true; the editor scope is cleared when the editor closes (context transition).
   const draftStorageFailed = showQuoteForm && (!!draftStorageProbe || quoteDraft.status === 'error');
   const draftAttachmentsMissing = showQuoteForm && Array.isArray(quoteDraft.attachmentsWarning) && quoteDraft.attachmentsWarning.length > 0;
+  const creatingAtLimit = showQuoteForm && !editingQuoteId && !isSuperAdmin && monthlyQuotesCount >= entitlement.monthlyQuoteLimit;
   const missingProfileKey = getMissingBusinessProfileFields({ phone: bizPhone, taxId: bizTaxId, isLocalIsraeliBusiness }).join(',');
   useEffect(() => {
     const sync = (code, on, opts) => (on ? publishBlocker(code, opts) : resolveBlockers([code]));
@@ -3100,11 +2963,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     sync('DRAFT_STORAGE_FAILED', draftStorageFailed, { scope: 'editor', persistence: 'local_write_failed' });
     sync('DRAFT_ATTACHMENTS_MISSING', draftAttachmentsMissing, { scope: 'editor', persistence: 'local_only' });
     sync('ATTACHMENT_REMOVAL_PENDING', showQuoteForm && pendingAttachmentRemovals.length > 0, { scope: 'editor', persistence: 'not_persisted' });
+    sync('MONTHLY_QUOTE_LIMIT_REACHED', creatingAtLimit, { scope: 'editor', persistence: 'not_attempted' });
     // profile blockers are only ever raised by the save gate; the saved profile being complete is their confirmed resolution
     const missing = missingProfileKey.split(',');
     if (!missing.includes('phone')) resolveBlockers(['PROFILE_MISSING_PHONE']);
     if (!missing.includes('taxId')) resolveBlockers(['PROFILE_MISSING_TAX_ID']);
-  }, [showQuoteForm, recoveredDraftInfo, draftConflict, draftStorageFailed, draftAttachmentsMissing, pendingAttachmentRemovals.length, missingProfileKey]);
+  }, [showQuoteForm, recoveredDraftInfo, draftConflict, draftStorageFailed, draftAttachmentsMissing, pendingAttachmentRemovals.length, creatingAtLimit, missingProfileKey]);
   useEffect(() => { if (!showQuoteForm) clearScope('editor'); }, [showQuoteForm]);
   aiNavStateRef.current = { showQuoteForm, isDirty: () => quoteDraft.isDirty(), isSuperAdmin };
   useEffect(() => { if (needsRegionChoice) publishBlocker('REGION_NOT_SELECTED', { scope: 'session' }); else resolveBlockers(['REGION_NOT_SELECTED']); }, [needsRegionChoice]);
@@ -3124,7 +2988,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     ...(keepId ? { id: item.id } : {}),
     description: item.description,
     quantity: item.quantity || '1',
-    unit_price: formPriceFromSavedItem(item), // Task 35 (F4): a saved missing price returns as '' (missing), never as a free 0
+    unit_price: item.unit_price,
     isFromCatalog: false,
     pricing_unit: item.pricing_unit || null,
     calculated_quantity: (item.calculated_quantity !== undefined && item.calculated_quantity !== null) ? item.calculated_quantity : '',
@@ -3176,9 +3040,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setWizardResume(null);
     setRecoveredDraftInfo(null);
     setNewDraftUuid(null);
-    presentationSourceRef.current = 'server'; // Task 16: the saved presentation of this quote is loaded by presentationEditor
-    presentationEditor.cancelCopy();
-    setQuotePresentation(createPristinePresentation());
     setEditingQuoteId(quote.id);
     setIsCreatingQuote(false);
     setClientName(quote.clients?.company_name || '');
@@ -3199,7 +3060,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
       .map(s => ({ key: s.id, id: s.id, name: s.name, sort_order: s.sort_order || 0 })));
     setQuoteStructureMode(inferStructureModeFromQuote(quote));
-    setMeasuredQuoteEntry(false); setShowAiQuoteDraft(false); // Task 21: an existing quote is never a fresh measured / AI entry
 
     const quoteCurr = quote.currency || (isLocalIsraeliBusiness ? 'ILS' : (currency || 'USD'));
     setCurrency(quoteCurr);
@@ -3255,28 +3115,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // דבר גלוי - זה היה הפער שדווח ותוקן כאן, לא מומש טופס נפרד/כפול.
   // ONE reset for every "start clean" path (new quote / cancel / after save / logout / account switch). Previously each path
   // re-listed the fields by hand and two of them forgot quoteStatus and quoteStructureMode (state leaked between quotes).
-  // Task 27: the work date follows the open editor - an existing quote loads its saved value, a new quote starts empty. A late answer for
-  // a previous editor is ignored (token). 'unavailable' (no table on this server) and 'error' (value unknown) disable the field.
-  useEffect(() => {
-    const token = ++serviceScheduleTokenRef.current;
-    serviceScheduleBaselineRef.current = { date: '', time: '' };
-    setServiceSchedule({ date: '', time: '' });
-    const uid = session?.user?.id;
-    if (!uid || (!editingQuoteId && !isCreatingQuote)) { setServiceScheduleState('ready'); return; }
-    if (!editingQuoteId && serviceScheduleAvailableRef.current !== null) { setServiceScheduleState(serviceScheduleAvailableRef.current ? 'ready' : 'unavailable'); return; }
-    setServiceScheduleState(editingQuoteId ? 'loading' : 'ready');
-    (async () => {
-      const r = editingQuoteId ? await loadServiceSchedule(supabase, uid, editingQuoteId) : await probeServiceSchedule(supabase, uid);
-      if (token !== serviceScheduleTokenRef.current) return;
-      if (r.ok) {
-        serviceScheduleAvailableRef.current = true;
-        if (editingQuoteId) { serviceScheduleBaselineRef.current = r.value; setServiceSchedule(r.value); }
-        setServiceScheduleState('ready');
-      } else if (r.error.code === 'unavailable') { serviceScheduleAvailableRef.current = false; setServiceScheduleState('unavailable'); }
-      else setServiceScheduleState(editingQuoteId ? 'error' : 'ready');
-    })();
-  }, [editingQuoteId, isCreatingQuote, session?.user?.id]);
-
   const resetQuoteFormFields = () => {
     const pr = getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency });
     setClientName(pr.clientName); setClientEmail(pr.clientEmail); setClientPhone(pr.clientPhone); setClientType(pr.clientType);
@@ -3286,69 +3124,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setProjectName(pr.projectName); setQuoteStatus(pr.quoteStatus); setQuoteStructureMode(pr.quoteStructureMode);
     setPendingAttachmentRemovals([]); setWizardDraft(null); setWizardResume(null); setEditBaselineFingerprint(null); setEditCleanHash(null);
     setItemWizardState(null);
-    setQuotePresentation(createPristinePresentation()); presentationSourceRef.current = 'server'; presentationEditor.cancelCopy();
-    setMeasuredQuoteEntry(false); setShowAiQuoteDraft(false);
   };
 
   const handleCreateNewQuoteClick = () => {
-    if (free10Blocked()) return false; // checked BEFORE anything opens or is created; nothing is inserted on a click
     setActiveTab('main');
     setIsCreatingQuote(true);
     setEditingQuoteId(null);
     resetQuoteFormFields();
     setNewDraftUuid(newDraftId());
     setRecoveredDraftInfo(null);
-    return true;
-  };
-
-  // New-quote menu choices (sidebar row, toolbar, mobile bottom-row sheet). All start from the SAME reset as handleCreateNewQuoteClick:
-  //  - measured / profession-aware: the same state QuoteForm.handleSwitchToDivided sets, applied AFTER the reset, and marked as a measured
-  //    entry so the item wizard leads with a measurement method (Task 21)
-  //  - AI smart quote (Task 21): the blank quote form plus the AI quote-draft dialog (describe the job -> reviewable draft items the user
-  //    applies explicitly to the unsaved form; nothing is saved, issued or sent)
-  const handleCreateStructuredQuoteClick = () => {
-    if (handleCreateNewQuoteClick() === false) return;
-    setQuoteStructureMode('divided');
-    setMeasuredQuoteEntry(true);
-  };
-  const handleCreateAiQuoteClick = () => {
-    if (handleCreateNewQuoteClick() === false) return;
-    setShowAiQuoteDraft(true);
-  };
-  // The user's explicit "add to quote" in the AI draft dialog: the chosen lines join the form's real items (the untouched blank row is
-  // replaced, as handleAddFromCatalog does), and the suggested subject fills the subject only while it is still empty. Nothing is saved.
-  const applyAiQuoteDraft = (lines, subject) => {
-    const drafted = draftLinesToQuoteItems(lines);
-    setItems((prev) => [...prev.filter((it) => !isUntouchedPlaceholderItem(it)), ...drafted]);
-    if (subject) setQuoteSubject((prev) => (String(prev || '').trim() ? prev : subject));
-    setShowAiQuoteDraft(false);
-  };
-
-  // Task 27 (spec §6): start a NEW quote from a saved template. The Free-10 check runs before the picker opens and again through the
-  // normal new-quote path; the template fills only items / sections / texts / presentation - never a customer, number, status or date.
-  const handleOpenTemplatePicker = () => {
-    if (free10Blocked()) return;
-    setTemplateDialog('pick');
-  };
-  const handleUseTemplate = (content) => {
-    setTemplateDialog(null);
-    const f = templateToFormState(content, () => `tmp_section_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-    if (!f) return;
-    if (handleCreateNewQuoteClick() === false) return;
-    if (f.items) setItems(f.items);
-    setSections(f.sections);
-    setQuoteStructureMode(f.quoteStructureMode);
-    if (f.quoteSubject) setQuoteSubject(f.quoteSubject);
-    if (f.projectName) setProjectName(f.projectName);
-    if (f.terms !== null) setTerms(f.terms);
-    if (f.warranty !== null) setWarranty(f.warranty);
-    if (f.notes !== null) setNotes(f.notes);
-    if (f.presentation && hasServerContent(f.presentation)) { presentationSourceRef.current = 'local'; setQuotePresentation(f.presentation); }
   };
 
   // PRODUCT_TRUTH_CAPABILITY: quote_duplicate
   const handleDuplicateQuote = async (quote) => {
-    if (free10Blocked()) return; // a duplicate is a new quote
     setNewDraftUuid(newDraftId());
     setPendingAttachmentRemovals([]);
     setWizardDraft(null);
@@ -3358,10 +3146,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setEditCleanHash(null);
     setEditingQuoteId(null); 
     setIsCreatingQuote(true);
-    // Task 16: the copy starts from the source quote's presentation (issued snapshot, else its draft) - never shared state
-    presentationSourceRef.current = 'server';
-    setQuotePresentation(createPristinePresentation());
-    presentationEditor.copyFromQuote(quote.id);
     setClientName(quote.clients?.company_name || '');
     setClientEmail(quote.clients?.email || '');
     setClientPhone(quote.clients?.phone || '');
@@ -3412,7 +3196,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     });
     setSections(newSections);
     setQuoteStructureMode(inferStructureModeFromQuote(quote));
-    setMeasuredQuoteEntry(false); setShowAiQuoteDraft(false); // Task 21: an existing quote is never a fresh measured / AI entry
 
     if (quote.quote_items && quote.quote_items.length > 0) {
       // Same missing-sort root cause and same fix as handleEditClick above -
@@ -3464,11 +3247,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setItems(Array.isArray(payload?.items) && payload.items.length ? payload.items : pr.items);
     setSections(Array.isArray(payload?.sections) ? payload.sections : []);
     setQuoteStructureMode(payload?.quoteStructureMode ?? null);
-    // Task 16: a restored presentation with real content (style override / images) wins over the saved record; a pristine or
-    // missing one (older schema, detail-only) hydrates from the server - an empty local value never shadows stored content.
-    presentationEditor.cancelCopy();
-    presentationSourceRef.current = hasServerContent(payload?.quotePresentation) || payload?.quotePresentation?.recordKnown === true ? 'local' : 'server';
-    setQuotePresentation(normalizePresentationState(payload?.quotePresentation));
   };
 
   const openDraftEditor = async (uid, env, { quote = null, asCopy = false, copyLabel = '' } = {}) => {
@@ -3597,31 +3375,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
   }, [editingQuoteId, editBaselineFingerprint, quotes]);
 
-  // Task 16 - "Issue quote": confirmed in the presentation panel. Sets the status to Sent and runs the SAME save path the
-  // status select uses (handleSaveQuote; no email or message is sent); the save's presentation sync then freezes the
-  // presentation (Draft -> Sent). A failed save restores the previous status in the form.
-  const requestIssueQuote = () => {
-    if (!editingQuoteId || issueRequest) return;
-    setIssueRequest({ quoteId: editingQuoteId, prevStatus: quoteStatus, started: false });
-    setQuoteStatus('Sent');
-  };
-  useEffect(() => {
-    if (!issueRequest || issueRequest.started) return;
-    if (editingQuoteId !== issueRequest.quoteId) { setIssueRequest(null); return; }
-    if (quoteStatus !== 'Sent') return;
-    const req = issueRequest;
-    setIssueRequest({ ...req, started: true });
-    (async () => {
-      await handleSaveQuote({ preventDefault() {} });
-      if (lastSaveOutcomeRef.current !== 'saved') setQuoteStatus((cur) => (cur === 'Sent' ? req.prevStatus : cur));
-      setIssueRequest(null);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [issueRequest, quoteStatus, editingQuoteId]);
-
   async function handleSaveQuote(e) {
     e.preventDefault();
-    lastSaveOutcomeRef.current = null;
     if (!session?.user?.id) return;
     resolveBlockers(SAVE_ATTEMPT_CODES); // a new attempt re-evaluates the previous attempt's blockers (re-published below if still true)
     const saveBlock = (code, msg, opts = {}) => alertWithBlocker(code, { scope: 'editor', ...opts }, msg);
@@ -3635,14 +3390,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     if (clientEmail && clientEmail.trim() !== '' && !emailEmailValidation(clientEmail)) {
       saveBlock('QUOTE_INVALID_CLIENT_EMAIL', isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית!' : '❌ Invalid email address!');
-      return;
-    }
-    // Task 27 (§253): a NEW quote after Free-10 is exhausted stops here, BEFORE any client or quote row is written; the form keeps every
-    // field. (The server refuses the same insert on its own - quotes_free10_creation_guard - so a direct or concurrent path cannot pass.)
-    if (!editingQuoteId && free10Blocked()) return;
-    // Task 27 (§6): an incomplete work date is fixed before anything is saved (the field explains what is missing)
-    if (serviceScheduleState === 'ready' && !normalizeServiceSchedule(serviceSchedule).ok) {
-      setAlertModalMsg(isHebrew ? 'תאריך הביצוע אינו שלם. תקנו אותו או מחקו אותו ונסו לשמור שוב.' : 'The work date is incomplete. Fix it or clear it, then save again.');
       return;
     }
 
@@ -3707,18 +3454,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         // כי ה-authoritative snapshot עצמו לא היה מכיל את השדות האלה כלל.
         // Fallback בטוח (isMissingProfessionalColumnError, אותו עיקרון
         // בדיוק כמו למטה) לסביבה שעדיין לא עברה migration.
-        const richItemCols = 'id, description, quantity, unit_price, total_price, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, quote_item_measurements ( width, height, unit, label, is_pricing_driving )';
-        // Task 35 (F4): + price_missing (forward-only column); before the migration exists the previous select runs unchanged
         let { data: fetchedItems, error: fetchItemsErr } = await supabase
           .from('quote_items')
-          .select(`${richItemCols}, price_missing`)
+          .select('id, description, quantity, unit_price, total_price, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, quote_item_measurements ( width, height, unit, label, is_pricing_driving )')
           .eq('quote_id', editingQuoteId);
-        if (fetchItemsErr && String(fetchItemsErr.message || '').includes('price_missing')) {
-          ({ data: fetchedItems, error: fetchItemsErr } = await supabase
-            .from('quote_items')
-            .select(richItemCols)
-            .eq('quote_id', editingQuoteId));
-        }
         if (fetchItemsErr) {
           const msg = String(fetchItemsErr.message || '');
           const isMissingCol = ['pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'quote_item_measurements']
@@ -3747,8 +3486,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         }
       }
 
-      // OD-01 / OD-20: no client monthly quota gate at save time (retired legacy 5/20 model). Free-10 is consumed and
-      // enforced by the server output authority at the first client output, not when a draft is saved.
+      if (!editingQuoteId && !isSuperAdmin) {
+        // חוק ברזל (§150, סעיף 3): אותו entitlement.monthlyQuoteLimit בדיוק
+        // כמו planLimit למעלה - אכיפה וחיווט חייבים לצרוך את אותו ערך קנוני
+        // יחיד (ר' §24 בעלים - DISPLAY QUOTA === ENFORCEMENT QUOTA === CANONICAL
+        // ENTITLEMENT QUOTA).
+        const limit = entitlement.monthlyQuoteLimit;
+        if (monthlyQuotesCount >= limit) {
+          saveBlock('MONTHLY_QUOTE_LIMIT_REACHED', 
+            isHebrew ? `הגעת למכסת ההצעות החודשית לחבילה שלך (${limit} הצעות). שדרג כדי ליצור עוד!` : `Monthly quote limit reached for your plan (${limit} quotes). Upgrade to create more!`
+          );
+          return;
+        }
+      }
 
       // --- זיהוי דטרמיניסטי: האם זוהי עריכה פיננסית או לא-פיננסית? ---
       // שדות פיננסיים-סמנטיים בלבד: items/quantities/unit_prices/discount/
@@ -3779,9 +3529,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         // גם כשסכום הפריט עצמו עומד להשתנות. getActiveQuantity הוא superset
         // מדויק: לפריטים לא-מדודים הוא נופל בחזרה בדיוק לאותו quantity
         // שטוח, אז אין כאן שום שינוי-התנהגות לפריטים רגילים/קבועים.
-        // Task 35 (F4): a missing price and an intentional 0 are different financial states (the flag is part of the pair)
-        const currentItemPairs = items.map(it => `${numKey(getActiveQuantity(it))}|${numKey(it.unit_price)}|${isItemPriceMissing(it) ? 1 : 0}`).sort();
-        const authoritativeItemPairs = authoritativeItems.map(it => `${numKey(getActiveQuantity(it))}|${numKey(it.unit_price)}|${it.price_missing === true ? 1 : 0}`).sort();
+        const currentItemPairs = items.map(it => `${numKey(getActiveQuantity(it))}|${numKey(it.unit_price)}`).sort();
+        const authoritativeItemPairs = authoritativeItems.map(it => `${numKey(getActiveQuantity(it))}|${numKey(it.unit_price)}`).sort();
         const itemsChanged = currentItemPairs.length !== authoritativeItemPairs.length
           || currentItemPairs.some((v, i) => v !== authoritativeItemPairs[i]);
 
@@ -4038,8 +3787,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         section_client_key: item.section_key || null,
         description: item.description,
         quantity: Number(item.quantity || 1),
-        // Task 35 (F4): a missing price = NOT NULL numeric 0 + price_missing = true (partial totals; never a silent free line)
-        ...itemPricePayload(item, getActiveQuantity(item)),
+        unit_price: Number(item.unit_price || 0),
+        total_price: getActiveQuantity(item) * Number(item.unit_price || 0),
         pricing_unit: item.pricing_unit || null,
         calculated_quantity: (item.calculated_quantity !== undefined && item.calculated_quantity !== '' && item.calculated_quantity !== null) ? Number(item.calculated_quantity) : null,
         quantity_source: item.quantity_source || null,
@@ -4079,29 +3828,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
       // A new quote's id is its draft id (RFC 4122 v4): retries of the same draft - even after a reload - target the same quote.
       const saveQuoteId = editingQuoteId || (UUID_V4_RE.test(String(newDraftUuid || '')) ? newDraftUuid : newUuid());
-      // Task 16: after the quote itself is saved, persist its presentation draft and - on a Draft -> Sent/Approved/Paid
-      // transition (status select or "Issue quote") - freeze it. Never blocks or undoes the quote save.
-      const presentationAtSave = quotePresentation;
-      const presentationStyleAtSave = presentationEditor.effective.style;
-      const syncQuotePresentation = async (savedQuoteId) => {
-        const outcome = await presentationEditor.afterSave({
-          quoteId: savedQuoteId, isNew: !editingQuoteId, previousStatus: authoritativeQuote?.status ?? null, persistedStatus, presentation: presentationAtSave,
-        });
-        return presentationEditor.describeOutcome(outcome, presentationStyleAtSave);
-      };
-      // Task 27 (§6): the work date is written after the quote exists; a failure never undoes the quote - it is reported instead.
-      const scheduleAtSave = serviceSchedule;
-      const scheduleBaselineAtSave = serviceScheduleBaselineRef.current;
-      const scheduleWritable = serviceScheduleState === 'ready';
-      const syncServiceSchedule = async (savedQuoteId) => {
-        if (!scheduleWritable) return null;
-        const r = await saveServiceSchedule(supabase, session.user.id, savedQuoteId, scheduleAtSave, scheduleBaselineAtSave);
-        if (r.ok) { serviceScheduleBaselineRef.current = r.value; return null; }
-        if (r.error.code === 'unavailable') serviceScheduleAvailableRef.current = false;
-        return r.error.code === 'unavailable'
-          ? (isHebrew ? 'ההצעה נשמרה, אבל תאריך הביצוע לא נשמר - האפשרות עדיין לא זמינה בשרת הזה.' : 'The quote was saved, but the work date was not - this server does not support it yet.')
-          : (isHebrew ? 'ההצעה נשמרה, אבל תאריך הביצוע לא נשמר. פתחו את ההצעה ונסו לשמור שוב.' : 'The quote was saved, but the work date was not. Open the quote and save again.');
-      };
       const saveResult = await persistQuote(supabase, {
         userId: session.user.id,
         isNew: !editingQuoteId,
@@ -4123,8 +3849,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       }
 
       if (saveResult.outcome === 'failed') {
-        // Task 27: the server refused a NEW quote because Free-10 is exhausted (quotes_free10_creation_guard) - show the upgrade window.
-        if (/free_issue_limit_reached/.test(String(saveResult.error?.message || ''))) { setFree10Window(true); refreshAccountSummary(); }
         // Nothing of the quote was saved; the local draft is kept so the user can retry. `wrote` names anything that remains.
         const clientNote = saveResult.wrote.includes('client')
           ? (isHebrew ? ' שימו לב: פרטי הלקוח כבר עודכנו.' : ' Note: the client details were already updated.')
@@ -4163,7 +3887,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       }
 
       const quoteId = saveResult.quoteId;
-      lastSaveOutcomeRef.current = 'saved';
       if (saveResult.outcome === 'partial' && (saveResult.stage === 'structure' || saveResult.stage === 'items')) {
         saveBlock('QUOTE_SAVE_SERVER_ERROR', isHebrew
           ? 'פרטי ההצעה הכלליים נשמרו, אך מבנה ההצעה (יחידות/פריטים/מידות) לא נשמר ולא שונה. פתחו את ההצעה, בדקו אותה ושמרו שוב.'
@@ -4173,8 +3896,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
       if (saveResult.outcome === 'partial') {
         const { attachmentFailures, removalFailed } = saveResult;
-        await syncQuotePresentation(quoteId); // Task 16: the quote exists; a presentation failure is kept for retry
-        const partialScheduleNote = await syncServiceSchedule(quoteId);
         if (!removalFailed) setPendingAttachmentRemovals([]);
         // Partial save: the quote exists. Leave the NEW-quote draft and continue as an edit of the saved quote so a
         // retry is an UPDATE (never a duplicate); the failed files stay pending for the retry.
@@ -4187,15 +3908,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         setEditingQuoteId(quoteId);
         const { data: attNow } = await supabase.from('quote_attachments').select('*').eq('quote_id', quoteId);
         setQuoteFiles([...(attNow || []).map((f) => ({ ...f, size: f.file_size })), ...quoteFiles.filter((f) => !f.id && attachmentFailures.includes(f.name))]);
-        saveBlock('ATTACHMENT_PARTIAL_AFTER_SAVE', (partialScheduleNote ? `${partialScheduleNote} ` : '') + (isHebrew
+        saveBlock('ATTACHMENT_PARTIAL_AFTER_SAVE', isHebrew
           ? `ההצעה נשמרה, אך חלק מהצירופים לא הושלמו${attachmentFailures.length ? ` (העלאה נכשלה: ${attachmentFailures.join(', ')})` : ''}${removalFailed ? ' (מחיקת צירוף קיים נכשלה)' : ''}. הטיוטה נשמרה - אפשר לנסות שוב לשמור.`
-          : `The quote was saved, but some attachment steps did not complete${attachmentFailures.length ? ` (upload failed: ${attachmentFailures.join(', ')})` : ''}${removalFailed ? ' (removing an existing attachment failed)' : ''}. Your draft is kept - you can try saving again.`), { persistence: 'partial' });
+          : `The quote was saved, but some attachment steps did not complete${attachmentFailures.length ? ` (upload failed: ${attachmentFailures.join(', ')})` : ''}${removalFailed ? ' (removing an existing attachment failed)' : ''}. Your draft is kept - you can try saving again.`, { persistence: 'partial' });
         loadData(session.user.id, session.user.email);
         return;
       }
       setPendingAttachmentRemovals([]);
-      const presentationNote = await syncQuotePresentation(quoteId);
-      const scheduleNote = await syncServiceSchedule(quoteId);
 
       setStatusMsg({
         // חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
@@ -4211,9 +3930,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           : (isHebrew ? `הצעת המחיר הופקה ונשמרה בענן בהצלחה! סה"כ: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}` : `Quote successfully created and saved to cloud! Total: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}`),
         type: 'success'
       });
-      if (presentationNote.kind === 'alert') setAlertModalMsg(scheduleNote ? `${presentationNote.text}\n${scheduleNote}` : presentationNote.text);
-      else if (scheduleNote) setAlertModalMsg(scheduleNote);
-      else if (presentationNote.kind === 'info') setStatusMsg({ text: presentationNote.text, type: 'success' });
       
       await quoteDraft.discard(); // the draft is removed only after ALL required save stages succeeded
       clearScope('editor'); // confirmed resolution: every save stage succeeded
@@ -4238,13 +3954,58 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // אבל מעולם לא הוחל כאן. quoteMatchesSearch (quoteSearch.js) הוא עכשיו
   // מקור-האמת היחיד לחוזה-החיפוש - נבדק ישירות (בדיקות טהורות משלו), לא
   // רק דרך המסך.
-  // Quote list order: one pure typed-key sort shared with the list itself (utils/quoteListSort.js; stable, localized collation,
-  // numeric amounts/views, timestamp dates, logical status/action order, getQuoteOrderSortKey for quote numbers).
-  const filteredQuotes = sortQuotes(quotes.filter(quote => {
+  const filteredQuotes = quotes.filter(quote => {
     const matchesSearch = quoteMatchesSearch(quote, searchTerm);
     const matchesStatus = statusFilter === 'All' || (quote.status || 'draft').toLowerCase() === statusFilter.toLowerCase();
     return matchesSearch && matchesStatus;
-  }), quoteSortField, quoteSortDirection, isHebrew ? 'he' : 'en');
+  }).sort((a, b) => {
+    let aVal, bVal;
+    if (quoteSortField === 'id') {
+      // חוק ברזל (Quote History Final Polish task, Order Number Sorting Fix
+      // - שורש הבעיה שהבעלים דיווח עליו): מספר-ההזמנה המוצג ללקוח
+      // (formatQuoteFallback, למשל "A100713") נגזר מ-quote.quote_number
+      // (מספר שלם אמיתי) - אבל המיון כאן השווה בטעות את a.id/b.id, ה-UUID
+      // הפנימי של השורה, שאין לו שום קשר לרצף המוצג. בפועל זה מיין
+      // לקסיקוגרפית לפי UUID אקראי, לא לפי הרצף שהמשתמש רואה בכלל. התיקון
+      // (ר' getQuoteOrderSortKey ב-utils/quoteNumber.js לפירוט המלא/לבדיקות
+      // הממוקדות) עטוף בפונקציה טהורה נפרדת וניתנת-לבדיקה במקום לוגיקה
+      // מוטבעת כאן, כדי לא לשכתב את מנגנון-המיון הכללי (aVal/bVal + עלייה/
+      // ירידה הגנרית למטה) - רק מפתח-המיון של השדה הזה עצמו השתנה.
+      aVal = getQuoteOrderSortKey(a);
+      bVal = getQuoteOrderSortKey(b);
+    } else if (quoteSortField === 'client') {
+      aVal = a.clients?.company_name || '';
+      bVal = b.clients?.company_name || '';
+    } else if (quoteSortField === 'clientType') {
+      // Item 26 Owner QA Micro-Fix: sort by the raw clients.client_type
+      // source-of-truth value ('business'/'private') only - never by icon,
+      // tooltip, or translated display text, so ordering stays identical
+      // and deterministic across HE and EN.
+      aVal = a.clients?.client_type || '';
+      bVal = b.clients?.client_type || '';
+    } else if (quoteSortField === 'total') {
+      aVal = Number(a.total || 0);
+      bVal = Number(b.total || 0);
+    } else if (quoteSortField === 'status') {
+      aVal = a.status || '';
+      bVal = b.status || '';
+    } else if (quoteSortField === 'views') {
+      aVal = Number(a.view_count || 0);
+      bVal = Number(b.view_count || 0);
+    } else {
+      aVal = a.created_at || '';
+      bVal = b.created_at || '';
+    }
+
+    if (typeof aVal === 'string') {
+      aVal = aVal.toLowerCase();
+      bVal = bVal.toLowerCase();
+    }
+
+    if (aVal < bVal) return quoteSortDirection === 'asc' ? -1 : 1;
+    if (aVal > bVal) return quoteSortDirection === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   const filteredClients = clients.filter(client => {
     const term = clientSearchTerm.toLowerCase();
@@ -4340,9 +4101,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // Dashboard.jsx המאומת). שפת הטקסט/כיוון כאן היא תצוגה בלבד (isHebrew) -
   // הערך שנשמר בפועל נקבע אך ורק ע"י הכפתור שנלחץ (ר' handleRegionChoiceSelect).
   const pricedItemCount = showQuoteForm ? items.filter((it) => Number(it?.unit_price) > 0 && String(it?.description || '').trim()).length : 0;
-  // Task 34: the open form for the chat's explicit "Improve this quote" review - read at click time (unsaved edits included); the identity
-  // tells one draft from another (a review answer never lands on a different quote).
-  const getAiReviewSnapshot = () => ({ identity: editingQuoteId || newDraftUuid || 'new-quote', snapshot: buildQuoteDraftSnapshot({ items, subject: quoteSubject, sections }) });
   const aiHelpSources = {
     authenticated: !!session?.user?.id,
     regionChoice: !!needsRegionChoice,
@@ -4362,12 +4120,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     pricingOpen: showPricingModal,
     activeTab,
     history: { searchActive: !!String(searchTerm || '').trim(), filterStatus: statusFilter, visible: filteredQuotes.length, total: quotes.length, selectedQuoteId: null },
-    plan: {
-      state: accountSummary.state,
-      planId: accountSummary.state === 'ready' ? accountSummary.planId : null,
-      free10: accountSummary.state === 'ready' && accountSummary.free10 ? { limit: accountSummary.free10.limit, remaining: accountSummary.free10.remaining } : null,
-      phase: outputPhase,
-    },
+    plan: { monthlyUsed: monthlyQuotesCount, monthlyLimit: entitlement.monthlyQuoteLimit === Infinity ? 'unlimited' : entitlement.monthlyQuoteLimit },
     profile: { phoneComplete: !missingProfileKey.split(',').includes('phone'), taxIdComplete: !missingProfileKey.split(',').includes('taxId'), taxIdRequired: isLocalIsraeliBusiness },
     lists: { clientCount: clients.length, serviceCount: services.length, expenseCount: expenses.length, clientSearchActive: !!String(clientSearchTerm || '').trim() },
     finance: { range: financeReportType },
@@ -4427,8 +4180,23 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     );
   }
 
+  const hotQuotesList = quotes.filter(q => (q.view_count || 0) >= 3 && q.status !== 'approved' && q.status !== 'paid');
+  const currentHotQuote = hotQuotesList.length > 0 ? hotQuotesList[hotQuoteIndex % hotQuotesList.length] : null;
+  const currentHotClientName = currentHotQuote?.clients?.company_name || 'Client';
+  const currentHotViewCount = Number(currentHotQuote?.view_count || 0);
+  // חוק ברזל (Authenticated UI Coherence task, Dashboard Header Compression,
+  // Hot Quote View Affordance): אותה נוסחת-קישור-ציבורי-לפי-מטבע בדיוק כמו
+  // getQuoteViewLink הקיים כבר ב-QuotesTab.jsx (משוכפלת מקומית, לא
+  // מיוצאת/משותפת - אותו עיקרון קיים בפרויקט הזה) - "an existing safe
+  // behavior," לא כלל-ניתוב חדש שהומצא כאן.
+  const getHotQuoteViewLink = (quote) => {
+    const isLocalQuote = Number(quote?.tax_rate) > 0 || (quote?.currency || '').toUpperCase() === 'ILS';
+    return isLocalQuote
+      ? `${window.location.origin}/public-quote/${quote.id}`
+      : `${window.location.origin}/en/public-quote/${quote.id}?lang=en`;
+  };
+
   return (
-    <AccountSummaryContext.Provider value={accountSummaryContextValue}>
     <div className="dash-app-shell" dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: isHebrew ? FONT_HE : FONT_EN, background: NEON.bg, color: NEON.textPrimary, minHeight: '100vh', display: 'flex', flexDirection: 'column', letterSpacing: '-0.01em', overflowX: 'clip' }}>
 
       <style>{`
@@ -4498,26 +4266,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           display: grid;
           grid-template-columns: 1fr auto 1fr;
           align-items: center;
-          position: relative;
-        }
-        /* Task 20 Continuation 2 (Owner 2026-10-10): the AI chat launcher, horizontally centered on the header's first line. Absolute, so it
-           takes no grid cell / flex slot and adds no row; the stats strip it overlays is hidden at >=769px and on the phone quotes screen. */
-        .dash-header-ai-center {
-          position: absolute;
-          top: 0;
-          left: 50%;
-          transform: translateX(-50%);
-          height: 100%;
-          display: flex;
-          align-items: center;
-          pointer-events: none;
-          z-index: 1;
-        }
-        .dash-header-ai-center > .dash-header-ai-btn { pointer-events: auto; }
-        @media (max-width: 768px) {
-          /* first line = the 34px title slot (the stats strip, when shown, wraps to line 2 below it) */
-          .dash-header-ai-center { height: 34px; }
-          .dash-header-ai-center .dash-header-ai-btn { height: 30px; padding: 0 9px; gap: 4px; font-size: 0.75rem; }
         }
         .dash-header-row > .dash-header-title {
           justify-self: start;
@@ -4571,11 +4319,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           font-weight: 800;
           white-space: nowrap;
         }
-        /* weekday + separator exist for the one-line desktop header only (shown in the min-width:769px block) */
-        .dash-header-datetime .dash-header-weekday,
-        .dash-header-datetime .dash-header-sep { display: none; }
         .dash-header-datetime .dash-header-time {
-          font-size: 0.75rem;
+          font-size: 0.72rem;
           font-weight: 700;
           opacity: 0.8;
           white-space: nowrap;
@@ -4597,19 +4342,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           .dash-header-title { order: 1; flex: 0 0 auto; min-height: 34px; display: flex; align-items: center; }
           .dash-header-badge-desktop { order: 2; margin-inline-start: auto; }
           .dash-header-stats { order: 3; flex-basis: 100%; justify-content: flex-start; }
-        }
-        /* 1001-1180px keeps the 3-column grid, but with an 8-digit revenue and a two-line trial badge the grid needs
-           title 141.7 + stats 345 + badges 230 + gaps 28 = 745px > the 689px row at 1024 (EN): the title painted OVER
-           "Total Quotes:" (measured 2026-10-05; base c65f742 has the same overlap with that data). Here the revenue stat stacks its
-           label above its value (40.2px <= the 44px row min-height, so the card does not grow): stats 256px, title column 175px.
-           Same text, sizes and weights; nothing hidden or truncated. */
-        @media (min-width: 1001px) and (max-width: 1180px) {
-          .dash-header-stats .dash-header-stat--revenue {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0 !important;
-            line-height: 1.25;
-          }
         }
         /* חוק ברזל (Authenticated UI Coherence task, Mobile Dashboard
            Header Recomposition, Owner mid-task correction): מובייל חוזר
@@ -4653,7 +4385,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             align-items: center;
           }
           .dash-header-title .dash-header-datetime .dash-header-date { font-size: 0.76rem; }
-          .dash-header-title .dash-header-datetime .dash-header-time { font-size: 0.75rem; }
+          .dash-header-title .dash-header-datetime .dash-header-time { font-size: 0.66rem; }
           .dash-header-badge-mobile {
             margin-inline-start: auto;
             gap: 4px !important;
@@ -4663,7 +4395,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             height: 30px;
             padding: 0 6px;
             gap: 3px;
-            font-size: 0.75rem;
+            font-size: 0.68rem;
           }
           .dash-header-badge-mobile .dash-header-ai-btn > span:first-child {
             width: 18px;
@@ -4676,7 +4408,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           }
           .dash-header-badge-mobile > span span,
           .dash-header-badge-mobile > button > span span {
-            font-size: 0.75rem !important;
+            font-size: 0.62rem !important;
             gap: 3px !important;
           }
           .dash-header-stats {
@@ -4689,62 +4421,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                wrap onto a second line instead of overflowing (never clipped, never shrunk below legibility). */
             flex-wrap: wrap;
             row-gap: 2px;
-            /* Codex/TEST 2026-10-05 (8-digit revenue): a tighter gap keeps "Total Quotes: nn  Total Revenue: $12,345,678.00" on
-               ONE line from 360px (EN 360: 101.3 + 8 + 219.6 = 328.9 <= 330px); same fonts, nothing hidden or truncated. Every
-               part is narrower than base c65f742 (600 vs 800 weight, 8/4px vs 18/5px gaps), so whenever base fits one line this
-               fits too, and a wrap costs a 2px row-gap instead of 18px. */
-            column-gap: 8px !important;
-          }
-          .dash-header-stats .dash-header-stat {
-            gap: 4px !important;
-          }
-        }
-        /* ONE-ROW contract at the narrowest phones (measured 2026-10-05, EN 320: title 136 + gap 6 + actions 150 =
-           292 > row 290, so AI Chat + plan badge wrapped onto a second row and the greeting card grew 44px; base was
-           289). The 12px label floor stays (no font change); only the horizontal padding of the two pills tightens. */
-        @media (max-width: 360px) {
-          .dash-header-badge-mobile .dash-header-ai-btn {
-            padding: 0 4px;
-          }
-          .dash-header-badge-mobile > span,
-          .dash-header-badge-mobile > button > span {
-            padding: 4px 4px !important;
-          }
-        }
-        /* ONE-ROW contract up to 420px with every plan badge (measured 2026-10-05, EN 390 FREE (TRIAL) badge at the 12px label
-           floor: title 141.7 (base 800 weight) + 6 + AI Chat 87.8 + 4 + badge 142.5 = 382 > row 360, so the badges wrapped and
-           the greeting card grew 44px vs base c65f742, which fits with its 9.9px labels). No label is hidden, truncated or set
-           below 12px: on phones the greeting/date title steps from 20px to 18px (still the largest text in the card) and the
-           pills / gaps tighten. */
-        @media (max-width: 420px) {
-          .dash-header-row > .dash-header-title {
-            font-size: 1.125rem !important;
-          }
-          .dash-header-row {
-            column-gap: 4px !important;
-          }
-          .dash-header-badge-mobile {
-            gap: 3px !important;
-          }
-          .dash-header-badge-mobile .dash-header-ai-btn {
-            padding: 0 4px;
-          }
-          .dash-header-badge-mobile > span,
-          .dash-header-badge-mobile > button > span {
-            padding: 4px 4px !important;
-            gap: 2px !important;
-          }
-          .dash-header-badge-mobile > span span,
-          .dash-header-badge-mobile > button > span span {
-            gap: 2px !important;
-          }
-        }
-        /* 8-digit revenue on ONE stats line at 360px (Codex/TEST 2026-10-05: EN 360 base 386 vs candidate 343). With the base
-           800 weight, "Total Quotes: 16" (100) + 8 + "Total Revenue: $12,345,678.00" (226.2) = 334 > 330px row; the two stat
-           VALUES step from 16.8px to 16px on the narrowest phones (labels stay 12px, nothing hidden or truncated). */
-        @media (max-width: 380px) {
-          .dash-header-stats .dash-header-stat-value {
-            font-size: 1rem !important;
           }
         }
         .dash-neon-btn {
@@ -4817,7 +4493,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             font-size: 1.15rem !important;
           }
           .dash-kpi-label {
-            font-size: 0.75rem !important;
+            font-size: 0.65rem !important;
           }
           .dash-kpi-sub {
             font-size: 0.75rem !important;
@@ -4928,10 +4604,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
            put the seam on the wrong edge for Hebrew after this correction. */
         .dash-sidebar {
           direction: ${isHebrew ? 'rtl' : 'ltr'};
-          width: 180px;
+          width: 232px;
           flex-shrink: 0;
-          background: ${SIDEBAR.sidebarBg};
-          border-inline-end: 1px solid ${SIDEBAR.sidebarBorder};
+          background: ${SHELL.sidebarBg};
+          border-inline-end: 1px solid ${SHELL.sidebarBorder};
           display: flex;
           flex-direction: column;
           padding: 20px 14px;
@@ -4983,7 +4659,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           gap: 12px;
           padding: 2px 6px 16px;
           margin-bottom: 10px;
-          border-bottom: 1px solid ${SIDEBAR.sidebarBorder};
+          border-bottom: 1px solid ${SHELL.sidebarBorder};
         }
         .dash-sidebar-brand-mark {
           width: 52px;
@@ -5005,7 +4681,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
            the Owner's explicit instruction) - so it needs real presence, a
            light neutral canvas so a black/dark-transparent logo doesn't
            disappear against the dark sidebar (the exact failure mode a
-           plain img on ${SIDEBAR.sidebarBg} would have), and object-fit:
+           plain img on ${SHELL.sidebarBg} would have), and object-fit:
            contain (never cover/crop) so the uploaded file's own aspect
            ratio is always fully preserved - square/wide/tall logos all
            fit safely without stretching or cropping.
@@ -5101,7 +4777,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         .dash-sidebar-brand-name {
           min-width: 0;
           flex: 1 1 auto;
-          color: ${SIDEBAR.sidebarTextActive};
+          color: ${SHELL.sidebarTextActive};
           font-size: 1.1rem;
           font-weight: 800;
           line-height: 1.25;
@@ -5148,13 +4824,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           gap: 6px;
           padding: 12px 6px 0;
           margin-top: 10px;
-          border-top: 1px solid ${SIDEBAR.sidebarBorder};
+          border-top: 1px solid ${SHELL.sidebarBorder};
           opacity: 0.72;
         }
         .dash-sidebar-platform-brand-label {
-          font-size: 0.75rem;
+          font-size: 0.62rem;
           font-weight: 600;
-          color: ${SIDEBAR.sidebarTextMuted};
+          color: ${SHELL.sidebarTextMuted};
           text-transform: uppercase;
           letter-spacing: 0.04em;
           white-space: nowrap;
@@ -5172,7 +4848,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           gap: 3px;
           padding-top: 10px;
           margin-top: 8px;
-          border-top: 1px solid ${SIDEBAR.sidebarBorder};
+          border-top: 1px solid ${SHELL.sidebarBorder};
         }
         .dash-sidebar-nav {
           display: flex;
@@ -5181,13 +4857,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           flex: 1 1 auto;
           overflow-y: auto;
         }
-        /* Task 16 (restrained authenticated treatment): the CTA is the one SOLID accent element in the shell - no
-           gradient, no glow; a hairline inset edge keeps it legible against the #202A34 shell. */
         .dash-sidebar-cta {
           display: flex;
           align-items: center;
           gap: 8px;
-          background: ${NEON.violet};
+          background: ${NEON.gradient};
           color: #ffffff;
           border: none;
           border-radius: ${RADIUS.sm};
@@ -5195,20 +4869,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           font-weight: 800;
           font-size: 0.86rem;
           cursor: pointer;
-          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.10);
+          box-shadow: ${NEON.glow};
           margin-bottom: 14px;
           font-family: inherit;
-          transition: background 0.15s ease;
-        }
-        .dash-sidebar-cta:hover {
-          background: ${NEON.violetLight};
         }
         .dash-sidebar-btn {
           display: flex;
           align-items: center;
           gap: 11px;
           background: transparent;
-          color: ${SIDEBAR.sidebarText};
+          color: ${SHELL.sidebarText};
           border: none;
           border-inline-start: 3px solid transparent;
           border-radius: ${RADIUS.sm};
@@ -5221,23 +4891,21 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           font-family: inherit;
         }
         .dash-sidebar-btn:hover {
-          background: ${SIDEBAR.sidebarItemHoverBg};
-          color: ${SIDEBAR.sidebarTextActive};
+          background: ${SHELL.sidebarItemHoverBg};
+          color: ${SHELL.sidebarTextActive};
         }
         /* Restrained active state - a subtle purple tint + a thin accent
            edge, not a solid-purple block (Owner explicit: "avoid making
            every nav item a large solid-purple button"; the CTA above
            remains the one deliberately strong-purple element). */
-        /* Task 16: active item = the refined '.mg-nav .active' (#2a4048 fill + 3px #7fb2ba edge on the inline-start side,
-           which follows dir: HE right edge / EN left edge) and white text - never color alone. */
         .dash-sidebar-btn-active {
-          background: ${SIDEBAR.sidebarItemActiveBg};
-          border-inline-start: 3px solid ${SIDEBAR.sidebarItemActiveEdge};
-          color: ${SIDEBAR.sidebarTextActive};
+          background: rgba(139,92,246,0.16);
+          border-inline-start: 3px solid #a78bfa;
+          color: #c4b5fd;
           font-weight: 700;
         }
         .dash-sidebar-btn-active:hover {
-          background: #314B55;
+          background: rgba(139,92,246,0.22);
         }
         .dash-sidebar-btn-ghost {
           opacity: 0.85;
@@ -5252,46 +4920,22 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
            the slightly stronger visual weight without changing size/scale
            relative to the other nav icons (still 17px, same stroke width). */
         .dash-sidebar-btn-ai {
-          background: rgba(255,255,255,0.04);
-          border: 1px solid rgba(255,255,255,0.12);
-          color: ${SIDEBAR.sidebarText};
+          background: linear-gradient(135deg, rgba(167,139,250,0.14), rgba(236,72,153,0.10));
+          border: 1px solid rgba(167,139,250,0.30);
+          color: #d8b4fe;
           font-weight: 700;
         }
         .dash-sidebar-btn-ai:hover {
-          background: ${SIDEBAR.sidebarItemHoverBg};
-          border-color: rgba(255,255,255,0.20);
-          color: ${SIDEBAR.sidebarTextActive};
+          background: linear-gradient(135deg, rgba(167,139,250,0.22), rgba(236,72,153,0.16));
+          border-color: rgba(167,139,250,0.45);
+          color: #e9d5ff;
         }
-        /* Task 16: one visible focus ring geometry (3px, offset 2px) whose COLOUR follows the adjacent surface (WCAG
-           1.4.11 >= 3:1): the refined amber #efb75d on the dark side navigation / dark topbar (9:1 on #152229), the
-           accent #0f6672 on the light business header (6.6:1 on white - amber there would be ~1.8:1). */
-        .dash-sidebar-btn:focus-visible,
-        .dash-sidebar-cta:focus-visible,
-        .dash-sidebar-btn-ai:focus-visible,
-        .dash-sidebar-signout:focus-visible,
-        .dash-drawer-toggle:focus-visible,
-        .dash-topbar-ghost-btn:focus-visible,
-        .dash-topbar-ai-btn:focus-visible {
-          outline: ${APP_FOCUS.width} solid ${SIDEBAR.focusRing};
-          outline-offset: ${APP_FOCUS.offset};
-        }
-        .dash-upper-section button:focus-visible {
-          outline: ${APP_FOCUS.width} solid ${APP_FOCUS.ring};
-          outline-offset: ${APP_FOCUS.offset};
-        }
-        /* Items inside the scrolling .dash-sidebar-nav: an outset ring would be clipped by the nav's own overflow
-           box, so the same ring is drawn just inside the item edge there. */
-        .dash-sidebar-nav .dash-sidebar-btn:focus-visible,
-        .dash-sidebar-nav .dash-sidebar-cta:focus-visible {
-          outline-offset: -3px;
-        }
-        .mobile-bottom-nav button:focus-visible,
-        div[role="menu"] > button[role="menuitem"]:focus-visible {
-          outline: ${APP_FOCUS.width} solid ${APP_FOCUS.ring};
-          outline-offset: ${APP_FOCUS.offset};
+        .dash-sidebar-btn-ai:focus-visible {
+          outline: 2px solid #c4b5fd;
+          outline-offset: 1px;
         }
         .dash-sidebar-footer {
-          border-top: 1px solid ${SIDEBAR.sidebarBorder};
+          border-top: 1px solid ${SHELL.sidebarBorder};
           padding-top: 12px;
           margin-top: 10px;
         }
@@ -5300,13 +4944,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           align-items: center;
           gap: 4px;
           background: rgba(255,255,255,0.08);
-          color: ${SIDEBAR.sidebarText};
-          font-size: 0.75rem;
+          color: ${SHELL.sidebarText};
+          font-size: 0.62rem;
           font-weight: 800;
           padding: 3px 7px;
           border-radius: 4px;
           margin-bottom: 8px;
-          border: 1px solid ${SIDEBAR.sidebarBorder};
+          border: 1px solid ${SHELL.sidebarBorder};
         }
         .dash-sidebar-user {
           display: flex;
@@ -5331,7 +4975,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           flex: 1 1 auto;
         }
         .dash-sidebar-user-name {
-          color: ${SIDEBAR.sidebarTextActive};
+          color: ${SHELL.sidebarTextActive};
           font-size: 0.78rem;
           font-weight: 700;
           white-space: nowrap;
@@ -5342,7 +4986,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         .dash-sidebar-signout {
           background: none;
           border: none;
-          color: ${SIDEBAR.sidebarTextMuted};
+          color: ${SHELL.sidebarTextMuted};
           cursor: pointer;
           flex-shrink: 0;
           padding: 5px;
@@ -5352,8 +4996,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           justify-content: center;
         }
         .dash-sidebar-signout:hover {
-          background: ${SIDEBAR.sidebarItemHoverBg};
-          color: ${SIDEBAR.sidebarTextActive};
+          background: ${SHELL.sidebarItemHoverBg};
+          color: ${SHELL.sidebarTextActive};
         }
         /* Task G (Owner-authorized, Mobile Sign Out): mobile counterpart of
            the desktop .dash-sidebar-signout button above - same restrained
@@ -5364,26 +5008,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
            .dash-sidebar-btn-ai/.dash-topbar-ai-btn above - reused, not
            reinvented. */
         .dash-mobile-signout-btn:hover {
-          background: rgba(163,58,58,0.10) !important;
+          background: rgba(220,38,38,0.12) !important;
         }
         .dash-mobile-signout-btn:focus-visible {
-          outline: ${APP_FOCUS.width} solid ${APP_FOCUS.ring};
-          outline-offset: ${APP_FOCUS.offset};
-        }
-        /* Task 16: mobile navigation touch targets - every bottom-nav item and every "More" menu item is at least
-           44x44px. The bar grows to ~54px (+ safe area), still under the 58px the "More" popover anchors above and the
-           66px .dash-main-content bottom clearance. */
-        @media (max-width: 768px) {
-          .mobile-bottom-nav > button {
-            min-height: 44px;
-            min-width: 44px;
-            justify-content: center;
-            font-size: 0.75rem !important;
-            padding-inline: 2px !important;
-          }
-          div[role="menu"] > button[role="menuitem"] {
-            min-height: 44px;
-          }
+          outline: 2px solid ${NEON.violet};
+          outline-offset: 1px;
         }
 
         .dash-shell-main {
@@ -5483,933 +5112,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           overflow: hidden;
           scrollbar-gutter: stable;
         }
-        /* ===== Quote workspace base (all viewports; phones/cards keep this compact look) ===== */
-        .quote-workspace-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 12px;
-          flex-wrap: wrap;
-          gap: 10px;
-        }
-        .quote-workspace-heading { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-        .quote-workspace-title { font-size: 1.2rem; font-weight: 800; letter-spacing: normal; margin: 0; }
-        .quote-workspace-subtitle { margin: 3px 0 0; color: ${NEON.textMuted}; font-size: 0.78rem; font-weight: 500; }
-        .quote-overview {
-          display: grid;
-          grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-          border: 1px solid ${NEON.border};
-          border-radius: ${RADIUS.sm};
-          background: ${NEON.bgCardAlt};
-          margin-bottom: 12px;
-          overflow: hidden;
-        }
-        .quote-overview-cell {
-          position: relative;
-          min-width: 0;
-          min-height: 50px;
-          padding: 8px 12px;
-          display: flex;
-          align-items: baseline;
-          justify-content: center;
-          gap: 7px;
-          border-inline-start: 1px solid ${NEON.border};
-        }
-        .quote-overview-cell:first-child { border-inline-start: none; }
-        .quote-overview-value { color: ${NEON.textPrimary}; font-size: 1.05rem; font-weight: 800; }
-        .quote-overview-label { color: ${NEON.textSecondary}; font-size: 0.75rem; font-weight: 600; white-space: nowrap; }
-        /* IRON-MARKET-004: several persisted quote currencies share the total cell as separate tokens (never one mixed sum) */
-        .quote-overview-cell--multi .quote-overview-value { font-size: 0.85rem; justify-content: center; }
-
-        /* New-quote menu + sidebar account menu popovers (position:fixed, placed from the trigger rect by the components) */
-        .pf-newquote-menu { position: relative; }
-        .pf-newquote-popover,
-        .pf-account-popover {
-          position: fixed;
-          z-index: 100000;
-          box-sizing: border-box;
-          min-width: 268px;
-          max-width: calc(100vw - 16px);
-          padding: 6px;
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          background: #ffffff;
-          color: #0f172a;
-          border: 1px solid #dde1e8;
-          border-radius: 10px;
-          box-shadow: 0 14px 34px -10px rgba(15, 23, 42, 0.32);
-        }
-        .pf-newquote-popover { min-width: 0; max-width: min(268px, calc(100vw - 24px)); }
-        .pf-newquote-item,
-        .pf-account-item {
-          display: flex;
-          align-items: flex-start;
-          gap: 11px;
-          inline-size: 100%;
-          box-sizing: border-box;
-          padding: 9px 10px;
-          border: 0;
-          border-radius: 8px;
-          background: transparent;
-          color: inherit;
-          font: inherit;
-          text-align: start;
-          cursor: pointer;
-        }
-        .pf-newquote-item svg { flex: none; margin-top: 1px; color: #0c5fe3; }
-        .pf-newquote-item-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-        .pf-newquote-item-text strong { font-size: 14.5px; font-weight: 600; line-height: 1.3; }
-        .pf-newquote-item-text small { font-size: 12.5px; color: #475569; line-height: 1.35; }
-        .pf-account-item { align-items: center; min-height: 40px; font-size: 14.5px; font-weight: 500; }
-        .pf-account-item svg { flex: none; color: #475569; }
-        .pf-account-item--danger,
-        .pf-account-item--danger svg { color: #b42318; }
-        .pf-newquote-item:hover,
-        .pf-newquote-item:focus-visible,
-        .pf-account-item:hover,
-        .pf-account-item:focus-visible { background: #eef3fb; outline: none; }
-
-        /* Hot-quote banner: first child of the quotes workspace, directly under the header band (never inside it). Tinted
-           rose/orange, one line (40px), logical properties only so dir=rtl/ltr mirrors it. */
-        .quote-hot-banner {
-          box-sizing: border-box;
-          min-height: 40px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin: 0 0 14px;
-          padding-block: 0;
-          /* the eye button is the first child (inline-start), the text runs toward inline-end */
-          padding-inline: 4px 12px;
-          border: 1px solid #fdba74;
-          border-radius: 8px;
-          background: #fff4ed;
-          color: #9a3412;
-          font-size: 13px;
-          line-height: 1.3;
-        }
-        /* Owner correction 2026-10-09: the real client name AND the view count must stay readable - a long name wraps onto
-           more lines instead of ellipsizing the count away. The 2px block padding lives on the text, so a one-line alert keeps
-           the exact bar height (set by the eye button / min-height) on every device. */
-        .quote-hot-banner-text {
-          flex: 1 1 auto;
-          min-width: 0;
-          padding-block: 2px;
-          white-space: normal;
-          overflow-wrap: anywhere;
-          color: #9a3412;
-          font-weight: 500;
-        }
-        .quote-hot-banner-name { padding: 0; background: transparent; color: #c2410c; font-weight: 700; }
-        .quote-hot-banner-action {
-          flex: none;
-          /* 32px so the 24px illustrated eye (Owner update 2026-10-09) keeps its own clear area inside the 40px banner */
-          inline-size: 32px;
-          block-size: 32px;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
-          padding: 0;
-          border: 1px solid #fdba74;
-          border-radius: 7px;
-          background: #ffedd5;
-          color: #9a3412;
-          cursor: pointer;
-        }
-        .quote-hot-banner-action:hover { background: #fed7aa; }
-        .quote-hot-banner-action:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
-
-        /* Owner superseding responsive correction (2026-10-08 17:19): on mobile / tablet-portrait the top chrome of the
-           QUOTES OVERVIEW must not consume the screen before the work list. Nothing required is hidden:
-           - the header stats band repeats the quote count that the KPI strip below already shows (the approved desktop
-             composition hides the same band), so on the quotes overview only it yields to the KPI strip;
-           - spacing tightens, the hot-quote row stays (one line, 44px touch target), the KPI strip becomes ONE compact row
-             (3 counts + wider total; below 360px the total takes its own line so long totals never overflow).
-           Logical properties only; dir=rtl/ltr mirrors everything. Other tabs keep their header unchanged. */
-        @media (max-width: 768px) {
-          .dash-upper-section[data-quotes-overview="true"] {
-            padding: 10px 12px !important;
-            margin-bottom: 8px !important;
-          }
-          .dash-upper-section[data-quotes-overview="true"] .dash-header-stats { display: none !important; }
-          .quote-workspace.pf-work-screen[data-qh-layout="cards"] { padding: 12px !important; }
-          .quote-workspace .quote-hot-banner {
-            min-height: 44px;
-            margin: 0 0 10px;
-            padding-inline: 2px 10px;
-            gap: 6px;
-            font-size: 12.5px;
-          }
-          .quote-workspace .quote-hot-banner-action { inline-size: 40px; block-size: 40px; border-radius: 8px; }
-          .quote-workspace[data-qh-layout="cards"] .quote-workspace-header { margin-bottom: 10px; gap: 8px; flex-wrap: nowrap; }
-          .quote-workspace[data-qh-layout="cards"] .quote-workspace-heading { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; justify-content: space-between; }
-          .quote-workspace[data-qh-layout="cards"] .quote-workspace-subtitle { margin-top: 2px; font-size: 0.75rem; }
-          .quote-workspace[data-qh-layout="cards"] .quote-overview {
-            grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.9fr);
-            margin-bottom: 10px;
-          }
-          .quote-workspace[data-qh-layout="cards"] .quote-overview-cell {
-            min-height: 44px;
-            padding: 5px 4px;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            gap: 1px;
-          }
-          .quote-workspace[data-qh-layout="cards"] .quote-overview-value { font-size: 0.95rem; line-height: 1.15; white-space: nowrap; }
-          .quote-workspace[data-qh-layout="cards"] .quote-overview-label { font-size: 0.72rem; line-height: 1.15; }
-          .quote-workspace[data-qh-layout="cards"] .quote-overview-cell--multi .quote-overview-value { white-space: normal; font-size: 0.78rem; }
-        }
-        /* Phones: the CSV export stays one tap away as a 40px icon button (accessible name = aria-label) so the title
-           block stays one line; its visible label returns from 421px. */
-        @media (max-width: 768px) {
-          .quote-workspace .quote-export-cards { flex: none; min-height: 40px; min-width: 40px; justify-content: center; padding: 0 10px !important; }
-        }
-        @media (max-width: 420px) {
-          .quote-workspace .quote-export-cards { padding: 0 !important; inline-size: 40px; }
-          .quote-workspace .quote-export-cards-label {
-            position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap;
-          }
-        }
-        /* Touch tablets keep the desktop composition; only the hot-row action grows to a 40px touch target inside the same
-           40px row (no geometry change). */
-        @media (pointer: coarse), (hover: none) {
-          .quote-hot-banner-action { inline-size: 40px; block-size: 40px; border-radius: 8px; }
-        }
-        @media (max-width: 359px) {
-          .quote-workspace[data-qh-layout="cards"] .quote-overview { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-          .quote-workspace[data-qh-layout="cards"] .quote-overview-cell--total {
-            grid-column: 1 / -1;
-            flex-direction: row;
-            align-items: baseline;
-            gap: 6px;
-            border-inline-start: none;
-            border-block-start: 1px solid ${NEON.border};
-            min-height: 36px;
-          }
-        }
-
         @media (min-width: 769px) {
-          /* ===== Approved 980px composition =====
-             Shell = one centered 980px column (index.css token). One flat navy band (#11274a, 68px) runs across the sidebar brand
-             block and the header; the sidebar body (#102444) and the workspace (#f7f9fc) sit below it. All horizontal geometry
-             is logical (inline-start/end, padding-inline, logical borders): dir=rtl/ltr mirrors the whole shell. */
+          /* Desktop-only: sidebar top alignment with the Header card (16px
+             = .dash-main-content's own inline padding). */
           .dash-sidebar {
-            width: 178px;
-            height: 100%;
-            margin-top: 0;
-            border-radius: 0;
-            border: 0;
-            border-inline-end: 0;
-            padding: 0 4px 10px;
-            background: #102444 !important;
-          }
-          .dash-sidebar-brand {
-            box-sizing: border-box;
-            height: 68px;
-            flex: none;
-            margin: 0 -4px;
-            padding: 10px;
-            background: #11274a;
-            border: 0;
-            display: block;
-          }
-          .dash-sidebar-brand-card {
-            box-sizing: border-box;
-            height: 58px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 10px;
-            background: #ffffff;
-            overflow: hidden;
-          }
-          .dash-sidebar-wordmark {
-            color: #0b2a55;
-            font-size: 27px;
-            font-weight: 800;
-            letter-spacing: -0.02em;
-            line-height: 1;
-            white-space: nowrap;
-            direction: ltr;
-            unicode-bidi: isolate;
-          }
-          .dash-sidebar-nav { padding-top: 23px; gap: 4px; }
-          .dash-sidebar .pf-newquote-menu { display: block; }
-          .dash-sidebar-cta,
-          .dash-sidebar-btn {
-            box-sizing: border-box;
-            inline-size: 100%;
-            min-height: 36px;
-            margin: 0;
-            padding: 0 5px;
-            gap: 8px;
-            border: 0;
-            border-radius: 8px;
-            background: transparent;
-            box-shadow: none;
-            color: #e9eef6;
-            font-size: 13.5px;
-            font-weight: 400;
-            white-space: nowrap;
-          }
-          .dash-sidebar-cta > span,
-          .dash-sidebar-btn > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-          .dash-sidebar-cta:hover,
-          .dash-sidebar-btn:hover { background: rgba(255, 255, 255, 0.07); color: #ffffff; }
-          .dash-sidebar-btn.dash-sidebar-btn-active {
-            border: 0;
-            background: rgba(255, 255, 255, 0.11);
-            color: #ffffff;
-            font-weight: 500;
-          }
-          .dash-sidebar-btn svg,
-          .dash-sidebar-cta svg { flex: none; }
-          .dash-sidebar-utility { display: none; }
-          .dash-sidebar-footer { border-top: 0; margin: 0; padding: 0; }
-          .dash-sidebar-user {
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            min-height: 56px;
-            padding: 0 4px;
-          }
-          .dash-sidebar-gear {
-            flex: none;
-            inline-size: 24px;
-            block-size: 28px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            border: 0;
-            border-radius: 8px;
-            background: transparent;
-            color: #e9eef6;
-            cursor: pointer;
-          }
-          .dash-sidebar-gear:hover { background: rgba(255, 255, 255, 0.09); }
-          .dash-sidebar-gear:focus-visible { outline: ${APP_FOCUS.width} solid ${SIDEBAR.focusRing}; outline-offset: 1px; }
-          .dash-sidebar-user-text { min-width: 0; flex: 1 1 auto; text-align: start; }
-          .dash-sidebar-user-bizname {
-            color: #ffffff;
-            font-size: 13.5px;
-            font-weight: 700;
-            line-height: 1.3;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            text-align: start;
-          }
-          .dash-sidebar-user-name {
-            color: #e9eef6;
-            font-size: 11px;
-            font-weight: 400;
-            line-height: 1.35;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            text-align: start;
-          }
-
-          .dash-main-content {
-            padding: 0 22px 40px !important;
-            background: #f7f9fc;
-          }
-          /* Task 30 (Owner addendum, business-settings layout): Business settings scrolls ONE body and ends with the compact footer, so
-             the 40px shell reserve below the footer is empty space there - the same scoped 8px the quotes table uses. Other screens keep it. */
-          .dash-main-content:has(.pf-settings-screen) { padding-bottom: 8px !important; }
-          .dash-upper-section {
-            box-sizing: border-box;
-            height: 68px;
-            flex: none;
-            display: flex;
-            align-items: center;
-            margin: 0 -22px !important;
-            border: 0 !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            padding-block: 0 !important;
-            padding-inline: 28px 22px !important;
-            background: #11274a !important;
-          }
-          .dash-header-row {
-            display: flex !important;
-            flex-wrap: nowrap;
-            align-items: center;
-            justify-content: space-between;
-            inline-size: 100%;
-            min-height: 0 !important;
-            gap: 16px !important;
-          }
-          .dash-header-title {
-            order: 0;
-            overflow: visible !important;
-            min-width: 0;
-            min-height: 0;
-            font-size: 13.5px !important;
-            font-weight: 400 !important;
-          }
-          .dash-header-datetime {
-            /* inline flow (not flex): the spaces around ", " and " | " must survive between the isolated atoms */
-            display: inline;
-            line-height: 1.25;
-            font-size: 13.5px;
-            font-weight: 400;
-            white-space: nowrap;
-          }
-          .dash-header-datetime .dash-header-weekday { display: inline; }
-          .dash-header-datetime .dash-header-sep { display: inline-block; margin-inline: 0.45em; }
-          .dash-header-datetime .dash-header-date,
-          .dash-header-datetime .dash-header-time { font-size: 13.5px; font-weight: 400; opacity: 1; }
-          .dash-header-badge-desktop {
-            display: flex !important;
-            min-width: 0;
-            order: 1;
-            margin-inline-start: 0;
-          }
-          .dash-header-account {
-            display: inline-flex;
-            align-items: center;
-            gap: 14px;
-            min-width: 0;
-            color: #ffffff;
-          }
-          .dash-header-account strong {
-            max-width: 220px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            font-size: 14px;
-            font-weight: 700;
-            color: #ffffff;
-            unicode-bidi: isolate;
-          }
-          .dash-header-account svg { flex: none; }
-          .dash-header-avatar {
-            flex: none;
-            inline-size: 33px;
-            block-size: 33px;
-            border-radius: 50%;
-            background: #e7ebf3;
-            overflow: hidden;
-            display: inline-flex;
-          }
-          .dash-header-avatar img { inline-size: 100%; block-size: 100%; object-fit: cover; }
-          .dash-header-stats { display: none !important; }
-
-          .quote-workspace.pf-work-screen {
-            flex: 0 0 auto;
-            min-height: auto;
-            margin-inline: 0 !important;
-            margin-bottom: 0 !important;
-            padding: 14px 0 0 !important;
-            border-radius: 0 !important;
-            box-shadow: none !important;
-            background: transparent !important;
-          }
-          .quote-workspace .quote-workspace-header {
-            flex-wrap: nowrap;
-            align-items: center;
-            justify-content: space-between;
-            gap: 16px;
-            block-size: 40px;
-            min-height: 0;
+            height: calc(100% - 16px);
             margin-top: 16px;
-            margin-bottom: 16px;
-          }
-          .quote-workspace .quote-hot-banner + .quote-workspace-header { margin-top: 0; }
-          .quote-workspace-heading { flex: 0 1 auto; min-width: 0; }
-          .quote-workspace .quote-workspace-title {
-            display: block;
-            font-size: 20px;
-            font-weight: 700;
-            line-height: 1.1;
-            color: #0f172a !important;
-          }
-          .quote-workspace .quote-workspace-subtitle {
-            margin: 4px 0 0;
-            font-size: 12.5px;
-            font-weight: 400;
-            line-height: 1.2;
-            color: #475569;
-          }
-
-          /* Toolbar: Sort, Filter, Search, New quote (DOM order). No direction override: dir mirrors it. */
-          .quote-workspace-controls {
-            display: flex;
-            flex: 0 0 auto;
-            flex-wrap: nowrap;
-            align-items: center;
-            gap: 10px;
-            min-width: 0;
-          }
-          .quote-sort-direction,
-          .quote-filter-control,
-          .quote-search-control,
-          .quote-primary-action {
-            box-sizing: border-box;
-            height: 32px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            border-radius: 7px;
-            font: inherit;
-            font-size: 13px;
-            font-weight: 400;
-            color: #243a5c;
-            white-space: nowrap;
-            cursor: pointer;
-          }
-          .quote-sort-direction,
-          .quote-filter-control,
-          .quote-search-control {
-            padding: 0 8px;
-            border: 1px solid #d0d6e1;
-            background: #ffffff;
-          }
-          .quote-sort-direction { min-width: 64px; }
-          .quote-filter-control { position: relative; min-width: 66px; }
-          .quote-filter-control select {
-            position: absolute;
-            inset: 0;
-            inline-size: 100%;
-            block-size: 100%;
-            opacity: 0;
-            cursor: pointer;
-            font: inherit;
-          }
-          .quote-filter-control[data-active="true"] { border-color: #0c5fe3; color: #0c5fe3; }
-          .quote-search-control {
-            flex: 0 0 80px;
-            justify-content: flex-start;
-            cursor: text;
-            transition: flex-basis 0.15s ease;
-          }
-          .quote-search-control:focus-within { flex-basis: 170px; }
-          .quote-search-control input {
-            flex: 1 1 auto;
-            min-width: 0;
-            inline-size: 100%;
-            height: 100%;
-            padding: 0;
-            border: 0;
-            outline: 0;
-            background: transparent;
-            color: #243a5c;
-            font: inherit;
-            font-size: 13px;
-            text-align: start;
-          }
-          .quote-search-control input::placeholder { color: #243a5c; opacity: 1; }
-          .quote-search-control:focus-within input::placeholder { color: #94a3b8; }
-          .quote-workspace-controls .pf-newquote-menu { flex: 0 0 168px; }
-          .quote-primary-action {
-            inline-size: 100%;
-            justify-content: space-between;
-            padding: 0 14px;
-            border: 0;
-            background: #0c5fe3;
-            color: #ffffff;
-            font-weight: 700;
-          }
-          .quote-primary-action:hover { background: #0a54cb; }
-          .quote-sort-direction:focus-visible,
-          .quote-filter-control:focus-within,
-          .quote-search-control:focus-within,
-          .quote-primary-action:focus-visible {
-            outline: 2px solid #0c5fe3;
-            outline-offset: 2px;
-          }
-          .quote-export-compact { display: none; }
-
-          /* Overview strip: 4 cells (quotes / awaiting / approved / total), short dividers, number first then label */
-          .quote-workspace .quote-overview {
-            grid-template-columns: 125fr 150fr 138fr 346fr;
-            height: 44px;
-            margin-bottom: 12px;
-            border: 1px solid #dde1e8;
-            border-radius: 8px;
-            background: #ffffff;
-            overflow: hidden;
-          }
-          .quote-workspace .quote-overview-cell {
-            display: grid;
-            grid-auto-flow: column;
-            align-items: baseline;
-            align-content: center;
-            justify-content: center;
-            column-gap: 8px;
-            min-height: 0;
-            height: 100%;
-            padding: 0 10px;
-            border: 0;
-            overflow: hidden;
-          }
-          .quote-workspace .quote-overview-cell + .quote-overview-cell::before {
-            content: "";
-            position: absolute;
-            inset-inline-start: 0;
-            top: 50%;
-            height: 25px;
-            transform: translateY(-50%);
-            border-inline-start: 1px solid #c9cfd9;
-          }
-          .quote-workspace .quote-overview-value {
-            font-size: 16px;
-            font-weight: 700;
-            line-height: 1.2;
-            color: #0f172a;
-            white-space: nowrap;
-          }
-          .quote-workspace .quote-overview-label {
-            font-size: 13px;
-            font-weight: 400;
-            line-height: 1.2;
-            color: #1f2937;
-          }
-          /* IRON-MARKET-004: the per-currency token list wraps inside the fixed 44px total cell instead of being clipped */
-          .quote-workspace .quote-overview-cell--multi { grid-template-columns: minmax(0, 1fr) auto; }
-          /* ...and the fixed 44px strip may grow ONLY in that case (e.g. the cards list inside the desktop shell at 820px stacks
-             the tokens); one currency keeps the exact 44px R5 geometry */
-          .quote-workspace .quote-overview--multi { height: auto; min-height: 44px; }
-          .quote-workspace .quote-overview--multi .quote-overview-cell { padding-block: 4px; }
-          .quote-workspace .quote-overview-cell--multi .quote-overview-value { font-size: 13px; line-height: 1.15; white-space: normal; }
-
-          /* Owner R3 (2026-10-08 18:55) - TABLE layouts (desktop + tablet widths that render the table): the page, dark header,
-             hot-quote row, title/toolbar and KPI strip never scroll. The quote list card fills the remaining height (sizing to its
-             content when short - no blank area below Show all) and ONLY its body (.quote-modern-body) scrolls; that body begins
-             directly below the column-header row, which therefore stays fixed. Card layouts (data-qh-layout="cards") are untouched. */
-          .dash-main-content:has(.quote-workspace[data-qh-layout="table"]) { overflow-y: hidden; padding-bottom: 8px !important; }
-          .dash-main-content:has(.quote-workspace[data-qh-layout="table"]) .dash-footer {
-            flex: none;
-            margin-top: 0 !important;
-            padding: 6px 0 0 !important;
-            border-top: 0 !important;
-          }
-          /* Task 33 (Owner: compact footer - not the removal of the branding): the brand line was hidden here; it now shares ONE row with
-             the accessibility link, so the footer keeps the exact height of that single row and the table keeps its height budget. */
-          .dash-main-content:has(.quote-workspace[data-qh-layout="table"]) .dash-footer {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: center;
-            justify-content: center;
-            column-gap: 14px;
-            row-gap: 0;
-          }
-          .dash-main-content:has(.quote-workspace[data-qh-layout="table"]) .dash-footer-brand { margin-bottom: 0 !important; line-height: 1.2; }
-          .quote-workspace.pf-work-screen[data-qh-layout="table"] { flex: 0 1 auto; min-height: 0; }
-          /* the static blocks above the list never shrink; only the list card gives up height */
-          .quote-workspace.pf-work-screen[data-qh-layout="table"] > :not(.quote-modern-list) { flex-shrink: 0; }
-          .quote-workspace > .quote-modern-list {
-            /* the gap above the card is a margin-top: the shared screen contract zeroes the margin-bottom of the block before it */
-            margin-top: 12px;
-            flex: 0 1 auto;
-            min-height: 0;
-            display: flex;
-            flex-direction: column;
-            align-self: flex-start;
-            inline-size: 100%;
-            box-sizing: border-box;
-            height: auto;
-            padding-top: 0;
-            overflow: hidden;
-            scrollbar-gutter: auto;
-            border: 1px solid #dde1e8;
-            border-radius: 8px;
-            background: #ffffff;
-            /* ONE eight-track grid shared by the header row and every quote row (Owner R3): quote number, client, quote title,
-               status, views, date, amount, action. Protected numeric/action tracks carry a px floor; client/title ellipsize. */
-            --qm-cols: minmax(84px, 72fr) minmax(0, 118fr) minmax(0, 104fr) minmax(70px, 104fr) minmax(68px, 64fr) minmax(64px, 104fr) minmax(88px, 96fr);
-            --qm-gap: 6px;
-          }
-          /* selector chain outranks the shared ".pf-screen > .pf-screen-body > * { flex-shrink: 0 }" rule (the card is also a
-             .pf-screen-body): the body MUST shrink so it, not the page, scrolls */
-          .quote-workspace > .quote-modern-list > .quote-modern-body,
-          .quote-modern-body {
-            flex: 0 1 auto;
-            min-height: 0;
-            overflow-x: hidden;
-            overflow-y: auto;
-            overscroll-behavior: contain;
-            /* the header reserves the identical gutter, so header cells and row cells keep the same x coordinates */
-            scrollbar-gutter: stable;
-            scrollbar-width: thin;
-          }
-          .quote-modern-item {
-            position: relative;
-            background: #ffffff;
-            border-bottom: 1px solid #e3e6eb;
-            border-inline-start: 4px solid transparent;
-          }
-          .quote-modern-item:last-child,
-          .quote-modern-item:has(+ .quote-modern-show-all) { border-bottom: 0; }
-          .quote-modern-item.is-hot { border-inline-start-color: #f66a25; }
-          .quote-modern-row {
-            position: relative;
-            box-sizing: border-box;
-            min-height: 42px;
-            display: grid;
-            grid-template-columns: var(--qm-cols);
-            column-gap: var(--qm-gap);
-            align-items: center;
-            padding-block: 5px;
-            /* Owner R5: the leading 30px hold the dropdown trigger (24px + 3px each side), outside the quote-number track */
-            padding-inline: 30px 16px;
-            font-size: 12px;
-            line-height: 1.3;
-          }
-          /* every cell: one value, one line, under its own header (numeric atoms isolated LTR) */
-          .quote-modern-row > * { min-width: 0; }
-          .quote-modern-title,
-          .quote-modern-status,
-          .quote-modern-client-name {
-            display: block;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            text-align: start;
-          }
-          /* Owner R4: the whole quote number is always visible - never ellipsized/clipped (track floor sized for it) */
-          .quote-modern-number {
-            display: block;
-            overflow: visible;
-            white-space: nowrap;
-            text-align: start;
-            /* Owner R5: same 2px inline inset as the header label inside its sort button */
-            padding-inline: 2px;
-            color: #374151;
-            font-size: 11.5px;
-            font-weight: 400;
-            unicode-bidi: isolate;
-            font-variant-numeric: tabular-nums lining-nums;
-          }
-          .quote-modern-client {
-            display: block;
-            min-width: 0;
-            margin: 0;
-            /* Owner R5: plain client cell (the trigger moved to the row edge) - same 2px inset as the header label, no gap */
-            padding: 0 2px;
-            color: #111827;
-            font-size: 12.5px;
-            font-weight: 600;
-            text-align: start;
-          }
-          .quote-modern-title { color: #4b5563; font-size: 12px; font-weight: 400; }
-          .quote-modern-status { font-size: 12px; font-weight: 400; }
-          .quote-modern-status[data-tone="hot"] { color: #f0640f; }
-          .quote-modern-status[data-tone="sent"] { color: #0f6672; }
-          .quote-modern-status[data-tone="needs-sending"] { color: #1073e0; }
-          .quote-modern-status[data-tone="draft"] { color: #8b91a1; }
-          .quote-modern-status[data-tone="approved"] { color: #0a7d2a; }
-          /* Views: a numeric column. Physical LTR atom, right-aligned in BOTH directions (units under units), like Amount. */
-          .quote-modern-row > .quote-modern-views {
-            direction: ltr;
-            unicode-bidi: isolate;
-            text-align: right;
-            color: #374151;
-            font-size: 12px;
-            font-variant-numeric: tabular-nums lining-nums;
-            white-space: nowrap;
-          }
-          .quote-modern-date { min-width: 0; display: flex; align-items: center; justify-content: flex-start; text-align: start; }
-          .quote-modern-time {
-            min-width: 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            color: #1f2937;
-            font-size: 12px;
-            font-weight: 400;
-            font-variant-numeric: tabular-nums;
-            white-space: nowrap;
-          }
-          .quote-modern-row > .quote-modern-amount {
-            box-sizing: border-box;
-            inline-size: 100%;
-            min-inline-size: 0;
-            max-inline-size: 100%;
-            padding: 0;
-            direction: ltr;
-            unicode-bidi: isolate;
-            font-variant-numeric: tabular-nums lining-nums;
-            font-feature-settings: "tnum" 1, "lnum" 1;
-            text-align: right;
-            color: #0f172a;
-            font-size: 13px;
-            font-weight: 700;
-            line-height: 1.25;
-            white-space: nowrap;
-          }
-          /* clear space between the digits and the action button in BOTH directions (padding + column gap >= 12px): the space
-             sits on the action side, which the real dir attribute of the list decides (the slot itself is a physical LTR atom) */
-          .quote-modern-list[dir="rtl"] .quote-modern-row > .quote-modern-amount { padding-left: 6px; }
-          .quote-modern-list[dir="ltr"] .quote-modern-row > .quote-modern-amount { padding-right: 6px; }
-          .quote-modern-row > .quote-modern-amount.is-long { font-size: 12.5px; }
-          /* Owner R5: the quote number is an LTR atom (its own "start" is left), but it must sit at the structural start of its
-             column like its header label: right in HE, left in EN (the real dir attribute of the list decides) */
-          .quote-modern-list[dir="rtl"] .quote-modern-row > .quote-modern-number { text-align: right; }
-          .quote-modern-list[dir="ltr"] .quote-modern-row > .quote-modern-number { text-align: left; }
-          /* EN: the right-aligned view count would sit 6px from the start-aligned date - keep clear space before Date (cell and
-             header identically, so the count stays under its header). HE needs none: Status text is start (right) aligned. */
-          .quote-modern-list[dir="ltr"] .quote-modern-row > .quote-modern-views,
-          .quote-modern-list[dir="ltr"] .quote-modern-head-views { padding-right: 10px; }
-          /* Owner R4: no Action column - the status-aware primary action lives in the row dropdown (detail panel) */
-          .quote-modern-chevron { flex: none; color: #64748b; transition: transform 0.15s ease; }
-          .quote-modern-chevron[data-expanded="true"] { transform: rotate(180deg); }
-          /* Owner R5: the trigger sits in the row's leading padding (right in HE, left in EN) - absolutely positioned, so it is
-             not a grid track and never moves the quote number. Centered on the row content (the hot row's content starts 9px
-             lower because of its badge padding). */
-          .quote-modern-toggle {
-            position: absolute;
-            inset-inline-start: 3px;
-            inset-block: 0;
-            margin-block: auto;
-            box-sizing: border-box;
-            inline-size: 24px;
-            block-size: 24px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            border: 0;
-            border-radius: 5px;
-            background: transparent;
-            color: #64748b;
-            cursor: pointer;
-          }
-          .quote-modern-toggle:hover { background: #eef2f7; }
-          .quote-modern-toggle:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 1px; }
-          .quote-modern-client-name { min-width: 0; }
-          .quote-modern-primary-row { display: flex; justify-content: flex-start; }
-          .quote-modern-detail .quote-modern-action {
-            box-sizing: border-box;
-            min-inline-size: 112px;
-            padding-inline: 12px;
-            block-size: 32px;
-            min-height: 32px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            padding-block: 0;
-            border: 1px solid #243a5c;
-            border-radius: 6px;
-            background: #ffffff;
-            color: #0f172a;
-            font: inherit;
-            font-size: 11.5px;
-            font-weight: 700;
-            white-space: nowrap;
-            cursor: pointer;
-          }
-          .quote-modern-action > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-          .quote-modern-action:hover { background: #f1f5fb; }
-          .quote-modern-action:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
-          .quote-modern-detail { padding: 10px 16px 14px; background: #f8fafc; border-top: 1px solid #e6e9ef; }
-          .quote-modern-empty { padding: 28px 16px; text-align: center; color: #475569; }
-          .quote-modern-show-all {
-            box-sizing: border-box;
-            inline-size: 100%;
-            block-size: 36px;
-            min-height: 36px;
-            border: 0;
-            border-top: 1px solid #e3e6eb;
-            background: #ffffff;
-            color: #0a55da;
-            font: inherit;
-            font-size: 12.5px;
-            font-weight: 700;
-            cursor: pointer;
-          }
-          .quote-modern-show-all:focus-visible { outline: 2px solid #0c5fe3; outline-offset: -3px; }
-
-          /* Sortable header strip: a light-grey rounded strip inside the card. It shares the row grid EXACTLY (same --qm-cols and
-             --qm-gap): the strip is inset by 10px, so its own inline padding is the row padding (4px list-edge border + 14px / 16px)
-             minus that inset, and it reserves the same scrollbar gutter as the scroll body. */
-          .quote-modern-head { flex: none; margin: 8px 10px 4px; border-radius: 8px; background: #f1f3f7; overflow: hidden; scrollbar-gutter: stable; scrollbar-width: thin; }
-          .quote-modern-head-row {
-            box-sizing: border-box;
-            min-height: 30px;
-            display: grid;
-            grid-template-columns: var(--qm-cols);
-            column-gap: var(--qm-gap);
-            align-items: center;
-            /* Owner R5: 24px = the row's 30px leading padding (trigger spacer) + 4px edge border - the strip's 10px inset */
-            padding-inline: 24px 6px;
-            color: #64748b;
-          }
-          .quote-modern-head-cell { display: flex; align-items: center; justify-content: flex-start; min-width: 0; }
-          .quote-modern-head-views,
-          .quote-modern-head-total { justify-content: flex-end; direction: ltr; }
-          .quote-modern-list[dir="ltr"] .quote-modern-head-total { padding-right: 6px; }
-          .quote-modern-list[dir="rtl"] .quote-modern-head-total { padding-left: 6px; }
-          .quote-modern-head-total .quote-modern-head-btn,
-          .quote-modern-head-views .quote-modern-head-btn { padding-right: 0; }
-          .quote-modern-head-btn {
-            box-sizing: border-box;
-            min-width: 0;
-            max-width: 100%;
-            min-height: 24px;
-            display: inline-flex;
-            align-items: center;
-            gap: 3px;
-            margin: 0;
-            padding: 0 2px;
-            border: 0;
-            border-radius: 5px;
-            background: transparent;
-            color: inherit;
-            font: inherit;
-            font-size: 11.5px;
-            font-weight: 600;
-            line-height: 1.2;
-            white-space: nowrap;
-            cursor: pointer;
-          }
-          .quote-modern-head-btn svg { flex: none; }
-          .quote-modern-head-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-          .quote-modern-head-btn:hover { color: #0f172a; }
-          .quote-modern-head-cell[data-sort-active="true"] .quote-modern-head-btn { color: #0f172a; }
-          .quote-modern-head-btn:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 1px; }
-
-          /* AI chat launcher: a compact neutral tab docked at the workspace inline-end bottom corner (below the content, never
-             over the toolbar / rows / Show all / sidebar identity). The popup opens inward from the same corner. */
-          .dash-ai-chat-mount .ai-chat-container { bottom: 0 !important; }
-          .dash-ai-chat-mount .ai-chat-container > div {
-            box-sizing: border-box !important;
-            max-width: min(980px, 100%) !important;
-            padding-inline: 22px !important;
-            justify-content: flex-end !important;
-          }
-          /* Task 20 Continuation 2: the launcher lives in the header center now - the docked tab is not shown (popup unchanged). */
-          .dash-ai-chat-mount .ai-chat-container .ai-support-btn {
-            display: none !important;
-            box-sizing: border-box !important;
-            height: 24px !important;
-            padding: 0 10px !important;
-            gap: 6px !important;
-            border: 1px solid #dde1e8 !important;
-            border-bottom: 0 !important;
-            border-radius: 8px 8px 0 0 !important;
-            background: #ffffff !important;
-            color: #243a5c !important;
-            box-shadow: 0 -2px 8px -4px rgba(15, 23, 42, 0.25) !important;
-            font-size: 13px !important;
-            font-weight: 600 !important;
-            transform: none !important;
-          }
-          .dash-ai-chat-mount .ai-chat-container .ai-support-btn svg,
-          .dash-ai-chat-mount .ai-chat-container .ai-support-btn > span:first-child {
-            width: 14px !important;
-            height: 14px !important;
-          }
-          .dash-ai-chat-mount .ai-chat-container .ai-support-btn:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
-          .dash-ai-chat-mount .ai-chat-popup {
-            right: auto !important;
-            left: auto !important;
-            inset-inline-end: 0 !important;
-            bottom: calc(100% + 8px) !important;
           }
         }
         /* IRON-MOBILE-WIDTH-001 (see src/index.css): the work screen is FLAT on mobile - no surface and no inline padding - so
@@ -6471,8 +5179,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           justify-content: space-between;
           gap: 10px;
           padding: 16px 20px;
-          background: ${SIDEBAR.sidebarBg};
-          border-bottom: 1px solid ${SIDEBAR.sidebarBorder};
+          background: ${SHELL.sidebarBg};
+          border-bottom: 1px solid ${SHELL.sidebarBorder};
           box-shadow: ${SHADOW.sm};
           flex-wrap: wrap;
           row-gap: 10px;
@@ -6480,7 +5188,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         .dash-topbar-identity {
           font-weight: 800;
           font-size: 1rem;
-          color: ${SIDEBAR.sidebarTextActive};
+          color: ${SHELL.sidebarTextActive};
           min-width: 0;
         }
         .dash-topbar-bizname {
@@ -6520,7 +5228,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         .dash-topbar-dynamic-text {
           font-size: 0.76rem;
           font-weight: 600;
-          color: ${SIDEBAR.sidebarTextMuted || SHELL.sidebarTextActive};
+          color: ${SHELL.sidebarTextMuted || SHELL.sidebarTextActive};
           opacity: 0.75;
           white-space: nowrap;
         }
@@ -6543,9 +5251,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           gap: 5px;
           padding: 6px 14px;
           border-radius: ${RADIUS.pill};
-          border: 1px solid ${SIDEBAR.sidebarBorder};
+          border: 1px solid ${SHELL.sidebarBorder};
           background: rgba(255,255,255,0.06);
-          color: ${SIDEBAR.sidebarText};
+          color: ${SHELL.sidebarText};
           font-weight: 700;
           font-size: 0.8rem;
           cursor: pointer;
@@ -6643,7 +5351,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
            mount remains completely unaffected (this selector only ever
            matches inside .dash-ai-chat-mount, the authenticated
            Dashboard's own mount). */
-        .dash-ai-chat-mount { direction: ${isHebrew ? 'rtl' : 'ltr'}; }
         .dash-ai-chat-mount .ai-support-btn {
           display: none !important;
         }
@@ -6668,10 +5375,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           gap: 6px;
           height: 36px;
           padding: 0 12px;
-          background: ${NEON.bgCard};
-          border: 1px solid ${NEON.borderStrong};
+          background: rgba(124,58,237,0.22);
+          border: 1px solid rgba(167,139,250,0.40);
           border-radius: ${RADIUS.pill};
-          color: ${NEON.textPrimary};
+          color: #f0abfc;
           font-weight: 700;
           font-size: 0.78rem;
           white-space: nowrap;
@@ -6679,16 +5386,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           flex-shrink: 0;
         }
         .dash-header-ai-btn:hover {
-          background: ${NEON.bgCardAlt};
+          background: rgba(124,58,237,0.32);
         }
         .dash-header-ai-btn:focus-visible {
-          outline: ${APP_FOCUS.width} solid ${APP_FOCUS.ring};
-          outline-offset: ${APP_FOCUS.offset};
-        }
-        /* The greeting card is DARK on screen (APP_HEADER, Owner 2026-10-05): every focus ring inside it uses the on-dark
-           ring (#EFB75D, 9.0:1 on #152229) - the light-surface ring #0F6672 would be ~2.4:1 there (WCAG 1.4.11). */
-        .dash-upper-section :focus-visible {
-          outline-color: ${APP_FOCUS.onDark} !important;
+          outline: 2px solid #a78bfa;
+          outline-offset: 1px;
         }
         /* TEKANGO Admin V1 (Task 1, shared dark shell - Owner-corrected):
            the prior "Desktop Header Removal" task hid this topbar entirely
@@ -6801,7 +5503,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           trigger button on desktop - Landing/Contact/every other page's
           own separate AIChatWidget mount is untouched. */}
       <div className="dash-ai-chat-mount">
-        <AIChatWidget isHebrew={isHebrew} isDashboard={true} currentArea={showPricingModal ? 'plans' : activeTab} businessDisplayName={(bizName && bizName !== 'TEKANGO' && bizName !== 'עסק חדש' && bizName !== 'New Business') ? bizName : null} workflowContext={quoteWorkflowContext} activeEditingQuoteId={showQuoteForm ? (editingQuoteId || null) : null} helpSources={aiHelpSources} getQuoteDraftSnapshot={showQuoteForm ? getAiReviewSnapshot : null} />
+        <AIChatWidget isHebrew={isHebrew} isDashboard={true} currentArea={showPricingModal ? 'plans' : activeTab} businessDisplayName={(bizName && bizName !== 'TEKANGO' && bizName !== 'עסק חדש' && bizName !== 'New Business') ? bizName : null} workflowContext={quoteWorkflowContext} activeEditingQuoteId={showQuoteForm ? (editingQuoteId || null) : null} helpSources={aiHelpSources} />
       </div>
 
       {/* Status toast: same statusMsg state/role="status"/aria-live="polite"/
@@ -6828,34 +5530,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       )}
 
       <AccessibilityModal isOpen={showAccessibility} onClose={() => setShowAccessibility(false)} isHebrew={isHebrew} />
-      {templateDialog === 'save' && session?.user?.id && (
-        <SaveTemplateDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
-          form={{ items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation }} onClose={() => setTemplateDialog(null)} />
-      )}
-      {templateDialog === 'pick' && session?.user?.id && (
-        <TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
-          onClose={() => setTemplateDialog(null)} onUse={handleUseTemplate} />
-      )}
-      <Free10UpgradeWindow
-        open={free10Window}
-        onClose={() => setFree10Window(false)}
-        isHebrew={isHebrew}
-        market={(accountSummary.state === 'ready' && accountSummary.market) || (isLocalIsraeliBusiness ? 'IL' : 'INTERNATIONAL')}
-        free10={accountSummary.state === 'ready' ? accountSummary.free10 : null}
-      />
       <PricingModal 
         isOpen={showPricingModal} 
         onClose={() => setShowPricingModal(false)} 
         isHebrew={isHebrew} 
         isLocalIsraeliBusiness={isLocalIsraeliBusiness} 
-        accountSummary={accountSummary}
-      />
-      <CapabilityUpgradeNotice
-        lang={isHebrew ? 'he' : 'en'}
-        capabilityId={lockedCapability}
-        summary={accountSummary}
-        onUpgrade={() => { setLockedCapability(null); setShowPricingModal(true); }}
-        onClose={() => setLockedCapability(null)}
+        currentPlan={bizPlan}
+        isLifetime={isLifetime}
+        userId={session?.user?.id}
+        onPlanUpdated={() => loadData(session?.user?.id, session?.user?.email)}
+        currency={currency}
       />
 
       <DraftConflictModal conflict={draftConflict} isHebrew={isHebrew} onReview={() => resolveDraftConflict('review')} onUseSaved={() => resolveDraftConflict('saved')} onDiscard={() => resolveDraftConflict('discard')} />
@@ -6937,7 +5621,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           own background (NEON.bg, set on the root div) still extends full
           browser width behind it, so the shell visually "floats" centered,
           the same composition principle Public Quote's own document uses. */}
-      <div className="dash-shell-outer" data-creator-open={activeTab === 'main' && showQuoteForm ? 'true' : undefined} style={{ maxWidth: 'var(--pf-dashboard-shell-total-width)', margin: '0 auto', width: '100%', flex: '1 0 auto', display: 'flex', flexDirection: 'column' }}>
+      <div className="dash-shell-outer" style={{ maxWidth: 'var(--pf-dashboard-shell-total-width)', margin: '0 auto', width: '100%', flex: '1 0 auto', display: 'flex', flexDirection: 'column' }}>
       {/* PRODUCT_TRUTH_DECORATIVE: click on the mobile drawer backdrop closes the shell drawer overlay; generic click-outside-to-close chrome */}
       {shellDrawerOpen && <div className="dash-drawer-backdrop no-print" onClick={() => setShellDrawerOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:10000 }} />}
       <div className="dash-shell-body">
@@ -6949,24 +5633,44 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               topbar/quote documents already use), ProFlow secondary/quiet
               directly beneath it as a restrained "Powered by" platform-brand
               lockup. Both real-data-driven, no placeholder content. */}
-          {/* Approved 980px dashboard: the top of the sidebar is the TEKANGO platform logo card (static wordmark), in the same
-              flat band as the header - not the business avatar/name (the business identity lives at the sidebar bottom). */}
           <div className="dash-sidebar-brand">
-            <div className="dash-sidebar-brand-card" role="img" aria-label="TEKANGO">
-              <span className="dash-sidebar-wordmark" dir="ltr" aria-hidden="true">TEKANGO</span>
-            </div>
+            {bizLogoUrl && !sidebarLogoFailed ? (
+              <div className="dash-sidebar-brand-logo-canvas">
+                {/* חוק ברזל (Authenticated UI Coherence task, Business Logo
+                    Presentation): trimmedLogoSrc (כשקיים - ר' ה-useEffect
+                    למעלה) הוא רק תצוגה חתוכה-שוליים-שקופים של אותה תמונה
+                    בדיוק, לעולם לא מקור-אמת חדש - onError עדיין קורא ל-
+                    setSidebarLogoFailed בדיוק כמו קודם, כך שגם אם הגרסה
+                    החתוכה נכשלת (מצב לא-סביר, אבל בטוח-כשל) ה-fallback
+                    הקיים עדיין פועל זהה. */}
+                <img
+                  key={bizLogoUrl}
+                  src={trimmedLogoSrc || bizLogoUrl}
+                  alt={bizName || (isHebrew ? 'לוגו העסק' : 'Business logo')}
+                  className="dash-sidebar-brand-logo-img"
+                  onError={() => setSidebarLogoFailed(true)}
+                />
+              </div>
+            ) : (
+              <>
+                <div className="dash-sidebar-brand-mark">
+                  <span>{(bizName || session.user.email || '?').trim().charAt(0).toUpperCase()}</span>
+                </div>
+                <span className="dash-sidebar-brand-name" title={bizName || ''}>
+                  {bizName || (isHebrew ? 'העסק שלי' : 'My Business')}
+                </span>
+              </>
+            )}
           </div>
           <nav className="dash-sidebar-nav">
               <>
             {/* PRODUCT_TRUTH_CAPABILITY: quote_create */}
-            <NewQuoteMenu
-              isHebrew={isHebrew}
-              variant="sidebar"
-              onStandard={handleCreateNewQuoteClick}
-              onAi={handleCreateAiQuoteClick}
-              onStructured={handleCreateStructuredQuoteClick}
-              onTemplate={handleOpenTemplatePicker}
-            />
+            {(
+              <button onClick={handleCreateNewQuoteClick} className="dash-sidebar-cta">
+                <PlusCircle size={17} strokeWidth={2.4} />
+                {isHebrew ? 'הצעת מחיר חדשה' : 'New Quote'}
+              </button>
+            )}
 
             {/* חוק ברזל (Functional Parity Across Viewports task, 2026-09-08):
                 מקור-האמת עבר ל-getDashboardNavCapabilities (src/utils/
@@ -6978,10 +5682,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               <button
                 key={id}
                 className={activeTab === id ? 'dash-sidebar-btn dash-sidebar-btn-active' : 'dash-sidebar-btn'}
-                aria-current={activeTab === id ? 'page' : undefined}
                 onClick={() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); }}
               >
-                <TabIcon size={19} strokeWidth={1.5} />
+                <TabIcon size={17} strokeWidth={2.2} />
                 <span>{label}</span>
               </button>
             ))}
@@ -7002,8 +5705,25 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 the only other things this touches - no second chat
                 implementation ever existed here to begin with. */}
 
-            {/* The two temporary David Aluminum demo entry points (PROFLOW_TODO.md item 30.F) were removed from the sidebar at the
-                Owner's request (2026-10-14, new-interface release). */}
+            {/* Owner-authorized David Aluminum professional-item demo entry
+                points - gated to exactly one real account via
+                professionalPreviewAllowlist.js, unchanged from before this
+                task (same allowlist call, same two destinations). TEMPORARY,
+                per PROFLOW_TODO.md item 30.F - not final product navigation. */}
+            {isProfessionalPreviewEnabled(session?.user?.id) && (
+              <>
+                {/* PRODUCT_TRUTH_DECORATIVE: owner-authorized, allowlist-gated professional-preview demo link, explicitly documented in-code as temporary/not final product navigation */}
+                <a href="/professional-preview" className="dash-sidebar-btn dash-sidebar-btn-ghost">
+                  <Sparkles size={17} strokeWidth={2.2} />
+                  <span>{isHebrew ? 'תצוגה מקדימה: חוויה חדשה' : 'New Experience Preview'}</span>
+                </a>
+                {/* PRODUCT_TRUTH_DECORATIVE: same temporary, allowlist-gated QA/demo link pair as the professional-preview link above */}
+                <a href="/public-quote/a29b1fbb-f2ca-427d-88b2-6198d138eb89/preview?lang=he" className="dash-sidebar-btn dash-sidebar-btn-ghost">
+                  <Eye size={17} strokeWidth={2.2} />
+                  <span>{isHebrew ? 'בדיקת תצוגה חדשה' : 'QA: New Quote View'}</span>
+                </a>
+              </>
+            )}
             {isSuperAdmin && (
               <AdminSidebarNav
                 section={isAdminMode ? adminSection : null}
@@ -7062,18 +5782,45 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 variant for the single canonical source of the badge's
                 content (still only getDisplayIdentityLabel/Visual, never a
                 second, independently-derived plan-state guess). */}
-            {/* Business identity (name + email) with the gear in the icon column. The gear opens a small menu with Business
-                Settings and Sign out; Sign out still opens the SignOutModal confirmation. */}
             <div className="dash-sidebar-user">
-              <SidebarAccountMenu
-                isHebrew={isHebrew}
-                onSettings={() => { setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
-                onSignOut={() => setShowSignOutModal(true)}
-              />
+              {/* Final Dashboard/Sidebar Polish task, §F: this block's job
+                  is to identify the actual signed-in INDIVIDUAL, not the
+                  business (already shown prominently at the top of the
+                  sidebar via the logo/brand block - repeating it here was
+                  the exact redundancy the Owner flagged: "do not
+                  redundantly present the business name there when it does
+                  not represent the individual user"). This app has no
+                  separate stored "person name" field - email is the one
+                  real, reliable per-user identifier - so both the avatar
+                  initial and the identity line now derive from
+                  session.user.email only, never bizName. The old second
+                  line (which repeated the same email a second time) is
+                  removed as the redundancy it was, not because email
+                  itself was wrong data - it was already the correct data,
+                  just needlessly duplicated under a business-name label. */}
+              <div className="dash-sidebar-avatar">{(session.user.email || '?').trim().charAt(0).toUpperCase()}</div>
               <div className="dash-sidebar-user-text">
-                <div className="dash-sidebar-user-bizname" dir="auto" title={bizName || ''}>{bizName || (isHebrew ? 'העסק שלי' : 'My Business')}</div>
-                <div className="dash-sidebar-user-name" title={session.user.email}><bdi dir="ltr">{session.user.email}</bdi></div>
+                <div className="dash-sidebar-user-name" title={session.user.email}>{session.user.email}</div>
               </div>
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the SignOutModal confirmation dialog; session/account sign-out is generic auth chrome, not a registered capability */}
+              <button onClick={() => setShowSignOutModal(true)} className="dash-sidebar-signout" title={isHebrew ? 'התנתק' : 'Sign Out'} aria-label={isHebrew ? 'התנתק' : 'Sign Out'}>
+                <LogOut size={15} strokeWidth={2.3} />
+              </button>
+            </div>
+            {/* Desktop Header Removal task, §B: ProFlow's platform lockup -
+                the final, quiet signature at the very bottom of the
+                sidebar, after the user identity, per the Owner's explicit
+                "final platform signature at the bottom" instruction. Same
+                real ProFlowLogo component/props as before.
+                Final Dashboard/Sidebar Polish task, §F (readability bump):
+                the Owner's own words - "it must remain quiet and secondary,
+                but it must be readable... increase contrast only enough to
+                meet that requirement" - opacity nudged 0.55->0.72 (see the
+                CSS rule's own comment), a modest, deliberately small
+                increase, not a redesign. */}
+            <div className="dash-sidebar-platform-brand">
+              <span className="dash-sidebar-platform-brand-label">{isHebrew ? 'מופעל על ידי' : 'Powered by'}</span>
+              <ProFlowLogo size={13} />
             </div>
           </div>
         </AuthenticatedSidebarFrame>
@@ -7268,7 +6015,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               treatment is a separate, out-of-scope lineage, unchanged by
               this task). */}
           {(
-          <div ref={setUpperSectionNode} className="dash-upper-section" data-quotes-overview={activeTab === 'main' && !showQuoteForm ? 'true' : undefined} style={{ position: 'relative', background: SHELL.sidebarBg, border: `1px solid ${SHELL.sidebarBorder}`, borderRadius: RADIUS.lg, boxShadow: SHADOW.sm, padding: '14px', marginBottom: '16px', transition: 'height 0.2s ease' }}>
+          <div ref={setUpperSectionNode} className="dash-upper-section" style={{ position: 'relative', background: SHELL.sidebarBg, border: `1px solid ${SHELL.sidebarBorder}`, borderRadius: RADIUS.lg, boxShadow: SHADOW.sm, padding: '14px', marginBottom: '16px', transition: 'height 0.2s ease' }}>
 
           {/* חוק ברזל (Trial Bar Owner-Reference Correction task): מרווח-כותרת
               קבוע (14px) - אין עוד marginBottom מותנה כאן. ה-Trial Notice
@@ -7312,38 +6059,70 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               למעלה - חזרה נוספת עליו כאן במשפט-הסבר שלם הייתה בדיוק
               ה"long redundant explanatory sentence" שהמשימה מבקשת להסיר). */}
           {(() => {
+            // חוק ברזל (Authenticated UI Coherence task, Mobile Dashboard
+            // Header Recomposition, Owner mid-task correction): פונקציית-
+            // עזר מקומית (לא state/hook - נבנית מחדש בכל render, בדיוק
+            // כמו renderPlanBadge להלן) כדי לא לשכפל את לוגיקת-ה-
+            // showUpgradeCta/setShowPricingModal פעמיים (גרסת-דסקטופ
+            // דו-שורתית + גרסת-מובייל חד-שורתית) - אותו handler/gating
+            // בדיוק, רק singleLine (prop חדש ב-PlanIdentityBadge, אותו
+            // רכיב קנוני יחיד) משתנה בין שתי הקריאות.
+            // PRODUCT_TRUTH_CAPABILITY: plan_trial
+            const renderPlanBadge = (singleLine) => (
+              showUpgradeCta ? (
+                <button
+                  type="button"
+                  onClick={() => setShowPricingModal(true)}
+                  style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', flexShrink: 0, display: 'flex' }}
+                  title={isHebrew ? 'שדרג חבילה' : 'Upgrade Plan'}
+                >
+                  <PlanIdentityBadge
+                    displayIdentity={displayIdentity}
+                    isHebrew={isHebrew}
+                    variant="compact"
+                    singleLine={singleLine}
+                    daysLeft={displayIdentity === 'FREE_TRIAL' ? trialDaysLeft : null}
+                    upgradeAvailable
+                    onDark
+                  />
+                </button>
+              ) : (
+                <PlanIdentityBadge
+                  displayIdentity={displayIdentity}
+                  isHebrew={isHebrew}
+                  variant="compact"
+                  singleLine={singleLine}
+                  daysLeft={displayIdentity === 'FREE_TRIAL' ? trialDaysLeft : null}
+                  onDark
+                />
+              )
+            );
             // חוק ברזל (אותה משימה): רצועת-הסטטיסטיקות (Total Quotes/
             // Total Revenue, תוויות מפורשות) - זהה בין דסקטופ למובייל,
             // רק המיקום החזותי (dash-header-stats, order/flex-basis
             // דרך CSS media query) משתנה בין השניים.
             const statsRow = (
-              // columnGap (not the `gap` shorthand): a wrapped mobile stats line keeps the 2px row-gap of the mobile CSS
-              // below instead of an 18px one (8-digit revenue at 320px; Codex/TEST 2026-10-05).
-              <div className="dash-header-stats" style={{ display: 'flex', alignItems: 'center', columnGap: '18px', flexShrink: 0 }}>
+              <div className="dash-header-stats" style={{ display: 'flex', alignItems: 'center', gap: '18px', flexShrink: 0 }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: isHebrew ? 'flex-end' : 'flex-start' }}>
-                  <span className="dash-header-stat" style={{ display: 'inline-flex', alignItems: 'baseline', gap: '5px', whiteSpace: 'nowrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '5px', whiteSpace: 'nowrap' }}>
                     <span style={{ fontSize: '0.75rem', fontWeight: '600', color: SHELL.sidebarText }}>
                       {isHebrew ? 'סה״כ הצעות:' : 'Total Quotes:'}
                     </span>
-                    <span className="dash-header-stat-value" style={{ fontSize: '1.05rem', fontWeight: '800', color: SHELL.sidebarTextActive }}>
+                    <span style={{ fontSize: '1.05rem', fontWeight: '800', color: SHELL.sidebarTextActive }}>
                       {totalQuotesCount}
                     </span>
                   </span>
-                  {(accountSummary.state === 'unavailable' || accountSummary.state === 'invalid' || accountSummary.state === 'unprovisioned') && (
-                    // OD-20: the retired monthly usage line slot. Shown only when the server summary failed closed: a retry, never a
-                    // client-computed count. lineHeight 14px keeps the base c65f742 line box at the 12px floor.
-                    // PRODUCT_TRUTH_DECORATIVE: re-requests the server account summary; changes no data
-                    <button type="button" onClick={() => refreshAccountSummary()} data-testid="account-summary-retry"
-                      style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: '0.75rem', lineHeight: '14px', color: DARK_ACCENT.amber, fontWeight: '700', whiteSpace: 'nowrap', textDecoration: 'underline' }}>
-                      {isHebrew ? 'טעינה מחדש של פרטי המסלול' : 'Reload plan details'}
-                    </button>
+                  {!isPro && (
+                    <span style={{ fontSize: '0.62rem', color: DARK_ACCENT.amber, fontWeight: '700', whiteSpace: 'nowrap' }}>
+                      {isHebrew ? `החודש: ${monthlyQuotesCount}/${planLimit}` : `This month: ${monthlyQuotesCount}/${planLimit}`}
+                    </span>
                   )}
                 </div>
-                <span className={`dash-header-stat dash-header-stat--revenue${revenueMulti ? ' dash-header-stat--multi' : ''}`} style={{ display: 'inline-flex', alignItems: 'baseline', gap: '5px', whiteSpace: 'nowrap' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: '5px', whiteSpace: 'nowrap' }}>
                   <span style={{ fontSize: '0.75rem', fontWeight: '600', color: SHELL.sidebarText }}>
                     {isHebrew ? 'סך הכנסות:' : 'Total Revenue:'}
                   </span>
-                  <CurrencyTotals className="dash-header-stat-value" style={{ fontSize: '1.05rem', fontWeight: '800', color: SHELL.sidebarTextActive }}
+                  <CurrencyTotals style={{ fontSize: '1.05rem', fontWeight: '800', color: SHELL.sidebarTextActive }}
                     totals={revenueTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={accountCurrency} isHebrew={isHebrew} />
                 </span>
               </div>
@@ -7396,6 +6175,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                       always runs from its real 0% frame - no JS timing
                       race, no dependency on when React happens to commit. */}
                   <h1
+                    ref={greetingRef}
                     className="dash-header-title"
                     style={{
                       margin: 0,
@@ -7409,8 +6189,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    <span className="dash-header-datetime">
-                      {headerDateTimeText}
+                    <span key={showGreeting ? 'greeting' : 'datetime'} className={showGreeting ? 'dash-header-greeting-text' : 'dash-header-greeting-text dash-header-datetime'}>
+                      {showGreeting ? (isHebrew ? `ברוך שובך` : `Welcome back`) : headerDateTimeText}
                     </span>
                   </h1>
 
@@ -7448,33 +6228,82 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                       greeting" position for that language, per the Owner's
                       own explicit "logical/flex ordering, not a hardcoded
                       direction-specific DOM order" instruction. */}
-                  <div className="dash-header-badge-desktop">
-                    {/* One DOM order [business name, bell, avatar] mirrored by dir: the avatar is the outermost item in HE and EN. */}
-                    <div className="dash-header-account">
-                      <strong dir="auto" title={bizName || ''}>{bizName || (isHebrew ? 'העסק שלי' : 'My Business')}</strong>
-                      {/* Task 20: the bell opens the notification center (same 18px footprint; badge and panel are out of flow). */}
-                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} />
-                      <span className="dash-header-avatar" aria-hidden="true">
-                        {headerAvatarUrl ? (
-                          <img src={headerAvatarUrl} alt="" />
-                        ) : (
-                          <svg viewBox="0 0 24 24" width="33" height="33" focusable="false"><circle cx="12" cy="9.2" r="4.2" fill="#a4acbc" /><path d="M3.6 21c.5-4.6 3.9-7.1 8.4-7.1s7.9 2.5 8.4 7.1z" fill="#a4acbc" /></svg>
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                  {/* Task 20 Continuation 2 (Owner 2026-10-10): the ONE AI chat launcher sits in the horizontal center of the header row at every
-                      device class (out of flow: no grid cell, no row, no geometry change for the title / badges). */}
-                  <div className="dash-header-ai-center">
+                  <div className="dash-header-badge-desktop" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {renderHeaderAIChatButton()}
+                    {renderPlanBadge(false)}
                   </div>
                   <div className="dash-header-badge-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-                    {/* Task 20 (Owner console instruction 2026-10-09): the plans status indicator is removed from the mobile header and the
-                        SAME notification bell takes its slot. The plans feature itself stays (Business settings › My subscription, Task 30). */}
-                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} variant="mobile" />
+                    {renderHeaderAIChatButton()}
+                    {renderPlanBadge(true)}
                   </div>
                 </div>
 
+              {/* חוק ברזל (Dashboard Header Compression, Hot Quote): כרטיס-
+                  KPI ענק (רדיוס 14px, ריפוד 16px, אייקון עגול 40px) הפך
+                  להתראה דקה חד-שורתית (~44px), בתוך Frame A עדיין (ר'
+                  ההערה למעלה על עוגן ה-Trial Notice). יציבות-הגיאומטריה
+                  הקיימת (רוטציית-4-שניות בין שמות-לקוח משתנים) נשמרת
+                  באמצעות overflow/whiteSpace/textOverflow על שורה אחת,
+                  לא עוד line-clamp דו-שורתי, כי כל ה"כרטיס" עצמו עכשיו
+                  שורה אחת בלבד. אפקט-הרחבה: לחיצה עוד/מקלדת חושפת את
+                  הטקסט המלא (ללא קיצוץ) בשורה שנייה - state מקומי טהור,
+                  לא לוגיקה עסקית חדשה - ו"תצפה בהצעה" אמיתית (getQuoteViewLink
+                  המקביל, אותה נוסחת קישור-ציבורי-לפי-מטבע שכבר קיימת ב-
+                  QuotesTab.jsx, לא בדויה).
+
+                  חוק ברזל (UI Stability + Hot Quote Forensic Check task,
+                  2026-09-08, Owner-authorized): התיבה עצמה מוצגת תמיד עכשיו
+                  (לא עוד `hotQuotesList.length > 0 &&` שמדלג על כל הבלוק) -
+                  שורש התקלה שהבעלים דיווח עליה (ההצעה החמה "נעלמה" מהדשבורד
+                  של David Aluminum) נחקר ואומת: אין שום שינוי קוד בכלל
+                  בנוסחת-הזכאות של Hot Quote (view_count>=3 && status!==
+                  'approved' && status!=='paid', בדיוק כמו קודם, לא נגעתי בה)
+                  ולא בטעינת/נירמול הסטטוס בשום commit רלוונטי היסטורי - הביטוי
+                  התנייתי `hotQuotesList.length > 0 &&` היה קיים כך מאז ומתמיד
+                  (גם ב-5f658f3 "stabilize hot quote geometry" המקורי, גם
+                  בהערה של הסבב הזה עצמו לפני התיקון - "מוצגת רק כש-
+                  hotQuotesList.length>0"). המסקנה: הסיבה האמיתית להיעלמות
+                  היא מעבר-סטטוס אמיתי (ההצעה שהייתה זכאית עברה ל-approved/
+                  paid - בדיוק ההתנהגות העסקית הנכונה שהבעלים אישר), אך
+                  התבנית-חזותית הקודמת (תיבה שנעלמת כליל) הפכה מעבר-סטטוס
+                  תקין למראה של "באג". התיקון כאן הוא אך ורק ויזואלי/מבני:
+                  מוסיף מצב-ריק קבוע-גיאומטריה כשאין הצעה חמה זכאית - אפס
+                  שינוי בנוסחת-הזכאות עצמה. */}
+              {hotQuotesList.length > 0 && currentHotQuote ? (
+                <div
+                  title={t.hotQuoteAlert(currentHotClientName, currentHotViewCount)}
+                  style={{ marginTop: '8px', background: 'rgba(248,113,113,0.14)', border: '1px solid rgba(248,113,113,0.35)', borderRadius: RADIUS.sm, padding: '0 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '28px', height: '42px', boxSizing: 'border-box', overflow: 'hidden' }}
+                >
+                  <Flame size={15} color={DARK_ACCENT.red} fill={DARK_ACCENT.red} strokeWidth={1} style={{ flexShrink: 0 }} />
+                  <span style={{ fontSize: '0.78rem', color: DARK_ACCENT.red, fontWeight: '800', flexShrink: 0 }}>{isHebrew ? 'הצעה חמה!' : 'Hot Quote!'}</span>
+                  <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: '0.78rem', color: SHELL.sidebarTextActive, fontWeight: '600', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {t.hotQuoteAlert(currentHotClientName, currentHotViewCount)}
+                  </span>
+                  {/* PRODUCT_TRUTH_CAPABILITY: public_quote_view */}
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); window.open(getHotQuoteViewLink(currentHotQuote), '_blank'); }}
+                    title={isHebrew ? 'צפה בהצעה' : 'View quote'}
+                    aria-label={isHebrew ? 'צפה בהצעה' : 'View quote'}
+                    style={{ flexShrink: 0, background: 'rgba(248,113,113,0.18)', border: 'none', borderRadius: RADIUS.sm, width: '24px', height: '24px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: DARK_ACCENT.red }}
+                  >
+                    <Eye size={13} strokeWidth={2.2} />
+                  </button>
+                </div>
+              ) : (
+                <div
+                  title={isHebrew ? 'אין כרגע הצעה חמה. כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן.' : 'No hot quote right now. A quote will appear here after 3 or more views while it is still awaiting approval.'}
+                  style={{ marginTop: '8px', background: 'rgba(255,255,255,0.04)', border: `1px solid ${SHELL.sidebarBorder}`, borderRadius: RADIUS.sm, padding: '0 12px', display: 'flex', alignItems: 'center', gap: '8px', minHeight: '28px', height: '42px', boxSizing: 'border-box', overflow: 'hidden' }}
+                >
+                  <Flame size={15} color={SHELL.sidebarTextMuted} strokeWidth={1.5} style={{ flexShrink: 0, opacity: 0.6 }} />
+                  <span style={{ flex: '1 1 auto', minWidth: 0, fontSize: '0.78rem', color: SHELL.sidebarText, fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {isHebrew ? 'אין כרגע הצעה חמה' : 'No hot quote right now'}
+                    <span style={{ fontSize: '0.66rem', color: SHELL.sidebarTextMuted, fontWeight: '500', marginInlineStart: '8px' }}>
+                      {isHebrew ? 'כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן.' : 'A quote will appear here after 3 or more views while it is still awaiting approval.'}
+                    </span>
+                  </span>
+                </div>
+              )}
             </>
             );
           })()}
@@ -7545,9 +6374,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               === 'catalog' למטה). היסטוריית הצעות תופסת כעת את מלוא
               רוחב אזור התוכן הראשי - אין עוד עמודה שנייה/דו-טורי כאן. */}
           {activeTab === 'main' && !showQuoteForm && (
-            <RemindersFirstSetupNotice client={supabase} userId={session?.user?.id} isHebrew={isHebrew} />
-          )}
-          {activeTab === 'main' && !showQuoteForm && (
               <QuotesTab
                 stickyTopBase={upperSectionHeight}
                 quotes={filteredQuotes}
@@ -7563,7 +6389,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 handleEditClick={handleEditClick}
                 handleDuplicateQuote={handleDuplicateQuote}
                 sendWhatsApp={sendWhatsApp}
-                copyQuoteMessage={copyQuoteMessage}
                 executeEmailSend={executeEmailSend}
                 handleDeleteQuote={requestDeleteQuote}
                 handleProtectedAction={handleProtectedAction}
@@ -7581,10 +6406,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 setPendingEmailQuote={requestEmailSend}
                 emailStatuses={emailStatuses}
                 currency={currency}
-                onCreateQuote={handleCreateNewQuoteClick}
-                onCreateStructuredQuote={handleCreateStructuredQuoteClick}
-                onCreateFromTemplate={handleOpenTemplatePicker}
-                onCreateAiQuote={handleCreateAiQuoteClick}
               />
           )}
 
@@ -7593,25 +6414,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             <DraftStorageWarning show={!!draftStorageProbe || quoteDraft.status === 'error'} reason={quoteDraft.error || draftStorageProbe} isHebrew={isHebrew} />
             <DraftAttachmentsWarning names={quoteDraft.attachmentsWarning} isHebrew={isHebrew} />
             <DraftRecoveredBanner info={recoveredDraftInfo} isHebrew={isHebrew} onDiscard={discardRecoveredDraft} onDismiss={() => setRecoveredDraftInfo(null)} />
-            <QuoteCreatorLayout
-              ctl={presentationEditor}
-              previewData={buildPreviewQuoteData({
-                editor: {
-                  quoteId: editingQuoteId || newDraftUuid, quoteNumber: editingOriginalQuote?.quote_number ?? null, createdAt: editingOriginalQuote?.created_at,
-                  clientName, clientEmail, clientPhone, clientType, clientAddress, quoteSubject, attnName, attnRole,
-                  currency: isLocalIsraeliBusiness ? 'ILS' : currency, quoteStatus, validUntil, discount, terms, warranty, notes, items, sections, projectName,
-                },
-                financials: { subtotal, taxRate, total: totalAmount },
-                business: { business_name: bizName, logo_url: bizLogoUrl, tax_id: bizTaxId, email: bizEmail, phone: bizPhone, address: bizAddress, currency: isLocalIsraeliBusiness ? 'ILS' : currency },
-                presentation: { style: presentationEditor.shownStyle, presentation: quotePresentation, mediaUrls: presentationEditor.urls },
-              })}
-            >
             <QuoteForm
               editingQuoteId={editingQuoteId}
               editingQuoteNumber={editingOriginalQuote?.quote_number ?? null}
               onSave={handleSaveQuote}
               onCancel={requestCancelEdit}
-              onSaveAsTemplate={() => setTemplateDialog('save')}
               clientName={clientName} setClientName={setClientName}
               clientEmail={clientEmail} setClientEmail={setClientEmail}
               clientPhone={clientPhone} setClientPhone={setClientPhone}
@@ -7624,7 +6431,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               currency={currency} setCurrency={setCurrency}
               quoteStatus={quoteStatus} setQuoteStatus={setQuoteStatus}
               validUntil={validUntil} setValidUntil={setValidUntil}
-              serviceSchedule={serviceSchedule} setServiceSchedule={setServiceSchedule} serviceScheduleState={serviceScheduleState}
               discount={discount} setDiscount={setDiscount}
               terms={terms} setTerms={setTerms}
               defaultTerms={defaultTerms}
@@ -7652,12 +6458,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               removeItem={removeItem}
               handleItemChange={handleItemChange}
               handleAddFromCatalog={handleAddFromCatalog}
-              canUseAttachments={canUseCapability('quote_attachment.upload')}
-              canUseProfessionalQuotes={canUseCapability('professional_quote.use')}
-              recommendedPricingMethod={getEntryRecommendedPricingMethod(professionalDomain, measuredQuoteEntry && quoteStructureMode === 'divided')}
+              canUseAttachments={entitlement.attachments}
+              canUseProfessionalQuotes={entitlement.professionalQuotes}
+              recommendedPricingMethod={getRecommendedPricingMethod(professionalDomain)}
               duplicateItem={duplicateItem}
-              canUseProfessionalQuoteReuse={canUseCapability('professional_quote.reuse')}
-              accountSummary={accountSummary}
+              canUseProfessionalQuoteReuse={entitlement.professionalQuoteReuse}
               handleProfessionalUnitChange={handleProfessionalUnitChange}
               addMeasurementRow={addMeasurementRow}
               removeMeasurementRow={removeMeasurementRow}
@@ -7677,23 +6482,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               onOpenAttachment={openQuoteAttachment}
               wizardResume={wizardResume}
               onWizardDraftChange={setWizardDraft}
-              presentationController={presentationEditor}
-              presentationSavedStatus={editingOriginalQuote?.status ?? null}
-              onIssueQuote={requestIssueQuote}
-              issueBusy={!!issueRequest}
-              onCatalogItemAdded={presentationEditor.onCatalogItemAdded}
-            />
-            </QuoteCreatorLayout>
-            {/* Task 21: AI smart quote - reviewable AI draft lines applied explicitly to this unsaved form (nothing saved / issued / sent) */}
-            <AiQuoteDraftDialog
-              isOpen={showAiQuoteDraft && isCreatingQuote && !editingQuoteId}
-              isHebrew={isHebrew}
-              sym={sym}
-              formatMoneyDisplay={formatMoneyDisplay}
-              requestDraft={(description) => requestAiQuoteDraft(supabase, description)}
-              onOpenChat={openAiChat}
-              onClose={() => setShowAiQuoteDraft(false)}
-              onApply={applyAiQuoteDraft}
             />
             </>
           )}
@@ -7735,17 +6523,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               setBizAddress={setBizAddress}
               bizLogoUrl={bizLogoUrl}
               setBizLogoUrl={setBizLogoUrl}
-              accountSummary={accountSummary}
-              onRetryAccountSummary={refreshAccountSummary}
-              logoImportRequired={outputPhase === 'shadow' || outputPhase === 'enforced'}
-              onImportLogo={async (dataBase64) => {
-                try {
-                  const { data, error } = await supabase.functions.invoke('subscription-authority', { body: { action: 'import_logo', dataBase64 } });
-                  return !error && data && data.ok === true ? { ok: true, assetId: data.assetId } : { ok: false };
-                } catch {
-                  return { ok: false };
-                }
-              }}
+              bizPlan={bizPlan}
+              effectivePlan={effectivePlan}
+              isLifetime={isLifetime}
+              displayIdentity={displayIdentity}
               isSuperAdmin={isSuperAdmin}
               defaultTerms={defaultTerms}
               defaultWarranty={defaultWarranty}
@@ -7753,59 +6534,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               setDefaultTerms={setDefaultTerms}
               professionalDomain={professionalDomain}
               setProfessionalDomain={setProfessionalDomain}
-              canUseProfessionalQuotes={canUseCapability('professional_quote.use')}
-              canUseAttachments={canUseCapability('quote_attachment.upload')}
-              onLockedCapability={setLockedCapability}
-              presentationController={presentationEditor}
-              remindersClient={supabase}
-              remindersUserId={session?.user?.id}
-              businessCardClient={supabase}
-              businessCardUserId={session?.user?.id}
-              shareDefaultsClient={supabase}
-              shareDefaultsUserId={session?.user?.id}
-              onShareDefaultsSaved={(v) => setShareTextDefault(v?.share_text || '')}
+              canUseProfessionalQuotes={entitlement.professionalQuotes}
+              canUseAttachments={entitlement.attachments}
+              isTrialExpired={isTrialExpired}
+              trialDaysLeft={trialDaysLeft}
+              setShowPricingModal={setShowPricingModal}
             />
           )}
 
-          {activeTab === 'statistics' && (
-            <StatisticsTab
-              quotes={quotes}
-              isHebrew={isHebrew}
-              isLocalIsraeliBusiness={isLocalIsraeliBusiness}
-              currency={currency}
-              formatMoneyDisplay={formatMoneyDisplay}
-              handleProtectedAction={handleProtectedAction}
-              sendWhatsApp={sendWhatsApp}
-              requestEmailSend={requestEmailSend}
-              activeTooltip={activeTooltip}
-              onCreateFollowUpTask={(quote) => { const draft = followUpDraftFor(quote); if (draft) { setTaskFollowUpDraft(draft); setActiveTab('tasks'); } }}
-            />
-          )}
-          {activeTab === 'tasks' && (
-            <TasksTab
-              client={supabase}
-              userId={session?.user?.id}
-              isHebrew={isHebrew}
-              isLocalIsraeliBusiness={isLocalIsraeliBusiness}
-              quotes={quotes}
-              clients={clients}
-              onStatus={setStatusMsg}
-              followUpDraft={taskFollowUpDraft}
-              onFollowUpConsumed={() => setTaskFollowUpDraft(null)}
-              openTaskId={taskOpenId}
-              onOpenTaskConsumed={() => setTaskOpenId(null)}
-            />
-          )}
-          {activeTab === 'calendar' && (
-            <CalendarTab
-              client={supabase}
-              userId={session?.user?.id}
-              isHebrew={isHebrew}
-              isLocalIsraeliBusiness={isLocalIsraeliBusiness}
-              quotes={quotes}
-              onOpenTask={(taskId) => { setTaskOpenId(taskId); setActiveTab('tasks'); }}
-            />
-          )}
           {activeTab === 'finances' && (
             <FinancesTab
               financeReportType={financeReportType}
@@ -7863,10 +6599,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               handleDeleteService={requestDeleteService}
               sym={sym}
               formatMoneyDisplay={formatMoneyDisplay}
-              presentationController={presentationEditor}
-              accountSummary={accountSummary}
-              legacyCapabilities={legacyCapabilities}
-              onLockedCapability={setLockedCapability}
             />
           )}
 
@@ -7937,9 +6669,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               auto על dash-main-content) וגם במובייל (עם גלילת-עמוד טבעית,
               כי כל השרשרת ההורה כבר flex-column עם minHeight:100vh
               מ-dash-app-shell). */}
-          <footer className="no-print dash-footer" style={{ textAlign: 'center', padding: '6px 16px', marginTop: 'auto', borderTop: `1px solid ${NEON.border}`, color: NEON.textMuted, fontSize: '0.8rem' }}>
-            {/* Task 30 (Owner addendum): compact desktop footer - only the height its two lines need (was 16px + 30px top padding) */}
-            <div className="dash-footer-brand" style={{ marginBottom: '2px' }}>
+          <footer className="no-print dash-footer" style={{ textAlign: 'center', padding: '16px', marginTop: 'auto', paddingTop: '30px', borderTop: `1px solid ${NEON.border}`, color: NEON.textMuted, fontSize: '0.8rem' }}>
+            <div className="dash-footer-brand" style={{ marginBottom: '6px' }}>
               {isHebrew ? <>מערכת <BrandName /> - ניהול עסק והצעות מחיר</> : <><BrandName /> - Business & Quoting SaaS Platform</>}
             </div>
             {/* PRODUCT_TRUTH_CAPABILITY: accessibility_tools */}
@@ -8070,44 +6801,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           </button>
         </div>
       )}
-      {/* Task 21: the bottom-row "New" sheet - the SAME three choices (newQuoteChoices) and handlers as the desktop NewQuoteMenu, in the
-          same compact popover style as "More" (fixed above the bottom row, closes on selection / outside tap / Escape). */}
-      {showMobileNewQuoteMenu && (
-        <div
-          role="menu"
-          className="no-print dash-mobile-newquote-menu"
-          aria-label={isHebrew ? 'סוג הצעת מחיר חדשה' : 'New quote type'}
-          onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); setShowMobileNewQuoteMenu(false); } }}
-          style={{ position: 'fixed', insetInlineStart: '10px', insetInlineEnd: '10px', bottom: 'calc(58px + env(safe-area-inset-bottom, 0px))', background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.lg, boxShadow: '0 -6px 20px -4px rgba(31,27,46,0.22)', padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 9998, maxHeight: '70vh', overflowY: 'auto', boxSizing: 'border-box' }}
-        >
-          {/* PRODUCT_TRUTH_CAPABILITY: quote_create */}
-          {[...newQuoteChoices(isHebrew), templateChoice(isHebrew)].map(({ id, Icon, label, hint }) => (
-            <button
-              key={id}
-              type="button"
-              role="menuitem"
-              data-choice={id}
-              onClick={() => { setShowMobileNewQuoteMenu(false); ({ standard: handleCreateNewQuoteClick, ai: handleCreateAiQuoteClick, structured: handleCreateStructuredQuoteClick, template: handleOpenTemplatePicker })[id](); }}
-              style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', width: '100%', boxSizing: 'border-box', minHeight: '48px', background: 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: NEON.textPrimary, cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left' }}
-            >
-              <Icon size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, marginTop: '1px', color: NEON.violet }} />
-              <span style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
-                <strong style={{ fontSize: '0.86rem', fontWeight: '700' }}>{label}</strong>
-                <small style={{ fontSize: '0.74rem', color: NEON.textSecondary, lineHeight: 1.35 }}>{hint}</small>
-              </span>
-            </button>
-          ))}
-        </div>
-      )}
-      {/* PRODUCT_TRUTH_DECORATIVE: invisible backdrop closing the mobile 'New' choices sheet on outside tap */}
-      {showMobileNewQuoteMenu && (
-        <div
-          className="no-print"
-          onClick={() => setShowMobileNewQuoteMenu(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 9997, background: 'transparent' }}
-          aria-hidden="true"
-        />
-      )}
       {/* PRODUCT_TRUTH_DECORATIVE: invisible backdrop closing the mobile 'More' popover on outside click */}
       {showMobileMoreMenu && (
         <div
@@ -8133,7 +6826,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               const isActive = id === 'main' ? (activeTab === 'main' && !showQuoteForm) : activeTab === id;
               {/* PRODUCT_TRUTH_DECORATIVE: generic mobile bottom-nav button template rendered once per nav entry (main/clients/finances); each real destination is independently marked at its own screen - resolved by Claude after an agent flag */}
               return (
-                <button key={id} onClick={() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }} style={{ background: isActive ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                <button key={id} onClick={() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }} style={{ background: isActive ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}>
                   <TabIcon size={16} style={{ marginBottom: '1px' }} />
                   {label}
                 </button>
@@ -8144,10 +6837,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             מחרוזות שנייה ונפרדת שהייתה עלולה לצאת מסונכרנת שוב. */}
         {/* PRODUCT_TRUTH_DECORATIVE: toggles the mobile 'More' popover open/closed; the destinations inside are handled separately */}
         <button
-          onClick={() => { setShowMobileNewQuoteMenu(false); setShowMobileMoreMenu(prev => !prev); }}
+          onClick={() => setShowMobileMoreMenu(prev => !prev)}
           aria-haspopup="true"
           aria-expanded={showMobileMoreMenu}
-          style={{ background: (showMobileMoreMenu || (isAdminMode || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab))) ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: (showMobileMoreMenu || (isAdminMode || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab))) ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', whiteSpace: 'nowrap' }}
+          style={{ background: (showMobileMoreMenu || (isAdminMode || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab))) ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: (showMobileMoreMenu || (isAdminMode || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab))) ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', whiteSpace: 'nowrap' }}
         >
           <MoreHorizontal size={16} style={{ marginBottom: '1px' }} />
           {isHebrew ? 'עוד' : 'More'}
@@ -8160,7 +6853,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             שולל. אותו isSuperAdmin המשותף בדיוק - לא תנאי-role שני/עצמאי. */}
         {/* PRODUCT_TRUTH_CAPABILITY: quote_create */}
         {(
-          <button onClick={() => { setShowMobileMoreMenu(false); setShowMobileNewQuoteMenu((prev) => !prev); }} aria-haspopup="menu" aria-expanded={showMobileNewQuoteMenu} style={{ background: NEON.gradient, border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: '#ffffff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', boxShadow: NEON.glowSoft, whiteSpace: 'nowrap' }}>
+          <button onClick={() => { setShowMobileMoreMenu(false); handleCreateNewQuoteClick(); }} style={{ background: NEON.gradient, border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: '#ffffff', cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontSize: '0.64rem', fontWeight: '700', boxShadow: NEON.glowSoft, whiteSpace: 'nowrap' }}>
             <PlusCircle size={16} strokeWidth={2.5} style={{ marginBottom: '1px' }} />
             {isHebrew ? 'חדש' : 'New'}
           </button>
@@ -8168,7 +6861,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       </div>
       )}
     </div>
-    </AccountSummaryContext.Provider>
   );
 }
 

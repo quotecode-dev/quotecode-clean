@@ -19,8 +19,6 @@ export default function UpdateAvailableBanner({ isHebrew }) {
 
   return (
     <div
-      className="no-print"
-      data-html2canvas-ignore="true"
       role="status"
       aria-live="polite"
       style={{

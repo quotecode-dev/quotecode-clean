@@ -2,20 +2,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateChatRequest, classifySupportMessage, buildSystemPrompt, CHAT_CONTRACT_VERSION } from "./validation.ts";
-import { buildVerifiedAccountContext, fetchServerAccountSummary, isHebrewFromMarket, type BusinessSettingsRow } from "./accountContext.ts";
-import type { AccountSummary } from "../_shared/subscriptionContract.ts";
-import { resolveSubscriptionTruthResponse, findSubscriptionClaimViolations, safeSubscriptionAnswer } from "./subscriptionTruth.ts";
+import { buildVerifiedAccountContext, isHebrewFromMarket, type BusinessSettingsRow } from "./accountContext.ts";
 import { ownsQuote, sanitizeQuoteContext, buildQuoteContextBlock, type RawQuoteRow } from "./quoteContext.ts";
 import { extractNavigationAction } from "./navigation.ts";
 import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } from "./directFacts.ts";
 import { paymentTruthApplies, classifyPaymentIntent, resolvePaymentTruthResponse } from "./paymentTruth.ts";
 import { AI_FACTS } from "./aiFacts.generated.ts";
 import { invoicingTruthApplies, classifyInvoicingIntent, resolveInvoicingTruthResponse } from "./invoicingTruth.ts";
+import { classifyPublicPlanIntent, publicPlanTruthAnswer, hasRetiredPlanPriceClaim } from "./publicPlanTruth.ts";
 import { capabilityTruthApplies, classifyCapabilityIntent, classifyBroadCapabilityQuestionSignal, resolveBroadCapabilityClarification, resolveCapabilityTruthResponse } from "./capabilityTruth.ts";
 import { classifyAccountMarketIntent, formatAccountMarketAnswer } from "./marketTruth.ts";
 import { buildAccountMarketFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
 import type { ChatFactPayload } from "../_shared/aiChatContract.ts";
-import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
+import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, monthStartIso, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
 import { buildErrorEnvelope, withLegacyChoices, type ChatErrorCode } from "../_shared/aiChatContract.ts";
 
 const corsHeaders = {
@@ -46,7 +45,7 @@ serve(async (req) => {
   if (!validation.ok) {
     return errorResponse('invalid_request', validation.reason, 400);
   }
-  const { messages, isHebrew: clientIsHebrew, isDashboard, guidedIntent, guidedSubtopic, currentArea, selectedQuoteId, workflowContext, contextRevision, helpContext: rawHelpContext, draftSnapshot } = validation.value;
+  const { messages, isHebrew: clientIsHebrew, isDashboard, guidedIntent, guidedSubtopic, currentArea, selectedQuoteId, workflowContext, contextRevision, helpContext: rawHelpContext } = validation.value;
   // Track B/C: a UX-hint-only snapshot, already strictly validated/shaped
   // by validateChatRequest above - only ever meaningful on the authenticated
   // Dashboard surface, same gating as accountContext/quoteContext below.
@@ -75,9 +74,6 @@ serve(async (req) => {
   // ==========================================================
   let attributedEmail = 'anonymous_public_user';
   let verifiedUserId: string | null = null;
-  // Subscriptions cutover (OD-20): the account's plan facts come ONLY from public.get_account_summary(), called below with the
-  // caller's OWN JWT (the RPC derives identity from auth.uid() and takes no argument). Never from the request body.
-  let accountSummary: AccountSummary = { state: 'unavailable', code: 'no_verified_user' };
   if (isDashboard) {
     const authHeader = req.headers.get('Authorization');
     if (authHeader) {
@@ -89,7 +85,6 @@ serve(async (req) => {
         if (verifiedUser?.id) {
           verifiedUserId = verifiedUser.id;
           attributedEmail = verifiedUser.email ?? 'unverified_dashboard_session';
-          accountSummary = await fetchServerAccountSummary((fn) => callerClient.rpc(fn));
         } else {
           attributedEmail = 'unverified_dashboard_session';
         }
@@ -113,14 +108,18 @@ serve(async (req) => {
   if (verifiedUserId) {
     const { data: bizRow } = await adminClient
       .from('business_settings')
-      .select('role, country, phone, tax_id')
+      .select('plan, trial_ends_at, is_lifetime, role, country, phone, tax_id')
       .eq('user_id', verifiedUserId)
       .maybeSingle();
-    accountContext = buildVerifiedAccountContext(bizRow as BusinessSettingsRow | null, currentArea, accountSummary);
-    // AI HELP V4 - Layer 3 trusted facts, scoped to this verified user only (profile completeness, server account summary).
-    // The retired monthly quote counter is no longer computed (OD-20).
-    trustedFacts = deriveTrustedFacts(accountContext, bizRow as { phone?: string; tax_id?: string; country?: string; role?: string } | null,
-      accountSummary.state === 'ready' ? accountSummary.capabilities : null);
+    accountContext = buildVerifiedAccountContext(bizRow as BusinessSettingsRow | null, currentArea);
+    // AI HELP V4 - Layer 3 trusted facts, scoped to this verified user only (profile completeness, this month's quote count).
+    let monthlyUsed: number | null = null;
+    try {
+      const { count } = await adminClient.from('quotes').select('id', { count: 'exact', head: true })
+        .eq('user_id', verifiedUserId).gte('created_at', monthStartIso(accountContext.market));
+      monthlyUsed = typeof count === 'number' ? count : null;
+    } catch { monthlyUsed = null; }
+    trustedFacts = deriveTrustedFacts(accountContext, bizRow as { phone?: string; tax_id?: string; country?: string; role?: string } | null, monthlyUsed);
     // §4 correction (Track C/I, "Unknown must not silently become
     // International"): only market 'Unknown' (no business_settings row yet)
     // falls back to the caller's own dashboard-bundle locale for reply
@@ -203,7 +202,7 @@ serve(async (req) => {
   // STRUCTURED TRUTH: the SERVER-VERIFIED account facts every deterministic Product Truth payload is resolved against (never anything the
   // caller claimed). No verified account (public chat) = no account facts.
   const payloadAccount: PayloadAccountFacts = verifiedUserId && accountContext
-    ? { market: accountContext.market, plan: accountContext.account.summaryState === 'ready' ? accountContext.account.planId : null, isAdmin: !!trustedFacts?.isAdmin }
+    ? { market: accountContext.market, tier: accountContext.tier, isAdmin: !!trustedFacts?.isAdmin }
     : NO_ACCOUNT_FACTS;
   // `factPayload` carries the structured Product Truth payload for a deterministic Product Truth answer (canonical authority -> structured
   // truth -> prose); it stays null for help / free-form answers that make no deterministic Product Truth claim.
@@ -261,17 +260,11 @@ serve(async (req) => {
     await logChat(truth.answer);
     return deterministicResponse(truth.answer, null, truth.factPayload);
   }
-
-  // SUBSCRIPTION TRUTH (OD-01..OD-20): a plan / price / trial / quota / "unlimited" question is answered DETERMINISTICALLY from
-  // AI_FACTS.subscriptions (subscriptionContract.ts + priceCatalog.js) and the SERVER account summary - never by the model,
-  // never from a plan the user claims. Runs after payment/invoicing (they keep first refusal on payment questions) and before
-  // the market and capability routers. See subscriptionTruth.ts.
-  {
-    const subscription = resolveSubscriptionTruthResponse(lastUserMessage, isHebrew, verifiedUserId && accountContext ? accountContext.account : null);
-    if (subscription) {
-      await logChat(subscription.answer);
-      return deterministicResponse(subscription.answer, null, null);
-    }
+  // Task 39 (Owner): plans / prices / purchase / Free-10 / trial questions get the approved package truth, deterministically (no model).
+  if (classifyPublicPlanIntent(lastUserMessage)) {
+    const planAnswer = publicPlanTruthAnswer(isHebrew);
+    await logChat(planAnswer);
+    return deterministicResponse(planAnswer, null);
   }
 
   // ACCOUNT MARKET / CURRENCY TRUTH (structured-truth closure): a message that asserts or asks to change the account's market / currency is
@@ -290,9 +283,6 @@ serve(async (req) => {
   // Runs AFTER payment/invoicing (they keep first refusal on their own questions) and before AI
   // Help V4. A capability question with a known nav destination gets a click-required suggestion,
   // re-validated the same way any other navigation is (navAllowed / extractNavigationAction).
-  // Task 34: an explicit "review this quote" request (verified dashboard user + sanitized snapshot) carries the snapshot to the model, but
-  // EVERY deterministic truth gate (payment / invoicing / subscription / market / capability / why-blocked) still runs first, unchanged.
-  const reviewSnapshot = isDashboard && verifiedUserId ? draftSnapshot : null;
   if (capabilityTruthApplies({ capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities })) {
     const capabilityId = classifyCapabilityIntent(lastUserMessage);
     if (capabilityId) {
@@ -307,7 +297,7 @@ serve(async (req) => {
         capabilityId,
         { capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities },
         isHebrew,
-        payloadAccount.plan,
+        accountContext?.tier ?? null,
         verifiedUserId ? !!trustedFacts?.isAdmin : null,
         accountContext?.market ?? null,
       );
@@ -351,12 +341,9 @@ serve(async (req) => {
   // only: used here to build the prompt, never persisted (the chat_logs
   // insert below references none of them).
   const helpBlocks = helpContext ? buildHelpContextBlocks(helpContext, activeBlockers, droppedBlockers, trustedFacts, isHebrew) : null;
-  const systemPrompt = buildSystemPrompt({ isHebrew, guidedIntent, guidedSubtopic, accountContext, quoteContextBlock, workflowContext: effectiveWorkflowContext, helpBlocks, allowedNavigation: verifiedUserId ? navAllowed : null, draftSnapshot: reviewSnapshot });
+  const systemPrompt = buildSystemPrompt({ isHebrew, guidedIntent, guidedSubtopic, accountContext, quoteContextBlock, workflowContext: effectiveWorkflowContext, helpBlocks, allowedNavigation: verifiedUserId ? navAllowed : null });
 
   let data: Record<string, unknown>;
-  // Task 35: the provider call is bounded - a hung model ends in the closed provider_failure state (the widget offers a retry)
-  const providerAbort = new AbortController();
-  const providerTimer = setTimeout(() => providerAbort.abort(), 25000);
   try {
     const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -373,10 +360,9 @@ serve(async (req) => {
           // never the raw caller payload spread in directly.
           ...messages
         ],
-        max_tokens: reviewSnapshot ? 900 : 600,
+        max_tokens: 600,
         temperature: 0.2,
       }),
-      signal: providerAbort.signal,
     });
 
     if (!openAiResponse.ok) {
@@ -386,8 +372,6 @@ serve(async (req) => {
     data = await openAiResponse.json();
   } catch {
     return errorResponse('provider_failure', 'Failed to reach the AI provider', 502);
-  } finally {
-    clearTimeout(providerTimer);
   }
 
   let aiReply = (data?.choices as Array<{ message?: { content?: string } }> | undefined)?.[0]?.message?.content;
@@ -405,15 +389,9 @@ serve(async (req) => {
   // §8: parse and validate any trailing navigation marker - the visible
   // answer never contains the raw "NAVIGATE: ..." line either way.
   const extracted = extractNavigationAction(aiReply, selectedQuoteAvailable, verifiedUserId ? navAllowed : []);
+  // Task 39 (Owner): a model answer that quotes a retired Basic / Pro price is replaced by the approved package truth.
+  const answer = hasRetiredPlanPriceClaim(extracted.answer) ? publicPlanTruthAnswer(isHebrew) : extracted.answer;
   const navigationAction = extracted.action;
-  // SUBSCRIPTION TRUTH answer gate: a model answer that states retired / unapproved plan truth (legacy plan names, a trial,
-  // "unlimited", a monthly quote limit, annual pricing, an unapproved plan price, a shekel price on the International side)
-  // is REJECTED and replaced by the canonical deterministic statement; the rejection is logged with its violation codes.
-  const subscriptionViolations = findSubscriptionClaimViolations(extracted.answer, isHebrew);
-  const answer = subscriptionViolations.length
-    ? safeSubscriptionAnswer(isHebrew, verifiedUserId && accountContext ? accountContext.account : null)
-    : extracted.answer;
-  if (subscriptionViolations.length) console.warn('chat-ai: model answer rejected by subscription truth gate:', subscriptionViolations.join(','));
   const NAV_FOCUS: Record<string, string> = { open_business_phone: 'business_phone', open_business_tax_id: 'business_tax_id', open_business_details: 'business_details' };
 
   const category = classifySupportMessage(lastUserMessage);
@@ -444,7 +422,7 @@ serve(async (req) => {
     requestId: crypto.randomUUID(),
     contextRevision,
     answer,
-    answerSource: subscriptionViolations.length ? 'deterministic' : 'model',
+    answerSource: 'model',
     factPayload: null,
     navigation: navigationAction ? { action: navigationAction, focus: NAV_FOCUS[navigationAction] ?? null } : null,
     selectedQuoteContext: selectedQuoteRequested ? { requested: true, available: selectedQuoteAvailable } : null,

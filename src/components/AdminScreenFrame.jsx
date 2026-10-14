@@ -1,4 +1,4 @@
-import { APP as NEON, RADIUS, SHADOW } from '../theme/neonTheme';
+import { LIGHT as NEON, RADIUS, SHADOW } from '../theme/neonTheme';
 
 // Unified Admin: every Admin destination renders through this ONE frame, the
 // same page pattern as the ordinary user screens (ClientsTab, FinancesTab,

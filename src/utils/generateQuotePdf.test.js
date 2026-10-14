@@ -1,5 +1,16 @@
-import { describe, it, expect, vi } from 'vitest';
-import { buildQuotePdfFilename, computePageBoundaries, waitForImagesReady, getA4ContentBoxPt, NO_SPLIT_SELECTOR, PDF_CAPTURE_WINDOW_WIDTH, PDF_DOCUMENT_WIDTH_PX, coverFramedImagesForCapture } from './generateQuotePdf';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { buildQuotePdfFilename, computePageBoundaries, waitForImagesReady, getA4ContentBoxPt, generateQuotePdf } from './generateQuotePdf';
+
+// I/O boundaries of generateQuotePdf() only: the rasterizer (html2canvas) and the PDF writer (jsPDF) - neither has real jsdom
+// support. The orchestration under test (guard, A4 content-box placement, page slicing, save) is the REAL module code.
+const pdfCalls = { addPage: 0, images: [], saved: null };
+vi.mock('jspdf', () => ({ jsPDF: class {
+  addPage() { pdfCalls.addPage += 1; }
+  addImage(...a) { pdfCalls.images.push(a); }
+  save(name) { pdfCalls.saved = name; }
+} }));
+const html2canvasMock = vi.fn();
+vi.mock('html2canvas', () => ({ default: (...a) => html2canvasMock(...a) }));
 
 // ONE SHARED A4 DOCUMENT CONTRACT ("FINAL SMART QUOTE PDF/PRINT/A4 CLOSURE
 // PASS" task, Owner-mandated: "PDF and Print must share the same A4 content
@@ -375,29 +386,46 @@ describe('waitForImagesReady', () => {
   });
 });
 
-describe('Task 16 - quote media is an atomic pagination block', () => {
-  it('NO_SPLIT_SELECTOR keeps the existing hooks and adds .pq-media-figure (an image never separates from its caption)', () => {
-    for (const sel of ['tr', '.pq-unit-item', '.pq-recipient', '.pq-header-box', '.pq-media-figure']) {
-      expect(NO_SPLIT_SELECTOR.split(',').map((x) => x.trim())).toContain(sel);
+describe('generateQuotePdf - the real orchestration (A4 content box, page slicing, save)', () => {
+  const box = getA4ContentBoxPt();
+  const canvasOf = (width, height) => ({ width, height, toDataURL: () => 'data:image/jpeg;base64,AAAA' });
+  let getContext; let toDataURL;
+  beforeEach(() => {
+    pdfCalls.addPage = 0; pdfCalls.images = []; pdfCalls.saved = null; html2canvasMock.mockReset();
+    // jsdom has no 2D canvas: the per-page slice canvas gets an inert 2D context (rendering I/O only)
+    getContext = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ fillRect: vi.fn(), drawImage: vi.fn(), fillStyle: '' });
+    toDataURL = vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/jpeg;base64,AAAA');
+  });
+  afterEach(() => { getContext.mockRestore(); toDataURL.mockRestore(); });
+
+  it('never saves a PDF without a capture element or from an empty capture (no blank document is produced)', async () => {
+    await expect(generateQuotePdf({ captureEl: null, filename: 'x.pdf' })).rejects.toThrow(/captureEl is required/);
+    html2canvasMock.mockResolvedValue(canvasOf(0, 0));
+    await expect(generateQuotePdf({ captureEl: document.createElement('div'), filename: 'x.pdf' })).rejects.toThrow(/empty canvas/);
+    expect(pdfCalls.saved).toBeNull();
+  });
+
+  it('a capture 2.5 pages tall becomes 3 A4 pages; every page image sits inside the content box (margins on every side) and the file is saved under its name', async () => {
+    const width = 1000; const pxPerPt = width / box.contentWidthPt; const pageH = box.contentHeightPt * pxPerPt;
+    html2canvasMock.mockResolvedValue(canvasOf(width, Math.round(pageH * 2.5)));
+    await generateQuotePdf({ captureEl: document.createElement('div'), filename: 'Quote-1001.pdf' });
+    expect(pdfCalls.addPage).toBe(2);
+    expect(pdfCalls.images).toHaveLength(3);
+    for (const [, fmt, x, y, w, h] of pdfCalls.images) {
+      expect([fmt, x, y, w]).toEqual(['JPEG', box.marginLeftPt, box.marginTopPt, box.contentWidthPt]);
+      expect(h).toBeGreaterThan(0);
+      expect(h).toBeLessThanOrEqual(box.contentHeightPt + 0.01); // a page slice never overflows the bottom margin
     }
-  });
-});
-
-describe('Task 16 correction F - device-independent Direct PDF capture', () => {
-  it('captures at one fixed document window width (a phone no longer scales its narrow layout up to A4)', () => {
-    expect(PDF_CAPTURE_WINDOW_WIDTH).toBeGreaterThanOrEqual(1024);
-    // the document is laid out at the A4 content width (190mm at 96dpi), so 1 CSS px prints as 0.75pt like native Print
-    expect(PDF_DOCUMENT_WIDTH_PX).toBe(Math.round((190 / 25.4) * 96));
+    expect(pdfCalls.saved).toBe('Quote-1001.pdf');
   });
 
-  it('replaces framed quote images by a cover background in the capture clone (html2canvas ignores object-fit)', () => {
-    const root = document.createElement('div');
-    root.innerHTML = '<span class="pq-media-frame"><img src="https://example.com/a.png" alt=""></span><img src="https://example.com/logo.png" alt="logo">';
-    expect(coverFramedImagesForCapture(root)).toBe(1);
-    const frame = root.querySelector('.pq-media-frame');
-    expect(frame.style.backgroundImage).toContain('https://example.com/a.png');
-    expect(frame.style.backgroundSize).toBe('cover');
-    expect(frame.querySelector('img').style.visibility).toBe('hidden');
-    expect(root.querySelector('img[alt="logo"]').style.visibility).toBe('');
+  it('a short capture is one page with no extra page; the capture is rasterized at the requested scale on white with CORS images', async () => {
+    html2canvasMock.mockResolvedValue(canvasOf(1000, 400));
+    const el = document.createElement('div');
+    await generateQuotePdf({ captureEl: el, filename: 'short.pdf', scale: 3 });
+    expect(html2canvasMock).toHaveBeenCalledWith(el, expect.objectContaining({ scale: 3, useCORS: true, backgroundColor: '#ffffff' }));
+    expect(pdfCalls.addPage).toBe(0);
+    expect(pdfCalls.images).toHaveLength(1);
+    expect(pdfCalls.saved).toBe('short.pdf');
   });
 });

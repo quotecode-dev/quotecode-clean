@@ -10,8 +10,6 @@ import Dashboard from '../pages/Dashboard';
 import { rootRecoveryIntent, rootSignupIntent } from '../shared/supabase';
 import AILogs from '../pages/AILogs';
 import SmartPublicQuote from '../components/SmartPublicQuote';
-import PublicBusinessCard from '../pages/PublicBusinessCard';
-import SampleQuote from '../pages/SampleQuote';
 import PublicToolsEn from '../components/PublicToolsEn';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
@@ -93,14 +91,8 @@ export default function AppGlobal() {
         <Route path="/en/tools/crypto" element={<PublicToolsEn />} />
         {/* שפת/מע"מ ההצעה נגזרים מנתוני ההצעה השמורים (currency/tax_rate), לא מהיותנו בבאנדל הגלובלי */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
-        {/* Task 23 (Phase 5): public digital business card (no sign-in; the page uses the card's own market language once loaded) */}
-        <Route path="/card/:id" element={<PublicBusinessCard bundleIsHebrew={false} />} />
         <Route path="/quote/:id" element={<SmartPublicQuote />} />
         <Route path="/en/public-quote/:id" element={<SmartPublicQuote />} />
-        <Route path="/public-quote/c/:token" element={<SmartPublicQuote />} />
-        <Route path="/en/public-quote/c/:token" element={<SmartPublicQuote />} />
-        {/* Task 16: synthetic sample quote (no auth, noindex) - the real PublicQuoteEn in previewMode. */}
-        <Route path="/en/sample-quote" element={<SampleQuote locale="en" />} />
 
         <Route path="/terms" element={<Terms isHebrew={false} />} />
         <Route path="/en/terms" element={<Terms isHebrew={false} />} />

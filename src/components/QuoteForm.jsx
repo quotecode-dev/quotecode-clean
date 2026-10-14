@@ -2,10 +2,8 @@ import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
-import EditItemPriceDialog from './EditItemPriceDialog';
-import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText, Building2, LayoutList } from 'lucide-react';
-import { APP as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
-import QuotePresentationPanel from './quotePresentation/QuotePresentationPanel';
+import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Rocket, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText, Building2, LayoutList } from 'lucide-react';
+import { LIGHT as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import { calculateQuoteFinancials } from '../utils/regionConfig';
 import { formatMoneyForCurrency } from '../utils/money';
 import { formatQuoteFallback } from '../utils/quoteNumber';
@@ -16,11 +14,6 @@ import { isUnfinishedQuoteForm } from '../utils/quoteCompleteness';
 import { isQuoteAcceptanceExpired } from '../utils/quoteValidity';
 import { publishBlocker, resolveBlockers } from '../utils/aiHelpBlockers';
 import AiHelpButton from './AiHelpButton';
-import CapabilityUpgradeNotice from './subscriptions/CapabilityUpgradeNotice';
-import ServiceScheduleFields from './ServiceScheduleFields';
-
-// OD-17: which capability each locked action of the form explains (the one CapabilityUpgradeNotice)
-const UPGRADE_CAPABILITY = Object.freeze({ professional: 'professional_quote.use', reuse: 'professional_quote.reuse', attachments: 'quote_attachment.upload' });
 
 // AI HELP V4 §5: the browser's own required-field validation is the owner of these blockers; the product marks each required
 // control with data-help-field (never DOM text scraping) and the blocker resolves as soon as the field is filled.
@@ -65,8 +58,6 @@ export default function QuoteForm({
   currency,
   quoteStatus, setQuoteStatus,
   validUntil, setValidUntil,
-  serviceSchedule = null, setServiceSchedule = null, serviceScheduleState = 'ready',
-  onSaveAsTemplate = null,
   discount, setDiscount,
   terms, setTerms,
   warranty, setWarranty,
@@ -97,8 +88,6 @@ export default function QuoteForm({
   duplicateItem,
   canUseProfessionalQuoteReuse,
   onOpenPricingModal,
-  // OD-20: server account summary for the capability notice (current plan line); never a plan source for gates
-  accountSummary,
   quoteFiles,
   setQuoteFiles,
   allUserAttachments,
@@ -107,28 +96,18 @@ export default function QuoteForm({
   onOpenAttachment,
   wizardResume = null,
   onWizardDraftChange,
-  // Task 16 (Quote Experience V2): presentation controller (style / images / preview / issue). Absent => no panel.
-  presentationController = null,
-  presentationSavedStatus = null,
-  onIssueQuote,
-  issueBusy = false,
-  onCatalogItemAdded,
 }) {
   // IRON-ILS-001: money is displayed ONLY through the canonical currency-keyed path (Dashboard injects it; the fallback derives from the account market, never from UI language).
   const fmtMoney = formatMoneyDisplay || ((v) => formatMoneyForCurrency(v, isLocalIsraeliBusiness ? 'ILS' : undefined));
-  // Task 34 extension: the per-item "Edit price" dialog (index of the item whose price is being edited, or null)
-  const [priceEditIndex, setPriceEditIndex] = useState(null);
   // SMART-QUOTE-02: an undecided structure is simply the regular list (never a blocking first decision).
   const structureMode = quoteStructureMode || 'regular';
   // SMART-QUOTE-01: unfinished = no real priced item yet -> only an explicitly labelled unfinished draft can be saved.
   const isUnfinished = isUnfinishedQuoteForm({ items, totalAmount });
-  // Task 16: a new quote, or a saved quote that stays a Draft, is saved as a draft (never sent or issued by saving)
-  const savesAsDraft = !editingQuoteId || String(quoteStatus || '').toLowerCase() === 'draft';
   // SMART-QUOTE-04: the same case-insensitive match the save uses (Dashboard.handleSaveQuote) - disclosed before saving.
   const matchedClient = (clients || []).find((c) => (c.company_name || '').toLowerCase() === String(clientName || '').toLowerCase()) || null;
   // OD-1 issuer path: a past validity date is shown with the fix (extend it) - the stored date is only changed by the user.
   const validityExpired = isQuoteAcceptanceExpired(validUntil, isLocalIsraeliBusiness ? 'Local' : 'International');
-  const hasOptionalDetails = Boolean(editingQuoteId || quoteSubject || projectName || (quoteFiles || []).length || clientAddress || notes || validUntil || attnName || attnRole || serviceSchedule?.date);
+  const hasOptionalDetails = Boolean(editingQuoteId || quoteSubject || projectName || (quoteFiles || []).length || clientAddress || notes || validUntil || attnName || attnRole);
   const [showMoreDetails, setShowMoreDetails] = useState(hasOptionalDetails);
   // opens (never auto-closes) as soon as any optional value appears (e.g. a restored draft), so entered data is never hidden
   useEffect(() => { if (hasOptionalDetails) setShowMoreDetails(true); }, [hasOptionalDetails]);
@@ -424,10 +403,6 @@ export default function QuoteForm({
   const orderedItemIndices = [...unitItemIndices.flatMap(g => g.indices), ...unassignedIndices];
   // the untouched default placeholder row is not an item yet - no empty "(unnamed) 1 x 0.00" card on a fresh quote
   const regularItemIndices = orderedItemIndices.filter((i) => !isUntouchedPlaceholderItem(items[i]));
-  // Task 21: the same rule in divided mode - the untouched placeholder is never an "Unassigned" item card ("(unnamed) 1 x 0.00", "2 items").
-  // The Unassigned card (and its add-item action) stays visible while there are no units yet, so adding a product never requires a unit first.
-  const visibleUnassignedIndices = unassignedIndices.filter((i) => !isUntouchedPlaceholderItem(items[i]));
-  const showUnassignedCard = visibleUnassignedIndices.length > 0 || unitItemIndices.length === 0;
 
   // חוק ברזל (Smart Quote Structure-First UX Correction task): נקודת-
   // רינדור משותפת יחידה לכרטיס-פריט קומפקטי - הרשימה השטוחה (Regular) וכל
@@ -441,23 +416,16 @@ export default function QuoteForm({
     const isMeasurable = isMeasurableUnit(item.pricing_unit);
     const activeQty = getActiveQuantity(item);
     const unitPriceLabel = getProfessionalUnitLabel(item.pricing_unit, isHebrew);
-    // Task 34 extension: an EMPTY price is a missing price ("enter a price"), never shown as a free line; an intentional 0 stays 0
-    const priceMissing = item.unit_price === '' || item.unit_price == null;
-    const priceText = priceMissing ? (isHebrew ? 'יש להזין מחיר' : 'Enter a price') : `${sym}${fmtMoney(item.unit_price)}`;
     const compactCalcSummary = isPro && isMeasurable
-      ? `${formatNum(activeQty)} ${unitPriceLabel} × ${priceText}`
-      : isPro && item.pricing_unit && item.pricing_unit !== 'unit'
-        ? `${formatNum(activeQty)} ${unitPriceLabel} × ${priceText}`
-        : `${formatNum(activeQty)} × ${priceText}`;
+      ? `${formatNum(activeQty)} ${unitPriceLabel} × ${sym}${fmtMoney(item.unit_price || 0)}`
+      : `${formatNum(activeQty)} × ${sym}${fmtMoney(item.unit_price || 0)}`;
     const compactHasSpec = Array.isArray(item.specification) && item.specification.length > 0;
     return (
       <CompactItemCard
         isHebrew={isHebrew}
         name={item.isFromCatalog || item.description ? item.description : (isHebrew ? '(ללא שם)' : '(unnamed)')}
         calcSummary={compactCalcSummary}
-        total={priceMissing ? (isHebrew ? 'יש להזין מחיר' : 'Enter a price') : `${sym}${fmtMoney(activeQty * Number(item.unit_price || 0))}`}
-        priceMissing={priceMissing}
-        onEditPrice={() => { setOpenActionsMenu(null); setPriceEditIndex(index); }}
+        total={`${sym}${fmtMoney(activeQty * Number(item.unit_price || 0))}`}
         hasSpec={compactHasSpec}
         sectionName={null}
         onExpand={() => openEditWizard(index)}
@@ -586,17 +554,6 @@ export default function QuoteForm({
           for visual weight with the section cards inside it. */}
       <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
 
-      {priceEditIndex != null && items[priceEditIndex] && (
-        <EditItemPriceDialog
-          item={items[priceEditIndex]}
-          isHebrew={isHebrew}
-          sym={sym}
-          fmtMoney={fmtMoney}
-          formatNum={formatNum}
-          onCancel={() => setPriceEditIndex(null)}
-          onSave={(price) => { handleItemChange(priceEditIndex, 'unit_price', price); setPriceEditIndex(null); }}
-        />
-      )}
       <AddItemWizard
         isOpen={isAddWizardOpen}
         onClose={() => { setIsAddWizardOpen(false); setWizardResumeState(null); }}
@@ -614,19 +571,52 @@ export default function QuoteForm({
         onLiveStateChange={setWizardLiveState}
         resumeState={wizardResumeState}
         onDraftSnapshot={(st) => { if (onWizardDraftChange) onWizardDraftChange(st ? { open: true, editingItemIndex, wizardSectionKey, state: st } : null); }}
-        onCatalogItemAdded={onCatalogItemAdded}
       />
 
-      {/* OD-17: the one capability notice (no Basic/Pro wording, no purchase, no mutation; close is a no-op) */}
-      <CapabilityUpgradeNotice
-        lang={isHebrew ? 'he' : 'en'}
-        capabilityId={UPGRADE_CAPABILITY[showUpgradeConfirm] || null}
-        summary={accountSummary}
-        details={<div style={{ display: 'flex', justifyContent: 'center', margin: '4px 0 8px' }}><AiHelpButton isHebrew={isHebrew} long testId="ai-help-upgrade" /></div>}
-        onUpgrade={() => { setShowUpgradeConfirm(null); if (onOpenPricingModal) onOpenPricingModal(); }}
-        onClose={() => setShowUpgradeConfirm(null)}
-        idPrefix="qf-upgrade"
-      />
+      {/* מודל שדרוג PRO מעוצב */}
+      {showUpgradeConfirm && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }} dir={isHebrew ? 'rtl' : 'ltr'}>
+          <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '14px', maxWidth: '400px', width: '90%', textAlign: 'center', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)' }}>
+            <h3 style={{ margin: '0 0 12px 0', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', ...neonGlowTextStyle }}>
+              <Rocket size={18} color={NEON.violetLight} />
+              {showUpgradeConfirm === 'professional'
+                ? (isHebrew ? 'זמין במסלולים בתשלום' : 'Available with a paid plan')
+                : (isHebrew ? 'שדרוג למסלול PRO' : 'Upgrade to PRO Plan')}
+            </h3>
+            <p style={{ color: NEON.textSecondary, fontSize: '0.9rem', marginBottom: '20px', lineHeight: '1.5' }}>
+              {showUpgradeConfirm === 'professional'
+                ? (isHebrew
+                    ? 'הוספת מידות ופרטים מקצועיים להצעה זמינה במסלולי BASIC ומעלה - כך תוכלו למדוד, לחשב ולהציג הצעות מקצועיות ומדויקות יותר. לשדרג עכשיו?'
+                    : 'Adding measurements and professional details to a quote is available on BASIC and above - measure, calculate, and present more accurate professional quotes. Upgrade now?')
+                : (isHebrew
+                    ? 'אופציה זו הינה למשתמשי מסלול PRO בלבד. האם תרצה לשדרג את חשבונך כעת?'
+                    : 'This option is for PRO plan users only. Would you like to upgrade your account now?')}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}><AiHelpButton isHebrew={isHebrew} long testId="ai-help-upgrade" /></div>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
+              {/* PRODUCT_TRUTH_DECORATIVE: confirms the PRO/BASIC upgrade dialog and opens the pricing modal; an upsell CTA inside an existing modal */}
+              <button
+                type="button"
+                onClick={() => {
+                  setShowUpgradeConfirm(null);
+                  if (onOpenPricingModal) onOpenPricingModal();
+                }}
+                style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '8px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', boxShadow: NEON.glow }}
+              >
+                {isHebrew ? 'כן, שדרג עכשיו' : 'Yes, Upgrade Now'}
+              </button>
+              {/* PRODUCT_TRUTH_DECORATIVE: dismisses the upgrade-confirmation modal without any action */}
+              <button
+                type="button"
+                onClick={() => setShowUpgradeConfirm(null)}
+                style={{ background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '8px 20px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                {isHebrew ? 'לא תודה' : 'No Thanks'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* מודל שגיאות עיצובי נקי במקום alert */}
       {errorMessage && (
@@ -701,7 +691,7 @@ export default function QuoteForm({
             את אותו תיקון. */}
         <div style={{ marginBottom: '14px' }}>
         <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px' }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
+        <div style={{ fontSize: '0.68rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
           {isHebrew ? 'פרטי לקוח' : 'Client Details'}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', marginBottom: '12px' }}>
@@ -917,21 +907,21 @@ export default function QuoteForm({
             {/* חוק ברזל (Locked Decision 8 - Regular->Divided): פריטים
                 קיימים בלי יחידה (או ששיוכם הוסר, ר' requestRemoveSection)
                 נופלים תמיד ל"לא משויך" הגלוי - לעולם לא נעלמים, לעולם לא
-                מקבלים שם-יחידה מומצא. הכרטיס הזה מוצג כשיש בו תוכן, או כשעדיין אין יחידות (Task 21: נתיב ההוספה בלי יחידה). */}
-            {showUnassignedCard && (
+                מקבלים שם-יחידה מומצא. הכרטיס הזה מוצג רק כשיש בו תוכן. */}
+            {unassignedIndices.length > 0 && (
               <UnitCard
                 isHebrew={isHebrew}
                 sym={sym}
                 formatMoneyDisplay={fmtMoney}
                 section={{ key: '__unassigned__', name: isHebrew ? 'לא משויך' : 'Unassigned' }}
-                itemCount={visibleUnassignedIndices.length}
-                subtotal={computeUnitSubtotal(visibleUnassignedIndices)}
+                itemCount={unassignedIndices.length}
+                subtotal={computeUnitSubtotal(unassignedIndices)}
                 collapsed={collapsedUnitKeys.has('__unassigned__')}
                 onToggleCollapse={() => toggleUnitCollapsed('__unassigned__')}
                 isUnassigned
                 onAddItem={() => openAddWizard(null)}
               >
-                {visibleUnassignedIndices.map((index) => (
+                {unassignedIndices.map((index) => (
                   <div key={index}>{renderItemCard(index)}</div>
                 ))}
               </UnitCard>
@@ -1069,7 +1059,7 @@ export default function QuoteForm({
         >
           <span>
             {isHebrew ? 'פרטים נוספים (לא חובה)' : 'More details (optional)'}
-            <span style={{ display: 'block', fontWeight: 500, fontSize: '0.75rem', color: NEON.textSecondary, marginTop: '2px' }}>
+            <span style={{ display: 'block', fontWeight: 500, fontSize: '0.74rem', color: NEON.textSecondary, marginTop: '2px' }}>
               {isHebrew ? 'נושא, שם פרויקט, תוקף, קבצים, כתובת, תנאים והערות' : 'Subject, project name, validity, files, address, terms and notes'}
             </span>
           </span>
@@ -1078,7 +1068,7 @@ export default function QuoteForm({
         {showMoreDetails && (
           <div data-testid="sq-more-details">
         <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
+        <div style={{ fontSize: '0.68rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
           {isHebrew ? 'פרטי הצעה' : 'Quote Details'}
         </div>
         <div style={{ marginBottom: '12px' }}>
@@ -1159,16 +1149,12 @@ export default function QuoteForm({
               </button>
             </div>
             {validityExpired && (
-              <div data-testid="sq-validity-expired" role="status" style={{ marginTop: '4px', fontSize: '0.75rem', fontWeight: 600, color: '#9a3412' }}>
+              <div data-testid="sq-validity-expired" role="status" style={{ marginTop: '4px', fontSize: '0.74rem', fontWeight: 600, color: '#9a3412' }}>
                 {isHebrew ? 'תאריך התוקף עבר - הלקוח לא יוכל לחתום עד שתאריכו את התוקף.' : 'The validity date has passed - the customer cannot sign until you extend it.'}
               </div>
             )}
           </div>
         </div>
-        {/* Task 27 (spec §6): the optional work date / time - separate from the validity above; internal calendar only */}
-        {typeof setServiceSchedule === 'function' && (
-          <ServiceScheduleFields value={serviceSchedule} onChange={setServiceSchedule} state={serviceScheduleState} isHebrew={isHebrew} isUS={isUS} />
-        )}
         </div>
         {/* Cross-Surface Visual Consolidation / Create Quote §11: matches
             the established section-card pattern used by the Client/Quote
@@ -1181,7 +1167,7 @@ export default function QuoteForm({
         <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
           <label style={{ fontSize: '0.8rem', fontWeight: '700', color: NEON.textSecondary, display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '4px' }}>
             <Paperclip size={13} color={NEON.violetLight} />
-            {isHebrew ? 'קבצים מצורפים / שרטוטים' : 'Attachments'}
+            {isHebrew ? 'קבצים מצורפים / שרטוטים (PRO בלבד)' : 'Attachments (PRO only)'}
           </label>
 
           {canUseAttachments && (
@@ -1193,7 +1179,7 @@ export default function QuoteForm({
           <button
             type="button"
             onClick={handleAttachmentClick}
-            style={{ background: NEON.violetLighter, color: NEON.violetLight, border: `1px solid ${NEON.borderStrong}`, padding: '6px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', marginBottom: (quoteFiles || []).length > 0 ? '8px' : '0', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+            style={{ background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, border: '1px solid rgba(167, 139, 250, 0.4)', padding: '6px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', marginBottom: (quoteFiles || []).length > 0 ? '8px' : '0', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
             <Paperclip size={13} strokeWidth={2.5} />
             {isHebrew ? 'צרף קובץ (עד 3MB)' : 'Attach File (Max 3MB)'}
@@ -1270,14 +1256,14 @@ export default function QuoteForm({
             </div>
             {/* PRODUCT_TRUTH_DECORATIVE: 'Customize for this quote' button that expands the Terms & Warranty card for editing; a disclosure toggle */}
             {!termsWarrantyExpanded && (
-              <button type="button" onClick={() => setTermsWarrantyExpanded(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: NEON.violetLighter, border: `1px solid ${NEON.border}`, color: NEON.violetLight, borderRadius: '999px', padding: '5px 10px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
+              <button type="button" onClick={() => setTermsWarrantyExpanded(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'rgba(139,92,246,0.10)', border: '1px solid rgba(139,92,246,0.25)', color: NEON.violetLight, borderRadius: '999px', padding: '5px 10px', fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', flexShrink: 0, whiteSpace: 'nowrap' }}>
                 <Pencil size={11} strokeWidth={2.5} />
                 {isHebrew ? 'התאמה להצעה זו' : 'Customize for this quote'}
               </button>
             )}
           </div>
           {!termsWarrantyExpanded && (
-            <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, marginTop: '6px' }}>
+            <div style={{ fontSize: '0.74rem', color: NEON.textSecondary, marginTop: '6px' }}>
               {isTermsWarrantyCustomized
                 ? (isHebrew ? 'התנאים והאחריות הותאמו אישית עבור הצעה זו.' : 'Terms and warranty were customized for this quote.')
                 : (isHebrew ? 'התנאים והאחריות נטענו אוטומטית מהגדרות העסק.' : 'Default terms and warranty were loaded from Business Settings.')}
@@ -1324,19 +1310,6 @@ export default function QuoteForm({
           </div>
         )}
 
-        {presentationController && (
-          <QuotePresentationPanel
-            ctl={presentationController}
-            items={items}
-            editingQuoteId={editingQuoteId}
-            savedStatus={presentationSavedStatus}
-            isUnfinished={isUnfinished}
-            savesAsDraft={savesAsDraft}
-            onIssue={onIssueQuote}
-            issueBusy={issueBusy}
-          />
-        )}
-
         {/* SMART-QUOTE-03: a NEW quote is always a Draft (no status choice at creation). Sent / Approved / Paid are later lifecycle
             actions, available when editing a saved quote. An unfinished quote (SMART-QUOTE-01) can only stay a Draft. */}
         {!editingQuoteId ? (
@@ -1380,16 +1353,6 @@ export default function QuoteForm({
             ? (isHebrew ? 'שמירה כטיוטה לא גמורה' : 'Save as unfinished draft')
             : (editingQuoteId ? t.updateQuote : t.generateSave)}
         </button>
-        {typeof onSaveAsTemplate === 'function' && (
-          // PRODUCT_TRUTH_CAPABILITY: quote_create
-          <button type="button" data-testid="sq-save-template" onClick={onSaveAsTemplate}
-            style={{ width: '100%', minHeight: '44px', marginTop: '8px', background: NEON.bgCard, color: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, borderRadius: '12px', fontWeight: '700', fontSize: '0.88rem', cursor: 'pointer' }}>
-            {isHebrew ? 'שמירה כתבנית (בלי פרטי לקוח)' : 'Save as template (no customer details)'}
-          </button>
-        )}
-        {/* Task 16 retro ledger C03/C03b (2026-10-05): the submit label is the base t.generateSave / t.updateQuote again and the
-            extra hint line is gone (no approval source for either change). The Save Draft vs Issue capability itself is unchanged:
-            saving still never issues the quote; issuing stays the explicit panel action. */}
       </form>
     </div>
   );
@@ -1406,7 +1369,7 @@ export default function QuoteForm({
 function CompactItemCard({
   isHebrew, name, calcSummary, total, hasSpec, sectionName,
   onExpand, menuOpen, onToggleMenu, onEdit, onDuplicate, canDuplicate, duplicateLocked,
-  sections, currentSectionKey, onMoveSection, onDelete, canDelete, onEditPrice = null, priceMissing = false,
+  sections, currentSectionKey, onMoveSection, onDelete, canDelete,
 }) {
   const [movingSectionOpen, setMovingSectionOpen] = useState(false);
   const triggerRef = useRef(null);
@@ -1477,18 +1440,12 @@ function CompactItemCard({
         <div style={{ flex: 1, minWidth: 0 }}>
           <div style={{ fontWeight: '700', color: NEON.textPrimary, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '2px' }}>
-            <span style={{ fontSize: '0.75rem', color: priceMissing ? (NEON.amber || NEON.textSecondary) : NEON.textSecondary, fontWeight: priceMissing ? 600 : 400 }}>{calcSummary}</span>
-            {/* PRODUCT_TRUTH_DECORATIVE: Task 34 - opens the per-item Edit price dialog (only the unit price changes; quantity / unit / source kept) */}
-            {onEditPrice && (
-              <button type="button" data-testid="item-edit-price" onClick={onEditPrice} style={{ background: 'none', border: 'none', padding: '6px 2px', minHeight: '32px', cursor: 'pointer', color: NEON.violetLight, fontSize: '0.75rem', fontWeight: 700, textDecoration: 'underline' }}>
-                {isHebrew ? 'ערוך מחיר' : 'Edit price'}
-              </button>
-            )}
+            <span style={{ fontSize: '0.75rem', color: NEON.textSecondary }}>{calcSummary}</span>
             {hasSpec && <CardBadge icon={<Paperclip size={10} />} label={isHebrew ? 'פרטים' : 'Details'} />}
             {sectionName && <CardBadge icon={<FolderInput size={10} />} label={sectionName} />}
           </div>
         </div>
-        <div className={priceMissing ? undefined : 'pf-money'} data-testid="item-line-total" style={{ fontWeight: '800', color: priceMissing ? (NEON.amber || NEON.textSecondary) : NEON.violet, fontSize: priceMissing ? '0.76rem' : '0.88rem', whiteSpace: 'nowrap', flexShrink: 0 }}>{total}</div>
+        <div className="pf-money" style={{ fontWeight: '800', color: NEON.violet, fontSize: '0.88rem', whiteSpace: 'nowrap', flexShrink: 0 }}>{total}</div>
         {/* חוק ברזל (Smart Quote Final UX Simplification task, Part L -
             "replace ambiguous chevrons with explicit visible edit
             affordance"): טקסט "עריכה"/"Edit" גלוי, לא רק חץ-כיוון ללא
@@ -1520,8 +1477,6 @@ function CompactItemCard({
             >
               {/* PRODUCT_TRUTH_DECORATIVE: 'Edit' entry in the item actions menu; same destination as the Edit button above */}
               <MenuItem icon={<Pencil size={13} />} label={isHebrew ? 'ערוך' : 'Edit'} onClick={onEdit} />
-              {/* PRODUCT_TRUTH_DECORATIVE: Task 34 - the same Edit price dialog from the item actions menu */}
-              {onEditPrice && <MenuItem icon={<Pencil size={13} />} label={isHebrew ? 'ערוך מחיר' : 'Edit price'} onClick={onEditPrice} />}
               {canDuplicate && (
                 <MenuItem
                   icon={duplicateLocked ? <Lock size={13} /> : <CopyPlus size={13} />}
@@ -1642,7 +1597,7 @@ function UnitCard({
 
 function CardBadge({ icon, label }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: NEON.violetLighter, color: NEON.violetLight, borderRadius: '999px', padding: '2px 7px', fontSize: '0.75rem', fontWeight: '600' }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: 'rgba(139,92,246,0.10)', color: NEON.violetLight, borderRadius: '999px', padding: '2px 7px', fontSize: '0.68rem', fontWeight: '600' }}>
       {icon}{label}
     </span>
   );

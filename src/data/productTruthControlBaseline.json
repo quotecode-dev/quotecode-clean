@@ -4,10 +4,10 @@
   ],
   "admin_console": [
     "1404f99ff2d52925",
-    "4858f23ea13ffcfd",
     "4a3c47dd193992ed",
     "4df1a1e50ef2d2fd",
     "5763f2668d9e42ae",
+    "63e51bc9ff7c4979",
     "af27b2497c7ed9da",
     "b114e7d7efd3d2df",
     "c2dc3a38886b9c2e",
@@ -15,40 +15,21 @@
     "de793e038c92f3eb"
   ],
   "ai_chat": [
-    "24246b5515e9c795",
+    "356f2143b72dd892",
     "3fb7d227b8a164ad"
   ],
   "attachments": [
     "1829d60f6cdd3224"
   ],
   "business_settings": [
-    "02f057d46e7c6a32",
-    "1c57152adde2301f",
-    "3d076a24e1942c94",
-    "812ade20efcaee9f",
-    "84d3846776cd6154",
-    "977a4cdb7e8ff353"
-  ],
-  "calendar": [
-    "778f5cdf5ea1eb53",
-    "7ca20a729dcd516a",
-    "83b28b3aa3c7e739",
-    "99d6ceaf168fff81",
-    "a6c0edd605a9deb0",
-    "cafcae698f4021cc",
-    "cfbcf493a08e526e",
-    "d90dad7b2276e448",
-    "e0c0d4acc89aba6d",
-    "f103596ddeb83475"
+    "02f057d46e7c6a32"
   ],
   "catalog": [
-    "1e91220dbf8d4eba",
-    "212d8b1d81617c22",
+    "1b083bda54fda193",
     "34478f56810d1d85",
     "5c0c04e24c2f7302",
-    "6ef9012c385e0752",
-    "bf570707f1f3e19e",
-    "c587ff631b475039"
+    "998f37299be6c280",
+    "cf74d339adf8866a"
   ],
   "clients": [
     "40906c782d5c3d78",
@@ -59,16 +40,6 @@
   ],
   "dashboard_overview": [
     "f37a63f45c066dcb"
-  ],
-  "digital_business_card": [
-    "3e568709a1169c9e",
-    "3e8ed8a68049fa23",
-    "9445dcb9f62a5655",
-    "977a4cdb7e8ff353",
-    "a820dc4ded2b3a2b",
-    "dbd1e4f4f9ff0cc5",
-    "df472c87f6e6dbf3",
-    "ef885f684ed88ee3"
   ],
   "draft_recovery": [
     "1718c8d4d6616636",
@@ -89,28 +60,15 @@
     "73ab8ed4df070c9c",
     "86fccf9f7208e885"
   ],
-  "manual_tasks": [
-    "26270de48f0c47e1",
-    "29d2b25fc11073ed",
-    "2d89772537f8d23b",
-    "368d4194cdcd989b",
-    "5b1f3dd35104d820",
-    "5f2a60100c251b91",
-    "6057ebc1aee78f11",
-    "9e5baa5a613ff130",
-    "b47d3ff7bd0a3676",
-    "ead68b8dad369132"
-  ],
   "owner_whatsapp_share": [
-    "3fb02256d68527d4",
-    "7a4f909a55c77043",
-    "c866db11f47bb73c"
+    "3fb02256d68527d4"
   ],
   "plan_trial": [
-    "2e440126c899d0ca"
+    "77bad85a9e451186",
+    "fe357dd48bc4f14a"
   ],
   "public_call": [
-    "4cd62a63965f8928",
+    "5bfd0f74f6a8de34",
     "95300cea77b4e767",
     "c2b0b21d0dcf0abd"
   ],
@@ -120,28 +78,18 @@
   ],
   "public_quote_view": [
     "107e4acebb1f861f",
-    "519709fef11788ca",
-    "64c657fcff3c13b6",
     "8cf760bdd9367799",
-    "adcc0a59b052304c",
-    "ed6e0f2e6583e158"
+    "e8da4eced6fd75f0",
+    "ed6e0f2e6583e158",
+    "f039e416423375da",
+    "fe1bf6db31094125"
   ],
   "quote_create": [
-    "01521b4175abc1f5",
-    "0511a9cea096c4e2",
-    "0fc1d3fd7ada65d9",
-    "1534665d914efebf",
-    "1c57152adde2301f",
-    "60a09dce9a82b808",
-    "66c667ad42ff951b",
-    "678f6d353df11a07",
-    "882485c43a39d978",
-    "afc020688c366b95",
-    "de512638811b0030",
-    "f39ae3231df3327e"
+    "1b2a45e3c4e1035c",
+    "898155bdcace2ba8"
   ],
   "quote_csv": [
-    "2b356497dae34d7c"
+    "f2a82761c15ce1e8"
   ],
   "quote_duplicate": [
     "3fb02256d68527d4"
@@ -151,16 +99,7 @@
   ],
   "quote_email": [
     "40fd643804d59c9f",
-    "453439ef73788f4b",
     "b3b659c96f3d776e"
-  ],
-  "quote_history": [
-    "1ea4ab4f88c2c05f",
-    "5bc59f68b6505cb3",
-    "69b2c102780177ab",
-    "8441d5c07f97d176",
-    "af5a6d854a8e9d9f",
-    "cbf2bb317d6a2023"
   ],
   "quote_pdf": [
     "98c44c3f62e1b38c",
@@ -170,29 +109,7 @@
     "3bb639b98e07310c",
     "8fbb39651249b397"
   ],
-  "quote_statistics": [
-    "5681060f9822683a",
-    "7aafc1b3719f944b"
-  ],
-  "quote_status": [
-    "7dc849f6f298f91d",
-    "f65ccb9b99b8503d"
-  ],
-  "reminders_automation": [
-    "09da391f2004a465",
-    "21d37ed4e8dcda6f",
-    "5f5ae27e9ed2e104",
-    "6888a2be8edb5280",
-    "7474b5a6aa6b0121",
-    "977a4cdb7e8ff353",
-    "978627e8ecd7c191",
-    "c429c2194f3cc01f",
-    "ce68447e27979037",
-    "f983c39c13c8ac2a"
-  ],
   "smart_quote": [
-    "7466bcefcfd1e684",
-    "c1a6124e2bc543ca",
-    "fd3af13ce3b5837d"
+    "7466bcefcfd1e684"
   ]
 }

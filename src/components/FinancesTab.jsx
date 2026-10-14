@@ -6,7 +6,7 @@ import { useState } from 'react';
 import { MoneyValue, NumericValue, CurrencyTotals } from './NumericValue';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { BarChart3, ReceiptText, Download, Pencil, Trash2, Repeat, FileText, Wallet, TrendingDown, TrendingUp, BarChart2 } from 'lucide-react';
-import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, RADIUS, SHADOW } from '../theme/neonTheme';
+import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
 import { formatShortDate } from '../utils/shortDate';
 import { QUOTE_CURRENCY_SYMBOLS } from '../utils/money';
 
@@ -67,10 +67,10 @@ export default function FinancesTab({
   // IRON-MARKET-004: income is one series per persisted quote currency (Income_ILS, Income_USD, ...) - never one mixed series.
   const hasChartData = Array.isArray(chartData) && chartData.some((d) => Number(d.Expenses || 0) > 0
     || Object.keys(d).some((k) => k.startsWith('Income_') && Number(d[k] || 0) > 0));
-  const INCOME_FILLS = [NEON.emerald, NEON.sky, NEON.violetLight, NEON.amber];
+  const INCOME_FILLS = ['#22c55e', '#0ea5e9', '#8b5cf6', '#f59e0b'];
   const revenueMulti = (adminRevenueTotals?.groups?.length || 0) > 1 || (adminRevenueTotals?.unknownCount || 0) > 0;
   const netProfitComputable = adminNetProfit !== null && adminNetProfit !== undefined;
-  const netProfitTone = !netProfitComputable ? NEON.textMuted : (adminNetProfit >= 0 ? NEON.emerald : NEON.red);
+  const netProfitTone = !netProfitComputable ? NEON.textMuted : (adminNetProfit >= 0 ? '#22c55e' : NEON.red);
 
   // חוק ברזל (Task F item 5): מגדיר מפורשות שכרטיסי-ה-KPI (adminTotalRevenue
   // וכו', הבנויים מ-filteredQuotesForReport/filteredExpensesForReport)
@@ -93,7 +93,7 @@ export default function FinancesTab({
           נפרדת). */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px', flexWrap: 'wrap', gap: '10px' }}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
-          <BarChart3 size={18} color={NEON.textSecondary} strokeWidth={2} />
+          <BarChart3 size={18} color={NEON.violetLight} strokeWidth={2.2} />
           {isHebrew ? 'פיננסים' : 'Finances'}
         </h2>
 
@@ -101,7 +101,7 @@ export default function FinancesTab({
           <select
             value={financeReportType}
             onChange={(e) => setFinanceReportType(e.target.value)}
-            style={{ padding: '6px 10px', borderRadius: RADIUS.sm, border: `1px solid ${NEON.borderStrong}`, background: NEON.bgInput, fontSize: '0.78rem', fontWeight: '700', color: NEON.textPrimary }}
+            style={{ padding: '6px 10px', borderRadius: RADIUS.sm, border: `1px solid ${NEON.borderStrong}`, background: NEON.bgInput, fontSize: '0.78rem', fontWeight: '700', color: NEON.violetLight }}
           >
             <option value="monthly">{isHebrew ? 'חודשי' : 'Monthly'}</option>
             <option value="quarterly">{isHebrew ? 'רבעוני' : 'Quarterly'}</option>
@@ -118,11 +118,11 @@ export default function FinancesTab({
       {financeReportType === 'custom' && (
         <div className="pf-m-surface" style={{ background: NEON.bgCard, padding: '10px', borderRadius: '10px', marginBottom: '16px', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap', border: `1px solid ${NEON.border}` }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'מתאריך:' : 'Start Date:'}</label>
+            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'מתאריך:' : 'Start Date:'}</label>
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={{ padding: '5px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem' }} />
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'עד תאריך:' : 'End Date:'}</label>
+            <label style={{ display: 'block', fontSize: '0.7rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'עד תאריך:' : 'End Date:'}</label>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={{ padding: '5px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem' }} />
           </div>
         </div>
@@ -133,21 +133,21 @@ export default function FinancesTab({
           צבע סמנטי בלבד (סגול=נייטרלי/מותג, ירוק=חיובי, אדום=שלילי). */}
       <div className="pf-m-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '20px' }}>
         <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.violet}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.violet}` }}>
-          <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><FileText size={12} color={NEON.violetLight} />{t.totalQuotes}</div>
+          <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><FileText size={12} color={NEON.violetLight} />{t.totalQuotes}</div>
           <div style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.textPrimary }}>{adminTotalQuotesCount}</div>
         </div>
-        <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.emerald}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.emerald}` }}>
-          <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><Wallet size={12} color={NEON.emerald} />{t.totalRevenue}</div>
-          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.emerald }}>
+        <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? '3px solid #22c55e' : 'none', borderLeft: isHebrew ? 'none' : '3px solid #22c55e' }}>
+          <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><Wallet size={12} color="#22c55e" />{t.totalRevenue}</div>
+          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: '#22c55e' }}>
             <CurrencyTotals className={revenueMulti ? 'pf-kpi-currencies' : ''} totals={adminRevenueTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={accountCurrency} isHebrew={isHebrew} />
           </div>
         </div>
         <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.red}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.red}` }}>
-          <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingDown size={12} color={NEON.red} />{t.totalExpenses}</div>
+          <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingDown size={12} color={NEON.red} />{t.totalExpenses}</div>
           <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.red }}>{sym}{formatMoneyDisplay(adminTotalExpenses)}</div>
         </div>
         <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${netProfitTone}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${netProfitTone}` }}>
-          <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingUp size={12} color={netProfitTone} />{t.netProfit}</div>
+          <div style={{ fontSize: '0.7rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingUp size={12} color={netProfitTone} />{t.netProfit}</div>
           {netProfitComputable ? (
             <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: netProfitTone }}>{sym}{formatMoneyDisplay(adminNetProfit)}</div>
           ) : (
@@ -161,7 +161,7 @@ export default function FinancesTab({
 
       {/* חוק ברזל (Task F item 5): כיתוב זעיר ולא-פולשני מתחת לכרטיסי ה-KPI
           שמבהיר את התקופה שהם משקפים - ללא שינוי בשום חישוב. */}
-      <p style={{ margin: '-12px 0 16px', fontSize: '0.75rem', color: NEON.textMuted, textAlign: isHebrew ? 'right' : 'left' }}>
+      <p style={{ margin: '-12px 0 16px', fontSize: '0.7rem', color: NEON.textMuted, textAlign: isHebrew ? 'right' : 'left' }}>
         {isHebrew ? `נתונים לתקופה: ${currentPeriodLabel}` : `Figures for: ${currentPeriodLabel}`}
       </p>
 
@@ -172,9 +172,9 @@ export default function FinancesTab({
          {hasChartData ? (
            <ResponsiveContainer width="100%" height="100%">
              <BarChart data={chartData} margin={{ top: 5, right: 15, left: 0, bottom: 20 }}>
-               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={NEON.divider} />
-               <XAxis dataKey="name" stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 12 }} />
-               <YAxis width={78} stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 12 }} />
+               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.08)" />
+               <XAxis dataKey="name" stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 11 }} />
+               <YAxis stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 11 }} />
                <Tooltip
                  formatter={(value, _name, item) => {
                    const cur = String(item?.dataKey || '').startsWith('Income_') ? String(item.dataKey).slice(7) : null;
@@ -232,7 +232,7 @@ export default function FinancesTab({
           {showAddExpenseForm && (
             <form onSubmit={handleAddExpenseSubmit} style={{ display: 'flex', gap: '8px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'flex-end', background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.sm, padding: '12px' }}>
               <div style={{ flex: '2 1 160px' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{isHebrew ? 'תיאור' : 'Description'}</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{isHebrew ? 'תיאור' : 'Description'}</label>
                 <input
                   type="text"
                   placeholder={isHebrew ? 'לדוגמה: אירוח שרת' : 'e.g. Server hosting'}
@@ -244,7 +244,7 @@ export default function FinancesTab({
                 />
               </div>
               <div style={{ flex: '1 1 110px' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{isHebrew ? 'קטגוריה' : 'Category'}</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{isHebrew ? 'קטגוריה' : 'Category'}</label>
                 <select
                   value={expenseCategory}
                   onChange={(e) => setExpenseCategory(e.target.value)}
@@ -257,7 +257,7 @@ export default function FinancesTab({
                 </select>
               </div>
               <div style={{ flex: '1 1 90px' }}>
-                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{isHebrew ? 'סכום' : 'Amount'}</label>
+                <label style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{isHebrew ? 'סכום' : 'Amount'}</label>
                 <input
                   type="number"
                   step="0.01"
@@ -300,7 +300,7 @@ export default function FinancesTab({
             <div style={{ overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '380px' }}>
                 <thead>
-                  <tr style={{ borderBottom: `2px solid ${NEON.border}`, color: NEON.textSecondary, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  <tr style={{ borderBottom: `2px solid ${NEON.border}`, color: NEON.textSecondary, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     <th style={{ padding: '6px' }}>{t.description}</th>
                     <th style={{ padding: '6px' }}>{isHebrew ? 'קטגוריה' : 'Category'}</th>
                     <th style={{ padding: '6px' }}>{isHebrew ? 'סוג' : 'Type'}</th>
@@ -311,7 +311,7 @@ export default function FinancesTab({
                 </thead>
                 <tbody>
                   {filteredExpensesForReport.map((exp) => (
-                    <tr key={exp.id} style={{ borderBottom: `1px solid ${NEON.divider}`, fontSize: '0.8rem' }}>
+                    <tr key={exp.id} style={{ borderBottom: `1px solid ${NEON.border}`, fontSize: '0.8rem' }}>
                       <td style={{ padding: '8px 6px', fontWeight: '400', color: NEON.textPrimary }}>{exp.description}</td>
                       <td style={{ padding: '8px 6px', color: NEON.textSecondary }}>{exp.category}</td>
                       <td style={{ padding: '8px 6px', color: NEON.textSecondary }}>
@@ -326,9 +326,9 @@ export default function FinancesTab({
                         {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
                         <button
                           onClick={() => setEditingExpense(exp)}
-                          style={{ background: NEON.violetLighter, color: NEON.violet, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                          style={{ background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                         >
-                          <Pencil size={12} color={NEON.violet} strokeWidth={2.5} />
+                          <Pencil size={12} color={NEON.violetLight} strokeWidth={2.5} />
                           {isHebrew ? 'ערוך' : 'Edit'}
                         </button>
                         {/* חוק ברזל (§K, real defect found+fixed): {t.delete}
@@ -337,7 +337,7 @@ export default function FinancesTab({
                         {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
                         <button
                           onClick={() => handleDeleteExpense(exp.id, exp.description)}
-                          style={{ background: APP_STATUS.error.bg, color: NEON.red, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '400', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
+                          style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '400', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                         >
                           <Trash2 size={12} color={NEON.red} strokeWidth={2.5} />
                           {isHebrew ? 'מחק' : 'Delete'}

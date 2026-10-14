@@ -1,38 +1,53 @@
 import { useEffect, useState } from 'react';
-import { UserPlus, ArrowRight, ArrowLeft, ListChecks, History } from 'lucide-react';
+import { UserPlus, AlertTriangle, ArrowRight, ArrowLeft, ListChecks, History } from 'lucide-react';
 import { supabase } from '../shared/supabase';
 import AdminScreenFrame from './AdminScreenFrame';
+import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import './adminUsers.css';
-import { AdminMarketIcon } from './AdminIdentityIcons';
-import { getAdminKpiSummary, getLegacyRecordBreakdown, LEGACY_HISTORY_LABEL } from '../utils/adminAnalytics';
-import { AdminPlanSystemNotice } from './AdminSubscriptionState';
-import { adminTargetUserId, useAdminAccountSummaries } from '../domain/subscriptions/adminAccountSummary';
+import { AdminPackageIcon, AdminMarketIcon } from './AdminIdentityIcons';
 import { formatShortDateTime } from '../utils/shortDate';
 
-// TEKANGO Admin V1 (Task 2): Admin Overview - recently registered, admin
-// activity and the legacy-record (history) breakdown, derived only from real
-// business_settings rows already loaded elsewhere in Admin. No fabricated
-// metric, no "active now"/online inference. OD-16/OD-20: no Basic/Pro/trial/
-// LIFETIME KPI or card - the new plan system's state comes only from the
-// admin summary RPC (AdminPlanSystemNotice); legacy values are history only.
+// TEKANGO Admin V1 (Task 2): Admin Overview - recently registered / trials
+// ending soon / needs attention, derived only from real business_settings
+// rows already loaded elsewhere in Admin. No fabricated metric, no "active
+// now"/online inference.
 const dateLabel = (value, isHebrew) => value && Number.isFinite(new Date(value).getTime())
   ? formatShortDateTime(value, (isHebrew ? 'Local' : 'International')) : '—';
 
 export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToPlans, onOpenUser }) {
   const users = accounts.filter(a => a && a.role !== 'super_admin' && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');
+  const rows = users.map(account => ({ account, entitlement: resolveAccountEntitlement({ plan: account.plan, trialEndsAt: account.trial_ends_at, role: account.role, isLifetime: account.is_lifetime }) }));
+
   const recentlyRegistered = [...users]
     .filter(a => a.created_at)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 8);
 
-  const kpi = getAdminKpiSummary(users);
-  const legacyBreakdown = getLegacyRecordBreakdown(users);
-  const legacyTitle = isHebrew ? LEGACY_HISTORY_LABEL.he : LEGACY_HISTORY_LABEL.en;
-  const { system } = useAdminAccountSummaries(users.length ? [adminTargetUserId(users[0])] : []);
-  // Every figure below is counted from the same loaded account rows - nothing estimated or invented.
+  const trialsEndingSoon = rows
+    .filter(({ entitlement }) => entitlement.trialStatus === 'expiringSoon')
+    .sort((a, b) => new Date(a.account.trial_ends_at) - new Date(b.account.trial_ends_at))
+    .slice(0, 8);
+
+  const needsAttention = rows
+    .filter(({ entitlement }) => entitlement.trialStatus === 'expired' && entitlement.displayIdentity === 'FREE')
+    .sort((a, b) => new Date(b.account.trial_ends_at || 0) - new Date(a.account.trial_ends_at || 0))
+    .slice(0, 8);
+
+  const trialSummary = account => {
+    const entitlement = resolveAccountEntitlement({ plan: account.plan, trialEndsAt: account.trial_ends_at, role: account.role, isLifetime: account.is_lifetime });
+    if (entitlement.isLifetime) return isHebrew ? 'ללא תפוגה' : 'No expiry';
+    if (entitlement.trialStatus === 'expired') return (isHebrew ? 'ניסיון פג: ' : 'Trial expired: ') + dateLabel(account.trial_ends_at, isHebrew);
+    if (['active','expiringSoon'].includes(entitlement.trialStatus)) return (isHebrew ? 'סיום ניסיון: ' : 'Trial ends: ') + dateLabel(account.trial_ends_at, isHebrew);
+    return isHebrew ? 'אין ניסיון פעיל' : 'No active trial';
+  };
+  // Every figure below is counted from the same loaded account rows and the
+  // one canonical entitlement resolver - nothing estimated or invented.
   const stats = [
-    [isHebrew ? 'סה"כ משתמשים' : 'Total users', kpi.managedBusinesses],
-    [isHebrew ? 'נרשמו ב-24 השעות האחרונות' : 'Registered in the last 24 hours', kpi.registrationsLast24h],
+    [isHebrew ? 'סה"כ משתמשים' : 'Total users', users.length],
+    [isHebrew ? 'בניסיון' : 'On trial', rows.filter(({ entitlement }) => ['active', 'expiringSoon'].includes(entitlement.trialStatus) && !entitlement.isLifetime).length],
+    [isHebrew ? 'חבילות בתשלום (Basic/Pro)' : 'Paid plans (Basic/Pro)', rows.filter(({ entitlement }) => ['BASIC', 'PRO'].includes(entitlement.displayIdentity)).length],
+    [isHebrew ? 'Lifetime' : 'Lifetime', rows.filter(({ entitlement }) => entitlement.isLifetime).length],
+    [isHebrew ? 'טעון תשומת לב' : 'Needs attention', needsAttention.length],
   ];
 
   const [recentAudit, setRecentAudit] = useState('loading');
@@ -54,7 +69,6 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToP
       subtitle={isHebrew ? 'סקירת תפעול · נתוני חשבונות אמיתיים בלבד' : 'Operational summary · real account data only'}
       label={isHebrew ? 'סקירה כללית' : 'Admin overview'}
       controls={(
-        <>
         <div className="admin-plans-summary">
           {stats.map(([label, value]) => (
             <div className="admin-stat" key={label}>
@@ -63,8 +77,6 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToP
             </div>
           ))}
         </div>
-        <AdminPlanSystemNotice system={system} isHebrew={isHebrew} />
-        </>
       )}
     >
       <div className="admin-overview-grid">
@@ -76,23 +88,41 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToP
               <button className="admin-overview-row" onClick={() => onOpenUser(a)}>
                 <span className="admin-overview-row-name" dir="auto">{a.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</span>
                 <span className="admin-overview-row-meta" dir="ltr">{a.email}</span>
-                <span className="admin-card-badges"><AdminMarketIcon account={a} isHebrew={isHebrew} /></span>
+                <span className="admin-card-badges"><AdminPackageIcon entitlement={resolveAccountEntitlement({ plan: a.plan, trialEndsAt: a.trial_ends_at, role: a.role, isLifetime: a.is_lifetime })} isHebrew={isHebrew} /><AdminMarketIcon account={a} isHebrew={isHebrew} /></span>
                 <span className="admin-overview-row-date">{dateLabel(a.created_at, isHebrew)}</span>
+                <span className="admin-overview-row-meta">{trialSummary(a)}</span>
               </button>
             </li>
           ))}
         </article>
 
-        <article className="admin-overview-card admin-legacy-breakdown" aria-label={legacyTitle}>
-          <h3><ListChecks size={16} />{legacyTitle}</h3>
-          <p className="admin-overview-hint">{isHebrew ? 'ערכים טכניים גולמיים לביקורת בלבד. אינם מסלול ואינם זכאות.' : 'Raw technical values for audit only. Not a plan and not an entitlement.'}</p>
-          {legacyBreakdown.length === 0
-            ? <p className="admin-overview-empty">{isHebrew ? 'אין חשבונות.' : 'No accounts.'}</p>
-            : (
-              <ul className="admin-legacy-values" dir="ltr">
-                {legacyBreakdown.map(({ key, count }) => <li key={key}><code>{key}</code><span className="admin-plans-count">{count}</span></li>)}
-              </ul>
-            )}
+        <article className="admin-overview-card">
+          <h3><AlertTriangle size={16} />{isHebrew ? 'ניסיון מסתיים בקרוב' : 'Trials ending soon'}</h3>
+          {list(trialsEndingSoon, isHebrew ? 'אין ניסיונות שמסתיימים בקרוב.' : 'No trials ending soon.', a => (
+            <li key={a.account.id}>
+              {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
+              <button className="admin-overview-row" onClick={() => onOpenUser(a.account)}>
+                <span className="admin-overview-row-name" dir="auto">{a.account.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</span>
+                <span className="admin-overview-row-meta" dir="ltr">{a.account.email}</span>
+                <span className="admin-overview-row-date">{dateLabel(a.account.trial_ends_at, isHebrew)}</span>
+              </button>
+            </li>
+          ))}
+        </article>
+
+        <article className="admin-overview-card">
+          <h3><ListChecks size={16} />{isHebrew ? 'טעון תשומת לב' : 'Needs attention'}</h3>
+          <p className="admin-overview-hint">{isHebrew ? 'ניסיון פג · חבילת FREE' : 'Expired trial · FREE entitlement'}</p>
+          {list(needsAttention, isHebrew ? 'אין פריטים הדורשים תשומת לב כרגע.' : 'Nothing needs attention right now.', a => (
+            <li key={a.account.id}>
+              {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
+              <button className="admin-overview-row" onClick={() => onOpenUser(a.account)}>
+                <span className="admin-overview-row-name" dir="auto">{a.account.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</span>
+                <span className="admin-overview-row-meta" dir="ltr">{a.account.email}</span>
+                <span className="admin-overview-row-date">{dateLabel(a.account.trial_ends_at, isHebrew)}</span>
+              </button>
+            </li>
+          ))}
         </article>
         <article className="admin-overview-card">
           <h3><History size={16} />{isHebrew ? 'פעילות ניהול אחרונה' : 'Recent admin activity'}</h3>
@@ -118,7 +148,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToP
         </button>
         {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
         <button className="admin-overview-quick-action" onClick={onGoToPlans}>
-          {isHebrew ? 'עבור למסלולים ומנויים' : 'Go to Plans / Subscriptions'}{isHebrew ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
+          {isHebrew ? 'עבור לחבילות ומנויים' : 'Go to Plans / Subscriptions'}{isHebrew ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
         </button>
       </div>
     </AdminScreenFrame>

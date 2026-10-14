@@ -1,28 +1,27 @@
 // AI HELP CONTEXT V4 - server side (AI-HELP-AVAILABILITY-001). The browser's help context is a bounded HINT; this module re-derives
 // what the server can know authoritatively for the verified user and reconciles every blocker the browser reported:
-//   confirmed          the server independently verified the blocker condition (profile fields, server account summary capability, admin role)
+//   confirmed          the server independently verified the blocker condition (profile fields, monthly limit, entitlement, admin role, trial)
 //   client_reported    a local UI state the server cannot observe (validation, local draft, network, save stage) - usable, labelled as such
 //   contradicted       the server's own data says the condition is FALSE - the blocker is dropped (a forged/stale client claim never wins)
 // Nothing here mutates data. Identity/tenant come only from the verified JWT user; every read is scoped to that user id.
 import { sanitizeHelpContext, explainBlocker, explainProvenance, allowedNavigation, BLOCKER_CATALOG } from "../_shared/aiHelpContract.js";
-import type { AccountPlanContext, VerifiedAccountContext } from "./accountContext.ts";
-import { RETIRED_BLOCKER_CODES } from "../_shared/aiHelpContract.js";
+import type { VerifiedAccountContext } from "./accountContext.ts";
 
 export type HelpContext = ReturnType<typeof sanitizeHelpContext>;
 
 export type ServerAccountRow = { phone?: string | null; tax_id?: string | null; country?: string | null; role?: string | null };
 
-// Subscriptions cutover (OD-01/OD-20): the account's plan facts are ONLY the server account summary projection
-// (accountContext.ts AccountPlanContext). There is no monthly quote counter, no legacy tier and no trial any more; nothing
-// here derives a quota or an entitlement from a plan name.
 export type TrustedServerFacts = {
   market: 'Local' | 'International' | 'Unknown';
-  account: AccountPlanContext;
-  // the capability ids the server summary grants - only meaningful when the summary is ready AND the output phase is enforced
-  enforcedCapabilities: readonly string[] | null;
+  tier: 'free' | 'basic' | 'pro';
+  trialStatus: string;
   isAdmin: boolean;
   profile: { phoneComplete: boolean; taxIdComplete: boolean; taxIdRequired: boolean; missingFields: string[] };
+  monthlyQuotes: { used: number | null; limit: number | 'unlimited' };
+  attachmentsEntitled: boolean;
 };
+
+const LIMITS: Record<string, number | 'unlimited'> = { free: 5, basic: 20, pro: 'unlimited' };
 
 export function hasMeaningfulPhone(phone: unknown): boolean {
   const t = String(phone ?? '').trim();
@@ -30,7 +29,7 @@ export function hasMeaningfulPhone(phone: unknown): boolean {
   return t.replace(/^\+\d+\s*/, '').trim() !== '';
 }
 
-export function deriveTrustedFacts(account: VerifiedAccountContext, row: ServerAccountRow | null, enforcedCapabilities: readonly string[] | null = null): TrustedServerFacts {
+export function deriveTrustedFacts(account: VerifiedAccountContext, row: ServerAccountRow | null, monthlyUsed: number | null): TrustedServerFacts {
   const isLocal = account.market === 'Local';
   const phoneComplete = hasMeaningfulPhone(row?.phone);
   const taxIdComplete = String(row?.tax_id ?? '').trim() !== '';
@@ -39,13 +38,14 @@ export function deriveTrustedFacts(account: VerifiedAccountContext, row: ServerA
   if (isLocal && !taxIdComplete) missing.push('business_tax_id');
   if (account.market === 'Unknown') missing.push('business_region');
   const isAdmin = row?.role === 'super_admin';
-  const enforced = account.account.summaryState === 'ready' && account.account.outputPhase === 'enforced';
   return {
     market: account.market,
-    account: account.account,
-    enforcedCapabilities: enforced && Array.isArray(enforcedCapabilities) ? [...enforcedCapabilities] : null,
+    tier: account.tier,
+    trialStatus: account.trialStatus,
     isAdmin,
     profile: { phoneComplete, taxIdComplete, taxIdRequired: isLocal, missingFields: missing },
+    monthlyQuotes: { used: monthlyUsed, limit: account.isLifetime || isAdmin ? 'unlimited' : LIMITS[account.tier] ?? 5 },
+    attachmentsEntitled: account.tier === 'pro' || account.isLifetime || isAdmin,
   };
 }
 
@@ -76,21 +76,19 @@ export function reconcileBlockers(ctx: HelpContext, facts: TrustedServerFacts | 
         case 'PROFILE_MISSING_PHONE': confirmation = facts.profile.phoneComplete ? 'contradicted' : 'confirmed'; break;
         case 'PROFILE_MISSING_TAX_ID': confirmation = !facts.profile.taxIdRequired || facts.profile.taxIdComplete ? 'contradicted' : 'confirmed'; break;
         case 'REGION_NOT_SELECTED': confirmation = facts.market === 'Unknown' ? 'confirmed' : 'contradicted'; break;
-        // Only an ENFORCED server summary can confirm or contradict a capability lock; otherwise it stays a client report.
-        case 'ACCOUNT_NOT_PROVISIONED':
-          confirmation = facts.account.summaryState === 'unprovisioned' ? 'confirmed' : facts.account.summaryState === 'ready' ? 'contradicted' : 'client_reported';
+        case 'MONTHLY_QUOTE_LIMIT_REACHED':
+          confirmation = facts.monthlyQuotes.limit === 'unlimited' ? 'contradicted'
+            : facts.monthlyQuotes.used === null ? 'client_reported'
+              : facts.monthlyQuotes.used >= facts.monthlyQuotes.limit ? 'confirmed' : 'client_reported';
           break;
-        case 'ATTACHMENTS_NOT_INCLUDED':
-          confirmation = facts.enforcedCapabilities ? (facts.enforcedCapabilities.includes('quote_attachment.upload') ? 'contradicted' : 'confirmed') : 'client_reported';
-          break;
+        case 'ATTACHMENTS_REQUIRE_PRO': case 'WHATSAPP_REQUIRES_PRO': confirmation = facts.attachmentsEntitled ? 'contradicted' : 'confirmed'; break;
+        case 'TRIAL_EXPIRED': confirmation = facts.trialStatus === 'expired' ? 'confirmed' : 'contradicted'; break;
         case 'ADMIN_PROTECTED_ACTION': confirmation = facts.isAdmin ? 'client_reported' : 'contradicted'; break;
         case 'ADMIN_NOT_AUTHORIZED': confirmation = facts.isAdmin ? 'contradicted' : 'confirmed'; break;
         case 'CHECKOUT_UNAVAILABLE': case 'INVOICING_UNAVAILABLE': confirmation = 'confirmed'; break;
         default: confirmation = 'client_reported';
       }
     }
-    // Retired plan-model conditions (monthly quote limit, trial) never exist any more - dropped even without server facts.
-    if ((RETIRED_BLOCKER_CODES as readonly string[]).includes(b.code)) confirmation = 'contradicted';
     const r = { ...b, confirmation } as ReconciledBlocker;
     if (confirmation === 'contradicted' || b.stale) dropped.push(r); else active.push(r);
   }
@@ -151,22 +149,14 @@ export function deterministicHelpAnswer(intent: HelpIntent, ctx: HelpContext, ac
 }
 
 // ---------------------------------------------------------------------------------------------- prompt blocks (layered knowledge)
-/** The plan line of Layer 3 - from the server account summary only (never a tier, a trial or a monthly counter). */
-export function describeAccountPlan(a: AccountPlanContext): string {
-  if (a.summaryState === 'ready' && a.planId) {
-    const bal = a.planId === 'free' && typeof a.free10Remaining === 'number' ? `; Free quotes remaining: ${a.free10Remaining} of 10` : '';
-    return `- Plan (server account summary): ${a.planId}${bal}; subscription status: ${a.subscriptionStatus ?? 'none'}; output phase: ${a.outputPhase}.`;
-  }
-  return `- Plan: no active plan - the server account summary state is "${a.summaryState}" (the new plan system is not active for this account). Do not state or guess a plan, a balance or a trial.`;
-}
 export function buildHelpContextBlocks(ctx: HelpContext, active: ReconciledBlocker[], dropped: ReconciledBlocker[], facts: TrustedServerFacts | null, isHebrew: boolean): string {
   if (!ctx) return '';
   const lang = isHebrew ? 'he' : 'en';
   const trusted = facts ? [
     'LAYER 3 - TRUSTED SERVER FACTS (derived by the server for the verified user this turn - authoritative):',
-    `- Market: ${facts.market}; admin: ${facts.isAdmin ? 'yes' : 'no'}.`,
-    describeAccountPlan(facts.account),
+    `- Market: ${facts.market}; plan tier: ${facts.tier}; trial: ${facts.trialStatus}; admin: ${facts.isAdmin ? 'yes' : 'no'}.`,
     `- Business profile: phone ${facts.profile.phoneComplete ? 'complete' : 'MISSING'}${facts.profile.taxIdRequired ? `; tax ID ${facts.profile.taxIdComplete ? 'complete' : 'MISSING'}` : ''}${facts.market === 'Unknown' ? '; region NOT selected yet' : ''}.`,
+    `- Monthly quotes: ${facts.monthlyQuotes.used ?? 'unknown'} used of ${facts.monthlyQuotes.limit}. File attachments entitled: ${facts.attachmentsEntitled ? 'yes' : 'no (PRO only)'}.`,
   ].join('\n') : '';
   const f = ctx.facts || {};
   const dyn = [

@@ -1,10 +1,11 @@
 // GENERATED FILE - do not hand-edit.
 // Regenerate with: node scripts/generate-ai-chat-facts.js
-// Source of truth: supabase/functions/_shared/subscriptionContract.ts, src/domain/subscriptions/priceCatalog.js,
-// src/data/productTruthRegistry.js, src/shared/brand.js, src/utils/regionConfig.js.
+// Source of truth: src/utils/pricingCatalog.js, src/utils/planCatalog.js,
+// src/shared/brand.js, src/utils/regionConfig.js (plus two parity-tested
+// literals documented in scripts/generate-ai-chat-facts.js).
 // Staleness is enforced by supabase/functions/chat-ai/aiFacts.parity.test.js.
 export const AI_FACTS = {
-  "schemaVersion": 3,
+  "schemaVersion": 1,
   "supportEmail": {
     "he": "support@tekango.com",
     "en": "info@tekango.com"
@@ -13,106 +14,102 @@ export const AI_FACTS = {
     "il": 0.18,
     "international": 0
   },
-  "subscriptions": {
-    "source": "supabase/functions/_shared/subscriptionContract.ts + src/domain/subscriptions/packageCatalog.js + src/domain/subscriptions/priceCatalog.js",
-    "priceCatalogVersion": "2026-10-07.1",
-    "packageCatalogVersion": "2026-10-11.p2",
-    "currentPaidPlanId": "all_inclusive",
-    "legacyPaidPlanIds": [
-      "classic",
-      "modern",
-      "visual"
-    ],
-    "stylesAreNotPlans": true,
-    "planSystemActive": false,
-    "activationPhase": "off",
-    "trialOffered": false,
-    "accountStateSource": "get_account_summary",
-    "plans": [
-      {
-        "id": "free",
-        "he": "חינם",
-        "en": "Free"
-      },
-      {
-        "id": "all_inclusive",
-        "he": "הכול כלול",
-        "en": "All-inclusive"
-      },
-      {
-        "id": "classic",
-        "he": "קלאסיק",
-        "en": "Classic"
-      },
-      {
-        "id": "modern",
-        "he": "מודרן",
-        "en": "Modern"
-      },
-      {
-        "id": "visual",
-        "he": "ויזואל",
-        "en": "Visual"
-      }
-    ],
-    "free": {
-      "quotesTotal": 10,
-      "expires": false,
-      "consumingChannels": [
-        "send",
-        "public_share",
-        "final_pdf",
-        "final_print"
-      ],
-      "draftsAndPreviewsConsume": false,
-      "reuseConsumesAgain": false,
-      "deleteRefunds": false,
-      "existingDocumentsStayAccessible": true
-    },
-    "prices": {
-      "IL": {
-        "billingCurrency": "ILS",
-        "package": {
-          "id": "all_inclusive",
-          "month": "30.00",
-          "year": "306.00",
-          "annualSaving": "54.00",
-          "annualSavingPercentRounded": 15,
-          "annualSavingPercentExact": true
+  "trialDays": 14,
+  "quoteLimits": {
+    "free": 5,
+    "basic": 20,
+    "pro": "unlimited"
+  },
+  "attachments": {
+    "proOnly": true,
+    "maxFileMb": 3,
+    "maxTotalMb": 30
+  },
+  "pricing": {
+    "il": {
+      "currency": "ILS",
+      "currencySymbol": "₪",
+      "plans": {
+        "free": {
+          "monthly": 0
         },
-        "catalogBlock100": "5.00",
-        "taxIncluded": true
-      },
-      "INTERNATIONAL": {
-        "billingCurrency": "USD",
-        "package": {
-          "id": "all_inclusive",
-          "month": "18.00",
-          "year": "184.00",
-          "annualSaving": "32.00",
-          "annualSavingPercentRounded": 15,
-          "annualSavingPercentExact": false
+        "basic": {
+          "monthly": 49,
+          "annualEffectiveMonthly": 39,
+          "annualTotal": 468,
+          "savingsPercent": 20
         },
-        "catalogBlock100": "3.00",
-        "localCurrencyDisplayIsEstimateOnly": true
+        "pro": {
+          "monthly": 99,
+          "annualEffectiveMonthly": 79,
+          "annualTotal": 948,
+          "savingsPercent": 20
+        }
       }
     },
-    "catalog": {
-      "includedProductsPerPaidPlan": 100,
-      "blockProducts": 100,
-      "blockRequiresExplicitPurchase": true,
-      "catalogCapacityUnlocksStyleOrMedia": false
+    "usd": {
+      "currency": "USD",
+      "currencySymbol": "$",
+      "plans": {
+        "free": {
+          "monthly": 0
+        },
+        "basic": {
+          "monthly": 15,
+          "annualEffectiveMonthly": 12,
+          "annualTotal": 144,
+          "savingsPercent": 20
+        },
+        "pro": {
+          "monthly": 29,
+          "annualEffectiveMonthly": 23,
+          "annualTotal": 276,
+          "savingsPercent": 21
+        }
+      }
     },
-    "notDecided": [
-      "paid_plan_quote_limits",
-      "capability_matrix",
-      "free_catalog_limit",
-      "storage",
-      "ai_quotas",
-      "cancellation_refund_proration",
-      "tax_beyond_il_inclusion",
-      "attachments"
-    ]
+    "gbp": {
+      "currency": "GBP",
+      "currencySymbol": "£",
+      "plans": {
+        "free": {
+          "monthly": 0
+        },
+        "basic": {
+          "monthly": 12,
+          "annualEffectiveMonthly": 10,
+          "annualTotal": 120,
+          "savingsPercent": 17
+        },
+        "pro": {
+          "monthly": 24,
+          "annualEffectiveMonthly": 19,
+          "annualTotal": 228,
+          "savingsPercent": 21
+        }
+      }
+    },
+    "eur": {
+      "currency": "EUR",
+      "currencySymbol": "€",
+      "plans": {
+        "free": {
+          "monthly": 0
+        },
+        "basic": {
+          "monthly": 14,
+          "annualEffectiveMonthly": 11,
+          "annualTotal": 132,
+          "savingsPercent": 21
+        },
+        "pro": {
+          "monthly": 27,
+          "annualEffectiveMonthly": 22,
+          "annualTotal": 264,
+          "savingsPercent": 19
+        }
+      }
+    }
   },
   "billing": {
     "liveCheckoutAvailable": false,
@@ -140,9 +137,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -165,9 +164,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -182,18 +183,20 @@ export const AI_FACTS = {
       "id": "quote_create",
       "heLabel": "יצירת הצעת מחיר חדשה",
       "enLabel": "Create a new quote",
-      "heDescription": "יצירת הצעת מחיר חדשה. טיוטה ותצוגה מקדימה אינן משתמשות באחת מ-10 ההצעות של מסלול חינם.",
-      "enDescription": "Create a new quote. Drafts and previews do not use one of the 10 quotes of the Free plan.",
+      "heDescription": "יצירת הצעת מחיר חדשה, כפופה למגבלת ההצעות החודשית של התוכנית.",
+      "enDescription": "Create a new quote, subject to the plan's monthly quote limit.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
-      "minimumPlan": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
+      "minimumPlan": "free",
       "authorityType": "none",
       "requiredRole": null,
       "aiMayExplain": true,
@@ -202,7 +205,7 @@ export const AI_FACTS = {
       "aiMayClaimExecution": false,
       "forbiddenClaimCodes": [],
       "deterministicFactKeys": [
-        "subscriptions.free.quotesTotal"
+        "monthlyQuoteLimit"
       ]
     },
     {
@@ -217,11 +220,13 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": "quote.edit_duplicate",
-      "planEligibility": "not_decided",
-      "eligiblePlans": null,
-      "minimumPlan": null,
-      "authorityType": "subscription",
+      "planAvailability": {
+        "free": false,
+        "basic": true,
+        "pro": true
+      },
+      "minimumPlan": "basic",
+      "authorityType": "plan",
       "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": true,
@@ -242,11 +247,13 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": "quote.edit_duplicate",
-      "planEligibility": "not_decided",
-      "eligiblePlans": null,
-      "minimumPlan": null,
-      "authorityType": "subscription",
+      "planAvailability": {
+        "free": false,
+        "basic": true,
+        "pro": true
+      },
+      "minimumPlan": "basic",
+      "authorityType": "plan",
       "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
@@ -267,9 +274,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -294,9 +303,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -319,11 +330,13 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": "professional_quote.use",
-      "planEligibility": "not_decided",
-      "eligiblePlans": null,
-      "minimumPlan": null,
-      "authorityType": "subscription",
+      "planAvailability": {
+        "free": false,
+        "basic": true,
+        "pro": true
+      },
+      "minimumPlan": "basic",
+      "authorityType": "plan",
       "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
@@ -344,11 +357,13 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": "professional_quote.reuse",
-      "planEligibility": "not_decided",
-      "eligiblePlans": null,
-      "minimumPlan": null,
-      "authorityType": "subscription",
+      "planAvailability": {
+        "free": false,
+        "basic": false,
+        "pro": true
+      },
+      "minimumPlan": "pro",
+      "authorityType": "plan",
       "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
@@ -369,9 +384,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -394,9 +411,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -419,9 +438,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -444,9 +465,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -469,9 +492,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -494,9 +519,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -527,9 +554,11 @@ export const AI_FACTS = {
           "ILS"
         ]
       },
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -563,9 +592,11 @@ export const AI_FACTS = {
           "ILS"
         ]
       },
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -600,9 +631,11 @@ export const AI_FACTS = {
           "and other live-fetched currencies"
         ]
       },
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -627,9 +660,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -657,9 +692,11 @@ export const AI_FACTS = {
           "ILS"
         ]
       },
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -691,9 +728,11 @@ export const AI_FACTS = {
           "USD"
         ]
       },
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -716,9 +755,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -741,9 +782,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -756,19 +799,21 @@ export const AI_FACTS = {
     },
     {
       "id": "plan_trial",
-      "heLabel": "מסלולים ו-10 הצעות חינם",
-      "enLabel": "Plans and Free quotes",
-      "heDescription": "מסלול חינם כולל 10 הצעות בסך הכול, ללא תפוגה. אחריהן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. מערכת המנויים החדשה עדיין בהכנה.",
-      "enDescription": "The Free plan includes 10 quotes in total, valid without an expiry date. After them there is one package with every available capability, billed monthly or annually: 18.00 USD per month or 184.00 USD per year, charged in USD. The new subscription system is still being prepared.",
+      "heLabel": "ניסיון חינם",
+      "enLabel": "14-day free trial",
+      "heDescription": "ניסיון חינם של 14 יום המעניק זכאות PRO זמנית - אינו תוכנית נמכרת בפני עצמה.",
+      "enDescription": "A 14-day free trial granting temporary PRO entitlement - not a sellable plan in its own right.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -778,8 +823,7 @@ export const AI_FACTS = {
       "aiMayClaimExecution": false,
       "forbiddenClaimCodes": [],
       "deterministicFactKeys": [
-        "subscriptions.free.quotesTotal",
-        "subscriptions.planSystemActive"
+        "trialDays"
       ]
     },
     {
@@ -794,18 +838,23 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": "quote_attachment.upload",
-      "planEligibility": "not_decided",
-      "eligiblePlans": null,
-      "minimumPlan": null,
-      "authorityType": "subscription",
+      "planAvailability": {
+        "free": false,
+        "basic": false,
+        "pro": true
+      },
+      "minimumPlan": "pro",
+      "authorityType": "plan",
       "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
       "safeNavigationId": null,
       "aiMayClaimExecution": false,
       "forbiddenClaimCodes": [],
-      "deterministicFactKeys": []
+      "deterministicFactKeys": [
+        "attachments.maxFileMb",
+        "attachments.maxTotalMb"
+      ]
     },
     {
       "id": "quote_pdf",
@@ -819,9 +868,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -846,9 +897,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -873,9 +926,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -901,11 +956,13 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": "quote.whatsapp_delete",
-      "planEligibility": "not_decided",
-      "eligiblePlans": null,
-      "minimumPlan": null,
-      "authorityType": "subscription",
+      "planAvailability": {
+        "free": false,
+        "basic": false,
+        "pro": true
+      },
+      "minimumPlan": "pro",
+      "authorityType": "plan",
       "requiredRole": null,
       "aiMayExplain": true,
       "aiMayNavigate": false,
@@ -930,9 +987,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -957,9 +1016,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -982,9 +1043,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -1007,9 +1070,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -1032,9 +1097,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -1059,9 +1126,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -1088,9 +1157,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -1113,9 +1184,11 @@ export const AI_FACTS = {
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "none",
       "requiredRole": null,
@@ -1130,17 +1203,19 @@ export const AI_FACTS = {
       "id": "admin_console",
       "heLabel": "מסך ניהול",
       "enLabel": "Admin console",
-      "heDescription": "מסך ניהול פנימי המוגבל לתפקיד Super Admin המאומת בצד השרת - אינו תלוי במסלול ואינו חלק ממרחב העבודה של משתמש רגיל.",
-      "enDescription": "An internal admin screen restricted to a server-verified Super Admin role - independent of plan entitlement, not part of an ordinary user's workspace.",
+      "heDescription": "מסך ניהול פנימי המוגבל לתפקיד Super Admin המאומת בצד השרת - אינו תלוי בתוכנית/Lifetime ואינו חלק ממרחב העבודה של משתמש רגיל.",
+      "enDescription": "An internal admin screen restricted to a server-verified Super Admin role - independent of plan/Lifetime entitlement, not part of an ordinary user's workspace.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
         "international"
       ],
       "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
+      "planAvailability": {
+        "free": true,
+        "basic": true,
+        "pro": true
+      },
       "minimumPlan": null,
       "authorityType": "role",
       "requiredRole": "super_admin",
@@ -1151,156 +1226,6 @@ export const AI_FACTS = {
       "forbiddenClaimCodes": [
         "NO_ADMIN_FROM_PLAN_OR_LIFETIME_INFERENCE"
       ],
-      "deterministicFactKeys": []
-    },
-    {
-      "id": "quote_statistics",
-      "heLabel": "סטטיסטיקת הצעות והצעות חמות",
-      "enLabel": "Quote statistics and hot quotes",
-      "heDescription": "מסך סטטיסטיקה: כמה הצעות נוצרו, נשלחו, אושרו ושולמו, שיעור ההמרה, ורשימת הצעות חמות (נצפו 3 פעמים או יותר וממתינות לאישור) עם פעולות ידניות: פתיחה, WhatsApp, העתקת קישור ושליחה חוזרת. סכומים מוצגים לכל מטבע בנפרד, לפי תקופה וסטטוס. פותחים אותו מהתפריט „סטטיסטיקה” (בנייד: „עוד” ← „סטטיסטיקה”).",
-      "enDescription": "A Statistics screen: how many quotes were created, sent, approved and paid, the conversion rate, and a hot-quote list (viewed 3+ times and awaiting approval) with manual actions: open, WhatsApp, copy link and resend. Amounts are shown per currency, by period and status. Open it from the “Statistics” menu item (on mobile: “More” → “Statistics”).",
-      "state": "LIVE_CURRENT",
-      "markets": [
-        "local",
-        "international"
-      ],
-      "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
-      "minimumPlan": null,
-      "authorityType": "none",
-      "requiredRole": null,
-      "aiMayExplain": true,
-      "aiMayNavigate": false,
-      "safeNavigationId": null,
-      "aiMayClaimExecution": false,
-      "forbiddenClaimCodes": [],
-      "deterministicFactKeys": []
-    },
-    {
-      "id": "manual_tasks",
-      "heLabel": "משימות ידניות",
-      "enLabel": "Manual tasks",
-      "heDescription": "מסך משימות: יוצרים משימה ידנית עם כותרת, הערות, תאריך ושעה, עדיפות וקישור להצעה או ללקוח שלכם, ומסמנים אותה כהושלמה. אפשר ליצור משימת מעקב ישירות מהצעה חמה. המשימות שמורות בחשבון שלכם ומוצגות רק לכם.",
-      "enDescription": "A Tasks screen: you create a manual task with a title, notes, date and time, priority and a link to one of your quotes or clients, and mark it completed. A follow-up task can be created directly from a hot quote. Tasks are saved in your account and shown only to you.",
-      "state": "LIVE_CURRENT",
-      "markets": [
-        "local",
-        "international"
-      ],
-      "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
-      "minimumPlan": null,
-      "authorityType": "none",
-      "requiredRole": null,
-      "aiMayExplain": true,
-      "aiMayNavigate": false,
-      "safeNavigationId": null,
-      "aiMayClaimExecution": false,
-      "forbiddenClaimCodes": [],
-      "deterministicFactKeys": []
-    },
-    {
-      "id": "calendar",
-      "heLabel": "יומן",
-      "enLabel": "Calendar",
-      "heDescription": "יומן בתצוגת יום, שבוע וחודש: משימות לפי התאריך והשעה שלהן, והצעות שממתינות לחתימה לפי תאריך „בתוקף עד”. בחשבון ישראלי היומן מציג גם שבתות, חגים וימי מנוחה רשמיים בישראל ברקע נפרד שאפשר להסתיר. השבוע מתחיל ביום ראשון, והחגים הם שכבת מידע בלבד. זה יומן פנימי של TEKANGO לתכנון העבודה; פותחים אותו מהתפריט „יומן” (בנייד: „עוד” ← „יומן”). הוא אינו מסונכרן ל-Google Calendar או ליומן חיצוני אחר.",
-      "enDescription": "A calendar with day, week and month views: tasks on their date and time, and quotes awaiting signature on their valid-until date. Israeli accounts also see Saturdays and Israeli official holidays and rest days in a separate background that can be hidden. Weeks start on Sunday, and holidays are an information layer only. It is TEKANGO’s internal calendar for planning your work; open it from the “Calendar” menu item (on mobile: “More” → “Calendar”). It is not synced with Google Calendar or any other external calendar.",
-      "state": "LIVE_CURRENT",
-      "markets": [
-        "local",
-        "international"
-      ],
-      "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
-      "minimumPlan": null,
-      "authorityType": "none",
-      "requiredRole": null,
-      "aiMayExplain": true,
-      "aiMayNavigate": false,
-      "safeNavigationId": null,
-      "aiMayClaimExecution": false,
-      "forbiddenClaimCodes": [],
-      "deterministicFactKeys": []
-    },
-    {
-      "id": "quote_link_view",
-      "heLabel": "צפייה בקישור ההצעה",
-      "enLabel": "Quote link viewed",
-      "heDescription": "הצעה „נשלחה” כשסימנתם אותה כנשלחה. „צפייה בקישור ההצעה” נשמרת בזמן השרת, פעם אחת, כשקישור ההצעה נפתח והמסמך הוצג לפחות 5 שניות בדפדפן שאינו החשבון שלכם וסורקים מוכרים מסוננים. זו אינדיקציה לפתיחת הקישור בלבד - גם פתיחה שלכם מדפדפן מנותק או סורק חדש עשויים להיספר, ולכן היא מוצגת כצפייה בקישור. הנקודה הירוקה ליד מייל מאשרת רק שספק המייל קיבל את בקשת השליחה. הרישום מתחיל אחרי עדכון השרת.",
-      "enDescription": "A quote is “sent” when you marked it as sent. “Quote link viewed” is stored in server time, once, when the quote link was opened and the document shown for at least 5 seconds in a browser other than your account, with known scanners filtered out. It indicates that the link was opened - your own opening from a signed-out browser or a new scanner can also count, so it is shown as a link view. The green dot next to an email confirms only that the email provider accepted the send request. Recording starts after the server update.",
-      "state": "LIVE_CURRENT",
-      "markets": [
-        "local",
-        "international"
-      ],
-      "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
-      "minimumPlan": null,
-      "authorityType": "none",
-      "requiredRole": null,
-      "aiMayExplain": true,
-      "aiMayNavigate": false,
-      "safeNavigationId": null,
-      "aiMayClaimExecution": false,
-      "forbiddenClaimCodes": [],
-      "deterministicFactKeys": []
-    },
-    {
-      "id": "reminders_automation",
-      "heLabel": "תזכורות ואוטומציות",
-      "enLabel": "Reminders & automation",
-      "heDescription": "הגדרות עסק ← תזכורות ואוטומציות: בוחרים אחד משלושה מצבים - „בממשק בלבד” (ברירת המחדל: התזכורות מופיעות אצלכם בפעמון), „כבוי”, או „מלא, כולל שליחה ללקוח”, שנדלק רק בבחירה מפורשת שלכם. מסמנים בתיבות סימון אילו התנהגויות יפעלו. כלל ללקוח פועל אחרי שמסמנים אותו ומגדירים ימים, תוכן, שעות שליחה ואזור זמן, ויש לו תצוגה מקדימה והשהיה. WhatsApp נשלח ידנית מתוך ההצעה.",
-      "enDescription": "Business settings → Reminders & automation: you choose one of three modes - “In-app only” (the default: reminders appear for you under the bell), “Off”, or “Full, including customer sending”, which turns on only by your explicit choice. You tick which behaviors run. A customer rule runs once you tick it and set days, content, sending hours and a time zone, and it has a preview and a pause. WhatsApp is sent manually from the quote.",
-      "state": "LIVE_CURRENT",
-      "markets": [
-        "local",
-        "international"
-      ],
-      "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
-      "minimumPlan": null,
-      "authorityType": "none",
-      "requiredRole": null,
-      "aiMayExplain": true,
-      "aiMayNavigate": true,
-      "safeNavigationId": "open_business_settings",
-      "aiMayClaimExecution": false,
-      "forbiddenClaimCodes": [],
-      "deterministicFactKeys": []
-    },
-    {
-      "id": "digital_business_card",
-      "heLabel": "יצירת כרטיס ביקור דיגיטלי",
-      "enLabel": "Digital business card",
-      "heDescription": "הגדרות עסק ← „כרטיס ביקור דיגיטלי”: יוצרים ועורכים דף ציבורי לעסק - שם, תפקיד, סלוגן, אודות ותמונה או לוגו - ובוחרים אילו דרכי תקשורת יוצגו (טלפון, WhatsApp, אימייל וכתובת מהגדרות העסק). יש קישור לשיתוף וקוד QR. מספר עוסק ופרטים פנימיים לא מוצגים. שמירת הכרטיס והדף הציבורי פועלים ללקוחות רק אחרי עדכון השרת.",
-      "enDescription": "Business settings → “Digital business card”: create and edit a public page for your business - name, job title, slogan, about and a photo or logo - and choose which contact options appear (phone, WhatsApp, email and address from Business settings). It has a share link and a QR code. Your tax ID and internal details are never shown. Saving the card and the public page work for customers only after the server update.",
-      "state": "LIVE_CURRENT",
-      "markets": [
-        "local",
-        "international"
-      ],
-      "currencies": null,
-      "subscriptionCapabilityId": null,
-      "planEligibility": null,
-      "eligiblePlans": null,
-      "minimumPlan": null,
-      "authorityType": "none",
-      "requiredRole": null,
-      "aiMayExplain": true,
-      "aiMayNavigate": true,
-      "safeNavigationId": "open_business_settings",
-      "aiMayClaimExecution": false,
-      "forbiddenClaimCodes": [],
       "deterministicFactKeys": []
     }
   ],
@@ -1348,41 +1273,6 @@ export const AI_FACTS = {
       "forbiddenClaimCodes": [
         "NO_AI_EXECUTION_CLAIM"
       ]
-    },
-    {
-      "id": "automatic_customer_messages",
-      "heLabel": "שליחה אוטומטית ללקוחות",
-      "enLabel": "Automatic customer messages",
-      "heDescription": "מיילים שנשלחים ללקוחות אוטומטית לפי כללי מצב „מלא” בתזכורות ואוטומציות.",
-      "enDescription": "Emails sent to customers automatically by Full-mode rules in Reminders & automation.",
-      "state": "IMPLEMENTED_NOT_RELEASED",
-      "forbiddenClaimCodes": [
-        "NO_AUTOMATIC_CUSTOMER_SEND_CLAIM"
-      ]
-    },
-    {
-      "id": "automatic_whatsapp",
-      "heLabel": "WhatsApp אוטומטי",
-      "enLabel": "Automatic WhatsApp",
-      "heDescription": "שליחת הודעות WhatsApp ללקוחות אוטומטית, בלי לחיצה של בעל העסק.",
-      "enDescription": "Sending WhatsApp messages to customers automatically, without the business owner pressing send.",
-      "state": "ROADMAP_POST_LIVE",
-      "forbiddenClaimCodes": [
-        "NO_AUTOMATIC_WHATSAPP_CLAIM"
-      ]
-    },
-    {
-      "id": "google_calendar_sync",
-      "heLabel": "אינטגרציה עם Google Calendar",
-      "enLabel": "Google Calendar integration",
-      "heDescription": "חיבור אופציונלי של יומן TEKANGO ליומן Google של המשתמש.",
-      "enDescription": "An optional connection of the TEKANGO calendar to the user’s Google Calendar.",
-      "state": "ROADMAP_POST_LIVE",
-      "forbiddenClaimCodes": [
-        "NO_EXTERNAL_CALENDAR_SYNC_CLAIM"
-      ],
-      "heAnswerNote": "ב-TEKANGO יש יומן פנימי לתכנון העבודה - פותחים אותו מהתפריט „יומן” (בנייד: „עוד” ← „יומן”). הוא אינו מסונכרן ל-Google Calendar או ליומן חיצוני אחר.",
-      "enAnswerNote": "TEKANGO has an internal calendar for planning your work - open it from the “Calendar” menu item (on mobile: “More” → “Calendar”). It is not synced with Google Calendar or any other external calendar."
     }
   ]
 } as const;

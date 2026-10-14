@@ -1,53 +1,13 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '../shared/supabase';
 import PublicQuote from '../pages/PublicQuote';
 import PublicQuoteEn from '../pages/PublicQuoteEn';
-import { fetchPublicPresentation } from '../utils/quotePresentationClient';
-import { scheduleFirstViewRecord } from '../utils/firstView';
-
-// Task 16 - Quote Experience V2: the presentation (style / frozen branding / media, CONTRACT §3 public_get) is
-// requested IN PARALLEL with get-public-quote and is strictly optional: any failure, timeout or malformed payload
-// renders the legacy Classic composition - the quote itself is never blocked or delayed beyond PRESENTATION_WAIT_MS.
-const PRESENTATION_WAIT_MS = 2500;
-
-function isUsablePresentation(value) {
-  return !!value && typeof value === 'object' && !Array.isArray(value) && typeof value.mode === 'string';
-}
-
-async function loadPresentation(quoteId, capabilityToken = null) {
-  try {
-    const res = await fetchPublicPresentation(quoteId, capabilityToken);
-    return res && res.ok && isUsablePresentation(res.data) ? res.data : null;
-  } catch {
-    return null;
-  }
-}
-
-// OD-02 capability URLs: /public-quote/c/:token and /en/public-quote/c/:token carry an unguessable, artifact-scoped,
-// revocable token (only its hash is stored). The legacy /public-quote/:id route keeps working for existing links; when the
-// server enforces output it serves an id only to the owner or to a quote issued before the cutover.
-const CAPABILITY_TOKEN_RE = /^[A-Za-z0-9_-]{43}$/;
 
 export default function SmartPublicQuote() {
-  const { id: routeId, token } = useParams();
-  const capabilityToken = token && CAPABILITY_TOKEN_RE.test(token) ? token : null;
-  // the request key: the token on the capability route, the quote id on the legacy route; a malformed token is not found
-  const id = token ? (capabilityToken ? `c:${capabilityToken}` : null) : routeId;
+  const { id } = useParams();
   const [state, setState] = useState({ status: 'loading', dto: null });
-  const [presentation, setPresentation] = useState(null);
-  // Task 27: the owner's thank-you arrives from the server only for a signed quote - re-read once right after a successful signature
-  const [thanks, setThanks] = useState(null);
   const processedIdRef = useRef(null);
-
-  // Task 20: the first view of THIS quote link (an indication, not a certain customer identification), recorded by the server only after
-  // the page was really visible (see
-  // utils/firstView.js). Never for the owner view; the server re-checks owner / bot and writes once. Failure is silent (no UI effect).
-  const viewedQuoteId = state.status === 'ready' && !state.dto?.quote?.is_owner_viewing ? state.dto?.quote?.id : null;
-  useEffect(() => {
-    if (!viewedQuoteId) return undefined;
-    return scheduleFirstViewRecord({ record: () => supabase.rpc('public_record_quote_first_view', { p_quote_id: viewedQuoteId }).then(() => {}, () => {}) });
-  }, [viewedQuoteId]);
 
   useEffect(() => {
     if (!id) {
@@ -63,15 +23,8 @@ export default function SmartPublicQuote() {
     processedIdRef.current = id;
 
     (async () => {
-      setPresentation(null);
-      const presentationPromise = loadPresentation(capabilityToken ? null : id, capabilityToken);
-      // A late presentation still applies (it is the correct one); it just never holds the quote back.
-      presentationPromise.then((p) => {
-        if (processedIdRef.current === id && p) setPresentation(p);
-      });
-
       const { data, error } = await supabase.functions.invoke('get-public-quote', {
-        body: capabilityToken ? { capability_token: capabilityToken } : { quote_id: id },
+        body: { quote_id: id },
       });
 
       // Stale-response guard: apply this result only if `id` is still the
@@ -92,32 +45,17 @@ export default function SmartPublicQuote() {
         return;
       }
 
-      await Promise.race([presentationPromise, new Promise((resolve) => setTimeout(resolve, PRESENTATION_WAIT_MS))]);
-      if (processedIdRef.current !== id) return;
       setState({ status: 'ready', dto: data });
 
       // Fire-and-forget: ה-RPC עצמו כבר לא סופר צפיות של הבעלים
       // (auth.uid() = quotes.user_id) - נבדק ואומת ב-Phase 2. אין צורך
       // לשכפל את אותה בדיקה כאן.
-      supabase.rpc('public_increment_quote_view', { p_quote_id: data.quote.id }).then(
+      supabase.rpc('public_increment_quote_view', { p_quote_id: id }).then(
         () => {},
         () => {}
       );
     })();
-  }, [id, capabilityToken]);
-
-  // After a successful approval the server freezes the issued snapshot (the quote is now locked) - re-read it so the
-  // page shows exactly what was frozen. A failure keeps whatever is already shown.
-  const handleApproved = useCallback(() => {
-    const key = id;
-    loadPresentation(capabilityToken ? null : key, capabilityToken).then((p) => {
-      if (processedIdRef.current === key && p) setPresentation(p);
-    });
-    supabase.functions.invoke('get-public-quote', { body: capabilityToken ? { capability_token: capabilityToken } : { quote_id: key } }).then(
-      ({ data }) => { if (processedIdRef.current === key && data?.thanks) setThanks(data.thanks); },
-      () => {},
-    );
-  }, [id, capabilityToken]);
+  }, [id]);
 
   if (state.status === 'loading') {
     return (
@@ -138,10 +76,6 @@ export default function SmartPublicQuote() {
 
   const { quote } = state.dto;
   const isLocalQuote = Number(quote.tax_rate) > 0 || (quote.currency || '').toUpperCase() === 'ILS';
-  // the finalized snapshot (enforced phase, owner final PDF/Print) replaces the live view before capture/print
-  const handleFinalSnapshot = (dto) => setState({ status: 'ready', dto });
 
-  return isLocalQuote
-    ? <PublicQuote quoteData={state.dto} presentation={presentation} onApproved={handleApproved} onFinalSnapshot={handleFinalSnapshot} capabilityToken={capabilityToken} thanks={thanks} />
-    : <PublicQuoteEn quoteData={state.dto} presentation={presentation} onApproved={handleApproved} onFinalSnapshot={handleFinalSnapshot} capabilityToken={capabilityToken} thanks={thanks} />;
+  return isLocalQuote ? <PublicQuote quoteData={state.dto} /> : <PublicQuoteEn quoteData={state.dto} />;
 }

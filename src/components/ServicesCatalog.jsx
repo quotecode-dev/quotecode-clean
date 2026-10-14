@@ -1,13 +1,6 @@
-import { useRef, useState } from 'react';
-import { Package, PackagePlus, Pencil, Trash2, Save, X, Search, Image as ImageIcon, Lock } from 'lucide-react';
-import { APP as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from './../theme/neonTheme';
-import CatalogMediaControl from './quotePresentation/CatalogMediaControl';
-import { catalogLinkFor } from './quotePresentation/useQuotePresentationEditor';
-import { presentationCopy } from './quotePresentation/presentationCopy';
-import { CAPABILITIES, decideCapability } from '../../supabase/functions/_shared/subscriptionContract.ts';
-import './servicesCatalog.css';
-
-const CATALOG_IMAGE_CAPABILITY = 'catalog_product_image.upload';
+import { useState } from 'react';
+import { Package, PackagePlus, Pencil, Trash2, Save, X, Search } from 'lucide-react';
+import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from './../theme/neonTheme';
 
 // PRODUCT_TRUTH_CAPABILITY: catalog
 export default function ServicesCatalog({
@@ -28,15 +21,7 @@ export default function ServicesCatalog({
   handleSaveEditedService,
   handleDeleteService,
   sym,
-  formatMoneyDisplay,
-  // Task 16: presentation controller (catalog images). Absent => no image controls.
-  presentationController = null,
-  // OD-17/OD-18 (subscriptions cross-cut): catalog product image gate. The parent passes the account-summary object
-  // (useAccountSummary().summary, or undefined), the account's pre-existing legacy capabilities as explicit booleans
-  // (e.g. { 'catalog_product_image.upload': true }) and opens CapabilityUpgradeNotice through onLockedCapability.
-  accountSummary,
-  legacyCapabilities,
-  onLockedCapability,
+  formatMoneyDisplay
 }) {
   // חוק ברזל: החיפוש הוא סינון client-side בלבד על הנתונים שכבר נטענו
   // (services), ללא כל פנייה נוספת למסד הנתונים ובלי לשנות סכימה. מודל
@@ -56,64 +41,11 @@ export default function ServicesCatalog({
   // אחד. state מקומי טהור לפתיחה/סגירה - handleAddService (הקיים) עדיין
   // מבצע את היצירה בפועל; רק העטיפה החזותית סביבו השתנתה.
   const [showAddForm, setShowAddForm] = useState(false);
-  // Task 16: which catalog row has its image controls open (UI-only)
-  const [imageRowId, setImageRowId] = useState(null);
-  // OD-18: which row shows the local "not included" explanation (only when no parent notice handler exists)
-  const [lockedRowId, setLockedRowId] = useState(null);
-  const lastKeyActivation = useRef(0);
-  const pcopy = presentationCopy(isHebrew ? 'he' : 'en');
-  const lang = isHebrew ? 'he' : 'en';
-  const dir = isHebrew ? 'rtl' : 'ltr';
-
-  // OD-17/OD-18: one decision rule (shared contract). Locked => the image action stays visible and focusable, but it never
-  // opens the image controls, never opens a file picker and never calls an upload/link function.
-  const imageDecision = decideCapability(accountSummary, CATALOG_IMAGE_CAPABILITY, legacyCapabilities?.[CATALOG_IMAGE_CAPABILITY]);
-  const imageAllowed = imageDecision.allowed === true;
-  const imageCapability = CAPABILITIES[CATALOG_IMAGE_CAPABILITY];
-
-  const activateImageAction = (svc) => {
-    if (!imageAllowed) {
-      setImageRowId(null);
-      if (typeof onLockedCapability === 'function') onLockedCapability(CATALOG_IMAGE_CAPABILITY);
-      else setLockedRowId((cur) => (cur === svc.id ? null : svc.id));
-      return;
-    }
-    setImageRowId((cur) => (cur === svc.id ? null : svc.id));
-  };
-  // Enter/Space are handled explicitly (deterministic, one activation); a keyboard-synthesized click that may follow a
-  // handled key press (detail 0, same gesture) is ignored, while assistive-technology clicks without a key press still work.
-  const onImageKeyDown = (e, svc) => {
-    if (e.key !== 'Enter' && e.key !== ' ' && e.key !== 'Spacebar') return;
-    e.preventDefault();
-    lastKeyActivation.current = Date.now();
-    activateImageAction(svc);
-  };
-  const onImageClick = (e, svc) => {
-    if (e.detail === 0 && Date.now() - lastKeyActivation.current < 500) return;
-    activateImageAction(svc);
-  };
 
   const handleAddSubmit = (e) => {
     e.preventDefault();
     handleAddService(e);
     setShowAddForm(false);
-  };
-
-  // Theme tokens for the scoped catalog stylesheet (servicesCatalog.css) - the catalog region only, no global reskin.
-  const catalogVars = {
-    '--svc-border': NEON.border,
-    '--svc-border-strong': NEON.borderStrong,
-    '--svc-text': NEON.textPrimary,
-    '--svc-text-secondary': NEON.textSecondary,
-    '--svc-muted': NEON.textMuted,
-    '--svc-price': NEON.violetLight,
-    '--svc-accent': NEON.violetLight,
-    '--svc-accent-bg': NEON.violetLighter,
-    '--svc-btn-bg': NEON.bgCardAlt,
-    '--svc-input-bg': NEON.bgInput,
-    '--svc-danger': NEON.red,
-    '--svc-save': NEON.emeraldDark,
-    '--svc-focus': NEON.violet,
   };
 
   return (
@@ -195,9 +127,9 @@ export default function ServicesCatalog({
         </form>
       )}
 
-      {/* חוק ברזל (§H4/§H5): ניהול-פריטים-קיימים ברשימה נקייה מתחת; מצב-ריק
-          מכוון (לא רק שורת-טקסט בתוך רשימה ריקה) כשאין פריטים כלל; רשימה
-          קצרה לא נמתחת באופן מלאכותי. */}
+      {/* חוק ברזל (§H4/§H5): ניהול-פריטים-קיימים בטבלה נקייה מתחת; מצב-ריק
+          מכוון (לא רק שורת-טקסט בתוך טבלה ריקה) כשאין פריטים כלל; רשימה
+          קצרה לא נמתחת באופן מלאכותי (הטבלה עצמה ממילא לא כופה גובה). */}
       {filteredServices.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '32px 16px', color: NEON.textMuted, fontSize: '0.85rem', border: `1px dashed ${NEON.border}`, borderRadius: RADIUS.sm }}>
           <Package size={28} color={NEON.textMuted} strokeWidth={1.5} style={{ marginBottom: '8px', opacity: 0.6 }} />
@@ -209,153 +141,107 @@ export default function ServicesCatalog({
         </div>
       ) : (
         <>
-        {/* OD-19 compact catalog: ONE deterministic CSS grid (servicesCatalog.css) shared by the static column header and
-            every row - description | price (tabular numerals, end-aligned on one axis) | one consolidated actions area
-            (44x44 targets). The header is visual only; every row carries its own accessible names. */}
         <div className="pf-head-gutter">
-          <div className="svc-cat-cq" dir={dir} style={catalogVars}>
-            <div className="svc-cat-grid svc-cat-head" aria-hidden="true">
-              <span className="svc-cat-desc">{t.description}</span>
-              <span className="svc-cat-price">{t.defaultPrice}</span>
-              <span className="svc-cat-actions">{t.actions}</span>
+          <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: 'min(320px, 100%)' }}>
+          <colgroup><col /><col style={{ width: '110px' }} /><col style={{ width: '150px' }} /></colgroup>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${NEON.border}`, color: NEON.textSecondary, fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                <th style={{ padding: '6px' }}>{t.description}</th>
+                <th style={{ padding: '6px' }}>{t.defaultPrice}</th>
+                <th style={{ padding: '6px' }}>{t.actions}</th>
+              </tr>
+            </thead>
+            </table>
             </div>
-          </div>
-        </div>
-        <div className="pf-screen-body pf-screen-body--track">
-          <ul className="svc-cat-list svc-cat-cq" dir={dir} style={catalogVars} aria-label={isHebrew ? 'פריטי הקטלוג' : 'Catalog items'} data-testid="catalog-list">
-            {filteredServices.map((svc) => {
-              const isEditingThisSvc = editingServiceId === svc.id;
-              const hasImage = !!(presentationController && catalogLinkFor(presentationController.context.catalog, svc.id));
-              const name = svc.name || '';
-              const note = typeof svc.description === 'string' && svc.description.trim() ? svc.description.trim() : null;
-              const imageLabel = imageAllowed
-                ? pcopy.catalogImageTitle(name)
-                : `${pcopy.catalogImageTitle(name)} (${isHebrew ? 'לא כלול' : 'not included'})`;
-              return (
-                <li key={svc.id} className="svc-cat-item" data-testid={`catalog-row-${svc.id}`}>
-                  <div className="svc-cat-grid svc-cat-row">
-                    <div className="svc-cat-desc">
+            <div className="pf-screen-body pf-screen-body--track">
+            <table style={{ width: '100%', tableLayout: 'fixed', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: 'min(320px, 100%)' }}>
+            <colgroup><col /><col style={{ width: '110px' }} /><col style={{ width: '150px' }} /></colgroup>
+            <tbody>
+              {filteredServices.map((svc) => {
+                const isEditingThisSvc = editingServiceId === svc.id;
+                return (
+                  <tr key={svc.id} style={{ borderBottom: `1px solid ${NEON.border}`, fontSize: '0.8rem' }}>
+                    <td style={{ padding: '8px 6px', fontWeight: '400', color: NEON.textPrimary }}>
                       {isEditingThisSvc ? (
                         <input
                           type="text"
-                          className="svc-cat-input"
-                          aria-label={t.serviceName}
                           value={editServiceName}
                           onChange={(e) => setEditServiceName(e.target.value)}
+                          style={{ padding: '4px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', width: '100%', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
                         />
                       ) : (
-                        <>
-                          <span className="svc-cat-name" dir="auto">{name}</span>
-                          {note && <span className="svc-cat-note" dir="auto">{note}</span>}
-                        </>
+                        svc.name
                       )}
-                    </div>
-                    <div className="svc-cat-price">
+                    </td>
+                    <td style={{ padding: '8px 6px', color: NEON.violetLight, fontWeight: '400' }}>
                       {isEditingThisSvc ? (
                         <input
                           type="number"
                           step="0.01"
-                          className="svc-cat-input svc-cat-input--price"
-                          aria-label={t.defaultPrice}
                           value={editServicePrice}
                           onChange={(e) => setEditServicePrice(e.target.value)}
+                          style={{ padding: '4px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', width: '100px', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
                         />
                       ) : (
-                        <>
-                          <span className="sr-only">{t.defaultPrice}: </span>
-                          <span className="svc-cat-money" dir="ltr" data-testid={`catalog-price-${svc.id}`}>{`${sym}${formatMoneyDisplay(svc.price)}`}</span>
-                        </>
+                        `${sym}${formatMoneyDisplay(svc.price)}`
                       )}
-                    </div>
-                    <div className="svc-cat-actions" role="group" aria-label={isHebrew ? `פעולות עבור ${name}` : `Actions for ${name}`}>
+                    </td>
+                    <td className="pf-cat-actions" style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
                       {isEditingThisSvc ? (
                         <>
                           {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
                           <button
-                            type="button"
-                            className="svc-cat-btn svc-cat-btn--save"
-                            aria-label={isHebrew ? `שמור את ${name}` : `Save ${name}`}
-                            title={isHebrew ? 'שמור' : 'Save'}
                             onClick={() => handleSaveEditedService(svc.id)}
+                            style={{ background: NEON.emeraldDark, color: 'white', border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                           >
-                            <Save size={18} strokeWidth={2.4} aria-hidden="true" />
+                            <Save size={11} strokeWidth={2.5} />
+                            {isHebrew ? 'שמור' : 'Save'}
                           </button>
                           {/* PRODUCT_TRUTH_DECORATIVE: cancels an in-progress inline edit of a catalog row without saving */}
                           <button
-                            type="button"
-                            className="svc-cat-btn"
-                            aria-label={isHebrew ? `בטל עריכה של ${name}` : `Cancel editing ${name}`}
-                            title={isHebrew ? 'ביטול' : 'Cancel'}
                             onClick={() => setEditingServiceId(null)}
+                            style={{ background: 'rgba(255,255,255,0.06)', color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                           >
-                            <X size={18} strokeWidth={2.4} aria-hidden="true" />
+                            <X size={11} strokeWidth={2.5} />
+                            {isHebrew ? 'ביטול' : 'Cancel'}
                           </button>
                         </>
                       ) : (
                         <>
                           {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
                           <button
-                            type="button"
-                            className="svc-cat-btn"
-                            aria-label={isHebrew ? `ערוך את ${name}` : `Edit ${name}`}
-                            title={isHebrew ? 'ערוך' : 'Edit'}
-                            data-testid={`catalog-edit-${svc.id}`}
                             onClick={() => {
                               setEditingServiceId(svc.id);
                               setEditServiceName(svc.name);
                               setEditServicePrice(svc.price);
                             }}
+                            style={{ background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                           >
-                            <Pencil size={18} strokeWidth={2.4} aria-hidden="true" />
+                            <Pencil size={11} strokeWidth={2.5} />
+                            {isHebrew ? 'ערוך' : 'Edit'}
                           </button>
-                          {/* חוק ברזל (§K): תווית נקודתית-לקטלוג ("מחק פריט"/"Delete item"), לא t.delete הגלובלי. */}
+                          {/* חוק ברזל (§K - Shared Design-Language Check, real
+                              defect found+fixed): title היה t.delete הגלובלי
+                              ("מחק הצעה"/"Delete Quote") - אותה תקלה כמו זו
+                              שכבר תוקנה ב-ClientsTab.jsx, כאן על פריט-קטלוג.
+                              תוקן לתווית נקודתית-לקטלוג. */}
                           {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
                           <button
-                            type="button"
-                            className="svc-cat-btn svc-cat-btn--danger"
-                            aria-label={isHebrew ? `מחק פריט: ${name}` : `Delete item: ${name}`}
                             title={isHebrew ? 'מחק פריט' : 'Delete item'}
-                            data-testid={`catalog-delete-${svc.id}`}
                             onClick={() => handleDeleteService(svc.id, svc.name)}
+                            style={{ background: 'rgba(239, 68, 68, 0.15)', color: NEON.red, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '400', fontSize: '0.65rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                           >
-                            <Trash2 size={18} strokeWidth={2.4} aria-hidden="true" />
+                            <Trash2 size={11} strokeWidth={2.5} />
+                            {isHebrew ? 'מחק' : 'Delete'}
                           </button>
-                          {presentationController && (
-                            // PRODUCT_TRUTH_DECORATIVE: shows/hides this catalog row's image controls, or (OD-18, not included) opens the parent's capability notice - the attach/unlink actions inside carry the catalog marker
-                            <button
-                              type="button"
-                              className={`svc-cat-btn${imageAllowed && hasImage ? ' is-active' : ''}${imageAllowed ? '' : ' is-locked'}`}
-                              aria-label={imageLabel}
-                              title={imageLabel}
-                              aria-expanded={imageAllowed ? imageRowId === svc.id : undefined}
-                              aria-haspopup={!imageAllowed && typeof onLockedCapability === 'function' ? 'dialog' : undefined}
-                              data-locked={imageAllowed ? undefined : 'true'}
-                              onKeyDown={(e) => onImageKeyDown(e, svc)}
-                              onClick={(e) => onImageClick(e, svc)}
-                              data-testid={`catalog-image-toggle-${svc.id}`}
-                            >
-                              <ImageIcon size={18} strokeWidth={2.4} aria-hidden="true" />
-                              {!imageAllowed && <Lock className="svc-cat-lock" size={11} strokeWidth={2.6} aria-hidden="true" />}
-                            </button>
-                          )}
                         </>
                       )}
-                    </div>
-                  </div>
-                  {presentationController && imageAllowed && imageRowId === svc.id && (
-                    <div className="svc-cat-panel">
-                      <CatalogMediaControl ctl={presentationController} service={svc} />
-                    </div>
-                  )}
-                  {!imageAllowed && lockedRowId === svc.id && typeof onLockedCapability !== 'function' && (
-                    <p className="svc-cat-locked-msg" role="status" data-testid={`catalog-image-locked-${svc.id}`}>
-                      {`${imageCapability.label[lang]}: ${isHebrew ? 'לא כלול כרגע בחשבון שלך. לא בוצע שום שינוי.' : 'not included in your account right now. Nothing was changed.'}`}
-                    </p>
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
         </>
       )}

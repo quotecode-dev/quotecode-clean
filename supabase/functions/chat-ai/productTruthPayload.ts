@@ -4,7 +4,7 @@
 //
 // Every builder derives the payload ONLY from canonical authority: the capability registry projection
 // (CapabilityAnswerState, itself resolved from AI_FACTS.capabilities), the AI_FACTS billing / invoicing flags, and the
-// SERVER-VERIFIED account facts (plan from the server account summary / market / role - never anything the caller claimed). No builder ever reads, parses
+// SERVER-VERIFIED account facts (tier / market / role - never anything the caller claimed). No builder ever reads, parses
 // or receives generated prose. Every payload is validated (validateProductTruthPayload) before it is returned: a payload
 // that would contradict itself throws - the request fails closed rather than emitting a wrong structured truth.
 import {
@@ -16,14 +16,13 @@ import type { CapabilityFact, CapabilityFacts, NonCurrentCapabilityFact } from "
 import type { BillingFacts } from "./paymentTruth.ts";
 import type { InvoicingFacts } from "./invoicingTruth.ts";
 
-/** The SERVER-VERIFIED account facts a payload is resolved against. `null` everywhere = no verified account (public chat).
- * `plan` is a canonical plan id taken ONLY from a ready server account summary (account-summary/v1); null otherwise. */
+/** The SERVER-VERIFIED account facts a payload is resolved against. `null` everywhere = no verified account (public chat). */
 export type PayloadAccountFacts = {
   readonly market: 'Local' | 'International' | 'Unknown' | null;
-  readonly plan: string | null;
+  readonly tier: string | null;
   readonly isAdmin: boolean | null;
 };
-export const NO_ACCOUNT_FACTS: PayloadAccountFacts = Object.freeze({ market: null, plan: null, isAdmin: null });
+export const NO_ACCOUNT_FACTS: PayloadAccountFacts = Object.freeze({ market: null, tier: null, isAdmin: null });
 
 export class ProductTruthPayloadError extends Error {
   readonly problems: readonly string[];
@@ -37,8 +36,8 @@ export class ProductTruthPayloadError extends Error {
 function mapMarket(m: PayloadAccountFacts['market']): AccountMarket | null {
   return m === 'Local' ? 'LOCAL' : m === 'International' ? 'INTERNATIONAL' : null;
 }
-function mapPlan(plan: string | null): string | null {
-  return plan !== null && (PLAN_TIER_VALUES as readonly string[]).includes(plan) ? plan : null;
+function mapPlan(tier: string | null): string | null {
+  return tier !== null && (PLAN_TIER_VALUES as readonly string[]).includes(tier) ? tier : null;
 }
 function mapRole(isAdmin: boolean | null): string | null {
   return isAdmin === null ? null : isAdmin ? 'super_admin' : 'user';
@@ -49,7 +48,7 @@ function base(acct: PayloadAccountFacts): Base {
   return {
     kind: PRODUCT_TRUTH_PAYLOAD_KIND,
     schemaVersion: PRODUCT_TRUTH_PAYLOAD_SCHEMA_VERSION,
-    accountPlan: mapPlan(acct.plan),
+    accountPlan: mapPlan(acct.tier),
     accountRole: mapRole(acct.isAdmin),
     accountMarket: mapMarket(acct.market),
   };
@@ -101,10 +100,6 @@ export function buildCapabilityFactPayload(state: CapabilityAnswerState, fact: C
     const status: TruthStatus = e === 'DENIED' ? 'ROLE_LOCKED' : 'AVAILABLE';
     const claimScope: ClaimScope = e === 'UNKNOWN' ? 'CAPABILITY' : 'ACCOUNT';
     return seal({ ...common, registryState, truthStatus: status, claimScope, requiredRole: state.roleRestriction.requiredRole, accountEntitlement: e });
-  }
-  if (state.subscriptionGate) {
-    // OPEN-02 / OPEN-13: gated by the subscription system, plan inclusion not decided - a CAPABILITY-scoped claim only.
-    return seal({ ...common, registryState, truthStatus: 'PLAN_NOT_DECIDED', claimScope: 'CAPABILITY' });
   }
   if (state.planRestriction) {
     const e = entitlement(state.planRestriction.accountHasIt);

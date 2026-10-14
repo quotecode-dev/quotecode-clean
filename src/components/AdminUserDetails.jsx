@@ -1,10 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ArrowRight, ArrowLeft, Building2, Globe, CreditCard, Clock, KeyRound } from 'lucide-react';
+import { ArrowRight, ArrowLeft, Building2, Globe, CreditCard, Clock, Infinity as InfinityIcon, KeyRound } from 'lucide-react';
 import { supabase } from '../shared/supabase';
-import { AdminMarketIcon } from './AdminIdentityIcons';
-import { AdminPlanState, AdminLegacyRecord } from './AdminSubscriptionState';
-import { adminTargetUserId, useAdminAccountSummary, planStateText, free10Label, subscriptionStatusLabel } from '../domain/subscriptions/adminAccountSummary';
-import { planName } from '../../supabase/functions/_shared/subscriptionContract.ts';
+import { resolveAccountEntitlement } from '../utils/accountEntitlement';
+import { AdminPackageIcon, AdminMarketIcon } from './AdminIdentityIcons';
 import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
 import { formatShortDateTime } from '../utils/shortDate';
@@ -15,8 +13,6 @@ import { formatShortDateTime } from '../utils/shortDate';
 // stored on the account row, plus a best-effort quote/client count fetched
 // on mount - if that query fails, it shows "unavailable", never a fake 0
 // (Owner-binding rule, §2.3).
-// Plan (OD-16/OD-20): the canonical new-model state comes ONLY from the read-only admin summary RPC; the legacy
-// plan/trial_ends_at/is_lifetime fields are shown only in the labelled "Legacy record (history)" audit section.
 const dateTimeLabel = (value, isHebrew) => value && Number.isFinite(new Date(value).getTime())
   ? formatShortDateTime(value, (isHebrew ? 'Local' : 'International'))
   : (isHebrew ? 'לא זמין' : 'Not available');
@@ -53,9 +49,18 @@ export default function AdminUserDetails({ account, isHebrew, onBack }) {
     return () => { cancelled = true; };
   }, [account.id]);
 
-  const { summary, legacy } = useAdminAccountSummary(adminTargetUserId(account));
+  const resolved = resolveAccountEntitlement({ plan: account.plan, trialEndsAt: account.trial_ends_at, role: account.role, isLifetime: account.is_lifetime });
   const address = parseAddress(account.address);
-  const ready = summary.state === 'ready';
+
+  const trialLine = () => {
+    if (resolved.isLifetime) return isHebrew ? 'Lifetime - ללא תפוגה' : 'Lifetime - no expiry';
+    if (!account.trial_ends_at) return isHebrew ? 'אין ניסיון פעיל' : 'No active trial';
+    const expiry = dateTimeLabel(account.trial_ends_at, isHebrew);
+    if (resolved.trialStatus === 'expired') return isHebrew ? `הניסיון פג ב-${expiry}` : `Trial expired on ${expiry}`;
+    const days = resolved.trialDaysLeft;
+    const daysLabel = days === null ? '' : isHebrew ? ` (${days} ימים נותרו)` : ` (${days} days left)`;
+    return (isHebrew ? `בתוקף עד ${expiry}` : `Active until ${expiry}`) + daysLabel;
+  };
 
   const row = (label, value) => (
     <div className="admin-details-row"><span>{label}</span><span>{value}</span></div>
@@ -93,18 +98,12 @@ export default function AdminUserDetails({ account, isHebrew, onBack }) {
         </section>
 
         <section className="admin-details-card">
-          <h3><CreditCard size={15} />{isHebrew ? 'מסלול' : 'Plan'}</h3>
-          {ready ? (
-            <>
-              {row(isHebrew ? 'מסלול' : 'Plan', planName(summary.planId, isHebrew ? 'he' : 'en'))}
-              {summary.free10 && row(isHebrew ? 'יתרת הצעות חינם' : 'Free quotes balance', free10Label(summary.free10, isHebrew))}
-              {row(isHebrew ? 'סטטוס מנוי' : 'Subscription status', subscriptionStatusLabel(summary.subscriptionStatus, isHebrew))}
-            </>
-          ) : (
-            <p className="admin-plan-neutral" data-testid="admin-plan-neutral" title={planStateText(summary, isHebrew)}>
-              <AdminPlanState summary={summary} isHebrew={isHebrew} />
-            </p>
-          )}
+          <h3><CreditCard size={15} />{isHebrew ? 'חבילה וזכאות' : 'Plan & entitlement'}</h3>
+          {row(isHebrew ? 'חבילה' : 'Plan', <AdminPackageIcon entitlement={resolved} isHebrew={isHebrew} />)}
+          {row(isHebrew ? 'סטטוס ניסיון' : 'Trial status', trialLine())}
+          {row(isHebrew ? 'Lifetime' : 'Lifetime', resolved.isLifetime
+            ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><InfinityIcon size={13} />{isHebrew ? 'פעיל' : 'Active'}</span>
+            : (isHebrew ? 'לא פעיל' : 'Not active'))}
         </section>
 
         <section className="admin-details-card">
@@ -113,8 +112,6 @@ export default function AdminUserDetails({ account, isHebrew, onBack }) {
           {row(isHebrew ? 'מספר לקוחות' : 'Client count', counts.clients === 'loading' ? (isHebrew ? 'טוען...' : 'Loading...') : counts.clients === 'unavailable' ? (isHebrew ? 'לא זמין' : 'Unavailable') : counts.clients)}
         </section>
       </div>
-
-      <AdminLegacyRecord account={account} legacy={legacy} isHebrew={isHebrew} />
 
       <details className="admin-details-advanced">
         <summary><KeyRound size={13} style={{ verticalAlign: 'middle', marginInlineEnd: 6 }} />{isHebrew ? 'מידע תפעולי מתקדם' : 'Advanced operational info'}</summary>

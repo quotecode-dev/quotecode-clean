@@ -16,8 +16,7 @@ import {
   OWNER_PHRASINGS, OWNER_SUBTOPIC_ALLOCATION, PLAN_ROLE_MATRIX_SLOTS, RESULT_SENTINELS, RUNTIME_DEPLOYED_VERSION, RUNTIME_IMPLEMENTATION_SHA,
   RUNTIME_DEPLOYED_UPDATED_AT_UTC, RUNTIME_V32_UPDATED_AT_UTC, RUNTIME_V34_UPDATED_AT_UTC, RUNTIME_V35_UPDATED_AT_UTC, RUNTIME_V36_UPDATED_AT_UTC, RUNTIME_V37_UPDATED_AT_UTC, RUNTIME_V38_UPDATED_AT_UTC, SECURITY_MATRIX_SLOTS, structuredOutcomeOf, SUPPORT_MATRIX_SLOTS, SUPPORT_REQUIRED_CATEGORIES, TEST_PROJECT_REF,
 } from './productTruthFinalMatrixAcceptance.js';
-import { OUTCOME_SENTINELS, deriveExpectedFactPayload } from './productTruthFactPayload.js';
-import { getHistoricalCapabilityById, LEGACY_RULESET_ID } from './productTruthLegacyPlanRules.js';
+import { OUTCOME_SENTINELS } from './productTruthFactPayload.js';
 import { OWNER_MATRIX_EXPECTED_FIXTURE } from './productTruthOwnerMatrixExpectedFixture.js';
 import { PLAN_ROLE_EXPECTED_FIXTURE } from './productTruthPlanRoleExpectedFixture.js';
 import { getCapabilityById } from './productTruthRegistry.js';
@@ -40,32 +39,10 @@ const CATEGORY_UUID = {
 };
 
 /**
- * What the HISTORICAL chat-ai v39 runtime produced for a slot (the evidence these matrices validate was captured from v39, before
- * the subscriptions cutover of 2026-10-07). The prose comes from the runtime's own resolvers; the structured payload and the prose
- * of the then plan-gated capabilities are re-created from the frozen legacy_v39 rules (productTruthLegacyPlanRules.js), because the
- * current runtime intentionally no longer states those plan gates (PLAN_NOT_DECIDED). A free-form (model) slot has no payload.
+ * What the REAL runtime produces for a slot: the prose TOGETHER with its structured `factPayload` - built from the runtime's own
+ * resolvers (canonical authority -> structured truth -> prose), never hand-typed. A free-form (model) slot has no payload.
  */
 function truthFor(key, slot) {
-  const current = currentRuntimeTruthFor(key, slot);
-  if (!current.factPayload) return current;
-  const [market, role] = PERSONA[slot.persona];
-  const serverVerified = { serverPlan: PERSONA_PLAN[slot.persona], serverRole: role, serverMarket: market };
-  const factPayload = deriveExpectedFactPayload({ outcome: structuredOutcomeOf(key, slot), serverVerified, ruleset: LEGACY_RULESET_ID });
-  const cap = getHistoricalCapabilityById(factPayload.capabilityId);
-  if (cap?.authorityType !== 'plan') return { answer: current.answer, factPayload };
-  const he = slot.language === 'he';
-  const name = he ? cap.heLabel : cap.enLabel;
-  const desc = he ? cap.heDescription : cap.enDescription;
-  const min = String(factPayload.minimumPlan).toUpperCase();
-  const answer = factPayload.truthStatus === 'PLAN_LOCKED'
-    ? (he ? `כן - ${name} קיימת ב-TEKANGO, אך דורשת תוכנית ${min} ומעלה. ${desc} התוכנית הנוכחית שלך אינה כוללת אותה.`
-      : `Yes - ${name} exists in TEKANGO, but it requires the ${min} plan or above. ${desc} Your current plan does not include it.`)
-    : (he ? `כן - ${name} קיימת ב-TEKANGO. ${desc}` : `Yes - ${name} exists in TEKANGO. ${desc}`);
-  return { answer, factPayload };
-}
-
-/** What the CURRENT runtime produces for a slot (canonical authority -> structured truth -> prose). */
-function currentRuntimeTruthFor(key, slot) {
   const isHe = slot.language === 'he';
   const [market, role] = PERSONA[slot.persona];
   // the runtime resolves the account tier through accountContext.resolveAccountEntitlement: a super_admin is entitled at the top tier
@@ -552,19 +529,16 @@ describe('ACTION B - EXPECTATION INDEPENDENCE: expected truth comes from a named
 describe('ACTION B - EXPECTATION INDEPENDENCE for entitlements: canonical registry rule x server-verified facts', () => {
   it('the registry derivation reproduces every fixture entitlement for the 13 predeclared plan/role cells', () => {
     for (const s of PLAN_ROLE_MATRIX_SLOTS) {
-      expect(deriveRegistryEntitlement(s.expectedResult, PERSONA_PLAN[s.persona], PERSONA[s.persona][1], LEGACY_RULESET_ID), s.slot).toBe(s.fixtureExpectedEntitlement);
+      expect(deriveRegistryEntitlement(s.expectedResult, PERSONA_PLAN[s.persona], PERSONA[s.persona][1]), s.slot).toBe(s.fixtureExpectedEntitlement);
     }
   });
   it('registry rules: plan-gated by minimumPlan, role-gated by requiredRole, never inferred from plan', () => {
-    expect(deriveRegistryEntitlement('attachments', 'free', 'user', LEGACY_RULESET_ID)).toBe('DENIED');
-    expect(deriveRegistryEntitlement('attachments', 'pro', 'user', LEGACY_RULESET_ID)).toBe('GRANTED');
-    expect(deriveRegistryEntitlement('measured_quote', 'basic', 'user', LEGACY_RULESET_ID)).toBe('GRANTED');
-    expect(deriveRegistryEntitlement('admin_console', 'pro', 'user', LEGACY_RULESET_ID)).toBe('DENIED');
-    expect(deriveRegistryEntitlement('admin_console', 'free', 'super_admin', LEGACY_RULESET_ID)).toBe('GRANTED');
-    expect(deriveRegistryEntitlement('not_a_capability', 'pro', 'user', LEGACY_RULESET_ID)).toBe('UNKNOWN');
-    // current ruleset (subscriptions cutover): no plan inclusion is decided, so no entitlement is derivable from a plan
-    expect(deriveRegistryEntitlement('attachments', 'visual', 'user')).toBe('UNKNOWN');
+    expect(deriveRegistryEntitlement('attachments', 'free', 'user')).toBe('DENIED');
+    expect(deriveRegistryEntitlement('attachments', 'pro', 'user')).toBe('GRANTED');
+    expect(deriveRegistryEntitlement('measured_quote', 'basic', 'user')).toBe('GRANTED');
+    expect(deriveRegistryEntitlement('admin_console', 'pro', 'user')).toBe('DENIED');
     expect(deriveRegistryEntitlement('admin_console', 'free', 'super_admin')).toBe('GRANTED');
+    expect(deriveRegistryEntitlement('not_a_capability', 'pro', 'user')).toBe('UNKNOWN');
   });
   it('a self-consistent but WRONG entitlement pair (expected == resolved, both contradicting registry + server facts) is rejected', () => {
     const slot = PLAN_ROLE_MATRIX_SLOTS.find((s) => s.slot === 'PR-13');

@@ -60,12 +60,6 @@
       ]
     },
     {
-      "source": "/card/:id",
-      "headers": [
-        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
-      ]
-    },
-    {
       "source": "/public-quote/:id",
       "headers": [
         { "key": "X-Robots-Tag", "value": "noindex, nofollow" }

@@ -1,8 +1,3 @@
-// SUBSCRIPTIONS CROSS-CUT (OD-15/OD-16/OD-20, 2026-10-07): LEGACY COMPATIBILITY ONLY. The free/basic/pro/trial/lifetime
-// model below is the pre-cutover record. Its entitlement sets are read only through accountEntitlement.js as the
-// "legacy" input of decideCapability() while the new plan system is not active (no plan is assumed or granted by it).
-// The display labels/visuals here are NOT rendered by any surface any more (badge/settings/admin read the server
-// account summary and the canonical names in supabase/functions/_shared/subscriptionContract.ts). Do not add consumers.
 // חוק ברזל (Admin V2 Foundation — Phase 1, Canonical Plan Catalog):
 // נקודת-אמת יחידה למטא-דאטה של כל חבילה נתמכת (FREE/BASIC/PRO) - שם תצוגה
 // HE/EN, זהות ויזואלית (badge icon/color), הגדרות זכאות/מגבלות. לפני הקובץ

@@ -1,7 +1,12 @@
-import { Globe } from 'lucide-react';
+import { Globe, Leaf, Gem, Crown, Clock, Infinity as InfinityIcon } from 'lucide-react';
+import { getDisplayIdentityLabel, getDisplayIdentityVisual } from '../utils/planCatalog';
 import { resolveAdminMarket } from '../utils/adminMarket';
-// OD-16/OD-20: the legacy package icon (FREE/FREE_TRIAL/BASIC/PRO/LIFETIME identity) was removed - the Admin plan state
-// comes only from the admin summary RPC (AdminSubscriptionState.jsx).
+const icons = { Leaf, Gem, Crown, Clock, Infinity: InfinityIcon };
+export function AdminPackageIcon({ entitlement, isHebrew }) {
+  const label = getDisplayIdentityLabel(entitlement.displayIdentity, isHebrew);
+  const Icon = icons[getDisplayIdentityVisual(entitlement.displayIdentity).icon] || Leaf;
+  return <span role="img" aria-label={label} title={label} className={`admin-badge admin-plan-${entitlement.displayIdentity.toLowerCase()}`}><Icon size={18} aria-hidden="true" /></span>;
+}
 export function AdminMarketIcon({ account, isHebrew }) {
   const { market, countryCode } = resolveAdminMarket(account);
   const label = countryCode ? new Intl.DisplayNames([isHebrew ? 'he' : 'en'], { type: 'region' }).of(countryCode) : isHebrew ? 'מדינה לא ידועה' : 'Country unknown';

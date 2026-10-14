@@ -17,10 +17,11 @@ export const PROTECTED_LOCAL_MONEY_FILES = [
   'src/components/ServicesCatalog.jsx', 'src/components/AddItemWizard.jsx', 'src/pages/PublicQuote.jsx',
   'src/pages/ProfessionalPublicPreview.jsx', 'src/components/CustomerQuoteItemRow.jsx',
   'src/components/ProfessionalItemComparisonCard.jsx', 'src/pages/Dashboard.jsx',
-  // Task 17: the Statistics screen renders quote amounts and per-currency value totals
-  'src/components/StatisticsTab.jsx',
-  // Task 16 - Quote Experience V2 document surfaces (the sample route renders the real ILS document).
-  'src/pages/SampleQuote.jsx', 'src/components/PublicQuoteHeader.jsx', 'src/quoteDocument/sampleQuotes.js',
+  // Task 39 release line: every other shipped source that renders a ₪ amount through a formatter - the landing package prices, the
+  // landing sample quote, the plans window model, the quote-form divided units and the calculator (found by scanning src for ₪ +
+  // a formatter call; files without a rendered ₪ amount are deliberately NOT listed).
+  'src/components/landing/landingPackageFacts.js', 'src/components/landing/landingQuoteModel.js', 'src/pages/LandingLocal.jsx',
+  'src/domain/subscriptions/pricingModalModel.js', 'src/components/DividedQuoteUnits.jsx', 'src/components/DraggableCalculator.jsx',
 ];
 
 // A money expression = currency symbol token immediately followed by a full-precision formatter call.
@@ -86,7 +87,7 @@ describe('IRON-ILS-001 static gate: protected Local money surfaces have no forma
   });
 
   // 2026-10-09 independent review: an injected exact-cent formatter (Dashboard formatExactMoney -> QuotesTab listMoney) rendered
-  // non-zero agorot on the HE/Local quote rows + overview, and the rules above missed it (`text={listMoney(...)}` matched none).
+  // non-zero agorot on the HE/Local quote rows, and the rules above missed it (`text={listMoney(...)}` matched none).
   it('Dashboard/QuotesTab carry no exact-cent bypass (formatExactMoney, listMoney, injected list formatter)', () => {
     for (const file of ['src/pages/Dashboard.jsx', 'src/components/QuotesTab.jsx']) {
       const src = read(file);
@@ -104,21 +105,21 @@ describe('IRON-ILS-001 static gate: protected Local money surfaces have no forma
     expect(call.match(/\b\w*(?:Money|money)\w*=/g)).toEqual(['formatMoneyDisplay=']);
   });
 
-  it('every QuotesTab amount (rows, overview, cards, Quote History) goes through formatMoneyDisplay / formatMoneyForCurrency', () => {
+  it('every QuotesTab amount (overview, Quote History table, cards, measured geometry text) goes through formatMoneyDisplay keyed on the quote currency', () => {
     const q = read('src/components/QuotesTab.jsx');
     const texts = [...q.matchAll(/<MoneyValue[\s\S]*?text=\{([^}]*)\}/g)].map((m) => m[1].trim());
-    // EXACT surface set (stricter than a minimum count): rows, Quote History table, Quote History cards; the 4th surface - the
-    // overview total - renders through CurrencyTotals (asserted below), one canonical token per persisted currency
-    expect(texts).toEqual(['amountText', 'formatMoneyDisplay(quote.total, quote.currency)', 'formatMoneyDisplay(quote.total, quote.currency)']);
-    const canonicalIdentifiers = [...q.matchAll(/const (\w+) = formatMoneyDisplay\(/g)].map((m) => m[1]);
-    for (const t of texts) expect(t.startsWith('formatMoneyDisplay(') || canonicalIdentifiers.includes(t), t).toBe(true);
-    // overview total: per persisted currency (IRON-MARKET-004), each token through formatMoneyDisplay(total, ITS currency)
+    // EXACT surface set of the release list (stricter than a minimum count): the Quote History table row and the card; the overview
+    // total renders through CurrencyTotals (asserted below), one canonical token per persisted currency
+    expect(texts).toEqual(['amountText', 'formatMoneyDisplay(quote.total, quote.currency)']);
     expect(q).toMatch(/<CurrencyTotals className="quote-overview-value"[^>]*formatMoneyDisplay=\{formatMoneyDisplay\}/);
     expect(read('src/components/NumericValue.jsx')).toMatch(/text=\{formatMoneyDisplay\(g\.total, g\.currency\)\}/);
+    const canonicalIdentifiers = [...q.matchAll(/const (\w+) = formatMoneyDisplay\(/g)].map((m) => m[1]);
+    for (const t of texts) expect(t.startsWith('formatMoneyDisplay(') || canonicalIdentifiers.includes(t), t).toBe(true);
     expect(q).toMatch(/const amountText = formatMoneyDisplay\(quote\.total, quote\.currency\);/);
     expect(q).toMatch(/text=\{amountText\}/);
-    // the is-long geometry decision uses the same canonical text, never a second formatter
-    expect(q).toMatch(/\(quoteSym \+ amountText\)\.length >= 13/);
+    // the slot-geometry measurement uses the SAME canonical text as the rendered row, never a second formatter
+    expect(q).toMatch(/const moneyTexts = rowsMeta\.map\(\(\{ quote, quoteSym \}\) => `\$\{quoteSym\}\$\{formatMoneyDisplay\(quote\.total, quote\.currency\)\}`\);/);
+    expect(q).not.toMatch(/\boverviewTotal\b/);
   });
 
   it('no test expects non-zero agorot for a ₪ amount (a test may never legitimize an IRON-ILS-001 violation)', () => {

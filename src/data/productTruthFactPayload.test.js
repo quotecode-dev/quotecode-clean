@@ -21,10 +21,6 @@ import {
 import { FINAL_MATRIX_DEFINITIONS, structuredOutcomeOf } from './productTruthFinalMatrixAcceptance.js';
 import { validateFinalMatrix } from './productTruthEvidenceSchema.js';
 import { PRODUCT_TRUTH_REGISTRY } from './productTruthRegistry.js';
-import { LEGACY_RULESET_ID } from './productTruthLegacyPlanRules.js';
-// Subscriptions cutover: sections A-C judge the CURRENT runtime (canonical plan ids from the server summary; subscription-gated
-// capabilities are PLAN_NOT_DECIDED). Section D judges the committed HISTORICAL v39 capture under the legacy_v39 ruleset.
-const LEGACY = { allowLegacyPlanValues: true };
 
 const FACTS = { capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities };
 const clone = (x) => JSON.parse(JSON.stringify(x));
@@ -32,9 +28,9 @@ const clone = (x) => JSON.parse(JSON.stringify(x));
 // ---------------------------------------------------------------------------------------------------------------------
 describe('A. the canonical derivation (registry + AI_FACTS + server facts) equals the runtime payload', () => {
   const PERSONAS = [];
-  for (const plan of ['free', 'classic', 'modern', 'visual']) for (const role of ['user', 'super_admin']) for (const market of ['Local', 'International']) PERSONAS.push({ plan, role, market });
-  // the runtime's account plan is the canonical plan id of the server account summary - no role ever changes it
-  const runtimeTier = (p) => p.plan;
+  for (const plan of ['free', 'basic', 'pro']) for (const role of ['user', 'super_admin']) for (const market of ['Local', 'International']) PERSONAS.push({ plan, role, market });
+  // the runtime resolves the account tier through accountContext.resolveAccountEntitlement: a super_admin is entitled at the top tier
+  const runtimeTier = (p) => (p.role === 'super_admin' ? 'pro' : p.plan);
 
   it('every registry capability (+ the non-current ones) x 12 verified accounts: payloads are IDENTICAL', () => {
     let n = 0;
@@ -49,18 +45,18 @@ describe('A. the canonical derivation (registry + AI_FACTS + server facts) equal
         n += 1;
       }
     }
-    expect(n).toBeGreaterThanOrEqual(38 * 16);
+    expect(n).toBeGreaterThanOrEqual(38 * 12);
   });
 
   it('the sentinels: payment / invoicing / comparison / lifecycle / account market / clarification are identical too', () => {
     for (const p of PERSONAS) {
-      const acct = { market: p.market, plan: runtimeTier(p), isAdmin: p.role === 'super_admin' };
+      const acct = { market: p.market, tier: runtimeTier(p), isAdmin: p.role === 'super_admin' };
       const sv = { serverPlan: p.plan, serverRole: p.role, serverMarket: p.market };
       const pairs = [
         [OUTCOME_SENTINELS.PAYMENT, resolvePaymentTruthResponse(true, AI_FACTS.billing, acct).factPayload],
         [OUTCOME_SENTINELS.INVOICING, resolveInvoicingTruthResponse(true, AI_FACTS.invoicing, acct).factPayload],
-        [OUTCOME_SENTINELS.COMPARISON, resolveCapabilityTruthResponse('quote_pdf_vs_print_comparison', FACTS, true, acct.plan, acct.isAdmin, p.market).factPayload],
-        [OUTCOME_SENTINELS.LIFECYCLE, resolveCapabilityTruthResponse('account_lifecycle_not_self_service', FACTS, true, acct.plan, acct.isAdmin, p.market).factPayload],
+        [OUTCOME_SENTINELS.COMPARISON, resolveCapabilityTruthResponse('quote_pdf_vs_print_comparison', FACTS, true, acct.tier, acct.isAdmin, p.market).factPayload],
+        [OUTCOME_SENTINELS.LIFECYCLE, resolveCapabilityTruthResponse('account_lifecycle_not_self_service', FACTS, true, acct.tier, acct.isAdmin, p.market).factPayload],
         [OUTCOME_SENTINELS.ACCOUNT_MARKET, buildAccountMarketFactPayload(acct)],
         [OUTCOME_SENTINELS.CLARIFICATION, resolveBroadCapabilityClarification(true, acct).factPayload],
       ];
@@ -73,10 +69,7 @@ describe('A. the canonical derivation (registry + AI_FACTS + server facts) equal
   it('a free-form answer has no expected payload; an unknown outcome is not derivable (fail closed)', () => {
     expect(deriveExpectedFactPayload({ outcome: OUTCOME_SENTINELS.NO_STRUCTURED_CLAIM, serverVerified: {} })).toBeNull();
     expect(deriveExpectedFactPayload({ outcome: 'not_a_capability', serverVerified: { serverPlan: 'pro', serverRole: 'user', serverMarket: 'Local' } })).toHaveProperty('problem');
-    // legacy_v39: no verified plan -> underivable, never guessed
-    expect(deriveExpectedFactPayload({ outcome: 'attachments', serverVerified: {}, ruleset: LEGACY_RULESET_ID })).toHaveProperty('problem');
-    // current: plan inclusion is not decided, so no plan fact is needed (and none is asserted)
-    expect(deriveExpectedFactPayload({ outcome: 'attachments', serverVerified: {} })).toMatchObject({ truthStatus: 'PLAN_NOT_DECIDED', claimScope: 'CAPABILITY', minimumPlan: null, accountPlan: null, accountEntitlement: 'NOT_APPLICABLE' });
+    expect(deriveExpectedFactPayload({ outcome: 'attachments', serverVerified: {} })).toHaveProperty('problem'); // no verified plan -> underivable, never guessed
     expect(isKnownOutcome('attachments')).toBe(true);
     expect(isKnownOutcome('nonsense')).toBe(false);
   });
@@ -88,9 +81,9 @@ describe('B. every real runtime answer is consistent with its own payload (secon
     let n = 0;
     const bad = [];
     for (const cap of [...PRODUCT_TRUTH_REGISTRY, ...AI_FACTS.nonCurrentCapabilities.filter((c) => c.state)]) {
-      for (const tier of ['free', 'classic', 'modern', 'visual']) for (const isAdmin of [false, true]) for (const he of [true, false]) {
+      for (const tier of ['free', 'basic', 'pro']) for (const isAdmin of [false, true]) for (const he of [true, false]) {
         const market = he ? 'Local' : 'International'; // market isolation: Hebrew <-> Local, English <-> International
-        const r = resolveCapabilityTruthResponse(cap.id, FACTS, he, tier, isAdmin, market);
+        const r = resolveCapabilityTruthResponse(cap.id, FACTS, he, isAdmin ? 'pro' : tier, isAdmin, market);
         const v = checkProseAgainstPayload(r.factPayload, r.answer, he ? 'he' : 'en');
         n += 1;
         if (v.length) bad.push(`${cap.id}/${tier}/${isAdmin}/${he ? 'he' : 'en'}: ${v[0]}`);
@@ -102,11 +95,11 @@ describe('B. every real runtime answer is consistent with its own payload (secon
   it('payment / invoicing / comparison / lifecycle / account-market / clarification prose is consistent with its payload (both markets)', () => {
     const bad = [];
     for (const [market, he] of [['Local', true], ['International', false]]) {
-      const acct = { market, plan: 'visual', isAdmin: false };
+      const acct = { market, tier: 'pro', isAdmin: false };
       const lang = he ? 'he' : 'en';
       const all = [
         resolvePaymentTruthResponse(he, AI_FACTS.billing, acct), resolveInvoicingTruthResponse(he, AI_FACTS.invoicing, acct),
-        resolveCapabilityTruthResponse('quote_pdf_vs_print_comparison', FACTS, he, 'visual', false, market), resolveCapabilityTruthResponse('account_lifecycle_not_self_service', FACTS, he, 'visual', false, market),
+        resolveCapabilityTruthResponse('quote_pdf_vs_print_comparison', FACTS, he, 'pro', false, market), resolveCapabilityTruthResponse('account_lifecycle_not_self_service', FACTS, he, 'pro', false, market),
         { answer: formatAccountMarketAnswer(he, buildAccountMarketFactPayload(acct)), factPayload: buildAccountMarketFactPayload(acct) }, resolveBroadCapabilityClarification(he, acct),
       ];
       for (const r of all) { const v = checkProseAgainstPayload(r.factPayload, r.answer, lang); if (v.length) bad.push(`${r.factPayload.truthStatus}/${lang}: ${v[0]}`); }
@@ -118,8 +111,6 @@ describe('B. every real runtime answer is consistent with its own payload (secon
 // ---------------------------------------------------------------------------------------------------------------------
 describe('C. PROSE CONSISTENCY ATTACKS: prose that contradicts a valid structured payload is rejected (EN + HE)', () => {
   const payloadFor = (outcome, plan, role, market) => deriveExpectedFactPayload({ outcome, serverVerified: { serverPlan: plan, serverRole: role, serverMarket: market } });
-  // historical (legacy_v39) payloads - the plan-gate prose checks still guard the historical evidence
-  const legacyPayloadFor = (outcome, plan, role, market) => ({ ...deriveExpectedFactPayload({ outcome, serverVerified: { serverPlan: plan, serverRole: role, serverMarket: market }, ruleset: LEGACY_RULESET_ID }), _legacy: true });
   const CASES = [
     // [label, payload, language, contradicting prose]
     ['AVAILABLE + "does not have it" (EN)', payloadFor('editor_calculator', 'pro', 'user', 'International'), 'en', 'TEKANGO does not have the in-editor calculator.'],
@@ -138,15 +129,10 @@ describe('C. PROSE CONSISTENCY ATTACKS: prose that contradicts a valid structure
     ['ACCOUNT_MARKET/INTL + names the shekel (EN)', payloadFor(OUTCOME_SENTINELS.ACCOUNT_MARKET, 'pro', 'user', 'International'), 'en', 'Your account is verified as International, so prices are shown in shekels (ILS).'],
     ['ACCOUNT_MARKET/LOCAL + adopts the international market (EN)', payloadFor(OUTCOME_SENTINELS.ACCOUNT_MARKET, 'pro', 'user', 'Local'), 'en', 'Sure - your account is now an international account and prices are shown in dollars.'],
     ['ACCOUNT_MARKET/LOCAL + adopts the international market (HE)', payloadFor(OUTCOME_SENTINELS.ACCOUNT_MARKET, 'pro', 'user', 'Local'), 'he', 'בסדר, החשבון שלך הוא חשבון בינלאומי והמחירים מוצגים בדולרים.'],
-    ['legacy PLAN_LOCKED + "all users can use it" (EN)', legacyPayloadFor('attachments', 'free', 'user', 'International'), 'en', 'File attachments exists in TEKANGO and all users can use it on every plan.'],
-    ['legacy PLAN_LOCKED + "does not exist" (EN)', legacyPayloadFor('attachments', 'free', 'user', 'International'), 'en', 'File attachments does not exist in TEKANGO.'],
-    ['legacy PLAN_LOCKED + wrong tier (EN)', legacyPayloadFor('attachments', 'free', 'user', 'International'), 'en', 'Yes - File attachments exists in TEKANGO, but it requires the BASIC plan or above. Your current plan does not include it.'],
-    ['legacy PLAN_LOCKED + "all users can use it" (HE)', legacyPayloadFor('attachments', 'basic', 'user', 'Local'), 'he', 'כן - צירוף קבצים קיימת ב-TEKANGO וזמינה לכל המשתמשים בכל תוכנית.'],
-    ['PLAN_NOT_DECIDED + a legacy minimum plan (EN)', payloadFor('attachments', 'free', 'user', 'International'), 'en', 'Yes - File attachments exists in TEKANGO, but it requires the PRO plan or above. Your current plan does not include it.'],
-    ['PLAN_NOT_DECIDED + a canonical minimum plan (EN)', payloadFor('attachments', 'visual', 'user', 'International'), 'en', 'Yes - File attachments exists in TEKANGO, but it is included from the Visual plan. Plan inclusion is still undecided.'],
-    ['PLAN_NOT_DECIDED + "all users on every plan" (EN)', payloadFor('attachments', 'free', 'user', 'International'), 'en', 'Yes - File attachments exists in TEKANGO and is available to all users on every plan. Plan inclusion is still undecided.'],
-    ['PLAN_NOT_DECIDED + silent on the undecided inclusion (EN)', payloadFor('measured_quote', 'classic', 'user', 'International'), 'en', 'Yes - Measured professional quote exists in TEKANGO.'],
-    ['PLAN_NOT_DECIDED + "does not exist" (HE)', payloadFor('attachments', 'free', 'user', 'Local'), 'he', 'צירוף קבצים אינו קיים ב-TEKANGO.'],
+    ['PLAN_LOCKED + "all users can use it" (EN)', payloadFor('attachments', 'free', 'user', 'International'), 'en', 'File attachments exists in TEKANGO and all users can use it on every plan.'],
+    ['PLAN_LOCKED + "does not exist" (EN)', payloadFor('attachments', 'free', 'user', 'International'), 'en', 'File attachments does not exist in TEKANGO.'],
+    ['PLAN_LOCKED + wrong tier (EN)', payloadFor('attachments', 'free', 'user', 'International'), 'en', 'Yes - File attachments exists in TEKANGO, but it requires the BASIC plan or above. Your current plan does not include it.'],
+    ['PLAN_LOCKED + "all users can use it" (HE)', payloadFor('attachments', 'basic', 'user', 'Local'), 'he', 'כן - צירוף קבצים קיימת ב-TEKANGO וזמינה לכל המשתמשים בכל תוכנית.'],
     ['ROLE_LOCKED + "every user has access" (EN)', payloadFor('admin_console', 'pro', 'user', 'International'), 'en', 'Yes - Admin console exists in TEKANGO and every user has access.'],
     ['ROLE_LOCKED + "does not exist" (EN)', payloadFor('admin_console', 'pro', 'user', 'International'), 'en', 'The admin console does not exist in TEKANGO.'],
     ['ROLE_LOCKED + "every user has access" (HE)', payloadFor('admin_console', 'pro', 'user', 'Local'), 'he', 'כן - מסך ניהול קיימת ב-TEKANGO וזמינה לכל המשתמשים.'],
@@ -157,11 +143,9 @@ describe('C. PROSE CONSISTENCY ATTACKS: prose that contradicts a valid structure
     ['LIFECYCLE + "you can cancel in settings" (EN)', payloadFor(OUTCOME_SENTINELS.LIFECYCLE, 'free', 'user', 'International'), 'en', 'You can cancel your subscription from Business Settings at any time.'],
     ['CLARIFICATION + a capability claim (EN)', payloadFor(OUTCOME_SENTINELS.CLARIFICATION, 'pro', 'user', 'International'), 'en', 'Yes - TEKANGO has the in-editor calculator.'],
   ];
-  it.each(CASES)('%s is REJECTED', (_label, tagged, lang, prose) => {
-    const { _legacy, ...payload } = tagged;
-    const ruleset = _legacy ? LEGACY_RULESET_ID : undefined;
-    expect(validateProductTruthPayload(payload, _legacy ? LEGACY : {})).toEqual([]);
-    expect(checkProseAgainstPayload(payload, prose, lang, ruleset).length, `${prose}`).toBeGreaterThan(0);
+  it.each(CASES)('%s is REJECTED', (_label, payload, lang, prose) => {
+    expect(validateProductTruthPayload(payload)).toEqual([]);
+    expect(checkProseAgainstPayload(payload, prose, lang).length, `${prose}`).toBeGreaterThan(0);
   });
   it('the honest scoped positives are still accepted (no over-rejection): account-scoped currency statements, entitled plan / role wording', () => {
     const local = payloadFor(OUTCOME_SENTINELS.ACCOUNT_MARKET, 'pro', 'user', 'Local');
@@ -169,8 +153,7 @@ describe('C. PROSE CONSISTENCY ATTACKS: prose that contradicts a valid structure
     expect(checkProseAgainstPayload(local, 'Your account is verified as Local, so prices in your account are shown in Israeli shekels (ILS).', 'en')).toEqual([]);
     expect(checkProseAgainstPayload(local, 'החשבון שלך מאומת בשוק המקומי, ולכן המחירים בחשבון שלך מוצגים בשקלים (₪).', 'he')).toEqual([]);
     expect(checkProseAgainstPayload(intl, "Your account is verified as International, so prices in your account are shown in your account's currency (USD, EUR or GBP).", 'en')).toEqual([]);
-    expect(checkProseAgainstPayload(payloadFor('attachments', 'visual', 'user', 'International'), 'Yes - File attachments exists in TEKANGO. Attaching files/drawings to a quote. Plan inclusion for it is still undecided.', 'en')).toEqual([]);
-    expect(checkProseAgainstPayload(payloadFor('attachments', 'free', 'user', 'Local'), 'כן - צירוף קבצים קיימת ב-TEKANGO. אילו מסלולים יכללו אותה - טרם הוחלט.', 'he')).toEqual([]);
+    expect(checkProseAgainstPayload(payloadFor('attachments', 'pro', 'user', 'International'), 'Yes - File attachments exists in TEKANGO. Attaching files/drawings to a quote.', 'en')).toEqual([]);
     expect(checkProseAgainstPayload(payloadFor('admin_console', 'free', 'super_admin', 'Local'), 'כן - מסך ניהול קיימת ב-TEKANGO וההרשאה שלך מאומתת.', 'he')).toEqual([]);
   });
 });
@@ -217,7 +200,7 @@ describe('D. the committed v39 evidence is valid, and the gate is driven by the 
       for (const s of withPayload(key)) {
         const e = RAW.matrices[key].find((x) => x.slot === s.slot);
         expect(e.answerSource, s.slot).toBe('deterministic');
-        expect(validateProductTruthPayload(e.factPayload, LEGACY), s.slot).toEqual([]);
+        expect(validateProductTruthPayload(e.factPayload), s.slot).toEqual([]);
       }
       for (const s of withoutPayload(key)) expect(RAW.matrices[key].find((x) => x.slot === s.slot).factPayload, s.slot).toBeNull();
     }
@@ -375,7 +358,7 @@ describe('F. architecture guards: acceptance derives its expectation from canoni
   const src = readFileSync('src/data/productTruthFactPayload.js', 'utf-8');
   const code = src.split('\n').filter((l) => !/^\s*(\/\/|\*|\/\*)/.test(l)).join('\n');
   it('deriveExpectedFactPayload takes no response / prose argument', () => {
-    expect(code).toMatch(/export function deriveExpectedFactPayload\(\{ outcome, serverVerified, ruleset = CURRENT_RULESET_ID \}\)/);
+    expect(code).toMatch(/export function deriveExpectedFactPayload\(\{ outcome, serverVerified \}\)/);
     expect(code.slice(code.indexOf('export function deriveExpectedFactPayload'), code.indexOf('function capMarketScope'))).not.toMatch(/response|prose|answer|analyzeCapabilityProse|extractClaims/);
   });
   it('it does not import any runtime payload builder or prose formatter (an independent second implementation)', () => {
@@ -384,15 +367,13 @@ describe('F. architecture guards: acceptance derives its expectation from canoni
   it('the row validator resolves the expected structured outcome from the static slot definition (structuredOutcomeOf), never from the row', () => {
     const schema = readFileSync('src/data/productTruthEvidenceSchema.js', 'utf-8');
     expect(schema).toMatch(/const outcome = structuredOutcomeOf\(key, slot\);/);
-    expect(schema).toMatch(/checkFactPayloadAgainstCanonical\(row\.factPayload, outcome, row\.serverVerified, EVIDENCE_RULESET\)/);
-    // historical evidence is judged under the legacy_v39 ruleset (the rules in force when it was captured)
-    expect(schema).toMatch(/const EVIDENCE_RULESET = LEGACY_RULESET_ID;/);
+    expect(schema).toMatch(/checkFactPayloadAgainstCanonical\(row\.factPayload, outcome, row\.serverVerified\)/);
     // the prose check only runs AFTER the structured check passed, and is fed the payload - not the reverse
-    expect(schema).toMatch(/if \(structured\.length === 0\) semantic\.push\(\.\.\.checkProseAgainstPayload\(row\.factPayload, response, slot\.language, EVIDENCE_RULESET\)\);/);
+    expect(schema).toMatch(/if \(structured\.length === 0\) semantic\.push\(\.\.\.checkProseAgainstPayload\(row\.factPayload, response, slot\.language\)\);/);
     expect(schema).not.toMatch(/deriveExpectedCapabilityTruth|checkCapabilityPolarity/);
   });
   it('payloadToTruth is built FROM the payload and maps every truth status that has a prose meaning', () => {
-    for (const status of ['AVAILABLE', 'NOT_AVAILABLE', 'PLAN_LOCKED', 'PLAN_NOT_DECIDED', 'ROLE_LOCKED', 'MARKET_UNAVAILABLE', 'PAYMENT_NOT_LIVE', 'INVOICING_NOT_ISSUED', 'COMPARISON', 'CLARIFICATION']) {
+    for (const status of ['AVAILABLE', 'NOT_AVAILABLE', 'PLAN_LOCKED', 'ROLE_LOCKED', 'MARKET_UNAVAILABLE', 'PAYMENT_NOT_LIVE', 'INVOICING_NOT_ISSUED', 'COMPARISON', 'CLARIFICATION']) {
       expect(payloadToTruth({ truthStatus: status, capabilityId: 'x', minimumPlan: null, requiredRole: null }).kind).not.toBe('UNDERIVABLE');
     }
     expect(payloadToTruth({ truthStatus: 'UNKNOWN', capabilityId: null, minimumPlan: null, requiredRole: null }).kind).toBe('UNDERIVABLE');

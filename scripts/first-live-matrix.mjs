@@ -93,7 +93,7 @@ try {
         await page.goto(`${BASE}/?lang=${lang}`, { waitUntil: 'domcontentloaded', timeout: 90000 });
         await page.waitForTimeout(1500);
         const body = await page.evaluate(() => document.body.innerText);
-        const truth = lang === 'he' ? (body.includes('עוזר חכם שמלווה אתכם בעבודה') && body.includes('עוזר ה-AI של TEKANGO')) : body.includes('AI Assistant Inside Your Workflow');
+        const truth = lang === 'he' ? body.includes('עוזר AI בתוך העבודה') : body.includes('AI Assistant Inside Your Workflow');
         const noCheckout = lang === 'he' ? body.includes('אינם זמינים כרגע') : body.includes('not currently available');
         const publicChat = await page.locator('.ai-support-btn:visible, [aria-label="AI Chat"]:visible, [aria-label="צאט AI"]:visible').count() > 0;
         record(lang, 'landing', vp, !(await hOverflow(page)) && truth && noCheckout, { overflowX: await hOverflow(page), aiFeatureCopy: truth, paidUnavailableCopy: noCheckout });

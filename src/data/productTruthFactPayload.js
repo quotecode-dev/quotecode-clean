@@ -14,8 +14,7 @@
 //        (productTruthCapabilityPolarity.js / productTruthScopeClaims.js) is now a defence-in-depth consistency check, not the
 //        authority: a missing / wrong payload fails the cell no matter what the prose says, and prose can never rescue it.
 import { getCapabilityById, PRODUCT_TRUTH_REGISTRY } from './productTruthRegistry.js';
-import { capabilityForRuleset, LEGACY_PLAN_IDS, LEGACY_RULESET_ID, CURRENT_RULESET_ID } from './productTruthLegacyPlanRules.js';
-import { PLAN_IDS as CANONICAL_PLAN_IDS } from '../../supabase/functions/_shared/subscriptionContract.ts';
+import { PLAN_IDS } from '../utils/planCatalog.js';
 import { AI_FACTS } from '../../supabase/functions/chat-ai/aiFacts.generated.ts';
 import {
   PRODUCT_TRUTH_PAYLOAD_KEYS, PRODUCT_TRUTH_PAYLOAD_KIND, PRODUCT_TRUTH_PAYLOAD_SCHEMA_VERSION, TRUTH_STATUSES, validateProductTruthPayload,
@@ -39,20 +38,13 @@ export const isKnownOutcome = (o) => Object.values(OUTCOME_SENTINELS).includes(o
 const MARKET_TO_ACCOUNT = Object.freeze({ Local: 'LOCAL', International: 'INTERNATIONAL' });
 const isNonEmpty = (v) => typeof v === 'string' && v.trim().length > 0;
 
-// `accountPlan`:
-//  - ruleset 'current' (subscriptions cutover, OD-20): the canonical plan id of a READY server account summary
-//    (`serverVerified.serverPlan` must be free/classic/modern/visual); no role ever changes it.
-//  - ruleset 'legacy_v39' (historical evidence only): the pre-cutover effective tier rule (`tier = isSuperAdmin ? 'pro' : plan`),
-//    exactly as the v39 runtime applied it when the captures were taken.
-function accountFacts(sv, ruleset = CURRENT_RULESET_ID) {
+// `accountPlan` is the account's EFFECTIVE plan tier under the canonical account-entitlement rule (src/utils/accountEntitlement.js:
+// `tier = isSuperAdmin ? 'pro' : effectivePlan`): a super_admin is entitled at the top tier whatever plan its row says. The persona's
+// server-verified raw plan is therefore mapped through that same rule here - independently of the runtime's port of it.
+function accountFacts(sv) {
+  const rawPlan = PLAN_IDS.includes(sv?.serverPlan) ? sv.serverPlan : null;
   const role = ['user', 'super_admin'].includes(sv?.serverRole) ? sv.serverRole : null;
-  let plan;
-  if (ruleset === LEGACY_RULESET_ID) {
-    const rawPlan = LEGACY_PLAN_IDS.includes(sv?.serverPlan) ? sv.serverPlan : null;
-    plan = role === 'super_admin' ? 'pro' : rawPlan;
-  } else {
-    plan = CANONICAL_PLAN_IDS.includes(sv?.serverPlan) ? sv.serverPlan : null;
-  }
+  const plan = role === 'super_admin' ? 'pro' : rawPlan;
   return { accountPlan: plan, accountRole: role, accountMarket: MARKET_TO_ACCOUNT[sv?.serverMarket] ?? null };
 }
 
@@ -66,11 +58,11 @@ const ordered = (p) => Object.fromEntries(PRODUCT_TRUTH_PAYLOAD_KEYS.map((k) => 
  * The structured truth the CANONICAL authorities dictate for an expected outcome, resolved against a persona's server-verified facts.
  * Independent of the runtime's builders (productTruthPayload.ts): derived here from the frontend registry, AI_FACTS.billing /
  * AI_FACTS.invoicing and the server facts. Returns `null` for no_structured_claim, or `{ problem }` when it cannot be derived.
- * @param {{ outcome: string, serverVerified?: { serverPlan?: string, serverRole?: string, serverMarket?: string }, ruleset?: string }} input
+ * @param {{ outcome: string, serverVerified?: { serverPlan?: string, serverRole?: string, serverMarket?: string } }} input
  */
-export function deriveExpectedFactPayload({ outcome, serverVerified, ruleset = CURRENT_RULESET_ID }) {
+export function deriveExpectedFactPayload({ outcome, serverVerified }) {
   if (outcome === OUTCOME_SENTINELS.NO_STRUCTURED_CLAIM) return null;
-  const acct = accountFacts(serverVerified, ruleset);
+  const acct = accountFacts(serverVerified);
   const base = { ...NEUTRAL, ...acct };
   if (outcome === OUTCOME_SENTINELS.CLARIFICATION) {
     return ordered({ ...base, capabilityId: null, truthStatus: 'CLARIFICATION', claimScope: 'NOT_APPLICABLE', source: 'CLARIFICATION_RULES' });
@@ -94,7 +86,7 @@ export function deriveExpectedFactPayload({ outcome, serverVerified, ruleset = C
     if (!acct.accountMarket) return { problem: 'no server-verified market' };
     return ordered({ ...base, capabilityId: 'account_market', truthStatus: 'ACCOUNT_MARKET', claimScope: 'ACCOUNT', source: 'MARKET_RULES', marketScope: 'ACCOUNT', currencyScope: acct.accountMarket === 'LOCAL' ? 'ILS' : 'MULTI' });
   }
-  const cap = capabilityForRuleset(outcome, ruleset);
+  const cap = getCapabilityById(outcome);
   if (!cap) return { problem: `not a registry capability id or a known outcome sentinel: ${outcome}` };
   const cbase = { ...base, capabilityId: cap.id, source: 'CAPABILITY_REGISTRY', registryState: cap.state, marketScope: capMarketScope(cap) };
   if (cap.state !== 'LIVE_CURRENT') return ordered({ ...cbase, truthStatus: 'NOT_AVAILABLE', claimScope: 'CAPABILITY' });
@@ -103,19 +95,14 @@ export function deriveExpectedFactPayload({ outcome, serverVerified, ruleset = C
   }
   if (cap.authorityType === 'role') {
     if (!isNonEmpty(acct.accountRole)) return { problem: 'role entitlement underivable (no server-verified role)' };
-    const e = deriveRegistryEntitlement(cap.id, serverVerified?.serverPlan, serverVerified?.serverRole, ruleset);
+    const e = deriveRegistryEntitlement(cap.id, serverVerified?.serverPlan, serverVerified?.serverRole);
     if (e === 'UNKNOWN') return { problem: 'role entitlement underivable' };
     return ordered({ ...cbase, truthStatus: e === 'GRANTED' ? 'AVAILABLE' : 'ROLE_LOCKED', claimScope: 'ACCOUNT', requiredRole: cap.requiredRole, accountEntitlement: e });
   }
-  if (cap.authorityType === 'subscription') {
-    // OPEN-02 / OPEN-13: plan inclusion not decided - a capability-scoped claim, no plan, no entitlement.
-    return ordered({ ...cbase, truthStatus: 'PLAN_NOT_DECIDED', claimScope: 'CAPABILITY' });
-  }
   if (cap.authorityType === 'plan') {
-    // legacy_v39 historical view only
     if (!isNonEmpty(acct.accountPlan)) return { problem: 'plan entitlement underivable (no server-verified plan)' };
-    const have = LEGACY_PLAN_IDS.indexOf(acct.accountPlan);
-    const need = LEGACY_PLAN_IDS.indexOf(cap.minimumPlan);
+    const have = PLAN_IDS.indexOf(acct.accountPlan);
+    const need = PLAN_IDS.indexOf(cap.minimumPlan);
     if (have < 0 || need < 0) return { problem: 'plan entitlement underivable' };
     const e = have >= need ? 'GRANTED' : 'DENIED';
     return ordered({ ...cbase, truthStatus: e === 'GRANTED' ? 'AVAILABLE' : 'PLAN_LOCKED', claimScope: 'ACCOUNT', minimumPlan: cap.minimumPlan, accountEntitlement: e });
@@ -145,14 +132,14 @@ function sortKeys(v) {
  * @param {object} serverVerified
  * @returns {string[]} violations, all prefixed `structured:`
  */
-export function checkFactPayloadAgainstCanonical(actual, outcome, serverVerified, ruleset = CURRENT_RULESET_ID) {
-  const expected = deriveExpectedFactPayload({ outcome, serverVerified, ruleset });
+export function checkFactPayloadAgainstCanonical(actual, outcome, serverVerified) {
+  const expected = deriveExpectedFactPayload({ outcome, serverVerified });
   if (expected === null) {
     return actual === null || actual === undefined ? [] : ['structured:unexpected_payload_on_a_free_form_answer'];
   }
   if ('problem' in expected) return [`structured:expected_payload_underivable:${expected.problem}`];
   if (actual === null || actual === undefined) return ['structured:factPayload_missing'];
-  const v = validateProductTruthPayload(actual, { allowLegacyPlanValues: ruleset === LEGACY_RULESET_ID }).map((x) => `structured:invalid:${x}`);
+  const v = validateProductTruthPayload(actual).map((x) => `structured:invalid:${x}`);
   if (v.length) return v;
   for (const k of PRODUCT_TRUTH_PAYLOAD_KEYS) {
     if (canonicalPayloadJson(actual[k]) !== canonicalPayloadJson(expected[k])) v.push(`structured:${k}_differs: runtime ${canonicalPayloadJson(actual[k])}, canonical authority ${canonicalPayloadJson(expected[k])}`);
@@ -165,7 +152,6 @@ export function checkFactPayloadAgainstCanonical(actual, outcome, serverVerified
 
 const STATUS_TO_KIND = Object.freeze({
   AVAILABLE: TRUTH_KINDS.AVAILABLE, NOT_AVAILABLE: TRUTH_KINDS.NOT_AVAILABLE, PLAN_LOCKED: TRUTH_KINDS.PLAN_LOCKED, ROLE_LOCKED: TRUTH_KINDS.ROLE_LOCKED,
-  PLAN_NOT_DECIDED: TRUTH_KINDS.PLAN_NOT_DECIDED,
   MARKET_UNAVAILABLE: TRUTH_KINDS.MARKET_UNAVAILABLE, PAYMENT_NOT_LIVE: TRUTH_KINDS.PAYMENT_NOT_LIVE, INVOICING_NOT_ISSUED: TRUTH_KINDS.INVOICING_NOT_ISSUED,
   COMPARISON: TRUTH_KINDS.COMPARISON_BOTH_AVAILABLE, CLARIFICATION: TRUTH_KINDS.CLARIFICATION,
 });
@@ -176,7 +162,7 @@ export function payloadToTruth(p) {
   if (!kind) return { kind: 'UNDERIVABLE', reason: `no prose-consistency mapping for truth status ${p.truthStatus}` };
   return {
     kind, capabilityId: p.capabilityId ?? undefined, authority: 'structured payload',
-    gate: p.requiredRole !== null ? 'role' : p.minimumPlan !== null ? 'plan' : p.truthStatus === 'PLAN_NOT_DECIDED' ? 'subscription' : null, minimumPlan: p.minimumPlan, requiredRole: p.requiredRole,
+    gate: p.requiredRole !== null ? 'role' : p.minimumPlan !== null ? 'plan' : null, minimumPlan: p.minimumPlan, requiredRole: p.requiredRole,
   };
 }
 
@@ -223,11 +209,11 @@ const LIFECYCLE = Object.freeze({
  * primary check - the prose can never establish or repair structured truth.
  * @returns {string[]} violations, all prefixed `prose:`
  */
-export function checkProseAgainstPayload(payload, response, language, ruleset = CURRENT_RULESET_ID) {
+export function checkProseAgainstPayload(payload, response, language) {
   const v = [];
   const text = String(response ?? '');
   if (!text.trim()) return ['prose:empty_response'];
-  const problems = validateProductTruthPayload(payload, { allowLegacyPlanValues: ruleset === LEGACY_RULESET_ID });
+  const problems = validateProductTruthPayload(payload);
   if (problems.length) return ['prose:cannot_check_against_an_invalid_payload'];
 
   // market / currency safety applies to EVERY payload-backed answer
@@ -248,7 +234,7 @@ export function checkProseAgainstPayload(payload, response, language, ruleset = 
     return v;
   }
   const truth = payloadToTruth(payload);
-  v.push(...checkCapabilityPolarity(truth, text, language, ruleset).map((x) => `prose:${x}`));
+  v.push(...checkCapabilityPolarity(truth, text, language).map((x) => `prose:${x}`));
   return v;
 }
 

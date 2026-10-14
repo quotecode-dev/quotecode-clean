@@ -460,11 +460,6 @@ describe('PublicQuote (HE) - Mobile 4-column geometry correction (Public Quote M
     const itemCells = itemRow.querySelectorAll('td');
     expect(itemCells[2].style.whiteSpace).toBe('nowrap'); // Unit Price
     expect(itemCells[3].style.whiteSpace).toBe('nowrap'); // Total
-    // Owner decision 2026-10-05 (local exception to IRON-NUMERIC-001): Quantity / Unit Price / Total are centred.
-    expect([1, 2, 3].map((i) => itemCells[i].style.textAlign)).toEqual(['center', 'center', 'center']);
-    // The section SUBTOTAL row is a subtotal: outside the exception, it keeps the shared right edge.
-    const subtotalCell = document.querySelector('.pq-section-subtotal-row td.pq-td-total');
-    expect(subtotalCell.style.textAlign).toBe('right');
   });
 
   it('a 7-digit section total (₪1,250,000.00) still renders as one complete, correctly-formatted string inside the real Total column, exactly where Desktop shows it', () => {

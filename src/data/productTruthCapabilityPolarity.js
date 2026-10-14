@@ -21,19 +21,14 @@
 // The extractor is therefore validated (productTruthCapabilityPolarity.test.js) against the REAL runtime formatter
 // outputs for every registry capability x plan tier x role x language, plus adversarial contradictions and natural
 // paraphrases in EN and HE. The runtime is NOT changed.
-import { getCapabilityById } from './productTruthRegistry.js';
-import { capabilityForRuleset, labelsForRuleset, LEGACY_PLAN_IDS, LEGACY_RULESET_ID, CURRENT_RULESET_ID } from './productTruthLegacyPlanRules.js';
-export { LEGACY_RULESET_ID, CURRENT_RULESET_ID };
-// RULESETS (subscriptions cutover, 2026-10-07): 'current' = the live registry (subscription-gated capabilities whose plan
-// inclusion is not decided -> PLAN_NOT_DECIDED); 'legacy_v39' = the frozen pre-cutover plan gates, used ONLY to judge the
-// historical chat-ai v39 evidence captures against the rules in force when they were captured (productTruthLegacyPlanRules.js).
+import { getCapabilityById, PRODUCT_TRUTH_REGISTRY, NON_CURRENT_REGISTRY } from './productTruthRegistry.js';
+import { PLAN_IDS } from '../utils/planCatalog.js';
 import { AI_FACTS } from '../../supabase/functions/chat-ai/aiFacts.generated.ts';
 import { clauseScopeAt, extractClaims, flipClaims, isRetractionSentence, resolveTekangoClaims } from './productTruthScopeClaims.js';
 
 export const TRUTH_KINDS = Object.freeze({
   AVAILABLE: 'AVAILABLE', // exists / supported for this account (gated-but-entitled counts)
   PLAN_LOCKED: 'PLAN_LOCKED', // exists, plan-gated, this account's plan is below the minimum
-  PLAN_NOT_DECIDED: 'PLAN_NOT_DECIDED', // exists, subscription-gated, which plans include it is not decided (OPEN-02 / OPEN-13)
   ROLE_LOCKED: 'ROLE_LOCKED', // exists, role-gated, this account does not hold the role
   NOT_AVAILABLE: 'NOT_AVAILABLE', // roadmap / unavailable / deprecated / not released - not supported today
   MARKET_UNAVAILABLE: 'MARKET_UNAVAILABLE', // live, but not in this account's market
@@ -49,19 +44,16 @@ export const TRUTH_KINDS = Object.freeze({
  * expectedEntitlement nor the chat-ai response.)
  * @returns {'GRANTED'|'DENIED'|'UNKNOWN'}
  */
-export function deriveRegistryEntitlement(capabilityId, serverPlan, serverRole, ruleset = CURRENT_RULESET_ID) {
-  const capability = capabilityForRuleset(capabilityId, ruleset);
+export function deriveRegistryEntitlement(capabilityId, serverPlan, serverRole) {
+  const capability = getCapabilityById(capabilityId);
   if (!capability) return 'UNKNOWN';
-  // current ruleset: no plan inclusion is decided (OPEN-02) - an entitlement cannot be derived from a plan.
-  if (capability.authorityType === 'subscription') return 'UNKNOWN';
   if (capability.authorityType === 'role') {
     if (!isNonEmpty(serverRole) || !isNonEmpty(capability.requiredRole)) return 'UNKNOWN';
     return serverRole === capability.requiredRole ? 'GRANTED' : 'DENIED';
   }
   if (capability.authorityType === 'plan') {
-    // only the legacy_v39 historical view carries plan gates
-    const have = LEGACY_PLAN_IDS.indexOf(serverPlan);
-    const need = LEGACY_PLAN_IDS.indexOf(capability.minimumPlan);
+    const have = PLAN_IDS.indexOf(serverPlan);
+    const need = PLAN_IDS.indexOf(capability.minimumPlan);
     if (have < 0 || need < 0) return 'UNKNOWN';
     return have >= need ? 'GRANTED' : 'DENIED';
   }
@@ -79,7 +71,7 @@ const MARKET_KEY = Object.freeze({ Local: 'local', International: 'international
  * @param {{ expectedResult: string, serverPlan?: string, serverRole?: string, market?: string }} input
  * @returns {{ kind: string, capabilityId?: string, gate?: 'plan'|'role'|null, minimumPlan?: string|null, requiredRole?: string|null, authority: string } | { kind: 'UNDERIVABLE', reason: string }}
  */
-export function deriveExpectedCapabilityTruth({ expectedResult, serverPlan, serverRole, market, ruleset = CURRENT_RULESET_ID }) {
+export function deriveExpectedCapabilityTruth({ expectedResult, serverPlan, serverRole, market }) {
   if (expectedResult === 'clarification') return { kind: TRUTH_KINDS.CLARIFICATION, authority: 'fixed acceptance expectation' };
   if (expectedResult === 'payment_truth_sentinel') {
     return AI_FACTS.billing.paymentProcessingAvailable === false && AI_FACTS.billing.liveCheckoutAvailable === false
@@ -97,7 +89,7 @@ export function deriveExpectedCapabilityTruth({ expectedResult, serverPlan, serv
       ? { kind: TRUTH_KINDS.COMPARISON_BOTH_AVAILABLE, authority: 'canonical registry (quote_pdf and quote_print both LIVE_CURRENT)' }
       : { kind: 'UNDERIVABLE', reason: 'quote_pdf / quote_print are not both LIVE_CURRENT in the registry' };
   }
-  const capability = capabilityForRuleset(expectedResult, ruleset);
+  const capability = getCapabilityById(expectedResult);
   if (!capability) return { kind: 'UNDERIVABLE', reason: `not a registry capability id: ${expectedResult}` };
   const base = { capabilityId: capability.id, authority: 'canonical registry + server-verified facts' };
   if (capability.state !== 'LIVE_CURRENT') {
@@ -107,16 +99,13 @@ export function deriveExpectedCapabilityTruth({ expectedResult, serverPlan, serv
   }
   const marketKey = MARKET_KEY[market];
   if (marketKey && Array.isArray(capability.markets) && !capability.markets.includes(marketKey)) return { ...base, kind: TRUTH_KINDS.MARKET_UNAVAILABLE, gate: null };
-  if (capability.authorityType === 'subscription') {
-    return { ...base, kind: TRUTH_KINDS.PLAN_NOT_DECIDED, gate: 'subscription', minimumPlan: null, requiredRole: null };
-  }
   if (capability.authorityType === 'role') {
-    const e = deriveRegistryEntitlement(capability.id, serverPlan, serverRole, ruleset);
+    const e = deriveRegistryEntitlement(capability.id, serverPlan, serverRole);
     if (e === 'UNKNOWN') return { kind: 'UNDERIVABLE', reason: 'role entitlement underivable (no server-verified role)' };
     return { ...base, kind: e === 'GRANTED' ? TRUTH_KINDS.AVAILABLE : TRUTH_KINDS.ROLE_LOCKED, gate: 'role', requiredRole: capability.requiredRole, minimumPlan: null };
   }
   if (capability.authorityType === 'plan') {
-    const e = deriveRegistryEntitlement(capability.id, serverPlan, serverRole, ruleset);
+    const e = deriveRegistryEntitlement(capability.id, serverPlan, serverRole);
     if (e === 'UNKNOWN') return { kind: 'UNDERIVABLE', reason: 'plan entitlement underivable (no server-verified plan)' };
     return { ...base, kind: e === 'GRANTED' ? TRUTH_KINDS.AVAILABLE : TRUTH_KINDS.PLAN_LOCKED, gate: 'plan', minimumPlan: capability.minimumPlan, requiredRole: null };
   }
@@ -148,8 +137,6 @@ const PATTERNS = Object.freeze({
       /\b(BASIC|PRO)\s+plan\s+or\s+(?:above|higher)\b/gi,
       /\bonly\s+(?:available\s+)?(?:on|in|with|for)\s+(?:the\s+)?(BASIC|PRO)\b/gi,
       /\bavailable\s+(?:on|in|with|from)\s+(?:the\s+)?(BASIC|PRO)\s+plan\b/gi,
-      /\b(?:from|requires?|only\s+(?:on|in|with))\s+the\s+(CLASSIC|MODERN|VISUAL)\s+plan\b/gi,
-      /\bincluded\s+(?:from|in|on)\s+the\s+(CLASSIC|MODERN|VISUAL)\s+plan\b/gi,
     ],
     roleGate: [
       /\brestricted\s+to\b[^.!?]{0,70}?\brole\b/i,
@@ -456,12 +443,6 @@ const COMPARISON = Object.freeze({
   },
 });
 
-// "which plans include it is not decided" (OPEN-02 / OPEN-13)
-const NOT_DECIDED = Object.freeze({
-  en: /\b(?:not\s+(?:been\s+)?decided|undecided|not\s+yet\s+decided)\b/i,
-  he: /(?:טרם\s+הוחלט|לא\s+הוחלט|טרם\s+נקבע)/,
-});
-
 /**
  * POLARITY VERDICT: are the claims the response makes consistent with the expected truth?
  * @param {ReturnType<typeof deriveExpectedCapabilityTruth>} truth
@@ -469,7 +450,7 @@ const NOT_DECIDED = Object.freeze({
  * @param {'he'|'en'} language
  * @returns {string[]} violations (empty = the response's polarity matches the truth)
  */
-export function checkCapabilityPolarity(truth, response, language, ruleset = CURRENT_RULESET_ID) {
+export function checkCapabilityPolarity(truth, response, language) {
   const v = [];
   if (!truth || truth.kind === 'UNDERIVABLE') return [`expected_truth_underivable:${truth?.reason ?? 'no truth'}`];
   const text = String(response ?? '');
@@ -496,9 +477,9 @@ export function checkCapabilityPolarity(truth, response, language, ruleset = CUR
     return v;
   }
 
-  const registry = capabilityForRuleset(truth.capabilityId, ruleset);
+  const registry = getCapabilityById(truth.capabilityId);
   const labels = registry ? [language === 'he' ? registry.heLabel : registry.enLabel] : [];
-  const otherLabels = labelsForRuleset(ruleset).filter((c) => c.id !== truth.capabilityId).map((c) => (language === 'he' ? c.heLabel : c.enLabel)).filter(Boolean);
+  const otherLabels = [...PRODUCT_TRUTH_REGISTRY, ...NON_CURRENT_REGISTRY].filter((c) => c.id !== truth.capabilityId).map((c) => (language === 'he' ? c.heLabel : c.enLabel)).filter(Boolean);
   const c = analyzeCapabilityProse(text, language, { labels, otherLabels });
   const wrongTier = () => c.statedPlanTiers.filter((t) => t !== truth.minimumPlan);
 
@@ -518,16 +499,6 @@ export function checkCapabilityPolarity(truth, response, language, ruleset = CUR
       if (!c.accountLacks) v.push('plan_locked_expected_but_response_does_not_say_the_account_lacks_it');
       if (!c.statedPlanTiers.includes(truth.minimumPlan)) v.push(`plan_gate_not_disclosed:${truth.minimumPlan}`);
       if (wrongTier().length) v.push(`wrong_plan_tier_stated:${wrongTier().join(',')} (canonical minimum ${truth.minimumPlan})`);
-      break;
-    case TRUTH_KINDS.PLAN_NOT_DECIDED:
-      // exists; which plans include it is NOT decided - so no plan tier, no account has/lacks claim, no universal claim
-      if (c.existenceDenied) v.push('plan_not_decided_expected_but_response_denies_existence');
-      if (!c.existenceAffirmed) v.push('plan_not_decided_expected_but_response_does_not_affirm_existence');
-      if (c.statedPlanTiers.length) v.push(`plan_tier_stated_while_plan_inclusion_is_not_decided:${c.statedPlanTiers.join(',')}`);
-      if (c.accountHas) v.push('plan_not_decided_expected_but_response_says_the_account_has_it');
-      if (c.accountLacks) v.push('plan_not_decided_expected_but_response_says_the_account_lacks_it');
-      if (c.universal) v.push('plan_not_decided_expected_but_response_claims_universal_availability');
-      if (!NOT_DECIDED[language].test(text)) v.push('plan_not_decided_expected_but_response_does_not_say_it_is_not_decided');
       break;
     case TRUTH_KINDS.ROLE_LOCKED:
       if (c.existenceDenied) v.push('role_locked_expected_but_response_denies_existence');

@@ -98,15 +98,6 @@ export function getRecommendedPricingMethod(domainId) {
   return null;
 }
 
-// Task 21 (Owner: the measured quote must make measurements easy to find): a quote the user started from the explicit "measured quote"
-// choice leads with a measurement method. The profession's own measurement method (area / linear) wins; otherwise price-by-area is the
-// recommended card. Still advice only - exactly two prominent cards, every method stays available under "More options".
-export function getEntryRecommendedPricingMethod(domainId, measuredEntry) {
-  const professional = getRecommendedPricingMethod(domainId);
-  if (!measuredEntry) return professional;
-  return professional === 'area' || professional === 'linear' ? professional : 'area';
-}
-
 // חוק ברזל (§168 audit finding - "MEASURABLE_UNIT_ID is a single hardcoded
 // constant, no real formula framework"): מוחלף כאן במפה אמיתית וניתנת-
 // להרחבה (unit→method), לא בעוד קבוע יחיד. כל CALCULATION_METHODS הוא

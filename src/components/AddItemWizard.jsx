@@ -1,15 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import AiModalHeader from './AiModalHeader';
 import { X, Package, Ruler, ChevronRight, ChevronLeft, Lock, Check, Pencil, Sparkles } from 'lucide-react';
-import { APP as NEON } from '../theme/neonTheme';
+import { LIGHT as NEON } from '../theme/neonTheme';
 import { formatMoneyForCurrency } from '../utils/money';
-import { cmToM, mToCm, computeMeasurementValue, resolveCalculationMethod, getActiveQuantity, sumMeasurementAreas, isMeasurableUnit, getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
-
-// Task 34 extension (Owner AI specification, section ג): a MANUAL quantity with a measured unit (36 m², 8 linear meters, no measurement
-// rows - the AI-draft hand-off / the form's manual override) is a charged quantity in its own right: the unit is not proof that the quantity
-// came from dimensions. Such an item opens on its manual quantity (with its unit), never on invented width / height.
-const isManualMeasured = (item) => !!item && isMeasurableUnit(item.pricing_unit) && item.quantity_source === 'manual'
-  && !(Array.isArray(item.measurements) && item.measurements.length > 0);
+import { cmToM, mToCm, computeMeasurementValue, resolveCalculationMethod, getActiveQuantity, sumMeasurementAreas } from '../utils/professionalQuoteItem';
 
 // Task 39: the stored item description limit (quote_items.description varchar(255)).
 export const ITEM_DESCRIPTION_MAX = 255;
@@ -75,13 +69,11 @@ function blankState(defaultSectionKey) {
 // הכמות/המחיר-ליחידה האמיתיים מוצגים כפי שהם) - לעולם לא מנוחש כ-'fixed'.
 // המשתמש עדיין יכול לבחור 'fixed' במפורש דרך שלב 2 אם זו אכן כוונתו.
 function stateFromItem(item, defaultSectionKey) {
-  const pricingMethod = isManualMeasured(item)
-    ? 'units'
-    : item.pricing_unit === 'linear_meter'
-      ? 'linear'
-      : item.pricing_unit === 'm2'
-        ? 'area'
-        : 'units';
+  const pricingMethod = item.pricing_unit === 'linear_meter'
+    ? 'linear'
+    : item.pricing_unit === 'm2'
+      ? 'area'
+      : 'units';
   const rows = Array.isArray(item.measurements) ? item.measurements : [];
   const [firstRow, ...restRows] = rows;
   return {
@@ -143,8 +135,6 @@ export default function AddItemWizard({
   // `onDraftSnapshot` reports every value the wizard holds (or null when closed) so it can be persisted.
   resumeState = null,
   onDraftSnapshot,
-  // Task 16: a NEW item added from a catalog service reports (serviceId, item) so its linked catalog image can be bound.
-  onCatalogItemAdded,
 }) {
   // IRON-ILS-001: every money amount goes through the injected canonical formatter; the fallback is the same canonical
   // currency-keyed path ('₪' is only ever the Local/ILS symbol) - never a raw number or toFixed.
@@ -166,9 +156,6 @@ export default function AddItemWizard({
   // משפיע - שדה ההזנה הידנית מוצג ישירות, ללא שלב-בחירה מיותר.
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [pricingMethod, setPricingMethod] = useState(null);
-  // Task 34: the unit a kept professional item is charged in (m², linear meter, hour, kg, day) - shown next to its manual quantity
-  const preservedUnitLabel = pricingMethod === 'units' && editingItem?.pricing_unit && (isManualMeasured(editingItem) || !isMeasurableUnit(editingItem.pricing_unit))
-    ? getProfessionalUnitLabel(editingItem.pricing_unit, isHebrew) : null;
   const [showMoreMethods, setShowMoreMethods] = useState(false);
   const [widthCm, setWidthCm] = useState('');
   const [heightCm, setHeightCm] = useState('');
@@ -462,7 +449,7 @@ export default function AddItemWizard({
     missingAmount: isHebrew ? 'יש להזין סכום' : 'Please enter an amount',
     rowNeedsHeight: isHebrew ? (n) => `במידה ${n} חסר גובה. השלימו או הסירו אותה.` : (n) => `Size ${n} needs a height. Complete or remove it.`,
     rowNeedsWidth: isHebrew ? (n) => `במידה ${n} חסר רוחב. השלימו או הסירו אותה.` : (n) => `Size ${n} needs a width. Complete or remove it.`,
-    upgradeNeeded: isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan',
+    upgradeNeeded: isHebrew ? 'זמין במסלול Basic ומעלה' : 'Available on the Basic plan and above',
     calcPreviewArea: isHebrew ? (w, h, m2) => `${w} × ${h} ס"מ = ${m2} מ"ר` : (w, h, m2) => `${w} × ${h} cm = ${m2} m²`,
     calcPreviewLinear: isHebrew ? (l, m) => `${l} ס"מ = ${m} מ'` : (l, m) => `${l} cm = ${m} m`,
     destructiveConversionConfirm: isHebrew
@@ -705,15 +692,7 @@ export default function AddItemWizard({
       // §J למעלה) - עריכה שלא כללה קונברסיה מפורשת-ומאושרת חייבת לשמר את
       // ה-pricing_unit/quantity_source/calculation_method המדויקים, אחרת
       // המחיקה השקטה שלהם הופכת פריט-שעות/ק"ג/יום מקצועי לפריט פשוט.
-      // Task 34: a manual measured item (isManualMeasured) keeps its measured unit, manual source and (empty) measurement rows as well
-      if (isNonDestructiveEdit && isManualMeasured(editingItem)) {
-        newItem.quantity = editingItem.quantity ?? '1';
-        newItem.pricing_unit = editingItem.pricing_unit;
-        newItem.quantity_source = 'manual';
-        newItem.calculation_method = editingItem.calculation_method || 'manual';
-        newItem.measurements = Array.isArray(editingItem.measurements) ? editingItem.measurements : [];
-        newItem.calculated_quantity = (quantity !== '' && quantity != null && Number.isFinite(Number(quantity))) ? Number(quantity) : editingItem.calculated_quantity;
-      } else if (isNonDestructiveEdit && editingItem?.pricing_unit && editingItem.pricing_unit !== 'm2' && editingItem.pricing_unit !== 'linear_meter') {
+      if (isNonDestructiveEdit && editingItem?.pricing_unit && editingItem.pricing_unit !== 'm2' && editingItem.pricing_unit !== 'linear_meter') {
         newItem.pricing_unit = editingItem.pricing_unit;
         newItem.quantity_source = editingItem.quantity_source || 'manual';
         newItem.calculation_method = editingItem.calculation_method || 'manual';
@@ -745,7 +724,6 @@ export default function AddItemWizard({
     if (specRows.length > 0) {
       newItem.specification = specRows.filter((r) => r.label.trim() || r.value.trim());
     }
-    if (catalogServiceId && !isEditMode && typeof onCatalogItemAdded === 'function') onCatalogItemAdded(catalogServiceId, newItem);
     onAdd(newItem);
     onClose();
   }
@@ -948,7 +926,7 @@ export default function AddItemWizard({
           {step === STEPS.DETAILS && pricingMethod === 'units' && (
             <div>
               <StepHeading title={step3Title} explanation={step3Explanation} />
-              <FieldLabel htmlFor="wiz-quantity">{preservedUnitLabel ? `${t.quantityLabel.replace(/\?$/, '')} (${preservedUnitLabel})` : t.quantityLabel}</FieldLabel>
+              <FieldLabel htmlFor="wiz-quantity">{t.quantityLabel}</FieldLabel>
               <input id="wiz-quantity" ref={firstFieldRef} type="number" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} aria-invalid={!!errors.quantity} aria-describedby={errors.quantity ? 'wiz-quantity-error' : undefined} style={inputStyle(isHebrew)} />
               {errors.quantity && <ErrorText id="wiz-quantity-error">{errors.quantity}</ErrorText>}
               <FieldLabel htmlFor="wiz-unit-price">{`${t.unitPriceLabel} (${sym})`}</FieldLabel>
@@ -1066,7 +1044,7 @@ export default function AddItemWizard({
                   </div>
                 )}
                 {pricingMethod === 'units' && (
-                  <SummaryRow label={t.quantityLabel} value={quantity ? `${quantity}${preservedUnitLabel ? ` ${preservedUnitLabel}` : ''}` : '—'} isHebrew={isHebrew} />
+                  <SummaryRow label={t.quantityLabel} value={quantity || '—'} isHebrew={isHebrew} />
                 )}
                 {methodResultLine && (
                   <div aria-live="polite" style={{ marginTop: '6px', fontSize: '0.92rem', color: NEON.violet, fontWeight: '800' }}>
@@ -1098,7 +1076,7 @@ export default function AddItemWizard({
                 <div style={{ marginBottom: '14px' }}>
                   <div style={{ fontSize: '0.85rem', fontWeight: '700', color: NEON.textPrimary, marginBottom: '2px' }}>{t.addCustomerDetailsToggle}</div>
                   <p style={{ fontSize: '0.76rem', color: NEON.textSecondary, margin: '0 0 4px' }}>{t.customerDetailsHelper}</p>
-                  <p style={{ fontSize: '0.75rem', color: NEON.textMuted, margin: '0 0 10px', fontStyle: 'italic' }}>{t.customerDetailsPriceNote}</p>
+                  <p style={{ fontSize: '0.74rem', color: NEON.textMuted, margin: '0 0 10px', fontStyle: 'italic' }}>{t.customerDetailsPriceNote}</p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '8px' }}>
                     {specRows.map((row, i) => (
                       <div key={i} style={{ display: 'flex', gap: '8px' }}>
@@ -1273,7 +1251,7 @@ function MethodCard({ icon, title, example, recommended, recommendedLabel, onCli
       style={{
         display: 'flex', alignItems: 'center', gap: '14px', padding: '14px 16px', borderRadius: '12px', cursor: 'pointer',
         border: `2px solid ${selected ? NEON.violet : NEON.border}`,
-        background: selected ? NEON.violetLighter : NEON.bgCardAlt,
+        background: selected ? 'rgba(139,92,246,0.06)' : NEON.bgCardAlt,
         minHeight: '44px',
       }}
     >

@@ -3,7 +3,7 @@
 // (catalog list, formula, review line). Local/ILS => nearest whole shekel, half-up, always ".00"; International keeps cents.
 // Stored values are passed in unchanged - only the rendered text is asserted.
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, fireEvent } from '@testing-library/react';
+import { render } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cwd } from 'node:process';
@@ -155,37 +155,39 @@ describe('IRON-ILS-001 Quotes dashboard (rendered, HE/Local/ILS vs EN/Internatio
     it(`${device} ${width}px HE/Local/ILS: every amount (${cards ? 'cards' : 'rows'}, overview, tooltips) is a whole shekel ".00"`, () => {
       setWidth(width);
       const { container } = render(<QuotesTab {...props(true, 'ILS')} />);
-      if (!cards) fireEvent.click(container.querySelector('.quote-modern-show-all') || container);
       const amounts = amountsOf(container);
       expect(amounts.length).toBeGreaterThanOrEqual(RAW.length + 1);
       for (const a of amounts) expect(a).toMatch(/^₪-?[\d,]+\.00$/);
       // rows/cards 1227.20, 18397.20, 1227.50, 191.16, 324.50 and the overview total 21367.56
       for (const expected of ['₪1,227.00', '₪18,397.00', '₪1,228.00', '₪191.00', '₪325.00', '₪21,368.00']) expect(amounts).toContain(expected);
-      for (const tip of tooltipsOf(container)) expect(tip).not.toMatch(/₪[\d,]+\.(?!00)\d\d/);
-      expect(container.querySelector('[dir="rtl"]')).not.toBeNull();
+      const tips = tooltipsOf(container);
+      for (const tip of tips) expect(tip).not.toMatch(/₪[\d,]+\.(?!00)\d\d/);
       if (cards) {
-        expect(container.querySelectorAll('.quote-card').length).toBeGreaterThan(0);
+        expect(container.querySelectorAll('.quote-card')).toHaveLength(RAW.length);
+        for (const card of container.querySelectorAll('.quote-card')) expect(card).toHaveAttribute('dir', 'rtl');
+        expect(container.querySelector('table')).toBeNull();
       } else {
-        const list = container.querySelector('.quote-modern-list');
-        expect(list).toHaveAttribute('dir', 'rtl');
-        const row = container.querySelector('.quote-modern-row');
-        expect(row.firstElementChild).toHaveClass('quote-modern-toggle'); // R5: trigger stays the outermost leading control
-        expect([...row.children].slice(1).map((e) => e.className.split(' ').find((x) => x.startsWith('quote-modern-')))).toEqual(
-          ['quote-modern-number', 'quote-modern-client', 'quote-modern-title', 'quote-modern-status', 'quote-modern-views', 'quote-modern-date', 'quote-modern-amount']);
-        expect(row.querySelector('.quote-modern-number')).toHaveAttribute('dir', 'ltr');
-        fireEvent.click(row.querySelector('.quote-modern-toggle'));
-        expect(row.querySelector('.quote-modern-toggle')).toHaveAttribute('aria-expanded', 'true');
+        expect(tips.length).toBeGreaterThanOrEqual(RAW.length); // the before-VAT tooltip of every ILS row
+        const table = container.querySelector('tbody').closest('table');
+        expect(table).toHaveAttribute('dir', 'rtl');
+        expect(table.querySelectorAll('tbody > tr').length).toBeGreaterThanOrEqual(RAW.length);
+        expect(container.querySelector('.quote-card')).toBeNull();
       }
+      expect(container.querySelector('[data-testid="quote-overview"]')).toHaveAttribute('dir', 'rtl');
     });
 
     it(`${device} ${width}px EN/International: USD keeps cents, never ₪`, () => {
       setWidth(width);
       const { container } = render(<QuotesTab {...props(false, 'USD')} />);
-      if (!cards) fireEvent.click(container.querySelector('.quote-modern-show-all') || container);
       const amounts = amountsOf(container);
       for (const expected of ['$1,227.20', '$18,397.20', '$1,227.50', '$191.16', '$324.50', '$21,367.56']) expect(amounts).toContain(expected);
       expect(container.textContent).not.toContain('₪');
-      if (!cards) expect(container.querySelector('.quote-modern-list')).toHaveAttribute('dir', 'ltr');
+      if (cards) {
+        for (const card of container.querySelectorAll('.quote-card')) expect(card).toHaveAttribute('dir', 'ltr');
+      } else {
+        expect(container.querySelector('tbody').closest('table')).toHaveAttribute('dir', 'ltr');
+      }
+      expect(container.querySelector('[data-testid="quote-overview"]')).toHaveAttribute('dir', 'ltr');
     });
   }
 });

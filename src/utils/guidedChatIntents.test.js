@@ -4,10 +4,9 @@ import {
   GUIDED_TOPIC_GROUPS, getGuidedIntentLabel, getGuidedGroupForIntent, getGuidedIntentDescription,
   PUBLIC_SAFE_INTENT_IDS, PUBLIC_TOPIC_GROUPS, getTopicGroupsForSurface,
   CONTEXTUAL_MENUS, getContextualMenuIntentIds, getContextualTopicGroups, TERMINAL_OUTCOMES, getTerminalOutcome,
-  EDITOR_ACTION_INTENT_IDS, EDITOR_ACTIONS,
 } from './guidedChatIntents.js';
 import { SCREEN_IDS } from './aiChatContext.js';
-import { GUIDED_INTENT_IDS as EDGE_GUIDED_INTENT_IDS, GUIDED_SUBTOPIC_IDS_BY_INTENT, EDITOR_ACTION_INTENT_IDS as EDGE_EDITOR_ACTION_INTENT_IDS } from '../../supabase/functions/chat-ai/validation.ts';
+import { GUIDED_INTENT_IDS as EDGE_GUIDED_INTENT_IDS, GUIDED_SUBTOPIC_IDS_BY_INTENT } from '../../supabase/functions/chat-ai/validation.ts';
 
 describe('guidedChatIntents shape', () => {
   it('every intent has an id plus HE and EN labels', () => {
@@ -20,20 +19,6 @@ describe('guidedChatIntents shape', () => {
 
   it('GUIDED_INTENT_IDS matches the GUIDED_INTENTS list exactly', () => {
     expect(GUIDED_INTENT_IDS).toEqual(GUIDED_INTENTS.map((i) => i.id));
-  });
-
-  // Task 34: the editor action is separate from the locked 11 topics; front end and Edge Function accept the same editor action ids;
-  // „משוב על המערכת” (Owner 2026-10-12) is the label of the canonical 'suggestion' topic = system feedback.
-  it('Task 34: editor actions stay outside the 11 topics, match the Edge Function, and suggestion means system feedback', () => {
-    expect(EDITOR_ACTION_INTENT_IDS).toEqual(['quote_improvement']);
-    expect([...EDGE_EDITOR_ACTION_INTENT_IDS]).toEqual(EDITOR_ACTION_INTENT_IDS);
-    expect(EDITOR_ACTIONS.map((a) => [a.id, a.he, a.en])).toEqual([['quote_improvement', 'שיפור הצעת המחיר', 'Improve this quote']]);
-    for (const id of EDITOR_ACTION_INTENT_IDS) expect(GUIDED_INTENT_IDS).not.toContain(id);
-    expect([getGuidedIntentLabel('suggestion', true), getGuidedIntentLabel('suggestion', false)]).toEqual(['משוב על המערכת', 'System feedback']);
-    expect(getContextualMenuIntentIds('quote_editor_new')).toContain('quote_improvement');
-    expect(getContextualMenuIntentIds('quote_editor_edit')).toContain('quote_improvement');
-    expect(PUBLIC_SAFE_INTENT_IDS).not.toContain('quote_improvement');
-    expect(GUIDED_TOPIC_GROUPS.flatMap((g) => g.children || [g.directIntent])).not.toContain('quote_improvement');
   });
 
   it('is exactly the Owner-approved 11-topic canonical list (PROFLOW_TODO.md item 2)', () => {
@@ -233,12 +218,11 @@ describe('Public vs authenticated guided surface separation (Context-Aware AI Ch
 });
 
 describe('CONTEXTUAL_MENUS / getContextualTopicGroups (Context-Driven AI Chat V3, §16)', () => {
-  it('every id referenced by every contextual menu is a real GUIDED_INTENT_IDS leaf (or a Task 34 editor action) - no invented/duplicate ids', () => {
+  it('every id referenced by every contextual menu is a real GUIDED_INTENT_IDS leaf - no invented/duplicate ids', () => {
     for (const [screenId, ids] of Object.entries(CONTEXTUAL_MENUS)) {
       expect(SCREEN_IDS).toContain(screenId);
       for (const id of ids) {
-        expect([...GUIDED_INTENT_IDS, ...EDITOR_ACTION_INTENT_IDS]).toContain(id);
-        if (EDITOR_ACTION_INTENT_IDS.includes(id)) expect(['quote_editor_new', 'quote_editor_edit']).toContain(screenId); // editor-only
+        expect(GUIDED_INTENT_IDS).toContain(id);
       }
       expect(new Set(ids).size).toBe(ids.length);
       expect(ids.length).toBeGreaterThanOrEqual(2);

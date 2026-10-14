@@ -47,17 +47,10 @@ export async function checkForNewVersion() {
 // ההחלטה מתי בפועל לרענן נשארת תמיד ביד המשתמש.
 export function startVersionPolling(onNewVersion) {
   let stopped = false;
-  // Single-flight: a burst of focus events (or a timer tick) while a check is pending reuses it instead of opening another
-  // /version.json request (2026-10-09 TEST 5186 focus-loop incident).
-  let inFlight = null;
-  const poll = () => {
-    if (stopped) return Promise.resolve();
-    if (inFlight) return inFlight;
-    inFlight = (async () => {
-      const newSha = await checkForNewVersion();
-      if (newSha && !stopped) onNewVersion(newSha);
-    })().finally(() => { inFlight = null; });
-    return inFlight;
+  const poll = async () => {
+    if (stopped) return;
+    const newSha = await checkForNewVersion();
+    if (newSha && !stopped) onNewVersion(newSha);
   };
   poll(); // check once immediately, then on the interval
   const intervalId = setInterval(poll, POLL_INTERVAL_MS);

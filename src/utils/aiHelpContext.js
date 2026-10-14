@@ -67,28 +67,9 @@ export function fingerprintDigest(raw) {
 const ADMIN_SECTION = { overview: 'overview', users: 'users', plans: 'plans', activity: 'activity', 'ai-support': 'ai_support' };
 const clean = (o) => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined && v !== null));
 
-// Subscriptions cutover (OD-20): the account plan facts come ONLY from the server account summary the Dashboard holds
-// (`sources.plan = { state, planId, free10, phase }`, account-summary/v1 projection). The retired monthly counter shape
-// (`{ monthlyUsed, monthlyLimit }`) is stale and contributes nothing: no monthly counter, no limit, no plan is inferred from it.
-const SUMMARY_STATES = ['loading', 'ready', 'not_activated', 'not_deployed', 'unprovisioned', 'unavailable', 'invalid'];
-const PLAN_IDS = ['free', 'all_inclusive', 'classic', 'modern', 'visual'];
-const PHASES = ['off', 'prepared', 'shadow', 'enforced'];
-export function accountPlanFacts(plan) {
-  if (!plan || typeof plan !== 'object' || !SUMMARY_STATES.includes(plan.state)) return {};
-  const ready = plan.state === 'ready';
-  const planId = ready && PLAN_IDS.includes(plan.planId) ? plan.planId : undefined;
-  const remaining = planId === 'free' && plan.free10 && plan.free10.limit === 10 ? count(plan.free10.remaining) : undefined;
-  return {
-    accountSummaryState: plan.state,
-    accountPlanId: planId,
-    free10Remaining: remaining !== undefined && remaining <= 10 ? remaining : undefined,
-    outputPhase: ready && PHASES.includes(plan.phase) ? plan.phase : 'off',
-  };
-}
-
 const ADAPTERS = {
-  dashboard: (s) => ({ section: s.dataLoadError ? 'alert' : 'summary', facts: { ...accountPlanFacts(s.plan), totalQuoteCount: count(s.history?.total), dataLoadError: bool(s.dataLoadError), profilePhoneComplete: bool(s.profile?.phoneComplete), profileTaxIdComplete: bool(s.profile?.taxIdComplete) } }),
-  quote_history: (s) => ({ section: s.section || (s.history?.selectedQuoteId ? 'detail' : s.history?.searchActive || s.history?.filterStatus !== 'All' ? 'search_filter' : 'list'), object: s.history?.selectedQuoteId ? { kind: 'quote', id: s.history.selectedQuoteId } : null, facts: { searchActive: bool(s.history?.searchActive), filterStatus: s.history?.filterStatus, visibleQuoteCount: count(s.history?.visible), totalQuoteCount: count(s.history?.total), selectedQuoteExpired: bool(s.history?.selectedExpired), selectedQuoteImmutable: bool(s.history?.selectedImmutable), emailSendState: s.share?.emailState, pdfState: s.share?.pdfState, ...accountPlanFacts(s.plan) } }),
+  dashboard: (s) => ({ section: s.dataLoadError ? 'alert' : 'summary', facts: { monthlyQuotesUsed: count(s.plan?.monthlyUsed), monthlyQuoteLimit: s.plan?.monthlyLimit, totalQuoteCount: count(s.history?.total), dataLoadError: bool(s.dataLoadError), profilePhoneComplete: bool(s.profile?.phoneComplete), profileTaxIdComplete: bool(s.profile?.taxIdComplete) } }),
+  quote_history: (s) => ({ section: s.section || (s.history?.selectedQuoteId ? 'detail' : s.history?.searchActive || s.history?.filterStatus !== 'All' ? 'search_filter' : 'list'), object: s.history?.selectedQuoteId ? { kind: 'quote', id: s.history.selectedQuoteId } : null, facts: { searchActive: bool(s.history?.searchActive), filterStatus: s.history?.filterStatus, visibleQuoteCount: count(s.history?.visible), totalQuoteCount: count(s.history?.total), selectedQuoteExpired: bool(s.history?.selectedExpired), selectedQuoteImmutable: bool(s.history?.selectedImmutable), emailSendState: s.share?.emailState, pdfState: s.share?.pdfState, monthlyQuotesUsed: count(s.plan?.monthlyUsed), monthlyQuoteLimit: s.plan?.monthlyLimit } }),
   quote_editor_new: (s) => editorAdapter(s),
   quote_editor_edit: (s) => editorAdapter(s),
   item_wizard: (s) => ({ ...editorAdapter(s), section: s.wizard?.step ? `wizard_${s.wizard.step}` : 'wizard_what', step: s.wizard?.step || null, facts: { ...editorAdapter(s).facts, wizardAction: s.wizard?.action, wizardStep: s.wizard?.step, pricingMethod: s.wizard?.pricingMethod, measurementCount: count(s.wizard?.measurementCount), hasQuantity: bool(s.wizard?.hasQuantity), hasUnitPrice: bool(s.wizard?.hasUnitPrice), hasSpecification: bool(s.wizard?.hasSpecification) } }),
@@ -96,7 +77,7 @@ const ADAPTERS = {
   catalog: (s) => ({ section: 'list', facts: { serviceCount: count(s.lists?.serviceCount) } }),
   finances: (s) => ({ section: s.dataLoadError ? 'alert' : 'summary', facts: { financeRange: s.finance?.range, expenseCount: count(s.lists?.expenseCount), dataLoadError: bool(s.dataLoadError) } }),
   settings: (s) => ({ section: s.section || (s.profile && !s.profile.phoneComplete ? 'business_phone' : s.profile && s.profile.taxIdRequired && !s.profile.taxIdComplete ? 'business_tax_id' : 'business_details'), object: { kind: 'business_profile' }, facts: { profilePhoneComplete: bool(s.profile?.phoneComplete), profileTaxIdComplete: bool(s.profile?.taxIdComplete) } }),
-  plans: (s) => ({ section: 'plan_information', object: { kind: 'plan' }, facts: { ...accountPlanFacts(s.plan) } }),
+  plans: (s) => ({ section: 'plan_limits', object: { kind: 'plan' }, facts: { monthlyQuotesUsed: count(s.plan?.monthlyUsed), monthlyQuoteLimit: s.plan?.monthlyLimit } }),
   admin: (s) => ({ section: s.admin?.protectedAction ? 'admin_protected_action' : s.admin?.section === 'users' ? 'admin_users' : 'admin_overview', object: { kind: 'admin_target' }, facts: { adminSection: ADMIN_SECTION[s.admin?.section] } }),
   region_choice: () => ({ section: 'region', object: { kind: 'business_profile' }, facts: {} }),
   ai_chat: (s) => ({ section: 'transcript', facts: { transcriptLength: count(s.chat?.transcriptLength), transcriptMessages: count(s.chat?.transcriptMessages) } }),
@@ -109,7 +90,7 @@ function editorAdapter(s) {
     section: s.section || (e.attachmentCount || e.pendingAttachmentCount ? 'items' : 'client_details'),
     object: { kind: 'quote', id: e.mode === 'edit' ? e.quoteId : null, serverFingerprint: e.mode === 'edit' ? fingerprintDigest(e.serverFingerprint) : null },
     draft: { mode: e.mode === 'edit' ? 'edit' : 'create', localDraftId: s.draft?.localDraftId || null, dirty: !!s.draft?.dirty, localWriteStatus: s.draft?.localWriteStatus || 'none', lastLocalWriteAt: s.draft?.lastLocalWriteAt || null, serverComparison: e.mode === 'edit' ? (s.draft?.conflict ? 'changed' : e.immutable ? 'immutable' : 'unchanged') : 'not_applicable', recoveryState: s.draft?.conflict ? 'conflict' : s.draft?.recovered ? 'recovered' : 'none' },
-    facts: { hasClient: bool(w.hasClient), hasProject: bool(w.hasProject), hasClientType: bool(e.hasClientType), itemCount: count(w.itemCount), pricedItemCount: count(e.pricedItemCount), unpricedItemCount: count(e.unpricedItemCount), sectionCount: count(w.sectionCount), structureMode: w.structureMode === 'divided' ? 'divided' : 'regular', attachmentCount: count(e.attachmentCount), pendingAttachmentCount: count(e.pendingAttachmentCount), pendingRemovalCount: count(e.pendingRemovalCount), unsavedChanges: bool(s.draft?.dirty), saveStage: e.saveStage, profilePhoneComplete: bool(s.profile?.phoneComplete), profileTaxIdComplete: bool(s.profile?.taxIdComplete), ...accountPlanFacts(s.plan), draftRecoveryState: s.draft?.conflict ? 'conflict' : s.draft?.recovered ? 'recovered' : 'none' },
+    facts: { hasClient: bool(w.hasClient), hasProject: bool(w.hasProject), hasClientType: bool(e.hasClientType), itemCount: count(w.itemCount), pricedItemCount: count(e.pricedItemCount), unpricedItemCount: count(e.unpricedItemCount), sectionCount: count(w.sectionCount), structureMode: w.structureMode === 'divided' ? 'divided' : 'regular', attachmentCount: count(e.attachmentCount), pendingAttachmentCount: count(e.pendingAttachmentCount), pendingRemovalCount: count(e.pendingRemovalCount), unsavedChanges: bool(s.draft?.dirty), saveStage: e.saveStage, profilePhoneComplete: bool(s.profile?.phoneComplete), profileTaxIdComplete: bool(s.profile?.taxIdComplete), monthlyQuotesUsed: count(s.plan?.monthlyUsed), monthlyQuoteLimit: s.plan?.monthlyLimit, draftRecoveryState: s.draft?.conflict ? 'conflict' : s.draft?.recovered ? 'recovered' : 'none' },
   };
 }
 
@@ -119,7 +100,7 @@ export function buildAiHelpContext(sources, { blockers = [], revision = 0, now =
   if (!sources || !sources.authenticated) return null; // no private help context without an authenticated shell
   const codes = blockers.map((b) => b.code);
   // an active sharing / attachment blocker names the section the user is stuck in (structured, never DOM-derived)
-  const blockerSection = codes.some((c) => c.startsWith('EMAIL_')) ? 'share_email' : codes.includes('PDF_GENERATION_FAILED') ? 'print_pdf'
+  const blockerSection = codes.some((c) => c.startsWith('EMAIL_')) ? 'share_email' : codes.includes('PDF_GENERATION_FAILED') ? 'print_pdf' : codes.includes('WHATSAPP_REQUIRES_PRO') ? 'share_whatsapp'
     : codes.some((c) => c.startsWith('ATTACHMENT')) && sources.editor?.open ? 'attachments' : null;
   // a forced screen (the assistant's own problem) owns its section/workflow - an older blocker elsewhere never re-labels it
   if (!forceScreen && !sources.section && blockerSection) sources = { ...sources, section: blockerSection };

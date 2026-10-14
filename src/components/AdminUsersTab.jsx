@@ -6,10 +6,9 @@ import { useState } from 'react';
 import { publishBlocker, resolveBlockers } from '../utils/aiHelpBlockers';
 import { supabase } from '../shared/supabase';
 import { ShieldCheck, CheckCircle2, AlertTriangle, Send, XCircle, ChevronDown } from 'lucide-react';
-import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, SHADOW } from '../theme/neonTheme';
+import { LIGHT as NEON, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import { getFunctionErrorMessage } from '../utils/functionError';
 import AdminUsersView from './AdminUsersView';
-import { useAdminAccountSummary, legacyOperationsRetired } from '../domain/subscriptions/adminAccountSummary';
 import { formatShortDateTime } from '../utils/shortDate';
 
 export default function AdminUsersTab({
@@ -48,20 +47,6 @@ export default function AdminUsersTab({
   const [testStage, setTestStage] = useState('3d');
   const [testStatus, setTestStatus] = useState({ type: null, msg: '' });
   const [sendingTestLang, setSendingTestLang] = useState(null);
-
-  // OD-16 / subscriptions cross-cut (stream D): the trial extension and is_lifetime operations write only the LEGACY record.
-  // They keep working while the new plan system is not active, and become unavailable once the free_issue (output) phase is
-  // enforced - read from the read-only admin summary RPC for the dialog's target (no call when no dialog is open). The Edge
-  // functions refuse independently (409 legacy_trial_retired). Admin never edits entitlement or ledger rows.
-  const legacyTarget = trialActionUser || lifetimeActionUser;
-  const { summary: legacyTargetSummary } = useAdminAccountSummary(legacyTarget ? legacyTarget.user_id : null);
-  const legacyRetired = legacyOperationsRetired(legacyTargetSummary);
-  const legacyRetiredText = isHebrew
-    ? 'פעולת מורשת זו אינה זמינה: מערך המסלולים החדש פעיל עבור החשבון. מסלול, יתרה וזכאות נקבעים רק בשרת.'
-    : 'This legacy operation is unavailable: the new plan system is active for this account. Plan, balance and entitlement are decided only by the server.';
-  const legacyOnlyText = isHebrew
-    ? 'פעולה זו משנה רק את רשומת המורשת. היא אינה משנה מסלול, יתרה או זכאות במערך המסלולים החדש.'
-    : 'This changes the legacy record only. It never changes a plan, balance or entitlement in the new plan system.';
 
   const handleSendTestEmail = async (sendHebrew) => {
     if (!testEmail || !testEmail.includes('@')) {
@@ -102,8 +87,8 @@ export default function AdminUsersTab({
       setTestStatus({
         type: 'success',
         msg: isHebrew
-          ? `נשלח בהצלחה ל-${testEmail} (${sendHebrew ? 'עברית' : 'אנגלית'}, ${testType === 'subscription' ? 'תפוגת מנוי - תבנית מורשת' : 'תום ניסיון - תבנית מורשת'})`
-          : `Sent successfully to ${testEmail} (${sendHebrew ? 'Hebrew' : 'English'}, ${testType === 'subscription' ? 'subscription expiration - legacy template' : 'trial expiration - legacy template'})`
+          ? `נשלח בהצלחה ל-${testEmail} (${sendHebrew ? 'עברית' : 'אנגלית'}, ${testType === 'subscription' ? 'תפוגת מנוי' : 'תום ניסיון'})`
+          : `Sent successfully to ${testEmail} (${sendHebrew ? 'Hebrew' : 'English'}, ${testType === 'subscription' ? 'subscription expiration' : 'trial expiration'})`
       });
     } catch (err) {
       setTestStatus({ type: 'error', msg: err.message });
@@ -154,8 +139,7 @@ export default function AdminUsersTab({
       body: { targetUserId, proofToken: verifyData.proofToken, reason, ...extraBody },
     });
     if (actionError) {
-      const message = await getFunctionErrorMessage(actionError, isHebrew ? 'הפעולה נכשלה.' : 'Action failed.');
-      throw new Error(message === 'legacy_trial_retired' ? legacyRetiredText : message);
+      throw new Error(await getFunctionErrorMessage(actionError, isHebrew ? 'הפעולה נכשלה.' : 'Action failed.'));
     }
     if (!actionData?.success) {
       throw new Error(actionData?.error || (isHebrew ? 'הפעולה נכשלה.' : 'Action failed.'));
@@ -234,7 +218,6 @@ export default function AdminUsersTab({
     setIsResetting(true);
     const nextIsLifetime = !(lifetimeActionUser.is_lifetime === true);
     try {
-      if (legacyRetired) throw new Error(legacyRetiredText);
       const targetUserId = lifetimeActionUser.user_id;
       validateReasonAndTarget(targetUserId);
       await runProtectedAction({
@@ -246,14 +229,14 @@ export default function AdminUsersTab({
       setAdminReasonInput('');
       setShowSuccessModal(true);
     } catch (err) {
-      console.error("Legacy is_lifetime action error:", err);
+      console.error("Lifetime action error:", err);
       setResetError(err.message);
     } finally {
       setIsResetting(false);
     }
   };
 
-  // TEKANGO Admin V1 (Task 3.4): legacy trial extension (server-side fixed rule). The prior
+  // TEKANGO Admin V1 (Task 3.4): Extend Trial by 14 days. The prior
   // implementation (Dashboard.jsx's own handleExtendTrial14Days) had NO
   // re-auth at all - a real gap versus Reset/Delete/Lifetime, closed here
   // by routing it through the exact same protected-action flow. Backend
@@ -265,7 +248,6 @@ export default function AdminUsersTab({
     setResetError('');
     setIsResetting(true);
     try {
-      if (legacyRetired) throw new Error(legacyRetiredText);
       const targetUserId = trialActionUser.user_id;
       validateReasonAndTarget(targetUserId);
       await runProtectedAction({ action: 'extend_trial', targetUserId, reason: adminReasonInput.trim(), functionName: 'admin-extend-trial' });
@@ -274,7 +256,7 @@ export default function AdminUsersTab({
       setAdminReasonInput('');
       setShowSuccessModal(true);
     } catch (err) {
-      console.error("Legacy trial extension error:", err);
+      console.error("Trial extension error:", err);
       setResetError(err.message);
     } finally {
       setIsResetting(false);
@@ -294,9 +276,9 @@ export default function AdminUsersTab({
     <div className="admin-screen-host" dir={isHebrew ? 'rtl' : 'ltr'}>
 
       {showSuccessModal && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(24,33,43,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 12000, padding: '20px' }}>
-          <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '28px', borderRadius: '16px', width: '100%', maxWidth: '380px', boxShadow: SHADOW.lg, textAlign: 'center' }}>
-            <div style={{ width: '56px', height: '56px', background: APP_STATUS.paid.bg, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: NEON.emerald }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 12000, padding: '20px' }}>
+          <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '28px', borderRadius: '16px', width: '100%', maxWidth: '380px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)', textAlign: 'center' }}>
+            <div style={{ width: '56px', height: '56px', background: 'rgba(16, 185, 129, 0.15)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', color: NEON.emerald }}>
               <CheckCircle2 size={28} strokeWidth={2.2} />
             </div>
             <h3 style={{ marginTop: 0, fontSize: '1.2rem', marginBottom: '8px', fontWeight: '800', ...neonGlowTextStyle }}>
@@ -305,7 +287,7 @@ export default function AdminUsersTab({
             {/* PRODUCT_TRUTH_DECORATIVE: dismisses the generic 'Action Successful' modal shown after a protected admin action completes */}
             <button
               onClick={() => { setShowSuccessModal(false); window.location.reload(); }}
-              style={{ width: '100%', background: NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer', boxShadow: 'none' }}
+              style={{ width: '100%', background: NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: 'bold', fontSize: '0.9rem', cursor: 'pointer', boxShadow: NEON.glow }}
             >
               {isHebrew ? 'אישור' : 'OK'}
             </button>
@@ -314,8 +296,8 @@ export default function AdminUsersTab({
       )}
 
       {deleteModalUser && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(24,33,43,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
-          <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: SHADOW.lg, textAlign: isHebrew ? 'right' : 'left' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
+          <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)', textAlign: isHebrew ? 'right' : 'left' }}>
             <h3 style={{ marginTop: 0, color: NEON.red, fontSize: '1.1rem', marginBottom: '8px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <AlertTriangle size={18} />
               {isHebrew ? 'אזהרה: מחיקת משתמש לצמיתות' : 'Warning: Permanent User Deletion'}
@@ -374,7 +356,7 @@ export default function AdminUsersTab({
                 <button
                   type="button"
                   onClick={() => { setDeleteModalUser(null); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setResetError(''); }}
-                  style={{ flex: 1, background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                  style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
                 >
                   {isHebrew ? 'ביטול' : 'Cancel'}
                 </button>
@@ -382,7 +364,7 @@ export default function AdminUsersTab({
                 <button
                   type="submit"
                   disabled={isResetting || deleteConfirmInput.trim().toLowerCase() !== (deleteModalUser?.email || '').trim().toLowerCase()}
-                  style={{ flex: 1, background: NEON.redDark, color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: 'none', opacity: (deleteConfirmInput.trim().toLowerCase() !== (deleteModalUser?.email || '').trim().toLowerCase()) ? 0.5 : 1 }}
+                  style={{ flex: 1, background: NEON.redDark, color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 10px -2px rgba(239, 68, 68, 0.5)', opacity: (deleteConfirmInput.trim().toLowerCase() !== (deleteModalUser?.email || '').trim().toLowerCase()) ? 0.5 : 1 }}
                 >
                   {isResetting ? (isHebrew ? 'מוחק...' : 'Deleting...') : (isHebrew ? 'מחק משתמש' : 'Delete User')}
                 </button>
@@ -393,8 +375,8 @@ export default function AdminUsersTab({
       )}
 
       {resetModalUser && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(24,33,43,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
-          <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: SHADOW.lg, textAlign: isHebrew ? 'right' : 'left' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
+          <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '400px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)', textAlign: isHebrew ? 'right' : 'left' }}>
             <h3 style={{ marginTop: 0, color: NEON.red, fontSize: '1.1rem', marginBottom: '8px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <AlertTriangle size={18} />
               {isHebrew ? 'אישור אבטחה: איפוס נתוני משתמש' : 'Security Confirmation: Reset User Data'}
@@ -439,7 +421,7 @@ export default function AdminUsersTab({
                 <button
                   type="button"
                   onClick={() => { setResetModalUser(null); setAdminPasswordInput(''); setAdminReasonInput(''); setResetError(''); }}
-                  style={{ flex: 1, background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                  style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
                 >
                   {isHebrew ? 'ביטול' : 'Cancel'}
                 </button>
@@ -447,7 +429,7 @@ export default function AdminUsersTab({
                 <button
                   type="submit"
                   disabled={isResetting}
-                  style={{ flex: 1, background: NEON.redDark, color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: 'none' }}
+                  style={{ flex: 1, background: NEON.redDark, color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: '0 2px 10px -2px rgba(239, 68, 68, 0.5)' }}
                 >
                   {isResetting ? (isHebrew ? 'מאפס...' : 'Resetting...') : (isHebrew ? 'אשר מחיקה סופית' : 'Confirm Deletion')}
                 </button>
@@ -465,15 +447,20 @@ export default function AdminUsersTab({
           במפורש: חשבון-יעד, מצב נוכחי, מצב מיועד. */}
       {lifetimeActionUser && (() => {
         const targetIsLifetime = lifetimeActionUser.is_lifetime === true;
-        // Raw legacy field values only (OD-16) - no Lifetime/PRO plan identity.
-        const currentStateLabel = <code dir="ltr">{`is_lifetime=${targetIsLifetime}`}</code>;
-        const nextStateLabel = <code dir="ltr">{`is_lifetime=${!targetIsLifetime}`}</code>;
+        const currentStateLabel = targetIsLifetime
+          ? (isHebrew ? 'Lifetime (זכאות PRO מלאה, ללא תפוגה)' : 'Lifetime (full PRO entitlement, no expiry)')
+          : (isHebrew ? 'רגיל (לא Lifetime)' : 'Standard (not Lifetime)');
+        const nextStateLabel = targetIsLifetime
+          ? (isHebrew ? 'רגיל (לא Lifetime) - plan/trial_ends_at הקיימים יקבעו את הזכאות בפועל, ללא שינוי בהם' : 'Standard (not Lifetime) - existing plan/trial_ends_at will determine actual entitlement, unchanged by this action')
+          : (isHebrew ? 'Lifetime (זכאות PRO מלאה, ללא תפוגה, ללא תלות ב-plan/trial_ends_at)' : 'Lifetime (full PRO entitlement, no expiry, independent of plan/trial_ends_at)');
         return (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(24,33,43,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
-            <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '420px', boxShadow: SHADOW.lg, textAlign: isHebrew ? 'right' : 'left' }}>
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
+            <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)', textAlign: isHebrew ? 'right' : 'left' }}>
               <h3 style={{ marginTop: 0, color: NEON.violetLight, fontSize: '1.1rem', marginBottom: '8px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <ShieldCheck size={18} />
-                {isHebrew ? 'פעולת מורשת מוגנת: עדכון is_lifetime' : 'Protected legacy operation: set is_lifetime'}
+                {targetIsLifetime
+                  ? (isHebrew ? 'פעולה מוגנת: ביטול Lifetime' : 'Protected Action: Revoke Lifetime')
+                  : (isHebrew ? 'פעולה מוגנת: הענקת Lifetime' : 'Protected Action: Grant Lifetime')}
               </h3>
               <p style={{ color: NEON.textSecondary, fontSize: '0.82rem', marginBottom: '4px', lineHeight: '1.4' }}>
                 {isHebrew ? 'חשבון יעד:' : 'Target account:'} <strong style={{ color: NEON.textPrimary }}>{lifetimeActionUser?.email || lifetimeActionUser?.business_name || 'N/A'}</strong>
@@ -484,8 +471,6 @@ export default function AdminUsersTab({
               <p style={{ color: NEON.textSecondary, fontSize: '0.78rem', marginBottom: '14px', lineHeight: '1.4' }}>
                 {isHebrew ? 'מצב מיועד (אחרי אישור):' : 'Intended resulting state (after confirmation):'} <strong>{nextStateLabel}</strong>
               </p>
-              <p style={{ color: NEON.textSecondary, fontSize: '0.78rem', marginBottom: '14px', lineHeight: '1.4' }}>{legacyOnlyText}</p>
-              {legacyRetired && <p role="note" data-testid="admin-legacy-retired" style={{ color: NEON.red, fontSize: '0.78rem', marginBottom: '14px', lineHeight: '1.4', fontWeight: 600 }}>{legacyRetiredText}</p>}
 
               <form onSubmit={handleExecuteLifetimeAction} autoComplete="off">
                 <textarea
@@ -521,19 +506,21 @@ export default function AdminUsersTab({
                   <button
                     type="button"
                     onClick={() => { setLifetimeActionUser(null); setAdminPasswordInput(''); setAdminReasonInput(''); setResetError(''); }}
-                    style={{ flex: 1, background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                    style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
                   >
                     {isHebrew ? 'ביטול' : 'Cancel'}
                   </button>
                   {/* PRODUCT_TRUTH_DECORATIVE: submits the grant/revoke-Lifetime confirmation form */}
                   <button
                     type="submit"
-                    disabled={isResetting || legacyRetired}
-                    style={{ flex: 1, background: NEON.gradient, color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: legacyRetired ? 'not-allowed' : 'pointer', boxShadow: 'none', opacity: legacyRetired ? 0.5 : 1 }}
+                    disabled={isResetting}
+                    style={{ flex: 1, background: NEON.gradient, color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: NEON.glowSoft }}
                   >
                     {isResetting
                       ? (isHebrew ? 'מבצע...' : 'Working...')
-                      : (isHebrew ? `אשר is_lifetime=${!targetIsLifetime}` : `Confirm is_lifetime=${!targetIsLifetime}`)}
+                      : targetIsLifetime
+                        ? (isHebrew ? 'אשר ביטול Lifetime' : 'Confirm Revoke Lifetime')
+                        : (isHebrew ? 'אשר הענקת Lifetime' : 'Confirm Grant Lifetime')}
                   </button>
                 </div>
               </form>
@@ -542,31 +529,28 @@ export default function AdminUsersTab({
         );
       })()}
 
-      {/* TEKANGO Admin V1 (Task 3.4): legacy trial extension - now goes
+      {/* TEKANGO Admin V1 (Task 3.4): Extend Trial by 14 days - now goes
           through the same protected-action re-auth flow as Reset/Delete/
           Lifetime (previously had none at all). Only offered from the
           action menu when the account is actually eligible (AdminUsersView
           already filters this at the button-visibility level; the backend
           independently re-enforces eligibility regardless). */}
       {trialActionUser && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(24,33,43,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
-          <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '420px', boxShadow: SHADOW.lg, textAlign: isHebrew ? 'right' : 'left' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }}>
+          <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '24px', borderRadius: '16px', width: '100%', maxWidth: '420px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.6)', textAlign: isHebrew ? 'right' : 'left' }}>
             <h3 style={{ marginTop: 0, color: NEON.violetLight, fontSize: '1.1rem', marginBottom: '8px', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '6px' }}>
               <ShieldCheck size={18} />
-              {isHebrew ? 'הארכת ניסיון (מורשת)' : 'Extend legacy trial'}
+              {isHebrew ? 'פעולה מוגנת: הארכת ניסיון ב-14 יום' : 'Protected Action: Extend Trial 14 Days'}
             </h3>
             <p style={{ color: NEON.textSecondary, fontSize: '0.82rem', marginBottom: '4px', lineHeight: '1.4' }}>
               {isHebrew ? 'חשבון יעד:' : 'Target account:'} <strong style={{ color: NEON.textPrimary }}>{trialActionUser?.email || trialActionUser?.business_name || 'N/A'}</strong>
             </p>
             <p style={{ color: NEON.textSecondary, fontSize: '0.78rem', marginBottom: '4px', lineHeight: '1.4' }}>
-              {isHebrew ? 'ערך נוכחי ברשומת המורשת:' : 'Current legacy value:'} <code dir="ltr">{`trial_ends_at=${trialActionUser?.trial_ends_at || 'null'}`}</code>
-              {trialActionUser?.trial_ends_at && <span> ({formatShortDateTime(trialActionUser.trial_ends_at, (isHebrew ? 'Local' : 'International'))})</span>}
+              {isHebrew ? 'תפוגה נוכחית:' : 'Current expiry:'} <strong>{trialActionUser?.trial_ends_at ? formatShortDateTime(trialActionUser.trial_ends_at, (isHebrew ? 'Local' : 'International')) : (isHebrew ? 'אין ניסיון פעיל' : 'No active trial')}</strong>
             </p>
             <p style={{ color: NEON.textSecondary, fontSize: '0.78rem', marginBottom: '14px', lineHeight: '1.4' }}>
-              {isHebrew ? 'זמין רק כש-trial_ends_at ריק או שעבר. הכלל נבדק שוב בשרת בזמן האישור.' : 'Only when trial_ends_at is empty or in the past. The rule is re-checked server-side at confirmation time.'}
-              {' '}{legacyOnlyText}
+              {isHebrew ? 'זמין רק כשהניסיון פג או שאין ניסיון פעיל. הזכאות נבדקת שוב בשרת בזמן האישור.' : 'Only available when the trial is expired or none is active. Eligibility is re-checked server-side at confirmation time.'}
             </p>
-            {legacyRetired && <p role="note" data-testid="admin-legacy-retired" style={{ color: NEON.red, fontSize: '0.78rem', marginBottom: '14px', lineHeight: '1.4', fontWeight: 600 }}>{legacyRetiredText}</p>}
 
             <form onSubmit={handleExecuteTrialExtension} autoComplete="off">
               <textarea
@@ -602,17 +586,17 @@ export default function AdminUsersTab({
                 <button
                   type="button"
                   onClick={() => { setTrialActionUser(null); setAdminPasswordInput(''); setAdminReasonInput(''); setResetError(''); }}
-                  style={{ flex: 1, background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
+                  style={{ flex: 1, background: 'rgba(255,255,255,0.06)', color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer' }}
                 >
                   {isHebrew ? 'ביטול' : 'Cancel'}
                 </button>
-                {/* PRODUCT_TRUTH_DECORATIVE: submits the legacy trial extension confirmation form */}
+                {/* PRODUCT_TRUTH_DECORATIVE: submits the 14-day trial extension confirmation form */}
                 <button
                   type="submit"
-                  disabled={isResetting || legacyRetired}
-                  style={{ flex: 1, background: NEON.gradient, color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: legacyRetired ? 'not-allowed' : 'pointer', boxShadow: 'none', opacity: legacyRetired ? 0.5 : 1 }}
+                  disabled={isResetting}
+                  style={{ flex: 1, background: NEON.gradient, color: 'white', border: 'none', padding: '9px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', boxShadow: NEON.glowSoft }}
                 >
-                  {isResetting ? (isHebrew ? 'מבצע...' : 'Working...') : (isHebrew ? 'אשר הארכת ניסיון (מורשת)' : 'Confirm legacy trial extension')}
+                  {isResetting ? (isHebrew ? 'מבצע...' : 'Working...') : (isHebrew ? 'אשר הארכת ניסיון' : 'Confirm Trial Extension')}
                 </button>
               </div>
             </form>
@@ -660,7 +644,7 @@ export default function AdminUsersTab({
         >
           <span style={{ fontSize: '0.85rem', fontWeight: '800', display: 'flex', alignItems: 'center', gap: '8px', color: NEON.textSecondary }}>
             <Send size={14} color={NEON.violetLight} strokeWidth={2.2} />
-            {isHebrew ? 'אבחון: בדיקת מיילי תזכורת (תבניות מורשת)' : 'Diagnostics: test reminder emails (legacy templates)'}
+            {isHebrew ? 'אבחון: בדיקת מיילי תזכורת תפוגה' : 'Diagnostics: Test Expiration Reminder Emails'}
           </span>
           <ChevronDown size={16} color={NEON.textMuted} style={{ transition: 'transform 0.2s ease', transform: diagnosticsOpen ? 'rotate(180deg)' : 'rotate(0deg)' }} />
         </button>
@@ -685,8 +669,8 @@ export default function AdminUsersTab({
                 onChange={(e) => setTestType(e.target.value)}
                 style={{ padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem' }}
               >
-                <option value="trial">{isHebrew ? 'תום ניסיון (תבנית מורשת)' : 'Trial expiration (legacy template)'}</option>
-                <option value="subscription">{isHebrew ? 'תפוגת מנוי (תבנית מורשת)' : 'Subscription expiration (legacy template)'}</option>
+                <option value="trial">{isHebrew ? 'תום תקופת ניסיון' : 'Trial Expiration'}</option>
+                <option value="subscription">{isHebrew ? 'תפוגת מנוי בתשלום' : 'Subscription Expiration'}</option>
               </select>
               <select
                 value={testStage}
@@ -701,7 +685,7 @@ export default function AdminUsersTab({
                 type="button"
                 onClick={() => handleSendTestEmail(true)}
                 disabled={sendingTestLang !== null}
-                style={{ background: NEON.violetLighter, color: NEON.violet, border: `1px solid ${APP_STATUS.sent.border}`, padding: '7px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.78rem', cursor: sendingTestLang ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                style={{ background: 'rgba(139, 92, 246, 0.15)', color: NEON.violetLight, border: '1px solid rgba(167, 139, 250, 0.4)', padding: '7px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.78rem', cursor: sendingTestLang ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               >
                 <Send size={12} strokeWidth={2.5} />
                 {sendingTestLang === 'he' ? (isHebrew ? 'שולח...' : 'Sending...') : (isHebrew ? 'שלח בעברית' : 'Send Hebrew Test')}
@@ -711,7 +695,7 @@ export default function AdminUsersTab({
                 type="button"
                 onClick={() => handleSendTestEmail(false)}
                 disabled={sendingTestLang !== null}
-                style={{ background: NEON.bgCardAlt, color: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, padding: '7px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.78rem', cursor: sendingTestLang ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
+                style={{ background: 'rgba(56, 189, 248, 0.15)', color: NEON.sky, border: '1px solid rgba(56, 189, 248, 0.4)', padding: '7px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.78rem', cursor: sendingTestLang ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
               >
                 <Send size={12} strokeWidth={2.5} />
                 {sendingTestLang === 'en' ? (isHebrew ? 'שולח...' : 'Sending...') : (isHebrew ? 'שלח באנגלית' : 'Send English Test')}

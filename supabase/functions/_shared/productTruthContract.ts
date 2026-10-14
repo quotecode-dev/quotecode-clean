@@ -10,7 +10,7 @@
 //   canonical authority  ->  structured truth (this payload)  ->  prose
 //
 // - It is derived ONLY from canonical authority (capability registry projection, AI_FACTS billing /
-//   invoicing flags, the server account summary's plan, the server-verified role / market) - never from generated prose.
+//   invoicing flags, the server-verified account plan / role / market) - never from generated prose.
 // - The user-facing prose formatters consume it (they pick their branch from the payload, not from the raw
 //   facts), so the two layers cannot drift apart silently.
 // - Acceptance validates THIS payload first; the prose parser is only a secondary consistency check.
@@ -22,8 +22,7 @@ export const PRODUCT_TRUTH_PAYLOAD_SCHEMA_VERSION = 1;
 export const TRUTH_STATUSES = [
   'AVAILABLE', // the capability exists and is usable by (or not gated against) this account
   'NOT_AVAILABLE', // roadmap / unavailable / deprecated / not released / test-only - not a customer capability today
-  'PLAN_LOCKED', // exists, plan-gated, THIS account's plan is below an APPROVED minimum (no minimum is approved today - OPEN-02)
-  'PLAN_NOT_DECIDED', // exists; the subscription system gates it, but which plans include it is not decided (OPEN-02 / OPEN-13)
+  'PLAN_LOCKED', // exists, plan-gated, THIS account's plan is below the minimum
   'ROLE_LOCKED', // exists, role-gated, THIS account does not hold the role
   'MARKET_UNAVAILABLE', // live, but not in this account's market
   'PAYMENT_NOT_LIVE', // no checkout / payment processing exists
@@ -64,12 +63,7 @@ export const REGISTRY_STATES = [
 ] as const;
 export type RegistryState = typeof REGISTRY_STATES[number];
 
-// Canonical plan ids (OD-16, subscriptionContract.ts PLAN_IDS). An account plan is only ever taken from the server account
-// summary (account-summary/v1); the retired legacy tiers are not valid payload values.
-export const PLAN_TIER_VALUES = ['free', 'classic', 'modern', 'visual'] as const;
-// AUDIT HISTORY ONLY: the plan values historical (chat-ai v39) evidence captures carry. Accepted ONLY when a caller validates a
-// historical capture with { allowLegacyPlanValues: true } (src/data acceptance, ruleset 'legacy_v39'); the runtime never emits them.
-export const LEGACY_PLAN_TIER_VALUES = ['free', 'basic', 'pro'] as const;
+export const PLAN_TIER_VALUES = ['free', 'basic', 'pro'] as const;
 export const ROLE_VALUES = ['user', 'super_admin'] as const;
 
 export type ProductTruthFactPayload = {
@@ -109,7 +103,7 @@ const isStrOrNull = (v: unknown): boolean => v === null || (typeof v === 'string
  * consistent). This does NOT know the canonical truth of a particular question - equality with the canonical
  * expectation is a separate, independent check in the acceptance layer.
  */
-export function validateProductTruthPayload(p: unknown, options: { allowLegacyPlanValues?: boolean } = {}): string[] {
+export function validateProductTruthPayload(p: unknown): string[] {
   const v: string[] = [];
   if (!p || typeof p !== 'object' || Array.isArray(p)) return ['payload_not_an_object'];
   const o = p as Record<string, unknown>;
@@ -140,12 +134,6 @@ export function validateProductTruthPayload(p: unknown, options: { allowLegacyPl
     if (o.accountEntitlement !== 'DENIED') v.push('plan_locked_requires_entitlement_denied');
     if (o.claimScope !== 'ACCOUNT') v.push('plan_locked_requires_account_claim_scope');
     if (o.requiredRole !== null) v.push('plan_locked_must_not_carry_a_required_role');
-  }
-  if (status === 'PLAN_NOT_DECIDED') {
-    if (o.minimumPlan !== null) v.push('plan_not_decided_must_not_carry_a_minimum_plan');
-    if (o.requiredRole !== null) v.push('plan_not_decided_must_not_carry_a_required_role');
-    if (o.claimScope !== 'CAPABILITY') v.push('plan_not_decided_requires_capability_claim_scope');
-    if (o.accountEntitlement !== 'NOT_APPLICABLE') v.push('plan_not_decided_requires_entitlement_not_applicable');
   }
   if (status === 'ROLE_LOCKED') {
     if (o.requiredRole === null) v.push('role_locked_without_required_role');
@@ -180,7 +168,6 @@ export function validateProductTruthPayload(p: unknown, options: { allowLegacyPl
     if (['USD', 'EUR', 'GBP', 'MULTI'].includes(currency) && market !== 'INTERNATIONAL') v.push('foreign_currency_only_valid_for_an_international_account');
   }
   if (o.accountRole !== null && !ROLE_VALUES.includes(o.accountRole as typeof ROLE_VALUES[number])) v.push(`account_role_unrecognised:${String(o.accountRole)}`);
-  const planValues: readonly string[] = options.allowLegacyPlanValues ? LEGACY_PLAN_TIER_VALUES : PLAN_TIER_VALUES;
-  if (o.accountPlan !== null && !planValues.includes(o.accountPlan as string)) v.push(`account_plan_unrecognised:${String(o.accountPlan)}`);
+  if (o.accountPlan !== null && !PLAN_TIER_VALUES.includes(o.accountPlan as typeof PLAN_TIER_VALUES[number])) v.push(`account_plan_unrecognised:${String(o.accountPlan)}`);
   return v;
 }

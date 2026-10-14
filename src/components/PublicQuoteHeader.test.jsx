@@ -111,18 +111,6 @@ describe('PublicQuoteHeader - Desktop branch unaffected by the Mobile fix', () =
     const card = label.closest('div[style*="min-width"]');
     expect(card).toBeTruthy();
   });
-
-  it('keeps the three-cell screen skeleton when valid_until is missing, without inventing a date', () => {
-    const { container } = render(<PublicQuoteHeader {...baseProps} quote={{ ...baseQuote, valid_until: null }} isHebrew={true} />);
-    const cells = container.querySelectorAll('.pq-meta-cell');
-    expect(cells).toHaveLength(3);
-    const placeholder = container.querySelector('.pq-meta-placeholder');
-    expect(placeholder).toBeTruthy();
-    expect(placeholder.classList.contains('no-print')).toBe(true);
-    expect(placeholder.getAttribute('data-html2canvas-ignore')).toBe('true');
-    expect(placeholder.textContent).toContain('בתוקף עד');
-    expect(placeholder.textContent).toContain('—');
-  });
 });
 
 // Faded PDF Logo Correction task: locks in the two source-verified pieces of

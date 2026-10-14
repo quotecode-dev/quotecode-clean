@@ -122,16 +122,6 @@ describe('negative controls - the gates detect the defect classes', () => {
     expect(validateRouteHtml(byPath('/en'), enWithHebrew).join(' | ')).toMatch(/Hebrew letters/);
   });
 
-  // OD-08 / OD-11 (Owner 2026-10-07): no ILS on the International site - not even inside a plan card (the former
-  // TEST-review exception is removed); the gate has no plan-card carve-out.
-  it('ILS on the International landing is rejected everywhere, including inside a plan card', () => {
-    const page = renderPublicPage(byPath('/en'));
-    for (const injected of ['<article class="tl-plan" data-plan-card="classic"><p>ILS 29.00</p></article>', '<p>ILS 5.00</p>', '<p>₪29.00</p>', '<p>29 NIS</p>']) {
-      const html = composeRouteHtml(SHELL, byPath('/en'), `${page}${injected}`);
-      expect(validateRouteHtml(byPath('/en'), html).join(' | ')).toMatch(/International landing shows ILS/);
-    }
-  });
-
   it('a USD price in the Local landing is rejected', () => {
     const html = composeRouteHtml(SHELL, byPath('/he'), `${renderPublicPage(byPath('/he'))}<p>$12</p>`);
     expect(validateRouteHtml(byPath('/he'), html).join(' | ')).toMatch(/USD/);

@@ -50,19 +50,12 @@ const ROUTE_TO_CAPABILITY = {
   '/tools/crypto': 'public_crypto_calculator',
   '/public-quote/:id': 'public_quote_view',
   '/quote/:id': 'public_quote_view',
-  // OD-02 capability URLs: the same public quote view, reached by an artifact-scoped token instead of the quote id
-  '/public-quote/c/:token': 'public_quote_view',
-  // Task 23 (Phase 5): the public digital business card page
-  '/card/:id': 'digital_business_card',
 };
 const TAB_TO_CAPABILITY = {
   main: 'quote_history',
   catalog: 'catalog',
   clients: 'clients',
   finances: 'finance_views',
-  statistics: 'quote_statistics', // Task 17 screen; its own capability id since Task 20 (PHASE_CAPABILITY_IDS)
-  tasks: 'manual_tasks', // Task 18 screen; its own capability id since Task 20 (PHASE_CAPABILITY_IDS)
-  calendar: 'calendar', // Task 19 screen; its own capability id since Task 20 (PHASE_CAPABILITY_IDS)
   settings: 'business_settings',
   admin_clients: 'admin_console',
 };
@@ -79,9 +72,6 @@ const DECORATIVE_ROUTES = new Set([
   '/', '/he', '/en', '/ai-logs', '/terms', '/he/terms', '/en/terms', '/privacy', '/he/privacy',
   '/en/privacy', '/contact', '/he/contact', '/en/contact', '*', '/professional-preview',
   '/public-quote/:id/preview',
-  // Task 16 - Quote Experience V2: the no-auth, noindex synthetic sample quote (the real document in previewMode, no
-  // approve / no network) - a demonstration surface, not a Product Truth capability.
-  '/sample-quote', '/he/sample-quote', '/en/sample-quote',
 ]);
 
 describe('DEFECT-7 INDEPENDENT SURFACE COVERAGE (source-derived, not registry-derived)', () => {

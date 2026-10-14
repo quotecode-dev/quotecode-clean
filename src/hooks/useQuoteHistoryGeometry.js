@@ -22,8 +22,7 @@ const SCROLLBAR_RESERVE = 16; // body scroll owner keeps scrollbar-gutter: stabl
 export const QH_CELL_STYLE = {
   number: { fontWeight: '600', fontSize: '0.82rem' },
   amount: { fontWeight: '400', fontSize: '0.9rem' },
-  // Task 16: 12px (0.75rem) - readable-label floor; the chip renders AND is measured with this same style object.
-  status: { padding: '2px 7px', borderRadius: '999px', fontSize: '0.75rem', fontWeight: '700', display: 'inline-block', whiteSpace: 'nowrap' },
+  status: { padding: '2px 7px', borderRadius: '999px', fontSize: '0.7rem', fontWeight: '700', display: 'inline-block', whiteSpace: 'nowrap' },
   date: { fontSize: '0.75rem' },
   head: { fontSize: '0.7rem', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em' },
 };

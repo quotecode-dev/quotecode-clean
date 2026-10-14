@@ -4,11 +4,8 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildSubscriptionEmailSafeResponse } from "./safeResponse.ts";
 
 // ==========================================
-// Subscriptions cutover (2026-10-07): only the retired legacy plan name was removed from the test-mode copy; the batch
-// mode is still the inert short-circuit below (never sends). Canonical lifecycle templates (activated / past due /
-// recovered / cancelled) are PREPARED, unsent, in supabase/functions/_shared/subscriptionLifecycleTemplates.ts.
 // 🚨 פונקציה זו אחראית באופן בלעדי על מיילי תזכורת תפוגת מנוי בתשלום
-// (מסלולים בתשלום: קלאסיק / מודרן / ויזואל - OD-16), בשני שלבים: 3 ימים לפני ו-24 שעות לפני התפוגה. נשלחת דרך
+// (Basic/Pro), בשני שלבים: 3 ימים לפני ו-24 שעות לפני התפוגה. נשלחת דרך
 // Resend מ-support@tekango.com למשתמשים דוברי עברית ומ-info@tekango.com
 // למשתמשים דוברי אנגלית.
 // ==========================================
@@ -92,7 +89,7 @@ function buildSubscriptionReminderEmail({ stage, businessName, subscriptionEndsA
         <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
         <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
           ${isHebrew
-            ? `המנוי בתשלום שלך במערכת <strong>TEKANGO</strong> עומד לפוג בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). על מנת למנוע הפסקה בשירות ולהבטיח גישה רציפה לכלל הפיצ'רים העסקיים שלך, נודה לחידוש המנוי בהקדם.`
+            ? `מנוי ה־PRO בתשלום שלך במערכת <strong>TEKANGO</strong> עומד לפוג בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). על מנת למנוע הפסקה בשירות ולהבטיח גישה רציפה לכלל הפיצ'רים העסקיים שלך, נודה לחידוש המנוי בהקדם.`
             : `Your paid TEKANGO subscription is set to end on <strong>${dateStr}</strong> (in 3 days). Renew now to make sure you keep uninterrupted access to all your features.`}
         </p>
         ${ctaButton(isHebrew)}

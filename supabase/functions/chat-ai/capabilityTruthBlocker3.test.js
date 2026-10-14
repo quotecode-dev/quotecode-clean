@@ -134,17 +134,15 @@ describe('BLOCKER 3 §4.3 — deterministic product-capability-question guard ru
 describe('BLOCKER 3 §4.4 — invalid plan/role resolves fail-closed, never unqualified "available"', () => {
   it('an unrecognized plan tier string never resolves accountHasIt to true or false - it fails closed to unknown, and the answer still discloses the plan restriction rather than an unqualified "available"', () => {
     const answer = formatCapabilityTruthAnswer('attachments', FACTS, false, 'NOT_A_REAL_PLAN_TIER', null);
-    // Subscriptions cutover: plan inclusion is not decided (OPEN-13), so the answer discloses THAT - never "available to you".
-    expect(answer).toMatch(/still undecided/);
-    expect(answer).not.toMatch(/\bPRO\b/);
+    // Must still mention the plan requirement (fail-closed "unknown", not silently treated as having it).
+    expect(answer).toMatch(/PRO/i);
     expect(answer).not.toMatch(/does not include it/i); // that phrasing is reserved for a CONFIRMED false (accountHasIt===false)
   });
 
   it('resolveCapabilityAnswerState itself: an unrecognized plan tier yields planRestriction.accountHasIt === null (never true/false)', () => {
     const state = resolveCapabilityAnswerState('attachments', FACTS, 'NOT_A_REAL_PLAN_TIER', null);
-    // no approved minimum plan exists (OPEN-02): never a plan restriction, always the undecided subscription gate
-    expect(state.planRestriction).toBeNull();
-    expect(state.subscriptionGate).toEqual({ subscriptionCapabilityId: 'quote_attachment.upload', planEligibility: 'not_decided' });
+    expect(state.planRestriction).toBeTruthy();
+    expect(state.planRestriction.accountHasIt).toBeNull();
   });
 
   it('a registry-level unrecognized requiredRole value throws (defensive validation, never silently grants/denies)', () => {

@@ -12,11 +12,9 @@ const dashboard = read('src/pages/Dashboard.jsx');
 describe('owners publish structured blockers (Dashboard)', () => {
   it.each([
     'PROFILE_MISSING_PHONE', 'PROFILE_MISSING_TAX_ID', 'REGION_NOT_SELECTED', 'QUOTE_UNFINISHED_NON_DRAFT_STATUS', 'QUOTE_INVALID_CLIENT_EMAIL',
-    'QUOTE_SAVE_VERIFY_FAILED', 'QUOTE_IMMUTABLE_SIGNED', 'QUOTE_SAVE_RESULT_UNKNOWN', 'ATTACHMENT_UPLOAD_FAILED_PRE_SAVE',
+    'QUOTE_SAVE_VERIFY_FAILED', 'QUOTE_IMMUTABLE_SIGNED', 'MONTHLY_QUOTE_LIMIT_REACHED', 'QUOTE_SAVE_RESULT_UNKNOWN', 'ATTACHMENT_UPLOAD_FAILED_PRE_SAVE',
     'ATTACHMENT_PARTIAL_AFTER_SAVE', 'ATTACHMENT_REMOVAL_PENDING', 'DRAFT_RECOVERED_UNSAVED', 'DRAFT_CONFLICT_SERVER_CHANGED', 'DRAFT_STORAGE_FAILED',
-    // subscriptions cutover: MONTHLY_QUOTE_LIMIT_REACHED is retired (no monthly counter, OD-20); a locked WhatsApp action
-    // publishes the neutral PLAN_FEATURE_LOCKED (WHATSAPP_REQUIRES_PRO is only a parse alias in aiHelpContract.js)
-    'DRAFT_ATTACHMENTS_MISSING', 'PLAN_FEATURE_LOCKED', 'CLIENT_DELETE_HAS_QUOTES', 'SETTINGS_SAVE_FAILED', 'QUOTE_INCOMPLETE_ITEMS',
+    'DRAFT_ATTACHMENTS_MISSING', 'PLAN_FEATURE_LOCKED', 'WHATSAPP_REQUIRES_PRO', 'CLIENT_DELETE_HAS_QUOTES', 'SETTINGS_SAVE_FAILED', 'QUOTE_INCOMPLETE_ITEMS',
     'EMAIL_CLIENT_NO_EMAIL', 'blockerCodeForEmailError', 'blockerCodeForSaveFailure', 'blockerCodeForActionError',
   ])('%s is wired', (code) => expect(dashboard).toContain(code));
   it('QuoteForm owns the required-field blockers; Admin re-auth owns the protected-action blocker', () => {

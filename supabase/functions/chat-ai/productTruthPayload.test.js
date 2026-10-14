@@ -25,10 +25,10 @@ import { PRODUCT_TRUTH_PAYLOAD_KEYS, TRUTH_STATUSES, validateProductTruthPayload
 
 const FACTS = { capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities };
 const indexSource = readFileSync(join(dirname(fileURLToPath(import.meta.url)), 'index.ts'), 'utf-8');
-// Subscriptions cutover: the account plan is a canonical plan id from the server account summary (or null).
-const TIERS = ['free', 'classic', 'modern', 'visual', null];
+const TIERS = ['free', 'basic', 'pro', null];
 const ADMINS = [true, false, null];
 const MARKETS = ['Local', 'International', 'Unknown', null];
+const rank = { free: 0, basic: 1, pro: 2 };
 
 describe('(1) registry -> payload: every capability x tier x role x market', () => {
   it('produces a VALID payload for every combination, and its truth is the independently recomputed registry truth', () => {
@@ -50,14 +50,12 @@ describe('(1) registry -> payload: every capability x tier x role x market', () 
           expect(p.requiredRole).toBe(c.requiredRole);
           expect(p.minimumPlan).toBeNull();
           expect(p.accountEntitlement).toBe(isAdmin === null ? 'UNKNOWN' : isAdmin ? 'GRANTED' : 'DENIED');
-        } else if (c.subscriptionCapabilityId) {
-          // OPEN-02 / OPEN-13: plan inclusion not decided - whatever the account plan, a capability-scoped claim with no plan
-          want = 'PLAN_NOT_DECIDED';
-          expect(c.planEligibility).toBe('not_decided');
-          expect(p.minimumPlan).toBeNull();
+        } else if (c.minimumPlan && c.minimumPlan !== 'free') {
+          const has = tier === null ? null : rank[tier] >= rank[c.minimumPlan];
+          want = has === false ? 'PLAN_LOCKED' : 'AVAILABLE';
+          expect(p.minimumPlan).toBe(c.minimumPlan);
           expect(p.requiredRole).toBeNull();
-          expect(p.claimScope).toBe('CAPABILITY');
-          expect(p.accountEntitlement).toBe('NOT_APPLICABLE');
+          expect(p.accountEntitlement).toBe(has === null ? 'UNKNOWN' : has ? 'GRANTED' : 'DENIED');
         } else {
           want = 'AVAILABLE';
           expect(p.minimumPlan).toBeNull();
@@ -75,14 +73,12 @@ describe('(1) registry -> payload: every capability x tier x role x market', () 
     expect(n).toBe(AI_FACTS.capabilities.length * TIERS.length * ADMINS.length * MARKETS.length);
   });
 
-  it('an unrecognised plan (incl. a retired legacy tier) fails closed to "no plan fact" (never an entitlement), and the payload stays valid', () => {
-    for (const bad of ['platinum', 'pro', 'basic']) {
-      const r = resolveCapabilityTruthResponse('attachments', FACTS, false, bad, false, 'International');
-      expect(r.factPayload.accountPlan).toBeNull();
-      expect(r.factPayload.accountEntitlement).toBe('NOT_APPLICABLE');
-      expect(r.factPayload.truthStatus).toBe('PLAN_NOT_DECIDED');
-      expect(validateProductTruthPayload(r.factPayload)).toEqual([]);
-    }
+  it('an unrecognised tier fails closed to "no plan fact" (never an entitlement), and the payload stays valid', () => {
+    const r = resolveCapabilityTruthResponse('attachments', FACTS, false, 'platinum', false, 'International');
+    expect(r.factPayload.accountPlan).toBeNull();
+    expect(r.factPayload.accountEntitlement).toBe('UNKNOWN');
+    expect(r.factPayload.truthStatus).toBe('AVAILABLE');
+    expect(validateProductTruthPayload(r.factPayload)).toEqual([]);
   });
 
   it('non-live registry states are NOT_AVAILABLE with their own registryState (synthetic facts: the registry has none today)', () => {
@@ -120,7 +116,7 @@ describe('(1) registry -> payload: every capability x tier x role x market', () 
 });
 
 describe('(1b) the other deterministic Product Truth routes -> payload', () => {
-  const acct = { market: 'Local', plan: 'visual', isAdmin: false };
+  const acct = { market: 'Local', tier: 'pro', isAdmin: false };
   it('payment: PAYMENT_NOT_LIVE, PRODUCT-scoped, from AI_FACTS.billing', () => {
     const p = buildPaymentFactPayload(AI_FACTS.billing, acct);
     expect(p).toMatchObject({ capabilityId: 'payment_processing', truthStatus: 'PAYMENT_NOT_LIVE', claimScope: 'PRODUCT', source: 'BILLING_FACTS', currencyScope: 'NOT_APPLICABLE', accountMarket: 'LOCAL' });
@@ -159,11 +155,11 @@ describe('(1b) the other deterministic Product Truth routes -> payload', () => {
     expect(buildLifecycleFactPayload({ ...state, lifecycleSelfServiceAvailable: null }, acct).truthStatus).toBe('UNKNOWN');
   });
   it('account market: ACCOUNT-scoped; Local -> ILS, International -> MULTI; refuses an unverified market', () => {
-    const local = buildAccountMarketFactPayload({ market: 'Local', plan: 'visual', isAdmin: false });
+    const local = buildAccountMarketFactPayload({ market: 'Local', tier: 'pro', isAdmin: false });
     expect(local).toMatchObject({ truthStatus: 'ACCOUNT_MARKET', claimScope: 'ACCOUNT', marketScope: 'ACCOUNT', currencyScope: 'ILS', accountMarket: 'LOCAL', source: 'MARKET_RULES' });
-    const intl = buildAccountMarketFactPayload({ market: 'International', plan: 'free', isAdmin: false });
+    const intl = buildAccountMarketFactPayload({ market: 'International', tier: 'free', isAdmin: false });
     expect(intl).toMatchObject({ currencyScope: 'MULTI', accountMarket: 'INTERNATIONAL', claimScope: 'ACCOUNT' });
-    expect(() => buildAccountMarketFactPayload({ market: 'Unknown', plan: 'free', isAdmin: false })).toThrow(ProductTruthPayloadError);
+    expect(() => buildAccountMarketFactPayload({ market: 'Unknown', tier: 'free', isAdmin: false })).toThrow(ProductTruthPayloadError);
     expect(() => buildAccountMarketFactPayload(NO_ACCOUNT_FACTS)).toThrow(ProductTruthPayloadError);
   });
 });
@@ -174,17 +170,14 @@ describe('(2) payload -> prose: the prose is rendered FROM the payload', () => {
       expect(formatCapabilityTruthAnswer(c.id, FACTS, he, tier, isAdmin, 'Local')).toBe(resolveCapabilityTruthResponse(c.id, FACTS, he, tier, isAdmin, 'Local').answer);
     }
   });
-  it('the wording follows the payload status: PLAN_NOT_DECIDED says plan inclusion is undecided, ROLE_LOCKED the role, AVAILABLE neither a denial nor a restriction', () => {
-    const undecided = resolveCapabilityTruthResponse('attachments', FACTS, false, 'free', false, 'International');
-    expect(undecided.factPayload.truthStatus).toBe('PLAN_NOT_DECIDED');
-    expect(undecided.answer).toMatch(/^Yes - File attachments exists in TEKANGO\./);
-    expect(undecided.answer).toMatch(/still undecided/);
-    expect(undecided.answer).not.toMatch(/requires|does not include|\bPRO\b|\bBASIC\b/);
-    const undecidedHe = resolveCapabilityTruthResponse('attachments', FACTS, true, 'visual', false, 'Local');
-    expect(undecidedHe.answer).toMatch(/טרם הוחלט/);
-    const plain = resolveCapabilityTruthResponse('editor_calculator', FACTS, false, 'visual', false, 'International');
-    expect(plain.factPayload.truthStatus).toBe('AVAILABLE');
-    expect(plain.answer).not.toMatch(/requires|does not include|undecided/);
+  it('the wording follows the payload status: PLAN_LOCKED names the minimum plan, ROLE_LOCKED the role, AVAILABLE neither a denial nor a restriction', () => {
+    const locked = resolveCapabilityTruthResponse('attachments', FACTS, false, 'free', false, 'International');
+    expect(locked.factPayload.truthStatus).toBe('PLAN_LOCKED');
+    expect(locked.answer).toMatch(/requires the PRO plan or above/);
+    expect(locked.answer).toMatch(/Your current plan does not include it/);
+    const granted = resolveCapabilityTruthResponse('attachments', FACTS, false, 'pro', false, 'International');
+    expect(granted.factPayload.truthStatus).toBe('AVAILABLE');
+    expect(granted.answer).not.toMatch(/requires|does not include/);
     const role = resolveCapabilityTruthResponse('admin_console', FACTS, true, 'free', false, 'Local');
     expect(role.factPayload.truthStatus).toBe('ROLE_LOCKED');
     expect(role.answer).toMatch(/super_admin/);
@@ -210,7 +203,7 @@ describe('(2) payload -> prose: the prose is rendered FROM the payload', () => {
 });
 
 describe('(3) the contract validator: a self-contradicting or product-wide-currency payload is not expressible', () => {
-  const good = buildAccountMarketFactPayload({ market: 'Local', plan: 'visual', isAdmin: false });
+  const good = buildAccountMarketFactPayload({ market: 'Local', tier: 'pro', isAdmin: false });
   const mutate = (p, patch) => ({ ...p, ...patch });
   it('accepts the well-formed payloads and rejects non-objects / missing / unknown fields', () => {
     expect(validateProductTruthPayload(good)).toEqual([]);
@@ -236,21 +229,13 @@ describe('(3) the contract validator: a self-contradicting or product-wide-curre
     expect(validateProductTruthPayload(mutate(good, { claimScope: 'PRODUCT' }))).toEqual(expect.arrayContaining([expect.stringMatching(/currency_claim_must_be_account_or_market_scoped:PRODUCT/), 'account_market_requires_account_claim_scope']));
     expect(validateProductTruthPayload(mutate(good, { accountMarket: 'INTERNATIONAL' }))).toContain('ils_currency_only_valid_for_a_local_account');
     expect(validateProductTruthPayload(mutate(good, { accountMarket: null }))).toEqual(expect.arrayContaining(['currency_claim_requires_a_verified_account_market']));
-    const intl = buildAccountMarketFactPayload({ market: 'International', plan: 'visual', isAdmin: false });
+    const intl = buildAccountMarketFactPayload({ market: 'International', tier: 'pro', isAdmin: false });
     expect(validateProductTruthPayload(mutate(intl, { accountMarket: 'LOCAL' }))).toContain('foreign_currency_only_valid_for_an_international_account');
     expect(validateProductTruthPayload(mutate(intl, { currencyScope: 'USD' }))).toEqual([]);
   });
   it('rejects gate contradictions: PLAN_LOCKED without a plan / with a granted entitlement; ROLE_LOCKED likewise; AVAILABLE with a denied entitlement', () => {
-    // PLAN_LOCKED is only reachable once a minimum plan is approved (none today) - exercised on a synthetic, well-formed payload
-    const undecided = resolveCapabilityTruthResponse('attachments', FACTS, false, 'free', false, 'International').factPayload;
-    const locked = mutate(undecided, { truthStatus: 'PLAN_LOCKED', minimumPlan: 'visual', accountEntitlement: 'DENIED', claimScope: 'ACCOUNT' });
+    const locked = resolveCapabilityTruthResponse('attachments', FACTS, false, 'free', false, 'International').factPayload;
     expect(validateProductTruthPayload(locked)).toEqual([]);
-    expect(validateProductTruthPayload(undecided)).toEqual([]);
-    expect(validateProductTruthPayload(mutate(undecided, { minimumPlan: 'visual' }))).toContain('plan_not_decided_must_not_carry_a_minimum_plan');
-    expect(validateProductTruthPayload(mutate(undecided, { accountEntitlement: 'GRANTED' }))).toContain('plan_not_decided_requires_entitlement_not_applicable');
-    expect(validateProductTruthPayload(mutate(undecided, { claimScope: 'ACCOUNT' }))).toContain('plan_not_decided_requires_capability_claim_scope');
-    expect(validateProductTruthPayload(mutate(undecided, { accountPlan: 'pro' }))).toContain('account_plan_unrecognised:pro');
-    expect(validateProductTruthPayload(mutate(undecided, { accountPlan: 'pro' }), { allowLegacyPlanValues: true })).toEqual([]);
     expect(validateProductTruthPayload(mutate(locked, { minimumPlan: null }))).toContain('plan_locked_without_minimum_plan');
     expect(validateProductTruthPayload(mutate(locked, { accountEntitlement: 'GRANTED' }))).toContain('plan_locked_requires_entitlement_denied');
     expect(validateProductTruthPayload(mutate(locked, { truthStatus: 'AVAILABLE' }))).toContain('available_contradicts_entitlement_denied');
@@ -259,7 +244,7 @@ describe('(3) the contract validator: a self-contradicting or product-wide-curre
     expect(validateProductTruthPayload(mutate(role, { minimumPlan: 'pro' }))).toContain('role_locked_must_not_carry_a_minimum_plan');
   });
   it('rejects payment / invoicing that are not PRODUCT-scoped or that scope a currency; comparison without two ids; clarification naming a capability', () => {
-    const pay = buildPaymentFactPayload(AI_FACTS.billing, { market: 'Local', plan: 'visual', isAdmin: false });
+    const pay = buildPaymentFactPayload(AI_FACTS.billing, { market: 'Local', tier: 'pro', isAdmin: false });
     expect(validateProductTruthPayload(mutate(pay, { claimScope: 'ACCOUNT' }))).toContain('payment_not_live_requires_product_claim_scope');
     expect(validateProductTruthPayload(mutate(pay, { currencyScope: 'ILS' }))).toContain('payment_not_live_must_not_scope_a_currency');
     const cmp = buildComparisonFactPayload(FACTS, NO_ACCOUNT_FACTS);
@@ -330,8 +315,8 @@ describe('(4) the account market / currency route', () => {
   it.each(YES)('routes: %s', (t) => expect(classifyAccountMarketIntent(t)).toBe(true));
   it.each(NO)('does not steal: %s', (t) => expect(classifyAccountMarketIntent(t)).toBe(false));
   it('the prose is rendered FROM the ACCOUNT_MARKET payload and never crosses markets', () => {
-    const local = buildAccountMarketFactPayload({ market: 'Local', plan: 'visual', isAdmin: false });
-    const intl = buildAccountMarketFactPayload({ market: 'International', plan: 'visual', isAdmin: false });
+    const local = buildAccountMarketFactPayload({ market: 'Local', tier: 'pro', isAdmin: false });
+    const intl = buildAccountMarketFactPayload({ market: 'International', tier: 'pro', isAdmin: false });
     const he = formatAccountMarketAnswer(true, local);
     const en = formatAccountMarketAnswer(false, intl);
     expect(he).toMatch(/החשבון שלך/);

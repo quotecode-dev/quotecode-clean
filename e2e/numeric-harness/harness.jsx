@@ -34,7 +34,7 @@ createRoot(document.getElementById('root')).render(
   <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ padding: 8 }}>
     <QuotesTab {...props} />
     <div id="totals-grid" style={{ display: 'grid', gridTemplateColumns: '1fr auto', columnGap: 10, marginTop: 16, width: '100%', maxWidth: 320, boxSizing: 'border-box' }}>
-      {[['sub', 1300, 0.8], ['disc', -130, 0.8], ['vat', 210.6, 0.8], ['grand', 10000, 0.8]].map(([k, v, fs]) => (
+      {[['sub', 1300, 0.8], ['disc', -130, 0.8], ['vat', 210.6, 0.8], ['grand', 10000, 1]].map(([k, v, fs]) => (
         <>
           <span key={k + 'l'}>{k}</span>
           <MoneyValue key={k} data-testid={`tg-${k}`} hero={k === 'grand'} symbol={sym} text={fmt(v)} style={{ fontSize: `${fs}rem`, textAlign: 'right' }} />

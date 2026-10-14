@@ -18,7 +18,6 @@ import { AI_FACTS } from "./aiFacts.generated.ts";
 import { resolveCapabilityAnswerState, checkStructuredStateInvariants } from "./capabilityAnswerState.ts";
 import { classifyHelpIntent } from "./helpContext.ts";
 import type { ProductTruthFactPayload } from "../_shared/productTruthContract.ts";
-import { planName } from "../_shared/subscriptionContract.ts";
 import { buildCapabilityFactPayload, buildClarificationFactPayload, buildComparisonFactPayload, buildLifecycleFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
 
 export type CapabilityFact = {
@@ -30,13 +29,9 @@ export type CapabilityFact = {
   readonly state: string;
   readonly markets?: readonly string[];
   readonly currencies?: { readonly role: string; readonly values: readonly string[] } | null;
-  // Subscriptions cutover: the canonical capability id that gates it (subscriptionContract.ts), and whether the plans that
-  // include it are decided (OPEN-02 / OPEN-13: 'not_decided' for every gated capability today).
-  readonly subscriptionCapabilityId?: string | null;
-  readonly planEligibility?: 'not_decided' | 'decided' | null;
-  readonly eligiblePlans?: readonly string[] | null;
+  readonly planAvailability?: { readonly free: boolean; readonly basic: boolean; readonly pro: boolean };
   readonly minimumPlan?: string | null;
-  readonly authorityType?: 'subscription' | 'role' | 'none' | 'plan';
+  readonly authorityType?: 'plan' | 'role' | 'none';
   readonly requiredRole?: string | null;
   readonly aiMayExplain?: boolean;
   readonly aiMayNavigate?: boolean;
@@ -54,9 +49,6 @@ export type NonCurrentCapabilityFact = {
   readonly enDescription: string;
   readonly state: string;
   readonly forbiddenClaimCodes?: readonly string[];
-  // Task 21: optional note appended to the NOT_AVAILABLE answer (generated from the registry, never hand-written here).
-  readonly heAnswerNote?: string;
-  readonly enAnswerNote?: string;
 };
 
 export type CapabilityFacts = {
@@ -125,19 +117,6 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     // Hebrew: second-person-singular past tense ("you edited/saved/...") - the same claim shape.
     /(ערכת|שמרת|שלחת|אישרת|מחקת|יצרת|עדכנת|חתמת|שכפלת).{0,20}(הצעה|בשבילי|עבורי|אותה|אותו)/,
   ]],
-  // Task 20: automatic sending questions (not the AI itself - those stay with autonomous_email / ai_mutation). Checked before
-  // autonomous_email so "does TEKANGO email my customers automatically" gets the reminders truth, not the AI-reply one.
-  ['automatic_whatsapp', [
-    /^(?!.*\b(ai|assistant|bot|chat)\b).*(\bwhatsapp\b.{0,40}\bautomatic(ally)?\b|\bautomatic(ally)?\b.{0,40}\bwhatsapp\b)/i,
-    /(וואטסאפ|ווטסאפ|WhatsApp).{0,30}אוטומטי|אוטומטי.{0,30}(וואטסאפ|ווטסאפ|WhatsApp)/i,
-  ]],
-  ['automatic_customer_messages', [
-    /^(?!.*\b(ai|assistant|bot|chat)\b).*\bautomatic(ally)?\b.{0,30}\b(send|sends|sent|email|emails|message|messages|follow[- ]?ups?|reminders?)\b.{0,30}\b(customers?|clients?)\b/i,
-    /^(?!.*\b(ai|assistant|bot|chat)\b).*\b(send|sends|email|emails|message|messages)\b.{0,30}\b(my\s+)?(customers?|clients?)\b.{0,20}\bautomatic(ally)?\b/i,
-    /^(?!.*\b(ai|assistant|bot|chat)\b).*\b(customers?|clients?)\b.{0,30}\b(get|receive)\b.{0,20}\bautomatic\b/i,
-    /^(?!.*(ה-?AI|הבוט|העוזר|הצ.?אט|צ.?אט)).*(שליחה|שולח|שולחת|מייל|מיילים|הודעה|הודעות|תזכורת|תזכורות).{0,15}אוטומטי(ת|ים|ות)?.{0,25}(ללקוח|ללקוחות)/,
-    /^(?!.*(ה-?AI|הבוט|העוזר|הצ.?אט|צ.?אט)).*(ללקוח|ללקוחות).{0,25}(אוטומטי|אוטומטית)/,
-  ]],
   ['autonomous_email', [
     /\b(can|does)\s+(the\s+)?(ai|assistant|bot)\s+.{0,30}send\s+.{0,20}(email|mail)\s+.{0,20}automatic/i,
     /\bautomatically (send|reply to|answer)\s+(my\s+)?(emails?|customers?|clients?)\b/i,
@@ -159,33 +138,6 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     /לשלם.{0,10}(ב)?כרטיס אשראי/,
   ]],
   ['invoicing', [/\bcan (tekango|you|the system) (issue|create|generate)\s+.{0,10}invoice/i, /(מפיק|מפיקה|יכולים להפיק) חשבונית/]],
-  // Task 21 (Owner report §250): an external-calendar connection question ("where is the calendar connected?", "Google Calendar sync?") is
-  // answered by the non-current google_calendar_sync truth, which also names the internal Calendar - checked BEFORE the generic `calendar`.
-  ['google_calendar_sync', [
-    /\bgoogle\s*calendar\b/i, /\b(outlook|external|phone|iphone|android|ical)\s+calendars?\b/i,
-    /\bcalendar\b.{0,30}\b(syncs?|synced|synchroni[sz](e|ed|es)|connected|connects?|integrat(ed|es|ion))\b/i,
-    /\b(sync|synchroni[sz]e|connect|integrate)\b.{0,30}\bcalendar\b/i,
-    /(גוגל|google).{0,15}(קלנדר|יומן|calendar)/i, /(קלנדר|יומן).{0,15}(גוגל|google)/i,
-    /יומן.{0,25}(מחובר|מחוברת|לחבר|חיבור|מתחבר|מתחברת|סנכרון|מסונכרן|מסונכרנת|לסנכרן|מסתנכרן)/,
-    /(סנכרון|לסנכרן|מסנכרן|לחבר|חיבור).{0,25}(ה?יומן|קלנדר)/,
-  ]],
-  ['digital_business_card', [/\b(digital|online|virtual|electronic|e-?)\s*business\s*cards?\b/i, /\bbusiness\s*cards?\b/i, /\bv-?card\b/i, /כרטיס(י)? ביקור/]],
-  // Task 20: the screens after the frozen 38 (PHASE_CAPABILITY_IDS). Specific vocabulary only, checked before the generic quote patterns.
-  ['reminders_automation', [/\breminders?\b/i, /\bautomations?\b/i, /\b(in-app only|full mode)\b/i, /תזכור(ת|ות)/, /אוטומצי(ה|ות)/, /בממשק בלבד|מצב מלא/]],
-  ['quote_link_view', [
-    /\bquote link\b.{0,20}\bview(ed|s)?\b/i, /\blink view(ed|s)?\b/i,
-    /צפייה בקישור|הקישור נצפה|נפתח הקישור|פתח את הקישור/,
-    /\bfirst view\b/i, /\bgreen (dot|indicator|light)\b/i,
-    /\b(sent|send)\b.{0,30}\b(vs\.?|versus|or|and|different from)\b.{0,15}\bviewed\b/i,
-    /\b(did|has|have)\b.{0,20}\b(customer|client)\b.{0,20}\b(see|saw|seen|look(ed)?|viewed|opened|read)\b/i,
-    /\bemail\b.{0,30}\b(delivered|received|read|opened)\b/i,
-    /צפייה ראשונה/, /נקודה ירוקה/, /נשלחה.{0,25}נצפתה|נצפתה.{0,25}נשלחה/,
-    /(הלקוח|הלקוחה).{0,20}(צפה|צפתה|ראה|ראתה|פתח|פתחה|קרא|קראה)/,
-    /(המייל|האימייל).{0,25}(הגיע|נקרא|נפתח|התקבל)/,
-  ]],
-  ['calendar', [/\bcalendar\b/i, /\b(public |jewish |israeli )?holidays?\b/i, /יומן/, /חגים|שבתות|ימי מנוחה/]],
-  ['manual_tasks', [/\b(manual\s+)?tasks?\s+(list|screen|tab)\b/i, /\b(create|add|open)\s+(a\s+)?(follow[- ]?up\s+)?task\b/i, /\bto-?do\b/i, /משימ(ה|ות)/]],
-  ['quote_statistics', [/\bstatistics?\b/i, /\bconversion rate\b/i, /\bhot quotes?\b/i, /סטטיסטיק/, /שיעור (ה)?המרה/, /הצע(ה|ות) חמ(ה|ות)/]],
   // Codex defect 1 (2026-09-22): "Is PDF the same as Print?" (and similar) must get a deterministic
   // factual DISTINCTION, not fall through to the model and not silently resolve to just one of the
   // two individual capabilities. Checked before the individual quote_pdf/quote_print patterns below.
@@ -336,9 +288,7 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ['public_quote_view', [/\bview\s+.{0,10}public\s+quote\b/i, /(צפייה|לצפות).{0,20}הצעה.{0,10}ציבורית/]],
   ['draft_recovery', [/\b(unsaved|lost|recover(ed)?)\s+.{0,10}draft\b/i, /טיוטה.{0,20}(שחזור|לשחזר)|(שחזור|לשחזר).{0,20}טיוטה/]],
   ['accessibility_tools', [/\baccessibility\b/i, /נגישות/]],
-  // Task 33 (live TEST finding: "איך מוסיפים לוגו של העסק להצעה?" reached the model, which in 1 of 5 runs sent the user to the quote /
-  // the catalog): the business logo lives in Business settings - answered deterministically. Card questions keep their own earlier route.
-  ['business_settings', [/\bbusiness settings\b/i, /הגדרות עסק/, /\blogo\b/i, /לוגו/]],
+  ['business_settings', [/\bbusiness settings\b/i, /הגדרות עסק/]],
   ['profile_prerequisites', [/\b(business )?(phone|tax id)\s+required\b/i, /(טלפון|ח\.?פ\.?).{0,10}(חובה|נדרש)/]],
   ['plan_trial', [/\bfree trial\b/i, /ניסיון חינם/]],
   // Found via real-browser terminal testing (super_admin persona, 2026-09-23): "פאנל הניהול" (admin
@@ -486,37 +436,30 @@ function renderCapabilityProse(p: ProductTruthFactPayload, name: string, desc: s
       return isHebrew ? `לא - ${name} אינה זמינה בשוק של החשבון שלך.` : `No - ${name} is not available in your account's market.`;
     case 'ROLE_LOCKED':
       return isHebrew
-        ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${p.requiredRole} המאומתת בצד השרת - לא למסלול. ${desc} החשבון הנוכחי שלך אינו מחזיק בהרשאה הזו.`
-        : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${p.requiredRole} role - not to a plan. ${desc} Your current account does not hold that role.`;
-    case 'PLAN_NOT_DECIDED':
-      // OPEN-02 / OPEN-13: the capability exists; which plans include it is not decided, and the plan system is not active yet.
-      // Never a minimum plan, never "your plan includes / lacks it".
-      return isHebrew
-        ? `כן - ${name} קיימת ב-TEKANGO. ${desc} אילו מסלולים יכללו אותה - טרם הוחלט (מערכת המסלולים החדשה עדיין בהכנה).`
-        : `Yes - ${name} exists in TEKANGO. ${desc} Plan inclusion for it is still undecided (the new plan system is still being prepared).`;
+        ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${p.requiredRole} המאומתת בצד השרת - לא לתוכנית תשלום ולא ל-Lifetime. ${desc} החשבון הנוכחי שלך אינו מחזיק בהרשאה הזו.`
+        : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${p.requiredRole} role - not a paid plan or Lifetime. ${desc} Your current account does not hold that role.`;
     case 'PLAN_LOCKED':
-      // Reachable only with an APPROVED minimum plan (none today - OPEN-02). Canonical plan names only (OD-16).
       return isHebrew
-        ? `כן - ${name} קיימת ב-TEKANGO, אך כלולה החל ממסלול ${planName(p.minimumPlan, 'he') ?? ''}. ${desc} המסלול הנוכחי שלך אינו כולל אותה.`
-        : `Yes - ${name} exists in TEKANGO, but it is included from the ${planName(p.minimumPlan, 'en') ?? ''} plan. ${desc} Your current plan does not include it.`;
+        ? `כן - ${name} קיימת ב-TEKANGO, אך דורשת תוכנית ${String(p.minimumPlan).toUpperCase()} ומעלה. ${desc} התוכנית הנוכחית שלך אינה כוללת אותה.`
+        : `Yes - ${name} exists in TEKANGO, but it requires the ${String(p.minimumPlan).toUpperCase()} plan or above. ${desc} Your current plan does not include it.`;
     case 'AVAILABLE': {
-      // Role-gated (Codex defect 6): a PERMISSION restriction, never a plan one — phrased distinctly from the
-      // plan-gated branch, and never inferred from the account's plan (an account on any plan without the role still
+      // Role-gated (Codex defect 6): a PERMISSION restriction, never a plan/Lifetime one — phrased distinctly from the
+      // plan-gated branch, and never inferred from the account's plan tier (a PRO or Lifetime account without the role still
       // does not have it). Read from the payload's requiredRole / accountEntitlement.
       if (p.requiredRole !== null) {
         if (p.accountEntitlement === 'GRANTED') {
           return isHebrew ? `כן - ${name} קיימת ב-TEKANGO וההרשאה שלך מאומתת. ${desc}` : `Yes - ${name} exists in TEKANGO and your role is verified. ${desc}`;
         }
         return isHebrew
-          ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${p.requiredRole} המאומתת בצד השרת - לא למסלול. ${desc}`
-          : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${p.requiredRole} role - not to a plan. ${desc}`;
+          ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${p.requiredRole} המאומתת בצד השרת - לא לתוכנית תשלום ולא ל-Lifetime. ${desc}`
+          : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${p.requiredRole} role - not a paid plan or Lifetime. ${desc}`;
       }
       // Plan-gated: say the capability exists and explain the restriction — never deny existence. Codex 4.4: branches on the
       // payload's tri-state accountEntitlement (never the raw tier string's truthiness); GRANTED needs no restriction disclosure.
       if (p.minimumPlan !== null && p.accountEntitlement !== 'GRANTED') {
         return isHebrew
-          ? `כן - ${name} קיימת ב-TEKANGO, החל ממסלול ${planName(p.minimumPlan, 'he') ?? ''}. ${desc}`
-          : `Yes - ${name} exists in TEKANGO, from the ${planName(p.minimumPlan, 'en') ?? ''} plan. ${desc}`;
+          ? `כן - ${name} קיימת ב-TEKANGO, החל מתוכנית ${p.minimumPlan.toUpperCase()}. ${desc}`
+          : `Yes - ${name} exists in TEKANGO, from the ${p.minimumPlan.toUpperCase()} plan. ${desc}`;
       }
       return isHebrew ? `כן - ${name} קיימת ב-TEKANGO. ${desc}` : `Yes - ${name} exists in TEKANGO. ${desc}`;
     }
@@ -535,11 +478,11 @@ export function resolveCapabilityTruthResponse(
   id: string,
   facts: CapabilityFacts,
   isHebrew: boolean,
-  accountPlan: string | null = null,
+  accountTier: string | null = null,
   isAdmin: boolean | null = null,
   accountMarket: PayloadAccountFacts['market'] = null,
 ): StructuredTruthResponse | null {
-  const acct: PayloadAccountFacts = { market: accountMarket, plan: accountPlan, isAdmin };
+  const acct: PayloadAccountFacts = { market: accountMarket, tier: accountTier, isAdmin };
   // Codex defect 3: cancellation/archive/permanent-deletion of the account/business/subscription
   // itself is NOT one of the 38 registered capabilities (it is the false claim being corrected, not
   // a real feature) - answered directly here, matching validation.ts's system-prompt-level wording
@@ -547,7 +490,7 @@ export function resolveCapabilityTruthResponse(
   // sentinel branch inside resolveCapabilityAnswerState) is still resolved and invariant-checked
   // below, before this hard-coded, pre-vetted, invariant-safe text is returned.
   if (id === 'account_lifecycle_not_self_service') {
-    const sentinelState = resolveCapabilityAnswerState(id, facts, accountPlan, isAdmin)!;
+    const sentinelState = resolveCapabilityAnswerState(id, facts, accountTier, isAdmin)!;
     const sentinelViolations = checkStructuredStateInvariants(sentinelState);
     if (sentinelViolations.length > 0) throw new CapabilityAnswerInvariantError(id, sentinelViolations);
     const factPayload = buildLifecycleFactPayload(sentinelState, acct);
@@ -564,7 +507,7 @@ export function resolveCapabilityTruthResponse(
   // own - both underlying capabilities' states are still resolved and invariant-checked below.
   if (id === 'quote_pdf_vs_print_comparison') {
     for (const underlyingId of ['quote_pdf', 'quote_print']) {
-      const underlyingState = resolveCapabilityAnswerState(underlyingId, facts, accountPlan, isAdmin);
+      const underlyingState = resolveCapabilityAnswerState(underlyingId, facts, accountTier, isAdmin);
       if (underlyingState) {
         const underlyingViolations = checkStructuredStateInvariants(underlyingState);
         if (underlyingViolations.length > 0) throw new CapabilityAnswerInvariantError(underlyingId, underlyingViolations);
@@ -579,7 +522,7 @@ export function resolveCapabilityTruthResponse(
     return { answer, factPayload };
   }
 
-  const state = resolveCapabilityAnswerState(id, facts, accountPlan, isAdmin);
+  const state = resolveCapabilityAnswerState(id, facts, accountTier, isAdmin);
   if (!state || state.availabilityState === 'UNKNOWN_CAPABILITY') return null;
 
   const violations = checkStructuredStateInvariants(state);
@@ -591,14 +534,12 @@ export function resolveCapabilityTruthResponse(
   if (!fact) return null;
 
   const factPayload = buildCapabilityFactPayload(state, fact, acct);
-  const prose = renderCapabilityProse(factPayload, label(fact, isHebrew), description(fact, isHebrew), isHebrew);
-  const note = !current && factPayload.truthStatus === 'NOT_AVAILABLE' ? (isHebrew ? nonCurrent?.heAnswerNote : nonCurrent?.enAnswerNote) : undefined;
-  return { answer: note ? `${prose} ${note}` : prose, factPayload };
+  return { answer: renderCapabilityProse(factPayload, label(fact, isHebrew), description(fact, isHebrew), isHebrew), factPayload };
 }
 
 /** Prose-only view of {@link resolveCapabilityTruthResponse} (kept for callers/tests that only need the wording). */
-export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, isHebrew: boolean, accountPlan: string | null = null, isAdmin: boolean | null = null, accountMarket: PayloadAccountFacts['market'] = null): string | null {
-  return resolveCapabilityTruthResponse(id, facts, isHebrew, accountPlan, isAdmin, accountMarket)?.answer ?? null;
+export function formatCapabilityTruthAnswer(id: string, facts: CapabilityFacts, isHebrew: boolean, accountTier: string | null = null, isAdmin: boolean | null = null, accountMarket: PayloadAccountFacts['market'] = null): string | null {
+  return resolveCapabilityTruthResponse(id, facts, isHebrew, accountTier, isAdmin, accountMarket)?.answer ?? null;
 }
 
 /** The bounded clarification TOGETHER with its structured (CLARIFICATION) truth - it asserts nothing about any capability. */
@@ -616,7 +557,7 @@ export function buildCapabilityTruthBlock(facts: CapabilityFacts | undefined | n
   }
   return `PRODUCT CAPABILITY TRUTH (authoritative - overrides guesswork; a capability's existence is a fact from the product's own registry, not something to infer from the conversation):
 - The product truth registry is the ONLY source for whether a feature exists (e.g. the in-editor calculator, currency/unit/metals/crypto converters, CSV export, WhatsApp share, attachments, measured/professional quotes). Never deny a real, currently-shipped feature exists, and never invent one that is not in the registry.
-- A feature gated by the subscription system STILL EXISTS - never say the product "does not have" it. Which plans include it has NOT been decided yet: never name a minimum plan, never say a plan includes or excludes it.
+- A feature restricted to a paid plan STILL EXISTS - explain the plan restriction, never say the product "does not have" that feature.
 - You (the assistant) never execute a mutating action yourself (edit/delete/send/create). You may explain how the user performs it themselves; you must never say "I did it", "I have edited it", or similar.
 - Autonomous/automatic AI actions (the AI itself editing a quote, or automatically sending email without a person doing it) are NOT available today - they are future roadmap items, not active capabilities.
 - The editor calculator and public currency/metals/crypto tools show INDICATIVE/estimated conversions; a fixed-fallback or hardcoded value is never "live" - do not claim a current/live exchange or metals rate unless the interface itself shows a timestamped value.`;
