@@ -111,14 +111,14 @@ export default function LandingLocal({ onForgotPassword }) {
       eyebrow: 'שלושה סגנונות, משפחה אחת',
       title: 'מסמך שמתאים לדרך שבה העסק שלכם עובד',
       // L09: the capability every account has is Classic; Modern / Visual are illustrations only, never "included".
-      intro: 'כרגע כל הצעות המחיר, בכל החשבונות, מוצגות בסגנון Classic: מסמך עסקי נקי עם פרטי העסקה וטבלת פריטים ומחירים ברורה. הסגנונות Modern ו-Visual מוצגים כאן להמחשה בלבד, וכרגע אינם זמינים באף מסלול.',
+      intro: 'שלושה סגנונות להצעת מחיר, זמינים בכל החשבונות: Classic - מסמך עסקי נקי עם פרטי העסקה וטבלת פריטים ומחירים ברורה; Modern - עם תמונות מוצר; Visual - עם תמונת פרויקט מרכזית. בוחרים סגנון בהגדרות העסק או בכל הצעה.',
       tablistLabel: 'סגנונות הצעת מחיר',
       // cloud-fix4b (Codex, truth): the phone layout with long amounts puts the description on its own full row, so the copy
       // may not promise "four columns on phones"; it states exactly what is kept (the four commercial fields).
       shared: 'בכל הסגנונות נשמרים ארבעת השדות של טבלת הפריטים: תיאור פריט, כמות, מחיר יחידה וסה"כ. בטלפון, כשהסכומים ארוכים, התיאור עובר לשורה מלאה ושלושת הערכים המספריים מופיעים מתחת לכותרות שלהם. רמת הפירוט (מקוצרת או מורחבת) נבחרת בנפרד מהסגנון.',
       availableBadge: 'זמין בכל החשבונות',
       previewBadge: 'דוגמה בלבד · לא זמין כרגע',
-      previewNote: 'להמחשה בלבד: הסגנון הזה עדיין לא זמין באף מסלול, וכרגע כל ההצעות מוצגות בסגנון Classic.',
+      previewNote: 'להמחשה בלבד.',
       viewerLabel: 'הצעת מחיר לדוגמה בסגנון הנבחר',
       // Task 27 (Owner-approved image): atmosphere photo beside the live style showcase (synthetic sample data, no identity numbers)
       photo: { src: '/assets/landing/quote-electrician-he.webp', width: 1280, height: 699, alt: 'חשמלאי מחזיק טלפון עם הצעת מחיר של TEKANGO' },
@@ -174,7 +174,7 @@ export default function LandingLocal({ onForgotPassword }) {
       intro: 'תשובות לשאלות נפוצות על המערכת.',
       items: [
         // L09: Classic is the only presentation outside TEST; Modern / Visual are described as illustrations, not features.
-        { q: 'מה ההבדל בין שלושת הסגנונות?', a: 'כרגע כל ההצעות, בכל החשבונות, מוצגות בסגנון Classic - מסמך עסקי נקי עם טבלת פריטים ומחירים מלאה וברורה. Modern (עם תמונות מוצר) ו-Visual (עם תמונת פרויקט מרכזית) מוצגים בדף הזה להמחשה בלבד, וכרגע אינם זמינים באף מסלול.' },
+        { q: 'מה ההבדל בין שלושת הסגנונות?', a: 'שלושת הסגנונות זמינים בכל החשבונות: Classic - מסמך עסקי נקי עם טבלת פריטים ומחירים מלאה וברורה; Modern - עם תמונות מוצר; Visual - עם תמונת פרויקט מרכזית. אפשר לקבוע סגנון ברירת מחדל בהגדרות העסק ולשנות אותו בכל הצעה.' },
         { q: 'האם צפייה בסגנון אחר משנה את המנוי?', a: 'לא. הצפייה בדוגמאות בדף הזה לא משנה את המסלול שלכם ולא את ההצעות שלכם.' },
         { q: 'מה קורה להצעה שנשלחה אחרי שינוי מסלול?', a: 'הצעה שנשלחה או נחתמה נשארת כפי שהלקוח קיבל אותה, כולל העיצוב שלה.' },
         // OD-05: the plan prices include VAT; no rate / breakdown is approved, and none is added on top.

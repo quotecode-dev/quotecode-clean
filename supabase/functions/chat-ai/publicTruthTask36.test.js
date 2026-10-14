@@ -19,7 +19,9 @@ describe('HE free-quotes questions are deterministic (parity with EN "free quote
 describe('the truth block states style availability', () => {
   it.each([[true], [false]])('isHebrew=%s', (he) => {
     const b = buildSubscriptionTruthBlock(he);
-    expect(b).toContain('every quote on every account is presented in the Classic style');
-    expect(b).toContain('Modern and Visual are illustrations only and are not available on any plan yet');
+    // Owner 2026-10-14: all three styles open to every account
+    expect(b).toContain('every account can use all three styles - Classic (a clean business document), Modern (with product images) and Visual (with a lead project image)');
+    expect(b).not.toContain('presented in the Classic style');
+    expect(b).not.toContain('Modern and Visual are illustrations only');
   });
 });

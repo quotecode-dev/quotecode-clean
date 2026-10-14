@@ -65,13 +65,13 @@ describe('landing page copy - previously-removed false claims stay removed', () 
   // cloud-fix4 A14 (IRON-LANDING-001, retro ledger L09): every account outside TEST resolves to the Classic
   // presentation and presentation tiers are not mapped to plans, so neither landing may promise plan-included styles
   // or a style choice, nor present Modern / Visual as available.
-  it('does not promise plan-included styles or a style choice; Modern / Visual are marked unavailable', () => {
+  it('styles are not tied to a plan; Owner 2026-10-14: all three styles are stated as available to every account', () => {
     const he = readRenderedText('LandingLocal.jsx');
     const en = readRenderedText('LandingGlobal.jsx');
-    expect(he).not.toMatch(/הכלולים במסלול|בוחרים את סגנון ההצגה|Modern מוסיף תמונות מוצר/);
-    expect(en).not.toMatch(/included in your plan|choose the presentation style|Modern adds product images/i);
-    expect(he).toContain('וכרגע אינם זמינים באף מסלול'); // Owner 2026-10-11 natural-Hebrew rewrite (same fact)
-    expect(en).toContain('are not currently available on any plan');
+    expect(he).not.toMatch(/הכלולים במסלול|וכרגע אינם זמינים באף מסלול/);
+    expect(en).not.toMatch(/included in your plan|are not currently available on any plan/i);
+    expect(he).toContain('שלושה סגנונות להצעת מחיר, זמינים בכל החשבונות');
+    expect(en).toContain('Three quote styles, available to every account');
     // the workflow / hero copy is the base copy again (authority ledger L07) - it names no style choice
     expect(he).not.toMatch(/בוחרים מבין הסגנונות/);
     expect(en).not.toMatch(/Choose from the styles/);
