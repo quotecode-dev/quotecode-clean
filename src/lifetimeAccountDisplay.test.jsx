@@ -48,7 +48,7 @@ describe('wiring (source)', () => {
     expect(s).toMatch(/const lifetimeAccount = isLifetime === true && !isSuperAdmin;/);
     expect(s).toMatch(/\{!isSuperAdmin && !lifetimeAccount && \(/);
     const d = src('pages/Dashboard.jsx');
-    expect(d).toMatch(/const \{ entitlement, isLifetime: isLifetimeAccount \} = resolvedIdentity;/);
+    expect(d).toMatch(/const \{ isLifetime: isLifetimeAccount \} = resolvedIdentity;/);
     expect(d.match(/isLifetime=\{isLifetimeAccount\}/g)).toHaveLength(2);
   });
 });
