@@ -64,19 +64,10 @@ export function accountStatusModel(summary, lang) {
   return { state, tone: 'error', planId: null, label: he ? 'פרטי המסלול אינם זמינים' : 'Plan details unavailable', detail: null, retry: true };
 }
 
-// Owner console 2026-10-14: an account the Owner granted lifetime (business_settings.is_lifetime - written only by the guarded admin
-// path; super admin is never lifetime, see resolveAccountEntitlement) is shown as "Lifetime subscription - no charge" on every plan
-// surface and is offered no package. Display only: nothing is granted, revoked or charged here.
-export function lifetimeAccountModel(lang) {
-  const he = lang === 'he';
-  return { state: 'lifetime', tone: 'lifetime', planId: null, label: he ? 'מנוי לכל החיים' : 'Lifetime subscription', detail: he ? 'ללא חיוב — אין צורך לרכוש מנוי.' : 'No charge — no subscription purchase needed.', retry: false };
-}
-
 // Task 30: the account-state line of Settings › "My subscription" (server summary only). While Free-10 is not ENFORCED on the server
 // (summary not_activated / not deployed, or a ready summary whose output phase is prepared / shadow) the ten free quotes do not limit
 // the account, so no balance is shown as a limit; the enforced Free-10 balance comes from accountStatusModel unchanged.
-export function subscriptionSectionState(summary, lang, { isLifetime = false } = {}) {
-  if (isLifetime === true) return lifetimeAccountModel(lang);
+export function subscriptionSectionState(summary, lang) {
   const he = lang === 'he';
   const base = accountStatusModel(summary, lang);
   if (base.state === 'not_activated' || base.state === 'not_deployed') {
