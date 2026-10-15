@@ -26,7 +26,7 @@ export default function Privacy({ isHebrew }) {
       {
         // Task 39 (Owner final scope 2026-10-13): the responsible operator, purposes and what is required (legal-documents spec, section D).
         title: '1. מי אחראי למידע ואיזה מידע נאסף',
-        content: 'האחראי למידע בשירות TEKANGO הוא המפעיל, שלמה סיני, עוסק מס׳ 023716913, רמת גן (לפניות: support@tekango.com). בעת ההרשמה והשימוש אנו מעבדים פרטי חשבון ועסק (כגון כתובת אימייל, שם העסק ופרטי התחברות), את המידע שאתם מזינים (לקוחות, הצעות מחיר, הוצאות) ותיעוד תפעולי הדרוש לאספקת השירות, לאבטחה ולתמיכה. פרטי ההתחברות והעסק הבסיסיים נדרשים לפתיחת חשבון; בלעדיהם לא ניתן לספק את השירות. שדות נוספים הם לבחירתכם.'
+        content: 'האחראי למידע בשירות TEKANGO הוא מפעיל השירות, כמפורט בתנאי השימוש (לפניות: support@tekango.com). בעת ההרשמה והשימוש אנו מעבדים פרטי חשבון ועסק (כגון כתובת אימייל, שם העסק ופרטי התחברות), את המידע שאתם מזינים (לקוחות, הצעות מחיר, הוצאות) ותיעוד תפעולי הדרוש לאספקת השירות, לאבטחה ולתמיכה. פרטי ההתחברות והעסק הבסיסיים נדרשים לפתיחת חשבון; בלעדיהם לא ניתן לספק את השירות. שדות נוספים הם לבחירתכם.'
       },
       {
         title: '2. שימוש במידע',
@@ -69,7 +69,7 @@ export default function Privacy({ isHebrew }) {
       {
         // Task 39 (Owner final scope 2026-10-13): the responsible operator, purposes and what is required (legal-documents spec, section D).
         title: '1. Who Is Responsible and What We Collect',
-        content: 'The party responsible for data in the TEKANGO service is its operator, Shlomo Sinai, Israeli business registration (osek) no. 023716913, Ramat Gan, Israel (contact: info@tekango.com). When you register and use the service we process account and business details (such as your email address, business name and sign-in details), the information you enter (clients, quotes, expenses) and operational records needed to provide the service, for security and for support. The basic sign-in and business details are required to open an account; without them the service cannot be provided. Other fields are optional.'
+        content: 'The party responsible for data in the TEKANGO service is its operator, as set out in the Terms of Use (contact: info@tekango.com). When you register and use the service we process account and business details (such as your email address, business name and sign-in details), the information you enter (clients, quotes, expenses) and operational records needed to provide the service, for security and for support. The basic sign-in and business details are required to open an account; without them the service cannot be provided. Other fields are optional.'
       },
       {
         title: '2. Use of Information',

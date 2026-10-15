@@ -199,6 +199,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
+  // Owner 2026-10-15: optional signup names + the Terms / Privacy consent (unticked by default)
+  const [signupFullName, setSignupFullName] = useState('');
+  const [signupBusinessName, setSignupBusinessName] = useState('');
+  const [signupTermsAccepted, setSignupTermsAccepted] = useState(false);
   const [authError, setAuthError] = useState('');
   const [authSuccess, setAuthSuccess] = useState('');
 
@@ -1573,13 +1577,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // ב-return הראשי).
       const signupMarket = userMetadata?.signup_market;
       if (signupMarket === 'Local' || signupMarket === 'International') {
-        await createNewBusinessSettings(userId, userEmail, signupMarket);
+        await createNewBusinessSettings(userId, userEmail, signupMarket, userMetadata?.business_name);
       } else {
         const freshGeoCountry = await fetchFreshGeoCountry();
         if (freshGeoCountry) {
-          await createNewBusinessSettings(userId, userEmail, freshGeoCountry === 'IL' ? 'Local' : 'International');
+          await createNewBusinessSettings(userId, userEmail, freshGeoCountry === 'IL' ? 'Local' : 'International', userMetadata?.business_name);
         } else {
-          setPendingNewAccount({ userId, userEmail });
+          setPendingNewAccount({ userId, userEmail, businessName: userMetadata?.business_name });
           setNeedsRegionChoice(true);
         }
       }
@@ -1602,7 +1606,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // לא ממשיכים לרנדר דשבורד חלקי. מעבירים/משאירים את המשתמש במסך בחירת
   // אזור מפורש (גם אם הניסיון הזה היה אוטומטי מ-geo, לא בחירה ידנית) עם
   // הודעת שגיאה מקומית, כדי שיוכל לנסות שוב.
-  async function createNewBusinessSettings(userId, userEmail, country) {
+  // Owner 2026-10-15: the optional business name typed at signup (user_metadata) becomes the new account's initial business name
+  const cleanSignupText = (v) => (typeof v === 'string' ? v.trim().slice(0, 120) : '');
+  async function createNewBusinessSettings(userId, userEmail, country, signupBusinessName = null) {
     if (country !== 'Local' && country !== 'International') {
       console.error('createNewBusinessSettings: invalid country', country);
       return false;
@@ -1622,7 +1628,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     const defaultPayload = {
       user_id: userId,
       email: userEmail,
-      business_name: country === 'Local' ? 'עסק חדש' : 'New Business',
+      business_name: cleanSignupText(signupBusinessName) || (country === 'Local' ? 'עסק חדש' : 'New Business'),
       country,
       currency: detectedCurr,
       // OD-01 / OD-15: no 'pro' plan and no 14-day trial at signup. plan / trial_ends_at are omitted, so the legacy record
@@ -1641,7 +1647,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     if (insertError || !newData) {
       console.error("Auto-init error:", insertError);
-      setPendingNewAccount({ userId, userEmail });
+      setPendingNewAccount({ userId, userEmail, businessName: signupBusinessName });
       setNeedsRegionChoice(true);
       setRegionChoiceError(isHebrew ? 'לא הצלחנו ליצור את החשבון כרגע. נסה שוב.' : "We couldn't create your account right now. Please try again.");
       isCreatingBusinessSettingsRef.current = false;
@@ -1680,7 +1686,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // מקבילה (ref סינכרוני) - אין צורך בבדיקה נוספת כאן.
   async function handleRegionChoiceSelect(country) {
     if (!pendingNewAccount) return;
-    await createNewBusinessSettings(pendingNewAccount.userId, pendingNewAccount.userEmail, country);
+    await createNewBusinessSettings(pendingNewAccount.userId, pendingNewAccount.userEmail, country, pendingNewAccount.businessName);
   }
 
   async function fetchAllAccounts() {
@@ -2256,6 +2262,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // dynamic-origin + explicit ?lang= pattern below (same reasoning:
       // preserves market/language across the redirect, not just the origin).
       // Production behavior is completely unchanged.
+      // Owner 2026-10-15: no signup without an explicit (never pre-ticked) Terms of Use + Privacy Policy consent
+      if (!signupTermsAccepted) {
+        setAuthError(bundleIsHebrew ? 'כדי להירשם יש לאשר את תנאי השימוש ואת מדיניות הפרטיות.' : 'To sign up, please accept the Terms of Use and the Privacy Policy.');
+        setAuthLoading(false);
+        return;
+      }
       const emailRedirectTo = isLocalTestMode
         ? window.location.origin + '/dashboard?lang=' + (bundleIsHebrew ? 'he' : 'en')
         : 'https://www.tekango.com/dashboard';
@@ -2265,7 +2277,15 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         password: passwordInput,
         options: {
           emailRedirectTo,
-          data: { signup_market: bundleIsHebrew ? 'Local' : 'International' }
+          data: {
+            signup_market: bundleIsHebrew ? 'Local' : 'International',
+            // Owner 2026-10-15: optional name fields + the consent record (document versions = their 'last updated' date, and the time)
+            ...(cleanSignupText(signupFullName) ? { full_name: cleanSignupText(signupFullName) } : {}),
+            ...(cleanSignupText(signupBusinessName) ? { business_name: cleanSignupText(signupBusinessName) } : {}),
+            terms_version: '2026-10-13',
+            privacy_version: '2026-10-13',
+            terms_accepted_at: new Date().toISOString(),
+          }
         }
       });
       if (error) {
@@ -4494,6 +4514,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         setEmailInput={setEmailInput}
         passwordInput={passwordInput}
         setPasswordInput={setPasswordInput}
+        signupFullName={signupFullName}
+        setSignupFullName={setSignupFullName}
+        signupBusinessName={signupBusinessName}
+        setSignupBusinessName={setSignupBusinessName}
+        signupTermsAccepted={signupTermsAccepted}
+        setSignupTermsAccepted={setSignupTermsAccepted}
         forgotOpen={forgotOpen}
         setForgotOpen={setForgotOpen}
         resetMsg={resetMsg}

@@ -53,7 +53,9 @@ describe('Privacy', () => {
     expect(en).toMatch(/Supabase/); expect(en).toMatch(/OpenAI/); expect(en).toMatch(/Resend/); expect(en).toMatch(/does not automatically attach/);
   });
   it('responsible party, conditional payment wording, marketing separation; no absolute-deletion promise', () => {
-    expect(he).toMatch(/שלמה סיני/); expect(en).toMatch(/Shlomo Sinai/);
+    // Owner 2026-10-15: the operator's identity appears only in the Terms; the Privacy Policy points there
+    expect(he).toMatch(/מפעיל השירות, כמפורט בתנאי השימוש/); expect(en).toMatch(/its operator, as set out in the Terms of Use/);
+    expect(`${he}${en}`).not.toMatch(/שלמה סיני|Shlomo Sinai|023716913|2993806/);
     expect(he).toMatch(/בעת ביצוע רכישה, ספק התשלום החיצוני/); expect(en).toMatch(/When a purchase is made, the external payment provider/);
     expect(he).toMatch(/אינה הסכמה לדיוור שיווקי/); expect(en).toMatch(/is not consent to marketing emails/);
     expect(`${he}${en}`).not.toMatch(/מחיקתו המוחלטת|complete deletion/);
@@ -63,10 +65,12 @@ describe('Privacy', () => {
 });
 
 describe('Contact + accessibility statement', () => {
-  it('business details and the cancellation-request mailto; phone only on the Hebrew page', () => {
+  it('no operator name / registration no. / address / phone (Owner 2026-10-15: Terms only); the cancellation-request mailto', () => {
     const he = render(<MemoryRouter><Contact isHebrew /></MemoryRouter>).container;
     const en = render(<MemoryRouter><Contact isHebrew={false} /></MemoryRouter>).container;
-    expect(he.querySelector('[data-testid="contact-phone"]').getAttribute('href')).toBe('tel:+972502993806');
+    expect(he.querySelector('[data-testid="contact-phone"]')).toBeNull();
+    expect(`${he.textContent}${en.textContent}`).not.toMatch(/שלמה סיני|Shlomo Sinai|023716913|2993806|שרה אהרונסון|Aharonson/);
+    expect(he.textContent).toMatch(/פרטי המפעיל מופיעים בתנאי השימוש/); expect(en.textContent).toMatch(/The operator's details are set out in the Terms of Use/);
     expect(en.querySelector('[data-testid="contact-phone"]')).toBeNull();
     expect(he.querySelector('[data-testid="contact-cancel-request"]').getAttribute('href')).toMatch(/^mailto:support@tekango\.com\?subject=/);
     expect(en.querySelector('[data-testid="contact-cancel-request"]').getAttribute('href')).toMatch(/^mailto:info@tekango\.com\?subject=/);
@@ -75,7 +79,7 @@ describe('Contact + accessibility statement', () => {
   it('the accessibility statement: real date, verified adjustments, stated limitation, real contact; no full-compliance claim', () => {
     const he = render(<AccessibilityModal isOpen isHebrew onClose={() => {}} />).container.textContent;
     const en = render(<AccessibilityModal isOpen isHebrew={false} onClose={() => {}} />).container.textContent;
-    expect(he).toMatch(/13 באוקטובר 2026/); expect(he).toMatch(/support@tekango\.com/); expect(he).toMatch(/050-2993806/); expect(he).toMatch(/איננו מצהירים על עמידה מלאה/);
+    expect(he).toMatch(/13 באוקטובר 2026/); expect(he).toMatch(/support@tekango\.com/); expect(he).not.toMatch(/2993806/); expect(he).toMatch(/דרך הצ'אט באתר/); expect(he).toMatch(/איננו מצהירים על עמידה מלאה/);
     expect(en).toMatch(/October 13, 2026/); expect(en).toMatch(/info@tekango\.com/); expect(en).toMatch(/we do not claim full conformance/); expect(en).not.toMatch(/2993806/);
     expect(`${he}${en}`).not.toMatch(/Beta|WCAG 2\.1 AA compliant|עומד(ת)? בתקן/);
   });
