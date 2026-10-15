@@ -15,6 +15,7 @@ import Privacy from '../pages/Privacy';
 import Contact from '../pages/Contact';
 import AttachmentCompatRoute from '../components/AttachmentCompatRoute';
 import UpdateAvailableBanner from '../shared/UpdateAvailableBanner';
+import RouteScrollManager from '../shared/RouteScrollManager';
 
 export default function AppLocal() {
   useEffect(() => {
@@ -30,6 +31,8 @@ export default function AppLocal() {
   return (
     <BrowserRouter>
       <UpdateAvailableBanner isHebrew={true} />
+      {/* Owner 2026-10-15: a new page opens at its top (or #section); Back returns to where the user was */}
+      <RouteScrollManager />
       {/* Auth Lifecycle Forensic Audit (2026-09-09, §226): a second, fully
           unreachable "forgot password" modal + handleSendRecovery
           previously lived here (identical shape to App.jsx's own copy,

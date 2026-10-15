@@ -2,7 +2,7 @@
 // 🚨 חוק ברזל קשוח (Dashboard.jsx): הודעות צפות מודרניות במרכז המסך ושמירה על יציבות.
 // ==============================================================================
 
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { supabase, rootRecoveryIntent, consumeRootRecoveryIntent, consumeRootSignupIntent, isLocalTestMode } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
@@ -11,13 +11,14 @@ import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
 import { OPEN_REMINDERS_SETTINGS_EVENT } from '../utils/reminders';
 import { markQuoteSentAfterShare } from '../utils/quoteSentMark';
+import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
 import { publishBlocker, resolveBlockers, clearScope, SAVE_ATTEMPT_CODES, blockerCodeForActionError, blockerCodeForSaveFailure, blockerCodeForEmailError } from '../utils/aiHelpBlockers';
 import AiHelpButton from '../components/AiHelpButton';
 import { computeQuoteWorkflowContext } from '../utils/quoteWorkflowContext';
 import { formatShortDate, deviceCalendarDate } from '../utils/shortDate';
 import { resolveAdminMarket } from '../utils/adminMarket';
 import { diagLog, diagBoot, idPrefix, installLifecycleDiag } from '../utils/returnDiag';
-import { loadWithRetry, isNetworkError } from '../utils/resilientLoad';
+import { loadWithRetry } from '../utils/resilientLoad';
 import useQuoteDraftPersistence from '../hooks/useQuoteDraftPersistence';
 import { allowDraftWrites, decideRestore, suppressDraftWrites, flushAllDrafts, formHash, newDraftId, serverFingerprintFromQuote } from '../utils/quoteDraft';
 import { getBlobStore } from '../utils/draftAttachments';
@@ -1366,7 +1367,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     loadSeqRef.current[name] = seq;
     const isCurrent = () => gen === loadGenRef.current && seq === loadSeqRef.current[name];
     setDataLoad((prev) => (prev[name] === 'ok' ? prev : { ...prev, [name]: 'loading' }));
-    const p = loadWithRetry(query, {
+    // Owner 2026-10-15: without a session in memory the query would run anonymously and RLS answers "[]" - never applied as the list
+    const guardedQuery = async () => {
+      const { data: sessionNow } = await supabase.auth.getSession();
+      if (!sessionNow?.session) return { ok: false, error: { message: 'no session (jwt)' }, status: 401 };
+      return query();
+    };
+    const p = loadWithRetry(guardedQuery, {
       isCurrent,
       refreshAuth: () => supabase.auth.refreshSession(),
       onRetry: (attempt, error, status) => {
@@ -1458,15 +1465,21 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     // retried by itself; only an answered error (an invalid / expired session) keeps the sign-out below.
     const settingsGen = loadGenRef.current;
     const settingsRes = await loadWithRetry(async () => {
+      // Owner 2026-10-15 ("users get signed out after some time"): no session in memory (a token refresh failed for a moment) is not an
+      // answer - an anonymous read would return "no row" and send an existing user to the new-account screen; refresh and retry instead
+      const { data: sessionNow } = await supabase.auth.getSession();
+      if (!sessionNow?.session) return { ok: false, error: { message: 'no session (jwt)' }, status: 401 };
       const r = await supabase
         .from('business_settings')
         .select('*')
         .eq('user_id', userId)
         .maybeSingle();
-      if (r.error && isNetworkError(r.error, r.status)) return { ok: false, error: r.error, status: r.status };
+      // ANY error is retried (an expired token is refreshed first) - a server error is never read as an invalid session any more
+      if (r.error) return { ok: false, error: r.error, status: r.status };
       return { ok: true, data: r };
     }, {
       isCurrent: () => settingsGen === loadGenRef.current,
+      refreshAuth: () => supabase.auth.refreshSession(),
       onRetry: (attempt, err, status) => diagLog('data-load', { resource: 'settings', outcome: 'retry', attempt, status: status ?? null }),
     });
     if (!settingsRes.ok) return;
@@ -1486,8 +1499,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // and let the normal unauthenticated login screen take over, rather
       // than showing a confusing "choose your region" prompt or attempting
       // any account-bootstrap mutation against an unverified session.
-      console.error('fetchSettings: business_settings query failed - treating as an invalid/expired session, not a new user:', error.message);
-      await supabase.auth.signOut();
+      // unreachable since 2026-10-15 (every error is retried above); kept as a guard: never sign out from here, never bootstrap
+      console.error('fetchSettings: business_settings query failed:', error.message);
       return;
     }
 
@@ -2505,7 +2518,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setNewDraftUuid(null);
     restoreAttemptedForRef.current = null;
     editorOwnerRef.current = null;
-    await supabase.auth.signOut();
+    // Owner 2026-10-15: Sign out ends THIS device's session only (the global default also ended every other device of the user)
+    await supabase.auth.signOut({ scope: 'local' });
     explicitLogoutRef.current = false;
   };
 
@@ -2810,7 +2824,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     let viewLink = null;
     const gate = outputGate('public_share', outputPhase);
     if (gate.mode === 'authority_required') {
-      const auth = await authorizeWithNotice({ channel: 'public_share', quoteId: proposal.id, invoke: (name, opts) => supabase.functions.invoke(name, opts), confirm: (t) => window.confirm(t), isHebrew: isHebrew });
+      const auth = await authorizeWithNotice({ channel: 'public_share', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (t) => window.confirm(t), isHebrew: isHebrew });
       if (!auth.proceed) {
         if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
         if (auth.code === 'free_issue_limit_reached') setFree10Window(true);
@@ -2888,7 +2902,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
     if (!confirmMissingPrices(proposal)) return;
     const win = window.open('', '_blank');
-    const auth = await authorizeWithNotice({ channel: 'send', quoteId: proposal.id, invoke: (name, opts) => supabase.functions.invoke(name, opts), confirm: (text) => window.confirm(text), isHebrew: isHebrew });
+    const auth = await authorizeWithNotice({ channel: 'send', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => window.confirm(text), isHebrew: isHebrew });
     if (!auth.proceed) {
       if (win && !win.closed) win.close();
       if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
@@ -2945,7 +2959,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
       let capabilityToken = null;
       if (sendGate.mode === 'authority_required') {
-        const auth = await authorizeWithNotice({ channel: 'send', quoteId: quote.id, invoke: (name, opts) => supabase.functions.invoke(name, opts), confirm: (text) => window.confirm(text), isHebrew: isHebrew });
+        const auth = await authorizeWithNotice({ channel: 'send', quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => window.confirm(text), isHebrew: isHebrew });
         if (!auth.proceed) {
           setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
           if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
@@ -2972,7 +2986,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         ...(capabilityToken ? { capabilityToken } : {})
       };
 
-      const { data, error } = await supabase.functions.invoke('send-quote-email', {
+      const { data, error } = await invokeWithFreshSession('send-quote-email', {
         body: payload
       });
 
@@ -3274,6 +3288,40 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     if (!missing.includes('taxId')) resolveBlockers(['PROFILE_MISSING_TAX_ID']);
   }, [showQuoteForm, recoveredDraftInfo, draftConflict, draftStorageFailed, draftAttachmentsMissing, pendingAttachmentRemovals.length, missingProfileKey]);
   useEffect(() => { if (!showQuoteForm) clearScope('editor'); }, [showQuoteForm]);
+  // Owner 2026-10-15 (scroll position on every screen switch): the workspace scrolls inside .dash-main-content (the editor) or a tab's
+  // own body (.quote-modern-body / .pf-screen-body), never the window. A new screen / editor / other quote opens at its TOP; going back
+  // from the editor to the quote list returns to where the list was (recorded while the user scrolls it).
+  const mainScrollRef = useRef(null);
+  const quoteListScrollRef = useRef(0);
+  const scrollStateRef = useRef({ showQuoteForm, activeTab });
+  scrollStateRef.current = { showQuoteForm, activeTab };
+  const quoteListScroller = () => { const root = mainScrollRef.current; return root?.querySelector('.quote-modern-body') || root?.querySelector('.pf-screen > .pf-screen-body') || null; };
+  useEffect(() => {
+    const root = mainScrollRef.current;
+    if (!root) return undefined;
+    const onScroll = (e) => {
+      const st = scrollStateRef.current;
+      if (!st.showQuoteForm && st.activeTab === 'main' && e.target === quoteListScroller()) quoteListScrollRef.current = e.target.scrollTop;
+    };
+    root.addEventListener('scroll', onScroll, true); // capture: scroll events of the inner list bodies do not bubble
+    return () => root.removeEventListener('scroll', onScroll, true);
+  }, []);
+  const editorIdentity = showQuoteForm ? `${editingQuoteId || 'new'}:${editingQuoteId ? '' : (newDraftUuid || '')}` : null;
+  const prevEditorIdentityRef = useRef(null);
+  useLayoutEffect(() => {
+    const before = prevEditorIdentityRef.current;
+    prevEditorIdentityRef.current = editorIdentity;
+    const root = mainScrollRef.current;
+    if (!root || before === editorIdentity) return;
+    if (editorIdentity) { root.scrollTop = 0; return; } // an editor opened, or another quote replaced the open one
+    if (scrollStateRef.current.activeTab !== 'main') return;
+    root.scrollTop = 0;
+    const y = quoteListScrollRef.current;
+    const apply = () => { const el = quoteListScroller(); if (el) el.scrollTop = y; };
+    apply();
+    requestAnimationFrame(apply); // the list may switch between table and cards on its first frame
+  }, [editorIdentity]);
+  useLayoutEffect(() => { if (mainScrollRef.current) mainScrollRef.current.scrollTop = 0; }, [activeTab]);
   aiNavStateRef.current = { showQuoteForm, isDirty: () => quoteDraft.isDirty(), isSuperAdmin };
   useEffect(() => { if (needsRegionChoice) publishBlocker('REGION_NOT_SELECTED', { scope: 'session' }); else resolveBlockers(['REGION_NOT_SELECTED']); }, [needsRegionChoice]);
   useEffect(() => { clearScope('surface'); }, [activeTab]);
@@ -7326,7 +7374,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               (dash-upper-section, below) renders for every authenticated screen,
               Admin destinations included. */}
 
-      <div className="dash-main-content" style={{ flex: '1 1 auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
+      <div className="dash-main-content" ref={mainScrollRef} style={{ flex: '1 1 auto', padding: '16px', display: 'flex', flexDirection: 'column' }}>
         {/* Width history (condensed - full narrative now lives in
             PROFLOW_PROJECT_CONTEXT.md §54/§56/§58/§184/§186, not repeated
             in full here across every round): this content wrapper used to
@@ -7972,7 +8020,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               logoImportRequired={outputPhase === 'shadow' || outputPhase === 'enforced'}
               onImportLogo={async (dataBase64) => {
                 try {
-                  const { data, error } = await supabase.functions.invoke('subscription-authority', { body: { action: 'import_logo', dataBase64 } });
+                  const { data, error } = await invokeWithFreshSession('subscription-authority', { body: { action: 'import_logo', dataBase64 } });
                   return !error && data && data.ok === true ? { ok: true, assetId: data.assetId } : { ok: false };
                 } catch {
                   return { ok: false };

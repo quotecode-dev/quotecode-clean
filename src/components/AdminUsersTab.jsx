@@ -5,6 +5,7 @@
 import { useState } from 'react';
 import { publishBlocker, resolveBlockers } from '../utils/aiHelpBlockers';
 import { supabase } from '../shared/supabase';
+import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
 import { ShieldCheck, CheckCircle2, AlertTriangle, Send, XCircle, ChevronDown } from 'lucide-react';
 import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, SHADOW } from '../theme/neonTheme';
 import { getFunctionErrorMessage } from '../utils/functionError';
@@ -85,8 +86,7 @@ export default function AdminUsersTab({
       }
 
       const functionName = testType === 'subscription' ? 'send-subscription-expiration-email' : 'send-trial-expiration-email';
-      const { data, error } = await supabase.functions.invoke(functionName, {
-        headers: { Authorization: `Bearer ${accessToken}` },
+      const { data, error } = await invokeWithFreshSession(functionName, {
         body: {
           mode: 'test',
           email: testEmail,
@@ -136,7 +136,7 @@ export default function AdminUsersTab({
   // A stale/replayed/mismatched proof is refused by the second call even
   // if somehow forged/guessed - claiming is atomic and one-shot.
   async function runProtectedAction({ action, targetUserId, reason, functionName, extraBody = {} }) {
-    const { data: verifyData, error: verifyError } = await supabase.functions.invoke('admin-reauth-verify', {
+    const { data: verifyData, error: verifyError } = await invokeWithFreshSession('admin-reauth-verify', {
       body: { action, targetUserId, params: { reason }, password: adminPasswordInput },
     });
     if (verifyError || !verifyData?.success || !verifyData?.proofToken) {
@@ -150,7 +150,7 @@ export default function AdminUsersTab({
       throw new Error(verifyData?.error || (isHebrew ? 'סיסמת אדמין שגויה!' : 'Incorrect admin password!'));
     }
 
-    const { data: actionData, error: actionError } = await supabase.functions.invoke(functionName, {
+    const { data: actionData, error: actionError } = await invokeWithFreshSession(functionName, {
       body: { targetUserId, proofToken: verifyData.proofToken, reason, ...extraBody },
     });
     if (actionError) {

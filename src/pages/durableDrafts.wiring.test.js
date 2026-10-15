@@ -85,7 +85,9 @@ describe('save / cancel / logout semantics', () => {
   it('EXPLICIT logout: warns about unsaved work, purges this user\'s drafts (+ blobs) and clears in-memory state; the modal shows the warning', () => {
     const fn = dash.slice(at('const handleSignOut = async () => {'), at('const handleItemChange'));
     expect(fn).toMatch(/suppressDraftWrites\(uid\)/); expect(fn).toMatch(/quoteDraft\.store\.purgeUser\(uid\)/); expect(fn).toMatch(/getBlobStore\(\)\.purgeUser\(uid\)/);
-    expect(fn.indexOf('purgeUser(uid)')).toBeLessThan(fn.indexOf('supabase.auth.signOut()'));
+    // Owner 2026-10-15: the explicit logout ends this device's session only (scope local); the purge still runs first
+    expect(fn.indexOf("supabase.auth.signOut({ scope: 'local' })")).toBeGreaterThan(-1);
+    expect(fn.indexOf('purgeUser(uid)')).toBeLessThan(fn.indexOf("supabase.auth.signOut({ scope: 'local' })"));
     expect(dash).toMatch(/hasUnsavedDraft=\{showQuoteForm && quoteDraft\.isDirty\(\)\}/);
     const modal = read('../components/SignOutModal.jsx');
     expect(modal).toMatch(/hasUnsavedDraft/); expect(modal).toMatch(/signout-unsaved-warning/);

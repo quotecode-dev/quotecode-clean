@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const invoke = vi.fn();
 vi.mock('../shared/supabase', () => ({ supabase: { functions: { invoke: (...args) => invoke(...args) } } }));
+// signed-in actions go through the fresh-session wrapper (its own behaviour: src/shared/invokeWithFreshSession.test.js); same contract here
+vi.mock('../shared/invokeWithFreshSession', () => ({ invokeWithFreshSession: (...args) => invoke(...args) }));
 const normalizeImage = vi.fn();
 vi.mock('./imageNormalize', () => ({ normalizeImage: (...args) => normalizeImage(...args) }));
 

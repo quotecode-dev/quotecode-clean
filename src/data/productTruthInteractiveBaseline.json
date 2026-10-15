@@ -583,11 +583,19 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/shared/RouteScrollManager.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/shared/UpdateAvailableBanner.jsx": {
     "interactive": 2,
     "markers": 2
   },
   "src/shared/brand.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/shared/invokeWithFreshSession.js": {
     "interactive": 0,
     "markers": 0
   },
