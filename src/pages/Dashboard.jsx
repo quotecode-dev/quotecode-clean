@@ -317,6 +317,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // קליקים קורים לפני שריצה חוזרת של React "רואה" עדכון state קודם.
   const isCreatingBusinessSettingsRef = useRef(false);
   const [isCreatingBusinessSettings, setIsCreatingBusinessSettings] = useState(false);
+  // Owner 2026-10-15 (a new account stuck on "Where is your business located?"): { market } while the first business row of an
+  // account that signed up on the site is still being created after a failed attempt (it retries by itself; never a market question)
+  const [accountSetup, setAccountSetup] = useState(null);
+  const businessSettingsCreationRef = useRef(null); // the creation in flight: a second caller waits for ITS outcome
+  const accountSetupRetryRef = useRef(null); // at most one scheduled setup retry
   // Auth Final Blockers task (2026-09-09): live-reproduced a real, serious
   // login defect - after a genuine interactive sign-in (not a page reload),
   // loadData() sometimes never fired at all (zero business_settings/quotes/
@@ -776,6 +781,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         setExpenses([]);
         setAllUserAttachments([]);
         setSettingId(null);
+        setAccountSetup(null);
         setBizCountry('International');
         localStorage.removeItem('proflow_cached_country');
         setIsInitializing(false);
@@ -1591,7 +1597,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // ב-return הראשי).
       const signupMarket = userMetadata?.signup_market;
       if (signupMarket === 'Local' || signupMarket === 'International') {
-        await createNewBusinessSettings(userId, userEmail, signupMarket, userMetadata?.business_name);
+        await setupSignupAccount(userId, userEmail, userMetadata, signupMarket);
       } else {
         const freshGeoCountry = await fetchFreshGeoCountry();
         if (freshGeoCountry) {
@@ -1622,13 +1628,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // הודעת שגיאה מקומית, כדי שיוכל לנסות שוב.
   // Owner 2026-10-15: the optional business name typed at signup (user_metadata) becomes the new account's initial business name
   const cleanSignupText = (v) => (typeof v === 'string' ? v.trim().slice(0, 120) : '');
-  async function createNewBusinessSettings(userId, userEmail, country, signupBusinessName = null) {
+  async function createNewBusinessSettings(...args) {
+    if (isCreatingBusinessSettingsRef.current) return businessSettingsCreationRef.current ?? 'busy';
+    const creation = createNewBusinessSettingsOnce(...args);
+    businessSettingsCreationRef.current = creation;
+    try { return await creation; } finally { if (businessSettingsCreationRef.current === creation) businessSettingsCreationRef.current = null; }
+  }
+  async function createNewBusinessSettingsOnce(userId, userEmail, country, signupBusinessName = null, { fromSignup = false } = {}) {
     if (country !== 'Local' && country !== 'International') {
       console.error('createNewBusinessSettings: invalid country', country);
       return false;
     }
     if (isCreatingBusinessSettingsRef.current) {
-      return false;
+      return 'busy';
     }
     isCreatingBusinessSettingsRef.current = true;
     setIsCreatingBusinessSettings(true);
@@ -1661,6 +1673,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     if (insertError || !newData) {
       console.error("Auto-init error:", insertError);
+      // Owner 2026-10-15: refused because the row already exists (another tab of the same sign-in created it a moment earlier) -
+      // that row is the account; load it instead of showing an error that every retry repeats
+      const rowExists = insertError?.code === '23505';
+      if (fromSignup || rowExists) {
+        isCreatingBusinessSettingsRef.current = false;
+        setIsCreatingBusinessSettings(false);
+        if (rowExists && !fromSignup) {
+          setNeedsRegionChoice(false);
+          setPendingNewAccount(null);
+          setRegionChoiceError(null);
+          await fetchSettings(userId, userEmail, null);
+        }
+        return rowExists ? 'exists' : false;
+      }
       setPendingNewAccount({ userId, userEmail, businessName: signupBusinessName });
       setNeedsRegionChoice(true);
       setRegionChoiceError(isHebrew ? 'לא הצלחנו ליצור את החשבון כרגע. נסה שוב.' : "We couldn't create your account right now. Please try again.");
@@ -1693,6 +1719,28 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     isCreatingBusinessSettingsRef.current = false;
     setIsCreatingBusinessSettings(false);
     return true;
+  }
+
+  // Owner 2026-10-15 ("this question itself breaks our Iron Laws"): an account that signed up on the site has its market from the
+  // signup (signup_market) and is never asked for it. A failed creation shows a setup line in that market's language and retries by
+  // itself; a creation refused because the row exists (another tab) loads that row. Sign-out / another user stops the retries.
+  // Only the first attempt is awaited: the sign-in then finishes and the setup line is on screen while the next attempts run.
+  async function setupSignupAccount(userId, userEmail, userMetadata, market, attempt = 0) {
+    const gen = loadGenRef.current;
+    const outcome = await createNewBusinessSettings(userId, userEmail, market, userMetadata?.business_name, { fromSignup: true });
+    if (outcome === true || outcome === 'busy') { setAccountSetup(null); return; }
+    if (outcome === 'exists') {
+      const { data: existing } = await supabase.from('business_settings').select('id').eq('user_id', userId).maybeSingle();
+      if (existing && gen === loadGenRef.current) { setAccountSetup(null); await fetchSettings(userId, userEmail, userMetadata); return; }
+    }
+    if (gen !== loadGenRef.current) return;
+    setAccountSetup({ market });
+    if (accountSetupRetryRef.current) return; // another caller of the same failed creation already scheduled the retry
+    diagLog('data-load', { resource: 'account-setup', outcome: 'retry', attempt });
+    accountSetupRetryRef.current = setTimeout(() => {
+      accountSetupRetryRef.current = null;
+      if (gen === loadGenRef.current) setupSignupAccount(userId, userEmail, userMetadata, market, attempt + 1);
+    }, Math.min(20000, 1500 * 2 ** Math.min(attempt, 4)));
   }
 
   // מופעלת רק ע"י לחיצה מפורשת של המשתמש על "ישראל"/"בינלאומי" במסך
@@ -4633,13 +4681,27 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     section: pendingEmailQuote ? 'share_email' : null,
   };
 
-  if (needsRegionChoice) {
+  // Owner 2026-10-15: the new-account setup line (an account with a signup market whose first creation failed - it retries by itself)
+  // shares this early return; it speaks the signup market language (never the browser / link / cached language) and asks nothing
+  const setupMode = !!(accountSetup && !settingId);
+  if (setupMode || needsRegionChoice) {
+    const screenHe = setupMode ? accountSetup.market === 'Local' : isHebrew;
     return (
-      <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: isHebrew ? FONT_HE : FONT_EN, background: NEON.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+      <div dir={screenHe ? 'rtl' : 'ltr'} lang={setupMode ? (screenHe ? 'he' : 'en') : undefined} data-testid={setupMode ? 'account-setup' : undefined} style={{ fontFamily: screenHe ? FONT_HE : FONT_EN, background: NEON.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
         <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, borderRadius: '14px', padding: '32px', width: '100%', maxWidth: '380px', textAlign: 'center', boxShadow: '0 20px 40px -12px rgba(139,92,246,0.25)' }}>
           <div style={{ marginBottom: '18px', display: 'flex', justifyContent: 'center' }}>
-            <ProFlowLogo size={36} rtl={isHebrew} />
+            <ProFlowLogo size={36} rtl={screenHe} />
           </div>
+          {setupMode ? (
+            <>
+              <h2 style={{ marginBottom: '10px', fontWeight: '800', ...neonGlowTextStyle }}>
+                {screenHe ? 'מסיימים להקים את החשבון שלך…' : 'Finishing setting up your account…'}
+              </h2>
+              <p role="status" style={{ color: NEON.textSecondary, fontSize: '0.85rem', margin: 0 }}>
+                {screenHe ? 'החיבור איטי, ממשיכים לנסות אוטומטית. אין צורך לעשות דבר.' : 'The connection is slow - we keep trying automatically. There is nothing you need to do.'}
+              </p>
+            </>
+          ) : (<>
           <h2 style={{ marginBottom: '10px', fontWeight: '800', ...neonGlowTextStyle }}>
             {isHebrew ? 'באיזה אזור פועל העסק שלך?' : 'Where is your business located?'}
           </h2>
@@ -4676,10 +4738,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               {isHebrew ? 'יוצר את החשבון...' : 'Creating your account...'}
             </p>
           )}
+          </>)}
         </div>
         {/* AI HELP V4 §15 (region choice): identity is verified but the market is not chosen yet - restricted setup help only
             (the server sees no business row, so it answers market-neutrally; no private business data exists yet). */}
-        <AIChatWidget isHebrew={isHebrew} isDashboard={true} currentArea="region_choice" helpSources={aiHelpSources} />
+        <AIChatWidget isHebrew={screenHe} isDashboard={true} currentArea="region_choice" helpSources={aiHelpSources} />
       </div>
     );
   }
