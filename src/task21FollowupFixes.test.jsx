@@ -23,11 +23,11 @@ describe('measured-entry pricing recommendation', () => {
       expect(getEntryRecommendedPricingMethod(domain, false)).toBe(professional); // ordinary quotes: unchanged profession advice
     }
   });
-  it('Dashboard passes the measured-entry flag (measured choice + divided mode) to the wizard recommendation', () => {
+  it('Dashboard passes the measured-entry flag to the wizard recommendation; the measured quote opens as one list (Owner round 1, A1)', () => {
     const src = read('pages/Dashboard.jsx');
-    expect(src).toContain("recommendedPricingMethod={getEntryRecommendedPricingMethod(professionalDomain, measuredQuoteEntry && quoteStructureMode === 'divided')}");
+    expect(src).toContain('recommendedPricingMethod={getEntryRecommendedPricingMethod(professionalDomain, measuredQuoteEntry)}');
     // Task 27: the reset doubles as the Free-10 creation check (returns false = stopped before anything opens)
-    expect(src).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\(\) === false\) return;\s*setQuoteStructureMode\('divided'\);\s*setMeasuredQuoteEntry\(true\);/);
+    expect(src).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\(\) === false\) return;\s*setMeasuredQuoteEntry\(true\);\s*\};/);
   });
 });
 

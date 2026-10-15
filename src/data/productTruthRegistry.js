@@ -166,8 +166,8 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['quote_editor'], operationType: 'mutate', deterministicFactKeys: [], canonicalSources: ['src/components/QuoteForm.jsx', 'src/components/AiQuoteDraftDialog.jsx'] }), // Task 21: the AI-draft dialog of the AI smart-quote entry (its server function is local source only - not described as available)
 
   capability('measured_quote', 'הצעת מחיר מקצועית/מדודה', 'Measured professional quote',
-    'הצעות מחיר מקצועיות עם מבנה מדוד (חדרים/אזורים/יחידות).',
-    'Professional quotes with a measured structure (rooms/areas/units).',
+    'הצעה לפי מידות: מוסיפים פריט ומודדים אותו במסך אחד (שטח, אורך, יחידות או מחיר קבוע; בס״מ או במטר, או כמות ידועה במ״ר / מ״א), ואז בודקים ומוסיפים להצעה. חלוקה לחדרים/אזורים/יחידות היא אפשרות לבחירה.',
+    'Measured quote: add an item and measure it on one screen (area, length, units or a fixed price; in cm or m, or a known quantity in m² / linear m), then check it and add it to the quote. Grouping into rooms/areas/units is optional.',
     { surfaces: ['quote_editor'], operationType: 'mutate', subscriptionCapabilityId: 'professional_quote.use', canonicalSources: ['src/components/QuoteForm.jsx'] }),
 
   capability('professional_reuse', 'שימוש חוזר מקצועי בפריטים', 'Advanced professional item reuse',

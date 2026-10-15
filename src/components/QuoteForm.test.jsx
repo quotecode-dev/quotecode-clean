@@ -593,6 +593,7 @@ describe('QuoteForm - market-correct placeholders and attachment remove accessib
 
   it('Hebrew form: Hebrew client / attention / project examples, no English example', () => {
     render(<QuoteForm {...withFile(true)} />);
+    fireEvent.click(screen.getByTestId('sq-client-contact-toggle')); // the attention contact is an optional detail (Owner round 1)
     const ph = placeholders();
     expect(ph).toContain('לדוגמה: כהן בנייה בע"מ');
     expect(ph).toContain('לדוגמה: שמעון לוי');
@@ -602,6 +603,7 @@ describe('QuoteForm - market-correct placeholders and attachment remove accessib
 
   it('English form: English examples only, no Israeli names and no Hebrew', () => {
     render(<QuoteForm {...withFile(false)} />);
+    fireEvent.click(screen.getByTestId('sq-client-contact-toggle'));
     const ph = placeholders();
     expect(ph).toContain('e.g. Acme Corp');
     expect(ph).toContain('e.g. John Smith');

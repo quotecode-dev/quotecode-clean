@@ -95,6 +95,8 @@ export default function QuoteForm({
   canUseAttachments,
   canUseProfessionalQuotes,
   recommendedPricingMethod,
+  // Owner round 1 (A1 / A6): the quote was opened as "measured" - the list leads with measuring and can show a local example
+  isMeasuredEntry = false,
   duplicateItem,
   canUseProfessionalQuoteReuse,
   onOpenPricingModal,
@@ -131,6 +133,10 @@ export default function QuoteForm({
   const validityExpired = isQuoteAcceptanceExpired(validUntil, isLocalIsraeliBusiness ? 'Local' : 'International');
   const hasOptionalDetails = Boolean(editingQuoteId || quoteSubject || projectName || (quoteFiles || []).length || clientAddress || notes || validUntil || attnName || attnRole || serviceSchedule?.date);
   const [showMoreDetails, setShowMoreDetails] = useState(hasOptionalDetails);
+  const hasClientContact = Boolean(String(clientEmail || '').trim() || String(clientPhone || '').trim() || String(attnName || '').trim() || String(attnRole || '').trim());
+  const [showClientContact, setShowClientContact] = useState(() => Boolean(editingQuoteId) || hasClientContact);
+  // a client picked from the list (or a restored draft) brings its contact details - they are shown, never hidden
+  useEffect(() => { if (hasClientContact) setShowClientContact(true); }, [hasClientContact]);
   // opens (never auto-closes) as soon as any optional value appears (e.g. a restored draft), so entered data is never hidden
   useEffect(() => { if (hasOptionalDetails) setShowMoreDetails(true); }, [hasOptionalDetails]);
   const [isCalcOpen, setIsCalcOpen] = useState(false);
@@ -436,6 +442,21 @@ export default function QuoteForm({
   // בלתי-תלויים של אותו JSX/props. sectionName תמיד null כאן - במצב Regular
   // אין sections בכלל (מבנה), ובמצב Divided ההכלה-בתוך-כרטיס-היחידה כבר
   // מציינת את השיוך, תג-badge חוזר-על-עצמו היה כפילות-מיותרת.
+  // Owner round 1 (A6): one synthetic example line, local only (never saved: the save asks to remove it first; editing it in the item wizard
+  // turns it into an ordinary item of the user's own). 100 x 200 cm at 600 per m2 in the quote's currency.
+  const addLocalExample = () => {
+    const example = {
+      description: isHebrew ? 'חלון אלומיניום (דוגמה)' : 'Aluminium window (example)', quantity: '1', unit_price: '600', isFromCatalog: false, section_key: null,
+      pricing_unit: 'm2', quantity_source: 'calculated', calculation_method: 'area', calculated_quantity: 2,
+      measurements: [{ width: 1, height: 2, unit: 'm', calculated_area: 2, label: '', is_pricing_driving: true }], _localExample: true,
+    };
+    setItems((prev) => [...prev.filter((it) => !isUntouchedPlaceholderItem(it) && !(it && it._localExample)), example]);
+  };
+  const removeLocalExample = () => setItems((prev) => {
+    const rest = prev.filter((it) => !(it && it._localExample));
+    return rest.length ? rest : [{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }];
+  });
+
   const renderItemCard = (index) => {
     const item = items[index];
     const isPro = isProfessionalItem(item);
@@ -735,7 +756,27 @@ export default function QuoteForm({
               <option value="business">{isHebrew ? 'עסקי (חברה/עוסק)' : 'Business'}</option>
               <option value="private">{isHebrew ? 'פרטי (B2C)' : 'Private'}</option>
             </select>
+            {isLocalIsraeliBusiness && (
+              <p data-testid="sq-client-type-vat-help" style={{ margin: '4px 0 0', fontSize: '0.72rem', color: NEON.textSecondary, lineHeight: 1.35 }}>
+                {isHebrew ? 'סוג הלקוח קובע אם המחיר כולל מע״מ או לפני מע״מ.' : 'Customer type determines whether entered prices include VAT or exclude VAT.'}
+              </p>
+            )}
           </div>
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'ח.פ / עוסק / ת.ז' : 'Tax ID / ID'}</label>
+            <input type="text" value={clientTaxId} onChange={(e) => setClientTaxId(e.target.value)} required={clientType === 'business'} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
+          </div>
+
+          {/* Owner round 1 (2026-10-15, plan section 3): contact details and the attention contact are optional - one toggle, open by
+              itself when any of them already holds a value. The Tax ID stays visible: it is required for a business client. */}
+          {/* PRODUCT_TRUTH_DECORATIVE: shows / hides the optional client contact fields (email, phone, attention contact) */}
+          <button type="button" data-testid="sq-client-contact-toggle" aria-expanded={showClientContact} onClick={() => setShowClientContact((v) => !v)}
+            style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', padding: '4px 0', minHeight: '36px', textAlign: isHebrew ? 'right' : 'left' }}>
+            {isHebrew ? 'פרטי קשר ופרטים נוספים (לא חובה)' : 'Contact and more details (optional)'}
+            <ChevronDown size={15} style={{ transform: showClientContact ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
+          </button>
+          {showClientContact && (
+          <>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{t.clientEmail}</label>
             <input type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
@@ -766,11 +807,6 @@ export default function QuoteForm({
             </div>
           </div>
 
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'ח.פ / עוסק / ת.ז' : 'Tax ID / ID'}</label>
-            <input type="text" value={clientTaxId} onChange={(e) => setClientTaxId(e.target.value)} required={clientType === 'business'} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
-          </div>
-
           {/* Item 18 - Attention Contact ("לידי"/"Attn"), quote-level (not
               client-level - a historical quote must keep showing who it was
               addressed to even if the client's own contacts later change,
@@ -786,6 +822,8 @@ export default function QuoteForm({
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'תפקיד / תואר (לא חובה)' : 'Role / Title (optional)'}</label>
             <input type="text" value={attnRole || ''} onChange={(e) => setAttnRole(e.target.value)} placeholder={isHebrew ? 'לדוגמה: מנהל פרויקטים' : 'e.g. Project Manager'} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
           </div>
+          </>
+          )}
         </div>
         </div>
         </div>
@@ -818,7 +856,7 @@ export default function QuoteForm({
               style={{ background: NEON.gradient, border: 'none', color: 'white', padding: '13px 20px', borderRadius: '12px', cursor: 'pointer', fontWeight: '800', fontSize: '0.92rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%', boxShadow: NEON.glow, marginBottom: '8px' }}
             >
               <Plus size={18} strokeWidth={3} />
-              {isHebrew ? 'הוספת מוצר או עבודה' : 'Add product or work'}
+              {isMeasuredEntry ? (isHebrew ? 'הוספת פריט לפי מידות' : 'Add a measured item') : (isHebrew ? 'הוספת מוצר או עבודה' : 'Add product or work')}
             </button>
 
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
@@ -871,7 +909,15 @@ export default function QuoteForm({
 
         {structureMode === 'regular' && regularItemIndices.length === 0 && (
           <div style={{ textAlign: 'center', padding: '20px 14px', color: NEON.textSecondary, fontSize: '0.82rem', background: NEON.bgCardAlt, borderRadius: '10px', border: `1px dashed ${NEON.borderStrong}`, marginBottom: '10px' }}>
-            {isHebrew ? 'עדיין לא נוספו מוצרים או עבודות להצעה זו.' : 'No products or work added to this quote yet.'}
+            {isMeasuredEntry
+              ? (isHebrew ? 'עוד אין פריטים. מוסיפים פריט ומודדים אותו, אין צורך לחלק לחדרים.' : 'No items yet. Add an item and measure it - no need to split into rooms.')
+              : (isHebrew ? 'עדיין לא נוספו מוצרים או עבודות להצעה זו.' : 'No products or work added to this quote yet.')}
+            {isMeasuredEntry && (
+              // PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line (100 x 200 cm at 600 per m2) to learn from (Owner round 1, A6)
+              <button type="button" data-testid="quote-show-example" onClick={addLocalExample} style={{ display: 'block', margin: '10px auto 0', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', color: NEON.violetLight, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', padding: '8px 14px', minHeight: '40px' }}>
+                {isHebrew ? 'הצג דוגמה (לא נשמרת)' : 'Show an example (not saved)'}
+              </button>
+            )}
           </div>
         )}
 
@@ -882,7 +928,18 @@ export default function QuoteForm({
             השטוחה (Regular) לבין כל כרטיס-יחידה (Divided) - נקודת-רינדור
             יחידה לכל פריט, לא שני עותקים בלתי-תלויים. */}
         {structureMode === 'regular' && regularItemIndices.map((index) => (
-          <div key={index}>{renderItemCard(index)}</div>
+          <div key={index}>
+            {items[index]?._localExample && (
+              <div data-testid="quote-example-badge" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '6px 10px', marginBottom: '4px', borderRadius: '8px', background: '#fff4e2', border: '1px solid #f1c27a', color: '#8a4b00', fontSize: '0.76rem', fontWeight: 700 }}>
+                <span>{isHebrew ? 'דוגמה · לא נשמרת' : 'Example · not saved'}</span>
+                {/* PRODUCT_TRUTH_DECORATIVE: removes the local example line (Owner round 1, A6) */}
+                <button type="button" onClick={removeLocalExample} style={{ background: 'none', border: 'none', color: '#8a4b00', textDecoration: 'underline', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', padding: '4px 0', minHeight: '32px' }}>
+                  {isHebrew ? 'הסרת הדוגמה' : 'Remove the example'}
+                </button>
+              </div>
+            )}
+            {renderItemCard(index)}
+          </div>
         ))}
 
         {/* חוק ברזל (Part C/Locked Decision 4/5/7/10 - "the divided-quote
@@ -1055,6 +1112,11 @@ export default function QuoteForm({
           <div style={{ gridColumn: '1 / -1', marginTop: '6px' }} />
           <span style={{ ...neonGlowTextStyle, fontSize: '1rem', fontWeight: '800' }}>{t.totalAmount}</span>
           <span className="pf-money" style={{ color: NEON.violetLight, fontSize: '1rem', fontWeight: '800', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount)}</span>
+          {isLocalIsraeliBusiness && isHebrew && (clientType === 'business' || clientType === 'private') && (
+            <span data-testid="sq-prices-vat-basis" style={{ gridColumn: '1 / -1', marginTop: '4px', fontSize: '0.74rem', color: NEON.textSecondary }}>
+              {clientType === 'private' ? 'המחירים בהצעה כוללים מע״מ' : 'המחירים בהצעה לפני מע״מ'}
+            </span>
+          )}
         </div>
 
         <StepHeading n={4} title={isHebrew ? 'בדיקה ושמירה' : 'Review and save'} />

@@ -75,7 +75,7 @@ import QuotesTab from '../components/QuotesTab';
 import NewQuoteMenu from '../components/NewQuoteMenu';
 import { newQuoteChoices, templateChoice } from '../utils/newQuoteChoices';
 import { SaveTemplateDialog, TemplatePickerDialog } from '../components/QuoteTemplateDialogs';
-import { templateToFormState } from '../utils/quoteTemplates';
+import { templateToFormState, templateCurrencyMismatch, withoutPrices } from '../utils/quoteTemplates';
 import AiQuoteDraftDialog from '../components/AiQuoteDraftDialog';
 import { requestAiQuoteDraft, draftLinesToQuoteItems } from '../utils/aiQuoteDraftClient';
 import { buildQuoteDraftSnapshot } from '../utils/quoteDraftSnapshot';
@@ -3329,13 +3329,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   };
 
   // New-quote menu choices (sidebar row, toolbar, mobile bottom-row sheet). All start from the SAME reset as handleCreateNewQuoteClick:
-  //  - measured / profession-aware: the same state QuoteForm.handleSwitchToDivided sets, applied AFTER the reset, and marked as a measured
-  //    entry so the item wizard leads with a measurement method (Task 21)
+  //  - measured / profession-aware: marked as a measured entry so the item wizard leads with a measurement method (Task 21). Owner round 1
+  //    (2026-10-15, Codex spec A1): it opens as ONE simple list - no rooms / units first; grouping stays an optional link in the form
   //  - AI smart quote (Task 21): the blank quote form plus the AI quote-draft dialog (describe the job -> reviewable draft items the user
   //    applies explicitly to the unsaved form; nothing is saved, issued or sent)
   const handleCreateStructuredQuoteClick = () => {
     if (handleCreateNewQuoteClick() === false) return;
-    setQuoteStructureMode('divided');
     setMeasuredQuoteEntry(true);
   };
   const handleCreateAiQuoteClick = () => {
@@ -3361,8 +3360,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setTemplateDialog(null);
     const f = templateToFormState(content, () => `tmp_section_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     if (!f) return;
+    // Owner round 1 (Codex spec A5): prices kept in another currency are removed only after the user agrees - no exchange rate is invented
+    let templateItems = f.items;
+    if (templateCurrencyMismatch(f, currency)) {
+      const ok = window.confirm(isHebrew
+        ? `התבנית שמורה ב-${f.currency}, וההצעה ב-${currency}. נעתיק את התיאורים והכמויות. המחירים יוסרו ותזינו אותם מחדש, כי אין כאן שער המרה. להמשיך בלי מחירים?`
+        : `The template is saved in ${f.currency} and the quote is in ${currency}. Descriptions and quantities are copied; the prices are removed for you to enter again, as no exchange rate is used. Continue without prices?`);
+      if (!ok) return;
+      templateItems = withoutPrices(f.items);
+    }
     if (handleCreateNewQuoteClick() === false) return;
-    if (f.items) setItems(f.items);
+    if (templateItems) setItems(templateItems);
     setSections(f.sections);
     setQuoteStructureMode(f.quoteStructureMode);
     if (f.quoteSubject) setQuoteSubject(f.quoteSubject);
@@ -3650,6 +3658,18 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     e.preventDefault();
     lastSaveOutcomeRef.current = null;
     if (!session?.user?.id) return;
+    // Owner round 1 (A6): the measured quote's example line is local only - it is never saved as if it were the user's own item
+    if (items.some((it) => it && it._localExample)) {
+      if (window.confirm(isHebrew
+        ? 'ההצעה עדיין כוללת את שורת הדוגמה. להסיר אותה עכשיו? אחרי ההסרה בדקו את ההצעה ושמרו שוב.'
+        : 'The quote still includes the example line. Remove it now? Then check the quote and save again.')) {
+        setItems((prev) => {
+          const rest = prev.filter((it) => !(it && it._localExample));
+          return rest.length ? rest : [{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }];
+        });
+      }
+      return;
+    }
     resolveBlockers(SAVE_ATTEMPT_CODES); // a new attempt re-evaluates the previous attempt's blockers (re-published below if still true)
     const saveBlock = (code, msg, opts = {}) => alertWithBlocker(code, { scope: 'editor', ...opts }, msg);
     // SMART-QUOTE-01: an unfinished quote (no real priced item) can only be kept as a Draft - never saved as Sent/Approved/Paid.
@@ -4235,7 +4255,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           // מציגים את הסכום שבאמת נשמר (newQuoteFinancials.total) ולא את
           // totalAmount המחושב בגוף הקומפוננטה - עבור הצעה מקומית פרטית חדשה
           // הם אינם זהים (totalAmount עדיין מניח "נטו + מע"מ מעליו").
-          : (isHebrew ? `הצעת המחיר הופקה ונשמרה בענן בהצלחה! סה"כ: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}` : `Quote successfully created and saved to cloud! Total: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}`),
+          // Owner round 1 (plan section 4): a new quote saved by the server is a draft in the account - never worded as issued or sent
+          : (String(quoteStatus || '').toLowerCase() === 'draft' || !quoteStatus
+            ? (isHebrew ? `הטיוטה נשמרה בחשבון. סה"כ: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}` : `Draft saved to your account. Total: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}`)
+            : (isHebrew ? `ההצעה נשמרה בחשבון. סה"כ: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}` : `Quote saved to your account. Total: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}`)),
         type: 'success'
       });
       if (presentationNote.kind === 'alert') setAlertModalMsg(scheduleNote ? `${presentationNote.text}\n${scheduleNote}` : presentationNote.text);
@@ -4254,7 +4277,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     } catch (err) {
       console.error(err);
       const f = blockerCodeForSaveFailure(err);
-      saveBlock(f.code, (isHebrew ? 'שגיאה בשמירת ההצעה: ' : 'Error saving quote: ') + err.message, { persistence: f.persistence });
+      quoteDraft.flush?.();
+      const keptLocally = quoteDraft.status === 'saved';
+      saveBlock(f.code, keptLocally
+        ? (isHebrew ? `לא הצלחנו לשמור בחשבון. הטקסט נשמר במכשיר; נסו שוב.\n(${err.message})` : `Could not save to your account. Your text is kept on this device; try again.\n(${err.message})`)
+        : (isHebrew ? 'שגיאה בשמירת ההצעה: ' : 'Error saving quote: ') + err.message, { persistence: f.persistence });
     }
   }
 
@@ -6867,7 +6894,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       <AccessibilityModal isOpen={showAccessibility} onClose={() => setShowAccessibility(false)} isHebrew={isHebrew} />
       {templateDialog === 'save' && session?.user?.id && (
         <SaveTemplateDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
-          form={{ items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation }} onClose={() => setTemplateDialog(null)} />
+          form={{ items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency }} onClose={() => setTemplateDialog(null)} />
       )}
       {templateDialog === 'pick' && session?.user?.id && (
         <TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
@@ -7701,7 +7728,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               handleAddFromCatalog={handleAddFromCatalog}
               canUseAttachments={canUseCapability('quote_attachment.upload')}
               canUseProfessionalQuotes={canUseCapability('professional_quote.use')}
-              recommendedPricingMethod={getEntryRecommendedPricingMethod(professionalDomain, measuredQuoteEntry && quoteStructureMode === 'divided')}
+              recommendedPricingMethod={getEntryRecommendedPricingMethod(professionalDomain, measuredQuoteEntry)}
+              isMeasuredEntry={measuredQuoteEntry}
               duplicateItem={duplicateItem}
               canUseProfessionalQuoteReuse={canUseCapability('professional_quote.reuse')}
               accountSummary={accountSummary}

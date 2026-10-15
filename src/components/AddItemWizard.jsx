@@ -48,8 +48,17 @@ export const ITEM_DESCRIPTION_MAX = 255;
 // לא רק כשמידות עומדות-להימחק. מנוע-החישוב עצמו (professionalQuoteItem.js)
 // לא השתנה - נקודת-אמת יחידה.
 
-const STEPS = { WHAT: 1, PRICING: 2, DETAILS: 3, REVIEW: 4 };
+// Owner round 1 (2026-10-15, Codex spec A2 / A4, plan approved: "זה מעולה"): TWO screens - the item (what + how it is priced + the
+// numbers, all four methods visible) and the check. The live step ids reported to the AI context stay what / pricing / details /
+// review (derived from progress on the item screen), so the chat contract is unchanged.
+const STEPS = { ITEM: 1, REVIEW: 2 };
 const ALL_METHODS = ['fixed', 'units', 'area', 'linear'];
+// A4: sizes are typed in cm (default) or m; the stored measurements stay canonical metres.
+const round4 = (n) => Math.round(n * 10000) / 10000;
+const convertSizeText = (v, toUnit) => {
+  if (v === '' || v == null || !Number.isFinite(Number(v))) return v;
+  return String(round4(toUnit === 'm' ? Number(v) / 100 : Number(v) * 100));
+};
 
 function blankState(defaultSectionKey) {
   return {
@@ -116,12 +125,10 @@ function stateFromItem(item, defaultSectionKey) {
 // תמיד (המלצה, אם קיימת אמיתית, + שיטת-בסיס אחת) - שאר השיטות תמיד נגישות
 // תחת "אפשרויות נוספות" (Decision 3). ללא המלצה (domain כללי/לא מוגדר) -
 // סדר גנרי-שמרני (fixed,units), לא ניחוש.
-function getVisibleMethods(recommendedMethod) {
-  if (recommendedMethod && ALL_METHODS.includes(recommendedMethod)) {
-    const partner = recommendedMethod === 'units' ? 'fixed' : 'units';
-    return [recommendedMethod, partner];
-  }
-  return ['fixed', 'units'];
+// Owner round 1 (A2): every method is visible; the business recommendation (advisory only) comes first.
+function getOrderedMethods(recommendedMethod) {
+  if (recommendedMethod && ALL_METHODS.includes(recommendedMethod)) return [recommendedMethod, ...ALL_METHODS.filter((m) => m !== recommendedMethod)];
+  return ALL_METHODS;
 }
 
 export default function AddItemWizard({
@@ -153,7 +160,11 @@ export default function AddItemWizard({
   const resumeRef = useRef(resumeState);
   resumeRef.current = resumeState;
   const resumeConsumedRef = useRef(false);
-  const [step, setStep] = useState(STEPS.WHAT);
+  const [step, setStep] = useState(STEPS.ITEM);
+  const [measureUnit, setMeasureUnit] = useState('cm');
+  // "I already know the area / length": a manual measured quantity (the existing Task 34 manual-measured item), no invented sizes
+  const [useManualQty, setUseManualQty] = useState(false);
+  const [manualQty, setManualQty] = useState('');
   const [description, setDescription] = useState('');
   const [catalogServiceId, setCatalogServiceId] = useState('');
   // חוק ברזל (Smart Quote End-to-End Structural Unification task, Locked
@@ -169,7 +180,6 @@ export default function AddItemWizard({
   // Task 34: the unit a kept professional item is charged in (m², linear meter, hour, kg, day) - shown next to its manual quantity
   const preservedUnitLabel = pricingMethod === 'units' && editingItem?.pricing_unit && (isManualMeasured(editingItem) || !isMeasurableUnit(editingItem.pricing_unit))
     ? getProfessionalUnitLabel(editingItem.pricing_unit, isHebrew) : null;
-  const [showMoreMethods, setShowMoreMethods] = useState(false);
   const [widthCm, setWidthCm] = useState('');
   const [heightCm, setHeightCm] = useState('');
   const [extraMeasureRows, setExtraMeasureRows] = useState([]); // [{ widthCm, heightCm, label }]
@@ -224,7 +234,9 @@ export default function AddItemWizard({
       setCatalogServiceId(rs.catalogServiceId ?? '');
       setShowManualEntry(!!rs.showManualEntry);
       setPricingMethod(rs.pricingMethod ?? null);
-      setShowMoreMethods(!!rs.showMoreMethods);
+      setMeasureUnit(rs.measureUnit === 'm' ? 'm' : 'cm');
+      setUseManualQty(!!rs.useManualQty);
+      setManualQty(rs.manualQty ?? '');
       setWidthCm(rs.widthCm ?? '');
       setHeightCm(rs.heightCm ?? '');
       setExtraMeasureRows(Array.isArray(rs.extraMeasureRows) ? rs.extraMeasureRows : []);
@@ -236,7 +248,8 @@ export default function AddItemWizard({
       methodAtOpenRef.current = rs.methodAtOpen ?? null;
       hadMeasurementRowsAtOpenRef.current = !!rs.hadMeasurementRowsAtOpen;
       conversionConfirmedRef.current = !!rs.conversionConfirmed;
-      setStep(rs.step ?? STEPS.WHAT);
+      // a draft saved by the earlier 4-step wizard (no stepModel) resumes on the item screen, or on the check if it was there
+      setStep(rs.stepModel === 2 ? (rs.step === STEPS.REVIEW ? STEPS.REVIEW : STEPS.ITEM) : (rs.step === 4 ? STEPS.REVIEW : STEPS.ITEM));
       setErrors({});
       return;
     }
@@ -250,7 +263,9 @@ export default function AddItemWizard({
       // override saved quote-item semantics during Edit."
       setShowManualEntry(true);
       setPricingMethod(s.pricingMethod);
-      setShowMoreMethods(!getVisibleMethods(recommendedMethod).includes(s.pricingMethod));
+      setMeasureUnit('cm');
+      setUseManualQty(false);
+      setManualQty('');
       setWidthCm(s.widthCm);
       setHeightCm(s.heightCm);
       setExtraMeasureRows(s.extraMeasureRows);
@@ -276,7 +291,9 @@ export default function AddItemWizard({
       // ישירות להזנה ידנית ב-JSX, "no unnecessary source-choice card").
       setShowManualEntry(false);
       setPricingMethod(s.pricingMethod);
-      setShowMoreMethods(false);
+      setMeasureUnit('cm');
+      setUseManualQty(false);
+      setManualQty('');
       setWidthCm(s.widthCm);
       setHeightCm(s.heightCm);
       setExtraMeasureRows(s.extraMeasureRows);
@@ -288,7 +305,7 @@ export default function AddItemWizard({
       methodAtOpenRef.current = null;
       hadMeasurementRowsAtOpenRef.current = false;
       conversionConfirmedRef.current = false;
-      setStep(STEPS.WHAT);
+      setStep(STEPS.ITEM);
     }
     setErrors({});
   }, [isOpen, editingItem, defaultSectionKey, recommendedMethod]);
@@ -310,18 +327,19 @@ export default function AddItemWizard({
       onLiveStateChange(null);
       return;
     }
-    const measurementCount = pricingMethod === 'area' || pricingMethod === 'linear'
+    const measurementCount = (pricingMethod === 'area' || pricingMethod === 'linear') && !useManualQty
       ? (widthCm ? 1 : 0) + extraMeasureRows.filter((r) => r.widthCm).length
       : 0;
     onLiveStateChange({
-      step: step === STEPS.WHAT ? 'what' : step === STEPS.PRICING ? 'pricing' : step === STEPS.DETAILS ? 'details' : 'review',
+      // the item screen reports how far the user got on it (the chat contract keeps its four step ids)
+      step: step === STEPS.REVIEW ? 'review' : pricingMethod ? 'details' : description.trim() ? 'pricing' : 'what',
       pricingMethod,
       measurementCount,
       hasSpecification: specRows.length > 0,
       hasQuantity: pricingMethod === 'units' ? Number(quantity) > 0 : true,
       hasUnitPrice: Number(unitPrice) > 0,
     });
-  }, [onLiveStateChange, isOpen, step, pricingMethod, widthCm, extraMeasureRows, specRows, quantity, unitPrice]);
+  }, [onLiveStateChange, isOpen, step, description, pricingMethod, useManualQty, widthCm, extraMeasureRows, specRows, quantity, unitPrice]);
 
   // Durable drafts: report the FULL serializable wizard state while open (null when closed). Contains user text, so
   // it is only ever handed to the local draft persistence, never to diagnostics/AI context.
@@ -329,12 +347,12 @@ export default function AddItemWizard({
     if (!onDraftSnapshot) return;
     if (!isOpen) { onDraftSnapshot(null); return; }
     onDraftSnapshot({
-      step, description, catalogServiceId, showManualEntry, pricingMethod, showMoreMethods, widthCm, heightCm, extraMeasureRows,
+      stepModel: 2, step, description, catalogServiceId, showManualEntry, pricingMethod, measureUnit, useManualQty, manualQty, widthCm, heightCm, extraMeasureRows,
       quantity, unitPrice, sectionKey, specRows, showCustomerDetails,
       methodAtOpen: methodAtOpenRef.current, hadMeasurementRowsAtOpen: hadMeasurementRowsAtOpenRef.current, conversionConfirmed: conversionConfirmedRef.current,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, step, description, catalogServiceId, showManualEntry, pricingMethod, showMoreMethods, widthCm, heightCm, extraMeasureRows, quantity, unitPrice, sectionKey, specRows, showCustomerDetails]);
+  }, [isOpen, step, description, catalogServiceId, showManualEntry, pricingMethod, measureUnit, useManualQty, manualQty, widthCm, heightCm, extraMeasureRows, quantity, unitPrice, sectionKey, specRows, showCustomerDetails]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -413,9 +431,21 @@ export default function AddItemWizard({
     step3TitleLinear: isHebrew ? 'אורך' : 'Length',
     step3ExplanationLinear: isHebrew ? 'הזינו את האורך והמחיר ליחידת אורך.' : 'Enter the length and the price per unit of length.',
     sizeN: isHebrew ? (n) => `מידה ${n}` : (n) => `Size ${n}`,
-    widthCm: isHebrew ? 'רוחב (ס"מ)' : 'Width (cm)',
-    heightCm: isHebrew ? 'גובה (ס"מ)' : 'Height (cm)',
-    lengthCm: isHebrew ? 'אורך (ס"מ)' : 'Length (cm)',
+    widthCm: isHebrew ? `רוחב (${measureUnit === 'm' ? 'מ\'' : 'ס"מ'})` : `Width (${measureUnit === 'm' ? 'm' : 'cm'})`,
+    heightCm: isHebrew ? `גובה (${measureUnit === 'm' ? 'מ\'' : 'ס"מ'})` : `Height (${measureUnit === 'm' ? 'm' : 'cm'})`,
+    lengthCm: isHebrew ? `אורך (${measureUnit === 'm' ? 'מ\'' : 'ס"מ'})` : `Length (${measureUnit === 'm' ? 'm' : 'cm'})`,
+    sizeUnitLabel: isHebrew ? 'יחידת מידה' : 'Size unit',
+    unitCm: isHebrew ? 'ס"מ' : 'cm',
+    unitM: isHebrew ? 'מטר' : 'm',
+    knowArea: isHebrew ? 'כבר יודע את השטח?' : 'I already know the area',
+    knowLength: isHebrew ? 'כבר יודע את האורך?' : 'I already know the length',
+    backToSizes: isHebrew ? 'חזרה להזנת מידות' : 'Enter sizes instead',
+    manualAreaLabel: isHebrew ? 'כמה מ"ר?' : 'How many m²?',
+    manualLengthLabel: isHebrew ? 'כמה מטר אורך?' : 'How many metres?',
+    missingManualQty: isHebrew ? 'יש להזין כמות גדולה מ-0' : 'Please enter a quantity greater than 0',
+    toReview: isHebrew ? 'המשך לבדיקה' : 'Continue to check',
+    unitChangeConfirm: isHebrew ? 'שינוי היחידה דורש בדיקה מחדש של המחיר. להמשיך?' : 'Changing the unit requires reviewing the price. Continue?',
+    calcNote: isHebrew ? 'הנחה ומע"מ מחושבים בסיכום ההצעה' : 'Discount and tax are calculated in the quote summary',
     unitPriceArea: isHebrew ? 'מחיר לכל מ"ר' : 'Price per m²',
     unitPriceLinear: isHebrew ? 'מחיר לכל מטר' : 'Price per metre',
     addAnotherSize: isHebrew ? '+ הוספת מידה נוספת' : '+ Add another size',
@@ -446,8 +476,8 @@ export default function AddItemWizard({
     cancel: isHebrew ? 'ביטול' : 'Cancel',
     edit: isHebrew ? 'עריכה' : 'Edit',
     stepLabels: isHebrew
-      ? ['מה מוסיפים', 'איך מתמחרים', 'פרטים', 'בדיקה']
-      : ['What', 'Pricing', 'Details', 'Check'],
+      ? ['הפריט', 'בדיקה']
+      : ['Item', 'Check'],
     stepOfTotal: isHebrew ? (n, total) => `שלב ${n} מתוך ${total}` : (n, total) => `Step ${n} of ${total}`,
     missingDescription: isHebrew ? 'יש להזין שם או תיאור לפריט' : 'Please enter a name or description for this item',
     // Task 39: quote_items.description is varchar(255) (migration 20260930000000) - a longer text must be shortened by the user, never
@@ -463,28 +493,40 @@ export default function AddItemWizard({
     rowNeedsHeight: isHebrew ? (n) => `במידה ${n} חסר גובה. השלימו או הסירו אותה.` : (n) => `Size ${n} needs a height. Complete or remove it.`,
     rowNeedsWidth: isHebrew ? (n) => `במידה ${n} חסר רוחב. השלימו או הסירו אותה.` : (n) => `Size ${n} needs a width. Complete or remove it.`,
     upgradeNeeded: isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan',
-    calcPreviewArea: isHebrew ? (w, h, m2) => `${w} × ${h} ס"מ = ${m2} מ"ר` : (w, h, m2) => `${w} × ${h} cm = ${m2} m²`,
-    calcPreviewLinear: isHebrew ? (l, m) => `${l} ס"מ = ${m} מ'` : (l, m) => `${l} cm = ${m} m`,
+    calcPreviewArea: isHebrew ? (w, h, m2) => `${w} × ${h} ${measureUnit === 'm' ? 'מ\'' : 'ס"מ'} = ${m2} מ"ר` : (w, h, m2) => `${w} × ${h} ${measureUnit === 'm' ? 'm' : 'cm'} = ${m2} m²`,
+    calcPreviewLinear: isHebrew ? (l, m) => `${l} ${measureUnit === 'm' ? 'מ\'' : 'ס"מ'} = ${m} מ'` : (l, m) => `${l} ${measureUnit === 'm' ? 'm' : 'cm'} = ${m} m`,
     destructiveConversionConfirm: isHebrew
       ? 'שינוי שיטת התמחור עלול לשנות את פירוש הסכומים הקיימים. להמשיך?'
       : 'Changing the pricing method may change how the existing numbers are interpreted. Continue?',
   };
 
   const isMeasureMethod = pricingMethod === 'area' || pricingMethod === 'linear';
-  const widthM = cmToM(widthCm);
-  const heightM = cmToM(heightCm);
-  const primaryRowValue = isMeasureMethod
+  // sizes are held in the unit the user types (measureUnit); every calculation goes through cm -> canonical metres
+  const toCm = (v) => (measureUnit === 'm' ? convertSizeText(v, 'cm') : v);
+  const sizeToM = (v) => cmToM(toCm(v));
+  const widthM = sizeToM(widthCm);
+  const heightM = sizeToM(heightCm);
+  const manualQtyValue = useManualQty && Number(manualQty) > 0 ? Number(manualQty) : null;
+  const primaryRowValue = isMeasureMethod && !useManualQty
     ? computeMeasurementValue(pricingMethod, widthM, pricingMethod === 'linear' ? undefined : heightM)
     : null;
-  const extraRowValues = isMeasureMethod
-    ? extraMeasureRows.map((row) => computeMeasurementValue(pricingMethod, cmToM(row.widthCm), pricingMethod === 'linear' ? undefined : cmToM(row.heightCm)))
+  const extraRowValues = isMeasureMethod && !useManualQty
+    ? extraMeasureRows.map((row) => computeMeasurementValue(pricingMethod, sizeToM(row.widthCm), pricingMethod === 'linear' ? undefined : sizeToM(row.heightCm)))
     : [];
   const validExtraRowValues = extraRowValues.filter((v) => v != null && Number.isFinite(v));
-  const calculatedValue = isMeasureMethod
-    ? (primaryRowValue != null || validExtraRowValues.length > 0
-      ? (primaryRowValue || 0) + validExtraRowValues.reduce((sum, v) => sum + v, 0)
-      : null)
-    : null;
+  const calculatedValue = !isMeasureMethod ? null
+    : useManualQty ? manualQtyValue
+      : (primaryRowValue != null || validExtraRowValues.length > 0
+        ? (primaryRowValue || 0) + validExtraRowValues.reduce((sum, v) => sum + v, 0)
+        : null);
+
+  function changeMeasureUnit(next) {
+    if (next === measureUnit) return;
+    setWidthCm((v) => convertSizeText(v, next));
+    setHeightCm((v) => convertSizeText(v, next));
+    setExtraMeasureRows((rows) => rows.map((r) => ({ ...r, widthCm: convertSizeText(r.widthCm, next), heightCm: convertSizeText(r.heightCm, next) })));
+    setMeasureUnit(next);
+  }
 
   function addMeasureRow() {
     setExtraMeasureRows((rows) => [...rows, { widthCm: '', heightCm: '', label: '' }]);
@@ -510,18 +552,17 @@ export default function AddItemWizard({
   // sumMeasurementAreas/handleConfirm).
   function validateStep() {
     const e = {};
-    if (step === STEPS.WHAT) {
+    if (step === STEPS.ITEM) {
       if (!description.trim()) e.description = t.missingDescription;
       else if (description.length > ITEM_DESCRIPTION_MAX) e.description = t.descriptionTooLong(description.length);
-    }
-    if (step === STEPS.PRICING) {
       if (!pricingMethod) e.method = t.missingMethod;
-    }
-    if (step === STEPS.DETAILS) {
       if (pricingMethod === 'fixed') {
         if (unitPrice === '' || Number.isNaN(Number(unitPrice))) e.unitPrice = t.missingAmount;
       } else if (pricingMethod === 'units') {
         if (!(Number(quantity) > 0)) e.quantity = t.missingQuantity;
+        if (unitPrice === '' || Number.isNaN(Number(unitPrice))) e.unitPrice = t.missingPrice;
+      } else if (isMeasureMethod && useManualQty) {
+        if (!(Number(manualQty) > 0)) e.manualQty = t.missingManualQty;
         if (unitPrice === '' || Number.isNaN(Number(unitPrice))) e.unitPrice = t.missingPrice;
       } else if (isMeasureMethod) {
         if (!(Number(widthCm) > 0)) e.width = pricingMethod === 'linear' ? t.missingLength : t.missingWidth;
@@ -546,34 +587,12 @@ export default function AddItemWizard({
 
   function goNext() {
     if (!validateStep()) return;
-    if (step === STEPS.WHAT) {
-      setStep(STEPS.PRICING);
-      return;
-    }
-    if (step === STEPS.PRICING) {
-      // חוק ברזל (Part K - "never silently reinterpret... require explicit
-      // confirmation when destructive"): בעריכה, כל שינוי-שיטה אמיתי (לא
-      // רק כזה שמאבד שורות-מידה) עלול לפרש-מחדש את אותם מספרים גולמיים -
-      // תמיד מוזהר לפני שהמעבר בפועל קורה.
-      if (isEditMode && methodAtOpenRef.current && methodAtOpenRef.current !== pricingMethod) {
-        if (typeof window !== 'undefined' && window.confirm && !window.confirm(t.destructiveConversionConfirm)) {
-          return;
-        }
-        methodAtOpenRef.current = pricingMethod;
-        hadMeasurementRowsAtOpenRef.current = false;
-        conversionConfirmedRef.current = true;
-      }
-      setStep(STEPS.DETAILS);
-      return;
-    }
-    if (step === STEPS.DETAILS) {
-      setStep(STEPS.REVIEW);
-    }
+    setStep(STEPS.REVIEW);
   }
 
   function goBack() {
     setErrors({});
-    setStep((s) => Math.max(STEPS.WHAT, s - 1));
+    setStep(STEPS.ITEM);
   }
 
   function goToStep(target) {
@@ -588,7 +607,21 @@ export default function AddItemWizard({
         return;
       }
     }
+    if (m === pricingMethod) return;
+    const confirmed = (text) => typeof window === 'undefined' || !window.confirm || window.confirm(text);
+    if (isEditMode && methodAtOpenRef.current && methodAtOpenRef.current !== m) {
+      // חוק ברזל (Part K - "never silently reinterpret... require explicit confirmation when destructive"): in edit, every real method
+      // change may reinterpret the same raw numbers - always warned before it happens (now at the method choice itself).
+      if (!confirmed(t.destructiveConversionConfirm)) return;
+      methodAtOpenRef.current = m;
+      hadMeasurementRowsAtOpenRef.current = false;
+      conversionConfirmedRef.current = true;
+    } else if (!isEditMode && pricingMethod && unitPrice !== '') {
+      // Owner round 1 (Codex spec §4.6): a price typed for one unit is never kept silently for another
+      if (!confirmed(t.unitChangeConfirm)) return;
+    }
     setPricingMethod(m);
+    setErrors((e) => ({ ...e, method: undefined }));
   }
 
   function handleCatalogPick(id) {
@@ -619,7 +652,21 @@ export default function AddItemWizard({
     const isNonDestructiveEdit = isEditMode && !conversionConfirmedRef.current;
 
     let newItem;
-    if (isMeasureMethod) {
+    if (isMeasureMethod && useManualQty) {
+      // "I already know the area / length": the existing manual measured item (Task 34) - a charged quantity in its unit, no sizes
+      newItem = {
+        description,
+        quantity: '1',
+        unit_price: unitPrice,
+        isFromCatalog: !!catalogServiceId,
+        section_key: finalSectionKey,
+        pricing_unit: pricingMethod === 'linear' ? 'linear_meter' : 'm2',
+        quantity_source: 'manual',
+        calculation_method: 'manual',
+        measurements: [],
+        calculated_quantity: Number(manualQty),
+      };
+    } else if (isMeasureMethod) {
       const calcMethod = resolveCalculationMethod(pricingMethod === 'linear' ? 'linear_meter' : 'm2', 'calculated');
       const originalMeasurements = isNonDestructiveEdit && Array.isArray(editingItem?.measurements) ? editingItem.measurements : [];
       const [originalFirstRow, ...originalExtraRows] = originalMeasurements;
@@ -630,8 +677,8 @@ export default function AddItemWizard({
       const rawRows = [{ widthCm, heightCm, label: originalFirstRow?.label || '' }, ...extraMeasureRows];
       const measurementRows = rawRows
         .map((row, idx) => {
-          const rWidthM = cmToM(row.widthCm);
-          const rHeightM = pricingMethod === 'linear' ? '' : cmToM(row.heightCm);
+          const rWidthM = sizeToM(row.widthCm);
+          const rHeightM = pricingMethod === 'linear' ? '' : sizeToM(row.heightCm);
           const rowValue = computeMeasurementValue(pricingMethod, rWidthM, pricingMethod === 'linear' ? undefined : rHeightM);
           // חוק ברזל (SQ-F03 - "is_pricing_driving being rewritten"): האשף
           // אינו חושף UI לדגל הזה בכלל - שימור לפי מיקום-שורה מקורי (אותו
@@ -769,8 +816,8 @@ export default function AddItemWizard({
     }
   }
 
-  const visibleMethods = getVisibleMethods(recommendedMethod);
-  const moreMethods = ALL_METHODS.filter((m) => !visibleMethods.includes(m));
+  const orderedMethods = getOrderedMethods(recommendedMethod);
+  const catalogListShown = !!(services && services.length > 0 && !showManualEntry);
   const methodMeta = {
     fixed: { icon: <Package size={20} />, title: t.methodFixed, example: t.methodFixedExample },
     units: { icon: <Package size={20} />, title: t.methodUnitsChoice, example: t.methodUnitsExample },
@@ -783,15 +830,10 @@ export default function AddItemWizard({
       : pricingMethod === 'area' ? t.step3ExplanationArea
         : pricingMethod === 'linear' ? t.step3ExplanationLinear
           : '';
-  const step3Title = pricingMethod === 'fixed' ? t.step3TitleFixed
-    : pricingMethod === 'units' ? t.step3TitleUnits
-      : pricingMethod === 'area' ? t.step3TitleArea
-        : pricingMethod === 'linear' ? t.step3TitleLinear
-          : '';
 
-  const allRowsForReview = isMeasureMethod
+  const allRowsForReview = isMeasureMethod && !useManualQty
     ? [{ widthCm, heightCm, label: '' }, ...extraMeasureRows]
-      .map((row) => ({ ...row, value: computeMeasurementValue(pricingMethod, cmToM(row.widthCm), pricingMethod === 'linear' ? undefined : cmToM(row.heightCm)) }))
+      .map((row) => ({ ...row, value: computeMeasurementValue(pricingMethod, sizeToM(row.widthCm), pricingMethod === 'linear' ? undefined : sizeToM(row.heightCm)) }))
       .filter((row) => row.value != null && Number.isFinite(row.value))
     : [];
 
@@ -822,7 +864,7 @@ export default function AddItemWizard({
         <StepIndicator step={step} isHebrew={isHebrew} isNarrow={isNarrow} labels={t.stepLabels} stepOfTotal={t.stepOfTotal} />
 
         <div style={{ padding: '20px', overflowY: 'auto', flex: '1 1 auto' }}>
-          {step === STEPS.WHAT && (
+          {step === STEPS.ITEM && (
             <div>
               {/* חוק ברזל (Smart Quote End-to-End Structural Unification
                   task, Locked Decision 6 - "Catalog First"): כשלעסק יש
@@ -859,6 +901,7 @@ export default function AddItemWizard({
                   <button type="button" onClick={() => setShowManualEntry(true)} style={{ marginTop: '12px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', padding: 0 }}>
                     {t.manualFallbackLink}
                   </button>
+                  {errors.description && <ErrorText>{errors.description}</ErrorText>}
                 </div>
               ) : (
                 <div>
@@ -886,12 +929,12 @@ export default function AddItemWizard({
             </div>
           )}
 
-          {step === STEPS.PRICING && (
-            <div>
-              <StepHeading title={t.step2Title} explanation={t.step2Explanation} />
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {/* PRODUCT_TRUTH_DECORATIVE: selects one of the primary/recommended pricing methods in step 2 */}
-                {visibleMethods.map((m) => (
+          {step === STEPS.ITEM && !catalogListShown && (
+            <div style={{ marginTop: '18px' }}>
+              <StepHeading title={t.step2Title} explanation={null} />
+              <div style={{ display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : '1fr 1fr', gap: '8px' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: selects one of the four pricing methods (all visible; the business recommendation first) on the item screen */}
+                {orderedMethods.map((m) => (
                   <MethodCard
                     key={m}
                     icon={methodMeta[m].icon}
@@ -907,49 +950,24 @@ export default function AddItemWizard({
                   />
                 ))}
               </div>
-              {/* PRODUCT_TRUTH_DECORATIVE: 'More options' link revealing additional pricing methods in step 2 */}
-              {!showMoreMethods ? (
-                <button type="button" onClick={() => setShowMoreMethods(true)} style={{ marginTop: '10px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', padding: 0 }}>
-                  {t.moreOptions}
-                </button>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-                  {/* PRODUCT_TRUTH_DECORATIVE: selects one of the additional pricing methods revealed by the toggle above */}
-                  {moreMethods.map((m) => (
-                    <MethodCard
-                      key={m}
-                      icon={methodMeta[m].icon}
-                      title={methodMeta[m].title}
-                      example={methodMeta[m].example}
-                      recommended={m === recommendedMethod}
-                      recommendedLabel={t.recommended}
-                      onClick={() => choosePricingMethod(m)}
-                      selected={pricingMethod === m}
-                      locked={(m === 'area' || m === 'linear') && !canUseProfessionalQuotes}
-                      lockedLabel={t.upgradeNeeded}
-                      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choosePricingMethod(m); } }}
-                    />
-                  ))}
-                </div>
-              )}
               {errors.method && <ErrorText>{errors.method}</ErrorText>}
             </div>
           )}
 
-          {step === STEPS.DETAILS && pricingMethod === 'fixed' && (
-            <div>
-              <StepHeading title={step3Title} explanation={step3Explanation} />
+          {step === STEPS.ITEM && !catalogListShown && pricingMethod === 'fixed' && (
+            <div style={{ marginTop: '14px' }}>
+              <p style={detailNoteStyle}>{step3Explanation}</p>
               <FieldLabel htmlFor="wiz-fixed-amount">{`${t.fixedAmountLabel} (${sym})`}</FieldLabel>
-              <input id="wiz-fixed-amount" ref={firstFieldRef} type="number" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-fixed-amount-error' : undefined} style={inputStyle(isHebrew)} />
+              <input id="wiz-fixed-amount" type="number" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-fixed-amount-error' : undefined} style={inputStyle(isHebrew)} />
               {errors.unitPrice && <ErrorText id="wiz-fixed-amount-error">{errors.unitPrice}</ErrorText>}
             </div>
           )}
 
-          {step === STEPS.DETAILS && pricingMethod === 'units' && (
-            <div>
-              <StepHeading title={step3Title} explanation={step3Explanation} />
+          {step === STEPS.ITEM && !catalogListShown && pricingMethod === 'units' && (
+            <div style={{ marginTop: '14px' }}>
+              <p style={detailNoteStyle}>{step3Explanation}</p>
               <FieldLabel htmlFor="wiz-quantity">{preservedUnitLabel ? `${t.quantityLabel.replace(/\?$/, '')} (${preservedUnitLabel})` : t.quantityLabel}</FieldLabel>
-              <input id="wiz-quantity" ref={firstFieldRef} type="number" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} aria-invalid={!!errors.quantity} aria-describedby={errors.quantity ? 'wiz-quantity-error' : undefined} style={inputStyle(isHebrew)} />
+              <input id="wiz-quantity" type="number" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} aria-invalid={!!errors.quantity} aria-describedby={errors.quantity ? 'wiz-quantity-error' : undefined} style={inputStyle(isHebrew)} />
               {errors.quantity && <ErrorText id="wiz-quantity-error">{errors.quantity}</ErrorText>}
               <FieldLabel htmlFor="wiz-unit-price">{`${t.unitPriceLabel} (${sym})`}</FieldLabel>
               <input id="wiz-unit-price" type="number" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-unitprice-error' : undefined} style={inputStyle(isHebrew)} />
@@ -962,17 +980,35 @@ export default function AddItemWizard({
             </div>
           )}
 
-          {step === STEPS.DETAILS && isMeasureMethod && (
-            <div>
-              <StepHeading title={step3Title} explanation={step3Explanation} />
-              {pricingMethod === 'area' && (
-                <p style={{ fontSize: '0.78rem', color: NEON.textSecondary, margin: '0 0 10px' }}>{t.areaHelper}</p>
+          {step === STEPS.ITEM && !catalogListShown && isMeasureMethod && (
+            <div style={{ marginTop: '14px' }}>
+              <p style={detailNoteStyle}>{step3Explanation}</p>
+              {!useManualQty && (
+                <div role="group" aria-label={t.sizeUnitLabel} style={{ display: 'inline-flex', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', overflow: 'hidden', marginBottom: '10px' }}>
+                  {/* PRODUCT_TRUTH_DECORATIVE: cm / m switch for the typed sizes (stored measurements stay metres) */}
+                  {[['cm', t.unitCm], ['m', t.unitM]].map(([u, label]) => (
+                    <button key={u} type="button" aria-pressed={measureUnit === u} onClick={() => changeMeasureUnit(u)} data-testid={`wiz-unit-${u}`}
+                      style={{ border: 'none', padding: '8px 16px', minHeight: '40px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: measureUnit === u ? NEON.violet : 'transparent', color: measureUnit === u ? '#fff' : NEON.textSecondary }}>
+                      {label}
+                    </button>
+                  ))}
+                </div>
               )}
+              {useManualQty ? (
+                <div>
+                  <FieldLabel htmlFor="wiz-manual-qty">{pricingMethod === 'area' ? t.manualAreaLabel : t.manualLengthLabel}</FieldLabel>
+                  <input id="wiz-manual-qty" type="number" min="0" step="any" value={manualQty} onChange={(e) => setManualQty(e.target.value)} aria-invalid={!!errors.manualQty} aria-describedby={errors.manualQty ? 'wiz-manual-qty-error' : undefined} style={inputStyle(isHebrew)} />
+                  {errors.manualQty && <ErrorText id="wiz-manual-qty-error">{errors.manualQty}</ErrorText>}
+                  {/* PRODUCT_TRUTH_DECORATIVE: switches back from a known quantity to entering sizes */}
+                  <button type="button" onClick={() => setUseManualQty(false)} style={linkBtnStyle}>{t.backToSizes}</button>
+                </div>
+              ) : (
+              <>
               <div style={{ fontSize: '0.8rem', fontWeight: 700, color: NEON.textPrimary, marginBottom: '4px' }}>{t.sizeN(1)}</div>
               <div style={{ display: 'grid', gridTemplateColumns: pricingMethod === 'area' ? '1fr 1fr' : '1fr', gap: '10px' }}>
                 <div>
                   <FieldLabel htmlFor="wiz-width">{pricingMethod === 'linear' ? t.lengthCm : t.widthCm}</FieldLabel>
-                  <input id="wiz-width" ref={firstFieldRef} type="number" min="0" step="any" value={widthCm} onChange={(e) => setWidthCm(e.target.value)} aria-invalid={!!errors.width} aria-describedby={errors.width ? 'wiz-width-error' : undefined} style={inputStyle(isHebrew)} />
+                  <input id="wiz-width" type="number" min="0" step="any" value={widthCm} onChange={(e) => setWidthCm(e.target.value)} aria-invalid={!!errors.width} aria-describedby={errors.width ? 'wiz-width-error' : undefined} style={inputStyle(isHebrew)} />
                   {errors.width && <ErrorText id="wiz-width-error">{errors.width}</ErrorText>}
                 </div>
                 {pricingMethod === 'area' && (
@@ -990,7 +1026,7 @@ export default function AddItemWizard({
               )}
 
               {extraMeasureRows.map((row, idx) => {
-                const rowValue = computeMeasurementValue(pricingMethod, cmToM(row.widthCm), pricingMethod === 'linear' ? undefined : cmToM(row.heightCm));
+                const rowValue = computeMeasurementValue(pricingMethod, sizeToM(row.widthCm), pricingMethod === 'linear' ? undefined : sizeToM(row.heightCm));
                 const rowError = errors.rows && errors.rows[idx];
                 return (
                   <div key={idx} style={{ marginTop: '14px', paddingTop: '14px', borderTop: `1px dashed ${NEON.border}` }}>
@@ -1036,12 +1072,17 @@ export default function AddItemWizard({
                 </div>
               )}
 
+              {/* PRODUCT_TRUTH_DECORATIVE: switches from sizes to a known area / length (manual quantity, no invented sizes) */}
+              <button type="button" onClick={() => setUseManualQty(true)} style={linkBtnStyle}>{pricingMethod === 'area' ? t.knowArea : t.knowLength}</button>
+              </>
+              )}
               <FieldLabel htmlFor="wiz-unit-price-m">{`${pricingMethod === 'area' ? t.unitPriceArea : t.unitPriceLinear} (${sym})`}</FieldLabel>
               <input id="wiz-unit-price-m" type="number" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-unitpricem-error' : undefined} style={inputStyle(isHebrew)} />
               {errors.unitPrice && <ErrorText id="wiz-unitpricem-error">{errors.unitPrice}</ErrorText>}
               {formulaText && (
-                <div aria-live="polite" style={{ marginTop: '8px', fontSize: '0.9rem', color: NEON.violet, fontWeight: '800' }}>
-                  {formulaText}
+                <div aria-live="polite" data-testid="wiz-calc" style={{ marginTop: '10px', padding: '10px 12px', borderRadius: '10px', background: NEON.bgCardAlt, display: 'grid', gap: '2px' }}>
+                  <span style={{ fontSize: '0.9rem', color: NEON.violet, fontWeight: '800' }}>{formulaText}</span>
+                  <span style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{t.calcNote}</span>
                 </div>
               )}
             </div>
@@ -1051,7 +1092,10 @@ export default function AddItemWizard({
             <div>
               <StepHeading title={t.step4Title} explanation={isEditMode ? t.editModeExplanation : t.step4Explanation} />
 
-              <ReviewGroup label={description || '—'} isHebrew={isHebrew} onEdit={() => goToStep(STEPS.WHAT)} editLabel={t.changeName}>
+              <ReviewGroup label={description || '—'} isHebrew={isHebrew} onEdit={() => goToStep(STEPS.ITEM)} editLabel={t.changeName}>
+                {isMeasureMethod && useManualQty && (
+                  <SummaryRow label={pricingMethod === 'area' ? t.totalAreaLabel : t.totalLengthLabel} value={`${calculatedValue != null ? calculatedValue.toFixed(2) : '—'} ${measureUnitWord}`} isHebrew={isHebrew} />
+                )}
                 {isMeasureMethod && allRowsForReview.length > 0 && (
                   <div style={{ marginBottom: '8px' }}>
                     {allRowsForReview.map((row, i) => (
@@ -1075,9 +1119,9 @@ export default function AddItemWizard({
                 )}
                 <div style={{ display: 'flex', gap: '14px', marginTop: '8px', flexWrap: 'wrap' }}>
                   {/* PRODUCT_TRUTH_DECORATIVE: review-step edit link jumping back to the sizes/pricing details step */}
-                  <EditLink label={t.changePricingAndSizes} onClick={() => goToStep(STEPS.DETAILS)} />
+                  <EditLink label={t.changePricingAndSizes} onClick={() => goToStep(STEPS.ITEM)} />
                   {/* PRODUCT_TRUTH_DECORATIVE: review-step edit link jumping back to the pricing-method step */}
-                  <EditLink label={t.changePricingMethod} onClick={() => goToStep(STEPS.PRICING)} />
+                  <EditLink label={t.changePricingMethod} onClick={() => goToStep(STEPS.ITEM)} />
                 </div>
               </ReviewGroup>
 
@@ -1162,9 +1206,9 @@ export default function AddItemWizard({
             הבא/חזרה תמיד נגישים בלי גלילה נוספת, גם עם 4+ שורות-מידה. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 20px', borderTop: `1px solid ${NEON.border}`, background: NEON.bgCard, position: 'sticky', bottom: 0, flexShrink: 0 }}>
           {/* PRODUCT_TRUTH_DECORATIVE: footer 'Back' button; closes the wizard on the first step or steps back one page otherwise */}
-          <button type="button" onClick={step === STEPS.WHAT ? onClose : goBack} style={secondaryBtnStyle}>
+          <button type="button" onClick={step === STEPS.ITEM ? onClose : goBack} style={secondaryBtnStyle}>
             {isHebrew ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            {step === STEPS.WHAT ? t.cancel : t.back}
+            {step === STEPS.ITEM ? t.cancel : t.back}
           </button>
           {/* PRODUCT_TRUTH_DECORATIVE: 'Add item' confirm button on the final review step; completes the already-documented add-item wizard */}
           {step === STEPS.REVIEW ? (
@@ -1174,10 +1218,9 @@ export default function AddItemWizard({
             <button
               type="button"
               onClick={goNext}
-              disabled={step === STEPS.PRICING && !pricingMethod}
-              style={{ ...primaryBtnStyle, opacity: (step === STEPS.PRICING && !pricingMethod) ? 0.5 : 1, cursor: (step === STEPS.PRICING && !pricingMethod) ? 'not-allowed' : 'pointer' }}
+              style={primaryBtnStyle}
             >
-              {t.next}
+              {t.toReview}
               {isHebrew ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
             </button>
           )}
@@ -1337,5 +1380,7 @@ function inputStyle(isHebrew) {
   return { width: '100%', padding: '11px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '16px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', minHeight: '44px' };
 }
 
+const detailNoteStyle = { fontSize: '0.8rem', color: NEON.textSecondary, margin: '0 0 8px', lineHeight: '1.4' };
+const linkBtnStyle = { display: 'block', marginTop: '10px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', padding: '6px 0', minHeight: '32px' };
 const primaryBtnStyle = { display: 'flex', alignItems: 'center', gap: '4px', background: NEON.gradient, color: 'white', border: 'none', padding: '12px 18px', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
 const secondaryBtnStyle = { display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, padding: '12px 18px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
