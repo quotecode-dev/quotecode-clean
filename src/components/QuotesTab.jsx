@@ -332,12 +332,15 @@ export default function QuotesTab({
     // Desktop list state (plain coloured text): derived from the real status, never a new persisted status. A complete draft is
     // "Needs sending"; only an unfinished one is a plain "Draft".
     const isFinal = badge.role === 'approved' || badge.role === 'paid';
-    const tone = isHot ? 'hot' : isFinal ? 'approved' : badge.role === 'sent' ? 'sent' : badge.role === 'unfinished' ? 'draft' : 'needs-sending';
+    // Owner 2026-10-15 (AUD-03): a quote the customer already opened reached the customer - also a Draft whose link was shared by hand
+    const viewedDraft = badge.role === 'draft' && Number(quote.view_count || 0) > 0;
+    const tone = isHot ? 'hot' : isFinal ? 'approved' : (badge.role === 'sent' || viewedDraft) ? 'sent' : badge.role === 'unfinished' ? 'draft' : 'needs-sending';
     const statusLabel = isHot ? (isHebrew ? 'נצפתה, ממתינה' : 'Viewed, awaiting')
       : badge.role === 'approved' ? (isHebrew ? 'אושרה' : 'Approved')
         : badge.role === 'paid' ? badge.text
           // Owner 2026-10-15: a sent quote the customer has not opened yet says so
-          : badge.role === 'sent' ? (sentNotViewed(quote) ? (isHebrew ? 'נשלחה · טרם נצפתה' : 'Sent · not viewed yet') : (isHebrew ? 'נשלחה' : 'Sent'))
+          : (badge.role === 'sent' || viewedDraft) ? (sentNotViewed(quote) ? (isHebrew ? 'נשלחה · טרם נצפתה' : 'Sent · not viewed yet')
+            : Number(quote.view_count || 0) > 0 ? (isHebrew ? 'נשלחה · נצפתה' : 'Sent · viewed') : (isHebrew ? 'נשלחה' : 'Sent'))
             : badge.role === 'unfinished' ? (isHebrew ? 'טיוטה' : 'Draft')
               : (isHebrew ? 'צריך לשלוח' : 'Needs sending');
     // Action precedence: a hot quote is always "Open & track" (before any draft branch); then unfinished draft -> continue editing.

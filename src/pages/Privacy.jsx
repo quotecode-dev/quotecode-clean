@@ -21,7 +21,7 @@ export default function Privacy({ isHebrew }) {
 
   const t = isHebrew ? {
     title: 'מדיניות פרטיות (Privacy Policy)',
-    lastUpdated: 'עדכון אחרון: 13 באוקטובר 2026',
+    lastUpdated: 'עדכון אחרון: 15 באוקטובר 2026',
     back: 'חזור אחורה',
     sections: [
       {
@@ -64,7 +64,7 @@ export default function Privacy({ isHebrew }) {
     ]
   } : {
     title: 'Privacy Policy',
-    lastUpdated: 'Last updated: October 13, 2026',
+    lastUpdated: 'Last updated: October 15, 2026',
     back: 'Go Back',
     sections: [
       {

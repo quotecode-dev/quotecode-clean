@@ -29,14 +29,22 @@ export function exposeLoadedBuildIdentity(win = typeof window !== 'undefined' ? 
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes - frequent enough to matter, rare enough to be free
 
+// The newer deployed SHA, or null. Owner 2026-10-15: a WORKING preview (TEST 5186 dev server, version.json servesWorkingTree:true)
+// never shows the banner - the dev server reloads code itself, and its version.json follows the checkout HEAD while the running
+// bundle keeps the SHA it was started with, so after any commit "Refresh" could never clear it. LIVE / frozen builds: unchanged.
+export function newerDeployedSha(data, currentSha) {
+  if (!data?.buildSha || data.buildSha === 'unknown') return null;
+  if (data.servesWorkingTree === true) return null;
+  if (!currentSha || currentSha === 'unknown') return null;
+  return data.buildSha !== currentSha ? data.buildSha : null;
+}
+
 export async function checkForNewVersion() {
   try {
     const res = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' });
     if (!res.ok) return null;
     const data = await res.json();
-    if (!data?.buildSha || data.buildSha === 'unknown') return null;
-    if (CURRENT_BUILD_SHA === 'unknown') return null;
-    return data.buildSha !== CURRENT_BUILD_SHA ? data.buildSha : null;
+    return newerDeployedSha(data, CURRENT_BUILD_SHA);
   } catch {
     return null; // network hiccup / offline - never treat as "new version", never nag on a flaky connection
   }

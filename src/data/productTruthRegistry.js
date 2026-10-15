@@ -387,8 +387,8 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
 
   // ---- Task 20: capabilities after the frozen 38 (PHASE_CAPABILITY_IDS). Descriptions state what is active and what is not. ----
   capability('quote_statistics', 'סטטיסטיקת הצעות והצעות חמות', 'Quote statistics and hot quotes',
-    "מסך סטטיסטיקה: כמה הצעות נוצרו, נשלחו, אושרו ושולמו, שיעור ההמרה, ורשימת הצעות חמות (נצפו 3 פעמים או יותר וממתינות לאישור) עם פעולות ידניות: פתיחה, WhatsApp, העתקת קישור ושליחה חוזרת. סכומים מוצגים לכל מטבע בנפרד, לפי תקופה וסטטוס. פותחים אותו מהתפריט „סטטיסטיקה” (בנייד: „עוד” ← „סטטיסטיקה”).",
-    "A Statistics screen: how many quotes were created, sent, approved and paid, the conversion rate, and a hot-quote list (viewed 3+ times and awaiting approval) with manual actions: open, WhatsApp, copy link and resend. Amounts are shown per currency, by period and status. Open it from the “Statistics” menu item (on mobile: “More” → “Statistics”).",
+    "מסך סטטיסטיקה: כמה הצעות נוצרו, נשלחו, אושרו ושולמו, שיעור ההמרה, ורשימת הצעות חמות (נצפו 3 פעמים או יותר וממתינות לאישור) עם פעולות ידניות: פתיחה ומעקב, WhatsApp, שליחה במייל ויצירת משימת מעקב. סכומים מוצגים לכל מטבע בנפרד, לפי תקופה וסטטוס. פותחים אותו מהתפריט „סטטיסטיקה” (בנייד: „עוד” ← „סטטיסטיקה”).",
+    "A Statistics screen: how many quotes were created, sent, approved and paid, the conversion rate, and a hot-quote list (viewed 3+ times and awaiting approval) with manual actions: open & track, WhatsApp, email and create a follow-up task. Amounts are shown per currency, by period and status. Open it from the “Statistics” menu item (on mobile: “More” → “Statistics”).",
     { surfaces: ['dashboard'], canonicalSources: ['src/components/StatisticsTab.jsx', 'src/utils/quoteStatistics.js'] }),
 
   capability('manual_tasks', 'משימות ידניות', 'Manual tasks',

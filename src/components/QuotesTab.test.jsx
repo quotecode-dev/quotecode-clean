@@ -618,8 +618,10 @@ describe.each([
     expect(state(mk('x', { status: 'approved' }))).toEqual([isHebrew ? 'אושרה' : 'Approved', 'approved']);
     // Owner 2026-10-15: a sent quote the customer has not opened yet says so; once opened it is plain Sent (3+ opens = hot)
     expect(state(mk('x', { status: 'sent', view_count: 0 }))).toEqual([isHebrew ? 'נשלחה · טרם נצפתה' : 'Sent · not viewed yet', 'sent']);
-    expect(state(mk('x', { status: 'sent', view_count: 1 }))).toEqual([isHebrew ? 'נשלחה' : 'Sent', 'sent']);
-  });
+    // AUD-03 (Owner 2026-10-15): opened 1-2 times = "Sent · viewed" (also a Draft whose link was shared by hand); 3+ = hot
+    expect(state(mk('x', { status: 'sent', view_count: 1 }))).toEqual([isHebrew ? 'נשלחה · נצפתה' : 'Sent · viewed', 'sent']);
+    expect(state(mk('x', { status: 'draft', view_count: 2 }))).toEqual([isHebrew ? 'נשלחה · נצפתה' : 'Sent · viewed', 'sent']);
+    expect(state(mk('x', { status: 'draft', view_count: 3 }))).toEqual([isHebrew ? 'נצפתה, ממתינה' : 'Viewed, awaiting', 'hot']);  });
 
   it('dropdown primary actions use the existing handlers: edit for Continue editing, the public link for View, the tracking panel for Open / Open & track', () => {
     const handleProtectedAction = vi.fn((id, action, fn) => fn());
