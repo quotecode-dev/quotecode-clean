@@ -10,6 +10,7 @@ import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
 import { OPEN_REMINDERS_SETTINGS_EVENT } from '../utils/reminders';
+import { markQuoteSentAfterShare } from '../utils/quoteSentMark';
 import { publishBlocker, resolveBlockers, clearScope, SAVE_ATTEMPT_CODES, blockerCodeForActionError, blockerCodeForSaveFailure, blockerCodeForEmailError } from '../utils/aiHelpBlockers';
 import AiHelpButton from '../components/AiHelpButton';
 import { computeQuoteWorkflowContext } from '../utils/quoteWorkflowContext';
@@ -2829,6 +2830,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
   };
 
+  // Owner 2026-10-15: a WhatsApp / email share marks a Draft quote Sent in the legacy output phase (see utils/quoteSentMark.js);
+  // when the phase is enforced the server marks it at authorization, so these paths never write the status then.
+  const markSentAfterShare = async (proposal) => {
+    const r = await markQuoteSentAfterShare(supabase, session?.user?.id, proposal);
+    if (r.ok) setQuotes((prev) => prev.map((q) => (q.id === proposal.id ? { ...q, status: 'sent' } : q)));
+  };
+
   // PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share
   const sendWhatsApp = (proposal, authorized = null) => {
     // OD-02: the ONE output-authority gate (off = unchanged synchronous behavior; any other phase fails closed until wired).
@@ -2868,6 +2876,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       
     if (authorized?.win && !authorized.win.closed) authorized.win.location.href = url;
     else window.open(url, '_blank');
+    if (!authorized) markSentAfterShare(proposal); // legacy phase: WhatsApp opened with the quote message = sent
   };
 
   // Enforced phase only: authorize on the server, then hand the capability link to WhatsApp. The blank tab is opened inside
@@ -2984,6 +2993,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'success' }));
       resolveBlockers(['EMAIL_SEND_FAILED', 'EMAIL_SEND_NETWORK', 'EMAIL_CLIENT_NO_EMAIL']);
       setStatusMsg({ text: isHebrew ? '📧 האימייל נשלח בהצלחה!' : '📧 Email sent successfully!', type: 'success' });
+      if (sendGate.mode !== 'authority_required') markSentAfterShare(quote); // legacy phase: the email went out = sent
     } catch (err) {
       // חוק ברזל (LIVE Admin Email Failure root-cause task, 2026-09-08):
       // לפני התיקון, כל כשל (session פגה/בעלות שגויה/כשל-תצורת-שולח/דחיית-

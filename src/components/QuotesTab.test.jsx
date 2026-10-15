@@ -616,6 +616,9 @@ describe.each([
     expect(state(mk('x', { status: 'draft', total: 0 }))).toEqual([isHebrew ? 'טיוטה' : 'Draft', 'draft']);
     expect(state(mk('x', { status: 'sent', view_count: 4 }))).toEqual([isHebrew ? 'נצפתה, ממתינה' : 'Viewed, awaiting', 'hot']);
     expect(state(mk('x', { status: 'approved' }))).toEqual([isHebrew ? 'אושרה' : 'Approved', 'approved']);
+    // Owner 2026-10-15: a sent quote the customer has not opened yet says so; once opened it is plain Sent (3+ opens = hot)
+    expect(state(mk('x', { status: 'sent', view_count: 0 }))).toEqual([isHebrew ? 'נשלחה · טרם נצפתה' : 'Sent · not viewed yet', 'sent']);
+    expect(state(mk('x', { status: 'sent', view_count: 1 }))).toEqual([isHebrew ? 'נשלחה' : 'Sent', 'sent']);
   });
 
   it('dropdown primary actions use the existing handlers: edit for Continue editing, the public link for View, the tracking panel for Open / Open & track', () => {

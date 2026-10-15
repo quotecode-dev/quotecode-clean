@@ -7,6 +7,7 @@ import { useState, useEffect, useLayoutEffect, useRef, Fragment } from 'react';
 import { MoneyValue, CurrencyTotals } from './NumericValue';
 import { totalsByQuoteCurrency } from '../utils/money';
 import { isHotQuote } from '../utils/quoteStatistics';
+import { sentNotViewed } from '../utils/quoteSentMark';
 import TekangoEyeIcon from './TekangoEyeIcon';
 import { useMoneySlotSize } from '../hooks/useMoneySlotSize';
 import { useQuoteHistoryGeometry, QH_CELL_PAD, QH_ACTION_COL, QH_CELL_STYLE } from '../hooks/useQuoteHistoryGeometry';
@@ -335,7 +336,8 @@ export default function QuotesTab({
     const statusLabel = isHot ? (isHebrew ? 'נצפתה, ממתינה' : 'Viewed, awaiting')
       : badge.role === 'approved' ? (isHebrew ? 'אושרה' : 'Approved')
         : badge.role === 'paid' ? badge.text
-          : badge.role === 'sent' ? (isHebrew ? 'נשלחה' : 'Sent')
+          // Owner 2026-10-15: a sent quote the customer has not opened yet says so
+          : badge.role === 'sent' ? (sentNotViewed(quote) ? (isHebrew ? 'נשלחה · טרם נצפתה' : 'Sent · not viewed yet') : (isHebrew ? 'נשלחה' : 'Sent'))
             : badge.role === 'unfinished' ? (isHebrew ? 'טיוטה' : 'Draft')
               : (isHebrew ? 'צריך לשלוח' : 'Needs sending');
     // Action precedence: a hot quote is always "Open & track" (before any draft branch); then unfinished draft -> continue editing.
