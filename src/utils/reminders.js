@@ -94,6 +94,15 @@ export const REMINDERS_COPY = Object.freeze({
     firstSetupTitle: 'חדש: תזכורות ואוטומציות',
     firstSetupText: 'ברירת המחדל היא „בממשק בלבד": תזכורות מופיעות אצלכם, ושום הודעה לא נשלחת ללקוח. אפשר גם „כבוי", או „מלא, כולל שליחה ללקוח" — לפי כללים שתבחרו. מגדירים ב: הגדרות עסק › תזכורות ואוטומציות.',
     gotIt: 'הבנתי',
+    // Task 40 (Owner console 2026-10-15): the approved welcome item for a new account - copy is Owner-locked
+    welcome: {
+      title: 'ברוכים הבאים למשפחת TEKANGO! 👋',
+      body: 'כאן תקבלו התראה כשלקוח צופה בהצעה. אפשר להפעיל גם תזכורת כשהצעה נצפתה ועדיין לא אושרה וכשתוקף הצעה מתקרב לסיום,',
+      settingsLink: 'בהגדרות עסק › תזכורות ואוטומציות', // Owner 2026-10-15: a link to the exact screen
+      support: 'יש שאלה או בקשה? אנחנו כאן:',
+      ai: 'אפשר גם להשתמש ב-AI החכם שלנו.',
+      aiButton: 'פתיחת צ׳אט AI',
+    },
     center: { title: 'התראות', empty: 'אין תזכורות כרגע.', markAll: 'סימון הכול כנקרא', modeOff: 'התזכורות כבויות.', modeLine: { in_app: 'מצב: בממשק בלבד — שום הודעה לא נשלחת ללקוחות.', off: 'מצב: כבוי.', full: 'מצב: מלא.' }, readNotSaved: 'סימון כנקרא יישמר אחרי עדכון השרת.' },
     item: {
       task_due: (i) => `משימה: ${i.title}`, task_due_overdue: 'באיחור', today: 'היום',
@@ -189,6 +198,14 @@ export const REMINDERS_COPY = Object.freeze({
     firstSetupTitle: 'New: Reminders & automation',
     firstSetupText: 'The default is "In-app only": reminders appear for you and nothing is sent to a customer. You can also choose "Off", or "Full, including customer sending" — by rules you pick. Set it in: Business settings › Reminders & automation.',
     gotIt: 'Got it',
+    welcome: {
+      title: 'Welcome to the TEKANGO family! 👋',
+      body: "You'll be notified here when a client views a quote. You can also turn on reminders for a viewed quote still awaiting approval and for a quote about to expire, in",
+      settingsLink: 'Business settings › Reminders & automation',
+      support: "Questions or requests? We're here:",
+      ai: 'You can also use our smart AI.',
+      aiButton: 'Open AI Chat',
+    },
     center: { title: 'Notifications', empty: 'No reminders right now.', markAll: 'Mark all read', modeOff: 'Reminders are off.', modeLine: { in_app: 'Mode: In-app only — nothing is sent to customers.', off: 'Mode: Off.', full: 'Mode: Full.' }, readNotSaved: 'Read marks are saved after the server update.' },
     item: {
       task_due: (i) => `Task: ${i.title}`, task_due_overdue: 'Overdue', today: 'Today',
@@ -241,6 +258,21 @@ export async function listReadMarks(client, userId) {
     if (error) return fromError(error);
     return { ok: true, data: new Set((data || []).map((r) => r.item_key)) };
   } catch (e) { return fail('network', e?.message); }
+}
+
+// Task 40: the welcome item is shown to a NEW account (auth user created within the window) and never when reminders are Off.
+export const WELCOME_ITEM_KEY = 'welcome:v1';
+// the welcome link to Business settings › Reminders & automation (product-owned; Dashboard opens that exact sub-screen)
+export const OPEN_REMINDERS_SETTINGS_EVENT = 'tekango-open-reminders-settings';
+export const WELCOME_WINDOW_DAYS = 30;
+export function isWelcomeVisible({ accountCreatedAt, mode, now = Date.now() }) {
+  if (mode === 'off' || !accountCreatedAt) return false;
+  const created = new Date(accountCreatedAt).getTime();
+  const nowMs = typeof now === 'number' ? now : new Date(now).getTime();
+  if (!Number.isFinite(created) || !Number.isFinite(nowMs)) return false;
+  const day = 24 * 60 * 60 * 1000;
+  const age = nowMs - created; // a device clock slightly behind the server never hides a brand-new account's welcome
+  return age > -day && age < WELCOME_WINDOW_DAYS * day;
 }
 
 export async function markRemindersRead(client, userId, keys) {

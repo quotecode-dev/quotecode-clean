@@ -80,7 +80,22 @@ const P: Readonly<Record<SubscriptionIntent, readonly RegExp[]>> = {
 
 const UNLIMITED_QUOTA = /\bunlimited\s+quotes\b|\bquotes\b.{0,20}\bunlimited\b|\b(is|are)\s+(it|this|that|they|there|tekango)\s+(really\s+)?unlimited\b|הצעות\s+(ללא|בלי)\s+הגבלה|(זה|האם)\s+(ללא|בלי)\s+הגבלה|^\s*(ללא|בלי)\s+הגבלה\s*[?？]?\s*$/i;
 
+// Task 40 (Owner, LIVE chat 2026-10-15): "which plans do you have?" asks for the plan list - it is answered by the deterministic
+// pricing answer (plan list + Free-10 + prices), never by the broad "which feature?" clarification. Plural forms only, so
+// "which plan am I on / do I have" stays the account's own plan (my_plan).
+const PLAN_LIST_EN = [
+  /\b(what|which)\s+(kinds?\s+of\s+|types?\s+of\s+)?(plans|packages|subscriptions|tiers|pricing\s+plans)\b/i,
+  /\bdo\s+you\s+(have|offer)\s+(any\s+)?(plans|packages|subscriptions|tiers)\b/i,
+  /\b(plans|packages|subscriptions|tiers)\s+(do\s+you\s+(have|offer)|are\s+(there|available)|exist)\b/i,
+];
+const PLAN_LIST_HE = [
+  /(איזה|אילו|איזו|מה|מהם|מהן)\s+(ה)?(מסלולים|תוכניות|חבילות|מנויים|סוגי\s+(ה)?מנוי(ים)?)/,
+  /יש\s+(לכם|לך|לכן)\s+(מסלולים|תוכניות|חבילות|מנויים)/,
+  /(מסלולים|תוכניות|חבילות|מנויים)\s+(יש|קיימים|קיימות|זמינים|זמינות)/,
+];
+
 function hasPricingIntent(t: string): boolean {
+  if (PLAN_LIST_EN.some((re) => re.test(t)) || PLAN_LIST_HE.some((re) => re.test(t))) return true;
   const en = PRICE_WORD_EN.test(t) && (PLAN_WORD_EN.test(t) || MONEY_WORD_EN.test(t)) && !(QUOTE_WORD_EN.test(t) && !PLAN_WORD_EN.test(t));
   const he = PRICE_WORD_HE.test(t) && (PLAN_WORD_HE.test(t) || MONEY_WORD_HE.test(t)) && !(QUOTE_WORD_HE.test(t) && !PLAN_WORD_HE.test(t));
   return en || he;

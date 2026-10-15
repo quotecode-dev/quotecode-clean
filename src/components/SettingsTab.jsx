@@ -68,6 +68,9 @@ export default function SettingsTab({
   // Task 20: the ONE entry to Reminders & automation (Owner clarification 2026-10-09). Absent client/userId => no entry button.
   remindersClient = null,
   remindersUserId = null,
+  // Task 40: a one-shot request to open a sub-screen (only 'reminders', from the welcome item's link); cleared via onViewRequestDone
+  viewRequest = null,
+  onViewRequestDone = null,
   // Task 23 (Phase 5): the digital business card entry (separate button next to Reminders & automation). Absent => no entry button.
   businessCardClient = null,
   businessCardUserId = null,
@@ -76,7 +79,14 @@ export default function SettingsTab({
   shareDefaultsUserId = null,
   onShareDefaultsSaved = null,
 }) {
-  const [view, setView] = useState('business');
+  const remindersRequested = viewRequest?.view === 'reminders' && !!remindersClient && !!remindersUserId;
+  const [view, setView] = useState(remindersRequested ? 'reminders' : 'business');
+  useEffect(() => {
+    if (!viewRequest) return;
+    if (remindersRequested) setView('reminders');
+    onViewRequestDone?.();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewRequest]);
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
   const [stateProv, setStateProv] = useState('');

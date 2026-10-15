@@ -362,7 +362,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('ai_chat', 'צ׳אט AI', 'AI Chat assistant',
     'עוזר AI זמין בתוך האפליקציה, שמסביר את המוצר ומנווט לפי בקשה - קריאה בלבד, לעולם לא מבצע פעולה בעצמו.',
     'An in-app AI assistant that explains the product and navigates on request - read-only, it never performs an action itself.',
-    { surfaces: ['dashboard', 'quote_editor', 'clients_screen', 'catalog_screen', 'finances_screen', 'settings_screen', 'plans_screen', 'admin_screen'], aiMayNavigate: true, canonicalSources: ['src/AIChatWidget.jsx', 'supabase/functions/chat-ai/index.ts', 'src/components/AiHelpButton.jsx', 'src/pages/Dashboard.jsx'] }),
+    { surfaces: ['dashboard', 'quote_editor', 'clients_screen', 'catalog_screen', 'finances_screen', 'settings_screen', 'plans_screen', 'admin_screen'], aiMayNavigate: true, canonicalSources: ['src/AIChatWidget.jsx', 'supabase/functions/chat-ai/index.ts', 'src/components/AiHelpButton.jsx', 'src/pages/Dashboard.jsx', 'src/components/NotificationCenter.jsx'] }),
 
   capability('admin_console', 'מסך ניהול', 'Admin console',
     'מסך ניהול פנימי המוגבל לתפקיד Super Admin המאומת בצד השרת - אינו תלוי במסלול ואינו חלק ממרחב העבודה של משתמש רגיל.',

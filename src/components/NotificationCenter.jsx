@@ -13,14 +13,17 @@ import { displayQuoteNumber, quotePartyLabel } from '../utils/quoteListRows';
 import { formatShortDate, formatShortDateTime } from '../utils/shortDate';
 import {
   REMINDERS_COPY, normalizeReminderSettings, deriveInAppReminders, loadReminderSettings, listReadMarks, markRemindersRead, firstViewAvailableFor,
+  WELCOME_ITEM_KEY, OPEN_REMINDERS_SETTINGS_EVENT, isWelcomeVisible,
 } from '../utils/reminders';
+import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../shared/brand';
+import AiRobotIcon from './AiRobotIcon';
 
 const KIND_COLOR = { first_view: '#5B3FB6', task_due: '#0F6672', validity_ending: '#9A5B12', viewed_not_approved: '#65727A' };
 
 // variant: 'desktop' = the former decorative 18x18 icon footprint (desktop / tablet-landscape account cluster);
 //          'mobile'  = the slot freed by the removed plans indicator in the mobile / tablet-portrait header (Owner console instruction
 //                      2026-10-09): a 30px-high round tap target matching the AI-chat chip height, same 18px icon, same panel.
-export default function NotificationCenter({ client, userId, isHebrew, isLocalIsraeliBusiness, quotes = [], now = null, variant = 'desktop' }) {
+export default function NotificationCenter({ client, userId, isHebrew, isLocalIsraeliBusiness, quotes = [], now = null, variant = 'desktop', authUser = null }) {
   const mobile = variant === 'mobile';
   const C = REMINDERS_COPY[isHebrew ? 'he' : 'en'];
   const local = isLocalIsraeliBusiness === true;
@@ -31,6 +34,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   const [tasks, setTasks] = useState([]);
   const [read, setRead] = useState(() => new Set());
   const [readPersisted, setReadPersisted] = useState(false);
+  const [settingsLoaded, setSettingsLoaded] = useState(false);
   const [pos, setPos] = useState(null);
   const btnRef = useRef(null);
   const panelRef = useRef(null);
@@ -49,7 +53,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   const refresh = useCallback(async () => {
     if (!client || !userId) return;
     const [s, t, r] = await Promise.all([loadReminderSettings(client, userId), listTasks(client, userId), listReadMarks(client, userId)]);
-    if (s.ok) setSettings(s.data.settings); // otherwise the In-app defaults stay (nothing is ever sent)
+    if (s.ok) { setSettings(s.data.settings); setSettingsLoaded(true); } // otherwise the In-app defaults stay (nothing is ever sent)
     if (t.ok) setTasks(t.data);
     if (r.ok) { setRead(r.data); setReadPersisted(true); } else setReadPersisted(false);
   }, [client, userId]);
@@ -62,7 +66,12 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
     isExpired: (q) => isQuoteAcceptanceExpired(q?.valid_until, dateMarket, clock), firstViewAvailable: firstViewAvailableFor(quotes),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [settings, tasks, quotes, market, dateMarket, open]);
-  const unread = items.filter((i) => !read.has(i.key)).length;
+  // Task 40: the welcome item (a new account, reminders not Off - known only once the saved mode loaded) sits above the derived
+  // reminders; it counts as unread only while a read mark can be saved, so a badge the user cannot clear never appears
+  const supportEmail = isHebrew ? SUPPORT_EMAIL_HE : SUPPORT_EMAIL_EN;
+  const welcome = settingsLoaded && isWelcomeVisible({ accountCreatedAt: authUser?.created_at, mode: settings.mode, now: clock.getTime() });
+  const welcomeRead = read.has(WELCOME_ITEM_KEY);
+  const unread = items.filter((i) => !read.has(i.key)).length + (welcome && readPersisted && !welcomeRead ? 1 : 0);
 
   useLayoutEffect(() => {
     if (!open || !btnRef.current) return;
@@ -85,8 +94,12 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
     return () => { document.removeEventListener('mousedown', onDown); document.removeEventListener('keydown', onKey); };
   }, [open]);
 
+  // the welcome's AI button opens the ONE existing assistant through its existing window event (the same one the header chip uses)
+  const openAiChatFromWelcome = () => { setOpen(false); window.dispatchEvent(new CustomEvent('open-proflow-ai-chat')); };
+  const openRemindersSettings = () => { setOpen(false); window.dispatchEvent(new CustomEvent(OPEN_REMINDERS_SETTINGS_EVENT)); };
+
   const markAll = async () => {
-    const keys = items.map((i) => i.key);
+    const keys = [...(welcome ? [WELCOME_ITEM_KEY] : []), ...items.map((i) => i.key)];
     const r = await markRemindersRead(client, userId, keys);
     if (r.ok) setRead((s) => new Set([...s, ...keys]));
   };
@@ -128,6 +141,33 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
               <button type="button" onClick={markAll} style={{ background: 'none', border: 0, color: '#0F6672', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', padding: '6px 0', fontFamily: 'inherit' }}>{C.center.markAll}</button>
             )}
           </div>
+          {welcome && (
+            <div data-testid="notification-welcome" style={{ padding: '12px 14px', borderBottom: `1px solid ${NEON.border}`, opacity: welcomeRead ? 0.6 : 1 }}>
+              <div style={{ fontWeight: 800, fontSize: '0.86rem', overflowWrap: 'anywhere' }}>{C.welcome.title}</div>
+              <div style={{ fontSize: '0.78rem', lineHeight: 1.45, marginTop: 4 }}>
+                {C.welcome.body}{' '}
+                {/* PRODUCT_TRUTH_CAPABILITY: reminders_automation */}
+                <button type="button" data-testid="notification-welcome-settings" onClick={openRemindersSettings}
+                  style={{ display: 'inline', padding: 0, margin: 0, border: 0, background: 'none', color: '#0F6672', fontWeight: 700, fontSize: 'inherit', lineHeight: 'inherit', textDecoration: 'underline', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'start' }}>
+                  {C.welcome.settingsLink}
+                </button>.
+              </div>
+              <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, marginTop: 6 }}>
+                {C.welcome.support}{' '}
+                {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens an email to the service support mailbox (answered by the team; nothing changes in the account) */}
+                <a href={`mailto:${supportEmail}`} style={{ color: '#0F6672', fontWeight: 600 }}><bdi dir="ltr">{supportEmail}</bdi></a>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: '0.75rem', color: NEON.textSecondary, marginTop: 4 }}>
+                <span>{C.welcome.ai}</span>
+                {/* PRODUCT_TRUTH_CAPABILITY: ai_chat */}
+                <button type="button" data-testid="notification-welcome-ai" onClick={openAiChatFromWelcome}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', border: '1px solid #0F6672', borderRadius: 999, background: 'none', color: '#0F6672', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <AiRobotIcon size={14} />
+                  <span>{C.welcome.aiButton}</span>
+                </button>
+              </div>
+            </div>
+          )}
           {settings.mode === 'off' ? (
             <div style={{ padding: '14px', fontSize: '0.8rem', color: NEON.textSecondary }}>{C.center.modeOff}</div>
           ) : items.length === 0 ? (
