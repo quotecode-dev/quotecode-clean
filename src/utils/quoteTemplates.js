@@ -64,6 +64,8 @@ export function buildTemplateContent(form, keep = DEFAULT_TEMPLATE_KEEP) {
     sections: sections.map(({ key, name }) => ({ key, name })),
     items,
   };
+  // Owner round 1 (Codex spec A5): kept prices remember their currency, so a quote in another currency never takes them over silently
+  if (k.prices && items.some((it) => it.unit_price !== undefined) && /^[A-Z]{3}$/.test(String(form?.currency || '').toUpperCase())) content.currency = String(form.currency).toUpperCase();
   if (k.subject) {
     if (str(form?.quoteSubject).trim()) content.subject = str(form.quoteSubject, 300).trim();
     if (str(form?.projectName).trim()) content.project_name = str(form.projectName, 300).trim();
@@ -99,6 +101,16 @@ export function templateSummary(content) {
   };
 }
 
+// A5: the template's prices are in another currency than the new quote -> the user decides; never a conversion (no exchange rate here).
+export function templateCurrencyMismatch(formState, quoteCurrency) {
+  if (!formState || !formState.currency || !quoteCurrency) return false;
+  const priced = (formState.items || []).some((it) => it.unit_price !== '' && it.unit_price != null);
+  return priced && formState.currency !== String(quoteCurrency).toUpperCase();
+}
+export function withoutPrices(items) {
+  return (items || []).map((it) => ({ ...it, unit_price: '' }));
+}
+
 // The NEW quote form state from a template. newKey() makes fresh section keys (never the template's own); items get no ids.
 export function templateToFormState(content, newKey) {
   const c = readTemplateContent(content);
@@ -121,6 +133,7 @@ export function templateToFormState(content, newKey) {
   });
   return {
     items: items.length ? items : null,
+    currency: typeof c.currency === 'string' && /^[A-Z]{3}$/.test(c.currency) ? c.currency : null,
     sections,
     quoteStructureMode: c.structure_mode === 'divided' || sections.length ? 'divided' : null,
     quoteSubject: str(c.subject) || null,

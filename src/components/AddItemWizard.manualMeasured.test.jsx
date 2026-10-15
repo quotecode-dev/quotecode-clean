@@ -36,7 +36,7 @@ describe('manual measured-unit items in the item wizard', () => {
     render(<AddItemWizard {...baseProps} onAdd={onAdd} editingItem={MANUAL_M2} />);
     fireEvent.click(screen.getByText('Change name'));
     setValue(document.getElementById('wiz-description'), 'Tile the master bedroom (porcelain)');
-    for (let i = 0; i < 3; i++) fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     fireEvent.click(screen.getByText('Save changes'));
     expect(onAdd).toHaveBeenCalledTimes(1);
     const out = onAdd.mock.calls[0][0];
@@ -50,7 +50,7 @@ describe('manual measured-unit items in the item wizard', () => {
     render(<AddItemWizard {...baseProps} onAdd={onAdd} editingItem={MANUAL_M2} />);
     fireEvent.click(screen.getByText('Change price and sizes'));
     setValue(document.getElementById('wiz-quantity'), '40.5');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     fireEvent.click(screen.getByText('Save changes'));
     const out = onAdd.mock.calls[0][0];
     expect(out).toMatchObject({ pricing_unit: 'm2', quantity_source: 'manual', calculation_method: 'manual', calculated_quantity: 40.5 });

@@ -40,7 +40,7 @@ function setValue(el, value) {
 // replace saved pricing/measurement semantics"): a genuinely name-only edit
 // must round-trip every unrelated field byte/semantically identically.
 // Real user path: edit mode opens directly on Review -> "Change name" jumps
-// to step 1 -> Next x3 returns to Review without ever touching pricing
+// to the item screen -> "Continue to check" returns to Review without ever touching pricing
 // method/measurements/quantity -> Save changes. Never construct the item
 // object directly - going through the real step machinery is what proves
 // goNext's own method-unchanged branch (no conversion confirm) is taken.
@@ -49,9 +49,7 @@ function nameOnlyEditAndSave(editingItem, newDescription) {
   render(<AddItemWizard {...baseProps} onAdd={onAdd} editingItem={editingItem} />);
   fireEvent.click(screen.getByText('Change name'));
   setValue(document.getElementById('wiz-description'), newDescription);
-  fireEvent.click(screen.getByText('Next'));
-  fireEvent.click(screen.getByText('Next'));
-  fireEvent.click(screen.getByText('Next'));
+  fireEvent.click(screen.getByText('Continue to check'));
   fireEvent.click(screen.getByText('Save changes'));
   expect(onAdd).toHaveBeenCalledTimes(1);
   return onAdd.mock.calls[0][0];
@@ -76,18 +74,19 @@ describe('AddItemWizard - Step 1 opens directly on the business task (no source-
     render(<AddItemWizard {...baseProps} />);
     const input = document.getElementById('wiz-description');
     setValue(input, 'x'.repeat(256));
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     expect(screen.getByText('The description is too long: 256 characters. Up to 255 characters are allowed.')).toBeTruthy();
     expect(document.getElementById('wiz-description').value).toHaveLength(256);
     setValue(document.getElementById('wiz-description'), 'x'.repeat(255));
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     expect(screen.queryByText(/The description is too long/)).toBeNull();
-    expect(document.getElementById('wiz-description')).toBeNull();
+    // the description is accepted; the item screen now asks for the pricing method (same screen, round 1)
+    expect(screen.getByText('Please choose how to charge for this item')).toBeTruthy();
   });
 
   it('requires a description before advancing', () => {
     render(<AddItemWizard {...baseProps} />);
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     expect(screen.getByText(/enter a name or description/)).toBeTruthy();
   });
 
@@ -98,15 +97,20 @@ describe('AddItemWizard - Step 1 opens directly on the business task (no source-
     expect(document.getElementById('wiz-description')).toBeTruthy();
   });
 
-  it('Catalog First (Structural Unification task): when the business has catalog items, the catalog list IS the primary Step 1 view, not a secondary link', () => {
+  // Owner 2026-10-15 (typed approval after a real user could not find how to add a job missing from his catalog): the free-text
+  // field comes FIRST; the saved catalog is a list below it - no link to find, nothing to switch.
+  it('with a catalog: the free-text field first, the catalog below it as "Or choose from your catalog", the methods on the same screen', () => {
     const services = [{ id: 1, name: 'Design consultation', price: 150 }, { id: 2, name: 'Site visit', price: 80 }];
     render(<AddItemWizard {...baseProps} services={services} />);
-    // The catalog is shown immediately - no manual description field yet.
-    expect(screen.getByText('Choose a product or work from your catalog')).toBeTruthy();
+    const field = document.getElementById('wiz-description');
+    const list = screen.getByTestId('wiz-catalog-list');
+    expect(field).toBeTruthy();
+    expect(field.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText('Or choose from your catalog')).toBeTruthy();
     expect(screen.getByText('Design consultation')).toBeTruthy();
     expect(screen.getByText('Site visit')).toBeTruthy();
-    expect(document.getElementById('wiz-description')).toBeNull();
-    expect(screen.getByText('Not in the catalog? Add a product or work manually')).toBeTruthy();
+    expect(screen.getByText('One total price')).toBeTruthy();
+    expect(screen.queryByText('Not in the catalog? Add a product or work manually')).toBeNull();
   });
 
   it('picking a catalog item prefills description/price and reveals the (now pre-filled) manual field for review, without forcing a pricing method', () => {
@@ -114,21 +118,21 @@ describe('AddItemWizard - Step 1 opens directly on the business task (no source-
     render(<AddItemWizard {...baseProps} services={services} />);
     fireEvent.click(screen.getByText('Design consultation'));
     expect(document.getElementById('wiz-description').value).toBe('Design consultation');
-    fireEvent.click(screen.getByText('Next'));
-    // Both pricing methods remain genuinely choosable - catalog never skips this step.
+    // Every pricing method remains genuinely choosable on the same screen - catalog never skips the choice.
     expect(screen.getByText('One total price')).toBeTruthy();
     expect(screen.getByText('Price for each')).toBeTruthy();
   });
 
-  it('the manual-entry fallback link reveals a plain description field; "Back to catalog" returns to the catalog list', () => {
+  it('a job typed by hand (not in the catalog) goes straight to its price and is added as a new item', () => {
+    const onAdd = vi.fn();
     const services = [{ id: 1, name: 'Design consultation', price: 150 }];
-    render(<AddItemWizard {...baseProps} services={services} />);
-    fireEvent.click(screen.getByText('Not in the catalog? Add a product or work manually'));
-    expect(document.getElementById('wiz-description')).toBeTruthy();
-    expect(screen.queryByText('Design consultation')).toBeNull();
-    fireEvent.click(screen.getByText('Back to catalog'));
-    expect(screen.getByText('Design consultation')).toBeTruthy();
-    expect(document.getElementById('wiz-description')).toBeNull();
+    render(<AddItemWizard {...baseProps} onAdd={onAdd} services={services} />);
+    setValue(document.getElementById('wiz-description'), 'Window screen repair');
+    fireEvent.click(screen.getByText('One total price'));
+    setValue(document.getElementById('wiz-fixed-amount'), '2650');
+    fireEvent.click(screen.getByText('Continue to check'));
+    fireEvent.click(screen.getByText('Add to quote'));
+    expect(onAdd.mock.calls[0][0]).toMatchObject({ description: 'Window screen repair', unit_price: '2650', quantity: '1', isFromCatalog: false });
   });
 
   it('editing an item with a saved catalog always shows the manual field (the item\'s own real description), never an unrelated catalog list - "Catalog must NOT silently override saved quote-item semantics during Edit"', () => {
@@ -142,37 +146,29 @@ describe('AddItemWizard - Step 1 opens directly on the business task (no source-
   });
 });
 
-describe('AddItemWizard - Step 2: business-aware pricing, More options, all methods reachable', () => {
-  it('with no recommendation, shows the generic Fixed+Quantity pair, with Area/Length under More options', () => {
+describe('AddItemWizard - pricing methods: business-aware order, all four visible (Owner round 1, A2)', () => {
+  it('with no recommendation, all four methods are visible on the item screen in the generic order - no "More options"', () => {
     render(<AddItemWizard {...baseProps} recommendedMethod={null} />);
-    setValue(document.getElementById('wiz-description'), 'Item');
-    fireEvent.click(screen.getByText('Next'));
-    expect(screen.getByText('One total price')).toBeTruthy();
-    expect(screen.getByText('Price for each')).toBeTruthy();
-    expect(screen.queryByText('Price by area')).toBeNull();
-    expect(screen.queryByText('Price by length')).toBeNull();
-    expect(screen.getByText('More options')).toBeTruthy();
-    fireEvent.click(screen.getByText('More options'));
-    expect(screen.getByText('Price by area')).toBeTruthy();
-    expect(screen.getByText('Price by length')).toBeTruthy();
+    const titles = [...document.querySelectorAll('[aria-pressed]')].map((el) => el.textContent).filter((x) => /price/i.test(x));
+    expect(titles.map((x) => x.replace(/e\.g\..*$/, ''))).toEqual(['One total price', 'Price for each', 'Price by area', 'Price by length']);
+    expect(screen.queryByText('More options')).toBeNull();
   });
 
   it('with a real area recommendation, shows it first with a Recommended badge - advisory only, other methods stay fully reachable', () => {
     render(<AddItemWizard {...baseProps} recommendedMethod="area" />);
     setValue(document.getElementById('wiz-description'), 'Window');
-    fireEvent.click(screen.getByText('Next'));
     expect(screen.getByText('Price by area')).toBeTruthy();
     expect(screen.getByText('Recommended')).toBeTruthy();
+    // the recommendation comes first
+    expect(document.querySelector('[aria-pressed]').textContent).toContain('Price by area');
     // The user can still pick a non-recommended method immediately.
     fireEvent.click(screen.getByText('Price for each'));
-    fireEvent.click(screen.getByText('Next'));
     expect(document.getElementById('wiz-quantity')).toBeTruthy();
   });
 
   it('never shows a business recommendation as market/currency-coupled (same recommendation regardless of language)', () => {
     render(<AddItemWizard {...baseProps} recommendedMethod="units" isHebrew={true} />);
     setValue(document.getElementById('wiz-description'), 'פריט');
-    fireEvent.click(screen.getByText('הבא'));
     expect(screen.getByText('מומלץ')).toBeTruthy();
     expect(screen.getByText('מחיר לכל יחידה')).toBeTruthy();
   });
@@ -180,8 +176,6 @@ describe('AddItemWizard - Step 2: business-aware pricing, More options, all meth
   it('locks Area/Length behind entitlement and requests upgrade instead of selecting', () => {
     render(<AddItemWizard {...baseProps} canUseProfessionalQuotes={false} />);
     setValue(document.getElementById('wiz-description'), 'Item');
-    fireEvent.click(screen.getByText('Next'));
-    fireEvent.click(screen.getByText('More options'));
     fireEvent.click(screen.getByText('Price by area'));
     expect(baseProps.onRequestUpgrade).toHaveBeenCalledTimes(1);
   });
@@ -192,12 +186,10 @@ describe('AddItemWizard - fixed price ("One total price")', () => {
     const onAdd = vi.fn();
     render(<AddItemWizard {...baseProps} onAdd={onAdd} />);
     setValue(document.getElementById('wiz-description'), 'Installation');
-    fireEvent.click(screen.getByText('Next'));
     fireEvent.click(screen.getByText('One total price'));
-    fireEvent.click(screen.getByText('Next'));
     expect(screen.getByText('Enter the total price you want to charge.')).toBeTruthy();
     setValue(document.getElementById('wiz-fixed-amount'), '500');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     expect(screen.getByText('Check before adding')).toBeTruthy();
     expect(screen.getAllByText('$500.00').length).toBeGreaterThan(0);
     fireEvent.click(screen.getByText('Add to quote'));
@@ -215,14 +207,12 @@ describe('AddItemWizard - Quantity ("Price for each")', () => {
     const onAdd = vi.fn();
     render(<AddItemWizard {...baseProps} onAdd={onAdd} />);
     setValue(document.getElementById('wiz-description'), 'Handles');
-    fireEvent.click(screen.getByText('Next'));
     fireEvent.click(screen.getByText('Price for each'));
-    fireEvent.click(screen.getByText('Next'));
     expect(screen.getByText('Enter how many units there are and the price for each.')).toBeTruthy();
     setValue(document.getElementById('wiz-quantity'), '6');
     setValue(document.getElementById('wiz-unit-price'), '25');
     expect(screen.getByText('6 × $25.00 = $150.00')).toBeTruthy();
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     expect(screen.getByText('6 × $25.00 = $150.00')).toBeTruthy();
     fireEvent.click(screen.getByText('Add to quote'));
 
@@ -235,12 +225,10 @@ describe('AddItemWizard - Quantity ("Price for each")', () => {
   it('shows a plain-language validation message instead of silently blocking on missing quantity', () => {
     render(<AddItemWizard {...baseProps} />);
     setValue(document.getElementById('wiz-description'), 'Item');
-    fireEvent.click(screen.getByText('Next'));
     fireEvent.click(screen.getByText('Price for each'));
-    fireEvent.click(screen.getByText('Next'));
     setValue(document.getElementById('wiz-quantity'), '0');
     setValue(document.getElementById('wiz-unit-price'), '10');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     expect(screen.getByText(/enter a quantity greater than 0/)).toBeTruthy();
   });
 });
@@ -250,18 +238,17 @@ describe('AddItemWizard - Area/Length, multiple sizes, and no silently-dropped m
     const onAdd = vi.fn();
     render(<AddItemWizard {...baseProps} onAdd={onAdd} />);
     setValue(document.getElementById('wiz-description'), 'Window');
-    fireEvent.click(screen.getByText('Next'));
-    fireEvent.click(screen.getByText('More options'));
     fireEvent.click(screen.getByText('Price by area'));
-    fireEvent.click(screen.getByText('Next'));
     expect(screen.getByText('Enter the sizes and we’ll calculate the area and price for you.')).toBeTruthy();
-    expect(screen.getByText('Enter centimetres. We’ll calculate square metres.')).toBeTruthy();
+    // A4: sizes in cm by default, with a clear switch to metres
+    expect(screen.getByTestId('wiz-unit-cm').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByTestId('wiz-unit-m').getAttribute('aria-pressed')).toBe('false');
 
     setValue(document.getElementById('wiz-width'), '300');
     setValue(document.getElementById('wiz-height'), '200');
     expect(screen.getByText('300 × 200 cm = 6.00 m²')).toBeTruthy();
     setValue(document.getElementById('wiz-unit-price-m'), '200');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     fireEvent.click(screen.getByText('Add to quote'));
 
     const item = onAdd.mock.calls[0][0];
@@ -276,14 +263,11 @@ describe('AddItemWizard - Area/Length, multiple sizes, and no silently-dropped m
     const onAdd = vi.fn();
     render(<AddItemWizard {...baseProps} onAdd={onAdd} />);
     setValue(document.getElementById('wiz-description'), 'Railing');
-    fireEvent.click(screen.getByText('Next'));
-    fireEvent.click(screen.getByText('More options'));
     fireEvent.click(screen.getByText('Price by length'));
-    fireEvent.click(screen.getByText('Next'));
     expect(document.getElementById('wiz-height')).toBeNull();
     setValue(document.getElementById('wiz-width'), '500');
     setValue(document.getElementById('wiz-unit-price-m'), '40');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     fireEvent.click(screen.getByText('Add to quote'));
     const item = onAdd.mock.calls[0][0];
     expect(item.pricing_unit).toBe('linear_meter');
@@ -294,10 +278,7 @@ describe('AddItemWizard - Area/Length, multiple sizes, and no silently-dropped m
     const onAdd = vi.fn();
     render(<AddItemWizard {...baseProps} onAdd={onAdd} />);
     setValue(document.getElementById('wiz-description'), 'Windows - apartment 33');
-    fireEvent.click(screen.getByText('Next'));
-    fireEvent.click(screen.getByText('More options'));
     fireEvent.click(screen.getByText('Price by area'));
-    fireEvent.click(screen.getByText('Next'));
 
     setValue(document.getElementById('wiz-width'), '80');
     setValue(document.getElementById('wiz-height'), '100');
@@ -309,7 +290,7 @@ describe('AddItemWizard - Area/Length, multiple sizes, and no silently-dropped m
     }
     expect(screen.getByText(/Total area: 4\.40 m/)).toBeTruthy();
     setValue(document.getElementById('wiz-unit-price-m'), '100');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
 
     // Review completeness (Codex fix): every size shown individually, not "+3 more".
     expect(screen.getByText('Size 1')).toBeTruthy();
@@ -334,17 +315,14 @@ describe('AddItemWizard - Area/Length, multiple sizes, and no silently-dropped m
     const onAdd = vi.fn();
     render(<AddItemWizard {...baseProps} isHebrew sym="₪" onAdd={onAdd} />);
     setValue(document.getElementById('wiz-description'), 'חלונות');
-    fireEvent.click(screen.getByText('הבא'));
-    fireEvent.click(screen.getByText('אפשרויות נוספות'));
     fireEvent.click(screen.getByText('מחיר לפי שטח'));
-    fireEvent.click(screen.getByText('הבא'));
     setValue(document.getElementById('wiz-width'), '80');
     setValue(document.getElementById('wiz-height'), '100');
     fireEvent.click(screen.getByText('+ הוספת מידה נוספת'));
     setValue(document.getElementById('wiz-extra-width-0'), '100');
     setValue(document.getElementById('wiz-extra-height-0'), '120');
     setValue(document.getElementById('wiz-unit-price-m'), '100');
-    fireEvent.click(screen.getByText('הבא'));
+    fireEvent.click(screen.getByText('המשך לבדיקה'));
 
     expect(screen.getByText('מידה 1')).toBeTruthy();
     expect(screen.getByText('80 × 100 ס"מ = 0.80 מ"ר')).toBeTruthy();
@@ -363,13 +341,10 @@ describe('AddItemWizard - Area/Length, multiple sizes, and no silently-dropped m
   it('Hebrew Review for length pricing shows ס"מ / מ\' and no raw cm / m', () => {
     render(<AddItemWizard {...baseProps} isHebrew sym="₪" />);
     setValue(document.getElementById('wiz-description'), 'מעקה');
-    fireEvent.click(screen.getByText('הבא'));
-    fireEvent.click(screen.getByText('אפשרויות נוספות'));
     fireEvent.click(screen.getByText('מחיר לפי אורך'));
-    fireEvent.click(screen.getByText('הבא'));
     setValue(document.getElementById('wiz-width'), '500');
     setValue(document.getElementById('wiz-unit-price-m'), '40');
-    fireEvent.click(screen.getByText('הבא'));
+    fireEvent.click(screen.getByText('המשך לבדיקה'));
     expect(screen.getByText('500 ס"מ = 5.00 מ\'')).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/\bcm\b/);
   });
@@ -377,10 +352,7 @@ describe('AddItemWizard - Area/Length, multiple sizes, and no silently-dropped m
   it('blocks progression when a started size is incomplete, names the exact row, and never silently drops it', () => {
     render(<AddItemWizard {...baseProps} />);
     setValue(document.getElementById('wiz-description'), 'Window');
-    fireEvent.click(screen.getByText('Next'));
-    fireEvent.click(screen.getByText('More options'));
     fireEvent.click(screen.getByText('Price by area'));
-    fireEvent.click(screen.getByText('Next'));
     setValue(document.getElementById('wiz-width'), '80');
     setValue(document.getElementById('wiz-height'), '100');
     fireEvent.click(screen.getByText('+ Add another size'));
@@ -388,7 +360,7 @@ describe('AddItemWizard - Area/Length, multiple sizes, and no silently-dropped m
     // Size 3 (second extra row) gets only a width - started but incomplete.
     setValue(document.getElementById('wiz-extra-width-1'), '120');
     setValue(document.getElementById('wiz-unit-price-m'), '100');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     expect(screen.getByText('Size 3 needs a height. Complete or remove it.')).toBeTruthy();
     // Still on the Details step - did not silently advance/drop the row.
     expect(document.getElementById('wiz-extra-width-1').value).toBe('120');
@@ -398,15 +370,12 @@ describe('AddItemWizard - Area/Length, multiple sizes, and no silently-dropped m
     const onAdd = vi.fn();
     render(<AddItemWizard {...baseProps} onAdd={onAdd} />);
     setValue(document.getElementById('wiz-description'), 'Window');
-    fireEvent.click(screen.getByText('Next'));
-    fireEvent.click(screen.getByText('More options'));
     fireEvent.click(screen.getByText('Price by area'));
-    fireEvent.click(screen.getByText('Next'));
     setValue(document.getElementById('wiz-width'), '80');
     setValue(document.getElementById('wiz-height'), '100');
     fireEvent.click(screen.getByText('+ Add another size'));
     setValue(document.getElementById('wiz-unit-price-m'), '100');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     fireEvent.click(screen.getByText('Add to quote'));
     const item = onAdd.mock.calls[0][0];
     expect(item.measurements).toHaveLength(1);
@@ -415,19 +384,16 @@ describe('AddItemWizard - Area/Length, multiple sizes, and no silently-dropped m
   it('a removed row clears its own validation error', () => {
     render(<AddItemWizard {...baseProps} />);
     setValue(document.getElementById('wiz-description'), 'Window');
-    fireEvent.click(screen.getByText('Next'));
-    fireEvent.click(screen.getByText('More options'));
     fireEvent.click(screen.getByText('Price by area'));
-    fireEvent.click(screen.getByText('Next'));
     setValue(document.getElementById('wiz-width'), '80');
     setValue(document.getElementById('wiz-height'), '100');
     fireEvent.click(screen.getByText('+ Add another size'));
     setValue(document.getElementById('wiz-extra-width-0'), '120');
     setValue(document.getElementById('wiz-unit-price-m'), '100');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     expect(screen.getByText('Size 2 needs a height. Complete or remove it.')).toBeTruthy();
     fireEvent.click(screen.getByLabelText('Remove this size'));
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     expect(screen.getByText('Check before adding')).toBeTruthy();
   });
 });
@@ -437,11 +403,9 @@ describe('AddItemWizard - Review: optional customer details never block completi
     const onAdd = vi.fn();
     render(<AddItemWizard {...baseProps} onAdd={onAdd} />);
     setValue(document.getElementById('wiz-description'), 'Window');
-    fireEvent.click(screen.getByText('Next'));
     fireEvent.click(screen.getByText('One total price'));
-    fireEvent.click(screen.getByText('Next'));
     setValue(document.getElementById('wiz-fixed-amount'), '100');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     expect(screen.getByText('Add details for the customer?')).toBeTruthy();
     // Add succeeds without ever opening the optional section.
     fireEvent.click(screen.getByText('Add to quote'));
@@ -452,11 +416,9 @@ describe('AddItemWizard - Review: optional customer details never block completi
     const onAdd = vi.fn();
     render(<AddItemWizard {...baseProps} onAdd={onAdd} />);
     setValue(document.getElementById('wiz-description'), 'Window');
-    fireEvent.click(screen.getByText('Next'));
     fireEvent.click(screen.getByText('One total price'));
-    fireEvent.click(screen.getByText('Next'));
     setValue(document.getElementById('wiz-fixed-amount'), '100');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     fireEvent.click(screen.getByText('Add details for the customer?'));
     expect(screen.getByText('These details do not change the price')).toBeTruthy();
     fireEvent.click(screen.getByText('+ Add detail'));
@@ -534,9 +496,11 @@ describe('AddItemWizard - Add/Edit parity: editing reopens the same guided edito
     render(<AddItemWizard {...baseProps} editingItem={editingItem} />);
     fireEvent.click(screen.getByText('Change how it is priced'));
     fireEvent.click(screen.getByText('One total price'));
-    fireEvent.click(screen.getByText('Next'));
     expect(confirmSpy).toHaveBeenCalled();
+    // declined: the method stays "Price for each" with its numbers
     expect(screen.getByText('How is the price worked out?')).toBeTruthy();
+    expect(document.getElementById('wiz-quantity').value).toBe('3');
+    expect(document.getElementById('wiz-fixed-amount')).toBeNull();
     confirmSpy.mockRestore();
   });
 });
@@ -684,13 +648,11 @@ describe('AddItemWizard - SQ-F03: non-destructive name-only edit preserves field
     const editingItem = { id: 'c1', description: 'Labor', quantity: '5', unit_price: '150', pricing_unit: 'hour', quantity_source: 'manual', calculation_method: 'manual', section_key: null };
     render(<AddItemWizard {...baseProps} onAdd={onAdd} editingItem={editingItem} />);
     fireEvent.click(screen.getByText('Change how it is priced'));
-    fireEvent.click(screen.getByText('More options'));
     fireEvent.click(screen.getByText('Price by area'));
-    fireEvent.click(screen.getByText('Next'));
     setValue(document.getElementById('wiz-width'), '300');
     setValue(document.getElementById('wiz-height'), '200');
     setValue(document.getElementById('wiz-unit-price-m'), '150');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     fireEvent.click(screen.getByText('Save changes'));
     expect(onAdd).toHaveBeenCalledTimes(1);
     const item = onAdd.mock.calls[0][0];
@@ -707,11 +669,9 @@ describe('AddItemWizard - grouping', () => {
     const sections = [{ key: 'sec1', name: 'Ground floor' }];
     render(<AddItemWizard {...baseProps} onAdd={onAdd} sections={sections} />);
     setValue(document.getElementById('wiz-description'), 'Item');
-    fireEvent.click(screen.getByText('Next'));
     fireEvent.click(screen.getByText('One total price'));
-    fireEvent.click(screen.getByText('Next'));
     setValue(document.getElementById('wiz-fixed-amount'), '10');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('Continue to check'));
     fireEvent.click(screen.getByText('Add details for the customer?'));
     expect(screen.getByText('Unit (apartment / room / area) - optional')).toBeTruthy();
     expect(screen.queryByText(/Section/)).toBeNull();
@@ -762,18 +722,20 @@ describe('AddItemWizard - mobile input sizing', () => {
   });
 });
 
-describe('AddItemWizard - 4-step indicator', () => {
-  it('shows all 4 step labels and marks the current step accessibly', () => {
+describe('AddItemWizard - 2-screen indicator (Owner round 1, A2)', () => {
+  it('shows the two screens and marks the current one accessibly', () => {
     render(<AddItemWizard {...baseProps} />);
     const bar = screen.getByRole('progressbar');
-    expect(bar.getAttribute('aria-valuemax')).toBe('4');
+    expect(bar.getAttribute('aria-valuemax')).toBe('2');
     expect(bar.getAttribute('aria-valuenow')).toBe('1');
   });
 
-  it('advances aria-valuenow as the user moves through steps', () => {
+  it('advances aria-valuenow to the check screen', () => {
     render(<AddItemWizard {...baseProps} />);
     setValue(document.getElementById('wiz-description'), 'Item');
-    fireEvent.click(screen.getByText('Next'));
+    fireEvent.click(screen.getByText('One total price'));
+    setValue(document.getElementById('wiz-fixed-amount'), '10');
+    fireEvent.click(screen.getByText('Continue to check'));
     expect(screen.getByRole('progressbar').getAttribute('aria-valuenow')).toBe('2');
   });
 });
