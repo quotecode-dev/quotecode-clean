@@ -155,8 +155,7 @@ describe('QuoteForm - compact card optional indicators only appear when present'
 describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
   it('SMART-QUOTE-02: an undecided (null) structure shows the simple list with the Add action immediately - no structure question', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [] })} />);
-    // the main Add action, plus (Owner 2026-10-15) the same action offered again in the price step while the quote has no item
-    expect(screen.getAllByText('Add product or work')).toHaveLength(2);
+    expect(screen.getByText('Add product or work')).toBeTruthy();
     expect(screen.queryByText('How would you like to structure this quote?')).toBeNull();
     expect(screen.queryByText('Regular quote')).toBeNull();
     expect(screen.queryByText(/Smart Quote/)).toBeNull();
@@ -594,7 +593,6 @@ describe('QuoteForm - market-correct placeholders and attachment remove accessib
 
   it('Hebrew form: Hebrew client / attention / project examples, no English example', () => {
     render(<QuoteForm {...withFile(true)} />);
-    fireEvent.click(screen.getByTestId('sq-client-contact-toggle')); // the attention contact is an optional detail (Owner round 1)
     const ph = placeholders();
     expect(ph).toContain('לדוגמה: כהן בנייה בע"מ');
     expect(ph).toContain('לדוגמה: שמעון לוי');
@@ -604,7 +602,6 @@ describe('QuoteForm - market-correct placeholders and attachment remove accessib
 
   it('English form: English examples only, no Israeli names and no Hebrew', () => {
     render(<QuoteForm {...withFile(false)} />);
-    fireEvent.click(screen.getByTestId('sq-client-contact-toggle'));
     const ph = placeholders();
     expect(ph).toContain('e.g. Acme Corp');
     expect(ph).toContain('e.g. John Smith');

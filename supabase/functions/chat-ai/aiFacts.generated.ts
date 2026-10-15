@@ -311,8 +311,8 @@ export const AI_FACTS = {
       "id": "measured_quote",
       "heLabel": "הצעת מחיר מקצועית/מדודה",
       "enLabel": "Measured professional quote",
-      "heDescription": "הצעה לפי מידות: מוסיפים פריט ומודדים אותו במסך אחד (שטח, אורך, יחידות או מחיר קבוע; בס״מ או במטר, או כמות ידועה במ״ר / מ״א), ואז בודקים ומוסיפים להצעה. חלוקה לחדרים/אזורים/יחידות היא אפשרות לבחירה.",
-      "enDescription": "Measured quote: add an item and measure it on one screen (area, length, units or a fixed price; in cm or m, or a known quantity in m² / linear m), then check it and add it to the quote. Grouping into rooms/areas/units is optional.",
+      "heDescription": "הצעות מחיר מקצועיות עם מבנה מדוד (חדרים/אזורים/יחידות).",
+      "enDescription": "Professional quotes with a measured structure (rooms/areas/units).",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
