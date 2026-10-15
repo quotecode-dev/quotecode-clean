@@ -323,6 +323,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [accountSetup, setAccountSetup] = useState(null);
   const businessSettingsCreationRef = useRef(null); // the creation in flight: a second caller waits for ITS outcome
   const accountSetupRetryRef = useRef(null); // at most one scheduled setup retry
+  // Night task 2026-10-16 (R-12, Owner-approved L-10 / L-15): the business settings keep failing -> the loading screen says so and
+  // offers "Try again" / "Sign out" (the automatic retries continue); never an endless "Loading system..." with no way out
+  const [startupStuck, setStartupStuck] = useState(false);
   // Auth Final Blockers task (2026-09-09): live-reproduced a real, serious
   // login defect - after a genuine interactive sign-in (not a page reload),
   // loadData() sometimes never fired at all (zero business_settings/quotes/
@@ -1487,8 +1490,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }, {
       isCurrent: () => settingsGen === loadGenRef.current,
       refreshAuth: () => supabase.auth.refreshSession(),
-      onRetry: (attempt, err, status) => diagLog('data-load', { resource: 'settings', outcome: 'retry', attempt, status: status ?? null }),
+      onRetry: (attempt, err, status) => {
+        diagLog('data-load', { resource: 'settings', outcome: 'retry', attempt, status: status ?? null });
+        if (attempt >= 5 && settingsGen === loadGenRef.current) setStartupStuck(true);
+      },
     });
+    setStartupStuck(false);
     if (!settingsRes.ok) return;
     let { data, error } = settingsRes.data;
 
@@ -1735,7 +1742,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       if (existing && gen === loadGenRef.current) { setAccountSetup(null); await fetchSettings(userId, userEmail, userMetadata); return; }
     }
     if (gen !== loadGenRef.current) return;
-    setAccountSetup({ market });
+    // R-13 (Owner-approved L-16): after about half a minute of failed attempts the setup line tells the truth and offers a way out
+    setAccountSetup({ market, stuck: attempt + 1 >= 5 });
     if (accountSetupRetryRef.current) return; // another caller of the same failed creation already scheduled the retry
     diagLog('data-load', { resource: 'account-setup', outcome: 'retry', attempt });
     accountSetupRetryRef.current = setTimeout(() => {
@@ -4619,6 +4627,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       <AuthScreen
         bundleIsHebrew={bundleIsHebrew}
         isInitializing={isInitializing}
+        startupStuck={startupStuck && !!session}
+        onStartupRetry={() => window.location.reload()}
+        onStartupSignOut={handleSignOut}
         isPasswordRecoveryMode={isPasswordRecoveryMode}
         newPasswordInput={newPasswordInput}
         setNewPasswordInput={setNewPasswordInput}
@@ -4715,9 +4726,27 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               <h2 style={{ marginBottom: '10px', fontWeight: '800', ...neonGlowTextStyle }}>
                 {screenHe ? 'מסיימים להקים את החשבון שלך…' : 'Finishing setting up your account…'}
               </h2>
-              <p role="status" style={{ color: NEON.textSecondary, fontSize: '0.85rem', margin: 0 }}>
-                {screenHe ? 'החיבור איטי, ממשיכים לנסות אוטומטית. אין צורך לעשות דבר.' : 'The connection is slow - we keep trying automatically. There is nothing you need to do.'}
-              </p>
+              {!accountSetup.stuck ? (
+                <p role="status" style={{ color: NEON.textSecondary, fontSize: '0.85rem', margin: 0 }}>
+                  {screenHe ? 'החיבור איטי, ממשיכים לנסות אוטומטית. אין צורך לעשות דבר.' : 'The connection is slow - we keep trying automatically. There is nothing you need to do.'}
+                </p>
+              ) : (
+                <>
+                  <p role="alert" data-testid="account-setup-stuck" style={{ color: NEON.textSecondary, fontSize: '0.85rem', margin: '0 0 16px' }}>
+                    {screenHe ? 'לא הצלחנו להשלים את הקמת החשבון כרגע. אנחנו ממשיכים לנסות; אפשר גם לנסות שוב עכשיו, או להתנתק ולחזור מאוחר יותר. החשבון שלך לא נמחק.' : "We couldn't finish setting up your account right now. We keep trying; you can also try again now, or sign out and come back later. Your account is not deleted."}
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* PRODUCT_TRUTH_DECORATIVE: reloads the page to retry the one-time account setup (no data change) - night task R-13 */}
+                    <button type="button" onClick={() => window.location.reload()} style={{ padding: '12px', borderRadius: '8px', border: 'none', background: NEON.gradient, color: 'white', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer' }}>
+                      {screenHe ? 'לנסות שוב' : 'Try again'}
+                    </button>
+                    {/* PRODUCT_TRUTH_DECORATIVE: signs out of this device from the stuck account-setup line - night task R-13 */}
+                    <button type="button" onClick={handleSignOut} style={{ padding: '12px', borderRadius: '8px', border: `1px solid ${NEON.borderStrong}`, background: 'transparent', color: NEON.textPrimary, fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer' }}>
+                      {screenHe ? 'התנתקות' : 'Sign out'}
+                    </button>
+                  </div>
+                </>
+              )}
             </>
           ) : (<>
           <h2 style={{ marginBottom: '10px', fontWeight: '800', ...neonGlowTextStyle }}>
@@ -7682,7 +7711,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                       {isHebrew ? 'סה״כ הצעות:' : 'Total Quotes:'}
                     </span>
                     <span className="dash-header-stat-value" style={{ fontSize: '1.05rem', fontWeight: '800', color: SHELL.sidebarTextActive }}>
-                      {totalQuotesCount}
+                      {/* R-10: a dash until the quotes have loaded, never a false 0 */}
+                      {dataLoad.quotes !== 'ok' && quotes.length === 0 ? '—' : totalQuotesCount}
                     </span>
                   </span>
                   {(accountSummary.state === 'unavailable' || accountSummary.state === 'invalid' || accountSummary.state === 'unprovisioned') && (
@@ -7809,7 +7839,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     <div className="dash-header-account">
                       <HeaderGreeting isHebrew={isHebrew} />
                       {/* Task 20: the bell opens the notification center (same 18px footprint; badge and panel are out of flow). */}
-                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} authUser={session?.user} />
+                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} authUser={session?.user} />
                       {/* Owner 2026-10-14: the round plan medallion replaces the avatar circle (no sign-in provider ever set a picture) -
                           the account's plan status from the one shared model; it opens the plans window. Not shown to the super admin. */}
                       {!isSuperAdmin && (
@@ -7825,7 +7855,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   <div className="dash-header-badge-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {/* Task 20 (Owner console instruction 2026-10-09): the plans status indicator is removed from the mobile header and the
                         SAME notification bell takes its slot. The plans feature itself stays (Business settings › My subscription, Task 30). */}
-                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} authUser={session?.user} variant="mobile" />
+                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} authUser={session?.user} variant="mobile" />
                     {/* Owner 2026-10-14: the same round plan medallion as on desktop, outermost next to the bell */}
                     {!isSuperAdmin && (
                       <HeaderPlanMedallion model={headerPlanBadge} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />
@@ -8133,6 +8163,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           {activeTab === 'statistics' && (
             <StatisticsTab
               quotes={quotes}
+              loadState={dataLoad.quotes}
               isHebrew={isHebrew}
               isLocalIsraeliBusiness={isLocalIsraeliBusiness}
               currency={currency}

@@ -13,6 +13,12 @@ const isMissingFollowUpRpc = (error) => /PGRST202|42883|Could not find the funct
 // The columns the client may write. user_id comes only from the authenticated session; status / timestamps only through the actions.
 const WRITABLE = Object.freeze(['title', 'notes', 'priority', 'due_date', 'due_time', 'quote_id', 'client_id']);
 
+// Night task 2026-10-16 (R-09): a successful task write announces itself, so the header bell recounts at once (it lives outside Tasks)
+export const TASKS_CHANGED_EVENT = 'tekango-tasks-changed';
+const announced = (result) => {
+  if (result?.ok && typeof window !== 'undefined' && typeof window.dispatchEvent === 'function' && typeof CustomEvent === 'function') window.dispatchEvent(new CustomEvent(TASKS_CHANGED_EVENT));
+  return result;
+};
 const fail = (code, message = '') => ({ ok: false, error: { code, message: String(message || '').slice(0, 300) } });
 const guard = (client, userId) => (client && typeof client.from === 'function' && typeof userId === 'string' && userId ? null : fail('not_signed_in'));
 // Database refusals mapped to stable codes the UI can explain (never raw SQL in the UI).
@@ -47,7 +53,7 @@ export async function createTask(client, userId, form) {
     const { data, error } = await client.from('tasks').insert({ ...pickWritable(n.value), user_id: userId }).select(TASK_COLUMNS).single();
     if (error) return fromError(error);
     if (!data || data.user_id !== userId) return fail('unknown', 'no persisted row returned');
-    return { ok: true, data };
+    return announced({ ok: true, data });
   } catch (e) { return fail('network', e?.message); }
 }
 
@@ -83,7 +89,7 @@ export async function createFollowUpTask(client, userId, form, requestId) {
     if (error) return fromError(error);
     const task = data && typeof data === 'object' ? data.task : null;
     if (!task || task.user_id !== userId || task.quote_id !== v.quote_id || typeof data.created !== 'boolean') return fail('unknown', 'no persisted row returned');
-    return { ok: true, data: task, created: data.created, reason: String(data.reason || '') };
+    return announced({ ok: true, data: task, created: data.created, reason: String(data.reason || '') });
   } catch (e) { return fail('network', e?.message); }
 }
 
@@ -96,7 +102,7 @@ export async function updateTask(client, userId, id, form) {
     const { data, error } = await client.from('tasks').update(pickWritable(n.value)).eq('id', id).eq('user_id', userId).select(TASK_COLUMNS).single();
     if (error) return fromError(error);
     if (!data) return fail('unknown', 'no persisted row returned');
-    return { ok: true, data };
+    return announced({ ok: true, data });
   } catch (e) { return fail('network', e?.message); }
 }
 
@@ -107,7 +113,7 @@ export async function setTaskStatus(client, userId, id, status) {
     const { data, error } = await client.from('tasks').update({ status }).eq('id', id).eq('user_id', userId).select(TASK_COLUMNS).single();
     if (error) return fromError(error);
     if (!data || data.status !== status) return fail('unknown', 'no persisted row returned');
-    return { ok: true, data };
+    return announced({ ok: true, data });
   } catch (e) { return fail('network', e?.message); }
 }
 
@@ -118,6 +124,6 @@ export async function deleteTask(client, userId, id) {
     const { data, error } = await client.from('tasks').delete().eq('id', id).eq('user_id', userId).select('id');
     if (error) return fromError(error);
     if (!Array.isArray(data) || data.length !== 1 || data[0].id !== id) return fail('unknown', 'the task was not deleted');
-    return { ok: true, data: { id } };
+    return announced({ ok: true, data: { id } });
   } catch (e) { return fail('network', e?.message); }
 }

@@ -57,8 +57,10 @@ const STATS_CSS = `
 // PRODUCT_TRUTH_CAPABILITY: quote_statistics
 export default function StatisticsTab({
   quotes, isHebrew, isLocalIsraeliBusiness, currency, formatMoneyDisplay,
-  handleProtectedAction, sendWhatsApp, requestEmailSend, activeTooltip, now = null, onCreateFollowUpTask = null,
+  handleProtectedAction, sendWhatsApp, requestEmailSend, activeTooltip, now = null, onCreateFollowUpTask = null, loadState,
 }) {
+  // R-10 (night task 2026-10-16, Owner-approved L-10): until the quotes have loaded, nothing here says 0 / "none" - a dash and a loading line
+  const notLoaded = loadState !== undefined && loadState !== 'ok' && !(Array.isArray(quotes) && quotes.length);
   const [period, setPeriod] = useState('30d');
   const [status, setStatus] = useState('all');
   const L = (pair) => (isHebrew ? pair[0] : pair[1]);
@@ -123,22 +125,22 @@ export default function StatisticsTab({
         {kpis.map((k) => (
           <div key={k.key} className="pf-stats-kpi" data-kpi={k.key}>
             <div className="pf-stats-kpi-label">{L(k.label)}</div>
-            <div className="pf-stats-kpi-value"><bdi className="pf-num" dir="ltr">{k.value}</bdi></div>
+            <div className="pf-stats-kpi-value"><bdi className="pf-num" dir="ltr">{notLoaded ? '—' : k.value}</bdi></div>
             {k.sub && <div className="pf-stats-kpi-sub">{L(k.sub)}</div>}
           </div>
         ))}
         <div className="pf-stats-kpi" data-kpi="conversion">
           <div className="pf-stats-kpi-label">{L(['המרה בצינור הנוכחי', 'Current pipeline conversion'])}</div>
-          <div className="pf-stats-kpi-value"><bdi className="pf-num" dir="ltr">{`${stats.conversion.percent}%`}</bdi></div>
+          <div className="pf-stats-kpi-value"><bdi className="pf-num" dir="ltr">{notLoaded ? '—' : `${stats.conversion.percent}%`}</bdi></div>
           <div className="pf-stats-kpi-sub">
             <bdi className="pf-num" dir="ltr">{`${stats.conversion.numerator}/${stats.conversion.denominator}`}</bdi>
-            {' '}{L(['אושרו/שולמו מתוך נשלחו+אושרו+שולמו (ללא טיוטות)', 'approved+paid of sent+approved+paid (drafts excluded)'])}
+            {' '}{L(['אושרו/שולמו מתוך ההצעות שהגיעו ללקוח (נשלחו או נצפו, אושרו, שולמו)', 'approved+paid of the quotes that reached the customer (sent or viewed, approved, paid)'])}
           </div>
         </div>
         <div className="pf-stats-kpi" data-kpi="value">
           <div className="pf-stats-kpi-label">{multiCurrency ? L(['שווי ההצעות לפי מטבע', 'Quote value by currency']) : L(['שווי ההצעות', 'Quote value'])}</div>
           <div className="pf-stats-kpi-value">
-            <CurrencyTotals totals={stats.valueTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={accountCurrency} isHebrew={isHebrew} />
+            {notLoaded ? <bdi className="pf-num" dir="ltr">—</bdi> : <CurrencyTotals totals={stats.valueTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={accountCurrency} isHebrew={isHebrew} />}
           </div>
         </div>
       </div>
@@ -146,11 +148,11 @@ export default function StatisticsTab({
       <h3 style={{ fontSize: '0.95rem', fontWeight: '800', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: '6px', color: NEON.textPrimary }}>
         <TekangoEyeIcon size={24} />
         {L(['הצעות חמות', 'Hot quotes'])}
-        <bdi className="pf-num" dir="ltr" style={{ color: NEON.textMuted, fontWeight: 600 }}>{`(${stats.hotQuotes.length})`}</bdi>
+        <bdi className="pf-num" dir="ltr" style={{ color: NEON.textMuted, fontWeight: 600 }}>{notLoaded ? '(—)' : `(${stats.hotQuotes.length})`}</bdi>
       </h3>
       {stats.hotQuotes.length === 0 ? (
         <div style={{ fontSize: '0.8rem', color: NEON.textMuted, padding: '10px 2px' }} data-testid="statistics-hot-empty">
-          {L(['אין הצעות חמות בתקופה ובסטטוס שנבחרו', 'No hot quotes for the selected period and status'])}
+          {notLoaded ? L(['טוענים את ההצעות…', 'Loading your quotes…']) : L(['אין הצעות חמות בתקופה ובסטטוס שנבחרו', 'No hot quotes for the selected period and status'])}
         </div>
       ) : (
         <div className="pf-stats-hot-list" data-testid="statistics-hot-list">

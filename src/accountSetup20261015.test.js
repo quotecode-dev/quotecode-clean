@@ -19,7 +19,8 @@ describe('new account setup', () => {
     const setup = between('async function setupSignupAccount(', 'async function handleRegionChoiceSelect(');
     expect(setup).toContain("createNewBusinessSettings(userId, userEmail, market, userMetadata?.business_name, { fromSignup: true })");
     expect(setup).not.toContain('setNeedsRegionChoice');
-    expect(setup).toContain('setAccountSetup({ market });');
+    // night task 2026-10-16 (R-13): after about half a minute of failed attempts the line says so and offers Try again / Sign out
+    expect(setup).toContain('setAccountSetup({ market, stuck: attempt + 1 >= 5 });');
     expect(setup).toContain('if (gen !== loadGenRef.current) return;');
     expect(setup).toContain('if (accountSetupRetryRef.current) return;');
   });
@@ -40,7 +41,12 @@ describe('new account setup', () => {
     expect(screen).toContain("lang={setupMode ? (screenHe ? 'he' : 'en') : undefined}");
     const setupBranch = screen.slice(screen.indexOf('{setupMode ? ('), screen.indexOf(') : (<>'));
     expect(setupBranch).toContain("screenHe ? 'מסיימים להקים את החשבון שלך…' : 'Finishing setting up your account…'");
-    expect(setupBranch).not.toMatch(/isHebrew|<button/);
+    expect(setupBranch).not.toMatch(/isHebrew|handleRegionChoiceSelect/);
+    // night task 2026-10-16 (R-13, Owner-approved L-16): buttons only once the setup is stuck - "Try again" / "Sign out", never a market
+    const calm = setupBranch.slice(0, setupBranch.indexOf(') : ('));
+    expect(calm).not.toMatch(/<button/);
+    expect(setupBranch).toContain("{screenHe ? 'לנסות שוב' : 'Try again'}");
+    expect(setupBranch).toContain("{screenHe ? 'התנתקות' : 'Sign out'}");
   });
   it('sign-out clears the setup state', () => {
     expect(between("} else if (event === 'SIGNED_OUT') {", "} else if (event === 'PASSWORD_RECOVERY') {")).toContain('setAccountSetup(null);');

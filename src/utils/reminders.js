@@ -103,7 +103,7 @@ export const REMINDERS_COPY = Object.freeze({
       ai: 'אפשר גם להשתמש ב-AI החכם שלנו.',
       aiButton: 'פתיחת צ׳אט AI',
     },
-    center: { title: 'התראות', empty: 'אין תזכורות כרגע.', markAll: 'סימון הכול כנקרא', modeOff: 'התזכורות כבויות.', modeLine: { in_app: 'מצב: בממשק בלבד — שום הודעה לא נשלחת ללקוחות.', off: 'מצב: כבוי.', full: 'מצב: מלא.' }, readNotSaved: 'סימון כנקרא יישמר אחרי עדכון השרת.' },
+    center: { title: 'התראות', empty: 'אין תזכורות כרגע.', loading: 'טוענים את התזכורות…', markAll: 'סימון הכול כנקרא', modeOff: 'התזכורות כבויות.', modeLine: { in_app: 'מצב: בממשק בלבד — שום הודעה לא נשלחת ללקוחות.', off: 'מצב: כבוי.', full: 'מצב: מלא.' }, readNotSaved: 'סימון כנקרא יישמר אחרי עדכון השרת.' },
     item: {
       task_due: (i) => `משימה: ${i.title}`, task_due_overdue: 'באיחור', today: 'היום',
       first_view: (n) => `קישור ההצעה ${n} נצפה`,
@@ -206,7 +206,7 @@ export const REMINDERS_COPY = Object.freeze({
       ai: 'You can also use our smart AI.',
       aiButton: 'Open AI Chat',
     },
-    center: { title: 'Notifications', empty: 'No reminders right now.', markAll: 'Mark all read', modeOff: 'Reminders are off.', modeLine: { in_app: 'Mode: In-app only — nothing is sent to customers.', off: 'Mode: Off.', full: 'Mode: Full.' }, readNotSaved: 'Read marks are saved after the server update.' },
+    center: { title: 'Notifications', empty: 'No reminders right now.', loading: 'Loading your reminders…', markAll: 'Mark all read', modeOff: 'Reminders are off.', modeLine: { in_app: 'Mode: In-app only — nothing is sent to customers.', off: 'Mode: Off.', full: 'Mode: Full.' }, readNotSaved: 'Read marks are saved after the server update.' },
     item: {
       task_due: (i) => `Task: ${i.title}`, task_due_overdue: 'Overdue', today: 'Today',
       first_view: (n) => `Quote link ${n} viewed`,

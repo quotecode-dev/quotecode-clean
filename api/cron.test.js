@@ -61,29 +61,17 @@ describe('api/cron - write results are verified', () => {
     const sb = fakeSupabase();
     const r = await runCron({ supabase: sb, env: ENV, fetchImpl: async () => { throw new Error('network'); } });
     expect(r.ok).toBe(false);
-    expect(sb.calls.invokes.map((i) => i.fn)).toEqual(['send-trial-expiration-email', 'send-subscription-expiration-email']);
+    expect(sb.calls.invokes.map((i) => i.fn)).toEqual(['send-subscription-expiration-email']); // R-15: the trial emails are retired
   });
 
-  it('trial reminder function error -> run fails', async () => {
+  // Night task 2026-10-16 (R-15, Owner default 2): there is no trial (OD-01) and nothing changes when an old trial ends, so the
+  // "upgrade to keep all features" trial-expiry email is retired - the job never calls it, logs that, and it is never a failure.
+  it('the trial-expiry email is retired: never invoked, logged, and never a failure', async () => {
     const sb = fakeSupabase({ trial: { data: { error: 'Unauthorized' } } });
     const r = await runCron({ supabase: sb, env: ENV, fetchImpl: ratesOk });
-    expect(r.ok).toBe(false);
-    expect(r.failures.join()).toMatch(/trial reminders: Unauthorized/);
-  });
-
-  for (const field of ['claimErrors', 'completionErrors', 'sentUnrecorded', 'sendFailed', 'sendUnknown']) {
-    it(`trial reminder summary with ${field} > 0 -> run fails (not reported as clean success)`, async () => {
-      const sb = fakeSupabase({ trial: { data: { success: true, sent3d: 1, sent24h: 0, [field]: 1, errors: ['u/3d: synthetic'] } } });
-      const r = await runCron({ supabase: sb, env: ENV, fetchImpl: ratesOk });
-      expect(r.ok).toBe(false);
-    });
-  }
-
-  it('market-unresolved skips are logged but are not a failure (deliberate fail-closed)', async () => {
-    const sb = fakeSupabase({ trial: { data: { success: true, sent3d: 2, sent24h: 0, skippedMarketUnresolved: 1, errors: ['u/3d: market not exactly Local/International - not sent'] } } });
-    const r = await runCron({ supabase: sb, env: ENV, fetchImpl: ratesOk });
     expect(r.ok).toBe(true);
-    expect(r.logs.join()).toMatch(/market unresolved \(not sent\) 1/);
+    expect(sb.calls.invokes.map((i) => i.fn)).not.toContain('send-trial-expiration-email');
+    expect(r.logs.join()).toMatch(/Trial reminders: not sent \(retired/);
   });
 
   it('no CRON_SECRET: reminders are skipped (not invoked), not a failure', async () => {

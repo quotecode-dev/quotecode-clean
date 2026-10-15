@@ -6,7 +6,7 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { APP as NEON } from '../theme/neonTheme';
-import { listTasks } from '../utils/tasksClient';
+import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
 import { taskMarket, marketToday, marketClock } from '../utils/manualTasks';
 import { isQuoteAcceptanceExpired } from '../utils/quoteValidity';
 import { displayQuoteNumber, quotePartyLabel } from '../utils/quoteListRows';
@@ -23,7 +23,7 @@ const KIND_COLOR = { first_view: '#5B3FB6', task_due: '#0F6672', validity_ending
 // variant: 'desktop' = the former decorative 18x18 icon footprint (desktop / tablet-landscape account cluster);
 //          'mobile'  = the slot freed by the removed plans indicator in the mobile / tablet-portrait header (Owner console instruction
 //                      2026-10-09): a 30px-high round tap target matching the AI-chat chip height, same 18px icon, same panel.
-export default function NotificationCenter({ client, userId, isHebrew, isLocalIsraeliBusiness, quotes = [], now = null, variant = 'desktop', authUser = null }) {
+export default function NotificationCenter({ client, userId, isHebrew, isLocalIsraeliBusiness, quotes = [], now = null, variant = 'desktop', authUser = null, quotesReady = true }) {
   const mobile = variant === 'mobile';
   const C = REMINDERS_COPY[isHebrew ? 'he' : 'en'];
   const local = isLocalIsraeliBusiness === true;
@@ -59,13 +59,26 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   }, [client, userId]);
   useEffect(() => { if (shown) refresh(); }, [shown, refresh]);
   useEffect(() => { if (open) refresh(); }, [open, refresh]);
+  // R-09 (night task 2026-10-16): the count follows time (a task due at 14:00 counts at 14:00) and a task written anywhere in the app
+  const [minuteTick, setMinuteTick] = useState(0);
+  useEffect(() => {
+    if (!shown) return undefined;
+    const id = setInterval(() => setMinuteTick((n) => n + 1), 60000);
+    return () => clearInterval(id);
+  }, [shown]);
+  useEffect(() => {
+    if (!shown) return undefined;
+    const onChanged = () => { refresh(); };
+    window.addEventListener(TASKS_CHANGED_EVENT, onChanged);
+    return () => window.removeEventListener(TASKS_CHANGED_EVENT, onChanged);
+  }, [shown, refresh]);
 
   const clock = now ?? new Date();
   const items = useMemo(() => deriveInAppReminders({
     settings, tasks, quotes, today: marketToday(market, clock), nowClock: marketClock(market, clock), now: clock.getTime(),
     isExpired: (q) => isQuoteAcceptanceExpired(q?.valid_until, dateMarket, clock), firstViewAvailable: firstViewAvailableFor(quotes),
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }), [settings, tasks, quotes, market, dateMarket, open]);
+  }), [settings, tasks, quotes, market, dateMarket, open, minuteTick]);
   // Task 40: the welcome item (a new account, reminders not Off - known only once the saved mode loaded) sits above the derived
   // reminders; it counts as unread only while a read mark can be saved, so a badge the user cannot clear never appears
   const supportEmail = isHebrew ? SUPPORT_EMAIL_HE : SUPPORT_EMAIL_EN;
@@ -171,7 +184,8 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
           {settings.mode === 'off' ? (
             <div style={{ padding: '14px', fontSize: '0.8rem', color: NEON.textSecondary }}>{C.center.modeOff}</div>
           ) : items.length === 0 ? (
-            <div style={{ padding: '14px', fontSize: '0.8rem', color: NEON.textSecondary }}>{C.center.empty}</div>
+            // R-10: while the quotes are still loading the panel says so - never "no reminders" for a list that is not there yet
+            <div style={{ padding: '14px', fontSize: '0.8rem', color: NEON.textSecondary }}>{quotesReady ? C.center.empty : C.center.loading}</div>
           ) : (
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {items.map((i) => {

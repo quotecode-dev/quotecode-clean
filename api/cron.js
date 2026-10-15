@@ -20,21 +20,10 @@ export async function triggerExpirationReminders(supabase, env, logs) {
     return failures;
   }
 
-  const { data: trialData, error: trialError } = await supabase.functions.invoke('send-trial-expiration-email', {
-    body: { mode: 'batch' },
-    headers: { 'x-cron-secret': cronSecret },
-  });
-  if (trialError || trialData?.error) {
-    failures.push(`trial reminders: ${trialError?.message ?? trialData.error}`);
-  } else {
-    const t = trialData ?? {};
-    logs.push(`Trial reminders: ${t.sent3d ?? 0} 3-day, ${t.sent24h ?? 0} 24-hour email(s) sent and recorded; `
-      + `market unresolved (not sent) ${t.skippedMarketUnresolved ?? 0}; already claimed ${t.notClaimed ?? 0}; `
-      + `send failed ${t.sendFailed ?? 0}; send outcome unknown ${t.sendUnknown ?? 0}; sent but not recorded ${t.sentUnrecorded ?? 0}.`);
-    const hard = (t.claimErrors ?? 0) + (t.completionErrors ?? 0) + (t.sentUnrecorded ?? 0) + (t.sendFailed ?? 0) + (t.sendUnknown ?? 0);
-    if (hard > 0) failures.push(`trial reminders: ${hard} reminder(s) not cleanly delivered and recorded`);
-    if (t.errors?.length) logs.push(`Trial reminder details: ${t.errors.join('; ')}`);
-  }
+  // Night task 2026-10-16 (R-15, Owner default 2): the trial-expiry emails are no longer sent. There is no trial (OD-01) and nothing is
+  // interrupted when an old trial ends (every capability is open while the plan system is not active), so "upgrade to keep all
+  // features" would be untrue. The edge function stays deployed and untouched; this job simply no longer calls it.
+  logs.push('Trial reminders: not sent (retired - no trial exists and nothing changes when an old trial ends).');
 
   const { data: subData, error: subError } = await supabase.functions.invoke('send-subscription-expiration-email', {
     body: { mode: 'batch' },
