@@ -13,6 +13,7 @@ import { QUOTE_CURRENCY_SYMBOLS, normalizeQuoteCurrency } from '../utils/money';
 import { formatShortDate } from '../utils/shortDate';
 import { QUOTE_STATUSES, STAT_PERIODS, computeQuoteStatistics } from '../utils/quoteStatistics';
 import { displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
+import { quoteDisplayStatus, quoteDisplayLabel } from '../utils/quoteStatusDisplay';
 
 const STATUS_LABEL = {
   draft: ['טיוטה', 'Draft'], sent: ['נשלח', 'Sent'], approved: ['אושר', 'Approved'], paid: ['שולם', 'Paid'],
@@ -154,7 +155,6 @@ export default function StatisticsTab({
       ) : (
         <div className="pf-stats-hot-list" data-testid="statistics-hot-list">
           {stats.hotQuotes.map((quote) => {
-            const st = String(quote.status || '').toLowerCase();
             const title = quote.subject || quote.quote_subject || '';
             // the real client, else the quote title, else its full number (never 'N/A', never a fabricated client)
             const party = quotePartyLabel(quote);
@@ -170,7 +170,8 @@ export default function StatisticsTab({
                   </div>
                 </div>
                 <div className="pf-stats-hot-figures">
-                  <span data-testid="hot-status">{STATUS_LABEL[st] ? L(STATUS_LABEL[st]) : st}</span>
+                  {/* R-22: the SAME shown status as the quote list (a hot draft is "Viewed, awaiting", never "Draft") */}
+                  <span data-testid="hot-status">{quoteDisplayLabel(quoteDisplayStatus(quote), isHebrew)}</span>
                   <span><bdi className="pf-num" dir="ltr" data-testid="hot-views">{Number(quote.view_count || 0)}</bdi> {L(['צפיות', 'views'])}</span>
                   <bdi className="pf-num" dir="ltr">{formatShortDate(quote.created_at, dateMarket)}</bdi>
                   {moneyCell(quote)}
@@ -178,7 +179,8 @@ export default function StatisticsTab({
                 <div className="pf-stats-actions">
                   {/* PRODUCT_TRUTH_CAPABILITY: public_quote_view */}
                   <button type="button" className="pf-stats-action pf-stats-action--primary" onClick={() => window.open(getQuoteViewLink(quote), '_blank')}>
-                    <Eye size={14} aria-hidden="true" />{L(['פתח ועקוב', 'Open & track'])}
+                    {/* R-22: this opens the customer's page in a new tab - not the list's in-app "Open & track" panel - so it says so */}
+                    <Eye size={14} aria-hidden="true" />{L(['צפייה בהצעה', 'View quote'])}
                   </button>
                   <span style={{ position: 'relative', display: 'inline-block' }}>
                     {/* PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share */}

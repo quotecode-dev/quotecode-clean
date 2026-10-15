@@ -167,8 +167,14 @@ export function nextSendWindowStart(from, zone, window) {
 
 // ---------- quote predicates ----------
 const statusOf = (q) => String(q?.status || '').toLowerCase();
-// A quote that still awaits the customer: sent and not past its validity (the caller passes the canonical expiry rule).
-export const quoteAwaitsCustomer = (q, isExpired) => statusOf(q) === 'sent' && !isExpired(q);
+// A quote that still awaits the customer: reached the customer (Sent, or a Draft whose link the customer already opened) and not
+// approved / paid, and not past its validity (the caller passes the canonical expiry rule). Night task 2026-10-16 (R-08, Owner
+// default 1): the same "awaiting" as the quote list and Statistics (src/utils/quoteStatistics.js isAwaitingQuote).
+export const quoteAwaitsCustomer = (q, isExpired) => {
+  const s = statusOf(q);
+  if (s === 'approved' || s === 'paid') return false;
+  return (s === 'sent' || Number(q?.view_count || 0) > 0) && !isExpired(q);
+};
 const firstViewMs = (q) => { const t = q?.first_viewed_at ? Date.parse(q.first_viewed_at) : NaN; return Number.isFinite(t) ? t : null; };
 
 // ---------- in-app reminders (derived, never stored as truth) ----------

@@ -28,12 +28,13 @@ export function isQuoteHot(quote) {
   return Number(quote?.view_count || 0) >= 3 && status !== 'approved' && status !== 'paid';
 }
 
+// R-07 (night task 2026-10-16): the SAME status the row shows - a Draft the customer already opened sorts with the sent quotes
 export function getQuoteStatusKey(quote) {
   if (isQuoteHot(quote)) return 'hot';
   const status = lower(quote?.status) || 'draft';
   if (status === 'approved') return 'approved';
   if (status === 'paid') return 'paid';
-  if (status === 'sent') return 'sent';
+  if (status === 'sent' || Number(quote?.view_count || 0) > 0) return 'sent';
   return isUnfinishedSavedQuote(quote) && status === 'draft' ? 'unfinished' : 'needs-sending';
 }
 

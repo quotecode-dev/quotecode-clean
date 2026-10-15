@@ -29,11 +29,11 @@ describe('Task 17 Statistics screen (HE / Local / ILS)', () => {
     const { container } = render(<StatisticsTab {...props()} />);
     expect(screen.getByRole('heading', { level: 2 }).textContent).toContain('סטטיסטיקה');
     expect(kpi(container, 'created')).toBe('4'); // q4 is 50 days old
-    expect(kpi(container, 'awaiting')).toBe('2');
+    expect(kpi(container, 'awaiting')).toBe('3'); // night task R-08: q1 q5 sent + q2 a draft the customer viewed
     expect(kpi(container, 'viewed')).toBe('3');
     expect(kpi(container, 'won')).toBe('1');
     expect(kpi(container, 'hot')).toBe('2');
-    expect(kpi(container, 'conversion')).toBe('33%'); // 1 / (2 sent + 1 won)
+    expect(kpi(container, 'conversion')).toBe('25%'); // 1 / (3 awaiting + 1 won)
     expect(kpi(container, 'value')).toBe('₪2,038.00'); // 1227.50 + 300.20 + 500 + 10 = 2037.70 -> whole shekel
     expect(container.textContent).not.toMatch(/₪[\d,]+\.(?!00)\d\d/);
   });
@@ -44,14 +44,14 @@ describe('Task 17 Statistics screen (HE / Local / ILS)', () => {
     expect(within(rows[0]).getByTestId('hot-number').textContent).not.toContain('#');
     expect(within(rows[0]).getByTestId('hot-views').textContent).toBe('7');
     expect(strip(rows[0].textContent)).toContain('₪1,228.00');
-    expect(within(rows[0]).getByTestId('hot-status').textContent).toBe('נשלח');
+    expect(within(rows[0]).getByTestId('hot-status').textContent).toBe('נצפתה, ממתינה'); // R-22: the list's shown status
   });
   it('hot-quote actions reuse the existing handlers and guards', () => {
     const p = props();
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     const { container } = render(<StatisticsTab {...p} />);
     const row = container.querySelector('[data-hot-quote-id="q1"]');
-    fireEvent.click(within(row).getByText('פתח ועקוב'));
+    fireEvent.click(within(row).getByText('צפייה בהצעה'));
     expect(open).toHaveBeenCalledWith(`${window.location.origin}/public-quote/q1`, '_blank');
     fireEvent.click(within(row).getByText('וואטסאפ'));
     expect(p.handleProtectedAction).toHaveBeenCalledWith('q1', 'whatsapp', expect.any(Function));
@@ -103,7 +103,7 @@ describe('Task 17 Statistics screen (EN / International / mixed currencies)', ()
   it('International view link opens the English public quote', () => {
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
     const { container } = render(<StatisticsTab {...props({ quotes: MIXED, isHebrew: false, isLocalIsraeliBusiness: false, currency: 'EUR' })} />);
-    fireEvent.click(within(container.querySelector('[data-hot-quote-id="u1"]')).getByText('Open & track'));
+    fireEvent.click(within(container.querySelector('[data-hot-quote-id="u1"]')).getByText('View quote'));
     expect(open).toHaveBeenCalledWith(`${window.location.origin}/en/public-quote/u1?lang=en`, '_blank');
   });
 });

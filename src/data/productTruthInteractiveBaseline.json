@@ -871,6 +871,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/utils/quoteStatusDisplay.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/quoteTemplates.js": {
     "interactive": 0,
     "markers": 0

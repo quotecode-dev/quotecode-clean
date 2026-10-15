@@ -79,6 +79,7 @@ import QuotesTab from '../components/QuotesTab';
 import NewQuoteMenu from '../components/NewQuoteMenu';
 import { newQuoteChoices, templateChoice } from '../utils/newQuoteChoices';
 import { SaveTemplateDialog, TemplatePickerDialog } from '../components/QuoteTemplateDialogs';
+import { matchesQuoteFilter } from '../utils/quoteStatusDisplay';
 import { templateToFormState, templateCurrencyMismatch, templateCurrencyUnknown, withoutPrices, templatePriceBasis, clientTypeForPriceBasis } from '../utils/quoteTemplates';
 import AiQuoteDraftDialog from '../components/AiQuoteDraftDialog';
 import { requestAiQuoteDraft, draftLinesToQuoteItems } from '../utils/aiQuoteDraftClient';
@@ -4558,7 +4559,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // numeric amounts/views, timestamp dates, logical status/action order, getQuoteOrderSortKey for quote numbers).
   const filteredQuotes = sortQuotes(quotes.filter(quote => {
     const matchesSearch = quoteMatchesSearch(quote, searchTerm);
-    const matchesStatus = statusFilter === 'All' || (quote.status || 'draft').toLowerCase() === statusFilter.toLowerCase();
+    const matchesStatus = matchesQuoteFilter(quote, statusFilter); // R-07: by the shown status (utils/quoteStatusDisplay.js)
     return matchesSearch && matchesStatus;
   }), quoteSortField, quoteSortDirection, isHebrew ? 'he' : 'en');
 

@@ -13,11 +13,12 @@ describe('AUD-04: product truth matches the Statistics screen', () => {
     for (const p of ['src/data/productTruthRegistry.js', 'supabase/functions/chat-ai/aiFacts.generated.ts']) {
       const s = read(p);
       expect(s, p).not.toMatch(/copy link and resend|העתקת קישור ושליחה חוזרת/);
-      expect(s, p).toMatch(/open & track, WhatsApp, email and create a follow-up task/);
-      expect(s, p).toMatch(/פתיחה ומעקב, WhatsApp, שליחה במייל ויצירת משימת מעקב/);
+      // night task 2026-10-16 (R-22 / R-17, Owner-approved L-14): the Statistics button that opens the customer page is "View quote"
+      expect(s, p).toMatch(/view the quote \(opens in a new tab\), WhatsApp, email and create a follow-up task/);
+      expect(s, p).toMatch(/צפייה בהצעה \(נפתחת בלשונית חדשה\), WhatsApp, שליחה במייל ויצירת משימת מעקב/);
     }
     const stats = read('src/components/StatisticsTab.jsx');
-    for (const label of ['Open & track', 'WhatsApp', 'Email', 'Create follow-up task']) expect(stats).toContain(`'${label}'`);
+    for (const label of ['View quote', 'WhatsApp', 'Email', 'Create follow-up task']) expect(stats).toContain(`'${label}'`);
   });
 });
 

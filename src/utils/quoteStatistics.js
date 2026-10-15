@@ -17,6 +17,9 @@ const views = (q) => Number(q?.view_count || 0);
 export const isWonQuote = (q) => statusOf(q) === 'approved' || statusOf(q) === 'paid';
 // the ONE hot-quote rule (also used by the quote list): viewed 3+ times and not yet approved/paid
 export const isHotQuote = (q) => views(q) >= 3 && !isWonQuote(q);
+// Night task 2026-10-16 (R-08 / AUD-09, Owner default 1): the ONE "awaiting" rule - reached the customer (Sent, or a Draft whose link
+// the customer already opened) and not approved / paid. The quote list counter, Statistics, reminders and the calendar all use it.
+export const isAwaitingQuote = (q) => !isWonQuote(q) && (statusOf(q) === 'sent' || views(q) > 0);
 
 export function filterQuotesForStatistics(quotes, { period = '30d', status = 'all', now = Date.now() } = {}) {
   if (!(period in STAT_PERIODS)) throw new Error(`unknown statistics period ${period}`);
@@ -40,12 +43,12 @@ const byViewsThenNewest = (a, b) => (views(b) - views(a))
 export function computeQuoteStatistics(quotes, { period = '30d', status = 'all', now = Date.now(), accountCurrency = null } = {}) {
   const population = filterQuotesForStatistics(quotes, { period, status, now });
   const count = (fn) => population.filter(fn).length;
-  const sent = count((q) => statusOf(q) === 'sent');
+  const awaiting = count(isAwaitingQuote);
   const won = count(isWonQuote);
-  const denominator = sent + won; // drafts never enter the pipeline denominator
+  const denominator = awaiting + won; // quotes that reached the customer; an unseen draft never enters the denominator
   return {
     created: population.length,
-    awaiting: sent,
+    awaiting,
     viewed: count((q) => views(q) > 0),
     won,
     hot: count(isHotQuote),
