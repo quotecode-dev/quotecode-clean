@@ -180,3 +180,12 @@ describe('R-26: saving the reminder settings never writes a false history line',
     expect(read('src/utils/reminders.js')).not.toMatch(/from\('reminder_settings'\)\.upsert\(/);
   });
 });
+
+describe('Phase C: the admin overview counters (Owner default 5)', () => {
+  it('signed in in the last 10 minutes (last_sign_in), Israel, International - market from the stored country', () => {
+    const o = read('src/components/AdminOverview.jsx');
+    expect(o).toContain("[isHebrew ? 'נכנסו ב-10 הדקות האחרונות' : 'Signed in in the last 10 minutes', users.filter((a) => recentMs(a.last_sign_in)).length],");
+    expect(o).toContain("resolveAdminMarket(a).market === 'Local'");
+    expect(o).toContain("resolveAdminMarket(a).market === 'International'");
+  });
+});
