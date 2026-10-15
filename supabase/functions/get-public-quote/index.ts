@@ -53,7 +53,7 @@ serve(async (req) => {
     const secretKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? '';
     if (!supabaseUrl || !secretKey) {
       console.error('get-public-quote: missing required server configuration');
-      return jsonResponse({ error: 'Unable to load quote' }, 400);
+      return jsonResponse({ error: 'temporarily_unavailable' }, 503); // R-19: a server-side problem, never "not found"
     }
     const adminClient = createClient(supabaseUrl, secretKey);
 

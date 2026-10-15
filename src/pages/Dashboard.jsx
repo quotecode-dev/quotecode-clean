@@ -242,8 +242,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const dataLoadRef = useRef(dataLoad);
   dataLoadRef.current = dataLoad;
   const loadGenRef = useRef(0); // bumped on sign-out / user switch: older retry loops stop
-  // R-27 (night task 2026-10-16): leaving the Dashboard (an in-app route change) also stops them - no requests after unmount
-  useEffect(() => () => { loadGenRef.current += 1; }, []);
   const lastOkAtRef = useRef({});
   const inFlightRef = useRef({});
   const loadSeqRef = useRef({}); // the latest request per list; an older answer never overwrites a newer one
