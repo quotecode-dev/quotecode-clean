@@ -109,6 +109,8 @@ const R3_TABLE_MIN_WIDTH = 740;
 export default function QuotesTab({
   quotes,
   allQuotes,
+  // Owner 2026-10-15: 'idle' | 'loading' | 'retrying' | 'ok' (Dashboard's self-healing load). Undefined = loaded (older callers / tests).
+  loadState,
   searchTerm,
   setSearchTerm,
   statusFilter,
@@ -351,6 +353,13 @@ export default function QuotesTab({
   // business totals. "In progress" is only the complement of the two
   // canonical final statuses; no persisted status is invented here.
   const overviewQuotes = Array.isArray(allQuotes) ? allQuotes : quotes;
+  // Until the quotes have been loaded successfully, nothing on this screen says "none": the list shows that it is loading (and that it
+  // keeps trying by itself on a slow connection) and the counters show a dash - never 0 / "no quotes found" for a failed request.
+  const quotesNotLoaded = loadState !== undefined && loadState !== 'ok' && overviewQuotes.length === 0;
+  const loadingText = loadState === 'retrying'
+    ? (isHebrew ? 'טוענים את ההצעות… החיבור איטי, ממשיכים לנסות אוטומטית.' : 'Loading your quotes… the connection is slow, retrying automatically.')
+    : (isHebrew ? 'טוענים את ההצעות…' : 'Loading your quotes…');
+  const emptyListText = quotesNotLoaded ? loadingText : (isHebrew ? 'לא נמצאו הצעות מחיר במסד הנתונים.' : 'No quotes found in the database.');
   // "Awaiting" = reached the customer and not yet approved/paid. Owner bug 2026-10-14: a quote the customer has VIEWED (a shared link
   // keeps the saved status "draft") is awaiting too - the list labels it "viewed, awaiting", so the counter must count it.
   const overviewAwaiting = overviewQuotes.filter((quote) => {
@@ -786,12 +795,14 @@ export default function QuotesTab({
           { key: 'approved', label: isHebrew ? 'אושרו' : 'Approved', value: overviewApproved }, // Task 23: plural count label ("9 אושרו"); the per-quote badge stays „אושרה”
         ].map((item) => (
           <div key={item.key} data-qh-overview={item.key} className="quote-overview-cell">
-            <strong className="quote-overview-value pf-num">{item.value}</strong>
+            <strong className="quote-overview-value pf-num">{quotesNotLoaded ? '—' : item.value}</strong>
             <span className="quote-overview-label">{item.label}</span>
           </div>
         ))}
         <div data-qh-overview="total" className={`quote-overview-cell quote-overview-cell--total${overviewMulti ? ' quote-overview-cell--multi' : ''}`}>
-          <CurrencyTotals className="quote-overview-value" symbolGap totals={overviewTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={currency} isHebrew={isHebrew} />
+          {quotesNotLoaded
+            ? <strong className="quote-overview-value pf-num">—</strong>
+            : <CurrencyTotals className="quote-overview-value" symbolGap totals={overviewTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={currency} isHebrew={isHebrew} />}
           <span className="quote-overview-label">{overviewMultiCurrency ? (isHebrew ? 'סה״כ לפי מטבע' : 'Total by currency') : (isHebrew ? 'סה״כ' : 'Total value')}</span>
         </div>
       </div>
@@ -905,7 +916,7 @@ export default function QuotesTab({
           <div className="quote-modern-body" data-testid="quote-modern-body">
           {rowsMeta.length === 0 ? (
             <div className="quote-modern-empty">
-              {isHebrew ? 'לא נמצאו הצעות מחיר במסד הנתונים.' : 'No quotes found in the database.'}
+              <span data-testid={quotesNotLoaded ? 'quotes-loading' : 'quotes-empty'} role={quotesNotLoaded ? 'status' : undefined}>{emptyListText}</span>
             </div>
           ) : (showAllDesktopQuotes ? rowsMeta : pickCompactRows(rowsMeta)).map((row) => {
             const { quote, quoteSym, isHot, tone, statusLabel } = row;
@@ -1136,7 +1147,7 @@ export default function QuotesTab({
             {rowsMeta.length === 0 ? (
               <tr>
                 <td colSpan="6" style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.85rem' }}>
-                  {isHebrew ? 'לא נמצאו הצעות מחיר במסד הנתונים.' : 'No quotes found in the database.'}
+                  <span data-testid={quotesNotLoaded ? 'quotes-loading' : 'quotes-empty'} role={quotesNotLoaded ? 'status' : undefined}>{emptyListText}</span>
                 </td>
               </tr>
             ) : (
@@ -1286,7 +1297,7 @@ export default function QuotesTab({
       <div ref={cardListRef} className="pf-screen-body" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {rowsMeta.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.85rem' }}>
-            {isHebrew ? 'לא נמצאו הצעות מחיר במסד הנתונים.' : 'No quotes found in the database.'}
+            <span data-testid={quotesNotLoaded ? 'quotes-loading' : 'quotes-empty'} role={quotesNotLoaded ? 'status' : undefined}>{emptyListText}</span>
           </div>
         ) : (
           rowsMeta.map((row) => {
