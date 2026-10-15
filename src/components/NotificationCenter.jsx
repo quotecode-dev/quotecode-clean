@@ -3,7 +3,7 @@
 // In-app reminders are DERIVED from the account's own tasks and quotes with the shared rules (reminderRules.js) and the business's
 // saved mode/checkboxes (defaults = In-app only when nothing is saved). Read marks persist only when the server table exists.
 // It never sends anything and never navigates to settings (the single settings entry is inside Business settings).
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Bell } from 'lucide-react';
 import { APP as NEON } from '../theme/neonTheme';
 import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
@@ -117,15 +117,19 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
     if (r.ok) setRead((s) => new Set([...s, ...keys]));
   };
 
+  // R-28 (night task 2026-10-16): the meta line is a list of isolated parts (a name in its own script, dates / times as LTR numbers),
+  // so a name and a date never swap sides with the script of the name
+  const txt = (text) => ({ text, num: false });
+  const num = (text) => ({ text, num: true });
   const line = (i) => {
-    if (i.kind === 'task_due') return { title: C.item.task_due(i), meta: i.overdue ? `${C.item.task_due_overdue} · ${formatShortDate(i.date, dateMarket)}` : `${C.item.today}${i.time ? ` · ${i.time}` : ''}` };
+    if (i.kind === 'task_due') return { title: C.item.task_due(i), meta: i.overdue ? [txt(C.item.task_due_overdue), num(formatShortDate(i.date, dateMarket))] : [txt(C.item.today), ...(i.time ? [num(i.time)] : [])] };
     const n = displayQuoteNumber(i.quote);
     // the truthful party label (client name, else quote title); the number is already in the line, so never repeat it
     const p = quotePartyLabel(i.quote);
     const party = p.kind === 'number' ? '' : p.text;
-    if (i.kind === 'first_view') return { title: C.item.first_view(n), meta: `${party ? `${party} · ` : ''}${formatShortDateTime(i.at, dateMarket)}` };
-    if (i.kind === 'viewed_not_approved') return { title: C.item.viewed_not_approved(n, i.days), meta: party };
-    return { title: C.item.validity_ending(n, i.daysLeft), meta: formatShortDate(i.validUntil, dateMarket) };
+    if (i.kind === 'first_view') return { title: C.item.first_view(n), meta: [...(party ? [txt(party)] : []), num(formatShortDateTime(i.at, dateMarket))] };
+    if (i.kind === 'viewed_not_approved') return { title: C.item.viewed_not_approved(n, i.days), meta: party ? [txt(party)] : [] };
+    return { title: C.item.validity_ending(n, i.daysLeft), meta: [num(formatShortDate(i.validUntil, dateMarket))] };
   };
 
   return (
@@ -196,7 +200,13 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
                     <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', marginTop: 6, background: KIND_COLOR[i.kind] }} />
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 700, fontSize: '0.82rem', overflowWrap: 'anywhere' }} dir="auto">{l.title}</div>
-                      {l.meta && <div style={{ color: NEON.textSecondary, fontSize: '0.72rem', marginTop: 2 }}><bdi>{l.meta}</bdi></div>}
+                      {l.meta.length > 0 && (
+                        <div style={{ color: NEON.textSecondary, fontSize: '0.72rem', marginTop: 2 }}>
+                          {l.meta.map((part, k) => (
+                            <Fragment key={k}>{k > 0 && ' · '}{part.num ? <bdi className="pf-num" dir="ltr">{part.text}</bdi> : <bdi>{part.text}</bdi>}</Fragment>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </li>
                 );

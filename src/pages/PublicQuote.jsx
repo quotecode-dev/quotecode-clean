@@ -708,7 +708,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
           {!items || items.length === 0 ? (
             <tr role="row">
               <td headers={`${colId('desc')} ${colId('total')}`} role="cell" colSpan="4" style={{ padding: '20px', textAlign: 'center' }}>
-                הצעת מחיר כללית בסך {formatWholeMoney(finalTotalRounded)} {currencySymbol}
+                הצעת מחיר כללית בסך <span className="pf-money">{formatWholeMoney(finalTotalRounded)}</span> {currencySymbol}
               </td>
             </tr>
           ) : displaySections.length === 0 ? (

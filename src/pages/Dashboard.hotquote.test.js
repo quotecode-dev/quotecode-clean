@@ -54,7 +54,8 @@ describe('Hot quote banner (source-level regression guard)', () => {
     expect(block.indexOf('className="quote-hot-banner-action"')).toBeLessThan(block.indexOf('className="quote-hot-banner-text"'));
     expect(block).not.toMatch(/row-reverse|isHebrew \? 'right'|isHebrew \? 'left'/);
     // the real client name, else the quote title, else its full number - ONE shared rule (quotePartyLabel, also the Statistics list)
-    expect(block).toMatch(/<mark className="quote-hot-banner-name">\{quotePartyLabel\(hotLead\.quote\)\.text\}<\/mark>/);
+    // night task 2026-10-16 (R-28): the name is bidi-isolated inside the mark
+    expect(block).toMatch(/<mark className="quote-hot-banner-name"><bdi>\{quotePartyLabel\(hotLead\.quote\)\.text\}<\/bdi><\/mark>/);
     expect(block.indexOf('quote-hot-banner-name')).toBeLessThan(block.indexOf("' צפה בהצעה '"));
     expect(block).toContain("' צפה בהצעה '");
     expect(block).toContain("' פעמים ועדיין לא חתם.'");

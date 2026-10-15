@@ -682,7 +682,8 @@ export default function QuotesTab({
             <TekangoEyeIcon size={24} className="quote-hot-banner-eye" />
           </button>
           <span className="quote-hot-banner-text">
-            <mark className="quote-hot-banner-name">{quotePartyLabel(hotLead.quote).text}</mark>
+            {/* R-28 (night task 2026-10-16): the name is isolated - an English name ending in "." never jumps to the other side */}
+            <mark className="quote-hot-banner-name"><bdi>{quotePartyLabel(hotLead.quote).text}</bdi></mark>
             {isHebrew ? ' צפה בהצעה ' : ' viewed this quote '}
             <bdi className="pf-num" dir="ltr">{Number(hotLead.quote.view_count || 0)}</bdi>
             {isHebrew ? ' פעמים ועדיין לא חתם.' : ' times and still hasn’t signed.'}
