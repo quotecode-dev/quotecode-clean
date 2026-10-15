@@ -185,7 +185,9 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ]],
   ['calendar', [/\bcalendar\b/i, /\b(public |jewish |israeli )?holidays?\b/i, /יומן/, /חגים|שבתות|ימי מנוחה/]],
   ['manual_tasks', [/\b(manual\s+)?tasks?\s+(list|screen|tab)\b/i, /\b(create|add|open)\s+(a\s+)?(follow[- ]?up\s+)?task\b/i, /\bto-?do\b/i, /משימ(ה|ות)/]],
-  ['quote_statistics', [/\bstatistics?\b/i, /\bconversion rate\b/i, /\bhot quotes?\b/i, /סטטיסטיק/, /שיעור (ה)?המרה/, /הצע(ה|ות) חמ(ה|ות)/]],
+  // night task 2026-10-16 (R-01): "how many quotes did I send / were approved" is a statistics question (it used to fall to quote_create)
+  ['quote_statistics', [/\bstatistics?\b/i, /\bconversion rate\b/i, /\bhot quotes?\b/i, /סטטיסטיק/, /שיעור (ה)?המרה/, /הצע(ה|ות) חמ(ה|ות)/,
+    /\bhow many quotes\b.{0,30}\b(did i|have i|were|was|i('ve| have)? (sent|created|made|issued))\b/i, /כמה\s+הצעות.{0,25}(שלחתי|יצרתי|הכנתי|הנפקתי|נשלחו|נוצרו|אושרו|נחתמו|נצפו)/]],
   // Codex defect 1 (2026-09-22): "Is PDF the same as Print?" (and similar) must get a deterministic
   // factual DISTINCTION, not fall through to the model and not silently resolve to just one of the
   // two individual capabilities. Checked before the individual quote_pdf/quote_print patterns below.

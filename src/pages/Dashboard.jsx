@@ -326,6 +326,21 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // Night task 2026-10-16 (R-12, Owner-approved L-10 / L-15): the business settings keep failing -> the loading screen says so and
   // offers "Try again" / "Sign out" (the automatic retries continue); never an endless "Loading system..." with no way out
   const [startupStuck, setStartupStuck] = useState(false);
+  // "Try again" never reloads the page (drafts / the no-reload rule): it wakes the waiting retry of the SAME loop at once
+  const settingsRetryWakeRef = useRef(null);
+  const settingsRetrySleep = (ms) => new Promise((resolve) => {
+    const t = setTimeout(() => { settingsRetryWakeRef.current = null; resolve(); }, ms);
+    settingsRetryWakeRef.current = () => { clearTimeout(t); settingsRetryWakeRef.current = null; resolve(); };
+  });
+  const retryStartupNow = () => { setStartupStuck(false); settingsRetryWakeRef.current?.(); };
+  const accountSetupArgsRef = useRef(null); // the pending setup retry (R-13 "Try again" runs it at once)
+  const retryAccountSetupNow = () => {
+    const args = accountSetupArgsRef.current;
+    if (!args) return;
+    if (accountSetupRetryRef.current) { clearTimeout(accountSetupRetryRef.current); accountSetupRetryRef.current = null; }
+    setAccountSetup((cur) => (cur ? { ...cur, stuck: false } : cur));
+    setupSignupAccount(args.userId, args.userEmail, args.userMetadata, args.market, args.attempt);
+  };
   // Auth Final Blockers task (2026-09-09): live-reproduced a real, serious
   // login defect - after a genuine interactive sign-in (not a page reload),
   // loadData() sometimes never fired at all (zero business_settings/quotes/
@@ -1490,6 +1505,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }, {
       isCurrent: () => settingsGen === loadGenRef.current,
       refreshAuth: () => supabase.auth.refreshSession(),
+      sleep: settingsRetrySleep,
       onRetry: (attempt, err, status) => {
         diagLog('data-load', { resource: 'settings', outcome: 'retry', attempt, status: status ?? null });
         if (attempt >= 5 && settingsGen === loadGenRef.current) setStartupStuck(true);
@@ -1745,6 +1761,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     // R-13 (Owner-approved L-16): after about half a minute of failed attempts the setup line tells the truth and offers a way out
     setAccountSetup({ market, stuck: attempt + 1 >= 5 });
     if (accountSetupRetryRef.current) return; // another caller of the same failed creation already scheduled the retry
+    accountSetupArgsRef.current = { userId, userEmail, userMetadata, market, attempt: attempt + 1 };
     diagLog('data-load', { resource: 'account-setup', outcome: 'retry', attempt });
     accountSetupRetryRef.current = setTimeout(() => {
       accountSetupRetryRef.current = null;
@@ -4628,7 +4645,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         bundleIsHebrew={bundleIsHebrew}
         isInitializing={isInitializing}
         startupStuck={startupStuck && !!session}
-        onStartupRetry={() => window.location.reload()}
+        onStartupRetry={retryStartupNow}
         onStartupSignOut={handleSignOut}
         isPasswordRecoveryMode={isPasswordRecoveryMode}
         newPasswordInput={newPasswordInput}
@@ -4736,8 +4753,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     {screenHe ? 'לא הצלחנו להשלים את הקמת החשבון כרגע. אנחנו ממשיכים לנסות; אפשר גם לנסות שוב עכשיו, או להתנתק ולחזור מאוחר יותר. החשבון שלך לא נמחק.' : "We couldn't finish setting up your account right now. We keep trying; you can also try again now, or sign out and come back later. Your account is not deleted."}
                   </p>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                    {/* PRODUCT_TRUTH_DECORATIVE: reloads the page to retry the one-time account setup (no data change) - night task R-13 */}
-                    <button type="button" onClick={() => window.location.reload()} style={{ padding: '12px', borderRadius: '8px', border: 'none', background: NEON.gradient, color: 'white', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer' }}>
+                    {/* PRODUCT_TRUTH_DECORATIVE: retries the one-time account setup at once, without reloading the page - night task R-13 */}
+                    <button type="button" onClick={retryAccountSetupNow} style={{ padding: '12px', borderRadius: '8px', border: 'none', background: NEON.gradient, color: 'white', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer' }}>
                       {screenHe ? 'לנסות שוב' : 'Try again'}
                     </button>
                     {/* PRODUCT_TRUTH_DECORATIVE: signs out of this device from the stuck account-setup line - night task R-13 */}

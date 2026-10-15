@@ -82,7 +82,7 @@ export default function AuthScreen({
                 {isHebrew ? 'לא הצלחנו לטעון את פרטי החשבון שלך. אנחנו ממשיכים לנסות; אפשר גם לנסות שוב עכשיו או להתנתק.' : "We couldn't load your account details. We keep trying; you can also try again now or sign out."}
               </p>
               <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                {/* PRODUCT_TRUTH_DECORATIVE: reloads the page to retry loading the account (no data change) - night task R-12 */}
+                {/* PRODUCT_TRUTH_DECORATIVE: retries loading the account at once, without reloading the page - night task R-12 */}
                 <button type="button" onClick={() => onStartupRetry?.()} style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: NEON.gradient, color: 'white', fontWeight: '700', cursor: 'pointer' }}>
                   {isHebrew ? 'לנסות שוב' : 'Try again'}
                 </button>
