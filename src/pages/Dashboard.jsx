@@ -9,6 +9,7 @@ import ProFlowLogo from '../components/ProFlowLogo';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
+import { OPEN_REMINDERS_SETTINGS_EVENT } from '../utils/reminders';
 import { publishBlocker, resolveBlockers, clearScope, SAVE_ATTEMPT_CODES, blockerCodeForActionError, blockerCodeForSaveFailure, blockerCodeForEmailError } from '../utils/aiHelpBlockers';
 import AiHelpButton from '../components/AiHelpButton';
 import { computeQuoteWorkflowContext } from '../utils/quoteWorkflowContext';
@@ -888,6 +889,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // any quote/client/business data itself.
   // Latest editor/role facts for the navigation handler (declared further down; read at click time, never during render).
   const aiNavStateRef = useRef({ showQuoteForm: false, isDirty: () => false, isSuperAdmin: false });
+  // Task 40: a one-shot request for the Business settings sub-screen (consumed by SettingsTab, then cleared)
+  const [settingsViewRequest, setSettingsViewRequest] = useState(null);
   useEffect(() => {
     function handleAiNavigate(e) {
       const action = e?.detail?.action;
@@ -965,12 +968,21 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           }
           break;
         }
+        // Task 40: product-owned (never an AI destination - it arrives only through OPEN_REMINDERS_SETTINGS_EVENT below)
+        case 'open_reminders_settings_internal':
+          closeEditor();
+          setActiveTab('settings');
+          setSettingsViewRequest({ view: 'reminders' });
+          break;
         default:
           break;
       }
     }
+    // Task 40: the welcome item's "Business settings › Reminders & automation" link - the same unsaved-work guard as above
+    const handleOpenReminders = () => handleAiNavigate({ detail: { action: 'open_reminders_settings_internal' } });
     window.addEventListener(AI_NAVIGATE_EVENT, handleAiNavigate);
-    return () => window.removeEventListener(AI_NAVIGATE_EVENT, handleAiNavigate);
+    window.addEventListener(OPEN_REMINDERS_SETTINGS_EVENT, handleOpenReminders);
+    return () => { window.removeEventListener(AI_NAVIGATE_EVENT, handleAiNavigate); window.removeEventListener(OPEN_REMINDERS_SETTINGS_EVENT, handleOpenReminders); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [quotes, isHebrew]);
 
@@ -7632,7 +7644,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     <div className="dash-header-account">
                       <HeaderGreeting isHebrew={isHebrew} />
                       {/* Task 20: the bell opens the notification center (same 18px footprint; badge and panel are out of flow). */}
-                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} />
+                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} authUser={session?.user} />
                       {/* Owner 2026-10-14: the round plan medallion replaces the avatar circle (no sign-in provider ever set a picture) -
                           the account's plan status from the one shared model; it opens the plans window. Not shown to the super admin. */}
                       {!isSuperAdmin && (
@@ -7648,7 +7660,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   <div className="dash-header-badge-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {/* Task 20 (Owner console instruction 2026-10-09): the plans status indicator is removed from the mobile header and the
                         SAME notification bell takes its slot. The plans feature itself stays (Business settings › My subscription, Task 30). */}
-                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} variant="mobile" />
+                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} authUser={session?.user} variant="mobile" />
                     {/* Owner 2026-10-14: the same round plan medallion as on desktop, outermost next to the bell */}
                     {!isSuperAdmin && (
                       <HeaderPlanMedallion model={headerPlanBadge} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />
@@ -7943,6 +7955,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               presentationController={presentationEditor}
               remindersClient={supabase}
               remindersUserId={session?.user?.id}
+              viewRequest={settingsViewRequest}
+              onViewRequestDone={() => setSettingsViewRequest(null)}
               businessCardClient={supabase}
               businessCardUserId={session?.user?.id}
               shareDefaultsClient={supabase}

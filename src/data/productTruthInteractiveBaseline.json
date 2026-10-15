@@ -176,8 +176,8 @@
     "markers": 2
   },
   "src/components/NotificationCenter.jsx": {
-    "interactive": 2,
-    "markers": 2
+    "interactive": 5,
+    "markers": 5
   },
   "src/components/NumericValue.jsx": {
     "interactive": 0,

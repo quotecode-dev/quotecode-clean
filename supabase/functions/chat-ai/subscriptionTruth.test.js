@@ -176,3 +176,30 @@ describe('prompt block + request boundary', () => {
     expect(iPay).toBeLessThan(iSub); expect(iSub).toBeLessThan(iMarket); expect(iSub).toBeLessThan(iCap);
   });
 });
+
+// Task 40 (Owner, LIVE chat 2026-10-15): "איזה מסלולים יש לכם" got the broad "which feature?" clarification instead of the plans.
+describe('plans-list question -> the deterministic pricing answer', () => {
+  it.each([
+    ['איזה מסלולים יש לכם', true], ['איזה מסלולים יש', true], ['מה המסלולים?', true], ['אילו חבילות יש?', true], ['יש לכם מסלולים?', true],
+    ['What plans do you have?', false], ['which plans are there', false], ['Do you offer any subscriptions?', false], ['what kinds of plans exist?', false],
+  ])('%s', (m, he) => {
+    expect(classifySubscriptionIntents(m)).toContain('pricing');
+    const r = answer(m, he);
+    if (he) {
+      expect(r.answer).toMatch(/המסלולים הם/);
+      expect(r.answer).toMatch(/30\.00 ₪ לחודש או 306\.00 ₪ לשנה/);
+      expect(r.answer).not.toMatch(/\$|USD|דולר/);
+    } else {
+      expect(r.answer).toMatch(/The plans are/);
+      expect(r.answer).toMatch(/18\.00 USD per month or 184\.00 USD per year/);
+      expect(r.answer).not.toMatch(/₪|\bILS\b|\bNIS\b|shekel/i);
+    }
+    expect(r.answer).toMatch(he ? /עדיין אינה פעילה/ : /not active/);
+  });
+  it("the account's own plan stays my_plan (singular: which plan am I on / do I have)", () => {
+    for (const [m] of [['באיזה מסלול אני?'], ['איזה מסלול יש לי?'], ['which plan am I on?']]) {
+      expect(classifySubscriptionIntents(m), m).toContain('my_plan');
+      expect(classifySubscriptionIntents(m), m).not.toContain('pricing');
+    }
+  });
+});
