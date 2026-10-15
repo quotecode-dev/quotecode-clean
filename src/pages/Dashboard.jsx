@@ -26,7 +26,7 @@ import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quote
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang } from '../utils/regionConfig';
 import { isQuoteImmutable } from '../utils/quoteLock';
-import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
+import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, missingPriceItems, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
 import { itemPricePayload, formPriceFromSavedItem } from '../utils/itemPrice';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import useAccountSummary from '../hooks/useAccountSummary';
@@ -3916,6 +3916,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // presentation (Draft -> Sent). A failed save restores the previous status in the form.
   const requestIssueQuote = () => {
     if (!editingQuoteId || issueRequest) return;
+    // Night task 2026-10-16 (R-23): issuing runs the form's own required-field check first (e.g. a business client's Tax ID) - the same
+    // check a Save gets - and never issues a quote that still has a line without a price (it could not be sent or printed anyway)
+    const editorForm = typeof document !== 'undefined' ? document.querySelector('form[data-quote-form="editor"]') : null;
+    if (editorForm && typeof editorForm.reportValidity === 'function' && !editorForm.reportValidity()) return;
+    if (missingPriceItems(items).length) {
+      setAlertModalMsg(isHebrew ? 'יש בהצעה פריטים בלי מחיר. השלימו את המחירים לפני ההנפקה.' : 'Some items in this quote have no price. Enter the prices before issuing it.');
+      return;
+    }
     setIssueRequest({ quoteId: editingQuoteId, prevStatus: quoteStatus, started: false });
     setQuoteStatus('Sent');
   };

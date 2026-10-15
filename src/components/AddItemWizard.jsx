@@ -1,4 +1,5 @@
 import { useState, useEffect, useLayoutEffect, useRef } from 'react';
+import { parsePriceInput } from '../utils/itemPrice';
 import AiModalHeader from './AiModalHeader';
 import { X, Package, Ruler, ChevronRight, ChevronLeft, Lock, Check, Pencil, Sparkles } from 'lucide-react';
 import { APP as NEON } from '../theme/neonTheme';
@@ -130,6 +131,10 @@ function getOrderedMethods(recommendedMethod) {
   if (recommendedMethod && ALL_METHODS.includes(recommendedMethod)) return [recommendedMethod, ...ALL_METHODS.filter((m) => m !== recommendedMethod)];
   return ALL_METHODS;
 }
+
+// R-23 (night task 2026-10-16): the wizard accepts exactly what "Edit price" accepts (utils/itemPrice.js parsePriceInput: '.' decimal point,
+// up to 2 decimals, at most 10,000,000), minus thousands commas - the wizard hands the raw text to the quote, which reads it as a number.
+const isWizardPriceValid = (v) => !/,/.test(String(v)) && parsePriceInput(v).ok && parsePriceInput(v).value !== '';
 
 export default function AddItemWizard({
   isOpen,
@@ -494,6 +499,8 @@ export default function AddItemWizard({
     missingLength: isHebrew ? 'יש להזין אורך גדול מ-0' : 'Please enter a length greater than 0',
     missingQuantity: isHebrew ? 'יש להזין כמות גדולה מ-0' : 'Please enter a quantity greater than 0',
     missingPrice: isHebrew ? 'יש להזין מחיר' : 'Please enter a price',
+    // night task 2026-10-16 (R-23): the same price rules as "Edit price" - never a value that is refused later
+    invalidPrice: isHebrew ? 'הזינו מחיר תקין: מספר עם נקודה עשרונית (עד 2 ספרות אחריה), בלי פסיקים, עד 10,000,000.' : 'Enter a valid price: a number with a decimal point (up to 2 decimals), no commas, up to 10,000,000.',
     missingAmount: isHebrew ? 'יש להזין סכום' : 'Please enter an amount',
     rowNeedsHeight: isHebrew ? (n) => `במידה ${n} חסר גובה. השלימו או הסירו אותה.` : (n) => `Size ${n} needs a height. Complete or remove it.`,
     rowNeedsWidth: isHebrew ? (n) => `במידה ${n} חסר רוחב. השלימו או הסירו אותה.` : (n) => `Size ${n} needs a width. Complete or remove it.`,
@@ -562,17 +569,17 @@ export default function AddItemWizard({
       else if (description.length > ITEM_DESCRIPTION_MAX) e.description = t.descriptionTooLong(description.length);
       if (!pricingMethod) e.method = t.missingMethod;
       if (pricingMethod === 'fixed') {
-        if (unitPrice === '' || Number.isNaN(Number(unitPrice))) e.unitPrice = t.missingAmount;
+        if (unitPrice === '') e.unitPrice = t.missingAmount; else if (!isWizardPriceValid(unitPrice)) e.unitPrice = t.invalidPrice;
       } else if (pricingMethod === 'units') {
         if (!(Number(quantity) > 0)) e.quantity = t.missingQuantity;
-        if (unitPrice === '' || Number.isNaN(Number(unitPrice))) e.unitPrice = t.missingPrice;
+        if (unitPrice === '') e.unitPrice = t.missingPrice; else if (!isWizardPriceValid(unitPrice)) e.unitPrice = t.invalidPrice;
       } else if (isMeasureMethod && useManualQty) {
         if (!(Number(manualQty) > 0)) e.manualQty = t.missingManualQty;
-        if (unitPrice === '' || Number.isNaN(Number(unitPrice))) e.unitPrice = t.missingPrice;
+        if (unitPrice === '') e.unitPrice = t.missingPrice; else if (!isWizardPriceValid(unitPrice)) e.unitPrice = t.invalidPrice;
       } else if (isMeasureMethod) {
         if (!(Number(widthCm) > 0)) e.width = pricingMethod === 'linear' ? t.missingLength : t.missingWidth;
         if (pricingMethod === 'area' && !(Number(heightCm) > 0)) e.height = t.missingHeight;
-        if (unitPrice === '' || Number.isNaN(Number(unitPrice))) e.unitPrice = t.missingPrice;
+        if (unitPrice === '') e.unitPrice = t.missingPrice; else if (!isWizardPriceValid(unitPrice)) e.unitPrice = t.invalidPrice;
 
         const rowErrors = {};
         extraMeasureRows.forEach((row, idx) => {

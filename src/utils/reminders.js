@@ -244,7 +244,15 @@ export async function loadReminderSettings(client, userId) {
 export async function saveReminderSettings(client, userId, settings) {
   const g = guard(client, userId); if (g) return g;
   try {
-    const { data, error } = await client.from('reminder_settings').upsert({ ...toReminderSettingsRow(settings), user_id: userId }, { onConflict: 'user_id' }).select(SETTINGS_COLUMNS).single();
+    // Night task 2026-10-16 (R-26): UPDATE first and INSERT only for an account without a row. An upsert (INSERT ... ON CONFLICT) fires the
+    // BEFORE INSERT trigger even when the row exists, which wrote a false "mode set" line into the history on every save.
+    const row = { ...toReminderSettingsRow(settings), user_id: userId };
+    let { data, error } = await client.from('reminder_settings').update(row).eq('user_id', userId).select(SETTINGS_COLUMNS).maybeSingle();
+    if (!error && !data) {
+      ({ data, error } = await client.from('reminder_settings').insert(row).select(SETTINGS_COLUMNS).single());
+      // another tab created it a moment earlier -> it exists now: update it
+      if (error && String(error.code) === '23505') ({ data, error } = await client.from('reminder_settings').update(row).eq('user_id', userId).select(SETTINGS_COLUMNS).single());
+    }
     if (error) return fromError(error);
     if (!data || data.user_id !== userId) return fail('unknown', 'no persisted row returned');
     return { ok: true, data: { settings: normalizeReminderSettings(data), stored: true } };

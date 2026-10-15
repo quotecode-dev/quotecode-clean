@@ -6,6 +6,10 @@ import { cwd } from 'node:process';
 import { buildTemplateContent, templateToFormState, templateSummary, templatePriceBasis, clientTypeForPriceBasis, templateCurrencyUnknown, templateCurrencyMismatch } from './utils/quoteTemplates';
 import { withPersistableQuantity, getActiveQuantity } from './utils/professionalQuoteItem';
 import { draftLinesToQuoteItems } from './utils/aiQuoteDraftClient';
+import { saveReminderSettings } from './utils/reminders';
+import { quoteDisplayStatus, quoteDisplayLabel, matchesQuoteFilter, isQuoteAwaiting } from './utils/quoteStatusDisplay';
+import { getQuoteStatusKey } from './utils/quoteListSort';
+import { quoteAwaitsCustomer } from '../supabase/functions/_shared/reminderRules.js';
 
 const read = (p) => readFileSync(join(cwd(), p), 'utf8').replace(/\r\n/g, '\n');
 const dash = read('src/pages/Dashboard.jsx');
@@ -79,5 +83,100 @@ describe('R-05: a fractional quantity never fails the save', () => {
   });
   it('the save goes through it', () => {
     expect(dash).toContain('let itemsForPersist = excludeUntouchedPlaceholderItems(items).map(withPersistableQuantity);');
+  });
+});
+
+describe('R-06 / R-07 / R-08: one shown status, one awaiting rule', () => {
+  const q = (status, view_count = 0, extra = {}) => ({ id: 'x', status, view_count, total: 100, quote_items: [{ description: 'a', quantity: 1, unit_price: 100 }], ...extra });
+  it('the shown status', () => {
+    expect(quoteDisplayStatus(q('draft', 0))).toBe('needs_sending');
+    expect(quoteDisplayStatus(q('draft', 1))).toBe('sent_viewed');
+    expect(quoteDisplayStatus(q('sent', 0))).toBe('sent_not_viewed');
+    expect(quoteDisplayStatus(q('sent', 3))).toBe('hot');
+    expect(quoteDisplayStatus(q('approved', 9))).toBe('approved');
+    expect(quoteDisplayLabel('sent_viewed', true)).toBe('נשלחה · נצפתה');
+    expect(quoteDisplayLabel('needs_sending', false)).toBe('Needs sending');
+  });
+  it('the filter and the sort follow the shown status', () => {
+    expect(matchesQuoteFilter(q('draft', 1), 'sent')).toBe(true);
+    expect(matchesQuoteFilter(q('draft', 1), 'draft')).toBe(false);
+    expect(matchesQuoteFilter(q('draft', 0), 'needs_sending')).toBe(true);
+    expect(matchesQuoteFilter(q('sent', 4), 'hot')).toBe(true);
+    expect(matchesQuoteFilter(q('paid'), 'All')).toBe(true);
+    expect(getQuoteStatusKey(q('draft', 1))).toBe('sent');
+  });
+  it('awaiting is the same in the list, reminders and the calendar', () => {
+    const viewedDraft = q('draft', 2);
+    expect(isQuoteAwaiting(viewedDraft)).toBe(true);
+    expect(quoteAwaitsCustomer(viewedDraft, () => false)).toBe(true);
+    expect(quoteAwaitsCustomer(q('approved', 2), () => false)).toBe(false);
+    expect(quoteAwaitsCustomer(q('sent'), () => true)).toBe(false); // expired
+    expect(read('src/utils/calendarModel.js')).toContain('if (!q || !isAwaitingQuote(q)) continue;');
+  });
+  it('the cards, the old table and the client list show the shown status', () => {
+    const tab = read('src/components/QuotesTab.jsx');
+    expect(tab.match(/\{statusLabel\}\n\s*<\/span>/g)).toHaveLength(2);
+    expect(read('src/components/ClientsTab.jsx')).toContain('const latestBadge = latestQuote ? statusBadgeFor(latestQuote, isHebrew) : null;');
+  });
+});
+
+describe('R-09 / R-10 / R-12 / R-13 / R-19 / R-23 wiring', () => {
+  it('R-09: the bell follows time and task writes', () => {
+    const nc = read('src/components/NotificationCenter.jsx');
+    expect(nc).toContain('const id = setInterval(() => setMinuteTick((n) => n + 1), 60000);');
+    expect(nc).toContain('window.addEventListener(TASKS_CHANGED_EVENT, onChanged);');
+    expect(read('src/utils/tasksClient.js').match(/return announced\(/g)).toHaveLength(5);
+  });
+  it('R-10: dashes and loading lines while the quotes load', () => {
+    expect(read('src/components/StatisticsTab.jsx')).toContain("{notLoaded ? '—' : k.value}");
+    expect(dash).toContain("{dataLoad.quotes !== 'ok' && quotes.length === 0 ? '—' : totalQuotesCount}");
+    expect(dash.match(/quotesReady=\{dataLoad\.quotes === 'ok' \|\| quotes\.length > 0\}/g)).toHaveLength(2);
+  });
+  it('R-12 / R-13: an honest stuck screen with Try again (no reload) and Sign out', () => {
+    expect(dash).toContain('if (attempt >= 5 && settingsGen === loadGenRef.current) setStartupStuck(true);');
+    expect(dash).toContain('sleep: settingsRetrySleep,');
+    expect(dash).toContain('onStartupRetry={retryStartupNow}');
+    expect(dash).not.toMatch(/location\.reload\(/);
+    expect(read('src/components/AuthScreen.jsx')).toContain('data-testid="startup-stuck"');
+  });
+  it('R-19: a server failure of the public quote is temporary (503), not "not found"', () => {
+    expect(read('supabase/functions/get-public-quote/index.ts')).toContain("return jsonResponse({ error: 'temporarily_unavailable' }, 503);");
+    expect(read('src/components/SmartPublicQuote.jsx')).toContain("setState({ status: status === 404 ? 'notfound' : 'unavailable', dto: null });");
+  });
+  it('R-23: Issue runs the form checks and never issues a quote with a missing price; the wizard takes the Edit-price rules', () => {
+    expect(dash).toContain(`document.querySelector('form[data-quote-form="editor"]')`);
+    expect(dash).toContain('if (missingPriceItems(items).length) {');
+    expect(read('src/components/AddItemWizard.jsx')).toContain('const isWizardPriceValid = (v) => !/,/.test(String(v)) && parsePriceInput(v).ok');
+  });
+});
+
+describe('R-26: saving the reminder settings never writes a false history line', () => {
+  const fake = ({ updateRow, insertError = null }) => {
+    const calls = [];
+    const updateResult = () => ({ data: updateRow || calls.filter((c) => c === 'update').length > 1 ? { user_id: 'u1', mode: 'in_app' } : null, error: null });
+    const updChain = () => ({ eq: () => updChain(), select: () => ({ maybeSingle: async () => updateResult(), single: async () => updateResult() }) });
+    return {
+      calls,
+      from: () => ({
+        update: () => { calls.push('update'); return updChain(); },
+        insert: () => { calls.push('insert'); return { select: () => ({ single: async () => (insertError ? { data: null, error: insertError } : { data: { user_id: 'u1', mode: 'in_app' }, error: null }) }) }; },
+      }),
+    };
+  };
+  it('an existing row is UPDATEd (never an upsert that fires the INSERT trigger)', async () => {
+    const c = fake({ updateRow: true });
+    expect((await saveReminderSettings(c, 'u1', { mode: 'in_app' })).ok).toBe(true);
+    expect(c.calls).toEqual(['update']);
+  });
+  it('no row -> INSERT; a row created meanwhile by another tab (23505) -> UPDATE', async () => {
+    const a = fake({ updateRow: false });
+    expect((await saveReminderSettings(a, 'u1', { mode: 'in_app' })).ok).toBe(true);
+    expect(a.calls).toEqual(['update', 'insert']);
+    const b = fake({ updateRow: false, insertError: { code: '23505', message: 'duplicate' } });
+    expect((await saveReminderSettings(b, 'u1', { mode: 'in_app' })).ok).toBe(true);
+    expect(b.calls).toEqual(['update', 'insert', 'update']);
+  });
+  it('the save has no upsert', () => {
+    expect(read('src/utils/reminders.js')).not.toMatch(/from\('reminder_settings'\)\.upsert\(/);
   });
 });

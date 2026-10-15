@@ -310,6 +310,8 @@ serve(async (req) => {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('get-public-quote error:', message);
-    return jsonResponse({ error: 'Unable to load quote' }, 400);
+    // Night task 2026-10-16 (R-19): a server-side failure (the activation phase / capability scope / a database read) is a TEMPORARY
+    // error (503), never "not found" - the page tells the customer to try again. A missing quote keeps its uniform 404 above.
+    return jsonResponse({ error: 'temporarily_unavailable' }, 503);
   }
 });
