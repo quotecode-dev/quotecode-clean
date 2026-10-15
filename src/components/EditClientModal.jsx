@@ -4,7 +4,6 @@
 
 import { useState, useEffect } from 'react';
 import AiModalHeader from './AiModalHeader';
-import AddressSuggestInput from './AddressSuggestInput';
 import { APP, APP_STATUS, SHADOW } from '../theme/neonTheme';
 
 // חוק ברזל (Consolidated Open UI Corrections task, §G1): isNew (חדש) -
@@ -13,7 +12,7 @@ import { APP, APP_STATUS, SHADOW } from '../theme/neonTheme';
 // onSave עדיין מקבל את כל השדות המלאים בדיוק כמו קודם - Dashboard.jsx
 // מחליט אם זו INSERT או UPDATE (handleCreateClient/handleSaveUpdatedClient
 // בהתאמה), לא המודל הזה.
-export default function EditClientModal({ isOpen, onClose, client, onSave, isHebrew, isNew = false, isIsraeliBusiness = false }) {
+export default function EditClientModal({ isOpen, onClose, client, onSave, isHebrew, isNew = false }) {
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -157,13 +156,8 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
             <div>
               <label style={{ display: 'block', fontWeight: '600', color: APP.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'כתובת' : 'Address'}</label>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: '6px' }}>
-                {/* Israel address suggestions (Codex spec A13-A16): for an Israeli business the city comes first, so the street list can follow it. */}
-                {(() => {
-                  const fieldStyle = { width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box' };
-                  const streetField = <AddressSuggestInput key="street" kind="street" enabled={isIsraeliBusiness === true} isHebrew={isHebrew} cityText={city} value={street} onChange={(v) => setAddressParts(v, city, stateProv, zipCode)} inputProps={{ type: 'text', 'data-testid': 'client-address-street', 'aria-label': isHebrew ? 'רחוב ומספר' : 'Street address', placeholder: isHebrew ? 'רחוב ומספר' : 'Street address', style: fieldStyle }} />;
-                  const cityField = <AddressSuggestInput key="city" kind="city" enabled={isIsraeliBusiness === true} isHebrew={isHebrew} value={city} onChange={(v) => setAddressParts(street, v, stateProv, zipCode)} inputProps={{ type: 'text', 'data-testid': 'client-address-city', 'aria-label': isHebrew ? 'עיר' : 'City', placeholder: isHebrew ? 'עיר' : 'City', style: fieldStyle }} />;
-                  return isIsraeliBusiness === true ? [cityField, streetField] : [streetField, cityField];
-                })()}
+                <input type="text" data-testid="client-address-street" aria-label={isHebrew ? 'רחוב ומספר' : 'Street address'} placeholder={isHebrew ? 'רחוב ומספר' : 'Street address'} value={street} onChange={(e) => setAddressParts(e.target.value, city, stateProv, zipCode)} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box' }} />
+                <input type="text" data-testid="client-address-city" aria-label={isHebrew ? 'עיר' : 'City'} placeholder={isHebrew ? 'עיר' : 'City'} value={city} onChange={(e) => setAddressParts(street, e.target.value, stateProv, zipCode)} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box' }} />
                 <input type="text" data-testid="client-address-state" aria-label={isHebrew ? 'מדינה / מחוז' : 'State / Province'} placeholder={isHebrew ? 'מדינה / מחוז' : 'State / Province'} value={stateProv} onChange={(e) => setAddressParts(street, city, e.target.value, zipCode)} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box' }} />
                 <input type="text" data-testid="client-address-zip" aria-label={isHebrew ? 'מיקוד' : 'ZIP / Postal'} placeholder={isHebrew ? 'מיקוד' : 'ZIP / Postal'} value={zipCode} onChange={(e) => setAddressParts(street, city, stateProv, e.target.value)} dir="ltr" style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box' }} />
               </div>

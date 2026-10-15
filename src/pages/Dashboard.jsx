@@ -184,10 +184,6 @@ function HeaderGreeting({ isHebrew }) {
   return <strong className="dash-header-greeting">{timeGreeting(now.getHours(), isHebrew)}</strong>;
 }
 
-// The "new client" window's client: ONE stable empty object. A fresh {} on every Dashboard render re-ran the window's reset effect
-// and wiped what the user had typed whenever the Dashboard re-rendered (e.g. a realtime quote update) while the window was open.
-const NEW_CLIENT = Object.freeze({});
-
 // PRODUCT_TRUTH_CAPABILITY: dashboard_overview
 export default function Dashboard({ bundleIsHebrew } = {}) {
   const now = new Date();
@@ -6912,11 +6908,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       <EditClientModal
         isOpen={editingClient !== null || isCreatingClient}
         onClose={() => { setEditingClient(null); setIsCreatingClient(false); }}
-        client={isCreatingClient ? NEW_CLIENT : editingClient}
+        client={isCreatingClient ? {} : editingClient}
         onSave={isCreatingClient ? handleCreateClient : handleSaveUpdatedClient}
         isHebrew={isHebrew}
         isNew={isCreatingClient}
-        isIsraeliBusiness={isLocalIsraeliBusiness}
       />
 
       <EditExpenseModal 

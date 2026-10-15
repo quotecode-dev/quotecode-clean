@@ -19,10 +19,6 @@
     "interactive": 14,
     "markers": 19
   },
-  "src/components/AddressSuggestInput.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/components/AdminDestinationHost.jsx": {
     "interactive": 0,
     "markers": 0
@@ -740,10 +736,6 @@
     "markers": 0
   },
   "src/utils/imageNormalize.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/israelAddress.js": {
     "interactive": 0,
     "markers": 0
   },
