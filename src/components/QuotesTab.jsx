@@ -351,13 +351,8 @@ export default function QuotesTab({
   // business totals. "In progress" is only the complement of the two
   // canonical final statuses; no persisted status is invented here.
   const overviewQuotes = Array.isArray(allQuotes) ? allQuotes : quotes;
-  // "Awaiting" = reached the customer and not yet approved/paid. Owner bug 2026-10-14: a quote the customer has VIEWED (a shared link
-  // keeps the saved status "draft") is awaiting too - the list labels it "viewed, awaiting", so the counter must count it.
-  const overviewAwaiting = overviewQuotes.filter((quote) => {
-    const status = (quote.status || '').toLowerCase();
-    if (status === 'approved' || status === 'paid') return false;
-    return status === 'sent' || Number(quote.view_count || 0) > 0;
-  }).length;
+  // "Awaiting" = sent to the customer and not yet approved/paid (never a draft).
+  const overviewAwaiting = overviewQuotes.filter((quote) => (quote.status || '').toLowerCase() === 'sent').length;
   const overviewApproved = overviewQuotes.filter((quote) => {
     const status = (quote.status || '').toLowerCase();
     return status === 'approved' || status === 'paid';
