@@ -879,6 +879,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/utils/resilientLoad.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/returnDiag.js": {
     "interactive": 0,
     "markers": 0
