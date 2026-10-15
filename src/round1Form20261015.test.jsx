@@ -58,7 +58,7 @@ describe('A1 / A6: the measured quote is one list with a local example', () => {
     cleanup();
     render(<Stateful />);
     expect(screen.queryByTestId('quote-show-example')).toBeNull();
-    expect(screen.getByText('הוספת מוצר או עבודה')).toBeTruthy();
+    expect(screen.getAllByText('הוספת מוצר או עבודה').length).toBeGreaterThan(0);
   });
 
   it('the Dashboard opens the measured quote as a list, never saves the example and never sends its marker to the database', () => {
@@ -111,6 +111,31 @@ describe('plan section 4: save and issue wording', () => {
   it('issuing says it sends no email and that sharing comes after', () => {
     expect(PRESENTATION_COPY.he.issueHint).toContain('הנפקה אינה שולחת מייל. לאחר ההנפקה אפשר לשתף.');
     expect(PRESENTATION_COPY.en.issueHint).toContain('Issuing does not send an email. You can share the quote after it is issued.');
+  });
+});
+
+describe('Owner 2026-10-15 (David): the price step points to the item, the discount is a 0-100 percentage', () => {
+  it('with no item: the price step says where the price goes and opens the item window', () => {
+    render(<Stateful />);
+    const hint = screen.getByTestId('sq-price-needs-item');
+    expect(hint.textContent).toContain('קודם מוסיפים מוצר או עבודה עם מחיר (שלב 2). כאן רק הנחה על כל ההצעה.');
+    expect(screen.getByText('הנחה על כל ההצעה (%)')).toBeTruthy();
+    expect(screen.getByTestId('sq-discount').getAttribute('inputmode')).toBe('decimal');
+  });
+  it('with a real item the hint is gone', () => {
+    render(<QuoteForm {...props({ items: [{ description: 'Window', quantity: '1', unit_price: '300', isFromCatalog: false }] })} />);
+    expect(screen.queryByTestId('sq-price-needs-item')).toBeNull();
+  });
+  it('a discount outside 0-100 (the amount typed into it) is flagged next to the field, and the save refuses it', () => {
+    render(<QuoteForm {...props({ discount: '2650' })} />);
+    expect(screen.getByRole('alert').textContent).toBe('הנחה יכולה להיות בין 0 ל־100.');
+    expect(screen.getByTestId('sq-discount').getAttribute('aria-invalid')).toBe('true');
+    cleanup();
+    render(<QuoteForm {...props({ discount: '10' })} />);
+    expect(screen.queryByText('הנחה יכולה להיות בין 0 ל־100.')).toBeNull();
+    const d = read('pages/Dashboard.jsx');
+    expect(d).toContain('if (!Number.isFinite(d) || d < 0 || d > 100) {');
+    expect(d).toContain('ההנחה צריכה להיות בין 0 ל־100 אחוז. את המחיר רושמים במוצר או בעבודה (שלב 2).');
   });
 });
 

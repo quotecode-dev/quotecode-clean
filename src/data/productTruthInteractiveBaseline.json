@@ -16,8 +16,8 @@
     "markers": 5
   },
   "src/components/AddItemWizard.jsx": {
-    "interactive": 16,
-    "markers": 20
+    "interactive": 14,
+    "markers": 18
   },
   "src/components/AddressSuggestInput.jsx": {
     "interactive": 0,
@@ -228,8 +228,8 @@
     "markers": 5
   },
   "src/components/QuoteForm.jsx": {
-    "interactive": 29,
-    "markers": 37
+    "interactive": 30,
+    "markers": 38
   },
   "src/components/QuotePrintModeModal.jsx": {
     "interactive": 3,

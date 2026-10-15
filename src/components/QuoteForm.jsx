@@ -457,6 +457,10 @@ export default function QuoteForm({
     return rest.length ? rest : [{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }];
   });
 
+  // Owner 2026-10-15: the price step knows whether a real item exists, and a discount is a percentage between 0 and 100
+  const hasRealItems = (items || []).some((it) => it && !isUntouchedPlaceholderItem(it));
+  const discountInvalid = String(discount ?? '').trim() !== '' && (!Number.isFinite(Number(discount)) || Number(discount) < 0 || Number(discount) > 100);
+
   const renderItemCard = (index) => {
     const item = items[index];
     const isPro = isProfessionalItem(item);
@@ -1050,10 +1054,23 @@ export default function QuoteForm({
         )}
 
         <StepHeading n={3} title={isHebrew ? 'מחיר' : 'Price'} />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 180px))', gap: '10px', marginBottom: '10px' }}>
+        {/* Owner 2026-10-15 (typed approval, David's video: the quote amount was typed into the discount): with no item yet, the price
+            step says where the price goes and opens the item window; the field is named for what it is - a discount on the whole quote. */}
+        {!hasRealItems && (
+          <div data-testid="sq-price-needs-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', padding: '10px 12px', marginBottom: '10px', borderRadius: '10px', background: NEON.violetLighter, border: `1px solid ${NEON.violetLight}`, color: NEON.textPrimary, fontSize: '0.82rem', lineHeight: 1.4 }}>
+            <span style={{ minWidth: 0, flex: '1 1 220px' }}>{isHebrew ? 'קודם מוסיפים מוצר או עבודה עם מחיר (שלב 2). כאן רק הנחה על כל ההצעה.' : 'First add a product or work with its price (step 2). This is only a discount on the whole quote.'}</span>
+            {/* PRODUCT_TRUTH_DECORATIVE: opens the add-item window from the price step when the quote has no item yet */}
+            <button type="button" onClick={() => openAddWizard(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: NEON.gradient, color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 12px', minHeight: '40px', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
+              <Plus size={14} strokeWidth={3} />
+              {isHebrew ? 'הוספת מוצר או עבודה' : 'Add product or work'}
+            </button>
+          </div>
+        )}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 220px))', gap: '10px', marginBottom: '10px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{t.discount}</label>
-            <input type="text" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
+            <label htmlFor="sq-discount" style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'הנחה על כל ההצעה (%)' : 'Discount on the whole quote (%)'}</label>
+            <input id="sq-discount" data-testid="sq-discount" type="text" inputMode="decimal" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" aria-invalid={discountInvalid} aria-describedby={discountInvalid ? 'sq-discount-error' : undefined} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${discountInvalid ? NEON.red : NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
+            {discountInvalid && <div id="sq-discount-error" role="alert" style={{ color: NEON.red, fontSize: '0.74rem', marginTop: '4px' }}>{isHebrew ? 'הנחה יכולה להיות בין 0 ל־100.' : 'A discount can be between 0 and 100.'}</div>}
           </div>
         </div>
         {/* חוק ברזל (Global Surface Audit + Money Alignment Fix, סבב זה):

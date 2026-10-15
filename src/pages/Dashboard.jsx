@@ -3687,6 +3687,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     // Task 27 (§253): a NEW quote after Free-10 is exhausted stops here, BEFORE any client or quote row is written; the form keeps every
     // field. (The server refuses the same insert on its own - quotes_free10_creation_guard - so a direct or concurrent path cannot pass.)
     if (!editingQuoteId && free10Blocked()) return;
+    // Owner 2026-10-15: a discount is a percentage between 0 and 100 - anything else (e.g. the amount typed into it) is never saved
+    {
+      const d = String(discount ?? '').trim() === '' ? 0 : Number(discount);
+      if (!Number.isFinite(d) || d < 0 || d > 100) {
+        setAlertModalMsg(isHebrew ? 'ההנחה צריכה להיות בין 0 ל־100 אחוז. את המחיר רושמים במוצר או בעבודה (שלב 2).' : 'The discount must be between 0 and 100 percent. The price goes on the product or work (step 2).');
+        return;
+      }
+    }
     // Task 27 (§6): an incomplete work date is fixed before anything is saved (the field explains what is missing)
     if (serviceScheduleState === 'ready' && !normalizeServiceSchedule(serviceSchedule).ok) {
       setAlertModalMsg(isHebrew ? 'תאריך הביצוע אינו שלם. תקנו אותו או מחקו אותו ונסו לשמור שוב.' : 'The work date is incomplete. Fix it or clear it, then save again.');

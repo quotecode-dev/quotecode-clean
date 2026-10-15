@@ -400,6 +400,8 @@ export default function AddItemWizard({
     // הבחירה מהקטלוג עצמה, לא הזנה חופשית - ה-explanation חייב לשקף את
     // מה שהשדה בפועל מציג (חוק Step-Header-Guidance הקיים, §161).
     step1ExplanationCatalog: isHebrew ? 'בחרו מוצר או עבודה שכבר שמרתם בקטלוג, או הוסיפו פריט חדש.' : 'Choose a product or work you already saved in your catalog, or add a new one.',
+    step1ExplanationBoth: isHebrew ? 'כתבו מה העבודה, או בחרו מוצר שכבר שמרתם בקטלוג.' : 'Type the job, or choose a product you already saved in your catalog.',
+    catalogOrHeading: isHebrew ? 'או בחרו מהקטלוג' : 'Or choose from your catalog',
     descPlaceholder: isHebrew ? 'למשל: התקנה, ידיות או רשת לחלון' : 'e.g. Installation, handles, or a window screen',
     chooseFromCatalog: isHebrew ? 'בחירה מהמוצרים השמורים' : 'Choose from saved products',
     catalogPick: isHebrew ? 'בחר פריט...' : 'Select an item...',
@@ -817,7 +819,8 @@ export default function AddItemWizard({
   }
 
   const orderedMethods = getOrderedMethods(recommendedMethod);
-  const catalogListShown = !!(services && services.length > 0 && !showManualEntry);
+  // the item screen always shows the free-text field, the methods and the numbers (the catalog is a list below the field)
+  const catalogListShown = false;
   const methodMeta = {
     fixed: { icon: <Package size={20} />, title: t.methodFixed, example: t.methodFixedExample },
     units: { icon: <Package size={20} />, title: t.methodUnitsChoice, example: t.methodUnitsExample },
@@ -874,56 +877,43 @@ export default function AddItemWizard({
                   "כתבו..." - כדי לשקף את מה שהשדה בפועל מציג. אין קטלוג
                   בכלל => מדלגים ישירות להזנה ידנית, "no unnecessary
                   source-choice card" (זהה-בייט להתנהגות הקודמת). */}
+              {/* Owner 2026-10-15 (typed approval, David's video: the catalog-first list hid how to add a new job): the free-text
+                  field comes FIRST, the saved catalog below it as "or choose from your catalog". Picking from the catalog fills the
+                  name and price into the same field set; nothing is hidden behind a link. */}
               <StepHeading
                 title={t.step1Title}
-                explanation={(services && services.length > 0 && !showManualEntry) ? t.step1ExplanationCatalog : t.step1Explanation}
+                explanation={(services && services.length > 0) ? t.step1ExplanationBoth : t.step1Explanation}
               />
-
-              {services && services.length > 0 && !showManualEntry ? (
-                <div>
-                  <FieldLabel>{t.catalogFirstHeading}</FieldLabel>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '6px', maxHeight: '260px', overflowY: 'auto' }}>
-                    {/* PRODUCT_TRUTH_DECORATIVE: selects a saved catalog service/product as the wizard item; step-1 sub-control of the already-documented add-item wizard flow */}
-                    {services.map((s, idx) => (
+              <input
+                id="wiz-description"
+                ref={firstFieldRef}
+                type="text"
+                value={description}
+                onChange={(e) => { setDescription(e.target.value); if (catalogServiceId) setCatalogServiceId(''); }}
+                placeholder={t.descPlaceholder}
+                aria-invalid={!!errors.description}
+                aria-describedby={errors.description ? 'wiz-description-error' : undefined}
+                style={{ ...inputStyle(isHebrew), padding: '13px 14px' }}
+              />
+              {errors.description && <ErrorText id="wiz-description-error">{errors.description}</ErrorText>}
+              {services && services.length > 0 && !isEditMode && (
+                <div style={{ marginTop: '12px' }}>
+                  <FieldLabel>{t.catalogOrHeading}</FieldLabel>
+                  <div data-testid="wiz-catalog-list" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px', maxHeight: '176px', overflowY: 'auto' }}>
+                    {/* PRODUCT_TRUTH_DECORATIVE: selects a saved catalog service/product as the wizard item (fills name and price); sub-control of the already-documented add-item wizard flow */}
+                    {services.map((sv) => (
                       <button
-                        key={s.id}
+                        key={sv.id}
                         type="button"
-                        ref={idx === 0 ? firstFieldRef : undefined}
-                        onClick={() => handleCatalogPick(s.id)}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', width: '100%', boxSizing: 'border-box', background: NEON.bgCardAlt, border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', padding: '12px 14px', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.86rem', fontWeight: 700, color: NEON.textPrimary }}
+                        aria-pressed={String(catalogServiceId) === String(sv.id)}
+                        onClick={() => handleCatalogPick(sv.id)}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', width: '100%', boxSizing: 'border-box', background: String(catalogServiceId) === String(sv.id) ? NEON.violetLighter : NEON.bgCardAlt, border: `1px solid ${String(catalogServiceId) === String(sv.id) ? NEON.violet : NEON.borderStrong}`, borderRadius: '10px', padding: '10px 12px', minHeight: '44px', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.84rem', fontWeight: 700, color: NEON.textPrimary }}
                       >
-                        <span>{s.name}</span>
-                        <span className="pf-money" style={{ color: NEON.violet, fontWeight: 800, flexShrink: 0 }}>{sym}{money(s.price)}</span>
+                        <span>{sv.name}</span>
+                        <span className="pf-money" style={{ color: NEON.violet, fontWeight: 800, flexShrink: 0 }}>{sym}{money(sv.price)}</span>
                       </button>
                     ))}
                   </div>
-                  {/* PRODUCT_TRUTH_DECORATIVE: 'Enter manually instead' link switching step 1 from the catalog list to a free-text field */}
-                  <button type="button" onClick={() => setShowManualEntry(true)} style={{ marginTop: '12px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', padding: 0 }}>
-                    {t.manualFallbackLink}
-                  </button>
-                  {errors.description && <ErrorText>{errors.description}</ErrorText>}
-                </div>
-              ) : (
-                <div>
-                  <input
-                    id="wiz-description"
-                    ref={firstFieldRef}
-                    type="text"
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder={t.descPlaceholder}
-                    aria-invalid={!!errors.description}
-                    aria-describedby={errors.description ? 'wiz-description-error' : undefined}
-                    style={{ ...inputStyle(isHebrew), padding: '13px 14px' }}
-                  />
-                  {errors.description && <ErrorText id="wiz-description-error">{errors.description}</ErrorText>}
-
-                  {/* PRODUCT_TRUTH_DECORATIVE: 'Back to catalog' link switching step 1 back from manual entry to the catalog list */}
-                  {services && services.length > 0 && (
-                    <button type="button" onClick={() => setShowManualEntry(false)} style={{ marginTop: '14px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', padding: 0 }}>
-                      {t.backToCatalogLink}
-                    </button>
-                  )}
                 </div>
               )}
             </div>

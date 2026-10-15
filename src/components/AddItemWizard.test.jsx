@@ -97,15 +97,20 @@ describe('AddItemWizard - Step 1 opens directly on the business task (no source-
     expect(document.getElementById('wiz-description')).toBeTruthy();
   });
 
-  it('Catalog First (Structural Unification task): when the business has catalog items, the catalog list IS the primary Step 1 view, not a secondary link', () => {
+  // Owner 2026-10-15 (typed approval after a real user could not find how to add a job missing from his catalog): the free-text
+  // field comes FIRST; the saved catalog is a list below it - no link to find, nothing to switch.
+  it('with a catalog: the free-text field first, the catalog below it as "Or choose from your catalog", the methods on the same screen', () => {
     const services = [{ id: 1, name: 'Design consultation', price: 150 }, { id: 2, name: 'Site visit', price: 80 }];
     render(<AddItemWizard {...baseProps} services={services} />);
-    // The catalog is shown immediately - no manual description field yet.
-    expect(screen.getByText('Choose a product or work from your catalog')).toBeTruthy();
+    const field = document.getElementById('wiz-description');
+    const list = screen.getByTestId('wiz-catalog-list');
+    expect(field).toBeTruthy();
+    expect(field.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(screen.getByText('Or choose from your catalog')).toBeTruthy();
     expect(screen.getByText('Design consultation')).toBeTruthy();
     expect(screen.getByText('Site visit')).toBeTruthy();
-    expect(document.getElementById('wiz-description')).toBeNull();
-    expect(screen.getByText('Not in the catalog? Add a product or work manually')).toBeTruthy();
+    expect(screen.getByText('One total price')).toBeTruthy();
+    expect(screen.queryByText('Not in the catalog? Add a product or work manually')).toBeNull();
   });
 
   it('picking a catalog item prefills description/price and reveals the (now pre-filled) manual field for review, without forcing a pricing method', () => {
@@ -118,15 +123,16 @@ describe('AddItemWizard - Step 1 opens directly on the business task (no source-
     expect(screen.getByText('Price for each')).toBeTruthy();
   });
 
-  it('the manual-entry fallback link reveals a plain description field; "Back to catalog" returns to the catalog list', () => {
+  it('a job typed by hand (not in the catalog) goes straight to its price and is added as a new item', () => {
+    const onAdd = vi.fn();
     const services = [{ id: 1, name: 'Design consultation', price: 150 }];
-    render(<AddItemWizard {...baseProps} services={services} />);
-    fireEvent.click(screen.getByText('Not in the catalog? Add a product or work manually'));
-    expect(document.getElementById('wiz-description')).toBeTruthy();
-    expect(screen.queryByText('Design consultation')).toBeNull();
-    fireEvent.click(screen.getByText('Back to catalog'));
-    expect(screen.getByText('Design consultation')).toBeTruthy();
-    expect(document.getElementById('wiz-description')).toBeNull();
+    render(<AddItemWizard {...baseProps} onAdd={onAdd} services={services} />);
+    setValue(document.getElementById('wiz-description'), 'Window screen repair');
+    fireEvent.click(screen.getByText('One total price'));
+    setValue(document.getElementById('wiz-fixed-amount'), '2650');
+    fireEvent.click(screen.getByText('Continue to check'));
+    fireEvent.click(screen.getByText('Add to quote'));
+    expect(onAdd.mock.calls[0][0]).toMatchObject({ description: 'Window screen repair', unit_price: '2650', quantity: '1', isFromCatalog: false });
   });
 
   it('editing an item with a saved catalog always shows the manual field (the item\'s own real description), never an unrelated catalog list - "Catalog must NOT silently override saved quote-item semantics during Edit"', () => {
