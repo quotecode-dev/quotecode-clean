@@ -15,7 +15,6 @@ import { computeQuoteWorkflowContext } from '../utils/quoteWorkflowContext';
 import { formatShortDate, deviceCalendarDate } from '../utils/shortDate';
 import { resolveAdminMarket } from '../utils/adminMarket';
 import { diagLog, diagBoot, idPrefix, installLifecycleDiag } from '../utils/returnDiag';
-import { loadWithRetry, isNetworkError } from '../utils/resilientLoad';
 import useQuoteDraftPersistence from '../hooks/useQuoteDraftPersistence';
 import { allowDraftWrites, decideRestore, suppressDraftWrites, flushAllDrafts, formHash, newDraftId, serverFingerprintFromQuote } from '../utils/quoteDraft';
 import { getBlobStore } from '../utils/draftAttachments';
@@ -228,15 +227,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [recoveryUpdateLoading, setRecoveryUpdateLoading] = useState(false);
 
   const [quotes, setQuotes] = useState([]);
-  // Owner 2026-10-15 (quotes vanished with zero counters until a refresh - "no user action, no refresh, a permanent fix"): every list
-  // load is self-healing (utils/resilientLoad.js). 'idle' | 'loading' | 'retrying' | 'ok' per list; a failure never reads as "none".
-  const [dataLoad, setDataLoad] = useState({ quotes: 'idle', clients: 'idle', services: 'idle', expenses: 'idle', attachments: 'idle' });
-  const dataLoadRef = useRef(dataLoad);
-  dataLoadRef.current = dataLoad;
-  const loadGenRef = useRef(0); // bumped on sign-out / user switch: older retry loops stop
-  const lastOkAtRef = useRef({});
-  const inFlightRef = useRef({});
-  const loadSeqRef = useRef({}); // the latest request per list; an older answer never overwrites a newer one
   const [clients, setClients] = useState([]);
   const [services, setServices] = useState([]);
   const [expenses, setExpenses] = useState([]);
@@ -325,7 +315,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // data exactly once per distinct real user id, on every fresh login.
   const lastAccessTokenRef = useRef(null);
   const lastLoadedUserIdRef = useRef(null);
-  const realtimeDroppedRef = useRef(false);
   const [regionChoiceError, setRegionChoiceError] = useState(null);
   const [bizTaxId, setBizTaxId] = useState('');
   const [bizEmail, setBizEmail] = useState('');
@@ -599,44 +588,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'quotes', filter: `user_id=eq.${userId}` }, (payload) => {
         setQuotes(prev => prev.map(q => q.id === payload.new.id ? { ...q, ...payload.new } : q));
       })
-      .subscribe((status) => {
-        // Owner 2026-10-15: after the live channel drops (sleep, network), its reconnect reloads the quotes quietly
-        if (status === 'SUBSCRIBED') {
-          if (realtimeDroppedRef.current) { realtimeDroppedRef.current = false; diagLog('data-refresh', { reason: 'realtime-reconnect' }); fetchQuotes(userId, { background: true }); }
-        } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          realtimeDroppedRef.current = true;
-        }
-      });
+      .subscribe();
 
     return () => { supabase.removeChannel(channel); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id]);
-
-  // Owner 2026-10-15: back in the app / the network back -> a quiet reload of every list that failed or is older than 2 minutes. The lists
-  // on screen stay as they are until the fresh answer arrives; the page itself never reloads (unsaved work is never touched).
-  useEffect(() => {
-    const userId = session?.user?.id;
-    if (!userId) return undefined;
-    const STALE_MS = 2 * 60 * 1000;
-    const loaders = { quotes: fetchQuotes, clients: fetchClients, services: fetchServices, expenses: fetchExpenses, attachments: fetchAllUserAttachments };
-    const refresh = (reason) => {
-      const now = Date.now();
-      const due = Object.keys(loaders).filter((name) => dataLoadRef.current[name] !== 'ok' || now - (lastOkAtRef.current[name] || 0) > STALE_MS);
-      if (!due.length) return;
-      diagLog('data-refresh', { reason, lists: due.join(',') });
-      for (const name of due) loaders[name](userId, { background: true });
-    };
-    const onVisible = () => { if (document.visibilityState === 'visible') refresh('visible'); };
-    const onOnline = () => refresh('online');
-    document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('online', onOnline);
-    window.addEventListener('pageshow', onVisible);
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('online', onOnline);
-      window.removeEventListener('pageshow', onVisible);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [session?.user?.id]);
 
   // Password Recovery End-to-End Fix, Wave 1, §227/§228: a recovery link
@@ -739,9 +693,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         // so this reliably fires exactly once per distinct real user id.
         if (newSession?.user?.id && newSession.user.id !== lastLoadedUserIdRef.current) {
           lastLoadedUserIdRef.current = newSession.user.id;
-          loadGenRef.current += 1;
-          inFlightRef.current = {};
-          lastOkAtRef.current = {};
           // כמו ב-initAuth למעלה: יש לחסום את רינדור ה-Dashboard (שם bizCountry
           // קובע שפה/כיוון) עד ש-loadData/fetchSettings מסיימים לטעון את
           // האזור האמיתי של המשתמש *החדש*. בלי זה, מעבר בין חשבונות באותו
@@ -759,10 +710,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         flushAllDrafts();
         diagLog('auth-event', { event, explicit: explicitLogoutRef.current });
         lastLoadedUserIdRef.current = null;
-        loadGenRef.current += 1;
-        inFlightRef.current = {};
-        lastOkAtRef.current = {};
-        setDataLoad({ quotes: 'idle', clients: 'idle', services: 'idle', expenses: 'idle', attachments: 'idle' });
         setQuotes([]);
         setClients([]);
         setServices([]);
@@ -1316,12 +1263,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const navCapabilities = getDashboardNavCapabilities({ isSuperAdmin, t, isHebrew });
 
   async function loadData(userId, userEmail, userMetadata) {
-    // Owner 2026-10-15: each list heals itself (fetchX -> loadResource); they load side by side and never block the settings
-    fetchQuotes(userId);
-    fetchClients(userId);
-    fetchServices(userId);
-    fetchExpenses(userId);
-    fetchAllUserAttachments(userId);
+    await fetchQuotes(userId);
+    await fetchClients(userId);
+    await fetchServices(userId);
+    await fetchExpenses(userId);
+    await fetchAllUserAttachments(userId);
     await fetchSettings(userId, userEmail, userMetadata);
   }
 
@@ -1340,120 +1286,75 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     return msg.includes('quote_item_measurements') || msg.includes('quote_sections');
   };
 
-  // One self-healing load per list (Owner 2026-10-15): retries by itself until it succeeds (an expired session is refreshed first), keeps
-  // the data already on screen while it tries, and only a SUCCESSFUL answer replaces the list. One loop per list at a time.
-  function loadResource(name, userId, query, apply, { background = false } = {}) {
-    if (background && inFlightRef.current[name]) return inFlightRef.current[name];
-    const gen = loadGenRef.current;
-    const seq = (loadSeqRef.current[name] || 0) + 1;
-    loadSeqRef.current[name] = seq;
-    const isCurrent = () => gen === loadGenRef.current && seq === loadSeqRef.current[name];
-    setDataLoad((prev) => (prev[name] === 'ok' ? prev : { ...prev, [name]: 'loading' }));
-    const p = loadWithRetry(query, {
-      isCurrent,
-      refreshAuth: () => supabase.auth.refreshSession(),
-      onRetry: (attempt, error, status) => {
-        diagLog('data-load', { resource: name, outcome: 'retry', attempt, status: status ?? error?.status ?? null, message: String(error?.message || '').slice(0, 60) });
-        if (attempt >= 2) setDataLoad((prev) => (prev[name] === 'ok' ? prev : { ...prev, [name]: 'retrying' }));
-      },
-    }).then((res) => {
-      if (res.ok && isCurrent()) {
-        apply(res.data);
-        lastOkAtRef.current[name] = Date.now();
-        setDataLoad((prev) => ({ ...prev, [name]: 'ok' }));
-        diagLog('data-load', { resource: name, outcome: 'ok', rows: Array.isArray(res.data) ? res.data.length : null });
-      }
-      return res;
-    }).finally(() => { if (inFlightRef.current[name] === p) delete inFlightRef.current[name]; });
-    inFlightRef.current[name] = p;
-    return p;
-  }
-  const asResult = ({ data, error, status }) => (error ? { ok: false, error, status } : { ok: true, data: data || [] });
-
-  function fetchQuotes(userId, opts) {
+  async function fetchQuotes(userId) {
     const richSelect = `*, clients ( company_name, email, phone, client_type, tax_id, address, terms, notes ), quote_items ( *, quote_item_measurements ( * ) ), quote_sections ( * )`;
     const flatSelect = `*, clients ( company_name, email, phone, client_type, tax_id, address, terms, notes ), quote_items ( * )`;
-    return loadResource('quotes', userId, async () => {
-      let res = await supabase
+
+    let { data, error } = await supabase
+      .from('quotes')
+      .select(richSelect)
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error && isMissingProfessionalRelationError(error)) {
+      ({ data, error } = await supabase
         .from('quotes')
-        .select(richSelect)
+        .select(flatSelect)
         .eq('user_id', userId)
-        .order('created_at', { ascending: false });
-      if (res.error && isMissingProfessionalRelationError(res.error)) {
-        res = await supabase
-          .from('quotes')
-          .select(flatSelect)
-          .eq('user_id', userId)
-          .order('created_at', { ascending: false });
-      }
-      if (res.error) console.error('Error fetching quotes:', res.error.message);
-      return asResult(res);
-    }, (data) => setQuotes(data), opts);
+        .order('created_at', { ascending: false }));
+    }
+
+    if (error) console.error('Error fetching quotes:', error.message);
+    else setQuotes(data || []);
   }
 
-  function fetchClients(userId, opts) {
-    return loadResource('clients', userId, async () => {
-      const res = await supabase
-        .from('clients')
-        .select('id, company_name, email, phone, client_type, created_at, user_id, tax_id, address, terms, notes')
-        .eq('user_id', userId);
-      if (res.error) console.error('Error fetching clients:', res.error.message);
-      return asResult(res);
-    }, (data) => setClients(data), opts);
+  async function fetchClients(userId) {
+    const { data, error } = await supabase
+      .from('clients')
+      .select('id, company_name, email, phone, client_type, created_at, user_id, tax_id, address, terms, notes')
+      .eq('user_id', userId);
+    if (error) {
+      console.error('Error fetching clients:', error.message);
+    } else {
+      setClients(data || []);
+    }
   }
 
-  function fetchServices(userId, opts) {
-    return loadResource('services', userId, async () => {
-      const res = await supabase.from('services').select('*').eq('user_id', userId).order('created_at', { ascending: true });
-      if (res.error) console.error('Error fetching services:', res.error.message);
-      return asResult(res);
-    }, (data) => setServices(data), opts);
+  async function fetchServices(userId) {
+    const { data, error } = await supabase.from('services').select('*').eq('user_id', userId).order('created_at', { ascending: true });
+    if (error) console.error('Error fetching services:', error.message);
+    else setServices(data || []);
   }
 
-  function fetchExpenses(userId, opts) {
-    return loadResource('expenses', userId, async () => {
-      const res = await supabase
-        .from('expenses')
-        .select('*')
-        .eq('user_id', userId)
-        .order('expense_date', { ascending: false });
-      if (res.error) console.error('Error fetching expenses:', res.error.message);
-      return asResult(res);
-    }, (data) => setExpenses(data), opts);
+  async function fetchExpenses(userId) {
+    const { data, error } = await supabase
+      .from('expenses')
+      .select('*')
+      .eq('user_id', userId)
+      .order('expense_date', { ascending: false });
+    if (error) console.error('Error fetching expenses:', error.message);
+    else setExpenses(data || []);
   }
 
-  // A failed request no longer empties the attachment list (it used to: undefined data -> []).
-  function fetchAllUserAttachments(userId, opts) {
-    return loadResource('attachments', userId, async () => {
-      const q = await supabase.from('quotes').select('id').eq('user_id', userId);
-      if (q.error) return { ok: false, error: q.error, status: q.status };
-      const quoteIds = (q.data || []).map((row) => row.id);
-      if (quoteIds.length === 0) return { ok: true, data: [] };
-      const att = await supabase.from('quote_attachments').select('*').in('quote_id', quoteIds);
-      return asResult(att);
-    }, (data) => setAllUserAttachments(data), opts);
+  async function fetchAllUserAttachments(userId) {
+    const { data: quotesData } = await supabase.from('quotes').select('id').eq('user_id', userId);
+    if (quotesData && quotesData.length > 0) {
+      const quoteIds = quotesData.map(q => q.id);
+      const { data: attData } = await supabase.from('quote_attachments').select('*').in('quote_id', quoteIds);
+      setAllUserAttachments(attData || []);
+    } else {
+      setAllUserAttachments([]);
+    }
   }
 
   async function fetchSettings(userId, userEmail, userMetadata) {
     const nowIso = new Date().toISOString();
 
-    // Owner 2026-10-15: a phone waking up on a weak network used to be SIGNED OUT here (and every list emptied) - a network failure is
-    // retried by itself; only an answered error (an invalid / expired session) keeps the sign-out below.
-    const settingsGen = loadGenRef.current;
-    const settingsRes = await loadWithRetry(async () => {
-      const r = await supabase
-        .from('business_settings')
-        .select('*')
-        .eq('user_id', userId)
-        .maybeSingle();
-      if (r.error && isNetworkError(r.error, r.status)) return { ok: false, error: r.error, status: r.status };
-      return { ok: true, data: r };
-    }, {
-      isCurrent: () => settingsGen === loadGenRef.current,
-      onRetry: (attempt, err, status) => diagLog('data-load', { resource: 'settings', outcome: 'retry', attempt, status: status ?? null }),
-    });
-    if (!settingsRes.ok) return;
-    let { data, error } = settingsRes.data;
+    let { data, error } = await supabase
+      .from('business_settings')
+      .select('*')
+      .eq('user_id', userId)
+      .maybeSingle();
 
     if (error) {
       // Auth Final Blockers task (2026-09-09): live-reproduced by corrupting
@@ -7733,7 +7634,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 stickyTopBase={upperSectionHeight}
                 quotes={filteredQuotes}
                 allQuotes={quotes}
-                loadState={dataLoad.quotes}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
                 statusFilter={statusFilter}
