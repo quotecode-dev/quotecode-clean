@@ -18,6 +18,7 @@ import { publishBlocker, resolveBlockers } from '../utils/aiHelpBlockers';
 import AiHelpButton from './AiHelpButton';
 import CapabilityUpgradeNotice from './subscriptions/CapabilityUpgradeNotice';
 import ServiceScheduleFields from './ServiceScheduleFields';
+import AddressSuggestInput from './AddressSuggestInput';
 
 // OD-17: which capability each locked action of the form explains (the one CapabilityUpgradeNotice)
 const UPGRADE_CAPABILITY = Object.freeze({ professional: 'professional_quote.use', reuse: 'professional_quote.reuse', attachments: 'quote_attachment.upload' });
@@ -1234,12 +1235,21 @@ export default function QuoteForm({
             {isHebrew ? 'כתובת הלקוח' : 'Client Address Details'}
           </label>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
-            <div style={{ gridColumn: 'span 2' }}>
-              <input type="text" value={street} onChange={(e) => handleAddressFieldChange(e.target.value, city, stateProv, zipCode)} placeholder={isHebrew ? 'רחוב ומספר' : 'Street Address'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
-            </div>
-            <div>
-              <input type="text" value={city} onChange={(e) => handleAddressFieldChange(street, e.target.value, stateProv, zipCode)} placeholder={isHebrew ? 'עיר' : 'City'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
-            </div>
+            {/* Israel address suggestions (Codex spec A13-A16): for an Israeli business the city comes first, so the street list can follow it. */}
+            {(() => {
+              const fieldStyle = { width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' };
+              const streetBlock = (
+                <div key="street" style={{ gridColumn: 'span 2' }}>
+                  <AddressSuggestInput kind="street" enabled={isLocalIsraeliBusiness === true} isHebrew={isHebrew} cityText={city} value={street} onChange={(v) => handleAddressFieldChange(v, city, stateProv, zipCode)} inputProps={{ type: 'text', 'data-testid': 'quote-address-street', 'aria-label': isHebrew ? 'רחוב ומספר' : 'Street Address', placeholder: isHebrew ? 'רחוב ומספר' : 'Street Address', style: fieldStyle }} />
+                </div>
+              );
+              const cityBlock = (
+                <div key="city">
+                  <AddressSuggestInput kind="city" enabled={isLocalIsraeliBusiness === true} isHebrew={isHebrew} value={city} onChange={(v) => handleAddressFieldChange(street, v, stateProv, zipCode)} inputProps={{ type: 'text', 'data-testid': 'quote-address-city', 'aria-label': isHebrew ? 'עיר' : 'City', placeholder: isHebrew ? 'עיר' : 'City', style: fieldStyle }} />
+                </div>
+              );
+              return isLocalIsraeliBusiness === true ? [cityBlock, streetBlock] : [streetBlock, cityBlock];
+            })()}
             <div>
               <input type="text" value={stateProv} onChange={(e) => handleAddressFieldChange(street, city, e.target.value, zipCode)} placeholder={isHebrew ? 'מדינה / מחוז' : 'State / Province'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
             </div>

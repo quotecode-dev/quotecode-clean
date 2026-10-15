@@ -1,0 +1,61 @@
+{
+  "schema": "il-address/v1",
+  "version": "v20261012",
+  "fetchedAt": "2026-10-14T19:50:42.363Z",
+  "source": {
+    "cities": {
+      "publisher": "Population and Immigration Authority (data.gov.il)",
+      "dataset": "https://data.gov.il/dataset/citiesandsettelments",
+      "resourceId": "8f714b6f-c35c-4b40-a0e7-547b675eee0e",
+      "lastModified": "2026-10-05T00:30:15.955747",
+      "records": 1316
+    },
+    "streets": {
+      "publisher": "Population and Immigration Authority (data.gov.il)",
+      "dataset": "https://data.gov.il/dataset/321",
+      "resourceId": "9ad3862c-8391-4b2f-84a4-2d4c68625f4b",
+      "lastModified": "2026-10-05T00:30:23.816308",
+      "records": 63577
+    },
+    "synonyms": {
+      "publisher": "Population and Immigration Authority (data.gov.il)",
+      "dataset": "https://data.gov.il/dataset/israel-streets-synom",
+      "resourceId": "bf185c7f-1a4e-4662-88c5-fa118a244bda",
+      "lastModified": "2026-10-12T00:30:14.819837",
+      "records": 152136
+    }
+  },
+  "license": {
+    "status": "OWNER-CONFIRMED",
+    "decision": "Owner console 2026-10-15: the address lists may be distributed on the site (Codex spec A17)",
+    "attribution": "Population and Immigration Authority, data.gov.il",
+    "cities": "license_id other-open",
+    "streets": "no licence id stated",
+    "synonyms": "no licence id stated"
+  },
+  "format": {
+    "cities": "[city_code, name_he, name_en_display, has_streets]",
+    "streets": "streets/<city_code>.json: [street_code, name_he]; code 9000 (the locality itself) excluded",
+    "aliases": "aliases/<city_code>.json: { street_code: [alias, ...] } - search keys of that official street only"
+  },
+  "counts": {
+    "cities": 1316,
+    "citiesWithStreets": 818,
+    "streets": 62261,
+    "aliasesKept": 78151,
+    "aliasesDropped": 10405
+  },
+  "largestShard": {
+    "city": 3000,
+    "bytes": 126637
+  },
+  "files": {
+    "cities.json": {
+      "bytes": 48018,
+      "sha256": "9c51052cb0a31913e8f62336561dcc3f16d9eb29164f3ea1f2ad3a510ad9c07e"
+    },
+    "streetShards": 818,
+    "aliasShards": 722,
+    "shardsSha256": "111b22bcf3e413ecb5fd41040b8cb1c7b048a553be74330c6358e7380b873556"
+  }
+}
