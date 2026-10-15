@@ -195,10 +195,10 @@ export default function AuthScreen({
                 <span>
                   {isHebrew ? 'קראתי ואני מסכים/ה ל' : 'I have read and agree to the '}
                   {/* PRODUCT_TRUTH_DECORATIVE: opens the Terms of Use in a new tab (the signup form keeps its input) */}
-                  <a href={isHebrew ? '/he/terms' : '/en/terms'} target="_blank" rel="noopener noreferrer" style={{ color: NEON.violetLight, fontWeight: 600 }}>{isHebrew ? 'תנאי השימוש' : 'Terms of Use'}</a>
+                  <a href={isHebrew ? '/he/terms' : '/en/terms'} target="_blank" rel="noopener" style={{ color: NEON.violetLight, fontWeight: 600 }}>{isHebrew ? 'תנאי השימוש' : 'Terms of Use'}</a>
                   {isHebrew ? ' ול' : ' and the '}
                   {/* PRODUCT_TRUTH_DECORATIVE: opens the Privacy Policy in a new tab (the signup form keeps its input) */}
-                  <a href={isHebrew ? '/he/privacy' : '/en/privacy'} target="_blank" rel="noopener noreferrer" style={{ color: NEON.violetLight, fontWeight: 600 }}>{isHebrew ? 'מדיניות הפרטיות' : 'Privacy Policy'}</a>
+                  <a href={isHebrew ? '/he/privacy' : '/en/privacy'} target="_blank" rel="noopener" style={{ color: NEON.violetLight, fontWeight: 600 }}>{isHebrew ? 'מדיניות הפרטיות' : 'Privacy Policy'}</a>
                   {isHebrew ? ' של TEKANGO.' : ' of TEKANGO.'}
                 </span>
               </label>

@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { goBackOrHome } from '../utils/goBackOrHome';
 import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeoFor } from '../shared/publicSeoRoutes';
 import ProFlowLogo from '../components/ProFlowLogo';
@@ -205,7 +206,7 @@ export default function Terms({ isHebrew }) {
             <ProFlowLogo size={32} />
           </div>
           <button 
-            onClick={() => navigate(-1)} 
+            onClick={() => goBackOrHome(navigate, isHebrew)} 
             style={{ background: 'transparent', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.2)', padding: '6px 16px', borderRadius: '6px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', transition: 'all 0.2s' }}
             onMouseEnter={(e) => { e.target.style.color = '#ffffff'; e.target.style.borderColor = '#ffffff'; }}
             onMouseLeave={(e) => { e.target.style.color = '#94a3b8'; e.target.style.borderColor = 'rgba(255,255,255,0.2)'; }}

@@ -731,6 +731,10 @@
     "interactive": 0,
     "markers": 1
   },
+  "src/utils/goBackOrHome.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/guidedChatIntents.js": {
     "interactive": 0,
     "markers": 0
@@ -848,6 +852,10 @@
     "markers": 0
   },
   "src/utils/quoteSearch.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteSentMark.js": {
     "interactive": 0,
     "markers": 0
   },
