@@ -70,7 +70,9 @@ describe('Signup emailRedirectTo - TEST vs Production branching', () => {
   });
 
   it('signup_market metadata (HE=Local / EN=International) is still set from bundleIsHebrew, unchanged by this fix - market separation preserved', () => {
-    expect(dashboardSource).toContain("data: { signup_market: bundleIsHebrew ? 'Local' : 'International' }");
+    // Owner 2026-10-15: the same data object now also carries the optional names + the consent record; signup_market stays first
+    expect(dashboardSource).toMatch(/data: \{\s*signup_market: bundleIsHebrew \? 'Local' : 'International',/);
+    expect(dashboardSource.match(/signup_market:/g)).toHaveLength(1);
   });
 
   it('the isLocalTestMode variable/import itself is never redefined locally in Dashboard.jsx (always the real shared-module value, no shadowing)', () => {

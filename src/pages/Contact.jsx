@@ -51,12 +51,13 @@ export default function Contact({ isHebrew }) {
     aiButton: 'פתיחת הצ\'אט ✦',
     aiBadge: 'זמין בכל שעה',
     footerText: 'TEKANGO ישראל - מערכת להפקת הצעות מחיר ולניהול העסק.',
-    // Task 39 (Owner final scope 2026-10-13): operator details; the phone number is shown on the Israeli site only; the cancellation
+    // Owner 2026-10-15: the operator's name / registration no. / address / phone appear only in the Terms of Use; the visible contact
+    // channels are email and the AI chat. Task 39 (Owner final scope 2026-10-13): the cancellation
     // request is handled by the team (never an automatic cancellation) and is not an account deletion.
     businessTitle: 'פרטי העסק',
-    businessLines: ['שלמה סיני, עוסק מס׳ 023716913', 'רחוב שרה אהרונסון, רמת גן (אין קבלת קהל)'],
-    phone: '050-2993806',
-    phoneHref: 'tel:+972502993806',
+    businessLines: ['פרטי המפעיל מופיעים בתנאי השימוש. פנייה אלינו: במייל או בצ\'אט.'],
+    phone: null,
+    phoneHref: null,
     cancelTitle: 'בקשת ביטול מנוי',
     cancelText: 'אפשר לבקש ביטול מנוי בכל עת במייל. הבקשה מטופלת בידי הצוות ומאושרת במייל; היא אינה ביטול אוטומטי ואינה מחיקת חשבון.',
     cancelLink: 'שליחת בקשת ביטול במייל',
@@ -83,7 +84,7 @@ export default function Contact({ isHebrew }) {
     aiBadge: 'Available 24/7',
     footerText: 'TEKANGO Global - quotes and business management in one place.',
     businessTitle: 'Business Details',
-    businessLines: ['Shlomo Sinai, Israeli business registration (osek) no. 023716913', 'Sarah Aharonson Street, Ramat Gan, Israel (no in-person reception)'],
+    businessLines: ['The operator\'s details are set out in the Terms of Use. To reach us: email or the chat.'],
     phone: null,
     phoneHref: null,
     cancelTitle: 'Subscription Cancellation Request',

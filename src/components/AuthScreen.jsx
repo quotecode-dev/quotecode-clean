@@ -28,6 +28,12 @@ export default function AuthScreen({
   setEmailInput,
   passwordInput,
   setPasswordInput,
+  signupFullName = '',
+  setSignupFullName = () => {},
+  signupBusinessName = '',
+  setSignupBusinessName = () => {},
+  signupTermsAccepted = false,
+  setSignupTermsAccepted = () => {},
   forgotOpen,
   setForgotOpen,
   resetMsg,
@@ -166,6 +172,38 @@ export default function AuthScreen({
             </label>
             <input type="password" name="user_password_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required placeholder="••••••••" style={{ width: '100%', padding: '9px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.9rem', direction: 'ltr', textAlign: 'left' }} />
           </div>
+          {/* Owner 2026-10-15: optional full name + business name, and the required (never pre-ticked) Terms + Privacy consent */}
+          {isSignUp && (
+            <>
+              <div style={{ marginBottom: '12px' }}>
+                <label htmlFor="signup-full-name" style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '4px' }}>
+                  {isHebrew ? 'שם מלא (לא חובה)' : 'Full name (optional)'}
+                </label>
+                {/* PRODUCT_TRUTH_DECORATIVE: optional signup field (full name) - pre-authentication, stored with the new account only */}
+                <input id="signup-full-name" type="text" data-testid="signup-full-name" maxLength={120} autoComplete="name" value={signupFullName} onChange={(e) => setSignupFullName(e.target.value)} dir="auto" style={{ width: '100%', padding: '9px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.9rem' }} />
+              </div>
+              <div style={{ marginBottom: '14px' }}>
+                <label htmlFor="signup-business-name" style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '4px' }}>
+                  {isHebrew ? 'שם העסק / החברה (לא חובה)' : 'Business / company name (optional)'}
+                </label>
+                {/* PRODUCT_TRUTH_DECORATIVE: optional signup field (business name) - the new account's initial business name */}
+                <input id="signup-business-name" type="text" data-testid="signup-business-name" maxLength={120} autoComplete="organization" value={signupBusinessName} onChange={(e) => setSignupBusinessName(e.target.value)} dir="auto" style={{ width: '100%', padding: '9px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.9rem' }} />
+              </div>
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.8rem', color: NEON.textSecondary, marginBottom: '16px', lineHeight: 1.5, cursor: 'pointer' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: the required, unticked Terms of Use + Privacy Policy consent of the signup form */}
+                <input type="checkbox" data-testid="signup-terms-consent" required checked={signupTermsAccepted} onChange={(e) => setSignupTermsAccepted(e.target.checked)} style={{ marginTop: '3px', flex: 'none', accentColor: NEON.violetLight }} />
+                <span>
+                  {isHebrew ? 'קראתי ואני מסכים/ה ל' : 'I have read and agree to the '}
+                  {/* PRODUCT_TRUTH_DECORATIVE: opens the Terms of Use in a new tab (the signup form keeps its input) */}
+                  <a href={isHebrew ? '/he/terms' : '/en/terms'} target="_blank" rel="noopener noreferrer" style={{ color: NEON.violetLight, fontWeight: 600 }}>{isHebrew ? 'תנאי השימוש' : 'Terms of Use'}</a>
+                  {isHebrew ? ' ול' : ' and the '}
+                  {/* PRODUCT_TRUTH_DECORATIVE: opens the Privacy Policy in a new tab (the signup form keeps its input) */}
+                  <a href={isHebrew ? '/he/privacy' : '/en/privacy'} target="_blank" rel="noopener noreferrer" style={{ color: NEON.violetLight, fontWeight: 600 }}>{isHebrew ? 'מדיניות הפרטיות' : 'Privacy Policy'}</a>
+                  {isHebrew ? ' של TEKANGO.' : ' of TEKANGO.'}
+                </span>
+              </label>
+            </>
+          )}
           <button type="submit" disabled={authLoading} style={{ width: '100%', background: NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '700', fontSize: '0.95rem', cursor: authLoading ? 'default' : 'pointer', opacity: authLoading ? 0.7 : 1, boxShadow: NEON.glow, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
             {isSignUp ? <Rocket size={16} strokeWidth={2.5} /> : <LogIn size={16} strokeWidth={2.5} />}
             {isSignUp ? (isHebrew ? 'הרשמה למערכת' : 'Sign Up') : (isHebrew ? 'התחבר' : 'Sign In')}
