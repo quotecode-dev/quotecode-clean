@@ -4,8 +4,8 @@
 // the app only fetches these static files. Maintenance step, run by hand (no scheduler):
 //   node --use-system-ca scripts/build-israel-address-snapshot.mjs
 // Fails closed (no files written) on an empty result, a changed header schema or a count mismatch.
-// Licence (A17): the localities list says license_id=other-open; the street lists state no licence id. NOT verified - the Owner must
-// clarify the distribution / attribution terms before this snapshot is published.
+// Licence (A17): the localities list says license_id=other-open; the street lists state no licence id. Owner decision 2026-10-15
+// ("ניתן להפיץ את רשימת הכתובות"): the snapshot may be distributed on the site, with the source credited in the suggestion list.
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
@@ -21,6 +21,7 @@ const RES = {
 // Street code 9000 carries the locality's own name, not a street (Codex spec): never a street suggestion.
 const LOCALITY_SELF_CODE = 9000;
 const PLACEHOLDER_ALIAS = /^(רח|רחוב|שכ|שכונה)?\s*\d+$/;
+const LICENSE = { status: 'OWNER-CONFIRMED', decision: 'Owner console 2026-10-15: the address lists may be distributed on the site (Codex spec A17)', attribution: 'Population and Immigration Authority, data.gov.il', cities: 'license_id other-open', streets: 'no licence id stated', synonyms: 'no licence id stated' };
 const die = (m) => { console.error(`REFUSED: ${m}`); process.exit(2); };
 const getJson = async (url) => {
   for (let attempt = 1; attempt <= 3; attempt++) {
@@ -121,7 +122,7 @@ const manifest = {
   version: `v${version}`,
   fetchedAt: new Date().toISOString(),
   source: Object.fromEntries(Object.entries(RES).map(([k, v]) => [k, { publisher: 'Population and Immigration Authority (data.gov.il)', dataset: `https://data.gov.il/dataset/${v.dataset}`, resourceId: v.id, lastModified: meta[k].lastModified, records: { cities: cityRows, streets: streetRows, synonyms: synRows }[k].length }])),
-  license: { status: 'UNVERIFIED', cities: 'license_id other-open', streets: 'no licence id stated', synonyms: 'no licence id stated', note: 'Owner must clarify distribution / attribution terms before publication (Codex spec A17)' },
+  license: LICENSE,
   format: { cities: '[city_code, name_he, name_en_display, has_streets]', streets: 'streets/<city_code>.json: [street_code, name_he]; code 9000 (the locality itself) excluded', aliases: 'aliases/<city_code>.json: { street_code: [alias, ...] } - search keys of that official street only' },
   counts: { cities: cities.length, citiesWithStreets: byCity.size, streets: streetCount, aliasesKept: aliasKept, aliasesDropped: aliasDropped },
   largestShard: largest,

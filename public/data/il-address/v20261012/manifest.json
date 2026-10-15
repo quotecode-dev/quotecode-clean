@@ -26,11 +26,12 @@
     }
   },
   "license": {
-    "status": "UNVERIFIED",
+    "status": "OWNER-CONFIRMED",
+    "decision": "Owner console 2026-10-15: the address lists may be distributed on the site (Codex spec A17)",
+    "attribution": "Population and Immigration Authority, data.gov.il",
     "cities": "license_id other-open",
     "streets": "no licence id stated",
-    "synonyms": "no licence id stated",
-    "note": "Owner must clarify distribution / attribution terms before publication (Codex spec A17)"
+    "synonyms": "no licence id stated"
   },
   "format": {
     "cities": "[city_code, name_he, name_en_display, has_streets]",

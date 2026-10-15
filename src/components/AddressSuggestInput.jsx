@@ -34,6 +34,10 @@ export default function AddressSuggestInput({ kind, enabled, isHebrew, value, on
   const [picked, setPicked] = useState(false);
   const [cityChanged, setCityChanged] = useState(false);
   const composing = useRef(false);
+  // Hover highlights an option only on a REAL pointer movement: when the list opens (or scrolls into view) under a resting pointer,
+  // the browser reports hover without movement, and the arrow keys must then still start from the first option.
+  const lastPointer = useRef('');
+  const pointerMoved = (e) => { const k = `${e.screenX},${e.screenY}`; if (k === lastPointer.current) return false; lastPointer.current = k; return true; };
   const inputRef = useRef(null);
   const lastCityCode = useRef(null);
 
@@ -138,10 +142,13 @@ export default function AddressSuggestInput({ kind, enabled, isHebrew, value, on
         onFocus={(e) => { setFocused(true); setOpen(true); inputProps.onFocus?.(e); }}
         onBlur={(e) => { setFocused(false); setOpen(false); inputProps.onBlur?.(e); }}
         onKeyDown={onKeyDown}
+        onMouseDown={(e) => { pointerMoved(e); inputProps.onMouseDown?.(e); }}
+        onMouseMove={(e) => { pointerMoved(e); inputProps.onMouseMove?.(e); }}
         onCompositionStart={() => { composing.current = true; }}
         onCompositionEnd={() => { composing.current = false; }}
       />
-      <ul ref={listRef} id={listId} role="listbox" className="addr-suggest-list" hidden={!showList} aria-label={kind === 'city' ? (isHebrew ? 'ערים' : 'Cities') : (isHebrew ? 'רחובות' : 'Streets')}>
+      <div ref={listRef} className="addr-suggest-panel" hidden={!showList}>
+      <ul id={listId} role="listbox" className="addr-suggest-list" aria-label={kind === 'city' ? (isHebrew ? 'ערים' : 'Cities') : (isHebrew ? 'רחובות' : 'Streets')}>
         {showList && items.map((item, i) => (
           <li
             key={item.code}
@@ -150,7 +157,7 @@ export default function AddressSuggestInput({ kind, enabled, isHebrew, value, on
             aria-selected={i === active}
             className={`addr-suggest-option${i === active ? ' is-active' : ''}`}
             onMouseDown={(e) => { e.preventDefault(); pick(item); }}
-            onMouseEnter={() => setActive(i)}
+            onMouseMove={(e) => { if (pointerMoved(e)) setActive(i); }}
           >
             <bdi dir="auto">{item.label}</bdi>
             {kind === 'city' && !isHebrew && item.en && item.he ? <span className="addr-suggest-sub"><bdi dir="rtl">{item.he}</bdi></span> : null}
@@ -158,6 +165,9 @@ export default function AddressSuggestInput({ kind, enabled, isHebrew, value, on
           </li>
         ))}
       </ul>
+      {/* A17 (Owner 2026-10-15): the lists may be distributed; the source is credited. */}
+      {showList ? <div className="addr-suggest-source">{isHebrew ? 'מקור: רשות האוכלוסין וההגירה, data.gov.il' : 'Source: Population and Immigration Authority, data.gov.il'}</div> : null}
+      </div>
       {hint ? <div id={hintId} className={`addr-suggest-hint${cityChanged && kind === 'street' ? ' is-warn' : ''}`}>{hint}</div> : null}
       <span className="sr-only" aria-live="polite">{showList ? t('results', isHebrew)(items.length) : ''}</span>
     </div>

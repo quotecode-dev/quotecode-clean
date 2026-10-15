@@ -84,6 +84,7 @@ describe('the shared field', () => {
     expect(await screen.findByText('התחילו להקליד עיר')).toBeTruthy();
     fireEvent.change(city, { target: { value: 'תל' } });
     const option = await screen.findByRole('option', { name: /תל אביב - יפו/ });
+    expect(screen.getByText('מקור: רשות האוכלוסין וההגירה, data.gov.il')).toBeTruthy();
     fireEvent.mouseDown(option);
     expect(screen.getByTestId('stored').textContent).toBe('|תל אביב - יפו');
     await waitFor(() => expect(calls.some((u) => u.endsWith('/streets/5000.json'))).toBe(true));
@@ -165,6 +166,20 @@ describe('the shared field', () => {
     await act(async () => { fireEvent.keyDown(city, { key: 'Escape' }); });
     expect(city.getAttribute('aria-expanded')).toBe('false');
   });
+
+  it('a list opening under a resting pointer does not highlight an option; a real pointer move does', async () => {
+    render(<Harness />);
+    const city = screen.getByLabelText('city');
+    fireEvent.mouseDown(city, { screenX: 200, screenY: 300 });
+    fireEvent.focus(city); fireEvent.change(city, { target: { value: 'חו' } });
+    const opt = await screen.findByRole('option', { name: /חולון/ });
+    fireEvent.mouseMove(opt, { screenX: 200, screenY: 300 });
+    expect(city.getAttribute('aria-activedescendant')).toBeNull();
+    fireEvent.keyDown(city, { key: 'ArrowDown' });
+    expect(city.getAttribute('aria-activedescendant')).toBe(opt.id);
+    fireEvent.mouseMove(opt, { screenX: 210, screenY: 320 });
+    expect(city.getAttribute('aria-activedescendant')).toBe(opt.id);
+  });
 });
 
 describe('the new-client window keeps what was typed when the Dashboard re-renders', () => {
@@ -197,11 +212,12 @@ describe('consumers and snapshot', () => {
     }
     expect(read('pages/Dashboard.jsx')).toContain('isIsraeliBusiness={isLocalIsraeliBusiness}');
   });
-  it('the snapshot: manifest with source, counts and an UNVERIFIED licence; no locality-self street (code 9000)', () => {
+  it('the snapshot: manifest with source, counts and the Owner-confirmed licence (A17); no locality-self street (code 9000)', () => {
     const dir = path.join(HERE, '..', 'public', 'data', 'il-address', IL_ADDRESS_VERSION);
     const manifest = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
     expect(manifest.schema).toBe('il-address/v1');
-    expect(manifest.license.status).toBe('UNVERIFIED');
+    expect(manifest.license.status).toBe('OWNER-CONFIRMED');
+    expect(manifest.license.attribution).toBe('Population and Immigration Authority, data.gov.il');
     expect(manifest.counts.cities).toBeGreaterThan(1000);
     const cities = JSON.parse(fs.readFileSync(path.join(dir, 'cities.json'), 'utf8'));
     expect(cities.length).toBe(manifest.counts.cities);
