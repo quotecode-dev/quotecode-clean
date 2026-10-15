@@ -153,6 +153,8 @@ export function deterministicHelpAnswer(intent: HelpIntent, ctx: HelpContext, ac
 // ---------------------------------------------------------------------------------------------- prompt blocks (layered knowledge)
 /** The plan line of Layer 3 - from the server account summary only (never a tier, a trial or a monthly counter). */
 export function describeAccountPlan(a: AccountPlanContext): string {
+  // R-16 (Owner-approved L-11 / L-01): the team-set Lifetime flag
+  if (a.isLifetime) return '- Plan: Lifetime subscription (set by the team) - every capability is open, with no charge.';
   if (a.summaryState === 'ready' && a.planId) {
     const bal = a.planId === 'free' && typeof a.free10Remaining === 'number' ? `; Free quotes remaining: ${a.free10Remaining} of 10` : '';
     return `- Plan (server account summary): ${a.planId}${bal}; subscription status: ${a.subscriptionStatus ?? 'none'}; output phase: ${a.outputPhase}.`;

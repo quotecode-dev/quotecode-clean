@@ -23,7 +23,7 @@ const READY_VISUAL = {
 describe('accountPlanFromSummary - plan facts only from a READY server summary', () => {
   it('a ready Free summary yields the canonical plan id and the Free-10 balance', () => {
     expect(accountPlanFromSummary(parseAccountSummary(READY_FREE))).toEqual({
-      summaryState: 'ready', planId: 'free', free10Remaining: 7, subscriptionStatus: 'none', outputPhase: 'enforced',
+      summaryState: 'ready', planId: 'free', free10Remaining: 7, subscriptionStatus: 'none', outputPhase: 'enforced', isLifetime: false,
     });
   });
   it('a ready paid summary yields the plan and no Free balance', () => {
@@ -38,7 +38,7 @@ describe('accountPlanFromSummary - plan facts only from a READY server summary',
     ['garbage', 'invalid'],
   ])('summary %j -> state %s, and NO plan / balance at all', (raw, state) => {
     const a = accountPlanFromSummary(parseAccountSummary(raw));
-    expect(a).toEqual({ summaryState: state, planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' });
+    expect(a).toEqual({ summaryState: state, planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off', isLifetime: false });
   });
   it('no summary at all -> unavailable, no plan', () => {
     expect(accountPlanFromSummary(null)).toEqual(NO_ACCOUNT_PLAN);
@@ -75,22 +75,27 @@ describe('buildVerifiedAccountContext - minimal safe field allowlist', () => {
     expect(buildVerifiedAccountContext({ country: 'Local' }, null, parseAccountSummary(READY_VISUAL)).market).toBe('International');
     expect(buildVerifiedAccountContext({ country: 'International' }, null, parseAccountSummary({ ok: false, code: 'not_activated' })).market).toBe('International');
   });
-  it('legacy plan / trial / Lifetime columns are IGNORED - no plan is ever derived from business_settings', () => {
+  // Night task 2026-10-16 (R-16, Owner-approved L-11 / L-01): the team-set Lifetime flag is the ONE legacy fact carried (the app shows
+  // "Lifetime subscription"); a legacy plan or trial is still never derived
+  it('legacy plan / trial columns are IGNORED; only the explicit Lifetime flag is carried', () => {
     const ctx = buildVerifiedAccountContext({ plan: 'pro', trial_ends_at: '2099-01-01T00:00:00Z', is_lifetime: true, country: 'Local' }, null);
-    expect(ctx.account).toEqual(NO_ACCOUNT_PLAN);
-    expect(JSON.stringify(ctx)).not.toMatch(/pro|basic|trial|lifetime/i);
+    expect(ctx.account).toEqual({ ...NO_ACCOUNT_PLAN, isLifetime: true });
+    expect(JSON.stringify(ctx)).not.toMatch(/pro|basic|trial/i);
+    expect(buildVerifiedAccountContext({ plan: 'pro', trial_ends_at: '2099-01-01T00:00:00Z', country: 'Local' }, null).account).toEqual(NO_ACCOUNT_PLAN);
+    expect(buildVerifiedAccountContext({ is_lifetime: 'true', country: 'Local' }, null).account.isLifetime).toBe(false);
   });
   it('never includes role, business name, tax id, address, phone, or any other non-allowlisted field on the returned object', () => {
     const ctx = buildVerifiedAccountContext({ role: 'super_admin', country: 'Local', business_name: 'X', tax_id: '1', phone: '2' }, 'main');
     expect(Object.keys(ctx).sort()).toEqual(['account', 'currentArea', 'market']);
-    expect(Object.keys(ctx.account).sort()).toEqual(['free10Remaining', 'outputPhase', 'planId', 'subscriptionStatus', 'summaryState']);
+    expect(Object.keys(ctx.account).sort()).toEqual(['free10Remaining', 'isLifetime', 'outputPhase', 'planId', 'subscriptionStatus', 'summaryState']);
   });
   it('carries the allowlisted currentArea through unchanged', () => {
     expect(buildVerifiedAccountContext({ country: 'Local' }, 'catalog').currentArea).toBe('catalog');
   });
   it('the module no longer reads or ports any legacy entitlement source', () => {
     const src = readFileSync('supabase/functions/chat-ai/accountContext.ts', 'utf-8').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
-    expect(src).not.toMatch(/trial_ends_at|is_lifetime|computeEffectivePlan|resolveAccountEntitlement|'basic'|'pro'/);
+    expect(src).not.toMatch(/trial_ends_at|computeEffectivePlan|resolveAccountEntitlement|'basic'|'pro'/);
+    expect(src.match(/is_lifetime/g)).toHaveLength(2); // the row type + the one strict `=== true` read
   });
 });
 

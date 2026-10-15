@@ -36,7 +36,7 @@ describe('buildSystemPrompt - HE (Israel/ILS) plan and price truth', () => {
 
   it('no retired pricing truth survives (legacy plan names as prices, annual pricing, monthly quotas, trial offer)', () => {
     const block = prompt.slice(prompt.indexOf('SUBSCRIPTION & PLAN TRUTH'), prompt.indexOf('FILE ATTACHMENTS'));
-    expect(block.replace(/there is no Basic, Pro, Premium or Lifetime plan/, '')).not.toMatch(LEGACY_PRICING);
+    expect(block.replace(/there is no Basic, Pro or Premium plan/, '')).not.toMatch(LEGACY_PRICING);
     expect(prompt).not.toMatch(/₪(39|79|99|468|948)\b/);
   });
 
@@ -90,7 +90,7 @@ describe('buildSystemPrompt - EN (International) plan and price truth', () => {
 
   it('no retired pricing truth survives', () => {
     const block = prompt.slice(prompt.indexOf('SUBSCRIPTION & PLAN TRUTH'), prompt.indexOf('FILE ATTACHMENTS'));
-    expect(block.replace(/there is no Basic, Pro, Premium or Lifetime plan/, '')).not.toMatch(LEGACY_PRICING);
+    expect(block.replace(/there is no Basic, Pro or Premium plan/, '')).not.toMatch(LEGACY_PRICING);
     expect(prompt).not.toMatch(/\$(12|15|23|29|144|276)\b/);
   });
 

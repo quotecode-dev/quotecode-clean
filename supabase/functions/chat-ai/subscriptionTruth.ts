@@ -42,8 +42,18 @@ const PRICE_WORD_HE = /(כמה\s+(זה\s+)?(עולה|עולים|עולות|יע�
 const MONEY_WORD_EN = /\b(month(ly)?|per month|shekels?|ils|nis|usd|dollars?|euros?|eur|gbp|pounds?|currency|vat|site)\b|₪|\$/i;
 const MONEY_WORD_HE = /(בחודש|לחודש|חודשי|שקל|ש"ח|ש״ח|₪|דולר|מע"מ|מע״מ|מטבע|באתר)/;
 
+// Night task 2026-10-16 (R-01, Owner-approved): "14 days" alone is a quote validity / payment term, not a trial - it is a trial
+// question only next to a free / plan / account / sign-up word; "how many quotes did I send" is a statistics question, not a quota.
+const TRIAL_14_EN = /\b(14|fourteen)[- ]?days?\b.{0,40}\b(free|plan|account|subscription|sign[- ]?up|register\w*|tekango|use (it|the app|the system))\b|\b(free|plan|account|subscription|sign[- ]?up|register\w*|tekango)\b.{0,40}\b(14|fourteen)[- ]?days?\b/i;
+const TRIAL_14_HE = /(14|ארבעה\s*עשר)\s*(יום|ימים).{0,40}(חינם|מסלול|חשבון|מנוי|הרשמה|נרשמ|TEKANGO|טקנגו)|(חינם|מסלול|חשבון|מנוי|הרשמה|נרשמ|TEKANGO|טקנגו).{0,40}(14|ארבעה\s*עשר)\s*(יום|ימים)/;
+// a question about what already happened in the account (statistics), not about an allowance
+const STATS_EN = /\b(did i|have i|i('ve| have)? (sent|created|made|issued|signed)|were|was|got (approved|signed|viewed)|approved|signed|viewed|last (week|month|year)|this (week|month|year)|so far|in total did)\b/i;
+const STATS_HE = /(שלחתי|יצרתי|הכנתי|הנפקתי|נשלחו|נוצרו|אושרו|נחתמו|נצפו|אישרו|חתמו|השבוע|החודש|בחודש\s+(שעבר|האחרון)|בשבוע\s+(שעבר|האחרון)|עד\s+עכשיו|עד\s+היום)/;
+const ALLOWANCE_EN = /\b(can i|could i|may i|am i allowed|allowed|included|include|get|free|limit|quota|allowance|left|remaining|plan|subscription|package|max(imum)?)\b/i;
+const ALLOWANCE_HE = /(אפשר|אני\s+יכול|ניתן|מותר|מקבלים|מקבל|כלולות|כלול|חינם|חינמיות|מגבלה|מגבלת|מכסה|מכסת|נשאר|נותר|נותרו|מסלול|מנוי|לכל\s+היותר|מקסימום)/;
+
 const P: Readonly<Record<SubscriptionIntent, readonly RegExp[]>> = {
-  trial: [/\btrials?\b/i, /\b14[- ]?days?\b/i, /(תקופת\s*(ה)?ניסיון|ניסיון\s*(חינם|חינמי)|ימי\s*(ה)?ניסיון|14\s*יום|ארבעה\s*עשר\s*יום)/, /(ימים|יום).{0,25}(בניסיון|הניסיון)|(בניסיון|הניסיון).{0,25}(ימים|יום|נגמר|נשאר|נותר)/],
+  trial: [/\btrials?\b/i, TRIAL_14_EN, /(תקופת\s*(ה)?ניסיון|ניסיון\s*(חינם|חינמי)|ימי\s*(ה)?ניסיון)/, TRIAL_14_HE, /(ימים|יום).{0,25}(בניסיון|הניסיון)|(בניסיון|הניסיון).{0,25}(ימים|יום|נגמר|נשאר|נותר)/],
   legacy_plan: [
     /\b(on|have|using|got|bought|paid for|upgrade(d)? to|switch(ed)? to|subscribed to)\s+(the\s+|a\s+)?(pro|basic|premium|lifetime)\b/i,
     /\b(pro|basic|premium|lifetime)\s+(plan|tier|subscription|account|version|package|user|member|access)\b/i,
@@ -71,12 +81,13 @@ const P: Readonly<Record<SubscriptionIntent, readonly RegExp[]>> = {
   ],
   pricing: [],
   annual: [/\b(annual|annually|yearly|per year|a year)\b.{0,30}\b(plan|price|pricing|billing|subscription|discount|payment)s?\b/i, /\b(plan|price|pricing|billing|subscription)s?\b.{0,30}\b(annual|annually|yearly|per year)\b/i, /((מסלול|מנוי|מחיר|תשלום|חיוב)\s+(ה)?שנתי|שנתי\s+(ל)?(מסלול|מנוי)|(מסלול|מנוי|מחיר).{0,15}לשנה)/],
-  quota: [
-    /\bhow many quotes\b/i, /\bquotes?\s+(limit|quota|allowance)s?\b/i, /\blimit\b.{0,20}\bquotes?\b/i,
-    /\bquotes?\b.{0,20}\b(per|a|each|every)\s+month\b/i, /\bmonthly\s+(quote|limit|quota)/i,
-    /כמה\s+הצעות/, /(מגבלת|מכסת|מכסה)\s+(ה)?(הצעות|ההצעות)/, /הצעות\s+(מחיר\s+)?(בחודש|לחודש)/,
-  ],
+  // the "how many quotes" / "quotes per month" forms count only with an allowance word and never for a statistics question
+  // (classifySubscriptionIntents); the explicit limit / quota forms always count
+  quota: [/\bquotes?\s+(limit|quota|allowance)s?\b/i, /\blimit\b.{0,20}\bquotes?\b/i, /\bmonthly\s+(quote\s+)?(limit|quota)/i, /(מגבלת|מכסת|מכסה)\s+(ה)?(הצעות|ההצעות)/],
 };
+const QUOTA_SOFT = [/\bhow many quotes\b/i, /\bquotes?\b.{0,20}\b(per|a|each|every)\s+month\b/i, /כמה\s+הצעות/, /הצעות\s+(מחיר\s+)?(בחודש|לחודש)/];
+const isQuotaQuestion = (t: string): boolean => P.quota.some((re) => re.test(t))
+  || (QUOTA_SOFT.some((re) => re.test(t)) && (ALLOWANCE_EN.test(t) || ALLOWANCE_HE.test(t)) && !STATS_EN.test(t) && !STATS_HE.test(t));
 
 const UNLIMITED_QUOTA = /\bunlimited\s+quotes\b|\bquotes\b.{0,20}\bunlimited\b|\b(is|are)\s+(it|this|that|they|there|tekango)\s+(really\s+)?unlimited\b|הצעות\s+(ללא|בלי)\s+הגבלה|(זה|האם)\s+(ללא|בלי)\s+הגבלה|^\s*(ללא|בלי)\s+הגבלה\s*[?？]?\s*$/i;
 
@@ -94,10 +105,26 @@ const PLAN_LIST_HE = [
   /(מסלולים|תוכניות|חבילות|מנויים)\s+(יש|קיימים|קיימות|זמינים|זמינות)/,
 ];
 
+// Night task 2026-10-16 (R-01): a currency / VAT word alone ("how do I set prices in euros", "how much VAT is charged") is about the
+// user's own quote prices. Without a real plan word it is a plan-price question only when it asks what TEKANGO itself costs.
+const STRONG_PLAN_EN = /\b(plans?|subscriptions?|tiers?|packages?|membership|add-?on|catalog expansion|extra (100 )?products)\b/i;
+const STRONG_PLAN_HE = /(מסלול|מסלולים|תוכנית|תוכניות|מנוי|חבילה|חבילת|הרחבת\s*(ה)?קטלוג)/;
+const SERVICE_COST_EN = /\bhow much (does|do|is|are|will|would) (it|this|tekango|the (app|system|service|software|site|platform))\b(?!.{0,30}\b(quote|item|client|customer|line|service|product)s?\b)|\bhow much do (you|i) (charge|pay)\b|\bwhat does (it|tekango|the (app|system|service)) cost\b|\bdo you charge\b|\b(cost|price) (of|for) (using )?(tekango|the (app|system|service|software|platform))\b|\b(is (it|tekango) free|do i (have|need) to pay|pay (for|to use) (it|tekango|the (app|system)))\b/i;
+const SERVICE_COST_HE = /(כמה\s+(זה\s+)?(עולה|עולים|יעלה|משלמים|אני\s+משלם|צריך\s+לשלם)\s*(לי|לנו)?\s*(על\s+)?(המערכת|השירות|האפליקציה|השימוש|TEKANGO|טקנגו)|כמה\s+(זה\s+)?(עולה|יעלה)\s*[?？]?\s*$|כמה\s+(משלמים|אני\s+משלם|צריך\s+לשלם)(?!.{0,20}(ללקוח|הלקוח|לספק))|מה\s+(המחיר|העלות)\s+של\s+(המערכת|השירות|האפליקציה|TEKANGO|טקנגו)|האם\s+(המערכת|השירות|זה|TEKANGO)\s+(בתשלום|חינם|חינמי))/;
+const HOWTO_PRICES_EN = /\b(set|add|enter|change|edit|write|show|display|put|type|use|choose|select|price (in|with))\b.{0,25}\b(prices?|pricing|currency|vat)\b|\bprices?\s+in\s+(euros?|eur|gbp|pounds?|dollars?|usd|shekels?|ils)\b/i;
+const HOWTO_PRICES_HE = /(להגדיר|להזין|לשנות|לערוך|לכתוב|להציג|לבחור|לתמחר|לשים).{0,25}(מחיר|מחירים|מטבע|מע"מ|מע״מ)|(מחיר|מחירים)\s+(ב|ל)(יורו|דולר|שקל|פאונד|ליש"ט)/;
+
+// the price "on the site / in the app" is the price of TEKANGO itself
+const SITE_PRICE_EN = /\b(price|prices|pricing|cost|costs)\b.{0,40}\b(on|of|for|in) (the )?(\w+ )?(site|website|app|platform)\b/i;
+const SITE_PRICE_HE = /(מחיר|מחירים|עלות|תמחור).{0,30}(באתר|של\s+האתר|באפליקציה|של\s+האפליקציה)/;
+
 function hasPricingIntent(t: string): boolean {
   if (PLAN_LIST_EN.some((re) => re.test(t)) || PLAN_LIST_HE.some((re) => re.test(t))) return true;
-  const en = PRICE_WORD_EN.test(t) && (PLAN_WORD_EN.test(t) || MONEY_WORD_EN.test(t)) && !(QUOTE_WORD_EN.test(t) && !PLAN_WORD_EN.test(t));
-  const he = PRICE_WORD_HE.test(t) && (PLAN_WORD_HE.test(t) || MONEY_WORD_HE.test(t)) && !(QUOTE_WORD_HE.test(t) && !PLAN_WORD_HE.test(t));
+  if (SERVICE_COST_EN.test(t) || SERVICE_COST_HE.test(t) || SITE_PRICE_EN.test(t) || SITE_PRICE_HE.test(t)) return true;
+  const enHowTo = HOWTO_PRICES_EN.test(t) && !STRONG_PLAN_EN.test(t);
+  const heHowTo = HOWTO_PRICES_HE.test(t) && !STRONG_PLAN_HE.test(t);
+  const en = !enHowTo && PRICE_WORD_EN.test(t) && STRONG_PLAN_EN.test(t);
+  const he = !heHowTo && PRICE_WORD_HE.test(t) && STRONG_PLAN_HE.test(t) && !(QUOTE_WORD_HE.test(t) && !STRONG_PLAN_HE.test(t));
   return en || he;
 }
 
@@ -107,7 +134,7 @@ export function classifySubscriptionIntents(message: unknown): SubscriptionInten
   if (!t || LIFECYCLE.test(t)) return [];
   const out: SubscriptionIntent[] = [];
   for (const [intent, patterns] of Object.entries(P) as [SubscriptionIntent, readonly RegExp[]][]) {
-    if (intent === 'pricing' ? hasPricingIntent(t) : patterns.some((re) => re.test(t))) out.push(intent);
+    if (intent === 'pricing' ? hasPricingIntent(t) : intent === 'quota' ? isQuotaQuestion(t) : patterns.some((re) => re.test(t))) out.push(intent);
   }
   // "unlimited" alone is only a plan question in a plan / quota context ("unlimited items in a quote" is not)
   if (out.length === 1 && out[0] === 'unlimited' && !PLAN_WORD_EN.test(t) && !PLAN_WORD_HE.test(t) && !UNLIMITED_QUOTA.test(t)) return [];
@@ -159,6 +186,12 @@ export function accountPlanLine(account: AccountPlanContext | null, lang: Lang):
       ? 'אין לי מידע על חשבון בשיחה הזו, ולכן איני יכול לומר באיזה מסלול חשבון מסוים נמצא.'
       : "I don't have account information in this conversation, so I can't say which plan an account is on.";
   }
+  // R-16 (Owner-approved): an account the team marked Lifetime (the app shows "Lifetime subscription") is told exactly that
+  if (account.isLifetime) {
+    return lang === 'he'
+      ? 'החשבון שלך מוגדר כמנוי לכל החיים: כל היכולות פתוחות בו, ללא חיוב.'
+      : 'Your account is set up as a Lifetime subscription: every capability is open, with no charge.';
+  }
   if (account.summaryState === 'ready' && account.planId) {
     const name = planName(account.planId, lang);
     const balance = account.planId === 'free' && typeof account.free10Remaining === 'number'
@@ -183,7 +216,10 @@ export function formatSubscriptionAnswer(intents: readonly SubscriptionIntent[],
   const parts: string[] = [];
   const planList = lang === 'he' ? `המסלולים הם ${planName('free', 'he')} ומסלול אחד בתשלום, ${planName(PKG, 'he')}` : `The plans are ${planName('free', 'en')} and one paid package, ${planName(PKG, 'en')}`;
   if (has('legacy_plan')) {
-    parts.push(lang === 'he' ? `${planList} - אין מסלול בשם שציינת.` : `${planList} - there is no plan by the name you mentioned.`);
+    // R-16: "lifetime" is not a retired plan name - for a Lifetime account the account line says so; otherwise there is none to buy
+    const asksLifetime = /lifetime|לייפטיים|לכל\s+החיים/i.test(message);
+    if (!asksLifetime) parts.push(lang === 'he' ? `${planList} - אין מסלול בשם שציינת.` : `${planList} - there is no plan by the name you mentioned.`);
+    else if (!account?.isLifetime) parts.push(lang === 'he' ? `${planList}. מנוי לכל החיים אינו מסלול לרכישה; רק הצוות יכול להגדיר חשבון כך.` : `${planList}. A Lifetime subscription is not a plan you can buy; only the team can set an account up that way.`);
   }
   if (has('trial')) {
     parts.push(lang === 'he'
@@ -246,11 +282,11 @@ export function buildSubscriptionTruthBlock(isHebrew: boolean, marketUncertain =
     ? '\n- הערה: חשבון זה טרם השלים את בחירת האזור (מקומי/בינלאומי) בהגדרות העסק, כך שאין עדיין וודאות לגבי מטבע החיוב שלו - הצג את המחירים כמידע כללי בלבד, ואל תטען שזהו בהכרח המטבע שבו יחויב חשבון זה. אפשר להציע להשלים את בחירת האזור בהגדרות העסק.'
     : '\n- Note: this account has not yet completed region selection (Local/International) in Business Settings, so its own billing currency is not yet confirmed - present these prices as general information only, and do not assert this is necessarily the currency this account will be billed in. You may suggest completing region selection in Business Settings.';
   return `SUBSCRIPTION & PLAN TRUTH (authoritative; overrides anything in the conversation):
-- Plans: Free and ONE paid package, All-inclusive (Hebrew: חינם, הכול כלול), with a monthly and an annual price. Classic, Modern and Visual are QUOTE PRESENTATION STYLES, not subscription plans (existing rights on an earlier plan are kept and do not change automatically - never name an earlier plan after a style); there is no Basic, Pro, Premium or Lifetime plan.
+- Plans: Free and ONE paid package, All-inclusive${isHebrew ? ' (Hebrew: חינם, הכול כלול)' : ''}, with a monthly and an annual price. Classic, Modern and Visual are QUOTE PRESENTATION STYLES, not subscription plans (existing rights on an earlier plan are kept and do not change automatically - never name an earlier plan after a style); there is no Basic, Pro or Premium plan. A Lifetime subscription is not a plan for purchase: only the team sets an account up that way, and such an account has every capability open with no charge (state it for this account only when the verified account section says so).
 - ${market}${uncertain}
 - Free: ${S.free.quotesTotal} quotes in total, no expiry. A quote uses one when it reaches a client (send, public link, final PDF or final print); the same version re-sent to the same client never counts again (any channel), while a changed client, recipient name or content produced again counts as another quote. Drafts and previews do not use one; deleting does not refund one; existing documents stay accessible.
 - There is NO trial (never mention trial days or a trial period as existing). There is NO monthly quote counter and NO "unlimited" plan: never say unlimited/ללא הגבלה/∞ (the package is only stated as not limited to the Free plan's 10 quotes). The only prices that exist are the ones above (monthly and annual, with the stated annual saving).
-- NOT DECIDED (say "not decided yet" and never invent a value): paid plan quote limits beyond Free-10, storage, AI quotas, attachments (types, sizes), tax beyond the Israeli VAT inclusion.
+- NOT DECIDED (say "not decided yet" and never invent a value): paid plan quote limits beyond Free-10, storage, AI quotas, attachments (types, sizes), ${isHebrew ? 'tax beyond the Israeli VAT inclusion' : 'any tax beyond the stated USD price'}.
 - CANCELLATION AND REFUNDS (decided, published in the Terms of Service section 6): once purchase opens, a subscription can be cancelled at any time by an email request (or a request from the plans window / settings); the team confirms the end date. An early end refunds the unused part of a prepaid period pro rata; a cancellation fee only where the law allows it and never above the cap stated in the Terms; the annual discount is never clawed back. Never promise anything beyond these terms.
 - Quote presentation styles (Owner 2026-10-14): every account can use all three styles - Classic (a clean business document), Modern (with product images) and Visual (with a lead project image). The business default style is set in Business settings (quote design) and can be changed on each quote. Never tie a style to a plan or a price.
 - The new plan system is ${S.planSystemActive ? 'active' : 'NOT active yet: plans cannot be purchased yet, and no account has an active plan or balance in it'}. Never claim an active plan, an active balance, purchase availability or a trial.
@@ -263,18 +299,28 @@ export type SubscriptionClaimViolation =
 
 // Checked over the WHOLE answer: these words have no legitimate current meaning in a TEKANGO answer.
 const ANYWHERE: Readonly<Partial<Record<SubscriptionClaimViolation, readonly RegExp[]>>> = {
+  // Night task 2026-10-16 (R-16, Owner-approved L-11 / L-01): "Lifetime" is a real account state the team sets (the app shows
+  // "Lifetime subscription"); it is no longer a retired plan name. Basic / Pro / Premium stay retired.
   LEGACY_PLAN_NAME: [
-    /\b(pro|basic|premium|lifetime)\s+(plan|tier|subscription|account|version|package|users?|members?|access|features?)\b/i,
+    /\b(pro|basic|premium)\s+(plan|tier|subscription|account|version|package|users?|members?|access|features?)\b/i,
     /\b(plan|tier)\s+(pro|basic)\b/i,
     /(?:^|[^A-Za-z])(PRO|BASIC)(?![A-Za-z])/,
     /(מסלול|תוכנית|מנוי|חבילת)\s+(ה)?(בסיסי|פרו|בייסיק|פרימיום)/, /(?:^|[\s"'(])(?:ה|ב|ל)?(פרו|בייסיק)(?=$|[\s?.!,"')])/,
   ],
-  TRIAL_CLAIM: [/\b(free\s+)?trial\b/i, /\b(14|fourteen)[- ]days?\b/i, /(תקופת\s*(ה)?ניסיון|ניסיון\s*(חינם|חינמי)|ימי\s*(ה)?ניסיון|14\s*יום)/],
-  MONTHLY_QUOTE_LIMIT: [
-    /\bquotes?\s*(\/|per|a|each)\s*(mo|month)\b/i, /\b\d+\s+quotes?\s+(per|a|each|every)\s+month\b/i, /\bmonthly\s+(quote\s+)?(limit|quota|counter|allowance)\b/i,
-    /\b\d+\s*\/\s*(5|20)\b/, /הצעות(\s+מחיר)?\s+(ב|ל)חודש/, /(מכסת|מגבלת)\s+(ה)?הצעות\s+(ה)?חודשי/,
-  ],
+  // R-02: "14 days" alone (a quote validity, a payment term) is not a trial claim - see TRIAL_14 in the plan-sentence check below
+  TRIAL_CLAIM: [/\b(free\s+)?trial\b/i, /(תקופת\s*(ה)?ניסיון|ניסיון\s*(חינם|חינמי)|ימי\s*(ה)?ניסיון)/],
+  MONTHLY_QUOTE_LIMIT: [/\bmonthly\s+(quote\s+)?(limit|quota|counter|allowance)\b/i, /(מכסת|מגבלת)\s+(ה)?הצעות\s+(ה)?חודשי/],
 };
+// R-02: a monthly counter claim is a quote count per month WITH an allowance word ("up to 20 quotes a month", "5 quotes per month on
+// the free plan") or an old "3/5 quotes" counter - never a statistic ("you sent 12 quotes a month") and never a date ("3/20/2027").
+const MONTHLY_COUNTER = [
+  /\b\d+\s+quotes?\s+(per|a|each|every)\s+(mo|month)\b/i, /\bquotes?\s*(\/|per|a|each)\s*(mo|month)\b/i,
+  /הצעות(\s+מחיר)?\s+(ב|ל)חודש/,
+];
+const COUNTER_FRACTION = /(?<![\d/.])\d{1,2}\s*\/\s*(5|20)(?![\d/])\s*(quotes?|הצעות)/i;
+const LIMIT_WORD = /\b(up to|limit|limited|quota|allowance|allowed|max(imum)?|can (send|create|make|issue)|plan|free|package|subscription)\b|(עד|מגבלה|מגבלת|מוגבל|מכסה|מכסת|מותר|לכל\s+היותר|מקסימום|אפשר\s+(לשלוח|ליצור|להנפיק)|מסלול|חינם|מנוי|חבילה)/i;
+const TRIAL_14 = /\b(14|fourteen)[- ]days?\b|(14|ארבעה\s*עשר)\s*(יום|ימים)/i;
+const TRIAL_CONTEXT = /\b(free|trial|plan|subscription|sign[- ]?up|register\w*|registration|account (is|will be) (free|active|open))\b|(חינם|ניסיון|מסלול|מנוי|הרשמה|נרשמ)/i;
 // Checked only inside a sentence that talks about plans / subscriptions / quotas (a quote total in dollars, a finance
 // "per year" figure or "unlimited items" is not a plan claim).
 const IN_PLAN_SENTENCE: Readonly<Partial<Record<SubscriptionClaimViolation, readonly RegExp[]>>> = {
@@ -298,6 +344,8 @@ export function findSubscriptionClaimViolations(answer: unknown, isHebrew: boole
   const ilsOk = new Set(pk('IL').map(Number));
   const usdOk = new Set(pk('INTERNATIONAL').map(Number));
   for (const sentence of splitSentences(t)) {
+    if (TRIAL_14.test(sentence) && TRIAL_CONTEXT.test(sentence)) out.add('TRIAL_CLAIM');
+    if ((MONTHLY_COUNTER.some((re) => re.test(sentence)) && LIMIT_WORD.test(sentence)) || COUNTER_FRACTION.test(sentence)) out.add('MONTHLY_QUOTE_LIMIT');
     const planCtx = PLAN_SENTENCE.test(sentence);
     if ((planCtx || QUOTA_SENTENCE.test(sentence)) && IN_PLAN_SENTENCE.UNLIMITED_CLAIM!.some((re) => re.test(sentence))) out.add('UNLIMITED_CLAIM');
     if (!planCtx) continue;

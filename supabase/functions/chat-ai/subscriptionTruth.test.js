@@ -151,7 +151,7 @@ describe('model answer gate: retired / unapproved plan truth is rejected', () =>
 describe('prompt block + request boundary', () => {
   it('the subscription prompt block forbids every retired claim class and lists the not-decided values', () => {
     const b = buildSubscriptionTruthBlock(false);
-    expect(b).toMatch(/there is no Basic, Pro, Premium or Lifetime plan/);
+    expect(b).toMatch(/there is no Basic, Pro or Premium plan\. A Lifetime subscription is not a plan for purchase/);
     expect(b).toMatch(/There is NO trial/);
     expect(b).toMatch(/NOT DECIDED/);
     expect(b).toMatch(/NOT active yet/);
@@ -164,8 +164,8 @@ describe('prompt block + request boundary', () => {
   });
   it('index.ts fetches the summary with the caller\'s own JWT client, reads no legacy plan column and gates model answers', () => {
     expect(indexSource).toMatch(/accountSummary = await fetchServerAccountSummary\(\(fn\) => callerClient\.rpc\(fn\)\);/);
-    expect(indexSource).toMatch(/\.select\('role, country, phone, tax_id'\)/);
-    expect(indexSource).not.toMatch(/trial_ends_at|is_lifetime|monthStartIso|monthlyUsed/);
+    expect(indexSource).toMatch(/\.select\('role, country, phone, tax_id, is_lifetime'\)/);
+    expect(indexSource).not.toMatch(/trial_ends_at|monthStartIso|monthlyUsed/);
     expect(indexSource).toMatch(/const subscription = resolveSubscriptionTruthResponse\(lastUserMessage, isHebrew, verifiedUserId && accountContext \? accountContext\.account : null\);/);
     expect(indexSource).toMatch(/const subscriptionViolations = findSubscriptionClaimViolations\(extracted\.answer, isHebrew\);/);
     // the subscription router runs after payment/invoicing and before the account-market and capability routers
