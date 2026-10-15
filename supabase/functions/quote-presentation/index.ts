@@ -40,6 +40,8 @@ import {
   normalizeStoredDraft,
   parseAssetIdList,
   parseBearer,
+  isUserSessionToken,
+  ownerPreview,
   parseMediaRefs,
   parseRequestBody,
   planCatalogLink,
@@ -301,6 +303,9 @@ async function publicGet(ctx: Ctx) {
     quote = loaded.q;
   } else {
     quote = await loadQuote(admin, body.quoteId);
+    // R-18 (Owner default 3): the owner's own signed-in view never freezes the presentation (only a customer's view does)
+    const token = parseBearer(ctx.authHeader ?? null);
+    if (token && isUserSessionToken(token) && ownerPreview(await optionalCaller(admin, ctx.authHeader), quote.user_id)) mayFreeze = false;
   }
   const uid = quote.user_id;
   let issued = await readJson(admin, issuedPath(uid, quote.id));
