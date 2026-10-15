@@ -32,7 +32,7 @@ export default function Terms({ isHebrew }) {
   // expansion) are unchanged.
   const t = isHebrew ? {
     title: 'תנאי שימוש (Terms of Service)',
-    lastUpdated: 'עדכון אחרון: 13 באוקטובר 2026',
+    lastUpdated: 'עדכון אחרון: 15 באוקטובר 2026',
     back: 'חזור אחורה',
     sections: [
       {
@@ -40,7 +40,7 @@ export default function Terms({ isHebrew }) {
         title: '1. השירות והמפעיל',
         content: [
           'TEKANGO ("השירות") היא מערכת מקוונת לניהול מידע עסקי ולהכנת הצעות מחיר ומסמכים, בהתאם ליכולות הזמינות בה בפועל. יכולת שמוצגת כמתוכננת או כ"עדיין לא פעילה" אינה חלק מהשירות הפעיל עד להפעלתה.',
-          'השירות מופעל בידי שלמה סיני, עוסק מס׳ 023716913, רחוב שרה אהרונסון, רמת גן ("המפעיל"). לפניות: support@tekango.com או בטלפון 050-2993806. אין במקום קבלת קהל.',
+          'השירות מופעל בידי המפעיל שפרטיו מופיעים בסעיף 12 בסוף מסמך זה ("המפעיל"). לפניות: support@tekango.com או בצ\'אט באתר.',
           'בהרשמה ובשימוש בשירות אתם מסכימים לתנאים אלה. השימוש מיועד למי שמוסמך לפעול בשמו או בשם העסק שעבורו נפתח החשבון.',
         ],
       },
@@ -111,10 +111,16 @@ export default function Terms({ isHebrew }) {
         title: '11. הדין החל וסמכות שיפוט',
         content: 'על תנאים אלה יחולו דיני מדינת ישראל, וסמכות השיפוט תהיה נתונה לבתי המשפט המוסמכים במחוז תל אביב. אין בכך כדי לשלול זכויות מחייבות החלות על משתמשים לפי דין אחר.',
       },
+      // Owner 2026-10-15: the operator's personal details are shown only here, at the end of the Terms
+      {
+        id: 'operator-details',
+        title: '12. פרטי המפעיל',
+        content: 'שלמה סיני, עוסק מס׳ 023716913, רחוב שרה אהרונסון, רמת גן. טלפון: 050-2993806. אין במקום קבלת קהל. הדרך המהירה לפנות אלינו: support@tekango.com או הצ\'אט באתר.',
+      },
     ],
   } : {
     title: 'Terms of Service',
-    lastUpdated: 'Last updated: October 13, 2026',
+    lastUpdated: 'Last updated: October 15, 2026',
     back: 'Go Back',
     sections: [
       {
@@ -122,7 +128,7 @@ export default function Terms({ isHebrew }) {
         title: '1. The Service and the Operator',
         content: [
           'TEKANGO ("the Service") is an online system for managing business information and preparing quotes and documents, according to the capabilities actually available in it. A capability shown as planned or "not active yet" is not part of the active Service until it is activated.',
-          'The Service is operated by Shlomo Sinai, Israeli business registration (osek) no. 023716913, Sarah Aharonson Street, Ramat Gan, Israel ("the Operator"). Contact: info@tekango.com. The Operator does not receive visitors in person.',
+          'The Service is operated by the Operator whose details appear in section 12 at the end of these terms ("the Operator"). Contact: info@tekango.com or the chat on the site.',
           'By registering and using the Service you agree to these terms. The Service is intended for people authorized to act for themselves or for the business for which the account is opened.',
         ],
       },
@@ -192,6 +198,11 @@ export default function Terms({ isHebrew }) {
         id: 'law',
         title: '11. Governing Law and Jurisdiction',
         content: 'These terms are governed by the laws of the State of Israel, and the competent courts in the Tel Aviv district have jurisdiction. This does not remove mandatory rights that apply to users under another law.',
+      },
+      {
+        id: 'operator-details',
+        title: '12. Operator Details',
+        content: 'Shlomo Sinai, Israeli business registration (osek) no. 023716913, Sarah Aharonson Street, Ramat Gan, Israel. The Operator does not receive visitors in person. The fastest way to reach us: info@tekango.com or the chat on the site.',
       },
     ],
   };

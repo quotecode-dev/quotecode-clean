@@ -2283,8 +2283,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             // Owner 2026-10-15: optional name fields + the consent record (document versions = their 'last updated' date, and the time)
             ...(cleanSignupText(signupFullName) ? { full_name: cleanSignupText(signupFullName) } : {}),
             ...(cleanSignupText(signupBusinessName) ? { business_name: cleanSignupText(signupBusinessName) } : {}),
-            terms_version: '2026-10-13',
-            privacy_version: '2026-10-13',
+            terms_version: '2026-10-15',
+            privacy_version: '2026-10-15',
             terms_accepted_at: new Date().toISOString(),
           }
         }

@@ -1,5 +1,23 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { checkForNewVersion, startVersionPolling } from './versionAwareness';
+import { checkForNewVersion, startVersionPolling, newerDeployedSha } from './versionAwareness';
+
+// Owner 2026-10-15: on the 5186 working preview "Refresh" never cleared the banner after a commit (dev server: the bundle keeps
+// the SHA it started with, version.json follows HEAD) - a working preview never shows it; LIVE / frozen builds keep it.
+describe('newerDeployedSha', () => {
+  it('a different deployed SHA on LIVE / a frozen build is a new version', () => {
+    expect(newerDeployedSha({ buildSha: 'b'.repeat(40), servesWorkingTree: false }, 'a'.repeat(40))).toBe('b'.repeat(40));
+    expect(newerDeployedSha({ buildSha: 'b'.repeat(40) }, 'a'.repeat(40))).toBe('b'.repeat(40));
+  });
+  it('a working preview (servesWorkingTree:true) never shows the banner', () => {
+    expect(newerDeployedSha({ buildSha: 'b'.repeat(40), servesWorkingTree: true, dirty: true }, 'a'.repeat(40))).toBeNull();
+  });
+  it('same SHA, unknown values or a missing payload -> no banner', () => {
+    expect(newerDeployedSha({ buildSha: 'a'.repeat(40) }, 'a'.repeat(40))).toBeNull();
+    expect(newerDeployedSha({ buildSha: 'unknown' }, 'a'.repeat(40))).toBeNull();
+    expect(newerDeployedSha({ buildSha: 'b'.repeat(40) }, 'unknown')).toBeNull();
+    expect(newerDeployedSha(null, 'a'.repeat(40))).toBeNull();
+  });
+});
 
 describe('checkForNewVersion', () => {
   beforeEach(() => {
