@@ -4,6 +4,7 @@
 // The server is authoritative for entitlement, ownership, locking and image validation; nothing here is a security
 // boundary - imageNormalize only reduces upload size and strips metadata before the server re-validates the bytes.
 import { supabase } from '../shared/supabase';
+import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
 import { normalizeImage } from './imageNormalize';
 
 export const QUOTE_PRESENTATION_FUNCTION = 'quote-presentation';
@@ -51,7 +52,9 @@ export async function readFunctionError(error) {
 
 export async function callQuotePresentation(body) {
   try {
-    const { data, error } = await supabase.functions.invoke(QUOTE_PRESENTATION_FUNCTION, { body });
+    // Owner 2026-10-15 (Codex AUD-06): every signed-in action carries a fresh session; the public view stays anonymous
+    const invoke = body?.action === 'public_get' ? (n, o) => supabase.functions.invoke(n, o) : invokeWithFreshSession;
+    const { data, error } = await invoke(QUOTE_PRESENTATION_FUNCTION, { body });
     if (error) return await readFunctionError(error);
     if (!data || typeof data !== 'object') return fail('invalid_response', 'Empty or invalid response');
     if (typeof data.error === 'string') return fail(data.error, data.message || data.error);

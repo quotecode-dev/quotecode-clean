@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import AiModalHeader from './AiModalHeader';
 import { X, Package, Ruler, ChevronRight, ChevronLeft, Lock, Check, Pencil, Sparkles } from 'lucide-react';
 import { APP as NEON } from '../theme/neonTheme';
@@ -161,6 +161,9 @@ export default function AddItemWizard({
   resumeRef.current = resumeState;
   const resumeConsumedRef = useRef(false);
   const [step, setStep] = useState(STEPS.ITEM);
+  // Owner 2026-10-15: every wizard step opens at its own top (the review step used to open at step 1's scroll offset)
+  const stepBodyRef = useRef(null);
+  useLayoutEffect(() => { if (stepBodyRef.current) stepBodyRef.current.scrollTop = 0; }, [step]);
   const [measureUnit, setMeasureUnit] = useState('cm');
   // "I already know the area / length": a manual measured quantity (the existing Task 34 manual-measured item), no invented sizes
   const [useManualQty, setUseManualQty] = useState(false);
@@ -866,7 +869,7 @@ export default function AddItemWizard({
 
         <StepIndicator step={step} isHebrew={isHebrew} isNarrow={isNarrow} labels={t.stepLabels} stepOfTotal={t.stepOfTotal} />
 
-        <div style={{ padding: '20px', overflowY: 'auto', flex: '1 1 auto' }}>
+        <div ref={stepBodyRef} style={{ padding: '20px', overflowY: 'auto', flex: '1 1 auto' }}>
           {step === STEPS.ITEM && (
             <div>
               {/* חוק ברזל (Smart Quote End-to-End Structural Unification

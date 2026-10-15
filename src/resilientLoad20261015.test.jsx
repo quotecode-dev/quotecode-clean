@@ -48,7 +48,7 @@ describe('the quotes list never reads a failed / pending load as "no quotes"', (
 
 describe('Dashboard: self-healing lists (source guards)', () => {
   it('every list load goes through the self-healing loader; only a successful answer replaces a list', () => {
-    expect(dash).toContain("import { loadWithRetry, isNetworkError } from '../utils/resilientLoad';");
+    expect(dash).toContain("import { loadWithRetry } from '../utils/resilientLoad';");
     for (const name of ['quotes', 'clients', 'services', 'expenses', 'attachments']) expect(dash).toContain(`return loadResource('${name}', userId,`);
     expect(dash).toContain('if (res.ok && isCurrent()) {');
     expect(dash).not.toMatch(/if \(error\) console\.error\('Error fetching quotes:', error\.message\);\s*else setQuotes/);
@@ -56,8 +56,11 @@ describe('Dashboard: self-healing lists (source guards)', () => {
   it('a failed attachments request no longer empties the attachments', () => {
     expect(dash).toContain("if (q.error) return { ok: false, error: q.error, status: q.status };");
   });
-  it('a network failure of the business settings is retried, never a sign-out', () => {
-    expect(dash).toContain('if (r.error && isNetworkError(r.error, r.status)) return { ok: false, error: r.error, status: r.status };');
+  // Owner 2026-10-15 ("users get signed out after some time"): ANY failure of the business settings is retried (an expired token is
+  // refreshed first), never a sign-out - a network failure included
+  it('a failure of the business settings (network or server) is retried, never a sign-out', () => {
+    expect(dash).toContain('if (r.error) return { ok: false, error: r.error, status: r.status };');
+    expect(dash).toContain("if (!sessionNow?.session) return { ok: false, error: { message: 'no session (jwt)' }, status: 401 };");
   });
   it('the lists load side by side and never block the settings', () => {
     expect(dash).toMatch(/fetchQuotes\(userId\);\s*fetchClients\(userId\);\s*fetchServices\(userId\);\s*fetchExpenses\(userId\);\s*fetchAllUserAttachments\(userId\);\s*await fetchSettings/);

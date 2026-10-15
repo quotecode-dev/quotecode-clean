@@ -4,6 +4,7 @@
 // itself ({ style, media, detail }) is Dashboard quote state (durable local draft) and is passed in as value + setter.
 // Every network call goes through utils/quotePresentationClient.js (never throws, resolves { ok, ... }).
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { supabase } from '../../shared/supabase';
 import {
   fetchPresentationContext, setDefaultStyle as clientSetDefaultStyle, uploadPresentationMedia, fetchMediaUrls,
   fetchQuotePresentation, saveQuotePresentation, issueQuotePresentation,
@@ -228,6 +229,17 @@ export default function useQuotePresentationEditor({
     }
     loadContext();
   }, [enabled, userId, loadContext]);
+
+  // Owner 2026-10-15 (Codex AUD-06): a context that failed (e.g. a session that was being refreshed) reloads by itself once the session
+  // is fresh again or the tab becomes visible, instead of staying disabled until a full page reload
+  useEffect(() => {
+    if (!enabled || !userId || context.status !== 'error') return undefined;
+    const retry = () => { contextCache = null; loadContext(); };
+    const sub = supabase.auth.onAuthStateChange((event) => { if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') retry(); });
+    const onVisible = () => { if (document.visibilityState === 'visible') retry(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { sub?.data?.subscription?.unsubscribe?.(); document.removeEventListener('visibilitychange', onVisible); };
+  }, [enabled, userId, context.status, loadContext]);
 
   // ---- signed thumbnail URLs ----
   const ensureUrls = useCallback(async (assetIds) => {

@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useId, useRef, useState } from 'react';
 import { supabase } from '../shared/supabase';
+import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
 import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import Toast from '../components/Toast';
@@ -202,7 +203,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
     const serverPhase = quoteData.capability ? 'off' : (quoteData.viewerIsOwner === true ? (quoteData.outputPhase || 'off') : 'off');
     const gate = outputGate(finalChannel, serverPhase);
     if (gate.mode === 'authority_required') {
-      const auth = await authorizeWithNotice({ channel: finalChannel, quoteId: quote.id, invoke: (name, opts) => supabase.functions.invoke(name, opts), confirm: (text) => window.confirm(text), isHebrew: false });
+      const auth = await authorizeWithNotice({ channel: finalChannel, quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => window.confirm(text), isHebrew: false });
       const snap = auth.proceed
         ? await supabase.functions.invoke('get-public-quote', { body: { output_grant: auth.grant, channel: finalChannel } })
         : null;
