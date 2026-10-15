@@ -44,7 +44,7 @@ import { quoteMatchesSearch } from '../utils/quoteSearch';
 import { formatMoney, formatMoneyForCurrency, totalsByQuoteCurrency, normalizeQuoteCurrency } from '../utils/money';
 import { CurrencyTotals } from '../components/NumericValue';
 import { compareClients } from '../utils/clientSort';
-import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getEntryRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows } from '../utils/professionalQuoteItem';
+import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getEntryRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows, withPersistableQuantity } from '../utils/professionalQuoteItem';
 import { excludeUntouchedPlaceholderItems } from '../utils/structuredQuoteItemPersistence';
 import { getBusinessProfileGateMessage, getMissingBusinessProfileFields } from '../utils/businessProfileCompleteness';
 import { getDashboardNavCapabilities } from '../utils/dashboardNavCapabilities';
@@ -79,7 +79,7 @@ import QuotesTab from '../components/QuotesTab';
 import NewQuoteMenu from '../components/NewQuoteMenu';
 import { newQuoteChoices, templateChoice } from '../utils/newQuoteChoices';
 import { SaveTemplateDialog, TemplatePickerDialog } from '../components/QuoteTemplateDialogs';
-import { templateToFormState, templateCurrencyMismatch, withoutPrices } from '../utils/quoteTemplates';
+import { templateToFormState, templateCurrencyMismatch, templateCurrencyUnknown, withoutPrices, templatePriceBasis, clientTypeForPriceBasis } from '../utils/quoteTemplates';
 import AiQuoteDraftDialog from '../components/AiQuoteDraftDialog';
 import { requestAiQuoteDraft, draftLinesToQuoteItems } from '../utils/aiQuoteDraftClient';
 import { buildQuoteDraftSnapshot } from '../utils/quoteDraftSnapshot';
@@ -3605,9 +3605,25 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         : `The template is saved in ${f.currency} and the quote is in ${currency}. Descriptions and quantities are copied; the prices are removed for you to enter again, as no exchange rate is used. Continue without prices?`);
       if (!ok) return;
       templateItems = withoutPrices(f.items);
+    } else if (templateCurrencyUnknown(f)) {
+      // R-20: saved before the template remembered its currency - the user decides whether the prices are in this quote's currency
+      const keep = window.confirm(isHebrew
+        ? `התבנית נשמרה לפני שנשמר בה המטבע של המחירים. להשתמש במחירים כמו שהם, ב-${currency}? (ביטול: להעתיק את התיאורים והכמויות בלי מחירים)`
+        : `This template was saved before it remembered the currency of its prices. Use the prices as they are, in ${currency}? (Cancel: copy the descriptions and quantities without prices)`);
+      if (!keep) templateItems = withoutPrices(f.items);
     }
     if (handleCreateNewQuoteClick() === false) return;
     if (templateItems) setItems(templateItems);
+    // R-03 (Owner-approved L-09): prices that include VAT open as a private-client quote, prices before VAT as a business-client one;
+    // a template saved before it remembered this asks the user to check instead of guessing
+    const pricedTemplate = (templateItems || []).some((it) => it.unit_price !== '' && it.unit_price != null);
+    if (isLocalIsraeliBusiness && pricedTemplate) {
+      const templateClientType = clientTypeForPriceBasis(f.priceBasis);
+      if (templateClientType) setClientType(templateClientType);
+      else setAlertModalMsg(isHebrew
+        ? 'התבנית נשמרה לפני שנשמר בה אם המחירים כוללים מע"מ. בחרו את סוג הלקוח (פרטי: המחירים כוללים מע"מ, עסקי: לפני מע"מ) ובדקו שהמחירים נכונים לפני השליחה.'
+        : 'This template was saved before it remembered whether its prices include VAT. Choose the client type (private: prices include VAT, business: before VAT) and check the prices before sending.');
+    }
     setSections(f.sections);
     setQuoteStructureMode(f.quoteStructureMode);
     if (f.quoteSubject) setQuoteSubject(f.quoteSubject);
@@ -4302,7 +4318,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           };
 
       // Post-LIVE Priority 1, Fix A: an untouched default placeholder row is never written (structuredQuoteItemPersistence.js).
-      let itemsForPersist = excludeUntouchedPlaceholderItems(items);
+      // R-05: a fractional count is stored as a manual calculated quantity (integer quantity column) - never a failed save
+      let itemsForPersist = excludeUntouchedPlaceholderItems(items).map(withPersistableQuantity);
       let descriptionUpdatesForPersist = [];
       // Non-financial, non-structural edit: no item rewrite at all, only targeted description updates (Codex P0-1 / SQ-F02).
       if (editingQuoteId && !(isFinancialEdit || itemsStructurallyChanged)) {
@@ -7160,7 +7177,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       <AccessibilityModal isOpen={showAccessibility} onClose={() => setShowAccessibility(false)} isHebrew={isHebrew} />
       {templateDialog === 'save' && session?.user?.id && (
         <SaveTemplateDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
-          form={{ items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency }} onClose={() => setTemplateDialog(null)} />
+          form={{ items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency, priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType) }} onClose={() => setTemplateDialog(null)} />
       )}
       {templateDialog === 'pick' && session?.user?.id && (
         <TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
