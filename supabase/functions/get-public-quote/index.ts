@@ -188,7 +188,8 @@ serve(async (req) => {
 
     const isMissingStructuredFieldError = (err: any) => {
       const msg = String(err?.message || '');
-      return ['project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
+      // night task 2026-10-16 (SND-9): price_missing too - the flat select does not read it, so a missing column falls back instead of failing
+      return ['price_missing', 'project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
         .some((col) => msg.includes(col));
     };
 

@@ -83,6 +83,7 @@ describe('buildVerifiedAccountContext - minimal safe field allowlist', () => {
     expect(JSON.stringify(ctx)).not.toMatch(/pro|basic|trial/i);
     expect(buildVerifiedAccountContext({ plan: 'pro', trial_ends_at: '2099-01-01T00:00:00Z', country: 'Local' }, null).account).toEqual(NO_ACCOUNT_PLAN);
     expect(buildVerifiedAccountContext({ is_lifetime: 'true', country: 'Local' }, null).account.isLifetime).toBe(false);
+    expect(buildVerifiedAccountContext({ is_lifetime: true, role: 'super_admin', country: 'Local' }, null).account.isLifetime).toBe(false); // as before
   });
   it('never includes role, business name, tax id, address, phone, or any other non-allowlisted field on the returned object', () => {
     const ctx = buildVerifiedAccountContext({ role: 'super_admin', country: 'Local', business_name: 'X', tax_id: '1', phone: '2' }, 'main');
@@ -95,7 +96,7 @@ describe('buildVerifiedAccountContext - minimal safe field allowlist', () => {
   it('the module no longer reads or ports any legacy entitlement source', () => {
     const src = readFileSync('supabase/functions/chat-ai/accountContext.ts', 'utf-8').split('\n').filter((l) => !/^\s*\/\//.test(l)).join('\n');
     expect(src).not.toMatch(/trial_ends_at|computeEffectivePlan|resolveAccountEntitlement|'basic'|'pro'/);
-    expect(src.match(/is_lifetime/g)).toHaveLength(2); // the row type + the one strict `=== true` read
+    expect(src.match(/is_lifetime/g)).toHaveLength(2); // the row type + the one strict `=== true` read (never for the super admin)
   });
 });
 

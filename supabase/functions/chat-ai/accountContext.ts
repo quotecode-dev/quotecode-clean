@@ -93,7 +93,8 @@ export function buildVerifiedAccountContext(
   summary: AccountSummary | null | undefined = null,
 ): VerifiedAccountContext {
   const fromSummary = accountPlanFromSummary(summary);
-  const account: AccountPlanContext = row?.is_lifetime === true ? Object.freeze({ ...fromSummary, isLifetime: true }) : fromSummary;
+  // (as before the new interface) the super admin is never described as a Lifetime account
+  const account: AccountPlanContext = row?.is_lifetime === true && row?.role !== 'super_admin' ? Object.freeze({ ...fromSummary, isLifetime: true }) : fromSummary;
   const summaryMarket = summary && summary.state === 'ready' ? summary.market : null;
   const market: 'Local' | 'International' | 'Unknown' =
     summaryMarket === 'IL' ? 'Local' :
