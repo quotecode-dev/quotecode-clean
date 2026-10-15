@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AdminMarketIcon } from './AdminIdentityIcons';
-import { AdminPlanState, AdminPlanSystemNotice, AdminLegacyRecord } from './AdminSubscriptionState';
-import { adminTargetUserId, useAdminAccountSummaries } from '../domain/subscriptions/adminAccountSummary';
+import { AdminPlanState, AdminPlanSystemNotice, AdminAccountIndicators } from './AdminSubscriptionState';
+import { adminTargetUserId, useAdminAccountSummaries, matchesStatusFilter } from '../domain/subscriptions/adminAccountSummary';
 import { resolveAdminMarket } from '../utils/adminMarket';
 import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
@@ -15,8 +15,10 @@ import { formatShortDateTime } from '../utils/shortDate';
 //   (see Dashboard.jsx's filteredAdminAccounts comment for why).
 // - Owner-locked market presentation is icon-only.
 // - Plan column (OD-16/OD-20): the canonical new-model state from the admin summary RPC only (AdminSubscriptionState), never
-//   a Basic/Pro/trial/LIFETIME label derived from the legacy fields. The legacy fields are shown only in the clearly
-//   labelled "Legacy record (history)" column as raw technical values.
+//   a Basic/Pro plan label derived from the legacy fields. Owner console 2026-10-14 (Codex spec A7 / A8, approved): the list shows
+//   human indicator tags instead of the raw legacy values - lifetime (an independent tag, also while the plan system is not active),
+//   the legacy trial (history wording), and Free-10 / subscription / assignment from a ready server summary; the raw legacy values stay
+//   in the user details ("Legacy record (history)").
 // - Default sort (newest registration first) is owned by the caller
 //   (Dashboard.jsx's sortField/sortDirection default), not this component.
 const dateLabel = (value, isHebrew) => value && Number.isFinite(new Date(value).getTime())
@@ -29,6 +31,7 @@ const PAGE_SIZE_OPTIONS = [25, 50];
 
 export default function AdminUsersView({ accounts, orderedAccounts = accounts, search, onSearch, onSort, sortField, sortDirection, isHebrew, onDetails, bodyExtra }) {
   const [market, setMarket] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
   const [page, setPage] = useState(0);
 
@@ -48,7 +51,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
     const term = search.trim().toLowerCase();
     const matchesSearch = `${account.business_name || ''} ${account.email || ''}`.toLowerCase().includes(term);
     const matchesMarket = market === 'all' || market === accountMarket(account);
-    return matchesSearch && matchesMarket;
+    return matchesSearch && matchesMarket && matchesStatusFilter(account, statusFilter);
   }).sort((a, b) => (order.get(a.account.id) ?? Infinity) - (order.get(b.account.id) ?? Infinity));
 
   const pageCount = Math.max(1, Math.ceil(visible.length / pageSize));
@@ -66,7 +69,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   );
   const marketBadge = a => <AdminMarketIcon account={a} isHebrew={isHebrew} />;
   const planState = a => <AdminPlanState summary={summaryOf(a)} isHebrew={isHebrew} compact />;
-  const legacyRecord = a => <AdminLegacyRecord account={a} isHebrew={isHebrew} compact />;
+  const indicators = a => <AdminAccountIndicators account={a} summary={summaryOf(a)} isHebrew={isHebrew} formatDate={(v) => dateLabel(v, isHebrew).split(' ')[0]} />;
   const registered = a => <span className="admin-date">{dateLabel(a.created_at, isHebrew)}</span>;
   // PRODUCT_TRUTH_CAPABILITY: admin_console
   const actions = a => <button className="admin-icon-button" aria-label={isHebrew ? `פרטי משתמש: ${a.business_name || a.email}` : `User details: ${a.business_name || a.email}`} onClick={() => onDetails(a)}>{isHebrew ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}</button>;
@@ -74,7 +77,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   const columns = [
     [isHebrew ? 'עסק' : 'Business', 'business_name'],
     [isHebrew ? 'מסלול' : 'Plan', null],
-    [isHebrew ? 'רשומת מורשת (היסטוריה)' : 'Legacy record (history)', 'plan'],
+    [isHebrew ? 'חיוויים' : 'Indicators', null],
     [isHebrew ? 'נרשם' : 'Registered', 'created_at'],
     [isHebrew ? 'אזור' : 'Region', 'country'],
     [isHebrew ? 'פעולות' : 'Actions', null],
@@ -105,6 +108,13 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
             <option value="International">{isHebrew ? 'בינלאומי' : 'International'}</option>
             <option value="Unknown">{isHebrew ? 'לא ידוע' : 'Unknown'}</option>
           </select>
+          <select aria-label={isHebrew ? 'סינון לפי חיווי' : 'Filter by indicator'} value={statusFilter} onChange={e => { setStatusFilter(e.target.value); setPage(0); }}>
+            <option value="all">{isHebrew ? 'כל החיוויים' : 'All indicators'}</option>
+            <option value="lifetime">{isHebrew ? 'לכל החיים' : 'Lifetime'}</option>
+            <option value="trial_active">{isHebrew ? 'ניסיון ישן פעיל' : 'Legacy trial active'}</option>
+            <option value="trial_ended">{isHebrew ? 'ניסיון ישן הסתיים' : 'Legacy trial ended'}</option>
+            <option value="none">{isHebrew ? 'ללא חיווי' : 'No indicator'}</option>
+          </select>
         </div>
         </>
       }
@@ -134,7 +144,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
               <tr key={a.id}>
                 <td>{identity(a)}</td>
                 <td>{planState(a)}</td>
-                <td>{legacyRecord(a)}</td>
+                <td>{indicators(a)}</td>
                 <td>{registered(a)}</td>
                 <td>{marketBadge(a)}</td>
                 <td>{actions(a)}</td>
@@ -149,7 +159,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
           <article className="admin-user-card" key={a.id}>
             <div className="admin-card-heading">{identity(a)}{actions(a)}</div>
             <div className="admin-card-badges">{planState(a)}{marketBadge(a)}</div>
-            <div className="admin-card-dates">{legacyRecord(a)}{registered(a)}</div>
+            <div className="admin-card-dates">{indicators(a)}{registered(a)}</div>
           </article>
         ))}
       </div>

@@ -54,8 +54,10 @@ export function pickLeadHotRow(rows) {
   });
 }
 
+// Owner bug 2026-10-14: the compact list must never DROP a quote - it used to skip every other hot quote, so with two hot quotes
+// (and the "show all" button only above 4) the second one was unreachable. The lead hot quote is first; every other row follows in order.
 export function pickCompactRows(rows, limit = 4) {
   const lead = pickLeadHotRow(rows);
   if (!lead) return rows.slice(0, limit);
-  return [lead, ...rows.filter((r) => r !== lead && !r.isHot).slice(0, limit - 1)];
+  return [lead, ...rows.filter((r) => r !== lead)].slice(0, limit);
 }

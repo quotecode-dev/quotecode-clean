@@ -514,6 +514,15 @@ export default function SettingsTab({
                <PackageOfferCards model={subscriptionOffer} isHebrew={isHebrew} only={['all_inclusive']} currentPlanId={accountState.tone === 'plan' ? accountState.planId : null} testIdPrefix="settings-subscription" />
                <p data-testid="settings-subscription-price-note" style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: NEON.textPrimary }}>{subscriptionOffer.priceNote}</p>
                <p data-testid="settings-subscription-availability" role="status" style={{ margin: 0, fontSize: '0.8rem', color: NEON.textSecondary }}>{subscriptionOffer.availability}</p>
+               {/* Owner 2026-10-14 (Codex spec A10, approved): the same cancellation-request path as the plans window and the Terms -
+                   an email request handled by the team; opening the email cancels nothing automatically. */}
+               <p data-testid="settings-subscription-cancellation" style={{ margin: 0, fontSize: '0.8rem', color: NEON.textSecondary }}>
+                 {subscriptionOffer.cancellation.text}{' '}
+                 {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation, nothing changes in the account) */}
+                 <a href={subscriptionOffer.cancellation.href} style={{ color: NEON.violet, fontWeight: 600 }}>{subscriptionOffer.cancellation.linkLabel}</a>{' · '}
+                 {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}
+                 <a href={subscriptionOffer.cancellation.termsHref} target="_blank" rel="noopener noreferrer" style={{ color: NEON.violet }}>{subscriptionOffer.cancellation.termsLabel}</a>
+               </p>
              </>
            )}
         </div>

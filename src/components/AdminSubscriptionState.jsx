@@ -1,6 +1,19 @@
 // Admin subscription state components (OD-16 / OD-20). Read model, fetching and wording: src/domain/subscriptions/adminAccountSummary.js.
 import { planName } from '../../supabase/functions/_shared/subscriptionContract.ts';
-import { COPY, tr, planStateText, legacyRecordEntries } from '../domain/subscriptions/adminAccountSummary';
+import { COPY, tr, planStateText, legacyRecordEntries, accountIndicators } from '../domain/subscriptions/adminAccountSummary';
+
+// Owner 2026-10-14 (A7 / A8): the account's indicator tags (lifetime, legacy trial, and - from a ready summary - Free-10, subscription,
+// assignment). No tag -> a dash with an accessible "no indicators" text.
+export function AdminAccountIndicators({ account, summary, isHebrew, formatDate }) {
+  const tags = accountIndicators(account, summary, { isHebrew, formatDate });
+  const none = isHebrew ? 'אין חיוויים' : 'No indicators';
+  if (!tags.length) return <span className="admin-indicators is-empty" title={none}>—<span className="sr-only">{none}</span></span>;
+  return (
+    <span className="admin-indicators">
+      {tags.map((t) => <span key={t.key} className={'admin-indicator is-' + t.tone} data-indicator={t.key}><bdi>{t.text}</bdi></span>)}
+    </span>
+  );
+}
 
 // Compact (list) presentation. A neutral state shows a dash with the full sentence for assistive tech and as a tooltip;
 // the screen shows the global "not active" statement once (AdminPlanSystemNotice).
