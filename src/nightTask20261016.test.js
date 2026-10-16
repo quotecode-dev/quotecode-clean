@@ -184,7 +184,11 @@ describe('R-26: saving the reminder settings never writes a false history line',
 describe('Phase C: the admin overview counters (Owner default 5)', () => {
   it('signed in in the last 10 minutes (last_sign_in), Israel, International - market from the stored country', () => {
     const o = read('src/components/AdminOverview.jsx');
-    expect(o).toContain("[isHebrew ? 'נכנסו ב-10 הדקות האחרונות' : 'Signed in in the last 10 minutes', users.filter((a) => recentMs(a.last_sign_in)).length],");
+    // Owner console 2026-10-16, typed: "מאשר מימוש אפיון האדמין של קודקס (CODEX_SPEC_ADMIN_REDESIGN_2026-10-16) ... ופתיחת L-03 L-07 L-17 L-20
+    // לשינויים שבאפיון" - spec §4.1: the counters come from the server summary;
+    // the loaded-rows fallback keeps the same rule (last_sign_in within 10 minutes, market from the stored country)
+    expect(o).toContain('signed10m: users.filter((a) => recentMs(a.last_sign_in)).length,');
+    expect(o).toContain('signed10m: s.signedInLast10m');
     expect(o).toContain("resolveAdminMarket(a).market === 'Local'");
     expect(o).toContain("resolveAdminMarket(a).market === 'International'");
   });

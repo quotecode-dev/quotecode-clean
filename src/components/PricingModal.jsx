@@ -14,7 +14,7 @@ import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
 import { accountStatusModel, lifetimeAccountModel } from '../domain/subscriptions/accountSummaryClient';
 import PackageOfferCards from './PackageOfferCards';
 
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false }) {
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null }) {
   const [rate, setRate] = useState(null);
   const wantsEstimate = isOpen && !isLocalIsraeliBusiness && ESTIMATE_CURRENCIES.includes(String(currency || '').toUpperCase());
   useEffect(() => {
@@ -50,6 +50,10 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
             <span style={{ display: 'block', color: '#64748b', fontSize: '0.85rem', fontWeight: 500, marginTop: '4px' }}>{lifetime.detail}</span>
           </p>
         ) : (<>
+        {/* Owner console 2026-10-16: the account's own subscription status, the same as its header medallion and the admin */}
+        {statusLine && (
+          <p data-testid="plans-modal-subscription-status" role="status" style={{ color: '#1e293b', textAlign: 'center', margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 700 }}>{statusLine}</p>
+        )}
         {accountSummary !== undefined && (
           <p data-testid="plans-modal-current" style={{ color: '#334155', textAlign: 'center', margin: '0 0 4px', fontSize: '0.88rem', fontWeight: 600 }}>
             {status.tone === 'plan'

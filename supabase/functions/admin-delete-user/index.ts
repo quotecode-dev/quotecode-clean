@@ -54,6 +54,25 @@ async function deleteOrThrow(adminClient: any, table: string, applyFilter: (q: a
   }
 }
 
+// Every object path under `prefix` (folders are descended; a listing error fails the whole delete - never a silent partial wipe).
+// deno-lint-ignore no-explicit-any
+async function listStorageTree(client: any, bucket: string, prefix: string, depth = 0): Promise<string[]> {
+  if (depth > 6) throw new Error(`Storage tree too deep under ${prefix}`);
+  const out: string[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await client.storage.from(bucket).list(prefix, { limit: 1000, offset });
+    if (error) throw new Error(`Failed to list Storage objects for this user: ${error.message}`);
+    const entries = (data || []) as { name: string; id: string | null }[];
+    for (const e of entries) {
+      const path = `${prefix}/${e.name}`;
+      if (e.id === null) out.push(...await listStorageTree(client, bucket, path, depth + 1)); // a folder
+      else out.push(path);
+    }
+    if (entries.length < 1000) break;
+  }
+  return out;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -156,21 +175,18 @@ serve(async (req) => {
       await deleteOrThrow(adminClient, 'services', (q) => q.eq('user_id', targetUserId), 'services');
       await deleteOrThrow(adminClient, 'expenses', (q) => q.eq('user_id', targetUserId), 'expenses');
 
-      // Storage: uploaded quote attachments live under `${userId}/...` in
-      // the 'quote-files' bucket (see Dashboard.jsx's own upload path) -
-      // DB rows above are gone, but the actual files were not, until now.
-      const { data: storedFiles, error: storageListErr } = await adminClient
-        .storage.from('quote-files').list(targetUserId, { limit: 1000 });
-      if (storageListErr) {
-        throw new Error(`Failed to list Storage objects for this user: ${storageListErr.message}`);
-      }
-      if (storedFiles && storedFiles.length > 0) {
-        const paths = storedFiles.map((f: { name: string }) => `${targetUserId}/${f.name}`);
-        const { error: storageRemoveErr } = await adminClient.storage.from('quote-files').remove(paths);
-        if (storageRemoveErr) {
-          throw new Error(`Failed to delete Storage objects: ${storageRemoveErr.message}`);
+      // Storage: every per-user prefix of the 'quote-files' bucket, recursively. Night task 2026-10-16 (R-14, Owner default 4): besides
+      // the uploaded attachments under `${userId}/`, the new interface keeps the quote designs / images under `t16-presentation/<uid>/`
+      // and the logos under `account-assets/<uid>/` - they are removed too (history rows without personal data stay).
+      for (const prefix of [targetUserId, `t16-presentation/${targetUserId}`, `account-assets/${targetUserId}`]) {
+        const paths = await listStorageTree(adminClient, 'quote-files', prefix);
+        for (let i = 0; i < paths.length; i += 1000) {
+          const { error: storageRemoveErr } = await adminClient.storage.from('quote-files').remove(paths.slice(i, i + 1000));
+          if (storageRemoveErr) {
+            throw new Error(`Failed to delete Storage objects: ${storageRemoveErr.message}`);
+          }
         }
-        quoteFilesRemoved = paths.length;
+        quoteFilesRemoved += paths.length;
       }
 
       // chat_logs has no FK to auth.users (keyed by user_email only) - best

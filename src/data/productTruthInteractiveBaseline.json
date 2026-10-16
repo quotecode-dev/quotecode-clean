@@ -27,6 +27,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/components/AdminDonut.jsx": {
+    "interactive": 1,
+    "markers": 1
+  },
   "src/components/AdminIdentityIcons.jsx": {
     "interactive": 0,
     "markers": 0
@@ -36,12 +40,16 @@
     "markers": 3
   },
   "src/components/AdminPlans.jsx": {
-    "interactive": 1,
-    "markers": 1
+    "interactive": 2,
+    "markers": 2
+  },
+  "src/components/AdminProtectedDialog.jsx": {
+    "interactive": 3,
+    "markers": 3
   },
   "src/components/AdminScreenFrame.jsx": {
-    "interactive": 0,
-    "markers": 0
+    "interactive": 1,
+    "markers": 1
   },
   "src/components/AdminSidebarNav.jsx": {
     "interactive": 1,
@@ -52,24 +60,28 @@
     "markers": 0
   },
   "src/components/AdminSystemActivity.jsx": {
-    "interactive": 0,
-    "markers": 0
+    "interactive": 3,
+    "markers": 3
+  },
+  "src/components/AdminTestEmailTool.jsx": {
+    "interactive": 2,
+    "markers": 2
   },
   "src/components/AdminUserDetails.jsx": {
-    "interactive": 1,
-    "markers": 1
+    "interactive": 4,
+    "markers": 4
   },
   "src/components/AdminUsersDestination.jsx": {
     "interactive": 0,
     "markers": 0
   },
   "src/components/AdminUsersTab.jsx": {
-    "interactive": 12,
-    "markers": 13
+    "interactive": 0,
+    "markers": 1
   },
   "src/components/AdminUsersView.jsx": {
-    "interactive": 4,
-    "markers": 4
+    "interactive": 8,
+    "markers": 8
   },
   "src/components/AiChatIcon.jsx": {
     "interactive": 0,
@@ -192,6 +204,10 @@
     "markers": 0
   },
   "src/components/PlanIdentityBadge.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/PlanMedallionMark.jsx": {
     "interactive": 0,
     "markers": 0
   },
@@ -419,6 +435,18 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/domain/admin/adminAccountsClient.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/domain/admin/adminCopy.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/domain/admin/adminNavIntent.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/domain/subscriptions/AccountSummaryContext.js": {
     "interactive": 0,
     "markers": 0
@@ -460,6 +488,10 @@
     "markers": 0
   },
   "src/domain/subscriptions/pricingModalModel.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/domain/subscriptions/subscriptionStatus.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -636,6 +668,10 @@
     "markers": 0
   },
   "src/utils/adminAnalytics.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/adminDates.js": {
     "interactive": 0,
     "markers": 0
   },

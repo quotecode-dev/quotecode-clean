@@ -2,6 +2,7 @@
 // identity = the caller's JWT; the RPC takes no argument, so nothing in the request can name an account, plan or market).
 // This module fetches and classifies; parsing is the shared strict parser (fail closed on anything unexpected).
 import { parseAccountSummary, planName, FREE_QUOTES_TOTAL } from '../../../supabase/functions/_shared/subscriptionContract.ts';
+import { withBillingPeriod } from './subscriptionStatus';
 
 export const LOADING_SUMMARY = Object.freeze({ state: 'loading' });
 
@@ -27,7 +28,8 @@ export async function fetchAccountSummary(supabase) {
       ? Object.freeze({ state: 'not_deployed', code: 'rpc_missing' })
       : Object.freeze({ state: 'unavailable', code: 'rpc_error' });
   }
-  return parseAccountSummary(res?.data);
+  // Owner 2026-10-16 (admin spec D-06): the server's billing period, read strictly beside the shared parser
+  return withBillingPeriod(parseAccountSummary(res?.data), res?.data);
 }
 
 // The one display model for every account surface (header badge, settings, plans view, help context).

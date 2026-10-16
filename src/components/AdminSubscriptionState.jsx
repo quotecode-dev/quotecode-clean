@@ -1,6 +1,29 @@
 // Admin subscription state components (OD-16 / OD-20). Read model, fetching and wording: src/domain/subscriptions/adminAccountSummary.js.
 import { planName } from '../../supabase/functions/_shared/subscriptionContract.ts';
-import { COPY, tr, planStateText, legacyRecordEntries, accountIndicators } from '../domain/subscriptions/adminAccountSummary';
+import { COPY, tr, planStateText, accountIndicators, accountStatus, ACCOUNT_STATUS, STATUS_MEDALLION_KIND, statusFromKey, accountStatusWords } from '../domain/subscriptions/adminAccountSummary';
+import PlanMedallionMark from './PlanMedallionMark';
+
+// Owner console 2026-10-16: the subscription status is the SAME medallion + words as the user's own header (subscriptionStatus.js),
+// never a raw legacy code. The status comes from the server row (get_admin_accounts .status) when present, else from the summary.
+export function AdminAccountStatusIcon({ statusKey, size = 22, remaining, total }) {
+  return <PlanMedallionMark model={{ kind: STATUS_MEDALLION_KIND[statusKey] || 'free10', remaining, total }} size={size} />;
+}
+export function AdminAccountStatus({ account, summary = null, statusKey = null, isHebrew, formatDate = null, size = 22, sub = null }) {
+  const computed = accountStatus(account, summary);
+  const s = statusKey && statusKey !== computed.key ? statusFromKey(statusKey, { until: account?.trial_ends_at }) : computed;
+  // a server row says Free-10 without the counter: the status name only (the counter comes with the summary)
+  const words = s.key === 'free10' && !Number.isInteger(s.consumed) ? tr(ACCOUNT_STATUS.free10, isHebrew) : accountStatusWords(s, isHebrew, null);
+  return (
+    <span className="admin-account-status av-plan" data-status={s.key}>
+      <AdminAccountStatusIcon statusKey={s.key} remaining={s.remaining} total={s.total} size={size} />
+      <span>
+        <strong>{words}</strong>
+        {s.key === 'trial' && formatDate && <span className="av-sub">{isHebrew ? 'עד ' : 'until '}<bdi className="av-num">{formatDate(s.until)}</bdi></span>}
+        {sub && <span className="av-sub">{sub}</span>}
+      </span>
+    </span>
+  );
+}
 
 // Owner 2026-10-14 (A7 / A8): the account's indicator tags (lifetime, legacy trial, and - from a ready summary - Free-10, subscription,
 // assignment). No tag -> a dash with an accessible "no indicators" text.
@@ -53,23 +76,16 @@ export function AdminPlanSystemNotice({ system, isHebrew }) {
   );
 }
 
-export function AdminLegacyRecord({ account, legacy = null, isHebrew, compact = false }) {
-  const entries = legacyRecordEntries(account, legacy);
-  if (compact) {
-    return (
-      <span className="admin-legacy-inline" dir="ltr">
-        <span className="sr-only">{tr(COPY.legacyTitle, isHebrew)}: </span>
-        {entries.map(([k, v]) => <code key={k}>{`${k}=${v}`}</code>)}
-      </span>
-    );
-  }
+// Owner console 2026-10-16: the former raw "legacy record" codes (plan / trial_ends_at / is_lifetime) are shown as ONE subscription
+// status (icon + words); the details page passes the read-back legacy fields and the server summary.
+export function AdminLegacyRecord({ account, legacy = null, summary = null, isHebrew, compact = false, formatDate = null }) {
+  const view = legacy ? { is_lifetime: legacy.isLifetime, trial_ends_at: legacy.trialEndsAt } : account;
+  if (compact) return <AdminAccountStatus account={view} summary={summary} isHebrew={isHebrew} formatDate={formatDate} />;
+  const title = isHebrew ? 'סטטוס מנוי' : 'Subscription status';
   return (
-    <section className="admin-details-card admin-legacy-record" aria-label={tr(COPY.legacyTitle, isHebrew)}>
-      <h3>{tr(COPY.legacyTitle, isHebrew)}</h3>
-      <p className="admin-legacy-hint">{tr(COPY.legacyHint, isHebrew)}</p>
-      <ul className="admin-legacy-values" dir="ltr">
-        {entries.map(([k, v]) => <li key={k}><code>{`${k}=${v}`}</code></li>)}
-      </ul>
+    <section className="admin-details-card admin-legacy-record" aria-label={title}>
+      <h3>{title}</h3>
+      <p className="admin-account-status-line"><AdminAccountStatus account={view} summary={summary} isHebrew={isHebrew} formatDate={formatDate} /></p>
     </section>
   );
 }

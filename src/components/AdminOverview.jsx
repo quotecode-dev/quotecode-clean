@@ -1,25 +1,30 @@
 import { useEffect, useState } from 'react';
-import { UserPlus, ArrowRight, ArrowLeft, ListChecks, History } from 'lucide-react';
+import { ShieldCheck } from 'lucide-react';
 import { supabase } from '../shared/supabase';
 import AdminScreenFrame from './AdminScreenFrame';
+import AdminDonut from './AdminDonut';
 import './adminUsers.css';
-import { AdminMarketIcon } from './AdminIdentityIcons';
-import { getAdminKpiSummary, getLegacyRecordBreakdown, LEGACY_HISTORY_LABEL } from '../utils/adminAnalytics';
-import { AdminPlanSystemNotice } from './AdminSubscriptionState';
-import { adminTargetUserId, useAdminAccountSummaries } from '../domain/subscriptions/adminAccountSummary';
+import { getAdminKpiSummary } from '../utils/adminAnalytics';
+import { AdminPlanSystemNotice, AdminAccountStatusIcon } from './AdminSubscriptionState';
+import { adminTargetUserId, useAdminAccountSummaries, accountStatusBreakdown, breakdownFromCounts, ACCOUNT_STATUS, STATUS_COLOR, tr } from '../domain/subscriptions/adminAccountSummary';
+import { useAdminDashboardSummary } from '../domain/admin/adminAccountsClient';
+import { setUsersFilterIntent } from '../domain/admin/adminNavIntent';
+import { ADMIN_COPY as C, ACTION_NAMES, OUTCOME_NAMES, t } from '../domain/admin/adminCopy';
 import { formatShortDateTime } from '../utils/shortDate';
 import { resolveAdminMarket } from '../utils/adminMarket';
+import { accountDate } from '../utils/adminDates';
 
 // TEKANGO Admin V1 (Task 2): Admin Overview - recently registered, admin
-// activity and the legacy-record (history) breakdown, derived only from real
-// business_settings rows already loaded elsewhere in Admin. No fabricated
-// metric, no "active now"/online inference. OD-16/OD-20: no Basic/Pro/trial/
-// LIFETIME KPI or card - the new plan system's state comes only from the
-// admin summary RPC (AdminPlanSystemNotice); legacy values are history only.
-const dateLabel = (value, isHebrew) => value && Number.isFinite(new Date(value).getTime())
-  ? formatShortDateTime(value, (isHebrew ? 'Local' : 'International')) : '—';
+// activity and the subscription-status breakdown, from real data only. No fabricated metric, no "active now" / online inference, no
+// revenue. Admin redesign part A (Owner 2026-10-16, spec §4.1): five counters, the subscription mix and the market mix as ring charts
+// (legend rows open the users list filtered), recent registrations and recent admin actions. The counters come from the server
+// summary (get_admin_dashboard_summary); while it is not deployed on this server the same figures are counted from the loaded rows.
+const MARKET_COLORS = { Local: '#087f8c', International: '#6553a0', Unknown: '#718096' };
 
-export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToPlans, onOpenUser }) {
+export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onOpenUser, onGoToActivity = null }) {
+  const [refreshKey, setRefreshKey] = useState(0);
+  const server = useAdminDashboardSummary(refreshKey);
+  const serverReady = (server.state === 'ready' || server.state === 'stale') && server.data;
   const users = accounts.filter(a => a && a.role !== 'super_admin' && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');
   const recentlyRegistered = [...users]
     .filter(a => a.created_at)
@@ -27,22 +32,32 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToP
     .slice(0, 8);
 
   const kpi = getAdminKpiSummary(users);
-  const legacyBreakdown = getLegacyRecordBreakdown(users);
-  const legacyTitle = isHebrew ? LEGACY_HISTORY_LABEL.he : LEGACY_HISTORY_LABEL.en;
-  const { system } = useAdminAccountSummaries(users.length ? [adminTargetUserId(users[0])] : []);
-  // Every figure below is counted from the same loaded account rows - nothing estimated or invented.
-  // Night task 2026-10-16 (Owner doc 31eae0a7, phase C, default 5): the Owner's counters are back. "Signed in in the last 10 minutes"
-  // counts the accounts whose app loaded in the last 10 minutes (business_settings.last_sign_in, written on every app load) - it
-  // is not a live "online now" presence. Market from the account's own stored country (resolveAdminMarket), never the language.
+  // fallback (the server summary is not deployed here): one probe, then per-account summaries only when the plan system is active
+  const { system, byId } = useAdminAccountSummaries(serverReady ? [] : users.map(adminTargetUserId));
+  // Every fallback figure below is counted from the same loaded account rows - nothing estimated or invented.
+  // Night task 2026-10-16 (Owner doc 31eae0a7, phase C, default 5): "Signed in in the last 10 minutes" counts the accounts whose app
+  // loaded in the last 10 minutes (business_settings.last_sign_in, written on every app load) - it is not a live "online now" presence.
+  // Market from the account's own stored country (resolveAdminMarket), never the language.
   const nowMs = Date.now();
-  const recentMs = (v) => { const t = v ? new Date(v).getTime() : NaN; return Number.isFinite(t) && nowMs - t >= 0 && nowMs - t <= 10 * 60 * 1000; };
-  const stats = [
-    [isHebrew ? 'סה"כ משתמשים' : 'Total users', kpi.managedBusinesses],
-    [isHebrew ? 'נרשמו ב-24 השעות האחרונות' : 'Registered in the last 24 hours', kpi.registrationsLast24h],
-    [isHebrew ? 'נכנסו ב-10 הדקות האחרונות' : 'Signed in in the last 10 minutes', users.filter((a) => recentMs(a.last_sign_in)).length],
-    [isHebrew ? 'ישראל' : 'Israel', users.filter((a) => resolveAdminMarket(a).market === 'Local').length],
-    [isHebrew ? 'בינלאומי' : 'International', users.filter((a) => resolveAdminMarket(a).market === 'International').length],
-  ];
+  const recentMs = (v) => { const t0 = v ? new Date(v).getTime() : NaN; return Number.isFinite(t0) && nowMs - t0 >= 0 && nowMs - t0 <= 10 * 60 * 1000; };
+  const fallbackStats = {
+    managed: kpi.managedBusinesses,
+    reg24h: kpi.registrationsLast24h,
+    signed10m: users.filter((a) => recentMs(a.last_sign_in)).length,
+    Local: users.filter((a) => resolveAdminMarket(a).market === 'Local').length,
+    International: users.filter((a) => resolveAdminMarket(a).market === 'International').length,
+    Unknown: users.filter((a) => resolveAdminMarket(a).market === 'Unknown').length,
+  };
+  const s = serverReady ? server.data : null;
+  const stats = s
+    ? { managed: s.managedAccounts, reg24h: s.registrationsLast24h, signed10m: s.signedInLast10m, ...s.market }
+    : fallbackStats;
+  const planSystem = s ? s.planSystem : system;
+  const statusRows = s
+    ? breakdownFromCounts(s.subscriptionStatus)
+    : accountStatusBreakdown(users, (a) => (system === 'not_active' ? null : (byId[adminTargetUserId(a)] || null)));
+  const loadState = s ? server.state : (server.state === 'loading' ? 'loading' : 'ready');
+  const pct = (n) => (stats.managed > 0 ? `${((n / stats.managed) * 100).toFixed(1)}%` : '—');
 
   const [recentAudit, setRecentAudit] = useState('loading');
   useEffect(() => {
@@ -51,84 +66,120 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToP
       if (!cancelled) setRecentAudit(error ? 'unavailable' : (data || []));
     });
     return () => { cancelled = true; };
-  }, []);
+  }, [refreshKey]);
 
-  const list = (items, empty, render) => items.length === 0
-    ? <p className="admin-overview-empty">{empty}</p>
-    : <ul className="admin-overview-list">{items.map(render)}</ul>;
+  const adminMarket = isHebrew ? 'Local' : 'International';
+  const fmtTime = (v) => formatShortDateTime(v, adminMarket);
+  const openUsers = (filter) => { setUsersFilterIntent(filter); onGoToUsers(); };
+  const kpis = [
+    { key: 'managed', label: C.kpiManaged, value: stats.managed, note: C.kpiManagedNote, filter: {} },
+    { key: 'reg24h', label: C.kpi24h, value: stats.reg24h, note: C.kpi24hNote, filter: { registered: '24h' } },
+    { key: 'signed10m', label: C.kpi10m, value: stats.signed10m, note: C.kpi10mNote, filter: { signedIn: '10m' } },
+    { key: 'Local', label: C.israel, value: stats.Local, pct: pct(stats.Local), filter: { market: 'Local' } },
+    { key: 'International', label: C.international, value: stats.International, pct: pct(stats.International), filter: { market: 'International' } },
+  ];
+  const statusSegments = statusRows.map(({ key, count }) => ({ key, count, color: STATUS_COLOR[key], label: tr(ACCOUNT_STATUS[key], isHebrew) }));
+  const marketSegments = ['Local', 'International', 'Unknown'].map((k) => ({
+    key: k, count: stats[k] || 0, color: MARKET_COLORS[k], label: t(isHebrew, ...(k === 'Local' ? [C.israel.he, C.israel.en] : k === 'International' ? [C.international.he, C.international.en] : [C.unknown.he, C.unknown.en])),
+  }));
+  const valueOf = (v) => (loadState === 'loading' ? '—' : v);
 
   return (
     <AdminScreenFrame
       title={isHebrew ? 'סקירה כללית' : 'Admin Overview'}
-      subtitle={isHebrew ? 'סקירת תפעול · נתוני חשבונות אמיתיים בלבד' : 'Operational summary · real account data only'}
+      subtitle={t(isHebrew, C.tagline.he, C.tagline.en)}
       label={isHebrew ? 'סקירה כללית' : 'Admin overview'}
-      controls={(
-        <>
-        <div className="admin-plans-summary">
-          {stats.map(([label, value]) => (
-            <div className="admin-stat" key={label}>
-              <div className="admin-stat-label"><span>{label}</span></div>
-              <strong>{value}</strong>
-            </div>
-          ))}
-        </div>
-        <AdminPlanSystemNotice system={system} isHebrew={isHebrew} />
-        </>
-      )}
+      isHebrew={isHebrew}
+      onRefresh={() => setRefreshKey((k) => k + 1)}
+      refreshing={!!server.refreshing}
+      updatedAt={server.updatedAt}
+      staleSince={server.state === 'stale' ? server.failedAt : null}
+      formatTime={fmtTime}
+      controls={<AdminPlanSystemNotice system={planSystem} isHebrew={isHebrew} />}
     >
-      <div className="admin-overview-grid">
-        <article className="admin-overview-card">
-          <h3><UserPlus size={16} />{isHebrew ? 'נרשמו לאחרונה' : 'Recently registered'}</h3>
-          {list(recentlyRegistered, isHebrew ? 'אין הרשמות אחרונות.' : 'No recent registrations.', a => (
-            <li key={a.id}>
-              {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-              <button className="admin-overview-row" onClick={() => onOpenUser(a)}>
-                <span className="admin-overview-row-name" dir="auto">{a.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</span>
-                <span className="admin-overview-row-meta" dir="ltr">{a.email}</span>
-                <span className="admin-card-badges"><AdminMarketIcon account={a} isHebrew={isHebrew} /></span>
-                <span className="admin-overview-row-date">{dateLabel(a.created_at, isHebrew)}</span>
-              </button>
-            </li>
-          ))}
-        </article>
+      <div className="av-grid av-kpis" data-testid="admin-kpis">
+        {kpis.map((k) => (
+          <article key={k.key} className="av-card av-accent-top" data-kpi={k.key}>
+            <div className="av-label">{t(isHebrew, k.label.he, k.label.en)}</div>
+            <div className="av-kpi-value" data-testid={`admin-kpi-${k.key}`}>{valueOf(k.value)}</div>
+            <div className="av-tiny av-muted">{k.note ? t(isHebrew, k.note.he, k.note.en) : <bdi className="av-num">{k.pct}</bdi>}</div>
+          </article>
+        ))}
+      </div>
 
-        <article className="admin-overview-card admin-legacy-breakdown" aria-label={legacyTitle}>
-          <h3><ListChecks size={16} />{legacyTitle}</h3>
-          <p className="admin-overview-hint">{isHebrew ? 'ערכים טכניים גולמיים לביקורת בלבד. אינם מסלול ואינם זכאות.' : 'Raw technical values for audit only. Not a plan and not an entitlement.'}</p>
-          {legacyBreakdown.length === 0
-            ? <p className="admin-overview-empty">{isHebrew ? 'אין חשבונות.' : 'No accounts.'}</p>
-            : (
-              <ul className="admin-legacy-values" dir="ltr">
-                {legacyBreakdown.map(({ key, count }) => <li key={key}><code>{key}</code><span className="admin-plans-count">{count}</span></li>)}
-              </ul>
-            )}
+      <div className="av-grid av-two">
+        <article className="av-card" aria-label={t(isHebrew, C.subscriptionMix.he, C.subscriptionMix.en)}>
+          <h3>{t(isHebrew, C.subscriptionMix.he, C.subscriptionMix.en)}</h3>
+          <p className="av-muted av-small">{t(isHebrew, C.subscriptionMixSub.he, C.subscriptionMixSub.en)}</p>
+          <AdminDonut
+            title={t(isHebrew, C.subscriptionMix.he, C.subscriptionMix.en)}
+            description={statusSegments.map((x) => `${x.label} ${x.count}`).join(', ')}
+            segments={statusSegments} isHebrew={isHebrew} state={loadState}
+            onSelect={(key) => openUsers({ status: key })}
+            renderMark={(seg) => <AdminAccountStatusIcon statusKey={seg.key} size={18} />}
+          />
         </article>
-        <article className="admin-overview-card">
-          <h3><History size={16} />{isHebrew ? 'פעילות ניהול אחרונה' : 'Recent admin activity'}</h3>
-          {recentAudit === 'loading' ? (
-            <p className="admin-overview-empty">{isHebrew ? 'טוען...' : 'Loading...'}</p>
-          ) : recentAudit === 'unavailable' ? (
-            <p className="admin-overview-empty">{isHebrew ? 'לא זמין כרגע.' : 'Unavailable right now.'}</p>
-          ) : list(recentAudit, isHebrew ? 'אין פעולות מוגנות מתועדות.' : 'No privileged actions recorded yet.', row => (
-            <li key={row.id}>
-              <div className="admin-overview-row" style={{ cursor: 'default' }}>
-                <span className="admin-overview-row-name" dir="auto">{row.action} · {row.outcome}</span>
-                <span className="admin-overview-row-date">{dateLabel(row.created_at, isHebrew)}</span>
-              </div>
-            </li>
-          ))}
+        <article className="av-card" aria-label={t(isHebrew, C.marketMix.he, C.marketMix.en)}>
+          <h3>{t(isHebrew, C.marketMix.he, C.marketMix.en)}</h3>
+          <p className="av-muted av-small">{t(isHebrew, C.marketMixSub.he, C.marketMixSub.en)}</p>
+          <AdminDonut
+            title={t(isHebrew, C.marketMix.he, C.marketMix.en)}
+            description={marketSegments.map((x) => `${x.label} ${x.count}`).join(', ')}
+            segments={marketSegments} isHebrew={isHebrew} state={loadState}
+            onSelect={(key) => openUsers({ market: key })}
+          />
         </article>
       </div>
 
-      <div className="admin-overview-actions">
-        {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-        <button className="admin-overview-quick-action" onClick={onGoToUsers}>
-          {isHebrew ? 'עבור לרשימת המשתמשים' : 'Go to Users'}{isHebrew ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
-        </button>
-        {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-        <button className="admin-overview-quick-action" onClick={onGoToPlans}>
-          {isHebrew ? 'עבור למסלולים ומנויים' : 'Go to Plans / Subscriptions'}{isHebrew ? <ArrowLeft size={14} /> : <ArrowRight size={14} />}
-        </button>
+      <div className="av-grid av-equal av-section">
+        <article className="av-card">
+          <div className="av-cardhead">
+            <h3>{t(isHebrew, C.recentRegistrations.he, C.recentRegistrations.en)}</h3>
+            {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
+            <button type="button" className="av-btn av-sm" onClick={() => openUsers({})}>{t(isHebrew, C.allUsers.he, C.allUsers.en)}</button>
+          </div>
+          {recentlyRegistered.length === 0
+            ? <p className="av-muted">{t(isHebrew, C.noAccounts.he, C.noAccounts.en)}</p>
+            : recentlyRegistered.map((a) => (
+              <div key={a.id} className="av-statline">
+                {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
+                <button type="button" className="av-business" onClick={() => onOpenUser(a)} style={{ all: 'unset', cursor: 'pointer', minWidth: 0 }}>
+                  <strong><bdi>{a.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</bdi></strong>
+                  <span className="av-mail">{a.email}</span>
+                </button>
+                <bdi className="av-num av-small">{accountDate(a.created_at, a, adminMarket)}</bdi>
+              </div>
+            ))}
+        </article>
+        <article className="av-card">
+          <div className="av-cardhead">
+            <h3>{t(isHebrew, C.recentActions.he, C.recentActions.en)}</h3>
+            {onGoToActivity && (
+              // PRODUCT_TRUTH_CAPABILITY: admin_console
+              <button type="button" className="av-btn av-sm" onClick={onGoToActivity}>{t(isHebrew, C.viewAllActivity.he, C.viewAllActivity.en)}</button>
+            )}
+          </div>
+          {recentAudit === 'loading' ? (
+            <p className="av-muted">{t(isHebrew, C.loading.he, C.loading.en)}</p>
+          ) : recentAudit === 'unavailable' ? (
+            <p className="av-muted">{t(isHebrew, C.unavailable.he, C.unavailable.en)}</p>
+          ) : recentAudit.length === 0 ? (
+            <p className="av-muted">{isHebrew ? 'אין פעולות מוגנות מתועדות.' : 'No privileged actions recorded yet.'}</p>
+          ) : recentAudit.map((row) => {
+            const a = ACTION_NAMES[row.action];
+            const o = OUTCOME_NAMES[row.outcome];
+            return (
+              <div key={row.id} className="av-event">
+                <span className="av-eventdot" aria-hidden="true"><ShieldCheck size={17} /></span>
+                <div>
+                  <strong>{a ? t(isHebrew, a.he, a.en) : t(isHebrew, C.unknownAction.he, C.unknownAction.en)}</strong>
+                  {o && <span className={`av-badge av-${o.tone}`}>{t(isHebrew, o.he, o.en)}</span>}
+                </div>
+                <time className="av-num">{fmtTime(row.created_at)}</time>
+              </div>
+            );
+          })}
+        </article>
       </div>
     </AdminScreenFrame>
   );

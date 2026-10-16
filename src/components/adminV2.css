@@ -1,0 +1,241 @@
+/* Admin redesign part A (Owner 2026-10-16, docs/CODEX_SPEC_ADMIN_REDESIGN_2026-10-16.md §8 + the approved sketches - values taken from
+   docs/codex-admin-redesign-2026-10-16/build-sketches.mjs L31-36): ONE admin visual language, scoped under .av (no user screen is
+   touched). Logical properties only (RTL / LTR mirror). The canonical shell, the .pf-screen / .pf-screen-body scroll contract and the
+   mobile workspace inset (IRON-MOBILE-WIDTH-001) stay as they are. The .av prefix outranks the older adminUsers.css rules. */
+.av, .admin-screen {
+  --av-bg: #f2f5f9; --av-line: #d6dfea; --av-muted: #50627a; --av-ink: #172d49; --av-teal: #096b70; --av-accent: #0a7479;
+  --av-red: #ab2537; --av-amber: #98540a; --av-nav: #14243d;
+}
+.av { color: var(--av-ink); font-size: 13px; line-height: 1.5; }
+.av .av-num { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums; }
+.av .av-muted { color: var(--av-muted); }
+.av .av-small { font-size: 12px; }
+.av .av-tiny { font-size: 11px; }
+
+/* Owner console 2026-10-16 ("keep it at 980px, but everything must fit in one row like in the sketch" + "reduce the grey gaps on the
+   right and left"): the admin stays inside the shared 980px desktop shell (about 700px of work area beside the sidebar), so the sketch
+   proportions - drawn for a ~1150px work area - are applied compacted: smaller type, tighter padding, a smaller plan medallion; each
+   account stays one table row. Only while an admin screen is shown (:has) the workspace side gutter is narrowed; user screens untouched. */
+@media (min-width: 769px) {
+  .dash-main-content:has(.admin-screen) { padding-inline: 6px !important; }
+  /* the header strip bleeds edge to edge by exactly the gutter (it is -22px for the user screens) */
+  .dash-main-content:has(.admin-screen) .dash-upper-section { margin-inline: -6px !important; }
+}
+/* Owner console 2026-10-16 ("now reduce all the elements by 40%"): on desktop every admin element is drawn at 60% - type, icons,
+   buttons, gaps - while the work area still fills the same width (CSS zoom keeps the layout full width). Phone/tablet keep their size. */
+@media (min-width: 1000px) {
+  .admin-screen .av { zoom: 0.6; }
+}
+
+/* page head (the frame's static block) */
+.admin-screen-static.av { gap: 0; padding-bottom: 0; }
+.av .av-pagehead { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-block-end: 14px; flex-wrap: nowrap; }
+.av .admin-screen-heading { gap: 0; min-width: 0; }
+.av .admin-screen-heading h2, .av .av-pagehead h2 { font-size: 22px; line-height: 1.3; letter-spacing: -0.02em; margin: 2px 0 4px; font-weight: 700; color: var(--av-ink); white-space: normal; overflow: visible; }
+.av .admin-screen-heading > span.av-breadcrumb { font-size: 12px; color: var(--av-teal); white-space: normal; overflow: visible; }
+.av .admin-screen-heading > p { margin: 0; color: var(--av-muted); font-size: 13px; }
+.av-headactions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.av-updated { font-size: 12px; color: var(--av-muted); }
+
+/* buttons */
+.av button.av-btn, .av a.av-btn {
+  min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 6px 11px;
+  border: 1px solid var(--av-line); border-radius: 9px; background: #fff; color: var(--av-ink); text-decoration: none; cursor: pointer;
+  font: inherit; font-weight: 550;
+}
+.av button.av-btn:hover:not(:disabled), .av a.av-btn:hover { border-color: var(--av-accent); background: #e8f4f3; }
+.av button.av-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.av .av-btn.av-primary { background: var(--av-accent); border-color: var(--av-accent); color: #fff; }
+.av .av-btn.av-danger { color: var(--av-red); border-color: #e6a3ab; background: #fff5f5; }
+/* the confirm button of a delete / reset dialog (the sketch: solid red) */
+.av .av-btn.av-danger-solid, .av-dialog .av-btn.av-danger-solid { background: var(--av-red); border-color: var(--av-red); color: #fff; }
+.av button:focus-visible, .av a:focus-visible, .av input:focus-visible, .av select:focus-visible, .av textarea:focus-visible,
+.av summary:focus-visible, .av [tabindex="0"]:focus-visible { outline: 3px solid #7845c3; outline-offset: 3px; }
+
+/* grids + cards */
+.av-grid { display: grid; gap: 12px; }
+.av-two { grid-template-columns: 1.25fr 1fr; }
+.av-equal { grid-template-columns: 1fr 1fr; }
+.av-three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.av-kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); margin-block-end: 12px; }
+.av-card { background: #fff; border: 1px solid var(--av-line); border-radius: 12px; padding: 14px; min-width: 0; box-shadow: 0 3px 12px rgba(23, 45, 73, 0.016); }
+.av-card h3 { font-size: 15px; margin: 0 0 5px; font-weight: 650; }
+.av-card h4 { font-size: 13px; margin: 0; font-weight: 600; }
+.av-card p { margin: 4px 0 10px; }
+.av-label { font-size: 12px; color: var(--av-muted); }
+.av-kpi-value { font-size: 24px; font-weight: 700; line-height: 1.3; margin-block: 6px; direction: ltr; unicode-bidi: isolate; display: inline-block; font-variant-numeric: tabular-nums; }
+.av-accent-top { border-block-start: 3px solid var(--av-accent); }
+.av-cardhead { display: flex; justify-content: space-between; gap: 14px; align-items: center; margin-block-end: 10px; }
+.av-section { margin-block-start: 14px; }
+.av-notice { border-inline-start: 3px solid #b77917; background: #fff8e9; padding: 8px 12px; border-radius: 8px; font-size: 12px; }
+.av-notice.av-info, .av .admin-plan-system-notice { border: 0; border-inline-start: 3px solid #347cab; background: #edf5fe; padding: 8px 12px; border-radius: 8px; font-size: 12px; color: var(--av-ink); }
+.av-notice.av-bad { border-color: var(--av-red); background: #fff0f1; }
+.av-statline { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-block-end: 1px solid #e7ecf2; }
+.av-statline:last-child { border: 0; }
+.av-statline > span { color: var(--av-muted); font-size: 12px; }
+.av-protection { border-color: #edd4d9; background: #fffafb; }
+.av-footnote { font-size: 11px; color: var(--av-muted); margin-block-start: 10px; }
+
+/* badges + pills */
+.av-badge { display: inline-flex; align-items: center; gap: 6px; min-height: 22px; font-size: 11px; padding: 1px 6px; white-space: nowrap; border-radius: 6px; background: #edf2f7; color: #44576e; }
+.av-badge.av-ok { background: #e7f4ed; color: #236241; }
+.av-badge.av-warn { background: #fff2d9; color: #86500b; }
+.av-badge.av-bad { background: #fff0f1; color: #a32235; }
+.av-badge.av-admin { background: #ece8fb; color: #4b3a99; font-weight: 600; }
+.av-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+.av-pill { border: 1px solid var(--av-line); border-radius: 20px; padding: 5px 12px; background: #fff; font: inherit; font-size: 12px; min-height: 44px; display: inline-flex; align-items: center; cursor: pointer; color: var(--av-ink); }
+.av-pill[aria-pressed="true"] { border-color: var(--av-accent); color: var(--av-teal); background: #e7f4f2; }
+
+/* plan cell = medallion + words (the old .admin-account-status rule is overridden here) */
+.av .admin-account-status.av-plan, .av .av-plan { display: flex; align-items: center; gap: 9px; white-space: nowrap; font-size: inherit; color: inherit; min-width: 0; }
+.av-plan strong { font-size: 12px; font-weight: 550; }
+/* in the table a long plan name may wrap to a second line instead of widening the row; dates never break */
+.av td .av-plan, .av td .admin-account-status.av-plan { white-space: normal; }
+.av td .av-num { white-space: nowrap; }
+.av-plan .av-sub { display: block; font-size: 11px; color: var(--av-muted); }
+
+/* toolbar + fields */
+.av-toolbar { display: flex; gap: 8px; flex-wrap: wrap; align-items: flex-end; margin-block-end: 10px; }
+.av-field { display: grid; gap: 5px; min-width: 0; }
+.av-field > span { font-size: 12px; font-weight: 550; }
+.av-field input, .av-field select, .av-field textarea {
+  border: 1px solid #aebed0; border-radius: 8px; min-height: 44px; background: #fff; color: var(--av-ink); padding: 6px 10px;
+  width: 100%; max-width: 100%; box-sizing: border-box; font: inherit;
+}
+.av-field textarea { min-height: 90px; resize: vertical; }
+.av-field small { font-size: 11px; color: var(--av-muted); }
+.av-search { min-width: 160px; flex: 1; }
+
+/* table */
+.av-tablewrap { width: 100%; overflow: auto; }
+.av table { width: 100%; border-collapse: collapse; font-size: 12px; text-align: start; }
+.av th { color: var(--av-muted); background: #f6f8fb; font-weight: 550; white-space: nowrap; }
+.av td, .av th { border-block-end: 1px solid #e7ecf2; padding: 8px 5px; text-align: start; vertical-align: middle; }
+.av td:first-child, .av th:first-child { padding-inline-start: 0; }
+.av td:last-child, .av th:last-child { padding-inline-end: 0; }
+.av caption { text-align: start; font-size: 12px; color: var(--av-muted); padding-block-end: 6px; }
+.av th button.av-sort { all: unset; cursor: pointer; display: inline-flex; gap: 4px; align-items: center; font-weight: 550; color: var(--av-muted); }
+.av th button.av-sort:focus-visible { outline: 3px solid #7845c3; outline-offset: 2px; }
+.av-business .av-nameline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.av-business strong { display: block; font-size: 13px; }
+.av-business .av-mail { display: block; font-size: 11px; color: var(--av-muted); direction: ltr; unicode-bidi: isolate; text-align: start; }
+/* in the table a long email is cut with an ellipsis (its full text in the tooltip / Details) so a row stays one or two lines */
+.av td .av-business .av-mail { max-inline-size: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* users: the top half of the card (search, filters, count) is static; the rows half scrolls under a sticky column-header row */
+.av .av-users-top { border-end-start-radius: 0; border-end-end-radius: 0; border-block-end: 0; padding-block-end: 0; box-shadow: none; }
+.av .av-users-top .av-cardhead { margin-block-end: 6px; }
+.av .av-users-caption { padding-block-end: 6px; }
+.av .av-users-rows { border-start-start-radius: 0; border-start-end-radius: 0; border-block-start: 0; padding-block-start: 0; }
+.av .av-tablewrap.av-users-table { overflow: visible; }
+.av .av-users-table thead th { position: sticky; inset-block-start: 0; z-index: 3; background: #f6f8fb; }
+/* the scroll body starts exactly at the column-header row (no top gap the rows could show through above the sticky header) */
+.pf-screen > .admin-screen-body:has(.av-users-rows) { padding-top: 0; }
+.av .av-sr-only { position: absolute; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.av-pager { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-block-start: 10px; }
+.av-usercards { display: none; }
+.av-usercard { padding: 15px 0; border-block-end: 1px solid var(--av-line); }
+.av-usercard .av-cardtop { display: flex; justify-content: space-between; gap: 8px; }
+/* a long business name / email is cut with an ellipsis inside the card - the card never grows wider than the screen */
+.av-usercard .av-cardtop > .av-business { flex: 1 1 auto; min-width: 0; }
+.av-usercard .av-business strong, .av-usercard .av-business .av-mail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.av-usercard .av-business .av-nameline { flex-wrap: nowrap; min-width: 0; }
+.av-usercard .av-cardtop > .av-row-actions { flex: none; }
+.av-usercard .av-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 12px; margin-block-start: 12px; }
+.av-usercard .av-plan { margin-block-start: 10px; }
+
+/* row actions: Details + the More actions menu (sketch rowActions) */
+.av-row-actions { display: flex; gap: 4px; align-items: center; }
+.av .av-row-actions .av-btn { min-height: 44px; padding: 4px 8px; font-size: 12px; }
+.av .av-row-actions .av-menu-btn { min-width: 40px; padding: 0; border-radius: 8px; }
+.av-menu-wrap { position: relative; }
+.av-menu { position: absolute; inset-inline-end: 0; inset-block-start: 48px; z-index: 30; background: #fff; padding: 8px; inline-size: 220px; border: 1px solid var(--av-line); border-radius: 10px; box-shadow: 0 12px 30px rgba(20, 36, 61, 0.125); }
+.av-menu button { all: unset; box-sizing: border-box; display: flex; inline-size: 100%; min-height: 44px; padding: 8px; align-items: center; gap: 9px; border-radius: 6px; cursor: pointer; font-size: 14px; color: var(--av-ink); }
+.av-menu button:hover, .av-menu button:focus-visible { background: #edf4fa; outline: none; }
+.av-menu button.av-danger-item { color: var(--av-red); }
+
+/* tooltip: shown on hover AND focus; display:none otherwise, so a hidden tip never adds scroll space */
+.av-tip-host { position: relative; display: inline-flex; }
+.av-tip { display: none; position: absolute; z-index: 40; inset-block-start: calc(100% + 5px); inset-inline-end: 0; background: var(--av-nav); color: #fff; padding: 7px 10px; border-radius: 6px; white-space: nowrap; font-size: 12px; pointer-events: none; }
+.av-tip-host:hover .av-tip, .av-tip-host:focus-within .av-tip { display: block; }
+
+/* ring chart (sketch donut) */
+.av-chart { display: grid; grid-template-columns: 140px 1fr; align-items: center; gap: 14px; margin-block-start: 12px; }
+.av-donut { inline-size: 136px; block-size: 136px; overflow: visible; }
+.av-donut .av-big { font-size: 30px; font-weight: 700; fill: var(--av-ink); }
+.av-donut .av-tiny-t { font-size: 11px; fill: var(--av-muted); }
+.av-legend { display: grid; gap: 6px; min-width: 0; }
+.av-legend-row { display: flex; gap: 8px; align-items: center; padding: 0; background: none; border: 0; font: inherit; font-size: 12px; color: inherit; cursor: pointer; text-align: start; inline-size: 100%; min-width: 0; }
+.av-legend-row:hover .av-name { text-decoration: underline; }
+.av-legend-row .av-name { flex: 1; min-width: 0; }
+.av-legend-row b { min-inline-size: 24px; text-align: end; }
+.av-legend-row .av-pct { inline-size: 40px; text-align: end; color: var(--av-muted); }
+.av-dot { inline-size: 10px; block-size: 10px; border-radius: 3px; display: inline-block; flex: none; }
+.av details.av-datatable { margin-block-start: 12px; }
+.av details.av-datatable > summary { min-height: 44px; cursor: pointer; align-content: center; }
+
+/* events */
+.av-event { display: grid; grid-template-columns: 28px 1fr auto; gap: 10px; padding: 9px 0; border-block-end: 1px solid #e7ecf2; }
+.av-eventdot { background: #e7f4f2; color: var(--av-teal); border-radius: 8px; inline-size: 28px; block-size: 28px; display: grid; place-items: center; }
+.av-event time { color: var(--av-muted); font-size: 11px; }
+.av-event strong { display: block; font-size: 13px; }
+.av-event p { font-size: 12px; margin: 2px 0; }
+
+/* states */
+.av-statebox { min-height: 260px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 35px; gap: 12px; }
+.av-statebox h3 { font-size: 17px; margin: 0; }
+.av-stateicon { display: grid; place-items: center; inline-size: 64px; block-size: 64px; border-radius: 50%; background: #e9eff6; color: #446281; }
+.av-skeleton { block-size: 20px; background: linear-gradient(90deg, #edf1f6, #dce5ee, #edf1f6); border-radius: 5px; margin-block: 14px; }
+
+/* protected dialog (sketch dialog) */
+.av-overlay { position: fixed; inset: 0; z-index: 11000; background: rgba(20, 36, 61, 0.55); display: grid; place-items: center; padding: 16px; }
+.av-dialog { inline-size: min(540px, 100%); max-block-size: calc(100vh - 32px); overflow-y: auto; background: #fff; border: 1px solid var(--av-line); border-radius: 17px; padding: 25px; box-shadow: 0 16px 55px rgba(20, 36, 61, 0.133); box-sizing: border-box; }
+.av-dialog h3 { font-size: 20px; margin: 6px 0; }
+.av-dialog .av-field { margin-block-start: 16px; }
+.av-dialog-foot { display: flex; gap: 10px; justify-content: flex-end; margin-block-start: 24px; flex-wrap: wrap; }
+.av-lockmark { inline-size: 44px; block-size: 44px; display: grid; place-items: center; background: #f6e8eb; color: var(--av-red); border-radius: 12px; }
+.av-step { display: inline-flex; border-radius: 7px; padding: 4px 8px; background: #edf3f8; font-size: 12px; color: var(--av-muted); }
+.av-impact { background: #f7f9fc; }
+.av-impact h4 { font-size: 15px; }
+.av-error { color: var(--av-red); font-size: 13px; font-weight: 600; margin-block-start: 12px; }
+.av-result { text-align: center; padding: 10px 0; }
+
+/* responsive (spec §4.2 / §9): the users table on desktop; below 1200px every row is a card with all the fields */
+@media (max-width: 999px) {
+  .av-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .av-two, .av-equal { grid-template-columns: 1fr; }
+  .av-tablewrap.av-users-table { display: none; }
+  .av-usercards { display: block; }
+  .av .admin-screen-heading h2 { font-size: 22px; }
+}
+@media (max-width: 599px) {
+  .av { font-size: 14px; }
+  /* Owner 5186 phone video 2026-10-16 ("I see only one row"): on a phone the fixed page head is one compact line - title + refresh,
+     no tagline / data time - so the cards get the screen */
+  .av .av-pagehead { flex-direction: row; align-items: center; gap: 8px; margin-block-end: 8px; padding-inline: 8px; }
+  .av .admin-screen-heading > p, .av .av-updated { display: none; }
+  .av .admin-screen-heading h2 { font-size: 21px; }
+  .av-headactions { flex: none; }
+  .av-card { padding: 16px 8px; border-radius: 12px; }
+  .av-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .av-kpis .av-card { padding: 14px 10px; }
+  .av-kpi-value { font-size: 23px; }
+  .av-cardhead { align-items: flex-start; }
+  .av-chart { grid-template-columns: 1fr; gap: 16px; margin-block-start: 15px; }
+  .av-donut { justify-self: center; inline-size: 150px; block-size: 150px; }
+  .av-legend { padding-inline: 8px; }
+  .av-toolbar { gap: 8px; }
+  .av-toolbar .av-field { flex: 1; min-width: 140px; }
+  .av-toolbar .av-search { flex-basis: 100%; min-width: 0; }
+  .av-pager { flex-wrap: wrap; font-size: 12px; }
+  .av-equal, .av-two, .av-three { grid-template-columns: 1fr; }
+  .av-event { grid-template-columns: 30px 1fr; gap: 10px; }
+  .av-event time { grid-column: 2; }
+  .av-dialog { padding: 20px 16px; max-inline-size: 100%; border-radius: 13px; }
+  .av-dialog h3 { font-size: 19px; }
+  .av-dialog-foot button[type="submit"] { flex: 1; }
+  .av-usercard .av-business .av-mail { font-size: 11px; }
+  .av-plan, .av .admin-account-status.av-plan { white-space: normal; }
+  .av-badge { font-size: 11px; }
+  .av-statebox { padding: 30px 10px; }
+}
+@media (prefers-reduced-motion: reduce) { .av * { animation: none !important; transition: none !important; } }
