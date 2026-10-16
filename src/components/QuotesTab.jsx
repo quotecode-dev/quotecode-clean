@@ -581,6 +581,12 @@ export default function QuotesTab({
   // (לא חתוך יותר - היה כבר גלוי, רק חתוך; שום מידע לא הוסר, רק אורגן
   // מחדש), סוג לקוח (עכשיו עם תווית טקסט גלויה, לא רק אייקון+טולטיפ),
   // צפיות, מצב שליחת מייל, ואז שורת הפעולות (renderInlineActions).
+  // Owner console 2026-10-16: the collapsed mobile card shows eye + number only; this is its accessible name
+  const viewsLabel = (count) => {
+    const n = Number(count || 0);
+    if (isHebrew) return n === 1 ? 'צפייה אחת' : `${n} צפיות`;
+    return n === 1 ? '1 view' : `${n} views`;
+  };
   const renderDetailPanel = (row, detailId) => {
     const { quote, firstItemDesc, emailStatus, isLocked, actionKind, actionLabel } = row;
     // Owner R4: the status-aware primary row action (Open & track / Continue editing / Open / View - same precedence, same
@@ -1364,15 +1370,20 @@ export default function QuotesTab({
                       title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
                     />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
                     {/* Card meta line + status chip keep the 12px text floor on the base c65f742 line boxes (meta 16.8px, chip 15.6px
-                        + 2px padding = 19.6px): the card stays 65.4px tall like base, so phones/768/820 show base's visible card count. */}
+                        + 2px padding = 19.6px): the card stays 65.4px tall like base, so phones/768/820 show base's visible card count.
+                        Owner console 2026-10-16: the view count (eye + number only) sits in the middle of this line. */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden', fontSize: '0.75rem', lineHeight: '16.8px', color: NEON.textMuted }}>
                       <span data-qh="number" dir="ltr" style={{ fontWeight: '600', color: NEON.textPrimary, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', flexShrink: 0, whiteSpace: 'nowrap' }}>{displayQuoteNumber(quote)}</span>
                       <span aria-hidden="true" style={{ flexShrink: 0 }}>·</span>
                       <span data-qh="date" style={{ direction: 'ltr', whiteSpace: 'nowrap', flexShrink: 0 }}>{formatShortDate(quote.created_at, dateMarket)}</span>
                     </div>
-                    <span data-qh="status" data-status={chip.role} className="pf-status-chip" style={{ background: chip.bg, color: chip.color, boxShadow: `inset 0 0 0 1px ${chip.border}`, padding: '2px 7px', borderRadius: '999px', fontSize: '0.75rem', lineHeight: '15.6px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                    <span data-qh="views" role="img" aria-label={viewsLabel(quote.view_count)} title={viewsLabel(quote.view_count)} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', lineHeight: '16.8px', color: NEON.textMuted, whiteSpace: 'nowrap' }}>
+                      <Eye size={13} color={NEON.textMuted} strokeWidth={2} aria-hidden="true" />
+                      <bdi className="pf-num" dir="ltr">{Number(quote.view_count || 0)}</bdi>
+                    </span>
+                    <span data-qh="status" data-status={chip.role} className="pf-status-chip" style={{ justifySelf: 'end', background: chip.bg, color: chip.color, boxShadow: `inset 0 0 0 1px ${chip.border}`, padding: '2px 7px', borderRadius: '999px', fontSize: '0.75rem', lineHeight: '15.6px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
                       {statusLabel}
                     </span>
                   </div>

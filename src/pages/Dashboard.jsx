@@ -6032,7 +6032,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             margin-bottom: 8px !important;
           }
           .dash-upper-section[data-quotes-overview="true"] .dash-header-stats { display: none !important; }
-          .quote-workspace.pf-work-screen[data-qh-layout="cards"] { padding: 12px !important; }
+          /* IRON-MOBILE-WIDTH-001 (Owner console 2026-10-16): vertical spacing only - a horizontal padding here was a second gutter */
+          .quote-workspace.pf-work-screen[data-qh-layout="cards"] { padding: 12px 0 !important; }
           .quote-workspace .quote-hot-banner {
             min-height: 44px;
             margin: 0 0 10px;
