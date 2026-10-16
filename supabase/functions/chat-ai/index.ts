@@ -113,7 +113,7 @@ serve(async (req) => {
   if (verifiedUserId) {
     const { data: bizRow } = await adminClient
       .from('business_settings')
-      .select('role, country, phone, tax_id')
+      .select('role, country, phone, tax_id, is_lifetime')
       .eq('user_id', verifiedUserId)
       .maybeSingle();
     accountContext = buildVerifiedAccountContext(bizRow as BusinessSettingsRow | null, currentArea, accountSummary);

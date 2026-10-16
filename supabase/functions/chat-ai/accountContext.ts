@@ -8,7 +8,7 @@
 // index.ts fetches server-side WITH THE USER'S OWN JWT (identity = auth.uid(); the RPC takes no argument, so no request
 // field can name another account) and which is parsed here by the ONE strict parser (subscriptionContract.ts
 // parseAccountSummary - anything outside the allowlist fails closed). The legacy `business_settings.plan /
-// trial_ends_at / is_lifetime` fields are no longer read at all: the old tier/trial resolution (a port of
+// trial_ends_at` fields are no longer read at all (only the explicit team-set Lifetime flag is, since the night task of 2026-10-16, R-16): the old tier/trial resolution (a port of
 // planEntitlements.js / accountEntitlement.js) was removed, so the assistant can never state a legacy tier, a trial or a
 // monthly limit as this account's state. `business_settings` is still read for the account's market (`country`) and the
 // server-verified role (admin), which are not plan facts.
@@ -17,6 +17,9 @@ import { parseAccountSummary, type AccountSummary, type ActivationPhase, type Pl
 export type BusinessSettingsRow = {
   role?: string | null;
   country?: string | null;
+  // Night task 2026-10-16 (R-16, Owner-approved L-11 / L-01): the ONE legacy field read again - the explicit Lifetime flag the
+  // team sets (the app shows "Lifetime subscription"); never a tier, a trial or a limit
+  is_lifetime?: boolean | null;
 };
 
 // The plan facts the assistant may use - a projection of the parsed server summary, nothing else.
@@ -27,10 +30,11 @@ export type AccountPlanContext = {
   free10Remaining: number | null; // only for a ready Free account
   subscriptionStatus: string | null; // only when ready
   outputPhase: ActivationPhase; // 'off' unless ready
+  isLifetime: boolean; // the explicit team-set Lifetime flag of business_settings; false when unknown
 };
 
 export const NO_ACCOUNT_PLAN: AccountPlanContext = Object.freeze({
-  summaryState: 'unavailable', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off',
+  summaryState: 'unavailable', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off', isLifetime: false,
 });
 
 export function accountPlanFromSummary(summary: AccountSummary | null | undefined): AccountPlanContext {
@@ -44,6 +48,7 @@ export function accountPlanFromSummary(summary: AccountSummary | null | undefine
     free10Remaining: summary.planId === 'free' && summary.free10 ? summary.free10.remaining : null,
     subscriptionStatus: summary.subscriptionStatus,
     outputPhase: summary.phase.output,
+    isLifetime: false,
   });
 }
 
@@ -87,7 +92,9 @@ export function buildVerifiedAccountContext(
   currentArea: string | null,
   summary: AccountSummary | null | undefined = null,
 ): VerifiedAccountContext {
-  const account = accountPlanFromSummary(summary);
+  const fromSummary = accountPlanFromSummary(summary);
+  // (as before the new interface) the super admin is never described as a Lifetime account
+  const account: AccountPlanContext = row?.is_lifetime === true && row?.role !== 'super_admin' ? Object.freeze({ ...fromSummary, isLifetime: true }) : fromSummary;
   const summaryMarket = summary && summary.state === 'ready' ? summary.market : null;
   const market: 'Local' | 'International' | 'Unknown' =
     summaryMarket === 'IL' ? 'Local' :

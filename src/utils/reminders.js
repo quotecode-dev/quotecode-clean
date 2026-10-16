@@ -103,7 +103,7 @@ export const REMINDERS_COPY = Object.freeze({
       ai: 'אפשר גם להשתמש ב-AI החכם שלנו.',
       aiButton: 'פתיחת צ׳אט AI',
     },
-    center: { title: 'התראות', empty: 'אין תזכורות כרגע.', markAll: 'סימון הכול כנקרא', modeOff: 'התזכורות כבויות.', modeLine: { in_app: 'מצב: בממשק בלבד — שום הודעה לא נשלחת ללקוחות.', off: 'מצב: כבוי.', full: 'מצב: מלא.' }, readNotSaved: 'סימון כנקרא יישמר אחרי עדכון השרת.' },
+    center: { title: 'התראות', empty: 'אין תזכורות כרגע.', loading: 'טוענים את התזכורות…', markAll: 'סימון הכול כנקרא', modeOff: 'התזכורות כבויות.', modeLine: { in_app: 'מצב: בממשק בלבד — שום הודעה לא נשלחת ללקוחות.', off: 'מצב: כבוי.', full: 'מצב: מלא.' }, readNotSaved: 'סימון כנקרא יישמר אחרי עדכון השרת.' },
     item: {
       task_due: (i) => `משימה: ${i.title}`, task_due_overdue: 'באיחור', today: 'היום',
       first_view: (n) => `קישור ההצעה ${n} נצפה`,
@@ -206,7 +206,7 @@ export const REMINDERS_COPY = Object.freeze({
       ai: 'You can also use our smart AI.',
       aiButton: 'Open AI Chat',
     },
-    center: { title: 'Notifications', empty: 'No reminders right now.', markAll: 'Mark all read', modeOff: 'Reminders are off.', modeLine: { in_app: 'Mode: In-app only — nothing is sent to customers.', off: 'Mode: Off.', full: 'Mode: Full.' }, readNotSaved: 'Read marks are saved after the server update.' },
+    center: { title: 'Notifications', empty: 'No reminders right now.', loading: 'Loading your reminders…', markAll: 'Mark all read', modeOff: 'Reminders are off.', modeLine: { in_app: 'Mode: In-app only — nothing is sent to customers.', off: 'Mode: Off.', full: 'Mode: Full.' }, readNotSaved: 'Read marks are saved after the server update.' },
     item: {
       task_due: (i) => `Task: ${i.title}`, task_due_overdue: 'Overdue', today: 'Today',
       first_view: (n) => `Quote link ${n} viewed`,
@@ -244,7 +244,15 @@ export async function loadReminderSettings(client, userId) {
 export async function saveReminderSettings(client, userId, settings) {
   const g = guard(client, userId); if (g) return g;
   try {
-    const { data, error } = await client.from('reminder_settings').upsert({ ...toReminderSettingsRow(settings), user_id: userId }, { onConflict: 'user_id' }).select(SETTINGS_COLUMNS).single();
+    // Night task 2026-10-16 (R-26): UPDATE first and INSERT only for an account without a row. An upsert (INSERT ... ON CONFLICT) fires the
+    // BEFORE INSERT trigger even when the row exists, which wrote a false "mode set" line into the history on every save.
+    const row = { ...toReminderSettingsRow(settings), user_id: userId };
+    let { data, error } = await client.from('reminder_settings').update(row).eq('user_id', userId).select(SETTINGS_COLUMNS).maybeSingle();
+    if (!error && !data) {
+      ({ data, error } = await client.from('reminder_settings').insert(row).select(SETTINGS_COLUMNS).single());
+      // another tab created it a moment earlier -> it exists now: update it
+      if (error && String(error.code) === '23505') ({ data, error } = await client.from('reminder_settings').update(row).eq('user_id', userId).select(SETTINGS_COLUMNS).single());
+    }
     if (error) return fromError(error);
     if (!data || data.user_id !== userId) return fail('unknown', 'no persisted row returned');
     return { ok: true, data: { settings: normalizeReminderSettings(data), stored: true } };

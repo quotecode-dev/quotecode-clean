@@ -21,10 +21,12 @@ describe('trial reminder copy - no legacy plan name, behavior unchanged', () => 
     expect(senderAddressFor('Local')).toBe('TEKANGO Support <support@tekango.com>');
     expect(senderAddressFor('International')).toBe('TEKANGO <info@tekango.com>');
   });
-  it('the schedule and the cron wiring are untouched by this change (still one daily Vercel cron that invokes the trial job)', () => {
+  // night task 2026-10-16 (R-15, Owner default 2): the daily cron no longer invokes the trial job (no trial exists); the schedule stays
+  it('the schedule is unchanged (one daily Vercel cron); the cron no longer invokes the retired trial job', () => {
     const vercel = JSON.parse(readFileSync('vercel.json', 'utf-8'));
     expect(vercel.crons).toEqual([{ path: '/api/cron', schedule: '0 8 * * *' }]);
     const cron = readFileSync('api/cron.js', 'utf-8');
-    expect(cron).toContain("supabase.functions.invoke('send-trial-expiration-email', {");
+    expect(cron).not.toContain("supabase.functions.invoke('send-trial-expiration-email', {");
+    expect(cron).toContain("supabase.functions.invoke('send-subscription-expiration-email', {");
   });
 });

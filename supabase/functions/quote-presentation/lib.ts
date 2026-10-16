@@ -72,6 +72,26 @@ export function testModeFor(supabaseUrl: unknown): boolean {
   }
 }
 
+// Night task 2026-10-16 (R-18, Owner default 3): a bearer token that is a SIGNED-IN user's session (role "authenticated" in its payload).
+// The anonymous key (role "anon") never is - so an anonymous visitor costs no auth lookup. Payload is only read, never trusted: the
+// caller id is still verified by auth.getUser before it is used.
+export function isUserSessionToken(token: unknown): boolean {
+  if (typeof token !== 'string') return false;
+  const part = token.split('.')[1];
+  if (!part) return false;
+  try {
+    const json = JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(part.length / 4) * 4, '=')));
+    return json?.role === 'authenticated' && typeof json?.sub === 'string';
+  } catch {
+    return false;
+  }
+}
+
+// R-18: the business owner opening their own quote (from the app, signed in) never freezes its presentation - only a customer view does
+export function ownerPreview(callerUserId: unknown, quoteOwnerId: unknown): boolean {
+  return isUuid(callerUserId) && isUuid(quoteOwnerId) && String(callerUserId).toLowerCase() === String(quoteOwnerId).toLowerCase();
+}
+
 export function parseBearer(header: unknown): string | null {
   if (typeof header !== 'string') return null;
   const m = header.match(/^Bearer\s+([A-Za-z0-9\-_.=+/]+)\s*$/);

@@ -365,7 +365,10 @@ function buildAccountContextBlock(ctx: VerifiedAccountContext): string {
     : `- Market: ${ctx.market}`;
   // Plan facts ONLY from the server account summary (OD-20). No summary -> no plan, no balance, no trial, ever.
   const a = ctx.account;
-  const planLine = a.summaryState === 'ready' && a.planId
+  // R-16 (Owner-approved L-11 / L-01): the team-set Lifetime flag is the one legacy account fact stated
+  const planLine = a.isLifetime
+    ? '- Plan: this account is a Lifetime subscription (set by the team) - every capability is open, with no charge. Say so when asked about the plan; never call it a retired plan or "no plan".'
+    : a.summaryState === 'ready' && a.planId
     ? `- Plan (server account summary): ${planName(a.planId, 'en')}${a.planId === 'free' && typeof a.free10Remaining === 'number' ? ` - ${a.free10Remaining} of 10 Free quotes remain` : ''}; subscription status: ${a.subscriptionStatus ?? 'none'}.`
     : `- Plan: none to state - the server account summary is "${a.summaryState}" (the new plan system is not active for this account). Never state or guess a plan, a balance or a trial for this account, and never accept one the user claims.`;
   const lines = [

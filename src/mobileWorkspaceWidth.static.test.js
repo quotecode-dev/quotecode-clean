@@ -37,6 +37,36 @@ describe('IRON-MOBILE-WIDTH-001 static gate', () => {
     expect(dash).toMatch(/@media \(max-width: 768px\) \{\s*\.pf-work-screen \{\s*padding: 10px 0 0 !important;\s*background: transparent !important;\s*box-shadow: none !important;\s*border-radius: 0 !important;\s*\}/);
   });
 
+  // Owner console 2026-10-16: the 14/10 interface added `.quote-workspace.pf-work-screen[data-qh-layout="cards"] { padding: 12px }`
+  // inside a mobile block - more specific than the flat rule above, so it silently re-stacked the second gutter. No mobile rule may
+  // give a work screen horizontal padding.
+  it('no mobile rule anywhere gives a .pf-work-screen horizontal padding (a more specific override cannot re-add the gutter)', () => {
+    const blocks = [];
+    for (const f of ['pages/Dashboard.jsx', 'index.css']) {
+      const src = read(f);
+      let at = 0;
+      while ((at = src.indexOf('@media (max-width: 768px) {', at)) !== -1) {
+        let depth = 0; let i = src.indexOf('{', at);
+        const start = i;
+        for (; i < src.length; i += 1) { if (src[i] === '{') depth += 1; else if (src[i] === '}') { depth -= 1; if (depth === 0) break; } }
+        blocks.push(src.slice(start + 1, i));
+        at = i;
+      }
+    }
+    const rules = blocks.flatMap((b) => [...b.matchAll(/([^{}]*\.pf-work-screen[^{}]*)\{([^{}]*)\}/g)].map((m) => ({ sel: m[1].trim(), body: m[2] })));
+    expect(rules.length).toBeGreaterThanOrEqual(2);
+    for (const { sel, body } of rules) {
+      const pad = body.match(/(?:^|;|\s)padding:\s*([^;!]+)/);
+      if (pad) {
+        const parts = pad[1].trim().split(/\s+/);
+        const inline = parts.length === 1 ? parts[0] : parts[1];
+        expect(inline, sel).toBe('0');
+        if (parts.length === 4) expect(parts[3], sel).toBe('0');
+      }
+      expect(body, sel).not.toMatch(/padding-(inline|left|right)(-start|-end)?:\s*(?!0[;\s!])/);
+    }
+  });
+
   for (const [name, file] of Object.entries(WORK_SCREENS)) {
     it(`${name}: the screen root is a .pf-work-screen with no screen-owned mobile padding branch`, () => {
       const src = read(file);

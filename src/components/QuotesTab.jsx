@@ -7,7 +7,7 @@ import { useState, useEffect, useLayoutEffect, useRef, Fragment } from 'react';
 import { MoneyValue, CurrencyTotals } from './NumericValue';
 import { totalsByQuoteCurrency } from '../utils/money';
 import { isHotQuote } from '../utils/quoteStatistics';
-import { sentNotViewed } from '../utils/quoteSentMark';
+import { quoteDisplayStatus, quoteDisplayLabel, quoteDisplayTone, quoteDisplayChipRole, QUOTE_FILTER_OPTIONS, quoteFilterLabel } from '../utils/quoteStatusDisplay';
 import TekangoEyeIcon from './TekangoEyeIcon';
 import { useMoneySlotSize } from '../hooks/useMoneySlotSize';
 import { useQuoteHistoryGeometry, QH_CELL_PAD, QH_ACTION_COL, QH_CELL_STYLE } from '../hooks/useQuoteHistoryGeometry';
@@ -319,7 +319,12 @@ export default function QuotesTab({
     const rawDiscount = quote.discount || 0;
     const discBase = rawSubtotal - ((rawSubtotal * rawDiscount) / 100);
     const isBizClient = (quote.client_type || quote.clients?.client_type) === 'business';
-    const beforeVatAmount = isBizClient && isHebrew ? discBase : (quote.total / 1.18);
+    // R-04 (restores the Task 39 fix lost in the new interface): IRON-MARKET-004 - the quote's OWN persisted VAT rate (same rule as
+    // PublicQuote's vatRate), never a fixed 18%; a historical 0%-tax quote shown in a Local account has no VAT to extract.
+    const persistedTaxRate = (quote.tax_rate !== undefined && quote.tax_rate !== null && Number.isFinite(Number(quote.tax_rate)) && Number(quote.tax_rate) >= 0)
+      ? Number(quote.tax_rate)
+      : 0.18;
+    const beforeVatAmount = isBizClient && isHebrew ? discBase : (quote.total / (1 + persistedTaxRate));
 
     const quoteSym = getQuoteCurrencySymbol(quote.currency);
     // SMART-QUOTE-01: a draft with nothing to charge is labelled as an UNFINISHED draft in the list (never a plain "Draft").
@@ -329,20 +334,14 @@ export default function QuotesTab({
       : baseBadge;
     const isHot = isHotQuote({ ...quote, status: currentStatus }); // the ONE hot rule, shared with Statistics (Task 17)
 
-    // Desktop list state (plain coloured text): derived from the real status, never a new persisted status. A complete draft is
-    // "Needs sending"; only an unfinished one is a plain "Draft".
+    // Night task 2026-10-16 (R-06, Owner-approved L-13 / L-14): the ONE shown status (utils/quoteStatusDisplay.js) - the same label on
+    // the desktop list, the phone / tablet cards and the old table; derived from the real status, never a new persisted status.
     const isFinal = badge.role === 'approved' || badge.role === 'paid';
-    // Owner 2026-10-15 (AUD-03): a quote the customer already opened reached the customer - also a Draft whose link was shared by hand
-    const viewedDraft = badge.role === 'draft' && Number(quote.view_count || 0) > 0;
-    const tone = isHot ? 'hot' : isFinal ? 'approved' : (badge.role === 'sent' || viewedDraft) ? 'sent' : badge.role === 'unfinished' ? 'draft' : 'needs-sending';
-    const statusLabel = isHot ? (isHebrew ? 'נצפתה, ממתינה' : 'Viewed, awaiting')
-      : badge.role === 'approved' ? (isHebrew ? 'אושרה' : 'Approved')
-        : badge.role === 'paid' ? badge.text
-          // Owner 2026-10-15: a sent quote the customer has not opened yet says so
-          : (badge.role === 'sent' || viewedDraft) ? (sentNotViewed(quote) ? (isHebrew ? 'נשלחה · טרם נצפתה' : 'Sent · not viewed yet')
-            : Number(quote.view_count || 0) > 0 ? (isHebrew ? 'נשלחה · נצפתה' : 'Sent · viewed') : (isHebrew ? 'נשלחה' : 'Sent'))
-            : badge.role === 'unfinished' ? (isHebrew ? 'טיוטה' : 'Draft')
-              : (isHebrew ? 'צריך לשלוח' : 'Needs sending');
+    const displayKey = quoteDisplayStatus(quote);
+    const tone = quoteDisplayTone(displayKey);
+    const statusLabel = quoteDisplayLabel(displayKey, isHebrew);
+    const chipRole = quoteDisplayChipRole(displayKey);
+    const chip = { role: chipRole, bg: APP_STATUS[chipRole].bg, color: APP_STATUS[chipRole].fg, border: APP_STATUS[chipRole].border };
     // Action precedence: a hot quote is always "Open & track" (before any draft branch); then unfinished draft -> continue editing.
     const actionKind = isHot ? 'track' : (badge.role === 'unfinished' && !isLocked) ? 'edit' : isFinal ? 'view' : 'open';
     const actionLabel = actionKind === 'track' ? (isHebrew ? 'פתיחה ומעקב' : 'Open & track')
@@ -350,7 +349,7 @@ export default function QuotesTab({
         : actionKind === 'view' ? (isHebrew ? 'צפייה' : 'View')
           : (isHebrew ? 'פתיחה' : 'Open');
 
-    return { quote, currentStatus, isDropdownOpen, isLocked, emailStatus, firstItemDesc, beforeVatAmount, quoteSym, badge, isHot, tone, statusLabel, actionKind, actionLabel };
+    return { quote, currentStatus, isDropdownOpen, isLocked, emailStatus, firstItemDesc, beforeVatAmount, quoteSym, badge, chip, isHot, tone, statusLabel, actionKind, actionLabel };
   });
 
   // Owner-approved quote-list-first direction (2026-10-08): derive the
@@ -582,6 +581,12 @@ export default function QuotesTab({
   // (לא חתוך יותר - היה כבר גלוי, רק חתוך; שום מידע לא הוסר, רק אורגן
   // מחדש), סוג לקוח (עכשיו עם תווית טקסט גלויה, לא רק אייקון+טולטיפ),
   // צפיות, מצב שליחת מייל, ואז שורת הפעולות (renderInlineActions).
+  // Owner console 2026-10-16: the collapsed mobile card shows eye + number only; this is its accessible name
+  const viewsLabel = (count) => {
+    const n = Number(count || 0);
+    if (isHebrew) return n === 1 ? 'צפייה אחת' : `${n} צפיות`;
+    return n === 1 ? '1 view' : `${n} views`;
+  };
   const renderDetailPanel = (row, detailId) => {
     const { quote, firstItemDesc, emailStatus, isLocked, actionKind, actionLabel } = row;
     // Owner R4: the status-aware primary row action (Open & track / Continue editing / Open / View - same precedence, same
@@ -683,7 +688,8 @@ export default function QuotesTab({
             <TekangoEyeIcon size={24} className="quote-hot-banner-eye" />
           </button>
           <span className="quote-hot-banner-text">
-            <mark className="quote-hot-banner-name">{quotePartyLabel(hotLead.quote).text}</mark>
+            {/* R-28 (night task 2026-10-16): the name is isolated - an English name ending in "." never jumps to the other side */}
+            <mark className="quote-hot-banner-name"><bdi>{quotePartyLabel(hotLead.quote).text}</bdi></mark>
             {isHebrew ? ' צפה בהצעה ' : ' viewed this quote '}
             <bdi className="pf-num" dir="ltr">{Number(hotLead.quote.view_count || 0)}</bdi>
             {isHebrew ? ' פעמים ועדיין לא חתם.' : ' times and still hasn’t signed.'}
@@ -745,10 +751,8 @@ export default function QuotesTab({
                 aria-label={isHebrew ? 'סינון לפי סטטוס' : 'Filter by status'}
               >
                 <option value="All">{t.filterStatus}</option>
-                <option value="draft">{isHebrew ? 'טיוטה' : 'Draft'}</option>
-                <option value="sent">{isHebrew ? 'נשלח' : 'Sent'}</option>
-                <option value="approved">{isHebrew ? 'אושר' : 'Approved'}</option>
-                <option value="paid">{isHebrew ? 'שולם' : 'Paid'}</option>
+                {/* R-07: the filter speaks the shown status labels */}
+                {QUOTE_FILTER_OPTIONS.map((f) => <option key={f} value={f}>{quoteFilterLabel(f, isHebrew)}</option>)}
               </select>
             </label>
             <label className="quote-search-control">
@@ -1157,7 +1161,7 @@ export default function QuotesTab({
               </tr>
             ) : (
               rowsMeta.map((row) => {
-                const { quote, quoteSym, badge, isHot } = row;
+                const { quote, quoteSym, chip, statusLabel, isHot } = row;
                 const isExpanded = expandedQuoteId === quote.id;
                 const detailId = `quote-detail-${quote.id}`;
                 return (
@@ -1253,8 +1257,8 @@ export default function QuotesTab({
                   <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center' }}>
                     {/* lineHeight '13.44px' = the base c65f742 chip line box (0.7rem x 1.2): the 12px text floor keeps its size but no
                         longer grows the row (40.4 -> 39.4px, base row height; 1024x768 visible rows back to base). */}
-                    <span data-qh="status" data-status={badge.role} className="pf-status-chip" style={{ ...QH_CELL_STYLE.status, lineHeight: '13.44px', background: badge.bg, color: badge.color, boxShadow: `inset 0 0 0 1px ${badge.border}` }}>
-                      {badge.text}
+                    <span data-qh="status" data-status={chip.role} className="pf-status-chip" style={{ ...QH_CELL_STYLE.status, lineHeight: '13.44px', background: chip.bg, color: chip.color, boxShadow: `inset 0 0 0 1px ${chip.border}` }}>
+                      {statusLabel}
                     </span>
                   </td>
                   <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center', color: NEON.textMuted, direction: 'ltr', whiteSpace: 'nowrap' }}>
@@ -1306,7 +1310,7 @@ export default function QuotesTab({
           </div>
         ) : (
           rowsMeta.map((row) => {
-            const { quote, quoteSym, badge, isHot } = row;
+            const { quote, quoteSym, chip, statusLabel, isHot } = row;
             const isExpanded = expandedQuoteId === quote.id;
             const detailId = `quote-detail-mobile-${quote.id}`;
             // חוק ברזל (Authenticated App Consolidation task, §6 Mobile
@@ -1366,16 +1370,21 @@ export default function QuotesTab({
                       title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
                     />
                   </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
                     {/* Card meta line + status chip keep the 12px text floor on the base c65f742 line boxes (meta 16.8px, chip 15.6px
-                        + 2px padding = 19.6px): the card stays 65.4px tall like base, so phones/768/820 show base's visible card count. */}
+                        + 2px padding = 19.6px): the card stays 65.4px tall like base, so phones/768/820 show base's visible card count.
+                        Owner console 2026-10-16: the view count (eye + number only) sits in the middle of this line. */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden', fontSize: '0.75rem', lineHeight: '16.8px', color: NEON.textMuted }}>
                       <span data-qh="number" dir="ltr" style={{ fontWeight: '600', color: NEON.textPrimary, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', flexShrink: 0, whiteSpace: 'nowrap' }}>{displayQuoteNumber(quote)}</span>
                       <span aria-hidden="true" style={{ flexShrink: 0 }}>·</span>
                       <span data-qh="date" style={{ direction: 'ltr', whiteSpace: 'nowrap', flexShrink: 0 }}>{formatShortDate(quote.created_at, dateMarket)}</span>
                     </div>
-                    <span data-qh="status" data-status={badge.role} className="pf-status-chip" style={{ background: badge.bg, color: badge.color, boxShadow: `inset 0 0 0 1px ${badge.border}`, padding: '2px 7px', borderRadius: '999px', fontSize: '0.75rem', lineHeight: '15.6px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                      {badge.text}
+                    <span data-qh="views" role="img" aria-label={viewsLabel(quote.view_count)} title={viewsLabel(quote.view_count)} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', lineHeight: '16.8px', color: NEON.textMuted, whiteSpace: 'nowrap' }}>
+                      <Eye size={13} color={NEON.textMuted} strokeWidth={2} aria-hidden="true" />
+                      <bdi className="pf-num" dir="ltr">{Number(quote.view_count || 0)}</bdi>
+                    </span>
+                    <span data-qh="status" data-status={chip.role} className="pf-status-chip" style={{ justifySelf: 'end', background: chip.bg, color: chip.color, boxShadow: `inset 0 0 0 1px ${chip.border}`, padding: '2px 7px', borderRadius: '999px', fontSize: '0.75rem', lineHeight: '15.6px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                      {statusLabel}
                     </span>
                   </div>
                 </div>

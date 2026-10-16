@@ -3,6 +3,7 @@
 // ==============================================================================
 
 import { useState, useEffect, useRef } from 'react';
+import { quoteDisplayStatus, quoteDisplayLabel, quoteDisplayChipRole } from '../utils/quoteStatusDisplay';
 import { Users, UserPlus, Pencil, Trash2, Hash, Mail, MapPin, StickyNote, ChevronDown, FileText, Search, ArrowUpDown, Check } from 'lucide-react';
 import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, APP_FOCUS, RADIUS, SHADOW } from '../theme/neonTheme';
 import { formatAddress } from '../utils/addressFormat';
@@ -51,18 +52,11 @@ function ClientTypeTextBadge({ clientType, isHebrew }) {
   );
 }
 
-// חוק ברזל (Design System Coherence task): תג-סטטוס להצעה האחרונה - אותו
-// סולם-צבעים/פורמט בדיוק כמו getStatusBadge הקיים ב-QuotesTab.jsx
-// (משוכפל מקומית, לא משותף - אותו עיקרון קיים), כדי שסטטוס "הצעה אחרונה"
-// כאן ייראה עקבי עם אותו סטטוס בהיסטוריית ההצעות עצמה.
-// Task 16: semantic status roles (APP_STATUS) - always rendered with the text label plus a small aria-hidden dot.
-const getStatusBadge = (st, isHebrew) => {
-  switch (st) {
-    case 'approved': return { role: 'approved', bg: APP_STATUS.approved.bg, color: APP_STATUS.approved.fg, border: APP_STATUS.approved.border, text: isHebrew ? 'אושר' : 'Approved' };
-    case 'paid': return { role: 'paid', bg: APP_STATUS.paid.bg, color: APP_STATUS.paid.fg, border: APP_STATUS.paid.border, text: isHebrew ? 'שולם' : 'Paid' };
-    case 'sent': return { role: 'sent', bg: APP_STATUS.sent.bg, color: APP_STATUS.sent.fg, border: APP_STATUS.sent.border, text: isHebrew ? 'נשלח' : 'Sent' };
-    default: return { role: 'draft', bg: APP_STATUS.draft.bg, color: APP_STATUS.draft.fg, border: APP_STATUS.draft.border, text: isHebrew ? 'טיוטה' : 'Draft' };
-  }
+// R-21: the latest-quote status chip is the quote list's ONE shown status (utils/quoteStatusDisplay.js), with its colours.
+const statusBadgeFor = (quote, isHebrew) => {
+  const key = quoteDisplayStatus(quote);
+  const role = quoteDisplayChipRole(key);
+  return { role, bg: APP_STATUS[role].bg, color: APP_STATUS[role].fg, border: APP_STATUS[role].border, text: quoteDisplayLabel(key, isHebrew) };
 };
 
 // PRODUCT_TRUTH_CAPABILITY: clients
@@ -187,7 +181,8 @@ export default function ClientsTab({
 
   const renderDetailPanel = (row) => {
     const { client, quoteCount, latestQuote } = row;
-    const latestBadge = latestQuote ? getStatusBadge((latestQuote.status || 'draft').toLowerCase(), isHebrew) : null;
+    // R-21 (night task 2026-10-16, Owner-approved L-13 / L-14): the latest quote shows the SAME status as the quote list
+    const latestBadge = latestQuote ? statusBadgeFor(latestQuote, isHebrew) : null;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '0.78rem', color: NEON.textSecondary }}>

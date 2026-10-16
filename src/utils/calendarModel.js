@@ -14,6 +14,7 @@
 // Task 27 (spec §6): plus each quote's OPTIONAL work date (public.quote_service_schedule) - its own 'service' layer, separate from the
 // validity end; shown for any of the owner's quotes except a rejected one, and only when the quote is in the loaded list.
 import holidayData from '../data/israelHolidays.json';
+import { isAwaitingQuote } from './quoteStatistics';
 import { isCalendarDate, marketToday, shortTime, taskGroupOf, marketClock } from './manualTasks';
 import { isQuoteAcceptanceExpired } from './quoteValidity';
 import { displayQuoteNumber, quotePartyLabel } from './quoteListRows';
@@ -73,7 +74,9 @@ export function buildCalendarEvents({ tasks = [], quotes = [], schedules = [], m
     });
   }
   for (const q of Array.isArray(quotes) ? quotes : []) {
-    if (!q || String(q.status || '').toLowerCase() !== 'sent') continue; // awaiting the customer's signature; signed / drafts are not dated events
+    // R-08 (night task 2026-10-16): awaiting the customer = the ONE rule (Sent, or a Draft the customer already opened; not approved /
+    // paid); an unseen draft and a signed quote are not dated events
+    if (!q || !isAwaitingQuote(q)) continue;
     const day = typeof q.valid_until === 'string' ? q.valid_until.slice(0, 10) : null;
     if (!isCalendarDate(day)) continue;
     out.push({

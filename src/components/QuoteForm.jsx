@@ -700,7 +700,7 @@ export default function QuoteForm({
         </button>
       </div>
 
-      <form className="pf-screen-body" onSubmit={onSave} onInvalidCapture={(e) => { const code = INVALID_FIELD_BLOCKER[e.target?.dataset?.helpField]; if (code) publishBlocker(code, { scope: 'editor', stage: 'validating' }); }}>
+      <form className="pf-screen-body" data-quote-form="editor" onSubmit={onSave} onInvalidCapture={(e) => { const code = INVALID_FIELD_BLOCKER[e.target?.dataset?.helpField]; if (code) publishBlocker(code, { scope: 'editor', stage: 'validating' }); }}>
         {/* SMART-QUOTE (2026-09-22, Owner-locked first-use flow): 1 who is it for -> 2 what work/product -> 3 price -> 4 review & save
             (preview/share/send follow from the saved quote). Professional capability (catalog, measured items, rooms/areas/units,
             attachments, terms) is unchanged - optional parts are progressive, never removed. */}

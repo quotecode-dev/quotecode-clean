@@ -9,6 +9,9 @@ import { NEON, FONT_HE, FONT_EN, neonGlowTextStyle } from '../theme/neonTheme';
 export default function AuthScreen({
   bundleIsHebrew,
   isInitializing,
+  startupStuck = false,
+  onStartupRetry = null,
+  onStartupSignOut = null,
   isPasswordRecoveryMode,
   newPasswordInput,
   setNewPasswordInput,
@@ -72,6 +75,24 @@ export default function AuthScreen({
           <div style={{ marginTop: '20px', fontSize: '1rem', color: NEON.textSecondary, fontWeight: 'bold' }}>
             {isHebrew ? 'טוען את המערכת...' : 'Loading system...'}
           </div>
+          {/* Night task 2026-10-16 (R-12, Owner-approved L-10 / L-15): the account details keep failing to load - say so, offer a way out */}
+          {startupStuck && (
+            <div data-testid="startup-stuck" style={{ marginTop: '16px', maxWidth: '360px', marginInline: 'auto', padding: '0 16px' }}>
+              <p role="alert" style={{ fontSize: '0.9rem', color: NEON.textSecondary, margin: '0 0 14px' }}>
+                {isHebrew ? 'לא הצלחנו לטעון את פרטי החשבון שלך. אנחנו ממשיכים לנסות; אפשר גם לנסות שוב עכשיו או להתנתק.' : "We couldn't load your account details. We keep trying; you can also try again now or sign out."}
+              </p>
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: retries loading the account at once, without reloading the page - night task R-12 */}
+                <button type="button" onClick={() => onStartupRetry?.()} style={{ padding: '10px 18px', borderRadius: '8px', border: 'none', background: NEON.gradient, color: 'white', fontWeight: '700', cursor: 'pointer' }}>
+                  {isHebrew ? 'לנסות שוב' : 'Try again'}
+                </button>
+                {/* PRODUCT_TRUTH_DECORATIVE: signs out of this device from the stuck loading screen - night task R-12 */}
+                <button type="button" onClick={() => onStartupSignOut?.()} style={{ padding: '10px 18px', borderRadius: '8px', border: `1px solid ${NEON.borderStrong}`, background: 'transparent', color: NEON.textPrimary, fontWeight: '700', cursor: 'pointer' }}>
+                  {isHebrew ? 'התנתקות' : 'Sign out'}
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );

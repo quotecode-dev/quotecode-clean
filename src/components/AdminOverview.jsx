@@ -8,6 +8,7 @@ import { getAdminKpiSummary, getLegacyRecordBreakdown, LEGACY_HISTORY_LABEL } fr
 import { AdminPlanSystemNotice } from './AdminSubscriptionState';
 import { adminTargetUserId, useAdminAccountSummaries } from '../domain/subscriptions/adminAccountSummary';
 import { formatShortDateTime } from '../utils/shortDate';
+import { resolveAdminMarket } from '../utils/adminMarket';
 
 // TEKANGO Admin V1 (Task 2): Admin Overview - recently registered, admin
 // activity and the legacy-record (history) breakdown, derived only from real
@@ -30,9 +31,17 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onGoToP
   const legacyTitle = isHebrew ? LEGACY_HISTORY_LABEL.he : LEGACY_HISTORY_LABEL.en;
   const { system } = useAdminAccountSummaries(users.length ? [adminTargetUserId(users[0])] : []);
   // Every figure below is counted from the same loaded account rows - nothing estimated or invented.
+  // Night task 2026-10-16 (Owner doc 31eae0a7, phase C, default 5): the Owner's counters are back. "Signed in in the last 10 minutes"
+  // counts the accounts whose app loaded in the last 10 minutes (business_settings.last_sign_in, written on every app load) - it
+  // is not a live "online now" presence. Market from the account's own stored country (resolveAdminMarket), never the language.
+  const nowMs = Date.now();
+  const recentMs = (v) => { const t = v ? new Date(v).getTime() : NaN; return Number.isFinite(t) && nowMs - t >= 0 && nowMs - t <= 10 * 60 * 1000; };
   const stats = [
     [isHebrew ? 'סה"כ משתמשים' : 'Total users', kpi.managedBusinesses],
     [isHebrew ? 'נרשמו ב-24 השעות האחרונות' : 'Registered in the last 24 hours', kpi.registrationsLast24h],
+    [isHebrew ? 'נכנסו ב-10 הדקות האחרונות' : 'Signed in in the last 10 minutes', users.filter((a) => recentMs(a.last_sign_in)).length],
+    [isHebrew ? 'ישראל' : 'Israel', users.filter((a) => resolveAdminMarket(a).market === 'Local').length],
+    [isHebrew ? 'בינלאומי' : 'International', users.filter((a) => resolveAdminMarket(a).market === 'International').length],
   ];
 
   const [recentAudit, setRecentAudit] = useState('loading');

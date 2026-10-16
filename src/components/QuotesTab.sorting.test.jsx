@@ -40,11 +40,15 @@ const FIXTURE = [
 ];
 
 // ascending expectations by column (letters). Descending is the reverse where every key is distinct.
+// Ties keep the incoming order in BOTH directions, so a column with a tie names its descending order explicitly.
+const DESC = { status: ['D', 'C', 'F', 'A', 'B', 'E'] };
 const ASC = {
   id: ['E', 'D', 'C', 'A', 'B', 'F'],
   client: ['D', 'C', 'B', 'A', 'E', 'F'], // bravo, Charlie, client 2, client 10 (numeric collation), Delta, Echo
   subject: ['B', 'C', 'E', 'D', 'F', 'A'], // alpha, Beta, Eps, gamma, hot one, Zeta (case-insensitive)
-  status: ['E', 'A', 'B', 'F', 'C', 'D'], // unfinished, needs sending, sent, viewed/hot, approved, paid
+  // night task 2026-10-16 (R-07): the status column sorts by the SHOWN status - A is a Draft the customer opened once, shown
+  // "Sent · viewed", so it sorts with the sent quote B (a tie that keeps the incoming order in both directions)
+  status: ['E', 'A', 'B', 'F', 'C', 'D'], // unfinished, sent (A viewed draft, B), viewed/hot, approved, paid
   views: ['E', 'A', 'B', 'F', 'D', 'C'], // 0, 1, 2, 5, 7, 40 (a number, not "40" < "5")
   date: ['A', 'C', 'B', 'E', 'F', 'D'],
   amount: ['E', 'C', 'A', 'F', 'B', 'D'], // 0, 9, 50, 300, 1200.5, 10000 (a number, not a string)
@@ -147,7 +151,7 @@ describe.each([
       expect(columnOf(other).querySelector('svg')).toBeNull();
     }
     fireEvent.click(header(key));
-    expect(orderOf(container)).toEqual([...asc].reverse());
+    expect(orderOf(container)).toEqual(DESC[name] || [...asc].reverse());
     expect(columnOf(key)).toHaveAttribute('aria-sort', 'descending');
     expect(columnOf(key).querySelector('[data-sort-icon="desc"]')).not.toBeNull();
     fireEvent.click(header(key));

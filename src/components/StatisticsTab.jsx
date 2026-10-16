@@ -13,6 +13,7 @@ import { QUOTE_CURRENCY_SYMBOLS, normalizeQuoteCurrency } from '../utils/money';
 import { formatShortDate } from '../utils/shortDate';
 import { QUOTE_STATUSES, STAT_PERIODS, computeQuoteStatistics } from '../utils/quoteStatistics';
 import { displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
+import { quoteDisplayStatus, quoteDisplayLabel } from '../utils/quoteStatusDisplay';
 
 const STATUS_LABEL = {
   draft: ['טיוטה', 'Draft'], sent: ['נשלח', 'Sent'], approved: ['אושר', 'Approved'], paid: ['שולם', 'Paid'],
@@ -56,8 +57,10 @@ const STATS_CSS = `
 // PRODUCT_TRUTH_CAPABILITY: quote_statistics
 export default function StatisticsTab({
   quotes, isHebrew, isLocalIsraeliBusiness, currency, formatMoneyDisplay,
-  handleProtectedAction, sendWhatsApp, requestEmailSend, activeTooltip, now = null, onCreateFollowUpTask = null,
+  handleProtectedAction, sendWhatsApp, requestEmailSend, activeTooltip, now = null, onCreateFollowUpTask = null, loadState,
 }) {
+  // R-10 (night task 2026-10-16, Owner-approved L-10): until the quotes have loaded, nothing here says 0 / "none" - a dash and a loading line
+  const notLoaded = loadState !== undefined && loadState !== 'ok' && !(Array.isArray(quotes) && quotes.length);
   const [period, setPeriod] = useState('30d');
   const [status, setStatus] = useState('all');
   const L = (pair) => (isHebrew ? pair[0] : pair[1]);
@@ -122,22 +125,22 @@ export default function StatisticsTab({
         {kpis.map((k) => (
           <div key={k.key} className="pf-stats-kpi" data-kpi={k.key}>
             <div className="pf-stats-kpi-label">{L(k.label)}</div>
-            <div className="pf-stats-kpi-value"><bdi className="pf-num" dir="ltr">{k.value}</bdi></div>
+            <div className="pf-stats-kpi-value"><bdi className="pf-num" dir="ltr">{notLoaded ? '—' : k.value}</bdi></div>
             {k.sub && <div className="pf-stats-kpi-sub">{L(k.sub)}</div>}
           </div>
         ))}
         <div className="pf-stats-kpi" data-kpi="conversion">
           <div className="pf-stats-kpi-label">{L(['המרה בצינור הנוכחי', 'Current pipeline conversion'])}</div>
-          <div className="pf-stats-kpi-value"><bdi className="pf-num" dir="ltr">{`${stats.conversion.percent}%`}</bdi></div>
+          <div className="pf-stats-kpi-value"><bdi className="pf-num" dir="ltr">{notLoaded ? '—' : `${stats.conversion.percent}%`}</bdi></div>
           <div className="pf-stats-kpi-sub">
             <bdi className="pf-num" dir="ltr">{`${stats.conversion.numerator}/${stats.conversion.denominator}`}</bdi>
-            {' '}{L(['אושרו/שולמו מתוך נשלחו+אושרו+שולמו (ללא טיוטות)', 'approved+paid of sent+approved+paid (drafts excluded)'])}
+            {' '}{L(['אושרו/שולמו מתוך ההצעות שהגיעו ללקוח (נשלחו או נצפו, אושרו, שולמו)', 'approved+paid of the quotes that reached the customer (sent or viewed, approved, paid)'])}
           </div>
         </div>
         <div className="pf-stats-kpi" data-kpi="value">
           <div className="pf-stats-kpi-label">{multiCurrency ? L(['שווי ההצעות לפי מטבע', 'Quote value by currency']) : L(['שווי ההצעות', 'Quote value'])}</div>
           <div className="pf-stats-kpi-value">
-            <CurrencyTotals totals={stats.valueTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={accountCurrency} isHebrew={isHebrew} />
+            {notLoaded ? <bdi className="pf-num" dir="ltr">—</bdi> : <CurrencyTotals totals={stats.valueTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={accountCurrency} isHebrew={isHebrew} />}
           </div>
         </div>
       </div>
@@ -145,16 +148,15 @@ export default function StatisticsTab({
       <h3 style={{ fontSize: '0.95rem', fontWeight: '800', margin: '0 0 8px', display: 'flex', alignItems: 'center', gap: '6px', color: NEON.textPrimary }}>
         <TekangoEyeIcon size={24} />
         {L(['הצעות חמות', 'Hot quotes'])}
-        <bdi className="pf-num" dir="ltr" style={{ color: NEON.textMuted, fontWeight: 600 }}>{`(${stats.hotQuotes.length})`}</bdi>
+        <bdi className="pf-num" dir="ltr" style={{ color: NEON.textMuted, fontWeight: 600 }}>{notLoaded ? '(—)' : `(${stats.hotQuotes.length})`}</bdi>
       </h3>
       {stats.hotQuotes.length === 0 ? (
         <div style={{ fontSize: '0.8rem', color: NEON.textMuted, padding: '10px 2px' }} data-testid="statistics-hot-empty">
-          {L(['אין הצעות חמות בתקופה ובסטטוס שנבחרו', 'No hot quotes for the selected period and status'])}
+          {notLoaded ? L(['טוענים את ההצעות…', 'Loading your quotes…']) : L(['אין הצעות חמות בתקופה ובסטטוס שנבחרו', 'No hot quotes for the selected period and status'])}
         </div>
       ) : (
         <div className="pf-stats-hot-list" data-testid="statistics-hot-list">
           {stats.hotQuotes.map((quote) => {
-            const st = String(quote.status || '').toLowerCase();
             const title = quote.subject || quote.quote_subject || '';
             // the real client, else the quote title, else its full number (never 'N/A', never a fabricated client)
             const party = quotePartyLabel(quote);
@@ -170,7 +172,8 @@ export default function StatisticsTab({
                   </div>
                 </div>
                 <div className="pf-stats-hot-figures">
-                  <span data-testid="hot-status">{STATUS_LABEL[st] ? L(STATUS_LABEL[st]) : st}</span>
+                  {/* R-22: the SAME shown status as the quote list (a hot draft is "Viewed, awaiting", never "Draft") */}
+                  <span data-testid="hot-status">{quoteDisplayLabel(quoteDisplayStatus(quote), isHebrew)}</span>
                   <span><bdi className="pf-num" dir="ltr" data-testid="hot-views">{Number(quote.view_count || 0)}</bdi> {L(['צפיות', 'views'])}</span>
                   <bdi className="pf-num" dir="ltr">{formatShortDate(quote.created_at, dateMarket)}</bdi>
                   {moneyCell(quote)}
@@ -178,7 +181,8 @@ export default function StatisticsTab({
                 <div className="pf-stats-actions">
                   {/* PRODUCT_TRUTH_CAPABILITY: public_quote_view */}
                   <button type="button" className="pf-stats-action pf-stats-action--primary" onClick={() => window.open(getQuoteViewLink(quote), '_blank')}>
-                    <Eye size={14} aria-hidden="true" />{L(['פתח ועקוב', 'Open & track'])}
+                    {/* R-22: this opens the customer's page in a new tab - not the list's in-app "Open & track" panel - so it says so */}
+                    <Eye size={14} aria-hidden="true" />{L(['צפייה בהצעה', 'View quote'])}
                   </button>
                   <span style={{ position: 'relative', display: 'inline-block' }}>
                     {/* PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share */}

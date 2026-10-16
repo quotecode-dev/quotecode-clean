@@ -53,7 +53,7 @@ serve(async (req) => {
     const secretKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? '';
     if (!supabaseUrl || !secretKey) {
       console.error('get-public-quote: missing required server configuration');
-      return jsonResponse({ error: 'Unable to load quote' }, 400);
+      return jsonResponse({ error: 'temporarily_unavailable' }, 503); // R-19: a server-side problem, never "not found"
     }
     const adminClient = createClient(supabaseUrl, secretKey);
 
@@ -188,7 +188,8 @@ serve(async (req) => {
 
     const isMissingStructuredFieldError = (err: any) => {
       const msg = String(err?.message || '');
-      return ['project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
+      // night task 2026-10-16 (SND-9): price_missing too - the flat select does not read it, so a missing column falls back instead of failing
+      return ['price_missing', 'project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
         .some((col) => msg.includes(col));
     };
 
@@ -310,6 +311,8 @@ serve(async (req) => {
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('get-public-quote error:', message);
-    return jsonResponse({ error: 'Unable to load quote' }, 400);
+    // Night task 2026-10-16 (R-19): a server-side failure (the activation phase / capability scope / a database read) is a TEMPORARY
+    // error (503), never "not found" - the page tells the customer to try again. A missing quote keeps its uniform 404 above.
+    return jsonResponse({ error: 'temporarily_unavailable' }, 503);
   }
 });

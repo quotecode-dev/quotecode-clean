@@ -17,7 +17,7 @@ const COPY = {
     save: 'שמירת התבנית', saving: 'שומר...', saved: 'התבנית נשמרה.',
     noItems: 'אין בהצעה פריטים לשמירה כתבנית.', loading: 'טוען תבניות...', empty: 'אין עדיין תבניות. אפשר ליצור הצעה רגילה ולשמור אותה כתבנית.',
     use: 'שימוש בתבנית', del: 'מחיקה', confirmDel: (n) => `למחוק את התבנית "${n}"? אי אפשר לשחזר אותה.`,
-    items: 'פריטים', sections: 'חלקים', subtotal: 'סכום לפני מע"מ והנחה', noPrices: 'ללא מחירים', texts: 'כולל תנאים / אחריות / הערות', presentation: 'כולל עיצוב ותמונות',
+    items: 'פריטים', sections: 'חלקים', subtotal: 'סכום לפני מע"מ והנחה', subtotalInclVat: 'סכום כולל מע"מ, לפני הנחה', noPrices: 'ללא מחירים', texts: 'כולל תנאים / אחריות / הערות', presentation: 'כולל עיצוב ותמונות',
     useHint: 'נפתחת הצעה חדשה ולא שמורה; הלקוח, התוקף והתאריכים מתמלאים מחדש.',
     errors: {
       unavailable: 'תבניות עדיין לא זמינות בשרת הזה. ההצעות עצמן ממשיכות לעבוד כרגיל.', duplicate_name: 'כבר יש תבנית בשם הזה. בחרו שם אחר.',
@@ -33,7 +33,7 @@ const COPY = {
     save: 'Save template', saving: 'Saving...', saved: 'Template saved.',
     noItems: 'This quote has no items to save as a template.', loading: 'Loading templates...', empty: 'No templates yet. Create a standard quote and save it as a template.',
     use: 'Use template', del: 'Delete', confirmDel: (n) => `Delete the template "${n}"? It cannot be restored.`,
-    items: 'Items', sections: 'Sections', subtotal: 'Amount before tax and discount', noPrices: 'No prices', texts: 'Includes terms / warranty / notes', presentation: 'Includes design and images',
+    items: 'Items', sections: 'Sections', subtotal: 'Amount before tax and discount', subtotalInclVat: 'Amount including VAT, before discount', noPrices: 'No prices', texts: 'Includes terms / warranty / notes', presentation: 'Includes design and images',
     useHint: 'Opens a new, unsaved quote; the customer, validity and dates are filled in fresh.',
     errors: {
       unavailable: 'Templates are not available on this server yet. Quotes themselves keep working normally.', duplicate_name: 'A template with this name already exists. Choose another name.',
@@ -79,7 +79,7 @@ function Summary({ C, s, formatMoney }) {
   return (
     <ul data-testid="template-summary" style={{ margin: '6px 0 0', paddingInlineStart: 18, fontSize: '0.82rem', color: '#334155' }}>
       <li>{C.items}: <bdi className="pf-num" dir="ltr">{s.itemCount}</bdi>{s.sectionCount ? <> · {C.sections}: <bdi className="pf-num" dir="ltr">{s.sectionCount}</bdi></> : null}</li>
-      <li>{s.hasPrices ? <>{C.subtotal}: <bdi className="pf-num" dir="ltr">{formatMoney(s.subtotal)}</bdi></> : C.noPrices}</li>
+      <li>{s.hasPrices ? <>{s.priceBasis === 'incl_vat' ? C.subtotalInclVat : C.subtotal}: <bdi className="pf-num" dir="ltr">{formatMoney(s.subtotal)}</bdi></> : C.noPrices}</li>
       {s.hasTexts && <li>{C.texts}</li>}
       {s.hasPresentation && <li>{C.presentation}</li>}
     </ul>

@@ -1,6 +1,7 @@
 /* global Buffer */
 import { describe, it, expect } from 'vitest';
 import {
+  isUserSessionToken, ownerPreview,
   MAX_IMAGE_BYTES,
   QA_CAPABILITIES_PATH,
   applyQaCapability,
@@ -516,5 +517,22 @@ describe('storage error classification (review L6)', () => {
     expect(isStorageConflict({ status: 409 })).toBe(true);
     expect(isStorageConflict({ status: 400, message: 'Bucket not found' })).toBe(false);
     expect(isStorageConflict({ status: 500, message: 'boom' })).toBe(false);
+  });
+});
+
+// Night task 2026-10-16 (R-18, Owner default 3): the owner's own signed-in view never freezes the presentation
+describe('R-18: owner preview never freezes', () => {
+  const jwt = (payload) => `x.${Buffer.from(JSON.stringify(payload)).toString('base64url')}.sig`;
+  it('only a signed-in user session token counts (the anon key never does)', () => {
+    expect(isUserSessionToken(jwt({ role: 'authenticated', sub: '11111111-1111-4111-8111-111111111111' }))).toBe(true);
+    expect(isUserSessionToken(jwt({ role: 'anon' }))).toBe(false);
+    expect(isUserSessionToken('not-a-jwt')).toBe(false);
+    expect(isUserSessionToken(null)).toBe(false);
+  });
+  it('the verified caller is the quote owner', () => {
+    const u = '11111111-1111-4111-8111-111111111111';
+    expect(ownerPreview(u, u.toUpperCase())).toBe(true);
+    expect(ownerPreview('22222222-2222-4222-8222-222222222222', u)).toBe(false);
+    expect(ownerPreview(null, u)).toBe(false);
   });
 });

@@ -255,6 +255,19 @@ export function normalizeSpecificationRows(specification) {
 // calculated_quantity כשהיא קיימת (בין אם חושבה או הוזנה ידנית), אחרת
 // quantity הרגיל (פריט Simple). נקודת-קריאה יחידה לעובדה הזו - לא נוסחה
 // עצמאית בכל צרכן (Dashboard.jsx preview/save, QuoteForm.jsx תצוגת-שורה).
+// Night task 2026-10-16 (R-05): quote_items.quantity is an INTEGER column (the save RPC casts it ::integer), so a fractional count
+// ("2.5 hours" from the AI draft or the item window) made the whole save fail. It is stored exactly the way a measured line already
+// is: quantity 1 + the real amount in calculated_quantity (numeric), quantity_source 'manual' - the price and total are unchanged
+// (getActiveQuantity reads calculated_quantity). An integer quantity is returned untouched.
+export function withPersistableQuantity(item) {
+  if (!item) return item;
+  const q = Number(item.quantity);
+  if (!Number.isFinite(q) || Number.isInteger(q)) return item;
+  const cq = item.calculated_quantity;
+  if (cq !== undefined && cq !== null && cq !== '' && Number.isFinite(Number(cq))) return { ...item, quantity: String(Math.max(1, Math.round(q))) };
+  return { ...item, quantity: '1', pricing_unit: item.pricing_unit || 'unit', calculated_quantity: q, quantity_source: 'manual', calculation_method: 'manual' };
+}
+
 export function getActiveQuantity(item) {
   if (!item) return 0;
   const cq = item.calculated_quantity;

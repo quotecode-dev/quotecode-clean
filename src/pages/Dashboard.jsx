@@ -26,7 +26,7 @@ import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quote
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang } from '../utils/regionConfig';
 import { isQuoteImmutable } from '../utils/quoteLock';
-import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
+import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, missingPriceItems, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
 import { itemPricePayload, formPriceFromSavedItem } from '../utils/itemPrice';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import useAccountSummary from '../hooks/useAccountSummary';
@@ -44,7 +44,7 @@ import { quoteMatchesSearch } from '../utils/quoteSearch';
 import { formatMoney, formatMoneyForCurrency, totalsByQuoteCurrency, normalizeQuoteCurrency } from '../utils/money';
 import { CurrencyTotals } from '../components/NumericValue';
 import { compareClients } from '../utils/clientSort';
-import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getEntryRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows } from '../utils/professionalQuoteItem';
+import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getEntryRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows, withPersistableQuantity } from '../utils/professionalQuoteItem';
 import { excludeUntouchedPlaceholderItems } from '../utils/structuredQuoteItemPersistence';
 import { getBusinessProfileGateMessage, getMissingBusinessProfileFields } from '../utils/businessProfileCompleteness';
 import { getDashboardNavCapabilities } from '../utils/dashboardNavCapabilities';
@@ -79,7 +79,8 @@ import QuotesTab from '../components/QuotesTab';
 import NewQuoteMenu from '../components/NewQuoteMenu';
 import { newQuoteChoices, templateChoice } from '../utils/newQuoteChoices';
 import { SaveTemplateDialog, TemplatePickerDialog } from '../components/QuoteTemplateDialogs';
-import { templateToFormState, templateCurrencyMismatch, withoutPrices } from '../utils/quoteTemplates';
+import { matchesQuoteFilter } from '../utils/quoteStatusDisplay';
+import { templateToFormState, templateCurrencyMismatch, templateCurrencyUnknown, withoutPrices, templatePriceBasis, clientTypeForPriceBasis } from '../utils/quoteTemplates';
 import AiQuoteDraftDialog from '../components/AiQuoteDraftDialog';
 import { requestAiQuoteDraft, draftLinesToQuoteItems } from '../utils/aiQuoteDraftClient';
 import { buildQuoteDraftSnapshot } from '../utils/quoteDraftSnapshot';
@@ -322,6 +323,24 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [accountSetup, setAccountSetup] = useState(null);
   const businessSettingsCreationRef = useRef(null); // the creation in flight: a second caller waits for ITS outcome
   const accountSetupRetryRef = useRef(null); // at most one scheduled setup retry
+  // Night task 2026-10-16 (R-12, Owner-approved L-10 / L-15): the business settings keep failing -> the loading screen says so and
+  // offers "Try again" / "Sign out" (the automatic retries continue); never an endless "Loading system..." with no way out
+  const [startupStuck, setStartupStuck] = useState(false);
+  // "Try again" never reloads the page (drafts / the no-reload rule): it wakes the waiting retry of the SAME loop at once
+  const settingsRetryWakeRef = useRef(null);
+  const settingsRetrySleep = (ms) => new Promise((resolve) => {
+    const t = setTimeout(() => { settingsRetryWakeRef.current = null; resolve(); }, ms);
+    settingsRetryWakeRef.current = () => { clearTimeout(t); settingsRetryWakeRef.current = null; resolve(); };
+  });
+  const retryStartupNow = () => { setStartupStuck(false); settingsRetryWakeRef.current?.(); };
+  const accountSetupArgsRef = useRef(null); // the pending setup retry (R-13 "Try again" runs it at once)
+  const retryAccountSetupNow = () => {
+    const args = accountSetupArgsRef.current;
+    if (!args) return;
+    if (accountSetupRetryRef.current) { clearTimeout(accountSetupRetryRef.current); accountSetupRetryRef.current = null; }
+    setAccountSetup((cur) => (cur ? { ...cur, stuck: false } : cur));
+    setupSignupAccount(args.userId, args.userEmail, args.userMetadata, args.market, args.attempt);
+  };
   // Auth Final Blockers task (2026-09-09): live-reproduced a real, serious
   // login defect - after a genuine interactive sign-in (not a page reload),
   // loadData() sometimes never fired at all (zero business_settings/quotes/
@@ -1486,8 +1505,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }, {
       isCurrent: () => settingsGen === loadGenRef.current,
       refreshAuth: () => supabase.auth.refreshSession(),
-      onRetry: (attempt, err, status) => diagLog('data-load', { resource: 'settings', outcome: 'retry', attempt, status: status ?? null }),
+      sleep: settingsRetrySleep,
+      onRetry: (attempt, err, status) => {
+        diagLog('data-load', { resource: 'settings', outcome: 'retry', attempt, status: status ?? null });
+        if (attempt >= 5 && settingsGen === loadGenRef.current) setStartupStuck(true);
+      },
     });
+    setStartupStuck(false);
     if (!settingsRes.ok) return;
     let { data, error } = settingsRes.data;
 
@@ -1734,8 +1758,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       if (existing && gen === loadGenRef.current) { setAccountSetup(null); await fetchSettings(userId, userEmail, userMetadata); return; }
     }
     if (gen !== loadGenRef.current) return;
-    setAccountSetup({ market });
+    // R-13 (Owner-approved L-16): after about half a minute of failed attempts the setup line tells the truth and offers a way out
+    setAccountSetup({ market, stuck: attempt + 1 >= 5 });
     if (accountSetupRetryRef.current) return; // another caller of the same failed creation already scheduled the retry
+    accountSetupArgsRef.current = { userId, userEmail, userMetadata, market, attempt: attempt + 1 };
     diagLog('data-load', { resource: 'account-setup', outcome: 'retry', attempt });
     accountSetupRetryRef.current = setTimeout(() => {
       accountSetupRetryRef.current = null;
@@ -3605,9 +3631,25 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         : `The template is saved in ${f.currency} and the quote is in ${currency}. Descriptions and quantities are copied; the prices are removed for you to enter again, as no exchange rate is used. Continue without prices?`);
       if (!ok) return;
       templateItems = withoutPrices(f.items);
+    } else if (templateCurrencyUnknown(f)) {
+      // R-20: saved before the template remembered its currency - the user decides whether the prices are in this quote's currency
+      const keep = window.confirm(isHebrew
+        ? `התבנית נשמרה לפני שנשמר בה המטבע של המחירים. להשתמש במחירים כמו שהם, ב-${currency}? (ביטול: להעתיק את התיאורים והכמויות בלי מחירים)`
+        : `This template was saved before it remembered the currency of its prices. Use the prices as they are, in ${currency}? (Cancel: copy the descriptions and quantities without prices)`);
+      if (!keep) templateItems = withoutPrices(f.items);
     }
     if (handleCreateNewQuoteClick() === false) return;
     if (templateItems) setItems(templateItems);
+    // R-03 (Owner-approved L-09): prices that include VAT open as a private-client quote, prices before VAT as a business-client one;
+    // a template saved before it remembered this asks the user to check instead of guessing
+    const pricedTemplate = (templateItems || []).some((it) => it.unit_price !== '' && it.unit_price != null);
+    if (isLocalIsraeliBusiness && pricedTemplate) {
+      const templateClientType = clientTypeForPriceBasis(f.priceBasis);
+      if (templateClientType) setClientType(templateClientType);
+      else setAlertModalMsg(isHebrew
+        ? 'התבנית נשמרה לפני שנשמר בה אם המחירים כוללים מע"מ. בחרו את סוג הלקוח (פרטי: המחירים כוללים מע"מ, עסקי: לפני מע"מ) ובדקו שהמחירים נכונים לפני השליחה.'
+        : 'This template was saved before it remembered whether its prices include VAT. Choose the client type (private: prices include VAT, business: before VAT) and check the prices before sending.');
+    }
     setSections(f.sections);
     setQuoteStructureMode(f.quoteStructureMode);
     if (f.quoteSubject) setQuoteSubject(f.quoteSubject);
@@ -3874,6 +3916,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // presentation (Draft -> Sent). A failed save restores the previous status in the form.
   const requestIssueQuote = () => {
     if (!editingQuoteId || issueRequest) return;
+    // Night task 2026-10-16 (R-23): issuing runs the form's own required-field check first (e.g. a business client's Tax ID) - the same
+    // check a Save gets - and never issues a quote that still has a line without a price (it could not be sent or printed anyway)
+    const editorForm = typeof document !== 'undefined' ? document.querySelector('form[data-quote-form="editor"]') : null;
+    if (editorForm && typeof editorForm.reportValidity === 'function' && !editorForm.reportValidity()) return;
+    if (missingPriceItems(items).length) {
+      setAlertModalMsg(isHebrew ? 'יש בהצעה פריטים בלי מחיר. השלימו את המחירים לפני ההנפקה.' : 'Some items in this quote have no price. Enter the prices before issuing it.');
+      return;
+    }
     setIssueRequest({ quoteId: editingQuoteId, prevStatus: quoteStatus, started: false });
     setQuoteStatus('Sent');
   };
@@ -4302,7 +4352,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           };
 
       // Post-LIVE Priority 1, Fix A: an untouched default placeholder row is never written (structuredQuoteItemPersistence.js).
-      let itemsForPersist = excludeUntouchedPlaceholderItems(items);
+      // R-05: a fractional count is stored as a manual calculated quantity (integer quantity column) - never a failed save
+      let itemsForPersist = excludeUntouchedPlaceholderItems(items).map(withPersistableQuantity);
       let descriptionUpdatesForPersist = [];
       // Non-financial, non-structural edit: no item rewrite at all, only targeted description updates (Codex P0-1 / SQ-F02).
       if (editingQuoteId && !(isFinancialEdit || itemsStructurallyChanged)) {
@@ -4541,7 +4592,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // numeric amounts/views, timestamp dates, logical status/action order, getQuoteOrderSortKey for quote numbers).
   const filteredQuotes = sortQuotes(quotes.filter(quote => {
     const matchesSearch = quoteMatchesSearch(quote, searchTerm);
-    const matchesStatus = statusFilter === 'All' || (quote.status || 'draft').toLowerCase() === statusFilter.toLowerCase();
+    const matchesStatus = matchesQuoteFilter(quote, statusFilter); // R-07: by the shown status (utils/quoteStatusDisplay.js)
     return matchesSearch && matchesStatus;
   }), quoteSortField, quoteSortDirection, isHebrew ? 'he' : 'en');
 
@@ -4601,6 +4652,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       <AuthScreen
         bundleIsHebrew={bundleIsHebrew}
         isInitializing={isInitializing}
+        startupStuck={startupStuck && !!session}
+        onStartupRetry={retryStartupNow}
+        onStartupSignOut={handleSignOut}
         isPasswordRecoveryMode={isPasswordRecoveryMode}
         newPasswordInput={newPasswordInput}
         setNewPasswordInput={setNewPasswordInput}
@@ -4697,9 +4751,27 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               <h2 style={{ marginBottom: '10px', fontWeight: '800', ...neonGlowTextStyle }}>
                 {screenHe ? 'מסיימים להקים את החשבון שלך…' : 'Finishing setting up your account…'}
               </h2>
-              <p role="status" style={{ color: NEON.textSecondary, fontSize: '0.85rem', margin: 0 }}>
-                {screenHe ? 'החיבור איטי, ממשיכים לנסות אוטומטית. אין צורך לעשות דבר.' : 'The connection is slow - we keep trying automatically. There is nothing you need to do.'}
-              </p>
+              {!accountSetup.stuck ? (
+                <p role="status" style={{ color: NEON.textSecondary, fontSize: '0.85rem', margin: 0 }}>
+                  {screenHe ? 'החיבור איטי, ממשיכים לנסות אוטומטית. אין צורך לעשות דבר.' : 'The connection is slow - we keep trying automatically. There is nothing you need to do.'}
+                </p>
+              ) : (
+                <>
+                  <p role="alert" data-testid="account-setup-stuck" style={{ color: NEON.textSecondary, fontSize: '0.85rem', margin: '0 0 16px' }}>
+                    {screenHe ? 'לא הצלחנו להשלים את הקמת החשבון כרגע. אנחנו ממשיכים לנסות; אפשר גם לנסות שוב עכשיו, או להתנתק ולחזור מאוחר יותר. החשבון שלך לא נמחק.' : "We couldn't finish setting up your account right now. We keep trying; you can also try again now, or sign out and come back later. Your account is not deleted."}
+                  </p>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {/* PRODUCT_TRUTH_DECORATIVE: retries the one-time account setup at once, without reloading the page - night task R-13 */}
+                    <button type="button" onClick={retryAccountSetupNow} style={{ padding: '12px', borderRadius: '8px', border: 'none', background: NEON.gradient, color: 'white', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer' }}>
+                      {screenHe ? 'לנסות שוב' : 'Try again'}
+                    </button>
+                    {/* PRODUCT_TRUTH_DECORATIVE: signs out of this device from the stuck account-setup line - night task R-13 */}
+                    <button type="button" onClick={handleSignOut} style={{ padding: '12px', borderRadius: '8px', border: `1px solid ${NEON.borderStrong}`, background: 'transparent', color: NEON.textPrimary, fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer' }}>
+                      {screenHe ? 'התנתקות' : 'Sign out'}
+                    </button>
+                  </div>
+                </>
+              )}
             </>
           ) : (<>
           <h2 style={{ marginBottom: '10px', fontWeight: '800', ...neonGlowTextStyle }}>
@@ -5960,7 +6032,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             margin-bottom: 8px !important;
           }
           .dash-upper-section[data-quotes-overview="true"] .dash-header-stats { display: none !important; }
-          .quote-workspace.pf-work-screen[data-qh-layout="cards"] { padding: 12px !important; }
+          /* IRON-MOBILE-WIDTH-001 (Owner console 2026-10-16): vertical spacing only - a horizontal padding here was a second gutter */
+          .quote-workspace.pf-work-screen[data-qh-layout="cards"] { padding: 12px 0 !important; }
           .quote-workspace .quote-hot-banner {
             min-height: 44px;
             margin: 0 0 10px;
@@ -7160,7 +7233,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       <AccessibilityModal isOpen={showAccessibility} onClose={() => setShowAccessibility(false)} isHebrew={isHebrew} />
       {templateDialog === 'save' && session?.user?.id && (
         <SaveTemplateDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
-          form={{ items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency }} onClose={() => setTemplateDialog(null)} />
+          form={{ items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency, priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType) }} onClose={() => setTemplateDialog(null)} />
       )}
       {templateDialog === 'pick' && session?.user?.id && (
         <TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
@@ -7664,7 +7737,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                       {isHebrew ? 'סה״כ הצעות:' : 'Total Quotes:'}
                     </span>
                     <span className="dash-header-stat-value" style={{ fontSize: '1.05rem', fontWeight: '800', color: SHELL.sidebarTextActive }}>
-                      {totalQuotesCount}
+                      {/* R-10: a dash until the quotes have loaded, never a false 0 */}
+                      {dataLoad.quotes !== 'ok' && quotes.length === 0 ? '—' : totalQuotesCount}
                     </span>
                   </span>
                   {(accountSummary.state === 'unavailable' || accountSummary.state === 'invalid' || accountSummary.state === 'unprovisioned') && (
@@ -7791,7 +7865,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     <div className="dash-header-account">
                       <HeaderGreeting isHebrew={isHebrew} />
                       {/* Task 20: the bell opens the notification center (same 18px footprint; badge and panel are out of flow). */}
-                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} authUser={session?.user} />
+                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} authUser={session?.user} />
                       {/* Owner 2026-10-14: the round plan medallion replaces the avatar circle (no sign-in provider ever set a picture) -
                           the account's plan status from the one shared model; it opens the plans window. Not shown to the super admin. */}
                       {!isSuperAdmin && (
@@ -7807,7 +7881,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   <div className="dash-header-badge-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {/* Task 20 (Owner console instruction 2026-10-09): the plans status indicator is removed from the mobile header and the
                         SAME notification bell takes its slot. The plans feature itself stays (Business settings › My subscription, Task 30). */}
-                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} authUser={session?.user} variant="mobile" />
+                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} authUser={session?.user} variant="mobile" />
                     {/* Owner 2026-10-14: the same round plan medallion as on desktop, outermost next to the bell */}
                     {!isSuperAdmin && (
                       <HeaderPlanMedallion model={headerPlanBadge} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />
@@ -8115,6 +8189,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           {activeTab === 'statistics' && (
             <StatisticsTab
               quotes={quotes}
+              loadState={dataLoad.quotes}
               isHebrew={isHebrew}
               isLocalIsraeliBusiness={isLocalIsraeliBusiness}
               currency={currency}

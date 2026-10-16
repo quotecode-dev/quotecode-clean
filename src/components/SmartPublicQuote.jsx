@@ -35,6 +35,7 @@ export default function SmartPublicQuote() {
   // the request key: the token on the capability route, the quote id on the legacy route; a malformed token is not found
   const id = token ? (capabilityToken ? `c:${capabilityToken}` : null) : routeId;
   const [state, setState] = useState({ status: 'loading', dto: null });
+  const [retryKey, setRetryKey] = useState(0); // R-19: "Try again" re-runs the load
   const [presentation, setPresentation] = useState(null);
   // Task 27: the owner's thank-you arrives from the server only for a signed quote - re-read once right after a successful signature
   const [thanks, setThanks] = useState(null);
@@ -83,7 +84,8 @@ export default function SmartPublicQuote() {
 
       if (error) {
         const status = error?.context?.status;
-        setState({ status: status === 404 ? 'notfound' : 'error', dto: null });
+        // R-19 (night task 2026-10-16): only a 404 is "not found"; a server / network failure is temporary and says so
+        setState({ status: status === 404 ? 'notfound' : 'unavailable', dto: null });
         return;
       }
 
@@ -104,7 +106,7 @@ export default function SmartPublicQuote() {
         () => {}
       );
     })();
-  }, [id, capabilityToken]);
+  }, [id, capabilityToken, retryKey]);
 
   // After a successful approval the server freezes the issued snapshot (the quote is now locked) - re-read it so the
   // page shows exactly what was frozen. A failure keeps whatever is already shown.
@@ -123,6 +125,20 @@ export default function SmartPublicQuote() {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif' }}>
         <h2>Loading...</h2>
+      </div>
+    );
+  }
+
+  if (state.status === 'unavailable') {
+    const en = typeof document !== 'undefined' && document.documentElement.lang === 'en';
+    return (
+      <div data-testid="public-quote-unavailable" dir={en ? 'ltr' : 'rtl'} lang={en ? 'en' : 'he'} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box', background: '#f7f8f6', color: '#10252b', fontFamily: 'Rubik, Segoe UI, Arial, Tahoma, sans-serif', textAlign: 'center', padding: '24px', gap: '12px' }}>
+        <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#10252b' }}>{en ? 'The quote could not be loaded right now' : 'לא הצלחנו לטעון את הצעת המחיר כרגע'}</h1>
+        <p style={{ margin: 0, fontSize: '1rem', color: '#3c4a52', maxWidth: '34rem', lineHeight: 1.5 }}>{en ? 'This is a temporary problem on our side. Please try again in a moment.' : 'זו תקלה זמנית אצלנו. נסו שוב בעוד רגע.'}</p>
+        {/* PRODUCT_TRUTH_DECORATIVE: retries loading the public quote (no data change, no page reload) - night task R-19 */}
+        <button type="button" onClick={() => { processedIdRef.current = null; setState({ status: 'loading', dto: null }); setRetryKey((n) => n + 1); }} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#0f6672', color: '#ffffff', fontWeight: 700, fontSize: '1rem', cursor: 'pointer' }}>
+          {en ? 'Try again' : 'לנסות שוב'}
+        </button>
       </div>
     );
   }

@@ -13,14 +13,15 @@ const FIXTURE = Object.freeze([
 ]);
 
 describe('Task 17 statistics: KPI definitions', () => {
-  it('all time: created / awaiting(sent) / viewed(>0) / won(approved+paid) / hot(>=3 views, not won) / conversion', () => {
+  // night task 2026-10-16 (R-08 / AUD-09, Owner default 1): awaiting = reached the customer (Sent, or a Draft already viewed)
+  it('all time: created / awaiting(sent or viewed) / viewed(>0) / won(approved+paid) / hot(>=3 views, not won) / conversion', () => {
     const s = computeQuoteStatistics(FIXTURE, { period: 'all', now: NOW });
     expect(s.created).toBe(9);
-    expect(s.awaiting).toBe(4);
+    expect(s.awaiting).toBe(5); // s1 s2 s3 s4 + d2 (a draft the customer viewed)
     expect(s.viewed).toBe(6); // d2 s2 s3 s4 a1 p1
     expect(s.won).toBe(3);
     expect(s.hot).toBe(4); // d2 s2 s3 s4 - a1 (approved) and p1 (paid) are never hot
-    expect(s.conversion).toEqual({ numerator: 3, denominator: 7, percent: 43 }); // 3 / (4 sent + 3 won); drafts excluded
+    expect(s.conversion).toEqual({ numerator: 3, denominator: 8, percent: 38 }); // 3 / (5 awaiting + 3 won); an unseen draft excluded
   });
   it('period windows: 7 / 30 / 90 days by created_at, never by updated_at', () => {
     expect(computeQuoteStatistics(FIXTURE, { period: '7d', now: NOW }).created).toBe(6);
@@ -38,8 +39,9 @@ describe('Task 17 statistics: KPI definitions', () => {
     expect(() => computeQuoteStatistics(FIXTURE, { period: '365d', now: NOW })).toThrow(/unknown statistics period/);
     expect(Object.keys(STAT_PERIODS)).toEqual(['7d', '30d', '90d', 'all']);
   });
-  it('conversion with a zero denominator is an explicit 0% (drafts only)', () => {
-    expect(computeQuoteStatistics(FIXTURE, { period: 'all', status: 'draft', now: NOW }).conversion).toEqual({ numerator: 0, denominator: 0, percent: 0 });
+  it('conversion with a zero denominator is an explicit 0% (unseen drafts only)', () => {
+    expect(computeQuoteStatistics(FIXTURE, { period: 'all', status: 'draft', now: NOW }).conversion).toEqual({ numerator: 0, denominator: 1, percent: 0 }); // d2 was viewed
+    expect(computeQuoteStatistics([FIXTURE[0]], { period: 'all', now: NOW }).conversion).toEqual({ numerator: 0, denominator: 0, percent: 0 });
     expect(computeQuoteStatistics([], { period: 'all', now: NOW }).conversion).toEqual({ numerator: 0, denominator: 0, percent: 0 });
   });
   it('hot list: views descending, then newest first (deterministic)', () => {

@@ -17,6 +17,13 @@ export const FORBIDDEN_TEMPLATE_KEYS = Object.freeze([
 ]);
 const FORBIDDEN = new Set(FORBIDDEN_TEMPLATE_KEYS);
 export const DEFAULT_TEMPLATE_KEEP = Object.freeze({ prices: true, texts: true, subject: false, presentation: true });
+// R-03: the VAT basis of kept prices - only an Israeli (Local) quote has one (a private client is priced including VAT)
+export const PRICE_BASES = Object.freeze(['incl_vat', 'excl_vat']);
+export function templatePriceBasis(isLocalMarket, clientType) {
+  if (!isLocalMarket) return null;
+  return clientType === 'private' ? 'incl_vat' : clientType === 'business' ? 'excl_vat' : null;
+}
+export const clientTypeForPriceBasis = (basis) => (basis === 'incl_vat' ? 'private' : basis === 'excl_vat' ? 'business' : null);
 
 const str = (v, max = 4000) => (typeof v === 'string' ? v.slice(0, max) : '');
 // Task 36 (missing price): '' / null mean "not entered" - Number('') is 0, which turned a missing price into an intentional free 0
@@ -66,6 +73,9 @@ export function buildTemplateContent(form, keep = DEFAULT_TEMPLATE_KEEP) {
   };
   // Owner round 1 (Codex spec A5): kept prices remember their currency, so a quote in another currency never takes them over silently
   if (k.prices && items.some((it) => it.unit_price !== undefined) && /^[A-Z]{3}$/.test(String(form?.currency || '').toUpperCase())) content.currency = String(form.currency).toUpperCase();
+  // Night task 2026-10-16 (R-03, Owner-approved L-09): kept prices also remember whether they include VAT (an Israeli private-client
+  // quote is priced including VAT, a business-client quote before VAT), so a template is never applied about 18% off
+  if (k.prices && items.some((it) => it.unit_price !== undefined) && PRICE_BASES.includes(form?.priceBasis)) content.price_basis = form.priceBasis;
   if (k.subject) {
     if (str(form?.quoteSubject).trim()) content.subject = str(form.quoteSubject, 300).trim();
     if (str(form?.projectName).trim()) content.project_name = str(form.projectName, 300).trim();
@@ -98,6 +108,7 @@ export function templateSummary(content) {
     subtotal: priced.reduce((acc, it) => acc + (num(it.unit_price) || 0) * (num(it.calculated_quantity) ?? num(it.quantity) ?? 1), 0),
     hasTexts: Boolean(c.terms || c.warranty || c.notes),
     hasPresentation: Boolean(c.presentation),
+    priceBasis: PRICE_BASES.includes(c.price_basis) ? c.price_basis : null,
   };
 }
 
@@ -106,6 +117,11 @@ export function templateCurrencyMismatch(formState, quoteCurrency) {
   if (!formState || !formState.currency || !quoteCurrency) return false;
   const priced = (formState.items || []).some((it) => it.unit_price !== '' && it.unit_price != null);
   return priced && formState.currency !== String(quoteCurrency).toUpperCase();
+}
+// R-20 (Owner-approved L-09): a template saved before 2026-10-15 kept prices without their currency - the user is asked, never assumed
+export function templateCurrencyUnknown(formState) {
+  if (!formState || formState.currency) return false;
+  return (formState.items || []).some((it) => it.unit_price !== '' && it.unit_price != null);
 }
 export function withoutPrices(items) {
   return (items || []).map((it) => ({ ...it, unit_price: '' }));
@@ -134,6 +150,7 @@ export function templateToFormState(content, newKey) {
   return {
     items: items.length ? items : null,
     currency: typeof c.currency === 'string' && /^[A-Z]{3}$/.test(c.currency) ? c.currency : null,
+    priceBasis: PRICE_BASES.includes(c.price_basis) ? c.price_basis : null,
     sections,
     quoteStructureMode: c.structure_mode === 'divided' || sections.length ? 'divided' : null,
     quoteSubject: str(c.subject) || null,

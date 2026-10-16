@@ -96,8 +96,8 @@
     "markers": 1
   },
   "src/components/AuthScreen.jsx": {
-    "interactive": 8,
-    "markers": 5
+    "interactive": 10,
+    "markers": 7
   },
   "src/components/AuthenticatedShellFrames.jsx": {
     "interactive": 1,
@@ -276,8 +276,8 @@
     "markers": 2
   },
   "src/components/SmartPublicQuote.jsx": {
-    "interactive": 0,
-    "markers": 0
+    "interactive": 1,
+    "markers": 1
   },
   "src/components/StatisticsTab.jsx": {
     "interactive": 5,
@@ -516,8 +516,8 @@
     "markers": 3
   },
   "src/pages/Dashboard.jsx": {
-    "interactive": 15,
-    "markers": 24
+    "interactive": 17,
+    "markers": 26
   },
   "src/pages/LandingGlobal.jsx": {
     "interactive": 2,
@@ -868,6 +868,10 @@
     "markers": 0
   },
   "src/utils/quoteStatistics.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteStatusDisplay.js": {
     "interactive": 0,
     "markers": 0
   },
