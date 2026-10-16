@@ -30,8 +30,8 @@ import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, miss
 import { itemPricePayload, formPriceFromSavedItem } from '../utils/itemPrice';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import useAccountSummary from '../hooks/useAccountSummary';
-import { planBadgeModel } from '../domain/subscriptions/accountSummaryClient';
 import HeaderPlanMedallion from '../components/HeaderPlanMedallion';
+import { accountStatus, statusMedallionModel, accountStatusSentence } from '../domain/subscriptions/subscriptionStatus';
 import { timeGreeting } from '../utils/timeGreeting';
 import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
 import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
@@ -1207,7 +1207,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // through decideCapability (shared contract): enforced -> server capabilities, unprovisioned/invalid -> fail closed,
   // not active -> the legacy entitlement exactly as before.
   const { summary: accountSummary, refresh: refreshAccountSummary } = useAccountSummary(supabase, session?.user?.id);
-  const headerPlanBadge = planBadgeModel(accountSummary, isHebrew ? 'he' : 'en', { isLifetime: isLifetimeAccount });
+  // Owner console 2026-10-16 (approval naming L-03): the header medallion = the admin status medallion (same status, same icon, same
+  // words in its bubble); the plans window states the same status ("you have ... until X" where a real date exists).
+  const statusDate = (v) => formatShortDate(v, isLocalIsraeliBusiness ? 'Local' : 'International');
+  const ownSubscriptionStatus = accountStatus({ is_lifetime: isLifetimeAccount, trial_ends_at: trialEndsAt }, accountSummary);
+  const headerPlanBadge = statusMedallionModel({ is_lifetime: isLifetimeAccount, trial_ends_at: trialEndsAt }, accountSummary, { isHebrew, formatDate: statusDate });
   // Owner console 2026-10-14 ("open every quote capability - area, length, AI, templates - to all users now"): while the new plan
   // system is NOT active (no account has a server plan yet, nothing is billed), every quote capability is open to every account, as it
   // will be within the 10 free quotes. Once the system is active, decideCapability ignores these values and the server capabilities rule.
@@ -7253,6 +7257,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         isLocalIsraeliBusiness={isLocalIsraeliBusiness} 
         accountSummary={accountSummary}
         isLifetime={isLifetimeAccount}
+        statusLine={accountStatusSentence(ownSubscriptionStatus, isHebrew, statusDate)}
       />
       <CapabilityUpgradeNotice
         lang={isHebrew ? 'he' : 'en'}

@@ -58,6 +58,23 @@
 .admin-expiry { display:flex; flex-direction:column; gap:1px; font-size:11px; line-height:14px; }
 .admin-expiry small,.admin-date { color:#65727A; font-size:10px; white-space:nowrap; }
 .admin-icon-button { display:inline-flex; align-items:center; justify-content:center; width:30px; height:30px; border:1px solid #D9E0E3; border-radius:7px; color:#65727A; background:#fff; flex-shrink:0; }
+/* night task 2026-10-16: the row's protected actions (details, Lifetime, reset, delete) */
+.admin-row-actions { display:flex; gap:4px; align-items:center; justify-content:center; flex-wrap:wrap; }
+.admin-icon-button[data-active="true"] { color:#5B3FD9; border-color:#C9BEF5; background:#F4F1FE; }
+.admin-icon-button--danger { color:#9A4040; border-color:#E2BEBE; }
+.admin-role { font-size:0.8rem; color:#3c4a52; }
+.admin-card-meta { display:flex; gap:10px; flex-wrap:wrap; align-items:center; font-size:0.78rem; color:#65727A; }
+/* Owner 2026-10-16: subscription status = icon + words (no raw legacy codes) */
+.admin-account-status { display:inline-flex; align-items:center; gap:7px; font-size:0.78rem; color:#3c4a52; }
+/* the user's own plan medallion as a static mark (PlanMedallionMark.jsx; same disc / ring / icon as headerPlanMedallion.css) */
+.pmm { position:relative; flex:none; display:inline-grid; place-items:center; inline-size:var(--pmm-size); block-size:var(--pmm-size); border-radius:50%; background:radial-gradient(circle at 35% 28%, #ffffff 0%, #f4f6fa 55%, #e3e8f0 100%); box-shadow:0 0 0 1px rgba(15,23,42,0.08), inset 0 -1px 2px rgba(15,23,42,0.10); }
+.pmm-ring { position:absolute; inset:0; inline-size:100%; block-size:100%; transform:rotate(-90deg); }
+.pmm-track { fill:none; stroke:rgba(15,23,42,0.08); stroke-width:3.6; }
+.pmm-arc { fill:none; stroke-width:3.6; stroke-dasharray:100; stroke-dashoffset:calc(100 - var(--pmm-ratio) * 100); }
+.pmm-icon { position:relative; display:grid; place-items:center; color:var(--pmm-ink); }
+.admin-status-values { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.admin-status-values li { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.admin-account-status-line { margin:0; }
 .admin-empty { text-align:center; padding:32px 12px; color:#65727A; font-size:13px; }
 .admin-user-cards { display:none; }
 .admin-pagination { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:10px; flex-wrap:wrap; font-size:11px; color:#65727A; }

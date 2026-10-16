@@ -39,7 +39,8 @@ describe('header wiring (source)', () => {
   it('the avatar circle is gone; the round plan medallion opens the plans window and is hidden for the super admin', () => {
     expect(d).not.toMatch(/dash-header-avatar|headerAvatarUrl|className="dash-header-plan"/);
     expect(d).toMatch(/\{!isSuperAdmin && \(\n\s*<HeaderPlanMedallion model=\{headerPlanBadge\} isHebrew=\{isHebrew\} onOpen=\{\(\) => setShowPricingModal\(true\)\} \/>/);
-    expect(d).toMatch(/const headerPlanBadge = planBadgeModel\(accountSummary, isHebrew \? 'he' : 'en', \{ isLifetime: isLifetimeAccount \}\);/);
+    // Owner console 2026-10-16 (approval naming L-03): the header medallion is the admin status medallion (subscriptionStatus.js)
+    expect(d).toMatch(/const headerPlanBadge = statusMedallionModel\(\{ is_lifetime: isLifetimeAccount, trial_ends_at: trialEndsAt \}, accountSummary, \{ isHebrew, formatDate: statusDate \}\);/);
     expect(d.indexOf('const { summary: accountSummary')).toBeLessThan(d.indexOf('const headerPlanBadge ='));
   });
 });

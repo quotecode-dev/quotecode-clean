@@ -46,11 +46,16 @@ describe('admin indicators', () => {
     expect([lifetime, active, ended, none].map((a) => matchesStatusFilter(a, 'none', NOW))).toEqual([false, false, false, true]);
     expect(matchesStatusFilter(lifetime, 'all', NOW)).toBe(true);
   });
-  it('the users view shows the indicators column and the filter instead of the raw legacy record', () => {
+  // Owner console 2026-10-16, typed: "מאשר מימוש אפיון האדמין של קודקס (CODEX_SPEC_ADMIN_REDESIGN_2026-10-16) ... ופתיחת L-03 L-07 L-17 L-20
+  // לשינויים שבאפיון" - spec §4.2: the Indicators column stays; the status filter is now the ONE
+  // subscription status (the server list filters it; the loaded-rows fallback uses accountStatus) - no raw legacy record anywhere.
+  it('the users view shows the indicators column and the status filter instead of the raw legacy record', () => {
     const v = read('components/AdminUsersView.jsx');
-    expect(v).toContain("[isHebrew ? 'חיוויים' : 'Indicators', null]");
+    // Owner 5186 2026-10-16 ("מסלול ומדדים לא עובד, השאר כן" -> "הכל עובד עכשיו במיון"): the Indicators header is a sort button too
+    expect(v).toContain("{sortHead('indicators', C.colIndicators)}");
     expect(v).not.toContain("'רשומת מורשת (היסטוריה)'");
-    expect(v).toContain('matchesStatusFilter(account, statusFilter)');
+    expect(v).toContain("const matchesStatus = statusFilter === 'all' || accountStatus(account, null).key === statusFilter;");
+    expect(v).toContain("status: statusFilter === 'all' ? null : statusFilter");
   });
 });
 

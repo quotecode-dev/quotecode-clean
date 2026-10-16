@@ -101,7 +101,10 @@ serve(async (req) => {
       return jsonResponse({ error: 'Cannot change Lifetime state for a Super Admin account.' }, 400);
     }
 
-    const { error: updateErr } = await adminClient
+    // Night task 2026-10-16 (found on the local journey stack): the write runs with the CALLER's own session, as the header above
+    // intends - guard_business_settings_plan_trial() derives the caller's role from auth.uid(), which the service key does not carry,
+    // so a service-key write was refused for every grant. The super admin's update policy + the is_lifetime column grant admit it.
+    const { error: updateErr } = await callerClient
       .from('business_settings').update({ is_lifetime: grant }).eq('id', targetBefore.id);
     if (updateErr) {
       await writeAuditLog({ adminClient, actorUserId: callerUser.id, targetUserId, action, reason, beforeState: { is_lifetime: targetBefore.is_lifetime }, outcome: 'error' });

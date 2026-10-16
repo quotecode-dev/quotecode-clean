@@ -241,7 +241,7 @@ DO $$ DECLARE r jsonb; BEGIN
   r := tst.xsum(tst.xu(4));
   PERFORM tst.ok(r = '{"ok":false,"code":"account_not_provisioned"}'::jsonb, 'C1 unprovisioned account: account_not_provisioned');
   r := tst.xsum(tst.xu(1));
-  PERFORM tst.ok(tst.xkeys(r) = 'capabilities,catalog,eligiblePlans,free10,market,ok,phase,plan,priceCatalogVersion,schema,subscriptionStatus,version',
+  PERFORM tst.ok(tst.xkeys(r) = 'billingPeriod,capabilities,catalog,eligiblePlans,free10,market,ok,phase,plan,priceCatalogVersion,schema,subscriptionStatus,version',
                  'C2 Free ready: exactly the account-summary/v1 top-level keys');
   PERFORM tst.ok(r ->> 'ok' = 'true' AND r ->> 'schema' = 'account-summary/v1' AND jsonb_typeof(r -> 'version') = 'number'
                  AND (r ->> 'version')::int = 1, 'C3 ok / schema / version');

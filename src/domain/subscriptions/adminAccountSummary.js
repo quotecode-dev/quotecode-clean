@@ -14,6 +14,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../../shared/supabase';
 import { parseAccountSummary, planName, outputPhaseOf } from '../../../supabase/functions/_shared/subscriptionContract.ts';
+import { withBillingPeriod } from './subscriptionStatus';
 
 export const COPY = {
   notActive: { he: 'מערך המסלולים טרם הופעל', en: 'Plan system not active yet' },
@@ -67,7 +68,7 @@ export async function fetchAdminAccountSummary(client, userId) {
       legacy = normalizeLegacy(rawLegacy);
       payload = rest;
     }
-    return { summary: parseAccountSummary(payload), legacy };
+    return { summary: withBillingPeriod(parseAccountSummary(payload), payload), legacy };
   } catch {
     return { summary: { state: 'unavailable', code: 'network_error' }, legacy: null };
   }
@@ -191,6 +192,10 @@ export function planStateText(summary, isHebrew) {
 const rawValue = (value) => (value === null || value === undefined ? 'null' : String(value));
 
 // The legacy values, raw: plan lowercased (technical id), trial_ends_at as stored, is_lifetime as a boolean literal.
+// Owner console 2026-10-16: the subscription status (LIFETIME / monthly / annual / Free-10 / trial / trial ended / none) is ONE source
+// with the user's header medallion and the plans window - subscriptionStatus.js.
+export { ACCOUNT_STATUS, ACCOUNT_STATUS_ORDER, ACCOUNT_STATUS_ALWAYS_SHOWN, ACCOUNT_STATUS_TITLE, STATUS_MEDALLION_KIND, STATUS_COLOR, accountStatus, accountStatusBreakdown, breakdownFromCounts, statusFromKey, accountStatusWords } from './subscriptionStatus';
+
 export function legacyRecordEntries(account, legacy) {
   const plan = legacy ? legacy.plan : account?.plan;
   const trialEndsAt = legacy ? legacy.trialEndsAt : account?.trial_ends_at;

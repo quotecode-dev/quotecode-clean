@@ -255,6 +255,24 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header line 3: '-- tekango-migration-contract: mode=transaction replay=required' (re-runnable: ADD COLUMN IF NOT EXISTS / guarded ADD CONSTRAINT / CREATE OR REPLACE; forward-only, no backfill)"
+    },
+    "20261016000000_account_erasure_contact_stops.sql": {
+      "sha256": "7ff03c1948ca140f1db4085f310a78dc37dced754eaa3dca4070e1bcdf53ab5a",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE FUNCTION only (re-runnable)"
+    },
+    "20261016000200_admin_reauth_proofs_and_audit_log_reissue.sql": {
+      "sha256": "5320210cf9782399a622f739956e41da0b8b2c09334567bd278e8e76c34d32f3",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; IF NOT EXISTS / CREATE OR REPLACE / idempotent RLS, REVOKE, GRANT (re-runnable); re-issue of 20260916010000 (Owner 2026-10-16)"
+    },
+    "20261016100000_admin_redesign_part_a.sql": {
+      "sha256": "a6be1b7eb58d43e7212d97f163bd0b9d9acf85a288291d8c378cc84ed2514ccf",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE only, read-only functions (re-runnable); admin redesign part A (Owner 2026-10-16)"
     }
   }
 }

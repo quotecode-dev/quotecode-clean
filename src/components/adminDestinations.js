@@ -33,6 +33,7 @@ export const ADMIN_DESTINATIONS = [
     render: (host) => createElement(AdminOverview, {
       accounts: host.accounts, isHebrew: host.isHebrew,
       onGoToUsers: () => host.navigate('users'), onGoToPlans: () => host.navigate('plans'), onOpenUser: host.openUser,
+      onGoToActivity: () => host.navigate('activity'),
     }),
   },
   {
@@ -45,7 +46,7 @@ export const ADMIN_DESTINATIONS = [
     id: 'plans', group: 'management', icon: CreditCard, permission: 'super_admin', mobile: 'more', available: true,
     label: { he: 'חבילות ומנויים', en: 'Plans / Subscriptions' },
     title: { he: 'חבילות ומנויים - סופר אדמין', en: 'Plans / Subscriptions - Super Admin' },
-    render: (host) => createElement(AdminPlans, { accounts: host.accounts, isHebrew: host.isHebrew, onOpenUser: host.openUser }),
+    render: (host) => createElement(AdminPlans, { accounts: host.accounts, isHebrew: host.isHebrew, onOpenUser: host.openUser, onGoToUsers: () => host.navigate('users') }),
   },
   {
     id: 'activity', group: 'system', icon: Activity, permission: 'super_admin', mobile: 'more', available: true,

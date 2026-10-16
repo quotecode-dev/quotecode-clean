@@ -7,7 +7,7 @@
 // keyboard focus lifts the disc, wiggles the icon and shows the bubble; a press sinks it. prefers-reduced-motion: no motion, the bubble
 // only on hover / focus. Click opens the plans window. The model is planBadgeModel (one source with Settings and the plans window).
 import { useEffect, useId, useState } from 'react';
-import { Infinity as InfinityIcon, LayoutList, Sprout, Crown } from 'lucide-react';
+import { Infinity as InfinityIcon, LayoutList, Sprout, Crown, CalendarCheck, Timer, TimerOff, CircleDashed } from 'lucide-react';
 import './headerPlanMedallion.css';
 
 const VISUAL = {
@@ -15,7 +15,15 @@ const VISUAL = {
   plans: { Icon: LayoutList, c1: '#2dd4bf', c2: '#0f766e', ink: '#0f6672' },
   free10: { Icon: Sprout, c1: '#4ade80', c2: '#16a34a', ink: '#15803d' },
   plan: { Icon: Crown, c1: '#a78bfa', c2: '#6d28d9', ink: '#6d28d9' },
+  // Owner console 2026-10-16 (approval naming L-03): the header shows the SAME status medallion as the admin - every status its own
+  // (plan = a paid monthly subscription; the model is statusMedallionModel in subscriptionStatus.js).
+  paid_annual: { Icon: CalendarCheck, c1: '#818cf8', c2: '#3730a3', ink: '#3730a3' },
+  trial: { Icon: Timer, c1: '#fcd34d', c2: '#d97706', ink: '#b45309' },
+  trial_ended: { Icon: TimerOff, c1: '#fca5a5', c2: '#b91c1c', ink: '#b91c1c' },
+  none: { Icon: CircleDashed, c1: '#cbd5e1', c2: '#64748b', ink: '#64748b' },
 };
+// Owner console 2026-10-16: the admin shows the SAME plan icon (PlanMedallionMark.jsx reads this one table)
+export const PLAN_MEDALLION_VISUAL = VISUAL;
 export const MEDALLION_INTRO_MS = 2600;
 
 export default function HeaderPlanMedallion({ model, isHebrew, onOpen }) {
