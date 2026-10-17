@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, within } from '@testing-library/react';
+import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import QuotesTab from './QuotesTab';
 import { formatMoneyForCurrency } from '../utils/money';
 
@@ -917,5 +917,57 @@ describe('QuotesTab dates follow the account market, not the UI language', () =>
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+// Owner console 2026-10-18, typed: "מאשר שינוי ב-L-19: פס ההצעה החמה יתחלף כל 4 שניות בין כל ההצעות החמות"
+describe('QuotesTab hot-quote banner rotation (L-19 change 2026-10-18)', () => {
+  afterEach(() => { vi.useRealTimers(); });
+  const q = (id, views, created) => ({ ...baseQuote, id, view_count: views, status: 'sent', created_at: created });
+  it('shows every hot quote in turn every 4 seconds, hottest first; a single hot quote never rotates', () => {
+    vi.useFakeTimers();
+    const list = [q('h3', 3, '2026-03-01T00:00:00.000Z'), q('h9', 9, '2026-01-01T00:00:00.000Z'), q('h5', 5, '2026-02-01T00:00:00.000Z'), { ...baseQuote, id: 'cold', view_count: 1, status: 'sent' }];
+    const { container } = render(<QuotesTab {...buildProps(true)} quotes={list} allQuotes={list} />);
+    const shown = () => container.querySelector('[data-testid="hot-quote-banner"]').getAttribute('data-hot-quote-id');
+    expect(container.querySelector('[data-testid="hot-quote-banner"]').getAttribute('data-hot-count')).toBe('3');
+    expect(shown()).toBe('h9');
+    act(() => { vi.advanceTimersByTime(4000); });
+    expect(shown()).toBe('h5');
+    act(() => { vi.advanceTimersByTime(4000); });
+    expect(shown()).toBe('h3');
+    act(() => { vi.advanceTimersByTime(4000); });
+    expect(shown()).toBe('h9');
+  });
+  it('pauses while hovered or focused so its action can be used', () => {
+    vi.useFakeTimers();
+    const list = [q('a', 4, '2026-01-01T00:00:00.000Z'), q('b', 7, '2026-01-02T00:00:00.000Z')];
+    const { container } = render(<QuotesTab {...buildProps(false)} quotes={list} allQuotes={list} />);
+    const banner = () => container.querySelector('[data-testid="hot-quote-banner"]');
+    expect(banner().getAttribute('data-hot-quote-id')).toBe('b');
+    fireEvent.mouseEnter(banner());
+    act(() => { vi.advanceTimersByTime(12000); });
+    expect(banner().getAttribute('data-hot-quote-id')).toBe('b');
+    fireEvent.mouseLeave(banner());
+    act(() => { vi.advanceTimersByTime(4000); });
+    expect(banner().getAttribute('data-hot-quote-id')).toBe('a');
+  });
+  it('the banner action shows every row when the shown hot quote is outside the compact four, and opens it', () => {
+    vi.useFakeTimers();
+    const cold = (id, d) => ({ ...baseQuote, id, view_count: 0, status: 'sent', created_at: d });
+    const list = [q('hotTop', 9, '2026-01-01T00:00:00.000Z'), cold('c1', '2026-05-01T00:00:00.000Z'), cold('c2', '2026-05-02T00:00:00.000Z'), cold('c3', '2026-05-03T00:00:00.000Z'), cold('c4', '2026-05-04T00:00:00.000Z'), q('hotLow', 3, '2026-01-02T00:00:00.000Z')];
+    const { container } = render(<QuotesTab {...buildProps(true)} quotes={list} allQuotes={list} />);
+    act(() => { vi.advanceTimersByTime(4000); });
+    const banner = container.querySelector('[data-testid="hot-quote-banner"]');
+    expect(banner.getAttribute('data-hot-quote-id')).toBe('hotLow');
+    fireEvent.click(banner.querySelector('button'));
+    act(() => { vi.runOnlyPendingTimers(); });
+    expect(container.querySelector('#quote-modern-detail-hotLow')).not.toBeNull();
+  });
+  it('one hot quote: no rotation; the list order keeps the hottest first (L-07)', () => {
+    vi.useFakeTimers();
+    const list = [q('only', 6, '2026-01-01T00:00:00.000Z'), { ...baseQuote, id: 'cold', view_count: 0, status: 'sent' }];
+    const { container } = render(<QuotesTab {...buildProps(true)} quotes={list} allQuotes={list} />);
+    act(() => { vi.advanceTimersByTime(20000); });
+    expect(container.querySelector('[data-testid="hot-quote-banner"]').getAttribute('data-hot-quote-id')).toBe('only');
   });
 });

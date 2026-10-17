@@ -12,7 +12,7 @@ import TekangoEyeIcon from './TekangoEyeIcon';
 import { useMoneySlotSize } from '../hooks/useMoneySlotSize';
 import { useQuoteHistoryGeometry, QH_CELL_PAD, QH_ACTION_COL, QH_CELL_STYLE } from '../hooks/useQuoteHistoryGeometry';
 import { formatShortDate } from '../utils/shortDate';
-import { relativeQuoteDay, pickCompactRows, pickLeadHotRow, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
+import { relativeQuoteDay, pickCompactRows, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
 import { sortQuotes, normalizeSortField } from '../utils/quoteListSort';
 import NewQuoteMenu from './NewQuoteMenu';
 import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search } from 'lucide-react';
@@ -269,7 +269,8 @@ export default function QuotesTab({
     setExpandedQuoteId(quoteId);
     if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
       window.setTimeout(() => {
-        const panel = document.getElementById(`quote-modern-detail-${quoteId}`);
+        // the open panel of whichever layout is on screen (desktop table / cards / mobile cards)
+        const panel = [`quote-modern-detail-${quoteId}`, `quote-detail-${quoteId}`, `quote-detail-mobile-${quoteId}`].map((id) => document.getElementById(id)).find(Boolean);
         if (panel && typeof panel.scrollIntoView === 'function') panel.scrollIntoView({ block: 'nearest' });
       }, 0);
     }
@@ -405,7 +406,28 @@ export default function QuotesTab({
     return () => ro.disconnect();
   }, [isMobileView]);
   const useCards = isMobileView || qhCompact || r3TooNarrow;
-  const hotLead = pickLeadHotRow(rowsMeta);
+  // Owner console 2026-10-18, typed: "מאשר שינוי ב-L-19: פס ההצעה החמה יתחלף כל 4 שניות בין כל ההצעות החמות" - the banner shows
+  // every hot quote in turn (hottest first, then by views, ties newest), one every 4 seconds, paused while hovered or focused so its
+  // action can be used; the list keeps its order (the hottest stays first - L-07). A single hot quote never rotates.
+  const hotRows = rowsMeta.filter((r) => r.isHot).sort((a, b) => {
+    const dv = Number(b.quote.view_count || 0) - Number(a.quote.view_count || 0);
+    if (dv !== 0) return dv;
+    const t = (r) => { const x = Date.parse(r.quote.created_at); return Number.isNaN(x) ? 0 : x; };
+    return t(b) - t(a);
+  });
+  const [hotIndex, setHotIndex] = useState(0);
+  const [hotPaused, setHotPaused] = useState(false);
+  useEffect(() => {
+    if (hotRows.length < 2 || hotPaused) return undefined;
+    const id = setInterval(() => setHotIndex((i) => i + 1), 4000);
+    return () => clearInterval(id);
+  }, [hotRows.length, hotPaused]);
+  const hotLead = hotRows.length ? hotRows[hotIndex % hotRows.length] : null;
+  // the rotating banner may show a hot quote that the compact desktop list (4 rows) does not hold: its action shows every row first
+  const openHotQuote = (quoteId) => {
+    if (!useCards && !showAllDesktopQuotes && !pickCompactRows(rowsMeta).some((r) => r.quote.id === quoteId)) setShowAllDesktopQuotes(true);
+    openTrackingFor(quoteId);
+  };
   // Sortable column headers of the desktop list. They share the row grid; each button sorts ITS OWN key (first click ascending,
   // next click descending - handleQuoteSort); the active one carries the direction chevron and aria-sort.
   const activeSortKey = normalizeSortField(quoteSortField);
@@ -677,11 +699,12 @@ export default function QuotesTab({
           eye (its eyelid blinks, reduced-motion safe) as the FIRST child, so it sits at the inline-start edge (right in HE, left in
           EN) before the text, followed by the real client name and the real view count of the hottest quote. */}
       {hotLead && (
-        <div className="quote-hot-banner" data-testid="hot-quote-banner" data-hot-quote-id={hotLead.quote.id}>
+        <div className="quote-hot-banner" data-testid="hot-quote-banner" data-hot-quote-id={hotLead.quote.id} data-hot-count={hotRows.length}
+          onMouseEnter={() => setHotPaused(true)} onMouseLeave={() => setHotPaused(false)} onFocus={() => setHotPaused(true)} onBlur={() => setHotPaused(false)}>
           <button
             type="button"
             className="quote-hot-banner-action"
-            onClick={() => openTrackingFor(hotLead.quote.id)}
+            onClick={() => openHotQuote(hotLead.quote.id)}
             title={isHebrew ? 'פתיחה ומעקב' : 'Open & track'}
             aria-label={isHebrew ? 'פתיחה ומעקב' : 'Open & track'}
           >

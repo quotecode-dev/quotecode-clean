@@ -180,5 +180,7 @@ describe('canonicalMarket - one market rule for the language, the currency and t
     const { cwd } = await import('node:process');
     const dash = readFileSync(join(cwd(), 'src', 'pages', 'Dashboard.jsx'), 'utf8');
     expect(dash).toContain("const countryVal = canonicalMarket(data.country) || data.country || 'International';");
+    // a save never rewrites the stored country while its market is unchanged (a stored 'Germany' stays 'Germany')
+    expect(dash).toContain('country: storedCountryRef.current && canonicalMarket(storedCountryRef.current) === bizCountry ? storedCountryRef.current : bizCountry,');
   });
 });

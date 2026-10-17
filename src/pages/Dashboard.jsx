@@ -250,6 +250,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [expenses, setExpenses] = useState([]);
   const [allUserAttachments, setAllUserAttachments] = useState([]);
   
+  // the account's stored country exactly as saved (bizCountry holds its canonical market)
+  const storedCountryRef = useRef(null);
   const [bizCountry, setBizCountry] = useState(() => {
     if (typeof window === 'undefined') return 'International';
     const cached = localStorage.getItem('proflow_cached_country');
@@ -1579,6 +1581,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // האמיתית התקבלה. רק כתיבת המטמון proflow_cached_country עצמו
       // נשארת מותנית, כדי שתצוגה מקדימה חד-פעמית לא "תדביק" ביקורים
       // עתידיים בדפדפן הזה.
+      storedCountryRef.current = data.country ?? null;
       setBizCountry(countryVal);
       if (!isExplicitEnglish && !isExplicitHebrew) {
         localStorage.setItem('proflow_cached_country', countryVal);
@@ -1739,6 +1742,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setBizRole(newData.role);
     // ר' הערה מקבילה למעלה - setBizCountry לא מותנה בגדר lang=, רק כתיבת
     // המטמון המשותף.
+    storedCountryRef.current = newData.country || country;
     setBizCountry(newData.country || country);
     if (!isExplicitEnglish && !isExplicitHebrew) {
       localStorage.setItem('proflow_cached_country', newData.country || country);
@@ -1852,7 +1856,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       logo_url: bizLogoUrl,
       default_terms: defaultTerms,
       default_warranty: defaultWarranty,
-      country: bizCountry,
+      // the market rule reads a stored country; a save never rewrites it (a stored 'Germany' stays 'Germany' while the market is unchanged)
+      country: storedCountryRef.current && canonicalMarket(storedCountryRef.current) === bizCountry ? storedCountryRef.current : bizCountry,
       currency: enforcedCurrency,
       user_id: session.user.id
     };
