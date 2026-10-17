@@ -20,6 +20,8 @@ export function parseDashboardSummary(d) {
     generatedAt: d.generatedAt || null, managedAccounts: d.managedAccounts, registrationsLast24h: d.registrationsLast24h,
     signedInLast10m: d.signedInLast10m, market: Object.freeze({ ...market }), subscriptionStatus: Object.freeze({ ...status }),
     planSystem: d.planSystem === 'active' ? 'active' : 'not_active',
+    // AV-09 (migration 20261017000000): the Free-10 counter is reported active only when the quota is enforced
+    free10Counter: d.free10Counter === 'enforced' ? 'enforced' : 'not_enforced',
   });
 }
 
@@ -54,7 +56,7 @@ export async function fetchAdminAccountsPage(client = supabase, { query = '', ma
 }
 
 // one hook for both: keeps the last good data across a failed refresh; cancels on unmount / new request
-function useServerResource(fetcher, key, enabled = true) {
+function useServerResource(fetcher, key, enabled = true, dataKey = key) {
   const [res, setRes] = useState({ state: 'loading', data: null, updatedAt: null, failedAt: null });
   const last = useRef(null);
   useEffect(() => {
@@ -64,9 +66,9 @@ function useServerResource(fetcher, key, enabled = true) {
     fetcher().then((out) => {
       if (cancelled) return;
       if (out.state === 'ready') {
-        last.current = out.data;
+        last.current = { data: out.data, dataKey };
         setRes({ state: 'ready', data: out.data, updatedAt: new Date().toISOString(), failedAt: null, refreshing: false });
-      } else if (last.current && out.state === 'unavailable') {
+      } else if (last.current && last.current.dataKey === dataKey && out.state === 'unavailable') {
         setRes((r) => ({ ...r, state: 'stale', failedAt: new Date().toISOString(), refreshing: false }));
       } else {
         setRes({ state: out.state, data: null, updatedAt: null, failedAt: out.state === 'unavailable' ? new Date().toISOString() : null, refreshing: false });
@@ -79,10 +81,10 @@ function useServerResource(fetcher, key, enabled = true) {
 }
 
 export function useAdminDashboardSummary(refreshKey = 0, client = supabase) {
-  return useServerResource(() => fetchAdminDashboardSummary(client), `summary:${refreshKey}`);
+  return useServerResource(() => fetchAdminDashboardSummary(client), `summary:${refreshKey}`, true, 'summary');
 }
 
 export function useAdminAccountsPage(params, refreshKey = 0, { enabled = true, client = supabase } = {}) {
   const key = `accounts:${refreshKey}:${JSON.stringify(params)}`;
-  return useServerResource(() => fetchAdminAccountsPage(client, params), key, enabled);
+  return useServerResource(() => fetchAdminAccountsPage(client, params), key, enabled, JSON.stringify(params));
 }

@@ -141,8 +141,8 @@ export const ACTION_NAMES = Object.freeze({
   reset_quotes: { he: 'איפוס הצעות', en: 'Quotes reset' },
 });
 export const OUTCOME_NAMES = Object.freeze({
-  success: { he: 'הצליח', en: 'Succeeded', tone: 'ok' },
-  denied: { he: 'נדחה', en: 'Denied', tone: 'bad' },
+  success: { he: 'אושר בשרת', en: 'Verified by server', tone: 'ok' },
+  denied: { he: 'נדחה; לא בוצע שינוי', en: 'Denied; no change made', tone: 'bad' },
   error: { he: 'נכשל', en: 'Failed', tone: 'bad' },
 });
 
@@ -157,7 +157,9 @@ export const DIALOG_COPY = Object.freeze({
   close: { he: 'סגירה', en: 'Close' },
   verifying: { he: 'מאמת…', en: 'Verifying…' },
   recorded: { he: 'הפעולה תירשם ביומן עם שם המנהל, הסיבה והתוצאה.', en: 'The action is recorded with the admin identity, reason and outcome.' },
-  unknownOutcome: { he: 'אם החיבור אבד אחרי שליחה: התוצאה טרם אומתה. בדקו את היומן לפני ניסיון נוסף.', en: 'If the connection fails after sending: the outcome is unverified. Check the log before trying again.' },
+  unknownOutcome: { he: 'אם החיבור אבד אחרי שליחה: ״התוצאה טרם אומתה. בדקו את היומן לפני ניסיון נוסף.״', en: 'If the connection fails after sending: “The outcome is not verified yet. Check the log before trying again.”' },
+  impact: { he: 'סיכום השפעה', en: 'Impact summary' },
+  passwordPh: { he: '••••••••', en: '••••••••' },
   done: { he: 'הפעולה בוצעה ואומתה בשרת', en: 'The action was completed and verified by the server' },
   delete: {
     title: { he: 'מחיקת חשבון', en: 'Delete account' },
@@ -182,13 +184,13 @@ export const DIALOG_COPY = Object.freeze({
     title: { he: 'הענקת LIFETIME', en: 'Grant Lifetime' },
     body: { he: 'הענקת LIFETIME אינה חיוב כספי. רק מצב שאושר בשרת יוצג לאחר הפעולה.', en: 'Granting Lifetime is not a payment. Only the server-confirmed result will be displayed.' },
     confirm: { he: 'הענקת LIFETIME', en: 'Grant Lifetime' },
-    scope: [{ he: 'חיוב כספי: אין', en: 'Payment: none' }],
+    scope: [{ label: { he: 'חיוב כספי', en: 'Payment' }, value: { he: 'אין', en: 'None' } }],
   },
   revoke: {
     title: { he: 'ביטול LIFETIME', en: 'Revoke Lifetime' },
     body: { he: 'ביטול ההענקה. החשבון חוזר למצב שלו לפי השרת; אין חיוב אוטומטי.', en: 'Revokes the grant. The account returns to its server state; there is no automatic charge.' },
     confirm: { he: 'ביטול LIFETIME', en: 'Revoke Lifetime' },
-    scope: [{ he: 'חיוב כספי: אין', en: 'Payment: none' }],
+    scope: [{ label: { he: 'חיוב כספי', en: 'Payment' }, value: { he: 'אין', en: 'None' } }],
   },
   trial: {
     title: { he: 'הארכת ניסיון ותיק', en: 'Extend legacy trial' },

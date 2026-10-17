@@ -20,6 +20,7 @@ export default function AdminProtectedDialog({
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const dialogRef = useRef(null);
   const firstFieldRef = useRef(null);
+  const doneCloseRef = useRef(null);
   const openerRef = useRef(typeof document !== 'undefined' ? document.activeElement : null);
   const danger = kind === 'delete' || kind === 'reset';
   const needsEmail = typeof onConfirmEmail === 'function';
@@ -32,6 +33,8 @@ export default function AdminProtectedDialog({
       if (opener && typeof opener.focus === 'function') opener.focus();
     };
   }, []);
+
+  useEffect(() => { if (done) doneCloseRef.current?.focus(); }, [done]);
 
   const onKeyDown = (e) => {
     if (e.key === 'Escape') { if (!busy) { e.stopPropagation(); onClose(); } return; }
@@ -46,7 +49,7 @@ export default function AdminProtectedDialog({
   const node = (
     <div className="av av-overlay" dir={isHebrew ? 'rtl' : 'ltr'} onKeyDown={onKeyDown}>
       <div ref={dialogRef} className="av-dialog" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} aria-describedby={`${id}-desc`} tabIndex={-1} data-testid={`admin-dialog-${kind}`}>
-        <AiModalHeader onClose={() => { if (!busy) onClose(); }} closeLabel={t(isHebrew, D.close.he, D.close.en)} closeContent={<X size={18} strokeWidth={2.5} />} isHebrew={isHebrew} testId="ai-help-admin-dialog" style={{ color: '#64748b', marginBottom: '6px' }} />
+        <AiModalHeader onClose={() => { if (!busy) onClose(); }} closeLabel={t(isHebrew, D.close.he, D.close.en)} closeContent={<X size={18} strokeWidth={2.5} />} isHebrew={isHebrew} testId="ai-help-admin-dialog" aiContext="admin_dialog" style={{ color: '#64748b', marginBottom: '6px' }} />
         {done ? (
           <div className="av-result" role="status">
             <div className="av-stateicon" style={{ margin: '0 auto 12px', background: '#e7f4ed', color: '#236241' }}><CheckCircle2 size={28} aria-hidden="true" /></div>
@@ -54,7 +57,7 @@ export default function AdminProtectedDialog({
             <p id={`${id}-desc`} className="av-muted">{t(isHebrew, copy.title.he, copy.title.en)} · <bdi>{target?.business_name || target?.email}</bdi></p>
             <div className="av-dialog-foot" style={{ justifyContent: 'center' }}>
               {/* PRODUCT_TRUTH_DECORATIVE: closes the result of a completed protected action and refreshes the admin data */}
-              <button type="button" className="av-btn av-primary" onClick={onClose}>{t(isHebrew, D.close.he, D.close.en)}</button>
+              <button ref={doneCloseRef} type="button" className="av-btn av-primary" onClick={onClose}>{t(isHebrew, D.close.he, D.close.en)}</button>
             </div>
           </div>
         ) : (
@@ -67,9 +70,13 @@ export default function AdminProtectedDialog({
             <div className="av-business"><strong><bdi>{target?.business_name || '—'}</bdi></strong><span className="av-mail">{target?.email}</span></div>
             <p id={`${id}-desc`} className="av-muted av-section">{t(isHebrew, copy.body.he, copy.body.en)}</p>
             {(copy.scope.length > 0 || children) && (
-              <div className="av-impact">
+              <div className="av-card av-impact av-section" style={{ boxShadow: 'none' }}>
+                {/* the approved dialog sketches: "Impact summary" - label / value rows (current, after the action, payment last) */}
+                <h4>{t(isHebrew, D.impact.he, D.impact.en)}</h4>
                 {children}
-                {copy.scope.map((s, i) => <div key={i} className="av-statline"><span>{t(isHebrew, s.he, s.en)}</span></div>)}
+                {copy.scope.map((s, i) => (s.label
+                  ? <div key={i} className="av-statline"><span>{t(isHebrew, s.label.he, s.label.en)}</span><strong>{t(isHebrew, s.value.he, s.value.en)}</strong></div>
+                  : <div key={i} className="av-statline"><span>{t(isHebrew, s.he, s.en)}</span></div>))}
               </div>
             )}
             <div className={`av-notice ${danger ? '' : 'av-info'} av-section`}>{t(isHebrew, D.recorded.he, D.recorded.en)}</div>
@@ -79,12 +86,13 @@ export default function AdminProtectedDialog({
             </label>
             <label className="av-field">
               <span>{t(isHebrew, D.password.he, D.password.en)}</span>
-              <input type="password" name={`admin_${kind}_pwd_unique`} autoComplete="one-time-code" data-lpignore="true" data-form-type="other" value={password} onChange={(e) => onPassword(e.target.value)} required />
+              <input type="password" name={`admin_${kind}_pwd_unique`} autoComplete="one-time-code" data-lpignore="true" data-form-type="other" value={password} onChange={(e) => onPassword(e.target.value)} placeholder={t(isHebrew, D.passwordPh.he, D.passwordPh.en)} required />
             </label>
             {needsEmail && (
               <label className="av-field">
-                <span>{t(isHebrew, D.confirmEmail.he, D.confirmEmail.en)}: <bdi className="av-num">{target?.email}</bdi></span>
+                <span>{t(isHebrew, D.confirmEmail.he, D.confirmEmail.en)}</span>
                 <input type="text" name={`admin_${kind}_confirm_target`} dir="ltr" autoComplete="off" placeholder={target?.email || ''} value={confirmEmail} onChange={(e) => onConfirmEmail(e.target.value)} required />
+                <small><bdi className="av-num">{target?.email}</bdi></small>
               </label>
             )}
             {error && <div className="av-error" role="alert">{error}</div>}
@@ -96,7 +104,7 @@ export default function AdminProtectedDialog({
                 <Lock size={16} aria-hidden="true" />{busy ? t(isHebrew, D.verifying.he, D.verifying.en) : t(isHebrew, copy.confirm.he, copy.confirm.en)}
               </button>
             </div>
-            <p className="av-footnote">{t(isHebrew, D.unknownOutcome.he, D.unknownOutcome.en)}</p>
+            <div className="av-notice av-info av-section">{t(isHebrew, D.unknownOutcome.he, D.unknownOutcome.en)}</div>
           </form>
         )}
       </div>

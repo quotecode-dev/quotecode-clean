@@ -10,7 +10,7 @@ import AdminUsersView from './AdminUsersView';
 import AdminUserDetails from './AdminUserDetails';
 import AdminProtectedDialog from './AdminProtectedDialog';
 import { useAdminAccountSummary, legacyOperationsRetired } from '../domain/subscriptions/adminAccountSummary';
-import { formatShortDateTime } from '../utils/shortDate';
+import { accountDateTime } from '../utils/adminDates';
 
 export default function AdminUsersTab({
   isHebrew,
@@ -24,6 +24,8 @@ export default function AdminUsersTab({
   onOpenUserDetails,
   selectedAccount = null,
   onBackFromDetails = null,
+  onAccountsChanged = null,
+  onOpenActivity = null,
 }) {
   const [resetModalUser, setResetModalUser] = useState(null);
   const [deleteModalUser, setDeleteModalUser] = useState(null);
@@ -58,6 +60,11 @@ export default function AdminUsersTab({
   const legacyRetiredText = isHebrew
     ? 'פעולת מורשת זו אינה זמינה: מערך המסלולים החדש פעיל עבור החשבון. מסלול, יתרה וזכאות נקבעים רק בשרת.'
     : 'This legacy operation is unavailable: the new plan system is active for this account. Plan, balance and entitlement are decided only by the server.';
+  // Codex verification AV-03 (2026-10-17): the revoke explains the revoke - the account returns to the state its own data and the server
+  // give it, no charge, no promise of an entitlement that is not proven
+  const revokeOnlyText = isHebrew
+    ? 'ביטול LIFETIME: החשבון חוזר למצב שנקבע לפי נתוני החשבון והשרת (ניסיון, פג תוקף או 10 הצעות חינם — טרם הופעל), ללא חיוב. מסלול או יתרה אינם נוצרים מהביטול.'
+    : 'Revoking Lifetime: the account returns to the state its own data and the server give it (trial, expired or 10 free quotes — not yet active), with no charge. Revoking creates no plan or balance.';
   // Night task 2026-10-16 (PLN-7): what the Lifetime switch really does today
   const legacyOnlyText = isHebrew
     ? 'מנוי לכל החיים: המערכת והצ\'אט יציגו לחשבון „מנוי לכל החיים” וכל היכולות פתוחות בו, ללא חיוב. במערך המסלולים החדש (כשיופעל) זה לא משנה מסלול או יתרה.'
@@ -231,9 +238,15 @@ export default function AdminUsersTab({
   function closeDialogs() {
     if (isResetting) return;
     const wasDone = actionDone;
+    // the account just deleted from its own details page: back to the list (it no longer exists)
+    const deletedOpenAccount = wasDone && deleteModalUser && selectedAccount && deleteModalUser.id === selectedAccount.id;
     setResetModalUser(null); setDeleteModalUser(null); setLifetimeActionUser(null); setTrialActionUser(null);
     setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setResetError(''); setActionDone(false);
-    if (wasDone) setRefreshKey((k) => k + 1);
+    if (wasDone) {
+      setRefreshKey((k) => k + 1);
+      if (typeof onAccountsChanged === 'function') onAccountsChanged();
+      if (deletedOpenAccount && typeof onBackFromDetails === 'function') onBackFromDetails();
+    }
   }
 
   // TEKANGO Admin V1 (Task 2): getRemainingTimeFormatted/isHebrewText/
@@ -282,8 +295,8 @@ export default function AdminUsersTab({
             disabled={isResetting || legacyRetired}
           >
             <div className="av-statline"><span>{isHebrew ? 'מצב נוכחי' : 'Current state'}</span><strong>{lifetimeWords(targetIsLifetime)}</strong></div>
-            <div className="av-statline"><span>{isHebrew ? 'מצב לאחר הפעולה' : 'After the action'}</span><strong>{lifetimeWords(!targetIsLifetime)}</strong></div>
-            <p className="av-small av-muted" style={{ margin: '8px 0' }}>{legacyOnlyText}</p>
+            <div className="av-statline"><span>{isHebrew ? 'מצב לאחר פעולה' : 'Result'}</span><strong>{lifetimeWords(!targetIsLifetime)}</strong></div>
+            <p className="av-small av-muted" style={{ margin: '8px 0' }}>{targetIsLifetime ? revokeOnlyText : legacyOnlyText}</p>
             {legacyRetired && <div className="av-notice av-bad">{legacyRetiredText}</div>}
           </AdminProtectedDialog>
         );
@@ -297,7 +310,7 @@ export default function AdminUsersTab({
           busy={isResetting} error={resetError} done={actionDone} onSubmit={handleExecuteTrialExtension} onClose={closeDialogs}
           disabled={isResetting || legacyRetired}
         >
-          <div className="av-statline"><span>{isHebrew ? 'תקופת ניסיון נוכחית' : 'Current trial'}</span>{trialActionUser?.trial_ends_at ? <bdi className="av-num">{formatShortDateTime(trialActionUser.trial_ends_at, (isHebrew ? 'Local' : 'International'))}</bdi> : <span>{isHebrew ? 'אין' : 'None'}</span>}</div>
+          <div className="av-statline"><span>{isHebrew ? 'תקופת ניסיון נוכחית' : 'Current trial'}</span>{trialActionUser?.trial_ends_at ? <bdi className="av-num">{accountDateTime(trialActionUser.trial_ends_at, trialActionUser, (isHebrew ? 'Local' : 'International'))}</bdi> : <span>{isHebrew ? 'אין' : 'None'}</span>}</div>
           {legacyRetired && <div className="av-notice av-bad">{legacyRetiredText}</div>}
         </AdminProtectedDialog>
       )}
@@ -327,6 +340,8 @@ export default function AdminUsersTab({
           account={selectedAccount}
           isHebrew={isHebrew}
           onBack={onBackFromDetails}
+          accounts={allAccounts}
+          onOpenActivity={onOpenActivity}
           onReset={(a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setResetModalUser(a); }}
           onDelete={(a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setDeleteModalUser(a); }}
           onLifetime={(a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setActionDone(false); setLifetimeActionUser(a); }}
@@ -347,6 +362,7 @@ export default function AdminUsersTab({
         onDelete={(a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setDeleteModalUser(a); }}
         onLifetime={(a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setActionDone(false); setLifetimeActionUser(a); }}
         refreshKey={refreshKey}
+        onRefreshAccounts={onAccountsChanged}
       />
       )}
     </div>

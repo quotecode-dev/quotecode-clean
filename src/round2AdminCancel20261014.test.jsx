@@ -28,7 +28,8 @@ describe('admin indicators', () => {
   });
   it('a ready summary adds assignment, Free-10 (prepared vs enforced) and the subscription state; unprovisioned is flagged', () => {
     const prepared = accountIndicators({}, { state: 'ready', planId: 'free', free10: { remaining: 7, limit: 10 }, phase: { output: 'prepared' }, subscriptionStatus: 'none' }, { isHebrew: true, now: NOW });
-    expect(prepared.map((x) => x.text)).toEqual(['שויך למערכת המסלולים', 'Free-10: מוכן, לא נאכף', 'ללא מנוי']);
+    // Owner console 2026-10-17 ("מאשר תיקון כל 16 הממצאים של קודקס", AV-12 / the Owner's "מה זה ללא מנוי?"): 'none' has no words
+    expect(prepared.map((x) => x.text)).toEqual(['שויך למערכת המסלולים', 'Free-10: מוכן, לא נאכף']);
     const enforced = accountIndicators({}, { state: 'ready', planId: 'free', free10: { remaining: 7, limit: 10 }, phase: { output: 'enforced' } }, { isHebrew: false, now: NOW });
     expect(enforced.find((x) => x.key === 'free10').text).toBe('Free-10: 7/10 left');
     expect(accountIndicators({}, { state: 'unprovisioned' }, { isHebrew: true, now: NOW })[0].text).toBe('טרם שויך למערכת המסלולים');

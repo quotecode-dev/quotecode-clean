@@ -1,4 +1,4 @@
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Menu } from 'lucide-react';
 import { RADIUS } from '../theme/neonTheme';
 import { ADMIN_COPY as C, t } from '../domain/admin/adminCopy';
 import './adminV2.css';
@@ -33,12 +33,16 @@ export default function AdminScreenFrame({ title, subtitle, actions, controls, h
             {subtitle && <p>{subtitle}</p>}
           </div>
           <div className="admin-screen-actions av-headactions">
+            {/* PRODUCT_TRUTH_DECORATIVE: opens the shared sidebar as a drawer on a portrait tablet (admin only, AV-14) */}
+            <button type="button" className="av-btn av-drawer-open" aria-controls="authenticated-sidebar" onClick={() => window.dispatchEvent(new Event('tekango-open-admin-drawer'))}>
+              <Menu size={16} aria-hidden="true" />{t(isHebrew, 'תפריט', 'Menu')}
+            </button>
             {actions}
             {onRefresh && (
               <>
                 {staleSince
                   ? <span className="av-updated" role="status">{t(isHebrew, C.staleSince.he, C.staleSince.en)} <bdi className="av-num">{fmt(staleSince)}</bdi></span>
-                  : updatedAt && <span className="av-updated">{t(isHebrew, C.updatedAt.he, C.updatedAt.en)} <bdi className="av-num">{fmt(updatedAt)}</bdi></span>}
+                  : updatedAt && <span className="av-updated">{t(isHebrew, C.updatedAt.he, C.updatedAt.en)} <bdi className="av-num">{fmt(updatedAt)}</bdi> · {isHebrew ? 'שעון ישראל' : 'UTC'}</span>}
                 {/* PRODUCT_TRUTH_DECORATIVE: reloads this admin screen's data from the server (read-only) */}
                 <button type="button" className="av-btn" onClick={onRefresh} disabled={refreshing}>
                   <RefreshCw size={16} aria-hidden="true" />{t(isHebrew, C.refresh.he, C.refresh.en)}

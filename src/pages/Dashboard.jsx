@@ -24,7 +24,7 @@ import { allowDraftWrites, decideRestore, suppressDraftWrites, flushAllDrafts, f
 import { getBlobStore } from '../utils/draftAttachments';
 import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quoteFormState';
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
-import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang } from '../utils/regionConfig';
+import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, missingPriceItems, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
 import { itemPricePayload, formPriceFromSavedItem } from '../utils/itemPrice';
@@ -476,6 +476,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [showAiQuoteDraft, setShowAiQuoteDraft] = useState(false);
   const [shellDrawerOpen, setShellDrawerOpen] = useState(false);
   const closeShellDrawer = useCallback(() => setShellDrawerOpen(false), []);
+  // AV-14: the admin page head opens the shared sidebar drawer on a portrait tablet
+  useEffect(() => {
+    const open = () => { if (window.matchMedia && window.matchMedia('(min-width:769px) and (max-width:999px)').matches) setShellDrawerOpen(true); };
+    window.addEventListener('tekango-open-admin-drawer', open);
+    return () => window.removeEventListener('tekango-open-admin-drawer', open);
+  }, []);
 
   // TEKANGO — Owner Header Reference Correction task (2026-09-18): the ONE
   // AI Chat entry point, rendered inside the canonical business Header
@@ -1562,7 +1568,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // בבטחה ל-'' (זהה-בייט ל"לא נבחר"), לא שגיאה.
       setProfessionalDomain(data.professional_domain || '');
 
-      const countryVal = data.country || 'International';
+      // Owner 2026-10-17 (market detection = the admin's rule): a stored 'Israel' / 'IL' is Local, a stored 'Germany' is International
+      const countryVal = canonicalMarket(data.country) || data.country || 'International';
       // setBizCountry חייב לרוץ תמיד: זו הדרך היחידה שבה bizCountry (ולכן
       // sym/isLocalIsraeliBusiness בהמשך) מתעדכן מהמדינה האמיתית שבמסד
       // הנתונים. גדר ה-?lang= הייתה חוסמת את זה לגמרי בזמן תצוגה מקדימה
@@ -1779,6 +1786,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   async function handleRegionChoiceSelect(country) {
     if (!pendingNewAccount) return;
     await createNewBusinessSettings(pendingNewAccount.userId, pendingNewAccount.userEmail, country, pendingNewAccount.businessName);
+  }
+
+  // admin redesign part A review (2026-10-16): after a completed protected action the admin lists reload in place (silent - the admin
+  // screen stays mounted; a failed reload keeps the current list)
+  async function refreshAllAccounts() {
+    try {
+      const { data, error } = await supabase.from('business_settings').select('*').order('created_at', { ascending: false });
+      if (!error && Array.isArray(data)) { setAllAccounts(data); return true; }
+      return false;
+    } catch { return false; /* keep the current list */ }
   }
 
   async function fetchAllAccounts() {
@@ -7351,7 +7368,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       {/* PRODUCT_TRUTH_DECORATIVE: click on the mobile drawer backdrop closes the shell drawer overlay; generic click-outside-to-close chrome */}
       {shellDrawerOpen && <div className="dash-drawer-backdrop no-print" onClick={() => setShellDrawerOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:10000 }} />}
       <div className="dash-shell-body">
-        <AuthenticatedSidebarFrame drawerEnabled={false} open={shellDrawerOpen} onClose={closeShellDrawer} isHebrew={isHebrew}>
+        {/* Codex verification AV-14 (Owner 2026-10-17): the ONE shared sidebar becomes a drawer for the ADMIN screens on a portrait
+            tablet (769-999px); every user screen keeps drawerEnabled false behaviour (no drawer, the fixed sidebar). */}
+        <AuthenticatedSidebarFrame drawerEnabled={isAdminMode} drawerQuery={isAdminMode ? '(max-width:999px)' : '(max-width:768px)'} open={shellDrawerOpen} onClose={closeShellDrawer} isHebrew={isHebrew}>
           {/* Sidebar Branding Hierarchy: business identity primary (logo if
               the business uploaded one, else an initial-letter mark in the
               same brand gradient the CTA/avatar already use elsewhere - no
@@ -8315,6 +8334,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   openUser: openAdminUserDetails,
                   selectedUserId: adminSelectedUserId,
                   clearSelectedUser: () => setAdminSelectedUserId(null),
+                  refreshAccounts: refreshAllAccounts,
                   usersTabProps: {
                     t,
                     isHebrew,
@@ -8325,6 +8345,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     handleSort,
                     sortField,
                     sortDirection,
+                    onAccountsChanged: refreshAllAccounts,
                   },
                 }}
               />

@@ -16,7 +16,7 @@ import { formatShortDateTime } from '../utils/shortDate';
 // chart (monthly and annual listed even at 0), the data quality card (D-06: a missing billing period is never assumed monthly), and a
 // card per status that opens the users list filtered to it (no second accounts list). Counts from get_admin_dashboard_summary; while
 // it is not deployed here, counted from the loaded rows.
-export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null }) {
+export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null, onRefreshAccounts = null }) {
   const [refreshKey, setRefreshKey] = useState(0);
   const server = useAdminDashboardSummary(refreshKey);
   const s = (server.state === 'ready' || server.state === 'stale') ? server.data : null;
@@ -33,31 +33,27 @@ export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null }) {
 
   return (
     <AdminScreenFrame
-      title={isHebrew ? 'מסלולים ומנויים' : 'Plans / Subscriptions'}
-      subtitle={isHebrew ? 'מצב המסלולים מהשרת בלבד · ללא נתוני הכנסות' : 'Plan state from the server only · no revenue data'}
+      title={isHebrew ? 'מסלולים ומנויים' : 'Plans & subscriptions'}
+      subtitle={t(isHebrew, C.tagline.he, C.tagline.en)}
       label={isHebrew ? 'מסלולים ומנויים' : 'Plans and subscriptions'}
       isHebrew={isHebrew}
-      onRefresh={() => setRefreshKey((k) => k + 1)}
+      onRefresh={() => { setRefreshKey((k) => k + 1); if (typeof onRefreshAccounts === 'function') onRefreshAccounts(); }}
       refreshing={!!server.refreshing}
       updatedAt={server.updatedAt}
       staleSince={server.state === 'stale' ? server.failedAt : null}
       formatTime={(v) => formatShortDateTime(v, adminMarket)}
-      controls={(
-        <>
-          <AdminPlanSystemNotice system={planSystem} isHebrew={isHebrew} />
-          <div className="av-notice av-info">{t(isHebrew, C.plansNotice.he, C.plansNotice.en)}</div>
-        </>
-      )}
+      controls={<AdminPlanSystemNotice system={planSystem} isHebrew={isHebrew} />}
     >
+      {/* the sketch: the account-status notice opens the body */}
+      <div className="av-notice av-info" style={{ marginBlockEnd: 12 }}>{t(isHebrew, C.plansNotice.he, C.plansNotice.en)}</div>
       <div className="av-grid av-equal">
-        <article className="av-card admin-legacy-breakdown" aria-label={t(isHebrew, C.subscriptionMix.he, C.subscriptionMix.en)}>
-          <h3>{t(isHebrew, C.subscriptionMix.he, C.subscriptionMix.en)}</h3>
+        <article className="av-card admin-legacy-breakdown" aria-label={isHebrew ? 'מסלולים ומנויים' : 'Plans & subscriptions'}>
+          <h3>{isHebrew ? 'מסלולים ומנויים' : 'Plans & subscriptions'}</h3>
           <AdminDonut
-            title={t(isHebrew, C.subscriptionMix.he, C.subscriptionMix.en)}
+            title={isHebrew ? 'מסלולים' : 'Plans'}
             description={segments.map((x) => `${x.label} ${x.count}`).join(', ')}
             segments={segments} isHebrew={isHebrew} state={loadState}
             onSelect={(key) => openUsers({ status: key })}
-            renderMark={(seg) => <AdminAccountStatusIcon statusKey={seg.key} size={18} />}
           />
         </article>
         <article className="av-card" aria-label={t(isHebrew, C.dataQuality.he, C.dataQuality.en)}>
@@ -65,7 +61,7 @@ export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null }) {
           <div className="av-statline"><span>{t(isHebrew, C.managedAccounts.he, C.managedAccounts.en)}</span><strong className="av-num">{loadState === 'loading' ? '—' : managed}</strong></div>
           <div className="av-statline"><span>{t(isHebrew, C.verifiedMonthly.he, C.verifiedMonthly.en)}</span><strong className="av-num">{loadState === 'loading' ? '—' : count('paid_monthly')}</strong></div>
           <div className="av-statline"><span>{t(isHebrew, C.verifiedAnnual.he, C.verifiedAnnual.en)}</span><strong className="av-num">{loadState === 'loading' ? '—' : count('paid_annual')}</strong></div>
-          <div className="av-statline"><span>{t(isHebrew, C.free10Counter.he, C.free10Counter.en)}</span><span className={`av-badge ${planSystem === 'active' ? 'av-ok' : 'av-warn'}`}>{planSystem === 'active' ? t(isHebrew, C.active.he, C.active.en) : t(isHebrew, C.notActivated.he, C.notActivated.en)}</span></div>
+          <div className="av-statline"><span>{t(isHebrew, C.free10Counter.he, C.free10Counter.en)}</span><span className={`av-badge ${s?.free10Counter === 'enforced' ? 'av-ok' : 'av-warn'}`}>{s?.free10Counter === 'enforced' ? t(isHebrew, C.active.he, C.active.en) : t(isHebrew, C.notActivated.he, C.notActivated.en)}</span></div>
           <div className="av-notice av-section">{t(isHebrew, C.periodNotice.he, C.periodNotice.en)}</div>
         </article>
       </div>
@@ -74,15 +70,16 @@ export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null }) {
         <div className="av-cardhead">
           <h3>{t(isHebrew, C.workByPlan.he, C.workByPlan.en)}</h3>
           {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-          <button type="button" className="av-btn av-sm" onClick={() => openUsers({})}>{t(isHebrew, C.openUsers.he, C.openUsers.en)}</button>
+          <button type="button" className="av-btn" onClick={() => openUsers({})}>{t(isHebrew, C.openUsers.he, C.openUsers.en)}</button>
         </div>
         <div className="av-grid av-three">
           {rows.map(({ key, count: n }) => (
-            <div key={key} className="av-card" data-status={key} style={{ boxShadow: 'none' }}>
-              <span className="av-plan"><AdminAccountStatusIcon statusKey={key} size={24} /><strong>{tr(ACCOUNT_STATUS[key], isHebrew)}</strong></span>
+            <div key={key} className="av-card" data-status={key}>
+              <span className="av-plan"><AdminAccountStatusIcon statusKey={key} size={32} /><strong>{tr(ACCOUNT_STATUS[key], isHebrew)}</strong></span>
               <div className="av-kpi-value">{loadState === 'loading' ? '—' : n}</div>
+              <div className="av-tiny av-muted">{t(isHebrew, C.accounts.he, C.accounts.en)}</div>
               {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-              <button type="button" className="av-btn av-sm" onClick={() => openUsers({ status: key })}>{t(isHebrew, C.viewUsers.he, C.viewUsers.en)}</button>
+              <button type="button" className="av-btn av-section" onClick={() => openUsers({ status: key })}>{t(isHebrew, C.viewUsers.he, C.viewUsers.en)}</button>
             </div>
           ))}
         </div>

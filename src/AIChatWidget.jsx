@@ -392,6 +392,8 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   const topicGroups = contextualTopicGroups || getTopicGroupsForSurface(isDashboard);
 
   const inputRef = useRef(null);
+  const focusIntoChatRef = useRef(false);
+  const [focusIntoChatTick, setFocusIntoChatTick] = useState(0);
   // "Other" escape law: selecting Other (public or authenticated) must
   // drop straight into free-text mode - focus the input and swap the
   // generic "you can also type directly" hint for a direct, one-line
@@ -401,6 +403,15 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
       inputRef.current?.focus();
     }
   }, [isOpen, guidedIntent, hasSentUserMessage]);
+  useEffect(() => {
+    if (!isOpen || !focusIntoChatRef.current) return undefined;
+    focusIntoChatRef.current = false;
+    const id = setTimeout(() => {
+      const target = inputRef.current || popupRef.current?.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      target?.focus();
+    }, 0);
+    return () => clearTimeout(id);
+  }, [isOpen, focusIntoChatTick]);
 
   // AI Chat History UX task: "New Chat" archives the current visible thread
   // (if it has real conversation in it) into `threads` rather than deleting
@@ -462,7 +473,9 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   const scrollContainerRef = useRef(null);
 
   useEffect(() => {
-    const handleOpenExternalChat = () => { captureReturnFocus(); setIsOpen(true); };
+    // Codex verification AV-04 (Owner 2026-10-17, admin context only): opened from a protected admin dialog, the focus moves INTO the
+    // assistant (the dialog underneath keeps its own trap; Escape closes the chat first and the focus returns to Ask AI)
+    const handleOpenExternalChat = (e) => { captureReturnFocus(); setIsOpen(true); if (e?.detail?.context === 'admin_dialog') { focusIntoChatRef.current = true; setFocusIntoChatTick((n) => n + 1); } };
     // PRODUCT_TRUTH_CAPABILITY: ai_chat
     window.addEventListener('open-proflow-ai-chat', handleOpenExternalChat);
     return () => window.removeEventListener('open-proflow-ai-chat', handleOpenExternalChat);
