@@ -91,7 +91,7 @@ describe('L-24 the public quote (reverted behaviours)', () => {
     expect(s).toContain('const brand = { ...(issuedBranding || {}), ...liveBusiness };');
   });
   // בעל המערכת 2026-10-18: "למה בנייד החייג אליי למטה? ולא למעלה בצד שמאל כמו במחשב?" -> "החייג אליי בסדר"
-  it('the modern style on a phone: "חייג/י אליי" in the top outer corner beside the business name, the details below', () => {
+  it('עיצוב מודרני בטלפון: "חייג/י אליי" בשורה העליונה בפינה החיצונית ליד שם העסק, ריבועי הפרטים מתחת; פרטי העסק והכפתור 2 פיקסלים פנימה מהקצה', () => {
     const css = read('quoteDocument/quoteDocument.css');
     expect(css).toContain('.pq-letterhead.pq-letterhead-modern .pq-modern-aside { display: contents; }');
     expect(css).toContain('.pq-letterhead.pq-letterhead-modern .pq-modern-aside > .pq-lh-call { grid-column: 2; grid-row: 1; margin-bottom: 0; align-self: start; }');
