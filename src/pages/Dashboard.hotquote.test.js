@@ -31,7 +31,8 @@ describe('Hot quote banner (source-level regression guard)', () => {
     const toolbar = quotesTabSource.indexOf('data-testid="quote-list-header"');
     expect(banner).toBeGreaterThan(-1);
     expect(banner).toBeLessThan(toolbar);
-    expect(quotesTabSource).toMatch(/\{hotLead && \(\s*<div className="quote-hot-banner"/);
+    // + Owner console 2026-10-18, typed: "שאלה 2: ב" - the banner steps aside while a search is typed
+    expect(quotesTabSource).toMatch(/\{hotLead && !searchActive && \(\s*<div className="quote-hot-banner"/);
   });
 
   // Owner console 2026-10-18, typed: "מאשר שינוי ב-L-19: פס ההצעה החמה יתחלף כל 4 שניות בין כל ההצעות החמות" - the banner shows every hot

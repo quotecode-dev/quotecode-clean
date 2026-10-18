@@ -35,12 +35,19 @@ describe('L-23 the quote list, editor, catalog, finances (reverted behaviours)',
     expect(tab).toMatch(/\{isHebrew \? 'הדף הבא' : 'Next page'\}/);
   });
   it('#3 with no hot quote the banner says so (the Owner copy of 2026-09-08)', () => {
-    expect(tab).toContain("{!hotLead && !quotesNotLoaded && (");
+    // the Owner kept it ("להשאיר את הפס"); it steps aside while a search is typed with the orange banner ("שאלה 2: ב")
+    expect(tab).toContain("{!hotLead && !quotesNotLoaded && !searchActive && (");
     expect(tab).toContain("'אין כרגע הצעה חמה'");
     expect(tab).toContain("'כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן.'");
   });
-  it('#4 the hot banner reads every quote; a hot quote hidden by a search / filter opens its public view', () => {
+  // Owner console 2026-10-18, one item at a time: "שאלה 1: א" (the eye opens the quote in the list with its tracking details),
+  // "שאלה 2: ב" (the banner steps aside while a search is typed)
+  it('#4 the hot banner reads every quote; its eye opens the quote in the list; it steps aside while a search is typed', () => {
     expect(tab).toContain('const hotSource = (Array.isArray(allQuotes) && allQuotes.length ? allQuotes : quotes) || [];');
+    expect(tab).toContain("const searchActive = !!String(searchTerm || '').trim();");
+    expect(tab).toContain('{hotLead && !searchActive && (');
+    expect(tab).toContain('{!hotLead && !quotesNotLoaded && !searchActive && (');
+    expect(tab).toContain('openTrackingFor(quoteId);');
     expect(tab).toContain("if (q && typeof window !== 'undefined') window.open(getQuoteViewLink(q), '_blank');");
   });
   it('#5 the phone filter sheet uses the same shown-status options as the desktop', () => {

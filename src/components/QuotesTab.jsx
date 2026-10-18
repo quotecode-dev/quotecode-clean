@@ -439,6 +439,7 @@ export default function QuotesTab({
   const hotLead = hotRows.length ? hotRows[hotIndex % hotRows.length] : null;
   // the pages (see the state above): the sorted list cut into pages
   const hasHotLead = !!hotLead;
+  const searchActive = !!String(searchTerm || '').trim();
   const pageCount = Math.max(1, Math.ceil(rowsMeta.length / perPage));
   const currentPage = Math.min(listPage, pageCount - 1);
   const pageRows = rowsMeta.slice(currentPage * perPage, (currentPage + 1) * perPage);
@@ -781,7 +782,8 @@ export default function QuotesTab({
           eye (its eyelid blinks, reduced-motion safe) as the FIRST child, so it sits at the inline-start edge (right in HE, left in
           EN) before the text, followed by the real client name and the real view count of the hottest quote. */}
       {/* Owner 2026-10-18 #3: with no hot quote the banner says so, with the Owner's own copy (2026-09-08) */}
-      {!hotLead && !quotesNotLoaded && (
+      {/* Owner console 2026-10-18, typed: "שאלה 2: ב" - while a search is typed, the hot-quote banner (and its empty note) steps aside */}
+      {!hotLead && !quotesNotLoaded && !searchActive && (
         <div className="quote-hot-banner quote-hot-banner--empty" data-testid="hot-quote-empty" role="note">
           <span className="quote-hot-banner-text">
             <strong>{isHebrew ? 'אין כרגע הצעה חמה' : 'No hot quote right now'}</strong>
@@ -789,7 +791,7 @@ export default function QuotesTab({
           </span>
         </div>
       )}
-      {hotLead && (
+      {hotLead && !searchActive && (
         <div className="quote-hot-banner" data-testid="hot-quote-banner" data-hot-quote-id={hotLead.quote.id} data-hot-count={hotRows.length}
           onMouseEnter={() => setHotPaused(true)} onMouseLeave={() => setHotPaused(false)} onFocus={() => setHotPaused(true)} onBlur={() => setHotPaused(false)}>
           <button
