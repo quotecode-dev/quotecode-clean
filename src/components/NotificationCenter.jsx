@@ -4,7 +4,8 @@
 // saved mode/checkboxes (defaults = In-app only when nothing is saved). Read marks persist only when the server table exists.
 // It never sends anything and never navigates to settings (the single settings entry is inside Business settings).
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Bell } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { Bell, X } from 'lucide-react';
 import { APP as NEON } from '../theme/neonTheme';
 import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
 import { taskMarket, marketToday, marketClock } from '../utils/manualTasks';
@@ -17,6 +18,7 @@ import {
 } from '../utils/reminders';
 import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../shared/brand';
 import AiRobotIcon from './AiRobotIcon';
+import { BELL_SUBJECT_EVENT, BELL_ACTION_COPY, bellActionsFor, loadFloatedKeys, saveFloatedKeys, floatedStorageKey, pendingFloating } from '../utils/bellSubject';
 
 const KIND_COLOR = { first_view: '#5B3FB6', task_due: '#0F6672', validity_ending: '#9A5B12', viewed_not_approved: '#65727A' };
 
@@ -35,6 +37,9 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   const [read, setRead] = useState(() => new Set());
   const [readPersisted, setReadPersisted] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
+  // night task 2026-10-19: the floating notice starts only after every input of the derivation loaded once
+  const [tasksLoaded, setTasksLoaded] = useState(false);
+  const [readLoaded, setReadLoaded] = useState(false);
   const [pos, setPos] = useState(null);
   const btnRef = useRef(null);
   const panelRef = useRef(null);
@@ -54,8 +59,9 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
     if (!client || !userId) return;
     const [s, t, r] = await Promise.all([loadReminderSettings(client, userId), listTasks(client, userId), listReadMarks(client, userId)]);
     if (s.ok) { setSettings(s.data.settings); setSettingsLoaded(true); } // otherwise the In-app defaults stay (nothing is ever sent)
-    if (t.ok) setTasks(t.data);
+    if (t.ok) { setTasks(t.data); setTasksLoaded(true); }
     if (r.ok) { setRead(r.data); setReadPersisted(true); } else setReadPersisted(false);
+    setReadLoaded(true);
   }, [client, userId]);
   useEffect(() => { if (shown) refresh(); }, [shown, refresh]);
   useEffect(() => { if (open) refresh(); }, [open, refresh]);
@@ -116,6 +122,94 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
     const r = await markRemindersRead(client, userId, keys);
     if (r.ok) setRead((s) => new Set([...s, ...keys]));
   };
+
+  // night task 2026-10-19: a notification's own subject (quote / task / client) - the Dashboard opens it through the same unsaved-work
+  // guard as every other navigation; the notification becomes read and the panel / floating notice closes
+  const A = BELL_ACTION_COPY[isHebrew ? 'he' : 'en'];
+  const [notice, setNotice] = useState(null);
+  const openSubject = (item, action) => {
+    setOpen(false);
+    setNotice(null);
+    markRemindersRead(client, userId, [item.key]).then((r) => { if (r?.ok) setRead((s) => new Set([...s, item.key])); }).catch(() => {});
+    window.dispatchEvent(new CustomEvent(BELL_SUBJECT_EVENT, { detail: { ...action } }));
+  };
+  const actionsFor = (item) => bellActionsFor(item, tasks);
+
+  // the floating notice: a NEW unread notification floats once (newest, "+N" for the others); the first run in this browser only
+  // records the existing notifications (nothing floats); another tab of the same account never floats it again
+  const [floated, setFloated] = useState(null);
+  // the first run's baseline stays open for a few seconds: lists that settle in two steps (cache, then server) never float on that run
+  const baselineUntilRef = useRef(0);
+  const baselineStartRef = useRef(0);
+  const floatReady = shown && !!userId && settingsLoaded && tasksLoaded && readLoaded && quotesReady;
+  useEffect(() => {
+    if (!floatReady || floated) return;
+    const stored = loadFloatedKeys(userId);
+    if (stored === null) {
+      const baseline = new Set(items.map((i) => i.key));
+      saveFloatedKeys(userId, baseline);
+      baselineStartRef.current = Date.now();
+      baselineUntilRef.current = Date.now() + 4000;
+      setFloated(baseline);
+    } else setFloated(stored);
+  }, [floatReady, floated, userId, items]);
+  useEffect(() => {
+    if (!userId) return undefined;
+    const onStorage = (e) => { if (e.key === floatedStorageKey(userId)) setFloated(loadFloatedKeys(userId) || new Set()); };
+    window.addEventListener('storage', onStorage);
+    return () => window.removeEventListener('storage', onStorage);
+  }, [userId]);
+  useEffect(() => {
+    if (!floated || notice) return;
+    // re-read the shared memory right before showing, so a second tab that already floated it stays quiet
+    const latest = loadFloatedKeys(userId) || floated;
+    const pending = pendingFloating(items, read, latest);
+    if (!pending.length) return;
+    const next = new Set([...latest, ...pending.map((i) => i.key)]);
+    saveFloatedKeys(userId, next);
+    setFloated(next);
+    if (Date.now() < baselineUntilRef.current) {
+      // still the first run's baseline: recorded, not floated; a list still arriving keeps it open (at most 20 s after the start)
+      baselineUntilRef.current = Math.min(Date.now() + 4000, baselineStartRef.current + 20000);
+      return;
+    }
+    const visible = typeof document === 'undefined' || document.visibilityState !== 'hidden';
+    if (!open && visible) setNotice({ item: pending[0], more: pending.length - 1 });
+  }, [floated, notice, items, read, open, userId]);
+  useEffect(() => { if (settings.mode === 'off') setNotice(null); }, [settings.mode]);
+
+  // Owner 2026-10-19 placement: phone - from the top edge of the header to the end of the hot-quote banner; desktop - under the header,
+  // in the hot-quote banner's place. It floats over them (fixed), never moves them; measured live (the banner exists only on the quotes tab).
+  const [noticePos, setNoticePos] = useState(null);
+  useLayoutEffect(() => {
+    if (!notice) { setNoticePos(null); return undefined; }
+    const place = () => {
+      const header = document.querySelector('.dash-upper-section');
+      if (!header) { setNoticePos(null); return; }
+      const h = header.getBoundingClientRect();
+      const banner = document.querySelector('[data-testid="hot-quote-banner"], [data-testid="hot-quote-empty"]');
+      const b = banner ? banner.getBoundingClientRect() : null;
+      const phone = window.innerWidth <= 768;
+      if (phone) {
+        const bottom = b && b.bottom > h.bottom ? b.bottom : h.bottom + 54;
+        setNoticePos({ phone, top: h.top, left: h.left, width: h.width, minHeight: Math.max(56, bottom - h.top) });
+      } else if (b) {
+        setNoticePos({ phone, top: b.top, left: b.left, width: b.width, minHeight: b.height });
+      } else {
+        setNoticePos({ phone, top: h.bottom + 14, left: h.left + 22, width: Math.max(240, h.width - 44), minHeight: 40 });
+      }
+    };
+    place();
+    window.addEventListener('resize', place);
+    window.addEventListener('scroll', place, true);
+    return () => { window.removeEventListener('resize', place); window.removeEventListener('scroll', place, true); };
+  }, [notice]);
+  useEffect(() => {
+    if (!notice) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape' && document.activeElement?.closest?.('[data-testid="bell-float-notice"]')) setNotice(null); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [notice]);
 
   // R-28 (night task 2026-10-16): the meta line is a list of isolated parts (a name in its own script, dates / times as LTR numbers),
   // so a name and a date never swap sides with the script of the name
@@ -207,6 +301,16 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
                           ))}
                         </div>
                       )}
+                      {actionsFor(i).length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                          {actionsFor(i).map((a) => (
+                            // PRODUCT_TRUTH_CAPABILITY: reminders_automation
+                            <button key={a.kind} type="button" data-testid={`notification-action-${a.kind}`} onClick={() => openSubject(i, a)} style={actionBtnStyle(mobile)}>
+                              {A[a.kind]}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </li>
                 );
@@ -218,6 +322,54 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
           </div>
         </div>
       )}
+      {notice && noticePos && typeof document !== 'undefined' && createPortal(
+        <div data-testid="bell-float-notice" role="status" aria-live="polite" aria-label={A.region} dir={isHebrew ? 'rtl' : 'ltr'} className="no-print"
+          data-notice-kind={notice.item.kind}
+          style={{ position: 'fixed', top: noticePos.top, left: noticePos.left, width: noticePos.width, minHeight: noticePos.minHeight, boxSizing: 'border-box', zIndex: 2100,
+            display: 'flex', flexWrap: noticePos.phone ? 'wrap' : 'nowrap', alignItems: 'center', alignContent: 'center', gap: noticePos.phone ? 8 : 10,
+            padding: noticePos.phone ? '10px 12px' : '8px 12px', background: '#fff', color: NEON.textPrimary,
+            border: `1px solid ${KIND_COLOR[notice.item.kind] || NEON.border}`, borderInlineStartWidth: 4, borderRadius: noticePos.phone ? 16 : 10,
+            boxShadow: '0 14px 34px -12px rgba(15,23,42,.45)', textAlign: 'start' }}>
+          <span aria-hidden="true" style={{ flex: 'none', width: 10, height: 10, borderRadius: '50%', background: KIND_COLOR[notice.item.kind] }} />
+          <div style={{ minWidth: 0, flex: noticePos.phone ? '1 1 calc(100% - 24px)' : '1 1 auto' }}>
+            <div style={{ fontWeight: 700, fontSize: '0.84rem', overflowWrap: 'anywhere' }} dir="auto">{line(notice.item).title}</div>
+            {line(notice.item).meta.length > 0 && (
+              <div style={{ color: NEON.textSecondary, fontSize: '0.72rem', marginTop: 2 }}>
+                {line(notice.item).meta.map((part, k) => (
+                  <Fragment key={k}>{k > 0 && ' · '}{part.num ? <bdi className="pf-num" dir="ltr">{part.text}</bdi> : <bdi>{part.text}</bdi>}</Fragment>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* phone: the text takes the whole first line, the buttons the line under it (the close button at the end) */}
+          <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', justifyContent: noticePos.phone ? 'flex-start' : 'flex-end', gap: 6, flex: noticePos.phone ? '1 1 100%' : 'none' }}>
+            {actionsFor(notice.item).map((a) => (
+              // PRODUCT_TRUTH_CAPABILITY: reminders_automation
+              <button key={a.kind} type="button" data-testid={`bell-float-action-${a.kind}`} onClick={() => openSubject(notice.item, a)} style={actionBtnStyle(noticePos.phone)}>
+                {A[a.kind]}
+              </button>
+            ))}
+            {notice.more > 0 && (
+              // PRODUCT_TRUTH_CAPABILITY: reminders_automation
+              <button type="button" data-testid="bell-float-more" onClick={() => { setNotice(null); setOpen(true); }}
+                style={{ ...actionBtnStyle(noticePos.phone), border: 0, textDecoration: 'underline' }}>
+                <bdi className="pf-num">{A.more(notice.more)}</bdi>
+              </button>
+            )}
+            {/* PRODUCT_TRUTH_CAPABILITY: reminders_automation */}
+            <button type="button" data-testid="bell-float-close" aria-label={A.close} title={A.close} onClick={() => setNotice(null)}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: noticePos.phone ? 44 : 32, height: noticePos.phone ? 44 : 32, padding: 0, border: 0, borderRadius: 999, background: 'rgba(15,23,42,0.06)', color: NEON.textPrimary, cursor: 'pointer' }}>
+              <X size={16} aria-hidden="true" />
+            </button>
+          </div>
+        </div>,
+        document.body,
+      )}
     </>
   );
+}
+
+// the subject buttons: an outlined pill (the welcome item's AI button style); a 44px touch target on the phone
+function actionBtnStyle(phone) {
+  return { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: phone ? 44 : 30, padding: '4px 12px', border: '1px solid #0F6672', borderRadius: 999, background: 'none', color: '#0F6672', fontWeight: 700, fontSize: '0.74rem', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' };
 }

@@ -192,8 +192,8 @@
     "markers": 2
   },
   "src/components/NotificationCenter.jsx": {
-    "interactive": 5,
-    "markers": 5
+    "interactive": 9,
+    "markers": 9
   },
   "src/components/NumericValue.jsx": {
     "interactive": 0,
@@ -728,6 +728,10 @@
     "markers": 0
   },
   "src/utils/authErrorClassification.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/bellSubject.js": {
     "interactive": 0,
     "markers": 0
   },

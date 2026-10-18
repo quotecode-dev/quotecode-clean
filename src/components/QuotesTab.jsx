@@ -142,7 +142,10 @@ export default function QuotesTab({
   onCreateQuote,
   onCreateStructuredQuote,
   onCreateFromTemplate = null,
-  onCreateAiQuote
+  onCreateAiQuote,
+  // night task 2026-10-19 (Owner): a one-shot { quoteId, nonce } from the bell / floating notice - its page opens, then its tracking details
+  focusQuoteRequest = null,
+  onFocusQuoteConsumed = null
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
   // IRON-DATE-001 (Codex Task 17 review follow-up, fixed in Task 18): the AUTHENTICATED ACCOUNT MARKET orders and zones every date -
@@ -451,6 +454,18 @@ export default function QuotesTab({
   };
   // a new search / filter / sort starts on the first page
   useEffect(() => { setListPage(0); }, [searchTerm, statusFilter, quoteSortField, quoteSortDirection]);
+  // night task 2026-10-19: the bell's "View quote" - declared after the page reset above, so the quote's own page wins; consumed once
+  // the quote is in the (cleared) list; the list's own paging / order is unchanged (L-29)
+  useEffect(() => {
+    const id = focusQuoteRequest?.quoteId;
+    if (!id) return;
+    const idx = rowsMeta.findIndex((r) => r.quote.id === id);
+    if (idx < 0) return; // the cleared search / filter has not reached this render yet
+    goToPage(Math.floor(idx / perPage));
+    openTrackingFor(id);
+    if (typeof onFocusQuoteConsumed === 'function') onFocusQuoteConsumed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusQuoteRequest, rowsMeta.length, perPage]);
   // as many rows as fit between the list's first row and the bottom of the work area (above the footer), minus the page bar;
   // the phone / tablet cards: always 20 per page ("כל 20")
   useLayoutEffect(() => {

@@ -10,6 +10,7 @@ import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
 import { OPEN_REMINDERS_SETTINGS_EVENT } from '../utils/reminders';
+import { BELL_SUBJECT_EVENT } from '../utils/bellSubject';
 import { markQuoteSentAfterShare } from '../utils/quoteSentMark';
 import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
 import { publishBlocker, resolveBlockers, clearScope, SAVE_ATTEMPT_CODES, blockerCodeForActionError, blockerCodeForSaveFailure, blockerCodeForEmailError } from '../utils/aiHelpBlockers';
@@ -938,6 +939,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const aiNavStateRef = useRef({ showQuoteForm: false, isDirty: () => false, isSuperAdmin: false });
   // Task 40: a one-shot request for the Business settings sub-screen (consumed by SettingsTab, then cleared)
   const [settingsViewRequest, setSettingsViewRequest] = useState(null);
+  // night task 2026-10-19: a one-shot request from the bell to open one quote's tracking details in the list (consumed by QuotesTab)
+  const [bellQuoteFocus, setBellQuoteFocus] = useState(null);
   useEffect(() => {
     function handleAiNavigate(e) {
       const action = e?.detail?.action;
@@ -1021,17 +1024,59 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           setActiveTab('settings');
           setSettingsViewRequest({ view: 'reminders' });
           break;
+        // night task 2026-10-19 (Owner, doc 4559529a): a bell notification's own subject - product-owned, never an AI destination
+        case 'open_bell_quote_internal': {
+          const quoteId = e?.detail?.meta?.quoteId;
+          if (!quotes.some((q) => q.id === quoteId)) {
+            setAlertModalMsg(isHebrew ? 'ההצעה של ההודעה כבר אינה זמינה.' : 'The quote of this notification is no longer available.');
+            break;
+          }
+          closeEditor();
+          setSearchTerm('');
+          setStatusFilter('All');
+          setActiveTab('main');
+          setBellQuoteFocus({ quoteId, nonce: Date.now() });
+          break;
+        }
+        case 'open_bell_task_internal':
+          closeEditor();
+          setTaskOpenId(e?.detail?.meta?.taskId || null);
+          setActiveTab('tasks');
+          break;
+        case 'open_bell_client_internal': {
+          const clientId = e?.detail?.meta?.clientId;
+          const missing = () => setAlertModalMsg(isHebrew ? 'הלקוח של ההודעה כבר אינו זמין.' : 'The client of this notification is no longer available.');
+          const openClient = (target) => { closeEditor(); setActiveTab('clients'); setEditingClient(target); };
+          const known = clients.find((c) => c.id === clientId);
+          if (known) { openClient(known); break; }
+          // a client added on another device / after this list loaded: read it (RLS = only the account's own rows) before saying "missing"
+          if (!clientId) { missing(); break; }
+          Promise.resolve(supabase.from('clients').select('*').eq('id', clientId).maybeSingle())
+            .then(({ data }) => { if (data) openClient(data); else missing(); })
+            .catch(() => missing());
+          break;
+        }
         default:
           break;
       }
     }
     // Task 40: the welcome item's "Business settings › Reminders & automation" link - the same unsaved-work guard as above
     const handleOpenReminders = () => handleAiNavigate({ detail: { action: 'open_reminders_settings_internal' } });
+    const BELL_ACTIONS = { quote: 'open_bell_quote_internal', task: 'open_bell_task_internal', client: 'open_bell_client_internal' };
+    const handleBellSubject = (ev) => {
+      const d = ev?.detail || {};
+      if (BELL_ACTIONS[d.kind]) handleAiNavigate({ detail: { action: BELL_ACTIONS[d.kind], meta: d } });
+    };
     window.addEventListener(AI_NAVIGATE_EVENT, handleAiNavigate);
     window.addEventListener(OPEN_REMINDERS_SETTINGS_EVENT, handleOpenReminders);
-    return () => { window.removeEventListener(AI_NAVIGATE_EVENT, handleAiNavigate); window.removeEventListener(OPEN_REMINDERS_SETTINGS_EVENT, handleOpenReminders); };
+    window.addEventListener(BELL_SUBJECT_EVENT, handleBellSubject);
+    return () => {
+      window.removeEventListener(AI_NAVIGATE_EVENT, handleAiNavigate);
+      window.removeEventListener(OPEN_REMINDERS_SETTINGS_EVENT, handleOpenReminders);
+      window.removeEventListener(BELL_SUBJECT_EVENT, handleBellSubject);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quotes, isHebrew]);
+  }, [quotes, clients, isHebrew]);
 
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -8123,6 +8168,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 onCreateStructuredQuote={handleCreateStructuredQuoteClick}
                 onCreateFromTemplate={handleOpenTemplatePicker}
                 onCreateAiQuote={handleCreateAiQuoteClick}
+                focusQuoteRequest={bellQuoteFocus}
+                onFocusQuoteConsumed={() => setBellQuoteFocus(null)}
               />
           )}
 
