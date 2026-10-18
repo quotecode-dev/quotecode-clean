@@ -561,25 +561,34 @@ describe.each([
     expect(amount.textContent).toBe('₪1,227.00');
   });
 
-  it('shows exactly four rows first and the whole list (each quote once) after Show all', () => {
-    const all = ['a', 'b', 'c', 'd', 'e', 'f'].map((id) => mk(id));
+  // Owner console 2026-10-18, typed: "שיראה מסך מלא לפי דפים, הסתיים הדף שיהיה כפתור למטה להציג את הדף הבא" + "שההצעה תופיע לפי הסדר" (accepted: "מעולה, תנעל")
+  it('pages: a full page, then "next page" shows the following quotes in order; "page X of Y"; every quote exactly once', () => {
+    const ids = Array.from({ length: 13 }, (_, i) => `q${String(i).padStart(2, '0')}`);
+    const all = ids.map((id) => mk(id));
     const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={all} allQuotes={all} />);
-    expect(container.querySelectorAll('.quote-modern-item')).toHaveLength(4);
-    fireEvent.click(screen.getByText(isHebrew ? 'הצגת כל ההצעות' : 'Show all quotes'));
-    const names = [...container.querySelectorAll('.quote-modern-client-name')].map((n) => n.textContent);
-    expect(names).toEqual(['Client a', 'Client b', 'Client c', 'Client d', 'Client e', 'Client f']);
+    const names = () => [...container.querySelectorAll('.quote-modern-client-name')].map((n) => n.textContent);
+    const page1 = names();
+    expect(page1).toHaveLength(10); // the page size before the screen is measured
+    const info = () => container.querySelector('.quote-modern-page-info').textContent;
+    expect(info()).toBe(isHebrew ? 'עמוד 1 מתוך 2' : 'Page 1 of 2');
+    expect(container.querySelector('[data-page="prev"]').disabled).toBe(true);
+    fireEvent.click(container.querySelector('[data-page="next"]'));
+    const page2 = names();
+    expect(info()).toBe(isHebrew ? 'עמוד 2 מתוך 2' : 'Page 2 of 2');
+    expect(container.querySelector('[data-page="next"]').disabled).toBe(true);
+    expect([...page1, ...page2]).toEqual(all.map((q) => q.clients.company_name));
+    expect(screen.queryByText(isHebrew ? 'הצגת כל ההצעות' : 'Show all quotes')).toBeNull();
   });
 
-  it('promotes the hottest eligible quote into the four visible rows without duplicating it', () => {
+  // Owner console 2026-10-18 ("שההצעה תופיע לפי הסדר"): no hot quote is promoted - every quote keeps its sorted place, none is dropped
+  it('keeps every quote, hot ones included, in the list order - none promoted, none dropped, none duplicated', () => {
     const list = [mk('a'), mk('b'), mk('c'), mk('d'), mk('hotA', { view_count: 4, status: 'sent', created_at: '2026-02-01T00:00:00.000Z' }), mk('hotB', { view_count: 9, status: 'sent', created_at: '2026-01-15T00:00:00.000Z' })];
     const { container } = render(<QuotesTab {...buildProps(isHebrew)} quotes={list} allQuotes={list} />);
-    let names = [...container.querySelectorAll('.quote-modern-client-name')].map((n) => n.textContent);
-    // Owner bug 2026-10-14: the compact list never drops another hot quote (it was unreachable with <= 4 quotes); the hottest leads
-    expect(names).toEqual(['Client hotB', 'Client hotA', 'Client a', 'Client b']);
-    expect(container.querySelectorAll('.quote-modern-item.is-hot')).toHaveLength(2);
-    fireEvent.click(screen.getByText(isHebrew ? 'הצגת כל ההצעות' : 'Show all quotes'));
-    names = [...container.querySelectorAll('.quote-modern-client-name')].map((n) => n.textContent);
+    const names = [...container.querySelectorAll('.quote-modern-client-name')].map((n) => n.textContent);
+    // the default order is newest first: hotA (Feb), hotB (Jan), then the others - the hottest (hotB, 9 views) is NOT moved to the top
+    expect(names.slice(0, 2)).toEqual(['Client hotA', 'Client hotB']);
     expect([...names].sort()).toEqual(list.map((q) => q.clients.company_name).sort());
+    expect(container.querySelectorAll('.quote-modern-item.is-hot')).toHaveLength(2);
     expect(new Set(names).size).toBe(names.length);
   });
 

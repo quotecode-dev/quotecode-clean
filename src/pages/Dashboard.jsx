@@ -6048,6 +6048,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           cursor: pointer;
         }
         .quote-hot-banner-action:hover { background: #fed7aa; }
+        /* Owner 2026-10-18: the quote list in pages - separate, clearly outlined "previous" / "next" buttons with the highlighted
+           "page X of Y" between them (every width; the desktop card adjusts its height below) */
+        .quote-modern-pager { flex: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 4px; margin-top: 4px; background: transparent; font-size: 13px; }
+        .quote-modern-page-btn { min-height: 40px; padding: 0 16px; border: 1.5px solid #0a55da; border-radius: 8px; background: #ffffff; color: #0a55da; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
+        .quote-modern-page-btn:hover:not(:disabled) { background: #eef4ff; }
+        .quote-modern-page-btn:disabled { border-color: #d6dfea; color: #94a3b8; background: #f6f8fb; cursor: default; }
+        .quote-modern-page-btn:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
+        .quote-modern-page-info { padding: 6px 12px; border-radius: 999px; background: #eef4ff; color: #0b2a5b; font-weight: 700; white-space: nowrap; }
         .quote-hot-banner-action:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
 
         /* Owner superseding responsive correction (2026-10-08 17:19): on mobile / tablet-portrait the top chrome of the
@@ -6760,6 +6768,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             cursor: pointer;
           }
           .quote-modern-show-all:focus-visible { outline: 2px solid #0c5fe3; outline-offset: -3px; }
+          /* the desktop page bar sits inside the list card: one 44px row under a rule */
+          .quote-modern-list > .quote-modern-pager { block-size: 44px; padding: 0 8px; margin: 0; border-top: 1px solid #e3e6eb; }
+          .quote-modern-list > .quote-modern-pager .quote-modern-page-btn { min-height: 32px; }
 
           /* Sortable header strip: a light-grey rounded strip inside the card. It shares the row grid EXACTLY (same --qm-cols and
              --qm-gap): the strip is inset by 10px, so its own inline padding is the row padding (4px list-edge border + 14px / 16px)

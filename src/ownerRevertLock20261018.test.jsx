@@ -4,7 +4,6 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { render } from '@testing-library/react';
 import AdminProtectedDialog from './components/AdminProtectedDialog';
-import { getQuotesShowAll, setQuotesShowAll, resetQuotesListMemory } from './utils/quotesListMemory';
 import { isQuoteAcceptanceExpired } from './utils/quoteValidity';
 import { canonicalMarket } from './utils/regionConfig';
 
@@ -24,14 +23,16 @@ describe('L-23 the quote list, editor, catalog, finances (reverted behaviours)',
     expect(tab.indexOf('<div className="quote-workspace-controls">')).toBeLessThan(tab.indexOf('className="quote-export-compact"'));
     expect(dash).not.toMatch(/\.quote-export-compact \{ display: none; \}/);
   });
-  it('#2 "show all" is remembered while the app is open; a search shows every match', () => {
-    resetQuotesListMemory();
-    expect(getQuotesShowAll()).toBe(false);
-    setQuotesShowAll(true);
-    expect(getQuotesShowAll()).toBe(true);
-    resetQuotesListMemory();
-    expect(tab).toContain('useState(() => getQuotesShowAll());');
-    expect(tab).toContain("const showAllDesktopQuotes = showAllDesktopQuotesState || !!String(searchTerm || '').trim();");
+  // #2 superseded by the Owner's own decision (2026-10-18, L-29): the list is in pages - desktop as many as fit, phone 20 a page
+  it('#2 -> L-29: the quote list in pages (desktop as many as fit, phone / tablet 20), previous / next, in the sorted order', () => {
+    expect(tab).toContain('const pageRows = rowsMeta.slice(currentPage * perPage, (currentPage + 1) * perPage);');
+    expect(tab).toContain('const MOBILE_QUOTES_PER_PAGE = 20;');
+    expect(tab).toContain("useEffect(() => { setListPage(0); }, [searchTerm, statusFilter, quoteSortField, quoteSortDirection]);");
+    expect(tab).not.toContain('pickCompactRows');
+    const goTo = tab.slice(tab.indexOf('  const goToPage = (p) => {'), tab.indexOf('  // a new search / filter / sort starts on the first page'));
+    expect(goTo).not.toContain('scrollIntoView'); // "המסך קופץ": a page change never moves the screen
+    expect(tab).toMatch(/\{isHebrew \? 'הדף הקודם' : 'Previous page'\}/);
+    expect(tab).toMatch(/\{isHebrew \? 'הדף הבא' : 'Next page'\}/);
   });
   it('#3 with no hot quote the banner says so (the Owner copy of 2026-09-08)', () => {
     expect(tab).toContain("{!hotLead && !quotesNotLoaded && (");
