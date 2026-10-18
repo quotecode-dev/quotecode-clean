@@ -155,21 +155,27 @@ const DEFAULT_TERMS_ENG = `General Terms:
 // מהשרת, או בבחירה מפורשת של המשתמש אם geo נכשל (ר' fetchSettings ->
 // createNewBusinessSettings / handleRegionChoiceSelect למטה).
 // Header date/time: one line '<weekday>, DD/MM/YYYY | HH:mm' on desktop (weekday + separator hidden on phones, which keep the
-// compact stacked date over time). No seconds, so it refreshes every 30s. Date and time are bidi-isolated LTR atoms
-// (.pf-num) inside the mirrored header, so Hebrew punctuation never reorders them.
+// compact stacked date over time). Date and time are bidi-isolated LTR atoms (.pf-num) inside the mirrored header, so Hebrew
+// punctuation never reorders them.
+// Owner console 2026-10-18, typed: "1 - עם שניות", "2 - שיהיה מסונכרן בדיוק לפי שעון המחשב", "3 - להחזיר את האנימציה": the time shows SECONDS and ticks exactly
+// on the device clock's second boundary (each tick schedules the next one at the start of the following second - no drift).
 function HeaderClock({ country, isHebrew }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 30000);
-    return () => clearInterval(id);
+    let id = null;
+    const schedule = () => { id = setTimeout(() => { setNow(new Date()); schedule(); }, 1000 - (Date.now() % 1000) + 2); };
+    schedule();
+    return () => clearTimeout(id);
   }, []);
   // weekday NAME only (never a numeric date - that stays with formatShortDate, IRON-DATE-001)
   const weekday = new Intl.DateTimeFormat(isHebrew ? 'he-IL' : 'en-GB', { weekday: 'long' }).format(now);
-  const time = now.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+  const time = now.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
   return (
     <>
       {/* Owner 2026-10-14: on phones the stacked block opens with the time-of-day greeting (in place of the date); desktop keeps the date */}
-      <span className="dash-header-mgreet">{timeGreeting(now.getHours(), isHebrew)}</span>
+      {/* the greeting enters with the approved animation again (dashHeaderGreetingEnter); keyed by its text, so a new part of the day
+          enters the same way */}
+      <span key={timeGreeting(now.getHours(), isHebrew)} className="dash-header-mgreet dash-header-greeting-text">{timeGreeting(now.getHours(), isHebrew)}</span>
       <span className="dash-header-weekday">{weekday}{', '}</span>
       {/* IRON-DATE-001: live clock = the device's own current day, ordered by the ACCOUNT MARKET (unknown -> International). */}
       <bdi dir="ltr" className="dash-header-date pf-num">{formatShortDate(deviceCalendarDate(now), resolveAdminMarket({ country }).market)}</bdi>
@@ -186,7 +192,9 @@ function HeaderGreeting({ isHebrew }) {
     const id = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(id);
   }, []);
-  return <strong className="dash-header-greeting">{timeGreeting(now.getHours(), isHebrew)}</strong>;
+  // Owner console 2026-10-18, typed: "1 - עם שניות", "2 - שיהיה מסונכרן בדיוק לפי שעון המחשב", "3 - להחזיר את האנימציה" #3: the greeting enters with the approved animation again
+  const text = timeGreeting(now.getHours(), isHebrew);
+  return <strong key={text} className="dash-header-greeting dash-header-greeting-text">{text}</strong>;
 }
 
 // The "new client" window's client: ONE stable empty object. A fresh {} on every Dashboard render re-ran the window's reset effect
