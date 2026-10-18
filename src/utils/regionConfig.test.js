@@ -179,8 +179,9 @@ describe('canonicalMarket - one market rule for the language, the currency and t
     const { join } = await import('node:path');
     const { cwd } = await import('node:process');
     const dash = readFileSync(join(cwd(), 'src', 'pages', 'Dashboard.jsx'), 'utf8');
-    expect(dash).toContain("const countryVal = canonicalMarket(data.country) || data.country || 'International';");
-    // a save never rewrites the stored country while its market is unchanged (a stored 'Germany' stays 'Germany')
-    expect(dash).toContain('country: storedCountryRef.current && canonicalMarket(storedCountryRef.current) === bizCountry ? storedCountryRef.current : bizCountry,');
+    // + Codex LANG-01 (2026-10-18): an unknown stored country is International everywhere (never USD with a hidden 18%)
+    expect(dash).toContain("const countryVal = canonicalMarket(data.country) || 'International';");
+    // a save never rewrites the stored country while its market is unchanged (a stored 'Germany' or unknown 'ZZ' stays as stored)
+    expect(dash).toContain("country: storedCountryRef.current && (canonicalMarket(storedCountryRef.current) || 'International') === bizCountry ? storedCountryRef.current : bizCountry,");
   });
 });

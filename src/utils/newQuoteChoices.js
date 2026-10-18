@@ -19,7 +19,8 @@ export function newQuoteChoices(isHebrew) {
       id: 'structured',
       Icon: Ruler,
       label: isHebrew ? 'הצעה מדודה לפי מקצוע' : 'Profession-aware measured quote',
-      hint: isHebrew ? 'חדרים, יחידות ומדידות לפי המקצוע שלך' : 'Rooms, units and measurements for your trade',
+      // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #13: round 1 (L-09) opens a measured quote as a simple list - the hint no longer promises rooms
+      hint: isHebrew ? 'מידות, יחידות ומחירים לפי המקצוע שלך' : 'Sizes, units and prices for your trade',
     },
   ];
 }

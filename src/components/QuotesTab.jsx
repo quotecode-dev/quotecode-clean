@@ -3,6 +3,7 @@
 // חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה או לעקוף את מגבלות חבילות המנוי (Free/Basic/PRO).
 // ==========================================
 
+import { getQuotesShowAll, setQuotesShowAll } from '../utils/quotesListMemory';
 import { useState, useEffect, useLayoutEffect, useRef, Fragment } from 'react';
 import { MoneyValue, CurrencyTotals } from './NumericValue';
 import { totalsByQuoteCurrency } from '../utils/money';
@@ -263,7 +264,11 @@ export default function QuotesTab({
   // הסטטוס גלוי ישירות ליד החיפוש כמו קודם - שום שינוי שם). state מקומי
   // טהור (לא נתון עסקי) לפתיחה/סגירה של ה-sheet הקומפקטי.
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [showAllDesktopQuotes, setShowAllDesktopQuotes] = useState(false);
+  // Owner console 2026-10-18, typed: "להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!" (docs/OWNER_LOST_BEHAVIOURS_2026-10-18.md) #2: "show all" is remembered while the app is open (the list no longer drops back to 4 after an edit / tab switch)
+  const [showAllDesktopQuotesState, setShowAllDesktopQuotesState] = useState(() => getQuotesShowAll());
+  const setShowAllDesktopQuotes = (next) => setShowAllDesktopQuotesState((cur) => { const v = typeof next === 'function' ? next(cur) : next; setQuotesShowAll(v); return v; });
+  // a search shows every match (never cut to 4)
+  const showAllDesktopQuotes = showAllDesktopQuotesState || !!String(searchTerm || '').trim();
   // The hot-quote banner opens the same tracking details panel as the hot row's "Open & track" action (open, never toggle closed).
   const openTrackingFor = (quoteId) => {
     setExpandedQuoteId(quoteId);
@@ -409,7 +414,9 @@ export default function QuotesTab({
   // Owner console 2026-10-18, typed: "מאשר שינוי ב-L-19: פס ההצעה החמה יתחלף כל 4 שניות בין כל ההצעות החמות" - the banner shows
   // every hot quote in turn (hottest first, then by views, ties newest), one every 4 seconds, paused while hovered or focused so its
   // action can be used; the list keeps its order (the hottest stays first - L-07). A single hot quote never rotates.
-  const hotRows = rowsMeta.filter((r) => r.isHot).sort((a, b) => {
+  // Owner console 2026-10-18, typed: "להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!" (docs/OWNER_LOST_BEHAVIOURS_2026-10-18.md) #4: the banner reads every quote (as before), not the filtered list - a search or filter never hides it
+  const hotSource = (Array.isArray(allQuotes) && allQuotes.length ? allQuotes : quotes) || [];
+  const hotRows = hotSource.map((quote) => ({ quote, isHot: isHotQuote({ ...quote, status: quote.status ? String(quote.status).toLowerCase() : 'draft' }) })).filter((r) => r.isHot).sort((a, b) => {
     const dv = Number(b.quote.view_count || 0) - Number(a.quote.view_count || 0);
     if (dv !== 0) return dv;
     const t = (r) => { const x = Date.parse(r.quote.created_at); return Number.isNaN(x) ? 0 : x; };
@@ -425,6 +432,12 @@ export default function QuotesTab({
   const hotLead = hotRows.length ? hotRows[hotIndex % hotRows.length] : null;
   // the rotating banner may show a hot quote that the compact desktop list (4 rows) does not hold: its action shows every row first
   const openHotQuote = (quoteId) => {
+    // a hot quote that the current search / filter hides: its public view in a new tab (the former behaviour)
+    if (!rowsMeta.some((r) => r.quote.id === quoteId)) {
+      const q = hotSource.find((x) => x.id === quoteId);
+      if (q && typeof window !== 'undefined') window.open(getQuoteViewLink(q), '_blank');
+      return;
+    }
     if (!useCards && !showAllDesktopQuotes && !pickCompactRows(rowsMeta).some((r) => r.quote.id === quoteId)) setShowAllDesktopQuotes(true);
     openTrackingFor(quoteId);
   };
@@ -698,6 +711,15 @@ export default function QuotesTab({
       {/* Owner update (2026-10-09, all devices): no flame and no "hot quote" title. The orange alert frame keeps ONE illustrated
           eye (its eyelid blinks, reduced-motion safe) as the FIRST child, so it sits at the inline-start edge (right in HE, left in
           EN) before the text, followed by the real client name and the real view count of the hottest quote. */}
+      {/* Owner 2026-10-18 #3: with no hot quote the banner says so, with the Owner's own copy (2026-09-08) */}
+      {!hotLead && !quotesNotLoaded && (
+        <div className="quote-hot-banner quote-hot-banner--empty" data-testid="hot-quote-empty" role="note">
+          <span className="quote-hot-banner-text">
+            <strong>{isHebrew ? 'אין כרגע הצעה חמה' : 'No hot quote right now'}</strong>
+            {' '}<span className="quote-hot-banner-hint">{isHebrew ? 'כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן.' : 'A quote will appear here after 3 or more views while it is still awaiting approval.'}</span>
+          </span>
+        </div>
+      )}
       {hotLead && (
         <div className="quote-hot-banner" data-testid="hot-quote-banner" data-hot-quote-id={hotLead.quote.id} data-hot-count={hotRows.length}
           onMouseEnter={() => setHotPaused(true)} onMouseLeave={() => setHotPaused(false)} onFocus={() => setHotPaused(true)} onBlur={() => setHotPaused(false)}>
@@ -880,10 +902,8 @@ export default function QuotesTab({
                   style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '7px', background: NEON.bgInput, boxSizing: 'border-box', fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary }}
                 >
                   <option value="All">{t.filterStatus}</option>
-                  <option value="draft">{isHebrew ? 'טיוטה' : 'Draft'}</option>
-                  <option value="sent">{isHebrew ? 'נשלח' : 'Sent'}</option>
-                  <option value="approved">{isHebrew ? 'אושר' : 'Approved'}</option>
-                  <option value="paid">{isHebrew ? 'שולם' : 'Paid'}</option>
+                  {/* Owner 2026-10-18 #5: the phone sheet uses the same shown-status options as the desktop (R-07) */}
+                  {QUOTE_FILTER_OPTIONS.map((f) => <option key={f} value={f}>{quoteFilterLabel(f, isHebrew)}</option>)}
                 </select>
               </div>
               <div>

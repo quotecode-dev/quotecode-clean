@@ -927,6 +927,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/utils/quotesListMemory.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/regionConfig.js": {
     "interactive": 0,
     "markers": 0

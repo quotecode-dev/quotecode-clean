@@ -67,7 +67,8 @@ export default function FinancesTab({
   // IRON-MARKET-004: income is one series per persisted quote currency (Income_ILS, Income_USD, ...) - never one mixed series.
   const hasChartData = Array.isArray(chartData) && chartData.some((d) => Number(d.Expenses || 0) > 0
     || Object.keys(d).some((k) => k.startsWith('Income_') && Number(d[k] || 0) > 0));
-  const INCOME_FILLS = [NEON.emerald, NEON.sky, NEON.violetLight, NEON.amber];
+  // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #16: four clearly different income colours again (the 2nd and 3rd were two near-identical teals)
+  const INCOME_FILLS = ['#22c55e', '#0ea5e9', '#8b5cf6', '#f59e0b'];
   const revenueMulti = (adminRevenueTotals?.groups?.length || 0) > 1 || (adminRevenueTotals?.unknownCount || 0) > 0;
   const netProfitComputable = adminNetProfit !== null && adminNetProfit !== undefined;
   const netProfitTone = !netProfitComputable ? NEON.textMuted : (adminNetProfit >= 0 ? NEON.emerald : NEON.red);

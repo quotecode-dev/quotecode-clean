@@ -1571,7 +1571,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setProfessionalDomain(data.professional_domain || '');
 
       // Owner 2026-10-17 (market detection = the admin's rule): a stored 'Israel' / 'IL' is Local, a stored 'Germany' is International
-      const countryVal = canonicalMarket(data.country) || data.country || 'International';
+      // Codex LANG-01 (2026-10-18): an unknown stored country (e.g. 'ZZ') is International everywhere - English, USD, 0% VAT -
+      // never USD mixed with a hidden Israeli 18%. The stored value itself is kept (see the save below).
+      const countryVal = canonicalMarket(data.country) || 'International';
       // setBizCountry חייב לרוץ תמיד: זו הדרך היחידה שבה bizCountry (ולכן
       // sym/isLocalIsraeliBusiness בהמשך) מתעדכן מהמדינה האמיתית שבמסד
       // הנתונים. גדר ה-?lang= הייתה חוסמת את זה לגמרי בזמן תצוגה מקדימה
@@ -1857,7 +1859,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       default_terms: defaultTerms,
       default_warranty: defaultWarranty,
       // the market rule reads a stored country; a save never rewrites it (a stored 'Germany' stays 'Germany' while the market is unchanged)
-      country: storedCountryRef.current && canonicalMarket(storedCountryRef.current) === bizCountry ? storedCountryRef.current : bizCountry,
+      country: storedCountryRef.current && (canonicalMarket(storedCountryRef.current) || 'International') === bizCountry ? storedCountryRef.current : bizCountry,
       currency: enforcedCurrency,
       user_id: session.user.id
     };
@@ -6027,6 +6029,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           font-weight: 500;
         }
         .quote-hot-banner-name { padding: 0; background: transparent; color: #c2410c; font-weight: 700; }
+        /* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #3: the empty state is neutral (no alert colour) */
+        .quote-hot-banner.quote-hot-banner--empty { background: #f6f8fb; border-color: #d6dfea; color: #50627a; }
+        .quote-hot-banner--empty .quote-hot-banner-hint { font-weight: 500; opacity: 0.85; }
         .quote-hot-banner-action {
           flex: none;
           /* 32px so the 24px illustrated eye (Owner update 2026-10-09) keeps its own clear area inside the 40px banner */
@@ -6452,7 +6457,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             outline: 2px solid #0c5fe3;
             outline-offset: 2px;
           }
-          .quote-export-compact { display: none; }
+          /* Owner console 2026-10-18, typed: "להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!" (docs/OWNER_LOST_BEHAVIOURS_2026-10-18.md) #1: the CSV export is visible on the desktop list again (it was hidden, contrary to its own comment) */
+          .quote-export-compact { display: inline-flex; align-items: center; justify-content: center; inline-size: 36px; block-size: 36px; flex: none; border: 1px solid #d6dfea; border-radius: 8px; background: #fff; color: #172d49; cursor: pointer; }
+          .quote-export-compact:hover { background: #eef4f8; }
+          .quote-export-compact:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
 
           /* Overview strip: 4 cells (quotes / awaiting / approved / total), short dividers, number first then label */
           .quote-workspace .quote-overview {
@@ -7043,7 +7051,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         }
         @media (min-width: 769px) {
           .dash-status-toast {
-            left: calc(50% ${isHebrew ? '- 116px' : '+ 116px'});
+            /* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #8: centred over the workspace again - half of today's 178px sidebar */
+            left: calc(50% ${isHebrew ? '- 89px' : '+ 89px'});
           }
         }
         /* Desktop Header Removal task, §7 mount-scoping mechanism: hides
@@ -7279,6 +7288,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         isLocalIsraeliBusiness={isLocalIsraeliBusiness} 
         accountSummary={accountSummary}
         isLifetime={isLifetimeAccount}
+        // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #17: the account currency reaches the plans window again (the EUR / GBP estimate line)
+        currency={currency}
         statusLine={accountStatusSentence(ownSubscriptionStatus, isHebrew, statusDate)}
       />
       <CapabilityUpgradeNotice

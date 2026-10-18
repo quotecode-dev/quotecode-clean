@@ -895,14 +895,30 @@
   color: var(--pq-muted);
 }
 
+/* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #19: the signed confirmation is the green box again (as before the new interface) */
 .pq-card .pq-approval-signed {
   display: block;
-  color: var(--pq-ok);
+  background: #dcfce7;
+  color: #166534;
+  padding: 20px;
+  border-radius: 12px;
+  font-weight: 700;
+  border: 0;
 }
 
 .pq-card .pq-approval-signed .pq-approval-title {
-  color: var(--pq-ok);
+  color: #166534;
+  font-size: 1.1rem;
+  margin-bottom: 5px;
 }
+
+.pq-card .pq-approval-signed .pq-approval-record { color: #15803d; font-size: 0.9rem; }
+.pq-card .pq-approval-signed .pq-signature-img { border: 1px solid #86efac; border-radius: 10px; padding: 6px; background: #ffffff; }
+
+/* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #18: the static signature line is for the printed / PDF copy only - on screen the signature pad is in the document */
+.pq-card .pq-print-only { display: none; }
+.pq-pdf-capturing .pq-card .pq-print-only { display: flex; }
+@media print { .pq-card .pq-print-only { display: flex !important; } }
 
 .pq-card .pq-approval-record {
   margin-top: 10px;

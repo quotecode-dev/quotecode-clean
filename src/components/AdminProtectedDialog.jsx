@@ -1,7 +1,7 @@
 // The admin protected-action dialog (Owner 2026-10-16, admin spec §7 + §9): role=dialog + aria-modal, a name and a description, a focus
 // trap, Escape closes BEFORE dispatch (never while the server is working), focus returns to the opener, the background is inert. Initial
 // focus is the reason field - never the destructive confirm button. AI-HELP-AVAILABILITY-001: the ONE assistant stays reachable inside
-// this dialog (the shared AiModalHeader, as in the plans window / item wizard), so the page behind is NOT made inert - the overlay
+// this dialog (the shared AiModalHeader, as in the plans window / item wizard), so the page behind is made inert EXCEPT the assistant's own root (AV-04, below) - the overlay
 // blocks the pointer and the focus trap keeps the keyboard inside. Fields: reason + admin password (+ the target email typed for a
 // reset / delete). The submit names the action, is disabled while working ("Verifying…") - no double submit.
 import { useEffect, useId, useRef } from 'react';
@@ -35,6 +35,34 @@ export default function AdminProtectedDialog({
   }, []);
 
   useEffect(() => { if (done) doneCloseRef.current?.focus(); }, [done]);
+
+  // Codex verification AV-04 (Owner approval 2026-10-17, admin context only): the page behind the dialog is made inert and hidden from
+  // assistive technology - EXCEPT the two allowed roots: this dialog's overlay and the ONE canonical assistant (AI-HELP-AVAILABILITY-001
+  // keeps it reachable). Walking from <body>, a branch that holds an allowed root is entered, every other branch is isolated; the
+  // previous inert / aria-hidden state is restored on close.
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const overlay = dialogRef.current ? dialogRef.current.closest('.av-overlay') : null;
+    const allowed = [overlay, document.querySelector('.ai-chat-container')].filter(Boolean);
+    if (!overlay) return undefined;
+    const changed = [];
+    const walk = (parent) => {
+      for (const child of [...parent.children]) {
+        if (allowed.includes(child) || child.tagName === 'SCRIPT' || child.tagName === 'STYLE') continue;
+        if (allowed.some((a) => child.contains(a))) { walk(child); continue; }
+        changed.push([child, child.inert === true, child.getAttribute('aria-hidden')]);
+        child.inert = true;
+        child.setAttribute('aria-hidden', 'true');
+      }
+    };
+    walk(document.body);
+    return () => {
+      for (const [el, wasInert, ariaHidden] of changed) {
+        el.inert = wasInert;
+        if (ariaHidden === null) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', ariaHidden);
+      }
+    };
+  }, []);
 
   const onKeyDown = (e) => {
     if (e.key === 'Escape') { if (!busy) { e.stopPropagation(); onClose(); } return; }

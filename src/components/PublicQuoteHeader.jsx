@@ -81,7 +81,8 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
   const details = (
     <div className="pq-lh-details" dir={isHebrew ? 'rtl' : 'ltr'}>
       {bizTaxId && <div>{L.taxId} <bdi dir="ltr">{bizTaxId}</bdi></div>}
-      {bizPhone && <div className="pq-lh-phone"><bdi dir="ltr">{bizPhone}</bdi></div>}
+      {/* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #21: the "Phone:" label before the number again */}
+      {bizPhone && <div className="pq-lh-phone">{L.phone} <bdi dir="ltr">{bizPhone}</bdi></div>}
       {bizEmail && <div><bdi dir="ltr">{bizEmail}</bdi></div>}
       {bizAddress && <div>{formatAddress(bizAddress, isHebrew)}</div>}
     </div>

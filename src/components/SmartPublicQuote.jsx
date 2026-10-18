@@ -9,7 +9,6 @@ import { scheduleFirstViewRecord } from '../utils/firstView';
 // Task 16 - Quote Experience V2: the presentation (style / frozen branding / media, CONTRACT §3 public_get) is
 // requested IN PARALLEL with get-public-quote and is strictly optional: any failure, timeout or malformed payload
 // renders the legacy Classic composition - the quote itself is never blocked or delayed beyond PRESENTATION_WAIT_MS.
-const PRESENTATION_WAIT_MS = 2500;
 
 function isUsablePresentation(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value) && typeof value.mode === 'string';
@@ -94,7 +93,7 @@ export default function SmartPublicQuote() {
         return;
       }
 
-      await Promise.race([presentationPromise, new Promise((resolve) => setTimeout(resolve, PRESENTATION_WAIT_MS))]);
+      // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #23: the quote shows at once again (the style still applies the moment it arrives - setPresentation above)
       if (processedIdRef.current !== id) return;
       setState({ status: 'ready', dto: data });
 

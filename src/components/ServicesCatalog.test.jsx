@@ -208,7 +208,9 @@ describe('OD-19 compact catalog layout + unchanged behavior', () => {
 
   it('the scoped stylesheet fixes a deterministic grid: explicit tracks, min-width:0, 44px targets, focus ring, tabular numerals, narrow breakpoint', () => {
     const css = readFileSync(join(cwd(), 'src', 'components', 'servicesCatalog.css'), 'utf8');
-    expect(css).toMatch(/\.svc-cat-grid \{[^}]*grid-template-columns: minmax\(0, 1fr\) 9\.5rem 144px;[^}]*min-width: 0;/);
+    // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!", #14): the row buttons carry their words again, so the actions
+    // column sizes to its content
+    expect(css).toMatch(/\.svc-cat-grid \{[^}]*grid-template-columns: minmax\(0, 1fr\) 9\.5rem max-content;[^}]*min-width: 0;/);
     expect(css).toMatch(/@container svccat \(max-width: 559\.98px\) \{\s*\.svc-cat-grid \{\s*grid-template-columns: minmax\(0, 1fr\) 8\.5rem;\s*grid-template-areas: "desc price" "actions actions";/);
     expect(css).toMatch(/\.svc-cat-btn \{[^}]*width: 44px;[^}]*height: 44px;[^}]*min-width: 44px;[^}]*min-height: 44px;/);
     expect(css).toMatch(/\.svc-cat-btn:focus-visible \{ outline: 3px solid/);

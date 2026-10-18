@@ -24,7 +24,7 @@
 
 .svc-cat-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 9.5rem 144px;
+  grid-template-columns: minmax(0, 1fr) 9.5rem max-content;
   grid-template-areas: "desc price actions";
   column-gap: 12px;
   row-gap: 4px;
@@ -109,6 +109,8 @@
   cursor: pointer;
 }
 .svc-cat-btn:focus-visible { outline: 3px solid var(--svc-focus); outline-offset: 2px; }
+/* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #14: the row buttons show their words again (icon + text), still 44px tall */
+.svc-cat-btn.svc-cat-btn--text { width: auto; flex: 0 0 auto; padding: 0 10px; gap: 5px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
 .svc-cat-btn--danger { color: var(--svc-danger); }
 .svc-cat-btn--save { background: var(--svc-save); border-color: transparent; color: #ffffff; }
 .svc-cat-btn.is-active { background: var(--svc-accent-bg); }
