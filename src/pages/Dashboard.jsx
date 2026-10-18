@@ -1246,6 +1246,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const accountSummaryContextValue = useMemo(() => ({ summary: accountSummary, openPlans: () => setShowPricingModal(true) }), [accountSummary]);
   // Task 27: an attempted paid action (a NEW quote) after Free-10 is exhausted - decided only from the server account summary (enforced
   // phase only; off / prepared / shadow / loading never block; a paid plan is never blocked). Returns true when the action must stop.
+  // Owner 2026-10-18 (Free-10 activation): after the output authority marked a quote Sent, the owner's chosen Approved / Paid is set
+  // (allowed once the quote has an output); a failure leaves it Sent, the status the server already holds.
+  const markQuoteStatusAfterOutput = async (quoteId, status) => {
+    const { error } = await supabase.from('quotes').update({ status }).eq('id', quoteId).eq('user_id', session.user.id);
+    if (error) console.warn('[free10] status after output not set', error.message);
+  };
   // Owner 2026-10-18 (Free-10 activation): a logo uploaded before the logo import existed is imported once at the first output
   // (the same import action as a new upload in Settings); PNG / JPEG / WebP only - anything else keeps the server refusal.
   const importLogoForOutput = async () => {
@@ -4379,14 +4385,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // SMART-QUOTE-03: a NEW quote is always created as Draft; Sent/Approved/Paid are later lifecycle actions (edit only).
       // Free-10 (Owner 2026-10-18): in the enforced phase a quote leaves Draft only through the output authority (one counted
       // output; the server marks it Sent) - the save keeps it Draft, the authority runs right after it; Approved / Paid follow.
-      const requestedStatus = editingQuoteId ? quoteStatus.toLowerCase() : 'draft';
+      const persistedStatus = editingQuoteId ? quoteStatus.toLowerCase() : 'draft';
       const storedStatus = editingQuoteId ? String(quotes.find((q) => q.id === editingQuoteId)?.status || '').toLowerCase() : 'draft';
-      const leaveDraftViaAuthority = outputPhase === 'enforced' && !!editingQuoteId && storedStatus === 'draft' && requestedStatus !== 'draft';
-      const persistedStatus = leaveDraftViaAuthority ? 'draft' : requestedStatus;
+      const leaveDraftViaAuthority = outputPhase === 'enforced' && !!editingQuoteId && storedStatus === 'draft' && persistedStatus !== 'draft';
+      const writtenStatus = leaveDraftViaAuthority ? 'draft' : persistedStatus;
       // Edits leave the financial fields to the structure call (single financial write path); new quotes insert them.
       const quoteHeader = editingQuoteId
         ? {
-            status: persistedStatus,
+            status: writtenStatus,
             valid_until: validUntil || null,
             terms: terms,
             warranty: warranty,
@@ -4602,7 +4608,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       if (leaveDraftViaAuthority) {
         const auth = await authorizeWithNotice({ channel: 'send', quoteId, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew });
         if (auth.proceed) {
-          if (requestedStatus !== 'sent') await supabase.from('quotes').update({ status: requestedStatus }).eq('id', quoteId).eq('user_id', session.user.id);
+          if (persistedStatus !== 'sent') await markQuoteStatusAfterOutput(quoteId, persistedStatus);
         } else {
           leaveDraftNote = auth.mode === 'cancelled'
             ? (isHebrew ? 'ההצעה נשמרה כטיוטה. הסטטוס לא שונה ולא נוצלה הצעה.' : 'The quote was saved as a draft. Its status was not changed and no quote was used.')

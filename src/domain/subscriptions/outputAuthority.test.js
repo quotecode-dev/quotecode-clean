@@ -173,8 +173,11 @@ describe('authorizeWithNotice: an old logo is imported once and the output retri
     expect(calls.length).toBeGreaterThanOrEqual(4);
     for (const c of calls) expect(c.slice(0, c.indexOf('});'))).toContain('importLogo: importLogoForOutput');
     const save = d.slice(d.indexOf('async function handleSaveQuote(e) {'), d.indexOf('const filteredQuotes = sortQuotes('));
-    expect(save).toContain("const leaveDraftViaAuthority = outputPhase === 'enforced' && !!editingQuoteId && storedStatus === 'draft' && requestedStatus !== 'draft';");
-    expect(save).toContain("const persistedStatus = leaveDraftViaAuthority ? 'draft' : requestedStatus;");
+    expect(save).toContain("const persistedStatus = editingQuoteId ? quoteStatus.toLowerCase() : 'draft';"); // SMART-QUOTE-03 line unchanged
+    expect(save).toContain("const leaveDraftViaAuthority = outputPhase === 'enforced' && !!editingQuoteId && storedStatus === 'draft' && persistedStatus !== 'draft';");
+    expect(save).toContain("const writtenStatus = leaveDraftViaAuthority ? 'draft' : persistedStatus;");
+    expect(save).toContain('status: writtenStatus,');
+    expect(save).not.toMatch(/supabase\.from\('quotes'\)\.update\(/); // IRON-QUOTE-001: no inline quote write in the save
     expect(save.indexOf('if (leaveDraftViaAuthority) {')).toBeGreaterThan(save.indexOf('const scheduleNote = await syncServiceSchedule(quoteId);'));
   });
 });
