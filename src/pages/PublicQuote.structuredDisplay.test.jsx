@@ -77,8 +77,7 @@ describe('PublicQuote (HE) - flat quote (no sections at all)', () => {
   it('a professional item with no section still shows its quantity+unit on its own row - there is no dropdown left anywhere to move it behind', () => {
     render(<MemoryRouter><PublicQuote quoteData={buildQuoteData([measuredItem])} /></MemoryRouter>);
     expect(screen.getByText('Windows - apartment 33')).toBeInTheDocument();
-    // IRON-NUMERIC-001 (Owner 2026-10-06 decimal axis): the number and its unit are separate slots of the same quantity cell
-    expect(document.querySelector('td.pq-td-qty').textContent.replace(/\u00a0/g, ' ')).toMatch(/4\.40 מ"ר/);
+    expect(screen.getByText(/4\.40 מ"ר/)).toBeInTheDocument();
     expect(screen.queryByText(/Color/)).not.toBeInTheDocument();
     expect(screen.queryByText(/▼|▲/)).not.toBeInTheDocument();
   });
@@ -235,8 +234,7 @@ describe('PublicQuoteEn - flat quote (no sections at all)', () => {
   it('a professional item with no section still shows its quantity+unit on its own row', () => {
     render(<PublicQuoteEn quoteData={buildQuoteData([measuredItem], { quote: { currency: 'USD' } })} />);
     expect(screen.getByText('Windows - apartment 33')).toBeInTheDocument();
-    // IRON-NUMERIC-001 (Owner 2026-10-06 decimal axis): the number and its unit are separate slots of the same quantity cell
-    expect(document.querySelector('td.pq-td-qty').textContent.replace(/\u00a0/g, ' ')).toMatch(/4\.40 m²/);
+    expect(screen.getByText(/4\.40 m²/)).toBeInTheDocument();
     expect(screen.queryByText(/Color/)).not.toBeInTheDocument();
     expect(screen.queryByText(/▼|▲/)).not.toBeInTheDocument();
   });

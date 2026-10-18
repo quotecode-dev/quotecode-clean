@@ -24,7 +24,7 @@
 
 .svc-cat-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 9.5rem max-content;
+  grid-template-columns: minmax(0, 1fr) 9.5rem 144px;
   grid-template-areas: "desc price actions";
   column-gap: 12px;
   row-gap: 4px;
@@ -109,14 +109,7 @@
   cursor: pointer;
 }
 .svc-cat-btn:focus-visible { outline: 3px solid var(--svc-focus); outline-offset: 2px; }
-/* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #14: the row buttons show their words again (icon + text), still 44px tall */
-.svc-cat-btn.svc-cat-btn--text { width: auto; flex: 0 0 auto; padding: 0 10px; gap: 5px; font-size: 0.8rem; font-weight: 600; white-space: nowrap; }
 .svc-cat-btn--danger { color: var(--svc-danger); }
-/* Owner console 2026-10-18, typed: "להשאיר את המלל אבל להקטין את הכל ב30% לפחות, זה ענק": the row buttons ~32% smaller - 30px instead of
-   44px, 13px icons, 12px words (the text floor), tighter padding / radius; the words stay */
-.svc-cat-btn { flex: 0 0 30px; width: 30px; height: 30px; min-width: 30px; min-height: 30px; border-radius: 7px; }
-.svc-cat-btn svg { width: 13px; height: 13px; }
-.svc-cat-btn.svc-cat-btn--text { width: auto; flex: 0 0 auto; padding: 0 7px; gap: 4px; font-size: 0.75rem; }
 .svc-cat-btn--save { background: var(--svc-save); border-color: transparent; color: #ffffff; }
 .svc-cat-btn.is-active { background: var(--svc-accent-bg); }
 .svc-cat-btn.is-locked { color: var(--svc-muted); border-style: dashed; }

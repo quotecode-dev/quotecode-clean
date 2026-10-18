@@ -5,7 +5,7 @@ import AdminScreenFrame from './AdminScreenFrame';
 import { AdminAccountStatus, AdminPlanSystemNotice } from './AdminSubscriptionState';
 import { adminTargetUserId, useAdminAccountSummaries, accountStatus, ACCOUNT_STATUS, ACCOUNT_STATUS_ORDER, tr } from '../domain/subscriptions/adminAccountSummary';
 import { useAdminAccountsPage } from '../domain/admin/adminAccountsClient';
-import { peekUsersFilterIntent, clearUsersFilterIntent, saveUsersListState, peekUsersListState, clearUsersListState } from '../domain/admin/adminNavIntent';
+import { takeUsersFilterIntent } from '../domain/admin/adminNavIntent';
 import { ADMIN_COPY as C, t } from '../domain/admin/adminCopy';
 import { resolveAdminMarket } from '../utils/adminMarket';
 import { accountDate, accountDateTime } from '../utils/adminDates';
@@ -37,7 +37,7 @@ function RowActions({ account, isHebrew, onDetails, onReset, onDelete, onLifetim
   }, [open]);
   const name = account.business_name || account.email;
   const lifetime = account.is_lifetime === true;
-  const pick = (fn) => { btn.current?.focus(); setOpen(false); fn(account); };
+  const pick = (fn) => { setOpen(false); fn(account); };
   const items = [
     onLifetime && { key: lifetime ? 'revoke' : 'grant', label: lifetime ? C.revokeLifetime : C.grantLifetime, run: () => pick(onLifetime) },
     onReset && { key: 'reset', label: C.resetQuotes, run: () => pick(onReset) },
@@ -73,22 +73,14 @@ function RowActions({ account, isHebrew, onDetails, onReset, onDelete, onLifetim
 // the shown indicator group of each status (verified, usage not verified, legacy trial, legacy trial ended, payment unverified, none)
 const INDICATOR_RANK = { free10: 0, paid_monthly: 0, paid_annual: 0, free10_inactive: 1, trial: 2, trial_ended: 3, paid_unverified: 4, lifetime: 5 };
 
-export default function AdminUsersView({ accounts, orderedAccounts = accounts, search, onSearch, isHebrew, onDetails, onReset = null, onDelete = null, onLifetime = null, bodyExtra, refreshKey: outerRefresh = 0, onRefreshAccounts = null }) {
+export default function AdminUsersView({ accounts, orderedAccounts = accounts, search, onSearch, isHebrew, onDetails, onReset = null, onDelete = null, onLifetime = null, bodyExtra, refreshKey: outerRefresh = 0 }) {
   const [localRefresh, setLocalRefresh] = useState(0);
   const refreshKey = outerRefresh * 1000 + localRefresh;
-  // AV-05 / AV-06: a legend / link intent wins; otherwise the state saved when Details opened; otherwise the defaults
-  const [init] = useState(() => {
-    const intent = peekUsersFilterIntent();
-    if (intent) return { market: intent.market || 'all', status: intent.status || 'all', sort: { field: 'created_at', direction: 'desc' }, page: 0, scrollTop: 0 };
-    const saved = peekUsersListState();
-    return saved || { market: 'all', status: 'all', sort: { field: 'created_at', direction: 'desc' }, page: 0, scrollTop: 0 };
-  });
-  useEffect(() => { clearUsersFilterIntent(); clearUsersListState(); }, []);
-  const [market, setMarket] = useState(init.market);
-  const [statusFilter, setStatusFilter] = useState(init.status);
-  const [sort, setSort] = useState(init.sort);
-  const [page, setPage] = useState(init.page);
-  const restoreScroll = useRef(init.scrollTop || 0);
+  const intent = useRef(takeUsersFilterIntent());
+  const [market, setMarket] = useState(intent.current?.market || 'all');
+  const [statusFilter, setStatusFilter] = useState(intent.current?.status || 'all');
+  const [sort, setSort] = useState({ field: 'created_at', direction: 'desc' });
+  const [page, setPage] = useState(0);
   // desktop (the table, >= 1000px) vs phone / tablet (cards) - the same breakpoint as adminV2.css
   const wideQuery = '(min-width: 1000px)';
   const [wide, setWide] = useState(() => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia(wideQuery).matches);
@@ -101,17 +93,14 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
     return () => { mq.removeEventListener ? mq.removeEventListener('change', recompute) : mq.removeListener(recompute); };
   }, []);
   const [query, setQuery] = useState(search || '');
-  // AV-06: the mount run keeps a restored page; only a REAL search change goes back to page 1
-  const searchSeen = useRef(search || '');
-  useEffect(() => { const h = setTimeout(() => { setQuery(search || ''); if ((search || '') !== searchSeen.current) { searchSeen.current = search || ''; setPage(0); } }, 250); return () => clearTimeout(h); }, [search]);
+  useEffect(() => { const h = setTimeout(() => { setQuery(search || ''); setPage(0); }, 250); return () => clearTimeout(h); }, [search]);
 
   const server = useAdminAccountsPage({
     query, market: market === 'all' ? null : market, status: statusFilter === 'all' ? null : statusFilter,
     sort: sort.field, direction: sort.direction, pageSize: PAGE_SIZE, offset: page * PAGE_SIZE,
   }, refreshKey);
   // the server list once it answered (or failed with no data yet); until then the loaded rows - no empty flash while it loads
-  const serverMode = (server.state === 'ready' || server.state === 'stale') && !!server.data;
-  // Codex verification AV-02: the loaded rows stand in ONLY while the RPC is not deployed (or before its first answer)
+  const serverMode = ((server.state === 'ready' || server.state === 'stale') && !!server.data) || (server.state === 'unavailable' && users0(accounts).length === 0);
 
   // fallback over the loaded rows (the RPC is not deployed on this server)
   const users = users0(accounts);
@@ -119,7 +108,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   const accountMarket = (account) => resolveAdminMarket(account).market;
   // plan / indicators sort by the shared status order and the shown indicator group - the same ranks as get_admin_accounts
   const sortValue = (x, f) => {
-    if (f === 'created_at' || f === 'last_sign_in') { const t0 = x[f] ? new Date(x[f]).getTime() : NaN; return Number.isFinite(t0) ? t0 : null; }
+    if (f === 'created_at' || f === 'last_sign_in') return new Date(x[f] || 0).getTime();
     if (f === 'plan') return ACCOUNT_STATUS_ORDER.indexOf(accountStatus(x, null).key);
     if (f === 'indicators') return INDICATOR_RANK[accountStatus(x, null).key] ?? 5;
     return String((f === 'country' ? (x.country || 'Local') : x[f]) || '').toLowerCase();
@@ -128,9 +117,6 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
     const f = sort.field;
     const va = sortValue(a, f);
     const vb = sortValue(b, f);
-    // AV-13: a missing date is always last
-    if (va === null && vb !== null) return 1;
-    if (vb === null && va !== null) return -1;
     // the direction reverses only the sorted value; ties keep the loaded order
     if (va !== vb) return (va < vb ? -1 : 1) * (sort.direction === 'asc' ? 1 : -1);
     return (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0);
@@ -143,9 +129,8 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
     return matchesSearch && matchesMarket && matchesStatus;
   }).sort(cmp);
 
-  const failed = !serverMode && server.state === 'unavailable';
-  const total = serverMode ? (server.data?.total ?? null) : failed ? null : local.length;
-  const pageRows = serverMode ? (server.data?.rows || []) : failed ? [] : local.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
+  const total = serverMode ? (server.data?.total ?? null) : local.length;
+  const pageRows = serverMode ? (server.data?.rows || []) : local.slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE);
   // the per-account server summary for the visible page only (the counter / billing period); "not active" is global - one probe
   const { system, byId } = useAdminAccountSummaries(pageRows.map(adminTargetUserId));
   const summaryOf = (a) => (system === 'not_active' ? null : (byId[adminTargetUserId(a)] || null));
@@ -166,12 +151,11 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
     if (statusKey === 'trial' || statusKey === 'trial_ended') return <span className={`av-badge ${statusKey === 'trial_ended' ? 'av-bad' : 'av-ok'}`}>{t(isHebrew, C.legacyTrial.he, C.legacyTrial.en)}</span>;
     if (statusKey === 'free10' || statusKey === 'paid_monthly' || statusKey === 'paid_annual') return <span className="av-badge av-ok">{t(isHebrew, C.verifiedState.he, C.verifiedState.en)}</span>;
     if (statusKey === 'paid_unverified') return <span className="av-badge av-warn">{tr(ACCOUNT_STATUS.paid_unverified, isHebrew)}</span>;
-    return <span className="av-muted"><span aria-hidden="true">—</span><span className="av-sr-only">{isHebrew ? 'אין חיוויים' : 'No indicators'}</span></span>;
+    return <span className="av-muted" aria-label={isHebrew ? 'אין חיוויים' : 'No indicators'}>—</span>;
   };
   const rowStatus = (a) => {
     const computed = accountStatus(a, summaryOf(a));
-    // the server status stands unless this row's own summary is ready (a loading / failed summary never overrides it)
-    return a.status && a.status !== computed.key && summaryOf(a)?.state !== 'ready' ? a.status : computed.key;
+    return a.status && a.status !== computed.key && !summaryOf(a) ? a.status : computed.key;
   };
   const business = (a) => (
     <div className="av-business">
@@ -185,22 +169,12 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   const plan = (a, sub = null) => <AdminAccountStatus account={a} summary={summaryOf(a)} statusKey={rowStatus(a)} isHebrew={isHebrew} formatDate={(v) => accountDate(v, a, adminMarket)} size={26} sub={sub} />;
   // last sign-in: the date, then the time on the next line (sketch), by the account market
   const signIn = (a) => { const [d, tm] = accountDateTime(a.last_sign_in, a, adminMarket).split(' '); return <bdi className="av-num" data-testid="admin-last-sign-in">{d}{tm && <><br />{tm}</>}</bdi>; };
-  const signInTime = (a) => accountDateTime(a.last_sign_in, a, adminMarket);
+  const signInTime = (a) => accountDateTime(a.last_sign_in, a, adminMarket).split(' ')[1] || '—';
   const marketWords = (a) => { const m = resolveAdminMarket(a).market; return m === 'Local' ? C.regionLocal : m === 'International' ? C.regionIntl : C.regionUnknown; };
-  const actions = (a) => <RowActions account={a} isHebrew={isHebrew} onDetails={openDetails} onReset={onReset} onDelete={onDelete} onLifetime={onLifetime} />;
+  const actions = (a) => <RowActions account={a} isHebrew={isHebrew} onDetails={onDetails} onReset={onReset} onDelete={onDelete} onLifetime={onLifetime} />;
 
   const loading = server.state === 'loading' && users.length === 0;
-  // AV-06: Details saves the list state (filters, sort, page, scroll) and the list restores it on the way back
-  const scrollBody = () => (typeof document !== 'undefined' ? document.querySelector('.admin-screen > .pf-screen-body') : null);
-  const openDetails = (a) => { saveUsersListState({ market, status: statusFilter, sort, page, scrollTop: scrollBody()?.scrollTop || 0 }); onDetails(a); };
-  useEffect(() => {
-    if (!restoreScroll.current || pageRows.length === 0) return;
-    const el = scrollBody(); if (el) el.scrollTop = restoreScroll.current;
-    restoreScroll.current = 0;
-  }, [pageRows.length]);
-  // AV-07: on phones / tablets (cards) the sort is one select - the same fields and directions as the table headers
-  const SORT_OPTIONS = [['created_at', 'desc'], ['created_at', 'asc'], ['last_sign_in', 'desc'], ['last_sign_in', 'asc'], ['business_name', 'asc'], ['business_name', 'desc'], ['plan', 'asc'], ['plan', 'desc'], ['indicators', 'asc'], ['indicators', 'desc'], ['country', 'asc'], ['country', 'desc']];
-  const sortLabel = (f, d) => { const w = { created_at: C.colRegistered, last_sign_in: C.colLastSignIn, business_name: C.colBusiness, country: C.colRegion, plan: C.colPlan, indicators: C.colIndicators }[f]; const dir = (f === 'created_at' || f === 'last_sign_in') ? (d === 'desc' ? C.newestFirst : C.oldestFirst) : (d === 'asc' ? C.aToZ : C.zToA); return `${t(isHebrew, w.he, w.en)}, ${t(isHebrew, dir.he, dir.en)}`; };
+  const failed = serverMode && server.state === 'unavailable';
   const clear = () => { onSearch(''); setQuery(''); setMarket('all'); setStatusFilter('all'); setPage(0); };
   const sortWords = { created_at: C.colRegistered, last_sign_in: C.colLastSignIn, business_name: C.colBusiness, country: C.colRegion, plan: C.colPlan, indicators: C.colIndicators }[sort.field];
   const from = total ? page * PAGE_SIZE + 1 : 0;
@@ -231,14 +205,6 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
             <option value="Unknown">{t(isHebrew, C.unknown.he, C.unknown.en)}</option>
           </select>
         </label>
-        {!wide && (
-          <label className="av-field">
-            <span>{isHebrew ? 'מיון' : 'Sort'}</span>
-            <select value={`${sort.field}:${sort.direction}`} onChange={(e) => { const [field, direction] = e.target.value.split(':'); setPage(0); setSort({ field, direction }); }}>
-              {SORT_OPTIONS.map(([f, d]) => <option key={`${f}:${d}`} value={`${f}:${d}`}>{sortLabel(f, d)}</option>)}
-            </select>
-          </label>
-        )}
         {/* PRODUCT_TRUTH_DECORATIVE: clears the users search and filters */}
         <button type="button" className="av-btn" onClick={clear}>{t(isHebrew, C.clear.he, C.clear.en)}</button>
       </div>
@@ -247,7 +213,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
         <span className="av-small av-muted" role="status">
           <bdi className="av-num">{total ?? '—'}</bdi> {t(isHebrew, C.usersCount.he, C.usersCount.en)} · {t(isHebrew, C.sortedBy.he, C.sortedBy.en)}: {t(isHebrew, sortWords.he, sortWords.en)}, {t(isHebrew, ...(sort.field !== 'created_at' && sort.field !== 'last_sign_in' ? (sort.direction === 'asc' ? [C.aToZ.he, C.aToZ.en] : [C.zToA.he, C.zToA.en]) : (sort.direction === 'desc' ? [C.newestFirst.he, C.newestFirst.en] : [C.oldestFirst.he, C.oldestFirst.en])))}
         </span>
-        {server.state === 'stale' && <span className="av-badge av-warn">{t(isHebrew, C.staleSince.he, C.staleSince.en)} <bdi className="av-num">{server.updatedAt ? formatShortDateTime(server.updatedAt, adminMarket) : ''}</bdi></span>}
+        {server.state === 'stale' && <span className="av-badge av-warn">{t(isHebrew, C.staleSince.he, C.staleSince.en)}</span>}
       </div>
       {pageRows.length > 0 && !(failed && !server.data) && <div className="av-small av-muted av-users-caption" aria-hidden="true">{t(isHebrew, C.usersCaption.he, C.usersCaption.en)}</div>}
     </div>
@@ -260,10 +226,10 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
       subtitle={t(isHebrew, C.tagline.he, C.tagline.en)}
       label={isHebrew ? 'רשימת משתמשים' : 'Users list'}
       isHebrew={isHebrew}
-      onRefresh={() => { setLocalRefresh((k) => k + 1); if (typeof onRefreshAccounts === 'function') onRefreshAccounts(); }}
+      onRefresh={() => setLocalRefresh((k) => k + 1)}
       refreshing={!!server.refreshing}
       updatedAt={serverMode ? server.updatedAt : null}
-      staleSince={server.state === 'stale' ? (server.updatedAt || server.failedAt) : null}
+      staleSince={server.state === 'stale' ? server.failedAt : null}
       formatTime={(v) => formatShortDateTime(v, adminMarket)}
       controls={(
         <>

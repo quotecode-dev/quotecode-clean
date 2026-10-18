@@ -4,9 +4,8 @@
 
 import { useState } from 'react';
 import { MoneyValue, NumericValue, CurrencyTotals } from './NumericValue';
-import ChartSquareIcon from './ChartSquareIcon';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ReceiptText, Download, Pencil, Trash2, Repeat, FileText, Wallet, TrendingDown, TrendingUp, BarChart2 } from 'lucide-react';
+import { BarChart3, ReceiptText, Download, Pencil, Trash2, Repeat, FileText, Wallet, TrendingDown, TrendingUp, BarChart2 } from 'lucide-react';
 import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, RADIUS, SHADOW } from '../theme/neonTheme';
 import { formatShortDate } from '../utils/shortDate';
 import { QUOTE_CURRENCY_SYMBOLS } from '../utils/money';
@@ -68,8 +67,7 @@ export default function FinancesTab({
   // IRON-MARKET-004: income is one series per persisted quote currency (Income_ILS, Income_USD, ...) - never one mixed series.
   const hasChartData = Array.isArray(chartData) && chartData.some((d) => Number(d.Expenses || 0) > 0
     || Object.keys(d).some((k) => k.startsWith('Income_') && Number(d[k] || 0) > 0));
-  // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #16: four clearly different income colours again (the 2nd and 3rd were two near-identical teals)
-  const INCOME_FILLS = ['#22c55e', '#0ea5e9', '#8b5cf6', '#f59e0b'];
+  const INCOME_FILLS = [NEON.emerald, NEON.sky, NEON.violetLight, NEON.amber];
   const revenueMulti = (adminRevenueTotals?.groups?.length || 0) > 1 || (adminRevenueTotals?.unknownCount || 0) > 0;
   const netProfitComputable = adminNetProfit !== null && adminNetProfit !== undefined;
   const netProfitTone = !netProfitComputable ? NEON.textMuted : (adminNetProfit >= 0 ? NEON.emerald : NEON.red);
@@ -95,8 +93,7 @@ export default function FinancesTab({
           נפרדת). */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px', flexWrap: 'wrap', gap: '10px' }}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
-          {/* Owner console 2026-10-18, typed: "שהסמל יהיה כמו הכותרת בסיידבר": the title carries the sidebar's own Finances icon */}
-          <ChartSquareIcon size={18} color={NEON.textSecondary} strokeWidth={2} aria-hidden="true" />
+          <BarChart3 size={18} color={NEON.textSecondary} strokeWidth={2} />
           {isHebrew ? 'פיננסים' : 'Finances'}
         </h2>
 

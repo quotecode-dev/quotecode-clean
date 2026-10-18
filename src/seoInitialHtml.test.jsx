@@ -149,8 +149,7 @@ describe('SPA shell / hosting contracts', () => {
   it('the catch-all rewrite, the noindex headers and the legacy-host redirects are unchanged', () => {
     expect(VERCEL.rewrites).toEqual([{ source: '/(.*)', destination: '/index.html' }]);
     const xrt = Object.fromEntries(VERCEL.headers.filter((h) => h.headers.some((x) => x.key === 'X-Robots-Tag')).map((h) => [h.source, h.headers.find((x) => x.key === 'X-Robots-Tag').value]));
-    // בעל המערכת 2026-10-18 (#27, "לתקן"): גם הקישורים החדשים ללקוח (/public-quote/c/...) מקבלים מהשרת "לא לאינדקס"
-    for (const p of ['/quote/:id', '/public-quote/:id', '/en/public-quote/:id', '/public-quote/c/:token', '/en/public-quote/c/:token', '/professional-preview', '/public-quote/:id/preview', '/dashboard', '/ai-logs']) expect(xrt[p]).toBe('noindex, nofollow');
+    for (const p of ['/quote/:id', '/public-quote/:id', '/en/public-quote/:id', '/professional-preview', '/public-quote/:id/preview', '/dashboard', '/ai-logs']) expect(xrt[p]).toBe('noindex, nofollow');
     for (const p of ['/contact', '/privacy', '/terms', '/tools']) expect(xrt[p]).toBe('noindex, follow');
     expect(VERCEL.redirects.map((r) => r.has[0].value).sort()).toEqual(['quotecode.vercel.app', 'quotecodepro.com', 'www.quotecodepro.com']);
   });

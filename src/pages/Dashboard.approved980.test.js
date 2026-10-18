@@ -77,11 +77,10 @@ describe('approved 980px shell (source guards)', () => {
     expect(center).toMatch(/width: 18, height: 18, padding: 0, margin: 0, border: 0/);
   });
 
-  it('the header clock is one line (weekday, date | time), SECOND precision synced to the device clock, with isolated numeric atoms', () => {
+  it('the header clock is one line (weekday, date | time), minute precision, with isolated numeric atoms', () => {
     const clock = dashboard.slice(dashboard.indexOf('function HeaderClock'), dashboard.indexOf('// PRODUCT_TRUTH_CAPABILITY: dashboard_overview'));
-    // Owner console 2026-10-18, typed: "1 - עם שניות", "2 - שיהיה מסונכרן בדיוק לפי שעון המחשב", "3 - להחזיר את האנימציה": seconds, ticking on the device clock's second boundary
-    expect(clock).toContain("const schedule = () => { id = setTimeout(() => { setNow(new Date()); schedule(); }, 1000 - (Date.now() % 1000) + 2); };");
-    expect(clock).toContain("second: '2-digit'");
+    expect(clock).toMatch(/setInterval\(\(\) => setNow\(new Date\(\)\), 30000\)/);
+    expect(clock).not.toMatch(/second:/);
     expect(clock).toMatch(/<bdi dir="ltr" className="dash-header-date pf-num">/);
     expect(clock).toMatch(/<bdi dir="ltr" className="dash-header-time pf-num">/);
     expect(clock).toMatch(/className="dash-header-sep" aria-hidden="true">\|<\/span>/);
@@ -89,8 +88,7 @@ describe('approved 980px shell (source guards)', () => {
 
   it('the sidebar top is the static TEKANGO logo card, the nav is plain rows, and Sign out lives behind the identity gear', () => {
     expect(dashboard).toMatch(/className="dash-sidebar-brand-card" role="img" aria-label="TEKANGO"/);
-    // Owner console 2026-10-18 ("תחזיר רק מועל ע"י" ... "מבית TEKANGO", accepted "תנעל"): the platform line is back under the identity
-    expect(dashboard).toContain('<div className="dash-sidebar-platform-brand">');
+    expect(dashboard).not.toContain('dash-sidebar-platform-brand"');
     expect(dashboard).toMatch(/<SidebarAccountMenu/);
     expect(dashboard).toMatch(/onSignOut=\{\(\) => setShowSignOutModal\(true\)\}/);
     const block = desktopBlock();

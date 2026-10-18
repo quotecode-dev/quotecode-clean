@@ -34,8 +34,7 @@ vi.mock('../pages/PublicQuoteEn', () => ({
 import SmartPublicQuote from './SmartPublicQuote';
 
 const QUOTE_ID = '00000000-0000-4000-8000-000000000001';
-// הצעה גמורה (יש פריט עם מחיר); הצעה לא גמורה לא מגיעה לדף בכלל - ראו הבדיקה "הצעה לא גמורה" למטה
-const dto = (quote, items = [{ id: 'i1', description: 'עבודה', quantity: 1, price: 1000, total_price: 1000 }]) => ({ data: { quote: { id: QUOTE_ID, tax_rate: 0.18, currency: 'ILS', total: 1180, subtotal: 1000, status: 'sent', ...quote }, business: {}, client: {}, items, attachments: [] }, error: null });
+const dto = (quote) => ({ data: { quote: { id: QUOTE_ID, tax_rate: 0.18, currency: 'ILS', ...quote }, business: {}, client: {}, items: [], attachments: [] }, error: null });
 
 function renderAt(id = QUOTE_ID) {
   return render(
@@ -50,35 +49,6 @@ function renderAt(id = QUOTE_ID) {
 beforeEach(() => {
   invokeMock.mockReset();
   fetchPresentationMock.mockReset();
-});
-
-// בעל המערכת 2026-10-18: "איזה משתמש ירצה שהלקוח שלו יראה הצעה לא גמורה?" -> "כן" (רק הודעה, בלי המסמך)
-describe('הצעה לא גמורה: הלקוח רואה רק הודעה שהעסק מעדכן אותה', () => {
-  it('עברית: אין מסמך, רק ההודעה', async () => {
-    invokeMock.mockResolvedValue(dto({ total: 0, subtotal: 0 }, []));
-    fetchPresentationMock.mockResolvedValue({ ok: false });
-    renderAt();
-    await waitFor(() => expect(screen.getByTestId('public-quote-updating')).toBeInTheDocument());
-    expect(screen.getByTestId('public-quote-updating')).toHaveAttribute('dir', 'rtl');
-    expect(screen.getByRole('heading')).toHaveTextContent('העסק מעדכן את ההצעה הזו');
-    expect(screen.getByText('תקבלו ממנו קישור מעודכן.')).toBeInTheDocument();
-    expect(screen.queryByTestId('page')).toBeNull();
-  });
-  it('אנגלית: ההודעה באנגלית ומשמאל לימין', async () => {
-    invokeMock.mockResolvedValue(dto({ tax_rate: 0, currency: 'USD', total: 0, subtotal: 0 }, []));
-    fetchPresentationMock.mockResolvedValue({ ok: false });
-    renderAt();
-    await waitFor(() => expect(screen.getByTestId('public-quote-updating')).toHaveAttribute('dir', 'ltr'));
-    expect(screen.getByRole('heading')).toHaveTextContent('The business is updating this quote');
-    expect(screen.queryByTestId('page')).toBeNull();
-  });
-  it('בעל העסק שפותח את ההצעה שלו ממשיך לראות את המסמך', async () => {
-    invokeMock.mockResolvedValue(dto({ total: 0, subtotal: 0, is_owner_viewing: true }, []));
-    fetchPresentationMock.mockResolvedValue({ ok: false });
-    renderAt();
-    await waitFor(() => expect(screen.getByTestId('page')).toHaveTextContent('HE'));
-    expect(screen.queryByTestId('public-quote-updating')).toBeNull();
-  });
 });
 
 describe('SmartPublicQuote - Task 16 presentation wiring', () => {

@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { quoteDisplayStatus, quoteDisplayLabel, quoteDisplayChipRole } from '../utils/quoteStatusDisplay';
-import { User, UserPlus, Pencil, Trash2, Hash, Mail, MapPin, StickyNote, ChevronDown, FileText, Search, ArrowUpDown, Check } from 'lucide-react';
+import { Users, UserPlus, Pencil, Trash2, Hash, Mail, MapPin, StickyNote, ChevronDown, FileText, Search, ArrowUpDown, Check } from 'lucide-react';
 import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, APP_FOCUS, RADIUS, SHADOW } from '../theme/neonTheme';
 import { formatAddress } from '../utils/addressFormat';
 import { formatShortDate } from '../utils/shortDate';
@@ -293,8 +293,7 @@ export default function ClientsTab({
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '10px' }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px', flexWrap: 'wrap' }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
-            {/* Owner console 2026-10-18 ("שהסמל יהיה כמו הכותרת בסיידבר"): every screen title carries its sidebar icon */}
-            <User size={18} color={NEON.textSecondary} strokeWidth={2} aria-hidden="true" />
+            <Users size={18} color={NEON.textSecondary} strokeWidth={2} />
             {isHebrew ? 'לקוחות' : 'Clients'}
           </h2>
           <span style={{ fontSize: '0.78rem', fontWeight: '600', color: NEON.textSecondary }}>

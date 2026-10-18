@@ -47,8 +47,7 @@ beforeEach(() => {
 
 describe.each(PAGES)('%s public quote - document / action separation', (name, renderPage, data, t) => {
   const locale = name === 'HE' ? 'he' : 'en';
-  // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!", docs/OWNER_LOST_BEHAVIOURS_2026-10-18.md) #18: the signature pad is back INSIDE the document (D22 / D21a were reviewer rulings, not Owner sentences)
-  it('the action tiles are INSIDE the card at the base position (after the approval record, above the footer) and never reach an output (no-print + data-html2canvas-ignore); the signature pad is inside the document before them', () => {
+  it('ledger D21a (cloud-fix4, A17 G4b): the action tiles are back INSIDE the card at the base position (after the approval record, above the footer) and never reach an output (no-print + data-html2canvas-ignore); the signing pad and approve button stay outside', () => {
     const { container } = renderPage({ quoteData: data() });
     const card = container.querySelector('.pq-card');
     expect(container.querySelectorAll('.pq-card').length).toBe(1);
@@ -64,16 +63,7 @@ describe.each(PAGES)('%s public quote - document / action separation', (name, re
     const foot = card.querySelector('.pq-doc-foot');
     if (foot) expect(tiles.compareDocumentPosition(foot) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     else expect(end.lastElementChild).toBe(tiles);
-    // #18: the signature pad sits inside the document end, after the approval line and before the tiles - app UI only
-    const pad = card.querySelector('.pq-actions-in-doc');
-    expect(pad).not.toBeNull();
-    expect(pad.className).toMatch(/no-print/);
-    expect(pad.getAttribute('data-html2canvas-ignore')).toBe('true');
-    expect(pad.parentElement).toBe(end);
-    expect(pad.querySelector('canvas')).not.toBeNull();
-    expect(approval.compareDocumentPosition(pad) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(pad.compareDocumentPosition(tiles) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(container.querySelectorAll('canvas').length).toBe(1);
+    expect(card.querySelector('canvas')).toBeNull();
     // every tel: link inside the card is screen-only app UI (header Call CTA, Call tile)
     const tels = [...card.querySelectorAll('a[href^="tel:"]')];
     expect(tels.length).toBe(2);
@@ -82,14 +72,18 @@ describe.each(PAGES)('%s public quote - document / action separation', (name, re
     expect(call.className).toMatch(/no-print/);
     expect(call.getAttribute('data-html2canvas-ignore')).toBe('true');
     expect(call.closest('.pq-lh-band')).not.toBeNull();
-    expect([...card.querySelectorAll('input')].every((i) => pad.contains(i))).toBe(true);
-    // no second signature pad outside the card
-    expect([...container.querySelectorAll('.pq-actions')].some((a) => !card.contains(a))).toBe(false);
-    expect(pad.querySelector('.pq-action-tiles')).toBeNull();
+    expect(card.querySelector('input')).toBeNull();
+    expect(card.textContent).not.toContain(t.sign);
+    // the signing pad stays OUTSIDE the card (D22, approved), as a .no-print sibling
+    const actions = container.querySelector('.pq-actions');
+    expect(actions.className).toMatch(/no-print/);
+    expect(card.contains(actions)).toBe(false);
+    expect(actions.querySelector('canvas')).not.toBeNull();
+    expect(actions.querySelector('.pq-action-tiles')).toBeNull();
     expect(screen.getByText(t.print)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: t.approve })).toBeInTheDocument();
-    // The printed / PDF copy keeps the static approval line (print-only on screen).
-    expect(card.querySelector('.pq-approval.pq-print-only .pq-sigline')).not.toBeNull();
+    // The document itself ends with a typographic approval line and a footer.
+    expect(card.querySelector('.pq-approval .pq-sigline')).not.toBeNull();
     // ledger D23 (cloud-fix4): base footer - HE credit line only; EN has no footer (as base c65f742)
     if (name === 'HE') {
       expect(card.querySelector('.pq-doc-foot').textContent).toMatch(/^מסמך זה נערך ע"י/);
@@ -155,17 +149,13 @@ describe.each(PAGES)('%s public quote - document / action separation', (name, re
     expect(container.querySelector('.pq-card').className).toMatch(/pq-style-visual/);
   });
 
-  // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!", docs/OWNER_LOST_BEHAVIOURS_2026-10-18.md) #25: the business details are the LIVE settings again (a changed phone reaches the call / WhatsApp actions)
-  it('the LIVE business details win over an issued snapshot; the snapshot only fills a field the live settings do not have; a draft ignores it', () => {
+  it('an ISSUED snapshot\'s frozen branding overrides the live business fields; a draft does not', () => {
     const branding = { business_name: 'Frozen Name Ltd', logo_url: null, tax_id: '999', email: 'frozen@example.com', phone: null, address: null };
     const { container } = renderPage({ quoteData: data(), presentation: { mode: 'issued', style: 'classic', branding, media: [] } });
-    expect(container.querySelector('.pq-letterhead').textContent).toContain(data().business.business_name);
-    expect(container.querySelector('.pq-letterhead').textContent).not.toContain('Frozen Name Ltd');
-    // the live phone is kept although the snapshot has none -> the call actions stay
-    expect(container.querySelector('a[href^="tel:"]')).not.toBeNull();
-    const base = data();
-    const { container: c1 } = renderPage({ quoteData: { ...base, business: { ...base.business, email: null } }, presentation: { mode: 'issued', style: 'classic', branding, media: [] } });
-    expect(c1.querySelector('.pq-letterhead').textContent).toContain('frozen@example.com');
+    expect(container.querySelector('.pq-letterhead').textContent).toContain('Frozen Name Ltd');
+    expect(container.querySelector('.pq-letterhead').textContent).toContain('frozen@example.com');
+    // the frozen snapshot has no phone -> no call tile, no header Call CTA
+    expect(container.querySelector('a[href^="tel:"]')).toBeNull();
     const { container: c2 } = renderPage({ quoteData: data(), presentation: { mode: 'draft', style: 'classic', branding, media: [] } });
     expect(c2.querySelector('.pq-letterhead').textContent).not.toContain('Frozen Name Ltd');
   });
@@ -266,8 +256,7 @@ describe('PublicQuoteHeader Call CTA (Owner 2026-10-07: upper outer corner, scre
     const details = header.querySelector('.pq-lh-details');
     expect(details.getAttribute('dir')).toBe('rtl');
     const phone = details.querySelector('.pq-lh-phone');
-    // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!", docs/OWNER_LOST_BEHAVIOURS_2026-10-18.md) #21: the label "טלפון:" precedes the number again
-    expect(phone.textContent).toMatch(/^טלפון:\s*050-?1234567$/);
+    expect(phone.textContent).toMatch(/^050-?1234567$/);
     expect(phone.querySelector('bdi[dir="ltr"]')).not.toBeNull();
   });
   it('EN: "Call me"; no business phone => no CTA (base)', () => {
@@ -291,15 +280,13 @@ describe('PublicQuoteHeader Call CTA (Owner 2026-10-07: upper outer corner, scre
   });
 });
 
-// Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!", docs/OWNER_LOST_BEHAVIOURS_2026-10-18.md) #20: the phone document is the real phone width again, no paper frame ("Mobile near-full-width behavior", PROFLOW_TODO
-// phone acceptance); the "Owner 2026-10-06" frame label had no Owner sentence on disk
-describe('phone shell: the real phone width without a paper frame, section/table insets kept', () => {
-  it.each([['HE', renderHe, heData], ['EN', renderEn, enData]])('%s: <= 640px uses the full-width shell and preserves section/table insets', (_n, renderPage, data) => {
+describe('Owner 2026-10-06: phone shell keeps the landing paper frame without reducing the commercial table', () => {
+  it.each([['HE', renderHe, heData], ['EN', renderEn, enData]])('%s: <= 640px uses the compact landing frame and preserves section/table insets', (_n, renderPage, data) => {
     const { container } = renderPage({ quoteData: data() });
     const css = container.querySelector('style').textContent;
     const phone = css.slice(css.indexOf('@media (max-width: 640px)'));
     expect(phone).toMatch(/\.pq-page \{\s*padding: 4px !important;\s*\}/);
-    expect(phone).toMatch(/\.pq-card \{\s*padding: 2px !important;\s*background: transparent !important;\s*box-shadow: none !important;\s*border: none !important;\s*border-radius: 0 !important;\s*\}/);
+    expect(phone).toMatch(/\.pq-card \{\s*padding: 16px 12px 12px !important;\s*background: #ffffff !important;\s*box-shadow: 0 4px 16px rgba\(16,29,35,0\.08\) !important;\s*border: 5px solid #dfe8e5 !important;\s*border-radius: 13px !important;\s*\}/);
     expect(phone).toMatch(/\.pq-section \{\s*padding: 10px 12px !important;\s*\}/);
     expect(phone).toMatch(/\.pq-recipient \{\s*padding: 6px 10px !important;\s*margin-bottom: 10px !important;\s*\}/);
     expect(phone).not.toMatch(/padding: 18px 14px/);
@@ -308,7 +295,6 @@ describe('phone shell: the real phone width without a paper frame, section/table
   });
 });
 
-// Owner console 2026-10-18, typed: "אני רוצה שהוא יהיה בדיוק כמו הגודל שהוא עכשיו בלייף" (L-26): the document keeps the LIVE size and frame
 describe('Owner 2026-10-06: real quote uses the landing sample paper frame', () => {
   it.each([['HE', renderHe, heData], ['EN', renderEn, enData]])('%s: pale frame and landing paper shadow', (_n, renderPage, data) => {
     const card = renderPage({ quoteData: data() }).container.querySelector('.pq-card');

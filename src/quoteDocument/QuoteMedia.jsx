@@ -1,13 +1,10 @@
 // Task 16 - Quote Experience V2: customer-facing quote media (Modern rail, Visual hero, row thumbnail).
-// Pure presentation: no network. The ONE control: a tap / click on an image opens it large over the page (Owner console 2026-10-18 ("והאם הלקוח יכול ללחוץ על התמונה בכדי להגדיל אותה?" -> "כן בטח להוסיף")) -
-// screen only: the overlay lives outside the document card (never in the Direct PDF) and is hidden in print; the invisible zoom
-// button lies OVER the image (the <img> stays the frame's direct child, as the PDF cover step expects). Media items are the public_get shape
+// Pure presentation: no network, no interactive controls. Media items are the public_get shape
 // `{ url|null, caption, alt, role: 'hero'|'support'|'item', itemKey, missing }` (CONTRACT section 3).
 // No media => every component renders null (the page omits the media area; no empty boxes, no "no images" copy).
 // A missing / unreadable image => neutral tile + kept caption + short localized "image unavailable" label.
 // Every <img> is capture-safe for the PDF path: crossOrigin anonymous, eager, async decode, fixed aspect box.
-import { useEffect, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useState } from 'react';
 import './quoteMedia.css';
 
 import { MEDIA_UNAVAILABLE_LABEL, RAIL_MAX_ITEMS, HERO_MAX_SUPPORTS } from './quoteMediaModel';
@@ -34,40 +31,6 @@ function textOf(value) {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-// The enlarged image over the page: Esc / the X / a click outside the image closes it; focus moves to X and returns to the image.
-function ImageLightbox({ url, alt, caption, isHebrew, onClose }) {
-  const closeRef = useRef(null);
-  useEffect(() => {
-    const opener = typeof document !== 'undefined' ? document.activeElement : null;
-    closeRef.current?.focus();
-    const onKey = (e) => { if (e.key === 'Escape') { e.stopPropagation(); onClose(); } };
-    document.addEventListener('keydown', onKey, true);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    return () => {
-      document.removeEventListener('keydown', onKey, true);
-      document.body.style.overflow = prevOverflow;
-      if (opener && typeof opener.focus === 'function') opener.focus();
-    };
-  }, [onClose]);
-  if (typeof document === 'undefined') return null;
-  const closeLabel = isHebrew ? 'סגירת התמונה' : 'Close image';
-  return createPortal(
-    // PRODUCT_TRUTH_DECORATIVE: the enlarged-image backdrop - a click outside the image closes the screen-only viewer
-    <div className="pq-lightbox no-print" data-html2canvas-ignore="true" role="dialog" aria-modal="true" aria-label={alt || (isHebrew ? 'תמונה' : 'Image')}
-      dir={isHebrew ? 'rtl' : 'ltr'} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-      {/* PRODUCT_TRUTH_DECORATIVE: closes the enlarged image view (screen-only image viewer) */}
-      <button type="button" ref={closeRef} className="pq-lightbox-close" onClick={onClose} aria-label={closeLabel} title={closeLabel}>×</button>
-      {/* PRODUCT_TRUTH_DECORATIVE: a click beside the enlarged image (not on it) closes the screen-only viewer */}
-      <figure className="pq-lightbox-figure" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
-        <img className="pq-lightbox-img" src={url} alt={alt} referrerPolicy="no-referrer" />
-        {caption ? <figcaption className="pq-lightbox-caption">{caption}</figcaption> : null}
-      </figure>
-    </div>,
-    document.body,
-  );
-}
-
 // One image inside a fixed-ratio frame. Falls back to the neutral tile when missing or when loading fails.
 function MediaFrame({ item, isHebrew, width, height, frameClass, showLabel = true }) {
   const url = typeof item.url === 'string' && item.url ? item.url : null;
@@ -75,7 +38,6 @@ function MediaFrame({ item, isHebrew, width, height, frameClass, showLabel = tru
   const missing = item.missing === true || !url || failedUrl === url;
   const alt = textOf(item.alt) || textOf(item.caption);
   const label = unavailableLabel(isHebrew);
-  const [open, setOpen] = useState(false);
 
   if (missing) {
     return (
@@ -109,10 +71,6 @@ function MediaFrame({ item, isHebrew, width, height, frameClass, showLabel = tru
         draggable={false}
         onError={() => setFailedUrl(url)}
       />
-      {/* PRODUCT_TRUTH_DECORATIVE: opens this quote image large over the page (a screen-only image viewer) */}
-      <button type="button" className="pq-media-zoom no-print" data-html2canvas-ignore="true" onClick={() => setOpen(true)}
-        aria-label={isHebrew ? `הגדלת התמונה${alt ? `: ${alt}` : ''}` : `Enlarge image${alt ? `: ${alt}` : ''}`} />
-      {open ? <ImageLightbox url={url} alt={alt} caption={textOf(item.caption)} isHebrew={isHebrew} onClose={() => setOpen(false)} /> : null}
     </span>
   );
 }

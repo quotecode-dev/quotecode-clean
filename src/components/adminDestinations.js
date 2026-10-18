@@ -28,12 +28,12 @@ export const ADMIN_GROUPS = {
 export const ADMIN_DESTINATIONS = [
   {
     id: 'overview', group: 'overview', icon: LayoutDashboard, permission: 'super_admin', mobile: 'more', available: true,
-    label: { he: 'סקירה כללית', en: 'Overview' },
+    label: { he: 'סקירה כללית', en: 'Admin Overview' },
     title: { he: 'סקירה כללית - סופר אדמין', en: 'Admin Overview - Super Admin' },
     render: (host) => createElement(AdminOverview, {
       accounts: host.accounts, isHebrew: host.isHebrew,
       onGoToUsers: () => host.navigate('users'), onGoToPlans: () => host.navigate('plans'), onOpenUser: host.openUser,
-      onGoToActivity: () => host.navigate('activity'), onRefreshAccounts: host.refreshAccounts,
+      onGoToActivity: () => host.navigate('activity'),
     }),
   },
   {
@@ -44,19 +44,19 @@ export const ADMIN_DESTINATIONS = [
   },
   {
     id: 'plans', group: 'management', icon: CreditCard, permission: 'super_admin', mobile: 'more', available: true,
-    label: { he: 'מסלולים ומנויים', en: 'Plans & subscriptions' },
+    label: { he: 'חבילות ומנויים', en: 'Plans / Subscriptions' },
     title: { he: 'חבילות ומנויים - סופר אדמין', en: 'Plans / Subscriptions - Super Admin' },
-    render: (host) => createElement(AdminPlans, { accounts: host.accounts, isHebrew: host.isHebrew, onOpenUser: host.openUser, onGoToUsers: () => host.navigate('users'), onRefreshAccounts: host.refreshAccounts }),
+    render: (host) => createElement(AdminPlans, { accounts: host.accounts, isHebrew: host.isHebrew, onOpenUser: host.openUser, onGoToUsers: () => host.navigate('users') }),
   },
   {
     id: 'activity', group: 'system', icon: Activity, permission: 'super_admin', mobile: 'more', available: true,
-    label: { he: 'פעילות מערכת', en: 'System activity' },
+    label: { he: 'פעילות מערכת', en: 'System Activity' },
     title: { he: 'פעילות מערכת - סופר אדמין', en: 'System Activity - Super Admin' },
-    render: (host) => createElement(AdminSystemActivity, { accounts: host.accounts, isHebrew: host.isHebrew, onRefreshAccounts: host.refreshAccounts }),
+    render: (host) => createElement(AdminSystemActivity, { accounts: host.accounts, isHebrew: host.isHebrew }),
   },
   {
     id: 'ai-support', group: 'system', icon: Bot, permission: 'super_admin', mobile: 'more', available: true,
-    label: { he: 'יומן תמיכת AI', en: 'AI support log' },
+    label: { he: 'יומן AI Support', en: 'AI Support Logs' },
     title: { he: 'יומן AI Support - סופר אדמין', en: 'AI Support Logs - Super Admin' },
     render: (host) => createElement(AISupportLogsContent, { isHebrew: host.isHebrew }),
   },

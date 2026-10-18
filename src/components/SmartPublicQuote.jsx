@@ -5,11 +5,11 @@ import PublicQuote from '../pages/PublicQuote';
 import PublicQuoteEn from '../pages/PublicQuoteEn';
 import { fetchPublicPresentation } from '../utils/quotePresentationClient';
 import { scheduleFirstViewRecord } from '../utils/firstView';
-import { isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
 
 // Task 16 - Quote Experience V2: the presentation (style / frozen branding / media, CONTRACT §3 public_get) is
 // requested IN PARALLEL with get-public-quote and is strictly optional: any failure, timeout or malformed payload
 // renders the legacy Classic composition - the quote itself is never blocked or delayed beyond PRESENTATION_WAIT_MS.
+const PRESENTATION_WAIT_MS = 2500;
 
 function isUsablePresentation(value) {
   return !!value && typeof value === 'object' && !Array.isArray(value) && typeof value.mode === 'string';
@@ -94,7 +94,7 @@ export default function SmartPublicQuote() {
         return;
       }
 
-      // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #23: the quote shows at once again (the style still applies the moment it arrives - setPresentation above)
+      await Promise.race([presentationPromise, new Promise((resolve) => setTimeout(resolve, PRESENTATION_WAIT_MS))]);
       if (processedIdRef.current !== id) return;
       setState({ status: 'ready', dto: data });
 
@@ -157,18 +157,6 @@ export default function SmartPublicQuote() {
 
   const { quote } = state.dto;
   const isLocalQuote = Number(quote.tax_rate) > 0 || (quote.currency || '').toUpperCase() === 'ILS';
-  // בעל המערכת 2026-10-18 ("איזה משתמש ירצה שהלקוח שלו יראה הצעה לא גמורה?" -> "כן"): הצעה לא גמורה (אין בה פריט עם מחיר)
-  // לעולם לא מוצגת ללקוח - גם לא ריקה עם הודעה. הלקוח רואה רק הודעה שהעסק מעדכן אותה, בשפת ההצעה. בעל העסק שפותח את ההצעה
-  // שלו ממשיך לראות את המסמך עם האזהרה.
-  if (!quote.is_owner_viewing && state.dto.viewerIsOwner !== true && isUnfinishedSavedQuote(quote, state.dto.items)) {
-    const en = !isLocalQuote;
-    return (
-      <div data-testid="public-quote-updating" dir={en ? 'ltr' : 'rtl'} lang={en ? 'en' : 'he'} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box', background: '#f7f8f6', color: '#10252b', fontFamily: 'Rubik, Segoe UI, Arial, Tahoma, sans-serif', textAlign: 'center', padding: '24px', gap: '10px' }}>
-        <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#10252b' }}>{en ? 'The business is updating this quote' : 'העסק מעדכן את ההצעה הזו'}</h1>
-        <p style={{ margin: 0, fontSize: '1rem', color: '#3c4a52', maxWidth: '34rem', lineHeight: 1.5 }}>{en ? 'You will receive an updated link from them.' : 'תקבלו ממנו קישור מעודכן.'}</p>
-      </div>
-    );
-  }
   // the finalized snapshot (enforced phase, owner final PDF/Print) replaces the live view before capture/print
   const handleFinalSnapshot = (dto) => setState({ status: 'ready', dto });
 

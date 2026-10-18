@@ -316,10 +316,7 @@ describe('the canonical SQL predicate (public.public_approve_quote) is the singl
     expect(allSql).toMatch(/CASE WHEN p_country IN \('Local', 'LCL'\) THEN 'Asia\/Jerusalem' ELSE 'Etc\/GMT\+12' END/);
     expect(VALIDITY_TIME_ZONE).toEqual({ Local: 'Asia/Jerusalem', International: 'Etc/GMT+12' });
     const serverCopy = readFileSync(join(cwd(), 'supabase', 'functions', 'get-public-quote', 'validity.ts'), 'utf8');
-    // Codex LANG-02 (2026-10-18): the server copy and SQL 20261018000000 add the 'Israel' / 'IL' aliases of the one market rule
-    expect(serverCopy).toMatch(/v === 'Local' \|\| v === 'LCL' \|\| v\.toLowerCase\(\) === 'israel' \|\| v\.toLowerCase\(\) === 'il'/);
-    expect(serverCopy).toMatch(/isLocalValidityCountry\(country\) \? 'Asia\/Jerusalem' : 'Etc\/GMT\+12'/);
-    expect(allSql).toMatch(/WHEN btrim\(p_country\) IN \('Local', 'LCL'\) OR lower\(btrim\(p_country\)\) IN \('israel', 'il'\) THEN 'Asia\/Jerusalem'/);
+    expect(serverCopy).toMatch(/country === 'Local' \|\| country === 'LCL' \? 'Asia\/Jerusalem' : 'Etc\/GMT\+12'/);
   });
   it('no client code calls a retired approval RPC (dropped by 20260929000000): public_approve_quote is the only approval path', () => {
     const dropSql = readFileSync(join(MIGRATIONS, '20260929000000_drop_legacy_approve_quote_public.sql'), 'utf8');

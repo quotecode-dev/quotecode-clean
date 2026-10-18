@@ -8,13 +8,13 @@ import AiChatIcon from './AiChatIcon';
 
 const OPEN_AI_CHAT_EVENT = 'open-proflow-ai-chat';
 
-function openAiHelp(context = null) {
+function openAiHelp() {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent(OPEN_AI_CHAT_EVENT, { detail: context ? { source: 'in_context_help', context } : { source: 'in_context_help' } }));
+  window.dispatchEvent(new CustomEvent(OPEN_AI_CHAT_EVENT, { detail: { source: 'in_context_help' } }));
 }
 
 // PRODUCT_TRUTH_CAPABILITY: ai_chat
-export default function AiHelpButton({ isHebrew = false, long = false, header = false, style = null, testId = 'ai-help-in-context', context = null }) {
+export default function AiHelpButton({ isHebrew = false, long = false, header = false, style = null, testId = 'ai-help-in-context' }) {
   const longLabel = isHebrew ? 'צריך עזרה? שאל את AI' : 'Need help? Ask AI';
   const shortLabel = isHebrew ? 'שאל את AI' : 'Ask AI';
   const label = long ? longLabel : shortLabel;
@@ -24,7 +24,7 @@ export default function AiHelpButton({ isHebrew = false, long = false, header = 
   if (header) {
     return (
       <button type="button" className="pf-ai-help-btn pf-ai-help-btn--header" data-testid={testId} aria-label={accessible} title={accessible} dir={isHebrew ? 'rtl' : 'ltr'}
-        onClick={(e) => { e.stopPropagation(); openAiHelp(context); }} style={style || undefined}>
+        onClick={(e) => { e.stopPropagation(); openAiHelp(); }} style={style || undefined}>
         <AiChatIcon size={16} rtl={isHebrew} />
         <span className="pf-ai-help-btn-label pf-ai-label-long">{longLabel}</span>
         <span className="pf-ai-help-btn-label pf-ai-label-short">{shortLabel}</span>

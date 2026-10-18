@@ -5,11 +5,11 @@
 // never a second row, never icon-only. All geometry lives in .pf-modal-head* (src/index.css); no per-modal CSS.
 import AiHelpButton from './AiHelpButton';
 
-export default function AiModalHeader({ title = null, titleAs: TitleTag = 'h2', onClose, closeLabel, closeContent, isHebrew = false, testId, className = '', style = null, aiContext = null }) {
+export default function AiModalHeader({ title = null, titleAs: TitleTag = 'h2', onClose, closeLabel, closeContent, isHebrew = false, testId, className = '', style = null }) {
   return (
     <div className={`pf-modal-head ${className}`.trim()} dir={isHebrew ? 'rtl' : 'ltr'} data-testid={testId ? `${testId}-header` : undefined} style={style || undefined}>
       <div className="pf-modal-head-title">{title != null && <TitleTag className="pf-modal-head-title-text">{title}</TitleTag>}</div>
-      <div className="pf-modal-head-ai"><AiHelpButton isHebrew={isHebrew} header testId={testId} context={aiContext} /></div>
+      <div className="pf-modal-head-ai"><AiHelpButton isHebrew={isHebrew} header testId={testId} /></div>
       <div className="pf-modal-head-close">
         {/* PRODUCT_TRUTH_DECORATIVE: generic modal-header close button used by whichever modal/wizard renders this shared header */}
         {onClose && (

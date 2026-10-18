@@ -94,9 +94,7 @@ function Harness({ isHebrew = false, quotes = FIXTURE, initialField = 'created_a
   );
 }
 
-// Owner console 2026-10-18, typed: "שיראה מסך מלא לפי דפים, הסתיים הדף שיהיה כפתור למטה להציג את הדף הבא" + "שההצעה תופיע לפי הסדר" (accepted: "מעולה, תנעל")
-// the list is paged (no "show all"): the six fixture quotes are all on page one, in their sorted order
-const showAll = () => {};
+const showAll = (isHebrew) => fireEvent.click(screen.getByText(isHebrew ? 'הצגת כל ההצעות' : 'Show all quotes'));
 const orderOf = (container) => [...container.querySelectorAll('.quote-modern-number')].map((n) => n.textContent.replace(/^#?A/, ''))
   .map((num) => ({ 100735: 'E', 100736: 'D', 100737: 'C', 100738: 'A', 100739: 'B', 100740: 'F' }[num]));
 const header = (key) => document.querySelector(`.quote-modern-head-btn[data-sort-key="${key}"]`);
@@ -238,13 +236,16 @@ describe.each([
     expect(searched.container.querySelectorAll('.quote-modern-item').length).toBe(2);
   });
 
-  it('the page keeps the sorted order: the hot quote is NOT promoted out of order (Owner 2026-10-18 "שההצעה תופיע לפי הסדר")', () => {
+  it('compact view = the first four of the sorted list with the hot quote promoted exactly once; Show all keeps the sorted order', () => {
     const { container } = render(<Harness isHebrew={isHebrew} initialField="id" />);
     fireEvent.click(header('client'));
-    expect(orderOf(container)).toEqual(ASC.client);
+    // sorted by client: D, C, B, A, E, F(hot). Compact = hot F first, then the next three NON-hot in sorted order.
+    expect(orderOf(container)).toEqual(['F', 'D', 'C', 'B']);
     expect(container.querySelectorAll('.quote-modern-item.is-hot')).toHaveLength(1);
-    expect(container.querySelectorAll('.quote-modern-item')).toHaveLength(6);
-    expect(container.querySelector('[data-testid="quote-pager"]')).toBeNull(); // one page only
+    expect(container.querySelectorAll('.quote-modern-item')).toHaveLength(4);
+    showAll(isHebrew);
+    expect(orderOf(container)).toEqual(ASC.client);
+    expect(new Set(orderOf(container)).size).toBe(6);
   });
 
   it('the header buttons are keyboard operable (Enter/Space activate a native button)', () => {

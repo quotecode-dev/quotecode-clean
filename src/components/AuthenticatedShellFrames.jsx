@@ -52,12 +52,12 @@ export function HeaderDynamicSlot({ message, isHebrew }) {
   const date = formatShortDate(deviceCalendarDate(now), (isHebrew ? 'Local' : 'International')).slice(0, 5);
   return <span className="dash-topbar-dynamic-text" aria-hidden="true">{date} · {time}</span>;
 }
-export function AuthenticatedSidebarFrame({ drawerEnabled, open, onClose, isHebrew, children, drawerQuery = '(max-width:768px)' }) {
+export function AuthenticatedSidebarFrame({ drawerEnabled, open, onClose, isHebrew, children }) {
   const frame = useRef(null);
   useEffect(() => {
-    if (!open || !window.matchMedia(drawerQuery).matches) return;
+    if (!open || !window.matchMedia('(max-width:768px)').matches) return;
     const previous = document.activeElement;
-    const media = window.matchMedia(drawerQuery);
+    const media = window.matchMedia('(max-width:768px)');
     const onResize = () => { if (!media.matches) onClose(); };
     media.addEventListener('change', onResize);
     const focusable = () => [...frame.current.querySelectorAll('button,a,input,select,[tabindex="0"]')].filter(el => !el.disabled && el.getClientRects().length);
@@ -73,7 +73,7 @@ export function AuthenticatedSidebarFrame({ drawerEnabled, open, onClose, isHebr
     document.body.style.overflow = 'hidden';
     document.addEventListener('keydown', handleKey);
     return () => { document.body.style.overflow = priorOverflow; document.removeEventListener('keydown', handleKey); media.removeEventListener('change', onResize); previous?.focus(); };
-  }, [open, onClose, drawerQuery]);
+  }, [open, onClose]);
   return <aside ref={frame} id="authenticated-sidebar" className={`dash-sidebar no-print ${drawerEnabled ? 'dash-operator-sidebar' : ''} ${open ? 'dash-sidebar-open' : ''}`} onClickCapture={event => { if (open && event.target.closest('button,a')) onClose(); }}>
     {/* PRODUCT_TRUTH_DECORATIVE: closes the mobile sidebar drawer; generic authenticated-shell chrome */}
     {drawerEnabled && <button type="button" className="dash-drawer-close dash-sidebar-btn" onClick={onClose} aria-label={isHebrew ? 'סגירת תפריט' : 'Close menu'}><X size={20} /></button>}

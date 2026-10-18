@@ -167,9 +167,8 @@ export function matchesStatusFilter(account, filter, now = Date.now()) {
   return true;
 }
 
-// Codex verification AV-12 / the Owner (2026-10-16 "מה זה ללא מנוי?"): 'none' has no words - there is no "no subscription" status
 export function subscriptionStatusLabel(status, isHebrew) {
-  return status !== 'none' && STATUS[status] ? tr(STATUS[status], isHebrew) : null;
+  return STATUS[status] ? tr(STATUS[status], isHebrew) : null;
 }
 
 export function free10Label(free10, isHebrew) {

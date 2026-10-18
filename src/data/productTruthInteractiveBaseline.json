@@ -48,8 +48,8 @@
     "markers": 3
   },
   "src/components/AdminScreenFrame.jsx": {
-    "interactive": 2,
-    "markers": 2
+    "interactive": 1,
+    "markers": 1
   },
   "src/components/AdminSidebarNav.jsx": {
     "interactive": 1,
@@ -68,8 +68,8 @@
     "markers": 2
   },
   "src/components/AdminUserDetails.jsx": {
-    "interactive": 5,
-    "markers": 5
+    "interactive": 4,
+    "markers": 4
   },
   "src/components/AdminUsersDestination.jsx": {
     "interactive": 0,
@@ -256,8 +256,8 @@
     "markers": 7
   },
   "src/components/QuotesTab.jsx": {
-    "interactive": 22,
-    "markers": 25
+    "interactive": 21,
+    "markers": 23
   },
   "src/components/RemindersFirstSetupNotice.jsx": {
     "interactive": 1,
@@ -600,8 +600,8 @@
     "markers": 0
   },
   "src/quoteDocument/QuoteMedia.jsx": {
-    "interactive": 2,
-    "markers": 4
+    "interactive": 0,
+    "markers": 0
   },
   "src/quoteDocument/quoteMediaModel.js": {
     "interactive": 0,
@@ -612,10 +612,6 @@
     "markers": 0
   },
   "src/quoteDocument/sampleQuotes.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/quoteDocument/useAmountAxis.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -928,10 +924,6 @@
     "markers": 0
   },
   "src/utils/quoteWorkflowContext.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/quotesListMemory.js": {
     "interactive": 0,
     "markers": 0
   },

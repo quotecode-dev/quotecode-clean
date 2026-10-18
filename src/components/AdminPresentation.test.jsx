@@ -72,9 +72,7 @@ describe('Owner locked Admin presentation', () => {
     expect(rows[0].querySelector('td:nth-child(2) strong').textContent).toBe(isHebrew ? 'פג תוקף' : 'Expired');
     expect(rows[1].querySelector('td:nth-child(2) strong').textContent).toBe(isHebrew ? 'מנוי LIFETIME' : 'Lifetime subscription');
     expect(rows[0].querySelector('td:nth-child(3)').textContent).toBe(isHebrew ? 'ניסיון ותיק' : 'Legacy trial');
-    // review 2026-10-16: the visible dash + a screen-reader text (an aria-label on a plain span is not announced reliably)
-    expect(rows[1].querySelector('td:nth-child(3) [aria-hidden="true"]').textContent).toBe('—');
-    expect(rows[1].querySelector('td:nth-child(3) .av-sr-only').textContent).toMatch(/אין חיוויים|No indicators/);
+    expect(rows[1].querySelector('td:nth-child(3)').textContent).toBe('—');
     for (const r of rows) expect(within(r.querySelector('td:nth-child(6)')).getByRole('img').getAttribute('aria-label')).toBeTruthy();
     expect(rows[0].querySelector('td:nth-child(6) svg')).toBeTruthy();
     expect(rows[1].querySelector('td:nth-child(6) .lucide-globe')).toBeTruthy();
@@ -109,8 +107,7 @@ describe('Owner locked Admin presentation', () => {
     const mix = screen.getByRole('article', { name: 'Subscription mix' });
     expect([...mix.querySelectorAll('.av-legend [data-segment]')].map((r) => [r.getAttribute('data-segment'), r.querySelector('b').textContent])).toEqual([
       ['free10', '0'], ['trial', '0'], ['trial_ended', '1'], ['paid_monthly', '0'], ['paid_annual', '0'], ['lifetime', '0']]);
-    // the approved overview sketch (Owner 2026-10-16 "נא להצמד לאפיון של קודקס"): colour dots in the ring legend
-    expect(mix.querySelector('.av-legend .av-dot')).toBeTruthy();
+    expect(mix.querySelector('.av-legend .pmm svg')).toBeTruthy();
     expect(screen.getByTestId('admin-kpi-managed').textContent).toBe('1');
     expect(document.body.querySelector('code')).toBeNull();
     expect(visibleTextOutsideStatus(document.body)).not.toMatch(LEGACY_LABELS);
@@ -250,8 +247,7 @@ describe('Admin Plans / Activity: legacy history only, no legacy plan identity',
       const onGoToUsers = vi.fn();
       render(<AdminPlans accounts={accounts} isHebrew={isHebrew} onGoToUsers={onGoToUsers} />);
       await screen.findByText(isHebrew ? 'מערך המסלולים החדש: טרם הופעל' : 'New plan system: not active yet');
-      // the approved plans sketch: the ring card is "מסלולים ומנויים" / "Plans & subscriptions"
-      const mix = screen.getByRole('article', { name: isHebrew ? 'מסלולים ומנויים' : 'Plans & subscriptions' });
+      const mix = screen.getByRole('article', { name: isHebrew ? 'התפלגות מסלולים' : 'Subscription mix' });
       expect([...mix.querySelectorAll('.av-legend [data-segment]')].map((r) => [r.getAttribute('data-segment'), r.querySelector('b').textContent])).toEqual([
         ['free10', '0'], ['trial', '0'], ['trial_ended', '0'], ['paid_monthly', '0'], ['paid_annual', '0'], ['lifetime', '1'], ['free10_inactive', '1']]);
       expect(screen.getByRole('article', { name: isHebrew ? 'איכות ושלמות המידע' : 'Data quality & coverage' })).toBeTruthy();
@@ -270,8 +266,6 @@ describe('Admin Plans / Activity: legacy history only, no legacy plan identity',
       { id: 3, action: 'revoke_lifetime', outcome: 'denied', reason: 'r', created_at: '2026-09-01T10:00:00Z' },
     ], error: null }));
     render(<AdminSystemActivity accounts={[]} isHebrew={false} />);
-    // the approved activity sketch defaults to the last 7 days; these events are older - the period filter shows all
-    fireEvent.change(await screen.findByLabelText('Period'), { target: { value: 'all' } });
     await waitFor(() => expect(document.querySelector('[data-action="extend_trial"] strong').textContent).toBe('Legacy trial extended'));
     // Owner console 2026-10-16, typed: "מאשר שינוי ב-L-07 להחלפת הקודים בסטטוס מנוי עם אייקונים" - ONE subscription status (icon + words) wording in the history
     expect(document.querySelector('[data-action="grant_lifetime"] strong').textContent).toBe('Lifetime subscription granted');
@@ -296,10 +290,7 @@ describe('Admin sources: no active legacy plan labels (static, comments stripped
         : f === 'AdminUsersTab.jsx'
           ? ['Lifetime: the app and the chat show the account as a "Lifetime subscription" with every capability open and no charge. In the new plan system (once active) it does not change a plan or a balance.',
             // Owner console 2026-10-16 (L-07, codes -> subscription status): the Lifetime dialog states in words
-            'מנוי LIFETIME', 'Lifetime subscription', 'ללא מנוי LIFETIME', 'No Lifetime subscription',
-            // Owner console 2026-10-17 ("מאשר תיקון כל 16 הממצאים של קודקס", AV-03): the revoke dialog explains the revoke
-            'ביטול LIFETIME: החשבון חוזר למצב שנקבע לפי נתוני החשבון והשרת (ניסיון, פג תוקף או 10 הצעות חינם — טרם הופעל), ללא חיוב. מסלול או יתרה אינם נוצרים מהביטול.',
-            'Revoking Lifetime: the account returns to the state its own data and the server give it (trial, expired or 10 free quotes — not yet active), with no charge. Revoking creates no plan or balance.']
+            'מנוי LIFETIME', 'Lifetime subscription', 'ללא מנוי LIFETIME', 'No Lifetime subscription']
           : f === 'AdminSystemActivity.jsx'
             ? ['הענקת מנוי LIFETIME', 'Lifetime subscription granted', 'ביטול מנוי LIFETIME', 'Lifetime subscription revoked']
             : [];

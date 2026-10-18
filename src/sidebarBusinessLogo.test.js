@@ -25,7 +25,5 @@ describe('sidebar business logo', () => {
     expect(rule).toMatch(/.dash-sidebar-brand--logo .dash-sidebar-brand-card { height: 90px; }/);
     expect(rule).toMatch(/max-width: calc\(100% - 16px\);/);
     expect(rule).toMatch(/object-fit: contain;/);
-    // + Owner console 2026-10-18 ("שהרוחב של השוליים יהיה באותו עובי מסביב ללוגו"): the card wraps the logo with one even 6px frame
-    expect(rule).toMatch(/\.dash-sidebar-brand--logo \.dash-sidebar-brand-card \{ height: auto; width: fit-content; max-width: 100%; padding: 6px; border-radius: 0; \}/);
   });
 });

@@ -24,7 +24,7 @@ import { allowDraftWrites, decideRestore, suppressDraftWrites, flushAllDrafts, f
 import { getBlobStore } from '../utils/draftAttachments';
 import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quoteFormState';
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
-import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
+import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang } from '../utils/regionConfig';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, missingPriceItems, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
 import { itemPricePayload, formPriceFromSavedItem } from '../utils/itemPrice';
@@ -155,27 +155,21 @@ const DEFAULT_TERMS_ENG = `General Terms:
 // מהשרת, או בבחירה מפורשת של המשתמש אם geo נכשל (ר' fetchSettings ->
 // createNewBusinessSettings / handleRegionChoiceSelect למטה).
 // Header date/time: one line '<weekday>, DD/MM/YYYY | HH:mm' on desktop (weekday + separator hidden on phones, which keep the
-// compact stacked date over time). Date and time are bidi-isolated LTR atoms (.pf-num) inside the mirrored header, so Hebrew
-// punctuation never reorders them.
-// Owner console 2026-10-18, typed: "1 - עם שניות", "2 - שיהיה מסונכרן בדיוק לפי שעון המחשב", "3 - להחזיר את האנימציה": the time shows SECONDS and ticks exactly
-// on the device clock's second boundary (each tick schedules the next one at the start of the following second - no drift).
+// compact stacked date over time). No seconds, so it refreshes every 30s. Date and time are bidi-isolated LTR atoms
+// (.pf-num) inside the mirrored header, so Hebrew punctuation never reorders them.
 function HeaderClock({ country, isHebrew }) {
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
-    let id = null;
-    const schedule = () => { id = setTimeout(() => { setNow(new Date()); schedule(); }, 1000 - (Date.now() % 1000) + 2); };
-    schedule();
-    return () => clearTimeout(id);
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
   }, []);
   // weekday NAME only (never a numeric date - that stays with formatShortDate, IRON-DATE-001)
   const weekday = new Intl.DateTimeFormat(isHebrew ? 'he-IL' : 'en-GB', { weekday: 'long' }).format(now);
-  const time = now.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  const time = now.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
   return (
     <>
       {/* Owner 2026-10-14: on phones the stacked block opens with the time-of-day greeting (in place of the date); desktop keeps the date */}
-      {/* the greeting enters with the approved animation again (dashHeaderGreetingEnter); keyed by its text, so a new part of the day
-          enters the same way */}
-      <span key={timeGreeting(now.getHours(), isHebrew)} className="dash-header-mgreet dash-header-greeting-text">{timeGreeting(now.getHours(), isHebrew)}</span>
+      <span className="dash-header-mgreet">{timeGreeting(now.getHours(), isHebrew)}</span>
       <span className="dash-header-weekday">{weekday}{', '}</span>
       {/* IRON-DATE-001: live clock = the device's own current day, ordered by the ACCOUNT MARKET (unknown -> International). */}
       <bdi dir="ltr" className="dash-header-date pf-num">{formatShortDate(deviceCalendarDate(now), resolveAdminMarket({ country }).market)}</bdi>
@@ -192,9 +186,7 @@ function HeaderGreeting({ isHebrew }) {
     const id = setInterval(() => setNow(new Date()), 60000);
     return () => clearInterval(id);
   }, []);
-  // Owner console 2026-10-18, typed: "1 - עם שניות", "2 - שיהיה מסונכרן בדיוק לפי שעון המחשב", "3 - להחזיר את האנימציה" #3: the greeting enters with the approved animation again
-  const text = timeGreeting(now.getHours(), isHebrew);
-  return <strong key={text} className="dash-header-greeting dash-header-greeting-text">{text}</strong>;
+  return <strong className="dash-header-greeting">{timeGreeting(now.getHours(), isHebrew)}</strong>;
 }
 
 // The "new client" window's client: ONE stable empty object. A fresh {} on every Dashboard render re-ran the window's reset effect
@@ -258,8 +250,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [expenses, setExpenses] = useState([]);
   const [allUserAttachments, setAllUserAttachments] = useState([]);
   
-  // the account's stored country exactly as saved (bizCountry holds its canonical market)
-  const storedCountryRef = useRef(null);
   const [bizCountry, setBizCountry] = useState(() => {
     if (typeof window === 'undefined') return 'International';
     const cached = localStorage.getItem('proflow_cached_country');
@@ -486,12 +476,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [showAiQuoteDraft, setShowAiQuoteDraft] = useState(false);
   const [shellDrawerOpen, setShellDrawerOpen] = useState(false);
   const closeShellDrawer = useCallback(() => setShellDrawerOpen(false), []);
-  // AV-14: the admin page head opens the shared sidebar drawer on a portrait tablet
-  useEffect(() => {
-    const open = () => { if (window.matchMedia && window.matchMedia('(min-width:769px) and (max-width:999px)').matches) setShellDrawerOpen(true); };
-    window.addEventListener('tekango-open-admin-drawer', open);
-    return () => window.removeEventListener('tekango-open-admin-drawer', open);
-  }, []);
 
   // TEKANGO — Owner Header Reference Correction task (2026-09-18): the ONE
   // AI Chat entry point, rendered inside the canonical business Header
@@ -1319,8 +1303,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     quotesNav: isHebrew ? 'הצעות מחיר' : 'Quotes',
     settingsNav: isHebrew ? 'הגדרות העסק' : 'Business Settings',
     clientsNav: isHebrew ? 'לקוחות' : 'Clients',
-    // Owner console 2026-10-18, typed: "אני חושב שפיננסים הכי מתאים כשם כולל": ONE name everywhere (sidebar, phone bar, screen title)
-    financesNav: isHebrew ? 'פיננסים' : 'Finances',
+    financesNav: isHebrew ? 'הוצאות ודוחות' : 'Expenses & Reports',
     statisticsNav: isHebrew ? 'סטטיסטיקה' : 'Statistics',
     tasksNav: isHebrew ? 'משימות' : 'Tasks',
     calendarNav: isHebrew ? 'יומן' : 'Calendar',
@@ -1579,10 +1562,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // בבטחה ל-'' (זהה-בייט ל"לא נבחר"), לא שגיאה.
       setProfessionalDomain(data.professional_domain || '');
 
-      // Owner 2026-10-17 (market detection = the admin's rule): a stored 'Israel' / 'IL' is Local, a stored 'Germany' is International
-      // Codex LANG-01 (2026-10-18): an unknown stored country (e.g. 'ZZ') is International everywhere - English, USD, 0% VAT -
-      // never USD mixed with a hidden Israeli 18%. The stored value itself is kept (see the save below).
-      const countryVal = canonicalMarket(data.country) || 'International';
+      const countryVal = data.country || 'International';
       // setBizCountry חייב לרוץ תמיד: זו הדרך היחידה שבה bizCountry (ולכן
       // sym/isLocalIsraeliBusiness בהמשך) מתעדכן מהמדינה האמיתית שבמסד
       // הנתונים. גדר ה-?lang= הייתה חוסמת את זה לגמרי בזמן תצוגה מקדימה
@@ -1592,7 +1572,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // האמיתית התקבלה. רק כתיבת המטמון proflow_cached_country עצמו
       // נשארת מותנית, כדי שתצוגה מקדימה חד-פעמית לא "תדביק" ביקורים
       // עתידיים בדפדפן הזה.
-      storedCountryRef.current = data.country ?? null;
       setBizCountry(countryVal);
       if (!isExplicitEnglish && !isExplicitHebrew) {
         localStorage.setItem('proflow_cached_country', countryVal);
@@ -1753,7 +1732,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setBizRole(newData.role);
     // ר' הערה מקבילה למעלה - setBizCountry לא מותנה בגדר lang=, רק כתיבת
     // המטמון המשותף.
-    storedCountryRef.current = newData.country || country;
     setBizCountry(newData.country || country);
     if (!isExplicitEnglish && !isExplicitHebrew) {
       localStorage.setItem('proflow_cached_country', newData.country || country);
@@ -1801,16 +1779,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   async function handleRegionChoiceSelect(country) {
     if (!pendingNewAccount) return;
     await createNewBusinessSettings(pendingNewAccount.userId, pendingNewAccount.userEmail, country, pendingNewAccount.businessName);
-  }
-
-  // admin redesign part A review (2026-10-16): after a completed protected action the admin lists reload in place (silent - the admin
-  // screen stays mounted; a failed reload keeps the current list)
-  async function refreshAllAccounts() {
-    try {
-      const { data, error } = await supabase.from('business_settings').select('*').order('created_at', { ascending: false });
-      if (!error && Array.isArray(data)) { setAllAccounts(data); return true; }
-      return false;
-    } catch { return false; /* keep the current list */ }
   }
 
   async function fetchAllAccounts() {
@@ -1867,8 +1835,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       logo_url: bizLogoUrl,
       default_terms: defaultTerms,
       default_warranty: defaultWarranty,
-      // the market rule reads a stored country; a save never rewrites it (a stored 'Germany' stays 'Germany' while the market is unchanged)
-      country: storedCountryRef.current && (canonicalMarket(storedCountryRef.current) || 'International') === bizCountry ? storedCountryRef.current : bizCountry,
+      country: bizCountry,
       currency: enforcedCurrency,
       user_id: session.user.id
     };
@@ -5587,11 +5554,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           border-top: 1px solid ${SIDEBAR.sidebarBorder};
           opacity: 0.72;
         }
-        /* Owner console 2026-10-18 ("תחזיר רק מועל עי", "האם אפשר שהלוגו יהיה ברור יותר?", "רק עם רקע לבן, אין צרוך ב2 שורות"): one line as
-           before; the small symbol on a white square at full strength */
-        .dash-sidebar-platform-brand { opacity: 1; }
-        .dash-sidebar-platform-brand .dash-sidebar-platform-brand-label { color: #ffffff; }
-        .dash-sidebar-platform-brand-logo { display: inline-flex; padding: 2px; background: #ffffff; border-radius: 0; line-height: 0; }
         .dash-sidebar-platform-brand-label {
           font-size: 0.75rem;
           font-weight: 600;
@@ -6043,9 +6005,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           font-weight: 500;
         }
         .quote-hot-banner-name { padding: 0; background: transparent; color: #c2410c; font-weight: 700; }
-        /* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #3: the empty state is neutral (no alert colour) */
-        .quote-hot-banner.quote-hot-banner--empty { background: #f6f8fb; border-color: #d6dfea; color: #50627a; }
-        .quote-hot-banner--empty .quote-hot-banner-hint { font-weight: 500; opacity: 0.85; }
         .quote-hot-banner-action {
           flex: none;
           /* 32px so the 24px illustrated eye (Owner update 2026-10-09) keeps its own clear area inside the 40px banner */
@@ -6062,14 +6021,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           cursor: pointer;
         }
         .quote-hot-banner-action:hover { background: #fed7aa; }
-        /* Owner 2026-10-18: the quote list in pages - separate, clearly outlined "previous" / "next" buttons with the highlighted
-           "page X of Y" between them (every width; the desktop card adjusts its height below) */
-        .quote-modern-pager { flex: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 4px; margin-top: 4px; background: transparent; font-size: 13px; }
-        .quote-modern-page-btn { min-height: 40px; padding: 0 16px; border: 1.5px solid #0a55da; border-radius: 8px; background: #ffffff; color: #0a55da; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
-        .quote-modern-page-btn:hover:not(:disabled) { background: #eef4ff; }
-        .quote-modern-page-btn:disabled { border-color: #d6dfea; color: #94a3b8; background: #f6f8fb; cursor: default; }
-        .quote-modern-page-btn:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
-        .quote-modern-page-info { padding: 6px 12px; border-radius: 999px; background: #eef4ff; color: #0b2a5b; font-weight: 700; white-space: nowrap; }
         .quote-hot-banner-action:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
 
         /* Owner superseding responsive correction (2026-10-08 17:19): on mobile / tablet-portrait the top chrome of the
@@ -6189,13 +6140,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           /* Owner 2026-10-14: a business logo gets a taller card (90px, logo up to 78px); the TEKANGO wordmark card keeps 58px */
           .dash-sidebar-brand.dash-sidebar-brand--logo { height: 100px; padding: 5px 10px; }
           .dash-sidebar-brand--logo .dash-sidebar-brand-card { height: 90px; }
-          /* Owner console 2026-10-18, typed: "שזה יתנהג כמו זה אבל שהשוליים יהיו צרים יותר ופרופורציונליים ללוגו, הכוונה שהרוחב של השוליים יהיה
-             באותו עובי מסביב ללוגו": the white card wraps the logo itself with ONE even 6px frame on every side (it no longer spans the
-             sidebar width), centred in the band; the logo keeps its 78px height cap and its proportions */
-          .dash-sidebar-brand.dash-sidebar-brand--logo { display: flex; align-items: center; justify-content: center; }
-          /* + "גם לא צריך את העיגול של הפינות במסגרת": square corners */
-          .dash-sidebar-brand--logo .dash-sidebar-brand-card { height: auto; width: fit-content; max-width: 100%; padding: 6px; border-radius: 0; }
-          .dash-sidebar-brand--logo .dash-sidebar-business-logo { max-width: 100%; }
           .dash-sidebar-wordmark {
             color: #0b2a55;
             font-size: 27px;
@@ -6486,10 +6430,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             outline: 2px solid #0c5fe3;
             outline-offset: 2px;
           }
-          /* Owner console 2026-10-18, typed: "להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!" (docs/OWNER_LOST_BEHAVIOURS_2026-10-18.md) #1: the CSV export is visible on the desktop list again (it was hidden, contrary to its own comment) */
-          .quote-export-compact { display: inline-flex; align-items: center; justify-content: center; inline-size: 32px; block-size: 32px; flex: none; border: 1px solid #d6dfea; border-radius: 7px; background: #fff; color: #172d49; cursor: pointer; }
-          .quote-export-compact:hover { background: #eef4f8; }
-          .quote-export-compact:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
+          .quote-export-compact { display: none; }
 
           /* Overview strip: 4 cells (quotes / awaiting / approved / total), short dividers, number first then label */
           .quote-workspace .quote-overview {
@@ -6789,9 +6730,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             cursor: pointer;
           }
           .quote-modern-show-all:focus-visible { outline: 2px solid #0c5fe3; outline-offset: -3px; }
-          /* the desktop page bar sits inside the list card: one 44px row under a rule */
-          .quote-modern-list > .quote-modern-pager { block-size: 44px; padding: 0 8px; margin: 0; border-top: 1px solid #e3e6eb; }
-          .quote-modern-list > .quote-modern-pager .quote-modern-page-btn { min-height: 32px; }
 
           /* Sortable header strip: a light-grey rounded strip inside the card. It shares the row grid EXACTLY (same --qm-cols and
              --qm-gap): the strip is inset by 10px, so its own inline padding is the row padding (4px list-edge border + 14px / 16px)
@@ -7083,8 +7021,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         }
         @media (min-width: 769px) {
           .dash-status-toast {
-            /* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #8: centred over the workspace again - half of today's 178px sidebar */
-            left: calc(50% ${isHebrew ? '- 89px' : '+ 89px'});
+            left: calc(50% ${isHebrew ? '- 116px' : '+ 116px'});
           }
         }
         /* Desktop Header Removal task, §7 mount-scoping mechanism: hides
@@ -7320,8 +7257,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         isLocalIsraeliBusiness={isLocalIsraeliBusiness} 
         accountSummary={accountSummary}
         isLifetime={isLifetimeAccount}
-        // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #17: the account currency reaches the plans window again (the EUR / GBP estimate line)
-        currency={currency}
         statusLine={accountStatusSentence(ownSubscriptionStatus, isHebrew, statusDate)}
       />
       <CapabilityUpgradeNotice
@@ -7416,9 +7351,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       {/* PRODUCT_TRUTH_DECORATIVE: click on the mobile drawer backdrop closes the shell drawer overlay; generic click-outside-to-close chrome */}
       {shellDrawerOpen && <div className="dash-drawer-backdrop no-print" onClick={() => setShellDrawerOpen(false)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', zIndex:10000 }} />}
       <div className="dash-shell-body">
-        {/* Codex verification AV-14 (Owner 2026-10-17): the ONE shared sidebar becomes a drawer for the ADMIN screens on a portrait
-            tablet (769-999px); every user screen keeps drawerEnabled false behaviour (no drawer, the fixed sidebar). */}
-        <AuthenticatedSidebarFrame drawerEnabled={isAdminMode} drawerQuery={isAdminMode ? '(max-width:999px)' : '(max-width:768px)'} open={shellDrawerOpen} onClose={closeShellDrawer} isHebrew={isHebrew}>
+        <AuthenticatedSidebarFrame drawerEnabled={false} open={shellDrawerOpen} onClose={closeShellDrawer} isHebrew={isHebrew}>
           {/* Sidebar Branding Hierarchy: business identity primary (logo if
               the business uploaded one, else an initial-letter mark in the
               same brand gradient the CTA/avatar already use elsewhere - no
@@ -7557,15 +7490,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 <div className="dash-sidebar-user-bizname" dir="auto" title={bizName || ''}>{bizName || (isHebrew ? 'העסק שלי' : 'My Business')}</div>
                 <div className="dash-sidebar-user-name" title={session.user.email}><bdi dir="ltr">{session.user.email}</bdi></div>
               </div>
-            </div>
-            {/* Owner console 2026-10-18, typed: "תחזיר רק מועל ע\"י": the quiet "Powered by TEKANGO" line under the business identity
-                again (as before the new interface); Sign out stays in the gear menu */}
-            <div className="dash-sidebar-platform-brand">
-              {/* + "להשאיר את הרקע הכהה, לכתוב מופעל על ידי בלבן והלוגו הקטן על רקע לבן": one line on the dark sidebar - the words in
-                  white, the small TEKANGO symbol on its own small white square */}
-              {/* + "מבית TEKANGO" (in place of "מופעל על ידי"; EN "by TEKANGO") */}
-              <span className="dash-sidebar-platform-brand-label">{isHebrew ? 'מבית ' : 'by '}<bdi dir="ltr">TEKANGO</bdi></span>
-              <span className="dash-sidebar-platform-brand-logo"><ProFlowLogo size={13} /></span>
             </div>
           </div>
         </AuthenticatedSidebarFrame>
@@ -8391,7 +8315,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   openUser: openAdminUserDetails,
                   selectedUserId: adminSelectedUserId,
                   clearSelectedUser: () => setAdminSelectedUserId(null),
-                  refreshAccounts: refreshAllAccounts,
                   usersTabProps: {
                     t,
                     isHebrew,
@@ -8402,7 +8325,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     handleSort,
                     sortField,
                     sortDirection,
-                    onAccountsChanged: refreshAllAccounts,
                   },
                 }}
               />
