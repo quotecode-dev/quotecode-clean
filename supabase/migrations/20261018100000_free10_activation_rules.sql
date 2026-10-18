@@ -504,6 +504,32 @@ $function$;
 REVOKE ALL ON FUNCTION public.output_notice(uuid, uuid) FROM PUBLIC, anon, authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.output_notice(uuid, uuid) TO service_role;
 
+-- 6b. new-quote guard (20261011100000): a LIFETIME flag granted after activation (free_10 row) is unlimited too
+CREATE OR REPLACE FUNCTION public.enforce_free10_quote_creation()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $function$
+DECLARE
+  v_ent public.account_entitlements%ROWTYPE;
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.subscription_activation a WHERE a.component = 'free_issue' AND a.phase = 'enforced') THEN
+    RETURN NEW;
+  END IF;
+  SELECT * INTO v_ent FROM public.account_entitlements e WHERE e.user_id = NEW.user_id;
+  IF NOT FOUND OR v_ent.account_mode <> 'free_10' OR public.quote_output_unlimited(NEW.user_id, v_ent.account_mode) THEN
+    RETURN NEW; -- paid (current or legacy) is never blocked here; unprovisioned keeps the existing output enforcement
+  END IF;
+  IF v_ent.free_issues_consumed + public.quote_output_live_reservations(NEW.user_id, NULL) >= v_ent.free_issue_limit THEN
+    RAISE EXCEPTION 'free_issue_limit_reached: all % free quotes are used; a new quote needs the subscription', v_ent.free_issue_limit
+      USING ERRCODE = 'P0001';
+  END IF;
+  RETURN NEW;
+END
+$function$;
+REVOKE ALL ON FUNCTION public.enforce_free10_quote_creation() FROM PUBLIC, anon, authenticated, service_role;
+
 -- 7. every NEW account is provisioned when its business row is created (A-1, night task e4becf74). A provisioning refusal never
 --    fails the signup (an account with history stays for the Owner cohort mapping). The session setting
 --    tekango.skip_signup_provisioning = 'on' is a DISPOSABLE-DB TEST DEVICE only (the pre-A-1 fixtures of the subscription tests seed

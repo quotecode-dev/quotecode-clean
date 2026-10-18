@@ -287,7 +287,7 @@
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE only, one read-only function re-issued with the same grants (re-runnable); Codex LANG-02 (Owner 2026-10-18)"
     },
     "20261018100000_free10_activation_rules.sql": {
-      "sha256": "37fa789d410211ae80bf932c686b6240e5330306ac200f1d5dafc3d5b4db989c",
+      "sha256": "8caebd7620b454fc3b7f2966082ffd7f65ef48faca0780376ab06d8af711496a",
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE / ON CONFLICT DO NOTHING / DROP TRIGGER IF EXISTS; the cohort batch runs only for unmapped accounts (re-runnable); Owner Free-10 activation rules 2026-10-18"

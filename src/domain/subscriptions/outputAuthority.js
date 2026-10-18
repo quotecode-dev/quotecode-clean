@@ -60,12 +60,18 @@ export function consumptionNoticeText(remaining, isHebrew) {
 
 // The full enforced-phase flow: notice -> owner confirmation when a free quote would be used -> authorization bound to the
 // exact deal digest the owner confirmed. Cancelling performs nothing.
-export async function authorizeWithNotice({ channel, quoteId, invoke, confirm, isHebrew }) {
+// Owner 2026-10-18 (Free-10 activation): a logo uploaded before the logo import existed is imported once (importLogo) and the same
+// authorization is retried once - the owner is never blocked by an old logo; an import failure keeps the refusal as it was.
+export async function authorizeWithNotice({ channel, quoteId, invoke, confirm, isHebrew, importLogo }) {
   const notice = await requestOutputNotice({ quoteId, invoke });
   if (!notice.ok) return { proceed: false, mode: 'blocked', code: notice.code };
   if (notice.wouldConsume && !(typeof confirm === 'function' && confirm(consumptionNoticeText(notice.remaining, isHebrew)))) {
     return { proceed: false, mode: 'cancelled', code: 'cancelled_by_owner' };
   }
+  const first = await requestOutputAuthorization({ channel, quoteId, invoke, expectedDigest: notice.contentDigest });
+  if (first.proceed || first.code !== 'logo_snapshot_policy_pending' || typeof importLogo !== 'function') return first;
+  const imported = await Promise.resolve().then(importLogo).then((r) => r === true, () => false);
+  if (!imported) return first;
   return requestOutputAuthorization({ channel, quoteId, invoke, expectedDigest: notice.contentDigest });
 }
 

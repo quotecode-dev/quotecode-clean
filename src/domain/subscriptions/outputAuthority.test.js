@@ -131,3 +131,50 @@ describe('the four channels call the ONE gate before their output action', () =>
     expect(src('src/pages/Dashboard.jsx')).toContain('const outputPhase = outputPhaseOf(accountSummary);');
   });
 });
+
+
+// Owner 2026-10-18 (Free-10 activation): an old (not yet imported) logo is imported once and the authorization retried once.
+describe('authorizeWithNotice: an old logo is imported once and the output retried', () => {
+  const notice = (over = {}) => ({ data: { ok: true, quoteId: Q, contentDigest: D, wouldConsume: false, remaining: 4, alreadyFinalized: false, ...over } });
+  const ok = { data: { ok: true, channel: 'send', publicPath: '/public-quote/c/' + TOKEN } };
+  const logoRefused = { data: { ok: false, code: 'logo_snapshot_policy_pending' } };
+  it('logo refused -> importLogo -> the SAME authorization (same digest) succeeds', async () => {
+    const bodies = [];
+    let calls = 0;
+    const invoke = async (_n, { body }) => { bodies.push(body); if (body.action === 'output_notice') return notice(); calls += 1; return calls === 1 ? logoRefused : ok; };
+    const importLogo = vi.fn(async () => true);
+    const r = await authorizeWithNotice({ channel: 'send', quoteId: Q, invoke, confirm: () => true, isHebrew: false, importLogo });
+    expect(r).toMatchObject({ proceed: true, mode: 'authorized' });
+    expect(importLogo).toHaveBeenCalledTimes(1);
+    const auths = bodies.filter((b) => b.action === 'authorize_output');
+    expect(auths).toHaveLength(2);
+    expect(auths[0].expectedDigest).toBe(D);
+    expect(auths[1]).toEqual(auths[0]);
+  });
+  it('an import failure (false or a throw) keeps the original refusal and never retries', async () => {
+    for (const importLogo of [async () => false, async () => { throw new Error('x'); }]) {
+      let auths = 0;
+      const invoke = async (_n, { body }) => (body.action === 'output_notice' ? notice() : (auths += 1, logoRefused));
+      expect(await authorizeWithNotice({ channel: 'send', quoteId: Q, invoke, confirm: () => true, isHebrew: false, importLogo })).toMatchObject({ proceed: false, code: 'logo_snapshot_policy_pending' });
+      expect(auths).toBe(1);
+    }
+  });
+  it('any other refusal never imports; without importLogo the refusal stays as it was', async () => {
+    const importLogo = vi.fn(async () => true);
+    const invoke = async (_n, { body }) => (body.action === 'output_notice' ? notice() : { data: { ok: false, code: 'free_issue_limit_reached' } });
+    expect(await authorizeWithNotice({ channel: 'send', quoteId: Q, invoke, confirm: () => true, isHebrew: false, importLogo })).toMatchObject({ code: 'free_issue_limit_reached' });
+    expect(importLogo).not.toHaveBeenCalled();
+    const inv2 = async (_n, { body }) => (body.action === 'output_notice' ? notice() : logoRefused);
+    expect(await authorizeWithNotice({ channel: 'send', quoteId: Q, invoke: inv2, confirm: () => true, isHebrew: false })).toMatchObject({ code: 'logo_snapshot_policy_pending' });
+  });
+  it('every dashboard output path passes the logo import; the editor save leaves Draft only through the authority', () => {
+    const d = src('src/pages/Dashboard.jsx');
+    const calls = d.split('authorizeWithNotice({').slice(1);
+    expect(calls.length).toBeGreaterThanOrEqual(4);
+    for (const c of calls) expect(c.slice(0, c.indexOf('});'))).toContain('importLogo: importLogoForOutput');
+    const save = d.slice(d.indexOf('async function handleSaveQuote(e) {'), d.indexOf('const filteredQuotes = sortQuotes('));
+    expect(save).toContain("const leaveDraftViaAuthority = outputPhase === 'enforced' && !!editingQuoteId && storedStatus === 'draft' && requestedStatus !== 'draft';");
+    expect(save).toContain("const persistedStatus = leaveDraftViaAuthority ? 'draft' : requestedStatus;");
+    expect(save.indexOf('if (leaveDraftViaAuthority) {')).toBeGreaterThan(save.indexOf('const scheduleNote = await syncServiceSchedule(quoteId);'));
+  });
+});

@@ -133,4 +133,18 @@ SELECT tst.ok((SELECT count(*) FROM public.account_entitlements e WHERE e.user_i
                  AND e.free_issues_consumed = (SELECT count(*) FROM public.quote_issue_ledger l WHERE l.user_id = e.user_id AND l.counted_against_free)) = 3,
   'A7 the counter equals the counted ledger rows for every account');
 
+-- -------------------------------- A8. a LIFETIME flag granted AFTER activation (the row stays free_10) is unlimited too
+SET LOCAL session_replication_role = replica;  -- test device for ONE statement: the admin grant itself is proven by spec-admin
+UPDATE public.business_settings SET is_lifetime = true WHERE user_id = tst.au(1);
+SET LOCAL session_replication_role = origin;
+DO $$
+BEGIN
+  INSERT INTO public.quotes (id, user_id, quote_number, status, client_id, notes) VALUES (tst.aq(60), tst.au(1), 39260, 'draft', tst.ac(1), 'after lifetime');
+  PERFORM tst.ok(true, 'A8 at 10 of 10 a LIFETIME-flagged account still creates a new quote');
+EXCEPTION WHEN OTHERS THEN
+  PERFORM tst.ok(false, 'A8 the new quote of a LIFETIME-flagged account was refused: ' || SQLERRM);
+END $$;
+SELECT tst.ok((tst.anotice(tst.au(1), tst.aq(60)) ->> 'wouldConsume') = 'false' AND (tst.aout(tst.au(1), tst.aq(60)) ->> 'state') = 'finalized'
+              AND tst.aused(tst.au(1)) = 10, 'A8 its output passes without counting (still 10)');
+
 ROLLBACK;
