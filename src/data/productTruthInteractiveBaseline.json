@@ -600,8 +600,8 @@
     "markers": 0
   },
   "src/quoteDocument/QuoteMedia.jsx": {
-    "interactive": 0,
-    "markers": 0
+    "interactive": 2,
+    "markers": 4
   },
   "src/quoteDocument/quoteMediaModel.js": {
     "interactive": 0,
