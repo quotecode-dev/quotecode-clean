@@ -74,3 +74,18 @@ describe('getBusinessProfileGateMessage', () => {
     expect(getBusinessProfileGateMessage({ phone: '+1 5551234567', taxId: '', isLocalIsraeliBusiness: false, isHebrew: false })).toBeNull();
   });
 });
+
+// Owner 2026-10-18: Settings showed the phone but the first quote was blocked - the number was stored without a space after
+// the dial code. Every real number passes, with or without the space; only an empty value or a dial code alone is missing.
+describe('phone stored with or without a space after the dial code', () => {
+  const missing = (phone, isLocalIsraeliBusiness = true) => getMissingBusinessProfileFields({ phone, taxId: '516000000', isLocalIsraeliBusiness }).includes('phone');
+  it('a real number is never missing', () => {
+    for (const p of ['+972 501234567', '+972501234567', '0501234567', '+1 2025550123', '+12025550123', '+44 7700900123', '+447700900123', '050-1234567']) {
+      expect(missing(p), p).toBe(false);
+      expect(missing(p, false), p).toBe(false);
+    }
+  });
+  it('empty or a dial code alone is missing', () => {
+    for (const p of ['', '   ', null, undefined, '+972', '+972 ', '+1', '+1 ', ' +44  ']) expect(missing(p), String(p)).toBe(true);
+  });
+});

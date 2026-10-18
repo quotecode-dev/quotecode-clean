@@ -23,10 +23,14 @@
 // A plain non-empty check would then treat a dial-code-only value as a
 // real phone number. Stripping a leading "+<digits>" dial code before
 // checking for any remaining content closes that gap.
+// Owner 2026-10-18: a number stored WITHOUT the space ("+972501234567") was stripped whole by /^\+\d+\s*/ and blocked the
+// first quote although Settings showed the phone. Only a dial code ALONE ("+972", "+1") is missing; the dial code is stripped
+// only when a space separates it from the rest.
 function hasMeaningfulPhone(phone) {
   const trimmed = String(phone || '').trim();
   if (trimmed === '') return false;
-  const withoutLeadingDialCode = trimmed.replace(/^\+\d+\s*/, '');
+  if (/^\+\d{1,4}$/.test(trimmed)) return false;
+  const withoutLeadingDialCode = trimmed.replace(/^\+\d{1,4}\s+/, '');
   return withoutLeadingDialCode.trim() !== '';
 }
 
