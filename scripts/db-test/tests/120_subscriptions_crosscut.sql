@@ -8,6 +8,10 @@
 -- prep suite). Forced phase rows written directly by the DB owner are test devices; set_activation_phase gates are proven by
 -- the prep suite.
 BEGIN;
+SET tekango.skip_signup_provisioning = 'on';  -- pre-A-1 fixture: this test seeds its entitlements by hand (20261018100000 test device)
+-- this file proves the NO-policy fallback (resolve_style_media_entitlement baseline): the Owner style / media policy v1 of
+-- 20261018100000 is removed inside this file's transaction (rolled back at the end, so the later suites keep it)
+DELETE FROM public.style_media_capability_policy;
 
 -- ---------------------------------------------------------------------------------------------------------------- helpers
 CREATE OR REPLACE FUNCTION tst.xu(n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$
@@ -859,7 +863,7 @@ SELECT tst.ok(tst.xnotice(tst.xu(13), tst.xq(13, 1)) = '{"ok":false,"code":"not_
 UPDATE public.subscription_activation SET phase = 'enforced' WHERE component = 'free_issue';
 DO $$ DECLARE n jsonb; p jsonb; f jsonb; n2 jsonb; n3 jsonb; BEGIN
   n := tst.xnotice(tst.xu(13), tst.xq(13, 1));
-  PERFORM tst.ok(tst.xkeys(n) = 'accountMode,alreadyFinalized,contentDigest,ok,remaining,wouldConsume'
+  PERFORM tst.ok(tst.xkeys(n) = 'accountMode,alreadyFinalized,contentDigest,ok,remaining,unlimited,wouldConsume'
                  AND n ->> 'ok' = 'true' AND n ->> 'accountMode' = 'free_10' AND n ->> 'alreadyFinalized' = 'false'
                  AND n ->> 'wouldConsume' = 'true' AND (n ->> 'remaining')::int = 10,
                  'L3 Free, not yet output: exact keys, wouldConsume true, remaining 10');

@@ -36,7 +36,7 @@ export default async function run({ container, root }) {
   // later migration still fails closed.
   // + night task 2026-10-16 (A-5): its own Owner-run route after the package, like task35
   // + admin release 2026-10-16 (Owner): the re-issued admin re-auth proofs + audit log, its own Owner-run route after the package
-  const POST_PACKAGE_OWN_ROUTE = new Set(['20261012120000_task35_quote_items_price_missing.sql', '20261016000000_account_erasure_contact_stops.sql', '20261016000200_admin_reauth_proofs_and_audit_log_reissue.sql', '20261016100000_admin_redesign_part_a.sql', '20261017000000_admin_followup_counter_and_nulls.sql', '20261018000000_quote_expiry_country_alias.sql']);
+  const POST_PACKAGE_OWN_ROUTE = new Set(['20261012120000_task35_quote_items_price_missing.sql', '20261016000000_account_erasure_contact_stops.sql', '20261016000200_admin_reauth_proofs_and_audit_log_reissue.sql', '20261016100000_admin_redesign_part_a.sql', '20261017000000_admin_followup_counter_and_nulls.sql', '20261018000000_quote_expiry_country_alias.sql', '20261018100000_free10_activation_rules.sql']);
   const ordered = [...all.filter(isBase).sort(byVersion), ...all.filter((f) => !isBase(f)).sort(byVersion)].filter((f) => !pkg.has(f));
   const baseOrder = ordered.filter((f) => !POST_PACKAGE_OWN_ROUTE.has(f));
   ok(baseOrder.every((f) => f < '20261007150000'), 'PLAN: every non-package migration precedes the package (the package is the tail of the chain; listed own-route migrations follow it)', baseOrder.filter((f) => f >= '20261007150000'));
