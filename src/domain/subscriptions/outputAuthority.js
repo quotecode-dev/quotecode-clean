@@ -32,6 +32,22 @@ const TOKEN_PATH_RE = /^\/(en\/)?public-quote\/c\/[A-Za-z0-9_-]{43}$/;
 
 const HEX64 = /^[0-9a-f]{64}$/;
 
+// supabase-js reports every non-2xx answer as a generic FunctionsHttpError: the authority's { ok:false, code } body is only in
+// error.context (a raw Response) - read a clone so the real code (free_issue_limit_reached, logo_snapshot_policy_pending, ...)
+// reaches the screen instead of a generic refusal (found on the local journey stack, enforced phase, 2026-10-18).
+async function refusalCode(res, fallback) {
+  const d = res?.data;
+  if (d && typeof d.code === 'string') return d.code;
+  try {
+    const ctx = res?.error?.context;
+    if (ctx && typeof ctx.json === 'function') {
+      const body = await (typeof ctx.clone === 'function' ? ctx.clone() : ctx).json();
+      if (body && typeof body.code === 'string') return body.code;
+    }
+  } catch { /* unreadable body */ }
+  return fallback;
+}
+
 // Read-only pre-consumption notice (OD-02 "real balance + advance notice"): the server returns the digest of the deal the
 // owner is about to send, whether this output would use one of the 10 free quotes, and the real remaining balance.
 export async function requestOutputNotice({ quoteId, invoke }) {
@@ -43,7 +59,7 @@ export async function requestOutputNotice({ quoteId, invoke }) {
     return { ok: false, code: 'authority_unreachable' };
   }
   const d = res?.data;
-  if (res?.error || !d || d.ok !== true) return { ok: false, code: String((d && d.code) || 'authority_refused').slice(0, 64) };
+  if (res?.error || !d || d.ok !== true) return { ok: false, code: String(await refusalCode(res, 'authority_refused')).slice(0, 64) };
   if (d.quoteId !== quoteId || typeof d.contentDigest !== 'string' || !HEX64.test(d.contentDigest) || typeof d.wouldConsume !== 'boolean'
     || !(d.remaining === null || (Number.isInteger(d.remaining) && d.remaining >= 0))) return { ok: false, code: 'final_response_invalid' };
   return { ok: true, contentDigest: d.contentDigest, wouldConsume: d.wouldConsume, remaining: d.remaining, alreadyFinalized: d.alreadyFinalized === true };
@@ -89,7 +105,7 @@ export async function requestOutputAuthorization({ channel, quoteId, invoke, exp
   }
   const data = res?.data;
   if (res?.error || !data || data.ok !== true || data.channel !== channel) {
-    const code = data && typeof data.code === 'string' ? data.code : (res?.error?.context?.code || 'authority_refused');
+    const code = await refusalCode(res, 'authority_refused');
     return { proceed: false, mode: 'blocked', code: String(code).slice(0, 64) };
   }
   if (channel === 'send' || channel === 'public_share') {

@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cwd } from 'node:process';
 import {
-  outputGate, OUTPUT_ACTIVATION_PHASE, OUTPUT_CHANNELS, requestOutputAuthorization, outputIdempotencyKey, authorizeWithNotice, consumptionNoticeText,
+  outputGate, OUTPUT_ACTIVATION_PHASE, OUTPUT_CHANNELS, requestOutputAuthorization, outputIdempotencyKey, authorizeWithNotice, consumptionNoticeText, requestOutputNotice,
   capabilityTokenFromPath, outputBlockedMessage,
 } from './outputAuthority';
 
@@ -179,5 +179,28 @@ describe('authorizeWithNotice: an old logo is imported once and the output retri
     expect(save).toContain('status: writtenStatus,');
     expect(save).not.toMatch(/supabase\.from\('quotes'\)\.update\(/); // IRON-QUOTE-001: no inline quote write in the save
     expect(save.indexOf('if (leaveDraftViaAuthority) {')).toBeGreaterThan(save.indexOf('const scheduleNote = await syncServiceSchedule(quoteId);'));
+  });
+});
+
+
+// Found on the local journey stack (enforced, 2026-10-18): supabase-js turns every non-2xx answer into a generic FunctionsHttpError
+// whose body is only in error.context (a Response) - the real refusal code must still reach the screen.
+describe('a non-2xx refusal: the code is read from the response body', () => {
+  const httpError = (status, body) => ({ data: null, error: { name: 'FunctionsHttpError', message: 'Edge Function returned a non-2xx status code', context: new Response(JSON.stringify(body), { status }) } });
+  const notice = { data: { ok: true, quoteId: Q, contentDigest: D, wouldConsume: false, remaining: 4, alreadyFinalized: false } };
+  it('authorize: free_issue_limit_reached in a 403 body is the returned code', async () => {
+    const invoke = async (_n, { body }) => (body.action === 'output_notice' ? notice : httpError(403, { ok: false, code: 'free_issue_limit_reached' }));
+    expect(await authorizeWithNotice({ channel: 'send', quoteId: Q, invoke, confirm: () => true, isHebrew: false })).toMatchObject({ proceed: false, code: 'free_issue_limit_reached' });
+  });
+  it('authorize: a 409 logo refusal in the body triggers the one logo import + retry', async () => {
+    let n = 0;
+    const invoke = async (_n, { body }) => { if (body.action === 'output_notice') return notice; n += 1; return n === 1 ? httpError(409, { ok: false, code: 'logo_snapshot_policy_pending' }) : { data: { ok: true, channel: 'send', publicPath: '/public-quote/c/' + TOKEN } }; };
+    const importLogo = vi.fn(async () => true);
+    expect(await authorizeWithNotice({ channel: 'send', quoteId: Q, invoke, confirm: () => true, isHebrew: false, importLogo })).toMatchObject({ proceed: true });
+    expect(importLogo).toHaveBeenCalledTimes(1);
+  });
+  it('notice: a 409 body code is returned; an unreadable body falls back to the generic refusal', async () => {
+    expect(await requestOutputNotice({ quoteId: Q, invoke: async () => httpError(409, { ok: false, code: 'account_not_provisioned' }) })).toEqual({ ok: false, code: 'account_not_provisioned' });
+    expect(await requestOutputNotice({ quoteId: Q, invoke: async () => ({ data: null, error: { context: new Response('not json', { status: 500 }) } }) })).toEqual({ ok: false, code: 'authority_refused' });
   });
 });
