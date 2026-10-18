@@ -2159,6 +2159,44 @@
   }
 }
 
+/* ---------- IRON-NUMERIC-001: ONE amount axis on screen (Owner console 2026-10-18: "חוק ברזל זה חוק ברזל!") ----------
+   The totals' amount column IS the commercial table's Amount column: same width, same inner padding, same digit size (measured by
+   useAmountAxis), so every amount - table rows, subtotal, discount, VAT, grand total - ends on ONE right edge with ONE decimal
+   axis, HE and EN, every device. Every amount keeps ONE font weight (a heavier weight widens the digits and moves the decimal
+   point); the grand total is dark black and drawn bold by a hairline text-shadow, which never changes a glyph's width
+   (Owner console 2026-10-18, typed: "שיהיה שחור כהה בבולד לא סגול").
+   Screen only: native Print and the Direct PDF keep their own output rules above. */
+@media screen {
+  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-box {
+    grid-template-columns: minmax(0, 1fr) var(--pq-amount-col, 21%) !important;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-box .pq-total-value,
+  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-box .pq-total-final-amount {
+    padding-left: var(--pq-amount-pad-l, 6px) !important;
+    padding-right: var(--pq-amount-pad-r, 6px) !important;
+    font-size: var(--pq-amount-font, 13.5px) !important;
+    font-weight: 400 !important;
+    text-align: right !important;
+  }
+  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table td.pq-td-total,
+  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table td.pq-td-total .pf-money {
+    font-weight: 400 !important;
+  }
+  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-box .pq-total-final-amount {
+    color: #0b0f19 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    text-shadow: 0.35px 0 0 currentColor, -0.35px 0 0 currentColor, 0 0.2px 0 currentColor;
+  }
+  /* Owner console 2026-10-18, typed: "עכשיו תגדיל ב 20% בערך את הסכום בסה"כ לתשלום": the grand total amount is 20% larger; it keeps
+     the shared right edge of every amount (the larger digits alone move its decimal point) */
+  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-box .pq-total-final-amount {
+    font-size: calc(var(--pq-amount-font, 13.5px) * 1.2) !important;
+  }
+}
+
 /* ---------- header band: output modes (Owner 2026-10-05) ----------
    SCREEN = dark band (above). NATIVE PRINT = white background + dark readable text (Owner requirement; no ink-heavy
    fill), for every page that prints a letterhead. DIRECT PDF (.pq-pdf-capturing, html2canvas) = the EXISTING white
@@ -2240,3 +2278,12 @@
 .pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-header-valid [data-testid='pq-header-expired'] {
   color: #b91c1c;
 }
+
+/* IRON-NUMERIC-001, Print and Direct PDF (Owner 2026-10-06 "יישור ספרות ... באופן גורף"): a quantity's unit label sits on its own line under
+   the number, so every number line in the centred Quantity column holds only its equal-width number box (one decimal axis on A4). */
+@media print {
+  .pq-card .pq-commercial-table td.pq-td-qty .pq-unit-slot { display: block !important; min-width: 0 !important; }
+  .pq-card .pq-commercial-table td.pq-td-qty .pq-unit-slot:empty { display: none !important; }
+}
+.pq-pdf-capturing .pq-card .pq-commercial-table td.pq-td-qty .pq-unit-slot { display: block !important; min-width: 0 !important; }
+.pq-pdf-capturing .pq-card .pq-commercial-table td.pq-td-qty .pq-unit-slot:empty { display: none !important; }

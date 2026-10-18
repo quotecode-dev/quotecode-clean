@@ -129,12 +129,24 @@ describe('L-25 one market rule (Codex LANG-01 / LANG-02) and the admin dialog ba
 // L-26: Owner console 2026-10-18, typed: "להחזיר את שלושתם למצב הקודם שאישרתי" (+ "ולנעול, עד אישור מפורש שלי"), "את החייג אליי להשאיר
 // איך שהוא עכשיו", "להחזיר את ההצעה החמה לאיפה שהיתה", "את היצוא לאקסל למקם מימין למיון".
 describe('L-26 the desktop document card, the hot banner position, the export position', () => {
-  it.each([['HE', 'pages/PublicQuote.jsx'], ['EN', 'pages/PublicQuoteEn.jsx']])('%s: the approved white card - 980px content, thin border, soft shadow, 16px radius', (_n, f) => {
+  // "אני רוצה שהוא יהיה בדיוק כמו הגודל שהוא עכשיו בלייף בהצעה של דוד אלומיניום!!!!! רק לתקן את האיזון של המספרים והבולד של הסה"כ"
+  it.each([['HE', 'pages/PublicQuote.jsx'], ['EN', 'pages/PublicQuoteEn.jsx']])('%s: the document keeps the LIVE size and frame (830px card, 18px #dfe8e5 frame, 22px radius)', (_n, f) => {
     const s = read(f);
-    expect(s).toContain("style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}");
-    expect(s).toContain("<div className=\"pq-column pq-card-desktop-width\" style={{ width: '100%', maxWidth: 'calc(var(--pf-desktop-content-width) + 62px)' }}>");
-    expect(s).toContain('max-width: calc(var(--pf-desktop-content-width) + 62px) !important;');
-    expect(s).not.toContain('18px solid #dfe8e5');
+    expect(s).toContain("<div className=\"pq-column pq-card-desktop-width\" style={{ width: '100%', maxWidth: '830px' }}>");
+    expect(s).toContain("style={{ background: 'white', borderRadius: '22px', boxShadow: '0 9px 28px rgba(16,29,35,0.11)', border: '18px solid #dfe8e5', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}");
+    expect(s).toContain('max-width: 830px !important;');
+  });
+  it('IRON-NUMERIC-001: one amount axis (table Amount column = totals amount column, equal decimal boxes) and a dark black bold grand total', () => {
+    const hook = read('quoteDocument/useAmountAxis.js');
+    expect(hook).toContain("box.style.setProperty('--pq-amount-col', `${width}px`);");
+    expect(hook).toContain('export function syncDecimalColumns(card)');
+    for (const f of ['pages/PublicQuote.jsx', 'pages/PublicQuoteEn.jsx']) expect(read(f)).toContain('useAmountAxis(cardRef);');
+    const css = read('quoteDocument/quoteDocument.css');
+    expect(css).toContain('grid-template-columns: minmax(0, 1fr) var(--pq-amount-col, 21%) !important;');
+    expect(css).toMatch(/\.pq-totals-box \.pq-total-final-amount \{\s*color: #0b0f19 !important;\s*background: transparent !important;\s*box-shadow: none !important;\s*text-shadow: 0\.35px 0 0 currentColor/);
+    expect(css).toMatch(/td\.pq-td-total \.pf-money \{\s*font-weight: 400 !important;/);
+    // "עכשיו תגדיל ב 20% בערך את הסכום בסה"כ לתשלום" - "מעולה ככה"
+    expect(css).toContain('font-size: calc(var(--pq-amount-font, 13.5px) * 1.2) !important;');
   });
   it('the hot banner stays at the top of the quotes screen (not in the dashboard header); the header Call CTA is unchanged', () => {
     expect(read('components/QuotesTab.jsx')).toContain('<div className="quote-hot-banner" data-testid="hot-quote-banner"');

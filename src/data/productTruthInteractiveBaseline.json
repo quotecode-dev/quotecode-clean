@@ -615,6 +615,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/quoteDocument/useAmountAxis.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/shared/RouteScrollManager.jsx": {
     "interactive": 0,
     "markers": 0
