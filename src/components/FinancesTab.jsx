@@ -4,8 +4,9 @@
 
 import { useState } from 'react';
 import { MoneyValue, NumericValue, CurrencyTotals } from './NumericValue';
+import ChartSquareIcon from './ChartSquareIcon';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { BarChart3, ReceiptText, Download, Pencil, Trash2, Repeat, FileText, Wallet, TrendingDown, TrendingUp, BarChart2 } from 'lucide-react';
+import { ReceiptText, Download, Pencil, Trash2, Repeat, FileText, Wallet, TrendingDown, TrendingUp, BarChart2 } from 'lucide-react';
 import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, RADIUS, SHADOW } from '../theme/neonTheme';
 import { formatShortDate } from '../utils/shortDate';
 import { QUOTE_CURRENCY_SYMBOLS } from '../utils/money';
@@ -94,7 +95,8 @@ export default function FinancesTab({
           נפרדת). */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px', flexWrap: 'wrap', gap: '10px' }}>
         <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
-          <BarChart3 size={18} color={NEON.textSecondary} strokeWidth={2} />
+          {/* Owner console 2026-10-18, typed: "שהסמל יהיה כמו הכותרת בסיידבר": the title carries the sidebar's own Finances icon */}
+          <ChartSquareIcon size={18} color={NEON.textSecondary} strokeWidth={2} aria-hidden="true" />
           {isHebrew ? 'פיננסים' : 'Finances'}
         </h2>
 

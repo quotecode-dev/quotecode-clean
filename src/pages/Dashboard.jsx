@@ -1319,7 +1319,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     quotesNav: isHebrew ? 'הצעות מחיר' : 'Quotes',
     settingsNav: isHebrew ? 'הגדרות העסק' : 'Business Settings',
     clientsNav: isHebrew ? 'לקוחות' : 'Clients',
-    financesNav: isHebrew ? 'הוצאות ודוחות' : 'Expenses & Reports',
+    // Owner console 2026-10-18, typed: "אני חושב שפיננסים הכי מתאים כשם כולל": ONE name everywhere (sidebar, phone bar, screen title)
+    financesNav: isHebrew ? 'פיננסים' : 'Finances',
     statisticsNav: isHebrew ? 'סטטיסטיקה' : 'Statistics',
     tasksNav: isHebrew ? 'משימות' : 'Tasks',
     calendarNav: isHebrew ? 'יומן' : 'Calendar',

@@ -210,3 +210,24 @@ describe('#10 the sidebar platform line', () => {
     expect(dash).toContain('onSignOut={() => setShowSignOutModal(true)}');
   });
 });
+
+// #15: Owner console 2026-10-18, typed: "אני חושב שפיננסים הכי מתאים כשם כולל", "שהסמל יהיה כמו הכותרת בסיידבר" - one name, and every
+// screen title carries its own sidebar icon
+describe('#15 one name and one icon per screen', () => {
+  it('"פיננסים" / "Finances" everywhere', () => {
+    expect(read('pages/Dashboard.jsx')).toContain("financesNav: isHebrew ? 'פיננסים' : 'Finances',");
+  });
+  it.each([
+    ['components/FinancesTab.jsx', '<ChartSquareIcon size={18}', 'ChartSquareIcon'],
+    ['components/ClientsTab.jsx', '<User size={18}', 'User'],
+    ['components/ServicesCatalog.jsx', '<LayoutGrid size={18}', 'LayoutGrid'],
+    ['components/StatisticsTab.jsx', '<BarChart3 size={18}', 'BarChart3'],
+    ['components/TasksTab.jsx', '<ListChecks size={18}', 'ListChecks'],
+    ['components/CalendarTab.jsx', '<CalendarDays size={18}', 'CalendarDays'],
+  ])('%s: the title icon is the sidebar icon (%s)', (file, title, navIcon) => {
+    const src = read(file);
+    const h2 = src.slice(src.indexOf('<h2'), src.indexOf('</h2>', src.indexOf('<h2')));
+    expect(h2).toContain(title);
+    expect(read('utils/dashboardNavCapabilities.js')).toMatch(new RegExp(`icon: ${navIcon},`));
+  });
+});

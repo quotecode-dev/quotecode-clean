@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Package, PackagePlus, Pencil, Trash2, Save, X, Search, Image as ImageIcon, Lock } from 'lucide-react';
+import { Package, PackagePlus, LayoutGrid, Pencil, Trash2, Save, X, Search, Image as ImageIcon, Lock } from 'lucide-react';
 import { APP as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from './../theme/neonTheme';
 import CatalogMediaControl from './quotePresentation/CatalogMediaControl';
 import { catalogLinkFor } from './quotePresentation/useQuotePresentationEditor';
@@ -121,7 +121,8 @@ export default function ServicesCatalog({
       {/* חוק ברזל (§H1): כותרת ברורה - "קטלוג שירותים ומוצרים"/"Services &
           Products Catalog" (הספק המדויק של המשימה). */}
       <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
-        <Package size={18} color={NEON.violetLight} strokeWidth={2.2} />
+        {/* Owner console 2026-10-18 ("שהסמל יהיה כמו הכותרת בסיידבר"): every screen title carries its sidebar icon */}
+        <LayoutGrid size={18} color={NEON.violetLight} strokeWidth={2.2} aria-hidden="true" />
         {isHebrew ? 'קטלוג שירותים ומוצרים' : 'Services & Products Catalog'}
       </h2>
 
