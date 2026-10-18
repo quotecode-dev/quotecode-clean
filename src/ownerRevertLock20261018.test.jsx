@@ -81,12 +81,24 @@ describe('L-24 the public quote (reverted behaviours)', () => {
     expect(s).toContain('{signArea && !signInDoc ? (');
     expect(s).toContain('pq-section pq-approval pq-print-only');
   });
-  it.each(pages)('%s #20 phone: full width, no paper frame; #22 tiles 92px (phone 78px); #24 one notice for an unfinished draft; #25 live business details', (_n, s) => {
+  // #22 בעל המערכת 2026-10-18: "לגבי המחשב תשתמש בנמוך יותר" (מחשב 62), בטלפון "שניהם נראים אותו דבר" (נשאר 78)
+  it.each(pages)('%s #20 phone: full width, no paper frame; #22 tiles 62px on desktop (phone 78px); #24 one notice for an unfinished draft; #25 live business details', (_n, s) => {
     expect(s).toMatch(/\.pq-card \{\{?\s*padding: 2px !important;\s*background: transparent !important;\s*box-shadow: none !important;\s*border: none !important;\s*border-radius: 0 !important;/);
-    expect(s).toMatch(/min-height: 92px;\s*padding: 14px 8px;\s*border-radius: 16px;/);
+    expect(s).toMatch(/min-height: 62px;\s*padding: 9px 6px;\s*border-radius: 10px;/);
+    expect(s).not.toContain('min-height: 92px;');
     expect(s).toMatch(/\.pq-action-tile \{\s*min-height: 78px !important;\s*padding: 10px 4px !important;/);
     expect(s).toContain('} else if (isExpired && !isUnfinishedDraft) {');
     expect(s).toContain('const brand = { ...(issuedBranding || {}), ...liveBusiness };');
+  });
+  // בעל המערכת 2026-10-18: "למה בנייד החייג אליי למטה? ולא למעלה בצד שמאל כמו במחשב?" -> "החייג אליי בסדר"
+  it('the modern style on a phone: "חייג/י אליי" in the top outer corner beside the business name, the details below', () => {
+    const css = read('quoteDocument/quoteDocument.css');
+    expect(css).toContain('.pq-letterhead.pq-letterhead-modern .pq-modern-aside { display: contents; }');
+    expect(css).toContain('.pq-letterhead.pq-letterhead-modern .pq-modern-aside > .pq-lh-call { grid-column: 2; grid-row: 1; margin-bottom: 0; align-self: start; }');
+    expect(css).toContain('.pq-letterhead.pq-letterhead-modern .pq-modern-aside > :not(.pq-lh-call) { grid-column: 1 / -1; }');
+    // "בנייד: את כל פרטי העסק להוריד 2 פיקסלים למטה ו2 פיקסלים שמאלה / את החייג אליי אותו דבר, זה צמוד מידי לקצוות"
+    expect(css).toContain('.pq-page .pq-card .pq-letterhead .pq-lh-band .pq-lh-issuer { position: relative; inset-block-start: 2px; inset-inline-start: 2px; }');
+    expect(css).toContain('.pq-page .pq-card .pq-letterhead .pq-lh-band .pq-lh-call { position: relative; inset-block-start: 2px; inset-inline-end: 2px; }');
   });
   it('#19 the signed confirmation is the green box; #18 print-only rule', () => {
     const css = read('quoteDocument/quoteDocument.css');

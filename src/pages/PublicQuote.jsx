@@ -1254,10 +1254,10 @@ const PQ_SCREEN_CSS = `
           align-items: center;
           justify-content: center;
           gap: 6px;
-          /* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #22: the former tile size */
-          min-height: 92px;
-          padding: 14px 8px;
-          border-radius: 16px;
+          /* בעל המערכת 2026-10-18 ("לגבי המחשב תשתמש בנמוך יותר"; בטלפון "שניהם נראים אותו דבר" - נשאר 78 למטה): במחשב הגובה הנמוך */
+          min-height: 62px;
+          padding: 9px 6px;
+          border-radius: 10px;
           text-align: center;
           font-weight: 700;
           font-size: 0.82rem;

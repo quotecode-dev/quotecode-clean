@@ -470,6 +470,16 @@
     padding: 14px 14px 16px;
   }
 }
+/* בעל המערכת 2026-10-18 ("למה בנייד החייג אליי למטה? ולא למעלה בצד שמאל כמו במחשב?" -> "החייג אליי בסדר"): בעיצוב המודרני
+   בטלפון הכפתור "חייג/י אליי" עולה לשורה העליונה, בפינה החיצונית ליד שם העסק (שמאל בעברית, ימין באנגלית), כמו במחשב;
+   ריבועי הפרטים נשארים מתחת לכל הרוחב. מסך בלבד - הכפתור לא מודפס ולא נכנס ל-PDF. */
+@container pq-doc (max-width: 620px) {
+  .pq-letterhead.pq-letterhead-modern .pq-modern-head { grid-template-columns: minmax(0, 1fr) auto; }
+  .pq-letterhead.pq-letterhead-modern .pq-modern-aside { display: contents; }
+  .pq-letterhead.pq-letterhead-modern .pq-modern-main { grid-column: 1; grid-row: 1; }
+  .pq-letterhead.pq-letterhead-modern .pq-modern-aside > .pq-lh-call { grid-column: 2; grid-row: 1; margin-bottom: 0; align-self: start; }
+  .pq-letterhead.pq-letterhead-modern .pq-modern-aside > :not(.pq-lh-call) { grid-column: 1 / -1; }
+}
 
 /* ---------- document body ---------- */
 
@@ -1636,6 +1646,10 @@
     margin: -16px -12px 0;
     padding: 16px 12px 14px;
   }
+  /* בעל המערכת 2026-10-18 ("בנייד: את כל פרטי העסק להוריד 2 פיקסלים למטה ו2 פיקסלים שמאלה / את החייג אליי אותו דבר, זה צמוד מידי לקצוות"):
+     פרטי העסק והכפתור זזים 2 פיקסלים למטה ו-2 פיקסלים פנימה מהקצה (בעברית: הפרטים שמאלה, הכפתור ימינה; באנגלית במראה). הזזה בלבד - ריבועי הפרטים לא זזים. */
+  .pq-page .pq-card .pq-letterhead .pq-lh-band .pq-lh-issuer { position: relative; inset-block-start: 2px; inset-inline-start: 2px; }
+  .pq-page .pq-card .pq-letterhead .pq-lh-band .pq-lh-call { position: relative; inset-block-start: 2px; inset-inline-end: 2px; }
   .pq-page .pq-card .pq-letterhead .pq-doc-title { font-size: 21px; }
   .pq-page .pq-card .pq-parties,
   .pq-page .pq-card .pq-doc-notes { grid-template-columns: minmax(0, 1fr); }
