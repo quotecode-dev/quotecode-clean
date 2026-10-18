@@ -6183,6 +6183,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           /* Owner 2026-10-14: a business logo gets a taller card (90px, logo up to 78px); the TEKANGO wordmark card keeps 58px */
           .dash-sidebar-brand.dash-sidebar-brand--logo { height: 100px; padding: 5px 10px; }
           .dash-sidebar-brand--logo .dash-sidebar-brand-card { height: 90px; }
+          /* Owner console 2026-10-18, typed: "שזה יתנהג כמו זה אבל שהשוליים יהיו צרים יותר ופרופורציונליים ללוגו, הכוונה שהרוחב של השוליים יהיה
+             באותו עובי מסביב ללוגו": the white card wraps the logo itself with ONE even 6px frame on every side (it no longer spans the
+             sidebar width), centred in the band; the logo keeps its 78px height cap and its proportions */
+          .dash-sidebar-brand.dash-sidebar-brand--logo { display: flex; align-items: center; justify-content: center; }
+          /* + "גם לא צריך את העיגול של הפינות במסגרת": square corners */
+          .dash-sidebar-brand--logo .dash-sidebar-brand-card { height: auto; width: fit-content; max-width: 100%; padding: 6px; border-radius: 0; }
+          .dash-sidebar-brand--logo .dash-sidebar-business-logo { max-width: 100%; }
           .dash-sidebar-wordmark {
             color: #0b2a55;
             font-size: 27px;
