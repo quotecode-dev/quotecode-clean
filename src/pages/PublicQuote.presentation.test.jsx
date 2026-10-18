@@ -308,13 +308,14 @@ describe('phone shell: the real phone width without a paper frame, section/table
   });
 });
 
-describe('Owner 2026-10-06: real quote uses the landing sample paper frame', () => {
-  it.each([['HE', renderHe, heData], ['EN', renderEn, enData]])('%s: pale frame and landing paper shadow', (_n, renderPage, data) => {
+// Owner console 2026-10-18, typed: "להחזיר את שלושתם למצב הקודם שאישרתי" (+ "ולנעול, עד אישור מפורש שלי") (L-26): the desktop document is the approved white card again
+describe('the desktop document: the approved white card, 980px of content', () => {
+  it.each([['HE', renderHe, heData], ['EN', renderEn, enData]])('%s: thin border, soft shadow, 16px radius, 980px content', (_n, renderPage, data) => {
     const card = renderPage({ quoteData: data() }).container.querySelector('.pq-card');
-    expect(card.style.border).toMatch(/18px solid (?:#dfe8e5|rgb\(223, 232, 229\))/);
-    expect(card.style.boxShadow).toMatch(/0px 9px 28px rgba\(16, 29, 35, 0\.11\)|0 9px 28px rgba\(16,\s*29,\s*35,\s*0\.11\)/);
-    expect(card.parentElement.style.maxWidth).toBe('830px');
-    expect(830 - (2 * 18)).toBe(794); // A4 CSS width at 96dpi, excluding the decorative screen-only frame.
+    expect(card.style.border).toMatch(/1px solid (?:#e2e8f0|rgb\(226, 232, 240\))/);
+    expect(card.style.boxShadow).toMatch(/0px 4px 20px rgba\(0, 0, 0, 0\.05\)|0 4px 20px rgba\(0,\s*0,\s*0,\s*0\.05\)/);
+    expect(card.style.borderRadius).toBe('16px');
+    expect(card.parentElement.style.maxWidth).toBe('calc(var(--pf-desktop-content-width) + 62px)');
   });
 });
 
@@ -328,10 +329,11 @@ describe('ledgers D08 / D25b (cloud-fix4)', () => {
     const { container: c2 } = renderEn({ quoteData: enData() });
     expect(c2.querySelector('.pq-meta-valid .pq-meta-label').textContent).toBe('Valid until');
   });
-  it.each([['HE', renderHe, heData], ['EN', renderEn, enData]])('%s: base page tone #f8fafc and landing frame radius 22px', (_n, renderPage, data) => {
+  // Owner 2026-10-18 ("להחזיר את שלושתם למצב הקודם שאישרתי", L-26): the approved white card radius 16px again (not the 22px landing frame)
+  it.each([['HE', renderHe, heData], ['EN', renderEn, enData]])('%s: base page tone #f8fafc and the approved card radius 16px', (_n, renderPage, data) => {
     const { container } = renderPage({ quoteData: data() });
     expect(container.querySelector('.pq-page').style.background).toBe('rgb(248, 250, 252)');
-    expect(container.querySelector('.pq-card').style.borderRadius).toBe('22px');
+    expect(container.querySelector('.pq-card').style.borderRadius).toBe('16px');
   });
 });
 

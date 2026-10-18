@@ -6458,7 +6458,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             outline-offset: 2px;
           }
           /* Owner console 2026-10-18, typed: "להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!" (docs/OWNER_LOST_BEHAVIOURS_2026-10-18.md) #1: the CSV export is visible on the desktop list again (it was hidden, contrary to its own comment) */
-          .quote-export-compact { display: inline-flex; align-items: center; justify-content: center; inline-size: 36px; block-size: 36px; flex: none; border: 1px solid #d6dfea; border-radius: 8px; background: #fff; color: #172d49; cursor: pointer; }
+          .quote-export-compact { display: inline-flex; align-items: center; justify-content: center; inline-size: 32px; block-size: 32px; flex: none; border: 1px solid #d6dfea; border-radius: 7px; background: #fff; color: #172d49; cursor: pointer; }
           .quote-export-compact:hover { background: #eef4f8; }
           .quote-export-compact:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
 

@@ -963,9 +963,9 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   return (
     <div className={`pq-page${pdfGenerating ? ' pq-pdf-capturing' : ''}${embeddedPreview ? ' pq-preview' : ''}${previewMode && standalonePrint ? ' pq-standalone-preview' : ''}`} data-print-mode={printMode} data-pq-style={docStyle} dir="ltr" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: previewMode ? 'transparent' : '#f8fafc', /* ledger D25b: base page tone */ minHeight: previewMode ? 0 : '100vh', padding: previewMode ? 0 : '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
       <style>{`${PQ_SCREEN_CSS}${embeddedPreview ? '' : PQ_PRINT_CSS}`}</style>
-      {/* Same A4-width screen paper as HE: 794px white paper + 18px decorative frame per side = 830px outer card. */}
-      <div className="pq-column pq-card-desktop-width" style={{ width: '100%', maxWidth: '830px' }}>
-        <div ref={cardRef} className={`pq-card pq-style-${docStyle}`} data-pq-style={docStyle} style={{ background: 'white', borderRadius: '22px', boxShadow: '0 9px 28px rgba(16,29,35,0.11)', border: '18px solid #dfe8e5', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
+      {/* Same approved desktop document as HE: a white card with a thin border, 980px of content (Owner 2026-10-18). */}
+      <div className="pq-column pq-card-desktop-width" style={{ width: '100%', maxWidth: 'calc(var(--pf-desktop-content-width) + 62px)' }}>
+        <div ref={cardRef} className={`pq-card pq-style-${docStyle}`} data-pq-style={docStyle} style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}>
           {documentBody}
         </div>
 
@@ -1014,11 +1014,13 @@ const PQ_SCREEN_CSS = `
           font-size: 0.82rem;
           box-sizing: border-box;
         }
-        /* 830px outer card - 2 * 18px frame = 794px white A4 paper at 96dpi. */
+        /* Owner console 2026-10-18, typed: "להחזיר את שלושתם למצב הקודם שאישרתי" (+ "ולנעול, עד אישור מפורש שלי"): the desktop document is the approved
+           white card again - 980px of content (--pf-desktop-content-width, shared with the dashboard) + the card's 30px side padding
+           and 1px border = 1042px; thin #e2e8f0 border, soft shadow, 16px radius. Print and the Direct PDF (718px A4 clone) are unchanged. */
         @media (min-width: 1024px) {
           .pq-card-desktop-width {
             width: 100% !important;
-            max-width: 830px !important;
+            max-width: calc(var(--pf-desktop-content-width) + 62px) !important;
           }
         }
         @media (max-width: 640px) {

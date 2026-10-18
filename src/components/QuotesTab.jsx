@@ -772,11 +772,22 @@ export default function QuotesTab({
           )}
         </div>
 
-        {/* Desktop toolbar. ONE DOM order - Sort, Filter, Search, New quote - mirrored by the inherited dir (no direction
-            override, no row-reverse): HE renders New, Search, Filter, Sort from the left; EN renders Sort ... New from the left.
-            Visible labels are short; the long wording lives in aria-label. */}
+        {/* Desktop toolbar. ONE DOM order - Export, Sort, Filter, Search, New quote - mirrored by the inherited dir (no direction
+            override, no row-reverse): HE renders New, Search, Filter, Sort, Export from the left; EN renders Export, Sort ... New from
+            the left. Visible labels are short; the long wording lives in aria-label. */}
         {!useCards && (
           <div className="quote-workspace-controls">
+            {/* PRODUCT_TRUTH_CAPABILITY: quote_csv. Owner console 2026-10-18, typed: "את היצוא לאקסל למקם מימין למיון" (L-26): the
+                FIRST control - beside Sort at the inline start (right of Sort in HE, mirrored left of it in EN). */}
+            <button
+              type="button"
+              className="quote-export-compact"
+              onClick={handleExportQuotes}
+              title={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
+              aria-label={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
+            >
+              <Download size={15} strokeWidth={2.2} />
+            </button>
             <button
               type="button"
               className="quote-sort-direction"
@@ -821,18 +832,6 @@ export default function QuotesTab({
                 onTemplate={onCreateFromTemplate}
               />
             )}
-            {/* PRODUCT_TRUTH_CAPABILITY: quote_csv. Kept as a compact icon in
-                the approved desktop toolbar so export remains available
-                without displacing search/filter/sort. */}
-            <button
-              type="button"
-              className="quote-export-compact"
-              onClick={handleExportQuotes}
-              title={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
-              aria-label={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
-            >
-              <Download size={15} strokeWidth={2.2} />
-            </button>
           </div>
         )}
 

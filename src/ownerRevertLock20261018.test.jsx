@@ -18,7 +18,10 @@ describe('L-23 the quote list, editor, catalog, finances (reverted behaviours)',
   const dash = read('pages/Dashboard.jsx');
   const tab = read('components/QuotesTab.jsx');
   it('#1 the CSV export is visible on the desktop list (a compact 36px icon)', () => {
-    expect(dash).toContain('.quote-export-compact { display: inline-flex; align-items: center; justify-content: center; inline-size: 36px; block-size: 36px;');
+    // + L-26 ("את היצוא לאקסל למקם מימין למיון"): the first toolbar control, level with the 32px controls beside it
+    expect(dash).toContain('.quote-export-compact { display: inline-flex; align-items: center; justify-content: center; inline-size: 32px; block-size: 32px;');
+    expect(tab.indexOf('className="quote-export-compact"')).toBeLessThan(tab.indexOf('className="quote-sort-direction"'));
+    expect(tab.indexOf('<div className="quote-workspace-controls">')).toBeLessThan(tab.indexOf('className="quote-export-compact"'));
     expect(dash).not.toMatch(/\.quote-export-compact \{ display: none; \}/);
   });
   it('#2 "show all" is remembered while the app is open; a search shows every match', () => {
@@ -120,5 +123,22 @@ describe('L-25 one market rule (Codex LANG-01 / LANG-02) and the admin dialog ba
     expect(behind.inert).not.toBe(true);
     expect(behind.getAttribute('aria-hidden')).toBeNull();
     behind.remove(); chat.remove();
+  });
+});
+
+// L-26: Owner console 2026-10-18, typed: "להחזיר את שלושתם למצב הקודם שאישרתי" (+ "ולנעול, עד אישור מפורש שלי"), "את החייג אליי להשאיר
+// איך שהוא עכשיו", "להחזיר את ההצעה החמה לאיפה שהיתה", "את היצוא לאקסל למקם מימין למיון".
+describe('L-26 the desktop document card, the hot banner position, the export position', () => {
+  it.each([['HE', 'pages/PublicQuote.jsx'], ['EN', 'pages/PublicQuoteEn.jsx']])('%s: the approved white card - 980px content, thin border, soft shadow, 16px radius', (_n, f) => {
+    const s = read(f);
+    expect(s).toContain("style={{ background: 'white', borderRadius: '16px', boxShadow: '0 4px 20px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', width: '100%', boxSizing: 'border-box', overflow: 'hidden' }}");
+    expect(s).toContain("<div className=\"pq-column pq-card-desktop-width\" style={{ width: '100%', maxWidth: 'calc(var(--pf-desktop-content-width) + 62px)' }}>");
+    expect(s).toContain('max-width: calc(var(--pf-desktop-content-width) + 62px) !important;');
+    expect(s).not.toContain('18px solid #dfe8e5');
+  });
+  it('the hot banner stays at the top of the quotes screen (not in the dashboard header); the header Call CTA is unchanged', () => {
+    expect(read('components/QuotesTab.jsx')).toContain('<div className="quote-hot-banner" data-testid="hot-quote-banner"');
+    expect(read('pages/Dashboard.jsx')).not.toContain('dash-header-hot');
+    expect(read('components/PublicQuoteHeader.jsx')).toContain('{callCta(useCompactBranch)}');
   });
 });

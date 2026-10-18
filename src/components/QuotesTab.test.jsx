@@ -468,7 +468,8 @@ describe.each([
     expect(controls.getAttribute('style')).toBeNull();
     expect(controls.hasAttribute('dir')).toBe(false);
     const kids = [...controls.children].map((c) => c.className.split(' ')[0]);
-    expect(kids).toEqual(['quote-sort-direction', 'quote-filter-control', 'quote-search-control', 'pf-newquote-menu', 'quote-export-compact']);
+    // Owner console 2026-10-18, typed: "את היצוא לאקסל למקם מימין למיון": the export is first, beside Sort
+    expect(kids).toEqual(['quote-export-compact', 'quote-sort-direction', 'quote-filter-control', 'quote-search-control', 'pf-newquote-menu']);
     controls.querySelectorAll('[style]').forEach((el) => expect(el.getAttribute('style')).not.toMatch(/direction/));
   });
 
