@@ -5586,6 +5586,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           border-top: 1px solid ${SIDEBAR.sidebarBorder};
           opacity: 0.72;
         }
+        /* Owner console 2026-10-18 ("תחזיר רק מועל עי", "האם אפשר שהלוגו יהיה ברור יותר?", "רק עם רקע לבן, אין צרוך ב2 שורות"): one line as
+           before; the small symbol on a white square at full strength */
+        .dash-sidebar-platform-brand { opacity: 1; }
+        .dash-sidebar-platform-brand .dash-sidebar-platform-brand-label { color: #ffffff; }
+        .dash-sidebar-platform-brand-logo { display: inline-flex; padding: 2px; background: #ffffff; border-radius: 0; line-height: 0; }
         .dash-sidebar-platform-brand-label {
           font-size: 0.75rem;
           font-weight: 600;
@@ -7551,6 +7556,15 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 <div className="dash-sidebar-user-bizname" dir="auto" title={bizName || ''}>{bizName || (isHebrew ? 'העסק שלי' : 'My Business')}</div>
                 <div className="dash-sidebar-user-name" title={session.user.email}><bdi dir="ltr">{session.user.email}</bdi></div>
               </div>
+            </div>
+            {/* Owner console 2026-10-18, typed: "תחזיר רק מועל ע\"י": the quiet "Powered by TEKANGO" line under the business identity
+                again (as before the new interface); Sign out stays in the gear menu */}
+            <div className="dash-sidebar-platform-brand">
+              {/* + "להשאיר את הרקע הכהה, לכתוב מופעל על ידי בלבן והלוגו הקטן על רקע לבן": one line on the dark sidebar - the words in
+                  white, the small TEKANGO symbol on its own small white square */}
+              {/* + "מבית TEKANGO" (in place of "מופעל על ידי"; EN "by TEKANGO") */}
+              <span className="dash-sidebar-platform-brand-label">{isHebrew ? 'מבית ' : 'by '}<bdi dir="ltr">TEKANGO</bdi></span>
+              <span className="dash-sidebar-platform-brand-logo"><ProFlowLogo size={13} /></span>
             </div>
           </div>
         </AuthenticatedSidebarFrame>

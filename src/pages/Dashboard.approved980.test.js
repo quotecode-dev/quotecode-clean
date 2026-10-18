@@ -89,7 +89,8 @@ describe('approved 980px shell (source guards)', () => {
 
   it('the sidebar top is the static TEKANGO logo card, the nav is plain rows, and Sign out lives behind the identity gear', () => {
     expect(dashboard).toMatch(/className="dash-sidebar-brand-card" role="img" aria-label="TEKANGO"/);
-    expect(dashboard).not.toContain('dash-sidebar-platform-brand"');
+    // Owner console 2026-10-18 ("תחזיר רק מועל ע"י" ... "מבית TEKANGO", accepted "תנעל"): the platform line is back under the identity
+    expect(dashboard).toContain('<div className="dash-sidebar-platform-brand">');
     expect(dashboard).toMatch(/<SidebarAccountMenu/);
     expect(dashboard).toMatch(/onSignOut=\{\(\) => setShowSignOutModal\(true\)\}/);
     const block = desktopBlock();

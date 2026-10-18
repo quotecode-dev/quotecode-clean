@@ -196,3 +196,16 @@ describe('L-28 Print and the Direct PDF = the screen document', () => {
     } finally { Element.prototype.getBoundingClientRect = proto; }
   });
 });
+
+// #10: Owner console 2026-10-18, typed: "תחזיר רק מועל ע"י", "להשאיר את הרקע הכהה, לכתוב מופעל על ידי בלבן והלוגו הקטן על רקע לבן", the
+// wording "מבית TEKANGO" (accepted: "לא שלם עם זה ב100% אבל תנעל, בוא נתקדם"); Sign out stays in the gear menu
+describe('#10 the sidebar platform line', () => {
+  const dash = read('pages/Dashboard.jsx');
+  it('one line under the business identity: "מבית TEKANGO" in white + the small TEKANGO symbol on a white square', () => {
+    expect(dash).toContain(`<span className="dash-sidebar-platform-brand-label">{isHebrew ? 'מבית ' : 'by '}<bdi dir="ltr">TEKANGO</bdi></span>`);
+    expect(dash).toContain('<span className="dash-sidebar-platform-brand-logo"><ProFlowLogo size={13} /></span>');
+    expect(dash).toContain('.dash-sidebar-platform-brand .dash-sidebar-platform-brand-label { color: #ffffff; }');
+    expect(dash).toContain('.dash-sidebar-platform-brand-logo { display: inline-flex; padding: 2px; background: #ffffff; border-radius: 0; line-height: 0; }');
+    expect(dash).toContain('onSignOut={() => setShowSignOutModal(true)}');
+  });
+});
