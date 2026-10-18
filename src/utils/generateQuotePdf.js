@@ -1,3 +1,4 @@
+import { syncAllAmountAxes } from '../quoteDocument/useAmountAxis';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -347,6 +348,46 @@ export async function waitForImagesReady(rootEl, timeoutMs = 2500) {
 export const PDF_CAPTURE_WINDOW_WIDTH = 1100;
 export const PDF_DOCUMENT_WIDTH_PX = 718;
 
+// IRON-NUMERIC-001 in the Direct PDF (Owner 2026-10-18 "זה חייב להראות בדיוק כמו המסך"): html2canvas paints text on a canvas, and a
+// canvas ignores tabular figures - an amount painted as one word gets proportional digits, so its right edge drifts. In the capture
+// clone only, every digit of an amount / quantity becomes its own box of the tabular digit width with the glyph centred in it -
+// exactly where a tabular digit sits on screen - so the captured amounts keep the screen's right edge and decimal axis.
+export function tabularizeDigitsForCapture(rootEl) {
+  if (!rootEl || typeof rootEl.querySelectorAll !== 'function' || !rootEl.ownerDocument) return 0;
+  const doc = rootEl.ownerDocument;
+  let n = 0;
+  rootEl.querySelectorAll('.pf-money, .pq-num-slot').forEach((el) => {
+    const probe = doc.createElement('span');
+    probe.textContent = '0';
+    probe.style.cssText = 'position:absolute;visibility:hidden;font-variant-numeric:tabular-nums lining-nums;font-feature-settings:"tnum" 1, "lnum" 1';
+    el.appendChild(probe);
+    const w = probe.getBoundingClientRect().width;
+    probe.remove();
+    if (!(w > 0)) return;
+    // a number is ALWAYS left-to-right and isolated: separate digit boxes inside a Hebrew line must never be reordered
+    // ("3.40" must not become "04.3" - found in the HE Direct PDF, 2026-10-18)
+    el.style.direction = 'ltr';
+    el.style.unicodeBidi = 'isolate';
+    const walker = doc.createTreeWalker(el, 4 /* NodeFilter.SHOW_TEXT */);
+    const texts = [];
+    for (let t = walker.nextNode(); t; t = walker.nextNode()) if (/\d/.test(t.data)) texts.push(t);
+    for (const t of texts) {
+      const frag = doc.createDocumentFragment();
+      for (const ch of t.data) {
+        if (/\d/.test(ch)) {
+          const box = doc.createElement('span');
+          box.textContent = ch;
+          box.style.cssText = `display:inline-block;width:${w}px;text-align:center;font-variant-numeric:normal;font-feature-settings:normal`;
+          frag.appendChild(box);
+          n += 1;
+        } else frag.appendChild(doc.createTextNode(ch));
+      }
+      t.parentNode.replaceChild(frag, t);
+    }
+  });
+  return n;
+}
+
 // html2canvas ignores CSS object-fit, so a cropped (object-fit: cover) quote image would be STRETCHED into its fixed frame
 // in the PDF. In the capture clone only, each framed <img> is replaced by the frame's own cover background (which
 // html2canvas does render) - the on-screen page is never touched.
@@ -441,6 +482,10 @@ export async function generateQuotePdf({ captureEl, filename, scale = 2.5, windo
           clonedEl.style.boxSizing = 'border-box';
         }
         coverFramedImagesForCapture(clonedEl);
+        // IRON-NUMERIC-001 (Owner 2026-10-18 "זה חייב להראות בדיוק כמו המסך"): tabular digit boxes, then the amount axis re-measured
+        // on the A4-wide clone
+        tabularizeDigitsForCapture(clonedEl);
+        syncAllAmountAxes(clonedEl);
         clonedMeasurement = measurePaginationBlocks(clonedEl);
       }
     },

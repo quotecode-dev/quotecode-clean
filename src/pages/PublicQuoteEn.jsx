@@ -1076,6 +1076,7 @@ const PQ_SCREEN_CSS = `
         .pq-pdf-capturing .pq-card {
           box-shadow: none !important;
           border: none !important;
+          border-radius: 0 !important;
         }
         .pq-pdf-capturing .pq-unit-disclosure {
           display: none !important;

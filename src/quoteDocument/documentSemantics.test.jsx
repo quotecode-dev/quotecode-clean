@@ -166,14 +166,16 @@ describe('quoteDocument.css - recipient treatment restored from base c65f742 for
     expect(uses.length).toBe(1);
     expect(css).toMatch(/\.pq-card \.pq-doc-foot \{[^}]*color: #64748b;/);
     expect(css).toMatch(/\.pq-letterhead \.pq-doc-kicker \{[^}]*color: var\(--pq-muted\);/);
-    expect(css).toMatch(/\.pq-pdf-capturing \.pq-letterhead \.pq-lh-band \.pq-meta-label,\s*\.pq-pdf-capturing \.pq-letterhead \.pq-lh-band \.pq-doc-kicker \{\s*color: var\(--pq-muted\);/);
+    // Owner console 2026-10-18, typed: "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור" - Print and the Direct PDF ARE the screen document
+    expect(css).toMatch(/\.pq-pdf-capturing \.pq-letterhead \.pq-lh-band \.pq-meta-label,\s*\.pq-pdf-capturing \.pq-letterhead \.pq-lh-band \.pq-doc-kicker \{\s*color: var\(--pq-muted\) !important;/);
   });
-  it('all three styles share one landing-parity screen recipient treatment; print/capture keep the base treatment', () => {
+  // Owner console 2026-10-18, typed: "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור" - Print and the Direct PDF ARE the screen document
+  it('all three styles share one landing-parity recipient treatment - on screen, in Print and in the Direct PDF alike', () => {
     expect(css).not.toMatch(/\.pq-style-(modern|visual) \.pq-recipient[\s,{]/);
-    expect(css).toMatch(/@media screen \{[\s\S]*\.pq-page:not\(\.pq-pdf-capturing\) \.pq-card \.pq-recipient \{[\s\S]*background: transparent;[\s\S]*border-top: 2px solid var\(--pq-accent\);/);
-    expect(css).toMatch(/\.pq-page:not\(\.pq-pdf-capturing\) \.pq-card \.pq-parties \{[\s\S]*grid-template-columns: minmax\(0, 1\.45fr\) minmax\(0, \.75fr\);/);
-    expect(css).toMatch(/\.pq-page:not\(\.pq-pdf-capturing\) \.pq-card \.pq-recipient-client \{[\s\S]*padding: 12px 14px;[\s\S]*background: #f3f7f7;[\s\S]*border: 1px solid #d8e2e3;[\s\S]*border-inline-start: 4px solid var\(--pq-accent\);[\s\S]*border-radius: 8px;/);
-    expect(css).toMatch(/\.pq-page:not\(\.pq-pdf-capturing\) \.pq-card \.pq-recipient-client \.pq-recipient-name \{[\s\S]*font-size: 19px;[\s\S]*font-weight: 800;[\s\S]*color: var\(--pq-accent\);/);
+    expect(css).toMatch(/@media screen, print \{[\s\S]*\n {2}\.pq-page \.pq-card \.pq-recipient \{[\s\S]*background: transparent;[\s\S]*border-top: 2px solid var\(--pq-accent\);/);
+    expect(css).toMatch(/\n {2}\.pq-page \.pq-card \.pq-parties \{[\s\S]*grid-template-columns: minmax\(0, 1\.45fr\) minmax\(0, \.75fr\);/);
+    expect(css).toMatch(/\n {2}\.pq-page \.pq-card \.pq-recipient-client \{[\s\S]*padding: 12px 14px;[\s\S]*background: #f3f7f7;[\s\S]*border: 1px solid #d8e2e3;[\s\S]*border-inline-start: 4px solid var\(--pq-accent\);[\s\S]*border-radius: 8px;/);
+    expect(css).toMatch(/\n {2}\.pq-page \.pq-card \.pq-recipient-client \.pq-recipient-name \{[\s\S]*font-size: 19px;[\s\S]*font-weight: 800;[\s\S]*color: var\(--pq-accent\);/);
   });
 });
 
@@ -276,11 +278,16 @@ describe('cloud-fix3 - print end-of-document, standalone sample print, long amou
   it('approval / expired status / footer never start a print page on their own (break-before: avoid, native Print only)', () => {
     expect(printBlocks).toMatch(/\.pq-page:not\(\.pq-preview\) \.pq-card \.pq-approval,\s*\.pq-page:not\(\.pq-preview\) \.pq-card \.pq-doc-status,\s*\.pq-page:not\(\.pq-preview\) \.pq-card \.pq-doc-foot \{\s*break-before: avoid;\s*page-break-before: avoid;\s*break-inside: avoid;/);
   });
-  it('ledger D24 / D12 (cloud-fix4): the A4 layer (native Print + Direct PDF capture) sets NO font-size or line-height - print = screen type', () => {
-    const a4 = css.slice(css.indexOf('/* ---------- A4 layout'), css.indexOf('/* ---------- creator preview frame'));
-    expect(a4.length).toBeGreaterThan(2000);
+  // Owner console 2026-10-18, typed: "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור" - Print and the Direct PDF ARE the screen document
+  it('A4 output = the screen document: the paper rules only drop the paper chrome (no frame / shadow / radius) and set NO font-size or line-height; the screen-parity rules govern print and the capture', () => {
+    const a4 = css.slice(css.indexOf('/* ---------- A4 output = the screen document'), css.indexOf('/* ---------- creator preview frame'));
+    expect(a4.length).toBeGreaterThan(400);
     expect(a4).toMatch(/@media print \{/);
-    expect(a4).toMatch(/\n\.pq-pdf-capturing \.pq-card \{/);
+    expect(a4).toMatch(/\n\.pq-pdf-capturing \.pq-card \{\s*border: 0 !important;\s*box-shadow: none !important;\s*border-radius: 0 !important;/);
+    expect(css).not.toMatch(/\/\* ---------- A4 layout/);
+    const parity = css.slice(css.indexOf('/* ---------- screen parity with the Owner-approved landing quotation'), css.indexOf('/* ---------- header band: output modes'));
+    expect(parity).toMatch(/@media screen, print \{/);
+    expect(parity.replace('.pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-logo-chip img', '')).not.toMatch(/:not\(\.pq-pdf-capturing\)/);
     const decls = a4.replace(/\/\*[\s\S]*?\*\//g, '');
     expect(decls).not.toMatch(/font-size|line-height|(^|[\s;{])font:/);
     // and no other print / capture rule in the file shrinks document type either
@@ -353,8 +360,9 @@ describe('cloud-fix4 - base panels restored (ledger D19 / D20 / D23 / D27) + att
     expect(rule('.pq-card .pq-total-value')).toMatch(/font-size: var\(--pq-total-amount-size\);\s*font-weight: var\(--pq-total-amount-weight, 400\);[\s\S]*text-align: right;/);
     expect(css).toMatch(/--pq-total-amount-size: 0\.9rem;/);
     expect(css).not.toMatch(/\.pq-style-modern \.pq-totals-box|\.pq-style-modern \.pq-total-final-amount|\.pq-body-aside \.pq-totals-box/);
-    expect(css).toMatch(/@media print \{[\s\S]*\.pq-page:not\(\.pq-preview\) \.pq-card \.pq-totals-box \{\s*border: 1\.5px solid #0f172a !important;\s*background: #f8fafc !important;/);
-    expect(css).toMatch(/\n\.pq-pdf-capturing \.pq-card \.pq-totals-box \{\s*border: 1\.5px solid #0f172a !important;/);
+    // Owner console 2026-10-18, typed: "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור" - Print and the Direct PDF ARE the screen document
+    // the paper keeps the screen totals (no separate bordered print / capture panel)
+    expect(css).not.toMatch(/\.pq-totals-box \{\s*border: 1\.5px solid #0f172a/);
   });
   it.each(PAGES)('$name D19: every totals amount stays on one right axis inside ONE grid (locked)', (page) => {
     for (const style of STYLES) {
@@ -403,9 +411,9 @@ describe('cloud-fix4 - base panels restored (ledger D19 / D20 / D23 / D27) + att
     // no EN rule sets a td size (the <= 640px / <= 420px td rules must keep winning)
     expect(css).not.toMatch(/\.pq-page\[dir='ltr'\][^{}]*td[^{}]*\{[^}]*font-size/);
   });
-  it('A4 layer: terms / notes side by side; the end group (.pq-doc-end) never splits in native Print', () => {
-    expect(css).toMatch(/@media print \{[\s\S]*\.pq-page:not\(\.pq-preview\) \.pq-card \.pq-doc-notes \{\s*display: grid !important;\s*grid-template-columns: repeat\(auto-fit, minmax\(240px, 1fr\)\) !important;/);
-    expect(css).toMatch(/\n\.pq-pdf-capturing \.pq-card \.pq-doc-notes \{\s*display: grid !important;/);
+  // Owner console 2026-10-18, typed: "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור" - Print and the Direct PDF ARE the screen document
+  it('paper: terms / notes keep the screen layout (no A4-only grid); the end group (.pq-doc-end) never splits in native Print', () => {
+    expect(css).not.toMatch(/\.pq-doc-notes \{\s*display: grid !important;/);
     expect(css).toMatch(/\.pq-page:not\(\.pq-preview\) \.pq-card \.pq-doc-end \{\s*break-inside: avoid;/);
   });
   it.each(PAGES)('$name: the document ends with ONE group - last body block, approval record, footer - in every style', (page) => {
@@ -431,17 +439,21 @@ describe('cloud-fix4 - base panels restored (ledger D19 / D20 / D23 / D27) + att
     expect(css).not.toMatch(/#24323C|#25353C/i);
     // the white print / capture rules use the background SHORTHAND, which also clears the gradient image
     expect(css).toMatch(/@media print \{\s*\.pq-letterhead \.pq-lh-band,\s*\.pq-letterhead\.pq-letterhead-modern \.pq-lh-band\.pq-modern-head \{\s*background: #FFFFFF !important;/);
-    expect(css).toMatch(/\n\.pq-pdf-capturing \.pq-letterhead \.pq-lh-band,\s*\.pq-pdf-capturing \.pq-letterhead\.pq-letterhead-modern \.pq-lh-band\.pq-modern-head \{\s*background: #FFFFFF;/);
+    // Owner console 2026-10-18, typed: "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור" - Print and the Direct PDF ARE the screen document
+    expect(css).toMatch(/\n\.pq-pdf-capturing \.pq-letterhead \.pq-lh-band,\s*\.pq-pdf-capturing \.pq-letterhead\.pq-letterhead-modern \.pq-lh-band\.pq-modern-head \{\s*background: #FFFFFF !important;/);
+    // the band keeps its screen geometry on paper (no padding: 0 / radius: 0 override of the white band)
+    expect(css).not.toMatch(/\.pq-lh-band\.pq-modern-head \{[^}]*padding: 0/);
   });
-  it('screen metadata is monochrome white; only an actually expired state is pink; print / capture keep #4338ca / #b91c1c', () => {
+  // Owner console 2026-10-18, typed: "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור" - Print and the Direct PDF ARE the screen document
+  it('screen metadata is monochrome white; only an actually expired state is pink; print / capture: the same monochrome values in dark ink', () => {
     expect(rule('.pq-letterhead .pq-lh-band .pq-meta-value.pq-header-number,\n.pq-letterhead .pq-lh-band .pq-visual-number b.pq-header-number')).toMatch(/color: var\(--pq-band-ink\);/);
     expect(rule('.pq-letterhead .pq-lh-band .pq-meta-value.pq-header-valid')).toMatch(/color: var\(--pq-band-ink\);/);
     expect(css).toMatch(/--pq-band-danger: #fca5a5;/);
     expect(ratio('#ffffff', '#000000')).toBeGreaterThanOrEqual(4.5);
     expect(ratio('#fca5a5', '#000000')).toBeGreaterThanOrEqual(4.5);
-    expect(css).toMatch(/\.pq-letterhead \.pq-lh-band \.pq-meta-value\.pq-header-number,\s*\.pq-letterhead \.pq-lh-band \.pq-visual-number b\.pq-header-number \{\s*color: #4338ca !important;/);
-    expect(css).toMatch(/\n\.pq-pdf-capturing \.pq-letterhead \.pq-lh-band \.pq-meta-value\.pq-header-valid,[^{]*\{\s*color: #b91c1c;/);
-    expect(ratio('#4338ca', '#ffffff')).toBeGreaterThanOrEqual(4.5);
+    expect(css).toMatch(/\.pq-pdf-capturing \.pq-letterhead \.pq-lh-band \.pq-meta-value\.pq-header-number,[^{]*\{\s*color: var\(--pq-ink\) !important;/);
+    expect(css).toMatch(/\.pq-pdf-capturing \.pq-letterhead \.pq-lh-band \.pq-header-valid\.pq-is-expired,[^{]*\{\s*color: var\(--pq-danger\) !important;/);
+    expect(css).not.toMatch(/color: #4338ca/);
   });
   it('G1: on phones (compact branch and <= 768px screens) the quote number inherits the base glass white rgba(255,255,255,.92)', () => {
     expect(css).toMatch(/\.pq-letterhead\.pq-lh-mobile \.pq-lh-band \.pq-meta-value\.pq-header-number \{\s*color: rgba\(255, 255, 255, 0\.92\);/);
@@ -462,17 +474,10 @@ describe('cloud-fix4 - base panels restored (ledger D19 / D20 / D23 / D27) + att
   it('<= 340px: only the totals panel inline inset (6px) and column gap (8px) tighten - a 10-digit grand total fits at 320px', () => {
     expect(css).toMatch(/@media \(max-width: 340px\) \{\s*\.pq-card \.pq-totals-box\.pq-section \{\s*padding-left: 6px !important;\s*padding-right: 6px !important;\s*column-gap: 8px;\s*\}\s*\}/);
   });
-  it('local fix 5 (Codex P1 R2 on 4a5eb18): A4 layer keeps the APPROVED image sizes (hero 190px, supports 91px, rail 100px); the page is recovered by spacing only; print and capture identical, type untouched', () => {
-    const a4 = css.slice(css.indexOf('/* ---------- A4 layout'), css.indexOf('/* ---------- creator preview frame'));
-    const block = (sel) => { const i = a4.indexOf(`${sel} {`); expect(i, sel).toBeGreaterThan(-1); return a4.slice(i, a4.indexOf('}', i)); };
-    for (const pre of ['.pq-page:not(.pq-preview) .pq-card', '.pq-pdf-capturing .pq-card']) {
-      expect(block(`${pre} .pq-media.pq-media-hero`)).toContain('--pq-hero-h: 190px !important;');
-      expect(block(`${pre} .pq-media.pq-media-hero .pq-media-hero-support .pq-media-frame`)).toContain('height: 91px !important;');
-      expect(block(`${pre} .pq-media.pq-media-rail .pq-media-frame`)).toContain('max-height: 100px !important;');
-      expect(block(`${pre} .pq-letterhead.pq-letterhead-modern .pq-modern-head`)).toContain('grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;');
-      expect(block(`${pre} .pq-letterhead.pq-letterhead-modern .pq-meta`)).toContain('grid-template-columns: repeat(3, minmax(0, 1fr)) !important;');
-      expect(block(`${pre} .pq-letterhead.pq-letterhead-modern .pq-meta-project`)).toContain('grid-column: 1 / -1 !important;');
-    }
+  // Owner console 2026-10-18, typed: "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור" - Print and the Direct PDF ARE the screen document
+  it('paper keeps the screen image sizes and the screen Modern / Visual composition (no A4-only media or letterhead overrides); print and capture identical, type untouched', () => {
+    const a4 = css.slice(css.indexOf('/* ---------- A4 output = the screen document'), css.indexOf('/* ---------- creator preview frame'));
+    expect(a4).not.toMatch(/pq-media|pq-modern-head|pq-meta-project/);
     const code = a4.replace(/\/\*[\s\S]*?\*\//g, '');
     // negative: the unapproved print shrink (stack hero as one 100px row, 76px rail) must not come back
     expect(code).not.toMatch(/pq-media-hero--stack/);

@@ -1200,522 +1200,33 @@
   }
 }
 
-/* ---------- A4 layout (native Print + Direct PDF capture) - cloud-fix4 (A13), ledger D24 ----------
-   Print and the Direct PDF use the SCREEN type of the document - no print-only font-size or line-height (Owner 2026-10-05:
-   base c65f742 printed at its screen sizes; "without shrinking content"). The base panels restored in cloud-fix4 (totals
-   D19, terms / notes D20, expired / unfinished D27, footer D23) keep their base inner geometry here too. What differs
-   on A4 is LAYOUT only:
-   - no card inset (the @page / PDF margins frame the sheet) and tighter gaps BETWEEN blocks (8-12px);
-   - letterhead: the issuer details in two columns, the metadata cells in one row with the project cell three tracks
-     wide (Classic / Visual), the title 8px under the band rule;
-   - recipient: the client card takes 2/3 of the row and the Attn card 1/3 (same order, sides, colours and type);
-   - the attachments panel sits beside the totals panel (attachments at the inline start, totals at the end - the base
-     "totals on the LEFT" in HE), everything after them clears both;
-   - terms / warranty / notes side by side (two columns when two exist; one note keeps the full width), each in its
-     unchanged base panel;
-   - media: row thumbnails 34px; the Visual hero with one or two supporting images (stack) prints as one 100px row
-     (primary + supports side by side, every image and caption kept); a solo hero and a 3-4 support grid keep the
-     reference 190px layout; the rail 76px; the footer 6px / 8px;
-   - Modern letterhead (cloud-fix4b): issuer | metadata in two equal columns, number / date / valid in one row and the
-     project under them - the rejected short Modern / Visual WITH images (S-REJ "short Modern/Visual print sometimes 2
-     pages") is one A4 page in native Print and the Direct PDF, with no type change and nothing omitted;
-   Screen layout is unchanged: these rules apply only under @media print (outside previewMode) and while
-   .pq-pdf-capturing is set. Measurements: docs/task16-quote-experience-v2/cloud-fix4-2026-10-05/a13. */
+/* ---------- A4 output = the screen document ----------
+   Owner console 2026-10-18, typed: "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור".
+   Native Print and the Direct PDF render the SAME document as the screen (the screen-parity rules below apply to print and to the
+   capture as well). What differs on paper: no decorative paper frame / shadow / rounded corners (the sheet is the paper), the
+   header band is WHITE with dark text (never printed black), and the app UI (call / WhatsApp / PDF / print tiles, the signature
+   pad, the Call CTA) never reaches the output. The pagination keep-together rules (print section above) are unchanged. */
 @media print {
   .pq-page:not(.pq-preview) .pq-card {
-    padding: 0 0 4px !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
   }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-media.pq-media-thumb,
-  .pq-page:not(.pq-preview) .pq-card .pq-media.pq-media-thumb .pq-media-thumb-frame {
-    width: 34px !important;
-    min-width: 34px !important;
-    height: 34px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-media.pq-media-thumb {
-    height: auto !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead {
-    margin-bottom: 4px !important; /* local fix 5: spacing */
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead .pq-lh-rule {
-    margin-top: 10px !important;
-    height: 2px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead .pq-doc-title {
-    margin: 8px 0 0 !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead.pq-letterhead-modern .pq-doc-title {
-    margin: 6px 0 0 !important;
-  }
-
+  /* L-02 (Owner-locked): the business logo on paper up to 80px, never distorted */
   .pq-page:not(.pq-preview) .pq-card .pq-letterhead .pq-logo-chip img {
     max-height: 80px !important;
     max-width: 260px !important;
   }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead .pq-lh-details {
-    margin-top: 3px !important;
-    columns: 2 !important;
-    column-gap: 24px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead .pq-meta-cell {
-    padding-top: 0 !important;
-    gap: 1px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead .pq-meta {
-    margin-top: 8px !important;
-    row-gap: 6px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-meta {
-    grid-template-columns: none !important;
-    grid-auto-flow: column !important;
-    grid-auto-columns: minmax(0, 1fr) !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-meta-project {
-    grid-column: span 3 !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead.pq-letterhead-modern .pq-modern-head {
-    gap: 10px 24px !important;
-    padding-bottom: 6px !important;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; /* cloud-fix4b: issuer | metadata in two equal columns on A4 */
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead.pq-letterhead-modern .pq-meta {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-    gap: 6px 10px !important; /* cloud-fix4b: number | date | valid in one row, the project below */
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead.pq-letterhead-modern .pq-meta-project {
-    grid-column: 1 / -1 !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead.pq-letterhead-modern .pq-modern-titleblock {
-    padding: 4px 0 6px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead.pq-letterhead-modern .pq-lh-issuer {
-    margin-top: 0 !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead.pq-letterhead-modern .pq-meta-cell {
-    padding: 2px 0 !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead.pq-letterhead-visual .pq-meta {
-    margin-top: 6px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-letterhead.pq-letterhead-visual .pq-doc-title {
-    margin-top: 6px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-media:not(.pq-media-thumb) {
-    margin: 4px 0 !important; /* local fix 5: spacing, not image size */
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-media.pq-media-hero {
-    --pq-hero-h: 190px !important; /* the refined reference hero height at A4 print scale (quoteMedia.css) */
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-media.pq-media-hero .pq-media-hero-support .pq-media-frame {
-    height: 91px !important; /* local fix 5 (Codex P1 R2 on 4a5eb18): the approved stacked supports beside the 190px hero - no image shrink for pagination */
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-media.pq-media-rail .pq-media-frame {
-    max-height: 100px !important; /* local fix 5: the approved 100px rail (no shrink for pagination) */
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-media .pq-media-caption {
-    margin-top: 3px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-parties {
-    margin: 0 0 6px !important; /* local fix 5: spacing */
-    gap: 10px 20px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-recipient-label {
-    margin-bottom: 4px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-recipient-intro {
-    margin: 1px 0 4px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-table-wrap {
-    margin: 0 0 6px !important; /* local fix 5: spacing */
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-commercial-table th {
-    padding: 4px 8px !important; /* local fix 5: spacing */
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-commercial-table td {
-    padding: 4px 8px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-item-detail {
-    margin-top: 1px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-approval {
-    margin-top: 0 !important;
-    padding: 4px 0 2px !important; /* local fix 5: spacing */
-    gap: 10px 20px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-approval-copy p {
-    margin-top: 2px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-sigline {
-    padding-bottom: 4px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-approval-record {
-    margin-top: 4px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-recipient-client {
-    flex: 2 1 240px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-recipient-contact {
-    flex: 1 1 200px !important;
-  }
-
-  /* local fix 5 (Codex P1 R2 on 4a5eb18): the A4 page is recovered through SPACING only, with the approved image sizes
-     restored (hero 190px, supports 91px, rail 100px). No font size, line height, image size or content changes; screen unchanged. */
-  .pq-page:not(.pq-preview) .pq-card .pq-totals-box {
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
-    row-gap: 4px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-doc-note {
-    padding-top: 8px !important;
-    padding-bottom: 8px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-doc-note-title {
-    margin-bottom: 4px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-total-rule {
-    margin-top: 3px !important;
-    padding-top: 3px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-totals-box {
-    border: 1.5px solid #0f172a !important;
-    background: #f8fafc !important; /* base c65f742 print / capture totals border (ledger D19) */
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-total-final-label {
-    color: #0f172a !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-total-final-amount {
-    color: #4c1d95 !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-discount-negative {
-    color: #b91c1c !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-attachments {
-    float: inline-start !important;
-    width: calc(100% - 396px) !important;
-    margin: 0 !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-totals-wrap {
-    margin: 0 0 4px !important; /* local fix 5: spacing */
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-doc-notes,
-  .pq-page:not(.pq-preview) .pq-card .pq-approval,
-  .pq-page:not(.pq-preview) .pq-card .pq-doc-status,
-  .pq-page:not(.pq-preview) .pq-card .pq-doc-foot {
-    clear: both !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-doc-note {
-    margin-bottom: 0 !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-doc-foot {
-    margin-top: 4px !important; /* local fix 5: spacing */
-    padding-top: 6px !important;
-  }
-
-  .pq-page:not(.pq-preview) .pq-card .pq-doc-notes {
-    display: grid !important;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
-    gap: 8px 12px !important;
-    margin: 0 0 6px !important; /* terms / warranty / notes side by side on A4 when more than one exists (each keeps its base panel) */
-  }
 }
-
-/* The Direct PDF clone lays the card out at the A4 content width (718px = 190mm), 1 CSS px = 0.75pt - exactly the scale of
-   native Print - so it uses the same A4 layout rules and the same screen type. */
 .pq-pdf-capturing .pq-card {
-  padding: 0 0 4px !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 0 !important;
 }
-
-.pq-pdf-capturing .pq-card .pq-media.pq-media-thumb,
-.pq-pdf-capturing .pq-card .pq-media.pq-media-thumb .pq-media-thumb-frame {
-  width: 34px !important;
-  min-width: 34px !important;
-  height: 34px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-media.pq-media-thumb {
-  height: auto !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead {
-  margin-bottom: 4px !important; /* local fix 5: spacing */
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead .pq-lh-rule {
-  margin-top: 10px !important;
-  height: 2px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead .pq-doc-title {
-  margin: 8px 0 0 !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead.pq-letterhead-modern .pq-doc-title {
-  margin: 6px 0 0 !important;
-}
-
+/* L-02 (Owner-locked): the business logo in the Direct PDF up to 80px, never distorted */
 .pq-pdf-capturing .pq-card .pq-letterhead .pq-logo-chip img {
   max-height: 80px !important;
   max-width: 260px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead .pq-lh-details {
-  margin-top: 3px !important;
-  columns: 2 !important;
-  column-gap: 24px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead .pq-meta-cell {
-  padding-top: 0 !important;
-  gap: 1px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead .pq-meta {
-  margin-top: 8px !important;
-  row-gap: 6px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-meta {
-  grid-template-columns: none !important;
-  grid-auto-flow: column !important;
-  grid-auto-columns: minmax(0, 1fr) !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-meta-project {
-  grid-column: span 3 !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead.pq-letterhead-modern .pq-modern-head {
-  gap: 10px 24px !important;
-  padding-bottom: 6px !important;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important; /* cloud-fix4b: issuer | metadata in two equal columns on A4 */
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead.pq-letterhead-modern .pq-meta {
-  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  gap: 6px 10px !important; /* cloud-fix4b: number | date | valid in one row, the project below */
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead.pq-letterhead-modern .pq-meta-project {
-  grid-column: 1 / -1 !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead.pq-letterhead-modern .pq-modern-titleblock {
-  padding: 4px 0 6px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead.pq-letterhead-modern .pq-lh-issuer {
-  margin-top: 0 !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead.pq-letterhead-modern .pq-meta-cell {
-  padding: 2px 0 !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead.pq-letterhead-visual .pq-meta {
-  margin-top: 6px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-letterhead.pq-letterhead-visual .pq-doc-title {
-  margin-top: 6px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-media:not(.pq-media-thumb) {
-  margin: 4px 0 !important; /* local fix 5: spacing, not image size */
-}
-
-.pq-pdf-capturing .pq-card .pq-media.pq-media-hero {
-  --pq-hero-h: 190px !important; /* the refined reference hero height at A4 print scale (quoteMedia.css) */
-}
-
-.pq-pdf-capturing .pq-card .pq-media.pq-media-hero .pq-media-hero-support .pq-media-frame {
-  height: 91px !important; /* local fix 5 (Codex P1 R2 on 4a5eb18): the approved stacked supports beside the 190px hero - no image shrink for pagination */
-}
-
-.pq-pdf-capturing .pq-card .pq-media.pq-media-rail .pq-media-frame {
-  max-height: 100px !important; /* local fix 5: the approved 100px rail (no shrink for pagination) */
-}
-
-.pq-pdf-capturing .pq-card .pq-media .pq-media-caption {
-  margin-top: 3px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-parties {
-  margin: 0 0 6px !important; /* local fix 5: spacing */
-  gap: 10px 20px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-recipient-label {
-  margin-bottom: 4px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-recipient-intro {
-  margin: 1px 0 4px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-table-wrap {
-  margin: 0 0 6px !important; /* local fix 5: spacing */
-}
-
-.pq-pdf-capturing .pq-card .pq-item-detail {
-  margin-top: 1px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-approval {
-  margin-top: 0 !important;
-  padding: 4px 0 2px !important; /* local fix 5: spacing */
-  gap: 10px 20px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-approval-copy p {
-  margin-top: 2px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-sigline {
-  padding-bottom: 4px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-approval-record {
-  margin-top: 4px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-recipient-client {
-  flex: 2 1 240px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-recipient-contact {
-  flex: 1 1 200px !important;
-}
-
-/* local fix 5 (Codex P1 R2 on 4a5eb18): the A4 page is recovered through SPACING only, with the approved image sizes
-   restored (hero 190px, supports 91px, rail 100px). No font size, line height, image size or content changes; screen unchanged. */
-.pq-pdf-capturing .pq-card .pq-totals-box {
-  padding-top: 8px !important;
-  padding-bottom: 8px !important;
-  row-gap: 4px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-doc-note {
-  padding-top: 8px !important;
-  padding-bottom: 8px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-doc-note-title {
-  margin-bottom: 4px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-total-rule {
-  margin-top: 3px !important;
-  padding-top: 3px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-totals-box {
-  border: 1.5px solid #0f172a !important;
-  background: #f8fafc !important; /* base c65f742 print / capture totals border (ledger D19) */
-}
-
-.pq-pdf-capturing .pq-card .pq-total-final-label {
-  color: #0f172a !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-total-final-amount {
-  color: #4c1d95 !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-discount-negative {
-  color: #b91c1c !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-attachments {
-  float: inline-start !important;
-  width: calc(100% - 396px) !important;
-  margin: 0 !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-totals-wrap {
-  margin: 0 0 4px !important; /* local fix 5: spacing */
-}
-
-.pq-pdf-capturing .pq-card .pq-doc-notes,
-.pq-pdf-capturing .pq-card .pq-approval,
-.pq-pdf-capturing .pq-card .pq-doc-status,
-.pq-pdf-capturing .pq-card .pq-doc-foot {
-  clear: both !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-doc-note {
-  margin-bottom: 0 !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-doc-foot {
-  margin-top: 4px !important; /* local fix 5: spacing */
-  padding-top: 6px !important;
-}
-
-.pq-pdf-capturing .pq-card .pq-doc-notes {
-  display: grid !important;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)) !important;
-  gap: 8px 12px !important;
-  margin: 0 0 6px !important; /* terms / warranty / notes side by side on A4 when more than one exists (each keeps its base panel) */
-}
-
-/* cell padding only at document widths - a phone capture keeps the tighter mobile cell geometry */
-@media (min-width: 641px) {
-  .pq-pdf-capturing .pq-card .pq-commercial-table th {
-    padding: 4px 8px !important; /* local fix 5: spacing */
-  }
-
-  .pq-pdf-capturing .pq-card .pq-commercial-table td {
-    padding: 4px 8px !important;
-  }
 }
 
 /* ---------- creator preview frame (container `pq-preview`, owned by the dashboard) ----------
@@ -1826,38 +1337,38 @@
 
 
 /* ---------- screen parity with the Owner-approved landing quotation ----------
-   Screen only: the real customer document follows the same document grammar as LandingQuoteDocument. Print and Direct
-   PDF keep their established output contracts below. Extra real-data fields remain available, but use the same visual
+   The real customer document follows the same document grammar as LandingQuoteDocument - on screen AND in native Print and
+   the Direct PDF (Owner console 2026-10-18, typed: "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור"). Extra real-data fields remain available, but use the same visual
    treatment; the duplicated recipient greeting/subject and project metadata are hidden because the subject/project now
    occupy the landing document's title/subtitle positions. */
-@media screen {
+@media screen, print {
   /* The landing sample and every live screen quote share one letterhead geometry. Output modes remain separate below. */
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-brandline {
+  .pq-page .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-brandline {
     display: grid;
     grid-template-columns: minmax(0, 42%) minmax(0, 56%);
     justify-content: space-between;
     gap: 0;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-issuer {
+  .pq-page .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-issuer {
     max-width: none;
     width: 100%;
   }
   /* Owner 2026-10-14: as on the landing sample, the business details sit BESIDE the logo - a lower band and more room for the logo.
      With a logo the issuer takes the free width (the corner keeps only the call button / state chip); when even that is too narrow
      the details wrap under the logo. */
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-brandline:has(> .pq-lh-issuer--logo) {
+  .pq-page .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-brandline:has(> .pq-lh-issuer--logo) {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 18px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-issuer--logo {
+  .pq-page .pq-card .pq-letterhead .pq-lh-issuer--logo {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
     gap: 8px 16px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-issuer--logo .pq-logo-chip { flex: none; margin: 0; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-issuer--logo .pq-lh-details { flex: 1 1 150px; min-width: 0; margin-top: 0; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-corner {
+  .pq-page .pq-card .pq-letterhead .pq-lh-issuer--logo .pq-logo-chip { flex: none; margin: 0; }
+  .pq-page .pq-card .pq-letterhead .pq-lh-issuer--logo .pq-lh-details { flex: 1 1 150px; min-width: 0; margin-top: 0; }
+  .pq-page .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-corner {
     width: 100%;
     min-width: 0;
   }
@@ -1869,97 +1380,97 @@
     max-width: 260px;
     object-fit: contain;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-band .pq-meta {
+  .pq-page .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-band .pq-meta {
     width: 56%;
     margin-top: 10px;
     margin-left: 0;
     margin-right: auto;
   }
-  .pq-page[dir='ltr']:not(.pq-pdf-capturing) .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-band .pq-meta {
+  .pq-page[dir='ltr'] .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-band .pq-meta {
     margin-left: auto;
     margin-right: 0;
   }
-  .pq-page.pq-standalone-preview:not(.pq-pdf-capturing) .pq-card .pq-parties {
+  .pq-page.pq-standalone-preview .pq-card .pq-parties {
     grid-template-columns: minmax(0, 1.45fr) minmax(0, .75fr);
     align-items: stretch;
   }
-  .pq-page.pq-standalone-preview:not(.pq-pdf-capturing) .pq-card .pq-recipient-client {
+  .pq-page.pq-standalone-preview .pq-card .pq-recipient-client {
     padding: 12px 14px;
     background: #f3f7f7;
     border: 1px solid #d8e2e3;
     border-inline-start: 4px solid var(--pq-accent);
     border-radius: 8px;
   }
-  .pq-page.pq-standalone-preview:not(.pq-pdf-capturing) .pq-card .pq-recipient-client .pq-recipient-name {
+  .pq-page.pq-standalone-preview .pq-card .pq-recipient-client .pq-recipient-name {
     font-size: 19px;
   }
   /* Owner 2026-10-06: the live HE and EN documents use LandingQuoteDocument's paper/header geometry. The output-mode
      blocks below intentionally remove the pale frame and dark fill for Print and Direct PDF. */
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead {
+  .pq-page .pq-card .pq-letterhead {
     margin-bottom: 18px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-band,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead.pq-letterhead-modern .pq-lh-band.pq-modern-head {
+  .pq-page .pq-card .pq-letterhead .pq-lh-band,
+  .pq-page .pq-card .pq-letterhead.pq-letterhead-modern .pq-lh-band.pq-modern-head {
     margin: -28px -30px 0;
     padding: 22px 30px 18px;
     border-radius: 0;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-brandline {
+  .pq-page .pq-card .pq-letterhead .pq-lh-brandline {
     gap: 18px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-name {
+  .pq-page .pq-card .pq-letterhead .pq-lh-name {
     font-size: 16px;
     line-height: 1.25;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-details {
+  .pq-page .pq-card .pq-letterhead .pq-lh-details {
     display: block;
     margin-top: 1px;
     font-size: 12.5px;
     line-height: 1.45;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-band .pq-meta {
+  .pq-page .pq-card .pq-letterhead .pq-lh-band .pq-meta {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 10px;
     margin-top: 14px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-band .pq-meta[data-pq-meta-count='2'] {
+  .pq-page .pq-card .pq-letterhead .pq-lh-band .pq-meta[data-pq-meta-count='2'] {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-band .pq-meta[data-pq-meta-count='1'] {
+  .pq-page .pq-card .pq-letterhead .pq-lh-band .pq-meta[data-pq-meta-count='1'] {
     grid-template-columns: minmax(0, 1fr);
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-band .pq-meta-cell {
+  .pq-page .pq-card .pq-letterhead .pq-lh-band .pq-meta-cell {
     padding: 5px 4px;
     background: rgba(255, 255, 255, 0.1);
     border-radius: 4px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-band + .pq-lh-rule {
+  .pq-page .pq-card .pq-letterhead .pq-lh-band + .pq-lh-rule {
     margin-top: 14px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-doc-title {
+  .pq-page .pq-card .pq-letterhead .pq-doc-title {
     margin: 20px 0 6px;
     font-size: 25px;
     line-height: 1.15;
     color: #000000;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-screen-title-subject { display: inline; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-screen-doc-subtitle {
+  .pq-page .pq-card .pq-screen-title-subject { display: inline; }
+  .pq-page .pq-card .pq-screen-doc-subtitle {
     display: block;
     margin: 0 0 18px;
     color: #5e6c73;
     font-size: 14.5px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-meta-project,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-recipient-intro,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-recipient-subject { display: none; }
+  .pq-page .pq-card .pq-meta-project,
+  .pq-page .pq-card .pq-recipient-intro,
+  .pq-page .pq-card .pq-recipient-subject { display: none; }
 
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-parties {
+  .pq-page .pq-card .pq-parties {
     display: grid;
     grid-template-columns: minmax(0, 1.45fr) minmax(0, .75fr);
     gap: 14px;
     margin: 20px 0;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-recipient {
+  .pq-page .pq-card .pq-recipient {
     min-width: 0;
     padding: 8px 0 0;
     background: transparent;
@@ -1967,7 +1478,7 @@
     border-top: 2px solid var(--pq-accent);
     border-radius: 0;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-recipient-label {
+  .pq-page .pq-card .pq-recipient-label {
     gap: 0;
     margin: 0;
     font-size: 12px;
@@ -1975,8 +1486,8 @@
     text-transform: none;
     color: #5e6c73;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-recipient-label svg { display: none; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-recipient-name {
+  .pq-page .pq-card .pq-recipient-label svg { display: none; }
+  .pq-page .pq-card .pq-recipient-name {
     margin: 2px 0;
     font-size: 13.5px;
     font-weight: 600;
@@ -1984,26 +1495,26 @@
   }
   /* Client-first parity with LandingQuoteDocument: the customer is the dominant card; Attn remains the quiet,
      secondary top-rule block. This applies to real shared quotes too, not only the synthetic sample route. */
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-recipient-client {
+  .pq-page .pq-card .pq-recipient-client {
     padding: 12px 14px;
     background: #f3f7f7;
     border: 1px solid #d8e2e3;
     border-inline-start: 4px solid var(--pq-accent);
     border-radius: 8px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-recipient-client .pq-recipient-name {
+  .pq-page .pq-card .pq-recipient-client .pq-recipient-name {
     font-size: 19px;
     font-weight: 800;
     color: var(--pq-accent);
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-recipient-detail {
+  .pq-page .pq-card .pq-recipient-detail {
     font-size: 12.5px;
     line-height: 1.45;
     color: #4f5d64;
   }
 
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table { font-size: 13.5px; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table th {
+  .pq-page .pq-card .pq-commercial-table { font-size: 13.5px; }
+  .pq-page .pq-card .pq-commercial-table th {
     padding: 9px 6px;
     font-size: 12px;
     font-weight: 600;
@@ -2013,18 +1524,18 @@
     border-top: 1px solid #c6d0d3;
     border-bottom: 1px solid #e0e5e6;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table td {
+  .pq-page .pq-card .pq-commercial-table td {
     padding: 9px 6px;
     border-bottom: 1px solid #e0e5e6;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table .pq-th-qty,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table td.pq-td-qty { text-align: center !important; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table .pq-th-price,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table .pq-th-total,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table td.pq-td-price,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table td.pq-td-total { text-align: right !important; }
+  .pq-page .pq-card .pq-commercial-table .pq-th-qty,
+  .pq-page .pq-card .pq-commercial-table td.pq-td-qty { text-align: center !important; }
+  .pq-page .pq-card .pq-commercial-table .pq-th-price,
+  .pq-page .pq-card .pq-commercial-table .pq-th-total,
+  .pq-page .pq-card .pq-commercial-table td.pq-td-price,
+  .pq-page .pq-card .pq-commercial-table td.pq-td-total { text-align: right !important; }
 
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-attachments {
+  .pq-page .pq-card .pq-attachments {
     margin: 0 0 20px;
     padding: 8px 0 0;
     background: transparent;
@@ -2032,12 +1543,12 @@
     border-top: 1px solid #bcc7ca;
     border-radius: 0;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-attachments--empty { display: none; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-attachments-title svg,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-attachment-link { color: var(--pq-accent); }
+  .pq-page .pq-card .pq-attachments--empty { display: none; }
+  .pq-page .pq-card .pq-attachments-title svg,
+  .pq-page .pq-card .pq-attachment-link { color: var(--pq-accent); }
 
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-wrap { margin: 16px 0 0; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-box {
+  .pq-page .pq-card .pq-totals-wrap { margin: 16px 0 0; }
+  .pq-page .pq-card .pq-totals-box {
     width: 100%;
     max-width: none;
     grid-template-columns: minmax(0, 1fr) 22% !important;
@@ -2048,9 +1559,9 @@
     border: 0;
     border-radius: 0;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-total-label,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-total-value,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-total-final-amount {
+  .pq-page .pq-card .pq-total-label,
+  .pq-page .pq-card .pq-total-value,
+  .pq-page .pq-card .pq-total-final-amount {
     padding: 3px 6px;
     font-size: 13.5px;
     color: var(--pq-ink);
@@ -2058,24 +1569,24 @@
     box-shadow: none;
     border-radius: 0;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-total-final-label {
+  .pq-page .pq-card .pq-total-final-label {
     padding: 9px 0 3px;
     font-size: 19px;
     font-weight: 700;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-total-rule {
+  .pq-page .pq-card .pq-total-rule {
     border-top: 1px solid #829096;
     margin-top: 6px;
     padding-top: 0;
   }
 
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-doc-notes {
+  .pq-page .pq-card .pq-doc-notes {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 15px;
     margin-top: 20px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-doc-note {
+  .pq-page .pq-card .pq-doc-note {
     margin: 0;
     padding: 7px 0 0;
     background: transparent;
@@ -2083,35 +1594,35 @@
     border-top: 1px solid #bcc7ca;
     border-radius: 0;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-doc-note-title {
+  .pq-page .pq-card .pq-doc-note-title {
     margin-bottom: 3px;
     font-size: 13px;
     color: #27333a;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-doc-note-body {
+  .pq-page .pq-card .pq-doc-note-body {
     font-size: 12.5px;
     color: #4f5d64;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-doc-credit { color: var(--pq-accent); }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-approval {
+  .pq-page .pq-card .pq-doc-credit { color: var(--pq-accent); }
+  .pq-page .pq-card .pq-approval {
     margin-top: 20px;
     padding: 12px 0 0;
     gap: 18px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-approval-title { font-size: 14px; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-approval-copy p { margin-top: 2px; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-sigline {
+  .pq-page .pq-card .pq-approval-title { font-size: 14px; }
+  .pq-page .pq-card .pq-approval-copy p { margin-top: 2px; }
+  .pq-page .pq-card .pq-sigline {
     flex: 0 0 130px;
     min-width: 130px;
     padding-bottom: 5px;
     font-size: 12px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-action-tiles {
+  .pq-page .pq-card .pq-action-tiles {
     gap: 8px !important;
     margin-top: 16px;
     padding-top: 10px !important;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-doc-foot {
+  .pq-page .pq-card .pq-doc-foot {
     margin-top: 16px;
     padding-top: 10px;
     font-size: 12px;
@@ -2120,41 +1631,41 @@
 }
 
 @media screen and (max-width: 640px) {
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-band,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead.pq-letterhead-modern .pq-lh-band.pq-modern-head {
+  .pq-page .pq-card .pq-letterhead .pq-lh-band,
+  .pq-page .pq-card .pq-letterhead.pq-letterhead-modern .pq-lh-band.pq-modern-head {
     margin: -16px -12px 0;
     padding: 16px 12px 14px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-doc-title { font-size: 21px; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-parties,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-doc-notes { grid-template-columns: minmax(0, 1fr); }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table { font-size: 12.5px; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table th,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table td { padding: 8px 2px; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-box { grid-template-columns: minmax(0, 1fr) 27% !important; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-total-label,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-total-value,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-total-final-amount { padding-inline: 2px; font-size: 12px; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-brandline {
+  .pq-page .pq-card .pq-letterhead .pq-doc-title { font-size: 21px; }
+  .pq-page .pq-card .pq-parties,
+  .pq-page .pq-card .pq-doc-notes { grid-template-columns: minmax(0, 1fr); }
+  .pq-page .pq-card .pq-commercial-table { font-size: 12.5px; }
+  .pq-page .pq-card .pq-commercial-table th,
+  .pq-page .pq-card .pq-commercial-table td { padding: 8px 2px; }
+  .pq-page .pq-card .pq-totals-box { grid-template-columns: minmax(0, 1fr) 27% !important; }
+  .pq-page .pq-card .pq-total-label,
+  .pq-page .pq-card .pq-total-value,
+  .pq-page .pq-card .pq-total-final-amount { padding-inline: 2px; font-size: 12px; }
+  .pq-page .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-brandline {
     grid-template-columns: minmax(0, 1fr) auto;
     gap: 12px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-corner {
+  .pq-page .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-corner {
     width: auto;
   }
   /* phone: a 64px logo keeps the business details beside it (a lower band than before) */
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-logo-chip img {
+  .pq-page .pq-card .pq-letterhead .pq-logo-chip img {
     max-height: 64px;
     max-width: 160px;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-issuer--logo { gap: 6px 12px; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead .pq-lh-issuer--logo .pq-lh-details { flex-basis: 130px; }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-band .pq-meta,
-  .pq-page[dir='ltr']:not(.pq-pdf-capturing) .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-band .pq-meta {
+  .pq-page .pq-card .pq-letterhead .pq-lh-issuer--logo { gap: 6px 12px; }
+  .pq-page .pq-card .pq-letterhead .pq-lh-issuer--logo .pq-lh-details { flex-basis: 130px; }
+  .pq-page .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-band .pq-meta,
+  .pq-page[dir='ltr'] .pq-card .pq-letterhead:not(.pq-letterhead-modern) .pq-lh-band .pq-meta {
     width: 100%;
     margin: 10px 0 0;
   }
-  .pq-page.pq-standalone-preview:not(.pq-pdf-capturing) .pq-card .pq-parties {
+  .pq-page.pq-standalone-preview .pq-card .pq-parties {
     grid-template-columns: minmax(0, 1fr);
   }
 }
@@ -2165,26 +1676,26 @@
    axis, HE and EN, every device. Every amount keeps ONE font weight (a heavier weight widens the digits and moves the decimal
    point); the grand total is dark black and drawn bold by a hairline text-shadow, which never changes a glyph's width
    (Owner console 2026-10-18, typed: "שיהיה שחור כהה בבולד לא סגול").
-   Screen only: native Print and the Direct PDF keep their own output rules above. */
-@media screen {
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-box {
+   Screen, native Print and the Direct PDF alike (the totals axis on paper: see the A4 output section). */
+@media screen, print {
+  .pq-page .pq-card .pq-totals-box {
     grid-template-columns: minmax(0, 1fr) var(--pq-amount-col, 21%) !important;
     padding-left: 0 !important;
     padding-right: 0 !important;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-box .pq-total-value,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-box .pq-total-final-amount {
+  .pq-page .pq-card .pq-totals-box .pq-total-value,
+  .pq-page .pq-card .pq-totals-box .pq-total-final-amount {
     padding-left: var(--pq-amount-pad-l, 6px) !important;
     padding-right: var(--pq-amount-pad-r, 6px) !important;
     font-size: var(--pq-amount-font, 13.5px) !important;
     font-weight: 400 !important;
     text-align: right !important;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table td.pq-td-total,
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-commercial-table td.pq-td-total .pf-money {
+  .pq-page .pq-card .pq-commercial-table td.pq-td-total,
+  .pq-page .pq-card .pq-commercial-table td.pq-td-total .pf-money {
     font-weight: 400 !important;
   }
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-box .pq-total-final-amount {
+  .pq-page .pq-card .pq-totals-box .pq-total-final-amount {
     color: #0b0f19 !important;
     background: transparent !important;
     box-shadow: none !important;
@@ -2192,33 +1703,30 @@
   }
   /* Owner console 2026-10-18, typed: "עכשיו תגדיל ב 20% בערך את הסכום בסה"כ לתשלום": the grand total amount is 20% larger; it keeps
      the shared right edge of every amount (the larger digits alone move its decimal point) */
-  .pq-page:not(.pq-pdf-capturing) .pq-card .pq-totals-box .pq-total-final-amount {
+  .pq-page .pq-card .pq-totals-box .pq-total-final-amount {
     font-size: calc(var(--pq-amount-font, 13.5px) * 1.2) !important;
   }
 }
 
-/* ---------- header band: output modes (Owner 2026-10-05) ----------
-   SCREEN = dark band (above). NATIVE PRINT = white background + dark readable text (Owner requirement; no ink-heavy
-   fill), for every page that prints a letterhead. DIRECT PDF (.pq-pdf-capturing, html2canvas) = the EXISTING white
-   letterhead, kept as an explicit separate mode because the Owner has not decided whether Direct PDF follows the screen
-   or the print treatment (OWNER DECISION PENDING). Changing that decision = changing only the .pq-pdf-capturing block. */
+/* ---------- header band: output modes ----------
+   SCREEN = the black band (above). NATIVE PRINT and the DIRECT PDF = the SAME band geometry, WHITE with dark text (Owner 2026-10-18 "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור")
+   - no ink-heavy fill; the metadata cells become light boxes; only a real expired state keeps its warning colour. */
 @media print {
   .pq-letterhead .pq-lh-band,
   .pq-letterhead.pq-letterhead-modern .pq-lh-band.pq-modern-head {
     background: #FFFFFF !important;
+    background-image: none !important;
     color: var(--pq-ink) !important;
-    padding: 0 !important;
-    border-radius: 0 !important;
   }
   .pq-letterhead .pq-lh-band .pq-lh-name,
   .pq-letterhead .pq-lh-band .pq-logo-visible-name,
   .pq-letterhead .pq-lh-band .pq-meta-value,
+  .pq-letterhead .pq-lh-band .pq-meta-value.pq-header-number,
+  .pq-letterhead .pq-lh-band .pq-meta-value.pq-header-valid,
   .pq-letterhead .pq-lh-band .pq-visual-number b {
     color: var(--pq-ink) !important;
   }
-  .pq-letterhead .pq-lh-band .pq-lh-details {
-    color: var(--pq-muted) !important;
-  }
+  .pq-letterhead .pq-lh-band .pq-lh-details,
   .pq-letterhead .pq-lh-band .pq-meta-label,
   .pq-letterhead .pq-lh-band .pq-doc-kicker {
     color: var(--pq-muted) !important;
@@ -2227,56 +1735,37 @@
   .pq-letterhead .pq-lh-band .pq-header-valid [data-testid='pq-header-expired'] {
     color: var(--pq-danger) !important;
   }
-  .pq-letterhead .pq-lh-band .pq-logo-chip {
-    background: transparent !important;
-    padding: 0 !important;
-  }
-  /* ledger D07b: base c65f742 print colours of the metadata values - number #4338ca (7.9:1), valid-until #b91c1c (6.5:1) */
-  .pq-letterhead .pq-lh-band .pq-meta-value.pq-header-number,
-  .pq-letterhead .pq-lh-band .pq-visual-number b.pq-header-number {
-    color: #4338ca !important;
-  }
-  .pq-letterhead .pq-lh-band .pq-meta-value.pq-header-valid,
-  .pq-letterhead .pq-lh-band .pq-header-valid [data-testid='pq-header-expired'] {
-    color: #b91c1c !important;
+  .pq-card .pq-letterhead .pq-lh-band .pq-meta-cell {
+    background: #f3f5f6 !important;
+    border: 1px solid #dde3e6 !important;
   }
 }
 .pq-pdf-capturing .pq-letterhead .pq-lh-band,
 .pq-pdf-capturing .pq-letterhead.pq-letterhead-modern .pq-lh-band.pq-modern-head {
-  background: #FFFFFF;
-  color: var(--pq-ink);
-  padding: 0;
-  border-radius: 0;
+  background: #FFFFFF !important;
+  background-image: none !important;
+  color: var(--pq-ink) !important;
 }
 .pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-lh-name,
 .pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-logo-visible-name,
 .pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-meta-value,
+.pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-meta-value.pq-header-number,
+.pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-meta-value.pq-header-valid,
 .pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-visual-number b {
-  color: var(--pq-ink);
+  color: var(--pq-ink) !important;
 }
-.pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-lh-details {
-  color: var(--pq-muted);
-}
+.pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-lh-details,
 .pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-meta-label,
 .pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-doc-kicker {
-  color: var(--pq-muted); /* retro audit R-6: >= 4.5:1 on the white PDF letterhead (was --pq-faint, 3.67:1) */
+  color: var(--pq-muted) !important;
 }
 .pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-header-valid.pq-is-expired,
 .pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-header-valid [data-testid='pq-header-expired'] {
-  color: var(--pq-danger);
+  color: var(--pq-danger) !important;
 }
-.pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-logo-chip {
-  background: transparent;
-  padding: 0;
-}
-/* ledger D07b: base c65f742 capture colours of the metadata values (= its print colours) */
-.pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-meta-value.pq-header-number,
-.pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-visual-number b.pq-header-number {
-  color: #4338ca;
-}
-.pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-meta-value.pq-header-valid,
-.pq-pdf-capturing .pq-letterhead .pq-lh-band .pq-header-valid [data-testid='pq-header-expired'] {
-  color: #b91c1c;
+.pq-pdf-capturing .pq-card .pq-letterhead .pq-lh-band .pq-meta-cell {
+  background: #f3f5f6 !important;
+  border: 1px solid #dde3e6 !important;
 }
 
 /* IRON-NUMERIC-001, Print and Direct PDF (Owner 2026-10-06 "יישור ספרות ... באופן גורף"): a quantity's unit label sits on its own line under
@@ -2287,3 +1776,9 @@
 }
 .pq-pdf-capturing .pq-card .pq-commercial-table td.pq-td-qty .pq-unit-slot { display: block !important; min-width: 0 !important; }
 .pq-pdf-capturing .pq-card .pq-commercial-table td.pq-td-qty .pq-unit-slot:empty { display: none !important; }
+/* IRON-NUMERIC-001 on paper: the totals amount column = the A4 table's Amount column (21%, 6px padding, the table's digit size) */
+@media print {
+  .pq-page:not(.pq-preview) .pq-card .pq-totals-box { --pq-amount-col: 21% !important; --pq-amount-pad-l: 6px !important; --pq-amount-pad-r: 6px !important; --pq-amount-font: 13.5px !important; }
+  /* EN: the table's digits are 1rem (.pq-page[dir='ltr'] .pq-card .pq-commercial-table) */
+  .pq-page[dir='ltr']:not(.pq-preview) .pq-card .pq-totals-box { --pq-amount-font: 1rem !important; }
+}

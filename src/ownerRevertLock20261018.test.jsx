@@ -154,3 +154,37 @@ describe('L-26 the desktop document card, the hot banner position, the export po
     expect(read('components/PublicQuoteHeader.jsx')).toContain('{callCta(useCompactBranch)}');
   });
 });
+
+// L-28: Owner console 2026-10-18, typed: "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור" - Print and the Direct PDF ARE
+// the screen document; the header band on paper is white with dark text; the Direct PDF keeps the screen's amount axis.
+describe('L-28 Print and the Direct PDF = the screen document', () => {
+  const css = read('quoteDocument/quoteDocument.css');
+  it('the screen-parity rules govern print and the capture; the separate A4 layer is gone; the paper only drops the frame', () => {
+    const parity = css.slice(css.indexOf('/* ---------- screen parity with the Owner-approved landing quotation'), css.indexOf('/* ---------- header band: output modes'));
+    expect(parity).toMatch(/@media screen, print \{/);
+    expect(css).not.toMatch(/\/\* ---------- A4 layout/);
+    expect(css).toMatch(/\n\.pq-pdf-capturing \.pq-card \{\s*border: 0 !important;\s*box-shadow: none !important;\s*border-radius: 0 !important;/);
+  });
+  it('the header band on paper keeps the screen geometry, WHITE with dark text (never black)', () => {
+    expect(css).toMatch(/@media print \{\s*\.pq-letterhead \.pq-lh-band,\s*\.pq-letterhead\.pq-letterhead-modern \.pq-lh-band\.pq-modern-head \{\s*background: #FFFFFF !important;\s*background-image: none !important;\s*color: var\(--pq-ink\) !important;/);
+    expect(css).toMatch(/\n\.pq-pdf-capturing \.pq-letterhead \.pq-lh-band,\s*\.pq-pdf-capturing \.pq-letterhead\.pq-letterhead-modern \.pq-lh-band\.pq-modern-head \{\s*background: #FFFFFF !important;/);
+  });
+  it('the Direct PDF clone: digits in centred tabular boxes inside an LTR-isolated number, then the amount axis re-measured', async () => {
+    const pdf = read('utils/generateQuotePdf.js');
+    expect(pdf).toContain('tabularizeDigitsForCapture(clonedEl);\n        syncAllAmountAxes(clonedEl);');
+    expect(pdf).toContain("el.style.direction = 'ltr';\n    el.style.unicodeBidi = 'isolate';");
+    const { tabularizeDigitsForCapture } = await import('./utils/generateQuotePdf');
+    const proto = Element.prototype.getBoundingClientRect;
+    Element.prototype.getBoundingClientRect = function () { return { width: 8, height: 10, top: 0, left: 0, right: 8, bottom: 10, x: 0, y: 0 }; };
+    try {
+      const root = document.createElement('div'); root.setAttribute('dir', 'rtl');
+      root.innerHTML = '<span class="pq-num-slot">3.40</span><span class="pf-money">₪1,235.00</span>';
+      document.body.appendChild(root);
+      expect(tabularizeDigitsForCapture(root)).toBe(9); // 3 + 6 digits
+      for (const el of root.querySelectorAll('.pq-num-slot, .pf-money')) { expect(el.style.direction).toBe('ltr'); expect(el.style.unicodeBidi).toBe('isolate'); }
+      expect(root.querySelector('.pq-num-slot').textContent).toBe('3.40');
+      expect(root.querySelector('.pf-money').textContent).toBe('₪1,235.00');
+      root.remove();
+    } finally { Element.prototype.getBoundingClientRect = proto; }
+  });
+});
