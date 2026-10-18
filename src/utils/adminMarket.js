@@ -1,14 +1,7 @@
-import countries from './adminCountries.json';
+import { marketOfStoredCountry } from './regionConfig';
 // Catalog/flags: flag-icons, MIT license in public/flags/LICENSE.txt.
 // Use only an explicitly stored country, never email/currency/operator geography.
-const countryCodes = new Map(countries.flatMap(({ code, name }) => [[code.toLowerCase(), code], [name.toLowerCase(), code]]));
-countryCodes.set('uk', 'GB');
-countryCodes.set('united states', 'US');
+// Owner 2026-10-17 ("one market rule"): the admin and the user interface read a stored country with the SAME function (regionConfig.js)
 export function resolveAdminMarket(account) {
-  const value = typeof account?.country === 'string' ? account.country.trim() : '';
-  if (value === 'Local' || value === 'LCL') return { market: 'Local', countryCode: 'IL' };
-  if (value === 'International') return { market: 'International', countryCode: null };
-  const countryCode = countryCodes.get(value.toLowerCase());
-  if (countryCode) return { market: countryCode === 'IL' ? 'Local' : 'International', countryCode };
-  return { market: 'Unknown', countryCode: null };
+  return marketOfStoredCountry(account?.country);
 }

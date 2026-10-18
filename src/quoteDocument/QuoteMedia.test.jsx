@@ -74,7 +74,9 @@ describe('QuoteMediaRail (Modern)', () => {
       expect(el.getAttribute('height')).toBeTruthy();
     }
     expect(images[0].getAttribute('alt')).toBe('Alt 1');
-    expect(root.querySelector('button, a, input, [role="button"]')).toBeNull();
+    // Owner console 2026-10-18 ("והאם הלקוח יכול ללחוץ על התמונה בכדי להגדיל אותה?" -> "כן בטח להוסיף"): the ONLY control is the invisible zoom button over each image
+    expect(root.querySelector('a, input, [role="button"]')).toBeNull();
+    expect([...root.querySelectorAll('button')].every((btn) => btn.classList.contains('pq-media-zoom'))).toBe(true);
   });
 
   it('uses the caption as alt text when alt is absent', () => {
@@ -183,5 +185,30 @@ describe('QuoteItemThumb', () => {
     expect(tile.getAttribute('aria-label')).toContain(MEDIA_UNAVAILABLE_LABEL.he);
     expect(container.querySelector('img')).toBeNull();
     expect(container.querySelector('.pq-media-thumb').getAttribute('dir')).toBe('rtl');
+  });
+});
+
+// Owner console 2026-10-18 ("והאם הלקוח יכול ללחוץ על התמונה בכדי להגדיל אותה?" -> "כן בטח להוסיף"): a tap / click enlarges the image
+describe('enlarge an image (screen only)', () => {
+  it.each([[true], [false]])('isHebrew=%s: click opens the large view over the page; Esc and the X close it; the image stays the frame child', (isHebrew) => {
+    const media = [{ url: 'https://example.test/a.jpg', caption: 'Cap A', alt: 'Alt A', role: 'hero' }];
+    const { container } = render(<QuoteMediaHero media={media} isHebrew={isHebrew} />);
+    const frame = container.querySelector('.pq-media-frame');
+    expect(frame.querySelector(':scope > img')).not.toBeNull(); // the PDF cover step needs the <img> as the frame's direct child
+    const zoom = frame.querySelector('button.pq-media-zoom');
+    expect(zoom.className).toMatch(/no-print/);
+    expect(zoom.getAttribute('data-html2canvas-ignore')).toBe('true');
+    expect(zoom.getAttribute('aria-label')).toBe(isHebrew ? 'הגדלת התמונה: Alt A' : 'Enlarge image: Alt A');
+    fireEvent.click(zoom);
+    const dialog = document.body.querySelector('.pq-lightbox[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog.querySelector('img').getAttribute('src')).toBe('https://example.test/a.jpg');
+    expect(dialog.textContent).toContain('Cap A');
+    expect(document.activeElement).toBe(dialog.querySelector('.pq-lightbox-close'));
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(document.body.querySelector('.pq-lightbox')).toBeNull();
+    fireEvent.click(zoom);
+    fireEvent.click(document.body.querySelector('.pq-lightbox-close'));
+    expect(document.body.querySelector('.pq-lightbox')).toBeNull();
   });
 });

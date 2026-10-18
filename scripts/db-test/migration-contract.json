@@ -273,6 +273,18 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE only, read-only functions (re-runnable); admin redesign part A (Owner 2026-10-16)"
+    },
+    "20261017000000_admin_followup_counter_and_nulls.sql": {
+      "sha256": "b1e2649f01c0f65829335c85d7e7433718d8dcdae72c1f33a21d8f6b5f76004d",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE only, read-only functions (re-runnable); Codex verification AV-09 / AV-13 (Owner 2026-10-17)"
+    },
+    "20261018000000_quote_expiry_country_alias.sql": {
+      "sha256": "4e1020e84b8c15053f6d0ff9c99899bb5a143e134ac93af16f733f7f6f224751",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE only, one read-only function re-issued with the same grants (re-runnable); Codex LANG-02 (Owner 2026-10-18)"
     }
   }
 }

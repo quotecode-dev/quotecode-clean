@@ -133,3 +133,55 @@ describe('getPostRecoveryLoginLang', () => {
     }
   });
 });
+
+// Owner console 2026-10-17, typed: "מאשר תיקון זיהוי השוק בממשק המשתמש לפי אותו כלל של האדמין" - a stored country is read with the
+// admin's ONE rule for the language, the currency and the VAT; unknown values keep the previous behaviour.
+describe('canonicalMarket - one market rule for the language, the currency and the VAT', () => {
+  it('Israel in any stored form is Local: Hebrew, ₪, 18%', async () => {
+    const { canonicalMarket, isHebrewEnv, getCurrencySym, getRegionTaxRate, getRegionBillingProfile } = await import('./regionConfig');
+    for (const v of ['Local', 'LCL', 'Israel', 'israel', ' Israel ', 'IL']) {
+      expect(canonicalMarket(v)).toBe('Local');
+      localStorage.setItem('proflow_cached_country', 'International'); // a previous English account on this device
+      expect(isHebrewEnv(v, null)).toBe(true);
+      expect(getCurrencySym(v, 'ILS')).toBe('₪');
+      expect(getRegionTaxRate(v)).toBe(0.18);
+      expect(getRegionBillingProfile(v).language).toBe('he');
+    }
+    localStorage.removeItem('proflow_cached_country');
+  });
+  it('another known country is International: English, the account currency, 0%', async () => {
+    const { canonicalMarket, isHebrewEnv, getCurrencySym, getRegionTaxRate, getRegionBillingProfile } = await import('./regionConfig');
+    for (const v of ['International', 'Germany', 'DE', 'United States', 'uk']) {
+      expect(canonicalMarket(v)).toBe('International');
+      localStorage.setItem('proflow_cached_country', 'Local'); // a previous Hebrew account on this device
+      expect(isHebrewEnv(v, null)).toBe(false);
+      expect(getCurrencySym(v, 'EUR')).toBe('€');
+      expect(getRegionTaxRate(v)).toBe(0);
+      expect(getRegionBillingProfile(v).language).toBe('en');
+    }
+    localStorage.removeItem('proflow_cached_country');
+  });
+  it('an unknown or empty value keeps the previous behaviour (the device cache, then the stored language)', async () => {
+    const { canonicalMarket, isHebrewEnv, getRegionTaxRate } = await import('./regionConfig');
+    expect(canonicalMarket('Mars')).toBeNull();
+    expect(canonicalMarket('')).toBeNull();
+    expect(canonicalMarket(null)).toBeNull();
+    localStorage.setItem('proflow_cached_country', 'International');
+    expect(isHebrewEnv('Mars', null)).toBe(false);
+    expect(isHebrewEnv(null, null)).toBe(false);
+    localStorage.setItem('proflow_cached_country', 'Local');
+    expect(isHebrewEnv(null, null)).toBe(true);
+    localStorage.removeItem('proflow_cached_country');
+    expect(getRegionTaxRate('Mars')).toBe(0.18); // unchanged: anything not International is the Local VAT, as before
+  });
+  it('the dashboard keeps the canonical market of the stored country', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const { cwd } = await import('node:process');
+    const dash = readFileSync(join(cwd(), 'src', 'pages', 'Dashboard.jsx'), 'utf8');
+    // + Codex LANG-01 (2026-10-18): an unknown stored country is International everywhere (never USD with a hidden 18%)
+    expect(dash).toContain("const countryVal = canonicalMarket(data.country) || 'International';");
+    // a save never rewrites the stored country while its market is unchanged (a stored 'Germany' or unknown 'ZZ' stays as stored)
+    expect(dash).toContain("country: storedCountryRef.current && (canonicalMarket(storedCountryRef.current) || 'International') === bizCountry ? storedCountryRef.current : bizCountry,");
+  });
+});

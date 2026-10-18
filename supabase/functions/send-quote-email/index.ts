@@ -1,4 +1,4 @@
-import { buildQuoteEmail, safeLogoUrl, safeQuoteLink } from './emailTemplate.ts'
+import { buildQuoteEmail, safeLogoUrl, safeQuoteLink, inlineLogoAttachment, INLINE_LOGO_CID } from './emailTemplate.ts'
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { formatEmailTotal } from "./emailMoney.ts"
@@ -92,7 +92,10 @@ serve(async (req) => {
     const rawLogo = body.logoUrl || body.businessLogo || body.logo || body.bizLogo || body.imageUrl || body.image;
 
     // Task 29: an absolute http(s) URL that is not an SVG, parsed as a URL (validation only; HTML escaping happens once in the template)
-    const validLogo = safeLogoUrl(rawLogo);
+    const linkLogo = safeLogoUrl(rawLogo);
+    // בעל המערכת 2026-10-18: לוגו שהועלה מהמחשב (PNG / JPEG) מצורף כתמונה פנימית - ר' inlineLogoAttachment
+    const logoAttachment = linkLogo ? null : inlineLogoAttachment(rawLogo);
+    const validLogo = linkLogo || (logoAttachment ? `cid:${INLINE_LOGO_CID}` : null);
 
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY')
     if (!RESEND_API_KEY) {
@@ -309,6 +312,7 @@ serve(async (req) => {
         to: [clientEmail],
         subject: subject,
         html: html,
+        ...(logoAttachment ? { attachments: [logoAttachment] } : {}),
         ...(tags ? { tags } : {}),
       }),
     })

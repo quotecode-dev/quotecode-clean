@@ -114,10 +114,11 @@ describe('F4 header - black band on screen, white print, Direct PDF kept as its 
     expect(printBlocks).toMatch(/\.pq-lh-band \.pq-lh-name,[\s\S]*?color: var\(--pq-ink\) !important;/);
   });
 
-  it('Direct PDF capture keeps the existing white letterhead in its own block (Owner decision pending)', () => {
+  // Owner console 2026-10-18, typed: "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור" - Print and the Direct PDF ARE the screen document
+  it('Direct PDF capture: the screen band geometry in WHITE (the Owner decided: Print and the PDF are the screen document, the header never black)', () => {
     const css = read('src/quoteDocument/quoteDocument.css');
-    expect(css).toMatch(/\.pq-pdf-capturing \.pq-letterhead \.pq-lh-band,[\s\S]*?\{\s*background: #FFFFFF;/);
-    expect(css).toMatch(/OWNER DECISION PENDING/);
+    expect(css).toMatch(/\.pq-pdf-capturing \.pq-letterhead \.pq-lh-band,[\s\S]*?\{\s*background: #FFFFFF !important;/);
+    expect(css).not.toMatch(/OWNER DECISION PENDING/);
   });
 
   it('interface: the Dashboard greeting card token is dark with readable text; sidebar token unchanged', () => {

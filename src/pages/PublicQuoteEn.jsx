@@ -26,6 +26,7 @@ import '../quoteDocument/quoteDocument.css';
 import '../quoteDocument/narrowItems.css';
 import { outputGate, authorizeWithNotice, outputBlockedMessage } from '../domain/subscriptions/outputAuthority';
 import PublicThanksNotice from '../components/PublicThanksNotice';
+import { useAmountAxis } from '../quoteDocument/useAmountAxis';
 
 // Money Consolidation (Global Surface Audit finding I-1): this local
 // formatNum used to Math.round() every amount before formatting - silently
@@ -142,6 +143,8 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   const [printIntent, setPrintIntent] = useState('print');
   const [pdfGenerating, setPdfGenerating] = useState(false);
   const cardRef = useRef(null);
+  // IRON-NUMERIC-001: the totals share the table Amount column's axis on screen (Owner 2026-10-18)
+  useAmountAxis(cardRef);
 
   // Task 16 previewMode: the creator preview frame is a container (e.g. 390px "mobile" mode inside a desktop
   // viewport), so the letterhead's viewport matchMedia branch cannot see it - follow the card's own width instead.
@@ -334,9 +337,10 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   // Subscriptions (continuation C): a capability / grant document IS the immutable issued snapshot; its business block (from
   // get-public-quote, incl. the read-back verified logo of the bound asset) is authoritative - presentation branding never
   // overrides it (an issuer/v2 snapshot carries the logo as an asset, not as a URL the presentation layer could repeat).
-  const brand = quoteData?.capability === true && business
-    ? { ...(issuedBranding || {}), ...business }
-    : issuedBranding ? { ...issuedBranding, business_name: issuedBranding.business_name || business?.business_name } : (business || {});
+  // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #25: the business details shown (name, logo, phone, email, address) are the LIVE business settings again, as before the
+  // new interface; an issued snapshot only fills a field the live settings do not have.
+  const liveBusiness = Object.fromEntries(Object.entries(business || {}).filter(([, v]) => v !== null && v !== undefined && v !== ''));
+  const brand = { ...(issuedBranding || {}), ...liveBusiness };
   const docMedia = styleSupportsImages(docStyle) && Array.isArray(presentation?.media) ? presentation.media.filter((m) => m && typeof m === 'object') : [];
   // Rail / hero show the project & product images; row-bound 'item' images appear as row thumbnails instead.
   const showcaseMedia = docMedia.filter((m) => m.role !== 'item');
@@ -539,7 +543,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
               return (
                 <tr role="row" key={i}>
                   <td headers={colId('desc')} role="cell" className="pq-td-desc">{renderDescriptionCell(item, null)}</td>
-                  <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}>{isPro ? `${formatQty(activeQty)} ${unitLabel}` : item.quantity}</td>
+                  <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}><span className="pq-num-slot">{isPro ? formatQty(activeQty) : item.quantity}</span><span className="pq-unit-slot">{isPro && unitLabel ? `\u00a0${unitLabel}` : ''}</span></td>
                   <td headers={colId('price')} role="cell" className="pq-td-price" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>Not priced yet</span> : <span className="pf-money">{currencySymbol}{formatNum(item.price)}</span>}</td>
                   <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>Not priced yet</span> : <span className="pf-money">{currencySymbol}{formatNum(item.total_price || item.price * item.quantity)}</span>}</td>
                 </tr>
@@ -580,7 +584,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
                     return (
                       <tr role="row" key={i}>
                         <td headers={colId('desc')} role="cell" className="pq-td-desc">{renderDescriptionCell(item, renderItemDetailLines(item, true))}</td>
-                        <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}>{isPro ? formatQty(activeQty) : item.quantity}</td>
+                        <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}><span className="pq-num-slot">{isPro ? formatQty(activeQty) : item.quantity}</span><span className="pq-unit-slot" /></td>
                         <td headers={colId('price')} role="cell" className="pq-td-price" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>Not priced yet</span> : <span className="pf-money">{currencySymbol}{formatNum(item.price)}</span>}</td>
                         <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>Not priced yet</span> : <span className="pf-money">{currencySymbol}{formatNum(item.total_price || item.price * item.quantity)}</span>}</td>
                       </tr>
@@ -696,7 +700,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
         )}
       </div>
     );
-  } else if (isExpired) {
+  } else if (isExpired && !isUnfinishedDraft) {
     approvalRecord = (
       <div className="pq-section pq-doc-status" role="status" data-testid="pq-expired">
         ⏳ This quote has expired and can no longer be approved or signed.
@@ -705,7 +709,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
     );
   } else if (!isUnfinishedDraft) {
     approvalRecord = (
-      <div className="pq-section pq-approval">
+      <div className="pq-section pq-approval pq-print-only">
         <div className="pq-approval-copy">
           <div className="pq-approval-title">Quote approval</div>
           <p>Signature confirms the quotation terms</p>
@@ -784,56 +788,6 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
       )}
     </div>
   );
-
-  const endBody = notesBlock || totalsBlock;
-  const docEnd = (
-    <div className="pq-doc-end">
-      {endBody}
-      {approvalRecord}
-      {unfinishedNotice}
-      {actionTiles}
-      {docFooter}
-    </div>
-  );
-
-  // Composition by presentation style (one commercial model, three arrangements).
-  let documentBody;
-  if (docStyle === 'modern') {
-    documentBody = (
-      <>
-        {letterhead}
-        {unfinishedBanner}
-        {showcaseMedia.length > 0 && <QuoteMediaRail media={showcaseMedia} isHebrew={false} />}
-        {parties}
-        <div className="pq-body-grid">
-          <div className="pq-body-main" style={{ minWidth: 0 }}>
-            {commercialTable}
-            {attachmentsBlock}
-          </div>
-          {notesBlock && (
-            <aside className="pq-body-aside" style={{ minWidth: 0 }}>
-              {totalsBlock}
-            </aside>
-          )}
-        </div>
-        {docEnd}
-      </>
-    );
-  } else {
-    documentBody = (
-      <>
-        {letterhead}
-        {unfinishedBanner}
-        {docStyle === 'visual' && showcaseMedia.length > 0 && <QuoteMediaHero media={showcaseMedia} isHebrew={false} />}
-        {parties}
-        {commercialTable}
-        {attachmentsBlock}
-        {notesBlock && totalsBlock}
-        {docEnd}
-      </>
-    );
-  }
-
 
   let signArea = null;
   if (previewMode) {
@@ -951,6 +905,61 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
     );
   }
 
+
+  const signInDoc = !!signArea && !previewMode && !approved && !isOwnerViewing && !isUnfinishedDraft && !isExpired;
+  const endBody = notesBlock || totalsBlock;
+  const docEnd = (
+    <div className="pq-doc-end">
+      {endBody}
+      {approvalRecord}
+      {unfinishedNotice}
+      {/* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #18: the signature pad is back INSIDE the document, right after
+          the terms / notes (as before the new interface); app UI only - never printed or captured into the PDF */}
+      {signInDoc ? <div className="pq-actions pq-actions-in-doc no-print" data-html2canvas-ignore="true">{signArea}</div> : null}
+      {actionTiles}
+      {docFooter}
+    </div>
+  );
+
+  // Composition by presentation style (one commercial model, three arrangements).
+  let documentBody;
+  if (docStyle === 'modern') {
+    documentBody = (
+      <>
+        {letterhead}
+        {unfinishedBanner}
+        {showcaseMedia.length > 0 && <QuoteMediaRail media={showcaseMedia} isHebrew={false} />}
+        {parties}
+        <div className="pq-body-grid">
+          <div className="pq-body-main" style={{ minWidth: 0 }}>
+            {commercialTable}
+            {attachmentsBlock}
+          </div>
+          {notesBlock && (
+            <aside className="pq-body-aside" style={{ minWidth: 0 }}>
+              {totalsBlock}
+            </aside>
+          )}
+        </div>
+        {docEnd}
+      </>
+    );
+  } else {
+    documentBody = (
+      <>
+        {letterhead}
+        {unfinishedBanner}
+        {docStyle === 'visual' && showcaseMedia.length > 0 && <QuoteMediaHero media={showcaseMedia} isHebrew={false} />}
+        {parties}
+        {commercialTable}
+        {attachmentsBlock}
+        {notesBlock && totalsBlock}
+        {docEnd}
+      </>
+    );
+  }
+
+
   // `.pq-preview` (and no print CSS) only for an EMBEDDED preview; a standalone preview page prints as the document.
   const embeddedPreview = previewMode && !standalonePrint;
 
@@ -963,7 +972,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
           {documentBody}
         </div>
 
-        {signArea ? (
+        {signArea && !signInDoc ? (
           <div className="pq-actions no-print">
             {signArea}
           </div>
@@ -999,6 +1008,7 @@ const PQ_SCREEN_CSS = `
           align-items: center;
           justify-content: center;
           gap: 6px;
+          /* בעל המערכת 2026-10-18 ("לגבי המחשב תשתמש בנמוך יותר"; בטלפון "שניהם נראים אותו דבר" - נשאר 78 למטה): במחשב הגובה הנמוך */
           min-height: 62px;
           padding: 9px 6px;
           border-radius: 10px;
@@ -1019,12 +1029,13 @@ const PQ_SCREEN_CSS = `
           .pq-page {
             padding: 4px !important;
           }
+          /* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #20: phone = the real phone width again, no paper frame (the Owner's own fix, three times) */
           .pq-card {
-            padding: 16px 12px 12px !important;
-            background: #ffffff !important;
-            box-shadow: 0 4px 16px rgba(16,29,35,0.08) !important;
-            border: 5px solid #dfe8e5 !important;
-            border-radius: 13px !important;
+            padding: 2px !important;
+            background: transparent !important;
+            box-shadow: none !important;
+            border: none !important;
+            border-radius: 0 !important;
           }
           .pq-section {
             padding: 10px 12px !important;
@@ -1035,8 +1046,8 @@ const PQ_SCREEN_CSS = `
           }
           /* The tile group stays one horizontal row on Mobile - only padding/font/gap shrink (labels >= 12px). */
           .pq-action-tile {
-            min-height: 62px !important;
-            padding: 8px 3px !important;
+            min-height: 78px !important;
+            padding: 10px 4px !important;
             font-size: 0.75rem !important;
             gap: 4px !important;
           }
@@ -1065,6 +1076,7 @@ const PQ_SCREEN_CSS = `
         .pq-pdf-capturing .pq-card {
           box-shadow: none !important;
           border: none !important;
+          border-radius: 0 !important;
         }
         .pq-pdf-capturing .pq-unit-disclosure {
           display: none !important;

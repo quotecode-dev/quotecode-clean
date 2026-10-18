@@ -12,7 +12,7 @@ import TekangoEyeIcon from './TekangoEyeIcon';
 import { useMoneySlotSize } from '../hooks/useMoneySlotSize';
 import { useQuoteHistoryGeometry, QH_CELL_PAD, QH_ACTION_COL, QH_CELL_STYLE } from '../hooks/useQuoteHistoryGeometry';
 import { formatShortDate } from '../utils/shortDate';
-import { relativeQuoteDay, pickCompactRows, pickLeadHotRow, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
+import { relativeQuoteDay, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
 import { sortQuotes, normalizeSortField } from '../utils/quoteListSort';
 import NewQuoteMenu from './NewQuoteMenu';
 import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search } from 'lucide-react';
@@ -105,6 +105,10 @@ function ClientTypeBadge({ clientType, isHebrew }) {
 
 // Minimum work-screen width (CSS px) for the Owner R3 eight-column desktop table; measured at the 980px shell = 758px.
 const R3_TABLE_MIN_WIDTH = 740;
+
+// the quote list pages (Owner 2026-10-18): the desktop page size before the screen is measured, and the phone / tablet page size
+const DEFAULT_QUOTES_PER_PAGE = 10;
+const MOBILE_QUOTES_PER_PAGE = 20; // Owner 2026-10-18: "בנייד שזה יהיה כל 10 הצעות", then "כל 20"
 
 // PRODUCT_TRUTH_CAPABILITY: quote_history
 export default function QuotesTab({
@@ -263,13 +267,22 @@ export default function QuotesTab({
   // הסטטוס גלוי ישירות ליד החיפוש כמו קודם - שום שינוי שם). state מקומי
   // טהור (לא נתון עסקי) לפתיחה/סגירה של ה-sheet הקומפקטי.
   const [showMobileFilters, setShowMobileFilters] = useState(false);
-  const [showAllDesktopQuotes, setShowAllDesktopQuotes] = useState(false);
+  // Owner console 2026-10-18, typed: "להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!" (docs/OWNER_LOST_BEHAVIOURS_2026-10-18.md) #2: "show all" is remembered while the app is open (the list no longer drops back to 4 after an edit / tab switch)
+  // Owner console 2026-10-18, typed: "שיראה מסך מלא לפי דפים, הסתיים הדף שיהיה כפתור למטה להציג את הדף הבא"; answers: "כמה שנכנס
+  // במסך", "דף הבא / דף קודם", "להשאיר בטלפון כמו היום"; and "שההצעה תופיע לפי הסדר": the DESKTOP list shows, in its sorted order,
+  // as many quotes as fit on the screen, page by page (previous / next + "page X of Y"); the hot quote is not promoted out of order.
+  // + "במחשבה שנייה שגם בנייד זה יתנהג אותו דבר", "בנייד שזה יהיה כל 10 הצעות", "כל 20": the phone / tablet card list is paged too, 20 a page.
+  const [listPage, setListPage] = useState(0);
+  const [perPage, setPerPage] = useState(DEFAULT_QUOTES_PER_PAGE);
+  const listBodyRef = useRef(null);
+  // a search shows every match (never cut to 4)
   // The hot-quote banner opens the same tracking details panel as the hot row's "Open & track" action (open, never toggle closed).
   const openTrackingFor = (quoteId) => {
     setExpandedQuoteId(quoteId);
     if (typeof window !== 'undefined' && typeof window.setTimeout === 'function') {
       window.setTimeout(() => {
-        const panel = document.getElementById(`quote-modern-detail-${quoteId}`);
+        // the open panel of whichever layout is on screen (desktop table / cards / mobile cards)
+        const panel = [`quote-modern-detail-${quoteId}`, `quote-detail-${quoteId}`, `quote-detail-mobile-${quoteId}`].map((id) => document.getElementById(id)).find(Boolean);
         if (panel && typeof panel.scrollIntoView === 'function') panel.scrollIntoView({ block: 'nearest' });
       }, 0);
     }
@@ -405,7 +418,99 @@ export default function QuotesTab({
     return () => ro.disconnect();
   }, [isMobileView]);
   const useCards = isMobileView || qhCompact || r3TooNarrow;
-  const hotLead = pickLeadHotRow(rowsMeta);
+  // Owner console 2026-10-18, typed: "מאשר שינוי ב-L-19: פס ההצעה החמה יתחלף כל 4 שניות בין כל ההצעות החמות" - the banner shows
+  // every hot quote in turn (hottest first, then by views, ties newest), one every 4 seconds, paused while hovered or focused so its
+  // action can be used; the list keeps its order (the hottest stays first - L-07). A single hot quote never rotates.
+  // Owner console 2026-10-18, typed: "להחזיר את כל מה ששונה ללא אישור שלי עכשיו!!!!!!" (docs/OWNER_LOST_BEHAVIOURS_2026-10-18.md) #4: the banner reads every quote (as before), not the filtered list - a search or filter never hides it
+  const hotSource = (Array.isArray(allQuotes) && allQuotes.length ? allQuotes : quotes) || [];
+  const hotRows = hotSource.map((quote) => ({ quote, isHot: isHotQuote({ ...quote, status: quote.status ? String(quote.status).toLowerCase() : 'draft' }) })).filter((r) => r.isHot).sort((a, b) => {
+    const dv = Number(b.quote.view_count || 0) - Number(a.quote.view_count || 0);
+    if (dv !== 0) return dv;
+    const t = (r) => { const x = Date.parse(r.quote.created_at); return Number.isNaN(x) ? 0 : x; };
+    return t(b) - t(a);
+  });
+  const [hotIndex, setHotIndex] = useState(0);
+  const [hotPaused, setHotPaused] = useState(false);
+  useEffect(() => {
+    if (hotRows.length < 2 || hotPaused) return undefined;
+    const id = setInterval(() => setHotIndex((i) => i + 1), 4000);
+    return () => clearInterval(id);
+  }, [hotRows.length, hotPaused]);
+  const hotLead = hotRows.length ? hotRows[hotIndex % hotRows.length] : null;
+  // the pages (see the state above): the sorted list cut into pages
+  const hasHotLead = !!hotLead;
+  const searchActive = !!String(searchTerm || '').trim();
+  const pageCount = Math.max(1, Math.ceil(rowsMeta.length / perPage));
+  const currentPage = Math.min(listPage, pageCount - 1);
+  const pageRows = rowsMeta.slice(currentPage * perPage, (currentPage + 1) * perPage);
+  const goToPage = (p) => {
+    setListPage(Math.max(0, Math.min(p, pageCount - 1)));
+    // only the list's own scroll goes back to its first row - the page itself never moves (Owner 2026-10-18: "המסך קופץ")
+    const list = useCards ? cardListRef.current : listBodyRef.current;
+    if (list) list.scrollTop = 0;
+  };
+  // a new search / filter / sort starts on the first page
+  useEffect(() => { setListPage(0); }, [searchTerm, statusFilter, quoteSortField, quoteSortDirection]);
+  // as many rows as fit between the list's first row and the bottom of the work area (above the footer), minus the page bar;
+  // the phone / tablet cards: always 20 per page ("כל 20")
+  useLayoutEffect(() => {
+    if (useCards) { setPerPage((cur) => (cur === MOBILE_QUOTES_PER_PAGE ? cur : MOBILE_QUOTES_PER_PAGE)); return undefined; }
+    if (typeof window === 'undefined') return undefined;
+    // the real geometry: rows that fit = (the list body's own height + the free space left under the work area, above the footer)
+    // / one row's height. Skipped while a row is open (its details would make the page look full).
+    const measure = () => {
+      const body = listBodyRef.current;
+      const ws = screenRef.current;
+      if (!body || !ws || body.querySelector('.quote-modern-detail')) return;
+      const item = body.querySelector('.quote-modern-item');
+      const rowH = item ? item.getBoundingClientRect().height : 0;
+      if (!(rowH > 0)) return;
+      let limit = window.innerHeight;
+      const main = body.closest('.dash-main-content');
+      if (main) {
+        limit = Math.min(limit, main.getBoundingClientRect().bottom - (parseFloat(window.getComputedStyle(main).paddingBottom) || 0));
+        const foot = main.querySelector('.dash-footer');
+        if (foot) limit -= foot.getBoundingClientRect().height + (parseFloat(window.getComputedStyle(foot).marginTop) || 0);
+      }
+      const free = Math.max(0, limit - ws.getBoundingClientRect().bottom);
+      const n = Math.max(1, Math.floor((body.clientHeight + free + 0.5) / rowH));
+      setPerPage((cur) => (cur === n ? cur : n));
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    const fonts = document.fonts;
+    if (fonts && fonts.ready && typeof fonts.ready.then === 'function') fonts.ready.then(measure).catch(() => {});
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
+    if (ro && screenRef.current) ro.observe(screenRef.current);
+    return () => { window.removeEventListener('resize', measure); if (ro) ro.disconnect(); };
+  }, [useCards, rowsMeta.length, hasHotLead]);
+  // the page bar under the list (desktop table and phone / tablet cards alike)
+  const pager = pageCount > 1 ? (
+    <nav className="quote-modern-pager" data-testid="quote-pager" aria-label={isHebrew ? 'דפי הצעות המחיר' : 'Quote pages'}>
+      {/* PRODUCT_TRUTH_DECORATIVE: shows the previous page of the quote list (list navigation) */}
+      <button type="button" className="quote-modern-page-btn" data-page="prev" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 0}>
+        {isHebrew ? 'הדף הקודם' : 'Previous page'}
+      </button>
+      <span className="quote-modern-page-info" aria-live="polite">
+        {isHebrew ? 'עמוד ' : 'Page '}<bdi className="pf-num">{currentPage + 1}</bdi>{isHebrew ? ' מתוך ' : ' of '}<bdi className="pf-num">{pageCount}</bdi>
+      </span>
+      {/* PRODUCT_TRUTH_DECORATIVE: shows the next page of the quote list (list navigation) */}
+      <button type="button" className="quote-modern-page-btn" data-page="next" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= pageCount - 1}>
+        {isHebrew ? 'הדף הבא' : 'Next page'}
+      </button>
+    </nav>
+  ) : null;
+  // the banner's hot quote: its page opens first, then its tracking details
+  const openHotQuote = (quoteId) => {
+    // a hot quote that the current search / filter hides: its public view in a new tab (the former behaviour)
+    if (!rowsMeta.some((r) => r.quote.id === quoteId)) {
+      const q = hotSource.find((x) => x.id === quoteId);
+      if (q && typeof window !== 'undefined') window.open(getQuoteViewLink(q), '_blank');
+      return;
+    }
+    { const idx = rowsMeta.findIndex((r) => r.quote.id === quoteId); if (idx >= 0) goToPage(Math.floor(idx / perPage)); }
+    openTrackingFor(quoteId);
+  };
   // Sortable column headers of the desktop list. They share the row grid; each button sorts ITS OWN key (first click ascending,
   // next click descending - handleQuoteSort); the active one carries the direction chevron and aria-sort.
   const activeSortKey = normalizeSortField(quoteSortField);
@@ -676,12 +781,23 @@ export default function QuotesTab({
       {/* Owner update (2026-10-09, all devices): no flame and no "hot quote" title. The orange alert frame keeps ONE illustrated
           eye (its eyelid blinks, reduced-motion safe) as the FIRST child, so it sits at the inline-start edge (right in HE, left in
           EN) before the text, followed by the real client name and the real view count of the hottest quote. */}
-      {hotLead && (
-        <div className="quote-hot-banner" data-testid="hot-quote-banner" data-hot-quote-id={hotLead.quote.id}>
+      {/* Owner 2026-10-18 #3: with no hot quote the banner says so, with the Owner's own copy (2026-09-08) */}
+      {/* Owner console 2026-10-18, typed: "שאלה 2: ב" - while a search is typed, the hot-quote banner (and its empty note) steps aside */}
+      {!hotLead && !quotesNotLoaded && !searchActive && (
+        <div className="quote-hot-banner quote-hot-banner--empty" data-testid="hot-quote-empty" role="note">
+          <span className="quote-hot-banner-text">
+            <strong>{isHebrew ? 'אין כרגע הצעה חמה' : 'No hot quote right now'}</strong>
+            {' '}<span className="quote-hot-banner-hint">{isHebrew ? 'כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן.' : 'A quote will appear here after 3 or more views while it is still awaiting approval.'}</span>
+          </span>
+        </div>
+      )}
+      {hotLead && !searchActive && (
+        <div className="quote-hot-banner" data-testid="hot-quote-banner" data-hot-quote-id={hotLead.quote.id} data-hot-count={hotRows.length}
+          onMouseEnter={() => setHotPaused(true)} onMouseLeave={() => setHotPaused(false)} onFocus={() => setHotPaused(true)} onBlur={() => setHotPaused(false)}>
           <button
             type="button"
             className="quote-hot-banner-action"
-            onClick={() => openTrackingFor(hotLead.quote.id)}
+            onClick={() => openHotQuote(hotLead.quote.id)}
             title={isHebrew ? 'פתיחה ומעקב' : 'Open & track'}
             aria-label={isHebrew ? 'פתיחה ומעקב' : 'Open & track'}
           >
@@ -727,11 +843,22 @@ export default function QuotesTab({
           )}
         </div>
 
-        {/* Desktop toolbar. ONE DOM order - Sort, Filter, Search, New quote - mirrored by the inherited dir (no direction
-            override, no row-reverse): HE renders New, Search, Filter, Sort from the left; EN renders Sort ... New from the left.
-            Visible labels are short; the long wording lives in aria-label. */}
+        {/* Desktop toolbar. ONE DOM order - Export, Sort, Filter, Search, New quote - mirrored by the inherited dir (no direction
+            override, no row-reverse): HE renders New, Search, Filter, Sort, Export from the left; EN renders Export, Sort ... New from
+            the left. Visible labels are short; the long wording lives in aria-label. */}
         {!useCards && (
           <div className="quote-workspace-controls">
+            {/* PRODUCT_TRUTH_CAPABILITY: quote_csv. Owner console 2026-10-18, typed: "את היצוא לאקסל למקם מימין למיון" (L-26): the
+                FIRST control - beside Sort at the inline start (right of Sort in HE, mirrored left of it in EN). */}
+            <button
+              type="button"
+              className="quote-export-compact"
+              onClick={handleExportQuotes}
+              title={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
+              aria-label={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
+            >
+              <Download size={15} strokeWidth={2.2} />
+            </button>
             <button
               type="button"
               className="quote-sort-direction"
@@ -776,18 +903,6 @@ export default function QuotesTab({
                 onTemplate={onCreateFromTemplate}
               />
             )}
-            {/* PRODUCT_TRUTH_CAPABILITY: quote_csv. Kept as a compact icon in
-                the approved desktop toolbar so export remains available
-                without displacing search/filter/sort. */}
-            <button
-              type="button"
-              className="quote-export-compact"
-              onClick={handleExportQuotes}
-              title={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
-              aria-label={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
-            >
-              <Download size={15} strokeWidth={2.2} />
-            </button>
           </div>
         )}
 
@@ -857,10 +972,8 @@ export default function QuotesTab({
                   style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '7px', background: NEON.bgInput, boxSizing: 'border-box', fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary }}
                 >
                   <option value="All">{t.filterStatus}</option>
-                  <option value="draft">{isHebrew ? 'טיוטה' : 'Draft'}</option>
-                  <option value="sent">{isHebrew ? 'נשלח' : 'Sent'}</option>
-                  <option value="approved">{isHebrew ? 'אושר' : 'Approved'}</option>
-                  <option value="paid">{isHebrew ? 'שולם' : 'Paid'}</option>
+                  {/* Owner 2026-10-18 #5: the phone sheet uses the same shown-status options as the desktop (R-07) */}
+                  {QUOTE_FILTER_OPTIONS.map((f) => <option key={f} value={f}>{quoteFilterLabel(f, isHebrew)}</option>)}
                 </select>
               </div>
               <div>
@@ -922,12 +1035,12 @@ export default function QuotesTab({
           )}
           {/* Owner R3: the quote list owns the vertical scroll. The scroll body begins directly below the column-header
               row above (which therefore never scrolls); page/header/hot-quote/title/toolbar/KPI stay fixed. */}
-          <div className="quote-modern-body" data-testid="quote-modern-body">
+          <div className="quote-modern-body" data-testid="quote-modern-body" ref={listBodyRef}>
           {rowsMeta.length === 0 ? (
             <div className="quote-modern-empty">
               <span data-testid={quotesNotLoaded ? 'quotes-loading' : 'quotes-empty'} role={quotesNotLoaded ? 'status' : undefined}>{emptyListText}</span>
             </div>
-          ) : (showAllDesktopQuotes ? rowsMeta : pickCompactRows(rowsMeta)).map((row) => {
+          ) : pageRows.map((row) => {
             const { quote, quoteSym, isHot, tone, statusLabel } = row;
             const isExpanded = expandedQuoteId === quote.id;
             const detailId = `quote-modern-detail-${quote.id}`;
@@ -990,18 +1103,8 @@ export default function QuotesTab({
               </div>
             );
           })}
-          {rowsMeta.length > 4 && (
-            <button
-              type="button"
-              className="quote-modern-show-all"
-              onClick={() => setShowAllDesktopQuotes((current) => !current)}
-            >
-              {showAllDesktopQuotes
-                ? (isHebrew ? 'הצג פחות' : 'Show less')
-                : (isHebrew ? 'הצגת כל ההצעות' : 'Show all quotes')}
-            </button>
-          )}
           </div>
+          {pager}
         </div>
       )}
 
@@ -1309,7 +1412,7 @@ export default function QuotesTab({
             <span data-testid={quotesNotLoaded ? 'quotes-loading' : 'quotes-empty'} role={quotesNotLoaded ? 'status' : undefined}>{emptyListText}</span>
           </div>
         ) : (
-          rowsMeta.map((row) => {
+          pageRows.map((row) => {
             const { quote, quoteSym, chip, statusLabel, isHot } = row;
             const isExpanded = expandedQuoteId === quote.id;
             const detailId = `quote-detail-mobile-${quote.id}`;
@@ -1399,6 +1502,7 @@ export default function QuotesTab({
           })
         )}
       </div>
+      {pager}
       </>
       )}
     </div>

@@ -1,7 +1,7 @@
 // The admin protected-action dialog (Owner 2026-10-16, admin spec §7 + §9): role=dialog + aria-modal, a name and a description, a focus
 // trap, Escape closes BEFORE dispatch (never while the server is working), focus returns to the opener, the background is inert. Initial
 // focus is the reason field - never the destructive confirm button. AI-HELP-AVAILABILITY-001: the ONE assistant stays reachable inside
-// this dialog (the shared AiModalHeader, as in the plans window / item wizard), so the page behind is NOT made inert - the overlay
+// this dialog (the shared AiModalHeader, as in the plans window / item wizard), so the page behind is made inert EXCEPT the assistant's own root (AV-04, below) - the overlay
 // blocks the pointer and the focus trap keeps the keyboard inside. Fields: reason + admin password (+ the target email typed for a
 // reset / delete). The submit names the action, is disabled while working ("Verifying…") - no double submit.
 import { useEffect, useId, useRef } from 'react';
@@ -20,6 +20,7 @@ export default function AdminProtectedDialog({
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const dialogRef = useRef(null);
   const firstFieldRef = useRef(null);
+  const doneCloseRef = useRef(null);
   const openerRef = useRef(typeof document !== 'undefined' ? document.activeElement : null);
   const danger = kind === 'delete' || kind === 'reset';
   const needsEmail = typeof onConfirmEmail === 'function';
@@ -30,6 +31,36 @@ export default function AdminProtectedDialog({
     (firstFieldRef.current || dialogRef.current)?.focus();
     return () => {
       if (opener && typeof opener.focus === 'function') opener.focus();
+    };
+  }, []);
+
+  useEffect(() => { if (done) doneCloseRef.current?.focus(); }, [done]);
+
+  // Codex verification AV-04 (Owner approval 2026-10-17, admin context only): the page behind the dialog is made inert and hidden from
+  // assistive technology - EXCEPT the two allowed roots: this dialog's overlay and the ONE canonical assistant (AI-HELP-AVAILABILITY-001
+  // keeps it reachable). Walking from <body>, a branch that holds an allowed root is entered, every other branch is isolated; the
+  // previous inert / aria-hidden state is restored on close.
+  useEffect(() => {
+    if (typeof document === 'undefined') return undefined;
+    const overlay = dialogRef.current ? dialogRef.current.closest('.av-overlay') : null;
+    const allowed = [overlay, document.querySelector('.ai-chat-container')].filter(Boolean);
+    if (!overlay) return undefined;
+    const changed = [];
+    const walk = (parent) => {
+      for (const child of [...parent.children]) {
+        if (allowed.includes(child) || child.tagName === 'SCRIPT' || child.tagName === 'STYLE') continue;
+        if (allowed.some((a) => child.contains(a))) { walk(child); continue; }
+        changed.push([child, child.inert === true, child.getAttribute('aria-hidden')]);
+        child.inert = true;
+        child.setAttribute('aria-hidden', 'true');
+      }
+    };
+    walk(document.body);
+    return () => {
+      for (const [el, wasInert, ariaHidden] of changed) {
+        el.inert = wasInert;
+        if (ariaHidden === null) el.removeAttribute('aria-hidden'); else el.setAttribute('aria-hidden', ariaHidden);
+      }
     };
   }, []);
 
@@ -46,7 +77,7 @@ export default function AdminProtectedDialog({
   const node = (
     <div className="av av-overlay" dir={isHebrew ? 'rtl' : 'ltr'} onKeyDown={onKeyDown}>
       <div ref={dialogRef} className="av-dialog" role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} aria-describedby={`${id}-desc`} tabIndex={-1} data-testid={`admin-dialog-${kind}`}>
-        <AiModalHeader onClose={() => { if (!busy) onClose(); }} closeLabel={t(isHebrew, D.close.he, D.close.en)} closeContent={<X size={18} strokeWidth={2.5} />} isHebrew={isHebrew} testId="ai-help-admin-dialog" style={{ color: '#64748b', marginBottom: '6px' }} />
+        <AiModalHeader onClose={() => { if (!busy) onClose(); }} closeLabel={t(isHebrew, D.close.he, D.close.en)} closeContent={<X size={18} strokeWidth={2.5} />} isHebrew={isHebrew} testId="ai-help-admin-dialog" aiContext="admin_dialog" style={{ color: '#64748b', marginBottom: '6px' }} />
         {done ? (
           <div className="av-result" role="status">
             <div className="av-stateicon" style={{ margin: '0 auto 12px', background: '#e7f4ed', color: '#236241' }}><CheckCircle2 size={28} aria-hidden="true" /></div>
@@ -54,7 +85,7 @@ export default function AdminProtectedDialog({
             <p id={`${id}-desc`} className="av-muted">{t(isHebrew, copy.title.he, copy.title.en)} · <bdi>{target?.business_name || target?.email}</bdi></p>
             <div className="av-dialog-foot" style={{ justifyContent: 'center' }}>
               {/* PRODUCT_TRUTH_DECORATIVE: closes the result of a completed protected action and refreshes the admin data */}
-              <button type="button" className="av-btn av-primary" onClick={onClose}>{t(isHebrew, D.close.he, D.close.en)}</button>
+              <button ref={doneCloseRef} type="button" className="av-btn av-primary" onClick={onClose}>{t(isHebrew, D.close.he, D.close.en)}</button>
             </div>
           </div>
         ) : (
@@ -67,9 +98,13 @@ export default function AdminProtectedDialog({
             <div className="av-business"><strong><bdi>{target?.business_name || '—'}</bdi></strong><span className="av-mail">{target?.email}</span></div>
             <p id={`${id}-desc`} className="av-muted av-section">{t(isHebrew, copy.body.he, copy.body.en)}</p>
             {(copy.scope.length > 0 || children) && (
-              <div className="av-impact">
+              <div className="av-card av-impact av-section" style={{ boxShadow: 'none' }}>
+                {/* the approved dialog sketches: "Impact summary" - label / value rows (current, after the action, payment last) */}
+                <h4>{t(isHebrew, D.impact.he, D.impact.en)}</h4>
                 {children}
-                {copy.scope.map((s, i) => <div key={i} className="av-statline"><span>{t(isHebrew, s.he, s.en)}</span></div>)}
+                {copy.scope.map((s, i) => (s.label
+                  ? <div key={i} className="av-statline"><span>{t(isHebrew, s.label.he, s.label.en)}</span><strong>{t(isHebrew, s.value.he, s.value.en)}</strong></div>
+                  : <div key={i} className="av-statline"><span>{t(isHebrew, s.he, s.en)}</span></div>))}
               </div>
             )}
             <div className={`av-notice ${danger ? '' : 'av-info'} av-section`}>{t(isHebrew, D.recorded.he, D.recorded.en)}</div>
@@ -79,12 +114,13 @@ export default function AdminProtectedDialog({
             </label>
             <label className="av-field">
               <span>{t(isHebrew, D.password.he, D.password.en)}</span>
-              <input type="password" name={`admin_${kind}_pwd_unique`} autoComplete="one-time-code" data-lpignore="true" data-form-type="other" value={password} onChange={(e) => onPassword(e.target.value)} required />
+              <input type="password" name={`admin_${kind}_pwd_unique`} autoComplete="one-time-code" data-lpignore="true" data-form-type="other" value={password} onChange={(e) => onPassword(e.target.value)} placeholder={t(isHebrew, D.passwordPh.he, D.passwordPh.en)} required />
             </label>
             {needsEmail && (
               <label className="av-field">
-                <span>{t(isHebrew, D.confirmEmail.he, D.confirmEmail.en)}: <bdi className="av-num">{target?.email}</bdi></span>
+                <span>{t(isHebrew, D.confirmEmail.he, D.confirmEmail.en)}</span>
                 <input type="text" name={`admin_${kind}_confirm_target`} dir="ltr" autoComplete="off" placeholder={target?.email || ''} value={confirmEmail} onChange={(e) => onConfirmEmail(e.target.value)} required />
+                <small><bdi className="av-num">{target?.email}</bdi></small>
               </label>
             )}
             {error && <div className="av-error" role="alert">{error}</div>}
@@ -96,7 +132,7 @@ export default function AdminProtectedDialog({
                 <Lock size={16} aria-hidden="true" />{busy ? t(isHebrew, D.verifying.he, D.verifying.en) : t(isHebrew, copy.confirm.he, copy.confirm.en)}
               </button>
             </div>
-            <p className="av-footnote">{t(isHebrew, D.unknownOutcome.he, D.unknownOutcome.en)}</p>
+            <div className="av-notice av-info av-section">{t(isHebrew, D.unknownOutcome.he, D.unknownOutcome.en)}</div>
           </form>
         )}
       </div>

@@ -1,4 +1,5 @@
 // src/utils/regionConfig.js
+import countries from './adminCountries.json' with { type: 'json' };
 
 // קובץ זה מכיל את חוקי הברזל של המערכת ומוקפא משינויים מקריים
 export const REGION_RULES = Object.freeze({
@@ -14,27 +15,50 @@ export const REGION_RULES = Object.freeze({
   }
 });
 
+// Owner console 2026-10-17, typed: "מאשר תיקון זיהוי השוק בממשק המשתמש לפי אותו כלל של האדמין" (a Hebrew account on LIVE flagged Israel
+// in the admin still opened in English): ONE rule decides the market of a stored country - the admin's resolveAdminMarket. 'Local' /
+// 'LCL' / 'Israel' / 'IL' (any case, trimmed) -> Local; 'International' or any other known country -> International; anything
+// unknown -> null (the callers then keep their previous behaviour exactly).
+const COUNTRY_CODES = new Map(countries.flatMap(({ code, name }) => [[code.toLowerCase(), code], [name.toLowerCase(), code]]));
+COUNTRY_CODES.set('uk', 'GB');
+COUNTRY_CODES.set('united states', 'US');
+// the stored country -> { market: 'Local' | 'International' | 'Unknown', countryCode } (adminMarket.js resolveAdminMarket uses THIS)
+export function marketOfStoredCountry(stored) {
+  const value = typeof stored === 'string' ? stored.trim() : '';
+  if (value === 'Local' || value === 'LCL') return { market: 'Local', countryCode: 'IL' };
+  if (value === 'International') return { market: 'International', countryCode: null };
+  const countryCode = COUNTRY_CODES.get(value.toLowerCase());
+  if (countryCode) return { market: countryCode === 'IL' ? 'Local' : 'International', countryCode };
+  return { market: 'Unknown', countryCode: null };
+}
+export const canonicalMarket = (country) => {
+  if (typeof country !== 'string' || !country.trim()) return null;
+  const m = marketOfStoredCountry(country).market;
+  return m === 'Local' ? REGION_RULES.LOCAL.countryCode : m === 'International' ? REGION_RULES.INTERNATIONAL.countryCode : null;
+};
+
 export const isHebrewEnv = (country, session) => {
   // כמו ב-getCurrencySym/getRegionTaxRate למטה: country (האזור המשפטי
   // האמיתי, שמגיע מ-business_settings.country) הוא מקור האמת ומנצח תמיד
   // כשהוא ידוע - המטמון ב-localStorage משמש רק כברירת מחדל לפני שהאזור
   // האמיתי נטען (או לצופה אנונימי בכלל). סדר הפוך (מטמון לפני country) היה
   // גורם לחשבון שמתחבר על דפדפן משותף לרשת עם מטמון ישן/שגוי מחשבון קודם.
-  if (country === REGION_RULES.INTERNATIONAL.countryCode) return false;
-  if (country === REGION_RULES.LOCAL.countryCode || country === 'LCL') return true;
+  const market = canonicalMarket(country);
+  if (market === REGION_RULES.INTERNATIONAL.countryCode) return false;
+  if (market === REGION_RULES.LOCAL.countryCode) return true;
 
   const email = session?.user?.email;
 
   if (email) {
     const userCached = localStorage.getItem('proflow_country_' + email);
     if (userCached) {
-      return userCached !== REGION_RULES.INTERNATIONAL.countryCode;
+      return (canonicalMarket(userCached) || userCached) !== REGION_RULES.INTERNATIONAL.countryCode;
     }
   }
 
   const cachedCountry = typeof window !== 'undefined' ? localStorage.getItem('proflow_cached_country') : null;
   if (cachedCountry) {
-    return cachedCountry !== REGION_RULES.INTERNATIONAL.countryCode;
+    return (canonicalMarket(cachedCountry) || cachedCountry) !== REGION_RULES.INTERNATIONAL.countryCode;
   }
 
   return localStorage.getItem('proflow_lang') === 'he';
@@ -87,7 +111,7 @@ export function getPostRecoveryLoginLang({ settingId, isHebrew, bundleIsHebrew }
 
 export const getCurrencySym = (country, currency) => {
   const cachedCountry = typeof window !== 'undefined' ? localStorage.getItem('proflow_cached_country') : null;
-  const effectiveCountry = country || cachedCountry;
+  const effectiveCountry = canonicalMarket(country) || canonicalMarket(cachedCountry) || country || cachedCountry;
 
   const currUpper = (currency || '').toUpperCase();
 
@@ -103,7 +127,7 @@ export const getCurrencySym = (country, currency) => {
 
 export const getRegionTaxRate = (country) => {
   const cachedCountry = typeof window !== 'undefined' ? localStorage.getItem('proflow_cached_country') : null;
-  const effectiveCountry = country || cachedCountry;
+  const effectiveCountry = canonicalMarket(country) || canonicalMarket(cachedCountry) || country || cachedCountry;
 
   return effectiveCountry !== REGION_RULES.INTERNATIONAL.countryCode ? REGION_RULES.LOCAL.vatRate : REGION_RULES.INTERNATIONAL.vatRate;
 };
@@ -116,7 +140,7 @@ export const getRegionTaxRate = (country) => {
 // Billing/Invoicing חדשים. ראו INVOICING_INFRASTRUCTURE.md לתיעוד המלא.
 export const getRegionBillingProfile = (country) => {
   const cachedCountry = typeof window !== 'undefined' ? localStorage.getItem('proflow_cached_country') : null;
-  const effectiveCountry = country || cachedCountry || REGION_RULES.LOCAL.countryCode;
+  const effectiveCountry = canonicalMarket(country) || canonicalMarket(cachedCountry) || country || cachedCountry || REGION_RULES.LOCAL.countryCode;
   const isInternational = effectiveCountry === REGION_RULES.INTERNATIONAL.countryCode;
 
   return Object.freeze({

@@ -6,7 +6,12 @@
 // The machine's own time zone / browser locale never decides the answer (the zone is explicit).
 export const VALIDITY_TIME_ZONE = { Local: 'Asia/Jerusalem', International: 'Etc/GMT+12' };
 
-const isLocalMarket = (market) => market === 'Local' || market === 'LCL';
+// Codex LANG-02 (2026-10-18): the one market rule - 'Local' / 'LCL' / 'Israel' / 'IL' (any case, trimmed) = Local (the server copy
+// get-public-quote/validity.ts and SQL 20261018000000 use the same rule)
+const isLocalMarket = (market) => {
+  const v = typeof market === 'string' ? market.trim() : '';
+  return v === 'Local' || v === 'LCL' || v.toLowerCase() === 'israel' || v.toLowerCase() === 'il';
+};
 
 // 'YYYY-MM-DD' of `now` in the market's validity time zone (en-CA formats ISO-like dates).
 export function marketCalendarDate(market, now = new Date()) {

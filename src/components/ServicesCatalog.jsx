@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { Package, PackagePlus, Pencil, Trash2, Save, X, Search, Image as ImageIcon, Lock } from 'lucide-react';
+import { Package, PackagePlus, LayoutGrid, Pencil, Trash2, Save, X, Search, Image as ImageIcon, Lock } from 'lucide-react';
 import { APP as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from './../theme/neonTheme';
 import CatalogMediaControl from './quotePresentation/CatalogMediaControl';
 import { catalogLinkFor } from './quotePresentation/useQuotePresentationEditor';
@@ -121,7 +121,8 @@ export default function ServicesCatalog({
       {/* חוק ברזל (§H1): כותרת ברורה - "קטלוג שירותים ומוצרים"/"Services &
           Products Catalog" (הספק המדויק של המשימה). */}
       <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>
-        <Package size={18} color={NEON.violetLight} strokeWidth={2.2} />
+        {/* Owner console 2026-10-18 ("שהסמל יהיה כמו הכותרת בסיידבר"): every screen title carries its sidebar icon */}
+        <LayoutGrid size={18} color={NEON.violetLight} strokeWidth={2.2} aria-hidden="true" />
         {isHebrew ? 'קטלוג שירותים ומוצרים' : 'Services & Products Catalog'}
       </h2>
 
@@ -273,22 +274,22 @@ export default function ServicesCatalog({
                           {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
                           <button
                             type="button"
-                            className="svc-cat-btn svc-cat-btn--save"
+                            className="svc-cat-btn svc-cat-btn--save svc-cat-btn--text"
                             aria-label={isHebrew ? `שמור את ${name}` : `Save ${name}`}
                             title={isHebrew ? 'שמור' : 'Save'}
                             onClick={() => handleSaveEditedService(svc.id)}
                           >
-                            <Save size={18} strokeWidth={2.4} aria-hidden="true" />
+                            <Save size={18} strokeWidth={2.4} aria-hidden="true" /><span aria-hidden="true">{isHebrew ? 'שמור' : 'Save'}</span>
                           </button>
                           {/* PRODUCT_TRUTH_DECORATIVE: cancels an in-progress inline edit of a catalog row without saving */}
                           <button
                             type="button"
-                            className="svc-cat-btn"
+                            className="svc-cat-btn svc-cat-btn--text"
                             aria-label={isHebrew ? `בטל עריכה של ${name}` : `Cancel editing ${name}`}
                             title={isHebrew ? 'ביטול' : 'Cancel'}
                             onClick={() => setEditingServiceId(null)}
                           >
-                            <X size={18} strokeWidth={2.4} aria-hidden="true" />
+                            <X size={18} strokeWidth={2.4} aria-hidden="true" /><span aria-hidden="true">{isHebrew ? 'ביטול' : 'Cancel'}</span>
                           </button>
                         </>
                       ) : (
@@ -296,7 +297,7 @@ export default function ServicesCatalog({
                           {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
                           <button
                             type="button"
-                            className="svc-cat-btn"
+                            className="svc-cat-btn svc-cat-btn--text"
                             aria-label={isHebrew ? `ערוך את ${name}` : `Edit ${name}`}
                             title={isHebrew ? 'ערוך' : 'Edit'}
                             data-testid={`catalog-edit-${svc.id}`}
@@ -306,19 +307,19 @@ export default function ServicesCatalog({
                               setEditServicePrice(svc.price);
                             }}
                           >
-                            <Pencil size={18} strokeWidth={2.4} aria-hidden="true" />
+                            <Pencil size={18} strokeWidth={2.4} aria-hidden="true" /><span aria-hidden="true">{isHebrew ? 'ערוך' : 'Edit'}</span>
                           </button>
                           {/* חוק ברזל (§K): תווית נקודתית-לקטלוג ("מחק פריט"/"Delete item"), לא t.delete הגלובלי. */}
                           {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
                           <button
                             type="button"
-                            className="svc-cat-btn svc-cat-btn--danger"
+                            className="svc-cat-btn svc-cat-btn--danger svc-cat-btn--text"
                             aria-label={isHebrew ? `מחק פריט: ${name}` : `Delete item: ${name}`}
                             title={isHebrew ? 'מחק פריט' : 'Delete item'}
                             data-testid={`catalog-delete-${svc.id}`}
                             onClick={() => handleDeleteService(svc.id, svc.name)}
                           >
-                            <Trash2 size={18} strokeWidth={2.4} aria-hidden="true" />
+                            <Trash2 size={18} strokeWidth={2.4} aria-hidden="true" /><span aria-hidden="true">{isHebrew ? 'מחק' : 'Delete'}</span>
                           </button>
                           {presentationController && (
                             // PRODUCT_TRUTH_DECORATIVE: shows/hides this catalog row's image controls, or (OD-18, not included) opens the parent's capability notice - the attach/unlink actions inside carry the catalog marker
