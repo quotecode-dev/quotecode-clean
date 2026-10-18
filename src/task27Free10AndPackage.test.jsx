@@ -98,8 +98,9 @@ describe('Free-10 upgrade window', () => {
 describe('Dashboard: the Free-10 check precedes any insert / reservation on every new-quote path (source guards)', () => {
   const dash = read('pages/Dashboard.jsx');
   it('one decision from the server summary; only an attempted paid action opens the window', () => {
-    expect(dash).toMatch(/const free10Blocked = \(\) => \{\s*if \(decideFree10Action\(accountSummary\)\.allowed\) return false;\s*setFree10Window\(true\);\s*return true;\s*\};/);
-    expect((dash.match(/setFree10Window\(true\)/g) || []).length).toBe(5); // the helper, three output refusals (WhatsApp, email, Task 28 copy message), the server create refusal
+    // Owner 2026-10-18: LIFETIME is unlimited (also when granted after activation) - the server guard exempts it the same way
+    expect(dash).toMatch(/const free10Blocked = \(\) => \{\s*\/\/[^\n]*\n\s*if \(isLifetimeAccount \|\| decideFree10Action\(accountSummary\)\.allowed\) return false;\s*setFree10Window\(true\);\s*return true;\s*\};/);
+    expect((dash.match(/setFree10Window\(true\)/g) || []).length).toBe(6); // the helper, three output refusals (WhatsApp, email, Task 28 copy message), the server create refusal, the editor issue / Sent through the authority (Owner 2026-10-18)
     expect(dash).not.toMatch(/setInterval\([^)]*Free10|setTimeout\([^)]*setFree10Window/);
   });
   it('new / measured / AI / duplicate stop before anything opens; save stops before persistQuote', () => {
@@ -111,7 +112,7 @@ describe('Dashboard: the Free-10 check precedes any insert / reservation on ever
     expect(save).toMatch(/if \(!editingQuoteId && free10Blocked\(\)\) return;/);
   });
   it('a first output refused for Free-10 and a server-refused new quote open the same window', () => {
-    expect((dash.match(/if \(auth\.code === 'free_issue_limit_reached'\) setFree10Window\(true\);/g) || []).length).toBe(3); // WhatsApp + email (send) and the Task 28 copy message (public_share)
+    expect((dash.match(/if \(auth\.code === 'free_issue_limit_reached'\) setFree10Window\(true\);/g) || []).length).toBe(4); // WhatsApp + email (send), the Task 28 copy message (public_share) and the editor issue / Sent (Owner 2026-10-18)
     expect(dash).toMatch(/if \(\/free_issue_limit_reached\/\.test\(String\(saveResult\.error\?\.message \|\| ''\)\)\) \{ setFree10Window\(true\); refreshAccountSummary\(\); \}/);
   });
   it('the public customer page never reads the owner subscription (no paywall for the customer)', () => {

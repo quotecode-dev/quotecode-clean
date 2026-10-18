@@ -1246,8 +1246,31 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const accountSummaryContextValue = useMemo(() => ({ summary: accountSummary, openPlans: () => setShowPricingModal(true) }), [accountSummary]);
   // Task 27: an attempted paid action (a NEW quote) after Free-10 is exhausted - decided only from the server account summary (enforced
   // phase only; off / prepared / shadow / loading never block; a paid plan is never blocked). Returns true when the action must stop.
+  // Owner 2026-10-18 (Free-10 activation): after the output authority marked a quote Sent, the owner's chosen Approved / Paid is set
+  // (allowed once the quote has an output); a failure leaves it Sent, the status the server already holds.
+  const markQuoteStatusAfterOutput = async (quoteId, status) => {
+    const { error } = await supabase.from('quotes').update({ status }).eq('id', quoteId).eq('user_id', session.user.id);
+    if (error) console.warn('[free10] status after output not set', error.message);
+  };
+  // Owner 2026-10-18 (Free-10 activation): a logo uploaded before the logo import existed is imported once at the first output
+  // (the same import action as a new upload in Settings); PNG / JPEG / WebP only - anything else keeps the server refusal.
+  const importLogoForOutput = async () => {
+    if (!bizLogoUrl) return false;
+    try {
+      const res = await fetch(bizLogoUrl, { cache: 'no-store' });
+      if (!res.ok) return false;
+      const buf = new Uint8Array(await res.arrayBuffer());
+      let bin = '';
+      for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+      const { data, error } = await invokeWithFreshSession('subscription-authority', { body: { action: 'import_logo', dataBase64: btoa(bin) } });
+      return !error && data && data.ok === true;
+    } catch {
+      return false;
+    }
+  };
   const free10Blocked = () => {
-    if (decideFree10Action(accountSummary).allowed) return false;
+    // Owner 2026-10-18: LIFETIME is unlimited (also when granted after activation; the server guard exempts it the same way)
+    if (isLifetimeAccount || decideFree10Action(accountSummary).allowed) return false;
     setFree10Window(true);
     return true;
   };
@@ -2935,7 +2958,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     let viewLink = null;
     const gate = outputGate('public_share', outputPhase);
     if (gate.mode === 'authority_required') {
-      const auth = await authorizeWithNotice({ channel: 'public_share', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (t) => window.confirm(t), isHebrew: isHebrew });
+      const auth = await authorizeWithNotice({ channel: 'public_share', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (t) => window.confirm(t), isHebrew: isHebrew });
       if (!auth.proceed) {
         if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
         if (auth.code === 'free_issue_limit_reached') setFree10Window(true);
@@ -3013,7 +3036,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
     if (!confirmMissingPrices(proposal)) return;
     const win = window.open('', '_blank');
-    const auth = await authorizeWithNotice({ channel: 'send', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => window.confirm(text), isHebrew: isHebrew });
+    const auth = await authorizeWithNotice({ channel: 'send', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew: isHebrew });
     if (!auth.proceed) {
       if (win && !win.closed) win.close();
       if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
@@ -3070,7 +3093,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
       let capabilityToken = null;
       if (sendGate.mode === 'authority_required') {
-        const auth = await authorizeWithNotice({ channel: 'send', quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => window.confirm(text), isHebrew: isHebrew });
+        const auth = await authorizeWithNotice({ channel: 'send', quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew: isHebrew });
         if (!auth.proceed) {
           setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
           if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
@@ -4360,11 +4383,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         user_id: session.user.id
       };
       // SMART-QUOTE-03: a NEW quote is always created as Draft; Sent/Approved/Paid are later lifecycle actions (edit only).
+      // Free-10 (Owner 2026-10-18): in the enforced phase a quote leaves Draft only through the output authority (one counted
+      // output; the server marks it Sent) - the save keeps it Draft, the authority runs right after it; Approved / Paid follow.
       const persistedStatus = editingQuoteId ? quoteStatus.toLowerCase() : 'draft';
+      const storedStatus = editingQuoteId ? String(quotes.find((q) => q.id === editingQuoteId)?.status || '').toLowerCase() : 'draft';
+      const leaveDraftViaAuthority = outputPhase === 'enforced' && !!editingQuoteId && storedStatus === 'draft' && persistedStatus !== 'draft';
+      const writtenStatus = leaveDraftViaAuthority ? 'draft' : persistedStatus;
       // Edits leave the financial fields to the structure call (single financial write path); new quotes insert them.
       const quoteHeader = editingQuoteId
         ? {
-            status: persistedStatus,
+            status: writtenStatus,
             valid_until: validUntil || null,
             terms: terms,
             warranty: warranty,
@@ -4576,6 +4604,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setPendingAttachmentRemovals([]);
       const presentationNote = await syncQuotePresentation(quoteId);
       const scheduleNote = await syncServiceSchedule(quoteId);
+      let leaveDraftNote = null;
+      if (leaveDraftViaAuthority) {
+        const auth = await authorizeWithNotice({ channel: 'send', quoteId, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew });
+        if (auth.proceed) {
+          if (persistedStatus !== 'sent') await markQuoteStatusAfterOutput(quoteId, persistedStatus);
+        } else {
+          leaveDraftNote = auth.mode === 'cancelled'
+            ? (isHebrew ? 'ההצעה נשמרה כטיוטה. הסטטוס לא שונה ולא נוצלה הצעה.' : 'The quote was saved as a draft. Its status was not changed and no quote was used.')
+            : `${isHebrew ? 'ההצעה נשמרה כטיוטה. ' : 'The quote was saved as a draft. '}${outputBlockedMessage(auth.code, isHebrew)}`;
+          if (auth.code === 'free_issue_limit_reached') setFree10Window(true);
+        }
+        refreshAccountSummary();
+      }
 
       setStatusMsg({
         // חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
@@ -4597,7 +4638,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       if (presentationNote.kind === 'alert') setAlertModalMsg(scheduleNote ? `${presentationNote.text}\n${scheduleNote}` : presentationNote.text);
       else if (scheduleNote) setAlertModalMsg(scheduleNote);
       else if (presentationNote.kind === 'info') setStatusMsg({ text: presentationNote.text, type: 'success' });
-      
+      if (leaveDraftNote) setStatusMsg({ text: leaveDraftNote, type: 'error' });
+
       await quoteDraft.discard(); // the draft is removed only after ALL required save stages succeeded
       clearScope('editor'); // confirmed resolution: every save stage succeeded
       setEditingQuoteId(null);

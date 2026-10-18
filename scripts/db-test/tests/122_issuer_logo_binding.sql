@@ -6,6 +6,7 @@
 -- removing the logo switch removes the logo from NEW documents only; assets and bindings are never deleted.
 -- ONE transaction, rolled back at the end.
 BEGIN;
+SET tekango.skip_signup_provisioning = 'on';  -- pre-A-1 fixture: this test seeds its entitlements by hand (20261018100000 test device)
 
 CREATE OR REPLACE FUNCTION tst.lu(n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$
   SELECT format('ec000000-0000-4000-8000-%s', lpad(n::text, 12, '0'))::uuid $$;
