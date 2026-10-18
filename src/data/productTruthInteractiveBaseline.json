@@ -15,10 +15,6 @@
     "interactive": 3,
     "markers": 4
   },
-  "src/components/AddAnotherItemDialog.jsx": {
-    "interactive": 6,
-    "markers": 7
-  },
   "src/components/AddItemWizard.jsx": {
     "interactive": 14,
     "markers": 18

@@ -3,7 +3,6 @@ import { createPortal } from 'react-dom';
 import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
 import EditItemPriceDialog from './EditItemPriceDialog';
-import AddAnotherItemDialog from './AddAnotherItemDialog';
 import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText, Building2, LayoutList } from 'lucide-react';
 import { APP as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import QuotePresentationPanel from './quotePresentation/QuotePresentationPanel';
@@ -226,23 +225,12 @@ export default function QuoteForm({
   }, [wizardResume]);
   const openAddWizard = (sectionKey = null) => { setWizardSectionKey(sectionKey); setEditingItemIndex(null); setIsAddWizardOpen(true); };
   const openEditWizard = (index) => { setEditingItemIndex(index); setIsAddWizardOpen(true); };
-  const [anotherItemPrompt, setAnotherItemPrompt] = useState(null);
   const handleWizardSave = (savedItem) => {
     if (editingItemIndex != null) {
       setItems(items.map((it, i) => (i === editingItemIndex ? savedItem : it)));
       return;
     }
     setItems([...items, savedItem]);
-    // Owner 2026-10-18 (L-09 approval): after a NEW item, ask "add another item?" - Yes opens the catalog tick list
-    setAnotherItemPrompt({ sectionKey: savedItem.section_key ?? null });
-  };
-  // every ticked catalog item = the same shape as a fixed-price catalog pick in the wizard (name, catalog price, quantity 1)
-  const handleAddCatalogItems = (picked) => {
-    const sectionKey = anotherItemPrompt?.sectionKey ?? null;
-    const added = picked.map((sv) => ({ description: sv.name, quantity: '1', unit_price: String(sv.price ?? ''), isFromCatalog: true, section_key: sectionKey }));
-    if (typeof onCatalogItemAdded === 'function') picked.forEach((sv, i) => onCatalogItemAdded(sv.id, added[i]));
-    setItems((prev) => [...prev, ...added]);
-    setAnotherItemPrompt(null);
   };
 
   // AI Chat Hardening overnight task, Track B/C: bubbles the item-wizard's
@@ -654,17 +642,6 @@ export default function QuoteForm({
         onDraftSnapshot={(st) => { if (onWizardDraftChange) onWizardDraftChange(st ? { open: true, editingItemIndex, wizardSectionKey, state: st } : null); }}
         onCatalogItemAdded={onCatalogItemAdded}
       />
-      {anotherItemPrompt && !isAddWizardOpen && (
-        <AddAnotherItemDialog
-          services={services}
-          isHebrew={isHebrew}
-          sym={sym}
-          formatMoneyDisplay={fmtMoney}
-          onAddSelected={handleAddCatalogItems}
-          onNewItem={() => { const key = anotherItemPrompt.sectionKey; setAnotherItemPrompt(null); openAddWizard(key); }}
-          onClose={() => setAnotherItemPrompt(null)}
-        />
-      )}
 
       {/* OD-17: the one capability notice (no Basic/Pro wording, no purchase, no mutation; close is a no-op) */}
       <CapabilityUpgradeNotice
