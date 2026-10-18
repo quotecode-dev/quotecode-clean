@@ -2,7 +2,6 @@
 -- (20261011100000). Disposable postgres:17 harness ONLY. ONE transaction, rolled back at the end. Phase rows written directly by the DB
 -- owner and the replica-mode ledger fixture are test devices (as in 120_subscriptions_crosscut.sql).
 BEGIN;
-SET tekango.skip_signup_provisioning = 'on';  -- pre-A-1 fixture: this test seeds its entitlements by hand (20261018100000 test device)
 
 CREATE OR REPLACE FUNCTION tst.pu(n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$
   SELECT format('ea000000-0000-4000-8000-%s', lpad(n::text, 12, '0'))::uuid $$;

@@ -4,7 +4,6 @@
 -- limit (no bypass by a customer / content change), draft save / preview never counting, enforcement off = nothing counted.
 -- The WHOLE file runs in ONE transaction that is rolled back at the end (the phase row is forced by the DB owner as a test device).
 BEGIN;
-SET tekango.skip_signup_provisioning = 'on';  -- pre-A-1 fixture: this test seeds its entitlements by hand (20261018100000 test device)
 
 CREATE OR REPLACE FUNCTION tst.vu(n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$
   SELECT format('dd300000-0000-4000-8000-%s', lpad(n::text, 12, '0'))::uuid $$;

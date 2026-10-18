@@ -7,7 +7,6 @@
 --   over by design); a legacy (never authority-issued) quote keeps its legacy id approval.
 -- ONE transaction, rolled back at the end.
 BEGIN;
-SET tekango.skip_signup_provisioning = 'on';  -- pre-A-1 fixture: this test seeds its entitlements by hand (20261018100000 test device)
 
 CREATE OR REPLACE FUNCTION tst.ru(n int) RETURNS uuid LANGUAGE sql IMMUTABLE AS $$
   SELECT format('e9000000-0000-4000-8000-%s', lpad(n::text, 12, '0'))::uuid $$;

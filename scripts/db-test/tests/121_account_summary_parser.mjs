@@ -33,8 +33,6 @@ export default async function run({ container, root }) {
 
   const sql = `
 BEGIN;
-SET LOCAL tekango.skip_signup_provisioning = 'on';  -- pre-A-1 fixture: entitlements seeded by hand (20261018100000 test device)
-DELETE FROM public.style_media_capability_policy;  -- this parser test pins the NO-policy baseline (rolled back with the session)
 INSERT INTO auth.users (id, email) VALUES ('${U(1)}', 'p1@synthetic.test'), ('${U(2)}', 'p2@synthetic.test'), ('${U(3)}', 'p3@synthetic.test');
 INSERT INTO public.business_settings (user_id, email, business_name, country, currency) VALUES
   ('${U(1)}', 'p1@synthetic.test', 'Parser Free', 'Local', 'ILS'),
