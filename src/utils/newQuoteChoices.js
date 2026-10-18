@@ -20,7 +20,8 @@ export function newQuoteChoices(isHebrew) {
       Icon: Ruler,
       label: isHebrew ? 'הצעה מדודה לפי מקצוע' : 'Profession-aware measured quote',
       // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #13: round 1 (L-09) opens a measured quote as a simple list - the hint no longer promises rooms
-      hint: isHebrew ? 'מידות, יחידות ומחירים לפי המקצוע שלך' : 'Sizes, units and prices for your trade',
+      // + Owner console 2026-10-18 ("אפילו ילד בן 10 יוכל להכין הצעה" -> "א"): the plainest wording
+      hint: isHebrew ? 'מכניסים מידות, והמחיר מחושב לבד' : 'Enter the measurements - the price is calculated for you',
     },
   ];
 }

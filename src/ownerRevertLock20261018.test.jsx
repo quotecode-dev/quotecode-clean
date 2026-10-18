@@ -57,7 +57,8 @@ describe('L-23 the quote list, editor, catalog, finances (reverted behaviours)',
     expect(dash).toContain("left: calc(50% ${isHebrew ? '- 89px' : '+ 89px'});");
   });
   it('#13 the measured-quote hint promises no rooms', () => {
-    expect(read('utils/newQuoteChoices.js')).toContain("hint: isHebrew ? 'מידות, יחידות ומחירים לפי המקצוע שלך' : 'Sizes, units and prices for your trade',");
+    // the Owner's own choice (2026-10-18, "א"): the plainest wording
+    expect(read('utils/newQuoteChoices.js')).toContain("hint: isHebrew ? 'מכניסים מידות, והמחיר מחושב לבד' : 'Enter the measurements - the price is calculated for you',");
   });
   it('#14 the catalog row buttons show their words (icon + text, 44px)', () => {
     const c = read('components/ServicesCatalog.jsx');
