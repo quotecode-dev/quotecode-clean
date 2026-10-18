@@ -22,6 +22,27 @@ export function safeLogoUrl(raw: unknown): string | null {
   return u.href;
 }
 
+// בעל המערכת 2026-10-18 ("לתקן עכשיו את הלוגו במייל?" -> "כן"): לוגו שהועלה מהמחשב נשמר כתמונה מוטבעת (data:), ותוכנות דואר
+// לא מציגות כתובת כזו. לכן הוא מצורף למייל כתמונה פנימית (cid:) - רק PNG או JPEG אמיתיים (נבדקת חתימת הקובץ), עד 500KB כמו
+// בהעלאה. SVG לא מצורף (ג'ימייל ואאוטלוק לא מציגים אותו) - במקומו נשאר שם העסק.
+export const INLINE_LOGO_CID = 'business-logo';
+const INLINE_LOGO_MAX_BYTES = 500 * 1024;
+export function inlineLogoAttachment(raw: unknown): { filename: string; content: string; content_type: string; content_id: string } | null {
+  if (typeof raw !== 'string') return null;
+  const m = /^data:image\/(png|jpeg|jpg);base64,([A-Za-z0-9+/]+={0,2})$/i.exec(raw.trim());
+  if (!m) return null;
+  const b64 = m[2];
+  let bytes: Uint8Array;
+  try { bytes = Uint8Array.from(atob(b64), (ch) => ch.charCodeAt(0)); } catch { return null; }
+  if (bytes.length === 0 || bytes.length > INLINE_LOGO_MAX_BYTES) return null;
+  const isPng = bytes.length > 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47;
+  const isJpeg = bytes.length > 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
+  if (!isPng && !isJpeg) return null;
+  return isPng
+    ? { filename: 'logo.png', content: b64, content_type: 'image/png', content_id: INLINE_LOGO_CID }
+    : { filename: 'logo.jpg', content: b64, content_type: 'image/jpeg', content_id: INLINE_LOGO_CID };
+}
+
 // The quote link is built on the server (decideEmailLink); it must stay on the canonical origin. Anything else is refused (null).
 export function safeQuoteLink(link: unknown, origin: string): string | null {
   if (typeof link !== 'string') return null;
