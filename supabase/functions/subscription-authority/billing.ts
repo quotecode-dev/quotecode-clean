@@ -3,6 +3,7 @@
 // UNAVAILABLE_PROVIDER (OPEN-12 - no written PayPlus/Max terminal, recurring/tokenization or signed-webhook evidence).
 // createHmacWebhookVerifier is a GENERIC signature/timestamp/source verifier shape used with mocks; it is NOT a claim about
 // PayPlus's actual scheme and must be bound to the documented PayPlus contract before any sandbox use.
+// PayPlus phase 1 (Owner 2026-10-18): payplus.ts is the PayPlus provider bound to the documented contract; it is NOT wired (wiring.ts).
 //
 // Trust boundary:
 //   * the user comes from the verified JWT; the market from the server (account_market via SQL); the amount from the server
@@ -86,14 +87,16 @@ export type EventType = typeof EVENT_TYPES[number];
 export type LineEvent = { lineType: 'catalog_block'; quantity: number; priceVersionId: string; effectiveFrom: string; providerRef: string };
 /** The ONLY fields of a provider event the system ever reads. Amount / currency / rate / plan rights are never read. */
 export type ProviderEvent = { providerEventId: string; type: EventType; occurredAt: string; attemptId: string | null;
-  userId: string | null; line: LineEvent | null };
+  userId: string | null; line: LineEvent | null;
+  /** PayPlus phase 1: what the provider says was charged - compared for EQUALITY with the server attempt in SQL, never a price */
+  paid?: { amountMinor: number; currency: 'ILS' | 'USD' } };
 export type WebhookRejection = 'invalid_signature' | 'stale_timestamp' | 'untrusted_source' | 'invalid_event' | 'provider_unavailable';
 export type WebhookVerification = { ok: true; event: ProviderEvent } | { ok: false; reason: WebhookRejection };
 
 export interface BillingProvider {
   readonly name: string;
-  /** hosted checkout for an already-created server attempt; amount/currency come from that attempt only */
-  createCheckout(i: { attemptId: string; currency: 'ILS' | 'USD'; amountMinor: number }): Promise<{ redirectUrl: string } | null>;
+  /** hosted checkout for an already-created server attempt; amount/currency (and the package period) come from that attempt only */
+  createCheckout(i: { attemptId: string; currency: 'ILS' | 'USD'; amountMinor: number; billingPeriod?: BillingPeriod }): Promise<{ redirectUrl: string } | null>;
   /** signature + timestamp window + source; returns the normalized event only when all three pass */
   verifyWebhook(rawBody: Uint8Array, headers: Headers, nowMs: number): Promise<WebhookVerification>;
 }
@@ -186,13 +189,15 @@ export interface BillingSql {
   /** get_price_catalog(p_market) */
   priceCatalog(market: Market): Promise<unknown>;
   /** record_verified_subscription_event(provider, provider_event_id, event_type, attempt_id, provider_event_time, payload_sha256) */
-  recordVerifiedEvent(e: { provider: string; providerEventId: string; eventType: string; attemptId: string; providerEventTime: string; payloadSha256: string }): Promise<Record<string, unknown>>;
+  recordVerifiedEvent(e: { provider: string; providerEventId: string; eventType: string; attemptId: string; providerEventTime: string; payloadSha256: string;
+    paidAmountMinor?: number; paidCurrency?: string }): Promise<Record<string, unknown>>;
   /** apply_verified_line_event(provider, provider_event_id, user_id, line_type, quantity, price_version_id, effective_from, provider_ref) */
   applyVerifiedLineEvent(e: { provider: string; providerEventId: string; userId: string; lineType: string; quantity: number; priceVersionId: string; effectiveFrom: string; providerRef: string; removal: boolean }): Promise<Record<string, unknown>>;
 }
 
 // ------------------------------------------------------------------------------------------------ checkout intent
-const CHECKOUT_CODES: Record<string, number> = { checkout_unavailable: 503, account_unprovisioned: 409, idempotency_conflict: 409, invalid_request: 400 };
+const CHECKOUT_CODES: Record<string, number> = { checkout_unavailable: 503, account_unprovisioned: 409, idempotency_conflict: 409, invalid_request: 400,
+  already_subscribed: 409 };
 export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: BillingSql; provider: BillingProvider }, userId: string, body: unknown): Promise<Resp> {
   if (phase === 'off') return err(503, 'checkout_unavailable');
   if (typeof userId !== 'string' || !UUID.test(userId)) return err(401, 'not_authenticated');
@@ -223,7 +228,8 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
   try { catalogRaw = await deps.sql.priceCatalog(market); } catch { return err(503, 'checkout_unavailable'); }
   const expected = computeCheckoutAmount(parseCatalog(catalogRaw, market), planId, blocks, period);
   if (!expected || expected.currency !== r.currency || expected.amountMinor !== r.amountMinor) return err(503, 'checkout_unavailable');
-  const hosted = await deps.provider.createCheckout({ attemptId: r.attemptId, currency: expected.currency, amountMinor: expected.amountMinor }).catch(() => null);
+  const hosted = await deps.provider.createCheckout({ attemptId: r.attemptId, currency: expected.currency, amountMinor: expected.amountMinor,
+    ...(isPackage ? { billingPeriod: period as BillingPeriod } : {}) }).catch(() => null);
   if (!hosted || typeof hosted.redirectUrl !== 'string' || !/^https:\/\//.test(hosted.redirectUrl)) return err(503, 'checkout_unavailable');
   // A redirect URL is NOT an entitlement: the success page shows "processing" until a verified provider event.
   return { status: 200, body: { ok: true, attemptId: r.attemptId, currency: expected.currency, amountMinor: expected.amountMinor, redirectUrl: hosted.redirectUrl, state: 'pending' } };
@@ -248,7 +254,8 @@ export async function providerWebhookHandler(phase: BillingPhase, deps: { sql: B
         providerRef: e.line.providerRef, removal: e.type === 'line_removed' });
     } else {
       r = await deps.sql.recordVerifiedEvent({ provider: deps.provider.name, providerEventId: e.providerEventId, eventType: e.type,
-        attemptId: e.attemptId as string, providerEventTime: e.occurredAt, payloadSha256 });
+        attemptId: e.attemptId as string, providerEventTime: e.occurredAt, payloadSha256,
+        ...(e.paid ? { paidAmountMinor: e.paid.amountMinor, paidCurrency: e.paid.currency } : {}) });
     }
   } catch {
     return err(503, 'retry_later'); // timeout / outage: the provider retries the same event id; processing is idempotent

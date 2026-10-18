@@ -42,10 +42,11 @@ SELECT tst.throws($$ INSERT INTO public.price_versions (price_id, plan_id, marke
 
 -- ---------------------------------------------------------------------------------------------------------------- 2. fixtures
 -- 1 F free exhausted (10 counted outputs) | 2 G free with remaining | 3 L legacy paid classic | 4 K package annual INTERNATIONAL | 5 N unprovisioned
-INSERT INTO auth.users (id, email) SELECT tst.pu(i), format('pkg-%s@synthetic.test', i) FROM generate_series(1, 5) i ON CONFLICT DO NOTHING;
+-- 6 I INTERNATIONAL without a subscription (PayPlus phase 1, 20261021000000: an active package gets no second payment page)
+INSERT INTO auth.users (id, email) SELECT tst.pu(i), format('pkg-%s@synthetic.test', i) FROM generate_series(1, 6) i ON CONFLICT DO NOTHING;
 INSERT INTO public.business_settings (user_id, email, business_name, country, currency, plan, role)
-  SELECT tst.pu(i), format('pkg-%s@synthetic.test', i), format('Synthetic Pkg %s', i), CASE WHEN i = 4 THEN 'International' ELSE 'Local' END,
-         CASE WHEN i = 4 THEN 'USD' ELSE 'ILS' END, 'free', 'user' FROM generate_series(1, 5) i ON CONFLICT (user_id) DO NOTHING;
+  SELECT tst.pu(i), format('pkg-%s@synthetic.test', i), format('Synthetic Pkg %s', i), CASE WHEN i IN (4, 6) THEN 'International' ELSE 'Local' END,
+         CASE WHEN i IN (4, 6) THEN 'USD' ELSE 'ILS' END, 'free', 'user' FROM generate_series(1, 6) i ON CONFLICT (user_id) DO NOTHING;
 INSERT INTO public.quotes (id, user_id, quote_number, status) SELECT tst.pq(1, n), tst.pu(1), 91000 + n, 'draft' FROM generate_series(1, 11) n;
 INSERT INTO public.quotes (id, user_id, quote_number, status) VALUES (tst.pq(2, 1), tst.pu(2), 92001, 'draft');
 DO $$
@@ -61,7 +62,7 @@ INSERT INTO public.account_entitlements (user_id, account_mode, free_issues_cons
 INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id, subscription_status) VALUES (tst.pu(3), 'paid', 'classic', 'active');
 INSERT INTO public.account_entitlements (user_id, account_mode, package_id, package_period, subscription_status) VALUES (tst.pu(4), 'paid', 'all_inclusive', 'year', 'active');
 INSERT INTO public.account_market (user_id, market, source) VALUES (tst.pu(1), 'IL', 'owner_mapping'), (tst.pu(2), 'IL', 'owner_mapping'),
-  (tst.pu(3), 'IL', 'owner_mapping'), (tst.pu(4), 'INTERNATIONAL', 'owner_mapping');
+  (tst.pu(3), 'IL', 'owner_mapping'), (tst.pu(4), 'INTERNATIONAL', 'owner_mapping'), (tst.pu(6), 'INTERNATIONAL', 'owner_mapping');
 
 SELECT tst.throws($$ INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id, package_id, package_period) VALUES (tst.pu(5), 'paid', 'modern', 'all_inclusive', 'month') $$,
                   'mode_shape', 'E1 a paid account holds a legacy style plan OR the package, never both');
@@ -130,12 +131,14 @@ DO $$
 DECLARE r jsonb; r2 jsonb;
 BEGIN
   PERFORM tst.psvc();
-  r := public.create_package_checkout_intent(tst.pu(4), 'year', 'pkg-intent-0002-year');
+  r := public.create_package_checkout_intent(tst.pu(6), 'year', 'pkg-intent-0002-year');
   PERFORM tst.ok(r ->> 'ok' = 'true' AND (r ->> 'amountMinor')::int = 18400 AND r ->> 'currency' = 'USD' AND r ->> 'planPriceId' = 'intl_all_inclusive_year_p2',
                  'C2 INTERNATIONAL annual intent = 18400 USD (the displayed $184.00)');
-  r2 := public.create_package_checkout_intent(tst.pu(4), 'year', 'pkg-intent-0002-year');
+  PERFORM tst.ok(public.create_package_checkout_intent(tst.pu(4), 'year', 'pkg-intent-0009-year') ->> 'code' = 'already_subscribed',
+                 'C2b an active package gets no second payment page (20261021000000)');
+  r2 := public.create_package_checkout_intent(tst.pu(6), 'year', 'pkg-intent-0002-year');
   PERFORM tst.ok(r2 ->> 'attemptId' = r ->> 'attemptId', 'C3 idempotent retry returns the same attempt');
-  r2 := public.create_package_checkout_intent(tst.pu(4), 'month', 'pkg-intent-0002-year');
+  r2 := public.create_package_checkout_intent(tst.pu(6), 'month', 'pkg-intent-0002-year');
   PERFORM tst.ok(r2 ->> 'code' = 'idempotency_conflict', 'C4 the same key with another period is a conflict');
   r := public.create_package_checkout_intent(tst.pu(2), 'year', 'pkg-intent-0003-year');
   PERFORM tst.ok((r ->> 'amountMinor')::int = 30600 AND r ->> 'currency' = 'ILS', 'C5 IL annual intent = 30600 ILS incl. VAT (market from the server, not the request)');

@@ -327,6 +327,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / CREATE OR REPLACE / DROP TRIGGER IF EXISTS (re-runnable); Owner signed-quote bell 2026-10-19"
+    },
+    "20261021000000_payplus_phase1_verified_package_activation.sql": {
+      "sha256": "c691d37602ecb41138ca6d26d757810d9fd3aca1bfbccd170f0b392a04cd23f8",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE, ON CONFLICT DO NOTHING (re-runnable); PayPlus phase 1 (Owner 2026-10-18), renamed for stage 2 (Owner 2026-10-20)"
     }
   }
 }

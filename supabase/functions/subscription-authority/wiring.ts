@@ -39,9 +39,11 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
     createPackageCheckoutIntent: async (userId, billingPeriod, idempotencyKey) => (await call('create_package_checkout_intent',
       { p_user_id: userId, p_billing_period: billingPeriod, p_idempotency_key: idempotencyKey })) as Record<string, unknown>,
     priceCatalog: (market) => call('get_price_catalog', { p_market: market }),
-    recordVerifiedEvent: async (e) => (await call('record_verified_subscription_event', { p_provider: e.provider,
+    // 20261021000000: the same verified-event recorder + (same transaction) a confirmed package payment opens the subscription
+    recordVerifiedEvent: async (e) => (await call('record_verified_subscription_event_and_activate', { p_provider: e.provider,
       p_provider_event_id: e.providerEventId, p_event_type: e.eventType, p_attempt_id: e.attemptId,
-      p_provider_event_time: e.providerEventTime, p_payload_sha256: e.payloadSha256 })) as Record<string, unknown>,
+      p_provider_event_time: e.providerEventTime, p_payload_sha256: e.payloadSha256,
+      p_paid_amount_minor: e.paidAmountMinor ?? null, p_paid_currency: e.paidCurrency ?? null })) as Record<string, unknown>,
     applyVerifiedLineEvent: async (e) => {
       // The §2.4 signature has no removal parameter: a removal event is refused (no state change) until it is defined.
       if (e.removal) return { ok: false, code: 'invalid_event' };

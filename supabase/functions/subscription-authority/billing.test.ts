@@ -285,7 +285,8 @@ describe('all-inclusive package (current offer)', () => {
     expect(r.body).toMatchObject({ amountMinor: 18400, currency: 'USD', state: 'pending' });
     expect(sql.createPackageCheckoutIntent).toHaveBeenCalledWith(U, 'year', KEY);
     expect(sql.createCheckoutIntent).not.toHaveBeenCalled();
-    expect(provider.createCheckout).toHaveBeenCalledWith({ attemptId: ATT, currency: 'USD', amountMinor: 18400 });
+    // the package period reaches the provider (PayPlus phase 1: monthly / annual renewal), from the request period only
+    expect(provider.createCheckout).toHaveBeenCalledWith({ attemptId: ATT, currency: 'USD', amountMinor: 18400, billingPeriod: 'year' });
     sqlAmount.v = 18360; // the retired $183.60 would be a mismatch -> refused, nothing reaches the provider
     const provider2 = okProvider();
     expect((await checkoutIntentHandler('prepared', { sql, provider: provider2 }, U, { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY })).body).toMatchObject({ ok: false, code: 'checkout_unavailable' });

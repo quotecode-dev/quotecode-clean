@@ -1415,6 +1415,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/subscription-authority/payplus.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/subscription-authority/router.ts": {
     "interactive": 0,
     "markers": 0
