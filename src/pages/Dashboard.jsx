@@ -7517,6 +7517,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         isHebrew={isHebrew}
         isNew={isCreatingClient}
         isIsraeliBusiness={isLocalIsraeliBusiness}
+        currency={currency}
       />
 
       <EditExpenseModal 
