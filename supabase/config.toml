@@ -187,9 +187,24 @@ entrypoint = "./functions/quote-presentation/index.ts"
 [functions.support-inbound]
 enabled = true
 # Owner 2026-10-19 (smart support email stage 1): the email provider's "email.received" webhook - no user JWT; the request must carry a
-# valid provider signature (RESEND_INBOUND_WEBHOOK_SECRET) over the raw body. Stores support / info mail only; sends nothing.
+# valid provider signature (RESEND_INBOUND_WEBHOOK_SECRET) over the raw body. Stores support / info mail; stage 2 (2026-10-20) sorts
+# and answers it through the one mail gate (support-inbound/process.ts).
 verify_jwt = false
 entrypoint = "./functions/support-inbound/index.ts"
+
+[functions.support-admin]
+enabled = true
+# Owner 2026-10-20 (smart support email stage 2): the Owner's actions from the admin "פניות" tab - the JWT is verified by the gateway
+# AND in code (auth.getUser + business_settings.role = super_admin) before any service-role write or email.
+verify_jwt = true
+entrypoint = "./functions/support-admin/index.ts"
+
+[functions.support-digest]
+enabled = true
+# Owner 2026-10-20 (smart support email stage 2): the evening summary, called only by the site cron with the shared cron secret
+# (x-cron-secret = CRON_SECRET, checked in code) - no user JWT exists for a cron call.
+verify_jwt = false
+entrypoint = "./functions/support-digest/index.ts"
 
 [functions.voice-ai]
 enabled = true

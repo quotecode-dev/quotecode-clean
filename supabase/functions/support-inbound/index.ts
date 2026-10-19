@@ -1,16 +1,25 @@
 /// <reference types="https://deno.land/std@0.168.0/types.d.ts" />
 // support-inbound (Owner console 2026-10-19, smart support email stage 1, docs/SMART_SUPPORT_EMAIL_SPEC_2026-10-19.md): the email
-// provider's "email.received" webhook. Stage 1 only RECEIVES and STORES - no AI, no reply, nothing is sent anywhere.
+// provider's "email.received" webhook. Stage 1 RECEIVES and STORES; stage 2 (below) sorts and answers through process.ts.
 //  - No user JWT (verify_jwt = false): the request must carry a valid provider signature over the raw body (Standard Webhooks /
 //    Svix scheme, RESEND_INBOUND_WEBHOOK_SECRET); a missing / stale / wrong signature is refused before anything is read.
 //  - Only mail to a configured support / info address (SUPPORT_INBOUND_ADDRESSES) is stored; anything else is acknowledged and dropped.
 //  - The full message is fetched from the provider by its id (the webhook carries metadata only), reduced to plain text, and stored
 //    ONCE (unique provider event / email) with the service role - the only writer of support_inbound_messages.
 //  - A provider / database failure answers non-2xx so the provider retries; a duplicate answers 200 and changes nothing.
+//  - Stage 2 (Owner console 2026-10-20, typed: "מאשר שינוי ב-L-22: שלב 2 של המייל החכם ..."): a NEWLY stored email is sorted and handled
+//    by process.ts right after the answer (EdgeRuntime.waitUntil); a stored email left unhandled (a crash) is handled when the provider
+//    redelivers it after two minutes. A handling crash marks the email RED for the Owner - it is never silently lost.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { verifyStandardWebhook } from "../auth-send-email-hook/webhookVerify.ts";
 import { buildInboundRow, parseAllowedAddresses, recipientAllowed, addressList } from "./inbound.ts";
+import { processInquiry, type InquiryRow } from "./process.ts";
+import { supabaseStore } from "./store.ts";
+
+declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
+export const ROW_COLUMNS = 'id, status, stored_at, from_address, to_addresses, subject, text_body, attachments, message_id, is_automated, mailbox';
+const RESUME_AFTER_MS = 120000;
 
 const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const PROVIDER_TIMEOUT_MS = 15000;
@@ -61,7 +70,26 @@ serve(async (req) => {
   const row = buildInboundRow({ eventId: String(id), webhookData: data, email });
   if (!row) return json({ ok: false, code: 'invalid_message' }, 422);
   const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-  const { error } = await admin.from('support_inbound_messages').upsert(row, { onConflict: 'provider,provider_email_id', ignoreDuplicates: true });
+  const { data: inserted, error } = await admin.from('support_inbound_messages').upsert(row, { onConflict: 'provider,provider_email_id', ignoreDuplicates: true }).select(ROW_COLUMNS);
   if (error) return json({ ok: false, code: 'store_failed' }, 500);
-  return json({ ok: true, stored: true });
+  let target: InquiryRow | null = Array.isArray(inserted) && inserted[0] ? inserted[0] : null;
+  if (!target) {
+    const { data: existing } = await admin.from('support_inbound_messages').select(ROW_COLUMNS).eq('provider', 'resend').eq('provider_email_id', row.provider_email_id).maybeSingle();
+    if (existing?.status === 'new' && Date.now() - Date.parse(existing.stored_at) > RESUME_AFTER_MS) target = existing;
+  }
+  if (target) {
+    const store = supabaseStore(admin);
+    const work = processInquiry(target, {
+      store,
+      model: { fetch: fetch as never, apiKey: Deno.env.get('OPENAI_API_KEY') ?? '' },
+      mail: { fetch: fetch as never, apiKey: Deno.env.get('RESEND_API_KEY') ?? '' },
+      ownerAddress: (Deno.env.get('SUPPORT_OWNER_NOTIFY_ADDRESS') ?? '').trim(),
+      now: () => new Date(),
+    }).catch(async (e) => {
+      console.error('support-inbound: handling failed', e instanceof Error ? e.message : e);
+      await store.update(target!.id, { bin: 'red', bin_reason: 'processing_failed', status: 'waiting', processed_at: new Date().toISOString() }, ['new']);
+    });
+    if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(work); else await work;
+  }
+  return json({ ok: true, stored: Array.isArray(inserted) && inserted.length > 0 });
 });
