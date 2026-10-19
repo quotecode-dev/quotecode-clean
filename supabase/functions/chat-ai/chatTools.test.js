@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CHAT_TOOL_DEFS, chatCompletionsTools, responsesTools, runChatTool, runToolLoop, chatCompletionToolCalls, dailyCapAnswer, buildToolsPromptBlock, MAX_TOOL_ROUNDS, TOOLS_MODEL, CHEAP_MODEL, LEGACY_CHEAP_MODEL, isOwnDataQuestion, hasDataQualifier } from './chatTools.ts';
+import { CHAT_TOOL_DEFS, chatCompletionsTools, responsesTools, runChatTool, runToolLoop, chatCompletionToolCalls, dailyCapAnswer, buildToolsPromptBlock, MAX_TOOL_ROUNDS, TOOLS_MODEL, CHEAP_MODEL } from './chatTools.ts';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const ME = 'user-me';
@@ -43,8 +43,8 @@ const quotes = [
 const ctxWith = (db) => ({ db, userId: ME, accountCurrency: 'ILS', today: TODAY });
 
 describe('smart chat tools - definitions', () => {
-  it('six strict tools, every property required, no extra properties (OpenAI strict schemas)', () => {
-    expect(CHAT_TOOL_DEFS.map((t) => t.name)).toEqual(['find_quotes', 'quote_overview', 'get_quote', 'find_clients', 'find_catalog_items', 'list_tasks']);
+  it('five strict tools, every property required, no extra properties (OpenAI strict schemas)', () => {
+    expect(CHAT_TOOL_DEFS.map((t) => t.name)).toEqual(['find_quotes', 'get_quote', 'find_clients', 'find_catalog_items', 'list_tasks']);
     for (const t of CHAT_TOOL_DEFS) {
       expect(t.parameters.additionalProperties, t.name).toBe(false);
       expect([...t.parameters.required].sort(), t.name).toEqual(Object.keys(t.parameters.properties).sort());
@@ -53,9 +53,8 @@ describe('smart chat tools - definitions', () => {
     expect(responsesTools()[0]).toMatchObject({ type: 'function', name: 'find_quotes', strict: true });
   });
 
-  it('the cheap model is the provider replacement (the old one is its fallback); the stronger model only for the tool turn, max 3 rounds', () => {
-    expect(CHEAP_MODEL).toBe('gpt-6-luna');
-    expect(LEGACY_CHEAP_MODEL).toBe('gpt-4o-mini');
+  it('the plain question keeps the existing cheap model; the stronger model is only for the tool turn, max 3 rounds', () => {
+    expect(CHEAP_MODEL).toBe('gpt-4o-mini');
     expect(TOOLS_MODEL).toBe('gpt-6.1-sol');
     expect(MAX_TOOL_ROUNDS).toBe(3);
   });
@@ -189,61 +188,10 @@ describe('smart chat - wiring in index.ts', () => {
     expect(src.indexOf('const toolCtx')).toBeGreaterThan(src.indexOf('deterministicHelpAnswer('));
   });
   it('the tools prompt block forbids invented numbers and currency mixing, and fences tool data', () => {
-    const block = buildToolsPromptBlock(true, '2026-10-19');
-    expect(block).toMatch(/Today is 2026-10-19/);
+    const block = buildToolsPromptBlock(true);
     expect(block).toMatch(/Never guess or invent/);
     expect(block).toMatch(/never add amounts of different currencies/);
     expect(block).toMatch(/untrusted DATA/);
     expect(block).toMatch(/Answer in Hebrew/);
-  });
-});
-
-// Owner LIVE check 2026-10-19: "כמה הצעות יש לי ללקוח EDEN DAVID" got the account-wide fixed statistics and "אילו משימות באיחור
-// יש לי" got the "tasks exist in TEKANGO" capability answer - both must reach the data tools.
-describe('smart chat - own-data routing (Owner LIVE check 2026-10-19)', () => {
-  it('the Owner\'s four LIVE questions are own-data questions', () => {
-    for (const q of ['מה ההצעה האחרונה ששלחתי ולמי', 'כמה הצעות יש לי ללקוח EDEN DAVID', 'אילו משימות באיחור יש לי', 'כמה עולה אצלי מסך 24 אינץ',
-      'which tasks are overdue', 'how many quotes do I have for client Noa Cohen', 'what is my latest quote']) expect(isOwnDataQuestion(q), q).toBe(true);
-  });
-  it('product / how-to questions stay with the fixed capability answers', () => {
-    for (const q of ['האם יש משימות במערכת?', 'אפשר ליצור משימה מהצעה?', 'איך יוצרים הצעה?', 'האם המערכת תומכת בלקוחות עסקיים?', 'Can I create tasks?', 'does TEKANGO support catalog items?', 'how do I add a client?', 'איזה מסלולים יש לכם'])
-      expect(isOwnDataQuestion(q), q).toBe(false);
-  });
-  it('a client / period / state narrows the question; the plain "how many quotes do I have" keeps the fixed statistics', () => {
-    for (const q of ['כמה הצעות יש לי ללקוח EDEN DAVID', 'כמה הצעות שלחתי לנעמה', 'כמה הצעות נשלחו החודש', 'כמה הצעות פג תוקפן', 'how many quotes do I have for Noa', 'quotes this month'])
-      expect(hasDataQualifier(q), q).toBe(true);
-    for (const q of ['כמה הצעות יש לי', 'כמה הצעות יש לי ומה הסכום הכולל שלהן?', 'מה הסכום הכולל של ההצעות שאושרו?', 'How many quotes do I have, and what is their total value?'])
-      expect(hasDataQualifier(q), q).toBe(false);
-  });
-  it('quote_overview: the overview groups for one client, per currency, only my quotes', async () => {
-    const { db, calls } = fakeDb({ quotes });
-    const out = JSON.parse(await runChatTool('quote_overview', JSON.stringify({ text: 'נעמה', created_from: null, created_to: null }), ctxWith(db)));
-    expect(calls[0].eqs).toContainEqual(['user_id', ME]);
-    expect(out.all).toEqual({ count: 2, total_per_currency: { ILS: '₪1,400.00' } });
-    expect(out.approved.count).toBe(1);
-    expect(out.drafts.count).toBe(1);
-    expect(out.awaiting_signature.count).toBe(0);
-    expect(out.clients_matched).toEqual(['נעמה כהן']);
-    const all = JSON.parse(await runChatTool('quote_overview', JSON.stringify({ text: null, created_from: null, created_to: null }), ctxWith(db)));
-    expect(all.all.total_per_currency).toEqual({ ILS: '₪1,400.00', USD: '$250.50' });
-    expect(all.expired.count).toBe(1);
-  });
-  it('index.ts: own-data questions skip the fixed statistics (only with a qualifier) and the capability answer, and force a tool call', () => {
-    const src = fs.readFileSync(path.join(here, 'index.ts'), 'utf8');
-    expect(src).toMatch(/classifyQuoteStatsIntent\(lastUserMessage\) && !\(ownDataQuestion && hasDataQualifier\(lastUserMessage\)\)/);
-    expect(src).toMatch(/const capabilityId = ownDataQuestion \? null : classifyCapabilityIntent\(lastUserMessage\);/);
-    expect(src).toMatch(/else if \(classifyBroadCapabilityQuestionSignal\(lastUserMessage\)\)/); // the broad guard still covers every message
-    expect(src).toMatch(/tool_choice: ownDataQuestion \? 'required' : 'auto'/);
-    // the payment / invoicing / subscription / market gates still run before - untouched by the own-data routing
-    for (const gate of ['classifyInvoicingIntent(lastUserMessage)', 'resolveSubscriptionTruthResponse(', 'classifyAccountMarketIntent(lastUserMessage)'])
-      expect(src.indexOf(gate), gate).toBeGreaterThan(0);
-    expect(src.indexOf('resolveSubscriptionTruthResponse(')).toBeLessThan(src.indexOf('const capabilityId = ownDataQuestion'));
-  });
-  it('index.ts: the new cheap model falls back to the old one on any failure', () => {
-    const src = fs.readFileSync(path.join(here, 'index.ts'), 'utf8');
-    expect(src).toMatch(/const callCheapWithFallback = async/);
-    expect(src).toMatch(/return await callCheapModel\(withTools, LEGACY_CHEAP_MODEL\)/);
-    expect(src).toMatch(/reasoning_effort: 'none'/);
-    expect(src.match(/callCheapWithFallback\(/g)).toHaveLength(2);
   });
 });

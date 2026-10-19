@@ -65,8 +65,7 @@ describe('quote statistics truth (Owner 2026-10-19)', () => {
     const src = fs.readFileSync(path.join(here, 'index.ts'), 'utf8');
     const at = src.indexOf('classifyQuoteStatsIntent(lastUserMessage)');
     expect(at).toBeGreaterThan(0);
-    // smart chat (Owner LIVE check 2026-10-19): a question narrowed to a client / period / state goes to the data tools instead
-    expect(src).toMatch(/if \(verifiedUserId && isDashboard && accountContext && classifyQuoteStatsIntent\(lastUserMessage\) && !\(ownDataQuestion && hasDataQualifier\(lastUserMessage\)\)\)/);
+    expect(src).toMatch(/if \(verifiedUserId && isDashboard && accountContext && classifyQuoteStatsIntent\(lastUserMessage\)\)/);
     expect(src).toMatch(/statsClient\.from\('quotes'\)\.select\('status, total, currency, view_count'\)\.eq\('user_id', verifiedUserId\)/);
     expect(at).toBeLessThan(src.indexOf('resolveSubscriptionTruthResponse(lastUserMessage'));
   });

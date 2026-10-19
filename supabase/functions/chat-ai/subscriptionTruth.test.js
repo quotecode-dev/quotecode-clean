@@ -172,9 +172,7 @@ describe('prompt block + request boundary', () => {
     const iPay = indexSource.indexOf('if (asksInvoicing || asksPayment)');
     const iSub = indexSource.indexOf('const subscription = resolveSubscriptionTruthResponse');
     const iMarket = indexSource.indexOf('classifyAccountMarketIntent(lastUserMessage)');
-    // smart chat 2026-10-19 (L-17): own-data questions skip only the specific capability classifier - the router order is unchanged
-    const iCap = indexSource.indexOf('const capabilityId = ownDataQuestion ? null : classifyCapabilityIntent(lastUserMessage);');
-    expect(iCap).toBeGreaterThan(0);
+    const iCap = indexSource.indexOf('const capabilityId = classifyCapabilityIntent(lastUserMessage);');
     expect(iPay).toBeLessThan(iSub); expect(iSub).toBeLessThan(iMarket); expect(iSub).toBeLessThan(iCap);
   });
 });
