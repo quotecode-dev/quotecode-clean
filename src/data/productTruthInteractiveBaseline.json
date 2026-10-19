@@ -1,7 +1,7 @@
 {
   "src/AIChatWidget.jsx": {
-    "interactive": 19,
-    "markers": 19
+    "interactive": 24,
+    "markers": 24
   },
   "src/App.jsx": {
     "interactive": 3,
@@ -1011,6 +1011,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/utils/voiceAssistant.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/_shared/activationPhase.ts": {
     "interactive": 0,
     "markers": 0
@@ -1360,6 +1364,10 @@
     "markers": 0
   },
   "supabase/functions/subscription-authority/wiring.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/voice-ai/index.ts": {
     "interactive": 0,
     "markers": 0
   }
