@@ -26,7 +26,7 @@ function fakeClient(mode = 'in_app', readKeys = []) {
 describe('the voice-assistant announcement in the bell (Owner 2026-10-19, L-17)', () => {
   it('is active only inside its window', () => {
     expect(activeAnnouncements(ANN, new Date('2026-10-18T12:00:00Z'))).toEqual([]);
-    expect(activeAnnouncements(ANN, NOW).map((a) => a.key)).toEqual(['announce:voice-assistant:v1']);
+    expect(activeAnnouncements(ANN, NOW).map((a) => a.key)).toEqual(['announce:voice-assistant:v2']);
     expect(activeAnnouncements(ANN, new Date('2026-12-01T00:00:00Z'))).toEqual([]);
     expect(bellActionsFor(VOICE_ASSISTANT_ANNOUNCEMENT)).toEqual([{ kind: 'assistant' }]);
   });
@@ -39,8 +39,9 @@ describe('the voice-assistant announcement in the bell (Owner 2026-10-19, L-17)'
     const r = render(<NotificationCenter client={client} userId={USER} now={NOW} quotes={[]} isHebrew isLocalIsraeliBusiness announcements={ANN} />);
     const notice = await waitFor(() => { const n = document.querySelector('[data-testid="bell-float-notice"]'); expect(n).toBeTruthy(); return n; });
     expect(notice.getAttribute('data-notice-kind')).toBe('announce');
-    expect(notice.textContent).toContain('חדש: אפשר לדבר עם העוזר החכם');
-    expect(loadFloatedKeys(USER).has('announce:voice-assistant:v1')).toBe(true);
+    expect(notice.textContent).toContain('חדש: מדברים עם TEKANGO בקול');
+    expect(notice.textContent).toContain('בהצעת מחיר חכמה עם AI: מכתיבים את העבודה בקול');
+    expect(loadFloatedKeys(USER).has('announce:voice-assistant:v2')).toBe(true);
     fireEvent.click(r.getByTestId('bell-float-action-assistant'));
     expect(opened).toHaveBeenCalledTimes(1);
     expect(document.querySelector('[data-testid="bell-float-notice"]')).toBeNull();
@@ -53,11 +54,12 @@ describe('the voice-assistant announcement in the bell (Owner 2026-10-19, L-17)'
   });
 
   it('it stays in the panel (English copy) and counts as unread until read; reminders Off shows nothing', async () => {
-    saveFloatedKeys(USER, new Set(['announce:voice-assistant:v1']));
+    saveFloatedKeys(USER, new Set(['announce:voice-assistant:v2']));
     const r = render(<NotificationCenter client={fakeClient()} userId={USER} now={NOW} quotes={[]} isHebrew={false} isLocalIsraeliBusiness={false} announcements={ANN} />);
     fireEvent.click(r.getByTestId('header-bell'));
     const row = await waitFor(() => r.getByTestId('notification-announce'));
-    expect(row.textContent).toContain('New: talk to the smart assistant');
+    expect(row.textContent).toContain('New: talk to TEKANGO');
+    expect(row.textContent).toContain('In the AI smart quote: dictate the job');
     expect(r.getByTestId('notification-action-assistant').textContent).toBe('Open the assistant');
     cleanup();
     const off = render(<NotificationCenter client={fakeClient('off')} userId={USER} now={NOW} quotes={[]} isHebrew isLocalIsraeliBusiness announcements={ANN} />);

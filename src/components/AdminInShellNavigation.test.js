@@ -20,8 +20,9 @@ const adminSources = readdirSync(componentsDir)
 const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 describe('Admin destination registry (ONE definition)', () => {
-  it('keeps every current destination (Overview, Users, Plans, Activity, AI Support)', () => {
-    expect(ADMIN_DESTINATIONS.map((d) => d.id).sort()).toEqual(['activity', 'ai-support', 'overview', 'plans', 'users']);
+  // Owner console 2026-10-19, typed: "מאשר שינוי ב-L-22: לשונית "פניות" חדשה בממשק הניהול" - Inquiries joins the registry
+  it('keeps every current destination (Overview, Users, Plans, Inquiries, Activity, AI Support)', () => {
+    expect(ADMIN_DESTINATIONS.map((d) => d.id).sort()).toEqual(['activity', 'ai-support', 'inquiries', 'overview', 'plans', 'users']);
   });
   it('sidebar groups, section ids and mobile list are all derived from the registry', () => {
     const navIds = ADMIN_NAV_GROUPS.flatMap((g) => g.items.map((i) => i.id)).sort();
