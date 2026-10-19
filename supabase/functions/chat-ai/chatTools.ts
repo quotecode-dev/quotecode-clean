@@ -318,8 +318,6 @@ type FetchLike = (url: string, init: Record<string, unknown>) => Promise<{ ok: b
 export type ToolLoopInput = {
   fetchImpl: FetchLike; apiKey: string; instructions: string;
   messages: Array<{ role: string; content: string }>; firstCalls: FirstToolCall[]; ctx: ToolContext; timeoutMs?: number;
-  // Owner 2026-10-19: a pasted / attached screenshot for THIS question (data URL) - attached to the last user message only
-  screenshot?: string | null;
 };
 
 /** The stronger model's turn: the first calls are executed, then the model may call tools again up to MAX_TOOL_ROUNDS rounds in total;
@@ -328,13 +326,6 @@ export async function runToolLoop(input: ToolLoopInput): Promise<{ answer: strin
   const toolsUsed: string[] = [];
   // deno-lint-ignore no-explicit-any
   const conversation: any[] = input.messages.map((m) => ({ role: m.role, content: m.content }));
-  if (input.screenshot) {
-    for (let k = conversation.length - 1; k >= 0; k--) {
-      if (conversation[k].role !== 'user') continue;
-      conversation[k] = { role: 'user', content: [{ type: 'input_text', text: conversation[k].content }, { type: 'input_image', image_url: input.screenshot, detail: 'auto' }] };
-      break;
-    }
-  }
   for (const call of input.firstCalls.slice(0, 5)) {
     toolsUsed.push(call.name);
     conversation.push({ type: 'function_call', call_id: call.id, name: call.name, arguments: call.arguments });

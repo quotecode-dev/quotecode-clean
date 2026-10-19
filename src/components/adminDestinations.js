@@ -1,11 +1,10 @@
 import { createElement } from 'react';
-import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox } from 'lucide-react';
+import { LayoutDashboard, Users2, CreditCard, Activity, Bot } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminPlans from './AdminPlans';
 import AdminSystemActivity from './AdminSystemActivity';
 import AdminUsersDestination from './AdminUsersDestination';
 import AISupportLogsContent from './AISupportLogsContent';
-import AdminInquiries from './AdminInquiries';
 
 // THE Admin destination registry - the one and only definition of what an
 // Admin destination is. The sidebar group list, the mobile More list, the
@@ -48,13 +47,6 @@ export const ADMIN_DESTINATIONS = [
     label: { he: 'מסלולים ומנויים', en: 'Plans & subscriptions' },
     title: { he: 'חבילות ומנויים - סופר אדמין', en: 'Plans / Subscriptions - Super Admin' },
     render: (host) => createElement(AdminPlans, { accounts: host.accounts, isHebrew: host.isHebrew, onOpenUser: host.openUser, onGoToUsers: () => host.navigate('users'), onRefreshAccounts: host.refreshAccounts }),
-  },
-  // Owner console 2026-10-19, typed: "מאשר שינוי ב-L-22: לשונית "פניות" חדשה בממשק הניהול" - the smart support email, stage 1 (read-only)
-  {
-    id: 'inquiries', group: 'management', icon: Inbox, permission: 'super_admin', mobile: 'more', available: true,
-    label: { he: 'פניות', en: 'Inquiries' },
-    title: { he: 'פניות - סופר אדמין', en: 'Inquiries - Super Admin' },
-    render: (host) => createElement(AdminInquiries, { isHebrew: host.isHebrew }),
   },
   {
     id: 'activity', group: 'system', icon: Activity, permission: 'super_admin', mobile: 'more', available: true,

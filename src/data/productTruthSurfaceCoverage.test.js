@@ -72,7 +72,6 @@ const ADMIN_ID_TO_CAPABILITY = {
   plans: 'admin_console',
   activity: 'admin_console',
   'ai-support': 'admin_console',
-  inquiries: 'admin_console', // Owner 2026-10-19 (L-22): the smart support email's read-only Inquiries tab
 };
 // Real routes that are deliberately NOT a Product Truth capability (decorative/legal/marketing/
 // legacy-redirect/auth-recovery surfaces) - explicitly excluded, not silently ignored.

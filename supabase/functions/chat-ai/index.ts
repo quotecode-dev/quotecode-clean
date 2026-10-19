@@ -18,7 +18,6 @@ import type { ChatFactPayload } from "../_shared/aiChatContract.ts";
 import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
 import { buildErrorEnvelope, withLegacyChoices, type ChatErrorCode } from "../_shared/aiChatContract.ts";
 import { classifyQuoteStatsIntent, computeQuoteStats, formatQuoteStatsAnswer, mentionsPlan, type QuoteStatRow } from "./quoteStatsTruth.ts";
-import { buildNoInventionBlock, removeInventedOffers } from "./noInvention.ts";
 import { CHEAP_MODEL, LEGACY_CHEAP_MODEL, isOwnDataQuestion, hasDataQualifier, chatCompletionsTools, chatCompletionToolCalls, runToolLoop, buildToolsPromptBlock, dailyCapAnswer, type ToolContext } from "./chatTools.ts";
 
 const corsHeaders = {
@@ -49,7 +48,7 @@ serve(async (req) => {
   if (!validation.ok) {
     return errorResponse('invalid_request', validation.reason, 400);
   }
-  const { messages, isHebrew: clientIsHebrew, isDashboard, guidedIntent, guidedSubtopic, currentArea, selectedQuoteId, workflowContext, contextRevision, helpContext: rawHelpContext, draftSnapshot, screenshot: rawScreenshot } = validation.value;
+  const { messages, isHebrew: clientIsHebrew, isDashboard, guidedIntent, guidedSubtopic, currentArea, selectedQuoteId, workflowContext, contextRevision, helpContext: rawHelpContext, draftSnapshot } = validation.value;
   // Track B/C: a UX-hint-only snapshot, already strictly validated/shaped
   // by validateChatRequest above - only ever meaningful on the authenticated
   // Dashboard surface, same gating as accountContext/quoteContext below.
@@ -414,13 +413,9 @@ serve(async (req) => {
       return { db: userJwtClient, userId: verifiedUserId, accountCurrency, today: new Date().toISOString().slice(0, 10) };
     })()
     : null;
-  // Owner 2026-10-19 ("איך אתה אומר שהוא לא ממציא"): every model answer is told never to offer an action the product does not have;
-  // a pasted / attached screenshot exists only in the signed-in dashboard chat (Owner "כן לצילום מסך ... העתק הדבק")
-  const screenshot = toolCtx ? rawScreenshot : null;
-  const promptWithRules = systemPrompt + buildNoInventionBlock(isHebrew, !!toolCtx);
-  const modelInstructions = toolCtx ? promptWithRules + buildToolsPromptBlock(isHebrew, toolCtx.today) : promptWithRules;
+  const modelInstructions = toolCtx ? systemPrompt + buildToolsPromptBlock(isHebrew, toolCtx.today) : systemPrompt;
 
-  let data: Record<string, unknown> = {};
+  let data: Record<string, unknown>;
   // Task 35: the provider call is bounded - a hung model ends in the closed provider_failure state (the widget offers a retry)
   // Owner 2026-10-19 ("תחליף עכשיו כן"): the cheap model is the provider's replacement (no reasoning, so function calling works on
   // this endpoint); when it fails the old model answers the same request, so the chat never stops because of the switch.
@@ -438,7 +433,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model,
           messages: [
-            { role: 'system', content: withTools ? modelInstructions : promptWithRules },
+            { role: 'system', content: withTools ? modelInstructions : systemPrompt },
             // `messages` here is the array rebuilt by validateChatRequest -
             // only { role: 'user'|'assistant', content: string } objects,
             // never the raw caller payload spread in directly.
@@ -465,31 +460,28 @@ serve(async (req) => {
     }
     return await callCheapModel(withTools, LEGACY_CHEAP_MODEL);
   };
-  // a question with a screenshot goes straight to the stronger model (it reads images; the cheap first call is skipped)
-  if (!screenshot) {
-    try {
-      const openAiResponse = await callCheapWithFallback(!!toolCtx);
+  try {
+    const openAiResponse = await callCheapWithFallback(!!toolCtx);
 
-      if (!openAiResponse.ok) {
-        return errorResponse('provider_failure', 'The AI provider returned an error', 502);
-      }
-
-      data = await openAiResponse.json();
-    } catch {
-      return errorResponse('provider_failure', 'Failed to reach the AI provider', 502);
+    if (!openAiResponse.ok) {
+      return errorResponse('provider_failure', 'The AI provider returned an error', 502);
     }
+
+    data = await openAiResponse.json();
+  } catch {
+    return errorResponse('provider_failure', 'Failed to reach the AI provider', 502);
   }
 
   // the cheap model's reply text - the only place the provider response's choice list is read
   const replyText = (data: Record<string, unknown>) => (data?.choices as Array<{ message?: { content?: string } }> | undefined)?.[0]?.message?.content;
-  let aiReply = screenshot ? undefined : replyText(data);
+  let aiReply = replyText(data);
   // the cheap model asked for data -> the stronger model continues the turn with the tools; if that path fails, the question is
   // answered exactly as before this change (the cheap model, no tools)
-  const firstCalls = toolCtx && !screenshot ? chatCompletionToolCalls(data) : [];
-  if (toolCtx && (firstCalls.length || screenshot)) {
+  const firstCalls = toolCtx ? chatCompletionToolCalls(data) : [];
+  if (toolCtx && firstCalls.length) {
     const toolTurn = await runToolLoop({
       fetchImpl: fetch as unknown as Parameters<typeof runToolLoop>[0]['fetchImpl'], apiKey: Deno.env.get('OPENAI_API_KEY') ?? '',
-      instructions: modelInstructions, messages, firstCalls, ctx: toolCtx, screenshot,
+      instructions: modelInstructions, messages, firstCalls, ctx: toolCtx,
     });
     if (toolTurn) {
       aiReply = toolTurn.answer;
@@ -514,9 +506,6 @@ serve(async (req) => {
   if (!isHebrew) {
     aiReply = aiReply.replace(/support@tekango\.com/gi, 'info@tekango.com');
   }
-
-  // an offer the product cannot keep (attaching a file / document; a screenshot outside the signed-in chat) is removed
-  aiReply = removeInventedOffers(aiReply, { screenshots: !!toolCtx });
 
   // §8: parse and validate any trailing navigation marker - the visible
   // answer never contains the raw "NAVIGATE: ..." line either way.

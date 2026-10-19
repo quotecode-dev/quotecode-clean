@@ -182,8 +182,8 @@ export const AI_FACTS = {
       "id": "quote_create",
       "heLabel": "יצירת הצעת מחיר חדשה",
       "enLabel": "Create a new quote",
-      "heDescription": "יצירת הצעת מחיר חדשה. טיוטה ותצוגה מקדימה אינן משתמשות באחת מ-10 ההצעות של מסלול חינם. תבניות: בעורך ההצעה, מתחת לכפתור השמירה, יש „שמירה כתבנית (בלי פרטי לקוח)” - נשמרים הנושא והפריטים, בלי פרטי הלקוח. כדי להתחיל הצעה מתבנית: בתפריט „הצעה חדשה” בוחרים „התחלה מתבנית שמורה” ומשם בוחרים את התבנית.",
-      "enDescription": "Create a new quote. Drafts and previews do not use one of the 10 quotes of the Free plan. Templates: in the quote editor, under the save button, there is \"Save as template (no customer details)\" - the subject and the items are saved, without the customer details. To start a quote from a template: in the \"New quote\" menu choose \"Start from a saved template\" and pick the template there.",
+      "heDescription": "יצירת הצעת מחיר חדשה. טיוטה ותצוגה מקדימה אינן משתמשות באחת מ-10 ההצעות של מסלול חינם.",
+      "enDescription": "Create a new quote. Drafts and previews do not use one of the 10 quotes of the Free plan.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -286,8 +286,8 @@ export const AI_FACTS = {
       "id": "smart_quote",
       "heLabel": "הצעת מחיר חכמה",
       "enLabel": "Smart Quote flow",
-      "heDescription": "הצעת מחיר חכמה עם AI (בתפריט „הצעה חדשה”): מתארים את העבודה במילים, וה-AI מציע שורות - תיאור, כמות ויחידה; מחיר רק כשהפריט קיים בקטלוג שלכם, אחרת המחיר נשאר ריק להזנה. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה; שום דבר לא נשמר או נשלח לבד. אפשר גם להכתיב את העבודה בקול (המיקרופון בפינת שדה התיאור) ולענות בקול על השאלות שהטיוטה שואלת.",
-      "enDescription": "AI smart quote (in the \"New quote\" menu): describe the job in words and the AI suggests lines - description, quantity and unit; a price only when the item is in your catalog, otherwise the price stays empty for you to enter. You review, correct and approve before anything enters the quote; nothing is saved or sent on its own. You can also dictate the job by voice (the microphone in the corner of the description field) and answer the draft’s questions by voice.",
+      "heDescription": "הצעת מחיר חכמה עם AI (בתפריט „הצעה חדשה”): מתארים את העבודה במילים, וה-AI מציע שורות - תיאור, כמות ויחידה; מחיר רק כשהפריט קיים בקטלוג שלכם, אחרת המחיר נשאר ריק להזנה. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה; שום דבר לא נשמר או נשלח לבד.",
+      "enDescription": "AI smart quote (in the \"New quote\" menu): describe the job in words and the AI suggests lines - description, quantity and unit; a price only when the item is in your catalog, otherwise the price stays empty for you to enter. You review, correct and approve before anything enters the quote; nothing is saved or sent on its own.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -1105,8 +1105,8 @@ export const AI_FACTS = {
       "id": "ai_chat",
       "heLabel": "צ׳אט AI",
       "enLabel": "AI Chat assistant",
-      "heDescription": "עוזר AI זמין בתוך האפליקציה, שמסביר את המוצר, עונה מהנתונים של החשבון (הצעות, לקוחות, קטלוג, משימות) ומנווט לפי בקשה - קריאה בלבד, לעולם לא מבצע פעולה בעצמו. אפשר לשאול גם בקול: המיקרופון בשורת הכתיבה; התשובות מוקראות או בכתב לפי הבחירה בכפתור הרמקול שבכותרת הצ׳אט. אפשר להדביק לשאלה צילום מסך (או לצרף אותו בכפתור המהדק בטלפון), והעוזר מסביר מה מופיע בו.",
-      "enDescription": "An in-app AI assistant that explains the product, answers from the account’s own data (quotes, clients, catalog, tasks) and navigates on request - read-only, it never performs an action itself. You can also ask by voice: the microphone in the typing row; answers are spoken or written by the choice in the speaker button of the chat header. You can paste a screenshot into a question (or attach it with the paperclip on a phone) and the assistant explains what it shows.",
+      "heDescription": "עוזר AI זמין בתוך האפליקציה, שמסביר את המוצר ומנווט לפי בקשה - קריאה בלבד, לעולם לא מבצע פעולה בעצמו.",
+      "enDescription": "An in-app AI assistant that explains the product and navigates on request - read-only, it never performs an action itself.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",

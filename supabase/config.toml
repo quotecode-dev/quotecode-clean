@@ -184,13 +184,6 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/quote-presentation/index.ts"
 
-[functions.support-inbound]
-enabled = true
-# Owner 2026-10-19 (smart support email stage 1): the email provider's "email.received" webhook - no user JWT; the request must carry a
-# valid provider signature (RESEND_INBOUND_WEBHOOK_SECRET) over the raw body. Stores support / info mail only; sends nothing.
-verify_jwt = false
-entrypoint = "./functions/support-inbound/index.ts"
-
 [functions.voice-ai]
 enabled = true
 # Owner 2026-10-19 (voice assistant): speech to text / text to speech for the smart chat. Signed-in users only - the JWT is

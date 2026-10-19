@@ -177,17 +177,7 @@ export type ValidatedChatRequest = {
   // Task 34: the OPEN quote form's bounded item snapshot - accepted ONLY with guidedIntent 'quote_improvement' (the user's explicit
   // review click), re-sanitized here (../_shared/quoteDraftSnapshot.js); never part of helpContext, never persisted.
   draftSnapshot: ReturnType<typeof sanitizeDraftSnapshot>;
-  // Owner 2026-10-19 ("כן לצילום מסך ... העתק הדבק"): ONE screenshot for the current question (a data URL, png / jpeg / webp,
-  // bounded) - honored only for a verified dashboard user, never stored, never part of the transcript of later turns.
-  screenshot: string | null;
 };
-
-export const AI_CHAT_MAX_SCREENSHOT_CHARS = 1_600_000; // ~1.2 MB image; the browser downsizes before sending
-/** A pasted / attached screenshot: a base64 data URL of png / jpeg / webp within the size limit, or null (fail-open to null). */
-export function sanitizeScreenshot(value: unknown): string | null {
-  if (typeof value !== 'string' || value.length > AI_CHAT_MAX_SCREENSHOT_CHARS) return null;
-  return /^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/]+={0,2}$/.test(value) ? value : null;
-}
 
 export type ChatRequestValidationResult =
   | { ok: true; value: ValidatedChatRequest }
@@ -295,7 +285,6 @@ export function validateChatRequest(body: unknown): ChatRequestValidationResult 
       contextRevision,
       helpContext: sanitizeHelpContext(candidate.helpContext),
       draftSnapshot: guidedIntent === 'quote_improvement' ? sanitizeDraftSnapshot(candidate.draftSnapshot) : null,
-      screenshot: sanitizeScreenshot(candidate.screenshot),
     },
   };
 }
