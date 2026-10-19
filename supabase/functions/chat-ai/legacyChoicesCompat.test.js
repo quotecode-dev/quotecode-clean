@@ -99,15 +99,10 @@ describe('MD-1 static contract on chat-ai/index.ts', () => {
     expect(responses.every((f) => f === 'withLegacyChoices' || f === 'buildErrorEnvelope')).toBe(true);
     expect(INDEX.match(/new Response\(/g)).toHaveLength(5); // + the CORS preflight 'ok'
   });
-  // Owner console 2026-10-19 (smart chat, L-17 unlocked): a question that needs the account's data continues on the stronger model
-  // (chatTools.runToolLoop, the Responses API) - the only other model call, with the same system prompt; index.ts keeps ONE
-  // Chat Completions fetch site (the cheap model, also its tool-less fallback) and still only READS `choices`.
-  it('one cheap-model fetch site, one system prompt, the stronger model only through the tool loop, and `choices` is only READ', () => {
+  it('no second model call, no alternate prompt: exactly one provider fetch, and `choices` is only READ from the provider response', () => {
     expect(INDEX.match(/fetch\(/g)).toHaveLength(1);
     expect(INDEX.match(/buildSystemPrompt\(/g)).toHaveLength(1);
     expect([...INDEX.matchAll(/choices/g)]).toHaveLength(1);
     expect(INDEX).toMatch(/data\?\.choices as Array/);
-    expect(INDEX.match(/runToolLoop\(/g)).toHaveLength(1);
-    expect(INDEX).not.toMatch(/api\.openai\.com\/v1\/responses/);
   });
 });

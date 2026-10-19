@@ -51,7 +51,7 @@ export function computeQuoteStats(rows: QuoteStatRow[], accountCurrency: string)
 }
 
 const SYMBOL: Record<string, string> = { ILS: '₪', USD: '$', EUR: '€', GBP: '£', CAD: 'CA$', AUD: 'A$' };
-export const money = (cur: string, amount: number) => `${SYMBOL[cur] || `${cur} `}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const money = (cur: string, amount: number) => `${SYMBOL[cur] || `${cur} `}${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 // the account's own currency first, then the others in a fixed order - never added together
 const amounts = (g: Group, accountCurrency: string, isHebrew: boolean) => {
   const order = [accountCurrency, ...['ILS', 'USD', 'EUR', 'GBP', 'CAD', 'AUD'].filter((c) => c !== accountCurrency)];
