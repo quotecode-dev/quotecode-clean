@@ -187,17 +187,13 @@
     "interactive": 1,
     "markers": 1
   },
-  "src/components/NavBackBar.jsx": {
-    "interactive": 1,
-    "markers": 1
-  },
   "src/components/NewQuoteMenu.jsx": {
     "interactive": 3,
     "markers": 2
   },
   "src/components/NotificationCenter.jsx": {
-    "interactive": 11,
-    "markers": 11
+    "interactive": 5,
+    "markers": 5
   },
   "src/components/NumericValue.jsx": {
     "interactive": 0,
@@ -264,8 +260,8 @@
     "markers": 7
   },
   "src/components/QuotesTab.jsx": {
-    "interactive": 27,
-    "markers": 30
+    "interactive": 22,
+    "markers": 25
   },
   "src/components/RemindersFirstSetupNotice.jsx": {
     "interactive": 1,
@@ -519,10 +515,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/hooks/useInAppBack.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/hooks/useLauncherStepAside.js": {
     "interactive": 0,
     "markers": 0
@@ -739,10 +731,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/bellSubject.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/businessCardClient.js": {
     "interactive": 0,
     "markers": 0
@@ -831,15 +819,7 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/navLabels.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/newQuoteChoices.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/nextStep.js": {
     "interactive": 0,
     "markers": 0
   },

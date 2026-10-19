@@ -19,13 +19,8 @@ describe('same-session redundant re-render is closed', () => {
     expect(src).toMatch(/newSession\.user\.id !== lastLoadedUserIdRef\.current/);
   });
   it('the history/popstate effect is keyed on session PRESENCE, not object identity', () => {
-    // Owner 2026-10-19 (L-15 approval, Back everywhere): the history / popstate handling moved into useInAppBack, still keyed on the
-    // session PRESENCE (enabled: hasSession) - a token refresh never adds a history entry
-    expect(src).toContain('const hasSession = !!session;');
-    expect(src).toMatch(/useInAppBack\(\{\s*enabled: hasSession,/);
-    const hook = read('src/hooks/useInAppBack.js');
-    expect(hook).toMatch(/window\.history\.pushState\(\{ dashboard: true \}, '', window\.location\.href\);/);
-    expect(hook).toMatch(/window\.addEventListener\('popstate', onPop\);\s*return \(\) => window\.removeEventListener\('popstate', onPop\);\s*\}, \[enabled\]\);/);
+    expect(src).toMatch(/const hasSession = !!session;\s*useEffect\(\(\) => \{\s*if \(hasSession\) \{\s*window\.history\.pushState/);
+    expect(src).toMatch(/\}, \[hasSession\]\);/);
   });
   it('auth refresh/listener behavior is untouched (no autoRefresh disable, listener present)', () => {
     expect(src).toContain('supabase.auth.onAuthStateChange');

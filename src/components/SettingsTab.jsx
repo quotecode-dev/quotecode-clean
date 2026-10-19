@@ -78,23 +78,15 @@ export default function SettingsTab({
   shareDefaultsClient = null,
   shareDefaultsUserId = null,
   onShareDefaultsSaved = null,
-  // Owner 2026-10-19 (Back everywhere): the sub-screen shown, reported to the Dashboard's back stack (a Back returns to it)
-  onViewChange = null,
 }) {
-  // a sub-screen exists only when its entry exists (the same conditions as the entry buttons below)
-  const viewAvailable = (v) => v === 'business'
-    || (v === 'reminders' && !!remindersClient && !!remindersUserId)
-    || (v === 'businessCard' && !!businessCardClient && !!businessCardUserId)
-    || (v === 'shareDefaults' && !!shareDefaultsClient && !!shareDefaultsUserId);
-  const requestedView = viewRequest?.view && viewAvailable(viewRequest.view) ? viewRequest.view : null;
-  const [view, setView] = useState(requestedView || 'business');
+  const remindersRequested = viewRequest?.view === 'reminders' && !!remindersClient && !!remindersUserId;
+  const [view, setView] = useState(remindersRequested ? 'reminders' : 'business');
   useEffect(() => {
     if (!viewRequest) return;
-    if (requestedView) setView(requestedView);
+    if (remindersRequested) setView('reminders');
     onViewRequestDone?.();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [viewRequest]);
-  useEffect(() => { onViewChange?.(view); }, [view, onViewChange]);
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
   const [stateProv, setStateProv] = useState('');

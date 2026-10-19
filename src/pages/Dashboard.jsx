@@ -10,7 +10,6 @@ import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
 import { OPEN_REMINDERS_SETTINGS_EVENT } from '../utils/reminders';
-import { BELL_SUBJECT_EVENT } from '../utils/bellSubject';
 import { markQuoteSentAfterShare } from '../utils/quoteSentMark';
 import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
 import { publishBlocker, resolveBlockers, clearScope, SAVE_ATTEMPT_CODES, blockerCodeForActionError, blockerCodeForSaveFailure, blockerCodeForEmailError } from '../utils/aiHelpBlockers';
@@ -114,8 +113,6 @@ import {
 import AiRobotIcon from '../components/AiRobotIcon';
 import { loadServiceSchedule, normalizeServiceSchedule, probeServiceSchedule, saveServiceSchedule } from '../utils/serviceScheduleClient';
 import { loadShareDefaults } from '../utils/shareDefaultsClient';
-import { useInAppBack, closeTopDialogWithEscape } from '../hooks/useInAppBack';
-import NavBackBar from '../components/NavBackBar';
 import { buildShareText } from '../../supabase/functions/_shared/shareMessage.js';
 
 // IRON-ILS-001: formatNum is now NON-MONEY only (quantities/measurements). Every displayed money
@@ -584,9 +581,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   // Keyed on session PRESENCE, not object identity: a token refresh (new object, same signed-in
   // state) must not push another history entry. Behavior at sign-in/sign-out is unchanged.
-  // Owner 2026-10-19 (L-15 approval, Back everywhere): the system Back is handled by useInAppBack (declared with the editor below) -
-  // one step back inside the app; only the first screen with nothing open still asks to sign out.
   const hasSession = !!session;
+  useEffect(() => {
+    if (hasSession) {
+      window.history.pushState({ dashboard: true }, '', window.location.href);
+
+      const handlePopState = () => {
+        window.history.pushState({ dashboard: true }, '', window.location.href);
+        setShowSignOutModal(true);
+      };
+
+      window.addEventListener('popstate', handlePopState);
+      return () => window.removeEventListener('popstate', handlePopState);
+    }
+  }, [hasSession]);
 
   // Item 25 - סנכרון אוטומטי חד-פעמי בין הבאנדל הנוכחי (bundleIsHebrew,
   // שנקבע אנונימית לפני ההתחברות ב-main.jsx: URL/localStorage/geo/שפת
@@ -930,11 +938,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const aiNavStateRef = useRef({ showQuoteForm: false, isDirty: () => false, isSuperAdmin: false });
   // Task 40: a one-shot request for the Business settings sub-screen (consumed by SettingsTab, then cleared)
   const [settingsViewRequest, setSettingsViewRequest] = useState(null);
-  // Owner 2026-10-19 (Back everywhere): the Business settings sub-screen shown (reported by SettingsTab; part of the back stack)
-  const [settingsView, setSettingsView] = useState('business');
-  useEffect(() => { if (activeTab !== 'settings') setSettingsView('business'); }, [activeTab]);
-  // night task 2026-10-19: a one-shot request from the bell to open one quote's tracking details in the list (consumed by QuotesTab)
-  const [bellQuoteFocus, setBellQuoteFocus] = useState(null);
   useEffect(() => {
     function handleAiNavigate(e) {
       const action = e?.detail?.action;
@@ -1016,62 +1019,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         case 'open_reminders_settings_internal':
           closeEditor();
           setActiveTab('settings');
-          setSettingsView('reminders');
           setSettingsViewRequest({ view: 'reminders' });
           break;
-        // night task 2026-10-19 (Owner, doc 4559529a): a bell notification's own subject - product-owned, never an AI destination
-        case 'open_bell_quote_internal': {
-          const quoteId = e?.detail?.meta?.quoteId;
-          if (!quotes.some((q) => q.id === quoteId)) {
-            setAlertModalMsg(isHebrew ? 'ההצעה של ההודעה כבר אינה זמינה.' : 'The quote of this notification is no longer available.');
-            break;
-          }
-          closeEditor();
-          setSearchTerm('');
-          setStatusFilter('All');
-          setActiveTab('main');
-          setBellQuoteFocus({ quoteId, nonce: Date.now() });
-          break;
-        }
-        case 'open_bell_task_internal':
-          closeEditor();
-          setTaskOpenId(e?.detail?.meta?.taskId || null);
-          setActiveTab('tasks');
-          break;
-        case 'open_bell_client_internal': {
-          const clientId = e?.detail?.meta?.clientId;
-          const missing = () => setAlertModalMsg(isHebrew ? 'הלקוח של ההודעה כבר אינו זמין.' : 'The client of this notification is no longer available.');
-          const openClient = (target) => { closeEditor(); setActiveTab('clients'); setEditingClient(target); };
-          const known = clients.find((c) => c.id === clientId);
-          if (known) { openClient(known); break; }
-          // a client added on another device / after this list loaded: read it (RLS = only the account's own rows) before saying "missing"
-          if (!clientId) { missing(); break; }
-          Promise.resolve(supabase.from('clients').select('*').eq('id', clientId).maybeSingle())
-            .then(({ data }) => { if (data) openClient(data); else missing(); })
-            .catch(() => missing());
-          break;
-        }
         default:
           break;
       }
     }
     // Task 40: the welcome item's "Business settings › Reminders & automation" link - the same unsaved-work guard as above
     const handleOpenReminders = () => handleAiNavigate({ detail: { action: 'open_reminders_settings_internal' } });
-    const BELL_ACTIONS = { quote: 'open_bell_quote_internal', task: 'open_bell_task_internal', client: 'open_bell_client_internal' };
-    const handleBellSubject = (ev) => {
-      const d = ev?.detail || {};
-      if (BELL_ACTIONS[d.kind]) handleAiNavigate({ detail: { action: BELL_ACTIONS[d.kind], meta: d } });
-    };
     window.addEventListener(AI_NAVIGATE_EVENT, handleAiNavigate);
     window.addEventListener(OPEN_REMINDERS_SETTINGS_EVENT, handleOpenReminders);
-    window.addEventListener(BELL_SUBJECT_EVENT, handleBellSubject);
-    return () => {
-      window.removeEventListener(AI_NAVIGATE_EVENT, handleAiNavigate);
-      window.removeEventListener(OPEN_REMINDERS_SETTINGS_EVENT, handleOpenReminders);
-      window.removeEventListener(BELL_SUBJECT_EVENT, handleBellSubject);
-    };
+    return () => { window.removeEventListener(AI_NAVIGATE_EVENT, handleAiNavigate); window.removeEventListener(OPEN_REMINDERS_SETTINGS_EVENT, handleOpenReminders); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [quotes, clients, isHebrew]);
+  }, [quotes, isHebrew]);
 
   const [clientName, setClientName] = useState('');
   const [clientEmail, setClientEmail] = useState('');
@@ -3863,45 +3823,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
     await quoteDraft.discard();
     handleCancelEdit();
-    // Owner 2026-10-19 (Back everywhere): Cancel returns to the screen the editor was opened from
-    inAppBack.returnToOrigin();
   };
-
-  // Owner console 2026-10-19, typed: "מאשר שינוי ב-L-15 ואת תוכנית החזרה בכל המסכים" - the in-app back stack (src/hooks/useInAppBack.js)
-  const leaveEditorMsg = isHebrew ? 'יש שינויים שלא נשמרו בהצעה. לעזוב את העורך? הטיוטה נשארת שמורה מקומית במכשיר הזה (לא בשרת).' : 'You have unsaved changes in this quote. Leave the editor? The draft stays stored locally on this device (not on the server).';
-  const mayLeaveEditor = () => !quoteDraft.isDirty() || window.confirm(leaveEditorMsg);
-  // the sidebar / bottom row / More leave the editor through the same unsaved-work question as Back and the AI navigation
-  const guardedNav = (go) => { if (showQuoteForm && activeTab === 'main' && !mayLeaveEditor()) return; go(); };
-  const isAdminTab = String(activeTab).startsWith('admin');
-  const navScreen = {
-    key: [activeTab, showQuoteForm && activeTab === 'main' ? 'editor' : '', activeTab === 'settings' ? settingsView : '', isAdminTab ? `${adminSection}:${adminSelectedUserId || ''}` : ''].join('|'),
-    tab: activeTab, editor: showQuoteForm && activeTab === 'main', editorAlive: showQuoteForm,
-    settingsView: activeTab === 'settings' ? settingsView : null, adminSection, adminUserId: adminSelectedUserId,
-    search: searchTerm, status: statusFilter,
-  };
-  const inAppBack = useInAppBack({
-    enabled: hasSession,
-    screen: navScreen,
-    apply: (snap) => {
-      if (String(snap.tab).startsWith('admin')) navigateToAdminSection(snap.adminSection, snap.adminUserId || null);
-      else setActiveTab(snap.tab);
-      if (snap.tab === 'settings') { setSettingsView(snap.settingsView || 'business'); setSettingsViewRequest({ view: snap.settingsView || 'business' }); }
-      if (snap.tab === 'main') { setSearchTerm(snap.search || ''); setStatusFilter(snap.status || 'All'); }
-    },
-    closeTopWindow: (memo) => {
-      if (showSignOutModal) { setShowSignOutModal(false); return true; }
-      if (showMobileMoreMenu) { setShowMobileMoreMenu(false); return true; }
-      if (alertModalMsg) { setAlertModalMsg(null); return true; }
-      if (pendingDelete) { setPendingDelete(null); return true; }
-      if (editingClient || isCreatingClient) { setEditingClient(null); setIsCreatingClient(false); return true; }
-      if (showPricingModal) { setShowPricingModal(false); return true; }
-      return closeTopDialogWithEscape(memo);
-    },
-    mayLeaveEditor,
-    leaveEditor: () => { setEditingQuoteId(null); setIsCreatingQuote(false); },
-    onRoot: () => setShowSignOutModal(true),
-    scrollRoot: () => mainScrollRef.current,
-  });
 
   // ---- Durable drafts: restore / conflict handling (2026-09-21) ----
   const draftLabelFor = (q, env) => (q ? formatQuoteFallback(q) : (env?.quoteId ? String(env.quoteId).slice(0, 8) : ''));
@@ -6182,50 +6104,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           cursor: pointer;
         }
         .quote-hot-banner-action:hover { background: #fed7aa; }
-        /* Owner 2026-10-19 (L-25 / L-26 approval): the next-step banner's visible text action, at the inline end of the same banner */
-        .quote-hot-banner-cta {
-          flex: none;
-          min-height: 30px;
-          padding: 0 12px;
-          border: 1px solid #c2410c;
-          border-radius: 999px;
-          background: #ffffff;
-          color: #9a3412;
-          font: inherit;
-          font-weight: 700;
-          white-space: nowrap;
-          cursor: pointer;
-        }
-        .quote-hot-banner-cta:hover { background: #ffedd5; }
-        .quote-hot-banner-cta:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
-        /* Owner 2026-10-19 (L-15 approval, Back everywhere): "Back to <the previous screen>" at the top of the screen (inline-start) */
-        .dash-nav-back {
-          align-self: flex-start;
-          display: inline-flex;
-          align-items: center;
-          gap: 6px;
-          min-height: 36px;
-          margin: 0 0 10px;
-          padding: 0 14px;
-          border: 1px solid #c9d6d3;
-          border-radius: 999px;
-          background: #ffffff;
-          color: #0F6672;
-          font: inherit;
-          font-size: 0.84rem;
-          font-weight: 700;
-          cursor: pointer;
-          white-space: nowrap;
-        }
-        .dash-nav-back:hover { background: #eef6f5; }
-        .dash-nav-back:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
-        @media (max-width: 768px) { .dash-nav-back { min-height: 44px; margin-bottom: 8px; } }
-        /* phones / tablet portrait: the text keeps the line beside the icon, the action goes under it (44px touch target) */
-        @media (max-width: 768px) {
-          .quote-workspace .quote-hot-banner:has(.quote-hot-banner-cta) { flex-wrap: wrap; padding-block: 2px 6px; }
-          .quote-workspace .quote-hot-banner:has(.quote-hot-banner-cta) .quote-hot-banner-text { flex: 1 1 calc(100% - 52px); }
-          .quote-workspace .quote-hot-banner-cta { min-height: 44px; margin-inline-start: 46px; }
-        }
         /* Owner 2026-10-18: the quote list in pages - separate, clearly outlined "previous" / "next" buttons with the highlighted
            "page X of Y" between them (every width; the desktop card adjusts its height below) */
         .quote-modern-pager { flex: none; box-sizing: border-box; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 10px 4px; margin-top: 4px; background: transparent; font-size: 13px; }
@@ -7626,7 +7504,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 key={id}
                 className={activeTab === id ? 'dash-sidebar-btn dash-sidebar-btn-active' : 'dash-sidebar-btn'}
                 aria-current={activeTab === id ? 'page' : undefined}
-                onClick={() => guardedNav(() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); })}
+                onClick={() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); }}
               >
                 <TabIcon size={19} strokeWidth={1.5} />
                 <span>{label}</span>
@@ -8110,7 +7988,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     <div className="dash-header-account">
                       <HeaderGreeting isHebrew={isHebrew} />
                       {/* Task 20: the bell opens the notification center (same 18px footprint; badge and panel are out of flow). */}
-                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} />
+                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} authUser={session?.user} />
                       {/* Owner 2026-10-14: the round plan medallion replaces the avatar circle (no sign-in provider ever set a picture) -
                           the account's plan status from the one shared model; it opens the plans window. Not shown to the super admin. */}
                       {!isSuperAdmin && (
@@ -8126,7 +8004,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   <div className="dash-header-badge-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {/* Task 20 (Owner console instruction 2026-10-09): the plans status indicator is removed from the mobile header and the
                         SAME notification bell takes its slot. The plans feature itself stays (Business settings › My subscription, Task 30). */}
-                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} variant="mobile" />
+                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} authUser={session?.user} variant="mobile" />
                     {/* Owner 2026-10-14: the same round plan medallion as on desktop, outermost next to the bell */}
                     {!isSuperAdmin && (
                       <HeaderPlanMedallion model={headerPlanBadge} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />
@@ -8203,10 +8081,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               של הדשבורד ועבר לטאב עצמאי משלו ("קטלוג" - ר' activeTab
               === 'catalog' למטה). היסטוריית הצעות תופסת כעת את מלוא
               רוחב אזור התוכן הראשי - אין עוד עמודה שנייה/דו-טורי כאן. */}
-          {/* Owner 2026-10-19 (L-15 approval, Back everywhere): "Back to <the screen you came from>" on every screen but the editor (it has its own Cancel) */}
-          {!(activeTab === 'main' && showQuoteForm) && (
-            <NavBackBar previous={inAppBack.previous} onBack={inAppBack.back} isHebrew={isHebrew} />
-          )}
           {activeTab === 'main' && !showQuoteForm && (
             <RemindersFirstSetupNotice client={supabase} userId={session?.user?.id} isHebrew={isHebrew} />
           )}
@@ -8249,10 +8123,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                 onCreateStructuredQuote={handleCreateStructuredQuoteClick}
                 onCreateFromTemplate={handleOpenTemplatePicker}
                 onCreateAiQuote={handleCreateAiQuoteClick}
-                focusQuoteRequest={bellQuoteFocus}
-                onFocusQuoteConsumed={() => setBellQuoteFocus(null)}
-                tasksClient={supabase}
-                userId={session?.user?.id}
               />
           )}
 
@@ -8431,7 +8301,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               remindersUserId={session?.user?.id}
               viewRequest={settingsViewRequest}
               onViewRequestDone={() => setSettingsViewRequest(null)}
-              onViewChange={setSettingsView}
               businessCardClient={supabase}
               businessCardUserId={session?.user?.id}
               shareDefaultsClient={supabase}
@@ -8687,7 +8556,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               <button
                 key={id}
                 role="menuitem"
-                onClick={() => guardedNav(() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); })}
+                onClick={() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }}
                 style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: activeTab === id ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: activeTab === id ? NEON.violet : NEON.textPrimary, cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700', textAlign: isHebrew ? 'right' : 'left' }}
               >
                 <TabIcon size={17} strokeWidth={2.2} />
@@ -8809,7 +8678,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               const isActive = id === 'main' ? (activeTab === 'main' && !showQuoteForm) : activeTab === id;
               {/* PRODUCT_TRUTH_DECORATIVE: generic mobile bottom-nav button template rendered once per nav entry (main/clients/finances); each real destination is independently marked at its own screen - resolved by Claude after an agent flag */}
               return (
-                <button key={id} onClick={() => guardedNav(() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); })} style={{ background: isActive ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                <button key={id} onClick={() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); }} style={{ background: isActive ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', whiteSpace: 'nowrap' }}>
                   <TabIcon size={16} style={{ marginBottom: '1px' }} />
                   {label}
                 </button>

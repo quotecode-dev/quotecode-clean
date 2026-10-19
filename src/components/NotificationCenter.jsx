@@ -4,8 +4,7 @@
 // saved mode/checkboxes (defaults = In-app only when nothing is saved). Read marks persist only when the server table exists.
 // It never sends anything and never navigates to settings (the single settings entry is inside Business settings).
 import { Fragment, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Bell, X } from 'lucide-react';
+import { Bell } from 'lucide-react';
 import { APP as NEON } from '../theme/neonTheme';
 import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
 import { taskMarket, marketToday, marketClock } from '../utils/manualTasks';
@@ -18,14 +17,13 @@ import {
 } from '../utils/reminders';
 import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../shared/brand';
 import AiRobotIcon from './AiRobotIcon';
-import { BELL_SUBJECT_EVENT, BELL_ACTION_COPY, bellActionsFor, loadFloatedKeys, saveFloatedKeys, floatedStorageKey, pendingFloating } from '../utils/bellSubject';
 
 const KIND_COLOR = { first_view: '#5B3FB6', task_due: '#0F6672', validity_ending: '#9A5B12', viewed_not_approved: '#65727A' };
 
 // variant: 'desktop' = the former decorative 18x18 icon footprint (desktop / tablet-landscape account cluster);
 //          'mobile'  = the slot freed by the removed plans indicator in the mobile / tablet-portrait header (Owner console instruction
 //                      2026-10-09): a 30px-high round tap target matching the AI-chat chip height, same 18px icon, same panel.
-export default function NotificationCenter({ client, userId, isHebrew, isLocalIsraeliBusiness, quotes = [], now = null, variant = 'desktop', authUser = null, quotesReady = true, quotesFresh = undefined }) {
+export default function NotificationCenter({ client, userId, isHebrew, isLocalIsraeliBusiness, quotes = [], now = null, variant = 'desktop', authUser = null, quotesReady = true }) {
   const mobile = variant === 'mobile';
   const C = REMINDERS_COPY[isHebrew ? 'he' : 'en'];
   const local = isLocalIsraeliBusiness === true;
@@ -37,9 +35,6 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   const [read, setRead] = useState(() => new Set());
   const [readPersisted, setReadPersisted] = useState(false);
   const [settingsLoaded, setSettingsLoaded] = useState(false);
-  // night task 2026-10-19: the floating notice starts only after every input of the derivation loaded once
-  const [tasksLoaded, setTasksLoaded] = useState(false);
-  const [readLoaded, setReadLoaded] = useState(false);
   const [pos, setPos] = useState(null);
   const btnRef = useRef(null);
   const panelRef = useRef(null);
@@ -59,9 +54,8 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
     if (!client || !userId) return;
     const [s, t, r] = await Promise.all([loadReminderSettings(client, userId), listTasks(client, userId), listReadMarks(client, userId)]);
     if (s.ok) { setSettings(s.data.settings); setSettingsLoaded(true); } // otherwise the In-app defaults stay (nothing is ever sent)
-    if (t.ok) { setTasks(t.data); setTasksLoaded(true); }
+    if (t.ok) setTasks(t.data);
     if (r.ok) { setRead(r.data); setReadPersisted(true); } else setReadPersisted(false);
-    setReadLoaded(true);
   }, [client, userId]);
   useEffect(() => { if (shown) refresh(); }, [shown, refresh]);
   useEffect(() => { if (open) refresh(); }, [open, refresh]);
@@ -94,7 +88,12 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
 
   useLayoutEffect(() => {
     if (!open || !btnRef.current) return;
-    const place = () => setPos(panelPlacement(btnRef.current, isHebrew));
+    const place = () => {
+      const r = btnRef.current.getBoundingClientRect();
+      const width = Math.min(360, window.innerWidth - 16);
+      const left = isHebrew ? Math.max(8, Math.min(r.left - 12, window.innerWidth - width - 8)) : Math.max(8, Math.min(r.right + 12 - width, window.innerWidth - width - 8));
+      setPos({ top: r.bottom + 10, left, width });
+    };
     place();
     window.addEventListener('resize', place);
     return () => window.removeEventListener('resize', place);
@@ -112,91 +111,11 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   const openAiChatFromWelcome = () => { setOpen(false); window.dispatchEvent(new CustomEvent('open-proflow-ai-chat')); };
   const openRemindersSettings = () => { setOpen(false); window.dispatchEvent(new CustomEvent(OPEN_REMINDERS_SETTINGS_EVENT)); };
 
-  const markOne = async (key) => {
-    const r = await markRemindersRead(client, userId, [key]);
-    if (r.ok) setRead((s) => new Set([...s, key]));
-  };
   const markAll = async () => {
     const keys = [...(welcome ? [WELCOME_ITEM_KEY] : []), ...items.map((i) => i.key)];
     const r = await markRemindersRead(client, userId, keys);
     if (r.ok) setRead((s) => new Set([...s, ...keys]));
   };
-
-  // night task 2026-10-19: a notification's own subject (quote / task / client) - the Dashboard opens it through the same unsaved-work
-  // guard as every other navigation; the notification becomes read and the panel / floating notice closes
-  const A = BELL_ACTION_COPY[isHebrew ? 'he' : 'en'];
-  const [notice, setNotice] = useState(null);
-  const openSubject = (item, action) => {
-    setOpen(false);
-    setNotice(null);
-    markRemindersRead(client, userId, [item.key]).then((r) => { if (r?.ok) setRead((s) => new Set([...s, item.key])); }).catch(() => {});
-    window.dispatchEvent(new CustomEvent(BELL_SUBJECT_EVENT, { detail: { ...action } }));
-  };
-  const actionsFor = (item) => bellActionsFor(item, tasks);
-
-  // the floating notice: a NEW unread notification floats once (newest, "+N" for the others); the first run in this browser only
-  // records the existing notifications (nothing floats); another tab of the same account never floats it again
-  const [floated, setFloated] = useState(null);
-  // the first run's baseline stays open for a few seconds: lists that settle in two steps (cache, then server) never float on that run
-  const baselineUntilRef = useRef(0);
-  const baselineStartRef = useRef(0);
-  // the quotes must be the server's list of this load, not the browser's cached copy: a notification present only in the fresh list
-  // would otherwise look new on the first run and float
-  // (and the full list: a short list without first_viewed_at would hide every link-view notification from the first-run memory)
-  const floatReady = shown && !!userId && settingsLoaded && tasksLoaded && readLoaded && (quotesFresh ?? quotesReady)
-    && (quotes.length === 0 || firstViewAvailableFor(quotes));
-  useEffect(() => {
-    if (!floatReady || floated) return;
-    const stored = loadFloatedKeys(userId);
-    if (stored === null) {
-      const baseline = new Set(items.map((i) => i.key));
-      saveFloatedKeys(userId, baseline);
-      baselineStartRef.current = Date.now();
-      baselineUntilRef.current = Date.now() + 4000;
-      setFloated(baseline);
-    } else setFloated(stored);
-  }, [floatReady, floated, userId, items]);
-  useEffect(() => {
-    if (!userId) return undefined;
-    const onStorage = (e) => { if (e.key === floatedStorageKey(userId)) setFloated(loadFloatedKeys(userId) || new Set()); };
-    window.addEventListener('storage', onStorage);
-    return () => window.removeEventListener('storage', onStorage);
-  }, [userId]);
-  useEffect(() => {
-    if (!floated || notice) return;
-    // re-read the shared memory right before showing, so a second tab that already floated it stays quiet
-    const latest = loadFloatedKeys(userId) || floated;
-    const pending = pendingFloating(items, read, latest);
-    if (!pending.length) return;
-    const next = new Set([...latest, ...pending.map((i) => i.key)]);
-    saveFloatedKeys(userId, next);
-    setFloated(next);
-    if (Date.now() < baselineUntilRef.current) {
-      // still the first run's baseline: recorded, not floated; a list still arriving keeps it open (at most 20 s after the start)
-      baselineUntilRef.current = Math.min(Date.now() + 4000, baselineStartRef.current + 20000);
-      return;
-    }
-    const visible = typeof document === 'undefined' || document.visibilityState !== 'hidden';
-    if (!open && visible) setNotice({ item: pending[0], more: pending.length - 1 });
-  }, [floated, notice, items, read, open, userId]);
-  useEffect(() => { if (settings.mode === 'off') setNotice(null); }, [settings.mode]);
-
-  // Owner 2026-10-20 placement (replaces 2026-10-19): the notice floats exactly where the bell panel opens, at the panel's size, on
-  // the phone and on the computer - the same placement function as the panel, anchored to this (visible) bell.
-  const [noticePos, setNoticePos] = useState(null);
-  useLayoutEffect(() => {
-    if (!notice || !btnRef.current) { setNoticePos(null); return undefined; }
-    const place = () => setNoticePos(panelPlacement(btnRef.current, isHebrew));
-    place();
-    window.addEventListener('resize', place);
-    return () => window.removeEventListener('resize', place);
-  }, [notice, isHebrew]);
-  useEffect(() => {
-    if (!notice) return undefined;
-    const onKey = (e) => { if (e.key === 'Escape' && document.activeElement?.closest?.('[data-testid="bell-float-notice"]')) setNotice(null); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [notice]);
 
   // R-28 (night task 2026-10-16): the meta line is a list of isolated parts (a name in its own script, dates / times as LTR numbers),
   // so a name and a date never swap sides with the script of the name
@@ -231,21 +150,13 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
       </button>
       {open && pos && (
         <div ref={panelRef} role="dialog" aria-label={C.center.title} data-testid="notification-center" dir={isHebrew ? 'rtl' : 'ltr'}
-          style={{ ...panelBox(pos), zIndex: 2000 }}>
+          style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, maxHeight: 'min(70vh, 520px)', overflowY: 'auto', background: '#fff', color: NEON.textPrimary, borderRadius: 14, boxShadow: '0 18px 40px -10px rgba(15,23,42,.35)', border: `1px solid ${NEON.border}`, zIndex: 2000, textAlign: 'start', fontWeight: 400 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderBottom: `1px solid ${NEON.border}`, gap: 8 }}>
             <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{C.center.title}</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 10 }}>
-              {readPersisted && unread > 0 && (
-                // PRODUCT_TRUTH_CAPABILITY: reminders_automation
-                <button type="button" onClick={markAll} style={{ background: 'none', border: 0, color: '#0F6672', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', padding: '6px 0', fontFamily: 'inherit' }}>{C.center.markAll}</button>
-              )}
-              {/* Owner 2026-10-20: the panel closes on its own X too (not only outside / Escape) */}
-              {/* PRODUCT_TRUTH_CAPABILITY: reminders_automation */}
-              <button type="button" data-testid="notification-center-close" aria-label={A.closePanel} title={A.closePanel} onClick={() => { setOpen(false); btnRef.current?.focus(); }}
-                style={closeBtnStyle(mobile)}>
-                <X size={16} aria-hidden="true" />
-              </button>
-            </span>
+            {readPersisted && unread > 0 && (
+              // PRODUCT_TRUTH_CAPABILITY: reminders_automation
+              <button type="button" onClick={markAll} style={{ background: 'none', border: 0, color: '#0F6672', fontWeight: 600, fontSize: '0.75rem', cursor: 'pointer', padding: '6px 0', fontFamily: 'inherit' }}>{C.center.markAll}</button>
+            )}
           </div>
           {welcome && (
             <div data-testid="notification-welcome" style={{ padding: '12px 14px', borderBottom: `1px solid ${NEON.border}`, opacity: welcomeRead ? 0.6 : 1 }}>
@@ -296,24 +207,6 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
                           ))}
                         </div>
                       )}
-                      {(actionsFor(i).length > 0 || (readPersisted && !isRead)) && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 6, marginTop: 6 }}>
-                          {actionsFor(i).map((a) => (
-                            // PRODUCT_TRUTH_CAPABILITY: reminders_automation
-                            <button key={a.kind} type="button" data-testid={`notification-action-${a.kind}`} onClick={() => openSubject(i, a)} style={actionBtnStyle(mobile)}>
-                              {A[a.kind]}
-                            </button>
-                          ))}
-                          {readPersisted && !isRead && (
-                            // Owner 2026-10-20: one notification marked read on its own (the panel stays open)
-                            // PRODUCT_TRUTH_CAPABILITY: reminders_automation
-                            <button type="button" data-testid="notification-mark-read" onClick={() => markOne(i.key)}
-                              style={{ background: 'none', border: 0, color: '#0F6672', fontWeight: 600, fontSize: '0.74rem', cursor: 'pointer', padding: '6px 4px', minHeight: mobile ? 44 : 30, fontFamily: 'inherit' }}>
-                              {A.markRead}
-                            </button>
-                          )}
-                        </div>
-                      )}
                     </div>
                   </li>
                 );
@@ -325,71 +218,6 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
           </div>
         </div>
       )}
-      {notice && noticePos && typeof document !== 'undefined' && createPortal(
-        <div data-testid="bell-float-notice" role="status" aria-live="polite" aria-label={A.region} dir={isHebrew ? 'rtl' : 'ltr'} className="no-print"
-          data-notice-kind={notice.item.kind}
-          style={{ ...panelBox(noticePos), zIndex: 2100 }}>
-          {/* the panel's own header row (title + close) and item row, so it reads as the bell panel holding the one new notification */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBlock: 6, paddingInlineStart: 14, paddingInlineEnd: 8, borderBottom: `1px solid ${NEON.border}`, gap: 8 }}>
-            <span style={{ fontWeight: 800, fontSize: '0.9rem' }}>{C.center.title}</span>
-            {/* PRODUCT_TRUTH_CAPABILITY: reminders_automation */}
-            <button type="button" data-testid="bell-float-close" aria-label={A.close} title={A.close} onClick={() => setNotice(null)}
-              style={closeBtnStyle(mobile)}>
-              <X size={16} aria-hidden="true" />
-            </button>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '10px minmax(0,1fr)', gap: 10, padding: '10px 14px' }}>
-            <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', marginTop: 6, background: KIND_COLOR[notice.item.kind] }} />
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 700, fontSize: '0.82rem', overflowWrap: 'anywhere' }} dir="auto">{line(notice.item).title}</div>
-              {line(notice.item).meta.length > 0 && (
-                <div style={{ color: NEON.textSecondary, fontSize: '0.72rem', marginTop: 2 }}>
-                  {line(notice.item).meta.map((part, k) => (
-                    <Fragment key={k}>{k > 0 && ' · '}{part.num ? <bdi className="pf-num" dir="ltr">{part.text}</bdi> : <bdi>{part.text}</bdi>}</Fragment>
-                  ))}
-                </div>
-              )}
-              <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-                {actionsFor(notice.item).map((a) => (
-                  // PRODUCT_TRUTH_CAPABILITY: reminders_automation
-                  <button key={a.kind} type="button" data-testid={`bell-float-action-${a.kind}`} onClick={() => openSubject(notice.item, a)} style={actionBtnStyle(mobile)}>
-                    {A[a.kind]}
-                  </button>
-                ))}
-                {notice.more > 0 && (
-                  // PRODUCT_TRUTH_CAPABILITY: reminders_automation
-                  <button type="button" data-testid="bell-float-more" onClick={() => { setNotice(null); setOpen(true); }}
-                    style={{ ...actionBtnStyle(mobile), border: 0, textDecoration: 'underline' }}>
-                    <bdi className="pf-num">{A.more(notice.more)}</bdi>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>,
-        document.body,
-      )}
     </>
   );
-}
-
-// the bell panel's place under its bell (the floating notice uses the very same place and size)
-function panelPlacement(btn, isHebrew) {
-  const r = btn.getBoundingClientRect();
-  const width = Math.min(360, window.innerWidth - 16);
-  const left = isHebrew ? Math.max(8, Math.min(r.left - 12, window.innerWidth - width - 8)) : Math.max(8, Math.min(r.right + 12 - width, window.innerWidth - width - 8));
-  return { top: r.bottom + 10, left, width };
-}
-function panelBox(p) {
-  return { position: 'fixed', top: p.top, left: p.left, width: p.width, maxHeight: 'min(70vh, 520px)', overflowY: 'auto', background: '#fff', color: NEON.textPrimary, borderRadius: 14, boxShadow: '0 18px 40px -10px rgba(15,23,42,.35)', border: `1px solid ${NEON.border}`, textAlign: 'start', fontWeight: 400 };
-}
-
-// the round X of the panel and of the floating notice; a 44px touch target on the phone
-function closeBtnStyle(phone) {
-  return { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: phone ? 44 : 32, height: phone ? 44 : 32, padding: 0, border: 0, borderRadius: 999, background: 'rgba(15,23,42,0.06)', color: NEON.textPrimary, cursor: 'pointer', flex: 'none' };
-}
-
-// the subject buttons: an outlined pill (the welcome item's AI button style); a 44px touch target on the phone
-function actionBtnStyle(phone) {
-  return { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: phone ? 44 : 30, padding: '4px 12px', border: '1px solid #0F6672', borderRadius: 999, background: 'none', color: '#0F6672', fontWeight: 700, fontSize: '0.74rem', cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' };
 }
