@@ -34,11 +34,11 @@ describe('L-23 the quote list, editor, catalog, finances (reverted behaviours)',
     expect(tab).toMatch(/\{isHebrew \? 'הדף הקודם' : 'Previous page'\}/);
     expect(tab).toMatch(/\{isHebrew \? 'הדף הבא' : 'Next page'\}/);
   });
-  it('#3 with no hot quote the banner says so (the Owner copy of 2026-09-08)', () => {
+  it('#3 with no next step the banner says so (Owner 2026-10-19 L-25 / L-26 approval replaced the 2026-09-08 copy)', () => {
     // the Owner kept it ("להשאיר את הפס"); it steps aside while a search is typed with the orange banner ("שאלה 2: ב")
-    expect(tab).toContain("{!hotLead && !quotesNotLoaded && !searchActive && (");
-    expect(tab).toContain("'אין כרגע הצעה חמה'");
-    expect(tab).toContain("'כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן.'");
+    expect(tab).toContain("{!stepLead && !quotesNotLoaded && !searchActive && (");
+    expect(read('utils/nextStep.js')).toContain("emptyTitle: 'אין כרגע צעד דחוף.'");
+    expect(read('utils/nextStep.js')).toContain("emptyHint: 'משימה באיחור, הצעה חמה או הצעה שתוקפה מסתיים יופיעו כאן.'");
   });
   // Owner console 2026-10-18, one item at a time: "שאלה 1: א" (the eye opens the quote in the list with its tracking details),
   // "שאלה 2: ב" (the banner steps aside while a search is typed)
@@ -46,7 +46,7 @@ describe('L-23 the quote list, editor, catalog, finances (reverted behaviours)',
     expect(tab).toContain('const hotSource = (Array.isArray(allQuotes) && allQuotes.length ? allQuotes : quotes) || [];');
     expect(tab).toContain("const searchActive = !!String(searchTerm || '').trim();");
     expect(tab).toContain('{hotLead && !searchActive && (');
-    expect(tab).toContain('{!hotLead && !quotesNotLoaded && !searchActive && (');
+    expect(tab).toContain('{!stepLead && !quotesNotLoaded && !searchActive && (');
     expect(tab).toContain('openTrackingFor(quoteId);');
     expect(tab).toContain("if (q && typeof window !== 'undefined') window.open(getQuoteViewLink(q), '_blank');");
   });

@@ -38,7 +38,9 @@ describe('Hot quote banner (source-level regression guard)', () => {
   // Owner console 2026-10-18, typed: "מאשר שינוי ב-L-19: פס ההצעה החמה יתחלף כל 4 שניות בין כל ההצעות החמות" - the banner shows every hot
   // quote in turn (hottest first); the row promotion keeps the ONE hottest (pickCompactRows -> pickLeadHotRow)
   it('the banner rotates through every hot quote (hottest first), the row promotion keeps the hottest, and it reuses the tracking-details handler', () => {
-    expect(quotesTabSource).toMatch(/const hotLead = hotRows\.length \? hotRows\[hotIndex % hotRows\.length\] : null;/);
+    // Owner 2026-10-19 (L-25 / L-26): the same rotation now cycles the next steps (overdue tasks, the hot quotes, expiring quotes)
+    expect(quotesTabSource).toMatch(/const stepLead = steps\.length \? steps\[hotIndex % steps\.length\] : null;/);
+    expect(quotesTabSource).toMatch(/const hotLead = stepLead\?\.kind === 'hot' \? stepLead : null;/);
     expect(quotesTabSource).toMatch(/setInterval\(\(\) => setHotIndex\(\(i\) => i \+ 1\), 4000\)/);
     expect(quotesTabSource).toMatch(/onClick=\{\(\) => openHotQuote\(hotLead\.quote\.id\)\}/);
     expect(quotesTabSource).toContain('openTrackingFor(quoteId);');

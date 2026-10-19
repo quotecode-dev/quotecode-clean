@@ -94,6 +94,20 @@ describe('bell rows: subject buttons', () => {
     expect(cap.got).toEqual([{ kind: 'client', clientId: 'c1' }]);
   });
 
+  it('the panel closes on its own X; an unread notification is marked read on its own (Owner 2026-10-20)', async () => {
+    saveFloatedKeys(USER, new Set(['first_view:q1']));
+    const utils = mountBell({ client: fakeClient(), quotes: [viewedQuote] });
+    await openPanel(utils);
+    const mark = await waitFor(() => utils.getByTestId('notification-mark-read'));
+    expect(mark.textContent).toBe('סימון כנקרא');
+    fireEvent.click(mark);
+    await waitFor(() => expect(utils.queryByTestId('notification-mark-read')).toBeNull());
+    expect(utils.getByTestId('notification-center')).toBeTruthy();
+    expect(utils.getByTestId('notification-center-close').getAttribute('aria-label')).toBe('סגירת ההתראות');
+    fireEvent.click(utils.getByTestId('notification-center-close'));
+    expect(utils.queryByTestId('notification-center')).toBeNull();
+  });
+
   it('EN copy', async () => {
     saveFloatedKeys(USER, new Set(['first_view:q1']));
     const utils = mountBell({ client: fakeClient(), quotes: [viewedQuote], isHebrew: false, isLocalIsraeliBusiness: false });
@@ -153,6 +167,14 @@ describe('floating notice', () => {
     expect(document.querySelector('[data-testid="bell-float-notice"]')).toBeNull();
   });
 
+  it('waits for the fresh server list: a cached list never sets the first-run memory and never floats', async () => {
+    header();
+    mountBell({ client: fakeClient(), quotes: [viewedQuote], quotesFresh: false });
+    await act(async () => { await new Promise((r) => setTimeout(r, 30)); });
+    expect(loadFloatedKeys(USER)).toBeNull();
+    expect(document.querySelector('[data-testid="bell-float-notice"]')).toBeNull();
+  });
+
   it('reminders Off: nothing floats', async () => {
     header();
     saveFloatedKeys(USER, new Set());
@@ -161,25 +183,27 @@ describe('floating notice', () => {
     expect(document.querySelector('[data-testid="bell-float-notice"]')).toBeNull();
   });
 
-  it('phone: from the top edge of the header to the end of the hot-quote banner, at the header width', async () => {
-    header();
-    const banner = document.createElement('div');
-    banner.setAttribute('data-testid', 'hot-quote-banner');
-    banner.getBoundingClientRect = () => ({ top: 80, bottom: 124, left: 6, right: 384, width: 378, height: 44 });
-    document.body.appendChild(banner);
+  it('floats exactly where the bell panel opens, at the panel size (Owner 2026-10-20)', async () => {
     const w = window.innerWidth;
     Object.defineProperty(window, 'innerWidth', { configurable: true, value: 390 });
+    const rect = HTMLElement.prototype.getBoundingClientRect;
+    HTMLElement.prototype.getBoundingClientRect = function rectOf() {
+      if (this.getAttribute?.('data-testid') === 'header-bell') return { top: 20, bottom: 50, left: 60, right: 90, width: 30, height: 30 };
+      return rect.call(this);
+    };
     try {
       saveFloatedKeys(USER, new Set());
-      mountBell({ client: fakeClient(), quotes: [viewedQuote] });
+      const utils = mountBell({ client: fakeClient(), quotes: [viewedQuote] });
       const n = await waitFor(() => { const x = document.querySelector('[data-testid="bell-float-notice"]'); expect(x).toBeTruthy(); return x; });
-      expect(n.style.top).toBe('6px');
-      expect(n.style.left).toBe('6px');
-      expect(n.style.width).toBe('378px');
-      expect(n.style.minHeight).toBe('118px');
+      const box = { top: n.style.top, left: n.style.left, width: n.style.width };
+      expect(box).toEqual({ top: '60px', left: '22px', width: '360px' });
+      fireEvent.click(document.querySelector('[data-testid="bell-float-close"]'));
+      await openPanel(utils);
+      const p = utils.getByTestId('notification-center');
+      expect({ top: p.style.top, left: p.style.left, width: p.style.width }).toEqual(box);
     } finally {
+      HTMLElement.prototype.getBoundingClientRect = rect;
       Object.defineProperty(window, 'innerWidth', { configurable: true, value: w });
-      banner.remove();
     }
   });
 });

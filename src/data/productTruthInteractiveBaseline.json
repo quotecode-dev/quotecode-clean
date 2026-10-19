@@ -192,8 +192,8 @@
     "markers": 2
   },
   "src/components/NotificationCenter.jsx": {
-    "interactive": 9,
-    "markers": 9
+    "interactive": 11,
+    "markers": 11
   },
   "src/components/NumericValue.jsx": {
     "interactive": 0,
@@ -260,8 +260,8 @@
     "markers": 7
   },
   "src/components/QuotesTab.jsx": {
-    "interactive": 22,
-    "markers": 25
+    "interactive": 27,
+    "markers": 30
   },
   "src/components/RemindersFirstSetupNotice.jsx": {
     "interactive": 1,
@@ -824,6 +824,10 @@
     "markers": 0
   },
   "src/utils/newQuoteChoices.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/nextStep.js": {
     "interactive": 0,
     "markers": 0
   },

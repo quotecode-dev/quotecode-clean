@@ -54,7 +54,7 @@ const ASC = {
   amount: ['E', 'C', 'A', 'F', 'B', 'D'], // 0, 9, 50, 300, 1200.5, 10000 (a number, not a string)
 };
 
-function Harness({ isHebrew = false, quotes = FIXTURE, initialField = 'created_at', initialDirection = 'desc', search = '', status = 'All', onSort }) {
+function Harness({ isHebrew = false, quotes = FIXTURE, initialField = 'created_at', initialDirection = 'desc', search = '', status = 'All', onSort, extra = {} }) {
   const [field, setField] = useState(initialField);
   const [direction, setDirection] = useState(initialDirection);
   const handleQuoteSort = (next) => {
@@ -90,7 +90,8 @@ function Harness({ isHebrew = false, quotes = FIXTURE, initialField = 'created_a
       setPendingEmailQuote={vi.fn()}
       emailStatuses={{}}
       currency="ILS"
-    />
+      {...extra}
+      />
   );
 }
 
@@ -289,7 +290,10 @@ describe.each([
     const count = banner.querySelector('bdi.pf-num');
     expect(count).toHaveAttribute('dir', 'ltr');
     expect(count.textContent).toBe('9');
-    const eye = within(banner).getByRole('button', { name: actionLabel });
+    // Owner 2026-10-19 (L-25 / L-26): the eye + the visible text action share the name; the eye stays the first child
+    const named = within(banner).getAllByRole('button', { name: actionLabel });
+    expect(named).toHaveLength(2);
+    const eye = named[0];
     // exactly one icon in the whole banner: the original illustrated TEKANGO eye (not Lucide) inside the Open & track button
     expect(banner.querySelectorAll('svg')).toHaveLength(1);
     const icon = eye.querySelector('svg.quote-hot-banner-eye');
@@ -328,7 +332,7 @@ describe.each([
   it('the eye button opens the same tracking details as the hot row action (and never toggles them shut)', () => {
     const { container } = render(<Harness isHebrew={isHebrew} quotes={hotList()} />);
     expect(container.querySelector('.quote-modern-detail')).toBeNull();
-    const eye = within(screen.getByTestId('hot-quote-banner')).getByRole('button', { name: actionLabel });
+    const eye = within(screen.getByTestId('hot-quote-banner')).getAllByRole('button', { name: actionLabel })[0];
     fireEvent.click(eye);
     expect(container.querySelector('#quote-modern-detail-quote-hotB')).not.toBeNull();
     fireEvent.click(eye);
@@ -336,5 +340,40 @@ describe.each([
     const rowAction = container.querySelector('.quote-modern-item.is-hot .quote-modern-action');
     expect(rowAction).toHaveAttribute('data-action', 'track');
     expect(rowAction).toHaveAttribute('aria-expanded', 'true');
+  });
+});
+
+// Owner console 2026-10-19, typed: "מאשר שינוי ב-L-25 וב-L-26 לפס "הצעד הבא" לפי התוכנית" - the same banner cycles the next steps
+describe('next-step banner (Owner 2026-10-19)', () => {
+  const day = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().slice(0, 10); };
+  const tasksClient = (tasks) => ({ from: () => ({ select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: tasks, error: null }) }) }) }) });
+
+  it('an overdue task leads, with its "View task" button opening that task through the bell subject event', async () => {
+    const task = { id: 't1', user_id: 'u1', status: 'open', title: 'להתקשר לדוד', due_date: day(-8), due_time: null };
+    const got = [];
+    const on = (e) => got.push(e.detail);
+    window.addEventListener('tekango-open-bell-subject', on);
+    try {
+      render(<Harness isHebrew quotes={[mk('a')]} extra={{ tasksClient: tasksClient([task]), userId: 'u1' }} />);
+      const banner = await screen.findByText('להתקשר לדוד').then((n) => n.closest('[data-testid="hot-quote-banner"]'));
+      expect(banner).toHaveAttribute('data-step-kind', 'task');
+      expect(banner.querySelector('.quote-hot-banner-text').textContent).toMatch(/^משימה באיחור: להתקשר לדוד – הייתה אמורה להתבצע ב-.+\.$/);
+      expect(banner.querySelector('bdi.pf-num')).toHaveAttribute('dir', 'ltr');
+      fireEvent.click(within(banner).getByTestId('next-step-action'));
+      expect(got).toEqual([{ kind: 'task', taskId: 't1' }]);
+    } finally { window.removeEventListener('tekango-open-bell-subject', on); }
+  });
+
+  it('a quote whose validity ends within 3 days and still awaits the customer gets its own step (EN mirrored)', () => {
+    render(<Harness quotes={[mk('exp', { status: 'sent', view_count: 1, valid_until: day(2) })]} />);
+    const banner = screen.getByTestId('hot-quote-banner');
+    expect(banner).toHaveAttribute('data-step-kind', 'expiring');
+    expect(banner.querySelector('.quote-hot-banner-text').textContent).toBe('The quote for Client exp expires in 2 days and still isn’t signed.');
+    expect(within(banner).getByTestId('next-step-action').textContent).toBe('Open & track');
+  });
+
+  it('nothing due: the approved next-step empty copy', () => {
+    render(<Harness isHebrew quotes={[mk('a')]} />);
+    expect(screen.getByTestId('hot-quote-empty').textContent).toBe('אין כרגע צעד דחוף. משימה באיחור, הצעה חמה או הצעה שתוקפה מסתיים יופיעו כאן.');
   });
 });

@@ -7,8 +7,8 @@
 export const BELL_SUBJECT_EVENT = 'tekango-open-bell-subject';
 
 export const BELL_ACTION_COPY = Object.freeze({
-  he: Object.freeze({ quote: 'צפייה בהצעה', task: 'צפייה במשימה', client: 'פרטי הלקוח', close: 'סגירת ההודעה', more: (n) => `+${n} נוספות`, region: 'הודעה חדשה' }),
-  en: Object.freeze({ quote: 'View quote', task: 'View task', client: 'Client details', close: 'Close notification', more: (n) => `+${n} more`, region: 'New notification' }),
+  he: Object.freeze({ quote: 'צפייה בהצעה', task: 'צפייה במשימה', client: 'פרטי הלקוח', close: 'סגירת ההודעה', closePanel: 'סגירת ההתראות', markRead: 'סימון כנקרא', more: (n) => `+${n} נוספות`, region: 'הודעה חדשה' }),
+  en: Object.freeze({ quote: 'View quote', task: 'View task', client: 'Client details', close: 'Close notification', closePanel: 'Close notifications', markRead: 'Mark as read', more: (n) => `+${n} more`, region: 'New notification' }),
 });
 
 /** The subject buttons of one derived reminder item. A task linked to a client also gets "client details". Welcome items get none. */
