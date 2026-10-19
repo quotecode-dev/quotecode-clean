@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from './shared/supabase';
-import { MessageCircleMore, Sparkles, X, Send, MessageSquarePlus, ChevronLeft, ChevronRight, FileText, LifeBuoy, CreditCard, Building2, MessageSquare, History } from 'lucide-react';
+import { MessageCircleMore, Sparkles, X, Send, MessageSquarePlus, ChevronLeft, ChevronRight, FileText, LifeBuoy, CreditCard, Building2, MessageSquare, History, Mic, Square, Volume2, VolumeX } from 'lucide-react';
 import { NEON } from './theme/neonTheme';
 import {
   buildPublicChatStorageKey,
@@ -20,6 +20,7 @@ import { draftSnapshotDigest } from '../supabase/functions/_shared/quoteDraftSna
 import { CHAT_CONTRACT_VERSION } from './utils/aiChatContract';
 import { formatQuoteFallback } from './utils/quoteNumber';
 import AiChatIcon from './components/AiChatIcon';
+import { VOICE_COPY, VOICE_MODES, MAX_RECORD_SECONDS, readVoiceMode, saveVoiceMode, readVoiceDisclosed, saveVoiceDisclosed, pickRecorderMime, voiceSupported, blobToBase64, base64ToBlob } from './utils/voiceAssistant';
 
 // Dynamic Compact Guided Buttons task: one small, purely-decorative icon
 // per top-level group (Section 7's own "small relevant icon" requirement).
@@ -469,6 +470,20 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
 
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  // Owner 2026-10-19 (voice assistant, docs/VOICE_ASSISTANT_PLAN_2026-10-19.md): a microphone in the typing row and spoken answers
+  // (voice by default; voice / voice and text / text only) - signed-in dashboard chat only, where the browser can record.
+  const voiceCopy = isHebrew ? VOICE_COPY.he : VOICE_COPY.en;
+  const [voiceEnabled] = useState(() => Boolean(isDashboard) && voiceSupported());
+  const [voiceMode, setVoiceMode] = useState(() => readVoiceMode());
+  const [voiceMenuOpen, setVoiceMenuOpen] = useState(false);
+  const [recording, setRecording] = useState(false);
+  const [recordSeconds, setRecordSeconds] = useState(0);
+  const [transcribing, setTranscribing] = useState(false);
+  const [expandedSpoken, setExpandedSpoken] = useState(() => new Set());
+  const recorderRef = useRef(null);
+  const recordTimerRef = useRef(null);
+  const audioRef = useRef(null);
+  const sendTextRef = useRef(null);
 
   const scrollContainerRef = useRef(null);
 
@@ -692,6 +707,76 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
     if (isOpen) scrollToBottom();
   }, [isOpen, guidedGroup, guidedIntent]);
 
+  const addVoiceNote = (content) => setMessages((prev) => [...prev, withCreatedAt({ role: 'system-note', content })]);
+  const stopPlayback = () => {
+    try { audioRef.current?.pause(); } catch { /* already stopped */ }
+    audioRef.current = null;
+  };
+  const speakAnswer = async (text) => {
+    if (!voiceEnabled || !text) return;
+    if (!readVoiceDisclosed()) { saveVoiceDisclosed(); addVoiceNote(voiceCopy.disclosure); }
+    try {
+      const { data, error } = await supabase.functions.invoke('voice-ai', { body: { mode: 'speak', text } });
+      if (error) { if (error?.context?.status === 429) addVoiceNote(voiceCopy.limit); return; }
+      if (!data?.ok || !data.audio) return;
+      stopPlayback();
+      const url = URL.createObjectURL(base64ToBlob(data.audio, data.mime || 'audio/mpeg'));
+      const audio = new Audio(url);
+      audioRef.current = audio;
+      audio.onended = () => URL.revokeObjectURL(url);
+      await audio.play().catch(() => { /* autoplay refused - the written answer and "play again" stay */ });
+    } catch { /* the written answer is always there */ }
+  };
+  const startRecording = async () => {
+    if (!voiceEnabled || recording || transcribing || loading) return;
+    stopPlayback();
+    let stream;
+    try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { addVoiceNote(voiceCopy.micDenied); return; }
+    const mimeType = pickRecorderMime();
+    let rec;
+    try { rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined); } catch { stream.getTracks().forEach((t) => t.stop()); addVoiceNote(voiceCopy.failed); return; }
+    const chunks = [];
+    rec.ondataavailable = (ev) => { if (ev.data && ev.data.size) chunks.push(ev.data); };
+    rec.onstop = async () => {
+      stream.getTracks().forEach((t) => t.stop());
+      clearInterval(recordTimerRef.current);
+      setRecording(false);
+      const blob = new Blob(chunks, { type: rec.mimeType || mimeType || 'audio/webm' });
+      if (blob.size < 200) return;
+      setTranscribing(true);
+      try {
+        const audio = await blobToBase64(blob);
+        const { data, error } = await supabase.functions.invoke('voice-ai', { body: { mode: 'transcribe', audio, mime: blob.type } });
+        if (error) { addVoiceNote(error?.context?.status === 429 ? voiceCopy.limit : voiceCopy.failed); return; }
+        const text = data?.ok ? String(data.text || '').trim() : '';
+        if (!text) { addVoiceNote(voiceCopy.failed); return; }
+        await sendTextRef.current?.(text);
+      } catch { addVoiceNote(voiceCopy.failed); } finally { setTranscribing(false); }
+    };
+    recorderRef.current = rec;
+    rec.start();
+    setRecordSeconds(0);
+    setRecording(true);
+    recordTimerRef.current = setInterval(() => {
+      setRecordSeconds((sec) => {
+        if (sec + 1 >= MAX_RECORD_SECONDS) { try { rec.stop(); } catch { /* already stopped */ } }
+        return sec + 1;
+      });
+    }, 1000);
+  };
+  const stopRecording = () => { try { recorderRef.current?.stop(); } catch { /* already stopped */ } };
+  const chooseVoiceMode = (mode) => {
+    setVoiceMode(mode);
+    saveVoiceMode(mode);
+    setVoiceMenuOpen(false);
+    if (mode === 'text') stopPlayback();
+  };
+  useEffect(() => () => {
+    clearInterval(recordTimerRef.current);
+    try { if (recorderRef.current?.state === 'recording') recorderRef.current.stop(); } catch { /* gone */ }
+    try { audioRef.current?.pause(); } catch { /* gone */ }
+  }, []);
+
   const handleSend = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
@@ -704,6 +789,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   // loading -> answer / error states. A failed turn's error bubble is never sent back to the model (filtered as isError below).
   // opts (Task 34): extraBody = one-shot request fields (the review snapshot); draftRef = { identity, digest } of the reviewed draft;
   // retryKind = how "try again" re-runs a failed turn (a review re-reads the CURRENT form).
+  useEffect(() => { sendTextRef.current = sendText; });
   const sendText = async (userMsg, opts = {}) => {
     if (!userMsg || loading) return;
     const draftRef = opts.draftRef || null;
@@ -806,6 +892,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
       const navigationAction = data.navigation?.action || null;
       const navigationFocus = data.navigation?.focus || null;
       resolveBlockers(['AI_PROVIDER_FAILED']); // confirmed resolution: the assistant answered
+      if (voiceEnabled && voiceMode !== 'text' && !guardRef.current.isStale(requestToken)) speakAnswer(cleanAnswer);
 
       applyIfCurrent(() => {
         setMessages(prev => {
@@ -846,6 +933,8 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
             navigationFocus,
             navigationQuoteId: navigationAction === 'open_selected_quote' ? requestSelectedQuoteId : null,
             reviewedDraft: !!draftRef,
+            spoken: voiceEnabled && voiceMode !== 'text',
+            spokenCollapsed: voiceEnabled && voiceMode === 'voice',
           }));
           if (draftChanged) {
             next.push(withCreatedAt({ role: 'system-note', content: isHebrew ? 'ההצעה השתנתה בזמן הבדיקה — התשובה מתייחסת לגרסה הקודמת. אפשר לבקש בדיקה שוב.' : 'The quote changed during the review — the answer refers to the earlier version. You can ask for a new review.' }));
@@ -1148,6 +1237,40 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                   >
                     <History size={18} strokeWidth={2.2} />
                   </button>
+                  {voiceEnabled && (
+                    <span style={{ position: 'relative', display: 'flex' }}>
+                      {/* PRODUCT_TRUTH_DECORATIVE: opens the in-widget choice between spoken and written answers */}
+                      <button
+                        type="button"
+                        data-testid="ai-chat-voice-mode"
+                        onClick={() => setVoiceMenuOpen((v) => !v)}
+                        aria-label={voiceCopy.voiceMenu}
+                        title={`${voiceCopy.voiceMenu}: ${voiceCopy.modes[voiceMode]}`}
+                        aria-expanded={voiceMenuOpen}
+                        style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px', display: 'flex' }}
+                      >
+                        {voiceMode === 'text' ? <VolumeX size={18} strokeWidth={2.2} /> : <Volume2 size={18} strokeWidth={2.2} />}
+                      </button>
+                      {voiceMenuOpen && (
+                        <div role="menu" data-testid="ai-chat-voice-menu" style={{ position: 'absolute', top: '100%', [isHebrew ? 'left' : 'right']: 0, zIndex: 5, minWidth: '140px', marginTop: '6px', padding: '4px', borderRadius: '10px', background: NEON.bgElevated, border: `1px solid ${NEON.borderStrong}`, boxShadow: '0 8px 24px rgba(0,0,0,0.25)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          {VOICE_MODES.map((mode) => (
+                            /* PRODUCT_TRUTH_DECORATIVE: picks spoken / spoken and written / written answers for this browser */
+                            <button
+                              key={mode}
+                              type="button"
+                              role="menuitemradio"
+                              aria-checked={voiceMode === mode}
+                              data-testid={`ai-chat-voice-mode-${mode}`}
+                              onClick={() => chooseVoiceMode(mode)}
+                              style={{ textAlign: isHebrew ? 'right' : 'left', padding: '8px 10px', minHeight: '36px', border: 'none', borderRadius: '8px', cursor: 'pointer', background: voiceMode === mode ? NEON.bgCard : 'transparent', color: NEON.textPrimary, fontWeight: voiceMode === mode ? 700 : 500, fontSize: '0.82rem' }}
+                            >
+                              {voiceCopy.modes[mode]}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </span>
+                  )}
                   {/* PRODUCT_TRUTH_DECORATIVE: starts a fresh visible chat thread in the same widget */}
                   <button
                     type="button"
@@ -1261,8 +1384,23 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                             lineHeight: '1.4',
                             textAlign: isHebrew ? 'right' : 'left'
                           }}>
-                            {msg.content}
+                            {msg.role === 'assistant' && msg.spokenCollapsed && !expandedSpoken.has(idx) ? (
+                              <span data-testid="ai-chat-spoken-answer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                <Volume2 size={15} strokeWidth={2.2} aria-hidden="true" />
+                                <span>{voiceCopy.spoken}</span>
+                                {/* PRODUCT_TRUTH_DECORATIVE: reveals the written text of a spoken answer in place */}
+                                <button type="button" data-testid="ai-chat-show-text" onClick={() => setExpandedSpoken((prev) => new Set(prev).add(idx))} style={{ background: 'none', border: 'none', padding: 0, color: NEON.textPrimary, textDecoration: 'underline', cursor: 'pointer', font: 'inherit', fontWeight: 700 }}>
+                                  {voiceCopy.showText}
+                                </button>
+                              </span>
+                            ) : msg.content}
                           </div>
+                          {msg.role === 'assistant' && msg.spoken && voiceEnabled && (
+                            /* PRODUCT_TRUTH_DECORATIVE: plays this answer aloud again */
+                            <button type="button" data-testid="ai-chat-replay" onClick={() => speakAnswer(msg.content)} aria-label={voiceCopy.replay} style={{ alignSelf: isHebrew ? 'flex-end' : 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', padding: '0 2px', color: NEON.textSecondary, cursor: 'pointer', fontSize: '0.7rem' }}>
+                              <Volume2 size={13} strokeWidth={2.2} aria-hidden="true" />{voiceCopy.replay}
+                            </button>
+                          )}
                           {/* Per-message time (AI Chat History UX task): a
                               small, quiet timestamp - never rendered for a
                               message with no real createdAt (never a
@@ -1666,9 +1804,24 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                   type="text"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={isHebrew ? 'שאל משהו...' : 'Ask something...'}
+                  placeholder={transcribing ? voiceCopy.transcribing : (isHebrew ? 'שאל משהו...' : 'Ask something...')}
                   style={{ flex: 1, padding: '8px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.85rem', outline: 'none', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary }}
                 />
+                {voiceEnabled && (
+                  /* PRODUCT_TRUTH_DECORATIVE: records a spoken question (tap again to stop and send) */
+                  <button
+                    type="button"
+                    data-testid="ai-chat-mic"
+                    onClick={recording ? stopRecording : startRecording}
+                    disabled={transcribing || loading}
+                    aria-label={recording ? voiceCopy.stop : voiceCopy.mic}
+                    title={recording ? voiceCopy.stop : voiceCopy.mic}
+                    aria-pressed={recording}
+                    style={{ flex: 'none', minWidth: '40px', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${recording ? '#dc2626' : NEON.borderStrong}`, background: recording ? '#dc2626' : NEON.bgInput, color: recording ? 'white' : NEON.textPrimary, cursor: transcribing || loading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', fontWeight: 700, fontSize: '0.75rem', opacity: transcribing ? 0.6 : 1 }}
+                  >
+                    {recording ? <><Square size={13} strokeWidth={2.6} fill="currentColor" /><bdi>{`0:${String(recordSeconds).padStart(2, '0')}`}</bdi></> : <Mic size={16} strokeWidth={2.4} />}
+                  </button>
+                )}
                 {/* PRODUCT_TRUTH_DECORATIVE: submits the typed message to the AI chat */}
                 <button
                   type="submit"

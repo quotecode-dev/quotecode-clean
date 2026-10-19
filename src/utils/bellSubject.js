@@ -7,8 +7,8 @@
 export const BELL_SUBJECT_EVENT = 'tekango-open-bell-subject';
 
 export const BELL_ACTION_COPY = Object.freeze({
-  he: Object.freeze({ quote: 'צפייה בהצעה', task: 'צפייה במשימה', client: 'פרטי הלקוח', close: 'סגירת ההודעה', closePanel: 'סגירת ההתראות', markRead: 'סימון כנקרא', more: (n) => `+${n} נוספות`, region: 'הודעה חדשה' }),
-  en: Object.freeze({ quote: 'View quote', task: 'View task', client: 'Client details', close: 'Close notification', closePanel: 'Close notifications', markRead: 'Mark as read', more: (n) => `+${n} more`, region: 'New notification' }),
+  he: Object.freeze({ assistant: 'פתיחת העוזר', quote: 'צפייה בהצעה', task: 'צפייה במשימה', client: 'פרטי הלקוח', close: 'סגירת ההודעה', closePanel: 'סגירת ההתראות', markRead: 'סימון כנקרא', more: (n) => `+${n} נוספות`, region: 'הודעה חדשה' }),
+  en: Object.freeze({ assistant: 'Open the assistant', quote: 'View quote', task: 'View task', client: 'Client details', close: 'Close notification', closePanel: 'Close notifications', markRead: 'Mark as read', more: (n) => `+${n} more`, region: 'New notification' }),
 });
 
 /** The subject buttons of one derived reminder item. A task linked to a client also gets "client details". Welcome items get none. */
@@ -21,6 +21,8 @@ export function bellActionsFor(item, tasks = []) {
     if (task?.client_id) out.push({ kind: 'client', clientId: task.client_id });
     return out;
   }
+  // Owner 2026-10-19 (L-17): a product announcement opens the assistant
+  if (item.kind === 'announce') return [{ kind: 'assistant' }];
   if ((item.kind === 'signed' || item.kind === 'first_view' || item.kind === 'viewed_not_approved' || item.kind === 'validity_ending') && item.quoteId) {
     return [{ kind: 'quote', quoteId: item.quoteId }];
   }
