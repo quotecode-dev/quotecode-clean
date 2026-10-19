@@ -100,8 +100,8 @@
     "markers": 1
   },
   "src/components/AiQuoteDraftDialog.jsx": {
-    "interactive": 10,
-    "markers": 11
+    "interactive": 8,
+    "markers": 9
   },
   "src/components/AiRobotIcon.jsx": {
     "interactive": 0,
@@ -540,10 +540,6 @@
     "markers": 0
   },
   "src/hooks/useQuoteHistoryGeometry.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/hooks/useVoiceRecorder.js": {
     "interactive": 0,
     "markers": 0
   },
