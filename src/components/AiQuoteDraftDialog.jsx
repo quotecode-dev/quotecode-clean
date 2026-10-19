@@ -10,8 +10,12 @@
 // was verified only for the server's unit). Apply runs once per draft.
 // Task 34 (contract v3): each line also shows the part of the user's own text it comes from; a quantity the server could not bind to that
 // part arrives empty with an explicit "could not verify" note - the user enters it.
+// Owner console 2026-10-19 (voice assistant; "שזה ייושם גם בהצעת AI החכמה"): the description can be dictated (a microphone under the
+// field adds the spoken text to it), and the draft's clarification questions can be answered by voice - the answer is added to the
+// description and the draft is generated again. Shown only when the Dashboard passes `transcribe` and the browser can record.
 import { useEffect, useRef, useState } from 'react';
-import { X, Sparkles, Check } from 'lucide-react';
+import { X, Sparkles, Check, Mic, Square } from 'lucide-react';
+import useVoiceRecorder from '../hooks/useVoiceRecorder';
 import AiModalHeader from './AiModalHeader';
 import { APP as NEON } from '../theme/neonTheme';
 import { MAX_DESCRIPTION_CHARS, MIN_DESCRIPTION_CHARS, DRAFT_UNITS } from '../../supabase/functions/_shared/aiQuoteDraft.js';
@@ -69,6 +73,11 @@ const COPY = {
     again: 'תיאור אחר',
     cancel: 'ביטול',
     openChat: 'שאלו את צ׳אט ה-AI',
+    dictate: 'הכתבה בקול',
+    stopDictate: (s) => `עצירה ושימוש בהקלטה (0:${String(s).padStart(2, '0')})`,
+    transcribing: 'ממיר את הדיבור לטקסט…',
+    answerByVoice: 'מענה בקול לשאלות',
+    voiceErrors: { mic_denied: 'אין גישה למיקרופון. אפשר לאשר גישה בהגדרות הדפדפן, או להקליד.', failed: 'לא הצלחתי להבין את ההקלטה. אפשר לנסות שוב או להקליד.', limit: 'הגעת למכסת הפעולות הקוליות היומית. אפשר להמשיך בהקלדה.' },
     errors: {
       not_deployed: 'שירות טיוטות ה-AI עדיין לא מותקן בשרת הזה (השרת השיב שהשירות לא נמצא). אפשר למלא את ההצעה ידנית או לשאול את צ׳אט ה-AI.',
       service_unreachable: 'שירות טיוטות ה-AI לא זמין בשרת הזה: השרת עצמו עונה, אבל השירות לא ענה לבקשה. בדרך כלל זה אומר שהשירות עדיין לא הותקן בשרת. אפשר למלא את ההצעה ידנית או לשאול את צ׳אט ה-AI.',
@@ -125,6 +134,11 @@ const COPY = {
     again: 'Different description',
     cancel: 'Cancel',
     openChat: 'Ask the AI chat',
+    dictate: 'Dictate',
+    stopDictate: (s) => `Stop and use the recording (0:${String(s).padStart(2, '0')})`,
+    transcribing: 'Turning your speech into text…',
+    answerByVoice: 'Answer the questions by voice',
+    voiceErrors: { mic_denied: 'No microphone access. You can allow it in your browser settings, or type.', failed: "I couldn't understand the recording. Try again or type.", limit: "You've reached today's voice limit. You can keep typing." },
     errors: {
       not_deployed: 'The AI draft service is not installed on this server yet (the server answered that it was not found). You can fill in the quote manually or ask the AI chat.',
       service_unreachable: 'The AI draft service is not available on this server: the server itself answers, but the service did not respond to the request. This usually means it has not been installed on the server yet. You can fill in the quote manually or ask the AI chat.',
@@ -145,7 +159,7 @@ const inputStyle = (isHebrew) => ({ width: '100%', padding: '11px 12px', border:
 const primaryBtn = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.gradient, color: '#ffffff', border: 'none', padding: '12px 18px', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
 const secondaryBtn = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, padding: '12px 18px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
 
-export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply, onOpenChat, requestDraft, formatMoneyDisplay, sym }) {
+export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply, onOpenChat, requestDraft, formatMoneyDisplay, sym, transcribe = null }) {
   const t = COPY[isHebrew ? 'he' : 'en'];
   const [description, setDescription] = useState('');
   const [phase, setPhase] = useState('describe'); // describe | loading | review
@@ -158,6 +172,8 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
   const requestSeq = useRef(0);
   const appliedRef = useRef(false);
   const [confirmAgain, setConfirmAgain] = useState(false);
+  const voiceTargetRef = useRef('describe'); // 'describe' = add to the description; 'answer' = add, then generate again
+  const voice = useVoiceRecorder({ transcribe, onText: (text) => handleVoiceText(text) });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -168,15 +184,16 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
   if (!isOpen) return null;
 
   const close = () => { requestSeq.current += 1; onClose(); };
-  const generate = async () => {
-    if (description.trim().length < MIN_DESCRIPTION_CHARS) { setErrorCode('too_short'); return; }
+  const generate = async (override) => {
+    const text = (typeof override === 'string' ? override : description).trim();
+    if (text.length < MIN_DESCRIPTION_CHARS) { setErrorCode('too_short'); return; }
     const seq = ++requestSeq.current;
     setErrorCode(null); setPhase('loading');
-    const result = await requestDraft(description.trim());
+    const result = await requestDraft(text);
     if (seq !== requestSeq.current) return; // dialog closed or a newer request started
     if (result?.status === 'ok') {
       appliedRef.current = false;
-      setDraft({ ...result, sourceText: description.trim() }); setLines(result.items.map(toEditable)); setSelected(result.items.map(() => true)); setPhase('review');
+      setDraft({ ...result, sourceText: text }); setLines(result.items.map(toEditable)); setSelected(result.items.map(() => true)); setPhase('review');
     } else {
       setErrorCode(result?.status || 'failed'); setPhase('describe');
     }
@@ -211,6 +228,14 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
     appliedRef.current = true; // one apply per draft (a double click never adds the lines twice)
     onApply(chosen, draft.subject || '');
   };
+  function handleVoiceText(text) {
+    const joined = (description.trim() ? `${description.trim()}${voiceTargetRef.current === 'answer' ? '\n' : ' '}${text}` : text).slice(0, MAX_DESCRIPTION_CHARS);
+    setDescription(joined);
+    if (voiceTargetRef.current === 'answer') generate(joined);
+  }
+  const startVoice = (target) => { voiceTargetRef.current = target; voice.toggle(); };
+  const voiceBtnStyle = { ...secondaryBtn, alignSelf: 'flex-start', color: voice.recording ? '#ffffff' : NEON.textPrimary, background: voice.recording ? '#dc2626' : 'none', borderColor: voice.recording ? '#dc2626' : NEON.borderStrong };
+  const voiceLabel = (idle) => (voice.recording ? t.stopDictate(voice.seconds) : voice.busy ? t.transcribing : idle);
   const errorText = errorCode === 'too_short' ? t.tooShort : errorCode ? (t.errors[errorCode] || t.errors.failed) : null;
   const money = (v) => (formatMoneyDisplay ? `${sym || ''}${formatMoneyDisplay(v)}` : String(v));
 
@@ -245,6 +270,13 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                 aria-describedby={errorText ? 'ai-quote-draft-error' : undefined}
                 style={inputStyle(isHebrew)}
               />
+              {voice.supported && (
+                /* PRODUCT_TRUTH_DECORATIVE: dictates the job description (the spoken text is added to the field; nothing is sent until "create") */
+                <button type="button" data-testid="ai-quote-draft-dictate" onClick={() => startVoice('describe')} disabled={phase === 'loading' || voice.busy} aria-pressed={voice.recording} style={voiceBtnStyle}>
+                  {voice.recording ? <Square size={14} fill="currentColor" aria-hidden="true" /> : <Mic size={16} aria-hidden="true" />}<bdi>{voiceLabel(t.dictate)}</bdi>
+                </button>
+              )}
+              {voice.error && <div role="alert" data-testid="ai-quote-draft-voice-error" style={{ color: NEON.red, fontSize: '0.8rem', lineHeight: 1.4 }}>{t.voiceErrors[voice.error]}</div>}
               {errorText && <div id="ai-quote-draft-error" role="alert" style={{ color: NEON.red, fontSize: '0.8rem', lineHeight: 1.4 }}>{errorText}</div>}
               {phase === 'loading' && <div role="status" aria-live="polite" style={{ fontSize: '0.82rem', color: NEON.textSecondary }}>{t.generating}</div>}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end' }}>
@@ -311,6 +343,13 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                 <div data-testid="ai-quote-draft-questions" style={{ fontSize: '0.8rem', color: NEON.textPrimary, lineHeight: 1.45 }}>
                   <strong>{t.questions}:</strong>
                   <ul style={{ margin: '4px 0 0', paddingInlineStart: '18px' }}>{draft.questions.map((q) => <li key={q}>{q}</li>)}</ul>
+                  {voice.supported && !edits && (
+                    /* PRODUCT_TRUTH_DECORATIVE: answers the draft's questions by voice - the answer is added to the description and the draft is created again */
+                    <button type="button" data-testid="ai-quote-draft-answer-voice" onClick={() => startVoice('answer')} disabled={voice.busy} aria-pressed={voice.recording} style={{ ...voiceBtnStyle, marginTop: '8px' }}>
+                      {voice.recording ? <Square size={14} fill="currentColor" aria-hidden="true" /> : <Mic size={16} aria-hidden="true" />}<bdi>{voiceLabel(t.answerByVoice)}</bdi>
+                    </button>
+                  )}
+                  {voice.error && <div role="alert" style={{ color: NEON.red, fontSize: '0.8rem', lineHeight: 1.4, marginTop: '4px' }}>{t.voiceErrors[voice.error]}</div>}
                 </div>
               )}
               {incomplete && (

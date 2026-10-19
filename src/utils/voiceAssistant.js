@@ -56,6 +56,16 @@ export function base64ToBlob(b64, type) {
   return new Blob([bytes], { type });
 }
 
+/** The voice-ai transcription call for dictation (the AI smart quote): { ok, text } | { ok: false, code: 'limit' | 'failed' }. */
+export async function transcribeRecording(client, blob) {
+  try {
+    const audio = await blobToBase64(blob);
+    const { data, error } = await client.functions.invoke('voice-ai', { body: { mode: 'transcribe', audio, mime: blob.type } });
+    if (error) return { ok: false, code: error?.context?.status === 429 ? 'limit' : 'failed' };
+    return data?.ok ? { ok: true, text: String(data.text || '') } : { ok: false, code: 'failed' };
+  } catch { return { ok: false, code: 'failed' }; }
+}
+
 export const VOICE_COPY = Object.freeze({
   he: {
     mic: 'הקלטת שאלה בקול',
