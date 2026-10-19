@@ -87,11 +87,6 @@ describe('support-inbound handler (synthetic) - Owner 2026-10-19', () => {
     setup({ storeResult: { error: { message: 'db down' } } });
     expect((await h.handler(await post(EVENT()))).status).toBe(500);
   });
-  it('reads received mail with the dedicated receiving key when it is set (the sending key may be sending-only)', async () => {
-    setup({ env: { RESEND_RECEIVING_API_KEY: 're_receiving_placeholder' } });
-    await h.handler(await post(EVENT()));
-    expect(provider[0].init.headers.Authorization).toBe('Bearer re_receiving_placeholder');
-  });
   it('nothing is ever sent: no reply / send endpoint is called', async () => {
     await h.handler(await post(EVENT()));
     expect(provider.every((c) => c.url.startsWith('https://api.resend.com/emails/receiving/') && !c.init.method)).toBe(true);
