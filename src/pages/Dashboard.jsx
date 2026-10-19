@@ -2970,10 +2970,15 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       template: shareTextDefault, link: quoteViewLink, linkLabel: isLocalQuote ? 'צפה בהצעה:' : 'View quote:', rtl: isLocalQuote,
       vars: { customer: clientNameVal, business: senderName, number: proposalNumberDisplay, total: `${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}` },
     });
+    // Owner 2026-10-19 (option א): a quote without a validity date says nothing about validity - never 'N/A' / 'ללא הגבלה';
+    // a set date is written as a short date in the quote's own market format (never the raw database value)
+    const validityDate = proposal.valid_until ? formatShortDate(proposal.valid_until, isLocalQuote ? 'Local' : 'International') : null;
+    const validityHe = validityDate ? ` בתוקף עד ${validityDate}.` : '';
+    const validityEn = validityDate ? ` Valid until ${validityDate}.` : '';
     // Task 36 (A): a partial total is said in the message itself (its own line, in the quote's language)
     return appendPartialTotalNote(ownerText ?? (isLocalQuote
-      ? `הצעת מחיר מאת: ${senderName}\n\nהי ${clientNameVal}, הנה הצעת המחיר שלך מספר ${proposalNumberDisplay} בסך ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}. בתוקף עד ${proposal.valid_until || 'ללא הגבלה'}.\n\nצפה בהצעה:\n${quoteViewLink}`
-      : `Quote from: ${senderName}\n\nHi ${clientNameVal}, here is your quote ${proposalNumberDisplay} totaling ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}. Valid until ${proposal.valid_until || 'N/A'}.\n\nView quote:\n${quoteViewLink}`), proposal, isLocalQuote);
+      ? `הצעת מחיר מאת: ${senderName}\n\nהי ${clientNameVal}, הנה הצעת המחיר שלך מספר ${proposalNumberDisplay} בסך ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}.${validityHe}\n\nצפה בהצעה:\n${quoteViewLink}`
+      : `Quote from: ${senderName}\n\nHi ${clientNameVal}, here is your quote ${proposalNumberDisplay} totaling ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}.${validityEn}\n\nView quote:\n${quoteViewLink}`), proposal, isLocalQuote);
   };
 
   // Task 35 (F4): before ANY customer output of a quote with missing prices: one specific notice (which lines, the partial total).
