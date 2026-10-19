@@ -19,13 +19,14 @@ import {
 import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../shared/brand';
 import AiRobotIcon from './AiRobotIcon';
 import { BELL_SUBJECT_EVENT, BELL_ACTION_COPY, bellActionsFor, loadFloatedKeys, saveFloatedKeys, floatedStorageKey, pendingFloating } from '../utils/bellSubject';
+import { activeAnnouncements } from '../utils/bellAnnouncements';
 
-const KIND_COLOR = { signed: '#15803D', first_view: '#5B3FB6', task_due: '#0F6672', validity_ending: '#9A5B12', viewed_not_approved: '#65727A' };
+const KIND_COLOR = { announce: '#7C3AED', signed: '#15803D', first_view: '#5B3FB6', task_due: '#0F6672', validity_ending: '#9A5B12', viewed_not_approved: '#65727A' };
 
 // variant: 'desktop' = the former decorative 18x18 icon footprint (desktop / tablet-landscape account cluster);
 //          'mobile'  = the slot freed by the removed plans indicator in the mobile / tablet-portrait header (Owner console instruction
 //                      2026-10-09): a 30px-high round tap target matching the AI-chat chip height, same 18px icon, same panel.
-export default function NotificationCenter({ client, userId, isHebrew, isLocalIsraeliBusiness, quotes = [], now = null, variant = 'desktop', authUser = null, quotesReady = true, quotesFresh = undefined }) {
+export default function NotificationCenter({ client, userId, isHebrew, isLocalIsraeliBusiness, quotes = [], now = null, variant = 'desktop', authUser = null, quotesReady = true, quotesFresh = undefined, announcements = [] }) {
   const mobile = variant === 'mobile';
   const C = REMINDERS_COPY[isHebrew ? 'he' : 'en'];
   const local = isLocalIsraeliBusiness === true;
@@ -80,11 +81,17 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   }, [shown, refresh]);
 
   const clock = now ?? new Date();
-  const items = useMemo(() => deriveInAppReminders({
+  const derivedItems = useMemo(() => deriveInAppReminders({
     settings, tasks, quotes, today: marketToday(market, clock), nowClock: marketClock(market, clock), now: clock.getTime(),
     isExpired: (q) => isQuoteAcceptanceExpired(q?.valid_until, dateMarket, clock), firstViewAvailable: firstViewAvailableFor(quotes),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [settings, tasks, quotes, market, dateMarket, open, minuteTick]);
+  // Owner 2026-10-19 (typed L-17 approval): a product announcement (the voice assistant) is one more bell item after the reminders -
+  // unread until read, floating once like every new notification; reminders Off shows none of it
+  const announcementsDay = clock.toISOString().slice(0, 10);
+  const items = useMemo(() => (settings.mode === 'off' ? derivedItems : [...derivedItems, ...activeAnnouncements(announcements, clock)]),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+    [derivedItems, settings.mode, announcements, announcementsDay]);
   // Task 40: the welcome item (a new account, reminders not Off - known only once the saved mode loaded) sits above the derived
   // reminders; it counts as unread only while a read mark can be saved, so a badge the user cannot clear never appears
   const supportEmail = isHebrew ? SUPPORT_EMAIL_HE : SUPPORT_EMAIL_EN;
@@ -130,6 +137,8 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
     setOpen(false);
     setNotice(null);
     markRemindersRead(client, userId, [item.key]).then((r) => { if (r?.ok) setRead((s) => new Set([...s, item.key])); }).catch(() => {});
+    // an announcement's action opens the ONE existing assistant through its existing window event (like the welcome item)
+    if (action.kind === 'assistant') { window.dispatchEvent(new CustomEvent('open-proflow-ai-chat')); return; }
     window.dispatchEvent(new CustomEvent(BELL_SUBJECT_EVENT, { detail: { ...action } }));
   };
   const actionsFor = (item) => bellActionsFor(item, tasks);
@@ -203,6 +212,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   const txt = (text) => ({ text, num: false });
   const num = (text) => ({ text, num: true });
   const line = (i) => {
+    if (i.kind === 'announce') { const ac = i.copy[isHebrew ? 'he' : 'en']; return { title: ac.title, meta: [txt(ac.body)] }; }
     if (i.kind === 'task_due') return { title: C.item.task_due(i), meta: i.overdue ? [txt(C.item.task_due_overdue), num(formatShortDate(i.date, dateMarket))] : [txt(C.item.today), ...(i.time ? [num(i.time)] : [])] };
     const n = displayQuoteNumber(i.quote);
     // the truthful party label (client name, else quote title); the number is already in the line, so never repeat it

@@ -739,6 +739,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/utils/bellAnnouncements.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/bellSubject.js": {
     "interactive": 0,
     "markers": 0
