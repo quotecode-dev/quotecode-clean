@@ -18,6 +18,7 @@ import type { ChatFactPayload } from "../_shared/aiChatContract.ts";
 import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
 import { buildErrorEnvelope, withLegacyChoices, type ChatErrorCode } from "../_shared/aiChatContract.ts";
 import { classifyQuoteStatsIntent, computeQuoteStats, formatQuoteStatsAnswer, type QuoteStatRow } from "./quoteStatsTruth.ts";
+import { CHEAP_MODEL, chatCompletionsTools, chatCompletionToolCalls, runToolLoop, buildToolsPromptBlock, dailyCapAnswer, type ToolContext } from "./chatTools.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -375,31 +376,69 @@ serve(async (req) => {
   const helpBlocks = helpContext ? buildHelpContextBlocks(helpContext, activeBlockers, droppedBlockers, trustedFacts, isHebrew) : null;
   const systemPrompt = buildSystemPrompt({ isHebrew, guidedIntent, guidedSubtopic, accountContext, quoteContextBlock, workflowContext: effectiveWorkflowContext, helpBlocks, allowedNavigation: verifiedUserId ? navAllowed : null, draftSnapshot: reviewSnapshot });
 
+  // SMART CHAT (Owner console 2026-10-19, task-control activeTask.smartChatTools20261019, L-17 unlocked): a verified dashboard user's
+  // question that reaches the model counts against the day's 30 (chat_ai_claim_question, the caller's own JWT; an admin is not
+  // counted). Over the cap -> a fixed answer, no model call. A claim failure never blocks the chat (AI-HELP-AVAILABILITY-001).
+  const userJwtClient = verifiedUserId && isDashboard
+    ? createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } })
+    : null;
+  if (userJwtClient && !trustedFacts?.isAdmin) {
+    try {
+      const { data: claim, error: claimErr } = await userJwtClient.rpc('chat_ai_claim_question');
+      if (claimErr) console.error('chat_ai_claim_question failed:', claimErr.message);
+      else if (claim && (claim as { allowed?: boolean }).allowed === false) {
+        const capAnswer = dailyCapAnswer(isHebrew, Number((claim as { limit?: number }).limit) || 30);
+        await logChat(capAnswer);
+        return deterministicResponse(capAnswer, null, null);
+      }
+    } catch (claimErr) {
+      console.error('chat_ai_claim_question failed:', claimErr);
+    }
+  }
+  // the read-only data tools are offered only to a verified dashboard user (never on the public chat, never with a review snapshot)
+  const toolCtx: ToolContext | null = userJwtClient && verifiedUserId && accountContext && !reviewSnapshot
+    ? await (async () => {
+      const { data: curRow } = await adminClient.from('business_settings').select('currency').eq('user_id', verifiedUserId).maybeSingle();
+      const bizCur = String((curRow as { currency?: string } | null)?.currency || '').toUpperCase();
+      const accountCurrency = accountContext.market === 'Local' ? 'ILS' : (['USD', 'EUR', 'GBP'].includes(bizCur) ? bizCur : 'USD');
+      return { db: userJwtClient, userId: verifiedUserId, accountCurrency, today: new Date().toISOString().slice(0, 10) };
+    })()
+    : null;
+  const modelInstructions = toolCtx ? systemPrompt + buildToolsPromptBlock(isHebrew) : systemPrompt;
+
   let data: Record<string, unknown>;
   // Task 35: the provider call is bounded - a hung model ends in the closed provider_failure state (the widget offers a retry)
-  const providerAbort = new AbortController();
-  const providerTimer = setTimeout(() => providerAbort.abort(), 25000);
+  const callCheapModel = async (withTools: boolean) => {
+    const providerAbort = new AbortController();
+    const providerTimer = setTimeout(() => providerAbort.abort(), 25000);
+    try {
+      return await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: CHEAP_MODEL,
+          messages: [
+            { role: 'system', content: withTools ? modelInstructions : systemPrompt },
+            // `messages` here is the array rebuilt by validateChatRequest -
+            // only { role: 'user'|'assistant', content: string } objects,
+            // never the raw caller payload spread in directly.
+            ...messages
+          ],
+          max_tokens: reviewSnapshot ? 900 : 600,
+          temperature: 0.2,
+          ...(withTools ? { tools: chatCompletionsTools(), tool_choice: 'auto', parallel_tool_calls: false } : {}),
+        }),
+        signal: providerAbort.signal,
+      });
+    } finally {
+      clearTimeout(providerTimer);
+    }
+  };
   try {
-    const openAiResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          // `messages` here is the array rebuilt by validateChatRequest -
-          // only { role: 'user'|'assistant', content: string } objects,
-          // never the raw caller payload spread in directly.
-          ...messages
-        ],
-        max_tokens: reviewSnapshot ? 900 : 600,
-        temperature: 0.2,
-      }),
-      signal: providerAbort.signal,
-    });
+    const openAiResponse = await callCheapModel(!!toolCtx);
 
     if (!openAiResponse.ok) {
       return errorResponse('provider_failure', 'The AI provider returned an error', 502);
@@ -408,11 +447,32 @@ serve(async (req) => {
     data = await openAiResponse.json();
   } catch {
     return errorResponse('provider_failure', 'Failed to reach the AI provider', 502);
-  } finally {
-    clearTimeout(providerTimer);
   }
 
-  let aiReply = (data?.choices as Array<{ message?: { content?: string } }> | undefined)?.[0]?.message?.content;
+  // the cheap model's reply text - the only place the provider response's choice list is read
+  const replyText = (data: Record<string, unknown>) => (data?.choices as Array<{ message?: { content?: string } }> | undefined)?.[0]?.message?.content;
+  let aiReply = replyText(data);
+  // the cheap model asked for data -> the stronger model continues the turn with the tools; if that path fails, the question is
+  // answered exactly as before this change (the cheap model, no tools)
+  const firstCalls = toolCtx ? chatCompletionToolCalls(data) : [];
+  if (toolCtx && firstCalls.length) {
+    const toolTurn = await runToolLoop({
+      fetchImpl: fetch as unknown as Parameters<typeof runToolLoop>[0]['fetchImpl'], apiKey: Deno.env.get('OPENAI_API_KEY') ?? '',
+      instructions: modelInstructions, messages, firstCalls, ctx: toolCtx,
+    });
+    if (toolTurn) {
+      aiReply = toolTurn.answer;
+    } else {
+      console.warn('chat-ai: tool path failed, falling back to the plain answer');
+      try {
+        const fallback = await callCheapModel(false);
+        if (!fallback.ok) return errorResponse('provider_failure', 'The AI provider returned an error', 502);
+        aiReply = replyText(await fallback.json());
+      } catch {
+        return errorResponse('provider_failure', 'Failed to reach the AI provider', 502);
+      }
+    }
+  }
   if (typeof aiReply !== 'string') {
     return errorResponse('malformed_provider_response', 'The AI provider returned an unexpected response shape', 502);
   }
