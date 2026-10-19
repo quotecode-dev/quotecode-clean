@@ -47,7 +47,8 @@ serve(async (req) => {
   let email: any;
   try {
     const res = await fetch(`https://api.resend.com/emails/receiving/${encodeURIComponent(emailId)}`, {
-      headers: { Authorization: `Bearer ${Deno.env.get('RESEND_API_KEY') ?? ''}` }, signal: abort.signal,
+      // the project's sending key may be "sending access" only - reading received mail needs its own full-access key (2026-10-19)
+      headers: { Authorization: `Bearer ${Deno.env.get('RESEND_RECEIVING_API_KEY') || Deno.env.get('RESEND_API_KEY') || ''}` }, signal: abort.signal,
     });
     if (!res.ok) return json({ ok: false, code: 'provider_failure', status: res.status }, 502);
     email = await res.json();
