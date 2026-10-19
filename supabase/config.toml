@@ -184,13 +184,6 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/quote-presentation/index.ts"
 
-[functions.voice-ai]
-enabled = true
-# Owner 2026-10-19 (voice assistant): speech to text / text to speech for the smart chat. Signed-in users only - the JWT is
-# verified by the gateway AND in code (auth.getUser); the language comes from business_settings; 60 operations per user per day.
-verify_jwt = true
-entrypoint = "./functions/voice-ai/index.ts"
-
 [functions.ai-quote-draft]
 enabled = true
 # Task 21 (local only, NOT deployed): drafts reviewable quote lines for the dashboard "AI smart quote" choice. Read-only; the JWT
