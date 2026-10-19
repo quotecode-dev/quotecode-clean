@@ -107,7 +107,6 @@ export const REMINDERS_COPY = Object.freeze({
     item: {
       task_due: (i) => `משימה: ${i.title}`, task_due_overdue: 'באיחור', today: 'היום',
       first_view: (n) => `קישור ההצעה ${n} נצפה`,
-      signed: (n) => `הלקוח חתם על הצעה ${n}`, // Owner 2026-10-19 (L-17)
       viewed_not_approved: (n, d) => `קישור הצעה ${n} נצפה וההצעה לא אושרה — ${d} ימים מאז הצפייה הראשונה בקישור`,
       validity_ending: (n, d) => (d === 0 ? `תוקף הצעה ${n} מסתיים היום` : `תוקף הצעה ${n} מסתיים בעוד ${d} ימים`),
     },
@@ -211,7 +210,6 @@ export const REMINDERS_COPY = Object.freeze({
     item: {
       task_due: (i) => `Task: ${i.title}`, task_due_overdue: 'Overdue', today: 'Today',
       first_view: (n) => `Quote link ${n} viewed`,
-      signed: (n) => `The customer signed quote ${n}`, // Owner 2026-10-19 (L-17)
       viewed_not_approved: (n, d) => `Quote link ${n} viewed, quote not approved — ${d} days since the first link view`,
       validity_ending: (n, d) => (d === 0 ? `Quote ${n} validity ends today` : `Quote ${n} validity ends in ${d} days`),
     },

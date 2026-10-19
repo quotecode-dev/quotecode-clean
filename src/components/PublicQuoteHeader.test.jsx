@@ -120,10 +120,8 @@ describe('PublicQuoteHeader - Desktop branch unaffected by the Mobile fix', () =
     expect(placeholder).toBeTruthy();
     expect(placeholder.classList.contains('no-print')).toBe(true);
     expect(placeholder.getAttribute('data-html2canvas-ignore')).toBe('true');
-    // Owner 2026-10-19 (option ב): the same place and size, but nothing visible and nothing announced - no label, no dash
-    expect(placeholder.style.visibility).toBe('hidden');
-    expect(placeholder.getAttribute('aria-hidden')).toBe('true');
-    expect(placeholder.getAttribute('aria-label')).toBeNull();
+    expect(placeholder.textContent).toContain('בתוקף עד');
+    expect(placeholder.textContent).toContain('—');
   });
 });
 

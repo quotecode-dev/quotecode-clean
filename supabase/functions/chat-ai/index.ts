@@ -17,7 +17,6 @@ import { buildAccountMarketFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFac
 import type { ChatFactPayload } from "../_shared/aiChatContract.ts";
 import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
 import { buildErrorEnvelope, withLegacyChoices, type ChatErrorCode } from "../_shared/aiChatContract.ts";
-import { classifyQuoteStatsIntent, computeQuoteStats, formatQuoteStatsAnswer, type QuoteStatRow } from "./quoteStatsTruth.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -261,27 +260,6 @@ serve(async (req) => {
     const truth = asksInvoicing ? resolveInvoicingTruthResponse(isHebrew, AI_FACTS.invoicing, payloadAccount) : resolvePaymentTruthResponse(isHebrew, AI_FACTS.billing, payloadAccount);
     await logChat(truth.answer);
     return deterministicResponse(truth.answer, null, truth.factPayload);
-  }
-
-  // QUOTE STATISTICS TRUTH (Owner console 2026-10-19, typed L-17 approval): "how many quotes do I have / what are their amounts" is
-  // answered from THIS account's own quotes (the caller's JWT + user_id = the verified user; read-only), per currency, with the quote
-  // list (its overview shows the same numbers) as the click-required destination. Runs before the subscription truth, which keeps the
-  // plan-balance question ("how many quotes do I have LEFT" - excluded by the classifier).
-  if (verifiedUserId && isDashboard && accountContext && classifyQuoteStatsIntent(lastUserMessage)) {
-    try {
-      const statsClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } });
-      const { data: statRows, error: statErr } = await statsClient.from('quotes').select('status, total, currency, view_count').eq('user_id', verifiedUserId);
-      if (!statErr && Array.isArray(statRows)) {
-        const { data: curRow } = await adminClient.from('business_settings').select('currency').eq('user_id', verifiedUserId).maybeSingle();
-        const bizCur = String((curRow as { currency?: string } | null)?.currency || '').toUpperCase();
-        const accountCurrency = accountContext.market === 'Local' ? 'ILS' : (['USD', 'EUR', 'GBP'].includes(bizCur) ? bizCur : 'USD');
-        const statsAnswer = formatQuoteStatsAnswer(computeQuoteStats(statRows as QuoteStatRow[], accountCurrency), accountCurrency, isHebrew);
-        await logChat(statsAnswer);
-        return deterministicResponse(statsAnswer, navAllowed.includes('open_quote_history') ? { action: 'open_quote_history', focus: null } : null, null);
-      }
-    } catch (statsErr) {
-      console.error('quote statistics answer failed:', statsErr);
-    }
   }
 
   // SUBSCRIPTION TRUTH (OD-01..OD-20): a plan / price / trial / quota / "unlimited" question is answered DETERMINISTICALLY from

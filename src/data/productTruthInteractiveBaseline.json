@@ -843,10 +843,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/phoneDial.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/planCatalog.js": {
     "interactive": 0,
     "markers": 0
@@ -1204,10 +1200,6 @@
     "markers": 0
   },
   "supabase/functions/chat-ai/quoteContext.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/chat-ai/quoteStatsTruth.ts": {
     "interactive": 0,
     "markers": 0
   },

@@ -129,9 +129,7 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
       after: isExpired ? <span data-testid="pq-header-expired"> · {L.expired}</span> : null,
     })
     : (
-      // Owner 2026-10-19 (option ב): the reserved cell keeps its exact place and size but shows nothing - no label, no dash (its
-      // invisible content only holds the approved three-cell geometry; screen readers skip it)
-      <div key="valid" className="pq-meta-cell pq-meta-valid pq-meta-placeholder no-print" data-html2canvas-ignore="true" aria-hidden="true" style={{ visibility: 'hidden' }}>
+      <div key="valid" className="pq-meta-cell pq-meta-valid pq-meta-placeholder no-print" data-html2canvas-ignore="true" aria-label={`${L.valid}: —`}>
         <div className="pq-meta-label">{L.valid}</div>
         <div className="pq-meta-value pq-header-valid" aria-hidden="true">—</div>
       </div>

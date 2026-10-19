@@ -6,7 +6,6 @@ import { useState, useEffect } from 'react';
 import AiModalHeader from './AiModalHeader';
 import AddressSuggestInput from './AddressSuggestInput';
 import { APP, APP_STATUS, SHADOW } from '../theme/neonTheme';
-import { businessDial, storedDial } from '../utils/phoneDial';
 
 // חוק ברזל (Consolidated Open UI Corrections task, §G1): isNew (חדש) -
 // אותו מודל/שדות/ולידציה בדיוק, רק כותרת+תווית-כפתור מתחלפות בין "עריכה"
@@ -14,7 +13,7 @@ import { businessDial, storedDial } from '../utils/phoneDial';
 // onSave עדיין מקבל את כל השדות המלאים בדיוק כמו קודם - Dashboard.jsx
 // מחליט אם זו INSERT או UPDATE (handleCreateClient/handleSaveUpdatedClient
 // בהתאמה), לא המודל הזה.
-export default function EditClientModal({ isOpen, onClose, client, onSave, isHebrew, isNew = false, isIsraeliBusiness = false, currency = null }) {
+export default function EditClientModal({ isOpen, onClose, client, onSave, isHebrew, isNew = false, isIsraeliBusiness = false }) {
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -36,12 +35,8 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
   const [notes, setNotes] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Owner 2026-10-19 ("הקידומת אמורה להיות לפי הגדרות העסק"): the prefix follows the BUSINESS (Israel = +972, otherwise its currency -
-  // the quote form's rule), never the interface language; a client whose stored phone has its own prefix keeps that prefix
-  const ownDial = storedDial(client?.phone, { currency });
-  const bizDial = businessDial({ isLocal: isIsraeliBusiness === true, currency });
-  const defaultDial = ownDial ? ownDial.dial : bizDial.dial;
-  const defaultLabel = ownDial ? ownDial.label : bizDial.label;
+  const defaultDial = isHebrew ? '+972' : '+1';
+  const defaultLabel = isHebrew ? 'IL (+972)' : 'US (+1)';
   const [localPhone, setLocalPhone] = useState('');
 
   const handleLocalPhoneChange = (numVal) => {
@@ -67,8 +62,6 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
       setErrorMsg('');
 
       const rawPhone = client.phone || '';
-      // Owner 2026-10-19: the stored number is what Save keeps unless it is edited (saving another field never erases the phone)
-      setPhone(rawPhone);
       if (rawPhone.startsWith(defaultDial)) {
         setLocalPhone(rawPhone.replace(defaultDial, '').trim());
       } else {

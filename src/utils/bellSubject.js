@@ -21,7 +21,7 @@ export function bellActionsFor(item, tasks = []) {
     if (task?.client_id) out.push({ kind: 'client', clientId: task.client_id });
     return out;
   }
-  if ((item.kind === 'signed' || item.kind === 'first_view' || item.kind === 'viewed_not_approved' || item.kind === 'validity_ending') && item.quoteId) {
+  if ((item.kind === 'first_view' || item.kind === 'viewed_not_approved' || item.kind === 'validity_ending') && item.quoteId) {
     return [{ kind: 'quote', quoteId: item.quoteId }];
   }
   return [];
