@@ -8,10 +8,25 @@ import { parseAddress, htmlToText, parseAllowedAddresses, recipientAllowed, buil
 const h = vi.hoisted(() => ({ handler: null, state: null }));
 vi.mock('https://deno.land/std@0.168.0/http/server.ts', () => ({ serve: (fn) => { h.handler = fn; } }));
 vi.mock('https://esm.sh/@supabase/supabase-js@2', () => ({
+  // a chainable fake of the few queries the function makes; every call is recorded, the answer comes from h.state
   createClient: (_url, key) => ({
-    from: (table) => ({
-      upsert: (row, opts) => { h.state.upserts.push({ table, row, opts, key }); return Promise.resolve(h.state.storeResult); },
-    }),
+    from: (table) => {
+      const q = { table, key, ops: [] };
+      const chain = (name) => (...args) => { q.ops.push([name, ...args]); return q; };
+      for (const m of ['select', 'eq', 'in', 'gte', 'lt', 'order', 'limit']) q[m] = chain(m);
+      q.upsert = (row, opts) => { h.state.upserts.push({ table, row, opts, key }); q.ops.push(['upsert']); return q; };
+      q.update = (patch) => { h.state.updates.push({ table, patch }); q.ops.push(['update', patch]); return q; };
+      q.maybeSingle = () => Promise.resolve(table === 'support_assistant_settings' ? { data: h.state.settings, error: null } : { data: h.state.existing, error: null });
+      q.then = (ok, bad) => {
+        const op = q.ops[0]?.[0];
+        let res;
+        if (op === 'upsert') res = h.state.storeResult.error ? h.state.storeResult : { data: h.state.inserted, error: null };
+        else if (op === 'update') res = { data: [{ id: 'row-1' }], error: null };
+        else res = { data: [], error: null };
+        return Promise.resolve(res).then(ok, bad);
+      };
+      return q;
+    },
   }),
 }));
 
@@ -27,7 +42,7 @@ const EMAIL = { id: 'em-123', from: 'Noa Cohen <noa@customer.test>', to: ['suppo
 
 let provider;
 function setup({ env = {}, fetchImpl = null, storeResult = { error: null } } = {}) {
-  h.state = { upserts: [], storeResult };
+  h.state = { upserts: [], updates: [], storeResult, inserted: [{ id: '11111111-1111-4111-8111-111111111111', status: 'new', from_address: 'noa@customer.test', to_addresses: ['support@inbound.tekango.test'], subject: 'איך מוסיפים לוגו?', text_body: 'איך מוסיפים לוגו?', attachments: [], message_id: '<m1@customer.test>', is_automated: false, mailbox: 'support' }], existing: null, settings: { auto_send_green: false, auto_send_yellow: false, paused: false } };
   provider = [];
   globalThis.Deno = { env: { get: (k) => ({ SUPABASE_URL: 'https://synthetic.supabase.co', SUPABASE_SERVICE_ROLE_KEY: 'service-placeholder', RESEND_API_KEY: 're_placeholder', RESEND_INBOUND_WEBHOOK_SECRET: SECRET, SUPPORT_INBOUND_ADDRESSES: 'support@inbound.tekango.test, info@inbound.tekango.test', ...env })[k] } };
   globalThis.fetch = vi.fn(async (url, init) => { provider.push({ url, init }); return fetchImpl ? fetchImpl(url) : new Response(JSON.stringify(EMAIL), { status: 200 }); });
@@ -63,7 +78,7 @@ describe('support-inbound handler (synthetic) - Owner 2026-10-19', () => {
     const r = await h.handler(await post(EVENT()));
     expect(r.status).toBe(200);
     expect(await r.json()).toEqual({ ok: true, stored: true });
-    expect(provider.map((c) => c.url)).toEqual(['https://api.resend.com/emails/receiving/em-123']);
+    expect(provider[0].url).toBe('https://api.resend.com/emails/receiving/em-123');
     expect(provider[0].init.headers.Authorization).toBe('Bearer re_placeholder');
     expect(h.state.upserts).toHaveLength(1);
     expect(h.state.upserts[0]).toMatchObject({ table: 'support_inbound_messages', key: 'service-placeholder', opts: { onConflict: 'provider,provider_email_id', ignoreDuplicates: true } });
@@ -92,8 +107,27 @@ describe('support-inbound handler (synthetic) - Owner 2026-10-19', () => {
     await h.handler(await post(EVENT()));
     expect(provider[0].init.headers.Authorization).toBe('Bearer re_receiving_placeholder');
   });
-  it('nothing is ever sent: no reply / send endpoint is called', async () => {
+  it('stage 2 (Owner 2026-10-20): a NEW email is handled right after it is stored - without a model key it is RED and the fixed acknowledgement goes to the sender through the one mail gate', async () => {
+    const r = await h.handler(await post(EVENT()));
+    expect(await r.json()).toEqual({ ok: true, stored: true });
+    const send = provider.find((c) => c.url === 'https://api.resend.com/emails');
+    expect(send).toBeTruthy();
+    const body = JSON.parse(send.init.body);
+    expect(body.to).toEqual(['noa@customer.test']);
+    expect(body.text).toContain('קיבלנו את פנייתך');
+    expect(send.init.headers['Idempotency-Key']).toBe('tekango-support/v1/11111111-1111-4111-8111-111111111111/ack');
+    expect(h.state.updates[0].patch).toMatchObject({ bin: 'red', bin_reason: 'model_not_configured', status: 'waiting' });
+    expect(provider.some((c) => c.url.includes('openai'))).toBe(false);
+  });
+  it('a redelivered email is handled again only when it is still new after two minutes (a crash); otherwise nothing happens', async () => {
+    h.state.inserted = [];
+    h.state.existing = { id: '22222222-2222-4222-8222-222222222222', status: 'new', stored_at: new Date(Date.now() - 60000).toISOString(), from_address: 'noa@customer.test', to_addresses: [], subject: 'x', text_body: 'cancel please', attachments: [], message_id: null, is_automated: false };
+    expect(await (await h.handler(await post(EVENT()))).json()).toEqual({ ok: true, stored: false });
+    expect(h.state.updates).toHaveLength(0);
+    setup();
+    h.state.inserted = [];
+    h.state.existing = { id: '22222222-2222-4222-8222-222222222222', status: 'new', stored_at: new Date(Date.now() - 600000).toISOString(), from_address: 'noa@customer.test', to_addresses: [], subject: 'x', text_body: 'cancel please', attachments: [], message_id: null, is_automated: false };
     await h.handler(await post(EVENT()));
-    expect(provider.every((c) => c.url.startsWith('https://api.resend.com/emails/receiving/') && !c.init.method)).toBe(true);
+    expect(h.state.updates[0].patch).toMatchObject({ bin: 'red', bin_reason: 'word:cancel' });
   });
 });

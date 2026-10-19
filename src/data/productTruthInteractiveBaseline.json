@@ -40,8 +40,8 @@
     "markers": 0
   },
   "src/components/AdminInquiries.jsx": {
-    "interactive": 1,
-    "markers": 5
+    "interactive": 6,
+    "markers": 13
   },
   "src/components/AdminOverview.jsx": {
     "interactive": 3,
@@ -1387,11 +1387,47 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/support-admin/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/support-digest/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/support-inbound/assistant.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/support-inbound/digest.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/support-inbound/inbound.ts": {
     "interactive": 0,
     "markers": 0
   },
   "supabase/functions/support-inbound/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/support-inbound/mail.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/support-inbound/process.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/support-inbound/store.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/support-inbound/templates.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/support-inbound/triage.ts": {
     "interactive": 0,
     "markers": 0
   },

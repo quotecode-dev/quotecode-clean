@@ -4,6 +4,9 @@
 //    executable is ever stored or rendered); attachments are metadata only (never downloaded, never opened).
 //  - A message is stored only when it was sent to one of the configured support / info addresses (SUPPORT_INBOUND_ADDRESSES).
 
+import { isAutomatedMessage } from './triage.ts';
+import { mailboxOf } from './templates.ts';
+
 export const MAX_TEXT_CHARS = 100000;
 export const MAX_ATTACHMENTS = 30;
 
@@ -80,5 +83,8 @@ export function buildInboundRow({ eventId, webhookData, email }: { eventId: stri
     attachments,
     auth_results: auth,
     received_at: new Date(Number.isFinite(receivedAt) ? receivedAt : Date.now()).toISOString(),
+    // stage 2 (Owner console 2026-10-20): the mailbox the customer wrote to, and whether this is an automated message (never answered)
+    mailbox: mailboxOf(addressList(email?.to ?? webhookData?.to)),
+    is_automated: isAutomatedMessage(email?.headers, from.address),
   };
 }
