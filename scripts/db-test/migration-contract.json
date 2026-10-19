@@ -292,6 +292,12 @@
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE / ON CONFLICT DO NOTHING / DROP TRIGGER IF EXISTS; the cohort batch runs only for unmapped accounts (re-runnable); Owner Free-10 activation rules 2026-10-18"
     },
+    "20261019150000_chat_ai_daily_usage.sql": {
+      "sha256": "5bb2dbe9ec449070f9f5c55dcea3c25934ca23c46d43efde24b358a3062fab6e",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE TABLE IF NOT EXISTS / CREATE OR REPLACE (re-runnable); Owner smart-chat daily allowance 2026-10-19"
+    },
     "20261019120000_quote_signed_at.sql": {
       "sha256": "1a46d1e3ea058f0d625688d0d73206e9fea821f15f149c72fd7b229d8466b813",
       "mode": "transaction",
