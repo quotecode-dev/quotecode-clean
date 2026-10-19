@@ -1207,6 +1207,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/chat-ai/quoteStatsTruth.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/chat-ai/subscriptionTruth.ts": {
     "interactive": 0,
     "markers": 0
