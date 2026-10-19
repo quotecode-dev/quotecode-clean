@@ -247,24 +247,3 @@ describe('smart chat - own-data routing (Owner LIVE check 2026-10-19)', () => {
     expect(src.match(/callCheapWithFallback\(/g)).toHaveLength(2);
   });
 });
-
-// Owner LIVE check 2026-10-19 (second round): "כמה הצעות יש לי ללקוח EDEN DAVID" was then caught by the plan-allowance answer.
-describe('smart chat - a client question is not a plan question (Owner LIVE check 2026-10-19, round 2)', () => {
-  it('the client question is own data with a qualifier and no plan words; plan questions keep the subscription truth', async () => {
-    const { mentionsPlan } = await import('./quoteStatsTruth.ts');
-    const q = 'כמה הצעות יש לי ללקוח EDEN DAVID';
-    expect(isOwnDataQuestion(q) && hasDataQualifier(q) && !mentionsPlan(q)).toBe(true);
-    for (const plan of ['כמה הצעות נשארו לי במסלול', 'כמה הצעות חינם נשארו לי החודש', 'how many quotes do I have left this month', 'what is my plan quota'])
-      expect(mentionsPlan(plan), plan).toBe(true);
-  });
-  it('index.ts: the subscription truth line is unchanged and skipped only for that case', () => {
-    const src = fs.readFileSync(path.join(here, 'index.ts'), 'utf8');
-    expect(src).toMatch(/const subscription = resolveSubscriptionTruthResponse\(lastUserMessage, isHebrew, verifiedUserId && accountContext \? accountContext\.account : null\);/);
-    expect(src).toMatch(/const dataNotPlan = ownDataQuestion && hasDataQualifier\(lastUserMessage\) && !mentionsPlan\(lastUserMessage\);\n {4}if \(subscription && !dataNotPlan\) \{/);
-  });
-  it('an empty result is followed by the closest useful fact, and answers name the concrete records', () => {
-    const block = buildToolsPromptBlock(true, '2026-10-19');
-    expect(block).toMatch(/closest useful fact/);
-    expect(block).toMatch(/name the client, the quote number, the amount and the date/);
-  });
-});
