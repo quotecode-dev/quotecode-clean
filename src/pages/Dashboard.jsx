@@ -65,7 +65,7 @@ import FinancesTab from '../components/FinancesTab';
 import TasksTab from '../components/TasksTab';
 import NotificationCenter from '../components/NotificationCenter';
 import { VOICE_ASSISTANT_ANNOUNCEMENT } from '../utils/bellAnnouncements';
-import { voiceSupported } from '../utils/voiceAssistant';
+import { voiceSupported, transcribeRecording } from '../utils/voiceAssistant';
 import RemindersFirstSetupNotice from '../components/RemindersFirstSetupNotice';
 import CalendarTab from '../components/CalendarTab';
 import { followUpDraftFor } from '../utils/manualTasks';
@@ -8370,6 +8370,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               sym={sym}
               formatMoneyDisplay={formatMoneyDisplay}
               requestDraft={(description) => requestAiQuoteDraft(supabase, description)}
+              transcribe={(blob) => transcribeRecording(supabase, blob)}
               onOpenChat={openAiChat}
               onClose={() => setShowAiQuoteDraft(false)}
               onApply={applyAiQuoteDraft}
