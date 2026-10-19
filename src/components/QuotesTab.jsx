@@ -15,7 +15,12 @@ import { formatShortDate } from '../utils/shortDate';
 import { relativeQuoteDay, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
 import { sortQuotes, normalizeSortField } from '../utils/quoteListSort';
 import NewQuoteMenu from './NewQuoteMenu';
-import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search } from 'lucide-react';
+import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search, ClipboardList, Clock } from 'lucide-react';
+import { nextSteps, NEXT_STEP_COPY } from '../utils/nextStep';
+import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
+import { taskMarket, marketToday, marketClock } from '../utils/manualTasks';
+import { isQuoteAcceptanceExpired } from '../utils/quoteValidity';
+import { BELL_SUBJECT_EVENT } from '../utils/bellSubject';
 import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, RADIUS, SHADOW } from '../theme/neonTheme';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
@@ -142,7 +147,13 @@ export default function QuotesTab({
   onCreateQuote,
   onCreateStructuredQuote,
   onCreateFromTemplate = null,
-  onCreateAiQuote
+  onCreateAiQuote,
+  // night task 2026-10-19 (Owner): a one-shot { quoteId, nonce } from the bell / floating notice - its page opens, then its tracking details
+  focusQuoteRequest = null,
+  onFocusQuoteConsumed = null,
+  // the next-step banner (Owner 2026-10-19): the account's own tasks, read with the signed-in client
+  tasksClient = null,
+  userId = null
 }) {
   const tableDir = isHebrew ? 'rtl' : 'ltr';
   // IRON-DATE-001 (Codex Task 17 review follow-up, fixed in Task 18): the AUTHENTICATED ACCOUNT MARKET orders and zones every date -
@@ -429,16 +440,41 @@ export default function QuotesTab({
     const t = (r) => { const x = Date.parse(r.quote.created_at); return Number.isNaN(x) ? 0 : x; };
     return t(b) - t(a);
   });
+  // Owner console 2026-10-19, typed: "מאשר שינוי ב-L-25 וב-L-26 לפס "הצעד הבא" לפי התוכנית" - the same banner (place, size, frame,
+  // 4 s rotation paused on hover / focus) cycles the next steps: overdue tasks, then the hot quotes above (unchanged text), then the
+  // quotes whose validity ends within 3 days and still await the customer. The tasks are the account's own (RLS), re-read on change.
+  const [bannerTasks, setBannerTasks] = useState([]);
+  const [stepMinute, setStepMinute] = useState(0);
+  useEffect(() => {
+    if (!tasksClient || !userId) return undefined;
+    let live = true;
+    const load = () => { Promise.resolve(listTasks(tasksClient, userId)).then((r) => { if (live && r?.ok) setBannerTasks(r.data || []); }).catch(() => {}); };
+    load();
+    window.addEventListener(TASKS_CHANGED_EVENT, load);
+    const tick = setInterval(() => setStepMinute((n) => n + 1), 60000);
+    return () => { live = false; window.removeEventListener(TASKS_CHANGED_EVENT, load); clearInterval(tick); };
+  }, [tasksClient, userId]);
+  const stepClock = new Date();
+  const stepMarket = taskMarket(isLocalIsraeliBusiness === true);
+  const steps = nextSteps({
+    hotRows, tasks: bannerTasks, quotes: hotSource, today: marketToday(stepMarket, stepClock), nowClock: marketClock(stepMarket, stepClock),
+    isExpired: (q) => isQuoteAcceptanceExpired(q?.valid_until, dateMarket, stepClock),
+  });
+  void stepMinute; // re-derived every minute: a task becomes overdue at its time
   const [hotIndex, setHotIndex] = useState(0);
   const [hotPaused, setHotPaused] = useState(false);
   useEffect(() => {
-    if (hotRows.length < 2 || hotPaused) return undefined;
+    if (steps.length < 2 || hotPaused) return undefined;
     const id = setInterval(() => setHotIndex((i) => i + 1), 4000);
     return () => clearInterval(id);
-  }, [hotRows.length, hotPaused]);
-  const hotLead = hotRows.length ? hotRows[hotIndex % hotRows.length] : null;
+  }, [steps.length, hotPaused]);
+  const stepLead = steps.length ? steps[hotIndex % steps.length] : null;
+  const hotLead = stepLead?.kind === 'hot' ? stepLead : null;
+  const otherStep = stepLead && stepLead.kind !== 'hot' ? stepLead : null;
+  const NS = NEXT_STEP_COPY[isHebrew ? 'he' : 'en'];
+  const openStepTask = (taskId) => { window.dispatchEvent(new CustomEvent(BELL_SUBJECT_EVENT, { detail: { kind: 'task', taskId } })); };
   // the pages (see the state above): the sorted list cut into pages
-  const hasHotLead = !!hotLead;
+  const hasHotLead = !!stepLead;
   const searchActive = !!String(searchTerm || '').trim();
   const pageCount = Math.max(1, Math.ceil(rowsMeta.length / perPage));
   const currentPage = Math.min(listPage, pageCount - 1);
@@ -451,6 +487,18 @@ export default function QuotesTab({
   };
   // a new search / filter / sort starts on the first page
   useEffect(() => { setListPage(0); }, [searchTerm, statusFilter, quoteSortField, quoteSortDirection]);
+  // night task 2026-10-19: the bell's "View quote" - declared after the page reset above, so the quote's own page wins; consumed once
+  // the quote is in the (cleared) list; the list's own paging / order is unchanged (L-29)
+  useEffect(() => {
+    const id = focusQuoteRequest?.quoteId;
+    if (!id) return;
+    const idx = rowsMeta.findIndex((r) => r.quote.id === id);
+    if (idx < 0) return; // the cleared search / filter has not reached this render yet
+    goToPage(Math.floor(idx / perPage));
+    openTrackingFor(id);
+    if (typeof onFocusQuoteConsumed === 'function') onFocusQuoteConsumed();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [focusQuoteRequest, rowsMeta.length, perPage]);
   // as many rows as fit between the list's first row and the bottom of the work area (above the footer), minus the page bar;
   // the phone / tablet cards: always 20 per page ("כל 20")
   useLayoutEffect(() => {
@@ -783,11 +831,12 @@ export default function QuotesTab({
           EN) before the text, followed by the real client name and the real view count of the hottest quote. */}
       {/* Owner 2026-10-18 #3: with no hot quote the banner says so, with the Owner's own copy (2026-09-08) */}
       {/* Owner console 2026-10-18, typed: "שאלה 2: ב" - while a search is typed, the hot-quote banner (and its empty note) steps aside */}
-      {!hotLead && !quotesNotLoaded && !searchActive && (
+      {/* Owner 2026-10-19 (L-25 / L-26 approval): with no next step the banner says so with the approved next-step copy */}
+      {!stepLead && !quotesNotLoaded && !searchActive && (
         <div className="quote-hot-banner quote-hot-banner--empty" data-testid="hot-quote-empty" role="note">
           <span className="quote-hot-banner-text">
-            <strong>{isHebrew ? 'אין כרגע הצעה חמה' : 'No hot quote right now'}</strong>
-            {' '}<span className="quote-hot-banner-hint">{isHebrew ? 'כשהצעה תיצפה 3 פעמים או יותר ועדיין לא תאושר, היא תופיע כאן.' : 'A quote will appear here after 3 or more views while it is still awaiting approval.'}</span>
+            <strong>{NS.emptyTitle}</strong>
+            {' '}<span className="quote-hot-banner-hint">{NS.emptyHint}</span>
           </span>
         </div>
       )}
@@ -810,6 +859,52 @@ export default function QuotesTab({
             <bdi className="pf-num" dir="ltr">{Number(hotLead.quote.view_count || 0)}</bdi>
             {isHebrew ? ' פעמים ועדיין לא חתם.' : ' times and still hasn’t signed.'}
           </span>
+          {/* PRODUCT_TRUTH_DECORATIVE: the same "Open & track" as the eye button above, as a visible text button (Owner 2026-10-19) */}
+          <button type="button" className="quote-hot-banner-cta" data-testid="next-step-action" onClick={() => openHotQuote(hotLead.quote.id)}>
+            {NS.openTrack}
+          </button>
+        </div>
+      )}
+      {otherStep && !searchActive && (
+        <div className="quote-hot-banner" data-testid="hot-quote-banner" data-step-kind={otherStep.kind} data-hot-count={hotRows.length}
+          onMouseEnter={() => setHotPaused(true)} onMouseLeave={() => setHotPaused(false)} onFocus={() => setHotPaused(true)} onBlur={() => setHotPaused(false)}>
+          {otherStep.kind === 'task' ? (
+            <>
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the overdue task through the bell's own subject event (Tasks tab, that task) */}
+              <button type="button" className="quote-hot-banner-action" onClick={() => openStepTask(otherStep.task.id)} title={NS.viewTask} aria-label={NS.viewTask}>
+                <ClipboardList size={20} strokeWidth={2} aria-hidden="true" />
+              </button>
+              <span className="quote-hot-banner-text">
+                <strong>{NS.taskLead}</strong>
+                <bdi>{otherStep.task.title}</bdi>
+                {otherStep.today && otherStep.task.due_time
+                  ? <>{NS.taskDueToday}<bdi className="pf-num" dir="ltr">{String(otherStep.task.due_time).slice(0, 5)}</bdi>{NS.end}</>
+                  : <>{NS.taskDueOn}<bdi className="pf-num" dir="ltr">{formatShortDate(otherStep.task.due_date, dateMarket)}</bdi>{NS.end}</>}
+              </span>
+              {/* PRODUCT_TRUTH_DECORATIVE: the same task opening as the icon button above, as a visible text button */}
+              <button type="button" className="quote-hot-banner-cta" data-testid="next-step-action" onClick={() => openStepTask(otherStep.task.id)}>
+                {NS.viewTask}
+              </button>
+            </>
+          ) : (
+            <>
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the quote's tracking details (the hot banner's own handler) */}
+              <button type="button" className="quote-hot-banner-action" onClick={() => openHotQuote(otherStep.quote.id)} title={NS.openTrack} aria-label={NS.openTrack}>
+                <Clock size={20} strokeWidth={2} aria-hidden="true" />
+              </button>
+              <span className="quote-hot-banner-text">
+                {quotePartyLabel(otherStep.quote).kind === 'number'
+                  ? <>{NS.expiringNumberLead}<bdi className="pf-num" dir="ltr">{quotePartyLabel(otherStep.quote).text}</bdi></>
+                  : <>{NS.expiringLead}<mark className="quote-hot-banner-name"><bdi>{quotePartyLabel(otherStep.quote).text}</bdi></mark></>}
+                {otherStep.daysLeft === 0 ? NS.expiringToday : otherStep.daysLeft === 1 ? NS.expiringTomorrow
+                  : <>{NS.expiringInPre}<bdi className="pf-num" dir="ltr">{otherStep.daysLeft}</bdi>{NS.expiringInPost}</>}
+              </span>
+              {/* PRODUCT_TRUTH_DECORATIVE: the same tracking opening as the icon button above, as a visible text button */}
+              <button type="button" className="quote-hot-banner-cta" data-testid="next-step-action" onClick={() => openHotQuote(otherStep.quote.id)}>
+                {NS.openTrack}
+              </button>
+            </>
+          )}
         </div>
       )}
       <div
