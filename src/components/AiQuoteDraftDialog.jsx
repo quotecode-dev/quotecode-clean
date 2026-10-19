@@ -97,9 +97,9 @@ const COPY = {
     intro: 'Describe the job in your own words. The AI suggests quote items, and you check and decide what to add.',
     label: 'What is the job?',
     placeholder: 'e.g. Replace 3 aluminium windows in the living room, including removing the old windows and fitting screens',
-    generate: 'Create with AI',
+    generate: 'Create a draft with AI',
     generating: 'The AI is preparing a draft…',
-    manual: 'Manual entry',
+    manual: 'Fill in manually',
     tooShort: `Write at least ${MIN_DESCRIPTION_CHARS} characters about the job.`,
     reviewTitle: 'Suggested draft — check before adding',
     reviewHint: 'Tick the items that fit and correct the description, quantity or unit where needed. After adding, every item stays editable in the form. Nothing is saved until you save the quote.',
@@ -258,30 +258,24 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
             <>
               <p style={{ margin: 0, fontSize: '0.84rem', color: NEON.textSecondary, lineHeight: 1.45 }}>{t.intro}</p>
               <label htmlFor="ai-quote-draft-description" style={{ fontSize: '0.86rem', fontWeight: 700, color: NEON.textPrimary }}>{t.label}</label>
-              {/* Owner 2026-10-19: the microphone sits INSIDE the field's bottom corner - the action row keeps its two uniform buttons on one line */}
-              <div style={{ position: 'relative' }}>
-                <textarea
-                  id="ai-quote-draft-description"
-                  ref={fieldRef}
-                  value={description}
-                  maxLength={MAX_DESCRIPTION_CHARS}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t.placeholder}
-                  disabled={phase === 'loading'}
-                  aria-invalid={!!errorText}
-                  aria-describedby={errorText ? 'ai-quote-draft-error' : undefined}
-                  style={{ ...inputStyle(isHebrew), ...(voice.supported ? { paddingBottom: '52px' } : {}) }}
-                />
-                {voice.supported && (
-                  /* PRODUCT_TRUTH_DECORATIVE: dictates the job description (the spoken text is added to the field; nothing is sent until "create") */
-                  <button type="button" data-testid="ai-quote-draft-dictate" onClick={() => startVoice('describe')} disabled={phase === 'loading' || voice.busy}
-                    aria-pressed={voice.recording} aria-label={voice.recording ? t.stopDictate(voice.seconds) : t.dictate} title={voice.recording ? t.stopDictate(voice.seconds) : t.dictate}
-                    style={{ position: 'absolute', bottom: '8px', insetInlineStart: '8px', minWidth: '40px', height: '40px', padding: voice.recording ? '0 12px' : 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', borderRadius: '999px', border: `1px solid ${voice.recording ? '#dc2626' : NEON.borderStrong}`, background: voice.recording ? '#dc2626' : NEON.bgCard, color: voice.recording ? '#ffffff' : NEON.textPrimary, cursor: 'pointer', fontWeight: 700, fontSize: '0.8rem', opacity: voice.busy ? 0.6 : 1 }}>
-                    {voice.recording ? <><Square size={13} fill="currentColor" aria-hidden="true" /><bdi>{`0:${String(voice.seconds).padStart(2, '0')}`}</bdi></> : <Mic size={18} aria-hidden="true" />}
-                  </button>
-                )}
-              </div>
-              {voice.busy && <div role="status" aria-live="polite" style={{ fontSize: '0.8rem', color: NEON.textSecondary }}>{t.transcribing}</div>}
+              <textarea
+                id="ai-quote-draft-description"
+                ref={fieldRef}
+                value={description}
+                maxLength={MAX_DESCRIPTION_CHARS}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder={t.placeholder}
+                disabled={phase === 'loading'}
+                aria-invalid={!!errorText}
+                aria-describedby={errorText ? 'ai-quote-draft-error' : undefined}
+                style={inputStyle(isHebrew)}
+              />
+              {voice.supported && (
+                /* PRODUCT_TRUTH_DECORATIVE: dictates the job description (the spoken text is added to the field; nothing is sent until "create") */
+                <button type="button" data-testid="ai-quote-draft-dictate" onClick={() => startVoice('describe')} disabled={phase === 'loading' || voice.busy} aria-pressed={voice.recording} style={voiceBtnStyle}>
+                  {voice.recording ? <Square size={14} fill="currentColor" aria-hidden="true" /> : <Mic size={16} aria-hidden="true" />}<bdi>{voiceLabel(t.dictate)}</bdi>
+                </button>
+              )}
               {voice.error && <div role="alert" data-testid="ai-quote-draft-voice-error" style={{ color: NEON.red, fontSize: '0.8rem', lineHeight: 1.4 }}>{t.voiceErrors[voice.error]}</div>}
               {errorText && <div id="ai-quote-draft-error" role="alert" style={{ color: NEON.red, fontSize: '0.8rem', lineHeight: 1.4 }}>{errorText}</div>}
               {phase === 'loading' && <div role="status" aria-live="polite" style={{ fontSize: '0.82rem', color: NEON.textSecondary }}>{t.generating}</div>}

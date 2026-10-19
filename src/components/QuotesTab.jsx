@@ -859,14 +859,8 @@ export default function QuotesTab({
             <bdi className="pf-num" dir="ltr">{Number(hotLead.quote.view_count || 0)}</bdi>
             {isHebrew ? ' פעמים ועדיין לא חתם.' : ' times and still hasn’t signed.'}
           </span>
-          {/* Owner 2026-10-19 (L-25 / L-26, "תתקן גם את ההצעה החמה! כמו שאמרת"): the phone line - only a long name shortens, the view
-              count always stays visible; the full sentence above is the computer / tablet line */}
-          <span className="qhb-short" data-testid="next-step-short" aria-hidden="true">
-            <mark className="quote-hot-banner-name qhb-short-name"><bdi>{quotePartyLabel(hotLead.quote).text}</bdi></mark>
-            <span className="qhb-short-rest">{NS.shortViewed(Number(hotLead.quote.view_count || 0))}</span>
-          </span>
           {/* PRODUCT_TRUTH_DECORATIVE: the same "Open & track" as the eye button above, as a visible text button (Owner 2026-10-19) */}
-          <button type="button" className="quote-hot-banner-cta" data-testid="next-step-action" data-short={NS.shortOpen} aria-label={NS.openTrack} onClick={() => openHotQuote(hotLead.quote.id)}>
+          <button type="button" className="quote-hot-banner-cta" data-testid="next-step-action" onClick={() => openHotQuote(hotLead.quote.id)}>
             {NS.openTrack}
           </button>
         </div>
@@ -887,12 +881,8 @@ export default function QuotesTab({
                   ? <>{NS.taskDueToday}<bdi className="pf-num" dir="ltr">{String(otherStep.task.due_time).slice(0, 5)}</bdi>{NS.end}</>
                   : <>{NS.taskDueOn}<bdi className="pf-num" dir="ltr">{formatShortDate(otherStep.task.due_date, dateMarket)}</bdi>{NS.end}</>}
               </span>
-              <span className="qhb-short" data-testid="next-step-short" aria-hidden="true">
-                <bdi className="qhb-short-name">{otherStep.task.title}</bdi>
-                <span className="qhb-short-rest">{NS.shortOverdue}</span>
-              </span>
               {/* PRODUCT_TRUTH_DECORATIVE: the same task opening as the icon button above, as a visible text button */}
-              <button type="button" className="quote-hot-banner-cta" data-testid="next-step-action" data-short={NS.shortView} aria-label={NS.viewTask} onClick={() => openStepTask(otherStep.task.id)}>
+              <button type="button" className="quote-hot-banner-cta" data-testid="next-step-action" onClick={() => openStepTask(otherStep.task.id)}>
                 {NS.viewTask}
               </button>
             </>
@@ -909,14 +899,8 @@ export default function QuotesTab({
                 {otherStep.daysLeft === 0 ? NS.expiringToday : otherStep.daysLeft === 1 ? NS.expiringTomorrow
                   : <>{NS.expiringInPre}<bdi className="pf-num" dir="ltr">{otherStep.daysLeft}</bdi>{NS.expiringInPost}</>}
               </span>
-              <span className="qhb-short" data-testid="next-step-short" aria-hidden="true">
-                {quotePartyLabel(otherStep.quote).kind === 'number'
-                  ? <bdi className="pf-num qhb-short-name" dir="ltr">{quotePartyLabel(otherStep.quote).text}</bdi>
-                  : <mark className="quote-hot-banner-name qhb-short-name"><bdi>{quotePartyLabel(otherStep.quote).text}</bdi></mark>}
-                <span className="qhb-short-rest">{otherStep.daysLeft === 0 ? NS.shortExpiresToday : otherStep.daysLeft === 1 ? NS.shortExpiresTomorrow : NS.shortExpiresIn(otherStep.daysLeft)}</span>
-              </span>
               {/* PRODUCT_TRUTH_DECORATIVE: the same tracking opening as the icon button above, as a visible text button */}
-              <button type="button" className="quote-hot-banner-cta" data-testid="next-step-action" data-short={NS.shortOpen} aria-label={NS.openTrack} onClick={() => openHotQuote(otherStep.quote.id)}>
+              <button type="button" className="quote-hot-banner-cta" data-testid="next-step-action" onClick={() => openHotQuote(otherStep.quote.id)}>
                 {NS.openTrack}
               </button>
             </>
