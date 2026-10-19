@@ -223,7 +223,7 @@ describe('AiQuoteDraftDialog', () => {
     const dialog = screen.getByRole('dialog', { name: 'AI smart quote' });
     expect(dialog.getAttribute('dir')).toBe('ltr');
     fireEvent.change(screen.getByLabelText('What is the job?'), { target: { value: 'Replace three windows' } });
-    fireEvent.click(screen.getByRole('button', { name: /Create a draft with AI/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Create with AI/ }));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('did not return a draft'));
   });
 });

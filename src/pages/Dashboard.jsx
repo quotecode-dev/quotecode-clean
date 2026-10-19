@@ -6229,11 +6229,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         .dash-nav-back:hover { background: #eef6f5; }
         .dash-nav-back:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
         @media (max-width: 768px) { .dash-nav-back { min-height: 44px; margin-bottom: 8px; } }
-        /* phones / tablet portrait: the text keeps the line beside the icon, the action goes under it (44px touch target) */
+        /* Owner 2026-10-19 (L-25 / L-26, "תתקן גם את ההצעה החמה! כמו שאמרת"): phones / tablet portrait keep the banner on ONE line at
+           its original height - a short text (only a long name shortens; the count / days always stay visible) and a short button */
+        .quote-hot-banner .qhb-short { display: none; }
         @media (max-width: 768px) {
-          .quote-workspace .quote-hot-banner:has(.quote-hot-banner-cta) { flex-wrap: wrap; padding-block: 2px 6px; }
-          .quote-workspace .quote-hot-banner:has(.quote-hot-banner-cta) .quote-hot-banner-text { flex: 1 1 calc(100% - 52px); }
-          .quote-workspace .quote-hot-banner-cta { min-height: 44px; margin-inline-start: 46px; }
+          .quote-workspace .quote-hot-banner .quote-hot-banner-text { display: none; }
+          .quote-workspace .quote-hot-banner .qhb-short { display: flex; flex: 1 1 auto; min-width: 0; align-items: baseline; white-space: nowrap; color: #9a3412; font-weight: 500; }
+          .quote-workspace .quote-hot-banner .qhb-short-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+          .quote-workspace .quote-hot-banner .qhb-short-rest { flex: none; white-space: pre; }
+          .quote-workspace .quote-hot-banner-cta[data-short] { min-height: 36px; padding: 0 12px; font-size: 0; }
+          .quote-workspace .quote-hot-banner-cta[data-short]::after { content: attr(data-short); font-size: 12.5px; }
         }
         /* Owner 2026-10-18: the quote list in pages - separate, clearly outlined "previous" / "next" buttons with the highlighted
            "page X of Y" between them (every width; the desktop card adjusts its height below) */

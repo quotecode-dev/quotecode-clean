@@ -35,7 +35,10 @@ describe('AI smart quote dictation (Owner 2026-10-19)', () => {
     const field = screen.getByLabelText('מה העבודה?');
     const mic = screen.getByTestId('ai-quote-draft-dictate');
     expect(field.compareDocumentPosition(mic) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(mic.textContent).toBe('הכתבה בקול');
+    expect(mic.getAttribute('aria-label')).toBe('הכתבה בקול');
+    // inside the field's own box: the action row keeps exactly its two buttons (one line, uniform)
+    expect(mic.parentElement.contains(field)).toBe(true);
+    expect(screen.getByRole('button', { name: /יצירת טיוטה עם AI/ }).parentElement.querySelectorAll('button')).toHaveLength(2);
     fireEvent.change(field, { target: { value: 'עבודת ריצוף:' } });
     await recordOnce('ai-quote-draft-dictate');
     await waitFor(() => expect(field.value).toBe('עבודת ריצוף: פירוק ריצוף בסלון'));
@@ -74,6 +77,6 @@ describe('AI smart quote dictation (Owner 2026-10-19)', () => {
 
   it('English copy', () => {
     render(<AiQuoteDraftDialog {...props({ isHebrew: false, transcribe: vi.fn() })} />);
-    expect(screen.getByTestId('ai-quote-draft-dictate').textContent).toBe('Dictate');
+    expect(screen.getByTestId('ai-quote-draft-dictate').getAttribute('aria-label')).toBe('Dictate');
   });
 });
