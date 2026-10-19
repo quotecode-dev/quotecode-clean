@@ -17,7 +17,7 @@ import { buildAccountMarketFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFac
 import type { ChatFactPayload } from "../_shared/aiChatContract.ts";
 import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
 import { buildErrorEnvelope, withLegacyChoices, type ChatErrorCode } from "../_shared/aiChatContract.ts";
-import { classifyQuoteStatsIntent, computeQuoteStats, formatQuoteStatsAnswer, type QuoteStatRow } from "./quoteStatsTruth.ts";
+import { classifyQuoteStatsIntent, computeQuoteStats, formatQuoteStatsAnswer, mentionsPlan, type QuoteStatRow } from "./quoteStatsTruth.ts";
 import { CHEAP_MODEL, LEGACY_CHEAP_MODEL, isOwnDataQuestion, hasDataQualifier, chatCompletionsTools, chatCompletionToolCalls, runToolLoop, buildToolsPromptBlock, dailyCapAnswer, type ToolContext } from "./chatTools.ts";
 
 const corsHeaders = {
@@ -295,7 +295,10 @@ serve(async (req) => {
   // the market and capability routers. See subscriptionTruth.ts.
   {
     const subscription = resolveSubscriptionTruthResponse(lastUserMessage, isHebrew, verifiedUserId && accountContext ? accountContext.account : null);
-    if (subscription) {
+    // Owner LIVE check 2026-10-19: "how many quotes do I have for client X" is a question about the user's records, not about the plan
+    // allowance - unless it names the plan (left / free / subscription...), it goes to the data tools
+    const dataNotPlan = ownDataQuestion && hasDataQualifier(lastUserMessage) && !mentionsPlan(lastUserMessage);
+    if (subscription && !dataNotPlan) {
       await logChat(subscription.answer);
       return deterministicResponse(subscription.answer, null, null);
     }

@@ -19,6 +19,12 @@ const EN_QUOTES = /\bquotes?\b/i;
 const EN_ASK = /\b(how many|how much|number of|count|total|sum|value|worth|amount)\b/i;
 const EN_STAT = /\b(have|sent|approved|signed|pending|awaiting|open|drafts?|total|sum|value|worth|amounts?)\b/i;
 
+/** The message is about the plan / allowance (quotes LEFT, free, subscription...) - the subscription truth answers it. */
+export function mentionsPlan(message: string): boolean {
+  const m = String(message || '');
+  return PLAN_WORDS_HE.test(m) || PLAN_WORDS_EN.test(m);
+}
+
 /** True for a question about the account's existing quotes - their number and / or their amounts. */
 export function classifyQuoteStatsIntent(message: string): boolean {
   const m = String(message || '').trim();
