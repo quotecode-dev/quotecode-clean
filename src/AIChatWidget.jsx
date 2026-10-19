@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from './shared/supabase';
-import { MessageCircleMore, Sparkles, X, Send, MessageSquarePlus, ChevronLeft, ChevronRight, FileText, LifeBuoy, CreditCard, Building2, MessageSquare, History, Mic, Square, Volume2, VolumeX } from 'lucide-react';
+import { MessageCircleMore, Sparkles, X, Send, MessageSquarePlus, ChevronLeft, ChevronRight, FileText, LifeBuoy, CreditCard, Building2, MessageSquare, History, Mic, Square, Volume2, VolumeX, Paperclip } from 'lucide-react';
 import { NEON } from './theme/neonTheme';
 import {
   buildPublicChatStorageKey,
@@ -20,6 +20,7 @@ import { draftSnapshotDigest } from '../supabase/functions/_shared/quoteDraftSna
 import { CHAT_CONTRACT_VERSION } from './utils/aiChatContract';
 import { formatQuoteFallback } from './utils/quoteNumber';
 import AiChatIcon from './components/AiChatIcon';
+import { imageFromClipboard, imageFileToDataUrl, SCREENSHOT_COPY } from './utils/chatScreenshot';
 import { VOICE_COPY, VOICE_MODES, MAX_RECORD_SECONDS, readVoiceMode, saveVoiceMode, readVoiceDisclosed, saveVoiceDisclosed, pickRecorderMime, voiceSupported, blobToBase64, base64ToBlob } from './utils/voiceAssistant';
 
 // Dynamic Compact Guided Buttons task: one small, purely-decorative icon
@@ -484,6 +485,13 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   const recordTimerRef = useRef(null);
   const audioRef = useRef(null);
   const sendTextRef = useRef(null);
+  // Owner 2026-10-19 ("כן לצילום מסך ... העתק הדבק"): one screenshot per question - pasted, or picked with the paperclip on a phone;
+  // signed-in dashboard chat only (the server honors it only there)
+  const shotCopy = isHebrew ? SCREENSHOT_COPY.he : SCREENSHOT_COPY.en;
+  const shotsEnabled = Boolean(isDashboard);
+  const [narrowScreen] = useState(() => { try { return window.matchMedia('(max-width: 768px)').matches; } catch { return false; } });
+  const [screenshot, setScreenshot] = useState(null);
+  const shotInputRef = useRef(null);
 
   const scrollContainerRef = useRef(null);
 
@@ -777,12 +785,28 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
     try { audioRef.current?.pause(); } catch { /* gone */ }
   }, []);
 
+  const attachScreenshotFile = async (file) => {
+    if (!shotsEnabled || !file) return;
+    const dataUrl = await imageFileToDataUrl(file);
+    if (dataUrl) setScreenshot(dataUrl);
+    else setMessages((prev) => [...prev, withCreatedAt({ role: 'system-note', content: shotCopy.tooBig })]);
+  };
+  const handlePaste = (e) => {
+    if (!shotsEnabled) return;
+    const file = imageFromClipboard(e);
+    if (!file) return; // ordinary text paste
+    e.preventDefault();
+    attachScreenshotFile(file);
+  };
+
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!input.trim() || loading) return;
-    const userMsg = input.trim();
+    if ((!input.trim() && !screenshot) || loading) return;
+    const userMsg = input.trim() || shotCopy.defaultQuestion;
+    const shot = screenshot;
     setInput('');
-    await sendText(userMsg);
+    setScreenshot(null);
+    await sendText(userMsg, shot ? { extraBody: { screenshot: shot }, screenshot: shot } : {});
   };
 
   // Task 33: ONE send path for the typed message, a guided follow-up click and "try again" - so every one of them shows the same
@@ -793,7 +817,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   const sendText = async (userMsg, opts = {}) => {
     if (!userMsg || loading) return;
     const draftRef = opts.draftRef || null;
-    const newMessages = [...messages, withCreatedAt({ role: 'user', content: userMsg })];
+    const newMessages = [...messages, withCreatedAt({ role: 'user', content: userMsg, ...(opts.screenshot ? { screenshot: opts.screenshot } : {}) })];
     setMessages(newMessages);
     setLoading(true);
 
@@ -1384,6 +1408,9 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                             lineHeight: '1.4',
                             textAlign: isHebrew ? 'right' : 'left'
                           }}>
+                            {msg.role === 'user' && msg.screenshot && (
+                              <img src={msg.screenshot} alt={shotCopy.attached} data-testid="ai-chat-user-screenshot" style={{ display: 'block', maxWidth: '100%', maxHeight: '160px', borderRadius: '8px', marginBottom: '6px' }} />
+                            )}
                             {msg.role === 'assistant' && msg.spokenCollapsed && !expandedSpoken.has(idx) ? (
                               <span data-testid="ai-chat-spoken-answer" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                                 <Volume2 size={15} strokeWidth={2.2} aria-hidden="true" />
@@ -1798,15 +1825,38 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                 </div>
               )}
 
+              {screenshot && (
+                <div data-testid="ai-chat-screenshot-preview" style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px 0', background: NEON.bgElevated, color: NEON.textSecondary, fontSize: '0.78rem' }}>
+                  <img src={screenshot} alt="" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '6px', border: `1px solid ${NEON.border}` }} />
+                  <span style={{ flex: 1 }}>{shotCopy.attached}</span>
+                  {/* PRODUCT_TRUTH_DECORATIVE: removes the screenshot attached to the next question */}
+                  <button type="button" data-testid="ai-chat-screenshot-remove" onClick={() => setScreenshot(null)} aria-label={shotCopy.remove} title={shotCopy.remove}
+                    style={{ background: 'none', border: 'none', color: NEON.textSecondary, cursor: 'pointer', padding: '4px', display: 'flex' }}>
+                    <X size={14} strokeWidth={2.5} />
+                  </button>
+                </div>
+              )}
               <form onSubmit={handleSend} style={{ padding: '10px', background: NEON.bgElevated, borderTop: `1px solid ${NEON.border}`, display: 'flex', gap: '8px', flexShrink: 0 }}>
                 <input
                   ref={inputRef}
                   type="text"
                   value={input}
+                  onPaste={handlePaste}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder={transcribing ? voiceCopy.transcribing : (isHebrew ? 'שאל משהו...' : 'Ask something...')}
                   style={{ flex: 1, padding: '8px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.85rem', outline: 'none', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary }}
                 />
+                {shotsEnabled && narrowScreen && (
+                  <>
+                    <input ref={shotInputRef} type="file" accept="image/png,image/jpeg,image/webp" data-testid="ai-chat-screenshot-file" style={{ display: 'none' }}
+                      onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ''; attachScreenshotFile(f); }} />
+                    {/* PRODUCT_TRUTH_DECORATIVE: picks a screenshot for the next question (phones, where pasting an image is awkward) */}
+                    <button type="button" data-testid="ai-chat-attach" onClick={() => shotInputRef.current?.click()} disabled={loading} aria-label={shotCopy.attach} title={shotCopy.attach}
+                      style={{ flex: 'none', minWidth: '40px', padding: '8px 10px', borderRadius: '8px', border: `1px solid ${NEON.borderStrong}`, background: NEON.bgInput, color: NEON.textPrimary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Paperclip size={16} strokeWidth={2.4} />
+                    </button>
+                  </>
+                )}
                 {voiceEnabled && (
                   /* PRODUCT_TRUTH_DECORATIVE: records a spoken question (tap again to stop and send) */
                   <button
