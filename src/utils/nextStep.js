@@ -61,6 +61,14 @@ export const NEXT_STEP_COPY = Object.freeze({
     expiringInPost: ' ימים ועדיין לא נחתמה.',
     emptyTitle: 'אין כרגע צעד דחוף.',
     emptyHint: 'משימה באיחור, הצעה חמה או הצעה שתוקפה מסתיים יופיעו כאן.',
+    // Owner 2026-10-19 (L-25 / L-26, "תתקן גם את ההצעה החמה! כמו שאמרת"): the phone shows ONE line - short text + a short button
+    shortOpen: 'פתיחה',
+    shortView: 'צפייה',
+    shortViewed: (n) => ` · צפה ${n} פעמים, לא חתם`,
+    shortOverdue: ' · באיחור',
+    shortExpiresToday: ' · התוקף מסתיים היום',
+    shortExpiresTomorrow: ' · התוקף מסתיים מחר',
+    shortExpiresIn: (n) => ` · התוקף מסתיים בעוד ${n} ימים`,
   }),
   en: Object.freeze({
     viewTask: 'View task',
@@ -77,5 +85,12 @@ export const NEXT_STEP_COPY = Object.freeze({
     expiringInPost: ' days and still isn’t signed.',
     emptyTitle: 'No urgent next step right now.',
     emptyHint: 'An overdue task, a hot quote or a quote about to expire will appear here.',
+    shortOpen: 'Open',
+    shortView: 'View',
+    shortViewed: (n) => ` · viewed ${n} times, not signed`,
+    shortOverdue: ' · overdue',
+    shortExpiresToday: ' · expires today',
+    shortExpiresTomorrow: ' · expires tomorrow',
+    shortExpiresIn: (n) => ` · expires in ${n} days`,
   }),
 });

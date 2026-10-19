@@ -355,7 +355,8 @@ describe('next-step banner (Owner 2026-10-19)', () => {
     window.addEventListener('tekango-open-bell-subject', on);
     try {
       render(<Harness isHebrew quotes={[mk('a')]} extra={{ tasksClient: tasksClient([task]), userId: 'u1' }} />);
-      const banner = await screen.findByText('להתקשר לדוד').then((n) => n.closest('[data-testid="hot-quote-banner"]'));
+      // Owner 2026-10-19 (L-25 / L-26): the phone's short line repeats the title (aria-hidden) - the full sentence is the one checked here
+      const banner = await screen.findByText('להתקשר לדוד', { ignore: '[data-testid="next-step-short"] *, script, style' }).then((n) => n.closest('[data-testid="hot-quote-banner"]'));
       expect(banner).toHaveAttribute('data-step-kind', 'task');
       expect(banner.querySelector('.quote-hot-banner-text').textContent).toMatch(/^משימה באיחור: להתקשר לדוד – הייתה אמורה להתבצע ב-.+\.$/);
       expect(banner.querySelector('bdi.pf-num')).toHaveAttribute('dir', 'ltr');
