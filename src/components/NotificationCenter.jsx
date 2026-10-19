@@ -20,7 +20,7 @@ import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../shared/brand';
 import AiRobotIcon from './AiRobotIcon';
 import { BELL_SUBJECT_EVENT, BELL_ACTION_COPY, bellActionsFor, loadFloatedKeys, saveFloatedKeys, floatedStorageKey, pendingFloating } from '../utils/bellSubject';
 
-const KIND_COLOR = { first_view: '#5B3FB6', task_due: '#0F6672', validity_ending: '#9A5B12', viewed_not_approved: '#65727A' };
+const KIND_COLOR = { signed: '#15803D', first_view: '#5B3FB6', task_due: '#0F6672', validity_ending: '#9A5B12', viewed_not_approved: '#65727A' };
 
 // variant: 'desktop' = the former decorative 18x18 icon footprint (desktop / tablet-landscape account cluster);
 //          'mobile'  = the slot freed by the removed plans indicator in the mobile / tablet-portrait header (Owner console instruction
@@ -209,6 +209,8 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
     const p = quotePartyLabel(i.quote);
     const party = p.kind === 'number' ? '' : p.text;
     if (i.kind === 'first_view') return { title: C.item.first_view(n), meta: [...(party ? [txt(party)] : []), num(formatShortDateTime(i.at, dateMarket))] };
+    // Owner 2026-10-19 (L-17): the customer signed - the client and the signing time (server time, market format)
+    if (i.kind === 'signed') return { title: C.item.signed(n), meta: [...(party ? [txt(party)] : []), num(formatShortDateTime(i.at, dateMarket))] };
     if (i.kind === 'viewed_not_approved') return { title: C.item.viewed_not_approved(n, i.days), meta: party ? [txt(party)] : [] };
     return { title: C.item.validity_ending(n, i.daysLeft), meta: [num(formatShortDate(i.validUntil, dateMarket))] };
   };

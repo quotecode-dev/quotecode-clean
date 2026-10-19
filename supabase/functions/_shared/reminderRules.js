@@ -199,6 +199,11 @@ export function deriveInAppReminders({ settings, tasks = [], quotes = [], today,
     }
   }
   for (const q of quotes) {
+    // Owner console 2026-10-19 (typed L-17 approval): the customer signed - from the server-written signed_at, for 14 days
+    const sg = q?.signed_at ? Date.parse(q.signed_at) : NaN;
+    if (Number.isFinite(sg) && nowMs - sg <= 14 * DAY_MS && ['approved', 'paid'].includes(String(q?.status || '').toLowerCase())) {
+      items.push({ key: `signed:${q.id}`, kind: 'signed', quoteId: q.id, quote: q, at: q.signed_at, sortAt: q.signed_at });
+    }
     const fv = firstViewMs(q);
     if (on('first_view') && fv !== null && nowMs - fv <= 14 * DAY_MS) {
       items.push({ key: `first_view:${q.id}`, kind: 'first_view', quoteId: q.id, quote: q, at: q.first_viewed_at, sortAt: q.first_viewed_at });
