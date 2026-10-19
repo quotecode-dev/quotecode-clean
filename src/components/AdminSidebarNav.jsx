@@ -1,6 +1,4 @@
-import { useEffect, useState } from 'react';
 import { ADMIN_NAV_GROUPS } from '../utils/adminNavGroups';
-import { supabase } from '../shared/supabase';
 
 // Unified Admin: Admin destinations are an ADDITIVE group inside the one
 // shared sidebar (same `.dash-sidebar-btn`/`.dash-sidebar-nav` classes and
@@ -10,33 +8,8 @@ import { supabase } from '../shared/supabase';
 // destinations are always in the same list for a Super Admin.
 // `section` is the active Admin destination id, or null when a business
 // screen is showing. Nav model lives in src/utils/adminNavGroups.js.
-// Smart support email stage 2 (Owner console 2026-10-20, typed: "מאשר שינוי ב-L-22: שלב 2 של המייל החכם (צבעים, מונה, ...)"): the
-// "פניות" item carries the red counter of inquiries waiting for the Owner (read under RLS - a super admin only; any failure = no counter).
-function usePendingInquiries(section) {
-  const [count, setCount] = useState(0);
-  const [tick, setTick] = useState(0);
-  useEffect(() => {
-    const bump = () => setTick((n) => n + 1);
-    window.addEventListener('tekango:inquiries-changed', bump);
-    return () => window.removeEventListener('tekango:inquiries-changed', bump);
-  }, []);
-  useEffect(() => {
-    let cancelled = false;
-    try {
-      Promise.resolve(supabase?.from?.('support_inbound_messages')?.select?.('id', { count: 'exact', head: true })?.in?.('status', ['waiting', 'draft']))
-        .then((res) => { if (!cancelled && Number.isFinite(res?.count)) setCount(res.count); })
-        .catch(() => {});
-    } catch {
-      // no counter
-    }
-    return () => { cancelled = true; };
-  }, [section, tick]);
-  return count;
-}
-
 export default function AdminSidebarNav({ section, onSelect, isHebrew }) {
   const t = (entry) => (isHebrew ? entry.he : entry.en);
-  const pending = usePendingInquiries(section);
   return (
     <>
       {ADMIN_NAV_GROUPS.map((group) => (
@@ -52,9 +25,6 @@ export default function AdminSidebarNav({ section, onSelect, isHebrew }) {
             >
               <Icon size={17} strokeWidth={2.2} />
               <span>{t(label)}</span>
-              {id === 'inquiries' && pending > 0 && (
-                <span className="admin-nav-count" data-testid="admin-nav-inquiries-count" aria-label={isHebrew ? `${pending} ממתינות לך` : `${pending} waiting for you`}>{pending}</span>
-              )}
             </button>
           ))}
         </div>

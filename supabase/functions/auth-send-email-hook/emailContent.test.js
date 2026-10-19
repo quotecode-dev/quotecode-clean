@@ -87,15 +87,6 @@ describe('auth-send-email-hook content', () => {
     });
   }
 
-  it('Owner 2026-10-20: the real logo heads every email with a link (HE right, EN left); information-only emails stay URL-free', () => {
-    for (const isHebrew of [true, false]) {
-      const c = buildEmailContent({ kind: 'signup', to: TO, verifyUrl: verifyFor('signup') }, isHebrew);
-      expect(c.html).toContain('<img src="https://www.tekango.com/tekango-logo-email-dark.png" alt="TEKANGO" width="152" height="32"');
-      expect(c.html).toContain(`align="${isHebrew ? 'right' : 'left'}"`);
-    }
-    expect(buildEmailContent({ kind: 'password_changed_notification', to: TO, details: {} }, true).html).not.toContain('<img');
-  });
-
   it('the recipient address and payload-provided values are HTML-escaped where interpolated', () => {
     const c = buildEmailContent({ kind: 'recovery', to: '<b>x</b>@example.com', verifyUrl: verifyFor('recovery') }, false);
     expect(c.html).not.toContain('<b>x</b>');

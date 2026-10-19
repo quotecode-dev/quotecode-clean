@@ -1,31 +1,22 @@
-// Owner console 2026-10-19, typed: "מאשר שינוי ב-L-22: לשונית "פניות" חדשה בממשק הניהול" - the smart support email stage 1;
-// Owner console 2026-10-20, typed: "מאשר שינוי ב-L-22: שלב 2 של המייל החכם (צבעים, מונה, טיוטות, שבוע ניסיון ועמודת הכתובת)" - stage 2.
+// Owner console 2026-10-19, typed: "מאשר שינוי ב-L-22: לשונית "פניות" חדשה בממשק הניהול" - the smart support email stage 1, read-only.
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import AdminInquiries from './AdminInquiries';
-import AdminSidebarNav from './AdminSidebarNav';
 import { ADMIN_DESTINATIONS } from './adminDestinations';
 
-const mocks = vi.hoisted(() => ({ result: { data: [], error: null }, settings: { auto_send_green: false, auto_send_yellow: false, paused: false }, calls: [], invokes: [], invokeResult: null, count: 0 }));
+const mocks = vi.hoisted(() => ({ result: { data: [], error: null }, calls: [] }));
 vi.mock('../shared/supabase', () => ({
   supabase: {
     from: (table) => {
-      const q = { table, select(cols, opts) { q.cols = cols; q.opts = opts; return q; }, order() { return q; }, eq() { return q; },
-        limit() { mocks.calls.push(q); return Promise.resolve(mocks.result); },
-        maybeSingle() { mocks.calls.push(q); return Promise.resolve({ data: mocks.settings, error: null }); },
-        in() { mocks.calls.push(q); return Promise.resolve({ count: mocks.count, error: null }); } };
+      const q = { table, select(cols) { q.cols = cols; return q; }, order() { return q; }, limit() { mocks.calls.push(q); return Promise.resolve(mocks.result); } };
       for (const verb of ['insert', 'update', 'upsert', 'delete']) q[verb] = () => { throw new Error(`write ${verb}`); };
       return q;
     },
-    functions: { invoke: async (name, { body }) => { mocks.invokes.push({ name, body }); return { data: typeof mocks.invokeResult === 'function' ? mocks.invokeResult(body) : mocks.invokeResult, error: null }; } },
   },
 }));
-afterEach(() => { cleanup(); mocks.calls = []; mocks.invokes = []; mocks.invokeResult = null; });
+afterEach(() => { cleanup(); mocks.calls = []; });
 
-const ROW = { id: 'r1', status: 'new', bin: null, from_address: 'noa@customer.test', from_name: 'Noa Cohen', to_addresses: ['support@inbound.tekango.test'], subject: 'איך מוסיפים לוגו?', text_body: 'שלום,\nאיך מוסיפים לוגו להצעה?', attachments: [{ filename: 'shot.png' }], auth_results: { spf: 'pass', dkim: 'pass', dmarc: 'fail' }, received_at: '2026-10-19T18:00:00Z' };
-const DRAFT = { ...ROW, id: 'r2', status: 'draft', bin: 'green', bin_reason: 'model:green', summary: 'רוצה להוסיף לוגו', mailbox: 'info', reply_language: 'he', draft_reply: 'שלום,\nבהגדרות העסק.' };
-const RED = { ...ROW, id: 'r3', status: 'waiting', bin: 'red', bin_reason: 'word:ביטול', mailbox: 'support', reply_language: 'he', draft_reply: null, ack_sent_at: '2026-10-20T08:00:00Z', subject: 'ביטול' };
-const DONE = { ...ROW, id: 'r4', status: 'answered', bin: 'green', mailbox: 'support', reply_text: 'שלום, הנה התשובה', reply_sent_at: '2026-10-20T09:00:00Z', reply_sent_by: 'assistant', subject: 'נענה' };
+const ROW = { id: 'r1', from_address: 'noa@customer.test', from_name: 'Noa Cohen', to_addresses: ['support@inbound.tekango.test'], subject: 'איך מוסיפים לוגו?', text_body: 'שלום,\nאיך מוסיפים לוגו להצעה?', attachments: [{ filename: 'shot.png' }], auth_results: { spf: 'pass', dkim: 'pass', dmarc: 'fail' }, received_at: '2026-10-19T18:00:00Z' };
 
 describe('Admin "Inquiries" tab (Owner 2026-10-19, L-22)', () => {
   it('is one registry destination in the Management group, super admin only, phone "More" list', () => {
@@ -33,7 +24,7 @@ describe('Admin "Inquiries" tab (Owner 2026-10-19, L-22)', () => {
     expect(d).toMatchObject({ group: 'management', permission: 'super_admin', mobile: 'more', available: true, label: { he: 'פניות', en: 'Inquiries' } });
   });
 
-  it('lists the received inquiries (reads only); a row opens the full text, the attachments (names only) and the sender checks', async () => {
+  it('lists the received inquiries read-only; a row opens the full text, the attachments (names only) and the sender checks', async () => {
     mocks.result = { data: [ROW], error: null };
     render(<AdminInquiries isHebrew />);
     const rows = await screen.findAllByTestId('inquiry-row');
@@ -57,88 +48,5 @@ describe('Admin "Inquiries" tab (Owner 2026-10-19, L-22)', () => {
     mocks.result = { data: [], error: null };
     render(<AdminInquiries isHebrew={false} />);
     await waitFor(() => expect(screen.getByTestId('inquiries-empty').textContent).toBe('No inquiries yet. Receiving starts once the support address is connected.'));
-  });
-});
-
-describe('stage 2 (Owner 2026-10-20, L-22): colours, state, mailbox column, counter, drafts and settings', () => {
-  it('every row shows its colour, the mailbox it was sent to and its state; the counter = waiting + drafts; the filter narrows to them', async () => {
-    mocks.result = { data: [DRAFT, RED, DONE], error: null };
-    render(<AdminInquiries isHebrew />);
-    const rows = await screen.findAllByTestId('inquiry-row');
-    expect(rows.map((r) => within(r).getByTestId('inquiry-mailbox').textContent)).toEqual(['info@tekango.com', 'support@tekango.com', 'support@tekango.com']);
-    expect(within(rows[1]).getByRole('img', { name: 'אדום' })).toBeTruthy();
-    expect(rows[0].textContent).toContain('טיוטה לאישור');
-    expect(rows[1].textContent).toContain('ממתין לך');
-    expect(rows[2].textContent).toContain('נענה');
-    expect(screen.getByTestId('inquiries-pending').textContent).toBe('2');
-    expect(screen.getByText('3 פניות · 2 ממתינות לך')).toBeTruthy();
-    fireEvent.change(screen.getByTestId('inquiries-filter'), { target: { value: 'pending' } });
-    expect(screen.getAllByTestId('inquiry-row')).toHaveLength(2);
-  });
-
-  it('a draft: "מאשר ושולח" sends the draft as is; editing turns it into "מתקן ושולח"; every action goes through support-admin', async () => {
-    mocks.result = { data: [DRAFT], error: null };
-    mocks.invokeResult = { ok: true, status: 'answered' };
-    render(<AdminInquiries isHebrew />);
-    fireEvent.click((await screen.findAllByTestId('inquiry-row'))[0]);
-    const dlg = screen.getByTestId('inquiry-detail');
-    expect(dlg.textContent).toContain('שאלה שהעוזר יודע לענות עליה');
-    expect(dlg.textContent).toContain('רוצה להוסיף לוגו');
-    expect(screen.getByTestId('inquiry-reply-text').value).toBe('שלום,\nבהגדרות העסק.');
-    expect(screen.getByTestId('inquiry-reply-text').getAttribute('dir')).toBe('rtl');
-    expect(screen.getByTestId('inquiry-send').textContent).toContain('מאשר ושולח');
-    fireEvent.change(screen.getByTestId('inquiry-reply-text'), { target: { value: 'שלום,\nתשובה מתוקנת.' } });
-    expect(screen.getByTestId('inquiry-send').textContent).toContain('מתקן ושולח');
-    fireEvent.click(screen.getByTestId('inquiry-send'));
-    await waitFor(() => expect(screen.getByTestId('inquiry-notice').textContent).toBe('נשלח ללקוח.'));
-    expect(mocks.invokes[0]).toEqual({ name: 'support-admin', body: { action: 'send', id: 'r2', text: 'שלום,\nתשובה מתוקנת.' } });
-    expect(screen.queryByTestId('inquiry-reply')).toBeNull();
-  });
-
-  it('a RED inquiry shows why and the acknowledgement already sent; "בקש מהעוזר טיוטה" fills the reply; "לא לשלוח" closes it', async () => {
-    mocks.result = { data: [RED], error: null };
-    mocks.invokeResult = (body) => (body.action === 'redraft' ? { ok: true, draft: 'שלום,\nטיוטה מהעוזר.' } : { ok: true, status: 'dismissed' });
-    render(<AdminInquiries isHebrew />);
-    fireEvent.click((await screen.findAllByTestId('inquiry-row'))[0]);
-    const dlg = screen.getByTestId('inquiry-detail');
-    expect(dlg.textContent).toContain('המילה "ביטול"');
-    expect(dlg.textContent).toContain('אישור קבלה קבוע נשלח');
-    expect(screen.getByTestId('inquiry-send').textContent).toContain('שליחה');
-    fireEvent.click(screen.getByTestId('inquiry-redraft'));
-    await waitFor(() => expect(screen.getByTestId('inquiry-reply-text').value).toBe('שלום,\nטיוטה מהעוזר.'));
-    fireEvent.click(screen.getByTestId('inquiry-dismiss'));
-    await waitFor(() => expect(screen.getByTestId('inquiry-notice').textContent).toBe('הפנייה סומנה: לא לשלוח.'));
-    expect(mocks.invokes.map((c) => c.body.action)).toEqual(['redraft', 'dismiss']);
-  });
-
-  it('an answered inquiry shows what was sent and offers no actions (EN)', async () => {
-    mocks.result = { data: [DONE], error: null };
-    render(<AdminInquiries isHebrew={false} />);
-    fireEvent.click((await screen.findAllByTestId('inquiry-row'))[0]);
-    expect(screen.getByTestId('inquiry-detail').textContent).toContain('by the assistant');
-    expect(screen.queryByTestId('inquiry-reply')).toBeNull();
-  });
-
-  it('the settings: sending by colour (off = drafts) and the stop switch, saved through support-admin', async () => {
-    mocks.result = { data: [], error: null };
-    mocks.invokeResult = (body) => ({ ok: true, settings: { auto_send_green: true, auto_send_yellow: false, paused: false, ...body, action: undefined } });
-    render(<AdminInquiries isHebrew />);
-    fireEvent.click(await screen.findByTestId('inquiries-settings'));
-    const green = await screen.findByTestId('inquiries-setting-auto_send_green');
-    expect(green.checked).toBe(false);
-    expect(screen.getByTestId('inquiries-settings-dialog').textContent).toContain('כל תשובה נשמרת כטיוטה לאישורך');
-    fireEvent.click(green);
-    await waitFor(() => expect(mocks.invokes[0]).toEqual({ name: 'support-admin', body: { action: 'settings', auto_send_green: true } }));
-    expect(screen.getByTestId('inquiries-setting-auto_send_green').checked).toBe(true);
-  });
-
-  it('the sidebar "פניות" item carries the red counter of what waits (none = no counter)', async () => {
-    mocks.count = 3;
-    render(<AdminSidebarNav section={null} onSelect={() => {}} isHebrew />);
-    expect((await screen.findByTestId('admin-nav-inquiries-count')).textContent).toBe('3');
-    cleanup();
-    mocks.count = 0;
-    render(<AdminSidebarNav section={null} onSelect={() => {}} isHebrew />);
-    await waitFor(() => expect(screen.queryByTestId('admin-nav-inquiries-count')).toBeNull());
   });
 });

@@ -382,7 +382,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
         'src/components/AdminUsersTab.jsx', 'src/components/AdminUserDetails.jsx', 'supabase/functions/chat-ai/accountContext.ts',
         'src/components/AISupportLogsContent.jsx', 'src/components/AdminOverview.jsx', 'src/components/AdminPlans.jsx',
         'src/components/AdminSidebarNav.jsx', 'src/components/AdminUsersView.jsx', 'src/pages/Dashboard.jsx',
-        // Owner 2026-10-19 (L-22): the smart support email's Inquiries tab (2026-10-20 stage 2: colours, drafts, the Owner's replies, settings)
+        // Owner 2026-10-19 (L-22): the smart support email's read-only Inquiries tab
         'src/components/AdminInquiries.jsx'],
     }),
 

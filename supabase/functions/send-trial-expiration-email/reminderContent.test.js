@@ -24,11 +24,7 @@ describe('trial reminder copy - no legacy plan name, behavior unchanged', () => 
   // night task 2026-10-16 (R-15, Owner default 2): the daily cron no longer invokes the trial job (no trial exists); the schedule stays
   it('the schedule is unchanged (one daily Vercel cron); the cron no longer invokes the retired trial job', () => {
     const vercel = JSON.parse(readFileSync('vercel.json', 'utf-8'));
-    // the daily job keeps its one schedule; the only other cron is the smart support email's evening summary (Owner 2026-10-20,
-    // L-22 stage 2) - no cron path reaches the retired trial job
-    expect(vercel.crons.filter((c) => c.path === '/api/cron')).toEqual([{ path: '/api/cron', schedule: '0 8 * * *' }]);
-    expect(vercel.crons.map((c) => c.path).sort()).toEqual(['/api/cron', '/api/support-digest']);
-    expect(readFileSync('api/support-digest.js', 'utf-8')).not.toContain('send-trial-expiration-email');
+    expect(vercel.crons).toEqual([{ path: '/api/cron', schedule: '0 8 * * *' }]);
     const cron = readFileSync('api/cron.js', 'utf-8');
     expect(cron).not.toContain("supabase.functions.invoke('send-trial-expiration-email', {");
     expect(cron).toContain("supabase.functions.invoke('send-subscription-expiration-email', {");

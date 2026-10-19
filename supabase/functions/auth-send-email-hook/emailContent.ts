@@ -14,10 +14,6 @@
 const HEADER_BG = '#111112';
 const FLOW_PURPLE = '#d8b4fe';
 const ACCENT_VIOLET = '#8b5cf6';
-// Owner 2026-10-20 ("להכניס את הלוגו למיילי ההרשמה בשחרור הבא? - כן"): the real TEKANGO logo (the dark-background version, made small
-// for email) in the header of every email with a link (signup, recovery, sign-in link, invite, email change); hosted on the sending
-// domain; when a mail client blocks images the alt text TEKANGO shows. Information-only emails keep the word (no URL at all).
-export const LOGO_URL = 'https://www.tekango.com/tekango-logo-email-dark.png';
 
 export type LinkMessageKind = 'signup' | 'recovery' | 'magiclink' | 'invite';
 
@@ -69,7 +65,7 @@ export function buildVerifyUrl(supabaseUrl: string, tokenHash: string, verifyTyp
   return url.toString();
 }
 
-function wrapEmail(isHebrew: boolean, bodyHtml: string, withLogo = false) {
+function wrapEmail(isHebrew: boolean, bodyHtml: string) {
   return `<!DOCTYPE html>
 <html dir="${isHebrew ? 'rtl' : 'ltr'}" lang="${isHebrew ? 'he' : 'en'}">
 <body style="margin:0;padding:0;background:#f8fafc;font-family:Arial,Segoe UI,sans-serif;">
@@ -78,10 +74,8 @@ function wrapEmail(isHebrew: boolean, bodyHtml: string, withLogo = false) {
       <td align="center">
         <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
           <tr>
-            <td style="background:${HEADER_BG};padding:${withLogo ? '18px' : '20px'} 28px;" align="${isHebrew ? 'right' : 'left'}">
-              ${withLogo
-                ? `<img src="${LOGO_URL}" alt="TEKANGO" width="152" height="32" style="display:block;border:0;outline:none;width:152px;height:32px;color:${FLOW_PURPLE};font-size:18px;font-weight:800;font-family:Arial,Segoe UI,sans-serif;">`
-                : `<span style="color:${FLOW_PURPLE};font-size:1.2rem;font-weight:800;letter-spacing:0.5px;font-family:Arial,Segoe UI,sans-serif;">TEKANGO</span>`}
+            <td style="background:${HEADER_BG};padding:20px 28px;">
+              <span style="color:${FLOW_PURPLE};font-size:1.2rem;font-weight:800;letter-spacing:0.5px;font-family:Arial,Segoe UI,sans-serif;">TEKANGO</span>
             </td>
           </tr>
           <tr>
@@ -115,8 +109,7 @@ export function buildEmailContent(message: AuthEmailMessage, isHebrew: boolean):
   // Message with a verification link (CTA + the same URL in the text part).
   const withLink = (subject: string, bodyHtml: string, bodyText: string, ctaLabel: string, textLead: string, url: string): Content => ({
     subject,
-    // the logo only in emails that already carry a link (an information-only email stays free of any URL)
-    html: wrapEmail(isHebrew, `<p>${greeting}</p><p style="line-height:1.6;">${bodyHtml}</p>${ctaButton(url, ctaLabel)}<p style="margin-top:24px;">${signature}</p>`, true),
+    html: wrapEmail(isHebrew, `<p>${greeting}</p><p style="line-height:1.6;">${bodyHtml}</p>${ctaButton(url, ctaLabel)}<p style="margin-top:24px;">${signature}</p>`),
     text: `${greeting}\n\n${bodyText}\n\n${textLead}: ${url}\n\n${signatureText}`,
   });
   // Information-only message: no link, no button.
