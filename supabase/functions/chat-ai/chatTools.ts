@@ -4,13 +4,19 @@
 //    can create, change, delete, sign or send anything (readOnlyBoundary.test.js keeps index.ts honest; chatTools.test.js this file).
 //  - Amounts are formatted and summed HERE, per currency, never mixed (IRON-AI-001 / IRON-MARKET-004); the model only quotes them.
 //  - Tool results are DATA: client names / notes may contain text that looks like instructions - the prompt block says so.
-//  - The plain question keeps the existing cheap model; only a turn in which that model asks for a tool continues on the stronger
-//    model through the Responses API (tool calling is supported there), at most MAX_TOOL_ROUNDS rounds. Any provider failure on the
-//    tool path returns null so index.ts falls back to the existing tool-less answer - the chat never breaks because of the tools.
+//  - The plain question stays on the cheap model; only a turn in which that model asks for a tool continues on the stronger model
+//    through the Responses API (tool calling is supported there), at most MAX_TOOL_ROUNDS rounds. Any provider failure on the tool
+//    path returns null so index.ts falls back to the tool-less answer - the chat never breaks because of the tools.
+//  - Owner console 2026-10-19 ("תחליף עכשיו כן"): the cheap model moves to the provider's replacement (gpt-4o-mini shuts down
+//    2027-01-14); while the old one still answers it is the automatic fallback when the new one fails.
+//  - Owner LIVE check 2026-10-19: a question about the user's OWN records with a qualifier ("how many quotes for client X",
+//    "which tasks are overdue") must reach the tools - isOwnDataQuestion / hasDataQualifier let index.ts skip the fixed
+//    account-wide statistics and the "does the product have tasks" capability answer for exactly those questions.
 
 import { money } from './quoteStatsTruth.ts';
 
-export const CHEAP_MODEL = 'gpt-4o-mini';
+export const CHEAP_MODEL = 'gpt-6-luna';
+export const LEGACY_CHEAP_MODEL = 'gpt-4o-mini';
 export const TOOLS_MODEL = 'gpt-6.1-sol';
 export const MAX_TOOL_ROUNDS = 3;
 const MAX_ROWS = 10;
@@ -34,6 +40,18 @@ export const CHAT_TOOL_DEFS: ToolDef[] = [
         created_from: nullableString('Earliest creation date, YYYY-MM-DD. null = no lower bound.'),
         created_to: nullableString('Latest creation date, YYYY-MM-DD (inclusive). null = no upper bound.'),
         limit: limitParam,
+      },
+    },
+  },
+  {
+    name: 'quote_overview',
+    description: "Counts and amounts of the user's own quotes, grouped exactly like the quote list overview (all / approved incl. paid / awaiting signature / drafts) plus expired, optionally filtered by client words and creation dates. Use it for 'how many quotes / how much' questions.",
+    parameters: {
+      type: 'object', additionalProperties: false, required: ['text', 'created_from', 'created_to'],
+      properties: {
+        text: nullableString('Words to match in the client name, contact name, project name or quote number. null = all quotes.'),
+        created_from: nullableString('Earliest creation date, YYYY-MM-DD. null = no lower bound.'),
+        created_to: nullableString('Latest creation date, YYYY-MM-DD (inclusive). null = no upper bound.'),
       },
     },
   },
@@ -79,10 +97,11 @@ export const chatCompletionsTools = () => CHAT_TOOL_DEFS.map((t) => ({ type: 'fu
 /** Responses API wrapper (the stronger model). */
 export const responsesTools = () => CHAT_TOOL_DEFS.map((t) => ({ type: 'function', name: t.name, description: t.description, parameters: t.parameters, strict: true }));
 
-export function buildToolsPromptBlock(isHebrew: boolean): string {
+export function buildToolsPromptBlock(isHebrew: boolean, today: string): string {
   return [
     '',
     'DATA TOOLS (read-only, this account only):',
+    `- Today is ${today}. Resolve "this month", "last week", "today" and similar against it.`,
     "- For any question about the user's own quotes, clients, catalog items or tasks, call the matching tool. Never guess or invent a number, name, date or amount; answer only from tool results.",
     '- Amounts come already formatted per currency. Quote them exactly; never convert currencies and never add amounts of different currencies together.',
     '- If a tool returns nothing, say so plainly. Do not offer to create, edit, send or delete anything - you cannot.',
@@ -154,6 +173,42 @@ async function findQuotes(ctx: ToolContext, a: Record<string, unknown>) {
       created: String(q.created_at || '').slice(0, 10) || null, valid_until: q.valid_until || null,
       viewed_by_client: Number(q.view_count || 0) > 0, signed_at: q.signed_at ? String(q.signed_at).slice(0, 10) : null,
     })),
+  };
+}
+
+async function quoteOverview(ctx: ToolContext, a: Record<string, unknown>) {
+  const { data, error } = await ctx.db.from('quotes')
+    .select('quote_number, project_name, status, total, currency, created_at, valid_until, view_count, clients ( company_name, contact_name )')
+    .eq('user_id', ctx.userId).order('created_at', { ascending: false }).limit(5000);
+  if (error) return { error: 'unavailable' };
+  const from = isDate(a.created_from) ? String(a.created_from) : null;
+  const to = isDate(a.created_to) ? String(a.created_to) : null;
+  // deno-lint-ignore no-explicit-any
+  const rows = (data || []).filter((q: any) => {
+    const day = String(q.created_at || '').slice(0, 10);
+    if (from && day < from) return false;
+    if (to && day > to) return false;
+    return matchesText(a.text as string | null, clientName(q), q.clients?.contact_name, q.project_name, q.quote_number);
+  });
+  // deno-lint-ignore no-explicit-any
+  const group = (pred: (q: any) => boolean) => {
+    const g = rows.filter(pred);
+    // deno-lint-ignore no-explicit-any
+    return { count: g.length, total_per_currency: sumsByCurrency(g.map((q: any) => ({ cur: curOf(q.currency, ctx.accountCurrency), total: amount(q.total) }))) };
+  };
+  return {
+    filter: { text: a.text ?? null, created_from: from, created_to: to },
+    all: group(() => true),
+    // deno-lint-ignore no-explicit-any
+    approved: group((q: any) => quoteGroup(q) === 'approved'),
+    // deno-lint-ignore no-explicit-any
+    awaiting_signature: group((q: any) => quoteGroup(q) === 'awaiting'),
+    // deno-lint-ignore no-explicit-any
+    drafts: group((q: any) => quoteGroup(q) === 'draft'),
+    // deno-lint-ignore no-explicit-any
+    expired: group((q: any) => isExpired(q, ctx.today)),
+    // deno-lint-ignore no-explicit-any
+    clients_matched: [...new Set(rows.map((q: any) => clientName(q)).filter(Boolean))].slice(0, 10),
   };
 }
 
@@ -234,7 +289,7 @@ async function listTasks(ctx: ToolContext, a: Record<string, unknown>) {
 }
 
 const RUNNERS: Record<string, (ctx: ToolContext, a: Record<string, unknown>) => Promise<unknown>> = {
-  find_quotes: findQuotes, get_quote: getQuote, find_clients: findClients, find_catalog_items: findCatalogItems, list_tasks: listTasks,
+  find_quotes: findQuotes, quote_overview: quoteOverview, get_quote: getQuote, find_clients: findClients, find_catalog_items: findCatalogItems, list_tasks: listTasks,
 };
 
 /** Runs one tool call and returns its JSON output string. Unknown tools / bad arguments / failures return a closed error object. */
@@ -325,4 +380,38 @@ export function dailyCapAnswer(isHebrew: boolean, limit: number): string {
   return isHebrew
     ? `הגעת למכסת ${limit} השאלות היומית לעוזר. המכסה מתחדשת מחר. בינתיים אפשר להמשיך לעבוד במערכת כרגיל.`
     : `You have reached today's limit of ${limit} assistant questions. It renews tomorrow. Meanwhile, you can keep working in TEKANGO as usual.`;
+}
+
+// ---- routing helpers (Owner LIVE check 2026-10-19) ----
+const HE_DATA_NOUN = /(הצע(ה|ות)|לקוח(ות)?|משימ(ה|ות)|תזכור(ת|ות)|פריט(ים)?|מחירון|קטלוג|מוצר(ים)?|שירות(ים)?)/;
+const HE_OWN = /(יש לי|יש לנו|שלי|שלנו|אצלי|אצלנו|שלחתי|יצרתי|הוספתי|באיחור|להיום|למחר|השבוע|החודש|השנה|אתמול|האחרונ|הכי |כמה עולה|מה המחיר של|ללקוח)/;
+const HE_PRODUCT = /(אפשר|ניתן|יש אפשרות|האם (יש|קיים|קיימת|קיימות)(?! לי)(?! לנו)|האם המערכת|איך (יוצרים|מוסיפים|עושים|יוצר|מוסיף)|תומך|תומכת|יודע(ת)? ל)/;
+const EN_DATA_NOUN = /\b(quotes?|clients?|customers?|tasks?|reminders?|items?|catalog|products?|services?)\b/i;
+const EN_OWN = /\b(my|i have|do i have|i sent|i created|overdue|due today|this (week|month|year)|last|latest|for (client|customer))\b/i;
+const EN_PRODUCT = /\b(can i|is it possible|does (tekango|it|the app|the system)|how (do|can) i|is there a way|support)\b/i;
+
+/** A question about the user's OWN records (not about what the product can do). */
+export function isOwnDataQuestion(message: string): boolean {
+  const m = String(message || '').trim();
+  if (!m || m.length > 400) return false;
+  if (HE_DATA_NOUN.test(m) && HE_OWN.test(m) && !HE_PRODUCT.test(m)) return true;
+  if (EN_DATA_NOUN.test(m) && EN_OWN.test(m) && !EN_PRODUCT.test(m)) return true;
+  // "how much does X cost at my place" - a price from the user's own catalog
+  if (/(כמה עולה|מה המחיר)/.test(m) && /(אצלי|אצלנו|שלי|במחירון|בקטלוג)/.test(m) && !HE_PRODUCT.test(m)) return true;
+  if (/(how much|price of|what does)/i.test(m) && /(my|our) (catalog|price list|items?)/i.test(m) && !EN_PRODUCT.test(m)) return true;
+  return false;
+}
+
+const HE_STOP_L = new Set(['לי', 'לך', 'לו', 'לה', 'לנו', 'לכם', 'להם', 'לחתימה', 'לאישור', 'לשליחה', 'לתשלום', 'לפי', 'לגבי', 'לא', 'למה', 'לכל', 'לעומת']);
+const QUALIFIER_HE = /(ללקוח|לקוח |עבור|בשביל|החודש|השבוע|השנה|היום|אתמול|בחודש|מאז|לפני|בין|האחרונ|באיחור|שפג|פג תוקפ|פג תוקף|פגו|ינואר|פברואר|מרץ|אפריל|מאי|יוני|יולי|אוגוסט|ספטמבר|אוקטובר|נובמבר|דצמבר)/;
+const QUALIFIER_EN = /\b(for|to|client|customer|this (week|month|year)|last|since|between|today|yesterday|expired|overdue|january|february|march|april|may|june|july|august|september|october|november|december)\b/i;
+
+/** The question narrows the records (a client, a period, a state) - the fixed account-wide statistics would answer it wrongly. */
+export function hasDataQualifier(message: string): boolean {
+  const m = String(message || '').trim();
+  if (QUALIFIER_HE.test(m) || QUALIFIER_EN.test(m)) return true;
+  if (/\d{1,2}[./]\d{1,2}/.test(m)) return true;
+  // "...ל<name>" - a Hebrew lamed-prefixed word that is not a plain pronoun / phrase, or lamed + a Latin name
+  if (/(^|\s)ל-?[A-Za-z]/.test(m)) return true;
+  return m.split(/\s+/).some((w) => /^ל[\u05d0-\u05ea]{2,}$/.test(w) && !HE_STOP_L.has(w));
 }

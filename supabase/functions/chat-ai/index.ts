@@ -18,7 +18,7 @@ import type { ChatFactPayload } from "../_shared/aiChatContract.ts";
 import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHelpIntent, deterministicHelpAnswer, buildHelpContextBlocks, allowedNavigation, type TrustedServerFacts, type ReconciledBlocker } from "./helpContext.ts";
 import { buildErrorEnvelope, withLegacyChoices, type ChatErrorCode } from "../_shared/aiChatContract.ts";
 import { classifyQuoteStatsIntent, computeQuoteStats, formatQuoteStatsAnswer, type QuoteStatRow } from "./quoteStatsTruth.ts";
-import { CHEAP_MODEL, chatCompletionsTools, chatCompletionToolCalls, runToolLoop, buildToolsPromptBlock, dailyCapAnswer, type ToolContext } from "./chatTools.ts";
+import { CHEAP_MODEL, LEGACY_CHEAP_MODEL, isOwnDataQuestion, hasDataQualifier, chatCompletionsTools, chatCompletionToolCalls, runToolLoop, buildToolsPromptBlock, dailyCapAnswer, type ToolContext } from "./chatTools.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -268,7 +268,11 @@ serve(async (req) => {
   // answered from THIS account's own quotes (the caller's JWT + user_id = the verified user; read-only), per currency, with the quote
   // list (its overview shows the same numbers) as the click-required destination. Runs before the subscription truth, which keeps the
   // plan-balance question ("how many quotes do I have LEFT" - excluded by the classifier).
-  if (verifiedUserId && isDashboard && accountContext && classifyQuoteStatsIntent(lastUserMessage)) {
+  // Owner LIVE check 2026-10-19: a question about the user's OWN records goes to the read-only data tools when they are available -
+  // the fixed account-wide statistics keep only the plain "how many quotes do I have" (no client / period / state in it).
+  const toolsEligible = !!(verifiedUserId && isDashboard && accountContext && !draftSnapshot);
+  const ownDataQuestion = toolsEligible && isOwnDataQuestion(lastUserMessage);
+  if (verifiedUserId && isDashboard && accountContext && classifyQuoteStatsIntent(lastUserMessage) && !(ownDataQuestion && hasDataQualifier(lastUserMessage))) {
     try {
       const statsClient = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } });
       const { data: statRows, error: statErr } = await statsClient.from('quotes').select('status, total, currency, view_count').eq('user_id', verifiedUserId);
@@ -317,7 +321,9 @@ serve(async (req) => {
   // EVERY deterministic truth gate (payment / invoicing / subscription / market / capability / why-blocked) still runs first, unchanged.
   const reviewSnapshot = isDashboard && verifiedUserId ? draftSnapshot : null;
   if (capabilityTruthApplies({ capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities })) {
-    const capabilityId = classifyCapabilityIntent(lastUserMessage);
+    // a question about the user's own records (e.g. "which tasks are overdue") is not a "does the product have X" question; the broad
+    // existence guard below still runs for it unchanged
+    const capabilityId = ownDataQuestion ? null : classifyCapabilityIntent(lastUserMessage);
     if (capabilityId) {
       // Codex "structured runtime answer contract" (2026-09-2X): formatCapabilityTruthAnswer
       // resolves a structured CapabilityAnswerState and THROWS CapabilityAnswerInvariantError if it
@@ -404,13 +410,16 @@ serve(async (req) => {
       return { db: userJwtClient, userId: verifiedUserId, accountCurrency, today: new Date().toISOString().slice(0, 10) };
     })()
     : null;
-  const modelInstructions = toolCtx ? systemPrompt + buildToolsPromptBlock(isHebrew) : systemPrompt;
+  const modelInstructions = toolCtx ? systemPrompt + buildToolsPromptBlock(isHebrew, toolCtx.today) : systemPrompt;
 
   let data: Record<string, unknown>;
   // Task 35: the provider call is bounded - a hung model ends in the closed provider_failure state (the widget offers a retry)
-  const callCheapModel = async (withTools: boolean) => {
+  // Owner 2026-10-19 ("תחליף עכשיו כן"): the cheap model is the provider's replacement (no reasoning, so function calling works on
+  // this endpoint); when it fails the old model answers the same request, so the chat never stops because of the switch.
+  const callCheapModel = async (withTools: boolean, model: string) => {
     const providerAbort = new AbortController();
     const providerTimer = setTimeout(() => providerAbort.abort(), 25000);
+    const legacy = model === LEGACY_CHEAP_MODEL;
     try {
       return await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -419,7 +428,7 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: CHEAP_MODEL,
+          model,
           messages: [
             { role: 'system', content: withTools ? modelInstructions : systemPrompt },
             // `messages` here is the array rebuilt by validateChatRequest -
@@ -427,9 +436,10 @@ serve(async (req) => {
             // never the raw caller payload spread in directly.
             ...messages
           ],
-          max_tokens: reviewSnapshot ? 900 : 600,
-          temperature: 0.2,
-          ...(withTools ? { tools: chatCompletionsTools(), tool_choice: 'auto', parallel_tool_calls: false } : {}),
+          ...(legacy
+            ? { max_tokens: reviewSnapshot ? 900 : 600, temperature: 0.2 }
+            : { max_completion_tokens: reviewSnapshot ? 900 : 600, reasoning_effort: 'none' }),
+          ...(withTools ? { tools: chatCompletionsTools(), tool_choice: ownDataQuestion ? 'required' : 'auto', parallel_tool_calls: false } : {}),
         }),
         signal: providerAbort.signal,
       });
@@ -437,8 +447,18 @@ serve(async (req) => {
       clearTimeout(providerTimer);
     }
   };
+  const callCheapWithFallback = async (withTools: boolean) => {
+    try {
+      const res = await callCheapModel(withTools, CHEAP_MODEL);
+      if (res.ok) return res;
+      console.warn(`chat-ai: ${CHEAP_MODEL} returned ${res.status}, answering with ${LEGACY_CHEAP_MODEL}`);
+    } catch {
+      console.warn(`chat-ai: ${CHEAP_MODEL} unreachable, answering with ${LEGACY_CHEAP_MODEL}`);
+    }
+    return await callCheapModel(withTools, LEGACY_CHEAP_MODEL);
+  };
   try {
-    const openAiResponse = await callCheapModel(!!toolCtx);
+    const openAiResponse = await callCheapWithFallback(!!toolCtx);
 
     if (!openAiResponse.ok) {
       return errorResponse('provider_failure', 'The AI provider returned an error', 502);
@@ -465,7 +485,7 @@ serve(async (req) => {
     } else {
       console.warn('chat-ai: tool path failed, falling back to the plain answer');
       try {
-        const fallback = await callCheapModel(false);
+        const fallback = await callCheapWithFallback(false);
         if (!fallback.ok) return errorResponse('provider_failure', 'The AI provider returned an error', 502);
         aiReply = replyText(await fallback.json());
       } catch {
