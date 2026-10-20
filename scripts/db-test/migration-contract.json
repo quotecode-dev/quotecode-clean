@@ -292,6 +292,12 @@
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE / ON CONFLICT DO NOTHING / DROP TRIGGER IF EXISTS; the cohort batch runs only for unmapped accounts (re-runnable); Owner Free-10 activation rules 2026-10-18"
     },
+    "20261020200000_admin_supervisor_permissions.sql": {
+      "sha256": "d2dea600e6b1d496b33a41fae58fd52a0485959a4e0b842b9bb836994551087c",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE TABLE IF NOT EXISTS, CREATE OR REPLACE FUNCTION, DROP POLICY IF EXISTS (re-runnable); Owner supervisor permissions 2026-10-20"
+    },
     "20261020100000_support_inbound_stage2.sql": {
       "sha256": "2a7bf2c1160ade89c07fd6dcf78de9dbe86a8ddcdd4a21640395bce693d9c8f5",
       "mode": "transaction",

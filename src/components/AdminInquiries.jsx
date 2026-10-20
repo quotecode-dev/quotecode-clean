@@ -125,7 +125,9 @@ function BinDot({ bin, isHebrew }) {
   return <span className="admin-bin-dot" role="img" aria-label={label} title={label} style={{ background: b ? b.color : '#CBD5E1' }} />;
 }
 
-export default function AdminInquiries({ isHebrew = true }) {
+// Owner console 2026-10-20 (L-22 supervisor): canReply = may send / redraft / dismiss (inquiries.reply), canSettings = may change the
+// assistant settings (inquiries.settings); the Owner holds both. The server (support-admin) checks the same permissions again.
+export default function AdminInquiries({ isHebrew = true, canReply = true, canSettings = true }) {
   const t = Object.fromEntries(Object.entries(INQUIRIES_COPY).map(([k, v]) => [k, isHebrew ? v.he : v.en]));
   const L = (entry) => (entry ? (isHebrew ? entry.he : entry.en) : '');
   const [rows, setRows] = useState([]);
@@ -255,10 +257,12 @@ export default function AdminInquiries({ isHebrew = true }) {
               {['all', 'red', 'yellow', 'green', 'black', 'unsorted'].map((b) => <option key={b} value={b}>{b === 'all' ? L(COLOUR_ALL) : b === 'unsorted' ? L(COLOUR_UNSORTED) : L(BINS[b])}</option>)}
             </select>
             {pendingCount > 0 && <span className="admin-count-pill" data-testid="inquiries-pending">{pendingCount}</span>}
-            {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-            <button type="button" className="admin-inquiry-settings-btn" onClick={() => setSettingsOpen(true)} data-testid="inquiries-settings">
-              <Settings2 size={15} />{t.settings}
-            </button>
+            {canSettings && (
+              // PRODUCT_TRUTH_CAPABILITY: admin_console
+              <button type="button" className="admin-inquiry-settings-btn" onClick={() => setSettingsOpen(true)} data-testid="inquiries-settings">
+                <Settings2 size={15} />{t.settings}
+              </button>
+            )}
           </div>
         )}
         head={(
@@ -346,7 +350,7 @@ export default function AdminInquiries({ isHebrew = true }) {
               selected.ack_sent_at ? t.ackSent(isolated(selected.ack_sent_at)) : null,
               selected.reply_sent_at ? `${t.replySent(isolated(selected.reply_sent_at), selected.reply_sent_by)}\n\n${selected.reply_text || ''}` : null,
             ].filter(Boolean).join('\n\n') || t.nothingSent)}
-            {canAct(selected) && (
+            {canReply && canAct(selected) && (
               <div className="admin-inquiry-reply" data-testid="inquiry-reply">
                 <label htmlFor="inquiry-reply-text">{t.reply}</label>
                 <textarea id="inquiry-reply-text" dir={replyDir} rows={8} value={replyText} onChange={(e) => setReplyText(e.target.value)} disabled={busy} data-testid="inquiry-reply-text" />
@@ -366,7 +370,7 @@ export default function AdminInquiries({ isHebrew = true }) {
       )}
 
       {/* PRODUCT_TRUTH_DECORATIVE: clicking the dialog backdrop closes the assistant settings */}
-      {settingsOpen && (
+      {canSettings && settingsOpen && (
         <div className="admin-dialog-backdrop" onClick={() => setSettingsOpen(false)}>
           {/* PRODUCT_TRUTH_DECORATIVE: stops click propagation inside the settings dialog */}
           <section role="dialog" aria-modal="true" aria-label={t.settings} data-testid="inquiries-settings-dialog" className="admin-action-dialog" style={{ maxWidth: 480 }} onClick={(e) => e.stopPropagation()} onKeyDown={(e) => { if (e.key === 'Escape') setSettingsOpen(false); }}>

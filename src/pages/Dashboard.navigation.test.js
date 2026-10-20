@@ -40,7 +40,7 @@ describe('Dashboard navigation - Desktop and Mobile consume one shared capabilit
 
   it('the Mobile More menu filters navCapabilities by mobileGroup==="more"; Admin destinations join it as an additive Super Admin group, never a second nav', () => {
     expect(dashboardSource).toMatch(/navCapabilities\s*\n\s*\.filter\(\(cap\) => cap\.mobileGroup === 'more' && cap\.id !== 'admin_clients'\)/);
-    expect(dashboardSource).toMatch(/isSuperAdmin && ADMIN_NAV_GROUPS\.flatMap/);
+    expect(dashboardSource).toMatch(/canAdmin && ADMIN_NAV_GROUPS\.flatMap/);
   });
 
   it('every navCapabilities consumer shares the same setActiveTab-based onClick shape (action parity - no duplicate handler was written)', () => {
@@ -71,7 +71,7 @@ describe('Dashboard navigation - AI Support Logs is an in-shell Admin destinatio
   it('reaches AI Support through the registry-driven Admin nav group (desktop sidebar + mobile More), never a /ai-logs breakout', () => {
     expect(dashboardSource).not.toContain('/ai-logs');
     expect(dashboardSource).toMatch(/<AdminSidebarNav\s+section=/);
-    expect(dashboardSource).toMatch(/isSuperAdmin && ADMIN_NAV_GROUPS\.flatMap/);
+    expect(dashboardSource).toMatch(/canAdmin && ADMIN_NAV_GROUPS\.flatMap/);
   });
 });
 
