@@ -29,7 +29,20 @@ function extractRateLimitSeconds(msg) {
   return match ? match[1] : null;
 }
 
+// Owner console 2026-10-20 (L-12): Supabase Auth refuses a request without a valid robot check token ("captcha verification process
+// failed" / code captcha_failed) once captcha is enabled - the user is told to wait for the check, never that the password is wrong.
+export function isCaptchaError(err) {
+  return err?.code === 'captcha_failed' || err?.error_code === 'captcha_failed' || /captcha/i.test(String(err?.message || ''));
+}
+
 const PATTERNS = [
+  {
+    category: 'captcha_failed',
+    test: (err) => isCaptchaError(err),
+    userMessage: (_err, isHebrew) => (isHebrew
+      ? 'בדיקת האבטחה לא הושלמה. המתינו לסימון שהבדיקה עברה, ונסו שוב.'
+      : 'The security check did not complete. Wait until the check shows it passed, then try again.'),
+  },
   {
     category: 'auth_rate_limit',
     test: (err) => err?.code === 'over_email_send_rate_limit' || err?.error_code === 'over_email_send_rate_limit' || /over_email_send_rate_limit/i.test(String(err?.message || '')),
