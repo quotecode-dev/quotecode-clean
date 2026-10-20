@@ -36,8 +36,8 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
   const billingSql: BillingSql = {
     createCheckoutIntent: async (userId, planId, blocks, idempotencyKey) => (await call('create_checkout_intent',
       { p_user_id: userId, p_plan_id: planId, p_blocks: blocks, p_idempotency_key: idempotencyKey })) as Record<string, unknown>,
-    createPackageCheckoutIntent: async (userId, billingPeriod, idempotencyKey) => (await call('create_package_checkout_intent',
-      { p_user_id: userId, p_billing_period: billingPeriod, p_idempotency_key: idempotencyKey })) as Record<string, unknown>,
+    createPackageCheckoutIntent: async (userId, billingPeriod, idempotencyKey, smartPack = false) => (await call('create_package_checkout_intent',
+      { p_user_id: userId, p_billing_period: billingPeriod, p_idempotency_key: idempotencyKey, p_smart_pack: smartPack })) as Record<string, unknown>,
     priceCatalog: (market) => call('get_price_catalog', { p_market: market }),
     // 20261021000000: the same verified-event recorder + (same transaction) a confirmed package payment opens the subscription
     recordVerifiedEvent: async (e) => (await call('record_verified_subscription_event_and_activate', { p_provider: e.provider,

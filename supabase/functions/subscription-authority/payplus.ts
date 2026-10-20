@@ -75,11 +75,17 @@ export function israelDayOfMonth(ms: number): number {
 
 // -------------------------------------------------------------------------------------------------------- payment page
 export const PAYPLUS_ITEM_NAMES = Object.freeze({ month: 'TEKANGO - מנוי חודשי', year: 'TEKANGO - מנוי שנתי' });
+// Owner 2026-10-20: SMART PACK is a second line of the same payment page / standing order
+export const PAYPLUS_SMART_PACK_ITEM_NAMES = Object.freeze({ month: 'TEKANGO - חכם פלוס חודשי', year: 'TEKANGO - חכם פלוס שנתי' });
 
 /** The generateLink body for one server attempt. amountMinor is the server catalog amount (IL prices include VAT: vat_type 0). */
 export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | 'callbackUrl' | 'successUrl' | 'failureUrl'>,
-  i: { attemptId: string; amountMinor: number; billingPeriod: BillingPeriod; nowMs: number }): Record<string, unknown> {
+  i: { attemptId: string; amountMinor: number; billingPeriod: BillingPeriod; nowMs: number; addOnAmountMinor?: number | null }): Record<string, unknown> {
   const amount = i.amountMinor / 100;
+  const addOn = Number.isInteger(i.addOnAmountMinor) && (i.addOnAmountMinor as number) > 0 ? (i.addOnAmountMinor as number) : 0;
+  // the lines always sum to the attempt total: package = total - add-on
+  const items = [{ name: PAYPLUS_ITEM_NAMES[i.billingPeriod], quantity: 1, price: (i.amountMinor - addOn) / 100, vat_type: 0 },
+    ...(addOn ? [{ name: PAYPLUS_SMART_PACK_ITEM_NAMES[i.billingPeriod], quantity: 1, price: addOn / 100, vat_type: 0 }] : [])];
   return {
     payment_page_uid: cfg.paymentPageUid,
     charge_method: 3, // recurring payments
@@ -92,7 +98,7 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
     send_failure_callback: true,
     sendEmailApproval: false,
     sendEmailFailure: false,
-    items: [{ name: PAYPLUS_ITEM_NAMES[i.billingPeriod], quantity: 1, price: amount, vat_type: 0 }],
+    items,
     recurring_settings: {
       instant_first_payment: true,
       recurring_type: 2, // monthly cycle
@@ -153,11 +159,13 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
 
   return Object.freeze({
     name: PAYPLUS_PROVIDER_NAME,
-    async createCheckout(i: { attemptId: string; currency: 'ILS' | 'USD'; amountMinor: number; billingPeriod?: BillingPeriod }) {
+    async createCheckout(i: { attemptId: string; currency: 'ILS' | 'USD'; amountMinor: number; billingPeriod?: BillingPeriod; addOnAmountMinor?: number | null }) {
       // Israel only; the package only (a legacy style plan carries no billing period and is never offered to a new purchase)
       if (i.currency !== 'ILS' || !UUID.test(i.attemptId) || !Number.isInteger(i.amountMinor) || i.amountMinor <= 0
-          || (i.billingPeriod !== 'month' && i.billingPeriod !== 'year')) return null;
-      const body = buildGenerateLinkBody(cfg, { attemptId: i.attemptId, amountMinor: i.amountMinor, billingPeriod: i.billingPeriod, nowMs: cfg.now() });
+          || (i.billingPeriod !== 'month' && i.billingPeriod !== 'year')
+          || (i.addOnAmountMinor != null && (!Number.isInteger(i.addOnAmountMinor) || i.addOnAmountMinor <= 0 || i.addOnAmountMinor >= i.amountMinor))) return null;
+      const body = buildGenerateLinkBody(cfg, { attemptId: i.attemptId, amountMinor: i.amountMinor, billingPeriod: i.billingPeriod, nowMs: cfg.now(),
+        addOnAmountMinor: i.addOnAmountMinor ?? null });
       let json: unknown;
       try {
         const res = await cfg.fetch(`${cfg.apiBase}/PaymentPages/generateLink`, {

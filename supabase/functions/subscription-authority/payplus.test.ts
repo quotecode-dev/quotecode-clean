@@ -111,7 +111,7 @@ describe('payment page (generateLink): the server attempt only, ILS, renewing', 
     } as never as BillingSql;
     const r = await checkoutIntentHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: f })) }, U,
       { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY, amountMinor: 1, currency: 'USD' });
-    expect(r).toEqual({ status: 200, body: { ok: true, attemptId: ATT, currency: 'ILS', amountMinor: 30600, redirectUrl: LINK, state: 'pending' } });
+    expect(r).toEqual({ status: 200, body: { ok: true, attemptId: ATT, currency: 'ILS', amountMinor: 30600, redirectUrl: LINK, state: 'pending', smartPack: false } });
     expect(JSON.parse((f.mock.calls[0] as unknown as [string, { body: string }])[1].body)).toMatchObject({ amount: 306, currency_code: 'ILS' });
   });
   it('an account that would pay for nothing (SQL already_subscribed) gets 409 and PayPlus is never called', async () => {
