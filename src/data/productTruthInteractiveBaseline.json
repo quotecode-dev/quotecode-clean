@@ -40,8 +40,8 @@
     "markers": 0
   },
   "src/components/AdminInquiries.jsx": {
-    "interactive": 6,
-    "markers": 13
+    "interactive": 7,
+    "markers": 14
   },
   "src/components/AdminOverview.jsx": {
     "interactive": 3,
@@ -209,7 +209,7 @@
   },
   "src/components/PackageOfferCards.jsx": {
     "interactive": 0,
-    "markers": 1
+    "markers": 2
   },
   "src/components/PdfFileIcon.jsx": {
     "interactive": 0,
