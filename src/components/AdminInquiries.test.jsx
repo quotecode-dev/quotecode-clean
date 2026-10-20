@@ -147,7 +147,7 @@ describe('stage 2 (Owner 2026-10-20, L-22): colours, state, mailbox column, coun
     expect(screen.getAllByTestId('inquiry-mailbox')[0].textContent).toBe('info@tekango.com');
     fireEvent.change(screen.getByTestId('inquiries-bin-filter'), { target: { value: 'red' } });
     expect(order()).toEqual(['ביטול']);
-    expect(screen.getAllByTestId('inquiry-subject')[0].style.textAlign).toBe('right');
+    expect(screen.getAllByTestId('inquiry-subject')[0].style.textAlign).toBe('center');
   });
 
   it('the sidebar "פניות" item carries the red counter of what waits (none = no counter)', async () => {

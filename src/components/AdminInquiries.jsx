@@ -111,7 +111,7 @@ const BIN_RANK = { red: 4, yellow: 3, green: 2, black: 1 };
 const STATE_RANK = { waiting: 6, draft: 5, new: 4, answered: 3, dismissed: 2, ignored: 1 };
 const SORTERS = {
   bin: (r) => BIN_RANK[r.bin] || 0,
-  received: (r) => String(r.received_at || ''),
+  received: (r) => Date.parse(r.received_at || '') || 0,
   from: (r) => String(r.from_address || '').toLowerCase(),
   mailbox: (r) => String(r.mailbox || ''),
   subject: (r) => String(r.subject || '').toLowerCase(),
@@ -163,8 +163,11 @@ export default function AdminInquiries({ isHebrew = true }) {
   const byFilter = (r) => filter === 'all' || (filter === 'pending' ? isPending(r) : r.status === filter);
   const byBin = (r) => binFilter === 'all' || (binFilter === 'unsorted' ? !r.bin : r.bin === binFilter);
   const sortValue = SORTERS[sort.key] || SORTERS.received;
+  // text columns compare in the screen's language (Hebrew first on a Hebrew screen), numbers inside text in numeric order
+  const collator = new Intl.Collator(isHebrew ? 'he' : 'en', { sensitivity: 'base', numeric: true });
+  const cmp = (x, y) => (typeof x === 'string' && typeof y === 'string' ? collator.compare(x, y) : (x < y ? -1 : x > y ? 1 : 0));
   const shown = rows.filter((r) => byFilter(r) && byBin(r) && (!q || [r.from_address, r.from_name, r.subject, r.text_body].some((v) => String(v || '').toLowerCase().includes(q))))
-    .map((r, i) => ({ r, i })).sort((a, b) => { const x = sortValue(a.r); const y = sortValue(b.r); const c = x < y ? -1 : x > y ? 1 : 0; return (sort.dir === 'asc' ? c : -c) || a.i - b.i; }).map((o) => o.r);
+    .map((r, i) => ({ r, i })).sort((a, b) => { const x = sortValue(a.r); const y = sortValue(b.r); const c = cmp(x, y); return (sort.dir === 'asc' ? c : -c) || a.i - b.i; }).map((o) => o.r);
   const toggleSort = (key) => setSort((cur) => (cur.key === key ? { key, dir: cur.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'received' || key === 'bin' ? 'desc' : 'asc' }));
   const pendingCount = rows.filter(isPending).length;
   const when = (iso) => (iso ? formatShortDateTime(iso, isHebrew ? 'Local' : 'International') : '');
@@ -180,7 +183,8 @@ export default function AdminInquiries({ isHebrew = true }) {
     return L(REASONS[s]) || s || '-';
   };
   const colgroup = <colgroup>{[7, 14, 22, 16, 24, 17].map((w, i) => <col key={i} style={{ width: `${w}%` }} />)}</colgroup>;
-  const startAlign = { textAlign: isHebrew ? 'right' : 'left' };
+  // Owner 2026-10-20: the subject sits centred under its heading like every other column (Hebrew and English subjects alike)
+  const startAlign = { textAlign: 'center', unicodeBidi: 'plaintext' };
   const detail = (label, Icon, value, ltr) => (
     <div className="admin-details-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon size={13} color="#0F6672" />{label}</span>
