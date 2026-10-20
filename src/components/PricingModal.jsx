@@ -6,6 +6,10 @@
 // (packageCheckoutAvailable); it opens the server attempt's payment page and never changes the plan itself (only a verified payment does).
 // The current plan line comes ONLY from the server account summary (OD-20); market = the server summary market, else the
 // account's recorded business market (never the UI language, locale or a client-side rate).
+// Owner console 2026-10-21 (typed: "מאשר שינוי ב-L-22 וב-L-01: מסך החזרה מהתשלום בחלון המסלולים, ותיקון הנוסח, הכפתור והשוק בחלון
+// המסלולים"): the return-from-payment line (billingReturn: waiting / confirmed / timeout / failed / cancelled - 'confirmed' only from
+// the server summary); while paying is possible the 'not available yet' and 'details later' lines are not shown; the pay button
+// starts fresh whenever the window opens or the page comes back from the payment page; Israel only (packageCheckoutAvailable).
 import { useEffect, useState } from 'react';
 import { X, LayoutList } from 'lucide-react';
 import { loadUsdRate, ESTIMATE_CURRENCIES } from '../domain/subscriptions/localPriceEstimate';
@@ -14,9 +18,9 @@ import AiModalHeader from './AiModalHeader';
 import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
 import { accountStatusModel, lifetimeAccountModel } from '../domain/subscriptions/accountSummaryClient';
 import PackageOfferCards from './PackageOfferCards';
-import { packageCheckoutAvailable, checkoutErrorMessage } from '../domain/subscriptions/packageCheckout';
+import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText } from '../domain/subscriptions/packageCheckout';
 
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null, onPurchase = null }) {
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null }) {
   const [rate, setRate] = useState(null);
   const [pay, setPay] = useState({ busy: false, error: null });
   const wantsEstimate = isOpen && !isLocalIsraeliBusiness && ESTIMATE_CURRENCIES.includes(String(currency || '').toUpperCase());
@@ -26,6 +30,13 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
     loadUsdRate(currency).then((r) => { if (alive) setRate(r); }).catch(() => {});
     return () => { alive = false; };
   }, [wantsEstimate, currency]);
+  // a fresh pay button on every opening and when the browser brings this page back from the payment page (Back)
+  useEffect(() => { if (isOpen) setPay({ busy: false, error: null }); }, [isOpen]);
+  useEffect(() => {
+    const back = () => setPay({ busy: false, error: null });
+    window.addEventListener('pageshow', back);
+    return () => window.removeEventListener('pageshow', back);
+  }, []);
   if (!isOpen) return null;
   const lang = isHebrew ? 'he' : 'en';
   const serverMarket = accountSummary?.state === 'ready' ? accountSummary.market : null;
@@ -34,6 +45,10 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   const status = accountStatusModel(accountSummary, lang);
   const current = status.tone === 'plan' ? status.planId : null;
   const lifetime = isLifetime === true ? lifetimeAccountModel(lang) : null;
+  // back from the payment page: the words of the state; SMART PACK only from the server summary (the plan is on the line below)
+  const returnText = billingReturn?.state ? billingReturnText(billingReturn.state, isHebrew, {
+    smartPack: accountSummary?.state === 'ready' && accountSummary.smartPack?.active === true,
+  }) : '';
   // the pay action (server billing phase on only); the server answers with the payment page of its own attempt
   const purchase = typeof onPurchase === 'function' && packageCheckoutAvailable(accountSummary, isLifetime) ? {
     enabled: true, busy: pay.busy, error: pay.error,
@@ -62,6 +77,21 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
             <span style={{ display: 'block', color: '#64748b', fontSize: '0.85rem', fontWeight: 500, marginTop: '4px' }}>{lifetime.detail}</span>
           </p>
         ) : (<>
+        {returnText && (
+          <div data-testid="plans-modal-billing-return" data-state={billingReturn.state} role={billingReturn.state === 'failed' ? 'alert' : 'status'}
+            style={{ margin: '0 0 12px', padding: '10px 14px', borderRadius: '10px', textAlign: 'center', fontSize: '0.92rem', fontWeight: 700,
+              background: billingReturn.state === 'confirmed' ? '#ecfdf5' : billingReturn.state === 'failed' ? '#fef2f2' : '#f1f5f9',
+              color: billingReturn.state === 'confirmed' ? '#065f46' : billingReturn.state === 'failed' ? '#b91c1c' : '#1e293b' }}>
+            {returnText}
+            {billingReturn.state === 'timeout' && typeof billingReturn.onCheckAgain === 'function' && (
+              // PRODUCT_TRUTH_DECORATIVE: reads the account's own server summary again after a payment; changes nothing, buys nothing
+              <button type="button" data-testid="plans-modal-billing-check-again" onClick={billingReturn.onCheckAgain}
+                style={{ display: 'block', margin: '8px auto 0', background: '#0F6672', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 700, cursor: 'pointer' }}>
+                {isHebrew ? 'בדיקה חוזרת' : 'Check again'}
+              </button>
+            )}
+          </div>
+        )}
         {/* Owner console 2026-10-16: the account's own subscription status, the same as its header medallion and the admin */}
         {statusLine && (
           <p data-testid="plans-modal-subscription-status" role="status" style={{ color: '#1e293b', textAlign: 'center', margin: '0 0 6px', fontSize: '0.95rem', fontWeight: 700 }}>{statusLine}</p>
@@ -73,13 +103,15 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
               : status.label}
           </p>
         )}
-        <p data-testid="plans-modal-availability" style={{ color: '#64748b', textAlign: 'center', margin: '0 0 16px', fontSize: '0.85rem' }}>{m.availability}</p>
+        {purchase
+          ? <div style={{ height: '12px' }} aria-hidden="true" />
+          : <p data-testid="plans-modal-availability" style={{ color: '#64748b', textAlign: 'center', margin: '0 0 16px', fontSize: '0.85rem' }}>{m.availability}</p>}
 
         <div style={{ marginBottom: '14px' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} purchase={purchase} /></div>
 
         <p data-testid="plans-modal-price-note" data-price-note style={{ textAlign: 'center', color: '#334155', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 4px' }}>{m.priceNote}</p>
         {m.estimateNote && <p data-testid="plans-modal-estimate" style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '0 0 4px' }}>{m.estimateNote}</p>}
-        <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>{m.notDecided}</p>
+        {!purchase && <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>{m.notDecided}</p>}
         <p data-testid="plans-modal-cancellation" style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>
           {m.cancellation.text}{' '}
           {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation, nothing changes in the account) */}

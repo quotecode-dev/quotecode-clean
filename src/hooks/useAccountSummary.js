@@ -20,10 +20,21 @@ export default function useAccountSummary(supabase, userId) {
     return next;
   }, [supabase, userId]);
 
+  // Owner console 2026-10-21 (back from the payment page): the same server read WITHOUT the loading state in between, so the plan
+  // badge never flashes "loading" while the plans window waits for a verified payment
+  const refreshQuiet = useCallback(async () => {
+    if (!userId) return null;
+    const base = seq.current; // never supersedes a regular refresh: a refresh started meanwhile wins
+    const next = await fetchAccountSummary(supabase);
+    // a failed quiet read keeps the summary on screen (the next poll tries again)
+    if (base === seq.current && next?.state === 'ready') setSummary(next);
+    return next;
+  }, [supabase, userId]);
+
   useEffect(() => {
     refresh();
     return () => { seq.current += 1; };
   }, [refresh]);
 
-  return { summary, refresh };
+  return { summary, refresh, refreshQuiet };
 }
