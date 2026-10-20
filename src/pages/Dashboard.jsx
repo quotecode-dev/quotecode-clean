@@ -37,7 +37,7 @@ import { timeGreeting } from '../utils/timeGreeting';
 import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
 import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
 import { decideCapability, outputPhaseOf, decideFree10Action } from '../../supabase/functions/_shared/subscriptionContract.ts';
-import { normalizeAuthError } from '../utils/authErrorClassification';
+import { normalizeAuthError, isCaptchaError } from '../utils/authErrorClassification';
 import { classifyDashboardActionError } from '../utils/dashboardActionErrorClassification';
 import { formatQuoteFallback } from '../utils/quoteNumber';
 import { sortQuotes } from '../utils/quoteListSort';
@@ -98,6 +98,7 @@ import AdminDestinationHost from '../components/AdminDestinationHost';
 import AdminSidebarNav from '../components/AdminSidebarNav';
 import { ADMIN_NAV_GROUPS, ADMIN_SECTION_IDS, DEFAULT_ADMIN_SECTION, hubOfSection } from '../utils/adminNavGroups';
 import { ADMIN_DESTINATIONS, canOpenDestination } from '../components/adminDestinations';
+import { takeCaptchaToken } from '../shared/captcha';
 // חוק ברזל: ה-Dashboard (ה"קליפה" של בעל העסק - ניווט/KPI/היסטוריית הצעות/
 // טאבים) עבר לערכת הנושא הבהירה שאושרה ע"י הבעלים (LIGHT), דרך אותה טכניקת
 // alias-at-import שכבר משמשת ב-QuotesTab.jsx/ServicesCatalog.jsx - שינוי
@@ -2508,13 +2509,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         password: passwordInput,
         options: {
           emailRedirectTo,
+          // Owner console 2026-10-20 (L-12): the robot check token (verified by Supabase Auth once captcha is enabled there)
+          captchaToken: takeCaptchaToken('auth'),
           data: {
             signup_market: bundleIsHebrew ? 'Local' : 'International',
             // Owner 2026-10-15: optional name fields + the consent record (document versions = their 'last updated' date, and the time)
             ...(cleanSignupText(signupFullName) ? { full_name: cleanSignupText(signupFullName) } : {}),
             ...(cleanSignupText(signupBusinessName) ? { business_name: cleanSignupText(signupBusinessName) } : {}),
             terms_version: '2026-10-15',
-            privacy_version: '2026-10-15',
+            // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
+            privacy_version: '2026-10-20',
             terms_accepted_at: new Date().toISOString(),
           }
         }
@@ -2538,9 +2542,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         }
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email: emailInput, password: passwordInput });
+      const { error } = await supabase.auth.signInWithPassword({ email: emailInput, password: passwordInput, options: { captchaToken: takeCaptchaToken('auth') } });
       if (error) {
-        setAuthError(bundleIsHebrew ? 'שגיאת התחברות: בדוק את הפרטים או אפס סיסמה.' : 'Login error: check your credentials or reset password.');
+        // Owner console 2026-10-20 (L-12): a failed robot check says so, never "check your credentials"
+        setAuthError(isCaptchaError(error) ? normalizeAuthError(error, bundleIsHebrew).message : (bundleIsHebrew ? 'שגיאת התחברות: בדוק את הפרטים או אפס סיסמה.' : 'Login error: check your credentials or reset password.'));
       } else {
         setStatusMsg({ text: bundleIsHebrew ? 'התחברת בהצלחה' : 'Logged in successfully', type: 'success' });
       }
@@ -2582,6 +2587,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // לא לפי השוק האמיתי של החשבון ששלח את הבקשה).
       ({ error } = await supabase.auth.resetPasswordForEmail(resetEmail, {
         redirectTo: window.location.origin + '/dashboard?lang=' + (bundleIsHebrew ? 'he' : 'en'),
+        captchaToken: takeCaptchaToken('reset'),
       }));
     } catch (thrown) {
       // A genuine network/DNS/CORS failure can make this call throw instead
