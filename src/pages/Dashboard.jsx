@@ -64,7 +64,7 @@ import ClientsTab from '../components/ClientsTab';
 import FinancesTab from '../components/FinancesTab';
 import TasksTab from '../components/TasksTab';
 import NotificationCenter from '../components/NotificationCenter';
-import { VOICE_ASSISTANT_ANNOUNCEMENT } from '../utils/bellAnnouncements';
+import { VOICE_ASSISTANT_ANNOUNCEMENT, SMART_PACK_ANNOUNCEMENT } from '../utils/bellAnnouncements';
 import { voiceSupported, transcribeRecording } from '../utils/voiceAssistant';
 import RemindersFirstSetupNotice from '../components/RemindersFirstSetupNotice';
 import CalendarTab from '../components/CalendarTab';
@@ -96,7 +96,8 @@ import SettingsTab from '../components/SettingsTab';
 import { AuthenticatedSidebarFrame } from '../components/AuthenticatedShellFrames';
 import AdminDestinationHost from '../components/AdminDestinationHost';
 import AdminSidebarNav from '../components/AdminSidebarNav';
-import { ADMIN_NAV_GROUPS, ADMIN_SECTION_IDS, DEFAULT_ADMIN_SECTION } from '../utils/adminNavGroups';
+import { ADMIN_NAV_GROUPS, ADMIN_SECTION_IDS, DEFAULT_ADMIN_SECTION, hubOfSection } from '../utils/adminNavGroups';
+import { ADMIN_DESTINATIONS, canOpenDestination } from '../components/adminDestinations';
 // חוק ברזל: ה-Dashboard (ה"קליפה" של בעל העסק - ניווט/KPI/היסטוריית הצעות/
 // טאבים) עבר לערכת הנושא הבהירה שאושרה ע"י הבעלים (LIGHT), דרך אותה טכניקת
 // alias-at-import שכבר משמשת ב-QuotesTab.jsx/ServicesCatalog.jsx - שינוי
@@ -212,7 +213,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const [session, setSession] = useState(null);
   // Owner 2026-10-19 (typed L-17 approval): the voice-assistant announcement only where the browser can record (the microphone shows)
-  const [bellAnnouncements] = useState(() => (voiceSupported() ? [VOICE_ASSISTANT_ANNOUNCEMENT] : []));
+  // Owner 2026-10-20 (L-17): the SMART PACK announcement is for every account (no device condition); the voice one needs a microphone
+  const [bellAnnouncements] = useState(() => (voiceSupported() ? [VOICE_ASSISTANT_ANNOUNCEMENT, SMART_PACK_ANNOUNCEMENT] : [SMART_PACK_ANNOUNCEMENT]));
   const [isInitializing, setIsInitializing] = useState(true);
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
@@ -905,6 +907,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
+  // Owner 2026-10-20 (L-17): the SMART PACK bell announcement's action opens this plans view
+  useEffect(() => {
+    const open = () => setShowPricingModal(true);
+    window.addEventListener('tekango:open-plans', open);
+    return () => window.removeEventListener('tekango:open-plans', open);
+  }, []);
   // Task 27 (§253): the dismissible Free-10 upgrade window - opened only by an attempted paid action, never by a timer or a screen
   const [free10Window, setFree10Window] = useState(false);
 
@@ -1169,6 +1177,26 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const isSuperAdmin = bizRole === 'super_admin';
 
+  // Owner console 2026-10-20, typed: "מאשר שינוי ב-L-22: ... ומשתמש מפקח עם מסך הרשאות מנהל": a supervisor is an ordinary account the
+  // Owner granted admin permissions (admin_permission_grants, read through get_my_admin_permissions()). The Owner keeps everything; a
+  // supervisor additionally sees the Admin hubs / tools granted - UI hygiene only, every read and action is checked again on the server.
+  const [adminGrants, setAdminGrants] = useState({ loaded: false, owner: false, permissions: [] });
+  useEffect(() => {
+    if (!session?.user?.id) return undefined;
+    if (isSuperAdmin) { setAdminGrants({ loaded: true, owner: true, permissions: [] }); return undefined; }
+    let cancelled = false;
+    const done = (data) => { if (!cancelled) setAdminGrants({ loaded: true, owner: data?.owner === true, permissions: Array.isArray(data?.permissions) ? data.permissions : [] }); };
+    try {
+      Promise.resolve(supabase?.rpc?.('get_my_admin_permissions')).then((res) => done(res && !res.error ? res.data : null)).catch(() => done(null));
+    } catch {
+      done(null);
+    }
+    return () => { cancelled = true; };
+  }, [session?.user?.id, isSuperAdmin]);
+  const adminAccess = useMemo(() => ({ owner: isSuperAdmin, permissions: isSuperAdmin ? [] : adminGrants.permissions }), [isSuperAdmin, adminGrants]);
+  const canAdmin = isSuperAdmin || adminAccess.permissions.length > 0;
+  const canAdminPermission = (permission) => isSuperAdmin || adminAccess.permissions.includes(permission);
+
   const [searchParams, setSearchParams] = useSearchParams();
 
   // TEKANGO Admin V1 (Task 1, shared shell + URL-backed Admin routing):
@@ -1179,8 +1207,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // (?view=admin&section=<id>) is kept in sync as a reflection of this
   // state, not a competing source of truth, so an Admin link is
   // bookmarkable/shareable without changing how activeTab itself works.
-  const isAdminMode = isSuperAdmin && activeTab === 'admin_clients';
+  const isAdminMode = canAdmin && activeTab === 'admin_clients';
   const [adminSection, setAdminSectionState] = useState(DEFAULT_ADMIN_SECTION);
+  // The section actually shown: one this account may open, else the first hub it may open (a supervisor's deep link to a closed tool).
+  const adminSectionShown = canOpenDestination(ADMIN_DESTINATIONS.find((d) => d.id === adminSection), adminAccess)
+    ? adminSection
+    : (ADMIN_DESTINATIONS.find((d) => d.isHub && d.available && canOpenDestination(d, adminAccess))?.id || adminSection);
   // Selected account for the shell-preserving User Details view (Task 2,
   // §2.3) - session-scoped component state, not a URL param, so the URL
   // stays clean while filters/sort/page/scroll are naturally preserved
@@ -1211,7 +1243,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       const next = new URLSearchParams(prev);
       if (isAdminMode) {
         next.set('view', 'admin');
-        next.set('section', adminSection);
+        next.set('section', adminSectionShown);
       } else {
         next.delete('view');
         next.delete('section');
@@ -1219,14 +1251,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       return next;
     }, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAdminMode, adminSection]);
+  }, [isAdminMode, adminSectionShown]);
   // Non-admin URL-tamper guard (URL hygiene only, never the real
   // authorization boundary - see is_super_admin()/is_admin() RLS + every
   // privileged Edge Function's own independent server-side role check):
   // a non-admin session can never gain Admin reachability by hand-crafting
   // the URL, so a stray view=admin is silently stripped, never trusted.
   useEffect(() => {
-    if (session && !isSuperAdmin && searchParams.get('view') === 'admin') {
+    if (session && !isSuperAdmin && adminGrants.loaded && !adminGrants.owner && !canAdmin && searchParams.get('view') === 'admin') {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.delete('view');
@@ -1234,7 +1266,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         return next;
       }, { replace: true });
     }
-  }, [session, isSuperAdmin, searchParams, setSearchParams]);
+  }, [session, isSuperAdmin, adminGrants, canAdmin, searchParams, setSearchParams]);
 
   // חוק ברזל (Stage 1 - Plan Identity / Trial / Lifetime Centralization,
   // PROFLOW_PROJECT_CONTEXT.md §148): קריאה נוספת לנקודת-האמת הקנונית
@@ -1879,6 +1911,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       return false;
     } catch { return false; /* keep the current list */ }
   }
+
+  // L-22 supervisor: the accounts list loads only for a supervisor holding a screen that reads it (the server allows exactly these).
+  useEffect(() => {
+    if (isSuperAdmin || !adminGrants.loaded || adminGrants.permissions.length === 0) return;
+    if (adminGrants.permissions.some((p) => p === 'overview.view' || p === 'users.view' || p === 'plans.view')) fetchAllAccounts();
+    else { setAllAccounts([]); setAdminAccountsStatus('ready'); }
+  }, [isSuperAdmin, adminGrants]);
 
   async function fetchAllAccounts() {
     setAdminAccountsStatus('loading');
@@ -7666,11 +7705,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
             {/* The two temporary David Aluminum demo entry points (PROFLOW_TODO.md item 30.F) were removed from the sidebar at the
                 Owner's request (2026-10-14, new-interface release). */}
-            {isSuperAdmin && (
+            {canAdmin && (
               <AdminSidebarNav
-                section={isAdminMode ? adminSection : null}
+                section={isAdminMode ? adminSectionShown : null}
                 onSelect={navigateToAdminSection}
                 isHebrew={isHebrew}
+                access={adminAccess}
               />
             )}
               </>
@@ -8571,10 +8611,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           {isAdminMode && adminAccountsStatus === 'ready' && (
             <ErrorBoundary isHebrew={isHebrew}>
               <AdminDestinationHost
-                sectionId={adminSection}
+                sectionId={adminSectionShown}
                 host={{
                   isHebrew,
                   isSuperAdmin,
+                  isOwner: isSuperAdmin,
+                  access: adminAccess,
+                  can: canAdminPermission,
                   accounts: allAccounts,
                   navigate: navigateToAdminSection,
                   openUser: openAdminUserDetails,
@@ -8592,6 +8635,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     sortField,
                     sortDirection,
                     onAccountsChanged: refreshAllAccounts,
+                    canProtect: isSuperAdmin,
                   },
                 }}
               />
@@ -8711,12 +8755,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               </button>
             ))}
           {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-          {isSuperAdmin && ADMIN_NAV_GROUPS.flatMap((group) => group.items).map(({ id, icon: AdminIcon, label }) => (
+          {canAdmin && ADMIN_NAV_GROUPS.flatMap((group) => group.items).filter(({ id }) => canOpenDestination(ADMIN_DESTINATIONS.find((d) => d.id === id), adminAccess)).map(({ id, icon: AdminIcon, label }) => (
             <button
               key={`admin-${id}`}
               role="menuitem"
               onClick={() => { navigateToAdminSection(id); setShowMobileMoreMenu(false); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: isAdminMode && adminSection === id ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: isAdminMode && adminSection === id ? NEON.violet : NEON.textSecondary, fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}
+              style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: isAdminMode && hubOfSection(adminSectionShown) === id ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: isAdminMode && hubOfSection(adminSectionShown) === id ? NEON.violet : NEON.textSecondary, fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}
             >
               <AdminIcon size={17} strokeWidth={2.2} />
               {isHebrew ? label.he : label.en}

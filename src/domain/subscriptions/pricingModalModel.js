@@ -45,6 +45,7 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
     // add-on box - ticked, the shown price is the package plus the add-on for the chosen period (display only; purchase is not open)
     addOn: {
       label: isHebrew ? `הוספת ${SMART_PACK.name.he}` : `Add ${SMART_PACK.name.en}`,
+      summary: SMART_PACK.summary[isHebrew ? 'he' : 'en'],
       perPeriod: il ? {
         month: { add: isHebrew ? `(+${ilsSmartPack('month')} לחודש)` : `(+${ilsSmartPack('month')} / month)`, amount: ilsWithSmartPack('month'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${ilsPackageAmount('month')} + ${ilsSmartPack('month')}` },
         year: { add: isHebrew ? `(+${ilsSmartPack('year')} לשנה)` : `(+${ilsSmartPack('year')} / year)`, amount: ilsWithSmartPack('year'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${ilsPackageAmount('year')} + ${ilsSmartPack('year')}` },

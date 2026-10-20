@@ -163,6 +163,7 @@
 .tl-plan-addon-text strong { color: #5b21b6; }
 .tl-plan-addon.is-checked { background: linear-gradient(#f3eeff, #f3eeff) padding-box,
     conic-gradient(from var(--tl-addon-angle), #7c3aed, #a78bfa, #f59e0b, #7c3aed 40%, rgba(124, 58, 237, 0.25) 60%, #7c3aed) border-box; }
+.tl-plan-addon-summary { margin: 8px 2px 0; font-size: 0.8rem; line-height: 1.5; color: #4f5d64; }
 .tl-plan-addon-line { margin: 4px 0 0; font-size: 0.85rem; color: #5b21b6; font-weight: 700; }
 @keyframes tl-addon-spin { to { --tl-addon-angle: 360deg; } }
 @keyframes tl-addon-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(124, 58, 237, 0.35), 0 8px 24px rgba(124, 58, 237, 0.16); } 50% { box-shadow: 0 0 0 6px rgba(124, 58, 237, 0.08), 0 10px 30px rgba(124, 58, 237, 0.28); } }

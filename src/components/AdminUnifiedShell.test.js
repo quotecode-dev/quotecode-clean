@@ -18,7 +18,7 @@ describe('Unified Admin shell', () => {
 
   it('uses the one shared Sidebar: Admin destinations are an additive group, not a swapped nav', () => {
     expect(dashboard).not.toMatch(/isAdminMode \? \(\s*<AdminSidebarNav/);
-    expect(dashboard).toMatch(/<AdminSidebarNav\s+section=\{isAdminMode \? adminSection : null\}/);
+    expect(dashboard).toMatch(/<AdminSidebarNav\s+section=\{isAdminMode \? adminSectionShown : null\}/);
     // Owner console 2026-10-17 ("מאשר תיקון כל 16 הממצאים של קודקס", AV-14): the SAME shared sidebar is a drawer for the admin screens
     // on a portrait tablet only; user screens keep the 768px rule (no drawer)
     expect(dashboard).toMatch(/<AuthenticatedSidebarFrame drawerEnabled=\{isAdminMode\} drawerQuery=\{isAdminMode \? '\(max-width:999px\)' : '\(max-width:768px\)'\}/);

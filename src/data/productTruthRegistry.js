@@ -383,7 +383,9 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
         'src/components/AISupportLogsContent.jsx', 'src/components/AdminOverview.jsx', 'src/components/AdminPlans.jsx',
         'src/components/AdminSidebarNav.jsx', 'src/components/AdminUsersView.jsx', 'src/pages/Dashboard.jsx',
         // Owner 2026-10-19 (L-22): the smart support email's Inquiries tab (2026-10-20 stage 2: colours, drafts, the Owner's replies, settings)
-        'src/components/AdminInquiries.jsx'],
+        'src/components/AdminInquiries.jsx',
+        // Owner 2026-10-20 (L-22): the two hubs ("ניהול" / "מערכת"), the hub back link, and the Owner-only "הרשאות מנהל" screen
+        'src/components/AdminHub.jsx', 'src/components/AdminDestinationHost.jsx', 'src/components/AdminPermissions.jsx'],
     }),
 
   // ---- Task 20: capabilities after the frozen 38 (PHASE_CAPABILITY_IDS). Descriptions state what is active and what is not. ----

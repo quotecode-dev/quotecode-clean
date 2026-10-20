@@ -22,6 +22,8 @@ describe('in-app plans view: the SMART PACK add-on box', () => {
     fireEvent.click(card.querySelector('[data-period="year"]'));
     expect(price(card)).toBe('₪408.00');
     expect(screen.getByTestId('plans-modal-card-free').querySelector('[data-addon-toggle]')).toBeNull();
+    // what SMART PACK is, right under the box (Owner 2026-10-20)
+    expect(card.querySelector('[data-addon-summary]').textContent).toContain('צ׳אט קולי');
   });
   it('INTERNATIONAL (EN): $23.00 monthly and $235.00 yearly when ticked', () => {
     render(<PackageOfferCards model={pricingModalModel({ isHebrew: false, market: 'INTERNATIONAL' })} isHebrew={false} />);

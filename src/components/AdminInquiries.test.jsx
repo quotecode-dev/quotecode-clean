@@ -28,9 +28,10 @@ const RED = { ...ROW, id: 'r3', status: 'waiting', bin: 'red', bin_reason: 'word
 const DONE = { ...ROW, id: 'r4', status: 'answered', bin: 'green', mailbox: 'support', reply_text: 'שלום, הנה התשובה', reply_sent_at: '2026-10-20T09:00:00Z', reply_sent_by: 'assistant', subject: 'נענה' };
 
 describe('Admin "Inquiries" tab (Owner 2026-10-19, L-22)', () => {
-  it('is one registry destination in the Management group, super admin only, phone "More" list', () => {
+  // Owner console 2026-10-20 (L-22 "צמצום תפריט הניהול לשני כפתורים ומסך מרכזי, ומשתמש מפקח ..."): inside the "ניהול" hub, opened by inquiries.view
+  it('is one registry destination in the "ניהול" hub, opened by inquiries.view, phone "More" list', () => {
     const d = ADMIN_DESTINATIONS.find((x) => x.id === 'inquiries');
-    expect(d).toMatchObject({ group: 'management', permission: 'super_admin', mobile: 'more', available: true, label: { he: 'פניות', en: 'Inquiries' } });
+    expect(d).toMatchObject({ hub: 'manage', permission: 'inquiries.view', mobile: 'more', available: true, label: { he: 'פניות', en: 'Inquiries' } });
   });
 
   it('lists the received inquiries (reads only); a row opens the full text, the attachments (names only) and the sender checks', async () => {
@@ -147,7 +148,7 @@ describe('stage 2 (Owner 2026-10-20, L-22): colours, state, mailbox column, coun
     expect(screen.getAllByTestId('inquiry-mailbox')[0].textContent).toBe('info@tekango.com');
     fireEvent.change(screen.getByTestId('inquiries-bin-filter'), { target: { value: 'red' } });
     expect(order()).toEqual(['ביטול']);
-    expect(screen.getAllByTestId('inquiry-subject')[0].style.textAlign).toBe('right');
+    expect(screen.getAllByTestId('inquiry-subject')[0].style.textAlign).toBe('center');
   });
 
   it('the sidebar "פניות" item carries the red counter of what waits (none = no counter)', async () => {

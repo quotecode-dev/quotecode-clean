@@ -16,6 +16,21 @@ export const VOICE_ASSISTANT_ANNOUNCEMENT = Object.freeze({
   }),
 });
 
+// Owner console 2026-10-20, typed: "מאשר שינוי ב-L-17: הודעה צפה אחת על חכם פלוס" - the SMART PACK add-on: floats once like every new bell item;
+// its action opens the plans view (where the add-on box is). Prices = addOnCatalog.js (10 ILS / 5 USD a month); not purchasable yet.
+export const SMART_PACK_ANNOUNCEMENT = Object.freeze({
+  key: 'announce:smart-pack:v1',
+  kind: 'announce',
+  action: 'plans',
+  from: '2026-10-20',
+  until: '2026-12-31',
+  sortAt: '2026-10-20T00:00',
+  copy: Object.freeze({
+    he: Object.freeze({ title: 'חדש: חכם פלוס', body: 'תוספת למנוי עם צ׳אט חכם שמכיר את הנתונים שלך, צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, וקבצים מצורפים להצעה. ₪10 לחודש כולל מע״מ, בחירה שלך. התוספת תהיה זמינה לרכישה עם פתיחת המסלולים.' }),
+    en: Object.freeze({ title: 'New: SMART PACK', body: 'A plan add-on with a smart chat that knows your data, voice chat, an AI smart quote with voice dictation, and files attached to quotes. $5 a month, your choice. It will be available to buy when the plans open.' }),
+  }),
+});
+
 /** The announcements whose window contains today (the market day is close enough for a 6-week window - UTC day used). */
 export function activeAnnouncements(list, now = Date.now()) {
   const ms = now instanceof Date ? now.getTime() : Number(now);
