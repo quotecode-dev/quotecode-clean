@@ -29,8 +29,8 @@ describe('buildSystemPrompt - HE (Israel/ILS) plan and price truth', () => {
   });
 
   it('states the Free-10 rules and that there is no trial, no monthly counter, no unlimited plan (OD-01/OD-02/OD-20)', () => {
-    expect(prompt).toMatch(/Free: 10 quotes in total OR 7 days from sign-up, whichever ends first/);
-    expect(prompt).toMatch(/There is NO separate trial/);
+    expect(prompt).toMatch(/Free: 10 quotes in total, no expiry/);
+    expect(prompt).toMatch(/There is NO trial/);
     expect(prompt).toMatch(/NO monthly quote counter and NO "unlimited" plan/);
   });
 

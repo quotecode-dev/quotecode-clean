@@ -596,12 +596,12 @@
     "markers": 26
   },
   "src/pages/LandingGlobal.jsx": {
-    "interactive": 3,
-    "markers": 3
+    "interactive": 2,
+    "markers": 2
   },
   "src/pages/LandingLocal.jsx": {
-    "interactive": 3,
-    "markers": 3
+    "interactive": 2,
+    "markers": 2
   },
   "src/pages/NotFound.jsx": {
     "interactive": 1,

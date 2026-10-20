@@ -2516,8 +2516,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             // Owner 2026-10-15: optional name fields + the consent record (document versions = their 'last updated' date, and the time)
             ...(cleanSignupText(signupFullName) ? { full_name: cleanSignupText(signupFullName) } : {}),
             ...(cleanSignupText(signupBusinessName) ? { business_name: cleanSignupText(signupBusinessName) } : {}),
-            // 2026-10-20: the Terms state the free plan as 10 quotes or 7 days (IRON-LANDING-001 amended)
-            terms_version: '2026-10-20',
+            terms_version: '2026-10-15',
             // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
             privacy_version: '2026-10-20',
             terms_accepted_at: new Date().toISOString(),

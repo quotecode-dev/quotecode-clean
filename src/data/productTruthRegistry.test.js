@@ -145,7 +145,7 @@ describe('PRODUCT TRUTH AUTHORITY PARITY (§52.9 / step 15)', () => {
     const c = getCapabilityById('plan_trial');
     expect(c.enLabel).toBe('Plans and Free quotes');
     // Task 27 (§249 + the Owner's 2026-10-11 amendment): Free-10, then ONE package; HE = ILS only, EN = USD only (market isolation)
-    expect(c.enDescription).toMatch(/10 quotes in total or 7 days from sign-up, whichever ends first/);
+    expect(c.enDescription).toMatch(/10 quotes in total, valid without an expiry date/);
     expect(c.enDescription).toMatch(/one package with every available capability, billed monthly or annually: 18\.00 USD per month or 184\.00 USD per year/);
     expect(c.enDescription).toMatch(/still being prepared/);
     expect(c.enDescription).not.toMatch(/Classic|Modern|Visual|₪|ILS/);

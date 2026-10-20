@@ -32,7 +32,7 @@ export default function Terms({ isHebrew }) {
   // expansion) are unchanged.
   const t = isHebrew ? {
     title: 'תנאי שימוש (Terms of Service)',
-    lastUpdated: 'עדכון אחרון: 20 באוקטובר 2026',
+    lastUpdated: 'עדכון אחרון: 15 באוקטובר 2026',
     back: 'חזור אחורה',
     sections: [
       {
@@ -63,7 +63,7 @@ export default function Terms({ isHebrew }) {
         title: '4. מסלולים ומחירים',
         content: [
           'אחרי 10 ההצעות החינמיות, המנוי הוא מסלול אחד שכולל את כל היכולות הזמינות בשירות, בתשלום חודשי או שנתי מתחדש: 30.00 ₪ לחודש או 306.00 ₪ לשנה. המחירים כוללים מע״מ. סגנונות הצגת ההצעה אינם מסלולים. זכויות קיימות במסלול קודם נשמרות ואינן משתנות אוטומטית.',
-          'מסלול חינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם, ובשבעת הימים כלולה גם התוספת חכם פלוס. הצעה נספרת כשהיא יוצאת ללקוח (שליחה, קישור ציבורי, PDF סופי או הדפסה סופית). הפקה חוזרת של אותה גרסה לאותו לקוח, בכל ערוץ, אינה נספרת שוב; שינוי הלקוח, שם הנמען או תוכן ההצעה והפקה מחדש נספרים כהצעה נוספת. טיוטה ותצוגה מקדימה אינן נספרות, מחיקת הצעה אינה מחזירה אותה, ומסמכים קיימים נשארים נגישים. כל מסלול בתשלום כולל 100 מוצרי קטלוג, והרחבה של 100 מוצרים נוספים עולה 5.00 ₪ לחודש, רק בבחירה מפורשת.',
+          'מסלול חינם כולל 10 הצעות בסך הכול, ללא תפוגה. הצעה נספרת כשהיא יוצאת ללקוח (שליחה, קישור ציבורי, PDF סופי או הדפסה סופית). הפקה חוזרת של אותה גרסה לאותו לקוח, בכל ערוץ, אינה נספרת שוב; שינוי הלקוח, שם הנמען או תוכן ההצעה והפקה מחדש נספרים כהצעה נוספת. טיוטה ותצוגה מקדימה אינן נספרות, מחיקת הצעה אינה מחזירה אותה, ומסמכים קיימים נשארים נגישים. כל מסלול בתשלום כולל 100 מוצרי קטלוג, והרחבה של 100 מוצרים נוספים עולה 5.00 ₪ לחודש, רק בבחירה מפורשת.',
           'זמינות כיום: מערכת המסלולים החדשה, רכישת מנוי ותשלום מקוון עדיין אינם פעילים, ולא נגבה תשלום כלשהו דרך השירות. פרסום התנאים שלהלן אינו הפעלה של תשלום.',
         ],
       },
@@ -120,7 +120,7 @@ export default function Terms({ isHebrew }) {
     ],
   } : {
     title: 'Terms of Service',
-    lastUpdated: 'Last updated: October 20, 2026',
+    lastUpdated: 'Last updated: October 15, 2026',
     back: 'Go Back',
     sections: [
       {
@@ -151,7 +151,7 @@ export default function Terms({ isHebrew }) {
         title: '4. Plans and Prices',
         content: [
           'After the 10 free quotes, the subscription is one package with every capability available in the Service, billed monthly or annually and renewing: 18.00 USD per month or 184.00 USD per year. Billing is always in USD; a price shown in your local currency is only an estimate. Quote presentation styles are not plans. Existing rights on an earlier plan are kept and do not change automatically.',
-          'The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, and the SMART PACK add-on is included during those 7 days. A quote counts when it reaches a client (sending it, sharing its public link, or producing its final PDF or print). Producing the same version again for the same client, on any channel, does not count again; changing the client, the recipient name or the quote content and producing it again counts as another quote. Drafts and previews do not count, deleting a quote does not give one back, and existing documents stay accessible. Every paid plan includes 100 catalog products, and 100 more products cost 3.00 USD per month, only when you explicitly choose it.',
+          'The Free plan includes 10 quotes in total, with no expiry. A quote counts when it reaches a client (sending it, sharing its public link, or producing its final PDF or print). Producing the same version again for the same client, on any channel, does not count again; changing the client, the recipient name or the quote content and producing it again counts as another quote. Drafts and previews do not count, deleting a quote does not give one back, and existing documents stay accessible. Every paid plan includes 100 catalog products, and 100 more products cost 3.00 USD per month, only when you explicitly choose it.',
           'Availability today: the new plan system, subscription purchase and online payment are not active yet, and no payment is collected through the Service. Publishing the terms below does not activate payment.',
         ],
       },

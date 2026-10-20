@@ -11,8 +11,7 @@ export const PRICE_CATALOG_VERSION = '2026-10-07.1';
 
 export const MARKETS = Object.freeze(['IL', 'INTERNATIONAL']);
 export const PAID_PLAN_IDS = Object.freeze(['classic', 'modern', 'visual']);
-export const FREE_QUOTES_TOTAL = 10; // OD-01 + Owner 2026-10-20 (IRON-LANDING-001 amended): 10 quotes OR FREE_DAYS_TOTAL days, whichever ends first
-export const FREE_DAYS_TOTAL = 7; // Owner 2026-10-20: the free plan ends after 7 days from signup if the 10 quotes were not used first
+export const FREE_QUOTES_TOTAL = 10; // OD-01: lifetime per account, no expiry
 export const CATALOG_PRODUCTS_INCLUDED = 100; // OD-04: every paid plan
 export const CATALOG_BLOCK_PRODUCTS = 100; // OD-04 / OD-07: one explicit add-on block
 

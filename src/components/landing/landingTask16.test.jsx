@@ -241,7 +241,7 @@ describe('cloud-fix4 A14 - landing truth, base restores, light regions, base col
   const rule = (sel) => { const m = css.match(new RegExp(`(^|\\n)${sel.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')} \\{([^}]*)\\}`)); return m ? m[2] : ''; };
 
   it('styles: the server render opens on Classic; all three tabs are labelled available (Owner 2026-10-14)', () => {
-    for (const [html, ok, prev] of [[he, 'זמין לכל המשתמשים', 'דוגמה בלבד · לא זמין כרגע'], [en, 'Available to every account', 'Preview only · not currently available']]) {
+    for (const [html, ok, prev] of [[he, 'זמין בכל החשבונות', 'דוגמה בלבד · לא זמין כרגע'], [en, 'Available to every account', 'Preview only · not currently available']]) {
       expect(html).toMatch(/id="tl-tab-classic"[^>]*aria-selected="true"/);
       expect(html).toMatch(/data-style-availability="available"/);
       expect(html).toMatch(/data-landing-doc="classic"[\s\S]*data-landing-doc="classic"/); // hero + styles viewer
@@ -253,15 +253,15 @@ describe('cloud-fix4 A14 - landing truth, base restores, light regions, base col
   it('styles are not tied to a plan, and the copy states all three are available to every account (HE + EN)', () => {
     for (const s of ['הכלולים במסלול', 'להמחשה בלבד, וכרגע אינם זמינים']) expect(text(he)).not.toContain(s);
     for (const s of ['included in your plan', 'illustrations only and are not currently available']) expect(text(en)).not.toContain(s);
-    expect(text(he)).toContain('שלושה סגנונות להצעת מחיר, זמינים לכל המשתמשים');
-    expect(text(he)).toContain('שלושת הסגנונות זמינים לכל המשתמשים');
+    expect(text(he)).toContain('שלושה סגנונות להצעת מחיר, זמינים בכל החשבונות');
+    expect(text(he)).toContain('שלושת הסגנונות זמינים בכל החשבונות');
     expect(text(en)).toContain('Three quote styles, available to every account');
     expect(text(en)).toContain('All three styles are available to every account');
   });
 
   it('L03: the base free business tools section is back (base strings, /he|en/tools, no signup)', () => {
     expect(he).toMatch(/<h2 id="tl-tools-title">כלים עסקיים חינמיים<\/h2>/);
-    expect(text(he)).toContain('מחשבונים חינמיים למטבעות, יחידות, מתכות וקריפטו. פתוחים לכולם, בלי הרשמה.'); // Owner HE language edit 2026-10-06
+    expect(text(he)).toContain('מחשבוני מטבעות, יחידות, מתכות וקריפטו בחינם, פתוחים לכולם, ללא הרשמה.'); // Owner HE language edit 2026-10-06
     expect(text(he)).not.toContain('כתוסף חופשי');
     expect(he).toMatch(/<a class="tl-ghost" href="\/he\/tools">למעבר לכלים העסקיים/);
     expect(en).toMatch(/<h2 id="tl-tools-title">Free Business Tools<\/h2>/);
@@ -307,7 +307,7 @@ describe('cloud-fix4 A14 - landing truth, base restores, light regions, base col
   it('cloud-fix4b truth: the styles copy no longer promises four columns on phones; it states the four fields and the long-amount layout', () => {
     expect(he).not.toContain('בארבע עמודות, גם בטלפון');
     expect(en).not.toContain('keeps its four columns, on phones too');
-    expect(he).toContain('בכל הסגנונות נשמרים ארבעת השדות של טבלת הפריטים: תיאור פריט, כמות, מחיר יחידה וסה״כ.');
+    expect(he).toContain('בכל הסגנונות נשמרים ארבעת השדות של טבלת הפריטים: תיאור פריט, כמות, מחיר יחידה וסה&quot;כ.');
     expect(he).toContain('התיאור עובר לשורה מלאה ושלושת הערכים המספריים מופיעים מתחת לכותרות שלהם');
     expect(en).toContain('In every style the item table keeps its four fields: Description, Qty, Unit Price and Total.');
     expect(en).toContain('the description moves to its own full row and the three numeric values appear under their own headers');
@@ -323,17 +323,17 @@ describe('cloud-fix4 A14 - landing truth, base restores, light regions, base col
   });
 
   it('authority ledger L07: base hero subtitle, base "how it works" (3 steps) and base closing; reference strings gone', () => {
-    expect(text(he)).toContain('מערכת להפקת הצעות מחיר ולניהול העסק, המותאמת לעסקים בישראל: חישוב מע״מ 18% בהצעות, מחירים בשקלים, חתימה דיגיטלית של הלקוח וניהול לקוחות.'); // Owner HE language edit 2026-10-06 (same facts)
+    expect(text(he)).toContain('מערכת להפקת הצעות מחיר ולניהול העסק, המותאמת לעסקים בישראל: חישוב מע"מ 18% בהצעות, מחירים בשקלים, חתימה דיגיטלית של הלקוח וניהול לקוחות.'); // Owner HE language edit 2026-10-06 (same facts)
     expect(text(he)).not.toContain('פלטפורמת SaaS');
     expect(text(en)).toContain('An advanced global SaaS platform tailored for modern businesses (featuring automatic quote totals, customer e-signatures, and streamlined client management).');
     expect(he).toMatch(/<h2 id="tl-flow-title">איך זה עובד\?<\/h2><p>מהצעה ראשונה ועד חתימת הלקוח, בשלושה צעדים\.<\/p>/);
-    for (const s of ['צרו הצעת מחיר שלב אחר שלב', 'שלחו ללקוח קישור אישי', 'בלי לצרף קבצים למייל', 'חותם דיגיטלית מהטלפון']) expect(text(he)).toContain(s);
+    for (const s of ['צרו הצעת מחיר צעד אחר צעד', 'שלחו ללקוח קישור אישי', 'בלי לצרף קבצים למייל', 'חותם דיגיטלית מהטלפון']) expect(text(he)).toContain(s);
     for (const s of ['בונים הצעה מודרכת', 'מייל כבד']) expect(text(he)).not.toContain(s);
     expect(en).toMatch(/<h2 id="tl-flow-title">How It Works<\/h2><p>From a blank page to a signed quote in three clear steps\.<\/p>/);
     for (const html of [he, en]) expect((html.match(/class="tl-flow-step"/g) || []).length).toBe(3);
     for (const s of ['יצירה', 'שליחה', 'אישור וחתימה']) expect(he).toContain(`<h3>${s}</h3>`);
     for (const s of ['Create', 'Send', 'Approve &amp; Sign']) expect(en).toContain(`<h3>${s}</h3>`);
-    expect(he).toMatch(/<h2 id="tl-closing-title">מוכנים ליצור את ההצעה הראשונה שלכם\?<\/h2><p>הצעת מחיר ברורה, שלב אחר שלב\.<\/p>/);
+    expect(he).toMatch(/<h2 id="tl-closing-title">מוכנים ליצור את ההצעה הראשונה שלכם\?<\/h2><p>הצעת מחיר ברורה, צעד אחר צעד\.<\/p>/);
     expect(en).toMatch(/<h2 id="tl-closing-title">Ready to create your first quote\?<\/h2><p>A professional quote, one clear step at a time\.<\/p>/);
     for (const s of ['הצעות מחיר שנראות כמו העסק שלכם', 'ארבעה צעדים', 'מהיצירה ועד אישור הלקוח', 'הצעת המחיר הבאה מתחילה בתהליך ברור']) expect(text(he)).not.toContain(s);
     for (const s of ['Quotes that look like your business', 'Four steps', 'From creation to customer approval', 'Your next quote starts with a clear process']) expect(text(en)).not.toContain(s);
@@ -343,7 +343,7 @@ describe('cloud-fix4 A14 - landing truth, base restores, light regions, base col
     const titles = (html) => [...html.matchAll(/<article class="tl-capability">[\s\S]*?<h3>([^<]*)<\/h3>/g)].map((m) => m[1]);
     expect(titles(he)).toEqual(['הפקת הצעות מחיר בקלות', 'חתימה דיגיטלית ואישור לקוח', 'ניהול הכנסות והוצאות', 'הצעות מחיר לפי מידות ומפרט', 'עוזר חכם שמלווה אתכם בעבודה']);
     expect(titles(en)).toEqual(['Quotes Made Simple', 'Digital Signatures &amp; Approvals', 'Income &amp; Expense Tracking', 'Professional Quotes with Measurements &amp; Specs', 'AI Assistant Inside Your Workflow']);
-    expect(text(he)).toContain('צרו הצעות מחיר מסודרות, עם חישוב מע״מ אוטומטי, הנחות ומוצרים מהקטלוג שלכם.');
+    expect(text(he)).toContain('צרו הצעות מחיר מסודרות, עם חישוב מע"מ אוטומטי, הנחות ומוצרים מהקטלוג שלכם.');
     expect(text(en)).toContain('Create professional, beautiful price quotes including automatic totals, discounts, and items from your catalog.');
     for (const s of ['היסטוריה שקל לסרוק', 'ממשק מייצג', 'לקוחות ופריטים לשימוש חוזר']) expect(text(he)).not.toContain(s);
     for (const s of ['Scannable quote history', 'Representative interface', 'Reusable customers and items']) expect(text(en)).not.toContain(s);
@@ -351,7 +351,7 @@ describe('cloud-fix4 A14 - landing truth, base restores, light regions, base col
   });
 
   it('authority ledger L07b: base FAQ heading + subtitle, no added eyebrows, no business heading, no added FAQ item', () => {
-    expect(he).toMatch(/<h2 id="tl-faq-title">שאלות נפוצות<\/h2><p>כל מה שכדאי לדעת לפני שמתחילים\.<\/p>/);
+    expect(he).toMatch(/<h2 id="tl-faq-title">שאלות נפוצות<\/h2><p>תשובות לשאלות נפוצות על המערכת\.<\/p>/);
     expect(en).toMatch(/<h2 id="tl-faq-title">Frequently Asked Questions<\/h2><p>Everything you need to know about the platform\.<\/p>/);
     for (const s of ['לפני שבוחרים', 'שאלות שימושיות', 'הצעה מקצועית. תהליך אחד ברור.', 'יותר מעיצוב המסמך', 'כל ההצעות, הלקוחות והפריטים במקום אחד', 'איך הלקוח מקבל ומאשר את ההצעה?']) expect(text(he)).not.toContain(s);
     for (const s of ['Before you choose', 'Useful answers', 'A professional quote. One clear flow.', 'More than document styling', 'Quotes, customers and items in one place', 'How does a customer receive and approve a quote?']) expect(text(en)).not.toContain(s);
@@ -362,8 +362,7 @@ describe('cloud-fix4 A14 - landing truth, base restores, light regions, base col
       const faq = html.slice(html.indexOf('id="faq"'), html.indexOf('</section>', html.indexOf('id="faq"')));
       expect(faq).not.toMatch(/tl-eyebrow/);
       // 8 base items + the Owner-approved cancellation / refunds item (Task 39 final scope, published on LIVE 2026-10-14)
-      // + six verified questions users asked (Owner console 2026-10-20: '...ושאלות נפוצות חדשות מאומתות')
-      expect((faq.match(/<details/g) || []).length).toBe(15);
+      expect((faq.match(/<details/g) || []).length).toBe(9);
     }
   });
 });

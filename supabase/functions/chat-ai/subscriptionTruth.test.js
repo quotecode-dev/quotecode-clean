@@ -39,13 +39,13 @@ describe('adversarial: the user cannot talk the assistant into a plan, a trial, 
   it('"how many days left in my trial?" -> no trial exists; Free-10 rules; no balance while the plan system is off (EN + HE)', () => {
     const en = answer('how many days left in my trial?', false);
     expect(en.intents).toEqual(expect.arrayContaining(['trial', 'balance']));
-    expect(en.answer).toMatch(/TEKANGO has no separate trial period/);
-    expect(en.answer).toMatch(/10 quotes in total or 7 days from sign-up, whichever ends first/);
+    expect(en.answer).toMatch(/TEKANGO does not offer a trial period/);
+    expect(en.answer).toMatch(/10 quotes in total, with no expiry/);
     expect(en.answer).toMatch(/no active plan or balance to show/);
     expect(en.answer).not.toMatch(/\d+ days? (left|remain)/i);
     const he = answer('כמה ימים נשארו לי בניסיון?', true);
-    expect(he.answer).toMatch(/ל-TEKANGO אין תקופת ניסיון נפרדת/);
-    expect(he.answer).toMatch(/10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם/);
+    expect(he.answer).toMatch(/ל-TEKANGO אין תקופת ניסיון/);
+    expect(he.answer).toMatch(/10 הצעות בסך הכול, ללא תפוגה/);
   });
   it('a ready Free account asking for its balance gets the SERVER balance', () => {
     expect(answer('how many free quotes do I have left?', false, READY_FREE).answer).toMatch(/7 of 10 quotes remain/);
@@ -152,7 +152,7 @@ describe('prompt block + request boundary', () => {
   it('the subscription prompt block forbids every retired claim class and lists the not-decided values', () => {
     const b = buildSubscriptionTruthBlock(false);
     expect(b).toMatch(/there is no Basic, Pro or Premium plan\. A Lifetime subscription is not a plan for purchase/);
-    expect(b).toMatch(/There is NO separate trial/);
+    expect(b).toMatch(/There is NO trial/);
     expect(b).toMatch(/NOT DECIDED/);
     expect(b).toMatch(/NOT active yet/);
     expect(buildSubscriptionTruthBlock(false)).not.toMatch(/₪\d|\d\s*₪/);

@@ -53,9 +53,9 @@ describe('landing truth gate', () => {
   }
 
   it('Owner 2026-10-14: all three styles are available to every account (HE + EN); the landing labels all three available', () => {
-    expect(he).toContain('שלושה סגנונות להצעת מחיר, זמינים לכל המשתמשים');
+    expect(he).toContain('שלושה סגנונות להצעת מחיר, זמינים בכל החשבונות');
     expect(he).not.toMatch(/מוצגות בסגנון Classic|להמחשה בלבד, וכרגע אינם זמינים/);
-    expect(he).toMatch(/availableBadge: 'זמין לכל המשתמשים'/);
+    expect(he).toMatch(/availableBadge: 'זמין בכל החשבונות'/);
     expect(en).toContain('Three quote styles, available to every account');
     expect(en).not.toMatch(/presented in the Classic style|illustrations only and are not currently available/);
     expect(en).toMatch(/availableBadge: 'Available to every account'/);
@@ -96,7 +96,7 @@ describe('landing truth gate', () => {
     expect(en).not.toMatch(/basicPricing|proPricing/);
     expect(he).not.toMatch(/14 יום ניסיון|ניסיון PRO/);
     expect(en).not.toMatch(/14-day|PRO trial|Free Trial/);
-    expect(he).toContain('10 הצעות מחיר חינם או 7 ימים מההרשמה, המוקדם מביניהם. ההטבה עדיין לא הופעלה.');
+    expect(he).toContain('10 הצעות מחיר חינם בסך הכול, בלי הגבלת זמן. ההטבה עדיין לא הופעלה.');
     expect(en).toContain('10 free quotes in total · not active yet');
     // Task 37: the same "paid / checkout not available" truth in the Owner-approved L1 wording
     expect(en).toMatch(/The new paid plan cannot be purchased yet/);

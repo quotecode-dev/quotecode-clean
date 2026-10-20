@@ -758,8 +758,8 @@ export const AI_FACTS = {
       "id": "plan_trial",
       "heLabel": "מסלולים ו-10 הצעות חינם",
       "enLabel": "Plans and Free quotes",
-      "heDescription": "מסלול חינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם, ובשבעת הימים כלול גם חכם פלוס. אחריהן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. מערכת המנויים החדשה עדיין בהכנה.",
-      "enDescription": "The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, with SMART PACK included during those 7 days. After them there is one package with every available capability, billed monthly or annually: 18.00 USD per month or 184.00 USD per year, charged in USD. The new subscription system is still being prepared.",
+      "heDescription": "מסלול חינם כולל 10 הצעות בסך הכול, ללא תפוגה. אחריהן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. מערכת המנויים החדשה עדיין בהכנה.",
+      "enDescription": "The Free plan includes 10 quotes in total, valid without an expiry date. After them there is one package with every available capability, billed monthly or annually: 18.00 USD per month or 184.00 USD per year, charged in USD. The new subscription system is still being prepared.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",

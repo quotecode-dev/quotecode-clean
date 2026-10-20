@@ -71,16 +71,16 @@ describe('L04 - the four capability cards are the base titles and bodies', () =>
   it('HE: capability titles and bodies of the Owner-approved language edit (plural address; base typo "ווקבל" fixed)', () => {
     for (const s of [
       'הפקת הצעות מחיר בקלות',
-      'צרו הצעות מחיר מסודרות, עם חישוב מע״מ אוטומטי, הנחות ומוצרים מהקטלוג שלכם.',
+      'צרו הצעות מחיר מסודרות, עם חישוב מע"מ אוטומטי, הנחות ומוצרים מהקטלוג שלכם.',
       'חתימה דיגיטלית ואישור לקוח',
       'שלחו ללקוח קישור שבו אפשר לצפות בהצעה, להדפיס אותה או לשמור אותה כ-PDF, לחתום דיגיטלית ולאשר את ההזמנה מהטלפון או מהמחשב.',
       'ניהול הכנסות והוצאות',
-      'עקבו אחר רווחי העסק, נהלו הוצאות שוטפות ותראו תמונת מצב כספית עדכנית.',
+      'עקבו אחר רווחי העסק, נהלו הוצאות שוטפות וקבלו תמונת מצב פיננסית עדכנית.',
       'הצעות מחיר לפי מידות ומפרט',
       'בנו הצעה לפי מידות אמיתיות (שטח או אורך), עם כמה שורות מדידה לכל פריט וחישוב כמות אוטומטי. מתאים לזכוכית ואלומיניום, ריצוף, חשמל, אינסטלציה ותחומים נוספים: פחות חישובים ידניים וטעויות, וחיסכון בזמן בהצעות חוזרות.',
       'עוזר חכם שמלווה אתכם בעבודה',
       // Task 34 (Owner 2026-10-12): the AI card states only what the LIVE product has - the assistant (no AI-draft claim before its release)
-      'עוזר ה-AI של TEKANGO עומד לרשותכם כשאתם מכינים הצעות מחיר, מנהלים לקוחות או מעדכנים את ההגדרות. שאלו על השלב שבו אתם נמצאים, או בקשו הכוונה.',
+      'עוזר ה-AI של TEKANGO זמין בזמן יצירת הצעות מחיר, ניהול לקוחות ועדכון ההגדרות. שאלו על השלב שבו אתם נמצאים או בקשו הכוונה.',
     ]) expect(he).toContain(s);
     // negatives: the replaced phrasings (Owner table 2026-10-06) and the base typo are gone
     for (const s of ['ווקבל', 'עוזר AI בתוך העבודה', 'זרימות העבודה', 'שלח לינק ללקוח', 'עקוב אחר רווחי', 'מקצועיות ומהודרות', 'בכל מסלול']) expect(he).not.toContain(s);
@@ -119,7 +119,7 @@ describe('L12 - plans section heading is the base title and subtitle', () => {
 // descriptions (quoteStyles.js STYLE_COPY) are no longer plan taglines, and "all available capabilities" never names Modern / Visual.
 describe('L13 - plan taglines (§249 Free-10 + one all-inclusive package)', () => {
   it('HE Free / all-inclusive (no superlative; no "ללא מגבלות")', () => {
-    for (const s of ['חינם עד 10 הצעות או 7 ימים, המוקדם מביניהם.', 'מסלול אחד עם כל היכולות הזמינות במערכת, בתשלום חודשי או שנתי.']) expect(heHtml).toContain(`<p class="tl-plan-tagline" data-region="description">${s}</p>`);
+    for (const s of ['הצעות מחיר חינם, בלי הגבלת זמן.', 'מסלול אחד עם כל היכולות הזמינות במערכת, בתשלום חודשי או שנתי.']) expect(heHtml).toContain(`<p class="tl-plan-tagline" data-region="description">${s}</p>`);
     for (const s of [STYLE_COPY.he.classic.description, STYLE_COPY.he.modern.description, STYLE_COPY.he.visual.description]) expect(heHtml).not.toContain(`<p class="tl-plan-tagline" data-region="description">${s}</p>`);
     expect(he).not.toContain('ללא מגבלות');
     expect(he).not.toContain('פתרון מושלם');
@@ -130,7 +130,7 @@ describe('L13 - plan taglines (§249 Free-10 + one all-inclusive package)', () =
     // R3 (local fix 6, IRON-LANDING-001): the EN PRO tagline drops the unqualified 'with no limits' (PRO has real limits, e.g.
     // attachments up to 30MB) - the factual counterpart of the approved HE tagline. Price / plan / trial / entitlement unchanged.
     expect(en).not.toMatch(/no limits/i);
-    for (const s of ['Free for 10 quotes or 7 days, whichever comes first.', 'One package with every available capability, billed monthly or annually.']) expect(enHtml).toContain(`<p class="tl-plan-tagline" data-region="description">${s}</p>`);
+    for (const s of ['A free plan with no time limit.', 'One package with every available capability, billed monthly or annually.']) expect(enHtml).toContain(`<p class="tl-plan-tagline" data-region="description">${s}</p>`);
     for (const s of [STYLE_COPY.en.classic.description, STYLE_COPY.en.modern.description, STYLE_COPY.en.visual.description]) expect(enHtml).not.toContain(`<p class="tl-plan-tagline" data-region="description">${s.replace(/'/g, '&#x27;')}</p>`);
     expect(en).not.toContain('no quote limit');
   });
@@ -142,7 +142,7 @@ describe('L14 - base FAQ answers are verbatim; the reference style questions sta
       // OD-05 (Owner 2026-10-07): prices include VAT; no rate / breakdown is approved (supersedes the 18% + before-VAT answer).
       'כן. המחירים כוללים מע״מ, ולא יתווסף אליהם מע״מ.',
       'כן. אפשר להפיק הצעות ולנהל את העסק מהמחשב, מהטאבלט או מהטלפון.',
-      'כן. הנתונים שמורים בענן ומוצפנים, גם בזמן ההעברה וגם באחסון. רק אתם יכולים לגשת לנתונים של החשבון שלכם.',
+      'הנתונים שלכם מאוחסנים בתשתית ענן מבוססת Supabase/PostgreSQL, עם הצפנה בתעבורה (TLS) ובאחסון כחלק מתשתית הענן הסטנדרטית. הגישה לנתונים מוגבלת לחשבון שלכם בלבד.',
       'כן. אפשר לייצא בכל רגע את היסטוריית הצעות המחיר ואת דוחות ההוצאות לקובצי CSV שמתאימים לאקסל ולתוכנות הנהלת חשבונות.',
     ]) expect(he).toContain(s);
     expect(he).not.toContain('פלטפורמת SaaS');
