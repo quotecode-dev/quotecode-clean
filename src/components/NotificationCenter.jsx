@@ -26,7 +26,7 @@ const KIND_COLOR = { announce: '#7C3AED', signed: '#15803D', first_view: '#5B3FB
 // variant: 'desktop' = the former decorative 18x18 icon footprint (desktop / tablet-landscape account cluster);
 //          'mobile'  = the slot freed by the removed plans indicator in the mobile / tablet-portrait header (Owner console instruction
 //                      2026-10-09): a 30px-high round tap target matching the AI-chat chip height, same 18px icon, same panel.
-export default function NotificationCenter({ client, userId, isHebrew, isLocalIsraeliBusiness, quotes = [], now = null, variant = 'desktop', authUser = null, quotesReady = true, quotesFresh = undefined, announcements = [], upgradeQuoteId = null }) {
+export default function NotificationCenter({ client, userId, isHebrew, isLocalIsraeliBusiness, quotes = [], now = null, variant = 'desktop', authUser = null, quotesReady = true, quotesFresh = undefined, announcements = [] }) {
   const mobile = variant === 'mobile';
   const C = REMINDERS_COPY[isHebrew ? 'he' : 'en'];
   const local = isLocalIsraeliBusiness === true;
@@ -143,7 +143,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
     if (action.kind === 'plans') { window.dispatchEvent(new CustomEvent('tekango:open-plans')); return; }
     window.dispatchEvent(new CustomEvent(BELL_SUBJECT_EVENT, { detail: { ...action } }));
   };
-  const actionsFor = (item) => bellActionsFor(item, tasks, upgradeQuoteId);
+  const actionsFor = (item) => bellActionsFor(item, tasks);
 
   // the floating notice: a NEW unread notification floats once (newest, "+N" for the others); the first run in this browser only
   // records the existing notifications (nothing floats); another tab of the same account never floats it again

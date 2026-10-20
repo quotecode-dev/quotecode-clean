@@ -327,36 +327,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / CREATE OR REPLACE / DROP TRIGGER IF EXISTS (re-runnable); Owner signed-quote bell 2026-10-19"
-    },
-    "20261021000000_payplus_phase1_verified_package_activation.sql": {
-      "sha256": "c691d37602ecb41138ca6d26d757810d9fd3aca1bfbccd170f0b392a04cd23f8",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE, ON CONFLICT DO NOTHING (re-runnable); PayPlus phase 1 (Owner 2026-10-18), renamed for stage 2 (Owner 2026-10-20)"
-    },
-    "20261021100000_free10_save_count_and_seven_days.sql": {
-      "sha256": "7629b6f7e4b201ff97b1ed8bb61860729542650426634ce4b1da345e7a90f826",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / CREATE TABLE IF NOT EXISTS / CREATE OR REPLACE / DROP TRIGGER IF EXISTS (re-runnable); Free plan server rule - count on save + 7 days (Owner 2026-10-20, PayPlus stage 2)"
-    },
-    "20261021200000_billing_period_grace_limited.sql": {
-      "sha256": "294e8ad1f83f64ab59514bd4908e68f1926c8dd702f26fa1741c7c983d680387",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / CREATE OR REPLACE (re-runnable); paid period + renewal + failed charge + 3 grace days + limited mode (Owner 2026-10-18, PayPlus stage 2)"
-    },
-    "20261021300000_explicit_grants_direct_api_tables.sql": {
-      "sha256": "1af7057f2a93667c87bd7ee5d8cdc003fcbbfd54f21bf94fc5cd3b5a8e086bf7",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; GRANT only (idempotent, re-runnable); explicit service_role grants for the three Data API tables (Supabase change of 2026-10-30; Owner 2026-10-20)"
-    },
-    "20261021400000_smart_pack_entitlement.sql": {
-      "sha256": "823bdd84089c981b5fac2605fd35c92de4b36817e43d8d0ce6244ebfc2b59ff9",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / DROP CONSTRAINT IF EXISTS + ADD / ON CONFLICT DO NOTHING / CREATE OR REPLACE / DROP IF EXISTS (re-runnable); SMART PACK entitlement, prices, payment line, attachment gate (Owner 2026-10-20, PayPlus stage 2)"
     }
   }
 }

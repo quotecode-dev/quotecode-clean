@@ -16,30 +16,7 @@ function isolateNumbers(text) {
 // Owner console 2026-10-20 (typed: "מאשר שינוי ב-L-22: תיבת הוספה של חכם פלוס במסך המסלולים בתוך המערכת ..."): the package card offers the
 // unticked SMART PACK add-on box (`plan.addOn`, pricingModalModel) - the same look as the landing plan card; ticked, the shown price is
 // the package plus the add-on for the chosen period, with the breakdown line. Display only: nothing is purchased or stored.
-// Owner console 2026-10-20 (typed: "מאשר שינוי ב-L-22: כפתור לתשלום במסך המסלולים, ותיבת חכם פלוס שנוספת לאותו תשלום"): when the
-// server billing phase is on (`purchase.enabled`, packageCheckoutAvailable), the package card gets a pay button for the chosen period;
-// the ticked SMART PACK box joins the same payment. Off (today) = the card renders exactly as before.
-const PAY_COPY = {
-  he: { pay: 'לתשלום', busy: 'פותח את דף התשלום…', fee: 'ביטול מוקדם: החזר יחסי בניכוי דמי ביטול, לפי סעיף 6 בתנאי השימוש.' },
-  en: { pay: 'Pay now', busy: 'Opening the payment page…', fee: 'Early cancellation: a pro-rata refund less a cancellation fee, as set out in section 6 of the Terms.' },
-};
-function PayAction({ purchase, period, withAddOn, isHebrew }) {
-  const t = PAY_COPY[isHebrew ? 'he' : 'en'];
-  return (
-    <div data-pay-action style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-      {/* PRODUCT_TRUTH_DECORATIVE: opens the PayPlus payment page of the SERVER attempt (package of the chosen period + the ticked SMART PACK line); rendered only while the server billing phase is on; the package opens only after a verified payment */}
-      <button type="button" data-testid="plans-pay" disabled={purchase.busy} onClick={() => purchase.onPay({ billingPeriod: period, smartPack: withAddOn })}
-        style={{ minHeight: 44, borderRadius: 10, border: 'none', background: purchase.busy ? '#94a3b8' : '#0F6672', color: '#ffffff', fontWeight: 800,
-          fontSize: '0.95rem', cursor: purchase.busy ? 'wait' : 'pointer' }}>
-        {purchase.busy ? t.busy : t.pay}
-      </button>
-      {purchase.error && <p role="alert" data-testid="plans-pay-error" dir={isHebrew ? 'rtl' : 'ltr'} style={{ margin: 0, color: '#b91c1c', fontSize: '0.8rem' }}>{purchase.error}</p>}
-      <p data-testid="plans-pay-fee" dir={isHebrew ? 'rtl' : 'ltr'} style={{ margin: 0, color: '#64748b', fontSize: '0.75rem' }}>{t.fee}</p>
-    </div>
-  );
-}
-
-function PriceBlock({ plan, isHebrew, purchase = null }) {
+function PriceBlock({ plan, isHebrew }) {
   const uid = useId();
   const [period, setPeriod] = useState(plan.prices[0]?.period);
   const [withAddOn, setWithAddOn] = useState(false);
@@ -87,12 +64,11 @@ function PriceBlock({ plan, isHebrew, purchase = null }) {
         </label>
       )}
       {plan.addOn?.summary && <p className="tl-plan-addon-summary" data-addon-summary dir={isHebrew ? 'rtl' : 'ltr'}>{plan.addOn.summary}</p>}
-      {purchase?.enabled && plan.id === 'all_inclusive' && <PayAction purchase={purchase} period={period} withAddOn={Boolean(plan.addOn) && withAddOn} isHebrew={isHebrew} />}
     </div>
   );
 }
 
-export default function PackageOfferCards({ model, isHebrew, currentPlanId = null, only = null, testIdPrefix = 'plans-modal', purchase = null }) {
+export default function PackageOfferCards({ model, isHebrew, currentPlanId = null, only = null, testIdPrefix = 'plans-modal' }) {
   const plans = only ? model.plans.filter((p) => only.includes(p.id)) : model.plans;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
@@ -103,7 +79,7 @@ export default function PackageOfferCards({ model, isHebrew, currentPlanId = nul
             style={{ border: `${isCurrent ? 2 : 1}px solid ${isCurrent ? '#0F6672' : '#e2e8f0'}`, borderRadius: '12px', padding: '14px', background: '#f8fafc', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.05rem' }}>{p.name}</h3>
             {p.tagline && <p style={{ margin: 0, color: '#475569', fontSize: '0.82rem' }}>{p.tagline}</p>}
-            <PriceBlock plan={p} isHebrew={isHebrew} purchase={purchase} />
+            <PriceBlock plan={p} isHebrew={isHebrew} />
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: '#334155' }}>
               {p.lines.map((line) => (
                 <li key={line} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}><Check size={14} color="#0F6672" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />{line}</li>

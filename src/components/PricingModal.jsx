@@ -1,9 +1,8 @@
 // The in-app plans view. Task 27 (§249 + the Owner's 2026-10-11 amendment, §253): Free-10 and ONE all-inclusive package, monthly or
 // annual, from the one price source (pricingModalModel -> packageCatalog.js): IL ₪30.00 / ₪306.00 including VAT, INTERNATIONAL
 // $18.00 / $184.00 USD - the shown amount is the amount that would be billed. Quote styles are not plans; a legacy style plan an account
-// may hold is shown only as its current-plan line. Purchase is server-driven: Owner console 2026-10-20 (typed L-22 approval for the pay
-// button + the SMART PACK box on the same payment) - the pay button appears only while the server billing phase is on
-// (packageCheckoutAvailable); it opens the server attempt's payment page and never changes the plan itself (only a verified payment does).
+// may hold is shown only as its current-plan line. Purchase is not available: checkout is server-driven and not activated, so this view
+// never starts a payment and never changes the plan.
 // The current plan line comes ONLY from the server account summary (OD-20); market = the server summary market, else the
 // account's recorded business market (never the UI language, locale or a client-side rate).
 import { useEffect, useState } from 'react';
@@ -14,11 +13,9 @@ import AiModalHeader from './AiModalHeader';
 import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
 import { accountStatusModel, lifetimeAccountModel } from '../domain/subscriptions/accountSummaryClient';
 import PackageOfferCards from './PackageOfferCards';
-import { packageCheckoutAvailable, checkoutErrorMessage } from '../domain/subscriptions/packageCheckout';
 
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null, onPurchase = null }) {
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null }) {
   const [rate, setRate] = useState(null);
-  const [pay, setPay] = useState({ busy: false, error: null });
   const wantsEstimate = isOpen && !isLocalIsraeliBusiness && ESTIMATE_CURRENCIES.includes(String(currency || '').toUpperCase());
   useEffect(() => {
     if (!wantsEstimate) return undefined;
@@ -34,15 +31,6 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   const status = accountStatusModel(accountSummary, lang);
   const current = status.tone === 'plan' ? status.planId : null;
   const lifetime = isLifetime === true ? lifetimeAccountModel(lang) : null;
-  // the pay action (server billing phase on only); the server answers with the payment page of its own attempt
-  const purchase = typeof onPurchase === 'function' && packageCheckoutAvailable(accountSummary, isLifetime) ? {
-    enabled: true, busy: pay.busy, error: pay.error,
-    onPay: async (choice) => {
-      setPay({ busy: true, error: null });
-      const r = await onPurchase(choice).catch(() => ({ ok: false, code: 'checkout_unavailable' }));
-      if (!r || r.ok !== true) setPay({ busy: false, error: checkoutErrorMessage(r?.code, isHebrew) });
-    },
-  } : null;
 
   return (
     <div className="no-print" data-testid="plans-modal" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
@@ -75,7 +63,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
         )}
         <p data-testid="plans-modal-availability" style={{ color: '#64748b', textAlign: 'center', margin: '0 0 16px', fontSize: '0.85rem' }}>{m.availability}</p>
 
-        <div style={{ marginBottom: '14px' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} purchase={purchase} /></div>
+        <div style={{ marginBottom: '14px' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} /></div>
 
         <p data-testid="plans-modal-price-note" data-price-note style={{ textAlign: 'center', color: '#334155', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 4px' }}>{m.priceNote}</p>
         {m.estimateNote && <p data-testid="plans-modal-estimate" style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '0 0 4px' }}>{m.estimateNote}</p>}

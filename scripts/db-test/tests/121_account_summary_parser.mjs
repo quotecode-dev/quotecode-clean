@@ -74,7 +74,7 @@ ROLLBACK;
   const free = p('FREE');
   ok(rows.FREE?.schema === ACCOUNT_SUMMARY_SCHEMA && free.state === 'ready', 'P4 Free summary is accepted by the strict parser (ready)', free);
   ok(free.planId === 'free' && free.market === 'IL' && free.subscriptionStatus === 'none' && free.version === 1
-     && JSON.stringify(free.free10) === JSON.stringify({ limit: 10, consumed: 0, reserved: 0, remaining: 10, endsAt: null, periodEnded: false })
+     && JSON.stringify(free.free10) === JSON.stringify({ limit: 10, consumed: 0, reserved: 0, remaining: 10 })
      && JSON.stringify(free.catalog) === JSON.stringify({ active: 0, countDefinition: 'unset', limit: null, blocks: 0, limitDecided: false })
      && JSON.stringify([...free.capabilities].sort()) === JSON.stringify(['professional_quote.reuse', 'professional_quote.use', 'quote.edit_duplicate', 'quote.whatsapp_delete', 'quote_style.classic'].sort())
      && JSON.stringify(free.phase) === JSON.stringify({ output: 'shadow', catalog: 'prepared', billing: 'off' })
@@ -93,12 +93,6 @@ ROLLBACK;
   const dFree = decideCapability(freeEnf, 'catalog_product_image.upload', true);
   ok(freeEnf.state === 'ready' && dFree.allowed === false && dFree.reason === 'free_not_eligible',
      'P9 enforced Free: catalog image upload denied free_not_eligible (OD-18), whatever the legacy record says', { freeEnf, dFree });
-  // 20261021100000: the RAW server payload carries the 7-day window (not only the parser's defaults); enforced = the window started
-  ok(rows.FREE?.free10?.endsAt === null && rows.FREE?.free10?.periodEnded === false
-     && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/.test(rows.FREE_ENF?.free10?.endsAt ?? '') && rows.FREE_ENF?.free10?.periodEnded === false
-     && freeEnf.free10?.endsAt === rows.FREE_ENF.free10.endsAt && freeEnf.free10?.periodEnded === false,
-     'P9b raw free10 window: shadow = endsAt null / periodEnded false; enforced = a UTC millisecond end the parser accepts, not ended',
-     { free: rows.FREE?.free10, enf: rows.FREE_ENF?.free10 });
   const dModern = decideCapability(paidEnf, 'quote_style.modern', true);
   ok(dModern.allowed === false && dModern.reason === 'not_included', 'P10 enforced: a capability without a policy row is not included', dModern);
   return { assertions };

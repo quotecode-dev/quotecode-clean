@@ -10,7 +10,7 @@ import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
 import { OPEN_REMINDERS_SETTINGS_EVENT } from '../utils/reminders';
-import { BELL_SUBJECT_EVENT, firstFreeSignatureQuoteId } from '../utils/bellSubject';
+import { BELL_SUBJECT_EVENT } from '../utils/bellSubject';
 import { markQuoteSentAfterShare } from '../utils/quoteSentMark';
 import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
 import { publishBlocker, resolveBlockers, clearScope, SAVE_ATTEMPT_CODES, blockerCodeForActionError, blockerCodeForSaveFailure, blockerCodeForEmailError } from '../utils/aiHelpBlockers';
@@ -55,7 +55,6 @@ import ExcelJS from 'exceljs';
 
 import PricingModal from '../components/PricingModal';
 import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
-import { startPackageCheckout } from '../domain/subscriptions/packageCheckout';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
@@ -128,10 +127,6 @@ import { buildShareText } from '../../supabase/functions/_shared/shareMessage.js
 // utils/money.js formatMoneyForCurrency: ILS => whole shekel half-up ".00"; others full precision.
 const formatNum = (val) => formatMoney(val);
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-// The server's two "free plan ended" refusals (10 quotes used, or the 7 free days ended - Owner 2026-10-20): both open the upgrade window
-const FREE10_END_CODES = new Set(['free_issue_limit_reached', 'free_period_ended']);
-// + a paid account in limited mode after a failed charge (Owner 2026-10-18; the server new-quote guard, 20261021200000)
-const FREE10_END_RE = /free_issue_limit_reached|free_period_ended|subscription_limited/;
 
 // קורא geo טרי ואמין ישירות מהשרת (api/geo.js), לא מעוגייה/localStorage
 // שהלקוח יכול לשנות או שיכולים להיות ישנים. משמש אך ורק לברירת המחדל של
@@ -1356,12 +1351,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setFree10Window(true);
     return true;
   };
-  // Owner 2026-10-20 (typed L-17 approval): the bell item of the first customer signature in the free plan also offers the plans -
-  // only a Free account while the plan system is enforced (the server summary decides; LIFETIME never)
-  const bellUpgradeQuoteId = useMemo(() => {
-    if (isLifetimeAccount || accountSummary?.state !== 'ready' || accountSummary.phase.output !== 'enforced' || accountSummary.planId !== 'free') return null;
-    return firstFreeSignatureQuoteId(quotes, accountSummary.free10);
-  }, [isLifetimeAccount, accountSummary, quotes]);
 
 
   // חוק ברזל (Trial Notification, TEST Acceptance Package 1 - עבר כמה
@@ -3066,8 +3055,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     if (gate.mode === 'authority_required') {
       const auth = await authorizeWithNotice({ channel: 'public_share', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (t) => window.confirm(t), isHebrew: isHebrew });
       if (!auth.proceed) {
-        if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null), type: 'error' });
-        if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
+        if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
+        if (auth.code === 'free_issue_limit_reached') setFree10Window(true);
         refreshAccountSummary();
         return;
       }
@@ -3145,8 +3134,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     const auth = await authorizeWithNotice({ channel: 'send', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew: isHebrew });
     if (!auth.proceed) {
       if (win && !win.closed) win.close();
-      if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null), type: 'error' });
-      if (FREE10_END_CODES.has(auth.code)) setFree10Window(true); // a first output after Free-10: the paid action itself
+      if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
+      if (auth.code === 'free_issue_limit_reached') setFree10Window(true); // a first output after Free-10: the paid action itself
       refreshAccountSummary();
       return;
     }
@@ -3202,8 +3191,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         const auth = await authorizeWithNotice({ channel: 'send', quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew: isHebrew });
         if (!auth.proceed) {
           setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-          if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null), type: 'error' });
-          if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
+          if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
+          if (auth.code === 'free_issue_limit_reached') setFree10Window(true);
           refreshAccountSummary();
           return;
         }
@@ -4676,13 +4665,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
       if (saveResult.outcome === 'failed') {
         // Task 27: the server refused a NEW quote because Free-10 is exhausted (quotes_free10_creation_guard) - show the upgrade window.
-        // Owner 2026-10-20: also a counted save (a quote saved with a customer + item) after 10 quotes or 7 days. The window is the
-        // whole answer: no second alert with the raw server text on top of it; nothing was saved and the local draft is kept - except
-        // when removing the new quote shell also failed: that notice still shows (an empty quote may remain).
-        if (FREE10_END_RE.test(String(saveResult.error?.message || ''))) {
-          setFree10Window(true); refreshAccountSummary();
-          if (!(saveResult.stage === 'structure' && saveResult.compensationFailed)) return;
-        }
+        if (/free_issue_limit_reached/.test(String(saveResult.error?.message || ''))) { setFree10Window(true); refreshAccountSummary(); }
         // Nothing of the quote was saved; the local draft is kept so the user can retry. `wrote` names anything that remains.
         const clientNote = saveResult.wrote.includes('client')
           ? (isHebrew ? ' שימו לב: פרטי הלקוח כבר עודכנו.' : ' Note: the client details were already updated.')
@@ -4723,8 +4706,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       const quoteId = saveResult.quoteId;
       lastSaveOutcomeRef.current = 'saved';
       if (saveResult.outcome === 'partial' && (saveResult.stage === 'structure' || saveResult.stage === 'items')) {
-        // Owner 2026-10-20: the items of an existing draft were refused because the free plan ended - the window too
-        if (FREE10_END_RE.test(String(saveResult.error?.message || ''))) { setFree10Window(true); refreshAccountSummary(); }
         saveBlock('QUOTE_SAVE_SERVER_ERROR', isHebrew
           ? 'פרטי ההצעה הכלליים נשמרו, אך מבנה ההצעה (יחידות/פריטים/מידות) לא נשמר ולא שונה. פתחו את ההצעה, בדקו אותה ושמרו שוב.'
           : 'The quote\'s general details were saved, but its structure (units/items/measurements) could not be saved and was left unchanged. Reopen the quote, review it, and save again.', { persistence: 'partial' });
@@ -4764,8 +4745,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         } else {
           leaveDraftNote = auth.mode === 'cancelled'
             ? (isHebrew ? 'ההצעה נשמרה כטיוטה. הסטטוס לא שונה ולא נוצלה הצעה.' : 'The quote was saved as a draft. Its status was not changed and no quote was used.')
-            : `${isHebrew ? 'ההצעה נשמרה כטיוטה. ' : 'The quote was saved as a draft. '}${outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null)}`;
-          if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
+            : `${isHebrew ? 'ההצעה נשמרה כטיוטה. ' : 'The quote was saved as a draft. '}${outputBlockedMessage(auth.code, isHebrew)}`;
+          if (auth.code === 'free_issue_limit_reached') setFree10Window(true);
         }
         refreshAccountSummary();
       }
@@ -7555,7 +7536,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         isHebrew={isHebrew}
         market={(accountSummary.state === 'ready' && accountSummary.market) || (isLocalIsraeliBusiness ? 'IL' : 'INTERNATIONAL')}
         free10={accountSummary.state === 'ready' ? accountSummary.free10 : null}
-        limited={accountSummary.state === 'ready' && accountSummary.billing?.limited === true}
       />
       <PricingModal 
         isOpen={showPricingModal} 
@@ -7567,9 +7547,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #17: the account currency reaches the plans window again (the EUR / GBP estimate line)
         currency={currency}
         statusLine={accountStatusSentence(ownSubscriptionStatus, isHebrew, statusDate)}
-        // Owner 2026-10-20 (typed L-22 approval): the pay button (shown only while the server billing phase is on) leaves for the server
-        // attempt's payment page; the package opens only after a verified payment
-        onPurchase={(choice) => startPackageCheckout({ ...choice, invoke: invokeWithFreshSession }).then((r) => { if (r.ok) window.location.assign(r.redirectUrl); return r; })}
       />
       <CapabilityUpgradeNotice
         lang={isHebrew ? 'he' : 'en'}
@@ -8195,7 +8172,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     <div className="dash-header-account">
                       <HeaderGreeting isHebrew={isHebrew} />
                       {/* Task 20: the bell opens the notification center (same 18px footprint; badge and panel are out of flow). */}
-                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellAnnouncements} upgradeQuoteId={bellUpgradeQuoteId} />
+                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellAnnouncements} />
                       {/* Owner 2026-10-14: the round plan medallion replaces the avatar circle (no sign-in provider ever set a picture) -
                           the account's plan status from the one shared model; it opens the plans window. Not shown to the super admin. */}
                       {!isSuperAdmin && (
@@ -8211,7 +8188,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   <div className="dash-header-badge-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {/* Task 20 (Owner console instruction 2026-10-09): the plans status indicator is removed from the mobile header and the
                         SAME notification bell takes its slot. The plans feature itself stays (Business settings › My subscription, Task 30). */}
-                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellAnnouncements} upgradeQuoteId={bellUpgradeQuoteId} variant="mobile" />
+                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellAnnouncements} variant="mobile" />
                     {/* Owner 2026-10-14: the same round plan medallion as on desktop, outermost next to the bell */}
                     {!isSuperAdmin && (
                       <HeaderPlanMedallion model={headerPlanBadge} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />
@@ -8510,9 +8487,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               professionalDomain={professionalDomain}
               setProfessionalDomain={setProfessionalDomain}
               canUseProfessionalQuotes={canUseCapability('professional_quote.use')}
-              // Owner 2026-10-20: the business LOGO upload is open to every account (never part of SMART PACK, which gates only quote attachments).
-              // Today every account already has it (legacy, L-05); this keeps it open once the plan system is enforced.
-              canUseAttachments
+              canUseAttachments={canUseCapability('quote_attachment.upload')}
               onLockedCapability={setLockedCapability}
               presentationController={presentationEditor}
               remindersClient={supabase}

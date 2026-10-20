@@ -61,8 +61,7 @@ export async function transcribeRecording(client, blob) {
   try {
     const audio = await blobToBase64(blob);
     const { data, error } = await client.functions.invoke('voice-ai', { body: { mode: 'transcribe', audio, mime: blob.type } });
-    // Owner 2026-10-20: 403 smart_pack_required = voice is SMART PACK (the plan system is enforced)
-    if (error) return { ok: false, code: error?.context?.status === 429 ? 'limit' : error?.context?.status === 403 ? 'smart_pack' : 'failed' };
+    if (error) return { ok: false, code: error?.context?.status === 429 ? 'limit' : 'failed' };
     return data?.ok ? { ok: true, text: String(data.text || '') } : { ok: false, code: 'failed' };
   } catch { return { ok: false, code: 'failed' }; }
 }
@@ -81,8 +80,6 @@ export const VOICE_COPY = Object.freeze({
     micDenied: 'אין גישה למיקרופון. אפשר לאשר גישה בהגדרות הדפדפן, או להקליד את השאלה.',
     failed: 'לא הצלחתי להבין את ההקלטה. אפשר לנסות שוב או להקליד.',
     limit: 'הגעת למכסת הפעולות הקוליות היומית. אפשר להמשיך בהקלדה, והמכסה מתחדשת מחר.',
-    // Owner 2026-10-20 (typed L-17 approval): voice is SMART PACK once the plan system is enforced
-    smartPack: 'הצ׳אט הקולי וההכתבה הם חלק מחכם פלוס. אפשר להוסיף אותו במסך המסלולים.',
   },
   en: {
     mic: 'Ask by voice',
@@ -97,6 +94,5 @@ export const VOICE_COPY = Object.freeze({
     micDenied: 'No microphone access. You can allow it in your browser settings, or type your question.',
     failed: "I couldn't understand the recording. Try again or type it.",
     limit: "You've reached today's voice limit. You can keep typing; it renews tomorrow.",
-    smartPack: 'Voice chat and dictation are part of SMART PACK. You can add it in the plans view.',
   },
 });

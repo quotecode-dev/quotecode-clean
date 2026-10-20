@@ -95,12 +95,6 @@ export default function SmartPackShowcase({ copy, isHe, plansHref }) {
           <ul className="sp-points">
             {copy.points.map((p) => <li key={p}><Check size={15} aria-hidden="true" />{p}</li>)}
           </ul>
-          {/* Owner 2026-10-20: what SMART PACK gives, next to its button - a second check list, in the add-on's own colour */}
-          {Array.isArray(copy.includes) && copy.includes.length > 0 && (
-            <ul className="sp-points sp-includes" data-offer-includes>
-              {copy.includes.map((p) => <li key={p}><Check size={15} aria-hidden="true" />{p}</li>)}
-            </ul>
-          )}
           {/* PRODUCT_TRUTH_DECORATIVE: in-page link to the plans section of the same landing page (nothing is purchased or signed up here) */}
           <a className="sp-cta" href={plansHref}>{copy.cta}</a>
         </div>

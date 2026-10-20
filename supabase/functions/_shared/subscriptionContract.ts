@@ -39,7 +39,7 @@ export function planName(planId: unknown, lang: unknown): string | null {
   return PLAN_NAMES[lang === 'he' ? 'he' : 'en'][id];
 }
 
-export const FREE_QUOTES_TOTAL = 10; // OD-01 + Owner 2026-10-20: 10 quotes OR 7 days, whichever ends first (the server sends the window)
+export const FREE_QUOTES_TOTAL = 10; // OD-01: lifetime, no expiry
 
 // Output channels (OD-02). WhatsApp and email are Send paths; approval/signature use the same artifact.
 export const OUTPUT_CHANNELS = Object.freeze(['send', 'public_share', 'final_pdf', 'final_print'] as const);
@@ -150,21 +150,12 @@ export interface ReadySummary {
   subscriptionStatus: typeof SUBSCRIPTION_STATUSES[number];
   capabilities: readonly CapabilityId[];
   eligiblePlans: Readonly<Partial<Record<CapabilityId, readonly PlanId[]>>>;
-  free10: { limit: number; consumed: number; reserved: number; remaining: number; endsAt: string | null; periodEnded: boolean } | null;
+  free10: { limit: number; consumed: number; reserved: number; remaining: number } | null;
   catalog: { active: number; countDefinition: string; limit: number | null; blocks: number; limitDecided: boolean };
   priceCatalogVersion: string | null;
-  // 20261021200000 (Owner 2026-10-18): the paid period, the 3 grace days after a failed charge and limited mode
-  billing: { paidThrough: string | null; graceEndsAt: string | null; inGrace: boolean; limited: boolean };
-  // 20261021400000 (Owner 2026-10-20): SMART PACK - the free 7 days of a new account, LIFETIME, or the paid add-on line
-  smartPack: { active: boolean; source: SmartPackSource | null; until: string | null };
 }
 export type AccountSummary = ReadySummary | { state: Exclude<SummaryState, 'ready'>; code?: string };
 
-// the server's window end: UTC with milliseconds (to_char in 20261021100000), which every browser engine parses
-const ISO_UTC_MS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
-// 20261021400000: why an account has SMART PACK
-export const SMART_PACK_SOURCES = Object.freeze(['free_window', 'lifetime', 'add_on'] as const);
-export type SmartPackSource = typeof SMART_PACK_SOURCES[number];
 const isInt = (v: unknown, min = 0) => typeof v === 'number' && Number.isInteger(v) && v >= min;
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const isPhase = (v: unknown): v is ActivationPhase => typeof v === 'string' && (ACTIVATION_PHASES as readonly string[]).includes(v);
@@ -210,17 +201,7 @@ export function parseAccountSummary(raw: unknown): AccountSummary {
       || f.remaining !== Math.max(FREE_QUOTES_TOTAL - (f.consumed as number) - (f.reserved as number), 0)) {
       return { state: 'invalid', code: 'free10_arithmetic' };
     }
-    // 20261021100000 (Owner 2026-10-20): the 7-day window. Absent on an older server = no window (null / false); when present it must be
-    // well-formed, and an ended period always names its end.
-    const endsAt = f.endsAt === undefined ? null : f.endsAt;
-    const periodEnded = f.periodEnded === undefined ? false : f.periodEnded;
-    if (!(endsAt === null || (typeof endsAt === 'string' && ISO_UTC_MS.test(endsAt) && !Number.isNaN(Date.parse(endsAt))))
-      || typeof periodEnded !== 'boolean'
-      || (periodEnded && endsAt === null)) {
-      return { state: 'invalid', code: 'free10_window' };
-    }
-    free10 = Object.freeze({ limit: FREE_QUOTES_TOTAL, consumed: f.consumed as number, reserved: f.reserved as number, remaining: f.remaining as number,
-      endsAt: endsAt as string | null, periodEnded });
+    free10 = Object.freeze({ limit: FREE_QUOTES_TOTAL, consumed: f.consumed as number, reserved: f.reserved as number, remaining: f.remaining as number });
   } else if (raw.free10 !== null) {
     return { state: 'invalid', code: 'free10_paid' };
   }
@@ -235,22 +216,6 @@ export function parseAccountSummary(raw: unknown): AccountSummary {
     return { state: 'invalid', code: 'catalog_count_definition' };
   }
   if (!(raw.priceCatalogVersion === null || typeof raw.priceCatalogVersion === 'string')) return { state: 'invalid', code: 'price_version' };
-  // absent on an older server = no paid period / grace (never a false block); when present it must be well-formed
-  const bRaw = raw.billing === undefined ? { paidThrough: null, graceEndsAt: null, inGrace: false, limited: false } : raw.billing;
-  const isTime = (v: unknown) => v === null || (typeof v === 'string' && ISO_UTC_MS.test(v) && !Number.isNaN(Date.parse(v)));
-  if (!isObj(bRaw) || !isTime(bRaw.paidThrough) || !isTime(bRaw.graceEndsAt) || typeof bRaw.inGrace !== 'boolean' || typeof bRaw.limited !== 'boolean'
-    || ((bRaw.inGrace || bRaw.limited) && bRaw.graceEndsAt === null) || (bRaw.inGrace && bRaw.limited)) {
-    return { state: 'invalid', code: 'billing' };
-  }
-  const billing = Object.freeze({ paidThrough: bRaw.paidThrough as string | null, graceEndsAt: bRaw.graceEndsAt as string | null,
-    inGrace: bRaw.inGrace, limited: bRaw.limited });
-  // 20261021400000 (Owner 2026-10-20): SMART PACK - absent on an older server = not active (the client then keeps the legacy rule)
-  const sRaw = raw.smartPack === undefined ? { active: false, source: null, until: null } : raw.smartPack;
-  if (!isObj(sRaw) || typeof sRaw.active !== 'boolean' || !isTime(sRaw.until)
-    || !(sRaw.source === null || (SMART_PACK_SOURCES as readonly unknown[]).includes(sRaw.source)) || (sRaw.active !== (sRaw.source !== null))) {
-    return { state: 'invalid', code: 'smart_pack' };
-  }
-  const smartPack = Object.freeze({ active: sRaw.active, source: sRaw.source as SmartPackSource | null, until: sRaw.until as string | null });
   return Object.freeze({
     state: 'ready',
     version: raw.version as number,
@@ -263,8 +228,6 @@ export function parseAccountSummary(raw: unknown): AccountSummary {
     free10,
     catalog: Object.freeze({ active: c.active as number, countDefinition: c.countDefinition as string, limit: c.limit as number | null, blocks: c.blocks as number, limitDecided: c.limitDecided }),
     priceCatalogVersion: raw.priceCatalogVersion as string | null,
-    billing,
-    smartPack,
   }) as ReadySummary;
 }
 
@@ -304,19 +267,6 @@ export function decideCapability(summary: AccountSummary | null | undefined, cap
 
 // Output phase as the client should use it to pick the legacy or the authorized path. The server is the authority either
 // way (DB trigger + get-public-quote + authority function); this only chooses which request to make.
-// ---------------------------------------------------------------------------------------------------------------------
-// SMART PACK (Owner 2026-10-20): smart chat with the user's data, voice chat, the smart quote with dictation and quote file attachments.
-// Enforced only when the server says so (summary ready + output phase 'enforced'); otherwise nothing changes for anyone (legacy,
-// L-05). The server is the authority (attachment trigger, smart_pack_active for the Edge Functions); this only decides the UI.
-// ---------------------------------------------------------------------------------------------------------------------
-export interface SmartPackDecision { allowed: boolean; reason: 'not_enforced' | 'included' | 'smart_pack_required' }
-export function decideSmartPack(summary: AccountSummary | null | undefined): SmartPackDecision {
-  if (summary?.state !== 'ready') return { allowed: true, reason: 'not_enforced' };
-  const s = summary as ReadySummary;
-  if (s.phase.output !== 'enforced') return { allowed: true, reason: 'not_enforced' };
-  return s.smartPack?.active ? { allowed: true, reason: 'included' } : { allowed: false, reason: 'smart_pack_required' };
-}
-
 export function outputPhaseOf(summary: AccountSummary | null | undefined): ActivationPhase {
   return summary?.state === 'ready' ? (summary as ReadySummary).phase.output : 'off';
 }
@@ -326,21 +276,18 @@ export function outputPhaseOf(summary: AccountSummary | null | undefined): Activ
 // permitted actions (viewing quotes, editing an existing draft, re-sending an already-output quote, clients, tasks, ...) stay available.
 // Paid actions = the canonical contract: a FIRST client output of a quote (OD-02, enforced by the server ledger) and - by the Owner's
 // 2026-10-11 decision - creating a NEW quote (new / duplicate / AI / measured / from template), checked BEFORE any insert.
-// Enforced only when the server says so: summary ready + output phase 'enforced' + plan 'free' + remaining 0 or the 7 free days ended (Owner 2026-10-20). Off / prepared / shadow /
+// Enforced only when the server says so: summary ready + output phase 'enforced' + plan 'free' + remaining 0. Off / prepared / shadow /
 // not deployed / loading never add a restriction (no new restriction on existing accounts while activation is off). A paid plan
 // (current or legacy) is never blocked. The server is the authority (quotes INSERT trigger + output ledger); this only decides the UI.
 // ---------------------------------------------------------------------------------------------------------------------
-export interface QuotaDecision { allowed: boolean; reason: 'not_enforced' | 'paid_plan' | 'within_free10' | 'free_issue_limit_reached' | 'free_period_ended' | 'subscription_limited' | 'fail_closed'; free10?: ReadySummary['free10'] }
+export interface QuotaDecision { allowed: boolean; reason: 'not_enforced' | 'paid_plan' | 'within_free10' | 'free_issue_limit_reached' | 'fail_closed'; free10?: ReadySummary['free10'] }
 
 export function decideFree10Action(summary: AccountSummary | null | undefined): QuotaDecision {
   if (summary?.state !== 'ready') return { allowed: true, reason: 'not_enforced' };
   const s = summary as ReadySummary;
   if (s.phase.output !== 'enforced') return { allowed: true, reason: 'not_enforced' };
-  // 20261021200000 (Owner 2026-10-18): a paid account whose 3 grace days after a failed charge are over is limited like the Free end
-  if (s.planId !== 'free') return s.billing?.limited ? { allowed: false, reason: 'subscription_limited' } : { allowed: true, reason: 'paid_plan' };
+  if (s.planId !== 'free') return { allowed: true, reason: 'paid_plan' };
   if (!s.free10) return { allowed: false, reason: 'fail_closed' };
-  // Owner 2026-10-20: the 7 free days ended before the 10 quotes were used (10 used names the 10, as the window does)
-  if (s.free10.periodEnded && s.free10.remaining > 0) return { allowed: false, reason: 'free_period_ended', free10: s.free10 };
   return s.free10.remaining > 0
     ? { allowed: true, reason: 'within_free10', free10: s.free10 }
     : { allowed: false, reason: 'free_issue_limit_reached', free10: s.free10 };

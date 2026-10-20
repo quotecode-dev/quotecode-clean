@@ -9,7 +9,7 @@ export default function useVoiceRecorder({ transcribe, onText }) {
   const [recording, setRecording] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState(null); // 'mic_denied' | 'failed' | 'limit' | 'smart_pack'
+  const [error, setError] = useState(null); // 'mic_denied' | 'failed' | 'limit'
   const recRef = useRef(null);
   const timerRef = useRef(null);
   const onTextRef = useRef(onText);
@@ -39,7 +39,7 @@ export default function useVoiceRecorder({ transcribe, onText }) {
       try {
         const r = await transcribe(blob);
         if (r?.ok && String(r.text || '').trim()) onTextRef.current?.(String(r.text).trim());
-        else setError(r?.code === 'limit' || r?.code === 'smart_pack' ? r.code : 'failed');
+        else setError(r?.code === 'limit' ? 'limit' : 'failed');
       } catch { setError('failed'); } finally { setBusy(false); }
     };
     recRef.current = rec;

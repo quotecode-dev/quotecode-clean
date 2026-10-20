@@ -631,13 +631,3 @@ html.tl-landing-active, html.tl-landing-active body, html:has(.tl-landing), html
 /* Task 37: the Free-10 FAQ answer as scannable points */
 .tl-faq-list { margin: 8px 0; padding-inline-start: 20px; list-style: disc outside; } /* Task 37: a global reset removes list markers - the Owner asked for visible bullets */
 .tl-faq-list li { margin: 4px 0; }
-
-/* Owner 2026-10-20 (phone): in the one-column layout (<= 959px) the style buttons sit RIGHT ABOVE the sample quote (not above the
-   electrician photo), so switching a style never needs a scroll up and down. The DOM order is unchanged (tabs, photo, copy, viewer);
-   the copy column lends its children to the showcase grid and only the tabs move. Wider screens are unchanged. */
-@media (max-width: 959px) {
-  .tl-showcase { gap: 0; }
-  .tl-style-copy { display: contents; }
-  .tl-style-copy > .tl-tabs { order: 1; margin: 18px 0 12px; }
-  .tl-showcase > .tl-viewer { order: 2; }
-}

@@ -245,7 +245,7 @@ DO $$ DECLARE r jsonb; BEGIN
   r := tst.xsum(tst.xu(4));
   PERFORM tst.ok(r = '{"ok":false,"code":"account_not_provisioned"}'::jsonb, 'C1 unprovisioned account: account_not_provisioned');
   r := tst.xsum(tst.xu(1));
-  PERFORM tst.ok(tst.xkeys(r) = 'billing,billingPeriod,capabilities,catalog,eligiblePlans,free10,market,ok,phase,plan,priceCatalogVersion,schema,smartPack,subscriptionStatus,version',
+  PERFORM tst.ok(tst.xkeys(r) = 'billingPeriod,capabilities,catalog,eligiblePlans,free10,market,ok,phase,plan,priceCatalogVersion,schema,subscriptionStatus,version',
                  'C2 Free ready: exactly the account-summary/v1 top-level keys');
   PERFORM tst.ok(r ->> 'ok' = 'true' AND r ->> 'schema' = 'account-summary/v1' AND jsonb_typeof(r -> 'version') = 'number'
                  AND (r ->> 'version')::int = 1, 'C3 ok / schema / version');
@@ -256,7 +256,7 @@ DO $$ DECLARE r jsonb; BEGIN
   -- 20261007150900: provisioned defaults = technical baseline classic + the not-plan-gated former Basic/Pro gates (no source to block)
   PERFORM tst.ok((SELECT string_agg(x, ',' ORDER BY x COLLATE "C") FROM jsonb_array_elements_text(r -> 'capabilities') x) = 'professional_quote.reuse,professional_quote.use,quote.edit_duplicate,quote.whatsapp_delete,quote_style.classic' AND r -> 'eligiblePlans' = '{}'::jsonb,
                  'C6 Free capabilities = classic baseline + not-plan-gated defaults; eligiblePlans {} (nothing approved)');
-  PERFORM tst.ok(r -> 'free10' = '{"limit":10,"consumed":0,"reserved":0,"remaining":10,"endsAt":null,"periodEnded":false}'::jsonb, 'C7 free10 0/0/10');
+  PERFORM tst.ok(r -> 'free10' = '{"limit":10,"consumed":0,"reserved":0,"remaining":10}'::jsonb, 'C7 free10 0/0/10');
   PERFORM tst.ok(r -> 'catalog' = '{"active":4,"countDefinition":"unset","limit":null,"blocks":0,"limitDecided":false}'::jsonb,
                  'C8 Free catalog: raw rows only, countDefinition unset, limit null / limitDecided false (OPEN-03)');
   PERFORM tst.ok(jsonb_typeof(r -> 'priceCatalogVersion') = 'string' AND r ->> 'priceCatalogVersion' ~ '^pv1:[0-9a-f]{16}$',
@@ -272,19 +272,19 @@ DO $$ DECLARE p jsonb; f jsonb; s jsonb; ok_all boolean := true; ch text[] := AR
     p := tst.xprep(tst.xu(1), tst.xq(1, n), ch[1 + (n - 1) % 4], format('x-f-key-%s', lpad(n::text, 4, '0')));
     s := tst.xsum(tst.xu(1));
     ok_all := ok_all AND p ->> 'state' = 'preparing'
-              AND s -> 'free10' = jsonb_build_object('limit', 10, 'consumed', n - 1, 'reserved', 1, 'remaining', 10 - n, 'endsAt', NULL, 'periodEnded', false);
+              AND s -> 'free10' = jsonb_build_object('limit', 10, 'consumed', n - 1, 'reserved', 1, 'remaining', 10 - n);
     PERFORM tst.xput(p ->> 'snapshotPath');
     f := tst.xfin(tst.xu(1), (p ->> 'attemptId')::uuid, p ->> 'snapshotPath');
     s := tst.xsum(tst.xu(1));
     ok_all := ok_all AND f ->> 'state' = 'finalized'
-              AND s -> 'free10' = jsonb_build_object('limit', 10, 'consumed', n, 'reserved', 0, 'remaining', 10 - n, 'endsAt', NULL, 'periodEnded', false)
+              AND s -> 'free10' = jsonb_build_object('limit', 10, 'consumed', n, 'reserved', 0, 'remaining', 10 - n)
               AND (s ->> 'version')::int = n + 1;
   END LOOP;
   PERFORM tst.ok(ok_all, 'C11 outputs 1..10: after each prepare reserved=1 / remaining=10-n, after each finalize consumed=n / remaining=10-n, version+1');
   p := tst.xprep(tst.xu(1), tst.xq(1, 11), 'send', 'x-f-key-0011');
   s := tst.xsum(tst.xu(1));
   PERFORM tst.ok(p ->> 'code' = 'free_issue_limit_reached', 'C12 the 11th output is refused (free_issue_limit_reached)');
-  PERFORM tst.ok(s -> 'free10' = '{"limit":10,"consumed":10,"reserved":0,"remaining":0,"endsAt":null,"periodEnded":false}'::jsonb, 'C13 summary after the 11th: 10/0/0');
+  PERFORM tst.ok(s -> 'free10' = '{"limit":10,"consumed":10,"reserved":0,"remaining":0}'::jsonb, 'C13 summary after the 11th: 10/0/0');
 END $$;
 
 -- paid shape
@@ -300,7 +300,7 @@ END $$;
 -- cross-account isolation
 DO $$ DECLARE r jsonb; n_all int; n_foreign int; BEGIN
   r := tst.xsum(tst.xu(3));
-  PERFORM tst.ok(r -> 'free10' = '{"limit":10,"consumed":0,"reserved":0,"remaining":10,"endsAt":null,"periodEnded":false}'::jsonb AND r -> 'catalog' ->> 'active' = '0',
+  PERFORM tst.ok(r -> 'free10' = '{"limit":10,"consumed":0,"reserved":0,"remaining":10}'::jsonb AND r -> 'catalog' ->> 'active' = '0',
                  'C17 user B obtains its own summary, never A''s');
   PERFORM tst.login(tst.xu(3));
   SELECT count(*) INTO n_all FROM public.account_entitlements;
@@ -863,7 +863,7 @@ SELECT tst.ok(tst.xnotice(tst.xu(13), tst.xq(13, 1)) = '{"ok":false,"code":"not_
 UPDATE public.subscription_activation SET phase = 'enforced' WHERE component = 'free_issue';
 DO $$ DECLARE n jsonb; p jsonb; f jsonb; n2 jsonb; n3 jsonb; BEGIN
   n := tst.xnotice(tst.xu(13), tst.xq(13, 1));
-  PERFORM tst.ok(tst.xkeys(n) = 'accountMode,alreadyFinalized,contentDigest,freeEndsAt,ok,periodEnded,remaining,unlimited,wouldConsume'
+  PERFORM tst.ok(tst.xkeys(n) = 'accountMode,alreadyFinalized,contentDigest,ok,remaining,unlimited,wouldConsume'
                  AND n ->> 'ok' = 'true' AND n ->> 'accountMode' = 'free_10' AND n ->> 'alreadyFinalized' = 'false'
                  AND n ->> 'wouldConsume' = 'true' AND (n ->> 'remaining')::int = 10,
                  'L3 Free, not yet output: exact keys, wouldConsume true, remaining 10');

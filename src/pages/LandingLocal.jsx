@@ -10,7 +10,6 @@ import BrandName from '../components/BrandName';
 import LandingPage from '../components/landing/LandingPage';
 import { SMART_PACK_ENABLED } from '../components/landing/smartPackFacts';
 import { ilsSmartPack, ilsWithSmartPack } from '../components/landing/smartPackFacts';
-import { SMART_PACK } from '../domain/subscriptions/addOnCatalog';
 
 // Task 16 (correction A, 2026-10-05): the Local (HE / ILS) landing now uses the approved refined composition
 // (revision-r2-refined landing-he.html) through the shared LandingPage layout. This file keeps EVERY customer-facing
@@ -65,8 +64,6 @@ export default function LandingLocal({ onForgotPassword }) {
       ...(SMART_PACK_ENABLED ? {
         addOn: {
           label: 'הוספת חכם פלוס',
-          // Owner 2026-10-20 (phone): what SMART PACK gives, right under its box (the one source: addOnCatalog)
-          summary: SMART_PACK.summary.he,
           perPeriod: {
             month: { add: <>(+<bdi dir="ltr">{ilsSmartPack('month')}</bdi> לחודש)</>, amount: ilsWithSmartPack('month'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('month')}</bdi> + <bdi dir="ltr">{ilsSmartPack('month')}</bdi></> },
             year: { add: <>(+<bdi dir="ltr">{ilsSmartPack('year')}</bdi> לשנה)</>, amount: ilsWithSmartPack('year'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('year')}</bdi> + <bdi dir="ltr">{ilsSmartPack('year')}</bdi></> },
@@ -192,9 +189,6 @@ export default function LandingLocal({ onForgotPassword }) {
       priceMonthLabel: 'לחודש, בתוספת למנוי',
       priceYear: 'או ₪102 לשנה במנוי שנתי',
       points: ['מוסיפים רק אם רוצים', 'אפשר להוסיף ולהסיר בכל זמן', 'משלמים יחד עם המנוי, באותו מועד'],
-      // Owner 2026-10-20: what SMART PACK gives, next to its button too - a second check list in its own colour (the one source: addOnCatalog)
-      // Owner 2026-10-20: on the landing list the attachments line reads 'צירוף קבצים ותמונות להצעה' (images are attached files too)
-      includes: SMART_PACK.includes.he.map((t) => (t === 'צירוף קבצים להצעה' ? 'צירוף קבצים ותמונות להצעה' : t)),
       cta: 'למסלולים ולמחירים',
       note: 'המחירים כוללים מע״מ. התוספת תהיה זמינה לרכישה עם פתיחת המסלולים.',
     },

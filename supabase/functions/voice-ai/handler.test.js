@@ -19,15 +19,14 @@ vi.mock('https://esm.sh/@supabase/supabase-js@2', () => ({
       s.queries.push(q);
       return q;
     };
-    return { auth: { getUser: async () => ({ data: { user: s.user } }) }, from: query, rpc: (fn) => { s.rpcs.push(fn); return Promise.resolve(fn === 'get_account_summary' ? s.summary : s.claim); } };
+    return { auth: { getUser: async () => ({ data: { user: s.user } }) }, from: query, rpc: (fn) => { s.rpcs.push(fn); return Promise.resolve(s.claim); } };
   },
 }));
 
 const AUDIO_B64 = Buffer.from(new Uint8Array(4000).fill(7)).toString('base64');
 let providerCalls;
-function setup({ user = { id: 'u-voice-1' }, country = 'Local', claim = { data: { allowed: true, used: 1, limit: 60 }, error: null }, provider = null,
-  summary = { data: { ok: false, code: 'not_activated' }, error: null } } = {}) {
-  h.state = { user, claim, summary, clientAuthHeaders: [], queries: [], writes: [], rpcs: [], tables: { business_settings: { data: country ? { country } : null, error: null } } };
+function setup({ user = { id: 'u-voice-1' }, country = 'Local', claim = { data: { allowed: true, used: 1, limit: 60 }, error: null }, provider = null } = {}) {
+  h.state = { user, claim, clientAuthHeaders: [], queries: [], writes: [], rpcs: [], tables: { business_settings: { data: country ? { country } : null, error: null } } };
   providerCalls = [];
   globalThis.Deno = { env: { get: (k) => ({ SUPABASE_URL: 'https://synthetic.supabase.co', SUPABASE_ANON_KEY: 'anon-placeholder', OPENAI_API_KEY: 'placeholder' })[k] } };
   globalThis.fetch = vi.fn(async (url, init) => {
@@ -61,25 +60,12 @@ describe('voice-ai handler (synthetic, in-process) - Owner 2026-10-19', () => {
     expect(providerCalls).toHaveLength(1);
     expect(providerCalls[0].url).toBe('https://api.openai.com/v1/audio/transcriptions');
     expect(providerCalls[0].form).toMatchObject({ model: 'gpt-transcribe', language: 'he', file: 'blob:audio/webm' });
-    // Owner 2026-10-20 (L-17): the SMART PACK gate reads the caller's own summary first (plans off here = unchanged), then the claim
-    expect(h.state.rpcs).toEqual(['get_account_summary', 'voice_ai_claim_operation']);
+    expect(h.state.rpcs).toEqual(['voice_ai_claim_operation']);
     expect(h.state.clientAuthHeaders).toEqual(['Bearer synthetic-user-jwt']);
     expect(h.state.queries.map((q) => [q.table, q.cols, q.filters])).toEqual([['business_settings', 'country', [['user_id', 'u-voice-1']]]]);
     expect(h.state.writes).toEqual([]);
   });
 
-  it('Owner 2026-10-20 (L-17): enforced without SMART PACK -> 403 smart_pack_required before the daily claim and the provider', async () => {
-    setup({ summary: { data: { ok: true, schema: 'account-summary/v1', version: 1, phase: { output: 'enforced', catalog: 'prepared', billing: 'off' },
-      market: 'IL', plan: { id: 'free' }, subscriptionStatus: 'none', capabilities: ['quote_style.classic'], eligiblePlans: {},
-      free10: { limit: 10, consumed: 1, reserved: 0, remaining: 9 }, catalog: { active: 0, countDefinition: 'unset', limit: null, blocks: 0, limitDecided: false },
-      priceCatalogVersion: null, smartPack: { active: false, source: null, until: null } }, error: null } });
-    const res = await h.handler(new Request('https://synthetic.supabase.co/functions/v1/voice-ai', { method: 'POST',
-      headers: { 'content-type': 'application/json', authorization: 'Bearer synthetic-user-jwt' }, body: JSON.stringify({ mode: 'speak', text: 'שלום' }) }));
-    expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ ok: false, code: 'smart_pack_required' });
-    expect(h.state.rpcs).toEqual(['get_account_summary']);
-    expect(globalThis.fetch).not.toHaveBeenCalled();
-  });
   it('transcribe: English for an International account; the fallback model answers when the first fails', async () => {
     setup({ country: 'International', provider: (url, _init, n) => (n === 1 ? new Response('no', { status: 500 }) : new Response(JSON.stringify({ text: 'how many quotes' }), { status: 200 })) });
     const r = await h.handler(post({ mode: 'transcribe', audio: AUDIO_B64, mime: 'audio/mp4' }));

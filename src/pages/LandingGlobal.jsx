@@ -11,7 +11,6 @@ import BrandName from '../components/BrandName';
 import LandingPage from '../components/landing/LandingPage';
 import { SMART_PACK_ENABLED } from '../components/landing/smartPackFacts';
 import { usdSmartPack, usdWithSmartPack } from '../components/landing/smartPackFacts';
-import { SMART_PACK } from '../domain/subscriptions/addOnCatalog';
 
 // Task 16 (correction A, 2026-10-05): the International (EN) landing uses the approved refined composition
 // (revision-r2-refined landing-en.html) through the shared LandingPage layout. This file keeps EVERY customer-facing
@@ -82,8 +81,6 @@ export default function LandingGlobal({ onForgotPassword }) {
       ...(SMART_PACK_ENABLED ? {
         addOn: {
           label: 'Add SMART PACK',
-          // Owner 2026-10-20 (phone): what SMART PACK gives, right under its box (the one source: addOnCatalog)
-          summary: SMART_PACK.summary.en,
           perPeriod: {
             month: { add: `(+${usdSmartPack('month')} / month)`, amount: est ? null : usdWithSmartPack('month'), line: <>With SMART PACK: <bdi dir="ltr">{month.text}</bdi> + <bdi dir="ltr">{usdSmartPack('month')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('month')}</bdi> per month (USD)</> },
             year: { add: `(+${usdSmartPack('year')} / year)`, amount: est ? null : usdWithSmartPack('year'), line: <>With SMART PACK: <bdi dir="ltr">{year.text}</bdi> + <bdi dir="ltr">{usdSmartPack('year')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('year')}</bdi> per year (USD)</> },
@@ -206,9 +203,6 @@ export default function LandingGlobal({ onForgotPassword }) {
       priceMonthLabel: 'per month, added to your plan',
       priceYear: 'or $51 a year with a yearly plan',
       points: ['Add it only if you want it', 'Add or remove it any time', 'Paid together with your plan'],
-      // Owner 2026-10-20: what SMART PACK gives, next to its button too - a second check list in its own colour (the one source: addOnCatalog)
-      // Owner 2026-10-20: on the landing list the attachments line names images too
-      includes: SMART_PACK.includes.en.map((t) => (t === 'Files attached to a quote' ? 'Files and images attached to a quote' : t)),
       cta: 'See plans and pricing',
       note: 'The add-on will be available to buy when the plans open.',
     },

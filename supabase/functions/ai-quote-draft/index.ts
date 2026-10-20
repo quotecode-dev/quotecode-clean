@@ -8,7 +8,6 @@
 //    every other line has no price. All validation lives in ../_shared/aiQuoteDraft.js (shared with the browser).
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { smartPackAllowedFor, SMART_PACK_REQUIRED } from "../_shared/smartPackGate.ts";
 // Task 33 (contract v2): every line carries quantity + unit + a quantity basis that is CHECKED against the numbers of the user's own text
 // (a missing quantity stays visibly missing - never a silent 1); clarification questions and unassigned measures are returned; a catalog
 // price is bound only when its price unit is verified. The provider answers in a strict JSON schema (DRAFT_RESPONSE_SCHEMA).
@@ -57,10 +56,6 @@ serve(async (req) => {
   const country = (settings as { country?: string } | null)?.country;
   if (country !== 'Local' && country !== 'International') return reply({ ok: false, code: 'market_unresolved' }, 409);
   const isHebrew = country === 'Local';
-
-  // Owner 2026-10-20 (typed L-17 approval): the AI smart quote is SMART PACK once the plan system is enforced; refused before the
-  // catalog read and before any provider call
-  if (!(await smartPackAllowedFor(caller))) return reply({ ok: false, code: SMART_PACK_REQUIRED }, 403);
 
   const { data: services, error: servicesError } = await caller
     .from('services').select('id, name, price').eq('user_id', userId).order('created_at', { ascending: true }).limit(200);

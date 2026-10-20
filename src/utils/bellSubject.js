@@ -11,26 +11,8 @@ export const BELL_ACTION_COPY = Object.freeze({
   en: Object.freeze({ assistant: 'Open the assistant', plans: 'See the plans', quote: 'View quote', task: 'View task', client: 'Client details', close: 'Close notification', closePanel: 'Close notifications', markRead: 'Mark as read', more: (n) => `+${n} more`, region: 'New notification' }),
 });
 
-// Owner 2026-10-20 (typed L-17 approval: "הצעה לשדרוג בפריט הפעמון של החתימה הראשונה, רק במסלול החינם"): the quote of the account's
-// FIRST customer signature in its free plan = the earliest signed_at since the free window started (the server's 7-day end minus 168h).
-// No window (plan system off, paid, LIFETIME) = null = no offer anywhere.
-const FREE_WINDOW_MS = 168 * 60 * 60 * 1000;
-export function firstFreeSignatureQuoteId(quotes, free10) {
-  const endsMs = free10?.endsAt ? Date.parse(free10.endsAt) : NaN;
-  if (!Number.isFinite(endsMs) || !Array.isArray(quotes)) return null;
-  const startMs = endsMs - FREE_WINDOW_MS;
-  let best = null;
-  for (const q of quotes) {
-    const at = q?.signed_at ? Date.parse(q.signed_at) : NaN;
-    if (!q?.id || !Number.isFinite(at) || at < startMs) continue;
-    if (!best || at < best.at) best = { id: q.id, at };
-  }
-  return best ? best.id : null;
-}
-
-/** The subject buttons of one derived reminder item. A task linked to a client also gets "client details". Welcome items get none.
- *  upgradeQuoteId (Owner 2026-10-20, L-17): the signed item of that quote also gets the plans button (the first signature, Free plan). */
-export function bellActionsFor(item, tasks = [], upgradeQuoteId = null) {
+/** The subject buttons of one derived reminder item. A task linked to a client also gets "client details". Welcome items get none. */
+export function bellActionsFor(item, tasks = []) {
   if (!item || typeof item !== 'object') return [];
   if (item.kind === 'task_due') {
     if (!item.taskId) return [];
@@ -42,9 +24,6 @@ export function bellActionsFor(item, tasks = [], upgradeQuoteId = null) {
   // Owner 2026-10-19 (L-17): a product announcement opens the assistant
   // Owner 2026-10-20 (L-17): the SMART PACK announcement opens the plans view instead
   if (item.kind === 'announce') return [{ kind: item.action === 'plans' ? 'plans' : 'assistant' }];
-  if (item.kind === 'signed' && item.quoteId && upgradeQuoteId && item.quoteId === upgradeQuoteId) {
-    return [{ kind: 'quote', quoteId: item.quoteId }, { kind: 'plans' }];
-  }
   if ((item.kind === 'signed' || item.kind === 'first_view' || item.kind === 'viewed_not_approved' || item.kind === 'validity_ending') && item.quoteId) {
     return [{ kind: 'quote', quoteId: item.quoteId }];
   }

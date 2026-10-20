@@ -15,23 +15,14 @@ vi.mock('https://esm.sh/@supabase/supabase-js@2', () => ({
       s.queries.push(q);
       return q;
     };
-    // read-only: the ONLY rpc allowed is the caller's own account summary (the SMART PACK gate, a STABLE read); any other rpc is a write
-    return { auth: { getUser: async () => ({ data: { user: s.user } }) }, from: query, rpc: (fn) => {
-      if (fn === 'get_account_summary') { s.reads.push(fn); return Promise.resolve(s.summary); }
-      s.writes.push('rpc'); return Promise.resolve({});
-    } };
+    return { auth: { getUser: async () => ({ data: { user: s.user } }) }, from: query, rpc: () => { s.writes.push('rpc'); return Promise.resolve({}); } };
   },
 }));
 
-// Owner 2026-10-20 (L-17): the caller's own account summary (a READ) - enforced, no SMART PACK
-const NO_SMART_PACK = { ok: true, schema: 'account-summary/v1', version: 1, phase: { output: 'enforced', catalog: 'prepared', billing: 'off' },
-  market: 'IL', plan: { id: 'free' }, subscriptionStatus: 'none', capabilities: ['quote_style.classic'], eligiblePlans: {},
-  free10: { limit: 10, consumed: 1, reserved: 0, remaining: 9 }, catalog: { active: 0, countDefinition: 'unset', limit: null, blocks: 0, limitDecided: false },
-  priceCatalogVersion: null, smartPack: { active: false, source: null, until: null } };
 const CATALOG = [{ id: 7, name: 'חלון אלומיניום 120×100', price: 1450 }, { id: 8, name: 'רשת', price: 80 }];
 let providerCalls;
-function setup({ user = { id: 'u-synthetic-1' }, country = 'Local', provider = null, summary = { data: { ok: false, code: 'not_activated' }, error: null } } = {}) {
-  h.state = { user, summary, reads: [], clientAuthHeaders: [], queries: [], writes: [], tables: { business_settings: { data: country ? { country } : null, error: null }, services: { data: CATALOG, error: null } } };
+function setup({ user = { id: 'u-synthetic-1' }, country = 'Local', provider = null } = {}) {
+  h.state = { user, clientAuthHeaders: [], queries: [], writes: [], tables: { business_settings: { data: country ? { country } : null, error: null }, services: { data: CATALOG, error: null } } };
   providerCalls = [];
   globalThis.Deno = { env: { get: (k) => ({ SUPABASE_URL: 'https://synthetic.supabase.co', SUPABASE_ANON_KEY: 'anon-placeholder', OPENAI_API_KEY: 'placeholder' })[k] } };
   globalThis.fetch = vi.fn(async (url, init) => {
@@ -87,18 +78,6 @@ describe('ai-quote-draft handler (synthetic, in-process)', () => {
     expect(providerCalls[0].body.response_format.json_schema.strict).toBe(true);
   });
 
-  it('Owner 2026-10-20 (L-17): enforced without SMART PACK -> 403 smart_pack_required before the catalog read and the model; plans off -> unchanged', async () => {
-    setup({ summary: { data: NO_SMART_PACK, error: null } });
-    const res = await h.handler(post({ description: 'החלפת 3 חלונות בסלון' }));
-    expect(res.status).toBe(403);
-    expect(await res.json()).toMatchObject({ ok: false, code: 'smart_pack_required' });
-    expect(providerCalls).toEqual([]);
-    expect(h.state.queries.map((q) => q.table)).toEqual(['business_settings']);
-    expect(h.state.reads).toEqual(['get_account_summary']);
-    expect(h.state.writes).toEqual([]);
-    setup({ summary: { data: { ...NO_SMART_PACK, smartPack: { active: true, source: 'free_window', until: '2026-10-28T10:00:00.000Z' } }, error: null } });
-    expect((await h.handler(post({ description: 'החלפת 3 חלונות בסלון' }))).status).toBe(200);
-  });
   it('International accounts get English; an unresolved market is refused before the model is called', async () => {
     setup({ country: 'International' });
     expect((await (await h.handler(post({ description: 'Replace three windows' }))).json()).language).toBe('en');

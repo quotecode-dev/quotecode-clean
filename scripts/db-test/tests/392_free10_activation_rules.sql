@@ -2,7 +2,7 @@
 -- Proves: a NEW account is provisioned at signup (0 of 10); existing accounts are mapped once through the Owner cohort batch
 -- (history granted, everyone 0 of 10; LIFETIME -> paid / visual); ten outputs count and the eleventh is refused; a re-send of the
 -- same version never counts; paid / LIFETIME are unlimited and never counted; a quote Sent before activation is output again
--- without counting; attachments are SMART PACK (20261021400000); every style + media in the free period; the notice tells the truth for each case.
+-- without counting; attachments are allowed; every style + media in the free period; the notice tells the truth for each case.
 -- The WHOLE file runs in ONE transaction that is rolled back at the end (the phase row is forced by the DB owner as a test device).
 BEGIN;
 SET LOCAL tekango.skip_signup_provisioning = 'on';  -- the "existing accounts" below are created the pre-A-1 way
@@ -122,15 +122,11 @@ SELECT tst.ok((SELECT bool_and((tst.aout(tst.au(2), tst.aq(100 + n)) ->> 'state'
 SELECT tst.ok(tst.aused(tst.au(2)) = 0 AND (SELECT count(*) FROM public.quote_issue_ledger WHERE user_id = tst.au(2) AND NOT counted_against_free) = 12,
   'A5 LIFETIME outputs are recorded and never counted');
 
--- --------------------------------------------------- A6. every style + media in the free period; attachments are SMART PACK
--- 20261021400000 (Owner 2026-10-20, the approved stage-2 plan + decisions20261020c): quote file attachments belong to SMART PACK,
--- replacing the 2026-10-18 "attachments allowed". This account signed up BEFORE the activation day, so it has no SMART PACK until it
--- adds it: a new attachment is refused (the SMART PACK cases are proved in test 403).
-SELECT tst.throws(format($q$ INSERT INTO public.quote_attachments (quote_id, file_name, file_url, file_size, storage_path)
-                             VALUES (%L, 'plan.pdf', 'https://example.invalid/plan.pdf', 1000, 'quote-attachments/plan.pdf') $q$, tst.aq(200)),
-  'smart_pack_required', 'A6a an account from before the activation day: a new quote attachment needs SMART PACK');
+-- --------------------------------------------------- A6. attachments allowed; every style + media in the free period
+INSERT INTO public.quote_attachments (quote_id, file_name, file_url, file_size, storage_path)
+  VALUES (tst.aq(200), 'plan.pdf', 'https://example.invalid/plan.pdf', 1000, 'quote-attachments/plan.pdf');
 SELECT tst.ok((tst.aout(tst.au(3), tst.aq(200), 'send', 'visual', 2) ->> 'state') = 'finalized' AND tst.aused(tst.au(3)) = 1,
-  'A6 a free account outputs a quote in the visual style with media (counted once)');
+  'A6 a free account outputs a quote WITH an attachment in the visual style with media (counted once)');
 
 -- ------------------------------------------------------------------------------------- A7. the counter is a cache of the ledger
 SELECT tst.ok((SELECT count(*) FROM public.account_entitlements e WHERE e.user_id IN (tst.au(1), tst.au(2), tst.au(3))
