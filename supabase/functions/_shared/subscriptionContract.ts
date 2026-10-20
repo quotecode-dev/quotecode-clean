@@ -155,11 +155,16 @@ export interface ReadySummary {
   priceCatalogVersion: string | null;
   // 20261021200000 (Owner 2026-10-18): the paid period, the 3 grace days after a failed charge and limited mode
   billing: { paidThrough: string | null; graceEndsAt: string | null; inGrace: boolean; limited: boolean };
+  // 20261021400000 (Owner 2026-10-20): SMART PACK - the free 7 days of a new account, LIFETIME, or the paid add-on line
+  smartPack: { active: boolean; source: SmartPackSource | null; until: string | null };
 }
 export type AccountSummary = ReadySummary | { state: Exclude<SummaryState, 'ready'>; code?: string };
 
 // the server's window end: UTC with milliseconds (to_char in 20261021100000), which every browser engine parses
 const ISO_UTC_MS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+// 20261021400000: why an account has SMART PACK
+export const SMART_PACK_SOURCES = Object.freeze(['free_window', 'lifetime', 'add_on'] as const);
+export type SmartPackSource = typeof SMART_PACK_SOURCES[number];
 const isInt = (v: unknown, min = 0) => typeof v === 'number' && Number.isInteger(v) && v >= min;
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const isPhase = (v: unknown): v is ActivationPhase => typeof v === 'string' && (ACTIVATION_PHASES as readonly string[]).includes(v);
@@ -239,6 +244,13 @@ export function parseAccountSummary(raw: unknown): AccountSummary {
   }
   const billing = Object.freeze({ paidThrough: bRaw.paidThrough as string | null, graceEndsAt: bRaw.graceEndsAt as string | null,
     inGrace: bRaw.inGrace, limited: bRaw.limited });
+  // 20261021400000 (Owner 2026-10-20): SMART PACK - absent on an older server = not active (the client then keeps the legacy rule)
+  const sRaw = raw.smartPack === undefined ? { active: false, source: null, until: null } : raw.smartPack;
+  if (!isObj(sRaw) || typeof sRaw.active !== 'boolean' || !isTime(sRaw.until)
+    || !(sRaw.source === null || (SMART_PACK_SOURCES as readonly unknown[]).includes(sRaw.source)) || (sRaw.active !== (sRaw.source !== null))) {
+    return { state: 'invalid', code: 'smart_pack' };
+  }
+  const smartPack = Object.freeze({ active: sRaw.active, source: sRaw.source as SmartPackSource | null, until: sRaw.until as string | null });
   return Object.freeze({
     state: 'ready',
     version: raw.version as number,
@@ -252,6 +264,7 @@ export function parseAccountSummary(raw: unknown): AccountSummary {
     catalog: Object.freeze({ active: c.active as number, countDefinition: c.countDefinition as string, limit: c.limit as number | null, blocks: c.blocks as number, limitDecided: c.limitDecided }),
     priceCatalogVersion: raw.priceCatalogVersion as string | null,
     billing,
+    smartPack,
   }) as ReadySummary;
 }
 
@@ -291,6 +304,19 @@ export function decideCapability(summary: AccountSummary | null | undefined, cap
 
 // Output phase as the client should use it to pick the legacy or the authorized path. The server is the authority either
 // way (DB trigger + get-public-quote + authority function); this only chooses which request to make.
+// ---------------------------------------------------------------------------------------------------------------------
+// SMART PACK (Owner 2026-10-20): smart chat with the user's data, voice chat, the smart quote with dictation and quote file attachments.
+// Enforced only when the server says so (summary ready + output phase 'enforced'); otherwise nothing changes for anyone (legacy,
+// L-05). The server is the authority (attachment trigger, smart_pack_active for the Edge Functions); this only decides the UI.
+// ---------------------------------------------------------------------------------------------------------------------
+export interface SmartPackDecision { allowed: boolean; reason: 'not_enforced' | 'included' | 'smart_pack_required' }
+export function decideSmartPack(summary: AccountSummary | null | undefined): SmartPackDecision {
+  if (summary?.state !== 'ready') return { allowed: true, reason: 'not_enforced' };
+  const s = summary as ReadySummary;
+  if (s.phase.output !== 'enforced') return { allowed: true, reason: 'not_enforced' };
+  return s.smartPack?.active ? { allowed: true, reason: 'included' } : { allowed: false, reason: 'smart_pack_required' };
+}
+
 export function outputPhaseOf(summary: AccountSummary | null | undefined): ActivationPhase {
   return summary?.state === 'ready' ? (summary as ReadySummary).phase.output : 'off';
 }

@@ -2,7 +2,7 @@
 // account-summary/v1 parser (fail closed) and the single capability decision rule.
 import { describe, it, expect } from 'vitest';
 import {
-  PLAN_NAMES, planName, parseAccountSummary, decideCapability, CAPABILITIES, CAPABILITY_IDS, outputPhaseOf, decideFree10Action,
+  PLAN_NAMES, planName, parseAccountSummary, decideCapability, CAPABILITIES, CAPABILITY_IDS, outputPhaseOf, decideFree10Action, decideSmartPack,
 } from '../../../supabase/functions/_shared/subscriptionContract.ts';
 import { accountStatusModel, fetchAccountSummary, isMissingRpcError } from './accountSummaryClient';
 
@@ -178,6 +178,21 @@ describe('decideFree10Action (attempted paid action after Free-10)', () => {
     expect(parseAccountSummary(paid())).toMatchObject({ billing: { paidThrough: null, graceEndsAt: null, inGrace: false, limited: false } });
     for (const b of [bill({ limited: true, graceEndsAt: null }), bill({ inGrace: true, limited: true }), bill({ paidThrough: 'soon' }), bill({ limited: 'yes' }), 'x']) {
       expect(pkg(b).state).toBe('invalid');
+    }
+  });
+  it('Owner 2026-10-20: SMART PACK - decided only when enforced; malformed = invalid; absent = not active', () => {
+    const sp = (smartPack, over = {}) => parseAccountSummary(free({ smartPack, ...over }));
+    expect(decideSmartPack(sp({ active: true, source: 'free_window', until: '2026-10-28T10:00:00.000Z' }))).toEqual({ allowed: true, reason: 'included' });
+    expect(decideSmartPack(sp({ active: false, source: null, until: null }))).toEqual({ allowed: false, reason: 'smart_pack_required' });
+    expect(decideSmartPack(parseAccountSummary(paid({ plan: { id: 'all_inclusive' }, smartPack: { active: true, source: 'add_on', until: null } })))).toEqual({ allowed: true, reason: 'included' });
+    // not enforced / not ready: nothing changes for anyone (L-05)
+    expect(decideSmartPack(sp({ active: false, source: null, until: null }, { phase: { output: 'shadow', catalog: 'prepared', billing: 'off' } }))).toEqual({ allowed: true, reason: 'not_enforced' });
+    for (const st of [{ state: 'loading' }, { state: 'not_activated' }, null, undefined]) expect(decideSmartPack(st).allowed).toBe(true);
+    // an older server without the block: not active
+    expect(parseAccountSummary(free())).toMatchObject({ smartPack: { active: false, source: null, until: null } });
+    for (const bad of [{ active: true, source: null, until: null }, { active: false, source: 'lifetime', until: null }, { active: true, source: 'gift', until: null },
+      { active: 'yes', source: null, until: null }, { active: true, source: 'add_on', until: 'soon' }, 'x']) {
+      expect(sp(bad).state).toBe('invalid');
     }
   });
   it('a paid account (the package or a legacy plan) is never blocked', () => {

@@ -201,7 +201,7 @@ SELECT tst.ok(NOT has_function_privilege('authenticated', 'public.record_verifie
               AND NOT has_function_privilege('anon', 'public.record_verified_subscription_event_and_activate(text,text,text,uuid,timestamptz,text,integer,text)', 'execute')
               AND has_function_privilege('service_role', 'public.record_verified_subscription_event_and_activate(text,text,text,uuid,timestamptz,text,integer,text)', 'execute'),
               'Y26 only service_role (the Edge after verification) may call it');
-SELECT tst.ok(NOT has_function_privilege('authenticated', 'public.create_package_checkout_intent(uuid,text,text)', 'execute'), 'Y27 the intent grants are unchanged');
+SELECT tst.ok(NOT has_function_privilege('authenticated', 'public.create_package_checkout_intent(uuid,text,text,boolean)', 'execute'), 'Y27 the intent grants are unchanged');
 SELECT tst.throws($$ SELECT public.set_billing_phase('enforced', 'TEST: still refused') $$, 'billing_provider_unverified', 'Y28 enforced still cannot be set (OPEN-12)');
 UPDATE public.billing_activation SET phase = 'off', reason = 'TEST: back to off' WHERE id;
 

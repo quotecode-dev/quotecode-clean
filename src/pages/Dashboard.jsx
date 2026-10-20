@@ -8506,7 +8506,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
               professionalDomain={professionalDomain}
               setProfessionalDomain={setProfessionalDomain}
               canUseProfessionalQuotes={canUseCapability('professional_quote.use')}
-              canUseAttachments={canUseCapability('quote_attachment.upload')}
+              // Owner 2026-10-20: the business LOGO upload is open to every account (never part of SMART PACK, which gates only quote attachments).
+              // Today every account already has it (legacy, L-05); this keeps it open once the plan system is enforced.
+              canUseAttachments
               onLockedCapability={setLockedCapability}
               presentationController={presentationEditor}
               remindersClient={supabase}

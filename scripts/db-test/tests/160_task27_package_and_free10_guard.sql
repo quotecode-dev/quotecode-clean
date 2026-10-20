@@ -19,7 +19,10 @@ GRANT EXECUTE ON ALL FUNCTIONS IN SCHEMA tst TO anon, authenticated, service_rol
 DO $$
 DECLARE c jsonb;
 BEGIN
-  PERFORM tst.ok((SELECT count(*) FROM public.price_versions WHERE offer = 'current') = 4, 'P1 exactly four current rows (the package, 2 markets x 2 periods)');
+  -- 20261021400000 (Owner 2026-10-20): the SMART PACK add-on rows are current too (proved in test 403); the package keeps exactly four
+  PERFORM tst.ok((SELECT count(*) FROM public.price_versions WHERE offer = 'current' AND plan_id = 'all_inclusive') = 4
+                 AND (SELECT count(*) FROM public.price_versions WHERE offer = 'current') = 8,
+                 'P1 exactly four current package rows (2 markets x 2 periods) + four SMART PACK add-on rows');
   PERFORM tst.ok((SELECT count(*) FROM public.price_versions WHERE offer = 'legacy') = 8, 'P2 the eight OD-03..OD-08 rows are kept, as legacy');
   PERFORM tst.ok((SELECT string_agg(market || ':' || billing_period || ':' || amount_minor || ':' || currency || ':' || tax_mode, ',' ORDER BY market, billing_period)
                     FROM public.price_versions WHERE plan_id = 'all_inclusive')
@@ -148,8 +151,8 @@ BEGIN
   PERFORM tst.ok(r ->> 'code' = 'invalid_request', 'C7 only month / year');
   PERFORM tst.logout();
 END $$;
-SELECT tst.ok(NOT has_function_privilege('authenticated', 'public.create_package_checkout_intent(uuid,text,text)', 'execute')
-              AND NOT has_function_privilege('anon', 'public.create_package_checkout_intent(uuid,text,text)', 'execute'), 'C8 only service_role may create an intent');
+SELECT tst.ok(NOT has_function_privilege('authenticated', 'public.create_package_checkout_intent(uuid,text,text,boolean)', 'execute')
+              AND NOT has_function_privilege('anon', 'public.create_package_checkout_intent(uuid,text,text,boolean)', 'execute'), 'C8 only service_role may create an intent');
 SELECT public.set_billing_phase('off', 'TEST: back to off');
 
 ROLLBACK;
