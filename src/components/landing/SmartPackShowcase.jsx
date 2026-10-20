@@ -7,12 +7,13 @@
 //  - Motion: a scripted assistant demo, a voice wave and staggered cards; everything is static and fully visible when the user asked
 //    for reduced motion.
 import { useEffect, useRef, useState } from 'react';
-import { Bot, Mic, Sparkles, Paperclip, UserRoundSearch, Check } from 'lucide-react';
+import { Bot, Mic, Sparkles, Check, BrainCircuit, AudioLines, WandSparkles, FileStack, ScanFace } from 'lucide-react';
 import './smartPack.css';
 import { SMART_PACK_ENABLED } from './smartPackFacts';
 
 
-const ICONS = { chat: Bot, voice: Mic, ai: Sparkles, files: Paperclip, twin: UserRoundSearch };
+// Owner 2026-10-20 ("להחליף את האייקונים האלה גם למשהו מודרני יותר"): modern icons on a glossy animated tile
+const ICONS = { chat: BrainCircuit, voice: AudioLines, ai: WandSparkles, files: FileStack, twin: ScanFace };
 
 export default function SmartPackShowcase({ copy, isHe, plansHref }) {
   const ref = useRef(null);
@@ -74,7 +75,7 @@ export default function SmartPackShowcase({ copy, isHe, plansHref }) {
               const Icon = ICONS[f.icon] || Sparkles;
               return (
                 <li key={f.title} className="sp-card" style={{ transitionDelay: `${0.12 + i * 0.09}s` }}>
-                  <span className="sp-icon"><Icon size={20} strokeWidth={2.1} aria-hidden="true" /></span>
+                  <span className="sp-icon"><Icon size={22} strokeWidth={1.9} aria-hidden="true" /></span>
                   <div>
                     <h3>{f.title}{f.soon && <span className="sp-soon">{copy.soon}</span>}</h3>
                     <p>{f.text}</p>
