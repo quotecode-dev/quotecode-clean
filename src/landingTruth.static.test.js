@@ -53,9 +53,9 @@ describe('landing truth gate', () => {
   }
 
   it('Owner 2026-10-14: all three styles are available to every account (HE + EN); the landing labels all three available', () => {
-    expect(he).toContain('שלושה סגנונות להצעת מחיר, זמינים בכל החשבונות');
+    expect(he).toContain('שלושה סגנונות להצעת מחיר, זמינים לכל המשתמשים');
     expect(he).not.toMatch(/מוצגות בסגנון Classic|להמחשה בלבד, וכרגע אינם זמינים/);
-    expect(he).toMatch(/availableBadge: 'זמין בכל החשבונות'/);
+    expect(he).toMatch(/availableBadge: 'זמין לכל המשתמשים'/);
     expect(en).toContain('Three quote styles, available to every account');
     expect(en).not.toMatch(/presented in the Classic style|illustrations only and are not currently available/);
     expect(en).toMatch(/availableBadge: 'Available to every account'/);

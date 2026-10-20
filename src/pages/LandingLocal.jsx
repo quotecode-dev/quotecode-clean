@@ -107,28 +107,28 @@ export default function LandingLocal({ onForgotPassword }) {
       // verbatim (the base h1's second line, formerly a purple gradient span, is plain text in the light composition).
       // The base subtitle names no presentation style (landing truth L09: every account is Classic outside TEST).
       title: <>{'הצעות מחיר וניהול\u00A0העסק '}<br />בקלות ובמהירות</>,
-      text: 'מערכת להפקת הצעות מחיר ולניהול העסק, המותאמת לעסקים בישראל: חישוב מע"מ 18% בהצעות, מחירים בשקלים, חתימה דיגיטלית של הלקוח וניהול לקוחות.',
+      text: 'מערכת להפקת הצעות מחיר ולניהול העסק, המותאמת לעסקים בישראל: חישוב מע״מ 18% בהצעות, מחירים בשקלים, חתימה דיגיטלית של הלקוח וניהול לקוחות.',
       // L08: no public link / caption to the sample-quote route (no authority); the figure keeps an accessible name only.
       docLabel: 'הצעת מחיר לדוגמה בסגנון Classic',
       // OD-01 / IRON-LANDING-001: the line under the Free-10 button states the offer and its true state.
       trial: '10 הצעות מחיר חינם בסך הכול, בלי הגבלת זמן. ההטבה עדיין לא הופעלה.',
       motion: {
-        eyebrow: 'הצעות מחיר שעובדות בשבילך',
+        eyebrow: 'הצעות מחיר שעובדות בשבילכם',
         title: 'מהעבודה בשטח להצעה חתומה',
-        text: 'הצעות מקצועיות, אישור מהיר ועסק מסודר — מהמחשב או מהטלפון.',
+        text: 'הצעות מקצועיות, אישור מהיר ועסק מסודר, מהמחשב או מהטלפון.',
         cta: 'מתחילים עכשיו',
       },
     },
     styles: {
-      eyebrow: 'שלושה סגנונות, משפחה אחת',
-      title: 'מסמך שמתאים לדרך שבה העסק שלכם עובד',
+      eyebrow: 'שלושה סגנונות, מראה אחיד',
+      title: 'מסמך שמתאים לאופי העסק שלכם',
       // L09: the capability every account has is Classic; Modern / Visual are illustrations only, never "included".
-      intro: 'שלושה סגנונות להצעת מחיר, זמינים בכל החשבונות: Classic - מסמך עסקי נקי עם פרטי העסקה וטבלת פריטים ומחירים ברורה; Modern - עם תמונות מוצר; Visual - עם תמונת פרויקט מרכזית. בוחרים סגנון בהגדרות העסק או בכל הצעה.',
+      intro: 'שלושה סגנונות להצעת מחיר, זמינים לכל המשתמשים: Classic - מסמך עסקי נקי עם פרטי העסקה וטבלת פריטים ומחירים ברורה; Modern - עם תמונות מוצר; Visual - עם תמונת פרויקט מרכזית. בוחרים סגנון בהגדרות העסק או בכל הצעה.',
       tablistLabel: 'סגנונות הצעת מחיר',
       // cloud-fix4b (Codex, truth): the phone layout with long amounts puts the description on its own full row, so the copy
       // may not promise "four columns on phones"; it states exactly what is kept (the four commercial fields).
-      shared: 'בכל הסגנונות נשמרים ארבעת השדות של טבלת הפריטים: תיאור פריט, כמות, מחיר יחידה וסה"כ. בטלפון, כשהסכומים ארוכים, התיאור עובר לשורה מלאה ושלושת הערכים המספריים מופיעים מתחת לכותרות שלהם. רמת הפירוט (מקוצרת או מורחבת) נבחרת בנפרד מהסגנון.',
-      availableBadge: 'זמין בכל החשבונות',
+      shared: 'בכל הסגנונות נשמרים ארבעת השדות של טבלת הפריטים: תיאור פריט, כמות, מחיר יחידה וסה״כ. בטלפון, כשהסכומים ארוכים, התיאור עובר לשורה מלאה ושלושת הערכים המספריים מופיעים מתחת לכותרות שלהם. רמת הפירוט (מקוצרת או מורחבת) נבחרת בנפרד מהסגנון.',
+      availableBadge: 'זמין לכל המשתמשים',
       previewBadge: 'דוגמה בלבד · לא זמין כרגע',
       previewNote: 'להמחשה בלבד.',
       viewerLabel: 'הצעת מחיר לדוגמה בסגנון הנבחר',
@@ -142,7 +142,7 @@ export default function LandingLocal({ onForgotPassword }) {
       title: 'איך זה עובד?',
       intro: 'מהצעה ראשונה ועד חתימת הלקוח, בשלושה צעדים.',
       steps: [
-        { title: 'יצירה', text: 'צרו הצעת מחיר צעד אחר צעד, עם פריטים רגילים, לפי מידות או מהקטלוג. הסכומים והמע"מ מחושבים תוך כדי הזנת הפרטים.' },
+        { title: 'יצירה', text: 'צרו הצעת מחיר שלב אחר שלב, עם פריטים רגילים, לפי מידות או מהקטלוג. הסכומים והמע״מ מחושבים תוך כדי הזנת הפרטים.' },
         { title: 'שליחה', text: 'שלחו ללקוח קישור אישי לצפייה בהצעה מכל מכשיר, בלי להדפיס ובלי לצרף קבצים למייל.' },
         { title: 'אישור וחתימה', text: 'הלקוח מאשר וחותם דיגיטלית מהטלפון, ומצב ההצעה מתעדכן בחשבון שלכם.' },
       ],
@@ -154,17 +154,17 @@ export default function LandingLocal({ onForgotPassword }) {
       // five-card set is complete again (card 1 "הפקת הצעות מחיר בקלות", c65f742 LandingLocal.jsx:455-461, verbatim).
       capabilities: [
         // Card order = base c65f742 (quotes, signature, income/expenses, measurements, AI) - ledger R21 / L04 / L15.
-        { icon: Zap, title: 'הפקת הצעות מחיר בקלות', text: 'צרו הצעות מחיר מסודרות, עם חישוב מע"מ אוטומטי, הנחות ומוצרים מהקטלוג שלכם.' },
+        { icon: Zap, title: 'הפקת הצעות מחיר בקלות', text: 'צרו הצעות מחיר מסודרות, עם חישוב מע״מ אוטומטי, הנחות ומוצרים מהקטלוג שלכם.' },
         { icon: PenTool, title: 'חתימה דיגיטלית ואישור לקוח', text: 'שלחו ללקוח קישור שבו אפשר לצפות בהצעה, להדפיס אותה או לשמור אותה כ-PDF, לחתום דיגיטלית ולאשר את ההזמנה מהטלפון או מהמחשב.' },
         // Base text verbatim (L04), including the base typo "ווקבל" (reported to the Owner, not silently corrected).
-        { icon: BarChart3, title: 'ניהול הכנסות והוצאות', text: 'עקבו אחר רווחי העסק, נהלו הוצאות שוטפות וקבלו תמונת מצב פיננסית עדכנית.' },
+        { icon: BarChart3, title: 'ניהול הכנסות והוצאות', text: 'עקבו אחר רווחי העסק, נהלו הוצאות שוטפות ותראו תמונת מצב כספית עדכנית.' },
         // Generic trade capability (QuoteForm.jsx: area / linear measurement rows) - deliberately no plan tier named here.
         { icon: Ruler, title: 'הצעות מחיר לפי מידות ומפרט', text: <>בנו הצעה לפי מידות אמיתיות (שטח או אורך), עם כמה שורות מדידה לכל פריט וחישוב כמות אוטומטי. מתאים לזכוכית ואלומיניום, ריצוף, חשמל, אינסטלציה ותחומים נוספים: פחות חישובים ידניים וטעויות, וחיסכון בזמן בהצעות חוזרות.</> },
         // Task 34 (Owner: the AI card describes ONLY what the LIVE product really has): the AI assistant inside the signed-in workflows - the
         // Owner HE wording of 2026-10-06 without the false "previous chats are kept" claim (Task 33). The AI quote DRAFT is not in Production yet,
         // so it is not advertised here; its card text is part of the AI release package (evidence/task34-followup/AI_RELEASE_PACKAGE.md).
         // Task 37 (Owner-approved): only what LIVE has - the step-aware help; the draft review ("the quote in front of you") is TEST only.
-        { icon: MessagesSquare, title: 'עוזר חכם שמלווה אתכם בעבודה', text: 'עוזר ה-AI של TEKANGO זמין בזמן יצירת הצעות מחיר, ניהול לקוחות ועדכון ההגדרות. שאלו על השלב שבו אתם נמצאים או בקשו הכוונה.' },
+        { icon: MessagesSquare, title: 'עוזר חכם שמלווה אתכם בעבודה', text: 'עוזר ה-AI של TEKANGO עומד לרשותכם כשאתם מכינים הצעות מחיר, מנהלים לקוחות או מעדכנים את ההגדרות. שאלו על השלב שבו אתם נמצאים, או בקשו הכוונה.' },
       ],
     },
     // Owner 2026-10-20: the "חכם פלוס" promotion - TEST only (SmartPackShowcase renders nothing in a production build). Prices = the
@@ -208,30 +208,38 @@ export default function LandingLocal({ onForgotPassword }) {
     // Authority ledger L07b (pointwise rollback): base FAQ heading + subtitle (c65f742 LandingLocal.jsx:669-670); no eyebrow.
     faq: {
       title: 'שאלות נפוצות',
-      intro: 'תשובות לשאלות נפוצות על המערכת.',
+      intro: 'כל מה שכדאי לדעת לפני שמתחילים.',
       items: [
         // L09: Classic is the only presentation outside TEST; Modern / Visual are described as illustrations, not features.
-        { q: 'מה ההבדל בין שלושת הסגנונות?', a: 'שלושת הסגנונות זמינים בכל החשבונות: Classic - מסמך עסקי נקי עם טבלת פריטים ומחירים מלאה וברורה; Modern - עם תמונות מוצר; Visual - עם תמונת פרויקט מרכזית. אפשר לקבוע סגנון ברירת מחדל בהגדרות העסק ולשנות אותו בכל הצעה.' },
+        { q: 'מה ההבדל בין שלושת הסגנונות?', a: 'שלושת הסגנונות זמינים לכל המשתמשים: Classic - מסמך עסקי נקי עם טבלת פריטים ומחירים מלאה וברורה; Modern - עם תמונות מוצר; Visual - עם תמונת פרויקט מרכזית. אפשר לקבוע סגנון ברירת מחדל בהגדרות העסק ולשנות אותו בכל הצעה.' },
         { q: 'האם צפייה בסגנון אחר משנה את המנוי?', a: 'לא. הצפייה בדוגמאות בדף הזה לא משנה את המסלול שלכם ולא את ההצעות שלכם.' },
         { q: 'מה קורה להצעה שנשלחה אחרי שינוי מסלול?', a: 'הצעה שנשלחה או נחתמה נשארת כפי שהלקוח קיבל אותה, כולל העיצוב שלה.' },
         // OD-05: the plan prices include VAT; no rate / breakdown is approved, and none is added on top.
-        { q: 'האם המחירים המוצגים כוללים מע"מ?', a: 'כן. המחירים כוללים מע״מ, ולא יתווסף אליהם מע״מ.' },
+        { q: 'האם המחירים המוצגים כוללים מע״מ?', a: 'כן. המחירים כוללים מע״מ, ולא יתווסף אליהם מע״מ.' },
         // OD-01/OD-02 (Owner 2026-10-07): the trial question is replaced by the Free-10 policy, truthfully not yet activated.
         // Task 37 (Owner-approved): the same facts as scannable points; the last line = the L1 meaning.
         { q: 'איך עובדות 10 ההצעות החינמיות?', a: <>ההטבה כוללת 10 הצעות מחיר חינם בסך הכול, בלי הגבלת זמן.<ul className="tl-faq-list"><li>הצעה נספרת כשהיא יוצאת ללקוח: בשליחה, בקישור לצפייה, ב-PDF סופי או בהדפסה סופית.</li><li>שליחה או הפקה חוזרת של אותה גרסה לאותו לקוח לא נספרת שוב, גם בערוץ אחר.</li><li>שינוי הלקוח, שם הנמען או תוכן ההצעה והפקה מחדש נספרים כהצעה נוספת.</li><li>טיוטות ותצוגה מקדימה לא נספרות.</li><li>מחיקת הצעה לא מחזירה אותה למכסה, והצעות שכבר יצאו ללקוחות נשארות זמינות.</li></ul>ההטבה עדיין לא הופעלה; תנאי החשבון הזמינים כעת מוצגים בתהליך ההרשמה.</> },
         { q: 'האם המערכת מותאמת לסמארטפון ולמחשב?', a: 'כן. אפשר להפיק הצעות ולנהל את העסק מהמחשב, מהטאבלט או מהטלפון.' },
         // Verifiable infrastructure facts only (TLS in transit, encryption at rest by the Supabase/PostgreSQL platform).
-        { q: 'האם הנתונים העסקיים שלי מאובטחים בענן?', a: 'הנתונים שלכם מאוחסנים בתשתית ענן מבוססת Supabase/PostgreSQL, עם הצפנה בתעבורה (TLS) ובאחסון כחלק מתשתית הענן הסטנדרטית. הגישה לנתונים מוגבלת לחשבון שלכם בלבד.' },
+        { q: 'האם הנתונים העסקיים שלי מאובטחים בענן?', a: 'כן. הנתונים שמורים בענן ומוצפנים, גם בזמן ההעברה וגם באחסון. רק אתם יכולים לגשת לנתונים של החשבון שלכם.' },
         // Task 39 (Owner final scope): the cancellation-request path - a request handled by the team, never shown as an automatic cancellation.
         { q: 'איך מבקשים ביטול מנוי?', a: <>עדיין אי אפשר לרכוש מנוי בתשלום. כשהרכישה תיפתח, אפשר לבקש ביטול מנוי בכל עת במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<a href="mailto:support@tekango.com?subject=%D7%91%D7%A7%D7%A9%D7%AA%20%D7%91%D7%99%D7%98%D7%95%D7%9C%20%D7%9E%D7%A0%D7%95%D7%99"><bdi dir="ltr">support@tekango.com</bdi></a> או מתוך חלון המסלולים במערכת. הבקשה מטופלת בידי הצוות ומאושרת במייל - זה אינו ביטול אוטומטי. ביטול מנוי אינו מחיקת חשבון. תנאי הביטול וההחזרים מפורטים {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href="/he/terms#cancellation">בתנאי השימוש</a>.</> },
         { q: 'האם ניתן לייצא את נתוני ההצעות והדוחות לאקסל?', a: 'כן. אפשר לייצא בכל רגע את היסטוריית הצעות המחיר ואת דוחות ההוצאות לקובצי CSV שמתאימים לאקסל ולתוכנות הנהלת חשבונות.' },
+        // Owner console 2026-10-20 (typed: "מאשר לשנות את נוסחי דף הנחיתה ואת הבדיקות שנועלות אותם: ... ושאלות נפוצות חדשות מאומתות"): questions
+        // users asked in the smart chat and the support inbox; every answer = the verified how-to facts (src/data/productHowTo.js) and L-12 contact.
+        { q: 'איך נרשמים?', a: 'לוחצים "מתחילים עכשיו", ממלאים אימייל וסיסמה ומאשרים את תנאי השימוש ואת מדיניות הפרטיות. אחר כך פותחים את הקישור שנשלח אליכם במייל, והחשבון מוכן. לפני ההצעה הראשונה ממלאים בהגדרות העסק את טלפון העסק ואת מספר העוסק.' },
+        { q: 'איך שולחים את ההצעה ללקוח?', a: 'שולחים אותה במייל או בוואטסאפ, או מעתיקים הודעה עם קישור להצעה ומדביקים אותה בכל מקום. הלקוח פותח את הקישור מכל מכשיר. אפשר גם להוריד את ההצעה כ-PDF.' },
+        { q: 'הלקוח יכול לחתום על ההצעה מהטלפון?', a: 'כן. הלקוח פותח את הקישור, מאשר את ההצעה וחותם עליה דיגיטלית, ומצב ההצעה מתעדכן אצלכם. הצעה חתומה נעולה לעריכה, ואפשר לשכפל אותה כדי ליצור ממנה הצעה חדשה.' },
+        { q: 'אפשר לשמור מחירון קבוע של מוצרים ושירותים?', a: 'כן. מוסיפים לקטלוג פריטים עם המחירים שלהם, ובוחרים מהם כשמכינים הצעה.' },
+        { q: 'אפשר להתחיל הצעה חדשה מהצעה קיימת?', a: 'כן. שומרים הצעה כתבנית, בלי פרטי הלקוח, ובהצעה הבאה בוחרים "הצעה חדשה" ואז "מתבנית שמורה".' },
+        { q: 'איך יוצרים איתכם קשר?', a: <>במייל {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the support mailbox */}<a href="mailto:support@tekango.com"><bdi dir="ltr">support@tekango.com</bdi></a>, או בצ׳אט שבפינת המסך. כרגע אין מענה טלפוני.</> },
       ],
     },
     // Free business tools (base section, ledger L03 - base c65f742 LandingLocal.jsx:716-726, verbatim). The public tools
     // hub (/he/tools: currency, units, metals, crypto - App.jsx routes, no signup) exists; no plan / FREE claim here.
     tools: {
       title: 'כלים עסקיים חינמיים',
-      text: 'מחשבוני מטבעות, יחידות, מתכות וקריפטו בחינם, פתוחים לכולם, ללא הרשמה.',
+      text: 'מחשבונים חינמיים למטבעות, יחידות, מתכות וקריפטו. פתוחים לכולם, בלי הרשמה.',
       cta: 'למעבר לכלים העסקיים',
       href: '/he/tools',
       icon: BriefcaseBusiness,
@@ -240,7 +248,7 @@ export default function LandingLocal({ onForgotPassword }) {
     // Authority ledger L07 (pointwise rollback): base closing title + text (c65f742 LandingLocal.jsx:736-737).
     closing: {
       title: 'מוכנים ליצור את ההצעה הראשונה שלכם?',
-      text: 'הצעת מחיר ברורה, צעד אחר צעד.',
+      text: 'הצעת מחיר ברורה, שלב אחר שלב.',
     },
     // Footer (ledger L17): base brand markup (c65f742 LandingLocal.jsx:765 `<BrandName />` on the dark footer); no new label.
     footer: {
