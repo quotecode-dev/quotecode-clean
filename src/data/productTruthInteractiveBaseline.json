@@ -331,10 +331,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/components/TurnstileWidget.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/components/adminDestinations.js": {
     "interactive": 0,
     "markers": 0
@@ -672,10 +668,6 @@
     "markers": 2
   },
   "src/shared/brand.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/shared/captcha.js": {
     "interactive": 0,
     "markers": 0
   },

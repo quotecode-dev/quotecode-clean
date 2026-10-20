@@ -3,7 +3,6 @@
 // ==============================================================================
 
 import ProFlowLogo from './ProFlowLogo';
-import TurnstileWidget from './TurnstileWidget';
 import { CheckCircle2, AlertTriangle, Mail, Lock, LogIn, Rocket, KeyRound, X } from 'lucide-react';
 import { NEON, FONT_HE, FONT_EN, neonGlowTextStyle } from '../theme/neonTheme';
 
@@ -226,8 +225,6 @@ export default function AuthScreen({
               </label>
             </>
           )}
-          {/* Owner console 2026-10-20 (L-12): the robot check of the signup / login form */}
-          <TurnstileWidget slot="auth" isHebrew={isHebrew} />
           <button type="submit" disabled={authLoading} style={{ width: '100%', background: NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '700', fontSize: '0.95rem', cursor: authLoading ? 'default' : 'pointer', opacity: authLoading ? 0.7 : 1, boxShadow: NEON.glow, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
             {isSignUp ? <Rocket size={16} strokeWidth={2.5} /> : <LogIn size={16} strokeWidth={2.5} />}
             {isSignUp ? (isHebrew ? 'הרשמה למערכת' : 'Sign Up') : (isHebrew ? 'התחבר' : 'Sign In')}
@@ -286,8 +283,6 @@ export default function AuthScreen({
                 required
                 style={{ width: '100%', padding: '9px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', marginBottom: '12px', direction: 'ltr', textAlign: 'left', fontSize: '0.9rem', background: NEON.bgInput, color: NEON.textPrimary }}
               />
-              {/* Owner console 2026-10-20 (L-12): the robot check of the password reset form */}
-              <TurnstileWidget slot="reset" isHebrew={isHebrew} />
               <button type="submit" disabled={resetLoading} style={{ width: '100%', background: NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: NEON.glow }}>
                 {resetLoading ? (isHebrew ? 'שולח...' : 'Sending...') : (isHebrew ? 'שלח קישור לשחזור' : 'Send Reset Link')}
               </button>

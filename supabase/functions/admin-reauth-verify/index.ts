@@ -104,11 +104,7 @@ serve(async (req) => {
     // untouched) so this is a pure credential check, not a session
     // replacement - signInWithPassword succeeding/failing here never
     // changes the caller's own active session either way.
-    // Owner console 2026-10-20 (L-12, the robot check on signup / login / reset): once captcha is enabled in Supabase Auth, an anon-key
-    // password sign-in without a captcha token is refused ("no captcha_token found"), which would break every protected admin action.
-    // The check therefore runs with the server's secret key, which Auth exempts from captcha (proved on the local stack 2026-10-20);
-    // it stays a pure credential check on a throw-away client that keeps no session.
-    const checkClient = createClient(supabaseUrl, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const checkClient = createClient(supabaseUrl, anonKey);
     const { error: passwordErr } = await checkClient.auth.signInWithPassword({
       email: callerUser.email,
       password,
