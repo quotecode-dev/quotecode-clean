@@ -339,6 +339,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / CREATE TABLE IF NOT EXISTS / CREATE OR REPLACE / DROP TRIGGER IF EXISTS (re-runnable); Free plan server rule - count on save + 7 days (Owner 2026-10-20, PayPlus stage 2)"
+    },
+    "20261021200000_billing_period_grace_limited.sql": {
+      "sha256": "294e8ad1f83f64ab59514bd4908e68f1926c8dd702f26fa1741c7c983d680387",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / CREATE OR REPLACE (re-runnable); paid period + renewal + failed charge + 3 grace days + limited mode (Owner 2026-10-18, PayPlus stage 2)"
     }
   }
 }

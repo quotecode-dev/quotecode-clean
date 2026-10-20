@@ -81,6 +81,12 @@ describe('requestOutputAuthorization (server authority client)', () => {
     expect(outputBlockedMessage('free_issue_limit_reached', true, { ...ended, consumed: 10, remaining: 0 })).toMatch(/^נוצלו כל 10/);
     expect(outputBlockedMessage('free_issue_limit_reached', false)).toMatch(/^All 10 free quotes/);
   });
+  it('Owner 2026-10-18: a paid account in limited mode gets the failed-payment sentence (HE / EN)', () => {
+    const billing = { paidThrough: '2026-11-20T10:00:00.000Z', graceEndsAt: '2026-11-23T10:00:00.000Z', inGrace: false, limited: true };
+    expect(outputBlockedMessage('free_issue_limit_reached', true, null, billing)).toMatch(/^התשלום האחרון לא עבר, ולכן החשבון מוגבל\./);
+    expect(outputBlockedMessage('free_issue_limit_reached', false, null, billing)).toMatch(/^The last payment did not go through, so the account is limited\./);
+    expect(outputBlockedMessage('free_issue_limit_reached', true, null, { ...billing, limited: false, inGrace: true })).toMatch(/^נוצלו כל 10/);
+  });
 });
 
 

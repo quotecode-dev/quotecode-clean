@@ -129,7 +129,8 @@ const formatNum = (val) => formatMoney(val);
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 // The server's two "free plan ended" refusals (10 quotes used, or the 7 free days ended - Owner 2026-10-20): both open the upgrade window
 const FREE10_END_CODES = new Set(['free_issue_limit_reached', 'free_period_ended']);
-const FREE10_END_RE = /free_issue_limit_reached|free_period_ended/;
+// + a paid account in limited mode after a failed charge (Owner 2026-10-18; the server new-quote guard, 20261021200000)
+const FREE10_END_RE = /free_issue_limit_reached|free_period_ended|subscription_limited/;
 
 // קורא geo טרי ואמין ישירות מהשרת (api/geo.js), לא מעוגייה/localStorage
 // שהלקוח יכול לשנות או שיכולים להיות ישנים. משמש אך ורק לברירת המחדל של
@@ -3064,7 +3065,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     if (gate.mode === 'authority_required') {
       const auth = await authorizeWithNotice({ channel: 'public_share', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (t) => window.confirm(t), isHebrew: isHebrew });
       if (!auth.proceed) {
-        if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null), type: 'error' });
+        if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null), type: 'error' });
         if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
         refreshAccountSummary();
         return;
@@ -3143,7 +3144,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     const auth = await authorizeWithNotice({ channel: 'send', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew: isHebrew });
     if (!auth.proceed) {
       if (win && !win.closed) win.close();
-      if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null), type: 'error' });
+      if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null), type: 'error' });
       if (FREE10_END_CODES.has(auth.code)) setFree10Window(true); // a first output after Free-10: the paid action itself
       refreshAccountSummary();
       return;
@@ -3200,7 +3201,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         const auth = await authorizeWithNotice({ channel: 'send', quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew: isHebrew });
         if (!auth.proceed) {
           setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-          if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null), type: 'error' });
+          if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null), type: 'error' });
           if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
           refreshAccountSummary();
           return;
@@ -4762,7 +4763,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         } else {
           leaveDraftNote = auth.mode === 'cancelled'
             ? (isHebrew ? 'ההצעה נשמרה כטיוטה. הסטטוס לא שונה ולא נוצלה הצעה.' : 'The quote was saved as a draft. Its status was not changed and no quote was used.')
-            : `${isHebrew ? 'ההצעה נשמרה כטיוטה. ' : 'The quote was saved as a draft. '}${outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null)}`;
+            : `${isHebrew ? 'ההצעה נשמרה כטיוטה. ' : 'The quote was saved as a draft. '}${outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null)}`;
           if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
         }
         refreshAccountSummary();
@@ -7553,6 +7554,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         isHebrew={isHebrew}
         market={(accountSummary.state === 'ready' && accountSummary.market) || (isLocalIsraeliBusiness ? 'IL' : 'INTERNATIONAL')}
         free10={accountSummary.state === 'ready' ? accountSummary.free10 : null}
+        limited={accountSummary.state === 'ready' && accountSummary.billing?.limited === true}
       />
       <PricingModal 
         isOpen={showPricingModal} 

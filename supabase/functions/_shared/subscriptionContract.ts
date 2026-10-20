@@ -153,6 +153,8 @@ export interface ReadySummary {
   free10: { limit: number; consumed: number; reserved: number; remaining: number; endsAt: string | null; periodEnded: boolean } | null;
   catalog: { active: number; countDefinition: string; limit: number | null; blocks: number; limitDecided: boolean };
   priceCatalogVersion: string | null;
+  // 20261021200000 (Owner 2026-10-18): the paid period, the 3 grace days after a failed charge and limited mode
+  billing: { paidThrough: string | null; graceEndsAt: string | null; inGrace: boolean; limited: boolean };
 }
 export type AccountSummary = ReadySummary | { state: Exclude<SummaryState, 'ready'>; code?: string };
 
@@ -228,6 +230,15 @@ export function parseAccountSummary(raw: unknown): AccountSummary {
     return { state: 'invalid', code: 'catalog_count_definition' };
   }
   if (!(raw.priceCatalogVersion === null || typeof raw.priceCatalogVersion === 'string')) return { state: 'invalid', code: 'price_version' };
+  // absent on an older server = no paid period / grace (never a false block); when present it must be well-formed
+  const bRaw = raw.billing === undefined ? { paidThrough: null, graceEndsAt: null, inGrace: false, limited: false } : raw.billing;
+  const isTime = (v: unknown) => v === null || (typeof v === 'string' && ISO_UTC_MS.test(v) && !Number.isNaN(Date.parse(v)));
+  if (!isObj(bRaw) || !isTime(bRaw.paidThrough) || !isTime(bRaw.graceEndsAt) || typeof bRaw.inGrace !== 'boolean' || typeof bRaw.limited !== 'boolean'
+    || ((bRaw.inGrace || bRaw.limited) && bRaw.graceEndsAt === null) || (bRaw.inGrace && bRaw.limited)) {
+    return { state: 'invalid', code: 'billing' };
+  }
+  const billing = Object.freeze({ paidThrough: bRaw.paidThrough as string | null, graceEndsAt: bRaw.graceEndsAt as string | null,
+    inGrace: bRaw.inGrace, limited: bRaw.limited });
   return Object.freeze({
     state: 'ready',
     version: raw.version as number,
@@ -240,6 +251,7 @@ export function parseAccountSummary(raw: unknown): AccountSummary {
     free10,
     catalog: Object.freeze({ active: c.active as number, countDefinition: c.countDefinition as string, limit: c.limit as number | null, blocks: c.blocks as number, limitDecided: c.limitDecided }),
     priceCatalogVersion: raw.priceCatalogVersion as string | null,
+    billing,
   }) as ReadySummary;
 }
 
@@ -292,13 +304,14 @@ export function outputPhaseOf(summary: AccountSummary | null | undefined): Activ
 // not deployed / loading never add a restriction (no new restriction on existing accounts while activation is off). A paid plan
 // (current or legacy) is never blocked. The server is the authority (quotes INSERT trigger + output ledger); this only decides the UI.
 // ---------------------------------------------------------------------------------------------------------------------
-export interface QuotaDecision { allowed: boolean; reason: 'not_enforced' | 'paid_plan' | 'within_free10' | 'free_issue_limit_reached' | 'free_period_ended' | 'fail_closed'; free10?: ReadySummary['free10'] }
+export interface QuotaDecision { allowed: boolean; reason: 'not_enforced' | 'paid_plan' | 'within_free10' | 'free_issue_limit_reached' | 'free_period_ended' | 'subscription_limited' | 'fail_closed'; free10?: ReadySummary['free10'] }
 
 export function decideFree10Action(summary: AccountSummary | null | undefined): QuotaDecision {
   if (summary?.state !== 'ready') return { allowed: true, reason: 'not_enforced' };
   const s = summary as ReadySummary;
   if (s.phase.output !== 'enforced') return { allowed: true, reason: 'not_enforced' };
-  if (s.planId !== 'free') return { allowed: true, reason: 'paid_plan' };
+  // 20261021200000 (Owner 2026-10-18): a paid account whose 3 grace days after a failed charge are over is limited like the Free end
+  if (s.planId !== 'free') return s.billing?.limited ? { allowed: false, reason: 'subscription_limited' } : { allowed: true, reason: 'paid_plan' };
   if (!s.free10) return { allowed: false, reason: 'fail_closed' };
   // Owner 2026-10-20: the 7 free days ended before the 10 quotes were used (10 used names the 10, as the window does)
   if (s.free10.periodEnded && s.free10.remaining > 0) return { allowed: false, reason: 'free_period_ended', free10: s.free10 };

@@ -168,6 +168,18 @@ describe('decideFree10Action (attempted paid action after Free-10)', () => {
       free10: { limit: 10, consumed: 3, reserved: 0, remaining: 7, endsAt: '2026-10-28T10:00:00.000Z', periodEnded: true } }));
     expect(decideFree10Action(shadow)).toEqual({ allowed: true, reason: 'not_enforced' });
   });
+  it('Owner 2026-10-18: the billing block - a paid account in limited mode is blocked; in grace it is not; malformed = invalid', () => {
+    const bill = (over) => ({ paidThrough: '2026-11-20T10:00:00.000Z', graceEndsAt: '2026-11-23T10:00:00.000Z', inGrace: false, limited: false, ...over });
+    const pkg = (b) => parseAccountSummary(paid({ plan: { id: 'all_inclusive' }, billing: b }));
+    expect(decideFree10Action(pkg(bill({ limited: true })))).toEqual({ allowed: false, reason: 'subscription_limited' });
+    expect(decideFree10Action(pkg(bill({ inGrace: true })))).toEqual({ allowed: true, reason: 'paid_plan' });
+    expect(pkg(bill({ inGrace: true }))).toMatchObject({ state: 'ready', billing: { inGrace: true, limited: false } });
+    // an older server without the block: no grace, never a false block
+    expect(parseAccountSummary(paid())).toMatchObject({ billing: { paidThrough: null, graceEndsAt: null, inGrace: false, limited: false } });
+    for (const b of [bill({ limited: true, graceEndsAt: null }), bill({ inGrace: true, limited: true }), bill({ paidThrough: 'soon' }), bill({ limited: 'yes' }), 'x']) {
+      expect(pkg(b).state).toBe('invalid');
+    }
+  });
   it('a paid account (the package or a legacy plan) is never blocked', () => {
     expect(decideFree10Action(parseAccountSummary(paid({ plan: { id: 'all_inclusive' } })))).toEqual({ allowed: true, reason: 'paid_plan' });
     expect(decideFree10Action(parseAccountSummary(paid()))).toEqual({ allowed: true, reason: 'paid_plan' });

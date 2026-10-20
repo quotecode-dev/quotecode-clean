@@ -120,7 +120,7 @@ BEGIN
   r := tst.ypay('pp-evt-1', 'payment_confirmed', a, '2026-10-18 10:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'duplicate' = 'true' AND tst.yent(tst.yu(1)) = 'paid/-/all_inclusive/year/active/v2', 'Y9 the same callback again = a no-op');
   r := tst.ypay('pp-evt-2', 'payment_confirmed', a, '2027-10-18 10:00:00+00', 30600);
-  PERFORM tst.ok(r ->> 'outcome' = 'applied' AND tst.yent(tst.yu(1)) = 'paid/-/all_inclusive/year/active/v2', 'Y10 a renewal charge of the same active package changes nothing');
+  PERFORM tst.ok(r ->> 'outcome' = 'applied' AND tst.yent(tst.yu(1)) = 'paid/-/all_inclusive/year/active/v2', 'Y10 a renewal charge of the same active package keeps the package and its version (20261021200000 extends its paid period - test 401)');
   r := tst.ypay('pp-evt-2b', 'payment_confirmed', a, '2027-11-18 10:00:00+00', 100);
   PERFORM tst.ok(r ->> 'code' = 'amount_mismatch' AND tst.yent(tst.yu(1)) = 'paid/-/all_inclusive/year/active/v2'
                  AND (SELECT state FROM public.checkout_attempts WHERE attempt_id = a) = 'confirmed'

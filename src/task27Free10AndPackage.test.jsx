@@ -103,6 +103,15 @@ describe('Free-10 upgrade window', () => {
     expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('The 7 free days have ended (3 of 10 free quotes used).');
     expect(screen.getByTestId('free10-upgrade-window').getAttribute('dir')).toBe('ltr');
   });
+  it('Owner 2026-10-18: a paid account in limited mode after a failed charge - its own sentence, HE / RTL and EN / LTR', () => {
+    const { unmount } = render(<Free10UpgradeWindow {...props({ free10: null, limited: true })} />);
+    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('התשלום האחרון לא עבר, ולכן החשבון מוגבל עד שהתשלום יעבור. ההצעות והלקוחות הקיימים נשארים זמינים.');
+    expect(screen.getByTestId('free10-upgrade-window').getAttribute('dir')).toBe('rtl');
+    unmount();
+    render(<Free10UpgradeWindow {...props({ isHebrew: false, market: 'INTERNATIONAL', free10: null, limited: true })} />);
+    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('The last payment did not go through, so the account is limited until it does. Your existing quotes and clients stay available.');
+    expect(screen.getByTestId('free10-upgrade-window').getAttribute('dir')).toBe('ltr');
+  });
   it('both ended (10 used by the last day): the 10-quotes sentence', () => {
     render(<Free10UpgradeWindow {...props({ free10: { limit: 10, consumed: 10, reserved: 0, remaining: 0, endsAt: '2026-10-28T10:00:00.000Z', periodEnded: true } })} />);
     expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('נוצלו כל 10 ההצעות החינמיות (10 נוצלו).');
@@ -128,7 +137,7 @@ describe('Dashboard: the Free-10 check precedes any insert / reservation on ever
   it('a first output refused for Free-10 and a server-refused new quote open the same window', () => {
     // Owner 2026-10-20: both server refusals - 10 quotes used (free_issue_limit_reached) or the 7 free days ended (free_period_ended)
     expect(dash).toMatch(/const FREE10_END_CODES = new Set\(\['free_issue_limit_reached', 'free_period_ended'\]\);/);
-    expect(dash).toMatch(/const FREE10_END_RE = \/free_issue_limit_reached\|free_period_ended\/;/);
+    expect(dash).toMatch(/const FREE10_END_RE = \/free_issue_limit_reached\|free_period_ended\|subscription_limited\/;/);
     expect((dash.match(/if \(FREE10_END_CODES\.has\(auth\.code\)\) setFree10Window\(true\);/g) || []).length).toBe(4); // WhatsApp + email (send), the Task 28 copy message (public_share) and the editor issue / Sent (Owner 2026-10-18)
     // the window is the whole answer to a refused save: no second alert with the raw server text on top of it - except when removing
     // the new quote shell failed too (that notice must still show)
