@@ -1,7 +1,7 @@
 // GENERATED FILE - do not hand-edit.
 // Regenerate with: node scripts/generate-ai-chat-facts.js
 // Source of truth: supabase/functions/_shared/subscriptionContract.ts, src/domain/subscriptions/priceCatalog.js,
-// src/data/productTruthRegistry.js, src/data/productHowTo.js, src/shared/brand.js, src/utils/regionConfig.js.
+// src/data/productTruthRegistry.js, src/data/productHowTo.js, src/domain/subscriptions/addOnCatalog.js, src/shared/brand.js, src/utils/regionConfig.js.
 // Staleness is enforced by supabase/functions/chat-ai/aiFacts.parity.test.js.
 export const AI_FACTS = {
   "schemaVersion": 3,
@@ -1668,6 +1668,53 @@ export const AI_FACTS = {
         "task": "Why a signed quote cannot be edited",
         "steps": [
           "A quote the client signed is locked: it cannot be edited or deleted (\"Cannot edit a signed quote\"). You can duplicate it (\"Duplicate\") and create a new quote from it."
+        ]
+      }
+    }
+  ],
+  "addOns": [
+    {
+      "id": "smart_pack",
+      "name": {
+        "he": "חכם פלוס",
+        "en": "SMART PACK"
+      },
+      "optional": true,
+      "sameBillingPeriodAsMainPlan": true,
+      "purchasable": false,
+      "prices": {
+        "IL": {
+          "currency": "ILS",
+          "month": "10.00",
+          "year": "102.00",
+          "taxIncluded": true
+        },
+        "INTERNATIONAL": {
+          "currency": "USD",
+          "month": "5.00",
+          "year": "51.00"
+        }
+      },
+      "includes": {
+        "he": [
+          "צ׳אט חכם שקורא את הנתונים של המשתמש (הצעות, לקוחות, קטלוג, משימות)",
+          "צ׳אט קולי (שאלה בקול ותשובה מוקראת)",
+          "הצעה חכמה עם AI, כולל הכתבה בקול",
+          "צירוף קבצים להצעה"
+        ],
+        "en": [
+          "A smart chat that reads the user's own data (quotes, clients, catalog, tasks)",
+          "Voice chat (a spoken question and a read-aloud answer)",
+          "An AI smart quote, including voice dictation",
+          "Files attached to a quote"
+        ]
+      },
+      "comingSoon": {
+        "he": [
+          "התאום הדיגיטלי של הלקוח"
+        ],
+        "en": [
+          "Customer Twin"
         ]
       }
     }

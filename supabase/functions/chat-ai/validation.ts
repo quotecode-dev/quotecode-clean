@@ -13,6 +13,7 @@ import { buildPaymentTruthBlock } from "./paymentTruth.ts";
 import { buildInvoicingTruthBlock } from "./invoicingTruth.ts";
 import { buildCapabilityTruthBlock } from "./capabilityTruth.ts";
 import { buildHowToBlock } from "./howToTruth.ts";
+import { buildAddOnTruthBlock } from "./addOnTruth.ts";
 import { sanitizeHelpContext, TRANSCRIPT_LIMITS } from "../_shared/aiHelpContract.js";
 import { buildSubscriptionTruthBlock } from "./subscriptionTruth.ts";
 import { planName } from "../_shared/subscriptionContract.ts";
@@ -543,6 +544,8 @@ ${buildCapabilityTruthBlock({ capabilities: AI_FACTS.capabilities, nonCurrentCap
 ${buildHowToBlock(isHebrew, AI_FACTS.howTo)}
 
 ${pricingBlock}
+
+${buildAddOnTruthBlock(isHebrew, AI_FACTS.addOns)}
 
 FILE ATTACHMENTS:
 - Attaching files to a quote is a product capability, but which plans include attachments, and the allowed file types, count and sizes, have NOT been decided yet (OPEN-13) - never state a plan, a size limit or a storage figure for attachments.

@@ -4,14 +4,16 @@
 import { formatMoney, formatWholeMoney } from '../../utils/money';
 import { packagePrice } from '../../domain/subscriptions/packageCatalog';
 import { majorUnits } from '../../domain/subscriptions/priceCatalog';
+import { SMART_PACK } from '../../domain/subscriptions/addOnCatalog';
 
-// only the TEST 5186 preview (mode "localtest") and local development; a production build AND the unit tests (mode "test", which stand
-// for the LIVE landing) never show the promotion or the add-on box
-export const SMART_PACK_ENABLED = import.meta.env.MODE === 'localtest' || import.meta.env.MODE === 'development';
+// Owner console 2026-10-20 ("אז אפשר להעלות ללייב" + the typed IRON-LANDING-001 amendment): shown on every build, LIVE included. One
+// switch to hide the promotion and the add-on box again.
+export const SMART_PACK_ENABLED = true;
 
+// the prices come from the ONE add-on source (src/domain/subscriptions/addOnCatalog.js)
 export const SMART_PACK_PRICE_MINOR = Object.freeze({
-  IL: Object.freeze({ month: 1000, year: 10200 }),
-  INTERNATIONAL: Object.freeze({ month: 500, year: 5100 }),
+  IL: Object.freeze({ month: SMART_PACK.priceMinor.IL.month, year: SMART_PACK.priceMinor.IL.year }),
+  INTERNATIONAL: Object.freeze({ month: SMART_PACK.priceMinor.INTERNATIONAL.month, year: SMART_PACK.priceMinor.INTERNATIONAL.year }),
 });
 
 export const ilsSmartPack = (period) => `₪${formatWholeMoney(majorUnits(SMART_PACK_PRICE_MINOR.IL[period]))}`;

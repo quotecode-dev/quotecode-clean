@@ -475,6 +475,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/domain/subscriptions/addOnCatalog.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/domain/subscriptions/adminAccountSummary.js": {
     "interactive": 0,
     "markers": 0
@@ -1176,6 +1180,10 @@
     "markers": 0
   },
   "supabase/functions/chat-ai/accountContext.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/addOnTruth.ts": {
     "interactive": 0,
     "markers": 0
   },
