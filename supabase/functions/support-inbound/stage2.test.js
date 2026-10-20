@@ -34,6 +34,23 @@ describe('sorting rules (spec 2-3)', () => {
     expect(isAutomatedMessage({ 'Auto-Submitted': 'no' }, 'dana@x.test')).toBe(false);
     expect(isAutomatedMessage({}, 'dana@customer.test')).toBe(false);
   });
+  // Owner console 2026-10-20 (L-22): "דוחות אימות מיילים אוטומטיים מסווגים שחור, בלי אישור קבלה ובלי התראה" - the Microsoft report that
+  // came in RED (its footer says "privacy") and got an acknowledgement
+  it('mail-authentication reports are automated (report senders and the standard report subject); a customer asking about reports is not', () => {
+    const MS_SUBJECT = 'Report Domain: tekango.com Submitter: protection.outlook.com Report-ID: e84741837ffa4d908e041c620b678356';
+    expect(isAutomatedMessage({}, 'dmarcreport@microsoft.com', MS_SUBJECT)).toBe(true);
+    expect(isAutomatedMessage({}, 'dmarcreport@microsoft.com')).toBe(true);
+    expect(isAutomatedMessage({}, 'dmarc_support@yahoo.test')).toBe(true);
+    expect(isAutomatedMessage({}, 'noreply-dmarc-support@google.com')).toBe(true);
+    expect(isAutomatedMessage({}, 'tlsrpt-noreply@google.com')).toBe(true);
+    expect(isAutomatedMessage({}, 'reports@isp.test', MS_SUBJECT)).toBe(true);
+    expect(isAutomatedMessage({}, 'reports@isp.test', 'DMARC Aggregate Report for tekango.com')).toBe(true);
+    expect(isAutomatedMessage({}, 'reports@isp.test', '[Report] DMARC failure report for tekango.com')).toBe(true);
+    expect(isAutomatedMessage({}, 'dana@customer.test', 'Report domain problem - my quotes do not open')).toBe(false);
+    expect(isAutomatedMessage({}, 'dana@customer.test', 'שאלה על דוח החודש')).toBe(false);
+    expect(isAutomatedMessage({}, 'dmitry@customer.test', 'What is a DMARC record?')).toBe(false);
+    expect(isAutomatedMessage({}, 'dana@customer.test', null)).toBe(false);
+  });
   it('the reply language is the language they wrote; quoted history is cut before the model', () => {
     expect(detectLanguage('Question', 'שלום, איך מוסיפים לוגו?')).toBe('he');
     expect(detectLanguage('Logo', 'How do I add a logo?')).toBe('en');

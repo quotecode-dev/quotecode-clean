@@ -43,12 +43,19 @@ export function keywordTriage(subject: string | null, text: string | null, attac
 
 const OWN_DOMAINS = ['tekango.com', 'resend.app', 'resend.dev'];
 
-/** Spec 3.9: never answer an auto-reply, a bounce, a list or a no-reply sender (and never ourselves). */
-export function isAutomatedMessage(headers: unknown, fromAddress: string): boolean {
+// Owner console 2026-10-20, typed: "מאשר שינוי ב-L-22: דוחות אימות מיילים אוטומטיים מסווגים שחור, בלי אישור קבלה ובלי התראה" - the mail
+// authentication reports the domain's DNS asks for (DMARC aggregate / failure reports, SMTP TLS reports): a report sender such as
+// dmarcreport@microsoft.com, or the standard report subject "Report Domain: <d> Submitter: <s> ...", is automated.
+const REPORT_SENDER = /^(dmarc|tlsrpt|tls-rpt|smtp-tls-reporting)[a-z0-9._+-]*$/;
+const REPORT_SUBJECT = /^\s*(\[[^\]]*\]\s*)?(dmarc\s+(aggregate\s+|failure\s+)?report\b|report\s+domain:\s*\S+\s+submitter:\s*\S+)/i;
+
+/** Spec 3.9: never answer an auto-reply, a bounce, a list, a no-reply sender or a mail-authentication report (and never ourselves). */
+export function isAutomatedMessage(headers: unknown, fromAddress: string, subject: string | null = null): boolean {
   const from = String(fromAddress || '').toLowerCase();
   const local = from.split('@')[0] || '';
   const domain = from.split('@')[1] || '';
   if (/^(no-?reply|do-?not-?reply|mailer-daemon|postmaster|bounces?|notifications?|alerts?)([+.-].*)?$/.test(local)) return true;
+  if (REPORT_SENDER.test(local) || REPORT_SUBJECT.test(String(subject || ''))) return true;
   if (OWN_DOMAINS.some((d) => domain === d || domain.endsWith(`.${d}`))) return true;
   const h: Record<string, string> = {};
   if (headers && typeof headers === 'object') {
