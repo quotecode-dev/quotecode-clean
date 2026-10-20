@@ -77,7 +77,7 @@ const COPY = {
     stopDictate: (s) => `עצירה ושימוש בהקלטה (0:${String(s).padStart(2, '0')})`,
     transcribing: 'ממיר את הדיבור לטקסט…',
     answerByVoice: 'מענה בקול לשאלות',
-    voiceErrors: { mic_denied: 'אין גישה למיקרופון. אפשר לאשר גישה בהגדרות הדפדפן, או להקליד.', failed: 'לא הצלחתי להבין את ההקלטה. אפשר לנסות שוב או להקליד.', limit: 'הגעת למכסת הפעולות הקוליות היומית. אפשר להמשיך בהקלדה.' },
+    voiceErrors: { mic_denied: 'אין גישה למיקרופון. אפשר לאשר גישה בהגדרות הדפדפן, או להקליד.', failed: 'לא הצלחתי להבין את ההקלטה. אפשר לנסות שוב או להקליד.', limit: 'הגעת למכסת הפעולות הקוליות היומית. אפשר להמשיך בהקלדה.', smart_pack: 'הצ׳אט הקולי וההכתבה הם חלק מחכם פלוס. אפשר להוסיף אותו במסך המסלולים.' },
     errors: {
       not_deployed: 'שירות טיוטות ה-AI עדיין לא מותקן בשרת הזה (השרת השיב שהשירות לא נמצא). אפשר למלא את ההצעה ידנית או לשאול את צ׳אט ה-AI.',
       service_unreachable: 'שירות טיוטות ה-AI לא זמין בשרת הזה: השרת עצמו עונה, אבל השירות לא ענה לבקשה. בדרך כלל זה אומר שהשירות עדיין לא הותקן בשרת. אפשר למלא את ההצעה ידנית או לשאול את צ׳אט ה-AI.',
@@ -87,6 +87,8 @@ const COPY = {
       provider: 'שירות ה-AI לא החזיר טיוטה כרגע. נסו שוב בעוד רגע, או מלאו את ההצעה ידנית.',
       no_items: 'לא נמצאו פריטים בתיאור. נסו לפרט יותר מה העבודה כוללת.',
       market_unresolved: 'כדי ליצור טיוטה צריך קודם להשלים את אזור העסק בהגדרות העסק.',
+      // Owner 2026-10-20 (typed L-17 approval): the AI smart quote is SMART PACK once the plan system is enforced
+      smart_pack_required: 'ההצעה החכמה עם AI היא חלק מחכם פלוס. אפשר להוסיף אותו במסך המסלולים, או למלא את ההצעה ידנית.',
       unauthenticated: 'החיבור לחשבון פג. התחברו מחדש ונסו שוב.',
       invalid: `התיאור צריך להיות באורך ${MIN_DESCRIPTION_CHARS}–${MAX_DESCRIPTION_CHARS} תווים.`,
       failed: 'משהו השתבש ביצירת הטיוטה. נסו שוב, או מלאו את ההצעה ידנית.',
@@ -138,7 +140,7 @@ const COPY = {
     stopDictate: (s) => `Stop and use the recording (0:${String(s).padStart(2, '0')})`,
     transcribing: 'Turning your speech into text…',
     answerByVoice: 'Answer the questions by voice',
-    voiceErrors: { mic_denied: 'No microphone access. You can allow it in your browser settings, or type.', failed: "I couldn't understand the recording. Try again or type.", limit: "You've reached today's voice limit. You can keep typing." },
+    voiceErrors: { mic_denied: 'No microphone access. You can allow it in your browser settings, or type.', failed: "I couldn't understand the recording. Try again or type.", limit: "You've reached today's voice limit. You can keep typing.", smart_pack: 'Voice chat and dictation are part of SMART PACK. You can add it in the plans view.' },
     errors: {
       not_deployed: 'The AI draft service is not installed on this server yet (the server answered that it was not found). You can fill in the quote manually or ask the AI chat.',
       service_unreachable: 'The AI draft service is not available on this server: the server itself answers, but the service did not respond to the request. This usually means it has not been installed on the server yet. You can fill in the quote manually or ask the AI chat.',
@@ -148,6 +150,7 @@ const COPY = {
       provider: 'The AI service did not return a draft right now. Try again in a moment, or fill in the quote manually.',
       no_items: 'No items were found in the description. Try describing what the job includes in more detail.',
       market_unresolved: 'To create a draft, first complete your business region in Business settings.',
+      smart_pack_required: 'The AI smart quote is part of SMART PACK. You can add it in the plans view, or fill in the quote manually.',
       unauthenticated: 'Your session expired. Sign in again and retry.',
       invalid: `The description must be ${MIN_DESCRIPTION_CHARS}–${MAX_DESCRIPTION_CHARS} characters long.`,
       failed: 'Something went wrong while creating the draft. Try again, or fill in the quote manually.',
