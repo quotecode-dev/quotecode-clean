@@ -8,8 +8,6 @@ import { FREE_QUOTES_TOTAL, ilsPackageAmount, usdPackageAmount, ilsAnnualSaving,
 import { RATE_SOURCE_NAME, ESTIMATE_CURRENCIES } from './localPriceEstimate';
 import { formatMoney, formatWholeMoney } from '../../utils/money';
 import { PLAN_NAMES } from '../../../supabase/functions/_shared/subscriptionContract.ts';
-import { ilsSmartPack, ilsWithSmartPack, usdSmartPack, usdWithSmartPack } from '../../components/landing/smartPackFacts';
-import { SMART_PACK } from './addOnCatalog';
 
 // Task 39 (Owner final scope): International accounts whose identified currency is GBP / EUR also see a labelled estimate from the
 // same rate source as the landing (`estimateRate` = a localPriceEstimate record or null); the shown / billed amounts stay USD.
@@ -41,18 +39,6 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
     lines: isHebrew
       ? [`אחרי ${FREE_QUOTES_TOTAL} ההצעות החינמיות`, 'המנוי החודשי מתחדש כל חודש, והשנתי כל שנה']
       : [`After the ${FREE_QUOTES_TOTAL} free quotes`, 'The monthly plan renews every month, the annual plan every year'],
-    // Owner console 2026-10-20 (typed: "מאשר שינוי ב-L-22: תיבת הוספה של חכם פלוס במסך המסלולים בתוך המערכת ..."): the unticked SMART PACK
-    // add-on box - ticked, the shown price is the package plus the add-on for the chosen period (display only; purchase is not open)
-    addOn: {
-      label: isHebrew ? `הוספת ${SMART_PACK.name.he}` : `Add ${SMART_PACK.name.en}`,
-      perPeriod: il ? {
-        month: { add: isHebrew ? `(+${ilsSmartPack('month')} לחודש)` : `(+${ilsSmartPack('month')} / month)`, amount: ilsWithSmartPack('month'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${ilsPackageAmount('month')} + ${ilsSmartPack('month')}` },
-        year: { add: isHebrew ? `(+${ilsSmartPack('year')} לשנה)` : `(+${ilsSmartPack('year')} / year)`, amount: ilsWithSmartPack('year'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${ilsPackageAmount('year')} + ${ilsSmartPack('year')}` },
-      } : {
-        month: { add: isHebrew ? `(+${usdSmartPack('month')} לחודש)` : `(+${usdSmartPack('month')} / month)`, amount: usdWithSmartPack('month'), line: `${isHebrew ? 'כולל SMART PACK' : 'With SMART PACK'}: ${usdPackageAmount('month').text} + ${usdSmartPack('month')}` },
-        year: { add: isHebrew ? `(+${usdSmartPack('year')} לשנה)` : `(+${usdSmartPack('year')} / year)`, amount: usdWithSmartPack('year'), line: `${isHebrew ? 'כולל SMART PACK' : 'With SMART PACK'}: ${usdPackageAmount('year').text} + ${usdSmartPack('year')}` },
-      },
-    },
   };
   const wantCur = !il && typeof accountCurrency === 'string' && ESTIMATE_CURRENCIES.includes(accountCurrency.toUpperCase()) ? accountCurrency.toUpperCase() : null;
   const mo = wantCur ? usdPackageAmount('month', estimateRate) : null; const yr = wantCur ? usdPackageAmount('year', estimateRate) : null;

@@ -132,24 +132,6 @@ describe('stage 2 (Owner 2026-10-20, L-22): colours, state, mailbox column, coun
     expect(screen.getByTestId('inquiries-setting-auto_send_green').checked).toBe(true);
   });
 
-  it('Owner 2026-10-20 (L-22): every column sorts (colour = red first), the colour filter narrows, subjects align to the page start', async () => {
-    mocks.result = { data: [DONE, DRAFT, RED], error: null };
-    render(<AdminInquiries isHebrew />);
-    await screen.findAllByTestId('inquiry-row');
-    const order = () => screen.getAllByTestId('inquiry-row').map((r) => within(r).getByTestId('inquiry-subject').textContent);
-    fireEvent.click(screen.getByTestId('inquiries-sort-bin'));
-    expect(order()[0]).toBe('ביטול');
-    fireEvent.click(screen.getByTestId('inquiries-sort-bin'));
-    expect(order()[2]).toBe('ביטול');
-    fireEvent.click(screen.getByTestId('inquiries-sort-state'));
-    expect(order()).toEqual(['נענה', 'איך מוסיפים לוגו?', 'ביטול']);
-    fireEvent.click(screen.getByTestId('inquiries-sort-mailbox'));
-    expect(screen.getAllByTestId('inquiry-mailbox')[0].textContent).toBe('info@tekango.com');
-    fireEvent.change(screen.getByTestId('inquiries-bin-filter'), { target: { value: 'red' } });
-    expect(order()).toEqual(['ביטול']);
-    expect(screen.getAllByTestId('inquiry-subject')[0].style.textAlign).toBe('right');
-  });
-
   it('the sidebar "פניות" item carries the red counter of what waits (none = no counter)', async () => {
     mocks.count = 3;
     render(<AdminSidebarNav section={null} onSelect={() => {}} isHebrew />);

@@ -5,7 +5,7 @@
 // (sending by colour - off = drafts only, the trial - and the stop switch) and the Owner's actions in the inquiry dialog. Every write
 // goes through the support-admin function (super admin check + the one mail gate); this screen only reads the tables.
 import { useEffect, useState } from 'react';
-import { Inbox, Search, Clock, Mail, MessageSquareText, Paperclip, X, ShieldCheck, AtSign, CircleDot, Settings2, Send, Sparkles, Ban, Info, Palette, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { Inbox, Search, Clock, Mail, MessageSquareText, Paperclip, X, ShieldCheck, AtSign, CircleDot, Settings2, Send, Sparkles, Ban, Info } from 'lucide-react';
 import { supabase } from '../shared/supabase';
 import { formatShortDateTime } from '../utils/shortDate';
 import AdminScreenFrame from './AdminScreenFrame';
@@ -26,8 +26,6 @@ const INQUIRIES_COPY = Object.freeze({
   preview: { he: 'תוכן', en: 'Text' },
   mailbox: { he: 'נשלח אל', en: 'Sent to' },
   state: { he: 'מצב', en: 'State' },
-  colour: { he: 'צבע', en: 'Colour' },
-  colourFilter: { he: 'סינון לפי צבע', en: 'Filter by colour' },
   detail: { he: 'פרטי הפנייה', en: 'Inquiry details' },
   close: { he: 'סגירה', en: 'Close' },
   to: { he: 'נשלח אל', en: 'Sent to' },
@@ -104,19 +102,6 @@ const FILTER_LABELS = {
   dismissed: { he: 'לא נשלחו', en: 'Not sent' }, ignored: { he: 'אוטומטי / ספאם', en: 'Automated / spam' },
 };
 const isPending = (r) => r.status === 'waiting' || r.status === 'draft';
-const COLOUR_ALL = { he: 'כל הצבעים', en: 'All colours' };
-const COLOUR_UNSORTED = { he: 'עוד לא מוין', en: 'Not sorted yet' };
-// sort keys: colour by urgency (red first when descending), state by what needs the Owner, the rest as text / time
-const BIN_RANK = { red: 4, yellow: 3, green: 2, black: 1 };
-const STATE_RANK = { waiting: 6, draft: 5, new: 4, answered: 3, dismissed: 2, ignored: 1 };
-const SORTERS = {
-  bin: (r) => BIN_RANK[r.bin] || 0,
-  received: (r) => String(r.received_at || ''),
-  from: (r) => String(r.from_address || '').toLowerCase(),
-  mailbox: (r) => String(r.mailbox || ''),
-  subject: (r) => String(r.subject || '').toLowerCase(),
-  state: (r) => STATE_RANK[r.status] || 0,
-};
 const canAct = (r) => ['new', 'waiting', 'draft'].includes(r.status);
 
 function BinDot({ bin, isHebrew }) {
@@ -133,9 +118,6 @@ export default function AdminInquiries({ isHebrew = true }) {
   const [failed, setFailed] = useState(false);
   const [term, setTerm] = useState('');
   const [filter, setFilter] = useState('all');
-  // Owner console 2026-10-20 (typed: "מאשר שינוי ב-L-22: ... ומיון וסינון בלשונית פניות"): sort by every column (colour included), filter by colour
-  const [binFilter, setBinFilter] = useState('all');
-  const [sort, setSort] = useState({ key: 'received', dir: 'desc' });
   const [selected, setSelected] = useState(null);
   const [replyText, setReplyText] = useState('');
   const [busy, setBusy] = useState(false);
@@ -161,11 +143,7 @@ export default function AdminInquiries({ isHebrew = true }) {
 
   const q = term.trim().toLowerCase();
   const byFilter = (r) => filter === 'all' || (filter === 'pending' ? isPending(r) : r.status === filter);
-  const byBin = (r) => binFilter === 'all' || (binFilter === 'unsorted' ? !r.bin : r.bin === binFilter);
-  const sortValue = SORTERS[sort.key] || SORTERS.received;
-  const shown = rows.filter((r) => byFilter(r) && byBin(r) && (!q || [r.from_address, r.from_name, r.subject, r.text_body].some((v) => String(v || '').toLowerCase().includes(q))))
-    .map((r, i) => ({ r, i })).sort((a, b) => { const x = sortValue(a.r); const y = sortValue(b.r); const c = x < y ? -1 : x > y ? 1 : 0; return (sort.dir === 'asc' ? c : -c) || a.i - b.i; }).map((o) => o.r);
-  const toggleSort = (key) => setSort((cur) => (cur.key === key ? { key, dir: cur.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'received' || key === 'bin' ? 'desc' : 'asc' }));
+  const shown = rows.filter((r) => byFilter(r) && (!q || [r.from_address, r.from_name, r.subject, r.text_body].some((v) => String(v || '').toLowerCase().includes(q))));
   const pendingCount = rows.filter(isPending).length;
   const when = (iso) => (iso ? formatShortDateTime(iso, isHebrew ? 'Local' : 'International') : '');
   // a date + time inside a sentence stays ONE left-to-right unit (Unicode isolate) - never split by the Hebrew direction
@@ -179,8 +157,7 @@ export default function AdminInquiries({ isHebrew = true }) {
     if (s.startsWith('word:')) return isHebrew ? `המילה "${s.slice(5)}"` : `The word "${s.slice(5)}"`;
     return L(REASONS[s]) || s || '-';
   };
-  const colgroup = <colgroup>{[7, 14, 22, 16, 24, 17].map((w, i) => <col key={i} style={{ width: `${w}%` }} />)}</colgroup>;
-  const startAlign = { textAlign: isHebrew ? 'right' : 'left' };
+  const colgroup = <colgroup>{[15, 24, 17, 26, 18].map((w, i) => <col key={i} style={{ width: `${w}%` }} />)}</colgroup>;
   const detail = (label, Icon, value, ltr) => (
     <div className="admin-details-row" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><Icon size={13} color="#0F6672" />{label}</span>
@@ -247,9 +224,6 @@ export default function AdminInquiries({ isHebrew = true }) {
             <select className="admin-inquiry-filter" aria-label={t.filter} value={filter} onChange={(e) => setFilter(e.target.value)} data-testid="inquiries-filter">
               {FILTERS.map((f) => <option key={f} value={f}>{L(FILTER_LABELS[f])}</option>)}
             </select>
-            <select className="admin-inquiry-filter" aria-label={t.colourFilter} value={binFilter} onChange={(e) => setBinFilter(e.target.value)} data-testid="inquiries-bin-filter">
-              {['all', 'red', 'yellow', 'green', 'black', 'unsorted'].map((b) => <option key={b} value={b}>{b === 'all' ? L(COLOUR_ALL) : b === 'unsorted' ? L(COLOUR_UNSORTED) : L(BINS[b])}</option>)}
-            </select>
             {pendingCount > 0 && <span className="admin-count-pill" data-testid="inquiries-pending">{pendingCount}</span>}
             {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
             <button type="button" className="admin-inquiry-settings-btn" onClick={() => setSettingsOpen(true)} data-testid="inquiries-settings">
@@ -263,13 +237,8 @@ export default function AdminInquiries({ isHebrew = true }) {
               {colgroup}
               <thead>
                 <tr>
-                  {[['bin', t.colour, Palette], ['received', t.time, Clock], ['from', t.from, Mail], ['mailbox', t.mailbox, AtSign], ['subject', t.subject, Inbox], ['state', t.state, CircleDot]].map(([key, label, Icon]) => (
-                    <th key={key} scope="col" aria-sort={sort.key === key ? (sort.dir === 'asc' ? 'ascending' : 'descending') : 'none'}>
-                      {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-                      <button type="button" className="admin-sort" onClick={() => toggleSort(key)} data-testid={`inquiries-sort-${key}`} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
-                        <Icon size={12} aria-hidden="true" /> {label} {sort.key === key ? (sort.dir === 'asc' ? <ArrowUp size={12} aria-hidden="true" /> : <ArrowDown size={12} aria-hidden="true" />) : <ArrowUpDown size={12} aria-hidden="true" style={{ opacity: 0.45 }} />}
-                      </button>
-                    </th>
+                  {[[t.time, Clock], [t.from, Mail], [t.mailbox, AtSign], [t.subject, Inbox], [t.state, CircleDot]].map(([label, Icon]) => (
+                    <th key={label} scope="col"><span className="admin-sort" style={{ cursor: 'default' }}><Icon size={12} aria-hidden="true" /> {label}</span></th>
                   ))}
                 </tr>
               </thead>
@@ -290,11 +259,10 @@ export default function AdminInquiries({ isHebrew = true }) {
                   {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
                   {shown.map((r) => (
                     <tr key={r.id} className="admin-support-row" data-testid="inquiry-row" onClick={() => openInquiry(r)} title={t.open}>
-                      <td><BinDot bin={r.bin} isHebrew={isHebrew} /></td>
-                      <td><span className="admin-date" dir="ltr">{when(r.received_at)}</span></td>
+                      <td><span className="admin-inquiry-when"><BinDot bin={r.bin} isHebrew={isHebrew} /><span className="admin-date" dir="ltr">{when(r.received_at)}</span></span></td>
                       <td><span className="admin-support-cell" dir="ltr">{sender(r)}</span></td>
                       <td><span className="admin-support-cell" dir="ltr" data-testid="inquiry-mailbox">{mailboxOf(r)}</span></td>
-                      <td><span className="admin-support-cell" dir="auto" style={startAlign} data-testid="inquiry-subject">{r.subject || t.noSubject}</span></td>
+                      <td><span className="admin-support-cell" dir="auto">{r.subject || t.noSubject}</span></td>
                       <td><span className={isPending(r) ? 'admin-inquiry-state is-pending' : 'admin-inquiry-state'}>{stateText(r)}</span></td>
                     </tr>
                   ))}
