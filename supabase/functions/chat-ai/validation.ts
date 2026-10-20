@@ -12,6 +12,7 @@ import { CHAT_CONTRACT_VERSION } from "../_shared/aiChatContract.ts";
 import { buildPaymentTruthBlock } from "./paymentTruth.ts";
 import { buildInvoicingTruthBlock } from "./invoicingTruth.ts";
 import { buildCapabilityTruthBlock } from "./capabilityTruth.ts";
+import { buildHowToBlock } from "./howToTruth.ts";
 import { sanitizeHelpContext, TRANSCRIPT_LIMITS } from "../_shared/aiHelpContract.js";
 import { buildSubscriptionTruthBlock } from "./subscriptionTruth.ts";
 import { planName } from "../_shared/subscriptionContract.ts";
@@ -538,6 +539,8 @@ ${buildPaymentTruthBlock(isHebrew, AI_FACTS.billing)}
 ${buildInvoicingTruthBlock(AI_FACTS.invoicing)}
 
 ${buildCapabilityTruthBlock({ capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities })}
+
+${buildHowToBlock(isHebrew, AI_FACTS.howTo)}
 
 ${pricingBlock}
 

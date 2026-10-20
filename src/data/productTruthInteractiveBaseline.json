@@ -1199,6 +1199,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/chat-ai/howToTruth.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/chat-ai/index.ts": {
     "interactive": 0,
     "markers": 0
