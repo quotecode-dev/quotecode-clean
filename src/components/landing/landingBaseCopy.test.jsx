@@ -119,7 +119,7 @@ describe('L12 - plans section heading is the base title and subtitle', () => {
 // descriptions (quoteStyles.js STYLE_COPY) are no longer plan taglines, and "all available capabilities" never names Modern / Visual.
 describe('L13 - plan taglines (§249 Free-10 + one all-inclusive package)', () => {
   it('HE Free / all-inclusive (no superlative; no "ללא מגבלות")', () => {
-    for (const s of ['הצעות מחיר חינם, בלי הגבלת זמן.', 'מסלול אחד עם כל היכולות הזמינות במערכת, בתשלום חודשי או שנתי.']) expect(heHtml).toContain(`<p class="tl-plan-tagline" data-region="description">${s}</p>`);
+    for (const s of ['חינם עד 10 הצעות או 7 ימים, המוקדם מביניהם.', 'מסלול אחד עם כל היכולות הזמינות במערכת, בתשלום חודשי או שנתי.']) expect(heHtml).toContain(`<p class="tl-plan-tagline" data-region="description">${s}</p>`);
     for (const s of [STYLE_COPY.he.classic.description, STYLE_COPY.he.modern.description, STYLE_COPY.he.visual.description]) expect(heHtml).not.toContain(`<p class="tl-plan-tagline" data-region="description">${s}</p>`);
     expect(he).not.toContain('ללא מגבלות');
     expect(he).not.toContain('פתרון מושלם');
@@ -130,7 +130,7 @@ describe('L13 - plan taglines (§249 Free-10 + one all-inclusive package)', () =
     // R3 (local fix 6, IRON-LANDING-001): the EN PRO tagline drops the unqualified 'with no limits' (PRO has real limits, e.g.
     // attachments up to 30MB) - the factual counterpart of the approved HE tagline. Price / plan / trial / entitlement unchanged.
     expect(en).not.toMatch(/no limits/i);
-    for (const s of ['A free plan with no time limit.', 'One package with every available capability, billed monthly or annually.']) expect(enHtml).toContain(`<p class="tl-plan-tagline" data-region="description">${s}</p>`);
+    for (const s of ['Free for 10 quotes or 7 days, whichever comes first.', 'One package with every available capability, billed monthly or annually.']) expect(enHtml).toContain(`<p class="tl-plan-tagline" data-region="description">${s}</p>`);
     for (const s of [STYLE_COPY.en.classic.description, STYLE_COPY.en.modern.description, STYLE_COPY.en.visual.description]) expect(enHtml).not.toContain(`<p class="tl-plan-tagline" data-region="description">${s.replace(/'/g, '&#x27;')}</p>`);
     expect(en).not.toContain('no quote limit');
   });

@@ -8,7 +8,7 @@ import { FREE_QUOTES_TOTAL } from './priceCatalog';
 
 export const CUTOVER_COPY = Object.freeze({
   he: Object.freeze({
-    authSignup: `להרשמה ולקבלת ${FREE_QUOTES_TOTAL} הצעות מחיר חינם בסך הכול, ללא הגבלת זמן, יש למלא את הפרטים הבאים.`,
+    authSignup: `להרשמה ולקבלת ${FREE_QUOTES_TOTAL} הצעות מחיר חינם בסך הכול או 7 ימים, המוקדם מביניהם, יש למלא את הפרטים הבאים.`,
     signupSuccess: `ההרשמה הצליחה! מכינים את החשבון שלכם עם ${FREE_QUOTES_TOTAL} הצעות מחיר חינם...`,
     consumptionWarning: `פעולה זו תנצל הצעה אחת מתוך ${FREE_QUOTES_TOTAL} ההצעות החינמיות שלכם`,
     balance: (remaining) => `נותרו ${remaining} מתוך ${FREE_QUOTES_TOTAL} הצעות חינם`,
@@ -16,7 +16,7 @@ export const CUTOVER_COPY = Object.freeze({
     badge: Object.freeze({ free10: 'חינם', classic: 'Classic', modern: 'Modern', visual: 'Visual', legacy: 'מסלול קודם' }),
   }),
   en: Object.freeze({
-    authSignup: `Sign up to get ${FREE_QUOTES_TOTAL} free quotes in total, with no time limit.`,
+    authSignup: `Sign up to get ${FREE_QUOTES_TOTAL} free quotes in total or 7 days, whichever comes first.`,
     signupSuccess: `Sign-up successful! Setting up your account with ${FREE_QUOTES_TOTAL} free quotes...`,
     consumptionWarning: `This action will use 1 of your ${FREE_QUOTES_TOTAL} free quotes`,
     balance: (remaining) => `${remaining} of ${FREE_QUOTES_TOTAL} free quotes left`,

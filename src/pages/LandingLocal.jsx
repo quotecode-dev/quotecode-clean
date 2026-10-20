@@ -40,9 +40,9 @@ export default function LandingLocal({ onForgotPassword }) {
   const savingRate = ilsAnnualSavingRate();
   const plans = [
     {
-      id: 'free', icon: Gift, name: 'חינם', tagline: 'הצעות מחיר חינם, בלי הגבלת זמן.',
+      id: 'free', icon: Gift, name: 'חינם', tagline: 'חינם עד 10 הצעות או 7 ימים, המוקדם מביניהם.',
       prices: [{ period: 'free', amount: `₪${formatWholeMoney(0)}`, per: null }],
-      capacity: [`${FREE_QUOTES_TOTAL} הצעות מחיר בסך הכול`, 'בלי הגבלת זמן'],
+      capacity: [`${FREE_QUOTES_TOTAL} הצעות מחיר בסך הכול`, 'או 7 ימים מההרשמה, המוקדם מביניהם', 'בשבעת הימים כלול גם חכם פלוס'],
       features: [
         'הצעה נספרת כשהיא יוצאת ללקוח; גרסה חדשה או לקוח אחר נספרים שוב',
         'טיוטות ותצוגה מקדימה לא נספרות',
@@ -111,7 +111,7 @@ export default function LandingLocal({ onForgotPassword }) {
       // L08: no public link / caption to the sample-quote route (no authority); the figure keeps an accessible name only.
       docLabel: 'הצעת מחיר לדוגמה בסגנון Classic',
       // OD-01 / IRON-LANDING-001: the line under the Free-10 button states the offer and its true state.
-      trial: '10 הצעות מחיר חינם בסך הכול, בלי הגבלת זמן. ההטבה עדיין לא הופעלה.',
+      trial: '10 הצעות מחיר חינם או 7 ימים מההרשמה, המוקדם מביניהם. ההטבה עדיין לא הופעלה.',
       motion: {
         eyebrow: 'הצעות מחיר שעובדות בשבילכם',
         title: 'מהעבודה בשטח להצעה חתומה',
@@ -218,7 +218,7 @@ export default function LandingLocal({ onForgotPassword }) {
         { q: 'האם המחירים המוצגים כוללים מע״מ?', a: 'כן. המחירים כוללים מע״מ, ולא יתווסף אליהם מע״מ.' },
         // OD-01/OD-02 (Owner 2026-10-07): the trial question is replaced by the Free-10 policy, truthfully not yet activated.
         // Task 37 (Owner-approved): the same facts as scannable points; the last line = the L1 meaning.
-        { q: 'איך עובדות 10 ההצעות החינמיות?', a: <>ההטבה כוללת 10 הצעות מחיר חינם בסך הכול, בלי הגבלת זמן.<ul className="tl-faq-list"><li>הצעה נספרת כשהיא יוצאת ללקוח: בשליחה, בקישור לצפייה, ב-PDF סופי או בהדפסה סופית.</li><li>שליחה או הפקה חוזרת של אותה גרסה לאותו לקוח לא נספרת שוב, גם בערוץ אחר.</li><li>שינוי הלקוח, שם הנמען או תוכן ההצעה והפקה מחדש נספרים כהצעה נוספת.</li><li>טיוטות ותצוגה מקדימה לא נספרות.</li><li>מחיקת הצעה לא מחזירה אותה למכסה, והצעות שכבר יצאו ללקוחות נשארות זמינות.</li></ul>ההטבה עדיין לא הופעלה; תנאי החשבון הזמינים כעת מוצגים בתהליך ההרשמה.</> },
+        { q: 'איך עובדות 10 ההצעות החינמיות?', a: <>ההטבה כוללת 10 הצעות מחיר חינם בסך הכול, או 7 ימים מההרשמה, המוקדם מביניהם. בשבעת הימים כלול גם חכם פלוס.<ul className="tl-faq-list"><li>הצעה נספרת כשהיא יוצאת ללקוח: בשליחה, בקישור לצפייה, ב-PDF סופי או בהדפסה סופית.</li><li>שליחה או הפקה חוזרת של אותה גרסה לאותו לקוח לא נספרת שוב, גם בערוץ אחר.</li><li>שינוי הלקוח, שם הנמען או תוכן ההצעה והפקה מחדש נספרים כהצעה נוספת.</li><li>טיוטות ותצוגה מקדימה לא נספרות.</li><li>מחיקת הצעה לא מחזירה אותה למכסה, והצעות שכבר יצאו ללקוחות נשארות זמינות.</li></ul>ההטבה עדיין לא הופעלה; תנאי החשבון הזמינים כעת מוצגים בתהליך ההרשמה.</> },
         { q: 'האם המערכת מותאמת לסמארטפון ולמחשב?', a: 'כן. אפשר להפיק הצעות ולנהל את העסק מהמחשב, מהטאבלט או מהטלפון.' },
         // Verifiable infrastructure facts only (TLS in transit, encryption at rest by the Supabase/PostgreSQL platform).
         { q: 'האם הנתונים העסקיים שלי מאובטחים בענן?', a: 'כן. הנתונים שמורים בענן ומוצפנים, גם בזמן ההעברה וגם באחסון. רק אתם יכולים לגשת לנתונים של החשבון שלכם.' },
