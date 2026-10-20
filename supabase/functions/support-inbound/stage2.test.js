@@ -177,6 +177,18 @@ describe('processInquiry - what happens to one email', () => {
     expect(mails[0].body.text).toContain('בהגדרות העסק יש שדה לוגו.');
     expect(mails[0].init.headers['Idempotency-Key']).toMatch(/\/reply$/);
   });
+  it('Owner 2026-10-20 (L-14): the draft knows the verified how-to steps; a draft that sends the sender elsewhere is not an answer (RED)', async () => {
+    const ok = await run(ROW());
+    const system = ok.model.calls[1].messages[0].content;
+    expect(system).toContain('HOW-TO FACTS');
+    expect(system).toContain('כתובת תמונת לוגו (URL) או העלאת קובץ');
+    expect(system).toContain('Never tell the sender to contact us');
+    const away = await run(ROW(), { model: fakeModel({ draft: 'שלום,\nכדי להוסיף לוגו, פנו אלינו דרך www.tekango.com ונשמח לסייע.' }) });
+    expect(away.res).toMatchObject({ bin: 'red' });
+    expect(away.store.updates[0].patch.bin_reason).toBe('no_safe_answer');
+    const en = await run(ROW({ subject: 'Logo', text_body: 'How do I add my logo?' }), { model: fakeModel({ draft: 'Hello,\nPlease contact us through the website.' }) });
+    expect(en.res.bin).toBe('red');
+  });
   it('GREEN without a safe answer becomes RED for the Owner', async () => {
     const { res } = await run(ROW(), { model: fakeModel({ draft: 'CANNOT_ANSWER' }) });
     expect(res.bin).toBe('red');

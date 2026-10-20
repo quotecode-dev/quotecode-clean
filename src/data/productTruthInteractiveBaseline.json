@@ -341,13 +341,17 @@
   },
   "src/components/landing/LandingPlans.jsx": {
     "interactive": 0,
-    "markers": 1
+    "markers": 2
   },
   "src/components/landing/LandingQuoteDocument.jsx": {
     "interactive": 0,
     "markers": 0
   },
   "src/components/landing/QuoteStyleShowcase.jsx": {
+    "interactive": 1,
+    "markers": 1
+  },
+  "src/components/landing/SmartPackShowcase.jsx": {
     "interactive": 1,
     "markers": 1
   },
@@ -368,6 +372,10 @@
     "markers": 0
   },
   "src/components/landing/showcaseAvailability.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/landing/smartPackFacts.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -464,6 +472,10 @@
     "markers": 0
   },
   "src/domain/subscriptions/accountSummaryClient.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/domain/subscriptions/addOnCatalog.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -1171,6 +1183,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/chat-ai/addOnTruth.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/chat-ai/aiFacts.generated.ts": {
     "interactive": 0,
     "markers": 0
@@ -1196,6 +1212,10 @@
     "markers": 0
   },
   "supabase/functions/chat-ai/helpContext.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/chat-ai/howToTruth.ts": {
     "interactive": 0,
     "markers": 0
   },

@@ -6,11 +6,16 @@
 // annual saving vs 12 monthly payments). Choosing a period only changes the displayed price: registration and billing are not active, so the cards carry no purchase, signup or plan-hint action and nothing is stored.
 // The Free-10 call to action lives OUTSIDE the cards (LandingPage.jsx), always paired with its "not active yet" status.
 import { useId, useState } from 'react';
-import { CheckCircle2 } from 'lucide-react';
+import { CheckCircle2, Check, BrainCircuit } from 'lucide-react';
+import './smartPack.css';
 
+// Owner 2026-10-20 (TEST only): a card may offer the SMART PACK add-on (`addOn`) - an unticked box under the price; ticked, the shown price
+// becomes the package plus the add-on for the chosen period, with the breakdown line. Display only: nothing is purchased or stored.
 function PlanPrice({ plan }) {
   const uid = useId();
   const [period, setPeriod] = useState(plan.prices[0]?.period);
+  const [withAddOn, setWithAddOn] = useState(false);
+  const addOnFor = (r) => (withAddOn && plan.addOn ? plan.addOn.perPeriod[r.period] : null);
   const choice = plan.periodChoice && plan.prices.length > 1 ? plan.periodChoice : null;
   const shown = choice ? plan.prices.filter((r) => r.period === period) : plan.prices;
   return (
@@ -33,13 +38,23 @@ function PlanPrice({ plan }) {
         {shown.map((r) => (
           <div key={r.period}>
             <p className="tl-plan-price-row" data-billing-period={r.period}>
-              <span className="tl-plan-amount">{r.amount}</span>
+              <span className="tl-plan-amount">{addOnFor(r)?.amount || r.amount}</span>
               {r.per && <span className="tl-plan-per">{r.per}</span>}
             </p>
+            {addOnFor(r) && <p className="tl-plan-addon-line" data-addon-line={r.period}>{addOnFor(r).line}</p>}
             {r.note && <p className="tl-plan-saving" data-period-note={r.period}>{r.note}</p>}
           </div>
         ))}
       </div>
+      {plan.addOn && (
+        <label className={`tl-plan-addon${withAddOn ? ' is-checked' : ''}`} data-addon-choice>
+          {/* PRODUCT_TRUTH_DECORATIVE: adds the SMART PACK add-on to the review card's shown price; no purchase, nothing stored */}
+          <input type="checkbox" checked={withAddOn} onChange={(e) => setWithAddOn(e.target.checked)} data-addon-toggle />
+          <span className="tl-plan-addon-check" aria-hidden="true"><Check size={14} strokeWidth={3} /></span>
+          <span className="tl-plan-addon-icon" aria-hidden="true"><BrainCircuit size={18} strokeWidth={2.1} /></span>
+          <span className="tl-plan-addon-text"><strong>{plan.addOn.label}</strong> {plan.addOn.perPeriod[period]?.add}</span>
+        </label>
+      )}
     </div>
   );
 }

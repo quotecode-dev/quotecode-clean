@@ -9,6 +9,8 @@ import { FREE_QUOTES_TOTAL, usdPackageAmount, usdAnnualSaving, usdAnnualSavingRa
 import { loadLocalEstimate, CURRENCY_SYMBOL, RATE_SOURCE_NAME } from '../domain/subscriptions/localPriceEstimate';
 import BrandName from '../components/BrandName';
 import LandingPage from '../components/landing/LandingPage';
+import { SMART_PACK_ENABLED } from '../components/landing/smartPackFacts';
+import { usdSmartPack, usdWithSmartPack } from '../components/landing/smartPackFacts';
 
 // Task 16 (correction A, 2026-10-05): the International (EN) landing uses the approved refined composition
 // (revision-r2-refined landing-en.html) through the shared LandingPage layout. This file keeps EVERY customer-facing
@@ -74,6 +76,17 @@ export default function LandingGlobal({ onForgotPassword }) {
       ],
       // Task 26: the visitor chooses ONE billing period and sees that single price (initially monthly); review display only.
       periodChoice: { legend: 'Billing period', labels: { month: 'Monthly', year: 'Annual' } },
+      // Owner 2026-10-20 (TEST only): the SMART PACK add-on box. Charged in USD: with a local estimate shown, the total stays a USD line
+      // (never a converted figure); in USD the shown price becomes the package plus the add-on.
+      ...(SMART_PACK_ENABLED ? {
+        addOn: {
+          label: 'Add SMART PACK',
+          perPeriod: {
+            month: { add: `(+${usdSmartPack('month')} / month)`, amount: est ? null : usdWithSmartPack('month'), line: <>With SMART PACK: <bdi dir="ltr">{month.text}</bdi> + <bdi dir="ltr">{usdSmartPack('month')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('month')}</bdi> per month (USD)</> },
+            year: { add: `(+${usdSmartPack('year')} / year)`, amount: est ? null : usdWithSmartPack('year'), line: <>With SMART PACK: <bdi dir="ltr">{year.text}</bdi> + <bdi dir="ltr">{usdSmartPack('year')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('year')}</bdi> per year (USD)</> },
+          },
+        },
+      } : {}),
       capacity: [`After the ${FREE_QUOTES_TOTAL} free quotes`, 'Monthly or annual billing, your choice'],
       features: ['The monthly plan renews every month', 'The annual plan renews every year'],
       notice: 'Not available for purchase yet',
@@ -167,6 +180,31 @@ export default function LandingGlobal({ onForgotPassword }) {
         // advertised here; its card text is part of the AI release package (evidence/task34-followup/AI_RELEASE_PACKAGE.md).
         { icon: MessagesSquare, title: 'AI Assistant Inside Your Workflow', text: 'The TEKANGO AI assistant is available inside your signed-in workflows - while you create or edit a quote, work with clients, and manage settings. Ask about the step you are on or get guided help.' },
       ],
+    },
+    // Owner 2026-10-20: the SMART PACK promotion - TEST only (SmartPackShowcase renders nothing in a production build). Prices = the Owner
+    // decision of 2026-10-20 (5 USD a month; yearly with the 15% saving = 51 USD), always an add-on the customer chooses.
+    smartPack: {
+      badge: 'New · Subscription add-on',
+      name: 'SMART PACK',
+      lead: 'The TEKANGO smart assistant: it talks, it listens, it knows your business and helps you write quotes.',
+      demoLabel: 'Demo: a spoken question to the smart assistant and an answer from the business data',
+      demoTitle: 'Smart assistant',
+      demoQuestion: 'How many quotes are waiting for approval this week?',
+      demoAnswer: 'Three quotes are waiting for approval. Two of them were viewed today, worth following up.',
+      soon: 'Coming soon',
+      features: [
+        { icon: 'chat', title: 'A smart chat that knows your business', text: 'Ask about your quotes, clients, catalog and tasks, and get answers from your real data.' },
+        { icon: 'voice', title: 'Voice chat', text: 'Ask out loud and hear the answer, on site or when your hands are busy.' },
+        { icon: 'ai', title: 'AI smart quote', text: 'Describe the job, or dictate it, and the AI drafts the quote lines. You review and approve.' },
+        { icon: 'files', title: 'Files attached to the quote', text: 'Drawings, photos and documents attached to the quote your client receives.' },
+        { icon: 'twin', title: 'Customer Twin', text: 'A smart picture of every client that helps you know what to offer and when to follow up.', soon: true },
+      ],
+      priceMonth: '$5',
+      priceMonthLabel: 'per month, added to your plan',
+      priceYear: 'or $51 a year with a yearly plan',
+      points: ['Add it only if you want it', 'Add or remove it any time', 'Paid together with your plan'],
+      cta: 'See plans and pricing',
+      note: 'The add-on will be available to buy when the plans open.',
     },
     plans: {
       // Base section heading and subtitle (L12); no eyebrow (the base title is the heading itself).

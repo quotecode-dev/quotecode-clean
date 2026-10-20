@@ -56,6 +56,7 @@ export async function modelTriage(deps: ModelDeps, subject: string | null, text:
 }
 
 const DRAFT_LIMIT = 2500;
+export const SENDS_ELSEWHERE = /(פנו אלינו|פנה אלינו|צרו קשר|צור קשר|כתבו לנו|כתוב לנו|התקשרו אלינו|דרך האתר|באתר שלנו|contact us|reach out|get in touch|write to us|call us|visit our (web)?site|through (our|the) website)/i;
 
 /** The GREEN draft: an answer from the product facts only, in the sender's language, signed with the fixed signature. */
 export async function draftReply(deps: ModelDeps, subject: string | null, text: string | null, lang: Lang): Promise<string | null> {
@@ -69,9 +70,12 @@ EMAIL REPLY MODE (this answer is sent as an email from TEKANGO support):
 - You do NOT know who the sender is and you have NO access to any account: never state anything about the sender's own account, quotes, plan or payments. If the answer depends on their account, explain where in TEKANGO they can see it themselves.
 - You ARE the TEKANGO support team answering by email: never tell the sender to write to the support address.
 - Never promise money, a discount, a refund, a date or a change. Never invent a feature, a price or a step.
-- If the email cannot be answered from the facts above, answer exactly: CANNOT_ANSWER`;
+- Answer ONLY from the HOW-TO FACTS and the other facts above. If the steps the sender needs are not written there, answer exactly: CANNOT_ANSWER (the Owner then answers personally) - never guess steps.
+- Never tell the sender to contact us, write to us, call us, visit the website or reach out for help: this email IS the support answer.`;
   const raw = await chat(deps, system, emailBlock(subject, text), 600, false);
   if (!raw || /CANNOT_ANSWER/.test(raw)) return null;
+  // Owner 2026-10-20 (L-14): a draft that sends the sender elsewhere instead of answering ("פנו אלינו דרך האתר") is not an answer
+  if (SENDS_ELSEWHERE.test(raw)) return null;
   const cleaned = removeInventedOffers(raw.replace(/\r/g, ''), { screenshots: false }).trim();
   if (cleaned.length < 10) return null;
   return `${cleaned.slice(0, DRAFT_LIMIT)}\n\n${signature(lang)}`;

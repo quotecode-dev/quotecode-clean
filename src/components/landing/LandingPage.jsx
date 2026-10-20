@@ -14,6 +14,7 @@ import LandingHeader from './LandingHeader';
 import LandingQuoteDocument from './LandingQuoteDocument';
 import QuoteStyleShowcase from './QuoteStyleShowcase';
 import LandingPlans from './LandingPlans';
+import SmartPackShowcase from './SmartPackShowcase';
 import { LANDING_CSS } from './landingStyles';
 import { useLauncherStepAside } from '../../hooks/useLauncherStepAside';
 
@@ -101,6 +102,10 @@ export default function LandingPage({
           </figure>
         </section>
 
+        {/* Owner 2026-10-20 ("הפרסום אמור להיות גולת הכותרת של האתר"): the "חכם פלוס" / SMART PACK promotion right after the hero -
+            TEST only (SmartPackShowcase renders nothing in a production build) */}
+        <SmartPackShowcase copy={copy.smartPack} isHe={isHe} plansHref="#plans" />
+
         <QuoteStyleShowcase locale={lang} copy={copy.styles} />
 
         <section className="tl-section" id="workflow" aria-labelledby="tl-flow-title">
@@ -159,6 +164,7 @@ export default function LandingPage({
             </div>
           </div>
         </section>
+
 
         <section className="tl-section" id="plans" aria-labelledby="tl-plans-title">
           <div className="tl-inner">

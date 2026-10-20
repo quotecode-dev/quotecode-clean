@@ -1,7 +1,7 @@
 // GENERATED FILE - do not hand-edit.
 // Regenerate with: node scripts/generate-ai-chat-facts.js
 // Source of truth: supabase/functions/_shared/subscriptionContract.ts, src/domain/subscriptions/priceCatalog.js,
-// src/data/productTruthRegistry.js, src/shared/brand.js, src/utils/regionConfig.js.
+// src/data/productTruthRegistry.js, src/data/productHowTo.js, src/domain/subscriptions/addOnCatalog.js, src/shared/brand.js, src/utils/regionConfig.js.
 // Staleness is enforced by supabase/functions/chat-ai/aiFacts.parity.test.js.
 export const AI_FACTS = {
   "schemaVersion": 3,
@@ -1383,6 +1383,340 @@ export const AI_FACTS = {
       ],
       "heAnswerNote": "ב-TEKANGO יש יומן פנימי לתכנון העבודה - פותחים אותו מהתפריט „יומן” (בנייד: „עוד” ← „יומן”). הוא אינו מסונכרן ל-Google Calendar או ליומן חיצוני אחר.",
       "enAnswerNote": "TEKANGO has an internal calendar for planning your work - open it from the “Calendar” menu item (on mobile: “More” → “Calendar”). It is not synced with Google Calendar or any other external calendar."
+    }
+  ],
+  "howTo": [
+    {
+      "id": "business_logo_and_details",
+      "capabilityIds": [
+        "business_settings",
+        "profile_prerequisites"
+      ],
+      "he": {
+        "task": "הוספת לוגו ועדכון פרטי העסק",
+        "steps": [
+          "בתפריט הצד לוחצים על \"הגדרות העסק\".",
+          "בשדה \"כתובת תמונת לוגו (URL) או העלאת קובץ\" לוחצים \"העלה קובץ\" ובוחרים קובץ PNG, JPG או SVG עד 500KB.",
+          "באותו מסך ממלאים את פרטי העסק, למשל \"טלפון עסק\" ו\"ח.פ / עוסק מורשה\".",
+          "לוחצים \"שמור הגדרות עסק\"."
+        ]
+      },
+      "en": {
+        "task": "Adding a logo and updating the business details",
+        "steps": [
+          "In the sidebar click \"Business Settings\".",
+          "In the \"Logo Image URL or File Upload\" field click \"Upload File\" and choose a PNG, JPG or SVG file up to 500KB.",
+          "On the same screen fill in the business details, for example \"Business Phone\".",
+          "Click \"Save Business Settings\"."
+        ]
+      }
+    },
+    {
+      "id": "first_quote",
+      "capabilityIds": [
+        "quote_create",
+        "profile_prerequisites",
+        "catalog"
+      ],
+      "he": {
+        "task": "יצירת הצעת מחיר (גם הראשונה)",
+        "steps": [
+          "לפני ההצעה הראשונה צריך טלפון עסק (ובישראל גם ח.פ / עוסק מורשה) ב\"הגדרות העסק\".",
+          "לוחצים \"הצעה חדשה\" ובוחרים \"הצעת מחיר רגילה\".",
+          "בשלב \"למי ההצעה?\" ממלאים את פרטי הלקוח ובוחרים \"סוג לקוח (חובה)\".",
+          "בשלב \"מה העבודה או המוצר?\" מוסיפים פריטים: כותבים תיאור, או בוחרים מהקטלוג (\"בחר שירות מהקטלוג...\").",
+          "בשלב \"מחיר\" ממלאים כמות ומחיר.",
+          "בשלב \"בדיקה ושמירה\" לוחצים \"הפק ושמור בענן\". כל הצעה חדשה נשמרת כטיוטה, ואחרי השמירה אפשר לשלוח אותה."
+        ]
+      },
+      "en": {
+        "task": "Creating a quote (including the first one)",
+        "steps": [
+          "Before the first quote a business phone is required in \"Business Settings\".",
+          "Click \"New quote\" and choose \"Standard quote\".",
+          "In the \"Who is it for?\" step fill in the client details and choose the client type.",
+          "In the \"What work or product?\" step add items: type a description, or pick from the catalog (\"Choose from catalog...\").",
+          "In the \"Price\" step enter the quantity and the price.",
+          "In the \"Review and save\" step click \"Generate & Save to Cloud\". Every new quote is saved as a draft; after saving you can send it."
+        ]
+      }
+    },
+    {
+      "id": "send_quote",
+      "capabilityIds": [
+        "quote_email",
+        "owner_whatsapp_share",
+        "quote_status"
+      ],
+      "he": {
+        "task": "שליחת הצעה ללקוח",
+        "steps": [
+          "בתפריט הצד לוחצים על \"הצעות מחיר\" ומוצאים את ההצעה ברשימה.",
+          "לוחצים \"פתיחה\" ליד ההצעה.",
+          "בוחרים \"שלח במייל\", \"וואטסאפ\", או \"העתקת הודעה\" (מעתיק הודעה עם הקישור להצעה, להדבקה בכל מקום).",
+          "הצעה בטיוטה מסומנת \"נשלח\" אוטומטית אחרי שליחה במייל או פתיחת וואטסאפ."
+        ]
+      },
+      "en": {
+        "task": "Sending a quote to a client",
+        "steps": [
+          "In the sidebar click \"Quotes\" and find the quote in the list.",
+          "Click \"Open\" next to the quote.",
+          "Choose \"Email\", \"WhatsApp\", or \"Copy message\" (copies a message with the quote link to paste anywhere).",
+          "A draft is marked \"Sent\" automatically after an email send or when WhatsApp opens."
+        ]
+      }
+    },
+    {
+      "id": "quote_pdf",
+      "capabilityIds": [
+        "quote_pdf",
+        "quote_print"
+      ],
+      "he": {
+        "task": "הורדת הצעה כ-PDF",
+        "steps": [
+          "ברשימת \"הצעות מחיר\" לוחצים \"פתיחה\" ליד ההצעה ואז \"צפה\", כדי לראות את ההצעה כמו שהלקוח רואה אותה.",
+          "לוחצים \"הורד כ-PDF\". את הקובץ אפשר גם להדפיס."
+        ]
+      },
+      "en": {
+        "task": "Downloading a quote as a PDF",
+        "steps": [
+          "In the \"Quotes\" list click \"Open\" next to the quote and then \"View\" to see it the way the client sees it.",
+          "Click \"Download PDF\". The file can also be printed."
+        ]
+      }
+    },
+    {
+      "id": "quote_templates",
+      "capabilityIds": [
+        "quote_create"
+      ],
+      "he": {
+        "task": "שמירת הצעה כתבנית והתחלה מתבנית",
+        "steps": [
+          "בעורך ההצעה, מתחת לכפתור השמירה, לוחצים \"שמירה כתבנית (בלי פרטי לקוח)\". נשמרים הנושא והפריטים, בלי פרטי הלקוח.",
+          "כדי להתחיל מתבנית: לוחצים \"הצעה חדשה\", בוחרים \"מתבנית שמורה\" ובוחרים את התבנית."
+        ]
+      },
+      "en": {
+        "task": "Saving a quote as a template and starting from a template",
+        "steps": [
+          "In the quote editor, under the save button, click \"Save as template (no customer details)\". The subject and the items are saved, without the customer details.",
+          "To start from a template: click \"New quote\", choose \"From a saved template\" and pick the template."
+        ]
+      }
+    },
+    {
+      "id": "smart_quote_ai",
+      "capabilityIds": [
+        "smart_quote"
+      ],
+      "he": {
+        "task": "הצעת מחיר חכמה עם AI",
+        "steps": [
+          "לוחצים \"הצעה חדשה\" ובוחרים \"הצעת מחיר חכמה עם AI\".",
+          "מתארים את העבודה במילים, או מכתיבים בקול בלחיצה על המיקרופון בפינת השדה.",
+          "ה-AI מציע שורות. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה. מחיר מוצע רק לפריט שקיים בקטלוג."
+        ]
+      },
+      "en": {
+        "task": "An AI smart quote",
+        "steps": [
+          "Click \"New quote\" and choose \"AI smart quote\".",
+          "Describe the job in words, or dictate it by clicking the microphone in the corner of the field.",
+          "The AI suggests lines. Review, correct and approve before anything enters the quote. A price is suggested only for an item that is in your catalog."
+        ]
+      }
+    },
+    {
+      "id": "quote_attachment",
+      "capabilityIds": [
+        "attachments"
+      ],
+      "he": {
+        "task": "צירוף קובץ להצעה",
+        "steps": [
+          "בעורך ההצעה, בשלב \"בדיקה ושמירה\", פותחים את \"פרטים נוספים (לא חובה)\".",
+          "בקטע \"קבצים מצורפים / שרטוטים\" לוחצים על כפתור צירוף הקובץ ובוחרים את הקובץ.",
+          "שומרים את ההצעה."
+        ]
+      },
+      "en": {
+        "task": "Attaching a file to a quote",
+        "steps": [
+          "In the quote editor, in the \"Review and save\" step, open \"More details (optional)\".",
+          "In the \"Attachments\" section click the attach-file button and choose the file.",
+          "Save the quote."
+        ]
+      }
+    },
+    {
+      "id": "add_client",
+      "capabilityIds": [
+        "clients"
+      ],
+      "he": {
+        "task": "הוספת לקוח",
+        "steps": [
+          "בתפריט הצד לוחצים על \"לקוחות\" ואז \"לקוח חדש\".",
+          "ממלאים את הפרטים ושומרים. לקוח נוצר גם אוטומטית כששומרים הצעה ללקוח חדש."
+        ]
+      },
+      "en": {
+        "task": "Adding a client",
+        "steps": [
+          "In the sidebar click \"Clients\" and then \"New Client\".",
+          "Fill in the details and save. A client is also created automatically when you save a quote for a new client."
+        ]
+      }
+    },
+    {
+      "id": "add_catalog_item",
+      "capabilityIds": [
+        "catalog"
+      ],
+      "he": {
+        "task": "הוספת פריט לקטלוג",
+        "steps": [
+          "בתפריט הצד לוחצים על \"קטלוג\" ואז \"הוסף פריט\".",
+          "ממלאים שם ומחיר ולוחצים \"שמור\". הפריט יופיע בבחירה מהקטלוג בעורך ההצעה."
+        ]
+      },
+      "en": {
+        "task": "Adding a catalog item",
+        "steps": [
+          "In the sidebar click \"Catalog\" and then \"Add Item\".",
+          "Fill in a name and a price and click \"Save\". The item appears in the catalog picker of the quote editor."
+        ]
+      }
+    },
+    {
+      "id": "tasks",
+      "capabilityIds": [
+        "dashboard_overview"
+      ],
+      "he": {
+        "task": "משימות",
+        "steps": [
+          "בתפריט הצד לוחצים על \"משימות\" ואז \"משימה חדשה\".",
+          "משימה שבוצעה מסמנים כהושלמה; היא עוברת ללשונית \"הושלמו\". משימות פתוחות בלשונית \"פתוחות\". אפשר גם למחוק משימה."
+        ]
+      },
+      "en": {
+        "task": "Tasks",
+        "steps": [
+          "In the sidebar click \"Tasks\" and then \"New task\".",
+          "Mark a finished task as done; it moves to the \"Completed\" tab. Open tasks are in the \"Open\" tab. A task can also be deleted."
+        ]
+      }
+    },
+    {
+      "id": "password_reset",
+      "capabilityIds": [
+        "dashboard_overview"
+      ],
+      "he": {
+        "task": "שכחתי סיסמה",
+        "steps": [
+          "במסך הכניסה לוחצים \"שכחת סיסמה?\".",
+          "מזינים את כתובת האימייל ולוחצים \"שלח קישור לשחזור\".",
+          "בקישור שמגיע במייל מזינים \"סיסמה חדשה\" ולוחצים \"עדכן סיסמה ושמור\"."
+        ]
+      },
+      "en": {
+        "task": "Forgot password",
+        "steps": [
+          "On the sign-in screen click \"Forgot password?\".",
+          "Enter your email address and click \"Send Reset Link\".",
+          "In the link that arrives by email enter a \"New password\" and click \"Update Password & Save\"."
+        ]
+      }
+    },
+    {
+      "id": "sign_out",
+      "capabilityIds": [
+        "dashboard_overview"
+      ],
+      "he": {
+        "task": "התנתקות",
+        "steps": [
+          "פותחים את \"הגדרות והתנתקות\" ולוחצים \"התנתקות\"."
+        ]
+      },
+      "en": {
+        "task": "Signing out",
+        "steps": [
+          "Open \"Settings and sign out\" and click \"Sign out\"."
+        ]
+      }
+    },
+    {
+      "id": "signed_quote_locked",
+      "capabilityIds": [
+        "quote_edit",
+        "public_quote_sign"
+      ],
+      "he": {
+        "task": "למה אי אפשר לערוך הצעה חתומה",
+        "steps": [
+          "הצעה שהלקוח חתם עליה נעולה: אי אפשר לערוך או למחוק אותה (\"לא ניתן לערוך הצעה חתומה\"). אפשר לשכפל אותה (\"שכפל\") וליצור ממנה הצעה חדשה."
+        ]
+      },
+      "en": {
+        "task": "Why a signed quote cannot be edited",
+        "steps": [
+          "A quote the client signed is locked: it cannot be edited or deleted (\"Cannot edit a signed quote\"). You can duplicate it (\"Duplicate\") and create a new quote from it."
+        ]
+      }
+    }
+  ],
+  "addOns": [
+    {
+      "id": "smart_pack",
+      "name": {
+        "he": "חכם פלוס",
+        "en": "SMART PACK"
+      },
+      "optional": true,
+      "sameBillingPeriodAsMainPlan": true,
+      "purchasable": false,
+      "prices": {
+        "IL": {
+          "currency": "ILS",
+          "month": "10.00",
+          "year": "102.00",
+          "taxIncluded": true
+        },
+        "INTERNATIONAL": {
+          "currency": "USD",
+          "month": "5.00",
+          "year": "51.00"
+        }
+      },
+      "includes": {
+        "he": [
+          "צ׳אט חכם שקורא את הנתונים של המשתמש (הצעות, לקוחות, קטלוג, משימות)",
+          "צ׳אט קולי (שאלה בקול ותשובה מוקראת)",
+          "הצעה חכמה עם AI, כולל הכתבה בקול",
+          "צירוף קבצים להצעה"
+        ],
+        "en": [
+          "A smart chat that reads the user's own data (quotes, clients, catalog, tasks)",
+          "Voice chat (a spoken question and a read-aloud answer)",
+          "An AI smart quote, including voice dictation",
+          "Files attached to a quote"
+        ]
+      },
+      "comingSoon": {
+        "he": [
+          "התאום הדיגיטלי של הלקוח"
+        ],
+        "en": [
+          "Customer Twin"
+        ]
+      }
     }
   ]
 } as const;
