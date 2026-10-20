@@ -212,7 +212,9 @@
 .tl-style-copy ul.is-preview li svg { color: var(--tl-muted); }
 /* Owner 2026-10-20: the tabs moved into the copy column above the photo - the column starts at the top of the document (no gap) */
 .tl-showcase { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 32px; align-items: start; }
-.tl-style-copy .tl-tabs { margin-bottom: 16px; }
+/* Owner 2026-10-20 ("the tabs are not balanced"): three equal columns in one row at every width; a long label wraps inside its tab */
+.tl-style-copy .tl-tabs { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 16px; }
+.tl-style-copy .tl-tab { min-width: 0; padding: 8px 10px; text-align: center; }
 .tl-style-copy h3 { font-size: 28px; margin: 0 0 8px; }
 /* Task 27 (Owner-approved image, spec §5): the electrician with a quote, an atmosphere photo above the style copy - the interactive style
    tabs and the live quote document beside it stay the product demonstration. Fixed ratio: no layout shift while it loads. */
