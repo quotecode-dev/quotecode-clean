@@ -10,7 +10,7 @@ import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
 import { OPEN_REMINDERS_SETTINGS_EVENT } from '../utils/reminders';
-import { BELL_SUBJECT_EVENT } from '../utils/bellSubject';
+import { BELL_SUBJECT_EVENT, firstFreeSignatureQuoteId } from '../utils/bellSubject';
 import { markQuoteSentAfterShare } from '../utils/quoteSentMark';
 import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
 import { publishBlocker, resolveBlockers, clearScope, SAVE_ATTEMPT_CODES, blockerCodeForActionError, blockerCodeForSaveFailure, blockerCodeForEmailError } from '../utils/aiHelpBlockers';
@@ -1354,6 +1354,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setFree10Window(true);
     return true;
   };
+  // Owner 2026-10-20 (typed L-17 approval): the bell item of the first customer signature in the free plan also offers the plans -
+  // only a Free account while the plan system is enforced (the server summary decides; LIFETIME never)
+  const bellUpgradeQuoteId = useMemo(() => {
+    if (isLifetimeAccount || accountSummary?.state !== 'ready' || accountSummary.phase.output !== 'enforced' || accountSummary.planId !== 'free') return null;
+    return firstFreeSignatureQuoteId(quotes, accountSummary.free10);
+  }, [isLifetimeAccount, accountSummary, quotes]);
 
 
   // חוק ברזל (Trial Notification, TEST Acceptance Package 1 - עבר כמה
@@ -8183,7 +8189,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                     <div className="dash-header-account">
                       <HeaderGreeting isHebrew={isHebrew} />
                       {/* Task 20: the bell opens the notification center (same 18px footprint; badge and panel are out of flow). */}
-                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellAnnouncements} />
+                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellAnnouncements} upgradeQuoteId={bellUpgradeQuoteId} />
                       {/* Owner 2026-10-14: the round plan medallion replaces the avatar circle (no sign-in provider ever set a picture) -
                           the account's plan status from the one shared model; it opens the plans window. Not shown to the super admin. */}
                       {!isSuperAdmin && (
@@ -8199,7 +8205,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
                   <div className="dash-header-badge-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {/* Task 20 (Owner console instruction 2026-10-09): the plans status indicator is removed from the mobile header and the
                         SAME notification bell takes its slot. The plans feature itself stays (Business settings › My subscription, Task 30). */}
-                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellAnnouncements} variant="mobile" />
+                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellAnnouncements} upgradeQuoteId={bellUpgradeQuoteId} variant="mobile" />
                     {/* Owner 2026-10-14: the same round plan medallion as on desktop, outermost next to the bell */}
                     {!isSuperAdmin && (
                       <HeaderPlanMedallion model={headerPlanBadge} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />
