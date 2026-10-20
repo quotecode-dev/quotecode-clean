@@ -345,6 +345,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / CREATE OR REPLACE (re-runnable); paid period + renewal + failed charge + 3 grace days + limited mode (Owner 2026-10-18, PayPlus stage 2)"
+    },
+    "20261021300000_explicit_grants_direct_api_tables.sql": {
+      "sha256": "1af7057f2a93667c87bd7ee5d8cdc003fcbbfd54f21bf94fc5cd3b5a8e086bf7",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; GRANT only (idempotent, re-runnable); explicit service_role grants for the three Data API tables (Supabase change of 2026-10-30; Owner 2026-10-20)"
     }
   }
 }
