@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cwd } from 'node:process';
-import { ADMIN_DESTINATIONS, ADMIN_HUBS, ADMIN_PERMISSIONS, canOpenDestination } from './adminDestinations';
+import { ADMIN_DESTINATIONS } from './adminDestinations';
 import { ADMIN_NAV_GROUPS, ADMIN_SECTION_IDS } from '../utils/adminNavGroups';
 import { getDashboardNavCapabilities } from '../utils/dashboardNavCapabilities';
 
@@ -21,37 +21,23 @@ const stripComments = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\
 
 describe('Admin destination registry (ONE definition)', () => {
   // Owner console 2026-10-19, typed: "מאשר שינוי ב-L-22: לשונית "פניות" חדשה בממשק הניהול" - Inquiries joins the registry
-  // Owner console 2026-10-20, typed: "מאשר שינוי ב-L-22: צמצום תפריט הניהול לשני כפתורים ומסך מרכזי, ומשתמש מפקח עם מסך הרשאות מנהל" -
-  // two hubs ("ניהול" / "מערכת") hold every tool; "הרשאות מנהל" joins as an Owner-only tool.
-  it('keeps every current destination (Overview, Users, Plans, Inquiries, Activity, AI Support) plus the two hubs and the permissions screen', () => {
-    expect(ADMIN_DESTINATIONS.map((d) => d.id).sort()).toEqual(['activity', 'ai-support', 'inquiries', 'manage', 'overview', 'permissions', 'plans', 'system', 'users']);
+  it('keeps every current destination (Overview, Users, Plans, Inquiries, Activity, AI Support)', () => {
+    expect(ADMIN_DESTINATIONS.map((d) => d.id).sort()).toEqual(['activity', 'ai-support', 'inquiries', 'overview', 'plans', 'users']);
   });
-  it('sidebar groups, section ids and mobile list are all derived from the registry; the nav shows the two hubs only', () => {
+  it('sidebar groups, section ids and mobile list are all derived from the registry', () => {
     const navIds = ADMIN_NAV_GROUPS.flatMap((g) => g.items.map((i) => i.id)).sort();
-    expect(navIds).toEqual(Object.keys(ADMIN_HUBS).sort());
-    expect(navIds).toEqual(ADMIN_DESTINATIONS.filter((d) => d.isHub).map((d) => d.id).sort());
-    expect([...ADMIN_SECTION_IDS].sort()).toEqual(ADMIN_DESTINATIONS.map((d) => d.id).sort());
-    for (const d of ADMIN_DESTINATIONS.filter((x) => !x.isHub)) expect(navIds, d.id).toContain(d.hub);
-    expect(read('src', 'utils', 'adminNavGroups.js')).not.toMatch(/id: '(overview|users|plans|activity|ai-support|manage|system)'/);
+    expect(navIds).toEqual(ADMIN_DESTINATIONS.map((d) => d.id).sort());
+    expect([...ADMIN_SECTION_IDS].sort()).toEqual(navIds);
+    expect(read('src', 'utils', 'adminNavGroups.js')).not.toMatch(/id: '(overview|users|plans|activity|ai-support)'/);
   });
-  it('every destination is complete (label, title, description, icon, permission, renderer); the Owner opens all, nobody else by default', () => {
+  it('every destination is complete (label, title, icon, permission, renderer) and Super-Admin gated', () => {
     for (const d of ADMIN_DESTINATIONS) {
-      expect(d.label.he && d.label.en && d.title.he && d.title.en && d.description.he && d.description.en).toBeTruthy();
+      expect(d.label.he && d.label.en && d.title.he && d.title.en).toBeTruthy();
       expect(typeof d.render).toBe('function');
       expect(d.icon).toBeTruthy();
-      expect(d.permission === 'any' || d.permission === 'owner' || /^[a-z-]+\.view$/.test(d.permission), d.id).toBe(true);
+      expect(d.permission).toBe('super_admin');
       expect(d.available).toBe(true);
-      expect(canOpenDestination(d, { owner: true, permissions: [] }), d.id).toBe(true);
-      expect(canOpenDestination(d, { owner: false, permissions: [] }), d.id).toBe(false);
     }
-    expect(ADMIN_DESTINATIONS.find((d) => d.id === 'permissions').permission).toBe('owner');
-    expect(ADMIN_PERMISSIONS.map((x) => x.id).sort()).toEqual(['activity.view', 'ai-support.view', 'inquiries.reply', 'inquiries.settings', 'inquiries.view', 'overview.view', 'plans.view', 'users.view']);
-  });
-  it('a supervisor opens exactly the tools granted and the hub holding them - never the permissions screen', () => {
-    const access = { owner: false, permissions: ['users.view', 'ai-support.view', 'inquiries.reply', 'inquiries.settings'] };
-    const open = ADMIN_DESTINATIONS.filter((d) => canOpenDestination(d, access)).map((d) => d.id).sort();
-    expect(open).toEqual(['ai-support', 'manage', 'system', 'users']);
-    expect(canOpenDestination(ADMIN_DESTINATIONS.find((d) => d.id === 'system'), { owner: false, permissions: ['users.view'] })).toBe(false);
   });
   it('the Dashboard renders Admin content ONLY through AdminDestinationHost (no direct destination components)', () => {
     expect(dashboard).toMatch(/<AdminDestinationHost/);
@@ -125,8 +111,7 @@ describe('SUPER ADMIN = FULL BUSINESS USER + ADDITIVE ADMIN', () => {
   });
   it('the sidebar renders the business navigation for everyone and the Admin group additively for Super Admin', () => {
     expect(dashboard).toMatch(/navCapabilities\.filter\(\(\{ id \}\) => id !== 'admin_clients'\)\.map/);
-    expect(dashboard).toMatch(/\{canAdmin && \(\s*<AdminSidebarNav/);
-    expect(dashboard).toMatch(/const canAdmin = isSuperAdmin \|\| adminAccess\.permissions\.length > 0;/);
+    expect(dashboard).toMatch(/\{isSuperAdmin && \(\s*<AdminSidebarNav/);
   });
   it('New Quote (desktop CTA + mobile "New") is never role-gated', () => {
     expect(dashboard).not.toMatch(/!isSuperAdmin && \(\s*<button onClick=\{(handleCreateNewQuoteClick|\(\) => \{ setShowMobileMoreMenu)/);
@@ -135,7 +120,7 @@ describe('SUPER ADMIN = FULL BUSINESS USER + ADDITIVE ADMIN', () => {
     expect(dashboard).not.toMatch(/!isSuperAdmin && \(\s*<div className="no-print mobile-bottom-nav"/);
   });
   it('the shell is one state model: Admin is an activeTab destination, not a separate app mode', () => {
-    expect(dashboard).toMatch(/const isAdminMode = canAdmin && activeTab === 'admin_clients'/);
+    expect(dashboard).toMatch(/const isAdminMode = isSuperAdmin && activeTab === 'admin_clients'/);
     expect((dashboard.match(/<div className="dash-app-shell"/g) || []).length).toBe(1);
   });
 });

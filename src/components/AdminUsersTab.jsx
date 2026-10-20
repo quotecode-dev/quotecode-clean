@@ -26,9 +26,6 @@ export default function AdminUsersTab({
   onBackFromDetails = null,
   onAccountsChanged = null,
   onOpenActivity = null,
-  // Owner console 2026-10-20 (L-22 supervisor): the protected actions (reset / delete / lifetime) stay the Owner's only - a supervisor
-  // (canProtect false) never sees them; the server refuses them anyway (super_admin checks in every admin-* function).
-  canProtect = true,
 }) {
   const [resetModalUser, setResetModalUser] = useState(null);
   const [deleteModalUser, setDeleteModalUser] = useState(null);
@@ -345,9 +342,9 @@ export default function AdminUsersTab({
           onBack={onBackFromDetails}
           accounts={allAccounts}
           onOpenActivity={onOpenActivity}
-          onReset={!canProtect ? null : (a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setResetModalUser(a); }}
-          onDelete={!canProtect ? null : (a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setDeleteModalUser(a); }}
-          onLifetime={!canProtect ? null : (a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setActionDone(false); setLifetimeActionUser(a); }}
+          onReset={(a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setResetModalUser(a); }}
+          onDelete={(a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setDeleteModalUser(a); }}
+          onLifetime={(a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setActionDone(false); setLifetimeActionUser(a); }}
           refreshKey={refreshKey}
         />
       ) : (
@@ -361,9 +358,9 @@ export default function AdminUsersTab({
         sortDirection={sortDirection}
         isHebrew={isHebrew}
         onDetails={onOpenUserDetails}
-        onReset={!canProtect ? null : (a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setResetModalUser(a); }}
-        onDelete={!canProtect ? null : (a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setDeleteModalUser(a); }}
-        onLifetime={!canProtect ? null : (a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setActionDone(false); setLifetimeActionUser(a); }}
+        onReset={(a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setResetModalUser(a); }}
+        onDelete={(a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setDeleteModalUser(a); }}
+        onLifetime={(a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setActionDone(false); setLifetimeActionUser(a); }}
         refreshKey={refreshKey}
         onRefreshAccounts={onAccountsChanged}
       />

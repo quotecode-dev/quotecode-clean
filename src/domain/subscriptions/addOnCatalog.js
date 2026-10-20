@@ -15,11 +15,6 @@ export const SMART_PACK = Object.freeze({
     he: Object.freeze(['צ׳אט חכם שקורא את הנתונים של המשתמש (הצעות, לקוחות, קטלוג, משימות)', 'צ׳אט קולי (שאלה בקול ותשובה מוקראת)', 'הצעה חכמה עם AI, כולל הכתבה בקול', 'צירוף קבצים להצעה']),
     en: Object.freeze(["A smart chat that reads the user's own data (quotes, clients, catalog, tasks)", 'Voice chat (a spoken question and a read-aloud answer)', 'An AI smart quote, including voice dictation', 'Files attached to a quote']),
   }),
-  // one short line for the plans views ("what is SMART PACK?" - Owner 2026-10-20: "אין שום הסבר למשתמש מה זה בכלל חכם פלוס")
-  summary: Object.freeze({
-    he: 'כולל: צ׳אט חכם שמכיר את הנתונים שלך, צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, וקבצים מצורפים להצעה.',
-    en: 'Includes: a smart chat that knows your data, voice chat, an AI smart quote with voice dictation, and files attached to quotes.',
-  }),
   comingSoon: Object.freeze({ he: Object.freeze(['התאום הדיגיטלי של הלקוח']), en: Object.freeze(['Customer Twin']) }),
   optional: true,
   sameBillingPeriodAsMainPlan: true,

@@ -6,7 +6,6 @@ const h = vi.hoisted(() => ({ handler: null, state: null }));
 vi.mock('https://deno.land/std@0.168.0/http/server.ts', () => ({ serve: (fn) => { h.handler = fn; } }));
 vi.mock('https://esm.sh/@supabase/supabase-js@2', () => ({
   createClient: (_url, key) => ({
-    rpc: async (fn, args) => { h.state.rpcCalls.push({ fn, args, key }); return fn === 'has_admin_permission' ? { data: (h.state.perms || []).includes(args.p_permission), error: null } : { data: null, error: { message: 'unknown' } }; },
     auth: { getUser: async () => (h.state.user ? { data: { user: h.state.user }, error: null } : { data: { user: null }, error: { message: 'bad jwt' } }) },
     from: (table) => {
       const q = { table, key, ops: [] };
@@ -29,8 +28,8 @@ vi.mock('https://esm.sh/@supabase/supabase-js@2', () => ({
 
 const ID = '33333333-3333-4333-8333-333333333333';
 let provider;
-function setup({ role = 'super_admin', user = { id: 'owner-1' }, row = null, perms = [] } = {}) {
-  h.state = { role, user, perms, rpcCalls: [], writes: [], row: row ?? { id: ID, status: 'draft', from_address: 'dana@customer.test', to_addresses: ['info@abc.resend.app'], subject: 'Logo', text_body: 'How do I add a logo?', attachments: [], message_id: '<m@c.test>', is_automated: false, mailbox: 'info', reply_language: 'en', bin: 'green', draft_reply: 'Hello,\nGo to Business settings.' } };
+function setup({ role = 'super_admin', user = { id: 'owner-1' }, row = null } = {}) {
+  h.state = { role, user, writes: [], row: row ?? { id: ID, status: 'draft', from_address: 'dana@customer.test', to_addresses: ['info@abc.resend.app'], subject: 'Logo', text_body: 'How do I add a logo?', attachments: [], message_id: '<m@c.test>', is_automated: false, mailbox: 'info', reply_language: 'en', bin: 'green', draft_reply: 'Hello,\nGo to Business settings.' } };
   provider = [];
   globalThis.Deno = { env: { get: (k) => ({ SUPABASE_URL: 'https://synthetic.supabase.co', SUPABASE_ANON_KEY: 'anon', SUPABASE_SERVICE_ROLE_KEY: 'service', RESEND_API_KEY: 're_x', OPENAI_API_KEY: 'sk-x' })[k] } };
   globalThis.fetch = vi.fn(async (url, init) => {
@@ -80,24 +79,5 @@ describe('support-admin (Owner 2026-10-20, L-22 stage 2)', () => {
     expect((await r.json()).settings).toMatchObject({ paused: true });
     expect(h.state.writes[0]).toMatchObject({ table: 'support_assistant_settings', patch: { paused: true, updated_by: 'owner-1' } });
     expect((await call({ action: 'settings', paused: 'yes' })).status).toBe(400);
-  });
-  it('a supervisor (L-22, Owner 2026-10-20): reply actions only with inquiries.reply, settings only with inquiries.settings, asked as the caller', async () => {
-    setup({ role: 'user', perms: ['inquiries.view'] });
-    expect((await call({ action: 'dismiss', id: ID })).status).toBe(403);
-    expect((await call({ action: 'settings', paused: true })).status).toBe(403);
-    expect(h.state.writes).toHaveLength(0);
-    expect(h.state.rpcCalls.map((c) => [c.args.p_permission, c.key])).toEqual([['inquiries.reply', 'anon'], ['inquiries.settings', 'anon']]);
-    setup({ role: 'user', perms: ['inquiries.view', 'inquiries.reply'] });
-    expect(await (await call({ action: 'dismiss', id: ID })).json()).toEqual({ ok: true, status: 'dismissed' });
-    expect((await call({ action: 'settings', paused: true })).status).toBe(403);
-    setup({ role: 'user', perms: ['inquiries.settings'] });
-    expect((await call({ action: 'settings', paused: true })).status).toBe(200);
-    expect((await call({ action: 'send', id: ID, text: 'Hello, your answer.' })).status).toBe(403);
-    expect(provider).toHaveLength(0);
-  });
-  it('the Owner never needs a permission row (no permission question is asked)', async () => {
-    setup();
-    expect((await call({ action: 'dismiss', id: ID })).status).toBe(200);
-    expect(h.state.rpcCalls).toHaveLength(0);
   });
 });

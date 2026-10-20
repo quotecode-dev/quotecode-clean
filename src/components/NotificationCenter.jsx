@@ -139,8 +139,6 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
     markRemindersRead(client, userId, [item.key]).then((r) => { if (r?.ok) setRead((s) => new Set([...s, item.key])); }).catch(() => {});
     // an announcement's action opens the ONE existing assistant through its existing window event (like the welcome item)
     if (action.kind === 'assistant') { window.dispatchEvent(new CustomEvent('open-proflow-ai-chat')); return; }
-    // Owner 2026-10-20 (L-17): the SMART PACK announcement opens the ONE plans view (the Dashboard listens)
-    if (action.kind === 'plans') { window.dispatchEvent(new CustomEvent('tekango:open-plans')); return; }
     window.dispatchEvent(new CustomEvent(BELL_SUBJECT_EVENT, { detail: { ...action } }));
   };
   const actionsFor = (item) => bellActionsFor(item, tasks);

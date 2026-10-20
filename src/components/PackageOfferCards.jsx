@@ -63,7 +63,6 @@ function PriceBlock({ plan, isHebrew }) {
           <span className="tl-plan-addon-text"><strong>{plan.addOn.label}</strong> {isolateNumbers(plan.addOn.perPeriod[period]?.add || '')}</span>
         </label>
       )}
-      {plan.addOn?.summary && <p className="tl-plan-addon-summary" data-addon-summary dir={isHebrew ? 'rtl' : 'ltr'}>{plan.addOn.summary}</p>}
     </div>
   );
 }

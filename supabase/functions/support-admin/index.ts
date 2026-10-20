@@ -3,9 +3,6 @@
 // הכתובת)"; spec docs/SMART_SUPPORT_EMAIL_SPEC_2026-10-19.md section 7): the Owner's actions from the admin "פניות" tab.
 //  - Super admin only: the caller's JWT is verified, then business_settings.role must be 'super_admin' (the same check as the other
 //    admin functions). Every write runs with the service role AFTER that check - the tables have no client write path.
-//  - Owner console 2026-10-20 (L-22 "... ומשתמש מפקח עם מסך הרשאות מנהל"): or a supervisor the Owner granted the matching permission -
-//    'inquiries.reply' for send / redraft / dismiss, 'inquiries.settings' for settings - asked of the database AS THE CALLER
-//    (has_admin_permission(), SECURITY DEFINER over admin_permission_grants); any error = refused.
 //  - send     {id, text}  "מאשר ושולח" / "מתקן ושולח" / a reply to a RED email - through the one mail gate (process.ts ownerSend).
 //  - redraft  {id}        "בקש מהעוזר טיוטה" - a new draft from the product facts only; nothing is sent.
 //  - dismiss  {id}        "לא לשלוח" - nothing is sent, the inquiry leaves the waiting list.
@@ -37,18 +34,13 @@ serve(async (req) => {
   const user = authData?.user;
   if (authErr || !user) return json({ ok: false, code: 'unauthorized' }, 401);
   const admin = createClient(url, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-  // deno-lint-ignore no-explicit-any
-  let body: any = null;
-  try { body = await req.json(); } catch { body = null; }
-  const action = String(body?.action || '');
   const { data: biz } = await admin.from('business_settings').select('role').eq('user_id', user.id).maybeSingle();
-  let allowed = biz?.role === 'super_admin';
-  if (!allowed) {
-    const { data: has, error: permErr } = await caller.rpc('has_admin_permission', { p_permission: action === 'settings' ? 'inquiries.settings' : 'inquiries.reply' });
-    allowed = !permErr && has === true;
-  }
-  if (!allowed) return json({ ok: false, code: 'forbidden' }, 403);
-  if (!body || typeof body !== 'object') return json({ ok: false, code: 'invalid_request' }, 400);
+  if (biz?.role !== 'super_admin') return json({ ok: false, code: 'forbidden' }, 403);
+
+  // deno-lint-ignore no-explicit-any
+  let body: any;
+  try { body = await req.json(); } catch { return json({ ok: false, code: 'invalid_request' }, 400); }
+  const action = String(body?.action || '');
   const store = supabaseStore(admin);
   const now = () => new Date();
 

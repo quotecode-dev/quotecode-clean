@@ -219,20 +219,3 @@
 .admin-inquiry-toggle input { inline-size:18px; block-size:18px; flex-shrink:0; }
 .admin-inquiry-toggle.is-stop { background:#F7EAEA; color:#9A4040; }
 .admin-nav-count { margin-inline-start:auto; display:inline-flex; align-items:center; justify-content:center; min-width:20px; min-height:20px; padding:0 6px; border-radius:999px; background:#DC2626; color:#fff; font-size:11px; font-weight:700; font-variant-numeric:tabular-nums; }
-
-/* Owner console 2026-10-20 (L-22 "צמצום תפריט הניהול לשני כפתורים ומסך מרכזי, ומשתמש מפקח עם מסך הרשאות מנהל"): the hub cards and the permissions screen. */
-.admin-hub-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; padding:4px 0 16px; }
-.admin-hub-card { display:flex; align-items:center; gap:14px; min-height:92px; padding:16px; border:1px solid #D9E0E3; border-radius:14px; background:#fff; color:#172129; text-align:start; cursor:pointer; font:inherit; box-shadow:0 1px 2px rgba(23,33,41,.04); transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
-.admin-hub-card:hover, .admin-hub-card:focus-visible { border-color:#0F6672; box-shadow:0 6px 18px rgba(15,102,114,.12); transform:translateY(-1px); outline:none; }
-.admin-hub-icon { display:inline-flex; align-items:center; justify-content:center; inline-size:46px; block-size:46px; flex-shrink:0; border-radius:12px; background:linear-gradient(135deg, #E6F4F5, #F4F1FE); color:#0F6672; }
-.admin-hub-text { display:flex; flex-direction:column; gap:4px; min-width:0; flex:1 1 auto; }
-.admin-hub-text strong { display:inline-flex; align-items:center; font-size:15px; font-weight:800; }
-.admin-hub-text span { font-size:12.5px; color:#65727A; line-height:1.45; }
-.admin-hub-arrow { flex-shrink:0; color:#9AA5AB; }
-.admin-perm-panel { margin:12px 0; padding:14px; border:1px solid #D9E0E3; border-radius:12px; background:#FAFBFB; }
-.admin-perm-list { list-style:none; margin:10px 0 0; padding:0; display:flex; flex-direction:column; gap:8px; }
-.admin-perm-list li { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:52px; padding:8px 12px; border:1px solid #E5EAEC; border-radius:10px; background:#fff; font-size:13px; flex-wrap:wrap; }
-.admin-perm-chips { display:flex; flex-wrap:wrap; gap:4px; margin-top:6px; }
-.admin-perm-fieldset { margin:10px 0 0; padding:10px 12px 12px; border:1px solid #E5EAEC; border-radius:10px; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px; }
-.admin-perm-fieldset legend { padding:0 6px; font-size:12px; font-weight:800; color:#3F4B52; }
-@media (max-width:640px) { .admin-hub-grid { grid-template-columns:1fr; } .admin-perm-list li { align-items:flex-start; } }

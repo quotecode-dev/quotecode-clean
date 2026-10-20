@@ -35,10 +35,6 @@
     "interactive": 1,
     "markers": 1
   },
-  "src/components/AdminHub.jsx": {
-    "interactive": 1,
-    "markers": 1
-  },
   "src/components/AdminIdentityIcons.jsx": {
     "interactive": 0,
     "markers": 0
@@ -50,10 +46,6 @@
   "src/components/AdminOverview.jsx": {
     "interactive": 3,
     "markers": 3
-  },
-  "src/components/AdminPermissions.jsx": {
-    "interactive": 6,
-    "markers": 7
   },
   "src/components/AdminPlans.jsx": {
     "interactive": 2,
