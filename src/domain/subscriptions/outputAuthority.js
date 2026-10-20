@@ -121,11 +121,20 @@ export async function requestOutputAuthorization({ channel, quoteId, invoke, exp
 // The raw capability token inside an authorized public path (passed to send-quote-email so the server can verify the binding).
 export const capabilityTokenFromPath = (publicPath) => (TOKEN_PATH_RE.test(publicPath || '') ? publicPath.split('/').pop() : null);
 
-export function outputBlockedMessage(code, isHebrew) {
-  if (code === 'free_issue_limit_reached') {
+// free10 = the server account summary's Free-10 block (optional): the server refuses both ends of the free plan with
+// free_issue_limit_reached; when the 7 free days ended before the 10 quotes were used (Owner 2026-10-20) the sentence says so.
+export function outputBlockedMessage(code, isHebrew, free10 = null) {
+  const periodEnded = code === 'free_period_ended'
+    || (code === 'free_issue_limit_reached' && free10?.periodEnded === true && free10.remaining > 0);
+  if (code === 'free_issue_limit_reached' && !periodEnded) {
     return isHebrew
       ? 'נוצלו כל 10 ההצעות החינמיות. הצעות שכבר יצאו נשארות זמינות. פרטי המסלולים זמינים במסך המסלולים.'
       : 'All 10 free quotes have been used. Quotes already sent stay available. Plan details are in the plans view.';
+  }
+  if (periodEnded) {
+    return isHebrew
+      ? 'תמו 7 ימי החינם. הצעות שכבר יצאו נשארות זמינות. פרטי המסלולים זמינים במסך המסלולים.'
+      : 'The 7 free days have ended. Quotes already sent stay available. Plan details are in the plans view.';
   }
   if (code === 'output_in_progress') {
     return isHebrew ? 'גרסה אחרת של ההצעה נמצאת כרגע בהפקה. נסו שוב בעוד רגע. דבר לא נשלח ולא נוצלה הצעה.' : 'Another version of this quote is being produced right now. Try again in a moment. Nothing was sent and no quote was used.';

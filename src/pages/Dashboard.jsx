@@ -127,6 +127,9 @@ import { buildShareText } from '../../supabase/functions/_shared/shareMessage.js
 // utils/money.js formatMoneyForCurrency: ILS => whole shekel half-up ".00"; others full precision.
 const formatNum = (val) => formatMoney(val);
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+// The server's two "free plan ended" refusals (10 quotes used, or the 7 free days ended - Owner 2026-10-20): both open the upgrade window
+const FREE10_END_CODES = new Set(['free_issue_limit_reached', 'free_period_ended']);
+const FREE10_END_RE = /free_issue_limit_reached|free_period_ended/;
 
 // קורא geo טרי ואמין ישירות מהשרת (api/geo.js), לא מעוגייה/localStorage
 // שהלקוח יכול לשנות או שיכולים להיות ישנים. משמש אך ורק לברירת המחדל של
@@ -3055,8 +3058,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     if (gate.mode === 'authority_required') {
       const auth = await authorizeWithNotice({ channel: 'public_share', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (t) => window.confirm(t), isHebrew: isHebrew });
       if (!auth.proceed) {
-        if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
-        if (auth.code === 'free_issue_limit_reached') setFree10Window(true);
+        if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null), type: 'error' });
+        if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
         refreshAccountSummary();
         return;
       }
@@ -3134,8 +3137,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     const auth = await authorizeWithNotice({ channel: 'send', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew: isHebrew });
     if (!auth.proceed) {
       if (win && !win.closed) win.close();
-      if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
-      if (auth.code === 'free_issue_limit_reached') setFree10Window(true); // a first output after Free-10: the paid action itself
+      if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null), type: 'error' });
+      if (FREE10_END_CODES.has(auth.code)) setFree10Window(true); // a first output after Free-10: the paid action itself
       refreshAccountSummary();
       return;
     }
@@ -3191,8 +3194,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         const auth = await authorizeWithNotice({ channel: 'send', quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew: isHebrew });
         if (!auth.proceed) {
           setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-          if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew), type: 'error' });
-          if (auth.code === 'free_issue_limit_reached') setFree10Window(true);
+          if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null), type: 'error' });
+          if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
           refreshAccountSummary();
           return;
         }
@@ -4665,7 +4668,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
       if (saveResult.outcome === 'failed') {
         // Task 27: the server refused a NEW quote because Free-10 is exhausted (quotes_free10_creation_guard) - show the upgrade window.
-        if (/free_issue_limit_reached/.test(String(saveResult.error?.message || ''))) { setFree10Window(true); refreshAccountSummary(); }
+        // Owner 2026-10-20: also a counted save (a quote saved with a customer + item) after 10 quotes or 7 days. The window is the
+        // whole answer: no second alert with the raw server text on top of it; nothing was saved and the local draft is kept - except
+        // when removing the new quote shell also failed: that notice still shows (an empty quote may remain).
+        if (FREE10_END_RE.test(String(saveResult.error?.message || ''))) {
+          setFree10Window(true); refreshAccountSummary();
+          if (!(saveResult.stage === 'structure' && saveResult.compensationFailed)) return;
+        }
         // Nothing of the quote was saved; the local draft is kept so the user can retry. `wrote` names anything that remains.
         const clientNote = saveResult.wrote.includes('client')
           ? (isHebrew ? ' שימו לב: פרטי הלקוח כבר עודכנו.' : ' Note: the client details were already updated.')
@@ -4706,6 +4715,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       const quoteId = saveResult.quoteId;
       lastSaveOutcomeRef.current = 'saved';
       if (saveResult.outcome === 'partial' && (saveResult.stage === 'structure' || saveResult.stage === 'items')) {
+        // Owner 2026-10-20: the items of an existing draft were refused because the free plan ended - the window too
+        if (FREE10_END_RE.test(String(saveResult.error?.message || ''))) { setFree10Window(true); refreshAccountSummary(); }
         saveBlock('QUOTE_SAVE_SERVER_ERROR', isHebrew
           ? 'פרטי ההצעה הכלליים נשמרו, אך מבנה ההצעה (יחידות/פריטים/מידות) לא נשמר ולא שונה. פתחו את ההצעה, בדקו אותה ושמרו שוב.'
           : 'The quote\'s general details were saved, but its structure (units/items/measurements) could not be saved and was left unchanged. Reopen the quote, review it, and save again.', { persistence: 'partial' });
@@ -4745,8 +4756,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         } else {
           leaveDraftNote = auth.mode === 'cancelled'
             ? (isHebrew ? 'ההצעה נשמרה כטיוטה. הסטטוס לא שונה ולא נוצלה הצעה.' : 'The quote was saved as a draft. Its status was not changed and no quote was used.')
-            : `${isHebrew ? 'ההצעה נשמרה כטיוטה. ' : 'The quote was saved as a draft. '}${outputBlockedMessage(auth.code, isHebrew)}`;
-          if (auth.code === 'free_issue_limit_reached') setFree10Window(true);
+            : `${isHebrew ? 'ההצעה נשמרה כטיוטה. ' : 'The quote was saved as a draft. '}${outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null)}`;
+          if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
         }
         refreshAccountSummary();
       }

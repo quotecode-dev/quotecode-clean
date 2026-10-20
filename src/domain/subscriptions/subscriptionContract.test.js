@@ -50,6 +50,9 @@ describe('parseAccountSummary (strict, fail closed)', () => {
     ['fake balance arithmetic', free({ free10: { limit: 10, consumed: 3, reserved: 0, remaining: 10 } })],
     ['0/5 monthly shape', free({ free10: { limit: 5, consumed: 0, reserved: 0, remaining: 5 } })],
     ['unlimited paid balance', paid({ free10: { limit: Infinity, consumed: 0, reserved: 0, remaining: Infinity } })],
+    ['an ended period without its end', free({ free10: { limit: 10, consumed: 3, reserved: 0, remaining: 7, endsAt: null, periodEnded: true } })],
+    ['a window end that is not a date', free({ free10: { limit: 10, consumed: 3, reserved: 0, remaining: 7, endsAt: 'soon', periodEnded: false } })],
+    ['a period flag that is not a boolean', free({ free10: { limit: 10, consumed: 3, reserved: 0, remaining: 7, endsAt: null, periodEnded: 'yes' } })],
     ['market from a weak signal', free({ market: 'he' })],
     ['catalog limit without decision', free({ catalog: { active: 1, countDefinition: 'unset', limit: 100, blocks: 0, limitDecided: false } })],
     ['unknown eligible plan', free({ eligiblePlans: { 'quote_style.modern': ['pro'] } })],
@@ -152,6 +155,18 @@ describe('decideFree10Action (attempted paid action after Free-10)', () => {
     for (const st of [{ state: 'loading' }, { state: 'not_activated' }, { state: 'not_deployed' }, null, undefined]) {
       expect(decideFree10Action(st).allowed).toBe(true);
     }
+  });
+  it('Owner 2026-10-20: the 7 free days ended before the 10 quotes -> blocked with its own reason; an open window is within Free-10', () => {
+    const window = (periodEnded) => parseAccountSummary(free({ free10: { limit: 10, consumed: 3, reserved: 0, remaining: 7, endsAt: '2026-10-28T10:00:00.000Z', periodEnded } }));
+    expect(window(true)).toMatchObject({ state: 'ready', free10: { remaining: 7, endsAt: '2026-10-28T10:00:00.000Z', periodEnded: true } });
+    expect(decideFree10Action(window(true))).toMatchObject({ allowed: false, reason: 'free_period_ended', free10: { consumed: 3, remaining: 7 } });
+    expect(decideFree10Action(window(false))).toMatchObject({ allowed: true, reason: 'within_free10' });
+    // an older server without the window fields: no window (never a false block)
+    expect(parseAccountSummary(free())).toMatchObject({ free10: { endsAt: null, periodEnded: false } });
+    // not enforced: an ended window adds no restriction either
+    const shadow = parseAccountSummary(free({ phase: { output: 'shadow', catalog: 'prepared', billing: 'off' },
+      free10: { limit: 10, consumed: 3, reserved: 0, remaining: 7, endsAt: '2026-10-28T10:00:00.000Z', periodEnded: true } }));
+    expect(decideFree10Action(shadow)).toEqual({ allowed: true, reason: 'not_enforced' });
   });
   it('a paid account (the package or a legacy plan) is never blocked', () => {
     expect(decideFree10Action(parseAccountSummary(paid({ plan: { id: 'all_inclusive' } })))).toEqual({ allowed: true, reason: 'paid_plan' });

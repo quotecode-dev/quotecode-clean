@@ -73,6 +73,14 @@ describe('requestOutputAuthorization (server authority client)', () => {
       for (const he of [true, false]) expect(outputBlockedMessage(code, he)).not.toMatch(/Pro|Basic|trial|ניסיון|\d+\s*\/\s*\d+/);
     }
   });
+  it('Owner 2026-10-20: the same refusal code names the 7 free days when they ended before the 10 quotes', () => {
+    const ended = { limit: 10, consumed: 3, reserved: 0, remaining: 7, endsAt: '2026-10-28T10:00:00.000Z', periodEnded: true };
+    expect(outputBlockedMessage('free_issue_limit_reached', true, ended)).toMatch(/^תמו 7 ימי החינם\./);
+    expect(outputBlockedMessage('free_issue_limit_reached', false, ended)).toMatch(/^The 7 free days have ended\./);
+    // 10 used (also on the last day) or no summary: the 10-quotes sentence
+    expect(outputBlockedMessage('free_issue_limit_reached', true, { ...ended, consumed: 10, remaining: 0 })).toMatch(/^נוצלו כל 10/);
+    expect(outputBlockedMessage('free_issue_limit_reached', false)).toMatch(/^All 10 free quotes/);
+  });
 });
 
 

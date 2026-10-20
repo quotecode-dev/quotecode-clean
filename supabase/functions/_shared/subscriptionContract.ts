@@ -39,7 +39,7 @@ export function planName(planId: unknown, lang: unknown): string | null {
   return PLAN_NAMES[lang === 'he' ? 'he' : 'en'][id];
 }
 
-export const FREE_QUOTES_TOTAL = 10; // OD-01: lifetime, no expiry
+export const FREE_QUOTES_TOTAL = 10; // OD-01 + Owner 2026-10-20: 10 quotes OR 7 days, whichever ends first (the server sends the window)
 
 // Output channels (OD-02). WhatsApp and email are Send paths; approval/signature use the same artifact.
 export const OUTPUT_CHANNELS = Object.freeze(['send', 'public_share', 'final_pdf', 'final_print'] as const);
@@ -150,12 +150,14 @@ export interface ReadySummary {
   subscriptionStatus: typeof SUBSCRIPTION_STATUSES[number];
   capabilities: readonly CapabilityId[];
   eligiblePlans: Readonly<Partial<Record<CapabilityId, readonly PlanId[]>>>;
-  free10: { limit: number; consumed: number; reserved: number; remaining: number } | null;
+  free10: { limit: number; consumed: number; reserved: number; remaining: number; endsAt: string | null; periodEnded: boolean } | null;
   catalog: { active: number; countDefinition: string; limit: number | null; blocks: number; limitDecided: boolean };
   priceCatalogVersion: string | null;
 }
 export type AccountSummary = ReadySummary | { state: Exclude<SummaryState, 'ready'>; code?: string };
 
+// the server's window end: UTC with milliseconds (to_char in 20261021100000), which every browser engine parses
+const ISO_UTC_MS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 const isInt = (v: unknown, min = 0) => typeof v === 'number' && Number.isInteger(v) && v >= min;
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const isPhase = (v: unknown): v is ActivationPhase => typeof v === 'string' && (ACTIVATION_PHASES as readonly string[]).includes(v);
@@ -201,7 +203,17 @@ export function parseAccountSummary(raw: unknown): AccountSummary {
       || f.remaining !== Math.max(FREE_QUOTES_TOTAL - (f.consumed as number) - (f.reserved as number), 0)) {
       return { state: 'invalid', code: 'free10_arithmetic' };
     }
-    free10 = Object.freeze({ limit: FREE_QUOTES_TOTAL, consumed: f.consumed as number, reserved: f.reserved as number, remaining: f.remaining as number });
+    // 20261021100000 (Owner 2026-10-20): the 7-day window. Absent on an older server = no window (null / false); when present it must be
+    // well-formed, and an ended period always names its end.
+    const endsAt = f.endsAt === undefined ? null : f.endsAt;
+    const periodEnded = f.periodEnded === undefined ? false : f.periodEnded;
+    if (!(endsAt === null || (typeof endsAt === 'string' && ISO_UTC_MS.test(endsAt) && !Number.isNaN(Date.parse(endsAt))))
+      || typeof periodEnded !== 'boolean'
+      || (periodEnded && endsAt === null)) {
+      return { state: 'invalid', code: 'free10_window' };
+    }
+    free10 = Object.freeze({ limit: FREE_QUOTES_TOTAL, consumed: f.consumed as number, reserved: f.reserved as number, remaining: f.remaining as number,
+      endsAt: endsAt as string | null, periodEnded });
   } else if (raw.free10 !== null) {
     return { state: 'invalid', code: 'free10_paid' };
   }
@@ -276,11 +288,11 @@ export function outputPhaseOf(summary: AccountSummary | null | undefined): Activ
 // permitted actions (viewing quotes, editing an existing draft, re-sending an already-output quote, clients, tasks, ...) stay available.
 // Paid actions = the canonical contract: a FIRST client output of a quote (OD-02, enforced by the server ledger) and - by the Owner's
 // 2026-10-11 decision - creating a NEW quote (new / duplicate / AI / measured / from template), checked BEFORE any insert.
-// Enforced only when the server says so: summary ready + output phase 'enforced' + plan 'free' + remaining 0. Off / prepared / shadow /
+// Enforced only when the server says so: summary ready + output phase 'enforced' + plan 'free' + remaining 0 or the 7 free days ended (Owner 2026-10-20). Off / prepared / shadow /
 // not deployed / loading never add a restriction (no new restriction on existing accounts while activation is off). A paid plan
 // (current or legacy) is never blocked. The server is the authority (quotes INSERT trigger + output ledger); this only decides the UI.
 // ---------------------------------------------------------------------------------------------------------------------
-export interface QuotaDecision { allowed: boolean; reason: 'not_enforced' | 'paid_plan' | 'within_free10' | 'free_issue_limit_reached' | 'fail_closed'; free10?: ReadySummary['free10'] }
+export interface QuotaDecision { allowed: boolean; reason: 'not_enforced' | 'paid_plan' | 'within_free10' | 'free_issue_limit_reached' | 'free_period_ended' | 'fail_closed'; free10?: ReadySummary['free10'] }
 
 export function decideFree10Action(summary: AccountSummary | null | undefined): QuotaDecision {
   if (summary?.state !== 'ready') return { allowed: true, reason: 'not_enforced' };
@@ -288,6 +300,8 @@ export function decideFree10Action(summary: AccountSummary | null | undefined): 
   if (s.phase.output !== 'enforced') return { allowed: true, reason: 'not_enforced' };
   if (s.planId !== 'free') return { allowed: true, reason: 'paid_plan' };
   if (!s.free10) return { allowed: false, reason: 'fail_closed' };
+  // Owner 2026-10-20: the 7 free days ended before the 10 quotes were used (10 used names the 10, as the window does)
+  if (s.free10.periodEnded && s.free10.remaining > 0) return { allowed: false, reason: 'free_period_ended', free10: s.free10 };
   return s.free10.remaining > 0
     ? { allowed: true, reason: 'within_free10', free10: s.free10 }
     : { allowed: false, reason: 'free_issue_limit_reached', free10: s.free10 };

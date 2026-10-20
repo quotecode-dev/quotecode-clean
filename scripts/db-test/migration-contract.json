@@ -333,6 +333,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE, ON CONFLICT DO NOTHING (re-runnable); PayPlus phase 1 (Owner 2026-10-18), renamed for stage 2 (Owner 2026-10-20)"
+    },
+    "20261021100000_free10_save_count_and_seven_days.sql": {
+      "sha256": "7629b6f7e4b201ff97b1ed8bb61860729542650426634ce4b1da345e7a90f826",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / CREATE TABLE IF NOT EXISTS / CREATE OR REPLACE / DROP TRIGGER IF EXISTS (re-runnable); Free plan server rule - count on save + 7 days (Owner 2026-10-20, PayPlus stage 2)"
     }
   }
 }
