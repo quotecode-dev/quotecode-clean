@@ -168,6 +168,31 @@ export default function LandingGlobal({ onForgotPassword }) {
         { icon: MessagesSquare, title: 'AI Assistant Inside Your Workflow', text: 'The TEKANGO AI assistant is available inside your signed-in workflows - while you create or edit a quote, work with clients, and manage settings. Ask about the step you are on or get guided help.' },
       ],
     },
+    // Owner 2026-10-20: the SMART PACK promotion - TEST only (SmartPackShowcase renders nothing in a production build). Prices = the Owner
+    // decision of 2026-10-20 (5 USD a month; yearly with the 15% saving = 51 USD), always an add-on the customer chooses.
+    smartPack: {
+      badge: 'New · Subscription add-on',
+      name: 'SMART PACK',
+      lead: 'The TEKANGO smart assistant: it talks, it listens, it knows your business and helps you write quotes.',
+      demoLabel: 'Demo: a spoken question to the smart assistant and an answer from the business data',
+      demoTitle: 'Smart assistant',
+      demoQuestion: 'How many quotes are waiting for approval this week?',
+      demoAnswer: 'Three quotes are waiting for approval. Two of them were viewed today, worth following up.',
+      soon: 'Coming soon',
+      features: [
+        { icon: 'chat', title: 'A smart chat that knows your business', text: 'Ask about your quotes, clients, catalog and tasks, and get answers from your real data.' },
+        { icon: 'voice', title: 'Voice chat', text: 'Ask out loud and hear the answer, on site or when your hands are busy.' },
+        { icon: 'ai', title: 'AI smart quote', text: 'Describe the job, or dictate it, and the AI drafts the quote lines. You review and approve.' },
+        { icon: 'files', title: 'Files attached to the quote', text: 'Drawings, photos and documents attached to the quote your client receives.' },
+        { icon: 'twin', title: 'Customer Twin', text: 'A smart picture of every client that helps you know what to offer and when to follow up.', soon: true },
+      ],
+      priceMonth: '$5',
+      priceMonthLabel: 'per month, added to your plan',
+      priceYear: 'or $51 a year with a yearly plan',
+      points: ['Add it only if you want it', 'Add or remove it any time', 'Paid together with your plan'],
+      cta: 'See plans and pricing',
+      note: 'The add-on will be available to buy when the plans open.',
+    },
     plans: {
       // Base section heading and subtitle (L12); no eyebrow (the base title is the heading itself).
       title: 'Plans & Pricing',

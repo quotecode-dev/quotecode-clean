@@ -14,6 +14,7 @@ import LandingHeader from './LandingHeader';
 import LandingQuoteDocument from './LandingQuoteDocument';
 import QuoteStyleShowcase from './QuoteStyleShowcase';
 import LandingPlans from './LandingPlans';
+import SmartPackShowcase from './SmartPackShowcase';
 import { LANDING_CSS } from './landingStyles';
 import { useLauncherStepAside } from '../../hooks/useLauncherStepAside';
 
@@ -159,6 +160,9 @@ export default function LandingPage({
             </div>
           </div>
         </section>
+
+        {/* Owner 2026-10-20: the "חכם פלוס" / SMART PACK promotion - TEST only (SmartPackShowcase renders nothing in a production build) */}
+        <SmartPackShowcase copy={copy.smartPack} isHe={isHe} plansHref="#plans" />
 
         <section className="tl-section" id="plans" aria-labelledby="tl-plans-title">
           <div className="tl-inner">
