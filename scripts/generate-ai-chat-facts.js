@@ -32,8 +32,6 @@ import { dirname, join } from 'node:path';
 import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../src/shared/brand.js';
 import { REGION_RULES } from '../src/utils/regionConfig.js';
 import { PRODUCT_TRUTH_REGISTRY, NON_CURRENT_REGISTRY, CAPABILITY_STATES } from '../src/data/productTruthRegistry.js';
-import { PRODUCT_HOW_TO, projectHowTo } from '../src/data/productHowTo.js';
-import { SUBSCRIPTION_ADD_ONS } from '../src/domain/subscriptions/addOnCatalog.js';
 import {
   PRICE_CATALOG_VERSION, PRICE_VERSIONS, BILLING_CURRENCY, CATALOG_PRODUCTS_INCLUDED, CATALOG_BLOCK_PRODUCTS, approvedPrice,
 } from '../src/domain/subscriptions/priceCatalog.js';
@@ -221,17 +219,6 @@ export function generateAiFacts() {
     // consumer. Do not hand-maintain a second capability table anywhere else.
     capabilities: PRODUCT_TRUTH_REGISTRY.map(projectCapability),
     nonCurrentCapabilities: NON_CURRENT_REGISTRY.map(projectNonCurrentCapability),
-    // Owner 2026-10-20 (L-14): the verified "how do I ..." steps (src/data/productHowTo.js; every quoted label is checked against
-    // its source file by productHowTo.test.js). chat-ai/howToTruth.ts renders them for the chat and the support email assistant.
-    howTo: PRODUCT_HOW_TO.map(projectHowTo),
-    // Owner 2026-10-20 (L-14, typed "חכם פלוס בעובדות המוצר (תוכן, מחיר, עדיין לא לרכישה)"): the subscription add-ons from
-    // src/domain/subscriptions/addOnCatalog.js. chat-ai/addOnTruth.ts renders them; purchase is not open.
-    addOns: SUBSCRIPTION_ADD_ONS.map((a) => ({
-      id: a.id, name: { ...a.name }, optional: a.optional, sameBillingPeriodAsMainPlan: a.sameBillingPeriodAsMainPlan, purchasable: a.purchasable,
-      prices: { IL: { currency: a.priceMinor.IL.currency, month: (a.priceMinor.IL.month / 100).toFixed(2), year: (a.priceMinor.IL.year / 100).toFixed(2), taxIncluded: a.priceMinor.IL.taxIncluded },
-        INTERNATIONAL: { currency: a.priceMinor.INTERNATIONAL.currency, month: (a.priceMinor.INTERNATIONAL.month / 100).toFixed(2), year: (a.priceMinor.INTERNATIONAL.year / 100).toFixed(2) } },
-      includes: { he: [...a.includes.he], en: [...a.includes.en] }, comingSoon: { he: [...a.comingSoon.he], en: [...a.comingSoon.en] },
-    })),
   };
 }
 
@@ -242,7 +229,7 @@ function renderFile(facts) {
   return `// GENERATED FILE - do not hand-edit.
 // Regenerate with: node scripts/generate-ai-chat-facts.js
 // Source of truth: supabase/functions/_shared/subscriptionContract.ts, src/domain/subscriptions/priceCatalog.js,
-// src/data/productTruthRegistry.js, src/data/productHowTo.js, src/domain/subscriptions/addOnCatalog.js, src/shared/brand.js, src/utils/regionConfig.js.
+// src/data/productTruthRegistry.js, src/shared/brand.js, src/utils/regionConfig.js.
 // Staleness is enforced by supabase/functions/chat-ai/aiFacts.parity.test.js.
 export const AI_FACTS = ${JSON.stringify(facts, null, 2)} as const;
 `;

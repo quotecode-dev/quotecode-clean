@@ -64,9 +64,7 @@ function extract(Page, choose = null) {
     actions: c.querySelectorAll('a, button').length,
     choice: [...c.querySelectorAll('[data-period-choice] input')].map((i) => ({ type: i.type, period: i.value, checked: i.checked, label: i.closest('label')?.textContent.trim() || '' })),
     legend: c.querySelector('[data-period-choice] legend')?.textContent.trim() || '',
-    otherInputs: [...c.querySelectorAll('input, select, textarea')].filter((i) => !i.closest('[data-period-choice]') && !i.closest('[data-addon-choice]')).length,
-    // IRON-LANDING-001 AMENDED 2026-10-20 (Owner typed): the all-inclusive card may carry ONE unticked SMART PACK add-on box
-    addOn: [...c.querySelectorAll('[data-addon-choice] input')].map((i) => ({ type: i.type, checked: i.checked, label: squash(i.closest('label')) })),
+    otherInputs: [...c.querySelectorAll('input, select, textarea')].filter((i) => !i.closest('[data-period-choice]')).length,
   }));
   const free10 = [...container.querySelectorAll('[data-free10-cta]')].map((a) => ({
     href: a.getAttribute('href'),
@@ -96,9 +94,6 @@ const SAVING = {
 };
 const PROMO = /מבצע|לזמן מוגבל|רק עכשיו|רק היום|עד סוף|limited[- ]time|promo|offer ends|today only|for a limited|hurry/i;
 const CHOICE = { he: { legend: 'תקופת חיוב', month: 'חודשי', year: 'שנתי' }, en: { legend: 'Billing period', month: 'Monthly', year: 'Annual' } };
-// IRON-LANDING-001 AMENDED 2026-10-20: the approved SMART PACK add-on prices (typed by the Owner in the console), written out here on
-// purpose - the check compares the page with the law's own figures, not with the catalog the page reads
-const ADDON = { he: { name: 'חכם פלוס', month: '₪10.00', year: '₪102.00' }, en: { name: 'SMART PACK', month: '$5.00', year: '$51.00' } };
 const FREE10 = { he: { label: '10 הצעות חינם', status: 'עדיין לא הופעל' }, en: { label: '10 free quotes', status: 'Not active yet' } };
 const SIGNUP = { he: '/dashboard?signup=true&lang=he', en: '/dashboard?signup=true&lang=en' };
 const TRIAL_14 = /14\s*(יום|ימי)|14[\s-]day/i;
@@ -130,15 +125,7 @@ export function planTruthProblems(page, locale, chosen = 'month') {
       if (/ניסיון|trial/i.test(c.text)) p.push('free: trial wording on the Free card');
       if (c.choice.length) p.push('free: a billing-period choice on the Free card');
       if (c.note) p.push('free: a saving note on the Free card');
-      if (c.addOn.length) p.push('free: an add-on box on the Free card');
       continue;
-    }
-    // IRON-LANDING-001 AMENDED 2026-10-20 (Owner typed: "כרטיס הכול כלול מציג תיבת הוספה לא מסומנת של חכם פלוס במחיר 10 ש"ח לחודש או 102 ש"ח
-    // לשנה, ובחו"ל 5 דולר או 51 דולר"): exactly one checkbox, unticked, naming the add-on and its approved price for the chosen period
-    const wantAdd = ADDON[locale];
-    const box = c.addOn[0];
-    if (c.addOn.length !== 1 || box.type !== 'checkbox' || box.checked || !box.label.includes(wantAdd.name) || !box.label.includes(wantAdd[chosen])) {
-      p.push(`all_inclusive: add-on box ${JSON.stringify(c.addOn)} != one unticked "${wantAdd.name}" checkbox at ${wantAdd[chosen]}`);
     }
     if (c.id !== 'all_inclusive') { p.push(`${c.id}: not an approved plan`); continue; }
     const choice = JSON.stringify(c.choice.map((r) => [r.type, r.period, r.label]));
@@ -233,12 +220,6 @@ describe('plan-card truth (IRON-LANDING-001 as amended 2026-10-11, PROFLOW_PROJE
       ['EN: both periods checked', 'en', EN, (m) => { card(m, 'all_inclusive').choice.forEach((r) => { r.checked = true; }); }],
       ['HE: the choice is a checkbox, not a radio', 'he', HE, (m) => { card(m, 'all_inclusive').choice[1].type = 'checkbox'; }],
       ['EN: an extra input (e.g. a quantity / payment field) on a card', 'en', EN, (m) => { card(m, 'all_inclusive').otherInputs = 1; }],
-      ['HE: the SMART PACK add-on pre-ticked (IRON-LANDING-001 amended 2026-10-20)', 'he', HE, (m) => { card(m, 'all_inclusive').addOn[0].checked = true; }],
-      ['EN: the SMART PACK add-on at another price', 'en', EN, (m) => { card(m, 'all_inclusive').addOn[0].label = card(m, 'all_inclusive').addOn[0].label.replace('$5.00', '$6.00'); }],
-      ['HE: the annual add-on price shown while annual is chosen is wrong', 'he', HE_Y, (m) => { card(m, 'all_inclusive').addOn[0].label = card(m, 'all_inclusive').addOn[0].label.replace('₪102.00', '₪120.00'); }, 'year'],
-      ['EN: the SMART PACK add-on box missing', 'en', EN, (m) => { card(m, 'all_inclusive').addOn = []; }],
-      ['HE: a second add-on box', 'he', HE, (m) => { card(m, 'all_inclusive').addOn.push(clone(card(m, 'all_inclusive').addOn[0])); }],
-      ['HE: an add-on box on the Free card', 'he', HE, (m) => { card(m, 'free').addOn = clone(card(m, 'all_inclusive').addOn); }],
       ['HE: a billing-period choice on the Free card', 'he', HE, (m) => { card(m, 'free').choice = clone(card(m, 'all_inclusive').choice); }],
       ['HE: the VAT sentence removed', 'he', HE, (m) => { m.priceNote = ''; }],
       ['HE: a VAT rate / breakdown injected', 'he', HE, (m) => { card(m, 'all_inclusive').text += ' ₪25.42 לפני מע"מ + מע"מ 18%'; }],

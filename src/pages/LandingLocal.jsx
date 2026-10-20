@@ -8,8 +8,6 @@ import { formatWholeMoney } from '../utils/money';
 import { FREE_QUOTES_TOTAL, ilsPackageAmount, ilsAnnualSaving, ilsAnnualSavingRate } from '../components/landing/landingPackageFacts';
 import BrandName from '../components/BrandName';
 import LandingPage from '../components/landing/LandingPage';
-import { SMART_PACK_ENABLED } from '../components/landing/smartPackFacts';
-import { ilsSmartPack, ilsWithSmartPack } from '../components/landing/smartPackFacts';
 
 // Task 16 (correction A, 2026-10-05): the Local (HE / ILS) landing now uses the approved refined composition
 // (revision-r2-refined landing-he.html) through the shared LandingPage layout. This file keeps EVERY customer-facing
@@ -60,16 +58,6 @@ export default function LandingLocal({ onForgotPassword }) {
       ],
       // Task 26: the visitor chooses ONE billing period and sees that single price (initially monthly); review display only.
       periodChoice: { legend: 'תקופת חיוב', labels: { month: 'חודשי', year: 'שנתי' } },
-      // Owner 2026-10-20 (TEST only): the "חכם פלוס" add-on box - ticked, the shown price is the package plus the add-on for the period.
-      ...(SMART_PACK_ENABLED ? {
-        addOn: {
-          label: 'הוספת חכם פלוס',
-          perPeriod: {
-            month: { add: <>(+<bdi dir="ltr">{ilsSmartPack('month')}</bdi> לחודש)</>, amount: ilsWithSmartPack('month'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('month')}</bdi> + <bdi dir="ltr">{ilsSmartPack('month')}</bdi></> },
-            year: { add: <>(+<bdi dir="ltr">{ilsSmartPack('year')}</bdi> לשנה)</>, amount: ilsWithSmartPack('year'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('year')}</bdi> + <bdi dir="ltr">{ilsSmartPack('year')}</bdi></> },
-          },
-        },
-      } : {}),
       capacity: [`אחרי ${FREE_QUOTES_TOTAL} ההצעות החינמיות`, 'חיוב חודשי או שנתי, לפי בחירתכם'],
       features: ['המנוי החודשי מתחדש כל חודש', 'המנוי השנתי מתחדש כל שנה'],
       notice: 'עדיין לא זמין לרכישה',
@@ -166,31 +154,6 @@ export default function LandingLocal({ onForgotPassword }) {
         // Task 37 (Owner-approved): only what LIVE has - the step-aware help; the draft review ("the quote in front of you") is TEST only.
         { icon: MessagesSquare, title: 'עוזר חכם שמלווה אתכם בעבודה', text: 'עוזר ה-AI של TEKANGO זמין בזמן יצירת הצעות מחיר, ניהול לקוחות ועדכון ההגדרות. שאלו על השלב שבו אתם נמצאים או בקשו הכוונה.' },
       ],
-    },
-    // Owner 2026-10-20: the "חכם פלוס" promotion - TEST only (SmartPackShowcase renders nothing in a production build). Prices = the
-    // Owner decision of 2026-10-20 (10 ILS a month; yearly with the 15% saving = 102 ILS), always an add-on the customer chooses.
-    smartPack: {
-      badge: 'חדש · תוספת למנוי',
-      name: 'חכם פלוס',
-      lead: 'העוזר החכם של TEKANGO: מדבר, מקשיב, מכיר את העסק שלכם ועוזר לנסח הצעות מחיר.',
-      demoLabel: 'הדגמה: שאלה בקול לעוזר החכם ותשובה מהנתונים של העסק',
-      demoTitle: 'העוזר החכם',
-      demoQuestion: 'כמה הצעות מחכות לאישור השבוע?',
-      demoAnswer: 'שלוש הצעות מחכות לאישור. שתיים מהן נצפו היום, כדאי לחזור אליהן.',
-      soon: 'בקרוב',
-      features: [
-        { icon: 'chat', title: 'צ׳אט חכם שמכיר את העסק', text: 'שואלים על ההצעות, הלקוחות, הקטלוג והמשימות, ומקבלים תשובה מהנתונים האמיתיים שלכם.' },
-        { icon: 'voice', title: 'צ׳אט קולי', text: 'שואלים בקול ושומעים את התשובה, גם מהשטח וגם כשהידיים עסוקות.' },
-        { icon: 'ai', title: 'הצעה חכמה עם AI', text: 'מתארים את העבודה, או מכתיבים בקול, וה-AI מנסח את שורות ההצעה. אתם בודקים ומאשרים.' },
-        { icon: 'files', title: 'קבצים מצורפים להצעה', text: 'שרטוטים, תמונות ומסמכים שמצורפים להצעה שהלקוח מקבל.' },
-        { icon: 'twin', title: 'התאום הדיגיטלי של הלקוח', text: 'תמונה חכמה של כל לקוח, שעוזרת לדעת מה להציע ומתי לחזור אליו.', soon: true },
-      ],
-      priceMonth: '₪10',
-      priceMonthLabel: 'לחודש, בתוספת למנוי',
-      priceYear: 'או ₪102 לשנה במנוי שנתי',
-      points: ['מוסיפים רק אם רוצים', 'אפשר להוסיף ולהסיר בכל זמן', 'משלמים יחד עם המנוי, באותו מועד'],
-      cta: 'למסלולים ולמחירים',
-      note: 'המחירים כוללים מע״מ. התוספת תהיה זמינה לרכישה עם פתיחת המסלולים.',
     },
     plans: {
       // Base section heading (L12); no eyebrow. The subtitle states the §249 model (Free-10, then one package).
