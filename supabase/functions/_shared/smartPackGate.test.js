@@ -3,7 +3,10 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { smartPackAllowedFor, SMART_PACK_REQUIRED } from './smartPackGate.ts';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 const summary = (over = {}) => ({ ok: true, schema: 'account-summary/v1', version: 1, phase: { output: 'enforced', catalog: 'prepared', billing: 'off' },
   market: 'IL', plan: { id: 'free' }, subscriptionStatus: 'none', capabilities: ['quote_style.classic'], eligiblePlans: {},
@@ -28,7 +31,7 @@ describe('smartPackAllowedFor', () => {
 });
 
 describe('chat-ai (source guard)', () => {
-  const src = fs.readFileSync(path.join(__dirname, '..', 'chat-ai', 'index.ts'), 'utf8').replace(/\r\n/g, '\n');
+  const src = fs.readFileSync(path.join(HERE, '..', 'chat-ai', 'index.ts'), 'utf8').replace(/\r\n/g, '\n');
   it('the data tools need SMART PACK; a data question without it gets the fixed SMART PACK answer (HE / EN)', () => {
     expect(src).toMatch(/const smartPackAllowed = decideSmartPack\(accountSummary\)\.allowed;\n {2}const toolsEligible = !!\(verifiedUserId && isDashboard && accountContext && !draftSnapshot && smartPackAllowed\);/);
     expect(src).toMatch(/'קריאת הנתונים שלך בצ׳אט \(הצעות, לקוחות, קטלוג ומשימות\) היא חלק מחכם פלוס\. אפשר להוסיף אותו במסך המסלולים\.'/);

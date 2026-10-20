@@ -5,8 +5,11 @@ import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { render, cleanup, fireEvent, waitFor } from '@testing-library/react';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import NotificationCenter from './NotificationCenter';
 import { bellActionsFor, firstFreeSignatureQuoteId, saveFloatedKeys } from '../utils/bellSubject';
+
+const HERE = path.dirname(fileURLToPath(import.meta.url));
 
 const NOW = new Date('2026-10-24T12:00:00Z');
 const HOUR = 60 * 60 * 1000;
@@ -86,7 +89,7 @@ describe('the bell renders the offer (HE / EN)', () => {
 });
 
 describe('Dashboard wiring (source guard)', () => {
-  const dash = fs.readFileSync(path.join(__dirname, '..', 'pages', 'Dashboard.jsx'), 'utf8');
+  const dash = fs.readFileSync(path.join(HERE, '..', 'pages', 'Dashboard.jsx'), 'utf8');
   it('the id comes from the server summary: Free + enforced only, never LIFETIME; both bells get it', () => {
     expect(dash).toMatch(/if \(isLifetimeAccount \|\| accountSummary\?\.state !== 'ready' \|\| accountSummary\.phase\.output !== 'enforced' \|\| accountSummary\.planId !== 'free'\) return null;/);
     expect((dash.match(/upgradeQuoteId=\{bellUpgradeQuoteId\}/g) || []).length).toBe(2);

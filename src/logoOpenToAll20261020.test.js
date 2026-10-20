@@ -3,8 +3,11 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const dash = fs.readFileSync(path.join(__dirname, 'pages', 'Dashboard.jsx'), 'utf8').replace(/\r\n/g, '\n');
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+const dash = fs.readFileSync(path.join(HERE, 'pages', 'Dashboard.jsx'), 'utf8').replace(/\r\n/g, '\n');
 
 describe('logo upload open to every account (source guard)', () => {
   it('the Settings mount passes the logo upload as always allowed', () => {

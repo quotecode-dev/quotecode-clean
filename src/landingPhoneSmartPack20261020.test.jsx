@@ -5,13 +5,16 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { MemoryRouter } from 'react-router-dom';
 import LandingLocal from './pages/LandingLocal';
 import LandingGlobal from './pages/LandingGlobal';
 import { SMART_PACK } from './domain/subscriptions/addOnCatalog';
 
-const css = (f) => fs.readFileSync(path.join(__dirname, 'components', 'landing', f), 'utf8').replace(/\r\n/g, '\n');
+const HERE = path.dirname(fileURLToPath(import.meta.url));
+
+const css = (f) => fs.readFileSync(path.join(HERE, 'components', 'landing', f), 'utf8').replace(/\r\n/g, '\n');
 const html = (Page) => renderToStaticMarkup(<MemoryRouter><Page /></MemoryRouter>);
 const text = (s) => s.replace(/<[^>]+>/g, '');
 
