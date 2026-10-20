@@ -17,7 +17,7 @@ export default function TurnstileWidget({ slot = 'auth', isHebrew = true }) {
         widgetId.current = ts.render(box.current, {
           sitekey: turnstileSiteKey(),
           language: isHebrew ? 'he' : 'en',
-          theme: 'light',
+          theme: 'dark', // the auth card is dark
           size: 'flexible',
           callback: (token) => setCaptchaToken(slot, token),
           'expired-callback': () => setCaptchaToken(slot, null),
