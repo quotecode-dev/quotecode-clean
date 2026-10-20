@@ -7,7 +7,8 @@
 //   sentence "המחירים כוללים מע״מ" - no VAT rate / breakdown / before-VAT line (OD-05);
 // - EN: $18.00 USD / month and $184.00 USD / year (IRON-LANDING-001 amended by the Owner in the console 2026-10-11, replaces $183.60), "Charged in USD" (OD-08), and zero ILS / ₪ / NIS / Hebrew on the page (OD-11);
 //   no EUR / GBP figure while no verified rate source is wired;
-// - Free = 10 quotes in total, no time limit, never a monthly allowance, never a trial (OD-01);
+// - Free = 10 quotes in total OR 7 days from sign-up, whichever ends first, with SMART PACK included in those 7 days (IRON-LANDING-001
+//   amended by the Owner in the console 2026-10-20); never a monthly allowance, never called a trial (OD-01);
 // - Task 26: the package card has an accessible monthly / annual radio choice (initially monthly) and shows exactly ONE price at a time -
 //   the chosen period's; choosing changes only the displayed price (no purchase / activation); ONLY while Annual is chosen, the card states
 //   the permanent saving vs 12 monthly payments from the catalog in the Owner's wording - HE "חיסכון של 15% - ₪54.00 בשנה" (IRON-ILS-001
@@ -126,7 +127,9 @@ export function planTruthProblems(page, locale, chosen = 'month') {
       if (c.prices.length !== 1 || c.prices[0].amount !== zero) p.push(`free: prices ${JSON.stringify(c.prices)} != one "${zero}"`);
       if (c.prices.some((r) => r.per)) p.push('free: a period next to the price (10 in total, not per month)');
       if (!c.capacity.some((t) => t.startsWith(`${FREE_QUOTES_TOTAL} `) && /בסך הכול|in total/.test(t))) p.push('free: 10 quotes in total not visible');
-      if (!c.capacity.some((t) => /בלי הגבלת זמן|ללא הגבלת זמן|No time limit/i.test(t))) p.push('free: "no time limit" not visible');
+      if (!c.capacity.some((t) => /או 7 ימים מההרשמה, המוקדם מביניהם|Or 7 days from sign-up, whichever comes first/.test(t))) p.push('free: "or 7 days, whichever first" not visible');
+      if (!c.capacity.some((t) => /חכם פלוס|SMART PACK/.test(t))) p.push('free: SMART PACK in the 7 days not visible');
+      if (c.capacity.some((t) => /בלי הגבלת זמן|ללא הגבלת זמן|No time limit/i.test(t))) p.push('free: the retired "no time limit" is back');
       if (/ניסיון|trial/i.test(c.text)) p.push('free: trial wording on the Free card');
       if (c.choice.length) p.push('free: a billing-period choice on the Free card');
       if (c.note) p.push('free: a saving note on the Free card');

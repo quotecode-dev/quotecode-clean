@@ -50,32 +50,33 @@ export default function QuoteStyleShowcase({ locale = 'he', copy }) {
           <h2 id="tl-styles-title">{copy.title}</h2>
           <p>{copy.intro}</p>
         </div>
-        <div className="tl-tabs" role="tablist" aria-label={copy.tablistLabel}>
-          {QUOTE_STYLE_IDS.map((id) => (
-            <Fragment key={id}>
-              {/* PRODUCT_TRUTH_DECORATIVE: public landing style tab - switches which style the sample document shows; no account or quote state */}
-              <button
-                ref={(el) => { tabRefs.current[id] = el; }}
-                type="button"
-                role="tab"
-                id={`tl-tab-${id}`}
-                aria-selected={active === id}
-                aria-controls="tl-style-panel"
-                tabIndex={active === id ? 0 : -1}
-                className="tl-tab"
-                onClick={() => setActive(id)}
-                onKeyDown={onTabKeyDown}
-              >
-                {styles[id].title}
-                <span className={`tl-tab-badge${isShowcaseStyleAvailable(id) ? ' is-available' : ''}`}>
-                  {isShowcaseStyleAvailable(id) ? copy.availableBadge : copy.previewBadge}
-                </span>
-              </button>
-            </Fragment>
-          ))}
-        </div>
         <div className="tl-showcase" role="tabpanel" id="tl-style-panel" aria-labelledby={`tl-tab-${active}`} data-style-availability={available ? 'available' : 'preview-only'}>
           <div className="tl-style-copy">
+            {/* Owner 2026-10-20: the style tabs sit right above the electrician photo, beside the top of the sample document */}
+            <div className="tl-tabs" role="tablist" aria-label={copy.tablistLabel}>
+              {QUOTE_STYLE_IDS.map((id) => (
+                <Fragment key={id}>
+                  {/* PRODUCT_TRUTH_DECORATIVE: public landing style tab - switches which style the sample document shows; no account or quote state */}
+                  <button
+                    ref={(el) => { tabRefs.current[id] = el; }}
+                    type="button"
+                    role="tab"
+                    id={`tl-tab-${id}`}
+                    aria-selected={active === id}
+                    aria-controls="tl-style-panel"
+                    tabIndex={active === id ? 0 : -1}
+                    className="tl-tab"
+                    onClick={() => setActive(id)}
+                    onKeyDown={onTabKeyDown}
+                  >
+                    {styles[id].title}
+                    <span className={`tl-tab-badge${isShowcaseStyleAvailable(id) ? ' is-available' : ''}`}>
+                      {isShowcaseStyleAvailable(id) ? copy.availableBadge : copy.previewBadge}
+                    </span>
+                  </button>
+                </Fragment>
+              ))}
+            </div>
             {copy.photo && (
               <figure className="tl-style-photo">
                 <img src={copy.photo.src} width={copy.photo.width} height={copy.photo.height} loading="lazy" decoding="async" alt={copy.photo.alt} />

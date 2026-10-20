@@ -47,7 +47,7 @@ describe('AI card: only what LIVE has', () => {
   it('no "the quote in front of you" (the draft review is TEST only)', () => {
     expect(he).not.toContain('שאלו על ההצעה שלפניכם');
     expect(en).not.toContain('Ask about the quote in front of you');
-    expect(he).toContain('שאלו על השלב שבו אתם נמצאים או בקשו הכוונה.');
+    expect(he).toContain('שאלו על השלב שבו אתם נמצאים, או בקשו הכוונה.');
     expect(en).toContain('Ask about the step you are on or get guided help.');
   });
 });

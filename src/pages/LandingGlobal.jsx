@@ -52,9 +52,9 @@ export default function LandingGlobal({ onForgotPassword }) {
   const savingRate = usdAnnualSavingRate();
   const plans = [
     {
-      id: 'free', icon: Gift, name: 'Free', tagline: 'A free plan with no time limit.',
+      id: 'free', icon: Gift, name: 'Free', tagline: 'Free for 10 quotes or 7 days, whichever comes first.',
       prices: [{ period: 'free', amount: `${sym}${formatMoney(0)}`, per: null }],
-      capacity: [`${FREE_QUOTES_TOTAL} quotes in total`, 'No time limit'],
+      capacity: [`${FREE_QUOTES_TOTAL} quotes in total`, 'Or 7 days from sign-up, whichever comes first', 'SMART PACK included during the 7 days'],
       features: [
         'Counts when it reaches a client; a new version or another client counts again',
         'Drafts and previews never count',
@@ -236,13 +236,21 @@ export default function LandingGlobal({ onForgotPassword }) {
         { q: 'Do the displayed prices include taxes?', a: 'Plan prices are listed in US dollars and are charged in USD; a price shown in pounds or euros is only an estimate. The package cannot be purchased yet; if any tax applies when it launches, it will be shown clearly before you pay anything.' },
         // OD-01/OD-02 (Owner 2026-10-07): the trial question is replaced by the Free-10 policy, truthfully not yet activated.
         // Task 37 (Owner-approved): the same facts as scannable points.
-        { q: 'How do the 10 free quotes work?', a: <>The new free plan includes 10 quotes in total, with no time limit.<ul className="tl-faq-list"><li>A quote counts when it reaches a customer: sending it, a view link, a final PDF or a final print.</li><li>Sending or producing the same version again for the same customer does not count again, on any channel.</li><li>Changing the customer, the recipient name or the quote content and producing it again counts as another quote.</li><li>Drafts and previews never count.</li><li>Deleting a quote does not give it back, and quotes already sent to customers stay available.</li></ul>The new plan is not active yet; the account terms available today are shown when you sign up.</> },
+        { q: 'How do the 10 free quotes work?', a: <>The new free plan includes 10 quotes in total, or 7 days from sign-up, whichever comes first. SMART PACK is included during those 7 days.<ul className="tl-faq-list"><li>A quote counts when it reaches a customer: sending it, a view link, a final PDF or a final print.</li><li>Sending or producing the same version again for the same customer does not count again, on any channel.</li><li>Changing the customer, the recipient name or the quote content and producing it again counts as another quote.</li><li>Drafts and previews never count.</li><li>Deleting a quote does not give it back, and quotes already sent to customers stay available.</li></ul>The new plan is not active yet; the account terms available today are shown when you sign up.</> },
         { q: 'Is the platform optimized for mobile and desktop?', a: 'Yes, TEKANGO is built as a fully responsive modern SaaS platform, allowing you to generate quotes and manage your business from any computer, tablet, or smartphone.' },
         // Verifiable infrastructure facts only (TLS in transit, encryption at rest by the Supabase/PostgreSQL platform).
         { q: 'Is my business data secure on the cloud?', a: 'Your data is stored on cloud infrastructure built on Supabase/PostgreSQL, which includes encryption in transit (TLS) and at rest as part of the standard cloud infrastructure. Access to your data is restricted to your own account.' },
         // Task 39 (Owner final scope): the cancellation-request path - a request handled by the team, never shown as an automatic cancellation.
         { q: 'How do I cancel a subscription?', a: <>Paid subscriptions cannot be purchased yet. Once they can, you can ask to cancel a subscription at any time by email to {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<a href="mailto:info@tekango.com?subject=Subscription%20cancellation%20request">info@tekango.com</a> or from the plans window in the app. Our team handles the request and confirms it by email - it is not an automatic cancellation. Cancelling a subscription does not delete your account. The cancellation and refund terms are in our {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href="/en/terms#cancellation">Terms of Service</a>.</> },
         { q: 'Can I export my financial reports and quotes?', a: 'Yes, you can easily export all your business quotes and expense reports into CSV format compatible with Excel and accounting software.' },
+        // Owner console 2026-10-20 (landing copy approval): questions users asked in the smart chat and the support inbox; every answer =
+        // the verified how-to facts (src/data/productHowTo.js) and the L-12 contact rule (email + chat, no phone).
+        { q: 'How do I sign up?', a: 'Choose "Get started", enter your email and a password, and accept the Terms of Use and the Privacy Policy. Then open the link we email you, and your account is ready. Before your first quote, add your business phone in Business Settings.' },
+        { q: 'How do I send a quote to my customer?', a: 'Send it by email or WhatsApp, or copy a message with the quote link and paste it anywhere. Your customer opens the link on any device. You can also download the quote as a PDF.' },
+        { q: 'Can my customer sign the quote on a phone?', a: 'Yes. Your customer opens the link, approves the quote and signs it digitally, and the quote status updates in your account. A signed quote is locked for editing; you can duplicate it to create a new quote.' },
+        { q: 'Can I keep a fixed price list of products and services?', a: 'Yes. Add items with their prices to your catalog, and pick them when you build a quote.' },
+        { q: 'Can I start a new quote from an existing one?', a: 'Yes. Save a quote as a template, without the customer details, and start your next quote from that saved template.' },
+        { q: 'How do I contact you?', a: <>Email {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the support mailbox */}<a href="mailto:support@tekango.com"><bdi dir="ltr">support@tekango.com</bdi></a>, or use the chat in the corner of the screen. There is no phone support at the moment.</> },
       ],
     },
     // Free business tools (base section, ledger L03 - base c65f742 LandingGlobal.jsx:755-765, verbatim). The public tools

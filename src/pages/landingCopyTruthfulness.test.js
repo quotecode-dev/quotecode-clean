@@ -70,7 +70,7 @@ describe('landing page copy - previously-removed false claims stay removed', () 
     const en = readRenderedText('LandingGlobal.jsx');
     expect(he).not.toMatch(/הכלולים במסלול|וכרגע אינם זמינים באף מסלול/);
     expect(en).not.toMatch(/included in your plan|are not currently available on any plan/i);
-    expect(he).toContain('שלושה סגנונות להצעת מחיר, זמינים בכל החשבונות');
+    expect(he).toContain('שלושה סגנונות להצעת מחיר, זמינים לכל המשתמשים');
     expect(en).toContain('Three quote styles, available to every account');
     // the workflow / hero copy is the base copy again (authority ledger L07) - it names no style choice
     expect(he).not.toMatch(/בוחרים מבין הסגנונות/);

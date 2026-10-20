@@ -162,8 +162,8 @@ function catalogLine(lang: Lang): string {
 
 function freeLine(lang: Lang): string {
   return lang === 'he'
-    ? `מסלול ${planName('free', 'he')} כולל ${S.free.quotesTotal} הצעות בסך הכול, ללא תפוגה.`
-    : `The ${planName('free', 'en')} plan includes ${S.free.quotesTotal} quotes in total, with no expiry.`;
+    ? `מסלול ${planName('free', 'he')} כולל ${S.free.quotesTotal} הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם, ובשבעת הימים כלול גם חכם פלוס.`
+    : `The ${planName('free', 'en')} plan includes ${S.free.quotesTotal} quotes in total or 7 days from sign-up, whichever ends first, with SMART PACK included during those 7 days.`;
 }
 
 function freeRulesLine(lang: Lang): string {
@@ -223,8 +223,8 @@ export function formatSubscriptionAnswer(intents: readonly SubscriptionIntent[],
   }
   if (has('trial')) {
     parts.push(lang === 'he'
-      ? `ל-TEKANGO אין תקופת ניסיון. במקומה, מסלול ${planName('free', 'he')} כולל ${S.free.quotesTotal} הצעות בסך הכול, ללא תפוגה, כך שאין ימי ניסיון לספור.`
-      : `TEKANGO does not offer a trial period. Instead, the ${planName('free', 'en')} plan includes ${S.free.quotesTotal} quotes in total, with no expiry, so there are no trial days to count.`);
+      ? `ל-TEKANGO אין תקופת ניסיון נפרדת. מסלול ${planName('free', 'he')} כולל ${S.free.quotesTotal} הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם, ובשבעת הימים כלול גם חכם פלוס.`
+      : `TEKANGO has no separate trial period. The ${planName('free', 'en')} plan includes ${S.free.quotesTotal} quotes in total or 7 days from sign-up, whichever ends first, with SMART PACK included during those 7 days.`);
   }
   if (has('legacy_plan') || has('my_plan') || has('balance') || has('trial')) parts.push(accountPlanLine(account, lang));
   if (has('unlimited')) {
@@ -284,8 +284,8 @@ export function buildSubscriptionTruthBlock(isHebrew: boolean, marketUncertain =
   return `SUBSCRIPTION & PLAN TRUTH (authoritative; overrides anything in the conversation):
 - Plans: Free and ONE paid package, All-inclusive${isHebrew ? ' (Hebrew: חינם, הכול כלול)' : ''}, with a monthly and an annual price. Classic, Modern and Visual are QUOTE PRESENTATION STYLES, not subscription plans (existing rights on an earlier plan are kept and do not change automatically - never name an earlier plan after a style); there is no Basic, Pro or Premium plan. A Lifetime subscription is not a plan for purchase: only the team sets an account up that way, and such an account has every capability open with no charge (state it for this account only when the verified account section says so).
 - ${market}${uncertain}
-- Free: ${S.free.quotesTotal} quotes in total, no expiry. A quote uses one when it reaches a client (send, public link, final PDF or final print); the same version re-sent to the same client never counts again (any channel), while a changed client, recipient name or content produced again counts as another quote. Drafts and previews do not use one; deleting does not refund one; existing documents stay accessible.
-- There is NO trial (never mention trial days or a trial period as existing). There is NO monthly quote counter and NO "unlimited" plan: never say unlimited/ללא הגבלה/∞ (the package is only stated as not limited to the Free plan's 10 quotes). The only prices that exist are the ones above (monthly and annual, with the stated annual saving).
+- Free: ${S.free.quotesTotal} quotes in total OR 7 days from sign-up, whichever ends first; SMART PACK is included during those 7 days. A quote uses one when it reaches a client (send, public link, final PDF or final print); the same version re-sent to the same client never counts again (any channel), while a changed client, recipient name or content produced again counts as another quote. Drafts and previews do not use one; deleting does not refund one; existing documents stay accessible.
+- There is NO separate trial: the Free plan itself is 10 quotes OR 7 days from sign-up, whichever ends first (never invent another trial length, and the plan system is not active yet). There is NO monthly quote counter and NO "unlimited" plan: never say unlimited/ללא הגבלה/∞ (the package is only stated as not limited to the Free plan's 10 quotes). The only prices that exist are the ones above (monthly and annual, with the stated annual saving).
 - NOT DECIDED (say "not decided yet" and never invent a value): paid plan quote limits beyond Free-10, storage, AI quotas, attachments (types, sizes), ${isHebrew ? 'tax beyond the Israeli VAT inclusion' : 'any tax beyond the stated USD price'}.
 - CANCELLATION AND REFUNDS (decided, published in the Terms of Service section 6): once purchase opens, a subscription can be cancelled at any time by an email request (or a request from the plans window / settings); the team confirms the end date. An early end refunds the unused part of a prepaid period pro rata; a cancellation fee only where the law allows it and never above the cap stated in the Terms; the annual discount is never clawed back. Never promise anything beyond these terms.
 - Quote presentation styles (Owner 2026-10-14): every account can use all three styles - Classic (a clean business document), Modern (with product images) and Visual (with a lead project image). The business default style is set in Business settings (quote design) and can be changed on each quote. Never tie a style to a plan or a price.
