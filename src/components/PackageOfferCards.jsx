@@ -2,7 +2,8 @@
 // window. Data = pricingModalModel (one price source). The package card has an accessible monthly / annual radio choice and shows ONE
 // price at a time, with the saving line only for the annual period. Display only: no purchase action exists while checkout is inactive.
 import { useId, useState } from 'react';
-import { Check } from 'lucide-react';
+import { Check, BrainCircuit } from 'lucide-react';
+import './landing/smartPack.css';
 
 // Task 30: amounts and percentages inside a note ("15%", "₪54.00", "$32.00") are LTR-isolated, tabular figures (text unchanged).
 const NUMERIC_TOKEN = /([₪$€£]?\d[\d.,]*%?)/;
@@ -12,9 +13,14 @@ function isolateNumbers(text) {
     : part));
 }
 
+// Owner console 2026-10-20 (typed: "מאשר שינוי ב-L-22: תיבת הוספה של חכם פלוס במסך המסלולים בתוך המערכת ..."): the package card offers the
+// unticked SMART PACK add-on box (`plan.addOn`, pricingModalModel) - the same look as the landing plan card; ticked, the shown price is
+// the package plus the add-on for the chosen period, with the breakdown line. Display only: nothing is purchased or stored.
 function PriceBlock({ plan, isHebrew }) {
   const uid = useId();
   const [period, setPeriod] = useState(plan.prices[0]?.period);
+  const [withAddOn, setWithAddOn] = useState(false);
+  const addOnFor = (r) => (withAddOn && plan.addOn ? plan.addOn.perPeriod[r.period] : null);
   const choice = plan.periodChoice && plan.prices.length > 1 ? plan.periodChoice : null;
   const shown = choice ? plan.prices.filter((r) => r.period === period) : plan.prices;
   return (
@@ -40,13 +46,23 @@ function PriceBlock({ plan, isHebrew }) {
         {shown.map((r) => (
           <div key={r.period}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, flexWrap: 'wrap' }} data-billing-period={r.period}>
-              <span className="pf-money" data-price style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', fontVariantNumeric: 'tabular-nums', direction: 'ltr', unicodeBidi: 'isolate' }}>{r.amount}</span>
+              <span className="pf-money" data-price style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', fontVariantNumeric: 'tabular-nums', direction: 'ltr', unicodeBidi: 'isolate' }}>{addOnFor(r)?.amount || r.amount}</span>
               {r.per && <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{r.per}</span>}
             </div>
+            {addOnFor(r) && <div className="tl-plan-addon-line" data-addon-line={r.period} dir={isHebrew ? 'rtl' : 'ltr'}>{isolateNumbers(addOnFor(r).line)}</div>}
             {r.note && <div data-period-note={r.period} dir={isHebrew ? 'rtl' : 'ltr'} style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 6, background: '#e3f1ea', color: '#1e5c42', fontSize: '0.8rem', fontWeight: 700 }}>{isolateNumbers(r.note)}</div>}
           </div>
         ))}
       </div>
+      {plan.addOn && (
+        <label className={`tl-plan-addon${withAddOn ? ' is-checked' : ''}`} data-addon-choice dir={isHebrew ? 'rtl' : 'ltr'}>
+          {/* PRODUCT_TRUTH_DECORATIVE: adds the SMART PACK add-on to the offer card's shown price; no purchase, nothing stored */}
+          <input type="checkbox" checked={withAddOn} onChange={(e) => setWithAddOn(e.target.checked)} data-addon-toggle />
+          <span className="tl-plan-addon-check" aria-hidden="true"><Check size={14} strokeWidth={3} /></span>
+          <span className="tl-plan-addon-icon" aria-hidden="true"><BrainCircuit size={18} strokeWidth={2.1} /></span>
+          <span className="tl-plan-addon-text"><strong>{plan.addOn.label}</strong> {isolateNumbers(plan.addOn.perPeriod[period]?.add || '')}</span>
+        </label>
+      )}
     </div>
   );
 }
