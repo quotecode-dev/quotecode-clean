@@ -55,6 +55,7 @@ import ExcelJS from 'exceljs';
 
 import PricingModal from '../components/PricingModal';
 import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
+import { startPackageCheckout } from '../domain/subscriptions/packageCheckout';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
@@ -7566,6 +7567,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #17: the account currency reaches the plans window again (the EUR / GBP estimate line)
         currency={currency}
         statusLine={accountStatusSentence(ownSubscriptionStatus, isHebrew, statusDate)}
+        // Owner 2026-10-20 (typed L-22 approval): the pay button (shown only while the server billing phase is on) leaves for the server
+        // attempt's payment page; the package opens only after a verified payment
+        onPurchase={(choice) => startPackageCheckout({ ...choice, invoke: invokeWithFreshSession }).then((r) => { if (r.ok) window.location.assign(r.redirectUrl); return r; })}
       />
       <CapabilityUpgradeNotice
         lang={isHebrew ? 'he' : 'en'}
