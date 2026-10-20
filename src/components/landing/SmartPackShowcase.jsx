@@ -9,8 +9,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Bot, Mic, Sparkles, Paperclip, UserRoundSearch, Check } from 'lucide-react';
 import './smartPack.css';
+import { SMART_PACK_ENABLED } from './smartPackFacts';
 
-export const SMART_PACK_ENABLED = import.meta.env.MODE !== 'production';
 
 const ICONS = { chat: Bot, voice: Mic, ai: Sparkles, files: Paperclip, twin: UserRoundSearch };
 

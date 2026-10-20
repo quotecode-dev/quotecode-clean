@@ -341,7 +341,7 @@
   },
   "src/components/landing/LandingPlans.jsx": {
     "interactive": 0,
-    "markers": 1
+    "markers": 2
   },
   "src/components/landing/LandingQuoteDocument.jsx": {
     "interactive": 0,
@@ -372,6 +372,10 @@
     "markers": 0
   },
   "src/components/landing/showcaseAvailability.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/landing/smartPackFacts.js": {
     "interactive": 0,
     "markers": 0
   },

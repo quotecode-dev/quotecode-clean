@@ -9,6 +9,8 @@ import { FREE_QUOTES_TOTAL, usdPackageAmount, usdAnnualSaving, usdAnnualSavingRa
 import { loadLocalEstimate, CURRENCY_SYMBOL, RATE_SOURCE_NAME } from '../domain/subscriptions/localPriceEstimate';
 import BrandName from '../components/BrandName';
 import LandingPage from '../components/landing/LandingPage';
+import { SMART_PACK_ENABLED } from '../components/landing/smartPackFacts';
+import { usdSmartPack, usdWithSmartPack } from '../components/landing/smartPackFacts';
 
 // Task 16 (correction A, 2026-10-05): the International (EN) landing uses the approved refined composition
 // (revision-r2-refined landing-en.html) through the shared LandingPage layout. This file keeps EVERY customer-facing
@@ -74,6 +76,17 @@ export default function LandingGlobal({ onForgotPassword }) {
       ],
       // Task 26: the visitor chooses ONE billing period and sees that single price (initially monthly); review display only.
       periodChoice: { legend: 'Billing period', labels: { month: 'Monthly', year: 'Annual' } },
+      // Owner 2026-10-20 (TEST only): the SMART PACK add-on box. Charged in USD: with a local estimate shown, the total stays a USD line
+      // (never a converted figure); in USD the shown price becomes the package plus the add-on.
+      ...(SMART_PACK_ENABLED ? {
+        addOn: {
+          label: 'Add SMART PACK',
+          perPeriod: {
+            month: { add: `(+${usdSmartPack('month')} / month)`, amount: est ? null : usdWithSmartPack('month'), line: <>With SMART PACK: <bdi dir="ltr">{month.text}</bdi> + <bdi dir="ltr">{usdSmartPack('month')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('month')}</bdi> per month (USD)</> },
+            year: { add: `(+${usdSmartPack('year')} / year)`, amount: est ? null : usdWithSmartPack('year'), line: <>With SMART PACK: <bdi dir="ltr">{year.text}</bdi> + <bdi dir="ltr">{usdSmartPack('year')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('year')}</bdi> per year (USD)</> },
+          },
+        },
+      } : {}),
       capacity: [`After the ${FREE_QUOTES_TOTAL} free quotes`, 'Monthly or annual billing, your choice'],
       features: ['The monthly plan renews every month', 'The annual plan renews every year'],
       notice: 'Not available for purchase yet',

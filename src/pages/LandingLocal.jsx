@@ -8,6 +8,8 @@ import { formatWholeMoney } from '../utils/money';
 import { FREE_QUOTES_TOTAL, ilsPackageAmount, ilsAnnualSaving, ilsAnnualSavingRate } from '../components/landing/landingPackageFacts';
 import BrandName from '../components/BrandName';
 import LandingPage from '../components/landing/LandingPage';
+import { SMART_PACK_ENABLED } from '../components/landing/smartPackFacts';
+import { ilsSmartPack, ilsWithSmartPack } from '../components/landing/smartPackFacts';
 
 // Task 16 (correction A, 2026-10-05): the Local (HE / ILS) landing now uses the approved refined composition
 // (revision-r2-refined landing-he.html) through the shared LandingPage layout. This file keeps EVERY customer-facing
@@ -58,6 +60,16 @@ export default function LandingLocal({ onForgotPassword }) {
       ],
       // Task 26: the visitor chooses ONE billing period and sees that single price (initially monthly); review display only.
       periodChoice: { legend: 'תקופת חיוב', labels: { month: 'חודשי', year: 'שנתי' } },
+      // Owner 2026-10-20 (TEST only): the "חכם פלוס" add-on box - ticked, the shown price is the package plus the add-on for the period.
+      ...(SMART_PACK_ENABLED ? {
+        addOn: {
+          label: 'הוספת חכם פלוס',
+          perPeriod: {
+            month: { add: <>(+<bdi dir="ltr">{ilsSmartPack('month')}</bdi> לחודש)</>, amount: ilsWithSmartPack('month'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('month')}</bdi> + <bdi dir="ltr">{ilsSmartPack('month')}</bdi></> },
+            year: { add: <>(+<bdi dir="ltr">{ilsSmartPack('year')}</bdi> לשנה)</>, amount: ilsWithSmartPack('year'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('year')}</bdi> + <bdi dir="ltr">{ilsSmartPack('year')}</bdi></> },
+          },
+        },
+      } : {}),
       capacity: [`אחרי ${FREE_QUOTES_TOTAL} ההצעות החינמיות`, 'חיוב חודשי או שנתי, לפי בחירתכם'],
       features: ['המנוי החודשי מתחדש כל חודש', 'המנוי השנתי מתחדש כל שנה'],
       notice: 'עדיין לא זמין לרכישה',
