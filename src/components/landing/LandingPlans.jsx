@@ -55,6 +55,8 @@ function PlanPrice({ plan }) {
           <span className="tl-plan-addon-text"><strong>{plan.addOn.label}</strong> {plan.addOn.perPeriod[period]?.add}</span>
         </label>
       )}
+      {/* Owner 2026-10-20 (phone): what SMART PACK gives, next to its box - outside the label, so the box keeps its own name + price */}
+      {plan.addOn?.summary && <p className="tl-plan-addon-summary" data-addon-summary>{plan.addOn.summary}</p>}
     </div>
   );
 }

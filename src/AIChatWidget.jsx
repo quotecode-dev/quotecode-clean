@@ -725,7 +725,8 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
     if (!readVoiceDisclosed()) { saveVoiceDisclosed(); addVoiceNote(voiceCopy.disclosure); }
     try {
       const { data, error } = await supabase.functions.invoke('voice-ai', { body: { mode: 'speak', text } });
-      if (error) { if (error?.context?.status === 429) addVoiceNote(voiceCopy.limit); return; }
+      // Owner 2026-10-20 (typed L-17 approval): 403 = voice is SMART PACK (the plan system is enforced)
+      if (error) { if (error?.context?.status === 429) addVoiceNote(voiceCopy.limit); else if (error?.context?.status === 403) addVoiceNote(voiceCopy.smartPack); return; }
       if (!data?.ok || !data.audio) return;
       stopPlayback();
       const url = URL.createObjectURL(base64ToBlob(data.audio, data.mime || 'audio/mpeg'));
@@ -755,7 +756,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
       try {
         const audio = await blobToBase64(blob);
         const { data, error } = await supabase.functions.invoke('voice-ai', { body: { mode: 'transcribe', audio, mime: blob.type } });
-        if (error) { addVoiceNote(error?.context?.status === 429 ? voiceCopy.limit : voiceCopy.failed); return; }
+        if (error) { addVoiceNote(error?.context?.status === 429 ? voiceCopy.limit : error?.context?.status === 403 ? voiceCopy.smartPack : voiceCopy.failed); return; }
         const text = data?.ok ? String(data.text || '').trim() : '';
         if (!text) { addVoiceNote(voiceCopy.failed); return; }
         await sendTextRef.current?.(text);

@@ -258,7 +258,8 @@ describe('all-inclusive package (current offer)', () => {
   it('the package amounts are exactly the server rows: IL 3000 / 30600 ILS, INTERNATIONAL 1800 / 18400 USD; no blocks', () => {
     const il = parseCatalog(cat('IL'), 'IL');
     const intl = parseCatalog(cat('INTERNATIONAL'), 'INTERNATIONAL');
-    expect(computeCheckoutAmount(il, 'all_inclusive', 0, 'month')).toEqual({ currency: 'ILS', amountMinor: 3000, planPriceId: 'il_all_inclusive_month_p1', blockPriceId: null });
+    expect(computeCheckoutAmount(il, 'all_inclusive', 0, 'month')).toEqual({ currency: 'ILS', amountMinor: 3000, planPriceId: 'il_all_inclusive_month_p1', blockPriceId: null,
+      addOnPriceId: null, packageAmountMinor: 3000, addOnAmountMinor: null });
     expect(computeCheckoutAmount(il, 'all_inclusive', 0, 'year')!.amountMinor).toBe(30600);
     expect(computeCheckoutAmount(intl, 'all_inclusive', 0, 'year')).toMatchObject({ currency: 'USD', amountMinor: 18400, planPriceId: 'intl_all_inclusive_year_p2' });
     expect(computeCheckoutAmount(intl, 'all_inclusive', 1, 'year')).toBeNull();
@@ -283,9 +284,10 @@ describe('all-inclusive package (current offer)', () => {
     const r = await checkoutIntentHandler('prepared', { sql, provider }, U, { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY, amountMinor: 1, currency: 'ILS' });
     expect(r.status).toBe(200);
     expect(r.body).toMatchObject({ amountMinor: 18400, currency: 'USD', state: 'pending' });
-    expect(sql.createPackageCheckoutIntent).toHaveBeenCalledWith(U, 'year', KEY);
+    expect(sql.createPackageCheckoutIntent).toHaveBeenCalledWith(U, 'year', KEY, false);
     expect(sql.createCheckoutIntent).not.toHaveBeenCalled();
-    expect(provider.createCheckout).toHaveBeenCalledWith({ attemptId: ATT, currency: 'USD', amountMinor: 18400 });
+    // the package period reaches the provider (PayPlus phase 1: monthly / annual renewal), from the request period only
+    expect(provider.createCheckout).toHaveBeenCalledWith({ attemptId: ATT, currency: 'USD', amountMinor: 18400, billingPeriod: 'year', addOnAmountMinor: null });
     sqlAmount.v = 18360; // the retired $183.60 would be a mismatch -> refused, nothing reaches the provider
     const provider2 = okProvider();
     expect((await checkoutIntentHandler('prepared', { sql, provider: provider2 }, U, { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY })).body).toMatchObject({ ok: false, code: 'checkout_unavailable' });

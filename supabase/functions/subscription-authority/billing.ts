@@ -3,6 +3,7 @@
 // UNAVAILABLE_PROVIDER (OPEN-12 - no written PayPlus/Max terminal, recurring/tokenization or signed-webhook evidence).
 // createHmacWebhookVerifier is a GENERIC signature/timestamp/source verifier shape used with mocks; it is NOT a claim about
 // PayPlus's actual scheme and must be bound to the documented PayPlus contract before any sandbox use.
+// PayPlus phase 1 (Owner 2026-10-18): payplus.ts is the PayPlus provider bound to the documented contract; it is NOT wired (wiring.ts).
 //
 // Trust boundary:
 //   * the user comes from the verified JWT; the market from the server (account_market via SQL); the amount from the server
@@ -33,6 +34,9 @@ export async function sha256Hex(bytes: Uint8Array): Promise<string> {
 // ILS incl. VAT; INTERNATIONAL 1800 / 18400 USD) - the amount charged is the amount displayed.
 export const PLAN_PRICE_IDS = Object.freeze(['classic', 'modern', 'visual'] as const);
 export const PACKAGE_PLAN_ID = 'all_inclusive';
+// Owner 2026-10-20 (20261021400000): the SMART PACK add-on - a second line of the same package payment, same market and cycle
+export const SMART_PACK_PLAN_ID = 'smart_pack';
+const CURRENT_OFFER_PLAN_IDS: readonly string[] = Object.freeze([PACKAGE_PLAN_ID, SMART_PACK_PLAN_ID]);
 export const PACKAGE_PERIODS = Object.freeze(['month', 'year'] as const);
 export const BLOCK_PLAN_ID = 'catalog_block_100';
 export type BillingPeriod = 'month' | 'year';
@@ -46,10 +50,10 @@ export function parseCatalog(raw: unknown, market: Market): PriceRow[] | null {
   for (const p of raw.prices as unknown[]) {
     if (!isObj(p) || p.currency !== want || !(p.billingPeriod === 'month' || p.billingPeriod === 'year') || !Number.isInteger(p.amountMinor) || (p.amountMinor as number) <= 0) return null;
     if (typeof p.priceId !== 'string' || !PRICE_ID.test(p.priceId) || typeof p.planId !== 'string') return null;
-    // a year row exists only for the package; a row without an offer class is a pre-Task-27 legacy row
-    if (p.billingPeriod === 'year' && p.planId !== PACKAGE_PLAN_ID) return null;
+    // a year row exists only for the package and its SMART PACK add-on; a row without an offer class is a pre-Task-27 legacy row
+    if (p.billingPeriod === 'year' && !CURRENT_OFFER_PLAN_IDS.includes(p.planId)) return null;
     const offer = p.offer === 'current' ? 'current' : p.offer === undefined || p.offer === 'legacy' ? 'legacy' : null;
-    if (!offer || (offer === 'current') !== (p.planId === PACKAGE_PLAN_ID)) return null;
+    if (!offer || (offer === 'current') !== CURRENT_OFFER_PLAN_IDS.includes(p.planId)) return null;
     out.push({ priceId: p.priceId, planId: p.planId, currency: want, billingPeriod: p.billingPeriod as BillingPeriod, amountMinor: p.amountMinor as number,
       taxMode: String(p.taxMode), offer });
   }
@@ -57,16 +61,28 @@ export function parseCatalog(raw: unknown, market: Market): PriceRow[] | null {
 }
 
 /** The checkout amount from the SERVER catalog only: plan + blocks x (+100 block). No VAT is ever added (OD-05). */
-export function computeCheckoutAmount(prices: readonly PriceRow[] | null, planId: unknown, blocks: unknown, billingPeriod: unknown = 'month'):
-  { currency: 'ILS' | 'USD'; amountMinor: number; planPriceId: string; blockPriceId: string | null } | null {
-  if (!prices || typeof planId !== 'string') return null;
+export function computeCheckoutAmount(prices: readonly PriceRow[] | null, planId: unknown, blocks: unknown, billingPeriod: unknown = 'month',
+  smartPack: unknown = false):
+  { currency: 'ILS' | 'USD'; amountMinor: number; planPriceId: string; blockPriceId: string | null;
+    addOnPriceId?: string | null; packageAmountMinor?: number; addOnAmountMinor?: number | null } | null {
+  if (!prices || typeof planId !== 'string' || typeof smartPack !== 'boolean') return null;
   if (planId === PACKAGE_PLAN_ID) {
     // the package: one current row of the chosen period; no add-on blocks on this path
     if (!(PACKAGE_PERIODS as readonly unknown[]).includes(billingPeriod) || blocks !== 0) return null;
     const row = prices.filter((p) => p.planId === PACKAGE_PLAN_ID && p.offer === 'current' && p.billingPeriod === billingPeriod);
     if (row.length !== 1) return null;
-    return { currency: row[0].currency, amountMinor: row[0].amountMinor, planPriceId: row[0].priceId, blockPriceId: null };
+    // Owner 2026-10-20: the ticked SMART PACK box adds its own current row of the same cycle (same currency) to the same payment
+    let addOn: PriceRow | null = null;
+    if (smartPack) {
+      const a = prices.filter((p) => p.planId === SMART_PACK_PLAN_ID && p.offer === 'current' && p.billingPeriod === billingPeriod);
+      if (a.length !== 1 || a[0].currency !== row[0].currency) return null;
+      addOn = a[0];
+    }
+    return { currency: row[0].currency, amountMinor: row[0].amountMinor + (addOn ? addOn.amountMinor : 0), planPriceId: row[0].priceId,
+      blockPriceId: null, addOnPriceId: addOn ? addOn.priceId : null, packageAmountMinor: row[0].amountMinor,
+      addOnAmountMinor: addOn ? addOn.amountMinor : null };
   }
+  if (smartPack) return null; // SMART PACK rides only on the package
   if (!(PLAN_PRICE_IDS as readonly string[]).includes(planId) || billingPeriod !== 'month') return null;
   if (!Number.isInteger(blocks) || (blocks as number) < 0 || (blocks as number) > 1000) return null;
   const plan = prices.filter((p) => p.planId === planId && p.billingPeriod === 'month');
@@ -86,14 +102,18 @@ export type EventType = typeof EVENT_TYPES[number];
 export type LineEvent = { lineType: 'catalog_block'; quantity: number; priceVersionId: string; effectiveFrom: string; providerRef: string };
 /** The ONLY fields of a provider event the system ever reads. Amount / currency / rate / plan rights are never read. */
 export type ProviderEvent = { providerEventId: string; type: EventType; occurredAt: string; attemptId: string | null;
-  userId: string | null; line: LineEvent | null };
+  userId: string | null; line: LineEvent | null;
+  /** PayPlus phase 1: what the provider says was charged - compared for EQUALITY with the server attempt in SQL, never a price */
+  paid?: { amountMinor: number; currency: 'ILS' | 'USD' } };
 export type WebhookRejection = 'invalid_signature' | 'stale_timestamp' | 'untrusted_source' | 'invalid_event' | 'provider_unavailable';
 export type WebhookVerification = { ok: true; event: ProviderEvent } | { ok: false; reason: WebhookRejection };
 
 export interface BillingProvider {
   readonly name: string;
-  /** hosted checkout for an already-created server attempt; amount/currency come from that attempt only */
-  createCheckout(i: { attemptId: string; currency: 'ILS' | 'USD'; amountMinor: number }): Promise<{ redirectUrl: string } | null>;
+  /** hosted checkout for an already-created server attempt; amount/currency (and the package period) come from that attempt only */
+  createCheckout(i: { attemptId: string; currency: 'ILS' | 'USD'; amountMinor: number; billingPeriod?: BillingPeriod;
+    /** Owner 2026-10-20: the SMART PACK line of the same payment (amountMinor = package + add-on) */
+    addOnAmountMinor?: number | null }): Promise<{ redirectUrl: string } | null>;
   /** signature + timestamp window + source; returns the normalized event only when all three pass */
   verifyWebhook(rawBody: Uint8Array, headers: Headers, nowMs: number): Promise<WebhookVerification>;
 }
@@ -181,34 +201,41 @@ export function createHmacWebhookVerifier(cfg: HmacVerifierConfig): BillingProvi
 export interface BillingSql {
   /** create_checkout_intent(p_user_id, p_plan_id, p_blocks, p_idempotency_key) - legacy style plans */
   createCheckoutIntent(userId: string, planId: string, blocks: number, idempotencyKey: string): Promise<Record<string, unknown>>;
-  /** create_package_checkout_intent(p_user_id, p_billing_period, p_idempotency_key) - the all-inclusive package (Task 27) */
-  createPackageCheckoutIntent?(userId: string, billingPeriod: BillingPeriod, idempotencyKey: string): Promise<Record<string, unknown>>;
+  /** create_package_checkout_intent(p_user_id, p_billing_period, p_idempotency_key, p_smart_pack) - the all-inclusive package (Task 27)
+   *  + the optional SMART PACK line (20261021400000) */
+  createPackageCheckoutIntent?(userId: string, billingPeriod: BillingPeriod, idempotencyKey: string, smartPack?: boolean): Promise<Record<string, unknown>>;
   /** get_price_catalog(p_market) */
   priceCatalog(market: Market): Promise<unknown>;
   /** record_verified_subscription_event(provider, provider_event_id, event_type, attempt_id, provider_event_time, payload_sha256) */
-  recordVerifiedEvent(e: { provider: string; providerEventId: string; eventType: string; attemptId: string; providerEventTime: string; payloadSha256: string }): Promise<Record<string, unknown>>;
+  recordVerifiedEvent(e: { provider: string; providerEventId: string; eventType: string; attemptId: string; providerEventTime: string; payloadSha256: string;
+    paidAmountMinor?: number; paidCurrency?: string }): Promise<Record<string, unknown>>;
   /** apply_verified_line_event(provider, provider_event_id, user_id, line_type, quantity, price_version_id, effective_from, provider_ref) */
   applyVerifiedLineEvent(e: { provider: string; providerEventId: string; userId: string; lineType: string; quantity: number; priceVersionId: string; effectiveFrom: string; providerRef: string; removal: boolean }): Promise<Record<string, unknown>>;
 }
 
 // ------------------------------------------------------------------------------------------------ checkout intent
-const CHECKOUT_CODES: Record<string, number> = { checkout_unavailable: 503, account_unprovisioned: 409, idempotency_conflict: 409, invalid_request: 400 };
+const CHECKOUT_CODES: Record<string, number> = { checkout_unavailable: 503, account_unprovisioned: 409, idempotency_conflict: 409, invalid_request: 400,
+  already_subscribed: 409,
+  // 20261021200000: in the grace days a failed renewal is paid on the live standing order (no second subscription)
+  payment_update_required: 409 };
 export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: BillingSql; provider: BillingProvider }, userId: string, body: unknown): Promise<Resp> {
   if (phase === 'off') return err(503, 'checkout_unavailable');
   if (typeof userId !== 'string' || !UUID.test(userId)) return err(401, 'not_authenticated');
   const b = isObj(body) ? body : {};
   // ONLY these fields are read; amount / currency / rate / market / price / account id in the body are ignored.
   const planId = b.planId; const blocks = b.blocks ?? 0; const key = b.idempotencyKey;
+  const smartPack = b.smartPack ?? false; // Owner 2026-10-20: the ticked SMART PACK box (package only)
   const isPackage = planId === PACKAGE_PLAN_ID;
   const period = isPackage ? b.billingPeriod : 'month';
-  if (typeof planId !== 'string' || !Number.isInteger(blocks) || typeof key !== 'string') return err(400, 'invalid_request');
+  if (typeof planId !== 'string' || !Number.isInteger(blocks) || typeof key !== 'string' || typeof smartPack !== 'boolean'
+      || (smartPack && !isPackage)) return err(400, 'invalid_request');
   if (isPackage && (!(PACKAGE_PERIODS as readonly unknown[]).includes(period) || blocks !== 0 || typeof deps.sql.createPackageCheckoutIntent !== 'function')) {
     return err(400, 'invalid_request');
   }
   let r: Record<string, unknown>;
   try {
     r = isPackage
-      ? await (deps.sql.createPackageCheckoutIntent as NonNullable<BillingSql['createPackageCheckoutIntent']>)(userId, period as BillingPeriod, key)
+      ? await (deps.sql.createPackageCheckoutIntent as NonNullable<BillingSql['createPackageCheckoutIntent']>)(userId, period as BillingPeriod, key, smartPack)
       : await deps.sql.createCheckoutIntent(userId, planId, blocks as number, key);
   } catch { return err(503, 'checkout_unavailable'); }
   if (!isObj(r) || r.ok !== true) {
@@ -221,12 +248,16 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
   const market = r.market as Market;
   let catalogRaw: unknown;
   try { catalogRaw = await deps.sql.priceCatalog(market); } catch { return err(503, 'checkout_unavailable'); }
-  const expected = computeCheckoutAmount(parseCatalog(catalogRaw, market), planId, blocks, period);
+  const expected = computeCheckoutAmount(parseCatalog(catalogRaw, market), planId, blocks, period, smartPack);
   if (!expected || expected.currency !== r.currency || expected.amountMinor !== r.amountMinor) return err(503, 'checkout_unavailable');
-  const hosted = await deps.provider.createCheckout({ attemptId: r.attemptId, currency: expected.currency, amountMinor: expected.amountMinor }).catch(() => null);
+  // the SQL attempt and the catalog must agree on the add-on line too (never a payment page for a line the attempt does not carry)
+  if (isPackage && (r.addOnPriceId ?? null) !== (expected.addOnPriceId ?? null)) return err(503, 'checkout_unavailable');
+  const hosted = await deps.provider.createCheckout({ attemptId: r.attemptId, currency: expected.currency, amountMinor: expected.amountMinor,
+    ...(isPackage ? { billingPeriod: period as BillingPeriod, addOnAmountMinor: expected.addOnAmountMinor ?? null } : {}) }).catch(() => null);
   if (!hosted || typeof hosted.redirectUrl !== 'string' || !/^https:\/\//.test(hosted.redirectUrl)) return err(503, 'checkout_unavailable');
   // A redirect URL is NOT an entitlement: the success page shows "processing" until a verified provider event.
-  return { status: 200, body: { ok: true, attemptId: r.attemptId, currency: expected.currency, amountMinor: expected.amountMinor, redirectUrl: hosted.redirectUrl, state: 'pending' } };
+  return { status: 200, body: { ok: true, attemptId: r.attemptId, currency: expected.currency, amountMinor: expected.amountMinor, redirectUrl: hosted.redirectUrl, state: 'pending',
+    ...(isPackage ? { smartPack: Boolean(expected.addOnPriceId) } : {}) } };
 }
 
 // ------------------------------------------------------------------------------------------------ verified webhook
@@ -248,7 +279,8 @@ export async function providerWebhookHandler(phase: BillingPhase, deps: { sql: B
         providerRef: e.line.providerRef, removal: e.type === 'line_removed' });
     } else {
       r = await deps.sql.recordVerifiedEvent({ provider: deps.provider.name, providerEventId: e.providerEventId, eventType: e.type,
-        attemptId: e.attemptId as string, providerEventTime: e.occurredAt, payloadSha256 });
+        attemptId: e.attemptId as string, providerEventTime: e.occurredAt, payloadSha256,
+        ...(e.paid ? { paidAmountMinor: e.paid.amountMinor, paidCurrency: e.paid.currency } : {}) });
     }
   } catch {
     return err(503, 'retry_later'); // timeout / outage: the provider retries the same event id; processing is idempotent

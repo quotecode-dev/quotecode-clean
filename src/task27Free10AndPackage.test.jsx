@@ -93,6 +93,29 @@ describe('Free-10 upgrade window', () => {
     expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('All 10 free quotes have been used (10 used).');
     expect(w.textContent).not.toMatch(/₪|ILS/);
   });
+  it('Owner 2026-10-20: the 7 free days ended before the 10 quotes - its own true sentence, HE / RTL and EN / LTR', () => {
+    const ended = { limit: 10, consumed: 3, reserved: 0, remaining: 7, endsAt: '2026-10-28T10:00:00.000Z', periodEnded: true };
+    const { unmount } = render(<Free10UpgradeWindow {...props({ free10: ended })} />);
+    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('תמו 7 ימי החינם (נוצלו 3 מתוך 10 ההצעות החינמיות).');
+    expect(screen.getByTestId('free10-upgrade-window').getAttribute('dir')).toBe('rtl');
+    unmount();
+    render(<Free10UpgradeWindow {...props({ isHebrew: false, market: 'INTERNATIONAL', free10: ended })} />);
+    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('The 7 free days have ended (3 of 10 free quotes used).');
+    expect(screen.getByTestId('free10-upgrade-window').getAttribute('dir')).toBe('ltr');
+  });
+  it('Owner 2026-10-18: a paid account in limited mode after a failed charge - its own sentence, HE / RTL and EN / LTR', () => {
+    const { unmount } = render(<Free10UpgradeWindow {...props({ free10: null, limited: true })} />);
+    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('התשלום האחרון לא עבר, ולכן החשבון מוגבל עד שהתשלום יעבור. ההצעות והלקוחות הקיימים נשארים זמינים.');
+    expect(screen.getByTestId('free10-upgrade-window').getAttribute('dir')).toBe('rtl');
+    unmount();
+    render(<Free10UpgradeWindow {...props({ isHebrew: false, market: 'INTERNATIONAL', free10: null, limited: true })} />);
+    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('The last payment did not go through, so the account is limited until it does. Your existing quotes and clients stay available.');
+    expect(screen.getByTestId('free10-upgrade-window').getAttribute('dir')).toBe('ltr');
+  });
+  it('both ended (10 used by the last day): the 10-quotes sentence', () => {
+    render(<Free10UpgradeWindow {...props({ free10: { limit: 10, consumed: 10, reserved: 0, remaining: 0, endsAt: '2026-10-28T10:00:00.000Z', periodEnded: true } })} />);
+    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('נוצלו כל 10 ההצעות החינמיות (10 נוצלו).');
+  });
 });
 
 describe('Dashboard: the Free-10 check precedes any insert / reservation on every new-quote path (source guards)', () => {
@@ -100,7 +123,7 @@ describe('Dashboard: the Free-10 check precedes any insert / reservation on ever
   it('one decision from the server summary; only an attempted paid action opens the window', () => {
     // Owner 2026-10-18: LIFETIME is unlimited (also when granted after activation) - the server guard exempts it the same way
     expect(dash).toMatch(/const free10Blocked = \(\) => \{\s*\/\/[^\n]*\n\s*if \(isLifetimeAccount \|\| decideFree10Action\(accountSummary\)\.allowed\) return false;\s*setFree10Window\(true\);\s*return true;\s*\};/);
-    expect((dash.match(/setFree10Window\(true\)/g) || []).length).toBe(6); // the helper, three output refusals (WhatsApp, email, Task 28 copy message), the server create refusal, the editor issue / Sent through the authority (Owner 2026-10-18)
+    expect((dash.match(/setFree10Window\(true\)/g) || []).length).toBe(7); // the helper, three output refusals (WhatsApp, email, Task 28 copy message), the server create refusal, the editor issue / Sent through the authority (Owner 2026-10-18), the refused items of an existing draft (Owner 2026-10-20)
     expect(dash).not.toMatch(/setInterval\([^)]*Free10|setTimeout\([^)]*setFree10Window/);
   });
   it('new / measured / AI / duplicate stop before anything opens; save stops before persistQuote', () => {
@@ -112,8 +135,15 @@ describe('Dashboard: the Free-10 check precedes any insert / reservation on ever
     expect(save).toMatch(/if \(!editingQuoteId && free10Blocked\(\)\) return;/);
   });
   it('a first output refused for Free-10 and a server-refused new quote open the same window', () => {
-    expect((dash.match(/if \(auth\.code === 'free_issue_limit_reached'\) setFree10Window\(true\);/g) || []).length).toBe(4); // WhatsApp + email (send), the Task 28 copy message (public_share) and the editor issue / Sent (Owner 2026-10-18)
-    expect(dash).toMatch(/if \(\/free_issue_limit_reached\/\.test\(String\(saveResult\.error\?\.message \|\| ''\)\)\) \{ setFree10Window\(true\); refreshAccountSummary\(\); \}/);
+    // Owner 2026-10-20: both server refusals - 10 quotes used (free_issue_limit_reached) or the 7 free days ended (free_period_ended)
+    expect(dash).toMatch(/const FREE10_END_CODES = new Set\(\['free_issue_limit_reached', 'free_period_ended'\]\);/);
+    expect(dash).toMatch(/const FREE10_END_RE = \/free_issue_limit_reached\|free_period_ended\|subscription_limited\/;/);
+    expect((dash.match(/if \(FREE10_END_CODES\.has\(auth\.code\)\) setFree10Window\(true\);/g) || []).length).toBe(4); // WhatsApp + email (send), the Task 28 copy message (public_share) and the editor issue / Sent (Owner 2026-10-18)
+    // the window is the whole answer to a refused save: no second alert with the raw server text on top of it - except when removing
+    // the new quote shell failed too (that notice must still show)
+    expect(dash).toMatch(/if \(FREE10_END_RE\.test\(String\(saveResult\.error\?\.message \|\| ''\)\)\) \{\s*setFree10Window\(true\); refreshAccountSummary\(\);\s*if \(!\(saveResult\.stage === 'structure' && saveResult\.compensationFailed\)\) return;\s*\}/);
+    // the items of an existing draft refused (partial save): the window opens next to the truthful partial notice
+    expect(dash).toMatch(/if \(saveResult\.outcome === 'partial' && \(saveResult\.stage === 'structure' \|\| saveResult\.stage === 'items'\)\) \{\s*\/\/[^\n]*\n\s*if \(FREE10_END_RE\.test\(String\(saveResult\.error\?\.message \|\| ''\)\)\) \{ setFree10Window\(true\); refreshAccountSummary\(\); \}/);
   });
   it('the public customer page never reads the owner subscription (no paywall for the customer)', () => {
     for (const f of ['pages/PublicQuote.jsx', 'pages/PublicQuoteEn.jsx', 'components/SmartPublicQuote.jsx']) {

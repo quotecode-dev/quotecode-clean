@@ -10,6 +10,7 @@
 //  - Nothing is stored: no audio, no transcript, no log row. The provider sees only the recording / the answer text.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { smartPackAllowedFor, SMART_PACK_REQUIRED } from "../_shared/smartPackGate.ts";
 
 export const VOICE_CONTRACT_VERSION = 1;
 export const TRANSCRIBE_MODEL = 'gpt-transcribe';
@@ -141,6 +142,10 @@ serve(async (req) => {
   const country = (settings as { country?: string } | null)?.country;
   if (country !== 'Local' && country !== 'International') return reply({ ok: false, code: 'market_unresolved' }, 409);
   const isHebrew = country === 'Local';
+
+  // Owner 2026-10-20 (typed L-17 approval): voice (chat voice + dictation) is SMART PACK once the plan system is enforced; refused
+  // before the daily claim and before any provider call
+  if (!(await smartPackAllowedFor(caller))) return reply({ ok: false, code: SMART_PACK_REQUIRED }, 403);
 
   const { data: claim, error: claimError } = await caller.rpc('voice_ai_claim_operation');
   if (claimError) return reply({ ok: false, code: 'server_error' }, 500);

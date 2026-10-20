@@ -122,8 +122,14 @@ DO $$ DECLARE r jsonb; r2 jsonb; p jsonb; p2 jsonb; n jsonb; BEGIN
 
   -- --------------------------------------------------------------------------------------- V5. customer change counts (also when Sent)
   UPDATE public.quotes SET client_id = tst.vc(2) WHERE id = tst.vq(1);  -- allowed now (was refused before Task 30)
+  -- 20261021100000 (Owner 2026-10-20): the quote has an item, so the new customer counts already at this save; its first output to that
+  -- customer is then recorded without a second count
+  PERFORM tst.ok(tst.vused(tst.vu(1)) = 3, 'V5a0 another customer for the Sent quote counts at the save (3)');
   r := tst.vout(tst.vu(1), tst.vq(1), 'public_share');
-  PERFORM tst.ok(r ->> 'state' = 'finalized' AND tst.vused(tst.vu(1)) = 3, 'V5a another customer for the Sent quote + output -> counts (3)');
+  PERFORM tst.ok(r ->> 'state' = 'finalized' AND tst.vused(tst.vu(1)) = 3
+                 AND (SELECT NOT counted_against_free FROM public.quote_issue_ledger WHERE user_id = tst.vu(1) AND quote_id = tst.vq(1)
+                         AND customer_binding = tst.vc(2)::text),
+    'V5a ... and its first output to that customer is recorded, not counted again (3)');
   PERFORM tst.ok(tst.vout(tst.vu(1), tst.vq(1), 'send') ->> 'alreadyFinalized' = 'true' AND tst.vused(tst.vu(1)) = 3,
     'V5b the same version for that customer on another channel: no count');
   UPDATE public.quotes SET client_id = tst.vc(1) WHERE id = tst.vq(1);  -- back to customer A with the A-version content (Dana Levi)
@@ -209,7 +215,9 @@ DO $$ DECLARE r jsonb; r2 jsonb; p jsonb; p2 jsonb; n jsonb; BEGIN
 END $$;
 
 SELECT tst.ok((SELECT count(*) FROM public.account_entitlements WHERE user_id IN (tst.vu(1), tst.vu(2))
-                 AND free_issues_consumed = (SELECT count(*) FROM public.quote_issue_ledger l WHERE l.user_id = account_entitlements.user_id AND l.counted_against_free)) = 2,
-  'V12 the counter equals the counted ledger rows for every account (cache of the ledger, no drift)');
+                 AND free_issues_consumed = (SELECT count(*) FROM public.quote_issue_ledger l WHERE l.user_id = account_entitlements.user_id AND l.counted_against_free)
+                                            -- 20261021100000: + the counted saves (Owner 2026-10-20: a quote also counts when saved)
+                                            + (SELECT count(*) FROM public.quote_save_counts s WHERE s.user_id = account_entitlements.user_id AND s.counted_against_free)) = 2,
+  'V12 the counter equals the counted ledger rows + counted saves for every account (cache of the ledgers, no drift)');
 
 ROLLBACK;

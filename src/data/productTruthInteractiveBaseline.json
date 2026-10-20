@@ -216,8 +216,8 @@
     "markers": 0
   },
   "src/components/PackageOfferCards.jsx": {
-    "interactive": 0,
-    "markers": 2
+    "interactive": 1,
+    "markers": 3
   },
   "src/components/PdfFileIcon.jsx": {
     "interactive": 0,
@@ -516,6 +516,10 @@
     "markers": 0
   },
   "src/domain/subscriptions/packageCatalog.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/domain/subscriptions/packageCheckout.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -1119,6 +1123,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/_shared/smartPackGate.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/_shared/subscriptionContract.ts": {
     "interactive": 0,
     "markers": 0
@@ -1412,6 +1420,10 @@
     "markers": 0
   },
   "supabase/functions/subscription-authority/outputRoute.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/subscription-authority/payplus.ts": {
     "interactive": 0,
     "markers": 0
   },

@@ -44,6 +44,8 @@ export async function classifyDraftError(error, { functionUrl = null, fetchImpl 
   const { status, code } = await httpStatusOf(error);
   if (status === 404) return 'not_deployed';
   if (name === 'FunctionsRelayError') return 'server_error';
+  // Owner 2026-10-20 (typed L-17 approval): the AI smart quote is SMART PACK once the plan system is enforced
+  if (status === 403 && code === 'smart_pack_required') return 'smart_pack_required';
   if (status === 401 || status === 403) return 'unauthenticated';
   if (status === 409 && code === 'market_unresolved') return 'market_unresolved';
   if (status === 422) return 'no_items';
