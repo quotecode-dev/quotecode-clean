@@ -365,7 +365,7 @@
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE TABLE IF NOT EXISTS / DROP TRIGGER IF EXISTS + CREATE / CREATE OR REPLACE (re-runnable); PayPlus standing-order id bound to the attempt of its first payment so renewals are recognised (Owner night task 2026-10-21)"
     },
     "20261022100000_payplus_audit_fixes.sql": {
-      "sha256": "329e6c6923fd379c29a9ef052c6386bceac8d9ce4f151d66db72fbbb94bbd73b",
+      "sha256": "f69d5ef19470fdda8087670dbb7b8a0f038759dbcfc681436aef0365041f2e88",
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; DROP TRIGGER IF EXISTS + CREATE / CREATE OR REPLACE / ADD COLUMN IF NOT EXISTS (re-runnable); the Codex audit fixes of PayPlus stage 2 + the Owner grace-days answer (Owner 2026-10-21)"

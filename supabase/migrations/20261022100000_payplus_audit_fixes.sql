@@ -11,6 +11,7 @@
 --   4. D-1: no renewal callback at all -> the grace days end 72 hours after the paid period (was 24 h tolerance + 72 h); nothing is
 --      shown in the first 24 hours after the period, as before.
 --   5. H05: the provider payment page of an attempt is kept ONCE; a retry of the same attempt returns the same page.
+--   6. D-2 (Owner: "הרי כתוב במפורש המוקדם מביניהם"): the free window's SMART PACK ends with the free plan - 10 counted quotes or 7 days.
 --   INERT: billing is 'off' in code and in the DB and free_issue is 'prepared' - every changed path answers before it is reached.
 --   ROLLBACK (DB owner): re-run the 20261021400000 / 20261022000000 / 20261021200000 bodies of the functions; DROP FUNCTION
 --   public.checkout_attempt_page(uuid, uuid), public.record_checkout_attempt_page(uuid, uuid, text); the trigger back to INSERT only;
@@ -232,3 +233,42 @@ BEGIN
 END $$;
 REVOKE ALL ON FUNCTION public.record_checkout_attempt_page(uuid, uuid, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.record_checkout_attempt_page(uuid, uuid, text) TO service_role;
+
+-- 6. SMART PACK of the free window ends with the free plan (body 20261021400000 + the marked change) --------------------------
+CREATE OR REPLACE FUNCTION public.smart_pack_state(p_user_id uuid)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $function$
+DECLARE
+  v_ent public.account_entitlements%ROWTYPE;
+  c_fmt constant text := 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"';
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM public.subscription_activation a WHERE a.component = 'free_issue' AND a.phase = 'enforced') THEN
+    RETURN jsonb_build_object('active', false, 'source', NULL, 'until', NULL);
+  END IF;
+  IF coalesce((SELECT b.is_lifetime FROM public.business_settings b WHERE b.user_id = p_user_id), false) THEN
+    RETURN jsonb_build_object('active', true, 'source', 'lifetime', 'until', NULL);
+  END IF;
+  SELECT * INTO v_ent FROM public.account_entitlements e WHERE e.user_id = p_user_id;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('active', false, 'source', NULL, 'until', NULL);
+  END IF;
+  IF v_ent.account_mode = 'free_10' AND v_ent.free_window_starts_at IS NOT NULL AND v_ent.free_window_smart_pack
+     AND now() < v_ent.free_window_starts_at + interval '168 hours'
+     -- 20261022100000 (Owner 2026-10-21, IRON-LANDING-001 "המוקדם מביניהם"): it ends with the free plan - 10 counted quotes or 7 days
+     AND v_ent.free_issues_consumed < v_ent.free_issue_limit THEN
+    RETURN jsonb_build_object('active', true, 'source', 'free_window',
+                              'until', to_char((v_ent.free_window_starts_at + interval '168 hours') AT TIME ZONE 'UTC', c_fmt));
+  END IF;
+  IF v_ent.account_mode = 'paid' AND v_ent.package_id IS NOT NULL AND NOT public.paid_account_limited(p_user_id)
+     AND (v_ent.smart_pack_line OR (v_ent.smart_pack_until IS NOT NULL AND now() < v_ent.smart_pack_until)) THEN
+    RETURN jsonb_build_object('active', true, 'source', 'add_on',
+                              'until', CASE WHEN v_ent.smart_pack_line THEN NULL ELSE to_char(v_ent.smart_pack_until AT TIME ZONE 'UTC', c_fmt) END);
+  END IF;
+  RETURN jsonb_build_object('active', false, 'source', NULL, 'until', NULL);
+END
+$function$;
+REVOKE ALL ON FUNCTION public.smart_pack_state(uuid) FROM PUBLIC, anon, authenticated, service_role;

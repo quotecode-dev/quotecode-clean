@@ -141,4 +141,17 @@ SELECT tst.ok(public.paid_account_limited(tst.fu(6)), 'F5b ... 73 hours after it
 SELECT tst.fdev(format('UPDATE public.account_entitlements SET paid_through = now() - interval %L WHERE user_id = %L', '20 hours', tst.fu(6)));
 SELECT tst.ok(public.paid_grace_ends_at(tst.fu(6)) IS NULL, 'F5c the first 24 hours after the period show no grace (an ordinary late renewal)');
 
+-- ------------------------------------------------------------------------------------------------------ D-2 SMART PACK ends with the free plan
+SET LOCAL tekango.skip_signup_provisioning = 'off';
+INSERT INTO auth.users (id, email) VALUES (tst.fu(7), 'f405-7@synthetic.test') ON CONFLICT DO NOTHING;
+INSERT INTO public.account_market (user_id, market, source) VALUES (tst.fu(7), 'IL', 'business_settings_country');
+INSERT INTO public.business_settings (user_id, email, business_name, country, currency) VALUES (tst.fu(7), 'f405-7@synthetic.test', 'Synthetic audit 7', 'Local', 'ILS');
+SET LOCAL tekango.skip_signup_provisioning = 'on';
+SELECT tst.ok(public.smart_pack_state(tst.fu(7)) ->> 'source' = 'free_window', 'F6 a new account has SMART PACK in its free plan');
+SELECT tst.fdev(format('UPDATE public.account_entitlements SET free_issues_consumed = 9 WHERE user_id = %L', tst.fu(7)));
+SELECT tst.ok((public.smart_pack_state(tst.fu(7)) ->> 'active')::boolean, 'F6b 9 of the 10 free quotes used: SMART PACK stays');
+SELECT tst.fdev(format('UPDATE public.account_entitlements SET free_issues_consumed = 10 WHERE user_id = %L', tst.fu(7)));
+SELECT tst.ok(NOT (public.smart_pack_state(tst.fu(7)) ->> 'active')::boolean,
+  'F6c the 10th counted quote ends the free plan - and its SMART PACK with it - before the 7 days (Owner 2026-10-21, the earlier of the two)');
+
 ROLLBACK;
