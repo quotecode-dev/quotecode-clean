@@ -23,6 +23,8 @@ import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText } fro
 export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null }) {
   const [rate, setRate] = useState(null);
   const [pay, setPay] = useState({ busy: false, error: null });
+  // Owner console 2026-10-21 (typed L-22 approval): the SMART PACK box state, so the local-currency estimate follows the total
+  const [addOnTicked, setAddOnTicked] = useState(false);
   const wantsEstimate = isOpen && !isLocalIsraeliBusiness && ESTIMATE_CURRENCIES.includes(String(currency || '').toUpperCase());
   useEffect(() => {
     if (!wantsEstimate) return undefined;
@@ -31,7 +33,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
     return () => { alive = false; };
   }, [wantsEstimate, currency]);
   // a fresh pay button on every opening and when the browser brings this page back from the payment page (Back)
-  useEffect(() => { if (isOpen) setPay({ busy: false, error: null }); }, [isOpen]);
+  useEffect(() => { if (isOpen) { setPay({ busy: false, error: null }); setAddOnTicked(false); } }, [isOpen]);
   useEffect(() => {
     const back = () => setPay({ busy: false, error: null });
     window.addEventListener('pageshow', back);
@@ -107,10 +109,10 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
           ? <div style={{ height: '12px' }} aria-hidden="true" />
           : <p data-testid="plans-modal-availability" style={{ color: '#64748b', textAlign: 'center', margin: '0 0 16px', fontSize: '0.85rem' }}>{m.availability}</p>}
 
-        <div style={{ marginBottom: '14px' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} purchase={purchase} /></div>
+        <div style={{ marginBottom: '14px' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} purchase={purchase} onAddOnChange={setAddOnTicked} /></div>
 
         <p data-testid="plans-modal-price-note" data-price-note style={{ textAlign: 'center', color: '#334155', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 4px' }}>{m.priceNote}</p>
-        {m.estimateNote && <p data-testid="plans-modal-estimate" style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '0 0 4px' }}>{m.estimateNote}</p>}
+        {m.estimateNote && <p data-testid="plans-modal-estimate" style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '0 0 4px' }}>{addOnTicked && m.estimateNoteWithAddOn ? m.estimateNoteWithAddOn : m.estimateNote}</p>}
         {!purchase && <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>{m.notDecided}</p>}
         <p data-testid="plans-modal-cancellation" style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>
           {m.cancellation.text}{' '}
