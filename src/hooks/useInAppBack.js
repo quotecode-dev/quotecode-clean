@@ -29,6 +29,7 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
   const prevScreenRef = useRef(null);
   const restoringRef = useRef(null); // the key being restored by Back (its history entry was already consumed)
   const ignorePopRef = useRef(0); // our own silent history.back() calls
+  const freshRef = useRef(false); // the next screen change came from the menu (startFresh)
   const scrollByKeyRef = useRef(new Map());
   const handlersRef = useRef({});
   handlersRef.current = { apply, closeTopWindow, mayLeaveEditor, leaveEditor, onRoot, scrollRoot };
@@ -83,6 +84,14 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
     const stack = stackRef.current;
     if (restoringRef.current === screen.key) { restoringRef.current = null; sync(); return; }
     restoringRef.current = null;
+    // Owner console 2026-10-22, typed: "מאשר שינוי ב-L-15: מעבר דרך התפריט הצדדי או השורה התחתונה פותח מסך נקי בלי כפתור חזרה;
+    // כפתור החזרה מופיע רק בתוך מסלול" - a screen opened from the menu starts a new path: nothing below it to go back to
+    if (freshRef.current) {
+      freshRef.current = false;
+      stackRef.current = [];
+      sync();
+      return;
+    }
     if (stack.length && stack[stack.length - 1].key === screen.key) {
       // returned to the screen right below (an editor cancelled to its origin, a save on the list it came from)
       const back = stack.pop();
@@ -141,13 +150,19 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
 
   // the visible Back button = the same step as the system Back
   const back = useCallback(() => { window.history.back(); }, []);
+  // a menu destination (sidebar / bottom row / More / Admin menu / Settings): call right before switching the screen. The screen
+  // change it causes (flushed with the click) starts a clean path; a click that changed nothing leaves no mark behind.
+  const startFresh = useCallback(() => {
+    freshRef.current = true;
+    setTimeout(() => { freshRef.current = false; }, 0);
+  }, []);
   // the editor's "Cancel & return": back to the screen the editor was opened from (called after the editor closed itself)
   const returnToOrigin = useCallback(() => {
     const s = stackRef.current;
     const origin = s.length ? s[s.length - 1] : null;
     if (origin && !origin.editor) handlersRef.current.apply?.(origin);
   }, []);
-  return { depth, previous, back, returnToOrigin };
+  return { depth, previous, back, returnToOrigin, startFresh };
 }
 
 /** The topmost open window in the page (a dialog) - closed with Escape, the way every app window already closes. */

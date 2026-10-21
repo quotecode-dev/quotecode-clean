@@ -70,6 +70,24 @@ describe('useInAppBack', () => {
     expect(backLabel(hook.result.current.previous, true)).not.toMatch(/ניהול/);
   });
 
+  // Owner console 2026-10-22, typed (L-15): a menu destination opens a clean screen; Back appears only inside a path
+  it('a screen opened from the menu (startFresh) has no Back target; inside it the path is recorded again; a click that changed nothing leaves no mark', async () => {
+    const { hook, go } = setup();
+    go({ ...scr('admin_clients'), adminSection: 'users' });
+    expect(hook.result.current.previous.tab).toBe('main');
+    act(() => { hook.result.current.startFresh(); });
+    go(scr('main')); // the sidebar: Admin -> Quotes
+    expect(hook.result.current.depth).toBe(0);
+    expect(hook.result.current.previous).toBe(null);
+    go(scr('settings', { settingsView: 'business' })); // inside the path: a button on Quotes -> Business settings
+    expect(hook.result.current.previous.tab).toBe('main');
+    // the menu item of the screen already shown: nothing changes now, and the next in-path step is still recorded
+    act(() => { hook.result.current.startFresh(); });
+    await new Promise((r) => setTimeout(r, 5));
+    go(scr('settings', { settingsView: 'templates' }));
+    expect(hook.result.current.depth).toBe(2);
+  });
+
   it('a screen marked notBackTarget (Admin for an account without Admin access) is never recorded', () => {
     // the page opened on an Admin link the account may not open; the Dashboard moves it to Quotes
     const { hook, go } = setup({ screen: { ...scr('admin_clients'), notBackTarget: true } });

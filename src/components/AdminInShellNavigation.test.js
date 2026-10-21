@@ -103,6 +103,15 @@ describe('Admin shell-bypass calls: ZERO', () => {
     expect(src).toMatch(/resetKey: session\?\.user\?\.id \|\| null/);
     expect(src).toMatch(/!adminGrants\.owner && !canAdmin && activeTab === 'admin_clients'\) setActiveTab\('main'\)/);
   });
+  // Owner console 2026-10-22, typed (L-15): a menu destination opens a clean screen with no Back button
+  it('every menu destination (sidebar / bottom row / More / Admin menu / Settings) starts a clean path', () => {
+    const src = stripComments(dashboard);
+    expect(src).toMatch(/const guardedNav = \(go\) => \{ if \(showQuoteForm && activeTab === 'main' && !mayLeaveEditor\(\)\) return; inAppBack\.startFresh\(\); go\(\); \};/);
+    expect(src).toMatch(/onSelect=\{\(id\) => \{ inAppBack\.startFresh\(\); navigateToAdminSection\(id\); \}\}/);
+    expect(src).toMatch(/onClick=\{\(\) => \{ inAppBack\.startFresh\(\); navigateToAdminSection\(id\); setShowMobileMoreMenu\(false\); \}\}/);
+    expect(src).toMatch(/onSettings=\{\(\) => \{ inAppBack\.startFresh\(\); setActiveTab\('settings'\);/);
+    expect((src.match(/guardedNav\(\(\) => \{ setActiveTab\(id\)/g) || []).length).toBe(3);
+  });
   it('an Admin deep link (?view=admin&section=) is read by the Dashboard and mounts inside the shell', () => {
     expect(dashboard).toMatch(/searchParams\.get\('view'\) === 'admin'/);
     expect(dashboard).toMatch(/ADMIN_SECTION_IDS\.has\(requested\)/);

@@ -3969,7 +3969,8 @@ ${quoteViewLink}`
   const leaveEditorMsg = isHebrew ? 'יש שינויים שלא נשמרו בהצעה. לעזוב את העורך? הטיוטה נשארת שמורה מקומית במכשיר הזה (לא בשרת).' : 'You have unsaved changes in this quote. Leave the editor? The draft stays stored locally on this device (not on the server).';
   const mayLeaveEditor = () => !quoteDraft.isDirty() || window.confirm(leaveEditorMsg);
   // the sidebar / bottom row / More leave the editor through the same unsaved-work question as Back and the AI navigation
-  const guardedNav = (go) => { if (showQuoteForm && activeTab === 'main' && !mayLeaveEditor()) return; go(); };
+  // L-15 (Owner console 2026-10-22): a menu destination opens a clean screen - no Back button to the screen it was opened from
+  const guardedNav = (go) => { if (showQuoteForm && activeTab === 'main' && !mayLeaveEditor()) return; inAppBack.startFresh(); go(); };
   const isAdminTab = String(activeTab).startsWith('admin');
   const navScreen = {
     key: [activeTab, showQuoteForm && activeTab === 'main' ? 'editor' : '', activeTab === 'settings' ? settingsView : '', isAdminTab ? `${adminSection}:${adminSelectedUserId || ''}` : ''].join('|'),
@@ -7777,7 +7778,7 @@ ${quoteViewLink}`
             {canAdmin && (
               <AdminSidebarNav
                 section={isAdminMode ? adminSectionShown : null}
-                onSelect={navigateToAdminSection}
+                onSelect={(id) => { inAppBack.startFresh(); navigateToAdminSection(id); }}
                 isHebrew={isHebrew}
                 access={adminAccess}
               />
@@ -7838,7 +7839,7 @@ ${quoteViewLink}`
             <div className="dash-sidebar-user">
               <SidebarAccountMenu
                 isHebrew={isHebrew}
-                onSettings={() => { setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
+                onSettings={() => { inAppBack.startFresh(); setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
                 onSignOut={() => setShowSignOutModal(true)}
               />
               <div className="dash-sidebar-user-text">
@@ -8830,7 +8831,7 @@ ${quoteViewLink}`
             <button
               key={`admin-${id}`}
               role="menuitem"
-              onClick={() => { navigateToAdminSection(id); setShowMobileMoreMenu(false); }}
+              onClick={() => { inAppBack.startFresh(); navigateToAdminSection(id); setShowMobileMoreMenu(false); }}
               style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: isAdminMode && hubOfSection(adminSectionShown) === id ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: isAdminMode && hubOfSection(adminSectionShown) === id ? NEON.violet : NEON.textSecondary, fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}
             >
               <AdminIcon size={17} strokeWidth={2.2} />
