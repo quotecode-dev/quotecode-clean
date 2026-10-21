@@ -24,6 +24,8 @@ CREATE TRIGGER quote_attachments_smart_pack_gate BEFORE INSERT OR UPDATE OF quot
   ON public.quote_attachments FOR EACH ROW EXECUTE FUNCTION public.quote_attachments_smart_pack_gate();
 
 -- 2. the verified-payment recorder (body 20261021400000 + the marked 20261022100000 changes) ---------------------------------
+-- the account's live attempt (its one live standing order); NULL on rows from before this migration = the attempt that pays is live
+ALTER TABLE public.account_entitlements ADD COLUMN IF NOT EXISTS live_attempt_id uuid NULL REFERENCES public.checkout_attempts (attempt_id);
 CREATE OR REPLACE FUNCTION public.record_verified_subscription_event_and_activate(p_provider text, p_provider_event_id text,
   p_event_type text, p_attempt_id uuid, p_provider_event_time timestamptz, p_payload_sha256 text,
   p_paid_amount_minor integer DEFAULT NULL, p_paid_currency text DEFAULT NULL)
@@ -104,7 +106,15 @@ BEGIN
   IF v_ent.account_mode = 'paid' AND v_ent.style_plan_id IS NOT NULL THEN
     RETURN v_r || jsonb_build_object('activated', false, 'code', 'legacy_paid_account');
   END IF;
-  IF v_ent.account_mode = 'paid' AND v_ent.package_id = 'all_inclusive' AND v_ent.subscription_status = 'active' THEN
+  -- 20261022100000 (review): a charge of a REPLACED attempt (the account paid a newer one) extends nothing - recorded, reported
+  -- (superseded_standing_order) for the Owner's cancellation / refund
+  IF NOT v_first AND v_ent.live_attempt_id IS NOT NULL AND v_ent.live_attempt_id IS DISTINCT FROM p_attempt_id THEN
+    RETURN v_r || jsonb_build_object('activated', false, 'code', 'superseded_standing_order');
+  END IF;
+  -- 20261022100000 (review): a NEW attempt of a LIMITED account (no renewal arrived; the row may still say active) is a new purchase -
+  -- its own period and SMART PACK choice apply (the ELSE branch), never "another package active"
+  IF v_ent.account_mode = 'paid' AND v_ent.package_id = 'all_inclusive' AND v_ent.subscription_status = 'active'
+     AND NOT (v_first AND public.paid_account_limited(v_attempt.user_id)) THEN
     IF v_ent.package_period IS DISTINCT FROM v_price.billing_period THEN
       IF v_first THEN
         UPDATE public.checkout_attempts SET state = 'failed' WHERE attempt_id = p_attempt_id;
@@ -116,7 +126,8 @@ BEGIN
     -- period runs one more period from its end (never shortened; a late charge runs from the charge)
     UPDATE public.account_entitlements
        SET paid_through = public.billing_period_end(greatest(coalesce(paid_through, p_provider_event_time), p_provider_event_time), v_price.billing_period),
-           payment_failed_at = NULL, updated_at = now()
+           payment_failed_at = NULL, updated_at = now(),
+           live_attempt_id = CASE WHEN v_first THEN p_attempt_id ELSE coalesce(live_attempt_id, p_attempt_id) END
      WHERE user_id = v_attempt.user_id
     RETURNING * INTO v_ent;
   ELSE
@@ -129,7 +140,8 @@ BEGIN
            -- 20261021400000: the first payment sets the SMART PACK line from its attempt; a payment that ends the grace days keeps it
            -- 20261022100000 (Codex audit H03): only a payment of the SAME standing order (a retried renewal) keeps the line; a NEW
            -- attempt paid after a failed charge carries its own choice
-           smart_pack_line = CASE WHEN subscription_status = 'past_due' AND NOT v_first THEN smart_pack_line ELSE (v_attempt.add_on_price_id IS NOT NULL) END
+           smart_pack_line = CASE WHEN subscription_status = 'past_due' AND NOT v_first THEN smart_pack_line ELSE (v_attempt.add_on_price_id IS NOT NULL) END,
+           live_attempt_id = p_attempt_id
      WHERE user_id = v_attempt.user_id
     RETURNING * INTO v_ent;
   END IF;
@@ -228,7 +240,8 @@ BEGIN
   IF p_url IS NULL OR p_url !~ '^https://' OR length(p_url) > 2000 THEN RETURN NULL; END IF;
   UPDATE public.checkout_attempts SET provider_page_url = p_url, provider_page_at = now()
    WHERE attempt_id = p_attempt_id AND user_id = p_user_id AND state = 'pending' AND provider_page_url IS NULL;
-  SELECT c.provider_page_url INTO v_url FROM public.checkout_attempts c WHERE c.attempt_id = p_attempt_id AND c.user_id = p_user_id;
+  SELECT c.provider_page_url INTO v_url FROM public.checkout_attempts c
+   WHERE c.attempt_id = p_attempt_id AND c.user_id = p_user_id AND c.state = 'pending';
   RETURN v_url;
 END $$;
 REVOKE ALL ON FUNCTION public.record_checkout_attempt_page(uuid, uuid, text) FROM PUBLIC, anon, authenticated;

@@ -228,7 +228,9 @@ export interface BillingSql {
 const CHECKOUT_CODES: Record<string, number> = { checkout_unavailable: 503, account_unprovisioned: 409, idempotency_conflict: 409, invalid_request: 400,
   already_subscribed: 409,
   // 20261021200000: in the grace days a failed renewal is paid on the live standing order (no second subscription)
-  payment_update_required: 409 };
+  payment_update_required: 409,
+  // review 2026-10-22: the same click again for an attempt that is no longer pending (paid / expired) opens no new page
+  checkout_not_pending: 409 };
 export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: BillingSql; provider: BillingProvider }, userId: string, body: unknown): Promise<Resp> {
   if (phase === 'off') return err(503, 'checkout_unavailable');
   if (typeof userId !== 'string' || !UUID.test(userId)) return err(401, 'not_authenticated');
@@ -255,6 +257,7 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
   }
   if (typeof r.attemptId !== 'string' || !UUID.test(r.attemptId) || (r.market !== 'IL' && r.market !== 'INTERNATIONAL')
       || !['ILS', 'USD'].includes(r.currency as string) || !Number.isInteger(r.amountMinor)) return err(503, 'checkout_unavailable');
+  if (r.state !== undefined && r.state !== 'pending') return err(409, 'checkout_not_pending');
   // Defence in depth: the SQL amount must equal the server catalog computation for the server market (never a client value).
   const market = r.market as Market;
   let catalogRaw: unknown;
@@ -312,7 +315,12 @@ export async function providerWebhookHandler(phase: BillingPhase, deps: { sql: B
   }
   const outcome = typeof r.outcome === 'string' && OUTCOMES.has(r.outcome) ? r.outcome : undefined;
   // 20261022100000 (Codex audit H04): the receipt stays 200, but a payment that opened nothing says so and why
-  const notActivated = r.activated === false && typeof r.code === 'string' && /^[a-z_]{1,40}$/.test(r.code) ? { activated: false, code: r.code } : {};
+  const notActivatedCode = r.activated === false && typeof r.code === 'string' && /^[a-z_]{1,40}$/.test(r.code) ? r.code : null;
+  const notActivated = notActivatedCode ? { activated: false, code: notActivatedCode } : {};
+  // a verified payment that opened nothing (wrong amount, a replaced standing order, ...) is an incident for the Owner - never silent
+  if (notActivatedCode && notActivatedCode !== 'billing_not_enforced') {
+    console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'payment_not_activated', code: notActivatedCode, outcome: outcome ?? null }));
+  }
   return { status: 200, body: { ok: true, duplicate: r.duplicate === true, ...(outcome ? { outcome } : {}), ...notActivated } };
 }
 

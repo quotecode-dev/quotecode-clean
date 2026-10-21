@@ -178,7 +178,11 @@ describe('callback: really from PayPlus (user-agent + hash), otherwise nothing i
     expect(mapPayPlusCallback(callback({}, { amount: 1 }))).toEqual({ id: 'dcb11c1e7-a1231-37cf-6311-f5111eeb69c7', type: 'payment_confirmed',
       occurredAt: '2026-10-18T09:32:52.000Z', attemptId: ATT, paidAmountMinor: 100, recurringRef: null, terminalRef: null });
     expect(mapPayPlusCallback(callback({}, { amount: 306 }))?.paidAmountMinor).toBe(30600);
-    expect(mapPayPlusCallback(callback({}, { amount: '306' }))?.paidAmountMinor).toBeNull();
+    // review 2026-10-22: a numeric string is the same amount; anything else is no amount
+    expect(mapPayPlusCallback(callback({}, { amount: '306' }))?.paidAmountMinor).toBe(30600);
+    expect(mapPayPlusCallback(callback({}, { amount: '306.50' }))?.paidAmountMinor).toBe(30650);
+    expect(mapPayPlusCallback(callback({}, { amount: '306,00' }))?.paidAmountMinor).toBeNull();
+    expect(mapPayPlusCallback(callback({}, { amount: '-1' }))?.paidAmountMinor).toBeNull();
   });
   it.each([['2026-13-05 10:00:00'], ['2026-00-10 10:00:00'], ['2026-10-18 10:60:00'], ['2026-10-18 24:00:00']])(
     'an out-of-range date %s -> invalid_event', async (date) => {
@@ -377,5 +381,16 @@ describe('audit fixes: one payment page per attempt (H05); a payment that opened
       expect(sent.length).toBeGreaterThan(1);
       expect(sent).toEqual(declared);
     }
+  });
+});
+
+describe('review 2026-10-22: a click for an attempt that is no longer pending opens no new page', () => {
+  it('SQL answers the same attempt as paid / expired -> 409 checkout_not_pending, PayPlus never asked', async () => {
+    const f = fetchOk();
+    const sql = { createCheckoutIntent: vi.fn(), priceCatalog: vi.fn(), recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+      createPackageCheckoutIntent: vi.fn(async () => ({ ok: true, attemptId: ATT, market: 'IL', currency: 'ILS', amountMinor: 30600, state: 'expired' })) } as never as BillingSql;
+    expect(await checkoutIntentHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: f })) }, U,
+      { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY })).toEqual({ status: 409, body: { ok: false, code: 'checkout_not_pending' } });
+    expect(f).not.toHaveBeenCalled();
   });
 });

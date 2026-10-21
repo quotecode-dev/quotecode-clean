@@ -106,6 +106,44 @@ BEGIN
     'F2d a retried renewal of the same attempt ends the grace days and keeps the SMART PACK line');
 END $$;
 
+-- ------------------------------------------------------------------------------------------------------ review 2026-10-22
+INSERT INTO auth.users (id, email) SELECT tst.fu(n), format('f405-%s@synthetic.test', n) FROM generate_series(8, 9) n ON CONFLICT DO NOTHING;
+INSERT INTO public.business_settings (user_id, email, business_name, country, currency, plan, role, is_lifetime)
+  SELECT tst.fu(n), format('f405-%s@synthetic.test', n), format('Synthetic audit %s', n), 'Local', 'ILS', 'free', 'user', false
+    FROM generate_series(8, 9) n ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO public.account_market (user_id, market, source) SELECT tst.fu(n), 'IL', 'business_settings_country' FROM generate_series(8, 9) n;
+INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id) SELECT tst.fu(n), 'free_10', NULL FROM generate_series(8, 9) n;
+DO $$
+DECLARE a uuid; b uuid; r jsonb; pt timestamptz;
+BEGIN
+  -- user 3 (F2b): the OLD standing order A charges again after the new package B -> extends nothing, reported
+  a := (SELECT attempt_id FROM public.checkout_attempts WHERE idempotency_key = 'audit-f405-user3-a-sp');
+  SELECT paid_through INTO pt FROM public.account_entitlements WHERE user_id = tst.fu(3);
+  r := tst.fpay('f405-3a-again', a, 4000, now() - interval '30 minutes');
+  PERFORM tst.ok(r ->> 'activated' = 'false' AND r ->> 'code' = 'superseded_standing_order'
+                 AND (SELECT paid_through FROM public.account_entitlements WHERE user_id = tst.fu(3)) = pt AND NOT tst.fline(tst.fu(3)),
+    'F2e a charge of the REPLACED standing order extends nothing and grants no line; it is reported (superseded_standing_order)');
+  -- user 8: monthly A, no renewal ever arrived (the row still says active) -> limited -> buys a YEAR -> the year opens
+  a := tst.fintent(tst.fu(8), 'audit-f405-user8-a-month', false);
+  r := tst.fpay('f405-8a', a, 3000, now() - interval '40 days');
+  PERFORM tst.fdev(format('UPDATE public.account_entitlements SET paid_through = now() - interval %L WHERE user_id = %L', '80 hours', tst.fu(8)));
+  PERFORM tst.ok(public.paid_account_limited(tst.fu(8))
+                 AND (SELECT subscription_status FROM public.account_entitlements WHERE user_id = tst.fu(8)) = 'active',
+    'F2f user 8 is limited without any renewal callback (the row still says active)');
+  b := (SELECT (x ->> 'attemptId')::uuid FROM (SELECT tst.fsvc(), public.create_package_checkout_intent(tst.fu(8), 'year', 'audit-f405-user8-b-year', true) x) y);
+  PERFORM tst.logout();
+  r := tst.fpay('f405-8b', b, 40800, now() - interval '1 hour');
+  PERFORM tst.ok(r ->> 'activated' = 'true' AND (SELECT package_period FROM public.account_entitlements WHERE user_id = tst.fu(8)) = 'year'
+                 AND tst.fline(tst.fu(8)) AND NOT public.paid_account_limited(tst.fu(8)),
+    'F2g ... its NEW annual purchase with SMART PACK opens the year with the line (never "another package active")');
+  -- user 9: a wrong-amount charge, then the correct one on the same page -> the package opens
+  a := tst.fintent(tst.fu(9), 'audit-f405-user9-a', false);
+  r := tst.fpay('f405-9-low', a, 100, now() - interval '2 hours');
+  PERFORM tst.ok(r ->> 'outcome' = 'rejected' AND r ->> 'code' = 'amount_mismatch', 'F2h a wrong amount is rejected');
+  r := tst.fpay('f405-9-ok', a, 3000, now() - interval '3 hours');
+  PERFORM tst.ok(r ->> 'activated' = 'true', 'F2i the correct payment of the same attempt still opens the package, even with an earlier provider time');
+END $$;
+
 -- ------------------------------------------------------------------------------------------------------ M03 a future provider time
 SELECT tst.ok((tst.fpay('f405-future', tst.fintent(tst.fu(6), 'audit-f405-user6-future', false), 3000, now() + interval '2 days') ->> 'code') = 'invalid_event'
               AND NOT EXISTS (SELECT 1 FROM public.subscription_events WHERE provider_event_id = 'f405-future'),
