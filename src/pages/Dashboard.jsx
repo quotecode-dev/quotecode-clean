@@ -7590,7 +7590,7 @@ ${quoteViewLink}`
         isHebrew={isHebrew}
         market={(accountSummary.state === 'ready' && accountSummary.market) || (isLocalIsraeliBusiness ? 'IL' : 'INTERNATIONAL')}
         free10={accountSummary.state === 'ready' ? accountSummary.free10 : null}
-        limited={accountSummary.state === 'ready' && accountSummary.billing?.limited === true}
+        limited={accountSummary.state === 'ready' && accountSummary.billing?.limited === true ? (accountSummary.billing.limitedReason || true) : false}
         // Codex audit 2026-10-21 (Owner "כן, לתקן"): while paying is possible, the choice opens the plans window
         onChoose={packageCheckoutAvailable(accountSummary, isLifetimeAccount) ? () => { setFree10Window(false); setShowPricingModal(true); } : null}
       />

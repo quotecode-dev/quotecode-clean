@@ -133,9 +133,10 @@ DECLARE
   v_paid  timestamptz;
   v_grace timestamptz;
   v_stop  timestamptz;
+  v_status text;
   c_fmt   constant text := 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"';
 BEGIN
-  SELECT e.paid_through INTO v_paid FROM public.account_entitlements e WHERE e.user_id = p_user_id;
+  SELECT e.paid_through, e.subscription_status INTO v_paid, v_status FROM public.account_entitlements e WHERE e.user_id = p_user_id;
   v_grace := CASE WHEN v_enf THEN public.paid_grace_ends_at(p_user_id) END;
   v_stop  := CASE WHEN v_enf THEN public.paid_stopped_ends_at(p_user_id) END; -- 20261022300000
   RETURN jsonb_build_object(
@@ -143,7 +144,14 @@ BEGIN
     -- a limited stopped account carries its end here: the summary contract requires a time with limited
     'graceEndsAt', to_char(coalesce(v_grace, CASE WHEN v_stop IS NOT NULL AND now() >= v_stop THEN v_stop END) AT TIME ZONE 'UTC', c_fmt),
     'inGrace', v_grace IS NOT NULL AND now() < v_grace,
-    'limited', (v_grace IS NOT NULL AND now() >= v_grace) OR (v_stop IS NOT NULL AND now() >= v_stop));
+    'limited', (v_grace IS NOT NULL AND now() >= v_grace) OR (v_stop IS NOT NULL AND now() >= v_stop),
+    -- Codex audit 2026-10-22 M-01 (Owner console 2026-10-22, L-01 + L-22): the server states WHY - a stopped renewal (its access lasts
+    -- to paidThrough; limited after it = 'cancelled', never shown as a failed payment), a verified failed renewal ('payment_failed'),
+    -- or a paid period that ended without a renewal answer ('period_ended')
+    'renewalStopped', v_stop IS NOT NULL,
+    'limitedReason', CASE WHEN v_stop IS NOT NULL AND now() >= v_stop THEN 'cancelled'
+                          WHEN v_grace IS NOT NULL AND now() >= v_grace AND v_status = 'past_due' THEN 'payment_failed'
+                          WHEN v_grace IS NOT NULL AND now() >= v_grace THEN 'period_ended' END);
 END
 $function$;
 REVOKE ALL ON FUNCTION public.account_billing_state(uuid) FROM PUBLIC, anon, authenticated, service_role;

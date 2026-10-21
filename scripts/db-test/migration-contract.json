@@ -377,7 +377,7 @@
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / CREATE OR REPLACE (re-runnable); the server pull of a PayPlus payment page + the first charge never counted twice (Owner 2026-10-21)"
     },
     "20261022300000_billing_admin_stop_and_refund.sql": {
-      "sha256": "de03046e98fcd6f2d7d79e7b7673689988ec9bee3d872728bbd1fe6c3d507c3b",
+      "sha256": "f7f302a31510ce36fb6634b0d2f72c1a0fa44dbf3818a5659ea7b7c461cb6763",
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN / CREATE TABLE IF NOT EXISTS, DROP TRIGGER IF EXISTS + CREATE, CREATE OR REPLACE (re-runnable); the Owner's stop-renewal / early-end + refund tools, Terms section 6 (Owner 2026-10-21)"

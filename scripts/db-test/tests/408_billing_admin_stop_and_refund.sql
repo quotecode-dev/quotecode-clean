@@ -158,8 +158,9 @@ BEGIN
   PERFORM tst.ok(tst.brefund((b ->> 'actionId')::uuid, 'refunded', 'x', 1) ->> 'code' = 'invalid_request', 'B5a a stop never carries a refund');
   PERFORM tst.ok(tst.bfinish((b ->> 'actionId')::uuid, 'cancelled') ->> 'code' = 'already_finished', 'B5b one result per action');
   PERFORM tst.ok(tst.bstate(tst.bu(1)) ->> 'inGrace' = 'false' AND tst.bstate(tst.bu(1)) ->> 'limited' = 'false'
-                 AND tst.bstate(tst.bu(1)) ->> 'graceEndsAt' IS NULL AND NOT public.paid_account_limited(tst.bu(1)),
-    'B5c inside the paid period: full use, no grace notice');
+                 AND tst.bstate(tst.bu(1)) ->> 'graceEndsAt' IS NULL AND NOT public.paid_account_limited(tst.bu(1))
+                 AND tst.bstate(tst.bu(1)) ->> 'renewalStopped' = 'true' AND tst.bstate(tst.bu(1)) ->> 'limitedReason' IS NULL,
+    'B5c inside the paid period: full use, no grace notice; the summary says the renewal is off (Codex audit M-01)');
   PERFORM tst.ok(tst.bbegin(tst.bu(9), tst.bu(1), 'stop_renewal', false, 0) ->> 'code' = 'already_stopped', 'B5d it cannot be stopped twice');
   r := tst.bpay('tx-408-1-renewal', NULL, 'rec-408-1', now() - interval '1 hour');
   PERFORM tst.ok(r ->> 'activated' = 'false' AND r ->> 'code' = 'renewal_stopped' AND tst.bpaid(tst.bu(1)) = pt
@@ -198,7 +199,8 @@ BEGIN
   PERFORM tst.bdev(format('UPDATE public.account_entitlements SET paid_through = now() - interval %L WHERE user_id = %L', '1 minute', tst.bu(2)));
   PERFORM tst.ok(public.paid_account_limited(tst.bu(2)) AND public.paid_grace_ends_at(tst.bu(2)) IS NULL
                  AND tst.bstate(tst.bu(2)) ->> 'limited' = 'true' AND tst.bstate(tst.bu(2)) ->> 'inGrace' = 'false'
-                 AND (tst.bstate(tst.bu(2)) ->> 'graceEndsAt')::timestamptz = date_trunc('milliseconds', now() - interval '1 minute'),
+                 AND (tst.bstate(tst.bu(2)) ->> 'graceEndsAt')::timestamptz = date_trunc('milliseconds', now() - interval '1 minute')
+                 AND tst.bstate(tst.bu(2)) ->> 'limitedReason' = 'cancelled',
     'B9 the minute the access ends the account is limited - no 3 grace days; graceEndsAt carries the end (the summary contract)');
   PERFORM tst.ok(tst.bbegin(tst.bu(9), tst.bu(2), 'end_early', false, 0) ->> 'code' = 'already_ended', 'B9b never ended early twice');
 END $$;
