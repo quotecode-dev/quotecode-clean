@@ -71,10 +71,11 @@ describe('Free-10 upgrade window', () => {
     expect(screen.queryByTestId('free10-upgrade-card-free')).toBeNull();
     expect(w.textContent).not.toMatch(/\$|USD/);
   });
-  it('closes by the button, the X, Escape and the backdrop; focus starts on "back to work"', () => {
+  // Codex audit M06 (Owner 2026-10-21 "כן, לתקן"): focus starts at the top of the window (the close X), so the title stays in view on a phone
+  it('closes by the button, the X, Escape and the backdrop; focus starts at the top (the close X)', () => {
     const p = props();
     render(<Free10UpgradeWindow {...p} />);
-    expect(document.activeElement).toBe(screen.getByTestId('free10-upgrade-close'));
+    expect(document.activeElement).toBe(screen.getByTestId('free10-upgrade-x'));
     fireEvent.click(screen.getByTestId('free10-upgrade-close'));
     fireEvent.click(screen.getByTestId('free10-upgrade-x'));
     fireEvent.keyDown(document, { key: 'Escape' });

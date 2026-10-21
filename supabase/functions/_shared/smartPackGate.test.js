@@ -38,3 +38,10 @@ describe('chat-ai (source guard)', () => {
     expect(src).toMatch(/'Reading your own data in the chat \(quotes, clients, catalog and tasks\) is part of SMART PACK\. You can add it in the plans view\.'/);
   });
 });
+
+describe('chat-ai: no data tool without SMART PACK (Codex audit H01, Owner 2026-10-21)', () => {
+  const src = fs.readFileSync(path.join(HERE, '..', 'chat-ai', 'index.ts'), 'utf8').replace(/\r\n/g, '\n');
+  it('the tool context itself requires SMART PACK, so a paraphrase that escaped the question classification never reaches the data', () => {
+    expect(src).toMatch(/const toolCtx: ToolContext \| null = smartPackAllowed && userJwtClient && verifiedUserId && accountContext && !reviewSnapshot/);
+  });
+});

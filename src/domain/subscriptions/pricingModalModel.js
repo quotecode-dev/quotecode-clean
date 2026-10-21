@@ -8,8 +8,10 @@ import { FREE_QUOTES_TOTAL, ilsPackageAmount, usdPackageAmount, ilsAnnualSaving,
 import { RATE_SOURCE_NAME, ESTIMATE_CURRENCIES } from './localPriceEstimate';
 import { formatMoney, formatWholeMoney } from '../../utils/money';
 import { PLAN_NAMES } from '../../../supabase/functions/_shared/subscriptionContract.ts';
-import { ilsSmartPack, ilsWithSmartPack, usdSmartPack, usdWithSmartPack } from '../../components/landing/smartPackFacts';
+import { ilsSmartPack, ilsWithSmartPack, usdSmartPack, usdWithSmartPack, SMART_PACK_PRICE_MINOR } from '../../components/landing/smartPackFacts';
 import { SMART_PACK } from './addOnCatalog';
+import { packagePrice } from './packageCatalog';
+import { majorUnits } from './priceCatalog';
 
 // Task 39 (Owner final scope): International accounts whose identified currency is GBP / EUR also see a labelled estimate from the
 // same rate source as the landing (`estimateRate` = a localPriceEstimate record or null); the shown / billed amounts stay USD.
@@ -63,12 +65,20 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
       ? `הערכה ב-${wantCur} בלבד: כ-${mo.estimateText.slice(1)} לחודש או כ-${yr.estimateText.slice(1)} לשנה, לפי שער ${RATE_SOURCE_NAME} מ-${est.rateAsOf.slice(0, 10)}. החיוב בדולר ארה״ב.`
       : `Estimate in ${wantCur} only: about ${mo.estimateText.slice(1)} per month or ${yr.estimateText.slice(1)} per year at the ${RATE_SOURCE_NAME} rate of ${est.rateAsOf.slice(0, 10)}. Charged in USD.`)
     : (isHebrew ? `הערכה ב-${wantCur} אינה זמינה כרגע, ולכן המחירים מוצגים בדולר ארה״ב.` : `A ${wantCur} estimate is not available right now, so prices are shown in US dollars.`);
+  // Owner console 2026-10-21 (typed: "מאשר שינוי ב-L-22: אומדן המטבע המקומי בחלון המסלולים כולל את חכם פלוס"): with the SMART PACK box
+  // ticked the estimate is of the total that would be charged (package + add-on), with the same rate and rounding as the saving estimate
+  const estWith = (period) => `${mo.estimateText.slice(1, 2)}${formatMoney(majorUnits(Math.round((packagePrice('INTERNATIONAL', period).amountMinor
+    + SMART_PACK_PRICE_MINOR.INTERNATIONAL[period]) * est.rate)))}`;
+  const estimateNoteWithAddOn = !wantCur || !est ? null : (isHebrew
+    ? `הערכה ב-${wantCur} בלבד, כולל SMART PACK: כ-${estWith('month')} לחודש או כ-${estWith('year')} לשנה, לפי שער ${RATE_SOURCE_NAME} מ-${est.rateAsOf.slice(0, 10)}. החיוב בדולר ארה״ב.`
+    : `Estimate in ${wantCur} only, with SMART PACK: about ${estWith('month')} per month or ${estWith('year')} per year at the ${RATE_SOURCE_NAME} rate of ${est.rateAsOf.slice(0, 10)}. Charged in USD.`);
   return {
     plans: [free, pkg],
     priceNote: il
       ? (isHebrew ? 'המחירים כוללים מע״מ.' : 'Prices include VAT.')
       : (isHebrew ? 'המחירים בדולר ארה״ב. החיוב בדולר ארה״ב.' : 'Prices are in US dollars. Charged in USD.'),
     estimateNote,
+    estimateNoteWithAddOn,
     // Task 39: the cancellation-request path (a request to the market's service mailbox, handled by the team - not an automatic cancellation).
     cancellation: {
       text: isHebrew ? 'ביטול מנוי: אפשר לבקש בכל עת במייל. הבקשה מטופלת בידי הצוות ומאושרת במייל; זה אינו ביטול אוטומטי ואינו מחיקת חשבון.' : 'Cancelling a subscription: you can ask at any time by email. Our team handles the request and confirms it by email; it is not an automatic cancellation and does not delete your account.',

@@ -417,7 +417,9 @@ serve(async (req) => {
     }
   }
   // the read-only data tools are offered only to a verified dashboard user (never on the public chat, never with a review snapshot)
-  const toolCtx: ToolContext | null = userJwtClient && verifiedUserId && accountContext && !reviewSnapshot
+  // Codex audit H01 (Owner 2026-10-21 "כן, את כולן"; the typed L-17 SMART PACK gate): no data tool at all without SMART PACK - the
+  // classification of the question above is not the only guard (a paraphrase must never reach the account's data)
+  const toolCtx: ToolContext | null = smartPackAllowed && userJwtClient && verifiedUserId && accountContext && !reviewSnapshot
     ? await (async () => {
       const { data: curRow } = await adminClient.from('business_settings').select('currency').eq('user_id', verifiedUserId).maybeSingle();
       const bizCur = String((curRow as { currency?: string } | null)?.currency || '').toUpperCase();

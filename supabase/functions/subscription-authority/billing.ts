@@ -212,6 +212,10 @@ export interface BillingSql {
   createPackageCheckoutIntent?(userId: string, billingPeriod: BillingPeriod, idempotencyKey: string, smartPack?: boolean): Promise<Record<string, unknown>>;
   /** get_price_catalog(p_market) */
   priceCatalog(market: Market): Promise<unknown>;
+  /** 20261022100000 (Codex audit H05): the provider page already opened for this pending attempt (one page per attempt) */
+  checkoutPage?(attemptId: string, userId: string): Promise<string | null>;
+  /** record_checkout_attempt_page - set once; returns the STORED page (a concurrent second page never wins) */
+  recordCheckoutPage?(attemptId: string, userId: string, url: string): Promise<string | null>;
   /** record_verified_provider_event(provider, provider_event_id, event_type, attempt_id, recurring_ref, terminal_ref, provider_event_time,
    *  payload_sha256, paid_amount_minor, paid_currency) - 20261022000000; the attempt id may be null only with a standing-order id */
   recordVerifiedEvent(e: { provider: string; providerEventId: string; eventType: string; attemptId: string | null; providerEventTime: string; payloadSha256: string;
@@ -224,7 +228,9 @@ export interface BillingSql {
 const CHECKOUT_CODES: Record<string, number> = { checkout_unavailable: 503, account_unprovisioned: 409, idempotency_conflict: 409, invalid_request: 400,
   already_subscribed: 409,
   // 20261021200000: in the grace days a failed renewal is paid on the live standing order (no second subscription)
-  payment_update_required: 409 };
+  payment_update_required: 409,
+  // review 2026-10-22: the same click again for an attempt that is no longer pending (paid / expired) opens no new page
+  checkout_not_pending: 409 };
 export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: BillingSql; provider: BillingProvider }, userId: string, body: unknown): Promise<Resp> {
   if (phase === 'off') return err(503, 'checkout_unavailable');
   if (typeof userId !== 'string' || !UUID.test(userId)) return err(401, 'not_authenticated');
@@ -251,6 +257,7 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
   }
   if (typeof r.attemptId !== 'string' || !UUID.test(r.attemptId) || (r.market !== 'IL' && r.market !== 'INTERNATIONAL')
       || !['ILS', 'USD'].includes(r.currency as string) || !Number.isInteger(r.amountMinor)) return err(503, 'checkout_unavailable');
+  if (r.state !== undefined && r.state !== 'pending') return err(409, 'checkout_not_pending');
   // Defence in depth: the SQL amount must equal the server catalog computation for the server market (never a client value).
   const market = r.market as Market;
   let catalogRaw: unknown;
@@ -259,12 +266,19 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
   if (!expected || expected.currency !== r.currency || expected.amountMinor !== r.amountMinor) return err(503, 'checkout_unavailable');
   // the SQL attempt and the catalog must agree on the add-on line too (never a payment page for a line the attempt does not carry)
   if (isPackage && (r.addOnPriceId ?? null) !== (expected.addOnPriceId ?? null)) return err(503, 'checkout_unavailable');
+  // 20261022100000 (Codex audit H05): one provider page per attempt - a retry of the same attempt (same idempotency key) gets the
+  // page it already has; a new page is kept once and the stored page always wins
+  const httpsPage = (v: unknown): v is string => typeof v === 'string' && /^https:\/\//.test(v);
+  const answer = (redirectUrl: string): Resp => ({ status: 200, body: { ok: true, attemptId: r.attemptId, currency: expected.currency,
+    amountMinor: expected.amountMinor, redirectUrl, state: 'pending', ...(isPackage ? { smartPack: Boolean(expected.addOnPriceId) } : {}) } });
+  const existing = deps.sql.checkoutPage ? await deps.sql.checkoutPage(r.attemptId, userId).catch(() => null) : null;
+  if (httpsPage(existing)) return answer(existing);
   const hosted = await deps.provider.createCheckout({ attemptId: r.attemptId, currency: expected.currency, amountMinor: expected.amountMinor,
     ...(isPackage ? { billingPeriod: period as BillingPeriod, addOnAmountMinor: expected.addOnAmountMinor ?? null } : {}) }).catch(() => null);
-  if (!hosted || typeof hosted.redirectUrl !== 'string' || !/^https:\/\//.test(hosted.redirectUrl)) return err(503, 'checkout_unavailable');
+  if (!hosted || !httpsPage(hosted.redirectUrl)) return err(503, 'checkout_unavailable');
+  const stored = deps.sql.recordCheckoutPage ? await deps.sql.recordCheckoutPage(r.attemptId, userId, hosted.redirectUrl).catch(() => null) : null;
   // A redirect URL is NOT an entitlement: the success page shows "processing" until a verified provider event.
-  return { status: 200, body: { ok: true, attemptId: r.attemptId, currency: expected.currency, amountMinor: expected.amountMinor, redirectUrl: hosted.redirectUrl, state: 'pending',
-    ...(isPackage ? { smartPack: Boolean(expected.addOnPriceId) } : {}) } };
+  return answer(httpsPage(stored) ? stored : hosted.redirectUrl);
 }
 
 // ------------------------------------------------------------------------------------------------ verified webhook
@@ -300,7 +314,14 @@ export async function providerWebhookHandler(phase: BillingPhase, deps: { sql: B
     return err(503, code === 'billing_off' ? code : 'retry_later');
   }
   const outcome = typeof r.outcome === 'string' && OUTCOMES.has(r.outcome) ? r.outcome : undefined;
-  return { status: 200, body: { ok: true, duplicate: r.duplicate === true, ...(outcome ? { outcome } : {}) } };
+  // 20261022100000 (Codex audit H04): the receipt stays 200, but a payment that opened nothing says so and why
+  const notActivatedCode = r.activated === false && typeof r.code === 'string' && /^[a-z_]{1,40}$/.test(r.code) ? r.code : null;
+  const notActivated = notActivatedCode ? { activated: false, code: notActivatedCode } : {};
+  // a verified payment that opened nothing (wrong amount, a replaced standing order, ...) is an incident for the Owner - never silent
+  if (notActivatedCode && notActivatedCode !== 'billing_not_enforced') {
+    console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'payment_not_activated', code: notActivatedCode, outcome: outcome ?? null }));
+  }
+  return { status: 200, body: { ok: true, duplicate: r.duplicate === true, ...(outcome ? { outcome } : {}), ...notActivated } };
 }
 
 // ------------------------------------------------------------------------------------------------ reference state model

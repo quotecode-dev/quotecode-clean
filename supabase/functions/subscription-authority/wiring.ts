@@ -42,6 +42,15 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
     createPackageCheckoutIntent: async (userId, billingPeriod, idempotencyKey, smartPack = false) => (await call('create_package_checkout_intent',
       { p_user_id: userId, p_billing_period: billingPeriod, p_idempotency_key: idempotencyKey, p_smart_pack: smartPack })) as Record<string, unknown>,
     priceCatalog: (market) => call('get_price_catalog', { p_market: market }),
+    // 20261022100000 (Codex audit H05): one provider page per attempt
+    checkoutPage: async (attemptId, userId) => {
+      const v = await call('checkout_attempt_page', { p_attempt_id: attemptId, p_user_id: userId });
+      return typeof v === 'string' ? v : null;
+    },
+    recordCheckoutPage: async (attemptId, userId, url) => {
+      const v = await call('record_checkout_attempt_page', { p_attempt_id: attemptId, p_user_id: userId, p_url: url });
+      return typeof v === 'string' ? v : null;
+    },
     // 20261021000000: the same verified-event recorder + (same transaction) a confirmed package payment opens the subscription;
     // 20261022000000: through record_verified_provider_event, which reaches the attempt of a bound standing order
     recordVerifiedEvent: async (e) => (await call('record_verified_provider_event', { p_provider: e.provider,

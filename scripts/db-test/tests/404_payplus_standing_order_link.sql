@@ -47,9 +47,9 @@ DO $$
 DECLARE a uuid; r jsonb;
 BEGIN
   a := tst.zattempt(tst.zu(1), 'payplus-so-user1-off');
-  r := tst.zpay('so-off-1', 'payment_confirmed', a, 'rec-off', '2026-10-22 09:00:00+00', 30600);
+  r := tst.zpay('so-off-1', 'payment_confirmed', a, 'rec-off', '2020-10-22 09:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'code' = 'billing_off', 'Z0 billing off (today): the attempt-carrying callback is refused');
-  r := tst.zpay('so-off-2', 'payment_confirmed', NULL, 'rec-off', '2026-10-22 09:00:00+00', 30600);
+  r := tst.zpay('so-off-2', 'payment_confirmed', NULL, 'rec-off', '2020-10-22 09:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'code' = 'billing_off', 'Z0b billing off: a standing-order-only callback is refused too');
   PERFORM tst.ok(NOT EXISTS (SELECT 1 FROM public.provider_standing_orders)
                  AND NOT EXISTS (SELECT 1 FROM public.subscription_events WHERE provider_event_id IN ('so-off-1', 'so-off-2')),
@@ -68,10 +68,10 @@ DO $$
 DECLARE a uuid; r jsonb;
 BEGIN
   a := tst.zattempt(tst.zu(4), 'payplus-so-user4-year');
-  r := tst.zpay('so-prep', 'payment_confirmed', a, 'rec-4', '2026-10-22 08:00:00+00', 30600);
+  r := tst.zpay('so-prep', 'payment_confirmed', a, 'rec-4', '2020-10-22 08:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'code' = 'billing_not_enforced' AND NOT EXISTS (SELECT 1 FROM public.provider_standing_orders WHERE recurring_ref = 'rec-4'),
                  'Z1d prepared: the payment is recorded, opens nothing and binds no standing order');
-  r := tst.zpay('so-prep-2', 'payment_confirmed', NULL, 'rec-4', '2026-11-22 08:00:00+00', 30600);
+  r := tst.zpay('so-prep-2', 'payment_confirmed', NULL, 'rec-4', '2020-11-22 08:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'code' = 'unknown_attempt', 'Z1e prepared: that standing order alone stays unknown');
 END $$;
 
@@ -80,62 +80,62 @@ UPDATE public.billing_activation SET phase = 'enforced', reason = 'TEST device: 
 DO $$
 DECLARE a uuid; other uuid; r jsonb; pt timestamptz;
 BEGIN
-  r := tst.zpay('so-unknown', 'payment_confirmed', NULL, 'rec-unknown', '2026-10-22 09:00:00+00', 30600);
+  r := tst.zpay('so-unknown', 'payment_confirmed', NULL, 'rec-unknown', '2020-10-22 09:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'code' = 'unknown_attempt' AND NOT EXISTS (SELECT 1 FROM public.subscription_events WHERE provider_event_id = 'so-unknown'),
                  'Z2 a standing order nobody bound = unknown_attempt, nothing written');
 
   a := tst.zattempt(tst.zu(1), 'payplus-so-user1-year');
-  r := tst.zpay('so-first', 'payment_confirmed', a, 'rec-1', '2026-10-22 10:00:00+00', 30600);
+  r := tst.zpay('so-first', 'payment_confirmed', a, 'rec-1', '2020-10-22 10:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'activated' = 'true' AND tst.zent(tst.zu(1)) = 'paid/all_inclusive/active', 'Z3 the first payment opens the package');
   PERFORM tst.ok((SELECT attempt_id = a AND terminal_ref = 'term-404' AND first_event_id = 'so-first' FROM public.provider_standing_orders
                    WHERE provider = 'payplus' AND recurring_ref = 'rec-1'), 'Z4 the standing order is bound to that attempt once');
-  r := tst.zpay('so-first', 'payment_confirmed', a, 'rec-1', '2026-10-22 10:00:00+00', 30600);
+  r := tst.zpay('so-first', 'payment_confirmed', a, 'rec-1', '2020-10-22 10:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'duplicate' = 'true' AND (SELECT count(*) FROM public.provider_standing_orders WHERE attempt_id = a) = 1,
                  'Z4b the first callback again = a no-op; the binding is unchanged');
   SELECT paid_through INTO pt FROM public.account_entitlements WHERE user_id = tst.zu(1);
 
-  r := tst.zpay('so-renew', 'payment_confirmed', NULL, 'rec-1', '2027-10-22 10:00:00+00', 30600);
+  r := tst.zpay('so-renew', 'payment_confirmed', NULL, 'rec-1', '2021-10-22 10:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'outcome' = 'applied' AND r ->> 'activated' = 'true'
                  AND (SELECT paid_through FROM public.account_entitlements WHERE user_id = tst.zu(1))
-                     = public.billing_period_end(greatest(pt, '2027-10-22 10:00:00+00'::timestamptz), 'year')
+                     = public.billing_period_end(greatest(pt, '2021-10-22 10:00:00+00'::timestamptz), 'year')
                  AND (SELECT attempt_id FROM public.subscription_events WHERE provider_event_id = 'so-renew') = a,
                  'Z5 a renewal carrying ONLY the standing-order id reaches the same attempt and extends the paid period by one year');
-  r := tst.zpay('so-renew', 'payment_confirmed', NULL, 'rec-1', '2027-10-22 10:00:00+00', 30600);
+  r := tst.zpay('so-renew', 'payment_confirmed', NULL, 'rec-1', '2021-10-22 10:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'duplicate' = 'true', 'Z6 the same renewal callback again = a no-op');
 
-  r := tst.zpay('so-fail', 'payment_failed', NULL, 'rec-1', '2028-10-22 10:00:00+00', 30600);
+  r := tst.zpay('so-fail', 'payment_failed', NULL, 'rec-1', '2022-10-22 10:00:00+00', 30600);
   PERFORM tst.ok(tst.zent(tst.zu(1)) = 'paid/all_inclusive/past_due'
                  AND (SELECT payment_failed_at FROM public.account_entitlements WHERE user_id = tst.zu(1)) IS NOT NULL,
                  'Z7 a failed renewal carrying ONLY the standing-order id starts the grace days of that account');
-  r := tst.zpay('so-retry-ok', 'payment_confirmed', NULL, 'rec-1', '2028-10-23 10:00:00+00', 30600);
+  r := tst.zpay('so-retry-ok', 'payment_confirmed', NULL, 'rec-1', '2022-10-23 10:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'activated' = 'true' AND tst.zent(tst.zu(1)) = 'paid/all_inclusive/active'
                  AND (SELECT payment_failed_at FROM public.account_entitlements WHERE user_id = tst.zu(1)) IS NULL,
                  'Z7b the retried charge carrying ONLY the standing-order id ends the grace days');
 
   -- PayPlus re-creates the standing order (e.g. a card update): its first charge carries our attempt id + the NEW id
-  r := tst.zpay('so-second', 'payment_confirmed', a, 'rec-1b', '2029-10-23 10:00:00+00', 30600);
+  r := tst.zpay('so-second', 'payment_confirmed', a, 'rec-1b', '2023-10-23 10:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'activated' = 'true' AND (SELECT attempt_id FROM public.provider_standing_orders WHERE recurring_ref = 'rec-1b') = a,
                  'Z7c one attempt may gain a second standing order');
-  r := tst.zpay('so-second-renew', 'payment_confirmed', NULL, 'rec-1b', '2030-10-23 10:00:00+00', 30600);
+  r := tst.zpay('so-second-renew', 'payment_confirmed', NULL, 'rec-1b', '2024-10-23 10:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'outcome' = 'applied' AND (SELECT attempt_id FROM public.subscription_events WHERE provider_event_id = 'so-second-renew') = a,
                  'Z7d its renewals carrying only the new id reach the same attempt');
 
   other := tst.zattempt(tst.zu(2), 'payplus-so-user2-year');
-  r := tst.zpay('so-move', 'payment_confirmed', other, 'rec-1', '2028-10-23 10:00:00+00', 30600);
+  r := tst.zpay('so-move', 'payment_confirmed', other, 'rec-1', '2022-10-23 10:00:00+00', 30600);
   PERFORM tst.ok(r ->> 'code' = 'invalid_event' AND tst.zent(tst.zu(2)) = 'free_10/-/none'
                  AND (SELECT attempt_id FROM public.provider_standing_orders WHERE recurring_ref = 'rec-1') = a,
                  'Z8 a callback whose attempt id disagrees with the binding is refused; the binding never moves');
 
   -- a payment that activates nothing (wrong amount) binds nothing
   other := tst.zattempt(tst.zu(3), 'payplus-so-user3-year');
-  r := tst.zpay('so-low', 'payment_confirmed', other, 'rec-3', '2026-10-22 11:00:00+00', 100);
+  r := tst.zpay('so-low', 'payment_confirmed', other, 'rec-3', '2020-10-22 11:00:00+00', 100);
   PERFORM tst.ok(r ->> 'code' = 'amount_mismatch' AND NOT EXISTS (SELECT 1 FROM public.provider_standing_orders WHERE recurring_ref = 'rec-3'),
                  'Z9 a payment that opens nothing binds no standing order');
 END $$;
 
 -- billing switched off again: a bound standing order is refused before anything is written
 UPDATE public.billing_activation SET phase = 'off', reason = 'TEST device: back off' WHERE id;
-SELECT tst.ok((tst.zpay('so-after-off', 'payment_confirmed', NULL, 'rec-1', '2031-10-23 10:00:00+00', 30600) ->> 'code') = 'billing_off'
+SELECT tst.ok((tst.zpay('so-after-off', 'payment_confirmed', NULL, 'rec-1', '2025-10-23 10:00:00+00', 30600) ->> 'code') = 'billing_off'
               AND NOT EXISTS (SELECT 1 FROM public.subscription_events WHERE provider_event_id = 'so-after-off'),
               'Z9b billing off again: a bound standing order is refused, nothing written');
 

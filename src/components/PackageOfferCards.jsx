@@ -39,7 +39,9 @@ function PayAction({ purchase, period, withAddOn, isHebrew }) {
   );
 }
 
-function PriceBlock({ plan, isHebrew, purchase = null }) {
+// Owner console 2026-10-21 (typed L-22 approval): onAddOnChange tells the plans window the box state, so the local-currency estimate
+// below the cards follows the total that would be charged
+function PriceBlock({ plan, isHebrew, purchase = null, onAddOnChange = null }) {
   const uid = useId();
   const [period, setPeriod] = useState(plan.prices[0]?.period);
   const [withAddOn, setWithAddOn] = useState(false);
@@ -80,7 +82,7 @@ function PriceBlock({ plan, isHebrew, purchase = null }) {
       {plan.addOn && (
         <label className={`tl-plan-addon${withAddOn ? ' is-checked' : ''}`} data-addon-choice dir={isHebrew ? 'rtl' : 'ltr'}>
           {/* PRODUCT_TRUTH_DECORATIVE: adds the SMART PACK add-on to the offer card's shown price; no purchase, nothing stored */}
-          <input type="checkbox" checked={withAddOn} onChange={(e) => setWithAddOn(e.target.checked)} data-addon-toggle />
+          <input type="checkbox" checked={withAddOn} onChange={(e) => { setWithAddOn(e.target.checked); if (typeof onAddOnChange === 'function') onAddOnChange(e.target.checked); }} data-addon-toggle />
           <span className="tl-plan-addon-check" aria-hidden="true"><Check size={14} strokeWidth={3} /></span>
           <span className="tl-plan-addon-icon" aria-hidden="true"><BrainCircuit size={18} strokeWidth={2.1} /></span>
           <span className="tl-plan-addon-text"><strong>{plan.addOn.label}</strong> {isolateNumbers(plan.addOn.perPeriod[period]?.add || '')}</span>
@@ -92,7 +94,7 @@ function PriceBlock({ plan, isHebrew, purchase = null }) {
   );
 }
 
-export default function PackageOfferCards({ model, isHebrew, currentPlanId = null, only = null, testIdPrefix = 'plans-modal', purchase = null }) {
+export default function PackageOfferCards({ model, isHebrew, currentPlanId = null, only = null, testIdPrefix = 'plans-modal', purchase = null, onAddOnChange = null }) {
   const plans = only ? model.plans.filter((p) => only.includes(p.id)) : model.plans;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
@@ -103,7 +105,7 @@ export default function PackageOfferCards({ model, isHebrew, currentPlanId = nul
             style={{ border: `${isCurrent ? 2 : 1}px solid ${isCurrent ? '#0F6672' : '#e2e8f0'}`, borderRadius: '12px', padding: '14px', background: '#f8fafc', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.05rem' }}>{p.name}</h3>
             {p.tagline && <p style={{ margin: 0, color: '#475569', fontSize: '0.82rem' }}>{p.tagline}</p>}
-            <PriceBlock plan={p} isHebrew={isHebrew} purchase={purchase} />
+            <PriceBlock plan={p} isHebrew={isHebrew} purchase={purchase} onAddOnChange={onAddOnChange} />
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: '#334155' }}>
               {p.lines.map((line) => (
                 <li key={line} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}><Check size={14} color="#0F6672" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />{line}</li>
