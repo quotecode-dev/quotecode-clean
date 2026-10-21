@@ -4,6 +4,9 @@
 // with the owner's work untouched; the next attempted paid action opens it again. The counter comes from the server account summary
 // (consumed / reserved / remaining); prices come from the one price source. Checkout is not active, so the subscription choice is shown
 // as not available yet - nothing is purchased or charged, and nothing pretends it was.
+// Codex audit 2026-10-21 (Owner "כן, לתקן"): H07 - while paying is possible (onChoose, from packageCheckoutAvailable) the choice opens
+// the plans window instead of a dead end; M06 - the window opens at its top (focus on the top close button), so the title is never
+// scrolled out of view on a phone.
 import { useEffect, useRef } from 'react';
 import { X, Sparkles } from 'lucide-react';
 import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
@@ -41,14 +44,14 @@ const COPY = {
   },
 };
 
-export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, free10, limited = false }) {
+export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, free10, limited = false, onChoose = null }) {
   const ref = useRef(null);
-  const closeRef = useRef(null);
+  const topRef = useRef(null);
   useFocusTrap(ref, open);
   useEffect(() => {
     if (!open) return undefined;
     const prev = document.activeElement;
-    closeRef.current?.focus();
+    topRef.current?.focus();
     const onKey = (e) => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } };
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('keydown', onKey); if (prev && typeof prev.focus === 'function') prev.focus(); };
@@ -64,7 +67,7 @@ export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, f
         style={{ background: '#ffffff', borderRadius: 14, width: '100%', maxWidth: 560, maxHeight: '90vh', overflowY: 'auto', padding: 20, boxSizing: 'border-box', textAlign: 'start', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)' }}>
         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
           {/* PRODUCT_TRUTH_DECORATIVE: closes the upgrade window and returns to the permitted flow; changes no data */}
-          <button type="button" onClick={onClose} aria-label={t.closeAria} data-testid="free10-upgrade-x"
+          <button type="button" ref={topRef} onClick={onClose} aria-label={t.closeAria} data-testid="free10-upgrade-x"
             style={{ minWidth: 44, minHeight: 44, border: '1px solid #cbd5e1', borderRadius: 8, background: '#fff', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
             <X size={18} aria-hidden="true" />
           </button>
@@ -78,18 +81,26 @@ export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, f
         <PackageOfferCards model={m} isHebrew={isHebrew} only={['all_inclusive']} testIdPrefix="free10-upgrade" />
         <p data-price-note style={{ margin: '10px 0 0', color: '#334155', fontSize: '0.82rem', fontWeight: 600 }}>{m.priceNote}</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, alignItems: 'center' }}>
-          {/* PRODUCT_TRUTH_DECORATIVE: subscription choice shown as unavailable while checkout is not active; starts nothing */}
-          <button type="button" disabled aria-describedby="free10-upgrade-unavailable" data-testid="free10-upgrade-choose"
-            style={{ minHeight: 44, padding: '0 16px', borderRadius: 9, border: '1px solid #94a3b8', background: '#e2e8f0', color: '#475569', fontWeight: 700, cursor: 'not-allowed', fontFamily: 'inherit' }}>
-            {t.choose}
-          </button>
+          {typeof onChoose === 'function' ? (
+            // PRODUCT_TRUTH_DECORATIVE: opens the plans window (where the server payment page is chosen); starts no payment by itself
+            <button type="button" onClick={onChoose} data-testid="free10-upgrade-choose"
+              style={{ minHeight: 44, padding: '0 16px', borderRadius: 9, border: '1px solid #0F6672', background: '#ffffff', color: '#0F6672', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              {t.choose}
+            </button>
+          ) : (
+            // PRODUCT_TRUTH_DECORATIVE: subscription choice shown as unavailable while checkout is not active; starts nothing
+            <button type="button" disabled aria-describedby="free10-upgrade-unavailable" data-testid="free10-upgrade-choose"
+              style={{ minHeight: 44, padding: '0 16px', borderRadius: 9, border: '1px solid #94a3b8', background: '#e2e8f0', color: '#475569', fontWeight: 700, cursor: 'not-allowed', fontFamily: 'inherit' }}>
+              {t.choose}
+            </button>
+          )}
           {/* PRODUCT_TRUTH_DECORATIVE: closes the upgrade window and returns to the permitted flow; changes no data */}
-          <button type="button" ref={closeRef} onClick={onClose} data-testid="free10-upgrade-close"
+          <button type="button" onClick={onClose} data-testid="free10-upgrade-close"
             style={{ minHeight: 44, padding: '0 16px', borderRadius: 9, border: '1px solid #0F6672', background: '#0F6672', color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
             {t.close}
           </button>
         </div>
-        <p id="free10-upgrade-unavailable" data-testid="free10-upgrade-unavailable" style={{ margin: '8px 0 0', color: '#64748b', fontSize: '0.78rem' }}>{t.unavailable}</p>
+        {typeof onChoose !== 'function' && <p id="free10-upgrade-unavailable" data-testid="free10-upgrade-unavailable" style={{ margin: '8px 0 0', color: '#64748b', fontSize: '0.78rem' }}>{t.unavailable}</p>}
       </div>
     </div>
   );
