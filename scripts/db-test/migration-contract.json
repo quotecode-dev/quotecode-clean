@@ -371,13 +371,13 @@
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; DROP TRIGGER IF EXISTS + CREATE / CREATE OR REPLACE / ADD COLUMN IF NOT EXISTS (re-runnable); the Codex audit fixes of PayPlus stage 2 + the Owner grace-days answer (Owner 2026-10-21)"
     },
     "20261022200000_payplus_checkout_pull.sql": {
-      "sha256": "bf906d664a8c41cafdd3f333311540664f219bf3d49164eb2d9b06ef8064671d",
+      "sha256": "2e61388c8a70ca44dbf81cc7f401ad058079b6bb370dd0a20ba9bb57630e242d",
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / CREATE OR REPLACE (re-runnable); the server pull of a PayPlus payment page + the first charge never counted twice (Owner 2026-10-21)"
     },
     "20261022300000_billing_admin_stop_and_refund.sql": {
-      "sha256": "26bf525d38e71f9495d075a45f39743c4d992a4b6e2c2a458331d980d3b30a8b",
+      "sha256": "de03046e98fcd6f2d7d79e7b7673689988ec9bee3d872728bbd1fe6c3d507c3b",
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN / CREATE TABLE IF NOT EXISTS, DROP TRIGGER IF EXISTS + CREATE, CREATE OR REPLACE (re-runnable); the Owner's stop-renewal / early-end + refund tools, Terms section 6 (Owner 2026-10-21)"

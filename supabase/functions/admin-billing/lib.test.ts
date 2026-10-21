@@ -27,7 +27,7 @@ function deps(over: Partial<AdminBillingDeps> = {}, begun: Record<string, unknow
     recordRefund: vi.fn(async () => ({ ok: true })),
     unsettledRefund: vi.fn(async () => null as Record<string, unknown> | null),
     settleRefund: vi.fn(async () => ({ ok: true })),
-    payplus: { terminalUid: OWN_TERM, cancel: vi.fn(async () => { calls.push('cancel'); return true; }),
+    payplus: { terminalUid: OWN_TERM, cancel: vi.fn(async () => { calls.push('cancel'); return 'cancelled' as 'cancelled' | 'rejected' | 'unknown'; }),
       refund: vi.fn(async () => { calls.push('refund'); return { ok: true as const, refundRef: 'refund-1' }; }) },
     audit: vi.fn(async () => {}),
     ...over,
@@ -107,10 +107,25 @@ describe('admin-billing: stop, record, and only then refund the exact amount', (
   });
   it('PayPlus did not stop it: recorded as failed, no refund', async () => {
     const d = deps({}, {}, { applied: false, refundDue: false });
-    d.payplus!.cancel = vi.fn(async () => false);
+    d.payplus!.cancel = vi.fn(async () => 'rejected' as const);
     await adminBillingHandler(d, ADMIN, endEarly());
     expect(d.finish).toHaveBeenCalledWith(expect.objectContaining({ cancelStatus: 'failed' }));
     expect(d.payplus!.refund).not.toHaveBeenCalled();
+  });
+  it('Codex audit H-02: no answer from PayPlus - never recorded as failed; the action stays open for the Owner, no refund', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    for (const cancel of [vi.fn(async () => 'unknown' as const), vi.fn(async () => { throw new Error('timeout'); })]) {
+      const d = deps();
+      d.payplus!.cancel = cancel as never;
+      const r = await adminBillingHandler(d, ADMIN, endEarly());
+      expect(r).toEqual({ status: 503, body: { ok: false, code: 'cancel_outcome_unknown', actionId: ACTION } });
+      expect(d.finish).not.toHaveBeenCalled();
+      expect(d.refundSending).not.toHaveBeenCalled();
+      expect(d.payplus!.refund).not.toHaveBeenCalled();
+      expect(d.audit).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'error', afterState: expect.objectContaining({ cancelStatus: 'unknown' }) }));
+    }
+    expect(log.mock.calls.some((c) => String(c[0]).includes('cancel_outcome_unknown'))).toBe(true);
+    log.mockRestore();
   });
   it('a refused refund / a charge without its transaction id: recorded for a manual refund (incident)', async () => {
     const log = vi.spyOn(console, 'error').mockImplementation(() => {});

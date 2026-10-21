@@ -270,6 +270,8 @@ export function normalizeStandingOrder(d: unknown): PayPlusStandingOrder | null 
   };
 }
 
+export type CancelOutcome = 'cancelled' | 'rejected' | 'unknown';
+
 export function payplusStandingOrders(cfg: { apiBase: string; apiKey: string; secretKey: string; fetch: Fetch; timeoutMs?: number }) {
   if (!(Object.values(PAYPLUS_API_BASES) as string[]).includes(cfg.apiBase) || !cfg.apiKey || !cfg.secretKey || typeof cfg.fetch !== 'function') {
     throw new Error('payplusStandingOrders: invalid configuration');
@@ -302,10 +304,13 @@ export function payplusStandingOrders(cfg: { apiBase: string; apiKey: string; se
       });
       return ok(j);
     },
-    /** stop a standing order (no further charges) */
-    async cancel(recurringUid: string, terminalUid: string): Promise<boolean> {
-      if (!UUID.test(recurringUid) || !UUID.test(terminalUid)) return false;
-      return ok(await call('POST', `/RecurringPayments/DeleteRecurring/${recurringUid}`, { terminal_uid: terminalUid }));
+    /** stop a standing order (no further charges). Codex audit 2026-10-22 H-02: 'rejected' only when PayPlus answered and said no;
+     *  no answer / a timeout / an unreadable answer is 'unknown' (it may have stopped - never recorded as failed) */
+    async cancel(recurringUid: string, terminalUid: string): Promise<CancelOutcome> {
+      if (!UUID.test(recurringUid) || !UUID.test(terminalUid)) return 'rejected';
+      const j = await call('POST', `/RecurringPayments/DeleteRecurring/${recurringUid}`, { terminal_uid: terminalUid });
+      if (ok(j)) return 'cancelled';
+      return j && isObj(j.results) && typeof j.results.status === 'string' ? 'rejected' : 'unknown';
     },
     /** 20261022300000 (Terms section 6, early end): refund part of a charge (docs.payplus.co.il, Refund By Transaction UID:
      *  transaction_uid + amount, never more than the charge). Refunded only when PayPlus answers success with status 000; the refund's

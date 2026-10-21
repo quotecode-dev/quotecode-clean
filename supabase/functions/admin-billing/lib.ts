@@ -32,7 +32,8 @@ export interface AdminBillingDeps {
   /** null = the PayPlus secrets are not set (nothing can be stopped) */
   payplus: null | {
     terminalUid: string;
-    cancel(recurringUid: string, terminalUid: string): Promise<boolean>;
+    /** 'unknown' = no readable answer (it may have stopped): the action stays open for the Owner (Codex audit 2026-10-22 H-02) */
+    cancel(recurringUid: string, terminalUid: string): Promise<'cancelled' | 'rejected' | 'unknown'>;
     refund(transactionUid: string, amountMinor: number): Promise<{ ok: true; refundRef: string } | { ok: false }>;
   };
   audit(a: { actorUserId: string; targetUserId: string; action: string; reason: string | null; beforeState?: unknown; afterState?: unknown;
@@ -178,7 +179,16 @@ export async function adminBillingHandler(deps: AdminBillingDeps, callerId: stri
     cancelStatus = 'cancelled';
   } else if (typeof begun.recurringRef === 'string') {
     const terminal = typeof begun.terminalRef === 'string' && UUID.test(begun.terminalRef) ? begun.terminalRef : deps.payplus.terminalUid;
-    cancelStatus = (await deps.payplus.cancel(begun.recurringRef, terminal).catch(() => false)) ? 'cancelled' : 'failed';
+    const outcome = await deps.payplus.cancel(begun.recurringRef, terminal).catch(() => 'unknown' as const);
+    if (outcome !== 'cancelled' && outcome !== 'rejected') {
+      // Codex audit 2026-10-22 H-02: a lost answer is never recorded as 'failed' - the action stays OPEN until the Owner checks the
+      // PayPlus panel and resolves it (stopped there or not)
+      await deps.audit({ actorUserId: callerId, targetUserId: target, action: proofAction, reason,
+        afterState: { actionId: begun.actionId, kind, cancelStatus: 'unknown' }, outcome: 'error' });
+      console.error(JSON.stringify({ fn: 'admin-billing', incident: 'cancel_outcome_unknown' }));
+      return err(503, 'cancel_outcome_unknown', { actionId: begun.actionId });
+    }
+    cancelStatus = outcome === 'cancelled' ? 'cancelled' : 'failed';
   }
   // 2. record it; 3. refund only if SQL now says it is due
   const s = await settle(deps, begun.actionId, cancelStatus, false);

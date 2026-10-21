@@ -133,8 +133,9 @@ BEGIN
   PERFORM tst.ok(tst.yintent(tst.yu(1), 'month', 'payplus-p1-user1-month') ->> 'code' = 'already_subscribed', 'Y12 no second payment page while a package is active');
   PERFORM tst.ok((SELECT state FROM public.checkout_attempts WHERE attempt_id = old) = 'expired', 'Y13 the activation expired the older unpaid link');
   r := tst.ypay('pp-evt-old', 'payment_confirmed', old, '2026-10-19 10:00:00+00', 3000);
-  PERFORM tst.ok(r ->> 'outcome' = 'rejected' AND r ->> 'activated' IS NULL AND tst.yent(tst.yu(1)) = 'paid/-/all_inclusive/year/active/v2',
-                 'Y13b paying the old link later is rejected (visible), never a second subscription');
+  PERFORM tst.ok(r ->> 'outcome' = 'rejected' AND r ->> 'activated' = 'false' AND r ->> 'code' = 'attempt_not_payable'
+                 AND tst.yent(tst.yu(1)) = 'paid/-/all_inclusive/year/active/v2',
+                 'Y13b paying the old link later is rejected (visible, says why - Codex audit H-04), never a second subscription');
   a := tst.yattempt(tst.yu(1), 'il_all_inclusive_month_p1', 'payplus-p1-user1-month-direct');
   r := tst.ypay('pp-evt-other', 'payment_confirmed', a, '2026-10-19 11:00:00+00', 3000);
   PERFORM tst.ok(r ->> 'code' = 'another_package_active' AND tst.yent(tst.yu(1)) = 'paid/-/all_inclusive/year/active/v2'

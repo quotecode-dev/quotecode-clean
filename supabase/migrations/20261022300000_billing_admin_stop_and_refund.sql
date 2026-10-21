@@ -21,9 +21,14 @@
 --      change only when PayPlus stopped the standing order AND the package is still the one computed; ONLY THEN is a refund due (the
 --      refund is never sent before the end is recorded, so it can never be sent twice); a failed / impossible refund is recorded for a
 --      manual refund in the PayPlus panel.
---   Review 2026-10-21 (scope-security): the refund goes to the charge that paid the current period (account_entitlements.paid_charge_ref,
---   set by the recorder; a period opened by a pull: its first charge's callback) and the days count from the real start of the period
---   (paid_period_start); a stopped account's limited state carries its end in graceEndsAt (the summary contract requires a time).
+--   Review 2026-10-21 (scope-security): the refund goes to the charge that paid the current period (billing_paid_periods, written by the
+--   recorder; a period opened by a pull: its first charge's callback) and the days count from the real start of the period; a stopped
+--   account's limited state carries its end in graceEndsAt (the summary contract requires a time).
+--   Codex audit 2026-10-22 (docs/CODEX_PAYMENTS_PREP_AUDIT_2026-10-22.md): H-03 every paid period is its own row with the charge that paid
+--   it (billing_paid_periods) - the refund is computed on the ACTIVE period only (Owner: the refund covers the current period), and an
+--   early end is refused while a later period is already paid (future_period_paid - refund that charge in the PayPlus panel first);
+--   H-04 a verified payment of an attempt that is no longer payable (an expired / failed link) is reported (attempt_not_payable);
+--   M-02 no cancellation fee in USD until an approved rule exists (the 100 ILS cap has no USD equivalent).
 --   Re-review: a refund is marked 'sending' BEFORE PayPlus is called, so a refund owed is never lost (crash / lost answer) - the Owner
 --   sees it (billing_admin_unsettled_refund) and settles it after checking the PayPlus panel; an interrupted action can be resolved only
 --   5 minutes after it began (never racing the request still waiting for PayPlus), and an early end resolved after its own midnight
@@ -36,14 +41,33 @@
 --   account_billing_state; DROP FUNCTION public.billing_admin_preview(uuid, boolean), public.billing_admin_begin(uuid, uuid, text,
 --   boolean, integer, text), public.billing_admin_finish(uuid, text, boolean), public.billing_admin_record_refund(uuid, text, text,
 --   integer), public.billing_admin_refund_sending(uuid), public.billing_admin_settle_refund(uuid, uuid), public.billing_admin_unsettled_refund(uuid),
---   public.paid_stopped_ends_at(uuid), public.billing_admin_open_action(uuid); the tables and the columns may stay (empty / NULL).
+--   public.paid_stopped_ends_at(uuid), public.billing_admin_open_action(uuid); the tables and the column may stay (empty / NULL).
 -- ============================================================================================================================
 
 -- 1. the stop -------------------------------------------------------------------------------------------------------------------
 ALTER TABLE public.account_entitlements ADD COLUMN IF NOT EXISTS renewal_stopped_at timestamptz NULL;
--- the charge that paid the current period (its provider transaction id - the one an early end refunds) and the start of that period
-ALTER TABLE public.account_entitlements ADD COLUMN IF NOT EXISTS paid_charge_ref text NULL;
-ALTER TABLE public.account_entitlements ADD COLUMN IF NOT EXISTS paid_period_start timestamptz NULL;
+-- every paid period with the charge that paid it (Codex audit 2026-10-22 H-03): an early end refunds the ACTIVE period's own charge,
+-- never a renewal paid in advance. Append-only; written by the recorder on every extension.
+CREATE TABLE IF NOT EXISTS public.billing_paid_periods (
+  period_id    bigint      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+  user_id      uuid        NOT NULL,
+  attempt_id   uuid        NOT NULL REFERENCES public.checkout_attempts (attempt_id),
+  event_id     text        NOT NULL CHECK (length(event_id) BETWEEN 1 AND 200),
+  charge_ref   text        NULL CHECK (charge_ref IS NULL OR length(charge_ref) BETWEEN 1 AND 200),
+  period_start timestamptz NOT NULL,
+  period_end   timestamptz NOT NULL,
+  created_at   timestamptz NOT NULL DEFAULT now(),
+  CHECK (period_end > period_start)
+);
+CREATE INDEX IF NOT EXISTS billing_paid_periods_user ON public.billing_paid_periods (user_id, period_end DESC);
+ALTER TABLE public.billing_paid_periods ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON public.billing_paid_periods FROM PUBLIC, anon, authenticated, service_role;
+DROP TRIGGER IF EXISTS billing_paid_periods_append_only ON public.billing_paid_periods;
+CREATE TRIGGER billing_paid_periods_append_only BEFORE UPDATE OR DELETE ON public.billing_paid_periods
+  FOR EACH ROW EXECUTE FUNCTION public.append_only_guard();
+DROP TRIGGER IF EXISTS billing_paid_periods_no_truncate ON public.billing_paid_periods;
+CREATE TRIGGER billing_paid_periods_no_truncate BEFORE TRUNCATE ON public.billing_paid_periods
+  FOR EACH STATEMENT EXECUTE FUNCTION public.append_only_guard();
 
 -- 2. grace / limited (body 20261022100000 + the marked change) -----------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.paid_grace_ends_at(p_user_id uuid)
@@ -205,14 +229,14 @@ CREATE TRIGGER billing_admin_refunds_no_truncate BEFORE TRUNCATE ON public.billi
 
 -- 4. preview / begin / finish -------------------------------------------------------------------------------------------------
 -- The facts and the amounts of the account's live package. Days are Israel calendar days; the early end is the end of today (midnight,
--- Israel). refund = round(paid x unused days / days in the period) - fee; fee = 5% of the paid amount, at most 100 ILS (ILS; the USD cap
--- is the Owner's open decision D-3 - at the current prices 5% stays far below it), 0 when waived.
+-- Israel). refund = round(paid x unused days / days of the ACTIVE period) - fee; fee = 5% of the paid amount, at most 100 ILS, ILS only
+-- (Codex audit M-02: no USD fee until an approved rule), 0 when waived.
 CREATE OR REPLACE FUNCTION public.billing_admin_preview(p_user_id uuid, p_waive_fee boolean DEFAULT false)
 RETURNS jsonb LANGUAGE plpgsql STABLE SECURITY DEFINER SET search_path = pg_catalog, public AS $$
 DECLARE
   v_phase text; v_ent public.account_entitlements; v_att public.checkout_attempts; v_period text;
   v_rec public.provider_standing_orders; v_charge text; v_start timestamptz; v_end timestamptz;
-  v_days int; v_unused int; v_prorated int; v_fee int; v_refund int;
+  v_days int; v_unused int; v_prorated int; v_fee int; v_refund int; v_pp public.billing_paid_periods; v_pend timestamptz; v_future boolean;
 BEGIN
   SELECT phase INTO v_phase FROM public.billing_activation WHERE id;
   IF v_phase IS DISTINCT FROM 'prepared' AND v_phase IS DISTINCT FROM 'enforced' THEN
@@ -231,9 +255,15 @@ BEGIN
   v_period := v_ent.package_period;
   -- the newest standing order of the live attempt, and the newest real charge of it (a pulled first charge has no transaction id)
   SELECT * INTO v_rec FROM public.provider_standing_orders s WHERE s.attempt_id = v_att.attempt_id ORDER BY s.created_at DESC LIMIT 1;
-  -- the charge that paid the current period; a period opened by a pull: its first charge's callback (stale, within 7 days of the pull)
-  v_charge := v_ent.paid_charge_ref;
-  IF v_charge IS NULL THEN
+  -- the ACTIVE paid period (Codex audit H-03) and its own charge; a later period already paid = hasFuturePeriod
+  SELECT * INTO v_pp FROM public.billing_paid_periods p
+   WHERE p.user_id = p_user_id AND p.attempt_id = v_att.attempt_id AND p.period_start <= now() AND p.period_end > now()
+   ORDER BY p.period_end DESC, p.period_id DESC LIMIT 1;
+  v_pend := coalesce(v_pp.period_end, v_ent.paid_through);
+  v_future := v_ent.paid_through > v_pend;
+  v_charge := v_pp.charge_ref;
+  IF v_charge IS NULL AND v_pp.event_id LIKE 'pull:%' THEN
+    -- a period opened by a pull: its first charge's callback (stale, within 7 days of the pull)
     SELECT e.provider_event_id INTO v_charge
       FROM public.subscription_events e
       JOIN public.subscription_events p ON p.provider = 'payplus' AND p.provider_event_id = 'pull:' || v_att.attempt_id::text AND p.outcome = 'applied'
@@ -241,20 +271,22 @@ BEGIN
        AND e.provider_event_id NOT LIKE 'pull:%' AND e.provider_event_time < p.provider_event_time + interval '7 days'
      ORDER BY e.provider_event_time, e.event_id LIMIT 1;
   END IF;
-  -- the real start of the period (a clamped month end never changes the day count); derived only for a row from before this column
-  v_start := coalesce(v_ent.paid_period_start,
-    ((v_ent.paid_through AT TIME ZONE 'Asia/Jerusalem') - CASE v_period WHEN 'year' THEN interval '1 year' ELSE interval '1 month' END)
+  -- the real start of the period (a clamped month end never changes the day count); derived only without a period row
+  v_start := coalesce(v_pp.period_start,
+    ((v_pend AT TIME ZONE 'Asia/Jerusalem') - CASE v_period WHEN 'year' THEN interval '1 year' ELSE interval '1 month' END)
       AT TIME ZONE 'Asia/Jerusalem');
   v_end := (date_trunc('day', now() AT TIME ZONE 'Asia/Jerusalem') + interval '1 day') AT TIME ZONE 'Asia/Jerusalem';
-  v_days := greatest(1, (v_ent.paid_through AT TIME ZONE 'Asia/Jerusalem')::date - (v_start AT TIME ZONE 'Asia/Jerusalem')::date);
-  v_unused := greatest(0, (v_ent.paid_through AT TIME ZONE 'Asia/Jerusalem')::date - (v_end AT TIME ZONE 'Asia/Jerusalem')::date);
+  v_days := greatest(1, (v_pend AT TIME ZONE 'Asia/Jerusalem')::date - (v_start AT TIME ZONE 'Asia/Jerusalem')::date);
+  v_unused := greatest(0, (v_pend AT TIME ZONE 'Asia/Jerusalem')::date - (v_end AT TIME ZONE 'Asia/Jerusalem')::date);
   v_unused := least(v_unused, v_days);
   v_prorated := round(v_att.amount_minor::numeric * v_unused / v_days)::int;
   v_fee := CASE WHEN p_waive_fee OR v_prorated = 0 THEN 0
-                ELSE least(round(v_att.amount_minor * 0.05)::int, CASE v_att.currency WHEN 'ILS' THEN 10000 END) END;
+                WHEN v_att.currency = 'ILS' THEN least(round(v_att.amount_minor * 0.05)::int, 10000)
+                ELSE 0 END; -- Codex audit M-02: no USD fee until an approved rule
   v_refund := greatest(0, v_prorated - v_fee);
   RETURN jsonb_build_object('ok', true, 'attemptId', v_att.attempt_id, 'currency', v_att.currency, 'paidMinor', v_att.amount_minor,
-    'period', v_period, 'periodStart', v_start, 'paidThrough', v_ent.paid_through, 'effectiveEnd', v_end,
+    'period', v_period, 'periodStart', v_start, 'periodEnd', v_pend, 'paidThrough', v_ent.paid_through, 'effectiveEnd', v_end,
+    'hasFuturePeriod', v_future,
     'daysInPeriod', v_days, 'unusedDays', v_unused, 'proratedMinor', v_prorated, 'feeMinor', v_fee, 'feeWaived', p_waive_fee,
     'refundMinor', v_refund, 'renewalStopped', v_ent.renewal_stopped_at IS NOT NULL,
     'hasStandingOrder', v_rec.recurring_ref IS NOT NULL, 'hasChargeRef', v_charge IS NOT NULL,
@@ -280,6 +312,10 @@ BEGIN
   IF (v_p ->> 'ok') IS DISTINCT FROM 'true' THEN RETURN v_p; END IF;
   -- a stopped renewal may still be ended early (its standing order is already stopped - PayPlus is not asked again); never twice
   IF (v_p ->> 'renewalStopped')::boolean AND p_kind = 'stop_renewal' THEN RETURN jsonb_build_object('ok', false, 'code', 'already_stopped'); END IF;
+  -- Codex audit H-03: a later period is already paid - its charge is refunded in the PayPlus panel first (never guessed here)
+  IF p_kind = 'end_early' AND (v_p ->> 'hasFuturePeriod')::boolean THEN
+    RETURN jsonb_build_object('ok', false, 'code', 'future_period_paid');
+  END IF;
   IF EXISTS (SELECT 1 FROM public.billing_admin_actions a JOIN public.billing_admin_action_results r ON r.action_id = a.action_id
               WHERE a.attempt_id = (v_p ->> 'attemptId')::uuid AND a.kind = 'end_early' AND r.applied) THEN
     RETURN jsonb_build_object('ok', false, 'code', 'already_ended');
@@ -450,7 +486,7 @@ CREATE OR REPLACE FUNCTION public.record_verified_subscription_event_and_activat
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, public AS $$
 DECLARE
   v_r jsonb; v_phase text; v_attempt public.checkout_attempts; v_price public.price_versions; v_ent public.account_entitlements;
-  v_user uuid; v_first boolean;
+  v_user uuid; v_first boolean; v_pstart timestamptz;
 BEGIN
   -- one account at a time (two links of one user paid at once never deadlock: attempt -> entitlement -> other attempts)
   SELECT c.user_id, c.state = 'pending' INTO v_user, v_first FROM public.checkout_attempts c WHERE c.attempt_id = p_attempt_id;
@@ -483,6 +519,12 @@ BEGIN
   -- 20261021200000: a verified FAILED charge of the live package (PayPlus retries it daily) starts the 3 grace days once
   IF (v_r ->> 'ok') = 'true' AND (v_r ->> 'duplicate') IS DISTINCT FROM 'true' AND p_event_type = 'payment_failed' THEN
     RETURN v_r || public.billing_record_failed_charge(p_attempt_id, p_provider_event_time);
+  END IF;
+  -- Codex audit H-04: a verified payment of an attempt that is no longer payable (an expired / failed link paid anyway) is reported -
+  -- recorded, never a second package; the provider event and its standing order stay traceable for a cancellation / refund
+  IF (v_r ->> 'ok') = 'true' AND (v_r ->> 'duplicate') IS DISTINCT FROM 'true' AND p_event_type = 'payment_confirmed'
+     AND (v_r ->> 'outcome') = 'rejected' THEN
+    RETURN v_r || jsonb_build_object('activated', false, 'code', 'attempt_not_payable');
   END IF;
   IF (v_r ->> 'ok') IS DISTINCT FROM 'true' OR (v_r ->> 'duplicate') = 'true' OR p_event_type IS DISTINCT FROM 'payment_confirmed'
      OR (v_r ->> 'outcome') IS DISTINCT FROM 'applied' THEN
@@ -547,17 +589,16 @@ BEGIN
     END IF;
     -- this active package already (the row just created above, or a renewal charge): the package stays; 20261021200000: the paid
     -- period runs one more period from its end (never shortened; a late charge runs from the charge)
+    v_pstart := greatest(coalesce(v_ent.paid_through, p_provider_event_time), p_provider_event_time);
     UPDATE public.account_entitlements
        SET paid_through = public.billing_period_end(greatest(coalesce(paid_through, p_provider_event_time), p_provider_event_time), v_price.billing_period),
            payment_failed_at = NULL, updated_at = now(),
            live_attempt_id = CASE WHEN v_first THEN p_attempt_id ELSE coalesce(live_attempt_id, p_attempt_id) END,
-           renewal_stopped_at = CASE WHEN v_first THEN NULL ELSE renewal_stopped_at END, -- 20261022300000: a new purchase clears the stop
-           -- 20261022300000: the charge that paid this period (a pulled charge has no transaction id) and the period's real start
-           paid_charge_ref = CASE WHEN p_provider_event_id LIKE 'pull:%' THEN NULL ELSE p_provider_event_id END,
-           paid_period_start = greatest(coalesce(paid_through, p_provider_event_time), p_provider_event_time)
+           renewal_stopped_at = CASE WHEN v_first THEN NULL ELSE renewal_stopped_at END -- 20261022300000: a new purchase clears the stop
      WHERE user_id = v_attempt.user_id
     RETURNING * INTO v_ent;
   ELSE
+    v_pstart := greatest(coalesce(v_ent.paid_through, p_provider_event_time), p_provider_event_time);
     UPDATE public.account_entitlements
        SET account_mode = 'paid', style_plan_id = NULL, package_id = 'all_inclusive', package_period = v_price.billing_period,
            subscription_status = 'active', entitlement_version = entitlement_version + 1, updated_at = now(),
@@ -569,13 +610,14 @@ BEGIN
            -- attempt paid after a failed charge carries its own choice
            smart_pack_line = CASE WHEN subscription_status = 'past_due' AND NOT v_first THEN smart_pack_line ELSE (v_attempt.add_on_price_id IS NOT NULL) END,
            live_attempt_id = p_attempt_id,
-           renewal_stopped_at = NULL, -- 20261022300000: a new purchase clears the stop
-           -- 20261022300000: the charge that paid this period (a pulled charge has no transaction id) and the period's real start
-           paid_charge_ref = CASE WHEN p_provider_event_id LIKE 'pull:%' THEN NULL ELSE p_provider_event_id END,
-           paid_period_start = greatest(coalesce(paid_through, p_provider_event_time), p_provider_event_time)
+           renewal_stopped_at = NULL -- 20261022300000: a new purchase clears the stop
      WHERE user_id = v_attempt.user_id
     RETURNING * INTO v_ent;
   END IF;
+  -- 20261022300000 (Codex audit H-03): the period just paid, with its own charge (a pulled charge has no transaction id yet)
+  INSERT INTO public.billing_paid_periods (user_id, attempt_id, event_id, charge_ref, period_start, period_end)
+  VALUES (v_attempt.user_id, p_attempt_id, p_provider_event_id, CASE WHEN p_provider_event_id LIKE 'pull:%' THEN NULL ELSE p_provider_event_id END,
+          v_pstart, v_ent.paid_through);
   -- one live package per account: every other still-unpaid payment link of this account expires (a later payment of one is
   -- 'rejected' by the recorder - visible, never a silent second subscription)
   UPDATE public.checkout_attempts SET state = 'expired'

@@ -292,11 +292,18 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
   if (!hosted || !httpsPage(hosted.redirectUrl)) return err(503, 'checkout_unavailable');
   // 20261022200000: with the provider's page request id the page and the id are kept together (the server can pull the result later)
   const requestRef = typeof hosted.pageRequestUid === 'string' && UUID.test(hosted.pageRequestUid) ? hosted.pageRequestUid : null;
-  const stored = requestRef && deps.sql.recordCheckoutPageAndRequest
+  let stored = requestRef && deps.sql.recordCheckoutPageAndRequest
     ? await deps.sql.recordCheckoutPageAndRequest(r.attemptId, userId, hosted.redirectUrl, requestRef).catch(() => null)
     : deps.sql.recordCheckoutPage ? await deps.sql.recordCheckoutPage(r.attemptId, userId, hosted.redirectUrl).catch(() => null) : null;
+  // Codex audit 2026-10-22 H-01: a payment link only after the server KEPT it (with its request id - the pull needs it). A lost answer
+  // is read back once; still nothing kept = no link (a page paid but never kept could not be pulled or matched).
+  if (!httpsPage(stored) && deps.sql.checkoutPage) stored = await deps.sql.checkoutPage(r.attemptId, userId).catch(() => null);
+  if (!httpsPage(stored)) {
+    console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'checkout_page_not_stored' }));
+    return err(503, 'checkout_unavailable');
+  }
   // A redirect URL is NOT an entitlement: the success page shows "processing" until a verified provider event.
-  return answer(httpsPage(stored) ? stored : hosted.redirectUrl);
+  return answer(stored);
 }
 
 // ------------------------------------------------------------------------------------------------ verified webhook

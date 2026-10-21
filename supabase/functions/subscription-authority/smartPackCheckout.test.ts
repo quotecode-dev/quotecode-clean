@@ -19,6 +19,7 @@ const sqlFor = (addOnPriceId: string | null, amountMinor: number) => ({
   createCheckoutIntent: vi.fn(),
   createPackageCheckoutIntent: vi.fn(async () => ({ ok: true, attemptId: ATT, market: 'IL', currency: 'ILS', amountMinor, state: 'pending', addOnPriceId })),
   priceCatalog: vi.fn(async () => IL), recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+  recordCheckoutPage: vi.fn(async (_a: string, _u: string, url: string) => url),
 }) as never as BillingSql & Record<string, ReturnType<typeof vi.fn>>;
 
 describe('SMART PACK on the package payment (server catalog)', () => {

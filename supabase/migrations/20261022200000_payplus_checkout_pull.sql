@@ -198,8 +198,10 @@ BEGIN
   END IF;
   v_r := public.record_verified_subscription_event_and_activate(p_provider, p_provider_event_id, p_event_type, v_attempt,
            p_provider_event_time, p_payload_sha256, p_paid_amount_minor, p_paid_currency);
-  -- bind once: an activating payment of the attempt (first or renewal) whose signed callback carried our attempt id AND the standing-order id
-  IF (v_r ->> 'activated') = 'true' AND p_attempt_id IS NOT NULL AND p_recurring_ref IS NOT NULL AND v_bound IS NULL THEN
+  -- bind once: an activating payment of the attempt (first or renewal) whose signed callback carried our attempt id AND the standing-order id;
+  -- Codex audit 2026-10-22 H-04: also a payment of an attempt that is no longer payable - its standing order stays traceable (a later
+  -- charge of it reaches the same attempt and is reported again, never a package)
+  IF ((v_r ->> 'activated') = 'true' OR (v_r ->> 'code') = 'attempt_not_payable') AND p_attempt_id IS NOT NULL AND p_recurring_ref IS NOT NULL AND v_bound IS NULL THEN
     INSERT INTO public.provider_standing_orders (provider, recurring_ref, attempt_id, terminal_ref, first_event_id)
     VALUES (p_provider, p_recurring_ref, p_attempt_id, p_terminal_ref, p_provider_event_id)
     ON CONFLICT DO NOTHING;

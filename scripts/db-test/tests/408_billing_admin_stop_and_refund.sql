@@ -101,14 +101,20 @@ BEGIN
     a := tst.bintent(tst.bu(n), format('billing-admin-408-user-%s', n));
     PERFORM tst.bpay(format('tx-408-%s', n), a, CASE WHEN n = 5 THEN NULL ELSE format('rec-408-%s', n) END, now() - interval '5 days');
   END LOOP;
-  PERFORM tst.ok((SELECT paid_charge_ref = 'tx-408-1' AND paid_period_start = now() - interval '5 days' FROM public.account_entitlements WHERE user_id = tst.bu(1)),
-    'B1a the recorder remembers the charge that paid the period and the period''s real start');
-  -- a known paid period: it ends 10 Israel days after the end of today (and started one month before that)
-  PERFORM tst.bdev(format('UPDATE public.account_entitlements SET paid_through = ((date_trunc(%L, now() AT TIME ZONE %L) + interval %L + interval %L) AT TIME ZONE %L),
-                                  paid_period_start = ((date_trunc(%L, now() AT TIME ZONE %L) + interval %L + interval %L - interval %L) AT TIME ZONE %L)
-                            WHERE user_id IN (%L, %L, %L, %L, %L)',
-    'day', 'Asia/Jerusalem', '11 days', '9 hours', 'Asia/Jerusalem', 'day', 'Asia/Jerusalem', '11 days', '9 hours', '1 month', 'Asia/Jerusalem',
-    tst.bu(1), tst.bu(2), tst.bu(3), tst.bu(4), tst.bu(5)));
+  PERFORM tst.ok((SELECT count(*) = 1 AND min(charge_ref) = 'tx-408-1' AND min(period_start) = now() - interval '5 days'
+                    AND min(period_end) = public.billing_period_end(now() - interval '5 days', 'month')
+                   FROM public.billing_paid_periods WHERE user_id = tst.bu(1)),
+    'B1a the recorder writes the paid period with the charge that paid it and its real start / end (Codex audit H-03)');
+  -- a known paid period (the DB owner's device): it ends 10 Israel days after the end of today and started one month before that
+  PERFORM tst.bdev(format('DELETE FROM public.billing_paid_periods WHERE user_id IN (%L, %L, %L, %L, %L)', tst.bu(1), tst.bu(2), tst.bu(3), tst.bu(4), tst.bu(5)));
+  FOR n IN 1..5 LOOP
+    PERFORM tst.bdev(format('UPDATE public.account_entitlements SET paid_through = ((date_trunc(%L, now() AT TIME ZONE %L) + interval %L + interval %L) AT TIME ZONE %L) WHERE user_id = %L',
+      'day', 'Asia/Jerusalem', '11 days', '9 hours', 'Asia/Jerusalem', tst.bu(n)));
+    INSERT INTO public.billing_paid_periods (user_id, attempt_id, event_id, charge_ref, period_start, period_end)
+    SELECT e.user_id, e.live_attempt_id, format('tx-408-%s', n), format('tx-408-%s', n),
+           ((e.paid_through AT TIME ZONE 'Asia/Jerusalem') - interval '1 month') AT TIME ZONE 'Asia/Jerusalem', e.paid_through
+      FROM public.account_entitlements e WHERE e.user_id = tst.bu(n);
+  END LOOP;
 END $$;
 
 -- ---------------------------------------------------------------------------------------------------------------- preview
@@ -278,14 +284,69 @@ BEGIN
   a := tst.bintent(tst.bu(2), 'billing-admin-408-user-2-again');
   r := tst.bpay('tx-408-2-again', a, 'rec-408-2b', now() - interval '1 minute');
   PERFORM tst.ok(r ->> 'activated' = 'true' AND NOT public.paid_account_limited(tst.bu(2)) AND NOT tst.bstopped(tst.bu(2))
-                 AND (SELECT live_attempt_id = a AND paid_charge_ref = 'tx-408-2-again' FROM public.account_entitlements WHERE user_id = tst.bu(2)),
+                 AND (SELECT live_attempt_id = a FROM public.account_entitlements WHERE user_id = tst.bu(2))
+                 AND (SELECT charge_ref FROM public.billing_paid_periods WHERE user_id = tst.bu(2) ORDER BY period_id DESC LIMIT 1) = 'tx-408-2-again',
     'B13 a new purchase after the end opens a new package, clears the stop and is the new charge to refund');
 END $$;
 
--- the days count from the real start of the period: paid 31 Jan, a month later = 28 Feb (clamped) -> 28 days, never 31
-SELECT tst.bdev(format('UPDATE public.account_entitlements SET paid_period_start = %L::timestamptz, paid_through = %L::timestamptz WHERE user_id = %L',
-  '2027-01-31 10:00:00+02', '2027-02-28 10:00:00+02', tst.bu(5)));
-SELECT tst.ok((tst.bprev(tst.bu(5)) ->> 'daysInPeriod')::int = 28, 'B14 a clamped month end counts the real days of the period (28)');
+-- the days count from the real period row (a clamped month end, e.g. 31 Jan -> 28 Feb, is 28 days - never derived back from its end)
+SELECT tst.bdev(format('DELETE FROM public.billing_paid_periods WHERE user_id = %L', tst.bu(5)));
+SELECT tst.bdev(format('UPDATE public.account_entitlements SET paid_through = now() + interval %L WHERE user_id = %L', '26 days', tst.bu(5)));
+INSERT INTO public.billing_paid_periods (user_id, attempt_id, event_id, charge_ref, period_start, period_end)
+SELECT e.user_id, e.live_attempt_id, 'tx-408-5', 'tx-408-5', now() - interval '2 days', now() + interval '26 days' FROM public.account_entitlements e WHERE e.user_id = tst.bu(5);
+SELECT tst.ok((tst.bprev(tst.bu(5)) ->> 'daysInPeriod')::int = 28, 'B14 the days come from the real period row (28)');
+
+-- Codex audit 2026-10-22 H-03: a renewal paid in advance (user 7) - the refund is on the ACTIVE period and its own charge; an early end
+-- is refused while the later period is paid
+DO $$
+DECLARE a uuid; p jsonb;
+BEGIN
+  a := tst.bintent(tst.bu(7), 'billing-admin-408-user-7');
+  PERFORM tst.bpay('tx-408-7-current', a, 'rec-408-7', now() - interval '15 days');
+  PERFORM tst.bpay('tx-408-7-future', NULL, 'rec-408-7', now() - interval '1 hour');
+  p := tst.bprev(tst.bu(7));
+  PERFORM tst.ok(p ->> 'chargeRef' = 'tx-408-7-current' AND (p ->> 'hasFuturePeriod')::boolean
+                 AND (p ->> 'periodEnd')::timestamptz = public.billing_period_end(now() - interval '15 days', 'month')
+                 AND (p ->> 'paidThrough')::timestamptz > (p ->> 'periodEnd')::timestamptz,
+    'B17 an early renewal: the preview keeps the active period and its own charge, and shows the later paid period');
+  PERFORM tst.ok(tst.bbegin(tst.bu(9), tst.bu(7), 'end_early', false, (p ->> 'refundMinor')::int) ->> 'code' = 'future_period_paid',
+    'B17b an early end is refused while a later period is already paid (refund that charge in the PayPlus panel first)');
+  PERFORM tst.ok(tst.bbegin(tst.bu(9), tst.bu(7), 'stop_renewal', false, 0) ->> 'ok' = 'true', 'B17c stopping the renewal is still allowed');
+END $$;
+
+-- Codex audit H-04: two links of one account; A paid opens the package and expires B locally; B paid anyway is reported, and its
+-- standing order is bound to B (traceable for the cancellation)
+DO $$
+DECLARE a uuid; b uuid; r jsonb;
+BEGIN
+  a := tst.bintent(tst.bu(6), 'billing-admin-408-user-6-a');
+  b := tst.bintent(tst.bu(6), 'billing-admin-408-user-6-b');
+  r := tst.bpay('tx-408-6-a', a, 'rec-408-6a', now() - interval '2 hours'); -- before the read (AND has no evaluation order)
+  PERFORM tst.ok(r ->> 'activated' = 'true' AND (SELECT state FROM public.checkout_attempts WHERE attempt_id = b) = 'expired', 'B18 A paid; B expired locally');
+  r := tst.bpay('tx-408-6-b', b, 'rec-408-6b', now() - interval '1 hour');
+  PERFORM tst.ok(r ->> 'activated' = 'false' AND r ->> 'code' = 'attempt_not_payable' AND r ->> 'outcome' = 'rejected'
+                 AND (SELECT attempt_id = b FROM public.provider_standing_orders WHERE recurring_ref = 'rec-408-6b'),
+    'B18b the payment of the expired link is reported (attempt_not_payable, never a second package) and its standing order is traceable');
+END $$;
+
+-- Codex audit M-02: no cancellation fee in USD until an approved rule (an International account, user 10)
+INSERT INTO auth.users (id, email) VALUES (tst.bu(10), 'b408-10@synthetic.test') ON CONFLICT DO NOTHING;
+INSERT INTO public.business_settings (user_id, email, business_name, country, currency, plan, role, is_lifetime)
+  VALUES (tst.bu(10), 'b408-10@synthetic.test', 'Synthetic billing admin 10', 'US', 'USD', 'free', 'user', false) ON CONFLICT (user_id) DO NOTHING;
+INSERT INTO public.account_market (user_id, market, source) VALUES (tst.bu(10), 'INTERNATIONAL', 'business_settings_country');
+INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id, free_issues_consumed) VALUES (tst.bu(10), 'free_10', NULL, 0);
+DO $$
+DECLARE a uuid; amt int; p jsonb;
+BEGIN
+  a := tst.bintent(tst.bu(10), 'billing-admin-408-user-10');
+  SELECT amount_minor INTO amt FROM public.checkout_attempts WHERE attempt_id = a;
+  PERFORM tst.bsvc();
+  PERFORM public.record_verified_provider_event('payplus', 'tx-408-10', 'payment_confirmed', a, 'rec-408-10', 'term-408', now() - interval '3 days', repeat('e', 64), amt, 'USD');
+  PERFORM tst.logout();
+  p := tst.bprev(tst.bu(10));
+  PERFORM tst.ok(p ->> 'currency' = 'USD' AND (p ->> 'feeMinor')::int = 0 AND (p ->> 'refundMinor')::int = (p ->> 'proratedMinor')::int,
+    'B19 USD: no cancellation fee until an approved rule (Codex audit M-02)');
+END $$;
 
 -- ---------------------------------------------------------------------------------------------------------------- the log + grants
 SELECT tst.throws(format('UPDATE public.billing_admin_actions SET refund_minor = 0 WHERE user_id = %L', tst.bu(2)), 'append', 'B15 the action log cannot be rewritten');

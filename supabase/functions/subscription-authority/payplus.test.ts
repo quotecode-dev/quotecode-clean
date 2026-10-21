@@ -107,7 +107,7 @@ describe('payment page (generateLink): the server attempt only, ILS, renewing', 
       priceCatalog: vi.fn(async () => ({ ok: true, market: 'IL', prices: [
         { priceId: 'il_all_inclusive_month_p1', planId: 'all_inclusive', currency: 'ILS', billingPeriod: 'month', amountMinor: 3000, taxMode: 'included', offer: 'current' },
         { priceId: 'il_all_inclusive_year_p1', planId: 'all_inclusive', currency: 'ILS', billingPeriod: 'year', amountMinor: 30600, taxMode: 'included', offer: 'current' }] })),
-      recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+      recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(), recordCheckoutPage: vi.fn(async (_a: string, _u: string, url: string) => url),
     } as never as BillingSql;
     const r = await checkoutIntentHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: f })) }, U,
       { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY, amountMinor: 1, currency: 'USD' });
@@ -365,6 +365,22 @@ describe('audit fixes: one payment page per attempt (H05); a payment that opened
     expect(recordCheckoutPage).toHaveBeenCalledWith(ATT, U, LINK);
     expect(r.body).toMatchObject({ ok: true, redirectUrl: 'https://payments.payplus.co.il/first-writer' });
   });
+  it('Codex audit H-01: no payment link unless the server kept it - a lost answer is read back once, otherwise 503', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const mk = (checkoutPage: () => Promise<unknown>, recordCheckoutPage: () => Promise<unknown>) => ({ createCheckoutIntent: vi.fn(),
+      createPackageCheckoutIntent: intent(), priceCatalog: catalog, recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+      checkoutPage: vi.fn(checkoutPage), recordCheckoutPage: vi.fn(recordCheckoutPage) }) as never as BillingSql;
+    const run = (sql: BillingSql) => checkoutIntentHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: fetchOk() })) }, U, body);
+    // the store failed and nothing was kept: no link
+    expect(await run(mk(async () => null, async () => { throw new Error('db'); }))).toEqual({ status: 503, body: { ok: false, code: 'checkout_unavailable' } });
+    expect(await run(mk(async () => null, async () => null))).toEqual({ status: 503, body: { ok: false, code: 'checkout_unavailable' } });
+    expect(log.mock.calls.some((c) => String(c[0]).includes('checkout_page_not_stored'))).toBe(true);
+    // the answer was lost but the page was kept: the read-back returns the kept page
+    let reads = 0;
+    const r = await run(mk(async () => (reads++ === 0 ? null : 'https://payments.payplus.co.il/kept'), async () => { throw new Error('lost'); }));
+    expect(r.body).toMatchObject({ ok: true, redirectUrl: 'https://payments.payplus.co.il/kept' });
+    log.mockRestore();
+  });
   it('a wrong-amount payment: the receipt stays 200 and says activated false + amount_mismatch', async () => {
     const sql = { createCheckoutIntent: vi.fn(), priceCatalog: vi.fn(), applyVerifiedLineEvent: vi.fn(),
       recordVerifiedEvent: vi.fn(async () => ({ ok: true, duplicate: false, outcome: 'rejected', activated: false, code: 'amount_mismatch' })) } as never as BillingSql;
@@ -461,13 +477,18 @@ describe('standing orders: pull, update, cancel (prepared)', () => {
   });
   it('cancel POSTs DeleteRecurring with the terminal; a bad id never calls PayPlus', async () => {
     const f = ok({ recurring_payment_uid: REC });
-    expect(await so(f).cancel(REC, TERM)).toBe(true);
+    expect(await so(f).cancel(REC, TERM)).toBe('cancelled');
     const [url, init] = f.mock.calls[0] as unknown as [string, { body: string }];
     expect(url).toBe(`${PAYPLUS_API_BASES.staging}/RecurringPayments/DeleteRecurring/${REC}`);
     expect(JSON.parse(init.body)).toEqual({ terminal_uid: TERM });
     const g = ok();
-    expect(await so(g).cancel('x', TERM)).toBe(false);
+    expect(await so(g).cancel('x', TERM)).toBe('rejected');
     expect(g).not.toHaveBeenCalled();
+  });
+  it('cancel (Codex audit H-02): PayPlus said no = rejected; no answer / unreadable = unknown, never rejected', async () => {
+    expect(await so(fetchOk({ results: { status: 'error', code: 1 } })).cancel(REC, TERM)).toBe('rejected');
+    expect(await so(vi.fn(async () => { throw new Error('timeout'); }) as never).cancel(REC, TERM)).toBe('unknown');
+    expect(await so(vi.fn(async () => new Response('<html>', { status: 502 })) as never).cancel(REC, TERM)).toBe('unknown');
   });
   it('refund (20261022300000): POSTs RefundByTransactionUID with the charge and the amount; refunded only on success + 000', async () => {
     const f = ok({ transaction: { uid: 'refund-tx-1', status_code: '000', amount: 10 } });
