@@ -307,6 +307,16 @@ export function payplusStandingOrders(cfg: { apiBase: string; apiKey: string; se
       if (!UUID.test(recurringUid) || !UUID.test(terminalUid)) return false;
       return ok(await call('POST', `/RecurringPayments/DeleteRecurring/${recurringUid}`, { terminal_uid: terminalUid }));
     },
+    /** 20261022300000 (Terms section 6, early end): refund part of a charge (docs.payplus.co.il, Refund By Transaction UID:
+     *  transaction_uid + amount, never more than the charge). Refunded only when PayPlus answers success with status 000; the refund's
+     *  own transaction uid is returned for the log. Not proven in the sandbox yet. */
+    async refund(transactionUid: string, amountMinor: number): Promise<{ ok: true; refundRef: string } | { ok: false }> {
+      if (!ref(transactionUid) || !Number.isInteger(amountMinor) || amountMinor <= 0) return { ok: false };
+      const j = await call('POST', '/Transactions/RefundByTransactionUID', { transaction_uid: transactionUid, amount: amountMinor / 100 });
+      const tx = ok(j) && isObj(j!.data) && isObj(j!.data.transaction) ? j!.data.transaction : null;
+      const refundRef = tx && tx.status_code === PAYPLUS_SUCCESS_CODE ? ref(tx.uid) : null;
+      return refundRef ? { ok: true, refundRef } : { ok: false };
+    },
   });
 }
 

@@ -1147,6 +1147,14 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/admin-billing/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/admin-billing/lib.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/admin-cleanup-user-quotes/index.ts": {
     "interactive": 0,
     "markers": 0

@@ -469,6 +469,20 @@ describe('standing orders: pull, update, cancel (prepared)', () => {
     expect(await so(g).cancel('x', TERM)).toBe(false);
     expect(g).not.toHaveBeenCalled();
   });
+  it('refund (20261022300000): POSTs RefundByTransactionUID with the charge and the amount; refunded only on success + 000', async () => {
+    const f = ok({ transaction: { uid: 'refund-tx-1', status_code: '000', amount: 10 } });
+    expect(await so(f).refund('tx-1', 1000)).toEqual({ ok: true, refundRef: 'refund-tx-1' });
+    const [url, init] = f.mock.calls[0] as unknown as [string, { body: string }];
+    expect(url).toBe(`${PAYPLUS_API_BASES.staging}/Transactions/RefundByTransactionUID`);
+    expect(JSON.parse(init.body)).toEqual({ transaction_uid: 'tx-1', amount: 10 });
+    expect(await so(ok({ transaction: { uid: 'r', status_code: '006' } })).refund('tx-1', 1000)).toEqual({ ok: false });
+    const bad = vi.fn(async () => ({ ok: true, json: async () => ({ results: { status: 'error' }, data: {} }) }));
+    expect(await so(bad).refund('tx-1', 1000)).toEqual({ ok: false });
+    const g = ok();
+    expect(await so(g).refund('tx-1', 0)).toEqual({ ok: false });
+    expect(await so(g).refund('', 100)).toEqual({ ok: false });
+    expect(g).not.toHaveBeenCalled();
+  });
   it('an unknown API host is a configuration error', () => {
     expect(() => payplusStandingOrders({ apiBase: 'https://evil.example', apiKey: 'k', secretKey: 's', fetch: (() => null) as never })).toThrow(/invalid configuration/);
   });
