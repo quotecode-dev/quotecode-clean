@@ -15,7 +15,7 @@
 // Trust boundary (unchanged from billing.ts): the amount and the currency come from the server attempt; a callback's plan, card or
 // customer data is never read. Read: the event id, the result, the time, our own attempt id and the paid amount - the paid amount
 // only so SQL can require it to EQUAL the attempt before the subscription opens (it never sets a price or a right).
-import { parseProviderEvent, type BillingPeriod, type BillingProvider, type EventType, type WebhookVerification } from './billing.ts';
+import { parseProviderEvent, sha256Hex, type BillingPeriod, type BillingProvider, type EventType, type PulledCheckout, type WebhookVerification } from './billing.ts';
 
 type Fetch = (url: string, init: { method: string; headers: Record<string, string>; body: string; signal?: AbortSignal }) =>
   Promise<{ ok: boolean; json(): Promise<unknown> }>;
@@ -181,6 +181,7 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
     { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   const mac = async (bytes: Uint8Array) =>
     new Uint8Array(await globalThis.crypto.subtle.sign('HMAC', await keyPromise, bytes as unknown as ArrayBuffer));
+  const orders = payplusStandingOrders({ apiBase: cfg.apiBase, apiKey: cfg.apiKey, secretKey: cfg.secretKey, fetch: cfg.fetch, timeoutMs: cfg.timeoutMs });
 
   return Object.freeze({
     name: PAYPLUS_PROVIDER_NAME,
@@ -223,6 +224,16 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       if (!mapped || !event) return { ok: false, reason: 'invalid_event' };
       return { ok: true, event: mapped.paidAmountMinor === null ? event : { ...event, paid: { amountMinor: mapped.paidAmountMinor, currency: mapped.paidCurrency } } };
     },
+    // 20261022200000: the server pull (sandbox 2026-10-21: /PaymentPages/ipn answers the standing order the payment created - status
+    // 000, valid, extra_info = our attempt id - but not the transaction uid). Approved only when PayPlus says both.
+    async pullCheckout(pageRequestUid: string): Promise<PulledCheckout | null> {
+      const o = await orders.byPageRequest(pageRequestUid);
+      if (!o) return null;
+      const seen = { pageRequestUid, recurringUid: o.recurringUid, statusCode: o.statusCode, valid: o.valid, amountMinor: o.amountMinor,
+        currency: o.currency, attemptId: o.attemptId };
+      return { attemptId: o.attemptId, recurringRef: o.recurringUid, amountMinor: o.amountMinor, currency: o.currency,
+        approved: o.valid && o.statusCode === PAYPLUS_SUCCESS_CODE, payloadSha256: await sha256Hex(enc.encode(JSON.stringify(seen))) };
+    },
   });
 }
 
@@ -232,7 +243,7 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
 // server PULL that works without any callback; /RecurringPayments/Update needs the undocumented field `valid: true` (422 without it);
 // /RecurringPayments/DeleteRecurring cancels. Prepared only: nothing here is wired to a route while the billing phase is off.
 export type PayPlusStandingOrder = {
-  recurringUid: string; number: string | null; valid: boolean; status: string | null;
+  recurringUid: string; number: string | null; valid: boolean; status: string | null; statusCode: string | null;
   amountMinor: number | null; currency: 'ILS' | 'USD' | null; attemptId: string | null; startDate: string | null;
   recurringType: number | null; recurringRange: number | null;
   items: { productUid: string; priceMinor: number; quantity: number }[];
@@ -252,7 +263,7 @@ export function normalizeStandingOrder(d: unknown): PayPlusStandingOrder | null 
   })).filter((it) => UUID.test(it.productUid) && it.priceMinor >= 0) : [];
   const cur = d.currency_code === 'ILS' || d.currency_code === 'USD' ? d.currency_code : null;
   return {
-    recurringUid: d.uid, number: s(d.number), valid: d.valid === true, status: s(d.status), amountMinor: minor(d.amount), currency: cur,
+    recurringUid: d.uid, number: s(d.number), valid: d.valid === true, status: s(d.status), statusCode: s(d.status_code), amountMinor: minor(d.amount), currency: cur,
     attemptId: typeof d.extra_info === 'string' && UUID.test(d.extra_info) ? d.extra_info : null, startDate: s(d.start_date),
     recurringType: typeof d.recurring_type === 'number' ? d.recurring_type : null, recurringRange: typeof d.recurring_range === 'number' ? d.recurring_range : null,
     items, customerUid: s(d.customer_uid), cashierUid: s(d.cashier_uid), cardToken: s(d.card_token),
@@ -263,10 +274,10 @@ export function payplusStandingOrders(cfg: { apiBase: string; apiKey: string; se
   if (!(Object.values(PAYPLUS_API_BASES) as string[]).includes(cfg.apiBase) || !cfg.apiKey || !cfg.secretKey || typeof cfg.fetch !== 'function') {
     throw new Error('payplusStandingOrders: invalid configuration');
   }
-  const call = async (method: 'GET' | 'POST', path: string, body?: unknown): Promise<Record<string, unknown> | null> => {
+  const call = async (method: 'POST', path: string, body: unknown): Promise<Record<string, unknown> | null> => {
     try {
       const res = await cfg.fetch(`${cfg.apiBase}${path}`, { method, headers: { 'content-type': 'application/json', 'api-key': cfg.apiKey, 'secret-key': cfg.secretKey },
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(cfg.timeoutMs ?? 10_000) });
+        body: JSON.stringify(body), signal: AbortSignal.timeout(cfg.timeoutMs ?? 10_000) });
       const j = await res.json().catch(() => null);
       return isObj(j) ? j : null;
     } catch { return null; }

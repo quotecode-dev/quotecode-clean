@@ -51,6 +51,15 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
       const v = await call('record_checkout_attempt_page', { p_attempt_id: attemptId, p_user_id: userId, p_url: url });
       return typeof v === 'string' ? v : null;
     },
+    // 20261022200000: the page with its PayPlus request id, the pull targets and the pulled first charge
+    recordCheckoutPageAndRequest: async (attemptId, userId, url, requestRef) => {
+      const v = await call('record_checkout_attempt_page_and_request', { p_attempt_id: attemptId, p_user_id: userId, p_url: url, p_request_ref: requestRef });
+      return typeof v === 'string' ? v : null;
+    },
+    checkoutPullTargets: (userId) => call('checkout_pull_targets', { p_user_id: userId }),
+    recordCheckoutPull: async (p) => (await call('record_checkout_pull', { p_attempt_id: p.attemptId, p_user_id: p.userId,
+      p_provider_attempt_id: p.providerAttemptId, p_recurring_ref: p.recurringRef, p_paid_amount_minor: p.paidAmountMinor, p_paid_currency: p.paidCurrency,
+      p_payload_sha256: p.payloadSha256 })) as Record<string, unknown>,
     // 20261021000000: the same verified-event recorder + (same transaction) a confirmed package payment opens the subscription;
     // 20261022000000: through record_verified_provider_event, which reaches the attempt of a bound standing order
     recordVerifiedEvent: async (e) => (await call('record_verified_provider_event', { p_provider: e.provider,

@@ -4,7 +4,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { checkoutIntentHandler, providerWebhookHandler, type BillingSql } from './billing';
+import { checkoutIntentHandler, checkoutStatusHandler, providerWebhookHandler, type BillingSql } from './billing';
 import { ACTIVATION_PHASE } from './authority';
 import {
   buildGenerateLinkBody, createPayPlusProvider, israelDayOfMonth, mapPayPlusCallback, PAYPLUS_API_BASES, payplusDateToIso,
@@ -471,5 +471,110 @@ describe('standing orders: pull, update, cancel (prepared)', () => {
   });
   it('an unknown API host is a configuration error', () => {
     expect(() => payplusStandingOrders({ apiBase: 'https://evil.example', apiKey: 'k', secretKey: 's', fetch: (() => null) as never })).toThrow(/invalid configuration/);
+  });
+});
+
+// 20261022200000 (Owner 2026-10-21, "להמשיך עכשיו בחיבור למסד"): back from the payment page with no callback, the server pulls
+describe('checkout status: the server pull (prepared; the billing phase stays off)', () => {
+  const REC = '9ab9e163-0000-4000-8000-000000000011'; const PRQ = '1a2aee2e-0000-4000-8000-000000000015';
+  const standing = (over: Record<string, unknown> = {}) => ({ uid: REC, valid: true, status: 'approved', status_code: '000', amount: 30, currency_code: 'ILS',
+    extra_info: ATT, customer_uid: 'cust-1', cashier_uid: 'cash-1', card_token: 'tok-1', items: [], ...over });
+  const answer = (data: unknown, status = 'success') => vi.fn(async () => ({ ok: true, json: async () => ({ results: { status, code: 0 }, data }) }));
+  const target = { attemptId: ATT, requestRef: PRQ, amountMinor: 3000, currency: 'ILS' };
+  const sqlWith = (over: Record<string, unknown> = {}) => ({ createCheckoutIntent: vi.fn(), priceCatalog: vi.fn(), recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+    checkoutPullTargets: vi.fn(async () => [target]),
+    recordCheckoutPull: vi.fn(async () => ({ ok: true, duplicate: false, outcome: 'applied', activated: true, pulled: true })), ...over }) as never as BillingSql;
+
+  it('pullCheckout: approved only for status 000 + a valid standing order; our attempt id, the standing order, amount in minor units', async () => {
+    const p = createPayPlusProvider(config({ fetch: answer(standing()) }));
+    const r = await p.pullCheckout!(PRQ);
+    expect(r).toMatchObject({ approved: true, attemptId: ATT, recurringRef: REC, amountMinor: 3000, currency: 'ILS' });
+    expect(r!.payloadSha256).toMatch(/^[0-9a-f]{64}$/);
+    expect((await createPayPlusProvider(config({ fetch: answer(standing({ status_code: '003' })) })).pullCheckout!(PRQ))!.approved).toBe(false);
+    expect((await createPayPlusProvider(config({ fetch: answer(standing({ valid: false })) })).pullCheckout!(PRQ))!.approved).toBe(false);
+    expect(await createPayPlusProvider(config({ fetch: answer({}, 'error') })).pullCheckout!(PRQ)).toBeNull();
+  });
+  it('the payment page id is kept together with the page when PayPlus returns it', async () => {
+    const f = fetchOk({ results: { status: 'success', code: 0 }, data: { page_request_uid: PRQ, payment_page_link: LINK } });
+    const recordCheckoutPageAndRequest = vi.fn(async () => LINK); const recordCheckoutPage = vi.fn();
+    const sql = { createCheckoutIntent: vi.fn(), recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+      createPackageCheckoutIntent: vi.fn(async () => ({ ok: true, attemptId: ATT, market: 'IL', currency: 'ILS', amountMinor: 3000, state: 'pending' })),
+      priceCatalog: vi.fn(async () => ({ ok: true, market: 'IL', prices: [
+        { priceId: 'il_all_inclusive_month_p1', planId: 'all_inclusive', currency: 'ILS', billingPeriod: 'month', amountMinor: 3000, taxMode: 'included', offer: 'current' }] })),
+      checkoutPage: vi.fn(async () => null), recordCheckoutPage, recordCheckoutPageAndRequest } as never as BillingSql;
+    const r = await checkoutIntentHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: f })) }, U, { planId: 'all_inclusive', billingPeriod: 'month', idempotencyKey: KEY });
+    expect(r.body).toMatchObject({ ok: true, redirectUrl: LINK });
+    expect(recordCheckoutPageAndRequest).toHaveBeenCalledWith(ATT, U, LINK, PRQ);
+    expect(recordCheckoutPage).not.toHaveBeenCalled();
+  });
+  it('an approved pull of our attempt reaches SQL with the pulled amount and standing order; the answer says it opened', async () => {
+    const sql = sqlWith();
+    const r = await checkoutStatusHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: answer(standing()) })) }, U);
+    expect(r).toEqual({ status: 200, body: { ok: true, activated: true, waiting: 0 } });
+    expect(sql.recordCheckoutPull).toHaveBeenCalledWith(expect.objectContaining({ attemptId: ATT, userId: U, providerAttemptId: ATT, recurringRef: REC,
+      paidAmountMinor: 3000, paidCurrency: 'ILS' }));
+  });
+  it('not paid yet / not approved / unreachable: nothing reaches SQL, the client keeps waiting', async () => {
+    for (const f of [answer({}, 'error'), answer(standing({ status_code: '003' })), vi.fn(async () => { throw new Error('down'); })]) {
+      const sql = sqlWith();
+      expect(await checkoutStatusHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: f })) }, U))
+        .toEqual({ status: 200, body: { ok: true, activated: false, waiting: 1 } });
+      expect(sql.recordCheckoutPull).not.toHaveBeenCalled();
+    }
+  });
+  it('an answer naming another attempt is never applied (incident)', async () => {
+    const sql = sqlWith(); const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const r = await checkoutStatusHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: answer(standing({ extra_info: PRQ })) })) }, U);
+    expect(r.body).toMatchObject({ ok: true, activated: false });
+    expect(sql.recordCheckoutPull).not.toHaveBeenCalled();
+    expect(log.mock.calls.some((c) => String(c[0]).includes('pull_attempt_mismatch'))).toBe(true);
+    log.mockRestore();
+  });
+  it('a pulled payment that opened nothing is reported; nothing to pull = nothing asked', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const sql = sqlWith({ recordCheckoutPull: vi.fn(async () => ({ ok: true, outcome: 'rejected', activated: false, code: 'amount_mismatch', pulled: true })) });
+    expect((await checkoutStatusHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: answer(standing()) })) }, U)).body).toMatchObject({ activated: false });
+    expect(log.mock.calls.some((c) => String(c[0]).includes('amount_mismatch'))).toBe(true);
+    log.mockRestore();
+    const f = answer(standing());
+    const none = sqlWith({ checkoutPullTargets: vi.fn(async () => []) });
+    expect(await checkoutStatusHandler('prepared', { sql: none, provider: createPayPlusProvider(config({ fetch: f })) }, U)).toEqual({ status: 200, body: { ok: true, activated: false, waiting: 0 } });
+    expect(f).not.toHaveBeenCalled();
+  });
+  it('billing off (today) answers before anything is read; a malformed target list is never trusted', async () => {
+    const sql = sqlWith();
+    expect(await checkoutStatusHandler(ACTIVATION_PHASE, { sql, provider: createPayPlusProvider(config()) }, U)).toEqual({ status: 503, body: { ok: false, code: 'billing_off' } });
+    expect(sql.checkoutPullTargets).not.toHaveBeenCalled();
+    const bad = sqlWith({ checkoutPullTargets: vi.fn(async () => [{ ...target, requestRef: 'x' }]) });
+    expect((await checkoutStatusHandler('prepared', { sql: bad, provider: createPayPlusProvider(config()) }, U)).status).toBe(503);
+  });
+  it('a second callback within the window after a pull extends nothing but IS reported', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const sql = { createCheckoutIntent: vi.fn(), priceCatalog: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+      recordVerifiedEvent: vi.fn(async () => ({ ok: true, duplicate: false, outcome: 'stale', activated: false, code: 'second_charge_after_pull' })) } as never as BillingSql;
+    const s = signed(callback());
+    expect((await providerWebhookHandler('prepared', { sql, provider: createPayPlusProvider(config()), now: () => NOW }, s.raw, s.headers)).status).toBe(200);
+    expect(log.mock.calls.some((c) => String(c[0]).includes('second_charge_after_pull'))).toBe(true);
+    log.mockRestore();
+  });
+  it('the callback of an already-pulled first charge is a normal 200 receipt, not an incident', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const sql = { createCheckoutIntent: vi.fn(), priceCatalog: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+      recordVerifiedEvent: vi.fn(async () => ({ ok: true, duplicate: false, outcome: 'stale', activated: false, code: 'first_charge_pulled' })) } as never as BillingSql;
+    const s = signed(callback());
+    expect((await providerWebhookHandler('prepared', { sql, provider: createPayPlusProvider(config()), now: () => NOW }, s.raw, s.headers)).status).toBe(200);
+    expect(log).not.toHaveBeenCalled();
+    log.mockRestore();
+  });
+  it('wiring calls the three new functions with exactly their SQL parameters', () => {
+    const wiring = readFileSync(new URL('./wiring.ts', import.meta.url), 'utf8');
+    const sql = readFileSync(new URL('../../migrations/20261022200000_payplus_checkout_pull.sql', import.meta.url), 'utf8');
+    for (const fn of ['record_checkout_attempt_page_and_request', 'checkout_pull_targets', 'record_checkout_pull']) {
+      const sent = [...(new RegExp(`call\\('${fn}', \\{([^}]*)\\}\\)`).exec(wiring)?.[1] ?? '').matchAll(/\b(p_[a-z0-9_]+):/g)].map((m) => m[1]);
+      // the definition, not the ROLLBACK note (DROP FUNCTION ... with types only)
+      const declared = [...(new RegExp(`CREATE OR REPLACE FUNCTION public\\.${fn}\\(([^)]*)\\)`).exec(sql)?.[1] ?? '').matchAll(/\b(p_[a-z0-9_]+)\s/g)].map((m) => m[1]);
+      expect(sent.length).toBeGreaterThan(0);
+      expect(sent).toEqual(declared);
+    }
   });
 });

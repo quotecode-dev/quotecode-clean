@@ -109,6 +109,10 @@ export type ProviderEvent = { providerEventId: string; type: EventType; occurred
   standingOrder?: { recurringRef: string; terminalRef: string | null } };
 export type WebhookRejection = 'invalid_signature' | 'stale_timestamp' | 'untrusted_source' | 'invalid_event' | 'provider_unavailable';
 export type WebhookVerification = { ok: true; event: ProviderEvent } | { ok: false; reason: WebhookRejection };
+/** 20261022200000: what the provider answers for a payment page the server asks about (no callback needed). approved = the first
+ *  charge succeeded and the standing order is live; the amount / currency are compared for EQUALITY in SQL, never a price. */
+export type PulledCheckout = { attemptId: string | null; recurringRef: string; amountMinor: number | null; currency: 'ILS' | 'USD' | null;
+  approved: boolean; payloadSha256: string };
 
 export interface BillingProvider {
   readonly name: string;
@@ -118,6 +122,8 @@ export interface BillingProvider {
     addOnAmountMinor?: number | null }): Promise<{ redirectUrl: string; pageRequestUid?: string } | null>;
   /** signature + timestamp window + source; returns the normalized event only when all three pass */
   verifyWebhook(rawBody: Uint8Array, headers: Headers, nowMs: number): Promise<WebhookVerification>;
+  /** 20261022200000: the result of a payment page by its request id (createCheckout's pageRequestUid); null = nothing to read yet */
+  pullCheckout?(pageRequestUid: string): Promise<PulledCheckout | null>;
 }
 
 // The only provider available today: none (OPEN-12). Checkout is unavailable and every webhook is refused.
@@ -216,6 +222,14 @@ export interface BillingSql {
   checkoutPage?(attemptId: string, userId: string): Promise<string | null>;
   /** record_checkout_attempt_page - set once; returns the STORED page (a concurrent second page never wins) */
   recordCheckoutPage?(attemptId: string, userId: string, url: string): Promise<string | null>;
+  /** 20261022200000 record_checkout_attempt_page_and_request - the page and its provider request id, set once together */
+  recordCheckoutPageAndRequest?(attemptId: string, userId: string, url: string, requestRef: string): Promise<string | null>;
+  /** checkout_pull_targets(p_user_id) - the account's own pending attempts with a page from the last 24 hours (3 at most) */
+  checkoutPullTargets?(userId: string): Promise<unknown>;
+  /** record_checkout_pull(p_attempt_id, p_user_id, p_provider_attempt_id, p_recurring_ref, p_paid_amount_minor, p_paid_currency,
+   *  p_payload_sha256) - providerAttemptId = the attempt id the provider's answer named (SQL requires it to equal attemptId) */
+  recordCheckoutPull?(p: { attemptId: string; userId: string; providerAttemptId: string | null; recurringRef: string; paidAmountMinor: number | null;
+    paidCurrency: string | null; payloadSha256: string }): Promise<Record<string, unknown>>;
   /** record_verified_provider_event(provider, provider_event_id, event_type, attempt_id, recurring_ref, terminal_ref, provider_event_time,
    *  payload_sha256, paid_amount_minor, paid_currency) - 20261022000000; the attempt id may be null only with a standing-order id */
   recordVerifiedEvent(e: { provider: string; providerEventId: string; eventType: string; attemptId: string | null; providerEventTime: string; payloadSha256: string;
@@ -276,7 +290,11 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
   const hosted = await deps.provider.createCheckout({ attemptId: r.attemptId, currency: expected.currency, amountMinor: expected.amountMinor,
     ...(isPackage ? { billingPeriod: period as BillingPeriod, addOnAmountMinor: expected.addOnAmountMinor ?? null } : {}) }).catch(() => null);
   if (!hosted || !httpsPage(hosted.redirectUrl)) return err(503, 'checkout_unavailable');
-  const stored = deps.sql.recordCheckoutPage ? await deps.sql.recordCheckoutPage(r.attemptId, userId, hosted.redirectUrl).catch(() => null) : null;
+  // 20261022200000: with the provider's page request id the page and the id are kept together (the server can pull the result later)
+  const requestRef = typeof hosted.pageRequestUid === 'string' && UUID.test(hosted.pageRequestUid) ? hosted.pageRequestUid : null;
+  const stored = requestRef && deps.sql.recordCheckoutPageAndRequest
+    ? await deps.sql.recordCheckoutPageAndRequest(r.attemptId, userId, hosted.redirectUrl, requestRef).catch(() => null)
+    : deps.sql.recordCheckoutPage ? await deps.sql.recordCheckoutPage(r.attemptId, userId, hosted.redirectUrl).catch(() => null) : null;
   // A redirect URL is NOT an entitlement: the success page shows "processing" until a verified provider event.
   return answer(httpsPage(stored) ? stored : hosted.redirectUrl);
 }
@@ -318,10 +336,63 @@ export async function providerWebhookHandler(phase: BillingPhase, deps: { sql: B
   const notActivatedCode = r.activated === false && typeof r.code === 'string' && /^[a-z_]{1,40}$/.test(r.code) ? r.code : null;
   const notActivated = notActivatedCode ? { activated: false, code: notActivatedCode } : {};
   // a verified payment that opened nothing (wrong amount, a replaced standing order, ...) is an incident for the Owner - never silent
-  if (notActivatedCode && notActivatedCode !== 'billing_not_enforced') {
+  // 20261022200000: 'first_charge_pulled' = the server already pulled this very payment (the package is open) - not an incident
+  if (notActivatedCode && notActivatedCode !== 'billing_not_enforced' && notActivatedCode !== 'first_charge_pulled') {
     console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'payment_not_activated', code: notActivatedCode, outcome: outcome ?? null }));
   }
   return { status: 200, body: { ok: true, duplicate: r.duplicate === true, ...(outcome ? { outcome } : {}), ...notActivated } };
+}
+
+// ------------------------------------------------------------------------------------------------ checkout status (server pull)
+// 20261022200000 (Owner 2026-10-21, docs/PAYMENTS_ACTIVATION_PLAN_2026-10-21.md step 1): back from the payment page with no callback
+// yet, the user's own pending attempts are asked about at the provider. Only an approved answer that names OUR attempt, with its
+// standing order, reaches SQL - which compares the amount / currency with the attempt, opens the package once and never counts the
+// same first charge twice when its callback arrives later. The answer says only whether something opened; the client then reads the
+// account summary as before.
+type PullTarget = { attemptId: string; requestRef: string; amountMinor: number; currency: 'ILS' | 'USD' };
+function parsePullTargets(raw: unknown): PullTarget[] | null {
+  if (!Array.isArray(raw)) return null;
+  const out: PullTarget[] = [];
+  for (const t of raw.slice(0, 3)) {
+    if (!isObj(t) || typeof t.attemptId !== 'string' || !UUID.test(t.attemptId) || typeof t.requestRef !== 'string' || !UUID.test(t.requestRef)
+        || !Number.isInteger(t.amountMinor) || (t.currency !== 'ILS' && t.currency !== 'USD')) return null;
+    out.push({ attemptId: t.attemptId, requestRef: t.requestRef, amountMinor: t.amountMinor as number, currency: t.currency });
+  }
+  return out;
+}
+export async function checkoutStatusHandler(phase: BillingPhase, deps: { sql: BillingSql; provider: BillingProvider }, userId: string): Promise<Resp> {
+  if (phase === 'off') return err(503, 'billing_off');
+  if (typeof userId !== 'string' || !UUID.test(userId)) return err(401, 'not_authenticated');
+  const { sql, provider } = deps;
+  if (typeof provider.pullCheckout !== 'function' || typeof sql.checkoutPullTargets !== 'function' || typeof sql.recordCheckoutPull !== 'function') {
+    return err(503, 'checkout_unavailable');
+  }
+  let targets: PullTarget[] | null;
+  try { targets = parsePullTargets(await sql.checkoutPullTargets(userId)); } catch { return err(503, 'retry_later'); }
+  if (!targets) return err(503, 'retry_later');
+  let activated = false; let waiting = 0;
+  for (const t of targets) {
+    const p = await provider.pullCheckout(t.requestRef).catch(() => null);
+    if (!p || !p.approved) { waiting++; continue; } // not paid (yet) / provider unreachable: the callback or a later pull decides
+    if (p.attemptId !== t.attemptId) {
+      // a page request answered with someone else's attempt id is never applied - an incident for the Owner
+      console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'pull_attempt_mismatch' }));
+      continue;
+    }
+    let r: Record<string, unknown>;
+    try {
+      r = await sql.recordCheckoutPull({ attemptId: t.attemptId, userId, providerAttemptId: p.attemptId, recurringRef: p.recurringRef, paidAmountMinor: p.amountMinor,
+        paidCurrency: p.currency, payloadSha256: p.payloadSha256 });
+    } catch { return err(503, 'retry_later'); }
+    if (!isObj(r) || r.ok !== true) { waiting++; continue; }
+    if (r.activated === true) activated = true;
+    const code = r.activated === false && typeof r.code === 'string' && /^[a-z_]{1,40}$/.test(r.code) ? r.code : null;
+    // a verified payment that opened nothing (wrong amount, another package, ...) is an incident for the Owner - never silent
+    if (r.pulled === true && code && code !== 'billing_not_enforced') {
+      console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'payment_not_activated', code, source: 'pull' }));
+    }
+  }
+  return { status: 200, body: { ok: true, activated, waiting } };
 }
 
 // ------------------------------------------------------------------------------------------------ reference state model
