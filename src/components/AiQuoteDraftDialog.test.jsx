@@ -46,7 +46,7 @@ describe('AiQuoteDraftDialog', () => {
     expect(screen.getByText(/שום דבר לא נשמר עד שתשמרו את ההצעה/)).toBeTruthy();
     expect(p.onApply).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('checkbox', { name: 'פירוק חלון ישן' }));
-    fireEvent.click(screen.getByRole('button', { name: /הוספה להצעה \(פריטים מסומנים: 1\)/ }));
+    fireEvent.click(screen.getByRole('button', { name: /הוספת 1 פריטים להצעה/ }));
     expect(p.onApply).toHaveBeenCalledWith([{ description: 'חלון אלומיניום', quantity: 3, unit: 'unit', unitPrice: 1450, catalogId: 7 }], 'סלון');
   });
 
@@ -60,10 +60,10 @@ describe('AiQuoteDraftDialog', () => {
     expect(qty.map((q) => q.value)).toEqual(['40', '22', '']);
     expect(screen.getAllByRole('combobox', { name: 'יחידה' }).map((u) => u.value)).toEqual(['m2', 'm2', 'm2']);
     expect(screen.getAllByTestId('ai-quote-draft-price')[0].textContent).toBe('מחיר: ₪120.00 · מהקטלוג: ריצוף למ״ר');
-    expect(screen.getByText(/הפריט ״ריצוף״ נמצא בקטלוג, אבל לא ברור אם יחידת התמחור שלו תואמת/)).toBeTruthy();
+    expect(screen.getByText(/נמצא בקטלוג „ריצוף”, אבל יחידת המחיר שלו לא תואמת/)).toBeTruthy();
     expect(screen.getByTestId('ai-quote-draft-missing').textContent).toBe('חסר: כמות');
     expect(screen.getByTestId('ai-quote-draft-questions').textContent).toContain('מה שטח הריצוף לפירוק?');
-    const add = screen.getByRole('button', { name: /הוספה להצעה \(פריטים מסומנים: 3\)/ });
+    const add = screen.getByRole('button', { name: /הוספת 3 פריטים להצעה/ });
     expect(add.disabled).toBe(true);
     expect(screen.getByTestId('ai-quote-draft-need-quantity')).toBeTruthy();
     fireEvent.change(qty[2], { target: { value: '62,5' } });
@@ -88,7 +88,7 @@ describe('AiQuoteDraftDialog', () => {
     expect(screen.queryByText('₪120.00')).toBeNull();
     fireEvent.change(screen.getAllByRole('textbox', { name: 'תיאור הפריט' })[0], { target: { value: 'ריצוף חדר שינה' } });
     fireEvent.click(screen.getByRole('checkbox', { name: 'פירוק ריצוף קיים' }));
-    fireEvent.click(screen.getByRole('button', { name: /הוספה להצעה \(פריטים מסומנים: 2\)/ }));
+    fireEvent.click(screen.getByRole('button', { name: /הוספת 2 פריטים להצעה/ }));
     expect(p.onApply.mock.calls[0][0][0]).toEqual({ description: 'ריצוף חדר שינה', quantity: 40, unit: 'unit', unitPrice: null, catalogId: null });
   });
 
@@ -105,7 +105,7 @@ describe('AiQuoteDraftDialog', () => {
     expect(screen.getAllByTestId('ai-quote-draft-evidence').map((e) => e.textContent)).toEqual(['מהתיאור: „ריצוף חדר הורים 40 מ״ר”', 'מהתיאור: „ריצוף חדר ילדים 22 מ״ר”']);
     expect(screen.getByTestId('ai-quote-draft-missing').textContent).toContain('לא הצלחנו לאמת מול התיאור');
     expect(screen.getByTestId('ai-quote-draft-unassigned').textContent).toContain('22 מ״ר');
-    expect(screen.getByRole('button', { name: /הוספה להצעה \(פריטים מסומנים: 2\)/ }).disabled).toBe(true);
+    expect(screen.getByRole('button', { name: /הוספת 2 פריטים להצעה/ }).disabled).toBe(true);
   });
   // Task 35 (F1): a quantity the text could give to several jobs arrives empty with its own "ambiguous" note, never the raw code
   it('shows the "ambiguous" note for a line whose quantity could not be singled out', async () => {
@@ -137,7 +137,7 @@ describe('AiQuoteDraftDialog', () => {
     fireEvent.click(screen.getByTestId('ai-quote-draft-goto-field'));
     expect(document.activeElement).toBe(screen.getAllByRole('textbox', { name: 'כמות' })[1]);
     fireEvent.change(screen.getAllByRole('textbox', { name: 'כמות' })[1], { target: { value: '56' } });
-    const add = screen.getByRole('button', { name: /הוספה להצעה \(פריטים מסומנים: 2\)/ });
+    const add = screen.getByRole('button', { name: /הוספת 2 פריטים להצעה/ });
     expect(add.disabled).toBe(true); // quantity alone is not enough while the unit is undecided
     fireEvent.click(screen.getByTestId('ai-quote-draft-goto-field'));
     expect(document.activeElement).toBe(units[1]);
@@ -157,11 +157,11 @@ describe('AiQuoteDraftDialog', () => {
     fireEvent.click(screen.getByRole('button', { name: /יצירת טיוטה עם AI/ }));
     await waitFor(() => expect(screen.getAllByTestId('ai-quote-draft-line')).toHaveLength(2));
     fireEvent.click(screen.getByRole('checkbox', { name: 'פירוק' }));
-    expect(screen.getByRole('button', { name: /הוספה להצעה \(פריטים מסומנים: 1\)/ }).disabled).toBe(false);
+    expect(screen.getByRole('button', { name: /הוספת 1 פריטים להצעה/ }).disabled).toBe(false);
     fireEvent.click(screen.getByRole('checkbox', { name: 'פירוק' }));
     fireEvent.change(screen.getAllByRole('textbox', { name: 'כמות' })[1], { target: { value: '3' } });
     fireEvent.change(screen.getAllByRole('combobox', { name: 'יחידה' })[1], { target: { value: '' } });
-    expect(screen.getByRole('button', { name: /הוספה להצעה \(פריטים מסומנים: 2\)/ }).disabled).toBe(false);
+    expect(screen.getByRole('button', { name: /הוספת 2 פריטים להצעה/ }).disabled).toBe(false);
   });
 
   it('"different description" after edits asks first; "stay" keeps the edited draft, "yes" returns to the kept description', async () => {
@@ -205,7 +205,7 @@ describe('AiQuoteDraftDialog', () => {
 
   // Task 22: a fetch-level failure while the server answers is the SERVICE, never presented as a broken connection
   it.each([
-    ['service_unreachable', 'אף שהשרת זמין', true],
+    ['service_unreachable', 'השרת עצמו עונה', true],
     ['unavailable', 'בדקו את החיבור לאינטרנט', true],
     ['offline', 'אין חיבור לאינטרנט', false],
     ['server_error', 'נתקל בשגיאה בשרת', true],

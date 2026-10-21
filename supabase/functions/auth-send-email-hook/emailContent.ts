@@ -129,15 +129,15 @@ export function buildEmailContent(message: AuthEmailMessage, isHebrew: boolean):
   switch (message.kind) {
     case 'signup': {
       const html = isHebrew
-        ? 'תודה שנרשמתם ל-<strong>TEKANGO</strong>, המערכת לניהול העסק ולהפקת הצעות מחיר. לאישור כתובת המייל ולהפעלת החשבון, לחצו על הכפתור שלמטה.'
+        ? 'תודה שנרשמת למערכת הניהול והצעות המחיר <strong>TEKANGO</strong>. לחצו על הכפתור למטה כדי לאשר את כתובת האימייל ולהפעיל את החשבון שלכם.'
         : 'Thank you for signing up for <strong>TEKANGO</strong>, the business & quoting platform. Click the button below to confirm your email address and activate your account.';
       const text = isHebrew
-        ? 'תודה שנרשמתם ל-TEKANGO, המערכת לניהול העסק ולהפקת הצעות מחיר.'
+        ? 'תודה שנרשמת למערכת הניהול והצעות המחיר TEKANGO.'
         : 'Thank you for signing up for TEKANGO, the business & quoting platform.';
       return withLink(
         isHebrew ? 'אישור הרשמה ל-TEKANGO' : 'Confirm your TEKANGO signup',
         html, text,
-        isHebrew ? 'אישור כתובת המייל' : 'Confirm Email Address',
+        isHebrew ? 'אישור כתובת האימייל' : 'Confirm Email Address',
         isHebrew ? 'לאישור ההרשמה' : 'Confirm your signup',
         message.verifyUrl,
       );
@@ -178,12 +178,12 @@ export function buildEmailContent(message: AuthEmailMessage, isHebrew: boolean):
     case 'email_change_confirm_current': {
       const safeNew = escapeHtml(message.newEmail);
       return withLink(
-        isHebrew ? 'אישור שינוי כתובת המייל בחשבון TEKANGO' : 'Confirm the email change on your TEKANGO account',
+        isHebrew ? 'אישור שינוי כתובת האימייל בחשבון TEKANGO' : 'Confirm the email change on your TEKANGO account',
         isHebrew
-          ? `קיבלנו בקשה לשנות את כתובת המייל של חשבון TEKANGO שלכם לכתובת <strong>${safeNew}</strong>. לאישור השינוי באמצעות הכתובת הזו, לחצו על הכפתור שלמטה. אם לא ביקשתם זאת, אל תלחצו על הכפתור ופנו אלינו בכתובת ${support}.`
+          ? `קיבלנו בקשה לשנות את כתובת האימייל של חשבון TEKANGO שלכם לכתובת <strong>${safeNew}</strong>. לחצו על הכפתור למטה כדי לאשר מכתובת זו את השינוי. אם לא ביקשתם זאת, אל תלחצו על הכפתור ופנו אלינו בכתובת ${support}.`
           : `We received a request to change the email address of your TEKANGO account to <strong>${safeNew}</strong>. Click the button below to approve the change from this address. If you didn't request this, do not click the button and contact us at ${support}.`,
         isHebrew
-          ? `קיבלנו בקשה לשנות את כתובת המייל של חשבון TEKANGO שלכם לכתובת ${message.newEmail}. אם לא ביקשתם זאת, אל תשתמשו בקישור ופנו אלינו בכתובת ${support}.`
+          ? `קיבלנו בקשה לשנות את כתובת האימייל של חשבון TEKANGO שלכם לכתובת ${message.newEmail}. אם לא ביקשתם זאת, אל תשתמשו בקישור ופנו אלינו בכתובת ${support}.`
           : `We received a request to change the email address of your TEKANGO account to ${message.newEmail}. If you didn't request this, do not use the link and contact us at ${support}.`,
         isHebrew ? 'אישור השינוי' : 'Approve Email Change',
         isHebrew ? 'לאישור השינוי' : 'Approve the email change',
@@ -192,12 +192,12 @@ export function buildEmailContent(message: AuthEmailMessage, isHebrew: boolean):
     }
     case 'email_change_confirm_new':
       return withLink(
-        isHebrew ? 'אישור כתובת המייל החדשה ל-TEKANGO' : 'Confirm your new TEKANGO email address',
+        isHebrew ? 'אישור כתובת האימייל החדשה ל-TEKANGO' : 'Confirm your new TEKANGO email address',
         isHebrew
-          ? 'כתובת זו הוזנה ככתובת המייל החדשה של חשבון TEKANGO. לחצו על הכפתור למטה כדי לאשר שהכתובת שייכת לכם. אם לא ביקשתם זאת, ניתן להתעלם מהודעה זו בבטחה.'
+          ? 'כתובת זו הוזנה ככתובת האימייל החדשה של חשבון TEKANGO. לחצו על הכפתור למטה כדי לאשר שהכתובת שייכת לכם. אם לא ביקשתם זאת, ניתן להתעלם מהודעה זו בבטחה.'
           : "This address was entered as the new email address of a TEKANGO account. Click the button below to confirm that it belongs to you. If you didn't request this, you can safely ignore this email.",
         isHebrew
-          ? 'כתובת זו הוזנה ככתובת המייל החדשה של חשבון TEKANGO. אם לא ביקשתם זאת, ניתן להתעלם מהודעה זו בבטחה.'
+          ? 'כתובת זו הוזנה ככתובת האימייל החדשה של חשבון TEKANGO. אם לא ביקשתם זאת, ניתן להתעלם מהודעה זו בבטחה.'
           : "This address was entered as the new email address of a TEKANGO account. If you didn't request this, you can safely ignore this email.",
         isHebrew ? 'אישור הכתובת החדשה' : 'Confirm New Email',
         isHebrew ? 'לאישור הכתובת החדשה' : 'Confirm the new email address',
@@ -220,12 +220,12 @@ export function buildEmailContent(message: AuthEmailMessage, isHebrew: boolean):
     case 'email_changed_notification': {
       const newEmail = message.details.email ?? '';
       return infoOnly(
-        isHebrew ? 'כתובת המייל של חשבון TEKANGO שונתה' : 'Your TEKANGO email address was changed',
+        isHebrew ? 'כתובת האימייל של חשבון TEKANGO שונתה' : 'Your TEKANGO email address was changed',
         isHebrew
-          ? `כתובת המייל של חשבון TEKANGO שלכם שונתה לכתובת <strong>${escapeHtml(newEmail)}</strong>.`
+          ? `כתובת האימייל של חשבון TEKANGO שלכם שונתה לכתובת <strong>${escapeHtml(newEmail)}</strong>.`
           : `The email address of your TEKANGO account was changed to <strong>${escapeHtml(newEmail)}</strong>.`,
         isHebrew
-          ? `כתובת המייל של חשבון TEKANGO שלכם שונתה לכתובת ${newEmail}.`
+          ? `כתובת האימייל של חשבון TEKANGO שלכם שונתה לכתובת ${newEmail}.`
           : `The email address of your TEKANGO account was changed to ${newEmail}.`,
       );
     }

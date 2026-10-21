@@ -16,7 +16,7 @@ describe('trial reminder copy - no legacy plan name, behavior unchanged', () => 
     expect(buildTrialReminderEmail({ stage: '3d', businessName: 'A', trialEndsAt: T, market: 'International' }).subject).toBe('Your TEKANGO trial ends in 3 days');
     expect(buildTrialReminderEmail({ stage: '24h', businessName: 'A', trialEndsAt: T, market: 'Local' }).subject).toBe('תזכורת אחרונה: תקופת הניסיון שלך מסתיימת מחר');
     expect(buildTrialReminderEmail({ stage: '24h', businessName: 'A', trialEndsAt: T, market: 'International' }).subject).toBe('Last reminder: your TEKANGO trial ends tomorrow');
-    expect(buildTrialReminderEmail({ stage: '3d', businessName: 'A', trialEndsAt: T, market: 'Local' }).html).toContain('כדי להמשיך להשתמש בכל האפשרויות ללא הפרעה');
+    expect(buildTrialReminderEmail({ stage: '3d', businessName: 'A', trialEndsAt: T, market: 'Local' }).html).toContain('כדי להמשיך ליהנות מכלל היכולות ללא שום הפרעה');
     expect(buildTrialReminderEmail({ stage: '3d', businessName: 'A', trialEndsAt: T, market: 'International' }).html).toContain('To keep enjoying all features without interruption, upgrade to a paid plan.');
     expect(senderAddressFor('Local')).toBe('TEKANGO Support <support@tekango.com>');
     expect(senderAddressFor('International')).toBe('TEKANGO <info@tekango.com>');

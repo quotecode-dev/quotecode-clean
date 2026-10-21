@@ -217,7 +217,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
         </label>
         <label className="av-field">
           <span>{t(isHebrew, C.status.he, C.status.en)}</span>
-          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }} aria-label={isHebrew ? 'סינון לפי מצב' : 'Filter by status'}>
+          <select value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }} aria-label={isHebrew ? 'סינון לפי סטטוס' : 'Filter by status'}>
             <option value="all">{t(isHebrew, C.allStatuses.he, C.allStatuses.en)}</option>
             {ACCOUNT_STATUS_ORDER.map((k) => <option key={k} value={k}>{tr(ACCOUNT_STATUS[k], isHebrew)}</option>)}
           </select>

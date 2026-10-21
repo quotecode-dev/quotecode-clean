@@ -58,7 +58,7 @@ export default function ProfessionalQuotePreview() {
   }, []);
 
   if (state.status === 'loading') {
-    return <div dir="rtl" style={{ fontFamily: FONT_HE, padding: '40px', textAlign: 'center' }}>טוען…</div>;
+    return <div dir="rtl" style={{ fontFamily: FONT_HE, padding: '40px', textAlign: 'center' }}>טוען...</div>;
   }
 
   if (state.status === 'forbidden') {
@@ -106,7 +106,8 @@ export default function ProfessionalQuotePreview() {
         <div style={{ background: LIGHT.bgCardAlt, border: `1px solid ${LIGHT.border}`, borderRadius: '12px', padding: '14px 18px', marginTop: '10px', fontSize: '0.8rem', color: LIGHT.textSecondary }}>
           רוצה לראות איך זה נראה ללקוח שלך?{' '}
           {/* PRODUCT_TRUTH_DECORATIVE: opens the app's existing public quote view page in a new tab for comparison; the destination page carries public_quote_view */}
-          <a href={publicUrl} target="_blank" rel="noreferrer" style={{ color: LIGHT.violet, fontWeight: '700' }}>פתיחת התצוגה ללקוח
+          <a href={publicUrl} target="_blank" rel="noreferrer" style={{ color: LIGHT.violet, fontWeight: '700' }}>
+            פתח את התצוגה ללקוח
           </a>
         </div>
       </div>

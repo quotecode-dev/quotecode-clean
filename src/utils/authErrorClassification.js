@@ -49,8 +49,8 @@ const PATTERNS = [
     userMessage: (err, isHebrew) => {
       const seconds = extractRateLimitSeconds(err?.message);
       const waitPhrase = seconds
-        ? (isHebrew ? `המתינו ${seconds} שניות ונסו שוב.` : `Please wait ${seconds} seconds and try again.`)
-        : (isHebrew ? 'המתינו מעט ונסו שוב.' : 'Please wait a moment and try again.');
+        ? (isHebrew ? `נא להמתין ${seconds} שניות ולנסות שוב.` : `Please wait ${seconds} seconds and try again.`)
+        : (isHebrew ? 'נא להמתין מעט ולנסות שוב.' : 'Please wait a moment and try again.');
       return isHebrew
         ? `⏳ יותר מדי בקשות בזמן קצר. ${waitPhrase}`
         : `⏳ Too many requests in a short time. ${waitPhrase}`;
@@ -70,7 +70,7 @@ const PATTERNS = [
     category: 'invalid_email_format',
     test: (err) => /invalid.*email|unable to validate email/i.test(String(err?.message || '')),
     userMessage: (_err, isHebrew) => (isHebrew
-      ? '❌ כתובת המייל אינה תקינה.'
+      ? '❌ כתובת האימייל אינה תקינה.'
       : '❌ That email address is not valid.'),
   },
   {
@@ -80,7 +80,7 @@ const PATTERNS = [
     // module exists to make safe: `err` may not be a real AuthError at all.
     test: (err) => err instanceof TypeError || /failed to fetch|network/i.test(String(err?.message || '')),
     userMessage: (_err, isHebrew) => (isHebrew
-      ? '❌ לא ניתן להתחבר לשרת. בדקו את החיבור לאינטרנט ונסו שוב.'
+      ? '❌ לא ניתן להתחבר לשרת. בדוק את החיבור לאינטרנט ונסה שוב.'
       : '❌ Could not reach the server. Check your connection and try again.'),
   },
   {
@@ -105,7 +105,7 @@ const PATTERNS = [
     // real, safe-to-show provider message.
     test: (err) => err?.name === 'AuthRetryableFetchError',
     userMessage: (_err, isHebrew) => (isHebrew
-      ? 'שגיאת שרת. נסו שוב מאוחר יותר.'
+      ? 'שגיאת שרת. נסה שוב מאוחר יותר.'
       : 'Server error. Please try again later.'),
   },
   {
@@ -119,7 +119,7 @@ const PATTERNS = [
     // account. This pattern now only fires for the real duplicate case.
     test: (err) => /already registered|user already exists/i.test(String(err?.message || '')),
     userMessage: (_err, isHebrew) => (isHebrew
-      ? 'כתובת המייל כבר רשומה במערכת. אפשר להתחבר או לאפס את הסיסמה.'
+      ? 'האימייל כבר רשום במערכת! אנא התחבר או אפס סיסמה.'
       : 'Email already registered! Please sign in or use password reset.'),
   },
   {
@@ -210,7 +210,7 @@ export function normalizeAuthError(error, isHebrew) {
   return {
     category: 'unknown',
     message: isHebrew
-      ? '❌ אירעה שגיאה בלתי צפויה. נסו שוב מאוחר יותר.'
+      ? '❌ אירעה שגיאה בלתי צפויה. נסה שוב מאוחר יותר.'
       : '❌ An unexpected error occurred. Please try again later.',
   };
 }

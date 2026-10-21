@@ -66,11 +66,11 @@ describe('A4: cm with a switch to metres', () => {
     expect(item.calculated_quantity).toBeCloseTo(1.8, 10);
   });
 
-  it('Hebrew: ס״מ by default, מטר on the switch', () => {
+  it('Hebrew: ס"מ by default, מטר on the switch', () => {
     render(<AddItemWizard {...baseProps} isHebrew sym="₪" />);
     setValue(byId('wiz-description'), 'חלון');
     fireEvent.click(screen.getByText('מחיר לפי שטח'));
-    expect(screen.getByText('רוחב (ס״מ)')).toBeTruthy();
+    expect(screen.getByText('רוחב (ס"מ)')).toBeTruthy();
     fireEvent.click(screen.getByTestId('wiz-unit-m'));
     expect(screen.getByText("רוחב (מ')")).toBeTruthy();
   });

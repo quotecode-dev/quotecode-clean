@@ -13,13 +13,13 @@ import { buildSampleQuote, parseSampleQuery } from '../quoteDocument/sampleQuote
 const COPY = {
   he: {
     title: 'TEKANGO - דוגמת הצעת מחיר',
-    label: 'הצעת מחיר לדוגמה · נתונים לדוגמה',
+    label: 'דוגמת הצעת מחיר · נתונים סינתטיים',
     style: 'סגנון',
     length: 'אורך',
     short: 'קצרה',
     long: 'ארוכה',
     detail: 'פירוט',
-    compact: 'מקוצר',
+    compact: 'תמציתי',
     expanded: 'מורחב',
     images: 'תמונות',
     withImages: 'עם',

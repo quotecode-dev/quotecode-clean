@@ -5,9 +5,9 @@
 // (m³/liter וכו') היא רשומה חדשה כאן, לעולם לא migration/redesign.
 export const PROFESSIONAL_UNITS = [
   { id: 'unit', he: 'יחידה', en: 'unit' },
-  { id: 'm2', he: 'מ״ר', en: 'm²' },
+  { id: 'm2', he: 'מ"ר', en: 'm²' },
   { id: 'linear_meter', he: 'מטר אורך', en: 'linear meter' },
-  { id: 'kg', he: 'ק״ג', en: 'kg' },
+  { id: 'kg', he: 'ק"ג', en: 'kg' },
   { id: 'hour', he: 'שעה', en: 'hour' },
   { id: 'day', he: 'יום', en: 'day' },
 ];

@@ -169,7 +169,7 @@ describe('Descriptive guided copy (Descriptive Guided AI Cards + Context Header 
 
   it('matches the Owner\'s own exact given wording for the 5 top-level groups and the 2 example subtopics, verbatim', () => {
     const byId = (id) => GUIDED_TOPIC_GROUPS.find((g) => g.id === id);
-    expect(byId('quotes').heDesc).toBe('יצירה, חיפוש, מצב ופעולות על הצעות');
+    expect(byId('quotes').heDesc).toBe('יצירה, חיפוש, סטטוס ופעולות על הצעות');
     expect(byId('help_support').heDesc).toBe('עזרה בתהליך הנוכחי או פתרון תקלה');
     expect(byId('plans_billing').heDesc).toBe('חבילות, מנוי, חיובים ותשלומים');
     expect(byId('my_business').heDesc).toBe('לקוחות, פרטי העסק והגדרות');

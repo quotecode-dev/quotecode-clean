@@ -61,7 +61,7 @@ export default function AdminUsersTab({
   const { summary: legacyTargetSummary } = useAdminAccountSummary(legacyTarget ? legacyTarget.user_id : null);
   const legacyRetired = legacyOperationsRetired(legacyTargetSummary);
   const legacyRetiredText = isHebrew
-    ? 'הפעולה מהמערכת הקודמת אינה זמינה: מערכת המסלולים החדשה פעילה בחשבון. המסלול, היתרה והזכאות נקבעים רק בשרת.'
+    ? 'פעולת מורשת זו אינה זמינה: מערך המסלולים החדש פעיל עבור החשבון. מסלול, יתרה וזכאות נקבעים רק בשרת.'
     : 'This legacy operation is unavailable: the new plan system is active for this account. Plan, balance and entitlement are decided only by the server.';
   // Codex verification AV-03 (2026-10-17): the revoke explains the revoke - the account returns to the state its own data and the server
   // give it, no charge, no promise of an entitlement that is not proven
@@ -70,7 +70,7 @@ export default function AdminUsersTab({
     : 'Revoking Lifetime: the account returns to the state its own data and the server give it (trial, expired or 10 free quotes — not yet active), with no charge. Revoking creates no plan or balance.';
   // Night task 2026-10-16 (PLN-7): what the Lifetime switch really does today
   const legacyOnlyText = isHebrew
-    ? 'מנוי לכל החיים: המערכת והצ׳אט יציגו לחשבון „מנוי לכל החיים” וכל היכולות פתוחות בו, ללא חיוב. במערך המסלולים החדש (כשיופעל) זה לא משנה מסלול או יתרה.'
+    ? 'מנוי לכל החיים: המערכת והצ\'אט יציגו לחשבון „מנוי לכל החיים” וכל היכולות פתוחות בו, ללא חיוב. במערך המסלולים החדש (כשיופעל) זה לא משנה מסלול או יתרה.'
     : 'Lifetime: the app and the chat show the account as a "Lifetime subscription" with every capability open and no charge. In the new plan system (once active) it does not change a plan or a balance.';
 
 
@@ -110,7 +110,7 @@ export default function AdminUsersTab({
       throw new Error(await getFunctionErrorMessage(verifyError, isHebrew ? 'אימות הסיסמה נכשל.' : 'Password verification failed.'));
     }
     if (!verifyData?.success || !verifyData?.proofToken) {
-      throw new Error(verifyData?.error || (isHebrew ? 'סיסמת המנהל שגויה.' : 'Incorrect admin password!'));
+      throw new Error(verifyData?.error || (isHebrew ? 'סיסמת אדמין שגויה!' : 'Incorrect admin password!'));
     }
 
     const { data: actionData, error: actionError } = await invokeWithFreshSession(functionName, {
@@ -144,7 +144,7 @@ export default function AdminUsersTab({
     try {
       const targetUserId = resetModalUser.user_id;
       if (deleteConfirmInput.trim().toLowerCase() !== (resetModalUser.email || '').trim().toLowerCase()) {
-        throw new Error(isHebrew ? 'כתובת המייל לאישור אינה תואמת.' : 'The confirmation email does not match.');
+        throw new Error(isHebrew ? 'כתובת הדוא״ל לאישור אינה תואמת.' : 'The confirmation email does not match.');
       }
       validateReasonAndTarget(targetUserId);
       await runProtectedAction({ action: 'reset_quotes', targetUserId, reason: adminReasonInput.trim(), functionName: 'admin-cleanup-user-quotes' });
@@ -289,7 +289,7 @@ export default function AdminUsersTab({
       {lifetimeActionUser && (() => {
         const targetIsLifetime = lifetimeActionUser.is_lifetime === true;
         // Owner console 2026-10-16: the states in words (the subscription status wording), never a raw technical field.
-        const lifetimeWords = (on) => (on ? (isHebrew ? 'מנוי לכל החיים' : 'Lifetime subscription') : (isHebrew ? 'ללא מנוי לכל החיים' : 'No Lifetime subscription'));
+        const lifetimeWords = (on) => (on ? (isHebrew ? 'מנוי LIFETIME' : 'Lifetime subscription') : (isHebrew ? 'ללא מנוי LIFETIME' : 'No Lifetime subscription'));
         return (
           <AdminProtectedDialog
             isHebrew={isHebrew} kind={targetIsLifetime ? 'revoke' : 'grant'} target={lifetimeActionUser}

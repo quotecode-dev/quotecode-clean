@@ -81,7 +81,7 @@ export function AdminPlanSystemNotice({ system, isHebrew }) {
 export function AdminLegacyRecord({ account, legacy = null, summary = null, isHebrew, compact = false, formatDate = null }) {
   const view = legacy ? { is_lifetime: legacy.isLifetime, trial_ends_at: legacy.trialEndsAt } : account;
   if (compact) return <AdminAccountStatus account={view} summary={summary} isHebrew={isHebrew} formatDate={formatDate} />;
-  const title = isHebrew ? 'מצב מנוי' : 'Subscription status';
+  const title = isHebrew ? 'סטטוס מנוי' : 'Subscription status';
   return (
     <section className="admin-details-card admin-legacy-record" aria-label={title}>
       <h3>{title}</h3>

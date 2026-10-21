@@ -53,7 +53,7 @@ export default function QuotePrintModeModal({ open, isHebrew, intent, onClose, o
         <button
           type="button"
           onClick={onClose}
-          aria-label={isHebrew ? 'סגירה' : 'Close'}
+          aria-label={isHebrew ? 'סגור' : 'Close'}
           style={{ position: 'absolute', top: '14px', [isHebrew ? 'left' : 'right']: '14px', background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: '4px' }}
         >
           <X size={16} strokeWidth={2.4} />

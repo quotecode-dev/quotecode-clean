@@ -388,7 +388,7 @@ export async function runToolLoop(input: ToolLoopInput): Promise<{ answer: strin
 
 export function dailyCapAnswer(isHebrew: boolean, limit: number): string {
   return isHebrew
-    ? `הגעתם למכסת ${limit} השאלות היומית לעוזר. המכסה מתחדשת מחר. בינתיים אפשר להמשיך לעבוד במערכת כרגיל.`
+    ? `הגעת למכסת ${limit} השאלות היומית לעוזר. המכסה מתחדשת מחר. בינתיים אפשר להמשיך לעבוד במערכת כרגיל.`
     : `You have reached today's limit of ${limit} assistant questions. It renews tomorrow. Meanwhile, you can keep working in TEKANGO as usual.`;
 }
 

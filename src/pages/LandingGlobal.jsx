@@ -130,7 +130,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       // L08: no public link / caption to the sample-quote route (no authority); the figure keeps an accessible name only.
       docLabel: 'Sample quotation in the Classic style',
       // OD-01 (Owner 2026-10-07): the trial line now states the Free-10 policy, marked as not yet activated.
-      trial: '10 free quotes or 7 days, whichever comes first · not active yet',
+      trial: '10 free quotes in total · not active yet',
       motion: {
         eyebrow: 'Quotes that work as hard as you do',
         title: 'From the jobsite to a signed quote',

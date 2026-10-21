@@ -58,7 +58,7 @@ export const REMINDERS_COPY = Object.freeze({
     from: 'מ-', to: 'עד',
     weekdays: ['א׳', 'ב׳', 'ג׳', 'ד׳', 'ה׳', 'ו׳', 'ש׳'],
     pauseTitle: 'השהיית כל האוטומציות',
-    pauseText: 'עוצר מיד את כל השליחות המתוכננות ואת יצירת המשימות המתוכננות. התזכורות בממשק ממשיכות.',
+    pauseText: 'עוצר מיד כל שליחה ויצירת משימה מתוכננות. התזכורות בממשק ממשיכות.',
     historyTitle: 'היסטוריית פעולות',
     historyEmpty: 'עדיין אין פעולות.',
     save: 'שמירה',
@@ -66,7 +66,7 @@ export const REMINDERS_COPY = Object.freeze({
     saving: 'שומר…',
     unavailable: 'שמירת ההגדרות תהיה זמינה אחרי עדכון השרת. כרגע פועלות ברירות המחדל: בממשק בלבד, ושום הודעה לא נשלחת ללקוח.',
     saveFailed: 'השמירה נכשלה. ההגדרות הקודמות נשארו ללא שינוי.',
-    customerSendingInactive: 'שליחת מיילים אוטומטית ללקוחות עדיין לא פעילה בשרת. אפשר להגדיר כללים, אבל ההודעות יישלחו רק אחרי שהשליחה תופעל.',
+    customerSendingInactive: 'שליחת מיילים אוטומטית ללקוחות עדיין לא פעילה בשרת. אפשר להגדיר כללים — הם לא יישלחו עד שהשליחה תופעל.',
     blockers: {
       mode_off: 'התזכורות כבויות', not_selected: 'לא סומן', full_mode_required: 'דורש מצב מלא', automation_paused: 'האוטומציה מושהית',
       days_required: 'בחרו ימים', first_view_unavailable: 'רישום צפייה בקישור עדיין לא פעיל בשרת', server_automation_inactive: 'אוטומציה עדיין לא פעילה בשרת',
@@ -75,7 +75,7 @@ export const REMINDERS_COPY = Object.freeze({
     },
     ready: 'יפעל',
     rule: {
-      title: 'הגדרת כלל', trigger: 'מה מפעיל את הכלל', timing: 'עיתוי', recipient: 'נמען', channel: 'ערוץ', language: 'שפה', subject: 'נושא', body: 'תוכן',
+      title: 'הגדרת כלל', trigger: 'טריגר', timing: 'עיתוי', recipient: 'נמען', channel: 'ערוץ', language: 'שפה', subject: 'נושא', body: 'תוכן',
       triggers: { customer_followup_email: 'קישור ההצעה נצפה לראשונה, וההצעה עדיין ממתינה לחתימה', customer_validity_email: 'תוקף ההצעה מתקרב, וההצעה עדיין ממתינה לחתימה' },
       recipientText: 'איש הקשר של ההצעה — המייל שבכרטיס הלקוח',
       channelText: 'מייל', waManual: 'WhatsApp — ידני בלבד',
@@ -97,10 +97,10 @@ export const REMINDERS_COPY = Object.freeze({
     // Task 40 (Owner console 2026-10-15): the approved welcome item for a new account - copy is Owner-locked
     welcome: {
       title: 'ברוכים הבאים למשפחת TEKANGO! 👋',
-      body: 'כאן תקבלו התראה כשלקוח צופה בהצעה. אפשר להפעיל גם תזכורות להצעות שנצפו ועדיין לא אושרו ולהצעות שתוקפן עומד להסתיים. את התזכורות מפעילים',
+      body: 'כאן תקבלו התראה כשלקוח צופה בהצעה. אפשר להפעיל גם תזכורת כשהצעה נצפתה ועדיין לא אושרה וכשתוקף הצעה מתקרב לסיום,',
       settingsLink: 'בהגדרות עסק › תזכורות ואוטומציות', // Owner 2026-10-15: a link to the exact screen
       support: 'יש שאלה או בקשה? אנחנו כאן:',
-      ai: 'אפשר גם להיעזר בעוזר החכם שלנו.',
+      ai: 'אפשר גם להשתמש ב-AI החכם שלנו.',
       aiButton: 'פתיחת צ׳אט AI',
     },
     center: { title: 'התראות', empty: 'אין תזכורות כרגע.', loading: 'טוענים את התזכורות…', markAll: 'סימון הכול כנקרא', modeOff: 'התזכורות כבויות.', modeLine: { in_app: 'מצב: בממשק בלבד — שום הודעה לא נשלחת ללקוחות.', off: 'מצב: כבוי.', full: 'מצב: מלא.' }, readNotSaved: 'סימון כנקרא יישמר אחרי עדכון השרת.' },

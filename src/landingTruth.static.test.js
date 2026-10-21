@@ -97,7 +97,7 @@ describe('landing truth gate', () => {
     expect(he).not.toMatch(/14 יום ניסיון|ניסיון PRO/);
     expect(en).not.toMatch(/14-day|PRO trial|Free Trial/);
     expect(he).toContain('10 הצעות מחיר חינם או 7 ימים מההרשמה, המוקדם מביניהם. ההטבה עדיין לא הופעלה.');
-    expect(en).toContain('10 free quotes or 7 days, whichever comes first · not active yet');
+    expect(en).toContain('10 free quotes in total · not active yet');
     // Task 37: the same "paid / checkout not available" truth in the Owner-approved L1 wording
     expect(en).toMatch(/The new paid plan cannot be purchased yet/);
     expect(he).toMatch(/המסלול החדש בתשלום עדיין אינו זמין לרכישה/);

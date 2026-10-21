@@ -279,7 +279,7 @@ describe('PROFESSIONAL_UNITS (Owner-approved §155.1.4/§156)', () => {
 
 describe('getProfessionalUnitLabel', () => {
   it('returns the correct label per language for a known unit', () => {
-    expect(getProfessionalUnitLabel('m2', true)).toBe('מ״ר');
+    expect(getProfessionalUnitLabel('m2', true)).toBe('מ"ר');
     expect(getProfessionalUnitLabel('m2', false)).toBe('m²');
     expect(getProfessionalUnitLabel('hour', true)).toBe('שעה');
     expect(getProfessionalUnitLabel('hour', false)).toBe('hour');

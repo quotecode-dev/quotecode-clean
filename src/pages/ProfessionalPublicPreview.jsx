@@ -103,7 +103,7 @@ export default function ProfessionalPublicPreview() {
   }, [id]);
 
   if (state.status === 'loading') {
-    return <div dir="rtl" style={{ fontFamily: FONT_HE, padding: '40px', textAlign: 'center' }}>טוען…</div>;
+    return <div dir="rtl" style={{ fontFamily: FONT_HE, padding: '40px', textAlign: 'center' }}>טוען...</div>;
   }
   if (state.status !== 'ready') {
     return <div dir="rtl" style={{ fontFamily: FONT_HE, padding: '40px', textAlign: 'center' }}>הצעת המחיר אינה נמצאת.</div>;
@@ -140,7 +140,7 @@ export default function ProfessionalPublicPreview() {
             exists. Purely a review aid. */}
         <div style={{ background: LIGHT.bgCardAlt, border: `1px solid ${LIGHT.border}`, borderRadius: '12px', padding: '10px 12px', marginBottom: '14px' }}>
           <div style={{ fontSize: '0.68rem', fontWeight: '700', color: LIGHT.violet, marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-            תצוגה מקדימה להשוואה — בחרו גרסה
+            תצוגה מקדימה להשוואה — בחר גרסה
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
             {/* PRODUCT_TRUTH_DECORATIVE: switches between internal layout variants on an owner-only comparison tool explicitly documented as never shown to a real customer */}

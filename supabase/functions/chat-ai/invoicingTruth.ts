@@ -37,7 +37,7 @@ export function classifyInvoicingIntent(lastUserMessage: unknown): boolean {
 export function formatInvoicingTruthAnswer(isHebrew: boolean, payload?: ProductTruthFactPayload): string {
   if (payload && payload.truthStatus !== 'INVOICING_NOT_ISSUED') throw new Error(`formatInvoicingTruthAnswer requires an INVOICING_NOT_ISSUED payload, got ${payload.truthStatus}`);
   if (isHebrew) {
-    return 'כרגע TEKANGO לא מפיקה חשבוניות, חשבוניות מס או קבלות - היכולת הזו עוד לא פעילה במערכת. מה שכן קיים: הצעת מחיר שאפשר להוריד כ-PDF או להדפיס (זו הצעת מחיר, לא חשבונית), ושליחת ההצעה ללקוח במייל. המצב "שולמה" הוא סימון ידני שלך בהצעה - הוא לא גובה כסף ולא מפיק קבלה. גם סליקה/תשלום אונליין עוד לא קיימים. חשבוניות וקבלות צריך להפיק כרגע מחוץ ל-TEKANGO.';
+    return 'כרגע TEKANGO לא מפיקה חשבוניות, חשבוניות מס או קבלות - היכולת הזו עוד לא פעילה במערכת. מה שכן קיים: הצעת מחיר שאפשר להוריד כ-PDF או להדפיס (זו הצעת מחיר, לא חשבונית), ושליחת ההצעה ללקוח במייל. הסטטוס "שולם" הוא סימון ידני שלך בהצעה - הוא לא גובה כסף ולא מפיק קבלה. גם סליקה/תשלום אונליין עוד לא קיימים. חשבוניות וקבלות צריך להפיק כרגע מחוץ ל-TEKANGO.';
   }
   return "Right now TEKANGO does not issue invoices, tax invoices or receipts - that capability is not live. What does exist: a quote you can download as a PDF or print (a quote document, not an invoice), and emailing the quote to your client. The \"Paid\" status is a label you set on a quote yourself - it does not collect money or issue a receipt. Online payment/checkout is not available either. For now, invoices and receipts have to be issued outside TEKANGO.";
 }

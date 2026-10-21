@@ -18,7 +18,7 @@ const GROUP_LABEL = { overdue: ['באיחור', 'Overdue'], today: ['היום', 
 const PRIORITY_LABEL = { high: ['עדיפות גבוהה', 'High priority'], normal: ['עדיפות רגילה', 'Normal priority'], low: ['עדיפות נמוכה', 'Low priority'] };
 const PRIORITY_OPTION = { high: ['גבוהה', 'High'], normal: ['רגילה', 'Normal'], low: ['נמוכה', 'Low'] };
 const ERROR_TEXT = {
-  title_required: ['הזינו כותרת למשימה.', 'Enter a task title.'],
+  title_required: ['נא להזין כותרת למשימה.', 'Enter a task title.'],
   title_too_long: [`הכותרת ארוכה מ-${TASK_TITLE_MAX} תווים.`, `The title is longer than ${TASK_TITLE_MAX} characters.`],
   notes_too_long: [`ההערות ארוכות מ-${TASK_NOTES_MAX} תווים.`, `The notes are longer than ${TASK_NOTES_MAX} characters.`],
   invalid_priority: ['יש לבחור עדיפות מהרשימה.', 'Choose a priority from the list.'],
@@ -26,7 +26,7 @@ const ERROR_TEXT = {
   invalid_time: ['השעה אינה תקינה.', 'The time is not valid.'],
   time_without_date: ['כדי לקבוע שעה יש לבחור קודם תאריך יעד.', 'Choose a due date before setting a time.'],
   link_not_allowed: ['ההצעה או הלקוח שנבחרו אינם זמינים בחשבון זה.', 'The selected quote or client is not available in this account.'],
-  follow_up_unavailable: ['כדי לשמור משימת מעקב נדרש עדכון שרת שעדיין לא הותקן. דבר לא נשמר, והפרטים שהקלדתם נשארו בטופס. אפשר לשמור שוב אחרי העדכון. אפשר ליצור משימה רגילה כרגיל.', 'Saving a follow-up needs a server update that is not installed yet. Nothing was saved - what you typed is kept and you can save again after the update. Ordinary tasks work as usual.'],
+  follow_up_unavailable: ['שמירת משימת מעקב דורשת עדכון של השרת שעדיין לא הותקן. לא נשמר דבר - מה שהקלדתם נשאר, ואפשר לשמור שוב אחרי העדכון. משימה רגילה אפשר ליצור כרגיל.', 'Saving a follow-up needs a server update that is not installed yet. Nothing was saved - what you typed is kept and you can save again after the update. Ordinary tasks work as usual.'],
   follow_up_exists: ['כבר יש משימת מעקב פתוחה להצעה הזו. אפשר לפתוח אותה, או להשלים אותה לפני פתיחת מעקב נוסף.', 'An open follow-up already exists for this quote. Open it, or complete it before opening another one.'],
   not_allowed: ['אין הרשאה לפעולה זו. התחברו מחדש ונסו שוב.', 'This action is not allowed. Sign in again and retry.'],
   not_signed_in: ['יש להתחבר כדי לנהל משימות.', 'Sign in to manage tasks.'],
@@ -412,12 +412,12 @@ export default function TasksTab({
               <button type="button" className="pf-tasks-btn" onClick={() => setForm(null)} disabled={form.saving}>{L(['ביטול', 'Cancel'])}</button>
               {/* PRODUCT_TRUTH_CAPABILITY: manual_tasks */}
               <button type="submit" className="pf-tasks-btn pf-tasks-btn--primary" data-testid="task-save" disabled={form.saving}>
-                {form.saving ? L(['שומר…', 'Saving...']) : L(['שמירה', 'Save'])}
+                {form.saving ? L(['שומר...', 'Saving...']) : L(['שמירה', 'Save'])}
               </button>
             </div>
           </form>
         )}
-        {load.state === 'loading' && <div className="pf-tasks-state" role="status" data-testid="tasks-loading">{L(['טוען משימות…', 'Loading tasks...'])}</div>}
+        {load.state === 'loading' && <div className="pf-tasks-state" role="status" data-testid="tasks-loading">{L(['טוען משימות...', 'Loading tasks...'])}</div>}
         {load.state === 'error' && (
           <div className="pf-tasks-alert" role="alert" data-testid="tasks-load-error">
             <span>{errorText(load.code)}</span>

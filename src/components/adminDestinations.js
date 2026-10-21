@@ -102,8 +102,8 @@ export const ADMIN_DESTINATIONS = [
   },
   {
     id: 'ai-support', hub: 'system', icon: Bot, permission: 'ai-support.view', mobile: 'more', available: true,
-    label: { he: 'יומן התמיכה של העוזר החכם', en: 'AI support log' },
-    title: { he: 'יומן התמיכה של העוזר החכם — מנהל מערכת ראשי', en: 'AI Support Logs - Super Admin' },
+    label: { he: 'יומן תמיכת AI', en: 'AI support log' },
+    title: { he: 'יומן AI Support - סופר אדמין', en: 'AI Support Logs - Super Admin' },
     description: { he: 'שיחות העוזר החכם עם המשתמשים', en: 'The smart assistant\'s conversations with users' },
     render: (host) => createElement(AISupportLogsContent, { isHebrew: host.isHebrew }),
   },

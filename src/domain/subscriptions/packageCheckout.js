@@ -50,10 +50,10 @@ export async function startPackageCheckout({ billingPeriod, smartPack = false, i
 
 export function checkoutErrorMessage(code, isHebrew) {
   if (code === 'already_subscribed') {
-    return isHebrew ? 'בחשבון הזה כבר יש מנוי פעיל. דף התשלום לא נפתח.' : 'This account already has an active package. No payment page was opened.';
+    return isHebrew ? 'לחשבון הזה כבר יש חבילה פעילה. לא נפתח דף תשלום.' : 'This account already has an active package. No payment page was opened.';
   }
   if (code === 'payment_update_required') {
-    return isHebrew ? 'החיוב האחרון לא עבר. יתבצע ניסיון חיוב נוסף. לעדכון הכרטיס פנו אלינו במייל.' : 'The last charge did not go through and is being retried. To update the card, email us.';
+    return isHebrew ? 'החיוב האחרון לא עבר, והוא ינוסה שוב. לעדכון הכרטיס פנו אלינו במייל.' : 'The last charge did not go through and is being retried. To update the card, email us.';
   }
   return isHebrew ? 'לא ניתן לפתוח את דף התשלום כרגע. לא בוצע חיוב. נסו שוב בעוד רגע.' : 'The payment page cannot be opened right now. Nothing was charged. Try again in a moment.';
 }
@@ -97,13 +97,13 @@ export function billingReturnState(kind, summary, elapsedMs) {
 export function billingReturnText(state, isHebrew, { smartPack = false } = {}) {
   switch (state) {
     case 'waiting':
-      return isHebrew ? 'מאמתים את התשלום… המסלול יופעל רק אחרי שהתשלום יאושר.' : 'Confirming your payment… Your package opens only after the payment is confirmed.';
+      return isHebrew ? 'מאמתים את התשלום… המסלול ייפתח רק אחרי שהתשלום יאושר.' : 'Confirming your payment… Your package opens only after the payment is confirmed.';
     case 'confirmed':
       return (isHebrew ? 'התשלום אושר.' : 'Payment confirmed.') + (smartPack ? (isHebrew ? ' חכם פלוס פעיל.' : ' SMART PACK is active.') : '');
     case 'timeout':
-      return isHebrew ? 'האישור על התשלום עדיין לא הגיע. אם בוצע חיוב, המסלול יופעל אוטומטית בתוך כמה דקות.' : 'The payment confirmation has not arrived yet. If a charge was made, your package opens automatically within a few minutes.';
+      return isHebrew ? 'האישור על התשלום עדיין לא הגיע. אם בוצע חיוב, המסלול ייפתח מעצמו תוך כמה דקות.' : 'The payment confirmation has not arrived yet. If a charge was made, your package opens automatically within a few minutes.';
     case 'failed':
-      return isHebrew ? 'התשלום לא הושלם והמסלול לא הופעל. אפשר לנסות שוב.' : 'The payment was not completed, and no package was opened. You can try again.';
+      return isHebrew ? 'התשלום לא הושלם, ולא נפתח מסלול. אפשר לנסות שוב.' : 'The payment was not completed, and no package was opened. You can try again.';
     case 'cancelled':
       return isHebrew ? 'התשלום בוטל. לא בוצע חיוב.' : 'The payment was cancelled. Nothing was charged.';
     default:

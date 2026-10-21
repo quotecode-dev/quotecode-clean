@@ -68,7 +68,7 @@ const amounts = (g: Group, accountCurrency: string, isHebrew: boolean) => {
 export function formatQuoteStatsAnswer(stats: QuoteStats, accountCurrency: string, isHebrew: boolean): string {
   if (!stats.all.count) {
     return isHebrew
-      ? 'עדיין אין הצעות מחיר בחשבון. אחרי יצירת הצעה אוכל לסכם כאן את מספר ההצעות ואת הסכומים שלהן.'
+      ? 'עדיין אין הצעות מחיר בחשבון שלך. כשתיצור הצעה, אוכל לסכם כאן כמה הצעות יש לך ומה הסכומים שלהן.'
       : 'There are no quotes in your account yet. Once you create one, I can sum up here how many quotes you have and their amounts.';
   }
   const line = (label: string, g: Group) => (isHebrew

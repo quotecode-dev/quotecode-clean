@@ -31,12 +31,12 @@ const openChat = async ({ dashboard = true, phone = false } = {}) => {
   await act(async () => { await Promise.resolve(); });
   await waitFor(() => expect(mocks.getSession).toHaveBeenCalled());
   await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
-  fireEvent.click(screen.getByLabelText('צ׳אט AI'));
+  fireEvent.click(screen.getByLabelText('צאט AI'));
 };
 const pasteImage = async () => {
   const file = pngFile();
   await act(async () => {
-    fireEvent.paste(screen.getByPlaceholderText('שאלו משהו…'), { clipboardData: { items: [{ kind: 'file', type: 'image/png', getAsFile: () => file }], files: [file] } });
+    fireEvent.paste(screen.getByPlaceholderText('שאל משהו...'), { clipboardData: { items: [{ kind: 'file', type: 'image/png', getAsFile: () => file }], files: [file] } });
   });
 };
 
@@ -45,8 +45,8 @@ describe('a screenshot in the smart chat (Owner 2026-10-19)', () => {
     await openChat();
     await pasteImage();
     await screen.findByTestId('ai-chat-screenshot-preview');
-    fireEvent.change(screen.getByPlaceholderText('שאלו משהו…'), { target: { value: 'למה כתוב שאין תבניות?' } });
-    fireEvent.click(screen.getByLabelText('שליחה'));
+    fireEvent.change(screen.getByPlaceholderText('שאל משהו...'), { target: { value: 'למה כתוב שאין תבניות?' } });
+    fireEvent.click(screen.getByLabelText('שלח'));
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledTimes(1));
     const body = mocks.invoke.mock.calls[0][1].body;
     expect(body.screenshot).toMatch(/^data:image\/(png|jpeg);base64,/);
@@ -54,8 +54,8 @@ describe('a screenshot in the smart chat (Owner 2026-10-19)', () => {
     expect(screen.queryByTestId('ai-chat-screenshot-preview')).toBeNull();
     expect(await screen.findByTestId('ai-chat-user-screenshot')).toBeTruthy();
     // the next question goes without the image, and the image never rides in the transcript
-    fireEvent.change(screen.getByPlaceholderText('שאלו משהו…'), { target: { value: 'ועכשיו?' } });
-    fireEvent.click(screen.getByLabelText('שליחה'));
+    fireEvent.change(screen.getByPlaceholderText('שאל משהו...'), { target: { value: 'ועכשיו?' } });
+    fireEvent.click(screen.getByLabelText('שלח'));
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledTimes(2));
     expect(mocks.invoke.mock.calls[1][1].body.screenshot).toBeUndefined();
     expect(JSON.stringify(mocks.invoke.mock.calls[1][1].body.messages)).not.toMatch(/data:image/);
@@ -68,10 +68,10 @@ describe('a screenshot in the smart chat (Owner 2026-10-19)', () => {
     expect(screen.queryByTestId('ai-chat-screenshot-preview')).toBeNull();
     await pasteImage();
     await screen.findByTestId('ai-chat-screenshot-preview');
-    fireEvent.click(screen.getByLabelText('שליחה'));
+    fireEvent.click(screen.getByLabelText('שלח'));
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledTimes(1));
     expect(mocks.invoke.mock.calls[0][1].body.messages.at(-1).content).toBe('מה רואים בצילום המסך, ומה לעשות?');
-    const input = screen.getByPlaceholderText('שאלו משהו…');
+    const input = screen.getByPlaceholderText('שאל משהו...');
     const ev = fireEvent.paste(input, { clipboardData: { items: [{ kind: 'string', type: 'text/plain', getAsFile: () => null }], files: [] } });
     expect(ev).toBe(true); // not prevented - the text pastes normally
   });

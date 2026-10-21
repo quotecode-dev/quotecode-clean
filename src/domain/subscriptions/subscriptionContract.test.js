@@ -112,7 +112,7 @@ describe('decideCapability (one rule for every gate)', () => {
 
 describe('account status model (badge/settings)', () => {
   it('Free shows the server balance; paid shows the canonical name; nothing shows 0/5 or a trial', () => {
-    expect(accountStatusModel(parseAccountSummary(free()), 'he')).toMatchObject({ label: 'חינם', detail: 'יתרה: 7 מתוך 10 הצעות' });
+    expect(accountStatusModel(parseAccountSummary(free()), 'he')).toMatchObject({ label: 'חינם', detail: 'נותרו 7 מתוך 10 הצעות' });
     expect(accountStatusModel(parseAccountSummary(paid()), 'en')).toMatchObject({ label: 'Modern', detail: null });
     for (const state of ['loading', 'not_activated', 'not_deployed', 'unprovisioned', 'unavailable', 'invalid']) {
       for (const lang of ['he', 'en']) {

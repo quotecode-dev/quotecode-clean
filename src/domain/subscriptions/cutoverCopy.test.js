@@ -12,7 +12,7 @@ describe('prepared cutover copy (off)', () => {
     expect(all).not.toMatch(/14|trial|ניסיון|unlimited|ללא הגבלה כלל|annual|שנתי|\d+\.\d{2}/i);
   });
   it('no fake balance: text only for a valid server Free-10 summary', () => {
-    expect(freeBalanceText('he', { accountMode: 'free', freeQuotes: { limit: 10, consumed: 3, remaining: 7 } })).toBe('יתרה: 7 מתוך 10 הצעות חינם');
+    expect(freeBalanceText('he', { accountMode: 'free', freeQuotes: { limit: 10, consumed: 3, remaining: 7 } })).toBe('נותרו 7 מתוך 10 הצעות חינם');
     expect(freeBalanceText('en', { accountMode: 'free', freeQuotes: { limit: 10, consumed: 10, remaining: 0 } })).toMatch(/used your 10 free quotes/);
     for (const bad of [null, undefined, {}, { accountMode: 'paid', freeQuotes: { limit: 10, remaining: 5 } }, { accountMode: 'free', freeQuotes: { limit: 20, remaining: 5 } },
       { accountMode: 'free', freeQuotes: { limit: 10, remaining: 11 } }, { accountMode: 'free', freeQuotes: { limit: 10, remaining: '7' } }, { activationPhase: 'off' }]) {

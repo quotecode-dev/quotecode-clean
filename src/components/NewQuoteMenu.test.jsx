@@ -31,7 +31,7 @@ describe.each([['Hebrew', true], ['English', false]])('NewQuoteMenu (%s)', (_l, 
     fireEvent.click(trigger);
     const labels = screen.getAllByRole('menuitem').map((i) => i.querySelector('strong').textContent);
     expect(labels).toEqual(isHebrew
-      ? ['הצעת מחיר רגילה', 'הצעת מחיר חכמה עם AI', 'הצעה לפי מידות']
+      ? ['הצעת מחיר רגילה', 'הצעת מחיר חכמה עם AI', 'הצעה מדודה לפי מקצוע']
       : ['Standard quote', 'AI smart quote', 'Profession-aware measured quote']);
   });
 });

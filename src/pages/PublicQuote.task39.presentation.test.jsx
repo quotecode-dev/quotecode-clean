@@ -104,7 +104,7 @@ describe('recipient block', () => {
     const box = container.querySelector('.pq-recipient');
     expect(box).toHaveTextContent('לכבוד:');
     expect(box.querySelector('.pq-recipient-name')).toHaveTextContent('Client Ltd');
-    expect(box).toHaveTextContent('שלום, הנה הצעת המחיר שהכנו עבורכם:');
+    expect(box).toHaveTextContent('שלום, להלן הצעת המחיר שהוכנה עבורך בקפידה:');
     const details = [...box.querySelectorAll('.pq-recipient-detail')];
     expect(details[0]).toHaveTextContent('buyer@client.test');
     expect(details[0]).toHaveStyle({ direction: 'ltr' });
@@ -118,8 +118,8 @@ describe('recipient block', () => {
     expect(box).toHaveTextContent('Hello, please find the price quote prepared for you below:');
     expect(box).toHaveTextContent('+1 415 555 0100');
   });
-  it('a quote with no client record still addresses the reader (HE "מקבלי ההצעה", EN "Valued Client")', () => {
-    expect(he({ client: null }).container.querySelector('.pq-recipient-name')).toHaveTextContent('מקבלי ההצעה');
+  it('a quote with no client record still addresses the reader (HE "לקוח נכבד", EN "Valued Client")', () => {
+    expect(he({ client: null }).container.querySelector('.pq-recipient-name')).toHaveTextContent('לקוח נכבד');
     cleanup();
     expect(en({ client: null }).container.querySelector('.pq-recipient-name')).toHaveTextContent('Valued Client');
   });
@@ -144,8 +144,8 @@ describe('recipient block', () => {
 describe('HE / Local / ILS totals: whole shekels ".00", VAT by client type', () => {
   it('business client: subtotal, VAT added on top, and the total - all whole shekels', () => {
     const { container } = he();
-    expect(totalsText(container)).toContain('סכוםביניים:₪1,000.00');
-    expect(totalsText(container)).toContain('מע״מ(18%):₪180.00');
+    expect(totalsText(container)).toContain('סיכוםביניים:₪1,000.00');
+    expect(totalsText(container)).toContain('מע"מ(18%):₪180.00');
     expect(finalTotal(container)).toBe('₪1,180.00');
   });
   it('awkward stored values still display whole shekels with ".00", and net + VAT equals the shown total exactly', () => {
@@ -159,9 +159,9 @@ describe('HE / Local / ILS totals: whole shekels ".00", VAT by client type', () 
   it('private client: no subtotal row; the VAT is extracted from the price (amount before VAT + VAT)', () => {
     const { container } = he({ quote: { client_type: 'private', subtotal: 1180, total: 1180 } });
     const t = totalsText(container);
-    expect(t).not.toContain('סכוםביניים');
-    expect(t).toContain('סכוםלפנימע״מ:₪1,000.00');
-    expect(t).toContain('מע״מ(18%):₪180.00');
+    expect(t).not.toContain('סיכוםביניים');
+    expect(t).toContain('סכוםלפנימע"מ:₪1,000.00');
+    expect(t).toContain('מע"מ(18%):₪180.00');
     expect(finalTotal(container)).toBe('₪1,180.00');
   });
   it('a stored discount shows its percent and the discount amount in whole shekels, marked as a deduction', () => {
@@ -251,7 +251,7 @@ describe('terms, warranty, notes and attachments', () => {
 describe('contact tiles (the reader contacts the ISSUER)', () => {
   it('HE: every call control (header CTA + action tile) dials the same issuer number, and the CTA label never carries the number', () => {
     he({ business: { phone: '050-7654321' } });
-    const calls = screen.getAllByText('התקשרות לעסק').map((e) => e.closest('a'));
+    const calls = screen.getAllByText('חייג/י אליי').map((e) => e.closest('a'));
     expect(calls.length).toBeGreaterThanOrEqual(2);
     for (const a of calls) {
       expect(a).toHaveAttribute('href', 'tel:0507654321');
@@ -275,11 +275,11 @@ describe('contact tiles (the reader contacts the ISSUER)', () => {
   });
   it('without an issuer phone there is no call / WhatsApp tile; PDF and print remain', () => {
     const { container } = he({ business: { phone: '' } });
-    expect(screen.queryByText('התקשרות לעסק')).toBeNull();
+    expect(screen.queryByText('חייג/י אליי')).toBeNull();
     expect(screen.queryByText('וואטסאפ')).toBeNull();
     expect(container.querySelector('.pq-action-tiles')).toHaveClass('pq-action-tiles-two');
-    expect(screen.getByText('הורדה כ-PDF')).toBeInTheDocument();
-    expect(screen.getByText('הדפסת המסמך')).toBeInTheDocument();
+    expect(screen.getByText('הורד כ-PDF')).toBeInTheDocument();
+    expect(screen.getByText('הדפס מסמך')).toBeInTheDocument();
   });
   it('EN: international numbers are used as stored (no +972 rewriting) and the English message names the quote', () => {
     en({ business: { phone: '+1 (415) 555-0100' } });
@@ -299,7 +299,7 @@ describe('contact tiles (the reader contacts the ISSUER)', () => {
 describe('historical signature record', () => {
   it('a signed quote whose stored signature is not an image shows the textual confirmation (never a broken image)', () => {
     he({ quote: { status: 'approved', signature: 'signed-legacy-token' } });
-    expect(screen.getByText('החתימה הדיגיטלית התקבלה')).toBeInTheDocument();
+    expect(screen.getByText('חתימה דיגיטלית התקבלה בהצלחה')).toBeInTheDocument();
     expect(screen.queryByAltText('Client Signature')).toBeNull();
   });
   it('a signed quote loaded later shows the stored image under "חתימה דיגיטלית:" / "Digital Signature:"', () => {
@@ -355,7 +355,7 @@ describe('SmartPublicQuote: the public route picks the page from the quote\'s OW
     await screen.findByText(/תצוגת מנהל/);
     expect(finalTotal(container)).toBe('₪1,180.00');
     expect(container.querySelector('.pq-commercial-table')).not.toBeNull();
-    fireEvent.click(screen.getByText('הדפסת המסמך'));
+    fireEvent.click(screen.getByText('הדפס מסמך'));
     expect(screen.getByRole('dialog')).toBeInTheDocument();
   });
 });

@@ -630,8 +630,8 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
           <UserRound size={13} strokeWidth={2.4} />
           לכבוד:
         </div>
-        <div className="pq-recipient-name">{client?.company_name || 'מקבלי ההצעה'}</div>
-        <div className="pq-recipient-intro">שלום, הנה הצעת המחיר שהכנו עבורכם:</div>
+        <div className="pq-recipient-name">{client?.company_name || 'לקוח נכבד'}</div>
+        <div className="pq-recipient-intro">שלום, להלן הצעת המחיר שהוכנה עבורך בקפידה:</div>
         {client?.email && <div className="pq-recipient-detail" style={{ direction: 'ltr', textAlign: 'right' }}>{client.email}</div>}
         {clientPhoneFormatted && <div className="pq-recipient-detail" style={{ direction: 'ltr', textAlign: 'right' }}>{clientPhoneFormatted}</div>}
         {client?.address && <div className="pq-recipient-detail">{formatAddress(client.address, true)}</div>}
@@ -705,7 +705,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
             <th id={colId('desc')} scope="col" role="columnheader" className="pq-th-desc" style={{ textAlign: 'right' }}>תיאור פריט</th>
             <th id={colId('qty')} scope="col" role="columnheader" className="pq-th-qty" style={{ textAlign: 'center' }}>כמות</th>
             <th id={colId('price')} scope="col" role="columnheader" className="pq-th-price" style={{ textAlign: 'center' }}>מחיר יחידה</th>
-            <th id={colId('total')} scope="col" role="columnheader" className="pq-th-total" style={{ textAlign: 'center' }}>סה״כ</th>
+            <th id={colId('total')} scope="col" role="columnheader" className="pq-th-total" style={{ textAlign: 'center' }}>סה"כ</th>
           </tr>
         </thead>
         <tbody role="rowgroup">
@@ -745,7 +745,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
                       {/* PRODUCT_TRUTH_DECORATIVE: expands a collapsed line-item section row within the public quote view table */}
                       <button type="button" className="pq-section-toggle" onClick={() => toggleSection(section.key)} aria-expanded={false}>{`${section.title} ${chevron}`}</button>
                     </td>
-                    <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}>{`פריטים: ${itemCount}`}</td>
+                    <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}>{`${itemCount} פריטים`}</td>
                     <td headers={colId('price')} role="cell" className="pq-td-price" style={{ textAlign: 'center' }}>—</td>
                     {/* IRON-NUMERIC-001 (local fix 7): a section summary amount is a SUMMARY value - it sits on the protected right axis
                         like the expanded section subtotal row; the item-column centring exception covers items only. */}
@@ -776,7 +776,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
                     );
                   })}
                   <tr role="row" className="pq-section-subtotal-row">
-                    <td headers={colId('desc')} role="cell" colSpan="3" style={{ textAlign: 'right', fontWeight: 700 }}>{`סה״כ ${section.title}`}</td>
+                    <td headers={colId('desc')} role="cell" colSpan="3" style={{ textAlign: 'right', fontWeight: 700 }}>{`סה"כ ${section.title}`}</td>
                     <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(section.subtotal)}</span></td>
                   </tr>
                 </Fragment>
@@ -824,7 +824,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
       <div className="pq-section pq-totals-grid pq-totals-box" style={{ display: 'grid', gridTemplateColumns: '1fr auto' }}>
         {!isPrivateDisplay && (
           <>
-            <span className="pq-total-label">סכום ביניים:</span>
+            <span className="pq-total-label">סיכום ביניים:</span>
             <span className="pf-money pq-total-value">{currencySymbol}{formatWholeMoney(subtotalWholeDisplay)}</span>
           </>
         )}
@@ -836,19 +836,19 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
         )}
         {isAmbiguousClientType ? null : isPrivateDisplay ? (
           <>
-            <span className="pq-total-label">סכום לפני מע״מ:</span>
+            <span className="pq-total-label">סכום לפני מע"מ:</span>
             <span className="pf-money pq-total-value">{currencySymbol}{formatWholeMoney(netAmountWholeDisplay)}</span>
-            <span className="pq-total-label">מע״מ (18%):</span>
+            <span className="pq-total-label">מע"מ (18%):</span>
             <span className="pf-money pq-total-value">{currencySymbol}{formatWholeMoney(vatAmountWholeDisplay)}</span>
           </>
         ) : (
           <>
-            <span className="pq-total-label">מע״מ (18%):</span>
+            <span className="pq-total-label">מע"מ (18%):</span>
             <span className="pf-money pq-total-value">{currencySymbol}{formatWholeMoney(vatAmountWholeDisplay)}</span>
           </>
         )}
         <div className="pq-total-rule" />
-        <span className="pq-total-final-label">סה״כ לתשלום:</span>
+        <span className="pq-total-final-label">סה"כ לתשלום:</span>
         <span className="pf-money pq-total-final-amount">{currencySymbol}{formatWholeMoney(finalTotalWholeDisplay)}</span>
         {hasMissingPrice && <span data-testid="pq-total-partial" className="pq-total-partial" style={{ gridColumn: '1 / -1', marginTop: '6px', fontSize: '0.82em', color: '#b45309', fontWeight: 600 }}>הסכום חלקי: יש בהצעה פריטים שטרם תומחרו.</span>}
       </div>
@@ -880,7 +880,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
   if (approved) {
     approvalRecord = (
       <div className="pq-section pq-approval pq-approval-signed" style={{ textAlign: 'start' }}>
-        <div className="pq-approval-title">✓ הצעת המחיר אושרה ונחתמה.</div>
+        <div className="pq-approval-title">✓ הצעת מחיר זו אושרה ונחתמה בהצלחה!</div>
         <div className="pq-approval-record">
           {signatureSrc && signatureSrc.startsWith('data:image') ? (
             justSignedAt ? (
@@ -903,7 +903,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
                 <img className="pq-signature-img" src={quote.signature} alt="Client Signature" />
               </div>
             )
-          ) : 'החתימה הדיגיטלית התקבלה'}
+          ) : 'חתימה דיגיטלית התקבלה בהצלחה'}
         </div>
       </div>
     );
@@ -941,7 +941,8 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
   // which every printed quote opens with; pagination gates do not depend on it).
   const docFooter = (
     <div className="pq-doc-foot">
-      <span>המסמך הופק באמצעות{' '}
+      <span>
+        מסמך זה נערך ע"י{' '}
         {previewMode ? (
           <span dir="ltr" className="pq-doc-credit">TEKANGO</span>
         ) : (
@@ -975,7 +976,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
         style={{ background: LIGHT.gradient, color: 'white', border: 'none', cursor: pdfGenerating ? 'wait' : 'pointer', opacity: pdfGenerating ? 0.75 : 1 }}
       >
         {pdfGenerating ? <Loader2 size={26} strokeWidth={1.75} className="pq-spin" /> : <PdfFileIcon size={26} strokeWidth={1.75} />}
-        <span>{pdfGenerating ? 'מפיק PDF…' : 'הורדה כ-PDF'}</span>
+        <span>{pdfGenerating ? 'מפיק PDF...' : 'הורד כ-PDF'}</span>
       </button>
       {/* PRODUCT_TRUTH_CAPABILITY: quote_print */}
       <button
@@ -985,7 +986,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
         style={{ background: 'white', color: '#475569', border: '2px solid #cbd5e1', cursor: 'pointer' }}
       >
         <Printer size={26} strokeWidth={1.75} />
-        <span>הדפסת המסמך</span>
+        <span>הדפס מסמך</span>
       </button>
       {/* PRODUCT_TRUTH_CAPABILITY: public_call */}
       {bizPhone && (
@@ -995,7 +996,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
           style={{ background: 'white', color: LIGHT.sky, border: `2px solid ${LIGHT.sky}`, textDecoration: 'none' }}
         >
           <Phone size={26} strokeWidth={1.75} />
-          <span>התקשרות לעסק</span>
+          <span>חייג/י אליי</span>
         </a>
       )}
       {bizWhatsAppHref && (
@@ -1045,7 +1046,8 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
         {/* Owner-Approved Signature Record Improvement - "smallest clear confirmation step": the signer-name field is
             pre-filled from attn_name as an editable suggestion only; the value shown is what the signer confirms. */}
         <div style={{ maxWidth: '350px', margin: '0 auto 12px', textAlign: 'right' }}>
-          <label htmlFor="pq-signer-name" style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>שם מלא לחתימה <span style={{ color: '#dc2626' }}>*</span>
+          <label htmlFor="pq-signer-name" style={{ display: 'block', fontSize: '0.8rem', fontWeight: '700', color: '#334155', marginBottom: '4px' }}>
+            שם מלא של החותם/ת <span style={{ color: '#dc2626' }}>*</span>
           </label>
           <input
             id="pq-signer-name"
@@ -1084,7 +1086,9 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
             </>
           )}
           {signerNameWarning && (
-            <div role="alert" style={{ color: '#dc2626', fontSize: '0.78rem', fontWeight: '700', marginTop: '4px' }}>הזינו שם מלא לפני האישור</div>
+            <div role="alert" style={{ color: '#dc2626', fontSize: '0.78rem', fontWeight: '700', marginTop: '4px' }}>
+              נא להזין שם מלא לפני האישור
+            </div>
           )}
         </div>
         {/* Mobile Signature Pad Scroll-Block Fix: by default the canvas lets vertical scrolling through (pan-y) and shows
@@ -1110,13 +1114,17 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
               type="button"
               onClick={activateSigning}
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'rgba(248,250,252,0.85)', border: 'none', color: '#475569', fontSize: '0.9rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >הפעלת אזור החתימה</button>
+            >
+              לחץ/י כאן לחתימה
+            </button>
           )}
         </div>
         <div style={{ marginBottom: '15px', display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
           {/* PRODUCT_TRUTH_DECORATIVE: clears the currently drawn signature before submission */}
           {(isActive || hasSigned) && (
-            <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>ניקוי החתימה</button>
+            <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>
+              נקה חתימה
+            </button>
           )}
           {/* PRODUCT_TRUTH_DECORATIVE: ends signature-drawing mode without submitting approval */}
           {isActive && (
@@ -1126,11 +1134,15 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
           )}
         </div>
         {signatureWarning && (
-          <div role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: '700', marginBottom: '10px' }}>חתמו על המסמך לפני האישור</div>
+          <div role="alert" style={{ color: '#dc2626', fontSize: '0.8rem', fontWeight: '700', marginBottom: '10px' }}>
+            נא לחתום על גבי המסמך לפני האישור
+          </div>
         )}
         <div>
           {/* PRODUCT_TRUTH_CAPABILITY: public_quote_sign */}
-          <button onClick={handleApprove} style={{ background: hasSigned ? LIGHT.gradient : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? LIGHT.glow : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>אישור וחתימה על הצעת המחיר ✓</button>
+          <button onClick={handleApprove} style={{ background: hasSigned ? LIGHT.gradient : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? LIGHT.glow : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>
+            אשר וחתום על הצעת המחיר ✓
+          </button>
         </div>
       </div>
     );

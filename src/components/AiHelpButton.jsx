@@ -15,10 +15,10 @@ function openAiHelp(context = null) {
 
 // PRODUCT_TRUTH_CAPABILITY: ai_chat
 export default function AiHelpButton({ isHebrew = false, long = false, header = false, style = null, testId = 'ai-help-in-context', context = null }) {
-  const longLabel = isHebrew ? 'צריכים עזרה? שאלו את העוזר החכם' : 'Need help? Ask AI';
-  const shortLabel = isHebrew ? 'שאלו את העוזר החכם' : 'Ask AI';
+  const longLabel = isHebrew ? 'צריך עזרה? שאל את AI' : 'Need help? Ask AI';
+  const shortLabel = isHebrew ? 'שאל את AI' : 'Ask AI';
   const label = long ? longLabel : shortLabel;
-  const accessible = isHebrew ? 'פתיחת הצ׳אט עם העוזר החכם לעזרה במסך הזה' : 'Ask AI - open the AI Chat about this screen';
+  const accessible = isHebrew ? 'שאל את AI - פתיחת צ׳אט AI על המסך הזה' : 'Ask AI - open the AI Chat about this screen';
   // header variant (AiModalHeader): the long label on desktop, the short one on mobile - chosen by CSS (.pf-ai-help-btn--header), so the
   // visible text always matches the space and is never dropped to icon-only
   if (header) {

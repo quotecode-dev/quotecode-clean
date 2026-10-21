@@ -58,9 +58,9 @@ describe('NotificationCenter welcome item', () => {
     await waitFor(() => expect(getByTestId('notification-welcome')).toBeTruthy());
     const w = getByTestId('notification-welcome');
     expect(w.textContent).toContain('ברוכים הבאים למשפחת TEKANGO! 👋');
-    expect(w.textContent).toContain('כאן תקבלו התראה כשלקוח צופה בהצעה. אפשר להפעיל גם תזכורות להצעות שנצפו ועדיין לא אושרו ולהצעות שתוקפן עומד להסתיים. את התזכורות מפעילים בהגדרות עסק › תזכורות ואוטומציות.');
+    expect(w.textContent).toContain('כאן תקבלו התראה כשלקוח צופה בהצעה. אפשר להפעיל גם תזכורת כשהצעה נצפתה ועדיין לא אושרה וכשתוקף הצעה מתקרב לסיום, בהגדרות עסק › תזכורות ואוטומציות.');
     expect(w.textContent).toContain('יש שאלה או בקשה? אנחנו כאן:');
-    expect(w.textContent).toContain('אפשר גם להיעזר בעוזר החכם שלנו.');
+    expect(w.textContent).toContain('אפשר גם להשתמש ב-AI החכם שלנו.');
     expect(w.querySelector('a').getAttribute('href')).toBe('mailto:support@tekango.com');
     expect(getByTestId('notification-center').getAttribute('dir')).toBe('rtl');
     expect(w.textContent).not.toMatch(/Welcome|notified/);

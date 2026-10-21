@@ -39,7 +39,7 @@ const GUIDED_GROUP_ICONS = {
 
 function computeDefaultWelcome(isHebrew, isDashboard) {
   return isHebrew
-    ? (isDashboard ? 'שלום! אני העוזר החכם של TEKANGO. במה אפשר לעזור במערכת?' : 'שלום! אני העוזר החכם של TEKANGO. יש שאלות על המחירים, המסלולים או האפשרויות במערכת?')
+    ? (isDashboard ? 'שלום! אני עוזר ה-AI של TEKANGO. איך אעזור לך בממשק המערכת היום?' : 'שלום! אני עוזר ה-AI של TEKANGO. יש לך שאלות על המחירים, המסלולים או הפיצ\'רים שלנו?')
     : (isDashboard ? 'Hello! I am TEKANGO AI assistant. How can I help you with the interface today?' : 'Hello! I am TEKANGO AI assistant. Have questions about our pricing, plans, or features?');
 }
 
@@ -55,39 +55,39 @@ function computeDefaultWelcome(isHebrew, isDashboard) {
 function computeContextualDashboardGreeting(isHebrew, currentArea, workflowContext) {
   if (workflowContext?.itemWizard?.open) {
     return isHebrew
-      ? 'כרגע מוסיפים פריט להצעה. במה אפשר לעזור?'
+      ? 'אני רואה שאתה מוסיף עכשיו פריט להצעה. במה תרצה עזרה?'
       : 'I see you’re adding an item to the quote right now. How can I help?';
   }
   if (workflowContext?.screen === 'quote_editor') {
     if (workflowContext.mode === 'edit') {
       return isHebrew
-        ? 'כרגע עורכים הצעה קיימת. במה אפשר לעזור?'
+        ? 'אני רואה שאתה עורך עכשיו הצעה קיימת. במה תרצה עזרה?'
         : 'I see you’re editing an existing quote right now. How can I help?';
     }
     return isHebrew
-      ? 'כרגע יוצרים הצעת מחיר חדשה. במה אפשר לעזור?'
+      ? 'אני רואה שאתה יוצר עכשיו הצעת מחיר חדשה. במה תרצה עזרה?'
       : 'I see you’re creating a new quote right now. How can I help?';
   }
   switch (currentArea) {
     case 'clients':
       return isHebrew
-        ? 'כרגע עובדים עם לקוחות. במה אפשר לעזור?'
+        ? 'אני רואה שאתה עובד עכשיו עם לקוחות. במה תרצה עזרה?'
         : 'I see you’re working with clients right now. How can I help?';
     case 'settings':
       return isHebrew
-        ? 'כרגע בהגדרות העסק. במה אפשר לעזור?'
+        ? 'אני רואה שאתה נמצא בהגדרות העסק שלך. במה תרצה עזרה?'
         : 'I see you’re in your business settings. How can I help?';
     case 'finances':
       return isHebrew
-        ? 'כרגע במסך הפיננסים. במה אפשר לעזור?'
+        ? 'אני רואה שאתה נמצא בעמוד הפיננסים. במה תרצה עזרה?'
         : 'I see you’re in the finances screen. How can I help?';
     case 'catalog':
       return isHebrew
-        ? 'כרגע בקטלוג. במה אפשר לעזור?'
+        ? 'אני רואה שאתה נמצא בקטלוג הפריטים שלך. במה תרצה עזרה?'
         : 'I see you’re in your items catalog. How can I help?';
     case 'plans':
       return isHebrew
-        ? 'כרגע במסך המסלולים והמחירים. במה אפשר לעזור?'
+        ? 'אני רואה שאתה צופה במסלולים ובתמחור. במה תרצה עזרה?'
         : 'I see you’re looking at plans and pricing. How can I help?';
     default:
       return null;
@@ -109,9 +109,9 @@ function computeDashboardWelcome(isHebrew, currentArea, workflowContext) {
 // surface, which never receives a name at all).
 function computeGuidedGreeting(isHebrew, displayName) {
   if (displayName) {
-    return isHebrew ? `שלום ${displayName}, במה אפשר לעזור?` : `Hello ${displayName}, how can I help you today?`;
+    return isHebrew ? `שלום ${displayName}, במה תרצה עזרה?` : `Hello ${displayName}, how can I help you today?`;
   }
-  return isHebrew ? 'שלום! במה אפשר לעזור?' : 'Hello! How can I help you today?';
+  return isHebrew ? 'שלום! במה תרצה עזרה?' : 'Hello! How can I help you today?';
 }
 
 // AI Chat History UX task: every NEWLY created message gets a real creation
@@ -930,7 +930,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
             next.push(withCreatedAt({
               role: 'system-note',
               content: isHebrew
-                ? 'ההצעה שנבחרה כבר לא זמינה, והשיחה כבר לא מתייחסת אליה.'
+                ? 'ההצעה שנבחרה אינה זמינה יותר. הקשר ההצעה נוקה.'
                 : 'The selected quote is no longer available. Quote context was cleared.',
             }));
           }
@@ -986,7 +986,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
         retryText: userMsg,
         retryKind: opts.retryKind || null,
         content: isHebrew
-          ? 'לא הצלחנו להתחבר לעוזר החכם בגלל תקלה זמנית. נסו שוב בעוד כמה שניות.'
+          ? 'מצטער, חלה שגיאה זמנית בחיבור לשרת ה-AI. אנא נסה שוב בעוד מספר שניות.'
           : 'Sorry, there was a temporary error connecting to the AI server. Please try again in a few seconds.'
       })]));
     } finally {
@@ -1149,7 +1149,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
             <button
               onClick={() => { captureReturnFocus(); setIsOpen(true); }}
               className="ai-support-btn"
-              aria-label={isHebrew ? 'צ׳אט AI' : 'AI Chat'}
+              aria-label={isHebrew ? 'צאט AI' : 'AI Chat'}
               style={{
                 position: 'relative',
                 background: NEON.gradient,
@@ -1171,7 +1171,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
             >
               {/* authenticated app (dashboard, region choice): the ONE canonical AI Chat icon (§51.15); public pages keep their approved landing mark */}
               {isDashboard ? <AiChatIcon size={20} rtl={isHebrew} /> : <MessageCircleMore size={20} strokeWidth={2.2} />}
-              <span className="ai-btn-text" style={{ whiteSpace: 'nowrap' }}>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
+              <span className="ai-btn-text" style={{ whiteSpace: 'nowrap' }}>{isHebrew ? 'צאט AI' : 'AI Chat'}</span>
               {/* Final Landing Polish task, Part B - "MessageCircleMore or
                   MessagesSquare with a small Sparkles accent - not
                   Bot/robot": restrained AI accent badge, decorative only.
@@ -1196,7 +1196,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
               ref={popupRef}
               role="dialog"
               aria-modal="true"
-              aria-label={isHebrew ? 'צ׳אט AI' : 'AI Chat'}
+              aria-label={isHebrew ? 'צ’אט AI' : 'AI Chat'}
               style={{
               position: 'absolute',
               bottom: 'calc(100% + 15px)',
@@ -1309,7 +1309,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                   {/* PRODUCT_TRUTH_DECORATIVE: closes the ai_chat popup */}
                   <button
                     onClick={() => setIsOpen(false)}
-                    aria-label={isHebrew ? 'סגירה' : 'Close'}
+                    aria-label={isHebrew ? 'סגור' : 'Close'}
                     style={{ background: 'none', border: 'none', color: 'white', cursor: 'pointer', padding: '4px', display: 'flex' }}
                   >
                     <X size={18} strokeWidth={2.5} />
@@ -1334,7 +1334,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                     </div>
                     {threads.length === 0 ? (
                       <div style={{ fontSize: '0.75rem', color: NEON.textSecondary }}>
-                        {isHebrew ? 'עדיין אין שיחות קודמות בחיבור הנוכחי.' : 'No previous chats yet in this session.'}
+                        {isHebrew ? 'אין עדיין שיחות קודמות בפגישה זו.' : 'No previous chats yet in this session.'}
                       </div>
                     ) : (
                       [...threads].reverse().map((thread) => {
@@ -1360,7 +1360,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                               <div style={{ padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px', background: NEON.bg }}>
                                 {thread.messages.filter((m) => m.role === 'user' || m.role === 'assistant').map((m, i) => (
                                   <div key={i} style={{ fontSize: '0.76rem', color: NEON.textPrimary, textAlign: isHebrew ? 'right' : 'left' }}>
-                                    <strong>{m.role === 'user' ? (isHebrew ? 'אני: ' : 'You: ') : (isHebrew ? 'עוזר: ' : 'Assistant: ')}</strong>
+                                    <strong>{m.role === 'user' ? (isHebrew ? 'אתה: ' : 'You: ') : (isHebrew ? 'עוזר: ' : 'Assistant: ')}</strong>
                                     {m.content}
                                   </div>
                                 ))}
@@ -1688,7 +1688,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                     ) : (
                       <div style={{ fontSize: '0.72rem', color: NEON.textSecondary, opacity: 0.85, textAlign: isHebrew ? 'right' : 'left' }}>
                         {guidedIntent === 'other'
-                          ? (isHebrew ? 'בשמחה. אפשר לכתוב כאן את השאלה.' : "Sure — tell me what you'd like to ask.")
+                          ? (isHebrew ? 'בשמחה, כתוב לי מה תרצה לשאול.' : "Sure — tell me what you'd like to ask.")
                           : (isHebrew ? 'אפשר גם לכתוב כאן ישירות' : 'You can also type directly')}
                       </div>
                     )}
@@ -1743,10 +1743,10 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                 {isDashboard && guidedIntent === 'quotes' && !selectedQuoteId && !hasSentUserMessage && allowsExistingQuoteReference(chatContext.screenId) && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignSelf: 'stretch' }}>
                     <div style={{ fontSize: '0.78rem', color: NEON.textSecondary, textAlign: isHebrew ? 'right' : 'left' }}>
-                      {isHebrew ? 'בחירת הצעת מחיר לשיחה זו (לא חובה):' : 'Select a quote for this conversation (optional):'}
+                      {isHebrew ? 'בחר הצעת מחיר לשיחה זו (אופציונלי):' : 'Select a quote for this conversation (optional):'}
                     </div>
                     {availableQuotes === null ? (
-                      <div style={{ fontSize: '0.75rem', color: NEON.textSecondary }}>{isHebrew ? 'טוען…' : 'Loading...'}</div>
+                      <div style={{ fontSize: '0.75rem', color: NEON.textSecondary }}>{isHebrew ? 'טוען...' : 'Loading...'}</div>
                     ) : availableQuotes.length === 0 ? (
                       <div style={{ fontSize: '0.75rem', color: NEON.textSecondary }}>{isHebrew ? 'לא נמצאו הצעות מחיר.' : 'No quotes found.'}</div>
                     ) : (
@@ -1755,7 +1755,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                           type="text"
                           value={quoteSearchTerm}
                           onChange={(e) => setQuoteSearchTerm(e.target.value)}
-                          placeholder={isHebrew ? 'חיפוש לפי מספר או פרויקט…' : 'Search by number or project...'}
+                          placeholder={isHebrew ? 'חיפוש לפי מספר או פרויקט...' : 'Search by number or project...'}
                           style={{ padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.8rem', outline: 'none', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary }}
                         />
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '140px', overflowY: 'auto' }}>
@@ -1798,7 +1798,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
 
                 {loading && (
                   <div style={{ alignSelf: isHebrew ? 'flex-end' : 'flex-start', background: NEON.bgCard, padding: '8px 12px', borderRadius: '12px', fontSize: '0.8rem', color: NEON.textSecondary, border: `1px solid ${NEON.border}` }}>
-                    {isHebrew ? 'מקליד תשובה…' : 'Typing...'}
+                    {isHebrew ? 'מקליד תשובה...' : 'Typing...'}
                   </div>
                 )}
                 </>
@@ -1817,7 +1817,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                     <button
                       type="button"
                       onClick={() => { setSelectedQuoteId(null); setSelectedQuoteSummary(null); }}
-                      aria-label={isHebrew ? 'הסרת ההצעה הנבחרת' : 'Remove selected quote'}
+                      aria-label={isHebrew ? 'הסר הצעה נבחרת' : 'Remove selected quote'}
                       style={{ background: 'none', border: 'none', color: NEON.textSecondary, cursor: 'pointer', padding: 0, display: 'flex' }}
                     >
                       <X size={12} strokeWidth={2.5} />
@@ -1844,7 +1844,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                   value={input}
                   onPaste={handlePaste}
                   onChange={(e) => setInput(e.target.value)}
-                  placeholder={transcribing ? voiceCopy.transcribing : (isHebrew ? 'שאלו משהו…' : 'Ask something...')}
+                  placeholder={transcribing ? voiceCopy.transcribing : (isHebrew ? 'שאל משהו...' : 'Ask something...')}
                   style={{ flex: 1, padding: '8px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '0.85rem', outline: 'none', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary }}
                 />
                 {shotsEnabled && narrowScreen && (
@@ -1876,7 +1876,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                 {/* PRODUCT_TRUTH_DECORATIVE: submits the typed message to the AI chat */}
                 <button
                   type="submit"
-                  aria-label={isHebrew ? 'שליחה' : 'Send'}
+                  aria-label={isHebrew ? 'שלח' : 'Send'}
                   style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '8px 14px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: NEON.glowSoft }}
                 >
                   <Send size={15} strokeWidth={2.5} />

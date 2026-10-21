@@ -49,8 +49,8 @@ describe('Terms', () => {
 describe('Privacy', () => {
   const he = text(<Privacy isHebrew />); const en = text(<Privacy isHebrew={false} />);
   it('keeps the approved §3 disclosure (Supabase / OpenAI / Resend) verbatim in meaning', () => {
-    expect(he).toMatch(/Supabase/); expect(he).toMatch(/OpenAI/); expect(he).toMatch(/Resend/); expect(he).toMatch(/ובהם גם פרטי לקוח כמו שם, איש קשר, מייל וטלפון/); expect(he).not.toMatch(/אינה מצרפת לשאלה באופן אוטומטי/);
-    expect(en).toMatch(/Supabase/); expect(en).toMatch(/OpenAI/); expect(en).toMatch(/Resend/); expect(en).toMatch(/including client details such as name, contact person, email and phone/); expect(en).not.toMatch(/does not automatically attach/);
+    expect(he).toMatch(/Supabase/); expect(he).toMatch(/OpenAI/); expect(he).toMatch(/Resend/); expect(he).toMatch(/אינה מצרפת לשאלה באופן אוטומטי/);
+    expect(en).toMatch(/Supabase/); expect(en).toMatch(/OpenAI/); expect(en).toMatch(/Resend/); expect(en).toMatch(/does not automatically attach/);
   });
   it('responsible party, conditional payment wording, marketing separation; no absolute-deletion promise', () => {
     // Owner 2026-10-15: the operator's identity appears only in the Terms; the Privacy Policy points there
@@ -79,7 +79,7 @@ describe('Contact + accessibility statement', () => {
   it('the accessibility statement: real date, verified adjustments, stated limitation, real contact; no full-compliance claim', () => {
     const he = render(<AccessibilityModal isOpen isHebrew onClose={() => {}} />).container.textContent;
     const en = render(<AccessibilityModal isOpen isHebrew={false} onClose={() => {}} />).container.textContent;
-    expect(he).toMatch(/13 באוקטובר 2026/); expect(he).toMatch(/support@tekango\.com/); expect(he).not.toMatch(/2993806/); expect(he).toMatch(/דרך הצ׳אט באתר/); expect(he).toMatch(/איננו מצהירים על עמידה מלאה/);
+    expect(he).toMatch(/13 באוקטובר 2026/); expect(he).toMatch(/support@tekango\.com/); expect(he).not.toMatch(/2993806/); expect(he).toMatch(/דרך הצ'אט באתר/); expect(he).toMatch(/איננו מצהירים על עמידה מלאה/);
     expect(en).toMatch(/October 13, 2026/); expect(en).toMatch(/info@tekango\.com/); expect(en).toMatch(/we do not claim full conformance/); expect(en).not.toMatch(/2993806/);
     expect(`${he}${en}`).not.toMatch(/Beta|WCAG 2\.1 AA compliant|עומד(ת)? בתקן/);
   });

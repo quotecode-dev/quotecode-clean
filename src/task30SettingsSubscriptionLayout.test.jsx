@@ -21,7 +21,7 @@ describe('My subscription - account state from the server only', () => {
   });
   it('a ready Free summary shows the balance ONLY while Free-10 is enforced', () => {
     const base = { state: 'ready', planId: 'free', free10: { limit: 10, consumed: 3, reserved: 0, remaining: 7 } };
-    expect(subscriptionSectionState({ ...base, phase: { output: 'enforced' } }, 'he').detail).toBe('יתרה: 7 מתוך 10 הצעות');
+    expect(subscriptionSectionState({ ...base, phase: { output: 'enforced' } }, 'he').detail).toBe('נותרו 7 מתוך 10 הצעות');
     expect(subscriptionSectionState({ ...base, phase: { output: 'shadow' } }, 'he').detail).toBe('ספירת 10 ההצעות החינמיות עדיין לא פעילה, והחשבון אינו מוגבל.');
     expect(subscriptionSectionState({ ...base, phase: { output: 'prepared' } }, 'en').detail).toBe('Free-10 counting is not active yet, and your account is not limited.');
   });

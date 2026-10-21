@@ -45,8 +45,8 @@ describe('shared formatter', () => {
   });
   it('the quote link is appended exactly once, after the owner text; URL encoding stays the transport\'s job', () => {
     const link = 'https://www.tekango.com/public-quote/c/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';
-    const t = buildShareText({ template: 'שלום {customer}', vars: HE_VARS, link, linkLabel: 'לצפייה בהצעה:', rtl: true });
-    expect(t).toBe(`שלום ${FSI}דנה כהן${PDI}\n\nלצפייה בהצעה:\n${link}`);
+    const t = buildShareText({ template: 'שלום {customer}', vars: HE_VARS, link, linkLabel: 'צפה בהצעה:', rtl: true });
+    expect(t).toBe(`שלום ${FSI}דנה כהן${PDI}\n\nצפה בהצעה:\n${link}`);
     expect(t.split(link)).toHaveLength(2);
     const wa = `https://api.whatsapp.com/send?text=${encodeURIComponent(t)}`;
     expect(decodeURIComponent(wa.split('text=')[1])).toBe(t);
@@ -60,7 +60,7 @@ describe('shared formatter', () => {
 describe('manual email intro (send-quote-email, server-derived values)', () => {
   const base = { bizTitle: 'Synthetic Biz', vars: { customer: 'Dana', business: 'Synthetic Biz', number: 'A12002', total: '₪1,180.00' } };
   it('no owner text -> the built-in sentence, byte-identical (HE and EN)', () => {
-    expect(emailIntroHtml({ ...base, shareText: null, hebrew: true })).toBe('מצורפת הצעת המחיר מאת <strong>Synthetic Biz</strong>.');
+    expect(emailIntroHtml({ ...base, shareText: null, hebrew: true })).toBe('מצורפת הצעת המחיר שלך ממערכת <strong>Synthetic Biz</strong>.');
     expect(emailIntroHtml({ ...base, shareText: '   ', hebrew: false })).toBe('Please find your quote attached from <strong>Synthetic Biz</strong>.');
     expect(emailIntroHtml({ ...base, shareText: 42, hebrew: false })).toBe('Please find your quote attached from <strong>Synthetic Biz</strong>.');
   });

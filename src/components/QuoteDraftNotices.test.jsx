@@ -11,7 +11,7 @@ describe('draft notices', () => {
     expect(onReview).toHaveBeenCalledTimes(1); expect(onUseSaved).toHaveBeenCalledTimes(1); expect(onDiscard).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('draft-conflict-modal').textContent).toContain('A100041');
     rerender(<DraftConflictModal conflict={{ label: 'A100041', reason: 'changed' }} isHebrew onReview={onReview} onUseSaved={onUseSaved} onDiscard={onDiscard} />);
-    expect(screen.getByTestId('draft-conflict-modal').textContent).toMatch(/בדיקת העותק ששוחזר/);
+    expect(screen.getByTestId('draft-conflict-modal').textContent).toMatch(/סקור עותק משוחזר/);
   });
   it('a deleted/immutable quote has no "use saved version" choice', () => {
     render(<DraftConflictModal conflict={{ label: 'A1', reason: 'missing' }} isHebrew={false} onReview={() => {}} onUseSaved={() => {}} onDiscard={() => {}} />);

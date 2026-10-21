@@ -40,7 +40,7 @@ const DOC_COPY = {
       item: 'פריט ותיאור', qty: 'כמות', unit: 'מחיר יחידה', amount: 'סכום', subtotal: 'סכום ביניים',
       discount: `הנחה (${SAMPLE_DISCOUNT_PERCENT}%)`, tax: 'מע״מ (18%)', total: 'סה״כ לתשלום', notes: 'הערות', terms: 'תנאים',
       approve: 'אישור ההצעה', approveText: 'חתימת הלקוח מאשרת את תנאי ההצעה', signature: 'חתימה',
-      call: 'התקשרות לעסק', pdf: 'הורדה כ-PDF', print: 'הדפסת המסמך', whatsapp: 'וואטסאפ',
+      call: 'חייג/י אליי', pdf: 'הורד כ־PDF', print: 'הדפס מסמך', whatsapp: 'וואטסאפ',
     },
   },
   en: {

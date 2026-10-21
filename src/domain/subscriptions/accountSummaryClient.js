@@ -42,7 +42,7 @@ export function accountStatusModel(summary, lang) {
     let detail = null;
     if (summary.free10) {
       const { remaining } = summary.free10;
-      detail = he ? `יתרה: ${remaining} מתוך ${FREE_QUOTES_TOTAL} הצעות` : `${remaining} of ${FREE_QUOTES_TOTAL} free quotes left`;
+      detail = he ? `נותרו ${remaining} מתוך ${FREE_QUOTES_TOTAL} הצעות` : `${remaining} of ${FREE_QUOTES_TOTAL} free quotes left`;
     } else if (summary.subscriptionStatus === 'past_due') {
       detail = he ? 'התשלום האחרון לא עבר' : 'Last payment failed';
     } else if (summary.subscriptionStatus === 'pending') {

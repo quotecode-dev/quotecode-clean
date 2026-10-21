@@ -18,7 +18,7 @@ export function newQuoteChoices(isHebrew) {
     {
       id: 'structured',
       Icon: Ruler,
-      label: isHebrew ? 'הצעה לפי מידות' : 'Profession-aware measured quote',
+      label: isHebrew ? 'הצעה מדודה לפי מקצוע' : 'Profession-aware measured quote',
       // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #13: round 1 (L-09) opens a measured quote as a simple list - the hint no longer promises rooms
       // + Owner console 2026-10-18 ("אפילו ילד בן 10 יוכל להכין הצעה" -> "א"): the plainest wording
       hint: isHebrew ? 'מכניסים מידות, והמחיר מחושב לבד' : 'Enter the measurements - the price is calculated for you',

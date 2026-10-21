@@ -11,7 +11,7 @@ export const VOICE_ASSISTANT_ANNOUNCEMENT = Object.freeze({
   sortAt: '2026-10-19T00:00',
   copy: Object.freeze({
     // Owner 2026-10-19: "ההודעה צריכה להודיע גם על הכנת הצעה חכמה ב AI VOICE"
-    he: Object.freeze({ title: 'חדש: מדברים עם TEKANGO בקול', body: 'בצ׳אט לוחצים על המיקרופון ושואלים בקול. התשובות מוקראות, ואפשר לבחור גם תשובות בכתב. בהצעת מחיר חכמה עם AI אפשר להכתיב את העבודה ולענות בקול על שאלות ההשלמה.' }),
+    he: Object.freeze({ title: 'חדש: מדברים עם TEKANGO בקול', body: 'בצ\'אט: לוחצים על המיקרופון ושואלים בקול, והתשובות מוקראות (אפשר לבחור גם כתב). בהצעת מחיר חכמה עם AI: מכתיבים את העבודה בקול, ועונים בקול על השאלות של הטיוטה.' }),
     en: Object.freeze({ title: 'New: talk to TEKANGO', body: 'In the chat: tap the microphone and ask out loud - answers are spoken (you can switch to text). In the AI smart quote: dictate the job and answer the draft\'s questions by voice.' }),
   }),
 });

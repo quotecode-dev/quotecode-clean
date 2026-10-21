@@ -38,7 +38,7 @@ const PATTERNS = [
     category: 'invalid_recipient',
     test: (msg) => /no client email on file/i.test(msg),
     userMessage: {
-      he: '❌ ללקוח זה אין כתובת מייל שמורה במערכת.',
+      he: '❌ ללקוח זה אין כתובת אימייל שמורה במערכת.',
       en: '❌ This client has no email address on file.',
     },
   },
@@ -64,7 +64,7 @@ const PATTERNS = [
     category: 'sender_configuration',
     test: (msg) => /RESEND_API_KEY|cannot verify quote region|cannot establish a trustworthy business region/i.test(msg),
     userMessage: {
-      he: '❌ יש בעיה בהגדרות שליחת המייל. פנו לתמיכה.',
+      he: '❌ בעיית תצורה בשליחת אימייל. נא ליצור קשר עם התמיכה.',
       en: '❌ Email configuration problem on our side. Please contact support.',
     },
   },
@@ -87,14 +87,14 @@ export function classifyQuoteEmailError(rawMessage, isHebrew, { hadReadableServe
     return {
       category: 'network_error',
       userMessage: isHebrew
-        ? '❌ לא ניתן להתחבר לשירות השליחה. בדקו את החיבור לאינטרנט ונסו שוב.'
+        ? '❌ לא ניתן להתחבר לשירות השליחה. בדוק את החיבור לאינטרנט ונסה שוב.'
         : '❌ Could not reach the email service. Check your connection and try again.',
     };
   }
   return {
     category: 'resend_rejected',
     userMessage: isHebrew
-      ? '❌ שירות המייל דחה את השליחה. פנו לתמיכה.'
+      ? '❌ שירות האימייל דחה את השליחה. נא ליצור קשר עם התמיכה.'
       : '❌ The email service rejected this message. Please contact support.',
   };
 }

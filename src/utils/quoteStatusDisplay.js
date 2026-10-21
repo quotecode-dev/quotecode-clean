@@ -30,7 +30,7 @@ export const isQuoteAwaiting = isAwaitingQuote;
 const LABELS = Object.freeze({
   hot: ['נצפתה, ממתינה', 'Viewed, awaiting'],
   approved: ['אושרה', 'Approved'],
-  paid: ['שולמה', 'Paid'],
+  paid: ['שולם', 'Paid'],
   sent_not_viewed: ['נשלחה · טרם נצפתה', 'Sent · not viewed yet'],
   sent_viewed: ['נשלחה · נצפתה', 'Sent · viewed'],
   sent: ['נשלחה', 'Sent'],

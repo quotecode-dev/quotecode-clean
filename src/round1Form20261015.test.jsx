@@ -76,7 +76,7 @@ describe('plan section 3: client details and the VAT basis', () => {
   it('contact details are one optional toggle; the Tax ID stays visible; client type explains VAT (Israel)', () => {
     render(<QuoteForm {...props()} />);
     expect(screen.queryByPlaceholderText('לדוגמה: שמעון לוי')).toBeNull();
-    expect(screen.getByText('ח״פ / עוסק / ת״ז')).toBeTruthy();
+    expect(screen.getByText('ח.פ / עוסק / ת.ז')).toBeTruthy();
     expect(screen.getByTestId('sq-client-type-vat-help').textContent).toBe('סוג הלקוח קובע אם המחיר כולל מע״מ או לפני מע״מ.');
     fireEvent.click(screen.getByTestId('sq-client-contact-toggle'));
     expect(screen.getByPlaceholderText('לדוגמה: שמעון לוי')).toBeTruthy();
@@ -104,7 +104,7 @@ describe('plan section 4: save and issue wording', () => {
   it('a new quote saved by the server is a draft in the account; a failed save mentions the device only when the local copy exists', () => {
     const d = read('pages/Dashboard.jsx');
     expect(d).not.toContain('הצעת המחיר הופקה ונשמרה בענן בהצלחה');
-    expect(d).toContain('הטיוטה נשמרה בחשבון. סה״כ:');
+    expect(d).toContain('הטיוטה נשמרה בחשבון. סה"כ:');
     expect(d).toContain("const keptLocally = quoteDraft.status === 'saved';");
     expect(d).toContain('לא הצלחנו לשמור בחשבון. הטקסט נשמר במכשיר; נסו שוב.');
   });

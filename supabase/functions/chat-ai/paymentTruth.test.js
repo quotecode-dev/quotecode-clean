@@ -36,7 +36,7 @@ describe('formatPaymentTruthAnswer (deterministic answer)', () => {
   const en = formatPaymentTruthAnswer(false);
   it('states there is no payment/checkout capability and separates display/quote currency from payment', () => {
     expect(he).toMatch(/אין ב-TEKANGO סליקה או קבלת תשלומים/);
-    expect(he).toMatch(/משמש להצגת המחיר בלבד ואינו אמצעי תשלום/);
+    expect(he).toMatch(/מטבע תצוגה\/הצעה בלבד, ואינו אמצעי תשלום/);
     expect(en).toMatch(/no live checkout or payment processing/);
     expect(en).toMatch(/display\/quote currency only, not a payment method/);
   });
@@ -49,7 +49,7 @@ describe('formatPaymentTruthAnswer (deterministic answer)', () => {
     expect(en).not.toMatch(/(paypal|stripe|bank transfer|wire|cheque|check |cash|bit\b|apple pay|google pay|tranzila|cardcom)/i);
     expect(he).not.toMatch(/(paypal|stripe|העברה בנקאית|מזומן|ביט|צ'ק|טרנזילה|קארדקום)/i);
     expect(en).toMatch(/I don't know which payment method your business uses/);
-    expect(he).toMatch(/אין לי מידע על אמצעי התשלום שהוא משתמש בהם/);
+    expect(he).toMatch(/אני לא יודע לומר לך באיזה אמצעי תשלום העסק שלך משתמש/);
   });
   it('respects market isolation: Hebrew text names no foreign currency, English text names no shekel', () => {
     expect(he).not.toMatch(/(\$|USD|EUR|GBP|דולר|יורו|לירה)/);

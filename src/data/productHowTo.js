@@ -13,9 +13,9 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: 'הוספת לוגו ועדכון פרטי העסק',
       steps: [
         'בתפריט הצד לוחצים על "הגדרות העסק".',
-        'בשדה "כתובת תמונת לוגו (URL) או העלאת קובץ" לוחצים "העלאת קובץ" ובוחרים קובץ PNG, JPG או SVG עד 500KB.',
-        'באותו מסך ממלאים את פרטי העסק, למשל "טלפון העסק" ו"ח.פ / עוסק מורשה".',
-        'לוחצים "שמירת הגדרות העסק".',
+        'בשדה "כתובת תמונת לוגו (URL) או העלאת קובץ" לוחצים "העלה קובץ" ובוחרים קובץ PNG, JPG או SVG עד 500KB.',
+        'באותו מסך ממלאים את פרטי העסק, למשל "טלפון עסק" ו"ח.פ / עוסק מורשה".',
+        'לוחצים "שמור הגדרות עסק".',
       ],
     },
     en: {
@@ -28,7 +28,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       ],
     },
     evidence: [
-      { file: 'src/components/SettingsTab.jsx', labels: ['כתובת תמונת לוגו (URL) או העלאת קובץ', 'Logo Image URL or File Upload', 'העלאת קובץ', 'Upload File', 'שמירת הגדרות העסק', 'Save Business Settings', 'טלפון העסק', 'Business Phone', '500KB'] },
+      { file: 'src/components/SettingsTab.jsx', labels: ['כתובת תמונת לוגו (URL) או העלאת קובץ', 'Logo Image URL or File Upload', 'העלה קובץ', 'Upload File', 'שמור הגדרות עסק', 'Save Business Settings', 'טלפון עסק', 'Business Phone', '500KB'] },
       { file: 'src/pages/Dashboard.jsx', labels: ['הגדרות העסק', 'Business Settings', 'ח.פ / עוסק מורשה'] },
     ],
   },
@@ -41,9 +41,9 @@ export const PRODUCT_HOW_TO = Object.freeze([
         'לפני ההצעה הראשונה צריך טלפון עסק (ובישראל גם ח.פ / עוסק מורשה) ב"הגדרות העסק".',
         'לוחצים "הצעה חדשה" ובוחרים "הצעת מחיר רגילה".',
         'בשלב "למי ההצעה?" ממלאים את פרטי הלקוח ובוחרים "סוג לקוח (חובה)".',
-        'בשלב "מה העבודה או המוצר?" מוסיפים פריטים: כותבים תיאור, או בוחרים מהקטלוג ("בחירת פריט מהקטלוג…").',
+        'בשלב "מה העבודה או המוצר?" מוסיפים פריטים: כותבים תיאור, או בוחרים מהקטלוג ("בחר שירות מהקטלוג...").',
         'בשלב "מחיר" ממלאים כמות ומחיר.',
-        'בשלב "בדיקה ושמירה" לוחצים "הפקה ושמירה בענן". כל הצעה חדשה נשמרת כטיוטה, ואחרי השמירה אפשר לשלוח אותה.',
+        'בשלב "בדיקה ושמירה" לוחצים "הפק ושמור בענן". כל הצעה חדשה נשמרת כטיוטה, ואחרי השמירה אפשר לשלוח אותה.',
       ],
     },
     en: {
@@ -61,7 +61,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       { file: 'src/components/NewQuoteMenu.jsx', labels: ['הצעה חדשה', 'New quote'] },
       { file: 'src/utils/newQuoteChoices.js', labels: ['הצעת מחיר רגילה', 'Standard quote'] },
       { file: 'src/components/QuoteForm.jsx', labels: ['למי ההצעה?', 'Who is it for?', 'מה העבודה או המוצר?', 'What work or product?', 'בדיקה ושמירה', 'Review and save', 'סוג לקוח (חובה)', 'Every new quote is saved as a draft.'] },
-      { file: 'src/pages/Dashboard.jsx', labels: ['הפקה ושמירה בענן', 'Generate & Save to Cloud', 'בחירת פריט מהקטלוג…', 'Choose from catalog...'] },
+      { file: 'src/pages/Dashboard.jsx', labels: ['הפק ושמור בענן', 'Generate & Save to Cloud', 'בחר שירות מהקטלוג...', 'Choose from catalog...'] },
     ],
   },
   {
@@ -72,8 +72,8 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         'בתפריט הצד לוחצים על "הצעות מחיר" ומוצאים את ההצעה ברשימה.',
         'לוחצים "פתיחה" ליד ההצעה.',
-        'בוחרים "שליחה במייל", "וואטסאפ", או "העתקת הודעה" (מעתיק הודעה עם הקישור להצעה, להדבקה בכל מקום).',
-        'הצעה בטיוטה מסומנת "נשלחה" אוטומטית אחרי שליחה במייל או פתיחת וואטסאפ.',
+        'בוחרים "שלח במייל", "וואטסאפ", או "העתקת הודעה" (מעתיק הודעה עם הקישור להצעה, להדבקה בכל מקום).',
+        'הצעה בטיוטה מסומנת "נשלח" אוטומטית אחרי שליחה במייל או פתיחת וואטסאפ.',
       ],
     },
     en: {
@@ -86,7 +86,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       ],
     },
     evidence: [
-      { file: 'src/components/QuotesTab.jsx', labels: ['פתיחה', 'Open', 'שליחה במייל', 'Email', 'וואטסאפ', 'WhatsApp', 'העתקת הודעה', 'Copy message'] },
+      { file: 'src/components/QuotesTab.jsx', labels: ['פתיחה', 'Open', 'שלח במייל', 'Email', 'וואטסאפ', 'WhatsApp', 'העתקת הודעה', 'Copy message'] },
       { file: 'src/pages/Dashboard.jsx', labels: ['הצעות מחיר', 'Quotes'] },
     ],
   },
@@ -96,8 +96,8 @@ export const PRODUCT_HOW_TO = Object.freeze([
     he: {
       task: 'הורדת הצעה כ-PDF',
       steps: [
-        'ברשימת "הצעות מחיר" לוחצים "פתיחה" ליד ההצעה ואז "צפייה", כדי לראות את ההצעה כמו שהלקוח רואה אותה.',
-        'לוחצים "הורדה כ-PDF". את הקובץ אפשר גם להדפיס.',
+        'ברשימת "הצעות מחיר" לוחצים "פתיחה" ליד ההצעה ואז "צפה", כדי לראות את ההצעה כמו שהלקוח רואה אותה.',
+        'לוחצים "הורד כ-PDF". את הקובץ אפשר גם להדפיס.',
       ],
     },
     en: {
@@ -108,8 +108,8 @@ export const PRODUCT_HOW_TO = Object.freeze([
       ],
     },
     evidence: [
-      { file: 'src/components/QuotesTab.jsx', labels: ['צפייה', 'View'] },
-      { file: 'src/pages/PublicQuote.jsx', labels: ['הורדה כ-PDF'] },
+      { file: 'src/components/QuotesTab.jsx', labels: ['צפה', 'View'] },
+      { file: 'src/pages/PublicQuote.jsx', labels: ['הורד כ-PDF'] },
       { file: 'src/pages/PublicQuoteEn.jsx', labels: ['Download PDF'] },
     ],
   },
@@ -180,7 +180,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       ],
     },
     evidence: [
-      { file: 'src/components/QuoteForm.jsx', labels: ['פרטים נוספים (לא חובה)', 'More details (optional)', 'קבצים מצורפים / שרטוטים', 'Attachments', 'צירוף קובץ', 'Attach File', 'בדיקה ושמירה'] },
+      { file: 'src/components/QuoteForm.jsx', labels: ['פרטים נוספים (לא חובה)', 'More details (optional)', 'קבצים מצורפים / שרטוטים', 'Attachments', 'צרף קובץ', 'Attach File', 'בדיקה ושמירה'] },
     ],
   },
   {
@@ -212,8 +212,8 @@ export const PRODUCT_HOW_TO = Object.freeze([
     he: {
       task: 'הוספת פריט לקטלוג',
       steps: [
-        'בתפריט הצד לוחצים על "קטלוג" ואז "הוספת פריט".',
-        'ממלאים שם ומחיר ולוחצים "שמירה". הפריט יופיע בבחירה מהקטלוג בעורך ההצעה.',
+        'בתפריט הצד לוחצים על "קטלוג" ואז "הוסף פריט".',
+        'ממלאים שם ומחיר ולוחצים "שמור". הפריט יופיע בבחירה מהקטלוג בעורך ההצעה.',
       ],
     },
     en: {
@@ -224,7 +224,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       ],
     },
     evidence: [
-      { file: 'src/components/ServicesCatalog.jsx', labels: ['הוספת פריט', 'Add Item', 'שמירה', 'Save'] },
+      { file: 'src/components/ServicesCatalog.jsx', labels: ['הוסף פריט', 'Add Item', 'שמור', 'Save'] },
       { file: 'src/pages/Dashboard.jsx', labels: ['קטלוג', 'Catalog'] },
     ],
   },
@@ -235,7 +235,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: 'משימות',
       steps: [
         'בתפריט הצד לוחצים על "משימות" ואז "משימה חדשה".',
-        'משימה שבוצעה מסמנים כהושלמה, והיא עוברת ללשונית ״הושלמו״. משימות פתוחות מופיעות בלשונית ״פתוחות״. אפשר גם למחוק משימה.',
+        'משימה שבוצעה מסמנים כהושלמה; היא עוברת ללשונית "הושלמו". משימות פתוחות בלשונית "פתוחות". אפשר גם למחוק משימה.',
       ],
     },
     en: {
@@ -257,8 +257,8 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: 'שכחתי סיסמה',
       steps: [
         'במסך הכניסה לוחצים "שכחת סיסמה?".',
-        'מזינים את כתובת המייל ולוחצים "שליחת קישור לשחזור".',
-        'בקישור שמגיע במייל מזינים "סיסמה חדשה" ולוחצים "שמירת הסיסמה החדשה".',
+        'מזינים את כתובת האימייל ולוחצים "שלח קישור לשחזור".',
+        'בקישור שמגיע במייל מזינים "סיסמה חדשה" ולוחצים "עדכן סיסמה ושמור".',
       ],
     },
     en: {
@@ -270,7 +270,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       ],
     },
     evidence: [
-      { file: 'src/components/AuthScreen.jsx', labels: ['שכחת סיסמה?', 'Forgot password?', 'שליחת קישור לשחזור', 'Send Reset Link', 'סיסמה חדשה', 'New password', 'שמירת הסיסמה החדשה', 'Update Password & Save'] },
+      { file: 'src/components/AuthScreen.jsx', labels: ['שכחת סיסמה?', 'Forgot password?', 'שלח קישור לשחזור', 'Send Reset Link', 'סיסמה חדשה', 'New password', 'עדכן סיסמה ושמור', 'Update Password & Save'] },
     ],
   },
   {

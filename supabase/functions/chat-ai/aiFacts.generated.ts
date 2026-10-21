@@ -57,10 +57,7 @@ export const AI_FACTS = {
     ],
     "free": {
       "quotesTotal": 10,
-      "expires": true,
-      "days": 7,
-      "endsWhen": "first_of_quotes_or_days",
-      "daysCountFrom": "signup_or_activation_day",
+      "expires": false,
       "consumingChannels": [
         "send",
         "public_share",
@@ -160,7 +157,7 @@ export const AI_FACTS = {
       "id": "quote_history",
       "heLabel": "היסטוריית הצעות מחיר",
       "enLabel": "Quote history",
-      "heDescription": "רשימת כל הצעות המחיר שנוצרו, עם חיפוש, סינון ומצב.",
+      "heDescription": "רשימת כל הצעות המחיר שנוצרו, עם חיפוש, סינון וסטטוס.",
       "enDescription": "The list of every quote created, with search, filtering, and status.",
       "state": "LIVE_CURRENT",
       "markets": [
@@ -237,7 +234,7 @@ export const AI_FACTS = {
       "id": "quote_duplicate",
       "heLabel": "שכפול הצעת מחיר",
       "enLabel": "Duplicate a quote",
-      "heDescription": "שכפול הצעת מחיר קיימת כדי ליצור הצעה חדשה שמבוססת עליה.",
+      "heDescription": "שכפול הצעת מחיר קיימת ליצירת הצעה חדשה מבוססת עליה.",
       "enDescription": "Duplicate an existing quote to start a new one from it.",
       "state": "LIVE_CURRENT",
       "markets": [
@@ -260,9 +257,9 @@ export const AI_FACTS = {
     },
     {
       "id": "quote_status",
-      "heLabel": "מצב הצעת מחיר",
+      "heLabel": "סטטוס הצעת מחיר",
       "enLabel": "Quote status",
-      "heDescription": "סימון/צפייה במצב הצעה (טיוטה/נשלחה/אושרה/שולמה): אפשר לבחור אותו ידנית, והצעה בטיוטה מסומנת „נשלחה” אוטומטית כששולחים אותה בוואטסאפ (כשוואטסאפ נפתח) או במייל (אחרי שליחה מוצלחת). המצב אינו גובה תשלום.",
+      "heDescription": "סימון/צפייה בסטטוס הצעה (טיוטה/נשלח/אושר/שולם): אפשר לבחור אותו ידנית, והצעה בטיוטה מסומנת „נשלחה” אוטומטית כששולחים אותה בוואטסאפ (כשוואטסאפ נפתח) או במייל (אחרי שליחה מוצלחת). הסטטוס אינו גובה תשלום.",
       "enDescription": "Viewing/setting a quote's status (Draft/Sent/Approved/Paid): you can set it by hand, and a Draft is marked Sent automatically when you share it by WhatsApp (when WhatsApp opens) or by email (after a successful send). The status does not collect payment.",
       "state": "LIVE_CURRENT",
       "markets": [
@@ -364,7 +361,7 @@ export const AI_FACTS = {
       "id": "clients",
       "heLabel": "ניהול לקוחות",
       "enLabel": "Client management",
-      "heDescription": "הוספת לקוחות, עריכת הפרטים שלהם וצפייה בהם.",
+      "heDescription": "הוספה, עריכה וצפייה בלקוחות.",
       "enDescription": "Adding, editing, and viewing clients.",
       "state": "LIVE_CURRENT",
       "markets": [
@@ -647,7 +644,7 @@ export const AI_FACTS = {
       "id": "public_metals_calculator",
       "heLabel": "מחשבון מתכות ציבורי",
       "enLabel": "Public metals calculator",
-      "heDescription": "הערכת שווי של מתכות יקרות (זהב, כסף, פלטינה, פלדיום ורודיום): מחירי ייחוס קבועים מוכפלים בשער דולר–שקל עדכני. מחירי המתכות עצמם אינם מתעדכנים בזמן אמת.",
+      "heDescription": "הערכת שווי מתכות יקרות (זהב/כסף/פלטינה/פלדיום/רודיום) - הנחות מחיר קבועות מוכפלות בשער דולר/שקל חי, לא הזנה חיה של שער מתכות עצמו.",
       "enDescription": "An estimate of precious-metals value (gold/silver/platinum/palladium/rhodium) - fixed per-gram assumptions multiplied by a live USD/ILS rate, not an independent live metals feed.",
       "state": "LIVE_CURRENT",
       "markets": [
@@ -736,7 +733,7 @@ export const AI_FACTS = {
       "id": "profile_prerequisites",
       "heLabel": "דרישות פרופיל עסקי",
       "enLabel": "Business profile prerequisites",
-      "heDescription": "לפני יצירת ההצעה הראשונה נדרש טלפון עסקי, ובשוק המקומי נדרש גם מספר ח״פ או עוסק.",
+      "heDescription": "טלפון עסקי (וב-שוק המקומי גם ח.פ./עוסק) נדרשים לפני יצירת הצעה ראשונה.",
       "enDescription": "A business phone (and, in the Local market, a tax/business ID) are required before the first quote can be created.",
       "state": "LIVE_CURRENT",
       "markets": [
@@ -761,7 +758,7 @@ export const AI_FACTS = {
       "id": "plan_trial",
       "heLabel": "מסלולים ו-10 הצעות חינם",
       "enLabel": "Plans and Free quotes",
-      "heDescription": "מסלול החינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם. בשבעת הימים כלול גם חכם פלוס. לאחר מכן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. מערכת המנויים החדשה עדיין בהכנה.",
+      "heDescription": "מסלול חינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם, ובשבעת הימים כלול גם חכם פלוס. אחריהן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. מערכת המנויים החדשה עדיין בהכנה.",
       "enDescription": "The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, with SMART PACK included during those 7 days. After them there is one package with every available capability, billed monthly or annually: 18.00 USD per month or 184.00 USD per year, charged in USD. The new subscription system is still being prepared.",
       "state": "LIVE_CURRENT",
       "markets": [
@@ -1027,7 +1024,7 @@ export const AI_FACTS = {
       "id": "quote_expiry",
       "heLabel": "תפוגת הצעת מחיר",
       "enLabel": "Quote expiry",
-      "heDescription": "אפשר לצפות בהצעה שפג תוקפה, אבל אי אפשר לחתום עליה.",
+      "heDescription": "הצעה שפג תוקפה נשארת צפויה לצפייה אך אינה ניתנת לחתימה.",
       "enDescription": "An expired quote stays viewable but cannot be signed.",
       "state": "LIVE_CURRENT",
       "markets": [
@@ -1054,7 +1051,7 @@ export const AI_FACTS = {
       "id": "draft_recovery",
       "heLabel": "שחזור טיוטה מקומית",
       "enLabel": "Local draft recovery",
-      "heDescription": "שחזור עבודה שלא נשמרה בעורך ההצעה לאחר רענון או מעבר לאפליקציה אחרת. העבודה שמורה רק בדפדפן המקומי, ולא בענן.",
+      "heDescription": "שחזור עבודה שלא נשמרה בעורך ההצעה לאחר רענון/מעבר אפליקציה - שמור מקומית בדפדפן בלבד, לא בענן.",
       "enDescription": "Restoring unsaved editor work after a refresh/app switch - stored locally in the browser only, never in the cloud.",
       "state": "LIVE_CURRENT",
       "markets": [
@@ -1160,7 +1157,7 @@ export const AI_FACTS = {
       "id": "quote_statistics",
       "heLabel": "סטטיסטיקת הצעות והצעות חמות",
       "enLabel": "Quote statistics and hot quotes",
-      "heDescription": "מסך סטטיסטיקה: כמה הצעות נוצרו, נשלחו, אושרו ושולמו, שיעור ההמרה, ורשימת הצעות חמות (נצפו 3 פעמים או יותר וממתינות לאישור) עם פעולות ידניות: צפייה בהצעה (נפתחת בלשונית חדשה), WhatsApp, שליחה במייל ויצירת משימת מעקב. סכומים מוצגים לכל מטבע בנפרד, לפי תקופה ומצב. פותחים אותו מהתפריט „סטטיסטיקה” (בנייד: „עוד” ← „סטטיסטיקה”).",
+      "heDescription": "מסך סטטיסטיקה: כמה הצעות נוצרו, נשלחו, אושרו ושולמו, שיעור ההמרה, ורשימת הצעות חמות (נצפו 3 פעמים או יותר וממתינות לאישור) עם פעולות ידניות: צפייה בהצעה (נפתחת בלשונית חדשה), WhatsApp, שליחה במייל ויצירת משימת מעקב. סכומים מוצגים לכל מטבע בנפרד, לפי תקופה וסטטוס. פותחים אותו מהתפריט „סטטיסטיקה” (בנייד: „עוד” ← „סטטיסטיקה”).",
       "enDescription": "A Statistics screen: how many quotes were created, sent, approved and paid, the conversion rate, and a hot-quote list (viewed 3+ times and awaiting approval) with manual actions: view the quote (opens in a new tab), WhatsApp, email and create a follow-up task. Amounts are shown per currency, by period and status. Open it from the “Statistics” menu item (on mobile: “More” → “Statistics”).",
       "state": "LIVE_CURRENT",
       "markets": [
@@ -1260,7 +1257,7 @@ export const AI_FACTS = {
       "id": "reminders_automation",
       "heLabel": "תזכורות ואוטומציות",
       "enLabel": "Reminders & automation",
-      "heDescription": "הגדרות עסק ← תזכורות ואוטומציות: בוחרים אחד משלושה מצבים — ״בממשק בלבד״ (ברירת המחדל: התזכורות מופיעות בפעמון), ״כבוי״ או ״מלא, כולל שליחה ללקוח״. המצב המלא מופעל רק בבחירה מפורשת שלכם. מסמנים בתיבות הסימון אילו פעולות יפעלו. אפשר להגדיר כלל ללקוח (ימים, תוכן, שעות שליחה ואזור זמן, עם תצוגה מקדימה והשהיה). שליחה אוטומטית ללקוחות תיפתח בהמשך; בינתיים אתם שולחים הודעות ללקוח מתוך ההצעה. שליחה בוואטסאפ נעשית ידנית מתוך ההצעה.",
+      "heDescription": "הגדרות עסק ← תזכורות ואוטומציות: בוחרים אחד משלושה מצבים - „בממשק בלבד” (ברירת המחדל: התזכורות מופיעות אצלכם בפעמון), „כבוי”, או „מלא, כולל שליחה ללקוח”, שנדלק רק בבחירה מפורשת שלכם. מסמנים בתיבות סימון אילו התנהגויות יפעלו. אפשר להגדיר כלל ללקוח (ימים, תוכן, שעות שליחה ואזור זמן, עם תצוגה מקדימה והשהיה), ושליחה אוטומטית ללקוחות תיפתח בהמשך; בינתיים הודעות ללקוח נשלחות על ידכם, מתוך ההצעה. WhatsApp נשלח ידנית מתוך ההצעה.",
       "enDescription": "Business settings → Reminders & automation: you choose one of three modes - “In-app only” (the default: reminders appear for you under the bell), “Off”, or “Full, including customer sending”, which turns on only by your explicit choice. You tick which behaviors run. You can set up a customer rule (days, content, sending hours and a time zone, with a preview and a pause), and automatic sending to customers opens later; until then, messages to a customer are sent by you from the quote. WhatsApp is sent manually from the quote.",
       "state": "LIVE_CURRENT",
       "markets": [
@@ -1399,9 +1396,9 @@ export const AI_FACTS = {
         "task": "הוספת לוגו ועדכון פרטי העסק",
         "steps": [
           "בתפריט הצד לוחצים על \"הגדרות העסק\".",
-          "בשדה \"כתובת תמונת לוגו (URL) או העלאת קובץ\" לוחצים \"העלאת קובץ\" ובוחרים קובץ PNG, JPG או SVG עד 500KB.",
-          "באותו מסך ממלאים את פרטי העסק, למשל \"טלפון העסק\" ו\"ח.פ / עוסק מורשה\".",
-          "לוחצים \"שמירת הגדרות העסק\"."
+          "בשדה \"כתובת תמונת לוגו (URL) או העלאת קובץ\" לוחצים \"העלה קובץ\" ובוחרים קובץ PNG, JPG או SVG עד 500KB.",
+          "באותו מסך ממלאים את פרטי העסק, למשל \"טלפון עסק\" ו\"ח.פ / עוסק מורשה\".",
+          "לוחצים \"שמור הגדרות עסק\"."
         ]
       },
       "en": {
@@ -1427,9 +1424,9 @@ export const AI_FACTS = {
           "לפני ההצעה הראשונה צריך טלפון עסק (ובישראל גם ח.פ / עוסק מורשה) ב\"הגדרות העסק\".",
           "לוחצים \"הצעה חדשה\" ובוחרים \"הצעת מחיר רגילה\".",
           "בשלב \"למי ההצעה?\" ממלאים את פרטי הלקוח ובוחרים \"סוג לקוח (חובה)\".",
-          "בשלב \"מה העבודה או המוצר?\" מוסיפים פריטים: כותבים תיאור, או בוחרים מהקטלוג (\"בחירת פריט מהקטלוג…\").",
+          "בשלב \"מה העבודה או המוצר?\" מוסיפים פריטים: כותבים תיאור, או בוחרים מהקטלוג (\"בחר שירות מהקטלוג...\").",
           "בשלב \"מחיר\" ממלאים כמות ומחיר.",
-          "בשלב \"בדיקה ושמירה\" לוחצים \"הפקה ושמירה בענן\". כל הצעה חדשה נשמרת כטיוטה, ואחרי השמירה אפשר לשלוח אותה."
+          "בשלב \"בדיקה ושמירה\" לוחצים \"הפק ושמור בענן\". כל הצעה חדשה נשמרת כטיוטה, ואחרי השמירה אפשר לשלוח אותה."
         ]
       },
       "en": {
@@ -1456,8 +1453,8 @@ export const AI_FACTS = {
         "steps": [
           "בתפריט הצד לוחצים על \"הצעות מחיר\" ומוצאים את ההצעה ברשימה.",
           "לוחצים \"פתיחה\" ליד ההצעה.",
-          "בוחרים \"שליחה במייל\", \"וואטסאפ\", או \"העתקת הודעה\" (מעתיק הודעה עם הקישור להצעה, להדבקה בכל מקום).",
-          "הצעה בטיוטה מסומנת \"נשלחה\" אוטומטית אחרי שליחה במייל או פתיחת וואטסאפ."
+          "בוחרים \"שלח במייל\", \"וואטסאפ\", או \"העתקת הודעה\" (מעתיק הודעה עם הקישור להצעה, להדבקה בכל מקום).",
+          "הצעה בטיוטה מסומנת \"נשלח\" אוטומטית אחרי שליחה במייל או פתיחת וואטסאפ."
         ]
       },
       "en": {
@@ -1479,8 +1476,8 @@ export const AI_FACTS = {
       "he": {
         "task": "הורדת הצעה כ-PDF",
         "steps": [
-          "ברשימת \"הצעות מחיר\" לוחצים \"פתיחה\" ליד ההצעה ואז \"צפייה\", כדי לראות את ההצעה כמו שהלקוח רואה אותה.",
-          "לוחצים \"הורדה כ-PDF\". את הקובץ אפשר גם להדפיס."
+          "ברשימת \"הצעות מחיר\" לוחצים \"פתיחה\" ליד ההצעה ואז \"צפה\", כדי לראות את ההצעה כמו שהלקוח רואה אותה.",
+          "לוחצים \"הורד כ-PDF\". את הקובץ אפשר גם להדפיס."
         ]
       },
       "en": {
@@ -1583,8 +1580,8 @@ export const AI_FACTS = {
       "he": {
         "task": "הוספת פריט לקטלוג",
         "steps": [
-          "בתפריט הצד לוחצים על \"קטלוג\" ואז \"הוספת פריט\".",
-          "ממלאים שם ומחיר ולוחצים \"שמירה\". הפריט יופיע בבחירה מהקטלוג בעורך ההצעה."
+          "בתפריט הצד לוחצים על \"קטלוג\" ואז \"הוסף פריט\".",
+          "ממלאים שם ומחיר ולוחצים \"שמור\". הפריט יופיע בבחירה מהקטלוג בעורך ההצעה."
         ]
       },
       "en": {
@@ -1604,7 +1601,7 @@ export const AI_FACTS = {
         "task": "משימות",
         "steps": [
           "בתפריט הצד לוחצים על \"משימות\" ואז \"משימה חדשה\".",
-          "משימה שבוצעה מסמנים כהושלמה, והיא עוברת ללשונית ״הושלמו״. משימות פתוחות מופיעות בלשונית ״פתוחות״. אפשר גם למחוק משימה."
+          "משימה שבוצעה מסמנים כהושלמה; היא עוברת ללשונית \"הושלמו\". משימות פתוחות בלשונית \"פתוחות\". אפשר גם למחוק משימה."
         ]
       },
       "en": {
@@ -1624,8 +1621,8 @@ export const AI_FACTS = {
         "task": "שכחתי סיסמה",
         "steps": [
           "במסך הכניסה לוחצים \"שכחת סיסמה?\".",
-          "מזינים את כתובת המייל ולוחצים \"שליחת קישור לשחזור\".",
-          "בקישור שמגיע במייל מזינים \"סיסמה חדשה\" ולוחצים \"שמירת הסיסמה החדשה\"."
+          "מזינים את כתובת האימייל ולוחצים \"שלח קישור לשחזור\".",
+          "בקישור שמגיע במייל מזינים \"סיסמה חדשה\" ולוחצים \"עדכן סיסמה ושמור\"."
         ]
       },
       "en": {

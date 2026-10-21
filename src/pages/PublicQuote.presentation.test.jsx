@@ -35,7 +35,7 @@ const renderHe = (props) => render(<MemoryRouter><PublicQuote {...props} /></Mem
 const renderEn = (props) => render(<PublicQuoteEn {...props} />);
 
 const PAGES = [
-  ['HE', renderHe, heData, { print: 'הדפסת המסמך', sign: 'חתימת לקוח לאישור ההצעה:', approve: /אישור וחתימה/ }],
+  ['HE', renderHe, heData, { print: 'הדפס מסמך', sign: 'חתימת לקוח לאישור ההצעה:', approve: /אשר וחתום/ }],
   ['EN', renderEn, enData, { print: 'Print Document', sign: 'Client Signature to Approve This Quote:', approve: /Approve & Sign/ }],
 ];
 
@@ -92,7 +92,7 @@ describe.each(PAGES)('%s public quote - document / action separation', (name, re
     expect(card.querySelector('.pq-approval.pq-print-only .pq-sigline')).not.toBeNull();
     // ledger D23 (cloud-fix4): base footer - HE credit line only; EN has no footer (as base c65f742)
     if (name === 'HE') {
-      expect(card.querySelector('.pq-doc-foot').textContent).toMatch(/^המסמך הופק באמצעות/);
+      expect(card.querySelector('.pq-doc-foot').textContent).toMatch(/^מסמך זה נערך ע"י/);
       expect(card.querySelector('.pq-doc-foot').textContent).not.toContain(data().business.business_name);
     } else {
       expect(card.querySelector('.pq-doc-foot')).toBeNull();
@@ -249,14 +249,14 @@ describe.each(PAGES)('%s public quote - document / action separation', (name, re
 
 describe('PublicQuoteHeader Call CTA (Owner 2026-10-07: upper outer corner, screen only)', () => {
   const STYLES3 = ['classic', 'modern', 'visual'];
-  it.each(STYLES3)('HE %s: "התקשרות לעסק" precedes metadata in the upper outer corner, tel: link without the number as text', (style) => {
+  it.each(STYLES3)('HE %s: "חייג/י אליי" precedes metadata in the upper outer corner, tel: link without the number as text', (style) => {
     const { container } = renderHe({ quoteData: heData(), presentation: { mode: 'draft', style, media: [] } });
     const header = container.querySelector('.pq-letterhead');
     const call = header.querySelector('.pq-lh-call');
     expect(call).not.toBeNull();
     const a = call.querySelector('a[href^="tel:"]');
     expect(a.getAttribute('href')).toBe('tel:0501234567');
-    expect(a.textContent).toBe('התקשרות לעסק');
+    expect(a.textContent).toBe('חייג/י אליי');
     // It is structurally before metadata: Classic/Visual place it in the brandline corner; Modern starts the aside with it.
     const meta = header.querySelector('.pq-meta');
     expect(call.compareDocumentPosition(meta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();

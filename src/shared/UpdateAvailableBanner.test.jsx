@@ -25,7 +25,7 @@ describe('UpdateAvailableBanner + durable drafts', () => {
     reload.mockImplementation(() => order.push('reload'));
     render(<UpdateAvailableBanner isHebrew />);
     await act(async () => { await vi.advanceTimersByTimeAsync(50); });
-    fireEvent.click(screen.getByRole('button', { name: 'רענון' }));
+    fireEvent.click(screen.getByRole('button', { name: 'רענן' }));
     expect(order).toEqual(['flush', 'reload']);
     off();
   });

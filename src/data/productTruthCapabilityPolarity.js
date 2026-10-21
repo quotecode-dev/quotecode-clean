@@ -217,8 +217,6 @@ const PATTERNS = Object.freeze({
       /(?:אינ[הו]|לא)\s+כלול[הת]?\s+ב(?:תוכנית|חשבון)\s+שלך/,
       /(?:אין\s+לך|לא\s+ניתן\s+לך)\s+(?:גישה|הרשאה)/,
       /(?:אינ[הו]|לא)\s+(?:זמינ[הו]|זמין)\s+(?:ב|ל)(?:תוכנית|חשבון)\s+(?:הנוכח\S*\s+)?שלך/,
-      // Hebrew copy review 2026-10-21 (L-14, neutral wording): "לחשבון הנוכחי אין ההרשאה הזו"
-      /לחשבון\s+(?:ה)?נוכח\S*\s+אין\s+(?:ה)?הרשאה/,
     ],
     accountHas: [
       /(?:התוכנית|החשבון)(?:\s+הנוכח\S*)?\s+שלך\s+(?:כולל[תה]|מכסה)/,
@@ -248,9 +246,7 @@ const PATTERNS = Object.freeze({
     denyExistence: [
       // Hebrew masculine-singular forms end in FINAL letters (קיים, זמין, נתמך) - a plain מ/נ/כ stem would miss them
       /(?:אינ(?:ה|ו|ם|ן)?|לא)\s+(?:קיי[םמ](?:ת|ים|ות)?|זמינ(?:ה|ים|ות)?|זמין|נתמכ(?:ת|ים|ות)?|נתמך|פעיל(?:ה|ים|ות)?|מוצע(?:ת|ים)?)/,
-      // the ONLY extra exemption: "לחשבון הנוכחי אין ההרשאה" (the account lacks the role) - any other "אין" still denies existence
-      // (Codex night review 2026-10-22, finding 4)
-      /(?<!לחשבון\s+(?:ה)?נוכח\S*)(?:^|[\s,;-])אין(?!\s+לך)(?:\s|$)/,
+      /(?:^|[\s,;-])אין(?!\s+לך)(?:\s|$)/,
       /(?:^|\s)לא\s+(?:תמצא|נמצא|נמצאת|נמצאים|נמצאות|מצוי|מצויה)(?:\s|$|[.,])/,
       /(?:^|\s)(?:אינו|אינה|לא)\s*$/,
       // TEKANGO-scoped negation with an elided verb: "..., אבל לא ב-TEKANGO"

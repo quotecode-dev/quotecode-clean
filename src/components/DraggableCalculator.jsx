@@ -252,10 +252,10 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
             <span style={{ fontSize: '0.7rem', color: '#64748b', fontWeight: '800', textTransform: 'uppercase' }}>
               {usingFallbackRates
-                ? (isHebrew ? 'שערים משוערים (אינם בזמן אמת; מתעדכנים כל 10 דקות)' : 'Indicative rates (not live, refreshes every 10 min)')
+                ? (isHebrew ? 'שערים משוערים (לא חי, מתעדכן כל 10 דק\')' : 'Indicative rates (not live, refreshes every 10 min)')
                 : isGlobal
-                  ? (isHebrew ? 'שערי המרה מדולר למטבעות הבאים (מתעדכנים כל 10 דקות):' : 'Live rates from $ to: (updates every 10 min)')
-                  : (isHebrew ? 'שערים יציגים להמרה מ־₪ למטבעות הבאים (מתעדכנים כל 10 דקות):' : 'Live rates from ₪ to: (updates every 10 min)')}
+                  ? (isHebrew ? 'שערים חיים מ-$ ל: (מתעדכן כל 10 דק\')' : 'Live rates from $ to: (updates every 10 min)')
+                  : (isHebrew ? 'שערים יציגים מ-₪ ל: (מתעדכן כל 10 דק\')' : 'Live rates from ₪ to: (updates every 10 min)')}
             </span>
             <span style={{ fontSize: '0.65rem', color: usingFallbackRates ? '#b45309' : '#10b981', fontWeight: 'bold' }}>{lastUpdated}</span>
           </div>

@@ -76,7 +76,7 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onSave, isH
             </button>
             {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
             <button type="submit" style={{ flex: 1, background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
-              {isHebrew ? 'שמירת שינויים' : 'Save Changes'}
+              {isHebrew ? 'שמור שינויים' : 'Save Changes'}
             </button>
           </div>
         </form>

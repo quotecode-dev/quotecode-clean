@@ -68,7 +68,7 @@ describe('AddAnotherItemDialog', () => {
     render(<AddAnotherItemDialog {...dialogProps({ isHebrew: true, sym: '₪' })} />);
     const ask = screen.getByRole('dialog');
     expect(ask.getAttribute('dir')).toBe('rtl');
-    expect(ask.textContent).toContain('להוסיף פריט נוסף?');
+    expect(ask.textContent).toContain('האם תרצה להוסיף פריט נוסף?');
     fireEvent.click(screen.getByTestId('add-another-yes'));
     expect(screen.getByTestId('catalog-pick-add').textContent).toBe('סמנו לפחות פריט אחד');
     fireEvent.click(screen.getAllByRole('checkbox')[0]);

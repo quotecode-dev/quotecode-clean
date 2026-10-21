@@ -19,7 +19,7 @@ export default function AddAnotherItemDialog({ services, isHebrew, sym, formatMo
   const count = picked.size;
   const t = isHebrew
     ? {
-      ask: 'להוסיף פריט נוסף?', yes: 'כן', no: 'לא',
+      ask: 'האם תרצה להוסיף פריט נוסף?', yes: 'כן', no: 'לא',
       pickTitle: 'בחרו פריטים מהקטלוג', pickNote: 'סמנו את כל הפריטים שרוצים להוסיף. כל פריט נכנס בכמות 1, ואפשר לשנות אותה בהצעה.',
       add: count === 1 ? 'הוספת פריט אחד להצעה' : `הוספת ${count} פריטים להצעה`, addNone: 'סמנו לפחות פריט אחד',
       newItem: 'פריט חדש שלא בקטלוג', cancel: 'ביטול', close: 'סגירה',

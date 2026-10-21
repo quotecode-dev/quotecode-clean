@@ -428,7 +428,7 @@ export function classifyBroadCapabilityQuestionSignal(lastUserMessage: unknown):
  * registry, not invented) and asks the user to name the specific feature. */
 export function formatBroadCapabilityClarification(isHebrew: boolean): string {
   return isHebrew
-    ? `על איזו יכולת ספציפית ב-TEKANGO תרצו לדעת? למשל: המחשבון בעורך, ייצוא ל-PDF, שיתוף בוואטסאפ, צירוף קבצים, הצעה לפי מידות, תשלומים או חשבוניות. ציינו את שם האפשרות כדי שאוכל להשיב לפי המידע המאומת של המוצר.`
+    ? `אני רוצה לוודא שאני עונה נכון - איזו יכולת ספציפית ב-TEKANGO את/ה שואל/ת עליה? לדוגמה: מחשבון בעורך, ייצוא PDF, שיתוף בוואטסאפ, צירוף קבצים, הצעה מדודה, תשלומים/חשבוניות, או משהו אחר. ציין/ציני את שם היכולת ואשמח לתת תשובה מדויקת מתוך רשימת היכולות האמיתית של המוצר.`
     : `I want to make sure I answer correctly - which specific TEKANGO feature are you asking about? For example: the in-editor calculator, PDF export, WhatsApp sharing, file attachments, measured quotes, payments/invoicing, or something else. Name the specific feature and I'll answer precisely from the product's real capability list.`;
 }
 
@@ -468,38 +468,38 @@ function renderCapabilityProse(p: ProductTruthFactPayload, name: string, desc: s
     case 'NOT_AVAILABLE':
       switch (p.registryState) {
         case 'UNAVAILABLE':
-          return isHebrew ? `לא — האפשרות ״${name}״ אינה זמינה כרגע ב-TEKANGO.` : `No - ${name} is not currently available in TEKANGO.`;
+          return isHebrew ? `לא - ${name} אינה זמינה כרגע ב-TEKANGO.` : `No - ${name} is not currently available in TEKANGO.`;
         case 'ROADMAP_POST_LIVE':
-          return isHebrew ? `האפשרות ״${name}״ אינה זמינה כרגע. היא מתוכננת לעתיד.` : `${name} is not currently available - it is a future roadmap item, not an active capability today.`;
+          return isHebrew ? `${name} אינה זמינה כרגע - זהו יעד עתידי, לא יכולת פעילה היום.` : `${name} is not currently available - it is a future roadmap item, not an active capability today.`;
         case 'IMPLEMENTED_NOT_RELEASED':
-          return isHebrew ? `האפשרות ״${name}״ אינה זמינה כרגע למשתמשים.` : `${name} is not currently available to users.`;
+          return isHebrew ? `${name} אינה זמינה כרגע למשתמשים.` : `${name} is not currently available to users.`;
         case 'TEST_ONLY':
-          return isHebrew ? `האפשרות ״${name}״ קיימת רק בסביבת בדיקות פנימית ואינה מוצגת כיכולת ללקוחות.` : `${name} exists only in an internal test environment and is never presented as a customer feature.`;
+          return isHebrew ? `${name} קיימת רק בסביבת בדיקות פנימית ואינה מוצגת כיכולת ללקוחות.` : `${name} exists only in an internal test environment and is never presented as a customer feature.`;
         case 'FIRST_LIVE_CANDIDATE':
           return isHebrew
-            ? `האפשרות ״${name}״ קיימת רק בסביבת בדיקה מאומתת (TEST). אין בכך אישור לזמינות בסביבת הייצור.`
+            ? `${name} קיימת בסביבת בדיקה מאומתת (TEST) בלבד - אין לראות בכך זמינות בסביבת הייצור.`
             : `${name} exists in a verified TEST/candidate environment only - this does not imply availability in Production.`;
         case 'DEPRECATED':
-          return isHebrew ? `האפשרות ״${name}״ הוחלפה. ${desc}` : `${name} has been replaced. ${desc}`;
+          return isHebrew ? `${name} הוחלפה. ${desc}` : `${name} has been replaced. ${desc}`;
         default:
           throw new CapabilityAnswerInvariantError(p.capabilityId ?? 'unknown', [{ code: 'UNKNOWN_AVAILABILITY_STATE', reason: `NOT_AVAILABLE payload carries registryState "${String(p.registryState)}"` }]);
       }
     case 'MARKET_UNAVAILABLE':
-      return isHebrew ? `לא — האפשרות ״${name}״ אינה זמינה בשוק של החשבון.` : `No - ${name} is not available in your account's market.`;
+      return isHebrew ? `לא - ${name} אינה זמינה בשוק של החשבון שלך.` : `No - ${name} is not available in your account's market.`;
     case 'ROLE_LOCKED':
       return isHebrew
-        ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO, אך היא זמינה רק לתפקיד ${p.requiredRole}, אחרי אימות ההרשאה בשרת. הזמינות אינה תלויה במסלול. ${desc} לחשבון הנוכחי אין ההרשאה הזו.`
+        ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${p.requiredRole} המאומתת בצד השרת - לא למסלול. ${desc} החשבון הנוכחי שלך אינו מחזיק בהרשאה הזו.`
         : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${p.requiredRole} role - not to a plan. ${desc} Your current account does not hold that role.`;
     case 'PLAN_NOT_DECIDED':
       // OPEN-02 / OPEN-13: the capability exists; which plans include it is not decided, and the plan system is not active yet.
       // Never a minimum plan, never "your plan includes / lacks it".
       return isHebrew
-        ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO. ${desc} עדיין לא הוחלט אילו מסלולים יכללו אותה. מערכת המסלולים החדשה עדיין בהכנה.`
+        ? `כן - ${name} קיימת ב-TEKANGO. ${desc} אילו מסלולים יכללו אותה - טרם הוחלט (מערכת המסלולים החדשה עדיין בהכנה).`
         : `Yes - ${name} exists in TEKANGO. ${desc} Plan inclusion for it is still undecided (the new plan system is still being prepared).`;
     case 'PLAN_LOCKED':
       // Reachable only with an APPROVED minimum plan (none today - OPEN-02). Canonical plan names only (OD-16).
       return isHebrew
-        ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO, החל ממסלול ${planName(p.minimumPlan, 'he') ?? ''}. ${desc} המסלול הנוכחי אינו כולל אותה.`
+        ? `כן - ${name} קיימת ב-TEKANGO, אך כלולה החל ממסלול ${planName(p.minimumPlan, 'he') ?? ''}. ${desc} המסלול הנוכחי שלך אינו כולל אותה.`
         : `Yes - ${name} exists in TEKANGO, but it is included from the ${planName(p.minimumPlan, 'en') ?? ''} plan. ${desc} Your current plan does not include it.`;
     case 'AVAILABLE': {
       // Role-gated (Codex defect 6): a PERMISSION restriction, never a plan one — phrased distinctly from the
@@ -507,20 +507,20 @@ function renderCapabilityProse(p: ProductTruthFactPayload, name: string, desc: s
       // does not have it). Read from the payload's requiredRole / accountEntitlement.
       if (p.requiredRole !== null) {
         if (p.accountEntitlement === 'GRANTED') {
-          return isHebrew ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO, וההרשאה שלכם אומתה. ${desc}` : `Yes - ${name} exists in TEKANGO and your role is verified. ${desc}`;
+          return isHebrew ? `כן - ${name} קיימת ב-TEKANGO וההרשאה שלך מאומתת. ${desc}` : `Yes - ${name} exists in TEKANGO and your role is verified. ${desc}`;
         }
         return isHebrew
-          ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO, אך היא זמינה רק לתפקיד ${p.requiredRole}, אחרי אימות ההרשאה בשרת. הזמינות אינה תלויה במסלול. ${desc}`
+          ? `כן - ${name} קיימת ב-TEKANGO, אך מוגבלת להרשאת ${p.requiredRole} המאומתת בצד השרת - לא למסלול. ${desc}`
           : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${p.requiredRole} role - not to a plan. ${desc}`;
       }
       // Plan-gated: say the capability exists and explain the restriction — never deny existence. Codex 4.4: branches on the
       // payload's tri-state accountEntitlement (never the raw tier string's truthiness); GRANTED needs no restriction disclosure.
       if (p.minimumPlan !== null && p.accountEntitlement !== 'GRANTED') {
         return isHebrew
-          ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO, החל ממסלול ${planName(p.minimumPlan, 'he') ?? ''}. ${desc}`
+          ? `כן - ${name} קיימת ב-TEKANGO, החל ממסלול ${planName(p.minimumPlan, 'he') ?? ''}. ${desc}`
           : `Yes - ${name} exists in TEKANGO, from the ${planName(p.minimumPlan, 'en') ?? ''} plan. ${desc}`;
       }
-      return isHebrew ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO. ${desc}` : `Yes - ${name} exists in TEKANGO. ${desc}`;
+      return isHebrew ? `כן - ${name} קיימת ב-TEKANGO. ${desc}` : `Yes - ${name} exists in TEKANGO. ${desc}`;
     }
     default:
       // Exhaustive by construction: a truth status that has no capability wording must fail loudly, never fall into available-prose.
@@ -556,7 +556,7 @@ export function resolveCapabilityTruthResponse(
     if (factPayload.truthStatus !== 'NOT_AVAILABLE') throw new CapabilityAnswerInvariantError(id, [{ code: 'NO_LIFECYCLE_SELF_SERVICE_CLAIM', reason: `lifecycle payload is ${factPayload.truthStatus}` }]);
     const supportEmail = isHebrew ? AI_FACTS.supportEmail.he : AI_FACTS.supportEmail.en;
     const answer = isHebrew
-      ? `ביטול מנוי או עסק, ארכוב נתונים ומחיקה לצמיתות אינם פעולות עצמאיות בהגדרות העסק כיום. לא נמצא בממשק תהליך לפעולות האלה. לבקשה כזו יש לפנות ל-${supportEmail}.`
+      ? `ביטול מנוי/עסק, ארכוב נתונים או מחיקה לצמיתות אינם פעולות עצמאיות (self-service) בהגדרות העסק כיום - בדיקת המקור לא מצאה תהליך כזה בממשק. לבקשה כזו יש לפנות ל-${supportEmail}.`
       : `Account/subscription cancellation, data archiving, or permanent deletion are NOT a self-service action in Business Settings today - a fresh source check found no such UI flow. For this request, please contact ${supportEmail}.`;
     return { answer, factPayload };
   }
@@ -576,7 +576,7 @@ export function resolveCapabilityTruthResponse(
     const pdf = facts.capabilities.find((c) => c.id === factPayload.comparedCapabilityIds![0]);
     const print = facts.capabilities.find((c) => c.id === factPayload.comparedCapabilityIds![1]);
     const answer = isHebrew
-      ? `לא. הורדה ל-PDF והדפסה הן שתי פעולות שונות: ${pdf ? label(pdf, true) : 'PDF'} מאפשרת להוריד או לשמור את ההצעה כקובץ; ${print ? label(print, true) : 'הדפסה'} שולחת את ההצעה להדפסה. בשתי הפעולות מופק אותו מסמך הצעת מחיר, ולא חשבונית.`
+      ? `לא, PDF והדפסה הן שתי פעולות שונות: ${pdf ? label(pdf, true) : 'PDF'} מייצא את ההצעה כקובץ להורדה/שמירה, בעוד ${print ? label(print, true) : 'הדפסה'} שולחת אותה ישירות למדפסת. שתיהן יוצרות את אותו מסמך הצעה - לא חשבונית - רק ביעד שונה.`
       : `No, PDF and Print are two different actions: ${pdf ? label(pdf, false) : 'PDF export'} downloads/saves the quote as a file, while ${print ? label(print, false) : 'Print'} sends it directly to a printer. Both produce the same quote document - not an invoice - just to a different destination.`;
     return { answer, factPayload };
   }

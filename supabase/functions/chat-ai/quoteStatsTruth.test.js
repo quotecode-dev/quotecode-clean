@@ -58,7 +58,7 @@ describe('quote statistics truth (Owner 2026-10-19)', () => {
     expect(he).toContain('סטטיסטיקה');
     const en = formatQuoteStatsAnswer(computeQuoteStats([{ status: 'sent', total: 702, currency: 'USD' }], 'USD'), 'USD', false);
     expect(en).toContain('• Awaiting signature (sent or viewed): 1, totalling $702.00');
-    expect(formatQuoteStatsAnswer(computeQuoteStats([], 'ILS'), 'ILS', true)).toMatch(/^עדיין אין הצעות מחיר בחשבון/);
+    expect(formatQuoteStatsAnswer(computeQuoteStats([], 'ILS'), 'ILS', true)).toMatch(/^עדיין אין הצעות מחיר בחשבון שלך/);
   });
 
   it('index.ts: runs for a verified dashboard user only, reads quotes with the caller JWT and user_id, before the subscription truth', () => {

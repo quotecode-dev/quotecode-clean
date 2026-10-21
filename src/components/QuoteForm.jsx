@@ -548,12 +548,12 @@ export default function QuoteForm({
         for (let file of files) {
           if (file.size > MAX_FILE_SIZE) {
             publishBlocker('ATTACHMENT_FILE_TOO_LARGE', { scope: 'editor' });
-            setErrorMessage(isHebrew ? `הקובץ ״${file.name}״ גדול מהמותר לקובץ אחד (עד 3 MB).` : `File "${file.name}" exceeds the 3MB limit for a single file.`);
+            setErrorMessage(isHebrew ? `הקובץ "${file.name}" חורג מהגודל המותר לקובץ יחיד (עד 3MB).` : `File "${file.name}" exceeds the 3MB limit for a single file.`);
             return;
           }
           if (CURRENT_TOTAL_SIZE + file.size > MAX_TOTAL_SIZE) {
             publishBlocker('ATTACHMENT_TOTAL_EXCEEDED', { scope: 'editor' });
-            setErrorMessage(isHebrew ? `העלאת הקובץ תחרוג ממכסת נפח הקבצים של העסק (30 MB).` : `Uploading this file exceeds the total 30MB capacity limit for your business.`);
+            setErrorMessage(isHebrew ? `העלאת קובץ זה תעבור את מכסת הנפח הכוללת לעסק (30MB).` : `Uploading this file exceeds the total 30MB capacity limit for your business.`);
             return;
           }
         }
@@ -710,7 +710,7 @@ export default function QuoteForm({
               : (isHebrew ? 'יצירת הצעת מחיר חדשה' : 'Create New Quote')}
           </h2>
           <p style={{ color: NEON.textSecondary, margin: 0, fontSize: '0.82rem' }}>
-            {isHebrew ? 'הזינו את פרטי ההצעה ושמרו את השינויים' : 'Enter the quote details and save changes'}
+            {isHebrew ? 'הזן את פרטי ההצעה ושמור את השינויים' : 'Enter the quote details and save changes'}
           </p>
         </div>
         {/* PRODUCT_TRUTH_DECORATIVE: 'Cancel & Return' button that closes the quote form via onCancel without saving */}
@@ -779,7 +779,7 @@ export default function QuoteForm({
               required={!editingQuoteId}
               style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', fontSize: '0.85rem' }}
             >
-              <option value="" disabled>{isHebrew ? 'בחירת סוג לקוח…' : 'Select Client Type...'}</option>
+              <option value="" disabled>{isHebrew ? 'בחר סוג לקוח...' : 'Select Client Type...'}</option>
               <option value="business">{isHebrew ? 'עסקי (חברה/עוסק)' : 'Business'}</option>
               <option value="private">{isHebrew ? 'פרטי (B2C)' : 'Private'}</option>
             </select>
@@ -790,7 +790,7 @@ export default function QuoteForm({
             )}
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'ח״פ / עוסק / ת״ז' : 'Tax ID / ID'}</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'ח.פ / עוסק / ת.ז' : 'Tax ID / ID'}</label>
             <input type="text" value={clientTaxId} onChange={(e) => setClientTaxId(e.target.value)} required={clientType === 'business'} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
           </div>
 
@@ -906,7 +906,7 @@ export default function QuoteForm({
 
             <p style={{ margin: '8px 0 0', fontSize: '0.76rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
               {isHebrew
-                ? 'אפשר להוסיף מוצר או עבודה, לבחור מהקטלוג או לתמחר לפי מידות.'
+                ? 'אפשר להוסיף מוצר או עבודה, לבחור מהקטלוג, או לתמחר לפי מידות - בלי צורך להכיר את המונחים הפנימיים.'
                 : 'Add a product or work item, pick one from your catalog, or price it by measurements — no internal terminology required.'}
             </p>
           </>
@@ -942,7 +942,7 @@ export default function QuoteForm({
             {isMeasuredEntry && (
               // PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line (100 x 200 cm at 600 per m2) to learn from (Owner round 1, A6)
               <button type="button" data-testid="quote-show-example" onClick={addLocalExample} style={{ display: 'block', margin: '10px auto 0', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', color: NEON.violetLight, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', padding: '8px 14px', minHeight: '40px' }}>
-                {isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}
+                {isHebrew ? 'הצג דוגמה (לא נשמרת)' : 'Show an example (not saved)'}
               </button>
             )}
           </div>
@@ -1027,7 +1027,7 @@ export default function QuoteForm({
               <Plus size={15} strokeWidth={3} />
               {sections.length === 0
                 ? (isHebrew ? 'הוספת היחידה הראשונה' : 'Add the first unit')
-                : (isHebrew ? 'הוספת יחידה נוספת' : 'Add another unit')}
+                : (isHebrew ? 'הוסף עוד יחידה' : 'Add another unit')}
             </button>
           </div>
         )}
@@ -1069,7 +1069,7 @@ export default function QuoteForm({
                 </button>
                 {/* PRODUCT_TRUTH_DECORATIVE: confirms unit removal, reassigning the unit's items and deleting the now-empty container; a data-safe sub-action of unit management */}
                 <button type="button" onClick={confirmRemoveSection} style={{ flex: 1, background: NEON.red, border: 'none', color: 'white', borderRadius: '8px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
-                  {isHebrew ? 'הסרת יחידה' : 'Remove unit'}
+                  {isHebrew ? 'הסר יחידה' : 'Remove unit'}
                 </button>
               </div>
             </div>
@@ -1136,9 +1136,9 @@ export default function QuoteForm({
             // רק תוויות/סדר שונים; אין נוסחה חדשה. כל הסכומים עוברים במסלול
             // ה-money הקנוני (IRON-ILS-001: שקל שלם עם .00 ב-Local).
             <>
-              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>סכום לפני מע״מ:</span>
+              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>סכום לפני מע"מ:</span>
               <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount - taxAmount)}</span>
-              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>מע״מ (18%):</span>
+              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>מע"מ (18%):</span>
               <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(taxAmount)}</span>
             </>
           ) : (
@@ -1192,7 +1192,7 @@ export default function QuoteForm({
             type="text"
             value={quoteSubject || ''}
             onChange={(e) => setQuoteSubject(e.target.value)}
-            placeholder={isHebrew ? 'לדוגמה: אספקת רשתות ואלומיניום לפרויקט' : 'e.g. Aluminum & Network Supply'}
+            placeholder={isHebrew ? 'לדוגמה: אספקת רשתות ואלומניום לפרויקט' : 'e.g. Aluminum & Network Supply'}
             style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
           />
         </div>
@@ -1289,7 +1289,7 @@ export default function QuoteForm({
 
           {canUseAttachments && (
             <div style={{ fontSize: '0.75rem', color: NEON.textMuted, fontWeight: '600', marginBottom: '8px' }}>
-              {isHebrew ? `נפח פנוי להעלאת קבצים: ${remainingMb} MB` : `Remaining: ${remainingMb}MB`}
+              {isHebrew ? `נשארו לך ${remainingMb} מגה להעלאת קבצים` : `Remaining: ${remainingMb}MB`}
             </div>
           )}
 
@@ -1299,7 +1299,7 @@ export default function QuoteForm({
             style={{ background: NEON.violetLighter, color: NEON.violetLight, border: `1px solid ${NEON.borderStrong}`, padding: '6px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', marginBottom: (quoteFiles || []).length > 0 ? '8px' : '0', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
             <Paperclip size={13} strokeWidth={2.5} />
-            {isHebrew ? 'צירוף קובץ (עד 3 MB)' : 'Attach File (Max 3MB)'}
+            {isHebrew ? 'צרף קובץ (עד 3MB)' : 'Attach File (Max 3MB)'}
           </button>
 
           {(quoteFiles || []).length > 0 && (
@@ -1416,12 +1416,12 @@ export default function QuoteForm({
                 {/* PRODUCT_TRUTH_DECORATIVE: resets the terms/warranty textareas to the business's saved default text; a convenience reset on a form field */}
                 <button type="button" onClick={handleRestoreTermsWarrantyDefaults} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, borderRadius: '8px', padding: '5px 10px', fontSize: '0.72rem', fontWeight: '600', cursor: 'pointer' }}>
                   <RotateCcw size={12} strokeWidth={2.4} />
-                  {isHebrew ? 'שחזור ברירת המחדל מהגדרות העסק' : 'Restore Business Settings defaults'}
+                  {isHebrew ? 'שחזר ברירת מחדל מהגדרות העסק' : 'Restore Business Settings defaults'}
                 </button>
                 {/* PRODUCT_TRUTH_DECORATIVE: re-collapses the expanded Terms & Warranty card back to its summary view */}
                 <button type="button" onClick={() => setTermsWarrantyExpanded(false)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.72rem', fontWeight: '700', cursor: 'pointer', padding: '5px 4px' }}>
                   <ChevronDown size={13} style={{ transform: 'rotate(180deg)' }} />
-                  {isHebrew ? 'צמצום' : 'Collapse'}
+                  {isHebrew ? 'כווץ' : 'Collapse'}
                 </button>
               </div>
             </div>
@@ -1459,12 +1459,12 @@ export default function QuoteForm({
         ) : (
           <div style={{ marginBottom: '12px', maxWidth: '320px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'מצב ההצעה' : 'Quote status'}</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'סטטוס ההצעה' : 'Quote status'}</label>
             <select value={quoteStatus} onChange={(e) => setQuoteStatus(e.target.value)} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', fontSize: '0.85rem' }}>
               <option value="Draft">{isHebrew ? 'טיוטה' : 'Draft'}</option>
-              <option value="Sent" disabled={isUnfinished}>{isHebrew ? 'נשלחה' : 'Sent'}</option>
-              <option value="Approved" disabled={isUnfinished}>{isHebrew ? 'אושרה' : 'Approved'}</option>
-              <option value="Paid" disabled={isUnfinished}>{isHebrew ? 'שולמה' : 'Paid'}</option>
+              <option value="Sent" disabled={isUnfinished}>{isHebrew ? 'נשלח' : 'Sent'}</option>
+              <option value="Approved" disabled={isUnfinished}>{isHebrew ? 'אושר' : 'Approved'}</option>
+              <option value="Paid" disabled={isUnfinished}>{isHebrew ? 'שולם' : 'Paid'}</option>
             </select>
           </div>
           </div>
@@ -1593,7 +1593,7 @@ function CompactItemCard({
             {/* PRODUCT_TRUTH_DECORATIVE: Task 34 - opens the per-item Edit price dialog (only the unit price changes; quantity / unit / source kept) */}
             {onEditPrice && (
               <button type="button" data-testid="item-edit-price" onClick={onEditPrice} style={{ background: 'none', border: 'none', padding: '6px 2px', minHeight: '32px', cursor: 'pointer', color: NEON.violetLight, fontSize: '0.75rem', fontWeight: 700, textDecoration: 'underline' }}>
-                {isHebrew ? 'עריכת מחיר' : 'Edit price'}
+                {isHebrew ? 'ערוך מחיר' : 'Edit price'}
               </button>
             )}
             {hasSpec && <CardBadge icon={<Paperclip size={10} />} label={isHebrew ? 'פרטים' : 'Details'} />}
@@ -1631,19 +1631,19 @@ function CompactItemCard({
               }}
             >
               {/* PRODUCT_TRUTH_DECORATIVE: 'Edit' entry in the item actions menu; same destination as the Edit button above */}
-              <MenuItem icon={<Pencil size={13} />} label={isHebrew ? 'עריכה' : 'Edit'} onClick={onEdit} />
+              <MenuItem icon={<Pencil size={13} />} label={isHebrew ? 'ערוך' : 'Edit'} onClick={onEdit} />
               {/* PRODUCT_TRUTH_DECORATIVE: Task 34 - the same Edit price dialog from the item actions menu */}
-              {onEditPrice && <MenuItem icon={<Pencil size={13} />} label={isHebrew ? 'עריכת מחיר' : 'Edit price'} onClick={onEditPrice} />}
+              {onEditPrice && <MenuItem icon={<Pencil size={13} />} label={isHebrew ? 'ערוך מחיר' : 'Edit price'} onClick={onEditPrice} />}
               {canDuplicate && (
                 <MenuItem
                   icon={duplicateLocked ? <Lock size={13} /> : <CopyPlus size={13} />}
-                  label={isHebrew ? 'שכפול פריט' : 'Duplicate item'}
+                  label={isHebrew ? 'שכפל פריט' : 'Duplicate item'}
                   onClick={onDuplicate}
                 />
               )}
               {/* PRODUCT_TRUTH_DECORATIVE: 'Move to unit...' menu entry that opens an inline select to reassign the item's section; sub-action of quote-item organization */}
               {sections && sections.length > 0 && (
-                <MenuItem icon={<ListPlus size={13} />} label={isHebrew ? 'העברה ליחידה…' : 'Move to unit...'} onClick={() => setMovingSectionOpen((v) => !v)} />
+                <MenuItem icon={<ListPlus size={13} />} label={isHebrew ? 'העבר ליחידה...' : 'Move to unit...'} onClick={() => setMovingSectionOpen((v) => !v)} />
               )}
               {/* PRODUCT_TRUTH_DECORATIVE: stopPropagation on the 'move to unit' select wrapper, preventing it from closing the parent menu */}
               {movingSectionOpen && (
@@ -1663,7 +1663,7 @@ function CompactItemCard({
                 <>
                   <div style={{ borderTop: `1px solid ${NEON.border}` }} />
                   {/* PRODUCT_TRUTH_DECORATIVE: 'Delete item' entry in the item actions menu; removes the line item from the quote */}
-                  <MenuItem icon={<Trash2 size={13} />} label={isHebrew ? 'מחיקת פריט' : 'Delete item'} onClick={onDelete} destructive />
+                  <MenuItem icon={<Trash2 size={13} />} label={isHebrew ? 'מחק פריט' : 'Delete item'} onClick={onDelete} destructive />
                 </>
               )}
             </div>,
@@ -1691,7 +1691,7 @@ function UnitCard({
     <div style={{ border: `1px solid ${isUnassigned ? NEON.borderStrong : NEON.violetLight}`, borderRadius: '12px', background: NEON.bgCardAlt, overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '10px 12px', flexDirection: 'row' }}>
         {/* PRODUCT_TRUTH_DECORATIVE: chevron that expands/collapses a unit card's item list in divided mode */}
-        <button type="button" onClick={onToggleCollapse} aria-label={collapsed ? (isHebrew ? 'הרחבת היחידה' : 'Expand unit') : (isHebrew ? 'כיווץ היחידה' : 'Collapse unit')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '32px', minHeight: '32px', flexShrink: 0 }}>
+        <button type="button" onClick={onToggleCollapse} aria-label={collapsed ? (isHebrew ? 'הרחב יחידה' : 'Expand unit') : (isHebrew ? 'כווץ יחידה' : 'Collapse unit')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '32px', minHeight: '32px', flexShrink: 0 }}>
           <ChevronDown size={16} style={{ transform: collapsed ? (isHebrew ? 'rotate(90deg)' : 'rotate(-90deg)') : 'rotate(0deg)', transition: 'transform 0.15s' }} />
         </button>
 
@@ -1715,7 +1715,7 @@ function UnitCard({
         <span style={{ fontSize: '0.78rem', color: NEON.textSecondary, fontWeight: 600, whiteSpace: 'nowrap' }}>
           {itemCount === 0
             ? (isHebrew ? 'עדיין לא נוספו פריטים' : 'No items added yet')
-            : (isHebrew ? `פריטים: ${itemCount}` : `${itemCount} item${itemCount === 1 ? '' : 's'}`)}
+            : (isHebrew ? `${itemCount} פריטים` : `${itemCount} item${itemCount === 1 ? '' : 's'}`)}
         </span>
 
         {itemCount > 0 && (
@@ -1724,7 +1724,7 @@ function UnitCard({
 
         {/* PRODUCT_TRUTH_DECORATIVE: 'X' on a unit card that triggers the remove-unit confirmation flow, covered by the same non-destructive dialog as the unit-removal controls above */}
         {!isUnassigned && (
-          <button type="button" onClick={onRemove} title={isHebrew ? 'הסרת יחידה' : 'Remove unit'} style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <button type="button" onClick={onRemove} title={isHebrew ? 'הסר יחידה' : 'Remove unit'} style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <X size={14} strokeWidth={3} />
           </button>
         )}
@@ -1739,7 +1739,7 @@ function UnitCard({
         {/* PRODUCT_TRUTH_DECORATIVE: 'Add product or work to <unit>' button inside a unit card; opens the already-documented AddItemWizard pre-targeted at this unit */}
         <button type="button" onClick={onAddItem} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, minHeight: '40px' }}>
           <Plus size={14} strokeWidth={3} />
-          {isHebrew ? `הוספת מוצר או עבודה ל${unitLabel}` : `Add product or work to ${unitLabel}`}
+          {isHebrew ? `הוסף מוצר או עבודה ל${unitLabel}` : `Add product or work to ${unitLabel}`}
         </button>
       </div>
 

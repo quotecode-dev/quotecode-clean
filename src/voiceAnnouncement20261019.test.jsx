@@ -40,7 +40,7 @@ describe('the voice-assistant announcement in the bell (Owner 2026-10-19, L-17)'
     const notice = await waitFor(() => { const n = document.querySelector('[data-testid="bell-float-notice"]'); expect(n).toBeTruthy(); return n; });
     expect(notice.getAttribute('data-notice-kind')).toBe('announce');
     expect(notice.textContent).toContain('חדש: מדברים עם TEKANGO בקול');
-    expect(notice.textContent).toContain('בהצעת מחיר חכמה עם AI אפשר להכתיב את העבודה');
+    expect(notice.textContent).toContain('בהצעת מחיר חכמה עם AI: מכתיבים את העבודה בקול');
     expect(loadFloatedKeys(USER).has('announce:voice-assistant:v2')).toBe(true);
     fireEvent.click(r.getByTestId('bell-float-action-assistant'));
     expect(opened).toHaveBeenCalledTimes(1);

@@ -13,10 +13,10 @@ import './adminUsers.css';
 
 const INQUIRIES_COPY = Object.freeze({
   title: { he: 'פניות', en: 'Inquiries' },
-  subtitle: { he: (n, w) => `פניות: ${n} · ממתינות לטיפול: ${w}`, en: (n, w) => `${n} inquiries · ${w} waiting for you` },
-  search: { he: 'חיפוש לפי שולח, נושא או תוכן…', en: 'Search sender, subject or text...' },
+  subtitle: { he: (n, w) => `${n} פניות · ${w} ממתינות לך`, en: (n, w) => `${n} inquiries · ${w} waiting for you` },
+  search: { he: 'חיפוש לפי שולח, נושא או תוכן...', en: 'Search sender, subject or text...' },
   searchLabel: { he: 'חיפוש לפי שולח, נושא או תוכן', en: 'Search sender, subject or text' },
-  loading: { he: 'טוען פניות…', en: 'Loading inquiries...' },
+  loading: { he: 'טוען פניות...', en: 'Loading inquiries...' },
   failed: { he: 'טעינת הפניות נכשלה.', en: 'Could not load the inquiries.' },
   none: { he: 'עדיין לא התקבלו פניות. הקליטה תתחיל אחרי חיבור כתובת התמיכה.', en: 'No inquiries yet. Receiving starts once the support address is connected.' },
   noMatch: { he: 'אין פניות תואמות לחיפוש.', en: 'No inquiries match the search.' },
@@ -34,33 +34,33 @@ const INQUIRIES_COPY = Object.freeze({
   attachments: { he: 'קבצים מצורפים (לא נפתחים)', en: 'Attachments (never opened)' },
   checks: { he: 'אימות השולח', en: 'Sender checks' },
   noSubject: { he: '(ללא נושא)', en: '(no subject)' },
-  open: { he: 'צפייה בפנייה המלאה', en: 'Click to read the full inquiry' },
+  open: { he: 'לחץ לצפייה בפנייה המלאה', en: 'Click to read the full inquiry' },
   filter: { he: 'סינון לפי מצב', en: 'Filter by state' },
   why: { he: 'למה הצבע הזה', en: 'Why this colour' },
   summary: { he: 'מה הלקוח רוצה', en: 'What the sender wants' },
   sentToCustomer: { he: 'מה נשלח ללקוח', en: 'Sent to the customer' },
   nothingSent: { he: 'עדיין לא נשלח דבר.', en: 'Nothing was sent yet.' },
   ackSent: { he: (w) => `אישור קבלה קבוע נשלח ${w}`, en: (w) => `The fixed acknowledgement was sent ${w}` },
-  replySent: { he: (w, by) => `${by === 'owner' ? 'בעל המערכת' : 'העוזר'} שלח תשובה ${w}`, en: (w, by) => `A reply was sent ${w} by ${by === 'owner' ? 'the Owner' : 'the assistant'}` },
+  replySent: { he: (w, by) => `תשובה נשלחה ${w} על ידי ${by === 'owner' ? 'בעל המערכת' : 'העוזר'}`, en: (w, by) => `A reply was sent ${w} by ${by === 'owner' ? 'the Owner' : 'the assistant'}` },
   reply: { he: 'התשובה ללקוח', en: 'Reply to the customer' },
   approveSend: { he: 'מאשר ושולח', en: 'Approve and send' },
   editSend: { he: 'מתקן ושולח', en: 'Edit and send' },
   send: { he: 'שליחה', en: 'Send' },
-  redraft: { he: 'בקשת טיוטה מהעוזר', en: 'Ask the assistant for a draft' },
+  redraft: { he: 'בקש מהעוזר טיוטה', en: 'Ask the assistant for a draft' },
   dismiss: { he: 'לא לשלוח', en: 'Do not send' },
-  working: { he: 'רגע…', en: 'One moment...' },
+  working: { he: 'רגע...', en: 'One moment...' },
   done: { he: 'נשלח ללקוח.', en: 'Sent to the customer.' },
   dismissed: { he: 'הפנייה סומנה: לא לשלוח.', en: 'Marked: do not send.' },
   drafted: { he: 'העוזר כתב טיוטה. אפשר לתקן לפני השליחה.', en: 'The assistant wrote a draft. You can edit it before sending.' },
-  actionFailed: { he: 'הפעולה לא הצליחה. נסו שוב.', en: 'The action failed. Try again.' },
-  noSafeDraft: { he: 'לעוזר אין תשובה שאפשר למסור בביטחון לפנייה הזו. יש לכתוב את התשובה ידנית.', en: 'The assistant has no safe answer for this inquiry. Write the reply yourself.' },
+  actionFailed: { he: 'הפעולה לא הצליחה. נסה שוב.', en: 'The action failed. Try again.' },
+  noSafeDraft: { he: 'לעוזר אין תשובה בטוחה לפנייה הזו. כתוב את התשובה בעצמך.', en: 'The assistant has no safe answer for this inquiry. Write the reply yourself.' },
   handled: { he: 'הפנייה כבר טופלה.', en: 'This inquiry was already handled.' },
   settings: { he: 'הגדרות העוזר', en: 'Assistant settings' },
-  autoGreen: { he: 'שליחה אוטומטית: ירוק (שאלות ״איך עושים״, מחירים, כניסה)', en: 'Send by itself: green (how-to, prices, sign-in)' },
-  autoYellow: { he: 'שליחה אוטומטית: צהוב (אישור קבלת דיווח על תקלה או בקשה)', en: 'Send by itself: yellow (bug received, request noted)' },
+  autoGreen: { he: 'שליחה לבד: ירוק (שאלות "איך עושים", מחירים, כניסה)', en: 'Send by itself: green (how-to, prices, sign-in)' },
+  autoYellow: { he: 'שליחה לבד: צהוב (תקלה התקבלה, בקשה נרשמה)', en: 'Send by itself: yellow (bug received, request noted)' },
   paused: { he: 'עצירת כל השליחות ללקוחות', en: 'Stop every email to customers' },
   settingsHint: {
-    he: 'כששליחה אוטומטית כבויה, כל תשובה נשמרת כטיוטה לאישורכם. אישור קבלה בנוסח קבוע לפנייה אדומה נשלח תמיד, אלא אם כל השליחות עצורות. התראות על פניות אדומות וסיכום הערב נשלחים אליכם תמיד.',
+    he: 'כששליחה לבד כבויה, כל תשובה נשמרת כטיוטה לאישורך. אישור הקבלה הקבוע של פנייה אדומה נשלח תמיד, אלא אם כל השליחות עצורות. התראה על פנייה אדומה וסיכום הערב מגיעים אליך תמיד.',
     en: 'While sending by itself is off, every reply waits as a draft for your approval. The fixed acknowledgement of a red inquiry is always sent unless every email is stopped. Red alerts and the evening summary always reach you.',
   },
   settingsFailed: { he: 'שמירת ההגדרה נכשלה.', en: 'Could not save the setting.' },
@@ -74,11 +74,11 @@ const BINS = {
 };
 const STATES = {
   new: { he: 'בטיפול העוזר', en: 'Being sorted' },
-  waiting: { he: 'ממתינה לטיפולכם', en: 'Waiting for you' },
+  waiting: { he: 'ממתין לך', en: 'Waiting for you' },
   draft: { he: 'טיוטה לאישור', en: 'Draft to approve' },
-  answered: { he: 'נענתה', en: 'Answered' },
-  dismissed: { he: 'לא נשלחה', en: 'Not sent' },
-  ignored: { he: 'ללא מענה (מייל אוטומטי)', en: 'Not answered (automated)' },
+  answered: { he: 'נענה', en: 'Answered' },
+  dismissed: { he: 'לא נשלח', en: 'Not sent' },
+  ignored: { he: 'לא נענה (אוטומטי)', en: 'Not answered (automated)' },
 };
 const REASONS = {
   automated: { he: 'מייל אוטומטי או רשימת תפוצה', en: 'Automated email or mailing list' },
@@ -105,7 +105,7 @@ const FILTER_LABELS = {
 };
 const isPending = (r) => r.status === 'waiting' || r.status === 'draft';
 const COLOUR_ALL = { he: 'כל הצבעים', en: 'All colours' };
-const COLOUR_UNSORTED = { he: 'טרם נקבע צבע', en: 'Not sorted yet' };
+const COLOUR_UNSORTED = { he: 'עוד לא מוין', en: 'Not sorted yet' };
 // sort keys: colour by urgency (red first when descending), state by what needs the Owner, the rest as text / time
 const BIN_RANK = { red: 4, yellow: 3, green: 2, black: 1 };
 const STATE_RANK = { waiting: 6, draft: 5, new: 4, answered: 3, dismissed: 2, ignored: 1 };
@@ -121,7 +121,7 @@ const canAct = (r) => ['new', 'waiting', 'draft'].includes(r.status);
 
 function BinDot({ bin, isHebrew }) {
   const b = BINS[bin];
-  const label = b ? (isHebrew ? b.he : b.en) : (isHebrew ? 'טרם נקבע צבע' : 'Not sorted yet');
+  const label = b ? (isHebrew ? b.he : b.en) : (isHebrew ? 'עוד לא מוין' : 'Not sorted yet');
   return <span className="admin-bin-dot" role="img" aria-label={label} title={label} style={{ background: b ? b.color : '#CBD5E1' }} />;
 }
 

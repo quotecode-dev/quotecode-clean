@@ -330,7 +330,7 @@ export default function CalendarTab({ client, userId, isHebrew, isLocalIsraeliBu
           </div>
         )}
         {schedules.state === 'error' && <div className="pf-cal-note" role="status" data-testid="calendar-service-error">{L(['לא ניתן היה לטעון את תאריכי הביצוע. שאר היומן מוצג.', 'Work dates could not be loaded. The rest of the calendar is shown.'])}</div>}
-        {load.state === 'loading' && <div className="pf-cal-state" role="status" data-testid="calendar-loading">{L(['טוען משימות…', 'Loading tasks...'])}</div>}
+        {load.state === 'loading' && <div className="pf-cal-state" role="status" data-testid="calendar-loading">{L(['טוען משימות...', 'Loading tasks...'])}</div>}
         {view === 'month' && renderMonth(3)}
         {view === 'week' && renderWeek()}
         {view === 'day' && renderDay()}

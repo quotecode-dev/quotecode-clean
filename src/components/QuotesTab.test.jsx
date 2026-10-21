@@ -90,7 +90,7 @@ function buildProps(isHebrew, quoteOverrides = {}, handlers = {}) {
 const byFullText = (text) => screen.queryAllByText((_content, el) => el.textContent === text && !Array.from(el.children).some((c) => c.textContent === text));
 
 function expandFirstRow() {
-  const toggle = screen.getByLabelText(/הצגת פרטים נוספים|Show more details/);
+  const toggle = screen.getByLabelText(/הצג פרטים נוספים|Show more details/);
   fireEvent.click(toggle);
 }
 
@@ -103,8 +103,8 @@ describe.each([
     render(<QuotesTab {...props} />);
     expandFirstRow();
 
-    const editBtn = screen.getByText(isHebrew ? 'עריכה' : 'Edit').closest('button');
-    const deleteBtn = screen.getByText(isHebrew ? 'מחיקה' : 'Delete').closest('button');
+    const editBtn = screen.getByText(isHebrew ? 'ערוך' : 'Edit').closest('button');
+    const deleteBtn = screen.getByText(isHebrew ? 'מחק' : 'Delete').closest('button');
 
     expect(editBtn).not.toBeDisabled();
     expect(deleteBtn).not.toBeDisabled();
@@ -117,8 +117,8 @@ describe.each([
     render(<QuotesTab {...props} />);
     expandFirstRow();
 
-    const editBtn = screen.getByText(isHebrew ? 'עריכה' : 'Edit').closest('button');
-    const deleteBtn = screen.getByText(isHebrew ? 'מחיקה' : 'Delete').closest('button');
+    const editBtn = screen.getByText(isHebrew ? 'ערוך' : 'Edit').closest('button');
+    const deleteBtn = screen.getByText(isHebrew ? 'מחק' : 'Delete').closest('button');
 
     expect(editBtn).toBeDisabled();
     expect(deleteBtn).toBeDisabled();
@@ -131,8 +131,8 @@ describe.each([
     render(<QuotesTab {...props} />);
     expandFirstRow();
 
-    const editBtn = screen.getByText(isHebrew ? 'עריכה' : 'Edit').closest('button');
-    const deleteBtn = screen.getByText(isHebrew ? 'מחיקה' : 'Delete').closest('button');
+    const editBtn = screen.getByText(isHebrew ? 'ערוך' : 'Edit').closest('button');
+    const deleteBtn = screen.getByText(isHebrew ? 'מחק' : 'Delete').closest('button');
 
     expect(editBtn).toBeDisabled();
     expect(deleteBtn).toBeDisabled();
@@ -145,8 +145,8 @@ describe.each([
     render(<QuotesTab {...props} />);
     expandFirstRow();
 
-    const editBtn = screen.getByText(isHebrew ? 'עריכה' : 'Edit').closest('button');
-    const deleteBtn = screen.getByText(isHebrew ? 'מחיקה' : 'Delete').closest('button');
+    const editBtn = screen.getByText(isHebrew ? 'ערוך' : 'Edit').closest('button');
+    const deleteBtn = screen.getByText(isHebrew ? 'מחק' : 'Delete').closest('button');
 
     expect(editBtn).toBeDisabled();
     expect(deleteBtn).toBeDisabled();
@@ -158,8 +158,8 @@ describe.each([
     render(<QuotesTab {...props} />);
     expandFirstRow();
 
-    const editBtn = screen.getByText(isHebrew ? 'עריכה' : 'Edit').closest('button');
-    const deleteBtn = screen.getByText(isHebrew ? 'מחיקה' : 'Delete').closest('button');
+    const editBtn = screen.getByText(isHebrew ? 'ערוך' : 'Edit').closest('button');
+    const deleteBtn = screen.getByText(isHebrew ? 'מחק' : 'Delete').closest('button');
 
     fireEvent.click(editBtn);
     fireEvent.click(deleteBtn);
@@ -197,7 +197,7 @@ describe.each([
     // Owner R3: the collapsed row shows the bare view count ONLY in its own Views cell (no label stacked under status).
     expect(document.querySelector('.quote-modern-row .quote-modern-views').textContent).toBe('42');
     expect(byFullText(isHebrew ? '42 צפיות' : '42 views')).toHaveLength(0);
-    expect(screen.queryByText(isHebrew ? 'עריכה' : 'Edit')).not.toBeInTheDocument();
+    expect(screen.queryByText(isHebrew ? 'ערוך' : 'Edit')).not.toBeInTheDocument();
   });
 
   it('uses one fixed tabular money slot for place-value alignment', () => {
@@ -211,7 +211,7 @@ describe.each([
     const props = buildProps(isHebrew);
     render(<QuotesTab {...props} />);
 
-    const toggle = screen.getByLabelText(/הצגת פרטים נוספים|Show more details/);
+    const toggle = screen.getByLabelText(/הצג פרטים נוספים|Show more details/);
     expect(toggle).toHaveAttribute('aria-expanded', 'false');
     const panelId = toggle.getAttribute('aria-controls');
     expect(panelId).toBeTruthy();
@@ -232,7 +232,7 @@ describe.each([
 
     expect(screen.getAllByText('A very specific unique description string')).toHaveLength(2);
     expect(document.querySelector('.quote-modern-row .quote-modern-views').textContent).toBe('7');
-    expect(byFullText(isHebrew ? 'צפיות: 7' : '7 views')).toHaveLength(1);
+    expect(byFullText(isHebrew ? '7 צפיות' : '7 views')).toHaveLength(1);
     expect(screen.getByText(isHebrew ? 'לקוח עסקי' : 'Business Client')).toBeInTheDocument();
   });
 
@@ -241,7 +241,7 @@ describe.each([
     const props = { ...buildProps(isHebrew), quotes: [baseQuote, quoteB] };
     render(<QuotesTab {...props} />);
 
-    const toggles = screen.getAllByLabelText(/הצגת פרטים נוספים|Show more details/);
+    const toggles = screen.getAllByLabelText(/הצג פרטים נוספים|Show more details/);
     expect(toggles).toHaveLength(2);
 
     fireEvent.click(toggles[0]);
@@ -288,7 +288,7 @@ describe.each([
     expandFirstRow();
 
     expect(document.querySelector('.quote-modern-row .quote-modern-views').textContent).toBe(String(viewCount));
-    expect(byFullText(isHebrew ? `צפיות: ${viewCount}` : `${viewCount} views`)).toHaveLength(1);
+    expect(byFullText(isHebrew ? `${viewCount} צפיות` : `${viewCount} views`)).toHaveLength(1);
   });
 });
 
@@ -302,7 +302,7 @@ describe('QuotesTab email indicator (functional, not decorative)', () => {
     const props = buildProps(true, { email_bounced: false });
     render(<QuotesTab {...props} />);
     expandFirstRow();
-    expect(screen.queryByText(/אימייל נשלח בהצלחה|שליחת האימייל נכשלה|שליחת המייל נכשלה|כתובת המייל אינה קיימת/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/אימייל נשלח בהצלחה|שליחת האימייל נכשלה|כתובת המייל אינה קיימת/)).not.toBeInTheDocument();
   });
 
   it('renders a bounced-state message when quote.email_bounced is true, regardless of emailStatus', () => {
@@ -489,7 +489,7 @@ describe.each([
     expect(search).toHaveAttribute('aria-label', 'Search');
     fireEvent.change(search, { target: { value: 'abc' } });
     expect(props.setSearchTerm).toHaveBeenCalledWith('abc');
-    const sort = screen.getByRole('button', { name: isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction' });
+    const sort = screen.getByRole('button', { name: isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction' });
     expect(sort).toHaveTextContent(isHebrew ? 'מיון' : 'Sort');
     fireEvent.click(sort);
     expect(props.handleQuoteSort).toHaveBeenCalledWith('date');
@@ -609,7 +609,7 @@ describe.each([
     };
     expect(label(mk('x', { status: 'draft', view_count: 3 }))).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
     expect(label(mk('x', { status: 'sent', view_count: 3 }))).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
-    expect(label(mk('x', { status: 'draft', total: 0 }))).toBe(isHebrew ? 'המשך העריכה' : 'Continue editing');
+    expect(label(mk('x', { status: 'draft', total: 0 }))).toBe(isHebrew ? 'המשך עריכה' : 'Continue editing');
     expect(label(mk('x', { status: 'draft' }))).toBe(isHebrew ? 'פתיחה' : 'Open');
     expect(label(mk('x', { status: 'approved', view_count: 8 }))).toBe(isHebrew ? 'צפייה' : 'View');
     expect(label(mk('x', { status: 'paid' }))).toBe(isHebrew ? 'צפייה' : 'View');
@@ -805,7 +805,7 @@ describe.each([
     const trigger = container.querySelector('.quote-modern-row > .quote-modern-toggle'); // Owner R5: moved to the row edge
     expect(trigger.tagName).toBe('BUTTON'); // native button: Enter/Space and touch activation for free
     expect(trigger).toHaveAttribute('type', 'button');
-    expect(trigger.getAttribute('aria-label')).toMatch(isHebrew ? /הצגת פרטים נוספים/ : /Show more details/);
+    expect(trigger.getAttribute('aria-label')).toMatch(isHebrew ? /הצג פרטים נוספים/ : /Show more details/);
     expect(trigger.querySelector('svg.quote-modern-chevron')).not.toBeNull();
     expect(trigger).toHaveAttribute('aria-controls', `quote-modern-detail-${baseQuote.id}`);
   });
@@ -818,7 +818,7 @@ describe.each([
     expect(primary).not.toBeNull();
     expect(primary.dataset.action).toBeTruthy();
     const text = panel.textContent;
-    for (const label of isHebrew ? ['צפייה', 'עריכה', 'שכפול', 'וואטסאפ', 'שליחה במייל', 'מחיקה'] : ['View', 'Edit', 'Duplicate', 'WhatsApp', 'Email', 'Delete']) expect(text).toContain(label);
+    for (const label of isHebrew ? ['צפה', 'ערוך', 'שכפל', 'וואטסאפ', 'שלח במייל', 'מחק'] : ['View', 'Edit', 'Duplicate', 'WhatsApp', 'Email', 'Delete']) expect(text).toContain(label);
     // the primary action is the first focusable control in the dropdown (focus order: trigger -> primary -> secondary)
     expect(panel.querySelector('button')).toBe(primary);
   });
@@ -867,7 +867,7 @@ describe.each([
       expect(trigger).toHaveClass('quote-modern-toggle');
       expect(trigger.tagName).toBe('BUTTON');
       expect(trigger).toHaveAttribute('type', 'button');
-      expect(trigger.getAttribute('aria-label')).toMatch(isHebrew ? /הצגת פרטים נוספים/ : /Show more details/);
+      expect(trigger.getAttribute('aria-label')).toMatch(isHebrew ? /הצג פרטים נוספים/ : /Show more details/);
       expect(trigger).toHaveAttribute('aria-expanded', 'false');
       expect(trigger.querySelector('svg.quote-modern-chevron')).not.toBeNull();
       // immediately followed by the quote-number cell (the trigger sits beside/outside it)
@@ -900,7 +900,7 @@ describe.each([
     expect(panel).toBeTruthy();
     expect(panel.querySelector('button')).toBe(panel.querySelector('.quote-modern-action'));
     expect(panel.querySelector('.quote-modern-action').textContent).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
-    for (const label of isHebrew ? ['צפייה', 'עריכה', 'שכפול', 'וואטסאפ', 'שליחה במייל', 'מחיקה'] : ['View', 'Edit', 'Duplicate', 'WhatsApp', 'Email', 'Delete']) expect(panel.textContent).toContain(label);
+    for (const label of isHebrew ? ['צפה', 'ערוך', 'שכפל', 'וואטסאפ', 'שלח במייל', 'מחק'] : ['View', 'Edit', 'Duplicate', 'WhatsApp', 'Email', 'Delete']) expect(panel.textContent).toContain(label);
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(document.getElementById('quote-modern-detail-h')).toBeNull();

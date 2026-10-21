@@ -176,7 +176,7 @@ export default function SettingsTab({
     setLogoError('');
 
     if (file.size > 500 * 1024) {
-      setLogoError(isHebrew ? 'גודל הקובץ עולה על 500 KB. בחרו קובץ קטן יותר.' : 'File exceeds 500KB. Please choose a smaller file.');
+      setLogoError(isHebrew ? 'הקובץ חורג ממשקל 500KB. אנא בחר קובץ קטן יותר.' : 'File exceeds 500KB. Please choose a smaller file.');
       return;
     }
 
@@ -332,7 +332,7 @@ export default function SettingsTab({
             </select>
             <div style={{ fontSize: '0.72rem', color: NEON.textMuted, marginTop: '4px' }}>
               {isHebrew
-                ? 'ההגדרה קובעת רק את יחידת התמחור שתוצע כברירת מחדל בפריט מקצועי חדש. אפשר לבחור יחידה אחרת בכל פריט.'
+                ? 'קובע רק הצעת ברירת מחדל ליחידת תמחור בפריט מקצועי חדש - ניתן תמיד לבחור יחידה אחרת בכל פריט.'
                 : 'Only sets a default suggestion for a new Professional item\'s pricing unit - you can always choose a different unit on any item.'}
             </div>
           </div>
@@ -349,12 +349,12 @@ export default function SettingsTab({
             <input type="text" value={bizTaxId} onChange={(e) => setBizTaxId(e.target.value)} placeholder="516000000" style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
           </div>
           <div>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Mail size={13} color={NEON.violetLight} />{isHebrew ? 'כתובת המייל של העסק' : 'Business Email'}</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Mail size={13} color={NEON.violetLight} />{isHebrew ? 'אימייל עסק' : 'Business Email'}</label>
             <input type="email" value={bizEmail} onChange={(e) => setBizEmail(e.target.value)} placeholder="business@example.com" style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
           </div>
 
           <div id="pf-settings-business_phone">
-            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Phone size={13} color={NEON.emerald} />{isHebrew ? 'טלפון העסק' : 'Business Phone'}</label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Phone size={13} color={NEON.emerald} />{isHebrew ? 'טלפון עסק' : 'Business Phone'}</label>
             <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, overflow: 'hidden', boxSizing: 'border-box' }}>
               <div style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 10px', fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: `1px solid ${NEON.borderStrong}`, whiteSpace: 'nowrap' }}>
                 {defaultLabel}
@@ -402,7 +402,7 @@ export default function SettingsTab({
               const streetBlock = (
                 <div key="street" style={{ gridColumn: 'span 2' }}>
                   <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: NEON.textMuted, marginBottom: '2px' }}>{isHebrew ? 'רחוב ומספר' : 'Street Address'}</label>
-                  <AddressSuggestInput kind="street" enabled={isLocalIsraeliBusiness === true} isHebrew={isHebrew} cityText={city} value={street} onChange={(v) => handleAddressFieldChange(v, city, stateProv, zipCode)} inputProps={{ type: 'text', 'data-testid': 'settings-address-street', placeholder: isHebrew ? 'הזינו כתובת רחוב ומספר' : 'e.g. 123 Main St', style: { width: '100%', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' } }} />
+                  <AddressSuggestInput kind="street" enabled={isLocalIsraeliBusiness === true} isHebrew={isHebrew} cityText={city} value={street} onChange={(v) => handleAddressFieldChange(v, city, stateProv, zipCode)} inputProps={{ type: 'text', 'data-testid': 'settings-address-street', placeholder: isHebrew ? 'הזן כתובת רחוב ומספר' : 'e.g. 123 Main St', style: { width: '100%', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' } }} />
                 </div>
               );
               const cityBlock = (
@@ -454,7 +454,7 @@ export default function SettingsTab({
               style={{ flex: 1, minWidth: '220px', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: !canUseAttachments ? 'rgba(255,255,255,0.03)' : NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
             />
             <label style={{ background: !canUseAttachments ? 'rgba(255,255,255,0.08)' : NEON.gradient, color: !canUseAttachments ? NEON.textMuted : 'white', padding: '7px 12px', borderRadius: '8px', fontSize: '0.8rem', cursor: !canUseAttachments ? 'not-allowed' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap', boxShadow: !canUseAttachments ? 'none' : NEON.glowSoft }}>
-              <span>{isHebrew ? 'העלאת קובץ' : 'Upload File'}</span>
+              <span>{isHebrew ? 'העלה קובץ' : 'Upload File'}</span>
               <input
                 type="file"
                 accept=".svg,.png,.jpg,.jpeg"
@@ -465,7 +465,7 @@ export default function SettingsTab({
             </label>
           </div>
           <div style={{ fontSize: '0.72rem', color: NEON.textMuted, marginTop: '4px' }}>
-            {isHebrew ? 'אפשר להעלות קבצים בגודל של עד 500 KB, בפורמטים המותרים בלבד (למשל SVG ו-JPG).' : 'Files up to 500KB only, formats: SVG, JPG, PNG, etc.'}
+            {isHebrew ? 'ניתן להעלות קבצים עד משקל של 500KB ואך ורק מסוג של SVG JPG וכו\'' : 'Files up to 500KB only, formats: SVG, JPG, PNG, etc.'}
           </div>
           {logoError && (
             <div style={{ fontSize: '0.75rem', color: NEON.red, marginTop: '3px' }}>
@@ -475,7 +475,7 @@ export default function SettingsTab({
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><FileText size={13} color={NEON.textSecondary} />{isHebrew ? 'תנאים כלליים להצעות חדשות — ברירת מחדל' : 'Default Terms & Conditions for New Quotes'}</label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><FileText size={13} color={NEON.textSecondary} />{isHebrew ? 'תנאים כלליים ברירת מחדל להצעות חדשות' : 'Default Terms & Conditions for New Quotes'}</label>
           <textarea
             value={defaultTerms}
             onChange={(e) => setDefaultTerms(e.target.value)}
@@ -488,7 +488,7 @@ export default function SettingsTab({
             מ"תנאים כלליים" בכוונה - default_warranty הוא עמודה נפרדת
             לחלוטין מ-default_terms, לא מיזוג/הרחבה של השדה הקיים. */}
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><ShieldCheck size={13} color={NEON.textSecondary} />{isHebrew ? 'אחריות להצעות חדשות — ברירת מחדל' : 'Default Warranty for New Quotes'}</label>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><ShieldCheck size={13} color={NEON.textSecondary} />{isHebrew ? 'אחריות ברירת מחדל להצעות חדשות' : 'Default Warranty for New Quotes'}</label>
           <textarea
             value={defaultWarranty || ''}
             onChange={(e) => setDefaultWarranty(e.target.value)}
@@ -500,7 +500,7 @@ export default function SettingsTab({
 
         {/* PRODUCT_TRUTH_CAPABILITY: business_settings */}
         <button type="submit" style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: NEON.glow }}>
-          {isHebrew ? 'שמירת הגדרות העסק' : 'Save Business Settings'}
+          {isHebrew ? 'שמור הגדרות עסק' : 'Save Business Settings'}
         </button>
       </form>
 

@@ -69,14 +69,14 @@ describe('the return address and state (pure)', () => {
     expect(billingReturnState('active', active(), 0)).toBeNull();
   });
   it('the words (HE / EN): never "active" while waiting; SMART PACK only when the server says so', () => {
-    expect(billingReturnText('waiting', true)).toBe('מאמתים את התשלום… המסלול יופעל רק אחרי שהתשלום יאושר.');
+    expect(billingReturnText('waiting', true)).toBe('מאמתים את התשלום… המסלול ייפתח רק אחרי שהתשלום יאושר.');
     expect(billingReturnText('waiting', false)).toBe('Confirming your payment… Your package opens only after the payment is confirmed.');
     expect(billingReturnText('confirmed', true, { smartPack: true })).toBe('התשלום אושר. חכם פלוס פעיל.');
     expect(billingReturnText('confirmed', false)).toBe('Payment confirmed.');
     expect(billingReturnText('confirmed', false, { smartPack: true })).toBe('Payment confirmed. SMART PACK is active.');
-    expect(billingReturnText('failed', true)).toBe('התשלום לא הושלם והמסלול לא הופעל. אפשר לנסות שוב.');
+    expect(billingReturnText('failed', true)).toBe('התשלום לא הושלם, ולא נפתח מסלול. אפשר לנסות שוב.');
     expect(billingReturnText('cancelled', false)).toBe('The payment was cancelled. Nothing was charged.');
-    expect(billingReturnText('timeout', true)).toBe('האישור על התשלום עדיין לא הגיע. אם בוצע חיוב, המסלול יופעל אוטומטית בתוך כמה דקות.');
+    expect(billingReturnText('timeout', true)).toBe('האישור על התשלום עדיין לא הגיע. אם בוצע חיוב, המסלול ייפתח מעצמו תוך כמה דקות.');
   });
 });
 
@@ -98,7 +98,7 @@ describe('the plans window', () => {
     let line = screen.getByTestId('plans-modal-billing-return');
     expect(line.getAttribute('role')).toBe('status');
     expect(line.closest('[dir]').getAttribute('dir')).toBe('rtl');
-    expect(line.textContent).toBe('מאמתים את התשלום… המסלול יופעל רק אחרי שהתשלום יאושר.');
+    expect(line.textContent).toBe('מאמתים את התשלום… המסלול ייפתח רק אחרי שהתשלום יאושר.');
     rerender(<PricingModal isOpen onClose={() => {}} isHebrew isLocalIsraeliBusiness accountSummary={active(true)} onPurchase={vi.fn()} billingReturn={{ state: 'confirmed' }} />);
     expect(screen.getByTestId('plans-modal-billing-return').textContent).toBe('התשלום אושר. חכם פלוס פעיל.');
     expect(screen.getByTestId('plans-modal-current').textContent).toMatch(/^המסלול הנוכחי: /);

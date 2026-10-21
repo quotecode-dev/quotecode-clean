@@ -48,7 +48,7 @@ describe('getBusinessProfileGateMessage', () => {
   it('HE: returns a Hebrew, RTL-appropriate message with no English leakage', () => {
     const msg = getBusinessProfileGateMessage({ phone: '', taxId: '', isLocalIsraeliBusiness: true, isHebrew: true });
     expect(msg).not.toBeNull();
-    expect(msg).toMatch(/טלפון העסק/);
+    expect(msg).toMatch(/טלפון עסק/);
     expect(msg).toMatch(/ח\.פ/);
     expect(/[A-Za-z]/.test(msg)).toBe(false);
   });

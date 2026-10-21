@@ -18,7 +18,7 @@ export default function AdminTestEmailTool({ isHebrew }) {
 
   const handleSendTestEmail = async (sendHebrew) => {
     if (!testEmail || !testEmail.includes('@')) {
-      setTestStatus({ type: 'error', msg: isHebrew ? 'הזינו כתובת מייל תקינה לבדיקה' : 'Enter a valid test email address' });
+      setTestStatus({ type: 'error', msg: isHebrew ? 'הזן כתובת אימייל תקינה לבדיקה' : 'Enter a valid test email address' });
       return;
     }
     setSendingTestLang(sendHebrew ? 'he' : 'en');
@@ -29,7 +29,7 @@ export default function AdminTestEmailTool({ isHebrew }) {
       const accessToken = sessionData?.session?.access_token;
       if (sessionErr || !accessToken) {
         throw new Error(isHebrew
-          ? 'תוקף ההתחברות הסתיים. רעננו את העמוד והתחברו מחדש לפני שליחת מייל בדיקה.'
+          ? 'ההתחברות פגה. אנא רענן את העמוד והתחבר מחדש לפני שליחת מייל בדיקה.'
           : 'Your session has expired. Please refresh the page and log in again before sending a test email.');
       }
       const functionName = testType === 'subscription' ? 'send-subscription-expiration-email' : 'send-trial-expiration-email';
@@ -41,7 +41,7 @@ export default function AdminTestEmailTool({ isHebrew }) {
       setTestStatus({
         type: 'success',
         msg: isHebrew
-          ? `נשלח בהצלחה ל-${testEmail} (${sendHebrew ? 'עברית' : 'אנגלית'}, ${testType === 'subscription' ? 'סיום מנוי — תבנית מהמערכת הקודמת' : 'סיום תקופת ניסיון — תבנית מהמערכת הקודמת'})`
+          ? `נשלח בהצלחה ל-${testEmail} (${sendHebrew ? 'עברית' : 'אנגלית'}, ${testType === 'subscription' ? 'תפוגת מנוי - תבנית מורשת' : 'תום ניסיון - תבנית מורשת'})`
           : `Sent successfully to ${testEmail} (${sendHebrew ? 'Hebrew' : 'English'}, ${testType === 'subscription' ? 'subscription expiration - legacy template' : 'trial expiration - legacy template'})`,
       });
     } catch (err) {
@@ -55,7 +55,7 @@ export default function AdminTestEmailTool({ isHebrew }) {
     <article className="av-card av-section" aria-label={t(isHebrew, 'כלי אבחון', 'Diagnostic tools')}>
       <h3>{t(isHebrew, 'כלי אבחון', 'Diagnostic tools')}</h3>
       <details>
-        <summary style={{ minHeight: 44, cursor: 'pointer', alignContent: 'center' }}>{t(isHebrew, 'מיילי בדיקה ותבניות מהמערכת הקודמת', 'Test email & legacy templates')}</summary>
+        <summary style={{ minHeight: 44, cursor: 'pointer', alignContent: 'center' }}>{t(isHebrew, 'מיילי בדיקה ותבניות מורשת', 'Test email & legacy templates')}</summary>
         <p className="av-muted av-small">{t(isHebrew, 'שולח מייל אמיתי במצב בדיקה בלבד - אינו נוגע בתזכורות האוטומטיות ואינו משפיע על התזמון היומי. אין הפעלה של תזכורות ניסיון.', 'Sends a real email in test mode only - never touches the automatic reminders and has no effect on the daily schedule. This does not activate trial reminders.')}</p>
         <div className="av-toolbar">
           <label className="av-field av-search">
@@ -65,8 +65,8 @@ export default function AdminTestEmailTool({ isHebrew }) {
           <label className="av-field">
             <span>{t(isHebrew, 'תבנית', 'Template')}</span>
             <select value={testType} onChange={(e) => setTestType(e.target.value)}>
-              <option value="trial">{t(isHebrew, 'סיום תקופת ניסיון · תבנית מהמערכת הקודמת', 'Trial expiration · legacy template')}</option>
-              <option value="subscription">{t(isHebrew, 'סיום מנוי · תבנית מהמערכת הקודמת', 'Subscription expiration · legacy template')}</option>
+              <option value="trial">{t(isHebrew, 'תום ניסיון · תבנית מורשת', 'Trial expiration · legacy template')}</option>
+              <option value="subscription">{t(isHebrew, 'תפוגת מנוי · תבנית מורשת', 'Subscription expiration · legacy template')}</option>
             </select>
           </label>
           <label className="av-field">
@@ -80,11 +80,11 @@ export default function AdminTestEmailTool({ isHebrew }) {
         <div className="av-pills">
           {/* PRODUCT_TRUTH_DECORATIVE: sends a real Hebrew test expiration-reminder email; internal admin diagnostic tool */}
           <button type="button" className="av-btn" onClick={() => handleSendTestEmail(true)} disabled={sendingTestLang !== null}>
-            <Send size={15} aria-hidden="true" />{sendingTestLang === 'he' ? t(isHebrew, 'שולח…', 'Sending...') : t(isHebrew, 'שליחת בדיקה בעברית', 'Send Hebrew test')}
+            <Send size={15} aria-hidden="true" />{sendingTestLang === 'he' ? t(isHebrew, 'שולח...', 'Sending...') : t(isHebrew, 'שליחת בדיקה בעברית', 'Send Hebrew test')}
           </button>
           {/* PRODUCT_TRUTH_DECORATIVE: sends a real English test expiration-reminder email; internal admin diagnostic tool */}
           <button type="button" className="av-btn" onClick={() => handleSendTestEmail(false)} disabled={sendingTestLang !== null}>
-            <Send size={15} aria-hidden="true" />{sendingTestLang === 'en' ? t(isHebrew, 'שולח…', 'Sending...') : t(isHebrew, 'שליחת בדיקה באנגלית', 'Send English test')}
+            <Send size={15} aria-hidden="true" />{sendingTestLang === 'en' ? t(isHebrew, 'שולח...', 'Sending...') : t(isHebrew, 'שליחת בדיקה באנגלית', 'Send English test')}
           </button>
         </div>
         {testStatus.msg && (

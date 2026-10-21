@@ -75,7 +75,7 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
   // compact preview frame); "Valid until" at document widths, Print and the Direct PDF capture (compact={false}).
   const phoneLabels = typeof compact === 'boolean' ? compact : isMobileView;
   const L = isHebrew
-    ? { quote: 'הצעת מחיר', number: 'מס׳ הצעה', date: 'תאריך', valid: 'בתוקף עד', project: 'פרויקט', expired: 'פג תוקף', signed: 'נחתמה', taxId: 'ח״פ / עוסק:', phone: 'טלפון:' }
+    ? { quote: 'הצעת מחיר', number: 'מס׳ הצעה', date: 'תאריך', valid: 'בתוקף עד', project: 'פרויקט', expired: 'פג תוקף', signed: 'נחתמה', taxId: 'ח.פ / עוסק:', phone: 'טלפון:' }
     : { quote: 'Price Quote', number: 'Quote #', date: 'Date', valid: phoneLabels ? 'Valid:' : 'Valid until', project: 'Project', expired: 'Expired', signed: 'Signed', taxId: 'Tax ID:', phone: 'Phone:' };
 
   const details = (
@@ -157,7 +157,7 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
         style={{ display: 'inline-flex', alignItems: 'center', gap: compactCta ? '4px' : '6px', background: 'rgba(255,255,255,0.94)', color: CTA_INK, textDecoration: 'none', fontWeight: '700', fontSize: compactCta ? '0.75rem' : '0.8rem', padding: compactCta ? '4px 10px' : '5px 12px', borderRadius: '999px', whiteSpace: 'nowrap' }}
       >
         <Phone size={compactCta ? 11 : 13} strokeWidth={compactCta ? 2.6 : 2.4} />
-        {isHebrew ? 'התקשרות לעסק' : 'Call me'}
+        {isHebrew ? 'חייג/י אליי' : 'Call me'}
       </a>
     </div>
   ) : null);

@@ -29,7 +29,7 @@ describe('PlanIdentityBadge (server summary only)', () => {
 
   it('Free shows the server balance, never a 0/5 counter', () => {
     const { rerender } = render(<PlanIdentityBadge summary={ready('free')} isHebrew variant="compact" />);
-    expect(screen.getByTestId('plan-identity-detail').textContent).toBe('יתרה: 6 מתוך 10 הצעות');
+    expect(screen.getByTestId('plan-identity-detail').textContent).toBe('נותרו 6 מתוך 10 הצעות');
     rerender(<PlanIdentityBadge summary={ready('free')} isHebrew={false} variant="compact" />);
     expect(screen.getByTestId('plan-identity-detail').textContent).toBe('6 of 10 free quotes left');
     rerender(<PlanIdentityBadge summary={ready('free')} isHebrew={false} variant="compact" singleLine />);

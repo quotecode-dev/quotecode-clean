@@ -137,7 +137,7 @@ describe('BusinessCardSettings - the editor', () => {
     const root = screen.getByTestId('business-card-settings');
     expect(root.querySelector('[data-style], [role=radiogroup], [data-pq-style], .qp-card')).toBeNull();
     expect(root.textContent).not.toMatch(/Classic|Modern|Visual|עיצוב|סגנון/);
-    expect(screen.getByText('כל השדות כאן הם שדות רשות. שדה ריק לא יופיע בכרטיס.')).toBeTruthy();
+    expect(screen.getByText('כל השדות כאן לא חובה. שדה ריק פשוט לא יופיע בכרטיס.')).toBeTruthy();
     fireEvent.change(screen.getByTestId('card-field-slogan'), { target: { value: 'חלונות שמתאימים' } });
     expect(p.profile.update).toHaveBeenCalledWith({ slogan: 'חלונות שמתאימים' });
   });

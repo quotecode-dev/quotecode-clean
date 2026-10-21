@@ -28,7 +28,7 @@ const CASES = [
   ['Is there a calendar?', false, 'calendar', ['Yes', 'internal calendar', 'planning your work', '“Calendar”', 'not synced with Google Calendar'], []],
   ['Does TEKANGO have a calendar?', false, 'calendar', ['Yes', 'internal calendar', '“Calendar”'], []],
   // External calendar connection - not connected; the internal calendar is named
-  ['איפה היומן מחובר?', true, 'google_calendar_sync', ['האפשרות ״אינטגרציה עם Google Calendar״ אינה זמינה כרגע', 'מתוכננת לעתיד', 'יומן פנימי', '„יומן”', 'אינו מסונכרן'], ['כן -']],
+  ['איפה היומן מחובר?', true, 'google_calendar_sync', ['אינטגרציה עם Google Calendar אינה זמינה כרגע', 'יעד עתידי', 'יומן פנימי', '„יומן”', 'אינו מסונכרן'], ['כן -']],
   ['יש סנכרון לגוגל קלנדר?', true, 'google_calendar_sync', ['אינה זמינה כרגע', 'יומן פנימי'], ['כן -']],
   ['אפשר לחבר את היומן ל-Google Calendar?', true, 'google_calendar_sync', ['אינה זמינה כרגע', 'יומן פנימי'], ['כן -']],
   ['Where is the calendar connected?', false, 'google_calendar_sync', ['Google Calendar integration is not currently available', 'future roadmap item', 'internal calendar', '“Calendar”'], ['Yes -']],
@@ -36,8 +36,8 @@ const CASES = [
   // Digital business card - Task 23 (Phase 5) made it a current capability: where it is, what it shows, what it never shows, and that
   // night task 2026-10-16 (R-17): the card and its public page are live (get-business-card + business_cards were published with the
   // new interface on 2026-10-14) - the old "only after the server update" caveat is gone
-  ['האם יש לכם כרטיס ביקור דיגיטלי?', true, 'digital_business_card', ['כן —', 'כרטיס ביקור דיגיטלי', 'הגדרות עסק', 'קוד QR', 'מספר עוסק ופרטים פנימיים לא מוצגים'], ['בקרוב', 'יעד עתידי', 'רק אחרי עדכון השרת']],
-  ['יש כרטיס ביקור דיגיטלי?', true, 'digital_business_card', ['כן —', 'קישור לשיתוף'], ['רק אחרי עדכון השרת']],
+  ['האם יש לכם כרטיס ביקור דיגיטלי?', true, 'digital_business_card', ['כן -', 'כרטיס ביקור דיגיטלי', 'הגדרות עסק', 'קוד QR', 'מספר עוסק ופרטים פנימיים לא מוצגים'], ['בקרוב', 'יעד עתידי', 'רק אחרי עדכון השרת']],
+  ['יש כרטיס ביקור דיגיטלי?', true, 'digital_business_card', ['כן -', 'קישור לשיתוף'], ['רק אחרי עדכון השרת']],
   ['Do you have a digital business card?', false, 'digital_business_card', ['Yes -', 'Digital business card', 'Business settings', 'QR code', 'tax ID and internal details are never shown'], ['soon', 'roadmap', 'only after the server update']],
   ['Can I create a business card in TEKANGO?', false, 'digital_business_card', ['Yes -', 'share link'], []],
 ];

@@ -107,7 +107,7 @@ export default function CustomerQuoteItemRow({ item, variant, index, isLast }) {
               }}
             >
               <ChevronDown size={14} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-              {expanded ? 'הסתרת הפירוט' : 'פירוט מידות ומפרט'}
+              {expanded ? 'הסתר פירוט' : 'פירוט מידות ומפרט'}
             </button>
             {expanded && (
               <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: `1px dashed ${LIGHT.border}` }}>
@@ -156,7 +156,7 @@ export default function CustomerQuoteItemRow({ item, variant, index, isLast }) {
               }}
             >
               <ChevronDown size={12} style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s' }} />
-              {expanded ? 'הסתרת הפירוט' : 'פירוט מידות ומפרט'}
+              {expanded ? 'הסתר פירוט' : 'פירוט מידות ומפרט'}
             </button>
             {expanded && (
               <div style={{ marginTop: '5px', paddingBottom: '2px' }}>

@@ -6,7 +6,7 @@ describe('classifyQuoteApprovalError', () => {
     const msg = "Not permitted: the quote's own business account cannot approve or sign it on the customer's behalf";
     expect(classifyQuoteApprovalError(msg, true)).toEqual({
       category: 'owner_cannot_self_approve',
-      userMessage: '❌ אי אפשר לחתום על ההצעה מחשבון העסק ששלח אותה. כדי לחתום כלקוחות, יש להתחבר לחשבון שלכם או לפתוח חלון גלישה אנונימית.',
+      userMessage: '❌ לא ניתן לחתום על הצעה זו מחשבון העסק ששלח אותה. אם את/ה הלקוח/ה, יש להיכנס עם החשבון שלך או בגלישה אנונימית.',
     });
     expect(classifyQuoteApprovalError(msg, false).category).toBe('owner_cannot_self_approve');
   });
