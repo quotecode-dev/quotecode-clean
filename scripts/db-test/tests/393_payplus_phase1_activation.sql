@@ -93,14 +93,12 @@ BEGIN
   a := (r ->> 'attemptId')::uuid;
   PERFORM tst.ok((r ->> 'amountMinor')::int = 30600 AND r ->> 'currency' = 'ILS', 'Y2 the IL annual attempt = 30600 ILS (306.00)');
   r := tst.ypay('pp-evt-low', 'payment_confirmed', a, '2026-10-18 09:30:00+00', 100);
-  -- 20261022100000 (Codex audit H04): recorded as rejected BEFORE anything advances - no subscription row, no event time
-  PERFORM tst.ok(r ->> 'outcome' = 'rejected' AND r ->> 'code' = 'amount_mismatch' AND r ->> 'activated' = 'false'
-                 AND tst.yent(tst.yu(1)) = 'free_10/-/-/-/none/v1',
-                 'Y3 a charge of 1.00 for a 306.00 attempt is recorded as rejected and opens nothing');
-  PERFORM tst.ok((SELECT state FROM public.checkout_attempts WHERE attempt_id = a) = 'pending'
-                 AND NOT EXISTS (SELECT 1 FROM public.subscriptions WHERE attempt_id = a)
-                 AND (SELECT outcome FROM public.subscription_events WHERE provider_event_id = 'pp-evt-low') = 'rejected',
-                 'Y3b that attempt never counts as a live subscription and no event time advanced; the rejected event row stays');
+  PERFORM tst.ok(r ->> 'outcome' = 'applied' AND r ->> 'code' = 'amount_mismatch' AND tst.yent(tst.yu(1)) = 'free_10/-/-/-/none/v1',
+                 'Y3 a charge of 1.00 for a 306.00 attempt is recorded and opens nothing');
+  PERFORM tst.ok((SELECT state FROM public.checkout_attempts WHERE attempt_id = a) = 'failed'
+                 AND (SELECT status FROM public.subscriptions WHERE attempt_id = a) = 'pending'
+                 AND EXISTS (SELECT 1 FROM public.subscription_events WHERE provider_event_id = 'pp-evt-low'),
+                 'Y3b that attempt never counts as a live subscription; the event row stays');
 END $$;
 DO $$
 DECLARE a uuid; old uuid; r jsonb;

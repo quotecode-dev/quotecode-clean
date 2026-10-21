@@ -151,10 +151,7 @@ export function mapPayPlusCallback(json: unknown): { id: string; type: EventType
     : kind === 'refund' ? 'refund' : null;
   const occurredAt = payplusDateToIso(tx.date);
   if (!type || !occurredAt) return null;
-  // review 2026-10-22: a numeric string ("306" / "306.00") is the same amount - never a silent "no amount" (rejected) for a real payment
-  const amountNum = typeof tx.amount === 'number' ? tx.amount
-    : typeof tx.amount === 'string' && /^\d{1,9}(\.\d{1,2})?$/.test(tx.amount.trim()) ? Number(tx.amount.trim()) : NaN;
-  const paidAmountMinor = Number.isFinite(amountNum) && amountNum > 0 ? Math.round(amountNum * 100) : null;
+  const paidAmountMinor = typeof tx.amount === 'number' && Number.isFinite(tx.amount) && tx.amount > 0 ? Math.round(tx.amount * 100) : null;
   return { id: tx.uid, type, occurredAt, attemptId, paidAmountMinor, recurringRef, terminalRef };
 }
 

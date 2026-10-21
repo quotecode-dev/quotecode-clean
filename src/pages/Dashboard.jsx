@@ -56,7 +56,7 @@ import ExcelJS from 'exceljs';
 
 import PricingModal from '../components/PricingModal';
 import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
-import { startPackageCheckout, packageCheckoutAvailable } from '../domain/subscriptions/packageCheckout';
+import { startPackageCheckout } from '../domain/subscriptions/packageCheckout';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
@@ -7561,8 +7561,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         market={(accountSummary.state === 'ready' && accountSummary.market) || (isLocalIsraeliBusiness ? 'IL' : 'INTERNATIONAL')}
         free10={accountSummary.state === 'ready' ? accountSummary.free10 : null}
         limited={accountSummary.state === 'ready' && accountSummary.billing?.limited === true}
-        // Codex audit 2026-10-21 (Owner "כן, לתקן"): while paying is possible, the choice opens the plans window
-        onChoose={packageCheckoutAvailable(accountSummary, isLifetimeAccount) ? () => { setFree10Window(false); setShowPricingModal(true); } : null}
       />
       <PricingModal 
         isOpen={showPricingModal} 

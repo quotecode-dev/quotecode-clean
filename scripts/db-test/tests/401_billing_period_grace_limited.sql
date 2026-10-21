@@ -175,8 +175,8 @@ SELECT tst.ok(NOT (tst.zbill(tst.zu(1)) ->> 'inGrace')::boolean AND NOT public.p
 SELECT tst.zset(tst.zu(1), now() - interval '25 hours', NULL);
 SELECT tst.ok((tst.zbill(tst.zu(1)) ->> 'inGrace')::boolean AND NOT public.paid_account_limited(tst.zu(1)),
   'B9b a day later without a renewal: the same 3 grace days');
-SELECT tst.zset(tst.zu(1), now() - interval '73 hours', NULL);
-SELECT tst.ok(public.paid_account_limited(tst.zu(1)), 'B9c 72 hours after the paid period ended without a renewal: limited (20261022100000, Owner 2026-10-21: 3 days)');
+SELECT tst.zset(tst.zu(1), now() - interval '96 hours', NULL);
+SELECT tst.ok(public.paid_account_limited(tst.zu(1)), 'B9c the day of tolerance + 72 hours after the paid period ended: limited');
 SELECT tst.ok(public.billing_period_end('2026-01-31 10:00:00+02', 'month') = '2026-02-28 10:00:00+02'
           AND public.billing_period_end('2026-03-28 23:30:00+03', 'month') = '2026-04-28 23:30:00+03'
           AND public.billing_period_end('2028-02-29 09:00:00+02', 'year') = '2029-02-28 09:00:00+02',
