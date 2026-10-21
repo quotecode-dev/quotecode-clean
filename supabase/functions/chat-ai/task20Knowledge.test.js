@@ -27,11 +27,11 @@ const CASES = [
   ['הלקוח ראה את ההצעה שלי?', true, 'quote_link_view', ['צפייה בקישור ההצעה', 'אינדיקציה לפתיחת הקישור בלבד'], []],
   ['Did the customer see my quote?', false, 'quote_link_view', ['Quote link viewed', 'indicates that the link was opened', 'can also count'], []],
   ['Was my quote link viewed?', false, 'quote_link_view', ['Quote link viewed'], []],
-  ['איך מגדירים תזכורות?', true, 'reminders_automation', ['הגדרות עסק', 'בממשק בלבד', 'כבוי', 'מלא', 'תיבות סימון', 'ימים', 'תוכן', 'שעות שליחה', 'אזור זמן', 'ידנית'], []],
+  ['איך מגדירים תזכורות?', true, 'reminders_automation', ['הגדרות עסק', 'בממשק בלבד', 'כבוי', 'מלא', 'תיבות הסימון', 'ימים', 'תוכן', 'שעות שליחה', 'אזור זמן', 'ידנית'], []],
   ['What is Full mode in reminders?', false, 'reminders_automation', ['Business settings', 'In-app only', 'Off', 'Full, including customer sending', 'explicit', 'tick', 'sending hours', 'time zone', 'manually'], []],
   ['האם TEKANGO שולח ללקוחות מיילים אוטומטית?', true, 'automatic_customer_messages', ['אינה זמינה כרגע'], ['כן -']],
   ['Does TEKANGO email my customers automatically?', false, 'automatic_customer_messages', ['not currently available'], ['Yes -']],
-  ['WhatsApp נשלח אוטומטית?', true, 'automatic_whatsapp', ['אינה זמינה כרגע', 'יעד עתידי'], ['כן -']],
+  ['WhatsApp נשלח אוטומטית?', true, 'automatic_whatsapp', ['אינה זמינה כרגע', 'מתוכננת לעתיד'], ['כן -']],
   ['Does TEKANGO send WhatsApp automatically?', false, 'automatic_whatsapp', ['not currently available', 'future roadmap'], ['Yes -']],
 ];
 

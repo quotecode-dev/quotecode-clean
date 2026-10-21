@@ -91,7 +91,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
     e.preventDefault();
     
     if (email && email.trim() !== '' && !validateEmail(email)) {
-      setErrorMsg(isHebrew ? 'שגיאה: כתובת אימייל אינה תקינה (בדוק סיומת כגון .com או .co.il)' : 'Error: Invalid email address format!');
+      setErrorMsg(isHebrew ? 'שגיאה: כתובת מייל אינה תקינה (בדקו סיומת כגון .com או .co.il)' : 'Error: Invalid email address format!');
       return;
     }
 
@@ -115,7 +115,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
 
         {/* §51.16: ONE header row - title · AI action (centred on desktop) · Close */}
         <AiModalHeader titleAs="h3" title={isNew ? (isHebrew ? 'לקוח חדש' : 'New Client') : (isHebrew ? 'עריכת פרטי לקוח' : 'Edit Client Details')}
-          onClose={onClose} closeLabel={isHebrew ? 'סגור' : 'Close'} closeContent="✕" isHebrew={isHebrew} testId="ai-help-edit-client" style={{ color: APP.textPrimary, marginBottom: '16px' }} />
+          onClose={onClose} closeLabel={isHebrew ? 'סגירה' : 'Close'} closeContent="✕" isHebrew={isHebrew} testId="ai-help-edit-client" style={{ color: APP.textPrimary, marginBottom: '16px' }} />
 
         {errorMsg && (
           <div style={{ background: APP_STATUS.error.bg, border: `1px solid ${APP_STATUS.error.border}`, color: APP_STATUS.error.fg, padding: '10px', borderRadius: '6px', marginBottom: '14px', fontSize: '0.85rem', fontWeight: 'bold', textAlign: 'center' }}>
@@ -126,11 +126,11 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
         <form onSubmit={handleSubmit}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.85rem' }}>
             <div>
-              <label style={{ display: 'block', fontWeight: '600', color: APP.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'שם חברה / לקוח' : 'Company / Name'}</label>
+              <label style={{ display: 'block', fontWeight: '600', color: APP.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'שם החברה או הלקוח' : 'Company / Name'}</label>
               <input type="text" value={companyName} onChange={(e) => setCompanyName(e.target.value)} required style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box' }} />
             </div>
             <div>
-              <label style={{ display: 'block', fontWeight: '600', color: APP.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'אימייל' : 'Email'}</label>
+              <label style={{ display: 'block', fontWeight: '600', color: APP.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'כתובת מייל' : 'Email'}</label>
               <input type="text" value={email} onChange={(e) => { setEmail(e.target.value); setErrorMsg(''); }} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
             </div>
             
@@ -158,7 +158,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
               </select>
             </div>
             <div>
-              <label style={{ display: 'block', fontWeight: '600', color: APP.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'ח.פ / ת.ז' : 'Tax ID'}</label>
+              <label style={{ display: 'block', fontWeight: '600', color: APP.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'ח״פ / ת״ז' : 'Tax ID'}</label>
               <input type="text" value={taxId} onChange={(e) => setTaxId(e.target.value)} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
             </div>
             <div>
@@ -188,7 +188,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
             </button>
             {/* PRODUCT_TRUTH_CAPABILITY: clients */}
             <button type="submit" style={{ flex: 1, background: APP.violet, color: APP.textOnAccent, border: 'none', padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem', boxShadow: 'none' }}>
-              {isNew ? (isHebrew ? 'צור לקוח' : 'Create Client') : (isHebrew ? 'שמור שינויים' : 'Save Changes')}
+              {isNew ? (isHebrew ? 'יצירת לקוח' : 'Create Client') : (isHebrew ? 'שמירת שינויים' : 'Save Changes')}
             </button>
           </div>
         </form>

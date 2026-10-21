@@ -121,7 +121,7 @@ describe('formatCapabilityTruthAnswer — AI capability answer contract (§52.8 
       expect(answer).toMatch(/still undecided/);
       expect(answer).not.toMatch(/your current plan|does not include it|includes it/i);
     }
-    expect(formatCapabilityTruthAnswer('attachments', FACTS, true, 'free')).toMatch(/טרם הוחלט/);
+    expect(formatCapabilityTruthAnswer('attachments', FACTS, true, 'free')).toMatch(/(?:טרם|עדיין לא) הוחלט/);
   });
 
   it('a legacy plan value from the caller is not a known plan and changes nothing', () => {

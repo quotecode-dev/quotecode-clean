@@ -78,8 +78,8 @@ export function formatAccountMarketAnswer(isHebrew: boolean, payload: ProductTru
   const local = payload.accountMarket === 'LOCAL';
   if (isHebrew) {
     return local
-      ? 'החשבון שלך מאומת בשוק המקומי (Local), ולכן המחירים וההצעות בחשבון שלך מוצגים בשקלים (₪). אי אפשר לשנות את שוק החשבון מתוך הצ\'אט, ואני לא מציג מחירים במטבע של שוק אחר ולא מתייחס לחשבון שלך כאילו הוא שייך לשוק אחר.'
-      : 'החשבון שלך מאומת בשוק הבינלאומי (International), ולכן המחירים וההצעות בחשבון שלך מוצגים במטבע החשבון (USD, EUR או GBP). אי אפשר לשנות את שוק החשבון מתוך הצ\'אט, ואני לא מציג מחירים במטבע של שוק אחר ולא מתייחס לחשבון שלך כאילו הוא שייך לשוק אחר.';
+      ? 'החשבון שלך מאומת בשוק המקומי (Local), ולכן המחירים וההצעות בחשבון שלך מוצגים בשקלים (₪). אי אפשר לשנות את שוק החשבון מתוך הצ׳אט, ואני לא מציג מחירים במטבע של שוק אחר ולא מתייחס לחשבון שלך כאילו הוא שייך לשוק אחר.'
+      : 'החשבון שלך מאומת בשוק הבינלאומי (International), ולכן המחירים וההצעות בחשבון שלך מוצגים במטבע החשבון (USD, EUR או GBP). אי אפשר לשנות את שוק החשבון מתוך הצ׳אט, ואני לא מציג מחירים במטבע של שוק אחר ולא מתייחס לחשבון שלך כאילו הוא שייך לשוק אחר.';
   }
   return local
     ? "Your account is verified as Local, so prices and quotes in your account are shown in Israeli shekels (ILS). The account's market can't be changed from the chat, and I don't show prices in another market's currency or treat your account as belonging to a different market."

@@ -184,7 +184,7 @@ export default function App() {
         }
       }
 
-      setUpdateMessage(!isHebrew ? 'Password updated successfully! Redirecting...' : 'הסיסמה עודכנה בהצלחה! מעביר אותך למערכת...');
+      setUpdateMessage(!isHebrew ? 'Password updated successfully! Redirecting...' : 'הסיסמה עודכנה. עוברים למערכת…');
       setTimeout(() => {
         setRecoveryMode(false);
         window.location.href = !isHebrew ? '/dashboard?lang=en' : '/dashboard';
@@ -210,12 +210,12 @@ export default function App() {
             </button>
             <h2 style={{ color: '#0f172a', marginBottom: '15px' }}>{!isHebrew ? 'Password Recovery' : 'שחזור סיסמה'}</h2>
             <p style={{ color: '#334155', fontSize: '15px', marginBottom: '20px', fontWeight: '500' }}>
-              {!isHebrew ? 'Enter your email address to recover your password' : 'לשחזור סיסמה הקלד את כתובת המייל שלך'}
+              {!isHebrew ? 'Enter your email address to recover your password' : 'לשחזור סיסמה הקלידו את כתובת המייל שלכם'}
             </p>
             <form onSubmit={handleSendRecovery}>
               <input
                 type="email"
-                placeholder={!isHebrew ? 'Email address' : 'כתובת אימייל'}
+                placeholder={!isHebrew ? 'Email address' : 'כתובת מייל'}
                 value={forgotEmail}
                 onChange={(e) => setForgotEmail(e.target.value)}
                 required
@@ -228,7 +228,7 @@ export default function App() {
                 disabled={forgotLoading}
                 style={{ width: '100%', padding: '12px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
               >
-                {forgotLoading ? (!isHebrew ? 'Sending...' : 'שולח...') : (!isHebrew ? 'Send Recovery Link' : 'שלח לשחזור סיסמה')}
+                {forgotLoading ? (!isHebrew ? 'Sending...' : 'שולח…') : (!isHebrew ? 'Send Recovery Link' : 'שליחת קישור לשחזור הסיסמה')}
               </button>
             </form>
             {forgotMessage && <p style={{ marginTop: '15px', color: forgotMessage.includes('שגיאה') || forgotMessage.includes('Error') ? '#dc2626' : '#16a34a', fontWeight: 'bold', fontSize: '14px' }}>{forgotMessage}</p>}
@@ -243,8 +243,8 @@ export default function App() {
           alignItems: 'center', zIndex: 9999, direction: !isHebrew ? 'ltr' : 'rtl', fontFamily: "'Rubik', Arial, sans-serif"
         }}>
           <div style={{ background: '#fff', padding: '30px', borderRadius: '12px', width: '400px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', textAlign: 'center' }}>
-            <h2 style={{ color: '#0f172a', marginBottom: '15px' }}>{!isHebrew ? 'Set New Password' : 'איפוס סיסמה חדשה'}</h2>
-            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>{!isHebrew ? 'Enter your new account password' : 'הזן את הסיסמה החדשה שלך לחשבון'}</p>
+            <h2 style={{ color: '#0f172a', marginBottom: '15px' }}>{!isHebrew ? 'Set New Password' : 'הגדרת סיסמה חדשה'}</h2>
+            <p style={{ color: '#64748b', fontSize: '14px', marginBottom: '20px' }}>{!isHebrew ? 'Enter your new account password' : 'הזינו את הסיסמה החדשה שלכם לחשבון'}</p>
             <form onSubmit={handleUpdatePassword}>
               <input
                 type="text"
@@ -269,7 +269,7 @@ export default function App() {
                 disabled={updateLoading}
                 style={{ width: '100%', padding: '12px', background: '#4f46e5', color: '#fff', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' }}
               >
-                {updateLoading ? (!isHebrew ? 'Updating...' : 'מעדכן...') : (!isHebrew ? 'Update Password & Save' : 'עדכן סיסמה ושמור')}
+                {updateLoading ? (!isHebrew ? 'Updating...' : 'מעדכן…') : (!isHebrew ? 'Update Password & Save' : 'שמירת הסיסמה החדשה')}
               </button>
             </form>
             {updateMessage && <p style={{ marginTop: '15px', color: updateMessage.includes('שגיאה') || updateMessage.includes('Error') ? '#dc2626' : '#16a34a', fontWeight: 'bold', fontSize: '14px' }}>{updateMessage}</p>}

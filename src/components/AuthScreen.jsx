@@ -74,7 +74,7 @@ export default function AuthScreen({
         <div style={{ textAlign: 'center' }}>
           <ProFlowLogo size={48} rtl={false} />
           <div style={{ marginTop: '20px', fontSize: '1rem', color: NEON.textSecondary, fontWeight: 'bold' }}>
-            {isHebrew ? 'טוען את המערכת...' : 'Loading system...'}
+            {isHebrew ? 'טוען את המערכת…' : 'Loading system...'}
           </div>
           {/* Night task 2026-10-16 (R-12, Owner-approved L-10 / L-15): the account details keep failing to load - say so, offer a way out */}
           {startupStuck && (
@@ -104,7 +104,7 @@ export default function AuthScreen({
       <div style={{ fontFamily: font, background: NEON.bg, minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
         <div style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, padding: '30px', borderRadius: '14px', boxShadow: '0 20px 40px -12px rgba(139,92,246,0.25)', width: '100%', maxWidth: '380px', textAlign: isHebrew ? 'right' : 'left' }}>
           <h2 style={{ marginBottom: '12px', fontWeight: '800', ...neonGlowTextStyle }}>{isHebrew ? 'הגדרת סיסמה חדשה' : 'Set New Password'}</h2>
-          <p style={{ color: NEON.textSecondary, fontSize: '0.85rem', marginBottom: '18px' }}>{isHebrew ? 'הזן את הסיסמה החדשה לחשבון שלך' : 'Enter your new account password'}</p>
+          <p style={{ color: NEON.textSecondary, fontSize: '0.85rem', marginBottom: '18px' }}>{isHebrew ? 'הזינו את הסיסמה החדשה לחשבון שלכם' : 'Enter your new account password'}</p>
 
           {recoveryUpdateMsg && (
             // Auth Lifecycle Forensic Audit (2026-09-09): was
@@ -140,7 +140,7 @@ export default function AuthScreen({
               style={{ width: '100%', padding: '10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', marginBottom: '12px', fontSize: '0.95rem', direction: isHebrew ? 'rtl' : 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary }}
             />
             <button type="submit" disabled={recoveryUpdateLoading} style={{ width: '100%', background: NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: NEON.glow }}>
-              {recoveryUpdateLoading ? (isHebrew ? 'מעדכן...' : 'Updating...') : (isHebrew ? 'עדכן סיסמה ושמור' : 'Update Password & Save')}
+              {recoveryUpdateLoading ? (isHebrew ? 'מעדכן…' : 'Updating...') : (isHebrew ? 'שמירת הסיסמה החדשה' : 'Update Password & Save')}
             </button>
           </form>
         </div>
@@ -163,12 +163,12 @@ export default function AuthScreen({
           {isSignUp ? (
             <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(167, 139, 250, 0.3)', padding: '10px 14px', borderRadius: '8px', marginTop: '14px', marginBottom: '4px', color: NEON.violetLighter, fontSize: '0.85rem', fontWeight: 'normal', textAlign: isHebrew ? 'right' : 'left', width: '100%', boxSizing: 'border-box', lineHeight: '1.5' }}>
               {isHebrew
-                ? 'כדי להירשם, הזינו אימייל וסיסמה. מערך המסלולים החדש (כולל 10 הצעות חינם בסך הכול) עדיין לא הופעל, והחשבון נפתח ללא תקופת ניסיון.'
-                : 'To sign up, enter your email and password. The new plan system (including 10 free quotes in total) is not active yet, and the account opens without a trial period.'}
+                ? 'להרשמה, הזינו כתובת מייל וסיסמה. מערכת המסלולים החדשה, ובה 10 הצעות חינם או 7 ימים, המוקדם מביניהם, עדיין לא הופעלה. החשבון נפתח ללא תקופת ניסיון.'
+                : 'To sign up, enter your email and password. The new plan system (including 10 free quotes or 7 days, whichever comes first) is not active yet, and the account opens without a trial period.'}
             </div>
           ) : (
             <p style={{ color: NEON.textSecondary, fontSize: '0.9rem', marginTop: '10px', fontWeight: 'normal' }}>
-              {isHebrew ? 'התחבר למערכת הניהול שלך' : 'Sign in to your management dashboard'}
+              {isHebrew ? 'כניסה למערכת הניהול' : 'Sign in to your management dashboard'}
             </p>
           )}
         </div>
@@ -183,7 +183,7 @@ export default function AuthScreen({
           <div style={{ marginBottom: '12px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '4px' }}>
               <Mail size={13} color={NEON.violetLight} />
-              {isHebrew ? 'כתובת אימייל' : 'Email Address'}
+              {isHebrew ? 'כתובת מייל' : 'Email Address'}
             </label>
             <input type="email" name="user_email_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} required placeholder="user@example.com" style={{ width: '100%', padding: '9px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.9rem' }} />
           </div>
@@ -215,13 +215,13 @@ export default function AuthScreen({
                 {/* PRODUCT_TRUTH_DECORATIVE: the required, unticked Terms of Use + Privacy Policy consent of the signup form */}
                 <input type="checkbox" data-testid="signup-terms-consent" required checked={signupTermsAccepted} onChange={(e) => setSignupTermsAccepted(e.target.checked)} style={{ marginTop: '3px', flex: 'none', accentColor: NEON.violetLight }} />
                 <span>
-                  {isHebrew ? 'קראתי ואני מסכים/ה ל' : 'I have read and agree to the '}
+                  {isHebrew ? 'קראתי את ' : 'I have read and agree to the '}
                   {/* PRODUCT_TRUTH_DECORATIVE: opens the Terms of Use in a new tab (the signup form keeps its input) */}
                   <a href={isHebrew ? '/he/terms' : '/en/terms'} target="_blank" rel="noopener" style={{ color: NEON.violetLight, fontWeight: 600 }}>{isHebrew ? 'תנאי השימוש' : 'Terms of Use'}</a>
-                  {isHebrew ? ' ול' : ' and the '}
+                  {isHebrew ? ' ואת ' : ' and the '}
                   {/* PRODUCT_TRUTH_DECORATIVE: opens the Privacy Policy in a new tab (the signup form keeps its input) */}
                   <a href={isHebrew ? '/he/privacy' : '/en/privacy'} target="_blank" rel="noopener" style={{ color: NEON.violetLight, fontWeight: 600 }}>{isHebrew ? 'מדיניות הפרטיות' : 'Privacy Policy'}</a>
-                  {isHebrew ? ' של TEKANGO.' : ' of TEKANGO.'}
+                  {isHebrew ? ' ואני מסכים/ה להם.' : ' of TEKANGO.'}
                 </span>
               </label>
             </>
@@ -230,7 +230,7 @@ export default function AuthScreen({
           <TurnstileWidget slot="auth" isHebrew={isHebrew} />
           <button type="submit" disabled={authLoading} style={{ width: '100%', background: NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '700', fontSize: '0.95rem', cursor: authLoading ? 'default' : 'pointer', opacity: authLoading ? 0.7 : 1, boxShadow: NEON.glow, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
             {isSignUp ? <Rocket size={16} strokeWidth={2.5} /> : <LogIn size={16} strokeWidth={2.5} />}
-            {isSignUp ? (isHebrew ? 'הרשמה למערכת' : 'Sign Up') : (isHebrew ? 'התחבר' : 'Sign In')}
+            {isSignUp ? (isHebrew ? 'הרשמה למערכת' : 'Sign Up') : (isHebrew ? 'כניסה' : 'Sign In')}
           </button>
         </form>
 
@@ -241,8 +241,8 @@ export default function AuthScreen({
             style={{ background: 'none', border: 'none', color: NEON.violetLight, cursor: 'pointer', fontWeight: '600', padding: 0 }}
           >
             {isSignUp
-              ? (isHebrew ? 'כבר יש לך חשבון? התחבר' : 'Already have an account? Sign in')
-              : (isHebrew ? 'אין לך חשבון? הירשם עכשיו!' : "Don't have an account? Sign up!")}
+              ? (isHebrew ? 'כבר יש חשבון? כניסה למערכת' : 'Already have an account? Sign in')
+              : (isHebrew ? 'עדיין אין חשבון? הרשמה' : "Don't have an account? Sign up!")}
           </button>
           {!isSignUp && (
             <button
@@ -265,7 +265,7 @@ export default function AuthScreen({
               {isHebrew ? 'שחזור סיסמה' : 'Password Recovery'}
             </h3>
             <p style={{ color: NEON.textSecondary, fontSize: '0.85rem', marginBottom: '16px' }}>
-              {isHebrew ? 'הזן את כתובת האימייל שלך לקבלת קישור איפוס' : 'Enter your email address to receive a reset link'}
+              {isHebrew ? 'הזינו את כתובת המייל שלכם לקבלת קישור איפוס' : 'Enter your email address to receive a reset link'}
             </p>
 
             {resetMsg && (
@@ -289,7 +289,7 @@ export default function AuthScreen({
               {/* Owner console 2026-10-20 (L-12): the robot check of the password reset form */}
               <TurnstileWidget slot="reset" isHebrew={isHebrew} />
               <button type="submit" disabled={resetLoading} style={{ width: '100%', background: NEON.gradient, color: 'white', border: 'none', padding: '10px', borderRadius: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: NEON.glow }}>
-                {resetLoading ? (isHebrew ? 'שולח...' : 'Sending...') : (isHebrew ? 'שלח קישור לשחזור' : 'Send Reset Link')}
+                {resetLoading ? (isHebrew ? 'שולח…' : 'Sending...') : (isHebrew ? 'שליחת קישור לשחזור' : 'Send Reset Link')}
               </button>
             </form>
           </div>

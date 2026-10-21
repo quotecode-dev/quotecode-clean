@@ -35,9 +35,9 @@ export const ADMIN_COPY = Object.freeze({
   noAccounts: { he: 'עדיין אין חשבונות מנוהלים', en: 'No managed accounts yet' },
   // users
   findUser: { he: 'חיפוש משתמש', en: 'Find user' },
-  findUserPh: { he: 'שם עסק או כתובת דוא״ל', en: 'Business name or email' },
-  status: { he: 'סטטוס', en: 'Status' },
-  allStatuses: { he: 'כל הסטטוסים', en: 'All statuses' },
+  findUserPh: { he: 'שם עסק או כתובת מייל', en: 'Business name or email' },
+  status: { he: 'מצב', en: 'Status' },
+  allStatuses: { he: 'כל המצבים', en: 'All statuses' },
   market: { he: 'שוק', en: 'Market' },
   allMarkets: { he: 'כל השווקים', en: 'All markets' },
   clear: { he: 'ניקוי', en: 'Clear' },
@@ -62,7 +62,7 @@ export const ADMIN_COPY = Object.freeze({
   noMatchHint: { he: 'נסו שם אחר או נקו את המסננים. נתוני המערכת לא השתנו.', en: 'Try a different name or clear the filters. No system data has changed.' },
   clearFilters: { he: 'ניקוי מסננים', en: 'Clear filters' },
   loadFailed: { he: 'לא הצלחנו לעדכן את הנתונים', en: 'We could not refresh the data' },
-  loadFailedHint: { he: 'זו שגיאת טעינה, ולא רשימה ריקה. נתונים קודמים יישארו עם זמן העדכון שלהם.', en: 'This is a loading failure, not an empty list. Existing data stays visible with its last update time.' },
+  loadFailedHint: { he: 'הנתונים לא נטענו. אם כבר הוצגו נתונים, הם נשארים עם מועד העדכון האחרון שלהם.', en: 'This is a loading failure, not an empty list. Existing data stays visible with its last update time.' },
   retry: { he: 'ניסיון נוסף', en: 'Retry' },
   usageUnverified: { he: 'ניצול: טרם אומת', en: 'Usage: unverified' },
   legacyTrial: { he: 'ניסיון ותיק', en: 'Legacy trial' },
@@ -79,8 +79,8 @@ export const ADMIN_COPY = Object.freeze({
   regionIntl: { he: 'בינלאומי', en: 'International' },
   regionUnknown: { he: 'שוק לא ידוע', en: 'Unknown market' },
   // actions
-  grantLifetime: { he: 'הענקת LIFETIME', en: 'Grant Lifetime' },
-  revokeLifetime: { he: 'ביטול LIFETIME', en: 'Revoke Lifetime' },
+  grantLifetime: { he: 'הענקת מנוי לכל החיים', en: 'Grant Lifetime' },
+  revokeLifetime: { he: 'ביטול מנוי לכל החיים', en: 'Revoke Lifetime' },
   resetQuotes: { he: 'איפוס הצעות', en: 'Reset quotes' },
   deleteAccount: { he: 'מחיקת חשבון', en: 'Delete account' },
   // details
@@ -116,7 +116,7 @@ export const ADMIN_COPY = Object.freeze({
   free10Counter: { he: 'מונה שרת מאומת ל־10 הצעות', en: 'Verified 10-quote counter' },
   notActivated: { he: 'טרם הופעל', en: 'Not activated' },
   active: { he: 'פעיל', en: 'Active' },
-  periodNotice: { he: 'חסרה תקופת חיוב? לא מסווגים אוטומטית כחודשי. מציגים ״מידע מנוי דורש אימות״ עד לקבלת העובדה מהשרת.', en: 'Missing billing period? Do not assume monthly. Show “Subscription information needs verification” until the server supplies the fact.' },
+  periodNotice: { he: 'אם חסרה תקופת חיוב, המנוי לא מסווג אוטומטית כחודשי. עד שהמידע יתקבל מהשרת, יוצג ״מידע המנוי דורש אימות״.', en: 'Missing billing period? Do not assume monthly. Show “Subscription information needs verification” until the server supplies the fact.' },
   workByPlan: { he: 'עבודה לפי מסלול', en: 'Work by plan' },
   openUsers: { he: 'לרשימת המשתמשים', en: 'Open users' },
   viewUsers: { he: 'הצגת משתמשים', en: 'View users' },
@@ -130,12 +130,12 @@ export const ADMIN_COPY = Object.freeze({
   noEvents: { he: 'לא נמצאו אירועים', en: 'No events found' },
   accountRegistered: { he: 'החשבון נרשם', en: 'Account registered' },
   unknownAction: { he: 'פעולה שלא זוהתה', en: 'Unrecognised action' },
-  showMore: { he: 'הצג עוד', en: 'Show more' },
+  showMore: { he: 'הצגה נוספת', en: 'Show more' },
 });
 
 export const ACTION_NAMES = Object.freeze({
-  grant_lifetime: { he: 'הענקת מנוי LIFETIME', en: 'Lifetime subscription granted' },
-  revoke_lifetime: { he: 'ביטול מנוי LIFETIME', en: 'Lifetime subscription revoked' },
+  grant_lifetime: { he: 'הענקת מנוי לכל החיים', en: 'Lifetime subscription granted' },
+  revoke_lifetime: { he: 'ביטול מנוי לכל החיים', en: 'Lifetime subscription revoked' },
   extend_trial: { he: 'הארכת ניסיון ותיק', en: 'Legacy trial extended' },
   delete_user: { he: 'מחיקת חשבון', en: 'Account deleted' },
   reset_quotes: { he: 'איפוס הצעות', en: 'Quotes reset' },
@@ -151,8 +151,8 @@ export const DIALOG_COPY = Object.freeze({
   step: { he: 'אימות ואישור פעולה', en: 'Verify & confirm' },
   reason: { he: 'סיבת הפעולה (חובה)', en: 'Reason (required)' },
   reasonPh: { he: 'לדוגמה: בקשת בעל החשבון', en: 'For example: account owner request' },
-  password: { he: 'סיסמת האדמין (חובה)', en: 'Admin password (required)' },
-  confirmEmail: { he: 'הקלידו את כתובת הדוא״ל לאישור', en: 'Type the email address to confirm' },
+  password: { he: 'סיסמת המנהל (חובה)', en: 'Admin password (required)' },
+  confirmEmail: { he: 'הקלידו את כתובת המייל לאישור', en: 'Type the email address to confirm' },
   cancel: { he: 'ביטול', en: 'Cancel' },
   close: { he: 'סגירה', en: 'Close' },
   verifying: { he: 'מאמת…', en: 'Verifying…' },
@@ -173,7 +173,7 @@ export const DIALOG_COPY = Object.freeze({
   },
   reset: {
     title: { he: 'איפוס הצעות', en: 'Reset quotes' },
-    body: { he: 'מחיקת כל ההצעות ונתוניהן המשויכים. החשבון והלקוחות נשארים.', en: 'Deletes the quotes and their associated data. The account and clients remain.' },
+    body: { he: 'מחיקת כל ההצעות והנתונים המשויכים להן. החשבון והלקוחות נשארים.', en: 'Deletes the quotes and their associated data. The account and clients remain.' },
     confirm: { he: 'איפוס ההצעות', en: 'Reset quotes' },
     scope: [
       { he: 'נמחקות: ההצעות, פריטי ההצעות ורשומות הצירופים', en: 'Deleted: quotes, quote items and attachment records' },
@@ -181,15 +181,15 @@ export const DIALOG_COPY = Object.freeze({
     ],
   },
   grant: {
-    title: { he: 'הענקת LIFETIME', en: 'Grant Lifetime' },
+    title: { he: 'הענקת מנוי לכל החיים', en: 'Grant Lifetime' },
     body: { he: 'הענקת LIFETIME אינה חיוב כספי. רק מצב שאושר בשרת יוצג לאחר הפעולה.', en: 'Granting Lifetime is not a payment. Only the server-confirmed result will be displayed.' },
-    confirm: { he: 'הענקת LIFETIME', en: 'Grant Lifetime' },
+    confirm: { he: 'הענקת מנוי לכל החיים', en: 'Grant Lifetime' },
     scope: [{ label: { he: 'חיוב כספי', en: 'Payment' }, value: { he: 'אין', en: 'None' } }],
   },
   revoke: {
-    title: { he: 'ביטול LIFETIME', en: 'Revoke Lifetime' },
+    title: { he: 'ביטול מנוי לכל החיים', en: 'Revoke Lifetime' },
     body: { he: 'ביטול ההענקה. החשבון חוזר למצב שלו לפי השרת; אין חיוב אוטומטי.', en: 'Revokes the grant. The account returns to its server state; there is no automatic charge.' },
-    confirm: { he: 'ביטול LIFETIME', en: 'Revoke Lifetime' },
+    confirm: { he: 'ביטול מנוי לכל החיים', en: 'Revoke Lifetime' },
     scope: [{ label: { he: 'חיוב כספי', en: 'Payment' }, value: { he: 'אין', en: 'None' } }],
   },
   trial: {

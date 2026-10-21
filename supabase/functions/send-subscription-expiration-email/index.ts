@@ -80,26 +80,26 @@ function ctaButton(isHebrew: boolean) {
 function buildSubscriptionReminderEmail({ stage, businessName, subscriptionEndsAt, isHebrew }: {
   stage: Stage; businessName: string; subscriptionEndsAt: string; isHebrew: boolean;
 }) {
-  const name = businessName || (isHebrew ? 'עסק יקר' : 'there');
+  const name = businessName || (isHebrew ? 'לכם' : 'there');
   const dateStr = formatDate(subscriptionEndsAt, isHebrew);
 
   if (stage === '3d') {
     const subject = isHebrew
-      ? 'המנוי שלך ב-TEKANGO עומד פג תוקף בעוד 3 ימים'
+      ? 'המנוי ב-TEKANGO יסתיים בעוד 3 ימים'
       : 'Your TEKANGO subscription expires in 3 days';
     const html = wrapEmail(isHebrew, `
       <div dir="${isHebrew ? 'rtl' : 'ltr'}" style="text-align:${isHebrew ? 'right' : 'left'};">
         <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
         <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
           ${isHebrew
-            ? `המנוי בתשלום שלך במערכת <strong>TEKANGO</strong> עומד לפוג בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). על מנת למנוע הפסקה בשירות ולהבטיח גישה רציפה לכלל הפיצ'רים העסקיים שלך, נודה לחידוש המנוי בהקדם.`
+            ? `המנוי בתשלום ב-<strong>TEKANGO</strong> יסתיים בתאריך <strong>${dateStr}</strong>, בעוד 3 ימים. כדי להימנע מהפסקת השירות ולשמור על גישה רציפה לכל האפשרויות העסקיות, חדשו את המנוי בהקדם.`
             : `Your paid TEKANGO subscription is set to end on <strong>${dateStr}</strong> (in 3 days). Renew now to make sure you keep uninterrupted access to all your features.`}
         </p>
         ${ctaButton(isHebrew)}
       </div>
     `);
     const text = isHebrew
-      ? `שלום ${name}, המנוי שלך ב-TEKANGO מסתיים ב-${dateStr} (עוד 3 ימים). חדש עכשיו: https://www.tekango.com/dashboard`
+      ? `שלום ${name}, המנוי שלכם ב-TEKANGO מסתיים ב-${dateStr} (עוד 3 ימים). חדשו עכשיו: https://www.tekango.com/dashboard`
       : `Hi ${name}, your TEKANGO subscription ends on ${dateStr} (in 3 days). Renew now: https://www.tekango.com/dashboard?lang=en`;
     return { subject, html, text };
   }
@@ -112,14 +112,14 @@ function buildSubscriptionReminderEmail({ stage, businessName, subscriptionEndsA
       <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
       <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
         ${isHebrew
-          ? `נשארו פחות מ-24 שעות למנוי שלך ב-TEKANGO, שיסתיים בתאריך <strong>${dateStr}</strong>. לאחר מכן החשבון יעבור אוטומטית למסלול החינמי. חדש עכשיו כדי להימנע מהפרעה בעבודה.`
+          ? `המנוי ב-TEKANGO יסתיים בעוד פחות מ-24 שעות, בתאריך <strong>${dateStr}</strong>. לאחר מכן החשבון יעבור אוטומטית למסלול החינם. כדי להימנע מהפרעה בעבודה, חדשו את המנוי עכשיו.`
           : `Less than 24 hours remain on your paid TEKANGO subscription, ending on <strong>${dateStr}</strong>. After that your account moves automatically to the Free plan. Renew now to avoid any disruption to your work.`}
       </p>
       ${ctaButton(isHebrew)}
     </div>
   `);
   const text = isHebrew
-    ? `שלום ${name}, נשארו פחות מ-24 שעות למנוי שלך ב-TEKANGO (מסתיים ב-${dateStr}). חדש עכשיו: https://www.tekango.com/dashboard`
+    ? `שלום ${name}, נשארו פחות מ-24 שעות למנוי שלכם ב-TEKANGO (מסתיים ב-${dateStr}). חדשו עכשיו: https://www.tekango.com/dashboard`
     : `Hi ${name}, less than 24 hours remain on your TEKANGO subscription (ends ${dateStr}). Renew now: https://www.tekango.com/dashboard?lang=en`;
   return { subject, html, text };
 }

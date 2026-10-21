@@ -61,7 +61,7 @@ describe('Terms §4 - subscriptions cutover facts (OD-01..OD-08, OD-16)', () => 
     expect(T.en).not.toMatch(/₪|\bILS\b|\bNIS\b|shekel/i);
   });
   it('every still-open legal branch is "not decided, published before activation" (cancellation / refunds are decided)', () => {
-    expect(T.he).toContain('הנושאים הבאים טרם הוחלטו, ויפורסמו לפני הפעלת המסלולים: מגבלות ההצעות במסלולים בתשלום; קבצים מצורפים; נפח אחסון; מכסות AI; מיסוי מעבר לכלילת המע״מ במחירים בישראל; ומשך שמירת נתונים ומסמכים.');
+    expect(T.he).toContain('הנושאים הבאים טרם הוכרעו ויפורסמו לפני הפעלת המסלולים: מגבלות ההצעות במסלולים בתשלום; קבצים מצורפים; נפח אחסון; מכסות AI; מיסוי מעבר לכלילת המע״מ במחירים בישראל; ומשך שמירת נתונים ומסמכים.');
     expect(T.en).toContain('The following have not been decided yet and will be published before the plans are activated: quote limits of the paid plans; attachments; storage; AI quotas; taxes; and data and document retention periods.');
   });
   it('no value of a not-decided branch is stated (no paid quote limit, storage size, AI quota or refund window)', () => {
@@ -78,7 +78,7 @@ describe('Privacy - no payment processing claim; retention / attachments not dec
     expect(P.he).toContain('כרגע אין ספק סליקה מחובר לשירות');
   });
   it('retention, attachments and storage are marked not decided, published before activation (HE + EN)', () => {
-    expect(P.he).toMatch(/משכי שמירת הנתונים והמסמכים לאחר מחיקה או סגירת חשבון, הטיפול בקבצים מצורפים ונפח האחסון טרם הוחלטו, ויפורסמו לפני הפעלת המסלולים/);
+    expect(P.he).toMatch(/טרם נקבעו משכי שמירת הנתונים והמסמכים לאחר מחיקה או סגירת חשבון, אופן הטיפול בקבצים מצורפים ונפח האחסון. הם יפורסמו לפני הפעלת המסלולים/);
     expect(P.en).toMatch(/Retention periods for data and documents after deletion or account closure, the handling of attachments, and storage have not been decided yet and will be published before the plans are activated/);
     expect(P.en).not.toMatch(/₪|\bILS\b/);
   });

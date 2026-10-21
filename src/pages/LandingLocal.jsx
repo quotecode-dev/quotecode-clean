@@ -160,7 +160,7 @@ export default function LandingLocal({ onForgotPassword }) {
         { icon: Zap, title: 'הפקת הצעות מחיר בקלות', text: 'צרו הצעות מחיר מסודרות, עם חישוב מע״מ אוטומטי, הנחות ומוצרים מהקטלוג שלכם.' },
         { icon: PenTool, title: 'חתימה דיגיטלית ואישור לקוח', text: 'שלחו ללקוח קישור שבו אפשר לצפות בהצעה, להדפיס אותה או לשמור אותה כ-PDF, לחתום דיגיטלית ולאשר את ההזמנה מהטלפון או מהמחשב.' },
         // Base text verbatim (L04), including the base typo "ווקבל" (reported to the Owner, not silently corrected).
-        { icon: BarChart3, title: 'ניהול הכנסות והוצאות', text: 'עקבו אחר רווחי העסק, נהלו הוצאות שוטפות ותראו תמונת מצב כספית עדכנית.' },
+        { icon: BarChart3, title: 'ניהול הכנסות והוצאות', text: 'עקבו אחר רווחי העסק, נהלו הוצאות שוטפות וקבלו תמונת מצב כספית עדכנית.' },
         // Generic trade capability (QuoteForm.jsx: area / linear measurement rows) - deliberately no plan tier named here.
         { icon: Ruler, title: 'הצעות מחיר לפי מידות ומפרט', text: <>בנו הצעה לפי מידות אמיתיות (שטח או אורך), עם כמה שורות מדידה לכל פריט וחישוב כמות אוטומטי. מתאים לזכוכית ואלומיניום, ריצוף, חשמל, אינסטלציה ותחומים נוספים: פחות חישובים ידניים וטעויות, וחיסכון בזמן בהצעות חוזרות.</> },
         // Task 34 (Owner: the AI card describes ONLY what the LIVE product really has): the AI assistant inside the signed-in workflows - the
@@ -179,7 +179,7 @@ export default function LandingLocal({ onForgotPassword }) {
       demoLabel: 'הדגמה: שאלה בקול לעוזר החכם ותשובה מהנתונים של העסק',
       demoTitle: 'העוזר החכם',
       demoQuestion: 'כמה הצעות מחכות לאישור השבוע?',
-      demoAnswer: 'שלוש הצעות מחכות לאישור. שתיים מהן נצפו היום, כדאי לחזור אליהן.',
+      demoAnswer: 'שלוש הצעות מחכות לאישור. שתיים מהן נצפו היום, וכדאי לפנות שוב ללקוחות שקיבלו אותן.',
       soon: 'בקרוב',
       features: [
         { icon: 'chat', title: 'צ׳אט חכם שמכיר את העסק', text: 'שואלים על ההצעות, הלקוחות, הקטלוג והמשימות, ומקבלים תשובה מהנתונים האמיתיים שלכם.' },
@@ -191,7 +191,7 @@ export default function LandingLocal({ onForgotPassword }) {
       priceMonth: '₪10',
       priceMonthLabel: 'לחודש, בתוספת למנוי',
       priceYear: 'או ₪102 לשנה במנוי שנתי',
-      points: ['מוסיפים רק אם רוצים', 'אפשר להוסיף ולהסיר בכל זמן', 'משלמים יחד עם המנוי, באותו מועד'],
+      points: ['מוסיפים רק אם רוצים', 'אפשר להוסיף ולהסיר בכל עת', 'משלמים יחד עם המנוי, באותו מועד'],
       // Owner 2026-10-20: what SMART PACK gives, next to its button too - a second check list in its own colour (the one source: addOnCatalog)
       // Owner 2026-10-20: on the landing list the attachments line reads 'צירוף קבצים ותמונות להצעה' (images are attached files too)
       includes: SMART_PACK.includes.he.map((t) => (t === 'צירוף קבצים להצעה' ? 'צירוף קבצים ותמונות להצעה' : t)),
@@ -229,7 +229,7 @@ export default function LandingLocal({ onForgotPassword }) {
         // Verifiable infrastructure facts only (TLS in transit, encryption at rest by the Supabase/PostgreSQL platform).
         { q: 'האם הנתונים העסקיים שלי מאובטחים בענן?', a: 'כן. הנתונים שמורים בענן ומוצפנים, גם בזמן ההעברה וגם באחסון. רק אתם יכולים לגשת לנתונים של החשבון שלכם.' },
         // Task 39 (Owner final scope): the cancellation-request path - a request handled by the team, never shown as an automatic cancellation.
-        { q: 'איך מבקשים ביטול מנוי?', a: <>עדיין אי אפשר לרכוש מנוי בתשלום. כשהרכישה תיפתח, אפשר לבקש ביטול מנוי בכל עת במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<a href="mailto:support@tekango.com?subject=%D7%91%D7%A7%D7%A9%D7%AA%20%D7%91%D7%99%D7%98%D7%95%D7%9C%20%D7%9E%D7%A0%D7%95%D7%99"><bdi dir="ltr">support@tekango.com</bdi></a> או מתוך חלון המסלולים במערכת. הבקשה מטופלת בידי הצוות ומאושרת במייל - זה אינו ביטול אוטומטי. ביטול מנוי אינו מחיקת חשבון. תנאי הביטול וההחזרים מפורטים {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href="/he/terms#cancellation">בתנאי השימוש</a>.</> },
+        { q: 'איך מבקשים ביטול מנוי?', a: <>עדיין אי אפשר לרכוש מנוי בתשלום. כשהרכישה תיפתח, אפשר לבקש ביטול מנוי בכל עת במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<a href="mailto:support@tekango.com?subject=%D7%91%D7%A7%D7%A9%D7%AA%20%D7%91%D7%99%D7%98%D7%95%D7%9C%20%D7%9E%D7%A0%D7%95%D7%99"><bdi dir="ltr">support@tekango.com</bdi></a> או מתוך חלון המסלולים במערכת. הצוות מטפל בבקשה ושולח אישור במייל. הביטול אינו אוטומטי. ביטול מנוי אינו מחיקת חשבון. תנאי הביטול וההחזרים מפורטים {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href="/he/terms#cancellation">בתנאי השימוש</a>.</> },
         { q: 'האם ניתן לייצא את נתוני ההצעות והדוחות לאקסל?', a: 'כן. אפשר לייצא בכל רגע את היסטוריית הצעות המחיר ואת דוחות ההוצאות לקובצי CSV שמתאימים לאקסל ולתוכנות הנהלת חשבונות.' },
         // Owner console 2026-10-20 (typed: "מאשר לשנות את נוסחי דף הנחיתה ואת הבדיקות שנועלות אותם: ... ושאלות נפוצות חדשות מאומתות"): questions
         // users asked in the smart chat and the support inbox; every answer = the verified how-to facts (src/data/productHowTo.js) and L-12 contact.

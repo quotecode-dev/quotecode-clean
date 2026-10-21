@@ -412,18 +412,18 @@ export default function AddItemWizard({
     catalogOrHeading: isHebrew ? 'או בחרו מהקטלוג' : 'Or choose from your catalog',
     descPlaceholder: isHebrew ? 'למשל: התקנה, ידיות או רשת לחלון' : 'e.g. Installation, handles, or a window screen',
     chooseFromCatalog: isHebrew ? 'בחירה מהמוצרים השמורים' : 'Choose from saved products',
-    catalogPick: isHebrew ? 'בחר פריט...' : 'Select an item...',
+    catalogPick: isHebrew ? 'בחירת פריט…' : 'Select an item...',
     catalogFirstHeading: isHebrew ? 'בחרו מוצר או עבודה מהקטלוג' : 'Choose a product or work from your catalog',
     manualFallbackLink: isHebrew ? 'לא מצאתם בקטלוג? הוסיפו מוצר או עבודה ידנית' : 'Not in the catalog? Add a product or work manually',
     backToCatalogLink: isHebrew ? 'חזרה לבחירה מהקטלוג' : 'Back to catalog',
     step2Title: isHebrew ? 'איך מחשבים את המחיר?' : 'How is the price worked out?',
-    step2Explanation: isHebrew ? 'בחרו איך אתם בדרך כלל גובים על המוצר או העבודה הזאת.' : 'Choose how you normally charge for this product or work.',
+    step2Explanation: isHebrew ? 'בחרו איך אתם בדרך כלל גובים תשלום על המוצר או העבודה הזאת.' : 'Choose how you normally charge for this product or work.',
     methodFixed: isHebrew ? 'מחיר כולל' : 'One total price',
     methodFixedExample: isHebrew ? 'לדוגמה: ₪500' : 'e.g. $500',
     methodUnitsChoice: isHebrew ? 'מחיר לכל יחידה' : 'Price for each',
     methodUnitsExample: isHebrew ? 'לדוגמה: 6 × 25 = 150' : 'e.g. 6 × 25 = 150',
     methodAreaChoice: isHebrew ? 'מחיר לפי שטח' : 'Price by area',
-    methodAreaExample: isHebrew ? 'לדוגמה: 4.4 מ"ר × 100 = 440' : 'e.g. 4.4 m² × 100 = 440',
+    methodAreaExample: isHebrew ? 'לדוגמה: 4.4 מ״ר × 100 = 440' : 'e.g. 4.4 m² × 100 = 440',
     methodLinearChoice: isHebrew ? 'מחיר לפי אורך' : 'Price by length',
     methodLinearExample: isHebrew ? 'לדוגמה: 5 מ\' × 40 = 200' : 'e.g. 5 m × 40 = 200',
     recommended: isHebrew ? 'מומלץ' : 'Recommended',
@@ -437,48 +437,48 @@ export default function AddItemWizard({
     unitPriceLabel: isHebrew ? 'מה המחיר לכל יחידה?' : 'What is the price for each?',
     step3TitleArea: isHebrew ? 'מידות' : 'Sizes',
     step3ExplanationArea: isHebrew ? 'הזינו את המידות ואנחנו נחשב עבורכם את השטח והמחיר.' : 'Enter the sizes and we’ll calculate the area and price for you.',
-    areaHelper: isHebrew ? 'הזינו בס״מ. נחשב את השטח במ"ר.' : 'Enter centimetres. We’ll calculate square metres.',
+    areaHelper: isHebrew ? 'הזינו בס״מ. נחשב את השטח במ״ר.' : 'Enter centimetres. We’ll calculate square metres.',
     step3TitleLinear: isHebrew ? 'אורך' : 'Length',
     step3ExplanationLinear: isHebrew ? 'הזינו את האורך והמחיר ליחידת אורך.' : 'Enter the length and the price per unit of length.',
     sizeN: isHebrew ? (n) => `מידה ${n}` : (n) => `Size ${n}`,
-    widthCm: isHebrew ? `רוחב (${measureUnit === 'm' ? 'מ\'' : 'ס"מ'})` : `Width (${measureUnit === 'm' ? 'm' : 'cm'})`,
-    heightCm: isHebrew ? `גובה (${measureUnit === 'm' ? 'מ\'' : 'ס"מ'})` : `Height (${measureUnit === 'm' ? 'm' : 'cm'})`,
-    lengthCm: isHebrew ? `אורך (${measureUnit === 'm' ? 'מ\'' : 'ס"מ'})` : `Length (${measureUnit === 'm' ? 'm' : 'cm'})`,
+    widthCm: isHebrew ? `רוחב (${measureUnit === 'm' ? 'מ\'' : 'ס״מ'})` : `Width (${measureUnit === 'm' ? 'm' : 'cm'})`,
+    heightCm: isHebrew ? `גובה (${measureUnit === 'm' ? 'מ\'' : 'ס״מ'})` : `Height (${measureUnit === 'm' ? 'm' : 'cm'})`,
+    lengthCm: isHebrew ? `אורך (${measureUnit === 'm' ? 'מ\'' : 'ס״מ'})` : `Length (${measureUnit === 'm' ? 'm' : 'cm'})`,
     sizeUnitLabel: isHebrew ? 'יחידת מידה' : 'Size unit',
-    unitCm: isHebrew ? 'ס"מ' : 'cm',
+    unitCm: isHebrew ? 'ס״מ' : 'cm',
     unitM: isHebrew ? 'מטר' : 'm',
-    knowArea: isHebrew ? 'כבר יודע את השטח?' : 'I already know the area',
-    knowLength: isHebrew ? 'כבר יודע את האורך?' : 'I already know the length',
+    knowArea: isHebrew ? 'השטח כבר ידוע?' : 'I already know the area',
+    knowLength: isHebrew ? 'האורך כבר ידוע?' : 'I already know the length',
     backToSizes: isHebrew ? 'חזרה להזנת מידות' : 'Enter sizes instead',
-    manualAreaLabel: isHebrew ? 'כמה מ"ר?' : 'How many m²?',
-    manualLengthLabel: isHebrew ? 'כמה מטר אורך?' : 'How many metres?',
+    manualAreaLabel: isHebrew ? 'כמה מ״ר?' : 'How many m²?',
+    manualLengthLabel: isHebrew ? 'כמה מטרים של אורך?' : 'How many metres?',
     missingManualQty: isHebrew ? 'יש להזין כמות גדולה מ-0' : 'Please enter a quantity greater than 0',
     toReview: isHebrew ? 'המשך לבדיקה' : 'Continue to check',
     unitChangeConfirm: isHebrew ? 'שינוי היחידה דורש בדיקה מחדש של המחיר. להמשיך?' : 'Changing the unit requires reviewing the price. Continue?',
-    calcNote: isHebrew ? 'הנחה ומע"מ מחושבים בסיכום ההצעה' : 'Discount and tax are calculated in the quote summary',
-    unitPriceArea: isHebrew ? 'מחיר לכל מ"ר' : 'Price per m²',
+    calcNote: isHebrew ? 'הנחה ומע״מ מחושבים בסיכום ההצעה' : 'Discount and tax are calculated in the quote summary',
+    unitPriceArea: isHebrew ? 'מחיר לכל מ״ר' : 'Price per m²',
     unitPriceLinear: isHebrew ? 'מחיר לכל מטר' : 'Price per metre',
     addAnotherSize: isHebrew ? '+ הוספת מידה נוספת' : '+ Add another size',
-    removeSize: isHebrew ? 'הסר מידה זו' : 'Remove this size',
+    removeSize: isHebrew ? 'הסרת המידה' : 'Remove this size',
     sizeLabelOptional: isHebrew ? 'מיקום או שם — לא חובה' : 'Location or name — optional',
     step4Title: isHebrew ? 'בדיקה לפני הוספה' : 'Check before adding',
     step4Explanation: isHebrew ? 'בדקו שהפרטים והמחיר נכונים לפני שהמוצר או העבודה מתווספים להצעה.' : 'Check the details and price before this product or work is added to the quote.',
     editModeExplanation: isHebrew ? 'בדקו את הפרטים הקיימים ובחרו מה תרצו לשנות.' : 'Review the current details and choose what you want to change.',
-    addCustomerDetailsToggle: isHebrew ? 'להוסיף פרטים ללקוח?' : 'Add details for the customer?',
+    addCustomerDetailsToggle: isHebrew ? 'להוסיף פרטים שיוצגו ללקוח?' : 'Add details for the customer?',
     customerDetailsHelper: isHebrew ? 'לא חובה — למשל צבע, חומר או הערה' : 'Optional — for example colour, material, or a note',
     customerDetailsPriceNote: isHebrew ? 'הפרטים האלה לא משנים את המחיר' : 'These details do not change the price',
     detailLabel: isHebrew ? 'פרט' : 'Detail',
     detailPlaceholder: isHebrew ? 'למשל: צבע' : 'e.g. Colour',
     detailValuePlaceholder: isHebrew ? 'למשל: לבן' : 'e.g. White',
-    addSpecRow: isHebrew ? '+ הוסף פרט' : '+ Add detail',
-    groupLabel: isHebrew ? 'יחידה (דירה / חדר / אזור) - לא חובה' : 'Unit (apartment / room / area) - optional',
+    addSpecRow: isHebrew ? '+ הוספת פרט' : '+ Add detail',
+    groupLabel: isHebrew ? 'יחידה בהצעה (דירה, חדר או אזור) — לא חובה' : 'Unit (apartment / room / area) - optional',
     noGroup: isHebrew ? 'ללא יחידה' : 'No unit',
     changeName: isHebrew ? 'שינוי שם' : 'Change name',
     changePricingAndSizes: isHebrew ? 'שינוי מחיר ומידות' : 'Change price and sizes',
     changePricingMethod: isHebrew ? 'שינוי שיטת תמחור' : 'Change how it is priced',
-    totalAreaLabel: isHebrew ? 'סה"כ שטח' : 'Total area',
-    totalLengthLabel: isHebrew ? 'סה"כ אורך' : 'Total length',
-    totalLabel: isHebrew ? 'סה"כ' : 'Total',
+    totalAreaLabel: isHebrew ? 'סה״כ שטח' : 'Total area',
+    totalLengthLabel: isHebrew ? 'סה״כ אורך' : 'Total length',
+    totalLabel: isHebrew ? 'סה״כ' : 'Total',
     customerPreviewTitle: isHebrew ? 'כך הלקוח יראה את הפריט' : 'This is what the customer will see',
     back: isHebrew ? 'חזרה' : 'Back',
     next: isHebrew ? 'הבא' : 'Next',
@@ -505,10 +505,10 @@ export default function AddItemWizard({
     rowNeedsHeight: isHebrew ? (n) => `במידה ${n} חסר גובה. השלימו או הסירו אותה.` : (n) => `Size ${n} needs a height. Complete or remove it.`,
     rowNeedsWidth: isHebrew ? (n) => `במידה ${n} חסר רוחב. השלימו או הסירו אותה.` : (n) => `Size ${n} needs a width. Complete or remove it.`,
     upgradeNeeded: isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan',
-    calcPreviewArea: isHebrew ? (w, h, m2) => `${w} × ${h} ${measureUnit === 'm' ? 'מ\'' : 'ס"מ'} = ${m2} מ"ר` : (w, h, m2) => `${w} × ${h} ${measureUnit === 'm' ? 'm' : 'cm'} = ${m2} m²`,
-    calcPreviewLinear: isHebrew ? (l, m) => `${l} ${measureUnit === 'm' ? 'מ\'' : 'ס"מ'} = ${m} מ'` : (l, m) => `${l} ${measureUnit === 'm' ? 'm' : 'cm'} = ${m} m`,
+    calcPreviewArea: isHebrew ? (w, h, m2) => `${w} × ${h} ${measureUnit === 'm' ? 'מ\'' : 'ס״מ'} = ${m2} מ״ר` : (w, h, m2) => `${w} × ${h} ${measureUnit === 'm' ? 'm' : 'cm'} = ${m2} m²`,
+    calcPreviewLinear: isHebrew ? (l, m) => `${l} ${measureUnit === 'm' ? 'מ\'' : 'ס״מ'} = ${m} מ'` : (l, m) => `${l} ${measureUnit === 'm' ? 'm' : 'cm'} = ${m} m`,
     destructiveConversionConfirm: isHebrew
-      ? 'שינוי שיטת התמחור עלול לשנות את פירוש הסכומים הקיימים. להמשיך?'
+      ? 'שינוי שיטת התמחור עלול לשנות את משמעות הסכומים הקיימים. להמשיך?'
       : 'Changing the pricing method may change how the existing numbers are interpreted. Continue?',
   };
 
@@ -817,7 +817,7 @@ export default function AddItemWizard({
       : (Number(unitPrice) || 0);
 
   // Display-only unit word (stored measurements stay cm / m² / m); shared by the formula and the review step.
-  const measureUnitWord = pricingMethod === 'area' ? (isHebrew ? 'מ"ר' : 'm²') : (isHebrew ? 'מ\'' : 'm');
+  const measureUnitWord = pricingMethod === 'area' ? (isHebrew ? 'מ״ר' : 'm²') : (isHebrew ? 'מ\'' : 'm');
   const priceIsValid = unitPrice !== '' && !Number.isNaN(Number(unitPrice)) && Number(unitPrice) >= 0;
   let formulaText = null;
   if (priceIsValid && total != null) {
@@ -1068,7 +1068,7 @@ export default function AddItemWizard({
 
               {calculatedValue != null && extraMeasureRows.length > 0 && (
                 <div aria-live="polite" style={{ marginTop: '14px', fontSize: '0.9rem', color: NEON.textPrimary, fontWeight: '700' }}>
-                  {pricingMethod === 'area' ? `${t.totalAreaLabel}: ${calculatedValue.toFixed(2)} ${isHebrew ? 'מ"ר' : 'm²'}` : `${t.totalLengthLabel}: ${calculatedValue.toFixed(2)} ${isHebrew ? 'מ\'' : 'm'}`}
+                  {pricingMethod === 'area' ? `${t.totalAreaLabel}: ${calculatedValue.toFixed(2)} ${isHebrew ? 'מ״ר' : 'm²'}` : `${t.totalLengthLabel}: ${calculatedValue.toFixed(2)} ${isHebrew ? 'מ\'' : 'm'}`}
                 </div>
               )}
 
@@ -1149,7 +1149,7 @@ export default function AddItemWizard({
                         <input aria-label={t.detailLabel} placeholder={t.detailPlaceholder} value={row.label} onChange={(e) => setSpecRows((rows) => rows.map((r, ri) => ri === i ? { ...r, label: e.target.value } : r))} style={{ ...inputStyle(isHebrew), flex: 1 }} />
                         <input aria-label={isHebrew ? 'ערך' : 'Value'} placeholder={t.detailValuePlaceholder} value={row.value} onChange={(e) => setSpecRows((rows) => rows.map((r, ri) => ri === i ? { ...r, value: e.target.value } : r))} style={{ ...inputStyle(isHebrew), flex: 1 }} />
                         {/* PRODUCT_TRUTH_DECORATIVE: removes one optional detail row from the item's spec list */}
-                        <button type="button" onClick={() => setSpecRows((rows) => rows.filter((_, ri) => ri !== i))} aria-label={isHebrew ? 'הסר שורה' : 'Remove row'} style={{ background: 'rgba(239,68,68,0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '40px', flexShrink: 0 }}><X size={12} strokeWidth={3} /></button>
+                        <button type="button" onClick={() => setSpecRows((rows) => rows.filter((_, ri) => ri !== i))} aria-label={isHebrew ? 'הסרת השורה' : 'Remove row'} style={{ background: 'rgba(239,68,68,0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '40px', flexShrink: 0 }}><X size={12} strokeWidth={3} /></button>
                       </div>
                     ))}
                     {/* PRODUCT_TRUTH_DECORATIVE: adds a new blank optional detail row to the item's spec list */}

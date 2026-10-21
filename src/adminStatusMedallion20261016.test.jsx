@@ -82,7 +82,7 @@ describe('admin subscription status (Owner 2026-10-16, admin spec §5)', () => {
     expect(accountStatusSentence({ key: 'trial_ended' }, false, fmt)).toBe('Your trial has ended');
     expect(accountStatusSentence({ key: 'paid_monthly' }, true, fmt)).toBe('יש לך מנוי חודשי פעיל');
     expect(accountStatusSentence({ key: 'paid_unverified' }, true, fmt)).toBe('יש לך מנוי פעיל');
-    expect(accountStatusSentence({ key: 'free10', consumed: 3, reserved: 1, total: 10 }, true, fmt)).toBe('ניצלת 3 מתוך 10 הצעות חינם (1 בתהליך)');
+    expect(accountStatusSentence({ key: 'free10', consumed: 3, reserved: 1, total: 10 }, true, fmt)).toBe('ניצלתם 3 מתוך 10 הצעות חינם (1 בתהליך)');
     expect(accountStatusSentence({ key: 'free10_inactive' }, true, fmt)).toBe('10 ההצעות החינמיות שלך עוד לא הופעלו, והחשבון אינו מוגבל');
     const dash = fs.readFileSync('src/pages/Dashboard.jsx', 'utf8');
     expect(dash).toMatch(/statusLine=\{accountStatusSentence\(ownSubscriptionStatus, isHebrew, statusDate\)\}/);
@@ -96,7 +96,7 @@ describe('admin subscription status (Owner 2026-10-16, admin spec §5)', () => {
     const { container: en } = render(<AdminAccountStatus account={{}} summary={active('month')} isHebrew={false} />);
     expect(en.querySelector('strong').textContent).toBe('Monthly subscription');
     const { container: life } = render(<AdminAccountStatus account={{ is_lifetime: true }} isHebrew />);
-    expect(life.querySelector('strong').textContent).toBe('מנוי LIFETIME');
+    expect(life.querySelector('strong').textContent).toBe('מנוי לכל החיים');
     const { container: srv } = render(<AdminAccountStatus account={{}} statusKey="free10" isHebrew />);
     expect(srv.querySelector('strong').textContent).toBe('10 הצעות חינם'); // a server row without the counter: the name only
   });

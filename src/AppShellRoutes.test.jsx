@@ -379,7 +379,7 @@ describe('Signup Callback Fix (2026-09-16 task) - real route resolution', () => 
   it('HE: root "/" with a signup-confirmation marker mounts Dashboard/AuthScreen (the authenticated app), not the public LandingLocal', async () => {
     mockRootSignupIntent.isSignup = true;
     renderAtPath(AppLocal, '/');
-    expect(await screen.findByText('התחבר למערכת הניהול שלך')).toBeInTheDocument();
+    expect(await screen.findByText('כניסה למערכת הניהול')).toBeInTheDocument();
     expect(screen.queryByText('מרכז הכלים והמחשבונים העסקיים')).not.toBeInTheDocument();
   });
 
@@ -392,7 +392,7 @@ describe('Signup Callback Fix (2026-09-16 task) - real route resolution', () => 
   it('HE: root "/" WITHOUT a signup marker still renders the ordinary public landing page (no regression to normal traffic)', async () => {
     renderAtPath(AppLocal, '/');
     expect((await screen.findAllByText(/TEKANGO/i)).length).toBeGreaterThan(0);
-    expect(screen.queryByText('התחבר למערכת הניהול שלך')).not.toBeInTheDocument();
+    expect(screen.queryByText('כניסה למערכת הניהול')).not.toBeInTheDocument();
   });
 
   it('EN: root "/" WITHOUT a signup marker still renders the ordinary public landing page', async () => {
@@ -461,7 +461,7 @@ describe('Dashboard password-recovery handler - password_reuse vs weak_password 
     renderAtPath(AppLocal, '/');
     await screen.findByText('הגדרת סיסמה חדשה');
 
-    await submitRecoveryPassword(AppLocal, { newPasswordPlaceholder: 'סיסמה חדשה', confirmPasswordPlaceholder: 'אימות סיסמה חדשה', submitLabel: 'עדכן סיסמה ושמור' });
+    await submitRecoveryPassword(AppLocal, { newPasswordPlaceholder: 'סיסמה חדשה', confirmPasswordPlaceholder: 'אימות סיסמה חדשה', submitLabel: 'שמירת הסיסמה החדשה' });
 
     expect(await screen.findByText('❌ כבר השתמשת בסיסמה הזו בעבר. יש לבחור סיסמה אחרת.')).toBeInTheDocument();
     expect(screen.queryByText(/הסיסמה חלשה מדי/)).not.toBeInTheDocument();
@@ -496,8 +496,8 @@ describe('Dashboard password-recovery handler - password_reuse vs weak_password 
     renderAtPath(AppLocal, '/');
     await screen.findByText('הגדרת סיסמה חדשה');
 
-    await submitRecoveryPassword(AppLocal, { newPasswordPlaceholder: 'סיסמה חדשה', confirmPasswordPlaceholder: 'אימות סיסמה חדשה', submitLabel: 'עדכן סיסמה ושמור' });
+    await submitRecoveryPassword(AppLocal, { newPasswordPlaceholder: 'סיסמה חדשה', confirmPasswordPlaceholder: 'אימות סיסמה חדשה', submitLabel: 'שמירת הסיסמה החדשה' });
 
-    expect(await screen.findByText(/הסיסמה עודכנה בהצלחה/)).toBeInTheDocument();
+    expect(await screen.findByText(/הסיסמה עודכנה/)).toBeInTheDocument();
   });
 });

@@ -278,7 +278,7 @@ export default function FinancesTab({
               <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
                 {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
                 <button type="submit" style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '8px 16px', borderRadius: RADIUS.sm, fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer', boxShadow: NEON.glowSoft }}>
-                  {isHebrew ? 'שמור' : 'Save'}
+                  {isHebrew ? 'שמירה' : 'Save'}
                 </button>
                 {/* PRODUCT_TRUTH_DECORATIVE: cancels/closes the inline 'Add Expense' form without saving */}
                 <button type="button" onClick={() => setShowAddExpenseForm(false)} style={{ background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '8px 16px', borderRadius: RADIUS.sm, fontWeight: '700', fontSize: '0.8rem', cursor: 'pointer' }}>
@@ -332,7 +332,7 @@ export default function FinancesTab({
                           style={{ background: NEON.violetLighter, color: NEON.violet, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '600', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                         >
                           <Pencil size={12} color={NEON.violet} strokeWidth={2.5} />
-                          {isHebrew ? 'ערוך' : 'Edit'}
+                          {isHebrew ? 'עריכה' : 'Edit'}
                         </button>
                         {/* חוק ברזל (§K, real defect found+fixed): {t.delete}
                             הוחלף בתווית נקודתית - אותה תקלה שכבר תוקנה
@@ -343,7 +343,7 @@ export default function FinancesTab({
                           style={{ background: APP_STATUS.error.bg, color: NEON.red, border: 'none', padding: '3px 6px', borderRadius: '4px', cursor: 'pointer', fontWeight: '400', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '3px' }}
                         >
                           <Trash2 size={12} color={NEON.red} strokeWidth={2.5} />
-                          {isHebrew ? 'מחק' : 'Delete'}
+                          {isHebrew ? 'מחיקה' : 'Delete'}
                         </button>
                       </td>
                     </tr>

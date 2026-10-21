@@ -53,7 +53,7 @@ export function getBusinessProfileGateMessage({ phone, taxId, isLocalIsraeliBusi
 
   if (isHebrew) {
     const parts = [];
-    if (missingPhone) parts.push('טלפון עסק');
+    if (missingPhone) parts.push('טלפון העסק');
     if (missingTaxId) parts.push('ח.פ / עוסק מורשה / פטור');
     return `❌ לפני יצירת הצעת מחיר ראשונה יש להשלים בהגדרות העסק: ${parts.join(' ו')}.`;
   }

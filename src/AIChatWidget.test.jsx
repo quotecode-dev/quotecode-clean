@@ -73,11 +73,11 @@ function deferredInvoke() {
 }
 
 function openChat(isHebrew) {
-  fireEvent.click(screen.getByLabelText(isHebrew ? 'צאט AI' : 'AI Chat'));
+  fireEvent.click(screen.getByLabelText(isHebrew ? 'צ׳אט AI' : 'AI Chat'));
 }
 
 async function sendMessage(text, isHebrew) {
-  const input = screen.getByPlaceholderText(isHebrew ? 'שאל משהו...' : 'Ask something...');
+  const input = screen.getByPlaceholderText(isHebrew ? 'שאלו משהו…' : 'Ask something...');
   fireEvent.change(input, { target: { value: text } });
   fireEvent.submit(input.closest('form'));
 }
@@ -124,14 +124,14 @@ describe('public chat storage isolation', () => {
     await waitFor(() => expect(mocks.getSession).toHaveBeenCalled());
     openChat(true);
     expect(screen.queryByText('שאלה ציבורית')).not.toBeInTheDocument();
-    expect(screen.getByText('שלום! אני עוזר ה-AI של TEKANGO. איך אעזור לך בממשק המערכת היום?')).toBeInTheDocument();
+    expect(screen.getByText('שלום! אני העוזר החכם של TEKANGO. במה אפשר לעזור במערכת?')).toBeInTheDocument();
   });
 
   it('corrupt storage falls back safely to the default welcome', () => {
     sessionStorage.setItem('proflow_ai_chat_public_v2_he', '{not valid json');
     render(<AIChatWidget isHebrew={true} isDashboard={false} />);
     openChat(true);
-    expect(screen.getByText('שלום! אני עוזר ה-AI של TEKANGO. יש לך שאלות על המחירים, המסלולים או הפיצ\'רים שלנו?')).toBeInTheDocument();
+    expect(screen.getByText('שלום! אני העוזר החכם של TEKANGO. יש שאלות על המחירים, המסלולים או האפשרויות במערכת?')).toBeInTheDocument();
   });
 
   it('oversized stored transcript is rejected, falls back to default welcome', () => {
@@ -178,7 +178,7 @@ describe('authenticated chat reset boundaries', () => {
     await waitFor(() => {
       expect(screen.queryByText('שאלה של יוזר א')).not.toBeInTheDocument();
     });
-    expect(screen.getByText('שלום! אני עוזר ה-AI של TEKANGO. איך אעזור לך בממשק המערכת היום?')).toBeInTheDocument();
+    expect(screen.getByText('שלום! אני העוזר החכם של TEKANGO. במה אפשר לעזור במערכת?')).toBeInTheDocument();
   });
 
   it('login as a different user starts clean', async () => {
@@ -217,13 +217,13 @@ describe('Context-Driven AI Chat closure task (2026-09-18), §5 - dynamic greeti
   it('main/no-context keeps the existing generic greeting (no regression for the untouched default)', () => {
     render(<AIChatWidget isHebrew={true} isDashboard={true} currentArea="main" />);
     openChat(true);
-    expect(screen.getByText('שלום! אני עוזר ה-AI של TEKANGO. איך אעזור לך בממשק המערכת היום?')).toBeInTheDocument();
+    expect(screen.getByText('שלום! אני העוזר החכם של TEKANGO. במה אפשר לעזור במערכת?')).toBeInTheDocument();
   });
 
   it('Clients screen gets a clients-specific opener, HE and EN', () => {
     const { unmount } = render(<AIChatWidget isHebrew={true} isDashboard={true} currentArea="clients" />);
     openChat(true);
-    expect(screen.getByText('אני רואה שאתה עובד עכשיו עם לקוחות. במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('כרגע עובדים עם לקוחות. במה אפשר לעזור?')).toBeInTheDocument();
     unmount();
 
     render(<AIChatWidget isHebrew={false} isDashboard={true} currentArea="clients" />);
@@ -233,10 +233,10 @@ describe('Context-Driven AI Chat closure task (2026-09-18), §5 - dynamic greeti
 
   it('Business Settings, Finances, Catalog, and Plans screens each get their own opener', () => {
     const cases = [
-      ['settings', 'אני רואה שאתה נמצא בהגדרות העסק שלך. במה תרצה עזרה?'],
-      ['finances', 'אני רואה שאתה נמצא בעמוד הפיננסים. במה תרצה עזרה?'],
-      ['catalog', 'אני רואה שאתה נמצא בקטלוג הפריטים שלך. במה תרצה עזרה?'],
-      ['plans', 'אני רואה שאתה צופה במסלולים ובתמחור. במה תרצה עזרה?'],
+      ['settings', 'כרגע בהגדרות העסק. במה אפשר לעזור?'],
+      ['finances', 'כרגע במסך הפיננסים. במה אפשר לעזור?'],
+      ['catalog', 'כרגע בקטלוג. במה אפשר לעזור?'],
+      ['plans', 'כרגע במסך המסלולים והמחירים. במה אפשר לעזור?'],
     ];
     for (const [area, expectedText] of cases) {
       const { unmount } = render(<AIChatWidget isHebrew={true} isDashboard={true} currentArea={area} />);
@@ -249,41 +249,41 @@ describe('Context-Driven AI Chat closure task (2026-09-18), §5 - dynamic greeti
   it('New Quote (workflowContext.mode=create) and Edit Quote (mode=edit) get distinct openers, taking priority over currentArea', () => {
     const { unmount } = render(<AIChatWidget isHebrew={true} isDashboard={true} currentArea="main" workflowContext={{ screen: 'quote_editor', mode: 'create' }} />);
     openChat(true);
-    expect(screen.getByText('אני רואה שאתה יוצר עכשיו הצעת מחיר חדשה. במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('כרגע יוצרים הצעת מחיר חדשה. במה אפשר לעזור?')).toBeInTheDocument();
     unmount();
 
     render(<AIChatWidget isHebrew={true} isDashboard={true} currentArea="main" workflowContext={{ screen: 'quote_editor', mode: 'edit' }} />);
     openChat(true);
-    expect(screen.getByText('אני רואה שאתה עורך עכשיו הצעה קיימת. במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('כרגע עורכים הצעה קיימת. במה אפשר לעזור?')).toBeInTheDocument();
   });
 
   it('item wizard open takes priority over the quote-editor mode opener', () => {
     render(<AIChatWidget isHebrew={true} isDashboard={true} currentArea="main" workflowContext={{ screen: 'quote_editor', mode: 'create', itemWizard: { open: true, action: 'add' } }} />);
     openChat(true);
-    expect(screen.getByText('אני רואה שאתה מוסיף עכשיו פריט להצעה. במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('כרגע מוסיפים פריט להצעה. במה אפשר לעזור?')).toBeInTheDocument();
   });
 
   it('the greeting refreshes to match the CURRENT context when the panel opens, even though it was seeded at mount with a different one (props changed between mount and open)', () => {
     const { rerender } = render(<AIChatWidget isHebrew={true} isDashboard={true} currentArea="main" />);
     rerender(<AIChatWidget isHebrew={true} isDashboard={true} currentArea="clients" />);
     openChat(true);
-    expect(screen.getByText('אני רואה שאתה עובד עכשיו עם לקוחות. במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('כרגע עובדים עם לקוחות. במה אפשר לעזור?')).toBeInTheDocument();
   });
 
   it('does NOT rewrite the greeting once the user has already started the conversation, even if the screen changes afterward', async () => {
     render(<AIChatWidget isHebrew={true} isDashboard={true} currentArea="clients" />);
     openChat(true);
-    expect(screen.getByText('אני רואה שאתה עובד עכשיו עם לקוחות. במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('כרגע עובדים עם לקוחות. במה אפשר לעזור?')).toBeInTheDocument();
     await sendMessage('שאלה על לקוח', true);
     await screen.findByText('AI reply');
 
-    expect(screen.getByText('אני רואה שאתה עובד עכשיו עם לקוחות. במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('כרגע עובדים עם לקוחות. במה אפשר לעזור?')).toBeInTheDocument();
   });
 
   it('public (non-dashboard) surface is never affected by currentArea/workflowContext, even if somehow passed', () => {
     render(<AIChatWidget isHebrew={true} isDashboard={false} currentArea="clients" workflowContext={{ screen: 'quote_editor', mode: 'create' }} />);
     openChat(true);
-    expect(screen.getByText('שלום! אני עוזר ה-AI של TEKANGO. יש לך שאלות על המחירים, המסלולים או הפיצ\'רים שלנו?')).toBeInTheDocument();
+    expect(screen.getByText('שלום! אני העוזר החכם של TEKANGO. יש שאלות על המחירים, המסלולים או האפשרויות במערכת?')).toBeInTheDocument();
   });
 });
 
@@ -293,7 +293,7 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
     await waitFor(() => expect(mocks.getSession).toHaveBeenCalled());
     openChat(true);
 
-    expect(screen.getByText('שלום! במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('שלום! במה אפשר לעזור?')).toBeInTheDocument();
     expect(screen.getByText('אפשר גם לכתוב כאן ישירות')).toBeInTheDocument();
     // Top-level groups only - leaf topics nested inside a multi-child group
     // are not yet in the document at all. Compact title-only buttons - the
@@ -307,7 +307,7 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
     }
     expect(screen.queryByText('בעיה טכנית')).not.toBeInTheDocument();
     expect(screen.queryByText('משוב על המערכת')).not.toBeInTheDocument(); // Task 34 label of 'suggestion'
-    expect(screen.getByPlaceholderText('שאל משהו...')).toBeEnabled();
+    expect(screen.getByPlaceholderText('שאלו משהו…')).toBeEnabled();
   });
 
   it('top-level buttons render in a responsive grid (2 columns where the popup is wide enough) with a small icon and safe 44px touch target, each button sized to its content rather than stacked full-width', async () => {
@@ -328,13 +328,13 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
   it('shows the personalized greeting when a trustworthy business display name is passed (Dashboard only)', () => {
     render(<AIChatWidget isHebrew={true} isDashboard={true} businessDisplayName="עסק לדוגמה" />);
     openChat(true);
-    expect(screen.getByText('שלום עסק לדוגמה, במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('שלום עסק לדוגמה, במה אפשר לעזור?')).toBeInTheDocument();
   });
 
   it('never personalizes the public (unauthenticated) surface even if a businessDisplayName prop is somehow passed', () => {
     render(<AIChatWidget isHebrew={true} isDashboard={false} businessDisplayName="עסק לדוגמה" />);
     openChat(true);
-    expect(screen.getByText('שלום! במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('שלום! במה אפשר לעזור?')).toBeInTheDocument();
     expect(screen.queryByText(/עסק לדוגמה/)).not.toBeInTheDocument();
   });
 
@@ -351,7 +351,7 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
     // underneath the second step. The welcome message bubble itself (a
     // separate chat message, not this greeting) is unaffected - see the
     // AI Chat History UX describe block for that.
-    expect(screen.queryByText('שלום! במה תרצה עזרה?')).not.toBeInTheDocument();
+    expect(screen.queryByText('שלום! במה אפשר לעזור?')).not.toBeInTheDocument();
     expect(screen.queryByText('עזרה ותמיכה')).not.toBeInTheDocument();
     expect(screen.getByText('הצעות מחיר')).toBeInTheDocument(); // the breadcrumb itself, same title (directIntent group, no arrow)
     expect(screen.getByText('שאלה כללית או הצעה מסוימת?')).toBeInTheDocument();
@@ -462,7 +462,7 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
     expect(screen.queryByText('שאלה כללית')).not.toBeInTheDocument(); // sibling subtopic hidden
     expect(screen.queryByText('הצעות מחיר')).not.toBeInTheDocument(); // top-level list hidden
     expect(screen.getByText('משוב ושאלות → משוב על המערכת')).toBeInTheDocument(); // breadcrumb: group -> leaf (Task 34 label)
-    expect(screen.getByPlaceholderText('שאל משהו...')).toBeEnabled();
+    expect(screen.getByPlaceholderText('שאלו משהו…')).toBeEnabled();
   });
 
   it('the second step is skippable by typing directly, without selecting an option', async () => {
@@ -483,11 +483,11 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
   it('typing immediately (no category chosen) skips guidance naturally and the user is never trapped in the picker', async () => {
     render(<AIChatWidget isHebrew={true} isDashboard={false} />);
     openChat(true);
-    expect(screen.getByText('שלום! במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('שלום! במה אפשר לעזור?')).toBeInTheDocument();
 
     await sendMessage('שאלה ישירה בלי לבחור קטגוריה', true);
 
-    expect(screen.queryByText('שלום! במה תרצה עזרה?')).not.toBeInTheDocument();
+    expect(screen.queryByText('שלום! במה אפשר לעזור?')).not.toBeInTheDocument();
     const body = mocks.invoke.mock.calls[0][1].body;
     expect(body.guidedIntent).toBeNull();
     expect(body.guidedSubtopic).toBeNull();
@@ -560,7 +560,7 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
     expect(screen.getByText('שאלה כללית או הצעה מסוימת?')).toBeInTheDocument();
 
     // close then reopen - not a reset boundary, so nothing is forced back to a blank state
-    fireEvent.click(screen.getByLabelText('סגור'));
+    fireEvent.click(screen.getByLabelText('סגירה'));
     openChat(true);
 
     // The chip (not the top-level button grid) is what survives - group list stays hidden.
@@ -576,10 +576,10 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
     await sendMessage('שאלה חופשית', true);
     await screen.findByText('AI reply');
 
-    fireEvent.click(screen.getByLabelText('סגור'));
+    fireEvent.click(screen.getByLabelText('סגירה'));
     openChat(true);
 
-    expect(screen.queryByText('שלום! במה תרצה עזרה?')).not.toBeInTheDocument();
+    expect(screen.queryByText('שלום! במה אפשר לעזור?')).not.toBeInTheDocument();
   });
 
   it('EN labels are used for EN authenticated chat, distinct from HE labels, at every hierarchy level', async () => {
@@ -608,7 +608,7 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
   it('authenticated Dashboard chat also shows the guided picker on first open', () => {
     render(<AIChatWidget isHebrew={true} isDashboard={true} />);
     openChat(true);
-    expect(screen.getByText('שלום! במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('שלום! במה אפשר לעזור?')).toBeInTheDocument();
   });
 
   it('authenticated Level 1 has its own explicit "Other" escape tile, separate from the Feedback & Questions group', () => {
@@ -641,9 +641,9 @@ describe('Guided Interactive Entry - authenticated Dashboard hierarchy (§4/§11
     openChat(true);
     fireEvent.click(screen.getByRole('button', { name: leafCardName('other', true) }));
 
-    expect(screen.getByText('בשמחה, כתוב לי מה תרצה לשאול.')).toBeInTheDocument();
+    expect(screen.getByText('בשמחה. אפשר לכתוב כאן את השאלה.')).toBeInTheDocument();
     expect(screen.queryByText('אפשר גם לכתוב כאן ישירות')).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText('שאל משהו...')).toHaveFocus();
+    expect(screen.getByPlaceholderText('שאלו משהו…')).toHaveFocus();
   });
 
   it('selecting Other from inside a Level 2 group also focuses the input and shows the same invitation (EN)', () => {
@@ -689,7 +689,7 @@ describe('Public vs Authenticated guided surface separation (Context-Aware AI Ch
 
     expect(screen.queryByText('שאלה כללית או הצעה מסוימת?')).not.toBeInTheDocument();
     expect(screen.queryByText(/בחר הצעת מחיר לשיחה זו/)).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText('שאל משהו...')).toBeEnabled();
+    expect(screen.getByPlaceholderText('שאלו משהו…')).toBeEnabled();
   });
 
   it('public landing\'s "Other" tile is one of the flat 6, requires no separate escape tile, and still focuses free text with the direct invitation (HE)', () => {
@@ -697,8 +697,8 @@ describe('Public vs Authenticated guided surface separation (Context-Aware AI Ch
     openChat(true);
     fireEvent.click(screen.getByRole('button', { name: groupCardName('other', true, PUBLIC_TOPIC_GROUPS) }));
 
-    expect(screen.getByText('בשמחה, כתוב לי מה תרצה לשאול.')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('שאל משהו...')).toHaveFocus();
+    expect(screen.getByText('בשמחה. אפשר לכתוב כאן את השאלה.')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('שאלו משהו…')).toHaveFocus();
   });
 
   it('public landing chat never fetches an authenticated quote list, even if guidedIntent happens to be "quotes"', async () => {
@@ -846,7 +846,7 @@ describe('Gate 2 - explicit quote selection (§6.1)', () => {
     await sendMessage('מה הסכום?', true);
     await screen.findByText('AI reply');
 
-    fireEvent.click(screen.getByLabelText('הסר הצעה נבחרת'));
+    fireEvent.click(screen.getByLabelText('הסרת ההצעה הנבחרת'));
 
     await waitFor(() => {
       expect(screen.queryByText('מה הסכום?')).not.toBeInTheDocument();
@@ -860,7 +860,7 @@ describe('Gate 2 - explicit quote selection (§6.1)', () => {
     await screen.findByText('AI reply');
 
     // Clear then pick the other quote (selector reappears once cleared).
-    fireEvent.click(screen.getByLabelText('הסר הצעה נבחרת'));
+    fireEvent.click(screen.getByLabelText('הסרת ההצעה הנבחרת'));
     await waitFor(() => expect(screen.getByText(/#102/)).toBeInTheDocument());
     fireEvent.click(screen.getByText(/#102 · sent/));
 
@@ -913,7 +913,7 @@ describe('Gate 2 - safe navigation (§8)', () => {
     openChat(true);
     await sendMessage('שאלה', true);
 
-    expect(await screen.findByText('ההצעה שנבחרה אינה זמינה יותר. הקשר ההצעה נוקה.')).toBeInTheDocument();
+    expect(await screen.findByText('ההצעה שנבחרה כבר לא זמינה, והשיחה כבר לא מתייחסת אליה.')).toBeInTheDocument();
   });
 });
 
@@ -955,8 +955,8 @@ describe('accessibility (AI Chat Hardening overnight continuation, Track J)', ()
   it('close and send controls have accessible names', () => {
     render(<AIChatWidget isHebrew={true} isDashboard={false} />);
     openChat(true);
-    expect(screen.getByLabelText('סגור')).toBeInTheDocument();
-    expect(screen.getByLabelText('שלח')).toBeInTheDocument();
+    expect(screen.getByLabelText('סגירה')).toBeInTheDocument();
+    expect(screen.getByLabelText('שליחה')).toBeInTheDocument();
   });
 
   it('close and send controls have accessible names in EN too', () => {
@@ -973,25 +973,25 @@ describe('accessibility (AI Chat Hardening overnight continuation, Track J)', ()
     expect(btn.tagName).toBe('BUTTON');
     expect(btn).not.toHaveAttribute('aria-pressed');
     expect(btn).toHaveAccessibleName('הצעות מחיר');
-    expect(btn).toHaveAttribute('title', 'יצירה, חיפוש, סטטוס ופעולות על הצעות');
+    expect(btn).toHaveAttribute('title', 'יצירה, חיפוש, מצב ופעולות על הצעות');
   });
 
   it('Escape closes the open chat popup', () => {
     render(<AIChatWidget isHebrew={true} isDashboard={false} />);
     openChat(true);
-    expect(screen.getByLabelText('סגור')).toBeInTheDocument();
+    expect(screen.getByLabelText('סגירה')).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
 
-    expect(screen.queryByLabelText('סגור')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('סגירה')).not.toBeInTheDocument();
     // The launcher button (re-opens the chat) is back, proving a clean close, not a crash.
-    expect(screen.getByLabelText('צאט AI')).toBeInTheDocument();
+    expect(screen.getByLabelText('צ׳אט AI')).toBeInTheDocument();
   });
 
   it('Escape does nothing while the chat is already closed (no listener registered, no error)', () => {
     render(<AIChatWidget isHebrew={true} isDashboard={false} />);
     expect(() => fireEvent.keyDown(document, { key: 'Escape' })).not.toThrow();
-    expect(screen.getByLabelText('צאט AI')).toBeInTheDocument();
+    expect(screen.getByLabelText('צ׳אט AI')).toBeInTheDocument();
   });
 });
 
@@ -1009,11 +1009,11 @@ describe('Unified Header + Always-Available AI Chat task, §15 - overlay/focus c
 
     render(<AIChatWidget isHebrew={true} isDashboard={false} />, { container: host });
     openChat(true);
-    expect(screen.getByLabelText('סגור')).toBeInTheDocument();
+    expect(screen.getByLabelText('סגירה')).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
 
-    expect(screen.queryByLabelText('סגור')).not.toBeInTheDocument(); // Chat closed
+    expect(screen.queryByLabelText('סגירה')).not.toBeInTheDocument(); // Chat closed
     expect(underlyingClose).not.toHaveBeenCalled(); // the underlying workflow's own handler never fired
     document.body.removeChild(host);
   });
@@ -1055,7 +1055,7 @@ describe('Unified Header + Always-Available AI Chat task, §15 - overlay/focus c
     expect(document.activeElement).toBe(headerButton);
 
     fireEvent(window, new CustomEvent('open-proflow-ai-chat'));
-    expect(screen.getByLabelText('סגור')).toBeInTheDocument();
+    expect(screen.getByLabelText('סגירה')).toBeInTheDocument();
 
     fireEvent.keyDown(document, { key: 'Escape' });
 
@@ -1108,7 +1108,7 @@ describe('AI Chat History UX (timestamps + day separators + New Chat)', () => {
     vi.setSystemTime(new Date('2026-09-18T14:32:00'));
     render(<AIChatWidget isHebrew={true} isDashboard={false} />);
     openChat(true);
-    const input = screen.getByPlaceholderText('שאל משהו...');
+    const input = screen.getByPlaceholderText('שאלו משהו…');
     fireEvent.change(input, { target: { value: 'שאלה עם זמן' } });
     fireEvent.submit(input.closest('form'));
     vi.useRealTimers(); // let the mocked async invoke() promise actually resolve
@@ -1215,9 +1215,9 @@ describe('AI Chat History UX (timestamps + day separators + New Chat)', () => {
 
     expect(screen.queryByText('שאלה לפני שיחה חדשה')).not.toBeInTheDocument();
     expect(screen.queryByText('AI reply')).not.toBeInTheDocument();
-    expect(screen.getByText('שלום! במה תרצה עזרה?')).toBeInTheDocument();
+    expect(screen.getByText('שלום! במה אפשר לעזור?')).toBeInTheDocument();
     expect(screen.getByText('הצעות מחיר')).toBeInTheDocument(); // guided topics restored
-    expect(screen.getByPlaceholderText('שאל משהו...')).toBeInTheDocument(); // free-text still usable
+    expect(screen.getByPlaceholderText('שאלו משהו…')).toBeInTheDocument(); // free-text still usable
   });
 
   it('New Chat (EN) clears the visible thread and restores guided topics, independently of HE', async () => {
@@ -1385,7 +1385,7 @@ describe('Context-Driven AI Chat V3, §25 - OLD MESSAGE ACTION REBIND BUG CLOSED
     // scenario under test is specifically whether the OLD button, if a
     // future refactor ever again made it survive, would read live state;
     // this asserts it reads its own bound value instead).
-    fireEvent.click(screen.getByLabelText('הסר הצעה נבחרת'));
+    fireEvent.click(screen.getByLabelText('הסרת ההצעה הנבחרת'));
     await waitFor(() => expect(screen.getByText(/#2/)).toBeInTheDocument());
     fireEvent.click(screen.getByText(/#2 /));
 
@@ -1452,7 +1452,7 @@ describe('Context-Driven AI Chat V3, §27 - PREVIOUS CHATS (accessible, bounded,
     render(<AIChatWidget isHebrew={true} isDashboard={false} />);
     openChat(true);
     fireEvent.click(screen.getByLabelText('שיחות קודמות'));
-    expect(screen.getByText('אין עדיין שיחות קודמות בפגישה זו.')).toBeInTheDocument();
+    expect(screen.getByText('עדיין אין שיחות קודמות בחיבור הנוכחי.')).toBeInTheDocument();
   });
 
   it('logout clears all archived Previous Chats (§26 private-state isolation)', async () => {
@@ -1468,7 +1468,7 @@ describe('Context-Driven AI Chat V3, §27 - PREVIOUS CHATS (accessible, bounded,
     await waitFor(() => expect(screen.queryByText('שאלה לפני התנתקות')).not.toBeInTheDocument());
 
     fireEvent.click(screen.getByLabelText('שיחות קודמות'));
-    expect(screen.getByText('אין עדיין שיחות קודמות בפגישה זו.')).toBeInTheDocument();
+    expect(screen.getByText('עדיין אין שיחות קודמות בחיבור הנוכחי.')).toBeInTheDocument();
   });
 });
 

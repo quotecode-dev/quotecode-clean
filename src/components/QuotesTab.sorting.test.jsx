@@ -122,7 +122,7 @@ describe.each([
     expect(head.querySelector('.quote-modern-head-identity, .quote-modern-head-state, .quote-modern-head-text')).toBeNull();
     const labels = [...head.querySelectorAll('.quote-modern-head-label')].map((n) => n.textContent);
     expect(labels).toEqual(isHebrew
-      ? ['מס׳ הצעה', 'לקוח', 'כותרת ההצעה', 'סטטוס', 'צפיות', 'תאריך', 'סכום']
+      ? ['מס׳ הצעה', 'לקוח', 'כותרת ההצעה', 'מצב', 'צפיות', 'תאריך', 'סכום']
       : ['Quote #', 'Client', 'Quote title', 'Status', 'Views', 'Date', 'Amount']);
     expect(container.querySelector('.quote-modern-list')).toHaveAttribute('dir', isHebrew ? 'rtl' : 'ltr');
   });
@@ -204,7 +204,7 @@ describe.each([
     const { container } = render(<Harness isHebrew={isHebrew} initialField="total" initialDirection="asc" onSort={onSort} />);
     showAll(isHebrew);
     expect(orderOf(container)).toEqual(ASC.amount);
-    fireEvent.click(screen.getByRole('button', { name: isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction' }));
+    fireEvent.click(screen.getByRole('button', { name: isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction' }));
     expect(onSort).toHaveBeenLastCalledWith('total');
     expect(orderOf(container)).toEqual([...ASC.amount].reverse());
     expect(columnOf('total')).toHaveAttribute('aria-sort', 'descending');

@@ -35,7 +35,7 @@ import { PRODUCT_TRUTH_REGISTRY, NON_CURRENT_REGISTRY, CAPABILITY_STATES } from 
 import { PRODUCT_HOW_TO, projectHowTo } from '../src/data/productHowTo.js';
 import { SUBSCRIPTION_ADD_ONS } from '../src/domain/subscriptions/addOnCatalog.js';
 import {
-  PRICE_CATALOG_VERSION, PRICE_VERSIONS, BILLING_CURRENCY, CATALOG_PRODUCTS_INCLUDED, CATALOG_BLOCK_PRODUCTS, approvedPrice,
+  PRICE_CATALOG_VERSION, PRICE_VERSIONS, BILLING_CURRENCY, CATALOG_PRODUCTS_INCLUDED, CATALOG_BLOCK_PRODUCTS, approvedPrice, FREE_DAYS_TOTAL,
 } from '../src/domain/subscriptions/priceCatalog.js';
 import { PLAN_IDS, PLAN_NAMES, FREE_QUOTES_TOTAL, OUTPUT_CHANNELS, CAPABILITIES, CURRENT_PAID_PLAN_ID, LEGACY_PAID_PLAN_IDS } from '../supabase/functions/_shared/subscriptionContract.ts';
 // Task 27 (§249 + the Owner's 2026-10-11 amendment): the current offer is the ONE all-inclusive package (monthly / annual).
@@ -101,7 +101,12 @@ function subscriptionFacts() {
     plans: PLAN_IDS.map((id) => ({ id, he: PLAN_NAMES.he[id], en: PLAN_NAMES.en[id] })),
     free: {
       quotesTotal: FREE_QUOTES_TOTAL, // OD-01
-      expires: false,
+      // Owner 2026-10-20 (IRON-LANDING-001 amended): 10 quotes OR 7 days, whichever ends first; new accounts count the days from
+      // sign-up, existing accounts from the activation day (enforced only once the plan system is activated - planSystemActive)
+      expires: true,
+      days: FREE_DAYS_TOTAL,
+      endsWhen: 'first_of_quotes_or_days',
+      daysCountFrom: 'signup_or_activation_day',
       // OD-02: a quote uses one the FIRST time it reaches a client through one of these channels.
       consumingChannels: [...OUTPUT_CHANNELS],
       draftsAndPreviewsConsume: false,

@@ -254,12 +254,12 @@ export const FIELD_LABELS = Object.freeze({
   business_region: { he: 'אזור העסק (מקומי / בינלאומי)', en: 'business region (Local / International)' }, client_name: { he: 'שם הלקוח', en: 'client name' },
   client_type: { he: 'סוג הלקוח', en: 'client type' }, client_email: { he: 'אימייל הלקוח', en: 'client email' }, items: { he: 'מוצר או עבודה', en: 'a product or work item' },
   item_price: { he: 'מחיר', en: 'price' }, item_quantity: { he: 'כמות', en: 'quantity' }, item_measurements: { he: 'מידות', en: 'measurements' },
-  item_description: { he: 'תיאור הפריט', en: 'item description' }, status: { he: 'סטטוס ההצעה', en: 'quote status' }, valid_until: { he: 'תוקף ההצעה', en: 'validity date' },
+  item_description: { he: 'תיאור הפריט', en: 'item description' }, status: { he: 'מצב ההצעה', en: 'quote status' }, valid_until: { he: 'תוקף ההצעה', en: 'validity date' },
   attachments: { he: 'קבצים מצורפים', en: 'attachments' }, currency: { he: 'מטבע', en: 'currency' }, project_name: { he: 'שם הפרויקט', en: 'project name' },
   service_name: { he: 'שם השירות', en: 'service name' }, service_price: { he: 'מחיר השירות', en: 'service price' }, expense_amount: { he: 'סכום ההוצאה', en: 'expense amount' },
 });
 export const NAV_LABELS = Object.freeze({
-  open_dashboard: { he: 'מעבר לדשבורד', en: 'Go to the dashboard' }, open_quote_history: { he: 'פתיחת היסטוריית הצעות מחיר', en: 'Open quote history' },
+  open_dashboard: { he: 'מעבר למסך הראשי', en: 'Go to the dashboard' }, open_quote_history: { he: 'פתיחת היסטוריית הצעות מחיר', en: 'Open quote history' },
   open_new_quote: { he: 'יצירת הצעת מחיר חדשה', en: 'Create a new quote' }, open_clients: { he: 'פתיחת לקוחות', en: 'Open clients' },
   open_catalog: { he: 'פתיחת קטלוג', en: 'Open catalog' }, open_finances: { he: 'פתיחת פיננסים', en: 'Open finances' },
   open_business_settings: { he: 'פתיחת הגדרות עסק', en: 'Open business settings' }, open_business_details: { he: 'הגדרות עסק ← פרטי העסק', en: 'Settings → Business details' },
@@ -274,7 +274,7 @@ const GUIDANCE_TEXT = Object.freeze({
   check_connection: { he: 'בדקו את החיבור לאינטרנט', en: 'check your internet connection' }, reselect_attachment: { he: 'בחרו את הקובץ מחדש', en: 'select the file again' },
   remove_attachment: { he: 'הסירו קובץ קיים', en: 'remove an existing file' }, review_recovered_draft: { he: 'עברו על הטיוטה ששוחזרה ושמרו אותה', en: 'review the recovered draft and save it' },
   choose_draft_version: { he: 'בחרו איזו גרסה לשמור (הטיוטה המקומית או הגרסה השמורה)', en: 'choose which version to keep (your local draft or the saved version)' },
-  save_as_draft_status: { he: 'או שמרו אותה בסטטוס טיוטה', en: 'or save it with the Draft status' }, duplicate_as_new: { he: 'שכפלו אותה להצעה חדשה', en: 'duplicate it into a new quote' },
+  save_as_draft_status: { he: 'או שמרו אותה במצב טיוטה', en: 'or save it with the Draft status' }, duplicate_as_new: { he: 'שכפלו אותה להצעה חדשה', en: 'duplicate it into a new quote' },
   contact_support: { he: 'פנו לתמיכה', en: 'contact support' }, start_new_chat: { he: 'התחילו שיחה חדשה בצ׳אט', en: 'start a new chat' },
   reauthenticate: { he: 'התחברו מחדש', en: 'sign in again' }, select_region: { he: 'בחרו אזור לעסק', en: 'choose your business region' },
   upgrade_plan_info: { he: 'עיינו במידע על המסלולים', en: 'review the plan information' }, free_storage: { he: 'פנו מקום', en: 'free up space' },
@@ -282,19 +282,19 @@ const GUIDANCE_TEXT = Object.freeze({
 const WHY = Object.freeze({
   PROFILE_MISSING_PHONE: { he: 'לפני שמירת הצעת מחיר ראשונה חובה להשלים את טלפון העסק בהגדרות העסק.', en: 'Before you can save your first quote, your Business Phone must be filled in under Business Settings.' },
   PROFILE_MISSING_TAX_ID: { he: 'לפני שמירת הצעת מחיר ראשונה חובה להשלים ח.פ / עוסק מורשה / פטור בהגדרות העסק.', en: 'Before you can save your first quote, your Tax ID must be filled in under Business Settings.' },
-  REGION_NOT_SELECTED: { he: 'העסק עדיין לא בחר אזור (מקומי / בינלאומי), ולכן השפה, המטבע והמסים עוד לא נקבעו.', en: 'Your business has not chosen a region (Local / International) yet, so language, currency and tax rules are not set.' },
+  REGION_NOT_SELECTED: { he: 'עדיין לא נבחר אזור לעסק (מקומי או בינלאומי), ולכן השפה, המטבע והמסים עוד לא נקבעו.', en: 'Your business has not chosen a region (Local / International) yet, so language, currency and tax rules are not set.' },
   QUOTE_MISSING_CLIENT: { he: 'חסר שם לקוח בהצעה.', en: 'The quote has no client name yet.' },
   QUOTE_MISSING_CLIENT_TYPE: { he: 'חסר סוג לקוח (עסקי / פרטי).', en: 'The client type (business / private) is not chosen yet.' },
-  QUOTE_INVALID_CLIENT_EMAIL: { he: 'כתובת האימייל של הלקוח אינה תקינה.', en: "The client's email address is not valid." },
+  QUOTE_INVALID_CLIENT_EMAIL: { he: 'כתובת המייל של הלקוח אינה תקינה.', en: "The client's email address is not valid." },
   QUOTE_INCOMPLETE_ITEMS: { he: 'בהצעה אין עדיין מוצר או עבודה עם מחיר.', en: 'The quote has no product or work item with a price yet.' },
-  QUOTE_UNFINISHED_NON_DRAFT_STATUS: { he: 'הצעה לא גמורה (בלי פריט עם מחיר) לא יכולה להישמר בסטטוס נשלח / אושר / שולם.', en: 'An unfinished quote (no priced item) cannot be saved as Sent / Approved / Paid.' },
+  QUOTE_UNFINISHED_NON_DRAFT_STATUS: { he: 'הצעה לא גמורה (בלי פריט עם מחיר) לא יכולה להישמר במצב נשלחה / אושרה / שולמה.', en: 'An unfinished quote (no priced item) cannot be saved as Sent / Approved / Paid.' },
   ITEM_MISSING_DESCRIPTION: { he: 'לפריט אין עדיין תיאור.', en: 'The item has no description yet.' },
   ITEM_MISSING_QUANTITY: { he: 'לפריט חסרה כמות.', en: 'The item is missing a quantity.' },
   ITEM_MISSING_PRICE: { he: 'לפריט חסר מחיר.', en: 'The item is missing a price.' },
   ITEM_MISSING_MEASUREMENTS: { he: 'לפריט חסרות מידות.', en: 'The item is missing measurements.' },
-  ATTACHMENTS_NOT_INCLUDED: { he: 'צירוף קבצים אינו כלול כרגע בגישה של החשבון שלך. אילו מסלולים יכללו קבצים מצורפים - טרם הוחלט.', en: "Attaching files is not included in your account's current access. Which plans will include attachments has not been decided yet." },
+  ATTACHMENTS_NOT_INCLUDED: { he: 'צירוף קבצים אינו כלול כרגע בהרשאות החשבון. עדיין לא הוחלט אילו מסלולים יכללו קבצים מצורפים.', en: "Attaching files is not included in your account's current access. Which plans will include attachments has not been decided yet." },
   ATTACHMENT_FILE_TOO_LARGE: { he: 'הקובץ גדול מהמגבלה לקובץ בודד.', en: 'The file is larger than the per-file limit.' },
-  ATTACHMENT_TOTAL_EXCEEDED: { he: 'הגעת למגבלת נפח הקבצים הכוללת.', en: 'You have reached the total attachment storage limit.' },
+  ATTACHMENT_TOTAL_EXCEEDED: { he: 'הגעתם למגבלת נפח הקבצים הכוללת.', en: 'You have reached the total attachment storage limit.' },
   ATTACHMENT_UPLOAD_FAILED_PRE_SAVE: { he: 'העלאת קובץ נכשלה, ולכן ההצעה לא נשמרה.', en: 'A file upload failed, so the quote was not saved.' },
   ATTACHMENT_PARTIAL_AFTER_SAVE: { he: 'ההצעה נשמרה, אבל חלק מהקבצים לא הועלו.', en: 'The quote was saved, but some files were not uploaded.' },
   ATTACHMENT_REMOVAL_PENDING: { he: 'הסרת קבצים ממתינה לשמירה - הקבצים עדיין קיימים עד שתשמרו.', en: 'File removals are staged - the files still exist until you save.' },
@@ -307,12 +307,12 @@ const WHY = Object.freeze({
   QUOTE_PERMISSION_DENIED: { he: 'אין הרשאה לבצע את הפעולה הזו.', en: 'You do not have permission for this action.' },
   SESSION_EXPIRED: { he: 'פג תוקף ההתחברות.', en: 'Your session has expired.' },
   MARKET_CURRENCY_POLICY: { he: 'המטבע שנבחר אינו מותר לאזור העסק.', en: "The chosen currency is not allowed for your business region." },
-  EMAIL_CLIENT_NO_EMAIL: { he: 'ללקוח אין כתובת אימייל, ולכן אי אפשר לשלוח את ההצעה במייל.', en: 'The client has no email address, so the quote cannot be emailed.' },
-  EMAIL_SEND_FAILED: { he: 'שליחת האימייל נכשלה - ההצעה לא נשלחה.', en: 'Sending the email failed - the quote was not sent.' },
-  EMAIL_SEND_NETWORK: { he: 'בעיית רשת בזמן שליחת האימייל - לא ידוע אם נשלח.', en: 'A network problem interrupted the email - it is not certain it was sent.' },
-  EMAIL_BOUNCED: { he: 'כתובת האימייל של הלקוח החזירה שגיאה (לא קיימת).', en: "The client's email address bounced (does not exist)." },
+  EMAIL_CLIENT_NO_EMAIL: { he: 'ללקוח אין כתובת מייל, ולכן אי אפשר לשלוח את ההצעה במייל.', en: 'The client has no email address, so the quote cannot be emailed.' },
+  EMAIL_SEND_FAILED: { he: 'שליחת המייל נכשלה - ההצעה לא נשלחה.', en: 'Sending the email failed - the quote was not sent.' },
+  EMAIL_SEND_NETWORK: { he: 'בעיית רשת בזמן שליחת המייל - לא ידוע אם נשלח.', en: 'A network problem interrupted the email - it is not certain it was sent.' },
+  EMAIL_BOUNCED: { he: 'כתובת המייל של הלקוח החזירה שגיאה (לא קיימת).', en: "The client's email address bounced (does not exist)." },
   PDF_GENERATION_FAILED: { he: 'יצירת ה-PDF נכשלה.', en: 'Creating the PDF failed.' },
-  PLAN_FEATURE_LOCKED: { he: 'הפעולה הזו אינה כלולה כרגע בגישה של החשבון שלך. אילו מסלולים יכללו אותה - טרם הוחלט.', en: "This action is not included in your account's current access. Which plans will include it has not been decided yet." },
+  PLAN_FEATURE_LOCKED: { he: 'הפעולה הזו אינה כלולה כרגע בהרשאות החשבון. עדיין לא הוחלט אילו מסלולים יכללו אותה.', en: "This action is not included in your account's current access. Which plans will include it has not been decided yet." },
   DRAFT_STORAGE_FAILED: { he: 'שמירת הטיוטה המקומית במכשיר נכשלה - שינויים שלא נשמרו עלולים ללכת לאיבוד ברענון.', en: 'Saving the local draft on this device failed - unsaved changes could be lost on a refresh.' },
   DRAFT_RECOVERED_UNSAVED: { he: 'שוחזרה טיוטה מקומית שלא נשמרה - היא קיימת רק במכשיר הזה עד שתשמרו.', en: 'A local unsaved draft was recovered - it exists only on this device until you save it.' },
   DRAFT_CONFLICT_SERVER_CHANGED: { he: 'ההצעה השמורה השתנתה מאז שהטיוטה המקומית נוצרה.', en: 'The saved quote changed after your local draft was created.' },
@@ -347,7 +347,7 @@ export function explainBlocker(blocker, lang) {
   const why = WHY[blocker.code]?.[L] || '';
   const fields = (blocker.fieldCodes || []).filter((f) => FIELD_LABELS[f]).map((f) => FIELD_LABELS[f][L]);
   const missing = blocker.type === 'MISSING_PROFILE_PREREQUISITE' || blocker.type === 'VALIDATION_BLOCKER'
-    ? (fields.length ? (L === 'he' ? ` חסר: ${fields.join(', ')}.` : ` Missing: ${fields.join(', ')}.`) : '') : '';
+    ? (fields.length ? (L === 'he' ? ` פרטים חסרים: ${fields.join(', ')}.` : ` Missing: ${fields.join(', ')}.`) : '') : '';
   const persistence = PERSISTENCE_TEXT[blocker.persistence]?.[L] ? ` ${PERSISTENCE_TEXT[blocker.persistence][L]}` : '';
   const steps = (blocker.resolution || []).map((a) => (GUIDANCE_TEXT[a] ? GUIDANCE_TEXT[a][L] : NAV_LABELS[a] ? NAV_LABELS[a][L] : null)).filter(Boolean);
   const next = steps.length ? (L === 'he' ? ` הצעד הבא: ${steps.join('; ')}.` : ` Next step: ${steps.join('; ')}.`) : '';

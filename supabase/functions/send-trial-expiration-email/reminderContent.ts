@@ -56,14 +56,14 @@ function wrapEmail(isHebrew: boolean, bodyHtml: string) {
 
 function ctaButton(isHebrew: boolean) {
   const url = 'https://www.tekango.com/dashboard' + (isHebrew ? '' : '?lang=en');
-  return `<a href="${url}" style="display:inline-block;margin-top:16px;background:${ACCENT_VIOLET};color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:700;font-size:0.9rem;">${isHebrew ? 'שדרג עכשיו' : 'Upgrade Now'}</a>`;
+  return `<a href="${url}" style="display:inline-block;margin-top:16px;background:${ACCENT_VIOLET};color:#ffffff;text-decoration:none;padding:10px 20px;border-radius:8px;font-weight:700;font-size:0.9rem;">${isHebrew ? 'שדרגו עכשיו' : 'Upgrade Now'}</a>`;
 }
 
 export function buildTrialReminderEmail({ stage, businessName, trialEndsAt, market }: {
   stage: Stage; businessName: string | null | undefined; trialEndsAt: string; market: ReminderMarket;
 }) {
   const isHebrew = market === 'Local';
-  const name = businessName || (isHebrew ? 'עסק יקר' : 'there');
+  const name = businessName || (isHebrew ? 'לכם' : 'there');
   const dateStr = formatDate(trialEndsAt, isHebrew);
 
   if (stage === '3d') {
@@ -75,14 +75,14 @@ export function buildTrialReminderEmail({ stage, businessName, trialEndsAt, mark
         <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
         <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
           ${isHebrew
-            ? `תקופת הניסיון החינמית שלך במערכת <strong>TEKANGO</strong> עומדת להסתיים בתאריך <strong>${dateStr}</strong> (עוד 3 ימים). כדי להמשיך ליהנות מכלל היכולות ללא שום הפרעה, נשמח שתשדרג את החשבון שלך לתוכנית בתשלום.`
+            ? `תקופת הניסיון החינמית ב-<strong>TEKANGO</strong> תסתיים בתאריך <strong>${dateStr}</strong>, בעוד 3 ימים. כדי להמשיך להשתמש בכל האפשרויות ללא הפרעה, שדרגו את החשבון למסלול בתשלום.`
             : `Your free TEKANGO trial ends on <strong>${dateStr}</strong> (in 3 days). To keep enjoying all features without interruption, upgrade to a paid plan.`}
         </p>
         ${ctaButton(isHebrew)}
       </div>
     `);
     const text = isHebrew
-      ? `שלום ${name}, תקופת הניסיון שלך ב-TEKANGO מסתיימת ב-${dateStr} (עוד 3 ימים). שדרג עכשיו: https://www.tekango.com/dashboard`
+      ? `שלום ${name}, תקופת הניסיון שלכם ב-TEKANGO מסתיימת ב-${dateStr} (עוד 3 ימים). שדרגו עכשיו: https://www.tekango.com/dashboard`
       : `Hi ${name}, your TEKANGO trial ends on ${dateStr} (in 3 days). Upgrade now: https://www.tekango.com/dashboard?lang=en`;
     return { subject, html, text };
   }
@@ -95,14 +95,14 @@ export function buildTrialReminderEmail({ stage, businessName, trialEndsAt, mark
       <p style="font-size:1rem; margin-bottom:16px;">${isHebrew ? `שלום ${name},` : `Hi ${name},`}</p>
       <p style="font-size:0.95rem; line-height:1.6; margin-bottom:16px;">
         ${isHebrew
-          ? `נשארו פחות מ-24 שעות לתקופת הניסיון שלך ב-TEKANGO, שתסתיים בתאריך <strong>${dateStr}</strong>. לאחר מכן החשבון יעבור אוטומטית לתוכנית החינמית. שדרג עכשיו כדי להימנע מהפסקת שירות.`
+          ? `תקופת הניסיון ב-TEKANGO תסתיים בעוד פחות מ-24 שעות, בתאריך <strong>${dateStr}</strong>. לאחר מכן החשבון יעבור אוטומטית למסלול החינם. כדי להימנע מהפסקת שירות, שדרגו עכשיו.`
           : `Less than 24 hours remain on your TEKANGO trial, ending on <strong>${dateStr}</strong>. After that your account moves automatically to the Free plan. Upgrade now to avoid any interruption.`}
       </p>
       ${ctaButton(isHebrew)}
     </div>
   `);
   const text = isHebrew
-    ? `שלום ${name}, נשארו פחות מ-24 שעות לתקופת הניסיון שלך ב-TEKANGO (מסתיימת ב-${dateStr}). שדרג עכשיו: https://www.tekango.com/dashboard`
+    ? `שלום ${name}, נשארו פחות מ-24 שעות לתקופת הניסיון שלכם ב-TEKANGO (מסתיימת ב-${dateStr}). שדרגו עכשיו: https://www.tekango.com/dashboard`
     : `Hi ${name}, less than 24 hours remain on your TEKANGO trial (ends ${dateStr}). Upgrade now: https://www.tekango.com/dashboard?lang=en`;
   return { subject, html, text };
 }

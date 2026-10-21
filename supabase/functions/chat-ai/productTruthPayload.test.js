@@ -181,7 +181,7 @@ describe('(2) payload -> prose: the prose is rendered FROM the payload', () => {
     expect(undecided.answer).toMatch(/still undecided/);
     expect(undecided.answer).not.toMatch(/requires|does not include|\bPRO\b|\bBASIC\b/);
     const undecidedHe = resolveCapabilityTruthResponse('attachments', FACTS, true, 'visual', false, 'Local');
-    expect(undecidedHe.answer).toMatch(/טרם הוחלט/);
+    expect(undecidedHe.answer).toMatch(/(?:טרם|עדיין לא) הוחלט/);
     const plain = resolveCapabilityTruthResponse('editor_calculator', FACTS, false, 'visual', false, 'International');
     expect(plain.factPayload.truthStatus).toBe('AVAILABLE');
     expect(plain.answer).not.toMatch(/requires|does not include|undecided/);
@@ -190,7 +190,7 @@ describe('(2) payload -> prose: the prose is rendered FROM the payload', () => {
     expect(role.answer).toMatch(/super_admin/);
     const admin = resolveCapabilityTruthResponse('admin_console', FACTS, true, 'pro', true, 'Local');
     expect(admin.factPayload.truthStatus).toBe('AVAILABLE');
-    expect(admin.answer).toMatch(/הרשאה שלך מאומתת/);
+    expect(admin.answer).toMatch(/ההרשאה שלכם אומתה/);
   });
   it('payment / invoicing prose is only rendered FROM the matching payload - any other status fails closed', () => {
     const pay = buildPaymentFactPayload(AI_FACTS.billing, NO_ACCOUNT_FACTS);

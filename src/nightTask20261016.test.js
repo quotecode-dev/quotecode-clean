@@ -38,11 +38,11 @@ describe('R-03: a template remembers whether its prices include VAT (L-09, Owner
     expect(dash).toContain('priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType)');
     expect(dash).toContain('const templateClientType = clientTypeForPriceBasis(f.priceBasis);');
     expect(dash).toContain('if (templateClientType) setClientType(templateClientType);');
-    expect(dash).toContain('התבנית נשמרה לפני שנשמר בה אם המחירים כוללים מע"מ.');
+    expect(dash).toContain('בתבנית הזו עדיין לא נשמר מידע אם המחירים כוללים מע״מ.');
   });
   it('the template summary names the right basis', () => {
     const dlg = read('src/components/QuoteTemplateDialogs.jsx');
-    expect(dlg).toContain("subtotalInclVat: 'סכום כולל מע\"מ, לפני הנחה'");
+    expect(dlg).toContain("subtotalInclVat: 'סכום כולל מע״מ, לפני הנחה'");
     expect(dlg).toContain("s.priceBasis === 'incl_vat' ? C.subtotalInclVat : C.subtotal");
   });
 });

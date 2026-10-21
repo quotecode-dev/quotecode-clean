@@ -32,8 +32,8 @@ const data = (over: { quote?: Record<string, unknown>; client?: Record<string, u
   items: [{ id: 'i1', description: 'Synthetic item', quantity: 1, unit_price: 1000, total_price: 1000 }],
   attachments: [],
 });
-const HE = { Page: PublicQuote, activate: 'לחץ/י כאן לחתימה', approve: /אשר וחתום על הצעת המחיר/, name: 'לדוגמה: ישראל ישראלי', clear: 'נקה חתימה',
-  nameAlert: 'נא להזין שם מלא לפני האישור', signAlert: 'נא לחתום על גבי המסמך לפני האישור', signHeading: 'חתימת לקוח לאישור ההצעה:', signedBy: 'נחתם על ידי:', isHebrew: true };
+const HE = { Page: PublicQuote, activate: 'הפעלת אזור החתימה', approve: /אישור וחתימה על הצעת המחיר/, name: 'לדוגמה: ישראל ישראלי', clear: 'ניקוי החתימה',
+  nameAlert: 'הזינו שם מלא לפני האישור', signAlert: 'חתמו על המסמך לפני האישור', signHeading: 'חתימת לקוח לאישור ההצעה:', signedBy: 'נחתם על ידי:', isHebrew: true };
 const EN = { Page: PublicQuoteEn, activate: 'Tap to sign', approve: /Approve & Sign This Quote/, name: 'e.g. John Smith', clear: 'Clear Signature',
   nameAlert: "Please enter the signer's full name before approving", signAlert: 'Please sign the quote before approval', signHeading: 'Client Signature to Approve This Quote:', signedBy: 'Signed by:', isHebrew: false };
 type Lang = typeof HE;

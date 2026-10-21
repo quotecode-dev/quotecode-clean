@@ -26,7 +26,7 @@ describe('CapabilityUpgradeNotice', () => {
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveAttribute('aria-modal', 'true');
     expect(dialog).toHaveAttribute('dir', 'rtl');
-    expect(screen.getByRole('heading', { name: /תמונות מוצר בקטלוג אינו כלול במסלול הנוכחי/ })).toHaveFocus();
+    expect(screen.getByRole('heading', { name: /האפשרות ״תמונות מוצר בקטלוג״ אינה כלולה במסלול הנוכחי/ })).toHaveFocus();
     expect(screen.getByTestId('cap-notice-current-plan').textContent).toBe('המסלול הנוכחי: חינם');
     expect(screen.getByTestId('cap-notice-eligible').textContent).toBe('המסלולים שיכללו יכולת זו טרם נקבעו.');
     fireEvent.click(screen.getByTestId('cap-notice-upgrade'));

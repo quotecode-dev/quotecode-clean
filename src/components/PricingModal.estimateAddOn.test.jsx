@@ -20,7 +20,7 @@ describe('the local-currency estimate with SMART PACK', () => {
     expect(en.estimateNote).toMatch(/^Estimate in GBP only: about £13\.63 per month or £139\.29 per year/);
     expect(en.estimateNoteWithAddOn).toMatch(/^Estimate in GBP only, with SMART PACK: about £17\.41 per month or £177\.90 per year at the ExchangeRate-API rate of \d{4}-\d{2}-\d{2}\. Charged in USD\.$/);
     const he = pricingModalModel({ isHebrew: true, market: 'INTERNATIONAL', accountCurrency: 'GBP', estimateRate: rate() });
-    expect(he.estimateNoteWithAddOn).toMatch(/^הערכה ב-GBP בלבד, כולל SMART PACK: כ-£17\.41 לחודש או כ-£177\.90 לשנה, לפי שער ExchangeRate-API מ-\d{4}-\d{2}-\d{2}\. החיוב בדולר ארה״ב\.$/);
+    expect(he.estimateNoteWithAddOn).toMatch(/^הערכה ב-GBP בלבד, כולל חכם פלוס: כ-£17\.41 לחודש או כ-£177\.90 לשנה, לפי שער ExchangeRate-API מ-\d{4}-\d{2}-\d{2}\. החיוב בדולר ארה״ב\.$/);
   });
   it('model: no rate, a USD account or Israel -> no add-on estimate', () => {
     expect(pricingModalModel({ isHebrew: false, market: 'INTERNATIONAL', accountCurrency: 'GBP', estimateRate: null }).estimateNoteWithAddOn).toBeNull();

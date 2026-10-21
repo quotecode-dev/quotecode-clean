@@ -56,7 +56,7 @@ describe('Task 17 Statistics screen (HE / Local / ILS)', () => {
     fireEvent.click(within(row).getByText('וואטסאפ'));
     expect(p.handleProtectedAction).toHaveBeenCalledWith('q1', 'whatsapp', expect.any(Function));
     expect(p.sendWhatsApp).toHaveBeenCalledWith(expect.objectContaining({ id: 'q1' }));
-    fireEvent.click(within(row).getByText('שלח במייל'));
+    fireEvent.click(within(row).getByText('שליחה במייל'));
     expect(p.requestEmailSend).toHaveBeenCalledWith(expect.objectContaining({ id: 'q1' }));
     expect(container.textContent).not.toMatch(/העתק קישור|Copy link/); // no canonical copy-link implementation exists
   });

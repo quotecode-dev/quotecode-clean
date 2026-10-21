@@ -214,7 +214,7 @@ export default function ClientsTab({
         <div style={{ display: 'flex', alignItems: 'center', gap: '14px', fontSize: '0.78rem', color: NEON.textSecondary }}>
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             <FileText size={13} color={NEON.textMuted} strokeWidth={2} />
-            {isHebrew ? `${quoteCount} הצעות מחיר` : `${quoteCount} quote${quoteCount === 1 ? '' : 's'}`}
+            {isHebrew ? `הצעות מחיר: ${quoteCount}` : `${quoteCount} quote${quoteCount === 1 ? '' : 's'}`}
           </span>
           {latestQuote && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -237,7 +237,7 @@ export default function ClientsTab({
             style={{ border: 'none', borderRadius: RADIUS.sm, padding: '6px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap', background: NEON.violetLighter, color: NEON.violet }}
           >
             <Pencil size={14} color={NEON.violet} strokeWidth={2.2} />
-            <span>{isHebrew ? 'ערוך' : 'Edit'}</span>
+            <span>{isHebrew ? 'עריכה' : 'Edit'}</span>
           </button>
           {/* PRODUCT_TRUTH_CAPABILITY: clients */}
           <button
@@ -261,7 +261,7 @@ export default function ClientsTab({
                 נגרמה ע"י הסבב הזה, אך נהייתה בולטת יותר בתוך שורת-הפעולות
                 המחודשת). תוקן לתווית נקודתית-ללקוח, עקבית עם Edit הסמוך
                 (שגם הוא לא משתמש בטקסט גלובלי). */}
-            <span>{isHebrew ? 'מחק' : 'Delete'}</span>
+            <span>{isHebrew ? 'מחיקה' : 'Delete'}</span>
           </button>
         </div>
         {clientErrorMsg.clientId === client.id && (
@@ -298,7 +298,7 @@ export default function ClientsTab({
             {isHebrew ? 'לקוחות' : 'Clients'}
           </h2>
           <span style={{ fontSize: '0.78rem', fontWeight: '600', color: NEON.textSecondary }}>
-            {isHebrew ? `${safeClients.length} לקוחות במערכת` : `${safeClients.length} client${safeClients.length === 1 ? '' : 's'}`}
+            {isHebrew ? `לקוחות במערכת: ${safeClients.length}` : `${safeClients.length} client${safeClients.length === 1 ? '' : 's'}`}
           </span>
         </div>
         {/* PRODUCT_TRUTH_CAPABILITY: clients */}
@@ -320,7 +320,7 @@ export default function ClientsTab({
           <Search size={14} color={NEON.textMuted} strokeWidth={2.2} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', [isHebrew ? 'right' : 'left']: '10px', pointerEvents: 'none' }} />
           <input
             type="text"
-            placeholder={isHebrew ? 'חיפוש לקוח לפי שם, אימייל או ח.פ...' : 'Search clients...'}
+            placeholder={isHebrew ? 'חיפוש לקוח לפי שם, אימייל או ח.פ…' : 'Search clients...'}
             value={clientSearchTerm}
             onChange={(e) => setClientSearchTerm(e.target.value)}
             style={{ width: '100%', padding: isHebrew ? '8px 30px 8px 12px' : '8px 12px 8px 30px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
@@ -414,7 +414,7 @@ export default function ClientsTab({
               aria-sort={clientSortField === 'company_name' ? (clientSortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}
               style={{ flex: '1 1 220px', minWidth: 0, textAlign: isHebrew ? 'right' : 'left', background: 'none', border: 'none', color: 'inherit', font: 'inherit', textTransform: 'inherit', letterSpacing: 'inherit', cursor: 'pointer', padding: 0 }}
             >
-              {isHebrew ? 'שם חברה / לקוח' : 'Company / Name'} {clientSortField === 'company_name' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}
+              {isHebrew ? 'שם החברה או הלקוח' : 'Company / Name'} {clientSortField === 'company_name' ? (clientSortDirection === 'asc' ? '▲' : '▼') : ''}
             </button>
             <span style={{ width: '140px', flexShrink: 0, direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'איש קשר' : 'Contact'}</span>
             <span style={{ width: '70px', flexShrink: 0, textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'הצעות' : 'Quotes'}</span>
@@ -447,7 +447,7 @@ export default function ClientsTab({
                     onClick={() => toggleExpanded(client.id)}
                     aria-expanded={isExpanded}
                     aria-controls={detailId}
-                    aria-label={isHebrew ? 'הצג פרטים נוספים' : 'Show more details'}
+                    aria-label={isHebrew ? 'הצגת פרטים נוספים' : 'Show more details'}
                     dir={dir}
                     className={`cli-row-btn${isExpanded ? ' cli-row-expanded' : ''}`}
                     style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '11px 10px', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontFamily: 'inherit', borderRadius: RADIUS.sm }}
@@ -525,7 +525,7 @@ export default function ClientsTab({
                     onClick={() => toggleExpanded(client.id)}
                     aria-expanded={isExpanded}
                     aria-controls={detailId}
-                    aria-label={isHebrew ? 'הצג פרטים נוספים' : 'Show more details'}
+                    aria-label={isHebrew ? 'הצגת פרטים נוספים' : 'Show more details'}
                     className={`cli-row-btn${isExpanded ? ' cli-row-expanded' : ''}`}
                     style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '10px var(--pf-mobile-surface-pad, 10px)', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontFamily: 'inherit' }}
                   >
@@ -545,7 +545,7 @@ export default function ClientsTab({
                           {client.company_name}
                         </span>
                         <span style={{ fontWeight: '600', color: NEON.textSecondary, fontSize: '0.75rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                          {isHebrew ? `${quoteCount} הצעות` : `${quoteCount} quote${quoteCount === 1 ? '' : 's'}`}
+                          {isHebrew ? `הצעות: ${quoteCount}` : `${quoteCount} quote${quoteCount === 1 ? '' : 's'}`}
                         </span>
                       </div>
                       {(client.phone || client.email || latestQuote) && (

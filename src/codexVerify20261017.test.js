@@ -18,7 +18,7 @@ describe('Codex verification fixes 2026-10-17', () => {
     const d = read('components/AdminUserDetails.jsx');
     expect(d).toContain("const status = summaryReady || account.is_lifetime === true ? computedStatus : serverStatus ? statusFromKey(serverStatus, { until: account.trial_ends_at }) : computedStatus;");
     expect(d).toContain("const statusUnknown = summaryFailed && !serverStatus && status.key === 'free10_inactive';");
-    expect(d).toContain("'סטטוס המנוי אינו זמין כרגע'");
+    expect(d).toContain("'מצב המנוי אינו זמין כרגע'");
     // re-verification 2026-10-18: one fresh server row (flag + status from one snapshot); badges only with a proven status; counters only decided
     const dest = read('components/AdminUsersDestination.jsx');
     expect(dest).toContain("fetchAdminAccountsPage(undefined, { ids: [host.selectedUserId], pageSize: 1 })");

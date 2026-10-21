@@ -119,7 +119,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['dashboard'], aiMayNavigate: true, safeNavigationId: 'open_dashboard', canonicalSources: ['src/pages/Dashboard.jsx', 'src/components/StatisticsTab.jsx', 'src/components/TasksTab.jsx', 'src/components/CalendarTab.jsx'] }), // Task 17: Statistics is part of the dashboard quote summary; Task 18: the manual task list is a dashboard workspace screen (no new capability id - the 38 are frozen); Task 19: the calendar likewise
 
   capability('quote_history', 'היסטוריית הצעות מחיר', 'Quote history',
-    'רשימת כל הצעות המחיר שנוצרו, עם חיפוש, סינון וסטטוס.',
+    'רשימת כל הצעות המחיר שנוצרו, עם חיפוש, סינון ומצב.',
     'The list of every quote created, with search, filtering, and status.',
     { surfaces: ['quote_history_screen'], aiMayNavigate: true, safeNavigationId: 'open_quote_history', canonicalSources: ['src/components/QuotesTab.jsx'] }),
 
@@ -149,12 +149,12 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     }),
 
   capability('quote_duplicate', 'שכפול הצעת מחיר', 'Duplicate a quote',
-    'שכפול הצעת מחיר קיימת ליצירת הצעה חדשה מבוססת עליה.',
+    'שכפול הצעת מחיר קיימת כדי ליצור הצעה חדשה שמבוססת עליה.',
     'Duplicate an existing quote to start a new one from it.',
     { surfaces: ['quote_history_screen'], operationType: 'mutate', subscriptionCapabilityId: 'quote.edit_duplicate', canonicalSources: ['src/pages/Dashboard.jsx', 'src/components/QuotesTab.jsx'] }),
 
-  capability('quote_status', 'סטטוס הצעת מחיר', 'Quote status',
-    'סימון/צפייה בסטטוס הצעה (טיוטה/נשלח/אושר/שולם): אפשר לבחור אותו ידנית, והצעה בטיוטה מסומנת „נשלחה” אוטומטית כששולחים אותה בוואטסאפ (כשוואטסאפ נפתח) או במייל (אחרי שליחה מוצלחת). הסטטוס אינו גובה תשלום.',
+  capability('quote_status', 'מצב הצעת מחיר', 'Quote status',
+    'סימון/צפייה במצב הצעה (טיוטה/נשלחה/אושרה/שולמה): אפשר לבחור אותו ידנית, והצעה בטיוטה מסומנת „נשלחה” אוטומטית כששולחים אותה בוואטסאפ (כשוואטסאפ נפתח) או במייל (אחרי שליחה מוצלחת). המצב אינו גובה תשלום.',
     'Viewing/setting a quote\'s status (Draft/Sent/Approved/Paid): you can set it by hand, and a Draft is marked Sent automatically when you share it by WhatsApp (when WhatsApp opens) or by email (after a successful send). The status does not collect payment.',
     { surfaces: ['quote_editor', 'quote_history_screen'], operationType: 'mutate', forbiddenClaimCodes: ['NO_PAID_STATUS_AS_PAYMENT_COLLECTION'], canonicalSources: ['src/components/QuotesTab.jsx',
       // Task 16: issuing (freezing) the quote presentation is a quote lifecycle step.
@@ -176,7 +176,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['quote_editor'], operationType: 'mutate', subscriptionCapabilityId: 'professional_quote.reuse', canonicalSources: ['src/components/QuoteForm.jsx'] }),
 
   capability('clients', 'ניהול לקוחות', 'Client management',
-    'הוספה, עריכה וצפייה בלקוחות.',
+    'הוספת לקוחות, עריכת הפרטים שלהם וצפייה בהם.',
     'Adding, editing, and viewing clients.',
     { surfaces: ['clients_screen'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_clients', canonicalSources: ['src/components/ClientsTab.jsx', 'src/components/EditClientModal.jsx'] }),
 
@@ -238,7 +238,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['public_tools_page'], canonicalSources: ['src/components/PublicTools.jsx', 'src/components/PublicToolsEn.jsx'] }),
 
   capability('public_metals_calculator', 'מחשבון מתכות ציבורי', 'Public metals calculator',
-    'הערכת שווי מתכות יקרות (זהב/כסף/פלטינה/פלדיום/רודיום) - הנחות מחיר קבועות מוכפלות בשער דולר/שקל חי, לא הזנה חיה של שער מתכות עצמו.',
+    'הערכת שווי של מתכות יקרות (זהב, כסף, פלטינה, פלדיום ורודיום): מחירי ייחוס קבועים מוכפלים בשער דולר–שקל עדכני. מחירי המתכות עצמם אינם מתעדכנים בזמן אמת.',
     'An estimate of precious-metals value (gold/silver/platinum/palladium/rhodium) - fixed per-gram assumptions multiplied by a live USD/ILS rate, not an independent live metals feed.',
     {
       surfaces: ['public_tools_page'], currencies: { role: 'conversion_only', values: ['ILS'] },
@@ -258,7 +258,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
       'src/components/ShareDefaultsSettings.jsx'] }), // Task 27: manual sharing defaults / thank-you settings screen
 
   capability('profile_prerequisites', 'דרישות פרופיל עסקי', 'Business profile prerequisites',
-    'טלפון עסקי (וב-שוק המקומי גם ח.פ./עוסק) נדרשים לפני יצירת הצעה ראשונה.',
+    'לפני יצירת ההצעה הראשונה נדרש טלפון עסקי, ובשוק המקומי נדרש גם מספר ח״פ או עוסק.',
     'A business phone (and, in the Local market, a tax/business ID) are required before the first quote can be created.',
     {
       surfaces: ['settings_screen', 'quote_editor'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_business_phone',
@@ -269,7 +269,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   // there is no separate trial - Free is 10 quotes in total or 7 days from signup, whichever ends first (SMART PACK included in the 7
   // days; Owner 2026-10-20, IRON-LANDING-001 amended), and the new plan system is not active yet.
   capability('plan_trial', 'מסלולים ו-10 הצעות חינם', 'Plans and Free quotes',
-    'מסלול חינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם, ובשבעת הימים כלול גם חכם פלוס. אחריהן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. מערכת המנויים החדשה עדיין בהכנה.',
+    'מסלול החינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם. בשבעת הימים כלול גם חכם פלוס. לאחר מכן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. מערכת המנויים החדשה עדיין בהכנה.',
     'The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, with SMART PACK included during those 7 days. After them there is one package with every available capability, billed monthly or annually: 18.00 USD per month or 184.00 USD per year, charged in USD. The new subscription system is still being prepared.',
     { surfaces: ['plans_screen'], aiMayNavigate: true, safeNavigationId: 'open_plan_information', deterministicFactKeys: ['subscriptions.free.quotesTotal', 'subscriptions.planSystemActive'], canonicalSources: ['src/domain/subscriptions/packageCatalog.js', 'src/domain/subscriptions/priceCatalog.js', 'supabase/functions/_shared/subscriptionContract.ts', 'src/components/PricingModal.jsx', 'src/components/SettingsTab.jsx', 'src/pages/Dashboard.jsx',
       // still carries this id's PRODUCT_TRUTH_CAPABILITY marker (legacy resolver, owned by the core stream): drop this path when
@@ -343,7 +343,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['public_quote_page'], operationType: 'mutate', canonicalSources: ['src/pages/PublicQuote.jsx', 'src/pages/PublicQuoteEn.jsx', 'supabase/functions/get-public-quote/index.ts'] }),
 
   capability('quote_expiry', 'תפוגת הצעת מחיר', 'Quote expiry',
-    'הצעה שפג תוקפה נשארת צפויה לצפייה אך אינה ניתנת לחתימה.',
+    'אפשר לצפות בהצעה שפג תוקפה, אבל אי אפשר לחתום עליה.',
     'An expired quote stays viewable but cannot be signed.',
     // Codex finding 3 (2026-09-24): the real expiry rule (`isQuoteAcceptanceExpired`) is DEFINED in
     // validity.ts; index.ts only imports and calls it - added so this capability's own source-owned
@@ -351,7 +351,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['public_quote_page', 'quote_editor'], deterministicFactKeys: ['isExpired'], canonicalSources: ['supabase/functions/get-public-quote/validity.ts', 'supabase/functions/get-public-quote/index.ts'] }),
 
   capability('draft_recovery', 'שחזור טיוטה מקומית', 'Local draft recovery',
-    'שחזור עבודה שלא נשמרה בעורך ההצעה לאחר רענון/מעבר אפליקציה - שמור מקומית בדפדפן בלבד, לא בענן.',
+    'שחזור עבודה שלא נשמרה בעורך ההצעה לאחר רענון או מעבר לאפליקציה אחרת. העבודה שמורה רק בדפדפן המקומי, ולא בענן.',
     'Restoring unsaved editor work after a refresh/app switch - stored locally in the browser only, never in the cloud.',
     { surfaces: ['quote_editor'], forbiddenClaimCodes: ['NO_LOCAL_DRAFT_AS_CLOUD_SAVED'], deterministicFactKeys: ['draftProvenance'], canonicalSources: ['src/utils/quoteDraft.js', 'src/components/QuoteDraftNotices.jsx'] }),
 
@@ -391,7 +391,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
 
   // ---- Task 20: capabilities after the frozen 38 (PHASE_CAPABILITY_IDS). Descriptions state what is active and what is not. ----
   capability('quote_statistics', 'סטטיסטיקת הצעות והצעות חמות', 'Quote statistics and hot quotes',
-    "מסך סטטיסטיקה: כמה הצעות נוצרו, נשלחו, אושרו ושולמו, שיעור ההמרה, ורשימת הצעות חמות (נצפו 3 פעמים או יותר וממתינות לאישור) עם פעולות ידניות: צפייה בהצעה (נפתחת בלשונית חדשה), WhatsApp, שליחה במייל ויצירת משימת מעקב. סכומים מוצגים לכל מטבע בנפרד, לפי תקופה וסטטוס. פותחים אותו מהתפריט „סטטיסטיקה” (בנייד: „עוד” ← „סטטיסטיקה”).",
+    "מסך סטטיסטיקה: כמה הצעות נוצרו, נשלחו, אושרו ושולמו, שיעור ההמרה, ורשימת הצעות חמות (נצפו 3 פעמים או יותר וממתינות לאישור) עם פעולות ידניות: צפייה בהצעה (נפתחת בלשונית חדשה), WhatsApp, שליחה במייל ויצירת משימת מעקב. סכומים מוצגים לכל מטבע בנפרד, לפי תקופה ומצב. פותחים אותו מהתפריט „סטטיסטיקה” (בנייד: „עוד” ← „סטטיסטיקה”).",
     "A Statistics screen: how many quotes were created, sent, approved and paid, the conversion rate, and a hot-quote list (viewed 3+ times and awaiting approval) with manual actions: view the quote (opens in a new tab), WhatsApp, email and create a follow-up task. Amounts are shown per currency, by period and status. Open it from the “Statistics” menu item (on mobile: “More” → “Statistics”).",
     { surfaces: ['dashboard'], canonicalSources: ['src/components/StatisticsTab.jsx', 'src/utils/quoteStatistics.js'] }),
 
@@ -411,7 +411,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['public_quote_page', 'dashboard'], canonicalSources: ['src/utils/firstView.js', 'src/components/SmartPublicQuote.jsx'] }),
 
   capability('reminders_automation', 'תזכורות ואוטומציות', 'Reminders & automation',
-    "הגדרות עסק ← תזכורות ואוטומציות: בוחרים אחד משלושה מצבים - „בממשק בלבד” (ברירת המחדל: התזכורות מופיעות אצלכם בפעמון), „כבוי”, או „מלא, כולל שליחה ללקוח”, שנדלק רק בבחירה מפורשת שלכם. מסמנים בתיבות סימון אילו התנהגויות יפעלו. אפשר להגדיר כלל ללקוח (ימים, תוכן, שעות שליחה ואזור זמן, עם תצוגה מקדימה והשהיה), ושליחה אוטומטית ללקוחות תיפתח בהמשך; בינתיים הודעות ללקוח נשלחות על ידכם, מתוך ההצעה. WhatsApp נשלח ידנית מתוך ההצעה.",
+    "הגדרות עסק ← תזכורות ואוטומציות: בוחרים אחד משלושה מצבים — ״בממשק בלבד״ (ברירת המחדל: התזכורות מופיעות בפעמון), ״כבוי״ או ״מלא, כולל שליחה ללקוח״. המצב המלא מופעל רק בבחירה מפורשת שלכם. מסמנים בתיבות הסימון אילו פעולות יפעלו. אפשר להגדיר כלל ללקוח (ימים, תוכן, שעות שליחה ואזור זמן, עם תצוגה מקדימה והשהיה). שליחה אוטומטית ללקוחות תיפתח בהמשך; בינתיים אתם שולחים הודעות ללקוח מתוך ההצעה. שליחה בוואטסאפ נעשית ידנית מתוך ההצעה.",
     "Business settings → Reminders & automation: you choose one of three modes - “In-app only” (the default: reminders appear for you under the bell), “Off”, or “Full, including customer sending”, which turns on only by your explicit choice. You tick which behaviors run. You can set up a customer rule (days, content, sending hours and a time zone, with a preview and a pause), and automatic sending to customers opens later; until then, messages to a customer are sent by you from the quote. WhatsApp is sent manually from the quote.",
     { surfaces: ['business_settings', 'dashboard'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_business_settings', canonicalSources: ['src/components/RemindersSettings.jsx', 'src/components/SettingsTab.jsx', 'src/components/NotificationCenter.jsx', 'supabase/functions/_shared/reminderRules.js', 'src/utils/reminders.js'] }),
 

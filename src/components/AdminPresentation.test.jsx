@@ -39,7 +39,7 @@ const freeReady = (remaining = 7) => ready({ plan: { id: 'free' }, subscriptionS
 const LEGACY_LABELS = /\b(Basic|BASIC|Pro|PRO|FREE|FREE_TRIAL|LIFETIME|Lifetime)\b|On trial|Trial expired|Active trial|בניסיון|ניסיון פג|ניסיון פעיל|14[- ]?(day|days|יום)|unlimited|ללא הגבלה|5-20/;
 // Visible text outside the legacy audit <code> values.
 // Owner console 2026-10-16, typed: "מאשר שינוי ב-L-07 להחלפת הקודים בסטטוס מנוי עם אייקונים" - ONE subscription status (icon + words)
-// replaces the raw legacy codes; its own words (מנוי LIFETIME / Lifetime subscription) are allowed only inside the status element.
+// replaces the raw legacy codes; its own words (מנוי לכל החיים / Lifetime subscription) are allowed only inside the status element.
 const visibleTextOutsideStatus = (root) => {
   const clone = root.cloneNode(true);
   // + the admin redesign (Owner 2026-10-16): the status words in the chart legends, the status cards and the status filter options
@@ -70,7 +70,7 @@ describe('Owner locked Admin presentation', () => {
     expect(rows.map((r) => r.querySelector('[data-status]').getAttribute('data-status'))).toEqual(['trial_ended', 'lifetime']);
     expect(rows[0].querySelector('td:nth-child(2) .pmm svg')).toBeTruthy();
     expect(rows[0].querySelector('td:nth-child(2) strong').textContent).toBe(isHebrew ? 'פג תוקף' : 'Expired');
-    expect(rows[1].querySelector('td:nth-child(2) strong').textContent).toBe(isHebrew ? 'מנוי LIFETIME' : 'Lifetime subscription');
+    expect(rows[1].querySelector('td:nth-child(2) strong').textContent).toBe(isHebrew ? 'מנוי לכל החיים' : 'Lifetime subscription');
     expect(rows[0].querySelector('td:nth-child(3)').textContent).toBe(isHebrew ? 'ניסיון ותיק' : 'Legacy trial');
     // review 2026-10-16: the visible dash + a screen-reader text (an aria-label on a plain span is not announced reliably)
     expect(rows[1].querySelector('td:nth-child(3) [aria-hidden="true"]').textContent).toBe('—');
@@ -85,7 +85,7 @@ describe('Owner locked Admin presentation', () => {
     expect(rpcState.calls.filter(([fn]) => fn === 'get_account_summary_for_admin')).toHaveLength(1);
     // the one status filter (the subscription status); no legacy plan / trial filter
     expect(screen.queryByRole('combobox', { name: /plan|trial|חבילה|ניסיון/i })).toBeNull();
-    expect(screen.getByRole('combobox', { name: isHebrew ? 'סינון לפי סטטוס' : 'Filter by status' })).toBeTruthy();
+    expect(screen.getByRole('combobox', { name: isHebrew ? 'סינון לפי מצב' : 'Filter by status' })).toBeTruthy();
   });
 
   // // Owner console 2026-10-16, typed: "מאשר מימוש אפיון האדמין של קודקס (CODEX_SPEC_ADMIN_REDESIGN_2026-10-16) ... ופתיחת L-03 L-07 L-17 L-20 לשינויים שבאפיון" - spec §5 (D-01 / D-06): the period from the server only; Free-10 from the server counter only.
@@ -296,12 +296,12 @@ describe('Admin sources: no active legacy plan labels (static, comments stripped
         : f === 'AdminUsersTab.jsx'
           ? ['Lifetime: the app and the chat show the account as a "Lifetime subscription" with every capability open and no charge. In the new plan system (once active) it does not change a plan or a balance.',
             // Owner console 2026-10-16 (L-07, codes -> subscription status): the Lifetime dialog states in words
-            'מנוי LIFETIME', 'Lifetime subscription', 'ללא מנוי LIFETIME', 'No Lifetime subscription',
+            'מנוי לכל החיים', 'Lifetime subscription', 'ללא מנוי לכל החיים', 'No Lifetime subscription',
             // Owner console 2026-10-17 ("מאשר תיקון כל 16 הממצאים של קודקס", AV-03): the revoke dialog explains the revoke
             'ביטול LIFETIME: החשבון חוזר למצב שנקבע לפי נתוני החשבון והשרת (ניסיון, פג תוקף או 10 הצעות חינם — טרם הופעל), ללא חיוב. מסלול או יתרה אינם נוצרים מהביטול.',
             'Revoking Lifetime: the account returns to the state its own data and the server give it (trial, expired or 10 free quotes — not yet active), with no charge. Revoking creates no plan or balance.']
           : f === 'AdminSystemActivity.jsx'
-            ? ['הענקת מנוי LIFETIME', 'Lifetime subscription granted', 'ביטול מנוי LIFETIME', 'Lifetime subscription revoked']
+            ? ['הענקת מנוי לכל החיים', 'Lifetime subscription granted', 'ביטול מנוי לכל החיים', 'Lifetime subscription revoked']
             : [];
       const offenders = literals.filter((l) => !allowed.includes(l) && /\b(Basic|BASIC|Pro|PRO|FREE_TRIAL|LIFETIME|Lifetime)\b|14[- ]?(day|days|יום)|unlimited|ללא הגבלה|5-20/.test(l));
       expect(offenders, f).toEqual([]);

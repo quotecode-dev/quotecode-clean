@@ -60,7 +60,7 @@ function truthFor(key, slot) {
   const answer = factPayload.truthStatus === 'PLAN_LOCKED'
     ? (he ? `כן - ${name} קיימת ב-TEKANGO, אך דורשת תוכנית ${min} ומעלה. ${desc} התוכנית הנוכחית שלך אינה כוללת אותה.`
       : `Yes - ${name} exists in TEKANGO, but it requires the ${min} plan or above. ${desc} Your current plan does not include it.`)
-    : (he ? `כן - ${name} קיימת ב-TEKANGO. ${desc}` : `Yes - ${name} exists in TEKANGO. ${desc}`);
+    : (he ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO. ${desc}` : `Yes - ${name} exists in TEKANGO. ${desc}`);
   return { answer, factPayload };
 }
 

@@ -30,8 +30,8 @@ export const PUBLIC_SEO_ROUTES = [
     path: '/he',
     page: 'landing',
     lang: 'he',
-    title: 'TEKANGO - מערכת SaaS לניהול עסק והפקת הצעות מחיר חכמות',
-    description: 'TEKANGO - מערכת ניהול עסק חכמה: הפקת הצעות מחיר, ניהול לקוחות, חתימה דיגיטלית וחישוב מע"מ אוטומטי לעסקים בישראל.',
+    title: 'TEKANGO — מערכת לניהול העסק ולהפקת הצעות מחיר חכמות',
+    description: 'TEKANGO - מערכת ניהול עסק חכמה: הפקת הצעות מחיר, ניהול לקוחות, חתימה דיגיטלית וחישוב מע״מ אוטומטי לעסקים בישראל.',
     hreflang: LANDING_HREFLANG,
     structuredData: {
       '@context': 'https://schema.org',
@@ -41,7 +41,7 @@ export const PUBLIC_SEO_ROUTES = [
       applicationCategory: 'BusinessApplication',
       inLanguage: 'he',
       offers: { '@type': 'Offer', price: '0', priceCurrency: 'ILS' },
-      description: 'מערכת ניהול עסק חכמה להפקת הצעות מחיר, ניהול לקוחות וחישוב מע"מ אוטומטי לעסקים בישראל.',
+      description: 'מערכת ניהול עסק חכמה להפקת הצעות מחיר, ניהול לקוחות וחישוב מע״מ אוטומטי לעסקים בישראל.',
     },
   },
   {

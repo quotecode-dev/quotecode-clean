@@ -65,7 +65,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
     <div className="no-print" data-testid="plans-modal" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       <div role="dialog" aria-modal="true" aria-labelledby="plans-modal-title" style={{ background: 'white', padding: '24px', borderRadius: '14px', width: '100%', maxWidth: '860px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: isHebrew ? 'right' : 'left', position: 'relative', maxHeight: '90vh', overflowY: 'auto', boxSizing: 'border-box' }}>
         {/* §51.16: ONE header row - AI action centred · Close */}
-        <AiModalHeader onClose={onClose} closeLabel={isHebrew ? 'סגור' : 'Close'} closeContent={<X size={18} strokeWidth={2.5} />} isHebrew={isHebrew} testId="ai-help-plans" style={{ color: '#64748b', marginBottom: '8px' }} />
+        <AiModalHeader onClose={onClose} closeLabel={isHebrew ? 'סגירה' : 'Close'} closeContent={<X size={18} strokeWidth={2.5} />} isHebrew={isHebrew} testId="ai-help-plans" style={{ color: '#64748b', marginBottom: '8px' }} />
         <h2 id="plans-modal-title" style={{ marginTop: 0, color: '#1e293b', fontSize: '1.3rem', textAlign: 'center', marginBottom: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
           <LayoutList size={20} color="#0F6672" aria-hidden="true" />
           {isHebrew ? <>מסלולי <BrandName onDark={false} /></> : <><BrandName onDark={false} /> Plans</>}
@@ -123,7 +123,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
         </p>
         </>)}
         <div style={{ textAlign: 'center', color: '#64748b', fontSize: '0.75rem' }}>
-          {isHebrew ? 'יש לך שאלות? צור איתנו קשר דרך עוזר ה-AI או במייל.' : 'Have questions? Contact us via AI assistant or email.'}
+          {isHebrew ? 'יש שאלות? אפשר לפנות אלינו דרך העוזר החכם או במייל.' : 'Have questions? Contact us via AI assistant or email.'}
         </div>
       </div>
     </div>

@@ -25,7 +25,7 @@ afterEach(() => { cleanup(); mocks.calls = []; mocks.invokes = []; mocks.invokeR
 const ROW = { id: 'r1', status: 'new', bin: null, from_address: 'noa@customer.test', from_name: 'Noa Cohen', to_addresses: ['support@inbound.tekango.test'], subject: 'איך מוסיפים לוגו?', text_body: 'שלום,\nאיך מוסיפים לוגו להצעה?', attachments: [{ filename: 'shot.png' }], auth_results: { spf: 'pass', dkim: 'pass', dmarc: 'fail' }, received_at: '2026-10-19T18:00:00Z' };
 const DRAFT = { ...ROW, id: 'r2', status: 'draft', bin: 'green', bin_reason: 'model:green', summary: 'רוצה להוסיף לוגו', mailbox: 'info', reply_language: 'he', draft_reply: 'שלום,\nבהגדרות העסק.' };
 const RED = { ...ROW, id: 'r3', status: 'waiting', bin: 'red', bin_reason: 'word:ביטול', mailbox: 'support', reply_language: 'he', draft_reply: null, ack_sent_at: '2026-10-20T08:00:00Z', subject: 'ביטול' };
-const DONE = { ...ROW, id: 'r4', status: 'answered', bin: 'green', mailbox: 'support', reply_text: 'שלום, הנה התשובה', reply_sent_at: '2026-10-20T09:00:00Z', reply_sent_by: 'assistant', subject: 'נענה' };
+const DONE = { ...ROW, id: 'r4', status: 'answered', bin: 'green', mailbox: 'support', reply_text: 'שלום, הנה התשובה', reply_sent_at: '2026-10-20T09:00:00Z', reply_sent_by: 'assistant', subject: 'נענתה' };
 
 describe('Admin "Inquiries" tab (Owner 2026-10-19, L-22)', () => {
   // Owner console 2026-10-20 (L-22 "צמצום תפריט הניהול לשני כפתורים ומסך מרכזי, ומשתמש מפקח ..."): inside the "ניהול" hub, opened by inquiries.view
@@ -69,10 +69,10 @@ describe('stage 2 (Owner 2026-10-20, L-22): colours, state, mailbox column, coun
     expect(rows.map((r) => within(r).getByTestId('inquiry-mailbox').textContent)).toEqual(['info@tekango.com', 'support@tekango.com', 'support@tekango.com']);
     expect(within(rows[1]).getByRole('img', { name: 'אדום' })).toBeTruthy();
     expect(rows[0].textContent).toContain('טיוטה לאישור');
-    expect(rows[1].textContent).toContain('ממתין לך');
-    expect(rows[2].textContent).toContain('נענה');
+    expect(rows[1].textContent).toContain('ממתינה לטיפולכם');
+    expect(rows[2].textContent).toContain('נענתה');
     expect(screen.getByTestId('inquiries-pending').textContent).toBe('2');
-    expect(screen.getByText('3 פניות · 2 ממתינות לך')).toBeTruthy();
+    expect(screen.getByText('פניות: 3 · ממתינות לטיפול: 2')).toBeTruthy();
     fireEvent.change(screen.getByTestId('inquiries-filter'), { target: { value: 'pending' } });
     expect(screen.getAllByTestId('inquiry-row')).toHaveLength(2);
   });
@@ -96,7 +96,7 @@ describe('stage 2 (Owner 2026-10-20, L-22): colours, state, mailbox column, coun
     expect(screen.queryByTestId('inquiry-reply')).toBeNull();
   });
 
-  it('a RED inquiry shows why and the acknowledgement already sent; "בקש מהעוזר טיוטה" fills the reply; "לא לשלוח" closes it', async () => {
+  it('a RED inquiry shows why and the acknowledgement already sent; "בקשת טיוטה מהעוזר" fills the reply; "לא לשלוח" closes it', async () => {
     mocks.result = { data: [RED], error: null };
     mocks.invokeResult = (body) => (body.action === 'redraft' ? { ok: true, draft: 'שלום,\nטיוטה מהעוזר.' } : { ok: true, status: 'dismissed' });
     render(<AdminInquiries isHebrew />);
@@ -127,7 +127,7 @@ describe('stage 2 (Owner 2026-10-20, L-22): colours, state, mailbox column, coun
     fireEvent.click(await screen.findByTestId('inquiries-settings'));
     const green = await screen.findByTestId('inquiries-setting-auto_send_green');
     expect(green.checked).toBe(false);
-    expect(screen.getByTestId('inquiries-settings-dialog').textContent).toContain('כל תשובה נשמרת כטיוטה לאישורך');
+    expect(screen.getByTestId('inquiries-settings-dialog').textContent).toContain('כל תשובה נשמרת כטיוטה לאישורכם');
     fireEvent.click(green);
     await waitFor(() => expect(mocks.invokes[0]).toEqual({ name: 'support-admin', body: { action: 'settings', auto_send_green: true } }));
     expect(screen.getByTestId('inquiries-setting-auto_send_green').checked).toBe(true);
@@ -143,7 +143,7 @@ describe('stage 2 (Owner 2026-10-20, L-22): colours, state, mailbox column, coun
     fireEvent.click(screen.getByTestId('inquiries-sort-bin'));
     expect(order()[2]).toBe('ביטול');
     fireEvent.click(screen.getByTestId('inquiries-sort-state'));
-    expect(order()).toEqual(['נענה', 'איך מוסיפים לוגו?', 'ביטול']);
+    expect(order()).toEqual(['נענתה', 'איך מוסיפים לוגו?', 'ביטול']);
     fireEvent.click(screen.getByTestId('inquiries-sort-mailbox'));
     expect(screen.getAllByTestId('inquiry-mailbox')[0].textContent).toBe('info@tekango.com');
     fireEvent.change(screen.getByTestId('inquiries-bin-filter'), { target: { value: 'red' } });

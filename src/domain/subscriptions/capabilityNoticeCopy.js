@@ -16,7 +16,7 @@ export function capabilityNoticeCopy(lang, capabilityId, summary) {
     ? approved.map((p) => planName(p, lang)).filter(Boolean)
     : null;
   return {
-    title: he ? `${label} אינו כלול במסלול הנוכחי` : `${label} is not included in the current plan`,
+    title: he ? `האפשרות ״${label}״ אינה כלולה במסלול הנוכחי` : `${label} is not included in the current plan`,
     explanation,
     currentPlan,
     eligible: eligibleNames

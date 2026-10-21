@@ -18,7 +18,7 @@ function realAccounts(accounts) {
 // is_lifetime) are audit history only: this counts their RAW technical values (lowercase keys, as stored) and is always
 // presented under the "Legacy record (history)" label. It never maps them to a plan name (no Basic/Pro/trial/LIFETIME
 // identity) and never derives a new-model plan - the new plan state comes only from the admin summary RPC.
-export const LEGACY_HISTORY_LABEL = Object.freeze({ he: 'רשומת מורשת (היסטוריה)', en: 'Legacy record (history)' });
+export const LEGACY_HISTORY_LABEL = Object.freeze({ he: 'רשומה מהמערכת הקודמת (לצורכי תיעוד)', en: 'Legacy record (history)' });
 
 const rawPlan = (value) => (typeof value === 'string' && value.trim() ? value.trim().toLowerCase() : 'null');
 

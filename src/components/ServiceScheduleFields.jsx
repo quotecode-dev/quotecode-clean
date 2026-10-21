@@ -10,7 +10,7 @@ import { normalizeServiceSchedule } from '../utils/serviceScheduleClient';
 const NOTE = {
   unavailable: ['תאריך ביצוע עדיין לא זמין בשרת הזה - ההצעה נשמרת כרגיל בלעדיו.', 'A work date is not available on this server yet - the quote saves normally without it.'],
   error: ['לא ניתן היה לטעון את תאריך הביצוע השמור, ולכן אי אפשר לשנות אותו כרגע.', 'The saved work date could not be loaded, so it cannot be changed right now.'],
-  loading: ['טוען תאריך ביצוע...', 'Loading the work date...'],
+  loading: ['טוען תאריך ביצוע…', 'Loading the work date...'],
   time_without_date: ['כדי לשמור שעה יש לבחור גם תאריך.', 'Choose a date to keep a time.'],
   invalid_date: ['התאריך אינו תקין.', 'The date is not valid.'],
   invalid_time: ['השעה אינה תקינה.', 'The time is not valid.'],

@@ -199,6 +199,14 @@ describe('FINDING 3 - adversarial polarity (HE)', () => {
     expect(verdict(truthOf('editor_calculator'), 'אין מחשבון בעורך ההצעה.', 'he').length).toBeGreaterThan(0);
     expect(verdict(truthOf('editor_calculator'), 'המערכת לא כוללת מחשבון.', 'he').length).toBeGreaterThan(0);
   });
+  it('Codex night review 2026-10-22 (finding 4): only "לחשבון הנוכחי אין ההרשאה" is the account lacking a role; any other "אין ההרשאה" still denies', () => {
+    const avail = truthOf('editor_calculator', 'visual', 'user');
+    expect(verdict(avail, 'מחשבון בעורך ההצעה קיים ב-TEKANGO, אבל אין ההרשאה להשתמש בו לאף חשבון.', 'he').join(' ')).toMatch(/denies_existence/);
+    expect(verdict(avail, 'מחשבון בעורך ההצעה קיים ב-TEKANGO, אבל אין הרשאה להשתמש בו לאף חשבון.', 'he').join(' ')).toMatch(/denies_existence/);
+    const role = truthOf('admin_console', 'visual', 'user');
+    expect(verdict(role, 'כן — האפשרות ״מסך ניהול״ קיימת ב-TEKANGO, אך היא זמינה רק לתפקיד super_admin, אחרי אימות ההרשאה בשרת. לחשבון הנוכחי אין ההרשאה הזו.', 'he')).toEqual([]);
+    expect(verdict(role, 'כן — האפשרות ״מסך ניהול״ קיימת ב-TEKANGO, אך היא זמינה רק לתפקיד super_admin. אין ההרשאה הזו לאף משתמש.', 'he').join(' ')).toMatch(/denies_existence|does_not_say_the_account_lacks/);
+  });
   it('expected UNSUPPORTED + "available" => FAIL', () => {
     const t = truthOf('ai_mutation');
     expect(verdict(t, 'כן - שינוי נתונים על ידי AI קיימת ב-TEKANGO.', 'he').join(' ')).toMatch(/affirms_availability/);
@@ -237,7 +245,7 @@ describe('SUBSCRIPTIONS CUTOVER - PLAN_NOT_DECIDED polarity (OPEN-02 / OPEN-13):
       const text = render(id, lang, tier);
       expect(verdict(truthOf(id, tier ?? undefined), text, lang), text).toEqual([]);
       expect(text).not.toMatch(/\b(?:PRO|BASIC|Pro|Basic)\b|trial|ניסיון|unlimited|ללא הגבלה/);
-      expect(text).toMatch(lang === 'he' ? /טרם הוחלט/ : /undecided/);
+      expect(text).toMatch(lang === 'he' ? /(?:טרם|עדיין לא) הוחלט/ : /undecided/);
     }
   });
   it('a legacy plan-gate answer, a "your plan includes it" answer, a universal answer or a silent answer are all REJECTED', () => {

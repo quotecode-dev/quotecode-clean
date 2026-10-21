@@ -363,7 +363,7 @@ export default function DividedQuoteUnits({ units, unassignedItems, mode, resetT
               type="button"
               onClick={() => toggleUnit(unit.id)}
               dir={isHebrew ? 'rtl' : 'ltr'}
-              aria-label={collapsed ? (isHebrew ? 'הרחב יחידה' : 'Expand unit') : (isHebrew ? 'כווץ יחידה' : 'Collapse unit')}
+              aria-label={collapsed ? (isHebrew ? 'הרחבת היחידה' : 'Expand unit') : (isHebrew ? 'כיווץ היחידה' : 'Collapse unit')}
               style={{
                 width: '100%', display: 'flex', flexDirection: 'column', gap: '4px',
                 padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer',
@@ -383,7 +383,7 @@ export default function DividedQuoteUnits({ units, unassignedItems, mode, resetT
                   בלי להשאיר רווח ריק (display:none מלא, לא visibility). */}
               <span className="pq-unit-disclosure" style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#7c3aed', fontSize: '0.82rem', fontWeight: 600 }}>
                 <ChevronDown size={14} style={{ flexShrink: 0, transform: collapsed ? (isHebrew ? 'rotate(90deg)' : 'rotate(-90deg)') : 'rotate(0deg)', transition: 'transform 0.15s' }} />
-                {collapsed ? (isHebrew ? 'פירוט מידות ומפרט' : 'Measurements & specification') : (isHebrew ? 'הסתר מידות ומפרט' : 'Hide measurements & specification')}
+                {collapsed ? (isHebrew ? 'פירוט מידות ומפרט' : 'Measurements & specification') : (isHebrew ? 'הסתרת המידות והמפרט' : 'Hide measurements & specification')}
               </span>
             </button>
 
@@ -394,7 +394,7 @@ export default function DividedQuoteUnits({ units, unassignedItems, mode, resetT
                 </div>
                 <div className="pq-unit-foot-total" style={{ padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', borderTop: '1px solid #f1f5f9', background: '#faf9fd' }} dir={isHebrew ? 'rtl' : 'ltr'}>
                   <span style={{ fontWeight: 700, fontSize: '0.82rem', color: '#6b6580', minWidth: 0 }}>
-                    {isHebrew ? `סה"כ ${unit.title}` : `Total ${unit.title}:`}
+                    {isHebrew ? `סה״כ ${unit.title}` : `Total ${unit.title}:`}
                   </span>
                   <MoneyCell currencySymbol={currencySymbol} amount={unit.subtotal} formatMoneyDisplay={moneyFmt} color="#1e293b" />
                 </div>

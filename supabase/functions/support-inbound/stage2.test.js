@@ -265,7 +265,7 @@ describe('the evening summary (20:00 Israel time)', () => {
     const d = buildDigest('2026-10-20', [r({}), r({ bin: 'red', status: 'waiting', reply_sent_by: null, summary: 'wants a refund' })], [r({ bin: 'red', status: 'waiting', summary: 'wants a refund' })]);
     expect(d.subject).toBe('סיכום הפניות של היום: 1 ממתינות לך');
     expect(d.text).toContain('ירוק: 1  ·  צהוב: 0  ·  אדום: 1  ·  שחור: 0');
-    expect(d.text).toContain('נענו לבד על ידי העוזר: 1');
+    expect(d.text).toContain('פניות שהעוזר ענה עליהן אוטומטית: 1');
     expect(d.text.split('\n')).toEqual(expect.arrayContaining(['אדום - צריך אותך', 'a@x.test', 'wants a refund']));
   });
 });

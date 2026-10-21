@@ -80,11 +80,11 @@ export function buildGuidedIntentReply(intentId, { isHebrew = true, isDashboard 
             `אתם ${f.mode === 'edit' ? 'עורכים הצעה קיימת' : 'יוצרים הצעה חדשה'}: ${editorSummary(f, isHebrew)}. באיזה שלב אתם צריכים עזרה?`,
             `You are ${f.mode === 'edit' ? 'editing an existing quote' : 'creating a new quote'}: ${editorSummary(f, isHebrew)}. Which step do you need help with?`),
           actions: [action('next_step', T(isHebrew, 'מה הצעד הבא?', 'What is the next step?'),
-            T(isHebrew, 'מה הצעד הבא בהצעה שאני עובד עליה עכשיו?', "What is the next step in the quote I'm working on now?"))],
+            T(isHebrew, 'מה הצעד הבא בהצעה שפתוחה כרגע?', "What is the next step in the quote I'm working on now?"))],
         };
       }
       return {
-        text: T(isHebrew, 'ספרו לי במה אתם עובדים עכשיו או איפה נתקעתם, ואסביר את הצעד הבא.', "Tell me what you're working on right now or where you got stuck, and I'll explain the next step."),
+        text: T(isHebrew, 'ספרו לי על מה אתם עובדים עכשיו או איפה נתקעתם, ואסביר את הצעד הבא.', "Tell me what you're working on right now or where you got stuck, and I'll explain the next step."),
         actions: [],
       };
     }

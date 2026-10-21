@@ -12,9 +12,9 @@ import './adminUsers.css';
 
 const C = {
   title: { he: 'הרשאות מנהל', en: 'Admin permissions' },
-  subtitle: { he: (n) => `${n} מפקחים`, en: (n) => `${n} supervisors` },
+  subtitle: { he: (n) => `מפקחים: ${n}`, en: (n) => `${n} supervisors` },
   add: { he: 'הוספת מפקח', en: 'Add a supervisor' },
-  search: { he: 'חיפוש משתמש לפי אימייל או שם העסק...', en: 'Search a user by email or business name...' },
+  search: { he: 'חיפוש משתמש לפי אימייל או שם העסק…', en: 'Search a user by email or business name...' },
   pick: { he: 'בחירה', en: 'Choose' },
   none: { he: 'עדיין אין מפקחים. לחצו "הוספת מפקח" כדי לתת למשתמש קיים הרשאות.', en: 'No supervisors yet. Choose "Add a supervisor" to give an existing user permissions.' },
   edit: { he: 'עריכת הרשאות', en: 'Edit permissions' },
@@ -23,8 +23,8 @@ const C = {
   saved: { he: 'ההרשאות נשמרו.', en: 'Permissions saved.' },
   removed: { he: 'כל ההרשאות הוסרו.', en: 'All permissions removed.' },
   failed: { he: 'השמירה לא הצליחה. נסו שוב.', en: 'Could not save. Try again.' },
-  loading: { he: 'טוען...', en: 'Loading...' },
-  ownerOnly: { he: 'תמיד נשארים רק אצלך: מחיקת משתמשים, מנוי לכל החיים או הארכה בחינם, ומינוי מפקחים.', en: 'Always yours only: deleting users, lifetime subscriptions or free extensions, and appointing supervisors.' },
+  loading: { he: 'טוען…', en: 'Loading...' },
+  ownerOnly: { he: 'רק בעל המערכת יכול למחוק משתמשים, להעניק מנוי לכל החיים או הארכה בחינם, ולמנות מפקחים.', en: 'Always yours only: deleting users, lifetime subscriptions or free extensions, and appointing supervisors.' },
   close: { he: 'סגירה', en: 'Close' },
   forUser: { he: 'הרשאות עבור', en: 'Permissions for' },
   screens: { he: 'מסכים', en: 'Screens' },

@@ -97,7 +97,7 @@ export default function AdminSystemActivity({ accounts, isHebrew, onRefreshAccou
           </>
           <label className="av-field av-search">
             <span>{t(isHebrew, C.findUser.he, C.findUser.en)}</span>
-            <input type="search" value={query} onChange={(e) => { setQuery(e.target.value); setShown(PAGE); }} placeholder={isHebrew ? 'שם עסק או דוא״ל' : 'Business name or email'} />
+            <input type="search" value={query} onChange={(e) => { setQuery(e.target.value); setShown(PAGE); }} placeholder={isHebrew ? 'שם עסק או מייל' : 'Business name or email'} />
           </label>
         </div>
         <div className="av-pills" role="group" aria-label={isHebrew ? 'סוג אירועים' : 'Event type'}>
@@ -146,7 +146,7 @@ export default function AdminSystemActivity({ accounts, isHebrew, onRefreshAccou
         <div className="av-pager">
           <span className="av-small"><bdi className="av-num">{Math.min(shown, list.length)}</bdi> {t(isHebrew, C.of.he, C.of.en)} <bdi className="av-num">{list.length}</bdi> {isHebrew ? 'אירועים' : 'events'}</span>
           {/* PRODUCT_TRUTH_DECORATIVE: loads more events */}
-          <button type="button" className="av-btn" disabled={list.length <= shown} onClick={() => setShown((n) => n + PAGE)}>{isHebrew ? 'טען עוד' : 'Load more'}</button>
+          <button type="button" className="av-btn" disabled={list.length <= shown} onClick={() => setShown((n) => n + PAGE)}>{isHebrew ? 'טעינה נוספת' : 'Load more'}</button>
         </div>
       </article>
       {/* Diagnostic tools (spec §4.5 / D-08): the legacy test-email tool moved here from the users screen, behaviour unchanged */}

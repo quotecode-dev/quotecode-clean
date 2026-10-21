@@ -1,5 +1,5 @@
 // Owner console 2026-10-20, typed: "מאשר שינוי ב-L-22: צמצום תפריט הניהול לשני כפתורים ומסך מרכזי, ומשתמש מפקח עם מסך הרשאות מנהל"
-// and "מאשר שינוי ב-L-17: הודעה צפה אחת על חכם פלוס" - the two hubs, the Owner-only permissions screen, what a supervisor sees, and the
+// and "מאשר שינוי ב-L-17: הודעה צפייה אחת על חכם פלוס" - the two hubs, the Owner-only permissions screen, what a supervisor sees, and the
 // SMART PACK bell notice. SYNTHETIC data; the Supabase client is replaced.
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -98,7 +98,7 @@ describe('"הרשאות מנהל" (the Owner only)', () => {
   it('no supervisors yet: says so, and lists the protected actions that stay the Owner\'s', async () => {
     render(<AdminPermissions isHebrew accounts={ACCOUNTS} />);
     expect(await screen.findByTestId('permissions-empty')).toBeTruthy();
-    expect(screen.getByText(/מחיקת משתמשים, מנוי לכל החיים או הארכה בחינם, ומינוי מפקחים/)).toBeTruthy();
+    expect(screen.getByText(/רק בעל המערכת יכול למחוק משתמשים, להעניק מנוי לכל החיים או הארכה בחינם, ולמנות מפקחים/)).toBeTruthy();
   });
   it('add a supervisor: search an existing user (never a super admin), tick boxes, save exactly those', async () => {
     render(<AdminPermissions isHebrew accounts={ACCOUNTS} />);

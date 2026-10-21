@@ -31,7 +31,7 @@ export default function EmailConfirmModal({ isOpen, onClose, onConfirm, clientEm
           </button>
           {/* PRODUCT_TRUTH_CAPABILITY: quote_email */}
           <button onClick={onConfirm} style={{ flex: 1, background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.9rem', boxShadow: '0 2px 6px rgba(79, 70, 229, 0.2)' }}>
-            {isHebrew ? 'כן, שלח מייל' : 'Yes, Send'}
+            {isHebrew ? 'כן, לשלוח מייל' : 'Yes, Send'}
           </button>
         </div>
       </div>

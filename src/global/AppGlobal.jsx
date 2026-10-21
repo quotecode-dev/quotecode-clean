@@ -19,6 +19,7 @@ import Contact from '../pages/Contact';
 import AttachmentCompatRoute from '../components/AttachmentCompatRoute';
 import UpdateAvailableBanner from '../shared/UpdateAvailableBanner';
 import RouteScrollManager from '../shared/RouteScrollManager';
+import SiteAnalytics from '../shared/SiteAnalyticsTracker';
 
 export default function AppGlobal() {
   useEffect(() => {
@@ -36,6 +37,8 @@ export default function AppGlobal() {
       <UpdateAvailableBanner isHebrew={false} />
       {/* Owner 2026-10-15: a new page opens at its top (or #section); Back returns to where the user was */}
       <RouteScrollManager />
+      {/* Owner console 2026-10-21 (L-12): visitor measurement on the public pages only + the cookie notice (src/shared/siteAnalytics.js) */}
+      <SiteAnalytics isHebrew={false} />
       {/* Auth Lifecycle Forensic Audit (2026-09-09, §226): a second, fully
           unreachable "forgot password" modal + handleSendRecovery
           previously lived here - setForgotPasswordOpen was never called

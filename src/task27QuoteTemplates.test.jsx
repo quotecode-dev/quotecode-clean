@@ -85,7 +85,7 @@ describe('templates - dialogs', () => {
   it('HE save: name required, the "never kept" list is stated, success only after the database row', async () => {
     const client = { from: vi.fn(() => ({ insert: (row) => ({ select: () => ({ single: () => Promise.resolve({ data: { id: 't1', ...row }, error: null }) }) }) })) };
     render(<SaveTemplateDialog isHebrew client={client} userId={USER} form={FORM} formatMoney={(v) => `₪${v.toFixed(2)}`} onClose={vi.fn()} />);
-    expect(screen.getByTestId('template-never').textContent).toMatch(/לקוח ואיש קשר, מספר הצעה, סטטוס, חתימה, תשלום, קישור ותאריכים/);
+    expect(screen.getByTestId('template-never').textContent).toMatch(/לקוח ואיש קשר, מספר הצעה, מצב, חתימה, תשלום, קישור ותאריכים/);
     expect(screen.getByTestId('template-summary').textContent).toMatch(/₪2100.00/);
     fireEvent.click(screen.getByTestId('template-save'));
     await waitFor(() => expect(screen.getByTestId('template-save-result').textContent).toBe('יש לתת שם לתבנית.'));

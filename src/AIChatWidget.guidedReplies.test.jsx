@@ -83,7 +83,7 @@ describe('AIChatWidget in the new-quote editor', () => {
   const open = async (getter) => {
     const view = render(<AIChatWidget isHebrew={true} isDashboard={true} currentArea="dashboard" workflowContext={workflow} helpSources={editorSources()} getQuoteDraftSnapshot={getter} />);
     await waitFor(() => expect(mocks.getSession).toHaveBeenCalled());
-    fireEvent.click(screen.getByLabelText('צאט AI'));
+    fireEvent.click(screen.getByLabelText('צ׳אט AI'));
     return view;
   };
 
@@ -108,7 +108,7 @@ describe('AIChatWidget in the new-quote editor', () => {
     expect(JSON.stringify(first.helpContext || {})).not.toContain('ריצוף חדר הורים');
     // an unsaved edit / another draft of the same size: the next review sends exactly what is in the form now
     current = { identity: 'd1', snapshot: snap([{ ...DRAFT_A[0], description: 'ריצוף חדר הורים קרמיקה 60×60' }, DRAFT_A[1]]) };
-    const input = screen.getByPlaceholderText('שאל משהו...');
+    const input = screen.getByPlaceholderText('שאלו משהו…');
     fireEvent.change(input, { target: { value: 'ומה עם הפירוק?' } });
     fireEvent.submit(input.closest('form'));
     await waitFor(() => expect(mocks.invoke).toHaveBeenCalledTimes(2));

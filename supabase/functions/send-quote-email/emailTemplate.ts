@@ -78,7 +78,7 @@ export function buildQuoteEmail(o: {
         <p style="font-size: 1.1rem;"><strong>סך הכל לתשלום:</strong> <span style="color: #4f46e5; font-weight: bold;">${total}</span></p>
         ${o.partialTotal ? '<p style="color: #b45309; font-weight: bold;">הסכום חלקי: יש בהצעה פריטים שטרם תומחרו.</p>' : ''}
         <br/>
-        <p>לצפייה בהצעה המלאה, אישור או חתימה דיגיטלית לחץ על הכפתור הבא:</p>
+        <p>לצפייה בהצעה המלאה, לאישור ההצעה או לחתימה דיגיטלית, לחצו על הכפתור הבא:</p>
         <div style="text-align: center; margin: 25px 0;">
           <a href="${href}" style="background: #4f46e5; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 1rem; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);">צפה בהצעת המחיר</a>
         </div>
