@@ -727,6 +727,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/theme/toolsLightTheme.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/accountEntitlement.js": {
     "interactive": 0,
     "markers": 1

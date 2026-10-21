@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ProFlowLogo from './ProFlowLogo';
 import { ArrowLeftRight, ArrowRightLeft, Coins, Ruler, Gem, Bitcoin } from 'lucide-react';
-import { NEON, FONT_HE } from '../theme/neonTheme';
+import { FONT_HE } from '../theme/neonTheme';
+// Owner 2026-10-21: the tools page in the light landing system (colors / style only)
+import { TOOLS } from '../theme/toolsLightTheme';
 import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeo } from '../shared/publicSeoRoutes';
 import { formatShortDateTime } from '../../supabase/functions/_shared/shortDate.js';
@@ -25,9 +27,9 @@ function FeedLine({ feed, testId, label, asOf }) {
   else if (feed.status === 'unavailable') text = `${label} אינם זמינים כרגע. נסו שוב מאוחר יותר.`;
   else if (feed.status === 'stale') text = `לא הצלחנו לעדכן כעת. מוצגים ${label} מ־${when(asOf)} (${feed.data.source}), וייתכן שאינם עדכניים.`;
   else text = `מקור: ${feed.data.source} · ${label} מעודכנים ל־${when(asOf)}`;
-  return <div data-testid={testId} role="status" style={{ fontSize: '0.8rem', color: feed.status === 'stale' || feed.status === 'unavailable' ? NEON.amber : NEON.textMuted || NEON.textSecondary, marginTop: '10px', textAlign: 'center' }}>{text}</div>;
+  return <div data-testid={testId} role="status" style={{ fontSize: '0.8rem', color: feed.status === 'stale' || feed.status === 'unavailable' ? TOOLS.amber : TOOLS.textMuted || TOOLS.textSecondary, marginTop: '10px', textAlign: 'center' }}>{text}</div>;
 }
-const InputError = ({ code, testId }) => (code ? <div data-testid={testId} role="alert" style={{ color: NEON.red, fontSize: '0.8rem', marginTop: '6px' }}>{ERR[code]}</div> : null);
+const InputError = ({ code, testId }) => (code ? <div data-testid={testId} role="alert" style={{ color: TOOLS.red, fontSize: '0.8rem', marginTop: '6px' }}>{ERR[code]}</div> : null);
 
 function PublicTools() {
   const navigate = useNavigate();
@@ -108,38 +110,39 @@ function PublicTools() {
 
   const tabBtnStyle = (tabKey) => ({
     flex: 1, minWidth: '130px', padding: '16px 10px', border: 'none',
-    background: activeTab === tabKey ? 'rgba(139, 92, 246, 0.12)' : 'transparent',
-    color: activeTab === tabKey ? NEON.violetLight : NEON.textSecondary, fontWeight: 'bold', cursor: 'pointer',
-    borderBottom: activeTab === tabKey ? `3px solid ${NEON.violet}` : '3px solid transparent', fontSize: '0.9rem',
+    background: activeTab === tabKey ? TOOLS.accentSoft : 'transparent',
+    color: activeTab === tabKey ? TOOLS.violetLight : TOOLS.textSecondary, fontWeight: 'bold', cursor: 'pointer',
+    borderBottom: activeTab === tabKey ? `3px solid ${TOOLS.violet}` : '3px solid transparent', fontSize: '0.9rem',
     display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px'
   });
 
-  const selectStyle = { width: '100%', padding: '12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', fontSize: '1rem', outline: 'none', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box' };
-  const labelStyle = { display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '600', color: NEON.textSecondary };
-  const resultBoxStyle = { background: 'rgba(255,255,255,0.03)', padding: '20px', borderRadius: '12px', textAlign: 'center', border: `1px solid ${NEON.border}` };
-  const swapBtnStyle = { background: 'rgba(139, 92, 246, 0.15)', border: `1px solid rgba(167, 139, 250, 0.4)`, borderRadius: '8px', width: '46px', height: '46px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: NEON.violetLight };
+  const selectStyle = { width: '100%', padding: '12px', border: `1px solid ${TOOLS.borderStrong}`, borderRadius: '7px', minHeight: '44px', fontSize: '1rem', outline: 'none', background: TOOLS.bgInput, color: TOOLS.textPrimary, boxSizing: 'border-box' };
+  const labelStyle = { display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '600', color: TOOLS.textSecondary };
+  const resultBoxStyle = { background: TOOLS.alt, padding: '20px', borderRadius: '12px', textAlign: 'center', border: `1px solid ${TOOLS.border}` };
+  const swapBtnStyle = { background: '#ffffff', border: `1px solid ${TOOLS.borderStrong}`, borderRadius: '7px', width: '46px', height: '46px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: TOOLS.violetLight };
   const numberInput = (id, value, setValue) => (
     <input id={id} type="text" inputMode="decimal" autoComplete="off" value={value} onChange={(e) => setValue(e.target.value)} style={{ ...selectStyle, direction: 'ltr', textAlign: 'right' }} />
   );
 
   return (
-    <div style={{ minHeight: '100vh', background: NEON.bg, color: NEON.textPrimary, fontFamily: FONT_HE }} dir="rtl">
+    <div style={{ minHeight: '100vh', display: 'flow-root', background: TOOLS.bg, color: TOOLS.textPrimary, fontFamily: FONT_HE }} dir="rtl">
       {/* Header */}
-      <header style={{ background: NEON.gradient, color: 'white', padding: '40px 20px', textAlign: 'center', position: 'relative' }}>
+      <header style={{ background: TOOLS.bg, color: TOOLS.textPrimary, padding: '56px 20px 40px', textAlign: 'center', position: 'relative', borderBottom: `1px solid ${TOOLS.border}` }}>
         {/* PRODUCT_TRUTH_DECORATIVE: navigation link back to the landing page of the same language (Task 36, L3) */}
-        <a href="/he" data-testid="tools-home" onClick={(e) => { e.preventDefault(); navigate('/he'); }} style={{ position: 'absolute', top: '12px', insetInlineStart: '16px', color: 'white', fontSize: '0.85rem', textDecoration: 'underline' }}>חזרה לדף הבית</a>
-        <h1 style={{ fontSize: '2.2rem', marginBottom: '10px', fontWeight: 'bold' }}>מרכז הכלים והמחשבונים העסקיים</h1>
-        <p style={{ fontSize: '1.05rem', opacity: 0.9, maxWidth: '600px', margin: '0 auto' }}>
+        <a href="/he" data-testid="tools-home" onClick={(e) => { e.preventDefault(); navigate('/he'); }} style={{ position: 'absolute', top: '12px', insetInlineStart: '16px', color: TOOLS.accent, fontSize: '0.95rem', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', minHeight: '44px' }}>חזרה לדף הבית</a>
+        <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}><ProFlowLogo size={30} darkText /></div>
+        <h1 style={{ fontSize: '2.2rem', marginBottom: '10px', fontWeight: 700, color: TOOLS.textPrimary }}>מרכז הכלים והמחשבונים העסקיים</h1>
+        <p style={{ fontSize: '1.05rem', color: TOOLS.textSecondary, maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
           מחשבונים לעסקים, ליבואנים ולעצמאים: המרת מטבעות וקריפטו לפי שערים מעודכנים מהמקור, המרת יחידות אורך והערכת שווי למתכות יקרות.
         </p>
       </header>
 
       {/* Main Container */}
-      <main style={{ maxWidth: '800px', margin: '-30px auto 40px', padding: '0 20px', position: 'relative', zIndex: 1 }}>
-        <div style={{ background: NEON.bgCard, borderRadius: '16px', boxShadow: '0 20px 40px -10px rgba(139, 92, 246, 0.2)', overflow: 'hidden', border: `1px solid ${NEON.border}` }}>
+      <main style={{ maxWidth: '800px', margin: '32px auto 40px', padding: '0 20px', position: 'relative', zIndex: 1 }}>
+        <div style={{ background: TOOLS.bgCard, borderRadius: '12px', boxShadow: TOOLS.cardShadow, overflow: 'hidden', border: `1px solid ${TOOLS.border}` }}>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', borderBottom: `1px solid ${NEON.border}`, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', background: TOOLS.alt, borderBottom: `1px solid ${TOOLS.border}`, flexWrap: 'wrap' }}>
             {/* PRODUCT_TRUTH_DECORATIVE: switches the active public tools tab to the currency converter (already-marked public_currency_converter) */}
             <button onClick={() => setActiveTab('currency')} style={tabBtnStyle('currency')}>
               <ArrowLeftRight size={18} strokeWidth={2.2} />
@@ -166,7 +169,7 @@ function PublicTools() {
           <div style={{ padding: '30px' }}>
             {activeTab === 'currency' && (
               <div>
-                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: NEON.textPrimary }}>המרת מטבעות</h2>
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: TOOLS.textPrimary }}>המרת מטבעות</h2>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '15px', alignItems: 'flex-end', marginBottom: '20px' }}>
                   <div>
@@ -196,8 +199,8 @@ function PublicTools() {
                 </div>
 
                 <div style={resultBoxStyle}>
-                  <div style={{ fontSize: '0.9rem', color: NEON.textSecondary, marginBottom: '5px' }}>תוצאה משוערת</div>
-                  <div data-testid="tools-currency-result" dir="ltr" style={{ fontSize: '2rem', fontWeight: 'bold', color: NEON.violetLight }}>{currencyResult}</div>
+                  <div style={{ fontSize: '0.9rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>תוצאה משוערת</div>
+                  <div data-testid="tools-currency-result" dir="ltr" style={{ fontSize: '2rem', fontWeight: 'bold', color: TOOLS.violetLight }}>{currencyResult}</div>
                   <FeedLine feed={feeds.currency} testId="tools-feed-currency" label="שערי המטבע" asOf={feeds.currency.data?.asOf} />
                 </div>
               </div>
@@ -205,7 +208,7 @@ function PublicTools() {
 
             {activeTab === 'units' && (
               <div>
-                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: NEON.textPrimary }}>המרת יחידות אורך</h2>
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: TOOLS.textPrimary }}>המרת יחידות אורך</h2>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', gap: '15px', alignItems: 'flex-end', marginBottom: '20px' }}>
                   <div>
@@ -235,19 +238,19 @@ function PublicTools() {
                 </div>
 
                 <div style={resultBoxStyle}>
-                  <div style={{ fontSize: '0.9rem', color: NEON.textSecondary, marginBottom: '5px' }}>תוצאה</div>
-                  <div data-testid="tools-units-result" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: NEON.violetLight }}>{unitsResult}</div>
+                  <div style={{ fontSize: '0.9rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>תוצאה</div>
+                  <div data-testid="tools-units-result" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: TOOLS.violetLight }}>{unitsResult}</div>
                 </div>
               </div>
             )}
 
             {activeTab === 'metals' && (
               <div>
-                <h2 style={{ fontSize: '1.3rem', marginBottom: '12px', color: NEON.textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Coins size={20} color={NEON.amber} />
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '12px', color: TOOLS.textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Coins size={20} color={TOOLS.amber} />
                   הערכת שווי משוערת למתכות יקרות
                 </h2>
-                <p data-testid="tools-metal-note" style={{ fontSize: '0.85rem', color: NEON.textSecondary, margin: '0 0 20px', lineHeight: 1.6 }}>
+                <p data-testid="tools-metal-note" style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, margin: '0 0 20px', lineHeight: 1.6 }}>
                   הערכה בלבד — אינה מבוססת על מחירי מתכות עדכניים. החישוב: משקל × דרגת הטוהר × מחיר לגרם מתכת טהורה. המחיר שמופיע כאן הוא ערך ייחוס קבוע ולא מחיר שוק; אפשר להזין במקומו מחיר עדכני משלכם.
                 </p>
 
@@ -322,12 +325,12 @@ function PublicTools() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '12px' }}>
                   <div style={resultBoxStyle}>
-                    <div style={{ fontSize: '0.85rem', color: NEON.textSecondary, marginBottom: '5px' }}>שווי משוער בשקלים (ILS)</div>
-                    <div data-testid="tools-metal-ils" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: NEON.amber }}>{metalIlsText}</div>
+                    <div style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>שווי משוער בשקלים (ILS)</div>
+                    <div data-testid="tools-metal-ils" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: TOOLS.amber }}>{metalIlsText}</div>
                   </div>
                   <div style={resultBoxStyle}>
-                    <div style={{ fontSize: '0.85rem', color: NEON.textSecondary, marginBottom: '5px' }}>שווי משוער בדולרים (USD)</div>
-                    <div data-testid="tools-metal-usd" dir="ltr" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: NEON.amber }}>{metalUsdText}</div>
+                    <div style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>שווי משוער בדולרים (USD)</div>
+                    <div data-testid="tools-metal-usd" dir="ltr" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: TOOLS.amber }}>{metalUsdText}</div>
                   </div>
                 </div>
                 <FeedLine feed={feeds.currency} testId="tools-feed-metal-currency" label="שערי המטבע (להמרה לשקלים)" asOf={feeds.currency.data?.asOf} />
@@ -336,8 +339,8 @@ function PublicTools() {
 
             {activeTab === 'crypto' && (
               <div>
-                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: NEON.textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Bitcoin size={20} color={NEON.violetLighter} />
+                <h2 style={{ fontSize: '1.3rem', marginBottom: '20px', color: TOOLS.textPrimary, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Bitcoin size={20} color={TOOLS.violetLighter} />
                   שווי מטבעות קריפטו
                 </h2>
 
@@ -358,16 +361,16 @@ function PublicTools() {
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                   <div style={resultBoxStyle}>
-                    <div style={{ fontSize: '0.85rem', color: NEON.textSecondary, marginBottom: '5px' }}>שווי משוער בשקלים (ILS)</div>
-                    <div data-testid="tools-crypto-ils" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: NEON.violetLighter }}>{cryptoIlsText}</div>
+                    <div style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>שווי משוער בשקלים (ILS)</div>
+                    <div data-testid="tools-crypto-ils" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: TOOLS.violetLighter }}>{cryptoIlsText}</div>
                   </div>
                   <div style={resultBoxStyle}>
-                    <div style={{ fontSize: '0.85rem', color: NEON.textSecondary, marginBottom: '5px' }}>שווי משוער בדולרים (USD)</div>
-                    <div data-testid="tools-crypto-usd" dir="ltr" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: NEON.violetLighter }}>{cryptoUsdText}</div>
+                    <div style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>שווי משוער בדולרים (USD)</div>
+                    <div data-testid="tools-crypto-usd" dir="ltr" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: TOOLS.violetLighter }}>{cryptoUsdText}</div>
                   </div>
                 </div>
                 {feeds.crypto.status !== 'loading' && feeds.crypto.status !== 'unavailable' && !coinPrice
-                  ? <div data-testid="tools-feed-crypto" role="status" style={{ fontSize: '0.8rem', color: NEON.amber, marginTop: '10px', textAlign: 'center' }}>המחיר של {cryptoLabels[cryptoCoin]} אינו זמין כרגע ממקור הנתונים ({feeds.crypto.data?.source}).</div>
+                  ? <div data-testid="tools-feed-crypto" role="status" style={{ fontSize: '0.8rem', color: TOOLS.amber, marginTop: '10px', textAlign: 'center' }}>המחיר של {cryptoLabels[cryptoCoin]} אינו זמין כרגע ממקור הנתונים ({feeds.crypto.data?.source}).</div>
                   : <FeedLine feed={feeds.crypto} testId="tools-feed-crypto" label="מחירי הקריפטו" asOf={coinPrice?.asOf} />}
               </div>
             )}
@@ -375,25 +378,25 @@ function PublicTools() {
         </div>
 
         {/* SEO Content Section */}
-        <section style={{ marginTop: '40px', background: NEON.bgCard, padding: '30px', borderRadius: '16px', border: `1px solid ${NEON.border}` }}>
-          <h3 style={{ fontSize: '1.2rem', marginBottom: '15px', color: NEON.textPrimary }}>כלים לעסקים שעובדים מול ספקים ולקוחות בחו"ל</h3>
-          <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: NEON.textSecondary, marginBottom: '15px' }}>
+        <section style={{ marginTop: '40px', background: TOOLS.bgCard, padding: '30px', borderRadius: '12px', border: `1px solid ${TOOLS.border}` }}>
+          <h3 style={{ fontSize: '1.2rem', marginBottom: '15px', color: TOOLS.textPrimary }}>כלים לעסקים שעובדים מול ספקים ולקוחות בחו"ל</h3>
+          <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: TOOLS.textSecondary, marginBottom: '15px' }}>
             עסקים, עצמאים ויבואנים נדרשים מדי יום לחישובים מהירים: המרת מטבעות, המרת יחידות בעבודה מול ספקים בחו"ל והערכת שווי. מרכז הכלים של TEKANGO מרכז את החישובים האלה במקום אחד, עם מקור הנתונים ומועד העדכון שלהם.
           </p>
         </section>
 
         {/* CTA Banner */}
-        <div style={{ marginTop: '30px', background: NEON.gradient, color: 'white', padding: '35px 20px', borderRadius: '16px', textAlign: 'center', boxShadow: NEON.glow }}>
-          <div style={{ display: 'inline-block', background: 'rgba(0, 0, 0, 0.25)', backdropFilter: 'blur(8px)', padding: '10px 22px', borderRadius: '12px', marginBottom: '15px', border: '1px solid rgba(255, 255, 255, 0.25)' }}>
-            <ProFlowLogo />
+        <div style={{ marginTop: '30px', background: TOOLS.accentSoft, color: TOOLS.textPrimary, padding: '40px 20px', borderRadius: '12px', textAlign: 'center', border: `1px solid ${TOOLS.border}` }}>
+          <div style={{ display: 'inline-block', background: '#ffffff', padding: '10px 22px', borderRadius: '12px', marginBottom: '15px', border: `1px solid ${TOOLS.border}` }}>
+            <ProFlowLogo darkText />
           </div>
-          <h3 style={{ fontSize: '1.4rem', marginBottom: '10px', fontWeight: 'bold' }}>מוכנים לנהל את העסק במקום אחד?</h3>
-          <p style={{ fontSize: '0.95rem', opacity: 0.9, marginBottom: '20px' }}>הפקת הצעות מחיר, ניהול לקוחות וחתימה דיגיטלית של הלקוח — הכול ב־TEKANGO.</p>
+          <h3 style={{ fontSize: '1.4rem', marginBottom: '10px', fontWeight: 700, color: TOOLS.textPrimary }}>מוכנים לנהל את העסק במקום אחד?</h3>
+          <p style={{ fontSize: '0.95rem', color: '#3f4d54', marginBottom: '20px' }}>הפקת הצעות מחיר, ניהול לקוחות וחתימה דיגיטלית של הלקוח — הכול ב־TEKANGO.</p>
           {/* PRODUCT_TRUTH_DECORATIVE: marketing CTA opening the account-creation screen (the landing signup path); not itself a distinct product capability */}
           <button
             data-testid="tools-cta"
             onClick={() => navigate('/dashboard?signup=true&lang=he')}
-            style={{ background: 'white', color: NEON.violet, padding: '12px 24px', borderRadius: '8px', fontWeight: 'bold', border: 'none', cursor: 'pointer', display: 'inline-block' }}
+            style={{ background: TOOLS.accent, color: '#ffffff', padding: '11px 22px', minHeight: '46px', borderRadius: '7px', fontWeight: 600, fontSize: '16px', border: `1px solid ${TOOLS.accent}`, cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
           >
             פתיחת חשבון
           </button>
