@@ -79,20 +79,30 @@ export function israelDayOfMonth(ms: number): number {
 export const PAYPLUS_ITEM_NAMES = Object.freeze({ month: 'TEKANGO - מנוי חודשי', year: 'TEKANGO - מנוי שנתי' });
 // Owner 2026-10-20: SMART PACK is a second line of the same payment page / standing order
 export const PAYPLUS_SMART_PACK_ITEM_NAMES = Object.freeze({ month: 'TEKANGO - חכם פלוס חודשי', year: 'TEKANGO - חכם פלוס שנתי' });
+// Owner console 2026-10-21 ("אם ... מפעילים את האפשרות ... לתשלומים בלייב ... צריך לעשות את זה גם לאנגלית"): International = USD, an
+// English page, VAT-exempt lines (a customer abroad), no Israeli ID / instalments field. Prepared only - the billing phase stays off.
+export const PAYPLUS_ITEM_NAMES_EN = Object.freeze({ month: 'TEKANGO - Monthly subscription', year: 'TEKANGO - Annual subscription' });
+export const PAYPLUS_SMART_PACK_ITEM_NAMES_EN = Object.freeze({ month: 'TEKANGO - SMART PACK monthly', year: 'TEKANGO - SMART PACK annual' });
 
-/** The generateLink body for one server attempt. amountMinor is the server catalog amount (IL prices include VAT: vat_type 0). */
+/** The generateLink body for one server attempt. amountMinor is the server catalog amount (IL prices include VAT: vat_type 0;
+ *  USD = International, VAT-exempt: vat_type 2). */
 export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | 'callbackUrl' | 'successUrl' | 'failureUrl' | 'cancelUrl'>,
-  i: { attemptId: string; amountMinor: number; billingPeriod: BillingPeriod; nowMs: number; addOnAmountMinor?: number | null }): Record<string, unknown> {
+  i: { attemptId: string; amountMinor: number; billingPeriod: BillingPeriod; nowMs: number; addOnAmountMinor?: number | null; currency?: 'ILS' | 'USD' }): Record<string, unknown> {
   const amount = i.amountMinor / 100;
+  const usd = i.currency === 'USD';
   const addOn = Number.isInteger(i.addOnAmountMinor) && (i.addOnAmountMinor as number) > 0 ? (i.addOnAmountMinor as number) : 0;
+  const names = usd ? PAYPLUS_ITEM_NAMES_EN : PAYPLUS_ITEM_NAMES;
+  const addOnNames = usd ? PAYPLUS_SMART_PACK_ITEM_NAMES_EN : PAYPLUS_SMART_PACK_ITEM_NAMES;
+  const vatType = usd ? 2 : 0;
   // the lines always sum to the attempt total: package = total - add-on
-  const items = [{ name: PAYPLUS_ITEM_NAMES[i.billingPeriod], quantity: 1, price: (i.amountMinor - addOn) / 100, vat_type: 0 },
-    ...(addOn ? [{ name: PAYPLUS_SMART_PACK_ITEM_NAMES[i.billingPeriod], quantity: 1, price: addOn / 100, vat_type: 0 }] : [])];
+  const items = [{ name: names[i.billingPeriod], quantity: 1, price: (i.amountMinor - addOn) / 100, vat_type: vatType },
+    ...(addOn ? [{ name: addOnNames[i.billingPeriod], quantity: 1, price: addOn / 100, vat_type: vatType }] : [])];
   return {
     payment_page_uid: cfg.paymentPageUid,
     charge_method: 3, // recurring payments
     amount,
-    currency_code: 'ILS',
+    currency_code: usd ? 'USD' : 'ILS',
+    ...(usd ? { language_code: 'en', paying_vat: false, hide_identification_id: true, hide_payments_field: true } : {}),
     more_info: i.attemptId, // comes back in the callback: the ONLY link from a payment to our server attempt
     refURL_success: cfg.successUrl,
     refURL_failure: cfg.failureUrl,
@@ -137,11 +147,11 @@ const ref = (v: unknown): string | null => (typeof v === 'string' && v.trim().le
  *  promise that a renewal repeats more_info, so a callback with the standing-order id and no attempt id is kept - SQL reaches the
  *  attempt the standing order was bound to by its first (activating) payment, and refuses one nobody bound. */
 export function mapPayPlusCallback(json: unknown): { id: string; type: EventType; occurredAt: string; attemptId: string | null;
-  paidAmountMinor: number | null; recurringRef: string | null; terminalRef: string | null } | null {
+  paidAmountMinor: number | null; paidCurrency: 'ILS' | 'USD'; recurringRef: string | null; terminalRef: string | null } | null {
   if (!isObj(json) || !isObj(json.transaction)) return null;
   const tx = json.transaction;
   const kind = typeof json.transaction_type === 'string' ? json.transaction_type.trim().toLowerCase() : '';
-  if (tx.currency !== 'ILS') return null; // phase 1: Israel only
+  if (tx.currency !== 'ILS' && tx.currency !== 'USD') return null; // Israel ILS + International USD (2026-10-21, prepared)
   if (typeof tx.uid !== 'string' || typeof tx.status_code !== 'string') return null;
   const attemptId = typeof tx.more_info === 'string' && UUID.test(tx.more_info) ? tx.more_info : null;
   const recurringRef = isObj(tx.recurring_charge_information) ? ref(tx.recurring_charge_information.recurring_uid) : null;
@@ -155,7 +165,7 @@ export function mapPayPlusCallback(json: unknown): { id: string; type: EventType
   const amountNum = typeof tx.amount === 'number' ? tx.amount
     : typeof tx.amount === 'string' && /^\d{1,9}(\.\d{1,2})?$/.test(tx.amount.trim()) ? Number(tx.amount.trim()) : NaN;
   const paidAmountMinor = Number.isFinite(amountNum) && amountNum > 0 ? Math.round(amountNum * 100) : null;
-  return { id: tx.uid, type, occurredAt, attemptId, paidAmountMinor, recurringRef, terminalRef };
+  return { id: tx.uid, type, occurredAt, attemptId, paidAmountMinor, paidCurrency: tx.currency as 'ILS' | 'USD', recurringRef, terminalRef };
 }
 
 export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
@@ -175,12 +185,12 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
   return Object.freeze({
     name: PAYPLUS_PROVIDER_NAME,
     async createCheckout(i: { attemptId: string; currency: 'ILS' | 'USD'; amountMinor: number; billingPeriod?: BillingPeriod; addOnAmountMinor?: number | null }) {
-      // Israel only; the package only (a legacy style plan carries no billing period and is never offered to a new purchase)
-      if (i.currency !== 'ILS' || !UUID.test(i.attemptId) || !Number.isInteger(i.amountMinor) || i.amountMinor <= 0
+      // ILS (Israel) or USD (International, 2026-10-21 prepared); the package only (a legacy style plan carries no billing period)
+      if ((i.currency !== 'ILS' && i.currency !== 'USD') || !UUID.test(i.attemptId) || !Number.isInteger(i.amountMinor) || i.amountMinor <= 0
           || (i.billingPeriod !== 'month' && i.billingPeriod !== 'year')
           || (i.addOnAmountMinor != null && (!Number.isInteger(i.addOnAmountMinor) || i.addOnAmountMinor <= 0 || i.addOnAmountMinor >= i.amountMinor))) return null;
       const body = buildGenerateLinkBody(cfg, { attemptId: i.attemptId, amountMinor: i.amountMinor, billingPeriod: i.billingPeriod, nowMs: cfg.now(),
-        addOnAmountMinor: i.addOnAmountMinor ?? null });
+        addOnAmountMinor: i.addOnAmountMinor ?? null, currency: i.currency });
       let json: unknown;
       try {
         const res = await cfg.fetch(`${cfg.apiBase}/PaymentPages/generateLink`, {
@@ -194,7 +204,9 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       } catch { return null; }
       if (!isObj(json) || !isObj(json.results) || json.results.status !== 'success' || !isObj(json.data)) return null;
       const link = json.data.payment_page_link;
-      return isPayPlusLink(link) ? { redirectUrl: link } : null;
+      // the page request id lets the server PULL the result later (/PaymentPages/ipn) when no callback arrives (sandbox 2026-10-21)
+      const pageRequestUid = typeof json.data.page_request_uid === 'string' && UUID.test(json.data.page_request_uid) ? json.data.page_request_uid : null;
+      return isPayPlusLink(link) ? { redirectUrl: link, ...(pageRequestUid ? { pageRequestUid } : {}) } : null;
     },
     async verifyWebhook(rawBody: Uint8Array, headers: { get(name: string): string | null }): Promise<WebhookVerification> {
       if ((headers.get('user-agent') ?? '') !== PAYPLUS_USER_AGENT) return { ok: false, reason: 'untrusted_source' };
@@ -209,7 +221,80 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       const event = mapped ? parseProviderEvent({ id: mapped.id, type: mapped.type, occurredAt: mapped.occurredAt, attemptId: mapped.attemptId,
         recurringRef: mapped.recurringRef, terminalRef: mapped.terminalRef }) : null;
       if (!mapped || !event) return { ok: false, reason: 'invalid_event' };
-      return { ok: true, event: mapped.paidAmountMinor === null ? event : { ...event, paid: { amountMinor: mapped.paidAmountMinor, currency: 'ILS' } } };
+      return { ok: true, event: mapped.paidAmountMinor === null ? event : { ...event, paid: { amountMinor: mapped.paidAmountMinor, currency: mapped.paidCurrency } } };
+    },
+  });
+}
+
+// -------------------------------------------------------------------------------------------------------- standing orders
+// Sandbox run 2026-10-21 (Owner-typed authorization; docs/PAYPLUS_OPEN_QUESTIONS_IMPACT_2026-10-21.md): POST /PaymentPages/ipn with the
+// page request id returns the standing order the payment created (uid, number, items, amount, extra_info = our attempt id) - a
+// server PULL that works without any callback; /RecurringPayments/Update needs the undocumented field `valid: true` (422 without it);
+// /RecurringPayments/DeleteRecurring cancels. Prepared only: nothing here is wired to a route while the billing phase is off.
+export type PayPlusStandingOrder = {
+  recurringUid: string; number: string | null; valid: boolean; status: string | null;
+  amountMinor: number | null; currency: 'ILS' | 'USD' | null; attemptId: string | null; startDate: string | null;
+  recurringType: number | null; recurringRange: number | null;
+  items: { productUid: string; priceMinor: number; quantity: number }[];
+  /** needed only to send an Update back; never logged, never stored */
+  customerUid: string | null; cashierUid: string | null; cardToken: string | null;
+};
+const minor = (v: unknown): number | null => {
+  const n = typeof v === 'number' ? v : typeof v === 'string' && /^\d{1,9}(\.\d{1,2})?$/.test(v.trim()) ? Number(v.trim()) : NaN;
+  return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : null;
+};
+export function normalizeStandingOrder(d: unknown): PayPlusStandingOrder | null {
+  if (!isObj(d) || typeof d.uid !== 'string' || !UUID.test(d.uid)) return null;
+  const s = (v: unknown) => (typeof v === 'string' && v.trim() ? v.trim() : null);
+  const items = Array.isArray(d.items) ? d.items.filter(isObj).map((it) => ({
+    productUid: typeof it.product_uid === 'string' ? it.product_uid : '', quantity: typeof it.quantity === 'number' ? it.quantity : 1,
+    priceMinor: minor(it.quantity_price_including_vat ?? it.quantity_price ?? it.amount_pay) ?? -1,
+  })).filter((it) => UUID.test(it.productUid) && it.priceMinor >= 0) : [];
+  const cur = d.currency_code === 'ILS' || d.currency_code === 'USD' ? d.currency_code : null;
+  return {
+    recurringUid: d.uid, number: s(d.number), valid: d.valid === true, status: s(d.status), amountMinor: minor(d.amount), currency: cur,
+    attemptId: typeof d.extra_info === 'string' && UUID.test(d.extra_info) ? d.extra_info : null, startDate: s(d.start_date),
+    recurringType: typeof d.recurring_type === 'number' ? d.recurring_type : null, recurringRange: typeof d.recurring_range === 'number' ? d.recurring_range : null,
+    items, customerUid: s(d.customer_uid), cashierUid: s(d.cashier_uid), cardToken: s(d.card_token),
+  };
+}
+
+export function payplusStandingOrders(cfg: { apiBase: string; apiKey: string; secretKey: string; fetch: Fetch; timeoutMs?: number }) {
+  if (!(Object.values(PAYPLUS_API_BASES) as string[]).includes(cfg.apiBase) || !cfg.apiKey || !cfg.secretKey || typeof cfg.fetch !== 'function') {
+    throw new Error('payplusStandingOrders: invalid configuration');
+  }
+  const call = async (method: 'GET' | 'POST', path: string, body?: unknown): Promise<Record<string, unknown> | null> => {
+    try {
+      const res = await cfg.fetch(`${cfg.apiBase}${path}`, { method, headers: { 'content-type': 'application/json', 'api-key': cfg.apiKey, 'secret-key': cfg.secretKey },
+        ...(body === undefined ? {} : { body: JSON.stringify(body) }), signal: AbortSignal.timeout(cfg.timeoutMs ?? 10_000) });
+      const j = await res.json().catch(() => null);
+      return isObj(j) ? j : null;
+    } catch { return null; }
+  };
+  const ok = (j: Record<string, unknown> | null) => !!j && isObj(j.results) && j.results.status === 'success';
+  return Object.freeze({
+    /** the standing order a payment page created, pulled by the page request id (no callback needed) */
+    async byPageRequest(pageRequestUid: string): Promise<PayPlusStandingOrder | null> {
+      if (!UUID.test(pageRequestUid)) return null;
+      const j = await call('POST', '/PaymentPages/ipn', { payment_request_uid: pageRequestUid });
+      return ok(j) ? normalizeStandingOrder(j!.data) : null;
+    },
+    /** replace the lines of a standing order (e.g. SMART PACK added / removed); the next charge from startDate, nothing charged now */
+    async updateLines(o: PayPlusStandingOrder, terminalUid: string, lines: { productUid: string; priceMinor: number; quantity?: number }[], startDate: string): Promise<boolean> {
+      if (!UUID.test(o.recurringUid) || !UUID.test(terminalUid) || !o.customerUid || !o.cashierUid || !o.cardToken || !o.currency
+          || !/^\d{4}-\d{2}-\d{2}$/.test(startDate) || !lines.length || lines.some((l) => !UUID.test(l.productUid) || !Number.isInteger(l.priceMinor) || l.priceMinor <= 0)) return false;
+      const j = await call('POST', `/RecurringPayments/Update/${o.recurringUid}`, {
+        terminal_uid: terminalUid, customer_uid: o.customerUid, card_token: o.cardToken, cashier_uid: o.cashierUid, currency_code: o.currency,
+        instant_first_payment: false, recurring_type: o.recurringType ?? 2, recurring_range: o.recurringRange ?? 1, number_of_charges: 0,
+        start_date: startDate, valid: true,
+        items: lines.map((l) => ({ product_uid: l.productUid, quantity: l.quantity ?? 1, price: l.priceMinor / 100 })),
+      });
+      return ok(j);
+    },
+    /** stop a standing order (no further charges) */
+    async cancel(recurringUid: string, terminalUid: string): Promise<boolean> {
+      if (!UUID.test(recurringUid) || !UUID.test(terminalUid)) return false;
+      return ok(await call('POST', `/RecurringPayments/DeleteRecurring/${recurringUid}`, { terminal_uid: terminalUid }));
     },
   });
 }

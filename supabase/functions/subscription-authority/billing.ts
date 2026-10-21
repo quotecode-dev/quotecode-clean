@@ -115,7 +115,7 @@ export interface BillingProvider {
   /** hosted checkout for an already-created server attempt; amount/currency (and the package period) come from that attempt only */
   createCheckout(i: { attemptId: string; currency: 'ILS' | 'USD'; amountMinor: number; billingPeriod?: BillingPeriod;
     /** Owner 2026-10-20: the SMART PACK line of the same payment (amountMinor = package + add-on) */
-    addOnAmountMinor?: number | null }): Promise<{ redirectUrl: string } | null>;
+    addOnAmountMinor?: number | null }): Promise<{ redirectUrl: string; pageRequestUid?: string } | null>;
   /** signature + timestamp window + source; returns the normalized event only when all three pass */
   verifyWebhook(rawBody: Uint8Array, headers: Headers, nowMs: number): Promise<WebhookVerification>;
 }

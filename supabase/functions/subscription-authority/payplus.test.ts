@@ -8,7 +8,7 @@ import { checkoutIntentHandler, providerWebhookHandler, type BillingSql } from '
 import { ACTIVATION_PHASE } from './authority';
 import {
   buildGenerateLinkBody, createPayPlusProvider, israelDayOfMonth, mapPayPlusCallback, PAYPLUS_API_BASES, payplusDateToIso,
-  payplusProviderFromSecrets, PAYPLUS_SECRET_NAMES, type PayPlusConfig,
+  payplusProviderFromSecrets, PAYPLUS_SECRET_NAMES, type PayPlusConfig, payplusStandingOrders, normalizeStandingOrder,
 } from './payplus';
 
 const U = '11111111-1111-4111-8111-111111111111';
@@ -73,7 +73,7 @@ describe('payment page (generateLink): the server attempt only, ILS, renewing', 
     expect(JSON.parse(init.body)).toMatchObject({ amount: 306, currency_code: 'ILS', more_info: ATT });
   });
   it.each([
-    ['USD (International stays "coming soon")', { currency: 'USD', amountMinor: 1800, billingPeriod: 'month' }],
+    ['a EUR amount (only ILS / USD)', { currency: 'EUR', amountMinor: 1800, billingPeriod: 'month' }],
     ['a legacy style plan (no package period)', { currency: 'ILS', amountMinor: 2900 }],
     ['a bad attempt id', { attemptId: 'not-a-uuid', currency: 'ILS', amountMinor: 3000, billingPeriod: 'month' }],
     ['a non-integer amount', { currency: 'ILS', amountMinor: 30.5, billingPeriod: 'month' }],
@@ -165,7 +165,7 @@ describe('callback: really from PayPlus (user-agent + hash), otherwise nothing i
     expect(await p.verifyWebhook(s.raw, s.headers, NOW)).toMatchObject({ ok: true, event: { type } });
   });
   it.each([
-    ['a USD transaction', callback({}, { currency: 'USD' })],
+    ['a EUR transaction', callback({}, { currency: 'EUR' })],
     ['no attempt id in more_info', callback({}, { more_info: 'Some Info' })],
     ['an unknown transaction type', callback({ transaction_type: 'Approval' })],
     ['no transaction uid', callback({}, { uid: undefined })],
@@ -176,7 +176,7 @@ describe('callback: really from PayPlus (user-agent + hash), otherwise nothing i
   });
   it('read: event id, result, time, our attempt id and the paid amount (for the SQL equality check only); card / customer ignored', () => {
     expect(mapPayPlusCallback(callback({}, { amount: 1 }))).toEqual({ id: 'dcb11c1e7-a1231-37cf-6311-f5111eeb69c7', type: 'payment_confirmed',
-      occurredAt: '2026-10-18T09:32:52.000Z', attemptId: ATT, paidAmountMinor: 100, recurringRef: null, terminalRef: null });
+      occurredAt: '2026-10-18T09:32:52.000Z', attemptId: ATT, paidAmountMinor: 100, paidCurrency: 'ILS', recurringRef: null, terminalRef: null });
     expect(mapPayPlusCallback(callback({}, { amount: 306 }))?.paidAmountMinor).toBe(30600);
     // review 2026-10-22: a numeric string is the same amount; anything else is no amount
     expect(mapPayPlusCallback(callback({}, { amount: '306' }))?.paidAmountMinor).toBe(30600);
@@ -392,5 +392,84 @@ describe('review 2026-10-22: a click for an attempt that is no longer pending op
     expect(await checkoutIntentHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: f })) }, U,
       { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY })).toEqual({ status: 409, body: { ok: false, code: 'checkout_not_pending' } });
     expect(f).not.toHaveBeenCalled();
+  });
+});
+
+// Owner console 2026-10-21: payments go live in Hebrew AND English together - International = USD, an English page (prepared, inert)
+describe('International: USD + English page (prepared; the billing phase stays off)', () => {
+  it('USD body: currency USD, English page, VAT-exempt English lines, no Israeli ID / instalments field', () => {
+    const b = buildGenerateLinkBody(config(), { attemptId: ATT, amountMinor: 2300, billingPeriod: 'month', nowMs: NOW, addOnAmountMinor: 500, currency: 'USD' });
+    expect(b).toMatchObject({ amount: 23, currency_code: 'USD', language_code: 'en', paying_vat: false, hide_identification_id: true,
+      hide_payments_field: true, more_info: ATT,
+      items: [{ name: 'TEKANGO - Monthly subscription', price: 18, vat_type: 2 }, { name: 'TEKANGO - SMART PACK monthly', price: 5, vat_type: 2 }] });
+    const il = buildGenerateLinkBody(config(), { attemptId: ATT, amountMinor: 3000, billingPeriod: 'month', nowMs: NOW });
+    expect(il).not.toHaveProperty('language_code');
+    expect(il).not.toHaveProperty('paying_vat');
+    expect(il.currency_code).toBe('ILS');
+  });
+  it('createCheckout accepts USD and returns the page request id for the server pull', async () => {
+    const PRQ = '44444444-4444-4444-8444-444444444444';
+    const f = fetchOk({ results: { status: 'success', code: 0 }, data: { page_request_uid: PRQ, payment_page_link: LINK } });
+    const p = createPayPlusProvider(config({ fetch: f }));
+    expect(await p.createCheckout({ attemptId: ATT, currency: 'USD', amountMinor: 18400, billingPeriod: 'year' })).toEqual({ redirectUrl: LINK, pageRequestUid: PRQ });
+    const [, init] = f.mock.calls[0] as unknown as [string, { body: string }];
+    expect(JSON.parse(init.body)).toMatchObject({ currency_code: 'USD', language_code: 'en', amount: 184 });
+  });
+  it('a signed USD charge maps with the USD amount (SQL still compares it with the server attempt)', async () => {
+    const p = createPayPlusProvider(config());
+    const s = signed(callback({}, { currency: 'USD', amount: 18 }));
+    expect(await p.verifyWebhook(s.raw, s.headers, NOW)).toMatchObject({ ok: true, event: { type: 'payment_confirmed', paid: { amountMinor: 1800, currency: 'USD' } } });
+  });
+});
+
+// Sandbox run 2026-10-21: pull by page request id, Update needs valid:true, DeleteRecurring cancels
+describe('standing orders: pull, update, cancel (prepared)', () => {
+  const REC = '9ab9e163-0000-4000-8000-000000000001'; const TERM = '66f01674-0000-4000-8000-000000000002';
+  const PROD1 = '386c8e7d-0000-4000-8000-000000000003'; const PROD2 = '386c8e7d-0000-4000-8000-000000000004';
+  const PRQ = '1a2aee2e-0000-4000-8000-000000000005';
+  const record = { uid: REC, number: 'mBa83', valid: true, status: 'approved', amount: 1, currency_code: 'ILS', extra_info: ATT, start_date: '2026-10-21',
+    recurring_type: 2, recurring_range: 1, customer_uid: 'cust-1', cashier_uid: 'cash-1', card_token: 'tok-1',
+    items: [{ product_uid: PROD1, quantity: 1, quantity_price_including_vat: 0.6 }, { product_uid: PROD2, quantity: 1, quantity_price_including_vat: 0.4 }] };
+  const ok = (data: unknown = null) => vi.fn(async () => ({ ok: true, json: async () => ({ results: { status: 'success', code: 0 }, data }) }));
+  const so = (f: unknown) => payplusStandingOrders({ apiBase: PAYPLUS_API_BASES.staging, apiKey: 'k', secretKey: 's', fetch: f as never });
+  it('normalizes the pulled standing order: our attempt id from extra_info, two lines in minor units', () => {
+    expect(normalizeStandingOrder(record)).toMatchObject({ recurringUid: REC, number: 'mBa83', valid: true, amountMinor: 100, currency: 'ILS', attemptId: ATT,
+      items: [{ productUid: PROD1, priceMinor: 60 }, { productUid: PROD2, priceMinor: 40 }] });
+    expect(normalizeStandingOrder({ ...record, uid: 'x' })).toBeNull();
+    expect(normalizeStandingOrder({ ...record, extra_info: 'Some Info' })!.attemptId).toBeNull();
+  });
+  it('byPageRequest POSTs /PaymentPages/ipn with the page request id; an error answer is null', async () => {
+    const f = ok(record);
+    expect((await so(f).byPageRequest(PRQ))!.recurringUid).toBe(REC);
+    const [url, init] = f.mock.calls[0] as unknown as [string, { body: string }];
+    expect(url).toBe(`${PAYPLUS_API_BASES.staging}/PaymentPages/ipn`);
+    expect(JSON.parse(init.body)).toEqual({ payment_request_uid: PRQ });
+    const bad = vi.fn(async () => ({ ok: true, json: async () => ({ results: { status: 'error' }, data: {} }) }));
+    expect(await so(bad).byPageRequest(PRQ)).toBeNull();
+    expect(await so(f).byPageRequest('not-a-uuid')).toBeNull();
+  });
+  it('updateLines sends valid:true (422 without it in the sandbox), the lines and a future start date', async () => {
+    const f = ok({ recurring_payment_uid: REC });
+    const o = normalizeStandingOrder(record)!;
+    expect(await so(f).updateLines(o, TERM, [{ productUid: PROD1, priceMinor: 60 }], '2026-10-24')).toBe(true);
+    const [url, init] = f.mock.calls[0] as unknown as [string, { body: string }];
+    expect(url).toBe(`${PAYPLUS_API_BASES.staging}/RecurringPayments/Update/${REC}`);
+    expect(JSON.parse(init.body)).toMatchObject({ terminal_uid: TERM, valid: true, instant_first_payment: false, start_date: '2026-10-24', currency_code: 'ILS',
+      items: [{ product_uid: PROD1, quantity: 1, price: 0.6 }] });
+    expect(await so(f).updateLines(o, TERM, [], '2026-10-24')).toBe(false);
+    expect(await so(f).updateLines({ ...o, cardToken: null }, TERM, [{ productUid: PROD1, priceMinor: 60 }], '2026-10-24')).toBe(false);
+  });
+  it('cancel POSTs DeleteRecurring with the terminal; a bad id never calls PayPlus', async () => {
+    const f = ok({ recurring_payment_uid: REC });
+    expect(await so(f).cancel(REC, TERM)).toBe(true);
+    const [url, init] = f.mock.calls[0] as unknown as [string, { body: string }];
+    expect(url).toBe(`${PAYPLUS_API_BASES.staging}/RecurringPayments/DeleteRecurring/${REC}`);
+    expect(JSON.parse(init.body)).toEqual({ terminal_uid: TERM });
+    const g = ok();
+    expect(await so(g).cancel('x', TERM)).toBe(false);
+    expect(g).not.toHaveBeenCalled();
+  });
+  it('an unknown API host is a configuration error', () => {
+    expect(() => payplusStandingOrders({ apiBase: 'https://evil.example', apiKey: 'k', secretKey: 's', fetch: (() => null) as never })).toThrow(/invalid configuration/);
   });
 });
