@@ -4,7 +4,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import AiModalHeader from './AiModalHeader';
 
 describe('AiModalHeader', () => {
-  it.each([[true, 'צריך עזרה? שאל את AI', 'שאל את AI'], [false, 'Need help? Ask AI', 'Ask AI']])('isHebrew=%s: title, AI action (both labels), Close in ONE row', (isHebrew, long, short) => {
+  it.each([[true, 'צריכים עזרה? שאלו את העוזר החכם', 'שאלו את העוזר החכם'], [false, 'Need help? Ask AI', 'Ask AI']])('isHebrew=%s: title, AI action (both labels), Close in ONE row', (isHebrew, long, short) => {
     const onClose = vi.fn();
     render(<AiModalHeader title="T" onClose={onClose} closeLabel="close-x" isHebrew={isHebrew} testId="h" />);
     const row = screen.getByTestId('h-header');

@@ -16,7 +16,7 @@ import { displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/
 import { quoteDisplayStatus, quoteDisplayLabel } from '../utils/quoteStatusDisplay';
 
 const STATUS_LABEL = {
-  draft: ['טיוטה', 'Draft'], sent: ['נשלח', 'Sent'], approved: ['אושר', 'Approved'], paid: ['שולם', 'Paid'],
+  draft: ['טיוטה', 'Draft'], sent: ['נשלחה', 'Sent'], approved: ['אושרה', 'Approved'], paid: ['שולמה', 'Paid'],
 };
 const PERIOD_LABEL = { '7d': ['7 ימים', '7 days'], '30d': ['30 ימים', '30 days'], '90d': ['90 ימים', '90 days'], all: ['כל הזמן', 'All time'] };
 
@@ -73,7 +73,7 @@ export default function StatisticsTab({
   const multiCurrency = stats.valueTotals.groups.length > 1;
   const kpis = [
     { key: 'created', label: ['הצעות שנוצרו', 'Quotes created'], value: stats.created },
-    { key: 'awaiting', label: ['ממתינות לתגובה', 'Awaiting response'], value: stats.awaiting, sub: ['סטטוס נשלח', 'Status: sent'] },
+    { key: 'awaiting', label: ['ממתינות לתגובה', 'Awaiting response'], value: stats.awaiting, sub: ['מצב: נשלחה', 'Status: sent'] },
     { key: 'viewed', label: ['נצפו לפחות פעם אחת', 'Viewed at least once'], value: stats.viewed },
     { key: 'won', label: ['אושרו / שולמו', 'Approved / paid'], value: stats.won },
     { key: 'hot', label: ['הצעות חמות', 'Hot quotes'], value: stats.hot, sub: ['3+ צפיות, טרם אושרה', '3+ views, not yet approved'] },
@@ -110,10 +110,10 @@ export default function StatisticsTab({
           ))}
         </div>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', color: NEON.textSecondary }}>
-          {L(['סטטוס', 'Status'])}
+          {L(['מצב', 'Status'])}
           <select value={status} onChange={(e) => setStatus(e.target.value)} data-testid="statistics-status"
             style={{ minBlockSize: '32px', padding: '4px 8px', borderRadius: RADIUS.sm, border: `1px solid ${NEON.borderStrong}`, background: NEON.bgInput, fontSize: '0.78rem', fontWeight: '700', color: NEON.textPrimary }}>
-            <option value="all">{L(['כל הסטטוסים', 'All statuses'])}</option>
+            <option value="all">{L(['כל המצבים', 'All statuses'])}</option>
             {QUOTE_STATUSES.map((s) => <option key={s} value={s}>{L(STATUS_LABEL[s])}</option>)}
           </select>
         </label>
@@ -130,7 +130,7 @@ export default function StatisticsTab({
           </div>
         ))}
         <div className="pf-stats-kpi" data-kpi="conversion">
-          <div className="pf-stats-kpi-label">{L(['המרה בצינור הנוכחי', 'Current pipeline conversion'])}</div>
+          <div className="pf-stats-kpi-label">{L(['שיעור האישורים והתשלומים מתוך ההצעות שהגיעו ללקוח', 'Current pipeline conversion'])}</div>
           <div className="pf-stats-kpi-value"><bdi className="pf-num" dir="ltr">{notLoaded ? '—' : `${stats.conversion.percent}%`}</bdi></div>
           <div className="pf-stats-kpi-sub">
             <bdi className="pf-num" dir="ltr">{`${stats.conversion.numerator}/${stats.conversion.denominator}`}</bdi>
@@ -152,7 +152,7 @@ export default function StatisticsTab({
       </h3>
       {stats.hotQuotes.length === 0 ? (
         <div style={{ fontSize: '0.8rem', color: NEON.textMuted, padding: '10px 2px' }} data-testid="statistics-hot-empty">
-          {notLoaded ? L(['טוענים את ההצעות…', 'Loading your quotes…']) : L(['אין הצעות חמות בתקופה ובסטטוס שנבחרו', 'No hot quotes for the selected period and status'])}
+          {notLoaded ? L(['טוענים את ההצעות…', 'Loading your quotes…']) : L(['אין הצעות חמות בתקופה ובמצב שנבחרו', 'No hot quotes for the selected period and status'])}
         </div>
       ) : (
         <div className="pf-stats-hot-list" data-testid="statistics-hot-list">
@@ -193,7 +193,7 @@ export default function StatisticsTab({
                   </span>
                   {/* PRODUCT_TRUTH_CAPABILITY: quote_email */}
                   <button type="button" className="pf-stats-action" onClick={() => requestEmailSend(quote)}>
-                    <Mail size={14} aria-hidden="true" />{L(['שלח במייל', 'Email'])}
+                    <Mail size={14} aria-hidden="true" />{L(['שליחה במייל', 'Email'])}
                   </button>
                   {typeof onCreateFollowUpTask === 'function' && (
                     // Task 18: opens the task form pre-linked to this quote and its client; nothing is created until the user saves
@@ -211,7 +211,7 @@ export default function StatisticsTab({
 
       <p className="pf-stats-note" data-testid="statistics-unsupported-note">
         {L([
-          'מדדי "נדחתה" וזמן עד צפייה/אישור אינם מוצגים: אין עדיין סטטוס דחייה ולא זמני מחזור-חיים שמורים בנתונים.',
+          'לא מוצגים נתונים על הצעות שנדחו או על הזמן עד לצפייה ולאישור, כי עדיין אין בנתונים מצב ״נדחתה״ או מועדים שמאפשרים לחשב את פרקי הזמן האלה.',
           '"Rejected" and time-to-view/approval are not shown: the data has no rejected status and no stored lifecycle times yet.',
         ])}
       </p>

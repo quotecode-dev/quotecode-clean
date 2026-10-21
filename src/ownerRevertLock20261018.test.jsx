@@ -62,7 +62,7 @@ describe('L-23 the quote list, editor, catalog, finances (reverted behaviours)',
   });
   it('#14 the catalog row buttons show their words (icon + text, 44px)', () => {
     const c = read('components/ServicesCatalog.jsx');
-    for (const w of ["'שמור' : 'Save'", "'ביטול' : 'Cancel'", "'ערוך' : 'Edit'", "'מחק' : 'Delete'"]) expect(c).toContain(`<span aria-hidden="true">{isHebrew ? ${w}}</span>`);
+    for (const w of ["'שמירה' : 'Save'", "'ביטול' : 'Cancel'", "'עריכה' : 'Edit'", "'מחיקה' : 'Delete'"]) expect(c).toContain(`<span aria-hidden="true">{isHebrew ? ${w}}</span>`);
     expect(read('components/servicesCatalog.css')).toContain('.svc-cat-btn.svc-cat-btn--text { width: auto;');
   });
   it('#16 four clearly different income colours', () => {

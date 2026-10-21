@@ -52,8 +52,8 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
         month: { add: isHebrew ? `(+${ilsSmartPack('month')} לחודש)` : `(+${ilsSmartPack('month')} / month)`, amount: ilsWithSmartPack('month'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${ilsPackageAmount('month')} + ${ilsSmartPack('month')}` },
         year: { add: isHebrew ? `(+${ilsSmartPack('year')} לשנה)` : `(+${ilsSmartPack('year')} / year)`, amount: ilsWithSmartPack('year'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${ilsPackageAmount('year')} + ${ilsSmartPack('year')}` },
       } : {
-        month: { add: isHebrew ? `(+${usdSmartPack('month')} לחודש)` : `(+${usdSmartPack('month')} / month)`, amount: usdWithSmartPack('month'), line: `${isHebrew ? 'כולל SMART PACK' : 'With SMART PACK'}: ${usdPackageAmount('month').text} + ${usdSmartPack('month')}` },
-        year: { add: isHebrew ? `(+${usdSmartPack('year')} לשנה)` : `(+${usdSmartPack('year')} / year)`, amount: usdWithSmartPack('year'), line: `${isHebrew ? 'כולל SMART PACK' : 'With SMART PACK'}: ${usdPackageAmount('year').text} + ${usdSmartPack('year')}` },
+        month: { add: isHebrew ? `(+${usdSmartPack('month')} לחודש)` : `(+${usdSmartPack('month')} / month)`, amount: usdWithSmartPack('month'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${usdPackageAmount('month').text} + ${usdSmartPack('month')}` },
+        year: { add: isHebrew ? `(+${usdSmartPack('year')} לשנה)` : `(+${usdSmartPack('year')} / year)`, amount: usdWithSmartPack('year'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${usdPackageAmount('year').text} + ${usdSmartPack('year')}` },
       },
     },
   };
@@ -62,7 +62,7 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
   const est = mo?.display.estimate && yr?.display.estimate && mo.display.displayCurrency === wantCur ? mo.display : null;
   const estimateNote = !wantCur ? null : est
     ? (isHebrew
-      ? `הערכה ב-${wantCur} בלבד: כ-${mo.estimateText.slice(1)} לחודש או כ-${yr.estimateText.slice(1)} לשנה, לפי שער ${RATE_SOURCE_NAME} מ-${est.rateAsOf.slice(0, 10)}. החיוב בדולר ארה״ב.`
+      ? `הערכה ב־${wantCur} בלבד: כ־${mo.estimateText.slice(1)} לחודש או כ־${yr.estimateText.slice(1)} לשנה, לפי שער ${RATE_SOURCE_NAME} מ־${est.rateAsOf.slice(0, 10)}. החיוב בדולר ארה״ב.`
       : `Estimate in ${wantCur} only: about ${mo.estimateText.slice(1)} per month or ${yr.estimateText.slice(1)} per year at the ${RATE_SOURCE_NAME} rate of ${est.rateAsOf.slice(0, 10)}. Charged in USD.`)
     : (isHebrew ? `הערכה ב-${wantCur} אינה זמינה כרגע, ולכן המחירים מוצגים בדולר ארה״ב.` : `A ${wantCur} estimate is not available right now, so prices are shown in US dollars.`);
   // Owner console 2026-10-21 (typed: "מאשר שינוי ב-L-22: אומדן המטבע המקומי בחלון המסלולים כולל את חכם פלוס"): with the SMART PACK box
@@ -70,7 +70,7 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
   const estWith = (period) => `${mo.estimateText.slice(1, 2)}${formatMoney(majorUnits(Math.round((packagePrice('INTERNATIONAL', period).amountMinor
     + SMART_PACK_PRICE_MINOR.INTERNATIONAL[period]) * est.rate)))}`;
   const estimateNoteWithAddOn = !wantCur || !est ? null : (isHebrew
-    ? `הערכה ב-${wantCur} בלבד, כולל SMART PACK: כ-${estWith('month')} לחודש או כ-${estWith('year')} לשנה, לפי שער ${RATE_SOURCE_NAME} מ-${est.rateAsOf.slice(0, 10)}. החיוב בדולר ארה״ב.`
+    ? `הערכה ב-${wantCur} בלבד, כולל חכם פלוס: כ-${estWith('month')} לחודש או כ-${estWith('year')} לשנה, לפי שער ${RATE_SOURCE_NAME} מ-${est.rateAsOf.slice(0, 10)}. החיוב בדולר ארה״ב.`
     : `Estimate in ${wantCur} only, with SMART PACK: about ${estWith('month')} per month or ${estWith('year')} per year at the ${RATE_SOURCE_NAME} rate of ${est.rateAsOf.slice(0, 10)}. Charged in USD.`);
   return {
     plans: [free, pkg],

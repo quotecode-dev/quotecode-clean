@@ -33,8 +33,8 @@ export const EDITOR_ACTION_INTENT_IDS = ['quote_improvement'];
 // line is new copy written to the same concise, product-accurate standard,
 // EN kept semantically (not literally word-for-word) equivalent to HE.
 export const GUIDED_INTENTS = [
-  { id: 'quotes', he: 'הצעות מחיר', en: 'Quotes', heDesc: 'יצירה, חיפוש, סטטוס ופעולות על הצעות', enDesc: 'Create, find, track status, and manage quotes' },
-  { id: 'current_process_help', he: 'עזרה בתהליך הנוכחי', en: "Help with what I'm doing now", heDesc: 'עזרה מותאמת למה שאתה עושה כרגע במערכת', enDesc: "Help based on exactly what you're doing right now" },
+  { id: 'quotes', he: 'הצעות מחיר', en: 'Quotes', heDesc: 'יצירה, חיפוש, מצב ופעולות על הצעות', enDesc: 'Create, find, track status, and manage quotes' },
+  { id: 'current_process_help', he: 'עזרה בתהליך הנוכחי', en: "Help with what I'm doing now", heDesc: 'עזרה לפי הפעולה שאתם עושים כרגע במערכת', enDesc: "Help based on exactly what you're doing right now" },
   { id: 'technical_problem', he: 'בעיה טכנית', en: 'Technical problem', heDesc: 'דיווח על תקלה או בעיה טכנית', enDesc: 'Report a bug or technical issue' },
   { id: 'software_help', he: 'עזרה בתוכנה', en: 'Help using the software', heDesc: 'הסבר איך להשתמש בתכונות המערכת', enDesc: 'How to use the system’s features' },
   { id: 'plans_subscription', he: 'מסלולים / מנוי', en: 'Plans / subscription', heDesc: 'פרטי המסלול שלך ושדרוג המנוי', enDesc: 'Your current plan details and upgrading your subscription' },
@@ -102,7 +102,7 @@ export function getGuidedSecondStepOptionIds(intentId) {
 // Owner's own exact given wording, verbatim, for all 5 - see that task's
 // own final report for the full HE/EN copy matrix.
 export const GUIDED_TOPIC_GROUPS = [
-  { id: 'quotes', he: 'הצעות מחיר', en: 'Quotes', directIntent: 'quotes', heDesc: 'יצירה, חיפוש, סטטוס ופעולות על הצעות', enDesc: 'Create, find, track status, and manage quotes' },
+  { id: 'quotes', he: 'הצעות מחיר', en: 'Quotes', directIntent: 'quotes', heDesc: 'יצירה, חיפוש, מצב ופעולות על הצעות', enDesc: 'Create, find, track status, and manage quotes' },
   { id: 'help_support', he: 'עזרה ותמיכה', en: 'Help & Support', children: ['current_process_help', 'software_help', 'technical_problem'], heDesc: 'עזרה בתהליך הנוכחי או פתרון תקלה', enDesc: "Help with what you're doing now, or fixing a problem" },
   { id: 'plans_billing', he: 'מסלולים ותשלומים', en: 'Plans & Billing', children: ['plans_subscription', 'billing_payment'], heDesc: 'חבילות, מנוי, חיובים ותשלומים', enDesc: 'Plans, subscription, billing and payments' },
   { id: 'my_business', he: 'העסק שלי', en: 'My Business', children: ['clients', 'business_settings'], heDesc: 'לקוחות, פרטי העסק והגדרות', enDesc: 'Clients, business details and settings' },

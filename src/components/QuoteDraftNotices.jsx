@@ -24,10 +24,10 @@ export function DraftRecoveredBanner({ info, isHebrew, onDiscard, onDismiss }) {
       )}
       {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
       <button type="button" onClick={onDiscard} style={{ background: 'white', color: '#065f46', border: '1px solid #6ee7b7', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', fontWeight: 600 }}>
-        {isHebrew ? 'מחק טיוטה' : 'Discard draft'}
+        {isHebrew ? 'מחיקת טיוטה' : 'Discard draft'}
       </button>
       {/* PRODUCT_TRUTH_DECORATIVE: x dismiss button only hides the recovered-draft banner; does not touch the draft itself */}
-      <button type="button" onClick={onDismiss} aria-label={isHebrew ? 'סגור' : 'Dismiss'} style={{ background: 'transparent', color: '#065f46', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}>×</button>
+      <button type="button" onClick={onDismiss} aria-label={isHebrew ? 'סגירה' : 'Dismiss'} style={{ background: 'transparent', color: '#065f46', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}>×</button>
     </div>
   );
 }
@@ -37,7 +37,7 @@ export function DraftStorageWarning({ show, reason, isHebrew }) {
   return (
     <div role="alert" data-testid="draft-storage-warning" style={{ background: '#fffbeb', border: '1px solid #fcd34d', color: '#92400e', borderRadius: '10px', padding: '10px 14px', marginBottom: '12px', fontSize: '0.9rem' }}>
       {reason === 'quota'
-        ? (isHebrew ? 'אין מספיק מקום באחסון המקומי: לא ניתן לשמור טיוטה במכשיר זה. שינויים שלא נשמרו עלולים ללכת לאיבוד - שמור את ההצעה בהקדם.' : 'Local storage is full: your draft cannot be saved on this device. Unsaved changes may be lost - please save the quote soon.')
+        ? (isHebrew ? 'אין מספיק מקום באחסון המקומי, ולכן אי אפשר לשמור טיוטה במכשיר הזה. שינויים שלא נשמרו עלולים ללכת לאיבוד. שמרו את ההצעה בהקדם.' : 'Local storage is full: your draft cannot be saved on this device. Unsaved changes may be lost - please save the quote soon.')
         : (isHebrew ? 'שחזור טיוטה אינו זמין בדפדפן/מכשיר זה (אחסון מקומי חסום, למשל בגלישה פרטית). שינויים שלא נשמרו עלולים ללכת לאיבוד אם העמוד ייטען מחדש.' : 'Draft recovery is unavailable in this browser/device (local storage is blocked, e.g. private mode). Unsaved changes may be lost if the page reloads.')}
     </div>
   );
@@ -56,7 +56,7 @@ export function DraftConflictModal({ conflict, isHebrew, onReview, onUseSaved, o
         <p style={{ color: '#475569', fontSize: '0.92rem', lineHeight: 1.5, margin: '0 0 16px' }}>
           {deleted
             ? (isHebrew ? `הצעה ${label} כבר אינה קיימת (או אינה ניתנת לעריכה). הטיוטה שלך נשמרה - היא לא תדרוס דבר.` : `Quote ${label} no longer exists (or can no longer be edited). Your draft is kept - it will not overwrite anything.`)
-            : (isHebrew ? `הצעה ${label} השתנתה בשרת (במכשיר או בחלון אחר) אחרי שהטיוטה נשמרה. כדי לא לדרוס שינויים שנשמרו, בחר/י מה לעשות:` : `Quote ${label} changed on the server (another device or window) after your draft was saved. To avoid overwriting saved changes, choose:`)}
+            : (isHebrew ? `הצעה ${label} השתנתה בשרת (במכשיר או בחלון אחר) אחרי שהטיוטה נשמרה. כדי לא לדרוס שינויים שנשמרו, בחרו מה לעשות:` : `Quote ${label} changed on the server (another device or window) after your draft was saved. To avoid overwriting saved changes, choose:`)}
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
           <AiHelpButton isHebrew={isHebrew} long testId="ai-help-draft-conflict" />
@@ -64,17 +64,17 @@ export function DraftConflictModal({ conflict, isHebrew, onReview, onUseSaved, o
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
           <button type="button" data-testid="draft-conflict-review" onClick={onReview} style={{ background: '#4f46e5', color: 'white', border: 'none', padding: '10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}>
-            {isHebrew ? 'סקור עותק משוחזר (ייפתח כהצעה חדשה)' : 'Review recovered copy (opens as a new quote)'}
+            {isHebrew ? 'בדיקת העותק ששוחזר (ייפתח כהצעה חדשה)' : 'Review recovered copy (opens as a new quote)'}
           </button>
           {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
           {!deleted && (
             <button type="button" data-testid="draft-conflict-use-saved" onClick={onUseSaved} style={{ background: '#f1f5f9', color: '#334155', border: '1px solid #cbd5e1', padding: '10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}>
-              {isHebrew ? 'השתמש בגרסה השמורה (הטיוטה תימחק)' : 'Use saved version (the draft is deleted)'}
+              {isHebrew ? 'שימוש בגרסה השמורה (הטיוטה תימחק)' : 'Use saved version (the draft is deleted)'}
             </button>
           )}
           {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
           <button type="button" data-testid="draft-conflict-discard" onClick={onDiscard} style={{ background: 'white', color: '#b91c1c', border: '1px solid #fecaca', padding: '10px', borderRadius: '6px', fontWeight: 600, cursor: 'pointer' }}>
-            {isHebrew ? 'מחק טיוטה משוחזרת' : 'Discard recovered draft'}
+            {isHebrew ? 'מחיקת הטיוטה המשוחזרת' : 'Discard recovered draft'}
           </button>
         </div>
       </div>

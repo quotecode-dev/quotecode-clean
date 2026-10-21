@@ -44,7 +44,7 @@ function copyFor(event: LifecycleEvent, lang: Lang, plan: string, name: string):
   if (lang === 'he') {
     switch (event) {
       case 'plan_activated':
-        return { subject: `המסלול ${plan} שלך ב-TEKANGO הופעל`, lines: [`שלום ${name},`, `המסלול ${plan} הופעל בחשבון שלך ב-TEKANGO.`, 'פרטי המסלול מופיעים בהגדרות החשבון.', `לשאלות אפשר לפנות אלינו: ${support}`] };
+        return { subject: `המסלול ${plan} ב-TEKANGO הופעל בחשבון`, lines: [`שלום ${name},`, `המסלול ${plan} הופעל בחשבון שלך ב-TEKANGO.`, 'פרטי המסלול מופיעים בהגדרות החשבון.', `לשאלות אפשר לפנות אלינו: ${support}`] };
       case 'payment_failed':
         return { subject: `התשלום עבור המסלול ${plan} לא התקבל`, lines: [`שלום ${name},`, `לא הצלחנו לקבל את התשלום עבור המסלול ${plan} בחשבון שלך ב-TEKANGO.`, 'מצב המנוי שלך כעת: ממתין לתשלום.', `להסדרת התשלום או לכל שאלה אפשר לפנות אלינו: ${support}`] };
       case 'payment_recovered':
@@ -78,7 +78,7 @@ export function buildSubscriptionLifecycleEmail({ event, lang, planId, businessN
   const id: PlanId | null = normalizePlanId(planId);
   if (!id || id === 'free') throw new LifecycleTemplateError(`lifecycle emails concern a paid canonical plan, got "${String(planId)}"`);
   const plan = planName(id, lang) as string;
-  const raw = typeof businessName === 'string' && businessName.trim() ? businessName.trim().slice(0, 120) : (lang === 'he' ? 'עסק יקר' : 'there');
+  const raw = typeof businessName === 'string' && businessName.trim() ? businessName.trim().slice(0, 120) : (lang === 'he' ? 'לכם' : 'there');
   const c = copyFor(event as LifecycleEvent, lang, plan, raw);
   const dir = lang === 'he' ? 'rtl' : 'ltr';
   const htmlCopy = copyFor(event as LifecycleEvent, lang, escapeHtml(plan), escapeHtml(raw));

@@ -8,10 +8,10 @@ import { FREE_QUOTES_TOTAL } from './priceCatalog';
 
 export const CUTOVER_COPY = Object.freeze({
   he: Object.freeze({
-    authSignup: `להרשמה ולקבלת ${FREE_QUOTES_TOTAL} הצעות מחיר חינם בסך הכול או 7 ימים, המוקדם מביניהם, יש למלא את הפרטים הבאים.`,
-    signupSuccess: `ההרשמה הצליחה! מכינים את החשבון שלכם עם ${FREE_QUOTES_TOTAL} הצעות מחיר חינם...`,
+    authSignup: `להרשמה מלאו את הפרטים הבאים. מסלול החינם כולל ${FREE_QUOTES_TOTAL} הצעות מחיר בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם.`,
+    signupSuccess: `ההרשמה הצליחה! מכינים את החשבון שלכם עם ${FREE_QUOTES_TOTAL} הצעות מחיר חינם…`,
     consumptionWarning: `פעולה זו תנצל הצעה אחת מתוך ${FREE_QUOTES_TOTAL} ההצעות החינמיות שלכם`,
-    balance: (remaining) => `נותרו ${remaining} מתוך ${FREE_QUOTES_TOTAL} הצעות חינם`,
+    balance: (remaining) => `יתרה: ${remaining} מתוך ${FREE_QUOTES_TOTAL} הצעות חינם`,
     exhausted: 'ניצלתם את 10 ההצעות החינמיות. הצעות שכבר יצאו ללקוחות נשארות זמינות.',
     badge: Object.freeze({ free10: 'חינם', classic: 'Classic', modern: 'Modern', visual: 'Visual', legacy: 'מסלול קודם' }),
   }),

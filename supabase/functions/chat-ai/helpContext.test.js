@@ -151,7 +151,7 @@ describe('prompt layering + per-turn navigation filter', () => {
     for (const he of [true, false]) {
       const txt = buildHelpContextBlocks(c, reconcileBlockers(c, null).active, [], null, he);
       expect(txt).not.toMatch(/\bPRO\b|\bBASIC\b|monthly|trial|חודשי|ניסיון/i);
-      expect(txt).toMatch(he ? /טרם הוחלט/ : /has not been decided yet/);
+      expect(txt).toMatch(he ? /(?:טרם|עדיין לא) הוחלט/ : /has not been decided yet/);
     }
   });
   it('a model NAVIGATE marker outside this turn\'s allowed set is stripped and ignored', () => {

@@ -59,7 +59,7 @@ describe('PublicQuote (HE) - corrected owner-only signing gate', () => {
     const data = buildQuoteData({ quote: { is_owner_viewing: false } });
     render(<MemoryRouter><PublicQuote quoteData={data} /></MemoryRouter>);
     expect(screen.getByText('חתימת לקוח לאישור ההצעה:')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /אשר וחתום/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /אישור וחתימה/ })).toBeInTheDocument();
   });
 });
 
@@ -93,7 +93,7 @@ describe('OD-9 + OD-1 public signing contract (HE Local + EN International)', ()
     render(<MemoryRouter><PublicQuote quoteData={data} /></MemoryRouter>);
     expect(screen.getByTestId('pq-expired')).toHaveTextContent('תוקף הצעת המחיר הסתיים');
     expect(screen.queryByText('חתימת לקוח לאישור ההצעה:')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /אשר וחתום/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /אישור וחתימה/ })).not.toBeInTheDocument();
     expect(screen.getAllByTestId('pq-header-expired')[0]).toHaveTextContent('פג תוקף');
   });
 
@@ -119,7 +119,7 @@ describe('OD-9 + OD-1 public signing contract (HE Local + EN International)', ()
   it('a signed (approved) historical quote whose validity later passed shows the approval record, not "expired"', () => {
     const data = buildQuoteData({ quote: { valid_until: past, status: 'approved', signature: 'data:image/png;base64,iVBORw0KGgo=' } });
     render(<MemoryRouter><PublicQuote quoteData={data} /></MemoryRouter>);
-    expect(screen.getByText(/אושרה ונחתמה בהצלחה/)).toBeInTheDocument();
+    expect(screen.getByText(/אושרה ונחתמה/)).toBeInTheDocument();
     expect(screen.queryByTestId('pq-expired')).not.toBeInTheDocument();
     expect(screen.queryByTestId('pq-header-expired')).not.toBeInTheDocument();
   });
@@ -128,7 +128,7 @@ describe('OD-9 + OD-1 public signing contract (HE Local + EN International)', ()
     render(<MemoryRouter><PublicQuote quoteData={buildQuoteData({ quote: { valid_until: past, is_owner_viewing: true } })} /></MemoryRouter>);
     expect(screen.getByText(/תצוגת מנהל/)).toBeInTheDocument();
     expect(screen.getByTestId('pq-owner-expired-hint')).toHaveTextContent('תאריך התוקף');
-    expect(screen.queryByRole('button', { name: /אשר וחתום/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /אישור וחתימה/ })).not.toBeInTheDocument();
   });
 
   it('project_name is shown on the customer-facing header when set (HE + EN)', () => {

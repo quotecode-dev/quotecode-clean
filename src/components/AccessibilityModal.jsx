@@ -32,7 +32,7 @@ export default function AccessibilityModal({ isOpen, onClose, isHebrew }) {
             <p><BrandName onDark={false} /> פועלת לשפר את הנגישות של האתר ושל המערכת. הצהרה זו מתייחסת לעמודי האתר הציבוריים ולמערכת לאחר ההתחברות, ונכונה ל-13 באוקטובר 2026.</p>
             <p>התאמות שנבדקו: בכל עמוד מוגדרים השפה וכיוון הכתיבה (עברית מימין לשמאל, אנגלית משמאל לימין); העמודים מותאמים לרוחב מסך של טלפון בלי גלילה לרוחב; וחלון הצהרה זה מוכרז כחלון דו-שיח ונסגר גם במקש Escape.</p>
             <p>מגבלות: טרם בוצעה בדיקת נגישות מלאה לפי התקן, ולכן איננו מצהירים על עמידה מלאה בו. ייתכן שחלקים באתר ובמערכת עדיין אינם נגישים במלואם.</p>
-            <p>לקבלת סיוע או לדיווח על קושי בנגישות אפשר לפנות במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the accessibility contact (service mailbox) */}<a href="mailto:support@tekango.com?subject=%D7%A0%D7%92%D7%99%D7%A9%D7%95%D7%AA"><bdi dir="ltr">support@tekango.com</bdi></a> או דרך הצ'אט באתר. כדאי לציין את כתובת העמוד, הפעולה שלא הצליחה, הדפדפן והטכנולוגיה המסייעת שבה השתמשתם. אין לצרף סיסמאות או מידע רגיש.</p>
+            <p>לקבלת סיוע או לדיווח על קושי בנגישות אפשר לפנות במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the accessibility contact (service mailbox) */}<a href="mailto:support@tekango.com?subject=%D7%A0%D7%92%D7%99%D7%A9%D7%95%D7%AA"><bdi dir="ltr">support@tekango.com</bdi></a> או דרך הצ׳אט באתר. כדאי לציין את כתובת העמוד, הפעולה שלא הצליחה, הדפדפן והטכנולוגיה המסייעת שבה השתמשתם. אין לצרף סיסמאות או מידע רגיש.</p>
           </div>
         ) : (
           <div style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.6' }}>
@@ -45,7 +45,7 @@ export default function AccessibilityModal({ isOpen, onClose, isHebrew }) {
 
         {/* PRODUCT_TRUTH_DECORATIVE: closes the accessibility statement modal; a dismiss control for the informational dialog already marked accessibility_tools */}
         <button onClick={onClose} style={{ marginTop: '25px', width: '100%', background: '#4f46e5', color: 'white', border: 'none', padding: '12px', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem' }}>
-          {isHebrew ? 'סגור' : 'Close'}
+          {isHebrew ? 'סגירה' : 'Close'}
         </button>
       </div>
     </div>

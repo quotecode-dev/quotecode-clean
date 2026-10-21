@@ -92,7 +92,7 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
             <span className="av-mail">{account.email}</span>
           </div>
           {statusUnknown
-            ? <span className="admin-account-status av-plan" data-status="unknown"><PlanMedallionMark model={{ kind: 'none' }} size={32} /><strong>{isHebrew ? 'סטטוס המנוי אינו זמין כרגע' : 'Subscription status unavailable right now'}</strong></span>
+            ? <span className="admin-account-status av-plan" data-status="unknown"><PlanMedallionMark model={{ kind: 'none' }} size={32} /><strong>{isHebrew ? 'מצב המנוי אינו זמין כרגע' : 'Subscription status unavailable right now'}</strong></span>
             : <AdminAccountStatus account={account} summary={summaryReady ? summary : null} statusKey={status.key} isHebrew={isHebrew} formatDate={date} size={32} />}
         </div>
         <div className="av-pills">

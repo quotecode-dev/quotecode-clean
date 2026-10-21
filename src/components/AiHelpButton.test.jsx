@@ -11,14 +11,14 @@ const read = (p) => readFileSync(join(root, p), 'utf8');
 
 describe('AiHelpButton', () => {
   it.each([
-    [true, false, 'שאל את AI'], [true, true, 'צריך עזרה? שאל את AI'], [false, false, 'Ask AI'], [false, true, 'Need help? Ask AI'],
+    [true, false, 'שאלו את העוזר החכם'], [true, true, 'צריכים עזרה? שאלו את העוזר החכם'], [false, false, 'Ask AI'], [false, true, 'Need help? Ask AI'],
   ])('isHebrew=%s long=%s shows the visible label "%s" next to the canonical AI Chat icon', (isHebrew, long, label) => {
     render(<AiHelpButton isHebrew={isHebrew} long={long} testId="x" />);
     const btn = screen.getByTestId('x');
     expect(btn.tagName).toBe('BUTTON');
     expect(btn).toHaveTextContent(label);
     expect(btn.querySelector('[data-ai-chat-icon="canonical"]')).not.toBeNull();
-    expect(btn.getAttribute('aria-label')).toMatch(isHebrew ? /שאל את AI.*צ׳אט AI/ : /Ask AI.*AI Chat/);
+    expect(btn.getAttribute('aria-label')).toMatch(isHebrew ? /פתיחת הצ׳אט עם העוזר החכם/ : /Ask AI.*AI Chat/);
     expect(btn.getAttribute('dir')).toBe(isHebrew ? 'rtl' : 'ltr');
   });
   it('opens the ONE assistant through the shared event (no second chat instance)', () => {

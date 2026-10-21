@@ -52,11 +52,11 @@ const openDashboardChat = async (isHebrew = true) => {
   await act(async () => { await Promise.resolve(); });
   await waitFor(() => expect(mocks.getSession).toHaveBeenCalled());
   await act(async () => { await new Promise((r) => setTimeout(r, 0)); });
-  fireEvent.click(screen.getByLabelText(isHebrew ? 'צאט AI' : 'AI Chat'));
+  fireEvent.click(screen.getByLabelText(isHebrew ? 'צ׳אט AI' : 'AI Chat'));
 };
 const typeAndSend = (text) => {
-  fireEvent.change(screen.getByPlaceholderText('שאל משהו...'), { target: { value: text } });
-  fireEvent.click(screen.getByLabelText('שלח'));
+  fireEvent.change(screen.getByPlaceholderText('שאלו משהו…'), { target: { value: text } });
+  fireEvent.click(screen.getByLabelText('שליחה'));
 };
 
 describe('voice assistant in the smart chat (Owner 2026-10-19)', () => {
@@ -65,11 +65,11 @@ describe('voice assistant in the smart chat (Owner 2026-10-19)', () => {
     const mic = screen.getByTestId('ai-chat-mic');
     const row = mic.closest('form');
     const order = [...row.children].map((el) => el.tagName === 'INPUT' ? 'input' : el.getAttribute('data-testid') || el.getAttribute('aria-label'));
-    expect(order).toEqual(['input', 'ai-chat-mic', 'שלח']);
+    expect(order).toEqual(['input', 'ai-chat-mic', 'שליחה']);
     expect(mic.getAttribute('aria-label')).toBe('הקלטת שאלה בקול');
     cleanup();
     render(<AIChatWidget isHebrew isDashboard={false} />);
-    fireEvent.click(screen.getByLabelText('צאט AI'));
+    fireEvent.click(screen.getByLabelText('צ׳אט AI'));
     expect(screen.queryByTestId('ai-chat-mic')).toBeNull();
     expect(screen.queryByTestId('ai-chat-voice-mode')).toBeNull();
   });

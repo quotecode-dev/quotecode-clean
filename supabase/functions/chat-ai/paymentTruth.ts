@@ -69,7 +69,7 @@ export function classifyPaymentIntent(lastUserMessage: unknown): boolean {
 export function formatPaymentTruthAnswer(isHebrew: boolean, payload?: ProductTruthFactPayload): string {
   if (payload && payload.truthStatus !== 'PAYMENT_NOT_LIVE') throw new Error(`formatPaymentTruthAnswer requires a PAYMENT_NOT_LIVE payload, got ${payload.truthStatus}`);
   if (isHebrew) {
-    return 'כרגע אין ב-TEKANGO סליקה או קבלת תשלומים אונליין: המערכת לא מעבדת תשלומים, לא מקבלת כרטיסי אשראי ולא גובה כסף באף מטבע - לא עבור המנוי ולא עבור הצעות מחיר שאתה שולח ללקוחות שלך. המטבע שמוצג במחירים ובהצעות (₪ בשוק המקומי) הוא מטבע תצוגה/הצעה בלבד, ואינו אמצעי תשלום. איך אתה גובה תשלום מהלקוחות שלך מחוץ למערכת אינו מוגדר ב-TEKANGO, ואני לא יודע לומר לך באיזה אמצעי תשלום העסק שלך משתמש.';
+    return 'כרגע אין ב-TEKANGO סליקה או קבלת תשלומים מקוונים: המערכת אינה מעבדת תשלומים, מקבלת כרטיסי אשראי או גובה כסף, באף מטבע, עבור המנוי או עבור הצעות המחיר שאתם שולחים ללקוחות. המטבע שמוצג במחירים ובהצעות (₪ בשוק המקומי) משמש להצגת המחיר בלבד ואינו אמצעי תשלום. המערכת אינה מגדירה איך העסק גובה תשלום מחוץ ל-TEKANGO, ואין לי מידע על אמצעי התשלום שהוא משתמש בהם.';
   }
   return "Right now TEKANGO has no live checkout or payment processing: it doesn't process payments, accept cards, or collect money in any currency - neither for a subscription nor for the quotes you send your clients. The currency shown on prices and quotes (USD, EUR or GBP) is a display/quote currency only, not a payment method. How you collect payment from your own clients outside TEKANGO isn't something TEKANGO defines, and I don't know which payment method your business uses.";
 }

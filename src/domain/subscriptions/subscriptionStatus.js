@@ -12,10 +12,10 @@
 import { FREE_QUOTES_TOTAL } from '../../../supabase/functions/_shared/subscriptionContract.ts';
 
 export const ACCOUNT_STATUS = Object.freeze({
-  lifetime: Object.freeze({ he: 'מנוי LIFETIME', en: 'Lifetime subscription' }),
+  lifetime: Object.freeze({ he: 'מנוי לכל החיים', en: 'Lifetime subscription' }),
   paid_annual: Object.freeze({ he: 'מנוי שנתי', en: 'Annual subscription' }),
   paid_monthly: Object.freeze({ he: 'מנוי חודשי', en: 'Monthly subscription' }),
-  paid_unverified: Object.freeze({ he: 'מידע מנוי דורש אימות', en: 'Subscription needs verification' }),
+  paid_unverified: Object.freeze({ he: 'מידע המנוי דורש אימות', en: 'Subscription needs verification' }),
   free10: Object.freeze({ he: '10 הצעות חינם', en: '10 free quotes' }),
   trial: Object.freeze({ he: 'בניסיון', en: 'Trial' }),
   trial_ended: Object.freeze({ he: 'פג תוקף', en: 'Expired' }),
@@ -103,13 +103,13 @@ export function accountStatusSentence(status, isHebrew, formatDate = null) {
   const he = isHebrew === true;
   const date = status.until && formatDate ? formatDate(status.until) : null;
   switch (status.key) {
-    case 'lifetime': return he ? 'יש לך מנוי LIFETIME' : 'You have a Lifetime subscription';
+    case 'lifetime': return he ? 'יש לכם מנוי לכל החיים' : 'You have a Lifetime subscription';
     case 'paid_annual': return he ? 'יש לך מנוי שנתי פעיל' : 'You have an active annual subscription';
     case 'paid_monthly': return he ? 'יש לך מנוי חודשי פעיל' : 'You have an active monthly subscription';
     case 'paid_unverified': return he ? 'יש לך מנוי פעיל' : 'You have an active subscription';
     case 'free10': {
       const reserved = status.reserved > 0 ? (he ? ` (${status.reserved} בתהליך)` : ` (${status.reserved} in progress)`) : '';
-      return he ? `ניצלת ${status.consumed} מתוך ${status.total} הצעות חינם${reserved}` : `${status.consumed} of ${status.total} free quotes used${reserved}`;
+      return he ? `ניצלתם ${status.consumed} מתוך ${status.total} הצעות חינם${reserved}` : `${status.consumed} of ${status.total} free quotes used${reserved}`;
     }
     case 'trial': return date ? (he ? `יש לך תקופת ניסיון עד ${date}` : `Your trial runs until ${date}`) : (he ? 'יש לך תקופת ניסיון' : 'You are on a trial');
     case 'trial_ended': return he ? 'תקופת הניסיון שלך הסתיימה' : 'Your trial has ended';

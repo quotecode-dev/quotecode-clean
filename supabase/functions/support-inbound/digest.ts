@@ -22,8 +22,8 @@ export function buildDigest(day: string, today: DigestRow[], waiting: DigestRow[
     '',
     `התקבלו היום: ${today.length}`,
     `ירוק: ${count((r) => r.bin === 'green')}  ·  צהוב: ${count((r) => r.bin === 'yellow')}  ·  אדום: ${count((r) => r.bin === 'red')}  ·  שחור: ${count((r) => r.bin === 'black')}`,
-    `נענו לבד על ידי העוזר: ${count((r) => r.reply_sent_by === 'assistant')}`,
-    `נענו על ידך: ${count((r) => r.reply_sent_by === 'owner')}`,
+    `פניות שהעוזר ענה עליהן אוטומטית: ${count((r) => r.reply_sent_by === 'assistant')}`,
+    `פניות שעניתם עליהן: ${count((r) => r.reply_sent_by === 'owner')}`,
     '',
     waiting.length ? `ממתינות לך עכשיו: ${waiting.length}` : 'אין פניות שממתינות לך.',
   ];

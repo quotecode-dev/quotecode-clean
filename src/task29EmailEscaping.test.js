@@ -21,7 +21,7 @@ describe('quote email - safe data keeps the existing copy', () => {
     expect(html).toContain('<div dir="rtl"');
     expect(html).toContain('letter-spacing: -0.5px;">עסק סינתטי</div>');
     expect(html).toContain('padding-bottom: 10px;">שלום דנה כהן,</h2>');
-    expect(html).toContain('<p style="font-size: 1rem; line-height: 1.5;">מצורפת הצעת המחיר שלך ממערכת <strong>עסק סינתטי</strong>.</p>');
+    expect(html).toContain('<p style="font-size: 1rem; line-height: 1.5;">מצורפת הצעת המחיר מאת <strong>עסק סינתטי</strong>.</p>');
     expect(html).toContain('font-weight: bold;">₪1,180.00</span>');
     expect(html).toContain(`<a href="${LINK}"`);
     expect(html).toContain('margin-top: 15px;">צוות עסק סינתטי</p>');

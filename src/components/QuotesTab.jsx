@@ -65,7 +65,7 @@ const MOBILE_SORT_FIELDS = [
   { value: 'clientType', he: 'סוג לקוח', en: 'Client Type' },
   { value: 'total', he: 'הסכום', en: 'Amount' },
   { value: 'date', he: 'תאריך', en: 'Date' },
-  { value: 'status', he: 'סטטוס', en: 'Status' },
+  { value: 'status', he: 'מצב', en: 'Status' },
   { value: 'views', he: 'צפיות', en: 'Views' },
 ];
 
@@ -320,9 +320,9 @@ export default function QuotesTab({
   // PRODUCT_TRUTH_CAPABILITY: quote_status
   const getStatusBadge = (st) => {
     switch(st) {
-      case 'approved': return { role: 'approved', bg: APP_STATUS.approved.bg, color: APP_STATUS.approved.fg, border: APP_STATUS.approved.border, text: isHebrew ? 'אושר' : 'Approved' };
-      case 'paid': return { role: 'paid', bg: APP_STATUS.paid.bg, color: APP_STATUS.paid.fg, border: APP_STATUS.paid.border, text: isHebrew ? 'שולם' : 'Paid' };
-      case 'sent': return { role: 'sent', bg: APP_STATUS.sent.bg, color: APP_STATUS.sent.fg, border: APP_STATUS.sent.border, text: isHebrew ? 'נשלח' : 'Sent' };
+      case 'approved': return { role: 'approved', bg: APP_STATUS.approved.bg, color: APP_STATUS.approved.fg, border: APP_STATUS.approved.border, text: isHebrew ? 'אושרה' : 'Approved' };
+      case 'paid': return { role: 'paid', bg: APP_STATUS.paid.bg, color: APP_STATUS.paid.fg, border: APP_STATUS.paid.border, text: isHebrew ? 'שולמה' : 'Paid' };
+      case 'sent': return { role: 'sent', bg: APP_STATUS.sent.bg, color: APP_STATUS.sent.fg, border: APP_STATUS.sent.border, text: isHebrew ? 'נשלחה' : 'Sent' };
       default: return { role: 'draft', bg: APP_STATUS.draft.bg, color: APP_STATUS.draft.fg, border: APP_STATUS.draft.border, text: isHebrew ? 'טיוטה' : 'Draft' };
     }
   };
@@ -369,7 +369,7 @@ export default function QuotesTab({
     // Action precedence: a hot quote is always "Open & track" (before any draft branch); then unfinished draft -> continue editing.
     const actionKind = isHot ? 'track' : (badge.role === 'unfinished' && !isLocked) ? 'edit' : isFinal ? 'view' : 'open';
     const actionLabel = actionKind === 'track' ? (isHebrew ? 'פתיחה ומעקב' : 'Open & track')
-      : actionKind === 'edit' ? (isHebrew ? 'המשך עריכה' : 'Continue editing')
+      : actionKind === 'edit' ? (isHebrew ? 'המשך העריכה' : 'Continue editing')
         : actionKind === 'view' ? (isHebrew ? 'צפייה' : 'View')
           : (isHebrew ? 'פתיחה' : 'Open');
 
@@ -413,7 +413,7 @@ export default function QuotesTab({
     amounts: moneyTexts,
     statuses: [...['draft', 'sent', 'approved', 'paid'].map((st) => getStatusBadge(st).text), UNFINISHED_LABEL].map((label) => `${STATUS_DOT} ${label}`),
     dates: rowsMeta.map((r) => formatShortDate(r.quote.created_at, dateMarket)),
-    headers: { number: isHebrew ? 'מס׳ הצעה' : 'Quote #', amount: isHebrew ? 'הסכום' : 'Amount', status: isHebrew ? 'סטטוס' : 'Status', date: isHebrew ? 'תאריך' : 'Date' },
+    headers: { number: isHebrew ? 'מס׳ הצעה' : 'Quote #', amount: isHebrew ? 'הסכום' : 'Amount', status: isHebrew ? 'מצב' : 'Status', date: isHebrew ? 'תאריך' : 'Date' },
   });
   // Owner R3 + IRON-QH-LAYOUT-001: the eight-column table needs R3_TABLE_MIN_WIDTH of real work-screen width for its protected
   // numeric/action tracks plus readable client/title tracks; below that (e.g. 820px tablet portrait beside the sidebar) the list
@@ -586,12 +586,12 @@ export default function QuotesTab({
       // כתובת לא קיימת/הצעה שהוחזרה (מזוהה ע"י resend-email-webhook,
       // לא ע"י תוצאת השליחה המיידית) - נשארת אדומה עד שליחה מחדש מוצלחת
       <span
-        title={isHebrew ? 'כתובת המייל ששלחת אינה קיימת' : 'The email address you sent does not exist'}
+        title={isHebrew ? 'כתובת המייל שאליה נשלחה ההצעה אינה קיימת' : 'The email address you sent does not exist'}
         style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: NEON.redDark, boxShadow: `0 0 0 3px ${APP_STATUS.error.bg}` }}
       />
     ) : emailStatus ? (
       <span
-        title={emailStatus === 'success' ? (isHebrew ? 'אימייל נשלח בהצלחה' : 'Email sent successfully') : (isHebrew ? 'שליחת האימייל נכשלה' : 'Email failed')}
+        title={emailStatus === 'success' ? (isHebrew ? 'אימייל נשלח בהצלחה' : 'Email sent successfully') : (isHebrew ? 'שליחת המייל נכשלה' : 'Email failed')}
         style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: emailStatus === 'success' ? NEON.emeraldDark : NEON.redDark, boxShadow: emailStatus === 'success' ? `0 0 0 3px ${APP_STATUS.paid.bg}` : `0 0 0 3px ${APP_STATUS.error.bg}` }}
       />
     ) : null
@@ -631,7 +631,7 @@ export default function QuotesTab({
           style={{ ...chipBase, background: NEON.violetLighter, color: NEON.violet }}
         >
           <Eye size={14} color={NEON.violet} strokeWidth={2.2} />
-          <span>{isHebrew ? 'צפה' : 'View'}</span>
+          <span>{isHebrew ? 'צפייה' : 'View'}</span>
         </button>
 
         <span style={{ position: 'relative', display: 'inline-block' }}>
@@ -643,7 +643,7 @@ export default function QuotesTab({
             style={{ ...chipBase, ...neutralChip, opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
           >
             <Pencil size={14} color={neutralIconColor} strokeWidth={2.2} />
-            <span>{isHebrew ? 'ערוך' : 'Edit'}</span>
+            <span>{isHebrew ? 'עריכה' : 'Edit'}</span>
           </button>
           {activeTooltip.quoteId === quote.id && activeTooltip.action === 'edit' && (
             <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: SHADOW.md }}>
@@ -659,7 +659,7 @@ export default function QuotesTab({
             style={{ ...chipBase, ...neutralChip }}
           >
             <Copy size={14} color={neutralIconColor} strokeWidth={2.2} />
-            <span>{isHebrew ? 'שכפל' : 'Duplicate'}</span>
+            <span>{isHebrew ? 'שכפול' : 'Duplicate'}</span>
           </button>
           {activeTooltip.quoteId === quote.id && activeTooltip.action === 'duplicate' && (
             <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: SHADOW.md }}>
@@ -702,7 +702,7 @@ export default function QuotesTab({
           style={{ ...chipBase, ...neutralChip }}
         >
           <Mail size={14} color={neutralIconColor} strokeWidth={2.2} />
-          <span>{isHebrew ? 'שלח במייל' : 'Email'}</span>
+          <span>{isHebrew ? 'שליחה במייל' : 'Email'}</span>
         </button>
 
         <span style={{ position: 'relative', display: 'inline-block' }}>
@@ -714,7 +714,7 @@ export default function QuotesTab({
             style={{ ...chipBase, background: isLocked ? NEON.bgCardAlt : APP_STATUS.error.bg, color: isLocked ? NEON.textMuted : NEON.red, border: isLocked ? `1px solid ${NEON.border}` : 'none', opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
           >
             <Trash2 size={14} color={isLocked ? NEON.textMuted : NEON.red} strokeWidth={2.2} />
-            <span>{isHebrew ? 'מחק' : 'Delete'}</span>
+            <span>{isHebrew ? 'מחיקה' : 'Delete'}</span>
           </button>
           {activeTooltip.quoteId === quote.id && activeTooltip.action === 'delete' && (
             <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: SHADOW.md }}>
@@ -763,7 +763,7 @@ export default function QuotesTab({
       : emailStatus === 'success'
         ? (isHebrew ? 'אימייל נשלח בהצלחה' : 'Email sent successfully')
         : emailStatus === 'failed'
-          ? (isHebrew ? 'שליחת האימייל נכשלה' : 'Email failed')
+          ? (isHebrew ? 'שליחת המייל נכשלה' : 'Email failed')
           : null;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -791,7 +791,7 @@ export default function QuotesTab({
           )}
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
             <Eye size={13} color={NEON.textMuted} strokeWidth={2} />
-            {isHebrew ? `${quote.view_count || 0} צפיות` : `${quote.view_count || 0} views`}
+            {isHebrew ? `צפיות: ${quote.view_count || 0}` : `${quote.view_count || 0} views`}
           </span>
           {emailLabel && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
@@ -944,12 +944,12 @@ export default function QuotesTab({
               type="button"
               className="quote-export-cards"
               onClick={handleExportQuotes}
-              aria-label={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
-              title={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
+              aria-label={isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}
+              title={isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}
               style={{ background: NEON.bgCard, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '7px 12px', borderRadius: RADIUS.sm, cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               <Download size={15} strokeWidth={2.5} aria-hidden="true" />
-              <span className="quote-export-cards-label">{isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}</span>
+              <span className="quote-export-cards-label">{isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}</span>
             </button>
           )}
         </div>
@@ -965,8 +965,8 @@ export default function QuotesTab({
               type="button"
               className="quote-export-compact"
               onClick={handleExportQuotes}
-              title={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
-              aria-label={isHebrew ? 'ייצא לאקסל (CSV)' : 'Export CSV'}
+              title={isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}
+              aria-label={isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}
             >
               <Download size={15} strokeWidth={2.2} />
             </button>
@@ -974,8 +974,8 @@ export default function QuotesTab({
               type="button"
               className="quote-sort-direction"
               onClick={() => handleQuoteSort(quoteSortField)}
-              title={isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction'}
-              aria-label={isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction'}
+              title={isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction'}
+              aria-label={isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction'}
             >
               <ArrowUpDown size={18} strokeWidth={1.6} aria-hidden="true" />
               <span>{isHebrew ? 'מיון' : 'Sort'}</span>
@@ -986,7 +986,7 @@ export default function QuotesTab({
               <select
                 value={statusFilter}
                 onChange={(e) => setStatusFilter(e.target.value)}
-                aria-label={isHebrew ? 'סינון לפי סטטוס' : 'Filter by status'}
+                aria-label={isHebrew ? 'סינון לפי מצב' : 'Filter by status'}
               >
                 <option value="All">{t.filterStatus}</option>
                 {/* R-07: the filter speaks the shown status labels */}
@@ -1103,8 +1103,8 @@ export default function QuotesTab({
                   <button
                     type="button"
                     onClick={() => handleQuoteSort(quoteSortField)}
-                    title={isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction'}
-                    aria-label={isHebrew ? 'הפוך כיוון מיון' : 'Toggle sort direction'}
+                    title={isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction'}
+                    aria-label={isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction'}
                     style={{ flexShrink: 0, background: NEON.gradient, color: 'white', border: 'none', width: '30px', height: '30px', borderRadius: '7px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', boxShadow: NEON.glowSoft }}
                   >
                     {quoteSortDirection === 'asc' ? '▲' : '▼'}
@@ -1118,7 +1118,7 @@ export default function QuotesTab({
                 style={{ alignSelf: isHebrew ? 'flex-start' : 'flex-end', display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: '2px 4px' }}
               >
                 <X size={12} strokeWidth={2.5} />
-                {isHebrew ? 'סגור' : 'Close'}
+                {isHebrew ? 'סגירה' : 'Close'}
               </button>
             </div>
           )}
@@ -1136,7 +1136,7 @@ export default function QuotesTab({
                   {sortHeader('id', 'מס׳ הצעה', 'Quote #')}
                   {sortHeader('client', 'לקוח', 'Client')}
                   {sortHeader('subject', 'כותרת ההצעה', 'Quote title')}
-                  {sortHeader('status', 'סטטוס', 'Status')}
+                  {sortHeader('status', 'מצב', 'Status')}
                   {sortHeader('views', 'צפיות', 'Views')}
                   {sortHeader('created_at', 'תאריך', 'Date')}
                   {sortHeader('total', 'סכום', 'Amount')}
@@ -1175,7 +1175,7 @@ export default function QuotesTab({
                     onClick={() => toggleExpanded(quote.id)}
                     aria-expanded={isExpanded}
                     aria-controls={detailId}
-                    aria-label={`${clientName}, ${isHebrew ? 'הצג פרטים נוספים' : 'Show more details'}`}
+                    aria-label={`${clientName}, ${isHebrew ? 'הצגת פרטים נוספים' : 'Show more details'}`}
                   >
                     <ChevronDown className="quote-modern-chevron" size={14} strokeWidth={2.4} aria-hidden="true" data-expanded={isExpanded ? 'true' : undefined} />
                   </button>
@@ -1351,7 +1351,7 @@ export default function QuotesTab({
               </th>
               {/* PRODUCT_TRUTH_DECORATIVE: desktop table header sorts the quote list by status */}
               <th style={{ padding: `10px ${QH_CELL_PAD}px`, textAlign: 'center', cursor: 'pointer', userSelect: 'none', whiteSpace: 'nowrap', background: NEON.bgCard, borderBottom: `1px solid ${NEON.border}` }} onClick={() => handleQuoteSort('status')}>
-                {isHebrew ? 'סטטוס' : 'Status'} {quoteSortField === 'status' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
+                {isHebrew ? 'מצב' : 'Status'} {quoteSortField === 'status' ? (quoteSortDirection === 'asc' ? '▲' : '▼') : ''}
               </th>
               {/* Date is now the last/outer column (was the expand control) -
                   it gains the outer-edge border/corner-radius treatment. */}
@@ -1434,7 +1434,7 @@ export default function QuotesTab({
                       onClick={() => toggleExpanded(quote.id)}
                       aria-expanded={isExpanded}
                       aria-controls={detailId}
-                      aria-label={isHebrew ? 'הצג פרטים נוספים' : 'Show more details'}
+                      aria-label={isHebrew ? 'הצגת פרטים נוספים' : 'Show more details'}
                       data-qh="action"
                       style={{ background: isExpanded ? NEON.violetLighter : 'transparent', border: 'none', borderRadius: RADIUS.sm, width: '20px', height: '20px', padding: '6px', margin: '-6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.violet }}
                     >
@@ -1465,7 +1465,7 @@ export default function QuotesTab({
                       Density, נשמר): "לפני מע"מ: ₪X" זמין דרך title (hover)
                       על תא הסכום - לא כשורה נוספת גלויה. אין מקבילה ל-
                       International (Market Separation, ללא שינוי). */}
-                  <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}>
+                  <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness && isHebrew ? `לפני מע״מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}>
                     <MoneyValue slot data-qh="amount" symbol={quoteSym} text={formatMoneyDisplay(quote.total, quote.currency)} style={{ ...QH_CELL_STYLE.amount, color: NEON.textPrimary }} />
                   </td>
                   <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center' }}>
@@ -1556,7 +1556,7 @@ export default function QuotesTab({
                 onClick={() => toggleExpanded(quote.id)}
                 aria-expanded={isExpanded}
                 aria-controls={detailId}
-                aria-label={isHebrew ? 'הצג פרטים נוספים' : 'Show more details'}
+                aria-label={isHebrew ? 'הצגת פרטים נוספים' : 'Show more details'}
                 style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '9px var(--pf-mobile-surface-pad, 10px)', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontFamily: 'inherit' }}
               >
                 <ChevronDown data-qh="action" size={15} strokeWidth={2.4} color={NEON.violet} style={{ flexShrink: 0, marginTop: '2px', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
@@ -1581,7 +1581,7 @@ export default function QuotesTab({
                       data-testid="quote-card-amount"
                       data-qh="amount"
                       style={{ fontWeight: '500', color: NEON.textPrimary, fontSize: '0.875rem' }}
-                      title={isLocalIsraeliBusiness && isHebrew ? `לפני מע"מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
+                      title={isLocalIsraeliBusiness && isHebrew ? `לפני מע״מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
                     />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'center', gap: '8px', marginTop: '5px' }}>

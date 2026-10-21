@@ -23,7 +23,7 @@ const PATTERNS = [
     // ("a member of the business that issued this quote cannot approve or sign").
     test: (msg) => /(business account|member of the business that issued this quote) cannot approve or sign/i.test(msg),
     userMessage: {
-      he: '❌ לא ניתן לחתום על הצעה זו מחשבון העסק ששלח אותה. אם את/ה הלקוח/ה, יש להיכנס עם החשבון שלך או בגלישה אנונימית.',
+      he: '❌ אי אפשר לחתום על ההצעה מחשבון העסק ששלח אותה. כדי לחתום כלקוחות, יש להתחבר לחשבון שלכם או לפתוח חלון גלישה אנונימית.',
       en: '❌ This quote cannot be signed from the business account that sent it. If you are the customer, please sign in with your own account or use an anonymous/incognito window.',
     },
   },
@@ -48,7 +48,7 @@ const PATTERNS = [
     category: 'invalid_signature',
     test: (msg) => /invalid signature format|missing signature|signature payload too large/i.test(msg),
     userMessage: {
-      he: '❌ החתימה שצוירה אינה תקינה. נסו לצייר את החתימה שוב ולנסות פעם נוספת.',
+      he: '❌ החתימה אינה תקינה. ציירו אותה שוב ונסו לאשר.',
       en: '❌ The drawn signature is invalid. Please redraw your signature and try again.',
     },
   },

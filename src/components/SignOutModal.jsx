@@ -8,7 +8,7 @@ export default function SignOutModal({ isOpen, onClose, onConfirm, isHebrew, has
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(24,33,43,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '20px' }} dir={isHebrew ? 'rtl' : 'ltr'}>
       <div style={{ background: APP.bgCard, padding: '24px', borderRadius: '12px', width: '100%', maxWidth: '380px', boxShadow: SHADOW.lg, textAlign: isHebrew ? 'right' : 'left' }}>
         <h3 style={{ marginTop: 0, color: APP.textPrimary, fontSize: '1.1rem', marginBottom: '12px', fontWeight: '700' }}>
-          {isHebrew ? 'האם ברצונך להתנתק מהמערכת?' : 'Are you sure you want to sign out?'}
+          {isHebrew ? 'להתנתק מהמערכת?' : 'Are you sure you want to sign out?'}
         </h3>
         {hasUnsavedDraft && (
           <p data-testid="signout-unsaved-warning" style={{ color: APP_STATUS.warning.fg, background: APP_STATUS.warning.bg, border: `1px solid ${APP_STATUS.warning.border}`, borderRadius: '6px', padding: '8px 10px', fontSize: '0.88rem', margin: '0 0 8px' }}>

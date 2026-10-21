@@ -4,6 +4,7 @@ import { goBackOrHome } from '../utils/goBackOrHome';
 import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeoFor } from '../shared/publicSeoRoutes';
 import ProFlowLogo from '../components/ProFlowLogo';
+import { writeConsent } from '../shared/siteAnalytics';
 
 export default function Privacy({ isHebrew }) {
   const navigate = useNavigate();
@@ -21,29 +22,31 @@ export default function Privacy({ isHebrew }) {
 
   const t = isHebrew ? {
     title: 'מדיניות פרטיות (Privacy Policy)',
-    lastUpdated: 'עדכון אחרון: 20 באוקטובר 2026',
-    back: 'חזור אחורה',
+    lastUpdated: 'עדכון אחרון: 21 באוקטובר 2026',
+    back: 'חזרה',
     sections: [
       {
         // Task 39 (Owner final scope 2026-10-13): the responsible operator, purposes and what is required (legal-documents spec, section D).
         title: '1. מי אחראי למידע ואיזה מידע נאסף',
-        content: 'האחראי למידע בשירות TEKANGO הוא מפעיל השירות, כמפורט בתנאי השימוש (לפניות: support@tekango.com). בעת ההרשמה והשימוש אנו מעבדים פרטי חשבון ועסק (כגון כתובת אימייל, שם העסק ופרטי התחברות), את המידע שאתם מזינים (לקוחות, הצעות מחיר, הוצאות) ותיעוד תפעולי הדרוש לאספקת השירות, לאבטחה ולתמיכה. פרטי ההתחברות והעסק הבסיסיים נדרשים לפתיחת חשבון; בלעדיהם לא ניתן לספק את השירות. שדות נוספים הם לבחירתכם.'
+        content: 'האחראי למידע בשירות TEKANGO הוא מפעיל השירות, כמפורט בתנאי השימוש (לפניות: support@tekango.com). בעת ההרשמה והשימוש אנו מעבדים פרטי חשבון ועסק (כגון כתובת מייל, שם העסק ופרטי התחברות), את המידע שאתם מזינים (לקוחות, הצעות מחיר, הוצאות) ותיעוד תפעולי הדרוש לאספקת השירות, לאבטחה ולתמיכה. כדי לפתוח חשבון חובה למסור כתובת מייל וסיסמה ולאשר את תנאי השימוש ואת מדיניות הפרטיות; בלי אלה אי אפשר לפתוח חשבון. שם מלא ושם העסק בהרשמה הם לבחירתכם. לפני הפקת הצעת המחיר הראשונה נדרשים טלפון העסק (ובישראל גם ח.פ או מספר עוסק), כי הם מופיעים בהצעה; בלעדיהם אפשר להשתמש במערכת, אבל לא להפיק הצעה. שאר השדות לבחירתכם.',
+        operatorLink: { href: '/he/terms#operator-details', label: 'פרטי המפעיל (סעיף 12 בתנאי השימוש)' }
       },
       {
         title: '2. שימוש במידע',
-        content: 'המידע הנאסף משמש אך ורק לצורך תפעול המערכת, יצירת מסמכים עבור העסק שלך, מתן תמיכה טכנית ושיפור חוויית המשתמש. השירות אינו מעבד תשלומים כרגע. אנו לא נעשה שימוש בנתונים העסקיים שלך לשום מטרה אחרת.'
+        content: 'המידע הנאסף משמש אך ורק לתפעול המערכת, ליצירת מסמכים עבור העסק שלכם, למתן תמיכה טכנית ולשיפור חוויית המשתמש. השירות אינו מעבד תשלומים כרגע. לא נעשה שימוש בנתונים העסקיים שלכם לשום מטרה אחרת.'
       },
       {
         title: '3. שיתוף מידע עם צד שלישי',
-        content: 'אנו מתחייבים לעולם לא למכור, לסחור או להשכיר את המידע שלך לצדדים שלישיים. אנו עשויים לשתף נתונים רק עם ספקי תשתית חיוניים (כגון שרתי Supabase לאחסון נתונים) הפועלים תחת תקני אבטחה מחמירים. כרגע אין ספק סליקה מחובר לשירות; ספק התשלום ופרטי השיתוף עמו יפורסמו לפני הפעלת המסלולים בתשלום. עוזר ה-AI של TEKANGO (בצ\'אט באתר ובתוך המערכת) מעביר את הטקסט שאתם כותבים לספק מודל שפה חיצוני (OpenAI) לצורך הפקת התשובה. המערכת אינה מצרפת לשאלה באופן אוטומטי את פרטי הלקוחות שלכם (שם, אימייל, טלפון, כתובת). טקסט שאתם מקלידים בעצמכם נשלח כפי שנכתב, ולכן אל תכללו בו פרטים שאינכם רוצים להעביר. השאלות והתשובות נשמרות אצלנו יחד עם כתובת המייל של החשבון (או כפנייה אנונימית בצ\'אט באתר) ומועד הפנייה, לצורך מענה ותמיכה. הודעות מייל (למשל הצעת מחיר ללקוח, אימות חשבון ואיפוס סיסמה) נשלחות באמצעות ספק שליחה חיצוני (Resend). בטפסי ההרשמה, ההתחברות ושחזור הסיסמה פועלת בדיקת אבטחה של Cloudflare (Turnstile) שחוסמת רובוטים; לצורך הבדיקה מועברים ל-Cloudflare נתונים טכניים מהדפדפן (כמו כתובת IP וסוג הדפדפן), ולא מה שאתם מקלידים בטופס.'
+        content: 'אנו מתחייבים לעולם לא למכור את המידע שלכם, לסחור בו או להשכיר אותו לצדדים שלישיים. אנו עשויים לשתף נתונים רק עם ספקי תשתית חיוניים (כגון שרתי Supabase לאחסון נתונים) הפועלים תחת תקני אבטחה מחמירים. כרגע אין ספק סליקה מחובר לשירות; ספק התשלום ופרטי השיתוף עמו יפורסמו לפני הפעלת המסלולים בתשלום. עוזר ה-AI של TEKANGO (בצ\'אט באתר ובתוך המערכת) מעביר לספק מודל שפה חיצוני (OpenAI) את מה שנדרש להפקת התשובה: את הטקסט שאתם כותבים, צילום מסך שאתם מצרפים לשאלה, ובשימוש בקול גם את ההקלטה (לתמלול) ואת טקסט התשובה (להקראה). כשאתם שואלים את העוזר בתוך המערכת על נתוני החשבון שלכם, למשל על לקוח, הצעה, פריט בקטלוג או משימה, הוא שולף מהחשבון את הנתונים הרלוונטיים ומעביר אותם לספק לצורך התשובה, ובהם גם פרטי לקוח כמו שם, איש קשר, מייל וטלפון. העוזר שולף נתונים מהחשבון רק כשאתם שואלים עליהם, והוא אינו משנה נתונים. אל תכללו בטקסט או בצילום פרטים שאינכם רוצים להעביר. ההקלטה עצמה אינה נשמרת אצלנו; התמלול נשלח כשאלה רגילה ונשמר כמו כל שאלה. השאלות והתשובות נשמרות אצלנו יחד עם כתובת המייל של החשבון (או כפנייה אנונימית בצ\'אט באתר) ומועד הפנייה, לצורך מענה ותמיכה. הודעות מייל (למשל הצעת מחיר ללקוח, אימות חשבון ואיפוס סיסמה) נשלחות באמצעות ספק שליחה חיצוני (Resend). בטפסי ההרשמה, ההתחברות ושחזור הסיסמה פועלת בדיקת אבטחה של Cloudflare (Turnstile) שחוסמת רובוטים; לצורך הבדיקה מועברים ל-Cloudflare נתונים טכניים מהדפדפן (כמו כתובת IP וסוג הדפדפן), ולא מה שאתם מקלידים בטופס. בדפים הציבוריים של האתר (דף הבית, הכלים, יצירת קשר, תנאי השימוש ומדיניות הפרטיות) אנו משתמשים בשירות המדידה Google Analytics של Google, כדי לדעת כמה מבקרים מגיעים לאתר, מאילו מקורות (למשל רשת חברתית או חיפוש) ובאילו דפים הם צופים. לצורך המדידה מועברים ל-Google נתונים טכניים מהדפדפן (כמו כתובת IP, סוג המכשיר והדפדפן, הדף שבו צפיתם והמקור שממנו הגעתם), והם עשויים להישמר בשרתים מחוץ לישראל, גם בארצות הברית. המדידה אינה פועלת בתוך המערכת, בהצעות המחיר שנשלחות ללקוחות ובכרטיסי העסק, ואינה מקבלת את מה שאתם מקלידים או את נתוני העסק שלכם.'
       },
       {
+        id: 'cookies',
         title: '4. שימוש ב-Cookies',
-        content: 'המערכת משתמשת בקובצי עוגיות (Cookies) הכרחיים בלבד. קבצים אלו חיוניים לצורך שמירת ההתחברות שלך (Session), ניהול אבטחה וזיהוי שפת הממשק (עברית/אנגלית). אין במערכת קוקיז למטרות מעקב פרסומי חודרני.'
+        content: 'האתר והמערכת משתמשים בעוגיות (Cookies) ובאחסון מקומי בדפדפן משני סוגים. הכרחיים: לשמירת ההתחברות שלכם (Session), לאבטחה, לזיכרון שפת הממשק (העוגייה proflow_lang, לשנה) ולזיכרון מדינת הגלישה שלפיה נבחר דף הבית (העוגייה proflow_geo_country, ליממה). מדידה: בדפים הציבוריים בלבד, עוגיות של Google Analytics (כמו _ga, נשמרות עד שנתיים) שמבחינות בין ביקור חוזר לביקור חדש. באתר בעברית המדידה פועלת כברירת מחדל; באתר באנגלית עוגיות המדידה נשמרות רק אחרי שהמבקר מאשר אותן. אפשר לחסום או למחוק עוגיות בהגדרות הדפדפן, או להתקין את תוסף הדפדפן של Google לחסימת Google Analytics. איננו משתמשים בעוגיות פרסום.'
       },
       {
         title: '5. אבטחת מידע',
-        content: 'אנו נוקטים באמצעי אבטחה מתקדמים הכוללים הצפנת נתונים בתעבורה ושימוש בשרתי ענן מוגנים. עם זאת, עליך להבין כי שום העברת נתונים באינטרנט אינה בטוחה ב-100%, ולכן איננו יכולים לערוב לאבטחה מוחלטת.'
+        content: 'אנו נוקטים אמצעי אבטחה מתקדמים, ובהם הצפנת נתונים בתעבורה ושימוש בשרתי ענן מוגנים. עם זאת, יש להבין שאין העברת נתונים באינטרנט שבטוחה ב-100%, ולכן איננו יכולים לערוב לאבטחה מוחלטת.'
       },
       {
         title: '6. זכויות המשתמש ומחיקה',
@@ -51,26 +54,27 @@ export default function Privacy({ isHebrew }) {
       },
       {
         title: '7. תשלומים (בעת רכישת מנוי)',
-        content: 'כיום לא מתבצעים תשלומים בשירות. בעת ביצוע רכישה, ספק התשלום החיצוני יעבד את פרטי התשלום הנדרשים לביצוע העסקה, והשירות יעבד את פרטי העסקה והסטטוס הדרושים לניהול המנוי ולתמיכה. זהות הספק ופרטי העיבוד יוצגו בתהליך הרכישה ובמדיניות זו לפני הפעלת התשלום.'
+        content: 'כיום לא מתבצעים תשלומים בשירות. בעת ביצוע רכישה, ספק התשלום החיצוני יעבד את פרטי התשלום הנדרשים לביצוע העסקה, והשירות יעבד את פרטי העסקה והמצב הדרושים לניהול המנוי ולתמיכה. זהות הספק ופרטי העיבוד יוצגו בתהליך הרכישה ובמדיניות זו לפני הפעלת התשלום.'
       },
       {
         title: '8. הודעות ודיוור',
         content: 'נשלח אליכם הודעות הנדרשות להפעלת החשבון והשירות (כגון אימות חשבון, איפוס סיסמה ותשובות לפניות). קבלת תנאי השימוש אינה הסכמה לדיוור שיווקי; אם יופעל דיוור שיווקי, הוא יישלח רק בהסכמה נפרדת, עם אפשרות הסרה.'
       },
       {
-        title: '9. נושאים שטרם הוחלטו',
-        content: 'משכי שמירת הנתונים והמסמכים לאחר מחיקה או סגירת חשבון, הטיפול בקבצים מצורפים ונפח האחסון טרם הוחלטו, ויפורסמו לפני הפעלת המסלולים.'
+        title: '9. נושאים שטרם הוכרעו',
+        content: 'טרם נקבעו משכי שמירת הנתונים והמסמכים לאחר מחיקה או סגירת חשבון, אופן הטיפול בקבצים מצורפים ונפח האחסון. הם יפורסמו לפני הפעלת המסלולים.'
       }
     ]
   } : {
     title: 'Privacy Policy',
-    lastUpdated: 'Last updated: October 20, 2026',
+    lastUpdated: 'Last updated: October 21, 2026',
     back: 'Go Back',
     sections: [
       {
         // Task 39 (Owner final scope 2026-10-13): the responsible operator, purposes and what is required (legal-documents spec, section D).
         title: '1. Who Is Responsible and What We Collect',
-        content: 'The party responsible for data in the TEKANGO service is its operator, as set out in the Terms of Use (contact: info@tekango.com). When you register and use the service we process account and business details (such as your email address, business name and sign-in details), the information you enter (clients, quotes, expenses) and operational records needed to provide the service, for security and for support. The basic sign-in and business details are required to open an account; without them the service cannot be provided. Other fields are optional.'
+        content: 'The party responsible for data in the TEKANGO service is its operator, as set out in the Terms of Use (contact: info@tekango.com). When you register and use the service we process account and business details (such as your email address, business name and sign-in details), the information you enter (clients, quotes, expenses) and operational records needed to provide the service, for security and for support. To open an account you must give an email address and a password and accept the Terms of Use and this Privacy Policy; without them an account cannot be opened. Full name and business name at sign-up are optional. Before the first quote is produced, a business phone number is required (in Israel also the business registration number), because they appear on the quote; without them you can use the system but not produce a quote. Other fields are optional.',
+        operatorLink: { href: '/en/terms#operator-details', label: 'Operator details (section 12 of the Terms of Use)' }
       },
       {
         title: '2. Use of Information',
@@ -78,11 +82,13 @@ export default function Privacy({ isHebrew }) {
       },
       {
         title: '3. Third-Party Sharing',
-        content: 'We promise never to sell, trade, or rent your personal information to third parties. We only share data with essential infrastructure providers (such as Supabase for database hosting) that operate under strict security standards. No payment processor is connected to the service at this time; the payment provider and what is shared with it will be published before paid plans are activated. The TEKANGO AI assistant (in the website chat and inside the app) sends the text you write to an external language-model provider (OpenAI) to produce its answer. The system does not automatically attach your customers\' details (name, email, phone, address) to a question. Text you type yourself is sent as written, so do not include details you do not want to pass on. Questions and answers are stored by us with the account email (or as an anonymous inquiry in the website chat) and the time, for answering and support. Emails (for example a quote to a customer, account verification and password reset) are sent through an external sending provider (Resend). The signup, sign-in and password-reset forms use a Cloudflare security check (Turnstile) to block bots; for the check, technical browser data (such as the IP address and the browser type) is sent to Cloudflare, not what you type in the form.'
+        content: 'We promise never to sell, trade, or rent your personal information to third parties. We only share data with essential infrastructure providers (such as Supabase for database hosting) that operate under strict security standards. No payment processor is connected to the service at this time; the payment provider and what is shared with it will be published before paid plans are activated. The TEKANGO AI assistant (in the website chat and inside the app) sends an external language-model provider (OpenAI) what it needs to produce its answer: the text you write, a screenshot you attach to a question, and, when you use voice, the recording (for transcription) and the answer text (for reading aloud). When you ask the assistant inside the app about your account data, for example about a client, a quote, a catalog item or a task, it retrieves the relevant data from your account and sends it to the provider for the answer, including client details such as name, contact person, email and phone. The assistant retrieves account data only when you ask about it, and it does not change data. Do not include in text or screenshots details you do not want to pass on. The recording itself is not stored by us; its transcript is sent as an ordinary question and is stored like any question. Questions and answers are stored by us with the account email (or as an anonymous inquiry in the website chat) and the time, for answering and support. Emails (for example a quote to a customer, account verification and password reset) are sent through an external sending provider (Resend). The signup, sign-in and password-reset forms use a Cloudflare security check (Turnstile) to block bots; for the check, technical browser data (such as the IP address and the browser type) is sent to Cloudflare, not what you type in the form. On the public pages of the website (the home page, tools, contact, Terms of Use and Privacy Policy) we use Google Analytics, a Google measurement service, to learn how many visitors come to the website, where they come from (for example a social network or a search) and which pages they view. For this, technical browser data (such as the IP address, the device and browser type, the page viewed and the referring source) is sent to Google and may be stored on servers outside Israel, including in the United States. Measurement does not run inside the app, on quotes sent to customers or on business cards, and it never receives what you type or your business data.'
       },
       {
+        id: 'cookies',
         title: '4. Cookies',
-        content: 'The platform uses only essential Cookies. These are necessary for maintaining your active session, managing security, and identifying your interface language. We do not use intrusive advertising tracking cookies.'
+        content: 'The website and the app use cookies and browser storage of two kinds. Essential: to keep you signed in (session), for security, to remember the interface language (the proflow_lang cookie, one year) and the browsing country used to choose the home page (the proflow_geo_country cookie, one day). Measurement: on the public pages only, Google Analytics cookies (such as _ga, kept for up to two years) that tell a returning visit from a new one. On the English website these measurement cookies are set only after you accept them in the cookie notice, and you can change your choice at any time with the button below; on the Hebrew website measurement runs by default. You can also block or delete cookies in your browser settings, or install Google\'s browser add-on that blocks Google Analytics. We do not use advertising cookies.',
+        cookieChoice: true
       },
       {
         title: '5. Data Security',
@@ -135,9 +141,20 @@ export default function Privacy({ isHebrew }) {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
             {t.sections.map((sec, idx) => (
-              <section key={idx}>
+              <section key={idx} id={sec.id} style={{ scrollMarginTop: '84px' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#10b981', marginBottom: '10px' }}>{sec.title}</h2>
                 <p style={{ color: '#cbd5e1', fontSize: '1rem', lineHeight: '1.7' }}>{sec.content}</p>
+                {sec.operatorLink && (
+                  // PRODUCT_TRUTH_DECORATIVE: opens the operator details section of the Terms of Use (no state change)
+                  <a href={sec.operatorLink.href} style={{ display: 'inline-block', marginTop: '8px', color: '#5eead4', fontWeight: 600 }}>{sec.operatorLink.label}</a>
+                )}
+                {sec.cookieChoice && (
+                  // PRODUCT_TRUTH_DECORATIVE: clears the stored cookie choice of this browser (and the measurement cookies) so the notice asks again
+                  <button type="button" data-testid="privacy-cookie-choice" onClick={() => writeConsent(null)}
+                    style={{ marginTop: '12px', background: 'transparent', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.35)', borderRadius: '8px', padding: '8px 16px', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    Change my cookie choice
+                  </button>
+                )}
               </section>
             ))}
           </div>

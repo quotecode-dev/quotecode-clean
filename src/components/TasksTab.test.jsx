@@ -96,7 +96,7 @@ function setup(isHebrew, { initial = [], db: given, isLocalIsraeliBusiness = isH
 const fill = (container, name, value) => fireEvent.change(container.querySelector(`[name="${name}"]`), { target: { value } });
 
 describe.each([
-  ['Hebrew/RTL', true, { new: 'משימה חדשה', save: 'שמירה', saved: 'המשימה נשמרה', overdue: 'באיחור', today: 'היום', upcoming: 'בהמשך', noDate: 'ללא תאריך יעד', done: 'סימון המשימה כהושלמה', reopen: 'פתיחה מחדש של המשימה', del: 'מחיקת המשימה', delConfirm: 'מחיקה', completed: 'הושלמו', retry: 'נסו שוב', required: 'נא להזין כותרת למשימה.' }],
+  ['Hebrew/RTL', true, { new: 'משימה חדשה', save: 'שמירה', saved: 'המשימה נשמרה', overdue: 'באיחור', today: 'היום', upcoming: 'בהמשך', noDate: 'ללא תאריך יעד', done: 'סימון המשימה כהושלמה', reopen: 'פתיחה מחדש של המשימה', del: 'מחיקת המשימה', delConfirm: 'מחיקה', completed: 'הושלמו', retry: 'נסו שוב', required: 'הזינו כותרת למשימה.' }],
   ['English/LTR', false, { new: 'New task', save: 'Save', saved: 'Task saved', overdue: 'Overdue', today: 'Today', upcoming: 'Upcoming', noDate: 'No due date', done: 'Mark task as done', reopen: 'Reopen task', del: 'Delete task', delConfirm: 'Delete', completed: 'Completed', retry: 'Try again', required: 'Enter a task title.' }],
 ])('Tasks screen - %s', (_label, isHebrew, X) => {
   it('shows loading, then the empty state; the screen inherits the structural direction', async () => {

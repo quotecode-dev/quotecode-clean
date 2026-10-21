@@ -61,7 +61,7 @@ export default function AISupportLogsContent({ isHebrew }) {
 
   const columns = [
     ['created_at', isHebrew ? 'זמן' : 'Time', Clock],
-    ['user_email', isHebrew ? 'אימייל משתמש' : 'User email', Mail],
+    ['user_email', isHebrew ? 'כתובת המייל של המשתמש' : 'User email', Mail],
     ['user_question', isHebrew ? 'שאלת הלקוח' : 'Customer question', HelpCircle],
     ['ai_response', isHebrew ? 'תשובת ה-AI' : 'AI answer', MessageSquareText],
     ['category', isHebrew ? 'קטגוריה' : 'Category', Tag],
@@ -89,7 +89,7 @@ export default function AISupportLogsContent({ isHebrew }) {
     <>
       <AdminScreenFrame
         title={title}
-        subtitle={isHebrew ? `${filteredLogs.length} רשומות · קריאה בלבד` : `${filteredLogs.length} entries · read-only`}
+        subtitle={isHebrew ? `רשומות: ${filteredLogs.length} · קריאה בלבד` : `${filteredLogs.length} entries · read-only`}
         label={title}
         controls={(
           <div className="admin-filters">
@@ -98,7 +98,7 @@ export default function AISupportLogsContent({ isHebrew }) {
               <input
                 type="text"
                 aria-label={isHebrew ? 'חיפוש לפי שאלה, אימייל או תשובה' : 'Search question, email or answer'}
-                placeholder={isHebrew ? 'חיפוש לפי שאלה, אימייל או תשובה...' : 'Search question, email or answer...'}
+                placeholder={isHebrew ? 'חיפוש לפי שאלה, אימייל או תשובה…' : 'Search question, email or answer...'}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
@@ -131,7 +131,7 @@ export default function AISupportLogsContent({ isHebrew }) {
         )}
       >
         {loading ? (
-          <p className="admin-empty" role="status">{isHebrew ? 'טוען נתונים...' : 'Loading...'}</p>
+          <p className="admin-empty" role="status">{isHebrew ? 'טוען נתונים…' : 'Loading...'}</p>
         ) : filteredLogs.length === 0 ? (
           <p className="admin-empty" role="status">{empty}</p>
         ) : (
@@ -142,7 +142,7 @@ export default function AISupportLogsContent({ isHebrew }) {
                 <tbody>
                   {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
                   {filteredLogs.map((log) => (
-                    <tr key={log.id} className="admin-support-row" onClick={() => setSelectedLog(log)} title={isHebrew ? 'לחץ לצפייה במלוא המלל' : 'Click to read the full text'}>
+                    <tr key={log.id} className="admin-support-row" onClick={() => setSelectedLog(log)} title={isHebrew ? 'צפייה בטקסט המלא' : 'Click to read the full text'}>
                       <td><span className="admin-date" dir="ltr">{when(log)}</span></td>
                       <td><span className="admin-support-cell" dir="ltr">{log.user_email || '-'}</span></td>
                       <td><span className="admin-support-cell" dir="auto">{log.user_question || '-'}</span></td>
@@ -179,7 +179,7 @@ export default function AISupportLogsContent({ isHebrew }) {
               <button className="admin-icon-button" style={{ marginInlineStart: 'auto' }} aria-label={isHebrew ? 'סגירה' : 'Close'} onClick={() => setSelectedLog(null)}><X size={16} /></button>
             </h2>
             {detail(isHebrew ? 'זמן' : 'Time', Clock, '#7c3aed', when(selectedLog), true)}
-            {detail(isHebrew ? 'אימייל משתמש' : 'User email', Mail, '#4f46e5', selectedLog.user_email, true)}
+            {detail(isHebrew ? 'כתובת המייל של המשתמש' : 'User email', Mail, '#4f46e5', selectedLog.user_email, true)}
             {detail(isHebrew ? 'קטגוריה' : 'Category', Tag, '#f59e0b', selectedLog.category || 'GENERAL')}
             {detail(isHebrew ? 'שאלת הלקוח' : 'Customer question', HelpCircle, '#0ea5e9', selectedLog.user_question)}
             {detail(isHebrew ? 'תשובת ה-AI' : 'AI answer', MessageSquareText, '#10b981', selectedLog.ai_response)}

@@ -82,7 +82,7 @@ describe('adminAnalytics - Owner-binding anti-fabrication rules', () => {
       expect(r.key).toBe(r.key.toLowerCase());
       expect(r.key).not.toMatch(/Basic|Pro\b|FREE|PRO|BASIC|LIFETIME|Lifetime|trial\b|Classic|Modern|Visual|unlimited/);
     }
-    expect(LEGACY_HISTORY_LABEL).toEqual({ he: 'רשומת מורשת (היסטוריה)', en: 'Legacy record (history)' });
+    expect(LEGACY_HISTORY_LABEL).toEqual({ he: 'רשומה מהמערכת הקודמת (לצורכי תיעוד)', en: 'Legacy record (history)' });
   });
 
   it('no legacy-derived plan identity/trial distribution is exported any more', () => {

@@ -20,12 +20,12 @@ export const COPY = {
   notActive: { he: 'מערך המסלולים טרם הופעל', en: 'Plan system not active yet' },
   unassigned: { he: 'החשבון טרם שויך למסלול', en: 'Not assigned to a plan yet' },
   unavailable: { he: 'מצב המסלול אינו זמין כרגע', en: 'Plan state unavailable right now' },
-  loading: { he: 'טוען מצב מסלול...', en: 'Loading plan state...' },
+  loading: { he: 'טוען מצב מסלול…', en: 'Loading plan state...' },
   systemNotActive: { he: 'מערך המסלולים החדש: טרם הופעל', en: 'New plan system: not active yet' },
   systemActive: { he: 'מערך המסלולים החדש: פעיל', en: 'New plan system: active' },
   systemUnknown: { he: 'מערך המסלולים החדש: המצב אינו זמין כרגע', en: 'New plan system: state unavailable right now' },
-  systemLoading: { he: 'בודק את מצב מערך המסלולים...', en: 'Checking the plan system state...' },
-  legacyTitle: { he: 'רשומת מורשת (היסטוריה)', en: 'Legacy record (history)' },
+  systemLoading: { he: 'בודק את מצב מערך המסלולים…', en: 'Checking the plan system state...' },
+  legacyTitle: { he: 'רשומה מהמערכת הקודמת (לצורכי תיעוד)', en: 'Legacy record (history)' },
   legacyHint: { he: 'ערכים טכניים גולמיים לביקורת בלבד. אינם קובעים מסלול, יתרה או זכאות.', en: 'Raw technical values for audit only. They never decide a plan, balance or entitlement.' },
 };
 const STATUS = {

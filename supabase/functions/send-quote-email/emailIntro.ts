@@ -11,6 +11,6 @@ export function emailIntroHtml(opts: {
   const custom = renderShareTemplate(typeof opts.shareText === 'string' ? opts.shareText : null, opts.vars, { format: 'html', rtl: opts.hebrew });
   if (custom !== null) return custom;
   return opts.hebrew
-    ? `מצורפת הצעת המחיר שלך ממערכת <strong>${escapeHtml(opts.bizTitle)}</strong>.`
+    ? `מצורפת הצעת המחיר מאת <strong>${escapeHtml(opts.bizTitle)}</strong>.`
     : `Please find your quote attached from <strong>${escapeHtml(opts.bizTitle)}</strong>.`;
 }

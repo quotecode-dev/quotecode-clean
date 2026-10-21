@@ -47,16 +47,16 @@ export default function Contact({ isHebrew }) {
     // Task 37 (Owner): no service-time promise that is not verified
     responseTimeValue: 'פניות לתמיכה נענות בימי העבודה.',
     responseTimeDesc: 'פניות שיישלחו בסוף השבוע ייענו ביום העבודה הבא.',
-    aiTitle: 'צ\'אט עם עוזר ה-AI',
+    aiTitle: 'צ׳אט עם עוזר ה-AI',
     aiDesc: 'קבלו תשובות מיידיות בכל שעה לשאלות על המערכת, המחירים והמסלולים, בעזרת עוזר ה-AI שלנו.',
-    aiButton: 'פתיחת הצ\'אט ✦',
+    aiButton: 'פתיחת הצ׳אט ✦',
     aiBadge: 'זמין בכל שעה',
     footerText: 'TEKANGO ישראל - מערכת להפקת הצעות מחיר ולניהול העסק.',
     // Owner 2026-10-15: the operator's name / registration no. / address / phone appear only in the Terms of Use; the visible contact
     // channels are email and the AI chat. Task 39 (Owner final scope 2026-10-13): the cancellation
     // request is handled by the team (never an automatic cancellation) and is not an account deletion.
     businessTitle: 'פרטי העסק',
-    businessLines: ['פרטי המפעיל מופיעים בתנאי השימוש. פנייה אלינו: במייל או בצ\'אט.'],
+    businessLines: ['פרטי המפעיל מופיעים בתנאי השימוש. פנייה אלינו: במייל או בצ׳אט.'],
     phone: null,
     phoneHref: null,
     cancelTitle: 'בקשת ביטול מנוי',

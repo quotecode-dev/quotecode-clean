@@ -42,7 +42,7 @@ export default function UpdateAvailableBanner({ isHebrew }) {
       }}
     >
       <span style={{ flex: '1 1 auto' }}>
-        {isHebrew ? 'גרסה חדשה זמינה. רענן/י לקבלת העדכון.' : 'A new version is available. Refresh to update.'}
+        {isHebrew ? 'גרסה חדשה זמינה. רעננו לקבלת העדכון.' : 'A new version is available. Refresh to update.'}
       </span>
       {/* PRODUCT_TRUTH_DECORATIVE: flushes local drafts and reloads to pick up a newly deployed app version; not a registered product capability */}
       <button
@@ -60,13 +60,13 @@ export default function UpdateAvailableBanner({ isHebrew }) {
           flexShrink: 0,
         }}
       >
-        {isHebrew ? 'רענן' : 'Refresh'}
+        {isHebrew ? 'רענון' : 'Refresh'}
       </button>
       {/* PRODUCT_TRUTH_DECORATIVE: dismisses the 'new version available' banner without reloading */}
       <button
         type="button"
         onClick={() => setNewVersionAvailable(false)}
-        aria-label={isHebrew ? 'סגור' : 'Dismiss'}
+        aria-label={isHebrew ? 'סגירה' : 'Dismiss'}
         style={{
           background: 'transparent',
           color: 'rgba(255,255,255,0.6)',

@@ -154,7 +154,7 @@ const fetchFreshGeoCountry = async () => {
 
 const DEFAULT_TERMS_HEB = `תנאים כלליים:
 1. תוקף ההצעה: ההצעה בתוקף ל-30 ימים מיום הצעת המחיר.
-2. מחירים: המחירים כוללים מע"מ, אלא אם צוין אחרת.
+2. מחירים: המחירים כוללים מע״מ, אלא אם צוין אחרת.
 3. תשלום: התשלום יתבצע במזומן או באמצעות העברה בנקאית, בתנאים שיוסכמו מראש.
 4. אספקה: אספקת המוצרים תתבצע תוך 30 ימי עבודה ממועד אישור ההזמנה והתשלום, אלא אם כן צוין אחרת.`;
 
@@ -1386,9 +1386,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // (Trial-warning banner and its show/hide state machine were removed by Owner request; trial days/expiry/entitlement are computed above and shown by the compact plan badge.)
   const t = {
     appName: bizName || 'TEKANGO',
-    appSub: isHebrew ? 'מערכת ניהול עסק והצעות מחיר' : 'Global SaaS Business & Quoting Platform',
-    totalQuotes: isHebrew ? 'סך הכל הצעות' : 'TOTAL QUOTES',
-    approvedPaid: isHebrew ? 'אושר / שולם' : 'APPROVED / PAID',
+    appSub: isHebrew ? 'מערכת לניהול העסק ולהפקת הצעות מחיר' : 'Global SaaS Business & Quoting Platform',
+    totalQuotes: isHebrew ? 'סך כל ההצעות' : 'TOTAL QUOTES',
+    approvedPaid: isHebrew ? 'אושרו / שולמו' : 'APPROVED / PAID',
     totalRevenue: isHebrew ? 'סך הכנסות' : 'TOTAL REVENUE',
     totalExpenses: isHebrew ? 'סך הוצאות' : 'TOTAL EXPENSES',
     netProfit: isHebrew ? 'רווח נקי' : 'NET PROFIT',
@@ -1396,41 +1396,41 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     clientEmail: isHebrew ? 'אימייל הלקוח' : 'Client Email',
     clientPhone: isHebrew ? 'טלפון הלקוח' : 'Client Phone',
     currency: isHebrew ? 'מטבע' : 'Currency',
-    status: isHebrew ? 'סטטוס' : 'Status',
+    status: isHebrew ? 'מצב' : 'Status',
     validUntil: isHebrew ? 'בתוקף עד' : 'Valid Until',
     discount: isHebrew ? 'הנחה (%)' : 'Discount (%)',
     quoteItems: isHebrew ? 'פריטי ההצעה' : 'Quote Items',
-    addItem: isHebrew ? '+ הוסף פריט ידנית' : '+ Add Custom Item',
-    quickAdd: isHebrew ? 'בחר שירות מהקטלוג...' : 'Choose from catalog...',
+    addItem: isHebrew ? '+ הוספת פריט ידנית' : '+ Add Custom Item',
+    quickAdd: isHebrew ? 'בחירת פריט מהקטלוג…' : 'Choose from catalog...',
     description: isHebrew ? 'תיאור' : 'Description',
     quantity: isHebrew ? 'כמות' : 'Qty',
     unitPrice: isHebrew ? 'מחיר יחידה' : 'Unit Price',
     totalPrice: isHebrew ? 'סכום' : 'Amount',
-    total: isHebrew ? 'סה"כ' : 'Total',
+    total: isHebrew ? 'סה״כ' : 'Total',
     subtotal: isHebrew ? 'סכום ביניים:' : 'Subtotal:',
-    vat: isHebrew ? 'מע"מ (18%):' : 'VAT (18%):',
-    totalAmount: isHebrew ? 'סה"כ לתשלום:' : 'Total Amount:',
-    generateSave: isHebrew ? 'הפק ושמור בענן' : 'Generate & Save to Cloud',
-    updateQuote: isHebrew ? 'עדכן הצעה בענן' : 'Update Quote in Cloud',
+    vat: isHebrew ? 'מע״מ (18%):' : 'VAT (18%):',
+    totalAmount: isHebrew ? 'סה״כ לתשלום:' : 'Total Amount:',
+    generateSave: isHebrew ? 'הפקה ושמירה בענן' : 'Generate & Save to Cloud',
+    updateQuote: isHebrew ? 'עדכון ההצעה בענן' : 'Update Quote in Cloud',
     cancelEdit: isHebrew ? 'ביטול עריכה' : 'Cancel Edit',
     recentHistory: isHebrew ? 'היסטוריית הצעות מחיר' : 'Recent Quotes History',
     servicesCatalog: isHebrew ? 'קטלוג שירותים ומוצרים' : 'Services & Products Catalog',
     expensesManagement: isHebrew ? 'ניהול הוצאות עסק' : 'Business Expenses Management',
-    addExpenseBtn: isHebrew ? 'הוסף הוצאה' : 'Add Expense',
-    businessSettings: isHebrew ? 'הגדרות עסק וחבילה' : 'Business Settings',
-    saveSettings: isHebrew ? 'שמור הגדרות עסק' : 'Save Business Settings',
+    addExpenseBtn: isHebrew ? 'הוספת הוצאה' : 'Add Expense',
+    businessSettings: isHebrew ? 'הגדרות העסק והמנוי' : 'Business Settings',
+    saveSettings: isHebrew ? 'שמירת הגדרות העסק' : 'Save Business Settings',
     businessNameLabel: isHebrew ? 'שם העסק' : 'Business Name',
     taxIdLabel: isHebrew ? 'ח.פ / עוסק מורשה' : 'Tax ID',
     logoUrlLabel: isHebrew ? 'כתובת תמונת לוגו (URL)' : 'Logo Image URL',
-    addService: isHebrew ? 'הוסף לקטלוג' : 'Add to Catalog',
+    addService: isHebrew ? 'הוספה לקטלוג' : 'Add to Catalog',
     serviceName: isHebrew ? 'שם השירות / המוצר' : 'Service Name',
     defaultPrice: isHebrew ? 'מחיר קבוע' : 'Fixed Price',
-    searchQuote: isHebrew ? 'חיפוש שם לקוח או מס׳ הצעה...' : 'Search client or quote #...',
-    filterStatus: isHebrew ? 'כל הסטטוסים' : 'All Statuses',
+    searchQuote: isHebrew ? 'חיפוש לפי שם לקוח או מספר הצעה…' : 'Search client or quote #...',
+    filterStatus: isHebrew ? 'כל המצבים' : 'All Statuses',
     actions: isHebrew ? 'פעולות' : 'Actions',
-    edit: isHebrew ? 'ערוך הצעה' : 'Edit Quote',
-    duplicate: isHebrew ? 'שכפל הצעה' : 'Duplicate Quote',
-    delete: isHebrew ? 'מחק הצעה' : 'Delete Quote',
+    edit: isHebrew ? 'עריכת הצעה' : 'Edit Quote',
+    duplicate: isHebrew ? 'שכפול הצעה' : 'Duplicate Quote',
+    delete: isHebrew ? 'מחיקת הצעה' : 'Delete Quote',
     clientsManagement: isHebrew ? 'ניהול לקוחות' : 'Clients Management',
     quotesNav: isHebrew ? 'הצעות מחיר' : 'Quotes',
     settingsNav: isHebrew ? 'הגדרות העסק' : 'Business Settings',
@@ -1854,7 +1854,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       }
       setPendingNewAccount({ userId, userEmail, businessName: signupBusinessName });
       setNeedsRegionChoice(true);
-      setRegionChoiceError(isHebrew ? 'לא הצלחנו ליצור את החשבון כרגע. נסה שוב.' : "We couldn't create your account right now. Please try again.");
+      setRegionChoiceError(isHebrew ? 'לא הצלחנו ליצור את החשבון כרגע. נסו שוב.' : "We couldn't create your account right now. Please try again.");
       isCreatingBusinessSettingsRef.current = false;
       setIsCreatingBusinessSettings(false);
       return false;
@@ -2026,13 +2026,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // createNewBusinessSettings לפני שהדשבורד בכלל נגיש) - נכשלים
       // בבטחה במקום לנחש/ליצור.
       console.error('handleSaveSettings: missing settingId - refusing to insert a new business_settings row (see createNewBusinessSettings).');
-      alertWithBlocker('SETTINGS_SAVE_FAILED', { surface: 'settings' }, isHebrew ? 'לא ניתן לשמור את ההגדרות כרגע. טען מחדש את העמוד ונסה שוב.' : 'Settings cannot be saved right now. Please reload the page and try again.');
+      alertWithBlocker('SETTINGS_SAVE_FAILED', { surface: 'settings' }, isHebrew ? 'לא ניתן לשמור את ההגדרות כרגע. טענו מחדש את העמוד ונסו שוב.' : 'Settings cannot be saved right now. Please reload the page and try again.');
     }
   }
 
   async function handleSaveUpdatedClient(updatedClient) {
     if (updatedClient.email && updatedClient.email.trim() !== '' && !emailEmailValidation(updatedClient.email)) {
-      setAlertModalMsg(isHebrew ? '❌ אימייל לא חוקי!' : '❌ Invalid email address!');
+      setAlertModalMsg(isHebrew ? 'כתובת המייל אינה תקינה.' : '❌ Invalid email address!');
       return;
     }
 
@@ -2069,7 +2069,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // isNew החדש שלו.
   async function handleCreateClient(newClient) {
     if (newClient.email && newClient.email.trim() !== '' && !emailEmailValidation(newClient.email)) {
-      setAlertModalMsg(isHebrew ? '❌ אימייל לא חוקי!' : '❌ Invalid email address!');
+      setAlertModalMsg(isHebrew ? 'כתובת המייל אינה תקינה.' : '❌ Invalid email address!');
       return;
     }
     if (!session?.user?.id) return;
@@ -2333,7 +2333,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
 
     const INTL_CURRENCY_SYMBOLS = { USD: '$', EUR: '€', GBP: '£' };
-    const localStatusLabels = { draft: 'טיוטה', sent: 'נשלח', approved: 'אושר', paid: 'שולם' };
+    const localStatusLabels = { draft: 'טיוטה', sent: 'נשלחה', approved: 'אושרה', paid: 'שולמה' };
     const intlStatusLabels = { draft: 'Draft', sent: 'Sent', approved: 'Approved', paid: 'Paid' };
 
     const reportBizName = bizName || 'TEKANGO';
@@ -2345,7 +2345,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     });
 
     const headers = isLocalIsraeliBusiness
-      ? ['מספר הצעה', 'שם לקוח', 'אימייל', 'סטטוס', 'סכום', 'בתוקף עד', 'תאריך יצירה']
+      ? ['מספר הצעה', 'שם לקוח', 'כתובת מייל', 'מצב', 'סכום', 'בתוקף עד', 'תאריך יצירה']
       : ['Quote Number', 'Client', 'Email', 'Status', 'Amount', 'Valid Until', 'Created At'];
 
     sheet.columns = [16, 26, 28, 14, 16, 16, 16].map(width => ({ width }));
@@ -2458,7 +2458,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     // task: requesting a password reset on the real `/dashboard?lang=he`
     // route rendered the English success text, not Hebrew.
     if (!emailEmailValidation(emailInput)) {
-      setAuthError(bundleIsHebrew ? 'כתובת האימייל אינה תקינה או פיקטיבית.' : 'Invalid email address.');
+      setAuthError(bundleIsHebrew ? 'כתובת המייל אינה תקינה או אינה כתובת אמיתית.' : 'Invalid email address.');
       setAuthLoading(false);
       return;
     }
@@ -2472,7 +2472,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         .maybeSingle();
 
       if (existingBiz) {
-        setAuthError(bundleIsHebrew ? 'האימייל כבר רשום במערכת! אנא התחבר או אפס סיסמה.' : 'Email already registered! Please sign in or use password reset.');
+        setAuthError(bundleIsHebrew ? 'כתובת המייל כבר רשומה במערכת. אפשר להתחבר או לאפס את הסיסמה.' : 'Email already registered! Please sign in or use password reset.');
         return;
       }
 
@@ -2533,9 +2533,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             ...(cleanSignupText(signupFullName) ? { full_name: cleanSignupText(signupFullName) } : {}),
             ...(cleanSignupText(signupBusinessName) ? { business_name: cleanSignupText(signupBusinessName) } : {}),
             // 2026-10-20: the Terms state the free plan as 10 quotes or 7 days (IRON-LANDING-001 amended)
-            terms_version: '2026-10-20',
+            terms_version: '2026-10-21',
             // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
-            privacy_version: '2026-10-20',
+            privacy_version: '2026-10-21',
             terms_accepted_at: new Date().toISOString(),
           }
         }
@@ -2550,7 +2550,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         setAuthError(normalizeAuthError(error, bundleIsHebrew).message);
       } else {
         if (data?.user && data.user.identities && data.user.identities.length === 0) {
-          setAuthError(bundleIsHebrew ? 'האימייל כבר קיים! אנא התחבר.' : 'Email already exists! Please sign in.');
+          setAuthError(bundleIsHebrew ? 'כתובת המייל כבר רשומה במערכת. אפשר להתחבר.' : 'Email already exists! Please sign in.');
         } else {
           // Owner P0 (Task 38 finding): when email confirmation is required there is no session yet - say so plainly
           setAuthSuccess(data?.session
@@ -2562,7 +2562,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       const { error } = await supabase.auth.signInWithPassword({ email: emailInput, password: passwordInput, options: { captchaToken: takeCaptchaToken('auth') } });
       if (error) {
         // Owner console 2026-10-20 (L-12): a failed robot check says so, never "check your credentials"
-        setAuthError(isCaptchaError(error) ? normalizeAuthError(error, bundleIsHebrew).message : (bundleIsHebrew ? 'שגיאת התחברות: בדוק את הפרטים או אפס סיסמה.' : 'Login error: check your credentials or reset password.'));
+        setAuthError(isCaptchaError(error) ? normalizeAuthError(error, bundleIsHebrew).message : (bundleIsHebrew ? 'לא הצלחנו להתחבר. בדקו את הפרטים או אפסו את הסיסמה.' : 'Login error: check your credentials or reset password.'));
       } else {
         setStatusMsg({ text: bundleIsHebrew ? 'התחברת בהצלחה' : 'Logged in successfully', type: 'success' });
       }
@@ -2678,7 +2678,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setRecoveryUpdateMsg(message);
       setRecoveryUpdateMsgIsError(true);
     } else {
-      setRecoveryUpdateMsg(bundleIsHebrew ? 'הסיסמה עודכנה בהצלחה! מעביר אותך למסך ההתחברות...' : 'Password updated successfully! Redirecting you to sign in...');
+      setRecoveryUpdateMsg(bundleIsHebrew ? 'הסיסמה עודכנה. עוברים למסך ההתחברות…' : 'Password updated successfully! Redirecting you to sign in...');
       setRecoveryUpdateMsgIsError(false);
       // חוק ברזל (Password Recovery End-to-End Fix, Wave 1, §227/§228): לפני
       // התיקון, ההפניה הייתה ל-window.location.origin (שורש חשוף) תוך השארת
@@ -3033,7 +3033,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     // PROFLOW_TODO.md item 17), ונופל בבטחה למספר ה-UUID המקוצר אחרת.
     const proposalNumberDisplay = formatQuoteFallback(proposal);
     const ownerText = buildShareText({
-      template: shareTextDefault, link: quoteViewLink, linkLabel: isLocalQuote ? 'צפה בהצעה:' : 'View quote:', rtl: isLocalQuote,
+      template: shareTextDefault, link: quoteViewLink, linkLabel: isLocalQuote ? 'לצפייה בהצעה:' : 'View quote:', rtl: isLocalQuote,
       vars: { customer: clientNameVal, business: senderName, number: proposalNumberDisplay, total: `${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}` },
     });
     // Owner 2026-10-19 (option א): a quote without a validity date says nothing about validity - never 'N/A' / 'ללא הגבלה';
@@ -3043,7 +3043,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     const validityEn = validityDate ? ` Valid until ${validityDate}.` : '';
     // Task 36 (A): a partial total is said in the message itself (its own line, in the quote's language)
     return appendPartialTotalNote(ownerText ?? (isLocalQuote
-      ? `הצעת מחיר מאת: ${senderName}\n\nהי ${clientNameVal}, הנה הצעת המחיר שלך מספר ${proposalNumberDisplay} בסך ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}.${validityHe}\n\nצפה בהצעה:\n${quoteViewLink}`
+      ? `הצעת מחיר מאת: ${senderName}
+
+שלום ${clientNameVal}, מצורפת הצעת מחיר מספר ${proposalNumberDisplay} בסך ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}.${validityHe}
+
+לצפייה בהצעה:
+${quoteViewLink}`
       : `Quote from: ${senderName}\n\nHi ${clientNameVal}, here is your quote ${proposalNumberDisplay} totaling ${proposalSym}${formatMoneyForCurrency(proposal.total, proposalCurr)}.${validityEn}\n\nView quote:\n${quoteViewLink}`), proposal, isLocalQuote);
   };
 
@@ -3183,11 +3188,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     
     if (!clientEmailVal || !emailEmailValidation(clientEmailVal)) {
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-      alertWithBlocker('EMAIL_CLIENT_NO_EMAIL', { surface: 'main' }, isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית או חסרה!' : '❌ Invalid client email address!');
+      alertWithBlocker('EMAIL_CLIENT_NO_EMAIL', { surface: 'main' }, isHebrew ? 'לא ניתן לשלוח את המייל: כתובת המייל של הלקוח חסרה או אינה תקינה.' : '❌ Invalid client email address!');
       return;
     }
 
-    setStatusMsg({ text: isHebrew ? 'שולח אימייל דרך הענן...' : 'Sending email via cloud...', type: 'success' });
+    setStatusMsg({ text: isHebrew ? 'שולח אימייל דרך הענן…' : 'Sending email via cloud...', type: 'success' });
 
     try {
       const quoteCurr = (quote.currency || currency || 'USD').toUpperCase();
@@ -3251,7 +3256,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'success' }));
       resolveBlockers(['EMAIL_SEND_FAILED', 'EMAIL_SEND_NETWORK', 'EMAIL_CLIENT_NO_EMAIL']);
-      setStatusMsg({ text: isHebrew ? '📧 האימייל נשלח בהצלחה!' : '📧 Email sent successfully!', type: 'success' });
+      setStatusMsg({ text: isHebrew ? '📧 המייל נשלח בהצלחה!' : '📧 Email sent successfully!', type: 'success' });
       if (sendGate.mode !== 'authority_required') markSentAfterShare(quote); // legacy phase: the email went out = sent
     } catch (err) {
       // חוק ברזל (LIVE Admin Email Failure root-cause task, 2026-09-08):
@@ -3264,7 +3269,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // ה-console.error עדיין מקבל את האובייקט הגולמי + ה-message שנפתר,
       // לאבחון מפתחים - אף פעם לא נחשף כפי-שהוא למשתמש.
       const hadReadableServerResponse = !!(err?.context && typeof err.context.json === 'function');
-      const rawMessage = await getFunctionErrorMessage(err, isHebrew ? 'שליחת האימייל נכשלה' : 'Email sending failed');
+      const rawMessage = await getFunctionErrorMessage(err, isHebrew ? 'שליחת המייל נכשלה' : 'Email sending failed');
       console.error("Email send error:", err, "| resolved server message:", rawMessage);
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
       const { userMessage } = classifyQuoteEmailError(rawMessage, isHebrew, { hadReadableServerResponse });
@@ -3705,7 +3710,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setQuoteFiles(attData ? attData.map(f => ({ ...f, size: f.file_size })) : []);
 
     window.scrollTo({ top: 0, behavior: 'smooth' });
-    setStatusMsg({ text: isHebrew ? `עורך הצעה ${formatQuoteFallback(quote)}...` : `Editing Quote ${formatQuoteFallback(quote)}...`, type: 'success' });
+    setStatusMsg({ text: isHebrew ? `עורך הצעה ${formatQuoteFallback(quote)}…` : `Editing Quote ${formatQuoteFallback(quote)}...`, type: 'success' });
   };
 
   // חוק ברזל (תיקון בעלים מאושר): setActiveTab('main') נוסף כאן כי ה-CTA
@@ -3818,7 +3823,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       const templateClientType = clientTypeForPriceBasis(f.priceBasis);
       if (templateClientType) setClientType(templateClientType);
       else setAlertModalMsg(isHebrew
-        ? 'התבנית נשמרה לפני שנשמר בה אם המחירים כוללים מע"מ. בחרו את סוג הלקוח (פרטי: המחירים כוללים מע"מ, עסקי: לפני מע"מ) ובדקו שהמחירים נכונים לפני השליחה.'
+        ? 'בתבנית הזו עדיין לא נשמר מידע אם המחירים כוללים מע״מ. בחרו את סוג הלקוח (פרטי: המחירים כוללים מע״מ; עסקי: המחירים לפני מע״מ), ובדקו את המחירים לפני השליחה.'
         : 'This template was saved before it remembered whether its prices include VAT. Choose the client type (private: prices include VAT, business: before VAT) and check the prices before sending.');
     }
     setSections(f.sections);
@@ -4171,13 +4176,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     // SMART-QUOTE-01: an unfinished quote (no real priced item) can only be kept as a Draft - never saved as Sent/Approved/Paid.
     if (editingQuoteId && isUnfinishedQuoteForm({ items, totalAmount }) && String(quoteStatus || '').toLowerCase() !== 'draft') {
       saveBlock('QUOTE_UNFINISHED_NON_DRAFT_STATUS', isHebrew
-        ? 'לא ניתן לשמור הצעה לא גמורה בסטטוס נשלח / אושר / שולם. השלימו מוצר או עבודה עם מחיר, או החזירו את הסטטוס לטיוטה.'
+        ? 'לא ניתן לשמור הצעה לא גמורה במצב נשלחה / אושרה / שולמה. השלימו מוצר או עבודה עם מחיר, או החזירו את המצב לטיוטה.'
         : 'An unfinished quote cannot be saved as Sent / Approved / Paid. Add a product or work item with a price, or set the status back to Draft.');
       return;
     }
 
     if (clientEmail && clientEmail.trim() !== '' && !emailEmailValidation(clientEmail)) {
-      saveBlock('QUOTE_INVALID_CLIENT_EMAIL', isHebrew ? '❌ שגיאה: כתובת האימייל של הלקוח אינה חוקית!' : '❌ Invalid email address!');
+      saveBlock('QUOTE_INVALID_CLIENT_EMAIL', isHebrew ? 'כתובת המייל אינה תקינה.' : '❌ Invalid email address!');
       return;
     }
     // Task 27 (§253): a NEW quote after Free-10 is exhausted stops here, BEFORE any client or quote row is written; the form keeps every
@@ -4410,7 +4415,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           const persistedTaxRateValid = typeof persistedTaxRate === 'number' && Number.isFinite(persistedTaxRate) && persistedTaxRate >= 0;
           if (!persistedTaxRateValid) {
             setAlertModalMsg(isHebrew
-              ? 'שיעור המע"מ השמור בהצעה זו חסר או לא תקין. לא ניתן לבצע שינוי פיננסי בבטחה. השמירה בוטלה.'
+              ? 'שיעור המע״מ השמור בהצעה זו חסר או לא תקין. לא ניתן לבצע שינוי פיננסי בבטחה. השמירה בוטלה.'
               : 'This quote\'s persisted tax rate is missing or invalid. A financial change cannot be safely saved. Save cancelled.');
             return;
           }
@@ -4696,7 +4701,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         let msg;
         if (saveResult.stage === 'structure' && saveResult.compensationFailed) {
           msg = isHebrew
-            ? 'לא ניתן היה לשמור את מבנה ההצעה החדשה, וגם ניקוי שלד ההצעה שנוצר בטעות נכשל. אנא פנה לתמיכה - ייתכן שנותרה הצעה ריקה/שגויה.'
+            ? 'לא הצלחנו לשמור את מבנה ההצעה החדשה, וגם לא הצלחנו למחוק את ההצעה הריקה שנוצרה בטעות. ייתכן שנשארה הצעה ריקה או שגויה. פנו לתמיכה.'
             : 'Could not save the new quote\'s structure, and cleaning up the accidentally-created quote shell also failed. Please contact support - an empty/invalid quote may remain.';
         } else if (saveResult.stage === 'structure') {
           msg = isHebrew
@@ -4709,7 +4714,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         } else if (saveResult.stage === 'transaction') {
           msg = (isHebrew ? 'ההצעה לא נשמרה - השמירה בוטלה במלואה, שום דבר לא שונה. הטיוטה נשמרה - אפשר לנסות שוב.' : 'The quote was not saved - the save was rolled back completely and nothing changed. Your draft is kept - you can try again.') + detail;
         } else if (saveResult.stage === 'quote' && saveResult.missingColumn === 'project_name') {
-          msg = (isHebrew ? 'ההצעה לא נשמרה: הסביבה הנוכחית עדיין לא יכולה לשמור "שם פרויקט". הסירו את שם הפרויקט או נסו שוב מאוחר יותר.' : 'The quote was not saved: this environment cannot store the project name yet. Remove the project name or try again later.') + clientNote;
+          msg = (isHebrew ? 'ההצעה לא נשמרה, כי עדיין אי אפשר לשמור שם פרויקט במערכת הזו. הסירו את שם הפרויקט או נסו שוב מאוחר יותר.' : 'The quote was not saved: this environment cannot store the project name yet. Remove the project name or try again later.') + clientNote;
         } else if (saveResult.stage === 'client') {
           msg = (isHebrew ? 'ההצעה לא נשמרה - שמירת פרטי הלקוח נכשלה.' : 'The quote was not saved - saving the client details failed.') + clientNote + detail;
         } else {
@@ -4768,7 +4773,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           if (persistedStatus !== 'sent') await markQuoteStatusAfterOutput(quoteId, persistedStatus);
         } else {
           leaveDraftNote = auth.mode === 'cancelled'
-            ? (isHebrew ? 'ההצעה נשמרה כטיוטה. הסטטוס לא שונה ולא נוצלה הצעה.' : 'The quote was saved as a draft. Its status was not changed and no quote was used.')
+            ? (isHebrew ? 'ההצעה נשמרה כטיוטה. המצב לא שונה ולא נוצלה הצעה.' : 'The quote was saved as a draft. Its status was not changed and no quote was used.')
             : `${isHebrew ? 'ההצעה נשמרה כטיוטה. ' : 'The quote was saved as a draft. '}${outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null)}`;
           if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
         }
@@ -4788,8 +4793,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           // הם אינם זהים (totalAmount עדיין מניח "נטו + מע"מ מעליו").
           // Owner round 1 (plan section 4): a new quote saved by the server is a draft in the account - never worded as issued or sent
           : (String(quoteStatus || '').toLowerCase() === 'draft' || !quoteStatus
-            ? (isHebrew ? `הטיוטה נשמרה בחשבון. סה"כ: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}` : `Draft saved to your account. Total: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}`)
-            : (isHebrew ? `ההצעה נשמרה בחשבון. סה"כ: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}` : `Quote saved to your account. Total: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}`)),
+            ? (isHebrew ? `הטיוטה נשמרה בחשבון. סה״כ: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}` : `Draft saved to your account. Total: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}`)
+            : (isHebrew ? `ההצעה נשמרה בחשבון. סה״כ: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}` : `Quote saved to your account. Total: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}`)),
         type: 'success'
       });
       if (presentationNote.kind === 'alert') setAlertModalMsg(scheduleNote ? `${presentationNote.text}\n${scheduleNote}` : presentationNote.text);
@@ -5015,7 +5020,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           </h2>
           <p style={{ color: NEON.textSecondary, fontSize: '0.85rem', marginBottom: '16px' }}>
             {isHebrew
-              ? 'לא הצלחנו לזהות זאת אוטומטית - זה קובע שפה, מטבע ומע"מ עבור החשבון שלך.'
+              ? 'לא הצלחנו לזהות זאת אוטומטית - זה קובע שפה, מטבע ומע״מ עבור החשבון שלך.'
               : "We couldn't detect this automatically - it determines your account's language, currency and VAT."}
           </p>
           {regionChoiceError && (
@@ -5043,7 +5048,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           </div>
           {isCreatingBusinessSettings && (
             <p style={{ color: NEON.textSecondary, fontSize: '0.8rem', marginTop: '14px' }}>
-              {isHebrew ? 'יוצר את החשבון...' : 'Creating your account...'}
+              {isHebrew ? 'יוצר את החשבון…' : 'Creating your account...'}
             </p>
           )}
           </>)}
@@ -8965,7 +8970,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div style={{ padding: '30px', textAlign: 'center', background: 'rgba(239, 68, 68, 0.1)', borderRadius: '12px', border: '1px solid rgba(248, 113, 113, 0.35)', color: NEON.red, margin: '20px 0' }}>
           <h3>{this.props.isHebrew ? 'שגיאה בטעינת הרכיב' : 'Component Loading Error'}</h3>
-          <p style={{ fontSize: '0.85rem' }}>{this.props.isHebrew ? 'אירעה שגיאה זמנית בהצגת הנתונים. אנא רענן את העמוד.' : 'An error occurred while loading. Please refresh the page.'}</p>
+          <p style={{ fontSize: '0.85rem' }}>{this.props.isHebrew ? 'אירעה שגיאה זמנית בהצגת הנתונים. רעננו את העמוד.' : 'An error occurred while loading. Please refresh the page.'}</p>
         </div>
       );
     }

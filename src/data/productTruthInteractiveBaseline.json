@@ -616,8 +616,8 @@
     "markers": 0
   },
   "src/pages/Privacy.jsx": {
-    "interactive": 1,
-    "markers": 0
+    "interactive": 3,
+    "markers": 2
   },
   "src/pages/ProfessionalPublicPreview.jsx": {
     "interactive": 1,
@@ -675,6 +675,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/shared/SiteAnalyticsTracker.jsx": {
+    "interactive": 3,
+    "markers": 3
+  },
   "src/shared/UpdateAvailableBanner.jsx": {
     "interactive": 2,
     "markers": 2
@@ -692,6 +696,10 @@
     "markers": 0
   },
   "src/shared/publicSeoRoutes.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/shared/siteAnalytics.js": {
     "interactive": 0,
     "markers": 0
   },

@@ -36,7 +36,7 @@ describe('formatInvoicingTruthAnswer', () => {
     expect(a).not.toMatch(/PayPlus/i);
     if (isHebrew) {
       expect(a).toMatch(/לא מפיקה חשבוניות/);
-      expect(a).toMatch(/PDF/); expect(a).toMatch(/במייל/); expect(a).toMatch(/"שולם"/); expect(a).toMatch(/סליקה/);
+      expect(a).toMatch(/PDF/); expect(a).toMatch(/במייל/); expect(a).toMatch(/"שולמה"/); expect(a).toMatch(/סליקה/);
     } else {
       expect(a).toMatch(/does not issue invoices/);
       expect(a).toMatch(/PDF/); expect(a).toMatch(/email/i); expect(a).toMatch(/"Paid"/); expect(a).toMatch(/payment\/checkout is not available/i);

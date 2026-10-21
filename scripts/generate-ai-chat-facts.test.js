@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { generateAiFacts, AI_FACTS_SCHEMA_VERSION, APPROVED_PRICE_ROW_COUNT } from './generate-ai-chat-facts.js';
 import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../src/shared/brand.js';
 import { REGION_RULES } from '../src/utils/regionConfig.js';
-import { PRICE_VERSIONS, PRICE_CATALOG_VERSION } from '../src/domain/subscriptions/priceCatalog.js';
+import { PRICE_VERSIONS, PRICE_CATALOG_VERSION, FREE_DAYS_TOTAL } from '../src/domain/subscriptions/priceCatalog.js';
 import { PLAN_NAMES, FREE_QUOTES_TOTAL, CAPABILITIES } from '../supabase/functions/_shared/subscriptionContract.ts';
 
 // Consolidated Gate 1, §11.4 + subscriptions cutover (OD-01..OD-20): proves the generated AI facts match the canonical
@@ -57,10 +57,13 @@ describe('generateAiFacts - canonical facts parity', () => {
     expect(JSON.stringify(S.prices.INTERNATIONAL)).not.toMatch(/ILS|₪|NIS/);
   });
 
-  it('Free is 10 quotes in total with no expiry, consumed on the first client output only (OD-01/OD-02)', () => {
+  it('Free is 10 quotes or 7 days, whichever ends first (Owner 2026-10-20), consumed on the first client output only (OD-01/OD-02)', () => {
     expect(S.free.quotesTotal).toBe(FREE_QUOTES_TOTAL);
     expect(S.free.quotesTotal).toBe(10);
-    expect(S.free.expires).toBe(false);
+    expect(S.free.expires).toBe(true);
+    expect(S.free.days).toBe(FREE_DAYS_TOTAL);
+    expect(S.free.days).toBe(7);
+    expect(S.free.endsWhen).toBe('first_of_quotes_or_days');
     expect(S.free.consumingChannels).toEqual(['send', 'public_share', 'final_pdf', 'final_print']);
     expect(S.free.draftsAndPreviewsConsume).toBe(false);
     expect(S.free.deleteRefunds).toBe(false);

@@ -12,7 +12,7 @@ import { encodeQr, qrSvgPath } from '../utils/qrCode';
 
 const TEAL = '#0F6672';
 const BUSINESS_CARD_COPY = {
-  he: { call: 'התקשרו', whatsapp: 'WhatsApp', whatsappAria: 'שליחת הודעת WhatsApp', email: 'אימייל', address: 'כתובת', about: 'אודות', share: 'שיתוף הכרטיס', copy: 'העתקת הקישור', copied: 'הקישור הועתק', qr: 'קוד QR לכרטיס הביקור', by: 'כרטיס ביקור דיגיטלי ב-TEKANGO' },
+  he: { call: 'התקשרו', whatsapp: 'WhatsApp', whatsappAria: 'שליחת הודעת WhatsApp', email: 'כתובת מייל', address: 'כתובת', about: 'אודות', share: 'שיתוף הכרטיס', copy: 'העתקת הקישור', copied: 'הקישור הועתק', qr: 'קוד QR לכרטיס הביקור', by: 'כרטיס ביקור דיגיטלי ב-TEKANGO' },
   en: { call: 'Call', whatsapp: 'WhatsApp', whatsappAria: 'Send a WhatsApp message', email: 'Email', address: 'Address', about: 'About', share: 'Share card', copy: 'Copy link', copied: 'Link copied', qr: 'QR code for this business card', by: 'Digital business card by TEKANGO' },
 };
 

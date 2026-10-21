@@ -49,7 +49,7 @@ describe('adversarial: the user cannot talk the assistant into a plan, a trial, 
   });
   it('a ready Free account asking for its balance gets the SERVER balance', () => {
     expect(answer('how many free quotes do I have left?', false, READY_FREE).answer).toMatch(/7 of 10 quotes remain/);
-    expect(answer('כמה הצעות נשארו לי?', true, READY_FREE).answer).toMatch(/נותרו 7 מתוך 10 הצעות/);
+    expect(answer('כמה הצעות נשארו לי?', true, READY_FREE).answer).toMatch(/יתרה: 7 מתוך 10 הצעות/);
   });
   it('"is it unlimited?" -> never "unlimited": the package is only not limited to Free-10; other limits not decided (EN + HE)', () => {
     const en = answer('is it unlimited?', false);

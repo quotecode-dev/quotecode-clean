@@ -195,7 +195,7 @@ export function accountPlanLine(account: AccountPlanContext | null, lang: Lang):
   if (account.summaryState === 'ready' && account.planId) {
     const name = planName(account.planId, lang);
     const balance = account.planId === 'free' && typeof account.free10Remaining === 'number'
-      ? (lang === 'he' ? ` נותרו ${account.free10Remaining} מתוך ${S.free.quotesTotal} הצעות.` : ` ${account.free10Remaining} of ${S.free.quotesTotal} quotes remain.`)
+      ? (lang === 'he' ? ` יתרה: ${account.free10Remaining} מתוך ${S.free.quotesTotal} הצעות.` : ` ${account.free10Remaining} of ${S.free.quotesTotal} quotes remain.`)
       : '';
     return lang === 'he' ? `לפי סיכום החשבון בשרת, המסלול שלך הוא ${name}.${balance}` : `According to your account summary on the server, your plan is ${name}.${balance}`;
   }

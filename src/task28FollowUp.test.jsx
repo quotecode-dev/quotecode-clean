@@ -125,7 +125,7 @@ describe('tasks screen - follow-up save', () => {
     const form = await screen.findByTestId('task-form');
     fireEvent.change(form.querySelector('[name="title"]'), { target: { value: 'נוסח שלי' } });
     fireEvent.click(screen.getByTestId('task-save'));
-    expect((await screen.findByTestId('task-form-errors')).textContent).toMatch(/דורשת עדכון של השרת/);
+    expect((await screen.findByTestId('task-form-errors')).textContent).toMatch(/נדרש עדכון שרת/);
     expect(form.querySelector('[name="title"]').value).toBe('נוסח שלי');
     expect(inserts).toHaveLength(0);
     fireEvent.click(screen.getByTestId('task-save')); // retry = the same request id

@@ -112,11 +112,11 @@ export function resolveDirectFact(kind: DirectFactKind, ctx: SanitizedQuoteConte
 export function formatDirectFactAnswer(payload: DirectFactPayload, isHebrew: boolean): string {
   const templates: Record<DirectFactKind, [string, string]> = {
     amount: [`הסכום הכולל של ההצעה הוא ${payload.value}.`, `The total amount of the quote is ${payload.value}.`],
-    status: [`סטטוס ההצעה הוא: ${payload.value}.`, `The quote status is: ${payload.value}.`],
+    status: [`מצב ההצעה הוא: ${payload.value}.`, `The quote status is: ${payload.value}.`],
     quote_number: [`מספר ההצעה הוא ${payload.value}.`, `The quote number is ${payload.value}.`],
     creation_date: [`ההצעה נוצרה בתאריך ${payload.value}.`, `The quote was created on ${payload.value}.`],
     validity_date: [`ההצעה בתוקף עד ${payload.value}.`, `The quote is valid until ${payload.value}.`],
-    item_count: [`בהצעה יש ${payload.value} פריטים.`, `The quote has ${payload.value} item(s).`],
+    item_count: [`מספר הפריטים בהצעה: ${payload.value}.`, `The quote has ${payload.value} item(s).`],
   };
   const [he, en] = templates[payload.kind];
   return isHebrew ? he : en;
