@@ -184,7 +184,8 @@ describe('smart chat - wiring in index.ts', () => {
     expect(dailyCapAnswer(false, 30)).toMatch(/limit of 30/);
   });
   it('tools are offered only to a verified dashboard user, after every deterministic truth gate', () => {
-    expect(src).toMatch(/const toolCtx: ToolContext \| null = userJwtClient && verifiedUserId && accountContext && !reviewSnapshot/);
+    // Codex audit H01 (Owner 2026-10-21): SMART PACK is part of the same condition (always true while the plan system is not enforced)
+    expect(src).toMatch(/const toolCtx: ToolContext \| null = smartPackAllowed && userJwtClient && verifiedUserId && accountContext && !reviewSnapshot/);
     expect(src.indexOf('const toolCtx')).toBeGreaterThan(src.indexOf('resolveCapabilityTruthResponse('));
     expect(src.indexOf('const toolCtx')).toBeGreaterThan(src.indexOf('deterministicHelpAnswer('));
   });

@@ -336,3 +336,46 @@ describe('still inert: the provider comes only from the Function secrets, billin
     expect(ACTIVATION_PHASE).toBe('off');
   });
 });
+
+// Codex audit 2026-10-21 (Owner "כן, את כולן"; migration 20261022100000)
+describe('audit fixes: one payment page per attempt (H05); a payment that opened nothing says why (H04)', () => {
+  const catalog = vi.fn(async () => ({ ok: true, market: 'IL', prices: [
+    { priceId: 'il_all_inclusive_month_p1', planId: 'all_inclusive', currency: 'ILS', billingPeriod: 'month', amountMinor: 3000, taxMode: 'included', offer: 'current' },
+    { priceId: 'il_all_inclusive_year_p1', planId: 'all_inclusive', currency: 'ILS', billingPeriod: 'year', amountMinor: 30600, taxMode: 'included', offer: 'current' }] }));
+  const intent = () => vi.fn(async () => ({ ok: true, attemptId: ATT, market: 'IL', currency: 'ILS', amountMinor: 30600, state: 'pending' }));
+  const body = { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY };
+  it('a retry of the same attempt gets the page it already has - PayPlus is not asked again', async () => {
+    const f = fetchOk();
+    const sql = { createCheckoutIntent: vi.fn(), createPackageCheckoutIntent: intent(), priceCatalog: catalog, recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+      checkoutPage: vi.fn(async () => 'https://payments.payplus.co.il/already'), recordCheckoutPage: vi.fn() } as never as BillingSql;
+    const r = await checkoutIntentHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: f })) }, U, body);
+    expect(r.body).toMatchObject({ ok: true, redirectUrl: 'https://payments.payplus.co.il/already' });
+    expect(f).not.toHaveBeenCalled();
+  });
+  it('a new page is kept once; when another request stored its page first, that stored page is returned', async () => {
+    const f = fetchOk();
+    const recordCheckoutPage = vi.fn(async () => 'https://payments.payplus.co.il/first-writer');
+    const sql = { createCheckoutIntent: vi.fn(), createPackageCheckoutIntent: intent(), priceCatalog: catalog, recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+      checkoutPage: vi.fn(async () => null), recordCheckoutPage } as never as BillingSql;
+    const r = await checkoutIntentHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: f })) }, U, body);
+    expect(recordCheckoutPage).toHaveBeenCalledWith(ATT, U, LINK);
+    expect(r.body).toMatchObject({ ok: true, redirectUrl: 'https://payments.payplus.co.il/first-writer' });
+  });
+  it('a wrong-amount payment: the receipt stays 200 and says activated false + amount_mismatch', async () => {
+    const sql = { createCheckoutIntent: vi.fn(), priceCatalog: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+      recordVerifiedEvent: vi.fn(async () => ({ ok: true, duplicate: false, outcome: 'rejected', activated: false, code: 'amount_mismatch' })) } as never as BillingSql;
+    const s = signed(callback({}, { amount: 1 }));
+    expect(await providerWebhookHandler('prepared', { sql, provider: createPayPlusProvider(config()), now: () => NOW }, s.raw, s.headers))
+      .toEqual({ status: 200, body: { ok: true, duplicate: false, outcome: 'rejected', activated: false, code: 'amount_mismatch' } });
+  });
+  it('wiring calls the two page functions with exactly their SQL parameters', () => {
+    const wiring = readFileSync(new URL('./wiring.ts', import.meta.url), 'utf8');
+    const sql = readFileSync(new URL('../../migrations/20261022100000_payplus_audit_fixes.sql', import.meta.url), 'utf8');
+    for (const fn of ['checkout_attempt_page', 'record_checkout_attempt_page']) {
+      const sent = [...(new RegExp(`call\\('${fn}', \\{([^}]*)\\}\\)`).exec(wiring)?.[1] ?? '').matchAll(/\b(p_[a-z0-9_]+):/g)].map((m) => m[1]);
+      const declared = [...(new RegExp(`FUNCTION public\\.${fn}\\(([^)]*)\\)`).exec(sql)?.[1] ?? '').matchAll(/\b(p_[a-z0-9_]+)\s/g)].map((m) => m[1]);
+      expect(sent.length).toBeGreaterThan(1);
+      expect(sent).toEqual(declared);
+    }
+  });
+});
