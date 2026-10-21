@@ -357,6 +357,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / DROP CONSTRAINT IF EXISTS + ADD / ON CONFLICT DO NOTHING / CREATE OR REPLACE / DROP IF EXISTS (re-runnable); SMART PACK entitlement, prices, payment line, attachment gate (Owner 2026-10-20, PayPlus stage 2)"
+    },
+    "20261022000000_payplus_standing_order_link.sql": {
+      "sha256": "b3d44d832c57111281897c0b305fc70027725b1ca2f4a42e7e2bf60119aa585a",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE TABLE IF NOT EXISTS / DROP TRIGGER IF EXISTS + CREATE / CREATE OR REPLACE (re-runnable); PayPlus standing-order id bound to the attempt of its first payment so renewals are recognised (Owner night task 2026-10-21)"
     }
   }
 }

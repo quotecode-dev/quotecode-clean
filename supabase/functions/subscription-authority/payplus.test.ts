@@ -8,7 +8,7 @@ import { checkoutIntentHandler, providerWebhookHandler, type BillingSql } from '
 import { ACTIVATION_PHASE } from './authority';
 import {
   buildGenerateLinkBody, createPayPlusProvider, israelDayOfMonth, mapPayPlusCallback, PAYPLUS_API_BASES, payplusDateToIso,
-  type PayPlusConfig,
+  payplusProviderFromSecrets, PAYPLUS_SECRET_NAMES, type PayPlusConfig,
 } from './payplus';
 
 const U = '11111111-1111-4111-8111-111111111111';
@@ -176,7 +176,7 @@ describe('callback: really from PayPlus (user-agent + hash), otherwise nothing i
   });
   it('read: event id, result, time, our attempt id and the paid amount (for the SQL equality check only); card / customer ignored', () => {
     expect(mapPayPlusCallback(callback({}, { amount: 1 }))).toEqual({ id: 'dcb11c1e7-a1231-37cf-6311-f5111eeb69c7', type: 'payment_confirmed',
-      occurredAt: '2026-10-18T09:32:52.000Z', attemptId: ATT, paidAmountMinor: 100 });
+      occurredAt: '2026-10-18T09:32:52.000Z', attemptId: ATT, paidAmountMinor: 100, recurringRef: null, terminalRef: null });
     expect(mapPayPlusCallback(callback({}, { amount: 306 }))?.paidAmountMinor).toBe(30600);
     expect(mapPayPlusCallback(callback({}, { amount: '306' }))?.paidAmountMinor).toBeNull();
   });
@@ -216,6 +216,105 @@ describe('recorded once, through the existing verified-event path', () => {
   });
 });
 
+// Owner night task 2026-10-21 (migration 20261022000000): a standing-order charge is documented with
+// transaction.recurring_charge_information.recurring_uid; a renewal need not repeat more_info
+describe('standing order: a renewal is recognised by its standing-order id', () => {
+  const REC = 'b7f1c2d3-0000-4000-8000-00000000abcd';
+  const TERM = 'f0e1d2c3-0000-4000-8000-000000000042';
+  const withRec = (tx: Record<string, unknown> = {}) => callback({ data: { terminal_uid: TERM, customer_uid: 'c' } },
+    { recurring_charge_information: { recurring_uid: REC, charge_uid: 'ch-1' }, ...tx });
+  it('the first payment carries both ids; a renewal without more_info keeps only the standing-order id (+ terminal)', () => {
+    expect(mapPayPlusCallback(withRec())).toMatchObject({ attemptId: ATT, recurringRef: REC, terminalRef: TERM });
+    expect(mapPayPlusCallback(withRec({ more_info: undefined }))).toMatchObject({ attemptId: null, recurringRef: REC, terminalRef: TERM, type: 'payment_confirmed' });
+    expect(mapPayPlusCallback(withRec({ more_info: 'Some Info', status_code: '051' }))).toMatchObject({ attemptId: null, recurringRef: REC, type: 'payment_failed' });
+  });
+  it('neither id / an over-long standing-order id -> invalid_event', async () => {
+    const p = createPayPlusProvider(config());
+    for (const body of [callback({}, { more_info: undefined }), withRec({ more_info: undefined, recurring_charge_information: { recurring_uid: 'x'.repeat(201) } })]) {
+      const s = signed(body);
+      expect(await p.verifyWebhook(s.raw, s.headers, NOW)).toEqual({ ok: false, reason: 'invalid_event' });
+    }
+  });
+  it('the verified renewal reaches SQL with a null attempt id and the standing-order id; the first payment carries both', async () => {
+    const sql = { createCheckoutIntent: vi.fn(), priceCatalog: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+      recordVerifiedEvent: vi.fn(async () => ({ ok: true, duplicate: false, outcome: 'applied' })) } as never as BillingSql & { recordVerifiedEvent: ReturnType<typeof vi.fn> };
+    const deps = { sql, provider: createPayPlusProvider(config()), now: () => NOW };
+    let s = signed(withRec({ more_info: undefined }));
+    expect((await providerWebhookHandler('prepared', deps, s.raw, s.headers)).status).toBe(200);
+    expect(sql.recordVerifiedEvent).toHaveBeenLastCalledWith(expect.objectContaining({ attemptId: null, recurringRef: REC, terminalRef: TERM, eventType: 'payment_confirmed' }));
+    s = signed(withRec());
+    await providerWebhookHandler('prepared', deps, s.raw, s.headers);
+    expect(sql.recordVerifiedEvent).toHaveBeenLastCalledWith(expect.objectContaining({ attemptId: ATT, recurringRef: REC, terminalRef: TERM }));
+  });
+  it('SQL unknown_attempt (a standing order nobody bound) -> 404, nothing else', async () => {
+    const sql = { createCheckoutIntent: vi.fn(), priceCatalog: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+      recordVerifiedEvent: vi.fn(async () => ({ ok: false, code: 'unknown_attempt' })) } as never as BillingSql;
+    const s = signed(withRec({ more_info: undefined }));
+    expect(await providerWebhookHandler('prepared', { sql, provider: createPayPlusProvider(config()), now: () => NOW }, s.raw, s.headers))
+      .toEqual({ status: 404, body: { ok: false, code: 'unknown_attempt' } });
+  });
+});
+
+describe('the provider from the Function secrets (Owner night task 2026-10-21; still unreachable while billing is off)', () => {
+  const secrets = (over: Record<string, string | undefined> = {}) => {
+    const s: Record<string, string | undefined> = { PAYPLUS_API_KEY: 'synthetic-api-key', PAYPLUS_SECRET_KEY: SECRET, PAYPLUS_PAYMENT_PAGE_UID: PAGE,
+      PAYPLUS_ENVIRONMENT: 'staging', PAYPLUS_RETURN_ORIGIN: 'https://www.tekango.com', ...over };
+    return (n: string) => s[n];
+  };
+  const URL_ = 'https://project.supabase.co';
+  it('all secrets -> a provider whose page carries our callback and the app return pages (processing / failed / cancelled)', async () => {
+    const f = fetchOk();
+    const p = payplusProviderFromSecrets(secrets(), URL_, f, () => NOW);
+    expect(p?.name).toBe('payplus');
+    await p!.createCheckout({ attemptId: ATT, currency: 'ILS', amountMinor: 3000, billingPeriod: 'month' });
+    const [url, init] = f.mock.calls[0] as unknown as [string, { body: string }];
+    expect(url).toBe('https://restapidev.payplus.co.il/api/v1.0/PaymentPages/generateLink');
+    expect(JSON.parse(init.body)).toMatchObject({ refURL_callback: 'https://project.supabase.co/functions/v1/subscription-authority/provider-event',
+      refURL_success: 'https://www.tekango.com/dashboard?billing=processing', refURL_failure: 'https://www.tekango.com/dashboard?billing=failed',
+      refURL_cancel: 'https://www.tekango.com/dashboard?billing=cancelled' });
+    // production: the production API base; with no return origin it returns to the LIVE app
+    const fp = fetchOk();
+    await payplusProviderFromSecrets(secrets({ PAYPLUS_ENVIRONMENT: 'production', PAYPLUS_RETURN_ORIGIN: undefined }), URL_, fp, () => NOW)!
+      .createCheckout({ attemptId: ATT, currency: 'ILS', amountMinor: 3000, billingPeriod: 'month' });
+    const [purl, pinit] = fp.mock.calls[0] as unknown as [string, { body: string }];
+    expect(purl).toBe('https://restapi.payplus.co.il/api/v1.0/PaymentPages/generateLink');
+    expect(JSON.parse(pinit.body).refURL_success).toBe('https://www.tekango.com/dashboard?billing=processing');
+  });
+  it('the secret names are exactly these five (no phase, market, plan or price ever comes from a secret)', () => {
+    expect([...PAYPLUS_SECRET_NAMES]).toEqual(['PAYPLUS_API_KEY', 'PAYPLUS_SECRET_KEY', 'PAYPLUS_PAYMENT_PAGE_UID', 'PAYPLUS_ENVIRONMENT', 'PAYPLUS_RETURN_ORIGIN']);
+  });
+  it('the staging terminal must name its return origin (never a silent return to LIVE from a test terminal)', () => {
+    expect(payplusProviderFromSecrets(secrets({ PAYPLUS_RETURN_ORIGIN: undefined }), URL_, fetchOk(), () => NOW)).toBeNull();
+    expect(payplusProviderFromSecrets(secrets({ PAYPLUS_RETURN_ORIGIN: 'https://www.tekango.com/dashboard' }), URL_, fetchOk(), () => NOW)).toBeNull();
+  });
+  it('wiring passes exactly the parameters of record_verified_provider_event (migration 20261022000000)', () => {
+    const wiring = readFileSync(new URL('./wiring.ts', import.meta.url), 'utf8');
+    const call = /call\('record_verified_provider_event', \{([\s\S]*?)\}\)\) as Record/.exec(wiring)?.[1] ?? '';
+    const sent = [...call.matchAll(/\b(p_[a-z0-9_]+):/g)].map((m) => m[1]);
+    const sql = readFileSync(new URL('../../migrations/20261022000000_payplus_standing_order_link.sql', import.meta.url), 'utf8');
+    const sig = /FUNCTION public\.record_verified_provider_event\(([\s\S]*?)\)\s*RETURNS/.exec(sql)?.[1] ?? '';
+    const declared = [...sig.matchAll(/\b(p_[a-z0-9_]+)\s/g)].map((m) => m[1]);
+    expect(sent.length).toBe(10);
+    expect(sent).toEqual(declared);
+  });
+  it.each([
+    ['no API key', { PAYPLUS_API_KEY: undefined }],
+    ['no secret key', { PAYPLUS_SECRET_KEY: '' }],
+    ['no payment page', { PAYPLUS_PAYMENT_PAGE_UID: undefined }],
+    ['no environment', { PAYPLUS_ENVIRONMENT: undefined }],
+    ['an unknown environment', { PAYPLUS_ENVIRONMENT: 'live' }],
+    ['a return origin outside the app', { PAYPLUS_RETURN_ORIGIN: 'https://evil.example' }],
+    ['a page id that is not a uuid', { PAYPLUS_PAYMENT_PAGE_UID: 'page-1' }],
+    ['a short secret key', { PAYPLUS_SECRET_KEY: 'short' }],
+  ])('%s -> no provider (UNAVAILABLE_PROVIDER in wiring)', (_n, over) => {
+    expect(payplusProviderFromSecrets(secrets(over), URL_, fetchOk(), () => NOW)).toBeNull();
+  });
+  it('an http project URL -> no provider; the return origin may be the bare domain', () => {
+    expect(payplusProviderFromSecrets(secrets(), 'http://project.supabase.co', fetchOk(), () => NOW)).toBeNull();
+    expect(payplusProviderFromSecrets(secrets({ PAYPLUS_RETURN_ORIGIN: 'https://tekango.com/' }), URL_, fetchOk(), () => NOW)).not.toBeNull();
+  });
+});
+
 describe('Israel time helpers', () => {
   it('summer (IDT +3) and winter (IST +2); an ISO value with a zone is kept', () => {
     expect(payplusDateToIso('2026-07-01 12:00:00')).toBe('2026-07-01T09:00:00.000Z');
@@ -227,11 +326,13 @@ describe('Israel time helpers', () => {
   });
 });
 
-describe('phase 1 is inert: nothing is wired, billing stays off', () => {
-  it('wiring.ts still wires UNAVAILABLE_PROVIDER, reads no PayPlus key, and the billing phase constant is off', () => {
+describe('still inert: the provider comes only from the Function secrets, billing stays off', () => {
+  // Owner night task 2026-10-21: wiring builds the provider from the named secrets (UNAVAILABLE_PROVIDER without them); the billing
+  // phase is still the code constant 'off', so neither checkout nor a callback ever reaches it
+  it('wiring.ts falls back to UNAVAILABLE_PROVIDER, holds no key, and the billing phase constant is off', () => {
     const wiring = readFileSync(new URL('./wiring.ts', import.meta.url), 'utf8');
-    expect(wiring).toMatch(/provider: UNAVAILABLE_PROVIDER/);
-    expect(wiring).not.toMatch(/payplus/i);
+    expect(wiring).toMatch(/payplusProviderFromSecrets\(\(n\) => env\(n\), url, \(u, init\) => fetch\(u, init\), \(\) => Date\.now\(\)\) \?\? UNAVAILABLE_PROVIDER/);
+    expect(wiring).not.toMatch(/api-key|secret-key|restapi/i);
     expect(ACTIVATION_PHASE).toBe('off');
   });
 });
