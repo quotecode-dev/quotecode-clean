@@ -1191,6 +1191,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   useEffect(() => {
     if (!session?.user?.id) return undefined;
     if (isSuperAdmin) { setAdminGrants({ loaded: true, owner: true, permissions: [] }); return undefined; }
+    // L-15 / L-22 (Owner 2026-10-22): another account never inherits the previous account's permissions while its own load
+    setAdminGrants((g) => (g.loaded ? { loaded: false, owner: false, permissions: [] } : g));
     let cancelled = false;
     const done = (data) => { if (!cancelled) setAdminGrants({ loaded: true, owner: data?.owner === true, permissions: Array.isArray(data?.permissions) ? data.permissions : [] }); };
     try {
@@ -1225,7 +1227,22 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // stays clean while filters/sort/page/scroll are naturally preserved
   // underneath (the Users list unmounts nothing when Details is shown).
   const [adminSelectedUserId, setAdminSelectedUserId] = useState(null);
-  const navigateToAdminSection = (sectionId = DEFAULT_ADMIN_SECTION, selectedUserId = null) => {
+  // Owner console 2026-10-22, typed: "מאשר שינוי ב-L-15 וב-L-22: איפוס המסך וההיסטוריה בהתנתקות ובמעבר בין חשבונות, וחשבון בלי הרשאת
+  // ניהול שמגיע למסך הניהול עובר להצעות מחיר" (LIVE: "דוד אלומיניום" signed in on a tab an admin had left in Admin -> an empty screen
+  // with "חזרה לניהול"). Signing out / another account in the same tab starts on Quotes with no Admin section or selected user. Done
+  // DURING the render that sees the new account (not in an effect), so the Back history (reset by the same account id) never records
+  // the previous account's screen.
+  const [screenAccountId, setScreenAccountId] = useState(session?.user?.id || null);
+  const currentAccountId = session?.user?.id || null;
+  if (currentAccountId !== screenAccountId) {
+    setScreenAccountId(currentAccountId);
+    if (screenAccountId) {
+      setActiveTab('main');
+      setAdminSectionState(DEFAULT_ADMIN_SECTION);
+      setAdminSelectedUserId(null);
+    }
+  }
+  const navigateToAdminSection =(sectionId = DEFAULT_ADMIN_SECTION, selectedUserId = null) => {
     setAdminSelectedUserId(selectedUserId);
     setShellDrawerOpen(false);
     setAdminSectionState(ADMIN_SECTION_IDS.has(sectionId) ? sectionId : DEFAULT_ADMIN_SECTION);
@@ -1259,6 +1276,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }, { replace: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdminMode, adminSectionShown]);
+  // L-15 / L-22 (Owner 2026-10-22): an account that may not open Admin (no Owner role, no granted permission - known, not loading) is
+  // never left on the Admin screen, which would render nothing for it: it goes to Quotes (also covers a hand-typed ?view=admin).
+  useEffect(() => {
+    if (session && !isSuperAdmin && adminGrants.loaded && !adminGrants.owner && !canAdmin && activeTab === 'admin_clients') setActiveTab('main');
+  }, [session, isSuperAdmin, adminGrants, canAdmin, activeTab]);
   // Non-admin URL-tamper guard (URL hygiene only, never the real
   // authorization boundary - see is_super_admin()/is_admin() RLS + every
   // privileged Edge Function's own independent server-side role check):
@@ -3954,9 +3976,12 @@ ${quoteViewLink}`
     tab: activeTab, editor: showQuoteForm && activeTab === 'main', editorAlive: showQuoteForm,
     settingsView: activeTab === 'settings' ? settingsView : null, adminSection, adminUserId: adminSelectedUserId,
     search: searchTerm, status: statusFilter,
+    // L-15 / L-22 (Owner 2026-10-22): the Admin screen of an account that may not open it was never shown - never a Back target
+    notBackTarget: activeTab === 'admin_clients' && !canAdmin,
   };
   const inAppBack = useInAppBack({
     enabled: hasSession,
+    resetKey: session?.user?.id || null, // L-15 / L-22 (Owner 2026-10-22): another account = an empty Back history
     screen: navScreen,
     apply: (snap) => {
       if (String(snap.tab).startsWith('admin')) navigateToAdminSection(snap.adminSection, snap.adminUserId || null);

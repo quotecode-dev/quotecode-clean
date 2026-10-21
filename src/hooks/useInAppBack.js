@@ -20,7 +20,7 @@ const innerScroller = (root) => root?.querySelector('.quote-modern-body') || roo
  * onRoot(): void                                             - Back on the first screen with nothing open
  * scrollRoot(): Element | null                               - the workspace scroller
  */
-export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveEditor, leaveEditor, onRoot, scrollRoot }) {
+export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveEditor, leaveEditor, onRoot, scrollRoot, resetKey = null }) {
   const stackRef = useRef([]);
   const [depth, setDepth] = useState(0);
   const [previous, setPrevious] = useState(null);
@@ -61,6 +61,20 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
     setTimeout(() => { put(); requestAnimationFrame(put); }, 60);
   };
 
+  // Owner console 2026-10-22, typed: "מאשר שינוי ב-L-15 וב-L-22: איפוס המסך וההיסטוריה בהתנתקות ובמעבר בין חשבונות ...": another
+  // account (or none) in the same tab starts with an empty Back history - the previous account's screens are never Back targets.
+  // Declared BEFORE the screen-change effect, so the screen reset that comes with the switch is not recorded either.
+  const resetKeyRef = useRef(resetKey);
+  useEffect(() => {
+    if (resetKeyRef.current === resetKey) return;
+    resetKeyRef.current = resetKey;
+    stackRef.current = [];
+    restoringRef.current = null;
+    prevScreenRef.current = null;
+    scrollByKeyRef.current = new Map();
+    sync();
+  }, [resetKey]);
+
   // a screen change: record the screen that was left, AS IT WAS when left (its last render: search / filter typed there) - or consume
   // the entry when returning to it
   useEffect(() => {
@@ -81,6 +95,8 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
     // a CLOSED editor is never a Back target (an editor only hidden behind another screen - e.g. a save sent to Business settings for
     // missing details - stays one: Back returns to it)
     if (prev.editor && !screen.editorAlive) { sync(); return; }
+    // a screen the account could not see (Admin for an account without Admin access - L-15 / L-22, 2026-10-22) is never a Back target
+    if (prev.notBackTarget) { sync(); return; }
     stack.push({ ...prev, scroll: scrollByKeyRef.current.get(prev.key) || null });
     if (stack.length > MAX_DEPTH) stack.shift();
     window.history.pushState({ tekangoNav: true }, '', window.location.href);

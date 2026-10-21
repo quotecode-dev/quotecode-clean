@@ -95,6 +95,14 @@ describe('Admin shell-bypass calls: ZERO', () => {
     expect(legacy).toMatch(/<Navigate to="\/dashboard\?view=admin&section=ai-support" replace \/>/);
     expect(legacy).not.toMatch(/chat_logs|<table|useState/);
   });
+  // Owner console 2026-10-22, typed: "מאשר שינוי ב-L-15 וב-L-22: איפוס המסך וההיסטוריה בהתנתקות ובמעבר בין חשבונות, וחשבון בלי הרשאת
+  // ניהול שמגיע למסך הניהול עובר להצעות מחיר" (LIVE: an empty screen with "חזרה לניהול" after an account switch in the same tab)
+  it('another account in the same tab starts on Quotes with an empty Back history; a non-admin is never left on the Admin screen', () => {
+    const src = stripComments(dashboard);
+    expect(src).toMatch(/if \(currentAccountId !== screenAccountId\) \{[\s\S]{0,200}setActiveTab\('main'\);[\s\S]{0,80}setAdminSectionState\(DEFAULT_ADMIN_SECTION\);[\s\S]{0,40}setAdminSelectedUserId\(null\);/);
+    expect(src).toMatch(/resetKey: session\?\.user\?\.id \|\| null/);
+    expect(src).toMatch(/!adminGrants\.owner && !canAdmin && activeTab === 'admin_clients'\) setActiveTab\('main'\)/);
+  });
   it('an Admin deep link (?view=admin&section=) is read by the Dashboard and mounts inside the shell', () => {
     expect(dashboard).toMatch(/searchParams\.get\('view'\) === 'admin'/);
     expect(dashboard).toMatch(/ADMIN_SECTION_IDS\.has\(requested\)/);

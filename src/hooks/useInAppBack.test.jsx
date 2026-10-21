@@ -49,6 +49,37 @@ describe('useInAppBack', () => {
     expect(calls.onRoot).toBe(1);
   });
 
+  // Owner console 2026-10-22 (L-15 / L-22): another account in the same tab never gets the previous account's screens as Back targets
+  it('another account (or a sign-out) empties the Back history; the screen reset of the switch is not recorded', () => {
+    const { hook, go, props } = setup({ resetKey: 'admin-user' });
+    go({ ...scr('admin_clients'), adminSection: 'users' });
+    go(scr('clients'));
+    expect(hook.result.current.previous.tab).toBe('admin_clients');
+    // the switch: a new account id arrives in the SAME render as the reset screen (Dashboard resets during that render)
+    props.resetKey = 'david'; go(scr('main'));
+    expect(hook.result.current.depth).toBe(0);
+    expect(hook.result.current.previous).toBeNull();
+    // a switch that lands on a different screen in the same render is not recorded either
+    go({ ...scr('admin_clients'), adminSection: 'users' });
+    props.resetKey = null; go(scr('main'));
+    expect(hook.result.current.depth).toBe(0);
+    // the new account's own navigation is recorded as usual
+    props.resetKey = 'david'; go(scr('main'));
+    go(scr('clients'));
+    expect(hook.result.current.previous.tab).toBe('main');
+    expect(backLabel(hook.result.current.previous, true)).not.toMatch(/ניהול/);
+  });
+
+  it('a screen marked notBackTarget (Admin for an account without Admin access) is never recorded', () => {
+    // the page opened on an Admin link the account may not open; the Dashboard moves it to Quotes
+    const { hook, go } = setup({ screen: { ...scr('admin_clients'), notBackTarget: true } });
+    go(scr('main'));
+    expect(hook.result.current.depth).toBe(0);
+    expect(hook.result.current.previous).toBeNull();
+    go(scr('clients'));
+    expect(hook.result.current.previous.tab).toBe('main');
+  });
+
   it('records the screen as it was when left (a search typed there is restored by Back)', () => {
     const { hook, go } = setup();
     go({ ...scr('main'), search: 'דוד', status: 'Sent' });
