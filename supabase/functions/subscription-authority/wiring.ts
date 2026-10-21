@@ -1,9 +1,7 @@
 // subscription-authority - Edge wiring (the ONLY file of this function that reads the environment or imports supabase-js).
 // Env allowlist: SUPABASE_URL and SUPABASE_SECRET_KEYS (service client, same convention as get-public-quote /
-// quote-presentation) + the PayPlus Function secrets (Owner night task 2026-10-21: payplus.ts PAYPLUS_SECRET_NAMES - keys, payment
-// page, environment, return origin). No phase, market, plan or price value is ever read from the environment: billing stays at
-// the code constant ACTIVATION_PHASE ('off'), so the provider built from the secrets is never reached; without the secrets it is
-// UNAVAILABLE_PROVIDER. Output / logo use the DB phase.
+// quote-presentation). No phase, market, plan, price or provider value is ever read from the environment: billing stays at
+// the code constant ACTIVATION_PHASE ('off') with UNAVAILABLE_PROVIDER; output / logo use the DB phase.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ACTIVATION_PHASE } from './authority.ts';
 import { createQuoteOutputOrchestrator } from './authorizeOutput.ts';
@@ -12,11 +10,10 @@ import {
   rpcOutputSql, storageMediaAssetSource, storagePresentationSource, strictRpc, BUCKET, type BucketApi, type Rpc, type TableReader,
 } from './adapters.ts';
 import { UNAVAILABLE_PROVIDER, type BillingSql } from './billing.ts';
-import { PAYPLUS_SECRET_NAMES, payplusProviderFromSecrets } from './payplus.ts';
 import { decodeImageBase64, MAX_IMAGE_BYTES, MAX_IMAGE_SIDE } from '../quote-presentation/lib.ts';
 import type { AuthorityDeps } from './router.ts';
 
-export const ALLOWED_ENV = Object.freeze(['SUPABASE_URL', 'SUPABASE_SECRET_KEYS', ...PAYPLUS_SECRET_NAMES]);
+export const ALLOWED_ENV = Object.freeze(['SUPABASE_URL', 'SUPABASE_SECRET_KEYS']);
 
 export function buildAuthorityDeps(): AuthorityDeps | null {
   const env = (n: string) => (ALLOWED_ENV.includes(n) ? Deno.env.get(n) : undefined);
@@ -42,11 +39,9 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
     createPackageCheckoutIntent: async (userId, billingPeriod, idempotencyKey, smartPack = false) => (await call('create_package_checkout_intent',
       { p_user_id: userId, p_billing_period: billingPeriod, p_idempotency_key: idempotencyKey, p_smart_pack: smartPack })) as Record<string, unknown>,
     priceCatalog: (market) => call('get_price_catalog', { p_market: market }),
-    // 20261021000000: the same verified-event recorder + (same transaction) a confirmed package payment opens the subscription;
-    // 20261022000000: through record_verified_provider_event, which reaches the attempt of a bound standing order
-    recordVerifiedEvent: async (e) => (await call('record_verified_provider_event', { p_provider: e.provider,
+    // 20261021000000: the same verified-event recorder + (same transaction) a confirmed package payment opens the subscription
+    recordVerifiedEvent: async (e) => (await call('record_verified_subscription_event_and_activate', { p_provider: e.provider,
       p_provider_event_id: e.providerEventId, p_event_type: e.eventType, p_attempt_id: e.attemptId,
-      p_recurring_ref: e.recurringRef ?? null, p_terminal_ref: e.terminalRef ?? null,
       p_provider_event_time: e.providerEventTime, p_payload_sha256: e.payloadSha256,
       p_paid_amount_minor: e.paidAmountMinor ?? null, p_paid_currency: e.paidCurrency ?? null })) as Record<string, unknown>,
     applyVerifiedLineEvent: async (e) => {
@@ -75,8 +70,7 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
       issueGrant: caps.issueGrant,
     },
     notice: { outputNotice: (userId, quoteId) => call('output_notice', { p_user_id: userId, p_quote_id: quoteId }) },
-    billing: { phase: ACTIVATION_PHASE, sql: billingSql, now: () => Date.now(),
-      provider: payplusProviderFromSecrets((n) => env(n), url, (u, init) => fetch(u, init), () => Date.now()) ?? UNAVAILABLE_PROVIDER },
+    billing: { phase: ACTIVATION_PHASE, sql: billingSql, provider: UNAVAILABLE_PROVIDER, now: () => Date.now() },
     logo: {
       readFreeIssuePhase, sql: rpcAssetSql(rpc), storage: bucketAssetStorage(bucket),
       decode: (b64) => { const d = decodeImageBase64(b64); return d.ok ? { ok: true, bytes: d.bytes } : { ok: false }; },

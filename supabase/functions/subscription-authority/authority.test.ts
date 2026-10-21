@@ -26,15 +26,14 @@ describe('adoption of the closed PREP CONTRACT (no drift)', () => {
   it('the billing phase is the code constant "off" (not derived from an environment variable)', () => {
     expect(ACTIVATION_PHASE).toBe('off');
     const dir = 'supabase/functions/subscription-authority/';
-    const pure = ['authority.ts', 'index.ts', 'router.ts', 'outputRoute.ts', 'billing.ts', 'adapters.ts', 'payplus.ts'].map((f) => readFileSync(join(cwd(), dir + f), 'utf8')).join('\n');
+    const pure = ['authority.ts', 'index.ts', 'router.ts', 'outputRoute.ts', 'billing.ts', 'adapters.ts'].map((f) => readFileSync(join(cwd(), dir + f), 'utf8')).join('\n');
     expect(pure).not.toMatch(/Deno\.env|process\.env|VITE_PROFLOW_ENV|import\.meta\.env/);
   });
-  // Owner night task 2026-10-21: the PayPlus provider comes from the named Function secrets; phase, market, plan and price never do
-  it('wiring.ts is the only env reader: SUPABASE_URL / SUPABASE_SECRET_KEYS + the named PayPlus secrets (no phase / market / price from env)', () => {
+  it('wiring.ts is the only env reader and reads only SUPABASE_URL / SUPABASE_SECRET_KEYS (no phase / market / price / provider from env)', () => {
     const w = readFileSync(join(cwd(), 'supabase/functions/subscription-authority/wiring.ts'), 'utf8');
-    expect(w).toMatch(/ALLOWED_ENV = Object\.freeze\(\['SUPABASE_URL', 'SUPABASE_SECRET_KEYS', \.\.\.PAYPLUS_SECRET_NAMES\]\)/);
+    expect(w).toMatch(/ALLOWED_ENV = Object\.freeze\(\['SUPABASE_URL', 'SUPABASE_SECRET_KEYS'\]\)/);
     expect([...w.matchAll(/env\('([A-Z_]+)'\)/g)].map((m) => m[1]).sort()).toEqual(['SUPABASE_SECRET_KEYS', 'SUPABASE_URL']);
-    expect(w).toMatch(/billing: \{ phase: ACTIVATION_PHASE, sql: billingSql, now: \(\) => Date\.now\(\),\n {6}provider: payplusProviderFromSecrets\(\(n\) => env\(n\), url, \(u, init\) => fetch\(u, init\), \(\) => Date\.now\(\)\) \?\? UNAVAILABLE_PROVIDER \}/);
+    expect(w).toMatch(/billing: \{ phase: ACTIVATION_PHASE, sql: billingSql, provider: UNAVAILABLE_PROVIDER/);
   });
 });
 

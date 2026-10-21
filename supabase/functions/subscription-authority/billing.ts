@@ -104,9 +104,7 @@ export type LineEvent = { lineType: 'catalog_block'; quantity: number; priceVers
 export type ProviderEvent = { providerEventId: string; type: EventType; occurredAt: string; attemptId: string | null;
   userId: string | null; line: LineEvent | null;
   /** PayPlus phase 1: what the provider says was charged - compared for EQUALITY with the server attempt in SQL, never a price */
-  paid?: { amountMinor: number; currency: 'ILS' | 'USD' };
-  /** 20261022000000: the provider's standing-order id (+ terminal) - a renewal without our attempt id reaches the bound attempt in SQL */
-  standingOrder?: { recurringRef: string; terminalRef: string | null } };
+  paid?: { amountMinor: number; currency: 'ILS' | 'USD' } };
 export type WebhookRejection = 'invalid_signature' | 'stale_timestamp' | 'untrusted_source' | 'invalid_event' | 'provider_unavailable';
 export type WebhookVerification = { ok: true; event: ProviderEvent } | { ok: false; reason: WebhookRejection };
 
@@ -132,17 +130,13 @@ const isIso = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2
 /** Strict allowlist parse of a (verified) provider payload. Unknown fields are dropped, never copied. */
 export function parseProviderEvent(raw: unknown): ProviderEvent | null {
   if (!isObj(raw)) return null;
-  const { id, type, occurredAt, attemptId, userId, line, recurringRef, terminalRef } = raw;
+  const { id, type, occurredAt, attemptId, userId, line } = raw;
   if (typeof id !== 'string' || id.length < 1 || id.length > 200 || !(EVENT_TYPES as readonly string[]).includes(type as string) || !isIso(occurredAt)) return null;
   const t = type as EventType;
   const att = attemptId === undefined || attemptId === null ? null : attemptId;
   const uid = userId === undefined || userId === null ? null : userId;
   if (att !== null && (typeof att !== 'string' || !UUID.test(att))) return null;
   if (uid !== null && (typeof uid !== 'string' || !UUID.test(uid))) return null;
-  const ref = (v: unknown) => (typeof v === 'string' && v.length >= 1 && v.length <= 200 ? v : null);
-  if (recurringRef !== undefined && recurringRef !== null && !ref(recurringRef)) return null;
-  if (terminalRef !== undefined && terminalRef !== null && !ref(terminalRef)) return null;
-  const standingOrder = ref(recurringRef) ? { recurringRef: recurringRef as string, terminalRef: ref(terminalRef) } : null;
   let parsedLine: LineEvent | null = null;
   if (t === 'line_added' || t === 'line_removed') {
     if (!isObj(line) || uid === null) return null;
@@ -151,10 +145,10 @@ export function parseProviderEvent(raw: unknown): ProviderEvent | null {
     if (typeof priceVersionId !== 'string' || !PRICE_ID.test(priceVersionId) || !priceVersionId.includes('catalog_block')) return null;
     if (!isIso(effectiveFrom) || typeof providerRef !== 'string' || providerRef.length < 1 || providerRef.length > 200) return null;
     parsedLine = { lineType, quantity: quantity as number, priceVersionId, effectiveFrom, providerRef };
-  } else if (att === null && !standingOrder) {
-    return null; // subscription events always reference the server checkout attempt (directly, or through its bound standing order)
+  } else if (att === null) {
+    return null; // subscription events always reference the server checkout attempt
   }
-  return { providerEventId: id, type: t, occurredAt, attemptId: att, userId: uid, line: parsedLine, ...(standingOrder ? { standingOrder } : {}) };
+  return { providerEventId: id, type: t, occurredAt, attemptId: att, userId: uid, line: parsedLine };
 }
 
 function bytesEqual(a: Uint8Array, b: Uint8Array): boolean {
@@ -212,10 +206,9 @@ export interface BillingSql {
   createPackageCheckoutIntent?(userId: string, billingPeriod: BillingPeriod, idempotencyKey: string, smartPack?: boolean): Promise<Record<string, unknown>>;
   /** get_price_catalog(p_market) */
   priceCatalog(market: Market): Promise<unknown>;
-  /** record_verified_provider_event(provider, provider_event_id, event_type, attempt_id, recurring_ref, terminal_ref, provider_event_time,
-   *  payload_sha256, paid_amount_minor, paid_currency) - 20261022000000; the attempt id may be null only with a standing-order id */
-  recordVerifiedEvent(e: { provider: string; providerEventId: string; eventType: string; attemptId: string | null; providerEventTime: string; payloadSha256: string;
-    paidAmountMinor?: number; paidCurrency?: string; recurringRef?: string; terminalRef?: string | null }): Promise<Record<string, unknown>>;
+  /** record_verified_subscription_event(provider, provider_event_id, event_type, attempt_id, provider_event_time, payload_sha256) */
+  recordVerifiedEvent(e: { provider: string; providerEventId: string; eventType: string; attemptId: string; providerEventTime: string; payloadSha256: string;
+    paidAmountMinor?: number; paidCurrency?: string }): Promise<Record<string, unknown>>;
   /** apply_verified_line_event(provider, provider_event_id, user_id, line_type, quantity, price_version_id, effective_from, provider_ref) */
   applyVerifiedLineEvent(e: { provider: string; providerEventId: string; userId: string; lineType: string; quantity: number; priceVersionId: string; effectiveFrom: string; providerRef: string; removal: boolean }): Promise<Record<string, unknown>>;
 }
@@ -286,9 +279,8 @@ export async function providerWebhookHandler(phase: BillingPhase, deps: { sql: B
         providerRef: e.line.providerRef, removal: e.type === 'line_removed' });
     } else {
       r = await deps.sql.recordVerifiedEvent({ provider: deps.provider.name, providerEventId: e.providerEventId, eventType: e.type,
-        attemptId: e.attemptId, providerEventTime: e.occurredAt, payloadSha256,
-        ...(e.paid ? { paidAmountMinor: e.paid.amountMinor, paidCurrency: e.paid.currency } : {}),
-        ...(e.standingOrder ? { recurringRef: e.standingOrder.recurringRef, terminalRef: e.standingOrder.terminalRef } : {}) });
+        attemptId: e.attemptId as string, providerEventTime: e.occurredAt, payloadSha256,
+        ...(e.paid ? { paidAmountMinor: e.paid.amountMinor, paidCurrency: e.paid.currency } : {}) });
     }
   } catch {
     return err(503, 'retry_later'); // timeout / outage: the provider retries the same event id; processing is idempotent

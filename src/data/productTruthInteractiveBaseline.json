@@ -232,8 +232,8 @@
     "markers": 0
   },
   "src/components/PricingModal.jsx": {
-    "interactive": 3,
-    "markers": 3
+    "interactive": 2,
+    "markers": 2
   },
   "src/components/ProFlowLogo.jsx": {
     "interactive": 0,
@@ -544,10 +544,6 @@
     "markers": 0
   },
   "src/hooks/useAccountSummary.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/hooks/useBillingReturn.js": {
     "interactive": 0,
     "markers": 0
   },

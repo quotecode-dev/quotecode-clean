@@ -32,8 +32,6 @@ export type PayPlusConfig = {
   apiBase: string; apiKey: string; secretKey: string; paymentPageUid: string;
   /** our server endpoint (subscription-authority/provider-event) and the browser return pages - all https, all server-owned */
   callbackUrl: string; successUrl: string; failureUrl: string;
-  /** optional: the page's 'Return to site' link (refURL_cancel) */
-  cancelUrl?: string;
   fetch: Fetch; now: () => number; timeoutMs?: number;
 };
 
@@ -81,7 +79,7 @@ export const PAYPLUS_ITEM_NAMES = Object.freeze({ month: 'TEKANGO - מנוי ח�
 export const PAYPLUS_SMART_PACK_ITEM_NAMES = Object.freeze({ month: 'TEKANGO - חכם פלוס חודשי', year: 'TEKANGO - חכם פלוס שנתי' });
 
 /** The generateLink body for one server attempt. amountMinor is the server catalog amount (IL prices include VAT: vat_type 0). */
-export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | 'callbackUrl' | 'successUrl' | 'failureUrl' | 'cancelUrl'>,
+export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | 'callbackUrl' | 'successUrl' | 'failureUrl'>,
   i: { attemptId: string; amountMinor: number; billingPeriod: BillingPeriod; nowMs: number; addOnAmountMinor?: number | null }): Record<string, unknown> {
   const amount = i.amountMinor / 100;
   const addOn = Number.isInteger(i.addOnAmountMinor) && (i.addOnAmountMinor as number) > 0 ? (i.addOnAmountMinor as number) : 0;
@@ -97,7 +95,6 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
     refURL_success: cfg.successUrl,
     refURL_failure: cfg.failureUrl,
     refURL_callback: cfg.callbackUrl,
-    ...(cfg.cancelUrl ? { refURL_cancel: cfg.cancelUrl } : {}),
     send_failure_callback: true,
     sendEmailApproval: false,
     sendEmailFailure: false,
@@ -129,38 +126,29 @@ function decodeBase64(s: string): Uint8Array | null {
   try { return Uint8Array.from(atob(s), (c) => c.charCodeAt(0)); } catch { return null; }
 }
 
-const ref = (v: unknown): string | null => (typeof v === 'string' && v.trim().length >= 1 && v.trim().length <= 200 ? v.trim() : null);
-
 /** The normalized event of a verified callback, or null. Our attempt id = more_info; ILS only. The paid amount is carried ONLY so
- *  SQL can require it to equal the server attempt before anything opens (it never sets a price, a plan or a right).
- *  20261022000000: a standing-order charge carries transaction.recurring_charge_information.recurring_uid (documented); the docs do not
- *  promise that a renewal repeats more_info, so a callback with the standing-order id and no attempt id is kept - SQL reaches the
- *  attempt the standing order was bound to by its first (activating) payment, and refuses one nobody bound. */
-export function mapPayPlusCallback(json: unknown): { id: string; type: EventType; occurredAt: string; attemptId: string | null;
-  paidAmountMinor: number | null; recurringRef: string | null; terminalRef: string | null } | null {
+ *  SQL can require it to equal the server attempt before anything opens (it never sets a price, a plan or a right). */
+export function mapPayPlusCallback(json: unknown): { id: string; type: EventType; occurredAt: string; attemptId: string;
+  paidAmountMinor: number | null } | null {
   if (!isObj(json) || !isObj(json.transaction)) return null;
   const tx = json.transaction;
   const kind = typeof json.transaction_type === 'string' ? json.transaction_type.trim().toLowerCase() : '';
   if (tx.currency !== 'ILS') return null; // phase 1: Israel only
   if (typeof tx.uid !== 'string' || typeof tx.status_code !== 'string') return null;
-  const attemptId = typeof tx.more_info === 'string' && UUID.test(tx.more_info) ? tx.more_info : null;
-  const recurringRef = isObj(tx.recurring_charge_information) ? ref(tx.recurring_charge_information.recurring_uid) : null;
-  if (!attemptId && !recurringRef) return null;
-  const terminalRef = recurringRef && isObj(json.data) ? ref(json.data.terminal_uid) : null;
+  if (typeof tx.more_info !== 'string' || !UUID.test(tx.more_info)) return null;
   const type: EventType | null = kind === 'charge' ? (tx.status_code === PAYPLUS_SUCCESS_CODE ? 'payment_confirmed' : 'payment_failed')
     : kind === 'refund' ? 'refund' : null;
   const occurredAt = payplusDateToIso(tx.date);
   if (!type || !occurredAt) return null;
   const paidAmountMinor = typeof tx.amount === 'number' && Number.isFinite(tx.amount) && tx.amount > 0 ? Math.round(tx.amount * 100) : null;
-  return { id: tx.uid, type, occurredAt, attemptId, paidAmountMinor, recurringRef, terminalRef };
+  return { id: tx.uid, type, occurredAt, attemptId: tx.more_info, paidAmountMinor };
 }
 
 export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
   const bases = Object.values(PAYPLUS_API_BASES) as string[];
   if (!bases.includes(cfg.apiBase) || typeof cfg.apiKey !== 'string' || cfg.apiKey.length < 8 || typeof cfg.secretKey !== 'string'
       || cfg.secretKey.length < 16 || typeof cfg.paymentPageUid !== 'string' || !UUID.test(cfg.paymentPageUid)
-      || !isHttps(cfg.callbackUrl) || !isHttps(cfg.successUrl) || !isHttps(cfg.failureUrl) || (cfg.cancelUrl !== undefined && !isHttps(cfg.cancelUrl))
-      || typeof cfg.fetch !== 'function'
+      || !isHttps(cfg.callbackUrl) || !isHttps(cfg.successUrl) || !isHttps(cfg.failureUrl) || typeof cfg.fetch !== 'function'
       || typeof cfg.now !== 'function') {
     throw new Error('createPayPlusProvider: invalid configuration');
   }
@@ -203,45 +191,9 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       const signedOk = bytesEqual(await mac(rawBody), sig) || bytesEqual(await mac(enc.encode(JSON.stringify(json))), sig);
       if (!signedOk) return { ok: false, reason: 'invalid_signature' };
       const mapped = mapPayPlusCallback(json);
-      const event = mapped ? parseProviderEvent({ id: mapped.id, type: mapped.type, occurredAt: mapped.occurredAt, attemptId: mapped.attemptId,
-        recurringRef: mapped.recurringRef, terminalRef: mapped.terminalRef }) : null;
+      const event = mapped ? parseProviderEvent(mapped) : null;
       if (!mapped || !event) return { ok: false, reason: 'invalid_event' };
       return { ok: true, event: mapped.paidAmountMinor === null ? event : { ...event, paid: { amountMinor: mapped.paidAmountMinor, currency: 'ILS' } } };
     },
   });
-}
-
-// -------------------------------------------------------------------------------------------------------- Function secrets
-// Owner night task 2026-10-21: the provider is built from the Function secrets the Owner sets (never in code, never shown).
-// Still INERT: the billing phase stays the code constant ACTIVATION_PHASE 'off', so checkout and callbacks answer 503 before the
-// provider is ever used. A missing or invalid secret = no provider (UNAVAILABLE_PROVIDER), never a guess.
-export const PAYPLUS_SECRET_NAMES = Object.freeze(['PAYPLUS_API_KEY', 'PAYPLUS_SECRET_KEY', 'PAYPLUS_PAYMENT_PAGE_UID', 'PAYPLUS_ENVIRONMENT',
-  'PAYPLUS_RETURN_ORIGIN'] as const);
-/** the browser return pages: the app's own origin only */
-export const PAYPLUS_RETURN_ORIGINS = Object.freeze(['https://www.tekango.com', 'https://tekango.com']);
-export const PAYPLUS_RETURN_PATHS = Object.freeze({
-  success: '/dashboard?billing=processing', failure: '/dashboard?billing=failed', cancel: '/dashboard?billing=cancelled',
-});
-
-/** The PayPlus provider from the Function secrets, or null. `get` reads ONE named secret; supabaseUrl = this project's URL (the callback). */
-export function payplusProviderFromSecrets(get: (name: typeof PAYPLUS_SECRET_NAMES[number]) => string | undefined, supabaseUrl: string,
-  fetchImpl: Fetch, now: () => number): BillingProvider | null {
-  const apiKey = (get('PAYPLUS_API_KEY') ?? '').trim();
-  const secretKey = (get('PAYPLUS_SECRET_KEY') ?? '').trim();
-  const paymentPageUid = (get('PAYPLUS_PAYMENT_PAGE_UID') ?? '').trim().toLowerCase();
-  const environment = (get('PAYPLUS_ENVIRONMENT') ?? '').trim();
-  // the LIVE app is the default only for the production terminal; a staging terminal must name its return origin
-  const origin = ((get('PAYPLUS_RETURN_ORIGIN') ?? '').trim() || (environment === 'production' ? PAYPLUS_RETURN_ORIGINS[0] : '')).replace(/\/+$/, '');
-  if (!apiKey || !secretKey || !paymentPageUid || (environment !== 'production' && environment !== 'staging')) return null;
-  if (!PAYPLUS_RETURN_ORIGINS.includes(origin) || !isHttps(supabaseUrl)) return null;
-  try {
-    return createPayPlusProvider({
-      apiBase: PAYPLUS_API_BASES[environment], apiKey, secretKey, paymentPageUid,
-      callbackUrl: `${new URL(supabaseUrl).origin}/functions/v1/subscription-authority/provider-event`,
-      successUrl: origin + PAYPLUS_RETURN_PATHS.success, failureUrl: origin + PAYPLUS_RETURN_PATHS.failure,
-      cancelUrl: origin + PAYPLUS_RETURN_PATHS.cancel, fetch: fetchImpl, now,
-    });
-  } catch {
-    return null;
-  }
 }

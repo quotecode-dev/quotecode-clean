@@ -6,13 +6,10 @@
 
 const KEY_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
 
-/** May this account open a payment page now? (server summary only; LIFETIME never; an active package only when limited)
- *  Owner console 2026-10-21 (typed: "מאשר שינוי ב-L-22 וב-L-01: מסך החזרה מהתשלום בחלון המסלולים, ותיקון הנוסח, הכפתור והשוק בחלון
- *  המסלולים"): Israel only - the payment connector charges ILS only, so an international account never gets a button that cannot work. */
+/** May this account open a payment page now? (server summary only; LIFETIME never; an active package only when limited) */
 export function packageCheckoutAvailable(summary, isLifetime = false) {
   if (isLifetime === true || summary?.state !== 'ready') return false;
   if (!['prepared', 'enforced'].includes(summary.phase?.billing)) return false;
-  if (summary.market !== 'IL') return false;
   if (summary.planId === 'all_inclusive' && summary.subscriptionStatus === 'active') return summary.billing?.limited === true;
   if (summary.planId !== 'free' && summary.planId !== 'all_inclusive') return false; // a legacy style plan pays for nothing
   return true;
@@ -56,57 +53,4 @@ export function checkoutErrorMessage(code, isHebrew) {
     return isHebrew ? 'החיוב האחרון לא עבר, והוא ינוסה שוב. לעדכון הכרטיס פנו אלינו במייל.' : 'The last charge did not go through and is being retried. To update the card, email us.';
   }
   return isHebrew ? 'לא ניתן לפתוח את דף התשלום כרגע. לא בוצע חיוב. נסו שוב בעוד רגע.' : 'The payment page cannot be opened right now. Nothing was charged. Try again in a moment.';
-}
-
-// ---------------------------------------------------------------------------------------------- back from the payment page
-// Owner console 2026-10-21 (same typed L-22 / L-01 approval): the payment page returns to /dashboard?billing=processing | failed |
-// cancelled (subscription-authority payplus.ts PAYPLUS_RETURN_PATHS). The address only picks the words while waiting; "active" comes
-// ONLY from the server account summary (a verified payment), which also wins over a failed / cancelled address.
-export const BILLING_RETURN_KINDS = Object.freeze(['processing', 'failed', 'cancelled']);
-export const BILLING_RETURN_POLL_MS = 3000;
-export const BILLING_RETURN_WAIT_MS = 90000;
-
-/** the return kind in a location search string, or null (a provider that appends '?x=…' to our value is tolerated) */
-export function billingReturnFromSearch(search) {
-  try {
-    const v = String(new URLSearchParams(String(search || '')).get('billing') || '').split('?')[0];
-    return BILLING_RETURN_KINDS.includes(v) ? v : null;
-  } catch {
-    return null;
-  }
-}
-
-/** the address after a return: only the app's own ?lang= stays (the payment page's parameters never reach history) */
-export function searchWithoutBillingReturn(search) {
-  let lang;
-  try { lang = new URLSearchParams(String(search || '')).get('lang'); } catch { lang = null; }
-  return lang === 'he' || lang === 'en' ? `?lang=${lang}` : '';
-}
-
-/** 'confirmed' | 'waiting' | 'timeout' | 'failed' | 'cancelled' | null (plans system off / not ready: nothing to show) */
-export function billingReturnState(kind, summary, elapsedMs) {
-  if (!BILLING_RETURN_KINDS.includes(kind) || summary?.state !== 'ready') return null;
-  if (!['prepared', 'enforced'].includes(summary.phase?.billing)) return null;
-  const active = summary.planId === 'all_inclusive' && summary.subscriptionStatus === 'active' && summary.billing?.limited !== true;
-  if (active) return 'confirmed'; // the server wins over the address
-  if (kind === 'failed' || kind === 'cancelled') return kind;
-  return elapsedMs >= BILLING_RETURN_WAIT_MS ? 'timeout' : 'waiting';
-}
-
-/** the words of a return state (HE / EN); smartPack = the server SMART PACK state (the plan itself is on the line below) */
-export function billingReturnText(state, isHebrew, { smartPack = false } = {}) {
-  switch (state) {
-    case 'waiting':
-      return isHebrew ? 'מאמתים את התשלום… המסלול ייפתח רק אחרי שהתשלום יאושר.' : 'Confirming your payment… Your package opens only after the payment is confirmed.';
-    case 'confirmed':
-      return (isHebrew ? 'התשלום אושר.' : 'Payment confirmed.') + (smartPack ? (isHebrew ? ' חכם פלוס פעיל.' : ' SMART PACK is active.') : '');
-    case 'timeout':
-      return isHebrew ? 'האישור על התשלום עדיין לא הגיע. אם בוצע חיוב, המסלול ייפתח מעצמו תוך כמה דקות.' : 'The payment confirmation has not arrived yet. If a charge was made, your package opens automatically within a few minutes.';
-    case 'failed':
-      return isHebrew ? 'התשלום לא הושלם, ולא נפתח מסלול. אפשר לנסות שוב.' : 'The payment was not completed, and no package was opened. You can try again.';
-    case 'cancelled':
-      return isHebrew ? 'התשלום בוטל. לא בוצע חיוב.' : 'The payment was cancelled. Nothing was charged.';
-    default:
-      return '';
-  }
 }

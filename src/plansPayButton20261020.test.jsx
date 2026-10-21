@@ -58,10 +58,9 @@ describe('the plans window', () => {
     fireEvent.click(btn);
     await waitFor(() => expect(onPurchase).toHaveBeenCalledWith({ billingPeriod: 'year', smartPack: true }));
   });
-  // Owner console 2026-10-21 (typed L-22 / L-01 approval, "השוק"): the button is Israel-only, so the English view is an Israeli account's
   it('EN / LTR: a refusal is shown in words and the button comes back', async () => {
     const onPurchase = vi.fn(async () => ({ ok: false, code: 'already_subscribed' }));
-    render(<PricingModal isOpen onClose={() => {}} isHebrew={false} isLocalIsraeliBusiness accountSummary={summary()} onPurchase={onPurchase} />);
+    render(<PricingModal isOpen onClose={() => {}} isHebrew={false} isLocalIsraeliBusiness={false} accountSummary={summary({ market: 'INTERNATIONAL' })} onPurchase={onPurchase} />);
     const btn = screen.getByTestId('plans-pay');
     expect(btn.textContent).toBe('Pay now');
     fireEvent.click(btn);

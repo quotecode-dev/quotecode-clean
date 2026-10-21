@@ -31,7 +31,6 @@ import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, miss
 import { itemPricePayload, formPriceFromSavedItem } from '../utils/itemPrice';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import useAccountSummary from '../hooks/useAccountSummary';
-import useBillingReturn, { markBillingDeparture } from '../hooks/useBillingReturn';
 import HeaderPlanMedallion from '../components/HeaderPlanMedallion';
 import { accountStatus, statusMedallionModel, accountStatusSentence } from '../domain/subscriptions/subscriptionStatus';
 import { timeGreeting } from '../utils/timeGreeting';
@@ -1305,11 +1304,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // account surface (badge, balance, plans view, locked-capability notice) reads the server account summary; every gate goes
   // through decideCapability (shared contract): enforced -> server capabilities, unprovisioned/invalid -> fail closed,
   // not active -> the legacy entitlement exactly as before.
-  const { summary: accountSummary, refresh: refreshAccountSummary, refreshQuiet: refreshAccountSummaryQuiet } = useAccountSummary(supabase, session?.user?.id);
-  // Owner console 2026-10-21 (typed L-22 / L-01 approval): back from the payment page -> the plans window with the return state (billing on only)
-  const openPlansForReturn = useCallback(() => setShowPricingModal(true), []);
-  const billingReturn = useBillingReturn({ summary: accountSummary, userId: session?.user?.id, plansOpen: showPricingModal,
-    refreshQuiet: refreshAccountSummaryQuiet, openPlans: openPlansForReturn });
+  const { summary: accountSummary, refresh: refreshAccountSummary } = useAccountSummary(supabase, session?.user?.id);
   // Owner console 2026-10-16 (approval naming L-03): the header medallion = the admin status medallion (same status, same icon, same
   // words in its bubble); the plans window states the same status ("you have ... until X" where a real date exists).
   const statusDate = (v) => formatShortDate(v, isLocalIsraeliBusiness ? 'Local' : 'International');
@@ -7574,9 +7569,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         statusLine={accountStatusSentence(ownSubscriptionStatus, isHebrew, statusDate)}
         // Owner 2026-10-20 (typed L-22 approval): the pay button (shown only while the server billing phase is on) leaves for the server
         // attempt's payment page; the package opens only after a verified payment
-        onPurchase={(choice) => startPackageCheckout({ ...choice, invoke: invokeWithFreshSession }).then((r) => { if (r.ok) { markBillingDeparture(session?.user?.id); window.location.assign(r.redirectUrl); } return r; })}
-        // Owner console 2026-10-21 (typed L-22 / L-01 approval): back from the payment page; "confirmed" only from the server summary
-        billingReturn={billingReturn.state ? { state: billingReturn.state, onCheckAgain: billingReturn.checkAgain } : null}
+        onPurchase={(choice) => startPackageCheckout({ ...choice, invoke: invokeWithFreshSession }).then((r) => { if (r.ok) window.location.assign(r.redirectUrl); return r; })}
       />
       <CapabilityUpgradeNotice
         lang={isHebrew ? 'he' : 'en'}
