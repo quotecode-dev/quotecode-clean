@@ -100,10 +100,13 @@ describe('Owner locked Admin presentation', () => {
     expect(screen.queryByText('New plan system: not active yet')).toBeNull();
   });
   // // Owner console 2026-10-16, typed: "מאשר מימוש אפיון האדמין של קודקס (CODEX_SPEC_ADMIN_REDESIGN_2026-10-16) ... ופתיחת L-03 L-07 L-17 L-20 לשינויים שבאפיון" - spec §4.1: recent registrations with the account-market date, the subscription mix ring chart.
-  it('overview: recent registrations by the account market date; the subscription mix lists the main statuses', async () => {
+  it('overview: recent registrations with the Israeli admin date (IRON-DATE-001 amendment); the subscription mix lists the main statuses', async () => {
     render(<AdminOverview accounts={[{id:'expired',business_name:'Test registration',email:'test@example.test',country:'International',plan:'free',created_at:'2026-09-01T10:00:00Z',trial_ends_at:'2026-09-02T10:00:00Z'}]} isHebrew={false} onOpenUser={vi.fn()} onGoToUsers={vi.fn()} />);
     const recent = screen.getByRole('heading', { name: 'Recent registrations' }).closest('article');
-    expect(recent.textContent).toContain('09/01/2026'); // IRON-DATE-001: an International account -> MM/DD/YYYY
+    // IRON-DATE-001 admin amendment (Owner console 2026-10-22, typed; L-22 opened): every admin date is Israeli DD/MM/YYYY, also for an
+    // International account and in the English interface (what the user sees keeps the account market)
+    expect(recent.textContent).toContain('01/09/2026');
+    expect(recent.textContent).not.toContain('09/01/2026');
     expect(recent.textContent).not.toMatch(/trial/i);
     await screen.findByText('New plan system: not active yet');
     const mix = screen.getByRole('article', { name: 'Subscription mix' });

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Bot, Search, Clock, Mail, HelpCircle, MessageSquareText, Tag, X, AlertTriangle } from 'lucide-react';
 import { supabase } from '../shared/supabase';
 import { formatShortDateTime } from '../utils/shortDate';
+import { ADMIN_DATE_MARKET } from '../utils/adminDates';
 import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
 
@@ -57,7 +58,7 @@ export default function AISupportLogsContent({ isHebrew }) {
   });
   const categories = ['ALL', ...new Set(logs.map((l) => l.category || 'GENERAL'))];
   const isCritical = (log) => !!log.category && log.category !== 'GENERAL';
-  const when = (log) => (log.created_at ? formatShortDateTime(log.created_at, (isHebrew ? 'Local' : 'International')) : '');
+  const when = (log) => (log.created_at ? formatShortDateTime(log.created_at, ADMIN_DATE_MARKET) : '');
 
   const columns = [
     ['created_at', isHebrew ? 'זמן' : 'Time', Clock],

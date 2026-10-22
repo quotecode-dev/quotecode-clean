@@ -200,7 +200,8 @@ export default function LandingGlobal({ onForgotPassword }) {
         { icon: 'voice', title: 'Voice chat', text: 'Ask out loud and hear the answer, on site or when your hands are busy.' },
         { icon: 'ai', title: 'AI smart quote', text: 'Describe the job, or dictate it, and the AI drafts the quote lines. You review and approve.' },
         { icon: 'files', title: 'Files attached to the quote', text: 'Drawings, photos and documents attached to the quote your client receives.' },
-        { icon: 'twin', title: 'Customer Twin', text: 'A smart picture of every client that helps you know what to offer and when to follow up.', soon: true },
+        // Owner console 2026-10-22, typed L-14 approval: the Customer Twin card without "Coming soon", in the approved wording - LIVE since PR #47
+        { icon: 'twin', title: 'Customer Twin', text: 'See your quote through your client’s eyes: three kinds of clients review it, so you can strengthen it before you send it.' },
       ],
       priceMonth: '$5',
       priceMonthLabel: 'per month, added to your plan',

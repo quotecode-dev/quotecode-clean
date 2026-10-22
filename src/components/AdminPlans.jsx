@@ -9,6 +9,7 @@ import { useAdminDashboardSummary } from '../domain/admin/adminAccountsClient';
 import { setUsersFilterIntent } from '../domain/admin/adminNavIntent';
 import { ADMIN_COPY as C, t } from '../domain/admin/adminCopy';
 import { formatShortDateTime } from '../utils/shortDate';
+import { ADMIN_DATE_MARKET } from '../utils/adminDates';
 
 // TEKANGO Admin V1 (Task 2) Plans/Subscriptions view, reworked for OD-16/OD-20: the plan state comes ONLY from the server (summary RPCs);
 // nothing here computes a plan from the legacy fields; no revenue values invented, no plan-change UI.
@@ -29,7 +30,6 @@ export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null, onR
   const loadState = s ? server.state : (server.state === 'loading' ? 'loading' : 'ready');
   const segments = rows.map(({ key, count: n }) => ({ key, count: n, color: STATUS_COLOR[key], label: tr(ACCOUNT_STATUS[key], isHebrew) }));
   const openUsers = (filter) => { setUsersFilterIntent(filter); if (onGoToUsers) onGoToUsers(); };
-  const adminMarket = isHebrew ? 'Local' : 'International';
 
   return (
     <AdminScreenFrame
@@ -41,7 +41,7 @@ export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null, onR
       refreshing={!!server.refreshing}
       updatedAt={server.updatedAt}
       staleSince={server.state === 'stale' ? server.failedAt : null}
-      formatTime={(v) => formatShortDateTime(v, adminMarket)}
+      formatTime={(v) => formatShortDateTime(v, ADMIN_DATE_MARKET)}
       controls={<AdminPlanSystemNotice system={planSystem} isHebrew={isHebrew} />}
     >
       {/* the sketch: the account-status notice opens the body */}
