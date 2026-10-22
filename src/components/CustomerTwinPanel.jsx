@@ -17,24 +17,34 @@ import { formatMoneyForCurrency } from '../utils/money';
 const N = ({ v }) => <bdi dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{v}</bdi>;
 // CT-07: a model text shows every number isolated with tabular figures; an amount next to a currency sign in the market's money format
 // (IRON-ILS-001 whole shekels with .00); a date in the market's short date (IRON-DATE-001). Plain text otherwise (never HTML).
-const VALUE = /(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})|\d[\d,]*(?:\.\d+)?/g;
-function Rich({ text, market }) {
+// Night task 2026-10-23 (CT-07 follow-up, IRON-NUMERIC-001): a currency sign and a percent stay INSIDE the isolated run ("₪1,200.00",
+// "30%" never flip to "1,200₪" / "%30" in Hebrew); a whole date, time, phone number or range is ONE run (never pieces in reverse order);
+// a d/m/y date is read in the market's order (International = m/d/y) and shown as written when it is not a real date.
+const VALUE = /(\d{4})-(\d{2})-(\d{2})|(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})|\d{1,2}:\d{2}|0\d{1,2}-?\d{3}-?\d{4}|(?:[₪$€£]\s?)?\d(?:[\d,]*\d)?(?:\.\d+)?(?:\s?[-–]\s?\d(?:[\d,]*\d)?(?:\.\d+)?)?%?(?:\s?₪)?/g;
+const realDate = (y, m, d) => { const t = new Date(`${y}-${m}-${d}T00:00:00Z`); return Number.isFinite(t.getTime()) && t.getUTCMonth() + 1 === Number(m) && t.getUTCDate() === Number(d); };
+export function Rich({ text, market }) {
   const s = String(text || '');
+  const intl = market === 'INTERNATIONAL';
   const out = []; let last = 0; let k = 0;
   for (const m of s.matchAll(VALUE)) {
     if (m.index > last) out.push(s.slice(last, m.index));
-    let shown = m[0];
-    if (m[1]) {
-      const y = m[3].length === 2 ? `20${m[3]}` : m[3];
-      shown = formatShortDate(`${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`, market === 'INTERNATIONAL' ? 'International' : 'Local');
-    } else {
-      const around = s.slice(Math.max(0, m.index - 3), m.index + m[0].length + 5);
-      const n = Number(m[0].replace(/,/g, ''));
-      if (/₪|ש["״']?ח|שקל/.test(around) && Number.isFinite(n)) shown = formatMoneyForCurrency(n, 'ILS');
-      else if (/\$|USD|dollar/i.test(around) && Number.isFinite(n)) shown = formatMoneyForCurrency(n, 'USD');
+    const raw = m[0];
+    let shown = raw.trim();
+    if (m[1] || m[4]) {
+      const [y, mo, d] = m[1] ? [m[1], m[2], m[3]]
+        : [m[6].length === 2 ? `20${m[6]}` : m[6], (intl ? m[4] : m[5]).padStart(2, '0'), (intl ? m[5] : m[4]).padStart(2, '0')];
+      if (realDate(y, mo, d)) shown = formatShortDate(`${y}-${mo}-${d}`, intl ? 'International' : 'Local');
+    } else if (/^(?:[₪$€£]\s?)?\d(?:[\d,]*\d)?(?:\.\d+)?(?:\s?₪)?$/.test(shown)) {
+      const n = Number(shown.replace(/[^\d.]/g, ''));
+      const around = s.slice(Math.max(0, m.index - 3), m.index + raw.length + 5);
+      if (Number.isFinite(n) && (/₪/.test(shown) || /ש["״']?ח|שקל/.test(around))) shown = `${/₪/.test(shown) ? '₪' : ''}${formatMoneyForCurrency(n, 'ILS')}`;
+      else if (Number.isFinite(n) && (/\$/.test(shown) || /USD|dollar/i.test(around))) shown = `${/\$/.test(shown) ? '$' : ''}${formatMoneyForCurrency(n, 'USD')}`;
     }
+    // the text around keeps its own spacing; the run itself is one LTR piece
+    const lead = raw.match(/^\s*/)[0];
+    if (lead) out.push(lead);
     out.push(<N key={k++} v={shown} />);
-    last = m.index + m[0].length;
+    last = m.index + raw.length;
   }
   if (last < s.length) out.push(s.slice(last));
   return <>{out}</>;
