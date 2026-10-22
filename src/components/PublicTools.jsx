@@ -268,11 +268,11 @@ function PublicTools() {
                       }}
                       style={selectStyle}
                     >
-                      <option value="gold">🥇 זהב</option>
-                      <option value="silver">🥈 כסף</option>
-                      <option value="platinum">🪙 פלטינה</option>
-                      <option value="palladium">🪙 פלדיום</option>
-                      <option value="rhodium">🪙 רודיום</option>
+                      <option value="gold">זהב</option>
+                      <option value="silver">כסף</option>
+                      <option value="platinum">פלטינה</option>
+                      <option value="palladium">פלדיום</option>
+                      <option value="rhodium">רודיום</option>
                     </select>
                   </div>
 

@@ -270,11 +270,11 @@ function PublicToolsEn() {
                       }}
                       style={selectStyle}
                     >
-                      <option value="gold">🥇 Gold</option>
-                      <option value="silver">🥈 Silver</option>
-                      <option value="platinum">🪙 Platinum</option>
-                      <option value="palladium">🪙 Palladium</option>
-                      <option value="rhodium">🪙 Rhodium</option>
+                      <option value="gold">Gold</option>
+                      <option value="silver">Silver</option>
+                      <option value="platinum">Platinum</option>
+                      <option value="palladium">Palladium</option>
+                      <option value="rhodium">Rhodium</option>
                     </select>
                   </div>
 

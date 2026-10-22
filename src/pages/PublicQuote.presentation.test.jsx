@@ -249,14 +249,14 @@ describe.each(PAGES)('%s public quote - document / action separation', (name, re
 
 describe('PublicQuoteHeader Call CTA (Owner 2026-10-07: upper outer corner, screen only)', () => {
   const STYLES3 = ['classic', 'modern', 'visual'];
-  it.each(STYLES3)('HE %s: "התקשרות לעסק" precedes metadata in the upper outer corner, tel: link without the number as text', (style) => {
+  it.each(STYLES3)('HE %s: "התקשרו אלינו" precedes metadata in the upper outer corner, tel: link without the number as text', (style) => {
     const { container } = renderHe({ quoteData: heData(), presentation: { mode: 'draft', style, media: [] } });
     const header = container.querySelector('.pq-letterhead');
     const call = header.querySelector('.pq-lh-call');
     expect(call).not.toBeNull();
     const a = call.querySelector('a[href^="tel:"]');
     expect(a.getAttribute('href')).toBe('tel:0501234567');
-    expect(a.textContent).toBe('התקשרות לעסק');
+    expect(a.textContent).toBe('התקשרו אלינו');
     // It is structurally before metadata: Classic/Visual place it in the brandline corner; Modern starts the aside with it.
     const meta = header.querySelector('.pq-meta');
     expect(call.compareDocumentPosition(meta) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -270,9 +270,9 @@ describe('PublicQuoteHeader Call CTA (Owner 2026-10-07: upper outer corner, scre
     expect(phone.textContent).toMatch(/^טלפון:\s*050-?1234567$/);
     expect(phone.querySelector('bdi[dir="ltr"]')).not.toBeNull();
   });
-  it('EN: "Call me"; no business phone => no CTA (base)', () => {
+  it('EN: "Call us"; no business phone => no CTA (base)', () => {
     const { container } = renderEn({ quoteData: enData() });
-    expect(container.querySelector('.pq-lh-call a').textContent).toBe('Call me');
+    expect(container.querySelector('.pq-lh-call a').textContent).toBe('Call us');
     const { container: c2 } = renderEn({ quoteData: enData({ business: { phone: null } }) });
     expect(c2.querySelector('.pq-lh-call')).toBeNull();
     expect(c2.querySelector('a[href^="tel:"]')).toBeNull();

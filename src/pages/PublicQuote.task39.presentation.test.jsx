@@ -251,7 +251,7 @@ describe('terms, warranty, notes and attachments', () => {
 describe('contact tiles (the reader contacts the ISSUER)', () => {
   it('HE: every call control (header CTA + action tile) dials the same issuer number, and the CTA label never carries the number', () => {
     he({ business: { phone: '050-7654321' } });
-    const calls = screen.getAllByText('התקשרות לעסק').map((e) => e.closest('a'));
+    const calls = screen.getAllByText('התקשרו אלינו').map((e) => e.closest('a'));
     expect(calls.length).toBeGreaterThanOrEqual(2);
     for (const a of calls) {
       expect(a).toHaveAttribute('href', 'tel:0507654321');
@@ -275,7 +275,7 @@ describe('contact tiles (the reader contacts the ISSUER)', () => {
   });
   it('without an issuer phone there is no call / WhatsApp tile; PDF and print remain', () => {
     const { container } = he({ business: { phone: '' } });
-    expect(screen.queryByText('התקשרות לעסק')).toBeNull();
+    expect(screen.queryByText('התקשרו אלינו')).toBeNull();
     expect(screen.queryByText('וואטסאפ')).toBeNull();
     expect(container.querySelector('.pq-action-tiles')).toHaveClass('pq-action-tiles-two');
     expect(screen.getByText('הורדה כ-PDF')).toBeInTheDocument();
@@ -283,7 +283,7 @@ describe('contact tiles (the reader contacts the ISSUER)', () => {
   });
   it('EN: international numbers are used as stored (no +972 rewriting) and the English message names the quote', () => {
     en({ business: { phone: '+1 (415) 555-0100' } });
-    for (const label of ['Call Me', 'Call me']) for (const e of screen.getAllByText(label)) expect(e.closest('a')).toHaveAttribute('href', 'tel:+14155550100');
+    for (const label of ['Call us']) for (const e of screen.getAllByText(label)) expect(e.closest('a')).toHaveAttribute('href', 'tel:+14155550100');
     const url = new URL(screen.getByText('WhatsApp').closest('a').getAttribute('href'));
     expect(url.pathname).toBe('/14155550100');
     expect(url.searchParams.get('text')).toBe('Hi, I have a question about quote number A100701.');

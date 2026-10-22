@@ -17,7 +17,7 @@ import {
   WELCOME_ITEM_KEY, OPEN_REMINDERS_SETTINGS_EVENT, isWelcomeVisible,
 } from '../utils/reminders';
 import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../shared/brand';
-import AiRobotIcon from './AiRobotIcon';
+import TekangoAiIcon from './TekangoAiIcon';
 import { BELL_SUBJECT_EVENT, BELL_ACTION_COPY, bellActionsFor, loadFloatedKeys, saveFloatedKeys, floatedStorageKey, pendingFloating } from '../utils/bellSubject';
 import { activeAnnouncements } from '../utils/bellAnnouncements';
 
@@ -282,7 +282,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
                 {/* PRODUCT_TRUTH_CAPABILITY: ai_chat */}
                 <button type="button" data-testid="notification-welcome-ai" onClick={openAiChatFromWelcome}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', border: '1px solid #0F6672', borderRadius: 999, background: 'none', color: '#0F6672', fontWeight: 700, fontSize: '0.72rem', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <AiRobotIcon size={14} />
+                  <TekangoAiIcon size={16} />
                   <span>{C.welcome.aiButton}</span>
                 </button>
               </div>

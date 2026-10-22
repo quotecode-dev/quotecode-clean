@@ -184,15 +184,25 @@ export const getRegionBillingProfile = (country) => {
 // מפורש שאינו מספר סופי ואי-שלילי תקין, הפונקציה **לא נופלת בשקט** לשיעור
 // לפי אזור - היא מחזירה taxRateOverrideInvalid: true עם כל הערכים התלויים
 // בשיעור המע"מ כ-null, כדי שהקורא יזהה זאת במפורש ולא יקבל מספר מומצא.
-export function calculateQuoteFinancials({ country, clientType, items, discount, taxRateOverride }) {
+// IRON-ILS-001 amendment (Owner console 2026-10-23, typed): in a quote in shekels (currency 'ILS'), when the amount after the discount
+// (before VAT for a business client, VAT-inclusive for a private client) is not a whole shekel, it is rounded DOWN and the agorot are
+// added to the discount (roundingAdjustment), so the items total minus the discount always equals the total. Any other currency, or no
+// currency argument, is calculated exactly as before. The callers pass the currency only when they (re)calculate a quote: a saved quote
+// is recalculated only when its price, quantity or discount changed (Dashboard isFinancialEdit).
+export function calculateQuoteFinancials({ country, clientType, items, discount, taxRateOverride, currency }) {
   const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 
   const safeItems = Array.isArray(items) ? items : [];
   const enteredSubtotal = round2(
     safeItems.reduce((sum, item) => sum + Number(item?.quantity || 0) * Number(item?.unit_price || 0), 0)
   );
-  const discountAmount = round2(enteredSubtotal * (Number(discount || 0) / 100));
-  const discountedAmount = round2(enteredSubtotal - discountAmount);
+  const percentDiscount = round2(enteredSubtotal * (Number(discount || 0) / 100));
+  const exactDiscounted = round2(enteredSubtotal - percentDiscount);
+  const isIls = String(currency || '').toUpperCase() === 'ILS';
+  const wholeDiscounted = isIls ? Math.floor(exactDiscounted + 1e-9) : exactDiscounted;
+  const roundingAdjustment = isIls ? round2(exactDiscounted - wholeDiscounted) : 0;
+  const discountAmount = round2(percentDiscount + roundingAdjustment);
+  const discountedAmount = wholeDiscounted;
 
   const hasOverride = taxRateOverride !== undefined && taxRateOverride !== null;
   const overrideIsValid = typeof taxRateOverride === 'number' && Number.isFinite(taxRateOverride) && taxRateOverride >= 0;
@@ -245,6 +255,7 @@ export function calculateQuoteFinancials({ country, clientType, items, discount,
       taxRate,
       taxAmount,
       total: discountedAmount,
+      roundingAdjustment,
       clientTypeAmbiguous: false,
       taxRateOverrideInvalid: false,
     };
@@ -261,6 +272,7 @@ export function calculateQuoteFinancials({ country, clientType, items, discount,
     taxRate,
     taxAmount,
     total,
+    roundingAdjustment,
     clientTypeAmbiguous: false,
     taxRateOverrideInvalid: false,
   };
