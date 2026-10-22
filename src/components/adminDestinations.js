@@ -1,5 +1,5 @@
 import { createElement } from 'react';
-import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox, Briefcase, Settings2, KeyRound, Coins } from 'lucide-react';
+import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox, Briefcase, Settings2, KeyRound, Coins, Receipt } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminPlans from './AdminPlans';
 import AdminSystemActivity from './AdminSystemActivity';
@@ -9,6 +9,7 @@ import AdminInquiries from './AdminInquiries';
 import AdminHub from './AdminHub';
 import AdminPermissions from './AdminPermissions';
 import AdminTwinCosts from './AdminTwinCosts';
+import AdminExpenseInvoices from './AdminExpenseInvoices';
 
 // THE Admin destination registry - the one and only definition of what an
 // Admin destination is. The sidebar list, the mobile More list, the
@@ -115,6 +116,14 @@ export const ADMIN_DESTINATIONS = [
     title: { he: 'עלויות בדיקת הלקוח - סופר אדמין', en: 'Customer check costs - Super Admin' },
     description: { he: 'כמה בדיקות רצו וכמה הן עלו לנו, לפי יום', en: 'How many checks ran and what they cost us, by day' },
     render: (host) => createElement(AdminTwinCosts, { isHebrew: host.isHebrew }),
+  },
+  // Owner console 2026-10-22, typed approval of L-22: "כלי חשבוניות הוצאה במסך מערכת בניהול ..." - the Owner only (server: super admin only)
+  {
+    id: 'expense-invoices', hub: 'system', icon: Receipt, permission: 'owner', mobile: 'more', available: true,
+    label: { he: 'חשבוניות הוצאה', en: 'Expense invoices' },
+    title: { he: 'חשבוניות הוצאה - סופר אדמין', en: 'Expense invoices - Super Admin' },
+    description: { he: 'חשבוניות מתיבות הדואר, אישור ושליחה להוצאות בפיי פלוס', en: 'Invoices from the mailboxes, approval and sending to PayPlus expenses' },
+    render: (host) => createElement(AdminExpenseInvoices, { isHebrew: host.isHebrew }),
   },
 ];
 
