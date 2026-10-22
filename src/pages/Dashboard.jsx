@@ -120,7 +120,7 @@ import {
   Accessibility as AccessibilityIcon,
   MoreHorizontal
 } from 'lucide-react';
-import AiRobotIcon from '../components/AiRobotIcon';
+import TekangoAiIcon from '../components/TekangoAiIcon';
 import { loadServiceSchedule, normalizeServiceSchedule, probeServiceSchedule, saveServiceSchedule } from '../utils/serviceScheduleClient';
 import { loadShareDefaults } from '../utils/shareDefaultsClient';
 import { useInAppBack, closeTopDialogWithEscape } from '../hooks/useInAppBack';
@@ -536,8 +536,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       title={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
       aria-label={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
     >
-      {/* Task 20 Continuation 2 (Owner correction 2026-10-10): an original illustrated AI-robot icon (inline SVG component, no asset). */}
-      <AiRobotIcon size={20} />
+      {/* Owner console 2026-10-23 (L-02 / L-11, law 45): the TEKANGO AI tile (a glowing head with "AI") - replaces the 2026-10-10 robot. */}
+      <TekangoAiIcon size={22} />
       <span>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
     </button>
   );

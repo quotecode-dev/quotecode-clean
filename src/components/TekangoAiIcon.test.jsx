@@ -29,6 +29,19 @@ describe('TEKANGO AI icons', () => {
     const ids = [...container.querySelectorAll('[id]')].map((e) => e.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
+  it('Owner 2026-10-23 (L-02 / L-11, landing): the AI tile is the chat icon everywhere - header, notifications, every "Ask AI", the chat window, the landing', () => {
+    expect(readFileSync('src/pages/Dashboard.jsx', 'utf8')).toMatch(/className="dash-header-ai-btn"[\s\S]{0,500}<TekangoAiIcon size=\{22\} \/>/);
+    expect(readFileSync('src/components/NotificationCenter.jsx', 'utf8')).toMatch(/data-testid="notification-welcome-ai"[\s\S]{0,600}<TekangoAiIcon size=\{16\} \/>/);
+    expect(readFileSync('src/components/AiChatIcon.jsx', 'utf8')).toMatch(/<TekangoAiIcon size=\{size \+ 2\} \/>/);
+    const widget = readFileSync('src/AIChatWidget.jsx', 'utf8');
+    expect(widget).toContain('<TekangoAiIcon size={30} />');
+    const showcase = readFileSync('src/components/landing/SmartPackShowcase.jsx', 'utf8');
+    expect(showcase).toMatch(/<TekangoAiIcon size=\{48\} \/>/);
+    expect(showcase).toMatch(/<CustomerTwinIcon size=\{32\} tone="light" \/>/);
+    for (const f of ['src/pages/Dashboard.jsx', 'src/components/NotificationCenter.jsx', 'src/AIChatWidget.jsx', 'src/components/AiChatIcon.jsx', 'src/components/landing/SmartPackShowcase.jsx']) {
+      expect(readFileSync(f, 'utf8'), f).not.toMatch(/AiRobotIcon|BrainCircuit|ScanFace|MessageCircleMore|\bBot\b/);
+    }
+  });
   it('the Customer check entries and panel use the Customer Twin mark (no generic sparkle, not the old robot)', () => {
     for (const f of ['src/components/CustomerTwinPanel.jsx', 'src/components/QuoteForm.jsx', 'src/components/QuotesTab.jsx']) {
       const s = readFileSync(f, 'utf8');

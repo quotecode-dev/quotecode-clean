@@ -119,10 +119,6 @@
     "interactive": 10,
     "markers": 11
   },
-  "src/components/AiRobotIcon.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/components/AttachmentCompatRoute.jsx": {
     "interactive": 1,
     "markers": 1
