@@ -369,6 +369,18 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; DROP TRIGGER IF EXISTS + CREATE / CREATE OR REPLACE / ADD COLUMN IF NOT EXISTS (re-runnable); the Codex audit fixes of PayPlus stage 2 + the Owner grace-days answer (Owner 2026-10-21)"
+    },
+    "20261022200000_payplus_checkout_pull.sql": {
+      "sha256": "2e61388c8a70ca44dbf81cc7f401ad058079b6bb370dd0a20ba9bb57630e242d",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN IF NOT EXISTS / CREATE OR REPLACE (re-runnable); the server pull of a PayPlus payment page + the first charge never counted twice (Owner 2026-10-21)"
+    },
+    "20261022300000_billing_admin_stop_and_refund.sql": {
+      "sha256": "f7f302a31510ce36fb6634b0d2f72c1a0fa44dbf3818a5659ea7b7c461cb6763",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN / CREATE TABLE IF NOT EXISTS, DROP TRIGGER IF EXISTS + CREATE, CREATE OR REPLACE (re-runnable); the Owner's stop-renewal / early-end + refund tools, Terms section 6 (Owner 2026-10-21)"
     }
   }
 }

@@ -47,6 +47,11 @@ describe('router', () => {
     expect(await routeAuthorityRequest(d, req({ id: 'e1' }, {}, '/functions/v1/subscription-authority/provider-event'))).toEqual({ status: 503, body: { ok: false, code: 'billing_off' } });
     expect(d.billing.sql.createCheckoutIntent).not.toHaveBeenCalled();
   });
+  it('checkout_status (the server pull, 20261022200000) needs a JWT and stays unavailable at the billing code phase "off"', async () => {
+    const { d } = deps();
+    expect(await routeAuthorityRequest(d, req({ action: 'checkout_status' }, {}))).toEqual({ status: 401, body: { ok: false, code: 'not_authenticated' } });
+    expect(await routeAuthorityRequest(d, req({ action: 'checkout_status' }))).toEqual({ status: 503, body: { ok: false, code: 'billing_off' } });
+  });
   it('import_logo while not activated -> not_activated, nothing reserved', async () => {
     const { d } = deps();
     expect(await routeAuthorityRequest(d, req({ action: 'import_logo', dataBase64: 'AAAA' }))).toEqual({ status: 409, body: { ok: false, code: 'not_activated' } });

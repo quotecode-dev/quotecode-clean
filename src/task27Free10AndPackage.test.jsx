@@ -104,13 +104,20 @@ describe('Free-10 upgrade window', () => {
     expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('The 7 free days have ended (3 of 10 free quotes used).');
     expect(screen.getByTestId('free10-upgrade-window').getAttribute('dir')).toBe('ltr');
   });
-  it('Owner 2026-10-18: a paid account in limited mode after a failed charge - its own sentence, HE / RTL and EN / LTR', () => {
-    const { unmount } = render(<Free10UpgradeWindow {...props({ free10: null, limited: true })} />);
-    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('התשלום האחרון לא עבר, ולכן החשבון מוגבל עד שהתשלום יעבור. ההצעות והלקוחות הקיימים נשארים זמינים.');
+  it('Owner 2026-10-18 + Codex audit M-01: a limited paid account - the sentence of the reason the server states, HE / RTL and EN / LTR', () => {
+    const { unmount } = render(<Free10UpgradeWindow {...props({ free10: null, limited: 'payment_failed' })} />);
+    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('התשלום לחידוש המנוי לא עבר, ולכן החשבון מוגבל. ההצעות והלקוחות הקיימים נשארים זמינים.');
     expect(screen.getByTestId('free10-upgrade-window').getAttribute('dir')).toBe('rtl');
     unmount();
-    render(<Free10UpgradeWindow {...props({ isHebrew: false, market: 'INTERNATIONAL', free10: null, limited: true })} />);
-    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('The last payment did not go through, so the account is limited until it does. Your existing quotes and clients stay available.');
+    const c = render(<Free10UpgradeWindow {...props({ free10: null, limited: 'cancelled' })} />);
+    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('המנוי הסתיים בעקבות בקשת הביטול שלכם, ולכן החשבון מוגבל. ההצעות והלקוחות הקיימים נשארים זמינים.');
+    c.unmount();
+    // a reason the server did not state is never shown as a failed payment
+    const n = render(<Free10UpgradeWindow {...props({ free10: null, limited: true })} />);
+    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('התקופה ששולמה הסתיימה, ולכן החשבון מוגבל. ההצעות והלקוחות הקיימים נשארים זמינים.');
+    n.unmount();
+    render(<Free10UpgradeWindow {...props({ isHebrew: false, market: 'INTERNATIONAL', free10: null, limited: 'cancelled' })} />);
+    expect(screen.getByTestId('free10-upgrade-used').textContent).toBe('Your subscription has ended following your cancellation request, so the account is limited. Your existing quotes and clients remain available.');
     expect(screen.getByTestId('free10-upgrade-window').getAttribute('dir')).toBe('ltr');
   });
   it('both ended (10 used by the last day): the 10-quotes sentence', () => {

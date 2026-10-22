@@ -154,7 +154,10 @@ export interface ReadySummary {
   catalog: { active: number; countDefinition: string; limit: number | null; blocks: number; limitDecided: boolean };
   priceCatalogVersion: string | null;
   // 20261021200000 (Owner 2026-10-18): the paid period, the 3 grace days after a failed charge and limited mode
-  billing: { paidThrough: string | null; graceEndsAt: string | null; inGrace: boolean; limited: boolean };
+  // Codex audit 2026-10-22 M-01 (Owner console 2026-10-22, L-01 + L-22): renewalStopped = the renewal was stopped (access to paidThrough);
+  // limitedReason = why a limited account is limited, stated by the server (null on an older server = not proven)
+  billing: { paidThrough: string | null; graceEndsAt: string | null; inGrace: boolean; limited: boolean; renewalStopped: boolean;
+    limitedReason: LimitedReason | null };
   // 20261021400000 (Owner 2026-10-20): SMART PACK - the free 7 days of a new account, LIFETIME, or the paid add-on line
   smartPack: { active: boolean; source: SmartPackSource | null; until: string | null };
 }
@@ -165,6 +168,9 @@ const ISO_UTC_MS = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
 // 20261021400000: why an account has SMART PACK
 export const SMART_PACK_SOURCES = Object.freeze(['free_window', 'lifetime', 'add_on'] as const);
 export type SmartPackSource = typeof SMART_PACK_SOURCES[number];
+// Codex audit 2026-10-22 M-01: why a paid account is limited (stated by the server, never inferred from the limited flag)
+export const LIMITED_REASONS = Object.freeze(['cancelled', 'payment_failed', 'period_ended'] as const);
+export type LimitedReason = typeof LIMITED_REASONS[number];
 const isInt = (v: unknown, min = 0) => typeof v === 'number' && Number.isInteger(v) && v >= min;
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const isPhase = (v: unknown): v is ActivationPhase => typeof v === 'string' && (ACTIVATION_PHASES as readonly string[]).includes(v);
@@ -237,13 +243,18 @@ export function parseAccountSummary(raw: unknown): AccountSummary {
   if (!(raw.priceCatalogVersion === null || typeof raw.priceCatalogVersion === 'string')) return { state: 'invalid', code: 'price_version' };
   // absent on an older server = no paid period / grace (never a false block); when present it must be well-formed
   const bRaw = raw.billing === undefined ? { paidThrough: null, graceEndsAt: null, inGrace: false, limited: false } : raw.billing;
+  // M-01: absent on an older server = renewal not stopped / reason not proven; when present a reason only with limited
+  const stoppedRaw = isObj(bRaw) && bRaw.renewalStopped !== undefined ? bRaw.renewalStopped : false;
+  const reasonRaw = isObj(bRaw) && bRaw.limitedReason !== undefined ? bRaw.limitedReason : null;
   const isTime = (v: unknown) => v === null || (typeof v === 'string' && ISO_UTC_MS.test(v) && !Number.isNaN(Date.parse(v)));
   if (!isObj(bRaw) || !isTime(bRaw.paidThrough) || !isTime(bRaw.graceEndsAt) || typeof bRaw.inGrace !== 'boolean' || typeof bRaw.limited !== 'boolean'
-    || ((bRaw.inGrace || bRaw.limited) && bRaw.graceEndsAt === null) || (bRaw.inGrace && bRaw.limited)) {
+    || ((bRaw.inGrace || bRaw.limited) && bRaw.graceEndsAt === null) || (bRaw.inGrace && bRaw.limited)
+    || typeof stoppedRaw !== 'boolean' || !(reasonRaw === null || (LIMITED_REASONS as readonly unknown[]).includes(reasonRaw))
+    || (reasonRaw !== null && !bRaw.limited)) {
     return { state: 'invalid', code: 'billing' };
   }
   const billing = Object.freeze({ paidThrough: bRaw.paidThrough as string | null, graceEndsAt: bRaw.graceEndsAt as string | null,
-    inGrace: bRaw.inGrace, limited: bRaw.limited });
+    inGrace: bRaw.inGrace, limited: bRaw.limited, renewalStopped: stoppedRaw, limitedReason: reasonRaw as LimitedReason | null });
   // 20261021400000 (Owner 2026-10-20): SMART PACK - absent on an older server = not active (the client then keeps the legacy rule)
   const sRaw = raw.smartPack === undefined ? { active: false, source: null, until: null } : raw.smartPack;
   if (!isObj(sRaw) || typeof sRaw.active !== 'boolean' || !isTime(sRaw.until)
