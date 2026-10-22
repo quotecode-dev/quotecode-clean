@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import AdminScreenFrame from './AdminScreenFrame';
 import { formatShortDate, formatShortDateTime } from '../utils/shortDate';
-import { ADMIN_DATE_MARKET } from '../utils/adminDates';
 import { ADMIN_COPY as C, t } from '../domain/admin/adminCopy';
 import './adminUsers.css';
 import './adminV2.css';
@@ -21,7 +20,7 @@ export default function AdminTwinCosts({ isHebrew }) {
   const [rows, setRows] = useState('loading');
   const [updatedAt, setUpdatedAt] = useState(null);
   const [refreshKey, setRefreshKey] = useState(0);
-  const market = ADMIN_DATE_MARKET; // IRON-DATE-001 admin amendment 2026-10-22: Israeli dates in every admin screen
+  const market = isHebrew ? 'Local' : 'International';
 
   useEffect(() => {
     let cancelled = false;

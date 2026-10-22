@@ -36,30 +36,5 @@ export default function useAccountSummary(supabase, userId) {
     return () => { seq.current += 1; };
   }, [refresh]);
 
-  // Codex PayPlus stage-2 audit M01 (night task 2026-10-23): the plan state is read again (quietly, never a "loading" flash) when the
-  // user comes back to the tab / window or the network returns - a payment finished in another tab, the end of the free days or of the
-  // grace period is shown without a reload. At most once a minute.
-  const lastQuiet = useRef(0);
-  useEffect(() => {
-    if (!userId || typeof window === 'undefined') return undefined;
-    const back = () => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
-      const now = Date.now();
-      if (now - lastQuiet.current < 60000) return;
-      lastQuiet.current = now;
-      refreshQuiet();
-    };
-    window.addEventListener('focus', back);
-    window.addEventListener('online', back);
-    window.addEventListener('pageshow', back);
-    document.addEventListener('visibilitychange', back);
-    return () => {
-      window.removeEventListener('focus', back);
-      window.removeEventListener('online', back);
-      window.removeEventListener('pageshow', back);
-      document.removeEventListener('visibilitychange', back);
-    };
-  }, [userId, refreshQuiet]);
-
   return { summary, refresh, refreshQuiet };
 }

@@ -8,7 +8,7 @@ import { useAdminAccountsPage } from '../domain/admin/adminAccountsClient';
 import { peekUsersFilterIntent, clearUsersFilterIntent, saveUsersListState, peekUsersListState, clearUsersListState } from '../domain/admin/adminNavIntent';
 import { ADMIN_COPY as C, t } from '../domain/admin/adminCopy';
 import { resolveAdminMarket } from '../utils/adminMarket';
-import { accountDate, accountDateTime, ADMIN_DATE_MARKET } from '../utils/adminDates';
+import { accountDate, accountDateTime } from '../utils/adminDates';
 import { formatShortDateTime } from '../utils/shortDate';
 import './adminUsers.css';
 import './adminV2.css';
@@ -247,7 +247,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
         <span className="av-small av-muted" role="status">
           <bdi className="av-num">{total ?? '—'}</bdi> {t(isHebrew, C.usersCount.he, C.usersCount.en)} · {t(isHebrew, C.sortedBy.he, C.sortedBy.en)}: {t(isHebrew, sortWords.he, sortWords.en)}, {t(isHebrew, ...(sort.field !== 'created_at' && sort.field !== 'last_sign_in' ? (sort.direction === 'asc' ? [C.aToZ.he, C.aToZ.en] : [C.zToA.he, C.zToA.en]) : (sort.direction === 'desc' ? [C.newestFirst.he, C.newestFirst.en] : [C.oldestFirst.he, C.oldestFirst.en])))}
         </span>
-        {server.state === 'stale' && <span className="av-badge av-warn">{t(isHebrew, C.staleSince.he, C.staleSince.en)} <bdi className="av-num">{server.updatedAt ? formatShortDateTime(server.updatedAt, ADMIN_DATE_MARKET) : ''}</bdi></span>}
+        {server.state === 'stale' && <span className="av-badge av-warn">{t(isHebrew, C.staleSince.he, C.staleSince.en)} <bdi className="av-num">{server.updatedAt ? formatShortDateTime(server.updatedAt, adminMarket) : ''}</bdi></span>}
       </div>
       {pageRows.length > 0 && !(failed && !server.data) && <div className="av-small av-muted av-users-caption" aria-hidden="true">{t(isHebrew, C.usersCaption.he, C.usersCaption.en)}</div>}
     </div>
@@ -264,7 +264,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
       refreshing={!!server.refreshing}
       updatedAt={serverMode ? server.updatedAt : null}
       staleSince={server.state === 'stale' ? (server.updatedAt || server.failedAt) : null}
-      formatTime={(v) => formatShortDateTime(v, ADMIN_DATE_MARKET)}
+      formatTime={(v) => formatShortDateTime(v, adminMarket)}
       controls={(
         <>
           {system !== 'active' && <AdminPlanSystemNotice system={system} isHebrew={isHebrew} />}

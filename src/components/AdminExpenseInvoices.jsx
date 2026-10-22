@@ -7,7 +7,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import AdminScreenFrame from './AdminScreenFrame';
 import { formatShortDate, formatShortDateTime } from '../utils/shortDate';
-import { ADMIN_DATE_MARKET } from '../utils/adminDates';
 import { formatMoneyForCurrency, QUOTE_CURRENCY_SYMBOLS } from '../utils/money';
 import { ADMIN_COPY as C, t } from '../domain/admin/adminCopy';
 import './adminUsers.css';
@@ -61,7 +60,7 @@ const money = (amount, currency) => (amount === null || amount === undefined || 
   : `${QUOTE_CURRENCY_SYMBOLS[currency] || `${currency} `}${formatMoneyForCurrency(amount, currency)}`);
 
 export default function AdminExpenseInvoices({ isHebrew }) {
-  const market = ADMIN_DATE_MARKET; // IRON-DATE-001 admin amendment 2026-10-22: Israeli dates in every admin screen
+  const market = isHebrew ? 'Local' : 'International';
   const [state, setState] = useState('loading');
   const [refreshKey, setRefreshKey] = useState(0);
   const [updatedAt, setUpdatedAt] = useState(null);
