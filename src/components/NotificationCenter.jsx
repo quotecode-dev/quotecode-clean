@@ -90,9 +90,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   // Owner 2026-10-19 (typed L-17 approval): a product announcement (the voice assistant) is one more bell item after the reminders -
   // unread until read, floating once like every new notification; reminders Off shows none of it
   const announcementsDay = clock.toISOString().slice(0, 10);
-  // Owner console 2026-10-23, typed: "מאשר שינוי ב-L-17: כל הפריטים בפעמון ממוינים מהחדש לישן, וטיפ בדיקת הלקוח מציין את ההצעה ופותח אותה": every item - reminders, announcements, closed tips - in ONE list, newest first (before, announcements always came last)
-  const items = useMemo(() => (settings.mode === 'off' ? derivedItems
-    : [...derivedItems, ...activeAnnouncements(announcements, clock)].sort((a, b) => String(b.sortAt || '').localeCompare(String(a.sortAt || '')))),
+  const items = useMemo(() => (settings.mode === 'off' ? derivedItems : [...derivedItems, ...activeAnnouncements(announcements, clock)]),
   // eslint-disable-next-line react-hooks/exhaustive-deps
     [derivedItems, settings.mode, announcements, announcementsDay]);
   // Task 40: the welcome item (a new account, reminders not Off - known only once the saved mode loaded) sits above the derived
@@ -142,7 +140,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
     setNotice(null);
     if (!item.preRead) markRemindersRead(client, userId, [item.key]).then((r) => { if (r?.ok) setRead((s) => new Set([...s, item.key])); }).catch(() => {});
     // a closed daily tip: the Dashboard runs the same action as the tip card
-    if (action.kind === 'tip') { window.dispatchEvent(new CustomEvent(DAILY_TIP_ACTION_EVENT, { detail: { action: action.tipAction, quoteId: action.quoteId || null } })); return; }
+    if (action.kind === 'tip') { window.dispatchEvent(new CustomEvent(DAILY_TIP_ACTION_EVENT, { detail: { action: action.tipAction } })); return; }
     // an announcement's action opens the ONE existing assistant through its existing window event (like the welcome item)
     if (action.kind === 'assistant') { window.dispatchEvent(new CustomEvent('open-proflow-ai-chat')); return; }
     // Owner 2026-10-20 (L-17): the SMART PACK announcement opens the ONE plans view (the Dashboard listens)

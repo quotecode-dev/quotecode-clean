@@ -123,7 +123,7 @@ import {
 import TekangoAiIcon from '../components/TekangoAiIcon';
 // Owner console 2026-10-23: the daily tip ("הידעתם?") - one a day at most, chosen by where the user is
 import DailyTipCard from '../components/DailyTipCard';
-import { pickDailyTip, parseTipState, markTipShown, turnTipsOff, tipStorageKey, firstUnsentQuote, tipBellItems, tipQuoteLabel, DAILY_TIP_ACTION_EVENT } from '../utils/dailyTips';
+import { pickDailyTip, parseTipState, markTipShown, turnTipsOff, tipStorageKey, firstUnsentQuote, tipBellItems, DAILY_TIP_ACTION_EVENT } from '../utils/dailyTips';
 import { loadServiceSchedule, normalizeServiceSchedule, probeServiceSchedule, saveServiceSchedule } from '../utils/serviceScheduleClient';
 import { loadShareDefaults } from '../utils/shareDefaultsClient';
 import { useInAppBack, closeTopDialogWithEscape } from '../hooks/useInAppBack';
@@ -3846,18 +3846,14 @@ ${quoteViewLink}`
         mobile: typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 768px)').matches,
       }, state, today);
       if (!tip) return;
-      // Owner console 2026-10-23, typed: "מאשר שינוי ב-L-17: כל הפריטים בפעמון ממוינים מהחדש לישן, וטיפ בדיקת הלקוח מציין את ההצעה ופותח אותה": the Customer Twin tip remembers THE quote it shows (its button and its bell item open that quote)
-      const tipQuote = tip.action === 'twin' ? firstUnsentQuote(quotes) : null;
-      const info = { at: new Date().toISOString(), quoteId: tipQuote?.id || null, quoteLabel: tipQuoteLabel(tipQuote) };
-      try { window.localStorage.setItem(tipStorageKey(tipUserId), JSON.stringify(markTipShown(state, tip.id, today, info))); } catch { return; }
-      setDailyTip({ ...tip, quoteId: info.quoteId, quoteLabel: info.quoteLabel });
+      try { window.localStorage.setItem(tipStorageKey(tipUserId), JSON.stringify(markTipShown(state, tip.id, today))); } catch { return; }
+      setDailyTip(tip);
     }, 4000);
     return () => clearTimeout(timer);
   }, [tipQuiet, tipUserId, quotes, dailyTip]);
   const runDailyTip = (tip) => {
     setDailyTip(null);
-    // the quote the tip named while it is still unsent; otherwise the first unsent one
-    if (tip.action === 'twin') { const q = firstUnsentQuote(quotes.filter((x) => x && x.id === tip.quoteId)) || firstUnsentQuote(quotes); if (q) setCustomerTwin({ mode: 'list', quote: q }); }
+    if (tip.action === 'twin') { const q = firstUnsentQuote(quotes); if (q) setCustomerTwin({ mode: 'list', quote: q }); }
     else if (tip.action === 'smart_quote') handleCreateAiQuoteClick();
     else if (tip.action === 'chat') openAiChat();
     else if (tip.action === 'templates') handleOpenTemplatePicker();
@@ -3877,7 +3873,7 @@ ${quoteViewLink}`
   const runDailyTipRef = useRef(runDailyTip);
   runDailyTipRef.current = runDailyTip;
   useEffect(() => {
-    const onTipAction = (e) => { if (e?.detail?.action) runDailyTipRef.current({ action: e.detail.action, quoteId: e.detail.quoteId || null }); };
+    const onTipAction = (e) => { if (e?.detail?.action) runDailyTipRef.current({ action: e.detail.action }); };
     window.addEventListener(DAILY_TIP_ACTION_EVENT, onTipAction);
     return () => window.removeEventListener(DAILY_TIP_ACTION_EVENT, onTipAction);
   }, []);

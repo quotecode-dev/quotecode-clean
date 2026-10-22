@@ -30,8 +30,8 @@ describe('choosing the daily tip', () => {
     expect(pickDailyTip(ctx({ quotesCount: 9, unsentQuote: draft, mobile: true, voice: true }), s, '2026-10-27')).toBeNull();
   });
   it('the stored state is read safely; the key is per user', () => {
-    expect(parseTipState('{bad')).toEqual({ seen: [], seenAt: {}, seenInfo: {}, last: null, off: false });
-    expect(parseTipState(JSON.stringify({ seen: ['a', 3], seenAt: { a: '2026-10-23', b: 'x' }, last: '2026-10-23', off: true }))).toEqual({ seen: ['a'], seenAt: { a: '2026-10-23' }, seenInfo: {}, last: '2026-10-23', off: true });
+    expect(parseTipState('{bad')).toEqual({ seen: [], seenAt: {}, last: null, off: false });
+    expect(parseTipState(JSON.stringify({ seen: ['a', 3], seenAt: { a: '2026-10-23', b: 'x' }, last: '2026-10-23', off: true }))).toEqual({ seen: ['a'], seenAt: { a: '2026-10-23' }, last: '2026-10-23', off: true });
     expect(tipStorageKey('u1')).not.toBe(tipStorageKey('u2'));
   });
   it('the Customer Twin moment = a saved quote never sent nor opened, with a described item', () => {
@@ -57,7 +57,6 @@ describe('the tip card', () => {
     expect(card.getAttribute('role')).toBe('status');
     expect(card.textContent).toContain('הידעתם?');
     expect(card.querySelector('svg[data-customer-twin-icon]')).toBeTruthy();
-    expect(screen.queryByTestId('daily-tip-quote')).toBeNull();
     fireEvent.click(screen.getByTestId('daily-tip-action')); expect(onAction).toHaveBeenCalled();
     fireEvent.click(screen.getByTestId('daily-tip-ok')); act(() => { vi.advanceTimersByTime(300); }); expect(onDismiss).toHaveBeenCalled(); // after the smooth exit
     fireEvent.click(screen.getByTestId('daily-tip-off')); act(() => { vi.advanceTimersByTime(300); }); expect(onTurnOff).toHaveBeenCalled();
@@ -87,12 +86,5 @@ describe('the Dashboard wiring', () => {
     expect(src).toMatch(/tip\.action === 'smart_quote'\) handleCreateAiQuoteClick\(\)/);
     expect(src).toMatch(/tip\.action === 'templates'\) handleOpenTemplatePicker\(\)/);
     expect(src).toMatch(/tip\.action === 'chat'\) openAiChat\(\)/);
-  });
-});
-
-describe('the Customer Twin tip names its quote (L-17, 23/10)', () => {
-  it('the card shows the quote it means', () => {
-    render(<DailyTipCard tip={{ ...DAILY_TIPS[0], quoteId: 'q1', quoteLabel: 'A1042 · שיפוץ מטבח' }} isHebrew onAction={() => {}} onDismiss={() => {}} onTurnOff={() => {}} />);
-    expect(screen.getByTestId('daily-tip-quote').textContent).toBe('ההצעה: A1042 · שיפוץ מטבח');
   });
 });

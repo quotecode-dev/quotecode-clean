@@ -25,7 +25,6 @@ const CSS = `
   animation:tk-tip-pulse 2.4s ease-in-out infinite}
 .tk-tip-mark > *{position:relative}
 .tk-tip-text{margin:6px 0 0;font-size:.9rem;line-height:1.55;color:#1e293b;font-weight:500}
-.tk-tip-quote{margin:6px 0 0;font-size:.85rem;font-weight:700;color:#3730a3}
 .tk-tip-btn{min-height:44px;padding:0 16px;border-radius:12px;font-weight:700;font-family:inherit;font-size:.86rem;cursor:pointer;
   transition:transform .15s ease,box-shadow .15s ease,background-color .15s ease}
 .tk-tip-primary{color:#fff;border:none;background:linear-gradient(135deg,#4f46e5,#2563eb);box-shadow:0 6px 14px -4px rgba(37,99,235,.55)}
@@ -74,10 +73,6 @@ export default function DailyTipCard({ tip, isHebrew, onAction, onDismiss, onTur
           <div style={{ flex: 1, minWidth: 0 }}>
             <span className="tk-tip-chip">{isHebrew ? 'הידעתם?' : 'Did you know?'}</span>
             <p className="tk-tip-text">{c.text}</p>
-            {/* Owner console 2026-10-23, typed: "מאשר שינוי ב-L-17: כל הפריטים בפעמון ממוינים מהחדש לישן, וטיפ בדיקת הלקוח מציין את ההצעה ופותח אותה": the Customer Twin tip names the quote it means */}
-            {tip.quoteLabel && (
-              <p className="tk-tip-quote" data-testid="daily-tip-quote">{isHebrew ? 'ההצעה: ' : 'The quote: '}<bdi dir="auto">{tip.quoteLabel}</bdi></p>
-            )}
           </div>
           {/* PRODUCT_TRUTH_DECORATIVE: closes today's tip (it counts as seen); changes no data */}
           <button type="button" className="tk-tip-x" onClick={() => leave('onDismiss')} aria-label={isHebrew ? 'סגירה' : 'Close'} data-testid="daily-tip-close">
