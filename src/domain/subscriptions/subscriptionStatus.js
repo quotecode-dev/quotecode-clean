@@ -59,14 +59,6 @@ export function accountStatus(account, summary, now = Date.now()) {
   return { key: 'free10_inactive' };
 }
 
-// Owner console 2026-10-22 (typed: "מאשר שינוי ב-L-22: כרטיס החינם בחלון המסלולים מוצג רק כשתקופת החינם פעילה"): the free period is
-// running only for an active trial or a Free-10 account with quotes left whose 7 days have not ended (server summary only)
-export function freePeriodActive(status, summary) {
-  if (status?.key === 'trial') return true;
-  if (status?.key !== 'free10') return false;
-  return status.remaining > 0 && summary?.free10?.periodEnded !== true;
-}
-
 // the server's status key (get_admin_accounts row.status) back to the same shape
 export function statusFromKey(key, extra = {}) {
   return Object.prototype.hasOwnProperty.call(ACCOUNT_STATUS, key) ? { key, ...extra } : { key: 'free10_inactive' };

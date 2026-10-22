@@ -33,7 +33,7 @@ import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import useAccountSummary from '../hooks/useAccountSummary';
 import useBillingReturn, { markBillingDeparture } from '../hooks/useBillingReturn';
 import HeaderPlanMedallion from '../components/HeaderPlanMedallion';
-import { accountStatus, statusMedallionModel, accountStatusSentence, freePeriodActive } from '../domain/subscriptions/subscriptionStatus';
+import { accountStatus, statusMedallionModel, accountStatusSentence } from '../domain/subscriptions/subscriptionStatus';
 import { timeGreeting } from '../utils/timeGreeting';
 import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
 import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
@@ -7709,8 +7709,6 @@ ${quoteViewLink}`
         // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #17: the account currency reaches the plans window again (the EUR / GBP estimate line)
         currency={currency}
         statusLine={accountStatusSentence(ownSubscriptionStatus, isHebrew, statusDate)}
-        // Owner console 2026-10-22 (typed L-22 approval): the free card only while the free period is running
-        freePlanActive={freePeriodActive(ownSubscriptionStatus, accountSummary)}
         // Owner 2026-10-20 (typed L-22 approval): the pay button (shown only while the server billing phase is on) leaves for the server
         // attempt's payment page; the package opens only after a verified payment
         onPurchase={(choice) => startPackageCheckout({ ...choice, invoke: invokeWithFreshSession }).then((r) => { if (r.ok) { markBillingDeparture(session?.user?.id); window.location.assign(r.redirectUrl); } return r; })}
