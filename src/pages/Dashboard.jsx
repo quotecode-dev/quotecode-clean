@@ -3356,6 +3356,8 @@ ${quoteViewLink}`
   // הגולמי (שנשאר 1/integer, לא נוגע בו כלל - ר' Stage A/§155.8).
   const previewFinancials = calculateQuoteFinancials({
     country: previewRegionCountry,
+    // IRON-ILS-001 (2026-10-23): a shekel quote's agorot after the discount go to the discount (the quote's own currency when editing)
+    currency: editingOriginalQuote ? editingOriginalQuote.currency : (isLocalIsraeliBusiness ? 'ILS' : currency),
     clientType,
     items: withActiveQuantities(items),
     discount,
@@ -4453,6 +4455,7 @@ ${quoteViewLink}`
 
           const result = calculateQuoteFinancials({
             country: region,
+            currency: curr, // IRON-ILS-001 (2026-10-23): only a financial edit recalculates a saved quote
             clientType: effectiveClientType,
             items: withActiveQuantities(items),
             discount,
@@ -4531,6 +4534,7 @@ ${quoteViewLink}`
 
         const result = calculateQuoteFinancials({
           country: bizCountry,
+          currency: isLocalIsraeliBusiness ? 'ILS' : currency, // the same currency the new quote is saved with
           clientType,
           items: withActiveQuantities(items),
           discount,

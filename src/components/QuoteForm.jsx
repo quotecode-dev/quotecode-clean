@@ -1140,9 +1140,10 @@ export default function QuoteForm({
               <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(subtotal)}</span>
             </>
           )}
-          {discount > 0 && (
+          {/* IRON-ILS-001 (2026-10-23): with no discount, the agorot moved to the discount show as a rounding discount once it changes the shown sum */}
+          {(discount > 0 || Math.round(Number(discountAmount) || 0) >= 1) && (
             <>
-              <span style={{ color: NEON.red, fontSize: '0.8rem' }}>{isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`}</span>
+              <span style={{ color: NEON.red, fontSize: '0.8rem' }}>{discount > 0 ? (isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`) : (isHebrew ? 'הנחת עיגול:' : 'Rounding discount:')}</span>
               <span className="pf-money" style={{ color: NEON.red, fontSize: '0.8rem', textAlign: 'right' }}>-{sym}{fmtMoney(discountAmount)}</span>
             </>
           )}
