@@ -393,6 +393,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE TABLE IF NOT EXISTS, INSERT ... ON CONFLICT DO NOTHING, CREATE OR REPLACE (re-runnable); the Owner's expense-invoice tool - mailboxes, invoices, settings and the private files bucket (Owner 2026-10-22, typed L-22)"
+    },
+    "20261023200000_support_weekly_review.sql": {
+      "sha256": "f4efd28a8f23dd659352a635b96b99e63d9a3d85137066ff5c9cc34fd805e486",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE TABLE IF NOT EXISTS, CREATE INDEX IF NOT EXISTS, CREATE OR REPLACE (re-runnable); the weekly review of bug reports and requests (Owner 2026-10-23, typed L-22)"
     }
   }
 }
