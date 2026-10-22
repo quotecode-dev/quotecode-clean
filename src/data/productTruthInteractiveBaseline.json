@@ -1275,6 +1275,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/billing-reconcile/lib.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/chat-ai/accountContext.ts": {
     "interactive": 0,
     "markers": 0
