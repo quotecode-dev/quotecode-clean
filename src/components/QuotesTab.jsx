@@ -16,7 +16,7 @@ import { relativeQuoteDay, displayQuoteNumber, getQuoteViewLink, quotePartyLabel
 import { sortQuotes, normalizeSortField } from '../utils/quoteListSort';
 import NewQuoteMenu from './NewQuoteMenu';
 import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search, ClipboardList, Clock } from 'lucide-react';
-import TekangoAiIcon from './TekangoAiIcon';
+import CustomerTwinIcon from './CustomerTwinIcon';
 import { nextSteps, NEXT_STEP_COPY } from '../utils/nextStep';
 import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
 import { taskMarket, marketToday, marketClock } from '../utils/manualTasks';
@@ -663,7 +663,7 @@ export default function QuotesTab({
             data-testid="customer-twin-open-row"
             style={{ ...chipBase, background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe' }}
           >
-            <TekangoAiIcon size={16} variant="customer" />
+            <CustomerTwinIcon size={18} />
             <span>{isHebrew ? 'בדיקת הלקוח' : 'Customer check'}</span>
           </button>
         )}

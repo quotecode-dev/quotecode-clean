@@ -5,8 +5,8 @@
 // read-only and the owner opens the editor to add. The recipient never sees any of it. HE / RTL and EN / LTR.
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { X, Check, AlertCircle, Lightbulb, Wallet, BadgeCheck, SearchCheck, CircleCheck, CircleAlert, CircleMinus, Plus, Pencil } from 'lucide-react';
-// IRON-ICON-001 (law 45; Owner reference 2026-10-23): the TEKANGO AI icon family, the customer mark - never a generic sparkle
-import TekangoAiIcon from './TekangoAiIcon';
+// IRON-ICON-001 (law 45; Owner choice 2026-10-23): the Customer Twin mark (two heads and a lens) - never a generic sparkle
+import CustomerTwinIcon from './CustomerTwinIcon';
 import useFocusTrap from './quotePresentation/useFocusTrap';
 import { twinChecklist } from '../../supabase/functions/_shared/customerTwin.js';
 import { fetchTwinStatus, requestCustomerTwin } from '../utils/customerTwinClient';
@@ -220,7 +220,7 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
         style={{ background: C.page, width: '100%', maxWidth: 1120, height: '100%', overflowY: 'auto', boxSizing: 'border-box', textAlign: 'start', color: C.text }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.card, borderBottom: `1px solid ${C.line}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 16px' }}>
           <h2 id="customer-twin-title" style={{ margin: 0, fontSize: '1.15rem', color: C.ink, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <TekangoAiIcon size={24} variant="customer" />{t.label}
+            <CustomerTwinIcon size={26} />{t.label}
           </h2>
           {/* PRODUCT_TRUTH_DECORATIVE: closes the Customer Twin panel; changes no data */}
           <button type="button" ref={closeRef} onClick={onClose} aria-label={t.close} data-testid="customer-twin-close"
@@ -235,9 +235,13 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
               <h3 style={{ margin: '0 0 6px', fontSize: '1.35rem', fontWeight: 800, color: C.ink, textWrap: 'balance' }}>{t.heroTitle}</h3>
               <p style={{ margin: 0, fontSize: '0.95rem', lineHeight: 1.6 }}>{t.heroText}</p>
             </div>
-            <div style={{ textAlign: 'right' }} dir="ltr">
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: C.ink }}>Customer <span style={{ color: C.blue }}>Twin</span></div>
-              <div style={{ fontSize: '0.8rem', color: C.muted }}>By TEKANGO AI</div>
+            {/* the Owner 2026-10-23: the Customer Twin mark large in the header, beside the name */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }} dir="ltr" data-testid="customer-twin-brand">
+              <CustomerTwinIcon size={64} />
+              <div style={{ textAlign: 'left' }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color: C.ink }}>Customer <span style={{ color: C.blue }}>Twin</span></div>
+                <div style={{ fontSize: '0.8rem', color: C.muted }}>By TEKANGO AI</div>
+              </div>
             </div>
           </section>
 
@@ -267,7 +271,7 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
             {/* PRODUCT_TRUTH_DECORATIVE: starts the Customer Twin AI check of this quote (a local feature; its capability id awaits the Owner's L-14 registry approval) */}
             <button type="button" onClick={start} disabled={run.state === 'running' || !quote} data-testid="customer-twin-run"
               style={{ ...btn, background: C.blue, color: '#fff', border: 'none', opacity: run.state === 'running' || !quote ? 0.7 : 1 }}>
-              <TekangoAiIcon size={22} variant="customer" />{run.state === 'running' ? t.running : analysis ? t.again : t.run}
+              <CustomerTwinIcon size={22} tone="light" />{run.state === 'running' ? t.running : analysis ? t.again : t.run}
             </button>
             {run.state === 'ok' && run.cached && run.analyzedAt && <span data-testid="customer-twin-cached" style={{ fontSize: '0.85rem', color: C.muted }}>{t.cached(formatShortDate(run.analyzedAt, market === 'INTERNATIONAL' ? 'International' : 'Local'))}</span>}
             {run.state === 'ok' && run.saved === false && <span data-testid="customer-twin-not-saved" style={{ fontSize: '0.85rem', color: C.amber, fontWeight: 700 }}>{t.notSaved(run.refunded === true)}</span>}
@@ -346,7 +350,7 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
 
               {analysis.edits.length > 0 && (
                 <section data-testid="customer-twin-edits" style={{ ...card, background: `linear-gradient(135deg, ${C.heroFrom}, ${C.heroTo})`, border: '1px solid #e0e7ff', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: C.ink, display: 'flex', alignItems: 'center', gap: 8 }}><TekangoAiIcon size={24} variant="customer" />{t.editsTitle}</h4>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: C.ink, display: 'flex', alignItems: 'center', gap: 8 }}><CustomerTwinIcon size={24} />{t.editsTitle}</h4>
                   <p style={{ margin: 0, fontSize: '0.88rem' }}>{mode === 'editor' ? t.editsText : t.listNote}</p>
                   {analysis.edits.map((e, i) => (
                     <div key={i} data-edit={e.target} style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 10, padding: 12, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>

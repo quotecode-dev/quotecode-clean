@@ -163,6 +163,10 @@
     "interactive": 2,
     "markers": 2
   },
+  "src/components/CustomerTwinIcon.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/components/CustomerTwinPanel.jsx": {
     "interactive": 6,
     "markers": 6

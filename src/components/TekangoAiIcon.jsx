@@ -1,10 +1,10 @@
-// IRON-ICON-001 (law 45; Owner 2026-10-23, the reference "משהו בסגנון של זה"): the TEKANGO AI icon family - an app tile with a light
-// rim, a deep navy face and a glowing blue line-drawn head. One drawing, two marks inside the head: `customer` (a question mark - the
-// customer's eyes, "בדיקת הלקוח") and `chat` (a star of light - the AI chat). Pure inline SVG, no asset; decorative (aria-hidden): the
-// button keeps its own text and accessible name. Gradient / filter ids are per instance (useId).
+// IRON-ICON-001 (law 45; Owner 2026-10-23: the reference "משהו בסגנון של זה", then "את הראש עם הסימן שאלה - להוריד את סימן השאלה ולשים
+// במקום AI - זה ישמש לצאט AI"): the TEKANGO AI chat icon - an app tile with a light rim, a deep navy face and a glowing blue line-drawn
+// head with "AI" inside. Pure inline SVG, no asset (the letters are drawn strokes, never a font); decorative (aria-hidden): the button keeps
+// its own text and accessible name. Gradient / filter ids are per instance (useId).
 import { useId } from 'react';
 
-export default function TekangoAiIcon({ size = 20, variant = 'customer' }) {
+export default function TekangoAiIcon({ size = 20 }) {
   const uid = useId().replace(/[^a-zA-Z0-9_-]/g, '');
   const tile = `tkai-tile-${uid}`;
   const rim = `tkai-rim-${uid}`;
@@ -12,7 +12,7 @@ export default function TekangoAiIcon({ size = 20, variant = 'customer' }) {
   const face = `tkai-face-${uid}`;
   const glow = `tkai-glow-${uid}`;
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" focusable="false" data-tekango-ai-icon={variant} style={{ flex: 'none', display: 'block' }}>
+    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" focusable="false" data-tekango-ai-icon="ai" style={{ flex: 'none', display: 'block' }}>
       <defs>
         <linearGradient id={tile} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0" stopColor="#0B1638" />
@@ -49,26 +49,17 @@ export default function TekangoAiIcon({ size = 20, variant = 'customer' }) {
         {/* the head */}
         <path d="M24 8.6 C30.3 8.6 33.9 13.2 33.9 19.6 C33.9 26.8 30 33.6 24 35.8 C18 33.6 14.1 26.8 14.1 19.6 C14.1 13.2 17.7 8.6 24 8.6 Z" fill={`url(#${face})`} strokeWidth="2" />
       </g>
-      {/* lips */}
+      {/* "AI" inside the head - drawn strokes */}
+      <g filter={`url(#${glow})`} fill="none" stroke="#EAF2FF" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" data-mark="ai">
+        <path d="M17.9 25.6 L21.3 14.6 L24.7 25.6" />
+        <path d="M19.1 21.9 H23.5" />
+        <path d="M29.1 14.6 V25.6" />
+      </g>
+      {/* lips + a few small stars */}
       <path d="M22.1 31 Q24 31.9 25.9 31" fill="none" stroke="#6FA4FF" strokeWidth="0.9" strokeLinecap="round" opacity="0.85" />
-      {variant === 'chat' ? (
-        <g filter={`url(#${glow})`}>
-          {/* a star of light inside the head */}
-          <path d="M24 13.6 L25.5 19.1 L31 20.6 L25.5 22.1 L24 27.6 L22.5 22.1 L17 20.6 L22.5 19.1 Z" fill="#EAF2FF" />
-          <path d="M29.2 12.8 L29.8 14.5 L31.5 15.1 L29.8 15.7 L29.2 17.4 L28.6 15.7 L26.9 15.1 L28.6 14.5 Z" fill="#B9D3FF" />
-        </g>
-      ) : (
-        <g filter={`url(#${glow})`}>
-          {/* a question mark inside the head */}
-          <path d="M20.7 17.4 C20.7 15 22.3 13.6 24.3 13.6 C26.4 13.6 27.9 15 27.9 16.9 C27.9 19.7 24.5 20 24.5 23.1" fill="none" stroke="#EAF2FF" strokeWidth="2.4" strokeLinecap="round" />
-          <circle cx="24.5" cy="26.6" r="1.45" fill="#EAF2FF" />
-          <path d="M18.6 21.4 L19 22.5 L20.1 22.9 L19 23.3 L18.6 24.4 L18.2 23.3 L17.1 22.9 L18.2 22.5 Z" fill="#B9D3FF" />
-        </g>
-      )}
-      {/* a few small stars */}
-      <circle cx="29.6" cy="24.6" r="0.55" fill="#B9D3FF" />
-      <circle cx="20.2" cy="27.4" r="0.45" fill="#B9D3FF" />
-      <circle cx="28.4" cy="28.4" r="0.4" fill="#B9D3FF" />
+      <circle cx="30.8" cy="28.2" r="0.55" fill="#B9D3FF" />
+      <circle cx="17.6" cy="28.4" r="0.45" fill="#B9D3FF" />
+      <circle cx="20.2" cy="11.8" r="0.4" fill="#B9D3FF" />
     </svg>
   );
 }
