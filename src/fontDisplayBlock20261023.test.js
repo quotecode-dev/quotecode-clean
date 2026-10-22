@@ -29,6 +29,12 @@ describe('Rubik loads with font-display: block (Iron Law 46)', () => {
     });
     expect(faces(fonts)).toEqual(expected);
   });
+  it('the root cause (2): every page asks for the Rubik files at its top (the build preloads the hashed woff2 assets)', () => {
+    const cfg = readFileSync('vite.config.js', 'utf8');
+    expect(cfg).toContain('plugins: [react(), rubikPreloadPlugin(),');
+    expect(cfg).toContain("rel: 'preload', as: 'font', type: 'font/woff2'");
+    for (const face of ['hebrew-400', 'hebrew-700', 'latin-400']) expect(cfg).toContain("'" + face + "'");
+  });
   it('fonts.css is still loaded from main.jsx, outside the Tailwind pipeline', () => {
     expect(readFileSync('src/main.jsx', 'utf8')).toMatch(/import '\.\/fonts\.css'/);
   });

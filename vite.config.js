@@ -54,6 +54,30 @@ function browserIdentity(identity, outDir, fileNames, buildTime, testProjectRef)
     assetsFingerprint: sha256hex(assets.map((a) => `${a.file}\0${a.sha256}\n`).join('')), assets,
   };
 }
+// Iron Law 46 (IRON-FONT-001, Owner console 2026-10-23) - the root cause of the fallback-font flash, measured on 14/10, 21/10 and the
+// live build alike (~400 ms on a first visit): (1) the font CSS said font-display: swap (fixed in src/fonts.css: block) and (2) the
+// browser discovered the Rubik files only after the CSS was parsed and the page laid out. This plugin asks for the Rubik files at the
+// top of every page (index.html and, through it, every prerendered public route): the Hebrew + Latin faces of the weights the pages use.
+// Each Hebrew file is ~5 KB. Dev (5186) serves them from node_modules; a build preloads the hashed /assets files.
+export const PRELOADED_RUBIK_FACES = Object.freeze(['hebrew-400', 'hebrew-500', 'hebrew-600', 'hebrew-700', 'hebrew-800', 'hebrew-900', 'latin-400', 'latin-500', 'latin-700']);
+function rubikPreloadPlugin() {
+  return {
+    name: 'tekango-rubik-preload',
+    transformIndexHtml: {
+      order: 'post',
+      handler(html, ctx) {
+        const files = ctx.bundle ? Object.keys(ctx.bundle) : null;
+        const hrefs = PRELOADED_RUBIK_FACES.map((face) => {
+          if (!files) return `/node_modules/@fontsource/rubik/files/rubik-${face}-normal.woff2`;
+          const hit = files.find((n) => new RegExp(`(^|/)rubik-${face}-normal-[^/]+\\.woff2$`).test(n));
+          if (!hit) throw new Error(`rubik preload: the build has no ${face} woff2 asset`);
+          return `/${hit}`;
+        });
+        return { html, tags: hrefs.map((href) => ({ tag: 'link', attrs: { rel: 'preload', as: 'font', type: 'font/woff2', href, crossorigin: true }, injectTo: 'head-prepend' })) };
+      },
+    },
+  };
+}
 function versionManifestPlugin(identity, { exposeInDom, testProjectRef }) {
   const buildTime = new Date().toISOString();
   let domIdentity = null;
@@ -102,7 +126,7 @@ export default defineConfig(({ mode }) => {
   return {
   // prerenderPublicRoutesPlugin (2026-09-28): every client build ends by writing + validating the initial HTML of each public
   // sitemap route (scripts/prerender-public-routes.mjs); a missing or wrong route fails the build.
-  plugins: [react(), versionManifestPlugin(identity, { exposeInDom: mode !== 'production', testProjectRef }), prerenderPublicRoutesPlugin()],
+  plugins: [react(), rubikPreloadPlugin(), versionManifestPlugin(identity, { exposeInDom: mode !== 'production', testProjectRef }), prerenderPublicRoutesPlugin()],
   define: {
     __PROFLOW_BUILD_SHA__: JSON.stringify(getBuildSha()),
     __PROFLOW_BUILD_IDENTITY__: JSON.stringify({ buildSha: identity.buildSha, buildInputDigest: identity.buildInputDigest, dirty: identity.dirty, mode }),
