@@ -121,6 +121,9 @@ import {
   MoreHorizontal
 } from 'lucide-react';
 import TekangoAiIcon from '../components/TekangoAiIcon';
+// Owner console 2026-10-23: the daily tip ("הידעתם?") - one a day at most, chosen by where the user is
+import DailyTipCard from '../components/DailyTipCard';
+import { pickDailyTip, parseTipState, markTipShown, turnTipsOff, tipStorageKey, firstUnsentQuote } from '../utils/dailyTips';
 import { loadServiceSchedule, normalizeServiceSchedule, probeServiceSchedule, saveServiceSchedule } from '../utils/serviceScheduleClient';
 import { loadShareDefaults } from '../utils/shareDefaultsClient';
 import { useInAppBack, closeTopDialogWithEscape } from '../hooks/useInAppBack';
@@ -3823,6 +3826,41 @@ ${quoteViewLink}`
   const handleOpenTemplatePicker = () => {
     if (free10Blocked()) return;
     setTemplateDialog('pick');
+  };
+
+  // Owner console 2026-10-23 ("פופאפ של פעם ביום ... לזהות איפה המשתמש נמצא ולהציע לו ... את התוספת שיכולה לסייע לו"; a small corner card,
+  // at most once a day; "ליישם את זה ישר באתר החי"): the daily tip. Only on the quotes list with nothing else open, a quiet moment after
+  // arriving there; the tip is chosen from the account's own state (src/utils/dailyTips.js). The per-user "seen / today / off" state lives
+  // in this browser only; when the browser storage is unavailable no tip is shown at all (it could never be counted as seen).
+  const [dailyTip, setDailyTip] = useState(null);
+  const tipUserId = session?.user?.id || null;
+  const tipQuiet = !!tipUserId && activeTab === 'main' && !showQuoteForm && !customerTwin && !showPricingModal && !templateDialog && !showAiQuoteDraft && !showMobileNewQuoteMenu;
+  useEffect(() => {
+    if (!tipQuiet || dailyTip) return undefined;
+    const timer = setTimeout(() => {
+      let state;
+      try { state = parseTipState(window.localStorage.getItem(tipStorageKey(tipUserId))); } catch { return; }
+      const today = deviceCalendarDate();
+      const tip = pickDailyTip({
+        quotesCount: quotes.length, unsentQuote: firstUnsentQuote(quotes), voice: voiceSupported(),
+        mobile: typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 768px)').matches,
+      }, state, today);
+      if (!tip) return;
+      try { window.localStorage.setItem(tipStorageKey(tipUserId), JSON.stringify(markTipShown(state, tip.id, today))); } catch { return; }
+      setDailyTip(tip);
+    }, 4000);
+    return () => clearTimeout(timer);
+  }, [tipQuiet, tipUserId, quotes, dailyTip]);
+  const runDailyTip = (tip) => {
+    setDailyTip(null);
+    if (tip.action === 'twin') { const q = firstUnsentQuote(quotes); if (q) setCustomerTwin({ mode: 'list', quote: q }); }
+    else if (tip.action === 'smart_quote') handleCreateAiQuoteClick();
+    else if (tip.action === 'chat') openAiChat();
+    else if (tip.action === 'templates') handleOpenTemplatePicker();
+  };
+  const turnDailyTipsOff = () => {
+    setDailyTip(null);
+    try { const k = tipStorageKey(tipUserId); window.localStorage.setItem(k, JSON.stringify(turnTipsOff(parseTipState(window.localStorage.getItem(k))))); } catch { /* nothing stored */ }
   };
   const handleUseTemplate = (content) => {
     setTemplateDialog(null);
@@ -7593,6 +7631,9 @@ ${quoteViewLink}`
       {templateDialog === 'pick' && session?.user?.id && (
         <TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
           onClose={() => setTemplateDialog(null)} onUse={handleUseTemplate} />
+      )}
+      {dailyTip && tipQuiet && (
+        <DailyTipCard tip={dailyTip} isHebrew={isHebrew} onAction={() => runDailyTip(dailyTip)} onDismiss={() => setDailyTip(null)} onTurnOff={turnDailyTipsOff} />
       )}
       {customerTwin && (() => {
         // the product's market rule (CT-06): Local / LCL / IL / Israel = IL, any other stored country = International
