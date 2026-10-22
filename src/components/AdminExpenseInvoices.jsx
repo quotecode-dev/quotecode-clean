@@ -35,6 +35,21 @@ const CONNECT_RESULT = {
   not_configured: { he: 'החיבור לגוגל עדיין לא מוגדר בשרת.', en: 'The Google connection is not set up on the server yet.' },
   failed: { he: 'החיבור לגוגל נכשל. נסו שוב.', en: 'The Google connection failed. Try again.' },
 };
+// a failed connection names its step (the function's fixed codes): failed_token_<Google's error>, failed_profile_<status>, failed_store
+function connectResultText(code, isHebrew) {
+  if (CONNECT_RESULT[code]) return { good: CONNECT_RESULT[code].good === true, text: isHebrew ? CONNECT_RESULT[code].he : CONNECT_RESULT[code].en };
+  if (!/^failed_(admin|token|profile|store)(_[a-z0-9_]+)?$/.test(code || '')) return null;
+  const detail = code.replace(/^failed_[a-z]+_?/, '');
+  const step = code.split('_')[1];
+  const text = {
+    admin: { he: 'החיבור נדחה: המשתמש שהתחיל אותו אינו מנהל על.', en: 'The connection was refused: the user who started it is not a super admin.' },
+    token: { he: 'גוגל דחתה את פרטי לקוח החיבור בשרת (המזהה או הסוד). בדקו את שני הסודות של גוגל בשרת.', en: 'Google refused the connection client details on the server (the id or the secret). Check both Google secrets on the server.' },
+    profile: { he: 'גוגל לא נתנה לקרוא את פרטי התיבה. נסו לחבר שוב.', en: 'Google did not allow reading the mailbox details. Try connecting again.' },
+    store: { he: 'שמירת החיבור בשרת נכשלה.', en: 'Saving the connection on the server failed.' },
+  }[step];
+  return { good: false, text: `${isHebrew ? text.he : text.en}${detail ? ` (${isHebrew ? 'קוד' : 'code'}: ${detail})` : ''}` };
+}
+
 const SEND_CODES = {
   not_approved: { he: 'לא אושרה', en: 'not approved' }, no_expense_type: { he: 'חסר סוג הוצאה', en: 'no expense type' },
   missing_fields: { he: 'חסרים מספר, תאריך או סכום', en: 'missing number, date or amount' }, payplus_failed: { he: 'פיי פלוס דחו', en: 'PayPlus refused' },
@@ -62,7 +77,8 @@ export default function AdminExpenseInvoices({ isHebrew }) {
   useEffect(() => {
     // back from Google: the result the server put on the address (read only - the screen never navigates by itself)
     const r = new URLSearchParams(globalThis.location?.search || '').get('expenseConnect');
-    if (r && CONNECT_RESULT[r]) setNotice({ good: CONNECT_RESULT[r].good === true, text: isHebrew ? CONNECT_RESULT[r].he : CONNECT_RESULT[r].en });
+    const n = r ? connectResultText(r, isHebrew) : null;
+    if (n) setNotice(n);
   }, [isHebrew]);
 
   useEffect(() => {
