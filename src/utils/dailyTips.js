@@ -41,15 +41,30 @@ export const DAILY_TIPS = Object.freeze([
   }),
 ]);
 
-const EMPTY = Object.freeze({ seen: [], seenAt: {}, last: null, off: false });
+const EMPTY = Object.freeze({ seen: [], seenAt: {}, seenInfo: {}, last: null, off: false });
 /** the stored state, tolerant of anything unreadable */
 export function parseTipState(raw) {
   try {
     const j = typeof raw === 'string' ? JSON.parse(raw) : null;
-    if (!j || typeof j !== 'object') return { ...EMPTY, seen: [], seenAt: {} };
+    if (!j || typeof j !== 'object') return { ...EMPTY, seen: [], seenAt: {}, seenInfo: {} };
     const seenAt = j.seenAt && typeof j.seenAt === 'object' ? Object.fromEntries(Object.entries(j.seenAt).filter(([k, v]) => typeof k === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(String(v)))) : {};
-    return { seen: Array.isArray(j.seen) ? j.seen.filter((x) => typeof x === 'string') : [], seenAt, last: typeof j.last === 'string' ? j.last : null, off: j.off === true };
-  } catch { return { ...EMPTY, seen: [], seenAt: {} }; }
+    const seenInfo = j.seenInfo && typeof j.seenInfo === 'object' ? Object.fromEntries(Object.entries(j.seenInfo).filter(([, v]) => v && typeof v === 'object').map(([k, v]) => [k, {
+      at: typeof v.at === 'string' && !Number.isNaN(Date.parse(v.at)) ? v.at : null,
+      quoteId: typeof v.quoteId === 'string' && v.quoteId.length <= 64 ? v.quoteId : null,
+      quoteLabel: typeof v.quoteLabel === 'string' ? v.quoteLabel.slice(0, 80) : null,
+    }])) : {};
+    return { seen: Array.isArray(j.seen) ? j.seen.filter((x) => typeof x === 'string') : [], seenAt, seenInfo, last: typeof j.last === 'string' ? j.last : null, off: j.off === true };
+  } catch { return { ...EMPTY, seen: [], seenAt: {}, seenInfo: {} }; }
+}
+
+// Owner console 2026-10-23, typed: "מאשר שינוי ב-L-17: כל הפריטים בפעמון ממוינים מהחדש לישן, וטיפ בדיקת הלקוח מציין את ההצעה ופותח
+// אותה" - the Customer Twin tip names THE quote it means (its number and subject / client) and its button opens that quote.
+export function tipQuoteLabel(q) {
+  if (!q) return null;
+  const num = q.quote_number === null || q.quote_number === undefined || Number.isNaN(Number(q.quote_number)) ? null : `A${q.quote_number}`;
+  const what = String(q.quote_subject || q.subject || q.clients?.company_name || '').trim();
+  const label = [num, what].filter(Boolean).join(' · ');
+  return label ? label.slice(0, 80) : null;
 }
 
 /** the tip to show now, or null (off / already one today / nothing eligible and unseen) */
@@ -60,7 +75,13 @@ export function pickDailyTip(context, state, today) {
 }
 
 /** the state after a tip was shown (it counts as seen and uses up today) */
-export const markTipShown = (state, tipId, today) => ({ ...state, seen: [...new Set([...(state.seen || []), tipId])], seenAt: { ...(state.seenAt || {}), [tipId]: today }, last: today });
+export const markTipShown = (state, tipId, today, info = {}) => ({
+  ...state,
+  seen: [...new Set([...(state.seen || []), tipId])],
+  seenAt: { ...(state.seenAt || {}), [tipId]: today },
+  seenInfo: { ...(state.seenInfo || {}), [tipId]: { at: info.at || null, quoteId: info.quoteId || null, quoteLabel: info.quoteLabel || null } },
+  last: today,
+});
 export const turnTipsOff = (state) => ({ ...state, off: true });
 
 /** a saved quote that was never sent nor opened by the customer and has at least one described item - the Customer Twin moment */
@@ -77,12 +98,19 @@ export const DAILY_TIP_ACTION_EVENT = 'tekango:daily-tip-action';
 const addDays = (day, n) => { const [y, m, d] = day.split('-').map(Number); const t = new Date(Date.UTC(y, m - 1, d + n)); return t.toISOString().slice(0, 10); };
 export function tipBellItems(state, openTipId = null) {
   const seenAt = (state && state.seenAt) || {};
-  return DAILY_TIPS.filter((t) => seenAt[t.id] && t.id !== openTipId).map((t) => Object.freeze({
-    key: `tip:${t.id}`, kind: 'announce', tipAction: t.action, preRead: true,
-    from: seenAt[t.id], until: addDays(seenAt[t.id], TIP_BELL_DAYS), sortAt: `${seenAt[t.id]}T00:00`,
-    copy: Object.freeze({
-      he: Object.freeze({ title: 'הידעתם?', body: t.he.text, action: t.he.action }),
-      en: Object.freeze({ title: 'Did you know?', body: t.en.text, action: t.en.action }),
-    }),
-  }));
+  const seenInfo = (state && state.seenInfo) || {};
+  return DAILY_TIPS.filter((t) => seenAt[t.id] && t.id !== openTipId).map((t) => {
+    const info = seenInfo[t.id] || {};
+    const he = info.quoteLabel ? `${t.he.text} ההצעה: ${info.quoteLabel}` : t.he.text;
+    const en = info.quoteLabel ? `${t.en.text} The quote: ${info.quoteLabel}` : t.en.text;
+    return Object.freeze({
+      key: `tip:${t.id}`, kind: 'announce', tipAction: t.action, tipQuoteId: info.quoteId || null, preRead: true,
+      // the moment it was shown, so the bell (newest first, L-17 23/10) places it among the other items by time
+      from: seenAt[t.id], until: addDays(seenAt[t.id], TIP_BELL_DAYS), sortAt: info.at || `${seenAt[t.id]}T00:00`,
+      copy: Object.freeze({
+        he: Object.freeze({ title: 'הידעתם?', body: he, action: t.he.action }),
+        en: Object.freeze({ title: 'Did you know?', body: en, action: t.en.action }),
+      }),
+    });
+  });
 }

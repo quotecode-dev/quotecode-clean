@@ -42,7 +42,7 @@ export function bellActionsFor(item, tasks = [], upgradeQuoteId = null) {
   // Owner 2026-10-19 (L-17): a product announcement opens the assistant
   // Owner 2026-10-20 (L-17): the SMART PACK announcement opens the plans view instead
   // Owner console 2026-10-23, typed: "מאשר שינוי ב-L-02, L-04, L-11, L-12, L-14, L-17, L-24, L-26, L-27 ו-L-28: ... וטיפ יומי שנסגר נשמר בפעמון כנקרא למשך 30 יום עם אותו כפתור פעולה": a closed daily tip keeps its own action (the same one as its card)
-  if (item.kind === 'announce' && item.tipAction) return [{ kind: 'tip', tipAction: item.tipAction }];
+  if (item.kind === 'announce' && item.tipAction) return [{ kind: 'tip', tipAction: item.tipAction, quoteId: item.tipQuoteId || null }];
   if (item.kind === 'announce') return [{ kind: item.action === 'plans' ? 'plans' : 'assistant' }];
   if (item.kind === 'signed' && item.quoteId && upgradeQuoteId && item.quoteId === upgradeQuoteId) {
     return [{ kind: 'quote', quoteId: item.quoteId }, { kind: 'plans' }];
