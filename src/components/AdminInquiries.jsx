@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { Inbox, Search, Clock, Mail, MessageSquareText, Paperclip, X, ShieldCheck, AtSign, CircleDot, Settings2, Send, Sparkles, Ban, Info, Palette, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { supabase } from '../shared/supabase';
 import { formatShortDateTime } from '../utils/shortDate';
+import { ADMIN_DATE_MARKET } from '../utils/adminDates';
 import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
 
@@ -172,7 +173,7 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
     .map((r, i) => ({ r, i })).sort((a, b) => { const x = sortValue(a.r); const y = sortValue(b.r); const c = cmp(x, y); return (sort.dir === 'asc' ? c : -c) || a.i - b.i; }).map((o) => o.r);
   const toggleSort = (key) => setSort((cur) => (cur.key === key ? { key, dir: cur.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'received' || key === 'bin' ? 'desc' : 'asc' }));
   const pendingCount = rows.filter(isPending).length;
-  const when = (iso) => (iso ? formatShortDateTime(iso, isHebrew ? 'Local' : 'International') : '');
+  const when = (iso) => (iso ? formatShortDateTime(iso, ADMIN_DATE_MARKET) : '');
   // a date + time inside a sentence stays ONE left-to-right unit (Unicode isolate) - never split by the Hebrew direction
   const isolated = (iso) => `⁦${when(iso)}⁩`;
   const sender = (r) => (r.from_name ? `${r.from_name} <${r.from_address}>` : r.from_address);

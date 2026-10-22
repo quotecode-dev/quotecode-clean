@@ -6,7 +6,7 @@ import AdminTestEmailTool from './AdminTestEmailTool';
 import './adminUsers.css';
 import './adminV2.css';
 import { formatShortDateTime } from '../utils/shortDate';
-import { accountDateTime } from '../utils/adminDates';
+import { accountDateTime, ADMIN_DATE_MARKET } from '../utils/adminDates';
 import { ADMIN_COPY as C, ACTION_NAMES, OUTCOME_NAMES, t } from '../domain/admin/adminCopy';
 
 // TEKANGO Admin V1 (Task 2/3): System Activity. "If no trustworthy activity source exists, do not synthesize history" - account
@@ -34,7 +34,7 @@ export default function AdminSystemActivity({ accounts, isHebrew, onRefreshAccou
   const users = accounts.filter(a => a && a.role !== 'super_admin' && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');
   const byUid = useMemo(() => new Map(accounts.filter(Boolean).map((a) => [a.user_id, a])), [accounts]);
   const adminMarket = isHebrew ? 'Local' : 'International';
-  const fmt = (v) => formatShortDateTime(v, adminMarket);
+  const fmt = (v) => formatShortDateTime(v, ADMIN_DATE_MARKET);
 
   useEffect(() => {
     let cancelled = false;

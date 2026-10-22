@@ -12,7 +12,7 @@ import { setUsersFilterIntent } from '../domain/admin/adminNavIntent';
 import { ADMIN_COPY as C, ACTION_NAMES, OUTCOME_NAMES, t } from '../domain/admin/adminCopy';
 import { formatShortDateTime } from '../utils/shortDate';
 import { resolveAdminMarket } from '../utils/adminMarket';
-import { accountDate, accountDateTime } from '../utils/adminDates';
+import { accountDate, accountDateTime, ADMIN_DATE_MARKET } from '../utils/adminDates';
 
 // TEKANGO Admin V1 (Task 2): Admin Overview - recently registered, admin
 // activity and the subscription-status breakdown, from real data only. No fabricated metric, no "active now" / online inference, no
@@ -71,7 +71,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onOpenU
   }, [refreshKey]);
 
   const adminMarket = isHebrew ? 'Local' : 'International';
-  const fmtTime = (v) => formatShortDateTime(v, adminMarket);
+  const fmtTime = (v) => formatShortDateTime(v, ADMIN_DATE_MARKET);
   const openUsers = (filter) => { setUsersFilterIntent(filter); onGoToUsers(); };
   const kpis = [
     { key: 'managed', label: C.kpiManaged, value: stats.managed, note: C.kpiManagedNote, filter: {} },
