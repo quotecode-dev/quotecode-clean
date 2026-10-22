@@ -387,6 +387,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE TABLE IF NOT EXISTS, DROP TRIGGER IF EXISTS + CREATE, CREATE OR REPLACE (re-runnable); Customer Twin - the SMART PACK AI check allowance, purchased checks and stored results (Owner 2026-10-22)"
+    },
+    "20261023100000_expense_invoices.sql": {
+      "sha256": "7fa863214923ad0552946bb8a571509198fb4925a0ae7350c059c6b18159dcd5",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE TABLE IF NOT EXISTS, INSERT ... ON CONFLICT DO NOTHING, CREATE OR REPLACE (re-runnable); the Owner's expense-invoice tool - mailboxes, invoices, settings and the private files bucket (Owner 2026-10-22, typed L-22)"
     }
   }
 }
