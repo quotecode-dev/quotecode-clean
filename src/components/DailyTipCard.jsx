@@ -18,7 +18,7 @@ const CSS = `
   animation:tk-tip-in .55s cubic-bezier(.2,.9,.25,1.15) both}
 .tk-tip.is-leaving{animation:tk-tip-out ${EXIT_MS}ms ease-in both}
 .tk-tip-inner{position:relative;overflow:hidden;border-radius:16.5px;background:#fff;padding:14px 14px 16px;color:#334155}
-.tk-tip-chip{display:inline-flex;align-items:center;gap:6px;font-size:.74rem;font-weight:800;letter-spacing:.01em;padding:3px 10px;border-radius:999px;
+.tk-tip-chip{display:inline-flex;align-items:center;gap:6px;font-size:.78rem;font-weight:700;letter-spacing:.01em;padding:3px 10px;border-radius:999px;
   color:#3730a3;background:linear-gradient(135deg,#eef2ff,#e0f2fe);border:1px solid #c7d2fe}
 .tk-tip-mark{position:relative;flex-shrink:0;width:44px;height:44px;display:inline-flex;align-items:center;justify-content:center}
 .tk-tip-mark::before{content:'';position:absolute;inset:0;border-radius:14px;background:radial-gradient(circle,rgba(99,102,241,.28),rgba(99,102,241,0) 70%);

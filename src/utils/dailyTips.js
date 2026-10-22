@@ -41,14 +41,15 @@ export const DAILY_TIPS = Object.freeze([
   }),
 ]);
 
-const EMPTY = Object.freeze({ seen: [], last: null, off: false });
+const EMPTY = Object.freeze({ seen: [], seenAt: {}, last: null, off: false });
 /** the stored state, tolerant of anything unreadable */
 export function parseTipState(raw) {
   try {
     const j = typeof raw === 'string' ? JSON.parse(raw) : null;
-    if (!j || typeof j !== 'object') return { ...EMPTY, seen: [] };
-    return { seen: Array.isArray(j.seen) ? j.seen.filter((x) => typeof x === 'string') : [], last: typeof j.last === 'string' ? j.last : null, off: j.off === true };
-  } catch { return { ...EMPTY, seen: [] }; }
+    if (!j || typeof j !== 'object') return { ...EMPTY, seen: [], seenAt: {} };
+    const seenAt = j.seenAt && typeof j.seenAt === 'object' ? Object.fromEntries(Object.entries(j.seenAt).filter(([k, v]) => typeof k === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(String(v)))) : {};
+    return { seen: Array.isArray(j.seen) ? j.seen.filter((x) => typeof x === 'string') : [], seenAt, last: typeof j.last === 'string' ? j.last : null, off: j.off === true };
+  } catch { return { ...EMPTY, seen: [], seenAt: {} }; }
 }
 
 /** the tip to show now, or null (off / already one today / nothing eligible and unseen) */
@@ -59,11 +60,29 @@ export function pickDailyTip(context, state, today) {
 }
 
 /** the state after a tip was shown (it counts as seen and uses up today) */
-export const markTipShown = (state, tipId, today) => ({ ...state, seen: [...new Set([...(state.seen || []), tipId])], last: today });
+export const markTipShown = (state, tipId, today) => ({ ...state, seen: [...new Set([...(state.seen || []), tipId])], seenAt: { ...(state.seenAt || {}), [tipId]: today }, last: today });
 export const turnTipsOff = (state) => ({ ...state, off: true });
 
 /** a saved quote that was never sent nor opened by the customer and has at least one described item - the Customer Twin moment */
 export function firstUnsentQuote(quotes) {
   return (quotes || []).find((q) => q && !['sent', 'approved', 'paid'].includes(q.status) && !(Number(q.view_count || 0) > 0)
     && (q.quote_items || []).some((it) => String(it?.description || '').trim())) || null;
+}
+
+// Owner console 2026-10-23 (typed L-11 + L-17): "טיפ יומי שנסגר נשמר בפעמון כנקרא למשך 30 יום עם אותו כפתור פעולה" - each tip that was
+// shown and closed becomes an already-read bell announcement (preRead: never unread, never floats) for TIP_BELL_DAYS from the day it was
+// shown; its one action is the card's own action, run by the Dashboard through DAILY_TIP_ACTION_EVENT.
+export const TIP_BELL_DAYS = 30;
+export const DAILY_TIP_ACTION_EVENT = 'tekango:daily-tip-action';
+const addDays = (day, n) => { const [y, m, d] = day.split('-').map(Number); const t = new Date(Date.UTC(y, m - 1, d + n)); return t.toISOString().slice(0, 10); };
+export function tipBellItems(state, openTipId = null) {
+  const seenAt = (state && state.seenAt) || {};
+  return DAILY_TIPS.filter((t) => seenAt[t.id] && t.id !== openTipId).map((t) => Object.freeze({
+    key: `tip:${t.id}`, kind: 'announce', tipAction: t.action, preRead: true,
+    from: seenAt[t.id], until: addDays(seenAt[t.id], TIP_BELL_DAYS), sortAt: `${seenAt[t.id]}T00:00`,
+    copy: Object.freeze({
+      he: Object.freeze({ title: 'הידעתם?', body: t.he.text, action: t.he.action }),
+      en: Object.freeze({ title: 'Did you know?', body: t.en.text, action: t.en.action }),
+    }),
+  }));
 }

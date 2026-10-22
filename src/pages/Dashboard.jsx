@@ -123,7 +123,7 @@ import {
 import TekangoAiIcon from '../components/TekangoAiIcon';
 // Owner console 2026-10-23: the daily tip ("הידעתם?") - one a day at most, chosen by where the user is
 import DailyTipCard from '../components/DailyTipCard';
-import { pickDailyTip, parseTipState, markTipShown, turnTipsOff, tipStorageKey, firstUnsentQuote } from '../utils/dailyTips';
+import { pickDailyTip, parseTipState, markTipShown, turnTipsOff, tipStorageKey, firstUnsentQuote, tipBellItems, DAILY_TIP_ACTION_EVENT } from '../utils/dailyTips';
 import { loadServiceSchedule, normalizeServiceSchedule, probeServiceSchedule, saveServiceSchedule } from '../utils/serviceScheduleClient';
 import { loadShareDefaults } from '../utils/shareDefaultsClient';
 import { useInAppBack, closeTopDialogWithEscape } from '../hooks/useInAppBack';
@@ -3862,6 +3862,21 @@ ${quoteViewLink}`
     setDailyTip(null);
     try { const k = tipStorageKey(tipUserId); window.localStorage.setItem(k, JSON.stringify(turnTipsOff(parseTipState(window.localStorage.getItem(k))))); } catch { /* nothing stored */ }
   };
+  // Owner console 2026-10-23 (typed L-11 + L-17): "טיפ יומי שנסגר נשמר בפעמון כנקרא למשך 30 יום עם אותו כפתור פעולה" - the tips already
+  // shown (and no longer on screen) join the bell's announcements as read items; the bell's button runs the card's own action here
+  const [tipBellState, setTipBellState] = useState(null);
+  useEffect(() => {
+    if (!tipUserId) { setTipBellState(null); return; }
+    try { setTipBellState(parseTipState(window.localStorage.getItem(tipStorageKey(tipUserId)))); } catch { setTipBellState(null); }
+  }, [tipUserId, dailyTip]);
+  const bellItemsWithTips = useMemo(() => [...bellAnnouncements, ...tipBellItems(tipBellState, dailyTip?.id || null)], [bellAnnouncements, tipBellState, dailyTip]);
+  const runDailyTipRef = useRef(runDailyTip);
+  runDailyTipRef.current = runDailyTip;
+  useEffect(() => {
+    const onTipAction = (e) => { if (e?.detail?.action) runDailyTipRef.current({ action: e.detail.action }); };
+    window.addEventListener(DAILY_TIP_ACTION_EVENT, onTipAction);
+    return () => window.removeEventListener(DAILY_TIP_ACTION_EVENT, onTipAction);
+  }, []);
   const handleUseTemplate = (content) => {
     setTemplateDialog(null);
     const f = templateToFormState(content, () => `tmp_section_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
@@ -8320,7 +8335,7 @@ ${quoteViewLink}`
                     <div className="dash-header-account">
                       <HeaderGreeting isHebrew={isHebrew} />
                       {/* Task 20: the bell opens the notification center (same 18px footprint; badge and panel are out of flow). */}
-                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellAnnouncements} upgradeQuoteId={bellUpgradeQuoteId} />
+                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellItemsWithTips} upgradeQuoteId={bellUpgradeQuoteId} />
                       {/* Owner 2026-10-14: the round plan medallion replaces the avatar circle (no sign-in provider ever set a picture) -
                           the account's plan status from the one shared model; it opens the plans window. Not shown to the super admin. */}
                       {!isSuperAdmin && (
@@ -8336,7 +8351,7 @@ ${quoteViewLink}`
                   <div className="dash-header-badge-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {/* Task 20 (Owner console instruction 2026-10-09): the plans status indicator is removed from the mobile header and the
                         SAME notification bell takes its slot. The plans feature itself stays (Business settings › My subscription, Task 30). */}
-                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellAnnouncements} upgradeQuoteId={bellUpgradeQuoteId} variant="mobile" />
+                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellItemsWithTips} upgradeQuoteId={bellUpgradeQuoteId} variant="mobile" />
                     {/* Owner 2026-10-14: the same round plan medallion as on desktop, outermost next to the bell */}
                     {!isSuperAdmin && (
                       <HeaderPlanMedallion model={headerPlanBadge} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />

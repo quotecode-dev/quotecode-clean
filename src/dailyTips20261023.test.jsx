@@ -30,8 +30,8 @@ describe('choosing the daily tip', () => {
     expect(pickDailyTip(ctx({ quotesCount: 9, unsentQuote: draft, mobile: true, voice: true }), s, '2026-10-27')).toBeNull();
   });
   it('the stored state is read safely; the key is per user', () => {
-    expect(parseTipState('{bad')).toEqual({ seen: [], last: null, off: false });
-    expect(parseTipState(JSON.stringify({ seen: ['a', 3], last: '2026-10-23', off: true }))).toEqual({ seen: ['a'], last: '2026-10-23', off: true });
+    expect(parseTipState('{bad')).toEqual({ seen: [], seenAt: {}, last: null, off: false });
+    expect(parseTipState(JSON.stringify({ seen: ['a', 3], seenAt: { a: '2026-10-23', b: 'x' }, last: '2026-10-23', off: true }))).toEqual({ seen: ['a'], seenAt: { a: '2026-10-23' }, last: '2026-10-23', off: true });
     expect(tipStorageKey('u1')).not.toBe(tipStorageKey('u2'));
   });
   it('the Customer Twin moment = a saved quote never sent nor opened, with a described item', () => {
