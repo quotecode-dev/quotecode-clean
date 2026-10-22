@@ -1,6 +1,7 @@
 // Customer Twin ("בדיקת הלקוח", Owner night task 2026-10-22): the dashboard side - builds the quote payload (only quote content, the
 // shared sanitizer drops everything else), reads the caller's counters and asks the Edge Function customer-twin. Never throws.
 import { sanitizeTwinQuote, TWIN_QUOTE_VERSION } from '../../supabase/functions/_shared/customerTwin.js';
+import { getActiveQuantity } from './professionalQuoteItem';
 
 export const CUSTOMER_TWIN_FUNCTION = 'customer-twin';
 const num = (v) => (v === '' || v == null ? null : Number(v));
@@ -10,7 +11,8 @@ export function twinPayloadFromEditor({ market, currency, quoteSubject, items, t
   return sanitizeTwinQuote({
     version: TWIN_QUOTE_VERSION, market, currency, subject: quoteSubject,
     items: (items || []).map((it) => ({
-      description: it.description, specification: it.specification, quantity: num(it.calculated_quantity ?? it.quantity),
+      // the quantity the price uses (calculated for a measured item) - the same rule as the editor and the list
+      description: it.description, specification: it.specification, quantity: getActiveQuantity(it),
       unit: it.pricing_unit || null, unitPrice: num(it.unit_price), priceMissing: it.price_missing === true || it.unit_price === '' || it.unit_price == null,
     })),
     terms, warranty, validUntil, taxRate: num(taxRate), clientType, discountPercent: num(discount), subtotal: num(subtotal), total: num(totalAmount),
@@ -22,8 +24,9 @@ export function twinPayloadFromQuoteRow(quote, market) {
   if (!quote) return null;
   return sanitizeTwinQuote({
     version: TWIN_QUOTE_VERSION, market, currency: quote.currency, subject: quote.quote_subject || quote.subject,
-    items: (quote.quote_items || []).map((it) => ({
-      description: it.description, specification: it.specification, quantity: num(it.calculated_quantity ?? it.quantity),
+    // the saved order (PostgREST returns rows in no promised order - the same sort as the editor, Dashboard handleEditClick)
+    items: (quote.quote_items || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).map((it) => ({
+      description: it.description, specification: it.specification, quantity: getActiveQuantity(it),
       unit: it.pricing_unit || null, unitPrice: num(it.unit_price), priceMissing: it.price_missing === true || it.unit_price == null,
     })),
     terms: quote.terms, warranty: quote.warranty, validUntil: quote.valid_until, taxRate: num(quote.tax_rate), clientType: quote.client_type,
@@ -44,7 +47,7 @@ export async function fetchTwinStatus(supabase) {
   } catch { return { state: 'unavailable' }; }
 }
 
-const KNOWN = new Set(['quota_exhausted', 'smart_pack_required', 'in_progress', 'market_unresolved', 'nothing_to_check', 'provider_failure', 'malformed_provider_response', 'unauthenticated']);
+const KNOWN = new Set(['quota_exhausted', 'smart_pack_required', 'in_progress', 'too_many_failures', 'market_unresolved', 'nothing_to_check', 'provider_failure', 'malformed_provider_response', 'unauthenticated']);
 /** { state: 'ok', analysis, checklist, status, cached } | { state: <closed code>, status? } */
 export async function requestCustomerTwin(supabase, quote) {
   if (!quote) return { state: 'nothing_to_check' };

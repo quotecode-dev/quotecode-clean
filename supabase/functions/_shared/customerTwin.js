@@ -21,9 +21,14 @@ const UNITS = ['unit', 'm2', 'linear_meter', 'kg', 'hour', 'day'];
 // ------------------------------------------------------------------------------------------------------------- sanitizing
 const EMAIL = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 const URL_RE = /\b(?:https?:\/\/|www\.)[^\s,;)]+/gi;
-const PHONE = /(?:\+?\d[\d\s().-]{6,}\d)/g; // 8+ digits with separators: phones, ids, account numbers
+// phones (a leading 0 or +, 9-13 digits, '-' / '.' / one space between groups) and ids / account numbers (9+ digits in a row);
+// dates ("30.11.2026") and sizes ("1500 1200 600") stay
+const PHONE = /(?:\+|\b0)\d{1,3}(?:[-. ]?\d{2,4}){2,4}\b/g;
+const LONG_NUMBER = /\b\d{9,}\b/g;
 export function scrubPersonal(v) {
-  return String(v || '').replace(EMAIL, '[…]').replace(URL_RE, '[…]').replace(PHONE, (m) => ((m.match(/\d/g) || []).length >= 7 ? '[…]' : m));
+  return String(v || '').replace(EMAIL, '[…]').replace(URL_RE, '[…]')
+    .replace(PHONE, (m) => { const d = (m.match(/\d/g) || []).length; return d >= 9 && d <= 13 && !/^\d{1,2}\.\d{1,2}\.\d{2,4}$/.test(m) ? '[…]' : m; })
+    .replace(LONG_NUMBER, '[…]');
 }
 const text = (v, n) => (typeof v === 'string' ? scrubPersonal(v.replace(/\s+/g, ' ').trim()).slice(0, n).trim() : '');
 const AMOUNT_GRAMMAR = /^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/;
@@ -40,7 +45,9 @@ const isoDay = (v) => (typeof v === 'string' && /^\d{4}-\d{2}-\d{2}/.test(v) ? v
 export function sanitizeTwinQuote(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw) || raw.version !== TWIN_QUOTE_VERSION || !Array.isArray(raw.items)) return null;
   const items = raw.items.slice(0, TWIN_LIMITS.items)
-    .map((it) => (it && typeof it === 'object' && !Array.isArray(it) ? {
+    .map((it, i) => (it && typeof it === 'object' && !Array.isArray(it) ? {
+      // the item's own number in the editor (empty rows are not sent - a suggestion must still land on ITS item)
+      ref: i + 1,
       description: text(it.description, TWIN_LIMITS.text),
       specification: text(specText(it.specification), TWIN_LIMITS.text) || null,
       quantity: amount(it.quantity, 10000000),
@@ -91,7 +98,8 @@ export function twinChecklist(quote, today) {
     { id: 'prices', status: quote.items.some((i) => i.priceMissing) ? 'missing' : 'ok' },
     { id: 'warranty', status: quote.warranty ? 'ok' : 'missing' },
     { id: 'payment', status: quote.terms && PAYMENT_RE.test(quote.terms) ? 'ok' : 'missing' },
-    { id: 'vat', status: quote.market !== 'IL' ? 'na' : (quote.taxRate > 0 || VAT_RE.test(quote.terms || '')) ? 'ok' : 'warn' },
+    // IL: VAT is clear when the client type is chosen and VAT is shown (or the terms say how VAT applies)
+    { id: 'vat', status: quote.market !== 'IL' ? 'na' : ((quote.clientType && quote.taxRate > 0) || VAT_RE.test(quote.terms || '')) ? 'ok' : 'warn' },
     { id: 'disposal', status: DISPOSAL_RE.test(all) ? 'ok' : 'warn' },
     { id: 'validity', status: !quote.validUntil ? 'warn' : (day && quote.validUntil < day) ? 'missing' : 'ok' },
   ];
@@ -151,7 +159,9 @@ export function buildTwinMessages({ quote, checklist, isHebrew }) {
       subject: withhold(quote.subject),
       terms: withhold(quote.terms),
       warranty: withhold(quote.warranty),
-      items: quote.items.map((it, i) => ({ number: i + 1, ...it, description: withhold(it.description), specification: withhold(it.specification) })),
+      // the editor's own item number (ref) stays on the server; the model sees 1..n
+      items: quote.items.map((it, i) => ({ number: i + 1, description: withhold(it.description), specification: withhold(it.specification),
+        quantity: it.quantity, unit: it.unit, unitPrice: it.unitPrice, priceMissing: it.priceMissing, section: it.section })),
     },
     checklist,
   };
@@ -160,39 +170,61 @@ export function buildTwinMessages({ quote, checklist, isHebrew }) {
 
 // ---------------------------------------------------------------------------------------------------------- validation
 const clean = (v, n) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, n).trim() : '');
+const norm = (raw) => String(Number(String(raw).replace(/,/g, '')));
+// every number the quote itself carries: its amounts, line totals, VAT / discount amounts and any number written in its texts
 function allowedNumbers(quote) {
   const set = new Set();
-  const add = (n) => { if (typeof n === 'number' && Number.isFinite(n)) { set.add(String(n)); set.add(n.toLocaleString('en-US')); } };
-  [quote.taxRate, quote.discountPercent, quote.subtotal, quote.total].forEach(add);
-  quote.items.forEach((it) => { add(it.quantity); add(it.unitPrice); });
+  const add = (n) => { if (typeof n === 'number' && Number.isFinite(n)) { set.add(String(Math.round(n * 100) / 100)); set.add(String(Math.round(n))); } };
+  const rate = quote.taxRate == null ? null : quote.taxRate <= 1 ? quote.taxRate * 100 : quote.taxRate;
+  [quote.taxRate, rate, quote.discountPercent, quote.subtotal, quote.total].forEach(add);
+  if (quote.subtotal != null && rate != null) add(quote.subtotal * rate / 100);
+  if (quote.subtotal != null && quote.discountPercent != null) add(quote.subtotal * quote.discountPercent / 100);
+  quote.items.forEach((it) => { add(it.quantity); add(it.unitPrice); if (it.quantity != null && it.unitPrice != null) add(it.quantity * it.unitPrice); });
+  const texts = [quote.subject, quote.terms, quote.warranty, ...quote.items.flatMap((i) => [i.description, i.specification])].filter(Boolean).join(' ');
+  for (const raw of texts.match(/\d[\d,]*(?:\.\d+)?/g) || []) set.add(norm(raw));
   return set;
 }
-// a money-sized number (100 or more) that is not in the quote = an invented amount -> the text is dropped
-function inventsAmount(t, allowed) {
-  const nums = String(t).match(/\d[\d,]*(?:\.\d+)?/g) || [];
-  return nums.some((raw) => { const n = Number(raw.replace(/,/g, '')); return n >= 100 && !allowed.has(raw) && !allowed.has(String(n)); });
+const DATE_TOKEN = /\b\d{1,2}[./-]\d{1,2}[./-]\d{2,4}\b|\b\d{4}-\d{2}-\d{2}\b/g;
+// a money-sized number (100 or more) the quote does not carry = an invented amount. Dates, years, percentages and sizes with a unit
+// are not amounts.
+function inventedNumbers(t, allowed) {
+  const s = String(t).replace(DATE_TOKEN, ' ');
+  const out = [];
+  for (const m of s.matchAll(/(\d[\d,]*(?:\.\d+)?)(\s*%)?/g)) {
+    const n = Number(m[1].replace(/,/g, ''));
+    if (m[2] || !Number.isFinite(n) || n < 100) continue;
+    if (/^\d{4}$/.test(m[1]) && n >= 1990 && n <= 2100) continue; // a year (never "2,000")
+    if (!allowed.has(norm(m[1]))) out.push(m[1]);
+  }
+  return out;
 }
+// a list line / a persona sentence keeps its words; an invented amount in it is replaced by "___"
+const mask = (t, allowed) => inventedNumbers(t, allowed).reduce((acc, raw) => acc.split(raw).join('___'), t);
 
 /** The model's parsed JSON -> a strict analysis, or null when it is unusable. */
 export function validateTwinReply(parsed, quote) {
   if (!parsed || typeof parsed !== 'object' || !quote) return null;
   const allowed = allowedNumbers(quote);
-  const ok = (t) => t && !inventsAmount(t, allowed) && !INSTRUCTION_LIKE.test(t);
   const byKind = new Map();
   for (const p of Array.isArray(parsed.personas) ? parsed.personas : []) {
     if (!p || !TWIN_PERSONAS.includes(p.kind) || byKind.has(p.kind) || !TWIN_STATES.includes(p.state)) continue;
-    const says = clean(p.says, TWIN_LIMITS.says);
-    if (ok(says)) byKind.set(p.kind, { kind: p.kind, state: p.state, says });
+    const says = mask(clean(p.says, TWIN_LIMITS.says), allowed);
+    if (says) byKind.set(p.kind, { kind: p.kind, state: p.state, says });
   }
   if (byKind.size !== TWIN_PERSONAS.length) return null;
-  const list = (v) => (Array.isArray(v) ? v : []).map((t) => clean(t, TWIN_LIMITS.line)).filter(ok).slice(0, TWIN_LIMITS.list);
+  const list = (v) => (Array.isArray(v) ? v : []).map((t) => mask(clean(t, TWIN_LIMITS.line), allowed)).filter(Boolean).slice(0, TWIN_LIMITS.list);
+  // an edit is TEXT that goes into the quote: one with an invented amount is dropped (never masked into the quote)
   const edits = (Array.isArray(parsed.edits) ? parsed.edits : []).map((e) => {
     if (!e || !TWIN_EDIT_TARGETS.includes(e.target)) return null;
-    const itemNumber = e.target === 'item' ? (Number.isInteger(e.itemNumber) && e.itemNumber >= 1 && e.itemNumber <= quote.items.length ? e.itemNumber : 0) : null;
-    if (itemNumber === 0) return null;
+    let itemNumber = null;
+    if (e.target === 'item') {
+      const it = Number.isInteger(e.itemNumber) && e.itemNumber >= 1 && e.itemNumber <= quote.items.length ? quote.items[e.itemNumber - 1] : null;
+      if (!it) return null;
+      itemNumber = Number.isInteger(it.ref) ? it.ref : e.itemNumber; // the item's own number in the editor
+    }
     const textValue = clean(e.text, TWIN_LIMITS.edit);
-    const reason = clean(e.reason, TWIN_LIMITS.line);
-    return ok(textValue) && (!reason || ok(reason)) ? { target: e.target, itemNumber, text: textValue, reason } : null;
+    if (!textValue || inventedNumbers(textValue, allowed).length) return null;
+    return { target: e.target, itemNumber, text: textValue, reason: mask(clean(e.reason, TWIN_LIMITS.line), allowed) };
   }).filter(Boolean).slice(0, TWIN_LIMITS.list);
   return { schema: TWIN_SCHEMA, personas: TWIN_PERSONAS.map((k) => byKind.get(k)), persuasive: list(parsed.persuasive), blockers: list(parsed.blockers), strengthen: list(parsed.strengthen), edits };
 }
@@ -219,7 +251,8 @@ export function applyTwinEdit({ terms, warranty, items }, edit) {
     if (i < 0 || i >= items.length) return { terms, warranty, items };
     const next = items.slice();
     const it = next[i] || {};
-    const rows = Array.isArray(it.specification) ? it.specification : [];
+    const rows = Array.isArray(it.specification) ? it.specification
+      : (typeof it.specification === 'string' && it.specification.trim() ? [{ label: '', value: it.specification }] : []);
     if (rows.some((r) => r && r.value === edit.text)) return { terms, warranty, items };
     next[i] = { ...it, specification: [...rows, { label: '', value: edit.text }] };
     return { terms, warranty, items: next };

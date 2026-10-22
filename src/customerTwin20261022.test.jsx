@@ -33,7 +33,7 @@ describe('Customer Twin panel', () => {
     render(<CustomerTwinPanel open onClose={() => {}} isHebrew supabase={sb} quote={quote} market="IL" mode="editor" onApplyEdit={() => {}} />);
     expect(screen.getByTestId('customer-twin-panel').getAttribute('dir')).toBe('rtl');
     await waitFor(() => expect(screen.getByTestId('customer-twin-counter').textContent).toContain('נשארו לכם 18 מתוך 20 בדיקות החודש'));
-    expect(screen.getByTestId('customer-twin-counter').textContent).toContain('4 מתוך 10 בדיקות שנקנו');
+    expect(screen.getByTestId('customer-twin-counter').textContent).toContain('נשארו לכם 4 מתוך 10 הבדיקות שקניתם');
     const checks = screen.getByTestId('customer-twin-checklist');
     expect(checks.querySelector('[data-check="warranty"]').getAttribute('data-status')).toBe('missing');
     expect(checks.querySelector('[data-check="disposal"]').getAttribute('data-status')).toBe('ok');
@@ -49,7 +49,7 @@ describe('Customer Twin panel', () => {
     expect(sb.functions.invoke).toHaveBeenCalledWith('customer-twin', { body: { quote } });
     const personas = [...screen.getByTestId('customer-twin-personas').querySelectorAll('[data-persona]')].map((n) => `${n.dataset.persona}:${n.dataset.state}`);
     expect(personas).toEqual(['quality:convinced', 'price:hesitant', 'skeptic:may_stop']); // the binding reference's order
-    expect(screen.getByText('עלול לעצור')).toBeTruthy();
+    expect(screen.getByText('עלול לוותר')).toBeTruthy();
     expect(onApplyEdit).not.toHaveBeenCalled();
     fireEvent.click(screen.getByTestId('customer-twin-apply'));
     expect(onApplyEdit).toHaveBeenCalledWith(analysis.edits[0]);
@@ -70,13 +70,13 @@ describe('Customer Twin panel', () => {
     const r1 = render(<CustomerTwinPanel open onClose={() => {}} isHebrew supabase={client({ invoke: errorReply('quota_exhausted') })} quote={quote} market="IL" />);
     fireEvent.click(screen.getByTestId('customer-twin-run'));
     await waitFor(() => expect(screen.getByTestId('customer-twin-error').textContent).toContain('נוצלו כל 20 הבדיקות של החודש'));
-    expect(screen.getByTestId('customer-twin-error').textContent).toContain('20 בדיקות נוספות ב־5 ₪');
+    expect(screen.getByTestId('customer-twin-error').textContent).toContain('20 בדיקות נוספות ב־₪5.00'); // IRON-ILS-001 whole shekels
     r1.unmount();
     const onOpenPlans = vi.fn();
     const r2 = render(<CustomerTwinPanel open onClose={() => {}} isHebrew supabase={client({ invoke: errorReply('smart_pack_required', 403) })} quote={quote} market="IL" onOpenPlans={onOpenPlans} />);
     fireEvent.click(screen.getByTestId('customer-twin-run'));
     await waitFor(() => expect(screen.getByTestId('customer-twin-error').textContent).toContain('חלק מחכם פלוס'));
-    expect(screen.getByTestId('customer-twin-error').textContent).toContain('10 בדיקות נוספות ב־5 ₪');
+    expect(screen.getByTestId('customer-twin-error').textContent).toContain('10 בדיקות נוספות ב־₪5.00');
     fireEvent.click(screen.getByText('למסך המסלולים'));
     expect(onOpenPlans).toHaveBeenCalled();
     r2.unmount();
@@ -92,12 +92,42 @@ describe('Customer Twin panel', () => {
   });
 });
 
+describe('Customer Twin: a re-run, no market, the price by market', () => {
+  it('"check again" clears the "added" marks of the previous answer', async () => {
+    const sb = client();
+    render(<CustomerTwinPanel open onClose={() => {}} isHebrew supabase={sb} quote={quote} market="IL" mode="editor" onApplyEdit={() => {}} />);
+    fireEvent.click(screen.getByTestId('customer-twin-run'));
+    await waitFor(() => screen.getByTestId('customer-twin-apply'));
+    fireEvent.click(screen.getByTestId('customer-twin-apply'));
+    expect(screen.queryByTestId('customer-twin-apply')).toBeNull();
+    fireEvent.click(screen.getByTestId('customer-twin-run'));
+    await waitFor(() => expect(screen.getByTestId('customer-twin-apply')).toBeTruthy());
+  });
+  it('no business country: an explanation, no price; an international account sees dollars', async () => {
+    const r1 = render(<CustomerTwinPanel open onClose={() => {}} isHebrew supabase={client()} quote={null} market={null} />);
+    expect(screen.getByTestId('customer-twin-not-checkable').textContent).toContain('מדינת העסק');
+    r1.unmount();
+    render(<CustomerTwinPanel open onClose={() => {}} isHebrew={false} supabase={client({ invoke: errorReply('smart_pack_required', 403) })} quote={quote} market="INTERNATIONAL" />);
+    fireEvent.click(screen.getByTestId('customer-twin-run'));
+    await waitFor(() => expect(screen.getByTestId('customer-twin-error').textContent).toContain('10 more checks for $2.00'));
+  });
+});
+
 describe('Customer Twin payloads: only quote content', () => {
   it('a saved list row maps to the same allow-listed shape', () => {
     const q = twinPayloadFromQuoteRow({ currency: 'ILS', quote_subject: 'מקלחת', terms: 'שוטף + 30', warranty: 'שנה', valid_until: '2026-12-01', tax_rate: 18, client_type: 'business',
       discount: 5, subtotal: 1000, total: 1121, client_name: 'X', notes: 'Y', quote_items: [{ description: 'החלפת ברז', quantity: 2, unit_price: 500 }] }, 'IL');
     expect(q).toMatchObject({ market: 'IL', subject: 'מקלחת', clientType: 'business', items: [{ description: 'החלפת ברז', quantity: 2, unitPrice: 500 }] });
     expect(JSON.stringify(q)).not.toMatch(/"X"|"Y"/);
+  });
+  it('the list sends the saved order and the active quantity - the same content as the editor (never charged twice)', () => {
+    const row = { currency: 'ILS', quote_subject: 'S', terms: 't', valid_until: '2026-12-01', tax_rate: 18, client_type: 'private', discount: 0, subtotal: 10, total: 11,
+      quote_items: [{ description: 'שני', quantity: 1, calculated_quantity: 12.5, pricing_unit: 'm2', unit_price: 100, sort_order: 2 }, { description: 'ראשון', quantity: 3, unit_price: 5, sort_order: 1 }] };
+    const q = twinPayloadFromQuoteRow(row, 'IL');
+    expect(q.items.map((i) => [i.description, i.quantity])).toEqual([['ראשון', 3], ['שני', 12.5]]);
+    const editor = twinPayloadFromEditor({ market: 'IL', currency: 'ILS', quoteSubject: 'S', terms: 't', warranty: '', validUntil: '2026-12-01', taxRate: 18, clientType: 'private', discount: 0, subtotal: 10, totalAmount: 11,
+      items: [{ description: 'ראשון', quantity: '3', calculated_quantity: '', unit_price: '5' }, { description: 'שני', quantity: '1', calculated_quantity: 12.5, pricing_unit: 'm2', unit_price: '100' }] });
+    expect(editor.items).toEqual(q.items);
   });
 });
 

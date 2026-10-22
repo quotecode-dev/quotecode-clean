@@ -95,7 +95,7 @@ BEGIN
     'T4c a new month: the 20 included come first; the purchased checks never expire');
 END $$;
 SELECT tst.ok((SELECT sum(delta) FROM public.customer_twin_credit_ledger WHERE user_id = '00000000-0000-4000-8000-00000000000a') = 4
-          AND (SELECT count(*) FROM public.customer_twin_credit_ledger WHERE kind = 'use') = 16,
+          AND (SELECT count(*) FROM public.customer_twin_credit_ledger WHERE kind = 'use' AND user_id = '00000000-0000-4000-8000-00000000000a') = 16,
   'T4d the ledger adds up to the balance (20 bought, 16 used)');
 SELECT tst.throws($q$UPDATE public.customer_twin_credit_ledger SET delta = 99$q$, 'append', 'T4e the purchased-checks ledger is append-only');
 
@@ -154,6 +154,47 @@ SELECT set_config('session_replication_role', 'origin', true);
 SELECT tst.login('00000000-0000-4000-8000-00000000000a');
 SELECT tst.ok(public.customer_twin_status() @> '{"enforced":true,"smartPack":true,"monthlyLimit":20,"purchasePackSize":20}'::jsonb,
   'T6c LIFETIME counts as SMART PACK (20 a month; the extra pack is 20)');
+SELECT tst.logout();
+
+-- ------------------------------------------------------------------------------ T8. a stuck check, a refund of a purchased check
+-- user C: one purchased check in use, a new purchase arrives during the AI call, then the call fails -> the check comes back in full
+DO $$
+DECLARE r jsonb; v_claim uuid;
+BEGIN
+  PERFORM tst.login('00000000-0000-4000-8000-00000000000c');
+  r := public.customer_twin_claim(tst.tsha(800));
+  v_claim := (r ->> 'claimId')::uuid;
+  PERFORM tst.logout();
+  PERFORM tst.tsvc();
+  PERFORM public.customer_twin_grant_credits('00000000-0000-4000-8000-00000000000c', 10, 'pp-twin-c2');
+  r := public.customer_twin_refund(v_claim);
+  PERFORM tst.logout();
+  PERFORM tst.ok(r -> 'status' @> '{"purchasedRemaining":19,"purchasedTotal":20}'::jsonb
+                 AND (SELECT sum(delta) FROM public.customer_twin_credit_ledger WHERE user_id = '00000000-0000-4000-8000-00000000000c') = 19,
+    'T8 a purchase during a failed call: the purchased check comes back in full and the ledger equals the balance');
+END $$;
+-- a check stuck in 'claimed' for over 10 minutes is given back on the next claim (and the same content can be checked again)
+DO $$
+DECLARE r jsonb; v_claim uuid;
+BEGIN
+  PERFORM tst.login('00000000-0000-4000-8000-00000000000c');
+  r := public.customer_twin_claim(tst.tsha(801));
+  v_claim := (r ->> 'claimId')::uuid;
+  PERFORM tst.logout();
+  UPDATE public.customer_twin_claims SET created_at = now() - interval '11 minutes' WHERE claim_id = v_claim;
+  PERFORM tst.login('00000000-0000-4000-8000-00000000000c');
+  r := public.customer_twin_claim(tst.tsha(801));
+  PERFORM tst.logout();
+  PERFORM tst.ok((r ->> 'ok')::boolean AND (SELECT state FROM public.customer_twin_claims WHERE claim_id = v_claim) = 'refunded'
+                 AND (r -> 'status' ->> 'purchasedRemaining')::int = 18,
+    'T8b a stuck check is refunded on the next claim: one check used, not two');
+END $$;
+-- 10 failures in 24 hours: no more tries today (each failure cost a model call)
+UPDATE public.customer_twin_claims SET state = 'refunded', finished_at = now() WHERE user_id = '00000000-0000-4000-8000-00000000000c' AND state = 'claimed';
+INSERT INTO public.customer_twin_claims (user_id, content_sha256, source, usage_month, state, finished_at)
+SELECT '00000000-0000-4000-8000-00000000000c', tst.tsha(900 + g), 'purchased', date_trunc('month', now())::date, 'refunded', now() FROM generate_series(1, 10) g;
+SELECT tst.login('00000000-0000-4000-8000-00000000000c');
+SELECT tst.ok(public.customer_twin_claim(tst.tsha(999)) ->> 'code' = 'too_many_failures', 'T8c ten failed checks in a day: refused (too_many_failures)');
 SELECT tst.logout();
 
 -- no identity

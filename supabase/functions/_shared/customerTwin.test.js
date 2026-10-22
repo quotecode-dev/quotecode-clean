@@ -26,6 +26,8 @@ describe('customer twin: only quote content leaves the browser', () => {
   it('scrubs phones, e-mails, ids and links inside the texts', () => {
     expect(scrubPersonal('להתקשר 052-555-1234 או a@b.co או www.x.com, ת.ז 123456789')).toBe('להתקשר […] או […] או […], ת.ז […]');
     expect(scrubPersonal('מידות 120 על 60, 3 יחידות')).toBe('מידות 120 על 60, 3 יחידות');
+    // dates and sizes are not personal details
+    expect(scrubPersonal('עד 30.11.2026, מידות 1500 1200 600, טלפון +972 52 555 1234')).toBe('עד 30.11.2026, מידות 1500 1200 600, טלפון […]');
     const q = sanitizeTwinQuote(base({ terms: 'לבירורים: 03-1234567' }));
     expect(q.terms).toBe('לבירורים: […]');
   });
@@ -80,20 +82,28 @@ describe('customer twin: the prompt and the answer', () => {
       { target: 'warranty', itemNumber: null, text: 'אחריות מורחבת ב-3,500 ₪', reason: '' },
     ],
   };
-  it('keeps one persona of each kind in order, drops invented amounts and impossible edits', () => {
+  it('keeps one persona of each kind in order, masks invented amounts in the text, drops edits with one', () => {
     const a = validateTwinReply(good, q);
     expect(a.schema).toBe(TWIN_SCHEMA);
     expect(a.personas.map((p) => p.kind)).toEqual(['price', 'quality', 'skeptic']);
     expect(a.personas[0].says).toBe('המחיר נראה גבוה בלי הסבר.');
-    expect(a.blockers).toEqual(['אין הסבר למחיר']); // 2,000 is not in the quote
+    expect(a.blockers).toEqual(['אין הסבר למחיר', 'הנחה של ___ ₪ לא מוסברת']); // 2,000 is not in the quote: masked, never shown
     expect(a.edits).toEqual([
       { target: 'terms', itemNumber: null, text: 'לוח זמנים משוער: ___ ימי עבודה.', reason: 'הלקוח רוצה לדעת מתי' },
       { target: 'item', itemNumber: 2, text: 'כולל ידיות וצירים טריקה שקטה', reason: 'פירוט' },
     ]);
   });
-  it('an amount that IS in the quote may be quoted back', () => {
-    const a = validateTwinReply({ ...good, persuasive: ['המחיר 2,200 למטר מוסבר'] }, q);
-    expect(a.persuasive).toEqual(['המחיר 2,200 למטר מוסבר']);
+  it('numbers the quote carries, dates, years and percentages are not invented amounts', () => {
+    const a = validateTwinReply({ ...good, persuasive: ['המחיר 2,200 למטר מוסבר', 'שורה של 13,200 ברורה', 'תוקף עד 30.11.2026', 'מקדמה של 30% כתובה'],
+      personas: [...good.personas.slice(0, 3)].map((p) => (p.kind === 'skeptic' ? { ...p, says: 'במקדמה של 30% ובאחריות 12 חודשים יש היגיון, אבל 9,999 לא ברור' } : p)) }, q);
+    expect(a.persuasive).toEqual(['המחיר 2,200 למטר מוסבר', 'שורה של 13,200 ברורה', 'תוקף עד 30.11.2026', 'מקדמה של 30% כתובה']);
+    expect(a.personas[2].says).toBe('במקדמה של 30% ובאחריות 12 חודשים יש היגיון, אבל ___ לא ברור'); // one bad number never drops the answer
+  });
+  it('an item suggestion lands on ITS item in the editor even when empty rows were not sent', () => {
+    const q2 = sanitizeTwinQuote(base({ items: [{ description: 'פירוק' }, { description: '' }, { description: 'התקנת ארונות מטבח' }] }));
+    expect(q2.items.map((i) => i.ref)).toEqual([1, 3]);
+    const a = validateTwinReply({ ...good, edits: [{ target: 'item', itemNumber: 2, text: 'כולל צירים', reason: '' }] }, q2);
+    expect(a.edits).toEqual([{ target: 'item', itemNumber: 3, text: 'כולל צירים', reason: '' }]);
   });
   it('an answer without the three perspectives is unusable', () => {
     expect(validateTwinReply({ ...good, personas: good.personas.slice(0, 2) }, q)).toBeNull();

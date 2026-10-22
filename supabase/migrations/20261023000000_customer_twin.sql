@@ -167,6 +167,7 @@ DECLARE
   v_claim  uuid;
   v_used   integer;
   v_limit  integer := public.customer_twin_monthly_limit();
+  v_stale  uuid;
 BEGIN
   IF v_uid IS NULL THEN
     RAISE EXCEPTION 'customer_twin_claim: not authenticated' USING ERRCODE = '42501';
@@ -175,6 +176,11 @@ BEGIN
     RETURN jsonb_build_object('ok', false, 'code', 'invalid_request');
   END IF;
   PERFORM pg_advisory_xact_lock(hashtext('tekango-customer-twin:' || v_uid::text));
+  -- a check left 'claimed' for 10 minutes (the request died before storing or refunding) gives its allowance back first
+  FOR v_stale IN SELECT c.claim_id FROM public.customer_twin_claims c
+                  WHERE c.user_id = v_uid AND c.state = 'claimed' AND c.created_at < now() - interval '10 minutes' LOOP
+    PERFORM public.customer_twin_refund(v_stale);
+  END LOOP;
   SELECT * INTO v_res FROM public.customer_twin_results r WHERE r.user_id = v_uid AND r.content_sha256 = p_content_sha256;
   IF FOUND THEN
     RETURN jsonb_build_object('ok', true, 'cached', true, 'result', v_res.result, 'createdAt', v_res.created_at,
@@ -184,6 +190,11 @@ BEGIN
   IF EXISTS (SELECT 1 FROM public.customer_twin_claims c WHERE c.user_id = v_uid AND c.content_sha256 = p_content_sha256
               AND c.state = 'claimed' AND c.created_at > now() - interval '2 minutes') THEN
     RETURN jsonb_build_object('ok', false, 'code', 'in_progress', 'status', public.customer_twin_state(v_uid));
+  END IF;
+  -- every failed check is given back but still cost a model call: 10 failures in 24 hours = no more tries today
+  IF (SELECT count(*) FROM public.customer_twin_claims c WHERE c.user_id = v_uid AND c.state = 'refunded'
+        AND c.finished_at > now() - interval '24 hours') >= 10 THEN
+    RETURN jsonb_build_object('ok', false, 'code', 'too_many_failures', 'status', public.customer_twin_state(v_uid));
   END IF;
   v_state := public.customer_twin_state(v_uid);
   IF (v_state ->> 'smartPack')::boolean THEN
@@ -259,7 +270,8 @@ BEGIN
     UPDATE public.customer_twin_usage u SET checks = greatest(u.checks - 1, 0)
      WHERE u.user_id = v_claim.user_id AND u.usage_month = v_claim.usage_month;
   ELSE
-    UPDATE public.customer_twin_credits c SET balance = least(c.balance + 1, c.window_total), updated_at = now()
+    -- never capped: a purchase that arrived during the failed call restarted the run; the check is still the owner's
+    UPDATE public.customer_twin_credits c SET balance = c.balance + 1, window_total = greatest(c.window_total, c.balance + 1), updated_at = now()
      WHERE c.user_id = v_claim.user_id;
     INSERT INTO public.customer_twin_credit_ledger (user_id, delta, kind, claim_id) VALUES (v_claim.user_id, 1, 'refund', p_claim_id);
   END IF;

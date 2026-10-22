@@ -27,7 +27,7 @@ export interface CustomerTwinDeps {
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const err = (status: number, code: string, extra: Record<string, unknown> = {}): Resp => ({ status, body: { ok: false, code, ...extra } });
-const CLAIM_REFUSALS: Record<string, number> = { invalid_request: 400, quota_exhausted: 429, smart_pack_required: 403, in_progress: 409 };
+const CLAIM_REFUSALS: Record<string, number> = { invalid_request: 400, quota_exhausted: 429, smart_pack_required: 403, in_progress: 409, too_many_failures: 429 };
 
 export async function customerTwinHandler(deps: CustomerTwinDeps, body: unknown): Promise<Resp> {
   const raw = isObj(body) ? body.quote : null;
