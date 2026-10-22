@@ -55,7 +55,8 @@ export async function requestCustomerTwin(supabase, quote) {
       const ctx = error.context;
       let body = null;
       try { body = ctx && typeof ctx.clone === 'function' ? await ctx.clone().json() : null; } catch { body = null; }
-      if (ctx?.status === 404 && !body?.code) return { state: 'not_deployed' };
+      // a function that does not exist on this server (404 with the platform's own body, not one of ours)
+      if (ctx?.status === 404 && !KNOWN.has(body?.code)) return { state: 'not_deployed' };
       const code = KNOWN.has(body?.code) ? body.code : 'failed';
       return { state: code === 'malformed_provider_response' ? 'provider_failure' : code, status: isObj(body?.status) ? body.status : null };
     }

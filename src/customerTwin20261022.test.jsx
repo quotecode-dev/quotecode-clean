@@ -48,7 +48,7 @@ describe('Customer Twin panel', () => {
     await waitFor(() => expect(screen.getByTestId('customer-twin-personas')).toBeTruthy());
     expect(sb.functions.invoke).toHaveBeenCalledWith('customer-twin', { body: { quote } });
     const personas = [...screen.getByTestId('customer-twin-personas').querySelectorAll('[data-persona]')].map((n) => `${n.dataset.persona}:${n.dataset.state}`);
-    expect(personas).toEqual(['price:hesitant', 'quality:convinced', 'skeptic:may_stop']);
+    expect(personas).toEqual(['quality:convinced', 'price:hesitant', 'skeptic:may_stop']); // the binding reference's order
     expect(screen.getByText('עלול לעצור')).toBeTruthy();
     expect(onApplyEdit).not.toHaveBeenCalled();
     fireEvent.click(screen.getByTestId('customer-twin-apply'));

@@ -117,6 +117,9 @@ const STATE_STYLE = {
 const PERSONA_ICON = { price: Wallet, quality: BadgeCheck, skeptic: SearchCheck };
 const CHECK_ICON = { ok: [CircleCheck, C.green], warn: [CircleAlert, C.amber], missing: [CircleAlert, C.red] };
 // today on the Israel calendar (IRON-DATE-001 primitive) - only to tell whether the validity date has passed
+// the binding reference's order (start side first): quality, price, skeptic; strengthen, may stop, convinces
+const PERSONA_ORDER = ['quality', 'price', 'skeptic'];
+const LIST_ORDER = ['strengthen', 'blockers', 'persuasive'];
 const isoToday = () => { const p = calendarParts(new Date(), 'Local'); return p ? `${p.y}-${p.m}-${p.d}` : null; };
 
 export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, quote, market, mode = 'editor', onApplyEdit = null, onOpenEditor = null, onOpenPlans = null }) {
@@ -246,7 +249,7 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
           {analysis && (
             <>
               <div data-testid="customer-twin-personas" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
-                {analysis.personas.map((p) => {
+                {PERSONA_ORDER.map((k) => analysis.personas.find((x) => x.kind === k)).filter(Boolean).map((p) => {
                   const st = STATE_STYLE[p.state] || STATE_STYLE.hesitant;
                   const Icon = PERSONA_ICON[p.kind] || Wallet;
                   return (
@@ -268,7 +271,7 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 12 }}>
-                {[['persuasive', Check, C.green], ['blockers', AlertCircle, C.red], ['strengthen', Lightbulb, C.amber]].map(([key, Icon, color]) => (
+                {LIST_ORDER.map((key) => [key, ...{ persuasive: [Check, C.green], blockers: [AlertCircle, C.red], strengthen: [Lightbulb, C.amber] }[key]]).map(([key, Icon, color]) => (
                   <section key={key} data-list={key} style={card}>
                     <h4 style={{ margin: '0 0 10px', fontSize: '1rem', color: C.ink, display: 'flex', alignItems: 'center', gap: 8 }}>
                       <Icon size={20} color={color} aria-hidden="true" />{t[key]}
