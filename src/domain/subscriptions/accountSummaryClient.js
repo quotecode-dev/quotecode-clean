@@ -3,7 +3,6 @@
 // This module fetches and classifies; parsing is the shared strict parser (fail closed on anything unexpected).
 import { parseAccountSummary, planName, FREE_QUOTES_TOTAL } from '../../../supabase/functions/_shared/subscriptionContract.ts';
 import { withBillingPeriod } from './subscriptionStatus';
-import { billingStatusDetail } from './billingReasonCopy';
 
 export const LOADING_SUMMARY = Object.freeze({ state: 'loading' });
 
@@ -41,13 +40,9 @@ export function accountStatusModel(summary, lang) {
   if (state === 'ready') {
     const name = planName(summary.planId, lang);
     let detail = null;
-    // Codex audit 2026-10-22 M-01: a stopped renewal / a limited account says what the server states, before the subscription status
-    const billingDetail = summary.free10 ? null : billingStatusDetail(summary.billing, he, summary.market);
     if (summary.free10) {
       const { remaining } = summary.free10;
       detail = he ? `יתרה: ${remaining} מתוך ${FREE_QUOTES_TOTAL} הצעות` : `${remaining} of ${FREE_QUOTES_TOTAL} free quotes left`;
-    } else if (billingDetail) {
-      detail = billingDetail;
     } else if (summary.subscriptionStatus === 'past_due') {
       detail = he ? 'התשלום האחרון לא עבר' : 'Last payment failed';
     } else if (summary.subscriptionStatus === 'pending') {

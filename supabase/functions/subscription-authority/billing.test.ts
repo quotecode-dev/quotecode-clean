@@ -52,7 +52,7 @@ function sqlFor(market: 'IL' | 'INTERNATIONAL', sqlAmount?: number): BillingSql 
       return { ok: true, attemptId: ATT, market, currency: amt!.currency, amountMinor: sqlAmount ?? amt!.amountMinor, state: 'pending' };
     }),
     priceCatalog: vi.fn(async () => cat),
-    recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(), recordCheckoutPage: vi.fn(async (_a: string, _u: string, url: string) => url),
+    recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
   } as never;
 }
 const okProvider = (): BillingProvider & { createCheckout: ReturnType<typeof vi.fn> } => ({ name: 'mock',
@@ -279,7 +279,6 @@ describe('all-inclusive package (current offer)', () => {
       createCheckoutIntent: vi.fn(),
       createPackageCheckoutIntent: vi.fn(async () => ({ ok: true, attemptId: ATT, market: 'INTERNATIONAL', currency: 'USD', amountMinor: sqlAmount.v, state: 'pending' })),
       priceCatalog: vi.fn(async () => cat('INTERNATIONAL')), recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
-      recordCheckoutPage: vi.fn(async (_a: string, _u: string, url: string) => url), 
     } as never as BillingSql & Record<string, ReturnType<typeof vi.fn>>;
     const provider = okProvider();
     const r = await checkoutIntentHandler('prepared', { sql, provider }, U, { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY, amountMinor: 1, currency: 'ILS' });

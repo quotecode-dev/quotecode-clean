@@ -31,8 +31,7 @@ function jsonResponse(body: Record<string, unknown>, status: number) {
   });
 }
 
-// 20261022300000 (Owner 2026-10-21): the Owner's Terms-6 tools in admin-billing (stop the renewal / end early with a refund / resolve an interrupted one / confirm an owed refund)
-const ALLOWED_ACTIONS = new Set(['grant_lifetime', 'revoke_lifetime', 'extend_trial', 'delete_user', 'reset_quotes', 'billing_stop_renewal', 'billing_end_early', 'billing_resolve', 'billing_settle_refund']);
+const ALLOWED_ACTIONS = new Set(['grant_lifetime', 'revoke_lifetime', 'extend_trial', 'delete_user', 'reset_quotes']);
 const PROOF_TTL_MS = 5 * 60 * 1000;
 
 serve(async (req) => {

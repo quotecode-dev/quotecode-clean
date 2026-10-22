@@ -20,7 +20,7 @@ const innerScroller = (root) => root?.querySelector('.quote-modern-body') || roo
  * onRoot(): void                                             - Back on the first screen with nothing open
  * scrollRoot(): Element | null                               - the workspace scroller
  */
-export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveEditor, leaveEditor, onRoot, scrollRoot, resetKey = null }) {
+export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveEditor, leaveEditor, onRoot, scrollRoot }) {
   const stackRef = useRef([]);
   const [depth, setDepth] = useState(0);
   const [previous, setPrevious] = useState(null);
@@ -29,7 +29,6 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
   const prevScreenRef = useRef(null);
   const restoringRef = useRef(null); // the key being restored by Back (its history entry was already consumed)
   const ignorePopRef = useRef(0); // our own silent history.back() calls
-  const freshRef = useRef(false); // the next screen change came from the menu (startFresh)
   const scrollByKeyRef = useRef(new Map());
   const handlersRef = useRef({});
   handlersRef.current = { apply, closeTopWindow, mayLeaveEditor, leaveEditor, onRoot, scrollRoot };
@@ -62,20 +61,6 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
     setTimeout(() => { put(); requestAnimationFrame(put); }, 60);
   };
 
-  // Owner console 2026-10-22, typed: "מאשר שינוי ב-L-15 וב-L-22: איפוס המסך וההיסטוריה בהתנתקות ובמעבר בין חשבונות ...": another
-  // account (or none) in the same tab starts with an empty Back history - the previous account's screens are never Back targets.
-  // Declared BEFORE the screen-change effect, so the screen reset that comes with the switch is not recorded either.
-  const resetKeyRef = useRef(resetKey);
-  useEffect(() => {
-    if (resetKeyRef.current === resetKey) return;
-    resetKeyRef.current = resetKey;
-    stackRef.current = [];
-    restoringRef.current = null;
-    prevScreenRef.current = null;
-    scrollByKeyRef.current = new Map();
-    sync();
-  }, [resetKey]);
-
   // a screen change: record the screen that was left, AS IT WAS when left (its last render: search / filter typed there) - or consume
   // the entry when returning to it
   useEffect(() => {
@@ -84,14 +69,6 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
     const stack = stackRef.current;
     if (restoringRef.current === screen.key) { restoringRef.current = null; sync(); return; }
     restoringRef.current = null;
-    // Owner console 2026-10-22, typed: "מאשר שינוי ב-L-15: מעבר דרך התפריט הצדדי או השורה התחתונה פותח מסך נקי בלי כפתור חזרה;
-    // כפתור החזרה מופיע רק בתוך מסלול" - a screen opened from the menu starts a new path: nothing below it to go back to
-    if (freshRef.current) {
-      freshRef.current = false;
-      stackRef.current = [];
-      sync();
-      return;
-    }
     if (stack.length && stack[stack.length - 1].key === screen.key) {
       // returned to the screen right below (an editor cancelled to its origin, a save on the list it came from)
       const back = stack.pop();
@@ -104,8 +81,6 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
     // a CLOSED editor is never a Back target (an editor only hidden behind another screen - e.g. a save sent to Business settings for
     // missing details - stays one: Back returns to it)
     if (prev.editor && !screen.editorAlive) { sync(); return; }
-    // a screen the account could not see (Admin for an account without Admin access - L-15 / L-22, 2026-10-22) is never a Back target
-    if (prev.notBackTarget) { sync(); return; }
     stack.push({ ...prev, scroll: scrollByKeyRef.current.get(prev.key) || null });
     if (stack.length > MAX_DEPTH) stack.shift();
     window.history.pushState({ tekangoNav: true }, '', window.location.href);
@@ -150,19 +125,13 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
 
   // the visible Back button = the same step as the system Back
   const back = useCallback(() => { window.history.back(); }, []);
-  // a menu destination (sidebar / bottom row / More / Admin menu / Settings): call right before switching the screen. The screen
-  // change it causes (flushed with the click) starts a clean path; a click that changed nothing leaves no mark behind.
-  const startFresh = useCallback(() => {
-    freshRef.current = true;
-    setTimeout(() => { freshRef.current = false; }, 0);
-  }, []);
   // the editor's "Cancel & return": back to the screen the editor was opened from (called after the editor closed itself)
   const returnToOrigin = useCallback(() => {
     const s = stackRef.current;
     const origin = s.length ? s[s.length - 1] : null;
     if (origin && !origin.editor) handlersRef.current.apply?.(origin);
   }, []);
-  return { depth, previous, back, returnToOrigin, startFresh };
+  return { depth, previous, back, returnToOrigin };
 }
 
 /** The topmost open window in the page (a dialog) - closed with Escape, the way every app window already closes. */

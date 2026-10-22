@@ -4,11 +4,11 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { checkoutIntentHandler, checkoutStatusHandler, providerWebhookHandler, type BillingSql } from './billing';
+import { checkoutIntentHandler, providerWebhookHandler, type BillingSql } from './billing';
 import { ACTIVATION_PHASE } from './authority';
 import {
   buildGenerateLinkBody, createPayPlusProvider, israelDayOfMonth, mapPayPlusCallback, PAYPLUS_API_BASES, payplusDateToIso,
-  payplusProviderFromSecrets, PAYPLUS_SECRET_NAMES, type PayPlusConfig, payplusStandingOrders, normalizeStandingOrder,
+  payplusProviderFromSecrets, PAYPLUS_SECRET_NAMES, type PayPlusConfig,
 } from './payplus';
 
 const U = '11111111-1111-4111-8111-111111111111';
@@ -73,7 +73,7 @@ describe('payment page (generateLink): the server attempt only, ILS, renewing', 
     expect(JSON.parse(init.body)).toMatchObject({ amount: 306, currency_code: 'ILS', more_info: ATT });
   });
   it.each([
-    ['a EUR amount (only ILS / USD)', { currency: 'EUR', amountMinor: 1800, billingPeriod: 'month' }],
+    ['USD (International stays "coming soon")', { currency: 'USD', amountMinor: 1800, billingPeriod: 'month' }],
     ['a legacy style plan (no package period)', { currency: 'ILS', amountMinor: 2900 }],
     ['a bad attempt id', { attemptId: 'not-a-uuid', currency: 'ILS', amountMinor: 3000, billingPeriod: 'month' }],
     ['a non-integer amount', { currency: 'ILS', amountMinor: 30.5, billingPeriod: 'month' }],
@@ -107,7 +107,7 @@ describe('payment page (generateLink): the server attempt only, ILS, renewing', 
       priceCatalog: vi.fn(async () => ({ ok: true, market: 'IL', prices: [
         { priceId: 'il_all_inclusive_month_p1', planId: 'all_inclusive', currency: 'ILS', billingPeriod: 'month', amountMinor: 3000, taxMode: 'included', offer: 'current' },
         { priceId: 'il_all_inclusive_year_p1', planId: 'all_inclusive', currency: 'ILS', billingPeriod: 'year', amountMinor: 30600, taxMode: 'included', offer: 'current' }] })),
-      recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(), recordCheckoutPage: vi.fn(async (_a: string, _u: string, url: string) => url),
+      recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
     } as never as BillingSql;
     const r = await checkoutIntentHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: f })) }, U,
       { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY, amountMinor: 1, currency: 'USD' });
@@ -165,7 +165,7 @@ describe('callback: really from PayPlus (user-agent + hash), otherwise nothing i
     expect(await p.verifyWebhook(s.raw, s.headers, NOW)).toMatchObject({ ok: true, event: { type } });
   });
   it.each([
-    ['a EUR transaction', callback({}, { currency: 'EUR' })],
+    ['a USD transaction', callback({}, { currency: 'USD' })],
     ['no attempt id in more_info', callback({}, { more_info: 'Some Info' })],
     ['an unknown transaction type', callback({ transaction_type: 'Approval' })],
     ['no transaction uid', callback({}, { uid: undefined })],
@@ -176,7 +176,7 @@ describe('callback: really from PayPlus (user-agent + hash), otherwise nothing i
   });
   it('read: event id, result, time, our attempt id and the paid amount (for the SQL equality check only); card / customer ignored', () => {
     expect(mapPayPlusCallback(callback({}, { amount: 1 }))).toEqual({ id: 'dcb11c1e7-a1231-37cf-6311-f5111eeb69c7', type: 'payment_confirmed',
-      occurredAt: '2026-10-18T09:32:52.000Z', attemptId: ATT, paidAmountMinor: 100, paidCurrency: 'ILS', recurringRef: null, terminalRef: null });
+      occurredAt: '2026-10-18T09:32:52.000Z', attemptId: ATT, paidAmountMinor: 100, recurringRef: null, terminalRef: null });
     expect(mapPayPlusCallback(callback({}, { amount: 306 }))?.paidAmountMinor).toBe(30600);
     // review 2026-10-22: a numeric string is the same amount; anything else is no amount
     expect(mapPayPlusCallback(callback({}, { amount: '306' }))?.paidAmountMinor).toBe(30600);
@@ -365,22 +365,6 @@ describe('audit fixes: one payment page per attempt (H05); a payment that opened
     expect(recordCheckoutPage).toHaveBeenCalledWith(ATT, U, LINK);
     expect(r.body).toMatchObject({ ok: true, redirectUrl: 'https://payments.payplus.co.il/first-writer' });
   });
-  it('Codex audit H-01: no payment link unless the server kept it - a lost answer is read back once, otherwise 503', async () => {
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const mk = (checkoutPage: () => Promise<unknown>, recordCheckoutPage: () => Promise<unknown>) => ({ createCheckoutIntent: vi.fn(),
-      createPackageCheckoutIntent: intent(), priceCatalog: catalog, recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
-      checkoutPage: vi.fn(checkoutPage), recordCheckoutPage: vi.fn(recordCheckoutPage) }) as never as BillingSql;
-    const run = (sql: BillingSql) => checkoutIntentHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: fetchOk() })) }, U, body);
-    // the store failed and nothing was kept: no link
-    expect(await run(mk(async () => null, async () => { throw new Error('db'); }))).toEqual({ status: 503, body: { ok: false, code: 'checkout_unavailable' } });
-    expect(await run(mk(async () => null, async () => null))).toEqual({ status: 503, body: { ok: false, code: 'checkout_unavailable' } });
-    expect(log.mock.calls.some((c) => String(c[0]).includes('checkout_page_not_stored'))).toBe(true);
-    // the answer was lost but the page was kept: the read-back returns the kept page
-    let reads = 0;
-    const r = await run(mk(async () => (reads++ === 0 ? null : 'https://payments.payplus.co.il/kept'), async () => { throw new Error('lost'); }));
-    expect(r.body).toMatchObject({ ok: true, redirectUrl: 'https://payments.payplus.co.il/kept' });
-    log.mockRestore();
-  });
   it('a wrong-amount payment: the receipt stays 200 and says activated false + amount_mismatch', async () => {
     const sql = { createCheckoutIntent: vi.fn(), priceCatalog: vi.fn(), applyVerifiedLineEvent: vi.fn(),
       recordVerifiedEvent: vi.fn(async () => ({ ok: true, duplicate: false, outcome: 'rejected', activated: false, code: 'amount_mismatch' })) } as never as BillingSql;
@@ -408,208 +392,5 @@ describe('review 2026-10-22: a click for an attempt that is no longer pending op
     expect(await checkoutIntentHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: f })) }, U,
       { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY })).toEqual({ status: 409, body: { ok: false, code: 'checkout_not_pending' } });
     expect(f).not.toHaveBeenCalled();
-  });
-});
-
-// Owner console 2026-10-21: payments go live in Hebrew AND English together - International = USD, an English page (prepared, inert)
-describe('International: USD + English page (prepared; the billing phase stays off)', () => {
-  it('USD body: currency USD, English page, VAT-exempt English lines, no Israeli ID / instalments field', () => {
-    const b = buildGenerateLinkBody(config(), { attemptId: ATT, amountMinor: 2300, billingPeriod: 'month', nowMs: NOW, addOnAmountMinor: 500, currency: 'USD' });
-    expect(b).toMatchObject({ amount: 23, currency_code: 'USD', language_code: 'en', paying_vat: false, hide_identification_id: true,
-      hide_payments_field: true, more_info: ATT,
-      items: [{ name: 'TEKANGO - Monthly subscription', price: 18, vat_type: 2 }, { name: 'TEKANGO - SMART PACK monthly', price: 5, vat_type: 2 }] });
-    const il = buildGenerateLinkBody(config(), { attemptId: ATT, amountMinor: 3000, billingPeriod: 'month', nowMs: NOW });
-    expect(il).not.toHaveProperty('language_code');
-    expect(il).not.toHaveProperty('paying_vat');
-    expect(il.currency_code).toBe('ILS');
-  });
-  it('createCheckout accepts USD and returns the page request id for the server pull', async () => {
-    const PRQ = '44444444-4444-4444-8444-444444444444';
-    const f = fetchOk({ results: { status: 'success', code: 0 }, data: { page_request_uid: PRQ, payment_page_link: LINK } });
-    const p = createPayPlusProvider(config({ fetch: f }));
-    expect(await p.createCheckout({ attemptId: ATT, currency: 'USD', amountMinor: 18400, billingPeriod: 'year' })).toEqual({ redirectUrl: LINK, pageRequestUid: PRQ });
-    const [, init] = f.mock.calls[0] as unknown as [string, { body: string }];
-    expect(JSON.parse(init.body)).toMatchObject({ currency_code: 'USD', language_code: 'en', amount: 184 });
-  });
-  it('a signed USD charge maps with the USD amount (SQL still compares it with the server attempt)', async () => {
-    const p = createPayPlusProvider(config());
-    const s = signed(callback({}, { currency: 'USD', amount: 18 }));
-    expect(await p.verifyWebhook(s.raw, s.headers, NOW)).toMatchObject({ ok: true, event: { type: 'payment_confirmed', paid: { amountMinor: 1800, currency: 'USD' } } });
-  });
-});
-
-// Sandbox run 2026-10-21: pull by page request id, Update needs valid:true, DeleteRecurring cancels
-describe('standing orders: pull, update, cancel (prepared)', () => {
-  const REC = '9ab9e163-0000-4000-8000-000000000001'; const TERM = '66f01674-0000-4000-8000-000000000002';
-  const PROD1 = '386c8e7d-0000-4000-8000-000000000003'; const PROD2 = '386c8e7d-0000-4000-8000-000000000004';
-  const PRQ = '1a2aee2e-0000-4000-8000-000000000005';
-  const record = { uid: REC, number: 'mBa83', valid: true, status: 'approved', amount: 1, currency_code: 'ILS', extra_info: ATT, start_date: '2026-10-21',
-    recurring_type: 2, recurring_range: 1, customer_uid: 'cust-1', cashier_uid: 'cash-1', card_token: 'tok-1',
-    items: [{ product_uid: PROD1, quantity: 1, quantity_price_including_vat: 0.6 }, { product_uid: PROD2, quantity: 1, quantity_price_including_vat: 0.4 }] };
-  const ok = (data: unknown = null) => vi.fn(async () => ({ ok: true, json: async () => ({ results: { status: 'success', code: 0 }, data }) }));
-  const so = (f: unknown) => payplusStandingOrders({ apiBase: PAYPLUS_API_BASES.staging, apiKey: 'k', secretKey: 's', fetch: f as never });
-  it('normalizes the pulled standing order: our attempt id from extra_info, two lines in minor units', () => {
-    expect(normalizeStandingOrder(record)).toMatchObject({ recurringUid: REC, number: 'mBa83', valid: true, amountMinor: 100, currency: 'ILS', attemptId: ATT,
-      items: [{ productUid: PROD1, priceMinor: 60 }, { productUid: PROD2, priceMinor: 40 }] });
-    expect(normalizeStandingOrder({ ...record, uid: 'x' })).toBeNull();
-    expect(normalizeStandingOrder({ ...record, extra_info: 'Some Info' })!.attemptId).toBeNull();
-  });
-  it('byPageRequest POSTs /PaymentPages/ipn with the page request id; an error answer is null', async () => {
-    const f = ok(record);
-    expect((await so(f).byPageRequest(PRQ))!.recurringUid).toBe(REC);
-    const [url, init] = f.mock.calls[0] as unknown as [string, { body: string }];
-    expect(url).toBe(`${PAYPLUS_API_BASES.staging}/PaymentPages/ipn`);
-    expect(JSON.parse(init.body)).toEqual({ payment_request_uid: PRQ });
-    const bad = vi.fn(async () => ({ ok: true, json: async () => ({ results: { status: 'error' }, data: {} }) }));
-    expect(await so(bad).byPageRequest(PRQ)).toBeNull();
-    expect(await so(f).byPageRequest('not-a-uuid')).toBeNull();
-  });
-  it('updateLines sends valid:true (422 without it in the sandbox), the lines and a future start date', async () => {
-    const f = ok({ recurring_payment_uid: REC });
-    const o = normalizeStandingOrder(record)!;
-    expect(await so(f).updateLines(o, TERM, [{ productUid: PROD1, priceMinor: 60 }], '2026-10-24')).toBe(true);
-    const [url, init] = f.mock.calls[0] as unknown as [string, { body: string }];
-    expect(url).toBe(`${PAYPLUS_API_BASES.staging}/RecurringPayments/Update/${REC}`);
-    expect(JSON.parse(init.body)).toMatchObject({ terminal_uid: TERM, valid: true, instant_first_payment: false, start_date: '2026-10-24', currency_code: 'ILS',
-      items: [{ product_uid: PROD1, quantity: 1, price: 0.6 }] });
-    expect(await so(f).updateLines(o, TERM, [], '2026-10-24')).toBe(false);
-    expect(await so(f).updateLines({ ...o, cardToken: null }, TERM, [{ productUid: PROD1, priceMinor: 60 }], '2026-10-24')).toBe(false);
-  });
-  it('cancel POSTs DeleteRecurring with the terminal; a bad id never calls PayPlus', async () => {
-    const f = ok({ recurring_payment_uid: REC });
-    expect(await so(f).cancel(REC, TERM)).toBe('cancelled');
-    const [url, init] = f.mock.calls[0] as unknown as [string, { body: string }];
-    expect(url).toBe(`${PAYPLUS_API_BASES.staging}/RecurringPayments/DeleteRecurring/${REC}`);
-    expect(JSON.parse(init.body)).toEqual({ terminal_uid: TERM });
-    const g = ok();
-    expect(await so(g).cancel('x', TERM)).toBe('rejected');
-    expect(g).not.toHaveBeenCalled();
-  });
-  it('cancel (Codex audit H-02): PayPlus said no = rejected; no answer / unreadable = unknown, never rejected', async () => {
-    expect(await so(fetchOk({ results: { status: 'error', code: 1 } })).cancel(REC, TERM)).toBe('rejected');
-    expect(await so(vi.fn(async () => { throw new Error('timeout'); }) as never).cancel(REC, TERM)).toBe('unknown');
-    expect(await so(vi.fn(async () => new Response('<html>', { status: 502 })) as never).cancel(REC, TERM)).toBe('unknown');
-  });
-  it('refund (20261022300000): POSTs RefundByTransactionUID with the charge and the amount; refunded only on success + 000', async () => {
-    const f = ok({ transaction: { uid: 'refund-tx-1', status_code: '000', amount: 10 } });
-    expect(await so(f).refund('tx-1', 1000)).toEqual({ ok: true, refundRef: 'refund-tx-1' });
-    const [url, init] = f.mock.calls[0] as unknown as [string, { body: string }];
-    expect(url).toBe(`${PAYPLUS_API_BASES.staging}/Transactions/RefundByTransactionUID`);
-    expect(JSON.parse(init.body)).toEqual({ transaction_uid: 'tx-1', amount: 10 });
-    expect(await so(ok({ transaction: { uid: 'r', status_code: '006' } })).refund('tx-1', 1000)).toEqual({ ok: false });
-    const bad = vi.fn(async () => ({ ok: true, json: async () => ({ results: { status: 'error' }, data: {} }) }));
-    expect(await so(bad).refund('tx-1', 1000)).toEqual({ ok: false });
-    const g = ok();
-    expect(await so(g).refund('tx-1', 0)).toEqual({ ok: false });
-    expect(await so(g).refund('', 100)).toEqual({ ok: false });
-    expect(g).not.toHaveBeenCalled();
-  });
-  it('an unknown API host is a configuration error', () => {
-    expect(() => payplusStandingOrders({ apiBase: 'https://evil.example', apiKey: 'k', secretKey: 's', fetch: (() => null) as never })).toThrow(/invalid configuration/);
-  });
-});
-
-// 20261022200000 (Owner 2026-10-21, "להמשיך עכשיו בחיבור למסד"): back from the payment page with no callback, the server pulls
-describe('checkout status: the server pull (prepared; the billing phase stays off)', () => {
-  const REC = '9ab9e163-0000-4000-8000-000000000011'; const PRQ = '1a2aee2e-0000-4000-8000-000000000015';
-  const standing = (over: Record<string, unknown> = {}) => ({ uid: REC, valid: true, status: 'approved', status_code: '000', amount: 30, currency_code: 'ILS',
-    extra_info: ATT, customer_uid: 'cust-1', cashier_uid: 'cash-1', card_token: 'tok-1', items: [], ...over });
-  const answer = (data: unknown, status = 'success') => vi.fn(async () => ({ ok: true, json: async () => ({ results: { status, code: 0 }, data }) }));
-  const target = { attemptId: ATT, requestRef: PRQ, amountMinor: 3000, currency: 'ILS' };
-  const sqlWith = (over: Record<string, unknown> = {}) => ({ createCheckoutIntent: vi.fn(), priceCatalog: vi.fn(), recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
-    checkoutPullTargets: vi.fn(async () => [target]),
-    recordCheckoutPull: vi.fn(async () => ({ ok: true, duplicate: false, outcome: 'applied', activated: true, pulled: true })), ...over }) as never as BillingSql;
-
-  it('pullCheckout: approved only for status 000 + a valid standing order; our attempt id, the standing order, amount in minor units', async () => {
-    const p = createPayPlusProvider(config({ fetch: answer(standing()) }));
-    const r = await p.pullCheckout!(PRQ);
-    expect(r).toMatchObject({ approved: true, attemptId: ATT, recurringRef: REC, amountMinor: 3000, currency: 'ILS' });
-    expect(r!.payloadSha256).toMatch(/^[0-9a-f]{64}$/);
-    expect((await createPayPlusProvider(config({ fetch: answer(standing({ status_code: '003' })) })).pullCheckout!(PRQ))!.approved).toBe(false);
-    expect((await createPayPlusProvider(config({ fetch: answer(standing({ valid: false })) })).pullCheckout!(PRQ))!.approved).toBe(false);
-    expect(await createPayPlusProvider(config({ fetch: answer({}, 'error') })).pullCheckout!(PRQ)).toBeNull();
-  });
-  it('the payment page id is kept together with the page when PayPlus returns it', async () => {
-    const f = fetchOk({ results: { status: 'success', code: 0 }, data: { page_request_uid: PRQ, payment_page_link: LINK } });
-    const recordCheckoutPageAndRequest = vi.fn(async () => LINK); const recordCheckoutPage = vi.fn();
-    const sql = { createCheckoutIntent: vi.fn(), recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
-      createPackageCheckoutIntent: vi.fn(async () => ({ ok: true, attemptId: ATT, market: 'IL', currency: 'ILS', amountMinor: 3000, state: 'pending' })),
-      priceCatalog: vi.fn(async () => ({ ok: true, market: 'IL', prices: [
-        { priceId: 'il_all_inclusive_month_p1', planId: 'all_inclusive', currency: 'ILS', billingPeriod: 'month', amountMinor: 3000, taxMode: 'included', offer: 'current' }] })),
-      checkoutPage: vi.fn(async () => null), recordCheckoutPage, recordCheckoutPageAndRequest } as never as BillingSql;
-    const r = await checkoutIntentHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: f })) }, U, { planId: 'all_inclusive', billingPeriod: 'month', idempotencyKey: KEY });
-    expect(r.body).toMatchObject({ ok: true, redirectUrl: LINK });
-    expect(recordCheckoutPageAndRequest).toHaveBeenCalledWith(ATT, U, LINK, PRQ);
-    expect(recordCheckoutPage).not.toHaveBeenCalled();
-  });
-  it('an approved pull of our attempt reaches SQL with the pulled amount and standing order; the answer says it opened', async () => {
-    const sql = sqlWith();
-    const r = await checkoutStatusHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: answer(standing()) })) }, U);
-    expect(r).toEqual({ status: 200, body: { ok: true, activated: true, waiting: 0 } });
-    expect(sql.recordCheckoutPull).toHaveBeenCalledWith(expect.objectContaining({ attemptId: ATT, userId: U, providerAttemptId: ATT, recurringRef: REC,
-      paidAmountMinor: 3000, paidCurrency: 'ILS' }));
-  });
-  it('not paid yet / not approved / unreachable: nothing reaches SQL, the client keeps waiting', async () => {
-    for (const f of [answer({}, 'error'), answer(standing({ status_code: '003' })), vi.fn(async () => { throw new Error('down'); })]) {
-      const sql = sqlWith();
-      expect(await checkoutStatusHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: f })) }, U))
-        .toEqual({ status: 200, body: { ok: true, activated: false, waiting: 1 } });
-      expect(sql.recordCheckoutPull).not.toHaveBeenCalled();
-    }
-  });
-  it('an answer naming another attempt is never applied (incident)', async () => {
-    const sql = sqlWith(); const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const r = await checkoutStatusHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: answer(standing({ extra_info: PRQ })) })) }, U);
-    expect(r.body).toMatchObject({ ok: true, activated: false });
-    expect(sql.recordCheckoutPull).not.toHaveBeenCalled();
-    expect(log.mock.calls.some((c) => String(c[0]).includes('pull_attempt_mismatch'))).toBe(true);
-    log.mockRestore();
-  });
-  it('a pulled payment that opened nothing is reported; nothing to pull = nothing asked', async () => {
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const sql = sqlWith({ recordCheckoutPull: vi.fn(async () => ({ ok: true, outcome: 'rejected', activated: false, code: 'amount_mismatch', pulled: true })) });
-    expect((await checkoutStatusHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: answer(standing()) })) }, U)).body).toMatchObject({ activated: false });
-    expect(log.mock.calls.some((c) => String(c[0]).includes('amount_mismatch'))).toBe(true);
-    log.mockRestore();
-    const f = answer(standing());
-    const none = sqlWith({ checkoutPullTargets: vi.fn(async () => []) });
-    expect(await checkoutStatusHandler('prepared', { sql: none, provider: createPayPlusProvider(config({ fetch: f })) }, U)).toEqual({ status: 200, body: { ok: true, activated: false, waiting: 0 } });
-    expect(f).not.toHaveBeenCalled();
-  });
-  it('billing off (today) answers before anything is read; a malformed target list is never trusted', async () => {
-    const sql = sqlWith();
-    expect(await checkoutStatusHandler(ACTIVATION_PHASE, { sql, provider: createPayPlusProvider(config()) }, U)).toEqual({ status: 503, body: { ok: false, code: 'billing_off' } });
-    expect(sql.checkoutPullTargets).not.toHaveBeenCalled();
-    const bad = sqlWith({ checkoutPullTargets: vi.fn(async () => [{ ...target, requestRef: 'x' }]) });
-    expect((await checkoutStatusHandler('prepared', { sql: bad, provider: createPayPlusProvider(config()) }, U)).status).toBe(503);
-  });
-  it('a second callback within the window after a pull extends nothing but IS reported', async () => {
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const sql = { createCheckoutIntent: vi.fn(), priceCatalog: vi.fn(), applyVerifiedLineEvent: vi.fn(),
-      recordVerifiedEvent: vi.fn(async () => ({ ok: true, duplicate: false, outcome: 'stale', activated: false, code: 'second_charge_after_pull' })) } as never as BillingSql;
-    const s = signed(callback());
-    expect((await providerWebhookHandler('prepared', { sql, provider: createPayPlusProvider(config()), now: () => NOW }, s.raw, s.headers)).status).toBe(200);
-    expect(log.mock.calls.some((c) => String(c[0]).includes('second_charge_after_pull'))).toBe(true);
-    log.mockRestore();
-  });
-  it('the callback of an already-pulled first charge is a normal 200 receipt, not an incident', async () => {
-    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const sql = { createCheckoutIntent: vi.fn(), priceCatalog: vi.fn(), applyVerifiedLineEvent: vi.fn(),
-      recordVerifiedEvent: vi.fn(async () => ({ ok: true, duplicate: false, outcome: 'stale', activated: false, code: 'first_charge_pulled' })) } as never as BillingSql;
-    const s = signed(callback());
-    expect((await providerWebhookHandler('prepared', { sql, provider: createPayPlusProvider(config()), now: () => NOW }, s.raw, s.headers)).status).toBe(200);
-    expect(log).not.toHaveBeenCalled();
-    log.mockRestore();
-  });
-  it('wiring calls the three new functions with exactly their SQL parameters', () => {
-    const wiring = readFileSync(new URL('./wiring.ts', import.meta.url), 'utf8');
-    const sql = readFileSync(new URL('../../migrations/20261022200000_payplus_checkout_pull.sql', import.meta.url), 'utf8');
-    for (const fn of ['record_checkout_attempt_page_and_request', 'checkout_pull_targets', 'record_checkout_pull']) {
-      const sent = [...(new RegExp(`call\\('${fn}', \\{([^}]*)\\}\\)`).exec(wiring)?.[1] ?? '').matchAll(/\b(p_[a-z0-9_]+):/g)].map((m) => m[1]);
-      // the definition, not the ROLLBACK note (DROP FUNCTION ... with types only)
-      const declared = [...(new RegExp(`CREATE OR REPLACE FUNCTION public\\.${fn}\\(([^)]*)\\)`).exec(sql)?.[1] ?? '').matchAll(/\b(p_[a-z0-9_]+)\s/g)].map((m) => m[1]);
-      expect(sent.length).toBeGreaterThan(0);
-      expect(sent).toEqual(declared);
-    }
   });
 });

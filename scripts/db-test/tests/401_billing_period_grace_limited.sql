@@ -76,7 +76,7 @@ INSERT INTO public.quote_items (quote_id, description, quantity, unit_price, tot
 
 -- ------------------------------------------------------------------------------------------------------------- B0. billing off
 SELECT tst.ok((SELECT phase FROM public.billing_activation WHERE id) = 'off' AND NOT public.paid_account_limited(tst.zu(1))
-          AND public.account_billing_state(tst.zu(1)) = '{"paidThrough":null,"graceEndsAt":null,"inGrace":false,"limited":false,"renewalStopped":false,"limitedReason":null}'::jsonb,
+          AND public.account_billing_state(tst.zu(1)) = '{"paidThrough":null,"graceEndsAt":null,"inGrace":false,"limited":false}'::jsonb,
   'B0 billing off: no paid period, no grace, never limited');
 
 UPDATE public.billing_activation SET phase = 'enforced', reason = 'TEST device: set_billing_phase refuses enforced (OPEN-12)' WHERE id;
@@ -136,8 +136,6 @@ SELECT tst.lives(format('INSERT INTO public.quotes (id, user_id, quote_number, s
 SELECT tst.zset(tst.zu(1), now() - interval '80 hours', now() - interval '72 hours');
 SELECT tst.ok(public.paid_account_limited(tst.zu(1)) AND (tst.zbill(tst.zu(1)) ->> 'limited')::boolean AND NOT (tst.zbill(tst.zu(1)) ->> 'inGrace')::boolean,
   'B7a the paid period over and 72 hours after the failure: limited');
-SELECT tst.ok(tst.zbill(tst.zu(1)) ->> 'limitedReason' = 'payment_failed' AND tst.zbill(tst.zu(1)) ->> 'renewalStopped' = 'false',
-  'B7a2 the server says why (Codex audit M-01): a verified failed renewal = payment_failed');
 SELECT tst.throws(format('INSERT INTO public.quotes (id, user_id, quote_number, status) VALUES (%L, %L, 40103, %L)', tst.zq(3), tst.zu(1), 'draft'),
   'subscription_limited', 'B7b limited: a new quote is refused');
 DO $$ DECLARE r jsonb; BEGIN
@@ -179,8 +177,6 @@ SELECT tst.ok((tst.zbill(tst.zu(1)) ->> 'inGrace')::boolean AND NOT public.paid_
   'B9b a day later without a renewal: the same 3 grace days');
 SELECT tst.zset(tst.zu(1), now() - interval '73 hours', NULL);
 SELECT tst.ok(public.paid_account_limited(tst.zu(1)), 'B9c 72 hours after the paid period ended without a renewal: limited (20261022100000, Owner 2026-10-21: 3 days)');
-SELECT tst.ok(tst.zbill(tst.zu(1)) ->> 'limitedReason' = 'period_ended',
-  'B9c2 no failed charge was verified: period_ended - never shown as a failed payment (Codex audit M-01)');
 SELECT tst.ok(public.billing_period_end('2026-01-31 10:00:00+02', 'month') = '2026-02-28 10:00:00+02'
           AND public.billing_period_end('2026-03-28 23:30:00+03', 'month') = '2026-04-28 23:30:00+03'
           AND public.billing_period_end('2028-02-29 09:00:00+02', 'year') = '2029-02-28 09:00:00+02',
@@ -195,8 +191,8 @@ SELECT tst.ok(NOT public.paid_account_limited(tst.zu(2)) AND NOT public.paid_acc
 UPDATE public.billing_activation SET phase = 'off' WHERE id;
 SELECT tst.ok(NOT public.paid_account_limited(tst.zu(1)) AND NOT (tst.zbill(tst.zu(1)) ->> 'inGrace')::boolean,
   'B10b billing off again: inert (nothing limited, no grace)');
-SELECT tst.ok((SELECT string_agg(k, ',' ORDER BY k) FROM jsonb_object_keys(tst.zbill(tst.zu(1))) k) = 'graceEndsAt,inGrace,limited,limitedReason,paidThrough,renewalStopped',
-  'B10c the summary billing block has exactly its keys (20261022300000 / Codex audit M-01: renewalStopped + limitedReason)');
+SELECT tst.ok((SELECT string_agg(k, ',' ORDER BY k) FROM jsonb_object_keys(tst.zbill(tst.zu(1))) k) = 'graceEndsAt,inGrace,limited,paidThrough',
+  'B10c the summary billing block has exactly its four keys');
 DO $$ BEGIN
   PERFORM tst.login(tst.zu(1));
   PERFORM tst.throws(format('SELECT public.paid_account_limited(%L)', tst.zu(1)), 'permission denied', 'B11 a signed-in user cannot call the billing helpers');

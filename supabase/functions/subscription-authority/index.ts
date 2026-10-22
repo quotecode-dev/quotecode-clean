@@ -3,7 +3,7 @@
 // (byte-identical to subscriptions-prep/server/authorizeQuoteOutput.ts, pinned by a parity test), the I/O adapters are in
 // adapters.ts and the environment / supabase-js live only in wiring.ts.
 // NOT deployed: deploying any Edge function needs a separate authorization.
-// Routes (CROSSCUT §3): POST {action: output_notice | authorize_output | checkout_intent | checkout_status | import_logo} with a user JWT, and
+// Routes (CROSSCUT §3): POST {action: output_notice | authorize_output | checkout_intent | import_logo} with a user JWT, and
 // POST .../provider-event for verified provider webhooks. The former path routes GET /account-summary, /billing/*,
 // /output/* and /assets/* no longer exist (account summary = the RPC get_account_summary, called by the client directly).
 import { routeAuthorityRequest, MAX_BODY_BYTES } from './router.ts';

@@ -495,10 +495,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/domain/subscriptions/billingReasonCopy.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/domain/subscriptions/capabilityNoticeCopy.js": {
     "interactive": 0,
     "markers": 0
@@ -728,10 +724,6 @@
     "markers": 0
   },
   "src/theme/neonTheme.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/theme/toolsLightTheme.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -1152,14 +1144,6 @@
     "markers": 0
   },
   "supabase/functions/_shared/subscriptionLifecycleTemplates.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/admin-billing/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/admin-billing/lib.ts": {
     "interactive": 0,
     "markers": 0
   },

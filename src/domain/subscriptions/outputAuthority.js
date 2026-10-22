@@ -12,8 +12,6 @@
 //   and may expose output only after it succeeds. All four channels switch together: there is no per-channel phase.
 // - anything else : FAIL CLOSED.
 // Owner previews (opening the quote from the dashboard) are not client output and never consume (OD-02).
-import { limitedReasonSentence } from './billingReasonCopy';
-
 export const OUTPUT_ACTIVATION_PHASE = 'off';
 export const OUTPUT_CHANNELS = Object.freeze(['send', 'public_share', 'final_pdf', 'final_print']);
 const LEGACY_PHASES = Object.freeze(['off', 'prepared', 'shadow']);
@@ -128,11 +126,9 @@ export const capabilityTokenFromPath = (publicPath) => (TOKEN_PATH_RE.test(publi
 // billing = the summary's billing block (optional): a paid account in limited mode (Owner 2026-10-18) gets its own sentence.
 export function outputBlockedMessage(code, isHebrew, free10 = null, billing = null) {
   if (code === 'free_issue_limit_reached' && billing?.limited === true) {
-    // Codex audit 2026-10-22 M-01: the reason the server states (a cancellation is never shown as a failed payment)
-    const why = limitedReasonSentence(billing.limitedReason, isHebrew);
     return isHebrew
-      ? `${why} הצעות שכבר יצאו נשארות זמינות. פרטי המסלולים זמינים במסך המסלולים.`
-      : `${why} Quotes already sent stay available. Plan details are in the plans view.`;
+      ? 'התשלום האחרון לא עבר, ולכן החשבון מוגבל. הצעות שכבר יצאו נשארות זמינות. פרטי המסלולים זמינים במסך המסלולים.'
+      : 'The last payment did not go through, so the account is limited. Quotes already sent stay available. Plan details are in the plans view.';
   }
   const periodEnded = code === 'free_period_ended'
     || (code === 'free_issue_limit_reached' && free10?.periodEnded === true && free10.remaining > 0);

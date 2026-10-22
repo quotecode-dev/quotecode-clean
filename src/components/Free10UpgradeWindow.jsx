@@ -14,14 +14,14 @@ import { FREE_QUOTES_TOTAL } from '../../supabase/functions/_shared/subscription
 import { FREE_DAYS_TOTAL } from '../domain/subscriptions/priceCatalog';
 import useFocusTrap from './quotePresentation/useFocusTrap';
 import PackageOfferCards from './PackageOfferCards';
-import { limitedReasonSentence } from '../domain/subscriptions/billingReasonCopy';
 
 const COPY = {
   he: {
     title: 'המשיכו לעבוד ללא הגבלה',
     used: (f) => `נוצלו כל ${FREE_QUOTES_TOTAL} ההצעות החינמיות (${f.consumed} נוצלו${f.reserved ? `, ${f.reserved} בתהליך שליחה` : ''}).`,
     // Owner 2026-10-20: the 7 free days can end before the 10 quotes are used
-    // Owner 2026-10-18: a limited paid account - its sentence by the server's reason (Codex audit M-01, billingReasonCopy)
+    // Owner 2026-10-18: a paid account whose 3 grace days after a failed charge are over
+    limited: 'התשלום האחרון לא עבר, ולכן החשבון מוגבל עד שהתשלום יעבור. ההצעות והלקוחות הקיימים נשארים זמינים.',
     ended: (f) => `תמו ${FREE_DAYS_TOTAL} ימי החינם (נוצלו ${f.consumed} מתוך ${FREE_QUOTES_TOTAL} ההצעות החינמיות).`,
     why: 'כדי ליצור הצעה חדשה או להעביר ללקוח הצעה בפעם הראשונה, צריך מנוי.',
     allowed: 'אפשר להמשיך לצפות בהצעות הקיימות, לערוך טיוטות, לשלוח שוב הצעות שכבר יצאו ולעבוד עם לקוחות, משימות והוצאות.',
@@ -33,6 +33,7 @@ const COPY = {
   en: {
     title: 'Keep working without limits',
     used: (f) => `All ${FREE_QUOTES_TOTAL} free quotes have been used (${f.consumed} used${f.reserved ? `, ${f.reserved} being sent` : ''}).`,
+    limited: 'The last payment did not go through, so the account is limited until it does. Your existing quotes and clients stay available.',
     ended: (f) => `The ${FREE_DAYS_TOTAL} free days have ended (${f.consumed} of ${FREE_QUOTES_TOTAL} free quotes used).`,
     why: 'A subscription is needed to create a new quote or to send a client a quote that was never sent.',
     allowed: 'You can keep viewing your quotes, editing drafts, re-sending quotes that were already sent and working with clients, tasks and expenses.',
@@ -43,7 +44,6 @@ const COPY = {
   },
 };
 
-// limited: false, or the server's limitedReason ('cancelled' | 'payment_failed' | 'period_ended'; true = not stated)
 export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, free10, limited = false, onChoose = null }) {
   const ref = useRef(null);
   const topRef = useRef(null);
@@ -75,7 +75,7 @@ export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, f
         <h2 id="free10-upgrade-title" style={{ margin: '0 0 6px', fontSize: '1.3rem', color: '#0F6672', display: 'flex', alignItems: 'center', gap: 8 }}>
           <Sparkles size={20} aria-hidden="true" />{t.title}
         </h2>
-        <p id="free10-upgrade-used" data-testid="free10-upgrade-used" style={{ margin: '0 0 4px', color: '#1e293b', fontWeight: 700, fontSize: '0.9rem' }}>{limited ? limitedReasonSentence(limited, isHebrew, { withKeep: true }) : (f.periodEnded && f.remaining > 0 ? t.ended(f) : t.used(f))}</p>
+        <p id="free10-upgrade-used" data-testid="free10-upgrade-used" style={{ margin: '0 0 4px', color: '#1e293b', fontWeight: 700, fontSize: '0.9rem' }}>{limited ? t.limited : (f.periodEnded && f.remaining > 0 ? t.ended(f) : t.used(f))}</p>
         <p style={{ margin: '0 0 4px', color: '#334155', fontSize: '0.85rem' }}>{t.why}</p>
         <p data-testid="free10-upgrade-allowed" style={{ margin: '0 0 12px', color: '#475569', fontSize: '0.82rem' }}>{t.allowed}</p>
         <PackageOfferCards model={m} isHebrew={isHebrew} only={['all_inclusive']} testIdPrefix="free10-upgrade" />

@@ -180,26 +180,6 @@ describe('decideFree10Action (attempted paid action after Free-10)', () => {
       expect(pkg(b).state).toBe('invalid');
     }
   });
-  it('Codex audit 2026-10-22 M-01: the server reason - parsed strictly; the status line says a stopped renewal / a cancellation, never a failed payment', () => {
-    const bill = (over) => ({ paidThrough: '2026-11-20T10:00:00.000Z', graceEndsAt: null, inGrace: false, limited: false, renewalStopped: false, limitedReason: null, ...over });
-    const pkg = (b, market = 'IL') => parseAccountSummary(paid({ plan: { id: 'all_inclusive' }, subscriptionStatus: 'active', market, billing: b }));
-    expect(parseAccountSummary(paid())).toMatchObject({ billing: { renewalStopped: false, limitedReason: null } });
-    expect(pkg(bill({ renewalStopped: true }))).toMatchObject({ state: 'ready', billing: { renewalStopped: true, limitedReason: null } });
-    const ended = { limited: true, graceEndsAt: '2026-11-20T10:00:00.000Z', renewalStopped: true, limitedReason: 'cancelled' };
-    expect(decideFree10Action(pkg(bill(ended)))).toEqual({ allowed: false, reason: 'subscription_limited' });
-    for (const b of [bill({ limitedReason: 'cancelled' }), bill({ ...ended, limitedReason: 'other' }), bill({ renewalStopped: 'yes' })]) {
-      expect(pkg(b).state).toBe('invalid');
-    }
-    // the stopped renewal: valid until the end of the paid access, by the account market (Israel time / UTC), the date isolated
-    const he = accountStatusModel(pkg(bill({ renewalStopped: true, paidThrough: '2026-11-20T21:59:00.000Z' })), 'he').detail;
-    expect(he).toBe('החידוש האוטומטי הופסק — המנוי בתוקף עד \u206620/11/2026 23:59\u2069 (שעון ישראל)');
-    expect(accountStatusModel(pkg(bill({ renewalStopped: true }), 'INTERNATIONAL'), 'en').detail)
-      .toBe('Automatic renewal is off — subscription valid until \u206611/20/2026 10:00\u2069 (UTC)');
-    expect(accountStatusModel(pkg(bill(ended)), 'he').detail).toBe('המנוי הסתיים לבקשתכם');
-    expect(accountStatusModel(pkg(bill({ ...ended, renewalStopped: false, limitedReason: 'payment_failed' })), 'he').detail).toBe('התשלום לחידוש המנוי לא עבר');
-    expect(accountStatusModel(pkg(bill({ ...ended, renewalStopped: false, limitedReason: 'period_ended' })), 'en').detail).toBe('Paid period has ended');
-    expect(accountStatusModel(pkg(bill({})), 'he').detail).toBe(null);
-  });
   it('Owner 2026-10-20: SMART PACK - decided only when enforced; malformed = invalid; absent = not active', () => {
     const sp = (smartPack, over = {}) => parseAccountSummary(free({ smartPack, ...over }));
     expect(decideSmartPack(sp({ active: true, source: 'free_window', until: '2026-10-28T10:00:00.000Z' }))).toEqual({ allowed: true, reason: 'included' });
