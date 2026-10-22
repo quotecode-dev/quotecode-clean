@@ -79,14 +79,6 @@ describe('AdminExpenseInvoices', () => {
     fireEvent.click(getByTestId('expense-connect-shlomisiny@gmail.com'));
     await waitFor(() => expect(getByTestId('expense-google-continue').getAttribute('href')).toBe('https://accounts.google.com/o/oauth2/v2/auth?x=1'));
   });
-  it.each([[true, 'גוגל דחתה את פרטי לקוח החיבור', 'קוד: invalid_client'], [false, 'Google refused the connection client details', 'code: invalid_client']])('isHebrew=%s: back from Google with a failed step, the step and its code are shown', async (he, text, code) => {
-    window.history.pushState({}, '', '/dashboard?view=admin&section=expense-invoices&expenseConnect=failed_token_invalid_client');
-    const { findByTestId } = render(<AdminExpenseInvoices isHebrew={he} />);
-    const n = await findByTestId('expense-notice');
-    expect(n.textContent).toContain(text);
-    expect(n.textContent).toContain(code);
-    window.history.pushState({}, '', '/');
-  });
   it('without expense types nothing can be sent, and it says why', async () => {
     rpc.mockResolvedValue(state({ settings: { expenseTypes: [], defaultSubcategoryId: null } }));
     const { findByTestId, getByTestId } = render(<AdminExpenseInvoices isHebrew />);

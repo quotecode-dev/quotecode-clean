@@ -4,7 +4,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   expenseHandler, oauthCallback, scanBatch, parseMessage, validateExtraction, vatRule, gmailQuery, payplusFields, invoicePatch, settingsPatch,
-  signState, verifyState, sameDocument, payplusRecords, callbackFailure, EXPENSE_MODEL, EXPENSE_FALLBACK_MODEL, type ExpenseDeps,
+  signState, verifyState, sameDocument, payplusRecords, EXPENSE_MODEL, EXPENSE_FALLBACK_MODEL, type ExpenseDeps,
 } from './lib.ts';
 
 const NOW = Date.parse('2026-10-22T18:00:00Z');
@@ -109,17 +109,6 @@ describe('OAuth', () => {
     expect((await oauthCallback({ code: 'c', state: st }, demoted)).redirect).toContain('expenseConnect=failed');
     expect(demoted.exchangeCode).not.toHaveBeenCalled();
     expect((await oauthCallback({ code: 'c', state: 'x.y' }, d)).redirect).toContain('expenseConnect=expired');
-  });
-  it('a failed connection names its step from fixed codes only', async () => {
-    const st = await signState({ u: 'u1', m: 'quotecodedev@gmail.com', e: NOW + 60000 }, realHmac);
-    const token = deps({ exchangeCode: async () => { throw new Error('google_token:invalid_client'); } });
-    expect((await oauthCallback({ code: 'c', state: st }, token)).redirect).toContain('expenseConnect=failed_token_invalid_client');
-    const profile = deps({ profileEmail: async () => { throw new Error('gmail_403'); } });
-    expect((await oauthCallback({ code: 'c', state: st }, profile)).redirect).toContain('expenseConnect=failed_profile_403');
-    const store = deps({ saveToken: async () => { throw new Error('database'); } });
-    expect((await oauthCallback({ code: 'c', state: st }, store)).redirect).toContain('expenseConnect=failed_store');
-    expect(callbackFailure('token', 'google_token:<script>')).toBe('failed_token');
-    expect(callbackFailure('profile', 'gmail_999')).toBe('failed_profile');
   });
   it('disconnect also withdraws the Google permission', async () => {
     const d = deps();

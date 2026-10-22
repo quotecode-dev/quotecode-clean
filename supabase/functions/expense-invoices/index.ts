@@ -55,16 +55,7 @@ Deno.serve(async (req: Request) => {
     return new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv: fromBase64(iv) }, aesKey, fromBase64(ct)));
   };
 
-  const db = async <T>(p: PromiseLike<{ data: T; error: unknown }>): Promise<T> => {
-    const { data, error } = await p;
-    if (error) {
-      // the database's own code and message (table / constraint names - never row values) for the function log
-      const e = error as { code?: string; message?: string };
-      console.error(`expense-invoices: database ${e.code ?? ''} ${String(e.message ?? '').slice(0, 160)}`);
-      throw new Error('database');
-    }
-    return data;
-  };
+  const db = async <T>(p: PromiseLike<{ data: T; error: unknown }>): Promise<T> => { const { data, error } = await p; if (error) throw new Error('database'); return data; };
   const google = async (path: string, access: string) => {
     const res = await timed(`https://gmail.googleapis.com/gmail/v1/users/me/${path}`, { headers: { Authorization: `Bearer ${access}` } });
     if (!res.ok) throw new Error(`gmail_${res.status}`);
@@ -73,13 +64,7 @@ Deno.serve(async (req: Request) => {
   const tokenCall = async (form: Record<string, string>) => {
     const res = await timed('https://oauth2.googleapis.com/token', { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({ client_id: clientId, client_secret: clientSecret, ...form }).toString() });
-    if (!res.ok) {
-      // Google's own error code only (invalid_client / invalid_grant / ...) - never the request, never a secret
-      const err = await res.json().catch(() => null);
-      const code = typeof err?.error === 'string' && /^[a-z_]{3,40}$/.test(err.error) ? err.error : `http_${res.status}`;
-      console.error(`expense-invoices: google token ${form.grant_type} refused: ${code}`);
-      throw new Error(`google_token:${code}`);
-    }
+    if (!res.ok) throw new Error('google_token');
     return await res.json();
   };
   const payplus = () => {
@@ -252,8 +237,6 @@ Deno.serve(async (req: Request) => {
   if (req.method === 'GET' && url.pathname.endsWith('/oauth-callback')) {
     if (!hmacKey) return Response.redirect(`${APP_URL}/dashboard?view=admin&section=expense-invoices&expenseConnect=not_configured`, 302);
     const r = await oauthCallback({ code: url.searchParams.get('code'), state: url.searchParams.get('state'), error: url.searchParams.get('error') }, deps);
-    const result = new URL(r.redirect).searchParams.get('expenseConnect');
-    if (result !== 'ok') console.error(`expense-invoices: connect result ${result}`);
     return Response.redirect(r.redirect, 302);
   }
   if (req.method !== 'POST') return json(405, { ok: false, code: 'method_not_allowed' });

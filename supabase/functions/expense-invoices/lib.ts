@@ -135,38 +135,19 @@ export async function oauthCallback(q: { code?: string | null; state?: string | 
   const st = await verifyState(q.state, deps.hmac, deps.now());
   if (!st) return { redirect: backToAdmin(deps.config.appUrl, 'expired') };
   if (q.error || !q.code) return { redirect: backToAdmin(deps.config.appUrl, 'cancelled') };
-  // the step that failed is named on the way back (a fixed list of codes - never a secret, never free text from outside)
-  let step: 'admin' | 'token' | 'profile' | 'store' = 'admin';
   try {
-    if (!(await deps.isSuperAdmin(st.u))) return { redirect: backToAdmin(deps.config.appUrl, 'failed_admin') };
-    step = 'token';
+    if (!(await deps.isSuperAdmin(st.u))) return { redirect: backToAdmin(deps.config.appUrl, 'failed') };
     const t = await deps.exchangeCode(q.code);
-    step = 'profile';
     const email = (await deps.profileEmail(t.accessToken)).trim().toLowerCase();
     // only the mailbox that was asked for, and only one of the Owner's two
     if (email !== st.m || !EXPENSE_MAILBOXES.includes(email)) return { redirect: backToAdmin(deps.config.appUrl, 'wrong_mailbox') };
     if (!t.refreshToken) return { redirect: backToAdmin(deps.config.appUrl, 'no_offline_access') };
-    step = 'store';
     await deps.saveToken(email, t.refreshToken);
     await deps.saveConnection(email, { connected_at: new Date(deps.now()).toISOString(), last_error: null });
     return { redirect: backToAdmin(deps.config.appUrl, 'ok') };
-  } catch (e) {
-    return { redirect: backToAdmin(deps.config.appUrl, callbackFailure(step, (e as Error)?.message)) };
+  } catch {
+    return { redirect: backToAdmin(deps.config.appUrl, 'failed') };
   }
-}
-
-/** The code of a failed connection step: failed_token_<Google's error>, failed_profile_<HTTP status>, failed_store - from fixed lists only. */
-export function callbackFailure(step: string, message: unknown): string {
-  const m = String(message ?? '');
-  if (step === 'token') {
-    const g = /^google_token:([a-z_]+)$/.exec(m)?.[1] ?? '';
-    return `failed_token${['invalid_client', 'invalid_grant', 'redirect_uri_mismatch', 'unauthorized_client', 'invalid_request'].includes(g) ? `_${g}` : ''}`;
-  }
-  if (step === 'profile') {
-    const s = /^gmail_(\d{3})$/.exec(m)?.[1] ?? '';
-    return `failed_profile${['401', '403', '404', '429', '500', '503'].includes(s) ? `_${s}` : ''}`;
-  }
-  return step === 'store' ? 'failed_store' : 'failed';
 }
 
 // ---------- Gmail ----------
