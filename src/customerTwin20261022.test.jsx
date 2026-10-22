@@ -42,7 +42,7 @@ describe('Customer Twin panel', () => {
     expect(checks.querySelector('[data-check="validity"]').getAttribute('data-status')).toBe('warn');
     expect(sb.functions.invoke).not.toHaveBeenCalled();
     expect(screen.getByTestId('customer-twin-internal').textContent).toMatch(/הלקוח לא רואה אותה/);
-    expect(document.querySelector('[data-ai-robot-icon]')).toBeTruthy(); // law 45: the TEKANGO AI icon, no generic sparkle
+    expect(document.querySelector('[data-tekango-ai-icon="customer"]')).toBeTruthy(); // law 45: the TEKANGO AI icon family, no generic sparkle
   });
   it('the AI view: three customers, money in the market format, a suggestion added ONLY on approval; the call uses a fresh session', async () => {
     const onApplyEdit = vi.fn();

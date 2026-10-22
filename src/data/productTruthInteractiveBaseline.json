@@ -83,6 +83,10 @@
     "interactive": 2,
     "markers": 2
   },
+  "src/components/AdminTwinCosts.jsx": {
+    "interactive": 1,
+    "markers": 1
+  },
   "src/components/AdminUserDetails.jsx": {
     "interactive": 5,
     "markers": 5
@@ -326,6 +330,10 @@
   "src/components/TasksTab.jsx": {
     "interactive": 11,
     "markers": 20
+  },
+  "src/components/TekangoAiIcon.jsx": {
+    "interactive": 0,
+    "markers": 0
   },
   "src/components/TekangoEyeIcon.jsx": {
     "interactive": 0,

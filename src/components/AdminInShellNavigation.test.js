@@ -23,8 +23,9 @@ describe('Admin destination registry (ONE definition)', () => {
   // Owner console 2026-10-19, typed: "מאשר שינוי ב-L-22: לשונית "פניות" חדשה בממשק הניהול" - Inquiries joins the registry
   // Owner console 2026-10-20, typed: "מאשר שינוי ב-L-22: צמצום תפריט הניהול לשני כפתורים ומסך מרכזי, ומשתמש מפקח עם מסך הרשאות מנהל" -
   // two hubs ("ניהול" / "מערכת") hold every tool; "הרשאות מנהל" joins as an Owner-only tool.
+  // Owner console 2026-10-23, typed approval of L-22: "מסך עלויות בדיקת הלקוח בניהול" - an Owner-only tool in "מערכת"
   it('keeps every current destination (Overview, Users, Plans, Inquiries, Activity, AI Support) plus the two hubs and the permissions screen', () => {
-    expect(ADMIN_DESTINATIONS.map((d) => d.id).sort()).toEqual(['activity', 'ai-support', 'inquiries', 'manage', 'overview', 'permissions', 'plans', 'system', 'users']);
+    expect(ADMIN_DESTINATIONS.map((d) => d.id).sort()).toEqual(['activity', 'ai-support', 'inquiries', 'manage', 'overview', 'permissions', 'plans', 'system', 'twin-costs', 'users']);
   });
   it('sidebar groups, section ids and mobile list are all derived from the registry; the nav shows the two hubs only', () => {
     const navIds = ADMIN_NAV_GROUPS.flatMap((g) => g.items.map((i) => i.id)).sort();
