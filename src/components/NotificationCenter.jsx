@@ -18,7 +18,6 @@ import {
 } from '../utils/reminders';
 import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../shared/brand';
 import TekangoAiIcon from './TekangoAiIcon';
-import { DAILY_TIP_ACTION_EVENT } from '../utils/dailyTips';
 import { BELL_SUBJECT_EVENT, BELL_ACTION_COPY, bellActionsFor, loadFloatedKeys, saveFloatedKeys, floatedStorageKey, pendingFloating } from '../utils/bellSubject';
 import { activeAnnouncements } from '../utils/bellAnnouncements';
 
@@ -98,8 +97,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   const supportEmail = isHebrew ? SUPPORT_EMAIL_HE : SUPPORT_EMAIL_EN;
   const welcome = settingsLoaded && isWelcomeVisible({ accountCreatedAt: authUser?.created_at, mode: settings.mode, now: clock.getTime() });
   const welcomeRead = read.has(WELCOME_ITEM_KEY);
-  // Owner console 2026-10-23, typed: "מאשר שינוי ב-L-02, L-04, L-11, L-12, L-14, L-17, L-24, L-26, L-27 ו-L-28: ... וטיפ יומי שנסגר נשמר בפעמון כנקרא למשך 30 יום עם אותו כפתור פעולה": a closed daily tip is a read item (preRead) - it never counts as unread
-  const unread = items.filter((i) => !read.has(i.key) && !i.preRead).length + (welcome && readPersisted && !welcomeRead ? 1 : 0);
+  const unread = items.filter((i) => !read.has(i.key)).length + (welcome && readPersisted && !welcomeRead ? 1 : 0);
 
   useLayoutEffect(() => {
     if (!open || !btnRef.current) return;
@@ -138,9 +136,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   const openSubject = (item, action) => {
     setOpen(false);
     setNotice(null);
-    if (!item.preRead) markRemindersRead(client, userId, [item.key]).then((r) => { if (r?.ok) setRead((s) => new Set([...s, item.key])); }).catch(() => {});
-    // a closed daily tip: the Dashboard runs the same action as the tip card
-    if (action.kind === 'tip') { window.dispatchEvent(new CustomEvent(DAILY_TIP_ACTION_EVENT, { detail: { action: action.tipAction } })); return; }
+    markRemindersRead(client, userId, [item.key]).then((r) => { if (r?.ok) setRead((s) => new Set([...s, item.key])); }).catch(() => {});
     // an announcement's action opens the ONE existing assistant through its existing window event (like the welcome item)
     if (action.kind === 'assistant') { window.dispatchEvent(new CustomEvent('open-proflow-ai-chat')); return; }
     // Owner 2026-10-20 (L-17): the SMART PACK announcement opens the ONE plans view (the Dashboard listens)
@@ -301,7 +297,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
             <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
               {items.map((i) => {
                 const l = line(i);
-                const isRead = read.has(i.key) || i.preRead === true;
+                const isRead = read.has(i.key);
                 return (
                   <li key={i.key} data-testid={`notification-${i.kind}`} style={{ display: 'grid', gridTemplateColumns: '10px minmax(0,1fr)', gap: 10, padding: '10px 14px', borderBottom: `1px solid ${NEON.border}`, opacity: isRead ? 0.6 : 1 }}>
                     <span aria-hidden="true" style={{ width: 8, height: 8, borderRadius: '50%', marginTop: 6, background: KIND_COLOR[i.kind] }} />
@@ -319,7 +315,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
                           {actionsFor(i).map((a) => (
                             // PRODUCT_TRUTH_CAPABILITY: reminders_automation
                             <button key={a.kind} type="button" data-testid={`notification-action-${a.kind}`} onClick={() => openSubject(i, a)} style={actionBtnStyle(mobile)}>
-                              {a.kind === 'tip' ? i.copy[isHebrew ? 'he' : 'en'].action : A[a.kind]}
+                              {A[a.kind]}
                             </button>
                           ))}
                           {readPersisted && !isRead && (

@@ -167,10 +167,6 @@
     "interactive": 6,
     "markers": 6
   },
-  "src/components/DailyTipCard.jsx": {
-    "interactive": 4,
-    "markers": 4
-  },
   "src/components/DeleteConfirmModal.jsx": {
     "interactive": 2,
     "markers": 4
@@ -856,10 +852,6 @@
     "markers": 0
   },
   "src/utils/customerTwinClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/dailyTips.js": {
     "interactive": 0,
     "markers": 0
   },
