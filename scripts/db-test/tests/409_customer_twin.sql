@@ -41,10 +41,10 @@ BEGIN
   PERFORM tst.ok(has_function_privilege('authenticated', 'public.customer_twin_claim(text)', 'execute')
                  AND has_function_privilege('authenticated', 'public.customer_twin_status()', 'execute')
                  AND NOT has_function_privilege('anon', 'public.customer_twin_claim(text)', 'execute')
-                 AND NOT has_function_privilege('authenticated', 'public.customer_twin_store(uuid, jsonb, text, text)', 'execute')
-                 AND NOT has_function_privilege('authenticated', 'public.customer_twin_refund(uuid)', 'execute')
+                 AND NOT has_function_privilege('authenticated', 'public.customer_twin_store(uuid, jsonb, text, text, integer, integer, integer)', 'execute')
+                 AND NOT has_function_privilege('authenticated', 'public.customer_twin_refund(uuid, text, integer, integer, integer)', 'execute')
                  AND NOT has_function_privilege('authenticated', 'public.customer_twin_grant_credits(uuid, integer, text)', 'execute')
-                 AND has_function_privilege('service_role', 'public.customer_twin_store(uuid, jsonb, text, text)', 'execute'),
+                 AND has_function_privilege('service_role', 'public.customer_twin_store(uuid, jsonb, text, text, integer, integer, integer)', 'execute'),
     'T0b the app may only read its counters and claim; store / refund / grant are the service role''s');
 END $$;
 
@@ -195,6 +195,55 @@ INSERT INTO public.customer_twin_claims (user_id, content_sha256, source, usage_
 SELECT '00000000-0000-4000-8000-00000000000c', tst.tsha(900 + g), 'purchased', date_trunc('month', now())::date, 'refunded', now() FROM generate_series(1, 10) g;
 SELECT tst.login('00000000-0000-4000-8000-00000000000c');
 SELECT tst.ok(public.customer_twin_claim(tst.tsha(999)) ->> 'code' = 'too_many_failures', 'T8c ten failed checks in a day: refused (too_many_failures)');
+SELECT tst.logout();
+
+-- ------------------------------------------------------------------------ T9. Codex review 2026-10-23: one answer, one charge
+-- user A (LIFETIME): a check still running 5 minutes later blocks the same content (no 2-10 minute gap - CT-04)
+DO $$
+DECLARE r1 jsonb; r2 jsonb;
+BEGIN
+  PERFORM tst.login('00000000-0000-4000-8000-00000000000a');
+  r1 := public.customer_twin_claim(tst.tsha(700));
+  PERFORM tst.logout();
+  UPDATE public.customer_twin_claims SET created_at = now() - interval '5 minutes' WHERE claim_id = (r1 ->> 'claimId')::uuid;
+  PERFORM tst.login('00000000-0000-4000-8000-00000000000a');
+  r2 := public.customer_twin_claim(tst.tsha(700));
+  PERFORM tst.logout();
+  PERFORM tst.ok(r2 ->> 'code' = 'in_progress', 'T9 a check still running after 5 minutes: the same content is in_progress, never a second charge');
+  -- a late store when the content already has a stored answer gives this check back (duplicate)
+  INSERT INTO public.customer_twin_results (user_id, content_sha256, result, model, prompt_version)
+  VALUES ('00000000-0000-4000-8000-00000000000a', tst.tsha(700), tst.tres(), 'gpt-test', 'v1');
+  PERFORM tst.tsvc();
+  r2 := public.customer_twin_store((r1 ->> 'claimId')::uuid, tst.tres(), 'gpt-6-luna', 'v2', 1200, 400, 900);
+  PERFORM tst.logout();
+  PERFORM tst.ok(r2 ->> 'duplicate' = 'true' AND r2 ->> 'ok' = 'true'
+                 AND (SELECT state = 'refunded' AND prompt_tokens = 1200 AND completion_tokens = 400 FROM public.customer_twin_claims WHERE claim_id = (r1 ->> 'claimId')::uuid),
+    'T9b a late store of an already answered content refunds its check and keeps the usage for the cost view');
+END $$;
+-- a purchase ref replayed for another account / pack is a conflict, never a silent success (CT-13)
+SELECT tst.tsvc();
+SELECT tst.ok(public.customer_twin_grant_credits('00000000-0000-4000-8000-00000000000b', 10, 'pp-twin-1') ->> 'code' = 'ref_conflict'
+          AND public.customer_twin_grant_credits('00000000-0000-4000-8000-00000000000a', 10, 'pp-twin-1') ->> 'code' = 'ref_conflict'
+          AND public.customer_twin_grant_credits('00000000-0000-4000-8000-00000000000a', 20, 'pp-twin-1') ->> 'duplicate' = 'true',
+  'T9c the same purchase ref: a replay (same account and pack) is idempotent, anything else is ref_conflict');
+SELECT tst.logout();
+-- the Owner's cost view: super admin only, numbers only
+SELECT tst.login('00000000-0000-4000-8000-00000000000b');
+SELECT tst.throws($q$SELECT public.customer_twin_admin_usage(30)$q$, 'super admin only', 'T9d a user cannot read the cost view');
+SELECT tst.logout();
+SELECT set_config('session_replication_role', 'replica', true);
+UPDATE public.business_settings SET role = 'super_admin' WHERE user_id = '00000000-0000-4000-8000-00000000000c';
+SELECT set_config('session_replication_role', 'origin', true);
+SELECT tst.login('00000000-0000-4000-8000-00000000000c');
+DO $$
+DECLARE r jsonb;
+BEGIN
+  r := public.customer_twin_admin_usage(30);
+  PERFORM tst.ok(r ->> 'ok' = 'true' AND jsonb_array_length(r -> 'days') >= 1
+                 AND (SELECT sum((d ->> 'promptTokens')::int) FROM jsonb_array_elements(r -> 'days') d) >= 1200
+                 AND r::text !~ 'b408|synthetic|00000000-0000-4000-8000',
+    'T9e the super admin sees checks / tokens / estimated cost per Israel day, no accounts or content');
+END $$;
 SELECT tst.logout();
 
 -- no identity

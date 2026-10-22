@@ -4,7 +4,8 @@ import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
 import EditItemPriceDialog from './EditItemPriceDialog';
 import AddAnotherItemDialog from './AddAnotherItemDialog';
-import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText, Building2, LayoutList, Sparkles } from 'lucide-react';
+import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText, Building2, LayoutList } from 'lucide-react';
+import AiRobotIcon from './AiRobotIcon';
 import { APP as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import QuotePresentationPanel from './quotePresentation/QuotePresentationPanel';
 import { calculateQuoteFinancials } from '../utils/regionConfig';
@@ -724,7 +725,7 @@ export default function QuoteForm({
             data-testid="customer-twin-open"
             style={{ background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
-            <Sparkles size={15} aria-hidden="true" />
+            <AiRobotIcon size={18} />
             {isHebrew ? 'בדיקת הלקוח' : 'Customer check'}
           </button>
         )}

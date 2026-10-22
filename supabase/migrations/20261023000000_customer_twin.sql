@@ -16,8 +16,8 @@
 --   Every table is closed to the app (RLS on, no policy, no grant); the app reaches it ONLY through customer_twin_status() and
 --   customer_twin_claim() (the CALLER, auth.uid()); storing / refunding / granting purchased checks is the service role's (the Edge
 --   Function customer-twin, and the billing webhook once purchases open). The quota fails closed: no allowance, no AI call.
--- Rollback of THIS file: DROP FUNCTION public.customer_twin_grant_credits(uuid, integer, text), public.customer_twin_refund(uuid),
---   public.customer_twin_store(uuid, jsonb, text, text), public.customer_twin_claim(text), public.customer_twin_status(),
+-- Rollback of THIS file: DROP FUNCTION public.customer_twin_grant_credits(uuid, integer, text), public.customer_twin_refund(uuid, text, integer, integer, integer),
+--   public.customer_twin_store(uuid, jsonb, text, text, integer, integer, integer), public.customer_twin_claim(text), public.customer_twin_admin_usage(integer), public.customer_twin_status(),
 --   public.customer_twin_state(uuid), public.customer_twin_monthly_limit(); DROP TABLE public.customer_twin_results,
 --   public.customer_twin_claims, public.customer_twin_credit_ledger, public.customer_twin_credits, public.customer_twin_usage.
 -- ============================================================================================================================
@@ -70,7 +70,12 @@ CREATE TABLE IF NOT EXISTS public.customer_twin_claims (
   usage_month    date        NOT NULL,
   state          text        NOT NULL DEFAULT 'claimed' CHECK (state IN ('claimed', 'stored', 'refunded')),
   created_at     timestamptz NOT NULL DEFAULT now(),
-  finished_at    timestamptz NULL
+  finished_at    timestamptz NULL,
+  -- usage for the Owner's cost view (never quote content)
+  model             text    NULL CHECK (model IS NULL OR length(model) BETWEEN 1 AND 80),
+  prompt_tokens     integer NULL CHECK (prompt_tokens IS NULL OR prompt_tokens >= 0),
+  completion_tokens integer NULL CHECK (completion_tokens IS NULL OR completion_tokens >= 0),
+  provider_ms       integer NULL CHECK (provider_ms IS NULL OR provider_ms >= 0)
 );
 CREATE INDEX IF NOT EXISTS customer_twin_claims_user ON public.customer_twin_claims (user_id, created_at DESC);
 ALTER TABLE public.customer_twin_claims ENABLE ROW LEVEL SECURITY;
@@ -186,9 +191,10 @@ BEGIN
     RETURN jsonb_build_object('ok', true, 'cached', true, 'result', v_res.result, 'createdAt', v_res.created_at,
                               'status', public.customer_twin_state(v_uid));
   END IF;
-  -- the same content already being checked (a double click): never two checks for one answer
+  -- the same content already being checked (a double click, a slow call): never two checks for one answer - the same 10 minutes
+  -- after which a stuck claim is given back above (CT-04: one window, no gap)
   IF EXISTS (SELECT 1 FROM public.customer_twin_claims c WHERE c.user_id = v_uid AND c.content_sha256 = p_content_sha256
-              AND c.state = 'claimed' AND c.created_at > now() - interval '2 minutes') THEN
+              AND c.state = 'claimed') THEN
     RETURN jsonb_build_object('ok', false, 'code', 'in_progress', 'status', public.customer_twin_state(v_uid));
   END IF;
   -- every failed check is given back but still cost a model call: 10 failures in 24 hours = no more tries today
@@ -226,46 +232,24 @@ $function$;
 REVOKE ALL ON FUNCTION public.customer_twin_claim(text) FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.customer_twin_claim(text) TO authenticated;
 
--- the Edge Function stores a VALIDATED analysis for its claim (service role); the claim's content hash is the key
-CREATE OR REPLACE FUNCTION public.customer_twin_store(p_claim_id uuid, p_result jsonb, p_model text, p_prompt_version text)
+-- the AI call failed / its answer was invalid / it was not stored: the check is given back (never charged for nothing). Lock order is
+-- the same everywhere (CT-12): the account's advisory lock FIRST, then the claim row. Usage of a failed call is kept for the cost view.
+CREATE OR REPLACE FUNCTION public.customer_twin_refund(p_claim_id uuid, p_model text DEFAULT NULL, p_prompt_tokens integer DEFAULT NULL,
+  p_completion_tokens integer DEFAULT NULL, p_provider_ms integer DEFAULT NULL)
 RETURNS jsonb
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $function$
 DECLARE
+  v_user  uuid;
   v_claim public.customer_twin_claims%ROWTYPE;
 BEGIN
-  SELECT * INTO v_claim FROM public.customer_twin_claims c WHERE c.claim_id = p_claim_id FOR UPDATE;
+  SELECT c.user_id INTO v_user FROM public.customer_twin_claims c WHERE c.claim_id = p_claim_id;
   IF NOT FOUND THEN RETURN jsonb_build_object('ok', false, 'code', 'no_claim'); END IF;
-  IF v_claim.state <> 'claimed' THEN RETURN jsonb_build_object('ok', false, 'code', 'already_finished'); END IF;
-  IF p_result IS NULL OR jsonb_typeof(p_result) <> 'object' OR p_model IS NULL OR p_prompt_version IS NULL THEN
-    RETURN jsonb_build_object('ok', false, 'code', 'invalid_request');
-  END IF;
-  INSERT INTO public.customer_twin_results (user_id, content_sha256, result, model, prompt_version)
-  VALUES (v_claim.user_id, v_claim.content_sha256, p_result, p_model, p_prompt_version)
-  ON CONFLICT (user_id, content_sha256) DO NOTHING;
-  UPDATE public.customer_twin_claims SET state = 'stored', finished_at = now() WHERE claim_id = p_claim_id;
-  RETURN jsonb_build_object('ok', true, 'status', public.customer_twin_state(v_claim.user_id));
-END
-$function$;
-REVOKE ALL ON FUNCTION public.customer_twin_store(uuid, jsonb, text, text) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.customer_twin_store(uuid, jsonb, text, text) TO service_role;
-
--- the AI call failed / its answer was invalid: the check is given back (never charged for nothing)
-CREATE OR REPLACE FUNCTION public.customer_twin_refund(p_claim_id uuid)
-RETURNS jsonb
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = public, pg_temp
-AS $function$
-DECLARE
-  v_claim public.customer_twin_claims%ROWTYPE;
-BEGIN
+  PERFORM pg_advisory_xact_lock(hashtext('tekango-customer-twin:' || v_user::text));
   SELECT * INTO v_claim FROM public.customer_twin_claims c WHERE c.claim_id = p_claim_id FOR UPDATE;
-  IF NOT FOUND THEN RETURN jsonb_build_object('ok', false, 'code', 'no_claim'); END IF;
-  IF v_claim.state <> 'claimed' THEN RETURN jsonb_build_object('ok', false, 'code', 'already_finished'); END IF;
-  PERFORM pg_advisory_xact_lock(hashtext('tekango-customer-twin:' || v_claim.user_id::text));
+  IF v_claim.state <> 'claimed' THEN RETURN jsonb_build_object('ok', false, 'code', 'already_finished', 'status', public.customer_twin_state(v_user)); END IF;
   IF v_claim.source = 'monthly' THEN
     UPDATE public.customer_twin_usage u SET checks = greatest(u.checks - 1, 0)
      WHERE u.user_id = v_claim.user_id AND u.usage_month = v_claim.usage_month;
@@ -275,14 +259,56 @@ BEGIN
      WHERE c.user_id = v_claim.user_id;
     INSERT INTO public.customer_twin_credit_ledger (user_id, delta, kind, claim_id) VALUES (v_claim.user_id, 1, 'refund', p_claim_id);
   END IF;
-  UPDATE public.customer_twin_claims SET state = 'refunded', finished_at = now() WHERE claim_id = p_claim_id;
+  UPDATE public.customer_twin_claims SET state = 'refunded', finished_at = now(),
+         model = coalesce(left(p_model, 80), model), prompt_tokens = coalesce(p_prompt_tokens, prompt_tokens),
+         completion_tokens = coalesce(p_completion_tokens, completion_tokens), provider_ms = coalesce(p_provider_ms, provider_ms)
+   WHERE claim_id = p_claim_id;
   RETURN jsonb_build_object('ok', true, 'status', public.customer_twin_state(v_claim.user_id));
 END
 $function$;
-REVOKE ALL ON FUNCTION public.customer_twin_refund(uuid) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.customer_twin_refund(uuid) TO service_role;
+REVOKE ALL ON FUNCTION public.customer_twin_refund(uuid, text, integer, integer, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.customer_twin_refund(uuid, text, integer, integer, integer) TO service_role;
 
--- purchased checks (service role: the billing webhook once purchases open, or the Owner's admin tool): idempotent per purchase ref.
+-- the Edge Function stores a VALIDATED analysis for its claim (service role); the claim's content hash is the key. A late store whose
+-- content already has a stored answer (another claim won) gives this check back - one answer, one charge (CT-04).
+CREATE OR REPLACE FUNCTION public.customer_twin_store(p_claim_id uuid, p_result jsonb, p_model text, p_prompt_version text,
+  p_prompt_tokens integer DEFAULT NULL, p_completion_tokens integer DEFAULT NULL, p_provider_ms integer DEFAULT NULL)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $function$
+DECLARE
+  v_user  uuid;
+  v_claim public.customer_twin_claims%ROWTYPE;
+  v_new   integer;
+BEGIN
+  IF p_result IS NULL OR jsonb_typeof(p_result) <> 'object' OR p_model IS NULL OR p_prompt_version IS NULL THEN
+    RETURN jsonb_build_object('ok', false, 'code', 'invalid_request');
+  END IF;
+  SELECT c.user_id INTO v_user FROM public.customer_twin_claims c WHERE c.claim_id = p_claim_id;
+  IF NOT FOUND THEN RETURN jsonb_build_object('ok', false, 'code', 'no_claim'); END IF;
+  PERFORM pg_advisory_xact_lock(hashtext('tekango-customer-twin:' || v_user::text));
+  SELECT * INTO v_claim FROM public.customer_twin_claims c WHERE c.claim_id = p_claim_id FOR UPDATE;
+  IF v_claim.state <> 'claimed' THEN RETURN jsonb_build_object('ok', false, 'code', 'already_finished'); END IF;
+  INSERT INTO public.customer_twin_results (user_id, content_sha256, result, model, prompt_version)
+  VALUES (v_claim.user_id, v_claim.content_sha256, p_result, left(p_model, 80), p_prompt_version)
+  ON CONFLICT (user_id, content_sha256) DO NOTHING;
+  GET DIAGNOSTICS v_new = ROW_COUNT;
+  IF v_new = 0 THEN
+    RETURN public.customer_twin_refund(p_claim_id, p_model, p_prompt_tokens, p_completion_tokens, p_provider_ms) || jsonb_build_object('duplicate', true);
+  END IF;
+  UPDATE public.customer_twin_claims SET state = 'stored', finished_at = now(), model = left(p_model, 80),
+         prompt_tokens = p_prompt_tokens, completion_tokens = p_completion_tokens, provider_ms = p_provider_ms
+   WHERE claim_id = p_claim_id;
+  RETURN jsonb_build_object('ok', true, 'status', public.customer_twin_state(v_claim.user_id));
+END
+$function$;
+REVOKE ALL ON FUNCTION public.customer_twin_store(uuid, jsonb, text, text, integer, integer, integer) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.customer_twin_store(uuid, jsonb, text, text, integer, integer, integer) TO service_role;
+
+-- purchased checks (service role: the billing webhook once purchases open, or the Owner's admin tool). The same purchase ref again is
+-- a replay ONLY for the same account and pack (idempotent); a different account or pack under that ref is a conflict (CT-13).
 -- A purchase on an empty balance starts a new run ("4 of 10"); on a balance it adds to the run.
 CREATE OR REPLACE FUNCTION public.customer_twin_grant_credits(p_user_id uuid, p_checks integer, p_ref text)
 RETURNS jsonb
@@ -290,14 +316,21 @@ LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $function$
+DECLARE
+  v_prev public.customer_twin_credit_ledger%ROWTYPE;
 BEGIN
   IF p_user_id IS NULL OR p_checks IS NULL OR p_checks NOT IN (10, 20) OR p_ref IS NULL OR length(p_ref) NOT BETWEEN 1 AND 200 THEN
     RETURN jsonb_build_object('ok', false, 'code', 'invalid_request');
   END IF;
   IF NOT EXISTS (SELECT 1 FROM auth.users u WHERE u.id = p_user_id) THEN RETURN jsonb_build_object('ok', false, 'code', 'no_account'); END IF;
+  PERFORM pg_advisory_xact_lock(hashtext('tekango-customer-twin-purchase:' || p_ref));
   PERFORM pg_advisory_xact_lock(hashtext('tekango-customer-twin:' || p_user_id::text));
-  IF EXISTS (SELECT 1 FROM public.customer_twin_credit_ledger l WHERE l.kind = 'purchase' AND l.ref = p_ref) THEN
-    RETURN jsonb_build_object('ok', true, 'duplicate', true, 'status', public.customer_twin_state(p_user_id));
+  SELECT * INTO v_prev FROM public.customer_twin_credit_ledger l WHERE l.kind = 'purchase' AND l.ref = p_ref;
+  IF FOUND THEN
+    IF v_prev.user_id = p_user_id AND v_prev.delta = p_checks THEN
+      RETURN jsonb_build_object('ok', true, 'duplicate', true, 'status', public.customer_twin_state(p_user_id));
+    END IF;
+    RETURN jsonb_build_object('ok', false, 'code', 'ref_conflict');
   END IF;
   INSERT INTO public.customer_twin_credits AS c (user_id, balance, window_total) VALUES (p_user_id, p_checks, p_checks)
   ON CONFLICT (user_id) DO UPDATE
@@ -309,3 +342,39 @@ END
 $function$;
 REVOKE ALL ON FUNCTION public.customer_twin_grant_credits(uuid, integer, text) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.customer_twin_grant_credits(uuid, integer, text) TO service_role;
+
+-- the Owner's cost view (CT-14, plan "מעקב בממשק הניהול"): per Israel day - checks stored / given back / served free from a stored
+-- answer is not counted (no AI call) - tokens and the estimated provider cost in USD (list prices per million tokens: gpt-6-luna
+-- 0.10 in / 0.50 out, gpt-4o-mini 0.15 / 0.60). Super admin only; numbers only, never quote content or accounts.
+CREATE OR REPLACE FUNCTION public.customer_twin_admin_usage(p_days integer DEFAULT 30)
+RETURNS jsonb
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $function$
+DECLARE
+  v_days integer := least(greatest(coalesce(p_days, 30), 1), 366);
+BEGIN
+  IF NOT public.is_super_admin() THEN
+    RAISE EXCEPTION 'customer_twin_admin_usage: super admin only' USING ERRCODE = '42501';
+  END IF;
+  RETURN jsonb_build_object('ok', true, 'days', coalesce((
+    SELECT jsonb_agg(d ORDER BY d ->> 'day' DESC) FROM (
+      SELECT jsonb_build_object(
+        'day', to_char((c.created_at AT TIME ZONE 'Asia/Jerusalem')::date, 'YYYY-MM-DD'),
+        'stored', count(*) FILTER (WHERE c.state = 'stored'),
+        'refunded', count(*) FILTER (WHERE c.state = 'refunded'),
+        'accounts', count(DISTINCT c.user_id),
+        'promptTokens', coalesce(sum(c.prompt_tokens), 0),
+        'completionTokens', coalesce(sum(c.completion_tokens), 0),
+        'estimatedCostUsd', round(coalesce(sum(
+            CASE WHEN c.model = 'gpt-4o-mini' THEN coalesce(c.prompt_tokens, 0) * 0.15 + coalesce(c.completion_tokens, 0) * 0.60
+                 ELSE coalesce(c.prompt_tokens, 0) * 0.10 + coalesce(c.completion_tokens, 0) * 0.50 END), 0) / 1000000.0, 4)) AS d
+        FROM public.customer_twin_claims c
+       WHERE c.created_at >= now() - make_interval(days => v_days)
+       GROUP BY (c.created_at AT TIME ZONE 'Asia/Jerusalem')::date) x), '[]'::jsonb));
+END
+$function$;
+REVOKE ALL ON FUNCTION public.customer_twin_admin_usage(integer) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.customer_twin_admin_usage(integer) TO authenticated;

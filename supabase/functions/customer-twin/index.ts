@@ -38,15 +38,16 @@ Deno.serve(async (req: Request) => {
   };
 
   const r = await customerTwinHandler({
-    market: async () => {
+    country: async () => {
       const { data, error } = await caller.from('business_settings').select('country').eq('user_id', userId).maybeSingle();
       if (error) throw new Error('settings');
-      const country = (data as { country?: string } | null)?.country;
-      return country === 'Local' ? 'IL' : country === 'International' ? 'INTERNATIONAL' : null;
+      return (data as { country?: string } | null)?.country ?? null;
     },
     claim: (sha) => rpc(caller, 'customer_twin_claim', { p_content_sha256: sha }),
-    store: (claimId, result, model) => rpc(admin, 'customer_twin_store', { p_claim_id: claimId, p_result: result, p_model: model, p_prompt_version: TWIN_PROMPT_VERSION }),
-    refund: (claimId) => rpc(admin, 'customer_twin_refund', { p_claim_id: claimId }),
+    store: (claimId, result, u) => rpc(admin, 'customer_twin_store', { p_claim_id: claimId, p_result: result, p_model: u.model, p_prompt_version: TWIN_PROMPT_VERSION,
+      p_prompt_tokens: u.promptTokens, p_completion_tokens: u.completionTokens, p_provider_ms: u.providerMs }),
+    refund: (claimId, u) => rpc(admin, 'customer_twin_refund', { p_claim_id: claimId, p_model: u?.model ?? null, p_prompt_tokens: u?.promptTokens ?? null,
+      p_completion_tokens: u?.completionTokens ?? null, p_provider_ms: u?.providerMs ?? null }),
     complete: async ({ model, messages, schema }) => {
       const legacy = model === 'gpt-4o-mini';
       const abort = new AbortController();
@@ -62,16 +63,21 @@ Deno.serve(async (req: Request) => {
         if (res.status === 404 || (res.status === 400 && /model/i.test(await res.clone().text()))) throw new Error('model_unavailable');
         if (!res.ok) throw new Error('provider_failure');
         const data = await res.json();
-        const content = data?.choices?.[0]?.message?.content;
-        if (typeof content !== 'string') throw new Error('provider_failure');
-        return content;
+        const choice = data?.choices?.[0];
+        const content = choice?.message?.content;
+        // a cut / refused answer is a failure (never half an analysis)
+        if (typeof content !== 'string' || (choice?.finish_reason && choice.finish_reason !== 'stop') || choice?.message?.refusal) throw new Error('provider_failure');
+        const n = (v: unknown) => (Number.isInteger(v) ? (v as number) : null);
+        return { content, promptTokens: n(data?.usage?.prompt_tokens), completionTokens: n(data?.usage?.completion_tokens) };
       } finally { clearTimeout(timer); }
     },
     sha256: async (text) => {
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
       return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');
     },
+    // a fallback only: the editor sends the quote's own validity status (CT-11)
     today: () => { const p = calendarParts(new Date(), 'Local'); return p ? `${p.y}-${p.m}-${p.d}` : ''; },
+    now: () => Date.now(),
   }, body);
   return reply(r.status, r.body);
 });

@@ -7595,8 +7595,18 @@ ${quoteViewLink}`
           onClose={() => setTemplateDialog(null)} onUse={handleUseTemplate} />
       )}
       {customerTwin && (() => {
-        const twinMarket = bizCountry === 'International' ? 'INTERNATIONAL' : isLocalIsraeliBusiness ? 'IL' : null;
+        // the product's market rule (CT-06): Local / LCL / IL / Israel = IL, any other stored country = International
+        const twinMarket = isLocalIsraeliBusiness || /^(il|israel)$/i.test(String(bizCountry || '').trim()) ? 'IL' : (String(bizCountry || '').trim() ? 'INTERNATIONAL' : null);
         const listQuote = customerTwin.mode === 'list' ? customerTwin.quote : null;
+        // CT-01: the names / contact / address the editor knows never reach the AI, even when typed into a quote text
+        const personal = listQuote
+          ? [listQuote.clients?.company_name, listQuote.clients?.contact_name, listQuote.clients?.email, listQuote.clients?.phone, listQuote.clients?.address,
+            listQuote.client_name, listQuote.attn_name, bizName]
+          : [clientName, clientEmail, clientPhone, clientTaxId, clientAddress, attnName, bizName];
+        const payload = listQuote ? twinPayloadFromQuoteRow(listQuote, twinMarket, personal)
+          : twinPayloadFromEditor({ market: twinMarket, currency: editingOriginalQuote ? editingOriginalQuote.currency : (isLocalIsraeliBusiness ? 'ILS' : currency),
+            quoteSubject, items, terms, warranty, validUntil, taxRate, clientType, discount, personal,
+            financials: { subtotal, discountAmount, netAmount: previewFinancials.netAmount, taxAmount, total: totalAmount } });
         return (
           <CustomerTwinPanel
             open
@@ -7605,8 +7615,8 @@ ${quoteViewLink}`
             supabase={supabase}
             market={twinMarket}
             mode={customerTwin.mode}
-            quote={listQuote ? twinPayloadFromQuoteRow(listQuote, twinMarket)
-              : twinPayloadFromEditor({ market: twinMarket, currency, quoteSubject, items, terms, warranty, validUntil, taxRate, clientType, discount, subtotal, totalAmount })}
+            quote={payload.quote}
+            tooLong={payload.tooLong}
             // every suggestion is added ONLY on the owner's click, one by one, to the open draft (saved as usual)
             onApplyEdit={(edit) => {
               const next = applyTwinEdit({ terms, warranty, items }, edit);

@@ -4,15 +4,41 @@
 // 10" purchased). Every suggestion changes the quote ONLY when the owner approves it (onApplyEdit); from the quotes list the analysis is
 // read-only and the owner opens the editor to add. The recipient never sees any of it. HE / RTL and EN / LTR.
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { X, Sparkles, Check, AlertCircle, Lightbulb, Wallet, BadgeCheck, SearchCheck, CircleCheck, CircleAlert, CircleMinus, Plus, Pencil } from 'lucide-react';
+import { X, Check, AlertCircle, Lightbulb, Wallet, BadgeCheck, SearchCheck, CircleCheck, CircleAlert, CircleMinus, Plus, Pencil } from 'lucide-react';
+// IRON-ICON-001 (law 45): the TEKANGO illustrated AI icon of the smart features (the AI chat button) - never a generic sparkle
+import AiRobotIcon from './AiRobotIcon';
 import useFocusTrap from './quotePresentation/useFocusTrap';
 import { twinChecklist } from '../../supabase/functions/_shared/customerTwin.js';
 import { fetchTwinStatus, requestCustomerTwin } from '../utils/customerTwinClient';
-import { calendarParts } from '../utils/shortDate';
+import { calendarParts, formatShortDate } from '../utils/shortDate';
 import { formatMoneyForCurrency } from '../utils/money';
 
 // IRON-NUMERIC-001: every number / price inside the copy is an isolated LTR run with tabular figures
 const N = ({ v }) => <bdi dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{v}</bdi>;
+// CT-07: a model text shows every number isolated with tabular figures; an amount next to a currency sign in the market's money format
+// (IRON-ILS-001 whole shekels with .00); a date in the market's short date (IRON-DATE-001). Plain text otherwise (never HTML).
+const VALUE = /(\d{1,2})[./-](\d{1,2})[./-](\d{2,4})|\d[\d,]*(?:\.\d+)?/g;
+function Rich({ text, market }) {
+  const s = String(text || '');
+  const out = []; let last = 0; let k = 0;
+  for (const m of s.matchAll(VALUE)) {
+    if (m.index > last) out.push(s.slice(last, m.index));
+    let shown = m[0];
+    if (m[1]) {
+      const y = m[3].length === 2 ? `20${m[3]}` : m[3];
+      shown = formatShortDate(`${y}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`, market === 'INTERNATIONAL' ? 'International' : 'Local');
+    } else {
+      const around = s.slice(Math.max(0, m.index - 3), m.index + m[0].length + 5);
+      const n = Number(m[0].replace(/,/g, ''));
+      if (/₪|ש["״']?ח|שקל/.test(around) && Number.isFinite(n)) shown = formatMoneyForCurrency(n, 'ILS');
+      else if (/\$|USD|dollar/i.test(around) && Number.isFinite(n)) shown = formatMoneyForCurrency(n, 'USD');
+    }
+    out.push(<N key={k++} v={shown} />);
+    last = m.index + m[0].length;
+  }
+  if (last < s.length) out.push(s.slice(last));
+  return <>{out}</>;
+}
 
 const C = {
   ink: '#0f172a', text: '#334155', muted: '#64748b', line: '#e2e8f0', card: '#ffffff', page: '#f8fafc', blue: '#1d4ed8', blueSoft: '#eff6ff',
@@ -50,7 +76,8 @@ const COPY = {
     target: { terms: 'תוספת לתנאים', warranty: 'תוספת לאחריות', item: (n) => <>פירוט לפריט <N v={n} /></> },
     apply: 'הוספה להצעה', applied: 'נוסף להצעה', fill: 'השלימו בעורך את המקומות המסומנים ב־___.',
     listNote: 'כדי להכניס את התוספות, פתחו את ההצעה בעורך.', openEditor: 'פתיחה בעורך',
-    cached: 'ההצעה לא השתנתה, ולכן מוצגת התוצאה הקודמת. הבדיקה לא נספרה שוב.',
+    cached: (d) => <>הניתוח נעשה ב־<N v={d} /> על אותה הצעה, ולא נספר שוב. הבדיקה הבסיסית למעלה מעודכנת להיום.</>,
+    notSaved: (refunded) => (refunded ? 'הניתוח לא נשמר, ולכן הבדיקה לא נספרה.' : 'הניתוח לא נשמר. אם הבדיקה נספרה, היא תוחזר אוטומטית בתוך כמה דקות.'),
     internal: 'הבדיקה פנימית בלבד. הלקוח לא רואה אותה. אלה המלצות של הבינה המלאכותית, ושום דבר לא משתנה בהצעה בלי אישור שלכם.',
     errors: {
       not_deployed: 'ניתוח הבינה עדיין לא זמין כאן. הבדיקה הבסיסית למעלה זמינה תמיד.',
@@ -58,7 +85,9 @@ const COPY = {
       smart_pack_required: 'ניתוח הבינה של בדיקת הלקוח הוא חלק מחכם פלוס.',
       in_progress: 'ההצעה הזו כבר בבדיקה. נסו שוב בעוד רגע.',
       too_many_failures: 'היום היו כמה בדיקות שלא הצליחו. נסו שוב מחר.',
-      provider_failure: 'לא הצלחנו להשלים את הבדיקה, והיא לא נוכתה. אפשר לנסות שוב.',
+      provider_failure: (refunded) => (refunded ? 'לא הצלחנו להשלים את הבדיקה, והיא לא נספרה. אפשר לנסות שוב.'
+        : 'לא הצלחנו להשלים את הבדיקה. אם היא נספרה, היא תוחזר אוטומטית בתוך כמה דקות.'),
+      quote_too_long: 'ההצעה ארוכה מדי לבדיקה: עד 40 פריטים, ותנאים עד 1,500 תווים.',
       failed: 'לא הצלחנו להשלים את הבדיקה. אפשר לנסות שוב.',
       offline: 'אין חיבור לאינטרנט.',
       nothing_to_check: 'צריך לפחות פריט אחד עם תיאור כדי לבדוק את ההצעה.',
@@ -96,7 +125,8 @@ const COPY = {
     target: { terms: 'Add to the terms', warranty: 'Add to the warranty', item: (n) => <>Detail for item <N v={n} /></> },
     apply: 'Add to the quote', applied: 'Added to the quote', fill: 'Fill in the ___ places in the editor.',
     listNote: 'To add a suggestion to the quote, open it in the editor.', openEditor: 'Open in the editor',
-    cached: 'This is the saved result for the same quote; it was not counted again.',
+    cached: (d) => <>This analysis of the same quote was made on <N v={d} /> and was not counted again. The basic check above is up to date.</>,
+    notSaved: (refunded) => (refunded ? 'The analysis was not saved, so the check was not counted.' : 'The analysis was not saved. If the check was counted, it will be given back automatically within a few minutes.'),
     internal: 'This check is internal only. Your customer never sees it. These are AI suggestions; nothing changes in the quote without your approval.',
     errors: {
       not_deployed: 'The AI analysis is not available here yet. The basic check above is always available.',
@@ -104,7 +134,9 @@ const COPY = {
       smart_pack_required: 'The AI customer check is part of SMART PACK.',
       in_progress: 'This quote is already being checked. Try again in a moment.',
       too_many_failures: 'Several checks did not complete today. Please try again tomorrow.',
-      provider_failure: 'We could not complete the check, and it was not counted. You can try again.',
+      provider_failure: (refunded) => (refunded ? 'We could not complete the check, and it was not counted. You can try again.'
+        : 'We could not complete the check. If it was counted, it will be given back automatically within a few minutes.'),
+      quote_too_long: 'The quote is too long to check: up to 40 items and terms up to 1,500 characters.',
       failed: 'We could not complete the check. You can try again.',
       offline: 'No internet connection.',
       nothing_to_check: 'Add at least one item with a description to check the quote.',
@@ -129,7 +161,7 @@ const LIST_ORDER = ['strengthen', 'blockers', 'persuasive'];
 const isoToday = (market) => { const p = calendarParts(new Date(), market === 'INTERNATIONAL' ? 'International' : 'Local'); return p ? `${p.y}-${p.m}-${p.d}` : null; };
 const GRID_CSS = '.ctw-grid3{display:grid;gap:12px;grid-template-columns:1fr}@media (min-width:780px){.ctw-grid3{grid-template-columns:repeat(3,minmax(0,1fr))}}';
 
-export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, quote, market, mode = 'editor', onApplyEdit = null, onOpenEditor = null, onOpenPlans = null }) {
+export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, quote, tooLong = false, market, mode = 'editor', onApplyEdit = null, onOpenEditor = null, onOpenPlans = null }) {
   const ref = useRef(null);
   const closeRef = useRef(null);
   const t = COPY[isHebrew ? 'he' : 'en'];
@@ -177,7 +209,9 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
   const card = { background: C.card, border: `1px solid ${C.line}`, borderRadius: 14, padding: 16, boxSizing: 'border-box' };
   const btn = { minHeight: 44, padding: '0 18px', borderRadius: 10, fontWeight: 700, fontFamily: 'inherit', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: '0.92rem' };
   const errorText = run.state !== 'idle' && run.state !== 'running' && run.state !== 'ok'
-    ? (run.state === 'quota_exhausted' ? t.errors.quota_exhausted(s?.monthlyLimit ?? 20) : (t.errors[run.state] || t.errors.failed)) : null;
+    ? (run.state === 'quota_exhausted' ? t.errors.quota_exhausted(s?.monthlyLimit ?? 20)
+      : run.state === 'provider_failure' ? t.errors.provider_failure(run.refunded === true)
+        : (t.errors[run.state] || t.errors.failed)) : null;
 
   return (
     <div className="no-print" data-testid="customer-twin-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
@@ -186,7 +220,7 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
         style={{ background: C.page, width: '100%', maxWidth: 1120, height: '100%', overflowY: 'auto', boxSizing: 'border-box', textAlign: 'start', color: C.text }}>
         <div style={{ position: 'sticky', top: 0, zIndex: 1, background: C.card, borderBottom: `1px solid ${C.line}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '10px 16px' }}>
           <h2 id="customer-twin-title" style={{ margin: 0, fontSize: '1.15rem', color: C.ink, display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Sparkles size={20} color={C.violet} aria-hidden="true" />{t.label}
+            <AiRobotIcon size={24} />{t.label}
           </h2>
           {/* PRODUCT_TRUTH_DECORATIVE: closes the Customer Twin panel; changes no data */}
           <button type="button" ref={closeRef} onClick={onClose} aria-label={t.close} data-testid="customer-twin-close"
@@ -228,14 +262,15 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
             </ul>
           </section>
 
-          {!quote && <p data-testid="customer-twin-not-checkable" style={{ margin: 0, fontWeight: 700, color: C.ink }}>{market ? t.errors.nothing_to_check : t.errors.market_unresolved}</p>}
+          {!quote && <p data-testid="customer-twin-not-checkable" style={{ margin: 0, fontWeight: 700, color: C.ink }}>{!market ? t.errors.market_unresolved : tooLong ? t.errors.quote_too_long : t.errors.nothing_to_check}</p>}
           <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
             {/* PRODUCT_TRUTH_DECORATIVE: starts the Customer Twin AI check of this quote (a local feature; its capability id awaits the Owner's L-14 registry approval) */}
             <button type="button" onClick={start} disabled={run.state === 'running' || !quote} data-testid="customer-twin-run"
               style={{ ...btn, background: C.blue, color: '#fff', border: 'none', opacity: run.state === 'running' || !quote ? 0.7 : 1 }}>
-              <Sparkles size={18} aria-hidden="true" />{run.state === 'running' ? t.running : analysis ? t.again : t.run}
+              <AiRobotIcon size={22} />{run.state === 'running' ? t.running : analysis ? t.again : t.run}
             </button>
-            {run.state === 'ok' && run.cached && <span style={{ fontSize: '0.85rem', color: C.muted }}>{t.cached}</span>}
+            {run.state === 'ok' && run.cached && run.analyzedAt && <span data-testid="customer-twin-cached" style={{ fontSize: '0.85rem', color: C.muted }}>{t.cached(formatShortDate(run.analyzedAt, market === 'INTERNATIONAL' ? 'International' : 'Local'))}</span>}
+            {run.state === 'ok' && run.saved === false && <span data-testid="customer-twin-not-saved" style={{ fontSize: '0.85rem', color: C.amber, fontWeight: 700 }}>{t.notSaved(run.refunded === true)}</span>}
           </div>
 
           {errorText && (
@@ -277,7 +312,7 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
                         </div>
                       </div>
                       <span style={{ alignSelf: 'flex-start', background: st.chip, color: st.ink, borderRadius: 999, padding: '4px 12px', fontWeight: 800, fontSize: '0.85rem' }}>{t.states[p.state]}</span>
-                      <p style={{ margin: 0, background: C.card, borderRadius: 10, padding: 12, fontSize: '0.9rem', lineHeight: 1.6 }}>"{p.says}"</p>
+                      <p style={{ margin: 0, background: C.card, borderRadius: 10, padding: 12, fontSize: '0.9rem', lineHeight: 1.6 }}>"<Rich text={p.says} market={market} />"</p>
                     </article>
                   );
                 })}
@@ -300,7 +335,7 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
                             ) : (
                               <Icon size={18} color={color} aria-hidden="true" style={{ flexShrink: 0, marginTop: 1 }} />
                             )}
-                            <span>{line}</span>
+                            <span><Rich text={line} market={market} /></span>
                           </li>
                         ))}
                       </ul>
@@ -311,14 +346,14 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
 
               {analysis.edits.length > 0 && (
                 <section data-testid="customer-twin-edits" style={{ ...card, background: `linear-gradient(135deg, ${C.heroFrom}, ${C.heroTo})`, border: '1px solid #e0e7ff', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: C.ink, display: 'flex', alignItems: 'center', gap: 8 }}><Sparkles size={20} color={C.violet} aria-hidden="true" />{t.editsTitle}</h4>
+                  <h4 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: C.ink, display: 'flex', alignItems: 'center', gap: 8 }}><AiRobotIcon size={24} />{t.editsTitle}</h4>
                   <p style={{ margin: 0, fontSize: '0.88rem' }}>{mode === 'editor' ? t.editsText : t.listNote}</p>
                   {analysis.edits.map((e, i) => (
                     <div key={i} data-edit={e.target} style={{ background: C.card, border: `1px solid ${C.line}`, borderRadius: 10, padding: 12, display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
                       <div style={{ flex: '1 1 260px' }}>
                         <div style={{ fontSize: '0.78rem', color: C.violet, fontWeight: 700 }}>{e.target === 'item' ? t.target.item(e.itemNumber) : t.target[e.target]}</div>
-                        <div style={{ color: C.ink, fontWeight: 600, margin: '2px 0' }}>{e.text}</div>
-                        {e.reason && <div style={{ fontSize: '0.8rem', color: C.muted }}>{e.reason}</div>}
+                        <div style={{ color: C.ink, fontWeight: 600, margin: '2px 0' }}><Rich text={e.text} market={market} /></div>
+                        {e.reason && <div style={{ fontSize: '0.8rem', color: C.muted }}><Rich text={e.reason} market={market} /></div>}
                       </div>
                       {mode === 'editor' && typeof onApplyEdit === 'function' && (applied.has(i) ? (
                         <span style={{ color: C.green, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}><Check size={16} aria-hidden="true" />{t.applied}</span>
