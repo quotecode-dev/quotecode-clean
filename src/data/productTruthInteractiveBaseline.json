@@ -35,10 +35,6 @@
     "interactive": 1,
     "markers": 1
   },
-  "src/components/AdminExpenseInvoices.jsx": {
-    "interactive": 16,
-    "markers": 16
-  },
   "src/components/AdminHub.jsx": {
     "interactive": 1,
     "markers": 1
@@ -1360,14 +1356,6 @@
     "markers": 0
   },
   "supabase/functions/customer-twin/lib.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/expense-invoices/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/expense-invoices/lib.ts": {
     "interactive": 0,
     "markers": 0
   },

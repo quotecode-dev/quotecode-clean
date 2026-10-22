@@ -146,10 +146,6 @@
     {
       "path": "/api/support-digest",
       "schedule": "0 17,18 * * *"
-    },
-    {
-      "path": "/api/expense-scan",
-      "schedule": "0 5 1 * *"
     }
   ]
 }

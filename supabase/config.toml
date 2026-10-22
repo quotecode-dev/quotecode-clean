@@ -206,13 +206,6 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/support-digest/index.ts"
 
-[functions.expense-invoices]
-enabled = true
-# Owner console 2026-10-22 (typed L-22: the expense-invoice tool): Google's OAuth redirect (GET .../oauth-callback) carries no user JWT -
-# it is accepted only with a signed 15-minute state; every POST is a verified super admin (checked in code) or the site cron (x-cron-secret).
-verify_jwt = false
-entrypoint = "./functions/expense-invoices/index.ts"
-
 [functions.voice-ai]
 enabled = true
 # Owner 2026-10-19 (voice assistant): speech to text / text to speech for the smart chat. Signed-in users only - the JWT is
