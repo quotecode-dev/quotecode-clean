@@ -1,15 +1,15 @@
 // CANONICAL AI CHAT ICON - the ONE visual identity of the TEKANGO AI Chat entry (authenticated header "AI Chat" button and every in-workflow
-// "Ask AI" entry: wizard, alerts, draft conflict, client editor, plans, file-error and upgrade pop-ups).
+// "Ask AI" entry: wizard, alerts, draft conflict, client editor, plans, file-error and upgrade pop-ups). A chat bubble with the small AI
+// sparkle badge on its trailing top corner (placed on the reading-direction end; the glyphs themselves are never mirrored).
 // Do not draw another AI icon anywhere - import this one (TEKANGO_AI_ARCHITECTURE.md §51.15 "AI HELP ENTRY MUST BE SELF-EXPLANATORY").
-// IRON-ICON-001 (law 45; Owner console 2026-10-23, typed: "מאשר את הסמלים החדשים (חוק 45), ושינוי ב-L-02 וב-L-11: סמל הצ'אט בכותרת ובחלון
-// ההתראות יהיה הראש באריח עם AI" + "להחליף גם בדפי הנחיתה"): the drawing is the TEKANGO AI tile (a glowing head with "AI") - no longer a
-// generic chat bubble with a sparkle badge. The tile carries its own frame, so it is drawn a little larger than the old line glyph.
-import TekangoAiIcon from './TekangoAiIcon';
+import { MessageCircle, Sparkles } from 'lucide-react';
 
-export default function AiChatIcon({ size = 16 }) {
+export default function AiChatIcon({ size = 16, rtl = false, sparkleColor = '#f0abfc' }) {
+  const badge = Math.max(8, Math.round(size / 2));
   return (
-    <span aria-hidden="true" data-ai-chat-icon="canonical" style={{ display: 'inline-flex', flexShrink: 0 }}>
-      <TekangoAiIcon size={size + 2} />
+    <span aria-hidden="true" data-ai-chat-icon="canonical" style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+      <MessageCircle size={size} strokeWidth={2.2} />
+      <Sparkles size={badge} strokeWidth={2.5} style={{ position: 'absolute', top: '-3px', [rtl ? 'left' : 'right']: '-4px', color: sparkleColor }} />
     </span>
   );
 }

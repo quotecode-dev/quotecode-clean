@@ -5,7 +5,6 @@ import AddItemWizard from './AddItemWizard';
 import EditItemPriceDialog from './EditItemPriceDialog';
 import AddAnotherItemDialog from './AddAnotherItemDialog';
 import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText, Building2, LayoutList } from 'lucide-react';
-import CustomerTwinIcon from './CustomerTwinIcon';
 import { APP as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import QuotePresentationPanel from './quotePresentation/QuotePresentationPanel';
 import { calculateQuoteFinancials } from '../utils/regionConfig';
@@ -56,8 +55,6 @@ export default function QuoteForm({
   editingQuoteNumber,
   onSave,
   onCancel,
-  // Owner night task 2026-10-22 (typed approval, adding the entry button only): opens Customer Twin ("בדיקת הלקוח") for the open draft
-  onOpenCustomerTwin = null,
   clientName, setClientName,
   clientEmail, setClientEmail,
   clientPhone, setClientPhone,
@@ -716,19 +713,6 @@ export default function QuoteForm({
             {isHebrew ? 'הזינו את פרטי ההצעה ושמרו את השינויים' : 'Enter the quote details and save changes'}
           </p>
         </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-        {typeof onOpenCustomerTwin === 'function' && (
-          // PRODUCT_TRUTH_DECORATIVE: opens the Customer Twin panel for the open draft (internal; changes nothing by itself)
-          <button
-            type="button"
-            onClick={onOpenCustomerTwin}
-            data-testid="customer-twin-open"
-            style={{ background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <CustomerTwinIcon size={20} />
-            {isHebrew ? 'בדיקת הלקוח' : 'Customer check'}
-          </button>
-        )}
         {/* PRODUCT_TRUTH_DECORATIVE: 'Cancel & Return' button that closes the quote form via onCancel without saving */}
         <button
           type="button"
@@ -737,7 +721,6 @@ export default function QuoteForm({
         >
           {isHebrew ? 'ביטול וחזרה לרשימה' : 'Cancel & Return'}
         </button>
-        </div>
       </div>
 
       <form className="pf-screen-body" data-quote-form="editor" onSubmit={onSave} onInvalidCapture={(e) => { const code = INVALID_FIELD_BLOCKER[e.target?.dataset?.helpField]; if (code) publishBlocker(code, { scope: 'editor', stage: 'validating' }); }}>
@@ -1141,10 +1124,9 @@ export default function QuoteForm({
               <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(subtotal)}</span>
             </>
           )}
-          {/* IRON-ILS-001 (2026-10-23): with no discount, the agorot moved to the discount show as a rounding discount once it changes the shown sum */}
-          {(discount > 0 || Math.round(Number(discountAmount) || 0) >= 1) && (
+          {discount > 0 && (
             <>
-              <span style={{ color: NEON.red, fontSize: '0.8rem' }}>{discount > 0 ? (isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`) : (isHebrew ? 'הנחת עיגול:' : 'Rounding discount:')}</span>
+              <span style={{ color: NEON.red, fontSize: '0.8rem' }}>{isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`}</span>
               <span className="pf-money" style={{ color: NEON.red, fontSize: '0.8rem', textAlign: 'right' }}>-{sym}{fmtMoney(discountAmount)}</span>
             </>
           )}

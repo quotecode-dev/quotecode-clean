@@ -220,14 +220,6 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/ai-quote-draft/index.ts"
 
-[functions.customer-twin]
-enabled = true
-# Owner night task 2026-10-22 (local only, NOT deployed): Customer Twin ("בדיקת הלקוח") - the AI view of the open quote from three
-# customer perspectives. The JWT is verified by the gateway AND in code (auth.getUser); the allowance is claimed with the caller JWT
-# (customer_twin_claim, auth.uid()); only quote content reaches the AI (_shared/customerTwin.js).
-verify_jwt = true
-entrypoint = "./functions/customer-twin/index.ts"
-
 [functions.get-business-card]
 enabled = true
 # Task 23 (local only, NOT deployed): the PUBLIC digital business card read (/card/:id). verify_jwt=false on purpose - the card is

@@ -96,9 +96,7 @@ describe('landing page + AI chat icon modernization (Final Landing Polish task, 
     // its own fix comment quotes "Bot/robot" while explaining the change.
     const widget = readSource('../AIChatWidget.jsx').replace(/\/\*[\s\S]*?\*\//g, '');
     expect(widget).not.toMatch(/\bBot\b/);
-    // Owner console 2026-10-23 (law 45, "להחליף גם בדפי הנחיתה"): the public launcher is the TEKANGO AI tile, not a generic bubble
-    expect(widget).toContain(': <TekangoAiIcon size={24} />');
-    expect(widget).not.toMatch(/MessageCircleMore|Sparkles/);
+    expect(widget).toMatch(/MessageCircleMore/);
   });
 
   it('the AIChatWidget floating button retains an accessible label with the icon change', () => {

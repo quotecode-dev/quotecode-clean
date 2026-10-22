@@ -83,10 +83,6 @@
     "interactive": 2,
     "markers": 2
   },
-  "src/components/AdminTwinCosts.jsx": {
-    "interactive": 1,
-    "markers": 1
-  },
   "src/components/AdminUserDetails.jsx": {
     "interactive": 5,
     "markers": 5
@@ -118,6 +114,10 @@
   "src/components/AiQuoteDraftDialog.jsx": {
     "interactive": 10,
     "markers": 11
+  },
+  "src/components/AiRobotIcon.jsx": {
+    "interactive": 0,
+    "markers": 0
   },
   "src/components/AttachmentCompatRoute.jsx": {
     "interactive": 1,
@@ -158,14 +158,6 @@
   "src/components/CustomerQuoteItemRow.jsx": {
     "interactive": 2,
     "markers": 2
-  },
-  "src/components/CustomerTwinIcon.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/CustomerTwinPanel.jsx": {
-    "interactive": 6,
-    "markers": 6
   },
   "src/components/DeleteConfirmModal.jsx": {
     "interactive": 2,
@@ -272,8 +264,8 @@
     "markers": 5
   },
   "src/components/QuoteForm.jsx": {
-    "interactive": 31,
-    "markers": 39
+    "interactive": 30,
+    "markers": 38
   },
   "src/components/QuotePrintModeModal.jsx": {
     "interactive": 3,
@@ -284,8 +276,8 @@
     "markers": 7
   },
   "src/components/QuotesTab.jsx": {
-    "interactive": 28,
-    "markers": 31
+    "interactive": 27,
+    "markers": 30
   },
   "src/components/RemindersFirstSetupNotice.jsx": {
     "interactive": 1,
@@ -330,10 +322,6 @@
   "src/components/TasksTab.jsx": {
     "interactive": 11,
     "markers": 20
-  },
-  "src/components/TekangoAiIcon.jsx": {
-    "interactive": 0,
-    "markers": 0
   },
   "src/components/TekangoEyeIcon.jsx": {
     "interactive": 0,
@@ -851,10 +839,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/customerTwinClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/dashboardActionErrorClassification.js": {
     "interactive": 0,
     "markers": 0
@@ -1131,10 +1115,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "supabase/functions/_shared/customerTwin.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "supabase/functions/_shared/productTruthContract.ts": {
     "interactive": 0,
     "markers": 0
@@ -1340,14 +1320,6 @@
     "markers": 0
   },
   "supabase/functions/clever-processor/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/customer-twin/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/customer-twin/lib.ts": {
     "interactive": 0,
     "markers": 0
   },

@@ -31,8 +31,8 @@ describe('AiHelpButton', () => {
 
 describe('one canonical AI Chat entry visual', () => {
   const SITES = ['src/pages/Dashboard.jsx', 'src/components/AddItemWizard.jsx', 'src/components/QuoteDraftNotices.jsx', 'src/components/EditClientModal.jsx', 'src/components/PricingModal.jsx', 'src/components/QuoteForm.jsx'];
-  it('the in-workflow entry renders AiChatIcon (one source); the header launcher uses the TEKANGO AI tile (Owner 2026-10-23, L-02, law 45)', () => {
-    expect(read('src/pages/Dashboard.jsx')).toMatch(/className="dash-header-ai-btn"[\s\S]{0,500}<TekangoAiIcon /);
+  it('the in-workflow entry renders AiChatIcon (one source); the header launcher uses the Owner-chosen modern AI icon (Task 20 Continuation 2)', () => {
+    expect(read('src/pages/Dashboard.jsx')).toMatch(/className="dash-header-ai-btn"[\s\S]{0,500}<AiRobotIcon /);
     expect(read('src/components/AiHelpButton.jsx')).toMatch(/<AiChatIcon /);
     expect(read('src/components/AiHelpButton.jsx')).not.toMatch(/from 'lucide-react'/); // no private icon
   });

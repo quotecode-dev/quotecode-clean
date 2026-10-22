@@ -107,17 +107,6 @@ describe('AiQuoteDraftDialog', () => {
     expect(screen.getByTestId('ai-quote-draft-unassigned').textContent).toContain('22 מ״ר');
     expect(screen.getByRole('button', { name: /הוספה להצעה \(פריטים מסומנים: 2\)/ }).disabled).toBe(true);
   });
-  // Night task 2026-10-22: English uses English quotation marks (never the Hebrew low mark „)
-  it('English: the evidence is quoted with “ ”', async () => {
-    const p = props({ isHebrew: false, sym: '$', requestDraft: vi.fn(async () => ({ status: 'ok', subject: '', questions: [], unassignedMeasures: [], items: [
-      L({ description: 'Tile the master bedroom', quantity: 40, unit: 'm2', evidence: 'tile the master bedroom 40 m2' }),
-    ] })) });
-    render(<AiQuoteDraftDialog {...p} />);
-    fireEvent.change(screen.getByLabelText('What is the job?'), { target: { value: 'tile the master bedroom 40 m2' } });
-    fireEvent.click(screen.getByRole('button', { name: /Create with AI/ }));
-    await waitFor(() => expect(screen.getAllByTestId('ai-quote-draft-evidence')).toHaveLength(1));
-    expect(screen.getByTestId('ai-quote-draft-evidence').textContent).toBe('From your description: “tile the master bedroom 40 m2”');
-  });
   // Task 35 (F1): a quantity the text could give to several jobs arrives empty with its own "ambiguous" note, never the raw code
   it('shows the "ambiguous" note for a line whose quantity could not be singled out', async () => {
     const p = props({ requestDraft: vi.fn(async () => ({ status: 'ok', subject: '', questions: [], unassignedMeasures: [], items: [

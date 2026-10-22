@@ -995,7 +995,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
           style={{ background: 'white', color: LIGHT.sky, border: `2px solid ${LIGHT.sky}`, textDecoration: 'none' }}
         >
           <Phone size={26} strokeWidth={1.75} />
-          <span>התקשרו אלינו</span>
+          <span>התקשרות לעסק</span>
         </a>
       )}
       {bizWhatsAppHref && (

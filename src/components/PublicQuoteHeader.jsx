@@ -157,7 +157,7 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
         style={{ display: 'inline-flex', alignItems: 'center', gap: compactCta ? '4px' : '6px', background: 'rgba(255,255,255,0.94)', color: CTA_INK, textDecoration: 'none', fontWeight: '700', fontSize: compactCta ? '0.75rem' : '0.8rem', padding: compactCta ? '4px 10px' : '5px 12px', borderRadius: '999px', whiteSpace: 'nowrap' }}
       >
         <Phone size={compactCta ? 11 : 13} strokeWidth={compactCta ? 2.6 : 2.4} />
-        {isHebrew ? 'התקשרו אלינו' : 'Call us'}
+        {isHebrew ? 'התקשרות לעסק' : 'Call me'}
       </a>
     </div>
   ) : null);

@@ -336,7 +336,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                             </select>
                           </label>
                         </span>
-                        {line.evidence && <span data-testid="ai-quote-draft-evidence" style={{ fontSize: '0.74rem', color: NEON.textSecondary, overflowWrap: 'anywhere' }}>{t.evidence}: {isHebrew ? '„' : '“'}<bdi>{line.evidence}</bdi>”</span>}
+                        {line.evidence && <span data-testid="ai-quote-draft-evidence" style={{ fontSize: '0.74rem', color: NEON.textSecondary, overflowWrap: 'anywhere' }}>{t.evidence}: „<bdi>{line.evidence}</bdi>”</span>}
                         {basisText && <span data-testid="ai-quote-draft-basis" style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{basisText}</span>}
                         {missingText && <span data-testid="ai-quote-draft-missing" style={{ fontSize: '0.76rem', color: NEON.amber || NEON.textSecondary, fontWeight: 600 }}>{t.missingLabel}: {missingText}</span>}
                         <span data-testid="ai-quote-draft-price" data-price-source={line.priceSource} style={{ fontSize: '0.76rem', color: NEON.textSecondary }}>{t.price}: {line.unitPrice != null
@@ -363,7 +363,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
               )}
               {incomplete && (
                 <div role="status" data-testid="ai-quote-draft-need-quantity" style={{ fontSize: '0.78rem', color: NEON.amber || NEON.textSecondary, fontWeight: 600, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px' }}>
-                  <span>{t.blockedLines(incompleteIdx.map((i) => (isHebrew ? `„${String(lines[i].description || '').trim() || '—'}”` : `“${String(lines[i].description || '').trim() || '—'}”`)).join(', '))}</span>
+                  <span>{t.blockedLines(incompleteIdx.map((i) => `„${String(lines[i].description || '').trim() || '—'}”`).join(', '))}</span>
                   {/* PRODUCT_TRUTH_DECORATIVE: moves the focus to the first field that still blocks adding the draft lines */}
                   <button type="button" data-testid="ai-quote-draft-goto-field" onClick={focusFirstIncomplete} style={{ background: 'none', border: 'none', padding: '4px 2px', minHeight: '32px', cursor: 'pointer', color: NEON.violetLight, fontWeight: 700, textDecoration: 'underline', fontSize: '0.78rem' }}>{t.goToField}</button>
                 </div>

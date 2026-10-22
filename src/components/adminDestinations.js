@@ -1,5 +1,5 @@
 import { createElement } from 'react';
-import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox, Briefcase, Settings2, KeyRound, Coins } from 'lucide-react';
+import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox, Briefcase, Settings2, KeyRound } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminPlans from './AdminPlans';
 import AdminSystemActivity from './AdminSystemActivity';
@@ -8,7 +8,6 @@ import AISupportLogsContent from './AISupportLogsContent';
 import AdminInquiries from './AdminInquiries';
 import AdminHub from './AdminHub';
 import AdminPermissions from './AdminPermissions';
-import AdminTwinCosts from './AdminTwinCosts';
 
 // THE Admin destination registry - the one and only definition of what an
 // Admin destination is. The sidebar list, the mobile More list, the
@@ -107,14 +106,6 @@ export const ADMIN_DESTINATIONS = [
     title: { he: 'יומן התמיכה של העוזר החכם — מנהל מערכת ראשי', en: 'AI Support Logs - Super Admin' },
     description: { he: 'שיחות העוזר החכם עם המשתמשים', en: 'The smart assistant\'s conversations with users' },
     render: (host) => createElement(AISupportLogsContent, { isHebrew: host.isHebrew }),
-  },
-  // Owner console 2026-10-23, typed approval of L-22: "מסך עלויות בדיקת הלקוח בניהול" - the Owner only (the server allows super admin only)
-  {
-    id: 'twin-costs', hub: 'system', icon: Coins, permission: 'owner', mobile: 'more', available: true,
-    label: { he: 'עלויות בדיקת הלקוח', en: 'Customer check costs' },
-    title: { he: 'עלויות בדיקת הלקוח - סופר אדמין', en: 'Customer check costs - Super Admin' },
-    description: { he: 'כמה בדיקות רצו וכמה הן עלו לנו, לפי יום', en: 'How many checks ran and what they cost us, by day' },
-    render: (host) => createElement(AdminTwinCosts, { isHebrew: host.isHebrew }),
   },
 ];
 

@@ -77,7 +77,6 @@ const ADMIN_ID_TO_CAPABILITY = {
   manage: 'admin_console',
   system: 'admin_console',
   permissions: 'admin_console',
-  'twin-costs': 'admin_console', // Owner 2026-10-23 (L-22): the Owner-only Customer Twin cost view
 };
 // Real routes that are deliberately NOT a Product Truth capability (decorative/legal/marketing/
 // legacy-redirect/auth-recovery surfaces) - explicitly excluded, not silently ignored.

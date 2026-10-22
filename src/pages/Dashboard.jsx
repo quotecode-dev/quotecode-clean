@@ -56,9 +56,6 @@ import ExcelJS from 'exceljs';
 
 import PricingModal from '../components/PricingModal';
 import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
-import CustomerTwinPanel from '../components/CustomerTwinPanel';
-import { twinPayloadFromEditor, twinPayloadFromQuoteRow } from '../utils/customerTwinClient';
-import { applyTwinEdit } from '../../supabase/functions/_shared/customerTwin.js';
 import { startPackageCheckout, packageCheckoutAvailable } from '../domain/subscriptions/packageCheckout';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
@@ -120,7 +117,7 @@ import {
   Accessibility as AccessibilityIcon,
   MoreHorizontal
 } from 'lucide-react';
-import TekangoAiIcon from '../components/TekangoAiIcon';
+import AiRobotIcon from '../components/AiRobotIcon';
 import { loadServiceSchedule, normalizeServiceSchedule, probeServiceSchedule, saveServiceSchedule } from '../utils/serviceScheduleClient';
 import { loadShareDefaults } from '../utils/shareDefaultsClient';
 import { useInAppBack, closeTopDialogWithEscape } from '../hooks/useInAppBack';
@@ -536,8 +533,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       title={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
       aria-label={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
     >
-      {/* Owner console 2026-10-23 (L-02 / L-11, law 45): the TEKANGO AI tile (a glowing head with "AI") - replaces the 2026-10-10 robot. */}
-      <TekangoAiIcon size={22} />
+      {/* Task 20 Continuation 2 (Owner correction 2026-10-10): an original illustrated AI-robot icon (inline SVG component, no asset). */}
+      <AiRobotIcon size={20} />
       <span>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
     </button>
   );
@@ -917,8 +914,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
-  // Owner night task 2026-10-22: Customer Twin ("בדיקת הלקוח") - null | { mode: 'editor' } | { mode: 'list', quote }
-  const [customerTwin, setCustomerTwin] = useState(null);
   // Owner 2026-10-20 (L-17): the SMART PACK bell announcement's action opens this plans view
   useEffect(() => {
     const open = () => setShowPricingModal(true);
@@ -3356,8 +3351,6 @@ ${quoteViewLink}`
   // הגולמי (שנשאר 1/integer, לא נוגע בו כלל - ר' Stage A/§155.8).
   const previewFinancials = calculateQuoteFinancials({
     country: previewRegionCountry,
-    // IRON-ILS-001 (2026-10-23): a shekel quote's agorot after the discount go to the discount (the quote's own currency when editing)
-    currency: editingOriginalQuote ? editingOriginalQuote.currency : (isLocalIsraeliBusiness ? 'ILS' : currency),
     clientType,
     items: withActiveQuantities(items),
     discount,
@@ -4455,7 +4448,6 @@ ${quoteViewLink}`
 
           const result = calculateQuoteFinancials({
             country: region,
-            currency: curr, // IRON-ILS-001 (2026-10-23): only a financial edit recalculates a saved quote
             clientType: effectiveClientType,
             items: withActiveQuantities(items),
             discount,
@@ -4534,7 +4526,6 @@ ${quoteViewLink}`
 
         const result = calculateQuoteFinancials({
           country: bizCountry,
-          currency: isLocalIsraeliBusiness ? 'ILS' : currency, // the same currency the new quote is saved with
           clientType,
           items: withActiveQuantities(items),
           discount,
@@ -7594,41 +7585,6 @@ ${quoteViewLink}`
         <TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
           onClose={() => setTemplateDialog(null)} onUse={handleUseTemplate} />
       )}
-      {customerTwin && (() => {
-        // the product's market rule (CT-06): Local / LCL / IL / Israel = IL, any other stored country = International
-        const twinMarket = isLocalIsraeliBusiness || /^(il|israel)$/i.test(String(bizCountry || '').trim()) ? 'IL' : (String(bizCountry || '').trim() ? 'INTERNATIONAL' : null);
-        const listQuote = customerTwin.mode === 'list' ? customerTwin.quote : null;
-        // CT-01: the names / contact / address the editor knows never reach the AI, even when typed into a quote text
-        const personal = listQuote
-          ? [listQuote.clients?.company_name, listQuote.clients?.contact_name, listQuote.clients?.email, listQuote.clients?.phone, listQuote.clients?.address,
-            listQuote.client_name, listQuote.attn_name, bizName]
-          : [clientName, clientEmail, clientPhone, clientTaxId, clientAddress, attnName, bizName];
-        const payload = listQuote ? twinPayloadFromQuoteRow(listQuote, twinMarket, personal)
-          : twinPayloadFromEditor({ market: twinMarket, currency: editingOriginalQuote ? editingOriginalQuote.currency : (isLocalIsraeliBusiness ? 'ILS' : currency),
-            quoteSubject, items, terms, warranty, validUntil, taxRate, clientType, discount, personal,
-            financials: { subtotal, discountAmount, netAmount: previewFinancials.netAmount, taxAmount, total: totalAmount } });
-        return (
-          <CustomerTwinPanel
-            open
-            onClose={() => setCustomerTwin(null)}
-            isHebrew={isHebrew}
-            supabase={supabase}
-            market={twinMarket}
-            mode={customerTwin.mode}
-            quote={payload.quote}
-            tooLong={payload.tooLong}
-            // every suggestion is added ONLY on the owner's click, one by one, to the open draft (saved as usual)
-            onApplyEdit={(edit) => {
-              const next = applyTwinEdit({ terms, warranty, items }, edit);
-              if (next.terms !== terms) setTerms(next.terms);
-              if (next.warranty !== warranty) setWarranty(next.warranty);
-              if (next.items !== items) setItems(next.items);
-            }}
-            onOpenEditor={listQuote && !isQuoteImmutable(listQuote) ? () => { setCustomerTwin(null); handleEditClick(listQuote); } : null}
-            onOpenPlans={() => { setCustomerTwin(null); setShowPricingModal(true); }}
-          />
-        );
-      })()}
       <Free10UpgradeWindow
         open={free10Window}
         onClose={() => setFree10Window(false)}
@@ -8397,7 +8353,6 @@ ${quoteViewLink}`
                 handleDuplicateQuote={handleDuplicateQuote}
                 sendWhatsApp={sendWhatsApp}
                 copyQuoteMessage={copyQuoteMessage}
-                onOpenCustomerTwin={(q) => setCustomerTwin({ mode: 'list', quote: q })}
                 executeEmailSend={executeEmailSend}
                 handleDeleteQuote={requestDeleteQuote}
                 handleProtectedAction={handleProtectedAction}
@@ -8449,7 +8404,6 @@ ${quoteViewLink}`
               editingQuoteNumber={editingOriginalQuote?.quote_number ?? null}
               onSave={handleSaveQuote}
               onCancel={requestCancelEdit}
-              onOpenCustomerTwin={() => setCustomerTwin({ mode: 'editor' })}
               onSaveAsTemplate={() => setTemplateDialog('save')}
               clientName={clientName} setClientName={setClientName}
               clientEmail={clientEmail} setClientEmail={setClientEmail}

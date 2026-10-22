@@ -7,18 +7,13 @@
 //  - Motion: a scripted assistant demo, a voice wave and staggered cards; everything is static and fully visible when the user asked
 //    for reduced motion.
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Sparkles, Check, AudioLines, WandSparkles, FileStack } from 'lucide-react';
-import TekangoAiIcon from '../TekangoAiIcon';
-import CustomerTwinIcon from '../CustomerTwinIcon';
+import { Bot, Mic, Sparkles, Check, BrainCircuit, AudioLines, WandSparkles, FileStack, ScanFace } from 'lucide-react';
 import './smartPack.css';
 import { SMART_PACK_ENABLED } from './smartPackFacts';
 
 
 // Owner 2026-10-20 ("להחליף את האייקונים האלה גם למשהו מודרני יותר"): modern icons on a glossy animated tile
-const ICONS = { voice: AudioLines, ai: WandSparkles, files: FileStack };
-// Owner console 2026-10-23 (law 45, "להחליף גם בדפי הנחיתה"): the smart chat card carries the TEKANGO AI tile itself, the Customer Twin
-// card the two-heads-and-lens mark (white on the animated tile); the demo's answer bubble the same AI tile
-const BRAND = { chat: 'ai', twin: 'twin' };
+const ICONS = { chat: BrainCircuit, voice: AudioLines, ai: WandSparkles, files: FileStack, twin: ScanFace };
 
 export default function SmartPackShowcase({ copy, isHe, plansHref }) {
   const ref = useRef(null);
@@ -69,7 +64,7 @@ export default function SmartPackShowcase({ copy, isHe, plansHref }) {
               <div className={`sp-wave${step === 1 ? ' is-on' : ''}`} aria-hidden="true">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ animationDelay: `${(i % 7) * 0.08}s` }} />)}</div>
               <div className={`sp-typing${step === 2 ? ' is-on' : ''}`} aria-hidden="true"><i /><i /><i /></div>
               <div className={`sp-bubble sp-bot${step >= 3 ? ' is-on' : ''}`}>
-                <TekangoAiIcon size={20} />
+                <Bot size={14} aria-hidden="true" />
                 <span>{copy.demoAnswer}</span>
               </div>
             </div>
@@ -78,12 +73,9 @@ export default function SmartPackShowcase({ copy, isHe, plansHref }) {
           <ul className="sp-features">
             {copy.features.map((f, i) => {
               const Icon = ICONS[f.icon] || Sparkles;
-              const brand = BRAND[f.icon];
               return (
                 <li key={f.title} className="sp-card" style={{ transitionDelay: `${0.12 + i * 0.09}s` }}>
-                  {brand === 'ai' ? <span className="sp-icon sp-icon-own" data-sp-icon="ai"><TekangoAiIcon size={48} /></span>
-                    : brand === 'twin' ? <span className="sp-icon" data-sp-icon="twin"><CustomerTwinIcon size={32} tone="light" /></span>
-                      : <span className="sp-icon"><Icon size={22} strokeWidth={1.9} aria-hidden="true" /></span>}
+                  <span className="sp-icon"><Icon size={22} strokeWidth={1.9} aria-hidden="true" /></span>
                   <div>
                     <h3>{f.title}{f.soon && <span className="sp-soon">{copy.soon}</span>}</h3>
                     <p>{f.text}</p>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { supabase } from './shared/supabase';
-import { X, Send, MessageSquarePlus, ChevronLeft, ChevronRight, FileText, LifeBuoy, CreditCard, Building2, MessageSquare, History, Mic, Square, Volume2, VolumeX, Paperclip } from 'lucide-react';
+import { MessageCircleMore, Sparkles, X, Send, MessageSquarePlus, ChevronLeft, ChevronRight, FileText, LifeBuoy, CreditCard, Building2, MessageSquare, History, Mic, Square, Volume2, VolumeX, Paperclip } from 'lucide-react';
 import { NEON } from './theme/neonTheme';
 import {
   buildPublicChatStorageKey,
@@ -20,7 +20,6 @@ import { draftSnapshotDigest } from '../supabase/functions/_shared/quoteDraftSna
 import { CHAT_CONTRACT_VERSION } from './utils/aiChatContract';
 import { formatQuoteFallback } from './utils/quoteNumber';
 import AiChatIcon from './components/AiChatIcon';
-import TekangoAiIcon from './components/TekangoAiIcon';
 import { imageFromClipboard, imageFileToDataUrl, SCREENSHOT_COPY } from './utils/chatScreenshot';
 import { VOICE_COPY, VOICE_MODES, MAX_RECORD_SECONDS, readVoiceMode, saveVoiceMode, readVoiceDisclosed, saveVoiceDisclosed, pickRecorderMime, voiceSupported, blobToBase64, base64ToBlob } from './utils/voiceAssistant';
 
@@ -1170,10 +1169,24 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
               onMouseOver={(e) => e.currentTarget.style.transform = 'scale(1.05)'}
               onMouseOut={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
-              {/* authenticated app (dashboard, region choice): the ONE canonical AI Chat icon (§51.15); public pages (the landing): the same TEKANGO
-                  AI tile (Owner console 2026-10-23 (L-02 / L-11, law 45): the TEKANGO AI tile (a glowing head with "AI"); "להחליף גם בדפי הנחיתה") - it replaces the bubble + sparkle accent of the landing polish */}
-              {isDashboard ? <AiChatIcon size={20} rtl={isHebrew} /> : <TekangoAiIcon size={24} />}
+              {/* authenticated app (dashboard, region choice): the ONE canonical AI Chat icon (§51.15); public pages keep their approved landing mark */}
+              {isDashboard ? <AiChatIcon size={20} rtl={isHebrew} /> : <MessageCircleMore size={20} strokeWidth={2.2} />}
               <span className="ai-btn-text" style={{ whiteSpace: 'nowrap' }}>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
+              {/* Final Landing Polish task, Part B - "MessageCircleMore or
+                  MessagesSquare with a small Sparkles accent - not
+                  Bot/robot": restrained AI accent badge, decorative only.
+                  Root-cause fix: an earlier negative-offset placement (-3px)
+                  intentionally bled past the button's own edge as a
+                  notification-badge convention, but that made the button's
+                  own scrollWidth exceed its clientWidth (found via the
+                  required overflow sweep) - kept fully inside the border
+                  box instead, since nothing here required it to overhang. */}
+              {!isDashboard && <Sparkles
+                aria-hidden="true"
+                size={11}
+                strokeWidth={2.5}
+                style={{ position: 'absolute', top: '2px', [isHebrew ? 'left' : 'right']: '2px', color: '#fde68a', background: NEON.bgElevated, borderRadius: '50%', padding: '2px', boxShadow: '0 0 0 1.5px rgba(255,255,255,0.15)' }}
+              />}
             </button>
           )}
 
@@ -1212,8 +1225,9 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                 flexShrink: 0
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {/* Owner console 2026-10-23 (L-02 / L-11, law 45): the TEKANGO AI tile (a glowing head with "AI") */}
-                  <TekangoAiIcon size={30} />
+                  <div style={{ background: 'rgba(255,255,255,0.2)', borderRadius: '8px', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <MessageCircleMore size={17} strokeWidth={2.2} aria-hidden="true" />
+                  </div>
                   <div>
                     <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
                       {isHebrew
