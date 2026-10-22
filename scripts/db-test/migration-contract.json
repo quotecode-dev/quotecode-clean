@@ -381,6 +381,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ADD COLUMN / CREATE TABLE IF NOT EXISTS, DROP TRIGGER IF EXISTS + CREATE, CREATE OR REPLACE (re-runnable); the Owner's stop-renewal / early-end + refund tools, Terms section 6 (Owner 2026-10-21)"
+    },
+    "20261023000000_customer_twin.sql": {
+      "sha256": "f5754fa20a814111d69e4c88d16fd26908d20b632335e7f69e8c881c61cbeda3",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE TABLE IF NOT EXISTS, DROP TRIGGER IF EXISTS + CREATE, CREATE OR REPLACE (re-runnable); Customer Twin - the SMART PACK AI check allowance, purchased checks and stored results (Owner 2026-10-22)"
     }
   }
 }

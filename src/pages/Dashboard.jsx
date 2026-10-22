@@ -56,6 +56,9 @@ import ExcelJS from 'exceljs';
 
 import PricingModal from '../components/PricingModal';
 import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
+import CustomerTwinPanel from '../components/CustomerTwinPanel';
+import { twinPayloadFromEditor, twinPayloadFromQuoteRow } from '../utils/customerTwinClient';
+import { applyTwinEdit } from '../../supabase/functions/_shared/customerTwin.js';
 import { startPackageCheckout, packageCheckoutAvailable } from '../domain/subscriptions/packageCheckout';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
@@ -914,6 +917,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   const [showAccessibility, setShowAccessibility] = useState(false);
   const [showPricingModal, setShowPricingModal] = useState(false);
+  // Owner night task 2026-10-22: Customer Twin ("בדיקת הלקוח") - null | { mode: 'editor' } | { mode: 'list', quote }
+  const [customerTwin, setCustomerTwin] = useState(null);
   // Owner 2026-10-20 (L-17): the SMART PACK bell announcement's action opens this plans view
   useEffect(() => {
     const open = () => setShowPricingModal(true);
@@ -7585,6 +7590,31 @@ ${quoteViewLink}`
         <TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
           onClose={() => setTemplateDialog(null)} onUse={handleUseTemplate} />
       )}
+      {customerTwin && (() => {
+        const twinMarket = bizCountry === 'International' ? 'INTERNATIONAL' : isLocalIsraeliBusiness ? 'IL' : null;
+        const listQuote = customerTwin.mode === 'list' ? customerTwin.quote : null;
+        return (
+          <CustomerTwinPanel
+            open
+            onClose={() => setCustomerTwin(null)}
+            isHebrew={isHebrew}
+            supabase={supabase}
+            market={twinMarket}
+            mode={customerTwin.mode}
+            quote={listQuote ? twinPayloadFromQuoteRow(listQuote, twinMarket)
+              : twinPayloadFromEditor({ market: twinMarket, currency, quoteSubject, items, terms, warranty, validUntil, taxRate, clientType, discount, subtotal, totalAmount })}
+            // every suggestion is added ONLY on the owner's click, one by one, to the open draft (saved as usual)
+            onApplyEdit={(edit) => {
+              const next = applyTwinEdit({ terms, warranty, items }, edit);
+              if (next.terms !== terms) setTerms(next.terms);
+              if (next.warranty !== warranty) setWarranty(next.warranty);
+              if (next.items !== items) setItems(next.items);
+            }}
+            onOpenEditor={listQuote && !isQuoteImmutable(listQuote) ? () => { setCustomerTwin(null); handleEditClick(listQuote); } : null}
+            onOpenPlans={() => { setCustomerTwin(null); setShowPricingModal(true); }}
+          />
+        );
+      })()}
       <Free10UpgradeWindow
         open={free10Window}
         onClose={() => setFree10Window(false)}
@@ -8353,6 +8383,7 @@ ${quoteViewLink}`
                 handleDuplicateQuote={handleDuplicateQuote}
                 sendWhatsApp={sendWhatsApp}
                 copyQuoteMessage={copyQuoteMessage}
+                onOpenCustomerTwin={(q) => setCustomerTwin({ mode: 'list', quote: q })}
                 executeEmailSend={executeEmailSend}
                 handleDeleteQuote={requestDeleteQuote}
                 handleProtectedAction={handleProtectedAction}
@@ -8404,6 +8435,7 @@ ${quoteViewLink}`
               editingQuoteNumber={editingOriginalQuote?.quote_number ?? null}
               onSave={handleSaveQuote}
               onCancel={requestCancelEdit}
+              onOpenCustomerTwin={() => setCustomerTwin({ mode: 'editor' })}
               onSaveAsTemplate={() => setTemplateDialog('save')}
               clientName={clientName} setClientName={setClientName}
               clientEmail={clientEmail} setClientEmail={setClientEmail}

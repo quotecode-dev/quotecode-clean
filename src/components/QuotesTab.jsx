@@ -15,7 +15,7 @@ import { formatShortDate } from '../utils/shortDate';
 import { relativeQuoteDay, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
 import { sortQuotes, normalizeSortField } from '../utils/quoteListSort';
 import NewQuoteMenu from './NewQuoteMenu';
-import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search, ClipboardList, Clock } from 'lucide-react';
+import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search, ClipboardList, Clock, Sparkles } from 'lucide-react';
 import { nextSteps, NEXT_STEP_COPY } from '../utils/nextStep';
 import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
 import { taskMarket, marketToday, marketClock } from '../utils/manualTasks';
@@ -133,6 +133,8 @@ export default function QuotesTab({
   handleDuplicateQuote,
   sendWhatsApp,
   copyQuoteMessage = null,
+  // Owner night task 2026-10-22 (typed approval, adding the entry button only): Customer Twin ("בדיקת הלקוח") of a saved quote
+  onOpenCustomerTwin = null,
   handleDeleteQuote,
   handleProtectedAction,
   activeTooltip,
@@ -651,6 +653,19 @@ export default function QuotesTab({
             </div>
           )}
         </span>
+
+        {typeof onOpenCustomerTwin === 'function' && (
+          // PRODUCT_TRUTH_DECORATIVE: opens the Customer Twin panel of this saved quote (internal, read-only; changes nothing)
+          <button
+            type="button"
+            onClick={() => onOpenCustomerTwin(quote)}
+            data-testid="customer-twin-open-row"
+            style={{ ...chipBase, background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe' }}
+          >
+            <Sparkles size={14} color="#3730a3" strokeWidth={2.2} />
+            <span>{isHebrew ? 'בדיקת הלקוח' : 'Customer check'}</span>
+          </button>
+        )}
 
         <span style={{ position: 'relative', display: 'inline-block' }}>
           {/* PRODUCT_TRUTH_CAPABILITY: quote_duplicate */}
