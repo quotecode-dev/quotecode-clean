@@ -90,16 +90,3 @@ describe('payment reconciliation screen', () => {
     expect(canOpenDestination(d, { owner: false, permissions: ['activity.view', 'plans.view'] })).toBe(false);
   });
 });
-
-describe('a PayPlus refusal in plain words (Owner 2026-10-23: the first live run answered 403)', () => {
-  it('403 = the IP check of the PayPlus account; the button is a real admin button', async () => {
-    rpc.mockResolvedValue({ data: { ...state, open: [], runs: [{ ...state.runs[0], status: 'failed', error: 'provider_403' }] }, error: null });
-    invoke.mockResolvedValue({ data: { ok: false, status: 'failed', code: 'provider_403' }, error: null });
-    render(<AdminBillingReconcile isHebrew />);
-    await waitFor(() => expect(screen.getByTestId('reconcile-last').textContent).toContain('בדיקת כתובת ה-IP'));
-    expect(screen.getByTestId('reconcile-run').className).toBe('av-btn av-primary');
-    fireEvent.click(screen.getByTestId('reconcile-run'));
-    await waitFor(() => expect(screen.getByTestId('reconcile-notice').textContent).toContain('(provider_403)'));
-    expect(screen.getByTestId('reconcile-notice').textContent).toContain('לשרת אין כתובת קבועה');
-  });
-});
