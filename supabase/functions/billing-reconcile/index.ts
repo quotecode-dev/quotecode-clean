@@ -58,12 +58,19 @@ Deno.serve(async (req: Request) => {
     },
     claimRun: async (day, source) => {
       const { data, error } = await admin.from('billing_reconcile_runs').insert({ run_day: day, source }).select('run_id').maybeSingle();
-      if (error) {
-        if ((error as { code?: string }).code === '23505') return null; // the site run already ran today
+      if (!error) return (data as { run_id: string } | null)?.run_id ?? null;
+      if ((error as { code?: string }).code !== '23505') {
         console.error(`billing-reconcile: database ${(error as { code?: string }).code ?? ''}`);
         throw new Error('database');
       }
-      return (data as { run_id: string } | null)?.run_id ?? null;
+      // today's site run exists: it is taken again only when it failed or stalled (running for 30+ minutes) - the second daily call retries
+      const today = await db(admin.from('billing_reconcile_runs').select('run_id, status, started_at').eq('run_day', day).eq('source', 'cron').maybeSingle()) as
+        { run_id: string; status: string; started_at: string } | null;
+      const stalled = today?.status === 'running' && Date.now() - Date.parse(today.started_at) > 30 * 60000;
+      if (!today || !(today.status === 'failed' || stalled)) return null;
+      const again = await db(admin.from('billing_reconcile_runs').update({ status: 'running', started_at: new Date().toISOString(), finished_at: null, error_code: null })
+        .eq('run_id', today.run_id).eq('status', today.status).select('run_id')) as { run_id: string }[] | null;
+      return again && again.length === 1 ? again[0].run_id : null;
     },
     finishRun: async (runId, p) => {
       await db(admin.from('billing_reconcile_runs').update({
@@ -77,15 +84,18 @@ Deno.serve(async (req: Request) => {
       return { charges: Array.isArray(r?.charges) ? r.charges : [], refunds: Array.isArray(r?.refunds) ? r.refunds : [] };
     },
     history: (cfg, from, until, currency) => readHistory((u, i) => fetch(u, i), cfg, from, until, currency),
-    saveFindings: async (runId, findings) => {
+    saveFindings: async (runId, findings, seenByOwner) => {
       if (!findings.length) return [];
-      // once per (code, transaction): a finding a previous run already kept is not new (and not mailed again)
+      // once per (code, transaction): a finding a previous run already kept is not new
+      const told = seenByOwner ? new Date().toISOString() : null;
       const rows = await db(admin.from('billing_reconcile_findings')
-        .upsert(findings.map((f: Finding) => ({ run_id: runId, code: f.code, uid: f.uid, detail: f.detail })), { onConflict: 'code,uid', ignoreDuplicates: true })
+        .upsert(findings.map((f: Finding) => ({ run_id: runId, code: f.code, uid: f.uid, detail: f.detail, mailed_at: told })), { onConflict: 'code,uid', ignoreDuplicates: true })
         .select('code, uid')) as { code: string; uid: string }[] | null;
       const fresh = new Set((rows ?? []).map((r) => `${r.code}|${r.uid}`));
       return findings.filter((f) => fresh.has(`${f.code}|${f.uid}`));
     },
+    unmailed: async () => (await db(admin.from('billing_reconcile_findings').select('id, code, uid, detail')
+      .eq('status', 'new').is('mailed_at', null).order('created_at', { ascending: true }).limit(200)) ?? []) as (Finding & { id: string })[],
     mailOwner: async (subject, text, runId) => {
       const to = (Deno.env.get('SUPPORT_OWNER_NOTIFY_ADDRESS') ?? '').trim();
       const r = await sendMail({ fetch: (u, i) => fetch(u, i), apiKey: Deno.env.get('RESEND_API_KEY') ?? '' }, {
@@ -93,7 +103,11 @@ Deno.serve(async (req: Request) => {
       });
       return r.ok;
     },
-    markMailed: async (runId) => { await db(admin.from('billing_reconcile_runs').update({ mailed_at: new Date().toISOString() }).eq('run_id', runId)); },
+    markMailed: async (runId, ids) => {
+      const at = new Date().toISOString();
+      if (ids.length) await db(admin.from('billing_reconcile_findings').update({ mailed_at: at }).in('id', ids));
+      await db(admin.from('billing_reconcile_runs').update({ mailed_at: at }).eq('run_id', runId));
+    },
   };
 
   let body: Record<string, unknown> = {};

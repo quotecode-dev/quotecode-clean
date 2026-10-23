@@ -34,12 +34,14 @@ export function normalizeProviderTx(raw: unknown): ProviderTx | null {
   const uid = typeof raw.uuid === 'string' && raw.uuid.trim() ? raw.uuid.trim() : null;
   const type = typeof raw.transaction_type === 'string' || typeof raw.transaction_type === 'number' ? String(raw.transaction_type).trim() : '';
   const a = info.amount_by_currency;
-  const amount = typeof a === 'number' ? a : typeof a === 'string' && /^\d{1,12}(\.\d{1,2})?$/.test(a.trim()) ? Number(a.trim()) : NaN;
+  const signed = typeof a === 'number' ? a : typeof a === 'string' && /^-?\d{1,12}(\.\d{1,2})?$/.test(a.trim()) ? Number(a.trim()) : NaN;
+  const amount = Math.abs(signed);
   const currency = isObj(info.currency) && typeof info.currency.currency_code === 'string' ? info.currency.currency_code.trim().toUpperCase() : '';
   const at = typeof info.transaction_at === 'string' ? info.transaction_at : typeof raw.created_at === 'string' ? raw.created_at : null;
-  if (!uid || uid.length > 200 || !type || !Number.isFinite(amount) || amount < 0 || !/^[A-Z]{3}$/.test(currency) || !at || !Number.isFinite(Date.parse(at))) return null;
+  if (!uid || uid.length > 200 || !type || !Number.isFinite(amount) || !/^[A-Z]{3}$/.test(currency) || !at || !Number.isFinite(Date.parse(at))) return null;
   const more = typeof info.more_info === 'string' && UUID.test(info.more_info.trim()) ? info.more_info.trim() : null;
-  const kind = CHARGE_TYPES.includes(type) ? 'charge' : REFUND_TYPES.includes(type) ? 'refund' : 'other';
+  // a negative amount is money going back to the customer: a refund whatever its code
+  const kind = signed < 0 || REFUND_TYPES.includes(type) ? 'refund' : CHARGE_TYPES.includes(type) ? 'charge' : 'other';
   return { uid, type, kind, amount, currency, at: new Date(Date.parse(at)).toISOString(), moreInfo: more };
 }
 
@@ -68,13 +70,25 @@ export function reconcile(a: { provider: ProviderTx[]; charges: OurCharge[]; ref
   const lastMs = Date.parse(a.until) - grace;
   const inWindow = (at: string) => { const t = Date.parse(at); return t >= fromMs && t <= lastMs; };
   const scale = detectScale(a.provider, a.charges);
+  // a checkout pulled before its callback is recorded as 'pull:<attempt>'; the callback that arrives later is recorded again under the
+  // PayPlus uid (subscription-authority, 20261022200000). Both rows describe ONE charge: the pull row stands for it only while no other
+  // row of the same attempt matched.
+  const isPull = (c: OurCharge) => c.providerEventId.startsWith('pull:');
   const byUid = new Map(a.charges.map((c) => [c.providerEventId, c]));
-  const byAttempt = new Map(a.charges.filter((c) => c.attemptId).map((c) => [c.attemptId as string, c]));
   const known = new Set(a.refunds.map((r) => r.transactionUid));
   const seen = new Set<string>();
+  const matchedAttempts = new Set<string>();
   const types: Record<string, number> = {};
   const findings: Finding[] = [];
   let matched = 0;
+  const compare = (t: ProviderTx, ours: OurCharge) => {
+    seen.add(ours.providerEventId);
+    if (ours.attemptId) matchedAttempts.add(ours.attemptId);
+    if (ours.currency !== t.currency || (scale !== 'unknown' && toMinor(t.amount, scale) !== ours.amountMinor)) {
+      findings.push({ code: 'AMOUNT_MISMATCH', uid: t.uid, detail: { at: t.at, provider: { amount: t.amount, currency: t.currency, scale }, ours: { amountMinor: ours.amountMinor, currency: ours.currency } } });
+    } else matched += 1;
+  };
+  const charges: ProviderTx[] = [];
   for (const t of a.provider) {
     types[t.type] = (types[t.type] ?? 0) + 1;
     if (t.kind === 'other') continue;
@@ -82,18 +96,24 @@ export function reconcile(a: { provider: ProviderTx[]; charges: OurCharge[]; ref
       if (!known.has(t.uid) && inWindow(t.at)) findings.push({ code: 'REFUND_UNRECORDED', uid: t.uid, detail: { amount: t.amount, currency: t.currency, scale, at: t.at, type: t.type } });
       continue;
     }
-    const ours = byUid.get(t.uid) ?? (t.moreInfo ? byAttempt.get(t.moreInfo) : undefined);
-    if (!ours) {
-      if (inWindow(t.at)) findings.push({ code: 'UNLINKED', uid: t.uid, detail: { amount: t.amount, currency: t.currency, scale, at: t.at, attemptId: t.moreInfo, type: t.type } });
-      continue;
-    }
-    seen.add(ours.providerEventId);
-    if (ours.currency !== t.currency || (scale !== 'unknown' && toMinor(t.amount, scale) !== ours.amountMinor)) {
-      findings.push({ code: 'AMOUNT_MISMATCH', uid: t.uid, detail: { provider: { amount: t.amount, currency: t.currency, scale }, ours: { amountMinor: ours.amountMinor, currency: ours.currency } } });
-    } else matched += 1;
+    charges.push(t);
+  }
+  // pass 1: the transaction uid (the callback's own id); pass 2: our attempt id (more_info) - only a charge of ours that no other PayPlus
+  // transaction took, each once, so a second (double) charge of the same checkout stays UNLINKED
+  const rest: ProviderTx[] = [];
+  for (const t of charges) {
+    const ours = byUid.get(t.uid);
+    if (ours && !seen.has(ours.providerEventId)) compare(t, ours); else rest.push(t);
+  }
+  for (const t of rest) {
+    const attempt = t.moreInfo;
+    const ours = attempt ? a.charges.find((c) => c.attemptId === attempt && !seen.has(c.providerEventId) && !(isPull(c) && matchedAttempts.has(attempt))) : undefined;
+    if (ours) { compare(t, ours); continue; }
+    if (inWindow(t.at)) findings.push({ code: 'UNLINKED', uid: t.uid, detail: { amount: t.amount, currency: t.currency, scale, at: t.at, attemptId: t.moreInfo, type: t.type } });
   }
   for (const c of a.charges) {
     if (seen.has(c.providerEventId) || !inWindow(c.at)) continue;
+    if (isPull(c) && c.attemptId && matchedAttempts.has(c.attemptId)) continue; // its callback row already matched the PayPlus charge
     findings.push({ code: 'MISSING_AT_PROVIDER', uid: c.providerEventId, detail: { amountMinor: c.amountMinor, currency: c.currency, at: c.at, attemptId: c.attemptId } });
   }
   return { matched, findings, scale, types };
@@ -107,7 +127,7 @@ const LABEL: Record<FindingCode, string> = {
 };
 const ORDER: FindingCode[] = ['UNLINKED', 'MISSING_AT_PROVIDER', 'AMOUNT_MISMATCH', 'REFUND_UNRECORDED'];
 
-/** The Owner's email (Hebrew): only NEW findings, the most urgent first; null when there is nothing new. */
+/** The Owner's email (Hebrew): the open findings not told yet, the most urgent first; null when there is nothing to tell. */
 export function alertText(newFindings: Finding[], matched: number, appUrl: string): { subject: string; text: string } | null {
   if (!newFindings.length) return null;
   const lines = [...newFindings].sort((x, y) => ORDER.indexOf(x.code) - ORDER.indexOf(y.code)).slice(0, 50).map((f) => `- ${LABEL[f.code]}: עסקה ${f.uid}`);
@@ -172,10 +192,13 @@ export type ReconcileDeps = {
   finishRun: (runId: string, patch: RunPatch) => Promise<void>;
   source: (from: string, until: string) => Promise<{ charges: OurCharge[]; refunds: OurRefund[] }>;
   history: (cfg: PayPlusRead, from: Date, until: Date, currency: string) => Promise<HistoryResult>;
-  /** stores the findings once per (code, uid); returns the ones that are new */
-  saveFindings: (runId: string, findings: Finding[]) => Promise<Finding[]>;
+  /** stores the findings once per (code, uid); returns the ones that are new. seenByOwner: the Owner's own run shows them on the
+   *  screen, so they count as told (never emailed later) */
+  saveFindings: (runId: string, findings: Finding[], seenByOwner: boolean) => Promise<Finding[]>;
+  /** the open findings the Owner was not told about yet (a failed email is retried by the next site run) */
+  unmailed: () => Promise<(Finding & { id: string })[]>;
   mailOwner: (subject: string, text: string, runId: string) => Promise<boolean>;
-  markMailed: (runId: string) => Promise<void>;
+  markMailed: (runId: string, findingIds: string[]) => Promise<void>;
 };
 export const WINDOW_DAYS = 3;
 export const CURRENCIES = Object.freeze(['ILS', 'USD']);
@@ -226,12 +249,15 @@ async function runOnce(runId: string, role: 'admin' | 'cron', now: Date, deps: R
   }
   const ours = await deps.source(providerFrom.toISOString(), until.toISOString());
   const r = reconcile({ provider, charges: ours.charges, refunds: ours.refunds, from: from.toISOString(), until: until.toISOString() });
-  const fresh = await deps.saveFindings(runId, r.findings);
+  const fresh = await deps.saveFindings(runId, r.findings, role === 'admin');
   const types = unreadable ? { ...r.types, unreadable } : r.types;
   await deps.finishRun(runId, { status: 'ok', windowFrom: from.toISOString(), windowUntil: until.toISOString(), providerCount: provider.length,
     oursCount: ours.charges.length, matched: r.matched, newFindings: fresh.length, scale: r.scale, types });
   let mailed = false;
-  const mail = role === 'cron' ? alertText(fresh, r.matched, appUrl) : null;
-  if (mail && await deps.mailOwner(mail.subject, mail.text, runId)) { mailed = true; await deps.markMailed(runId); }
+  if (role === 'cron') {
+    const pending = await deps.unmailed();
+    const mail = alertText(pending, r.matched, appUrl);
+    if (mail && await deps.mailOwner(mail.subject, mail.text, runId)) { mailed = true; await deps.markMailed(runId, pending.map((p) => p.id)); }
+  }
   return { status: 200, body: { ok: true, status: 'ok', runId, provider: provider.length, matched: r.matched, newFindings: fresh.length, scale: r.scale, unreadable, mailed } };
 }

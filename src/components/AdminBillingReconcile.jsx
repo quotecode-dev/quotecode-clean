@@ -27,20 +27,30 @@ const CODE_HELP = {
 };
 const RUN_STATUS = {
   ok: { he: 'הושלמה', en: 'Completed' }, failed: { he: 'נכשלה', en: 'Failed' }, running: { he: 'רצה', en: 'Running' },
-  not_configured: { he: 'חסר מזהה המסוף', en: 'Terminal id missing' },
+  not_configured: { he: 'חסרות הגדרות פיי פלוס', en: 'PayPlus settings missing' },
+  stalled: { he: 'נעצרה באמצע', en: 'Stopped half-way' },
 };
+// a run still "running" after 30 minutes stopped half-way (the next daily call takes it again)
+const runState = (r) => (r.status === 'running' && Date.now() - Date.parse(r.startedAt) > 30 * 60000 ? 'stalled' : r.status);
 const N = ({ v }) => <bdi className="av-num">{v}</bdi>;
 const symbol = (c) => (c === 'ILS' ? '₪' : c === 'USD' ? '$' : c === 'EUR' ? '€' : c === 'GBP' ? '£' : `${c} `);
 
-// the finding's amount: ours in agorot / cents; PayPlus's in the unit the run detected (unknown = shown as PayPlus wrote it)
-function amountOf(f, isHebrew) {
-  const d = f.detail || {};
-  if (Number.isFinite(d.amountMinor)) return `${symbol(d.currency)}${formatMoneyForCurrency(d.amountMinor / 100, d.currency)}`;
-  const p = d.provider || d;
-  if (!Number.isFinite(p.amount)) return '—';
+// an amount: ours in agorot / cents; PayPlus's in the unit the run detected (unknown = shown as PayPlus wrote it)
+const ourAmount = (minor, currency) => `${symbol(currency)}${formatMoneyForCurrency(minor / 100, currency)}`;
+function providerAmount(p, isHebrew) {
+  if (!p || !Number.isFinite(p.amount)) return '—';
   if (p.scale === 'minor') return `${symbol(p.currency)}${formatMoneyForCurrency(p.amount / 100, p.currency)}`;
   if (p.scale === 'major') return `${symbol(p.currency)}${formatMoneyForCurrency(p.amount, p.currency)}`;
   return `${p.amount} ${p.currency || ''} ${isHebrew ? '(יחידה לא ידועה)' : '(unit unknown)'}`;
+}
+function amountOf(f, isHebrew) {
+  const d = f.detail || {};
+  if (d.provider && d.ours) {
+    return isHebrew ? `בפיי פלוס ${providerAmount(d.provider, true)}, אצלנו ${ourAmount(d.ours.amountMinor, d.ours.currency)}`
+      : `PayPlus ${providerAmount(d.provider, false)}, ours ${ourAmount(d.ours.amountMinor, d.ours.currency)}`;
+  }
+  if (Number.isFinite(d.amountMinor)) return ourAmount(d.amountMinor, d.currency);
+  return providerAmount(d, isHebrew);
 }
 
 export default function AdminBillingReconcile({ isHebrew }) {
@@ -80,7 +90,7 @@ export default function AdminBillingReconcile({ isHebrew }) {
       setNotice({ good: true, text: isHebrew ? `ההתאמה הסתיימה: ${r.provider} עסקאות בפיי פלוס, ${r.matched} התאימו, ${r.newFindings} פריטים חדשים לבדיקה.`
         : `Reconciliation done: ${r.provider} PayPlus transactions, ${r.matched} matched, ${r.newFindings} new items to check.` });
     } else if (r?.status === 'not_configured') {
-      setNotice({ good: false, text: isHebrew ? 'חסר מזהה המסוף של פיי פלוס בשרת. בלעדיו אי אפשר לקרוא את העסקאות.' : 'The PayPlus terminal id is missing on the server. Without it the transactions cannot be read.' });
+      setNotice({ good: false, text: isHebrew ? 'חסרות בשרת הגדרות הקריאה מפיי פלוס (מזהה המסוף או המפתחות). בלעדיהן אי אפשר לקרוא את העסקאות.' : 'The PayPlus read settings are missing on the server (the terminal id or the keys). Without them the transactions cannot be read.' });
     } else {
       setNotice({ good: false, text: isHebrew ? `ההתאמה לא הושלמה${r?.code ? ` (${r.code})` : ''}. נסו שוב מאוחר יותר.` : `The reconciliation did not complete${r?.code ? ` (${r.code})` : ''}. Try again later.` });
     }
@@ -130,7 +140,7 @@ export default function AdminBillingReconcile({ isHebrew }) {
           <button type="button" className="admin-btn primary" disabled={!!busy} onClick={runNow} data-testid="reconcile-run">{busy === 'run' ? (isHebrew ? 'בודק...' : 'Checking...') : (isHebrew ? 'התאמה עכשיו' : 'Reconcile now')}</button>
           {last && (
             <span className="av-muted" data-testid="reconcile-last">
-              {isHebrew ? 'ההרצה האחרונה: ' : 'Last run: '}<N v={formatShortDateTime(last.startedAt, market)} />{' · '}{L(RUN_STATUS[last.status] || RUN_STATUS.failed)}
+              {isHebrew ? 'ההרצה האחרונה: ' : 'Last run: '}<N v={formatShortDateTime(last.startedAt, market)} />{' · '}{L(RUN_STATUS[runState(last)] || RUN_STATUS.failed)}
               {last.status === 'ok' && <>{' · '}{isHebrew ? 'עסקאות בפיי פלוס: ' : 'PayPlus transactions: '}<N v={last.provider} />{isHebrew ? ', התאימו: ' : ', matched: '}<N v={last.matched} /></>}
               {last.status === 'failed' && last.error && <>{' · '}<bdi dir="ltr">{last.error}</bdi></>}
             </span>
@@ -143,7 +153,9 @@ export default function AdminBillingReconcile({ isHebrew }) {
               <>
                 <h3 className="av-section">{isHebrew ? 'לבדיקה' : 'To check'} <N v={open.length} /></h3>
                 {open.length === 0
-                  ? <p className="av-muted" role="status" data-testid="reconcile-empty">{runs.length ? (isHebrew ? 'אין הבדלים פתוחים. כל העסקאות התאימו.' : 'No open differences. Every transaction matched.') : (isHebrew ? 'ההתאמה עדיין לא רצה.' : 'The reconciliation has not run yet.')}</p>
+                  ? <p className="av-muted" role="status" data-testid="reconcile-empty">{!last ? (isHebrew ? 'ההתאמה עדיין לא רצה.' : 'The reconciliation has not run yet.')
+                    : last.status === 'ok' ? (isHebrew ? 'אין הבדלים פתוחים. כל העסקאות התאימו.' : 'No open differences. Every transaction matched.')
+                      : (isHebrew ? 'ההרצה האחרונה לא הושלמה, ולכן אין כרגע תמונה עדכנית.' : 'The last run did not complete, so there is no current picture.')}</p>
                   : <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10 }} data-testid="reconcile-open">{open.map((f) => findingRow(f, true))}</ol>}
                 {checked.length > 0 && (
                   <details className="av-section" data-testid="reconcile-checked">
@@ -169,7 +181,7 @@ export default function AdminBillingReconcile({ isHebrew }) {
                         {runs.map((r) => (
                           <tr key={r.id} data-run={r.id} data-status={r.status}>
                             <td><N v={formatShortDateTime(r.startedAt, market)} /></td>
-                            <td>{L(RUN_STATUS[r.status] || RUN_STATUS.failed)}</td>
+                            <td>{L(RUN_STATUS[runState(r)] || RUN_STATUS.failed)}</td>
                             <td><N v={r.provider} /></td>
                             <td><N v={r.ours} /></td>
                             <td><N v={r.matched} /></td>

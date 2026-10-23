@@ -6,7 +6,8 @@
 --   תשלומים יומית עם מסך בניהול"; plan docs/PAYMENTS_RECONCILIATION_PLAN_2026-10-23.md; Codex payments-prep audit 2026-10-22 item 2).
 --   Once a day the function billing-reconcile reads PayPlus's transaction history (read only) and compares it with what our server
 --   recorded. Nothing here changes an account, an entitlement or a payment - it only keeps what was found, for the Owner.
---   * billing_reconcile_runs     - one row per run (the daily site run: once per Israel day; the Owner's "run now": any time).
+--   * billing_reconcile_runs     - one row per run (the daily site run: once per Israel day - a failed or stalled one is taken again by
+--     the next site call that day; the Owner's "run now": any time).
 --   * billing_reconcile_findings - one row per difference, once per (code, transaction): UNLINKED (money at PayPlus, no verified
 --     event of ours), MISSING_AT_PROVIDER (a verified charge of ours that PayPlus does not list), AMOUNT_MISMATCH, REFUND_UNRECORDED.
 --   * billing_reconcile_source() - the service role's ONLY read of our billing tables (they stay closed even to the service role).
@@ -47,6 +48,8 @@ CREATE TABLE IF NOT EXISTS public.billing_reconcile_findings (
   detail      jsonb       NOT NULL DEFAULT '{}'::jsonb,
   status      text        NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'checked')),
   checked_at  timestamptz NULL,
+  -- the Owner was told: by the daily email, or by seeing it on the screen (a finding of the Owner's own "run now")
+  mailed_at   timestamptz NULL,
   created_at  timestamptz NOT NULL DEFAULT now(),
   UNIQUE (code, uid)
 );

@@ -23,7 +23,7 @@ describe('normalize a PayPlus history row', () => {
     expect(normalizeProviderTx(row({}, { more_info: 'test1' }))?.moreInfo).toBe(null);
   });
   it('an unreadable row is null - never guessed', () => {
-    for (const bad of [null, 'x', row({ uuid: '' }), row({ transaction_type: '' }), row({}, { amount_by_currency: -1 }), row({}, { amount_by_currency: 'ten' }),
+    for (const bad of [null, 'x', row({ uuid: '' }), row({ transaction_type: '' }), row({}, { amount_by_currency: 'ten' }), row({}, { amount_by_currency: Number.NaN }),
       row({}, { currency: { currency_code: 'shekel' } }), row({ created_at: null }, { transaction_at: 'not a date' })]) {
       expect(normalizeProviderTx(bad)).toBe(null);
     }
@@ -69,6 +69,32 @@ describe('reconcile', () => {
       charges: [], refunds: [{ transactionUid: 'rf1' }], ...W });
     expect(r.findings.map((f) => [f.code, f.uid])).toEqual([['REFUND_UNRECORDED', 'rf2']]);
     expect(r.types).toEqual({ '03': 2, '07': 1 });
+  });
+});
+
+describe('review fixes (2026-10-23)', () => {
+  it('a negative amount is a refund whatever its code, kept as a positive amount', () => {
+    expect(normalizeProviderTx(row({}, { amount_by_currency: -3000 }))).toMatchObject({ kind: 'refund', amount: 3000 });
+  });
+  it('a pulled checkout and its later callback are ONE charge: no MISSING_AT_PROVIDER for the pull row', () => {
+    const pull = ours({ providerEventId: `pull:${A1}` });
+    const callback = ours({ providerEventId: 'tx1' });
+    const r = reconcile({ provider: [tx({})], charges: [pull, callback], refunds: [], ...W });
+    expect(r.findings).toEqual([]);
+    expect(r.matched).toBe(1);
+  });
+  it('a pulled checkout whose callback never came is matched through our attempt id', () => {
+    const r = reconcile({ provider: [tx({ uid: 'tx-real' })], charges: [ours({ providerEventId: `pull:${A1}` })], refunds: [], ...W });
+    expect(r).toMatchObject({ matched: 1, findings: [] });
+  });
+  it('a second (double) charge of the same checkout is UNLINKED - our one charge is never used twice', () => {
+    const r = reconcile({ provider: [tx({}), tx({ uid: 'tx-double' })], charges: [ours({})], refunds: [], ...W });
+    expect(r.matched).toBe(1);
+    expect(r.findings.map((f) => [f.code, f.uid])).toEqual([['UNLINKED', 'tx-double']]);
+  });
+  it('an amount mismatch keeps the transaction time', () => {
+    const r = reconcile({ provider: [tx({ amount: 3000 }), tx({ uid: 'tx2', amount: 2900, moreInfo: A2 })], charges: [ours({}), ours({ providerEventId: 'tx2', attemptId: A2 })], refunds: [], ...W });
+    expect(r.findings[0].detail.at).toBe('2026-11-01T10:00:00.000Z');
   });
 });
 
@@ -118,7 +144,8 @@ describe('one run', () => {
       finishRun: vi.fn(async () => {}),
       source: vi.fn(async () => ({ charges: [ours({})], refunds: [] })),
       history: vi.fn(async (_c: unknown, _f: Date, _u: Date, cur: string) => ({ ok: true as const, rows: cur === 'ILS' ? [row(), row({ uuid: 'tx9' }, { more_info: 'x' }), { junk: 1 }] : [row()] })),
-      saveFindings: vi.fn(async (_r: string, f: Finding[]) => f),
+      saveFindings: vi.fn(async (_r: string, f: Finding[], _seen: boolean) => f),
+      unmailed: vi.fn(async () => [{ id: 'f-old', code: 'UNLINKED' as const, uid: 'tx-old', detail: {} }, { id: 'f-new', code: 'UNLINKED' as const, uid: 'tx9', detail: {} }]),
       mailOwner: vi.fn(async () => true),
       markMailed: vi.fn(async () => {}),
       ...o,
@@ -132,12 +159,16 @@ describe('one run', () => {
     expect(d.claimRun).toHaveBeenCalledWith(israelDay(NOW), 'cron');
     expect(d.history.mock.calls.map((c) => c[3])).toEqual(['ILS', 'USD']);
     expect(d.finishRun).toHaveBeenCalledWith('run-1', expect.objectContaining({ status: 'ok', providerCount: 2, oursCount: 1, newFindings: 1, types: { '01': 2, unreadable: 1 } }));
-    expect(d.markMailed).toHaveBeenCalledWith('run-1');
+    // every open finding not told yet is mailed (an earlier failed email is retried), then marked
+    expect(d.saveFindings).toHaveBeenCalledWith('run-1', expect.any(Array), false);
+    expect(d.mailOwner.mock.calls[0][0]).toBe('התאמת תשלומים: 2 פריטים חדשים לבדיקה');
+    expect(d.markMailed).toHaveBeenCalledWith('run-1', ['f-old', 'f-new']);
   });
   it('the Owner\'s run is not mailed; no caller = 401; a second site run the same day does nothing', async () => {
     const admin = deps({ caller: vi.fn(async () => 'admin' as const) });
     expect((await reconcileHandler({ action: 'run' }, admin as unknown as ReconcileDeps, 'x')).body).toMatchObject({ mailed: false });
     expect(admin.mailOwner).not.toHaveBeenCalled();
+    expect(admin.saveFindings).toHaveBeenCalledWith('run-1', expect.any(Array), true); // the Owner sees them on the screen
     expect((await reconcileHandler({ action: 'run' }, deps({ caller: vi.fn(async () => null) }) as unknown as ReconcileDeps, 'x')).status).toBe(401);
     const again = deps({ claimRun: vi.fn(async () => null) });
     expect((await reconcileHandler({ action: 'run' }, again as unknown as ReconcileDeps, 'x')).body).toMatchObject({ status: 'already_ran_today' });
@@ -162,8 +193,20 @@ describe('a run that breaks half-way', () => {
     const finishRun = vi.fn(async () => {});
     const d = { caller: async () => 'admin' as const, now: () => new Date('2026-11-02T04:00:00Z'), config: () => ({ apiBase: 'b', apiKey: 'k', secretKey: 's', terminalUid: 't' }),
       claimRun: async () => 'run-9', finishRun, source: async () => { throw new Error('database'); },
-      history: async () => ({ ok: true as const, rows: [] }), saveFindings: async () => [], mailOwner: async () => true, markMailed: async () => {} };
+      history: async () => ({ ok: true as const, rows: [] }), saveFindings: async () => [], unmailed: async () => [], mailOwner: async () => true, markMailed: async () => {} };
     await expect(reconcileHandler({ action: 'run' }, d as unknown as ReconcileDeps, 'x')).rejects.toThrow('database');
     expect(finishRun).toHaveBeenCalledWith('run-9', { status: 'failed', errorCode: 'internal' });
+  });
+});
+
+describe('a failed email', () => {
+  it('leaves the findings untold, so the next site run sends them again', async () => {
+    const markMailed = vi.fn(async () => {});
+    const d = { caller: async () => 'cron' as const, now: () => new Date('2026-11-02T04:00:00Z'), config: () => ({ apiBase: 'b', apiKey: 'k', secretKey: 's', terminalUid: 't' }),
+      claimRun: async () => 'run-3', finishRun: async () => {}, source: async () => ({ charges: [], refunds: [] }),
+      history: async () => ({ ok: true as const, rows: [] }), saveFindings: async () => [],
+      unmailed: async () => [{ id: 'f1', code: 'UNLINKED' as const, uid: 'u', detail: {} }], mailOwner: async () => false, markMailed };
+    expect((await reconcileHandler({ action: 'run' }, d as unknown as ReconcileDeps, 'x')).body).toMatchObject({ mailed: false });
+    expect(markMailed).not.toHaveBeenCalled();
   });
 });

@@ -105,6 +105,8 @@ BEGIN
   r := public.billing_reconcile_admin_state();
   PERFORM tst.ok(jsonb_array_length(r -> 'open') = 1 AND jsonb_array_length(r -> 'checked') = 1 AND r -> 'checked' -> 0 ->> 'checkedAt' IS NOT NULL,
     'R15 a checked finding moves to the checked list with its time');
+  PERFORM tst.ok(EXISTS (SELECT 1 FROM pg_attribute WHERE attrelid = 'public.billing_reconcile_findings'::regclass AND attname = 'mailed_at' AND NOT attisdropped),
+    'R17 every finding records when the Owner was told (a failed email is retried)');
 END $$;
 SELECT tst.throws($q$SELECT * FROM public.billing_reconcile_findings$q$, 'permission denied', 'R16 even the super admin reads only through the function');
 SELECT tst.logout();
@@ -148,5 +150,13 @@ SELECT tst.aatt('41200000-0000-4000-8000-000000000002', 'b/q2_1.pdf', 3000000);
 SELECT tst.ok((SELECT count(*) = 1 FROM public.quote_attachments WHERE quote_id = '41200000-0000-4000-8000-000000000002'), 'A6 another business is not counted');
 SELECT tst.throws($q$SELECT tst.aatt('41200000-0000-4000-8000-000000000002', 'b/q2_missing.pdf', 3145729)$q$, 'attachment_file_too_large',
   'A7 without a stored object the claimed size still counts');
+-- A8 / A9: a small row re-pointed at a large file, or a size raised, is checked like a new one; an unchanged row stays editable
+SELECT tst.aobj('b/q2_big.pdf', 3145729);
+SELECT tst.throws($q$UPDATE public.quote_attachments SET storage_path = 'b/q2_big.pdf', file_url = 'b/q2_big.pdf' WHERE storage_path = 'b/q2_1.pdf'$q$,
+  'attachment_file_too_large', 'A8 re-pointing a row at a file over 3 MB is refused');
+UPDATE public.quote_attachments SET file_name = 'renamed.pdf' WHERE storage_path = 'b/q2_1.pdf';
+UPDATE public.quote_attachments SET file_size = 2999999 WHERE storage_path = 'b/q2_1.pdf';
+SELECT tst.ok((SELECT file_name = 'renamed.pdf' AND file_size = 2999999 FROM public.quote_attachments WHERE storage_path = 'b/q2_1.pdf'),
+  'A9 a rename and a size within the limit are allowed (the row itself is not counted twice)');
 
 ROLLBACK;

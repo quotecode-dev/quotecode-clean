@@ -58,7 +58,21 @@ describe('payment reconciliation screen', () => {
     await waitFor(() => expect(screen.getByTestId('reconcile-notice').textContent).toBe('Reconciliation done: 5 PayPlus transactions, 5 matched, 0 new items to check.'));
     expect(invoke).toHaveBeenCalledWith('billing-reconcile', { body: { action: 'run' } });
     fireEvent.click(screen.getByTestId('reconcile-run'));
-    await waitFor(() => expect(screen.getByTestId('reconcile-notice').textContent).toContain('terminal id is missing'));
+    await waitFor(() => expect(screen.getByTestId('reconcile-notice').textContent).toContain('read settings are missing'));
+  });
+
+  it('an amount mismatch shows both amounts; after a failed run nothing says "everything matched"; a stopped run is named', async () => {
+    const mismatch = { id: 'f4', code: 'AMOUNT_MISMATCH', uid: 'tx-4', detail: { at: '2026-11-01T10:00:00Z', provider: { amount: 2900, currency: 'ILS', scale: 'minor' }, ours: { amountMinor: 3000, currency: 'ILS' } }, createdAt: '2026-11-02T04:00:01Z' };
+    rpc.mockResolvedValue({ data: { ...state, open: [mismatch] }, error: null });
+    render(<AdminBillingReconcile isHebrew />);
+    await waitFor(() => expect(document.querySelector('[data-finding="f4"]')).toBeTruthy());
+    expect(document.querySelector('[data-finding="f4"]').textContent).toContain('בפיי פלוס ₪29.00, אצלנו ₪30.00');
+    cleanup();
+    rpc.mockResolvedValue({ data: { ...state, open: [], runs: [{ ...state.runs[0], status: 'failed', error: 'provider_400' }, { ...state.runs[0], id: 'r0', status: 'running', startedAt: '2026-10-01T04:00:00Z' }] }, error: null });
+    render(<AdminBillingReconcile isHebrew />);
+    await waitFor(() => expect(screen.getByTestId('reconcile-empty')).toBeTruthy());
+    expect(screen.getByTestId('reconcile-empty').textContent).toBe('ההרצה האחרונה לא הושלמה, ולכן אין כרגע תמונה עדכנית.');
+    expect(screen.getByTestId('reconcile-runs').querySelector('tr[data-run="r0"]').textContent).toContain('נעצרה באמצע');
   });
 
   it('a failed load says so (never "no differences")', async () => {
