@@ -9,7 +9,6 @@ import { Inbox, Search, Clock, Mail, MessageSquareText, Paperclip, X, ShieldChec
 import { supabase } from '../shared/supabase';
 import { formatShortDateTime } from '../utils/shortDate';
 import { ADMIN_DATE_MARKET } from '../utils/adminDates';
-import AdminWeeklyReview from './AdminWeeklyReview';
 import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
 
@@ -259,8 +258,6 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
               {['all', 'red', 'yellow', 'green', 'black', 'unsorted'].map((b) => <option key={b} value={b}>{b === 'all' ? L(COLOUR_ALL) : b === 'unsorted' ? L(COLOUR_UNSORTED) : L(BINS[b])}</option>)}
             </select>
             {pendingCount > 0 && <span className="admin-count-pill" data-testid="inquiries-pending">{pendingCount}</span>}
-            {/* Owner console 2026-10-23 (typed L-22): the weekly review of bug reports and requests - a list with a status per item */}
-            <AdminWeeklyReview isHebrew={isHebrew} canRun={canSettings} />
             {canSettings && (
               // PRODUCT_TRUTH_CAPABILITY: admin_console
               <button type="button" className="admin-inquiry-settings-btn" onClick={() => setSettingsOpen(true)} data-testid="inquiries-settings">

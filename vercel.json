@@ -150,10 +150,6 @@
     {
       "path": "/api/expense-scan",
       "schedule": "0 5 1 * *"
-    },
-    {
-      "path": "/api/support-weekly-review",
-      "schedule": "0 17,18 * * 0"
     }
   ]
 }
