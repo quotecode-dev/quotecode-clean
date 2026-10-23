@@ -21,12 +21,13 @@ export default function ServiceScheduleFields({ value, onChange, state = 'ready'
   const L = (pair) => (isHebrew ? pair[0] : pair[1]);
   const v = { date: value?.date || '', time: value?.time || '' };
   const disabled = state !== 'ready';
-  const formatLabel = isUS ? 'MM-DD-YYYY' : 'DD-MM-YYYY';
+  // IRON-DATE-001: the product's slash date, as in the validity field beside it (Codex spec item 5); typed digits are read as before
+  const formatLabel = isUS ? 'MM/DD/YYYY' : 'DD/MM/YYYY';
   const display = (iso) => {
     const p = String(iso || '').split('-');
     if (p.length !== 3) return iso || '';
     const [y, m, d] = p;
-    return isUS ? `${m}-${d}-${y}` : `${d}-${m}-${y}`;
+    return isUS ? `${m}/${d}/${y}` : `${d}/${m}/${y}`;
   };
   const onTyped = (e) => {
     const digits = e.target.value.replace(/\D/g, '').slice(0, 8);

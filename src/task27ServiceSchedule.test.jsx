@@ -115,10 +115,13 @@ describe('work date - form fields', () => {
     fireEvent.change(screen.getByTestId('service-date'), { target: { value: '02112026' } });
     expect(onChange).toHaveBeenCalledWith({ date: '2026-11-02', time: '' });
   });
-  it('EN (US): MM-DD-YYYY; an unavailable server disables the fields and says so', () => {
+  it('EN (US): MM/DD/YYYY; an unavailable server disables the fields and says so', () => {
     const onChange = vi.fn();
     const { rerender } = render(<ServiceScheduleFields value={{ date: '2026-11-02', time: '08:30' }} onChange={onChange} isHebrew={false} isUS />);
-    expect(screen.getByTestId('service-date')).toHaveValue('11-02-2026');
+    expect(screen.getByTestId('service-date')).toHaveValue('11/02/2026');
+    expect(screen.getByTestId('service-date')).toHaveAttribute('placeholder', 'MM/DD/YYYY');
+    fireEvent.change(screen.getByTestId('service-date'), { target: { value: '12/24/2026' } });
+    expect(onChange).toHaveBeenCalledWith({ date: '2026-12-24', time: '08:30' });
     expect(screen.getByTestId('service-time')).toHaveValue('08:30');
     rerender(<ServiceScheduleFields value={{ date: '', time: '' }} onChange={onChange} isHebrew={false} state="unavailable" />);
     expect(screen.getByTestId('service-date')).toBeDisabled();
