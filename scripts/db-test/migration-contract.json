@@ -413,7 +413,7 @@
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE FUNCTION, DROP TRIGGER IF EXISTS + CREATE TRIGGER (re-runnable); the attachment limits enforced by the server - 3 MB a file, 30 MB a business, the real stored size (Owner 2026-10-23, typed L-09)"
     },
     "20261024000000_admin_audit_log_append_only.sql": {
-      "sha256": "b662f1b4d9c3ebd356ebaa2a4a2fc0b3e321c41d06e9649442dfe25693bef9d4",
+      "sha256": "0ca95d0d3fa2dc00acc5371a932a3d0453f664f6de8a4d359d4434b8f05ad669",
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE FUNCTION, DROP TRIGGER IF EXISTS + CREATE TRIGGER, REVOKE / GRANT (re-runnable); the admin log append-only in the database - only the actor id cleared by an account erasure may change (Owner 2026-10-23, typed L-18 / L-22)"
