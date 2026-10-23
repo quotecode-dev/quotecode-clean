@@ -427,6 +427,14 @@ describe.each([
     render(<QuotesTab {...props} quotes={[STATUS_MIX[0]]} allQuotes={STATUS_MIX} />);
     expect(screen.getByTestId('quote-overview').querySelector('[data-qh-overview="all"]')).toHaveTextContent('4');
   });
+  // Owner 2026-10-23 ("1 = א"): a sent quote whose validity has passed is not awaiting; extending the validity counts it again
+  it('the awaiting counter leaves out a quote whose validity has passed', () => {
+    const props = buildProps(isHebrew);
+    const sent = (id, valid_until) => ({ ...STATUS_MIX[0], id, status: 'sent', view_count: 1, valid_until });
+    const list = [sent('aw-1', '2999-12-31'), sent('aw-2', '2020-01-01'), sent('aw-3', null)];
+    render(<QuotesTab {...props} quotes={list} allQuotes={list} />);
+    expect(screen.getByTestId('quote-overview').querySelector('[data-qh-overview="awaiting"]')).toHaveTextContent('2');
+  });
 });
 
 describe.each([
