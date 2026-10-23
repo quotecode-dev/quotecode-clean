@@ -203,8 +203,8 @@ describe('consent by location (item 7 א)', () => {
   const atHe = () => render(<MemoryRouter initialEntries={['/he']}><SiteAnalytics isHebrew hostname="www.tekango.com" /></MemoryRouter>);
   let origFetch;
   // the fresh server geography (/api/geo) - stubbed, never a real request
-  const setCookie = (v) => { global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ country: v }) })); };
-  beforeEach(() => { try { window.localStorage.clear(); } catch { /* none */ } origFetch = origFetch ?? global.fetch; global.fetch = origFetch; });
+  const setCookie = (v) => { globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ country: v }) })); };
+  beforeEach(() => { try { window.localStorage.clear(); } catch { /* none */ } origFetch = origFetch ?? globalThis.fetch; globalThis.fetch = origFetch; });
   it('a visitor from Germany on the Hebrew website gets the notice IN HEBREW (RTL), and both choices work', async () => {
     setCookie('DE');
     atHe();
@@ -225,16 +225,16 @@ describe('consent by location (item 7 א)', () => {
     expect(inConsentRegion('uk')).toBe(true);
   });
   it('asks the server once; until it answers no notice; an unknown country gets the notice', async () => {
-    const orig = global.fetch;
+    const orig = globalThis.fetch;
     let resolve;
-    global.fetch = vi.fn(() => new Promise((r) => { resolve = r; }));
+    globalThis.fetch = vi.fn(() => new Promise((r) => { resolve = r; }));
     try {
       atHe();
-      expect(global.fetch).toHaveBeenCalledWith('/api/geo', expect.objectContaining({ cache: 'no-store' }));
+      expect(globalThis.fetch).toHaveBeenCalledWith('/api/geo', expect.objectContaining({ cache: 'no-store' }));
       expect(screen.queryByTestId('analytics-consent-banner')).toBeNull();
       await act(async () => { resolve({ ok: true, json: async () => ({ country: null }) }); });
       expect(screen.getByTestId('analytics-consent-banner').getAttribute('dir')).toBe('rtl');
-    } finally { global.fetch = orig; }
+    } finally { globalThis.fetch = orig; }
   });
 });
 
