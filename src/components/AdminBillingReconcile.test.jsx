@@ -96,10 +96,27 @@ describe('a PayPlus refusal in plain words (Owner 2026-10-23: the first live run
     rpc.mockResolvedValue({ data: { ...state, open: [], runs: [{ ...state.runs[0], status: 'failed', error: 'provider_403' }] }, error: null });
     invoke.mockResolvedValue({ data: { ok: false, status: 'failed', code: 'provider_403' }, error: null });
     render(<AdminBillingReconcile isHebrew />);
-    await waitFor(() => expect(screen.getByTestId('reconcile-last').textContent).toContain('בדיקת כתובת ה-IP'));
+    await waitFor(() => expect(screen.getByTestId('reconcile-last').textContent).toContain('בדיקת כתובות ה-IP'));
     expect(screen.getByTestId('reconcile-run').className).toBe('av-btn av-primary');
     fireEvent.click(screen.getByTestId('reconcile-run'));
     await waitFor(() => expect(screen.getByTestId('reconcile-notice').textContent).toContain('(provider_403)'));
-    expect(screen.getByTestId('reconcile-notice').textContent).toContain('לשרת אין כתובת קבועה');
+    expect(screen.getByTestId('reconcile-notice').textContent).toContain('בדרך כלל זו בדיקת כתובות ה-IP');
+  });
+});
+
+// Codex review 2026-10-23 R-01 / R-10
+describe('the screen never says "everything matched" for unverified amounts; a refusal is said as likely', () => {
+  it('a completed run with unverified amounts says so, and counts them', async () => {
+    rpc.mockResolvedValue({ data: { ...state, open: [], runs: [{ ...state.runs[0], matched: 0, unverified: 2 }] }, error: null });
+    render(<AdminBillingReconcile isHebrew />);
+    await waitFor(() => expect(screen.getByTestId('reconcile-empty')).toBeTruthy());
+    expect(screen.getByTestId('reconcile-empty').textContent).toContain('הסכום עוד לא אומת');
+    expect(screen.getByTestId('reconcile-empty').textContent).not.toContain('כל העסקאות התאימו');
+    expect(screen.getByTestId('reconcile-last').textContent).toContain('לא אומתו: 2');
+  });
+  it('403 is "usually" the IP check; a refused relay is the relay', async () => {
+    rpc.mockResolvedValue({ data: { ...state, open: [], runs: [{ ...state.runs[0], status: 'failed', error: 'relay_refused' }] }, error: null });
+    render(<AdminBillingReconcile isHebrew />);
+    await waitFor(() => expect(screen.getByTestId('reconcile-last').textContent).toContain('המתווך עם הכתובת הקבועה לא העביר'));
   });
 });

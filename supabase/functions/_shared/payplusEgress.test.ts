@@ -43,3 +43,13 @@ describe('the PayPlus relay', () => {
     expect(base).not.toHaveBeenCalled();
   });
 });
+
+// Codex review 2026-10-23 R-05: a malformed percent escape in the relay credentials is a misconfiguration, never a throw
+describe('the relay secret with a malformed escape', () => {
+  it('is relay_misconfigured, and every call fails clearly', async () => {
+    expect(proxyOptions('http://fixie:%E0%A4%A@relay.example.com:80')).toBe(null);
+    const e = payplusEgress('http://fixie:%E0%A4%A@relay.example.com:80', vi.fn(), vi.fn());
+    expect(e.via).toBe('relay_misconfigured');
+    await expect(e.fetch('https://restapi.payplus.co.il/x')).rejects.toThrow('relay_misconfigured');
+  });
+});

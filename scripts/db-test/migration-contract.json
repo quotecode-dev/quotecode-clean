@@ -417,6 +417,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE FUNCTION, DROP TRIGGER IF EXISTS + CREATE TRIGGER, REVOKE / GRANT (re-runnable); the admin log append-only in the database - only the actor id cleared by an account erasure may change (Owner 2026-10-23, typed L-18 / L-22)"
+    },
+    "20261024000100_reconcile_and_attachment_followups.sql": {
+      "sha256": "62d688cbde0b2d59638d2a842fb881d5dbccf12860120cdf643889d482b5de50",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ALTER TABLE ADD COLUMN IF NOT EXISTS, CREATE OR REPLACE FUNCTION (re-runnable); Codex review 2026-10-23 R-01 (unverified amounts in the reconciliation runs) and R-03 (a per-business lock in the attachment limit)"
     }
   }
 }

@@ -34,7 +34,10 @@ const RUN_STATUS = {
 const runState = (r) => (r.status === 'running' && Date.now() - Date.parse(r.startedAt) > 30 * 60000 ? 'stalled' : r.status);
 // what a PayPlus refusal means, in plain words (the code itself is shown too)
 const ERROR_HELP = {
-  provider_403: { he: 'פיי פלוס חסמו את הקריאה בגלל בדיקת כתובת ה-IP בחשבון: המפתחות עובדים רק מכתובות מורשות, ולשרת אין כתובת קבועה.', en: 'PayPlus refused the read because of the IP check in the account: the keys work only from approved addresses, and the server has no fixed address.' },
+  // Codex R-10: the cause is said as likely, never as a fact (another refusal can share the code)
+  provider_403: { he: 'פיי פלוס סירבו לבקשה. בדרך כלל זו בדיקת כתובות ה-IP בחשבון: כדאי לוודא ששתי כתובות המתווך ברשימת המורשים בפיי פלוס.', en: 'PayPlus refused the request. Usually this is the IP check of the account: check that both relay addresses are on the PayPlus allow list.' },
+  relay_refused: { he: 'המתווך עם הכתובת הקבועה לא העביר את הבקשה. ייתכן שנגמרה המכסה החודשית שלו או שפרטי הכניסה אליו השתנו.', en: 'The fixed-IP relay did not pass the request on. Its monthly quota may be used up, or its credentials may have changed.' },
+  provider_unreachable: { he: 'פיי פלוס או המתווך לא ענו בזמן. ההרצה הבאה תנסה שוב.', en: 'PayPlus or the relay did not answer in time. The next run tries again.' },
   provider_407: { he: 'המתווך עם הכתובת הקבועה לא קיבל את פרטי הכניסה. כדאי לבדוק שכתובת המתווך בשרת הועתקה במלואה.', en: 'The fixed-IP relay did not accept its credentials. Check that the relay address on the server was copied in full.' },
   relay_misconfigured: { he: 'כתובת המתווך שבשרת אינה כתובת תקינה. צריך להכניס אותה מחדש.', en: 'The relay address on the server is not a valid address. It needs to be set again.' },
   provider_401: { he: 'פיי פלוס לא קיבלו את המפתחות. כדאי לבדוק שהמפתחות בשרת הם של החשבון האמיתי.', en: 'PayPlus did not accept the keys. Check that the server keys belong to the live account.' },
@@ -94,8 +97,9 @@ export default function AdminBillingReconcile({ isHebrew }) {
     } catch { r = null; }
     setBusy('');
     if (r?.status === 'ok') {
-      setNotice({ good: true, text: isHebrew ? `ההתאמה הסתיימה: ${r.provider} עסקאות בפיי פלוס, ${r.matched} התאימו, ${r.newFindings} פריטים חדשים לבדיקה.`
-        : `Reconciliation done: ${r.provider} PayPlus transactions, ${r.matched} matched, ${r.newFindings} new items to check.` });
+      const unv = Number(r.unverified) || 0;
+      setNotice({ good: true, text: isHebrew ? `ההתאמה הסתיימה: ${r.provider} עסקאות בפיי פלוס, ${r.matched} התאימו${unv ? `, ${unv} נקשרו בלי שהסכום אומת` : ''}, ${r.newFindings} פריטים חדשים לבדיקה.`
+        : `Reconciliation done: ${r.provider} PayPlus transactions, ${r.matched} matched${unv ? `, ${unv} linked with the amount not verified` : ''}, ${r.newFindings} new items to check.` });
     } else if (r?.status === 'not_configured') {
       setNotice({ good: false, text: isHebrew ? 'חסרות בשרת הגדרות הקריאה מפיי פלוס (מזהה המסוף או המפתחות). בלעדיהן אי אפשר לקרוא את העסקאות.' : 'The PayPlus read settings are missing on the server (the terminal id or the keys). Without them the transactions cannot be read.' });
     } else {
@@ -150,7 +154,7 @@ export default function AdminBillingReconcile({ isHebrew }) {
           {last && (
             <span className="av-muted" data-testid="reconcile-last">
               {isHebrew ? 'ההרצה האחרונה: ' : 'Last run: '}<N v={formatShortDateTime(last.startedAt, market)} />{' · '}{L(RUN_STATUS[runState(last)] || RUN_STATUS.failed)}
-              {last.status === 'ok' && <>{' · '}{isHebrew ? 'עסקאות בפיי פלוס: ' : 'PayPlus transactions: '}<N v={last.provider} />{isHebrew ? ', התאימו: ' : ', matched: '}<N v={last.matched} /></>}
+              {last.status === 'ok' && <>{' · '}{isHebrew ? 'עסקאות בפיי פלוס: ' : 'PayPlus transactions: '}<N v={last.provider} />{isHebrew ? ', התאימו: ' : ', matched: '}<N v={last.matched} />{Number(last.unverified) > 0 && <>{isHebrew ? ', לא אומתו: ' : ', not verified: '}<N v={last.unverified} /></>}</>}
               {last.status === 'failed' && last.error && <>{' · '}<bdi dir="ltr">{last.error}</bdi>{ERROR_HELP[last.error] && <>{' · '}{L(ERROR_HELP[last.error])}</>}</>}
             </span>
           )}
@@ -163,6 +167,7 @@ export default function AdminBillingReconcile({ isHebrew }) {
                 <h3 className="av-label av-section">{isHebrew ? 'לבדיקה' : 'To check'} <N v={open.length} /></h3>
                 {open.length === 0
                   ? <p className="av-muted" role="status" data-testid="reconcile-empty">{!last ? (isHebrew ? 'ההתאמה עדיין לא רצה.' : 'The reconciliation has not run yet.')
+                    : last.status === 'ok' && Number(last.unverified) > 0 ? (isHebrew ? 'אין הבדלים פתוחים, אבל בחלק מהעסקאות הסכום עוד לא אומת: יחידת הסכום של פיי פלוס תתברר מהעסקה הראשונה שתתאים במזהה.' : 'No open differences, but for some transactions the amount is not verified yet: the PayPlus amount unit is learned from the first transaction that matches by id.')
                     : last.status === 'ok' ? (isHebrew ? 'אין הבדלים פתוחים. כל העסקאות התאימו.' : 'No open differences. Every transaction matched.')
                       : (isHebrew ? 'ההרצה האחרונה לא הושלמה, ולכן אין כרגע תמונה עדכנית.' : 'The last run did not complete, so there is no current picture.')}</p>
                   : <ol style={{ listStyle: 'none', padding: 0, margin: 0, display: 'grid', gap: 10 }} data-testid="reconcile-open">{open.map((f) => findingRow(f, true))}</ol>}
@@ -183,6 +188,7 @@ export default function AdminBillingReconcile({ isHebrew }) {
                           <th scope="col">{isHebrew ? 'בפיי פלוס' : 'At PayPlus'}</th>
                           <th scope="col">{isHebrew ? 'אצלנו' : 'Ours'}</th>
                           <th scope="col">{isHebrew ? 'התאימו' : 'Matched'}</th>
+                          <th scope="col">{isHebrew ? 'לא אומתו' : 'Not verified'}</th>
                           <th scope="col">{isHebrew ? 'חדשים' : 'New'}</th>
                         </tr>
                       </thead>
@@ -194,6 +200,7 @@ export default function AdminBillingReconcile({ isHebrew }) {
                             <td><N v={r.provider} /></td>
                             <td><N v={r.ours} /></td>
                             <td><N v={r.matched} /></td>
+                            <td><N v={Number(r.unverified) || 0} /></td>
                             <td><N v={r.newFindings} /></td>
                           </tr>
                         ))}
