@@ -20,7 +20,7 @@ import CustomerTwinIcon from './CustomerTwinIcon';
 import { nextSteps, NEXT_STEP_COPY } from '../utils/nextStep';
 import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
 import { taskMarket, marketToday, marketClock } from '../utils/manualTasks';
-import { isQuoteAcceptanceExpired, isOpenQuoteExpired } from '../utils/quoteValidity';
+import { isQuoteAcceptanceExpired, isOpenQuoteExpired, marketCalendarDate } from '../utils/quoteValidity';
 import { BELL_SUBJECT_EVENT } from '../utils/bellSubject';
 import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, RADIUS, SHADOW } from '../theme/neonTheme';
 import { isQuoteImmutable } from '../utils/quoteLock';
@@ -472,6 +472,7 @@ export default function QuotesTab({
   const stepMarket = taskMarket(isLocalIsraeliBusiness === true);
   const steps = nextSteps({
     hotRows, tasks: bannerTasks, quotes: hotSource, today: marketToday(stepMarket, stepClock), nowClock: marketClock(stepMarket, stepClock),
+    validityToday: marketCalendarDate(dateMarket, stepClock),
     isExpired: (q) => isQuoteAcceptanceExpired(q?.valid_until, dateMarket, stepClock),
   });
   void stepMinute; // re-derived every minute: a task becomes overdue at its time
