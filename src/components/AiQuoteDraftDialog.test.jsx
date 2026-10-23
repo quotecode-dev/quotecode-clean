@@ -216,10 +216,12 @@ describe('AiQuoteDraftDialog', () => {
 
   // Task 22: a fetch-level failure while the server answers is the SERVICE, never presented as a broken connection
   it.each([
-    ['service_unreachable', 'אף שהשרת זמין', true],
+    ['service_unreachable', 'ייתכן שהוא עמוס', true],
     ['unavailable', 'בדקו את החיבור לאינטרנט', true],
     ['offline', 'אין חיבור לאינטרנט', false],
     ['server_error', 'נתקל בשגיאה בשרת', true],
+    // Owner 2026-10-23 (item 10): a busy server is never "not installed"; a cut answer after a long description says so
+    ['too_long', 'התיאור ארוך מדי', false],
   ])('status %s shows its own message (chat fallback: %s)', async (status, text, chat) => {
     render(<AiQuoteDraftDialog {...props({ requestDraft: vi.fn(async () => ({ status })) })} />);
     describeJob();
