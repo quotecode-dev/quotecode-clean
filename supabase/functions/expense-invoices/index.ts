@@ -6,11 +6,12 @@
 //  - The Google refresh tokens are stored ENCRYPTED (AES-GCM; the key is derived from GOOGLE_EXPENSES_CLIENT_SECRET) and revoked at Google
 //    on disconnect.
 //  - Secrets (the Owner sets them; never in code): GOOGLE_EXPENSES_CLIENT_ID / GOOGLE_EXPENSES_CLIENT_SECRET, OPENAI_API_KEY,
-//    PAYPLUS_API_KEY / PAYPLUS_SECRET_KEY / PAYPLUS_ENVIRONMENT, RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS (the monthly note), CRON_SECRET.
+//    PAYPLUS_API_KEY / PAYPLUS_SECRET_KEY / PAYPLUS_ENVIRONMENT (+ PAYPLUS_PROXY_URL, the fixed-IP relay), RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS (the monthly note), CRON_SECRET.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { expenseHandler, oauthCallback, scanBatch, payplusRecords, sameText, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
 import { PAYPLUS_API_BASES } from '../subscription-authority/payplus.ts';
 import { sendMail } from '../support-inbound/mail.ts';
+import { payplusEgress, type FetchLike } from '../_shared/payplusEgress.ts';
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
@@ -23,10 +24,10 @@ const GOOGLE_TIMEOUT_MS = 15000;
 const toBase64 = (bytes: Uint8Array) => { let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode(...bytes.subarray(i, i + 0x8000)); return btoa(s); };
 const fromBase64 = (b64: string) => Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
 
-async function timed(url: string, init: RequestInit, ms = GOOGLE_TIMEOUT_MS): Promise<Response> {
+async function timed(url: string, init: RequestInit, ms = GOOGLE_TIMEOUT_MS, f: FetchLike = (u, i) => fetch(u, i)): Promise<Response> {
   const abort = new AbortController();
   const t = setTimeout(() => abort.abort(), ms);
-  try { return await fetch(url, { ...init, signal: abort.signal }); } finally { clearTimeout(t); }
+  try { return await f(url, { ...init, signal: abort.signal }); } finally { clearTimeout(t); }
 }
 const message = (v: unknown) => (typeof v === 'string' ? v : v && typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')).slice(0, 200);
 
@@ -37,6 +38,8 @@ Deno.serve(async (req: Request) => {
   try { secretKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? ''; } catch { secretKey = ''; }
   if (!secretKey) secretKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   const admin = createClient(supabaseUrl, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  // Owner 2026-10-23: the PayPlus calls go through the fixed-IP relay (PAYPLUS_PROXY_URL; the account's IP check - _shared/payplusEgress.ts)
+  const egress = payplusEgress(Deno.env.get('PAYPLUS_PROXY_URL'));
   const clientId = (Deno.env.get('GOOGLE_EXPENSES_CLIENT_ID') ?? '').trim();
   const clientSecret = (Deno.env.get('GOOGLE_EXPENSES_CLIENT_SECRET') ?? '').trim();
   const redirectUri = `${supabaseUrl.replace(/\/$/, '')}/functions/v1/expense-invoices/oauth-callback`;
@@ -215,7 +218,7 @@ Deno.serve(async (req: Request) => {
     },
     payplusSearch: async (search) => {
       const p = payplus();
-      const res = await timed(`${p.base}/books/expenses?search=${encodeURIComponent(search)}&skip=0&take=50`, { headers: p.headers });
+      const res = await timed(`${p.base}/books/expenses?search=${encodeURIComponent(search)}&skip=0&take=50`, { headers: p.headers }, GOOGLE_TIMEOUT_MS, egress.fetch);
       const body = await res.json().catch(() => null);
       // the documented "nothing found" answer is 400 with an empty object; any other failure blocks the send
       if (res.status === 400 && body && typeof body === 'object' && !Array.isArray(body) && Object.keys(body).length === 0) return [];
@@ -229,7 +232,7 @@ Deno.serve(async (req: Request) => {
       const form = new FormData();
       for (const [k, v] of Object.entries(fields)) form.append(k, v);
       if (file) form.append('doc_file', new Blob([fromBase64(file.base64)], { type: file.type }), file.name);
-      const res = await timed(`${p.base}/expenses`, { method: 'POST', headers: p.headers, body: form }, 30000);
+      const res = await timed(`${p.base}/expenses`, { method: 'POST', headers: p.headers, body: form }, 30000, egress.fetch);
       const out = await res.json().catch(() => null);
       if (!res.ok || out?.status !== 'success') throw new Error(`PayPlus ${res.status}: ${message(out?.message ?? out?.details ?? out?.status)}`);
       // created: the id when PayPlus gives it (the row is sent either way - never created twice)
@@ -273,5 +276,7 @@ Deno.serve(async (req: Request) => {
     return json(r.status, r.body);
   } catch {
     return json(500, { ok: false, code: 'failed' });
+  } finally {
+    egress.close();
   }
 });
