@@ -1,0 +1,78 @@
+// Owner console 2026-10-23 (L-22): the payment reconciliation screen - the open differences with their amount in the right unit, the runs,
+// "checked" through the super-admin RPC, "run now" through the function; the Owner only; Israeli dates; read only.
+import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
+
+const rpc = vi.fn();
+const invoke = vi.fn();
+vi.mock('../shared/supabase', () => ({ supabase: { rpc: (...a) => rpc(...a), functions: { invoke: (...a) => invoke(...a) } } }));
+import AdminBillingReconcile from './AdminBillingReconcile';
+import { ADMIN_DESTINATIONS, canOpenDestination } from './adminDestinations';
+
+afterEach(cleanup);
+beforeEach(() => { rpc.mockReset(); invoke.mockReset(); });
+
+const state = {
+  ok: true,
+  runs: [{ id: 'r1', day: '2026-11-02', source: 'cron', startedAt: '2026-11-02T04:00:00Z', status: 'ok', provider: 4, ours: 3, matched: 3, newFindings: 2, scale: 'minor' }],
+  open: [
+    { id: 'f1', code: 'UNLINKED', uid: 'tx-9', detail: { amount: 3000, currency: 'ILS', scale: 'minor', at: '2026-11-01T10:00:00Z' }, createdAt: '2026-11-02T04:00:01Z' },
+    { id: 'f2', code: 'MISSING_AT_PROVIDER', uid: 'tx-7', detail: { amountMinor: 1900, currency: 'USD', at: '2026-11-01T11:00:00Z' }, createdAt: '2026-11-02T04:00:01Z' },
+    { id: 'f3', code: 'REFUND_UNRECORDED', uid: 'tx-5', detail: { amount: 12345, currency: 'ILS', scale: 'unknown', at: '2026-11-01T12:00:00Z' }, createdAt: '2026-11-02T04:00:01Z' },
+  ],
+  checked: [],
+};
+
+describe('payment reconciliation screen', () => {
+  it('HE: every open difference with its meaning, amount in the detected unit and transaction id; the last run; Israeli dates', async () => {
+    rpc.mockResolvedValue({ data: state, error: null });
+    render(<AdminBillingReconcile isHebrew />);
+    await waitFor(() => expect(screen.getByTestId('reconcile-open')).toBeTruthy());
+    expect(rpc).toHaveBeenCalledWith('billing_reconcile_admin_state');
+    const f1 = document.querySelector('[data-finding="f1"]');
+    expect(f1.textContent).toContain('נגבה כסף ואין מנוי');
+    expect(f1.textContent).toContain('₪30.00');
+    expect(f1.textContent).toContain('tx-9');
+    expect(f1.textContent).toMatch(/01[./]11[./]2026/);
+    expect(document.querySelector('[data-finding="f2"]').textContent).toContain('$19.00');
+    expect(document.querySelector('[data-finding="f3"]').textContent).toContain('(יחידה לא ידועה)');
+    expect(screen.getByTestId('reconcile-last').textContent).toContain('הושלמה');
+    expect(screen.getByTestId('reconcile-runs').querySelector('tr[data-run="r1"]').textContent).toMatch(/02[./]11[./]2026/);
+  });
+
+  it('"checked" goes through the super-admin RPC and reloads', async () => {
+    rpc.mockImplementation(async (name) => (name === 'billing_reconcile_set_status' ? { data: { ok: true }, error: null } : { data: state, error: null }));
+    render(<AdminBillingReconcile isHebrew />);
+    await waitFor(() => expect(screen.getByTestId('reconcile-check-f1')).toBeTruthy());
+    fireEvent.click(screen.getByTestId('reconcile-check-f1'));
+    await waitFor(() => expect(rpc).toHaveBeenCalledWith('billing_reconcile_set_status', { p_id: 'f1', p_status: 'checked' }));
+  });
+
+  it('"run now" calls the function and says what happened; a missing terminal id is said plainly', async () => {
+    rpc.mockResolvedValue({ data: { ...state, open: [], runs: [] }, error: null });
+    invoke.mockResolvedValueOnce({ data: { ok: true, status: 'ok', provider: 5, matched: 5, newFindings: 0 }, error: null })
+      .mockResolvedValueOnce({ data: { ok: true, status: 'not_configured' }, error: null });
+    render(<AdminBillingReconcile isHebrew={false} />);
+    await waitFor(() => expect(screen.getByTestId('reconcile-empty').textContent).toBe('The reconciliation has not run yet.'));
+    fireEvent.click(screen.getByTestId('reconcile-run'));
+    await waitFor(() => expect(screen.getByTestId('reconcile-notice').textContent).toBe('Reconciliation done: 5 PayPlus transactions, 5 matched, 0 new items to check.'));
+    expect(invoke).toHaveBeenCalledWith('billing-reconcile', { body: { action: 'run' } });
+    fireEvent.click(screen.getByTestId('reconcile-run'));
+    await waitFor(() => expect(screen.getByTestId('reconcile-notice').textContent).toContain('terminal id is missing'));
+  });
+
+  it('a failed load says so (never "no differences")', async () => {
+    rpc.mockResolvedValue({ data: null, error: { message: 'super admin only' } });
+    render(<AdminBillingReconcile isHebrew />);
+    await waitFor(() => expect(screen.getByTestId('reconcile-unavailable')).toBeTruthy());
+    expect(screen.queryByTestId('reconcile-empty')).toBe(null);
+  });
+
+  it('the destination is the Owner\'s only, under System', () => {
+    const d = ADMIN_DESTINATIONS.find((x) => x.id === 'billing-reconcile');
+    expect(d.hub).toBe('system');
+    expect(d.permission).toBe('owner');
+    expect(canOpenDestination(d, { owner: true, permissions: [] })).toBe(true);
+    expect(canOpenDestination(d, { owner: false, permissions: ['activity.view', 'plans.view'] })).toBe(false);
+  });
+});
