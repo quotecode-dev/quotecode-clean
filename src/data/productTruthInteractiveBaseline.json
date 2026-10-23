@@ -887,6 +887,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/utils/financialEdit.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/firstView.js": {
     "interactive": 0,
     "markers": 1
