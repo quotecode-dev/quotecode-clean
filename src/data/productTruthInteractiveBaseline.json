@@ -107,6 +107,10 @@
     "interactive": 8,
     "markers": 8
   },
+  "src/components/AdminWeeklyReview.jsx": {
+    "interactive": 5,
+    "markers": 7
+  },
   "src/components/AiChatIcon.jsx": {
     "interactive": 0,
     "markers": 0
@@ -1552,6 +1556,14 @@
     "markers": 0
   },
   "supabase/functions/support-inbound/triage.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/support-weekly-review/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/support-weekly-review/lib.ts": {
     "interactive": 0,
     "markers": 0
   },
