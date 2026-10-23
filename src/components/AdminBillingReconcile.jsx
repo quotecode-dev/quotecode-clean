@@ -32,6 +32,11 @@ const RUN_STATUS = {
 };
 // a run still "running" after 30 minutes stopped half-way (the next daily call takes it again)
 const runState = (r) => (r.status === 'running' && Date.now() - Date.parse(r.startedAt) > 30 * 60000 ? 'stalled' : r.status);
+// what a PayPlus refusal means, in plain words (the code itself is shown too)
+const ERROR_HELP = {
+  provider_403: { he: 'פיי פלוס חסמו את הקריאה בגלל בדיקת כתובת ה-IP בחשבון: המפתחות עובדים רק מכתובות מורשות, ולשרת אין כתובת קבועה.', en: 'PayPlus refused the read because of the IP check in the account: the keys work only from approved addresses, and the server has no fixed address.' },
+  provider_401: { he: 'פיי פלוס לא קיבלו את המפתחות. כדאי לבדוק שהמפתחות בשרת הם של החשבון האמיתי.', en: 'PayPlus did not accept the keys. Check that the server keys belong to the live account.' },
+};
 const N = ({ v }) => <bdi className="av-num">{v}</bdi>;
 const symbol = (c) => (c === 'ILS' ? '₪' : c === 'USD' ? '$' : c === 'EUR' ? '€' : c === 'GBP' ? '£' : `${c} `);
 
@@ -92,7 +97,9 @@ export default function AdminBillingReconcile({ isHebrew }) {
     } else if (r?.status === 'not_configured') {
       setNotice({ good: false, text: isHebrew ? 'חסרות בשרת הגדרות הקריאה מפיי פלוס (מזהה המסוף או המפתחות). בלעדיהן אי אפשר לקרוא את העסקאות.' : 'The PayPlus read settings are missing on the server (the terminal id or the keys). Without them the transactions cannot be read.' });
     } else {
-      setNotice({ good: false, text: isHebrew ? `ההתאמה לא הושלמה${r?.code ? ` (${r.code})` : ''}. נסו שוב מאוחר יותר.` : `The reconciliation did not complete${r?.code ? ` (${r.code})` : ''}. Try again later.` });
+      const help = ERROR_HELP[r?.code];
+      setNotice({ good: false, text: help ? `${L(help)} (${r.code})`
+        : isHebrew ? `ההתאמה לא הושלמה${r?.code ? ` (${r.code})` : ''}. נסו שוב מאוחר יותר.` : `The reconciliation did not complete${r?.code ? ` (${r.code})` : ''}. Try again later.` });
     }
     load();
   };
@@ -113,10 +120,10 @@ export default function AdminBillingReconcile({ isHebrew }) {
       <p style={{ margin: '4px 0', fontSize: 12 }}>{isHebrew ? 'מזהה העסקה: ' : 'Transaction id: '}<bdi dir="ltr" style={{ fontFamily: 'monospace' }}>{f.uid}</bdi></p>
       {isOpen ? (
         // PRODUCT_TRUTH_DECORATIVE: marks this finding as checked (super admin, server-checked; no payment changes)
-        <button type="button" className="admin-btn" disabled={!!busy} onClick={() => setStatus(f.id, 'checked')} data-testid={`reconcile-check-${f.id}`}>{isHebrew ? 'נבדק' : 'Checked'}</button>
+        <button type="button" className="av-btn" disabled={!!busy} onClick={() => setStatus(f.id, 'checked')} data-testid={`reconcile-check-${f.id}`}>{isHebrew ? 'נבדק' : 'Checked'}</button>
       ) : (
         // PRODUCT_TRUTH_DECORATIVE: returns a checked finding to the open list (super admin, server-checked)
-        <button type="button" className="admin-btn" disabled={!!busy} onClick={() => setStatus(f.id, 'new')} data-testid={`reconcile-reopen-${f.id}`}>{isHebrew ? 'החזרה לפתוחים' : 'Reopen'}</button>
+        <button type="button" className="av-btn" disabled={!!busy} onClick={() => setStatus(f.id, 'new')} data-testid={`reconcile-reopen-${f.id}`}>{isHebrew ? 'החזרה לפתוחים' : 'Reopen'}</button>
       )}
     </li>
   );
@@ -134,15 +141,15 @@ export default function AdminBillingReconcile({ isHebrew }) {
       formatTime={(v) => formatShortDateTime(v, market)}
     >
       <article className="av-card" data-testid="admin-billing-reconcile">
-        {notice && <div role={notice.good ? 'status' : 'alert'} className={`av-notice ${notice.good ? 'av-good' : 'av-bad'}`} data-testid="reconcile-notice">{notice.text}</div>}
+        {notice && <div role={notice.good ? 'status' : 'alert'} className={`av-notice ${notice.good ? 'av-info' : 'av-bad'}`} data-testid="reconcile-notice">{notice.text}</div>}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }} className="av-section">
           {/* PRODUCT_TRUTH_DECORATIVE: runs the reconciliation now (super admin; reads PayPlus, changes no payment; no email) */}
-          <button type="button" className="admin-btn primary" disabled={!!busy} onClick={runNow} data-testid="reconcile-run">{busy === 'run' ? (isHebrew ? 'בודק...' : 'Checking...') : (isHebrew ? 'התאמה עכשיו' : 'Reconcile now')}</button>
+          <button type="button" className="av-btn av-primary" disabled={!!busy} onClick={runNow} data-testid="reconcile-run">{busy === 'run' ? (isHebrew ? 'בודק...' : 'Checking...') : (isHebrew ? 'התאמה עכשיו' : 'Reconcile now')}</button>
           {last && (
             <span className="av-muted" data-testid="reconcile-last">
               {isHebrew ? 'ההרצה האחרונה: ' : 'Last run: '}<N v={formatShortDateTime(last.startedAt, market)} />{' · '}{L(RUN_STATUS[runState(last)] || RUN_STATUS.failed)}
               {last.status === 'ok' && <>{' · '}{isHebrew ? 'עסקאות בפיי פלוס: ' : 'PayPlus transactions: '}<N v={last.provider} />{isHebrew ? ', התאימו: ' : ', matched: '}<N v={last.matched} /></>}
-              {last.status === 'failed' && last.error && <>{' · '}<bdi dir="ltr">{last.error}</bdi></>}
+              {last.status === 'failed' && last.error && <>{' · '}<bdi dir="ltr">{last.error}</bdi>{ERROR_HELP[last.error] && <>{' · '}{L(ERROR_HELP[last.error])}</>}</>}
             </span>
           )}
         </div>
@@ -151,7 +158,7 @@ export default function AdminBillingReconcile({ isHebrew }) {
           : data === 'unavailable' ? <div className="av-notice av-bad" role="alert" data-testid="reconcile-unavailable">{t(isHebrew, C.loadFailed.he, C.loadFailed.en)}</div>
             : (
               <>
-                <h3 className="av-section">{isHebrew ? 'לבדיקה' : 'To check'} <N v={open.length} /></h3>
+                <h3 className="av-label av-section">{isHebrew ? 'לבדיקה' : 'To check'} <N v={open.length} /></h3>
                 {open.length === 0
                   ? <p className="av-muted" role="status" data-testid="reconcile-empty">{!last ? (isHebrew ? 'ההתאמה עדיין לא רצה.' : 'The reconciliation has not run yet.')
                     : last.status === 'ok' ? (isHebrew ? 'אין הבדלים פתוחים. כל העסקאות התאימו.' : 'No open differences. Every transaction matched.')
