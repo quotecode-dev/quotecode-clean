@@ -399,18 +399,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE TABLE IF NOT EXISTS, CREATE INDEX IF NOT EXISTS, CREATE OR REPLACE (re-runnable); the weekly review of bug reports and requests (Owner 2026-10-23, typed L-22)"
-    },
-    "20261023300000_billing_reconcile.sql": {
-      "sha256": "1f67e0da64e97c59d19236b2fa6059a05f23e286b9c39e66b1863f7a860f19e2",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE TABLE IF NOT EXISTS, CREATE INDEX IF NOT EXISTS, CREATE OR REPLACE (re-runnable); the daily payment reconciliation against PayPlus - runs, findings, the service-role source and the super-admin view (Owner 2026-10-23, typed L-22)"
-    },
-    "20261023310000_quote_attachment_size_guard.sql": {
-      "sha256": "2521fd98f9eed9d7c60cfa017851e940f2391c98fe8b1d05c421173f261ceb0b",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; CREATE OR REPLACE FUNCTION, DROP TRIGGER IF EXISTS + CREATE TRIGGER (re-runnable); the attachment limits enforced by the server - 3 MB a file, 30 MB a business, the real stored size (Owner 2026-10-23, typed L-09)"
     }
   }
 }

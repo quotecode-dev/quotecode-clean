@@ -20,7 +20,7 @@ import CustomerTwinIcon from './CustomerTwinIcon';
 import { nextSteps, NEXT_STEP_COPY } from '../utils/nextStep';
 import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
 import { taskMarket, marketToday, marketClock } from '../utils/manualTasks';
-import { isQuoteAcceptanceExpired, isOpenQuoteExpired } from '../utils/quoteValidity';
+import { isQuoteAcceptanceExpired } from '../utils/quoteValidity';
 import { BELL_SUBJECT_EVENT } from '../utils/bellSubject';
 import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, RADIUS, SHADOW } from '../theme/neonTheme';
 import { isQuoteImmutable } from '../utils/quoteLock';
@@ -401,8 +401,6 @@ export default function QuotesTab({
   const overviewAwaiting = overviewQuotes.filter((quote) => {
     const status = (quote.status || '').toLowerCase();
     if (status === 'approved' || status === 'paid') return false;
-    // Owner 2026-10-23 ("1 = א"): a quote whose validity has passed can no longer be approved - not counted as awaiting
-    if (isOpenQuoteExpired(quote)) return false;
     return status === 'sent' || Number(quote.view_count || 0) > 0;
   }).length;
   const overviewApproved = overviewQuotes.filter((quote) => {

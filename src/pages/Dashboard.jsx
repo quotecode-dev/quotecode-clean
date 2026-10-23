@@ -4816,17 +4816,6 @@ Continue anyway?`);
           ? (isHebrew ? ' שימו לב: פרטי הלקוח כבר עודכנו.' : ' Note: the client details were already updated.')
           : (isHebrew ? ' שום דבר לא נשמר או שונה.' : ' Nothing was saved or changed.');
         const detail = saveResult.error?.message ? (isHebrew ? ` (פירוט: ${saveResult.error.message})` : ` (details: ${saveResult.error.message})`) : '';
-        // Owner 2026-10-23 (typed L-09): the server enforces the attachment limits too (20261023310000) - its refusal is said plainly, never
-        // as a raw code with "try again" (the same save would be refused again)
-        const attachmentLimit = /attachment_(total_exceeded|file_too_large)/.exec(String(saveResult.error?.message || ''));
-        if (attachmentLimit) {
-          const tooLarge = attachmentLimit[1] === 'file_too_large';
-          const limitMsg = isHebrew
-            ? `ההצעה לא נשמרה: ${tooLarge ? 'קובץ מצורף גדול מ-3 MB.' : 'הקבצים המצורפים של העסק יעברו את המכסה של 30 MB.'} הסירו קובץ ונסו שוב. הטיוטה נשמרה.`
-            : `The quote was not saved: ${tooLarge ? 'an attachment is larger than 3 MB.' : 'your business\'s attachments would exceed the 30 MB limit.'} Remove a file and try again. Your draft is kept.`;
-          saveBlock(tooLarge ? 'ATTACHMENT_FILE_TOO_LARGE' : 'ATTACHMENT_TOTAL_EXCEEDED', limitMsg);
-          return;
-        }
         let msg;
         if (saveResult.stage === 'structure' && saveResult.compensationFailed) {
           msg = isHebrew
@@ -6437,8 +6426,7 @@ Continue anyway?`);
            its original height - a short text (only a long name shortens; the count / days always stay visible) and a short button */
         .quote-hot-banner .qhb-short { display: none; }
         @media (max-width: 768px) {
-          /* Owner 2026-10-23 (L-25 / L-26): the "no urgent step" note has no short line - it keeps its own text on the phone (it was an empty box) */
-          .quote-workspace .quote-hot-banner:not(.quote-hot-banner--empty) .quote-hot-banner-text { display: none; }
+          .quote-workspace .quote-hot-banner .quote-hot-banner-text { display: none; }
           .quote-workspace .quote-hot-banner .qhb-short { display: flex; flex: 1 1 auto; min-width: 0; align-items: baseline; white-space: nowrap; color: #9a3412; font-weight: 500; }
           .quote-workspace .quote-hot-banner .qhb-short-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
           .quote-workspace .quote-hot-banner .qhb-short-rest { flex: none; white-space: pre; }

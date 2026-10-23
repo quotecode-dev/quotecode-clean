@@ -1,5 +1,5 @@
 import { createElement } from 'react';
-import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox, Briefcase, Settings2, KeyRound, Coins, Receipt, Scale } from 'lucide-react';
+import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox, Briefcase, Settings2, KeyRound, Coins, Receipt } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminPlans from './AdminPlans';
 import AdminSystemActivity from './AdminSystemActivity';
@@ -10,7 +10,6 @@ import AdminHub from './AdminHub';
 import AdminPermissions from './AdminPermissions';
 import AdminTwinCosts from './AdminTwinCosts';
 import AdminExpenseInvoices from './AdminExpenseInvoices';
-import AdminBillingReconcile from './AdminBillingReconcile';
 
 // THE Admin destination registry - the one and only definition of what an
 // Admin destination is. The sidebar list, the mobile More list, the
@@ -125,14 +124,6 @@ export const ADMIN_DESTINATIONS = [
     title: { he: 'חשבוניות הוצאה - סופר אדמין', en: 'Expense invoices - Super Admin' },
     description: { he: 'חשבוניות מתיבות הדואר, אישור ושליחה להוצאות בפיי פלוס', en: 'Invoices from the mailboxes, approval and sending to PayPlus expenses' },
     render: (host) => createElement(AdminExpenseInvoices, { isHebrew: host.isHebrew }),
-  },
-  // Owner console 2026-10-23, typed approval of L-22: "... התאמת תשלומים יומית עם מסך בניהול" - the Owner only (server: super admin only)
-  {
-    id: 'billing-reconcile', hub: 'system', icon: Scale, permission: 'owner', mobile: 'more', available: true,
-    label: { he: 'התאמת תשלומים', en: 'Payment reconciliation' },
-    title: { he: 'התאמת תשלומים - סופר אדמין', en: 'Payment reconciliation - Super Admin' },
-    description: { he: 'השוואה יומית בין העסקאות בפיי פלוס לתשלומים שנרשמו אצלנו', en: 'A daily comparison of the PayPlus transactions with the payments we recorded' },
-    render: (host) => createElement(AdminBillingReconcile, { isHebrew: host.isHebrew }),
   },
 ];
 

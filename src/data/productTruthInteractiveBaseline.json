@@ -27,10 +27,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/components/AdminBillingReconcile.jsx": {
-    "interactive": 3,
-    "markers": 3
-  },
   "src/components/AdminDestinationHost.jsx": {
     "interactive": 0,
     "markers": 0
@@ -1276,14 +1272,6 @@
     "markers": 0
   },
   "supabase/functions/billing-checkout-stub/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/billing-reconcile/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/billing-reconcile/lib.ts": {
     "interactive": 0,
     "markers": 0
   },

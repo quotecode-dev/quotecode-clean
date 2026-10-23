@@ -154,10 +154,6 @@
     {
       "path": "/api/support-weekly-review",
       "schedule": "0 17,18 * * 0"
-    },
-    {
-      "path": "/api/billing-reconcile",
-      "schedule": "0 4,5 * * *"
     }
   ]
 }

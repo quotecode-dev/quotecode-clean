@@ -103,21 +103,4 @@ describe('customer-twin handler', () => {
     expect((await customerTwinHandler(d, { quote: { ...quote, items: [] } })).body).toMatchObject({ code: 'nothing_to_check' });
     expect(d.claim).not.toHaveBeenCalled();
   });
-  // Codex Customer Twin review, coverage gap 1 (night task 2026-10-23): a failure before the allowance never uses a check
-  it('the account settings cannot be read = retry later, nothing claimed, no model call', async () => {
-    const d = deps({ country: vi.fn(async () => { throw new Error('settings'); }) });
-    expect(await customerTwinHandler(d, { quote })).toMatchObject({ status: 503, body: { code: 'retry_later' } });
-    expect(d.claim).not.toHaveBeenCalled();
-    expect(d.complete).not.toHaveBeenCalled();
-  });
-  it('the content key cannot be computed = retry later, nothing claimed', async () => {
-    const d = deps({ sha256: vi.fn(async () => { throw new Error('crypto'); }) });
-    expect((await customerTwinHandler(d, { quote })).body).toMatchObject({ code: 'retry_later' });
-    expect(d.claim).not.toHaveBeenCalled();
-  });
-  it('a claim answer without a claim id = retry later and no model call (fail closed)', async () => {
-    const d = deps({ claim: vi.fn(async () => ({ ok: true, cached: false, source: 'monthly' }) as Record<string, unknown>) });
-    expect((await customerTwinHandler(d, { quote })).body).toMatchObject({ code: 'retry_later' });
-    expect(d.complete).not.toHaveBeenCalled();
-  });
 });

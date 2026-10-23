@@ -220,13 +220,6 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/support-weekly-review/index.ts"
 
-[functions.billing-reconcile]
-enabled = true
-# Owner console 2026-10-23 (typed approval of the daily payment reconciliation, L-22): called by the site cron with the shared cron
-# secret (x-cron-secret, checked in code) - no user JWT exists for a cron call; the Owner's "run now" is a super admin (checked in code).
-verify_jwt = false
-entrypoint = "./functions/billing-reconcile/index.ts"
-
 [functions.voice-ai]
 enabled = true
 # Owner 2026-10-19 (voice assistant): speech to text / text to speech for the smart chat. Signed-in users only - the JWT is
