@@ -35,6 +35,8 @@ const runState = (r) => (r.status === 'running' && Date.now() - Date.parse(r.sta
 // what a PayPlus refusal means, in plain words (the code itself is shown too)
 const ERROR_HELP = {
   provider_403: { he: 'פיי פלוס חסמו את הקריאה בגלל בדיקת כתובת ה-IP בחשבון: המפתחות עובדים רק מכתובות מורשות, ולשרת אין כתובת קבועה.', en: 'PayPlus refused the read because of the IP check in the account: the keys work only from approved addresses, and the server has no fixed address.' },
+  provider_407: { he: 'המתווך עם הכתובת הקבועה לא קיבל את פרטי הכניסה. כדאי לבדוק שכתובת המתווך בשרת הועתקה במלואה.', en: 'The fixed-IP relay did not accept its credentials. Check that the relay address on the server was copied in full.' },
+  relay_misconfigured: { he: 'כתובת המתווך שבשרת אינה כתובת תקינה. צריך להכניס אותה מחדש.', en: 'The relay address on the server is not a valid address. It needs to be set again.' },
   provider_401: { he: 'פיי פלוס לא קיבלו את המפתחות. כדאי לבדוק שהמפתחות בשרת הם של החשבון האמיתי.', en: 'PayPlus did not accept the keys. Check that the server keys belong to the live account.' },
 };
 const N = ({ v }) => <bdi className="av-num">{v}</bdi>;
