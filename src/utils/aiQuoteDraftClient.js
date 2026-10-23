@@ -55,7 +55,7 @@ export async function classifyDraftError(error, { functionUrl = null, fetchImpl,
   if (status === 422) return 'no_items';
   if (status === 400) return 'invalid';
   if (status === 502 && code === 'malformed_provider_response' && descriptionLength >= LONG_DESCRIPTION_CHARS) return 'too_long';
-  if (status === 502 || status === 503 || status === 504) return 'provider';
+  if (status === 429 || status === 502 || status === 503 || status === 504) return 'provider'; // busy / temporarily unavailable (Codex spec item 10)
   if (status != null && status >= 500) return 'server_error';
   return 'failed';
 }

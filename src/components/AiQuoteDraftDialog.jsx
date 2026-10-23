@@ -86,7 +86,7 @@ const COPY = {
       unavailable: 'לא הצלחנו להתחבר לשרת. בדקו את החיבור לאינטרנט ונסו שוב, או מלאו את ההצעה ידנית.',
       offline: 'אין חיבור לאינטרנט. התחברו ונסו שוב, או מלאו את ההצעה ידנית.',
       server_error: 'שירות טיוטות ה-AI נתקל בשגיאה בשרת. נסו שוב מאוחר יותר, או מלאו את ההצעה ידנית.',
-      provider: 'שירות ה-AI לא החזיר טיוטה. נסו שוב בעוד רגע, או מלאו את ההצעה ידנית.',
+      provider: 'שירות ה-AI עמוס או אינו זמין זמנית. נסו שוב בעוד רגע, או מלאו את ההצעה ידנית.',
       no_items: 'לא נמצאו פריטים בתיאור. נסו לפרט יותר מה העבודה כוללת.',
       market_unresolved: 'כדי ליצור טיוטה צריך קודם להשלים את אזור העסק בהגדרות העסק.',
       // Owner 2026-10-20 (typed L-17 approval): the AI smart quote is SMART PACK once the plan system is enforced
@@ -150,7 +150,7 @@ const COPY = {
       unavailable: 'We could not reach the server. Check your internet connection and try again, or fill in the quote manually.',
       offline: 'You are offline. Reconnect and try again, or fill in the quote manually.',
       server_error: 'The AI draft service hit a server error. Try again later, or fill in the quote manually.',
-      provider: 'The AI service did not return a draft right now. Try again in a moment, or fill in the quote manually.',
+      provider: 'The AI service is busy or temporarily unavailable. Try again shortly, or fill in the quote manually.',
       no_items: 'No items were found in the description. Try describing what the job includes in more detail.',
       market_unresolved: 'To create a draft, first complete your business region in Business settings.',
       smart_pack_required: 'The AI smart quote is part of SMART PACK. You can add it in the plans view, or fill in the quote manually.',

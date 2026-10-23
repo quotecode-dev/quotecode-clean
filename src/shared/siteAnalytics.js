@@ -20,7 +20,8 @@ export const CONSENT_REGION = Object.freeze(new Set([
 ]));
 /** the visitor's country (ISO 3166-1 alpha-2) -> true (ask first) / false (no consent needed) / null (unknown: ask first) */
 export function inConsentRegion(country) {
-  const c = typeof country === 'string' ? country.trim().toUpperCase() : '';
+  const raw = typeof country === 'string' ? country.trim().toUpperCase() : '';
+  const c = raw === 'UK' ? 'GB' : raw; // an alias some sources use for the United Kingdom
   if (!/^[A-Z]{2}$/.test(c)) return null;
   return CONSENT_REGION.has(c);
 }

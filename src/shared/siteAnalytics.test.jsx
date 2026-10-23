@@ -200,26 +200,31 @@ describe('consent by location (item 7 א)', () => {
     expect(measurementAllowed({ ...base, consent: 'granted', region: true })).toBe(true);
     expect(measurementAllowed({ ...base, consent: 'denied', region: false })).toBe(false);
   });
-  const atHe = (country) => render(<MemoryRouter initialEntries={['/he']}><SiteAnalytics isHebrew hostname="www.tekango.com" /></MemoryRouter>);
-  const setCookie = (v) => { document.cookie = `proflow_geo_country=${v}; path=/`; };
-  beforeEach(() => { try { window.localStorage.clear(); } catch { /* none */ } document.cookie = 'proflow_geo_country=; Max-Age=0; path=/'; });
-  it('a visitor from Germany on the Hebrew website gets the notice IN HEBREW (RTL), and both choices work', () => {
+  const atHe = () => render(<MemoryRouter initialEntries={['/he']}><SiteAnalytics isHebrew hostname="www.tekango.com" /></MemoryRouter>);
+  let origFetch;
+  // the fresh server geography (/api/geo) - stubbed, never a real request
+  const setCookie = (v) => { global.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ country: v }) })); };
+  beforeEach(() => { try { window.localStorage.clear(); } catch { /* none */ } origFetch = origFetch ?? global.fetch; global.fetch = origFetch; });
+  it('a visitor from Germany on the Hebrew website gets the notice IN HEBREW (RTL), and both choices work', async () => {
     setCookie('DE');
     atHe();
-    const banner = screen.getByTestId('analytics-consent-banner');
+    const banner = await screen.findByTestId('analytics-consent-banner');
     expect(banner.getAttribute('dir')).toBe('rtl');
-    expect(banner.textContent).toContain('הן נשמרות רק אם תאשרו');
+    expect(banner.textContent).toContain('המדידה תופעל רק אם תאשרו');
+    expect(banner.getAttribute('aria-label')).toBe('העדפות מדידה');
     expect(banner.querySelector('a').getAttribute('href')).toBe('/he/privacy#cookies');
     fireEvent.click(screen.getByTestId('analytics-consent-decline'));
     expect(readConsent()).toBe('denied');
     expect(screen.queryByTestId('analytics-consent-banner')).toBeNull();
   });
-  it('a visitor from Israel on the Hebrew website: no notice (measured by default)', () => {
+  it('a visitor from Israel on the Hebrew website: no notice (measured by default); UK is the United Kingdom', async () => {
     setCookie('IL');
     atHe();
+    await act(async () => {});
     expect(screen.queryByTestId('analytics-consent-banner')).toBeNull();
+    expect(inConsentRegion('uk')).toBe(true);
   });
-  it('no country cookie: asks the server once; until it answers no notice; an unknown country gets the notice', async () => {
+  it('asks the server once; until it answers no notice; an unknown country gets the notice', async () => {
     const orig = global.fetch;
     let resolve;
     global.fetch = vi.fn(() => new Promise((r) => { resolve = r; }));
@@ -239,10 +244,11 @@ describe('the Hebrew opt-out in the Privacy Policy (item 7 א)', () => {
     try { window.localStorage.clear(); } catch { /* none */ }
     render(<MemoryRouter initialEntries={['/he/privacy']}><Privacy isHebrew /></MemoryRouter>);
     const btn = screen.getByTestId('privacy-cookie-choice-he');
-    expect(btn.textContent).toBe('ביטול המדידה בדפדפן הזה');
+    expect(btn.textContent).toBe('ביטול ההסכמה למדידה');
     fireEvent.click(btn);
     expect(readConsent()).toBe('denied');
-    expect(screen.getByTestId('privacy-cookie-choice-he').textContent).toBe('החזרת המדידה בדפדפן הזה');
+    expect(screen.getByTestId('privacy-cookie-stopped').textContent).toBe('המדידה הופסקה בדפדפן הזה. תוכלו לשנות את הבחירה בכל עת.');
+    expect(screen.getByTestId('privacy-cookie-choice-he').textContent).toBe('אישור מדידה');
     fireEvent.click(screen.getByTestId('privacy-cookie-choice-he'));
     expect(readConsent()).toBe('granted');
   });

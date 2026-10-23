@@ -2,12 +2,11 @@
 // each BrowserRouter. The English website shows a small cookie notice on its public pages until the visitor accepts or declines;
 // both buttons look the same (no nudging). The choice can be changed later from the Privacy Policy, section 4.
 // Owner console 2026-10-23 (typed: "מאשר שינוי ב-L-12: סעיף 7 אפשרות א"): the Hebrew website asks too when the visitor is in the EU / EEA,
-// the UK or Switzerland, or when the country is unknown - the same notice, in Hebrew. The country comes from the proflow_geo_country
-// cookie (middleware.ts, on "/") or, when it is missing, from /api/geo once; until it is known nothing is measured and no notice shows.
+// the UK or Switzerland, or when the country is unknown - the same notice, in Hebrew. The country is the server's FRESH answer (/api/geo,
+// once per page load - never a remembered cookie; Codex spec item 7); until it is known nothing is measured and no notice shows.
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { CONSENT_EVENT, CONSENT_KEY, applyWithdrawal, consentRequired, inConsentRegion, isMeasuredPath, isProductionHost, readConsent, syncMeasurement, writeConsent } from './siteAnalytics';
-import { geoCountryFromCookie } from '../domain/subscriptions/localPriceEstimate';
 
 const BUTTON = {
   background: 'transparent', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.35)', borderRadius: '8px',
@@ -16,9 +15,10 @@ const BUTTON = {
 
 const COPY = {
   he: {
-    region: 'הודעה על עוגיות',
-    text: 'אנחנו משתמשים בעוגיות של Google Analytics כדי לדעת איך מבקרים מגיעים לאתר ומשתמשים בו. הן נשמרות רק אם תאשרו.',
-    privacy: 'מדיניות הפרטיות', privacyHref: '/he/privacy#cookies', decline: 'דחייה', accept: 'אישור',
+    // the Hebrew copy of the Codex acceptance spec (item 7)
+    region: 'העדפות מדידה',
+    text: 'אנו משתמשים בעוגיות Google Analytics כדי להבין איך מבקרים מגיעים לאתר ומשתמשים בו. המדידה תופעל רק אם תאשרו. אפשר לשנות את הבחירה בכל עת במדיניות הפרטיות.',
+    privacy: 'מדיניות הפרטיות', privacyHref: '/he/privacy#cookies', decline: 'ללא מדידה', accept: 'אישור מדידה',
   },
   en: {
     region: 'Cookie notice',
@@ -34,7 +34,7 @@ export default function SiteAnalytics({ isHebrew, hostname = typeof window !== '
   const [consent, setConsent] = useState(() => readConsent());
   // the visitor's country, only where it decides anything (the Hebrew website on the production host): undefined = not known yet
   const needCountry = isHebrew === true && isProductionHost(hostname);
-  const [country, setCountry] = useState(() => (needCountry ? (geoCountryFromCookie(typeof document !== 'undefined' ? document.cookie : '') ?? undefined) : null));
+  const [country, setCountry] = useState(() => (needCountry ? undefined : null));
 
   useEffect(() => {
     const onChange = () => setConsent(readConsent());

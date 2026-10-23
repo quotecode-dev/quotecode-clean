@@ -16,6 +16,7 @@ describe('classifyDraftError', () => {
     [httpError(422, { code: 'no_items' }), 'no_items'],
     [httpError(400), 'invalid'],
     [httpError(502), 'provider'],
+    [httpError(429), 'provider'],
     [httpError(500, { code: 'server_error' }), 'server_error'],
     [httpError(418), 'failed'],
     [new Error('boom'), 'failed'],

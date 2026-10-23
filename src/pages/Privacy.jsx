@@ -170,8 +170,11 @@ export default function Privacy({ isHebrew }) {
                   <button type="button" data-testid="privacy-cookie-choice-he" aria-pressed={consent === 'denied'}
                     onClick={() => writeConsent(consent === 'denied' ? 'granted' : 'denied')}
                     style={{ marginTop: '12px', background: 'transparent', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.35)', borderRadius: '8px', padding: '8px 16px', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                    {consent === 'denied' ? 'החזרת המדידה בדפדפן הזה' : 'ביטול המדידה בדפדפן הזה'}
+                    {consent === 'denied' ? 'אישור מדידה' : 'ביטול ההסכמה למדידה'}
                   </button>
+                )}
+                {sec.cookieChoice && isHebrew && consent === 'denied' && (
+                  <p role="status" data-testid="privacy-cookie-stopped" style={{ color: '#cbd5e1', fontSize: '0.9rem', marginTop: '8px' }}>המדידה הופסקה בדפדפן הזה. תוכלו לשנות את הבחירה בכל עת.</p>
                 )}
               </section>
             ))}
