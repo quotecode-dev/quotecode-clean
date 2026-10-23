@@ -27,6 +27,7 @@ import '../quoteDocument/narrowItems.css';
 import { outputGate, authorizeWithNotice, outputBlockedMessage } from '../domain/subscriptions/outputAuthority';
 import PublicThanksNotice from '../components/PublicThanksNotice';
 import { useAmountAxis } from '../quoteDocument/useAmountAxis';
+import { openAttachmentFresh } from '../utils/freshAttachmentLink';
 
 // Money Consolidation (Global Surface Audit finding I-1): this local
 // formatNum used to Math.round() every amount before formatting - silently
@@ -93,6 +94,13 @@ const formatDisplayPhone = (phone) => {
 // native Print uses the public quote's A4 print contract). This page never navigates (rendered without a Router).
 export default function PublicQuoteEn({ quoteData, presentation = null, previewMode = false, detail = null, onApproved = null, standalonePrint = false, onFinalSnapshot = null, capabilityToken = null, thanks = null }) {
   const { quote, business, client, items, attachments, sections: quoteSections } = quoteData;
+  // Owner 2026-10-23 (typed L-09..L-27): an attachment link older than 4 minutes is re-read on click (utils/freshAttachmentLink.js)
+  const attachmentsLoadedAtRef = useRef(Date.now());
+  const reloadAttachments = previewMode ? null : async () => {
+    const { data, error } = await supabase.functions.invoke('get-public-quote', { body: capabilityToken ? { capability_token: capabilityToken } : { quote_id: quote?.id } });
+    if (error) throw error;
+    return data;
+  };
   // Public Quote Section-Level Smart Dropdown task (same rule as
   // PublicQuote.jsx/HE - see that file's own copy of this comment for the
   // full rationale): [] for a flat quote.
@@ -616,7 +624,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
       {hasAttachments ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {attachments.map((att, idx) => (
-            <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="pq-attachment-link">
+            <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="pq-attachment-link" onClick={(e) => openAttachmentFresh(e, { att, index: idx, loadedAt: attachmentsLoadedAtRef.current, reload: reloadAttachments })}>
               📄 {att.file_name || `Attachment #${idx + 1}`}
             </a>
           ))}

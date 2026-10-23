@@ -6,6 +6,7 @@
 //     time-to-view / time-to-approval is computed (updated_at is never used as a lifecycle time).
 // Money is never combined across currencies: value totals come from totalsByQuoteCurrency (IRON-MARKET-004).
 import { totalsByQuoteCurrency } from './money';
+import { isOpenQuoteExpired } from './quoteValidity';
 
 export const QUOTE_STATUSES = Object.freeze(['draft', 'sent', 'approved', 'paid']);
 export const STAT_PERIODS = Object.freeze({ '7d': 7, '30d': 30, '90d': 90, all: null });
@@ -16,7 +17,8 @@ const statusOf = (q) => String(q?.status || '').toLowerCase();
 const views = (q) => Number(q?.view_count || 0);
 export const isWonQuote = (q) => statusOf(q) === 'approved' || statusOf(q) === 'paid';
 // the ONE hot-quote rule (also used by the quote list): viewed 3+ times and not yet approved/paid
-export const isHotQuote = (q) => views(q) >= 3 && !isWonQuote(q);
+// Owner 2026-10-23 (typed L-13, L-14, L-17, L-25, L-26): a quote whose validity has passed is never hot (it can no longer be approved)
+export const isHotQuote = (q) => views(q) >= 3 && !isWonQuote(q) && !isOpenQuoteExpired(q);
 // Night task 2026-10-16 (R-08 / AUD-09, Owner default 1): the ONE "awaiting" rule - reached the customer (Sent, or a Draft whose link
 // the customer already opened) and not approved / paid. The quote list counter, Statistics, reminders and the calendar all use it.
 export const isAwaitingQuote = (q) => !isWonQuote(q) && (statusOf(q) === 'sent' || views(q) > 0);

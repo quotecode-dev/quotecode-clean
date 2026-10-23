@@ -887,6 +887,10 @@
     "interactive": 0,
     "markers": 1
   },
+  "src/utils/freshAttachmentLink.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/functionError.js": {
     "interactive": 0,
     "markers": 0
@@ -1096,6 +1100,10 @@
     "markers": 0
   },
   "src/utils/shortDate.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/storedQuoteFinancials.js": {
     "interactive": 0,
     "markers": 0
   },

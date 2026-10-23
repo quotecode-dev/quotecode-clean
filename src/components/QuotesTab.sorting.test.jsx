@@ -345,11 +345,17 @@ describe.each([
 
 // Owner console 2026-10-19, typed: "מאשר שינוי ב-L-25 וב-L-26 לפס "הצעד הבא" לפי התוכנית" - the same banner cycles the next steps
 describe('next-step banner (Owner 2026-10-19)', () => {
-  const day = (offset) => { const d = new Date(); d.setDate(d.getDate() + offset); return d.toISOString().slice(0, 10); };
+  // Owner 2026-10-23: the calendar day in the banner's OWN market zone (Hebrew harness = Asia/Jerusalem, English = UTC), stepped by
+  // calendar days - a UTC day against the Israel rule failed every run 00:00-03:00 Israel
+  const day = (offset, timeZone = 'UTC') => {
+    const today = new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
+    const [y, m, d] = today.split('-').map(Number);
+    return new Date(Date.UTC(y, m - 1, d + offset)).toISOString().slice(0, 10);
+  };
   const tasksClient = (tasks) => ({ from: () => ({ select: () => ({ eq: () => ({ order: () => Promise.resolve({ data: tasks, error: null }) }) }) }) });
 
   it('an overdue task leads, with its "View task" button opening that task through the bell subject event', async () => {
-    const task = { id: 't1', user_id: 'u1', status: 'open', title: 'להתקשר לדוד', due_date: day(-8), due_time: null };
+    const task = { id: 't1', user_id: 'u1', status: 'open', title: 'להתקשר לדוד', due_date: day(-8, 'Asia/Jerusalem'), due_time: null };
     const got = [];
     const on = (e) => got.push(e.detail);
     window.addEventListener('tekango-open-bell-subject', on);

@@ -26,6 +26,7 @@ import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, RADI
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
 import { formatQuoteFallback } from '../utils/quoteNumber';
+import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
 
 // חוק ברזל (Client Type Badge, Item 26 - עודכן לעיצוב הסופי לפי סבב תיקון
 // חזותי מהבעלים): מקור-האמת היחיד עדיין clients.client_type ('business'/
@@ -351,7 +352,11 @@ export default function QuotesTab({
     const persistedTaxRate = (quote.tax_rate !== undefined && quote.tax_rate !== null && Number.isFinite(Number(quote.tax_rate)) && Number(quote.tax_rate) >= 0)
       ? Number(quote.tax_rate)
       : 0.18;
-    const beforeVatAmount = isBizClient && isHebrew ? discBase : (quote.total / (1 + persistedTaxRate));
+    // Owner 2026-10-23: a business shekel quote's before-VAT amount uses the editor's IRON-ILS-001 rounding (an old quote keeps its own)
+    const bizNet = isBizClient && isHebrew
+      ? financialsMatchingStored({ country: 'Local', currency: quote.currency, clientType: 'business', items: [{ quantity: 1, unit_price: Number(rawSubtotal) || 0 }], discount: rawDiscount, taxRateOverride: persistedTaxRate }, quote.total).netAmount
+      : null;
+    const beforeVatAmount = isBizClient && isHebrew ? (bizNet ?? discBase) : (quote.total / (1 + persistedTaxRate));
 
     const quoteSym = getQuoteCurrencySymbol(quote.currency);
     // SMART-QUOTE-01: a draft with nothing to charge is labelled as an UNFINISHED draft in the list (never a plain "Draft").
