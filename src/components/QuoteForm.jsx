@@ -548,16 +548,13 @@ export default function QuoteForm({
         const CURRENT_TOTAL_SIZE = existingGlobalBytes + currentDraftBytes;
         const MAX_TOTAL_SIZE = 30 * 1024 * 1024;
 
-        // Owner 2026-10-23 (typed L-09..L-27): the cap counts every file of this selection together, not each one alone.
-        let selectionBytes = 0;
         for (let file of files) {
           if (file.size > MAX_FILE_SIZE) {
             publishBlocker('ATTACHMENT_FILE_TOO_LARGE', { scope: 'editor' });
             setErrorMessage(isHebrew ? `הקובץ ״${file.name}״ גדול מהמותר לקובץ אחד (עד 3 MB).` : `File "${file.name}" exceeds the 3MB limit for a single file.`);
             return;
           }
-          selectionBytes += file.size;
-          if (CURRENT_TOTAL_SIZE + selectionBytes > MAX_TOTAL_SIZE) {
+          if (CURRENT_TOTAL_SIZE + file.size > MAX_TOTAL_SIZE) {
             publishBlocker('ATTACHMENT_TOTAL_EXCEEDED', { scope: 'editor' });
             setErrorMessage(isHebrew ? `העלאת הקובץ תחרוג ממכסת נפח הקבצים של העסק (30 MB).` : `Uploading this file exceeds the total 30MB capacity limit for your business.`);
             return;

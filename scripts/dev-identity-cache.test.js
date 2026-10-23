@@ -63,7 +63,7 @@ describe('dev identity cache - unchanged state', () => {
     expect(responses.every((r) => r.status === 200 && r.headers['Cache-Control'] === 'no-store' && r.body.servesWorkingTree === true)).toBe(true);
     expect(responses[0].body.buildSha).toMatch(/^[0-9a-f]{40}$/);
     expect(typeof responses[0].body.dirty).toBe('boolean');
-  }, 30_000); // imports the real vite.config.js: slow under the release gate load (Owner 2026-10-23)
+  });
 });
 
 describe('dev identity cache - single-flight and staleness', () => {

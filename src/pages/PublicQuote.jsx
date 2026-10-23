@@ -5,7 +5,7 @@ import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
 import { useSignaturePad } from '../shared/useSignaturePad';
 import PublicQuoteHeader from '../components/PublicQuoteHeader';
 import Toast from '../components/Toast';
-import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
+import { calculateQuoteFinancials } from '../utils/regionConfig';
 import { formatAddress } from '../utils/addressFormat';
 import { formatMoney, formatWholeMoney } from '../utils/money';
 import { LIGHT } from '../theme/neonTheme';
@@ -29,7 +29,6 @@ import { formatDeviceShortDateTime } from '../utils/shortDate';
 import { outputGate, authorizeWithNotice, outputBlockedMessage } from '../domain/subscriptions/outputAuthority';
 import PublicThanksNotice from '../components/PublicThanksNotice';
 import { useAmountAxis } from '../quoteDocument/useAmountAxis';
-import { openAttachmentFresh } from '../utils/freshAttachmentLink';
 
 // חוק ברזל (תיקון בעלים - עיגול שקל שלם ל"סה"כ לתשלום", עקבי חשבונאית
 // ולא רק תצוגתי): קובץ זה הוא Local/ILS בלעדית (currencySymbol קבוע ל-₪
@@ -132,13 +131,6 @@ const formatDisplayPhone = (phone) => {
 export default function PublicQuote({ quoteData, presentation = null, previewMode = false, detail = null, onApproved = null, standalonePrint = false, onFinalSnapshot = null, capabilityToken = null, thanks = null }) {
   const navigate = useNavigate();
   const { quote, business, client, items, attachments, sections: quoteSections } = quoteData;
-  // Owner 2026-10-23 (typed L-09..L-27): an attachment link older than 4 minutes is re-read on click (utils/freshAttachmentLink.js)
-  const attachmentsLoadedAtRef = useRef(Date.now());
-  const reloadAttachments = previewMode ? null : async () => {
-    const { data, error } = await supabase.functions.invoke('get-public-quote', { body: capabilityToken ? { capability_token: capabilityToken } : { quote_id: quote?.id } });
-    if (error) throw error;
-    return data;
-  };
   // חוק ברזל (Public Quote Section-Level Smart Dropdown task, §9 - "if a
   // quote has no section/room hierarchy, keep the normal classic commercial
   // table, do NOT invent fake sections"): [] for a flat quote - every
@@ -436,15 +428,13 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
   // סינתטי יחיד ששוויו resolvedSubtotal מזין את הפונקציה בדיוק כמו שהיה
   // מוזן subtotal אמיתי, בלי לשכפל נוסחת מע"מ עצמאית כאן ובלי להסתמך על
   // recompute מהפריטים (שעלול לסטות מהערך השמור).
-  // Owner 2026-10-23: the same IRON-ILS-001 rounding as the editor (an old shekel quote keeps its stored amounts - storedQuoteFinancials.js)
-  const financials = financialsMatchingStored({
+  const financials = calculateQuoteFinancials({
     country: 'Local',
-    currency: quote.currency,
     clientType: quote.client_type,
     items: [{ quantity: 1, unit_price: resolvedSubtotal }],
     discount: quote.discount,
     taxRateOverride: vatRate,
-  }, quote.total);
+  });
 
   const isAmbiguousClientType = financials.clientTypeAmbiguous;
   const isPrivateDisplay = !isAmbiguousClientType && quote.client_type === 'private';
@@ -812,7 +802,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
       {hasAttachments ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {attachments.map((att, idx) => (
-            <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="pq-attachment-link" onClick={(e) => openAttachmentFresh(e, { att, index: idx, loadedAt: attachmentsLoadedAtRef.current, reload: reloadAttachments })}>
+            <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="pq-attachment-link">
               📄 {att.file_name || `קובץ מצורף #${idx + 1}`}
             </a>
           ))}

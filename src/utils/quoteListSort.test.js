@@ -6,7 +6,7 @@ const ids = (list) => list.map((x) => x.id);
 
 describe('quoteListSort', () => {
   it('documents the logical status and action orders', () => {
-    expect(STATUS_ORDER).toEqual(['unfinished', 'needs-sending', 'sent', 'hot', 'expired', 'approved', 'paid']);
+    expect(STATUS_ORDER).toEqual(['unfinished', 'needs-sending', 'sent', 'hot', 'approved', 'paid']);
     expect(ACTION_ORDER).toEqual(['track', 'edit', 'open', 'view']);
   });
 

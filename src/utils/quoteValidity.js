@@ -34,19 +34,6 @@ export function isQuoteAcceptanceExpired(validUntil, market, now = new Date()) {
   return day < marketCalendarDate(market, now);
 }
 
-// Owner 2026-10-23 (typed L-13, L-14, L-17, L-25, L-26): a saved quote's own market - the same rule the share link and
-// SmartPublicQuote use (tax_rate > 0 or currency ILS -> the Hebrew page, Local); -> 'Local' | 'International'
-export function quoteValidityMarket(quote) {
-  return Number(quote?.tax_rate) > 0 || String(quote?.currency || '').toUpperCase() === 'ILS' ? 'Local' : 'International';
-}
-
-// true when the customer would land on "the validity has ended" (approved / paid quotes are closed and never "expired")
-export function isOpenQuoteExpired(quote, now = new Date()) {
-  const s = String(quote?.status || '').toLowerCase();
-  if (s === 'approved' || s === 'paid') return false;
-  return isQuoteAcceptanceExpired(quote?.valid_until, quoteValidityMarket(quote), now);
-}
-
 // Server truth wins when the (newer) get-public-quote returns it; otherwise the same rule is computed locally.
 export function resolveQuoteExpired(quote, market, now = new Date()) {
   if (quote && typeof quote.is_expired === 'boolean') return quote.is_expired;

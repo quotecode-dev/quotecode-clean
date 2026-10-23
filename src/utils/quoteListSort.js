@@ -1,7 +1,6 @@
 import { isQuoteImmutable } from './quoteLock';
 import { isUnfinishedSavedQuote } from './quoteCompleteness';
 import { getQuoteOrderSortKey } from './quoteNumber';
-import { isOpenQuoteExpired } from './quoteValidity';
 
 // Quote list sorting (one pure source for the desktop header buttons, the toolbar Sort button, the mobile sort select and the
 // CSV export order). Every column sorts by its OWN typed key, never by a display string:
@@ -15,8 +14,7 @@ import { isOpenQuoteExpired } from './quoteValidity';
 // Ties always keep the incoming order in BOTH directions (decorated-index stable sort).
 
 // Logical lifecycle, first to last: unfinished draft -> needs sending (complete draft) -> sent -> viewed/hot -> approved -> paid.
-// Owner 2026-10-23: an open quote whose validity has passed sorts after the hot ones, before the closed ones.
-export const STATUS_ORDER = ['unfinished', 'needs-sending', 'sent', 'hot', 'expired', 'approved', 'paid'];
+export const STATUS_ORDER = ['unfinished', 'needs-sending', 'sent', 'hot', 'approved', 'paid'];
 // Priority of the contextual row action, most urgent first: Open & track (hot), Continue editing (unfinished), Open, View.
 export const ACTION_ORDER = ['track', 'edit', 'open', 'view'];
 
@@ -27,7 +25,7 @@ const lower = (value) => String(value || '').toLowerCase();
 // Hot = viewed at least three times and not signed/paid yet (the one eligibility rule of the list, the banner and the row badge).
 export function isQuoteHot(quote) {
   const status = lower(quote?.status) || 'draft';
-  return Number(quote?.view_count || 0) >= 3 && status !== 'approved' && status !== 'paid' && !isOpenQuoteExpired(quote);
+  return Number(quote?.view_count || 0) >= 3 && status !== 'approved' && status !== 'paid';
 }
 
 // R-07 (night task 2026-10-16): the SAME status the row shows - a Draft the customer already opened sorts with the sent quotes
@@ -36,7 +34,6 @@ export function getQuoteStatusKey(quote) {
   const status = lower(quote?.status) || 'draft';
   if (status === 'approved') return 'approved';
   if (status === 'paid') return 'paid';
-  if (isOpenQuoteExpired(quote) && !(status === 'draft' && isUnfinishedSavedQuote(quote))) return 'expired';
   if (status === 'sent' || Number(quote?.view_count || 0) > 0) return 'sent';
   return isUnfinishedSavedQuote(quote) && status === 'draft' ? 'unfinished' : 'needs-sending';
 }

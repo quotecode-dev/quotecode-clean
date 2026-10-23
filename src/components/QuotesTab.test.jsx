@@ -420,7 +420,7 @@ describe.each([
     // the status filter (base capability) still lists every status
     const opts = [...headerRow.querySelectorAll('select option')].map((o) => o.value);
     // night task 2026-10-16 (R-07, Owner-approved L-13 / L-14): the filter speaks the shown status labels
-    expect(opts).toEqual(['All', 'needs_sending', 'unfinished', 'sent', 'hot', 'expired', 'approved', 'paid']);
+    expect(opts).toEqual(['All', 'needs_sending', 'unfinished', 'sent', 'hot', 'approved', 'paid']);
   });
   it('keeps overview totals stable when the visible list is filtered', () => {
     const props = buildProps(isHebrew);
