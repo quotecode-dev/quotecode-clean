@@ -5,7 +5,7 @@
 // (quote_templates_content_sanitized); here they are removed recursively, so a nested value can never carry them either.
 // Using a template opens a NEW, unsaved quote form (the normal Free-10 check applies before it opens); nothing is saved or sent.
 import { normalizePresentationState, hasServerContent } from '../components/quotePresentation/presentationState';
-import { normalizeSpecificationRows } from './professionalQuoteItem';
+import { normalizeSpecificationRows, withPersistableQuantity } from './professionalQuoteItem';
 
 export const TEMPLATE_SCHEMA = 'quote-template/v1';
 export const TEMPLATE_NAME_MAX = 80;
@@ -52,7 +52,10 @@ export function buildTemplateContent(form, keep = DEFAULT_TEMPLATE_KEEP) {
   const sections = (Array.isArray(form?.sections) ? form.sections : []).filter((s) => str(s?.name).trim())
     .map((s, i) => ({ key: `s${i + 1}`, name: str(s.name, 200).trim(), from: s.key }));
   const keyOf = new Map(sections.map((s) => [s.from, s.key]));
-  const items = (Array.isArray(form?.items) ? form.items : []).filter((it) => str(it?.description).trim()).slice(0, TEMPLATE_MAX_ITEMS).map((it) => {
+  const items = (Array.isArray(form?.items) ? form.items : []).filter((it) => str(it?.description).trim()).slice(0, TEMPLATE_MAX_ITEMS).map((raw) => {
+    // Owner 2026-10-23 (typed L-09 / L-17, morning report item 6): a fractional count (2.5) is kept exactly - stored the way a saved quote
+    // stores it (quantity 1 + the real amount as a manual calculated quantity), never rounded to 3
+    const it = withPersistableQuantity(raw);
     const line = { description: str(it.description, 1000).trim(), quantity: Math.max(1, Math.round(num(it.quantity) ?? 1)) };
     if (k.prices) { const p = num(it.unit_price); if (p !== null) line.unit_price = p; }
     if (it.pricing_unit) line.pricing_unit = str(it.pricing_unit, 40);

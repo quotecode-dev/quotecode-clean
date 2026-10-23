@@ -585,7 +585,9 @@ export default function QuoteForm({
   const totalGlobalBytes = globalAttachmentsBytes + draftAttachmentsBytes;
   const remainingMb = Math.max(0, (30 - (totalGlobalBytes / (1024 * 1024)))).toFixed(1);
 
-  const isUS = currency === 'USD';
+  // Owner 2026-10-23 (typed L-09, morning report item 5; IRON-DATE-001): the ACCOUNT MARKET decides the date order, never the currency -
+  // a EUR / GBP account showed DD-MM while every other screen shows MM/DD
+  const isUS = isLocalIsraeliBusiness !== true;
   const dateFormatLabel = isUS ? 'MM-DD-YYYY' : 'DD-MM-YYYY';
 
   const getDisplayDate = (dateStr) => {

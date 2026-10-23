@@ -2565,7 +2565,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             ...(cleanSignupText(signupFullName) ? { full_name: cleanSignupText(signupFullName) } : {}),
             ...(cleanSignupText(signupBusinessName) ? { business_name: cleanSignupText(signupBusinessName) } : {}),
             // 2026-10-20: the Terms state the free plan as 10 quotes or 7 days (IRON-LANDING-001 amended)
-            terms_version: '2026-10-21',
+            terms_version: '2026-10-23', // Owner 2026-10-23 (morning report item 8): the Free plan's 7 days in the plans section of the Terms
             // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
             privacy_version: '2026-10-21',
             terms_accepted_at: new Date().toISOString(),
