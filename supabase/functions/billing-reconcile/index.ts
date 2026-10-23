@@ -5,13 +5,11 @@
 //  - verify_jwt = false: the site cron has no user JWT; it is accepted only with the shared secret (x-cron-secret = CRON_SECRET,
 //    constant-time). The Owner's "run now" is a verified super admin (JWT + business_settings.role).
 //  - Secrets: PAYPLUS_API_KEY / PAYPLUS_SECRET_KEY / PAYPLUS_ENVIRONMENT (already set) + PAYPLUS_TERMINAL_UID (the terminal whose history
-//    is read - without it every run is recorded as "not configured"), RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS, CRON_SECRET,
-//    PAYPLUS_PROXY_URL (the fixed-IP relay every PayPlus call goes through - the account's IP check; _shared/payplusEgress.ts).
+//    is read - without it every run is recorded as "not configured"), RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS, CRON_SECRET.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { reconcileHandler, readHistory, type ReconcileDeps, type Finding, type OurCharge, type OurRefund } from './lib.ts';
 import { PAYPLUS_API_BASES } from '../subscription-authority/payplus.ts';
 import { sendMail } from '../support-inbound/mail.ts';
-import { payplusEgress } from '../_shared/payplusEgress.ts';
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 const json = (status: number, body: Record<string, unknown>) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -26,7 +24,6 @@ Deno.serve(async (req: Request) => {
   try { secretKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? ''; } catch { secretKey = ''; }
   if (!secretKey) secretKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   const admin = createClient(supabaseUrl, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const egress = payplusEgress(Deno.env.get('PAYPLUS_PROXY_URL'));
 
   let role: 'admin' | 'cron' | null = null;
   const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
@@ -86,7 +83,7 @@ Deno.serve(async (req: Request) => {
       const r = await db(admin.rpc('billing_reconcile_source', { p_from: from, p_until: until })) as { charges?: OurCharge[]; refunds?: OurRefund[] } | null;
       return { charges: Array.isArray(r?.charges) ? r.charges : [], refunds: Array.isArray(r?.refunds) ? r.refunds : [] };
     },
-    history: (cfg, from, until, currency) => readHistory(egress.fetch, cfg, from, until, currency),
+    history: (cfg, from, until, currency) => readHistory((u, i) => fetch(u, i), cfg, from, until, currency),
     saveFindings: async (runId, findings, seenByOwner) => {
       if (!findings.length) return [];
       // once per (code, transaction): a finding a previous run already kept is not new
@@ -121,7 +118,5 @@ Deno.serve(async (req: Request) => {
   } catch (e) {
     console.error(`billing-reconcile: failed ${(e as Error)?.message ?? ''}`.slice(0, 200));
     return json(500, { ok: false, code: 'failed' });
-  } finally {
-    egress.close();
   }
 });

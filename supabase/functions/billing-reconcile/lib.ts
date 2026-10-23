@@ -165,9 +165,8 @@ export async function readHistory(f: Fetch, cfg: { apiBase: string; apiKey: stri
         headers: { 'content-type': 'application/json', 'api-key': cfg.apiKey, 'secret-key': cfg.secretKey, 'user-agent': 'PayPlus' },
         body: JSON.stringify(historyBody(cfg.terminalUid, from, until, currency, page * 500)),
       });
-    } catch (e) {
-      // a relay secret that is not a URL is said as such (payplusEgress); anything else = PayPlus (or the relay) did not answer
-      return { ok: false, code: (e as Error)?.message === 'relay_misconfigured' ? 'relay_misconfigured' : 'provider_unreachable' };
+    } catch {
+      return { ok: false, code: 'provider_unreachable' };
     } finally { clearTimeout(timer); }
     if (!res.ok) return { ok: false, code: `provider_${res.status}` };
     let body: unknown;
