@@ -588,6 +588,24 @@ describe.each([
     expect(screen.queryByText(isHebrew ? 'הצגת כל ההצעות' : 'Show all quotes')).toBeNull();
   });
 
+  // Owner 2026-10-23 (typed L-29, morning report item 9): opening a quote in the editor unmounts the list - closing it returns to the same page;
+  // a new search still starts on page 1; another account never inherits the page
+  it('the page survives the editor (the list unmounting and mounting again) for the same account', () => {
+    const all = Array.from({ length: 13 }, (_, i) => mk(`p${String(i).padStart(2, '0')}`));
+    const info = (c) => c.querySelector('.quote-modern-page-info').textContent;
+    const first = render(<QuotesTab {...buildProps(isHebrew)} quotes={all} allQuotes={all} userId="u-page-1" />);
+    fireEvent.click(first.container.querySelector('[data-page="next"]'));
+    expect(info(first.container)).toBe(isHebrew ? 'עמוד 2 מתוך 2' : 'Page 2 of 2');
+    first.unmount();
+    const again = render(<QuotesTab {...buildProps(isHebrew)} quotes={all} allQuotes={all} userId="u-page-1" />);
+    expect(info(again.container)).toBe(isHebrew ? 'עמוד 2 מתוך 2' : 'Page 2 of 2');
+    again.rerender(<QuotesTab {...buildProps(isHebrew)} quotes={all} allQuotes={all} userId="u-page-1" searchTerm="p0" />);
+    expect(info(again.container)).toBe(isHebrew ? 'עמוד 1 מתוך 2' : 'Page 1 of 2');
+    again.unmount();
+    const other = render(<QuotesTab {...buildProps(isHebrew)} quotes={all} allQuotes={all} userId="u-page-2" />);
+    expect(info(other.container)).toBe(isHebrew ? 'עמוד 1 מתוך 2' : 'Page 1 of 2');
+  });
+
   // Owner console 2026-10-18 ("שההצעה תופיע לפי הסדר"): no hot quote is promoted - every quote keeps its sorted place, none is dropped
   it('keeps every quote, hot ones included, in the list order - none promoted, none dropped, none duplicated', () => {
     const list = [mk('a'), mk('b'), mk('c'), mk('d'), mk('hotA', { view_count: 4, status: 'sent', created_at: '2026-02-01T00:00:00.000Z' }), mk('hotB', { view_count: 9, status: 'sent', created_at: '2026-01-15T00:00:00.000Z' })];

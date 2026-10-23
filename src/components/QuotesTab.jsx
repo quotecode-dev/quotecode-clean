@@ -115,6 +115,9 @@ const R3_TABLE_MIN_WIDTH = 740;
 
 // the quote list pages (Owner 2026-10-18): the desktop page size before the screen is measured, and the phone / tablet page size
 const DEFAULT_QUOTES_PER_PAGE = 10;
+// Owner 2026-10-23 (typed L-29, morning report item 9): the list unmounts while a quote is open in the editor - the page is remembered
+// per account for this browser tab, so closing the editor returns to the same page (a new search / filter / sort still starts on page 1)
+const rememberedListPage = { userId: null, page: 0 };
 const MOBILE_QUOTES_PER_PAGE = 20; // Owner 2026-10-18: "בנייד שזה יהיה כל 10 הצעות", then "כל 20"
 
 // PRODUCT_TRUTH_CAPABILITY: quote_history
@@ -287,7 +290,8 @@ export default function QuotesTab({
   // במסך", "דף הבא / דף קודם", "להשאיר בטלפון כמו היום"; and "שההצעה תופיע לפי הסדר": the DESKTOP list shows, in its sorted order,
   // as many quotes as fit on the screen, page by page (previous / next + "page X of Y"); the hot quote is not promoted out of order.
   // + "במחשבה שנייה שגם בנייד זה יתנהג אותו דבר", "בנייד שזה יהיה כל 10 הצעות", "כל 20": the phone / tablet card list is paged too, 20 a page.
-  const [listPage, setListPage] = useState(0);
+  const [listPage, setListPageState] = useState(() => (userId && rememberedListPage.userId === userId ? rememberedListPage.page : 0));
+  const setListPage = (p) => { if (userId) { rememberedListPage.userId = userId; rememberedListPage.page = p; } setListPageState(p); };
   const [perPage, setPerPage] = useState(DEFAULT_QUOTES_PER_PAGE);
   const listBodyRef = useRef(null);
   // a search shows every match (never cut to 4)
@@ -495,8 +499,14 @@ export default function QuotesTab({
     const list = useCards ? cardListRef.current : listBodyRef.current;
     if (list) list.scrollTop = 0;
   };
-  // a new search / filter / sort starts on the first page
-  useEffect(() => { setListPage(0); }, [searchTerm, statusFilter, quoteSortField, quoteSortDirection]);
+  // a new search / filter / sort starts on the first page - a CHANGE of one, not the list coming back from the editor
+  const pageResetKey = `${searchTerm}|${statusFilter}|${quoteSortField}|${quoteSortDirection}`;
+  const lastPageResetKey = useRef(pageResetKey);
+  useEffect(() => {
+    if (lastPageResetKey.current === pageResetKey) return;
+    lastPageResetKey.current = pageResetKey;
+    setListPage(0);
+  }, [pageResetKey]); // eslint-disable-line react-hooks/exhaustive-deps
   // night task 2026-10-19: the bell's "View quote" - declared after the page reset above, so the quote's own page wins; consumed once
   // the quote is in the (cleared) list; the list's own paging / order is unchanged (L-29)
   useEffect(() => {
