@@ -17,6 +17,7 @@ import { publishBlocker, resolveBlockers, clearScope, SAVE_ATTEMPT_CODES, blocke
 import AiHelpButton from '../components/AiHelpButton';
 import { computeQuoteWorkflowContext } from '../utils/quoteWorkflowContext';
 import { formatShortDate, deviceCalendarDate } from '../utils/shortDate';
+import { isOpenQuoteExpired, isQuoteAcceptanceExpired } from '../utils/quoteValidity';
 import { resolveAdminMarket } from '../utils/adminMarket';
 import { diagLog, diagBoot, idPrefix, installLifecycleDiag } from '../utils/returnDiag';
 import { loadWithRetry } from '../utils/resilientLoad';
@@ -25,6 +26,7 @@ import { allowDraftWrites, decideRestore, suppressDraftWrites, flushAllDrafts, f
 import { getBlobStore } from '../utils/draftAttachments';
 import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quoteFormState';
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
+import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, missingPriceItems, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
@@ -3091,6 +3093,22 @@ ${quoteViewLink}`
     return window.confirm(notice.text);
   };
 
+  // Owner 2026-10-23 (typed L-13, L-14, L-17, L-25, L-26): before ANY customer output of a quote whose validity has passed - the customer
+  // would land on "the validity has ended" and could not approve it. One confirmation; cancel = nothing is sent or copied.
+  const confirmExpiredValidity = (quote) => {
+    if (!isOpenQuoteExpired(quote)) return true;
+    // the date in the account's own order (IRON-DATE-001); the expiry itself follows the quote (quoteValidityMarket)
+    const day = formatShortDate(quote.valid_until, isLocalIsraeliBusiness ? 'Local' : 'International');
+    return window.confirm(isHebrew
+      ? `תוקף ההצעה הסתיים ב-${day}, והלקוח לא יוכל לאשר אותה. אפשר לעדכן את התוקף בעריכת ההצעה.
+
+להמשיך בכל זאת?`
+      : `This quote's validity ended on ${day}, so your client won't be able to approve it. You can update the validity by editing the quote.
+
+Continue anyway?`);
+  };
+  const confirmBeforeCustomerOutput = (quote) => confirmMissingPrices(quote) && confirmExpiredValidity(quote);
+
   // Task 28: "copy message" - the same message as WhatsApp, copied for the owner to paste and send HIMSELF (nothing is sent). It shares
   // the quote link, so it passes the same output gate as a public share (enforced phase: the server authorizes 'public_share' first and
   // the capability link is copied; refused / cancelled -> nothing is copied). "Copy link" semantics are not changed anywhere.
@@ -3100,7 +3118,7 @@ ${quoteViewLink}`
       alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
     }
-    if (!confirmMissingPrices(proposal)) return;
+    if (!confirmBeforeCustomerOutput(proposal)) return;
     let viewLink = null;
     const gate = outputGate('public_share', outputPhase);
     if (gate.mode === 'authority_required') {
@@ -3147,7 +3165,7 @@ ${quoteViewLink}`
       alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
     }
-    if (!authorized && !confirmMissingPrices(proposal)) return;
+    if (!authorized && !confirmBeforeCustomerOutput(proposal)) return;
     let rawPhone = proposal.clients?.phone ? proposal.clients.phone.trim() : '';
     
     let cleanPhone = rawPhone.replace(/[^\d+]/g, '');
@@ -3180,8 +3198,13 @@ ${quoteViewLink}`
       alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
     }
-    if (!confirmMissingPrices(proposal)) return;
+    if (!confirmBeforeCustomerOutput(proposal)) return;
     const win = window.open('', '_blank');
+    // Owner 2026-10-23: a window the browser blocked (e.g. after a long confirmation) stops here - before the output is authorized / used
+    if (!win) {
+      setStatusMsg({ text: isHebrew ? 'הדפדפן חסם את פתיחת הוואטסאפ. לחצו שוב על השליחה. אם זה חוזר, אפשרו חלונות קופצים לאתר.' : 'Your browser blocked the WhatsApp window. Click send again. If it keeps happening, allow pop-ups for this site.', type: 'error' });
+      return;
+    }
     const auth = await authorizeWithNotice({ channel: 'send', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew: isHebrew });
     if (!auth.proceed) {
       if (win && !win.closed) win.close();
@@ -3213,7 +3236,7 @@ ${quoteViewLink}`
       return;
     }
     // Task 35 (F4): the ONE point every email path reaches (list chip + statistics) - the missing-price notice before the send
-    if (!confirmMissingPrices(quote)) return;
+    if (!confirmBeforeCustomerOutput(quote)) return;
     const clientEmailVal = quote.clients?.email || quote.client_email || '';
     
     if (!clientEmailVal || !emailEmailValidation(clientEmailVal)) {
@@ -3357,7 +3380,9 @@ ${quoteViewLink}`
   // שהייתה תמיד. withActiveQuantities מנרמל עותק-items לפני הקריאה כך
   // שפריט מקצועי מתומחר לפי calculated_quantity (כשקיים), לא ה-quantity
   // הגולמי (שנשאר 1/integer, לא נוגע בו כלל - ר' Stage A/§155.8).
-  const previewFinancials = calculateQuoteFinancials({
+  // Owner 2026-10-23: an unchanged shekel quote saved before the amendment keeps its stored amounts in the preview too (the save does
+  // not recalculate it); a new quote or a changed price / quantity / discount gets the rounding (storedQuoteFinancials.js)
+  const previewFinancials = financialsMatchingStored({
     country: previewRegionCountry,
     // IRON-ILS-001 (2026-10-23): a shekel quote's agorot after the discount go to the discount (the quote's own currency when editing)
     currency: editingOriginalQuote ? editingOriginalQuote.currency : (isLocalIsraeliBusiness ? 'ILS' : currency),
@@ -3365,7 +3390,7 @@ ${quoteViewLink}`
     items: withActiveQuantities(items),
     discount,
     taxRateOverride: previewTaxRateOverride,
-  });
+  }, editingOriginalQuote ? editingOriginalQuote.total : undefined, { editing: true });
 
   const subtotal = previewFinancials.enteredSubtotal;
   const discountAmount = previewFinancials.discountAmount;
@@ -3957,7 +3982,8 @@ ${quoteViewLink}`
     setCurrency(quoteCurr);
 
     setQuoteStatus('Draft');
-    setValidUntil(quote.valid_until || '');
+    // Owner 2026-10-23: a duplicate never copies a validity date that has already passed (the new quote starts without one)
+    setValidUntil(quote.valid_until && !isQuoteAcceptanceExpired(quote.valid_until, isLocalIsraeliBusiness ? 'Local' : 'International') ? quote.valid_until : '');
     setDiscount(quote.discount || '');
 
     let dupTerms = quote.terms || (isHebrew ? DEFAULT_TERMS_HEB : DEFAULT_TERMS_ENG);
@@ -7014,6 +7040,7 @@ ${quoteViewLink}`
           .quote-modern-status[data-tone="sent"] { color: #0f6672; }
           .quote-modern-status[data-tone="needs-sending"] { color: #1073e0; }
           .quote-modern-status[data-tone="draft"] { color: #8b91a1; }
+          .quote-modern-status[data-tone="expired"] { color: #65727a; }
           .quote-modern-status[data-tone="approved"] { color: #0a7d2a; }
           /* Views: a numeric column. Physical LTR atom, right-aligned in BOTH directions (units under units), like Amount. */
           .quote-modern-row > .quote-modern-views {

@@ -3,7 +3,7 @@
 // caller's counters and asks the Edge Function customer-twin through the fresh-session path (CT-09). Never throws.
 import { sanitizeTwinQuote, twinTooLong, TWIN_QUOTE_VERSION } from '../../supabase/functions/_shared/customerTwin.js';
 import { getActiveQuantity } from './professionalQuoteItem';
-import { calculateQuoteFinancials } from './regionConfig';
+import { financialsMatchingStored } from './storedQuoteFinancials';
 import { isQuoteAcceptanceExpired } from './quoteValidity';
 import { makeInvokeWithFreshSession } from '../shared/invokeWithFreshSession';
 
@@ -37,8 +37,9 @@ export function twinPayloadFromQuoteRow(quote, market, personal = []) {
   if (!quote) return { quote: null, tooLong: false };
   // the saved order (PostgREST returns rows in no promised order - the same sort as the editor, Dashboard handleEditClick)
   const rows = (quote.quote_items || []).slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  const f = calculateQuoteFinancials({ country: market === 'INTERNATIONAL' ? 'International' : 'Local', clientType: quote.client_type,
-    items: [{ quantity: 1, unit_price: Number(quote.subtotal) || 0 }], discount: quote.discount, taxRateOverride: typeof quote.tax_rate === 'number' ? quote.tax_rate : undefined });
+  // Owner 2026-10-23: the editor's IRON-ILS-001 rounding (an old shekel quote keeps its stored amounts - storedQuoteFinancials.js)
+  const f = financialsMatchingStored({ country: market === 'INTERNATIONAL' ? 'International' : 'Local', currency: quote.currency, clientType: quote.client_type,
+    items: [{ quantity: 1, unit_price: Number(quote.subtotal) || 0 }], discount: quote.discount, taxRateOverride: typeof quote.tax_rate === 'number' ? quote.tax_rate : undefined }, quote.total);
   return build({
     version: TWIN_QUOTE_VERSION, market, currency: quote.currency, subject: quote.quote_subject || quote.subject, items: itemsOf(rows),
     terms: quote.terms, warranty: quote.warranty, validUntil: quote.valid_until, validity: validityOf(quote.valid_until, market),

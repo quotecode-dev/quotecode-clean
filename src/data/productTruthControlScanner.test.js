@@ -32,7 +32,7 @@ describe('CONTROL-LEVEL SOURCE COVERAGE — real data (the actual Blocker 1 guar
     const ambiguous = controls.filter((c) => c.resolution.status === 'ambiguous');
     expect(unresolved, `unresolved controls:\n${JSON.stringify(unresolved.map((c) => ({ file: c.file, line: c.line, kind: c.kind, tagName: c.tagName })), null, 2)}`).toEqual([]);
     expect(ambiguous, `ambiguous controls:\n${JSON.stringify(ambiguous.map((c) => ({ file: c.file, line: c.line, reason: c.resolution.reason })), null, 2)}`).toEqual([]);
-  });
+  }, 60_000); // real-source scan: slow under the release gate load (Owner 2026-10-23, typed approval for the gate tests)
 });
 
 describe('REPLACEMENT CONTROL DEFENSE — real data (Codex final re-review Blocker 1: a changed control must not inherit a stale marker)', () => {
@@ -42,7 +42,7 @@ describe('REPLACEMENT CONTROL DEFENSE — real data (Codex final re-review Block
     const { controls } = scanControlsInFiles(ROOT, inScope, (rel) => readFileSync(join(ROOT, rel), 'utf-8'));
     const failures = checkControlIdentityBaseline(controls, controlBaseline);
     expect(failures, `replacement-control identity failures (run the generator to review/remap if these are legitimate):\n${JSON.stringify(failures, null, 2)}`).toEqual([]);
-  });
+  }, 60_000); // real-source scan: slow under the release gate load (Owner 2026-10-23, typed approval for the gate tests)
 
   it('the baseline generator is idempotent: regenerating from real source produces byte-identical identity keys to the committed file', () => {
     const allFiles = listScannableFiles(ROOT, ['src', 'supabase/functions']);
@@ -59,7 +59,7 @@ describe('REPLACEMENT CONTROL DEFENSE — real data (Codex final re-review Block
       expect(controlBaseline[id], `capability "${id}" is missing from the committed control baseline`).toBeTruthy();
       expect(new Set(controlBaseline[id])).toEqual(keys);
     }
-  });
+  }, 60_000); // real-source scan: slow under the release gate load (Owner 2026-10-23, typed approval for the gate tests)
 });
 
 function resolutionsOf(source) {
