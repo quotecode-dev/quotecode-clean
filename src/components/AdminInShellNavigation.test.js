@@ -107,7 +107,8 @@ describe('Admin shell-bypass calls: ZERO', () => {
   // Owner console 2026-10-22, typed (L-15): a menu destination opens a clean screen with no Back button
   it('every menu destination (sidebar / bottom row / More / Admin menu / Settings) starts a clean path', () => {
     const src = stripComments(dashboard);
-    expect(src).toMatch(/const guardedNav = \(go\) => \{ if \(showQuoteForm && activeTab === 'main' && !mayLeaveEditor\(\)\) return; inAppBack\.startFresh\(\); go\(\); \};/);
+    // Owner 2026-10-24 (typed L-15): an unsaved quote kept alive behind another screen asks too
+    expect(src).toMatch(/const guardedNav = \(go\) => \{ if \(showQuoteForm && !mayLeaveEditor\(\)\) return; inAppBack\.startFresh\(\); go\(\); \};/);
     expect(src).toMatch(/onSelect=\{\(id\) => \{ inAppBack\.startFresh\(\); navigateToAdminSection\(id\); \}\}/);
     expect(src).toMatch(/onClick=\{\(\) => \{ inAppBack\.startFresh\(\); navigateToAdminSection\(id\); setShowMobileMoreMenu\(false\); \}\}/);
     expect(src).toMatch(/onSettings=\{\(\) => \{ inAppBack\.startFresh\(\); setActiveTab\('settings'\);/);

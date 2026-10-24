@@ -135,9 +135,10 @@ describe('Dashboard: the Free-10 check precedes any insert / reservation on ever
     expect(dash).not.toMatch(/setInterval\([^)]*Free10|setTimeout\([^)]*setFree10Window/);
   });
   it('new / measured / AI / duplicate stop before anything opens; save stops before persistQuote', () => {
-    expect(dash).toMatch(/const handleCreateNewQuoteClick = \(\) => \{\s*if \(free10Blocked\(\)\) return false;/);
-    expect(dash).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\(\) === false\) return;/);
-    expect(dash).toMatch(/const handleCreateAiQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\(\) === false\) return;/);
+    // Owner 2026-10-24 (typed L-15): the new-quote paths pass their kind (the business-details return reopens the same kind)
+    expect(dash).toMatch(/const handleCreateNewQuoteClick = \(variant\) => \{\s*if \(free10Blocked\(\)\) return false;/);
+    expect(dash).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\('structured'\) === false\) return;/);
+    expect(dash).toMatch(/const handleCreateAiQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\('ai'\) === false\) return;/);
     expect(dash).toMatch(/const handleDuplicateQuote = async \(quote\) => \{\s*if \(free10Blocked\(\)\) return;/);
     const save = dash.slice(dash.indexOf('async function handleSaveQuote'), dash.indexOf('const saveResult = await persistQuote('));
     expect(save).toMatch(/if \(!editingQuoteId && free10Blocked\(\)\) return;/);

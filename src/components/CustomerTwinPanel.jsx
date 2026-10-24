@@ -58,7 +58,7 @@ const C = {
 
 const COPY = {
   he: {
-    label: 'בדיקת הלקוח', close: 'סגירה',
+    label: 'שיפור ההצעה', close: 'סגירה', // Owner 2026-10-24 (typed L-07, L-09, L-13, L-29): the button's name
     heroTitle: 'ראו את ההצעה דרך העיניים של הלקוח',
     heroText: 'המערכת בודקת את ההצעה מנקודת המבט של שלושה סוגי לקוחות, כדי שתוכלו לחזק אותה לפני השליחה.',
     monthly: (r, l) => <>נשארו לכם <N v={r} /> מתוך <N v={l} /> בדיקות החודש</>,
@@ -73,7 +73,7 @@ const COPY = {
       disposal: { ok: 'פינוי הפסולת מוזכר', warn: 'לא כתוב אם פינוי הפסולת כלול' },
       validity: { ok: 'מצוין עד מתי ההצעה בתוקף', warn: 'לא צוין עד מתי ההצעה בתוקף', missing: 'תוקף ההצעה כבר עבר' },
     },
-    run: 'הפעלת בדיקת הלקוח', running: 'בודקים את ההצעה…', again: 'בדיקה מחדש',
+    run: 'קבלת הצעות לשיפור', running: 'בודקים את ההצעה…', again: 'בדיקה מחדש',
     personas: {
       price: { title: 'לקוח רגיש למחיר', sub: 'מחפש את התמורה הטובה ביותר' },
       quality: { title: 'לקוח שמחפש איכות', sub: 'מעריך מקצועיות ואמינות' },
@@ -92,7 +92,7 @@ const COPY = {
     errors: {
       not_deployed: 'ניתוח הבינה עדיין לא זמין כאן. הבדיקה הבסיסית למעלה זמינה תמיד.',
       quota_exhausted: (l) => <>נוצלו כל <N v={l} /> הבדיקות של החודש.</>,
-      smart_pack_required: 'ניתוח הבינה של בדיקת הלקוח הוא חלק מחכם פלוס.',
+      smart_pack_required: 'ניתוח הבינה של שיפור ההצעה הוא חלק מחכם פלוס.',
       in_progress: 'ההצעה הזו כבר בבדיקה. נסו שוב בעוד רגע.',
       too_many_failures: 'היום היו כמה בדיקות שלא הצליחו. נסו שוב מחר.',
       provider_failure: (refunded) => (refunded ? 'לא הצלחנו להשלים את הבדיקה, והיא לא נספרה. אפשר לנסות שוב.'
@@ -107,7 +107,7 @@ const COPY = {
     buyMore: (n, price) => <><N v={n} /> בדיקות נוספות ב־<N v={price} /></>, soon: 'בקרוב', plans: 'למסך המסלולים',
   },
   en: {
-    label: 'Customer check', close: 'Close',
+    label: 'Improve quote', close: 'Close',
     heroTitle: "See your quote through your customer's eyes",
     heroText: 'The system reads your quote from the point of view of three kinds of customers, so you can strengthen it before you send it.',
     monthly: (r, l) => <><N v={r} /> of <N v={l} /> checks left this month</>,
@@ -122,7 +122,7 @@ const COPY = {
       disposal: { ok: 'Waste removal is mentioned', warn: 'Not stated whether waste removal is included' },
       validity: { ok: 'The quote says how long it is valid', warn: 'The quote does not say how long it is valid', missing: 'The quote has expired' },
     },
-    run: 'Run the customer check', running: 'Checking your quote…', again: 'Check again',
+    run: 'Get suggestions', running: 'Checking your quote…', again: 'Check again',
     personas: {
       price: { title: 'Price-sensitive customer', sub: 'Looks for the best value' },
       quality: { title: 'Quality-focused customer', sub: 'Values professionalism and trust' },
@@ -141,7 +141,7 @@ const COPY = {
     errors: {
       not_deployed: 'The AI analysis is not available here yet. The basic check above is always available.',
       quota_exhausted: (l) => <>You have used all <N v={l} /> checks for this month.</>,
-      smart_pack_required: 'The AI customer check is part of SMART PACK.',
+      smart_pack_required: 'The AI analysis of Improve quote is part of SMART PACK.',
       in_progress: 'This quote is already being checked. Try again in a moment.',
       too_many_failures: 'Several checks did not complete today. Please try again tomorrow.',
       provider_failure: (refunded) => (refunded ? 'We could not complete the check, and it was not counted. You can try again.'

@@ -178,8 +178,8 @@ describe('approved quotes workspace (source guards)', () => {
   // on the blank form instead of only the general chat. Both still reset FIRST through handleCreateNewQuoteClick.
   it('New quote menu choices: structured resets first then marks the measured entry (one list, no rooms first - Owner round 1, A1); AI resets first then opens the AI draft dialog', () => {
     // Task 27: the reset doubles as the Free-10 creation check (returns false = stopped before anything opens)
-    expect(dashboard).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\(\) === false\) return;\s*setMeasuredQuoteEntry\(true\);\s*\};/);
-    expect(dashboard).toMatch(/const handleCreateAiQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\(\) === false\) return;\s*setShowAiQuoteDraft\(true\);\s*\};/);
+    expect(dashboard).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\('structured'\) === false\) return;\s*setMeasuredQuoteEntry\(true\);\s*\};/);
+    expect(dashboard).toMatch(/const handleCreateAiQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\('ai'\) === false\) return;\s*setShowAiQuoteDraft\(true\);\s*\};/);
     expect(dashboard).toMatch(/onCreateStructuredQuote=\{handleCreateStructuredQuoteClick\}/);
     expect(dashboard).toMatch(/onCreateAiQuote=\{handleCreateAiQuoteClick\}/);
   });

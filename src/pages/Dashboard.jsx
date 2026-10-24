@@ -2048,6 +2048,19 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         localStorage.setItem('proflow_cached_country', bizCountry);
         setStatusMsg({ text: isHebrew ? 'הגדרות העסק עודכנו בהצלחה!' : 'Business settings updated successfully!', type: 'success' });
         resolveBlockers(['SETTINGS_SAVE_FAILED']);
+        // Owner 2026-10-24 (typed L-15): the details a quote was waiting for are complete -> back to where the user was
+        const resume = profileResumeRef.current;
+        if (resume && !getBusinessProfileGateMessage({ phone: bizPhone, taxId: bizTaxId, isLocalIsraeliBusiness, isHebrew })) {
+          profileResumeRef.current = null;
+          if (resume.kind === 'resume_save' && showQuoteForm) {
+            setActiveTab('main');
+            setStatusMsg({ text: isHebrew ? 'פרטי העסק נשמרו. חזרתם להצעה - אפשר לשמור אותה עכשיו.' : 'Business details saved. You are back in your quote - you can save it now.', type: 'success' });
+          } else if (resume.kind === 'new_quote') {
+            const open = resume.variant === 'ai' ? handleCreateAiQuoteClick : resume.variant === 'structured' ? handleCreateStructuredQuoteClick : handleCreateNewQuoteClick;
+            open();
+            setStatusMsg({ text: isHebrew ? 'פרטי העסק נשמרו. אפשר להתחיל בהצעה החדשה.' : 'Business details saved. You can start your new quote.', type: 'success' });
+          }
+        }
       }
     } else {
       // חוק ברזל: createNewBusinessSettings() היא הנקודה היחידה בקובץ הזה
@@ -3815,8 +3828,43 @@ Continue anyway?`);
     setMeasuredQuoteEntry(false); setShowAiQuoteDraft(false);
   };
 
-  const handleCreateNewQuoteClick = () => {
+  // Owner 2026-10-24 (typed L-15, Doron's report: "after I finished the quote it sent me to the business details - why not earlier?
+  // and after filling them it did not return me to the quote"): the business details a quote needs (phone, tax id) are asked BEFORE a new
+  // quote opens, and after they are saved in Settings the user returns to where they were (the new quote, or the quote being saved).
+  const profileResumeRef = useRef(null);
+  // leaving Settings without completing them forgets the pending return (a later settings save never opens a quote by surprise)
+  useEffect(() => { if (activeTab !== 'settings') profileResumeRef.current = null; }, [activeTab]);
+  const openProfileGate = (gateMessage, resume) => {
+    const missingProfile = getMissingBusinessProfileFields({ phone: bizPhone, taxId: bizTaxId, isLocalIsraeliBusiness });
+    if (missingProfile.includes('phone')) publishBlocker('PROFILE_MISSING_PHONE', { scope: 'profile' });
+    if (missingProfile.includes('taxId')) publishBlocker('PROFILE_MISSING_TAX_ID', { scope: 'profile' });
+    profileResumeRef.current = resume;
+    // the first missing field (product-owned section ids rendered by SettingsTab) - reached once the alert is closed (effect below)
+    profileFocusRef.current = missingProfile.includes('phone') ? 'business_phone' : 'business_tax_id';
+    setAlertModalMsg(gateMessage);
+    setActiveTab('settings');
+  };
+  const profileFocusRef = useRef(null);
+  useEffect(() => {
+    if (activeTab !== 'settings' || alertModalMsg || !profileFocusRef.current) return undefined;
+    const target = profileFocusRef.current;
+    profileFocusRef.current = null;
+    const timer = window.setTimeout(() => {
+      const el = document.getElementById(`pf-settings-${target}`);
+      if (el) { el.scrollIntoView({ block: 'center', behavior: 'smooth' }); const input = el.querySelector('input, textarea, select'); if (input) input.focus({ preventScroll: true }); }
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [activeTab, alertModalMsg]);
+  const handleCreateNewQuoteClick = (variant) => {
     if (free10Blocked()) return false; // checked BEFORE anything opens or is created; nothing is inserted on a click
+    // the business details are checked before the editor opens (only once the settings are loaded; the save keeps its own check)
+    if (settingId) {
+      const gateMessage = getBusinessProfileGateMessage({ phone: bizPhone, taxId: bizTaxId, isLocalIsraeliBusiness, isHebrew });
+      if (gateMessage) {
+        openProfileGate(gateMessage, { kind: 'new_quote', variant: typeof variant === 'string' ? variant : 'plain' });
+        return false;
+      }
+    }
     setActiveTab('main');
     setIsCreatingQuote(true);
     setEditingQuoteId(null);
@@ -3832,11 +3880,11 @@ Continue anyway?`);
   //  - AI smart quote (Task 21): the blank quote form plus the AI quote-draft dialog (describe the job -> reviewable draft items the user
   //    applies explicitly to the unsaved form; nothing is saved, issued or sent)
   const handleCreateStructuredQuoteClick = () => {
-    if (handleCreateNewQuoteClick() === false) return;
+    if (handleCreateNewQuoteClick('structured') === false) return;
     setMeasuredQuoteEntry(true);
   };
   const handleCreateAiQuoteClick = () => {
-    if (handleCreateNewQuoteClick() === false) return;
+    if (handleCreateNewQuoteClick('ai') === false) return;
     setShowAiQuoteDraft(true);
   };
   // The user's explicit "add to quote" in the AI draft dialog: the chosen lines join the form's real items (the untouched blank row is
@@ -4062,7 +4110,9 @@ Continue anyway?`);
   const mayLeaveEditor = () => !quoteDraft.isDirty() || window.confirm(leaveEditorMsg);
   // the sidebar / bottom row / More leave the editor through the same unsaved-work question as Back and the AI navigation
   // L-15 (Owner console 2026-10-22): a menu destination opens a clean screen - no Back button to the screen it was opened from
-  const guardedNav = (go) => { if (showQuoteForm && activeTab === 'main' && !mayLeaveEditor()) return; inAppBack.startFresh(); go(); };
+  // Owner 2026-10-24 (typed L-15, Doron's report): an unsaved quote kept alive behind another screen (e.g. Settings, opened for the
+  // business details) asks too - the menu destination would otherwise drop it without a word
+  const guardedNav = (go) => { if (showQuoteForm && !mayLeaveEditor()) return; inAppBack.startFresh(); go(); };
   const isAdminTab = String(activeTab).startsWith('admin');
   const navScreen = {
     key: [activeTab, showQuoteForm && activeTab === 'main' ? 'editor' : '', activeTab === 'settings' ? settingsView : '', isAdminTab ? `${adminSection}:${adminSelectedUserId || ''}` : ''].join('|'),
@@ -4332,11 +4382,8 @@ Continue anyway?`);
         isHebrew,
       });
       if (gateMessage) {
-        const missingProfile = getMissingBusinessProfileFields({ phone: bizPhone, taxId: bizTaxId, isLocalIsraeliBusiness });
-        if (missingProfile.includes('phone')) publishBlocker('PROFILE_MISSING_PHONE', { scope: 'profile' });
-        if (missingProfile.includes('taxId')) publishBlocker('PROFILE_MISSING_TAX_ID', { scope: 'profile' });
-        setAlertModalMsg(gateMessage);
-        setActiveTab('settings');
+        // the quote stays in the editor (not saved); after the details are saved the user is brought back to it (handleSaveSettings)
+        openProfileGate(gateMessage, { kind: 'resume_save' });
         return;
       }
     }
