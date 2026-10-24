@@ -230,21 +230,17 @@ serve(async (req) => {
 
     const { data: attachmentRows } = await adminClient
       .from('quote_attachments')
-      .select('id, file_name, storage_path')
-      .eq('quote_id', quoteId)
-      // Codex review 2026-10-23 R-04: a stable order and each file's own id, so a refreshed link is found by id - never another file that
-      // happens to share the name
-      .order('created_at', { ascending: true })
-      .order('id', { ascending: true });
+      .select('file_name, storage_path')
+      .eq('quote_id', quoteId);
 
-    const attachments: { id: string; file_name: string; url: string }[] = [];
+    const attachments: { file_name: string; url: string }[] = [];
     for (const att of attachmentRows || []) {
       if (!isValidAttachmentPath(att.storage_path, quote.user_id, quoteId)) continue;
       const { data: signed } = await adminClient
         .storage.from('quote-files')
         .createSignedUrl(att.storage_path, SIGNED_URL_EXPIRY_SECONDS);
       if (signed?.signedUrl) {
-        attachments.push({ id: att.id, file_name: att.file_name, url: signed.signedUrl });
+        attachments.push({ file_name: att.file_name, url: signed.signedUrl });
       }
     }
 

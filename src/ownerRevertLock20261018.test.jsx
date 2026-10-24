@@ -27,10 +27,7 @@ describe('L-23 the quote list, editor, catalog, finances (reverted behaviours)',
   it('#2 -> L-29: the quote list in pages (desktop as many as fit, phone / tablet 20), previous / next, in the sorted order', () => {
     expect(tab).toContain('const pageRows = rowsMeta.slice(currentPage * perPage, (currentPage + 1) * perPage);');
     expect(tab).toContain('const MOBILE_QUOTES_PER_PAGE = 20;');
-    // Owner 2026-10-23 (typed L-29, morning report item 9): a new search / filter / sort still starts on page 1 - by a CHANGE of the key
-    // (the list coming back from the editor keeps its page; the behaviour test is in QuotesTab.test.jsx)
-    expect(tab).toContain('const pageResetKey = `${searchTerm}|${statusFilter}|${quoteSortField}|${quoteSortDirection}`;');
-    expect(tab).toContain('setListPage(0);\n  }, [pageResetKey]);');
+    expect(tab).toContain("useEffect(() => { setListPage(0); }, [searchTerm, statusFilter, quoteSortField, quoteSortDirection]);");
     expect(tab).not.toContain('pickCompactRows');
     const goTo = tab.slice(tab.indexOf('  const goToPage = (p) => {'), tab.indexOf('  // a new search / filter / sort starts on the first page'));
     expect(goTo).not.toContain('scrollIntoView'); // "המסך קופץ": a page change never moves the screen

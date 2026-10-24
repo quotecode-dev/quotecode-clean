@@ -18,9 +18,8 @@ export function proxyOptions(raw: string | undefined): ProxyOptions | null {
   let u: URL;
   try { u = new URL(v); } catch { return null; }
   if ((u.protocol !== 'http:' && u.protocol !== 'https:') || !u.hostname) return null;
-  // Codex R-05: a malformed percent escape in the credentials is a misconfiguration (null -> relay_misconfigured), never a throw
-  let username: string; let password: string;
-  try { username = decodeURIComponent(u.username); password = decodeURIComponent(u.password); } catch { return null; }
+  const username = decodeURIComponent(u.username);
+  const password = decodeURIComponent(u.password);
   const port = u.port || (u.protocol === 'http:' ? '80' : '443'); // the default port is written out (the URL parser drops it)
   return { url: `${u.protocol}//${u.hostname}:${port}`, ...(username ? { basicAuth: { username, password } } : {}) };
 }

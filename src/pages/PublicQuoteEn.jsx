@@ -624,7 +624,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
       {hasAttachments ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {attachments.map((att, idx) => (
-            <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="pq-attachment-link" onClick={(e) => openAttachmentFresh(e, { att, index: idx, loadedAt: attachmentsLoadedAtRef.current, reload: reloadAttachments, removedText: 'This file is no longer attached to the quote.' })}>
+            <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="pq-attachment-link" onClick={(e) => openAttachmentFresh(e, { att, index: idx, loadedAt: attachmentsLoadedAtRef.current, reload: reloadAttachments })}>
               📄 {att.file_name || `Attachment #${idx + 1}`}
             </a>
           ))}

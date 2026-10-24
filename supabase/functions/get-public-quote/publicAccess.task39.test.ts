@@ -59,7 +59,6 @@ vi.mock('https://esm.sh/@supabase/supabase-js@2', () => ({
         const builder: any = {
           select: (cols: string) => { q.select = cols; return builder; },
           eq: (col: string, val: unknown) => { q.filters.push([col, val]); return builder; },
-          order: (col: string, o?: { ascending?: boolean }) => { (q.order ??= []).push([col, o?.ascending !== false]); return builder; },
           maybeSingle: async () => { const r: any = run(); return r.error ? r : { data: r.rows[0] ?? null, error: null }; },
           then: (res: any, rej: any) => { const r: any = run(); return Promise.resolve(r.error ? r : { data: r.rows, error: null }).then(res, rej); },
         };
@@ -338,14 +337,13 @@ describe('structured content and the flat-select fallback', () => {
 });
 
 describe('private attachments: only this quote\'s own objects, minted as short-lived signed URLs', () => {
-  const att = (storage_path: string, file_name = 'plan.pdf', id = 'att-1') => ({ id, quote_id: QID, file_name, storage_path });
-  it('a valid owner/quote path is signed for 300 seconds and only {id, file_name, url} is returned (no storage path); a stable order (Codex R-04)', async () => {
+  const att = (storage_path: string, file_name = 'plan.pdf') => ({ quote_id: QID, file_name, storage_path });
+  it('a valid owner/quote path is signed for 300 seconds and only {file_name, url} is returned (no storage path)', async () => {
     h.db.quote_attachments = [att(`${OWNER}/${QID}_1728000000.pdf`)];
     const r = await call({ quote_id: QID });
     expect(h.signCalls).toEqual([{ bucket: 'quote-files', path: `${OWNER}/${QID}_1728000000.pdf`, expiry: 300 }]);
-    expect(r.json.attachments).toEqual([{ id: 'att-1', file_name: 'plan.pdf', url: `https://signed.test/quote-files/${OWNER}/${QID}_1728000000.pdf?ttl=300` }]);
+    expect(r.json.attachments).toEqual([{ file_name: 'plan.pdf', url: `https://signed.test/quote-files/${OWNER}/${QID}_1728000000.pdf?ttl=300` }]);
     expect(h.queries.find((q) => q.table === 'quote_attachments')!.filters).toEqual([['quote_id', QID]]);
-    expect((h.queries.find((q) => q.table === 'quote_attachments') as any).order).toEqual([['created_at', true], ['id', true]]);
   });
   it('a row pointing at ANOTHER tenant\'s folder or ANOTHER quote\'s file is never signed', async () => {
     h.db.quote_attachments = [att(`${OTHER_TENANT}/${QID}_1.pdf`), att(`${OWNER}/${QID2}_1.pdf`)];

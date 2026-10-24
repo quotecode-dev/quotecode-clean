@@ -216,8 +216,7 @@ export default function LandingGlobal({ onForgotPassword }) {
     plans: {
       // Base section heading and subtitle (L12); no eyebrow (the base title is the heading itself).
       title: 'Plans & Pricing',
-      // Owner 2026-10-23 (typed L-14, morning report item 8): the 7 days, as everywhere else
-      intro: '10 free quotes or 7 days, whichever ends first, then one package with every available capability, billed monthly or annually.',
+      intro: '10 free quotes, then one package with every available capability, billed monthly or annually.',
       // Task 37 (Owner-approved L1 meaning): true on LIVE and TEST.
       trialNote: 'The 10-free-quotes plan is not active yet. The account terms available today are shown when you sign up. The new paid plan cannot be purchased yet, and the prices are shown for information only.',
       // Owner 2026-10-07: review notice for the new plan cards (exact wording).

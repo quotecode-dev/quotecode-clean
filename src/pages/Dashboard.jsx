@@ -27,10 +27,9 @@ import { getBlobStore } from '../utils/draftAttachments';
 import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quoteFormState';
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
 import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
-import { isFinancialChange } from '../utils/financialEdit';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
 import { isQuoteImmutable } from '../utils/quoteLock';
-import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, missingPriceItems, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
+import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, isItemPriceMissing, missingPriceItems, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
 import { itemPricePayload, formPriceFromSavedItem } from '../utils/itemPrice';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
 import useAccountSummary from '../hooks/useAccountSummary';
@@ -2566,9 +2565,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             ...(cleanSignupText(signupFullName) ? { full_name: cleanSignupText(signupFullName) } : {}),
             ...(cleanSignupText(signupBusinessName) ? { business_name: cleanSignupText(signupBusinessName) } : {}),
             // 2026-10-20: the Terms state the free plan as 10 quotes or 7 days (IRON-LANDING-001 amended)
-            terms_version: '2026-10-23', // Owner 2026-10-23 (morning report item 8): the Free plan's 7 days in the plans section of the Terms
+            terms_version: '2026-10-21',
             // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
-            privacy_version: '2026-10-23', // Owner 2026-10-23 (item 7 א): consent by location + the Hebrew opt-out
+            privacy_version: '2026-10-21',
             terms_accepted_at: new Date().toISOString(),
           }
         }
@@ -3391,8 +3390,7 @@ Continue anyway?`);
     items: withActiveQuantities(items),
     discount,
     taxRateOverride: previewTaxRateOverride,
-  }, editingOriginalQuote && !isFinancialChange({ items, discount, clientType, savedItems: editingOriginalQuote.quote_items || [], savedDiscount: editingOriginalQuote.discount,
-    savedClientType: editingOriginalQuote.client_type }).changed ? editingOriginalQuote.total : undefined, { editing: true });
+  }, editingOriginalQuote ? editingOriginalQuote.total : undefined, { editing: true });
 
   const subtotal = previewFinancials.enteredSubtotal;
   const discountAmount = previewFinancials.discountAmount;
@@ -4439,6 +4437,7 @@ Continue anyway?`);
       let newQuoteFinancials = null;
 
       if (editingQuoteId) {
+        const numKey = (v) => Number(v || 0).toFixed(6);
         const normType = (v) => v || '';
 
         // חוק ברזל (SQ-F01, Codex Smart Quote P0/P1 review - "stale quote
@@ -4452,10 +4451,17 @@ Continue anyway?`);
         // גם כשסכום הפריט עצמו עומד להשתנות. getActiveQuantity הוא superset
         // מדויק: לפריטים לא-מדודים הוא נופל בחזרה בדיוק לאותו quantity
         // שטוח, אז אין כאן שום שינוי-התנהגות לפריטים רגילים/קבועים.
-        // Codex review 2026-10-23 R-07: the one shared decision (utils/financialEdit.js) - the editor preview uses it too
-        const fin = isFinancialChange({ items, discount, clientType, savedItems: authoritativeItems, savedDiscount: authoritativeQuote.discount, savedClientType: authoritativeQuote.client_type });
-        isFinancialEdit = fin.changed;
-        effectiveClientType = fin.clientTypeChanged ? normType(clientType) : normType(authoritativeQuote.client_type);
+        // Task 35 (F4): a missing price and an intentional 0 are different financial states (the flag is part of the pair)
+        const currentItemPairs = items.map(it => `${numKey(getActiveQuantity(it))}|${numKey(it.unit_price)}|${isItemPriceMissing(it) ? 1 : 0}`).sort();
+        const authoritativeItemPairs = authoritativeItems.map(it => `${numKey(getActiveQuantity(it))}|${numKey(it.unit_price)}|${it.price_missing === true ? 1 : 0}`).sort();
+        const itemsChanged = currentItemPairs.length !== authoritativeItemPairs.length
+          || currentItemPairs.some((v, i) => v !== authoritativeItemPairs[i]);
+
+        const discountChanged = numKey(discount) !== numKey(authoritativeQuote.discount);
+        const clientTypeChanged = normType(clientType) !== normType(authoritativeQuote.client_type);
+
+        isFinancialEdit = itemsChanged || discountChanged || clientTypeChanged;
+        effectiveClientType = clientTypeChanged ? normType(clientType) : normType(authoritativeQuote.client_type);
 
         // מיפוי בטוח id-to-id בין הטופס לבין ה-authoritative snapshot -
         // נדרש הן לעדכון-description הממוקד הקיים, הן (חדש) לבדיקת שינוי-

@@ -2,24 +2,17 @@
 // minutes. A customer who reads the quote longer and then clicks a file got an expired link. A click on a link older than
 // ATTACHMENT_LINK_FRESH_MS re-reads the quote (the same read-only get-public-quote call the page loaded with) and opens the
 // fresh link of the same file. The tab opens at once, inside the click, so the browser never blocks it.
-// Codex review 2026-10-23 R-04: the same file is found by its id (get-public-quote returns it); a file that is no longer attached is
-// said so - never another file that shares its name. Without ids (an older server) only a name that is unique counts; an ambiguous
-// name opens the original link.
 export const ATTACHMENT_LINK_FRESH_MS = 4 * 60 * 1000;
 
 function sameFile(list, att, index) {
-  if (!Array.isArray(list)) return { kind: 'unknown' };
-  if (att.id) {
-    const byId = list.find((a) => a && a.id === att.id);
-    return byId ? { kind: 'found', file: byId } : { kind: 'removed' };
-  }
-  const named = list.filter((a) => a && a.file_name === att.file_name);
-  if (named.length === 1) return { kind: 'found', file: named[0] };
-  return { kind: 'unknown', index };
+  if (!Array.isArray(list)) return null;
+  const byIndex = list[index];
+  if (byIndex && byIndex.file_name === att.file_name) return byIndex;
+  return list.find((a) => a && a.file_name === att.file_name) || null;
 }
 
 // -> true when the click was taken over (an old link); false lets the normal link open.
-export function openAttachmentFresh(event, { att, index, loadedAt, reload, now = Date.now(), win = window, removedText = '' }) {
+export function openAttachmentFresh(event, { att, index, loadedAt, reload, now = Date.now(), win = window }) {
   if (typeof reload !== 'function' || now - loadedAt < ATTACHMENT_LINK_FRESH_MS) return false;
   const tab = win.open('', '_blank');
   // a blocked tab: the link opens as it always did (the quote page itself never navigates away - a signature may be in progress)
@@ -31,12 +24,7 @@ export function openAttachmentFresh(event, { att, index, loadedAt, reload, now =
     .then(reload)
     .then((fresh) => {
       const match = sameFile(fresh?.attachments, att, index);
-      if (match.kind === 'removed') {
-        try { tab.close(); } catch { /* already closed */ }
-        if (removedText) { try { win.alert(removedText); } catch { /* no dialog */ } }
-        return;
-      }
-      go(match.kind === 'found' && match.file.url ? match.file.url : att.url);
+      go(match?.url || att.url);
     })
     .catch(() => go(att.url));
   return true;

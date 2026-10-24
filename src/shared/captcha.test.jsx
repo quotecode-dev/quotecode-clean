@@ -42,18 +42,18 @@ describe('the robot check (Cloudflare Turnstile)', () => {
     expect(dash).toMatch(/captchaToken: takeCaptchaToken\('auth'\),\n\s+data: \{/);
     expect(dash).toMatch(/signInWithPassword\(\{ email: emailInput, password: passwordInput, options: \{ captchaToken: takeCaptchaToken\('auth'\) \} \}\)/);
     expect(dash).toMatch(/captchaToken: takeCaptchaToken\('reset'\),\n\s+\}\)\);/);
-    expect(dash).toMatch(/privacy_version: '2026-10-23'/);
+    expect(dash).toMatch(/privacy_version: '2026-10-21'/);
   });
   it('the admin password re-check runs with the secret key, which Auth exempts from captcha (protected actions keep working)', () => {
     const src = readFileSync('supabase/functions/admin-reauth-verify/index.ts', 'utf8').replace(/\r\n/g, '\n');
     expect(src).toMatch(/const checkClient = createClient\(supabaseUrl, secretKey, \{ auth: \{ persistSession: false, autoRefreshToken: false \} \}\);/);
     expect(src).not.toMatch(/createClient\(supabaseUrl, anonKey\);/);
   });
-  it('the Privacy Policy names the check and what it sends, in Hebrew and English, dated 23 October 2026 (consent by location, Owner 2026-10-23)', () => {
+  it('the Privacy Policy names the check and what it sends, in Hebrew and English, dated 21 October 2026', () => {
     const p = readFileSync('src/pages/Privacy.jsx', 'utf8').replace(/\r\n/g, '\n');
     expect(p).toContain('בדיקת אבטחה של Cloudflare (Turnstile) שחוסמת רובוטים');
     expect(p).toContain('a Cloudflare security check (Turnstile) to block bots');
-    expect(p).toContain('עדכון אחרון: 23 באוקטובר 2026');
-    expect(p).toContain('Last updated: October 23, 2026');
+    expect(p).toContain('עדכון אחרון: 21 באוקטובר 2026');
+    expect(p).toContain('Last updated: October 21, 2026');
   });
 });

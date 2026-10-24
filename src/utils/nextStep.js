@@ -34,16 +34,13 @@ export function expiringQuotes(quotes, today, isExpired, skipIds = new Set()) {
   return out.sort((a, b) => a.daysLeft - b.daysLeft);
 }
 
-/** The banner's rotation: overdue tasks, then the hot quotes (already ordered), then the expiring quotes that are not hot.
- *  validityToday (Owner 2026-10-23, morning report item 12): the validity calendar day of the market (quoteValidity.marketCalendarDate -
- *  Anywhere-on-Earth for International), so a quote the customer can still sign never drops out on the UTC morning after its last day;
- *  the tasks keep the market's own day (today). */
-export function nextSteps({ hotRows = [], tasks = [], quotes = [], today, validityToday, nowClock, isExpired }) {
+/** The banner's rotation: overdue tasks, then the hot quotes (already ordered), then the expiring quotes that are not hot. */
+export function nextSteps({ hotRows = [], tasks = [], quotes = [], today, nowClock, isExpired }) {
   const hotIds = new Set(hotRows.map((r) => r.quote?.id).filter(Boolean));
   return [
     ...overdueTasks(tasks, today, nowClock).map((task) => ({ kind: 'task', key: `task:${task.id}`, task, today: String(task.due_date).slice(0, 10) === today })),
     ...hotRows.map((r) => ({ kind: 'hot', key: `hot:${r.quote.id}`, ...r })),
-    ...expiringQuotes(quotes, validityToday || today, isExpired, hotIds).map((e) => ({ kind: 'expiring', key: `expiring:${e.quote.id}`, ...e })),
+    ...expiringQuotes(quotes, today, isExpired, hotIds).map((e) => ({ kind: 'expiring', key: `expiring:${e.quote.id}`, ...e })),
   ];
 }
 

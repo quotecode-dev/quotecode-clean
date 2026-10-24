@@ -83,9 +83,9 @@ describe('review fixes (2026-10-23)', () => {
     expect(r.findings).toEqual([]);
     expect(r.matched).toBe(1);
   });
-  it('a pulled checkout whose callback never came is linked through our attempt id (amount unverified while no uid proves the unit)', () => {
+  it('a pulled checkout whose callback never came is matched through our attempt id', () => {
     const r = reconcile({ provider: [tx({ uid: 'tx-real' })], charges: [ours({ providerEventId: `pull:${A1}` })], refunds: [], ...W });
-    expect(r).toMatchObject({ matched: 0, unverified: 1, findings: [] });
+    expect(r).toMatchObject({ matched: 1, findings: [] });
   });
   it('a second (double) charge of the same checkout is UNLINKED - our one charge is never used twice', () => {
     const r = reconcile({ provider: [tx({}), tx({ uid: 'tx-double' })], charges: [ours({})], refunds: [], ...W });
@@ -148,8 +148,6 @@ describe('one run', () => {
       unmailed: vi.fn(async () => [{ id: 'f-old', code: 'UNLINKED' as const, uid: 'tx-old', detail: {} }, { id: 'f-new', code: 'UNLINKED' as const, uid: 'tx9', detail: {} }]),
       mailOwner: vi.fn(async () => true),
       markMailed: vi.fn(async () => {}),
-      previousCron: vi.fn(async () => ({ status: 'ok' })),
-      failureToldToday: vi.fn(async () => false),
       ...o,
     };
     return d;
@@ -195,7 +193,7 @@ describe('a run that breaks half-way', () => {
     const finishRun = vi.fn(async () => {});
     const d = { caller: async () => 'admin' as const, now: () => new Date('2026-11-02T04:00:00Z'), config: () => ({ apiBase: 'b', apiKey: 'k', secretKey: 's', terminalUid: 't' }),
       claimRun: async () => 'run-9', finishRun, source: async () => { throw new Error('database'); },
-      history: async () => ({ ok: true as const, rows: [] }), saveFindings: async () => [], unmailed: async () => [], mailOwner: async () => true, markMailed: async () => {}, previousCron: async () => null, failureToldToday: async () => false };
+      history: async () => ({ ok: true as const, rows: [] }), saveFindings: async () => [], unmailed: async () => [], mailOwner: async () => true, markMailed: async () => {} };
     await expect(reconcileHandler({ action: 'run' }, d as unknown as ReconcileDeps, 'x')).rejects.toThrow('database');
     expect(finishRun).toHaveBeenCalledWith('run-9', { status: 'failed', errorCode: 'internal' });
   });
@@ -207,84 +205,8 @@ describe('a failed email', () => {
     const d = { caller: async () => 'cron' as const, now: () => new Date('2026-11-02T04:00:00Z'), config: () => ({ apiBase: 'b', apiKey: 'k', secretKey: 's', terminalUid: 't' }),
       claimRun: async () => 'run-3', finishRun: async () => {}, source: async () => ({ charges: [], refunds: [] }),
       history: async () => ({ ok: true as const, rows: [] }), saveFindings: async () => [],
-      unmailed: async () => [{ id: 'f1', code: 'UNLINKED' as const, uid: 'u', detail: {} }], mailOwner: async () => false, markMailed, previousCron: async () => null, failureToldToday: async () => false };
+      unmailed: async () => [{ id: 'f1', code: 'UNLINKED' as const, uid: 'u', detail: {} }], mailOwner: async () => false, markMailed };
     expect((await reconcileHandler({ action: 'run' }, d as unknown as ReconcileDeps, 'x')).body).toMatchObject({ mailed: false });
     expect(markMailed).not.toHaveBeenCalled();
-  });
-});
-
-
-// Codex review 2026-10-23
-describe('Codex R-01: an amount that could not be verified is never "matched"', () => {
-  it('one linked charge, no unit anchor (12345 vs 3000): unverified, not matched, no invented mismatch', () => {
-    const r = reconcile({ provider: [tx({ amount: 12345, uid: 'other', moreInfo: A1 })], charges: [ours({})], refunds: [], ...W });
-    expect(r).toMatchObject({ matched: 0, unverified: 1, findings: [], scale: 'unknown' });
-  });
-  it('a currency difference is still a mismatch even without the unit', () => {
-    const r = reconcile({ provider: [tx({ currency: 'USD', uid: 'other', moreInfo: A1 })], charges: [ours({})], refunds: [], ...W });
-    expect(r.findings.map((x) => x.code)).toEqual(['AMOUNT_MISMATCH']);
-  });
-});
-
-describe('Codex R-08: provider times', () => {
-  it('a zone-less time is Israel wall-clock; an explicit zone is kept; anything else is unreadable', () => {
-    expect(normalizeProviderTx(row({}, { transaction_at: '2026-11-01 12:00:00' }))?.at).toBe('2026-11-01T10:00:00.000Z'); // winter, UTC+2
-    expect(normalizeProviderTx(row({}, { transaction_at: '2026-07-01 12:00:00' }))?.at).toBe('2026-07-01T09:00:00.000Z'); // summer, UTC+3
-    expect(normalizeProviderTx(row({}, { transaction_at: '2026-11-01T10:00:00.000Z' }))?.at).toBe('2026-11-01T10:00:00.000Z');
-    expect(normalizeProviderTx(row({ created_at: null }, { transaction_at: '01/11/2026 12:00' }))).toBe(null);
-  });
-});
-
-describe('Codex R-09 + the body timeout: pages', () => {
-  const cfg = { apiBase: 'https://restapi.payplus.co.il/api/v1.0', apiKey: 'k', secretKey: 's', terminalUid: 't' };
-  const page = (n) => Array.from({ length: n }, (_, i) => ({ uuid: `u${i}` }));
-  it('pages as a string, or no pages at all after a full page: the next page is read', async () => {
-    const f1 = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ transactions: page(500), pages: '2' })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ transactions: page(1), pages: '2' })));
-    expect(((await readHistory(f1, cfg, new Date(), new Date(), 'ILS')) as { rows: unknown[] }).rows.length).toBe(501);
-    const f2 = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ transactions: page(500) })))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ transactions: [] })));
-    expect(((await readHistory(f2, cfg, new Date(), new Date(), 'ILS')) as { rows: unknown[] }).rows.length).toBe(500);
-    expect(f2).toHaveBeenCalledTimes(2);
-  });
-  it('a failure on page two fails the read (never a silently short list); a refused relay tunnel is the relay', async () => {
-    const f = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ transactions: page(500), pages: 3 }))).mockResolvedValueOnce(new Response('{}', { status: 502 }));
-    expect(await readHistory(f, cfg, new Date(), new Date(), 'ILS')).toEqual({ ok: false, code: 'provider_502' });
-    expect(await readHistory(vi.fn().mockRejectedValue(new Error('client error (Connect): proxy authentication required')), cfg, new Date(), new Date(), 'ILS')).toEqual({ ok: false, code: 'relay_refused' });
-  });
-});
-
-describe('Codex R-02: the Owner hears about a failing site run once, and about the recovery', () => {
-  const base = () => ({
-    caller: async () => 'cron' as const, now: () => new Date('2026-11-02T04:00:00Z'),
-    config: () => ({ apiBase: 'b', apiKey: 'k', secretKey: 's', terminalUid: 't' }), claimRun: async () => 'run-7',
-    finishRun: vi.fn(async () => {}), source: async () => ({ charges: [], refunds: [] }), saveFindings: async () => [], unmailed: async () => [],
-    mailOwner: vi.fn(async () => true), markMailed: vi.fn(async () => {}),
-    history: async () => ({ ok: false as const, code: 'provider_403' }),
-    previousCron: async () => ({ status: 'ok' }), failureToldToday: async () => false,
-  });
-  it('the first failing day: one failure mail (idempotent per day), the run marked as told', async () => {
-    const d = base();
-    const r = await reconcileHandler({ action: 'run' }, d as unknown as ReconcileDeps, 'https://www.tekango.com');
-    expect(r.body).toMatchObject({ ok: false, status: 'failed', code: 'provider_403' });
-    expect(d.mailOwner).toHaveBeenCalledTimes(1);
-    expect(d.mailOwner.mock.calls[0][2]).toBe('failed/2026-11-02');
-    expect(d.mailOwner.mock.calls[0][1]).toContain('(provider_403)');
-    expect(d.markMailed).toHaveBeenCalledWith('run-7', []);
-  });
-  it('still failing (yesterday failed, or told earlier today): no new mail', async () => {
-    for (const o of [{ previousCron: async () => ({ status: 'failed' }) }, { failureToldToday: async () => true }, { previousCron: async () => ({ status: 'not_configured' }) }]) {
-      const d = { ...base(), ...o };
-      await reconcileHandler({ action: 'run' }, d as unknown as ReconcileDeps, 'x');
-      expect(d.mailOwner).not.toHaveBeenCalled();
-    }
-  });
-  it('the first completed run after a failure says it works again; the Owner\'s own run never mails', async () => {
-    const d = { ...base(), history: async () => ({ ok: true as const, rows: [] }), previousCron: async () => ({ status: 'failed' }) };
-    await reconcileHandler({ action: 'run' }, d as unknown as ReconcileDeps, 'x');
-    expect(d.mailOwner.mock.calls.map((c) => c[2])).toEqual(['recovered/2026-11-02']);
-    const admin = { ...base(), caller: async () => 'admin' as const };
-    await reconcileHandler({ action: 'run' }, admin as unknown as ReconcileDeps, 'x');
-    expect(admin.mailOwner).not.toHaveBeenCalled();
   });
 });

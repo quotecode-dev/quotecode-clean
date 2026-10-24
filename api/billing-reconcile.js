@@ -11,10 +11,7 @@ export async function runBillingReconcile({ env, fetchImpl }) {
     body: JSON.stringify({ action: 'run' }),
   });
   const body = await res.json().catch(() => null);
-  // Codex R-02: the function answers 200 also for a failed or unconfigured run - the body decides (completed / skipped / failed)
-  const outcome = !res.ok || !body ? 'failed' : body.status === 'ok' ? 'completed' : body.status === 'already_ran_today' ? 'skipped'
-    : body.status === 'not_configured' ? 'not_configured' : 'failed';
-  return { ok: outcome === 'completed' || outcome === 'skipped', outcome, status: res.status, body };
+  return { ok: res.ok, status: res.status, body };
 }
 
 export default async function handler(req, res) {
@@ -25,7 +22,7 @@ export default async function handler(req, res) {
   }
   try {
     const r = await runBillingReconcile({ env: process.env, fetchImpl: fetch });
-    return res.status(r.ok ? 200 : 500).json({ success: r.ok, outcome: r.outcome, result: r.body });
+    return res.status(r.ok ? 200 : 500).json({ success: r.ok, result: r.body });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }

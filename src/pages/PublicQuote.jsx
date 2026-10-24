@@ -812,7 +812,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
       {hasAttachments ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {attachments.map((att, idx) => (
-            <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="pq-attachment-link" onClick={(e) => openAttachmentFresh(e, { att, index: idx, loadedAt: attachmentsLoadedAtRef.current, reload: reloadAttachments, removedText: 'הקובץ הזה כבר לא מצורף להצעה.' })}>
+            <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="pq-attachment-link" onClick={(e) => openAttachmentFresh(e, { att, index: idx, loadedAt: attachmentsLoadedAtRef.current, reload: reloadAttachments })}>
               📄 {att.file_name || `קובץ מצורף #${idx + 1}`}
             </a>
           ))}

@@ -72,15 +72,13 @@ Deno.serve(async (req: Request) => {
       const stalled = today?.status === 'running' && Date.now() - Date.parse(today.started_at) > 30 * 60000;
       if (!today || !(today.status === 'failed' || stalled)) return null;
       const again = await db(admin.from('billing_reconcile_runs').update({ status: 'running', started_at: new Date().toISOString(), finished_at: null, error_code: null })
-        // Codex R-06: a compare-and-swap on the status AND the start time it was read with - two callers that saw the same stalled row
-        // cannot both take it (the second matches no row)
-        .eq('run_id', today.run_id).eq('status', today.status).eq('started_at', today.started_at).select('run_id')) as { run_id: string }[] | null;
+        .eq('run_id', today.run_id).eq('status', today.status).select('run_id')) as { run_id: string }[] | null;
       return again && again.length === 1 ? again[0].run_id : null;
     },
     finishRun: async (runId, p) => {
       await db(admin.from('billing_reconcile_runs').update({
         status: p.status, finished_at: new Date().toISOString(), window_from: p.windowFrom ?? null, window_until: p.windowUntil ?? null,
-        provider_count: p.providerCount ?? 0, ours_count: p.oursCount ?? 0, matched: p.matched ?? 0, unverified: p.unverified ?? 0, new_findings: p.newFindings ?? 0,
+        provider_count: p.providerCount ?? 0, ours_count: p.oursCount ?? 0, matched: p.matched ?? 0, new_findings: p.newFindings ?? 0,
         amount_scale: p.scale ?? null, types: p.types ?? {}, error_code: p.errorCode ?? null,
       }).eq('run_id', runId));
     },
@@ -101,18 +99,12 @@ Deno.serve(async (req: Request) => {
     },
     unmailed: async () => (await db(admin.from('billing_reconcile_findings').select('id, code, uid, detail')
       .eq('status', 'new').is('mailed_at', null).order('created_at', { ascending: true }).limit(200)) ?? []) as (Finding & { id: string })[],
-    mailOwner: async (subject, text, key) => {
+    mailOwner: async (subject, text, runId) => {
       const to = (Deno.env.get('SUPPORT_OWNER_NOTIFY_ADDRESS') ?? '').trim();
       const r = await sendMail({ fetch: (u, i) => fetch(u, i), apiKey: Deno.env.get('RESEND_API_KEY') ?? '' }, {
-        from: 'TEKANGO <support@tekango.com>', replyTo: 'support@tekango.com', to, subject, text, idempotencyKey: `tekango-billing/v1/reconcile/${key}`,
+        from: 'TEKANGO <support@tekango.com>', replyTo: 'support@tekango.com', to, subject, text, idempotencyKey: `tekango-billing/v1/reconcile/${runId}`,
       });
       return r.ok;
-    },
-    previousCron: async (day) => (await db(admin.from('billing_reconcile_runs').select('status').eq('source', 'cron').lt('run_day', day)
-      .order('run_day', { ascending: false }).limit(1).maybeSingle())) as { status: string } | null,
-    failureToldToday: async (runId) => {
-      const row = await db(admin.from('billing_reconcile_runs').select('mailed_at').eq('run_id', runId).maybeSingle()) as { mailed_at: string | null } | null;
-      return !!row?.mailed_at;
     },
     markMailed: async (runId, ids) => {
       const at = new Date().toISOString();

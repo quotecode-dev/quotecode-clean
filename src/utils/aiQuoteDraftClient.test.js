@@ -16,7 +16,6 @@ describe('classifyDraftError', () => {
     [httpError(422, { code: 'no_items' }), 'no_items'],
     [httpError(400), 'invalid'],
     [httpError(502), 'provider'],
-    [httpError(429), 'provider'],
     [httpError(500, { code: 'server_error' }), 'server_error'],
     [httpError(418), 'failed'],
     [new Error('boom'), 'failed'],
@@ -102,19 +101,5 @@ describe('Task 22 - fetch-level failures', () => {
   });
   it('serverAnswers is false without a URL', async () => {
     expect(await serverAnswers(null, async () => ({}))).toBe(false);
-  });
-});
-
-// Owner 2026-10-23 (morning report item 10): a cut answer after a long description is said as "too long", a short one stays "provider"
-describe('a cut AI answer', () => {
-  const cut = httpError(502, { code: 'malformed_provider_response' });
-  it('a long description -> too_long; a short one -> provider; an overloaded provider (no code) -> provider', async () => {
-    expect(await classifyDraftError(cut, { descriptionLength: 1200 })).toBe('too_long');
-    expect(await classifyDraftError(cut, { descriptionLength: 120 })).toBe('provider');
-    expect(await classifyDraftError(httpError(502, { code: 'provider_failure' }), { descriptionLength: 1500 })).toBe('provider');
-  });
-  it('the request passes the description length', async () => {
-    const invoke = vi.fn(async () => ({ data: null, error: cut }));
-    expect(await requestAiQuoteDraft({ functions: { invoke } }, 'x'.repeat(900))).toEqual({ status: 'too_long' });
   });
 });
