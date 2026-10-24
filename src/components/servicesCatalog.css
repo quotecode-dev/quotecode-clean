@@ -58,6 +58,10 @@
   line-height: 1.3;
   overflow-wrap: anywhere;
 }
+/* Owner 2026-10-24 (typed L-23): the product's own image as a small thumbnail beside its name (only when it has one) */
+.svc-cat-with-thumb { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.svc-cat-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.svc-cat-thumb { flex: 0 0 auto; display: block; width: 40px; height: 40px; border-radius: 8px; object-fit: cover; border: 1px solid var(--svc-border); background: var(--svc-border); }
 .svc-cat-note {
   color: var(--svc-muted);
   font-size: 0.75rem;
@@ -153,4 +157,9 @@
     .svc-cat-head { grid-template-areas: "desc price"; }
     .svc-cat-head .svc-cat-actions { display: none; }
   }
+}
+
+/* Owner 2026-10-24 (typed L-23): a slightly smaller thumbnail in the narrow catalog */
+@container svccat (max-width: 559.98px) {
+  .svc-cat-thumb { width: 36px; height: 36px; }
 }

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Package, PackagePlus, LayoutGrid, Pencil, Trash2, Save, X, Search, Image as ImageIcon, Lock } from 'lucide-react';
 import { APP as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from './../theme/neonTheme';
 import CatalogMediaControl from './quotePresentation/CatalogMediaControl';
@@ -92,6 +92,17 @@ export default function ServicesCatalog({
     if (e.detail === 0 && Date.now() - lastKeyActivation.current < 500) return;
     activateImageAction(svc);
   };
+
+  // Owner 2026-10-24 (typed L-23, Doron's report): the row shows the product's own image as a small thumbnail when it has one. The
+  // signed addresses come from the existing presentation cache (one request per 50 products, then cached); asked only when at least one
+  // shown product has an image (an empty or image-less catalog asks nothing).
+  const linkedAssetKey = presentationController
+    ? [...new Set(filteredServices.map((s) => catalogLinkFor(presentationController.context.catalog, s.id)?.assetId).filter(Boolean))].join(',')
+    : '';
+  const ensureCatalogUrls = presentationController?.ensureUrls;
+  useEffect(() => {
+    if (linkedAssetKey && typeof ensureCatalogUrls === 'function') ensureCatalogUrls(linkedAssetKey.split(','));
+  }, [linkedAssetKey, ensureCatalogUrls]);
 
   const handleAddSubmit = (e) => {
     e.preventDefault();
@@ -227,6 +238,9 @@ export default function ServicesCatalog({
             {filteredServices.map((svc) => {
               const isEditingThisSvc = editingServiceId === svc.id;
               const hasImage = !!(presentationController && catalogLinkFor(presentationController.context.catalog, svc.id));
+              // the thumbnail: a string = the image, undefined = still loading (an empty frame), null = no stored image (nothing shown)
+              const thumbAssetId = hasImage ? catalogLinkFor(presentationController.context.catalog, svc.id).assetId : null;
+              const thumbUrl = thumbAssetId ? presentationController.urls?.[thumbAssetId] : undefined;
               const name = svc.name || '';
               const note = typeof svc.description === 'string' && svc.description.trim() ? svc.description.trim() : null;
               const imageLabel = imageAllowed
@@ -244,6 +258,16 @@ export default function ServicesCatalog({
                           value={editServiceName}
                           onChange={(e) => setEditServiceName(e.target.value)}
                         />
+                      ) : thumbAssetId ? (
+                        <span className="svc-cat-with-thumb">
+                          {typeof thumbUrl === 'string'
+                            ? <img className="svc-cat-thumb" src={thumbUrl} alt={name} loading="lazy" decoding="async" data-testid={`catalog-thumb-${svc.id}`} />
+                            : thumbUrl === null ? null : <span className="svc-cat-thumb" aria-hidden="true" data-testid={`catalog-thumb-loading-${svc.id}`} />}
+                          <span className="svc-cat-text">
+                            <span className="svc-cat-name" dir="auto">{name}</span>
+                            {note && <span className="svc-cat-note" dir="auto">{note}</span>}
+                          </span>
+                        </span>
                       ) : (
                         <>
                           <span className="svc-cat-name" dir="auto">{name}</span>
