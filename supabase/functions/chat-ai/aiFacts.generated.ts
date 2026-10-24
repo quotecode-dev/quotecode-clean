@@ -61,6 +61,8 @@ export const AI_FACTS = {
       "days": 7,
       "endsWhen": "first_of_quotes_or_days",
       "daysCountFrom": "signup_or_activation_day",
+      "countedOnFirstSaveWithClientAndItem": true,
+      "resaveConsumesAgain": false,
       "consumingChannels": [
         "send",
         "public_share",
