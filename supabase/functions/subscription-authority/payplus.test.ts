@@ -335,7 +335,8 @@ describe('still inert: the provider comes only from the Function secrets, billin
   // phase is still the code constant 'off', so neither checkout nor a callback ever reaches it
   it('wiring.ts falls back to UNAVAILABLE_PROVIDER, holds no key, and the billing phase constant is off', () => {
     const wiring = readFileSync(new URL('./wiring.ts', import.meta.url), 'utf8');
-    expect(wiring).toMatch(/payplusProviderFromSecrets\(\(n\) => env\(n\), url, \(u, init\) => fetch\(u, init\), \(\) => Date\.now\(\)\) \?\? UNAVAILABLE_PROVIDER/);
+    // Owner 2026-10-24 (Codex spec PAY-01): the provider's fetch is the required relay's (payplusFetch), never a direct fetch
+    expect(wiring).toMatch(/payplusProviderFromSecrets\(\(n\) => env\(n\), url, payplusFetch, \(\) => Date\.now\(\)\) \?\? UNAVAILABLE_PROVIDER/);
     expect(wiring).not.toMatch(/api-key|secret-key|restapi/i);
     expect(ACTIVATION_PHASE).toBe('off');
   });
