@@ -179,23 +179,37 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
     window.addEventListener('storage', onStorage);
     return () => window.removeEventListener('storage', onStorage);
   }, [userId]);
+  // Owner 2026-10-24 (typed L-17, a real user's report: "the quote was signed - no popup, only in the bell"): a notification that arrives
+  // while this page is hidden (another tab / app, a locked screen) used to be marked "floated" without being shown, so it never floated.
+  // It now waits for the page to be visible again and floats then, once.
+  const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || document.visibilityState !== 'hidden');
   useEffect(() => {
-    if (!floated || notice) return;
+    if (typeof document === 'undefined') return undefined;
+    const sync = () => setPageVisible(document.visibilityState !== 'hidden');
+    document.addEventListener('visibilitychange', sync);
+    window.addEventListener('pageshow', sync);
+    return () => { document.removeEventListener('visibilitychange', sync); window.removeEventListener('pageshow', sync); };
+  }, []);
+  useEffect(() => {
+    // only the bell that is on screen (desktop or phone copy) floats and records; the hidden copy never marks a notification as floated
+    if (!floated || notice || !shown) return;
     // re-read the shared memory right before showing, so a second tab that already floated it stays quiet
     const latest = loadFloatedKeys(userId) || floated;
     const pending = pendingFloating(items, read, latest);
     if (!pending.length) return;
+    const baseline = Date.now() < baselineUntilRef.current;
+    // a hidden page records nothing (outside the first run's baseline): the notification floats when the page is visible again
+    if (!baseline && !pageVisible) return;
     const next = new Set([...latest, ...pending.map((i) => i.key)]);
     saveFloatedKeys(userId, next);
     setFloated(next);
-    if (Date.now() < baselineUntilRef.current) {
+    if (baseline) {
       // still the first run's baseline: recorded, not floated; a list still arriving keeps it open (at most 20 s after the start)
       baselineUntilRef.current = Math.min(Date.now() + 4000, baselineStartRef.current + 20000);
       return;
     }
-    const visible = typeof document === 'undefined' || document.visibilityState !== 'hidden';
-    if (!open && visible) setNotice({ item: pending[0], more: pending.length - 1 });
-  }, [floated, notice, items, read, open, userId]);
+    if (!open) setNotice({ item: pending[0], more: pending.length - 1 });
+  }, [floated, notice, items, read, open, userId, shown, pageVisible]);
   useEffect(() => { if (settings.mode === 'off') setNotice(null); }, [settings.mode]);
 
   // Owner 2026-10-20 placement (replaces 2026-10-19): the notice floats exactly where the bell panel opens, at the panel's size, on
