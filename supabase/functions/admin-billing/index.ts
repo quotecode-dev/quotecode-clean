@@ -1,12 +1,11 @@
 // admin-billing - Edge entry. WIRING ONLY: the handler is lib.ts (unit-tested). Migration 20261022300000; Owner console 2026-10-21.
 // Env allowlist: SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SECRET_KEYS + the PayPlus secrets PAYPLUS_API_KEY / PAYPLUS_SECRET_KEY /
-// PAYPLUS_ENVIRONMENT / PAYPLUS_TERMINAL_UID (the Owner sets them; never in code, never shown) + the relay PAYPLUS_PROXY_URL (adminPayplus.ts,
-// Owner 2026-10-24). Without them nothing can be stopped.
+// PAYPLUS_ENVIRONMENT / PAYPLUS_TERMINAL_UID (the Owner sets them; never in code, never shown). Without them nothing can be stopped.
 // INERT while billing is 'off' (SQL answers billing_off). NOT deployed: deploying needs the Owner's own step.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { claimReauthProof, writeAuditLog } from '../_shared/adminReauth.ts';
+import { PAYPLUS_API_BASES, payplusStandingOrders } from '../subscription-authority/payplus.ts';
 import { adminBillingHandler, type AdminBillingDeps } from './lib.ts';
-import { adminPayplus } from './adminPayplus.ts';
 
 const cors = {
   'Access-Control-Allow-Origin': '*',
@@ -14,11 +13,25 @@ const cors = {
 };
 const json = (status: number, body: Record<string, unknown>) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'content-type': 'application/json', 'cache-control': 'no-store' } });
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+function payplusFromSecrets(): AdminBillingDeps['payplus'] {
+  const apiKey = (Deno.env.get('PAYPLUS_API_KEY') ?? '').trim();
+  const secretKey = (Deno.env.get('PAYPLUS_SECRET_KEY') ?? '').trim();
+  const environment = (Deno.env.get('PAYPLUS_ENVIRONMENT') ?? '').trim();
+  const terminalUid = (Deno.env.get('PAYPLUS_TERMINAL_UID') ?? '').trim().toLowerCase();
+  if (!apiKey || !secretKey || (environment !== 'production' && environment !== 'staging') || !UUID.test(terminalUid)) return null;
+  try {
+    const orders = payplusStandingOrders({ apiBase: PAYPLUS_API_BASES[environment], apiKey, secretKey, fetch: (u, init) => fetch(u, init) });
+    return { terminalUid, cancel: orders.cancel, refund: orders.refund };
+  } catch {
+    return null;
+  }
+}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
   if (req.method !== 'POST') return json(405, { ok: false, code: 'method_not_allowed' });
-  let pp: ReturnType<typeof adminPayplus> | null = null;
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const anonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
@@ -52,7 +65,7 @@ Deno.serve(async (req: Request) => {
         p_refund_ref: a.refundRef, p_refunded_minor: a.refundedMinor }),
       unsettledRefund: async (userId) => (await rpc('billing_admin_unsettled_refund', { p_user_id: userId })) ?? null,
       settleRefund: (actionId, actorUserId) => rpc('billing_admin_settle_refund', { p_action_id: actionId, p_actor_user_id: actorUserId }),
-      payplus: (pp = adminPayplus((n) => Deno.env.get(n))).payplus,
+      payplus: payplusFromSecrets(),
       audit: (a) => writeAuditLog({ adminClient: admin, ...a }),
     };
     const body = await req.json().catch(() => null);
@@ -60,7 +73,5 @@ Deno.serve(async (req: Request) => {
     return json(r.status, r.body);
   } catch {
     return json(503, { ok: false, code: 'unavailable' }); // no detail, no token, no body is ever logged
-  } finally {
-    pp?.close(); // the relay client of this request
   }
 });

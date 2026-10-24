@@ -87,20 +87,17 @@ describe('Privacy - no payment processing claim; retention / attachments not dec
 // Task 36 (Codex landing review L2): Terms §4 counts Free-10 by the CANONICAL rule (Owner decision 2026-10-11, version + customer;
 // docs/subscriptions-complete-end-to-end-2026-10-07/OWNER_DECISION_FREE10_VERSION_RECIPIENT_2026-10-11.md) - the same rule as the
 // landing FAQ and the server ledger - never the superseded "first time a quote reaches a client" identity rule.
-// Owner console 2026-10-24 (typed: "מאשר שינוי ב-L-14 ו-L-17: נוסח ספירת 10 ההצעות - נספרת בשמירה עם לקוח ופריט"): the Terms state the
-// server rule of 20261021100000 - counted at the FIRST save with a client and an item, re-saving never counts again, the version / customer
-// rule still decides what a later output counts.
-describe('Terms §4 Free-10 counting = the server rule (first save with a client and an item; then the version / customer rule)', () => {
+describe('Terms §4 Free-10 counting = the canonical version / customer rule', () => {
   it('HE', () => {
-    expect(T.he).not.toMatch(/הצעה נספרת כשהיא יוצאת ללקוח/);
-    expect(T.he).toContain('הצעה נספרת בפעם הראשונה שהיא נשמרת עם לקוח ולפחות פריט אחד; שמירה חוזרת אחרי עריכה אינה נספרת שוב.');
-    expect(T.he).toContain('הפקה חוזרת של אותה גרסה לאותו לקוח, בכל ערוץ (שליחה, קישור ציבורי, PDF סופי או הדפסה סופית), אינה נספרת; שינוי הלקוח, שם הנמען או תוכן ההצעה והפקה מחדש נספרים כהצעה נוספת.');
-    expect(T.he).toContain('טיוטה ריקה ותצוגה מקדימה אינן נספרות, מחיקת הצעה אינה מחזירה אותה, ומסמכים קיימים נשארים נגישים.');
+    expect(T.he).not.toMatch(/בפעם הראשונה שהיא יוצאת ללקוח/);
+    expect(T.he).toContain('הצעה נספרת כשהיא יוצאת ללקוח (שליחה, קישור ציבורי, PDF סופי או הדפסה סופית).');
+    expect(T.he).toContain('הפקה חוזרת של אותה גרסה לאותו לקוח, בכל ערוץ, אינה נספרת שוב; שינוי הלקוח, שם הנמען או תוכן ההצעה והפקה מחדש נספרים כהצעה נוספת.');
+    expect(T.he).toContain('טיוטה ותצוגה מקדימה אינן נספרות, מחיקת הצעה אינה מחזירה אותה, ומסמכים קיימים נשארים נגישים.');
   });
   it('EN', () => {
-    expect(T.en).not.toMatch(/A quote counts when it reaches a client/);
-    expect(T.en).toContain('A quote counts the first time it is saved with a client and at least one item; editing and saving it again does not count again.');
-    expect(T.en).toContain('Producing the same version again for the same client, on any channel (sending it, sharing its public link, or its final PDF or print), does not count; changing the client, the recipient name or the quote content and producing it again counts as another quote.');
-    expect(T.en).toContain('An empty draft and previews do not count, deleting a quote does not give one back, and existing documents stay accessible.');
+    expect(T.en).not.toMatch(/the first time it reaches a client/);
+    expect(T.en).toContain('A quote counts when it reaches a client (sending it, sharing its public link, or producing its final PDF or print).');
+    expect(T.en).toContain('Producing the same version again for the same client, on any channel, does not count again; changing the client, the recipient name or the quote content and producing it again counts as another quote.');
+    expect(T.en).toContain('Drafts and previews do not count, deleting a quote does not give one back, and existing documents stay accessible.');
   });
 });

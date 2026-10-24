@@ -14,11 +14,9 @@ import {
 import { UNAVAILABLE_PROVIDER, type BillingSql } from './billing.ts';
 import { PAYPLUS_SECRET_NAMES, payplusProviderFromSecrets } from './payplus.ts';
 import { decodeImageBase64, MAX_IMAGE_BYTES, MAX_IMAGE_SIDE } from '../quote-presentation/lib.ts';
-import { requiredPayplusEgress } from '../_shared/payplusEgress.ts';
 import type { AuthorityDeps } from './router.ts';
 
-// Owner 2026-10-24 ("כן אשמח"; Codex spec PAY-01 / PAY-02): + PAYPLUS_PROXY_URL, the fixed-IP relay every outgoing PayPlus call needs
-export const ALLOWED_ENV = Object.freeze(['SUPABASE_URL', 'SUPABASE_SECRET_KEYS', 'PAYPLUS_PROXY_URL', ...PAYPLUS_SECRET_NAMES]);
+export const ALLOWED_ENV = Object.freeze(['SUPABASE_URL', 'SUPABASE_SECRET_KEYS', ...PAYPLUS_SECRET_NAMES]);
 
 export function buildAuthorityDeps(): AuthorityDeps | null {
   const env = (n: string) => (ALLOWED_ENV.includes(n) ? Deno.env.get(n) : undefined);
@@ -78,10 +76,6 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
     },
   };
   const caps = capabilityRpcs(rpc);
-  // Every OUTGOING PayPlus call (the payment link, the pull on return) goes through the relay; no / a bad relay secret = the call fails at
-  // once and nothing is sent. The incoming callback is verified locally (HMAC) and never depends on the relay. The deps live for the whole
-  // isolate, so the relay client is shared by its requests and never closed by one of them (it is created on the first call only).
-  const payplusFetch = requiredPayplusEgress(env('PAYPLUS_PROXY_URL')).fetch;
   return {
     verifyJwt: async (token) => {
       const { data, error } = await admin.auth.getUser(token);
@@ -100,7 +94,7 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
     },
     notice: { outputNotice: (userId, quoteId) => call('output_notice', { p_user_id: userId, p_quote_id: quoteId }) },
     billing: { phase: ACTIVATION_PHASE, sql: billingSql, now: () => Date.now(),
-      provider: payplusProviderFromSecrets((n) => env(n), url, payplusFetch, () => Date.now()) ?? UNAVAILABLE_PROVIDER },
+      provider: payplusProviderFromSecrets((n) => env(n), url, (u, init) => fetch(u, init), () => Date.now()) ?? UNAVAILABLE_PROVIDER },
     logo: {
       readFreeIssuePhase, sql: rpcAssetSql(rpc), storage: bucketAssetStorage(bucket),
       decode: (b64) => { const d = decodeImageBase64(b64); return d.ok ? { ok: true, bytes: d.bytes } : { ok: false }; },

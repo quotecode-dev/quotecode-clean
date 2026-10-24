@@ -679,12 +679,10 @@ export default function QuotesTab({
             type="button"
             onClick={() => onOpenCustomerTwin(quote)}
             data-testid="customer-twin-open-row"
-            // Owner 2026-10-24 (typed L-07, L-09, L-13, L-29): named "שיפור ההצעה", with what it does on hover
-            title={isHebrew ? 'מציע מה לשנות בהצעה כדי שתהיה ברורה ואטרקטיבית יותר בעיני הלקוח שלכם.' : 'Suggests what to change in the quote so it is clearer and more attractive to your customer.'}
             style={{ ...chipBase, background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe' }}
           >
             <CustomerTwinIcon size={18} />
-            <span>{isHebrew ? 'שיפור ההצעה' : 'Improve quote'}</span>
+            <span>{isHebrew ? 'בדיקת הלקוח' : 'Customer check'}</span>
           </button>
         )}
 

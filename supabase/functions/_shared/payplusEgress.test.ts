@@ -1,7 +1,7 @@
 // Owner 2026-10-23: every PayPlus call through the fixed-IP relay (PAYPLUS_PROXY_URL); no secret = direct as before; a bad secret = a clear
 // failure, never a silent direct call.
 import { describe, it, expect, vi } from 'vitest';
-import { proxyOptions, payplusEgress, requiredPayplusEgress } from './payplusEgress.ts';
+import { proxyOptions, payplusEgress } from './payplusEgress.ts';
 
 describe('the PayPlus relay', () => {
   it('reads the relay URL: host and port apart from the (decoded) credentials', () => {
@@ -51,29 +51,5 @@ describe('the relay secret with a malformed escape', () => {
     const e = payplusEgress('http://fixie:%E0%A4%A@relay.example.com:80', vi.fn(), vi.fn());
     expect(e.via).toBe('relay_misconfigured');
     await expect(e.fetch('https://restapi.payplus.co.il/x')).rejects.toThrow('relay_misconfigured');
-  });
-});
-
-// Owner 2026-10-24 (Codex spec PAY-01 / PAY-02): the payment paths REQUIRE the relay - no secret is a failure, never a direct call
-describe('the payment paths: the relay is required', () => {
-  it('no secret: relay_missing, every call fails at once and nothing is sent', async () => {
-    for (const secret of [undefined, '', '   ']) {
-      const base = vi.fn();
-      const create = vi.fn();
-      const e = requiredPayplusEgress(secret, create, base);
-      expect(e.via).toBe('relay_missing');
-      await expect(e.fetch('https://restapi.payplus.co.il/x', { method: 'POST' })).rejects.toThrow('relay_missing');
-      expect(base).not.toHaveBeenCalled();
-      expect(create).not.toHaveBeenCalled();
-    }
-  });
-  it('a bad secret: relay_misconfigured (as before); a good one: through the relay client', async () => {
-    expect(requiredPayplusEgress('relay.example.com', vi.fn(), vi.fn()).via).toBe('relay_misconfigured');
-    const client = { close: vi.fn() };
-    const base = vi.fn(async () => new Response('ok'));
-    const e = requiredPayplusEgress('http://u:p@relay.example.com:80', vi.fn(() => client), base);
-    expect(e.via).toBe('relay');
-    await e.fetch('https://restapi.payplus.co.il/PaymentPages/generateLink', { method: 'POST' });
-    expect((base.mock.calls[0][1] as { client?: unknown }).client).toBe(client);
   });
 });

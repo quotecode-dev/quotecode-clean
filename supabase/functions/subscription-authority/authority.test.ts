@@ -32,12 +32,9 @@ describe('adoption of the closed PREP CONTRACT (no drift)', () => {
   // Owner night task 2026-10-21: the PayPlus provider comes from the named Function secrets; phase, market, plan and price never do
   it('wiring.ts is the only env reader: SUPABASE_URL / SUPABASE_SECRET_KEYS + the named PayPlus secrets (no phase / market / price from env)', () => {
     const w = readFileSync(join(cwd(), 'supabase/functions/subscription-authority/wiring.ts'), 'utf8');
-    // Owner 2026-10-24 (Codex spec PAY-01 / PAY-02): + the relay secret; every outgoing PayPlus call through the REQUIRED relay
-    expect(w).toMatch(/ALLOWED_ENV = Object\.freeze\(\['SUPABASE_URL', 'SUPABASE_SECRET_KEYS', 'PAYPLUS_PROXY_URL', \.\.\.PAYPLUS_SECRET_NAMES\]\)/);
-    expect([...w.matchAll(/env\('([A-Z_]+)'\)/g)].map((m) => m[1]).sort()).toEqual(['PAYPLUS_PROXY_URL', 'SUPABASE_SECRET_KEYS', 'SUPABASE_URL']);
-    expect(w).toMatch(/const payplusFetch = requiredPayplusEgress\(env\('PAYPLUS_PROXY_URL'\)\)\.fetch;/);
-    expect(w).toMatch(/billing: \{ phase: ACTIVATION_PHASE, sql: billingSql, now: \(\) => Date\.now\(\),\n {6}provider: payplusProviderFromSecrets\(\(n\) => env\(n\), url, payplusFetch, \(\) => Date\.now\(\)\) \?\? UNAVAILABLE_PROVIDER \}/);
-    expect(w).not.toMatch(/\(u, init\) => fetch\(u, init\)/); // no direct PayPlus fetch left
+    expect(w).toMatch(/ALLOWED_ENV = Object\.freeze\(\['SUPABASE_URL', 'SUPABASE_SECRET_KEYS', \.\.\.PAYPLUS_SECRET_NAMES\]\)/);
+    expect([...w.matchAll(/env\('([A-Z_]+)'\)/g)].map((m) => m[1]).sort()).toEqual(['SUPABASE_SECRET_KEYS', 'SUPABASE_URL']);
+    expect(w).toMatch(/billing: \{ phase: ACTIVATION_PHASE, sql: billingSql, now: \(\) => Date\.now\(\),\n {6}provider: payplusProviderFromSecrets\(\(n\) => env\(n\), url, \(u, init\) => fetch\(u, init\), \(\) => Date\.now\(\)\) \?\? UNAVAILABLE_PROVIDER \}/);
   });
 });
 

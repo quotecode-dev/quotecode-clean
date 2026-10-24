@@ -423,12 +423,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required'; ALTER TABLE ADD COLUMN IF NOT EXISTS, CREATE OR REPLACE FUNCTION (re-runnable); Codex review 2026-10-23 R-01 (unverified amounts in the reconciliation runs) and R-03 (a per-business lock in the attachment limit)"
-    },
-    "20261024100000_quote_files_bucket_size_limit.sql": {
-      "sha256": "8f4ae99a20f57bf85f0202678c7bf188d2e2b1f31fa95d3bf4498634e3ca8b5c",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-24 (typed: \"מאשר\" to a 4 MB limit on every file in the quote files storage): storage.buckets quote-files file_size_limit = 4194304"
     }
   }
 }

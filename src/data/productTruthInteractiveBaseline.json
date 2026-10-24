@@ -424,8 +424,8 @@
     "markers": 1
   },
   "src/components/quotePresentation/CatalogMediaControl.jsx": {
-    "interactive": 3,
-    "markers": 3
+    "interactive": 2,
+    "markers": 2
   },
   "src/components/quotePresentation/IssueQuoteDialog.jsx": {
     "interactive": 2,
@@ -1208,10 +1208,6 @@
     "markers": 0
   },
   "supabase/functions/_shared/subscriptionLifecycleTemplates.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/admin-billing/adminPayplus.ts": {
     "interactive": 0,
     "markers": 0
   },

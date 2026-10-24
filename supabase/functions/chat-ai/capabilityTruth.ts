@@ -94,29 +94,7 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     /(למחוק|מוחקים|מוחקת|מוחק|מחיקה).{0,20}(לצמיתות\s?)?(חשבון|עסק|נתונים)/,
     /(לסגור|סוגרים|סוגרת|סוגר|סגירה).{0,20}(את\s+)?ה?חשבון/,
   ]],
-  // Owner 2026-10-24 (typed L-17, a real user's chat): checked before ai_mutation -
-  //   * dictating / saying a quote by voice is the AI smart quote (its microphone), never "AI execution is a future feature";
-  //   * notifications that pop up on the screen are the bell's floating notice (reminders), never "not sure / check the browser";
-  //   * images in the catalog are the catalog's own image (a question about the user's OWN catalog still reaches the data tool first).
-  ['smart_quote', [
-    /(בעל.?פה|בקול|להכתיב|מכתיב|הכתבה|בדיבור|להקליט).{0,40}הצע|הצע.{0,40}(בעל.?פה|בקול|להכתיב|הכתבה|בדיבור|להקליט)/,
-    /\b(by voice|dictat\w*)\b.{0,40}\bquotes?\b|\bquotes?\b.{0,40}\b(by voice|dictat\w*)\b/i,
-    /הצעת מחיר חכמה/, /\bAI smart quote\b/i,
-  ]],
-  ['reminders_automation', [
-    /פופ.?אפ/, /\bpop-?\s?ups?\b/i,
-    /(התר[אע]ו?ת?|הודעו?ת?|פעמון).{0,40}(קופצ|יקפוץ|תקפוץ|לקפוץ)|(קופצ|יקפוץ|תקפוץ|לקפוץ).{0,40}(התר[אע]ו?ת?|הודעו?ת?|פעמון)/,
-    /\bnotifications?\b.{0,40}\b(pop|float)/i,
-  ]],
-  ['catalog', [
-    /תמונ(ה|ות).{0,40}קטלוג|קטלוג.{0,40}תמונ/,
-    /\bcatalog\b.{0,40}\b(images?|photos?|pictures?)\b|\b(images?|photos?|pictures?)\b.{0,40}\bcatalog\b/i,
-  ]],
   ['ai_mutation', [
-    // Owner 2026-10-24 (typed L-17): "prepare / write / build me a quote" addressed at the assistant (it answers how, with the AI smart
-    // quote button - never a manual fill-in walkthrough as if it had been asked how to fill the form)
-    /(שתכין|תכין|תכיני|שתכתוב|תכתוב|תכתבי|שתבנה|תבנה|שתמלא|תמלא|תכניס|שתכניס|תנסח)\s.{0,20}(לי\s)?(את\s)?ה?הצע/,
-    /\b(make|prepare|build|write|draft|create)\s+me\s+(a\s+|the\s+)?quote\b/i,
     /\b(can|could|will|does)\s+(the\s+)?(ai|assistant|bot|chat)\s+.{0,30}(edit|change|modify|update|delete|mutate|do (it|that|this) for me)\b/i,
     /\bcan you (edit|change|modify|update|delete)\s+(my|this|the)\s+(quote|client|item|price)\s+for me\b/i,
     // Codex defect 2 (2026-09-22): "Can you edit my quote?" (no explicit "AI/assistant" naming, no

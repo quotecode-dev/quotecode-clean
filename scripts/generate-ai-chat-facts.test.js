@@ -64,8 +64,6 @@ describe('generateAiFacts - canonical facts parity', () => {
     expect(S.free.days).toBe(FREE_DAYS_TOTAL);
     expect(S.free.days).toBe(7);
     expect(S.free.endsWhen).toBe('first_of_quotes_or_days');
-    expect(S.free.countedOnFirstSaveWithClientAndItem).toBe(true); // Owner 2026-10-24 (L-14 + L-17): counted at the first save
-    expect(S.free.resaveConsumesAgain).toBe(false);
     expect(S.free.consumingChannels).toEqual(['send', 'public_share', 'final_pdf', 'final_print']);
     expect(S.free.draftsAndPreviewsConsume).toBe(false);
     expect(S.free.deleteRefunds).toBe(false);

@@ -728,12 +728,10 @@ export default function QuoteForm({
             type="button"
             onClick={onOpenCustomerTwin}
             data-testid="customer-twin-open"
-            // Owner 2026-10-24 (typed L-07, L-09, L-13, L-29): named "שיפור ההצעה", with what it does on hover
-            title={isHebrew ? 'מציע מה לשנות בהצעה כדי שתהיה ברורה ואטרקטיבית יותר בעיני הלקוח שלכם.' : 'Suggests what to change in the quote so it is clearer and more attractive to your customer.'}
             style={{ background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
             <CustomerTwinIcon size={20} />
-            {isHebrew ? 'שיפור ההצעה' : 'Improve quote'}
+            {isHebrew ? 'בדיקת הלקוח' : 'Customer check'}
           </button>
         )}
         {/* PRODUCT_TRUTH_DECORATIVE: 'Cancel & Return' button that closes the quote form via onCancel without saving */}

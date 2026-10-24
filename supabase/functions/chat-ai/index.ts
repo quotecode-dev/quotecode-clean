@@ -358,10 +358,9 @@ serve(async (req) => {
       if (capabilityTruth) {
         const capabilityAnswer = capabilityTruth.answer;
         const matched = AI_FACTS.capabilities.find((c) => c.id === capabilityId);
-        // Owner 2026-10-24 (typed L-17): "can you build / write me a quote" (ai_mutation about a quote) offers the AI smart quote button
-        const navId = matched?.aiMayNavigate && matched.safeNavigationId ? matched.safeNavigationId
-          : capabilityId === 'ai_mutation' && /הצע|\bquotes?\b/i.test(lastUserMessage) ? 'open_ai_quote' : null;
-        const navSuggestion = navId && verifiedUserId && navAllowed.includes(navId) ? { action: navId, focus: null } : null;
+        const navSuggestion = matched?.aiMayNavigate && matched.safeNavigationId && verifiedUserId && navAllowed.includes(matched.safeNavigationId)
+          ? { action: matched.safeNavigationId, focus: null }
+          : null;
         await logChat(capabilityAnswer);
         return deterministicResponse(capabilityAnswer, navSuggestion, capabilityTruth.factPayload);
       }

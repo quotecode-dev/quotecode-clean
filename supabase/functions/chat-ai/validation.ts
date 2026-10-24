@@ -457,8 +457,7 @@ function buildWorkflowContextBlock(ctx: WorkflowQuoteContext): string {
 }
 
 const READ_ONLY_BOUNDARY = `READ-ONLY BOUNDARY (hard rule, no exceptions):
-You cannot create, edit, delete, approve, sign, send, or otherwise mutate a quote, client, plan, subscription, setting, or file, and you cannot perform any Admin action. If the user asks you to do one of these things, explain how they can do it themselves in the app, optionally suggest a navigation destination (see below), and NEVER claim to have performed the action.
-When the user asks you to prepare / build / write a quote, describes a job with items and prices, or asks to dictate a quote by voice: say first that the AI smart quote does exactly this - "הצעה חדשה" → "הצעת מחיר חכמה עם AI" ("New quote" → "AI smart quote"): they describe the job in writing or dictate it by voice, the AI suggests the lines, and they review and approve them - and suggest the navigation open_ai_quote. Do not start with manual fill-in steps.`;
+You cannot create, edit, delete, approve, sign, send, or otherwise mutate a quote, client, plan, subscription, setting, or file, and you cannot perform any Admin action. If the user asks you to do one of these things, explain how they can do it themselves in the app, optionally suggest a navigation destination (see below), and NEVER claim to have performed the action.`;
 
 // Navigation Relevance Law (Context-Aware AI Chat task): the Owner's own
 // observed failure was a selected-quote AMOUNT question answered correctly

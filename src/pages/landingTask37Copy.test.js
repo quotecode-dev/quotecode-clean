@@ -29,10 +29,9 @@ describe('L1 / L7: one meaning, true on LIVE and TEST', () => {
   });
 });
 
-// Owner 2026-10-24 (typed L-14 + L-17): the FAQ states the server rule - counted at the first save with a customer and an item
 describe('FAQ Free-10 as scannable points with every fact kept', () => {
-  it.each([['he', he, ['10 הצעות מחיר חינם בסך הכול', 'אותה גרסה לאותו לקוח', 'שינוי הלקוח, שם הנמען או תוכן ההצעה', 'טיוטה ריקה ותצוגה מקדימה לא נספרות', 'מחיקת הצעה לא מחזירה אותה', 'בפעם הראשונה שהיא נשמרת עם לקוח ולפחות פריט אחד']],
-    ['en', en, ['10 quotes in total', 'same version again for the same customer', 'Changing the customer, the recipient name or the quote content', 'An empty draft and previews never count', 'Deleting a quote does not give it back', 'the first time it is saved with a customer and at least one item']]])('%s', (_l, src, facts) => {
+  it.each([['he', he, ['10 הצעות מחיר חינם בסך הכול', 'אותה גרסה לאותו לקוח', 'שינוי הלקוח, שם הנמען או תוכן ההצעה', 'טיוטות ותצוגה מקדימה לא נספרות', 'מחיקת הצעה לא מחזירה אותה']],
+    ['en', en, ['10 quotes in total', 'same version again for the same customer', 'Changing the customer, the recipient name or the quote content', 'Drafts and previews never count', 'Deleting a quote does not give it back']]])('%s', (_l, src, facts) => {
     const i = src.indexOf(_l === 'he' ? 'איך עובדות 10 ההצעות החינמיות?' : 'How do the 10 free quotes work?');
     const block = src.slice(i, src.indexOf('},', i));
     expect(block).toMatch(/<ul/);

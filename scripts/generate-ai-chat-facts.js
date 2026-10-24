@@ -108,10 +108,6 @@ function subscriptionFacts() {
       endsWhen: 'first_of_quotes_or_days',
       daysCountFrom: 'signup_or_activation_day',
       // OD-02: a quote uses one the FIRST time it reaches a client through one of these channels.
-      // Owner 2026-10-24 (typed L-14 + L-17; server rule 20261021100000): a quote is counted the FIRST time it is SAVED with a client and
-      // at least one item; saving it again never counts again. Through these channels a CHANGED version (or another client) counts.
-      countedOnFirstSaveWithClientAndItem: true,
-      resaveConsumesAgain: false,
       consumingChannels: [...OUTPUT_CHANNELS],
       draftsAndPreviewsConsume: false,
       reuseConsumesAgain: false,

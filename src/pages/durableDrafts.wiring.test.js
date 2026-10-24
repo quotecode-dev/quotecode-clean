@@ -42,7 +42,7 @@ describe('project_name and state-reset defects', () => {
     expect(dash).toMatch(/missingColumn === 'project_name'/);
   });
   it('every "start clean" path uses the ONE pristine reset (which resets quoteStatus and quoteStructureMode)', () => {
-    const createFn = dash.slice(at('const handleCreateNewQuoteClick = (variant) => {'), at('const handleDuplicateQuote = async'));
+    const createFn = dash.slice(at('const handleCreateNewQuoteClick = () => {'), at('const handleDuplicateQuote = async'));
     const cancelFn = dash.slice(at('const handleCancelEdit = () => {'), at('const requestCancelEdit'));
     expect(createFn).toMatch(/resetQuoteFormFields\(\);/);
     expect(cancelFn).toMatch(/resetQuoteFormFields\(\);/);

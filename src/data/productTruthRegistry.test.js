@@ -24,8 +24,7 @@ const VALID_OPERATION_TYPES = new Set(['read', 'mutate']);
 const VALID_MARKETS = new Set(['local', 'international']);
 // The real closed navigation set (supabase/functions/_shared/aiHelpContract.js NAV_ACTIONS).
 const NAV_ACTIONS = new Set([
-  // Owner 2026-10-24 (typed L-17): + open_ai_quote (the AI smart quote)
-  'open_dashboard', 'open_quote_history', 'open_new_quote', 'open_ai_quote', 'open_clients', 'open_catalog', 'open_finances',
+  'open_dashboard', 'open_quote_history', 'open_new_quote', 'open_clients', 'open_catalog', 'open_finances',
   'open_business_settings', 'open_business_details', 'open_business_phone', 'open_business_tax_id',
   'open_plan_information', 'open_selected_quote', 'open_admin',
 ]);

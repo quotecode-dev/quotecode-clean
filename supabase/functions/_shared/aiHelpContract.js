@@ -43,7 +43,7 @@ export const PERSISTENCE_STATES = Object.freeze(['not_attempted', 'not_persisted
 
 // Closed navigation destinations (product-owned, click-required). `focus` targets are product-owned section ids, never selectors.
 export const NAV_ACTIONS = Object.freeze([
-  'open_dashboard', 'open_quote_history', 'open_new_quote', 'open_ai_quote', 'open_clients', 'open_catalog', 'open_finances', 'open_business_settings',
+  'open_dashboard', 'open_quote_history', 'open_new_quote', 'open_clients', 'open_catalog', 'open_finances', 'open_business_settings',
   'open_business_details', 'open_business_phone', 'open_business_tax_id', 'open_plan_information', 'open_selected_quote', 'open_admin',
 ]);
 // Guidance-only resolution steps (explained in text, never executed, never a button).
@@ -260,9 +260,7 @@ export const FIELD_LABELS = Object.freeze({
 });
 export const NAV_LABELS = Object.freeze({
   open_dashboard: { he: 'מעבר למסך הראשי', en: 'Go to the dashboard' }, open_quote_history: { he: 'פתיחת היסטוריית הצעות מחיר', en: 'Open quote history' },
-  open_new_quote: { he: 'יצירת הצעת מחיר חדשה', en: 'Create a new quote' },
-  // Owner 2026-10-24 (typed L-17, Doron's chat): the assistant opens the AI smart quote (describe or dictate the job -> draft lines)
-  open_ai_quote: { he: 'פתיחת הצעת מחיר חכמה עם AI', en: 'Open the AI smart quote' }, open_clients: { he: 'פתיחת לקוחות', en: 'Open clients' },
+  open_new_quote: { he: 'יצירת הצעת מחיר חדשה', en: 'Create a new quote' }, open_clients: { he: 'פתיחת לקוחות', en: 'Open clients' },
   open_catalog: { he: 'פתיחת קטלוג', en: 'Open catalog' }, open_finances: { he: 'פתיחת פיננסים', en: 'Open finances' },
   open_business_settings: { he: 'פתיחת הגדרות עסק', en: 'Open business settings' }, open_business_details: { he: 'הגדרות עסק ← פרטי העסק', en: 'Settings → Business details' },
   open_business_phone: { he: 'הגדרות עסק ← טלפון העסק', en: 'Settings → Business phone' }, open_business_tax_id: { he: 'הגדרות עסק ← ח.פ / עוסק', en: 'Settings → Tax ID' },
@@ -378,7 +376,7 @@ export function explainProvenance(provenance, lang, draft = null) {
 export function allowedNavigation({ ctx, isAdmin = false, hasSelectedQuote = false } = {}) {
   const out = new Set();
   for (const b of ctx?.blockers || []) for (const a of b.resolution) if (NAV_ACTIONS.includes(a)) out.add(a);
-  if (!out.size) ['open_quote_history', 'open_new_quote', 'open_ai_quote', 'open_clients', 'open_business_settings', 'open_catalog', 'open_finances', 'open_plan_information', 'open_dashboard'].forEach((a) => out.add(a));
+  if (!out.size) ['open_quote_history', 'open_new_quote', 'open_clients', 'open_business_settings', 'open_catalog', 'open_finances', 'open_plan_information', 'open_dashboard'].forEach((a) => out.add(a));
   if (isAdmin && ctx?.screen === 'admin') out.add('open_admin'); else out.delete('open_admin');
   if (!hasSelectedQuote) out.delete('open_selected_quote');
   return [...out];

@@ -29,8 +29,8 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
     id: 'free', name: PLAN_NAMES[lang].free,
     prices: [{ period: 'free', amount: il ? `₪${formatWholeMoney(0)}` : `$${formatMoney(0)}`, per: null }],
     lines: isHebrew
-      ? [`${FREE_QUOTES_TOTAL} הצעות מחיר בסך הכול`, 'או 7 ימים מההרשמה, המוקדם מביניהם', 'בשבעת הימים כלול גם חכם פלוס', 'הצעה נספרת בשמירה הראשונה עם לקוח ופריט; גרסה חדשה או לקוח אחר נספרים שוב', 'שמירה חוזרת, או שליחה חוזרת של אותה גרסה לאותו לקוח, לא נספרת שוב', 'טיוטה ריקה ותצוגה מקדימה לא נספרות']
-      : [`${FREE_QUOTES_TOTAL} quotes in total`, 'Or 7 days from sign-up, whichever comes first', 'SMART PACK included during the 7 days', 'Counted once first stored with a client and an item; a new version or another client counts again', 'Saving again, or re-sending the same version to the same client, is not counted again', 'An empty draft and previews are not counted'],
+      ? [`${FREE_QUOTES_TOTAL} הצעות מחיר בסך הכול`, 'או 7 ימים מההרשמה, המוקדם מביניהם', 'בשבעת הימים כלול גם חכם פלוס', 'הצעה נספרת כשהיא יוצאת ללקוח; גרסה חדשה או לקוח אחר נספרים שוב', 'שליחה חוזרת של אותה גרסה לאותו לקוח לא נספרת שוב', 'טיוטות ותצוגה מקדימה לא נספרות']
+      : [`${FREE_QUOTES_TOTAL} quotes in total`, 'Or 7 days from sign-up, whichever comes first', 'SMART PACK included during the 7 days', 'Counted when a quote reaches a client; a new version or another client counts again', 'Re-sending the same version to the same client is not counted again', 'Drafts and previews are not counted'],
   };
   const pkg = {
     id: 'all_inclusive', name: PLAN_NAMES[lang].all_inclusive,

@@ -221,35 +221,3 @@ describe('OD-19 compact catalog layout + unchanged behavior', () => {
     expect(css).not.toMatch(/overflow-x|text-overflow: ellipsis/);
   });
 });
-
-// Owner 2026-10-24 (typed L-23, Doron's report): the product's own image as a small thumbnail in its row (only when it has one)
-describe('catalog row thumbnail', () => {
-  const withImage = () => ({ ...controller(), context: { status: 'ready', catalog: { s1: { assetId: 'a1', caption: 'Glass panel' } } }, urls: { a1: 'https://x.test/a1.jpg' } });
-  it('a product with an image shows it beside its name; a product without one shows nothing', () => {
-    const p = props({ presentationController: withImage() });
-    render(<ServicesCatalog {...p} />);
-    const img = screen.getByTestId('catalog-thumb-s1');
-    expect(img.getAttribute('src')).toBe('https://x.test/a1.jpg');
-    expect(img.getAttribute('alt')).toBe('Glass panel');
-    expect(img.getAttribute('loading')).toBe('lazy');
-    expect(screen.queryByTestId('catalog-thumb-s2')).toBeNull();
-    expect(p.presentationController.ensureUrls).toHaveBeenCalledWith(['a1']);
-    // the row grid keeps its three columns
-    const grid = screen.getByTestId('catalog-row-s1').querySelector('.svc-cat-grid');
-    expect([...grid.children].map((c) => c.className)).toEqual(['svc-cat-desc', 'svc-cat-price', 'svc-cat-actions']);
-  });
-  it('still loading: an empty frame; a missing stored image (null): nothing', () => {
-    const loading = { ...withImage(), urls: {} };
-    const { unmount } = render(<ServicesCatalog {...props({ presentationController: loading })} />);
-    expect(screen.getByTestId('catalog-thumb-loading-s1')).toBeTruthy();
-    unmount();
-    render(<ServicesCatalog {...props({ presentationController: { ...withImage(), urls: { a1: null } } })} />);
-    expect(screen.queryByTestId('catalog-thumb-s1')).toBeNull();
-    expect(screen.queryByTestId('catalog-thumb-loading-s1')).toBeNull();
-  });
-  it('a catalog without images asks for no image address', () => {
-    const p = props();
-    render(<ServicesCatalog {...p} />);
-    expect(p.presentationController.ensureUrls).not.toHaveBeenCalled();
-  });
-});

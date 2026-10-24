@@ -25,7 +25,7 @@ export function proxyOptions(raw: string | undefined): ProxyOptions | null {
   return { url: `${u.protocol}//${u.hostname}:${port}`, ...(username ? { basicAuth: { username, password } } : {}) };
 }
 
-export type PayPlusEgress = { fetch: FetchLike; via: 'relay' | 'direct' | 'relay_misconfigured' | 'relay_missing'; close: () => void };
+export type PayPlusEgress = { fetch: FetchLike; via: 'relay' | 'direct' | 'relay_misconfigured'; close: () => void };
 
 const denoCreate: CreateClient = (o) => (Deno as unknown as { createHttpClient: CreateClient }).createHttpClient(o);
 
@@ -43,12 +43,4 @@ export function payplusEgress(secret: string | undefined, create: CreateClient =
     },
     close: () => { try { client?.close(); } catch { /* already closed */ } client = null; },
   };
-}
-
-// Owner 2026-10-24 ("כן אשמח" - connecting the payment functions to the relay before payments go on; Codex spec PAY-01 / PAY-02): the
-// payment paths (subscription-authority checkout / pull, admin-billing stop / refund) REQUIRE the relay - without the secret every call
-// fails at once with 'relay_missing' and nothing is sent (never a direct call that bypasses the relay).
-export function requiredPayplusEgress(secret: string | undefined, create: CreateClient = denoCreate, base: FetchLike = (u, i) => fetch(u, i)): PayPlusEgress {
-  if (!(secret ?? '').trim()) return { fetch: () => Promise.reject(new Error('relay_missing')), via: 'relay_missing', close: () => {} };
-  return payplusEgress(secret, create, base);
 }
