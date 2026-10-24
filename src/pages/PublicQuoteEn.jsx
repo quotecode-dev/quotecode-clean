@@ -303,12 +303,18 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
       const signatureDataUrl = getSignatureDataUrl();
       // OD-02: approval/signature use the same artifact as the link. On the capability route the server resolves the token
       // (op 'approve'); the quote id alone authorizes nothing there. Legacy links keep the id RPC (guarded server-side).
-      const { error } = capabilityToken
-        ? await supabase.rpc('public_approve_quote_capability', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl })
-        : await supabase.rpc('public_approve_quote', {
-          p_quote_id: quote.id,
-          p_signature_data_url: signatureDataUrl,
-        });
+      // Owner 2026-10-25 (typed L-24): sign AND store who signed (name; company and role for a business customer) in one server call;
+      // a server without the new functions yet (the database is updated first) falls back to the former call
+      const signer = { p_signer_name: signerName.trim(), p_signer_company: isBusinessCustomer ? (signerCompany.trim() || null) : null,
+        p_signer_role: isBusinessCustomer ? (signerRole.trim() || null) : null };
+      let { error } = capabilityToken
+        ? await supabase.rpc('public_approve_quote_capability_signed', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl, ...signer })
+        : await supabase.rpc('public_approve_quote_signed', { p_quote_id: quote.id, p_signature_data_url: signatureDataUrl, ...signer });
+      if (error && (error.code === 'PGRST202' || /could not find the function/i.test(String(error.message || '')))) {
+        ({ error } = capabilityToken
+          ? await supabase.rpc('public_approve_quote_capability', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl })
+          : await supabase.rpc('public_approve_quote', { p_quote_id: quote.id, p_signature_data_url: signatureDataUrl }));
+      }
       if (error) throw error;
       // Owner-Approved Signature Record Improvement: quote.signature is a
       // static prop from the initial page load (SmartPublicQuote.jsx fetches
@@ -697,6 +703,17 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
                   Quote #: {quoteNumberDisplay}
                 </div>
                 <img className="pq-signature-img" src={signatureSrc} alt="Client Signature" />
+              </div>
+            ) : quote.signer_name ? (
+              // Owner 2026-10-25 (typed L-24): a later visit says who signed (stored with the signature)
+              <div style={{ textAlign: 'start' }} data-testid="pq-stored-signer">
+                <div style={{ fontWeight: 700, marginBottom: '4px' }}>Signed by: <bdi>{quote.signer_name}</bdi></div>
+                {quote.signer_company && (
+                  <div style={{ marginBottom: '2px' }}>On behalf of: <bdi>{quote.signer_company}</bdi>{quote.signer_role ? <> (<bdi>{quote.signer_role}</bdi>)</> : null}</div>
+                )}
+                {quote.signed_at && <div style={{ marginBottom: '2px' }}>Signed on: {formatDeviceShortDateTime(new Date(quote.signed_at), 'International')}</div>}
+                <div>Quote #: {quoteNumberDisplay}</div>
+                <img className="pq-signature-img" src={quote.signature} alt="Client Signature" />
               </div>
             ) : (
               <div>

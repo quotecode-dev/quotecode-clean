@@ -94,7 +94,8 @@ describe('URL validation (separate from escaping)', () => {
 describe('send-quote-email wiring (source guards)', () => {
   const src = fs.readFileSync(path.resolve(HERE, '../supabase/functions/send-quote-email/index.ts'), 'utf8');
   it('the template is built only by buildQuoteEmail (no raw name interpolation left in index.ts)', () => {
-    expect(src).toContain('const { subject, html } = buildQuoteEmail({');
+    // 2026-10-25: the plain-text part is taken from the same template call (spam: an HTML-only mail)
+    expect(src).toContain('const { subject, html, text } = buildQuoteEmail({');
     expect(src).not.toMatch(/\$\{bizTitle\}|\$\{clientDisplayName\}|\$\{validLogo\}|\$\{canonicalQuoteLink\}/);
     expect(src).toContain('const safeLink = safeQuoteLink(canonicalQuoteLink, PROD_ORIGIN)');
   });
