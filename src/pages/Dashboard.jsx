@@ -1000,6 +1000,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           setActiveTab('main');
           handleCreateNewQuoteClick();
           break;
+        // Owner 2026-10-24 (typed L-15, L-17): the AI smart quote, the same entry as the "New quote" menu choice
+        case 'open_ai_quote':
+          closeEditor();
+          setActiveTab('main');
+          handleCreateAiQuoteClick();
+          break;
         case 'open_clients':
           closeEditor();
           setActiveTab('clients');

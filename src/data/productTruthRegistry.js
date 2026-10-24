@@ -163,7 +163,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('smart_quote', 'הצעת מחיר חכמה', 'Smart Quote flow',
     'הצעת מחיר חכמה עם AI (בתפריט „הצעה חדשה”): מתארים את העבודה במילים, וה-AI מציע שורות - תיאור, כמות ויחידה; מחיר רק כשהפריט קיים בקטלוג שלכם, אחרת המחיר נשאר ריק להזנה. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה; שום דבר לא נשמר או נשלח לבד. אפשר גם להכתיב את העבודה בקול (המיקרופון בפינת שדה התיאור) ולענות בקול על השאלות שהטיוטה שואלת.',
     'AI smart quote (in the "New quote" menu): describe the job in words and the AI suggests lines - description, quantity and unit; a price only when the item is in your catalog, otherwise the price stays empty for you to enter. You review, correct and approve before anything enters the quote; nothing is saved or sent on its own. You can also dictate the job by voice (the microphone in the corner of the description field) and answer the draft’s questions by voice.',
-    { surfaces: ['quote_editor'], operationType: 'mutate', deterministicFactKeys: [], canonicalSources: ['src/components/QuoteForm.jsx', 'src/components/AiQuoteDraftDialog.jsx'] }), // Task 21: the AI-draft dialog of the AI smart-quote entry; night task 2026-10-16 (R-29): described as the menu offers it (ai-quote-draft was published with the new interface)
+    { surfaces: ['quote_editor'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_ai_quote', deterministicFactKeys: [], canonicalSources: ['src/components/QuoteForm.jsx', 'src/components/AiQuoteDraftDialog.jsx'] }), // Owner 2026-10-24 (typed L-14/L-17): the answer offers the button that opens it; Task 21: the AI-draft dialog of the AI smart-quote entry; night task 2026-10-16 (R-29): described as the menu offers it (ai-quote-draft was published with the new interface)
 
   capability('measured_quote', 'הצעת מחיר מקצועית/מדודה', 'Measured professional quote',
     'הצעה לפי מידות: מוסיפים פריט ומודדים אותו במסך אחד (שטח, אורך, יחידות או מחיר קבוע; בס״מ או במטר, או כמות ידועה במ״ר / מ״א), ואז בודקים ומוסיפים להצעה. חלוקה לחדרים/אזורים/יחידות היא אפשרות לבחירה.',
@@ -181,8 +181,8 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['clients_screen'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_clients', canonicalSources: ['src/components/ClientsTab.jsx', 'src/components/EditClientModal.jsx'] }),
 
   capability('catalog', 'קטלוג שירותים', 'Services catalog',
-    'ניהול קטלוג פריטים/שירותים לשימוש חוזר בהצעות מחיר.',
-    'Managing a catalog of items/services for reuse across quotes.',
+    'ניהול קטלוג פריטים/שירותים לשימוש חוזר בהצעות מחיר. אפשר לצרף לפריט תמונה (כפתור התמונה בשורת הפריט); פריט עם תמונה מציג אותה כתמונה קטנה ליד השם, והיא מצטרפת לשורה בהצעה כשמוסיפים אותו.',
+    'Managing a catalog of items/services for reuse across quotes. An item can have an image (the image button in its row); an item with an image shows it as a small thumbnail beside its name, and it joins the quote line when the item is added.',
     { surfaces: ['catalog_screen'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_catalog', canonicalSources: ['src/components/ServicesCatalog.jsx', 'src/components/quotePresentation/CatalogMediaControl.jsx'] }),
 
   capability('finance_views', 'תצוגות פיננסיות', 'Finance views',
@@ -411,8 +411,8 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['public_quote_page', 'dashboard'], canonicalSources: ['src/utils/firstView.js', 'src/components/SmartPublicQuote.jsx'] }),
 
   capability('reminders_automation', 'תזכורות ואוטומציות', 'Reminders & automation',
-    "הגדרות עסק ← תזכורות ואוטומציות: בוחרים אחד משלושה מצבים — ״בממשק בלבד״ (ברירת המחדל: התזכורות מופיעות בפעמון), ״כבוי״ או ״מלא, כולל שליחה ללקוח״. המצב המלא מופעל רק בבחירה מפורשת שלכם. מסמנים בתיבות הסימון אילו פעולות יפעלו. אפשר להגדיר כלל ללקוח (ימים, תוכן, שעות שליחה ואזור זמן, עם תצוגה מקדימה והשהיה). שליחה אוטומטית ללקוחות תיפתח בהמשך; בינתיים אתם שולחים הודעות ללקוח מתוך ההצעה. שליחה בוואטסאפ נעשית ידנית מתוך ההצעה.",
-    "Business settings → Reminders & automation: you choose one of three modes - “In-app only” (the default: reminders appear for you under the bell), “Off”, or “Full, including customer sending”, which turns on only by your explicit choice. You tick which behaviors run. You can set up a customer rule (days, content, sending hours and a time zone, with a preview and a pause), and automatic sending to customers opens later; until then, messages to a customer are sent by you from the quote. WhatsApp is sent manually from the quote.",
+    "הגדרות עסק ← תזכורות ואוטומציות: בוחרים אחד משלושה מצבים — ״בממשק בלבד״ (ברירת המחדל: התזכורות מופיעות בפעמון), ״כבוי״ או ״מלא, כולל שליחה ללקוח״. המצב המלא מופעל רק בבחירה מפורשת שלכם. מסמנים בתיבות הסימון אילו פעולות יפעלו. אפשר להגדיר כלל ללקוח (ימים, תוכן, שעות שליחה ואזור זמן, עם תצוגה מקדימה והשהיה). שליחה אוטומטית ללקוחות תיפתח בהמשך; בינתיים אתם שולחים הודעות ללקוח מתוך ההצעה. שליחה בוואטסאפ נעשית ידנית מתוך ההצעה. התראה חדשה בפעמון גם קופצת על המסך כהודעה צפה, פעם אחת, כשהמערכת פתוחה (אם היא מגיעה כשהמסך לא מוצג - היא קופצת כשחוזרים אליו); ההודעה הקופצת והפעמון פועלים תמיד יחד.",
+    "Business settings → Reminders & automation: you choose one of three modes - “In-app only” (the default: reminders appear for you under the bell), “Off”, or “Full, including customer sending”, which turns on only by your explicit choice. You tick which behaviors run. You can set up a customer rule (days, content, sending hours and a time zone, with a preview and a pause), and automatic sending to customers opens later; until then, messages to a customer are sent by you from the quote. WhatsApp is sent manually from the quote. A new bell notification also pops up on the screen as a floating notice, once, while the app is open (if it arrives while the page is not shown, it pops up when you return); the floating notice and the bell always work together.",
     { surfaces: ['business_settings', 'dashboard'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_business_settings', canonicalSources: ['src/components/RemindersSettings.jsx', 'src/components/SettingsTab.jsx', 'src/components/NotificationCenter.jsx', 'supabase/functions/_shared/reminderRules.js', 'src/utils/reminders.js'] }),
 
   // Task 23 (Phase 5, Owner approval 2026-10-10) + Task 24 (editor, opt-in channels; Task 26: no card style - those are quote styles): saving needs the business_cards migration
@@ -445,6 +445,9 @@ export const NON_CURRENT_REGISTRY = Object.freeze([
   Object.freeze({
     id: 'ai_mutation', heLabel: 'שינוי נתונים על ידי AI', enLabel: 'AI-executed data mutation',
     heDescription: 'ה-AI מבצע בעצמו שינוי/מחיקה/שליחה במקום המשתמש.', enDescription: 'The AI itself performing a change/deletion/send instead of the user.',
+    // Owner 2026-10-24 (typed L-14/L-17, a real user's chat): what the user CAN do with AI instead
+    heAnswerNote: 'העוזר עונה ומדריך, ואינו מבצע פעולות במקומכם. להכנת הצעה בעזרת AI יש „הצעה חדשה” ← „הצעת מחיר חכמה עם AI”: מתארים את העבודה בכתב או מכתיבים בקול, וה-AI מציע שורות שבודקים ומאשרים.',
+    enAnswerNote: 'The assistant answers and guides; it does not act for you. To prepare a quote with AI, use “New quote” → “AI smart quote”: describe the job in writing or dictate it, and the AI suggests lines you review and approve.',
     state: CAPABILITY_STATES.ROADMAP_POST_LIVE, forbiddenClaimCodes: ['NO_AI_EXECUTION_CLAIM'], canonicalSources: ['TEKANGO_AI_ARCHITECTURE.md'],
   }),  // Task 20: what the reminders feature does NOT do today (an assistant must answer these deterministically, never promise them).
   Object.freeze({

@@ -424,8 +424,8 @@
     "markers": 1
   },
   "src/components/quotePresentation/CatalogMediaControl.jsx": {
-    "interactive": 2,
-    "markers": 2
+    "interactive": 3,
+    "markers": 3
   },
   "src/components/quotePresentation/IssueQuoteDialog.jsx": {
     "interactive": 2,

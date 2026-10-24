@@ -369,7 +369,7 @@ export default function ServicesCatalog({
                   </div>
                   {presentationController && imageAllowed && imageRowId === svc.id && (
                     <div className="svc-cat-panel">
-                      <CatalogMediaControl ctl={presentationController} service={svc} />
+                      <CatalogMediaControl ctl={presentationController} service={svc} onClose={() => setImageRowId(null)} />
                     </div>
                   )}
                   {!imageAllowed && lockedRowId === svc.id && typeof onLockedCapability !== 'function' && (
