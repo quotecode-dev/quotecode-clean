@@ -28,6 +28,7 @@ import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quote
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
 import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
 import { isFinancialChange } from '../utils/financialEdit';
+import { isValidEmailAddress } from '../utils/emailAddress';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, missingPriceItems, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
@@ -41,7 +42,7 @@ import { timeGreeting } from '../utils/timeGreeting';
 import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
 import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
 import { decideCapability, outputPhaseOf, decideFree10Action } from '../../supabase/functions/_shared/subscriptionContract.ts';
-import { normalizeAuthError, isCaptchaError } from '../utils/authErrorClassification';
+import { normalizeAuthError, isCaptchaError, isEmailNotConfirmed } from '../utils/authErrorClassification';
 import { classifyDashboardActionError } from '../utils/dashboardActionErrorClassification';
 import { formatQuoteFallback } from '../utils/quoteNumber';
 import { sortQuotes } from '../utils/quoteListSort';
@@ -240,6 +241,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [signupBusinessName, setSignupBusinessName] = useState('');
   const [signupTermsAccepted, setSignupTermsAccepted] = useState(false);
   const [authError, setAuthError] = useState('');
+  // Owner 2026-10-25 (typed L-12): the address whose verification e-mail can be sent again (set when a sign-in finds it unverified)
+  const [verifyResendEmail, setVerifyResendEmail] = useState(null);
+  const [verifyResendState, setVerifyResendState] = useState('idle'); // idle | sending | sent | failed
   const [authSuccess, setAuthSuccess] = useState('');
 
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -2007,11 +2011,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // binding, server-enforced 14-day/expired-only policy, authoritative
   // read-back, audit log) - see AdminUsersTab.jsx.
 
+  // Owner 2026-10-25 (typed L-12): the ONE permissive check (utils/emailAddress.js) - every real ending (.net.il, .ac.il, .co.uk, .de ...)
   function emailEmailValidation(email) {
-    if (!email || typeof email !== 'string') return false;
-    const trimmed = email.trim();
-    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|co\.il|org|net|edu|gov|io|info|biz|co|me|tv|ws)$/i;
-    return re.test(trimmed);
+    return isValidEmailAddress(email);
   }
 
   async function handleSaveSettings(e) {
@@ -2496,6 +2498,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setAuthLoading(true);
     setAuthError('');
     setAuthSuccess('');
+    setVerifyResendEmail(null);
+    setVerifyResendState('idle');
 
     // Auth Lifecycle Forensic Audit (2026-09-09): every message in this
     // function now consistently uses `bundleIsHebrew`, not the local
@@ -2520,7 +2524,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       const { data: existingBiz } = await supabase
         .from('business_settings')
         .select('email')
-        .eq('email', emailInput)
+        .eq('email', emailInput.trim())
         .maybeSingle();
 
       if (existingBiz) {
@@ -2573,7 +2577,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         : 'https://www.tekango.com/dashboard';
 
       const { data, error } = await supabase.auth.signUp({
-        email: emailInput,
+        email: emailInput.trim(), // Owner 2026-10-25 (L-12): never a stray space into Auth
         password: passwordInput,
         options: {
           emailRedirectTo,
@@ -2611,8 +2615,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         }
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email: emailInput, password: passwordInput, options: { captchaToken: takeCaptchaToken('auth') } });
-      if (error) {
+      const { error } = await supabase.auth.signInWithPassword({ email: emailInput.trim(), password: passwordInput, options: { captchaToken: takeCaptchaToken('auth') } });
+      if (error && isEmailNotConfirmed(error)) {
+        // Owner 2026-10-25 (typed L-12): the account exists but its e-mail was not verified yet - say so, and offer to send it again
+        setAuthError(bundleIsHebrew
+          ? 'המייל עדיין לא אומת. פתחו את הקישור במייל האימות ששלחנו (כדאי לבדוק גם בתיקיית הספאם), או שלחו אותו שוב.'
+          : 'Your email is not verified yet. Open the link in the verification email we sent (check your spam folder too), or send it again.');
+        setVerifyResendEmail(emailInput.trim());
+      } else if (error) {
         // Owner console 2026-10-20 (L-12): a failed robot check says so, never "check your credentials"
         setAuthError(isCaptchaError(error) ? normalizeAuthError(error, bundleIsHebrew).message : (bundleIsHebrew ? 'לא הצלחנו להתחבר. בדקו את הפרטים או אפסו את הסיסמה.' : 'Login error: check your credentials or reset password.'));
       } else {
@@ -2628,6 +2638,23 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setAuthError(normalizeAuthError(thrown, bundleIsHebrew).message);
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  // Owner 2026-10-25 (typed L-12): sends the sign-up verification e-mail again (Supabase Auth resend; the same return address as sign-up)
+  const handleResendVerification = async () => {
+    if (!verifyResendEmail || verifyResendState === 'sending') return;
+    setVerifyResendState('sending');
+    try {
+      const emailRedirectTo = isLocalTestMode
+        ? window.location.origin + '/dashboard?lang=' + (bundleIsHebrew ? 'he' : 'en')
+        : 'https://www.tekango.com/dashboard';
+      const { error } = await supabase.auth.resend({ type: 'signup', email: verifyResendEmail, options: { emailRedirectTo, captchaToken: takeCaptchaToken('auth') } });
+      if (error) { setVerifyResendState('failed'); setAuthError(normalizeAuthError(error, bundleIsHebrew).message); }
+      else setVerifyResendState('sent');
+    } catch (thrown) {
+      setVerifyResendState('failed');
+      setAuthError(normalizeAuthError(thrown, bundleIsHebrew).message);
     }
   };
 
@@ -5085,6 +5112,9 @@ Continue anyway?`);
         setIsSignUp={setIsSignUp}
         authSuccess={authSuccess}
         authError={authError}
+        verifyResendEmail={verifyResendEmail}
+        verifyResendState={verifyResendState}
+        onResendVerification={handleResendVerification}
         handleAuth={handleAuth}
         authLoading={authLoading}
         emailInput={emailInput}
@@ -7833,6 +7863,7 @@ Continue anyway?`);
         isNew={isCreatingClient}
         isIsraeliBusiness={isLocalIsraeliBusiness}
         currency={currency}
+        businessPhone={bizPhone}
       />
 
       <EditExpenseModal 
@@ -8593,6 +8624,7 @@ Continue anyway?`);
               })}
             >
             <QuoteForm
+              businessPhone={bizPhone}
               editingQuoteId={editingQuoteId}
               editingQuoteNumber={editingOriginalQuote?.quote_number ?? null}
               onSave={handleSaveQuote}

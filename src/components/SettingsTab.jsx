@@ -14,6 +14,7 @@ import ShareDefaultsSettings from './ShareDefaultsSettings';
 import { BUSINESS_CARD_SETTINGS_COPY } from './businessCardSettingsCopy';
 import { useBusinessCardProfile } from '../hooks/useBusinessCardProfile';
 import { REMINDERS_COPY } from '../utils/reminders';
+import { DIAL_CHOICES, businessDial, joinPhone } from '../utils/phoneDial';
 
 // פונקציית עזר לזיהוי קידומת לפי מטבע עסק
 const getDialByCurrency = (curr, isLocal) => {
@@ -118,17 +119,23 @@ export default function SettingsTab({
   // גזירת הקידומת האוטומטית עם אכיפה מלאה למקומיים
   const effectiveCurr = isLocalIsraeliBusiness ? 'ILS' : currency;
   const currencyPhoneConfig = getDialByCurrency(effectiveCurr, isLocalIsraeliBusiness);
-  const defaultDial = currencyPhoneConfig.dial;
-  const defaultLabel = currencyPhoneConfig.label;
+  // Owner 2026-10-25 (typed L-01, L-09): an International business chooses its own country code (default: by its currency); Israel = +972
+  const chosenDial = isLocalIsraeliBusiness ? null : businessDial({ isLocal: false, currency: effectiveCurr, businessPhone: bizPhone });
+  const defaultDial = chosenDial ? chosenDial.dial : currencyPhoneConfig.dial;
+  const defaultLabel = chosenDial ? chosenDial.label : currencyPhoneConfig.label;
 
   const [localPhone, setLocalPhone] = useState('');
 
+  // Owner 2026-10-25 (typed L-07, L-08, L-09): stored without the trunk 0 after the country code (calls and WhatsApp need it)
   const handleLocalPhoneChange = (numVal) => {
     setLocalPhone(numVal);
-    setBizPhone(`${defaultDial} ${numVal}`);
+    setBizPhone(joinPhone(defaultDial, numVal));
   };
+  const handleDialChange = (dial) => { setBizPhone(joinPhone(dial, localPhone)); };
 
   useEffect(() => {
+    // the typed text stays as typed (its 0 included) while it already matches the stored phone
+    if (bizPhone && joinPhone(defaultDial, localPhone) === bizPhone) return;
     if (bizPhone) {
       if (bizPhone.startsWith(defaultDial)) {
         setLocalPhone(bizPhone.replace(defaultDial, '').trim());
@@ -139,7 +146,7 @@ export default function SettingsTab({
     } else {
       setLocalPhone('');
     }
-  }, [bizPhone, defaultDial]);
+  }, [bizPhone, defaultDial]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (bizAddress) {
@@ -356,9 +363,17 @@ export default function SettingsTab({
           <div id="pf-settings-business_phone">
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Phone size={13} color={NEON.emerald} />{isHebrew ? 'טלפון העסק' : 'Business Phone'}</label>
             <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, overflow: 'hidden', boxSizing: 'border-box' }}>
-              <div style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 10px', fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: `1px solid ${NEON.borderStrong}`, whiteSpace: 'nowrap' }}>
+              {isLocalIsraeliBusiness ? (
+                <div style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 10px', fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: `1px solid ${NEON.borderStrong}`, whiteSpace: 'nowrap' }}>
                 {defaultLabel}
               </div>
+              ) : (
+                // PRODUCT_TRUTH_DECORATIVE: chooses the business phone's country code (stored with the phone on Save)
+                <select aria-label={isHebrew ? 'קידומת המדינה' : 'Country code'} value={defaultDial} onChange={(e) => handleDialChange(e.target.value)} data-testid="settings-phone-dial"
+                  style={{ background: 'rgba(255,255,255,0.06)', padding: '7px 8px', fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', border: 'none', [isHebrew ? 'borderLeft' : 'borderRight']: `1px solid ${NEON.borderStrong}`, direction: 'ltr', fontFamily: 'inherit' }}>
+                  {(DIAL_CHOICES.some((c) => c.dial === defaultDial) ? DIAL_CHOICES : [{ dial: defaultDial, label: defaultLabel }, ...DIAL_CHOICES]).map((c) => <option key={c.dial} value={c.dial}>{c.label}</option>)}
+                </select>
+              )}
               <input
                 type="text"
                 value={localPhone}
