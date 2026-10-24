@@ -1,13 +1,22 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { goBackOrHome } from '../utils/goBackOrHome';
 import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeoFor } from '../shared/publicSeoRoutes';
 import ProFlowLogo from '../components/ProFlowLogo';
-import { writeConsent } from '../shared/siteAnalytics';
+import { writeConsent, readConsent, CONSENT_EVENT } from '../shared/siteAnalytics';
 
 export default function Privacy({ isHebrew }) {
   const navigate = useNavigate();
+  // Owner 2026-10-23 (typed L-12, item 7 א): the visitor's stored measurement choice, kept current when it changes (the notice / another tab)
+  const [consent, setConsent] = useState(() => readConsent());
+  useEffect(() => {
+    const onChange = () => setConsent(readConsent());
+    window.addEventListener(CONSENT_EVENT, onChange);
+    window.addEventListener('storage', onChange);
+    const stop = () => { window.removeEventListener(CONSENT_EVENT, onChange); window.removeEventListener('storage', onChange); };
+    return stop;
+  }, []);
 
   useEffect(() => {
     // ר' הערה מלאה ב-Contact.jsx - /privacy הלא-מקודד הוא alias לתאימות
@@ -22,7 +31,7 @@ export default function Privacy({ isHebrew }) {
 
   const t = isHebrew ? {
     title: 'מדיניות פרטיות (Privacy Policy)',
-    lastUpdated: 'עדכון אחרון: 21 באוקטובר 2026',
+    lastUpdated: 'עדכון אחרון: 23 באוקטובר 2026',
     back: 'חזרה',
     sections: [
       {
@@ -42,7 +51,8 @@ export default function Privacy({ isHebrew }) {
       {
         id: 'cookies',
         title: '4. שימוש ב-Cookies',
-        content: 'האתר והמערכת משתמשים בעוגיות (Cookies) ובאחסון מקומי בדפדפן משני סוגים. הכרחיים: לשמירת ההתחברות שלכם (Session), לאבטחה, לזיכרון שפת הממשק (העוגייה proflow_lang, לשנה) ולזיכרון מדינת הגלישה שלפיה נבחר דף הבית (העוגייה proflow_geo_country, ליממה). מדידה: בדפים הציבוריים בלבד, עוגיות של Google Analytics (כמו _ga, נשמרות עד שנתיים) שמבחינות בין ביקור חוזר לביקור חדש. באתר בעברית המדידה פועלת כברירת מחדל; באתר באנגלית עוגיות המדידה נשמרות רק אחרי שהמבקר מאשר אותן. אפשר לחסום או למחוק עוגיות בהגדרות הדפדפן, או להתקין את תוסף הדפדפן של Google לחסימת Google Analytics. איננו משתמשים בעוגיות פרסום.'
+        cookieChoice: true,
+        content: 'האתר והמערכת משתמשים בעוגיות (Cookies) ובאחסון מקומי בדפדפן משני סוגים. הכרחיים: לשמירת ההתחברות שלכם (Session), לאבטחה, לזיכרון שפת הממשק (העוגייה proflow_lang, לשנה) ולזיכרון מדינת הגלישה שלפיה נבחר דף הבית (העוגייה proflow_geo_country, ליממה). מדידה: בדפים הציבוריים בלבד, עוגיות של Google Analytics (כמו _ga, נשמרות עד שנתיים) שמבחינות בין ביקור חוזר לביקור חדש. באתר באנגלית, וגם באתר בעברית למבקרים מהאיחוד האירופי, מהאזור הכלכלי האירופי, מבריטניה ומשווייץ (או כשלא ידוע מאיפה הביקור), עוגיות המדידה נשמרות רק אחרי שהמבקר מאשר אותן. באתר בעברית, למבקרים מכל מקום אחר, המדידה פועלת כברירת מחדל, ואפשר לבטל אותה בכל עת בכפתור שלמטה. אפשר לחסום או למחוק עוגיות בהגדרות הדפדפן, או להתקין את תוסף הדפדפן של Google לחסימת Google Analytics. איננו משתמשים בעוגיות פרסום.'
       },
       {
         title: '5. אבטחת מידע',
@@ -67,7 +77,7 @@ export default function Privacy({ isHebrew }) {
     ]
   } : {
     title: 'Privacy Policy',
-    lastUpdated: 'Last updated: October 21, 2026',
+    lastUpdated: 'Last updated: October 23, 2026',
     back: 'Go Back',
     sections: [
       {
@@ -87,7 +97,7 @@ export default function Privacy({ isHebrew }) {
       {
         id: 'cookies',
         title: '4. Cookies',
-        content: 'The website and the app use cookies and browser storage of two kinds. Essential: to keep you signed in (session), for security, to remember the interface language (the proflow_lang cookie, one year) and the browsing country used to choose the home page (the proflow_geo_country cookie, one day). Measurement: on the public pages only, Google Analytics cookies (such as _ga, kept for up to two years) that tell a returning visit from a new one. On the English website these measurement cookies are set only after you accept them in the cookie notice, and you can change your choice at any time with the button below; on the Hebrew website measurement runs by default. You can also block or delete cookies in your browser settings, or install Google\'s browser add-on that blocks Google Analytics. We do not use advertising cookies.',
+        content: 'The website and the app use cookies and browser storage of two kinds. Essential: to keep you signed in (session), for security, to remember the interface language (the proflow_lang cookie, one year) and the browsing country used to choose the home page (the proflow_geo_country cookie, one day). Measurement: on the public pages only, Google Analytics cookies (such as _ga, kept for up to two years) that tell a returning visit from a new one. On the English website, and on the Hebrew website for visitors in the European Union, the European Economic Area, the United Kingdom and Switzerland (or when the visitor\'s country is unknown), these measurement cookies are set only after you accept them in the cookie notice, and you can change your choice at any time with the button below; on the Hebrew website, for visitors anywhere else, measurement runs by default and can be turned off at any time. You can also block or delete cookies in your browser settings, or install Google\'s browser add-on that blocks Google Analytics. We do not use advertising cookies.',
         cookieChoice: true
       },
       {
@@ -148,12 +158,23 @@ export default function Privacy({ isHebrew }) {
                   // PRODUCT_TRUTH_DECORATIVE: opens the operator details section of the Terms of Use (no state change)
                   <a href={sec.operatorLink.href} style={{ display: 'inline-block', marginTop: '8px', color: '#5eead4', fontWeight: 600 }}>{sec.operatorLink.label}</a>
                 )}
-                {sec.cookieChoice && (
+                {sec.cookieChoice && !isHebrew && (
                   // PRODUCT_TRUTH_DECORATIVE: clears the stored cookie choice of this browser (and the measurement cookies) so the notice asks again
                   <button type="button" data-testid="privacy-cookie-choice" onClick={() => writeConsent(null)}
                     style={{ marginTop: '12px', background: 'transparent', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.35)', borderRadius: '8px', padding: '8px 16px', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
                     Change my cookie choice
                   </button>
+                )}
+                {sec.cookieChoice && isHebrew && (
+                  // PRODUCT_TRUTH_DECORATIVE: turns the visitor measurement off in this browser (and removes its cookies), or back on (Owner 2026-10-23, item 7 א)
+                  <button type="button" data-testid="privacy-cookie-choice-he" aria-pressed={consent === 'denied'}
+                    onClick={() => writeConsent(consent === 'denied' ? 'granted' : 'denied')}
+                    style={{ marginTop: '12px', background: 'transparent', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.35)', borderRadius: '8px', padding: '8px 16px', fontSize: '0.9rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+                    {consent === 'denied' ? 'אישור מדידה' : 'ביטול ההסכמה למדידה'}
+                  </button>
+                )}
+                {sec.cookieChoice && isHebrew && consent === 'denied' && (
+                  <p role="status" data-testid="privacy-cookie-stopped" style={{ color: '#cbd5e1', fontSize: '0.9rem', marginTop: '8px' }}>המדידה הופסקה בדפדפן הזה. תוכלו לשנות את הבחירה בכל עת.</p>
                 )}
               </section>
             ))}

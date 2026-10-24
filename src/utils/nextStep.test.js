@@ -49,3 +49,28 @@ describe('next step', () => {
     expect(nextSteps({ hotRows: [], tasks: [], quotes: [], today, nowClock: '10:00', isExpired: notExpired })).toEqual([]);
   });
 });
+
+// Owner 2026-10-23 (typed L-25 / L-26, morning report item 12): an International quote can be signed until its last day ends everywhere
+// (Anywhere on Earth); on the UTC morning after that day it is still "ends today", never dropped
+import { marketCalendarDate, isQuoteAcceptanceExpired } from './quoteValidity';
+describe('next step - the validity day of the market', () => {
+  it('International, 07:00 UTC the day after valid_until: still listed as ending today (the customer can still sign)', () => {
+    const now = new Date('2026-10-23T07:00:00Z');
+    const q = { id: 'int1', status: 'sent', valid_until: '2026-10-22', currency: 'USD' };
+    const isExpired = (x) => isQuoteAcceptanceExpired(x.valid_until, 'International', now);
+    expect(isExpired(q)).toBe(false);
+    const steps = nextSteps({ quotes: [q], today: '2026-10-23', validityToday: marketCalendarDate('International', now), isExpired });
+    expect(steps.map((s) => [s.kind, s.quote.id, s.daysLeft])).toEqual([['expiring', 'int1', 0]]);
+    // after noon UTC the day has ended everywhere: expired, not listed
+    const later = new Date('2026-10-23T12:30:00Z');
+    const isExpiredLater = (x) => isQuoteAcceptanceExpired(x.valid_until, 'International', later);
+    expect(nextSteps({ quotes: [q], today: '2026-10-23', validityToday: marketCalendarDate('International', later), isExpired: isExpiredLater })).toEqual([]);
+  });
+  it('Local: the Israel day, unchanged', () => {
+    const now = new Date('2026-10-22T20:00:00Z'); // 23:00 Israel on the 22nd
+    const q = { id: 'il1', status: 'sent', valid_until: '2026-10-22', currency: 'ILS' };
+    const isExpired = (x) => isQuoteAcceptanceExpired(x.valid_until, 'Local', now);
+    const steps = nextSteps({ quotes: [q], today: '2026-10-22', validityToday: marketCalendarDate('Local', now), isExpired });
+    expect(steps.map((s) => [s.quote.id, s.daysLeft])).toEqual([['il1', 0]]);
+  });
+});

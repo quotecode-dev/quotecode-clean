@@ -9,6 +9,23 @@
 // after the tag was loaded on a public page of the same visit. The page address sent is the path + the utm_* tags only.
 import { PUBLIC_SEO_ROUTES } from './publicSeoRoutes';
 
+// Owner console 2026-10-23 (typed: "מאשר שינוי ב-L-12: סעיף 7 אפשרות א"): consent is asked by the visitor's LOCATION, not only by the
+// site language - every visitor in the EU / EEA, the UK or Switzerland is asked first, on the Hebrew website too; a visitor whose country
+// is unknown is asked as well (never measured by guess). The Hebrew website keeps measuring by default elsewhere, and offers an opt-out.
+export const CONSENT_REGION = Object.freeze(new Set([
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV', 'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK',
+  'SI', 'ES', 'SE', // EU 27
+  'IS', 'LI', 'NO', // EEA
+  'GB', 'CH', // UK, Switzerland
+]));
+/** the visitor's country (ISO 3166-1 alpha-2) -> true (ask first) / false (no consent needed) / null (unknown: ask first) */
+export function inConsentRegion(country) {
+  const raw = typeof country === 'string' ? country.trim().toUpperCase() : '';
+  const c = raw === 'UK' ? 'GB' : raw; // an alias some sources use for the United Kingdom
+  if (!/^[A-Z]{2}$/.test(c)) return null;
+  return CONSENT_REGION.has(c);
+}
+
 export const GA_MEASUREMENT_ID = 'G-YSTSKDZMCM';
 export const CONSENT_KEY = 'tekango.analyticsConsent.v1';
 export const CONSENT_EVENT = 'tekango:analytics-consent';
@@ -94,11 +111,15 @@ export function writeConsent(value, win = typeof window !== 'undefined' ? window
 }
 
 // an explicit "declined" is respected on both sites; any /en address needs consent, whichever bundle renders it
-export function measurementAllowed({ pathname, search, hash, hostname, isHebrew, consent, authContext = bootAuthContext }) {
+// region (Owner 2026-10-23, item 7 א): true = the visitor is in the consent region, null = unknown / not known yet, false = a known
+// country outside it (the default, so a caller that does not know the location keeps the former rule)
+export function consentRequired({ pathname, isHebrew, region = false }) {
+  return isHebrew !== true || /^\/en(?:\/|$)/.test(String(pathname || '')) || region !== false;
+}
+export function measurementAllowed({ pathname, search, hash, hostname, isHebrew, consent, region = false, authContext = bootAuthContext }) {
   if (authContext || !isProductionHost(hostname) || !isMeasuredPath(pathname) || carriesAuthState(search, hash)) return false;
   if (consent === 'denied') return false;
-  const needsConsent = isHebrew !== true || /^\/en(?:\/|$)/.test(String(pathname || ''));
-  return !needsConsent || consent === 'granted';
+  return !consentRequired({ pathname, isHebrew, region }) || consent === 'granted';
 }
 
 function ensureGtag(win, doc, pageLocation, pageReferrer) {
@@ -118,9 +139,9 @@ function ensureGtag(win, doc, pageLocation, pageReferrer) {
 }
 
 // called on every route change; returns true when a page view was sent
-export function syncMeasurement({ isHebrew, consent, win = window, doc = document, authContext = bootAuthContext }) {
+export function syncMeasurement({ isHebrew, consent, region = false, win = window, doc = document, authContext = bootAuthContext }) {
   const loc = win.location;
-  const allowed = measurementAllowed({ pathname: loc.pathname, search: loc.search, hash: loc.hash, hostname: loc.hostname, isHebrew, consent, authContext });
+  const allowed = measurementAllowed({ pathname: loc.pathname, search: loc.search, hash: loc.hash, hostname: loc.hostname, isHebrew, consent, region, authContext });
   win[`ga-disable-${GA_MEASUREMENT_ID}`] = !allowed;
   if (!allowed) { win.__tekangoLastMeasured = ''; return false; }
   const pageLocation = sanitizedPageLocation({ origin: loc.origin, pathname: loc.pathname, search: loc.search });

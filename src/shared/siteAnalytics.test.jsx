@@ -1,12 +1,12 @@
 // Owner console 2026-10-21 (typed L-12): Google Analytics only on the public pages, only on production, English only after consent;
 // never on the app, the customer quote links or the business cards; the page address keeps the path + utm_* only.
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { render, screen, fireEvent, act } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import {
   GA_MEASUREMENT_ID, CONSENT_KEY, isMeasuredPath, isProductionHost, carriesAuthState, sanitizedPageLocation, measurementAllowed,
-  syncMeasurement, readConsent, writeConsent, sanitizedReferrer, applyWithdrawal,
+  syncMeasurement, readConsent, writeConsent, sanitizedReferrer, applyWithdrawal, inConsentRegion,
 } from './siteAnalytics';
 import SiteAnalytics from './SiteAnalyticsTracker';
 
@@ -181,5 +181,75 @@ describe('the English cookie notice', () => {
   it('never shows on a customer quote link', () => {
     at('/en/public-quote/c/tok', false);
     expect(screen.queryByTestId('analytics-consent-banner')).toBeNull();
+  });
+});
+
+// Owner console 2026-10-23 (typed: "מאשר שינוי ב-L-12: סעיף 7 אפשרות א"): consent by LOCATION - the EU / EEA, the UK and Switzerland are asked
+// first on the Hebrew website too, an unknown country is asked too; elsewhere the Hebrew website measures by default and offers an opt-out
+describe('consent by location (item 7 א)', () => {
+  it('the consent region: EU / EEA / UK / CH -> true; Israel / US -> false; unknown -> null', () => {
+    for (const c of ['DE', 'fr', 'GB', 'CH', 'NO', 'IS', 'LI', 'IE']) expect(inConsentRegion(c)).toBe(true);
+    for (const c of ['IL', 'US', 'CA', 'AU']) expect(inConsentRegion(c)).toBe(false);
+    for (const c of [null, undefined, '', 'XX1', 'Israel']) expect(inConsentRegion(c)).toBe(null);
+  });
+  it('the Hebrew website needs consent in the region and when the country is unknown; not elsewhere', () => {
+    const base = { pathname: '/he', search: '', hash: '', hostname: 'www.tekango.com', isHebrew: true, authContext: false };
+    expect(measurementAllowed({ ...base, consent: null, region: false })).toBe(true);
+    expect(measurementAllowed({ ...base, consent: null, region: true })).toBe(false);
+    expect(measurementAllowed({ ...base, consent: null, region: null })).toBe(false);
+    expect(measurementAllowed({ ...base, consent: 'granted', region: true })).toBe(true);
+    expect(measurementAllowed({ ...base, consent: 'denied', region: false })).toBe(false);
+  });
+  const atHe = () => render(<MemoryRouter initialEntries={['/he']}><SiteAnalytics isHebrew hostname="www.tekango.com" /></MemoryRouter>);
+  let origFetch;
+  // the fresh server geography (/api/geo) - stubbed, never a real request
+  const setCookie = (v) => { globalThis.fetch = vi.fn(async () => ({ ok: true, json: async () => ({ country: v }) })); };
+  beforeEach(() => { try { window.localStorage.clear(); } catch { /* none */ } origFetch = origFetch ?? globalThis.fetch; globalThis.fetch = origFetch; });
+  it('a visitor from Germany on the Hebrew website gets the notice IN HEBREW (RTL), and both choices work', async () => {
+    setCookie('DE');
+    atHe();
+    const banner = await screen.findByTestId('analytics-consent-banner');
+    expect(banner.getAttribute('dir')).toBe('rtl');
+    expect(banner.textContent).toContain('המדידה תופעל רק אם תאשרו');
+    expect(banner.getAttribute('aria-label')).toBe('העדפות מדידה');
+    expect(banner.querySelector('a').getAttribute('href')).toBe('/he/privacy#cookies');
+    fireEvent.click(screen.getByTestId('analytics-consent-decline'));
+    expect(readConsent()).toBe('denied');
+    expect(screen.queryByTestId('analytics-consent-banner')).toBeNull();
+  });
+  it('a visitor from Israel on the Hebrew website: no notice (measured by default); UK is the United Kingdom', async () => {
+    setCookie('IL');
+    atHe();
+    await act(async () => {});
+    expect(screen.queryByTestId('analytics-consent-banner')).toBeNull();
+    expect(inConsentRegion('uk')).toBe(true);
+  });
+  it('asks the server once; until it answers no notice; an unknown country gets the notice', async () => {
+    const orig = globalThis.fetch;
+    let resolve;
+    globalThis.fetch = vi.fn(() => new Promise((r) => { resolve = r; }));
+    try {
+      atHe();
+      expect(globalThis.fetch).toHaveBeenCalledWith('/api/geo', expect.objectContaining({ cache: 'no-store' }));
+      expect(screen.queryByTestId('analytics-consent-banner')).toBeNull();
+      await act(async () => { resolve({ ok: true, json: async () => ({ country: null }) }); });
+      expect(screen.getByTestId('analytics-consent-banner').getAttribute('dir')).toBe('rtl');
+    } finally { globalThis.fetch = orig; }
+  });
+});
+
+describe('the Hebrew opt-out in the Privacy Policy (item 7 א)', () => {
+  it('section 4 in Hebrew turns measurement off and back on in this browser', async () => {
+    const { default: Privacy } = await import('../pages/Privacy');
+    try { window.localStorage.clear(); } catch { /* none */ }
+    render(<MemoryRouter initialEntries={['/he/privacy']}><Privacy isHebrew /></MemoryRouter>);
+    const btn = screen.getByTestId('privacy-cookie-choice-he');
+    expect(btn.textContent).toBe('ביטול ההסכמה למדידה');
+    fireEvent.click(btn);
+    expect(readConsent()).toBe('denied');
+    expect(screen.getByTestId('privacy-cookie-stopped').textContent).toBe('המדידה הופסקה בדפדפן הזה. תוכלו לשנות את הבחירה בכל עת.');
+    expect(screen.getByTestId('privacy-cookie-choice-he').textContent).toBe('אישור מדידה');
+    fireEvent.click(screen.getByTestId('privacy-cookie-choice-he'));
+    expect(readConsent()).toBe('granted');
   });
 });

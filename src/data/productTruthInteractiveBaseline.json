@@ -648,8 +648,8 @@
     "markers": 0
   },
   "src/pages/Privacy.jsx": {
-    "interactive": 3,
-    "markers": 2
+    "interactive": 4,
+    "markers": 3
   },
   "src/pages/ProfessionalPublicPreview.jsx": {
     "interactive": 1,
@@ -884,6 +884,10 @@
     "markers": 0
   },
   "src/utils/draftAttachments.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/financialEdit.js": {
     "interactive": 0,
     "markers": 0
   },

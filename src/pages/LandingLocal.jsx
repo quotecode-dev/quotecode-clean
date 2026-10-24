@@ -202,7 +202,8 @@ export default function LandingLocal({ onForgotPassword }) {
     plans: {
       // Base section heading (L12); no eyebrow. The subtitle states the §249 model (Free-10, then one package).
       title: 'מסלולים ומחירים',
-      intro: '10 הצעות מחיר חינם, ואחריהן מסלול אחד שכולל הכול, בתשלום חודשי או שנתי.',
+      // Owner 2026-10-23 (typed L-14, morning report item 8): the 7 days, as everywhere else
+      intro: '10 הצעות מחיר חינם או 7 ימים, המוקדם מביניהם, ואחר כך מסלול אחד שכולל הכול, בתשלום חודשי או שנתי.',
       // Task 37 (Owner-approved L1 meaning, 2026-10-12): true on LIVE (signup states its own trial terms) and on TEST; Free-10 and the paid
       // plan stated as not active / not purchasable; prices stay visible.
       trialNote: 'מסלול 10 ההצעות החינמיות עדיין לא הופעל. תנאי החשבון הזמינים כעת מוצגים בתהליך ההרשמה. המסלול החדש בתשלום עדיין אינו זמין לרכישה, והמחירים מוצגים לידיעה בלבד.',

@@ -35,7 +35,11 @@ export async function serverAnswers(functionUrl, fetchImpl = (typeof fetch === '
 
 const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
 
-export async function classifyDraftError(error, { functionUrl = null, fetchImpl } = {}) {
+// Owner 2026-10-23 (morning report item 10): a long description makes the model's answer run past its length and arrive cut (the server
+// answers 502 malformed_provider_response) - said as "the description may be too long", never as "the service returned nothing".
+export const LONG_DESCRIPTION_CHARS = 800;
+
+export async function classifyDraftError(error, { functionUrl = null, fetchImpl, descriptionLength = 0 } = {}) {
   const name = error?.name || '';
   if (name === 'FunctionsFetchError') {
     if (isOffline()) return 'offline';
@@ -50,7 +54,8 @@ export async function classifyDraftError(error, { functionUrl = null, fetchImpl 
   if (status === 409 && code === 'market_unresolved') return 'market_unresolved';
   if (status === 422) return 'no_items';
   if (status === 400) return 'invalid';
-  if (status === 502 || status === 503 || status === 504) return 'provider';
+  if (status === 502 && code === 'malformed_provider_response' && descriptionLength >= LONG_DESCRIPTION_CHARS) return 'too_long';
+  if (status === 429 || status === 502 || status === 503 || status === 504) return 'provider'; // busy / temporarily unavailable (Codex spec item 10)
   if (status != null && status >= 500) return 'server_error';
   return 'failed';
 }
@@ -68,11 +73,11 @@ export async function requestAiQuoteDraft(supabase, description, { fetchImpl } =
   const functionUrl = draftFunctionUrl(supabase);
   try {
     const { data, error } = await supabase.functions.invoke(AI_QUOTE_DRAFT_FUNCTION, { body: { description: checked.value.description } });
-    if (error) return { status: await classifyDraftError(error, { functionUrl, fetchImpl }) };
+    if (error) return { status: await classifyDraftError(error, { functionUrl, fetchImpl, descriptionLength: checked.value.description.length }) };
     const draft = sanitizeDraftResponse(data);
     return draft ? { status: 'ok', ...draft } : { status: 'failed' };
   } catch (error) {
-    return { status: await classifyDraftError(error, { functionUrl, fetchImpl }) };
+    return { status: await classifyDraftError(error, { functionUrl, fetchImpl, descriptionLength: checked.value.description.length }) };
   }
 }
 

@@ -14,18 +14,25 @@
 //   * the transaction type codes: only the documented charge code ('01') raises UNLINKED; a known refund code raises REFUND_UNRECORDED;
 //     every other code is only counted (types), so an unknown code never makes a false alert.
 
+// Codex R-08: a transaction time with an explicit zone is that instant; a zone-less "YYYY-MM-DD HH:MM:SS" is Israel wall-clock time - the
+// convention of the PayPlus callback (subscription-authority payplusDateToIso); anything else is unreadable, never the runtime's zone.
+import { payplusDateToIso } from '../subscription-authority/payplus.ts';
+
 export type ProviderTx = { uid: string; type: string; kind: 'charge' | 'refund' | 'other'; amount: number; currency: string; at: string; moreInfo: string | null };
 export type OurCharge = { providerEventId: string; attemptId: string | null; amountMinor: number; currency: string; at: string };
 export type OurRefund = { transactionUid: string };
 export type FindingCode = 'UNLINKED' | 'MISSING_AT_PROVIDER' | 'AMOUNT_MISMATCH' | 'REFUND_UNRECORDED';
 export type Finding = { code: FindingCode; uid: string; detail: Record<string, unknown> };
 export type Scale = 'minor' | 'major' | 'unknown';
-export type Reconciliation = { matched: number; findings: Finding[]; scale: Scale; types: Record<string, number> };
+// matched = the same transaction AND the same verified amount; unverified = the same transaction whose amount could not be checked yet
+// (Codex R-01: with no proven amount unit nothing is called "matched")
+export type Reconciliation = { matched: number; unverified: number; findings: Finding[]; scale: Scale; types: Record<string, number> };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export const CHARGE_TYPES = Object.freeze(['01', '1']);
 export const REFUND_TYPES = Object.freeze(['03', '3']);
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+
 
 /** One TransactionsHistory row -> our shape, or null when it cannot be read (counted as unreadable, never guessed). */
 export function normalizeProviderTx(raw: unknown): ProviderTx | null {
@@ -37,12 +44,12 @@ export function normalizeProviderTx(raw: unknown): ProviderTx | null {
   const signed = typeof a === 'number' ? a : typeof a === 'string' && /^-?\d{1,12}(\.\d{1,2})?$/.test(a.trim()) ? Number(a.trim()) : NaN;
   const amount = Math.abs(signed);
   const currency = isObj(info.currency) && typeof info.currency.currency_code === 'string' ? info.currency.currency_code.trim().toUpperCase() : '';
-  const at = typeof info.transaction_at === 'string' ? info.transaction_at : typeof raw.created_at === 'string' ? raw.created_at : null;
-  if (!uid || uid.length > 200 || !type || !Number.isFinite(amount) || !/^[A-Z]{3}$/.test(currency) || !at || !Number.isFinite(Date.parse(at))) return null;
+  const at = payplusDateToIso(typeof info.transaction_at === 'string' ? info.transaction_at.trim() : typeof raw.created_at === 'string' ? raw.created_at.trim() : null);
+  if (!uid || uid.length > 200 || !type || !Number.isFinite(amount) || !/^[A-Z]{3}$/.test(currency) || !at) return null;
   const more = typeof info.more_info === 'string' && UUID.test(info.more_info.trim()) ? info.more_info.trim() : null;
   // a negative amount is money going back to the customer: a refund whatever its code
   const kind = signed < 0 || REFUND_TYPES.includes(type) ? 'refund' : CHARGE_TYPES.includes(type) ? 'charge' : 'other';
-  return { uid, type, kind, amount, currency, at: new Date(Date.parse(at)).toISOString(), moreInfo: more };
+  return { uid, type, kind, amount, currency, at, moreInfo: more };
 }
 
 const toMinor = (amount: number, scale: Scale) => (scale === 'major' ? Math.round(amount * 100) : amount);
@@ -81,10 +88,12 @@ export function reconcile(a: { provider: ProviderTx[]; charges: OurCharge[]; ref
   const types: Record<string, number> = {};
   const findings: Finding[] = [];
   let matched = 0;
+  let unverified = 0;
   const compare = (t: ProviderTx, ours: OurCharge) => {
     seen.add(ours.providerEventId);
     if (ours.attemptId) matchedAttempts.add(ours.attemptId);
-    if (ours.currency !== t.currency || (scale !== 'unknown' && toMinor(t.amount, scale) !== ours.amountMinor)) {
+    if (ours.currency === t.currency && scale === 'unknown') { unverified += 1; return; }
+    if (ours.currency !== t.currency || toMinor(t.amount, scale) !== ours.amountMinor) {
       findings.push({ code: 'AMOUNT_MISMATCH', uid: t.uid, detail: { at: t.at, provider: { amount: t.amount, currency: t.currency, scale }, ours: { amountMinor: ours.amountMinor, currency: ours.currency } } });
     } else matched += 1;
   };
@@ -116,7 +125,7 @@ export function reconcile(a: { provider: ProviderTx[]; charges: OurCharge[]; ref
     if (isPull(c) && c.attemptId && matchedAttempts.has(c.attemptId)) continue; // its callback row already matched the PayPlus charge
     findings.push({ code: 'MISSING_AT_PROVIDER', uid: c.providerEventId, detail: { amountMinor: c.amountMinor, currency: c.currency, at: c.at, attemptId: c.attemptId } });
   }
-  return { matched, findings, scale, types };
+  return { matched, unverified, findings, scale, types };
 }
 
 const LABEL: Record<FindingCode, string> = {
@@ -159,23 +168,27 @@ export async function readHistory(f: Fetch, cfg: { apiBase: string; apiKey: stri
     const ctl = new AbortController();
     const timer = setTimeout(() => ctl.abort(), timeoutMs);
     let res: Response;
+    let body: unknown;
     try {
       res = await f(`${cfg.apiBase}/TransactionReports/TransactionsHistory`, {
         method: 'POST', signal: ctl.signal,
         headers: { 'content-type': 'application/json', 'api-key': cfg.apiKey, 'secret-key': cfg.secretKey, 'user-agent': 'PayPlus' },
         body: JSON.stringify(historyBody(cfg.terminalUid, from, until, currency, page * 500)),
       });
+      if (!res.ok) return { ok: false, code: `provider_${res.status}` };
+      try { body = await res.json(); } catch { return { ok: false, code: 'provider_not_json' }; } // within the timer (Codex: a stalled body)
     } catch (e) {
-      // a relay secret that is not a URL is said as such (payplusEgress); anything else = PayPlus (or the relay) did not answer
-      return { ok: false, code: (e as Error)?.message === 'relay_misconfigured' ? 'relay_misconfigured' : 'provider_unreachable' };
+      // a relay secret that is not a URL is said as such (payplusEgress); a refused relay tunnel is the relay's (Codex R-10); anything else =
+      // PayPlus (or the relay) did not answer
+      const m = String((e as Error)?.message ?? '');
+      return { ok: false, code: m === 'relay_misconfigured' ? 'relay_misconfigured' : /proxy|tunnel|407/i.test(m) ? 'relay_refused' : 'provider_unreachable' };
     } finally { clearTimeout(timer); }
-    if (!res.ok) return { ok: false, code: `provider_${res.status}` };
-    let body: unknown;
-    try { body = await res.json(); } catch { return { ok: false, code: 'provider_not_json' }; }
     if (!isObj(body) || !Array.isArray(body.transactions)) return { ok: false, code: 'provider_unexpected_answer' };
     rows.push(...body.transactions);
-    const pages = typeof body.pages === 'number' ? body.pages : 1;
-    if (body.transactions.length < 500 || page + 1 >= pages) return { ok: true, rows };
+    // Codex R-09: pages may arrive as a number or a numeric string, or not at all - a FULL page is always followed by the next one
+    const pages = typeof body.pages === 'number' || (typeof body.pages === 'string' && /^\d+$/.test(body.pages)) ? Number(body.pages) : null;
+    if (body.transactions.length < 500) return { ok: true, rows };
+    if (pages !== null && page + 1 >= pages) return { ok: true, rows };
   }
   return { ok: false, code: 'provider_too_many_rows' };
 }
@@ -183,7 +196,7 @@ export async function readHistory(f: Fetch, cfg: { apiBase: string; apiKey: stri
 // ------------------------------------------------------------------------------------------------------------------- one run
 export type PayPlusRead = { apiBase: string; apiKey: string; secretKey: string; terminalUid: string };
 export type RunPatch = { status: 'ok' | 'failed' | 'not_configured'; windowFrom?: string; windowUntil?: string; providerCount?: number; oursCount?: number;
-  matched?: number; newFindings?: number; scale?: Scale; types?: Record<string, number>; errorCode?: string };
+  matched?: number; unverified?: number; newFindings?: number; scale?: Scale; types?: Record<string, number>; errorCode?: string };
 export type ReconcileDeps = {
   caller: () => Promise<'admin' | 'cron' | null>;
   now: () => Date;
@@ -198,7 +211,12 @@ export type ReconcileDeps = {
   saveFindings: (runId: string, findings: Finding[], seenByOwner: boolean) => Promise<Finding[]>;
   /** the open findings the Owner was not told about yet (a failed email is retried by the next site run) */
   unmailed: () => Promise<(Finding & { id: string })[]>;
-  mailOwner: (subject: string, text: string, runId: string) => Promise<boolean>;
+  /** key: idempotent per message (findings/<run>, failed/<israel day>, recovered/<israel day>) */
+  mailOwner: (subject: string, text: string, key: string) => Promise<boolean>;
+  /** the newest site run of an EARLIER Israel day, or null (Codex R-02: one alert per incident) */
+  previousCron: (day: string) => Promise<{ status: string } | null>;
+  /** this site run already failed earlier today and the Owner was told (its row carries mailed_at) */
+  failureToldToday: (runId: string) => Promise<boolean>;
   markMailed: (runId: string, findingIds: string[]) => Promise<void>;
 };
 export const WINDOW_DAYS = 3;
@@ -220,22 +238,48 @@ export async function reconcileHandler(body: Record<string, unknown>, deps: Reco
   }
 }
 
+// Codex R-02: a failed or unconfigured SITE run tells the Owner once per incident (the first failing day; a run that fails again the same
+// day or the next days stays quiet), and the first completed run after it says the reconciliation works again. Never a secret in a mail.
+const FAILURE_TEXT: Record<string, string> = {
+  payplus_read_not_configured: 'חסרות בשרת הגדרות הקריאה מפיי פלוס (מזהה המסוף או המפתחות).',
+  provider_403: 'פיי פלוס סירבו לבקשה (403). בדרך כלל זו בדיקת כתובות ה-IP בחשבון: כדאי לוודא שכתובות המתווך ברשימת המורשים.',
+  relay_refused: 'המתווך עם הכתובת הקבועה סירב לחיבור. ייתכן שנגמרה המכסה החודשית שלו או שהסיסמה השתנתה.',
+  relay_misconfigured: 'כתובת המתווך שבשרת אינה תקינה.',
+  provider_unreachable: 'פיי פלוס או המתווך לא ענו בזמן.',
+};
+export function failureMail(code: string, appUrl: string): { subject: string; text: string } {
+  return {
+    subject: 'התאמת התשלומים היומית לא הושלמה',
+    text: [`ההתאמה היומית מול פיי פלוס לא הושלמה היום (${code}).`, FAILURE_TEXT[code] ?? 'הפרטים במסך.', '',
+      `המסך "התאמת תשלומים" בניהול: ${appUrl}/dashboard`, 'לא תקבלו על זה מייל נוסף עד שההתאמה תחזור לעבוד.'].join('\n'),
+  };
+}
+export function recoveryMail(appUrl: string): { subject: string; text: string } {
+  return { subject: 'התאמת התשלומים חזרה לעבוד', text: [`ההתאמה היומית מול פיי פלוס הושלמה שוב.`, '', `המסך "התאמת תשלומים" בניהול: ${appUrl}/dashboard`].join('\n') };
+}
+
 async function runOnce(runId: string, role: 'admin' | 'cron', now: Date, deps: ReconcileDeps, appUrl: string): Promise<{ status: number; body: Record<string, unknown> }> {
+  const day = israelDay(now);
+  // an open incident: the previous site day failed, or this same site run already failed (and was told) earlier today
+  const incidentOpen = async () => role === 'cron' && (['failed', 'not_configured'].includes((await deps.previousCron(day))?.status ?? '') || (await deps.failureToldToday(runId)));
+  const fail = async (status: 'failed' | 'not_configured', code: string, extra: Partial<RunPatch> = {}) => {
+    const open = await incidentOpen();
+    await deps.finishRun(runId, { status, errorCode: code, ...extra });
+    if (role === 'cron' && !open) {
+      const m = failureMail(code, appUrl);
+      if (await deps.mailOwner(m.subject, m.text, `failed/${day}`)) await deps.markMailed(runId, []);
+    }
+    return { status: 200, body: { ok: false, status, code, runId } };
+  };
   const cfg = deps.config();
-  if (!cfg) {
-    await deps.finishRun(runId, { status: 'not_configured', errorCode: 'payplus_read_not_configured' });
-    return { status: 200, body: { ok: true, status: 'not_configured', runId } };
-  }
+  if (!cfg) return fail('not_configured', 'payplus_read_not_configured');
   const until = now;
   const from = new Date(now.getTime() - WINDOW_DAYS * 86400000);
   const providerFrom = new Date(from.getTime() - 86400000);
   const rows: unknown[] = [];
   for (const currency of CURRENCIES) {
     const r = await deps.history(cfg, providerFrom, until, currency);
-    if (!r.ok) {
-      await deps.finishRun(runId, { status: 'failed', errorCode: r.code, windowFrom: from.toISOString(), windowUntil: until.toISOString() });
-      return { status: 200, body: { ok: false, status: 'failed', code: r.code, runId } };
-    }
+    if (!r.ok) return fail('failed', r.code, { windowFrom: from.toISOString(), windowUntil: until.toISOString() });
     rows.push(...r.rows);
   }
   const provider: ProviderTx[] = [];
@@ -250,15 +294,17 @@ async function runOnce(runId: string, role: 'admin' | 'cron', now: Date, deps: R
   }
   const ours = await deps.source(providerFrom.toISOString(), until.toISOString());
   const r = reconcile({ provider, charges: ours.charges, refunds: ours.refunds, from: from.toISOString(), until: until.toISOString() });
+  const recovered = await incidentOpen();
   const fresh = await deps.saveFindings(runId, r.findings, role === 'admin');
   const types = unreadable ? { ...r.types, unreadable } : r.types;
   await deps.finishRun(runId, { status: 'ok', windowFrom: from.toISOString(), windowUntil: until.toISOString(), providerCount: provider.length,
-    oursCount: ours.charges.length, matched: r.matched, newFindings: fresh.length, scale: r.scale, types });
+    oursCount: ours.charges.length, matched: r.matched, unverified: r.unverified, newFindings: fresh.length, scale: r.scale, types });
   let mailed = false;
   if (role === 'cron') {
+    if (recovered) { const m = recoveryMail(appUrl); await deps.mailOwner(m.subject, m.text, `recovered/${day}`); }
     const pending = await deps.unmailed();
     const mail = alertText(pending, r.matched, appUrl);
-    if (mail && await deps.mailOwner(mail.subject, mail.text, runId)) { mailed = true; await deps.markMailed(runId, pending.map((p) => p.id)); }
+    if (mail && await deps.mailOwner(mail.subject, mail.text, `findings/${runId}`)) { mailed = true; await deps.markMailed(runId, pending.map((p) => p.id)); }
   }
-  return { status: 200, body: { ok: true, status: 'ok', runId, provider: provider.length, matched: r.matched, newFindings: fresh.length, scale: r.scale, unreadable, mailed } };
+  return { status: 200, body: { ok: true, status: 'ok', runId, provider: provider.length, matched: r.matched, unverified: r.unverified, newFindings: fresh.length, scale: r.scale, unreadable, mailed } };
 }

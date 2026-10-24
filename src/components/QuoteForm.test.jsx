@@ -624,3 +624,17 @@ describe('QuoteForm - market-correct placeholders and attachment remove accessib
     expect(screen.getByRole('button', { name: 'הסרת הקובץ plan.pdf' })).toBeTruthy();
   });
 });
+
+// Owner 2026-10-23 (typed L-09, morning report item 5; IRON-DATE-001): the validity date in the editor follows the ACCOUNT MARKET, never the currency
+describe('QuoteForm - the validity date order follows the account market', () => {
+  const field = () => screen.getAllByRole('textbox').find((el) => /^\d{2}\/\d{2}\/\d{4}$/.test(el.value));
+  it.each([
+    ['an account abroad in euros', { isLocalIsraeliBusiness: false, currency: 'EUR' }, '11/05/2026'],
+    ['an account abroad in pounds', { isLocalIsraeliBusiness: false, currency: 'GBP' }, '11/05/2026'],
+    ['an account abroad in dollars', { isLocalIsraeliBusiness: false, currency: 'USD' }, '11/05/2026'],
+    ['an Israeli account', { isLocalIsraeliBusiness: true, currency: 'ILS', isHebrew: true }, '05/11/2026'],
+  ])('%s', (_label, props, shown) => {
+    render(<QuoteForm {...baseProps({ ...props, validUntil: '2026-11-05' })} />);
+    expect(field()?.value).toBe(shown);
+  });
+});

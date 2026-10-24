@@ -41,7 +41,7 @@ describe('Terms §4 - subscriptions cutover facts (OD-01..OD-08, OD-16)', () => 
     }
   });
   it('HE: the one package (§249) with its ILS prices, Free-10 rules, legacy rights unchanged and the VAT inclusion sentence', () => {
-    expect(T.he).toContain('אחרי 10 ההצעות החינמיות, המנוי הוא מסלול אחד שכולל את כל היכולות הזמינות בשירות, בתשלום חודשי או שנתי מתחדש: 30.00 ₪ לחודש או 306.00 ₪ לשנה.');
+    expect(T.he).toContain('אחרי מסלול החינם (10 הצעות או 7 ימים, המוקדם מביניהם), המנוי הוא מסלול אחד שכולל את כל היכולות הזמינות בשירות, בתשלום חודשי או שנתי מתחדש: 30.00 ₪ לחודש או 306.00 ₪ לשנה.');
     expect(T.he).toContain('סגנונות הצגת ההצעה אינם מסלולים. זכויות קיימות במסלול קודם נשמרות ואינן משתנות אוטומטית.'); // Task 37: Owner-approved neutral legacy rights
     expect(T.he).toContain('מסלול חינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם, ובשבעת הימים כלולה גם התוספת חכם פלוס');
     expect(T.he).toMatch(/מחיקת הצעה אינה מחזירה אותה, ומסמכים קיימים נשארים נגישים/); // the counting sentence itself: Task 36 block below
@@ -52,7 +52,7 @@ describe('Terms §4 - subscriptions cutover facts (OD-01..OD-08, OD-16)', () => 
     expect(T.he).not.toMatch(/\+\s*מע|לא כולל מע/);
   });
   it('EN: the one package with its USD prices ($184.00 annual), Free-10 rules, billing always USD, local currency only an estimate, zero ILS', () => {
-    expect(T.en).toContain('After the 10 free quotes, the subscription is one package with every capability available in the Service, billed monthly or annually and renewing: 18.00 USD per month or 184.00 USD per year.');
+    expect(T.en).toContain('After the Free plan (10 quotes or 7 days, whichever ends first), the subscription is one package with every capability available in the Service, billed monthly or annually and renewing: 18.00 USD per month or 184.00 USD per year.');
     expect(T.en).toContain('Quote presentation styles are not plans. Existing rights on an earlier plan are kept and do not change automatically.'); // Task 37
     expect(T.en).toContain('The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, and the SMART PACK add-on is included during those 7 days');
     expect(T.en).not.toMatch(/183\.60|28\.00 USD|38\.00 USD/);

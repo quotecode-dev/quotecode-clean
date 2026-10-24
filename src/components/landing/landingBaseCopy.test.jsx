@@ -101,14 +101,14 @@ describe('L04 - the four capability cards are the base titles and bodies', () =>
 describe('L12 - plans section heading is the base title and subtitle', () => {
   // §249 / IRON-LANDING-001 (2026-10-11): the subtitle states the one-package model; the heading stays.
   it('HE h2 "מסלולים ומחירים" + the Free-10-then-one-package subtitle; no eyebrow', () => {
-    expect(heHtml).toMatch(/<h2 id="tl-plans-title">מסלולים ומחירים<\/h2><p>10 הצעות מחיר חינם, ואחריהן מסלול אחד שכולל הכול, בתשלום חודשי או שנתי.<\/p>/);
+    expect(heHtml).toMatch(/<h2 id="tl-plans-title">מסלולים ומחירים<\/h2><p>10 הצעות מחיר חינם או 7 ימים, המוקדם מביניהם, ואחר כך מסלול אחד שכולל הכול, בתשלום חודשי או שנתי.<\/p>/);
     expect(he).not.toContain('בחרו את המסלול שמתאים לעסק שלכם.');
     expect(heHtml).not.toMatch(/<span class="tl-eyebrow">מסלולים ומחירים<\/span>/);
     expect(he).not.toContain('בוחרים מסלול שמתאים לעסק');
     expect(he).not.toContain('המחירים במסלולים מותאמים לשוק הישראלי וכוללים מע"מ 18%.');
   });
   it('EN h2 "Plans & Pricing" + the Free-10-then-one-package subtitle', () => {
-    expect(enHtml).toMatch(/<h2 id="tl-plans-title">Plans &amp; Pricing<\/h2><p>10 free quotes, then one package with every available capability, billed monthly or annually.<\/p>/);
+    expect(enHtml).toMatch(/<h2 id="tl-plans-title">Plans &amp; Pricing<\/h2><p>10 free quotes or 7 days, whichever ends first, then one package with every available capability, billed monthly or annually.<\/p>/);
     expect(en).not.toContain('Choose the best plan for your business.');
     expect(en).not.toContain('Choose the plan that fits your business');
     expect(en).not.toContain('Plan prices are shown in your currency for information.');

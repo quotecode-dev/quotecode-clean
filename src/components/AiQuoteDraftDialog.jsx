@@ -80,11 +80,13 @@ const COPY = {
     voiceErrors: { mic_denied: 'אין גישה למיקרופון. אפשר לאשר גישה בהגדרות הדפדפן, או להקליד.', failed: 'לא הצלחתי להבין את ההקלטה. אפשר לנסות שוב או להקליד.', limit: 'הגעתם למכסת הפעולות הקוליות היומית. אפשר להמשיך בהקלדה.', smart_pack: 'הצ׳אט הקולי וההכתבה הם חלק מחכם פלוס. אפשר להוסיף אותו במסך המסלולים.' },
     errors: {
       not_deployed: 'שירות טיוטות ה-AI עדיין לא מותקן בשרת הזה. אפשר למלא את ההצעה ידנית או לשאול את העוזר החכם בצ׳אט.',
-      service_unreachable: 'שירות טיוטות ה-AI אינו עונה כרגע, אף שהשרת זמין. בדרך כלל המשמעות היא שהשירות עדיין לא הותקן בשרת. אפשר למלא את ההצעה ידנית או לשאול את העוזר החכם בצ׳אט.',
+      // Owner 2026-10-23 (morning report item 10): a busy server answers without the browser headers too - never called "not installed"
+      service_unreachable: 'שירות טיוטות ה-AI לא ענה הפעם, אף שהשרת זמין. ייתכן שהוא עמוס. נסו שוב בעוד רגע, או מלאו את ההצעה ידנית.',
+      too_long: 'לא התקבלה טיוטה שלמה, כנראה כי התיאור ארוך מדי לטיוטה אחת. נסו לקצר אותו או לחלק את העבודה לכמה הצעות.',
       unavailable: 'לא הצלחנו להתחבר לשרת. בדקו את החיבור לאינטרנט ונסו שוב, או מלאו את ההצעה ידנית.',
       offline: 'אין חיבור לאינטרנט. התחברו ונסו שוב, או מלאו את ההצעה ידנית.',
       server_error: 'שירות טיוטות ה-AI נתקל בשגיאה בשרת. נסו שוב מאוחר יותר, או מלאו את ההצעה ידנית.',
-      provider: 'שירות ה-AI לא החזיר טיוטה. נסו שוב בעוד רגע, או מלאו את ההצעה ידנית.',
+      provider: 'שירות ה-AI עמוס או אינו זמין זמנית. נסו שוב בעוד רגע, או מלאו את ההצעה ידנית.',
       no_items: 'לא נמצאו פריטים בתיאור. נסו לפרט יותר מה העבודה כוללת.',
       market_unresolved: 'כדי ליצור טיוטה צריך קודם להשלים את אזור העסק בהגדרות העסק.',
       // Owner 2026-10-20 (typed L-17 approval): the AI smart quote is SMART PACK once the plan system is enforced
@@ -143,11 +145,12 @@ const COPY = {
     voiceErrors: { mic_denied: 'No microphone access. You can allow it in your browser settings, or type.', failed: "I couldn't understand the recording. Try again or type.", limit: "You've reached today's voice limit. You can keep typing.", smart_pack: 'Voice chat and dictation are part of SMART PACK. You can add it in the plans view.' },
     errors: {
       not_deployed: 'The AI draft service is not installed on this server yet (the server answered that it was not found). You can fill in the quote manually or ask the AI chat.',
-      service_unreachable: 'The AI draft service is not available on this server: the server itself answers, but the service did not respond to the request. This usually means it has not been installed on the server yet. You can fill in the quote manually or ask the AI chat.',
+      service_unreachable: 'The AI draft service did not respond this time, although the server is up. It may be busy. Try again in a moment, or fill in the quote manually.',
+      too_long: 'No complete draft came back, most likely because the description is too long for one draft. Try shortening it or splitting the job into several quotes.',
       unavailable: 'We could not reach the server. Check your internet connection and try again, or fill in the quote manually.',
       offline: 'You are offline. Reconnect and try again, or fill in the quote manually.',
       server_error: 'The AI draft service hit a server error. Try again later, or fill in the quote manually.',
-      provider: 'The AI service did not return a draft right now. Try again in a moment, or fill in the quote manually.',
+      provider: 'The AI service is busy or temporarily unavailable. Try again shortly, or fill in the quote manually.',
       no_items: 'No items were found in the description. Try describing what the job includes in more detail.',
       market_unresolved: 'To create a draft, first complete your business region in Business settings.',
       smart_pack_required: 'The AI smart quote is part of SMART PACK. You can add it in the plans view, or fill in the quote manually.',
