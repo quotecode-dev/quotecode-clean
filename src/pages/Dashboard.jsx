@@ -3193,6 +3193,9 @@ Continue anyway?`);
       // the browser refused the clipboard: show the exact text to copy by hand (never a false "copied")
       window.prompt(isHebrew ? 'ההעתקה האוטומטית לא הותרה בדפדפן. העתיקו את ההודעה מכאן:' : 'The browser did not allow copying. Copy the message from here:', message);
     }
+    // Owner 2026-10-25 (typed L-13): the message is copied to be sent (SMS, Messenger ...) - a Draft is marked Sent, as WhatsApp / email do
+    // (in the enforced phase the server already marked it at authorization)
+    if (gate.mode !== 'authority_required') markSentAfterShare(proposal);
   };
 
   // Owner 2026-10-15: a WhatsApp / email share marks a Draft quote Sent in the legacy output phase (see utils/quoteSentMark.js);

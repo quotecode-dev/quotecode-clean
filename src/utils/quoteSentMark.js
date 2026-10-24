@@ -1,6 +1,7 @@
 // Owner 2026-10-15 (a real WhatsApp share stayed "Needs sending"): a quote shared with the customer by WhatsApp (when WhatsApp opens) or
 // by email (after the send succeeded) is marked Sent - only from Draft, and only while the output phase is legacy (when the phase is
-// enforced, finalize_quote_output on the server marks it and the client never changes the status). Copying the message is not a send.
+// enforced, finalize_quote_output on the server marks it and the client never changes the status). Owner 2026-10-25 (typed L-13): copying
+// the message marks it Sent too (it is copied to be sent by SMS / another app).
 export const isDraftStatus = (status) => String(status || 'draft').toLowerCase() === 'draft';
 
 export async function markQuoteSentAfterShare(client, userId, quote) {
