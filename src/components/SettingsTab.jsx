@@ -30,6 +30,7 @@ const getDialByCurrency = (curr, isLocal) => {
 // PRODUCT_TRUTH_CAPABILITY: business_settings
 export default function SettingsTab({
   isHebrew,
+  unsavedChanges = false, // Owner 2026-10-25 (typed L-15 + L-01): the form differs from what is stored
   handleSaveSettings,
   bizName,
   setBizName,
@@ -513,10 +514,13 @@ export default function SettingsTab({
         </div>
 
 
+        <div style={unsavedChanges ? { position: 'sticky', bottom: '8px', zIndex: 5, display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', background: NEON.bgCard, border: `1px solid ${NEON.amber}`, borderRadius: '10px', padding: '8px 10px', boxShadow: '0 6px 18px rgba(0,0,0,0.12)' } : undefined}>
+        {unsavedChanges && <span role="status" data-testid="settings-unsaved" style={{ fontSize: '0.82rem', fontWeight: 600, color: NEON.textPrimary }}>{isHebrew ? 'יש שינויים שלא נשמרו' : 'You have unsaved changes'}</span>}
         {/* PRODUCT_TRUTH_CAPABILITY: business_settings */}
         <button type="submit" style={{ background: NEON.gradient, color: 'white', border: 'none', padding: '8px 16px', borderRadius: '8px', fontWeight: '600', fontSize: '0.9rem', cursor: 'pointer', boxShadow: NEON.glow }}>
           {isHebrew ? 'שמירת הגדרות העסק' : 'Save Business Settings'}
         </button>
+        </div>
       </form>
 
       {/* Task 30: Settings › "My subscription" - the server account state, then the ONE all-inclusive package directly here (monthly /

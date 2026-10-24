@@ -136,8 +136,8 @@
     "markers": 1
   },
   "src/components/AuthScreen.jsx": {
-    "interactive": 10,
-    "markers": 7
+    "interactive": 11,
+    "markers": 8
   },
   "src/components/AuthenticatedShellFrames.jsx": {
     "interactive": 1,
@@ -321,7 +321,7 @@
   },
   "src/components/SettingsTab.jsx": {
     "interactive": 7,
-    "markers": 9
+    "markers": 10
   },
   "src/components/ShareDefaultsSettings.jsx": {
     "interactive": 2,
@@ -884,6 +884,10 @@
     "markers": 0
   },
   "src/utils/draftAttachments.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/emailAddress.js": {
     "interactive": 0,
     "markers": 0
   },
