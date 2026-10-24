@@ -1,20 +1,22 @@
 // Task 16 - catalog image for one service: attach / replace (upload + catalog_link) and unlink (catalog_link with null;
 // the stored asset is never deleted). Linked images are bound automatically to quote rows added from this service.
 import { useEffect, useId, useRef, useState } from 'react';
-import { ImagePlus, Unlink } from 'lucide-react';
+import { ImagePlus, Unlink, X } from 'lucide-react';
 import { uploadPresentationMedia, linkCatalogMedia } from '../../utils/quotePresentationClient';
 import { catalogLinkFor } from './useQuotePresentationEditor';
 import { uploadErrorMessage, presentationErrorMessage } from './presentationCopy';
 import { QP_VARS } from './qpTheme';
 import './quotePresentation.css';
 
-export default function CatalogMediaControl({ ctl, service }) {
+// onClose (Owner 2026-10-24): the panel's own Close button; the image is saved the moment it is chosen, and the panel says so
+export default function CatalogMediaControl({ ctl, service, onClose = null }) {
   const { copy, lang, context, urls } = ctl;
   const link = catalogLinkFor(context.catalog, service.id);
   const fileRef = useRef(null);
   const uid = useId();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
+  const [saved, setSaved] = useState(false);
   const { ensureUrls } = ctl;
   useEffect(() => { if (link?.assetId) ensureUrls([link.assetId]); }, [link?.assetId, ensureUrls]);
 
@@ -22,7 +24,7 @@ export default function CatalogMediaControl({ ctl, service }) {
     const file = e.target.files && e.target.files[0];
     e.target.value = '';
     if (!file) return;
-    setBusy(true); setError(null);
+    setBusy(true); setError(null); setSaved(false);
     const up = await uploadPresentationMedia(file);
     if (!up.ok) { setBusy(false); setError(uploadErrorMessage(lang, up.code)); return; }
     const assetId = up.data?.asset?.id || up.data?.asset?.assetId || up.data?.id;
@@ -34,6 +36,7 @@ export default function CatalogMediaControl({ ctl, service }) {
     if (!r.ok) { setError(presentationErrorMessage(lang, r.code)); return; }
     ctl.setCatalogLink(service.id, { assetId, caption });
     ensureUrls([assetId]);
+    setSaved(true);
   };
 
   const unlink = async () => {
@@ -42,6 +45,7 @@ export default function CatalogMediaControl({ ctl, service }) {
     setBusy(false);
     if (!r.ok) { setError(presentationErrorMessage(lang, r.code)); return; }
     ctl.setCatalogLink(service.id, null);
+    setSaved(false);
   };
 
   if (context.status === 'error') return <p className="qp-notice qp-notice--error" role="alert" style={QP_VARS}>{copy.catalogUnavailable}</p>;
@@ -64,7 +68,14 @@ export default function CatalogMediaControl({ ctl, service }) {
               <Unlink size={13} aria-hidden="true" />{copy.catalogRemove}
             </button>
           )}
+          {typeof onClose === 'function' && (
+            // PRODUCT_TRUTH_DECORATIVE: closes the catalog image panel (the image is already saved; changes nothing)
+            <button type="button" className="qp-btn" disabled={busy} onClick={onClose} data-testid={`qp-catalog-close-${service.id}`}>
+              <X size={13} aria-hidden="true" />{copy.close}
+            </button>
+          )}
         </div>
+        {saved && link && <p className="qp-hint" role="status" style={{ margin: 0, fontWeight: 700 }} data-testid={`qp-catalog-saved-${service.id}`}>{copy.catalogSaved}</p>}
         {link && <p className="qp-hint" style={{ margin: 0 }}>{copy.catalogRemoveHint}</p>}
         {error && <p className="qp-notice qp-notice--error" role="alert">{error}</p>}
       </div>

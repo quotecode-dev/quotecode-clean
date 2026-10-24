@@ -63,7 +63,7 @@ describe('A1 / A6: the measured quote is one list with a local example', () => {
 
   it('the Dashboard opens the measured quote as a list, never saves the example and never sends its marker to the database', () => {
     const d = read('pages/Dashboard.jsx');
-    expect(d).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\(\) === false\) return;\s*setMeasuredQuoteEntry\(true\);\s*\};/);
+    expect(d).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\('structured'\) === false\) return;\s*setMeasuredQuoteEntry\(true\);\s*\};/);
     expect(d).toContain('isMeasuredEntry={measuredQuoteEntry}');
     const save = d.slice(d.indexOf('async function handleSaveQuote(e)'), d.indexOf('resolveBlockers(SAVE_ATTEMPT_CODES);', d.indexOf('async function handleSaveQuote(e)')));
     expect(save).toContain('items.some((it) => it && it._localExample)');

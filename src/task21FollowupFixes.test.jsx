@@ -27,7 +27,7 @@ describe('measured-entry pricing recommendation', () => {
     const src = read('pages/Dashboard.jsx');
     expect(src).toContain('recommendedPricingMethod={getEntryRecommendedPricingMethod(professionalDomain, measuredQuoteEntry)}');
     // Task 27: the reset doubles as the Free-10 creation check (returns false = stopped before anything opens)
-    expect(src).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\(\) === false\) return;\s*setMeasuredQuoteEntry\(true\);\s*\};/);
+    expect(src).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\('structured'\) === false\) return;\s*setMeasuredQuoteEntry\(true\);\s*\};/);
   });
 });
 

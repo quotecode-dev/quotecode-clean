@@ -73,7 +73,7 @@ export const CHAT_TOOL_DEFS: ToolDef[] = [
   },
   {
     name: 'find_catalog_items',
-    description: "Search the user's own catalog (saved services / products with their price).",
+    description: "Search the user's own catalog (saved services / products with their price). It does not show images: in the Catalog screen an item that has an image shows it as a small thumbnail beside its name (Owner 2026-10-24).",
     parameters: {
       type: 'object', additionalProperties: false, required: ['text', 'limit'],
       properties: { text: nullableString('Words to match in the item name. null = the most recent items.'), limit: limitParam },

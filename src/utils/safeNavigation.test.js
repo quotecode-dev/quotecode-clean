@@ -10,8 +10,9 @@ describe('NAVIGATION_ACTIONS', () => {
     }
   });
 
-  it('has exactly the 13 AI HELP V4 allowlisted destinations (the shared NAV_ACTIONS), no more', () => {
-    expect(NAVIGATION_ACTION_IDS).toHaveLength(13);
+  // Owner 2026-10-24 (typed L-17): 13 + open_ai_quote (the AI smart quote)
+  it('has exactly the 14 AI HELP V4 allowlisted destinations (the shared NAV_ACTIONS), no more', () => {
+    expect(NAVIGATION_ACTION_IDS).toHaveLength(14);
   });
 });
 

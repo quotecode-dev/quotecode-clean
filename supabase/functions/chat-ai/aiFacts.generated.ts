@@ -61,6 +61,8 @@ export const AI_FACTS = {
       "days": 7,
       "endsWhen": "first_of_quotes_or_days",
       "daysCountFrom": "signup_or_activation_day",
+      "countedOnFirstSaveWithClientAndItem": true,
+      "resaveConsumesAgain": false,
       "consumingChannels": [
         "send",
         "public_share",
@@ -304,8 +306,8 @@ export const AI_FACTS = {
       "authorityType": "none",
       "requiredRole": null,
       "aiMayExplain": true,
-      "aiMayNavigate": false,
-      "safeNavigationId": null,
+      "aiMayNavigate": true,
+      "safeNavigationId": "open_ai_quote",
       "aiMayClaimExecution": false,
       "forbiddenClaimCodes": [],
       "deterministicFactKeys": []
@@ -389,8 +391,8 @@ export const AI_FACTS = {
       "id": "catalog",
       "heLabel": "קטלוג שירותים",
       "enLabel": "Services catalog",
-      "heDescription": "ניהול קטלוג פריטים/שירותים לשימוש חוזר בהצעות מחיר.",
-      "enDescription": "Managing a catalog of items/services for reuse across quotes.",
+      "heDescription": "ניהול קטלוג פריטים/שירותים לשימוש חוזר בהצעות מחיר. אפשר לצרף לפריט תמונה (כפתור התמונה בשורת הפריט); פריט עם תמונה מציג אותה כתמונה קטנה ליד השם, והיא מצטרפת לשורה בהצעה כשמוסיפים אותו.",
+      "enDescription": "Managing a catalog of items/services for reuse across quotes. An item can have an image (the image button in its row); an item with an image shows it as a small thumbnail beside its name, and it joins the quote line when the item is added.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -1260,8 +1262,8 @@ export const AI_FACTS = {
       "id": "reminders_automation",
       "heLabel": "תזכורות ואוטומציות",
       "enLabel": "Reminders & automation",
-      "heDescription": "הגדרות עסק ← תזכורות ואוטומציות: בוחרים אחד משלושה מצבים — ״בממשק בלבד״ (ברירת המחדל: התזכורות מופיעות בפעמון), ״כבוי״ או ״מלא, כולל שליחה ללקוח״. המצב המלא מופעל רק בבחירה מפורשת שלכם. מסמנים בתיבות הסימון אילו פעולות יפעלו. אפשר להגדיר כלל ללקוח (ימים, תוכן, שעות שליחה ואזור זמן, עם תצוגה מקדימה והשהיה). שליחה אוטומטית ללקוחות תיפתח בהמשך; בינתיים אתם שולחים הודעות ללקוח מתוך ההצעה. שליחה בוואטסאפ נעשית ידנית מתוך ההצעה.",
-      "enDescription": "Business settings → Reminders & automation: you choose one of three modes - “In-app only” (the default: reminders appear for you under the bell), “Off”, or “Full, including customer sending”, which turns on only by your explicit choice. You tick which behaviors run. You can set up a customer rule (days, content, sending hours and a time zone, with a preview and a pause), and automatic sending to customers opens later; until then, messages to a customer are sent by you from the quote. WhatsApp is sent manually from the quote.",
+      "heDescription": "הגדרות עסק ← תזכורות ואוטומציות: בוחרים אחד משלושה מצבים — ״בממשק בלבד״ (ברירת המחדל: התזכורות מופיעות בפעמון), ״כבוי״ או ״מלא, כולל שליחה ללקוח״. המצב המלא מופעל רק בבחירה מפורשת שלכם. מסמנים בתיבות הסימון אילו פעולות יפעלו. אפשר להגדיר כלל ללקוח (ימים, תוכן, שעות שליחה ואזור זמן, עם תצוגה מקדימה והשהיה). שליחה אוטומטית ללקוחות תיפתח בהמשך; בינתיים אתם שולחים הודעות ללקוח מתוך ההצעה. שליחה בוואטסאפ נעשית ידנית מתוך ההצעה. התראה חדשה בפעמון גם קופצת על המסך כהודעה צפה, פעם אחת, כשהמערכת פתוחה (אם היא מגיעה כשהמסך לא מוצג - היא קופצת כשחוזרים אליו); ההודעה הקופצת והפעמון פועלים תמיד יחד.",
+      "enDescription": "Business settings → Reminders & automation: you choose one of three modes - “In-app only” (the default: reminders appear for you under the bell), “Off”, or “Full, including customer sending”, which turns on only by your explicit choice. You tick which behaviors run. You can set up a customer rule (days, content, sending hours and a time zone, with a preview and a pause), and automatic sending to customers opens later; until then, messages to a customer are sent by you from the quote. WhatsApp is sent manually from the quote. A new bell notification also pops up on the screen as a floating notice, once, while the app is open (if it arrives while the page is not shown, it pops up when you return); the floating notice and the bell always work together.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -1350,7 +1352,9 @@ export const AI_FACTS = {
       "state": "ROADMAP_POST_LIVE",
       "forbiddenClaimCodes": [
         "NO_AI_EXECUTION_CLAIM"
-      ]
+      ],
+      "heAnswerNote": "העוזר עונה ומדריך, ואינו מבצע פעולות במקומכם. להכנת הצעה בעזרת AI יש „הצעה חדשה” ← „הצעת מחיר חכמה עם AI”: מתארים את העבודה בכתב או מכתיבים בקול, וה-AI מציע שורות שבודקים ומאשרים.",
+      "enAnswerNote": "The assistant answers and guides; it does not act for you. To prepare a quote with AI, use “New quote” → “AI smart quote”: describe the job in writing or dictate it, and the AI suggests lines you review and approve."
     },
     {
       "id": "automatic_customer_messages",

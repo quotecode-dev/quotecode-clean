@@ -9,7 +9,8 @@ describe('frontend/edge navigation allowlist parity', () => {
 
   it('matches the exact AI HELP V4 §11 closed allowlist (the §8.1 seven plus the product-owned V4 destinations)', () => {
     expect([...NAVIGATION_ACTION_IDS]).toEqual([
-      'open_dashboard', 'open_quote_history', 'open_new_quote', 'open_clients', 'open_catalog', 'open_finances', 'open_business_settings',
+      'open_dashboard', 'open_quote_history', 'open_new_quote', 'open_ai_quote', 'open_clients', // + open_ai_quote: Owner 2026-10-24 (typed L-17)
+       'open_catalog', 'open_finances', 'open_business_settings',
       'open_business_details', 'open_business_phone', 'open_business_tax_id', 'open_plan_information', 'open_selected_quote', 'open_admin',
     ]);
   });
