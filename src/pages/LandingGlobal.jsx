@@ -57,8 +57,8 @@ export default function LandingGlobal({ onForgotPassword }) {
       prices: [{ period: 'free', amount: `${sym}${formatMoney(0)}`, per: null }],
       capacity: [`${FREE_QUOTES_TOTAL} quotes in total`, 'Or 7 days from sign-up, whichever comes first', 'SMART PACK included during the 7 days'],
       features: [
-        'Counts when it reaches a client; a new version or another client counts again',
-        'Drafts and previews never count',
+        'Counts once first stored with a client and an item; a new version or another client counts again',
+        'An empty draft and previews never count',
         'Sent quotes stay available',
       ],
       notice: 'Not active yet',
