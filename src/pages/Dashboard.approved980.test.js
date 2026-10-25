@@ -181,7 +181,7 @@ describe('approved quotes workspace (source guards)', () => {
     expect(dashboard).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\('structured'\) === false\) return;\s*setMeasuredQuoteEntry\(true\);\s*\};/);
     // Owner console 2026-10-25 (typed L-05 approval): the SMART PACK click-time check comes first (its branch shows the Free-10 window or
     // the SMART PACK notice; nothing opens), then the same reset and the AI draft dialog
-    expect(dashboard).toMatch(/const handleCreateAiQuoteClick = \(\) => \{\n(?:\s*\/\/[^\n]*\n)*\s*if \(!smartPackAllowed\) \{ if \(!free10Blocked\(\)\) setLockedCapability\('smart_pack'\); return; \}\s*if \(handleCreateNewQuoteClick\('ai'\) === false\) return;\s*setShowAiQuoteDraft\(true\);\s*\};/);
+    expect(dashboard).toMatch(/const handleCreateAiQuoteClick = \(\) => \{\r?\n(?:\s*\/\/[^\r\n]*\r?\n)*\s*if \(!smartPackAllowed\) \{ if \(!free10Blocked\(\)\) setLockedCapability\('smart_pack'\); return; \}\s*if \(handleCreateNewQuoteClick\('ai'\) === false\) return;\s*setShowAiQuoteDraft\(true\);\s*\};/);
     expect(dashboard).toMatch(/onCreateStructuredQuote=\{handleCreateStructuredQuoteClick\}/);
     expect(dashboard).toMatch(/onCreateAiQuote=\{handleCreateAiQuoteClick\}/);
   });
