@@ -36,6 +36,9 @@ export type PayPlusConfig = {
   cancelUrl?: string;
   /** 20261025300000: the browser return pages of a SMART PACK add-on page (default: the package pages) */
   addOnSuccessUrl?: string; addOnFailureUrl?: string; addOnCancelUrl?: string;
+  /** Owner console 2026-10-25 (typed: "מאשר: מזהה המסוף כסוד ..."): the account's PayPlus terminal - used when a standing order was
+   *  bound without one (the server pull carries none); the same secret admin-billing reads */
+  terminalUid?: string;
   fetch: Fetch; now: () => number; timeoutMs?: number;
 };
 
@@ -222,6 +225,7 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       || !isHttps(cfg.callbackUrl) || !isHttps(cfg.successUrl) || !isHttps(cfg.failureUrl) || (cfg.cancelUrl !== undefined && !isHttps(cfg.cancelUrl))
       || (cfg.addOnSuccessUrl !== undefined && !isHttps(cfg.addOnSuccessUrl)) || (cfg.addOnFailureUrl !== undefined && !isHttps(cfg.addOnFailureUrl))
       || (cfg.addOnCancelUrl !== undefined && !isHttps(cfg.addOnCancelUrl))
+      || (cfg.terminalUid !== undefined && !UUID.test(cfg.terminalUid))
       || typeof cfg.fetch !== 'function'
       || typeof cfg.now !== 'function') {
     throw new Error('createPayPlusProvider: invalid configuration');
@@ -324,7 +328,8 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
     // 'added' only when PayPlus said success (or the order already carries both lines); 'not_added' when it cannot or said no;
     // 'unknown' when no answer came (tried again later, never recorded as failed).
     async addSmartPackLine(i: SmartPackLineRequest): Promise<'added' | 'not_added' | 'unknown'> {
-      if (i.currency !== 'ILS' || !UUID.test(i.packageRequestRef) || !UUID.test(i.terminalRef)) return 'not_added';
+      const terminal = i.terminalRef ?? cfg.terminalUid ?? '';
+      if (i.currency !== 'ILS' || !UUID.test(i.packageRequestRef) || !UUID.test(terminal)) return 'not_added';
       const o = await orders.byPageRequest(i.packageRequestRef);
       if (!o) return 'unknown';
       if (o.recurringUid !== i.recurringRef || !o.valid || o.currency !== 'ILS' || o.attemptId !== i.packageAttemptId) return 'not_added';
@@ -337,7 +342,7 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       const productUid = await orders.productUidByName(PAYPLUS_SMART_PACK_ITEM_NAMES[i.period], 'ILS');
       if (productUid === undefined) return 'unknown';
       if (productUid === null) return 'not_added';
-      const r = await orders.updateLinesOutcome(o, i.terminalRef,
+      const r = await orders.updateLinesOutcome(o, terminal,
         [{ productUid: o.items[0].productUid, priceMinor: o.items[0].priceMinor }, { productUid, priceMinor: i.addOnAmountMinor }],
         i.nextChargeDate, { extraInfo: i.packageAttemptId, documents: true });
       return r === 'updated' ? 'added' : r === 'rejected' ? 'not_added' : 'unknown';
@@ -474,7 +479,7 @@ export function payplusStandingOrders(cfg: { apiBase: string; apiKey: string; se
 // Still INERT: the billing phase stays the code constant ACTIVATION_PHASE 'off', so checkout and callbacks answer 503 before the
 // provider is ever used. A missing or invalid secret = no provider (UNAVAILABLE_PROVIDER), never a guess.
 export const PAYPLUS_SECRET_NAMES = Object.freeze(['PAYPLUS_API_KEY', 'PAYPLUS_SECRET_KEY', 'PAYPLUS_PAYMENT_PAGE_UID', 'PAYPLUS_ENVIRONMENT',
-  'PAYPLUS_RETURN_ORIGIN'] as const);
+  'PAYPLUS_RETURN_ORIGIN', 'PAYPLUS_TERMINAL_UID'] as const);
 /** the browser return pages: the app's own origin only */
 export const PAYPLUS_RETURN_ORIGINS = Object.freeze(['https://www.tekango.com', 'https://tekango.com']);
 export const PAYPLUS_RETURN_PATHS = Object.freeze({
@@ -490,6 +495,9 @@ export function payplusProviderFromSecrets(get: (name: typeof PAYPLUS_SECRET_NAM
   const secretKey = (get('PAYPLUS_SECRET_KEY') ?? '').trim();
   const paymentPageUid = (get('PAYPLUS_PAYMENT_PAGE_UID') ?? '').trim().toLowerCase();
   const environment = (get('PAYPLUS_ENVIRONMENT') ?? '').trim();
+  // 20261025400000: optional - a missing or malformed terminal leaves it unset (never a guess; only the SMART PACK line needs it)
+  const terminalRaw = (get('PAYPLUS_TERMINAL_UID') ?? '').trim().toLowerCase();
+  const terminalUid = UUID.test(terminalRaw) ? terminalRaw : undefined;
   // the LIVE app is the default only for the production terminal; a staging terminal must name its return origin
   const origin = ((get('PAYPLUS_RETURN_ORIGIN') ?? '').trim() || (environment === 'production' ? PAYPLUS_RETURN_ORIGINS[0] : '')).replace(/\/+$/, '');
   if (!apiKey || !secretKey || !paymentPageUid || (environment !== 'production' && environment !== 'staging')) return null;
@@ -501,7 +509,7 @@ export function payplusProviderFromSecrets(get: (name: typeof PAYPLUS_SECRET_NAM
       successUrl: origin + PAYPLUS_RETURN_PATHS.success, failureUrl: origin + PAYPLUS_RETURN_PATHS.failure,
       cancelUrl: origin + PAYPLUS_RETURN_PATHS.cancel,
       addOnSuccessUrl: origin + PAYPLUS_RETURN_PATHS.addOnSuccess, addOnFailureUrl: origin + PAYPLUS_RETURN_PATHS.addOnFailure,
-      addOnCancelUrl: origin + PAYPLUS_RETURN_PATHS.addOnCancel, fetch: fetchImpl, now,
+      addOnCancelUrl: origin + PAYPLUS_RETURN_PATHS.addOnCancel, ...(terminalUid ? { terminalUid } : {}), fetch: fetchImpl, now,
     });
   } catch {
     return null;

@@ -103,7 +103,7 @@ describe('completeSmartPackLine', () => {
   });
   it('an incomplete begin answer is never sent to PayPlus (finish false); a refused begin does nothing', async () => {
     const add = vi.fn();
-    const s = sql({ ...lineBegin, terminalRef: null });
+    const s = sql({ ...lineBegin, packageRequestRef: null }); // without the page request id the order cannot be read
     expect(await completeSmartPackLine({ sql: s, provider: { addSmartPackLine: add } as never }, ADD)).toBe('not_added');
     expect(add).not.toHaveBeenCalled();
     expect(s.smartPackAddOnLineFinish).toHaveBeenCalledWith(ADD, false);
@@ -133,6 +133,28 @@ describe('addSmartPackLine (PayPlus)', () => {
     expect(JSON.parse(calls[2][1].body!)).toMatchObject({ terminal_uid: TERM, valid: true, instant_first_payment: false, start_date: '2026-11-20',
       successful_invoice: true, send_customer_success_email: true, customer_failure_email: true, extra_info: ATT,
       items: [{ product_uid: PROD_PKG, quantity: 1, price: 30 }, { product_uid: PROD_SP, quantity: 1, price: 10 }] });
+  });
+  // Owner console 2026-10-25 (typed: "מאשר: מזהה המסוף כסוד ..."): a standing order bound by the server pull has no terminal - the
+  // account terminal (PAYPLUS_TERMINAL_UID) is used; without one nothing is sent
+  it('a standing order without its terminal uses the account terminal from the secret; none at all = not added, nothing sent', async () => {
+    const fetch = vi.fn();
+    for (const a of [answer(pkgOnly), answer(products), answer({ recurring_payment_uid: REC })]) fetch.mockImplementationOnce(async () => a);
+    const p = createPayPlusProvider({ ...config(fetch), terminalUid: TERM });
+    expect(await p.addSmartPackLine!({ ...lineBegin, terminalRef: null } as never)).toBe('added');
+    expect(JSON.parse((fetch.mock.calls[2] as unknown as [string, { body: string }])[1].body)).toMatchObject({ terminal_uid: TERM });
+    const none = vi.fn();
+    expect(await createPayPlusProvider(config(none)).addSmartPackLine!({ ...lineBegin, terminalRef: null } as never)).toBe('not_added');
+    expect(none).not.toHaveBeenCalled();
+    const env: Record<string, string> = { PAYPLUS_API_KEY: 'synthetic-api-key', PAYPLUS_SECRET_KEY: SECRET, PAYPLUS_PAYMENT_PAGE_UID: PAGE, PAYPLUS_ENVIRONMENT: 'production', PAYPLUS_TERMINAL_UID: 'not-a-uuid' };
+    expect(payplusProviderFromSecrets((n) => env[n], 'https://project.supabase.co', vi.fn() as never, () => NOW)).not.toBeNull(); // a bad terminal never breaks checkout
+  });
+  it('the begin answer may carry no terminal (null), never a malformed one', async () => {
+    const add = vi.fn(async () => 'added' as const);
+    const s = { smartPackAddOnLineBegin: vi.fn(async () => ({ ...lineBegin, terminalRef: null })), smartPackAddOnLineFinish: vi.fn(async () => ({ ok: true })) } as never as BillingSql;
+    expect(await completeSmartPackLine({ sql: s, provider: { addSmartPackLine: add } as never }, ADD)).toBe('added');
+    expect((add.mock.calls[0] as unknown[])[0]).toMatchObject({ terminalRef: null });
+    const bad = { smartPackAddOnLineBegin: vi.fn(async () => ({ ...lineBegin, terminalRef: 'x' })), smartPackAddOnLineFinish: vi.fn(async () => ({ ok: true })) } as never as BillingSql;
+    expect(await completeSmartPackLine({ sql: bad, provider: { addSmartPackLine: add } as never }, ADD)).toBe('not_added');
   });
   it('an order that already carries both lines (a retry after a lost answer) is added without another Update', async () => {
     const { fetch, p } = run(answer(order([{ product_uid: PROD_PKG, quantity: 1, quantity_price_including_vat: 30 },
