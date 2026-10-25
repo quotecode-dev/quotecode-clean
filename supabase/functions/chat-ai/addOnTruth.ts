@@ -19,8 +19,7 @@ export function buildAddOnTruthBlock(isHebrew: boolean, addOns: readonly AddOn[]
       : `International: $${a.prices.INTERNATIONAL.month} per month or $${a.prices.INTERNATIONAL.year} per year (USD)`;
     return `* ${a.name[lang]} (${a.name.he} / ${a.name.en}): an optional add-on to the paid plan. ${price}; billed together with the main plan, always in the same billing period (monthly or yearly); added only if the customer chooses it, and can be added or removed at any time.
   Includes: ${a.includes[lang].join('; ')}.
-  Coming soon (not available yet): ${a.comingSoon[lang].join('; ')}.
-  ${(isHebrew ? a.purchasable?.IL : a.purchasable?.INTERNATIONAL) === true
+${a.comingSoon[lang].length ? `  Coming soon (not available yet): ${a.comingSoon[lang].join('; ')}.\n` : ''}  ${(isHebrew ? a.purchasable?.IL : a.purchasable?.INTERNATIONAL) === true
     ? 'It can be purchased: tick it in the plans window when paying for the package. Never say it is active on an account unless the verified account section says so.'
     : 'It CANNOT be purchased yet in this market - purchase opens here later. Never say it is active on an account or that it can be bought now.'}`;
   });

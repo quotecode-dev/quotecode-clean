@@ -15,12 +15,12 @@ describe('add-on truth (L-14, 2026-10-20)', () => {
     expect(b).not.toContain('CANNOT be purchased');
     expect(b).not.toContain('$5.00');
   });
-  it('EN: the USD price, the contents in English, Customer Twin only as coming soon; not purchasable abroad yet', () => {
+  it('EN: the USD price, the contents in English, nothing "coming soon" (Customer Twin is live); not purchasable abroad yet', () => {
     const b = buildAddOnTruthBlock(false, AI_FACTS.addOns);
     expect(b).toContain('CANNOT be purchased yet in this market');
     expect(b).not.toContain('It can be purchased');
     expect(b).toContain('$5.00 per month or $51.00 per year (USD)');
-    expect(b).toContain('Coming soon (not available yet): Customer Twin');
+    expect(b).not.toContain('Coming soon');
     expect(b).not.toContain('₪');
   });
   it('the system prompt carries the block in both languages; no block without facts', () => {

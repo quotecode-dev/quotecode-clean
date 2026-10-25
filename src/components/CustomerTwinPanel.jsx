@@ -104,7 +104,7 @@ const COPY = {
       market_unresolved: 'צריך לבחור את מדינת העסק בהגדרות העסק.',
       unauthenticated: 'צריך להתחבר מחדש.',
     },
-    buyMore: (n, price) => <><N v={n} /> בדיקות נוספות ב־<N v={price} /></>, soon: 'בקרוב', plans: 'למסך המסלולים',
+    plans: 'למסך המסלולים',
   },
   en: {
     label: 'Improve quote', close: 'Close',
@@ -153,7 +153,7 @@ const COPY = {
       market_unresolved: 'Choose your business country in Business settings.',
       unauthenticated: 'Please sign in again.',
     },
-    buyMore: (n, price) => <><N v={n} /> more checks for <N v={price} /></>, soon: 'Coming soon', plans: 'Open the plans',
+    plans: 'Open the plans',
   },
 };
 
@@ -198,8 +198,6 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
 
   const checklist = useMemo(() => twinChecklist(quote, isoToday(market)).filter((c) => c.status !== 'na'), [quote, market]);
   if (!open) return null;
-  // IRON-ILS-001 / IRON-MARKET: the account market's own money format; no market = no price shown
-  const price = market === 'INTERNATIONAL' ? `$${formatMoneyForCurrency(2, 'USD')}` : market === 'IL' ? `₪${formatMoneyForCurrency(5, 'ILS')}` : null;
   const s = run.status || status;
   const analysis = run.state === 'ok' ? run.analysis : null;
 
@@ -292,12 +290,7 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
               <span style={{ fontWeight: 700, color: C.ink }}>{errorText}</span>
               {(run.state === 'quota_exhausted' || run.state === 'smart_pack_required') && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                  {price && (
-                  // PRODUCT_TRUTH_DECORATIVE: purchase of extra Customer Twin checks, shown as not available yet while billing is off; starts nothing
-                  <button type="button" disabled style={{ ...btn, background: '#e2e8f0', color: C.muted, border: '1px solid #cbd5e1', cursor: 'not-allowed' }}>
-                    {t.buyMore(run.state === 'quota_exhausted' ? 20 : 10, price)} · {t.soon}
-                  </button>
-                  )}
+                  {/* Owner 2026-10-25 ("לא להשאיר זנבות"): no "coming soon" button for extra checks - such a purchase does not exist */}
                   {run.state === 'smart_pack_required' && typeof onOpenPlans === 'function' && (
                     // PRODUCT_TRUTH_DECORATIVE: opens the plans window (SMART PACK is chosen there); starts no payment by itself
                     <button type="button" onClick={onOpenPlans} style={{ ...btn, background: C.card, color: C.blue, border: `1px solid ${C.blue}` }}>{t.plans}</button>

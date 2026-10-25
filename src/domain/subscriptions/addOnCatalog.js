@@ -20,7 +20,8 @@ export const SMART_PACK = Object.freeze({
     he: 'כולל: צ׳אט חכם שקורא את נתוני החשבון, צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, וקבצים מצורפים להצעה.',
     en: 'Includes: a smart chat that knows your data, voice chat, an AI smart quote with voice dictation, and files attached to quotes.',
   }),
-  comingSoon: Object.freeze({ he: Object.freeze(['התאום הדיגיטלי של הלקוח']), en: Object.freeze(['Customer Twin']) }),
+  // Owner 2026-10-25 ("לא להשאיר זנבות"): Customer Twin ("שיפור ההצעה") is LIVE since PR #47 - nothing is "coming soon"
+  comingSoon: Object.freeze({ he: Object.freeze([]), en: Object.freeze([]) }),
   optional: true,
   sameBillingPeriodAsMainPlan: true,
   // per market: Israel open (2026-10-25), international not yet (PayPlus foreign-currency approval)

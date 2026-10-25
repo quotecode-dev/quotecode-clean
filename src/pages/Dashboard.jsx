@@ -64,7 +64,7 @@ import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
 import CustomerTwinPanel from '../components/CustomerTwinPanel';
 import { twinPayloadFromEditor, twinPayloadFromQuoteRow } from '../utils/customerTwinClient';
 import { applyTwinEdit } from '../../supabase/functions/_shared/customerTwin.js';
-import { startPackageCheckout, packageCheckoutAvailable } from '../domain/subscriptions/packageCheckout';
+import { startPackageCheckout, packageCheckoutAvailable, israelPurchaseOpen } from '../domain/subscriptions/packageCheckout';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
@@ -7917,6 +7917,7 @@ Continue anyway?`);
         limited={accountSummary.state === 'ready' && accountSummary.billing?.limited === true ? (accountSummary.billing.limitedReason || true) : false}
         // Codex audit 2026-10-21 (Owner "כן, לתקן"): while paying is possible, the choice opens the plans window
         onChoose={packageCheckoutAvailable(accountSummary, isLifetimeAccount) ? () => { setFree10Window(false); setShowPricingModal(true); } : null}
+        purchaseOpen={israelPurchaseOpen(accountSummary)}
       />
       <PricingModal 
         isOpen={showPricingModal} 

@@ -1940,12 +1940,8 @@ export const AI_FACTS = {
         ]
       },
       "comingSoon": {
-        "he": [
-          "התאום הדיגיטלי של הלקוח"
-        ],
-        "en": [
-          "Customer Twin"
-        ]
+        "he": [],
+        "en": []
       }
     }
   ]

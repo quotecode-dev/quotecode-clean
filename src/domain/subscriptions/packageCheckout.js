@@ -18,6 +18,12 @@ export function packageCheckoutAvailable(summary, isLifetime = false) {
   return true;
 }
 
+/** Owner 2026-10-25 ("לא להשאיר זנבות"): is purchasing open for this account's market (Israel, billing on)? Then no "cannot be
+ *  purchased yet" line is ever shown to it - even to an account that has nothing to buy (Lifetime, a legacy plan). */
+export function israelPurchaseOpen(summary) {
+  return summary?.state === 'ready' && ['prepared', 'enforced'].includes(summary.phase?.billing) && summary.market === 'IL';
+}
+
 /** one idempotency key per click: 32 random characters of the server's [A-Za-z0-9_-] alphabet */
 export function newCheckoutKey(random = (n) => globalThis.crypto.getRandomValues(new Uint8Array(n))) {
   const bytes = random(32);
