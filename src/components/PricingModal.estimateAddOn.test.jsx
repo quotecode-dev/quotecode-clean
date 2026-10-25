@@ -27,19 +27,14 @@ describe('the local-currency estimate with SMART PACK', () => {
     expect(pricingModalModel({ isHebrew: false, market: 'INTERNATIONAL', accountCurrency: 'USD', estimateRate: rate() }).estimateNoteWithAddOn).toBeNull();
     expect(pricingModalModel({ isHebrew: true, market: 'IL', accountCurrency: 'GBP', estimateRate: rate() }).estimateNoteWithAddOn).toBeNull();
   });
-  it('the window: ticking the box switches the estimate line to the total; unticking and reopening bring the package estimate back', async () => {
+  // Owner console 2026-10-25 (typed L-22 + findings 1-13): purchasing is not open abroad - no pay button, so no SMART PACK box; the
+  // estimate stays the package estimate (the model keeps the add-on estimate for when purchasing opens there)
+  it('the window abroad (no pay button): no SMART PACK box, the package estimate only', async () => {
     const props = { onClose: () => {}, isHebrew: false, isLocalIsraeliBusiness: false, currency: 'GBP' };
-    const { container, rerender } = render(<PricingModal isOpen {...props} />);
+    const { container } = render(<PricingModal isOpen {...props} />);
     const line = () => screen.getByTestId('plans-modal-estimate').textContent;
-    await waitFor(() => expect(line()).toMatch(/about £13\.63 per month/));
-    fireEvent.click(container.querySelector('input[data-addon-toggle]'));
-    expect(line()).toMatch(/with SMART PACK: about £17\.41 per month or £177\.90 per year/);
-    fireEvent.click(container.querySelector('input[data-addon-toggle]'));
-    expect(line()).toMatch(/^Estimate in GBP only: about £13\.63/);
-    fireEvent.click(container.querySelector('input[data-addon-toggle]'));
-    rerender(<PricingModal isOpen={false} {...props} />);
-    rerender(<PricingModal isOpen {...props} />);
-    await waitFor(() => expect(line()).toMatch(/^Estimate in GBP only: about £13\.63/));
-    expect(container.querySelector('input[data-addon-toggle]').checked).toBe(false);
+    await waitFor(() => expect(line()).toMatch(/^Estimate in GBP only: about £13\.63 per month/));
+    expect(container.querySelector('input[data-addon-toggle]')).toBeNull();
+    expect(fireEvent).toBeTypeOf('function');
   });
 });

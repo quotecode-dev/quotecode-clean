@@ -2,7 +2,7 @@
 import { CAPABILITIES, planName } from '../../../supabase/functions/_shared/subscriptionContract.ts';
 import { accountStatusModel } from './accountSummaryClient';
 import { SMART_PACK } from './addOnCatalog';
-import { israelPurchaseOpen } from './packageCheckout';
+import { smartPackPurchasePath } from '../../../supabase/functions/_shared/subscriptionContract.ts';
 import { ilsSmartPack } from '../../components/landing/smartPackFacts';
 
 // Owner console 2026-10-25 (typed: "מאשר שינוי ב-L-05: יכולות חכם פלוס נחסמות ברגע הלחיצה למי שאין לו חכם פלוס"): the notice of a
@@ -10,11 +10,11 @@ import { ilsSmartPack } from '../../components/landing/smartPackFacts';
 function smartPackNoticeCopy(he, summary) {
   const status = accountStatusModel(summary, he ? 'he' : 'en');
   const market = summary?.state === 'ready' ? summary.market : null;
-  // the promise only where the plans window can sell it (Israel, purchasing on); abroad says so; an unknown market says nothing more
-  const open = israelPurchaseOpen(summary) && SMART_PACK.purchasable.IL === true;
+  // the promise only where the plans window can sell it to THIS account now (findings 1-13: smartPackPurchasePath); abroad says so
+  const open = smartPackPurchasePath(summary) !== null && SMART_PACK.purchasable.IL === true;
   const closedAbroad = market === 'INTERNATIONAL';
   const tail = open ? (he ? ' אפשר להוסיף אותו בחלון המסלולים.' : ' You can add it in the plans window.')
-    : closedAbroad ? (he ? ' הרכישה עדיין לא פתוחה בחשבונות מחוץ לישראל.' : ' It cannot be purchased yet for accounts outside Israel.') : '';
+    : closedAbroad ? (he ? ' הרכישה עדיין לא פתוחה בחשבונות מחוץ לישראל.' : ' Purchasing is not open yet for accounts outside Israel.') : '';
   return {
     title: he ? 'האפשרות הזו כלולה בחכם פלוס' : 'This is part of SMART PACK',
     explanation: `${SMART_PACK.summary[he ? 'he' : 'en']}${tail}`,

@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useContext } from 'react';
 import { supabase } from './shared/supabase';
 import { X, Send, MessageSquarePlus, ChevronLeft, ChevronRight, FileText, LifeBuoy, CreditCard, Building2, MessageSquare, History, Mic, Square, Volume2, VolumeX, Paperclip, LayoutList } from 'lucide-react';
 import { AccountSummaryContext } from './domain/subscriptions/AccountSummaryContext';
-import { decideSmartPack } from '../supabase/functions/_shared/subscriptionContract.ts';
+import { decideSmartPack, smartPackPurchasePath } from '../supabase/functions/_shared/subscriptionContract.ts';
 import { NEON } from './theme/neonTheme';
 import {
   buildPublicChatStorageKey,
@@ -724,7 +724,11 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   // microphone never opens
   const { summary: accountSummary, openPlans } = useContext(AccountSummaryContext);
   const smartPackLocked = Boolean(isDashboard) && decideSmartPack(accountSummary).allowed === false;
-  const addSmartPackNote = () => setMessages((prev) => [...prev, withCreatedAt({ role: 'system-note', content: voiceCopy.smartPack, plansAction: true })]);
+  // the plans button and "you can add it" only where the plans window can sell it now (findings 1-13, 2026-10-25)
+  const addSmartPackNote = () => {
+    const path = smartPackPurchasePath(accountSummary) !== null;
+    setMessages((prev) => [...prev, withCreatedAt({ role: 'system-note', content: path ? voiceCopy.smartPack : voiceCopy.smartPackNoPath, plansAction: path })]);
+  };
   // without SMART PACK the answers are written only (a saved spoken mode never hides an answer behind a voice that does not play)
   const voiceMode = smartPackLocked ? 'text' : savedVoiceMode;
   const stopPlayback = () => {

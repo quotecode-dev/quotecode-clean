@@ -1,7 +1,7 @@
 // Task 27: the in-app offer cards (Free-10 + the one all-inclusive package) used by the plans view (PricingModal) and the Free-10 upgrade
 // window. Data = pricingModalModel (one price source). The package card has an accessible monthly / annual radio choice and shows ONE
 // price at a time, with the saving line only for the annual period. Display only: no purchase action exists while checkout is inactive.
-import { useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Check, BrainCircuit } from 'lucide-react';
 import './landing/smartPack.css';
 
@@ -41,11 +41,18 @@ function PayAction({ purchase, period, withAddOn, isHebrew }) {
 
 // Owner console 2026-10-21 (typed L-22 approval): onAddOnChange tells the plans window the box state, so the local-currency estimate
 // below the cards follows the total that would be charged
-function PriceBlock({ plan, isHebrew, purchase = null, onAddOnChange = null }) {
+// Owner console 2026-10-25 (typed: "מאשר שינוי ב-L-22: בכרטיס המסלול של מנוי פעיל אין תיבת חכם פלוס ..." + "מאשר לתקן את ממצאים 1 עד 13 ...
+// כולל שינוי ב-L-01, L-14, L-17, L-22"): the SMART PACK box only where it can be paid - next to the pay button (never a ₪40 price with
+// nothing to press: an active subscriber, the Free-10 window, Settings, a closed market); the card of the account's own plan opens on
+// its own period (an annual subscriber sees the annual price).
+function PriceBlock({ plan, isHebrew, purchase = null, onAddOnChange = null, initialPeriod = null }) {
   const uid = useId();
-  const [period, setPeriod] = useState(plan.prices[0]?.period);
+  const [period, setPeriod] = useState(initialPeriod && plan.prices.some((r) => r.period === initialPeriod) ? initialPeriod : plan.prices[0]?.period);
+  // the account's period may arrive after the window opened (the summary was still loading)
+  useEffect(() => { if (initialPeriod && plan.prices.some((r) => r.period === initialPeriod)) setPeriod(initialPeriod); }, [initialPeriod, plan.prices]);
   const [withAddOn, setWithAddOn] = useState(false);
-  const addOnFor = (r) => (withAddOn && plan.addOn ? plan.addOn.perPeriod[r.period] : null);
+  const addOn = purchase?.enabled === true ? plan.addOn : null;
+  const addOnFor = (r) => (withAddOn && addOn ? addOn.perPeriod[r.period] : null);
   const choice = plan.periodChoice && plan.prices.length > 1 ? plan.periodChoice : null;
   const shown = choice ? plan.prices.filter((r) => r.period === period) : plan.prices;
   return (
@@ -79,22 +86,22 @@ function PriceBlock({ plan, isHebrew, purchase = null, onAddOnChange = null }) {
           </div>
         ))}
       </div>
-      {plan.addOn && (
+      {addOn && (
         <label className={`tl-plan-addon${withAddOn ? ' is-checked' : ''}`} data-addon-choice dir={isHebrew ? 'rtl' : 'ltr'}>
           {/* PRODUCT_TRUTH_DECORATIVE: adds the SMART PACK add-on to the offer card's shown price; no purchase, nothing stored */}
           <input type="checkbox" checked={withAddOn} onChange={(e) => { setWithAddOn(e.target.checked); if (typeof onAddOnChange === 'function') onAddOnChange(e.target.checked); }} data-addon-toggle />
           <span className="tl-plan-addon-check" aria-hidden="true"><Check size={14} strokeWidth={3} /></span>
           <span className="tl-plan-addon-icon" aria-hidden="true"><BrainCircuit size={18} strokeWidth={2.1} /></span>
-          <span className="tl-plan-addon-text"><strong>{plan.addOn.label}</strong> {isolateNumbers(plan.addOn.perPeriod[period]?.add || '')}</span>
+          <span className="tl-plan-addon-text"><strong>{addOn.label}</strong> {isolateNumbers(addOn.perPeriod[period]?.add || '')}</span>
         </label>
       )}
-      {plan.addOn?.summary && <p className="tl-plan-addon-summary" data-addon-summary dir={isHebrew ? 'rtl' : 'ltr'}>{plan.addOn.summary}</p>}
-      {purchase?.enabled && plan.id === 'all_inclusive' && <PayAction purchase={purchase} period={period} withAddOn={Boolean(plan.addOn) && withAddOn} isHebrew={isHebrew} />}
+      {addOn?.summary && <p className="tl-plan-addon-summary" data-addon-summary dir={isHebrew ? 'rtl' : 'ltr'}>{addOn.summary}</p>}
+      {purchase?.enabled && plan.id === 'all_inclusive' && <PayAction purchase={purchase} period={period} withAddOn={Boolean(addOn) && withAddOn} isHebrew={isHebrew} />}
     </div>
   );
 }
 
-export default function PackageOfferCards({ model, isHebrew, currentPlanId = null, only = null, testIdPrefix = 'plans-modal', purchase = null, onAddOnChange = null }) {
+export default function PackageOfferCards({ model, isHebrew, currentPlanId = null, currentPeriod = null, only = null, testIdPrefix = 'plans-modal', purchase = null, onAddOnChange = null }) {
   const plans = only ? model.plans.filter((p) => only.includes(p.id)) : model.plans;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
@@ -105,13 +112,13 @@ export default function PackageOfferCards({ model, isHebrew, currentPlanId = nul
             style={{ border: `${isCurrent ? 2 : 1}px solid ${isCurrent ? '#0F6672' : '#e2e8f0'}`, borderRadius: '12px', padding: '14px', background: '#f8fafc', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.05rem' }}>{p.name}</h3>
             {p.tagline && <p style={{ margin: 0, color: '#475569', fontSize: '0.82rem' }}>{p.tagline}</p>}
-            <PriceBlock plan={p} isHebrew={isHebrew} purchase={purchase} onAddOnChange={onAddOnChange} />
+            <PriceBlock plan={p} isHebrew={isHebrew} purchase={purchase} onAddOnChange={onAddOnChange} initialPeriod={isCurrent ? currentPeriod : null} />
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: '#334155' }}>
               {p.lines.map((line) => (
                 <li key={line} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}><Check size={14} color="#0F6672" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />{line}</li>
               ))}
             </ul>
-            {isCurrent && <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0F6672' }}>{isHebrew ? 'המסלול שלך' : 'Your plan'}</span>}
+            {isCurrent && <span style={{ fontSize: '0.75rem', fontWeight: 700, color: '#0F6672' }}>{isHebrew ? 'המסלול שלכם' : 'Your plan'}</span>}
           </section>
         );
       })}

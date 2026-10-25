@@ -13,6 +13,9 @@ export function packageCheckoutAvailable(summary, isLifetime = false) {
   if (isLifetime === true || summary?.state !== 'ready') return false;
   if (!['prepared', 'enforced'].includes(summary.phase?.billing)) return false;
   if (summary.market !== 'IL') return false;
+  // Owner console 2026-10-25 (typed findings 1-13 approval): a failed renewal still being retried is paid on its standing order - the
+  // server refuses a new page (payment_update_required), so no pay button is offered for it (pastDueLine says what to do)
+  if (summary.subscriptionStatus === 'past_due' && summary.billing?.limited !== true) return false;
   if (summary.planId === 'all_inclusive' && summary.subscriptionStatus === 'active') return summary.billing?.limited === true;
   if (summary.planId !== 'free' && summary.planId !== 'all_inclusive') return false; // a legacy style plan pays for nothing
   return true;
@@ -63,7 +66,58 @@ export function smartPackAddOnAvailable(summary, isLifetime = false) {
   if (isLifetime === true || summary?.state !== 'ready') return false;
   if (!['prepared', 'enforced'].includes(summary.phase?.billing) || summary.market !== 'IL') return false;
   return summary.planId === 'all_inclusive' && summary.subscriptionStatus === 'active' && summary.billing?.limited !== true
-    && summary.smartPack?.active !== true;
+    && summary.billing?.renewalStopped !== true && summary.smartPack?.active !== true;
+}
+
+/** Owner console 2026-10-25 (typed findings 1-13 approval): the service mailbox of the account's market (the same as the cancellation
+ *  request) - IL support@, otherwise info@ */
+export function serviceMailbox(summary) {
+  return summary?.state === 'ready' && summary.market === 'IL' ? 'support@tekango.com' : 'info@tekango.com';
+}
+
+/** the plans-window availability line when the account cannot buy here (Owner console 2026-10-25, findings 1-13): loading / not readable
+ *  (with a retry) / a market where purchasing is not open yet / the plan system's billing off - or null (the window shows its own) */
+export function plansAvailabilityLine(summary, isHebrew) {
+  const s = summary?.state;
+  if (s === 'loading') return { kind: 'loading', text: isHebrew ? 'טוען את פרטי החשבון…' : 'Loading your account details…' };
+  if (s === 'unprovisioned') {
+    return { kind: 'error', text: isHebrew ? 'החשבון עדיין לא שויך למסלול, ולכן אי אפשר לרכוש כרגע. אפשר לנסות שוב, או לכתוב לנו.' : 'Your account is not assigned to a plan yet, so nothing can be bought right now. You can try again, or write to us.' };
+  }
+  if (s === 'unavailable' || s === 'invalid') {
+    return { kind: 'error', text: isHebrew ? 'לא הצלחנו לטעון את פרטי החשבון. אפשר לנסות שוב.' : 'We could not load your account details. You can try again.' };
+  }
+  if (s === 'ready' && ['prepared', 'enforced'].includes(summary.phase?.billing) && summary.market === 'INTERNATIONAL') {
+    return { kind: 'closed_abroad', text: isHebrew ? 'הרכישה עדיין לא פתוחה בחשבונות מחוץ לישראל, ולא מתבצע חיוב.' : 'Purchasing is not open yet for accounts outside Israel, and nothing is charged.' };
+  }
+  return null;
+}
+
+/** the account's SMART PACK line under its plan (findings 1-13): active and how long - or null (none / LIFETIME has its own block) */
+export function smartPackStatusLine(summary, isHebrew, formatDate) {
+  if (summary?.state !== 'ready' || summary.smartPack?.active !== true) return null;
+  const { source, until } = summary.smartPack;
+  const date = until && typeof formatDate === 'function' ? formatDate(until) : null;
+  if (source === 'free_window') {
+    // the tip only where the pay button with the SMART PACK box exists (Israel, purchasing on)
+    const tip = packageCheckoutAvailable(summary) ? (isHebrew ? ' כדי להמשיך איתו אחרי רכישת מנוי, סמנו את חכם פלוס בתשלום.' : ' To keep it after you subscribe, tick SMART PACK when you pay.') : '';
+    return isHebrew
+      ? `חכם פלוס כלול בימי החינם${date ? ` עד ${date}` : ''}.${tip}`
+      : `SMART PACK is included in your free days${date ? ` until ${date}` : ''}.${tip}`;
+  }
+  if (source === 'add_on') {
+    if (date) return isHebrew ? `חכם פלוס פעיל עד ${date}` : `SMART PACK is active until ${date}`;
+    return isHebrew ? 'חכם פלוס פעיל, ומתחדש יחד עם המנוי' : 'SMART PACK is active and renews with your plan';
+  }
+  return null;
+}
+
+/** a failed renewal being retried (past_due, not limited yet): whom to write to (the status line above already says what happened) - or null */
+export function pastDueLine(summary, isHebrew) {
+  if (summary?.state !== 'ready' || summary.subscriptionStatus !== 'past_due' || summary.billing?.limited === true) return null;
+  return {
+    text: isHebrew ? 'לעדכון הכרטיס של המנוי כתבו לנו:' : 'To update the card of your subscription, write to us:',
+    mail: serviceMailbox(summary),
+  };
 }
 
 async function addOnCall(invoke, body) {
@@ -116,7 +170,7 @@ export function checkoutErrorMessage(code, isHebrew) {
     return isHebrew ? 'הרכישה עדיין לא פתוחה בחשבונות בחו"ל. לא בוצע חיוב.' : 'Purchasing is not open yet for accounts outside Israel. Nothing was charged.';
   }
   if (code === 'payment_update_required') {
-    return isHebrew ? 'החיוב האחרון לא עבר. יתבצע ניסיון חיוב נוסף. לעדכון הכרטיס פנו אלינו במייל.' : 'The last charge did not go through and is being retried. To update the card, email us.';
+    return isHebrew ? 'החיוב האחרון לא עבר. יתבצע ניסיון חיוב נוסף. לעדכון הכרטיס כתבו לנו: support@tekango.com' : 'The last charge did not go through and is being retried. To update the card, write to us: support@tekango.com';
   }
   return isHebrew ? 'לא ניתן לפתוח את דף התשלום כרגע. לא בוצע חיוב. נסו שוב בעוד רגע.' : 'The payment page cannot be opened right now. Nothing was charged. Try again in a moment.';
 }
@@ -125,9 +179,9 @@ export function checkoutErrorMessage(code, isHebrew) {
 // Owner console 2026-10-21 (same typed L-22 / L-01 approval): the payment page returns to /dashboard?billing=processing | failed |
 // cancelled (subscription-authority payplus.ts PAYPLUS_RETURN_PATHS). The address only picks the words while waiting; "active" comes
 // ONLY from the server account summary (a verified payment), which also wins over a failed / cancelled address.
-// 20261025300000: + back from a SMART PACK add-on page (payplus.ts PAYPLUS_RETURN_PATHS addOnSuccess / addOnFailure)
-export const BILLING_RETURN_KINDS = Object.freeze(['processing', 'failed', 'cancelled', 'smart_pack', 'smart_pack_failed']);
-export const isAddOnReturn = (kind) => kind === 'smart_pack' || kind === 'smart_pack_failed';
+// 20261025300000: + back from a SMART PACK add-on page (payplus.ts PAYPLUS_RETURN_PATHS addOnSuccess / addOnFailure / addOnCancel)
+export const BILLING_RETURN_KINDS = Object.freeze(['processing', 'failed', 'cancelled', 'smart_pack', 'smart_pack_failed', 'smart_pack_cancelled']);
+export const isAddOnReturn = (kind) => kind === 'smart_pack' || kind === 'smart_pack_failed' || kind === 'smart_pack_cancelled';
 export const BILLING_RETURN_POLL_MS = 3000;
 export const BILLING_RETURN_WAIT_MS = 90000;
 
@@ -156,6 +210,7 @@ export function billingReturnState(kind, summary, elapsedMs) {
   if (isAddOnReturn(kind)) {
     if (summary.smartPack?.active === true) return 'confirmed';
     if (kind === 'smart_pack_failed') return 'failed';
+    if (kind === 'smart_pack_cancelled') return 'cancelled';
     return elapsedMs >= BILLING_RETURN_WAIT_MS ? 'timeout' : 'waiting';
   }
   const active = summary.planId === 'all_inclusive' && summary.subscriptionStatus === 'active' && summary.billing?.limited !== true;

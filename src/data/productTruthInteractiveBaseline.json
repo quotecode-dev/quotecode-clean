@@ -260,8 +260,8 @@
     "markers": 0
   },
   "src/components/PricingModal.jsx": {
-    "interactive": 3,
-    "markers": 3
+    "interactive": 5,
+    "markers": 5
   },
   "src/components/ProFlowLogo.jsx": {
     "interactive": 0,
@@ -340,8 +340,8 @@
     "markers": 2
   },
   "src/components/SmartPackAddOnOffer.jsx": {
-    "interactive": 1,
-    "markers": 1
+    "interactive": 2,
+    "markers": 2
   },
   "src/components/SmartPublicQuote.jsx": {
     "interactive": 1,

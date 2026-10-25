@@ -162,7 +162,9 @@ describe('the SMART PACK bell notice (L-17)', () => {
   });
   it('the copy states the catalog price; Israel: added in the plans window (2026-10-25); abroad: not purchasable yet', () => {
     expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).toContain('₪10 לחודש');
-    expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).toContain('אפשר להוסיף אותה לתשלום בחלון המסלולים');
+    // findings 1-13 (2026-10-25, L-17): plural address; "in the plans window" (an active subscriber adds it there, not "to the payment")
+    expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).toContain('אפשר להוסיף אותה בחלון המסלולים');
+    expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).not.toMatch(/שלך|בחירה שלך/);
     expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).not.toContain('עם פתיחת המסלולים');
     expect(SMART_PACK_ANNOUNCEMENT.copy.en.body).toContain('$5 a month');
     expect(SMART_PACK_ANNOUNCEMENT.copy.en.body).toContain('available to buy when the plans open');

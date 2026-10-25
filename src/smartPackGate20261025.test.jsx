@@ -35,7 +35,7 @@ describe('the SMART PACK notice', () => {
     expect(c.unchanged).toBe('לא בוצע שום שינוי ולא בוצע חיוב.');
     expect(capabilityNoticeCopy('en', 'smart_pack', summary({ market: 'INTERNATIONAL' }))).toMatchObject({
       title: 'This is part of SMART PACK', eligible: '' });
-    expect(capabilityNoticeCopy('en', 'smart_pack', summary({ market: 'INTERNATIONAL' })).explanation).toMatch(/cannot be purchased yet for accounts outside Israel\.$/);
+    expect(capabilityNoticeCopy('en', 'smart_pack', summary({ market: 'INTERNATIONAL' })).explanation).toMatch(/Purchasing is not open yet for accounts outside Israel\.$/);
   });
   it('renders as the one capability dialog with the plans button', () => {
     const onUpgrade = vi.fn();
@@ -94,11 +94,28 @@ describe('SMART PACK for an active subscriber', () => {
       : { ok: true, redirectUrl: 'https://payments.payplus.co.il/x' } }));
     render(<SmartPackAddOnOffer isHebrew invoke={invoke} onLeave={onLeave} />);
     await waitFor(() => expect(screen.getByTestId('plans-smart-pack-add-on')).toBeInTheDocument());
-    expect(screen.getByTestId('plans-smart-pack-add-on-now').textContent).toBe('לתשלום עכשיו: ₪7.00 (חלק יחסי עד 20/11/2026)');
+    // Owner console 2026-10-25 (typed: "מאשר שינוי ב-L-22: ... ותיבת ההוספה למנוי קיים בנוסח החדש עם חיוב יחסי")
+    expect(screen.getByTestId('plans-smart-pack-add-on').querySelector('h3').textContent).toBe('להוסיף את חכם פלוס למנוי? (+₪10.00 לחודש)');
+    expect(screen.getByTestId('plans-smart-pack-add-on-now').textContent).toBe('חיוב יחסי עכשיו עד סוף החודש הנוכחי של המנוי: ₪7.00 (עד 20/11/2026)');
     expect([...screen.getByTestId('plans-smart-pack-add-on-now').querySelectorAll('bdi')].map((b) => b.getAttribute('dir'))).toEqual(['ltr', 'ltr']);
-    expect(screen.getByTestId('plans-smart-pack-add-on-then').textContent).toBe('אחר כך ₪10.00 לחודש, יחד עם חידוש המנוי.');
+    expect(screen.getByTestId('plans-smart-pack-add-on-then').textContent).toBe('מהחידוש הבא: ₪10.00 לחודש, יחד עם המנוי.');
+    expect(screen.getByTestId('plans-smart-pack-add-on-pay').textContent).toBe('כן, להוסיף את חכם פלוס - ₪7.00');
+    expect(screen.getByTestId('plans-smart-pack-add-on-fee').textContent).toContain('ביטול: לפי סעיף 6 בתנאי השימוש.');
     fireEvent.click(screen.getByTestId('plans-smart-pack-add-on-pay'));
     await waitFor(() => expect(onLeave).toHaveBeenCalledWith('https://payments.payplus.co.il/x'));
+  });
+  it('EN, annual: the same box in English, the yearly wording and price', async () => {
+    const invoke = vi.fn(async (_fn, { body }) => ({ data: body.action === 'smart_pack_add_on_quote'
+      ? { ok: true, currency: 'ILS', amountMinor: 5100, recurringMinor: 10200, period: 'year', periodEnd: '2027-04-20T10:00:00.000Z' }
+      : { ok: true, redirectUrl: 'https://payments.payplus.co.il/x' } }));
+    render(<SmartPackAddOnOffer isHebrew={false} invoke={invoke} onLeave={() => {}} />);
+    await waitFor(() => expect(screen.getByTestId('plans-smart-pack-add-on')).toBeInTheDocument());
+    expect(screen.getByTestId('plans-smart-pack-add-on')).toHaveAttribute('dir', 'ltr');
+    expect(screen.getByTestId('plans-smart-pack-add-on').querySelector('h3').textContent).toBe('Add SMART PACK to your plan? (+₪102.00 a year)');
+    expect(screen.getByTestId('plans-smart-pack-add-on-now').textContent).toBe('Pro-rated charge now until the end of your current billing year: ₪51.00 (until 20/04/2027)');
+    expect(screen.getByTestId('plans-smart-pack-add-on-then').textContent).toBe('From the next renewal: ₪102.00 a year, with your plan.');
+    expect(screen.getByTestId('plans-smart-pack-add-on-pay').textContent).toBe('Yes, add SMART PACK - ₪51.00');
+    expect(screen.getByTestId('plans-smart-pack-add-on-fee').textContent).toContain('Cancellation: as set out in section 6 of the Terms.');
   });
   it('nothing is offered when the server has no quote for the account', async () => {
     const invoke = vi.fn(async () => ({ data: { ok: false, code: 'not_eligible' } }));

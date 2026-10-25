@@ -27,6 +27,8 @@ const COPY = {
     allowed: 'אפשר להמשיך לצפות בהצעות הקיימות, לערוך טיוטות, לשלוח שוב הצעות שכבר יצאו ולעבוד עם לקוחות, משימות והוצאות.',
     choose: 'בחירת מנוי',
     unavailable: 'רכישת מנוי עדיין לא זמינה במערכת, ולא מתבצע חיוב.',
+    // Owner console 2026-10-25 (findings 1-13): abroad the system is active - only purchasing is not open yet
+    closedAbroad: 'הרכישה עדיין לא פתוחה בחשבונות מחוץ לישראל, ולא מתבצע חיוב.',
     close: 'חזרה לעבודה',
     closeAria: 'סגירה',
   },
@@ -38,6 +40,7 @@ const COPY = {
     allowed: 'You can keep viewing your quotes, editing drafts, re-sending quotes that were already sent and working with clients, tasks and expenses.',
     choose: 'Choose a subscription',
     unavailable: 'Subscriptions cannot be purchased in the system yet, and nothing is charged.',
+    closedAbroad: 'Purchasing is not open yet for accounts outside Israel, and nothing is charged.',
     close: 'Back to work',
     closeAria: 'Close',
   },
@@ -45,7 +48,7 @@ const COPY = {
 
 // limited: false, or the server's limitedReason ('cancelled' | 'payment_failed' | 'period_ended'; true = not stated)
 // purchaseOpen (Owner 2026-10-25): purchasing is open in this market - never the disabled button nor "cannot be purchased yet"
-export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, free10, limited = false, onChoose = null, purchaseOpen = false }) {
+export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, free10, limited = false, onChoose = null, purchaseOpen = false, closedAbroad = false }) {
   const ref = useRef(null);
   const topRef = useRef(null);
   useFocusTrap(ref, open);
@@ -101,7 +104,7 @@ export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, f
             {t.close}
           </button>
         </div>
-        {typeof onChoose !== 'function' && !purchaseOpen && <p id="free10-upgrade-unavailable" data-testid="free10-upgrade-unavailable" style={{ margin: '8px 0 0', color: '#64748b', fontSize: '0.78rem' }}>{t.unavailable}</p>}
+        {typeof onChoose !== 'function' && !purchaseOpen && <p id="free10-upgrade-unavailable" data-testid="free10-upgrade-unavailable" style={{ margin: '8px 0 0', color: '#64748b', fontSize: '0.78rem' }}>{closedAbroad ? t.closedAbroad : t.unavailable}</p>}
       </div>
     </div>
   );

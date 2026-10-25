@@ -45,11 +45,13 @@ export function accountStatusModel(summary, lang) {
     const billingDetail = summary.free10 ? null : billingStatusDetail(summary.billing, he, summary.market);
     if (summary.free10) {
       const { remaining } = summary.free10;
-      detail = he ? `יתרה: ${remaining} מתוך ${FREE_QUOTES_TOTAL} הצעות` : `${remaining} of ${FREE_QUOTES_TOTAL} free quotes left`;
+      // Owner console 2026-10-25 (findings 1-13): the 7 free days ended = nothing left, whatever the count
+      detail = summary.free10.periodEnded === true ? (he ? '7 ימי החינם הסתיימו' : 'The 7 free days have ended')
+        : he ? `יתרה: ${remaining} מתוך ${FREE_QUOTES_TOTAL} הצעות` : `${remaining} of ${FREE_QUOTES_TOTAL} free quotes left`;
     } else if (billingDetail) {
       detail = billingDetail;
     } else if (summary.subscriptionStatus === 'past_due') {
-      detail = he ? 'התשלום האחרון לא עבר' : 'Last payment failed';
+      detail = he ? 'החיוב האחרון לא עבר' : 'Last payment failed';
     } else if (summary.subscriptionStatus === 'pending') {
       detail = he ? 'ממתין לאישור תשלום' : 'Awaiting payment confirmation';
     } else if (summary.subscriptionStatus === 'cancelled') {

@@ -35,7 +35,7 @@ export type PayPlusConfig = {
   /** optional: the page's 'Return to site' link (refURL_cancel) */
   cancelUrl?: string;
   /** 20261025300000: the browser return pages of a SMART PACK add-on page (default: the package pages) */
-  addOnSuccessUrl?: string; addOnFailureUrl?: string;
+  addOnSuccessUrl?: string; addOnFailureUrl?: string; addOnCancelUrl?: string;
   fetch: Fetch; now: () => number; timeoutMs?: number;
 };
 
@@ -143,7 +143,7 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
 // product of that name - the line later added to the standing order is that product). more_info = 'sp_' + the add-on id: a callback of
 // this page reaches the add-on row, never a package attempt. Same customer, approval email and invoice-receipt as the package page.
 export const PAYPLUS_ADD_ON_REF_PREFIX = 'sp_';
-export function buildAddOnLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | 'callbackUrl' | 'successUrl' | 'failureUrl' | 'cancelUrl' | 'addOnSuccessUrl' | 'addOnFailureUrl'>,
+export function buildAddOnLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | 'callbackUrl' | 'successUrl' | 'failureUrl' | 'cancelUrl' | 'addOnSuccessUrl' | 'addOnFailureUrl' | 'addOnCancelUrl'>,
   i: { addOnId: string; amountMinor: number; billingPeriod: BillingPeriod; customer?: CheckoutCustomer | null }): Record<string, unknown> {
   return {
     payment_page_uid: cfg.paymentPageUid,
@@ -158,7 +158,8 @@ export function buildAddOnLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | '
     refURL_success: cfg.addOnSuccessUrl ?? cfg.successUrl,
     refURL_failure: cfg.addOnFailureUrl ?? cfg.failureUrl,
     refURL_callback: cfg.callbackUrl,
-    ...(cfg.cancelUrl ? { refURL_cancel: cfg.cancelUrl } : {}),
+    // Owner console 2026-10-25 (findings 1-13): its own cancel page - never the package's (which would read "payment confirmed")
+    ...((cfg.addOnCancelUrl ?? cfg.cancelUrl) ? { refURL_cancel: cfg.addOnCancelUrl ?? cfg.cancelUrl } : {}),
     send_failure_callback: true,
     sendEmailApproval: true,
     sendEmailFailure: true,
@@ -220,6 +221,7 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       || cfg.secretKey.length < 16 || typeof cfg.paymentPageUid !== 'string' || !UUID.test(cfg.paymentPageUid)
       || !isHttps(cfg.callbackUrl) || !isHttps(cfg.successUrl) || !isHttps(cfg.failureUrl) || (cfg.cancelUrl !== undefined && !isHttps(cfg.cancelUrl))
       || (cfg.addOnSuccessUrl !== undefined && !isHttps(cfg.addOnSuccessUrl)) || (cfg.addOnFailureUrl !== undefined && !isHttps(cfg.addOnFailureUrl))
+      || (cfg.addOnCancelUrl !== undefined && !isHttps(cfg.addOnCancelUrl))
       || typeof cfg.fetch !== 'function'
       || typeof cfg.now !== 'function') {
     throw new Error('createPayPlusProvider: invalid configuration');
@@ -478,7 +480,7 @@ export const PAYPLUS_RETURN_ORIGINS = Object.freeze(['https://www.tekango.com', 
 export const PAYPLUS_RETURN_PATHS = Object.freeze({
   success: '/dashboard?billing=processing', failure: '/dashboard?billing=failed', cancel: '/dashboard?billing=cancelled',
   // 20261025300000: back from a SMART PACK add-on page
-  addOnSuccess: '/dashboard?billing=smart_pack', addOnFailure: '/dashboard?billing=smart_pack_failed',
+  addOnSuccess: '/dashboard?billing=smart_pack', addOnFailure: '/dashboard?billing=smart_pack_failed', addOnCancel: '/dashboard?billing=smart_pack_cancelled',
 });
 
 /** The PayPlus provider from the Function secrets, or null. `get` reads ONE named secret; supabaseUrl = this project's URL (the callback). */
@@ -498,7 +500,8 @@ export function payplusProviderFromSecrets(get: (name: typeof PAYPLUS_SECRET_NAM
       callbackUrl: `${new URL(supabaseUrl).origin}/functions/v1/subscription-authority/provider-event`,
       successUrl: origin + PAYPLUS_RETURN_PATHS.success, failureUrl: origin + PAYPLUS_RETURN_PATHS.failure,
       cancelUrl: origin + PAYPLUS_RETURN_PATHS.cancel,
-      addOnSuccessUrl: origin + PAYPLUS_RETURN_PATHS.addOnSuccess, addOnFailureUrl: origin + PAYPLUS_RETURN_PATHS.addOnFailure, fetch: fetchImpl, now,
+      addOnSuccessUrl: origin + PAYPLUS_RETURN_PATHS.addOnSuccess, addOnFailureUrl: origin + PAYPLUS_RETURN_PATHS.addOnFailure,
+      addOnCancelUrl: origin + PAYPLUS_RETURN_PATHS.addOnCancel, fetch: fetchImpl, now,
     });
   } catch {
     return null;

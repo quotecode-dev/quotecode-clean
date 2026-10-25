@@ -64,7 +64,7 @@ import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
 import CustomerTwinPanel from '../components/CustomerTwinPanel';
 import { twinPayloadFromEditor, twinPayloadFromQuoteRow } from '../utils/customerTwinClient';
 import { applyTwinEdit } from '../../supabase/functions/_shared/customerTwin.js';
-import { startPackageCheckout, packageCheckoutAvailable, israelPurchaseOpen, isAddOnReturn, smartPackAddOnAvailable } from '../domain/subscriptions/packageCheckout';
+import { startPackageCheckout, packageCheckoutAvailable, israelPurchaseOpen, isAddOnReturn, smartPackAddOnAvailable, plansAvailabilityLine } from '../domain/subscriptions/packageCheckout';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
@@ -5285,7 +5285,8 @@ Continue anyway?`);
     plan: {
       state: accountSummary.state,
       planId: accountSummary.state === 'ready' ? accountSummary.planId : null,
-      free10: accountSummary.state === 'ready' && accountSummary.free10 ? { limit: accountSummary.free10.limit, remaining: accountSummary.free10.remaining } : null,
+      // findings 1-13 (2026-10-25): the 7 free days ended = nothing left (the same fact as the server chat context)
+      free10: accountSummary.state === 'ready' && accountSummary.free10 ? { limit: accountSummary.free10.limit, remaining: accountSummary.free10.periodEnded ? 0 : accountSummary.free10.remaining } : null,
       phase: outputPhase,
     },
     profile: { phoneComplete: !missingProfileKey.split(',').includes('phone'), taxIdComplete: !missingProfileKey.split(',').includes('taxId'), taxIdRequired: isLocalIsraeliBusiness },
@@ -7929,6 +7930,8 @@ Continue anyway?`);
         // Codex audit 2026-10-21 (Owner "כן, לתקן"): while paying is possible, the choice opens the plans window
         onChoose={packageCheckoutAvailable(accountSummary, isLifetimeAccount) ? () => { setFree10Window(false); setShowPricingModal(true); } : null}
         purchaseOpen={israelPurchaseOpen(accountSummary)}
+        // findings 1-13 (2026-10-25): "not open outside Israel" only when the server says so (billing on, market INTERNATIONAL)
+        closedAbroad={plansAvailabilityLine(accountSummary, isHebrew)?.kind === 'closed_abroad'}
       />
       <PricingModal 
         isOpen={showPricingModal} 
@@ -7948,6 +7951,8 @@ Continue anyway?`);
         // Owner console 2026-10-21 (typed L-22 / L-01 approval): back from the payment page; "confirmed" only from the server summary
         billingReturn={billingReturn.state ? { state: billingReturn.state, onCheckAgain: billingReturn.checkAgain, addOn: isAddOnReturn(billingReturn.kind) } : null}
         // Owner console 2026-10-25 ("ב: חיוב יחסי עכשיו"): an active subscriber without SMART PACK adds it - the server's pro-rata page
+        // Owner console 2026-10-25 (findings 1-13): an account summary that did not load can be read again from the plans window
+        onRetrySummary={refreshAccountSummary}
         smartPackAddOn={smartPackAddOnAvailable(accountSummary, isLifetimeAccount)
           ? { invoke: invokeWithFreshSession, onLeave: (url) => { markBillingDeparture(session?.user?.id); window.location.assign(url); } } : null}
       />

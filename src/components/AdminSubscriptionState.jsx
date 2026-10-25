@@ -45,7 +45,7 @@ export function AdminPlanState({ summary, isHebrew, compact = false }) {
   const text = planStateText(summary, isHebrew);
   if (state === 'ready') {
     const name = planName(summary.planId, isHebrew ? 'he' : 'en');
-    const balance = summary.free10 ? `${summary.free10.remaining}/${summary.free10.limit}` : null;
+    const balance = summary.free10 ? `${summary.free10.periodEnded ? 0 : summary.free10.remaining}/${summary.free10.limit}` : null;
     return (
       <span className="admin-plan-state" data-state="ready" title={text}>
         <span className="admin-plan-state-name">{name}</span>

@@ -45,8 +45,10 @@ describe('chat-ai (source guard)', () => {
   const src = fs.readFileSync(path.join(HERE, '..', 'chat-ai', 'index.ts'), 'utf8').replace(/\r\n/g, '\n');
   it('the data tools need SMART PACK; a data question without it gets the fixed SMART PACK answer (HE / EN)', () => {
     expect(src).toMatch(/const smartPackAllowed = smartPackAllowedBySummary\(accountSummary\);\n {2}const toolsEligible = !!\(verifiedUserId && isDashboard && accountContext && !draftSnapshot && smartPackAllowed\);/);
-    expect(src).toMatch(/'קריאת הנתונים שלך בצ׳אט \(הצעות, לקוחות, קטלוג ומשימות\) היא חלק מחכם פלוס\. אפשר להוסיף אותו במסך המסלולים\.'/);
-    expect(src).toMatch(/'Reading your own data in the chat \(quotes, clients, catalog and tasks\) is part of SMART PACK\. You can add it in the plans view\.'/);
+    // Owner console 2026-10-25 (typed findings 1-13 approval, L-17): "the plans window", and the promise only where it can be bought now
+    expect(src).toMatch(/const canAdd = smartPackPurchasePath\(accountSummary\) !== null;/);
+    expect(src).toMatch(/`קריאת הנתונים שלכם בצ׳אט \(הצעות, לקוחות, קטלוג ומשימות\) היא חלק מחכם פלוס\.\$\{canAdd \? ' אפשר להוסיף אותו בחלון המסלולים\.' : ''\}`/);
+    expect(src).toMatch(/`Reading your own data in the chat \(quotes, clients, catalog and tasks\) is part of SMART PACK\.\$\{canAdd \? ' You can add it in the plans window\.' : ''\}`/);
   });
 });
 

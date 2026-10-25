@@ -328,6 +328,21 @@ export function decideSmartPack(summary: AccountSummary | null | undefined): Sma
   return s.smartPack?.active ? { allowed: true, reason: 'included' } : { allowed: false, reason: 'smart_pack_required' };
 }
 
+/** Owner console 2026-10-25 (typed: "מאשר לתקן את ממצאים 1 עד 13 בעברית ובאנגלית, כולל שינוי ב-L-01, L-14, L-17, L-22"): the ONE answer
+ *  to "can this account get SMART PACK from the plans window right now?" - every "you can add it in the plans window" line (the SMART
+ *  PACK notice, the voice note, the chat answer) promises it only when this says so. 'package' = buy the package with the SMART PACK
+ *  box (Free, or a limited account buying again); 'add_on' = an active subscriber adds it with a pro-rata charge; null = no path now
+ *  (purchase closed / not Israel / a failed charge being retried / a stopped renewal / a legacy style plan / already has it). */
+export function smartPackPurchasePath(summary: AccountSummary | null | undefined, isLifetime = false): 'package' | 'add_on' | null {
+  if (isLifetime === true || summary?.state !== 'ready') return null;
+  const s = summary as ReadySummary;
+  if ((s.phase.billing !== 'prepared' && s.phase.billing !== 'enforced') || s.market !== 'IL' || s.smartPack?.active) return null;
+  if (s.planId === 'all_inclusive' && s.billing?.limited) return 'package';
+  if (s.planId === 'all_inclusive' && s.subscriptionStatus === 'active') return s.billing?.renewalStopped ? null : 'add_on';
+  if (s.planId === 'all_inclusive') return s.subscriptionStatus === 'past_due' ? null : 'package'; // the same rule as the pay button
+  return s.planId === 'free' ? 'package' : null;
+}
+
 export function outputPhaseOf(summary: AccountSummary | null | undefined): ActivationPhase {
   return summary?.state === 'ready' ? (summary as ReadySummary).phase.output : 'off';
 }

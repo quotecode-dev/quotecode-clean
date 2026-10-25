@@ -77,7 +77,7 @@ const COPY = {
     stopDictate: (s) => `עצירה ושימוש בהקלטה (0:${String(s).padStart(2, '0')})`,
     transcribing: 'ממיר את הדיבור לטקסט…',
     answerByVoice: 'מענה בקול לשאלות',
-    voiceErrors: { mic_denied: 'אין גישה למיקרופון. אפשר לאשר גישה בהגדרות הדפדפן, או להקליד.', failed: 'לא הצלחתי להבין את ההקלטה. אפשר לנסות שוב או להקליד.', limit: 'הגעתם למכסת הפעולות הקוליות היומית. אפשר להמשיך בהקלדה.', smart_pack: 'הצ׳אט הקולי וההכתבה הם חלק מחכם פלוס. אפשר להוסיף אותו במסך המסלולים.' },
+    voiceErrors: { mic_denied: 'אין גישה למיקרופון. אפשר לאשר גישה בהגדרות הדפדפן, או להקליד.', failed: 'לא הצלחתי להבין את ההקלטה. אפשר לנסות שוב או להקליד.', limit: 'הגעתם למכסת הפעולות הקוליות היומית. אפשר להמשיך בהקלדה.', smart_pack: 'הצ׳אט הקולי וההכתבה הם חלק מחכם פלוס. אפשר להוסיף אותו בחלון המסלולים.' },
     errors: {
       not_deployed: 'שירות טיוטות ה-AI עדיין לא מותקן בשרת הזה. אפשר למלא את ההצעה ידנית או לשאול את העוזר החכם בצ׳אט.',
       // Owner 2026-10-23 (morning report item 10): a busy server answers without the browser headers too - never called "not installed"
@@ -90,7 +90,7 @@ const COPY = {
       no_items: 'לא נמצאו פריטים בתיאור. נסו לפרט יותר מה העבודה כוללת.',
       market_unresolved: 'כדי ליצור טיוטה צריך קודם להשלים את אזור העסק בהגדרות העסק.',
       // Owner 2026-10-20 (typed L-17 approval): the AI smart quote is SMART PACK once the plan system is enforced
-      smart_pack_required: 'ההצעה החכמה עם AI היא חלק מחכם פלוס. אפשר להוסיף אותו במסך המסלולים, או למלא את ההצעה ידנית.',
+      smart_pack_required: 'ההצעה החכמה עם AI היא חלק מחכם פלוס. אפשר להוסיף אותו בחלון המסלולים, או למלא את ההצעה ידנית.',
       unauthenticated: 'החיבור לחשבון פג. התחברו מחדש ונסו שוב.',
       invalid: `התיאור צריך להיות באורך ${MIN_DESCRIPTION_CHARS}–${MAX_DESCRIPTION_CHARS} תווים.`,
       failed: 'משהו השתבש ביצירת הטיוטה. נסו שוב, או מלאו את ההצעה ידנית.',
@@ -142,7 +142,7 @@ const COPY = {
     stopDictate: (s) => `Stop and use the recording (0:${String(s).padStart(2, '0')})`,
     transcribing: 'Turning your speech into text…',
     answerByVoice: 'Answer the questions by voice',
-    voiceErrors: { mic_denied: 'No microphone access. You can allow it in your browser settings, or type.', failed: "I couldn't understand the recording. Try again or type.", limit: "You've reached today's voice limit. You can keep typing.", smart_pack: 'Voice chat and dictation are part of SMART PACK. You can add it in the plans view.' },
+    voiceErrors: { mic_denied: 'No microphone access. You can allow it in your browser settings, or type.', failed: "I couldn't understand the recording. Try again or type.", limit: "You've reached today's voice limit. You can keep typing.", smart_pack: 'Voice chat and dictation are part of SMART PACK. You can add it in the plans window.' },
     errors: {
       not_deployed: 'The AI draft service is not installed on this server yet (the server answered that it was not found). You can fill in the quote manually or ask the AI chat.',
       service_unreachable: 'The AI draft service did not respond this time, although the server is up. It may be busy. Try again in a moment, or fill in the quote manually.',
@@ -153,7 +153,7 @@ const COPY = {
       provider: 'The AI service is busy or temporarily unavailable. Try again shortly, or fill in the quote manually.',
       no_items: 'No items were found in the description. Try describing what the job includes in more detail.',
       market_unresolved: 'To create a draft, first complete your business region in Business settings.',
-      smart_pack_required: 'The AI smart quote is part of SMART PACK. You can add it in the plans view, or fill in the quote manually.',
+      smart_pack_required: 'The AI smart quote is part of SMART PACK. You can add it in the plans window, or fill in the quote manually.',
       unauthenticated: 'Your session expired. Sign in again and retry.',
       invalid: `The description must be ${MIN_DESCRIPTION_CHARS}–${MAX_DESCRIPTION_CHARS} characters long.`,
       failed: 'Something went wrong while creating the draft. Try again, or fill in the quote manually.',

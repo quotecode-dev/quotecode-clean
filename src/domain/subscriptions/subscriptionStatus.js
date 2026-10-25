@@ -20,7 +20,12 @@ export const ACCOUNT_STATUS = Object.freeze({
   trial: Object.freeze({ he: 'בניסיון', en: 'Trial' }),
   trial_ended: Object.freeze({ he: 'פג תוקף', en: 'Expired' }),
   free10_inactive: Object.freeze({ he: '10 הצעות חינם — טרם הופעל', en: '10 free quotes — not yet active' }),
+  // Owner console 2026-10-25 (typed: "מאשר לתקן את ממצאים 1 עד 13 בעברית ובאנגלית, כולל שינוי ב-L-01, L-14, L-17, L-22"): a paid account
+  // whose renewal charge failed (being retried) and a paid account that is limited - never "10 free quotes" or "active subscription"
+  paid_past_due: Object.freeze({ he: 'החיוב האחרון לא עבר', en: 'Last payment failed' }),
+  paid_limited: Object.freeze({ he: 'המנוי הסתיים', en: 'Subscription ended' }),
 });
+// the admin filter / counts list only the statuses its server function knows (paid_past_due / paid_limited are the account's own view)
 export const ACCOUNT_STATUS_ORDER = Object.freeze(['free10', 'trial', 'trial_ended', 'paid_monthly', 'paid_annual', 'lifetime', 'free10_inactive', 'paid_unverified']);
 // the chart / count always lists these (monthly and annual even at 0); the other two only when an account has them
 export const ACCOUNT_STATUS_ALWAYS_SHOWN = Object.freeze(['free10', 'trial', 'trial_ended', 'paid_monthly', 'paid_annual', 'lifetime']);
@@ -28,12 +33,12 @@ export const ACCOUNT_STATUS_TITLE = Object.freeze({ he: 'התפלגות מסלו
 // the medallion of each status (HeaderPlanMedallion.jsx PLAN_MEDALLION_VISUAL - the one visual table)
 export const STATUS_MEDALLION_KIND = Object.freeze({
   lifetime: 'lifetime', paid_annual: 'paid_annual', paid_monthly: 'plan', paid_unverified: 'plan', free10: 'free10',
-  trial: 'trial', trial_ended: 'trial_ended', free10_inactive: 'free10',
+  trial: 'trial', trial_ended: 'trial_ended', free10_inactive: 'free10', paid_past_due: 'plan', paid_limited: 'plan', // the paid medallion (no new icon - Law 45); the words differ
 });
 // chart colours = the medallion colours (spec §6)
 export const STATUS_COLOR = Object.freeze({
   free10: '#16a34a', trial: '#d97706', trial_ended: '#b91c1c', paid_monthly: '#6d28d9', paid_annual: '#3730a3', lifetime: '#c98a06',
-  free10_inactive: '#86b89a', paid_unverified: '#8b7fc4',
+  free10_inactive: '#86b89a', paid_unverified: '#8b7fc4', paid_past_due: '#d97706', paid_limited: '#b91c1c',
 });
 
 // The server's billing period, read strictly from the raw summary (the shared parser drops unknown keys): 'month' | 'year' only for a
@@ -47,12 +52,17 @@ export function withBillingPeriod(summary, raw) {
 
 export function accountStatus(account, summary, now = Date.now()) {
   if (account?.is_lifetime === true) return { key: 'lifetime' };
+  // a paid account: limited first (its access ended), then a failed renewal being retried (Owner console 2026-10-25, findings 1-13)
+  if (summary?.state === 'ready' && summary.planId !== 'free' && summary.billing?.limited === true) return { key: 'paid_limited' };
+  if (summary?.state === 'ready' && summary.planId !== 'free' && summary.subscriptionStatus === 'past_due') return { key: 'paid_past_due' };
   if (summary?.state === 'ready' && summary.subscriptionStatus === 'active') {
     return { key: summary.billingPeriod === 'year' ? 'paid_annual' : summary.billingPeriod === 'month' ? 'paid_monthly' : 'paid_unverified' };
   }
   if (summary?.state === 'ready' && summary.free10 && summary.phase?.output === 'enforced') {
     const { consumed, reserved, remaining } = summary.free10;
-    return { key: 'free10', consumed, reserved, remaining, total: FREE_QUOTES_TOTAL };
+    // Owner console 2026-10-25 (findings 1-13): the 7 free days can end before the 10 quotes - then nothing is left to use
+    const periodEnded = summary.free10.periodEnded === true;
+    return { key: 'free10', consumed, reserved, remaining: periodEnded ? 0 : remaining, total: FREE_QUOTES_TOTAL, periodEnded };
   }
   const t = account?.trial_ends_at ? new Date(account.trial_ends_at).getTime() : NaN;
   if (Number.isFinite(t)) return { key: t > now ? 'trial' : 'trial_ended', until: account.trial_ends_at };
@@ -88,6 +98,7 @@ export function breakdownFromCounts(counts) {
 export function accountStatusWords(status, isHebrew, formatDate = null) {
   const he = isHebrew === true;
   const name = he ? ACCOUNT_STATUS[status.key].he : ACCOUNT_STATUS[status.key].en;
+  if (status.key === 'free10' && status.periodEnded) return `${name} · ${he ? '7 ימי החינם הסתיימו' : 'the 7 free days have ended'}`;
   if (status.key === 'free10') return `${name} · ${status.consumed}/${status.total} ${he ? 'נוצלו' : 'used'}`;
   if (status.key === 'trial' && formatDate) return `${name}${he ? ' עד ' : ' until '}${formatDate(status.until)}`;
   return name;
@@ -112,15 +123,18 @@ export function accountStatusSentence(status, isHebrew, formatDate = null) {
   const date = status.until && formatDate ? formatDate(status.until) : null;
   switch (status.key) {
     case 'lifetime': return he ? 'יש לכם מנוי לכל החיים' : 'You have a Lifetime subscription';
-    case 'paid_annual': return he ? 'יש לך מנוי שנתי פעיל' : 'You have an active annual subscription';
-    case 'paid_monthly': return he ? 'יש לך מנוי חודשי פעיל' : 'You have an active monthly subscription';
-    case 'paid_unverified': return he ? 'יש לך מנוי פעיל' : 'You have an active subscription';
+    case 'paid_annual': return he ? 'יש לכם מנוי שנתי פעיל' : 'You have an active annual subscription';
+    case 'paid_monthly': return he ? 'יש לכם מנוי חודשי פעיל' : 'You have an active monthly subscription';
+    case 'paid_unverified': return he ? 'יש לכם מנוי פעיל' : 'You have an active subscription';
+    case 'paid_past_due': return he ? 'החיוב האחרון של המנוי לא עבר, ונחייב שוב את הכרטיס השמור' : 'Your last subscription charge did not go through; the saved card will be charged again';
+    case 'paid_limited': return he ? 'המנוי שלכם הסתיים, והחשבון מוגבל' : 'Your subscription has ended, and your account is limited';
     case 'free10': {
+      if (status.periodEnded) return he ? `7 ימי החינם שלכם הסתיימו (ניצלתם ${status.consumed} מתוך ${status.total} הצעות)` : `Your 7 free days have ended (${status.consumed} of ${status.total} free quotes used)`;
       const reserved = status.reserved > 0 ? (he ? ` (${status.reserved} בתהליך)` : ` (${status.reserved} in progress)`) : '';
       return he ? `ניצלתם ${status.consumed} מתוך ${status.total} הצעות חינם${reserved}` : `${status.consumed} of ${status.total} free quotes used${reserved}`;
     }
-    case 'trial': return date ? (he ? `יש לך תקופת ניסיון עד ${date}` : `Your trial runs until ${date}`) : (he ? 'יש לך תקופת ניסיון' : 'You are on a trial');
-    case 'trial_ended': return he ? 'תקופת הניסיון שלך הסתיימה' : 'Your trial has ended';
-    default: return he ? '10 ההצעות החינמיות שלך עוד לא הופעלו, והחשבון אינו מוגבל' : 'Your 10 free quotes are not active yet, and your account is not limited';
+    case 'trial': return date ? (he ? `יש לכם תקופת ניסיון עד ${date}` : `Your trial runs until ${date}`) : (he ? 'יש לכם תקופת ניסיון' : 'You are on a trial');
+    case 'trial_ended': return he ? 'תקופת הניסיון שלכם הסתיימה' : 'Your trial has ended';
+    default: return he ? '10 ההצעות החינמיות שלכם עוד לא הופעלו, והחשבון אינו מוגבל' : 'Your 10 free quotes are not active yet, and your account is not limited';
   }
 }

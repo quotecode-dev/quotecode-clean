@@ -11,7 +11,10 @@ describe('add-on truth (L-14, 2026-10-20)', () => {
     expect(b).toContain('חכם פלוס');
     expect(b).toContain('₪10.00 per month or ₪102.00 per year, VAT included');
     expect(b).toContain('צ׳אט קולי');
-    expect(b).toContain('It can be purchased: tick it in the plans window');
+    // Owner console 2026-10-25 (typed findings 1-13 approval, L-14): both real paths; no "removed at any time"
+    expect(b).toContain('with a NEW subscription, tick it when paying for the package');
+    expect(b).toContain('adds it from the "Add SMART PACK" box there - a pro-rated charge now until the end of the current monthly or yearly period');
+    expect(b).not.toContain('removed at any time');
     expect(b).not.toContain('CANNOT be purchased');
     expect(b).not.toContain('$5.00');
   });
