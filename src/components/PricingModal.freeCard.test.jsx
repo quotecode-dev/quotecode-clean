@@ -25,12 +25,10 @@ describe('freePeriodActive', () => {
   });
 });
 
-// Owner 2026-10-25 ("למה יש לו את האופציה לבחור את זה בכלל?"): the Free plan is never a card in the plans window - the status lines
-// say the account is on it; only the paid package card is offered, in every state
 describe('PricingModal free card', () => {
-  it.each([true, false])('isHebrew=%s: free period running - still only the paid package card', (he) => {
+  it.each([true, false])('isHebrew=%s: free period running - both cards', (he) => {
     const { queryByTestId } = render(<PricingModal isOpen onClose={() => {}} isHebrew={he} isLocalIsraeliBusiness={he} freePlanActive />);
-    expect(queryByTestId('plans-modal-card-free')).toBeNull();
+    expect(queryByTestId('plans-modal-card-free')).not.toBeNull();
     expect(queryByTestId('plans-modal-card-all_inclusive')).not.toBeNull();
   });
   it.each([true, false])('isHebrew=%s: free period over - only the paid package card', (he) => {
