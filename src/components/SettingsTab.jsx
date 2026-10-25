@@ -4,6 +4,7 @@ import { APP as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW
 import BusinessQuoteStyleSection from './quotePresentation/BusinessQuoteStyleSection';
 import { presentationCopy } from './quotePresentation/presentationCopy';
 import { subscriptionSectionState } from '../domain/subscriptions/accountSummaryClient';
+import { packageCheckoutAvailable } from '../domain/subscriptions/packageCheckout';
 import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
 import PackageOfferCards from './PackageOfferCards';
 import { PROFESSIONAL_DOMAINS } from '../utils/professionalQuoteItem';
@@ -562,7 +563,10 @@ export default function SettingsTab({
              <>
                <PackageOfferCards model={subscriptionOffer} isHebrew={isHebrew} only={['all_inclusive']} currentPlanId={accountState.tone === 'plan' ? accountState.planId : null} testIdPrefix="settings-subscription" />
                <p data-testid="settings-subscription-price-note" style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: NEON.textPrimary }}>{subscriptionOffer.priceNote}</p>
-               <p data-testid="settings-subscription-availability" role="status" style={{ margin: 0, fontSize: '0.8rem', color: NEON.textSecondary }}>{subscriptionOffer.availability}</p>
+               {/* Owner console 2026-10-25 (typed L-01 / L-07 / L-11 ... "להפעלת הרכישה בישראל"): once the account can buy, say where */}
+               <p data-testid="settings-subscription-availability" role="status" style={{ margin: 0, fontSize: '0.8rem', color: NEON.textSecondary }}>{packageCheckoutAvailable(accountSummary, lifetimeAccount)
+                 ? (isHebrew ? 'אפשר לרכוש מנוי בחלון המסלולים, מכפתור המסלול בראש המסך.' : 'You can buy a subscription in the plans window, from the plan button at the top of the screen.')
+                 : subscriptionOffer.availability}</p>
                {/* Owner 2026-10-14 (Codex spec A10, approved): the same cancellation-request path as the plans window and the Terms -
                    an email request handled by the team; opening the email cancels nothing automatically. */}
                <p data-testid="settings-subscription-cancellation" style={{ margin: 0, fontSize: '0.8rem', color: NEON.textSecondary }}>

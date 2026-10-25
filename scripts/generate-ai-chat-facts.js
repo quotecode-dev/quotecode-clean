@@ -52,7 +52,11 @@ export const AI_FACTS_SCHEMA_VERSION = 3;
 // The single source flag for the subscription system (CROSSCUT_CONTRACT §0: the live TEST/Production activation phase is
 // 'off'). While false, no assistant answer may claim an active plan, an active balance, purchase availability or a trial.
 // Do not flip without an Owner activation decision AND a server account summary that reports the phase.
-const SUBSCRIPTION_PLAN_SYSTEM_ACTIVE = false;
+// Owner console 2026-10-25 (typed "מאשר שינוי ב-L-01, L-06, L-07, L-11, L-12, L-14, L-17, L-22 להפעלת הרכישה בישראל"; Free-10 enforced in
+// both markets, purchase open in Israel only): the plan system is active.
+const SUBSCRIPTION_PLAN_SYSTEM_ACTIVE = true;
+// The markets where a TEKANGO subscription (and SMART PACK) can be bought - Israel only until PayPlus approves foreign-currency billing.
+const SUBSCRIPTION_PURCHASE_OPEN_MARKETS = Object.freeze(['IL']);
 
 // The Owner decisions that are explicitly NOT decided (OWNER_DECISIONS_LOCKED_2026-10-07.md §4/§5). Never state a value.
 const NOT_DECIDED = Object.freeze([
@@ -93,6 +97,8 @@ function subscriptionFacts() {
     legacyPaidPlanIds: [...LEGACY_PAID_PLAN_IDS],
     stylesAreNotPlans: true,
     planSystemActive: SUBSCRIPTION_PLAN_SYSTEM_ACTIVE,
+    // 2026-10-25: buying the subscription (card, PayPlus payment page, monthly or annual, an invoice-receipt by email) - per market
+    purchaseOpenMarkets: [...SUBSCRIPTION_PURCHASE_OPEN_MARKETS],
     activationPhase: SUBSCRIPTION_PLAN_SYSTEM_ACTIVE ? 'enforced' : 'off',
     // OD-01: there is no trial for any account.
     trialOffered: false,
@@ -215,6 +221,9 @@ export function generateAiFacts() {
       paymentProcessingAvailable: LIVE_CHECKOUT_AVAILABLE,
       acceptedPaymentCurrencies: [],
       paymentMethodsKnown: false,
+      // 2026-10-25: the ONE thing that can be paid in TEKANGO - its own subscription, in these markets. "liveCheckoutAvailable" above stays
+      // the general flag (any market, and the quotes a business sends its clients - never collected through TEKANGO).
+      subscriptionCheckoutMarkets: [...SUBSCRIPTION_PURCHASE_OPEN_MARKETS],
     },
     // Invoicing truth - as deterministic as payment truth. Distinct from: quote PDF (a quote document, not a tax invoice), quote email
     // (sends the quote), and the quote "Paid" status (a label the business sets manually; it does not collect money or issue a receipt).
@@ -236,7 +245,7 @@ export function generateAiFacts() {
     // Owner 2026-10-20 (L-14, typed "חכם פלוס בעובדות המוצר (תוכן, מחיר, עדיין לא לרכישה)"): the subscription add-ons from
     // src/domain/subscriptions/addOnCatalog.js. chat-ai/addOnTruth.ts renders them; purchase is not open.
     addOns: SUBSCRIPTION_ADD_ONS.map((a) => ({
-      id: a.id, name: { ...a.name }, optional: a.optional, sameBillingPeriodAsMainPlan: a.sameBillingPeriodAsMainPlan, purchasable: a.purchasable,
+      id: a.id, name: { ...a.name }, optional: a.optional, sameBillingPeriodAsMainPlan: a.sameBillingPeriodAsMainPlan, purchasable: { IL: a.purchasable.IL === true, INTERNATIONAL: a.purchasable.INTERNATIONAL === true },
       prices: { IL: { currency: a.priceMinor.IL.currency, month: (a.priceMinor.IL.month / 100).toFixed(2), year: (a.priceMinor.IL.year / 100).toFixed(2), taxIncluded: a.priceMinor.IL.taxIncluded },
         INTERNATIONAL: { currency: a.priceMinor.INTERNATIONAL.currency, month: (a.priceMinor.INTERNATIONAL.month / 100).toFixed(2), year: (a.priceMinor.INTERNATIONAL.year / 100).toFixed(2) } },
       includes: { he: [...a.includes.he], en: [...a.includes.en] }, comingSoon: { he: [...a.comingSoon.he], en: [...a.comingSoon.en] },

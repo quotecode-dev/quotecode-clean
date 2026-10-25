@@ -22,9 +22,12 @@ describe('Terms', () => {
     expect(en).not.toMatch(/050-2993806|2993806/);
   });
   it('purchase / renewal / cancellation / refund terms apply when a subscription is purchased, beside the true availability', () => {
-    expect(he).toMatch(/בעת רכישת מנוי/); expect(he).toMatch(/אישור מפורש/); expect(he).toMatch(/רכישת מנוי ותשלום מקוון עדיין אינם פעילים/);
-    expect(en).toMatch(/when a subscription is purchased/); expect(en).toMatch(/explicit approval/); expect(en).toMatch(/subscription purchase and online payment are not active yet/);
-    expect(`${he}${en}`).not.toMatch(/PayPlus|checkout is active|תשלום פעיל/i);
+    expect(he).toMatch(/בעת רכישת מנוי/); expect(he).toMatch(/אישור מפורש/); expect(he).toMatch(/זמינות כיום: מסלול החינם ורכישת המנוי פעילים/); // Owner console 2026-10-25 (typed L-12 / L-14 ...)
+    expect(en).toMatch(/when a subscription is purchased/); expect(en).toMatch(/explicit approval/); expect(en).toMatch(/Subscription purchase is open for accounts in Israel only; for accounts outside Israel, subscription purchase and online payment are not open yet/);
+    // Owner console 2026-10-25 (typed L-12 / L-14 ...): the Hebrew Terms name the payment provider (Israel buys); the English Terms do not
+    // (purchase abroad is not open); neither ever claims a general "checkout is active"
+    expect(he).toMatch(/פיי פלוס \(PayPlus\)/); expect(en).not.toMatch(/PayPlus/);
+    expect(`${he}${en}`).not.toMatch(/checkout is active|תשלום פעיל/i);
   });
   it('the Owner\'s refund decision: pro-rata unused period, fee only where lawful + disclosed, capped, annual discount kept', () => {
     expect(he).toMatch(/החלק היחסי של התקופה שלא נוצלה/); expect(he).toMatch(/הנמוך מבין 5% ממחיר העסקה או 100 ₪/); expect(he).toMatch(/ההנחה השנתית לא תישלל/);
@@ -56,7 +59,8 @@ describe('Privacy', () => {
     // Owner 2026-10-15: the operator's identity appears only in the Terms; the Privacy Policy points there
     expect(he).toMatch(/מפעיל השירות, כמפורט בתנאי השימוש/); expect(en).toMatch(/its operator, as set out in the Terms of Use/);
     expect(`${he}${en}`).not.toMatch(/שלמה סיני|Shlomo Sinai|023716913|2993806/);
-    expect(he).toMatch(/בעת ביצוע רכישה, ספק התשלום החיצוני/); expect(en).toMatch(/When a purchase is made, the external payment provider/);
+    expect(he).toMatch(/רכישת מנוי מתבצעת בדף תשלום מאובטח של ספק התשלום פיי פלוס \(PayPlus\)/); expect(en).toMatch(/A purchase is made on a secure payment page of the payment provider PayPlus/);
+    expect(he).toMatch(/הם לא עוברים דרכנו ולא נשמרים אצלנו/); expect(en).toMatch(/they do not pass through us and are not stored by us/);
     expect(he).toMatch(/אינה הסכמה לדיוור שיווקי/); expect(en).toMatch(/is not consent to marketing emails/);
     expect(`${he}${en}`).not.toMatch(/מחיקתו המוחלטת|complete deletion/);
     expect(en).not.toMatch(HEB);

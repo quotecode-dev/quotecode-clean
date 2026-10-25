@@ -76,7 +76,9 @@ describe('the return address and state (pure)', () => {
     expect(billingReturnText('confirmed', false, { smartPack: true })).toBe('Payment confirmed. SMART PACK is active.');
     expect(billingReturnText('failed', true)).toBe('התשלום לא הושלם והמסלול לא הופעל. אפשר לנסות שוב.');
     expect(billingReturnText('cancelled', false)).toBe('The payment was cancelled. Nothing was charged.');
-    expect(billingReturnText('timeout', true)).toBe('האישור על התשלום עדיין לא הגיע. אם בוצע חיוב, המסלול יופעל אוטומטית בתוך כמה דקות.');
+    // Owner console 2026-10-25 (typed L-22 ...): no promise the system cannot keep
+    expect(billingReturnText('timeout', true)).toBe('האישור על התשלום עדיין לא הגיע. אפשר לבדוק שוב בעוד רגע. אם בוצע חיוב והמסלול לא נפתח, כתבו לנו ונטפל בזה.');
+    expect(billingReturnText('timeout', false)).toMatch(/write to us and we will fix it\.$/);
   });
 });
 
@@ -226,7 +228,9 @@ describe('useBillingReturn', () => {
 describe('Dashboard wiring (source guard)', () => {
   const dash = fs.readFileSync(path.join(HERE, 'pages', 'Dashboard.jsx'), 'utf8').replace(/\r\n/g, '\n');
   it('the signed-in account, the window state and the quiet read feed the return; the pay button marks the departure; the state reaches the window', () => {
-    expect(dash).toMatch(/const billingReturn = useBillingReturn\(\{ summary: accountSummary, userId: session\?\.user\?\.id, plansOpen: showPricingModal,\n\s*refreshQuiet: refreshAccountSummaryQuiet, openPlans: openPlansForReturn \}\);/);
+    expect(dash).toMatch(/const billingReturn = useBillingReturn\(\{ summary: accountSummary, userId: session\?\.user\?\.id, plansOpen: showPricingModal,\n\s*refreshQuiet: refreshAccountSummaryQuiet, openPlans: openPlansForReturn, pullStatus: pullCheckoutStatus \}\);/);
+    // 2026-10-25: while waiting the server pulls the result from PayPlus (subscription-authority checkout_status)
+    expect(dash).toMatch(/const pullCheckoutStatus = useCallback\(\(\) => invokeWithFreshSession\('subscription-authority', \{ body: \{ action: 'checkout_status' \} \}\), \[\]\);/);
     expect(dash).toMatch(/if \(r\.ok\) \{ markBillingDeparture\(session\?\.user\?\.id\); window\.location\.assign\(r\.redirectUrl\); \}/);
     expect(dash).toMatch(/billingReturn=\{billingReturn\.state \? \{ state: billingReturn\.state, onCheckAgain: billingReturn\.checkAgain \} : null\}/);
   });

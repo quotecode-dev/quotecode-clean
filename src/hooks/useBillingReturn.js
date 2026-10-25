@@ -7,7 +7,11 @@
 //     one-time language reload of the dashboard) and removed from the address with the payment page's own parameters.
 //   * While the server billing phase is on, the plans window opens with the return state; 'processing' reads the server summary quietly
 //     every 3 seconds for up to 90 seconds. Closing the window, however it is closed, ends the return.
-//   * Billing off (today) = the address is removed and ignored; nothing opens.
+//   * Billing off = the address is removed and ignored; nothing opens.
+//   * Owner console 2026-10-25 (typed: "מאשר שינוי ב-L-01, L-06, L-07, L-11, L-12, L-14, L-17, L-22 להפעלת הרכישה בישראל"): while waiting,
+//     and on "check again", the server is asked to pull the result from PayPlus (subscription-authority checkout_status - at most every
+//     9 seconds here, the server limits it too) and the summary is read right after, so a lost PayPlus callback never leaves a paid
+//     account closed.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BILLING_RETURN_KINDS, BILLING_RETURN_POLL_MS, billingReturnFromSearch, billingReturnState, searchWithoutBillingReturn,
@@ -17,6 +21,7 @@ const RETURN_KEY = 'tekango:billing-return';
 const DEPARTURE_KEY = 'tekango:billing-departure';
 const RETURN_KEEP_MS = 10 * 60 * 1000;
 const DEPARTURE_KEEP_MS = 2 * 60 * 60 * 1000;
+const PULL_EVERY_MS = 9000;
 
 const readJson = (key) => {
   try { return JSON.parse(window.sessionStorage.getItem(key) || 'null'); } catch { return null; }
@@ -39,7 +44,7 @@ function departureOf(userId, now) {
 }
 
 /** -> { state, kind, dismiss, checkAgain } ; state = billingReturnState(...) or null */
-export default function useBillingReturn({ summary, userId, plansOpen, refreshQuiet, openPlans, now = () => Date.now() }) {
+export default function useBillingReturn({ summary, userId, plansOpen, refreshQuiet, openPlans, pullStatus = null, now = () => Date.now() }) {
   const [ret, setRet] = useState(() => {
     if (typeof window === 'undefined') return null;
     const kind = billingReturnFromSearch(window.location.search);
@@ -58,6 +63,15 @@ export default function useBillingReturn({ summary, userId, plansOpen, refreshQu
   const [tick, setTick] = useState(0);
   const opened = useRef(false);
   const wasOpen = useRef(false);
+  const lastPull = useRef(0);
+  // the server pull first (when due), then the summary - a failed pull still reads the summary
+  const pullThenRefresh = useCallback((force = false) => {
+    const at = now();
+    const due = typeof pullStatus === 'function' && (force || at - lastPull.current >= PULL_EVERY_MS);
+    if (due) lastPull.current = at;
+    const pulled = due ? Promise.resolve().then(() => pullStatus()).catch(() => {}) : Promise.resolve();
+    return pulled.then(() => refreshQuiet()).catch(() => {});
+  }, [pullStatus, refreshQuiet, now]);
 
   const ready = summary?.state === 'ready';
   const billingOn = ready && ['prepared', 'enforced'].includes(summary.phase?.billing);
@@ -88,10 +102,10 @@ export default function useBillingReturn({ summary, userId, plansOpen, refreshQu
     if (state !== 'waiting') return undefined;
     const timer = setTimeout(() => {
       setTick((n) => n + 1);
-      Promise.resolve(refreshQuiet()).catch(() => {});
+      pullThenRefresh();
     }, BILLING_RETURN_POLL_MS);
     return () => clearTimeout(timer);
-  }, [state, tick, refreshQuiet]);
+  }, [state, tick, pullThenRefresh]);
 
   const checkAgain = useCallback(() => {
     setRet((r) => {
@@ -100,8 +114,8 @@ export default function useBillingReturn({ summary, userId, plansOpen, refreshQu
       write(RETURN_KEY, next);
       return next;
     });
-    Promise.resolve(refreshQuiet()).catch(() => {});
-  }, [refreshQuiet, now]);
+    pullThenRefresh(true);
+  }, [pullThenRefresh, now]);
 
   return { state, kind: valid ? ret.kind : null, dismiss: forget, checkAgain };
 }

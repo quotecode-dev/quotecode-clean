@@ -1352,8 +1352,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const { summary: accountSummary, refresh: refreshAccountSummary, refreshQuiet: refreshAccountSummaryQuiet } = useAccountSummary(supabase, session?.user?.id);
   // Owner console 2026-10-21 (typed L-22 / L-01 approval): back from the payment page -> the plans window with the return state (billing on only)
   const openPlansForReturn = useCallback(() => setShowPricingModal(true), []);
+  // Owner console 2026-10-25 (typed L-22 ... "להפעלת הרכישה בישראל"): while waiting the server also pulls the result from PayPlus
+  const pullCheckoutStatus = useCallback(() => invokeWithFreshSession('subscription-authority', { body: { action: 'checkout_status' } }), []);
   const billingReturn = useBillingReturn({ summary: accountSummary, userId: session?.user?.id, plansOpen: showPricingModal,
-    refreshQuiet: refreshAccountSummaryQuiet, openPlans: openPlansForReturn });
+    refreshQuiet: refreshAccountSummaryQuiet, openPlans: openPlansForReturn, pullStatus: pullCheckoutStatus });
   // Owner console 2026-10-16 (approval naming L-03): the header medallion = the admin status medallion (same status, same icon, same
   // words in its bubble); the plans window states the same status ("you have ... until X" where a real date exists).
   const statusDate = (v) => formatShortDate(v, isLocalIsraeliBusiness ? 'Local' : 'International');

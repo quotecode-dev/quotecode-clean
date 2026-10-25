@@ -2,7 +2,7 @@
 // the plans-window "pay" action. It asks the server (subscription-authority checkout_intent) for a payment page of the server attempt -
 // the amount, the currency and the SMART PACK line are the server's (create_package_checkout_intent + the price catalog), never a client
 // value - and only then leaves for the PayPlus page. A redirect is NOT a subscription: the package opens only after a verified PayPlus
-// payment. Shown only when the server billing phase is on ('prepared' TEST / 'enforced'); today it is 'off', so nothing is shown.
+// payment. Shown only when the server billing phase is on ('prepared' TEST / 'enforced') and the account is Israeli (2026-10-25: Israel only).
 
 const KEY_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
 
@@ -51,6 +51,9 @@ export async function startPackageCheckout({ billingPeriod, smartPack = false, i
 export function checkoutErrorMessage(code, isHebrew) {
   if (code === 'already_subscribed') {
     return isHebrew ? 'בחשבון הזה כבר יש מנוי פעיל. דף התשלום לא נפתח.' : 'This account already has an active package. No payment page was opened.';
+  }
+  if (code === 'market_not_open') {
+    return isHebrew ? 'הרכישה עדיין לא פתוחה בחשבונות בחו"ל. לא בוצע חיוב.' : 'Purchasing is not open yet for accounts outside Israel. Nothing was charged.';
   }
   if (code === 'payment_update_required') {
     return isHebrew ? 'החיוב האחרון לא עבר. יתבצע ניסיון חיוב נוסף. לעדכון הכרטיס פנו אלינו במייל.' : 'The last charge did not go through and is being retried. To update the card, email us.';
@@ -101,7 +104,8 @@ export function billingReturnText(state, isHebrew, { smartPack = false } = {}) {
     case 'confirmed':
       return (isHebrew ? 'התשלום אושר.' : 'Payment confirmed.') + (smartPack ? (isHebrew ? ' חכם פלוס פעיל.' : ' SMART PACK is active.') : '');
     case 'timeout':
-      return isHebrew ? 'האישור על התשלום עדיין לא הגיע. אם בוצע חיוב, המסלול יופעל אוטומטית בתוך כמה דקות.' : 'The payment confirmation has not arrived yet. If a charge was made, your package opens automatically within a few minutes.';
+      // Owner console 2026-10-25 (typed L-22 ...): no promise the system cannot keep - check again, or write to us
+      return isHebrew ? 'האישור על התשלום עדיין לא הגיע. אפשר לבדוק שוב בעוד רגע. אם בוצע חיוב והמסלול לא נפתח, כתבו לנו ונטפל בזה.' : 'The payment confirmation has not arrived yet. You can check again in a moment. If you were charged and your package did not open, write to us and we will fix it.';
     case 'failed':
       return isHebrew ? 'התשלום לא הושלם והמסלול לא הופעל. אפשר לנסות שוב.' : 'The payment was not completed, and no package was opened. You can try again.';
     case 'cancelled':

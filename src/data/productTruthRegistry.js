@@ -269,8 +269,9 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   // there is no separate trial - Free is 10 quotes in total or 7 days from signup, whichever ends first (SMART PACK included in the 7
   // days; Owner 2026-10-20, IRON-LANDING-001 amended), and the new plan system is not active yet.
   capability('plan_trial', 'מסלולים ו-10 הצעות חינם', 'Plans and Free quotes',
-    'מסלול החינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם. בשבעת הימים כלול גם חכם פלוס. לאחר מכן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. מערכת המנויים החדשה עדיין בהכנה.',
-    'The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, with SMART PACK included during those 7 days. After them there is one package with every available capability, billed monthly or annually: 18.00 USD per month or 184.00 USD per year, charged in USD. The new subscription system is still being prepared.',
+    // Owner console 2026-10-25 (typed L-14 ... "להפעלת הרכישה בישראל"): purchase open in Israel; abroad not yet
+    'מסלול החינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם. בשבעת הימים כלול גם חכם פלוס. לאחר מכן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. את המנוי רוכשים בחלון המסלולים.',
+    'The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, with SMART PACK included during those 7 days. After them there is one package with every available capability, billed monthly or annually: 18.00 USD per month or 184.00 USD per year, charged in USD. Subscriptions cannot be purchased yet outside Israel.',
     { surfaces: ['plans_screen'], aiMayNavigate: true, safeNavigationId: 'open_plan_information', deterministicFactKeys: ['subscriptions.free.quotesTotal', 'subscriptions.planSystemActive'], canonicalSources: ['src/domain/subscriptions/packageCatalog.js', 'src/domain/subscriptions/priceCatalog.js', 'supabase/functions/_shared/subscriptionContract.ts', 'src/components/PricingModal.jsx', 'src/components/SettingsTab.jsx', 'src/pages/Dashboard.jsx',
       // still carries this id's PRODUCT_TRUTH_CAPABILITY marker (legacy resolver, owned by the core stream): drop this path when
       // the core stream removes that marker or the file.

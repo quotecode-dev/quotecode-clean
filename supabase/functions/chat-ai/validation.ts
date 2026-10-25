@@ -9,7 +9,7 @@ import { AI_FACTS } from "./aiFacts.generated.ts";
 import { isValidQuoteId } from "./quoteContext.ts";
 import type { VerifiedAccountContext } from "./accountContext.ts";
 import { CHAT_CONTRACT_VERSION } from "../_shared/aiChatContract.ts";
-import { buildPaymentTruthBlock } from "./paymentTruth.ts";
+import { buildPaymentTruthBlock, subscriptionPurchaseOpen } from "./paymentTruth.ts";
 import { buildInvoicingTruthBlock } from "./invoicingTruth.ts";
 import { buildCapabilityTruthBlock } from "./capabilityTruth.ts";
 import { buildHowToBlock } from "./howToTruth.ts";
@@ -538,7 +538,7 @@ SUPPORT EMAIL RULE:
 
 ${buildPaymentTruthBlock(isHebrew, AI_FACTS.billing)}
 
-${buildInvoicingTruthBlock(AI_FACTS.invoicing)}
+${buildInvoicingTruthBlock(AI_FACTS.invoicing, subscriptionPurchaseOpen(isHebrew, AI_FACTS.billing))}
 
 ${buildCapabilityTruthBlock({ capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities })}
 
@@ -555,7 +555,7 @@ Rules:
 - Quote VAT (the VAT a business's OWN quotes apply to its clients - NOT TEKANGO plan prices): ${Math.round(AI_FACTS.vatRate.il * 100)}% automatically applied to Israeli clients, ${Math.round(AI_FACTS.vatRate.international * 100)}% to international. TEKANGO's own Israeli plan prices already include VAT; never add VAT to them or state a tax breakdown for them.
 - Operations: 100% digital SaaS cloud, no physical office.
 - Support Email: ${supportEmail}
-- Account/subscription cancellation, data export, or permanent deletion: NOT a self-service action anywhere in Business Settings today (fresh source check found no such UI flow) - if asked, say plainly that this is not self-service in the app and the user should contact ${supportEmail} for this request. Never describe a cancel/archive/delete-account flow as existing. Cancellation and refund terms are the ones published in the Terms of Service (section 6: cancel any time by email request once purchase opens; pro-rata refund of an unused prepaid period; a cancellation fee only where the law allows and never above the cap stated in the Terms; the annual discount is never clawed back) - never promise anything beyond them; purchase is not open yet.
+- Account/subscription cancellation, data export, or permanent deletion: NOT a self-service action anywhere in Business Settings today (fresh source check found no such UI flow) - if asked, say plainly that this is not self-service in the app and the user should contact ${supportEmail} for this request. Never describe a cancel/archive/delete-account flow as existing. Cancellation and refund terms are the ones published in the Terms of Service (section 6: cancel any time by email request${subscriptionPurchaseOpen(isHebrew, AI_FACTS.billing) ? '' : ' once purchase opens'}; pro-rata refund of an unused prepaid period; a cancellation fee only where the law allows and never above the cap stated in the Terms; the annual discount is never clawed back) - never promise anything beyond them${subscriptionPurchaseOpen(isHebrew, AI_FACTS.billing) ? '.' : '; purchase is not open yet.'}
 - PDF/Print: quotes can be exported as a PDF or printed directly from the quote view - this is a real, currently-working feature, both Compact and Expanded modes.
 - "Improve quote" ("שיפור ההצעה", the button in the quote's Open panel; internally once called "Customer Twin") EXISTS today (Owner 2026-10-25, typed L-14/L-17): it reviews the quote from the client's point of view and suggests what to change - internal only, nothing changes in the quote without the user's approval; its AI analysis is part of SMART PACK. Give its HOW-TO steps; never say it does not exist and never say it changes the quote by itself.
 - Admin is a separate, business-owner/Super-Admin-only internal area, not something an ordinary user has access to or should be told about as if it were part of their own workspace.
