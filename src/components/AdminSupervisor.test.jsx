@@ -160,10 +160,9 @@ describe('the SMART PACK bell notice (L-17)', () => {
     expect(activeAnnouncements([SMART_PACK_ANNOUNCEMENT], new Date('2027-01-01T10:00:00Z'))).toHaveLength(0);
     expect(bellActionsFor({ ...SMART_PACK_ANNOUNCEMENT })).toEqual([{ kind: 'plans' }]);
   });
-  it('the copy states the catalog price; Israel: added in the plans window (2026-10-25); abroad: not purchasable yet', () => {
+  it('the copy states the catalog price and that it is not purchasable yet', () => {
     expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).toContain('₪10 לחודש');
-    expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).toContain('אפשר להוסיף אותה לתשלום בחלון המסלולים');
-    expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).not.toContain('עם פתיחת המסלולים');
+    expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).toContain('זמינה לרכישה עם פתיחת המסלולים');
     expect(SMART_PACK_ANNOUNCEMENT.copy.en.body).toContain('$5 a month');
     expect(SMART_PACK_ANNOUNCEMENT.copy.en.body).toContain('available to buy when the plans open');
   });

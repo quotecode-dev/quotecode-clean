@@ -1,6 +1,5 @@
 import { useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
-import PaidMarkIcon from './PaidMarkIcon';
 import { APP as NEON, APP_STATUS, SHADOW, FONT_HE, FONT_EN } from '../theme/neonTheme';
 
 // רכיב מחיקה-מאשרת יחיד ומשותף לכל זרימות המחיקה באפליקציה - מחליף את כל
@@ -8,9 +7,7 @@ import { APP as NEON, APP_STATUS, SHADOW, FONT_HE, FONT_EN } from '../theme/neon
 // ולאפשר טקסט/מזהה ישות דינמיים. ר' Dashboard.jsx לזרימת ה-request/confirm
 // בפועל - הרכיב עצמו נשאר "טיפש" (props בלבד), לא מבצע שום קריאת מחיקה.
 // PRODUCT_TRUTH_DECORATIVE: modal backdrop click cancels the pending delete, same as the Cancel button; generic click-outside-to-close chrome
-// Owner 2026-10-25: tone 'paid' reuses the same window for "mark this quote paid" (green, no trash icon); deletion is unchanged.
-export default function DeleteConfirmModal({ isOpen, isHebrew, title, message, confirmLabel, cancelLabel, isDeleting, onCancel, onConfirm, tone = 'delete' }) {
-  const isPaid = tone === 'paid';
+export default function DeleteConfirmModal({ isOpen, isHebrew, title, message, confirmLabel, cancelLabel, isDeleting, onCancel, onConfirm }) {
   useEffect(() => {
     if (!isOpen) return;
     const onKeyDown = (e) => {
@@ -35,8 +32,8 @@ export default function DeleteConfirmModal({ isOpen, isHebrew, title, message, c
         style={{ background: NEON.bgElevated, border: `1px solid ${NEON.borderStrong}`, borderRadius: '14px', padding: '20px', width: '100%', maxWidth: '340px', boxShadow: SHADOW.lg, fontFamily: isHebrew ? FONT_HE : FONT_EN, boxSizing: 'border-box' }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
-          <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: isPaid ? APP_STATUS.paid.bg : APP_STATUS.error.bg, color: isPaid ? APP_STATUS.paid.fg : NEON.red, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {isPaid ? <PaidMarkIcon size={20} /> : <Trash2 size={14} strokeWidth={2.4} />}
+          <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: APP_STATUS.error.bg, color: NEON.red, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <Trash2 size={14} strokeWidth={2.4} />
           </div>
           <h3 style={{ margin: 0, color: NEON.textPrimary, fontSize: '1rem', fontWeight: '800' }}>
             {title}
@@ -60,9 +57,9 @@ export default function DeleteConfirmModal({ isOpen, isHebrew, title, message, c
           <button
             onClick={onConfirm}
             disabled={isDeleting}
-            style={{ flex: 1, background: isPaid ? APP_STATUS.paid.fg : NEON.redDark, color: '#fff', border: 'none', padding: '9px', borderRadius: '8px', cursor: isDeleting ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.85rem', opacity: isDeleting ? 0.7 : 1, boxShadow: 'none' }}
+            style={{ flex: 1, background: NEON.redDark, color: '#fff', border: 'none', padding: '9px', borderRadius: '8px', cursor: isDeleting ? 'not-allowed' : 'pointer', fontWeight: '700', fontSize: '0.85rem', opacity: isDeleting ? 0.7 : 1, boxShadow: 'none' }}
           >
-            {isDeleting ? (isPaid ? (isHebrew ? 'שומר…' : 'Saving…') : (isHebrew ? 'מוחק…' : 'Deleting…')) : confirmLabel}
+            {isDeleting ? (isHebrew ? 'מוחק…' : 'Deleting…') : confirmLabel}
           </button>
         </div>
       </div>

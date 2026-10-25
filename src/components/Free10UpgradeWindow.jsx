@@ -44,8 +44,7 @@ const COPY = {
 };
 
 // limited: false, or the server's limitedReason ('cancelled' | 'payment_failed' | 'period_ended'; true = not stated)
-// purchaseOpen (Owner 2026-10-25): purchasing is open in this market - never the disabled button nor "cannot be purchased yet"
-export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, free10, limited = false, onChoose = null, purchaseOpen = false }) {
+export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, free10, limited = false, onChoose = null }) {
   const ref = useRef(null);
   const topRef = useRef(null);
   useFocusTrap(ref, open);
@@ -88,7 +87,7 @@ export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, f
               style={{ minHeight: 44, padding: '0 16px', borderRadius: 9, border: '1px solid #0F6672', background: '#ffffff', color: '#0F6672', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
               {t.choose}
             </button>
-          ) : purchaseOpen ? null : (
+          ) : (
             // PRODUCT_TRUTH_DECORATIVE: subscription choice shown as unavailable while checkout is not active; starts nothing
             <button type="button" disabled aria-describedby="free10-upgrade-unavailable" data-testid="free10-upgrade-choose"
               style={{ minHeight: 44, padding: '0 16px', borderRadius: 9, border: '1px solid #94a3b8', background: '#e2e8f0', color: '#475569', fontWeight: 700, cursor: 'not-allowed', fontFamily: 'inherit' }}>
@@ -101,7 +100,7 @@ export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, f
             {t.close}
           </button>
         </div>
-        {typeof onChoose !== 'function' && !purchaseOpen && <p id="free10-upgrade-unavailable" data-testid="free10-upgrade-unavailable" style={{ margin: '8px 0 0', color: '#64748b', fontSize: '0.78rem' }}>{t.unavailable}</p>}
+        {typeof onChoose !== 'function' && <p id="free10-upgrade-unavailable" data-testid="free10-upgrade-unavailable" style={{ margin: '8px 0 0', color: '#64748b', fontSize: '0.78rem' }}>{t.unavailable}</p>}
       </div>
     </div>
   );

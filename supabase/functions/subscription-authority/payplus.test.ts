@@ -57,9 +57,7 @@ describe('payment page (generateLink): the server attempt only, ILS, renewing', 
     expect(m).toMatchObject({ payment_page_uid: PAGE, charge_method: 3, amount: 30, currency_code: 'ILS', more_info: ATT,
       refURL_callback: config().callbackUrl, send_failure_callback: true, items: [{ name: 'TEKANGO - מנוי חודשי', quantity: 1, price: 30, vat_type: 0 }] });
     expect(m.recurring_settings).toMatchObject({ instant_first_payment: true, recurring_type: 2, recurring_range: 1, number_of_charges: 0,
-      start_date_on_payment_date: true, start_date: 18, successful_invoice: true, send_customer_success_email: true, customer_failure_email: true });
-    // Owner 2026-10-25: an Israeli customer gets the approval / failure email and an invoice-receipt for the first charge too
-    expect(m).toMatchObject({ sendEmailApproval: true, sendEmailFailure: true, initial_invoice: true });
+      start_date_on_payment_date: true, start_date: 18, successful_invoice: false });
     expect(y).toMatchObject({ amount: 306, items: [{ name: 'TEKANGO - מנוי שנתי', price: 306, vat_type: 0 }] });
     expect(y.recurring_settings).toMatchObject({ recurring_type: 2, recurring_range: 12 });
   });
@@ -332,15 +330,15 @@ describe('Israel time helpers', () => {
   });
 });
 
-describe('the provider comes only from the Function secrets; the code gate is open, the DB switch decides', () => {
+describe('still inert: the provider comes only from the Function secrets, billing stays off', () => {
   // Owner night task 2026-10-21: wiring builds the provider from the named secrets (UNAVAILABLE_PROVIDER without them); the billing
   // phase is still the code constant 'off', so neither checkout nor a callback ever reaches it
-  it('wiring.ts falls back to UNAVAILABLE_PROVIDER, holds no key, and the billing phase constant is enforced (Owner 2026-10-25)', () => {
+  it('wiring.ts falls back to UNAVAILABLE_PROVIDER, holds no key, and the billing phase constant is off', () => {
     const wiring = readFileSync(new URL('./wiring.ts', import.meta.url), 'utf8');
     // Owner 2026-10-24 (Codex spec PAY-01): the provider's fetch is the required relay's (payplusFetch), never a direct fetch
     expect(wiring).toMatch(/payplusProviderFromSecrets\(\(n\) => env\(n\), url, payplusFetch, \(\) => Date\.now\(\)\) \?\? UNAVAILABLE_PROVIDER/);
     expect(wiring).not.toMatch(/api-key|secret-key|restapi/i);
-    expect(ACTIVATION_PHASE).toBe('enforced');
+    expect(ACTIVATION_PHASE).toBe('off');
   });
 });
 
@@ -421,10 +419,6 @@ describe('International: USD + English page (prepared; the billing phase stays o
     expect(b).toMatchObject({ amount: 23, currency_code: 'USD', language_code: 'en', paying_vat: false, hide_identification_id: true,
       hide_payments_field: true, more_info: ATT,
       items: [{ name: 'TEKANGO - Monthly subscription', price: 18, vat_type: 2 }, { name: 'TEKANGO - SMART PACK monthly', price: 5, vat_type: 2 }] });
-    // Owner 2026-10-25: international purchasing is not open - no invoice / customer emails on a USD page
-    expect(b).toMatchObject({ sendEmailApproval: false, sendEmailFailure: false });
-    expect(b).not.toHaveProperty('initial_invoice');
-    expect(b.recurring_settings).toMatchObject({ successful_invoice: false, send_customer_success_email: false, customer_failure_email: false });
     const il = buildGenerateLinkBody(config(), { attemptId: ATT, amountMinor: 3000, billingPeriod: 'month', nowMs: NOW });
     expect(il).not.toHaveProperty('language_code');
     expect(il).not.toHaveProperty('paying_vat');
@@ -583,9 +577,9 @@ describe('checkout status: the server pull (prepared; the billing phase stays of
     expect(await checkoutStatusHandler('prepared', { sql: none, provider: createPayPlusProvider(config({ fetch: f })) }, U)).toEqual({ status: 200, body: { ok: true, activated: false, waiting: 0 } });
     expect(f).not.toHaveBeenCalled();
   });
-  it('billing off answers before anything is read; a malformed target list is never trusted', async () => {
+  it('billing off (today) answers before anything is read; a malformed target list is never trusted', async () => {
     const sql = sqlWith();
-    expect(await checkoutStatusHandler('off', { sql, provider: createPayPlusProvider(config()) }, U)).toEqual({ status: 503, body: { ok: false, code: 'billing_off' } });
+    expect(await checkoutStatusHandler(ACTIVATION_PHASE, { sql, provider: createPayPlusProvider(config()) }, U)).toEqual({ status: 503, body: { ok: false, code: 'billing_off' } });
     expect(sql.checkoutPullTargets).not.toHaveBeenCalled();
     const bad = sqlWith({ checkoutPullTargets: vi.fn(async () => [{ ...target, requestRef: 'x' }]) });
     expect((await checkoutStatusHandler('prepared', { sql: bad, provider: createPayPlusProvider(config()) }, U)).status).toBe(503);

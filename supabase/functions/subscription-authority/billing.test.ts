@@ -65,23 +65,12 @@ describe('checkout intent: server market + server catalog amount; redirect is no
     expect(sql.createCheckoutIntent).not.toHaveBeenCalled(); expect(provider.createCheckout).not.toHaveBeenCalled();
   });
   it('tampered amount / currency / rate / market / account id in the body are ignored', async () => {
-    const sql = sqlFor('IL'); const provider = okProvider();
-    const r = await checkoutIntentHandler('prepared', { sql, provider }, U, { planId: 'classic', blocks: 1, idempotencyKey: KEY,
-      amountMinor: 1, currency: 'USD', rate: 3.7, market: 'INTERNATIONAL', userId: '00000000-0000-4000-8000-000000000000', displayCurrency: 'EUR' });
-    const expected = computeCheckoutAmount(parseCatalog(IL, 'IL'), 'classic', 1)!;
-    expect(sql.createCheckoutIntent).toHaveBeenCalledWith(U, 'classic', 1, KEY);
-    expect(provider.createCheckout).toHaveBeenCalledWith({ attemptId: ATT, currency: 'ILS', amountMinor: expected.amountMinor });
-    expect(r).toEqual({ status: 200, body: { ok: true, attemptId: ATT, currency: 'ILS', amountMinor: expected.amountMinor, redirectUrl: 'https://provider.example/pay/abc', state: 'pending' } });
-  });
-  it('Owner 2026-10-25: an INTERNATIONAL account gets no payment page - a "market: IL" in the body never opens one', async () => {
     const sql = sqlFor('INTERNATIONAL'); const provider = okProvider();
-    expect(await checkoutIntentHandler('enforced', { sql, provider }, U, { planId: 'classic', blocks: 1, idempotencyKey: KEY, market: 'IL', currency: 'ILS' }))
-      .toEqual({ status: 409, body: { ok: false, code: 'market_not_open' } });
-    expect(provider.createCheckout).not.toHaveBeenCalled();
-    // the SQL refusal of 20261025200000 maps to the same answer
-    const sql2 = { ...sqlFor('IL'), createCheckoutIntent: vi.fn(async () => ({ ok: false, code: 'market_not_open' })) } as never;
-    expect(await checkoutIntentHandler('enforced', { sql: sql2, provider }, U, { planId: 'classic', idempotencyKey: KEY }))
-      .toEqual({ status: 409, body: { ok: false, code: 'market_not_open' } });
+    const r = await checkoutIntentHandler('prepared', { sql, provider }, U, { planId: 'classic', blocks: 1, idempotencyKey: KEY,
+      amountMinor: 1, currency: 'ILS', rate: 3.7, market: 'IL', userId: '00000000-0000-4000-8000-000000000000', displayCurrency: 'EUR' });
+    expect(sql.createCheckoutIntent).toHaveBeenCalledWith(U, 'classic', 1, KEY);
+    expect(provider.createCheckout).toHaveBeenCalledWith({ attemptId: ATT, currency: 'USD', amountMinor: 2100 });
+    expect(r).toEqual({ status: 200, body: { ok: true, attemptId: ATT, currency: 'USD', amountMinor: 2100, redirectUrl: 'https://provider.example/pay/abc', state: 'pending' } });
   });
   it('IL checkout charges exactly the VAT-inclusive catalog amount (5400 for Modern + 1 block)', async () => {
     const provider = okProvider();
@@ -90,7 +79,7 @@ describe('checkout intent: server market + server catalog amount; redirect is no
   });
   it('a SQL amount that drifts from the server catalog (e.g. a 600 block) is refused, provider never called', async () => {
     const provider = okProvider();
-    expect(await checkoutIntentHandler('prepared', { sql: sqlFor('IL', 99900), provider }, U, { planId: 'classic', blocks: 1, idempotencyKey: KEY }))
+    expect(await checkoutIntentHandler('prepared', { sql: sqlFor('INTERNATIONAL', 2400), provider }, U, { planId: 'classic', blocks: 1, idempotencyKey: KEY }))
       .toEqual({ status: 503, body: { ok: false, code: 'checkout_unavailable' } });
     expect(provider.createCheckout).not.toHaveBeenCalled();
   });
@@ -285,22 +274,22 @@ describe('all-inclusive package (current offer)', () => {
     expect(parseCatalog({ ...c, prices: c.prices.map((p) => (p.planId === 'classic' ? { ...p, offer: 'current' } : p)) }, 'IL')).toBeNull();
   });
   it('the package intent goes through create_package_checkout_intent with the period only; the amount must match the server row', async () => {
-    const sqlAmount = { v: 30600 };
+    const sqlAmount = { v: 18400 };
     const sql = {
       createCheckoutIntent: vi.fn(),
-      createPackageCheckoutIntent: vi.fn(async () => ({ ok: true, attemptId: ATT, market: 'IL', currency: 'ILS', amountMinor: sqlAmount.v, state: 'pending' })),
-      priceCatalog: vi.fn(async () => cat('IL')), recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
+      createPackageCheckoutIntent: vi.fn(async () => ({ ok: true, attemptId: ATT, market: 'INTERNATIONAL', currency: 'USD', amountMinor: sqlAmount.v, state: 'pending' })),
+      priceCatalog: vi.fn(async () => cat('INTERNATIONAL')), recordVerifiedEvent: vi.fn(), applyVerifiedLineEvent: vi.fn(),
       recordCheckoutPage: vi.fn(async (_a: string, _u: string, url: string) => url), 
     } as never as BillingSql & Record<string, ReturnType<typeof vi.fn>>;
     const provider = okProvider();
-    const r = await checkoutIntentHandler('prepared', { sql, provider }, U, { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY, amountMinor: 1, currency: 'USD' });
+    const r = await checkoutIntentHandler('prepared', { sql, provider }, U, { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY, amountMinor: 1, currency: 'ILS' });
     expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ amountMinor: 30600, currency: 'ILS', state: 'pending' });
+    expect(r.body).toMatchObject({ amountMinor: 18400, currency: 'USD', state: 'pending' });
     expect(sql.createPackageCheckoutIntent).toHaveBeenCalledWith(U, 'year', KEY, false);
     expect(sql.createCheckoutIntent).not.toHaveBeenCalled();
     // the package period reaches the provider (PayPlus phase 1: monthly / annual renewal), from the request period only
-    expect(provider.createCheckout).toHaveBeenCalledWith({ attemptId: ATT, currency: 'ILS', amountMinor: 30600, billingPeriod: 'year', addOnAmountMinor: null });
-    sqlAmount.v = 30599; // an amount that drifts from the server row would be a mismatch -> refused, nothing reaches the provider
+    expect(provider.createCheckout).toHaveBeenCalledWith({ attemptId: ATT, currency: 'USD', amountMinor: 18400, billingPeriod: 'year', addOnAmountMinor: null });
+    sqlAmount.v = 18360; // the retired $183.60 would be a mismatch -> refused, nothing reaches the provider
     const provider2 = okProvider();
     expect((await checkoutIntentHandler('prepared', { sql, provider: provider2 }, U, { planId: 'all_inclusive', billingPeriod: 'year', idempotencyKey: KEY })).body).toMatchObject({ ok: false, code: 'checkout_unavailable' });
     expect(provider2.createCheckout).not.toHaveBeenCalled();

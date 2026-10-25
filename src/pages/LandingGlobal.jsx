@@ -21,8 +21,8 @@ import { SMART_PACK } from '../domain/subscriptions/addOnCatalog';
 // exception). Plans (IRON-LANDING-001 as amended by the Owner 2026-10-11, PROFLOW_PROJECT_CONTEXT.md §249, review display):
 // Free-10, then ONE all-inclusive package - $18 per renewing month or $184.00 per renewing year (Owner 2026-10-11) - from
 // src/domain/subscriptions/packageCatalog.js, always charged in USD. No verified exchange-rate source exists, so no EUR / GBP
-// estimate is shown (internationalDisplay() falls back to USD). Billing abroad is not open yet (2026-10-25); Free-10 (OD-01) and
-// every "10 free quotes" button carry the true state: active (enforced in both markets since 2026-10-25). English changes are limited to plan / call-to-action parity.
+// estimate is shown (internationalDisplay() falls back to USD). Registration and billing are not active; Free-10 (OD-01) and every
+// "10 free quotes" button carry the true state: not active yet. English changes are limited to plan / call-to-action parity.
 
 export default function LandingGlobal({ onForgotPassword }) {
   const navigate = useNavigate();
@@ -49,7 +49,7 @@ export default function LandingGlobal({ onForgotPassword }) {
   // §249: two review cards in six shared regions (LandingPlans.jsx) - Free-10, then the one all-inclusive package with one price row
   // per billing period, in USD (OD-08); no tax line (international tax policy open, OPEN-11); the annual price is a price, never a
   // savings badge. "Every available capability" = what the account has today (Modern / Visual stay illustrations). No paid quote
-  // quota, storage or AI claim. No purchase / signup action on a card (billing abroad is not open).
+  // quota, storage or AI claim. No purchase / signup action on a card (billing is not active).
   const savingRate = usdAnnualSavingRate();
   const plans = [
     {
@@ -61,8 +61,7 @@ export default function LandingGlobal({ onForgotPassword }) {
         'An empty draft and previews never count',
         'Sent quotes stay available',
       ],
-      // Owner 2026-10-25 ("why mention it at all?"): no status line on the Free card
-      notice: null,
+      notice: 'Not active yet',
     },
     {
       id: 'all_inclusive', icon: PackageCheck, name: 'All-inclusive', tagline: 'One package with every available capability, billed monthly or annually.',
@@ -102,7 +101,7 @@ export default function LandingGlobal({ onForgotPassword }) {
     links: { home: '/en', login: '/dashboard?lang=en', signup: '/dashboard?signup=true&lang=en' },
     // The Free-10 calls to action (hero, plans, closing) keep the existing signup path; the status pill is part of every button
     // until the server activation of Free-10 is verified (planSystemActive=false, activationPhase=off today).
-    free10: { cta: '10 free quotes', status: null },
+    free10: { cta: '10 free quotes', status: 'Not active yet' },
     nav: {
       label: 'Main navigation',
       homeLabel: 'TEKANGO home',
@@ -116,7 +115,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       login: 'Sign In',
       // IRON-LANDING-001 (amended 2026-10-11): the Free-10 button, always with its true status.
       cta: '10 free quotes',
-      ctaStatus: null,
+      ctaStatus: 'Not active yet',
       menu: 'Menu',
       closeMenu: 'Close menu',
       forgotPassword: 'Forgot Password?',
@@ -131,7 +130,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       // L08: no public link / caption to the sample-quote route (no authority); the figure keeps an accessible name only.
       docLabel: 'Sample quotation in the Classic style',
       // OD-01 (Owner 2026-10-07): the trial line now states the Free-10 policy, marked as not yet activated.
-      trial: '10 free quotes or 7 days, whichever comes first',
+      trial: '10 free quotes or 7 days, whichever comes first · not active yet',
       motion: {
         eyebrow: 'Quotes that work as hard as you do',
         title: 'From the jobsite to a signed quote',
@@ -220,10 +219,10 @@ export default function LandingGlobal({ onForgotPassword }) {
       // Owner 2026-10-23 (typed L-14, morning report item 8): the 7 days, as everywhere else
       intro: '10 free quotes or 7 days, whichever ends first, then one package with every available capability, billed monthly or annually.',
       // Task 37 (Owner-approved L1 meaning): true on LIVE and TEST.
-      trialNote: 'The paid package cannot be purchased yet, and the prices are shown for information only.',
+      trialNote: 'The 10-free-quotes plan is not active yet. The account terms available today are shown when you sign up. The new paid plan cannot be purchased yet, and the prices are shown for information only.',
       // Owner 2026-10-07: review notice for the new plan cards (exact wording).
       // Task 37 (Owner-approved L7).
-      reviewNotice: 'The paid package cannot be purchased yet, and there is no online payment. You can already open an account.',
+      reviewNotice: 'The new plans are not active yet: subscriptions cannot be purchased and there is no online payment. You can already open an account.',
       // OD-08: billing currency disclosure; with a valid rate the local figure is an estimate (source + as-of date), otherwise USD with
       // the true reason when a local estimate was due but unavailable.
       priceNote: est
@@ -245,7 +244,7 @@ export default function LandingGlobal({ onForgotPassword }) {
         { q: 'Do the displayed prices include taxes?', a: 'Plan prices are listed in US dollars and are charged in USD; a price shown in pounds or euros is only an estimate. The package cannot be purchased yet; if any tax applies when it launches, it will be shown clearly before you pay anything.' },
         // OD-01/OD-02 (Owner 2026-10-07): the trial question is replaced by the Free-10 policy, truthfully not yet activated.
         // Task 37 (Owner-approved): the same facts as scannable points.
-        { q: 'How do the 10 free quotes work?', a: <>The new free plan includes 10 quotes in total, or 7 days from sign-up, whichever comes first. SMART PACK is included during those 7 days.<ul className="tl-faq-list"><li>A quote counts the first time it is saved with a customer and at least one item. Editing and saving it again does not count again.</li><li>Sending or producing the same version again for the same customer does not count, on any channel: sending it, a view link, a PDF or a print.</li><li>Changing the customer, the recipient name or the quote content and producing it again counts as another quote.</li><li>An empty draft and previews never count.</li><li>Deleting a quote does not give it back, and quotes already sent to customers stay available.</li></ul>For accounts opened before the free plan was activated, the 7 days count from the activation day.</> },
+        { q: 'How do the 10 free quotes work?', a: <>The new free plan includes 10 quotes in total, or 7 days from sign-up, whichever comes first. SMART PACK is included during those 7 days.<ul className="tl-faq-list"><li>A quote counts the first time it is saved with a customer and at least one item. Editing and saving it again does not count again.</li><li>Sending or producing the same version again for the same customer does not count, on any channel: sending it, a view link, a PDF or a print.</li><li>Changing the customer, the recipient name or the quote content and producing it again counts as another quote.</li><li>An empty draft and previews never count.</li><li>Deleting a quote does not give it back, and quotes already sent to customers stay available.</li></ul>The new plan is not active yet; the account terms available today are shown when you sign up.</> },
         { q: 'Is the platform optimized for mobile and desktop?', a: 'Yes, TEKANGO is built as a fully responsive modern SaaS platform, allowing you to generate quotes and manage your business from any computer, tablet, or smartphone.' },
         // Verifiable infrastructure facts only (TLS in transit, encryption at rest by the Supabase/PostgreSQL platform).
         { q: 'Is my business data secure on the cloud?', a: 'Your data is stored on cloud infrastructure built on Supabase/PostgreSQL, which includes encryption in transit (TLS) and at rest as part of the standard cloud infrastructure. Access to your data is restricted to your own account.' },

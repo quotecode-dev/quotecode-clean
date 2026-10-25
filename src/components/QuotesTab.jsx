@@ -17,14 +17,13 @@ import { sortQuotes, normalizeSortField } from '../utils/quoteListSort';
 import NewQuoteMenu from './NewQuoteMenu';
 import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search, ClipboardList, Clock } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
-import PaidMarkIcon from './PaidMarkIcon';
 import { nextSteps, NEXT_STEP_COPY } from '../utils/nextStep';
 import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
 import { taskMarket, marketToday, marketClock } from '../utils/manualTasks';
 import { isQuoteAcceptanceExpired, isOpenQuoteExpired, marketCalendarDate } from '../utils/quoteValidity';
 import { BELL_SUBJECT_EVENT } from '../utils/bellSubject';
 import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, RADIUS, SHADOW } from '../theme/neonTheme';
-import { isQuoteImmutable, canMarkQuotePaid } from '../utils/quoteLock';
+import { isQuoteImmutable } from '../utils/quoteLock';
 import { isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
 import { formatQuoteFallback } from '../utils/quoteNumber';
 import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
@@ -141,8 +140,6 @@ export default function QuotesTab({
   copyQuoteMessage = null,
   // Owner night task 2026-10-22 (typed approval, adding the entry button only): Customer Twin ("בדיקת הלקוח") of a saved quote
   onOpenCustomerTwin = null,
-  // Owner 2026-10-25: an approved / signed quote may be marked paid (the status only)
-  handleMarkQuotePaid = null,
   handleDeleteQuote,
   handleProtectedAction,
   activeTooltip,
@@ -675,19 +672,6 @@ export default function QuotesTab({
             </div>
           )}
         </span>
-
-        {typeof handleMarkQuotePaid === 'function' && canMarkQuotePaid(quote) && (
-          // PRODUCT_TRUTH_DECORATIVE: marks an approved / signed quote as paid (the status only; asks first; collects no payment)
-          <button
-            type="button"
-            data-testid="quote-mark-paid"
-            onClick={() => handleMarkQuotePaid(quote, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })}
-            style={{ ...chipBase, background: APP_STATUS.paid.bg, color: APP_STATUS.paid.fg, border: `1px solid ${APP_STATUS.paid.border}` }}
-          >
-            <PaidMarkIcon size={18} />
-            <span>{isHebrew ? 'סימון כשולמה' : 'Mark as paid'}</span>
-          </button>
-        )}
 
         {typeof onOpenCustomerTwin === 'function' && (
           // PRODUCT_TRUTH_DECORATIVE: opens the Customer Twin panel of this saved quote (internal, read-only; changes nothing)

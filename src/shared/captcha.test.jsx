@@ -50,11 +50,11 @@ describe('the robot check (Cloudflare Turnstile)', () => {
     expect(src).toMatch(/const checkClient = createClient\(supabaseUrl, secretKey, \{ auth: \{ persistSession: false, autoRefreshToken: false \} \}\);/);
     expect(src).not.toMatch(/createClient\(supabaseUrl, anonKey\);/);
   });
-  it('the Privacy Policy names the check and what it sends, in Hebrew and English, dated 25 October 2026 (consent by location, Owner 2026-10-23; payments section updated 2026-10-25)', () => {
+  it('the Privacy Policy names the check and what it sends, in Hebrew and English, dated 23 October 2026 (consent by location, Owner 2026-10-23)', () => {
     const p = readFileSync('src/pages/Privacy.jsx', 'utf8').replace(/\r\n/g, '\n');
     expect(p).toContain('בדיקת אבטחה של Cloudflare (Turnstile) שחוסמת רובוטים');
     expect(p).toContain('a Cloudflare security check (Turnstile) to block bots');
-    expect(p).toContain('עדכון אחרון: 25 באוקטובר 2026');
-    expect(p).toContain('Last updated: October 25, 2026');
+    expect(p).toContain('עדכון אחרון: 23 באוקטובר 2026');
+    expect(p).toContain('Last updated: October 23, 2026');
   });
 });

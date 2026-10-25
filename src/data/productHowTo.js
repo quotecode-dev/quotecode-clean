@@ -486,8 +486,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
     ],
   },
   // Owner console 2026-10-25, typed: "מאשר שינוי ב-L-14: הוראה לסימון מצב הצעה" (the LIVE check answered "mark as paid" with the
-  // sending steps). Truthful: an approved / paid / signed quote is locked; since 2026-10-25 (Owner typed: "הצעה שאושרה או נחתמה אפשר לסמן
-  // כשולמה (רק המצב)") the one change left is approved -> paid, through "סימון כשולמה" (guard_quote_immutability, 20261025100000).
+  // sending steps). Truthful: an approved / paid / signed quote is locked - its status cannot change either (guard_quote_immutability).
   {
     id: 'quote_status_mark',
     capabilityIds: ['quote_status'],
@@ -496,7 +495,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         'ברשימת "הצעות מחיר" לוחצים "פתיחה" ליד ההצעה ואז "עריכה".',
         'בשלב "בדיקה ושמירה", בשדה "מצב ההצעה", בוחרים "נשלחה", "אושרה" או "שולמה", ולוחצים "עדכון ההצעה בענן". המצב רק מסמן את ההצעה; הוא לא גובה תשלום.',
-        'הצעה שאושרה או שהלקוח חתם עליה נעולה לעריכה ("לא ניתן לערוך הצעה חתומה"). כשהלקוח שילם, פותחים את ההצעה ברשימה, לוחצים "סימון כשולמה" ומאשרים. אחרי הסימון אי אפשר לחזור ל"אושרה", והצעה ששולמה נעולה לגמרי.',
+        'הצעה שאושרה, שולמה או שהלקוח חתם עליה נעולה: אי אפשר לערוך אותה, וגם לא לשנות את המצב שלה ("לא ניתן לערוך הצעה חתומה").',
       ],
     },
     en: {
@@ -504,11 +503,11 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         'In the "Quotes" list click "Open" next to the quote, then "Edit".',
         'In the "Review and save" step, in "Quote status", choose "Sent", "Approved" or "Paid" and click "Update Quote in Cloud". The status only marks the quote; it does not collect payment.',
-        'A quote that is approved or signed by the client is locked for editing ("Cannot edit a signed quote"). When the client has paid, open the quote in the list, click "Mark as paid" and confirm. After marking it you cannot go back to "Approved", and a paid quote is fully locked.',
+        'A quote that is approved, paid or signed by the client is locked: it cannot be edited and its status cannot change either ("Cannot edit a signed quote").',
       ],
     },
     evidence: [
-      { file: 'src/components/QuotesTab.jsx', labels: ['פתיחה', 'Open', 'עריכה', 'Edit', 'לא ניתן לערוך הצעה חתומה', 'Cannot edit a signed quote', 'סימון כשולמה', 'Mark as paid'] },
+      { file: 'src/components/QuotesTab.jsx', labels: ['פתיחה', 'Open', 'עריכה', 'Edit', 'לא ניתן לערוך הצעה חתומה', 'Cannot edit a signed quote'] },
       { file: 'src/components/QuoteForm.jsx', labels: ['בדיקה ושמירה', 'Review and save', 'מצב ההצעה', 'Quote status', 'נשלחה', 'Sent', 'אושרה', 'Approved', 'שולמה', 'Paid'] },
       { file: 'src/pages/Dashboard.jsx', labels: ['הצעות מחיר', 'Quotes', 'עדכון ההצעה בענן', 'Update Quote in Cloud'] },
     ],

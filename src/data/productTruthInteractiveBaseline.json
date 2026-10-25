@@ -176,8 +176,8 @@
     "markers": 0
   },
   "src/components/CustomerTwinPanel.jsx": {
-    "interactive": 5,
-    "markers": 5
+    "interactive": 6,
+    "markers": 6
   },
   "src/components/DailyTipCard.jsx": {
     "interactive": 4,
@@ -243,10 +243,6 @@
     "interactive": 1,
     "markers": 3
   },
-  "src/components/PaidMarkIcon.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/components/PdfFileIcon.jsx": {
     "interactive": 0,
     "markers": 0
@@ -304,8 +300,8 @@
     "markers": 7
   },
   "src/components/QuotesTab.jsx": {
-    "interactive": 29,
-    "markers": 32
+    "interactive": 28,
+    "markers": 31
   },
   "src/components/RemindersFirstSetupNotice.jsx": {
     "interactive": 1,

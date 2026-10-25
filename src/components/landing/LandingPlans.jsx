@@ -87,8 +87,7 @@ export default function LandingPlans({ copy, plans }) {
                   <li key={t}><CheckCircle2 size={16} aria-hidden="true" /><span>{t}</span></li>
                 ))}
               </ul>
-              {/* Owner 2026-10-25: a card may have no notice - its region stays (the two cards keep one row grid) without the divider */}
-              <p className={p.notice ? 'tl-plan-notice' : 'tl-plan-notice tl-plan-notice--empty'} data-region="notice" aria-hidden={p.notice ? undefined : 'true'}>{p.notice}</p>
+              <p className="tl-plan-notice" data-region="notice">{p.notice}</p>
             </article>
           );
         })}

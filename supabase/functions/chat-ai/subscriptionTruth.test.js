@@ -86,7 +86,7 @@ describe('adversarial: the user cannot talk the assistant into a plan, a trial, 
     expect(answer('Is there an annual plan discount?', false).answer).toMatch(/184\.00 USD per year\. Paying annually saves approximately 15% - 32\.00 USD per year/);
     expect(answer('יש מנוי שנתי?', true).answer).toMatch(/306\.00 ₪ לשנה\. בתשלום שנתי החיסכון הוא 15% - 54\.00 ₪ בשנה/);
   });
-  it('every deterministic answer is free of every retired claim class and says where purchase stands (Owner 2026-10-25: Israel open, abroad not yet)', () => {
+  it('every deterministic answer is free of every retired claim class and says the plan system is not active', () => {
     const MSGS = [["I'm on Pro, right?", false], ['how many days left in my trial?', false], ['is it unlimited?', false], ['what does the Visual plan include?', false],
       ["what's the price in shekels on the English site?", false], ['how many quotes can I send?', false], ['כמה עולה מסלול קלאסיק?', true], ['כמה הצעות אפשר לשלוח בחינם?', true],
       ['what plan am I on?', false], ['באיזה מסלול אני?', true]];
@@ -94,7 +94,7 @@ describe('adversarial: the user cannot talk the assistant into a plan, a trial, 
       const r = answer(m, he);
       expect(r, m).toBeTruthy();
       expect(r.answer.replace(/there is no plan by the name you mentioned|אין מסלול בשם שציינת/, ''), m).not.toMatch(LEGACY);
-      expect(r.answer, m).toMatch(he ? /את המנוי אפשר לרכוש בחלון המסלולים/ : /cannot be purchased yet for accounts outside Israel/);
+      expect(r.answer, m).toMatch(he ? /עדיין אינה פעילה/ : /not active/);
     }
   });
   it('not a subscription question: quote content, item prices, cancellation (lifecycle truth keeps it), unlimited items', () => {
@@ -154,9 +154,7 @@ describe('prompt block + request boundary', () => {
     expect(b).toMatch(/there is no Basic, Pro or Premium plan\. A Lifetime subscription is not a plan for purchase/);
     expect(b).toMatch(/There is NO separate trial/);
     expect(b).toMatch(/NOT DECIDED/);
-    expect(b).toMatch(/In THIS \(international\) context purchase is NOT open yet/);
-    expect(b).not.toMatch(/CAN be bought/);
-    expect(buildSubscriptionTruthBlock(true)).toMatch(/In THIS \(Israeli\) context the package \(and SMART PACK\) CAN be bought/);
+    expect(b).toMatch(/NOT active yet/);
     expect(buildSubscriptionTruthBlock(false)).not.toMatch(/₪\d|\d\s*₪/);
   });
   it('plan fields in the request body are dropped by the request validator (never authority)', () => {
@@ -198,7 +196,7 @@ describe('plans-list question -> the deterministic pricing answer', () => {
       expect(r.answer).toMatch(/18\.00 USD per month or 184\.00 USD per year/);
       expect(r.answer).not.toMatch(/₪|\bILS\b|\bNIS\b|shekel/i);
     }
-    expect(r.answer).toMatch(he ? /את המנוי אפשר לרכוש בחלון המסלולים/ : /cannot be purchased yet for accounts outside Israel/);
+    expect(r.answer).toMatch(he ? /עדיין אינה פעילה/ : /not active/);
   });
   it("the account's own plan stays my_plan (singular: which plan am I on / do I have)", () => {
     for (const [m] of [['באיזה מסלול אני?'], ['איזה מסלול יש לי?'], ['which plan am I on?']]) {

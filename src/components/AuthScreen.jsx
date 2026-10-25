@@ -166,9 +166,8 @@ export default function AuthScreen({
           {isSignUp ? (
             <div dir={isHebrew ? 'rtl' : 'ltr'} style={{ background: 'rgba(139, 92, 246, 0.1)', border: '1px solid rgba(167, 139, 250, 0.3)', padding: '10px 14px', borderRadius: '8px', marginTop: '14px', marginBottom: '4px', color: NEON.violetLighter, fontSize: '0.85rem', fontWeight: 'normal', textAlign: isHebrew ? 'right' : 'left', width: '100%', boxSizing: 'border-box', lineHeight: '1.5' }}>
               {isHebrew
-                // Owner console 2026-10-25 (typed L-12 ... "להפעלת הרכישה בישראל"): Free-10 is active from sign-up in both markets
-                ? 'להרשמה, הזינו כתובת מייל וסיסמה. החשבון נפתח במסלול החינם: 10 הצעות חינם או 7 ימים, המוקדם מביניהם. אין תקופת ניסיון נפרדת.'
-                : 'To sign up, enter your email and password. Your account opens on the Free plan: 10 free quotes or 7 days, whichever comes first. There is no separate trial period.'}
+                ? 'להרשמה, הזינו כתובת מייל וסיסמה. מערכת המסלולים החדשה, ובה 10 הצעות חינם או 7 ימים, המוקדם מביניהם, עדיין לא הופעלה. החשבון נפתח ללא תקופת ניסיון.'
+                : 'To sign up, enter your email and password. The new plan system (including 10 free quotes or 7 days, whichever comes first) is not active yet, and the account opens without a trial period.'}
             </div>
           ) : (
             <p style={{ color: NEON.textSecondary, fontSize: '0.9rem', marginTop: '10px', fontWeight: 'normal' }}>

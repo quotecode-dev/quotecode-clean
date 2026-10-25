@@ -49,7 +49,7 @@ INSERT INTO auth.users (id, email) SELECT tst.fu(n), format('f405-%s@synthetic.t
 INSERT INTO public.business_settings (user_id, email, business_name, country, currency, plan, role, is_lifetime)
   SELECT tst.fu(n), format('f405-%s@synthetic.test', n), format('Synthetic audit %s', n), 'Local', 'ILS', 'free', 'user', n = 2
     FROM generate_series(1, 6) n ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO public.account_market (user_id, market, source) SELECT tst.fu(n), 'IL', 'business_settings_country' FROM generate_series(1, 6) n ON CONFLICT (user_id) DO UPDATE SET market = EXCLUDED.market, source = EXCLUDED.source;
+INSERT INTO public.account_market (user_id, market, source) SELECT tst.fu(n), 'IL', 'business_settings_country' FROM generate_series(1, 6) n;
 INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id) VALUES
   (tst.fu(1), 'free_10', NULL), (tst.fu(2), 'paid', 'visual'), (tst.fu(3), 'free_10', NULL), (tst.fu(4), 'free_10', NULL),
   (tst.fu(5), 'free_10', NULL), (tst.fu(6), 'free_10', NULL);
@@ -111,7 +111,7 @@ INSERT INTO auth.users (id, email) SELECT tst.fu(n), format('f405-%s@synthetic.t
 INSERT INTO public.business_settings (user_id, email, business_name, country, currency, plan, role, is_lifetime)
   SELECT tst.fu(n), format('f405-%s@synthetic.test', n), format('Synthetic audit %s', n), 'Local', 'ILS', 'free', 'user', false
     FROM generate_series(8, 9) n ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO public.account_market (user_id, market, source) SELECT tst.fu(n), 'IL', 'business_settings_country' FROM generate_series(8, 9) n ON CONFLICT (user_id) DO UPDATE SET market = EXCLUDED.market, source = EXCLUDED.source;
+INSERT INTO public.account_market (user_id, market, source) SELECT tst.fu(n), 'IL', 'business_settings_country' FROM generate_series(8, 9) n;
 INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id) SELECT tst.fu(n), 'free_10', NULL FROM generate_series(8, 9) n;
 DO $$
 DECLARE a uuid; b uuid; r jsonb; pt timestamptz;
@@ -182,7 +182,7 @@ SELECT tst.ok(public.paid_grace_ends_at(tst.fu(6)) IS NULL, 'F5c the first 24 ho
 -- ------------------------------------------------------------------------------------------------------ D-2 SMART PACK ends with the free plan
 SET LOCAL tekango.skip_signup_provisioning = 'off';
 INSERT INTO auth.users (id, email) VALUES (tst.fu(7), 'f405-7@synthetic.test') ON CONFLICT DO NOTHING;
-INSERT INTO public.account_market (user_id, market, source) VALUES (tst.fu(7), 'IL', 'business_settings_country') ON CONFLICT (user_id) DO UPDATE SET market = EXCLUDED.market, source = EXCLUDED.source;
+INSERT INTO public.account_market (user_id, market, source) VALUES (tst.fu(7), 'IL', 'business_settings_country');
 INSERT INTO public.business_settings (user_id, email, business_name, country, currency) VALUES (tst.fu(7), 'f405-7@synthetic.test', 'Synthetic audit 7', 'Local', 'ILS');
 SET LOCAL tekango.skip_signup_provisioning = 'on';
 SELECT tst.ok(public.smart_pack_state(tst.fu(7)) ->> 'source' = 'free_window', 'F6 a new account has SMART PACK in its free plan');

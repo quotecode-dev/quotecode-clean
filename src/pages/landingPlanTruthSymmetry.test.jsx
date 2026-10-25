@@ -18,12 +18,8 @@
 //   package names no presentation style (Modern / Visual are illustrations only); no purchase / signup / plan-hint action on a card
 //   and no billing-cycle switch; the review notice is visible; no 14-day trial text;
 // - every Free-10 call to action ("10 הצעות חינם" / "10 free quotes") goes to the existing signup path and carries the visible
-//   NO status (Owner 2026-10-25: "למה בכלל צריך להזכיר את זה?"). IRON-LANDING-001 AMENDED by the Owner in the console 2026-10-25 -
-//   once the Free-10 activation is verified in the Production server the pages may present it as active (this release ships only after
-//   that read-back); the retired "not active yet" wording never comes back; the Free card has an empty notice region (no divider);
-// - the same amendment: ONLY the Hebrew page, and only while purchase is open in Israel, may say the package is bought inside the account
-//   (plans window, by card, monthly or annual); the English page never claims a purchase; no card carries a purchase action; no other
-//   payment method is ever named.
+//   status "עדיין לא הופעל" / "Not active yet" (Free-10 is never presented as active while its server activation is unverified),
+//   and no copy claims Free-10 is active.
 // The real pages must pass; mutated copies (negative controls) must fail.
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, cleanup, fireEvent } from '@testing-library/react';
@@ -90,14 +86,9 @@ function extract(Page, choose = null) {
 const BROAD = /\bno limits?\b|\bwithout limits?\b|\blimitless\b|\bunlimited\b|ללא מגבלות|בלי מגבלות|ללא הגבלה כלל|ללא כל הגבלה/i;
 const OPEN_FACT = /VAT \d|מע"?״?מ \d|\d+\s*%|לפני מע|\bsav(e|es|ing|ings)\b|חיסכון|חסכו|הנחה|discount|unlimited|ללא הגבלת הצעות|\bGB\b|storage|אחסון|credits?|קרדיט|quotes? per month|הצעות מחיר בחודש|buy now|subscribe now|purchase now|לרכישה עכשיו|לתשלום/i;
 const STYLE_ON_PACKAGE = /\b(Classic|Modern|Visual)\b/;
-// IRON-LANDING-001 amended 2026-10-25: Free-10 is active - the retired "not active yet" wording is a stale (false) claim now
-const STALE_INACTIVE = /עדיין לא הופעל|ההטבה עדיין לא|not active yet|is not active/i;
-// the English (international) page never claims a purchase; neither page names a payment method other than the card
-const EN_PURCHASE_CLAIM = /\b(buy|bought|purchase[ds]?|pay)\b[^.]{0,60}\b(account|plans window|card|now)\b|credit card|checkout/i;
-const OTHER_PAYMENT = /paypal|stripe|\bbit\b|(^|[\s("'״-])ביט($|[\s.,)"'״])|העברה בנקאית|bank transfer|מזומן|\bcash\b|(^|\s)צ['׳]ק($|[\s.,])/i;
+const ACTIVE_CLAIM = /\b(now active|already active|is active now|available now|now available)\b|כבר פעיל|פעיל כעת|פעילה כעת|פעילה עכשיו|זמין כעת|זמינה כעת|כבר הופעל/i;
 // Task 37: the Owner replaced the 2026-10-07 review notice (registration exists; checkout and Free-10 are off; no reviewer note to customers)
-// IRON-LANDING-001 amended 2026-10-25 (Owner typed): Free-10 active in both markets; buying inside the account in Israel only
-const NOTICE = { he: 'פותחים חשבון בחינם, ואת המנוי בתשלום רוכשים בתוך החשבון.', en: 'The paid package cannot be purchased yet, and there is no online payment. You can already open an account.' };
+const NOTICE = { he: 'המסלולים החדשים עדיין לא הופעלו: אי אפשר לרכוש מנוי או לשלם באתר. פתיחת חשבון זמינה כבר עכשיו.', en: 'The new plans are not active yet: subscriptions cannot be purchased and there is no online payment. You can already open an account.' };
 const PRICE_NOTE = { he: 'המחירים כוללים מע״מ', en: 'Prices are in US dollars. Charged in USD.' };
 const PER = { he: { month: '/ חודש', year: '/ שנה' }, en: { month: 'USD / month', year: 'USD / year' } };
 const SAVING = {
@@ -109,7 +100,7 @@ const CHOICE = { he: { legend: 'תקופת חיוב', month: 'חודשי', year:
 // IRON-LANDING-001 AMENDED 2026-10-20: the approved SMART PACK add-on prices (typed by the Owner in the console), written out here on
 // purpose - the check compares the page with the law's own figures, not with the catalog the page reads
 const ADDON = { he: { name: 'חכם פלוס', month: '₪10.00', year: '₪102.00' }, en: { name: 'SMART PACK', month: '$5.00', year: '$51.00' } };
-const FREE10 = { he: { label: '10 הצעות חינם', status: '' }, en: { label: '10 free quotes', status: '' } };
+const FREE10 = { he: { label: '10 הצעות חינם', status: 'עדיין לא הופעל' }, en: { label: '10 free quotes', status: 'Not active yet' } };
 const SIGNUP = { he: '/dashboard?signup=true&lang=he', en: '/dashboard?signup=true&lang=en' };
 const TRIAL_14 = /14\s*(יום|ימי)|14[\s-]day/i;
 const money = (locale, period) => (locale === 'he'
@@ -125,10 +116,9 @@ export function planTruthProblems(page, locale, chosen = 'month') {
     if (c.regions.join() !== REGIONS.join()) p.push(`${c.id}: regions ${c.regions.join()} != ${REGIONS.join()}`);
     if (BROAD.test(c.tagline)) p.push(`${c.id}: unqualified broad claim in the tagline "${c.tagline}"`);
     if (OPEN_FACT.test(c.text)) p.push(`${c.id}: undecided / unapproved claim on the card: "${c.text.match(OPEN_FACT)[0]}"`);
-    if (c.actions) p.push(`${c.id}: ${c.actions} action(s) on a card (a card never carries a purchase / signup action; buying is inside the account)`);
+    if (c.actions) p.push(`${c.id}: ${c.actions} action(s) on a card although registration and billing are not active`);
     if (c.otherInputs) p.push(`${c.id}: ${c.otherInputs} input(s) on a card besides the billing-period choice`);
-    if (c.id === 'all_inclusive' && !c.notice) p.push(`${c.id}: empty notice region (where / whether it is bought)`);
-    if (c.id === 'free' && c.notice) p.push(`free: a status line "${c.notice}" on the Free card (Owner 2026-10-25: none)`);
+    if (!c.notice) p.push(`${c.id}: empty notice region`);
     if (locale === 'he' && /\$|USD|€|£/.test(c.text)) p.push(`${c.id}: a non-ILS currency on the HE card`);
     if (locale === 'en' && /₪|\bILS\b|\bNIS\b|[֐-׿]/.test(c.text)) p.push(`${c.id}: ILS / ₪ / NIS / Hebrew on the EN card`);
     if (locale === 'en' && /€|£|\bEUR\b|\bGBP\b/.test(c.text)) p.push(`${c.id}: a converted non-USD price on the EN card (no verified rate source)`);
@@ -174,13 +164,11 @@ export function planTruthProblems(page, locale, chosen = 'month') {
   if (page.priceNote !== PRICE_NOTE[locale]) p.push(`price note "${page.priceNote}" != "${PRICE_NOTE[locale]}"`);
   if (page.oldBlock) p.push('the rejected X / X+Y proposal block is rendered (OD-12)');
   if (TRIAL_14.test(page.text)) p.push('14-day trial text on the page (OD-01)');
-  if (STALE_INACTIVE.test(page.text)) p.push(`Free-10 presented as not active (stale since 2026-10-25): "${page.text.match(STALE_INACTIVE)[0]}"`);
-  if (locale === 'en' && EN_PURCHASE_CLAIM.test(page.text)) p.push(`a purchase claim on the international page: "${page.text.match(EN_PURCHASE_CLAIM)[0]}"`);
-  if (OTHER_PAYMENT.test(page.text)) p.push(`a payment method other than the card: "${page.text.match(OTHER_PAYMENT)[0]}"`);
+  if (ACTIVE_CLAIM.test(page.text)) p.push(`Free-10 presented as active: "${page.text.match(ACTIVE_CLAIM)[0]}"`);
   if (page.free10.length < 4) p.push(`only ${page.free10.length} Free-10 call(s) to action (header, hero, plans, closing expected)`);
   for (const [i, b] of page.free10.entries()) {
     if (b.label !== FREE10[locale].label) p.push(`Free-10 CTA ${i}: label "${b.label}" != "${FREE10[locale].label}"`);
-    if (b.status !== FREE10[locale].status) p.push(`Free-10 CTA ${i}: status "${b.status}" != "${FREE10[locale].status}"`);
+    if (b.status !== FREE10[locale].status) p.push(`Free-10 CTA ${i}: status "${b.status}" != "${FREE10[locale].status}" (never presented as active)`);
     if (b.href !== SIGNUP[locale]) p.push(`Free-10 CTA ${i}: href "${b.href}" is not the existing signup path`);
   }
   if (locale === 'en' && /₪|\bILS\b|\bNIS\b/.test(page.text)) p.push('ILS / ₪ / NIS on the International page (OD-11)');
@@ -273,17 +261,12 @@ describe('plan-card truth (IRON-LANDING-001 as amended 2026-10-11, PROFLOW_PROJE
       ['EN: a Hebrew word on an English card', 'en', EN, (m) => { card(m, 'free').text += ' חינם'; }],
       ['HE: a third card', 'he', HE, (m) => { m.cards.push({ ...clone(card(m, 'all_inclusive')), id: 'pro' }); }],
       ['EN: a region missing (rows would not line up)', 'en', EN, (m) => { card(m, 'all_inclusive').regions = card(m, 'all_inclusive').regions.filter((r) => r !== 'capacity'); }],
-      ['HE: a status pill back on a Free-10 CTA', 'he', HE, (m) => { m.free10[1].status = 'פעיל עכשיו'; }],
-      ['EN: a status line back on the Free card', 'en', EN, (m) => { card(m, 'free').notice = 'Active from sign-up'; }],
-      ['HE: the package card loses its where-to-buy line', 'he', HE, (m) => { card(m, 'all_inclusive').notice = ''; }],
+      ['HE: a Free-10 CTA without its "not active yet" status', 'he', HE, (m) => { m.free10[1].status = ''; }],
       ['EN: a Free-10 CTA relabelled as a trial', 'en', EN, (m) => { m.free10[0].label = 'Start your free trial'; }],
       ['HE: a Free-10 CTA pointing to a checkout', 'he', HE, (m) => { m.free10[2].href = '/checkout?plan=all_inclusive'; }],
       ['HE: a Free-10 CTA removed', 'he', HE, (m) => { m.free10 = m.free10.slice(1); }],
-      ['HE: Free-10 presented as not active again (stale)', 'he', HE, (m) => { m.text += ' ההטבה עדיין לא הופעלה'; }],
-      ['EN: the retired "Not active yet" status back on a CTA', 'en', EN, (m) => { m.free10[0].status = 'Not active yet'; }],
-      ['EN: a purchase claim on the international page', 'en', EN, (m) => { m.text += ' Buy the package inside your account by card.'; }],
-      ['HE: another payment method named', 'he', HE, (m) => { m.text += ' אפשר לשלם גם ב-PayPal'; }],
-      ['EN: checkout claimed', 'en', EN, (m) => { m.text += ' Checkout is open.'; }],
+      ['HE: Free-10 claimed active', 'he', HE, (m) => { m.text += ' ההטבה כבר פעילה'; }],
+      ['EN: Free-10 claimed available now', 'en', EN, (m) => { m.text += ' 10 free quotes, available now'; }],
     ];
     it.each(cases)('%s', (_name, loc, page, fn, chosen = 'month') => {
       expect(planTruthProblems(page, loc, chosen)).toEqual([]); // the unmutated page passes for that period

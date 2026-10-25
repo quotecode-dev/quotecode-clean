@@ -54,8 +54,7 @@ describe('landing page trial-message de-duplication (Final Landing Polish task, 
     const en = readRenderedText('LandingGlobal.jsx');
     // IRON-LANDING-001 (2026-10-11): the closing band's CTA is the shared Free-10 button (copy.free10), so the band holds title + text.
     const closingRe = /closing:\s*\{\s*title:\s*'([^']*)',\s*text:\s*'([^']*)',?\s*\}/;
-    // Owner 2026-10-25: the Free-10 button carries no status (null) - the label alone is checked
-    const free10Re = /free10:\s*\{\s*cta:\s*'([^']*)',\s*status:\s*(?:'([^']*)'|null)\s*\}/;
+    const free10Re = /free10:\s*\{\s*cta:\s*'([^']*)',\s*status:\s*'([^']*)'\s*\}/;
     const heMatch = he.match(closingRe);
     const enMatch = en.match(closingRe);
     expect(heMatch).toBeTruthy();
@@ -63,7 +62,7 @@ describe('landing page trial-message de-duplication (Final Landing Polish task, 
     for (const m of [heMatch, enMatch, he.match(free10Re), en.match(free10Re)]) {
       expect(m).toBeTruthy();
       expect(m[1]).not.toMatch(/14/);
-      expect(m[2] ?? '').not.toMatch(/14/);
+      expect(m[2]).not.toMatch(/14/);
     }
   });
 });

@@ -81,7 +81,7 @@ INSERT INTO public.business_settings (user_id, email, business_name, country, cu
   SELECT tst.bu(n), format('b408-%s@synthetic.test', n), format('Synthetic billing admin %s', n), 'Local', 'ILS', 'free',
          CASE WHEN n = 9 THEN 'super_admin' ELSE 'user' END, n = 8
     FROM generate_series(1, 9) n ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO public.account_market (user_id, market, source) SELECT tst.bu(n), 'IL', 'business_settings_country' FROM generate_series(1, 9) n ON CONFLICT (user_id) DO UPDATE SET market = EXCLUDED.market, source = EXCLUDED.source;
+INSERT INTO public.account_market (user_id, market, source) SELECT tst.bu(n), 'IL', 'business_settings_country' FROM generate_series(1, 9) n;
 INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id, free_issues_consumed)
   SELECT tst.bu(n), 'free_10', NULL, 0 FROM generate_series(1, 9) n;
 
@@ -335,16 +335,12 @@ END $$;
 INSERT INTO auth.users (id, email) VALUES (tst.bu(10), 'b408-10@synthetic.test') ON CONFLICT DO NOTHING;
 INSERT INTO public.business_settings (user_id, email, business_name, country, currency, plan, role, is_lifetime)
   VALUES (tst.bu(10), 'b408-10@synthetic.test', 'Synthetic billing admin 10', 'US', 'USD', 'free', 'user', false) ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO public.account_market (user_id, market, source) VALUES (tst.bu(10), 'INTERNATIONAL', 'business_settings_country') ON CONFLICT (user_id) DO UPDATE SET market = EXCLUDED.market, source = EXCLUDED.source;
+INSERT INTO public.account_market (user_id, market, source) VALUES (tst.bu(10), 'INTERNATIONAL', 'business_settings_country');
 INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id, free_issues_consumed) VALUES (tst.bu(10), 'free_10', NULL, 0);
 DO $$
 DECLARE a uuid; amt int; p jsonb;
 BEGIN
-  -- 20261025200000: purchasing abroad is closed, so a USD subscription can no longer start through the payment page; the refund
-  -- rule for one (e.g. after international opens) is proven on an attempt written the way create_package_checkout_intent writes it
-  INSERT INTO public.checkout_attempts (user_id, idempotency_key, plan_price_id, block_price_id, blocks, market, currency, amount_minor, add_on_price_id)
-  VALUES (tst.bu(10), 'billing-admin-408-user-10', 'intl_all_inclusive_month_p1', NULL, 0, 'INTERNATIONAL', 'USD', 1800, NULL)
-  RETURNING attempt_id INTO a;
+  a := tst.bintent(tst.bu(10), 'billing-admin-408-user-10');
   SELECT amount_minor INTO amt FROM public.checkout_attempts WHERE attempt_id = a;
   PERFORM tst.bsvc();
   PERFORM public.record_verified_provider_event('payplus', 'tx-408-10', 'payment_confirmed', a, 'rec-408-10', 'term-408', now() - interval '3 days', repeat('e', 64), amt, 'USD');

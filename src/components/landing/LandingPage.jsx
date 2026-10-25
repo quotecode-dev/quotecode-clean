@@ -90,7 +90,7 @@ export default function LandingPage({
               <p className="tl-hero-text">{copy.hero.text}</p>
               <div className="tl-hero-actions">
                 {/* PRODUCT_TRUTH_DECORATIVE: primary signup entry point (the auth screen owns signup); Free-10 label paired with its "not active yet" status */}
-                <a className="tl-cta tl-free10-cta" href={copy.links.signup} onClick={go(navigate, copy.links.signup)} data-free10-cta><span className="tl-free10-label">{copy.free10.cta}</span>{copy.free10.status && <span className="tl-free10-status" data-free10-status>{copy.free10.status}</span>}<ArrowUpRight size={17} strokeWidth={2.2} aria-hidden="true" /></a>
+                <a className="tl-cta tl-free10-cta" href={copy.links.signup} onClick={go(navigate, copy.links.signup)} data-free10-cta><span className="tl-free10-label">{copy.free10.cta}</span><span className="tl-free10-status" data-free10-status>{copy.free10.status}</span><ArrowUpRight size={17} strokeWidth={2.2} aria-hidden="true" /></a>
               </div>
               <p className="tl-trial">{copy.hero.trial}</p>
             </div>
@@ -178,7 +178,7 @@ export default function LandingPage({
             <LandingPlans copy={copy.plans} plans={plans} />
             <div className="tl-plans-cta">
               {/* PRODUCT_TRUTH_DECORATIVE: plans-section signup entry point (the auth screen owns signup), outside the review cards; Free-10 label paired with its "not active yet" status */}
-              <a className="tl-cta tl-free10-cta" href={copy.links.signup} onClick={go(navigate, copy.links.signup)} data-free10-cta><span className="tl-free10-label">{copy.free10.cta}</span>{copy.free10.status && <span className="tl-free10-status" data-free10-status>{copy.free10.status}</span>}<ArrowUpRight size={17} strokeWidth={2.2} aria-hidden="true" /></a>
+              <a className="tl-cta tl-free10-cta" href={copy.links.signup} onClick={go(navigate, copy.links.signup)} data-free10-cta><span className="tl-free10-label">{copy.free10.cta}</span><span className="tl-free10-status" data-free10-status>{copy.free10.status}</span><ArrowUpRight size={17} strokeWidth={2.2} aria-hidden="true" /></a>
             </div>
           </div>
         </section>
@@ -224,7 +224,7 @@ export default function LandingPage({
             <h2 id="tl-closing-title">{copy.closing.title}</h2>
             <p>{copy.closing.text}</p>
             {/* PRODUCT_TRUTH_DECORATIVE: closing signup entry point (the auth screen owns signup); Free-10 label paired with its "not active yet" status */}
-            <a className="tl-cta tl-free10-cta" href={copy.links.signup} onClick={go(navigate, copy.links.signup)} data-free10-cta><span className="tl-free10-label">{copy.free10.cta}</span>{copy.free10.status && <span className="tl-free10-status" data-free10-status>{copy.free10.status}</span>}<ArrowUpRight size={17} strokeWidth={2.2} aria-hidden="true" /></a>
+            <a className="tl-cta tl-free10-cta" href={copy.links.signup} onClick={go(navigate, copy.links.signup)} data-free10-cta><span className="tl-free10-label">{copy.free10.cta}</span><span className="tl-free10-status" data-free10-status>{copy.free10.status}</span><ArrowUpRight size={17} strokeWidth={2.2} aria-hidden="true" /></a>
           </div>
         </section>
       </main>

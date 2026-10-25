@@ -31,7 +31,7 @@ export default function Privacy({ isHebrew }) {
 
   const t = isHebrew ? {
     title: 'מדיניות פרטיות (Privacy Policy)',
-    lastUpdated: 'עדכון אחרון: 25 באוקטובר 2026',
+    lastUpdated: 'עדכון אחרון: 23 באוקטובר 2026',
     back: 'חזרה',
     sections: [
       {
@@ -42,11 +42,11 @@ export default function Privacy({ isHebrew }) {
       },
       {
         title: '2. שימוש במידע',
-        content: 'המידע הנאסף משמש אך ורק לתפעול המערכת, ליצירת מסמכים עבור העסק שלכם, למתן תמיכה טכנית ולשיפור חוויית המשתמש. רכישת המנוי עצמו מתבצעת באמצעות ספק תשלום חיצוני (ראו סעיף 7). לא נעשה שימוש בנתונים העסקיים שלכם לשום מטרה אחרת.'
+        content: 'המידע הנאסף משמש אך ורק לתפעול המערכת, ליצירת מסמכים עבור העסק שלכם, למתן תמיכה טכנית ולשיפור חוויית המשתמש. השירות אינו מעבד תשלומים כרגע. לא נעשה שימוש בנתונים העסקיים שלכם לשום מטרה אחרת.'
       },
       {
         title: '3. שיתוף מידע עם צד שלישי',
-        content: 'אנו מתחייבים לעולם לא למכור את המידע שלכם, לסחור בו או להשכיר אותו לצדדים שלישיים. אנו עשויים לשתף נתונים רק עם ספקי תשתית חיוניים (כגון שרתי Supabase לאחסון נתונים) הפועלים תחת תקני אבטחה מחמירים. רכישת מנוי מתבצעת בדף תשלום מאובטח של ספק התשלום פיי פלוס (PayPlus); מה שמועבר אליו מפורט בסעיף 7. עוזר ה-AI של TEKANGO (בצ\'אט באתר ובתוך המערכת) מעביר לספק מודל שפה חיצוני (OpenAI) את מה שנדרש להפקת התשובה: את הטקסט שאתם כותבים, צילום מסך שאתם מצרפים לשאלה, ובשימוש בקול גם את ההקלטה (לתמלול) ואת טקסט התשובה (להקראה). כשאתם שואלים את העוזר בתוך המערכת על נתוני החשבון שלכם, למשל על לקוח, הצעה, פריט בקטלוג או משימה, הוא שולף מהחשבון את הנתונים הרלוונטיים ומעביר אותם לספק לצורך התשובה, ובהם גם פרטי לקוח כמו שם, איש קשר, מייל וטלפון. העוזר שולף נתונים מהחשבון רק כשאתם שואלים עליהם, והוא אינו משנה נתונים. אל תכללו בטקסט או בצילום פרטים שאינכם רוצים להעביר. ההקלטה עצמה אינה נשמרת אצלנו; התמלול נשלח כשאלה רגילה ונשמר כמו כל שאלה. השאלות והתשובות נשמרות אצלנו יחד עם כתובת המייל של החשבון (או כפנייה אנונימית בצ\'אט באתר) ומועד הפנייה, לצורך מענה ותמיכה. הודעות מייל (למשל הצעת מחיר ללקוח, אימות חשבון ואיפוס סיסמה) נשלחות באמצעות ספק שליחה חיצוני (Resend). בטפסי ההרשמה, ההתחברות ושחזור הסיסמה פועלת בדיקת אבטחה של Cloudflare (Turnstile) שחוסמת רובוטים; לצורך הבדיקה מועברים ל-Cloudflare נתונים טכניים מהדפדפן (כמו כתובת IP וסוג הדפדפן), ולא מה שאתם מקלידים בטופס. בדפים הציבוריים של האתר (דף הבית, הכלים, יצירת קשר, תנאי השימוש ומדיניות הפרטיות) אנו משתמשים בשירות המדידה Google Analytics של Google, כדי לדעת כמה מבקרים מגיעים לאתר, מאילו מקורות (למשל רשת חברתית או חיפוש) ובאילו דפים הם צופים. לצורך המדידה מועברים ל-Google נתונים טכניים מהדפדפן (כמו כתובת IP, סוג המכשיר והדפדפן, הדף שבו צפיתם והמקור שממנו הגעתם), והם עשויים להישמר בשרתים מחוץ לישראל, גם בארצות הברית. המדידה אינה פועלת בתוך המערכת, בהצעות המחיר שנשלחות ללקוחות ובכרטיסי העסק, ואינה מקבלת את מה שאתם מקלידים או את נתוני העסק שלכם.'
+        content: 'אנו מתחייבים לעולם לא למכור את המידע שלכם, לסחור בו או להשכיר אותו לצדדים שלישיים. אנו עשויים לשתף נתונים רק עם ספקי תשתית חיוניים (כגון שרתי Supabase לאחסון נתונים) הפועלים תחת תקני אבטחה מחמירים. כרגע אין ספק סליקה מחובר לשירות; ספק התשלום ופרטי השיתוף עמו יפורסמו לפני הפעלת המסלולים בתשלום. עוזר ה-AI של TEKANGO (בצ\'אט באתר ובתוך המערכת) מעביר לספק מודל שפה חיצוני (OpenAI) את מה שנדרש להפקת התשובה: את הטקסט שאתם כותבים, צילום מסך שאתם מצרפים לשאלה, ובשימוש בקול גם את ההקלטה (לתמלול) ואת טקסט התשובה (להקראה). כשאתם שואלים את העוזר בתוך המערכת על נתוני החשבון שלכם, למשל על לקוח, הצעה, פריט בקטלוג או משימה, הוא שולף מהחשבון את הנתונים הרלוונטיים ומעביר אותם לספק לצורך התשובה, ובהם גם פרטי לקוח כמו שם, איש קשר, מייל וטלפון. העוזר שולף נתונים מהחשבון רק כשאתם שואלים עליהם, והוא אינו משנה נתונים. אל תכללו בטקסט או בצילום פרטים שאינכם רוצים להעביר. ההקלטה עצמה אינה נשמרת אצלנו; התמלול נשלח כשאלה רגילה ונשמר כמו כל שאלה. השאלות והתשובות נשמרות אצלנו יחד עם כתובת המייל של החשבון (או כפנייה אנונימית בצ\'אט באתר) ומועד הפנייה, לצורך מענה ותמיכה. הודעות מייל (למשל הצעת מחיר ללקוח, אימות חשבון ואיפוס סיסמה) נשלחות באמצעות ספק שליחה חיצוני (Resend). בטפסי ההרשמה, ההתחברות ושחזור הסיסמה פועלת בדיקת אבטחה של Cloudflare (Turnstile) שחוסמת רובוטים; לצורך הבדיקה מועברים ל-Cloudflare נתונים טכניים מהדפדפן (כמו כתובת IP וסוג הדפדפן), ולא מה שאתם מקלידים בטופס. בדפים הציבוריים של האתר (דף הבית, הכלים, יצירת קשר, תנאי השימוש ומדיניות הפרטיות) אנו משתמשים בשירות המדידה Google Analytics של Google, כדי לדעת כמה מבקרים מגיעים לאתר, מאילו מקורות (למשל רשת חברתית או חיפוש) ובאילו דפים הם צופים. לצורך המדידה מועברים ל-Google נתונים טכניים מהדפדפן (כמו כתובת IP, סוג המכשיר והדפדפן, הדף שבו צפיתם והמקור שממנו הגעתם), והם עשויים להישמר בשרתים מחוץ לישראל, גם בארצות הברית. המדידה אינה פועלת בתוך המערכת, בהצעות המחיר שנשלחות ללקוחות ובכרטיסי העסק, ואינה מקבלת את מה שאתם מקלידים או את נתוני העסק שלכם.'
       },
       {
         id: 'cookies',
@@ -64,7 +64,7 @@ export default function Privacy({ isHebrew }) {
       },
       {
         title: '7. תשלומים (בעת רכישת מנוי)',
-        content: 'רכישת מנוי מתבצעת בדף תשלום מאובטח של ספק התשלום פיי פלוס (PayPlus). את פרטי הכרטיס ואת פרטי הקשר לחשבונית אתם מזינים ישירות בדף של פיי פלוס; הם לא עוברים דרכנו ולא נשמרים אצלנו. אנו מעבירים לפיי פלוס את סכום העסקה, המטבע, שם המסלול ומזהה פנימי של הרכישה, ומקבלים ממנו את תוצאת העסקה: מזהה העסקה, הסכום, המצב ומזהה הוראת הקבע. אלה נשמרים אצלנו לצורך ניהול המנוי, החידושים, הביטולים, ההחזרים והתמיכה. פיי פלוס שולחת אליכם במייל את אישור העסקה ואת חשבונית המס-קבלה. בקשות השרת שלנו לפיי פלוס עוברות דרך שירות ממסר עם כתובת קבועה (Fixie), שאינו מקבל את פרטי הכרטיס.'
+        content: 'כיום לא מתבצעים תשלומים בשירות. בעת ביצוע רכישה, ספק התשלום החיצוני יעבד את פרטי התשלום הנדרשים לביצוע העסקה, והשירות יעבד את פרטי העסקה והמצב הדרושים לניהול המנוי ולתמיכה. זהות הספק ופרטי העיבוד יוצגו בתהליך הרכישה ובמדיניות זו לפני הפעלת התשלום.'
       },
       {
         title: '8. הודעות ודיוור',
@@ -72,12 +72,12 @@ export default function Privacy({ isHebrew }) {
       },
       {
         title: '9. נושאים שטרם הוכרעו',
-        content: 'טרם נקבעו משכי שמירת הנתונים והמסמכים לאחר מחיקה או סגירת חשבון, אופן הטיפול בקבצים מצורפים ונפח האחסון. הם יפורסמו כשייקבעו.'
+        content: 'טרם נקבעו משכי שמירת הנתונים והמסמכים לאחר מחיקה או סגירת חשבון, אופן הטיפול בקבצים מצורפים ונפח האחסון. הם יפורסמו לפני הפעלת המסלולים.'
       }
     ]
   } : {
     title: 'Privacy Policy',
-    lastUpdated: 'Last updated: October 25, 2026',
+    lastUpdated: 'Last updated: October 23, 2026',
     back: 'Go Back',
     sections: [
       {
@@ -88,11 +88,11 @@ export default function Privacy({ isHebrew }) {
       },
       {
         title: '2. Use of Information',
-        content: 'The collected data is used exclusively to operate the platform, generate your business documents, provide technical support, and improve user experience. For accounts in Israel, a subscription can be bought through an external payment provider (see section 7); for accounts outside Israel, the service does not process payments at this time. We will not use your business data for any other purpose.'
+        content: 'The collected data is used exclusively to operate the platform, generate your business documents, provide technical support, and improve user experience. The service does not process payments at this time. We will not use your business data for any other purpose.'
       },
       {
         title: '3. Third-Party Sharing',
-        content: 'We promise never to sell, trade, or rent your personal information to third parties. We only share data with essential infrastructure providers (such as Supabase for database hosting) that operate under strict security standards. Subscription purchases (open for accounts in Israel only) are made on a secure payment page of the payment provider PayPlus; what is shared with it is described in section 7. The TEKANGO AI assistant (in the website chat and inside the app) sends an external language-model provider (OpenAI) what it needs to produce its answer: the text you write, a screenshot you attach to a question, and, when you use voice, the recording (for transcription) and the answer text (for reading aloud). When you ask the assistant inside the app about your account data, for example about a client, a quote, a catalog item or a task, it retrieves the relevant data from your account and sends it to the provider for the answer, including client details such as name, contact person, email and phone. The assistant retrieves account data only when you ask about it, and it does not change data. Do not include in text or screenshots details you do not want to pass on. The recording itself is not stored by us; its transcript is sent as an ordinary question and is stored like any question. Questions and answers are stored by us with the account email (or as an anonymous inquiry in the website chat) and the time, for answering and support. Emails (for example a quote to a customer, account verification and password reset) are sent through an external sending provider (Resend). The signup, sign-in and password-reset forms use a Cloudflare security check (Turnstile) to block bots; for the check, technical browser data (such as the IP address and the browser type) is sent to Cloudflare, not what you type in the form. On the public pages of the website (the home page, tools, contact, Terms of Use and Privacy Policy) we use Google Analytics, a Google measurement service, to learn how many visitors come to the website, where they come from (for example a social network or a search) and which pages they view. For this, technical browser data (such as the IP address, the device and browser type, the page viewed and the referring source) is sent to Google and may be stored on servers outside Israel, including in the United States. Measurement does not run inside the app, on quotes sent to customers or on business cards, and it never receives what you type or your business data.'
+        content: 'We promise never to sell, trade, or rent your personal information to third parties. We only share data with essential infrastructure providers (such as Supabase for database hosting) that operate under strict security standards. No payment processor is connected to the service at this time; the payment provider and what is shared with it will be published before paid plans are activated. The TEKANGO AI assistant (in the website chat and inside the app) sends an external language-model provider (OpenAI) what it needs to produce its answer: the text you write, a screenshot you attach to a question, and, when you use voice, the recording (for transcription) and the answer text (for reading aloud). When you ask the assistant inside the app about your account data, for example about a client, a quote, a catalog item or a task, it retrieves the relevant data from your account and sends it to the provider for the answer, including client details such as name, contact person, email and phone. The assistant retrieves account data only when you ask about it, and it does not change data. Do not include in text or screenshots details you do not want to pass on. The recording itself is not stored by us; its transcript is sent as an ordinary question and is stored like any question. Questions and answers are stored by us with the account email (or as an anonymous inquiry in the website chat) and the time, for answering and support. Emails (for example a quote to a customer, account verification and password reset) are sent through an external sending provider (Resend). The signup, sign-in and password-reset forms use a Cloudflare security check (Turnstile) to block bots; for the check, technical browser data (such as the IP address and the browser type) is sent to Cloudflare, not what you type in the form. On the public pages of the website (the home page, tools, contact, Terms of Use and Privacy Policy) we use Google Analytics, a Google measurement service, to learn how many visitors come to the website, where they come from (for example a social network or a search) and which pages they view. For this, technical browser data (such as the IP address, the device and browser type, the page viewed and the referring source) is sent to Google and may be stored on servers outside Israel, including in the United States. Measurement does not run inside the app, on quotes sent to customers or on business cards, and it never receives what you type or your business data.'
       },
       {
         id: 'cookies',
@@ -110,7 +110,7 @@ export default function Privacy({ isHebrew }) {
       },
       {
         title: '7. Payments (When a Subscription Is Purchased)',
-        content: 'Subscription purchase is open for accounts in Israel only; for accounts outside Israel no payments are made in the service today. A purchase is made on a secure payment page of the payment provider PayPlus. You enter your card details and the contact details for the receipt directly on the PayPlus page; they do not pass through us and are not stored by us. We send PayPlus the amount, the currency, the plan name and an internal purchase id, and receive the transaction result: the transaction id, the amount, the status and the standing-order id. These are stored by us to manage the subscription, renewals, cancellations, refunds and support. PayPlus emails you the transaction confirmation and the receipt. Our server requests to PayPlus pass through a fixed-address relay service (Fixie), which does not receive card details.'
+        content: 'No payments are made in the service today. When a purchase is made, the external payment provider will process the payment details needed for the transaction, and the service will process the transaction details and status needed to manage the subscription and for support. The provider and the processing details will be shown in the purchase flow and in this policy before payment is activated.'
       },
       {
         title: '8. Messages and Marketing',
@@ -118,7 +118,7 @@ export default function Privacy({ isHebrew }) {
       },
       {
         title: '9. Matters Not Yet Decided',
-        content: 'Retention periods for data and documents after deletion or account closure, the handling of attachments, and storage have not been decided yet and will be published once decided.'
+        content: 'Retention periods for data and documents after deletion or account closure, the handling of attachments, and storage have not been decided yet and will be published before the plans are activated.'
       }
     ]
   };

@@ -23,8 +23,8 @@ describe('adoption of the closed PREP CONTRACT (no drift)', () => {
     const crlfDrift = Buffer.from(adopted.toString('utf8').replace(/\r?\n/g, '\r\n'), 'utf8');
     expect(createHash('sha256').update(crlfDrift).digest('hex')).not.toBe(createHash('sha256').update(adopted).digest('hex'));
   });
-  it('the billing phase is the code constant "enforced" since 2026-10-25 (not derived from an environment variable; the DB row decides)', () => {
-    expect(ACTIVATION_PHASE).toBe('enforced');
+  it('the billing phase is the code constant "off" (not derived from an environment variable)', () => {
+    expect(ACTIVATION_PHASE).toBe('off');
     const dir = 'supabase/functions/subscription-authority/';
     const pure = ['authority.ts', 'index.ts', 'router.ts', 'outputRoute.ts', 'billing.ts', 'adapters.ts', 'payplus.ts'].map((f) => readFileSync(join(cwd(), dir + f), 'utf8')).join('\n');
     expect(pure).not.toMatch(/Deno\.env|process\.env|VITE_PROFLOW_ENV|import\.meta\.env/);

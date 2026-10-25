@@ -550,10 +550,9 @@ function renderCapabilityProse(p: ProductTruthFactPayload, name: string, desc: s
     case 'PLAN_NOT_DECIDED':
       // OPEN-02 / OPEN-13: the capability exists; which plans include it is not decided, and the plan system is not active yet.
       // Never a minimum plan, never "your plan includes / lacks it".
-      // Owner console 2026-10-25 (typed L-14 ... "להפעלת הרכישה בישראל"): once the plan system is active, no "still being prepared"
       return isHebrew
-        ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO. ${desc} עדיין לא הוחלט אילו מסלולים יכללו אותה.${AI_FACTS.subscriptions.planSystemActive ? '' : ' מערכת המסלולים החדשה עדיין בהכנה.'}`
-        : `Yes - ${name} exists in TEKANGO. ${desc} Plan inclusion for it is still undecided${AI_FACTS.subscriptions.planSystemActive ? '.' : ' (the new plan system is still being prepared).'}`;
+        ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO. ${desc} עדיין לא הוחלט אילו מסלולים יכללו אותה. מערכת המסלולים החדשה עדיין בהכנה.`
+        : `Yes - ${name} exists in TEKANGO. ${desc} Plan inclusion for it is still undecided (the new plan system is still being prepared).`;
     case 'PLAN_LOCKED':
       // Reachable only with an APPROVED minimum plan (none today - OPEN-02). Canonical plan names only (OD-16).
       return isHebrew

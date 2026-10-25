@@ -199,7 +199,7 @@ describe('(2) payload -> prose: the prose is rendered FROM the payload', () => {
     expect(() => formatInvoicingTruthAnswer(false, pay)).toThrow();
     expect(() => formatPaymentTruthAnswer(false, buildPaymentFactPayload({ liveCheckoutAvailable: true, paymentProcessingAvailable: true, acceptedPaymentCurrencies: [], paymentMethodsKnown: true }, NO_ACCOUNT_FACTS))).toThrow();
     expect(formatPaymentTruthAnswer(false, pay)).toBe(formatPaymentTruthAnswer(false));
-    expect(resolvePaymentTruthResponse(true, AI_FACTS.billing).answer).toBe(formatPaymentTruthAnswer(true, undefined, AI_FACTS.billing));
+    expect(resolvePaymentTruthResponse(true, AI_FACTS.billing).answer).toBe(formatPaymentTruthAnswer(true));
     expect(resolveInvoicingTruthResponse(true, AI_FACTS.invoicing).answer).toBe(formatInvoicingTruthAnswer(true));
   });
   it('the capability renderer rejects a payload whose status has no capability wording (never falls into available-prose)', () => {

@@ -1,6 +1,6 @@
 // PayPlus phase 1 (Owner console 2026-10-18 "כן להתחיל לבנות את שלב 1"): the PayPlus BillingProvider - Israel / ILS only.
-// Pure, dependency-injected module (Deno + vitest). Nothing here reads the environment, holds a key or calls PayPlus unless a caller
-// builds it with an explicit config (wiring.ts, from the secrets). Since 2026-10-25 purchasing opens in Israel only (DB switch).
+// Pure, dependency-injected module (Deno + vitest). INERT: wiring.ts still wires UNAVAILABLE_PROVIDER and ACTIVATION_PHASE stays
+// 'off'; nothing here reads the environment, holds a key or calls PayPlus unless a caller builds it with an explicit config.
 //
 // Contract = the PayPlus public documentation (docs.payplus.co.il, read 2026-10-18):
 //   * POST {base}/PaymentPages/generateLink with the headers `api-key` + `secret-key`; base = restapi (production) or restapidev
@@ -109,11 +109,8 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
     refURL_callback: cfg.callbackUrl,
     ...(cfg.cancelUrl ? { refURL_cancel: cfg.cancelUrl } : {}),
     send_failure_callback: true,
-    // Owner 2026-10-25: an Israeli customer gets the PayPlus approval / failure email and a tax invoice-receipt (Invoice+) for the
-    // first charge and every renewal; USD stays off (international purchasing is not open)
-    sendEmailApproval: !usd,
-    sendEmailFailure: !usd,
-    ...(usd ? {} : { initial_invoice: true }),
+    sendEmailApproval: false,
+    sendEmailFailure: false,
     items,
     recurring_settings: {
       instant_first_payment: true,
@@ -123,9 +120,9 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
       start_date_on_payment_date: true,
       start_date: israelDayOfMonth(i.nowMs),
       jump_payments: 0,
-      successful_invoice: !usd,
-      customer_failure_email: !usd,
-      send_customer_success_email: !usd,
+      successful_invoice: false, // invoicing is not live
+      customer_failure_email: false,
+      send_customer_success_email: false,
     },
   };
 }

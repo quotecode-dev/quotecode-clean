@@ -605,7 +605,6 @@ html.tl-landing-active, html.tl-landing-active body, html:has(.tl-landing), html
 .tl-plan-grid--two .tl-plan-capacity li { font-weight: 600; }
 .tl-plan-grid--two .tl-plan-features { flex: 1; }
 .tl-plan-notice { margin: 16px 0 0; padding-top: 12px; border-top: 1px solid var(--tl-line); color: var(--tl-muted); font-size: 13.5px; line-height: 1.45; }
-.tl-plan-notice--empty { margin: 0; padding: 0; border-top: 0; }
 @supports (grid-template-rows: subgrid) {
   .tl-plan-grid--two > .tl-plan { display: grid; grid-template-rows: subgrid; grid-row: span 6; row-gap: 0; }
   .tl-plan-grid--two .tl-plan-notice { align-self: end; }

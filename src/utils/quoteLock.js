@@ -8,7 +8,3 @@ export const isQuoteImmutable = (quote) => {
          status === 'paid' ||
          !!quote.signature;
 };
-
-// Owner 2026-10-25 ("הצעה שאושרה או נחתמה אפשר לסמן כשולמה (רק המצב)"): the one change a locked quote still allows -
-// approved (by hand or by the customer's signature) -> paid. The same rule as guard_quote_immutability (20261025100000).
-export const canMarkQuotePaid = (quote) => !!quote && (quote.status || '').toLowerCase() === 'approved';

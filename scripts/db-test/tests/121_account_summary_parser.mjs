@@ -43,7 +43,7 @@ INSERT INTO public.business_settings (user_id, email, business_name, country, cu
 INSERT INTO public.account_entitlements (user_id, account_mode) VALUES ('${U(1)}', 'free_10');
 INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id, subscription_status, catalog_expansion_blocks)
   VALUES ('${U(2)}', 'paid', 'visual', 'active', 1);
-INSERT INTO public.account_market (user_id, market, source) VALUES ('${U(1)}', 'IL', 'owner_mapping'), ('${U(2)}', 'INTERNATIONAL', 'owner_mapping') ON CONFLICT (user_id) DO UPDATE SET market = EXCLUDED.market, source = EXCLUDED.source;
+INSERT INTO public.account_market (user_id, market, source) VALUES ('${U(1)}', 'IL', 'owner_mapping'), ('${U(2)}', 'INTERNATIONAL', 'owner_mapping');
 INSERT INTO public.services (name, user_id) VALUES ('Parser product 1', '${U(2)}'), ('Parser product 2', '${U(2)}');
 SELECT set_config('request.jwt.claims', json_build_object('role', 'authenticated')::text, false);
 SET ROLE authenticated;

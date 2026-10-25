@@ -18,7 +18,7 @@ import AiModalHeader from './AiModalHeader';
 import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
 import { accountStatusModel, lifetimeAccountModel } from '../domain/subscriptions/accountSummaryClient';
 import PackageOfferCards from './PackageOfferCards';
-import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText, israelPurchaseOpen } from '../domain/subscriptions/packageCheckout';
+import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText } from '../domain/subscriptions/packageCheckout';
 
 // Owner console 2026-10-22 (typed L-22 approval): the free card is shown only while the account's free period is running
 // (freePlanActive, from freePeriodActive in subscriptionStatus.js); otherwise only the paid package card, at a single-card width.
@@ -107,8 +107,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
               : status.label}
           </p>
         )}
-        {/* Owner 2026-10-25: in Israel (purchase open) never "cannot be purchased yet", even for an account with nothing to buy */}
-        {purchase || israelPurchaseOpen(accountSummary)
+        {purchase
           ? <div style={{ height: '12px' }} aria-hidden="true" />
           : <p data-testid="plans-modal-availability" style={{ color: '#64748b', textAlign: 'center', margin: '0 0 16px', fontSize: '0.85rem' }}>{m.availability}</p>}
 
@@ -116,7 +115,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
 
         <p data-testid="plans-modal-price-note" data-price-note style={{ textAlign: 'center', color: '#334155', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 4px' }}>{m.priceNote}</p>
         {m.estimateNote && <p data-testid="plans-modal-estimate" style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '0 0 4px' }}>{addOnTicked && m.estimateNoteWithAddOn ? m.estimateNoteWithAddOn : m.estimateNote}</p>}
-        {!purchase && !israelPurchaseOpen(accountSummary) && <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>{m.notDecided}</p>}
+        {!purchase && <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>{m.notDecided}</p>}
         <p data-testid="plans-modal-cancellation" style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>
           {m.cancellation.text}{' '}
           {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation, nothing changes in the account) */}

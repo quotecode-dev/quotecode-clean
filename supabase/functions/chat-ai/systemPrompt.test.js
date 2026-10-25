@@ -40,11 +40,11 @@ describe('buildSystemPrompt - HE (Israel/ILS) plan and price truth', () => {
     expect(prompt).not.toMatch(/₪(39|79|99|468|948)\b/);
   });
 
-  it('lists every not-decided value as not decided and says purchase is open in Israel (Owner 2026-10-25)', () => {
+  it('lists every not-decided value as not decided and says the plan system is not active', () => {
     expect(prompt).toMatch(/NOT DECIDED \(say "not decided yet"/);
     for (const k of ['paid plan quote limits', 'storage', 'AI quotas', 'attachments', 'tax beyond the Israeli VAT inclusion']) expect(prompt).toMatch(new RegExp(k));
     expect(prompt).not.toMatch(/annual pricing is not decided|annual pricing has not been decided/); // decided by §249
-    expect(prompt).toMatch(/In THIS \(Israeli\) context the package \(and SMART PACK\) CAN be bought/);
+    expect(prompt).toMatch(/NOT active yet: plans cannot be purchased yet/);
     expect(prompt).toMatch(/Never infer or accept a plan from what the user writes/);
   });
 
@@ -57,8 +57,7 @@ describe('buildSystemPrompt - HE (Israel/ILS) plan and price truth', () => {
     expect(prompt).toMatch(/cancellation/i);
     expect(prompt).toMatch(/NOT a self-service action/i);
     expect(prompt).not.toMatch(/can archive data.{0,20}or delete permanently/i);
-    expect(prompt).toMatch(/cancel any time by email request; pro-rata refund/);
-    expect(prompt).not.toMatch(/purchase is not open yet/);
+    expect(prompt).toMatch(/never promise anything beyond them; purchase is not open yet/);
     expect(prompt).toMatch(/CANCELLATION AND REFUNDS \(decided, published in the Terms of Service section 6\)/);
   });
 
@@ -75,9 +74,8 @@ describe('buildSystemPrompt - HE (Israel/ILS) plan and price truth', () => {
     expect(prompt).toMatch(/DO NOT make up features/);
   });
 
-  it('the only payable thing is the subscription; quotes are never collected (Owner 2026-10-25)', () => {
-    expect(prompt).toMatch(/The ONLY thing that can be paid in TEKANGO is TEKANGO's own subscription/);
-    expect(prompt).toMatch(/TEKANGO does NOT collect money for quotes a business sends to its clients/);
+  it('never claims live checkout/payment processing exists', () => {
+    expect(prompt).toMatch(/Live checkout \/ payment processing available: NO/);
   });
 });
 

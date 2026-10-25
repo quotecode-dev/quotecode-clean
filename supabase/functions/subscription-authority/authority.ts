@@ -1,14 +1,12 @@
 // TEKANGO subscription authority - server modules. Spec §3.3 / Phases 2, 3, 9; Owner decisions OD-01..OD-20; CROSSCUT §3.
 // Pure, dependency-injected handlers (Deno + vitest): the Edge entry (index.ts) supplies SQL / Storage / JWT / provider
-// adapters. ACTIVATION_PHASE is the BILLING code constant (identical in every environment, never derived from env=TEST); since
-// 2026-10-25 it is 'enforced' and the DB row public.billing_activation decides per environment (seeded 'off'). Output authorization and logo import are
+// adapters. ACTIVATION_PHASE is the BILLING code constant 'off' (identical in every environment, never derived from
+// env=TEST): checkout and provider events stay unavailable whatever the DB says. Output authorization and logo import are
 // gated by the DB phase public.subscription_activation.free_issue (seeded 'prepared'; only the DB owner can raise it).
 // Trust boundary: the user id ALWAYS comes from the verified JWT; a body is never a source of account, market, plan rights,
 // amount, currency or rate. Responses are rebuilt from explicit allowlists.
 
-// Owner 2026-10-25 ("להפעיל כל מה שצריך בכדי שמשתמש בארץ יוכל לרכוש מנוי"): the code gate opens; the per-environment switch is the DB
-// row public.billing_activation (seeded 'off', raised only by the Owner with set_billing_phase) and the SQL opens Israel only.
-export const ACTIVATION_PHASE = 'enforced' as const;
+export const ACTIVATION_PHASE = 'off' as const;
 export type ActivationPhase = 'off' | 'prepared' | 'enforced';
 export type Resp = { status: number; body: Record<string, unknown> };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
