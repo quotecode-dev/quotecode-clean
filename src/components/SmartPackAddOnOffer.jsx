@@ -29,7 +29,23 @@ export default function SmartPackAddOnOffer({ isHebrew, invoke, onLeave }) {
     window.addEventListener('pageshow', back);
     return () => { alive = false; window.removeEventListener('pageshow', back); };
   }, []);
-  if (!quote || quote.ok !== true || !Number.isFinite(Date.parse(quote.periodEnd))) return null; // nothing to offer (or not now)
+  if (!quote) return null; // still asking the server
+  // Owner console 2026-10-25 (typed: "... והסבר בחלון המסלולים כשאי אפשר להוסיף"): never a box that silently disappears - the account
+  // is told why it cannot add SMART PACK now (already has it / not open abroad: the lines above say so already)
+  if (quote.ok !== true || !Number.isFinite(Date.parse(quote.periodEnd))) {
+    if (quote.code === 'already_included' || quote.code === 'market_not_open') return null;
+    const cannot = quote.code === 'not_eligible';
+    return (
+      <p data-testid="plans-smart-pack-add-on-unavailable" role="status" dir={isHebrew ? 'rtl' : 'ltr'}
+        style={{ maxWidth: '440px', margin: '0 auto 12px', textAlign: 'center', color: '#475569', fontSize: '0.85rem' }}>
+        {cannot
+          ? (isHebrew ? 'כרגע אי אפשר להוסיף את חכם פלוס לחשבון הזה. כתבו לנו ונטפל בזה:' : 'SMART PACK cannot be added to this account right now. Write to us and we will take care of it:')
+          : (isHebrew ? 'לא הצלחנו לטעון כרגע את הוספת חכם פלוס. נסו שוב בעוד רגע, או כתבו לנו:' : 'We could not load the SMART PACK option right now. Try again in a moment, or write to us:')}{' '}
+        {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the service mailbox (nothing changes in the account) */}
+        <a href="mailto:support@tekango.com" style={{ color: '#0F6672' }}><bdi dir="ltr">support@tekango.com</bdi></a>
+      </p>
+    );
+  }
   const he = isHebrew;
   const year = quote.period === 'year';
   const per = year ? (he ? 'לשנה' : 'a year') : (he ? 'לחודש' : 'a month');
