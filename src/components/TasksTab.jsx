@@ -407,7 +407,7 @@ export default function TasksTab({
               </ul>
             )}
             <div className="pf-tasks-form-actions">
-              <span className="pf-tasks-note">{/* QA 2026-10-25 (C4): a due task does appear in the bell - only nothing is sent to anyone */}{L(['לא נשלחים מייל או וואטסאפ. משימה שהגיע מועדה מופיעה בפעמון.', 'No email or WhatsApp is sent. A task that is due appears in the bell.'])}</span>
+              <span className="pf-tasks-note">{L(['ללא תזכורות אוטומטיות - המשימה נשמרת בחשבון בלבד.', 'No automatic reminders - the task is only saved to your account.'])}</span>
               {/* PRODUCT_TRUTH_CAPABILITY: manual_tasks */}
               <button type="button" className="pf-tasks-btn" onClick={() => setForm(null)} disabled={form.saving}>{L(['ביטול', 'Cancel'])}</button>
               {/* PRODUCT_TRUTH_CAPABILITY: manual_tasks */}

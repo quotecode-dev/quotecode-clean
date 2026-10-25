@@ -50,10 +50,10 @@ export default function FinancesTab({
   // handleAddExpense (הקיים) עדיין מבצע את היצירה בפועל.
   const [showAddExpenseForm, setShowAddExpenseForm] = useState(false);
 
-  // QA 2026-10-25 (C1): the drawer closes only after the expense was saved - a failed save keeps it open with the typed values
   const handleAddExpenseSubmit = (e) => {
     e.preventDefault();
-    Promise.resolve(handleAddExpense(e)).then((saved) => { if (saved !== false) setShowAddExpenseForm(false); });
+    handleAddExpense(e);
+    setShowAddExpenseForm(false);
   };
 
   // חוק ברזל (§I3 - real defect found and fixed): chartData (Dashboard.jsx)

@@ -31,11 +31,6 @@ function extractRateLimitSeconds(msg) {
 
 // Owner console 2026-10-20 (L-12): Supabase Auth refuses a request without a valid robot check token ("captcha verification process
 // failed" / code captcha_failed) once captcha is enabled - the user is told to wait for the check, never that the password is wrong.
-// Owner 2026-10-25 (typed L-12): Supabase Auth refuses a password sign-in until the e-mail is verified (code email_not_confirmed)
-export function isEmailNotConfirmed(err) {
-  return err?.code === 'email_not_confirmed' || err?.error_code === 'email_not_confirmed' || /email not confirmed/i.test(String(err?.message || ''));
-}
-
 export function isCaptchaError(err) {
   return err?.code === 'captcha_failed' || err?.error_code === 'captcha_failed' || /captcha/i.test(String(err?.message || ''));
 }

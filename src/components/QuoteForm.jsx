@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
-import { businessDial, joinPhone } from '../utils/phoneDial';
 import { createPortal } from 'react-dom';
 import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
@@ -62,7 +61,6 @@ export default function QuoteForm({
   clientName, setClientName,
   clientEmail, setClientEmail,
   clientPhone, setClientPhone,
-  businessPhone = null, // Owner 2026-10-25: the business's saved phone (its chosen country code)
   clientType, setClientType,
   clientTaxId, setClientTaxId,
   clientAddress, setClientAddress,
@@ -350,20 +348,17 @@ export default function QuoteForm({
     setQuoteStructureMode('regular');
   };
 
-  // Owner 2026-10-25 (typed L-01, L-09): International = the business's own chosen code (its saved phone), else by currency
-  const currencyPhoneConfig = businessPhone ? businessDial({ isLocal: false, currency, businessPhone }) : getDialByCurrency(currency);
+  const currencyPhoneConfig = getDialByCurrency(currency);
   const defaultDial = isLocalIsraeliBusiness ? '+972' : currencyPhoneConfig.dial;
   const defaultLabel = isLocalIsraeliBusiness ? 'IL (+972)' : currencyPhoneConfig.label;
   const [localPhone, setLocalPhone] = useState('');
 
-  // Owner 2026-10-25 (typed L-07, L-08, L-09): stored without the trunk 0 after the country code
   const handleLocalPhoneChange = (numVal) => {
     setLocalPhone(numVal);
-    setClientPhone(joinPhone(defaultDial, numVal));
+    setClientPhone(`${defaultDial} ${numVal}`);
   };
 
   useEffect(() => {
-    if (clientPhone && joinPhone(defaultDial, localPhone) === clientPhone) return; // the typed text (with its 0) stays as typed
     if (clientPhone) {
       if (clientPhone.startsWith(defaultDial)) {
         setLocalPhone(clientPhone.replace(defaultDial, '').trim());
@@ -374,7 +369,7 @@ export default function QuoteForm({
     } else {
       setLocalPhone('');
     }
-  }, [clientPhone, defaultDial]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [clientPhone, defaultDial]);
 
   const handleAddressFieldChange = (newStreet, newCity, newState, newZip) => {
     setStreet(newStreet);

@@ -1,4 +1,3 @@
-import { isValidEmailAddress } from './emailAddress';
 // Post-LIVE Priority 1, Fix B (business profile completeness gate, 2026-09-16):
 // a fresh business can sign up and reach the app with business_settings.phone
 // and .tax_id both empty - Public Quote then silently hides the Call/
@@ -35,26 +34,18 @@ function hasMeaningfulPhone(phone) {
   return withoutLeadingDialCode.trim() !== '';
 }
 
-// Owner 2026-10-25 (typed L-15): the business name (the sign-up default "עסק חדש" / "New Business" counts as missing) and the business
-// e-mail (the address the customer's reply goes to) are required too - checked only when the caller passes them.
-const DEFAULT_BUSINESS_NAMES = Object.freeze(['עסק חדש', 'new business']);
-export function getMissingBusinessProfileFields({ phone, taxId, isLocalIsraeliBusiness, name, email }) {
+export function getMissingBusinessProfileFields({ phone, taxId, isLocalIsraeliBusiness }) {
   const hasPhone = hasMeaningfulPhone(phone);
   const hasTaxId = String(taxId || '').trim() !== '';
 
   const missing = [];
   if (!hasPhone) missing.push('phone');
   if (isLocalIsraeliBusiness && !hasTaxId) missing.push('taxId');
-  if (name !== undefined) {
-    const n = String(name || '').trim();
-    if (!n || DEFAULT_BUSINESS_NAMES.includes(n.toLowerCase())) missing.push('name');
-  }
-  if (email !== undefined && !isValidEmailAddress(email)) missing.push('email');
   return missing;
 }
 
-export function getBusinessProfileGateMessage({ phone, taxId, isLocalIsraeliBusiness, isHebrew, name, email }) {
-  const missing = getMissingBusinessProfileFields({ phone, taxId, isLocalIsraeliBusiness, name, email });
+export function getBusinessProfileGateMessage({ phone, taxId, isLocalIsraeliBusiness, isHebrew }) {
+  const missing = getMissingBusinessProfileFields({ phone, taxId, isLocalIsraeliBusiness });
   if (missing.length === 0) return null;
 
   const missingPhone = missing.includes('phone');
@@ -64,17 +55,11 @@ export function getBusinessProfileGateMessage({ phone, taxId, isLocalIsraeliBusi
     const parts = [];
     if (missingPhone) parts.push('טלפון העסק');
     if (missingTaxId) parts.push('ח.פ / עוסק מורשה / פטור');
-    if (missing.includes('name')) parts.push('שם העסק');
-    if (missing.includes('email')) parts.push('מייל העסק');
-    const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} ו${parts[parts.length - 1]}` : parts[0];
-    return `❌ לפני יצירת הצעת מחיר ראשונה יש להשלים בהגדרות העסק: ${list}.${name !== undefined ? ' אחרי המילוי לוחצים „שמירת הגדרות העסק”, וחוזרים להצעה.' : ''}`;
+    return `❌ לפני יצירת הצעת מחיר ראשונה יש להשלים בהגדרות העסק: ${parts.join(' ו')}.`;
   }
 
   const parts = [];
   if (missingPhone) parts.push('Business Phone');
   if (missingTaxId) parts.push('Tax ID');
-  if (missing.includes('name')) parts.push('Business Name');
-  if (missing.includes('email')) parts.push('Business Email');
-  const list = parts.length > 1 ? `${parts.slice(0, -1).join(', ')} and ${parts[parts.length - 1]}` : parts[0];
-  return `❌ Before creating your first quote, please complete in Business Settings: ${list}.${name !== undefined ? ' Then press “Save Business Settings” and you will return to your quote.' : ''}`;
+  return `❌ Before creating your first quote, please complete in Business Settings: ${parts.join(' and ')}.`;
 }

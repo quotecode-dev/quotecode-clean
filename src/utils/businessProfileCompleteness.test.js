@@ -89,23 +89,3 @@ describe('phone stored with or without a space after the dial code', () => {
     for (const p of ['', '   ', null, undefined, '+972', '+972 ', '+1', '+1 ', ' +44  ']) expect(missing(p), String(p)).toBe(true);
   });
 });
-
-// Owner 2026-10-25 (typed L-15): the business name and e-mail are required too (when the caller passes them)
-describe('name and e-mail required', () => {
-  const base = { phone: '+972 501234567', taxId: '516000000', isLocalIsraeliBusiness: true };
-  it('the sign-up default name and an empty / invalid e-mail are missing', () => {
-    expect(getMissingBusinessProfileFields({ ...base, name: 'עסק חדש', email: '' })).toEqual(['name', 'email']);
-    expect(getMissingBusinessProfileFields({ ...base, name: 'New Business', email: 'not-an-email' })).toEqual(['name', 'email']);
-    expect(getMissingBusinessProfileFields({ ...base, name: 'דנדי מזגנים', email: 'doron@012.net.il' })).toEqual([]);
-  });
-  it('the message names them and says to save', () => {
-    const he = getBusinessProfileGateMessage({ ...base, phone: '', name: '', email: '', isHebrew: true });
-    expect(he).toContain('טלפון העסק, שם העסק ומייל העסק');
-    expect(he).toContain('„שמירת הגדרות העסק”');
-    const en = getBusinessProfileGateMessage({ ...base, isLocalIsraeliBusiness: false, name: 'Shop', email: '', isHebrew: false });
-    expect(en).toContain('Business Email');
-  });
-  it('callers that pass neither keep the former rule', () => {
-    expect(getMissingBusinessProfileFields(base)).toEqual([]);
-  });
-});

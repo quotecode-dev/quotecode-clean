@@ -104,10 +104,10 @@ export default function ServicesCatalog({
     if (linkedAssetKey && typeof ensureCatalogUrls === 'function') ensureCatalogUrls(linkedAssetKey.split(','));
   }, [linkedAssetKey, ensureCatalogUrls]);
 
-  // QA 2026-10-25 (C1): the add form closes only after the item was saved - a failed save keeps it open with the typed values
   const handleAddSubmit = (e) => {
     e.preventDefault();
-    Promise.resolve(handleAddService(e)).then((saved) => { if (saved !== false) setShowAddForm(false); });
+    handleAddService(e);
+    setShowAddForm(false);
   };
 
   // Theme tokens for the scoped catalog stylesheet (servicesCatalog.css) - the catalog region only, no global reskin.

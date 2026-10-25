@@ -24,9 +24,6 @@ const OFFER_HE = /(לצרף|תצרף|תצרפו|צרף|צרפו|לשלוח לי|
 const FILE_WORDS_EN = /\b(file|files|document|documents|pdf|excel|spreadsheet|word doc)\b/i;
 const SHOT_WORDS_EN = /\b(screenshot|screenshots|screen shot|image|photo|picture)\b/i;
 const OFFER_EN = /\b(attach|upload|send me|share with me|paste)\b/i;
-// the offer is addressed at the assistant itself (me / here / this chat / I will look at it)
-const TO_ASSISTANT_HE = /(לי\b|לי[\s.,!?]|אליי|כאן|פה|בצ.?אט|בשיחה|ואבדוק|ואעבור|ואסתכל|ואקרא|אבדוק|אעבור על|אסתכל|אקרא|אוכל לבדוק|אוכל לעבור)/;
-const TO_ASSISTANT_EN = /\b(me|here|this chat|the chat|in chat|i('ll| will| can)\s+(check|review|look|read|go over|analy[sz]e))\b/i;
 
 /** Removes the sentences that offer something the chat cannot receive; the rest of the answer is kept as is. */
 export function removeInventedOffers(answer: string, { screenshots }: { screenshots: boolean }): string {
@@ -35,9 +32,7 @@ export function removeInventedOffers(answer: string, { screenshots }: { screensh
   const bad = (sentence: string) => {
     const offer = OFFER_HE.test(sentence) || OFFER_EN.test(sentence);
     if (!offer) return false;
-    // Owner 2026-10-25 (typed L-17, QA report): a file is removed only when it is offered TO THE ASSISTANT ("send me the file", "attach it
-    // here in the chat") - the product's own steps ("click Attach File and choose the file") are kept
-    if ((FILE_WORDS_HE.test(sentence) || FILE_WORDS_EN.test(sentence)) && (TO_ASSISTANT_HE.test(sentence) || TO_ASSISTANT_EN.test(sentence))) return true;
+    if (FILE_WORDS_HE.test(sentence) || FILE_WORDS_EN.test(sentence)) return true;
     if (!screenshots && (SHOT_WORDS_HE.test(sentence) || SHOT_WORDS_EN.test(sentence))) return true;
     return false;
   };

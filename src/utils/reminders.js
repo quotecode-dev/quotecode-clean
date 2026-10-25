@@ -66,7 +66,6 @@ export const REMINDERS_COPY = Object.freeze({
     saving: 'שומר…',
     unavailable: 'שמירת ההגדרות תהיה זמינה אחרי עדכון השרת. כרגע פועלות ברירות המחדל: בממשק בלבד, ושום הודעה לא נשלחת ללקוח.',
     saveFailed: 'השמירה נכשלה. ההגדרות הקודמות נשארו ללא שינוי.',
-    loadFailed: 'לא הצלחנו לטעון את ההגדרות. שום דבר לא שונה.', retry: 'נסו שוב', leaveUnsaved: 'יש שינויים שלא נשמרו. לצאת בלי לשמור?',
     customerSendingInactive: 'שליחת מיילים אוטומטית ללקוחות עדיין לא פעילה בשרת. אפשר להגדיר כללים, אבל ההודעות יישלחו רק אחרי שהשליחה תופעל.',
     blockers: {
       mode_off: 'התזכורות כבויות', not_selected: 'לא סומן', full_mode_required: 'דורש מצב מלא', automation_paused: 'האוטומציה מושהית',
@@ -89,7 +88,7 @@ export const REMINDERS_COPY = Object.freeze({
       stopFooter: 'קיבלת הודעה זו כי {business} שלח לך הצעת מחיר.',
       stopLink: 'להפסקת הודעות אוטומטיות מהעסק',
       sample: { client_name: 'דנה כהן', quote_number: 'A1043', quote_link: 'https://www.tekango.com/…', valid_until: '11/10/2026' },
-      pauseRule: 'השהיית הכלל', resumeRule: 'חידוש הכלל', done: 'סגירת הכלל',
+      pauseRule: 'השהיית הכלל', resumeRule: 'חידוש הכלל', done: 'סיום',
       needsToRun: 'כדי שהכלל יפעל:',
     },
     firstSetupTitle: 'חדש: תזכורות ואוטומציות',
@@ -172,7 +171,6 @@ export const REMINDERS_COPY = Object.freeze({
     saving: 'Saving…',
     unavailable: 'Saving these settings becomes available after the server update. The defaults apply now: In-app only, and nothing is sent to a customer.',
     saveFailed: 'Saving failed. The previous settings are unchanged.',
-    loadFailed: 'We could not load the settings. Nothing was changed.', retry: 'Try again', leaveUnsaved: 'You have unsaved changes. Leave without saving?',
     customerSendingInactive: 'Automatic customer emails are not active on the server yet. You can set up rules — they will not be sent until sending is activated.',
     blockers: {
       mode_off: 'Reminders are off', not_selected: 'Not ticked', full_mode_required: 'Needs Full mode', automation_paused: 'Automation paused',
@@ -195,7 +193,7 @@ export const REMINDERS_COPY = Object.freeze({
       stopFooter: 'You received this because {business} sent you a quote.',
       stopLink: 'Stop automatic messages from this business',
       sample: { client_name: 'Dana Cohen', quote_number: 'A1043', quote_link: 'https://www.tekango.com/…', valid_until: '10/11/2026' },
-      pauseRule: 'Pause this rule', resumeRule: 'Resume this rule', done: 'Close rule',
+      pauseRule: 'Pause this rule', resumeRule: 'Resume this rule', done: 'Done',
       needsToRun: 'For this rule to run:',
     },
     firstSetupTitle: 'New: Reminders & automation',

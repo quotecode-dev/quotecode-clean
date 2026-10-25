@@ -54,7 +54,7 @@ const CAL_CSS = `
   .pf-cal-ev[data-kind="quote"] { background: #FFF3E0; border-color: #9A5B12; color: #6E420C; }
   .pf-cal-ev[data-kind="quote"][data-status="expired"] { background: #F2EEEA; border-color: #8A7A6C; color: #5E5146; }
   .pf-cal-ev[data-kind="service"] { background: #EEEFFC; border-color: #4338CA; color: #312E81; }
-  .pf-cal-more { font-size: 0.7rem; font-weight: 700; color: ${NEON.textMuted}; background: none; border: none; padding: 0; margin: 0; font-family: inherit; cursor: pointer; text-decoration: underline; text-align: start; }
+  .pf-cal-more { font-size: 0.7rem; font-weight: 700; color: ${NEON.textMuted}; }
   .pf-cal-week { display: grid; grid-template-columns: 52px repeat(7, minmax(0, 1fr)); border-block-start: 1px solid var(--cal-line); border-inline-start: 1px solid var(--cal-line); }
   .pf-cal-week > * { border-inline-end: 1px solid var(--cal-line); border-block-end: 1px solid var(--cal-line); min-inline-size: 0; }
   .pf-cal-wkhead { padding: 6px 4px; display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 0.72rem; font-weight: 700; color: ${NEON.textSecondary}; }
@@ -175,10 +175,7 @@ export default function CalendarTab({ client, userId, isHebrew, isLocalIsraeliBu
               <button type="button" className="pf-cal-daynum" onClick={() => setSelected(iso)} aria-label={dayAria(iso)}><bdi className="pf-num" dir="ltr">{dayOfMonth(iso)}</bdi></button>
               {hol.map((h) => <div key={h} className="pf-cal-hol" title={h} data-testid="calendar-holiday">{h}</div>)}
               {evs.slice(0, maxPerCell).map(renderChip)}
-              {/* QA 2026-10-25 (C6): the "+N" opens that day in the Day view, where every event of the day is listed */}
-              {/* PRODUCT_TRUTH_DECORATIVE: switches the calendar to that day's view; changes no data */}
-              {evs.length > maxPerCell && <button type="button" className="pf-cal-more" data-testid="calendar-more" onClick={() => { setSelected(iso); setView('day'); }}
-                aria-label={L([`עוד ${evs.length - maxPerCell} ביום הזה - פתיחת תצוגת יום`, `${evs.length - maxPerCell} more on this day - open the Day view`])}><bdi className="pf-num" dir="ltr">{`+${evs.length - maxPerCell}`}</bdi></button>}
+              {evs.length > maxPerCell && <div className="pf-cal-more"><bdi className="pf-num" dir="ltr">{`+${evs.length - maxPerCell}`}</bdi></div>}
             </div>
           );
         })}

@@ -98,24 +98,14 @@ describe.each([['HE / Local', HE], ['EN / International', EN]])('customer approv
     expect(screen.getByText(L.signAlert)).toBeInTheDocument();
     expect(rpc).not.toHaveBeenCalled();
   });
-  // Owner console 2026-10-25 (typed L-24: "שמירת שם החותם (שדה חדש במסד)"): the signer is now stored WITH the signature, in the one
-  // signing call - it is sent only to the signing function (never anywhere else), and the approval rules stay the server's own
-  it('a valid approval sends the signature with the signer (name; company and role for a business customer) in one signing call', async () => {
+  it('a valid approval sends exactly the two RPC parameters - the signer name / company / role never leave the browser', async () => {
     const { container } = mount(L);
     typeName(L, 'Dana Levi');
     sign(container, L);
     clickApprove(L);
     await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
-    expect(rpc).toHaveBeenCalledWith('public_approve_quote_signed', { p_quote_id: QID, p_signature_data_url: PNG, p_signer_name: 'Dana Levi', p_signer_company: 'Client Ltd', p_signer_role: null });
-  });
-  it('a server without the new signing function falls back to the former call (signature only)', async () => {
-    rpc.mockResolvedValueOnce({ error: { code: 'PGRST202', message: 'Could not find the function public.public_approve_quote_signed' } }).mockResolvedValueOnce({ error: null });
-    const { container } = mount(L);
-    typeName(L, 'Dana Levi');
-    sign(container, L);
-    clickApprove(L);
-    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2));
-    expect(rpc).toHaveBeenLastCalledWith('public_approve_quote', { p_quote_id: QID, p_signature_data_url: PNG });
+    expect(rpc).toHaveBeenCalledWith('public_approve_quote', { p_quote_id: QID, p_signature_data_url: PNG });
+    expect(JSON.stringify(rpc.mock.calls)).not.toMatch(/Dana|Client Ltd/);
   });
   it('success shows the signed record (signer + the exact signature that was sent) and removes the signing controls', async () => {
     const { container } = mount(L);
@@ -336,8 +326,7 @@ describe('the canonical SQL predicate (public.public_approve_quote) is the singl
     expect(dropSql).toMatch(/approve_quote_public/);
     const walk = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(join(dir, e.name)) : /\.(jsx?|tsx?)$/.test(e.name) && !/\.test\./.test(e.name) ? [join(dir, e.name)] : []);
     const rpcNames = walk(join(cwd(), 'src')).flatMap((f) => [...readFileSync(f, 'utf8').matchAll(/\.rpc\('([a-z_]*approve[a-z_]*)'/g)].map((m) => m[1]));
-    // + the capability-link approval added with the output authority (20261007150600), same rules through the same internal body;
-    // + Owner 2026-10-25 (typed L-24): the two signing functions that also store the signer (20261025000000), same internal body
-    expect(new Set(rpcNames)).toEqual(new Set(['public_approve_quote', 'public_approve_quote_capability', 'public_approve_quote_signed', 'public_approve_quote_capability_signed']));
+    // + the capability-link approval added with the output authority (20261007150600), same rules through the same internal body
+    expect(new Set(rpcNames)).toEqual(new Set(['public_approve_quote', 'public_approve_quote_capability']));
   });
 });

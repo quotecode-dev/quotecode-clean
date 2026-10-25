@@ -429,12 +429,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-24 (typed: \"מאשר\" to a 4 MB limit on every file in the quote files storage): storage.buckets quote-files file_size_limit = 4194304"
-    },
-    "20261025000000_quote_signer_identity.sql": {
-      "sha256": "97673523ce35fe2a4c20a040cabed1856bd4e306f027efc4ae3afda9978ffb35",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-25 (typed: \"מאשר שינוי ב-L-01, L-09, L-24, L-13: ... שמירת שם החותם (שדה חדש במסד) ...\"): quotes.signer_name/company/role + public_approve_quote_signed / public_approve_quote_capability_signed (the unchanged internal approval + the signer in one transaction)"
     }
   }
 }

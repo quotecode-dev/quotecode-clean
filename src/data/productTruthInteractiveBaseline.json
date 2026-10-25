@@ -136,8 +136,8 @@
     "markers": 1
   },
   "src/components/AuthScreen.jsx": {
-    "interactive": 11,
-    "markers": 8
+    "interactive": 10,
+    "markers": 7
   },
   "src/components/AuthenticatedShellFrames.jsx": {
     "interactive": 1,
@@ -152,12 +152,12 @@
     "markers": 5
   },
   "src/components/BusinessCardSettings.jsx": {
-    "interactive": 6,
-    "markers": 8
+    "interactive": 5,
+    "markers": 7
   },
   "src/components/CalendarTab.jsx": {
-    "interactive": 15,
-    "markers": 16
+    "interactive": 14,
+    "markers": 15
   },
   "src/components/ChartSquareIcon.jsx": {
     "interactive": 0,
@@ -308,8 +308,8 @@
     "markers": 1
   },
   "src/components/RemindersSettings.jsx": {
-    "interactive": 11,
-    "markers": 18
+    "interactive": 10,
+    "markers": 17
   },
   "src/components/ServiceScheduleFields.jsx": {
     "interactive": 1,
@@ -321,11 +321,11 @@
   },
   "src/components/SettingsTab.jsx": {
     "interactive": 7,
-    "markers": 10
+    "markers": 9
   },
   "src/components/ShareDefaultsSettings.jsx": {
-    "interactive": 3,
-    "markers": 3
+    "interactive": 2,
+    "markers": 2
   },
   "src/components/SidebarAccountMenu.jsx": {
     "interactive": 3,
@@ -887,10 +887,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/emailAddress.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/financialEdit.js": {
     "interactive": 0,
     "markers": 0
@@ -1076,10 +1072,6 @@
     "markers": 0
   },
   "src/utils/quotesListMemory.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/recurringExpense.js": {
     "interactive": 0,
     "markers": 0
   },

@@ -17,8 +17,6 @@ export function useBusinessCardProfile(client, userId) {
   const [state, setState] = useState({ load: client && userId ? 'loading' : 'idle', exists: false, saved: EMPTY, draft: EMPTY, saveStatus: 'idle' });
   const stateRef = useRef(state);
   stateRef.current = state;
-  // QA 2026-10-25: a failed load can be retried (reload); until a load succeeds the screen never offers to save over the stored card
-  const [loadRun, setLoadRun] = useState(0);
 
   useEffect(() => {
     if (!client || !userId) return undefined;
@@ -29,9 +27,7 @@ export function useBusinessCardProfile(client, userId) {
       else setState((s) => ({ ...s, load: r.status }));
     });
     return () => { alive = false; };
-  }, [client, userId, loadRun]);
-
-  const reload = useCallback(() => { setState((s) => ({ ...s, load: 'loading' })); setLoadRun((n) => n + 1); }, []);
+  }, [client, userId]);
 
   const update = useCallback((partial) => setState((s) => ({ ...s, draft: { ...s.draft, ...partial }, saveStatus: 'idle' })), []);
 
@@ -46,5 +42,5 @@ export function useBusinessCardProfile(client, userId) {
     return r.status;
   }, [client, userId]);
 
-  return { ...state, dirty: !same(state.draft, state.saved), update, save, reload };
+  return { ...state, dirty: !same(state.draft, state.saved), update, save };
 }

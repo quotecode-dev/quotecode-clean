@@ -2,12 +2,11 @@
 // 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (EditClientModal.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
 // ==============================================================================
 
-import { isValidEmailAddress } from '../utils/emailAddress';
 import { useState, useEffect } from 'react';
 import AiModalHeader from './AiModalHeader';
 import AddressSuggestInput from './AddressSuggestInput';
 import { APP, APP_STATUS, SHADOW } from '../theme/neonTheme';
-import { businessDial, storedDial, joinPhone } from '../utils/phoneDial';
+import { businessDial, storedDial } from '../utils/phoneDial';
 
 // חוק ברזל (Consolidated Open UI Corrections task, §G1): isNew (חדש) -
 // אותו מודל/שדות/ולידציה בדיוק, רק כותרת+תווית-כפתור מתחלפות בין "עריכה"
@@ -15,7 +14,7 @@ import { businessDial, storedDial, joinPhone } from '../utils/phoneDial';
 // onSave עדיין מקבל את כל השדות המלאים בדיוק כמו קודם - Dashboard.jsx
 // מחליט אם זו INSERT או UPDATE (handleCreateClient/handleSaveUpdatedClient
 // בהתאמה), לא המודל הזה.
-export default function EditClientModal({ isOpen, onClose, client, onSave, isHebrew, isNew = false, isIsraeliBusiness = false, currency = null, businessPhone = null }) {
+export default function EditClientModal({ isOpen, onClose, client, onSave, isHebrew, isNew = false, isIsraeliBusiness = false, currency = null }) {
   const [companyName, setCompanyName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -40,15 +39,14 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
   // Owner 2026-10-19 ("הקידומת אמורה להיות לפי הגדרות העסק"): the prefix follows the BUSINESS (Israel = +972, otherwise its currency -
   // the quote form's rule), never the interface language; a client whose stored phone has its own prefix keeps that prefix
   const ownDial = storedDial(client?.phone, { currency });
-  const bizDial = businessDial({ isLocal: isIsraeliBusiness === true, currency, businessPhone }); // Owner 2026-10-25: the chosen code
+  const bizDial = businessDial({ isLocal: isIsraeliBusiness === true, currency });
   const defaultDial = ownDial ? ownDial.dial : bizDial.dial;
   const defaultLabel = ownDial ? ownDial.label : bizDial.label;
   const [localPhone, setLocalPhone] = useState('');
 
-  // Owner 2026-10-25 (typed L-07, L-08, L-09): stored without the trunk 0 after the country code
   const handleLocalPhoneChange = (numVal) => {
     setLocalPhone(numVal);
-    setPhone(joinPhone(defaultDial, numVal));
+    setPhone(`${defaultDial} ${numVal}`);
   };
 
   useEffect(() => {
@@ -82,18 +80,22 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
 
   if (!isOpen || !client) return null;
 
-  // Owner 2026-10-25 (typed L-12): the ONE permissive e-mail check (utils/emailAddress.js)
-  const validateEmail = (emailVal) => isValidEmailAddress(emailVal);
+  const validateEmail = (emailVal) => {
+    if (!emailVal || typeof emailVal !== 'string') return false;
+    const cleanEmail = emailVal.trim();
+    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|co\.il|org|net|edu|gov|io|info|biz|co|me|tv|ws)$/i;
+    return re.test(cleanEmail);
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     
     if (email && email.trim() !== '' && !validateEmail(email)) {
-      setErrorMsg(isHebrew ? 'שגיאה: כתובת המייל אינה תקינה.' : 'Error: Invalid email address format!');
+      setErrorMsg(isHebrew ? 'שגיאה: כתובת מייל אינה תקינה (בדקו סיומת כגון .com או .co.il)' : 'Error: Invalid email address format!');
       return;
     }
 
-    Promise.resolve(onSave({
+    onSave({
       ...client,
       company_name: companyName,
       email: email.trim(),
@@ -102,8 +104,8 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
       tax_id: taxId,
       address,
       notes
-    // QA 2026-10-25 (C1): closes only after the save succeeded - a failed save keeps the typed values in the open window
-    })).then((saved) => { if (saved !== false) onClose(); });
+    });
+    onClose();
   };
 
   return (

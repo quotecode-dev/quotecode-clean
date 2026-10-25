@@ -108,8 +108,7 @@ describe('Admin shell-bypass calls: ZERO', () => {
   it('every menu destination (sidebar / bottom row / More / Admin menu / Settings) starts a clean path', () => {
     const src = stripComments(dashboard);
     // Owner 2026-10-24 (typed L-15): an unsaved quote kept alive behind another screen asks too
-    // Owner 2026-10-25 (typed L-15 + L-01): unsaved business settings ask too before a menu destination
-    expect(src).toMatch(/const guardedNav = \(go\) => \{ if \(showQuoteForm && !mayLeaveEditor\(\)\) return; if \(!mayLeaveSettings\(\)\) return; inAppBack\.startFresh\(\); go\(\); \};/);
+    expect(src).toMatch(/const guardedNav = \(go\) => \{ if \(showQuoteForm && !mayLeaveEditor\(\)\) return; inAppBack\.startFresh\(\); go\(\); \};/);
     expect(src).toMatch(/onSelect=\{\(id\) => \{ inAppBack\.startFresh\(\); navigateToAdminSection\(id\); \}\}/);
     expect(src).toMatch(/onClick=\{\(\) => \{ inAppBack\.startFresh\(\); navigateToAdminSection\(id\); setShowMobileMoreMenu\(false\); \}\}/);
     expect(src).toMatch(/onSettings=\{\(\) => \{ inAppBack\.startFresh\(\); setActiveTab\('settings'\);/);

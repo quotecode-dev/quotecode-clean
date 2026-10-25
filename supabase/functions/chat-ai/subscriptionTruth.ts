@@ -111,13 +111,7 @@ const STRONG_PLAN_EN = /\b(plans?|subscriptions?|tiers?|packages?|membership|add
 const STRONG_PLAN_HE = /(מסלול|מסלולים|תוכנית|תוכניות|מנוי|חבילה|חבילת|הרחבת\s*(ה)?קטלוג)/;
 const SERVICE_COST_EN = /\bhow much (does|do|is|are|will|would) (it|this|tekango|the (app|system|service|software|site|platform))\b(?!.{0,30}\b(quote|item|client|customer|line|service|product)s?\b)|\bhow much do (you|i) (charge|pay)\b|\bwhat does (it|tekango|the (app|system|service)) cost\b|\bdo you charge\b|\b(cost|price) (of|for) (using )?(tekango|the (app|system|service|software|platform))\b|\b(is (it|tekango) free|do i (have|need) to pay|pay (for|to use) (it|tekango|the (app|system)))\b/i;
 const SERVICE_COST_HE = /(כמה\s+(זה\s+)?(עולה|עולים|יעלה|משלמים|אני\s+משלם|צריך\s+לשלם)\s*(לי|לנו)?\s*(על\s+)?(המערכת|השירות|האפליקציה|השימוש|TEKANGO|טקנגו)|כמה\s+(זה\s+)?(עולה|יעלה)\s*[?？]?\s*$|כמה\s+(משלמים|אני\s+משלם|צריך\s+לשלם)(?!.{0,20}(ללקוח|הלקוח|לספק))|מה\s+(המחיר|העלות)\s+של\s+(המערכת|השירות|האפליקציה|TEKANGO|טקנגו)|האם\s+(המערכת|השירות|זה|TEKANGO)\s+(בתשלום|חינם|חינמי))/;
-/** Owner 2026-10-25 (typed L-17, QA report): "is the system paid / what does it cost / do I have to pay to use it" is a question about
- * TEKANGO's own price - the payment classifier leaves it to the plan answer instead of "TEKANGO has no payment processing". */
-export function asksServiceCost(message: unknown): boolean {
-  const t = String(message ?? '');
-  return SERVICE_COST_EN.test(t) || SERVICE_COST_HE.test(t);
-}
-const HOWTO_PRICES_EN =/\b(set|add|enter|change|edit|write|show|display|put|type|use|choose|select|price (in|with))\b.{0,25}\b(prices?|pricing|currency|vat)\b|\bprices?\s+in\s+(euros?|eur|gbp|pounds?|dollars?|usd|shekels?|ils)\b/i;
+const HOWTO_PRICES_EN = /\b(set|add|enter|change|edit|write|show|display|put|type|use|choose|select|price (in|with))\b.{0,25}\b(prices?|pricing|currency|vat)\b|\bprices?\s+in\s+(euros?|eur|gbp|pounds?|dollars?|usd|shekels?|ils)\b/i;
 const HOWTO_PRICES_HE = /(להגדיר|להזין|לשנות|לערוך|לכתוב|להציג|לבחור|לתמחר|לשים).{0,25}(מחיר|מחירים|מטבע|מע"מ|מע״מ)|(מחיר|מחירים)\s+(ב|ל)(יורו|דולר|שקל|פאונד|ליש"ט)/;
 
 // the price "on the site / in the app" is the price of TEKANGO itself
@@ -334,12 +328,7 @@ const IN_PLAN_SENTENCE: Readonly<Partial<Record<SubscriptionClaimViolation, read
   ANNUAL_PRICING: [/\b(annual|annually|yearly)\b/i, /\bper year\b|\/\s*(yr|year)\b/i, /(שנתי|שנתית|לשנה)/],
 };
 // a sentence about TEKANGO plans / subscriptions (prices, currency, annual) ...
-// Owner 2026-10-25 (typed L-17, QA report): "package / חבילה" and the quote style names alone are not a plan - "an installation package
-// 1,700 ₪" or "the Visual style" is quote content; they count only beside a billing period
-const PLAN_SENTENCE_CORE = /\b(plans?|subscriptions?|tiers?|membership|tekango|smart pack)\b|(מסלול|מסלולים|תוכנית|תוכניות|מנוי|TEKANGO|טקנגו|חכם פלוס)/i;
-const PACKAGE_WORD = /\b(packages?|classic|modern|visual)\b|(חבילה|חבילת|קלאסיק|מודרן|ויזואל)/i;
-const BILLING_PERIOD = /\b(per\s+(month|year)|a\s+(month|year)|monthly|annual(ly)?|yearly|\/\s*(mo|month|yr|year))\b|(לחודש|לשנה|חודשי|שנתי|בחודש|בשנה)/i;
-const PLAN_SENTENCE = { test: (s: string) => PLAN_SENTENCE_CORE.test(s) || (PACKAGE_WORD.test(s) && BILLING_PERIOD.test(s)) };
+const PLAN_SENTENCE = /\b(plans?|subscriptions?|tiers?|packages?|classic|modern|visual|membership|tekango)\b|(מסלול|מסלולים|תוכנית|תוכניות|מנוי|חבילה|קלאסיק|מודרן|ויזואל|TEKANGO|טקנגו)/i;
 // ... or about the quote allowance ("unlimited quotes")
 const QUOTA_SENTENCE = /\bquotes\b|\bquota\b|הצעות|מכסה|מכסת/i;
 const splitSentences = (t: string) => t.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
@@ -352,10 +341,8 @@ export function findSubscriptionClaimViolations(answer: unknown, isHebrew: boole
     if (patterns.some((re) => re.test(t))) out.add(code);
   }
   const pk = (m: 'IL' | 'INTERNATIONAL') => [S.prices[m].package.month, S.prices[m].package.year, S.prices[m].package.annualSaving, S.prices[m].catalogBlock100];
-  // Owner 2026-10-25 (typed L-17, QA report): the approved add-on prices (SMART PACK) are approved plan prices too
-  const addOnPrices = (m: 'IL' | 'INTERNATIONAL') => (AI_FACTS.addOns ?? []).flatMap((a) => [a.prices?.[m]?.month, a.prices?.[m]?.year]).filter((v) => v != null);
-  const ilsOk = new Set([...pk('IL'), ...addOnPrices('IL')].map(Number));
-  const usdOk = new Set([...pk('INTERNATIONAL'), ...addOnPrices('INTERNATIONAL')].map(Number));
+  const ilsOk = new Set(pk('IL').map(Number));
+  const usdOk = new Set(pk('INTERNATIONAL').map(Number));
   for (const sentence of splitSentences(t)) {
     if (TRIAL_14.test(sentence) && TRIAL_CONTEXT.test(sentence)) out.add('TRIAL_CLAIM');
     if ((MONTHLY_COUNTER.some((re) => re.test(sentence)) && LIMIT_WORD.test(sentence)) || COUNTER_FRACTION.test(sentence)) out.add('MONTHLY_QUOTE_LIMIT');

@@ -5,29 +5,6 @@
 
 export type HowToEntry = { id: string; capabilityIds: readonly string[]; he: { task: string; steps: readonly string[] }; en: { task: string; steps: readonly string[] } };
 
-/**
- * Owner 2026-10-25 (typed L-17, QA report): a "how do I ..." question answered by the fixed capability answer ("yes - it exists") also
- * gets the verified steps. Among the how-to entries of that capability, the one sharing the most words with the question wins (ties:
- * the entry that names the capability first, then file order). Empty when the capability has no how-to entry.
- */
-export function howToStepsForCapability(capabilityId: string, question: string, isHebrew: boolean, howTo: readonly HowToEntry[] | undefined | null): string {
-  if (!Array.isArray(howTo)) return '';
-  const candidates = howTo.filter((e) => e.capabilityIds.includes(capabilityId));
-  if (!candidates.length) return '';
-  const lang = isHebrew ? 'he' : 'en';
-  // the question's words, also without a one-letter Hebrew prefix ("כתבנית" -> "תבנית")
-  const words = String(question ?? '').toLowerCase().split(/[^a-z0-9֐-׿]+/).filter((w) => w.length >= 3)
-    .flatMap((w) => (/^[הובלכמש][֐-׿]{3,}$/.test(w) ? [w, w.slice(1)] : [w]));
-  const score = (e: HowToEntry) => {
-    const text = `${e[lang].task} ${e[lang].steps.join(' ')}`.toLowerCase();
-    return new Set(words.filter((w) => text.includes(w))).size;
-  };
-  const best = candidates
-    .map((e, i) => ({ e, i, s: score(e), primary: e.capabilityIds[0] === capabilityId ? 1 : 0 }))
-    .sort((a, b) => b.s - a.s || b.primary - a.primary || a.i - b.i)[0].e;
-  return `${best[lang].task}:\n${best[lang].steps.map((s: string, i: number) => `${i + 1}. ${s}`).join('\n')}`;
-}
-
 export function buildHowToBlock(isHebrew: boolean, howTo: readonly HowToEntry[] | undefined | null): string {
   if (!Array.isArray(howTo) || howTo.length === 0) return '';
   const lang = isHebrew ? 'he' : 'en';

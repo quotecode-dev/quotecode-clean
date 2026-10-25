@@ -27,10 +27,9 @@ describe('sent-on-share wiring', () => {
     expect(ok).toBeGreaterThan(-1); expect(mark).toBeGreaterThan(ok);
     expect(b.slice(b.indexOf('} catch (err)'))).not.toContain('markSentAfterShare');
   });
-  // Owner 2026-10-25 (typed L-13): copying the message marks a Draft Sent too (legacy phase), after the copy
-  it('copy message marks Sent like WhatsApp / email; the issue flow + manual status keep the save path', () => {
-    expect(body('copyQuoteMessage')).toContain("if (gate.mode !== 'authority_required') markSentAfterShare(proposal);");
-    expect(dash.match(/markSentAfterShare\(/g)).toHaveLength(3); // WhatsApp + email + copy message (the definition is "= async (proposal)")
+  it('copy message is not a send; the issue flow + manual status keep the save path', () => {
+    expect(body('copyQuoteMessage')).not.toContain('markSentAfterShare');
+    expect(dash.match(/markSentAfterShare\(/g)).toHaveLength(2); // exactly the WhatsApp + email calls (the definition is "= async (proposal)")
     expect(body('requestIssueQuote')).toContain("setQuoteStatus('Sent')");
   });
   it('legal pages: Back uses goBackOrHome (works in a new tab)', () => {

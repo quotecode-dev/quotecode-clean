@@ -1,4 +1,4 @@
-import { buildQuoteEmail, safeLogoUrl, safeQuoteLink, inlineLogoAttachment, INLINE_LOGO_CID, senderDisplayName, replyToAddress } from './emailTemplate.ts'
+import { buildQuoteEmail, safeLogoUrl, safeQuoteLink, inlineLogoAttachment, INLINE_LOGO_CID } from './emailTemplate.ts'
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { formatEmailTotal } from "./emailMoney.ts"
@@ -22,12 +22,8 @@ const INTL_SYMBOLS: Record<string, string> = { USD: '$', EUR: '€', GBP: '£' }
 // כתובת השולח נגזרת מ-effectiveHebrew (למטה) - אותה הכרעת אזור יחידה, אמינה
 // ומאומתת server-side, שכבר קובעת את שפת גוף המייל/הנושא/קישור ההצעה עצמם.
 // לעולם לא נוצר כאן מקור-אמת שני נפרד לכתובת השולח.
-// Owner 2026-10-25: the business sends the quote - "<business> באמצעות TEKANGO" / "<business> via TEKANGO" on the same verified address
-// (a quote from "Dandy AC" arriving from "TEKANGO Support" looked like phishing to Outlook); no business name = the former sender
-function senderAddressFor(isHebrew: boolean, businessName: string | null = null) {
-  const shown = senderDisplayName(businessName);
-  if (!shown) return isHebrew ? 'TEKANGO Support <support@tekango.com>' : 'TEKANGO <info@tekango.com>';
-  return isHebrew ? `"${shown} באמצעות TEKANGO" <support@tekango.com>` : `"${shown} via TEKANGO" <info@tekango.com>`;
+function senderAddressFor(isHebrew: boolean) {
+  return isHebrew ? 'TEKANGO Support <support@tekango.com>' : 'TEKANGO <info@tekango.com>';
 }
 
 // חוק ברזל: שפה וסמל מטבע חייבים תמיד לצאת מאותה הכרעת אזור יחידה - לעולם
@@ -190,17 +186,15 @@ serve(async (req) => {
     let bizCountry: string | null = null
     let bizCurrency: string | null = null
     let bizName: string | null = null
-    let bizEmail: string | null = null // Owner 2026-10-25 (typed L-15): the customer's reply goes here
     if (quoteRow.user_id) {
       const { data: bizRow } = await supabaseAdmin
         .from('business_settings')
-        .select('country, currency, business_name, email')
+        .select('country, currency, business_name')
         .eq('user_id', quoteRow.user_id)
         .maybeSingle()
       bizCountry = bizRow?.country ?? null
       bizCurrency = bizRow?.currency ?? null
       bizName = bizRow?.business_name ?? null
-      bizEmail = bizRow?.email ?? null
     }
 
     // נמען ושם הלקוח נגזרים אך ורק מרשומת ה-client האמיתית המקושרת להצעה -
@@ -297,7 +291,7 @@ serve(async (req) => {
       : (quoteId ? `#${quoteId.slice(0, 8)}` : 'GENERAL');
     const safeLink = safeQuoteLink(canonicalQuoteLink, PROD_ORIGIN)
     if (!safeLink) throw new EmailRefusal('Cannot build a verified quote link - refusing to send email.')
-    const { subject, html, text } = buildQuoteEmail({
+    const { subject, html } = buildQuoteEmail({
       hebrew: effectiveHebrew, bizTitle, clientDisplayName, quoteNumberDisplay, symbol: resolvedSym, displayTotal,
       quoteLink: safeLink, logoUrl: validLogo, shareText: ownerShareText, partialTotal,
     })
@@ -314,12 +308,10 @@ serve(async (req) => {
         'Authorization': `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: senderAddressFor(effectiveHebrew, bizName),
+        from: senderAddressFor(effectiveHebrew),
         to: [clientEmail],
-        ...(replyToAddress(bizEmail) ? { reply_to: replyToAddress(bizEmail) } : {}),
         subject: subject,
         html: html,
-        text: text,
         ...(logoAttachment ? { attachments: [logoAttachment] } : {}),
         ...(tags ? { tags } : {}),
       }),

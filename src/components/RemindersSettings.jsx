@@ -232,7 +232,7 @@ export default function RemindersSettings({ isHebrew, isLocalIsraeliBusiness, cl
       <style>{css}</style>
       <div>
         {/* PRODUCT_TRUTH_DECORATIVE: navigation back to the Business settings screen; changes no data */}
-        <button type="button" className="pf-rem-btn" onClick={() => { if (!dirty || window.confirm(C.leaveUnsaved)) onBack(); }} data-testid="reminders-back"><Arrow size={15} />{C.back}</button>
+        <button type="button" className="pf-rem-btn" onClick={onBack} data-testid="reminders-back"><Arrow size={15} />{C.back}</button>
       </div>
 
       <div className="pf-rem-card">
@@ -240,9 +240,7 @@ export default function RemindersSettings({ isHebrew, isLocalIsraeliBusiness, cl
         <div style={{ color: NEON.textSecondary, fontSize: '0.8rem', marginTop: 3 }}>{C.sub}</div>
         {load.state === 'error' && (
           <div className="pf-rem-callout" role="status" style={{ background: '#FFF3E0', color: '#6E420C', marginTop: 12 }} data-testid="reminders-unavailable">
-            {load.code === 'unavailable' ? C.unavailable : C.loadFailed}
-            {/* PRODUCT_TRUTH_DECORATIVE: loads the settings again; changes no data */}
-            {load.code !== 'unavailable' && <button type="button" className="pf-rem-btn" style={{ marginInlineStart: 10 }} onClick={() => reload()} data-testid="reminders-load-retry">{C.retry}</button>}
+            {load.code === 'unavailable' ? C.unavailable : C.saveFailed}
           </div>
         )}
         <div className="pf-rem-modes" role="radiogroup" aria-label={C.title}>
