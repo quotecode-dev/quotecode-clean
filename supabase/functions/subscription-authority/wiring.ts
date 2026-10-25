@@ -44,13 +44,6 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
     createPackageCheckoutIntent: async (userId, billingPeriod, idempotencyKey, smartPack = false) => (await call('create_package_checkout_intent',
       { p_user_id: userId, p_billing_period: billingPeriod, p_idempotency_key: idempotencyKey, p_smart_pack: smartPack })) as Record<string, unknown>,
     priceCatalog: (market) => call('get_price_catalog', { p_market: market }),
-    // Owner 2026-10-25: the invoice / payment emails of PayPlus go to the account's own business name and email
-    checkoutCustomer: async (userId) => {
-      const r = await tables.one('business_settings', 'business_name, email', 'user_id', userId);
-      if (r.error) throw new Error('customer_unavailable');
-      const row = (r.data ?? {}) as { business_name?: unknown; email?: unknown };
-      return { name: row.business_name, email: row.email };
-    },
     // 20261022100000 (Codex audit H05): one provider page per attempt
     checkoutPage: async (attemptId, userId) => {
       const v = await call('checkout_attempt_page', { p_attempt_id: attemptId, p_user_id: userId });

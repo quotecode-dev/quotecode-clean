@@ -114,26 +114,12 @@ export type WebhookVerification = { ok: true; event: ProviderEvent } | { ok: fal
 export type PulledCheckout = { attemptId: string | null; recurringRef: string; amountMinor: number | null; currency: 'ILS' | 'USD' | null;
   approved: boolean; payloadSha256: string };
 
-/** Owner 2026-10-25 (the first real charge came back as "General Customer" with no email - no invoice, no approval email): the
- *  paying account's own business details from its settings row; each value is optional and validated before use. */
-export type CheckoutCustomer = { name: string | null; email: string | null };
-const CUSTOMER_EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
-export function cleanCheckoutCustomer(v: unknown): CheckoutCustomer | null {
-  if (!isObj(v)) return null;
-  const name = typeof v.name === 'string' ? v.name.replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 100) : '';
-  const email = typeof v.email === 'string' ? v.email.trim().toLowerCase() : '';
-  const out = { name: name || null, email: CUSTOMER_EMAIL.test(email) && email.length <= 254 ? email : null };
-  return out.name || out.email ? out : null;
-}
-
 export interface BillingProvider {
   readonly name: string;
   /** hosted checkout for an already-created server attempt; amount/currency (and the package period) come from that attempt only */
   createCheckout(i: { attemptId: string; currency: 'ILS' | 'USD'; amountMinor: number; billingPeriod?: BillingPeriod;
     /** Owner 2026-10-20: the SMART PACK line of the same payment (amountMinor = package + add-on) */
-    addOnAmountMinor?: number | null;
-    /** Owner 2026-10-25: the account's own business name / email - the invoice and the payment emails go to them (never a body value) */
-    customer?: CheckoutCustomer | null }): Promise<{ redirectUrl: string; pageRequestUid?: string } | null>;
+    addOnAmountMinor?: number | null }): Promise<{ redirectUrl: string; pageRequestUid?: string } | null>;
   /** signature + timestamp window + source; returns the normalized event only when all three pass */
   verifyWebhook(rawBody: Uint8Array, headers: Headers, nowMs: number): Promise<WebhookVerification>;
   /** 20261022200000: the result of a payment page by its request id (createCheckout's pageRequestUid); null = nothing to read yet */
@@ -232,8 +218,6 @@ export interface BillingSql {
   createPackageCheckoutIntent?(userId: string, billingPeriod: BillingPeriod, idempotencyKey: string, smartPack?: boolean): Promise<Record<string, unknown>>;
   /** get_price_catalog(p_market) */
   priceCatalog(market: Market): Promise<unknown>;
-  /** Owner 2026-10-25: the paying account's business_settings business_name / email (by the verified user id) */
-  checkoutCustomer?(userId: string): Promise<unknown>;
   /** 20261022100000 (Codex audit H05): the provider page already opened for this pending attempt (one page per attempt) */
   checkoutPage?(attemptId: string, userId: string): Promise<string | null>;
   /** record_checkout_attempt_page - set once; returns the STORED page (a concurrent second page never wins) */
@@ -309,12 +293,8 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
     amountMinor: expected.amountMinor, redirectUrl, state: 'pending', ...(isPackage ? { smartPack: Boolean(expected.addOnPriceId) } : {}) } });
   const existing = deps.sql.checkoutPage ? await deps.sql.checkoutPage(r.attemptId, userId).catch(() => null) : null;
   if (httpsPage(existing)) return answer(existing);
-  // Owner 2026-10-25: the paying account's own business name / email (its settings row, by the verified user id) - a failed read opens
-  // the page without them (the payment itself never depends on it)
-  const customer = deps.sql.checkoutCustomer ? cleanCheckoutCustomer(await deps.sql.checkoutCustomer(userId).catch(() => null)) : null;
   const hosted = await deps.provider.createCheckout({ attemptId: r.attemptId, currency: expected.currency, amountMinor: expected.amountMinor,
-    ...(isPackage ? { billingPeriod: period as BillingPeriod, addOnAmountMinor: expected.addOnAmountMinor ?? null } : {}),
-    ...(customer ? { customer } : {}) }).catch(() => null);
+    ...(isPackage ? { billingPeriod: period as BillingPeriod, addOnAmountMinor: expected.addOnAmountMinor ?? null } : {}) }).catch(() => null);
   if (!hosted || !httpsPage(hosted.redirectUrl)) return err(503, 'checkout_unavailable');
   // 20261022200000: with the provider's page request id the page and the id are kept together (the server can pull the result later)
   const requestRef = typeof hosted.pageRequestUid === 'string' && UUID.test(hosted.pageRequestUid) ? hosted.pageRequestUid : null;
