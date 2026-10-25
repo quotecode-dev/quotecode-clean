@@ -16,11 +16,12 @@ const innerScroller = (root) => root?.querySelector('.quote-modern-body') || roo
  * apply(snapshot): show that screen again                    - called with a recorded snapshot
  * closeTopWindow(): boolean                                  - closes the topmost open window; true when one was open
  * mayLeaveEditor(): boolean                                  - the editor is open: ask about unsaved work; true = leave
+ * mayLeaveScreen(): boolean                                  - any other screen: ask about its unsaved work; true = leave (2026-10-25)
  * leaveEditor(): void                                        - close the editor (the draft stays on this device)
  * onRoot(): void                                             - Back on the first screen with nothing open
  * scrollRoot(): Element | null                               - the workspace scroller
  */
-export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveEditor, leaveEditor, onRoot, scrollRoot, resetKey = null }) {
+export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveEditor, mayLeaveScreen, leaveEditor, onRoot, scrollRoot, resetKey = null }) {
   const stackRef = useRef([]);
   const [depth, setDepth] = useState(0);
   const [previous, setPrevious] = useState(null);
@@ -32,7 +33,7 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
   const freshRef = useRef(null); // the next screen change came from the menu (startFresh): { home } (home = null: a clean path)
   const scrollByKeyRef = useRef(new Map());
   const handlersRef = useRef({});
-  handlersRef.current = { apply, closeTopWindow, mayLeaveEditor, leaveEditor, onRoot, scrollRoot };
+  handlersRef.current = { apply, closeTopWindow, mayLeaveEditor, mayLeaveScreen, leaveEditor, onRoot, scrollRoot };
   currentRef.current = screen;
 
   // the scroll of every screen, recorded while the user scrolls it (the inner list bodies do not bubble: capture)
@@ -141,6 +142,9 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
         if (!h.mayLeaveEditor?.()) { stay(); return; }
         if (!stack.length) { h.leaveEditor?.(); stay(); return; }
       }
+      // Owner console 2026-10-25, typed L-15 / L-01 / L-09: a screen with unsaved work (Business settings, a settings sub-screen) asks
+      // first - the phone Back never drops it silently
+      if (stack.length && !cur.editor && h.mayLeaveScreen && !h.mayLeaveScreen()) { stay(); return; }
       if (stack.length) {
         const target = stack.pop();
         if (target.key !== cur.key) restoringRef.current = target.key;

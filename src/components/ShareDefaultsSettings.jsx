@@ -33,7 +33,7 @@ const COPY = {
   },
 };
 
-export default function ShareDefaultsSettings({ isHebrew, client, userId, onBack, onSaved = null }) {
+export default function ShareDefaultsSettings({ isHebrew, client, userId, onBack, onSaved = null, registerLeaveGuard = null }) {
   const C = COPY[isHebrew ? 'he' : 'en'];
   const Arrow = isHebrew ? ArrowRight : ArrowLeft;
   const [load, setLoad] = useState('loading');
@@ -52,6 +52,8 @@ export default function ShareDefaultsSettings({ isHebrew, client, userId, onBack
     return () => { live = false; };
   }, [client, userId, loadRun]);
   const unsaved = load === 'ready' && JSON.stringify(draft) !== JSON.stringify(stored);
+  // Owner 2026-10-25 (typed L-15 / L-01 / L-09): the phone Back and a menu item ask the same unsaved question as this screen's Back
+  useEffect(() => (typeof registerLeaveGuard === 'function' ? registerLeaveGuard(() => !unsaved || window.confirm(C.leaveUnsaved)) : undefined), [registerLeaveGuard, unsaved, C]);
 
   const set = (k, v) => { setDraft((d) => ({ ...d, [k]: v })); setSave({ state: 'idle', errors: [] }); };
   const onSubmit = async (e) => {

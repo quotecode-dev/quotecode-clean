@@ -68,7 +68,7 @@ function Tag({ tone = 'off', children }) {
   return <span className="pf-rem-tag" style={{ background: bg, color: fg }}>{children}</span>;
 }
 
-export default function RemindersSettings({ isHebrew, isLocalIsraeliBusiness, client, userId, bizName, onBack }) {
+export default function RemindersSettings({ isHebrew, isLocalIsraeliBusiness, client, userId, bizName, onBack, registerLeaveGuard = null }) {
   const lang = isHebrew ? 'he' : 'en';
   const C = REMINDERS_COPY[lang];
   const local = isLocalIsraeliBusiness === true;
@@ -94,6 +94,8 @@ export default function RemindersSettings({ isHebrew, isLocalIsraeliBusiness, cl
   useEffect(() => { reload(); }, [reload]);
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved]);
+  // Owner 2026-10-25 (typed L-15 / L-01 / L-09): the phone Back and a menu item ask the same unsaved question as this screen's Back
+  useEffect(() => (typeof registerLeaveGuard === 'function' ? registerLeaveGuard(() => !dirty || window.confirm(C.leaveUnsaved)) : undefined), [registerLeaveGuard, dirty, C]);
   const set = (patch) => { setStatus(null); setDraft((d) => ({ ...d, ...patch })); };
   const setBehavior = (id, on) => set({ behaviors: { ...draft.behaviors, [id]: on } });
   const setDays = (id, v) => { const days = { ...draft.days }; if (v) days[id] = Number(v); else delete days[id]; set({ days }); };

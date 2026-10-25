@@ -75,6 +75,7 @@ export default function SettingsTab({
   onViewRequestDone = null,
   // Task 23 (Phase 5): the digital business card entry (separate button next to Reminders & automation). Absent => no entry button.
   businessCardClient = null,
+  registerLeaveGuard = null, // Owner 2026-10-25 (typed L-15 / L-01 / L-09): a sub-screen's unsaved question for every way out
   businessCardUserId = null,
   // Task 27 (spec §6): manual sharing defaults + the thank-you after signing - its own entry and screen. Absent => no entry button.
   shareDefaultsClient = null,
@@ -223,7 +224,7 @@ export default function SettingsTab({
     return (
       <div className="pf-screen pf-work-screen" style={{ background: NEON.bg, padding: 0, borderRadius: RADIUS.lg }}>
         <div className="pf-screen-body">
-          <RemindersSettings isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} client={remindersClient} userId={remindersUserId} bizName={bizName} onBack={() => setView('business')} />
+          <RemindersSettings isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} client={remindersClient} userId={remindersUserId} bizName={bizName} onBack={() => setView('business')} registerLeaveGuard={registerLeaveGuard} />
         </div>
       </div>
     );
@@ -232,7 +233,7 @@ export default function SettingsTab({
     return (
       <div className="pf-screen pf-work-screen" style={{ background: NEON.bg, padding: 0, borderRadius: RADIUS.lg }}>
         <div className="pf-screen-body">
-          <ShareDefaultsSettings isHebrew={isHebrew} client={shareDefaultsClient} userId={shareDefaultsUserId} onBack={() => setView('business')} onSaved={onShareDefaultsSaved} />
+          <ShareDefaultsSettings isHebrew={isHebrew} client={shareDefaultsClient} userId={shareDefaultsUserId} onBack={() => setView('business')} onSaved={onShareDefaultsSaved} registerLeaveGuard={registerLeaveGuard} />
         </div>
       </div>
     );
@@ -242,7 +243,7 @@ export default function SettingsTab({
       <div className="pf-screen pf-work-screen" style={{ background: NEON.bg, padding: 0, borderRadius: RADIUS.lg }}>
         <div className="pf-screen-body">
           <BusinessCardSettings isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} client={businessCardClient} userId={businessCardUserId}
-            bizName={bizName} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} bizLogoUrl={bizLogoUrl} onBack={() => setView('business')} profile={cardProfile} />
+            bizName={bizName} bizPhone={bizPhone} bizEmail={bizEmail} bizAddress={bizAddress} bizLogoUrl={bizLogoUrl} onBack={() => setView('business')} profile={cardProfile} registerLeaveGuard={registerLeaveGuard} />
         </div>
       </div>
     );
