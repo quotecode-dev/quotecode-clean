@@ -31,7 +31,7 @@ import { isFinancialChange } from '../utils/financialEdit';
 import { reportMonthRange, recurringMonthsInRange } from '../utils/recurringExpense';
 import { isValidEmailAddress } from '../utils/emailAddress';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
-import { isQuoteImmutable } from '../utils/quoteLock';
+import { isQuoteImmutable, canMarkQuotePaid } from '../utils/quoteLock';
 import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, missingPriceItems, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
 import { itemPricePayload, formPriceFromSavedItem } from '../utils/itemPrice';
 import { resolveAccountEntitlement } from '../utils/accountEntitlement';
@@ -2309,6 +2309,36 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     });
   }
 
+  // Owner 2026-10-25 ("הצעה שאושרה או נחתמה אפשר לסמן כשולמה (רק המצב)"): the status only, asked first (no way back to approved);
+  // the database allows exactly approved -> paid on a locked quote (guard_quote_immutability, 20261025100000).
+  function requestMarkQuotePaid(quote, { number, clientName } = {}) {
+    if (!canMarkQuotePaid(quote)) return;
+    const idLabel = number || formatQuoteFallback(quote);
+    const lead = clientName ? `${idLabel} · ${clientName}` : idLabel;
+    setPendingDelete({
+      type: 'mark_paid',
+      tone: 'paid',
+      id: quote.id,
+      title: isHebrew ? 'לסמן את ההצעה כשולמה?' : 'Mark this quote as paid?',
+      message: isHebrew
+        ? `${lead} — אחרי הסימון אי אפשר לחזור למצב "אושרה". הסימון לא גובה תשלום.`
+        : `${lead} — after marking it you cannot go back to "Approved". Marking does not collect a payment.`,
+      confirmLabel: isHebrew ? 'סימון כשולמה' : 'Mark as paid',
+    });
+  }
+
+  async function executeMarkQuotePaid(quoteId) {
+    const { data, error } = await supabase.from('quotes').update({ status: 'paid' }).eq('id', quoteId).select('id');
+    if (error || !data?.length) {
+      alertWithBlocker(error ? blockerCodeForActionError('mark_quote_paid', error.message) : 'QUOTE_IMMUTABLE_SIGNED', { surface: 'main' }, isHebrew
+        ? 'לא ניתן היה לסמן את ההצעה כשולמה. רעננו את הדף ונסו שוב.'
+        : 'The quote could not be marked as paid. Reload the page and try again.');
+    } else {
+      setStatusMsg({ text: isHebrew ? 'ההצעה סומנה כשולמה.' : 'The quote was marked as paid.', type: 'success' });
+    }
+    if (session?.user?.id) fetchQuotes(session.user.id);
+  }
+
   async function executeDeleteClient(clientId) {
     const { data: clientQuotes, error: fetchErr } = await supabase
       .from('quotes')
@@ -2362,6 +2392,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setIsDeleting(true);
     try {
       if (pendingDelete.type === 'quote') await executeDeleteQuote(pendingDelete.id);
+      else if (pendingDelete.type === 'mark_paid') await executeMarkQuotePaid(pendingDelete.id);
       else if (pendingDelete.type === 'client') await executeDeleteClient(pendingDelete.id);
       else if (pendingDelete.type === 'expense') await executeDeleteExpense(pendingDelete.id);
       else if (pendingDelete.type === 'service') await executeDeleteService(pendingDelete.id);
@@ -7963,6 +7994,7 @@ Continue anyway?`);
         title={pendingDelete?.title}
         message={pendingDelete?.message}
         confirmLabel={pendingDelete?.confirmLabel}
+        tone={pendingDelete?.tone}
         cancelLabel={isHebrew ? 'ביטול' : 'Cancel'}
         isDeleting={isDeleting}
         onCancel={() => { if (!isDeleting) setPendingDelete(null); }}
@@ -8649,6 +8681,7 @@ Continue anyway?`);
                 copyQuoteMessage={copyQuoteMessage}
                 onOpenCustomerTwin={(q) => setCustomerTwin({ mode: 'list', quote: q })}
                 executeEmailSend={executeEmailSend}
+                handleMarkQuotePaid={requestMarkQuotePaid}
                 handleDeleteQuote={requestDeleteQuote}
                 handleProtectedAction={handleProtectedAction}
                 activeTooltip={activeTooltip}

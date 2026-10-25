@@ -435,6 +435,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-25 (typed: \"מאשר שינוי ב-L-01, L-09, L-24, L-13: ... שמירת שם החותם (שדה חדש במסד) ...\"): quotes.signer_name/company/role + public_approve_quote_signed / public_approve_quote_capability_signed (the unchanged internal approval + the signer in one transaction)"
+    },
+    "20261025100000_quote_approved_to_paid.sql": {
+      "sha256": "c60a3ca388d5cf3e9ee8ef7d401a644ea99c484db29ef9cd3da286cecfd09b45",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-25 (typed: \"מאשר שינוי: הצעה שאושרה או נחתמה אפשר לסמן כשולמה (רק המצב)\"): guard_quote_immutability lets a locked quote change ONLY status approved -> paid"
     }
   }
 }
