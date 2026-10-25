@@ -98,13 +98,14 @@ describe('Customer Twin panel', () => {
     const r1 = render(<CustomerTwinPanel open onClose={() => {}} isHebrew supabase={client({ invoke: errorReply({ code: 'quota_exhausted' }) })} quote={quote} market="IL" />);
     fireEvent.click(screen.getByTestId('customer-twin-run'));
     await waitFor(() => expect(screen.getByTestId('customer-twin-error').textContent).toContain('נוצלו כל 20 הבדיקות של החודש'));
-    expect(screen.getByTestId('customer-twin-error').textContent).toContain('20 בדיקות נוספות ב־₪5.00'); // IRON-ILS-001 whole shekels
+    // Owner 2026-10-25 ("לא להשאיר זנבות"): no "coming soon" button for extra checks (no such purchase exists)
+    expect(screen.getByTestId('customer-twin-error').textContent).not.toMatch(/בדיקות נוספות|בקרוב/);
     r1.unmount();
     const onOpenPlans = vi.fn();
     const r2 = render(<CustomerTwinPanel open onClose={() => {}} isHebrew supabase={client({ invoke: errorReply({ code: 'smart_pack_required' }, 403) })} quote={quote} market="IL" onOpenPlans={onOpenPlans} />);
     fireEvent.click(screen.getByTestId('customer-twin-run'));
     await waitFor(() => expect(screen.getByTestId('customer-twin-error').textContent).toContain('חלק מחכם פלוס'));
-    expect(screen.getByTestId('customer-twin-error').textContent).toContain('10 בדיקות נוספות ב־₪5.00');
+    expect(screen.getByTestId('customer-twin-error').textContent).not.toMatch(/בדיקות נוספות|בקרוב/);
     fireEvent.click(screen.getByText('למסך המסלולים'));
     expect(onOpenPlans).toHaveBeenCalled();
     r2.unmount();
@@ -143,7 +144,8 @@ describe('Customer Twin: a re-run, no market / too long, the price by market', (
     r2.unmount();
     render(<CustomerTwinPanel open onClose={() => {}} isHebrew={false} supabase={client({ invoke: errorReply({ code: 'smart_pack_required' }, 403) })} quote={quote} market="INTERNATIONAL" />);
     fireEvent.click(screen.getByTestId('customer-twin-run'));
-    await waitFor(() => expect(screen.getByTestId('customer-twin-error').textContent).toContain('10 more checks for $2.00'));
+    await waitFor(() => expect(screen.getByTestId('customer-twin-error').textContent).toContain('SMART PACK'));
+    expect(screen.getByTestId('customer-twin-error').textContent).not.toMatch(/more checks|Coming soon/);
   });
 });
 

@@ -48,7 +48,7 @@ INSERT INTO auth.users (id, email) SELECT tst.pu(n), format('p403-%s@synthetic.t
 INSERT INTO public.business_settings (user_id, email, business_name, country, currency, plan, role, is_lifetime)
   SELECT tst.pu(n), format('p403-%s@synthetic.test', n), format('Synthetic Smart %s', n), 'Local', 'ILS', 'free', 'user', n = 2
     FROM generate_series(1, 4) n ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO public.account_market (user_id, market, source) SELECT tst.pu(n), 'IL', 'business_settings_country' FROM generate_series(1, 5) n;
+INSERT INTO public.account_market (user_id, market, source) SELECT tst.pu(n), 'IL', 'business_settings_country' FROM generate_series(1, 5) n ON CONFLICT (user_id) DO UPDATE SET market = EXCLUDED.market, source = EXCLUDED.source;
 INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id) VALUES
   (tst.pu(1), 'free_10', NULL), (tst.pu(2), 'paid', 'visual'), (tst.pu(3), 'free_10', NULL), (tst.pu(4), 'free_10', NULL);
 INSERT INTO public.quotes (id, user_id, quote_number, status) SELECT tst.pq(n), tst.pu(n), 40300 + n, 'draft' FROM generate_series(1, 4) n;

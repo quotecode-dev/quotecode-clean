@@ -72,9 +72,31 @@ describe('paymentTruthApplies (fail closed)', () => {
 });
 
 describe('PAYMENT & CHECKOUT TRUTH prompt block', () => {
+  it('Owner 2026-10-25: in the Hebrew (Israeli) context the block allows ONLY the subscription purchase; quotes are never collected', () => {
+    const block = buildPaymentTruthBlock(true, AI_FACTS.billing);
+    expect(block).toMatch(/PAYMENT & CHECKOUT TRUTH \(authoritative/);
+    expect(block).toMatch(/The ONLY thing that can be paid in TEKANGO is TEKANGO's own subscription/);
+    expect(block).toMatch(/TEKANGO does NOT collect money for quotes a business sends to its clients/);
+    expect(block).toMatch(/creating or sending a quote is not collecting payment/);
+    expect(block).toMatch(/Do not name or invent any payment method, provider, or bank/);
+    expect(block).toMatch(/assume quote checkout is enabled: politely refuse/);
+  });
+  it('the Hebrew answer: the subscription by card on a secure page with an invoice-receipt; quotes never collected; no foreign currency, no invented method', () => {
+    const he = formatPaymentTruthAnswer(true, undefined, AI_FACTS.billing);
+    expect(he).toMatch(/את המנוי ל-TEKANGO אפשר לרכוש בכרטיס אשראי, בדף תשלום מאובטח/);
+    expect(he).toMatch(/חשבונית מס-קבלה נשלחת במייל/);
+    expect(he).toMatch(/TEKANGO לא גובה כסף ולא מקבלת תשלומים עבור הצעות המחיר/);
+    expect(he).toMatch(/המצב "שולמה" הוא סימון ידני בלבד/);
+    expect(he).toMatch(/אין לי מידע על אמצעי התשלום שהוא משתמש בהם/);
+    expect(he).not.toMatch(/(\$|USD|EUR|GBP|דולר|יורו|לירה)/);
+    expect(he).not.toMatch(/(paypal|stripe|העברה בנקאית|מזומן|ביט|צ'ק|טרנזילה|קארדקום)/i);
+    // the English (international) answer is unchanged: no checkout at all
+    expect(formatPaymentTruthAnswer(false, undefined, AI_FACTS.billing)).toMatch(/no live checkout or payment processing/);
+  });
   it('is derived from the facts: negative capability when there is no live checkout, and authoritative/non-overridable', () => {
+    const closed = { ...AI_FACTS.billing, subscriptionCheckoutMarkets: [] };
     for (const he of [true, false]) {
-      const block = buildPaymentTruthBlock(he, AI_FACTS.billing);
+      const block = buildPaymentTruthBlock(he, he ? closed : AI_FACTS.billing);
       expect(block).toMatch(/PAYMENT & CHECKOUT TRUTH \(authoritative/);
       expect(block).toMatch(/available: NO/);
       expect(block).toMatch(/does not yet have live payment\/checkout processing/);

@@ -142,13 +142,14 @@ describe('PRODUCT TRUTH AUTHORITY PARITY (§52.9 / step 15)', () => {
     }
   });
 
-  it('plan_trial keeps its frozen technical id but now states the Free-10 plan truth (OD-01) and the inactive plan system', () => {
+  it('plan_trial keeps its frozen technical id but now states the Free-10 plan truth (OD-01) and where purchase is open (2026-10-25)', () => {
     const c = getCapabilityById('plan_trial');
     expect(c.enLabel).toBe('Plans and Free quotes');
     // Task 27 (§249 + the Owner's 2026-10-11 amendment): Free-10, then ONE package; HE = ILS only, EN = USD only (market isolation)
     expect(c.enDescription).toMatch(/10 quotes in total or 7 days from sign-up, whichever ends first/);
     expect(c.enDescription).toMatch(/one package with every available capability, billed monthly or annually: 18\.00 USD per month or 184\.00 USD per year/);
-    expect(c.enDescription).toMatch(/still being prepared/);
+    expect(c.enDescription).toMatch(/cannot be purchased yet outside Israel/);
+    expect(c.heDescription).toMatch(/את המנוי רוכשים בחלון המסלולים/);
     expect(c.enDescription).not.toMatch(/Classic|Modern|Visual|₪|ILS/);
     expect(c.heDescription).toMatch(/30\.00 ₪ לחודש או 306\.00 ₪ לשנה, כולל מע״מ/);
     expect(c.heDescription).not.toMatch(/קלאסיק|מודרן|ויזואל|USD|\$/);

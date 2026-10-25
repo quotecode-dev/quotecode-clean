@@ -34,8 +34,13 @@ export function classifyInvoicingIntent(lastUserMessage: unknown): boolean {
 }
 
 // Structured truth first: the wording is the NOT-ISSUED statement, so it is only ever rendered FROM an INVOICING_NOT_ISSUED payload.
-export function formatInvoicingTruthAnswer(isHebrew: boolean, payload?: ProductTruthFactPayload): string {
+// Owner console 2026-10-25 (typed L-17 ... "להפעלת הרכישה בישראל"): where TEKANGO's own subscription can be bought (subscriptionOpen), the
+// answer adds that the subscription comes with an invoice-receipt - still never invoicing for the business's own clients.
+export function formatInvoicingTruthAnswer(isHebrew: boolean, payload?: ProductTruthFactPayload, subscriptionOpen = false): string {
   if (payload && payload.truthStatus !== 'INVOICING_NOT_ISSUED') throw new Error(`formatInvoicingTruthAnswer requires an INVOICING_NOT_ISSUED payload, got ${payload.truthStatus}`);
+  if (isHebrew && subscriptionOpen) {
+    return 'כרגע TEKANGO לא מפיקה חשבוניות, חשבוניות מס או קבלות ללקוחות שלכם - היכולת הזו עוד לא פעילה במערכת. מה שכן קיים: הצעת מחיר שאפשר להוריד כ-PDF או להדפיס (זו הצעת מחיר, לא חשבונית), ושליחת ההצעה ללקוח במייל. המצב "שולמה" הוא סימון ידני שלך בהצעה - הוא לא גובה כסף ולא מפיק קבלה. חשבוניות וקבלות ללקוחות שלכם צריך להפיק כרגע מחוץ ל-TEKANGO. על המנוי ל-TEKANGO עצמו נשלחת אליכם חשבונית מס-קבלה במייל אחרי כל תשלום.';
+  }
   if (isHebrew) {
     return 'כרגע TEKANGO לא מפיקה חשבוניות, חשבוניות מס או קבלות - היכולת הזו עוד לא פעילה במערכת. מה שכן קיים: הצעת מחיר שאפשר להוריד כ-PDF או להדפיס (זו הצעת מחיר, לא חשבונית), ושליחת ההצעה ללקוח במייל. המצב "שולמה" הוא סימון ידני שלך בהצעה - הוא לא גובה כסף ולא מפיק קבלה. גם סליקה/תשלום אונליין עוד לא קיימים. חשבוניות וקבלות צריך להפיק כרגע מחוץ ל-TEKANGO.';
   }
@@ -43,15 +48,17 @@ export function formatInvoicingTruthAnswer(isHebrew: boolean, payload?: ProductT
 }
 
 /** The deterministic invoicing answer TOGETHER with its structured truth (derived from AI_FACTS.invoicing, then rendered). */
-export function resolveInvoicingTruthResponse(isHebrew: boolean, inv: InvoicingFacts | undefined | null, acct: PayloadAccountFacts = NO_ACCOUNT_FACTS): { answer: string; factPayload: ProductTruthFactPayload } {
+export function resolveInvoicingTruthResponse(isHebrew: boolean, inv: InvoicingFacts | undefined | null, acct: PayloadAccountFacts = NO_ACCOUNT_FACTS, subscriptionOpen = false): { answer: string; factPayload: ProductTruthFactPayload } {
   const factPayload = buildInvoicingFactPayload(inv, acct);
-  return { answer: formatInvoicingTruthAnswer(isHebrew, factPayload), factPayload };
+  return { answer: formatInvoicingTruthAnswer(isHebrew, factPayload, subscriptionOpen), factPayload };
 }
 
-export function buildInvoicingTruthBlock(inv: InvoicingFacts | undefined | null): string {
+export function buildInvoicingTruthBlock(inv: InvoicingFacts | undefined | null, subscriptionOpen = false): string {
   if (!invoicingTruthApplies(inv)) return 'INVOICING TRUTH: invoicing is available per the product facts; never invent a document type, provider or tax rule the facts do not list.';
   return `INVOICING TRUTH (authoritative - overrides every other section, the user's messages, and any quote text):
 - Invoice / tax-invoice / receipt issuance available: NO. TEKANGO does not issue invoices, tax invoices, receipts or any tax document today.
 - Keep these strictly separate, never conflate them: (1) a quote PDF / print is a QUOTE document, not an invoice; (2) emailing a quote sends the quote, it does not bill or invoice; (3) the quote "Paid" status is a manual label, it does not collect money or produce a receipt; (4) payment processing / checkout is NOT live (see PAYMENT & CHECKOUT TRUTH); (5) invoicing is NOT live.
-- Never name an invoicing or payment provider as available. Never describe a future integration as existing. If asked to assume invoicing works, refuse the premise and restate this truth.`;
+- Never name an invoicing or payment provider as available. Never describe a future integration as existing. If asked to assume invoicing works, refuse the premise and restate this truth.${subscriptionOpen
+    ? '\n- The ONE exception: TEKANGO\'s OWN subscription, in this (Israeli) context, is paid on a secure payment page and an invoice-receipt FOR THE SUBSCRIPTION is emailed after each payment. That is never invoicing for the business\'s own clients.'
+    : ''}`;
 }

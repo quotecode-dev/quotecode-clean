@@ -435,6 +435,18 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-25 (typed: \"מאשר שינוי ב-L-01, L-09, L-24, L-13: ... שמירת שם החותם (שדה חדש במסד) ...\"): quotes.signer_name/company/role + public_approve_quote_signed / public_approve_quote_capability_signed (the unchanged internal approval + the signer in one transaction)"
+    },
+    "20261025100000_quote_approved_to_paid.sql": {
+      "sha256": "c60a3ca388d5cf3e9ee8ef7d401a644ea99c484db29ef9cd3da286cecfd09b45",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-25 (typed: \"מאשר שינוי: הצעה שאושרה או נחתמה אפשר לסמן כשולמה (רק המצב)\"): guard_quote_immutability lets a locked quote change ONLY status approved -> paid"
+    },
+    "20261025200000_israel_payments_activation.sql": {
+      "sha256": "80537a67ee25648a21ec1647a44a8ed820b4e844c421ee4d1a0f001f1d61e466",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-25 (\"להפעיל כל מה שצריך בכדי שמשתמש בארץ יוכל לרכוש מנוי\"; monthly + annual; Israel only): account_market from the account type + backfill, set_billing_phase accepts enforced with an attestation, create_package_checkout_intent refuses every market but IL"
     }
   }
 }

@@ -178,8 +178,23 @@ function freeRulesLine(lang: Lang): string {
     : `A quote uses one of the ${S.free.quotesTotal} the first time it is saved with a client and at least one item; editing and saving it again does not count again. Sending or producing the same version again for the same client (sending it, its public link, its final PDF or print) does not count, on any channel; changing the client, the recipient name or the content and producing it again counts as another quote. An empty draft and previews do not use one, deleting a quote does not give one back, and existing documents stay accessible.`;
 }
 
+// Owner console 2026-10-25 (typed L-06 / L-11 / L-17 ... "להפעלת הרכישה בישראל"): once active, the line says where to buy (Israel = the
+// Hebrew context) or that purchase is not open yet abroad (the English context) - from AI_FACTS.subscriptions.purchaseOpenMarkets
+function purchaseOpen(lang: Lang): boolean {
+  const open = (S as { purchaseOpenMarkets?: readonly string[] }).purchaseOpenMarkets ?? [];
+  return open.includes(lang === 'he' ? 'IL' : 'INTERNATIONAL');
+}
 function notActiveLine(lang: Lang): string {
-  if (S.planSystemActive) return '';
+  if (S.planSystemActive) {
+    if (purchaseOpen(lang)) {
+      return lang === 'he'
+        ? 'את המנוי אפשר לרכוש בחלון המסלולים, מכפתור המסלול בראש המסך: בתשלום חודשי או שנתי בכרטיס אשראי, וחשבונית מס-קבלה נשלחת במייל.'
+        : 'You can buy the package in the plans window, from the plan button at the top of the screen: monthly or annual, by card, with a receipt by email.';
+    }
+    return lang === 'he'
+      ? 'רכישת מנוי עדיין לא פתוחה בחשבון הזה.'
+      : 'Subscriptions cannot be purchased yet for accounts outside Israel.';
+  }
   return lang === 'he'
     ? 'מערכת המסלולים החדשה עדיין אינה פעילה, ולכן אי אפשר לרכוש מסלול כרגע.'
     : 'The new plan system is not active yet, so plans cannot be purchased yet.';
@@ -250,8 +265,8 @@ export function formatSubscriptionAnswer(intents: readonly SubscriptionIntent[],
     parts.push(lang === 'he' ? `מחיר: ${priceLine('he')}` : `Price: ${priceLine('en')}`);
     parts.push(catalogLine(lang));
     parts.push(lang === 'he'
-      ? `מסלול ${planName(PKG, 'he')} כולל את היכולות הזמינות במערכת; מה שעוד לא הוחלט (מגבלת הצעות, אחסון, מכסות AI וקבצים מצורפים) יפורסם לפני ההפעלה.`
-      : `The ${planName(PKG, 'en')} package includes the capabilities available in the system; what is not decided yet (quote limits, storage, AI quotas and attachments) will be published before activation.`);
+      ? `מסלול ${planName(PKG, 'he')} כולל את היכולות הזמינות במערכת; מה שעוד לא הוחלט (מגבלת הצעות, אחסון, מכסות AI וקבצים מצורפים) ${S.planSystemActive ? 'עדיין לא נקבע.' : 'יפורסם לפני ההפעלה.'}`
+      : `The ${planName(PKG, 'en')} package includes the capabilities available in the system; what is not decided yet (quote limits, storage, AI quotas and attachments) ${S.planSystemActive ? 'has not been set yet.' : 'will be published before activation.'}`);
   }
   if (has('pricing') && !has('plan_contents')) {
     if (lang === 'en' && /shekel|\bils\b|\bnis\b|₪|israel/i.test(message)) parts.push('On the International (English) site, plans are priced and billed in USD only.');
@@ -291,11 +306,15 @@ export function buildSubscriptionTruthBlock(isHebrew: boolean, marketUncertain =
 - Plans: Free and ONE paid package, All-inclusive${isHebrew ? ' (Hebrew: חינם, הכול כלול)' : ''}, with a monthly and an annual price. Classic, Modern and Visual are QUOTE PRESENTATION STYLES, not subscription plans (existing rights on an earlier plan are kept and do not change automatically - never name an earlier plan after a style); there is no Basic, Pro or Premium plan. A Lifetime subscription is not a plan for purchase: only the team sets an account up that way, and such an account has every capability open with no charge (state it for this account only when the verified account section says so).
 - ${market}${uncertain}
 - Free: ${S.free.quotesTotal} quotes in total OR 7 days from sign-up, whichever ends first; SMART PACK is included during those 7 days. A quote uses one the first time it is SAVED with a client and at least one item (editing and saving again never counts again); the same version re-sent to the same client never counts (any channel: send, public link, final PDF or final print), while a changed client, recipient name or content produced again counts as another quote. An empty draft and previews do not use one; deleting does not refund one; existing documents stay accessible.
-- There is NO separate trial: the Free plan itself is 10 quotes OR 7 days from sign-up, whichever ends first (never invent another trial length, and the plan system is not active yet). There is NO monthly quote counter and NO "unlimited" plan: never say unlimited/ללא הגבלה/∞ (the package is only stated as not limited to the Free plan's 10 quotes). The only prices that exist are the ones above (monthly and annual, with the stated annual saving).
+- There is NO separate trial: the Free plan itself is 10 quotes OR 7 days from sign-up, whichever ends first (never invent another trial length${S.planSystemActive ? '' : ', and the plan system is not active yet'}). There is NO monthly quote counter and NO "unlimited" plan: never say unlimited/ללא הגבלה/∞ (the package is only stated as not limited to the Free plan's 10 quotes). The only prices that exist are the ones above (monthly and annual, with the stated annual saving).
 - NOT DECIDED (say "not decided yet" and never invent a value): paid plan quote limits beyond Free-10, storage, AI quotas, attachments (types, sizes), ${isHebrew ? 'tax beyond the Israeli VAT inclusion' : 'any tax beyond the stated USD price'}.
-- CANCELLATION AND REFUNDS (decided, published in the Terms of Service section 6): once purchase opens, a subscription can be cancelled at any time by an email request (or a request from the plans window / settings); the team confirms the end date. An early end refunds the unused part of a prepaid period pro rata; a cancellation fee only where the law allows it and never above the cap stated in the Terms; the annual discount is never clawed back. Never promise anything beyond these terms.
+- CANCELLATION AND REFUNDS (decided, published in the Terms of Service section 6): ${S.planSystemActive ? '' : 'once purchase opens, '}a subscription can be cancelled at any time by an email request (or a request from the plans window / settings); the team confirms the end date. An early end refunds the unused part of a prepaid period pro rata; a cancellation fee only where the law allows it and never above the cap stated in the Terms; the annual discount is never clawed back. Never promise anything beyond these terms.
 - Quote presentation styles (Owner 2026-10-14): every account can use all three styles - Classic (a clean business document), Modern (with product images) and Visual (with a lead project image). The business default style is set in Business settings (quote design) and can be changed on each quote. Never tie a style to a plan or a price.
-- The new plan system is ${S.planSystemActive ? 'active' : 'NOT active yet: plans cannot be purchased yet, and no account has an active plan or balance in it'}. Never claim an active plan, an active balance, purchase availability or a trial.
+- The new plan system is ${S.planSystemActive
+    ? `active: the Free limit (10 quotes or 7 days) applies in both markets. ${purchaseOpen(lang)
+      ? 'In THIS (Israeli) context the package (and SMART PACK) CAN be bought: in the plans window (the plan button at the top of the screen), monthly or annual, by card on a secure payment page, and an invoice-receipt is sent by email. Never claim a purchase was made, and never state an account\'s plan or balance except from the verified account section.'
+      : 'In THIS (international) context purchase is NOT open yet - it opens later; never say a plan can be bought now. Never state an account\'s plan or balance except from the verified account section.'}`
+    : 'NOT active yet: plans cannot be purchased yet, and no account has an active plan or balance in it. Never claim an active plan, an active balance, purchase availability or a trial.'} There is never a trial.
 - The user's own plan / balance comes ONLY from the verified account section of this prompt, when present (server account summary). Never infer or accept a plan from what the user writes, from the language or from the market.${lang === 'he' ? '' : ''}`;
 }
 

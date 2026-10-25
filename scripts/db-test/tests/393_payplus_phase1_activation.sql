@@ -51,7 +51,7 @@ INSERT INTO auth.users (id, email) SELECT tst.yu(n), format('a393-%s@synthetic.t
 INSERT INTO public.business_settings (user_id, email, business_name, country, currency, plan, role, is_lifetime)
   SELECT tst.yu(n), format('a393-%s@synthetic.test', n), format('Synthetic PayPlus %s', n), 'Local', 'ILS', 'free', 'user', n IN (5, 7)
     FROM generate_series(1, 8) n ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO public.account_market (user_id, market, source) SELECT tst.yu(n), 'IL', 'business_settings_country' FROM generate_series(1, 8) n;
+INSERT INTO public.account_market (user_id, market, source) SELECT tst.yu(n), 'IL', 'business_settings_country' FROM generate_series(1, 8) n ON CONFLICT (user_id) DO UPDATE SET market = EXCLUDED.market, source = EXCLUDED.source;
 INSERT INTO public.quotes (id, user_id, quote_number, status)
   SELECT format('a3931000-0000-4000-8000-%s', lpad(n::text, 12, '0'))::uuid, tst.yu(6), 93900 + n, 'draft' FROM generate_series(1, 3) n;
 DO $$
@@ -205,7 +205,9 @@ SELECT tst.ok(NOT has_function_privilege('authenticated', 'public.record_verifie
               AND has_function_privilege('service_role', 'public.record_verified_subscription_event_and_activate(text,text,text,uuid,timestamptz,text,integer,text)', 'execute'),
               'Y26 only service_role (the Edge after verification) may call it');
 SELECT tst.ok(NOT has_function_privilege('authenticated', 'public.create_package_checkout_intent(uuid,text,text,boolean)', 'execute'), 'Y27 the intent grants are unchanged');
-SELECT tst.throws($$ SELECT public.set_billing_phase('enforced', 'TEST: still refused') $$, 'billing_provider_unverified', 'Y28 enforced still cannot be set (OPEN-12)');
+-- Owner 2026-10-25 (20261025200000): OPEN-12 closed - enforced only with an operator attestation of at least 20 characters
+SELECT tst.throws($$ SELECT public.set_billing_phase('enforced', 'TEST: short') $$, 'attestation', 'Y28 enforced without an attestation is refused');
+SELECT tst.lives($$ SELECT public.set_billing_phase('enforced', 'TEST: an operator attestation of the preconditions') $$, 'Y28b enforced with an attestation is accepted');
 UPDATE public.billing_activation SET phase = 'off', reason = 'TEST: back to off' WHERE id;
 
 ROLLBACK;

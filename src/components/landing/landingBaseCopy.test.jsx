@@ -36,10 +36,10 @@ const enHtml = ssr(<LandingGlobal />, '/en');
 describe('L05 - HE CTA labels (Owner 2026-10-06: plural address) and the base sign-in labels', () => {
   // IRON-LANDING-001 (amended by the Owner 2026-10-11): the signup CTAs are the Free-10 buttons "10 הצעות חינם" (header, hero,
   // plans section, closing = 4; the plan cards have none, registration and billing are not active), each with the visible status
-  // "עדיין לא הופעל" inside the same button (Free-10 is never presented as active). No trial promise (OD-01).
+  // no status inside the button (Owner 2026-10-25: "למה בכלל צריך להזכיר את זה?" - the offer speaks for itself). No trial promise (OD-01).
   const free10 = (html) => [...html.matchAll(/<a [^>]*data-free10-cta[^>]*>([\s\S]*?)<\/a>/g)].map((m) => text(m[1]).trim());
-  it('every signup CTA reads "10 הצעות חינם" + "עדיין לא הופעל" (header, hero, plans, closing = 4); no trial CTA', () => {
-    expect(free10(heHtml)).toEqual(Array(4).fill('10 הצעות חינם עדיין לא הופעל'));
+  it('every signup CTA reads exactly "10 הצעות חינם" (header, hero, plans, closing = 4), no status; no trial CTA', () => {
+    expect(free10(heHtml)).toEqual(Array(4).fill('10 הצעות חינם'));
     expect(count(heHtml, 'href="/dashboard?signup=true&amp;lang=he"')).toBe(4);
     for (const s of ['התחילו בחינם', 'נסו חינם', 'נסה חינם', 'ניסיון חינם', 'התחל ניסיון חינם']) expect(he).not.toContain(s);
   });
@@ -58,8 +58,8 @@ describe('L05 - HE CTA labels (Owner 2026-10-06: plural address) and the base si
     expect(enLogin.textContent).toBe('Sign In');
   });
   // OD-01: no trial promise in EN either.
-  it('EN signup labels "10 free quotes" + "Not active yet" (4) / "Sign In"; no "Free Trial"', () => {
-    expect(free10(enHtml)).toEqual(Array(4).fill('10 free quotes Not active yet'));
+  it('EN signup labels exactly "10 free quotes" (4), no status / "Sign In"; no "Free Trial"', () => {
+    expect(free10(enHtml)).toEqual(Array(4).fill('10 free quotes'));
     expect(count(enHtml, 'href="/dashboard?signup=true&amp;lang=en"')).toBe(4);
     for (const s of ['Start free', 'Sign up free']) expect(en).not.toContain(s);
     expect(en).not.toMatch(/Free Trial/i);

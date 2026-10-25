@@ -38,7 +38,7 @@ INSERT INTO auth.users (id, email) SELECT tst.zu(n), format('a404-%s@synthetic.t
 INSERT INTO public.business_settings (user_id, email, business_name, country, currency, plan, role, is_lifetime)
   SELECT tst.zu(n), format('a404-%s@synthetic.test', n), format('Synthetic standing order %s', n), 'Local', 'ILS', 'free', 'user', false
     FROM generate_series(1, 5) n ON CONFLICT (user_id) DO NOTHING;
-INSERT INTO public.account_market (user_id, market, source) SELECT tst.zu(n), 'IL', 'business_settings_country' FROM generate_series(1, 5) n;
+INSERT INTO public.account_market (user_id, market, source) SELECT tst.zu(n), 'IL', 'business_settings_country' FROM generate_series(1, 5) n ON CONFLICT (user_id) DO UPDATE SET market = EXCLUDED.market, source = EXCLUDED.source;
 INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id, free_issues_consumed)
   SELECT tst.zu(n), 'free_10', NULL, 0 FROM generate_series(1, 5) n;
 

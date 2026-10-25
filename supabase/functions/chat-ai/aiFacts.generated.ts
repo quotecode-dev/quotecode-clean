@@ -24,8 +24,11 @@ export const AI_FACTS = {
       "visual"
     ],
     "stylesAreNotPlans": true,
-    "planSystemActive": false,
-    "activationPhase": "off",
+    "planSystemActive": true,
+    "purchaseOpenMarkets": [
+      "IL"
+    ],
+    "activationPhase": "enforced",
     "trialOffered": false,
     "accountStateSource": "get_account_summary",
     "plans": [
@@ -123,7 +126,10 @@ export const AI_FACTS = {
     "liveCheckoutAvailable": false,
     "paymentProcessingAvailable": false,
     "acceptedPaymentCurrencies": [],
-    "paymentMethodsKnown": false
+    "paymentMethodsKnown": false,
+    "subscriptionCheckoutMarkets": [
+      "IL"
+    ]
   },
   "invoicing": {
     "liveInvoicingAvailable": false,
@@ -763,8 +769,8 @@ export const AI_FACTS = {
       "id": "plan_trial",
       "heLabel": "מסלולים ו-10 הצעות חינם",
       "enLabel": "Plans and Free quotes",
-      "heDescription": "מסלול החינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם. בשבעת הימים כלול גם חכם פלוס. לאחר מכן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. מערכת המנויים החדשה עדיין בהכנה.",
-      "enDescription": "The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, with SMART PACK included during those 7 days. After them there is one package with every available capability, billed monthly or annually: 18.00 USD per month or 184.00 USD per year, charged in USD. The new subscription system is still being prepared.",
+      "heDescription": "מסלול החינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם. בשבעת הימים כלול גם חכם פלוס. לאחר מכן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. את המנוי רוכשים בחלון המסלולים.",
+      "enDescription": "The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, with SMART PACK included during those 7 days. After them there is one package with every available capability, billed monthly or annually: 18.00 USD per month or 184.00 USD per year, charged in USD. Subscriptions cannot be purchased yet outside Israel.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -1858,7 +1864,7 @@ export const AI_FACTS = {
         "steps": [
           "ברשימת \"הצעות מחיר\" לוחצים \"פתיחה\" ליד ההצעה ואז \"עריכה\".",
           "בשלב \"בדיקה ושמירה\", בשדה \"מצב ההצעה\", בוחרים \"נשלחה\", \"אושרה\" או \"שולמה\", ולוחצים \"עדכון ההצעה בענן\". המצב רק מסמן את ההצעה; הוא לא גובה תשלום.",
-          "הצעה שאושרה, שולמה או שהלקוח חתם עליה נעולה: אי אפשר לערוך אותה, וגם לא לשנות את המצב שלה (\"לא ניתן לערוך הצעה חתומה\")."
+          "הצעה שאושרה או שהלקוח חתם עליה נעולה לעריכה (\"לא ניתן לערוך הצעה חתומה\"). כשהלקוח שילם, פותחים את ההצעה ברשימה, לוחצים \"סימון כשולמה\" ומאשרים. אחרי הסימון אי אפשר לחזור ל\"אושרה\", והצעה ששולמה נעולה לגמרי."
         ]
       },
       "en": {
@@ -1866,7 +1872,7 @@ export const AI_FACTS = {
         "steps": [
           "In the \"Quotes\" list click \"Open\" next to the quote, then \"Edit\".",
           "In the \"Review and save\" step, in \"Quote status\", choose \"Sent\", \"Approved\" or \"Paid\" and click \"Update Quote in Cloud\". The status only marks the quote; it does not collect payment.",
-          "A quote that is approved, paid or signed by the client is locked: it cannot be edited and its status cannot change either (\"Cannot edit a signed quote\")."
+          "A quote that is approved or signed by the client is locked for editing (\"Cannot edit a signed quote\"). When the client has paid, open the quote in the list, click \"Mark as paid\" and confirm. After marking it you cannot go back to \"Approved\", and a paid quote is fully locked."
         ]
       }
     },
@@ -1902,7 +1908,10 @@ export const AI_FACTS = {
       },
       "optional": true,
       "sameBillingPeriodAsMainPlan": true,
-      "purchasable": false,
+      "purchasable": {
+        "IL": true,
+        "INTERNATIONAL": false
+      },
       "prices": {
         "IL": {
           "currency": "ILS",
@@ -1931,12 +1940,8 @@ export const AI_FACTS = {
         ]
       },
       "comingSoon": {
-        "he": [
-          "התאום הדיגיטלי של הלקוח"
-        ],
-        "en": [
-          "Customer Twin"
-        ]
+        "he": [],
+        "en": []
       }
     }
   ]

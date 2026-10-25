@@ -8,7 +8,7 @@ import { resolveSubscriptionTruthResponse, findSubscriptionClaimViolations, safe
 import { ownsQuote, sanitizeQuoteContext, buildQuoteContextBlock, type RawQuoteRow } from "./quoteContext.ts";
 import { extractNavigationAction } from "./navigation.ts";
 import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } from "./directFacts.ts";
-import { paymentTruthApplies, classifyPaymentIntent, resolvePaymentTruthResponse } from "./paymentTruth.ts";
+import { paymentTruthApplies, classifyPaymentIntent, resolvePaymentTruthResponse, subscriptionPurchaseOpen } from "./paymentTruth.ts";
 import { AI_FACTS } from "./aiFacts.generated.ts";
 import { invoicingTruthApplies, classifyInvoicingIntent, resolveInvoicingTruthResponse } from "./invoicingTruth.ts";
 import { capabilityTruthApplies, classifyCapabilityIntent, classifyBroadCapabilityQuestionSignal, resolveBroadCapabilityClarification, resolveCapabilityTruthResponse, BUILD_QUOTE_REQUEST, HOW_QUESTION } from "./capabilityTruth.ts";
@@ -261,7 +261,7 @@ serve(async (req) => {
   const asksInvoicing = invoicingTruthApplies(AI_FACTS.invoicing) && classifyInvoicingIntent(lastUserMessage);
   const asksPayment = paymentTruthApplies(AI_FACTS.billing) && classifyPaymentIntent(lastUserMessage);
   if (asksInvoicing || asksPayment) {
-    const truth = asksInvoicing ? resolveInvoicingTruthResponse(isHebrew, AI_FACTS.invoicing, payloadAccount) : resolvePaymentTruthResponse(isHebrew, AI_FACTS.billing, payloadAccount);
+    const truth = asksInvoicing ? resolveInvoicingTruthResponse(isHebrew, AI_FACTS.invoicing, payloadAccount, subscriptionPurchaseOpen(isHebrew, AI_FACTS.billing)) : resolvePaymentTruthResponse(isHebrew, AI_FACTS.billing, payloadAccount);
     await logChat(truth.answer);
     return deterministicResponse(truth.answer, null, truth.factPayload);
   }
