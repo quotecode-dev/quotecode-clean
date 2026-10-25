@@ -90,17 +90,20 @@ describe('landing truth gate', () => {
     }
     expect(`${he}${en}`).not.toMatch(/landingPlanFacts|ilsAmount\(|usdAmount\(|catalog_block_100|STYLE_COPY/);
     // Task 37: the Owner-approved L7 notice (registration exists; checkout and Free-10 are off) replaced the 2026-10-07 review notice
-    expect(he).toContain('המסלולים החדשים עדיין לא הופעלו: אי אפשר לרכוש מנוי או לשלם באתר. פתיחת חשבון זמינה כבר עכשיו.');
-    expect(en).toContain('The new plans are not active yet: subscriptions cannot be purchased and there is no online payment. You can already open an account.');
+    // Owner console 2026-10-25 (typed L-06 ... "להפעלת הרכישה בישראל"): Free-10 active in both markets; buying open in Israel only
+    expect(he).toContain('המסלולים פעילים: פותחים חשבון בחינם, ואת המנוי בתשלום רוכשים בתוך החשבון.');
+    expect(en).toContain('The 10 free quotes are active. The paid package cannot be purchased yet, and there is no online payment. You can already open an account.');
     expect(he).not.toMatch(/basicPricing|proPricing/);
     expect(en).not.toMatch(/basicPricing|proPricing/);
     expect(he).not.toMatch(/14 יום ניסיון|ניסיון PRO/);
     expect(en).not.toMatch(/14-day|PRO trial|Free Trial/);
-    expect(he).toContain('10 הצעות מחיר חינם או 7 ימים מההרשמה, המוקדם מביניהם. ההטבה עדיין לא הופעלה.');
-    expect(en).toContain('10 free quotes or 7 days, whichever comes first · not active yet');
+    // IRON-LANDING-001 amended 2026-10-25 (Owner typed): Free-10 active once verified in Production
+    expect(he).toContain('10 הצעות מחיר חינם או 7 ימים מההרשמה, המוקדם מביניהם. ההטבה פעילה.');
+    expect(en).toContain('10 free quotes or 7 days, whichever comes first · active now');
     // Task 37: the same "paid / checkout not available" truth in the Owner-approved L1 wording
-    expect(en).toMatch(/The new paid plan cannot be purchased yet/);
-    expect(he).toMatch(/המסלול החדש בתשלום עדיין אינו זמין לרכישה/);
+    // IRON-LANDING-001 amended 2026-10-25: EN still not purchasable; HE bought inside the account
+    expect(en).toMatch(/The paid package cannot be purchased yet/);
+    expect(he).toMatch(/את המנוי בתשלום רוכשים בתוך החשבון, בחלון המסלולים: בכרטיס אשראי, בתשלום חודשי או שנתי\./);
   });
 
   it('signup CTAs start the free trial (no pay-now path)', () => {

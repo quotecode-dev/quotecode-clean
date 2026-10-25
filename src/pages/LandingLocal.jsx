@@ -49,7 +49,8 @@ export default function LandingLocal({ onForgotPassword }) {
         'טיוטה ריקה ותצוגה מקדימה לא נספרות',
         'הצעות שכבר יצאו נשארות זמינות',
       ],
-      notice: 'עדיין לא הופעל',
+      // Owner console 2026-10-25 (typed L-06 ... "להפעלת הרכישה בישראל"): Free-10 is active; the package is bought inside the account
+      notice: 'פעיל מההרשמה',
     },
     {
       id: 'all_inclusive', icon: PackageCheck, name: 'הכול כלול', tagline: 'מסלול אחד עם כל היכולות הזמינות במערכת, בתשלום חודשי או שנתי.',
@@ -75,7 +76,7 @@ export default function LandingLocal({ onForgotPassword }) {
       } : {}),
       capacity: [`אחרי ${FREE_QUOTES_TOTAL} ההצעות החינמיות`, 'חיוב חודשי או שנתי, לפי בחירתכם'],
       features: ['המנוי החודשי מתחדש כל חודש', 'המנוי השנתי מתחדש כל שנה'],
-      notice: 'עדיין לא זמין לרכישה',
+      notice: 'לרכישה בתוך החשבון, בחלון המסלולים',
     },
   ];
 
@@ -84,7 +85,7 @@ export default function LandingLocal({ onForgotPassword }) {
     links: { home: '/he', login: '/dashboard?lang=he', signup: '/dashboard?signup=true&lang=he' },
     // The Free-10 calls to action (hero, plans, closing) keep the existing signup path; the status pill is part of every button
     // until the server activation of Free-10 is verified (planSystemActive=false, activationPhase=off today).
-    free10: { cta: '10 הצעות חינם', status: 'עדיין לא הופעל' },
+    free10: { cta: '10 הצעות חינם', status: 'פעיל עכשיו' },
     nav: {
       label: 'ניווט ראשי',
       homeLabel: 'TEKANGO - דף הבית',
@@ -99,7 +100,7 @@ export default function LandingLocal({ onForgotPassword }) {
       loginShort: 'כניסה',
       // IRON-LANDING-001 (amended 2026-10-11): the Free-10 button, always with its true status.
       cta: '10 הצעות חינם',
-      ctaStatus: 'עדיין לא הופעל',
+      ctaStatus: 'פעיל עכשיו',
       menu: 'תפריט',
       closeMenu: 'סגירת התפריט',
       forgotPassword: 'שכחתם את הסיסמה?',
@@ -114,7 +115,7 @@ export default function LandingLocal({ onForgotPassword }) {
       // L08: no public link / caption to the sample-quote route (no authority); the figure keeps an accessible name only.
       docLabel: 'הצעת מחיר לדוגמה בסגנון Classic',
       // OD-01 / IRON-LANDING-001: the line under the Free-10 button states the offer and its true state.
-      trial: '10 הצעות מחיר חינם או 7 ימים מההרשמה, המוקדם מביניהם. ההטבה עדיין לא הופעלה.',
+      trial: '10 הצעות מחיר חינם או 7 ימים מההרשמה, המוקדם מביניהם. ההטבה פעילה.',
       motion: {
         eyebrow: 'הצעות מחיר שעובדות בשבילכם',
         title: 'מהעבודה בשטח להצעה חתומה',
@@ -197,7 +198,7 @@ export default function LandingLocal({ onForgotPassword }) {
       // Owner 2026-10-20: on the landing list the attachments line reads 'צירוף קבצים ותמונות להצעה' (images are attached files too)
       includes: SMART_PACK.includes.he.map((t) => (t === 'צירוף קבצים להצעה' ? 'צירוף קבצים ותמונות להצעה' : t)),
       cta: 'למסלולים ולמחירים',
-      note: 'המחירים כוללים מע״מ. התוספת תהיה זמינה לרכישה עם פתיחת המסלולים.',
+      note: 'המחירים כוללים מע״מ. מוסיפים את התוספת בחלון המסלולים, יחד עם המנוי.',
     },
     plans: {
       // Base section heading (L12); no eyebrow. The subtitle states the §249 model (Free-10, then one package).
@@ -206,10 +207,10 @@ export default function LandingLocal({ onForgotPassword }) {
       intro: '10 הצעות מחיר חינם או 7 ימים, המוקדם מביניהם, ואחר כך מסלול אחד שכולל הכול, בתשלום חודשי או שנתי.',
       // Task 37 (Owner-approved L1 meaning, 2026-10-12): true on LIVE (signup states its own trial terms) and on TEST; Free-10 and the paid
       // plan stated as not active / not purchasable; prices stay visible.
-      trialNote: 'מסלול 10 ההצעות החינמיות עדיין לא הופעל. תנאי החשבון הזמינים כעת מוצגים בתהליך ההרשמה. המסלול החדש בתשלום עדיין אינו זמין לרכישה, והמחירים מוצגים לידיעה בלבד.',
+      trialNote: 'מסלול 10 ההצעות החינמיות פעיל מההרשמה. את המנוי בתשלום רוכשים בתוך החשבון, בחלון המסלולים: בכרטיס אשראי, בתשלום חודשי או שנתי.',
       // Owner 2026-10-07: review notice for the new plan cards (exact wording).
       // Task 37 (Owner-approved L7): registration exists, checkout and Free-10 are off - no reviewer note on a customer page.
-      reviewNotice: 'המסלולים החדשים עדיין לא הופעלו: אי אפשר לרכוש מנוי או לשלם באתר. פתיחת חשבון זמינה כבר עכשיו.',
+      reviewNotice: 'המסלולים פעילים: פותחים חשבון בחינם, ואת המנוי בתשלום רוכשים בתוך החשבון.',
       // OD-05: the exact required sentence; no rate or breakdown.
       priceNote: 'המחירים כוללים מע״מ',
     },
@@ -226,12 +227,12 @@ export default function LandingLocal({ onForgotPassword }) {
         { q: 'האם המחירים המוצגים כוללים מע״מ?', a: 'כן. המחירים כוללים מע״מ, ולא יתווסף אליהם מע״מ.' },
         // OD-01/OD-02 (Owner 2026-10-07): the trial question is replaced by the Free-10 policy, truthfully not yet activated.
         // Task 37 (Owner-approved): the same facts as scannable points; the last line = the L1 meaning.
-        { q: 'איך עובדות 10 ההצעות החינמיות?', a: <>ההטבה כוללת 10 הצעות מחיר חינם בסך הכול, או 7 ימים מההרשמה, המוקדם מביניהם. בשבעת הימים כלול גם חכם פלוס.<ul className="tl-faq-list"><li>הצעה נספרת בפעם הראשונה שהיא נשמרת עם לקוח ולפחות פריט אחד. שמירה חוזרת אחרי עריכה לא נספרת שוב.</li><li>שליחה או הפקה חוזרת של אותה גרסה לאותו לקוח לא נספרת, בשום ערוץ: שליחה, קישור לצפייה, PDF או הדפסה.</li><li>שינוי הלקוח, שם הנמען או תוכן ההצעה והפקה מחדש נספרים כהצעה נוספת.</li><li>טיוטה ריקה ותצוגה מקדימה לא נספרות.</li><li>מחיקת הצעה לא מחזירה אותה למכסה, והצעות שכבר יצאו ללקוחות נשארות זמינות.</li></ul>ההטבה עדיין לא הופעלה; תנאי החשבון הזמינים כעת מוצגים בתהליך ההרשמה.</> },
+        { q: 'איך עובדות 10 ההצעות החינמיות?', a: <>ההטבה כוללת 10 הצעות מחיר חינם בסך הכול, או 7 ימים מההרשמה, המוקדם מביניהם. בשבעת הימים כלול גם חכם פלוס.<ul className="tl-faq-list"><li>הצעה נספרת בפעם הראשונה שהיא נשמרת עם לקוח ולפחות פריט אחד. שמירה חוזרת אחרי עריכה לא נספרת שוב.</li><li>שליחה או הפקה חוזרת של אותה גרסה לאותו לקוח לא נספרת, בשום ערוץ: שליחה, קישור לצפייה, PDF או הדפסה.</li><li>שינוי הלקוח, שם הנמען או תוכן ההצעה והפקה מחדש נספרים כהצעה נוספת.</li><li>טיוטה ריקה ותצוגה מקדימה לא נספרות.</li><li>מחיקת הצעה לא מחזירה אותה למכסה, והצעות שכבר יצאו ללקוחות נשארות זמינות.</li></ul>ההטבה פעילה מההרשמה. בחשבונות שנפתחו לפני הפעלתה, שבעת הימים נספרים מיום ההפעלה.</> },
         { q: 'האם המערכת מותאמת לסמארטפון ולמחשב?', a: 'כן. אפשר להפיק הצעות ולנהל את העסק מהמחשב, מהטאבלט או מהטלפון.' },
         // Verifiable infrastructure facts only (TLS in transit, encryption at rest by the Supabase/PostgreSQL platform).
         { q: 'האם הנתונים העסקיים שלי מאובטחים בענן?', a: 'כן. הנתונים שמורים בענן ומוצפנים, גם בזמן ההעברה וגם באחסון. רק אתם יכולים לגשת לנתונים של החשבון שלכם.' },
         // Task 39 (Owner final scope): the cancellation-request path - a request handled by the team, never shown as an automatic cancellation.
-        { q: 'איך מבקשים ביטול מנוי?', a: <>עדיין אי אפשר לרכוש מנוי בתשלום. כשהרכישה תיפתח, אפשר לבקש ביטול מנוי בכל עת במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<a href="mailto:support@tekango.com?subject=%D7%91%D7%A7%D7%A9%D7%AA%20%D7%91%D7%99%D7%98%D7%95%D7%9C%20%D7%9E%D7%A0%D7%95%D7%99"><bdi dir="ltr">support@tekango.com</bdi></a> או מתוך חלון המסלולים במערכת. הצוות מטפל בבקשה ושולח אישור במייל. הביטול אינו אוטומטי. ביטול מנוי אינו מחיקת חשבון. תנאי הביטול וההחזרים מפורטים {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href="/he/terms#cancellation">בתנאי השימוש</a>.</> },
+        { q: 'איך מבקשים ביטול מנוי?', a: <>אפשר לבקש ביטול מנוי בכל עת במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<a href="mailto:support@tekango.com?subject=%D7%91%D7%A7%D7%A9%D7%AA%20%D7%91%D7%99%D7%98%D7%95%D7%9C%20%D7%9E%D7%A0%D7%95%D7%99"><bdi dir="ltr">support@tekango.com</bdi></a> או מתוך חלון המסלולים במערכת. הצוות מטפל בבקשה ושולח אישור במייל. הביטול אינו אוטומטי. ביטול מנוי אינו מחיקת חשבון. תנאי הביטול וההחזרים מפורטים {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href="/he/terms#cancellation">בתנאי השימוש</a>.</> },
         { q: 'האם ניתן לייצא את נתוני ההצעות והדוחות לאקסל?', a: 'כן. אפשר לייצא בכל רגע את היסטוריית הצעות המחיר ואת דוחות ההוצאות לקובצי CSV שמתאימים לאקסל ולתוכנות הנהלת חשבונות.' },
         // Owner console 2026-10-20 (typed: "מאשר לשנות את נוסחי דף הנחיתה ואת הבדיקות שנועלות אותם: ... ושאלות נפוצות חדשות מאומתות"): questions
         // users asked in the smart chat and the support inbox; every answer = the verified how-to facts (src/data/productHowTo.js) and L-12 contact.
