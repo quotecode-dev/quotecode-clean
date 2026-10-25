@@ -3,7 +3,8 @@
 // גם באנגלית! חייב להיות סנכרון מלא בכל שינוי").
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { parseAccountSummary, smartPackPurchasePath } from '../supabase/functions/_shared/subscriptionContract.ts';
+import { parseAccountSummary } from '../supabase/functions/_shared/subscriptionContract.ts';
+import { smartPackPurchasePath } from '../supabase/functions/_shared/smartPackGate.ts';
 import { buildAddOnLinkBody, PAYPLUS_RETURN_PATHS, payplusProviderFromSecrets } from '../supabase/functions/subscription-authority/payplus.ts';
 import fs from 'node:fs';
 import path from 'node:path';

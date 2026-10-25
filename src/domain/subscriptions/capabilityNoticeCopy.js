@@ -2,7 +2,7 @@
 import { CAPABILITIES, planName } from '../../../supabase/functions/_shared/subscriptionContract.ts';
 import { accountStatusModel } from './accountSummaryClient';
 import { SMART_PACK } from './addOnCatalog';
-import { smartPackPurchasePath } from '../../../supabase/functions/_shared/subscriptionContract.ts';
+import { smartPackPurchasePath } from '../../../supabase/functions/_shared/smartPackGate.ts';
 import { ilsSmartPack } from '../../components/landing/smartPackFacts';
 
 // Owner console 2026-10-25 (typed: "מאשר שינוי ב-L-05: יכולות חכם פלוס נחסמות ברגע הלחיצה למי שאין לו חכם פלוס"): the notice of a

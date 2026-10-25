@@ -2,7 +2,8 @@ import { useState, useRef, useEffect, useContext } from 'react';
 import { supabase } from './shared/supabase';
 import { X, Send, MessageSquarePlus, ChevronLeft, ChevronRight, FileText, LifeBuoy, CreditCard, Building2, MessageSquare, History, Mic, Square, Volume2, VolumeX, Paperclip, LayoutList } from 'lucide-react';
 import { AccountSummaryContext } from './domain/subscriptions/AccountSummaryContext';
-import { decideSmartPack, smartPackPurchasePath } from '../supabase/functions/_shared/subscriptionContract.ts';
+import { decideSmartPack } from '../supabase/functions/_shared/subscriptionContract.ts';
+import { smartPackPurchasePath } from '../supabase/functions/_shared/smartPackGate.ts';
 import { NEON } from './theme/neonTheme';
 import {
   buildPublicChatStorageKey,
