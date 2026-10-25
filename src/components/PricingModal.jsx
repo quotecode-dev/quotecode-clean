@@ -19,10 +19,14 @@ import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
 import { accountStatusModel, lifetimeAccountModel } from '../domain/subscriptions/accountSummaryClient';
 import PackageOfferCards from './PackageOfferCards';
 import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText, israelPurchaseOpen } from '../domain/subscriptions/packageCheckout';
+import SmartPackAddOnOffer from './SmartPackAddOnOffer';
 
 // Owner 2026-10-25 ("למה פשוט לא לכתוב במסלולים שהוא נמצא עכשיו במסלול חינם, למה יש לו את האופציה לבחור את זה בכלל?"): the Free plan is
 // never a card to choose - the status lines above say the account is on it (and its balance); only the paid package card, single width.
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null }) {
+// Owner console 2026-10-25 (typed: "מאשר שינוי ב-L-22 וב-L-01 ... כפתור הוספת חכם פלוס ... - מאשר"; "ב: חיוב יחסי עכשיו"): an active
+// subscriber without SMART PACK gets the add-on box (smartPackAddOn = { invoke, onLeave }, only when smartPackAddOnAvailable); back from
+// its page the return line speaks of SMART PACK (billingReturn.addOn)
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null, smartPackAddOn = null }) {
   const [rate, setRate] = useState(null);
   const [pay, setPay] = useState({ busy: false, error: null });
   // Owner console 2026-10-21 (typed L-22 approval): the SMART PACK box state, so the local-currency estimate follows the total
@@ -51,7 +55,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   const lifetime = isLifetime === true ? lifetimeAccountModel(lang) : null;
   // back from the payment page: the words of the state; SMART PACK only from the server summary (the plan is on the line below)
   const returnText = billingReturn?.state ? billingReturnText(billingReturn.state, isHebrew, {
-    smartPack: accountSummary?.state === 'ready' && accountSummary.smartPack?.active === true,
+    smartPack: accountSummary?.state === 'ready' && accountSummary.smartPack?.active === true, addOn: billingReturn.addOn === true,
   }) : '';
   // the pay action (server billing phase on only); the server answers with the payment page of its own attempt
   const purchase = typeof onPurchase === 'function' && packageCheckoutAvailable(accountSummary, isLifetime) ? {
@@ -112,6 +116,8 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
           ? <div style={{ height: '12px' }} aria-hidden="true" />
           : <p data-testid="plans-modal-availability" style={{ color: '#64748b', textAlign: 'center', margin: '0 0 16px', fontSize: '0.85rem' }}>{m.availability}</p>}
 
+        {/* never a second add-on page while the return from one is still being confirmed */}
+        {smartPackAddOn && !lifetime && !(billingReturn?.addOn === true && ['waiting', 'timeout'].includes(billingReturn.state)) && <SmartPackAddOnOffer isHebrew={isHebrew} invoke={smartPackAddOn.invoke} onLeave={smartPackAddOn.onLeave} />}
         <div style={{ marginBottom: '14px', maxWidth: '440px', marginInline: 'auto' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} purchase={purchase} onAddOnChange={setAddOnTicked} only={['all_inclusive']} /></div>
 
         <p data-testid="plans-modal-price-note" data-price-note style={{ textAlign: 'center', color: '#334155', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 4px' }}>{m.priceNote}</p>

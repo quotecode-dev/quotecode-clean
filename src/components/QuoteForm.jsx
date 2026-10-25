@@ -24,7 +24,8 @@ import ServiceScheduleFields from './ServiceScheduleFields';
 import AddressSuggestInput from './AddressSuggestInput';
 
 // OD-17: which capability each locked action of the form explains (the one CapabilityUpgradeNotice)
-const UPGRADE_CAPABILITY = Object.freeze({ professional: 'professional_quote.use', reuse: 'professional_quote.reuse', attachments: 'quote_attachment.upload' });
+const UPGRADE_CAPABILITY = Object.freeze({ professional: 'professional_quote.use', reuse: 'professional_quote.reuse', attachments: 'quote_attachment.upload',
+  smart_pack: 'smart_pack' });
 
 // AI HELP V4 §5: the browser's own required-field validation is the owner of these blockers; the product marks each required
 // control with data-help-field (never DOM text scraping) and the blocker resolves as soon as the field is filled.
@@ -100,6 +101,8 @@ export default function QuoteForm({
   removeItem,
   handleItemChange,
   canUseAttachments,
+  // Owner console 2026-10-25 (typed L-05 approval): attachments are SMART PACK while the plan system is enforced (Dashboard decides)
+  smartPackAllowed = true,
   canUseProfessionalQuotes,
   recommendedPricingMethod,
   // Owner round 1 (A1 / A6): the quote was opened as "measured" - the list leads with measuring and can show a local example
@@ -540,6 +543,8 @@ export default function QuoteForm({
     if (!canUseAttachments) {
       publishBlocker('ATTACHMENTS_REQUIRE_PRO', { scope: 'editor' });
       setShowUpgradeConfirm('attachments');
+    } else if (!smartPackAllowed) {
+      setShowUpgradeConfirm('smart_pack'); // L-05 (2026-10-25): the SMART PACK notice; no file picker opens
     } else {
       const fileInput = document.createElement('input');
       fileInput.type = 'file';

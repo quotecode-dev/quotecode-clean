@@ -1,7 +1,7 @@
 {
   "src/AIChatWidget.jsx": {
-    "interactive": 26,
-    "markers": 26
+    "interactive": 27,
+    "markers": 27
   },
   "src/App.jsx": {
     "interactive": 3,
@@ -338,6 +338,10 @@
   "src/components/SignOutModal.jsx": {
     "interactive": 2,
     "markers": 2
+  },
+  "src/components/SmartPackAddOnOffer.jsx": {
+    "interactive": 1,
+    "markers": 1
   },
   "src/components/SmartPublicQuote.jsx": {
     "interactive": 1,

@@ -232,6 +232,7 @@ describe('Dashboard wiring (source guard)', () => {
     // 2026-10-25: while waiting the server pulls the result from PayPlus (subscription-authority checkout_status)
     expect(dash).toMatch(/const pullCheckoutStatus = useCallback\(\(\) => invokeWithFreshSession\('subscription-authority', \{ body: \{ action: 'checkout_status' \} \}\), \[\]\);/);
     expect(dash).toMatch(/if \(r\.ok\) \{ markBillingDeparture\(session\?\.user\?\.id\); window\.location\.assign\(r\.redirectUrl\); \}/);
-    expect(dash).toMatch(/billingReturn=\{billingReturn\.state \? \{ state: billingReturn\.state, onCheckAgain: billingReturn\.checkAgain \} : null\}/);
+    // 20261025300000 (Owner console 2026-10-25, typed L-22 / L-01 approval): + whether the return is from a SMART PACK add-on page
+    expect(dash).toMatch(/billingReturn=\{billingReturn\.state \? \{ state: billingReturn\.state, onCheckAgain: billingReturn\.checkAgain, addOn: isAddOnReturn\(billingReturn\.kind\) \} : null\}/);
   });
 });

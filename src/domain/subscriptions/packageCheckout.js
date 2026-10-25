@@ -54,6 +54,60 @@ export async function startPackageCheckout({ billingPeriod, smartPack = false, i
   return { ok: false, code: code || 'checkout_unavailable' };
 }
 
+// ---------------------------------------------------------------------------------------------- SMART PACK for an active subscriber
+// Owner console 2026-10-25 ("ב: חיוב יחסי עכשיו"; 20261025300000): the pro-rata amount and the payment page come from the server
+// (subscription-authority smart_pack_add_on_quote / smart_pack_add_on_intent); the browser never sends an amount.
+
+/** may this account add SMART PACK now? (server summary only: Israel, billing on, a live package without SMART PACK; LIFETIME never) */
+export function smartPackAddOnAvailable(summary, isLifetime = false) {
+  if (isLifetime === true || summary?.state !== 'ready') return false;
+  if (!['prepared', 'enforced'].includes(summary.phase?.billing) || summary.market !== 'IL') return false;
+  return summary.planId === 'all_inclusive' && summary.subscriptionStatus === 'active' && summary.billing?.limited !== true
+    && summary.smartPack?.active !== true;
+}
+
+async function addOnCall(invoke, body) {
+  let res;
+  try { res = await invoke('subscription-authority', { body }); } catch { return { ok: false, code: 'checkout_unavailable' }; }
+  const d = res?.data;
+  if (d && d.ok === true) return d;
+  let code = d && typeof d.code === 'string' ? d.code : null;
+  if (!code) {
+    try {
+      const ctx = res?.error?.context;
+      if (ctx && typeof ctx.json === 'function') {
+        const b = await (typeof ctx.clone === 'function' ? ctx.clone() : ctx).json();
+        if (b && typeof b.code === 'string') code = b.code;
+      }
+    } catch { /* unreadable body */ }
+  }
+  return { ok: false, code: code || 'checkout_unavailable' };
+}
+
+/** -> { ok: true, amountMinor, recurringMinor, period, periodEnd } | { ok: false, code } */
+export async function loadSmartPackAddOnQuote({ invoke }) {
+  if (typeof invoke !== 'function') return { ok: false, code: 'invalid_request' };
+  const d = await addOnCall(invoke, { action: 'smart_pack_add_on_quote' });
+  if (d.ok !== true) return d;
+  if (d.currency !== 'ILS' || !Number.isInteger(d.amountMinor) || d.amountMinor <= 0 || !Number.isInteger(d.recurringMinor)
+      || !['month', 'year'].includes(d.period) || typeof d.periodEnd !== 'string') return { ok: false, code: 'checkout_unavailable' };
+  return { ok: true, amountMinor: d.amountMinor, recurringMinor: d.recurringMinor, period: d.period, periodEnd: d.periodEnd };
+}
+
+/** -> { ok: true, redirectUrl } | { ok: false, code } */
+export async function startSmartPackAddOn({ invoke, key = newCheckoutKey() }) {
+  if (typeof invoke !== 'function') return { ok: false, code: 'invalid_request' };
+  const d = await addOnCall(invoke, { action: 'smart_pack_add_on_intent', idempotencyKey: key });
+  if (d.ok === true && typeof d.redirectUrl === 'string' && /^https:\/\//.test(d.redirectUrl)) return { ok: true, redirectUrl: d.redirectUrl };
+  return { ok: false, code: d.ok === true ? 'checkout_unavailable' : d.code };
+}
+
+export function smartPackAddOnErrorMessage(code, isHebrew) {
+  if (code === 'already_included') return isHebrew ? 'חכם פלוס כבר פעיל בחשבון. לא בוצע חיוב.' : 'SMART PACK is already active on this account. Nothing was charged.';
+  if (code === 'not_eligible') return isHebrew ? 'אפשר להוסיף חכם פלוס רק למנוי פעיל. לא בוצע חיוב.' : 'SMART PACK can be added only to an active package. Nothing was charged.';
+  return checkoutErrorMessage(code, isHebrew);
+}
+
 export function checkoutErrorMessage(code, isHebrew) {
   if (code === 'already_subscribed') {
     return isHebrew ? 'בחשבון הזה כבר יש מנוי פעיל. דף התשלום לא נפתח.' : 'This account already has an active package. No payment page was opened.';
@@ -71,7 +125,9 @@ export function checkoutErrorMessage(code, isHebrew) {
 // Owner console 2026-10-21 (same typed L-22 / L-01 approval): the payment page returns to /dashboard?billing=processing | failed |
 // cancelled (subscription-authority payplus.ts PAYPLUS_RETURN_PATHS). The address only picks the words while waiting; "active" comes
 // ONLY from the server account summary (a verified payment), which also wins over a failed / cancelled address.
-export const BILLING_RETURN_KINDS = Object.freeze(['processing', 'failed', 'cancelled']);
+// 20261025300000: + back from a SMART PACK add-on page (payplus.ts PAYPLUS_RETURN_PATHS addOnSuccess / addOnFailure)
+export const BILLING_RETURN_KINDS = Object.freeze(['processing', 'failed', 'cancelled', 'smart_pack', 'smart_pack_failed']);
+export const isAddOnReturn = (kind) => kind === 'smart_pack' || kind === 'smart_pack_failed';
 export const BILLING_RETURN_POLL_MS = 3000;
 export const BILLING_RETURN_WAIT_MS = 90000;
 
@@ -96,14 +152,31 @@ export function searchWithoutBillingReturn(search) {
 export function billingReturnState(kind, summary, elapsedMs) {
   if (!BILLING_RETURN_KINDS.includes(kind) || summary?.state !== 'ready') return null;
   if (!['prepared', 'enforced'].includes(summary.phase?.billing)) return null;
+  // a SMART PACK add-on: 'confirmed' only when the server says SMART PACK is active (the package was active already)
+  if (isAddOnReturn(kind)) {
+    if (summary.smartPack?.active === true) return 'confirmed';
+    if (kind === 'smart_pack_failed') return 'failed';
+    return elapsedMs >= BILLING_RETURN_WAIT_MS ? 'timeout' : 'waiting';
+  }
   const active = summary.planId === 'all_inclusive' && summary.subscriptionStatus === 'active' && summary.billing?.limited !== true;
   if (active) return 'confirmed'; // the server wins over the address
   if (kind === 'failed' || kind === 'cancelled') return kind;
   return elapsedMs >= BILLING_RETURN_WAIT_MS ? 'timeout' : 'waiting';
 }
 
-/** the words of a return state (HE / EN); smartPack = the server SMART PACK state (the plan itself is on the line below) */
-export function billingReturnText(state, isHebrew, { smartPack = false } = {}) {
+/** the words of a return state (HE / EN); smartPack = the server SMART PACK state (the plan itself is on the line below);
+ *  addOn = back from a SMART PACK add-on page (20261025300000) */
+export function billingReturnText(state, isHebrew, { smartPack = false, addOn = false } = {}) {
+  if (addOn) {
+    switch (state) {
+      case 'waiting': return isHebrew ? 'מאמתים את התשלום… חכם פלוס ייפתח רק אחרי שהתשלום יאושר.' : 'Confirming your payment… SMART PACK opens only after the payment is confirmed.';
+      case 'confirmed': return isHebrew ? 'התשלום אושר. חכם פלוס פעיל.' : 'Payment confirmed. SMART PACK is active.';
+      case 'timeout': return isHebrew ? 'האישור על התשלום עדיין לא הגיע. אפשר לבדוק שוב בעוד רגע. אם בוצע חיוב וחכם פלוס לא נפתח, כתבו לנו ונטפל בזה.' : 'The payment confirmation has not arrived yet. You can check again in a moment. If you were charged and SMART PACK did not open, write to us and we will fix it.';
+      case 'failed': return isHebrew ? 'התשלום לא הושלם וחכם פלוס לא נוסף. אפשר לנסות שוב.' : 'The payment was not completed, and SMART PACK was not added. You can try again.';
+      case 'cancelled': return isHebrew ? 'התשלום בוטל. לא בוצע חיוב.' : 'The payment was cancelled. Nothing was charged.';
+      default: return '';
+    }
+  }
   switch (state) {
     case 'waiting':
       return isHebrew ? 'מאמתים את התשלום… המסלול יופעל רק אחרי שהתשלום יאושר.' : 'Confirming your payment… Your package opens only after the payment is confirmed.';

@@ -42,7 +42,7 @@ import { accountStatus, statusMedallionModel, accountStatusSentence, freePeriodA
 import { timeGreeting } from '../utils/timeGreeting';
 import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
 import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
-import { decideCapability, outputPhaseOf, decideFree10Action } from '../../supabase/functions/_shared/subscriptionContract.ts';
+import { decideCapability, outputPhaseOf, decideFree10Action, decideSmartPack } from '../../supabase/functions/_shared/subscriptionContract.ts';
 import { normalizeAuthError, isCaptchaError, isEmailNotConfirmed } from '../utils/authErrorClassification';
 import { classifyDashboardActionError } from '../utils/dashboardActionErrorClassification';
 import { formatQuoteFallback } from '../utils/quoteNumber';
@@ -64,7 +64,7 @@ import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
 import CustomerTwinPanel from '../components/CustomerTwinPanel';
 import { twinPayloadFromEditor, twinPayloadFromQuoteRow } from '../utils/customerTwinClient';
 import { applyTwinEdit } from '../../supabase/functions/_shared/customerTwin.js';
-import { startPackageCheckout, packageCheckoutAvailable, israelPurchaseOpen } from '../domain/subscriptions/packageCheckout';
+import { startPackageCheckout, packageCheckoutAvailable, israelPurchaseOpen, isAddOnReturn, smartPackAddOnAvailable } from '../domain/subscriptions/packageCheckout';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
@@ -1009,7 +1009,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         case 'open_ai_quote':
           closeEditor();
           setActiveTab('main');
-          handleCreateAiQuoteClick();
+          handleCreateAiQuoteClickRef.current?.(); // the click-time SMART PACK decision (this listener is registered once per list change)
           break;
         case 'open_clients':
           closeEditor();
@@ -1374,6 +1374,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     'catalog_product_image.upload': true,
   };
   const canUseCapability = (capabilityId) => decideCapability(accountSummary, capabilityId, legacyCapabilities[capabilityId]).allowed;
+  // Owner console 2026-10-25 (typed: "מאשר שינוי ב-L-05: יכולות חכם פלוס נחסמות ברגע הלחיצה למי שאין לו חכם פלוס"): the smart quote,
+  // its dictation and quote attachments open only with SMART PACK while the plan system is enforced (the server summary decides;
+  // LIFETIME always has it); otherwise the click shows the SMART PACK notice with the plans button and nothing opens
+  const smartPackAllowed = isLifetimeAccount || decideSmartPack(accountSummary).allowed;
   const [lockedCapability, setLockedCapability] = useState(null);
   const outputPhase = outputPhaseOf(accountSummary);
   const accountSummaryContextValue = useMemo(() => ({ summary: accountSummary, openPlans: () => setShowPricingModal(true) }), [accountSummary]);
@@ -4011,10 +4015,14 @@ Continue anyway?`);
     if (handleCreateNewQuoteClick('structured') === false) return;
     setMeasuredQuoteEntry(true);
   };
+  const handleCreateAiQuoteClickRef = useRef(null);
   const handleCreateAiQuoteClick = () => {
+    // L-05 (2026-10-25): before any form or dialog opens; a Free account at its end sees the Free-10 window first (SMART PACK rides on the package)
+    if (!smartPackAllowed) { if (!free10Blocked()) setLockedCapability('smart_pack'); return; }
     if (handleCreateNewQuoteClick('ai') === false) return;
     setShowAiQuoteDraft(true);
   };
+  handleCreateAiQuoteClickRef.current = handleCreateAiQuoteClick;
   // The user's explicit "add to quote" in the AI draft dialog: the chosen lines join the form's real items (the untouched blank row is
   // replaced, as handleAddFromCatalog does), and the suggested subject fills the subject only while it is still empty. Nothing is saved.
   const applyAiQuoteDraft = (lines, subject) => {
@@ -4497,6 +4505,9 @@ Continue anyway?`);
     // Task 27 (§253): a NEW quote after Free-10 is exhausted stops here, BEFORE any client or quote row is written; the form keeps every
     // field. (The server refuses the same insert on its own - quotes_free10_creation_guard - so a direct or concurrent path cannot pass.)
     if (!editingQuoteId && free10Blocked()) return;
+    // L-05 (Owner console 2026-10-25): new attachments are SMART PACK (the database refuses them too) - e.g. files of a restored draft
+    // after SMART PACK ended: the SMART PACK notice, nothing is written; removing the new files lets the quote save
+    if (!smartPackAllowed && quoteFiles.some((f) => !f.id)) { setLockedCapability('smart_pack'); return; }
     // Owner 2026-10-15: a discount is a percentage between 0 and 100 - anything else (e.g. the amount typed into it) is never saved
     {
       const d = String(discount ?? '').trim() === '' ? 0 : Number(discount);
@@ -7935,7 +7946,10 @@ Continue anyway?`);
         // attempt's payment page; the package opens only after a verified payment
         onPurchase={(choice) => startPackageCheckout({ ...choice, invoke: invokeWithFreshSession }).then((r) => { if (r.ok) { markBillingDeparture(session?.user?.id); window.location.assign(r.redirectUrl); } return r; })}
         // Owner console 2026-10-21 (typed L-22 / L-01 approval): back from the payment page; "confirmed" only from the server summary
-        billingReturn={billingReturn.state ? { state: billingReturn.state, onCheckAgain: billingReturn.checkAgain } : null}
+        billingReturn={billingReturn.state ? { state: billingReturn.state, onCheckAgain: billingReturn.checkAgain, addOn: isAddOnReturn(billingReturn.kind) } : null}
+        // Owner console 2026-10-25 ("ב: חיוב יחסי עכשיו"): an active subscriber without SMART PACK adds it - the server's pro-rata page
+        smartPackAddOn={smartPackAddOnAvailable(accountSummary, isLifetimeAccount)
+          ? { invoke: invokeWithFreshSession, onLeave: (url) => { markBillingDeparture(session?.user?.id); window.location.assign(url); } } : null}
       />
       <CapabilityUpgradeNotice
         lang={isHebrew ? 'he' : 'en'}
@@ -8780,6 +8794,7 @@ Continue anyway?`);
               handleItemChange={handleItemChange}
               handleAddFromCatalog={handleAddFromCatalog}
               canUseAttachments={canUseCapability('quote_attachment.upload')}
+              smartPackAllowed={smartPackAllowed}
               canUseProfessionalQuotes={canUseCapability('professional_quote.use')}
               recommendedPricingMethod={getEntryRecommendedPricingMethod(professionalDomain, measuredQuoteEntry)}
               isMeasuredEntry={measuredQuoteEntry}
