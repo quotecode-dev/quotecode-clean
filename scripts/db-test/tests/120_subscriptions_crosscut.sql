@@ -100,7 +100,11 @@ INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id, s
   VALUES (tst.xu(2), 'paid', 'classic', 'active', 2);
 INSERT INTO public.account_market (user_id, market, source) VALUES
   (tst.xu(1), 'IL', 'owner_mapping'), (tst.xu(2), 'IL', 'owner_mapping'),
-  (tst.xu(6), 'IL', 'business_settings_country'), (tst.xu(7), 'INTERNATIONAL', 'business_settings_country');
+  (tst.xu(6), 'IL', 'business_settings_country'), (tst.xu(7), 'INTERNATIONAL', 'business_settings_country') ON CONFLICT (user_id) DO UPDATE SET market = EXCLUDED.market, source = EXCLUDED.source;
+-- 20261025200000 gives every settings row a market; this fixture keeps its explicit set: only accounts 1, 2, 6 and 7 have one (the
+-- others model an account that was never given a market - the "no server market" paths below)
+DELETE FROM public.account_market WHERE user_id IN (SELECT tst.xu(n) FROM generate_series(1, 30) n)
+   AND user_id NOT IN (tst.xu(1), tst.xu(2), tst.xu(6), tst.xu(7));
 
 -- ======================================================================================== A. structure, grants, privileges
 SELECT tst.ok(NOT EXISTS (

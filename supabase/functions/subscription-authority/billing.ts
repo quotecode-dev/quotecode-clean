@@ -239,12 +239,16 @@ export interface BillingSql {
 }
 
 // ------------------------------------------------------------------------------------------------ checkout intent
+/** Owner 2026-10-25: the only market where purchasing is open (international waits for PayPlus foreign-currency approval) */
+export const OPEN_MARKET = 'IL' as const;
 const CHECKOUT_CODES: Record<string, number> = { checkout_unavailable: 503, account_unprovisioned: 409, idempotency_conflict: 409, invalid_request: 400,
   already_subscribed: 409,
   // 20261021200000: in the grace days a failed renewal is paid on the live standing order (no second subscription)
   payment_update_required: 409,
   // review 2026-10-22: the same click again for an attempt that is no longer pending (paid / expired) opens no new page
-  checkout_not_pending: 409 };
+  checkout_not_pending: 409,
+  // 20261025200000 (Owner 2026-10-25): purchasing is open in Israel only
+  market_not_open: 409 };
 export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: BillingSql; provider: BillingProvider }, userId: string, body: unknown): Promise<Resp> {
   if (phase === 'off') return err(503, 'checkout_unavailable');
   if (typeof userId !== 'string' || !UUID.test(userId)) return err(401, 'not_authenticated');
@@ -272,6 +276,8 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
   if (typeof r.attemptId !== 'string' || !UUID.test(r.attemptId) || (r.market !== 'IL' && r.market !== 'INTERNATIONAL')
       || !['ILS', 'USD'].includes(r.currency as string) || !Number.isInteger(r.amountMinor)) return err(503, 'checkout_unavailable');
   if (r.state !== undefined && r.state !== 'pending') return err(409, 'checkout_not_pending');
+  // Owner 2026-10-25: Israel only until PayPlus approves foreign-currency billing (the SQL refuses first; never a page abroad)
+  if (r.market !== OPEN_MARKET) return err(409, 'market_not_open');
   // Defence in depth: the SQL amount must equal the server catalog computation for the server market (never a client value).
   const market = r.market as Market;
   let catalogRaw: unknown;

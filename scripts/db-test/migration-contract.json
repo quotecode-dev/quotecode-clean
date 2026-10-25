@@ -441,6 +441,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-25 (typed: \"מאשר שינוי: הצעה שאושרה או נחתמה אפשר לסמן כשולמה (רק המצב)\"): guard_quote_immutability lets a locked quote change ONLY status approved -> paid"
+    },
+    "20261025200000_israel_payments_activation.sql": {
+      "sha256": "80537a67ee25648a21ec1647a44a8ed820b4e844c421ee4d1a0f001f1d61e466",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-25 (\"להפעיל כל מה שצריך בכדי שמשתמש בארץ יוכל לרכוש מנוי\"; monthly + annual; Israel only): account_market from the account type + backfill, set_billing_phase accepts enforced with an attestation, create_package_checkout_intent refuses every market but IL"
     }
   }
 }

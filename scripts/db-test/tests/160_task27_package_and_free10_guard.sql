@@ -65,7 +65,9 @@ INSERT INTO public.account_entitlements (user_id, account_mode, free_issues_cons
 INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id, subscription_status) VALUES (tst.pu(3), 'paid', 'classic', 'active');
 INSERT INTO public.account_entitlements (user_id, account_mode, package_id, package_period, subscription_status) VALUES (tst.pu(4), 'paid', 'all_inclusive', 'year', 'active');
 INSERT INTO public.account_market (user_id, market, source) VALUES (tst.pu(1), 'IL', 'owner_mapping'), (tst.pu(2), 'IL', 'owner_mapping'),
-  (tst.pu(3), 'IL', 'owner_mapping'), (tst.pu(4), 'INTERNATIONAL', 'owner_mapping'), (tst.pu(6), 'INTERNATIONAL', 'owner_mapping');
+  (tst.pu(3), 'IL', 'owner_mapping'), (tst.pu(4), 'INTERNATIONAL', 'owner_mapping'), (tst.pu(6), 'INTERNATIONAL', 'owner_mapping') ON CONFLICT (user_id) DO UPDATE SET market = EXCLUDED.market, source = EXCLUDED.source;
+-- 20261025200000 gives every settings row a market; account 5 keeps modelling an account that was never given one (C6)
+DELETE FROM public.account_market WHERE user_id = tst.pu(5);
 
 SELECT tst.throws($$ INSERT INTO public.account_entitlements (user_id, account_mode, style_plan_id, package_id, package_period) VALUES (tst.pu(5), 'paid', 'modern', 'all_inclusive', 'month') $$,
                   'mode_shape', 'E1 a paid account holds a legacy style plan OR the package, never both');
@@ -134,14 +136,16 @@ DO $$
 DECLARE r jsonb; r2 jsonb;
 BEGIN
   PERFORM tst.psvc();
+  -- Owner 2026-10-25 (20261025200000): purchasing is open in Israel only - an INTERNATIONAL account gets no page
   r := public.create_package_checkout_intent(tst.pu(6), 'year', 'pkg-intent-0002-year');
-  PERFORM tst.ok(r ->> 'ok' = 'true' AND (r ->> 'amountMinor')::int = 18400 AND r ->> 'currency' = 'USD' AND r ->> 'planPriceId' = 'intl_all_inclusive_year_p2',
-                 'C2 INTERNATIONAL annual intent = 18400 USD (the displayed $184.00)');
-  PERFORM tst.ok(public.create_package_checkout_intent(tst.pu(4), 'year', 'pkg-intent-0009-year') ->> 'code' = 'already_subscribed',
-                 'C2b an active package gets no second payment page (20261021000000)');
-  r2 := public.create_package_checkout_intent(tst.pu(6), 'year', 'pkg-intent-0002-year');
-  PERFORM tst.ok(r2 ->> 'attemptId' = r ->> 'attemptId', 'C3 idempotent retry returns the same attempt');
-  r2 := public.create_package_checkout_intent(tst.pu(6), 'month', 'pkg-intent-0002-year');
+  PERFORM tst.ok(r = '{"ok": false, "code": "market_not_open"}'::jsonb,
+                 'C2 INTERNATIONAL annual intent is refused (market_not_open; nothing recorded - test 418 M11)');
+  PERFORM tst.ok(public.create_package_checkout_intent(tst.pu(3), 'year', 'pkg-intent-0009-year') ->> 'code' = 'already_subscribed',
+                 'C2b an active subscription gets no second payment page (20261021000000)');
+  r := public.create_package_checkout_intent(tst.pu(2), 'year', 'pkg-intent-0002-year');
+  r2 := public.create_package_checkout_intent(tst.pu(2), 'year', 'pkg-intent-0002-year');
+  PERFORM tst.ok(r ->> 'ok' = 'true' AND r2 ->> 'attemptId' = r ->> 'attemptId', 'C3 idempotent retry returns the same attempt');
+  r2 := public.create_package_checkout_intent(tst.pu(2), 'month', 'pkg-intent-0002-year');
   PERFORM tst.ok(r2 ->> 'code' = 'idempotency_conflict', 'C4 the same key with another period is a conflict');
   r := public.create_package_checkout_intent(tst.pu(2), 'year', 'pkg-intent-0003-year');
   PERFORM tst.ok((r ->> 'amountMinor')::int = 30600 AND r ->> 'currency' = 'ILS', 'C5 IL annual intent = 30600 ILS incl. VAT (market from the server, not the request)');
