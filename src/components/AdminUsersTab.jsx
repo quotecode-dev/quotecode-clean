@@ -66,12 +66,12 @@ export default function AdminUsersTab({
   // Codex verification AV-03 (2026-10-17): the revoke explains the revoke - the account returns to the state its own data and the server
   // give it, no charge, no promise of an entitlement that is not proven
   const revokeOnlyText = isHebrew
-    ? 'ביטול LIFETIME: החשבון חוזר למצב שנקבע לפי נתוני החשבון והשרת (ניסיון, פג תוקף או 10 הצעות חינם — טרם הופעל), ללא חיוב. מסלול או יתרה אינם נוצרים מהביטול.'
-    : 'Revoking Lifetime: the account returns to the state its own data and the server give it (trial, expired or 10 free quotes — not yet active), with no charge. Revoking creates no plan or balance.';
+    ? 'ביטול LIFETIME: החשבון חוזר למצב שנקבע לפי נתוני החשבון והשרת (למשל מסלול החינם), ללא חיוב. מסלול או יתרה אינם נוצרים מהביטול.'
+    : 'Revoking Lifetime: the account returns to the state its own data and the server give it (for example the Free plan), with no charge. Revoking creates no plan or balance.';
   // Night task 2026-10-16 (PLN-7): what the Lifetime switch really does today
   const legacyOnlyText = isHebrew
-    ? 'מנוי לכל החיים: המערכת והצ׳אט יציגו לחשבון „מנוי לכל החיים” וכל היכולות פתוחות בו, ללא חיוב. במערך המסלולים החדש (כשיופעל) זה לא משנה מסלול או יתרה.'
-    : 'Lifetime: the app and the chat show the account as a "Lifetime subscription" with every capability open and no charge. In the new plan system (once active) it does not change a plan or a balance.';
+    ? 'מנוי לכל החיים: המערכת והצ׳אט יציגו לחשבון „מנוי לכל החיים” וכל היכולות פתוחות בו, ללא חיוב. במערך המסלולים זה לא משנה מסלול או יתרה.'
+    : 'Lifetime: the app and the chat show the account as a "Lifetime subscription" with every capability open and no charge. In the plan system it does not change a plan or a balance.';
 
 
 

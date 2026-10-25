@@ -19,14 +19,14 @@ describe('L1 / L7: one meaning, true on LIVE and TEST', () => {
     expect(he).not.toMatch(/ההרשמה והחיוב עדיין אינם מופעלים/);
     expect(he).not.toMatch(/לבדיקה/);
     // IRON-LANDING-001 amended 2026-10-25 (Owner typed): Free-10 active; the package is bought inside the account (Israel)
-    expect(he).toContain('מסלול 10 ההצעות החינמיות פעיל מההרשמה. את המנוי בתשלום רוכשים בתוך החשבון, בחלון המסלולים: בכרטיס אשראי, בתשלום חודשי או שנתי.');
+    expect(he).toContain("trialNote: 'את המנוי בתשלום רוכשים בתוך החשבון, בחלון המסלולים: בכרטיס אשראי, בתשלום חודשי או שנתי.'");
     expect(he).toContain('המחירים כוללים מע״מ');
   });
   it('EN', () => {
     expect(en).not.toMatch(/without a trial|no trial/i);
     expect(en).not.toMatch(/enrollment and billing are not active/i);
     expect(en).not.toMatch(/for review/i);
-    expect(en).toContain('The 10-free-quotes plan is active from sign-up. The paid package cannot be purchased yet, and the prices are shown for information only.');
+    expect(en).toContain("trialNote: 'The paid package cannot be purchased yet, and the prices are shown for information only.'");
   });
 });
 

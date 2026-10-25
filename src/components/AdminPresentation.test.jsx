@@ -297,12 +297,13 @@ describe('Admin sources: no active legacy plan labels (static, comments stripped
       const allowed = f === 'AdminUsersView.jsx'
         ? ['Lifetime', 'Revoke Lifetime: ${name(a)}', 'Grant Lifetime: ${name(a)}']
         : f === 'AdminUsersTab.jsx'
-          ? ['Lifetime: the app and the chat show the account as a "Lifetime subscription" with every capability open and no charge. In the new plan system (once active) it does not change a plan or a balance.',
+          ? ['Lifetime: the app and the chat show the account as a "Lifetime subscription" with every capability open and no charge. In the plan system it does not change a plan or a balance.',
             // Owner console 2026-10-16 (L-07, codes -> subscription status): the Lifetime dialog states in words
             'מנוי לכל החיים', 'Lifetime subscription', 'ללא מנוי לכל החיים', 'No Lifetime subscription',
             // Owner console 2026-10-17 ("מאשר תיקון כל 16 הממצאים של קודקס", AV-03): the revoke dialog explains the revoke
-            'ביטול LIFETIME: החשבון חוזר למצב שנקבע לפי נתוני החשבון והשרת (ניסיון, פג תוקף או 10 הצעות חינם — טרם הופעל), ללא חיוב. מסלול או יתרה אינם נוצרים מהביטול.',
-            'Revoking Lifetime: the account returns to the state its own data and the server give it (trial, expired or 10 free quotes — not yet active), with no charge. Revoking creates no plan or balance.']
+            // Owner 2026-10-25 ("ביקשתי לשנות בכל המקומות"): no "not yet active" once the plan system is active
+            'ביטול LIFETIME: החשבון חוזר למצב שנקבע לפי נתוני החשבון והשרת (למשל מסלול החינם), ללא חיוב. מסלול או יתרה אינם נוצרים מהביטול.',
+            'Revoking Lifetime: the account returns to the state its own data and the server give it (for example the Free plan), with no charge. Revoking creates no plan or balance.']
           : f === 'AdminSystemActivity.jsx'
             ? ['הענקת מנוי לכל החיים', 'Lifetime subscription granted', 'ביטול מנוי לכל החיים', 'Lifetime subscription revoked']
             : [];

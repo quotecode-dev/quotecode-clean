@@ -33,10 +33,10 @@ describe('Landing first-LIVE feature truth', () => {
   });
   // OD-01 (Owner 2026-10-07): the trial -> FREE story is replaced by Free-10; while it is not activated the landing must say
   // so and that a new account opens without a trial and without a plan assigned (no fake Free-10 entitlement, no Pro trial).
-  it('Free-10 replaces the trial story and is stated as active from sign-up (both languages, 2026-10-25)', () => {
+  it('Free-10 replaces the trial story; no "active" / "not active" status line about it (both languages, Owner 2026-10-25)', () => {
     for (const src of [he, en]) expect(src).not.toMatch(/עובר אוטומטית למסלול החינמי|automatically moves to the FREE tier|For 14 days|במשך 14 יום/);
-    expect(he).toContain('מסלול 10 ההצעות החינמיות פעיל מההרשמה');
-    expect(en).toContain('The 10-free-quotes plan is active from sign-up');
+    expect(he).not.toMatch(/פעיל עכשיו|פעיל מההרשמה|ההטבה פעילה|המסלולים פעילים/);
+    expect(en).not.toMatch(/Active now|active from sign-up|free quotes are active/i);
     for (const src of [he, en]) expect(src).not.toMatch(/עדיין לא הופעל|not active yet/);
   });
 });

@@ -61,8 +61,8 @@ export default function LandingGlobal({ onForgotPassword }) {
         'An empty draft and previews never count',
         'Sent quotes stay available',
       ],
-      // Owner console 2026-10-25 (typed L-06 ...): Free-10 is enforced in both markets; buying stays closed abroad
-      notice: 'Active from sign-up',
+      // Owner 2026-10-25 ("why mention it at all?"): no status line on the Free card
+      notice: null,
     },
     {
       id: 'all_inclusive', icon: PackageCheck, name: 'All-inclusive', tagline: 'One package with every available capability, billed monthly or annually.',
@@ -102,7 +102,7 @@ export default function LandingGlobal({ onForgotPassword }) {
     links: { home: '/en', login: '/dashboard?lang=en', signup: '/dashboard?signup=true&lang=en' },
     // The Free-10 calls to action (hero, plans, closing) keep the existing signup path; the status pill is part of every button
     // until the server activation of Free-10 is verified (planSystemActive=false, activationPhase=off today).
-    free10: { cta: '10 free quotes', status: 'Active now' },
+    free10: { cta: '10 free quotes', status: null },
     nav: {
       label: 'Main navigation',
       homeLabel: 'TEKANGO home',
@@ -116,7 +116,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       login: 'Sign In',
       // IRON-LANDING-001 (amended 2026-10-11): the Free-10 button, always with its true status.
       cta: '10 free quotes',
-      ctaStatus: 'Active now',
+      ctaStatus: null,
       menu: 'Menu',
       closeMenu: 'Close menu',
       forgotPassword: 'Forgot Password?',
@@ -131,7 +131,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       // L08: no public link / caption to the sample-quote route (no authority); the figure keeps an accessible name only.
       docLabel: 'Sample quotation in the Classic style',
       // OD-01 (Owner 2026-10-07): the trial line now states the Free-10 policy, marked as not yet activated.
-      trial: '10 free quotes or 7 days, whichever comes first · active now',
+      trial: '10 free quotes or 7 days, whichever comes first',
       motion: {
         eyebrow: 'Quotes that work as hard as you do',
         title: 'From the jobsite to a signed quote',
@@ -220,10 +220,10 @@ export default function LandingGlobal({ onForgotPassword }) {
       // Owner 2026-10-23 (typed L-14, morning report item 8): the 7 days, as everywhere else
       intro: '10 free quotes or 7 days, whichever ends first, then one package with every available capability, billed monthly or annually.',
       // Task 37 (Owner-approved L1 meaning): true on LIVE and TEST.
-      trialNote: 'The 10-free-quotes plan is active from sign-up. The paid package cannot be purchased yet, and the prices are shown for information only.',
+      trialNote: 'The paid package cannot be purchased yet, and the prices are shown for information only.',
       // Owner 2026-10-07: review notice for the new plan cards (exact wording).
       // Task 37 (Owner-approved L7).
-      reviewNotice: 'The 10 free quotes are active. The paid package cannot be purchased yet, and there is no online payment. You can already open an account.',
+      reviewNotice: 'The paid package cannot be purchased yet, and there is no online payment. You can already open an account.',
       // OD-08: billing currency disclosure; with a valid rate the local figure is an estimate (source + as-of date), otherwise USD with
       // the true reason when a local estimate was due but unavailable.
       priceNote: est
@@ -245,7 +245,7 @@ export default function LandingGlobal({ onForgotPassword }) {
         { q: 'Do the displayed prices include taxes?', a: 'Plan prices are listed in US dollars and are charged in USD; a price shown in pounds or euros is only an estimate. The package cannot be purchased yet; if any tax applies when it launches, it will be shown clearly before you pay anything.' },
         // OD-01/OD-02 (Owner 2026-10-07): the trial question is replaced by the Free-10 policy, truthfully not yet activated.
         // Task 37 (Owner-approved): the same facts as scannable points.
-        { q: 'How do the 10 free quotes work?', a: <>The new free plan includes 10 quotes in total, or 7 days from sign-up, whichever comes first. SMART PACK is included during those 7 days.<ul className="tl-faq-list"><li>A quote counts the first time it is saved with a customer and at least one item. Editing and saving it again does not count again.</li><li>Sending or producing the same version again for the same customer does not count, on any channel: sending it, a view link, a PDF or a print.</li><li>Changing the customer, the recipient name or the quote content and producing it again counts as another quote.</li><li>An empty draft and previews never count.</li><li>Deleting a quote does not give it back, and quotes already sent to customers stay available.</li></ul>The free plan is active from sign-up. For accounts opened before it was activated, the 7 days count from the activation day.</> },
+        { q: 'How do the 10 free quotes work?', a: <>The new free plan includes 10 quotes in total, or 7 days from sign-up, whichever comes first. SMART PACK is included during those 7 days.<ul className="tl-faq-list"><li>A quote counts the first time it is saved with a customer and at least one item. Editing and saving it again does not count again.</li><li>Sending or producing the same version again for the same customer does not count, on any channel: sending it, a view link, a PDF or a print.</li><li>Changing the customer, the recipient name or the quote content and producing it again counts as another quote.</li><li>An empty draft and previews never count.</li><li>Deleting a quote does not give it back, and quotes already sent to customers stay available.</li></ul>For accounts opened before the free plan was activated, the 7 days count from the activation day.</> },
         { q: 'Is the platform optimized for mobile and desktop?', a: 'Yes, TEKANGO is built as a fully responsive modern SaaS platform, allowing you to generate quotes and manage your business from any computer, tablet, or smartphone.' },
         // Verifiable infrastructure facts only (TLS in transit, encryption at rest by the Supabase/PostgreSQL platform).
         { q: 'Is my business data secure on the cloud?', a: 'Your data is stored on cloud infrastructure built on Supabase/PostgreSQL, which includes encryption in transit (TLS) and at rest as part of the standard cloud infrastructure. Access to your data is restricted to your own account.' },
