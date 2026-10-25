@@ -476,9 +476,12 @@ describe('buildSystemPrompt - product-knowledge truth (AI Chat Hardening overnig
     expect(prompt).toMatch(/PDF\/Print: quotes can be exported as a PDF or printed directly/);
   });
 
-  it('correctly states Customer Twin does not exist yet, never describing it as available', () => {
-    expect(prompt).toMatch(/"Customer Twin" does not exist in the product yet/);
-    expect(prompt).toMatch(/never describe it as if it already exists/);
+  // Owner 2026-10-25 (typed L-14/L-17, QA report): the live "Improve quote" button (once "Customer Twin") exists - never denied, never
+  // described as changing the quote by itself
+  it('states Improve quote (once Customer Twin) exists, never that it changes the quote by itself', () => {
+    expect(prompt).toMatch(/"Improve quote" .*EXISTS today/);
+    expect(prompt).toMatch(/never say it does not exist and never say it changes the quote by itself/);
+    expect(prompt).not.toMatch(/"Customer Twin" does not exist in the product yet/);
   });
 
   it('correctly frames Admin as a separate, business-owner/Super-Admin-only area, not part of an ordinary user own workspace', () => {

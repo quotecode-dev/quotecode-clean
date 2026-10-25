@@ -11,7 +11,8 @@ import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } f
 import { paymentTruthApplies, classifyPaymentIntent, resolvePaymentTruthResponse } from "./paymentTruth.ts";
 import { AI_FACTS } from "./aiFacts.generated.ts";
 import { invoicingTruthApplies, classifyInvoicingIntent, resolveInvoicingTruthResponse } from "./invoicingTruth.ts";
-import { capabilityTruthApplies, classifyCapabilityIntent, classifyBroadCapabilityQuestionSignal, resolveBroadCapabilityClarification, resolveCapabilityTruthResponse } from "./capabilityTruth.ts";
+import { capabilityTruthApplies, classifyCapabilityIntent, classifyBroadCapabilityQuestionSignal, resolveBroadCapabilityClarification, resolveCapabilityTruthResponse, BUILD_QUOTE_REQUEST, HOW_QUESTION } from "./capabilityTruth.ts";
+import { howToStepsForCapability } from "./howToTruth.ts";
 import { classifyAccountMarketIntent, formatAccountMarketAnswer } from "./marketTruth.ts";
 import { buildAccountMarketFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
 import type { ChatFactPayload } from "../_shared/aiChatContract.ts";
@@ -312,7 +313,8 @@ serve(async (req) => {
     const dataNotPlan = ownDataQuestion && hasDataQualifier(lastUserMessage) && !mentionsPlan(lastUserMessage);
     if (subscription && !dataNotPlan) {
       await logChat(subscription.answer);
-      return deterministicResponse(subscription.answer, null, null);
+      // Owner 2026-10-25 (typed L-17, QA report): the plan answer offers the plans view (click-required, as every navigation)
+      return deterministicResponse(subscription.answer, verifiedUserId && navAllowed.includes('open_plan_information') ? { action: 'open_plan_information', focus: null } : null, null);
     }
   }
 
@@ -338,6 +340,9 @@ serve(async (req) => {
   if (capabilityTruthApplies({ capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities })) {
     // a question about the user's own records (e.g. "which tasks are overdue") is not a "does the product have X" question; the broad
     // existence guard below still runs for it unchanged
+    // Owner 2026-10-25 (typed L-17, QA report): a troubleshooting question ("why can't I send on WhatsApp", "the email did not arrive")
+    // resolves to no capability and is not a broad existence question (capabilityTruth.ts isTroubleshootingQuestion) - it goes to AI Help
+    // (real blockers) and then the model with the verified steps, never "yes - this capability exists"
     const capabilityId = ownDataQuestion ? null : classifyCapabilityIntent(lastUserMessage);
     if (capabilityId) {
       // Codex "structured runtime answer contract" (2026-09-2X): formatCapabilityTruthAnswer
@@ -356,11 +361,15 @@ serve(async (req) => {
         accountContext?.market ?? null,
       );
       if (capabilityTruth) {
-        const capabilityAnswer = capabilityTruth.answer;
         const matched = AI_FACTS.capabilities.find((c) => c.id === capabilityId);
-        // Owner 2026-10-24 (typed L-17): "can you build / write me a quote" (ai_mutation about a quote) offers the AI smart quote button
+        // Owner 2026-10-25 (typed L-17, QA report): a "how do I ..." question gets the verified steps after the fixed answer
+        const steps = matched && HOW_QUESTION.test(lastUserMessage) && ['AVAILABLE', 'PLAN_NOT_DECIDED', 'PLAN_LOCKED'].includes(String(capabilityTruth.factPayload.truthStatus))
+          ? howToStepsForCapability(capabilityId, lastUserMessage, isHebrew, AI_FACTS.howTo) : '';
+        const capabilityAnswer = steps ? `${capabilityTruth.answer}\n\n${steps}` : capabilityTruth.answer;
+        // Owner 2026-10-24 (typed L-17): "can you build / write me a quote" (ai_mutation about a quote) offers the AI smart quote button;
+        // 2026-10-25 (QA report): only a build / write request - "can you send / delete my quote" gets no button
         const navId = matched?.aiMayNavigate && matched.safeNavigationId ? matched.safeNavigationId
-          : capabilityId === 'ai_mutation' && /הצע|\bquotes?\b/i.test(lastUserMessage) ? 'open_ai_quote' : null;
+          : capabilityId === 'ai_mutation' && BUILD_QUOTE_REQUEST.some((re) => re.test(lastUserMessage)) ? 'open_ai_quote' : null;
         const navSuggestion = navId && verifiedUserId && navAllowed.includes(navId) ? { action: navId, focus: null } : null;
         await logChat(capabilityAnswer);
         return deterministicResponse(capabilityAnswer, navSuggestion, capabilityTruth.factPayload);

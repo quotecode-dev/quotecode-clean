@@ -68,6 +68,14 @@ export function capabilityTruthApplies(facts: CapabilityFacts | undefined | null
   return !!facts && Array.isArray(facts.capabilities) && facts.capabilities.length > 0;
 }
 
+// Owner 2026-10-24 (typed L-17): "prepare / write / build me a quote" addressed at the assistant (it answers how, with the AI smart
+// quote button - never a manual fill-in walkthrough as if it had been asked how to fill the form). Owner 2026-10-25 (typed L-17, the
+// assistant QA report): only THESE requests offer the AI smart quote button - "can you send / delete / edit my quote" does not.
+export const BUILD_QUOTE_REQUEST: readonly RegExp[] = [
+  /(שתכין|תכין|תכיני|שתכתוב|תכתוב|תכתבי|שתבנה|תבנה|שתמלא|תמלא|תכניס|שתכניס|תנסח)\s.{0,20}(לי\s)?(את\s)?ה?הצע/,
+  /\b(make|prepare|build|write|draft|create)\s+me\s+(a\s+|the\s+)?quote\b/i,
+];
+
 // Ordered [id, patterns[]] pairs. Order matters: the most specific ("is the AI itself doing this
 // for me") patterns are checked first so "can the AI edit my quote" never gets swallowed by the
 // generic "quote_edit" pattern meant for "can I edit a quote myself".
@@ -113,10 +121,7 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     /\bcatalog\b.{0,40}\b(images?|photos?|pictures?)\b|\b(images?|photos?|pictures?)\b.{0,40}\bcatalog\b/i,
   ]],
   ['ai_mutation', [
-    // Owner 2026-10-24 (typed L-17): "prepare / write / build me a quote" addressed at the assistant (it answers how, with the AI smart
-    // quote button - never a manual fill-in walkthrough as if it had been asked how to fill the form)
-    /(שתכין|תכין|תכיני|שתכתוב|תכתוב|תכתבי|שתבנה|תבנה|שתמלא|תמלא|תכניס|שתכניס|תנסח)\s.{0,20}(לי\s)?(את\s)?ה?הצע/,
-    /\b(make|prepare|build|write|draft|create)\s+me\s+(a\s+|the\s+)?quote\b/i,
+    ...BUILD_QUOTE_REQUEST,
     /\b(can|could|will|does)\s+(the\s+)?(ai|assistant|bot|chat)\s+.{0,30}(edit|change|modify|update|delete|mutate|do (it|that|this) for me)\b/i,
     /\bcan you (edit|change|modify|update|delete)\s+(my|this|the)\s+(quote|client|item|price)\s+for me\b/i,
     // Codex defect 2 (2026-09-22): "Can you edit my quote?" (no explicit "AI/assistant" naming, no
@@ -133,7 +138,8 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     /תעשה? (את זה|עבורי|בשבילי)/,
     // Hebrew "can you <verb>" addressed at the assistant (implicit "you" = the AI), same reasoning
     // as the English pattern above.
-    /(תוכלי?|אתה יכול|את יכולה)\s.{0,15}(לערוך|לשמור|לשלוח|לאשר|לשנות|למחוק|לעדכן|לבטל|ליצור|לחתום|לשכפל)/,
+    // Owner 2026-10-25 (typed L-17, QA report): "can you explain / help me / show me how to edit" asks for guidance, not for the AI to act
+    /(תוכלי?|אתה יכול|את יכולה)\s(?!.{0,8}(להסביר|לעזור|להראות|להגיד|לומר|לפרט|ללמד|לכוון|להדריך))(.{0,15})(לערוך|לשמור|לשלוח|לאשר|לשנות|למחוק|לעדכן|לבטל|ליצור|לחתום|לשכפל)/,
     // "העוזר" (the assistant) as the AI-referring subject, with real-world verb conjugations
     // (future tense "יבצע"/"יעשה" etc.) - a live paraphrase test found this subject/verb pairing
     // fell through because the earlier patterns only recognized "ה-ai"/"הבוט"/"הצ'אט" by name.
@@ -145,7 +151,8 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     // reach the model, not just be checked post-hoc for truthfulness once answered.
     /\byou\s+(already\s+)?(have\s+)?(edited|saved|sent|approved|deleted|created|changed|updated|signed|duplicated)\b/i,
     // Hebrew: second-person-singular past tense ("you edited/saved/...") - the same claim shape.
-    /(ערכת|שמרת|שלחת|אישרת|מחקת|יצרת|עדכנת|חתמת|שכפלת).{0,20}(הצעה|בשבילי|עבורי|אותה|אותו)/,
+    // Owner 2026-10-25 (typed L-17, QA report): never the first person ("ששלחתי", "מחקתי" - the user's own act, followed by י)
+    /(ערכת|שמרת|שלחת|אישרת|מחקת|יצרת|עדכנת|חתמת|שכפלת)(?!י).{0,20}(הצעה|בשבילי|עבורי|אותה|אותו)/,
   ]],
   // Task 20: automatic sending questions (not the AI itself - those stay with autonomous_email / ai_mutation). Checked before
   // autonomous_email so "does TEKANGO email my customers automatically" gets the reminders truth, not the AI-reply one.
@@ -200,10 +207,12 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     /\bfirst view\b/i, /\bgreen (dot|indicator|light)\b/i,
     /\b(sent|send)\b.{0,30}\b(vs\.?|versus|or|and|different from)\b.{0,15}\bviewed\b/i,
     /\b(did|has|have)\b.{0,20}\b(customer|client)\b.{0,20}\b(see|saw|seen|look(ed)?|viewed|opened|read)\b/i,
-    /\bemail\b.{0,30}\b(delivered|received|read|opened)\b/i,
+    /^(?!.*\b(didn'?t|did not|not|never|hasn'?t|has not|haven'?t)\b).*\bemail\b.{0,30}\b(delivered|received|read|opened)\b/i,
     /צפייה ראשונה/, /נקודה ירוקה/, /נשלחה.{0,25}נצפתה|נצפתה.{0,25}נשלחה/,
     /(הלקוח|הלקוחה).{0,20}(צפה|צפתה|ראה|ראתה|פתח|פתחה|קרא|קראה)/,
-    /(המייל|האימייל).{0,25}(הגיע|נקרא|נפתח|התקבל)/,
+    // Owner 2026-10-25 (typed L-17, QA report): "the email did NOT arrive" is a troubleshooting question (help / the model with the
+    // "email did not arrive" steps), never "yes - Quote link viewed exists"
+    /^(?!.*(לא\s+(הגיע|התקבל|קיבל|קיבלה|נפתח)|didn'?t\s+(get|receive|arrive)|did\s+not\s+(get|receive|arrive)|not\s+(received|arrived|delivered)|never\s+(got|received|arrived))).*(המייל|האימייל).{0,25}(הגיע|נקרא|נפתח|התקבל)/,
   ]],
   ['calendar', [/\bcalendar\b/i, /\b(public |jewish |israeli )?holidays?\b/i, /יומן/, /חגים|שבתות|ימי מנוחה/]],
   ['manual_tasks', [/\b(manual\s+)?tasks?\s+(list|screen|tab)\b/i, /\b(create|add|open)\s+(a\s+)?(follow[- ]?up\s+)?task\b/i, /\bto-?do\b/i, /משימ(ה|ות)/]],
@@ -264,7 +273,9 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ['public_metals_calculator', [/\bmetals? (calculator|price|rate)s?\b/i, /מחשבון מתכות/]],
   ['public_crypto_calculator', [/\bcrypto(currency)? (calculator|converter|price)\b/i, /מחשבון (קריפטו|מטבעות קריפטוגרפיים)/]],
 
-  ['quote_csv', [/\bexport\s+.{0,15}(quotes?)\s+.{0,10}csv\b/i, /\bcsv\b.{0,15}quotes?/i, /(יצוא|לייצא).{0,15}הצעות.{0,15}csv/i, /csv.{0,15}הצעות/i]],
+  // Owner 2026-10-25 (typed L-17, QA report): "Excel / אקסל" is the CSV export too (the file opens in Excel)
+  ['quote_csv', [/\bexport\s+.{0,15}(quotes?)\s+.{0,10}csv\b/i, /\bcsv\b.{0,15}quotes?/i, /(יצוא|לייצא).{0,15}הצעות.{0,15}csv/i, /csv.{0,15}הצעות/i,
+    /^(?!.*(הוצא|\bexpenses?\b)).*(אקסל|\bexcel\b)/i]],
   ['expense_csv', [/\bexport\s+.{0,15}expenses?\s+.{0,10}csv\b/i, /\bcsv\b.{0,15}expenses?/i, /(יצוא|לייצא).{0,15}הוצאות.{0,15}csv/i, /csv.{0,15}הוצאות/i]],
 
   ['owner_whatsapp_share', [
@@ -319,6 +330,8 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     // to this domain that a bare-word catch-all is safe, mirroring quote_pdf's own bare /\bpdf\b/i.
     /\battachments?\b/i,
     /(לצרף|להעלות|מעלה).{0,20}(קבצים|שרטוטים|תמונות)/,
+    // Owner 2026-10-25 (typed L-17, QA report): the singular too ("לצרף קובץ", "צירוף שרטוט", "attach a file")
+    /(לצרף|מצרפים|לצרוף|צירוף|להעלות|מעלים).{0,20}(קובץ|שרטוט|מסמך|תמונה)/, /\battach(ing)?\s+(a\s+|the\s+|my\s+)?(file|drawing|document|photo|pdf)\b/i,
   ]],
   // Codex "professional reuse regression" (2026-09-2X, blocker 3 §4.5): the recovered historical
   // failure phrase "אפשר להשתמש בפריטים מקצועיים בין הצעות שונות?" (real prompt from this task
@@ -344,18 +357,23 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ]],
   // Hebrew plural of "הצעה" is "הצעות" (the final ה is replaced, not suffixed) - matching on the
   // stem "הצע" + (ה|ות) is required, "הצעה(ות)?" never matches the real plural spelling.
-  ['measured_quote', [/\b(measured|professional)\b.{0,20}\bquotes?\b/i, /הצע(ה|ות).{0,15}(מדוד(ה|ות)?|מקצועי(ת|ים|ות)?)/]],
+  // Owner 2026-10-25 (typed L-17, QA report): pricing by square metre / measurements / square feet is the measured quote
+  ['measured_quote', [/\b(measured|professional)\b.{0,20}\bquotes?\b/i, /הצע(ה|ות).{0,15}(מדוד(ה|ות)?|מקצועי(ת|ים|ות)?)/,
+    /מ["״']ר|מטר\s+רבוע|מטרים\s+רבועים|מ["״']א|מטר\s+אורך|לפי\s+(ה)?מידות|לפי\s+מידה/, /\b(square\s+(feet|foot|meters?|metres?)|sq\.?\s?ft|per\s+m2|m²|linear\s+(meters?|metres?|feet))\b/i]],
   ['expenses', [/\b(manage|track|add)\s+.{0,10}expenses?\b/i, /(ניהול|לנהל) הוצאות/]],
   ['finance_views', [/\bfinance(s|ial)?\s+(view|summary|dashboard|report)\b/i, /דוח(ות)? כספי/]],
-  ['catalog', [/\b(services?|items?)\s+catalog\b/i, /קטלוג שירותים/]],
+  ['catalog', [/\b(services?|items?)\s+catalog\b/i, /קטלוג שירותים/, /קטלוג/, /\bcatalog(ue)?\b/i]],
   ['clients', [/\bmanage\s+.{0,10}clients?\b/i, /(ניהול|לנהל) לקוחות/]],
   ['quote_duplicate', [/\bduplicate\s+.{0,10}(a|the|my)?\s*quote\b/i, /לשכפל הצעה/]],
   ['quote_edit', [/\bedit\b.{0,15}\bquote\b/i, /לערוך הצעה/]],
-  ['quote_create', [/\bcreate\s+(a\s+)?(new\s+)?quote\b/i, /\bhow many quotes\b/i, /ליצור הצעה/, /כמה הצעות/]],
+  // Owner 2026-10-25 (typed L-17, QA report): templates ("יש תבניות?", "do you have templates") are part of creating a quote
+  ['quote_create', [/\bcreate\s+(a\s+)?(new\s+)?quote\b/i, /\bhow many quotes\b/i, /ליצור הצעה/, /כמה הצעות/, /תבני(ת|ות)/, /\btemplates?\b/i]],
   ['smart_quote', [/\bsmart quote\b/i, /הצעה חכמה/]],
-  ['quote_status', [/\bquote status\b/i, /סטטוס הצעה/]],
+  // Owner 2026-10-25 (typed L-17, QA report): marking a quote paid is its status (never the "no payment processing" answer)
+  ['quote_status', [/\bquote status\b/i, /סטטוס הצעה/, /\b(mark(ed|ing)?|set)\b.{0,25}\bpaid\b/i, /(לסמן|מסמנים|מסמן|סימון|לשנות).{0,25}(כ)?(שולמה|שולם|ששולמה)/]],
   ['quote_history', [/\bquote history\b/i, /היסטוריית הצעות/]],
-  ['quote_expiry', [/\bquote\b.{0,20}\bexpir\w*\b|\bexpir\w*\b.{0,20}\bquote\b/i, /הצעה.{0,15}תוקף|תוקף.{0,15}הצעה/]],
+  // Owner 2026-10-25 (typed L-17, QA report): "valid until / validity / תוקף" is the quote expiry (with the "Valid until" steps)
+  ['quote_expiry', [/\bquote\b.{0,20}\bexpir\w*\b|\bexpir\w*\b.{0,20}\bquote\b/i, /הצעה.{0,15}תוקף|תוקף.{0,15}הצעה/, /בתוקף עד|תוקף ה?הצעה|תאריך תפוגה|פג תוקף/, /\b(valid until|validity)\b/i]],
   ['public_quote_sign', [/\b(sign|approve)\s+(a|the)?\s*quote\b/i, /לחתום.{0,10}הצעה/]],
   ['public_quote_view', [/\bview\s+.{0,10}public\s+quote\b/i, /(צפייה|לצפות).{0,20}הצעה.{0,10}ציבורית/]],
   ['draft_recovery', [/\b(unsaved|lost|recover(ed)?)\s+.{0,10}draft\b/i, /טיוטה.{0,20}(שחזור|לשחזר)|(שחזור|לשחזר).{0,20}טיוטה/]],
@@ -379,6 +397,8 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
 export function classifyCapabilityIntent(lastUserMessage: unknown): string | null {
   const text = String(lastUserMessage ?? '').trim();
   if (!text) return null;
+  // Owner 2026-10-25 (typed L-17, QA report): troubleshooting is never answered "yes - the capability exists"
+  if (isTroubleshootingQuestion(text)) return null;
   for (const [id, patterns] of CLASSIFIERS) {
     if (patterns.some((re) => re.test(text))) return id;
   }
@@ -435,12 +455,27 @@ const BROAD_CAPABILITY_QUESTION_PATTERNS: readonly RegExp[] = [
   /(תאשר|תאשרי)\s.{0,20}(ש?זה\s+)?(עובד|עובדת|קיים|קיימת|זמין|זמינה)/,
 ];
 
+// a question that asks HOW / WHERE something is done (it starts with the question word)
+export const HOW_QUESTION = /^\s*(how|where)\b|^\s*(איך|כיצד|איפה|היכן|באיזה\s+(מסך|מקום|תפריט))/i;
+
+// Owner 2026-10-25 (typed L-17, QA report): a troubleshooting question - something the user tried did not work ("why can't I send on
+// WhatsApp", "the client says the email did not arrive, what do I do"). Never answered "yes - the capability exists".
+const TROUBLESHOOT_HE = /^\s*(למה|מדוע)\s+(אני\s+)?(לא|אין\s+לי|זה\s+לא|הוא\s+לא|היא\s+לא|ה\S+\s+לא)|לא\s+(מצליח|מצליחה|מצליחים|עובד|עובדת|הגיע|הגיעה|התקבל|נשלח|נשלחה|נפתח|נפתחת|קיבל|קיבלה)|נתקע|שגיאה/;
+const TROUBLESHOOT_EN = /^\s*why\s+(can'?t|cannot|won'?t|doesn'?t|didn'?t|isn'?t|is\s+(it|my|the)\s+not|am\s+i\s+not)\b|\b(can'?t|cannot|unable\s+to)\s+(send|share|open|save|sign|download|print|attach|upload|log\s?in|sign\s?in)\b|\b(isn'?t|is\s+not|not)\s+working\b|\bdoesn'?t\s+work\b|\b(didn'?t|did\s+not|never)\s+(get|receive|arrive)\b|\berror\b/i;
+export function isTroubleshootingQuestion(lastUserMessage: unknown): boolean {
+  const t = String(lastUserMessage ?? '');
+  return TROUBLESHOOT_HE.test(t) || TROUBLESHOOT_EN.test(t);
+}
+
 export function classifyBroadCapabilityQuestionSignal(lastUserMessage: unknown): boolean {
   const text = String(lastUserMessage ?? '').trim();
   if (!text) return false;
   // A message that already resolves to a real AI-Help-V4 blocked-workflow/save-status question is
   // never reclassified as a generic capability-existence question - see the Finding 2 note above.
   if (classifyHelpIntent(text)) return false;
+  // Owner 2026-10-25 (typed L-17, QA report): "how can I add a client" / "איך אני יכול להוסיף לקוח" asks HOW, not WHETHER - it reaches the
+  // model with the verified how-to steps instead of the generic "which feature do you mean" question
+  if (HOW_QUESTION.test(text) || isTroubleshootingQuestion(text)) return false;
   return BROAD_CAPABILITY_QUESTION_PATTERNS.some((re) => re.test(text));
 }
 
@@ -578,8 +613,9 @@ export function resolveCapabilityTruthResponse(
     if (factPayload.truthStatus !== 'NOT_AVAILABLE') throw new CapabilityAnswerInvariantError(id, [{ code: 'NO_LIFECYCLE_SELF_SERVICE_CLAIM', reason: `lifecycle payload is ${factPayload.truthStatus}` }]);
     const supportEmail = isHebrew ? AI_FACTS.supportEmail.he : AI_FACTS.supportEmail.en;
     const answer = isHebrew
-      ? `ביטול מנוי או עסק, ארכוב נתונים ומחיקה לצמיתות אינם פעולות עצמאיות בהגדרות העסק כיום. לא נמצא בממשק תהליך לפעולות האלה. לבקשה כזו יש לפנות ל-${supportEmail}.`
-      : `Account/subscription cancellation, data archiving, or permanent deletion are NOT a self-service action in Business Settings today - a fresh source check found no such UI flow. For this request, please contact ${supportEmail}.`;
+      // Owner 2026-10-25 (typed L-17, QA report): no internal-sounding wording; the request path the plans window offers, and the Terms
+      ? `ביטול מנוי או עסק, ארכוב נתונים ומחיקה לצמיתות אינם פעולות עצמאיות בהגדרות העסק כיום: הם נעשים בבקשה במייל ל-${supportEmail}, והצוות מטפל בה ומאשר במייל. בחלון המסלולים יש קישור „שליחת בקשת ביטול”, ותנאי הביטול וההחזר מפורטים בסעיף 6 בתנאי השימוש.`
+      : `Account/subscription cancellation, data archiving, or permanent deletion are NOT a self-service action in Business Settings today: they are done by an email request to ${supportEmail}, which our team handles and confirms by email. The plans window has a “Send a cancellation request” link, and the cancellation and refund terms are in section 6 of the Terms of Service.`;
     return { answer, factPayload };
   }
   // Codex defect 1: a comparison question must get a deterministic, factual DISTINCTION between

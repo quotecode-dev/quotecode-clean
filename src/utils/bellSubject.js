@@ -7,8 +7,8 @@
 export const BELL_SUBJECT_EVENT = 'tekango-open-bell-subject';
 
 export const BELL_ACTION_COPY = Object.freeze({
-  he: Object.freeze({ assistant: 'פתיחת העוזר', plans: 'למסלולים', quote: 'צפייה בהצעה', task: 'צפייה במשימה', client: 'פרטי הלקוח', close: 'סגירת ההודעה', closePanel: 'סגירת ההתראות', markRead: 'סימון כנקרא', more: (n) => `+${n} נוספות`, region: 'הודעה חדשה' }),
-  en: Object.freeze({ assistant: 'Open the assistant', plans: 'See the plans', quote: 'View quote', task: 'View task', client: 'Client details', close: 'Close notification', closePanel: 'Close notifications', markRead: 'Mark as read', more: (n) => `+${n} more`, region: 'New notification' }),
+  he: Object.freeze({ assistant: 'פתיחת העוזר', plans: 'למסלולים', quote: 'צפייה בהצעה', task: 'צפייה במשימה', client: 'פרטי הלקוח', close: 'סגירת ההודעה', closePanel: 'סגירת ההתראות', markRead: 'סימון כנקרא', markFailed: 'הסימון לא נשמר. נסו שוב בעוד רגע.', more: (n) => `+${n} נוספות`, region: 'הודעה חדשה' }),
+  en: Object.freeze({ assistant: 'Open the assistant', plans: 'See the plans', quote: 'View quote', task: 'View task', client: 'Client details', close: 'Close notification', closePanel: 'Close notifications', markRead: 'Mark as read', markFailed: 'The mark was not saved. Please try again in a moment.', more: (n) => `+${n} more`, region: 'New notification' }),
 });
 
 // Owner 2026-10-20 (typed L-17 approval: "הצעה לשדרוג בפריט הפעמון של החתימה הראשונה, רק במסלול החינם"): the quote of the account's

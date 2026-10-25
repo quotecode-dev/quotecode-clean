@@ -16,7 +16,7 @@ const COPY = {
     websiteLabel: 'כתובת אתר העסק (https, לא חובה)', optIn: 'להציג קישור לאתר ליד הודעת התודה', optInHelp: 'קישור רגיל שהלקוח יכול לבחור לפתוח - בלי העברה אוטומטית.',
     save: 'שמירה', saving: 'שומר…', saved: 'נשמר.', loading: 'טוען…',
     unavailable: 'האפשרות עדיין לא זמינה בשרת הזה, ולכן אי אפשר לשמור כאן כרגע. ההודעות הרגילות ממשיכות לעבוד.',
-    error: 'לא ניתן היה לטעון את ההגדרות. נסו שוב מאוחר יותר.', saveError: 'השמירה נכשלה. שום דבר לא שונה.',
+    error: 'לא ניתן היה לטעון את ההגדרות.', retry: 'נסו שוב', leaveUnsaved: 'יש שינויים שלא נשמרו. לצאת בלי לשמור?', saveError: 'השמירה נכשלה. שום דבר לא שונה.',
     errors: { share_text_too_long: `ההודעה ארוכה מ-${SHARE_TEXT_MAX} תווים.`, thanks_text_too_long: `הודעת התודה ארוכה מ-${THANKS_TEXT_MAX} תווים.`, website_invalid: 'כתובת האתר חייבת להתחיל ב-https://.', website_required: 'כדי להציג קישור יש להזין כתובת אתר.' },
   },
   en: {
@@ -28,7 +28,7 @@ const COPY = {
     websiteLabel: 'Business website (https, optional)', optIn: 'Show a website link next to the thank-you', optInHelp: 'A normal link the customer may choose to open - no automatic redirect.',
     save: 'Save', saving: 'Saving...', saved: 'Saved.', loading: 'Loading...',
     unavailable: 'This option is not available on this server yet, so it cannot be saved here right now. The standard messages keep working.',
-    error: 'The settings could not be loaded. Try again later.', saveError: 'Saving failed. Nothing was changed.',
+    error: 'The settings could not be loaded.', retry: 'Try again', leaveUnsaved: 'You have unsaved changes. Leave without saving?', saveError: 'Saving failed. Nothing was changed.',
     errors: { share_text_too_long: `The message is longer than ${SHARE_TEXT_MAX} characters.`, thanks_text_too_long: `The thank-you is longer than ${THANKS_TEXT_MAX} characters.`, website_invalid: 'The website must start with https://.', website_required: 'Enter a website to show a link.' },
   },
 };
@@ -39,15 +39,19 @@ export default function ShareDefaultsSettings({ isHebrew, client, userId, onBack
   const [load, setLoad] = useState('loading');
   const [draft, setDraft] = useState({ ...EMPTY_SHARE_DEFAULTS });
   const [save, setSave] = useState({ state: 'idle', errors: [] });
+  // QA 2026-10-25 (C3): what the server holds (Back asks before unsaved text is lost) and a retry for a failed load
+  const [stored, setStored] = useState({ ...EMPTY_SHARE_DEFAULTS });
+  const [loadRun, setLoadRun] = useState(0);
 
   useEffect(() => {
     let live = true;
     loadShareDefaults(client, userId).then((r) => {
       if (!live) return;
-      if (r.ok) { setDraft(r.value); setLoad('ready'); } else setLoad(r.error.code === 'unavailable' ? 'unavailable' : 'error');
+      if (r.ok) { setDraft(r.value); setStored(r.value); setLoad('ready'); } else setLoad(r.error.code === 'unavailable' ? 'unavailable' : 'error');
     });
     return () => { live = false; };
-  }, [client, userId]);
+  }, [client, userId, loadRun]);
+  const unsaved = load === 'ready' && JSON.stringify(draft) !== JSON.stringify(stored);
 
   const set = (k, v) => { setDraft((d) => ({ ...d, [k]: v })); setSave({ state: 'idle', errors: [] }); };
   const onSubmit = async (e) => {
@@ -56,7 +60,7 @@ export default function ShareDefaultsSettings({ isHebrew, client, userId, onBack
     if (!n.ok) { setSave({ state: 'invalid', errors: n.errors }); return; }
     setSave({ state: 'saving', errors: [] });
     const r = await saveShareDefaults(client, userId, draft);
-    if (r.ok) { setDraft(r.value); setSave({ state: 'saved', errors: [] }); if (typeof onSaved === 'function') onSaved(r.value); }
+    if (r.ok) { setDraft(r.value); setStored(r.value); setSave({ state: 'saved', errors: [] }); if (typeof onSaved === 'function') onSaved(r.value); }
     else if (r.error.code === 'unavailable') { setLoad('unavailable'); setSave({ state: 'idle', errors: [] }); }
     else setSave({ state: 'error', errors: r.errors || [] });
   };
@@ -69,7 +73,7 @@ export default function ShareDefaultsSettings({ isHebrew, client, userId, onBack
     <div data-testid="share-defaults-settings" data-state={load} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div>
         {/* PRODUCT_TRUTH_CAPABILITY: business_settings */}
-        <button type="button" onClick={onBack} data-testid="share-defaults-back" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '40px', padding: '0 12px', borderRadius: RADIUS.sm, border: `1px solid ${NEON.borderStrong}`, background: NEON.bgCard, color: NEON.textPrimary, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button type="button" onClick={() => { if (!unsaved || window.confirm(C.leaveUnsaved)) onBack(); }} data-testid="share-defaults-back" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '40px', padding: '0 12px', borderRadius: RADIUS.sm, border: `1px solid ${NEON.borderStrong}`, background: NEON.bgCard, color: NEON.textPrimary, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
           <Arrow size={15} aria-hidden="true" />{C.back}
         </button>
       </div>
@@ -80,7 +84,14 @@ export default function ShareDefaultsSettings({ isHebrew, client, userId, onBack
         </div>
         {load === 'loading' && <div role="status" style={help}>{C.loading}</div>}
         {load === 'unavailable' && <div role="status" data-testid="share-defaults-unavailable" style={{ ...help, color: '#9a3412', fontWeight: 600 }}>{C.unavailable}</div>}
-        {load === 'error' && <div role="alert" style={{ ...help, color: '#991b1b', fontWeight: 600 }}>{C.error}</div>}
+        {load === 'error' && (
+          <div role="alert" style={{ ...help, color: '#991b1b', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span>{C.error}</span>
+            {/* PRODUCT_TRUTH_DECORATIVE: loads the settings again; changes no data */}
+            <button type="button" data-testid="share-defaults-retry" onClick={() => { setLoad('loading'); setLoadRun((n) => n + 1); }}
+              style={{ minHeight: '36px', padding: '0 12px', borderRadius: RADIUS.sm, border: `1px solid ${NEON.borderStrong}`, background: NEON.bgCard, color: NEON.textPrimary, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{C.retry}</button>
+          </div>
+        )}
         <div>
           <label htmlFor="sd-share-text" style={label}>{C.shareLabel}</label>
           <textarea id="sd-share-text" data-testid="sd-share-text" rows={3} maxLength={SHARE_TEXT_MAX} value={draft.share_text} disabled={disabled} onChange={(e) => set('share_text', e.target.value)} style={{ ...field, resize: 'vertical' }} />

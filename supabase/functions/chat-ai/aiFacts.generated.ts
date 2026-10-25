@@ -1677,6 +1677,198 @@ export const AI_FACTS = {
           "A quote the client signed is locked: it cannot be edited or deleted (\"Cannot edit a signed quote\"). You can duplicate it (\"Duplicate\") and create a new quote from it."
         ]
       }
+    },
+    {
+      "id": "quote_validity",
+      "capabilityIds": [
+        "quote_expiry",
+        "quote_create"
+      ],
+      "he": {
+        "task": "קביעת תוקף להצעה",
+        "steps": [
+          "בעורך ההצעה, בשלב \"בדיקה ושמירה\", פותחים את \"פרטים נוספים (לא חובה)\".",
+          "בשדה \"בתוקף עד\" בוחרים את התאריך האחרון שבו הלקוח יכול לחתום, ושומרים את ההצעה.",
+          "אחרי התאריך הלקוח עדיין רואה את ההצעה, אבל אי אפשר לחתום עליה."
+        ]
+      },
+      "en": {
+        "task": "Setting how long a quote is valid",
+        "steps": [
+          "In the quote editor, in the \"Review and save\" step, open \"More details (optional)\".",
+          "In the \"Valid Until\" field choose the last date the client can sign, and save the quote.",
+          "After that date the client still sees the quote but can no longer sign it."
+        ]
+      }
+    },
+    {
+      "id": "quote_discount",
+      "capabilityIds": [
+        "quote_create",
+        "quote_edit"
+      ],
+      "he": {
+        "task": "מתן הנחה בהצעה",
+        "steps": [
+          "בעורך ההצעה, בשלב \"מחיר\", ממלאים את השדה \"הנחה על כל ההצעה (%)\" - אחוז בין 0 ל-100.",
+          "הסכום הכולל מתעדכן מיד. הנחה למוצר אחד בלבד נותנים דרך המחיר של אותה שורה."
+        ]
+      },
+      "en": {
+        "task": "Giving a discount in a quote",
+        "steps": [
+          "In the quote editor, in the \"Price\" step, fill in \"Discount on the whole quote (%)\" - a percentage between 0 and 100.",
+          "The total updates at once. A discount on a single item is given through that line's own price."
+        ]
+      }
+    },
+    {
+      "id": "quote_terms_deposit",
+      "capabilityIds": [
+        "quote_create",
+        "business_settings"
+      ],
+      "he": {
+        "task": "תנאי תשלום, מקדמה ואחריות בהצעה",
+        "steps": [
+          "בעורך ההצעה, בשלב \"בדיקה ושמירה\", פותחים את \"פרטים נוספים (לא חובה)\" ומגיעים ל\"תנאים ואחריות\".",
+          "לוחצים \"התאמה להצעה זו\" וכותבים את תנאי התשלום, למשל מקדמה ותשלומים, ואת האחריות. זה טקסט שהלקוח רואה בהצעה; המערכת אינה גובה את התשלום.",
+          "כדי שהתנאים ייכנסו אוטומטית לכל הצעה חדשה: ב\"הגדרות העסק\" ממלאים \"תנאים כלליים להצעות חדשות — ברירת מחדל\" ולוחצים \"שמירת הגדרות העסק\"."
+        ]
+      },
+      "en": {
+        "task": "Payment terms, a deposit and warranty in a quote",
+        "steps": [
+          "In the quote editor, in the \"Review and save\" step, open \"More details (optional)\" and go to \"Terms & Warranty\".",
+          "Click \"Customize for this quote\" and write the payment terms, for example a deposit or installments, and the warranty. It is text the client sees in the quote; TEKANGO does not collect the payment.",
+          "To have the terms in every new quote: in \"Business Settings\" fill in \"Default Terms & Conditions for New Quotes\" and click \"Save Business Settings\"."
+        ]
+      }
+    },
+    {
+      "id": "quote_vat",
+      "capabilityIds": [
+        "quote_create"
+      ],
+      "he": {
+        "task": "מע״מ בהצעה",
+        "steps": [
+          "בשלב \"למי ההצעה?\" בוחרים סוג לקוח: \"עסקי (חברה/עוסק)\" - המחירים שמזינים הם לפני מע״מ, או \"פרטי (B2C)\" - המחירים כוללים מע״מ.",
+          "שיעור המע״מ מחושב אוטומטית (18% בישראל) ואינו הגדרה שמשנים. סיכום ההצעה מציג את המע״מ ואת הסכום הכולל."
+        ]
+      },
+      "en": {
+        "task": "VAT in a quote",
+        "steps": [
+          "In the \"Who is it for?\" step choose the client type (\"Business\" or \"Private\").",
+          "For an international business no VAT is added automatically, and the VAT rate is not a setting. The quote summary shows the total."
+        ]
+      }
+    },
+    {
+      "id": "quote_delete",
+      "capabilityIds": [
+        "quote_history"
+      ],
+      "he": {
+        "task": "מחיקת הצעה",
+        "steps": [
+          "ברשימת \"הצעות מחיר\" לוחצים \"פתיחה\" ליד ההצעה ואז \"מחיקה\", ומאשרים.",
+          "הצעה שהלקוח כבר חתם עליה אי אפשר למחוק (\"לא ניתן למחוק הצעה חתומה\"). הצעה שנמחקה אינה חוזרת."
+        ]
+      },
+      "en": {
+        "task": "Deleting a quote",
+        "steps": [
+          "In the \"Quotes\" list click \"Open\" next to the quote, then \"Delete\", and confirm.",
+          "A quote the client already signed cannot be deleted (\"Cannot delete a signed quote\"). A deleted quote does not come back."
+        ]
+      }
+    },
+    {
+      "id": "share_default_texts",
+      "capabilityIds": [
+        "owner_whatsapp_share",
+        "business_settings"
+      ],
+      "he": {
+        "task": "שינוי הודעת הוואטסאפ הקבועה והודעת התודה",
+        "steps": [
+          "ב\"הגדרות העסק\" פותחים את \"שיתוף ותודה ללקוח\".",
+          "ממלאים \"הודעת ברירת מחדל לוואטסאפ (לא חובה)\" ו/או \"הודעת תודה אחרי חתימה (לא חובה)\" ולוחצים \"שמירה\". הקישור להצעה מצורף תמיד להודעה."
+        ]
+      },
+      "en": {
+        "task": "Changing the default WhatsApp message and the thank-you",
+        "steps": [
+          "In \"Business Settings\" open \"Sharing & thank-you\".",
+          "Fill in \"Default WhatsApp message (optional)\" and/or \"Thank-you after signing (optional)\" and click \"Save\". The quote link is always added to the message."
+        ]
+      }
+    },
+    {
+      "id": "business_currency",
+      "capabilityIds": [
+        "business_settings"
+      ],
+      "he": {
+        "task": "מטבע ההצעות",
+        "steps": [
+          "בחשבון ישראלי ההצעות הן תמיד בשקלים (₪), והמטבע אינו ניתן לשינוי."
+        ]
+      },
+      "en": {
+        "task": "The currency of your quotes",
+        "steps": [
+          "In \"Business Settings\" choose the currency in \"Business Currency\" (USD, EUR or GBP) and click \"Save Business Settings\".",
+          "New quotes use that currency. It is the currency shown in the quote; TEKANGO does not collect payments."
+        ]
+      }
+    },
+    {
+      "id": "improve_quote",
+      "capabilityIds": [
+        "quote_history",
+        "quote_edit"
+      ],
+      "he": {
+        "task": "הכפתור \"שיפור ההצעה\"",
+        "steps": [
+          "ברשימת \"הצעות מחיר\" לוחצים \"פתיחה\" ליד ההצעה ואז \"שיפור ההצעה\".",
+          "הכלי בודק את ההצעה מנקודת המבט של הלקוח ומציע מה לשנות כדי שתהיה ברורה ואטרקטיבית יותר. הבדיקה פנימית - הלקוח לא רואה אותה.",
+          "שום דבר לא משתנה בהצעה בלי אישור שלכם: הצעה לתוספת נכנסת רק בלחיצה על \"הוספה להצעה\". ניתוח הבינה הוא חלק מחכם פלוס."
+        ]
+      },
+      "en": {
+        "task": "The \"Improve quote\" button",
+        "steps": [
+          "In the \"Quotes\" list click \"Open\" next to the quote, then \"Improve quote\".",
+          "It reviews the quote from the client's point of view and suggests what to change so it is clearer and more attractive. The check is internal - the client never sees it.",
+          "Nothing changes in the quote without your approval: a suggested addition goes in only when you click \"Add to the quote\". The AI analysis is part of SMART PACK."
+        ]
+      }
+    },
+    {
+      "id": "email_not_received",
+      "capabilityIds": [
+        "quote_email"
+      ],
+      "he": {
+        "task": "הלקוח לא קיבל את המייל",
+        "steps": [
+          "בודקים בכרטיס ההצעה שכתובת המייל של הלקוח נכונה. נקודה אדומה ליד המייל אומרת שהכתובת אינה קיימת או שהשליחה נכשלה.",
+          "מבקשים מהלקוח לבדוק גם בתיקיית הספאם או דואר הזבל.",
+          "אפשר לשלוח שוב: ברשימת \"הצעות מחיר\" לוחצים \"פתיחה\" ליד ההצעה ואז \"שליחה במייל\", או לשלוח ב\"וואטסאפ\" או ב\"העתקת הודעה\"."
+        ]
+      },
+      "en": {
+        "task": "The client did not get the email",
+        "steps": [
+          "Check in the quote that the client's email address is correct. A red dot next to the email means the address does not exist or the send failed.",
+          "Ask the client to check the spam or junk folder too.",
+          "You can send again: in the \"Quotes\" list click \"Open\" next to the quote, then \"Email\" - or send it by \"WhatsApp\" or \"Copy message\"."
+        ]
+      }
     }
   ],
   "addOns": [

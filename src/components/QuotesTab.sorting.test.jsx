@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent, within } from '@testing-library/react';
 import QuotesTab from './QuotesTab';
 import { formatMoneyForCurrency } from '../utils/money';
+import { VALIDITY_TIME_ZONE } from '../utils/quoteValidity';
 
 // Sortable table header + hot-quote banner (owner correction 2026-10-08). QuotesTab owns the visible order; the harness below
 // owns only the sort STATE with the exact semantics of Dashboard.handleQuoteSort (same column toggles direction, a different
@@ -372,7 +373,9 @@ describe('next-step banner (Owner 2026-10-19)', () => {
   });
 
   it('a quote whose validity ends within 3 days and still awaits the customer gets its own step (EN mirrored)', () => {
-    render(<Harness quotes={[mk('exp', { status: 'sent', view_count: 1, valid_until: day(2) })]} />);
+    // Owner 2026-10-25 (typed L-25: test clock): the International validity day is the product's own zone (Etc/GMT+12), not UTC -
+    // a UTC day failed every run 02:00-14:00 Israel
+    render(<Harness quotes={[mk('exp', { status: 'sent', view_count: 1, valid_until: day(2, VALIDITY_TIME_ZONE.International) })]} />);
     const banner = screen.getByTestId('hot-quote-banner');
     expect(banner).toHaveAttribute('data-step-kind', 'expiring');
     expect(banner.querySelector('.quote-hot-banner-text').textContent).toBe('The quote for Client exp expires in 2 days and still isn’t signed.');

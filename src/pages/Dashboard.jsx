@@ -28,6 +28,8 @@ import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quote
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
 import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
 import { isFinancialChange } from '../utils/financialEdit';
+import { reportMonthRange, recurringMonthsInRange } from '../utils/recurringExpense';
+import { isValidEmailAddress } from '../utils/emailAddress';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
 import { isQuoteImmutable } from '../utils/quoteLock';
 import { isUnfinishedQuoteForm, isUnfinishedSavedQuote, missingPriceItems, missingPriceOutputNotice, appendPartialTotalNote } from '../utils/quoteCompleteness';
@@ -41,7 +43,7 @@ import { timeGreeting } from '../utils/timeGreeting';
 import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
 import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
 import { decideCapability, outputPhaseOf, decideFree10Action } from '../../supabase/functions/_shared/subscriptionContract.ts';
-import { normalizeAuthError, isCaptchaError } from '../utils/authErrorClassification';
+import { normalizeAuthError, isCaptchaError, isEmailNotConfirmed } from '../utils/authErrorClassification';
 import { classifyDashboardActionError } from '../utils/dashboardActionErrorClassification';
 import { formatQuoteFallback } from '../utils/quoteNumber';
 import { sortQuotes } from '../utils/quoteListSort';
@@ -240,6 +242,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [signupBusinessName, setSignupBusinessName] = useState('');
   const [signupTermsAccepted, setSignupTermsAccepted] = useState(false);
   const [authError, setAuthError] = useState('');
+  // Owner 2026-10-25 (typed L-12): the address whose verification e-mail can be sent again (set when a sign-in finds it unverified)
+  const [verifyResendEmail, setVerifyResendEmail] = useState(null);
+  const [verifyResendState, setVerifyResendState] = useState('idle'); // idle | sending | sent | failed
   const [authSuccess, setAuthSuccess] = useState('');
 
   const [forgotOpen, setForgotOpen] = useState(false);
@@ -1712,6 +1717,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     if (data) {
       setSettingId(data.id);
+      rememberSavedSettings(data);
       setBizName(data.business_name || 'TEKANGO');
       setBizTaxId(data.tax_id || '');
       setBizEmail(data.email || userEmail || '');
@@ -1900,6 +1906,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
 
     setSettingId(newData.id);
+    rememberSavedSettings(newData);
     setBizName(newData.business_name);
     setBizEmail(newData.email);
     setBizPhone(newData.phone || '');
@@ -2007,11 +2014,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // binding, server-enforced 14-day/expired-only policy, authoritative
   // read-back, audit log) - see AdminUsersTab.jsx.
 
+  // Owner 2026-10-25 (typed L-12): the ONE permissive check (utils/emailAddress.js) - every real ending (.net.il, .ac.il, .co.uk, .de ...)
   function emailEmailValidation(email) {
-    if (!email || typeof email !== 'string') return false;
-    const trimmed = email.trim();
-    const re = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.(com|co\.il|org|net|edu|gov|io|info|biz|co|me|tv|ws)$/i;
-    return re.test(trimmed);
+    return isValidEmailAddress(email);
   }
 
   async function handleSaveSettings(e) {
@@ -2052,17 +2057,21 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       }
       else {
         localStorage.setItem('proflow_cached_country', bizCountry);
+        rememberSavedSettings(payload);
         setStatusMsg({ text: isHebrew ? 'הגדרות העסק עודכנו בהצלחה!' : 'Business settings updated successfully!', type: 'success' });
         resolveBlockers(['SETTINGS_SAVE_FAILED']);
         // Owner 2026-10-24 (typed L-15): the details a quote was waiting for are complete -> back to where the user was
         const resume = profileResumeRef.current;
-        if (resume && !getBusinessProfileGateMessage({ phone: bizPhone, taxId: bizTaxId, isLocalIsraeliBusiness, isHebrew })) {
+        const stillMissing = getBusinessProfileGateMessage({ ...savedProfile(), isLocalIsraeliBusiness, isHebrew });
+        // Owner 2026-10-25 (typed L-15): a save that still leaves a required detail empty says which one
+        if (resume && stillMissing) setAlertModalMsg(stillMissing);
+        if (resume && !stillMissing) {
           profileResumeRef.current = null;
           if (resume.kind === 'resume_save' && showQuoteForm) {
             setActiveTab('main');
             setStatusMsg({ text: isHebrew ? 'פרטי העסק נשמרו. חזרתם להצעה - אפשר לשמור אותה עכשיו.' : 'Business details saved. You are back in your quote - you can save it now.', type: 'success' });
           } else if (resume.kind === 'new_quote') {
-            const open = resume.variant === 'ai' ? handleCreateAiQuoteClick : resume.variant === 'structured' ? handleCreateStructuredQuoteClick : handleCreateNewQuoteClick;
+            const open = resume.variant === 'ai' ? handleCreateAiQuoteClick : resume.variant === 'structured' ? handleCreateStructuredQuoteClick : resume.variant === 'template' ? handleOpenTemplatePicker : handleCreateNewQuoteClick;
             open();
             setStatusMsg({ text: isHebrew ? 'פרטי העסק נשמרו. אפשר להתחיל בהצעה החדשה.' : 'Business details saved. You can start your new quote.', type: 'success' });
           }
@@ -2082,10 +2091,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
   }
 
+  // QA 2026-10-25 (C1): returns whether it was saved - the client window closes only on true
   async function handleSaveUpdatedClient(updatedClient) {
     if (updatedClient.email && updatedClient.email.trim() !== '' && !emailEmailValidation(updatedClient.email)) {
       setAlertModalMsg(isHebrew ? 'כתובת המייל אינה תקינה.' : '❌ Invalid email address!');
-      return;
+      return false;
     }
 
     const { error } = await supabase
@@ -2103,10 +2113,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     if (error) {
       alertWithBlocker(blockerCodeForActionError('update_client', error.message), { surface: 'clients' }, isHebrew ? 'שגיאה בעדכון הלקוח: ' + error.message : 'Error updating client: ' + error.message);
-    } else {
-      setStatusMsg({ text: isHebrew ? 'הלקוח עודכן בהצלחה!' : 'Client updated successfully!', type: 'success' });
-      if (session?.user?.id) fetchClients(session.user.id);
+      return false;
     }
+    setStatusMsg({ text: isHebrew ? 'הלקוח עודכן בהצלחה!' : 'Client updated successfully!', type: 'success' });
+    if (session?.user?.id) fetchClients(session.user.id);
+    return true;
   }
 
   // חוק ברזל (Consolidated Open UI Corrections task, §G1): "New Client"
@@ -2122,9 +2133,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   async function handleCreateClient(newClient) {
     if (newClient.email && newClient.email.trim() !== '' && !emailEmailValidation(newClient.email)) {
       setAlertModalMsg(isHebrew ? 'כתובת המייל אינה תקינה.' : '❌ Invalid email address!');
-      return;
+      return false;
     }
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) return false;
 
     const { error } = await supabase.from('clients').insert([{
       company_name: newClient.company_name,
@@ -2139,10 +2150,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     if (error) {
       alertWithBlocker(blockerCodeForActionError('create_client', error.message), { surface: 'clients' }, isHebrew ? 'שגיאה ביצירת הלקוח: ' + error.message : 'Error creating client: ' + error.message);
-    } else {
-      setStatusMsg({ text: isHebrew ? 'הלקוח נוצר בהצלחה!' : 'Client created successfully!', type: 'success' });
-      fetchClients(session.user.id);
+      return false;
     }
+    setStatusMsg({ text: isHebrew ? 'הלקוח נוצר בהצלחה!' : 'Client created successfully!', type: 'success' });
+    fetchClients(session.user.id);
+    return true;
   }
 
   async function handleSaveUpdatedExpense(updatedExpense) {
@@ -2158,15 +2170,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     if (error) {
       alertWithBlocker(blockerCodeForActionError('update_expense', error.message), { surface: 'finances' }, isHebrew ? 'שגיאה בעדכון ההוצאה: ' + error.message : 'Error updating expense: ' + error.message);
-    } else {
-      setStatusMsg({ text: isHebrew ? 'ההוצאה עודכנה בהצלחה!' : 'Expense updated successfully!', type: 'success' });
-      if (session?.user?.id) fetchExpenses(session.user.id);
+      return false;
     }
+    setStatusMsg({ text: isHebrew ? 'ההוצאה עודכנה בהצלחה!' : 'Expense updated successfully!', type: 'success' });
+    if (session?.user?.id) fetchExpenses(session.user.id);
+    return true;
   }
 
   async function handleAddExpense(e) {
     e.preventDefault();
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) return false;
 
     const { error } = await supabase.from('expenses').insert([{
       user_id: session.user.id,
@@ -2179,13 +2192,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     if (error) {
       alertWithBlocker(blockerCodeForActionError('add_expense', error.message), { surface: 'finances' }, isHebrew ? 'שגיאה בהוספת ההוצאה: ' + error.message : 'Error adding expense: ' + error.message);
-    } else {
-      setExpenseDesc('');
-      setExpenseAmount('');
-      setIsRecurring(false);
-      fetchExpenses(session.user.id);
-      setStatusMsg({ text: isHebrew ? 'ההוצאה נוספה בהצלחה!' : 'Expense added successfully!', type: 'success' });
+      return false;
     }
+    setExpenseDesc('');
+    setExpenseAmount('');
+    setIsRecurring(false);
+    fetchExpenses(session.user.id);
+    setStatusMsg({ text: isHebrew ? 'ההוצאה נוספה בהצלחה!' : 'Expense added successfully!', type: 'success' });
+    return true;
   }
 
   // חוק ברזל: כל ארבע זרימות המחיקה (הוצאה/הצעה/לקוח/שירות) פוצלו לזוג
@@ -2496,6 +2510,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setAuthLoading(true);
     setAuthError('');
     setAuthSuccess('');
+    setVerifyResendEmail(null);
+    setVerifyResendState('idle');
 
     // Auth Lifecycle Forensic Audit (2026-09-09): every message in this
     // function now consistently uses `bundleIsHebrew`, not the local
@@ -2520,7 +2536,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       const { data: existingBiz } = await supabase
         .from('business_settings')
         .select('email')
-        .eq('email', emailInput)
+        .eq('email', emailInput.trim())
         .maybeSingle();
 
       if (existingBiz) {
@@ -2573,7 +2589,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         : 'https://www.tekango.com/dashboard';
 
       const { data, error } = await supabase.auth.signUp({
-        email: emailInput,
+        email: emailInput.trim(), // Owner 2026-10-25 (L-12): never a stray space into Auth
         password: passwordInput,
         options: {
           emailRedirectTo,
@@ -2611,8 +2627,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         }
       }
     } else {
-      const { error } = await supabase.auth.signInWithPassword({ email: emailInput, password: passwordInput, options: { captchaToken: takeCaptchaToken('auth') } });
-      if (error) {
+      const { error } = await supabase.auth.signInWithPassword({ email: emailInput.trim(), password: passwordInput, options: { captchaToken: takeCaptchaToken('auth') } });
+      if (error && isEmailNotConfirmed(error)) {
+        // Owner 2026-10-25 (typed L-12): the account exists but its e-mail was not verified yet - say so, and offer to send it again
+        setAuthError(bundleIsHebrew
+          ? 'המייל עדיין לא אומת. פתחו את הקישור במייל האימות ששלחנו (כדאי לבדוק גם בתיקיית הספאם), או שלחו אותו שוב.'
+          : 'Your email is not verified yet. Open the link in the verification email we sent (check your spam folder too), or send it again.');
+        setVerifyResendEmail(emailInput.trim());
+      } else if (error) {
         // Owner console 2026-10-20 (L-12): a failed robot check says so, never "check your credentials"
         setAuthError(isCaptchaError(error) ? normalizeAuthError(error, bundleIsHebrew).message : (bundleIsHebrew ? 'לא הצלחנו להתחבר. בדקו את הפרטים או אפסו את הסיסמה.' : 'Login error: check your credentials or reset password.'));
       } else {
@@ -2628,6 +2650,23 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setAuthError(normalizeAuthError(thrown, bundleIsHebrew).message);
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  // Owner 2026-10-25 (typed L-12): sends the sign-up verification e-mail again (Supabase Auth resend; the same return address as sign-up)
+  const handleResendVerification = async () => {
+    if (!verifyResendEmail || verifyResendState === 'sending') return;
+    setVerifyResendState('sending');
+    try {
+      const emailRedirectTo = isLocalTestMode
+        ? window.location.origin + '/dashboard?lang=' + (bundleIsHebrew ? 'he' : 'en')
+        : 'https://www.tekango.com/dashboard';
+      const { error } = await supabase.auth.resend({ type: 'signup', email: verifyResendEmail, options: { emailRedirectTo, captchaToken: takeCaptchaToken('auth') } });
+      if (error) { setVerifyResendState('failed'); setAuthError(normalizeAuthError(error, bundleIsHebrew).message); }
+      else setVerifyResendState('sent');
+    } catch (thrown) {
+      setVerifyResendState('failed');
+      setAuthError(normalizeAuthError(thrown, bundleIsHebrew).message);
     }
   };
 
@@ -3012,15 +3051,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   async function handleAddService(e) {
     e.preventDefault();
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) return false;
     const { error } = await supabase.from('services').insert([{ name: newServiceName, price: Number(newServicePrice), user_id: session.user.id }]);
-    if (error) alertWithBlocker(blockerCodeForActionError('add_service', error.message), { surface: 'catalog' }, isHebrew ? 'שגיאה בהוספת השירות: ' + error.message : 'Error adding service: ' + error.message);
-    else {
-      setNewServiceName('');
-      setNewServicePrice('');
-      fetchServices(session.user.id);
-      setStatusMsg({ text: isHebrew ? 'השירות נוסף לקטלוג בהצלחה!' : 'Service added to catalog successfully', type: 'success' });
+    if (error) {
+      alertWithBlocker(blockerCodeForActionError('add_service', error.message), { surface: 'catalog' }, isHebrew ? 'שגיאה בהוספת השירות: ' + error.message : 'Error adding service: ' + error.message);
+      return false;
     }
+    setNewServiceName('');
+    setNewServicePrice('');
+    fetchServices(session.user.id);
+    setStatusMsg({ text: isHebrew ? 'השירות נוסף לקטלוג בהצלחה!' : 'Service added to catalog successfully', type: 'success' });
+    return true;
   }
 
   async function handleSaveEditedService(serviceId) {
@@ -3160,6 +3201,9 @@ Continue anyway?`);
       // the browser refused the clipboard: show the exact text to copy by hand (never a false "copied")
       window.prompt(isHebrew ? 'ההעתקה האוטומטית לא הותרה בדפדפן. העתיקו את ההודעה מכאן:' : 'The browser did not allow copying. Copy the message from here:', message);
     }
+    // Owner 2026-10-25 (typed L-13): the message is copied to be sent (SMS, Messenger ...) - a Draft is marked Sent, as WhatsApp / email do
+    // (in the enforced phase the server already marked it at authorization)
+    if (gate.mode !== 'authority_required') markSentAfterShare(proposal);
   };
 
   // Owner 2026-10-15: a WhatsApp / email share marks a Draft quote Sent in the legacy output phase (see utils/quoteSentMark.js);
@@ -3241,6 +3285,14 @@ Continue anyway?`);
   const requestEmailSend = (quote) => {
     if (quote && isUnfinishedSavedQuote(quote)) {
       alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
+      return;
+    }
+    // QA 2026-10-25: no confirmation with an empty address - say at once where the address is added (the send itself still checks again)
+    const emailOnQuote = quote?.clients?.email || quote?.client_email || '';
+    if (quote && (!emailOnQuote || !emailEmailValidation(emailOnQuote))) {
+      alertWithBlocker('EMAIL_CLIENT_NO_EMAIL', { surface: 'main' }, isHebrew
+        ? 'ללקוח של ההצעה אין כתובת מייל תקינה. מוסיפים אותה במסך „לקוחות” (עריכת הלקוח), או שולחים בוואטסאפ או ב„העתקת הודעה”.'
+        : 'The client of this quote has no valid email address. Add it on the “Clients” screen (edit the client), or send by WhatsApp or “Copy message”.');
       return;
     }
     setPendingEmailQuote(quote);
@@ -3472,9 +3524,12 @@ Continue anyway?`);
     }
   });
 
+  // QA 2026-10-25 (C5): a recurring expense counts for each month of the period from the month it started (utils/recurringExpense.js)
+  const expenseReportRange = reportMonthRange({ type: financeReportType, year: reportYear, month: reportMonth, startDate, endDate });
+  const expenseFactor = (exp) => (exp.is_recurring ? recurringMonthsInRange(exp, expenseReportRange) : 1);
   const filteredExpensesForReport = expenses.filter(exp => {
     const expDate = new Date(exp.expense_date);
-    if (exp.is_recurring) return true;
+    if (exp.is_recurring) return recurringMonthsInRange(exp, expenseReportRange) > 0;
 
     if (financeReportType === 'custom') {
       if (!startDate && !endDate) return true;
@@ -3503,7 +3558,7 @@ Continue anyway?`);
 
   const adminTotalQuotesCount = filteredQuotesForReport.length;
   const adminRevenueTotals = totalsByQuoteCurrency(filteredQuotesForReport, { accountCurrency });
-  const adminTotalExpenses = filteredExpensesForReport.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+  const adminTotalExpenses = filteredExpensesForReport.reduce((sum, exp) => sum + Number(exp.amount || 0) * expenseFactor(exp), 0);
   // Expenses have no currency column (they are entered in the account currency). Net profit is therefore defined only when every
   // revenue amount of the period is in that same currency; otherwise it is NOT computable without conversion (null - shown as such).
   const accountCurrencyCode = normalizeQuoteCurrency(accountCurrency);
@@ -3531,9 +3586,7 @@ Continue anyway?`);
     expenses.forEach(exp => {
       const d = new Date(exp.expense_date);
       if (exp.is_recurring) {
-        if (d.getFullYear() < reportYear || (d.getFullYear() === reportYear && d.getMonth() <= index)) {
-          expense += Number(exp.amount || 0);
-        }
+        expense += Number(exp.amount || 0) * recurringMonthsInRange(exp, reportMonthRange({ type: 'monthly', year: reportYear, month: index }));
       } else if (d.getFullYear() === reportYear && d.getMonth() === index) {
         expense += Number(exp.amount || 0);
       }
@@ -3834,6 +3887,37 @@ Continue anyway?`);
     setMeasuredQuoteEntry(false); setShowAiQuoteDraft(false);
   };
 
+  // Owner 2026-10-25 (typed L-15 + L-01): what is STORED in business_settings (the gate reads it, never unsaved typing) and the unsaved
+  // changes of the Settings form (a warning before leaving it, and leaving without saving puts the stored values back)
+  const savedSettingsRef = useRef(null);
+  function rememberSavedSettings(row) {
+    savedSettingsRef.current = { name: row?.business_name ?? '', taxId: row?.tax_id ?? '', email: row?.email ?? '', phone: row?.phone ?? '',
+      address: row?.address ?? '', logo: row?.logo_url ?? '', terms: row?.default_terms ?? '', warranty: row?.default_warranty ?? '' };
+  }
+  const savedProfile = () => {
+    const s = savedSettingsRef.current || {};
+    return { phone: s.phone ?? '', taxId: s.taxId ?? '', name: s.name ?? '', email: s.email ?? '' };
+  };
+  const settingsDirty = !!savedSettingsRef.current && activeTab === 'settings' && (() => {
+    const s = savedSettingsRef.current;
+    return String(bizName || '') !== String(s.name || 'TEKANGO') || String(bizTaxId || '') !== String(s.taxId || '')
+      || String(bizPhone || '') !== String(s.phone || '') || String(bizAddress || '') !== String(s.address || '')
+      || String(bizLogoUrl || '') !== String(s.logo || '') || (s.email !== '' && String(bizEmail || '') !== String(s.email || ''));
+  })();
+  const revertUnsavedSettings = () => {
+    const s = savedSettingsRef.current;
+    if (!s) return;
+    setBizName(s.name || 'TEKANGO'); setBizTaxId(s.taxId || ''); setBizPhone(s.phone || ''); setBizAddress(s.address || ''); setBizLogoUrl(s.logo || '');
+    if (s.email) setBizEmail(s.email);
+  };
+  const leaveSettingsMsg = isHebrew ? 'יש שינויים בהגדרות העסק שלא נשמרו. לצאת בלי לשמור?' : 'Your business settings have unsaved changes. Leave without saving?';
+  const mayLeaveSettings = () => {
+    if (!settingsDirty) return true;
+    if (!window.confirm(leaveSettingsMsg)) return false;
+    revertUnsavedSettings();
+    return true;
+  };
+
   // Owner 2026-10-24 (typed L-15, Doron's report: "after I finished the quote it sent me to the business details - why not earlier?
   // and after filling them it did not return me to the quote"): the business details a quote needs (phone, tax id) are asked BEFORE a new
   // quote opens, and after they are saved in Settings the user returns to where they were (the new quote, or the quote being saved).
@@ -3841,12 +3925,12 @@ Continue anyway?`);
   // leaving Settings without completing them forgets the pending return (a later settings save never opens a quote by surprise)
   useEffect(() => { if (activeTab !== 'settings') profileResumeRef.current = null; }, [activeTab]);
   const openProfileGate = (gateMessage, resume) => {
-    const missingProfile = getMissingBusinessProfileFields({ phone: bizPhone, taxId: bizTaxId, isLocalIsraeliBusiness });
+    const missingProfile = getMissingBusinessProfileFields({ ...savedProfile(), isLocalIsraeliBusiness });
     if (missingProfile.includes('phone')) publishBlocker('PROFILE_MISSING_PHONE', { scope: 'profile' });
     if (missingProfile.includes('taxId')) publishBlocker('PROFILE_MISSING_TAX_ID', { scope: 'profile' });
     profileResumeRef.current = resume;
     // the first missing field (product-owned section ids rendered by SettingsTab) - reached once the alert is closed (effect below)
-    profileFocusRef.current = missingProfile.includes('phone') ? 'business_phone' : 'business_tax_id';
+    profileFocusRef.current = missingProfile.includes('phone') ? 'business_phone' : missingProfile.includes('taxId') ? 'business_tax_id' : 'business_details';
     setAlertModalMsg(gateMessage);
     setActiveTab('settings');
   };
@@ -3865,7 +3949,7 @@ Continue anyway?`);
     if (free10Blocked()) return false; // checked BEFORE anything opens or is created; nothing is inserted on a click
     // the business details are checked before the editor opens (only once the settings are loaded; the save keeps its own check)
     if (settingId) {
-      const gateMessage = getBusinessProfileGateMessage({ phone: bizPhone, taxId: bizTaxId, isLocalIsraeliBusiness, isHebrew });
+      const gateMessage = getBusinessProfileGateMessage({ ...savedProfile(), isLocalIsraeliBusiness, isHebrew });
       if (gateMessage) {
         openProfileGate(gateMessage, { kind: 'new_quote', variant: typeof variant === 'string' ? variant : 'plain' });
         return false;
@@ -3906,6 +3990,11 @@ Continue anyway?`);
   // normal new-quote path; the template fills only items / sections / texts / presentation - never a customer, number, status or date.
   const handleOpenTemplatePicker = () => {
     if (free10Blocked()) return;
+    // Owner 2026-10-25 (typed L-15): the business details before a template opens; after saving them the picker opens again
+    if (settingId) {
+      const gateMessage = getBusinessProfileGateMessage({ ...savedProfile(), isLocalIsraeliBusiness, isHebrew });
+      if (gateMessage) { openProfileGate(gateMessage, { kind: 'new_quote', variant: 'template' }); return; }
+    }
     setTemplateDialog('pick');
   };
 
@@ -4118,7 +4207,7 @@ Continue anyway?`);
   // L-15 (Owner console 2026-10-22): a menu destination opens a clean screen - no Back button to the screen it was opened from
   // Owner 2026-10-24 (typed L-15, Doron's report): an unsaved quote kept alive behind another screen (e.g. Settings, opened for the
   // business details) asks too - the menu destination would otherwise drop it without a word
-  const guardedNav = (go) => { if (showQuoteForm && !mayLeaveEditor()) return; inAppBack.startFresh(); go(); };
+  const guardedNav = (go) => { if (showQuoteForm && !mayLeaveEditor()) return; if (!mayLeaveSettings()) return; inAppBack.startFresh(); go(); };
   const isAdminTab = String(activeTab).startsWith('admin');
   const navScreen = {
     key: [activeTab, showQuoteForm && activeTab === 'main' ? 'editor' : '', activeTab === 'settings' ? settingsView : '', isAdminTab ? `${adminSection}:${adminSelectedUserId || ''}` : ''].join('|'),
@@ -4381,12 +4470,7 @@ Continue anyway?`);
     // an already-existing quote, and never account signup itself) is gated.
     // See businessProfileCompleteness.js for the exact market-aware rule.
     if (!editingQuoteId) {
-      const gateMessage = getBusinessProfileGateMessage({
-        phone: bizPhone,
-        taxId: bizTaxId,
-        isLocalIsraeliBusiness,
-        isHebrew,
-      });
+      const gateMessage = getBusinessProfileGateMessage({ ...savedProfile(), isLocalIsraeliBusiness, isHebrew }); // Owner 2026-10-25: the saved values
       if (gateMessage) {
         // the quote stays in the editor (not saved); after the details are saved the user is brought back to it (handleSaveSettings)
         openProfileGate(gateMessage, { kind: 'resume_save' });
@@ -5085,6 +5169,9 @@ Continue anyway?`);
         setIsSignUp={setIsSignUp}
         authSuccess={authSuccess}
         authError={authError}
+        verifyResendEmail={verifyResendEmail}
+        verifyResendState={verifyResendState}
+        onResendVerification={handleResendVerification}
         handleAuth={handleAuth}
         authLoading={authLoading}
         emailInput={emailInput}
@@ -7833,6 +7920,7 @@ Continue anyway?`);
         isNew={isCreatingClient}
         isIsraeliBusiness={isLocalIsraeliBusiness}
         currency={currency}
+        businessPhone={bizPhone}
       />
 
       <EditExpenseModal 
@@ -8593,6 +8681,7 @@ Continue anyway?`);
               })}
             >
             <QuoteForm
+              businessPhone={bizPhone}
               editingQuoteId={editingQuoteId}
               editingQuoteNumber={editingOriginalQuote?.quote_number ?? null}
               onSave={handleSaveQuote}
@@ -8707,6 +8796,7 @@ Continue anyway?`);
           {activeTab === 'settings' && (
             <SettingsTab
               t={t}
+              unsavedChanges={settingsDirty}
               isHebrew={isHebrew}
               handleSaveSettings={handleSaveSettings}
               bizName={bizName}

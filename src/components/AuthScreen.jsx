@@ -26,6 +26,9 @@ export default function AuthScreen({
   setIsSignUp,
   authSuccess,
   authError,
+  verifyResendEmail = null,
+  verifyResendState = 'idle',
+  onResendVerification = null,
   handleAuth,
   authLoading,
   emailInput,
@@ -175,6 +178,20 @@ export default function AuthScreen({
 
         {authSuccess && <div style={{ padding: '8px 12px', borderRadius: '8px', marginBottom: '12px', fontSize: '0.8rem', background: 'rgba(16,185,129,0.12)', color: NEON.emerald, textAlign: isHebrew ? 'right' : 'left', fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '6px' }}><CheckCircle2 size={14} />{authSuccess}</div>}
         {authError && <div style={{ padding: '8px 12px', borderRadius: '8px', marginBottom: '12px', fontSize: '0.8rem', background: 'rgba(239,68,68,0.12)', color: NEON.red, textAlign: isHebrew ? 'right' : 'left', fontWeight: 'normal', display: 'flex', alignItems: 'center', gap: '6px' }}><AlertTriangle size={14} />{authError}</div>}
+        {/* Owner 2026-10-25 (typed L-12): an unverified e-mail - send the verification e-mail again */}
+        {verifyResendEmail && !isSignUp && typeof onResendVerification === 'function' && (
+          <div style={{ marginBottom: '12px', textAlign: isHebrew ? 'right' : 'left' }} data-testid="auth-resend-verification">
+            {verifyResendState === 'sent' ? (
+              <div role="status" style={{ fontSize: '0.8rem', color: NEON.emerald }}>{isHebrew ? 'שלחנו שוב את מייל האימות. בדקו גם בתיקיית הספאם.' : 'We sent the verification email again. Check your spam folder too.'}</div>
+            ) : (
+              // PRODUCT_TRUTH_DECORATIVE: sends the sign-up verification e-mail again (Supabase Auth); changes no product data
+              <button type="button" onClick={onResendVerification} disabled={verifyResendState === 'sending'} data-testid="auth-resend-verification-btn"
+                style={{ background: 'transparent', border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, borderRadius: '8px', padding: '8px 14px', minHeight: '40px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                {verifyResendState === 'sending' ? (isHebrew ? 'שולחים…' : 'Sending…') : (isHebrew ? 'שליחה חוזרת של מייל האימות' : 'Resend the verification email')}
+              </button>
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleAuth} autoComplete="off" data-lpignore="true">
           <input type="text" name="fake_user_login" tabIndex="-1" aria-hidden="true" style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', height: 0, width: 0 }} />

@@ -165,7 +165,7 @@ serve(async (req) => {
     const richSelect = `
       id, user_id, created_at, valid_until, tax_rate, subtotal, total,
       discount, terms, warranty, notes, subject, status, signature, currency, client_type,
-      quote_number, attn_name, attn_role, project_name,
+      quote_number, attn_name, attn_role, project_name, signer_name, signer_company, signer_role, signed_at,
       clients ( company_name, email, phone, address ),
       quote_sections ( id, name, sort_order ),
       quote_items ( description, quantity, unit_price, total_price, price_missing, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, sort_order, quote_item_measurements ( width, height, unit, calculated_area, label, sort_order, is_pricing_driving ) )
@@ -189,7 +189,8 @@ serve(async (req) => {
     const isMissingStructuredFieldError = (err: any) => {
       const msg = String(err?.message || '');
       // night task 2026-10-16 (SND-9): price_missing too - the flat select does not read it, so a missing column falls back instead of failing
-      return ['price_missing', 'project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
+      // 2026-10-25 (L-24): the stored signer too - a server before 20261025000000 falls back instead of failing
+      return ['signer_name', 'signer_company', 'signer_role', 'signed_at', 'price_missing', 'project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
         .some((col) => msg.includes(col));
     };
 
@@ -276,6 +277,8 @@ serve(async (req) => {
         // לא קיימת בסביבה זו) - PublicQuote.jsx/PublicQuoteEn.jsx מתייחסים
         // ל-undefined בדיוק כמו "אין פרויקט", לא שגיאה.
         project_name: quote.project_name,
+        // Owner 2026-10-25 (typed L-24): who signed (stored with the signature; undefined on the flat fallback select)
+        signer_name: quote.signer_name, signer_company: quote.signer_company, signer_role: quote.signer_role, signed_at: quote.signed_at,
       },
       business: bizRow ? {
         business_name: bizRow.business_name, logo_url: bizRow.logo_url, tax_id: bizRow.tax_id,

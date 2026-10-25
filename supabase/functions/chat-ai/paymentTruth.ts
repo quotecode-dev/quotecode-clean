@@ -18,6 +18,7 @@
 
 import type { ProductTruthFactPayload } from "../_shared/productTruthContract.ts";
 import { buildPaymentFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
+import { asksServiceCost } from "./subscriptionTruth.ts";
 
 export type BillingFacts = {
   readonly liveCheckoutAvailable: boolean;
@@ -36,6 +37,9 @@ export function paymentTruthApplies(billing: BillingFacts | undefined | null): b
 // Quote-content questions that merely contain the word "payment" (payment terms/schedule on a quote) are NOT
 // questions about TEKANGO's own payment capability and must reach the normal model path.
 const NOT_A_CAPABILITY_QUESTION = /(payment terms|terms of payment|payment schedule|payment conditions|payment milestones?|deposit terms|תנאי תשלום|תנאי התשלום|לוח תשלומים|לוח זמנים לתשלום|מקדמה)/i;
+// Owner 2026-10-25 (typed L-17, QA report): installments written in a quote and marking a quote paid are quote content / the quote's
+// status (the quote-status capability), never a question about TEKANGO processing payments
+const QUOTE_PAYMENT_CONTENT = /(\binstall?ments?\b|\b(mark(ed|ing)?|set)\b.{0,25}\b(as\s+)?paid\b|ב?(שני|שלושה|ארבעה|חמישה|שישה|עשרה|\d+)\s+תשלומים|פריסת\s+תשלומים|פריסה\s+(ל|של\s+)?תשלומים|(לסמן|מסמנים|מסמן|סימון|לשנות).{0,25}(כ)?(שולמה|שולם|ששולמה))/i;
 
 const EN_PATTERNS: readonly RegExp[] = [
   /\b(pay|paid|paying|payments?|checkout|check[- ]out)\b/i,
@@ -59,6 +63,9 @@ export function classifyPaymentIntent(lastUserMessage: unknown): boolean {
   const text = String(lastUserMessage ?? '').trim();
   if (!text) return false;
   if (NOT_A_CAPABILITY_QUESTION.test(text)) return false;
+  if (QUOTE_PAYMENT_CONTENT.test(text)) return false;
+  // what TEKANGO itself costs is the plan answer (subscriptionTruth), not the payment-processing one
+  if (asksServiceCost(text)) return false;
   return EN_PATTERNS.some((re) => re.test(text)) || HE_PATTERNS.some((re) => re.test(text));
 }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import ClientsTab from './ClientsTab';
 
 // חוק ברזל (Clients Table Completion task, §7): בדיקות על ה-wiring של
@@ -124,8 +124,12 @@ describe('ClientsTab - preserved behavior', () => {
     expect(onCreateClient).toHaveBeenCalled();
   });
 
+  // QA 2026-10-25 (C7): no search typed = no clients yet (how to add the first); a typed search keeps "No clients found."
   it('renders an empty state when filteredClients is empty', () => {
     renderClientsTab({ filteredClients: [] });
+    expect(screen.getByText(/^No clients yet\. Click “New Client” to add the first one/)).toBeInTheDocument();
+    cleanup();
+    renderClientsTab({ filteredClients: [], clientSearchTerm: 'zzz' });
     expect(screen.getByText('No clients found.')).toBeInTheDocument();
   });
 });

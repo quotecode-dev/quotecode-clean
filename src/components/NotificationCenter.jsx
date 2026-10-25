@@ -123,13 +123,17 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   const openAiChatFromWelcome = () => { setOpen(false); window.dispatchEvent(new CustomEvent('open-proflow-ai-chat')); };
   const openRemindersSettings = () => { setOpen(false); window.dispatchEvent(new CustomEvent(OPEN_REMINDERS_SETTINGS_EVENT)); };
 
+  // QA 2026-10-25 (C8): a mark the server did not store shows a short line instead of doing nothing
+  const [markFailed, setMarkFailed] = useState(false);
   const markOne = async (key) => {
     const r = await markRemindersRead(client, userId, [key]);
+    setMarkFailed(!r.ok);
     if (r.ok) setRead((s) => new Set([...s, key]));
   };
   const markAll = async () => {
     const keys = [...(welcome ? [WELCOME_ITEM_KEY] : []), ...items.map((i) => i.key)];
     const r = await markRemindersRead(client, userId, keys);
+    setMarkFailed(!r.ok);
     if (r.ok) setRead((s) => new Set([...s, ...keys]));
   };
 
@@ -281,6 +285,11 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
               </button>
             </span>
           </div>
+          {markFailed && (
+            <div role="alert" data-testid="notification-mark-failed" style={{ padding: '6px 14px', fontSize: '0.75rem', color: '#7F1D1D', background: '#FDECEC', borderBottom: `1px solid ${NEON.border}` }}>
+              {A.markFailed}
+            </div>
+          )}
           {welcome && (
             <div data-testid="notification-welcome" style={{ padding: '12px 14px', borderBottom: `1px solid ${NEON.border}`, opacity: welcomeRead ? 0.6 : 1 }}>
               <div style={{ fontWeight: 800, fontSize: '0.86rem', overflowWrap: 'anywhere' }}>{C.welcome.title}</div>

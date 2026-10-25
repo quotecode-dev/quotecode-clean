@@ -40,7 +40,8 @@ describe('the robot check (Cloudflare Turnstile)', () => {
     // line endings differ between checkouts (CRLF on Windows checkouts) - compare on LF
     const dash = readFileSync('src/pages/Dashboard.jsx', 'utf8').replace(/\r\n/g, '\n');
     expect(dash).toMatch(/captchaToken: takeCaptchaToken\('auth'\),\n\s+data: \{/);
-    expect(dash).toMatch(/signInWithPassword\(\{ email: emailInput, password: passwordInput, options: \{ captchaToken: takeCaptchaToken\('auth'\) \} \}\)/);
+    // Owner 2026-10-25 (typed L-12): the address is trimmed before it reaches Auth
+    expect(dash).toMatch(/signInWithPassword\(\{ email: emailInput\.trim\(\), password: passwordInput, options: \{ captchaToken: takeCaptchaToken\('auth'\) \} \}\)/);
     expect(dash).toMatch(/captchaToken: takeCaptchaToken\('reset'\),\n\s+\}\)\);/);
     expect(dash).toMatch(/privacy_version: '2026-10-23'/);
   });

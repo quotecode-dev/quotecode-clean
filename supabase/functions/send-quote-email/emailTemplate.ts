@@ -55,7 +55,7 @@ export function safeQuoteLink(link: unknown, origin: string): string | null {
 export function buildQuoteEmail(o: {
   hebrew: boolean; bizTitle: string; clientDisplayName: string; quoteNumberDisplay: string; symbol: string; displayTotal: string; partialTotal?: boolean;
   quoteLink: string; logoUrl: string | null; shareText: unknown;
-}): { subject: string; html: string } {
+}): { subject: string; html: string; text: string } {
   const biz = escapeHtml(o.bizTitle);
   const client = escapeHtml(o.clientDisplayName);
   const total = escapeHtml(`${o.symbol}${o.displayTotal}`);
@@ -103,5 +103,32 @@ export function buildQuoteEmail(o: {
         <p style="color: #64748b; font-size: 0.9rem; margin-top: 15px;">${biz} Team</p>
       </div>
     `;
-  return { subject, html };
+  // Owner 2026-10-25: the same message as plain text (an HTML-only e-mail is penalised by Outlook / Hotmail junk filters)
+  const introText = introHtml.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]+>/g, '').replace(/&nbsp;/g, ' ').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
+    .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim();
+  const totalText = `${o.symbol}${o.displayTotal}`;
+  const text = o.hebrew
+    ? [`שלום ${o.clientDisplayName},`, '', introText, '', `סך הכל לתשלום: ${totalText}`,
+      ...(o.partialTotal ? ['הסכום חלקי: יש בהצעה פריטים שטרם תומחרו.'] : []), '',
+      'לצפייה בהצעה המלאה, לאישור ההצעה או לחתימה דיגיטלית:', o.quoteLink, '', 'נשמח לעמוד לשירותך לכל שאלה!', `צוות ${o.bizTitle}`].join('\n')
+    : [`Hello ${o.clientDisplayName},`, '', introText, '', `Total Amount: ${totalText}`,
+      ...(o.partialTotal ? ['Partial total: some items in this quote are not priced yet.'] : []), '',
+      'To view, approve or digitally sign your quote:', o.quoteLink, '', 'Feel free to contact us with any questions!', `${o.bizTitle} Team`].join('\n');
+  return { subject, html, text };
+}
+
+// Owner 2026-10-25: the business name as the sender's display name - only letters, digits, spaces and plain punctuation (never quotes,
+// angle brackets, "@", ",", ";", ":" or control characters, so it can never forge another address), at most 60 characters
+export function senderDisplayName(name: unknown): string | null {
+  const n = String(name ?? '').replace(/[\u0000-\u001f\u007f"<>@,;:\\]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 60).trim();
+  return n || null;
+}
+
+// the business e-mail as Reply-To: one plain address, never ours, never with control characters
+export function replyToAddress(email: unknown): string | null {
+  const v = String(email ?? '').trim();
+  if (!v || v.length > 254 || /[\s<>,;"\u0000-\u001f]/.test(v)) return null;
+  if (!/^[^@]{1,64}@[^@.]+(\.[^@.]+)+$/.test(v)) return null;
+  if (/@(.+\.)?tekango\.com$/i.test(v)) return null;
+  return v;
 }

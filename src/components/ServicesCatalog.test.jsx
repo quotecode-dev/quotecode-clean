@@ -2,7 +2,7 @@
 // The image action is gated by the ONE shared decision rule (decideCapability); a locked action stays visible and focusable,
 // asks the parent to open CapabilityUpgradeNotice, and never opens image controls / a file picker / an upload or link call.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup, within } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, within, waitFor } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cwd } from 'node:process';
@@ -192,7 +192,8 @@ describe('OD-19 compact catalog layout + unchanged behavior', () => {
     expect(p.setEditingServiceId).toHaveBeenLastCalledWith(null);
   });
 
-  it('search filters by name client-side; add form submits through handleAddService and closes', () => {
+  // QA 2026-10-25 (C1): the add form closes after handleAddService reports the save (a false result keeps it open)
+  it('search filters by name client-side; add form submits through handleAddService and closes', async () => {
     const p = props({ accountSummary: NOT_ACTIVATED, legacyCapabilities: LEGACY_TRUE });
     render(<ServicesCatalog {...p} />);
     fireEvent.change(screen.getByPlaceholderText('Search catalog...'), { target: { value: 'fra' } });
@@ -203,7 +204,7 @@ describe('OD-19 compact catalog layout + unchanged behavior', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add Item' }));
     fireEvent.submit(screen.getByPlaceholderText('Name').closest('form'));
     expect(p.handleAddService).toHaveBeenCalledTimes(1);
-    expect(screen.queryByPlaceholderText('Name')).toBeNull();
+    await waitFor(() => expect(screen.queryByPlaceholderText('Name')).toBeNull());
   });
 
   it('the scoped stylesheet fixes a deterministic grid: explicit tracks, min-width:0, 44px targets, focus ring, tabular numerals, narrow breakpoint', () => {
