@@ -28,6 +28,7 @@ import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quote
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
 import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
 import { isFinancialChange } from '../utils/financialEdit';
+import { reportMonthRange, recurringMonthsInRange } from '../utils/recurringExpense';
 import { isValidEmailAddress } from '../utils/emailAddress';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
 import { isQuoteImmutable } from '../utils/quoteLock';
@@ -2090,10 +2091,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     }
   }
 
+  // QA 2026-10-25 (C1): returns whether it was saved - the client window closes only on true
   async function handleSaveUpdatedClient(updatedClient) {
     if (updatedClient.email && updatedClient.email.trim() !== '' && !emailEmailValidation(updatedClient.email)) {
       setAlertModalMsg(isHebrew ? 'כתובת המייל אינה תקינה.' : '❌ Invalid email address!');
-      return;
+      return false;
     }
 
     const { error } = await supabase
@@ -2111,10 +2113,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     if (error) {
       alertWithBlocker(blockerCodeForActionError('update_client', error.message), { surface: 'clients' }, isHebrew ? 'שגיאה בעדכון הלקוח: ' + error.message : 'Error updating client: ' + error.message);
-    } else {
-      setStatusMsg({ text: isHebrew ? 'הלקוח עודכן בהצלחה!' : 'Client updated successfully!', type: 'success' });
-      if (session?.user?.id) fetchClients(session.user.id);
+      return false;
     }
+    setStatusMsg({ text: isHebrew ? 'הלקוח עודכן בהצלחה!' : 'Client updated successfully!', type: 'success' });
+    if (session?.user?.id) fetchClients(session.user.id);
+    return true;
   }
 
   // חוק ברזל (Consolidated Open UI Corrections task, §G1): "New Client"
@@ -2130,9 +2133,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   async function handleCreateClient(newClient) {
     if (newClient.email && newClient.email.trim() !== '' && !emailEmailValidation(newClient.email)) {
       setAlertModalMsg(isHebrew ? 'כתובת המייל אינה תקינה.' : '❌ Invalid email address!');
-      return;
+      return false;
     }
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) return false;
 
     const { error } = await supabase.from('clients').insert([{
       company_name: newClient.company_name,
@@ -2147,10 +2150,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     if (error) {
       alertWithBlocker(blockerCodeForActionError('create_client', error.message), { surface: 'clients' }, isHebrew ? 'שגיאה ביצירת הלקוח: ' + error.message : 'Error creating client: ' + error.message);
-    } else {
-      setStatusMsg({ text: isHebrew ? 'הלקוח נוצר בהצלחה!' : 'Client created successfully!', type: 'success' });
-      fetchClients(session.user.id);
+      return false;
     }
+    setStatusMsg({ text: isHebrew ? 'הלקוח נוצר בהצלחה!' : 'Client created successfully!', type: 'success' });
+    fetchClients(session.user.id);
+    return true;
   }
 
   async function handleSaveUpdatedExpense(updatedExpense) {
@@ -2166,15 +2170,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     if (error) {
       alertWithBlocker(blockerCodeForActionError('update_expense', error.message), { surface: 'finances' }, isHebrew ? 'שגיאה בעדכון ההוצאה: ' + error.message : 'Error updating expense: ' + error.message);
-    } else {
-      setStatusMsg({ text: isHebrew ? 'ההוצאה עודכנה בהצלחה!' : 'Expense updated successfully!', type: 'success' });
-      if (session?.user?.id) fetchExpenses(session.user.id);
+      return false;
     }
+    setStatusMsg({ text: isHebrew ? 'ההוצאה עודכנה בהצלחה!' : 'Expense updated successfully!', type: 'success' });
+    if (session?.user?.id) fetchExpenses(session.user.id);
+    return true;
   }
 
   async function handleAddExpense(e) {
     e.preventDefault();
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) return false;
 
     const { error } = await supabase.from('expenses').insert([{
       user_id: session.user.id,
@@ -2187,13 +2192,14 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     if (error) {
       alertWithBlocker(blockerCodeForActionError('add_expense', error.message), { surface: 'finances' }, isHebrew ? 'שגיאה בהוספת ההוצאה: ' + error.message : 'Error adding expense: ' + error.message);
-    } else {
-      setExpenseDesc('');
-      setExpenseAmount('');
-      setIsRecurring(false);
-      fetchExpenses(session.user.id);
-      setStatusMsg({ text: isHebrew ? 'ההוצאה נוספה בהצלחה!' : 'Expense added successfully!', type: 'success' });
+      return false;
     }
+    setExpenseDesc('');
+    setExpenseAmount('');
+    setIsRecurring(false);
+    fetchExpenses(session.user.id);
+    setStatusMsg({ text: isHebrew ? 'ההוצאה נוספה בהצלחה!' : 'Expense added successfully!', type: 'success' });
+    return true;
   }
 
   // חוק ברזל: כל ארבע זרימות המחיקה (הוצאה/הצעה/לקוח/שירות) פוצלו לזוג
@@ -3045,15 +3051,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
   async function handleAddService(e) {
     e.preventDefault();
-    if (!session?.user?.id) return;
+    if (!session?.user?.id) return false;
     const { error } = await supabase.from('services').insert([{ name: newServiceName, price: Number(newServicePrice), user_id: session.user.id }]);
-    if (error) alertWithBlocker(blockerCodeForActionError('add_service', error.message), { surface: 'catalog' }, isHebrew ? 'שגיאה בהוספת השירות: ' + error.message : 'Error adding service: ' + error.message);
-    else {
-      setNewServiceName('');
-      setNewServicePrice('');
-      fetchServices(session.user.id);
-      setStatusMsg({ text: isHebrew ? 'השירות נוסף לקטלוג בהצלחה!' : 'Service added to catalog successfully', type: 'success' });
+    if (error) {
+      alertWithBlocker(blockerCodeForActionError('add_service', error.message), { surface: 'catalog' }, isHebrew ? 'שגיאה בהוספת השירות: ' + error.message : 'Error adding service: ' + error.message);
+      return false;
     }
+    setNewServiceName('');
+    setNewServicePrice('');
+    fetchServices(session.user.id);
+    setStatusMsg({ text: isHebrew ? 'השירות נוסף לקטלוג בהצלחה!' : 'Service added to catalog successfully', type: 'success' });
+    return true;
   }
 
   async function handleSaveEditedService(serviceId) {
@@ -3277,6 +3285,14 @@ Continue anyway?`);
   const requestEmailSend = (quote) => {
     if (quote && isUnfinishedSavedQuote(quote)) {
       alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
+      return;
+    }
+    // QA 2026-10-25: no confirmation with an empty address - say at once where the address is added (the send itself still checks again)
+    const emailOnQuote = quote?.clients?.email || quote?.client_email || '';
+    if (quote && (!emailOnQuote || !emailEmailValidation(emailOnQuote))) {
+      alertWithBlocker('EMAIL_CLIENT_NO_EMAIL', { surface: 'main' }, isHebrew
+        ? 'ללקוח של ההצעה אין כתובת מייל תקינה. מוסיפים אותה במסך „לקוחות” (עריכת הלקוח), או שולחים בוואטסאפ או ב„העתקת הודעה”.'
+        : 'The client of this quote has no valid email address. Add it on the “Clients” screen (edit the client), or send by WhatsApp or “Copy message”.');
       return;
     }
     setPendingEmailQuote(quote);
@@ -3508,9 +3524,12 @@ Continue anyway?`);
     }
   });
 
+  // QA 2026-10-25 (C5): a recurring expense counts for each month of the period from the month it started (utils/recurringExpense.js)
+  const expenseReportRange = reportMonthRange({ type: financeReportType, year: reportYear, month: reportMonth, startDate, endDate });
+  const expenseFactor = (exp) => (exp.is_recurring ? recurringMonthsInRange(exp, expenseReportRange) : 1);
   const filteredExpensesForReport = expenses.filter(exp => {
     const expDate = new Date(exp.expense_date);
-    if (exp.is_recurring) return true;
+    if (exp.is_recurring) return recurringMonthsInRange(exp, expenseReportRange) > 0;
 
     if (financeReportType === 'custom') {
       if (!startDate && !endDate) return true;
@@ -3539,7 +3558,7 @@ Continue anyway?`);
 
   const adminTotalQuotesCount = filteredQuotesForReport.length;
   const adminRevenueTotals = totalsByQuoteCurrency(filteredQuotesForReport, { accountCurrency });
-  const adminTotalExpenses = filteredExpensesForReport.reduce((sum, exp) => sum + Number(exp.amount || 0), 0);
+  const adminTotalExpenses = filteredExpensesForReport.reduce((sum, exp) => sum + Number(exp.amount || 0) * expenseFactor(exp), 0);
   // Expenses have no currency column (they are entered in the account currency). Net profit is therefore defined only when every
   // revenue amount of the period is in that same currency; otherwise it is NOT computable without conversion (null - shown as such).
   const accountCurrencyCode = normalizeQuoteCurrency(accountCurrency);
@@ -3567,9 +3586,7 @@ Continue anyway?`);
     expenses.forEach(exp => {
       const d = new Date(exp.expense_date);
       if (exp.is_recurring) {
-        if (d.getFullYear() < reportYear || (d.getFullYear() === reportYear && d.getMonth() <= index)) {
-          expense += Number(exp.amount || 0);
-        }
+        expense += Number(exp.amount || 0) * recurringMonthsInRange(exp, reportMonthRange({ type: 'monthly', year: reportYear, month: index }));
       } else if (d.getFullYear() === reportYear && d.getMonth() === index) {
         expense += Number(exp.amount || 0);
       }

@@ -179,6 +179,8 @@ export default function SettingsTab({
 
   const handleLogoFileChange = (e) => {
     const file = e.target.files[0];
+    // QA 2026-10-25 (C12): the picker is cleared once the file is read, so choosing the same file again (a retry) runs again
+    if (e.target) e.target.value = '';
     if (!file) return;
 
     setLogoError('');

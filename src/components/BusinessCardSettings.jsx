@@ -62,6 +62,8 @@ export default function BusinessCardSettings({ isHebrew, isLocalIsraeliBusiness,
   const uid = useId();
   const [tab, setTab] = useState('company');
   const [publicStatus, setPublicStatus] = useState('checking');
+  // QA 2026-10-25: the public page status is checked again after each successful save (it no longer says "not found" until re-entry)
+  const [statusRun, setStatusRun] = useState(0);
   const [copied, setCopied] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const draft = profile.draft;
@@ -83,7 +85,7 @@ export default function BusinessCardSettings({ isHebrew, isLocalIsraeliBusiness,
     if (!client || !userId) { setPublicStatus('other'); return undefined; }
     fetchPublicBusinessCard(client, userId).then((r) => { if (alive) setPublicStatus(r.status); });
     return () => { alive = false; };
-  }, [client, userId]);
+  }, [client, userId, statusRun]);
 
   const flashCopied = (result) => { if (result === 'copied') { setCopied(true); setTimeout(() => setCopied(false), 2000); } };
   const statusText = C.status[publicStatus] || C.status.other;
@@ -148,6 +150,13 @@ export default function BusinessCardSettings({ isHebrew, isLocalIsraeliBusiness,
         <div style={{ color: NEON.textSecondary, fontSize: '0.8rem', marginTop: 3 }}>{C.sub}</div>
         {profile.load === 'unavailable' && (
           <div className="pf-bcs-callout" role="status" style={{ background: '#FFF3E0', color: '#6E420C' }} data-testid="business-card-save-unavailable">{C.loadUnavailable}</div>
+        )}
+        {profile.load === 'failed' && (
+          <div className="pf-bcs-callout" role="alert" style={{ background: '#FDECEC', color: '#7F1D1D', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }} data-testid="business-card-load-failed">
+            <span style={{ minWidth: 0, flex: '1 1 220px' }}>{C.loadFailed}</span>
+            {/* PRODUCT_TRUTH_DECORATIVE: loads the stored card again; changes no data */}
+            <button type="button" className="pf-bcs-btn" onClick={() => profile.reload()} data-testid="business-card-load-retry">{C.retry}</button>
+          </div>
         )}
         <div className="pf-bcs-callout" role="status" style={statusTone} data-testid="business-card-public-status" data-status={publicStatus}>{statusText}</div>
         {shareUrl && (
@@ -218,7 +227,7 @@ export default function BusinessCardSettings({ isHebrew, isLocalIsraeliBusiness,
 
           <div className="pf-bcs-savebar">
             {/* PRODUCT_TRUTH_CAPABILITY: digital_business_card */}
-            <button type="button" className="pf-bcs-btn pri" onClick={() => profile.save()} disabled={!profile.dirty || profile.saveStatus === 'saving' || profile.load === 'unavailable' || profile.load === 'loading'} data-testid="card-save">
+            <button type="button" className="pf-bcs-btn pri" onClick={async () => { if ((await profile.save()) === 'ok') setStatusRun((n) => n + 1); }} disabled={!profile.dirty || profile.saveStatus === 'saving' || profile.load === 'unavailable' || profile.load === 'loading' || profile.load === 'failed'} data-testid="card-save">
               {profile.saveStatus === 'saving' ? C.saving : C.save}
             </button>
             {profile.dirty && profile.saveStatus !== 'saving' && <span className="pf-bcs-help" data-testid="card-unsaved">{C.unsaved}</span>}

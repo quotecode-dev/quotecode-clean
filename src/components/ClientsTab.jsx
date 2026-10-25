@@ -73,6 +73,11 @@ export default function ClientsTab({
   quotes = [],
   isHebrew
 }) {
+  // QA 2026-10-25 (C7): no search typed = the account has no clients yet - say how to add the first one
+  const emptyText = clientSearchTerm.trim()
+    ? (isHebrew ? 'לא נמצאו לקוחות התואמים את החיפוש.' : 'No clients found.')
+    : (isHebrew ? 'עדיין אין לקוחות. לוחצים „לקוח חדש” כדי להוסיף את הראשון - לקוח נוצר גם אוטומטית כששומרים הצעה ללקוח חדש.' : 'No clients yet. Click “New Client” to add the first one - a client is also created automatically when you save a quote for a new client.');
+
   const safeClients = Array.isArray(filteredClients) ? filteredClients : [];
   const [clientErrorMsg, setClientErrorMsg] = useState({ clientId: null, text: '' });
   const dir = isHebrew ? 'rtl' : 'ltr';
@@ -183,7 +188,7 @@ export default function ClientsTab({
     const { client, quoteCount, latestQuote } = row;
     // R-21 (night task 2026-10-16, Owner-approved L-13 / L-14): the latest quote shows the SAME status as the quote list
     const latestBadge = latestQuote ? statusBadgeFor(latestQuote, isHebrew) : null;
-    return (
+  return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '0.78rem', color: NEON.textSecondary }}>
           {client.email && (
@@ -423,7 +428,7 @@ export default function ClientsTab({
           <div className="pf-screen-body">
           {rowsMeta.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.8rem' }}>
-              {isHebrew ? 'לא נמצאו לקוחות התואמים את החיפוש.' : 'No clients found.'}
+              {emptyText}
             </div>
           ) : (
             rowsMeta.map((row) => {
@@ -510,7 +515,7 @@ export default function ClientsTab({
         <div className="pf-screen-body" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {rowsMeta.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.85rem' }}>
-              {isHebrew ? 'לא נמצאו לקוחות התואמים את החיפוש.' : 'No clients found.'}
+              {emptyText}
             </div>
           ) : (
             rowsMeta.map((row) => {

@@ -93,7 +93,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
       return;
     }
 
-    onSave({
+    Promise.resolve(onSave({
       ...client,
       company_name: companyName,
       email: email.trim(),
@@ -102,8 +102,8 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
       tax_id: taxId,
       address,
       notes
-    });
-    onClose();
+    // QA 2026-10-25 (C1): closes only after the save succeeded - a failed save keeps the typed values in the open window
+    })).then((saved) => { if (saved !== false) onClose(); });
   };
 
   return (

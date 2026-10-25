@@ -23,14 +23,14 @@ export default function EditExpenseModal({ isOpen, onClose, expense, onSave, isH
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave({
+    Promise.resolve(onSave({
       ...expense,
       description,
       amount: Number(amount),
       category,
       is_recurring: isRecurring
-    });
-    onClose();
+    // QA 2026-10-25 (C1): closes only after the save succeeded
+    })).then((saved) => { if (saved !== false) onClose(); });
   };
 
   return (
