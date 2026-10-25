@@ -109,11 +109,15 @@ describe('Admin shell-bypass calls: ZERO', () => {
     const src = stripComments(dashboard);
     // Owner 2026-10-24 (typed L-15): an unsaved quote kept alive behind another screen asks too
     // Owner 2026-10-25 (typed L-15 + L-01): unsaved business settings ask too before a menu destination
-    expect(src).toMatch(/const guardedNav = \(go\) => \{ if \(showQuoteForm && !mayLeaveEditor\(\)\) return; if \(!mayLeaveSettings\(\)\) return; inAppBack\.startFresh\(\); go\(\); \};/);
-    expect(src).toMatch(/onSelect=\{\(id\) => \{ inAppBack\.startFresh\(\); navigateToAdminSection\(id\); \}\}/);
-    expect(src).toMatch(/onClick=\{\(\) => \{ inAppBack\.startFresh\(\); navigateToAdminSection\(id\); setShowMobileMoreMenu\(false\); \}\}/);
-    expect(src).toMatch(/onSettings=\{\(\) => \{ inAppBack\.startFresh\(\); setActiveTab\('settings'\);/);
+    expect(src).toMatch(/const guardedNav = \(go\) => \{ if \(showQuoteForm && !mayLeaveEditor\(\)\) return; if \(!mayLeaveSettings\(\)\) return; inAppBack\.startFresh\(phoneHome\(\)\); go\(\); \};/);
+    expect(src).toMatch(/onSelect=\{\(id\) => \{ inAppBack\.startFresh\(phoneHome\(\)\); navigateToAdminSection\(id\); \}\}/);
+    expect(src).toMatch(/onClick=\{\(\) => \{ inAppBack\.startFresh\(phoneHome\(\)\); navigateToAdminSection\(id\); setShowMobileMoreMenu\(false\); \}\}/);
+    expect(src).toMatch(/onSettings=\{\(\) => \{ inAppBack\.startFresh\(phoneHome\(\)\); setActiveTab\('settings'\);/);
     expect((src.match(/guardedNav\(\(\) => \{ setActiveTab\(id\)/g) || []).length).toBe(3);
+    // Owner 2026-10-25 (typed L-15, mobile Back): on a phone (the bottom-row breakpoint) the Quotes list is home; the desktop has none
+    expect(src).toMatch(/const phoneHome = \(\) => \(typeof window !== 'undefined' && typeof window\.matchMedia === 'function' && window\.matchMedia\('\(max-width: 768px\)'\)\.matches/);
+    expect(src).toMatch(/\? \{ key: 'main\|\|\|', tab: 'main', editor: false/);
+    expect(src).toMatch(/if \(showMobileNewQuoteMenu\) \{ setShowMobileNewQuoteMenu\(false\); return true; \}/);
   });
   it('an Admin deep link (?view=admin&section=) is read by the Dashboard and mounts inside the shell', () => {
     expect(dashboard).toMatch(/searchParams\.get\('view'\) === 'admin'/);

@@ -4207,7 +4207,12 @@ Continue anyway?`);
   // L-15 (Owner console 2026-10-22): a menu destination opens a clean screen - no Back button to the screen it was opened from
   // Owner 2026-10-24 (typed L-15, Doron's report): an unsaved quote kept alive behind another screen (e.g. Settings, opened for the
   // business details) asks too - the menu destination would otherwise drop it without a word
-  const guardedNav = (go) => { if (showQuoteForm && !mayLeaveEditor()) return; if (!mayLeaveSettings()) return; inAppBack.startFresh(); go(); };
+  // Owner console 2026-10-25, typed: "מאשר שינוי ב-L-15: כפתור חזרה בנייד לפי ההמלצה" - on a phone (the bottom-row layout) the Quotes
+  // list is home: a menu screen gets "Back to Quotes" and the phone Back returns there; the desktop keeps the 22/10 clean screen
+  const phoneHome = () => (typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 768px)').matches
+    ? { key: 'main|||', tab: 'main', editor: false, editorAlive: false, settingsView: null, adminSection: null, adminUserId: null, search: '', status: 'All' }
+    : null);
+  const guardedNav = (go) => { if (showQuoteForm && !mayLeaveEditor()) return; if (!mayLeaveSettings()) return; inAppBack.startFresh(phoneHome()); go(); };
   const isAdminTab = String(activeTab).startsWith('admin');
   const navScreen = {
     key: [activeTab, showQuoteForm && activeTab === 'main' ? 'editor' : '', activeTab === 'settings' ? settingsView : '', isAdminTab ? `${adminSection}:${adminSelectedUserId || ''}` : ''].join('|'),
@@ -4230,6 +4235,8 @@ Continue anyway?`);
     closeTopWindow: (memo) => {
       if (showSignOutModal) { setShowSignOutModal(false); return true; }
       if (showMobileMoreMenu) { setShowMobileMoreMenu(false); return true; }
+      // Owner 2026-10-25 (typed L-15, mobile Back): the phone's "New" sheet closes on Back too (a menu, not a dialog)
+      if (showMobileNewQuoteMenu) { setShowMobileNewQuoteMenu(false); return true; }
       if (alertModalMsg) { setAlertModalMsg(null); return true; }
       if (pendingDelete) { setPendingDelete(null); return true; }
       if (editingClient || isCreatingClient) { setEditingClient(null); setIsCreatingClient(false); return true; }
@@ -8058,7 +8065,7 @@ Continue anyway?`);
             {canAdmin && (
               <AdminSidebarNav
                 section={isAdminMode ? adminSectionShown : null}
-                onSelect={(id) => { inAppBack.startFresh(); navigateToAdminSection(id); }}
+                onSelect={(id) => { inAppBack.startFresh(phoneHome()); navigateToAdminSection(id); }}
                 isHebrew={isHebrew}
                 access={adminAccess}
               />
@@ -8119,7 +8126,7 @@ Continue anyway?`);
             <div className="dash-sidebar-user">
               <SidebarAccountMenu
                 isHebrew={isHebrew}
-                onSettings={() => { inAppBack.startFresh(); setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
+                onSettings={() => { inAppBack.startFresh(phoneHome()); setActiveTab('settings'); setIsCreatingQuote(false); setEditingQuoteId(null); }}
                 onSignOut={() => setShowSignOutModal(true)}
               />
               <div className="dash-sidebar-user-text">
@@ -9115,7 +9122,7 @@ Continue anyway?`);
             <button
               key={`admin-${id}`}
               role="menuitem"
-              onClick={() => { inAppBack.startFresh(); navigateToAdminSection(id); setShowMobileMoreMenu(false); }}
+              onClick={() => { inAppBack.startFresh(phoneHome()); navigateToAdminSection(id); setShowMobileMoreMenu(false); }}
               style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: isAdminMode && hubOfSection(adminSectionShown) === id ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: isAdminMode && hubOfSection(adminSectionShown) === id ? NEON.violet : NEON.textSecondary, fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer' }}
             >
               <AdminIcon size={17} strokeWidth={2.2} />
