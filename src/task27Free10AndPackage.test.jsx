@@ -46,7 +46,7 @@ describe('in-app package offer (pricingModalModel + PackageOfferCards)', () => {
   });
   it('PricingModal renders the package offer, keeps the AI header and states purchase is not available', () => {
     render(<PricingModal isOpen onClose={() => {}} isHebrew isLocalIsraeliBusiness accountSummary={{ state: 'not_deployed' }} />);
-    expect(screen.getByTestId('plans-modal-card-free')).toBeTruthy();
+    expect(screen.queryByTestId('plans-modal-card-free')).toBeNull(); // Owner 2026-10-25: Free is never a card to choose
     expect(screen.getByTestId('plans-modal-card-all_inclusive')).toBeTruthy();
     expect(screen.queryByTestId('plans-modal-card-classic')).toBeNull();
     expect(screen.getByTestId('plans-modal-availability').textContent).toMatch(/רכישת מנוי עדיין לא זמינה/);

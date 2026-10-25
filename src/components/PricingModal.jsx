@@ -20,9 +20,9 @@ import { accountStatusModel, lifetimeAccountModel } from '../domain/subscription
 import PackageOfferCards from './PackageOfferCards';
 import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText, israelPurchaseOpen } from '../domain/subscriptions/packageCheckout';
 
-// Owner console 2026-10-22 (typed L-22 approval): the free card is shown only while the account's free period is running
-// (freePlanActive, from freePeriodActive in subscriptionStatus.js); otherwise only the paid package card, at a single-card width.
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null, freePlanActive = true }) {
+// Owner 2026-10-25 ("למה פשוט לא לכתוב במסלולים שהוא נמצא עכשיו במסלול חינם, למה יש לו את האופציה לבחור את זה בכלל?"): the Free plan is
+// never a card to choose - the status lines above say the account is on it (and its balance); only the paid package card, single width.
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null }) {
   const [rate, setRate] = useState(null);
   const [pay, setPay] = useState({ busy: false, error: null });
   // Owner console 2026-10-21 (typed L-22 approval): the SMART PACK box state, so the local-currency estimate follows the total
@@ -112,7 +112,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
           ? <div style={{ height: '12px' }} aria-hidden="true" />
           : <p data-testid="plans-modal-availability" style={{ color: '#64748b', textAlign: 'center', margin: '0 0 16px', fontSize: '0.85rem' }}>{m.availability}</p>}
 
-        <div style={{ marginBottom: '14px', ...(freePlanActive ? {} : { maxWidth: '440px', marginInline: 'auto' }) }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} purchase={purchase} onAddOnChange={setAddOnTicked} only={freePlanActive ? null : ['all_inclusive']} /></div>
+        <div style={{ marginBottom: '14px', maxWidth: '440px', marginInline: 'auto' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} purchase={purchase} onAddOnChange={setAddOnTicked} only={['all_inclusive']} /></div>
 
         <p data-testid="plans-modal-price-note" data-price-note style={{ textAlign: 'center', color: '#334155', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 4px' }}>{m.priceNote}</p>
         {m.estimateNote && <p data-testid="plans-modal-estimate" style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '0 0 4px' }}>{addOnTicked && m.estimateNoteWithAddOn ? m.estimateNoteWithAddOn : m.estimateNote}</p>}
