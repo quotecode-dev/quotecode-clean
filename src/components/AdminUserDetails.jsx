@@ -109,7 +109,7 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
           <div className="av-statline">
             <span>{t(isHebrew, C.quotaUsage.he, C.quotaUsage.en)}</span>
             {free10
-              ? <strong><bdi className="av-num">{free10.consumed}/{free10.total}</bdi> {free10.periodEnded ? (isHebrew ? 'נוצלו · 7 ימי החינם הסתיימו' : 'used · the 7 free days have ended') : isHebrew ? `נוצלו · נותרו ${free10.remaining}` : `used · ${free10.remaining} remaining`}{free10.reserved > 0 ? (isHebrew ? ` · ${free10.reserved} בתהליך` : ` · ${free10.reserved} in progress`) : ''}</strong>
+              ? <strong><bdi className="av-num">{free10.consumed}/{free10.total}</bdi> {isHebrew ? `נוצלו · נותרו ${free10.remaining}` : `used · ${free10.remaining} remaining`}{free10.reserved > 0 ? (isHebrew ? ` · ${free10.reserved} בתהליך` : ` · ${free10.reserved} in progress`) : ''}</strong>
               : <strong>—</strong>}
           </div>
           <div className="av-statline"><span>{t(isHebrew, C.issuedQuotes.he, C.issuedQuotes.en)}</span><strong>{countValue(counts.issued)}</strong></div>

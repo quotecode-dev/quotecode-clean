@@ -76,29 +76,6 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
       p_recurring_ref: e.recurringRef ?? null, p_terminal_ref: e.terminalRef ?? null,
       p_provider_event_time: e.providerEventTime, p_payload_sha256: e.payloadSha256,
       p_paid_amount_minor: e.paidAmountMinor ?? null, p_paid_currency: e.paidCurrency ?? null })) as Record<string, unknown>,
-    // 20261025300000 (Owner 2026-10-25 "ב: חיוב יחסי עכשיו"): SMART PACK for an active subscriber
-    smartPackAddOnQuote: async (userId) => (await call('smart_pack_add_on_quote', { p_user_id: userId })) as Record<string, unknown>,
-    createSmartPackAddOnIntent: async (userId, idempotencyKey) => (await call('create_smart_pack_add_on_intent',
-      { p_user_id: userId, p_idempotency_key: idempotencyKey })) as Record<string, unknown>,
-    smartPackAddOnPage: async (addOnId, userId) => {
-      const v = await call('smart_pack_add_on_page', { p_add_on_id: addOnId, p_user_id: userId });
-      return typeof v === 'string' ? v : null;
-    },
-    recordSmartPackAddOnPage: async (addOnId, userId, url, requestRef) => {
-      const v = await call('record_smart_pack_add_on_page', { p_add_on_id: addOnId, p_user_id: userId, p_url: url, p_request_ref: requestRef });
-      return typeof v === 'string' ? v : null;
-    },
-    smartPackAddOnPullTargets: (userId) => call('smart_pack_add_on_pull_targets', { p_user_id: userId }),
-    recordSmartPackAddOnPull: async (p) => (await call('record_smart_pack_add_on_pull', { p_add_on_id: p.addOnId, p_user_id: p.userId,
-      p_provider_add_on_id: p.providerAddOnId, p_paid_amount_minor: p.paidAmountMinor, p_paid_currency: p.paidCurrency,
-      p_payload_sha256: p.payloadSha256 })) as Record<string, unknown>,
-    recordSmartPackAddOnPayment: async (e) => (await call('record_smart_pack_add_on_payment', { p_provider: e.provider,
-      p_provider_event_id: e.providerEventId, p_event_type: e.eventType, p_add_on_id: e.addOnId, p_provider_event_time: e.providerEventTime,
-      p_payload_sha256: e.payloadSha256, p_paid_amount_minor: e.paidAmountMinor ?? null, p_paid_currency: e.paidCurrency ?? null })) as Record<string, unknown>,
-    smartPackAddOnLineBegin: async (addOnId) => (await call('smart_pack_add_on_line_begin', { p_add_on_id: addOnId })) as Record<string, unknown>,
-    smartPackAddOnLineFinish: async (addOnId, added) => (await call('smart_pack_add_on_line_finish',
-      { p_add_on_id: addOnId, p_added: added })) as Record<string, unknown>,
-    smartPackAddOnLineTargets: (userId) => call('smart_pack_add_on_line_targets', { p_user_id: userId }),
     applyVerifiedLineEvent: async (e) => {
       // The §2.4 signature has no removal parameter: a removal event is refused (no state change) until it is defined.
       if (e.removal) return { ok: false, code: 'invalid_event' };

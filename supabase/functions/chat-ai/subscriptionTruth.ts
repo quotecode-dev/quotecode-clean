@@ -215,13 +215,10 @@ export function accountPlanLine(account: AccountPlanContext | null, lang: Lang):
   }
   if (account.summaryState === 'ready' && account.planId) {
     const name = planName(account.planId, lang);
-    // Owner console 2026-10-25 (findings 1-13): the 7 free days ended = nothing left, whatever the count
-    const balance = account.planId === 'free' && account.free10PeriodEnded === true
-      ? (lang === 'he' ? ' 7 ימי החינם הסתיימו.' : ' The 7 free days have ended.')
-      : account.planId === 'free' && typeof account.free10Remaining === 'number'
+    const balance = account.planId === 'free' && typeof account.free10Remaining === 'number'
       ? (lang === 'he' ? ` יתרה: ${account.free10Remaining} מתוך ${S.free.quotesTotal} הצעות.` : ` ${account.free10Remaining} of ${S.free.quotesTotal} quotes remain.`)
       : '';
-    return lang === 'he' ? `לפי סיכום החשבון בשרת, המסלול שלכם הוא ${name}.${balance}` : `According to your account summary on the server, your plan is ${name}.${balance}`;
+    return lang === 'he' ? `לפי סיכום החשבון בשרת, המסלול שלך הוא ${name}.${balance}` : `According to your account summary on the server, your plan is ${name}.${balance}`;
   }
   return lang === 'he'
     ? 'מערכת המסלולים החדשה עדיין אינה פעילה בחשבון שלך, ולכן אין מסלול פעיל או יתרה להציג. איני יכול לאשר מסלול לפי מה שנכתב בשיחה.'

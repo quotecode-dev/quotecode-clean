@@ -82,10 +82,7 @@ export const VOICE_COPY = Object.freeze({
     failed: 'לא הצלחתי להבין את ההקלטה. אפשר לנסות שוב או להקליד.',
     limit: 'הגעתם למכסת הפעולות הקוליות היומית. אפשר להמשיך בהקלדה, והמכסה מתחדשת מחר.',
     // Owner 2026-10-20 (typed L-17 approval): voice is SMART PACK once the plan system is enforced
-    // Owner console 2026-10-25 (typed findings 1-13 approval, L-17): "the plans window" everywhere; the promise only where it can be
-    // bought now (smartPackPurchasePath) - otherwise the plain fact
-    smartPack: 'הצ׳אט הקולי וההכתבה הם חלק מחכם פלוס. אפשר להוסיף אותו בחלון המסלולים.',
-    smartPackNoPath: 'הצ׳אט הקולי וההכתבה הם חלק מחכם פלוס.',
+    smartPack: 'הצ׳אט הקולי וההכתבה הם חלק מחכם פלוס. אפשר להוסיף אותו במסך המסלולים.',
   },
   en: {
     mic: 'Ask by voice',
@@ -100,7 +97,6 @@ export const VOICE_COPY = Object.freeze({
     micDenied: 'No microphone access. You can allow it in your browser settings, or type your question.',
     failed: "I couldn't understand the recording. Try again or type it.",
     limit: "You've reached today's voice limit. You can keep typing; it renews tomorrow.",
-    smartPack: 'Voice chat and dictation are part of SMART PACK. You can add it in the plans window.',
-    smartPackNoPath: 'Voice chat and dictation are part of SMART PACK.',
+    smartPack: 'Voice chat and dictation are part of SMART PACK. You can add it in the plans view.',
   },
 });

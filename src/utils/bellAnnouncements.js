@@ -27,7 +27,7 @@ export const SMART_PACK_ANNOUNCEMENT = Object.freeze({
   until: '2026-12-31',
   sortAt: '2026-10-20T00:00',
   copy: Object.freeze({
-    he: Object.freeze({ title: 'חדש: חכם פלוס', body: 'תוספת למנוי עם צ׳אט חכם שמכיר את הנתונים שלכם, צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, וקבצים מצורפים להצעה. ₪10 לחודש כולל מע״מ, לבחירתכם. אפשר להוסיף אותה בחלון המסלולים.' }),
+    he: Object.freeze({ title: 'חדש: חכם פלוס', body: 'תוספת למנוי עם צ׳אט חכם שמכיר את הנתונים שלך, צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, וקבצים מצורפים להצעה. ₪10 לחודש כולל מע״מ, בחירה שלך. אפשר להוסיף אותה לתשלום בחלון המסלולים.' }),
     en: Object.freeze({ title: 'New: SMART PACK', body: 'A plan add-on with a smart chat that knows your data, voice chat, an AI smart quote with voice dictation, and files attached to quotes. $5 a month, your choice. It will be available to buy when the plans open.' }),
   }),
 });

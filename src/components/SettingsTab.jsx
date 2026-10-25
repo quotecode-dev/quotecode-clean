@@ -4,7 +4,7 @@ import { APP as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW
 import BusinessQuoteStyleSection from './quotePresentation/BusinessQuoteStyleSection';
 import { presentationCopy } from './quotePresentation/presentationCopy';
 import { subscriptionSectionState } from '../domain/subscriptions/accountSummaryClient';
-import { packageCheckoutAvailable, israelPurchaseOpen, plansAvailabilityLine } from '../domain/subscriptions/packageCheckout';
+import { packageCheckoutAvailable, israelPurchaseOpen } from '../domain/subscriptions/packageCheckout';
 import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
 import PackageOfferCards from './PackageOfferCards';
 import { PROFESSIONAL_DOMAINS } from '../utils/professionalQuoteItem';
@@ -545,7 +545,7 @@ export default function SettingsTab({
                  {/* OD-16 / OD-20: plan name and Free-10 balance from the server account summary only (the balance only while Free-10 is
                      enforced); a fail-closed line with a retry when the summary cannot be trusted. */}
                  <div style={{ fontSize: '0.9rem', fontWeight: '600', color: NEON.textPrimary }}>
-                   {accountState.tone === 'plan' ? `${isHebrew ? 'המסלול שלכם' : 'Your plan'}: ${accountState.label}` : accountState.label}
+                   {accountState.tone === 'plan' ? `${isHebrew ? 'המסלול שלך' : 'Your plan'}: ${accountState.label}` : accountState.label}
                  </div>
                  {accountState.detail && (
                    <div data-testid="settings-account-detail" style={{ fontSize: '0.75rem', color: NEON.textSecondary }}>{accountState.detail}</div>
@@ -561,14 +561,14 @@ export default function SettingsTab({
            </div>
            {!isSuperAdmin && !lifetimeAccount && (
              <>
-               <PackageOfferCards model={subscriptionOffer} isHebrew={isHebrew} only={['all_inclusive']} currentPlanId={accountState.tone === 'plan' ? accountState.planId : null} currentPeriod={accountSummary?.state === 'ready' ? accountSummary.billingPeriod ?? null : null} testIdPrefix="settings-subscription" />
+               <PackageOfferCards model={subscriptionOffer} isHebrew={isHebrew} only={['all_inclusive']} currentPlanId={accountState.tone === 'plan' ? accountState.planId : null} testIdPrefix="settings-subscription" />
                <p data-testid="settings-subscription-price-note" style={{ margin: 0, fontSize: '0.8rem', fontWeight: 600, color: NEON.textPrimary }}>{subscriptionOffer.priceNote}</p>
                {/* Owner console 2026-10-25 (typed L-01 / L-07 / L-11 ... "להפעלת הרכישה בישראל"): once the account can buy, say where */}
                {/* Owner 2026-10-25: in Israel (purchase open) an account with nothing to buy gets no "cannot be purchased yet" line */}
                {(packageCheckoutAvailable(accountSummary, lifetimeAccount) || !israelPurchaseOpen(accountSummary)) && (
                <p data-testid="settings-subscription-availability" role="status" style={{ margin: 0, fontSize: '0.8rem', color: NEON.textSecondary }}>{packageCheckoutAvailable(accountSummary, lifetimeAccount)
                  ? (isHebrew ? 'אפשר לרכוש מנוי בחלון המסלולים, מכפתור המסלול בראש המסך.' : 'You can buy a subscription in the plans window, from the plan button at the top of the screen.')
-                 : (plansAvailabilityLine(accountSummary, isHebrew)?.text ?? subscriptionOffer.availability)}</p>
+                 : subscriptionOffer.availability}</p>
                )}
                {/* Owner 2026-10-14 (Codex spec A10, approved): the same cancellation-request path as the plans window and the Terms -
                    an email request handled by the team; opening the email cancels nothing automatically. */}
