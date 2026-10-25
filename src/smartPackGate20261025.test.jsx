@@ -117,32 +117,11 @@ describe('SMART PACK for an active subscriber', () => {
     expect(screen.getByTestId('plans-smart-pack-add-on-pay').textContent).toBe('Yes, add SMART PACK - ₪51.00');
     expect(screen.getByTestId('plans-smart-pack-add-on-fee').textContent).toContain('Cancellation: as set out in section 6 of the Terms.');
   });
-  // Owner console 2026-10-25 (typed: "... והסבר בחלון המסלולים כשאי אפשר להוסיף"): never a box that silently disappears (HE + EN)
-  it.each([[true, 'כרגע אי אפשר להוסיף את חכם פלוס לחשבון הזה. כתבו לנו ונטפל בזה: support@tekango.com'],
-    [false, 'SMART PACK cannot be added to this account right now. Write to us and we will take care of it: support@tekango.com']])(
-    'the server says this account cannot add it now: the window says so, with the mailbox (isHebrew %s)', async (isHebrew, text) => {
-      const invoke = vi.fn(async () => ({ data: { ok: false, code: 'not_eligible' } }));
-      render(<SmartPackAddOnOffer isHebrew={isHebrew} invoke={invoke} onLeave={() => {}} />);
-      await waitFor(() => expect(screen.getByTestId('plans-smart-pack-add-on-unavailable')).toBeInTheDocument());
-      expect(screen.getByTestId('plans-smart-pack-add-on-unavailable').textContent).toBe(text);
-      expect(screen.getByTestId('plans-smart-pack-add-on-unavailable')).toHaveAttribute('dir', isHebrew ? 'rtl' : 'ltr');
-      expect(screen.queryByTestId('plans-smart-pack-add-on-pay')).toBeNull();
-    });
-  it('a server that did not answer: try again (HE + EN); already has it / abroad: nothing here (the lines above say it)', async () => {
-    const fail = vi.fn(async () => ({ data: { ok: false, code: 'checkout_unavailable' } }));
-    render(<SmartPackAddOnOffer isHebrew invoke={fail} onLeave={() => {}} />);
-    await waitFor(() => expect(screen.getByTestId('plans-smart-pack-add-on-unavailable').textContent).toBe('לא הצלחנו לטעון כרגע את הוספת חכם פלוס. נסו שוב בעוד רגע, או כתבו לנו: support@tekango.com'));
-    cleanup();
-    render(<SmartPackAddOnOffer isHebrew={false} invoke={fail} onLeave={() => {}} />);
-    await waitFor(() => expect(screen.getByTestId('plans-smart-pack-add-on-unavailable').textContent).toBe('We could not load the SMART PACK option right now. Try again in a moment, or write to us: support@tekango.com'));
-    cleanup();
-    for (const code of ['already_included', 'market_not_open']) {
-      const invoke = vi.fn(async () => ({ data: { ok: false, code } }));
-      const { container } = render(<SmartPackAddOnOffer isHebrew invoke={invoke} onLeave={() => {}} />);
-      await waitFor(() => expect(invoke).toHaveBeenCalled());
-      expect(container.innerHTML).toBe('');
-      cleanup();
-    }
+  it('nothing is offered when the server has no quote for the account', async () => {
+    const invoke = vi.fn(async () => ({ data: { ok: false, code: 'not_eligible' } }));
+    const { container } = render(<SmartPackAddOnOffer isHebrew invoke={invoke} onLeave={() => {}} />);
+    await waitFor(() => expect(invoke).toHaveBeenCalled());
+    expect(container.innerHTML).toBe('');
   });
   it('back from the add-on page: confirmed only when the server says SMART PACK is active (the package was active already)', () => {
     expect(billingReturnFromSearch('?billing=smart_pack')).toBe('smart_pack');

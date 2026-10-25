@@ -453,12 +453,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-25 (ב:"
-    },
-    "20261025400000_smart_pack_terminal_fallback.sql": {
-      "sha256": "0ffa92f7809d60d816477ede807f399fbb9b0326aa08b8ee39c99b32cb794eac",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-25 (typed: \"מאשר: מזהה המסוף כסוד, תיקון הצעת חכם פלוס והתחלת השורה במסד ...\"): the SMART PACK quote and line begin no longer require the standing order terminal (a pulled activation has none); the function uses PAYPLUS_TERMINAL_UID"
     }
   }
 }

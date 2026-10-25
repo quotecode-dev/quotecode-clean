@@ -286,9 +286,8 @@ describe('the provider from the Function secrets (Owner night task 2026-10-21; s
     expect(purl).toBe('https://restapi.payplus.co.il/api/v1.0/PaymentPages/generateLink');
     expect(JSON.parse(pinit.body).refURL_success).toBe('https://www.tekango.com/dashboard?billing=processing');
   });
-  // Owner console 2026-10-25 (typed: "מאשר: מזהה המסוף כסוד ..."): + the account terminal (the same secret admin-billing reads)
-  it('the secret names are exactly these six (no phase, market, plan or price ever comes from a secret)', () => {
-    expect([...PAYPLUS_SECRET_NAMES]).toEqual(['PAYPLUS_API_KEY', 'PAYPLUS_SECRET_KEY', 'PAYPLUS_PAYMENT_PAGE_UID', 'PAYPLUS_ENVIRONMENT', 'PAYPLUS_RETURN_ORIGIN', 'PAYPLUS_TERMINAL_UID']);
+  it('the secret names are exactly these five (no phase, market, plan or price ever comes from a secret)', () => {
+    expect([...PAYPLUS_SECRET_NAMES]).toEqual(['PAYPLUS_API_KEY', 'PAYPLUS_SECRET_KEY', 'PAYPLUS_PAYMENT_PAGE_UID', 'PAYPLUS_ENVIRONMENT', 'PAYPLUS_RETURN_ORIGIN']);
   });
   it('the staging terminal must name its return origin (never a silent return to LIVE from a test terminal)', () => {
     expect(payplusProviderFromSecrets(secrets({ PAYPLUS_RETURN_ORIGIN: undefined }), URL_, fetchOk(), () => NOW)).toBeNull();

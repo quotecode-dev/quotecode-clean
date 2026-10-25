@@ -118,8 +118,7 @@ export type PulledCheckout = { attemptId: string | null; recurringRef: string; a
 /** 20261025300000: what the provider answers for a SMART PACK add-on page (a one-time charge) */
 export type PulledAddOn = { addOnId: string | null; amountMinor: number | null; currency: 'ILS' | 'USD' | null; approved: boolean; payloadSha256: string };
 /** 20261025300000: what the SMART PACK line on the live package's standing order needs (from SQL: smart_pack_add_on_line_begin) */
-// 20261025400000: terminalRef null = a standing order bound by the server pull (no terminal) - the provider uses the account terminal
-export type SmartPackLineRequest = { addOnId: string; packageAttemptId: string; recurringRef: string; terminalRef: string | null; packageRequestRef: string;
+export type SmartPackLineRequest = { addOnId: string; packageAttemptId: string; recurringRef: string; terminalRef: string; packageRequestRef: string;
   packageAmountMinor: number; addOnAmountMinor: number; period: BillingPeriod; currency: 'ILS'; nextChargeDate: string };
 
 /** Owner 2026-10-25 (the first real charge came back as "General Customer" with no email - no invoice, no approval email): the
@@ -431,11 +430,11 @@ export async function smartPackAddOnIntentHandler(phase: BillingPhase, deps: { s
 
 function parseLineRequest(b: Record<string, unknown>): SmartPackLineRequest | null {
   const s = (v: unknown, re: RegExp) => typeof v === 'string' && re.test(v);
-  if (!s(b.addOnId, UUID) || !s(b.packageAttemptId, UUID) || typeof b.recurringRef !== 'string' || !b.recurringRef || !(b.terminalRef === null || s(b.terminalRef, UUID))
+  if (!s(b.addOnId, UUID) || !s(b.packageAttemptId, UUID) || typeof b.recurringRef !== 'string' || !b.recurringRef || !s(b.terminalRef, UUID)
       || !s(b.packageRequestRef, UUID) || !Number.isInteger(b.packageAmountMinor) || (b.packageAmountMinor as number) <= 0
       || !Number.isInteger(b.addOnAmountMinor) || (b.addOnAmountMinor as number) <= 0 || !isPeriod(b.period) || b.currency !== 'ILS'
       || !s(b.nextChargeDate, /^\d{4}-\d{2}-\d{2}$/)) return null;
-  return { addOnId: b.addOnId as string, packageAttemptId: b.packageAttemptId as string, recurringRef: b.recurringRef, terminalRef: (b.terminalRef as string | null),
+  return { addOnId: b.addOnId as string, packageAttemptId: b.packageAttemptId as string, recurringRef: b.recurringRef, terminalRef: b.terminalRef as string,
     packageRequestRef: b.packageRequestRef as string, packageAmountMinor: b.packageAmountMinor as number, addOnAmountMinor: b.addOnAmountMinor as number,
     period: b.period, currency: 'ILS', nextChargeDate: b.nextChargeDate as string };
 }
