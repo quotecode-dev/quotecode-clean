@@ -15,7 +15,7 @@
 // Trust boundary (unchanged from billing.ts): the amount and the currency come from the server attempt; a callback's plan, card or
 // customer data is never read. Read: the event id, the result, the time, our own attempt id and the paid amount - the paid amount
 // only so SQL can require it to EQUAL the attempt before the subscription opens (it never sets a price or a right).
-import { parseProviderEvent, sha256Hex, type BillingPeriod, type BillingProvider, type EventType, type PulledCheckout, type WebhookVerification } from './billing.ts';
+import { parseProviderEvent, sha256Hex, cleanCheckoutCustomer, type CheckoutCustomer, type BillingPeriod, type BillingProvider, type EventType, type PulledCheckout, type WebhookVerification } from './billing.ts';
 
 type Fetch = (url: string, init: { method: string; headers: Record<string, string>; body: string; signal?: AbortSignal }) =>
   Promise<{ ok: boolean; json(): Promise<unknown> }>;
@@ -87,7 +87,8 @@ export const PAYPLUS_SMART_PACK_ITEM_NAMES_EN = Object.freeze({ month: 'TEKANGO 
 /** The generateLink body for one server attempt. amountMinor is the server catalog amount (IL prices include VAT: vat_type 0;
  *  USD = International, VAT-exempt: vat_type 2). */
 export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | 'callbackUrl' | 'successUrl' | 'failureUrl' | 'cancelUrl'>,
-  i: { attemptId: string; amountMinor: number; billingPeriod: BillingPeriod; nowMs: number; addOnAmountMinor?: number | null; currency?: 'ILS' | 'USD' }): Record<string, unknown> {
+  i: { attemptId: string; amountMinor: number; billingPeriod: BillingPeriod; nowMs: number; addOnAmountMinor?: number | null; currency?: 'ILS' | 'USD';
+    customer?: CheckoutCustomer | null }): Record<string, unknown> {
   const amount = i.amountMinor / 100;
   const usd = i.currency === 'USD';
   const addOn = Number.isInteger(i.addOnAmountMinor) && (i.addOnAmountMinor as number) > 0 ? (i.addOnAmountMinor as number) : 0;
@@ -104,6 +105,11 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
     currency_code: usd ? 'USD' : 'ILS',
     ...(usd ? { language_code: 'en', paying_vat: false, hide_identification_id: true, hide_payments_field: true } : {}),
     more_info: i.attemptId, // comes back in the callback: the ONLY link from a payment to our server attempt
+    // Owner 2026-10-25: the invoice-receipt and the approval email go to the paying account's own business name / email
+    ...(i.customer && (i.customer.name || i.customer.email) ? { customer: {
+      ...(i.customer.name ? { customer_name: i.customer.name } : {}),
+      ...(i.customer.email ? { email: i.customer.email } : {}),
+    } } : {}),
     refURL_success: cfg.successUrl,
     refURL_failure: cfg.failureUrl,
     refURL_callback: cfg.callbackUrl,
@@ -188,13 +194,14 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
 
   return Object.freeze({
     name: PAYPLUS_PROVIDER_NAME,
-    async createCheckout(i: { attemptId: string; currency: 'ILS' | 'USD'; amountMinor: number; billingPeriod?: BillingPeriod; addOnAmountMinor?: number | null }) {
+    async createCheckout(i: { attemptId: string; currency: 'ILS' | 'USD'; amountMinor: number; billingPeriod?: BillingPeriod; addOnAmountMinor?: number | null;
+      customer?: CheckoutCustomer | null }) {
       // ILS (Israel) or USD (International, 2026-10-21 prepared); the package only (a legacy style plan carries no billing period)
       if ((i.currency !== 'ILS' && i.currency !== 'USD') || !UUID.test(i.attemptId) || !Number.isInteger(i.amountMinor) || i.amountMinor <= 0
           || (i.billingPeriod !== 'month' && i.billingPeriod !== 'year')
           || (i.addOnAmountMinor != null && (!Number.isInteger(i.addOnAmountMinor) || i.addOnAmountMinor <= 0 || i.addOnAmountMinor >= i.amountMinor))) return null;
       const body = buildGenerateLinkBody(cfg, { attemptId: i.attemptId, amountMinor: i.amountMinor, billingPeriod: i.billingPeriod, nowMs: cfg.now(),
-        addOnAmountMinor: i.addOnAmountMinor ?? null, currency: i.currency });
+        addOnAmountMinor: i.addOnAmountMinor ?? null, currency: i.currency, customer: cleanCheckoutCustomer(i.customer) });
       let json: unknown;
       try {
         const res = await cfg.fetch(`${cfg.apiBase}/PaymentPages/generateLink`, {
