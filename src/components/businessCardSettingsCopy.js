@@ -30,7 +30,7 @@ export const BUSINESS_CARD_SETTINGS_COPY = {
       failed: 'לא הצלחנו לשמור כרגע. נסו שוב.',
     },
     loadUnavailable: 'שמירת הכרטיס עדיין לא זמינה בשרת הזה. אפשר לערוך ולראות תצוגה מקדימה, אבל השינויים לא יישמרו.',
-    leaveUnsaved: 'יש בכרטיס שינויים שלא נשמרו. לצאת בלי לשמור?', loadFailed: 'לא הצלחנו לטעון את הכרטיס השמור. כדי לא לדרוס אותו, השמירה תיפתח אחרי טעינה מוצלחת.', retry: 'נסו שוב',
+    loadFailed: 'לא הצלחנו לטעון את הכרטיס השמור. כדי לא לדרוס אותו, השמירה תיפתח אחרי טעינה מוצלחת.', retry: 'נסו שוב',
     unsaved: 'יש שינויים שלא נשמרו',
     preview: 'תצוגה מקדימה',
     status: {
@@ -71,7 +71,7 @@ export const BUSINESS_CARD_SETTINGS_COPY = {
       failed: 'We could not save right now. Try again.',
     },
     loadUnavailable: 'Saving the card is not available on this server yet. You can edit and preview, but changes will not be saved.',
-    leaveUnsaved: 'Your card has unsaved changes. Leave without saving?', loadFailed: 'We could not load your saved card. So it is not overwritten, saving opens after a successful load.', retry: 'Try again',
+    loadFailed: 'We could not load your saved card. So it is not overwritten, saving opens after a successful load.', retry: 'Try again',
     unsaved: 'You have unsaved changes',
     preview: 'Preview',
     status: {

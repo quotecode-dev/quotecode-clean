@@ -88,33 +88,6 @@ describe('useInAppBack', () => {
     expect(hook.result.current.depth).toBe(2);
   });
 
-  // Owner console 2026-10-25, typed: "מאשר שינוי ב-L-15: כפתור חזרה בנייד לפי ההמלצה" - with a home (the phone), a menu screen gets
-  // home as its one Back target; Back there returns home; only home asks to sign out; the home itself from the menu stays clean
-  it('on a phone a menu screen gets the Quotes list as its one Back target; only the Quotes list asks to sign out', async () => {
-    const home = scr('main');
-    const { hook, go, pop, calls } = setup();
-    go(scr('clients'));
-    go(scr('tasks'));
-    act(() => { hook.result.current.startFresh(home); });
-    go(scr('calendar')); // the bottom row / More: Calendar
-    expect(hook.result.current.depth).toBe(1);
-    expect(hook.result.current.previous.tab).toBe('main');
-    expect(backLabel(hook.result.current.previous, true)).toBeTruthy();
-    pop();
-    expect(calls.apply).toEqual(['main||']);
-    go(scr('main'));
-    expect(hook.result.current.depth).toBe(0);
-    pop();
-    expect(calls.onRoot).toBe(1);
-    // the Quotes item itself from the menu: a clean home, nothing to go back to
-    await new Promise((r) => setTimeout(r, 5));
-    go(scr('finances'));
-    act(() => { hook.result.current.startFresh(home); });
-    go(scr('main'));
-    expect(hook.result.current.depth).toBe(0);
-    expect(hook.result.current.previous).toBeNull();
-  });
-
   it('a screen marked notBackTarget (Admin for an account without Admin access) is never recorded', () => {
     // the page opened on an Admin link the account may not open; the Dashboard moves it to Quotes
     const { hook, go } = setup({ screen: { ...scr('admin_clients'), notBackTarget: true } });

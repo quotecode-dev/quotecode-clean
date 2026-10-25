@@ -56,7 +56,7 @@ const draftAsRow = (d) => ({
   show_phone: d.showPhone, show_whatsapp: d.showWhatsapp, show_email: d.showEmail, show_address: d.showAddress,
 });
 
-export default function BusinessCardSettings({ isHebrew, isLocalIsraeliBusiness, client, userId, bizName, bizPhone, bizEmail, bizAddress, bizLogoUrl, onBack, profile, registerLeaveGuard = null }) {
+export default function BusinessCardSettings({ isHebrew, isLocalIsraeliBusiness, client, userId, bizName, bizPhone, bizEmail, bizAddress, bizLogoUrl, onBack, profile }) {
   const C = BUSINESS_CARD_SETTINGS_COPY[isHebrew ? 'he' : 'en'];
   const Arrow = isHebrew ? ArrowRight : ArrowLeft;
   const uid = useId();
@@ -64,8 +64,6 @@ export default function BusinessCardSettings({ isHebrew, isLocalIsraeliBusiness,
   const [publicStatus, setPublicStatus] = useState('checking');
   // QA 2026-10-25: the public page status is checked again after each successful save (it no longer says "not found" until re-entry)
   const [statusRun, setStatusRun] = useState(0);
-  // Owner 2026-10-25 (typed L-15 / L-01 / L-09): the phone Back and a menu item ask the same unsaved question as this screen's Back
-  useEffect(() => (typeof registerLeaveGuard === 'function' ? registerLeaveGuard(() => !profile.dirty || window.confirm(C.leaveUnsaved)) : undefined), [registerLeaveGuard, profile.dirty, C]);
   const [copied, setCopied] = useState(false);
   const [photoError, setPhotoError] = useState('');
   const draft = profile.draft;
@@ -136,7 +134,7 @@ export default function BusinessCardSettings({ isHebrew, isLocalIsraeliBusiness,
       <style>{css}</style>
       <div className="pf-bcs-top">
         {/* PRODUCT_TRUTH_DECORATIVE: navigation back to the Business settings screen; changes no data */}
-        <button type="button" className="pf-bcs-btn" onClick={() => { if (!profile.dirty || window.confirm(C.leaveUnsaved)) onBack(); }} data-testid="business-card-back"><Arrow size={15} />{C.back}</button>
+        <button type="button" className="pf-bcs-btn" onClick={onBack} data-testid="business-card-back"><Arrow size={15} />{C.back}</button>
         {shareUrl && (
           // PRODUCT_TRUTH_CAPABILITY: digital_business_card
           <button type="button" className="pf-bcs-btn pri" onClick={async () => flashCopied(await shareOrCopy(shareUrl, card?.businessName || bizName))} data-testid="business-card-top-share">
