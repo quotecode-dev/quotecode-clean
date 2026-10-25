@@ -24,7 +24,12 @@ describe('admin subscription status (Owner 2026-10-16, admin spec §5)', () => {
     expect(accountStatus({ plan: 'pro' }, null, NOW).key).toBe('free10_inactive'); // the legacy plan field never makes a paying account
     expect(accountStatus({ trial_ends_at: '2026-10-20T00:00:00Z' }, null, NOW).key).toBe('trial');
     expect(accountStatus({ trial_ends_at: '2026-10-01T00:00:00Z' }, null, NOW).key).toBe('trial_ended');
-    expect(accountStatus({}, { state: 'ready', subscriptionStatus: 'past_due' }, NOW).key).toBe('free10_inactive');
+    // Owner console 2026-10-25 (typed findings 1-13 approval, L-01): a paid account whose renewal failed / that is limited is said so -
+    // never "10 free quotes - not yet active" or "active subscription"
+    expect(accountStatus({}, { state: 'ready', planId: 'all_inclusive', subscriptionStatus: 'past_due' }, NOW).key).toBe('paid_past_due');
+    expect(accountStatus({}, { state: 'ready', planId: 'all_inclusive', subscriptionStatus: 'active', billing: { limited: true } }, NOW).key).toBe('paid_limited');
+    expect(accountStatus({}, { state: 'ready', planId: 'free', subscriptionStatus: 'none', phase: { output: 'enforced' },
+      free10: { consumed: 3, reserved: 0, remaining: 7, periodEnded: true } }, NOW)).toMatchObject({ key: 'free10', remaining: 0, periodEnded: true });
     expect(Object.keys(ACCOUNT_STATUS)).not.toContain('none');
   });
 
@@ -53,7 +58,9 @@ describe('admin subscription status (Owner 2026-10-16, admin spec §5)', () => {
     expect(kinds[main.indexOf('lifetime')]).toBe('lifetime');
     expect(kinds[main.indexOf('paid_monthly')]).toBe('plan');
     for (const kind of Object.values(STATUS_MEDALLION_KIND)) expect(PLAN_MEDALLION_VISUAL[kind], kind).toBeTruthy();
-    expect(ACCOUNT_STATUS_ORDER).toHaveLength(Object.keys(ACCOUNT_STATUS).length);
+    // findings 1-13 (2026-10-25): paid_past_due / paid_limited are the account's own view - not admin filter / count rows (its server
+    // function does not know them yet)
+    expect([...ACCOUNT_STATUS_ORDER, 'paid_past_due', 'paid_limited'].sort()).toEqual(Object.keys(ACCOUNT_STATUS).sort());
   });
 
   // Owner console 2026-10-16 (approval naming L-03): "the icon in the user interface and the admin must be the same"
@@ -78,12 +85,19 @@ describe('admin subscription status (Owner 2026-10-16, admin spec §5)', () => {
 
   it('the plans window line states the same status, a date only where one exists', () => {
     const fmt = () => '20/10/2099';
-    expect(accountStatusSentence({ key: 'trial', until: 'x' }, true, fmt)).toBe('יש לך תקופת ניסיון עד 20/10/2099');
+    // findings 1-13 (2026-10-25): the plural address everywhere
+    expect(accountStatusSentence({ key: 'trial', until: 'x' }, true, fmt)).toBe('יש לכם תקופת ניסיון עד 20/10/2099');
     expect(accountStatusSentence({ key: 'trial_ended' }, false, fmt)).toBe('Your trial has ended');
-    expect(accountStatusSentence({ key: 'paid_monthly' }, true, fmt)).toBe('יש לך מנוי חודשי פעיל');
-    expect(accountStatusSentence({ key: 'paid_unverified' }, true, fmt)).toBe('יש לך מנוי פעיל');
+    expect(accountStatusSentence({ key: 'paid_monthly' }, true, fmt)).toBe('יש לכם מנוי חודשי פעיל');
+    expect(accountStatusSentence({ key: 'paid_unverified' }, true, fmt)).toBe('יש לכם מנוי פעיל');
+    expect(accountStatusSentence({ key: 'paid_past_due' }, true, fmt)).toBe('החיוב האחרון של המנוי לא עבר, ונחייב שוב את הכרטיס השמור');
+    expect(accountStatusSentence({ key: 'paid_past_due' }, false, fmt)).toBe('Your last subscription charge did not go through; the saved card will be charged again');
+    expect(accountStatusSentence({ key: 'paid_limited' }, true, fmt)).toBe('המנוי שלכם הסתיים, והחשבון מוגבל');
+    expect(accountStatusSentence({ key: 'paid_limited' }, false, fmt)).toBe('Your subscription has ended, and your account is limited');
+    expect(accountStatusSentence({ key: 'free10', consumed: 3, total: 10, periodEnded: true }, true, fmt)).toBe('7 ימי החינם שלכם הסתיימו (ניצלתם 3 מתוך 10 הצעות)');
+    expect(accountStatusSentence({ key: 'free10', consumed: 3, total: 10, periodEnded: true }, false, fmt)).toBe('Your 7 free days have ended (3 of 10 free quotes used)');
     expect(accountStatusSentence({ key: 'free10', consumed: 3, reserved: 1, total: 10 }, true, fmt)).toBe('ניצלתם 3 מתוך 10 הצעות חינם (1 בתהליך)');
-    expect(accountStatusSentence({ key: 'free10_inactive' }, true, fmt)).toBe('10 ההצעות החינמיות שלך עוד לא הופעלו, והחשבון אינו מוגבל');
+    expect(accountStatusSentence({ key: 'free10_inactive' }, true, fmt)).toBe('10 ההצעות החינמיות שלכם עוד לא הופעלו, והחשבון אינו מוגבל');
     const dash = fs.readFileSync('src/pages/Dashboard.jsx', 'utf8');
     expect(dash).toMatch(/statusLine=\{accountStatusSentence\(ownSubscriptionStatus, isHebrew, statusDate\)\}/);
     expect(fs.readFileSync('src/components/PricingModal.jsx', 'utf8')).toMatch(/data-testid="plans-modal-subscription-status" role="status"/);

@@ -1,6 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useContext } from 'react';
 import { supabase } from './shared/supabase';
-import { X, Send, MessageSquarePlus, ChevronLeft, ChevronRight, FileText, LifeBuoy, CreditCard, Building2, MessageSquare, History, Mic, Square, Volume2, VolumeX, Paperclip } from 'lucide-react';
+import { X, Send, MessageSquarePlus, ChevronLeft, ChevronRight, FileText, LifeBuoy, CreditCard, Building2, MessageSquare, History, Mic, Square, Volume2, VolumeX, Paperclip, LayoutList } from 'lucide-react';
+import { AccountSummaryContext } from './domain/subscriptions/AccountSummaryContext';
+import { decideSmartPack } from '../supabase/functions/_shared/subscriptionContract.ts';
+import { smartPackPurchasePath } from '../supabase/functions/_shared/smartPackGate.ts';
 import { NEON } from './theme/neonTheme';
 import {
   buildPublicChatStorageKey,
@@ -476,7 +479,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   // (voice by default; voice / voice and text / text only) - signed-in dashboard chat only, where the browser can record.
   const voiceCopy = isHebrew ? VOICE_COPY.he : VOICE_COPY.en;
   const [voiceEnabled] = useState(() => Boolean(isDashboard) && voiceSupported());
-  const [voiceMode, setVoiceMode] = useState(() => readVoiceMode());
+  const [savedVoiceMode, setVoiceMode] = useState(() => readVoiceMode());
   const [voiceMenuOpen, setVoiceMenuOpen] = useState(false);
   const [recording, setRecording] = useState(false);
   const [recordSeconds, setRecordSeconds] = useState(0);
@@ -717,17 +720,29 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   }, [isOpen, guidedGroup, guidedIntent]);
 
   const addVoiceNote = (content) => setMessages((prev) => [...prev, withCreatedAt({ role: 'system-note', content })]);
+  // Owner console 2026-10-25 (typed: "מאשר שינוי ב-L-05: יכולות חכם פלוס נחסמות ברגע הלחיצה למי שאין לו חכם פלוס"): voice chat is
+  // SMART PACK - without it (the server summary, plan system enforced) the click adds the SMART PACK note with the plans button; the
+  // microphone never opens
+  const { summary: accountSummary, openPlans } = useContext(AccountSummaryContext);
+  const smartPackLocked = Boolean(isDashboard) && decideSmartPack(accountSummary).allowed === false;
+  // the plans button and "you can add it" only where the plans window can sell it now (findings 1-13, 2026-10-25)
+  const addSmartPackNote = () => {
+    const path = smartPackPurchasePath(accountSummary) !== null;
+    setMessages((prev) => [...prev, withCreatedAt({ role: 'system-note', content: path ? voiceCopy.smartPack : voiceCopy.smartPackNoPath, plansAction: path })]);
+  };
+  // without SMART PACK the answers are written only (a saved spoken mode never hides an answer behind a voice that does not play)
+  const voiceMode = smartPackLocked ? 'text' : savedVoiceMode;
   const stopPlayback = () => {
     try { audioRef.current?.pause(); } catch { /* already stopped */ }
     audioRef.current = null;
   };
   const speakAnswer = async (text) => {
-    if (!voiceEnabled || !text) return;
+    if (!voiceEnabled || !text || smartPackLocked) return;
     if (!readVoiceDisclosed()) { saveVoiceDisclosed(); addVoiceNote(voiceCopy.disclosure); }
     try {
       const { data, error } = await supabase.functions.invoke('voice-ai', { body: { mode: 'speak', text } });
       // Owner 2026-10-20 (typed L-17 approval): 403 = voice is SMART PACK (the plan system is enforced)
-      if (error) { if (error?.context?.status === 429) addVoiceNote(voiceCopy.limit); else if (error?.context?.status === 403) addVoiceNote(voiceCopy.smartPack); return; }
+      if (error) { if (error?.context?.status === 429) addVoiceNote(voiceCopy.limit); else if (error?.context?.status === 403) addSmartPackNote(); return; }
       if (!data?.ok || !data.audio) return;
       stopPlayback();
       const url = URL.createObjectURL(base64ToBlob(data.audio, data.mime || 'audio/mpeg'));
@@ -739,6 +754,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   };
   const startRecording = async () => {
     if (!voiceEnabled || recording || transcribing || loading) return;
+    if (smartPackLocked) { addSmartPackNote(); return; }
     stopPlayback();
     let stream;
     try { stream = await navigator.mediaDevices.getUserMedia({ audio: true }); } catch { addVoiceNote(voiceCopy.micDenied); return; }
@@ -757,7 +773,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
       try {
         const audio = await blobToBase64(blob);
         const { data, error } = await supabase.functions.invoke('voice-ai', { body: { mode: 'transcribe', audio, mime: blob.type } });
-        if (error) { addVoiceNote(error?.context?.status === 429 ? voiceCopy.limit : error?.context?.status === 403 ? voiceCopy.smartPack : voiceCopy.failed); return; }
+        if (error) { if (error?.context?.status === 403) addSmartPackNote(); else addVoiceNote(error?.context?.status === 429 ? voiceCopy.limit : voiceCopy.failed); return; }
         const text = data?.ok ? String(data.text || '').trim() : '';
         if (!text) { addVoiceNote(voiceCopy.failed); return; }
         await sendTextRef.current?.(text);
@@ -776,6 +792,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
   };
   const stopRecording = () => { try { recorderRef.current?.stop(); } catch { /* already stopped */ } };
   const chooseVoiceMode = (mode) => {
+    if (mode !== 'text' && smartPackLocked) { setVoiceMenuOpen(false); addSmartPackNote(); return; }
     setVoiceMode(mode);
     saveVoiceMode(mode);
     setVoiceMenuOpen(false);
@@ -1382,6 +1399,13 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                         // handleSend's apiMessages filter).
                         <div style={{ alignSelf: 'center', fontSize: '0.72rem', color: NEON.textSecondary, fontStyle: 'italic', textAlign: 'center', padding: '2px 8px' }}>
                           {msg.content}
+                          {msg.plansAction && typeof openPlans === 'function' && (
+                            // PRODUCT_TRUTH_DECORATIVE: opens the plans window (where SMART PACK is added); buys nothing by itself
+                            <button type="button" data-testid="ai-chat-smart-pack-plans" onClick={() => { setIsOpen(false); openPlans(); }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '6px', margin: '6px auto 0', minHeight: '36px', padding: '0 14px', borderRadius: '8px', border: 'none', background: NEON.gradient, color: 'white', fontWeight: 700, fontStyle: 'normal', fontSize: '0.8rem', cursor: 'pointer' }}>
+                              <LayoutList size={14} aria-hidden="true" />{isHebrew ? 'לחלון המסלולים' : 'View plans'}
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: msg.role === 'user' ? (isHebrew ? 'flex-start' : 'flex-end') : (isHebrew ? 'flex-end' : 'flex-start'), maxWidth: '85%' }}>

@@ -106,13 +106,20 @@ export type ProviderEvent = { providerEventId: string; type: EventType; occurred
   /** PayPlus phase 1: what the provider says was charged - compared for EQUALITY with the server attempt in SQL, never a price */
   paid?: { amountMinor: number; currency: 'ILS' | 'USD' };
   /** 20261022000000: the provider's standing-order id (+ terminal) - a renewal without our attempt id reaches the bound attempt in SQL */
-  standingOrder?: { recurringRef: string; terminalRef: string | null } };
+  standingOrder?: { recurringRef: string; terminalRef: string | null };
+  /** 20261025300000: a SMART PACK add-on page of an active subscriber (never together with a package attempt or a standing order) */
+  addOnId?: string };
 export type WebhookRejection = 'invalid_signature' | 'stale_timestamp' | 'untrusted_source' | 'invalid_event' | 'provider_unavailable';
 export type WebhookVerification = { ok: true; event: ProviderEvent } | { ok: false; reason: WebhookRejection };
 /** 20261022200000: what the provider answers for a payment page the server asks about (no callback needed). approved = the first
  *  charge succeeded and the standing order is live; the amount / currency are compared for EQUALITY in SQL, never a price. */
 export type PulledCheckout = { attemptId: string | null; recurringRef: string; amountMinor: number | null; currency: 'ILS' | 'USD' | null;
   approved: boolean; payloadSha256: string };
+/** 20261025300000: what the provider answers for a SMART PACK add-on page (a one-time charge) */
+export type PulledAddOn = { addOnId: string | null; amountMinor: number | null; currency: 'ILS' | 'USD' | null; approved: boolean; payloadSha256: string };
+/** 20261025300000: what the SMART PACK line on the live package's standing order needs (from SQL: smart_pack_add_on_line_begin) */
+export type SmartPackLineRequest = { addOnId: string; packageAttemptId: string; recurringRef: string; terminalRef: string; packageRequestRef: string;
+  packageAmountMinor: number; addOnAmountMinor: number; period: BillingPeriod; currency: 'ILS'; nextChargeDate: string };
 
 /** Owner 2026-10-25 (the first real charge came back as "General Customer" with no email - no invoice, no approval email): the
  *  paying account's own business details from its settings row; each value is optional and validated before use. */
@@ -138,6 +145,12 @@ export interface BillingProvider {
   verifyWebhook(rawBody: Uint8Array, headers: Headers, nowMs: number): Promise<WebhookVerification>;
   /** 20261022200000: the result of a payment page by its request id (createCheckout's pageRequestUid); null = nothing to read yet */
   pullCheckout?(pageRequestUid: string): Promise<PulledCheckout | null>;
+  /** 20261025300000: the one-time SMART PACK page of an active subscriber (the server's pro-rata amount) */
+  createAddOnCheckout?(i: { addOnId: string; currency: 'ILS'; amountMinor: number; billingPeriod: BillingPeriod; customer?: CheckoutCustomer | null }):
+    Promise<{ redirectUrl: string; pageRequestUid?: string } | null>;
+  pullAddOnCheckout?(pageRequestUid: string): Promise<PulledAddOn | null>;
+  /** the SMART PACK line on the live package's standing order: 'unknown' = no answer (tried again later) */
+  addSmartPackLine?(i: SmartPackLineRequest): Promise<'added' | 'not_added' | 'unknown'>;
 }
 
 // The only provider available today: none (OPEN-12). Checkout is unavailable and every webhook is refused.
@@ -152,13 +165,19 @@ const isIso = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2
 /** Strict allowlist parse of a (verified) provider payload. Unknown fields are dropped, never copied. */
 export function parseProviderEvent(raw: unknown): ProviderEvent | null {
   if (!isObj(raw)) return null;
-  const { id, type, occurredAt, attemptId, userId, line, recurringRef, terminalRef } = raw;
+  const { id, type, occurredAt, attemptId, userId, line, recurringRef, terminalRef, addOnId } = raw;
   if (typeof id !== 'string' || id.length < 1 || id.length > 200 || !(EVENT_TYPES as readonly string[]).includes(type as string) || !isIso(occurredAt)) return null;
   const t = type as EventType;
   const att = attemptId === undefined || attemptId === null ? null : attemptId;
   const uid = userId === undefined || userId === null ? null : userId;
   if (att !== null && (typeof att !== 'string' || !UUID.test(att))) return null;
   if (uid !== null && (typeof uid !== 'string' || !UUID.test(uid))) return null;
+  // 20261025300000: a SMART PACK add-on page event - a payment / failure / refund of that page only
+  if (addOnId !== undefined && addOnId !== null) {
+    if (typeof addOnId !== 'string' || !UUID.test(addOnId) || att !== null || (line !== undefined && line !== null)
+        || !['payment_confirmed', 'payment_failed', 'refund'].includes(t)) return null;
+    return { providerEventId: id, type: t, occurredAt, attemptId: null, userId: uid, line: null, addOnId };
+  }
   const ref = (v: unknown) => (typeof v === 'string' && v.length >= 1 && v.length <= 200 ? v : null);
   if (recurringRef !== undefined && recurringRef !== null && !ref(recurringRef)) return null;
   if (terminalRef !== undefined && terminalRef !== null && !ref(terminalRef)) return null;
@@ -252,6 +271,25 @@ export interface BillingSql {
     paidAmountMinor?: number; paidCurrency?: string; recurringRef?: string; terminalRef?: string | null }): Promise<Record<string, unknown>>;
   /** apply_verified_line_event(provider, provider_event_id, user_id, line_type, quantity, price_version_id, effective_from, provider_ref) */
   applyVerifiedLineEvent(e: { provider: string; providerEventId: string; userId: string; lineType: string; quantity: number; priceVersionId: string; effectiveFrom: string; providerRef: string; removal: boolean }): Promise<Record<string, unknown>>;
+  // 20261025300000 (Owner 2026-10-25 "ב: חיוב יחסי עכשיו"): SMART PACK for an active subscriber - a one-time pro-rata charge, then the line
+  /** smart_pack_add_on_quote(p_user_id) */
+  smartPackAddOnQuote?(userId: string): Promise<Record<string, unknown>>;
+  /** create_smart_pack_add_on_intent(p_user_id, p_idempotency_key) */
+  createSmartPackAddOnIntent?(userId: string, idempotencyKey: string): Promise<Record<string, unknown>>;
+  /** smart_pack_add_on_page / record_smart_pack_add_on_page (set once; the stored page wins) */
+  smartPackAddOnPage?(addOnId: string, userId: string): Promise<string | null>;
+  recordSmartPackAddOnPage?(addOnId: string, userId: string, url: string, requestRef: string | null): Promise<string | null>;
+  /** smart_pack_add_on_pull_targets(p_user_id) / record_smart_pack_add_on_pull(...) */
+  smartPackAddOnPullTargets?(userId: string): Promise<unknown>;
+  recordSmartPackAddOnPull?(p: { addOnId: string; userId: string; providerAddOnId: string | null; paidAmountMinor: number | null; paidCurrency: string | null;
+    payloadSha256: string }): Promise<Record<string, unknown>>;
+  /** record_smart_pack_add_on_payment(provider, provider_event_id, event_type, add_on_id, provider_event_time, payload_sha256, paid_amount_minor, paid_currency) */
+  recordSmartPackAddOnPayment?(e: { provider: string; providerEventId: string; eventType: string; addOnId: string; providerEventTime: string;
+    payloadSha256: string; paidAmountMinor?: number; paidCurrency?: string }): Promise<Record<string, unknown>>;
+  /** smart_pack_add_on_line_begin / _finish / _targets */
+  smartPackAddOnLineBegin?(addOnId: string): Promise<Record<string, unknown>>;
+  smartPackAddOnLineFinish?(addOnId: string, added: boolean): Promise<Record<string, unknown>>;
+  smartPackAddOnLineTargets?(userId: string): Promise<unknown>;
 }
 
 // ------------------------------------------------------------------------------------------------ checkout intent
@@ -332,6 +370,120 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
   return answer(stored);
 }
 
+// ------------------------------------------------------------------------------------------------ SMART PACK for an active subscriber
+// Owner console 2026-10-25 ("ב: חיוב יחסי עכשיו"; 20261025300000): the amount is the server's (smart_pack_add_on_quote: the SMART PACK
+// price of the package cycle x the days left of the paid period); the verified one-time payment gives SMART PACK to the period end,
+// then the SMART PACK line joins the standing order so the renewals carry it. No body amount, period or account is ever read.
+const ADD_ON_CODES: Record<string, number> = { checkout_unavailable: 503, invalid_request: 400, market_not_open: 409, not_eligible: 409,
+  already_included: 409, checkout_not_pending: 409 };
+const addOnError = (r: unknown): Resp => {
+  const code = isObj(r) ? String(r.code) : '';
+  return err(ADD_ON_CODES[code] ?? 503, ADD_ON_CODES[code] ? code : 'checkout_unavailable');
+};
+const isPeriod = (v: unknown): v is BillingPeriod => v === 'month' || v === 'year';
+
+export async function smartPackAddOnQuoteHandler(phase: BillingPhase, deps: { sql: BillingSql }, userId: string): Promise<Resp> {
+  if (phase === 'off') return err(503, 'checkout_unavailable');
+  if (typeof userId !== 'string' || !UUID.test(userId)) return err(401, 'not_authenticated');
+  if (typeof deps.sql.smartPackAddOnQuote !== 'function') return err(503, 'checkout_unavailable');
+  let r: Record<string, unknown>;
+  try { r = await deps.sql.smartPackAddOnQuote(userId); } catch { return err(503, 'checkout_unavailable'); }
+  if (!isObj(r) || r.ok !== true) return addOnError(r);
+  if (r.currency !== 'ILS' || !Number.isInteger(r.amountMinor) || (r.amountMinor as number) <= 0 || !Number.isInteger(r.recurringMinor)
+      || !isPeriod(r.period) || !isIso(r.periodEnd)) return err(503, 'checkout_unavailable');
+  return { status: 200, body: { ok: true, currency: 'ILS', amountMinor: r.amountMinor, recurringMinor: r.recurringMinor, period: r.period,
+    periodEnd: r.periodEnd, ...(Number.isInteger(r.daysLeft) ? { daysLeft: r.daysLeft } : {}) } };
+}
+
+export async function smartPackAddOnIntentHandler(phase: BillingPhase, deps: { sql: BillingSql; provider: BillingProvider }, userId: string, body: unknown): Promise<Resp> {
+  if (phase === 'off') return err(503, 'checkout_unavailable');
+  if (typeof userId !== 'string' || !UUID.test(userId)) return err(401, 'not_authenticated');
+  const key = isObj(body) ? body.idempotencyKey : undefined; // the ONLY field read
+  if (typeof key !== 'string' || !/^[A-Za-z0-9_-]{16,128}$/.test(key)) return err(400, 'invalid_request');
+  const { sql, provider } = deps;
+  if (typeof sql.createSmartPackAddOnIntent !== 'function' || typeof sql.recordSmartPackAddOnPage !== 'function'
+      || typeof provider.createAddOnCheckout !== 'function') return err(503, 'checkout_unavailable');
+  let r: Record<string, unknown>;
+  try { r = await sql.createSmartPackAddOnIntent(userId, key); } catch { return err(503, 'checkout_unavailable'); }
+  if (!isObj(r) || r.ok !== true) return addOnError(r);
+  if (typeof r.addOnId !== 'string' || !UUID.test(r.addOnId) || r.market !== OPEN_MARKET || r.currency !== 'ILS' || !Number.isInteger(r.amountMinor)
+      || (r.amountMinor as number) <= 0 || !isPeriod(r.period)) return err(503, 'checkout_unavailable');
+  if (r.state !== 'pending') return err(409, 'checkout_not_pending');
+  const addOnId = r.addOnId; const amountMinor = r.amountMinor as number;
+  const httpsPage = (v: unknown): v is string => typeof v === 'string' && /^https:\/\//.test(v);
+  const answer = (redirectUrl: string): Resp => ({ status: 200, body: { ok: true, addOnId, currency: 'ILS', amountMinor, redirectUrl, state: 'pending' } });
+  const existing = sql.smartPackAddOnPage ? await sql.smartPackAddOnPage(addOnId, userId).catch(() => null) : null;
+  if (httpsPage(existing)) return answer(existing);
+  const customer = sql.checkoutCustomer ? cleanCheckoutCustomer(await sql.checkoutCustomer(userId).catch(() => null)) : null;
+  const hosted = await provider.createAddOnCheckout({ addOnId, currency: 'ILS', amountMinor, billingPeriod: r.period as BillingPeriod,
+    ...(customer ? { customer } : {}) }).catch(() => null);
+  if (!hosted || !httpsPage(hosted.redirectUrl)) return err(503, 'checkout_unavailable');
+  const requestRef = typeof hosted.pageRequestUid === 'string' && UUID.test(hosted.pageRequestUid) ? hosted.pageRequestUid : null;
+  let stored = await sql.recordSmartPackAddOnPage(addOnId, userId, hosted.redirectUrl, requestRef).catch(() => null);
+  if (!httpsPage(stored) && sql.smartPackAddOnPage) stored = await sql.smartPackAddOnPage(addOnId, userId).catch(() => null);
+  if (!httpsPage(stored)) {
+    console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'checkout_page_not_stored', kind: 'smart_pack_add_on' }));
+    return err(503, 'checkout_unavailable');
+  }
+  return answer(stored);
+}
+
+function parseLineRequest(b: Record<string, unknown>): SmartPackLineRequest | null {
+  const s = (v: unknown, re: RegExp) => typeof v === 'string' && re.test(v);
+  if (!s(b.addOnId, UUID) || !s(b.packageAttemptId, UUID) || typeof b.recurringRef !== 'string' || !b.recurringRef || !s(b.terminalRef, UUID)
+      || !s(b.packageRequestRef, UUID) || !Number.isInteger(b.packageAmountMinor) || (b.packageAmountMinor as number) <= 0
+      || !Number.isInteger(b.addOnAmountMinor) || (b.addOnAmountMinor as number) <= 0 || !isPeriod(b.period) || b.currency !== 'ILS'
+      || !s(b.nextChargeDate, /^\d{4}-\d{2}-\d{2}$/)) return null;
+  return { addOnId: b.addOnId as string, packageAttemptId: b.packageAttemptId as string, recurringRef: b.recurringRef, terminalRef: b.terminalRef as string,
+    packageRequestRef: b.packageRequestRef as string, packageAmountMinor: b.packageAmountMinor as number, addOnAmountMinor: b.addOnAmountMinor as number,
+    period: b.period, currency: 'ILS', nextChargeDate: b.nextChargeDate as string };
+}
+
+/** the SMART PACK line on the live standing order after a verified add-on payment. 'unknown' leaves it 'requested' (tried again on the
+ *  account's next return from a payment page); every outcome but 'added' is an incident for the Owner - never silent. */
+export async function completeSmartPackLine(deps: { sql: BillingSql; provider: BillingProvider }, addOnId: string): Promise<'added' | 'not_added' | 'unknown' | 'skipped'> {
+  const { sql, provider } = deps;
+  const incident = (code: string) => console.error(JSON.stringify({ fn: 'subscription-authority', incident: code }));
+  if (typeof sql.smartPackAddOnLineBegin !== 'function' || typeof sql.smartPackAddOnLineFinish !== 'function') return 'skipped';
+  let b: Record<string, unknown>;
+  try { b = await sql.smartPackAddOnLineBegin(addOnId); } catch { incident('smart_pack_line_unknown'); return 'unknown'; }
+  if (!isObj(b) || b.ok !== true) {
+    if (isObj(b) && b.code === 'line_not_possible') { incident('smart_pack_line_not_added'); return 'not_added'; }
+    return 'skipped'; // already added / refused before: nothing to do
+  }
+  const req = parseLineRequest(b);
+  const outcome = !req || typeof provider.addSmartPackLine !== 'function' ? 'not_added'
+    : await provider.addSmartPackLine(req).catch(() => 'unknown' as const);
+  if (outcome === 'unknown') { incident('smart_pack_line_unknown'); return 'unknown'; }
+  try { await sql.smartPackAddOnLineFinish(addOnId, outcome === 'added'); } catch { incident('smart_pack_line_unknown'); return 'unknown'; }
+  if (outcome !== 'added') incident('smart_pack_line_not_added');
+  return outcome;
+}
+
+const ADD_ON_INCIDENTS = new Set(['amount_mismatch', 'second_charge', 'attempt_not_payable', 'package_not_live']);
+async function addOnWebhook(deps: { sql: BillingSql; provider: BillingProvider }, e: ProviderEvent, payloadSha256: string): Promise<Resp> {
+  if (typeof deps.sql.recordSmartPackAddOnPayment !== 'function') return err(503, 'retry_later');
+  let r: Record<string, unknown>;
+  try {
+    r = await deps.sql.recordSmartPackAddOnPayment({ provider: deps.provider.name, providerEventId: e.providerEventId, eventType: e.type,
+      addOnId: e.addOnId as string, providerEventTime: e.occurredAt, payloadSha256,
+      ...(e.paid ? { paidAmountMinor: e.paid.amountMinor, paidCurrency: e.paid.currency } : {}) });
+  } catch { return err(503, 'retry_later'); }
+  if (!isObj(r) || r.ok !== true) {
+    const code = isObj(r) ? String(r.code ?? '') : '';
+    if (code === 'unknown_attempt') return err(404, code);
+    if (code === 'invalid_event') return err(400, code);
+    return err(503, code === 'billing_off' ? code : 'retry_later');
+  }
+  const code = typeof r.code === 'string' && /^[a-z_]{1,40}$/.test(r.code) ? r.code : null;
+  if (code && ADD_ON_INCIDENTS.has(code)) {
+    console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_payment_not_applied', code }));
+  }
+  if (r.activated === true && r.lineNeeded === true) await completeSmartPackLine(deps, e.addOnId as string);
+  return { status: 200, body: { ok: true, duplicate: r.duplicate === true, ...(typeof r.outcome === 'string' && ['applied', 'stale', 'rejected', 'recorded'].includes(r.outcome) ? { outcome: r.outcome } : {}),
+    ...(r.activated === false && code ? { activated: false, code } : {}) } };
+}
+
 // ------------------------------------------------------------------------------------------------ verified webhook
 const OUTCOMES = new Set(['applied', 'stale', 'policy_pending', 'rejected']);
 export async function providerWebhookHandler(phase: BillingPhase, deps: { sql: BillingSql; provider: BillingProvider; now: () => number },
@@ -343,6 +495,7 @@ export async function providerWebhookHandler(phase: BillingPhase, deps: { sql: B
   if (!v.ok) return err(v.reason === 'invalid_event' ? 400 : v.reason === 'provider_unavailable' ? 503 : 401, v.reason); // nothing stored
   const e = v.event;
   const payloadSha256 = await sha256Hex(rawBody);
+  if (e.addOnId) return addOnWebhook(deps, e, payloadSha256); // 20261025300000: a SMART PACK add-on page
   let r: Record<string, unknown>;
   try {
     if (e.line) {
@@ -423,6 +576,37 @@ export async function checkoutStatusHandler(phase: BillingPhase, deps: { sql: Bi
     // a verified payment that opened nothing (wrong amount, another package, ...) is an incident for the Owner - never silent
     if (r.pulled === true && code && code !== 'billing_not_enforced') {
       console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'payment_not_activated', code, source: 'pull' }));
+    }
+  }
+  // 20261025300000: the account's own SMART PACK add-on pages (the same pull discipline), then the lines still to add
+  if (typeof sql.smartPackAddOnPullTargets === 'function' && typeof sql.recordSmartPackAddOnPull === 'function' && typeof provider.pullAddOnCheckout === 'function') {
+    let addOns: { addOnId: string; requestRef: string }[] = [];
+    try {
+      const raw = await sql.smartPackAddOnPullTargets(userId);
+      addOns = Array.isArray(raw) ? raw.slice(0, 3).filter((t): t is { addOnId: string; requestRef: string } =>
+        isObj(t) && typeof t.addOnId === 'string' && UUID.test(t.addOnId) && typeof t.requestRef === 'string' && UUID.test(t.requestRef)) : [];
+    } catch { addOns = []; }
+    for (const t of addOns) {
+      const p = await provider.pullAddOnCheckout(t.requestRef).catch(() => null);
+      if (!p || !p.approved) { waiting++; continue; }
+      if (p.addOnId !== t.addOnId) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'pull_attempt_mismatch', kind: 'smart_pack_add_on' })); continue; }
+      let r: Record<string, unknown>;
+      try {
+        r = await sql.recordSmartPackAddOnPull({ addOnId: t.addOnId, userId, providerAddOnId: p.addOnId, paidAmountMinor: p.amountMinor,
+          paidCurrency: p.currency, payloadSha256: p.payloadSha256 });
+      } catch { waiting++; continue; }
+      if (!isObj(r) || r.ok !== true) { waiting++; continue; }
+      if (r.activated === true) activated = true;
+      const code = typeof r.code === 'string' && /^[a-z_]{1,40}$/.test(r.code) ? r.code : null;
+      if (code && ADD_ON_INCIDENTS.has(code)) console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_payment_not_applied', code, source: 'pull' }));
+      if (r.activated === true && r.lineNeeded === true) await completeSmartPackLine(deps, t.addOnId);
+    }
+  }
+  if (typeof sql.smartPackAddOnLineTargets === 'function') {
+    let ids: unknown = [];
+    try { ids = await sql.smartPackAddOnLineTargets(userId); } catch { ids = []; }
+    for (const id of Array.isArray(ids) ? ids.slice(0, 3) : []) {
+      if (typeof id === 'string' && UUID.test(id)) await completeSmartPackLine(deps, id);
     }
   }
   return { status: 200, body: { ok: true, activated, waiting } };

@@ -144,7 +144,7 @@ export function accountIndicators(account, summary, { isHebrew, formatDate, now 
     out.push({ key: 'provisioned', tone: 'ok', text: he ? 'שויך למערכת המסלולים' : 'Provisioned' });
     if (summary.free10) {
       const enforced = outputPhaseOf(summary) === 'enforced';
-      const left = summary.free10.remaining + '/' + summary.free10.limit;
+      const left = (summary.free10.periodEnded ? 0 : summary.free10.remaining) + '/' + summary.free10.limit + (summary.free10.periodEnded ? (he ? ' (7 ימי החינם הסתיימו)' : ' (the 7 free days ended)') : '');
       out.push({ key: 'free10', tone: enforced ? 'ok' : 'muted', text: enforced ? (he ? 'Free-10: נותרו ' + left : 'Free-10: ' + left + ' left') : (he ? 'Free-10: מוכן, לא נאכף' : 'Free-10: prepared, not enforced') });
     }
     const sub = subscriptionStatusLabel(summary.subscriptionStatus, isHebrew);

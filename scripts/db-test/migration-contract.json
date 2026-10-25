@@ -447,6 +447,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-25 (\"להפעיל כל מה שצריך בכדי שמשתמש בארץ יוכל לרכוש מנוי\"; monthly + annual; Israel only): account_market from the account type + backfill, set_billing_phase accepts enforced with an attestation, create_package_checkout_intent refuses every market but IL"
+    },
+    "20261025300000_smart_pack_mid_period_add_on.sql": {
+      "sha256": "8e833eed23e4e48308d02b35c681382642166591968304127a46c6e200e99f95",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-25 (ב:"
     }
   }
 }

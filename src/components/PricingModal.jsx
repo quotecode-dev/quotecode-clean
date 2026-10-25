@@ -18,11 +18,19 @@ import AiModalHeader from './AiModalHeader';
 import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
 import { accountStatusModel, lifetimeAccountModel } from '../domain/subscriptions/accountSummaryClient';
 import PackageOfferCards from './PackageOfferCards';
-import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText, israelPurchaseOpen } from '../domain/subscriptions/packageCheckout';
+import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText, israelPurchaseOpen, plansAvailabilityLine, smartPackStatusLine, pastDueLine } from '../domain/subscriptions/packageCheckout';
+import { formatShortDate } from '../utils/shortDate';
+import SmartPackAddOnOffer from './SmartPackAddOnOffer';
 
 // Owner 2026-10-25 ("למה פשוט לא לכתוב במסלולים שהוא נמצא עכשיו במסלול חינם, למה יש לו את האופציה לבחור את זה בכלל?"): the Free plan is
 // never a card to choose - the status lines above say the account is on it (and its balance); only the paid package card, single width.
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null }) {
+// Owner console 2026-10-25 (typed: "מאשר שינוי ב-L-22 וב-L-01 ... כפתור הוספת חכם פלוס ... - מאשר"; "ב: חיוב יחסי עכשיו"): an active
+// subscriber without SMART PACK gets the add-on box (smartPackAddOn = { invoke, onLeave }, only when smartPackAddOnAvailable); back from
+// its page the return line speaks of SMART PACK (billingReturn.addOn)
+// Owner console 2026-10-25 (typed: "מאשר לתקן את ממצאים 1 עד 13 בעברית ובאנגלית, כולל שינוי ב-L-01, L-14, L-17, L-22"): the account's
+// SMART PACK line, a failed renewal's line with the service mailbox, and an availability line that says the truth (loading + retry,
+// not open abroad, billing off) instead of "cannot be purchased yet"; the card of the account's own plan opens on its own period.
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null, smartPackAddOn = null, onRetrySummary = null }) {
   const [rate, setRate] = useState(null);
   const [pay, setPay] = useState({ busy: false, error: null });
   // Owner console 2026-10-21 (typed L-22 approval): the SMART PACK box state, so the local-currency estimate follows the total
@@ -49,9 +57,13 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   const status = accountStatusModel(accountSummary, lang);
   const current = status.tone === 'plan' ? status.planId : null;
   const lifetime = isLifetime === true ? lifetimeAccountModel(lang) : null;
+  const ready = accountSummary?.state === 'ready';
+  const dateFor = (iso) => formatShortDate(iso, ready && accountSummary.market === 'IL' ? 'Local' : 'International');
+  const smartPackLine = smartPackStatusLine(accountSummary, isHebrew, dateFor);
+  const pastDue = pastDueLine(accountSummary, isHebrew);
   // back from the payment page: the words of the state; SMART PACK only from the server summary (the plan is on the line below)
   const returnText = billingReturn?.state ? billingReturnText(billingReturn.state, isHebrew, {
-    smartPack: accountSummary?.state === 'ready' && accountSummary.smartPack?.active === true,
+    smartPack: accountSummary?.state === 'ready' && accountSummary.smartPack?.active === true, addOn: billingReturn.addOn === true,
   }) : '';
   // the pay action (server billing phase on only); the server answers with the payment page of its own attempt
   const purchase = typeof onPurchase === 'function' && packageCheckoutAvailable(accountSummary, isLifetime) ? {
@@ -107,16 +119,42 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
               : status.label}
           </p>
         )}
+        {smartPackLine && (
+          <p data-testid="plans-modal-smart-pack-status" role="status" style={{ color: '#0F6672', textAlign: 'center', margin: '0 0 4px', fontSize: '0.85rem', fontWeight: 600 }}>{smartPackLine}</p>
+        )}
+        {pastDue && (
+          <p data-testid="plans-modal-past-due" role="status" style={{ color: '#b45309', textAlign: 'center', margin: '0 0 4px', fontSize: '0.85rem', fontWeight: 600 }}>
+            {pastDue.text}{' '}
+            {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the service mailbox (updating the card is handled by the team; nothing changes in the account) */}
+            <a href={`mailto:${pastDue.mail}`} style={{ color: '#0F6672' }}><bdi dir="ltr">{pastDue.mail}</bdi></a>
+          </p>
+        )}
         {/* Owner 2026-10-25: in Israel (purchase open) never "cannot be purchased yet", even for an account with nothing to buy */}
         {purchase || israelPurchaseOpen(accountSummary)
           ? <div style={{ height: '12px' }} aria-hidden="true" />
-          : <p data-testid="plans-modal-availability" style={{ color: '#64748b', textAlign: 'center', margin: '0 0 16px', fontSize: '0.85rem' }}>{m.availability}</p>}
+          : (() => {
+            const line = plansAvailabilityLine(accountSummary, isHebrew);
+            return (
+              <p data-testid="plans-modal-availability" data-kind={line ? line.kind : 'off'} role="status" style={{ color: '#64748b', textAlign: 'center', margin: '0 0 16px', fontSize: '0.85rem' }}>
+                {line ? line.text : m.availability}
+                {line?.kind === 'error' && typeof onRetrySummary === 'function' && (
+                  // PRODUCT_TRUTH_DECORATIVE: re-requests the server account summary; changes no data
+                  <button type="button" data-testid="plans-modal-retry" onClick={() => onRetrySummary()}
+                    style={{ display: 'block', margin: '8px auto 0', minHeight: 40, background: '#0F6672', color: 'white', border: 'none', borderRadius: '8px', padding: '8px 16px', fontWeight: 700, cursor: 'pointer' }}>
+                    {isHebrew ? 'טעינה מחדש' : 'Reload'}
+                  </button>
+                )}
+              </p>
+            );
+          })()}
 
-        <div style={{ marginBottom: '14px', maxWidth: '440px', marginInline: 'auto' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} purchase={purchase} onAddOnChange={setAddOnTicked} only={['all_inclusive']} /></div>
+        {/* never a second add-on page while the return from one is still being confirmed */}
+        {smartPackAddOn && !lifetime && !(billingReturn?.addOn === true && ['waiting', 'timeout'].includes(billingReturn.state)) && <SmartPackAddOnOffer isHebrew={isHebrew} invoke={smartPackAddOn.invoke} onLeave={smartPackAddOn.onLeave} />}
+        <div style={{ marginBottom: '14px', maxWidth: '440px', marginInline: 'auto' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} currentPeriod={ready ? accountSummary.billingPeriod ?? null : null} purchase={purchase} onAddOnChange={setAddOnTicked} only={['all_inclusive']} /></div>
 
         <p data-testid="plans-modal-price-note" data-price-note style={{ textAlign: 'center', color: '#334155', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 4px' }}>{m.priceNote}</p>
         {m.estimateNote && <p data-testid="plans-modal-estimate" style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '0 0 4px' }}>{addOnTicked && m.estimateNoteWithAddOn ? m.estimateNoteWithAddOn : m.estimateNote}</p>}
-        {!purchase && !israelPurchaseOpen(accountSummary) && <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>{m.notDecided}</p>}
+        {!purchase && !israelPurchaseOpen(accountSummary) && !plansAvailabilityLine(accountSummary, isHebrew) && <p style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>{m.notDecided}</p>}
         <p data-testid="plans-modal-cancellation" style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>
           {m.cancellation.text}{' '}
           {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation, nothing changes in the account) */}

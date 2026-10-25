@@ -3,7 +3,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateChatRequest, classifySupportMessage, buildSystemPrompt, CHAT_CONTRACT_VERSION } from "./validation.ts";
 import { buildVerifiedAccountContext, fetchServerAccountSummary, isHebrewFromMarket, type BusinessSettingsRow } from "./accountContext.ts";
-import { decideSmartPack, type AccountSummary } from "../_shared/subscriptionContract.ts";
+import { type AccountSummary } from "../_shared/subscriptionContract.ts";
+import { smartPackAllowedBySummary, smartPackPurchasePath } from "../_shared/smartPackGate.ts";
 import { resolveSubscriptionTruthResponse, findSubscriptionClaimViolations, safeSubscriptionAnswer } from "./subscriptionTruth.ts";
 import { ownsQuote, sanitizeQuoteContext, buildQuoteContextBlock, type RawQuoteRow } from "./quoteContext.ts";
 import { extractNavigationAction } from "./navigation.ts";
@@ -273,15 +274,18 @@ serve(async (req) => {
   // Owner LIVE check 2026-10-19: a question about the user's OWN records goes to the read-only data tools when they are available -
   // the fixed account-wide statistics keep only the plain "how many quotes do I have" (no client / period / state in it).
   // Owner 2026-10-20 (typed L-17 approval): reading the user's own data (the tools) is SMART PACK once the plan system is enforced
-  // (decideSmartPack: off / prepared / shadow / an unreadable summary keep today's access)
-  const smartPackAllowed = decideSmartPack(accountSummary).allowed;
+  // (decideSmartPack: off / prepared / shadow keep today's access). Owner console 2026-10-25 (typed L-05 approval): an unreadable
+  // summary is refused (smartPackAllowedBySummary)
+  const smartPackAllowed = smartPackAllowedBySummary(accountSummary);
   const toolsEligible = !!(verifiedUserId && isDashboard && accountContext && !draftSnapshot && smartPackAllowed);
   const ownDataQuestion = toolsEligible && isOwnDataQuestion(lastUserMessage);
   if (!smartPackAllowed && verifiedUserId && isDashboard && accountContext && !draftSnapshot
       && isOwnDataQuestion(lastUserMessage) && hasDataQualifier(lastUserMessage)) {
+    // Owner console 2026-10-25 (typed findings 1-13 approval, L-17): "the plans window", and the promise only where it can be bought now
+    const canAdd = smartPackPurchasePath(accountSummary) !== null;
     const smartPackAnswer = isHebrew
-      ? 'קריאת הנתונים שלך בצ׳אט (הצעות, לקוחות, קטלוג ומשימות) היא חלק מחכם פלוס. אפשר להוסיף אותו במסך המסלולים.'
-      : 'Reading your own data in the chat (quotes, clients, catalog and tasks) is part of SMART PACK. You can add it in the plans view.';
+      ? `קריאת הנתונים שלכם בצ׳אט (הצעות, לקוחות, קטלוג ומשימות) היא חלק מחכם פלוס.${canAdd ? ' אפשר להוסיף אותו בחלון המסלולים.' : ''}`
+      : `Reading your own data in the chat (quotes, clients, catalog and tasks) is part of SMART PACK.${canAdd ? ' You can add it in the plans window.' : ''}`;
     await logChat(smartPackAnswer);
     return deterministicResponse(smartPackAnswer, null, null);
   }

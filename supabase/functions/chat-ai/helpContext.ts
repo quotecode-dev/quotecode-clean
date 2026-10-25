@@ -156,7 +156,8 @@ export function describeAccountPlan(a: AccountPlanContext): string {
   // R-16 (Owner-approved L-11 / L-01): the team-set Lifetime flag
   if (a.isLifetime) return '- Plan: Lifetime subscription (set by the team) - every capability is open, with no charge.';
   if (a.summaryState === 'ready' && a.planId) {
-    const bal = a.planId === 'free' && typeof a.free10Remaining === 'number' ? `; Free quotes remaining: ${a.free10Remaining} of 10` : '';
+    const bal = a.planId === 'free' && a.free10PeriodEnded ? '; the 7 free days have ended (no Free quotes left)'
+      : a.planId === 'free' && typeof a.free10Remaining === 'number' ? `; Free quotes remaining: ${a.free10Remaining} of 10` : '';
     return `- Plan (server account summary): ${a.planId}${bal}; subscription status: ${a.subscriptionStatus ?? 'none'}; output phase: ${a.outputPhase}.`;
   }
   return `- Plan: no active plan - the server account summary state is "${a.summaryState}" (the new plan system is not active for this account). Do not state or guess a plan, a balance or a trial.`;

@@ -27,14 +27,15 @@ export type AccountPlanContext = {
   // 'ready' only when the server returned a valid account-summary/v1 for this user; every other state means "no plan fact".
   summaryState: SummaryState;
   planId: PlanId | null; // only when summaryState === 'ready'
-  free10Remaining: number | null; // only for a ready Free account
+  free10Remaining: number | null; // only for a ready Free account (0 once the 7 free days ended - Owner console 2026-10-25, findings 1-13)
+  free10PeriodEnded: boolean; // the 7 free days ended (the server summary)
   subscriptionStatus: string | null; // only when ready
   outputPhase: ActivationPhase; // 'off' unless ready
   isLifetime: boolean; // the explicit team-set Lifetime flag of business_settings; false when unknown
 };
 
 export const NO_ACCOUNT_PLAN: AccountPlanContext = Object.freeze({
-  summaryState: 'unavailable', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off', isLifetime: false,
+  summaryState: 'unavailable', planId: null, free10Remaining: null, free10PeriodEnded: false, subscriptionStatus: null, outputPhase: 'off', isLifetime: false,
 });
 
 export function accountPlanFromSummary(summary: AccountSummary | null | undefined): AccountPlanContext {
@@ -45,7 +46,8 @@ export function accountPlanFromSummary(summary: AccountSummary | null | undefine
   return Object.freeze({
     summaryState: 'ready',
     planId: summary.planId,
-    free10Remaining: summary.planId === 'free' && summary.free10 ? summary.free10.remaining : null,
+    free10Remaining: summary.planId === 'free' && summary.free10 ? (summary.free10.periodEnded ? 0 : summary.free10.remaining) : null,
+    free10PeriodEnded: summary.planId === 'free' && summary.free10 ? summary.free10.periodEnded === true : false,
     subscriptionStatus: summary.subscriptionStatus,
     outputPhase: summary.phase.output,
     isLifetime: false,

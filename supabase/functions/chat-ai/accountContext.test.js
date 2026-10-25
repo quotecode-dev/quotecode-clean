@@ -23,8 +23,11 @@ const READY_VISUAL = {
 describe('accountPlanFromSummary - plan facts only from a READY server summary', () => {
   it('a ready Free summary yields the canonical plan id and the Free-10 balance', () => {
     expect(accountPlanFromSummary(parseAccountSummary(READY_FREE))).toEqual({
-      summaryState: 'ready', planId: 'free', free10Remaining: 7, subscriptionStatus: 'none', outputPhase: 'enforced', isLifetime: false,
+      summaryState: 'ready', planId: 'free', free10Remaining: 7, free10PeriodEnded: false, subscriptionStatus: 'none', outputPhase: 'enforced', isLifetime: false,
     });
+    // Owner console 2026-10-25 (findings 1-13): the 7 free days ended = nothing left, whatever the count
+    expect(accountPlanFromSummary(parseAccountSummary({ ...READY_FREE, free10: { ...READY_FREE.free10, periodEnded: true, endsAt: '2026-10-20T00:00:00.000Z' } })))
+      .toMatchObject({ free10Remaining: 0, free10PeriodEnded: true });
   });
   it('a ready paid summary yields the plan and no Free balance', () => {
     expect(accountPlanFromSummary(parseAccountSummary(READY_VISUAL))).toMatchObject({ summaryState: 'ready', planId: 'visual', free10Remaining: null, subscriptionStatus: 'active' });
@@ -38,7 +41,7 @@ describe('accountPlanFromSummary - plan facts only from a READY server summary',
     ['garbage', 'invalid'],
   ])('summary %j -> state %s, and NO plan / balance at all', (raw, state) => {
     const a = accountPlanFromSummary(parseAccountSummary(raw));
-    expect(a).toEqual({ summaryState: state, planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off', isLifetime: false });
+    expect(a).toEqual({ summaryState: state, planId: null, free10Remaining: null, free10PeriodEnded: false, subscriptionStatus: null, outputPhase: 'off', isLifetime: false });
   });
   it('no summary at all -> unavailable, no plan', () => {
     expect(accountPlanFromSummary(null)).toEqual(NO_ACCOUNT_PLAN);
@@ -88,7 +91,7 @@ describe('buildVerifiedAccountContext - minimal safe field allowlist', () => {
   it('never includes role, business name, tax id, address, phone, or any other non-allowlisted field on the returned object', () => {
     const ctx = buildVerifiedAccountContext({ role: 'super_admin', country: 'Local', business_name: 'X', tax_id: '1', phone: '2' }, 'main');
     expect(Object.keys(ctx).sort()).toEqual(['account', 'currentArea', 'market']);
-    expect(Object.keys(ctx.account).sort()).toEqual(['free10Remaining', 'isLifetime', 'outputPhase', 'planId', 'subscriptionStatus', 'summaryState']);
+    expect(Object.keys(ctx.account).sort()).toEqual(['free10PeriodEnded', 'free10Remaining', 'isLifetime', 'outputPhase', 'planId', 'subscriptionStatus', 'summaryState']);
   });
   it('carries the allowlisted currentArea through unchanged', () => {
     expect(buildVerifiedAccountContext({ country: 'Local' }, 'catalog').currentArea).toBe('catalog');

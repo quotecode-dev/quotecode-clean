@@ -1,7 +1,7 @@
 {
   "src/AIChatWidget.jsx": {
-    "interactive": 26,
-    "markers": 26
+    "interactive": 27,
+    "markers": 27
   },
   "src/App.jsx": {
     "interactive": 3,
@@ -260,8 +260,8 @@
     "markers": 0
   },
   "src/components/PricingModal.jsx": {
-    "interactive": 3,
-    "markers": 3
+    "interactive": 5,
+    "markers": 5
   },
   "src/components/ProFlowLogo.jsx": {
     "interactive": 0,
@@ -336,6 +336,10 @@
     "markers": 3
   },
   "src/components/SignOutModal.jsx": {
+    "interactive": 2,
+    "markers": 2
+  },
+  "src/components/SmartPackAddOnOffer.jsx": {
     "interactive": 2,
     "markers": 2
   },

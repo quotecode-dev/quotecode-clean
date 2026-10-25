@@ -138,7 +138,8 @@ describe('Dashboard: the Free-10 check precedes any insert / reservation on ever
     // Owner 2026-10-24 (typed L-15): the new-quote paths pass their kind (the business-details return reopens the same kind)
     expect(dash).toMatch(/const handleCreateNewQuoteClick = \(variant\) => \{\s*if \(free10Blocked\(\)\) return false;/);
     expect(dash).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\('structured'\) === false\) return;/);
-    expect(dash).toMatch(/const handleCreateAiQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\('ai'\) === false\) return;/);
+    // Owner console 2026-10-25 (typed L-05 approval): without SMART PACK the branch runs the Free-10 check itself before any notice
+    expect(dash).toMatch(/const handleCreateAiQuoteClick = \(\) => \{\r?\n(?:\s*\/\/[^\r\n]*\r?\n)*\s*if \(!smartPackAllowed\) \{ if \(!free10Blocked\(\)\) setLockedCapability\('smart_pack'\); return; \}\s*if \(handleCreateNewQuoteClick\('ai'\) === false\) return;/);
     expect(dash).toMatch(/const handleDuplicateQuote = async \(quote\) => \{\s*if \(free10Blocked\(\)\) return;/);
     const save = dash.slice(dash.indexOf('async function handleSaveQuote'), dash.indexOf('const saveResult = await persistQuote('));
     expect(save).toMatch(/if \(!editingQuoteId && free10Blocked\(\)\) return;/);
