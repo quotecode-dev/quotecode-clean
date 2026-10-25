@@ -1849,28 +1849,6 @@ export const AI_FACTS = {
       }
     },
     {
-      "id": "quote_status_mark",
-      "capabilityIds": [
-        "quote_status"
-      ],
-      "he": {
-        "task": "סימון מצב הצעה (נשלחה, אושרה, שולמה)",
-        "steps": [
-          "ברשימת \"הצעות מחיר\" לוחצים \"פתיחה\" ליד ההצעה ואז \"עריכה\".",
-          "בשלב \"בדיקה ושמירה\", בשדה \"מצב ההצעה\", בוחרים \"נשלחה\", \"אושרה\" או \"שולמה\", ולוחצים \"עדכון ההצעה בענן\". המצב רק מסמן את ההצעה; הוא לא גובה תשלום.",
-          "הצעה שאושרה, שולמה או שהלקוח חתם עליה נעולה: אי אפשר לערוך אותה, וגם לא לשנות את המצב שלה (\"לא ניתן לערוך הצעה חתומה\")."
-        ]
-      },
-      "en": {
-        "task": "Marking a quote's status (Sent, Approved, Paid)",
-        "steps": [
-          "In the \"Quotes\" list click \"Open\" next to the quote, then \"Edit\".",
-          "In the \"Review and save\" step, in \"Quote status\", choose \"Sent\", \"Approved\" or \"Paid\" and click \"Update Quote in Cloud\". The status only marks the quote; it does not collect payment.",
-          "A quote that is approved, paid or signed by the client is locked: it cannot be edited and its status cannot change either (\"Cannot edit a signed quote\")."
-        ]
-      }
-    },
-    {
       "id": "email_not_received",
       "capabilityIds": [
         "quote_email"

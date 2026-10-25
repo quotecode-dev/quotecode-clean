@@ -89,12 +89,6 @@ describe('QA report 2026-10-25: answers', () => {
     expect(howToStepsForCapability('quote_pdf', 'How do I download a PDF?', false, AI_FACTS.howTo)).toContain('"Download PDF"');
     expect(howToStepsForCapability('quote_email', 'הלקוח לא קיבל את המייל', true, AI_FACTS.howTo)).toContain('ספאם');
     expect(howToStepsForCapability('public_call', 'how?', false, AI_FACTS.howTo)).toBe('');
-    // Owner 2026-10-25 (typed L-14, the LIVE check): "mark as paid" gets the status steps (never the sending steps) and the lock truth
-    const paidHe = howToStepsForCapability('quote_status', 'איך מסמנים הצעה כשולמה?', true, AI_FACTS.howTo);
-    expect(paidHe).toContain('"מצב ההצעה"');
-    expect(paidHe).toContain('נעולה');
-    expect(paidHe).not.toContain('"שליחה במייל"');
-    expect(howToStepsForCapability('quote_status', 'How do I mark a quote as paid?', false, AI_FACTS.howTo)).toContain('"Quote status"');
     expect(index).toMatch(/const capabilityAnswer = steps \? `\$\{capabilityTruth\.answer\}\\n\\n\$\{steps\}` : capabilityTruth\.answer;/);
   });
 

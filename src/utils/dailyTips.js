@@ -10,11 +10,10 @@ export const tipStorageKey = (userId) => `tekango.dailyTips.v${TIP_STATE_VERSION
 // priority order: the first eligible, unseen tip wins
 export const DAILY_TIPS = Object.freeze([
   Object.freeze({
-    // Owner console 2026-10-25, typed: "מאשר שינוי ב-L-11 ו-L-17: השם \"שיפור ההצעה\" גם בטיפ היומי" - the button's name since 24/10
     id: 'twin_before_send', icon: 'twin', action: 'twin',
     when: (c) => !!c.unsentQuote,
-    he: { text: 'לפני השליחה, "שיפור ההצעה" מראה איך הלקוח יראה את ההצעה: מה ישכנע אותו ומה עלול להרתיע.', action: 'לבדוק את ההצעה' },
-    en: { text: 'Before you send it, "Improve quote" shows how your customer will see the quote: what will convince them and what may put them off.', action: 'Check the quote' },
+    he: { text: 'לפני השליחה, "בדיקת הלקוח" מראה איך הלקוח יראה את ההצעה: מה ישכנע אותו ומה עלול להרתיע.', action: 'לבדוק את ההצעה' },
+    en: { text: 'Before you send it, "Customer check" shows how your customer will see the quote: what will convince them and what may put them off.', action: 'Check the quote' },
   }),
   Object.freeze({
     id: 'smart_quote', icon: 'ai', action: 'smart_quote',
