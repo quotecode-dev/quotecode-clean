@@ -15,8 +15,9 @@ import { formatShortDate } from '../utils/shortDate';
 import { relativeQuoteDay, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
 import { sortQuotes, normalizeSortField } from '../utils/quoteListSort';
 import NewQuoteMenu from './NewQuoteMenu';
-import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, Banknote, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search, ClipboardList, Clock } from 'lucide-react';
+import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search, ClipboardList, Clock } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
+import PaidMarkIcon from './PaidMarkIcon';
 import { nextSteps, NEXT_STEP_COPY } from '../utils/nextStep';
 import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
 import { taskMarket, marketToday, marketClock } from '../utils/manualTasks';
@@ -683,7 +684,7 @@ export default function QuotesTab({
             onClick={() => handleMarkQuotePaid(quote, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })}
             style={{ ...chipBase, background: APP_STATUS.paid.bg, color: APP_STATUS.paid.fg, border: `1px solid ${APP_STATUS.paid.border}` }}
           >
-            <Banknote size={14} color={APP_STATUS.paid.fg} strokeWidth={2.2} />
+            <PaidMarkIcon size={18} />
             <span>{isHebrew ? 'סימון כשולמה' : 'Mark as paid'}</span>
           </button>
         )}

@@ -243,6 +243,10 @@
     "interactive": 1,
     "markers": 3
   },
+  "src/components/PaidMarkIcon.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/components/PdfFileIcon.jsx": {
     "interactive": 0,
     "markers": 0

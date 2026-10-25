@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
-import { Trash2, Banknote } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
+import PaidMarkIcon from './PaidMarkIcon';
 import { APP as NEON, APP_STATUS, SHADOW, FONT_HE, FONT_EN } from '../theme/neonTheme';
 
 // רכיב מחיקה-מאשרת יחיד ומשותף לכל זרימות המחיקה באפליקציה - מחליף את כל
@@ -35,7 +36,7 @@ export default function DeleteConfirmModal({ isOpen, isHebrew, title, message, c
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
           <div style={{ width: '28px', height: '28px', borderRadius: '8px', background: isPaid ? APP_STATUS.paid.bg : APP_STATUS.error.bg, color: isPaid ? APP_STATUS.paid.fg : NEON.red, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            {isPaid ? <Banknote size={14} strokeWidth={2.4} /> : <Trash2 size={14} strokeWidth={2.4} />}
+            {isPaid ? <PaidMarkIcon size={20} /> : <Trash2 size={14} strokeWidth={2.4} />}
           </div>
           <h3 style={{ margin: 0, color: NEON.textPrimary, fontSize: '1rem', fontWeight: '800' }}>
             {title}

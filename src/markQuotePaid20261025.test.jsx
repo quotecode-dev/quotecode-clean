@@ -52,6 +52,7 @@ describe.each([['Hebrew', true, 'סימון כשולמה'], ['English', false, '
     const { quote, handleMarkQuotePaid } = renderList(isHebrew);
     fireEvent.click(screen.getByTestId('quote-mark-paid'));
     expect(screen.getByTestId('quote-mark-paid').textContent).toBe(label);
+    expect(screen.getByTestId('quote-mark-paid').querySelector('[data-icon="tekango-paid"]')).toBeTruthy(); // law 45: the TEKANGO mark, never a stock icon
     expect(handleMarkQuotePaid).toHaveBeenCalledTimes(1);
     expect(handleMarkQuotePaid.mock.calls[0][0]).toMatchObject({ id: quote.id });
   });
@@ -71,13 +72,13 @@ describe('the question before marking', () => {
   it('tone "paid" shows the paid icon and wording, never the trash icon; deletion is unchanged', () => {
     const { container, unmount } = render(<DeleteConfirmModal isOpen isHebrew title="לסמן את ההצעה כשולמה?" message="m" confirmLabel="סימון כשולמה"
       cancelLabel="ביטול" isDeleting={false} onCancel={vi.fn()} onConfirm={vi.fn()} tone="paid" />);
-    expect(container.querySelector('.lucide-banknote')).toBeTruthy();
+    expect(container.querySelector('[data-icon="tekango-paid"]')).toBeTruthy();
     expect(container.querySelector('.lucide-trash2, .lucide-trash-2')).toBeNull();
     unmount();
     const del = render(<DeleteConfirmModal isOpen isHebrew title="t" message="m" confirmLabel="מחיקה" cancelLabel="ביטול"
       isDeleting={false} onCancel={vi.fn()} onConfirm={vi.fn()} />);
     expect(del.container.querySelector('.lucide-trash2, .lucide-trash-2')).toBeTruthy();
-    expect(del.container.querySelector('.lucide-banknote')).toBeNull();
+    expect(del.container.querySelector('[data-icon="tekango-paid"]')).toBeNull();
   });
   it('Dashboard asks first and writes only the status, then reloads the list', () => {
     const src = fs.readFileSync('src/pages/Dashboard.jsx', 'utf8');
