@@ -5,7 +5,7 @@ import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
 import EditItemPriceDialog from './EditItemPriceDialog';
 import AddAnotherItemDialog from './AddAnotherItemDialog';
-import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText, Building2, LayoutList } from 'lucide-react';
+import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText, Building2, LayoutList, ArrowLeft, ArrowRight } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import { APP as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import QuotePresentationPanel from './quotePresentation/QuotePresentationPanel';
@@ -57,6 +57,7 @@ export default function QuoteForm({
   editingQuoteNumber,
   onSave,
   onCancel,
+  onBack = null, // Owner 2026-10-25 (typed L-09 / L-15): the same step as the phone Back - the draft stays on this device
   // Owner night task 2026-10-22 (typed approval, adding the entry button only): opens Customer Twin ("בדיקת הלקוח") for the open draft
   onOpenCustomerTwin = null,
   clientName, setClientName,
@@ -739,6 +740,15 @@ export default function QuoteForm({
           >
             <CustomerTwinIcon size={20} />
             {isHebrew ? 'שיפור ההצעה' : 'Improve quote'}
+          </button>
+        )}
+        {/* Owner 2026-10-25 (typed L-09 / L-15): Back keeps the draft on this device (asks only when there are unsaved changes) */}
+        {typeof onBack === 'function' && (
+          // PRODUCT_TRUTH_DECORATIVE: leaves the editor like the phone Back; the local draft is kept, nothing is deleted or saved to the server
+          <button type="button" onClick={onBack} data-testid="editor-back" title={isHebrew ? 'חזרה בלי למחוק: הטיוטה נשארת שמורה במכשיר הזה' : 'Back without deleting: the draft stays on this device'}
+            style={{ background: NEON.bgCard, color: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            {isHebrew ? <ArrowRight size={15} aria-hidden="true" /> : <ArrowLeft size={15} aria-hidden="true" />}
+            {isHebrew ? 'חזרה' : 'Back'}
           </button>
         )}
         {/* PRODUCT_TRUTH_DECORATIVE: 'Cancel & Return' button that closes the quote form via onCancel without saving */}
