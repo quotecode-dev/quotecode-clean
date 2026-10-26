@@ -144,7 +144,7 @@ describe('finding 5: the small things', () => {
     render(<AddItemWizard {...props()} />);
     await toCheck([/AC installation/, /Glass panel/]);
     fireEvent.click(screen.getByRole('button', { name: 'Remove AC installation from the selection' }));
-    await waitFor(() => expect(document.activeElement?.id).toBe('wiz-pick-0-title'));
+    await waitFor(() => expect(document.activeElement?.id).toBe('wiz-pick-0-description'));
   });
   it('the focused method card is visibly marked', async () => {
     render(<AddItemWizard {...props()} />);
@@ -187,5 +187,30 @@ describe('finding 5: a new unit opens with the cursor in its name', () => {
     fireEvent.click(screen.getByText('Add the first unit'));
     rerender(<QuoteForm {...make()} />);
     await waitFor(() => expect(document.activeElement?.getAttribute('placeholder')).toBe('e.g. Apartment 33, Bedroom, Building A'));
+  });
+});
+
+// Owner 2026-10-26, the second real walk on LIVE
+describe('second walk: Back keeps asking; a restored item asks too', () => {
+  it('the phone Back on the wizard: the question each time - a second Back never skips to the editor', async () => {
+    const { closeTopDialogWithEscape } = await import('../hooks/useInAppBack');
+    render(<AddItemWizard {...props()} />);
+    await new Promise((r) => setTimeout(r, 20));
+    setValue(document.getElementById('wiz-description'), 'Half typed job');
+    const memo = { el: null };
+    screen.getByRole('dialog').getClientRects = () => [{}]; // jsdom has no layout: the wizard is the visible top window
+    expect(closeTopDialogWithEscape(memo)).toBe(true); // Back 1: the wizard takes it and asks
+    await answerAppDialog(false);
+    expect(memo.el).toBeNull();
+    expect(closeTopDialogWithEscape(memo)).toBe(true); // Back 2: asked again, not passed to the editor
+    expect(await answerAppDialog(false)).toBe('Leave without adding the item? What you typed or ticked will not be kept.');
+  });
+  it('an unfinished item restored after a reload asks before Escape closes it', async () => {
+    const p = props({ resumeState: { stepModel: 2, step: 1, description: 'Reload test', pricingMethod: 'units', quantity: '4', unitPrice: '15', picks: [] } });
+    render(<AddItemWizard {...p} />);
+    await waitFor(() => expect(document.getElementById('wiz-description').value).toBe('Reload test'));
+    fireEvent.keyDown(screen.getByRole('dialog'), { key: 'Escape' });
+    expect(await answerAppDialog(false)).toBe('Leave without adding the item? What you typed or ticked will not be kept.');
+    expect(p.onClose).not.toHaveBeenCalled();
   });
 });
