@@ -1266,6 +1266,7 @@ export default function AddItemWizard({
               <FieldLabel htmlFor="wiz-fixed-amount">{`${t.fixedAmountLabel} (${sym})`}</FieldLabel>
               <input id="wiz-fixed-amount" type="number" dir="ltr" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-fixed-amount-error' : undefined} style={numInputStyle(isHebrew)} />
               {errors.unitPrice && <ErrorText id="wiz-fixed-amount-error">{errors.unitPrice}</ErrorText>}
+              <PriceRead value={unitPrice} sym={sym} money={money} isHebrew={isHebrew} testId="wiz-price-read" />
             </div>
           )}
 
@@ -1278,6 +1279,7 @@ export default function AddItemWizard({
               <FieldLabel htmlFor="wiz-unit-price">{`${t.unitPriceLabel} (${sym})`}</FieldLabel>
               <input id="wiz-unit-price" type="number" dir="ltr" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-unitprice-error' : undefined} style={numInputStyle(isHebrew)} />
               {errors.unitPrice && <ErrorText id="wiz-unitprice-error">{errors.unitPrice}</ErrorText>}
+              <PriceRead value={unitPrice} sym={sym} money={money} isHebrew={isHebrew} testId="wiz-price-read" />
               {formulaText && (
                 <div aria-live="polite" style={{ marginTop: '8px', fontSize: '0.9rem', color: NEON.violet, fontWeight: '800' }}>
                   {formulaText}
@@ -1388,6 +1390,7 @@ export default function AddItemWizard({
               <FieldLabel htmlFor="wiz-unit-price-m">{`${pricingMethod === 'area' ? t.unitPriceArea : t.unitPriceLinear} (${sym})`}</FieldLabel>
               <input id="wiz-unit-price-m" type="number" dir="ltr" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-unitpricem-error' : undefined} style={numInputStyle(isHebrew)} />
               {errors.unitPrice && <ErrorText id="wiz-unitpricem-error">{errors.unitPrice}</ErrorText>}
+              <PriceRead value={unitPrice} sym={sym} money={money} isHebrew={isHebrew} testId="wiz-price-read" />
               {formulaText && (
                 <div aria-live="polite" data-testid="wiz-calc" style={{ marginTop: '10px', padding: '10px 12px', borderRadius: '10px', background: NEON.bgCardAlt, display: 'grid', gap: '2px' }}>
                   <span style={{ fontSize: '0.9rem', color: NEON.violet, fontWeight: '800' }}>{formulaText}</span>
@@ -1523,6 +1526,7 @@ export default function AddItemWizard({
                     <FieldLabel htmlFor={fid('price')}>{`${priceLabel} (${sym})`}</FieldLabel>
                     <input id={fid('price')} type="number" dir="ltr" min="0" step="any" value={p.unitPrice} onChange={(ev) => updatePick(idx, { unitPrice: ev.target.value })} {...errProps('price')} style={numInputStyle(isHebrew)} />
                     {e.price && <ErrorText id={`${fid('price')}-error`}>{e.price}</ErrorText>}
+                    <PriceRead value={p.unitPrice} sym={sym} money={money} isHebrew={isHebrew} testId={`wiz-pick-price-read-${idx}`} />
                     <div data-testid={`wiz-pick-total-${idx}`} style={{ marginTop: '8px', fontSize: '0.88rem', fontWeight: 800, color: NEON.violet }}>
                       {t.lineTotal}: {amt(pickQuantity(p) * (Number(p.unitPrice) || 0))}
                     </div>
@@ -1842,6 +1846,17 @@ function MethodCard({ id, icon, title, example, recommended, recommendedLabel, o
 
 function FieldLabel({ htmlFor, children }) {
   return <label htmlFor={htmlFor} style={{ display: 'block', fontSize: '0.78rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '4px', marginTop: '10px' }}>{children}</label>;
+}
+
+// Owner console 2026-10-26 (the quote-list approval, the comma item): under every price field - how the price was read, in the
+// quote's currency (a typed "1,200" is seen as 1,200.00 before it is added)
+function PriceRead({ value, sym, money, isHebrew, testId }) {
+  if (value === '' || value == null || !isWizardPriceValid(value)) return null;
+  return (
+    <div data-testid={testId} style={{ marginTop: '4px', fontSize: '0.75rem', color: NEON.textSecondary }}>
+      {isHebrew ? 'נקרא כ־' : 'Read as '}<bdi className="pf-money">{sym}{money(value)}</bdi>
+    </div>
+  );
 }
 
 function ErrorText({ id, children }) {

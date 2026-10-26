@@ -95,7 +95,7 @@ describe('R-06 / R-07 / R-08: one shown status, one awaiting rule', () => {
     expect(quoteDisplayStatus(q('sent', 3))).toBe('hot');
     expect(quoteDisplayStatus(q('approved', 9))).toBe('approved');
     expect(quoteDisplayLabel('sent_viewed', true)).toBe('נשלחה · נצפתה');
-    expect(quoteDisplayLabel('needs_sending', false)).toBe('Needs sending');
+    expect(quoteDisplayLabel('needs_sending', false)).toBe('Draft · ready to send'); // Owner 2026-10-26 (typed L-13 / L-14 / L-17)
   });
   it('the filter and the sort follow the shown status', () => {
     expect(matchesQuoteFilter(q('draft', 1), 'sent')).toBe(true);
