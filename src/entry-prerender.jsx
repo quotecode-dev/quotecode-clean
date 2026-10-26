@@ -19,7 +19,7 @@ export { PUBLIC_SEO_ROUTES } from './shared/publicSeoRoutes';
 // page kind x locale -> the SAME component (and props) the live router mounts for that URL (AppLocal.jsx / AppGlobal.jsx).
 const PAGES = {
   landing: { he: () => <LandingLocal />, en: () => <LandingGlobal /> },
-  tools: { he: () => <PublicTools />, en: () => <PublicToolsEn /> },
+  tools: { he: (r) => <PublicTools initialTab={r.tab} />, en: (r) => <PublicToolsEn initialTab={r.tab} /> }, // r.tab: a calculator page (Owner 2026-10-26)
   contact: { he: () => <Contact isHebrew />, en: () => <Contact isHebrew={false} /> },
   privacy: { he: () => <Privacy isHebrew />, en: () => <Privacy isHebrew={false} /> },
   terms: { he: () => <Terms isHebrew />, en: () => <Terms isHebrew={false} /> },
@@ -28,5 +28,5 @@ const PAGES = {
 export function renderPublicPage(route) {
   const make = PAGES[route.page]?.[route.lang];
   if (!make) throw new Error(`entry-prerender: no component for ${route.page}/${route.lang} (${route.path})`);
-  return renderToString(<StaticRouter location={route.path}>{make()}</StaticRouter>);
+  return renderToString(<StaticRouter location={route.path}>{make(route)}</StaticRouter>);
 }
