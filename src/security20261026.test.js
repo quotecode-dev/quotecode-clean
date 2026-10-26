@@ -11,13 +11,14 @@ const read = (...p) => readFileSync(join(cwd(), ...p), 'utf8');
 describe('security 2026-10-26', () => {
   const all = JSON.parse(read('vercel.json')).headers.find((h) => h.source === '/(.*)').headers;
   const get = (k) => all.find((h) => h.key === k)?.value;
-  it('every page: no framing by another site, browser permissions limited (the microphone stays for dictation), a report-only content policy', () => {
+  // Owner console 2026-10-26 (typed: "מאשר להפעיל את הגבלת מקורות התוכן בלייב, בשחרור ממשק דרך השער"): the content policy is enforced
+  it('every page: no framing by another site, browser permissions limited (the microphone stays for dictation), an enforced content policy', () => {
     expect(get('X-Frame-Options')).toBe('SAMEORIGIN');
     expect(get('Permissions-Policy')).toBe('camera=(), geolocation=(), payment=(), usb=(), microphone=(self)');
-    const csp = get('Content-Security-Policy-Report-Only');
+    const csp = get('Content-Security-Policy');
     for (const part of ["default-src 'self'", 'https://*.supabase.co', 'wss://*.supabase.co', 'https://challenges.cloudflare.com', 'https://www.googletagmanager.com',
       "frame-ancestors 'self'", "object-src 'none'", 'https://*.payplus.co.il']) expect(csp).toContain(part);
-    expect(get('Content-Security-Policy')).toBeUndefined(); // enforced only after the report-only period
+    expect(get('Content-Security-Policy-Report-Only')).toBeUndefined(); // the report-only period ended (no violation in the Owner's session)
     expect(get('X-Content-Type-Options')).toBe('nosniff');
   });
   it('the PDF sanitizer is pinned to the patched release', () => {
