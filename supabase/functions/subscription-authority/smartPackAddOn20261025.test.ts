@@ -122,15 +122,17 @@ describe('addSmartPackLine (PayPlus)', () => {
     return { fetch, p: createPayPlusProvider(config(fetch)) };
   };
   it('reads the order, finds the SMART PACK product, ONE Update with both lines from the next charge date, invoices and emails kept on', async () => {
-    const { fetch, p } = run(answer(pkgOnly), answer(products), answer({ recurring_payment_uid: REC }));
+    // Owner 2026-10-26 (item א2): the package line's own catalog product is looked up too (its name stays on every invoice)
+    const { fetch, p } = run(answer(pkgOnly), answer(products), answer(products), answer({ recurring_payment_uid: REC }));
     expect(await p.addSmartPackLine!(lineBegin as never)).toBe('added');
     const calls = fetch.mock.calls as unknown as [string, { method: string; body?: string }][];
     expect(calls[0][0]).toBe(`${PAYPLUS_API_BASES.staging}/PaymentPages/ipn`);
     expect(calls[1][0]).toBe(`${PAYPLUS_API_BASES.staging}/Products/View?currency_code=ILS&skip=0&take=500`);
     expect(calls[1][1]).toMatchObject({ method: 'GET' });
     expect(calls[1][1]).not.toHaveProperty('body');
-    expect(calls[2][0]).toBe(`${PAYPLUS_API_BASES.staging}/RecurringPayments/Update/${REC}`);
-    expect(JSON.parse(calls[2][1].body!)).toMatchObject({ terminal_uid: TERM, valid: true, instant_first_payment: false, start_date: '2026-11-20',
+    expect(calls[2][0]).toBe(`${PAYPLUS_API_BASES.staging}/Products/View?currency_code=ILS&skip=0&take=500`);
+    expect(calls[3][0]).toBe(`${PAYPLUS_API_BASES.staging}/RecurringPayments/Update/${REC}`);
+    expect(JSON.parse(calls[3][1].body!)).toMatchObject({ terminal_uid: TERM, valid: true, instant_first_payment: false, start_date: '2026-11-20',
       successful_invoice: true, send_customer_success_email: true, customer_failure_email: true, extra_info: ATT,
       items: [{ product_uid: PROD_PKG, quantity: 1, price: 30 }, { product_uid: PROD_SP, quantity: 1, price: 10 }] });
   });
@@ -138,10 +140,10 @@ describe('addSmartPackLine (PayPlus)', () => {
   // account terminal (PAYPLUS_TERMINAL_UID) is used; without one nothing is sent
   it('a standing order without its terminal uses the account terminal from the secret; none at all = not added, nothing sent', async () => {
     const fetch = vi.fn();
-    for (const a of [answer(pkgOnly), answer(products), answer({ recurring_payment_uid: REC })]) fetch.mockImplementationOnce(async () => a);
+    for (const a of [answer(pkgOnly), answer(products), answer(products), answer({ recurring_payment_uid: REC })]) fetch.mockImplementationOnce(async () => a);
     const p = createPayPlusProvider({ ...config(fetch), terminalUid: TERM });
     expect(await p.addSmartPackLine!({ ...lineBegin, terminalRef: null } as never)).toBe('added');
-    expect(JSON.parse((fetch.mock.calls[2] as unknown as [string, { body: string }])[1].body)).toMatchObject({ terminal_uid: TERM });
+    expect(JSON.parse((fetch.mock.calls[3] as unknown as [string, { body: string }])[1].body)).toMatchObject({ terminal_uid: TERM });
     const none = vi.fn();
     // Owner 2026-10-26 (item א2): no terminal at all = our configuration gap - retried ('unknown'), never a final refusal; nothing sent
     expect(await createPayPlusProvider(config(none)).addSmartPackLine!({ ...lineBegin, terminalRef: null } as never)).toBe('unknown');
@@ -163,17 +165,22 @@ describe('addSmartPackLine (PayPlus)', () => {
     expect(await p.addSmartPackLine!(lineBegin as never)).toBe('added');
     expect(fetch).toHaveBeenCalledTimes(1);
   });
-  it('not_added: another standing order, an unexpected line, no SMART PACK product, PayPlus said no; unknown: no answer', async () => {
+  it('not_added: another standing order, an unexpected line, PayPlus said no; unknown: no answer, no SMART PACK product (our gap)', async () => {
     expect(await run(answer({ ...pkgOnly, uid: '9ab9e163-0000-4000-8000-0000000000ff' })).p.addSmartPackLine!(lineBegin as never)).toBe('not_added');
     // the cycle exactly as PayPlus holds it (an annual order never becomes monthly) and the order of OUR package attempt
     expect(await run(answer({ ...pkgOnly, recurring_range: 12 })).p.addSmartPackLine!(lineBegin as never)).toBe('not_added');
     expect(await run(answer({ ...pkgOnly, recurring_range: undefined })).p.addSmartPackLine!(lineBegin as never)).toBe('not_added');
     expect(await run(answer({ ...pkgOnly, extra_info: ADD })).p.addSmartPackLine!(lineBegin as never)).toBe('not_added');
     expect(await run(answer(order([{ product_uid: PROD_PKG, quantity: 1, quantity_price_including_vat: 25 }]))).p.addSmartPackLine!(lineBegin as never)).toBe('not_added');
-    expect(await run(answer(pkgOnly), answer({ products: [] })).p.addSmartPackLine!(lineBegin as never)).toBe('not_added');
-    expect(await run(answer(pkgOnly), answer(products), answer({}, 'error')).p.addSmartPackLine!(lineBegin as never)).toBe('not_added');
+    // Owner 2026-10-26 (item א2): a SMART PACK product missing from the catalog is retried, never a final refusal
+    expect(await run(answer(pkgOnly), answer({ products: [] })).p.addSmartPackLine!(lineBegin as never)).toBe('unknown');
+    expect(await run(answer(pkgOnly), answer(products), answer(products), answer({}, 'error')).p.addSmartPackLine!(lineBegin as never)).toBe('not_added');
+    // no package product in the catalog: the order's own package line is sent back
+    const noPkg = run(answer(pkgOnly), answer(products), answer({ products: [{ uid: PROD_SP, name: PAYPLUS_SMART_PACK_ITEM_NAMES.month }] }), answer({ recurring_payment_uid: REC }));
+    expect(await noPkg.p.addSmartPackLine!(lineBegin as never)).toBe('added');
+    expect(JSON.parse((noPkg.fetch.mock.calls[3] as unknown as [string, { body: string }])[1].body).items[0]).toMatchObject({ product_uid: PROD_PKG, price: 30 });
     expect(await run({ ok: false, json: async () => null }).p.addSmartPackLine!(lineBegin as never)).toBe('unknown');
-    expect(await run(answer(pkgOnly), answer(products), { ok: false, json: async () => { throw new Error('timeout'); } }).p.addSmartPackLine!(lineBegin as never)).toBe('unknown');
+    expect(await run(answer(pkgOnly), answer(products), answer(products), { ok: false, json: async () => { throw new Error('timeout'); } }).p.addSmartPackLine!(lineBegin as never)).toBe('unknown');
   });
 });
 
