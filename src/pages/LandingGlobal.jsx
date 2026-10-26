@@ -10,11 +10,8 @@ import { loadLocalEstimate, CURRENCY_SYMBOL, RATE_SOURCE_NAME } from '../domain/
 import BrandName from '../components/BrandName';
 import LandingPage from '../components/landing/LandingPage';
 import { SMART_PACK_ENABLED } from '../components/landing/smartPackFacts';
-import { usdSmartPack, usdWithSmartPack, SMART_PACK_PRICE_MINOR } from '../components/landing/smartPackFacts';
-import { packagePrice } from '../domain/subscriptions/packageCatalog';
-import { majorUnits } from '../domain/subscriptions/priceCatalog';
+import { usdSmartPack, usdWithSmartPack } from '../components/landing/smartPackFacts';
 import { SMART_PACK } from '../domain/subscriptions/addOnCatalog';
-import MailLink from '../components/MailLink';
 
 // Task 16 (correction A, 2026-10-05): the International (EN) landing uses the approved refined composition
 // (revision-r2-refined landing-en.html) through the shared LandingPage layout. This file keeps EVERY customer-facing
@@ -48,11 +45,6 @@ export default function LandingGlobal({ onForgotPassword }) {
   const year = usdPackageAmount('year', estimate.rate);
   const est = month.display.estimate && year.display.estimate ? month.display : null;
   const sym = est ? CURRENCY_SYMBOL[est.displayCurrency] : '$';
-  // Owner console 2026-10-26 (typed L-14 / L-22, item ג: "המטבע בדף הנחיתה לפי ההמלצה"): with a local estimate EVERY price on the page
-  // (package, SMART PACK box, SMART PACK section) is in the same currency, each with the USD amount that is charged
-  const estOf = (usdMinor) => `≈${sym}${formatMoney(majorUnits(Math.round(usdMinor * est.rate)))}`;
-  const spMinor = SMART_PACK_PRICE_MINOR.INTERNATIONAL;
-  const withMinor = (period) => packagePrice('INTERNATIONAL', period).amountMinor + spMinor[period];
 
   // §249: two review cards in six shared regions (LandingPlans.jsx) - Free-10, then the one all-inclusive package with one price row
   // per billing period, in USD (OD-08); no tax line (international tax policy open, OPEN-11); the annual price is a price, never a
@@ -94,12 +86,8 @@ export default function LandingGlobal({ onForgotPassword }) {
           // Owner 2026-10-20 (phone): what SMART PACK gives, right under its box (the one source: addOnCatalog)
           summary: SMART_PACK.summary.en,
           perPeriod: {
-            month: est
-              ? { add: `(+${estOf(spMinor.month)} / month)`, amount: null, line: <>With SMART PACK: <bdi dir="ltr">{month.estimateText}</bdi> + <bdi dir="ltr">{estOf(spMinor.month)}</bdi> = <bdi dir="ltr">{estOf(withMinor('month'))}</bdi> per month (estimate). Charged in USD: <bdi dir="ltr">{usdWithSmartPack('month')}</bdi></> }
-              : { add: `(+${usdSmartPack('month')} / month)`, amount: usdWithSmartPack('month'), line: <>With SMART PACK: <bdi dir="ltr">{month.text}</bdi> + <bdi dir="ltr">{usdSmartPack('month')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('month')}</bdi> per month (USD)</> },
-            year: est
-              ? { add: `(+${estOf(spMinor.year)} / year)`, amount: null, line: <>With SMART PACK: <bdi dir="ltr">{year.estimateText}</bdi> + <bdi dir="ltr">{estOf(spMinor.year)}</bdi> = <bdi dir="ltr">{estOf(withMinor('year'))}</bdi> per year (estimate). Charged in USD: <bdi dir="ltr">{usdWithSmartPack('year')}</bdi></> }
-              : { add: `(+${usdSmartPack('year')} / year)`, amount: usdWithSmartPack('year'), line: <>With SMART PACK: <bdi dir="ltr">{year.text}</bdi> + <bdi dir="ltr">{usdSmartPack('year')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('year')}</bdi> per year (USD)</> },
+            month: { add: `(+${usdSmartPack('month')} / month)`, amount: est ? null : usdWithSmartPack('month'), line: <>With SMART PACK: <bdi dir="ltr">{month.text}</bdi> + <bdi dir="ltr">{usdSmartPack('month')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('month')}</bdi> per month (USD)</> },
+            year: { add: `(+${usdSmartPack('year')} / year)`, amount: est ? null : usdWithSmartPack('year'), line: <>With SMART PACK: <bdi dir="ltr">{year.text}</bdi> + <bdi dir="ltr">{usdSmartPack('year')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('year')}</bdi> per year (USD)</> },
           },
         },
       } : {}),
@@ -216,11 +204,10 @@ export default function LandingGlobal({ onForgotPassword }) {
         // Owner console 2026-10-22, typed L-14 approval: the Customer Twin card without "Coming soon", in the approved wording - LIVE since PR #47
         { icon: 'twin', title: 'Customer Twin', text: 'See your quote through your client’s eyes: three kinds of clients review it, so you can strengthen it before you send it.' },
       ],
-      priceMonth: est ? estOf(spMinor.month) : '$5',
-      priceMonthLabel: est ? `per month, added to your plan (estimate; charged in USD: ${usdSmartPack('month')})` : 'per month, added to your plan',
-      priceYear: est ? `or ${estOf(spMinor.year)} a year with a yearly plan (charged in USD: ${usdSmartPack('year')})` : 'or $51 a year with a yearly plan',
-      // Owner console 2026-10-25 (typed L-14): never 'add or remove any time' - stopping it is a request to us
-      points: ['Add it only if you want it', 'To stop it, write to us', 'Paid together with your plan'],
+      priceMonth: '$5',
+      priceMonthLabel: 'per month, added to your plan',
+      priceYear: 'or $51 a year with a yearly plan',
+      points: ['Add it only if you want it', 'Add or remove it any time', 'Paid together with your plan'],
       // Owner 2026-10-20: what SMART PACK gives, next to its button too - a second check list in its own colour (the one source: addOnCatalog)
       // Owner 2026-10-20: on the landing list the attachments line names images too
       includes: SMART_PACK.includes.en.map((t) => (t === 'Files attached to a quote' ? 'Files and images attached to a quote' : t)),
@@ -263,7 +250,7 @@ export default function LandingGlobal({ onForgotPassword }) {
         // Verifiable infrastructure facts only (TLS in transit, encryption at rest by the Supabase/PostgreSQL platform).
         { q: 'Is my business data secure on the cloud?', a: 'Your data is stored on cloud infrastructure built on Supabase/PostgreSQL, which includes encryption in transit (TLS) and at rest as part of the standard cloud infrastructure. Access to your data is restricted to your own account.' },
         // Task 39 (Owner final scope): the cancellation-request path - a request handled by the team, never shown as an automatic cancellation.
-        { q: 'How do I cancel a subscription?', a: <>Paid subscriptions cannot be purchased yet. Once they can, you can ask to cancel a subscription at any time by email to {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<MailLink href="mailto:info@tekango.com?subject=Subscription%20cancellation%20request&body=Hello%2C%20I%20would%20like%20to%20cancel%20my%20subscription." isHebrew={false}><bdi dir="ltr">info@tekango.com</bdi></MailLink> or from the plans window in the app. Our team handles the request and confirms it by email - it is not an automatic cancellation. Cancelling a subscription does not delete your account. The cancellation and refund terms are in our {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href="/en/terms#cancellation">Terms of Service</a>.</> },
+        { q: 'How do I cancel a subscription?', a: <>Paid subscriptions cannot be purchased yet. Once they can, you can ask to cancel a subscription at any time by email to {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<a href="mailto:info@tekango.com?subject=Subscription%20cancellation%20request">info@tekango.com</a> or from the plans window in the app. Our team handles the request and confirms it by email - it is not an automatic cancellation. Cancelling a subscription does not delete your account. The cancellation and refund terms are in our {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href="/en/terms#cancellation">Terms of Service</a>.</> },
         { q: 'Can I export my financial reports and quotes?', a: 'Yes, you can easily export all your business quotes and expense reports into CSV format compatible with Excel and accounting software.' },
         // Owner console 2026-10-20 (landing copy approval): questions users asked in the smart chat and the support inbox; every answer =
         // the verified how-to facts (src/data/productHowTo.js) and the L-12 contact rule (email + chat, no phone).
@@ -272,7 +259,7 @@ export default function LandingGlobal({ onForgotPassword }) {
         { q: 'Can my customer sign the quote on a phone?', a: 'Yes. Your customer opens the link, approves the quote and signs it digitally, and the quote status updates in your account. A signed quote is locked for editing; you can duplicate it to create a new quote.' },
         { q: 'Can I keep a fixed price list of products and services?', a: 'Yes. Add items with their prices to your catalog, and pick them when you build a quote.' },
         { q: 'Can I start a new quote from an existing one?', a: 'Yes. Save a quote as a template, without the customer details, and start your next quote from that saved template.' },
-        { q: 'How do I contact you?', a: <>Email {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the support mailbox */}<MailLink href="mailto:info@tekango.com" isHebrew={false}><bdi dir="ltr">info@tekango.com</bdi></MailLink>, or use the chat in the corner of the screen. There is no phone support at the moment.</> },
+        { q: 'How do I contact you?', a: <>Email {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the support mailbox */}<a href="mailto:support@tekango.com"><bdi dir="ltr">support@tekango.com</bdi></a>, or use the chat in the corner of the screen. There is no phone support at the moment.</> },
       ],
     },
     // Free business tools (base section, ledger L03 - base c65f742 LandingGlobal.jsx:755-765, verbatim). The public tools

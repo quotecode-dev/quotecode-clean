@@ -8,7 +8,6 @@ import { SMART_PACK } from '../domain/subscriptions/addOnCatalog';
 import { formatWholeMoney } from '../utils/money';
 import { formatShortDate } from '../utils/shortDate';
 import { loadSmartPackAddOnQuote, smartPackAddOnErrorMessage, startSmartPackAddOn } from '../domain/subscriptions/packageCheckout';
-import MailLink from './MailLink';
 
 // IRON-ILS-001: a whole shekel with .00 (the server charges whole shekels); IRON-DATE-001: the Israeli short date DD/MM/YYYY
 const money = (minor) => `₪${formatWholeMoney(minor / 100)}`;
@@ -43,7 +42,7 @@ export default function SmartPackAddOnOffer({ isHebrew, invoke, onLeave }) {
           ? (isHebrew ? 'כרגע אי אפשר להוסיף את חכם פלוס לחשבון הזה. כתבו לנו ונטפל בזה:' : 'SMART PACK cannot be added to this account right now. Write to us and we will take care of it:')
           : (isHebrew ? 'לא הצלחנו לטעון כרגע את הוספת חכם פלוס. נסו שוב בעוד רגע, או כתבו לנו:' : 'We could not load the SMART PACK option right now. Try again in a moment, or write to us:')}{' '}
         {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the service mailbox (nothing changes in the account) */}
-        <MailLink href="mailto:support@tekango.com" isHebrew={isHebrew} style={{ color: '#0F6672' }}><bdi dir="ltr">support@tekango.com</bdi></MailLink>
+        <a href="mailto:support@tekango.com" style={{ color: '#0F6672' }}><bdi dir="ltr">support@tekango.com</bdi></a>
       </p>
     );
   }

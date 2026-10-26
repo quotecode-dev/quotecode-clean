@@ -45,9 +45,7 @@ function PayAction({ purchase, period, withAddOn, isHebrew }) {
 // כולל שינוי ב-L-01, L-14, L-17, L-22"): the SMART PACK box only where it can be paid - next to the pay button (never a ₪40 price with
 // nothing to press: an active subscriber, the Free-10 window, Settings, a closed market); the card of the account's own plan opens on
 // its own period (an annual subscriber sees the annual price).
-// Owner console 2026-10-26 (typed: "מאשר שינוי ב-L-22: שורת המחיר הכולל עם חכם פלוס בכרטיס המנוי ..."): the subscriber's own card, when
-// SMART PACK is a renewing line of the standing order (withSmartPack), says the total charged each period under the package price.
-function PriceBlock({ plan, isHebrew, purchase = null, onAddOnChange = null, initialPeriod = null, withSmartPack = false }) {
+function PriceBlock({ plan, isHebrew, purchase = null, onAddOnChange = null, initialPeriod = null }) {
   const uid = useId();
   const [period, setPeriod] = useState(initialPeriod && plan.prices.some((r) => r.period === initialPeriod) ? initialPeriod : plan.prices[0]?.period);
   // the account's period may arrive after the window opened (the summary was still loading)
@@ -83,9 +81,6 @@ function PriceBlock({ plan, isHebrew, purchase = null, onAddOnChange = null, ini
               <span className="pf-money" data-price style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', fontVariantNumeric: 'tabular-nums', direction: 'ltr', unicodeBidi: 'isolate' }}>{addOnFor(r)?.amount || r.amount}</span>
               {r.per && <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{r.per}</span>}
             </div>
-            {withSmartPack && r.period === initialPeriod && plan.addOn?.perPeriod?.[r.period]?.total && (
-              <div data-testid="plans-smart-pack-total" dir={isHebrew ? 'rtl' : 'ltr'} style={{ marginTop: 2, fontSize: '0.85rem', fontWeight: 700, color: '#0F6672' }}>{isolateNumbers(plan.addOn.perPeriod[r.period].total)}</div>
-            )}
             {addOnFor(r) && <div className="tl-plan-addon-line" data-addon-line={r.period} dir={isHebrew ? 'rtl' : 'ltr'}>{isolateNumbers(addOnFor(r).line)}</div>}
             {r.note && <div data-period-note={r.period} dir={isHebrew ? 'rtl' : 'ltr'} style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 6, background: '#e3f1ea', color: '#1e5c42', fontSize: '0.8rem', fontWeight: 700 }}>{isolateNumbers(r.note)}</div>}
           </div>
@@ -106,7 +101,7 @@ function PriceBlock({ plan, isHebrew, purchase = null, onAddOnChange = null, ini
   );
 }
 
-export default function PackageOfferCards({ model, isHebrew, currentPlanId = null, currentPeriod = null, only = null, testIdPrefix = 'plans-modal', purchase = null, onAddOnChange = null, smartPackRenewing = false }) {
+export default function PackageOfferCards({ model, isHebrew, currentPlanId = null, currentPeriod = null, only = null, testIdPrefix = 'plans-modal', purchase = null, onAddOnChange = null }) {
   const plans = only ? model.plans.filter((p) => only.includes(p.id)) : model.plans;
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
@@ -117,7 +112,7 @@ export default function PackageOfferCards({ model, isHebrew, currentPlanId = nul
             style={{ border: `${isCurrent ? 2 : 1}px solid ${isCurrent ? '#0F6672' : '#e2e8f0'}`, borderRadius: '12px', padding: '14px', background: '#f8fafc', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.05rem' }}>{p.name}</h3>
             {p.tagline && <p style={{ margin: 0, color: '#475569', fontSize: '0.82rem' }}>{p.tagline}</p>}
-            <PriceBlock plan={p} isHebrew={isHebrew} purchase={purchase} onAddOnChange={onAddOnChange} initialPeriod={isCurrent ? currentPeriod : null} withSmartPack={isCurrent && smartPackRenewing} />
+            <PriceBlock plan={p} isHebrew={isHebrew} purchase={purchase} onAddOnChange={onAddOnChange} initialPeriod={isCurrent ? currentPeriod : null} />
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: '#334155' }}>
               {p.lines.map((line) => (
                 <li key={line} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}><Check size={14} color="#0F6672" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />{line}</li>

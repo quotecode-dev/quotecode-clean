@@ -5,7 +5,6 @@
 
 import { useEffect } from 'react';
 import BrandName from './BrandName';
-import MailLink from './MailLink';
 
 // PRODUCT_TRUTH_CAPABILITY: accessibility_tools
 // Task 36 (§ד keyboard / labels): the statement is announced as a modal dialog named by its heading, and Escape closes it.
@@ -33,14 +32,14 @@ export default function AccessibilityModal({ isOpen, onClose, isHebrew }) {
             <p><BrandName onDark={false} /> פועלת לשפר את הנגישות של האתר ושל המערכת. הצהרה זו מתייחסת לעמודי האתר הציבוריים ולמערכת לאחר ההתחברות, ונכונה ל-13 באוקטובר 2026.</p>
             <p>התאמות שנבדקו: בכל עמוד מוגדרים השפה וכיוון הכתיבה (עברית מימין לשמאל, אנגלית משמאל לימין); העמודים מותאמים לרוחב מסך של טלפון בלי גלילה לרוחב; וחלון הצהרה זה מוכרז כחלון דו-שיח ונסגר גם במקש Escape.</p>
             <p>מגבלות: טרם בוצעה בדיקת נגישות מלאה לפי התקן, ולכן איננו מצהירים על עמידה מלאה בו. ייתכן שחלקים באתר ובמערכת עדיין אינם נגישים במלואם.</p>
-            <p>לקבלת סיוע או לדיווח על קושי בנגישות אפשר לפנות במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the accessibility contact (service mailbox) */}<MailLink href="mailto:support@tekango.com?subject=%D7%A0%D7%92%D7%99%D7%A9%D7%95%D7%AA" isHebrew><bdi dir="ltr">support@tekango.com</bdi></MailLink> או דרך הצ׳אט באתר. כדאי לציין את כתובת העמוד, הפעולה שלא הצליחה, הדפדפן והטכנולוגיה המסייעת שבה השתמשתם. אין לצרף סיסמאות או מידע רגיש.</p>
+            <p>לקבלת סיוע או לדיווח על קושי בנגישות אפשר לפנות במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the accessibility contact (service mailbox) */}<a href="mailto:support@tekango.com?subject=%D7%A0%D7%92%D7%99%D7%A9%D7%95%D7%AA"><bdi dir="ltr">support@tekango.com</bdi></a> או דרך הצ׳אט באתר. כדאי לציין את כתובת העמוד, הפעולה שלא הצליחה, הדפדפן והטכנולוגיה המסייעת שבה השתמשתם. אין לצרף סיסמאות או מידע רגיש.</p>
           </div>
         ) : (
           <div style={{ color: '#475569', fontSize: '0.95rem', lineHeight: '1.6' }}>
             <p><BrandName onDark={false} /> works to improve the accessibility of its website and system. This statement covers the public website pages and the system after sign-in, and is correct as of October 13, 2026.</p>
             <p>Adjustments that were checked: every page declares its language and text direction (Hebrew right-to-left, English left-to-right); pages fit a phone-width screen without horizontal scrolling; and this statement is announced as a dialog and also closes with the Escape key.</p>
             <p>Limitations: a full accessibility audit against the standard has not been carried out yet, so we do not claim full conformance. Some parts of the website and the system may not yet be fully accessible.</p>
-            <p>For help or to report an accessibility difficulty, email {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the accessibility contact (service mailbox) */}<MailLink href="mailto:info@tekango.com?subject=Accessibility" isHebrew={false}><bdi dir="ltr">info@tekango.com</bdi></MailLink>. Please include the page address, the action that did not work, your browser and the assistive technology you used. Do not include passwords or sensitive information.</p>
+            <p>For help or to report an accessibility difficulty, email {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the accessibility contact (service mailbox) */}<a href="mailto:info@tekango.com?subject=Accessibility">info@tekango.com</a>. Please include the page address, the action that did not work, your browser and the assistive technology you used. Do not include passwords or sensitive information.</p>
           </div>
         )}
 

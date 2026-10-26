@@ -510,8 +510,6 @@ export type BuildSystemPromptParams = {
   allowedNavigation?: readonly string[] | null;
   // Task 34: the sanitized open-quote snapshot of an explicit "review this quote" request (verified dashboard user only)
   draftSnapshot?: ReturnType<typeof sanitizeDraftSnapshot> | null;
-  // Owner 2026-10-26 (item ו): the account market when the caller knows it (true = Israel); else from accountContext / the language
-  marketIL?: boolean;
 };
 
 // The single system-prompt assembly point - index.ts calls this instead of
@@ -520,13 +518,10 @@ export type BuildSystemPromptParams = {
 // would use, without ever calling a live model.
 export function buildSystemPrompt(params: BuildSystemPromptParams): string {
   const { isHebrew, guidedIntent = null, guidedSubtopic = null, accountContext = null, quoteContextBlock = null, workflowContext = null, helpBlocks = null, allowedNavigation = null, draftSnapshot = null } = params;
-  // Owner console 2026-10-26 (typed item ו; L-06 / L-11 / L-17): the reply language is the interface language; prices, purchase and the
-  // service mailbox follow the ACCOUNT market (an account without a known market: the language, as before)
-  const marketIL = params.marketIL ?? (accountContext?.market === 'Local' ? true : accountContext?.market === 'International' ? false : isHebrew);
-  const supportEmail = marketIL ? AI_FACTS.supportEmail.he : AI_FACTS.supportEmail.en;
+  const supportEmail = isHebrew ? AI_FACTS.supportEmail.he : AI_FACTS.supportEmail.en;
   const languageInstruction = buildLanguageInstruction(isHebrew);
 
-  const pricingBlock = buildSubscriptionTruthBlock(isHebrew, accountContext?.market === 'Unknown', marketIL);
+  const pricingBlock = buildSubscriptionTruthBlock(isHebrew, accountContext?.market === 'Unknown');
   const guidedHint = buildGuidedIntentHint(guidedIntent, guidedSubtopic);
 
   // Navigation (and the account-context block) only make sense once there
@@ -541,9 +536,9 @@ SUPPORT EMAIL RULE:
 - For Hebrew users, use: ${AI_FACTS.supportEmail.he}
 - For English users, use: ${AI_FACTS.supportEmail.en}
 
-${buildPaymentTruthBlock(isHebrew, AI_FACTS.billing, marketIL)}
+${buildPaymentTruthBlock(isHebrew, AI_FACTS.billing)}
 
-${buildInvoicingTruthBlock(AI_FACTS.invoicing, subscriptionPurchaseOpen(marketIL, AI_FACTS.billing))}
+${buildInvoicingTruthBlock(AI_FACTS.invoicing, subscriptionPurchaseOpen(isHebrew, AI_FACTS.billing))}
 
 ${buildCapabilityTruthBlock({ capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities })}
 
@@ -551,7 +546,7 @@ ${buildHowToBlock(isHebrew, AI_FACTS.howTo)}
 
 ${pricingBlock}
 
-${buildAddOnTruthBlock(isHebrew, AI_FACTS.addOns, marketIL)}
+${buildAddOnTruthBlock(isHebrew, AI_FACTS.addOns)}
 
 FILE ATTACHMENTS:
 - Attaching files to a quote is a product capability, but which plans include attachments, and the allowed file types, count and sizes, have NOT been decided yet (OPEN-13) - never state a plan, a size limit or a storage figure for attachments.

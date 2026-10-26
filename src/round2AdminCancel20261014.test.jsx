@@ -65,8 +65,7 @@ describe('Settings › My subscription: the cancellation-request link (not lifet
     const s = read('components/SettingsTab.jsx');
     const block = s.slice(s.indexOf('{!isSuperAdmin && !lifetimeAccount && ('), s.indexOf('</section>', s.indexOf('{!isSuperAdmin && !lifetimeAccount && (')));
     expect(block).toContain('data-testid="settings-subscription-cancellation"');
-    // Owner console 2026-10-26 (typed L-07, item ז): the same mailto, opened through the in-app mail window
-    expect(block).toContain('<MailLink href={subscriptionOffer.cancellation.href}');
+    expect(block).toContain('<a href={subscriptionOffer.cancellation.href}');
     expect(block).toContain('{subscriptionOffer.cancellation.termsLabel}</a>');
   });
 });

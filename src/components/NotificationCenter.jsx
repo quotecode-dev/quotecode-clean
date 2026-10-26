@@ -21,7 +21,6 @@ import TekangoAiIcon from './TekangoAiIcon';
 import { DAILY_TIP_ACTION_EVENT } from '../utils/dailyTips';
 import { BELL_SUBJECT_EVENT, BELL_ACTION_COPY, bellActionsFor, loadFloatedKeys, saveFloatedKeys, floatedStorageKey, pendingFloating } from '../utils/bellSubject';
 import { activeAnnouncements } from '../utils/bellAnnouncements';
-import MailLink from './MailLink';
 
 const KIND_COLOR = { announce: '#7C3AED', signed: '#15803D', first_view: '#5B3FB6', task_due: '#0F6672', validity_ending: '#9A5B12', viewed_not_approved: '#65727A' };
 
@@ -305,7 +304,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
               <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, marginTop: 6 }}>
                 {C.welcome.support}{' '}
                 {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens an email to the service support mailbox (answered by the team; nothing changes in the account) */}
-                <MailLink href={`mailto:${supportEmail}`} isHebrew={isHebrew} style={{ color: '#0F6672', fontWeight: 600 }}><bdi dir="ltr">{supportEmail}</bdi></MailLink>
+                <a href={`mailto:${supportEmail}`} style={{ color: '#0F6672', fontWeight: 600 }}><bdi dir="ltr">{supportEmail}</bdi></a>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8, fontSize: '0.75rem', color: NEON.textSecondary, marginTop: 4 }}>
                 <span>{C.welcome.ai}</span>

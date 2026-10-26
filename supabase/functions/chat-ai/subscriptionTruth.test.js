@@ -168,9 +168,8 @@ describe('prompt block + request boundary', () => {
     expect(indexSource).toMatch(/accountSummary = await fetchServerAccountSummary\(\(fn\) => callerClient\.rpc\(fn\)\);/);
     expect(indexSource).toMatch(/\.select\('role, country, phone, tax_id, is_lifetime'\)/);
     expect(indexSource).not.toMatch(/trial_ends_at|monthStartIso|monthlyUsed/);
-    // Owner console 2026-10-26 (typed item ו; L-06 / L-11 / L-17): the reply language is the interface language, the market is the account's
-    expect(indexSource).toMatch(/const subscription = resolveSubscriptionTruthResponse\(lastUserMessage, isHebrew, verifiedUserId && accountContext \? accountContext\.account : null, marketIL\);/);
-    expect(indexSource).toMatch(/const subscriptionViolations = findSubscriptionClaimViolations\(extracted\.answer, marketIL\);/);
+    expect(indexSource).toMatch(/const subscription = resolveSubscriptionTruthResponse\(lastUserMessage, isHebrew, verifiedUserId && accountContext \? accountContext\.account : null\);/);
+    expect(indexSource).toMatch(/const subscriptionViolations = findSubscriptionClaimViolations\(extracted\.answer, isHebrew\);/);
     // the subscription router runs after payment/invoicing and before the account-market and capability routers
     const iPay = indexSource.indexOf('if (asksInvoicing || asksPayment)');
     const iSub = indexSource.indexOf('const subscription = resolveSubscriptionTruthResponse');

@@ -7,7 +7,6 @@ import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeoFor } from '../shared/publicSeoRoutes';
 import { SUPPORT_EMAIL_HE, SUPPORT_EMAIL_EN } from '../shared/brand';
 import { useLauncherStepAside } from '../hooks/useLauncherStepAside';
-import MailLink from '../components/MailLink';
 
 // Task 36 (Codex landing review L6): the floating AI launcher steps aside while it would cover a heading, text or action of this page
 // (measured: it covered the support email link and the "Start chat" button). HE copy (Task 36, §ג): one form of address (plural, as the
@@ -64,7 +63,6 @@ export default function Contact({ isHebrew }) {
     cancelText: 'אפשר לבקש ביטול מנוי בכל עת במייל. הבקשה מטופלת בידי הצוות ומאושרת במייל; היא אינה ביטול אוטומטי ואינה מחיקת חשבון.',
     cancelLink: 'שליחת בקשת ביטול במייל',
     cancelSubject: 'בקשת ביטול מנוי',
-    cancelBody: 'שלום, אבקש לבטל את המנוי שלי.',
     termsLink: 'תנאי הביטול וההחזרים',
     termsHref: '/he/terms#cancellation',
   } : {
@@ -94,7 +92,6 @@ export default function Contact({ isHebrew }) {
     cancelText: 'You can ask to cancel a subscription at any time by email. Our team handles the request and confirms it by email; it is not an automatic cancellation and does not delete your account.',
     cancelLink: 'Email a cancellation request',
     cancelSubject: 'Subscription cancellation request',
-    cancelBody: 'Hello, I would like to cancel my subscription.',
     termsLink: 'Cancellation and refund terms',
     termsHref: '/en/terms#cancellation',
   };
@@ -189,7 +186,7 @@ export default function Contact({ isHebrew }) {
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#3b82f6" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
               </div>
               <h2 style={{ fontSize: '1.3rem', fontWeight: '800', color: '#ffffff', marginBottom: '10px' }}>{t.emailTitle}</h2>
-              <MailLink href={`mailto:${t.emailValue}`} isHebrew={isHebrew} style={{ color: '#3b82f6', fontSize: '1.15rem', fontWeight: 'bold', textDecoration: 'none', marginBottom: '12px', display: 'inline-block' }}><bdi dir="ltr">{t.emailValue}</bdi></MailLink>
+              <a href={`mailto:${t.emailValue}`} style={{ color: '#3b82f6', fontSize: '1.15rem', fontWeight: 'bold', textDecoration: 'none', marginBottom: '12px', display: 'inline-block' }}>{t.emailValue}</a>
               <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.5', margin: 0 }}>{t.emailDesc}</p>
             </div>
 
@@ -200,7 +197,7 @@ export default function Contact({ isHebrew }) {
               {/* PRODUCT_TRUTH_DECORATIVE: tel link to the business phone (Israeli site only) */}{t.phone && <a href={t.phoneHref} data-testid="contact-phone" style={{ color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none', margin: '0 0 12px' }}><bdi dir="ltr">{t.phone}</bdi></a>}
               <h3 style={{ fontSize: '1.05rem', fontWeight: '800', color: '#ffffff', margin: '12px 0 6px' }}>{t.cancelTitle}</h3>
               <p style={{ color: '#94a3b8', fontSize: '0.95rem', lineHeight: '1.5', margin: '0 0 8px' }}>{t.cancelText}</p>
-              {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<MailLink href={`mailto:${t.emailValue}?subject=${encodeURIComponent(t.cancelSubject)}&body=${encodeURIComponent(t.cancelBody)}`} isHebrew={isHebrew} data-testid="contact-cancel-request" style={{ color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none', marginBottom: '6px' }}>{t.cancelLink}</MailLink>
+              {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<a href={`mailto:${t.emailValue}?subject=${encodeURIComponent(t.cancelSubject)}`} data-testid="contact-cancel-request" style={{ color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none', marginBottom: '6px' }}>{t.cancelLink}</a>
               {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href={t.termsHref} onClick={(e) => { e.preventDefault(); navigate(t.termsHref); }} style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{t.termsLink}</a>
             </div>
 
