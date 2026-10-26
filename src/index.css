@@ -528,9 +528,6 @@ html {
   .pf-ai-help-btn--header .pf-ai-label-short { display: inline; }
 }
 .pf-modal-head--bar { padding: 14px 20px; }
-/* Owner console 2026-10-26 (typed L-09 / L-15, the real walk): the item wizard's header Close and AI action are finger size (44px) */
-.pf-wizard-head .pf-modal-head-close-btn { min-width: 44px; min-height: 44px; }
-.pf-wizard-head .pf-ai-help-btn { min-height: 44px; }
 @media (max-width: 600px) { .pf-modal-head--bar { padding: 10px 12px; } }
 @media (max-width: 360px) {
   .pf-modal-head { gap: 4px; }

@@ -304,9 +304,7 @@ export default function AddItemWizard({
       // a draft saved by the earlier 4-step wizard (no stepModel) resumes on the item screen, or on the check if it was there
       setStep(rs.stepModel === 2 ? (rs.step === STEPS.REVIEW ? STEPS.REVIEW : STEPS.ITEM) : (rs.step === 4 ? STEPS.REVIEW : STEPS.ITEM));
       setErrors({});
-      // Owner 2026-10-26 (second real walk): a RESTORED unfinished item is work in progress - leaving it asks too
-      initialSigRef.current = '__restored__';
-      captureInitialRef.current = false;
+      captureInitialRef.current = true;
       return;
     }
     if (editingItem) {
@@ -743,8 +741,8 @@ export default function AddItemWizard({
     const rest = picks.filter((_, i) => i !== idx);
     setPicks(rest); setMultiErrors({}); setBlocked(null);
     if (rest.length === 0) { setStep(STEPS.ITEM); setPickNotice(t.noPicksLeft); return; }
-    // the focus moves to the name of the item now in that place - a visibly focused field (never lost with the removed button)
-    setReveal({ id: pid(Math.min(idx, rest.length - 1), 'description'), n: Date.now() });
+    // the focus moves to the item now in that place (never lost with the removed button)
+    setReveal({ id: pid(Math.min(idx, rest.length - 1), 'title'), n: Date.now() });
   }
   function computePickErrors() {
     const all = {};
@@ -1162,13 +1160,12 @@ export default function AddItemWizard({
       ref={dialogRef}
       tabIndex={-1}
       style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', boxSizing: 'border-box', outline: 'none' }}
-      // preventDefault: the wizard took the Escape (it may ask first) - the phone Back keeps asking it, never skips to the editor
-      onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); requestClose(); return; } trapFocus(e); }}
+      onKeyDown={(e) => { if (e.key === 'Escape') { requestClose(); return; } trapFocus(e); }}
     >
       <div style={{ background: NEON.bgCard, borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '92vh', overflow: 'hidden', boxShadow: '0 20px 60px -15px rgba(0,0,0,0.4)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}
       >
         {/* §51.16: ONE header row - title · AI action (centred on desktop) · Close; the ONE assistant opens above this dialog, the wizard stays as-is */}
-        <AiModalHeader className="pf-modal-head--bar pf-wizard-head" title={t.title} onClose={requestClose} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="ai-help-wizard"
+        <AiModalHeader className="pf-modal-head--bar" title={t.title} onClose={requestClose} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="ai-help-wizard"
           style={{ borderBottom: `1px solid ${NEON.border}`, flexShrink: 0, color: NEON.textPrimary }} />
 
         <StepIndicator step={step} isHebrew={isHebrew} isNarrow={isNarrow} labels={t.stepLabels} stepOfTotal={t.stepOfTotal} />

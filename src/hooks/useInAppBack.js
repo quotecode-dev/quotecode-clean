@@ -206,11 +206,9 @@ export function closeTopDialogWithEscape(memo) {
   if (!top) { if (memo) memo.el = null; return false; }
   // a window that did not close on the previous Back press does not hold Back forever
   if (memo && memo.el === top) { memo.el = null; return false; }
+  if (memo) memo.el = top;
   const ev = { key: 'Escape', code: 'Escape', bubbles: true, cancelable: true };
   // ONE Escape, from inside the window (it bubbles to the document / window listeners too)
-  const taken = !(top.contains(document.activeElement) ? document.activeElement : top).dispatchEvent(new KeyboardEvent('keydown', ev));
-  // Owner console 2026-10-26 (typed L-15, second real walk): a window that TOOK the Escape (it asks before closing - the item wizard, the
-  // app's own question) answers every Back itself; only a window that ignored it is passed by on the next Back
-  if (memo) memo.el = taken ? null : top;
+  (top.contains(document.activeElement) ? document.activeElement : top).dispatchEvent(new KeyboardEvent('keydown', ev));
   return true;
 }
