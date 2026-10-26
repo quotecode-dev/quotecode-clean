@@ -78,6 +78,81 @@ export const PUBLIC_SEO_ROUTES = [
     description: 'Free currency converter, unit converter, metals and crypto calculators - accurate business tools from TEKANGO.',
     hreflang: pair('/tools'),
   },
+  // Owner console 2026-10-26 (typed: "מאשר את שבוע 1 של קידום האתר: ... דפי הכלים כעמודים עצמאיים ..."): every calculator has its own indexable page - its own
+  // title, description, canonical and hreflang pair - instead of a copy of the hub (Search Console: "Alternate page with proper canonical
+  // tag"). `tab` = the calculator the page opens on (PublicTools / PublicToolsEn initialTab).
+  {
+    path: '/he/tools/currency',
+    page: 'tools',
+    tab: 'currency',
+    lang: 'he',
+    title: "TEKANGO - מחשבון המרת מטבעות לפי שער עדכני",
+    description: "המירו שקלים, דולרים, אירו ומטבעות נוספים לפי שערים מעודכנים מהמקור. מחשבון חינמי לעסקים, ליבואנים ולעצמאים מבית TEKANGO.",
+    hreflang: pair('/tools/currency'),
+  },
+  {
+    path: '/en/tools/currency',
+    page: 'tools',
+    tab: 'currency',
+    lang: 'en',
+    title: "TEKANGO - Currency Converter with Up-to-Date Rates",
+    description: "Convert dollars, euros, pounds and other currencies at up-to-date rates from a named source. A free tool for businesses, importers and freelancers from TEKANGO.",
+    hreflang: pair('/tools/currency'),
+  },
+  {
+    path: '/he/tools/units',
+    page: 'tools',
+    tab: 'units',
+    lang: 'he',
+    title: "TEKANGO - המרת יחידות אורך: מטר, פיט, אינץ' ומייל",
+    description: "המירו מטרים, סנטימטרים, קילומטרים, פיט, אינץ' ומיילים בלחיצה. מחשבון חינמי ומדויק מבית TEKANGO.",
+    hreflang: pair('/tools/units'),
+  },
+  {
+    path: '/en/tools/units',
+    page: 'tools',
+    tab: 'units',
+    lang: 'en',
+    title: "TEKANGO - Length Converter: Meters, Feet, Inches & Miles",
+    description: "Convert meters, centimeters, kilometers, feet, inches and miles in one click. A free, accurate converter from TEKANGO.",
+    hreflang: pair('/tools/units'),
+  },
+  {
+    path: '/he/tools/metals',
+    page: 'tools',
+    tab: 'metals',
+    lang: 'he',
+    title: "TEKANGO - מחשבון שווי זהב, כסף ומתכות יקרות",
+    description: "הערכת שווי לזהב, כסף, פלטינה ומתכות יקרות נוספות לפי משקל, טוהר ומחיר ייחוס לגרם. מחשבון חינמי מבית TEKANGO.",
+    hreflang: pair('/tools/metals'),
+  },
+  {
+    path: '/en/tools/metals',
+    page: 'tools',
+    tab: 'metals',
+    lang: 'en',
+    title: "TEKANGO - Gold, Silver & Precious Metals Value Calculator",
+    description: "Estimate the value of gold, silver, platinum and other precious metals from weight, purity and a reference price per gram. A free calculator from TEKANGO.",
+    hreflang: pair('/tools/metals'),
+  },
+  {
+    path: '/he/tools/crypto',
+    page: 'tools',
+    tab: 'crypto',
+    lang: 'he',
+    title: "TEKANGO - ממיר קריפטו: ביטקוין, אתריום ועוד בדולר ובשקל",
+    description: "בדקו כמה שווים ביטקוין, אתריום, סולנה, ריפל וטרון בדולרים ובשקלים, לפי מחירים מעודכנים מהמקור. כלי חינמי מבית TEKANGO.",
+    hreflang: pair('/tools/crypto'),
+  },
+  {
+    path: '/en/tools/crypto',
+    page: 'tools',
+    tab: 'crypto',
+    lang: 'en',
+    title: "TEKANGO - Crypto Converter: Bitcoin, Ethereum & More in USD and EUR",
+    description: "Check what Bitcoin, Ethereum, Solana, XRP and TRON are worth in US dollars and euros at up-to-date prices. A free tool from TEKANGO.",
+    hreflang: pair('/tools/crypto'),
+  },
   {
     path: '/he/contact',
     page: 'contact',
@@ -141,7 +216,7 @@ export function publicSeo(path) {
 
 // Page kind + locale -> its canonical public route (e.g. the /contact alias renders the same page as /he/contact).
 export function publicSeoFor(page, lang) {
-  const route = PUBLIC_SEO_ROUTES.find((r) => r.page === page && r.lang === lang);
+  const route = PUBLIC_SEO_ROUTES.find((r) => r.page === page && r.lang === lang && !r.tab);
   if (!route) throw new Error(`publicSeoFor: no public SEO route for ${page}/${lang}`);
   return publicSeo(route.path);
 }

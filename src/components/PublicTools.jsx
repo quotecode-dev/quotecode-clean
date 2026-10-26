@@ -31,9 +31,21 @@ function FeedLine({ feed, testId, label, asOf }) {
 }
 const InputError = ({ code, testId }) => (code ? <div data-testid={testId} role="alert" style={{ color: TOOLS.red, fontSize: '0.8rem', marginTop: '6px' }}>{ERR[code]}</div> : null);
 
-function PublicTools() {
+// Owner console 2026-10-26 (typed: "מאשר את שבוע 1 של קידום האתר: ... דפי הכלים כעמודים עצמאיים ..."): /he/tools/<tab> is the calculator's own page - it
+// opens on that calculator with its own heading and intro (its title / description / canonical: src/shared/publicSeoRoutes.js); /he/tools
+// stays the hub
+const TOOL_PAGE = {
+  currency: { h1: 'מחשבון המרת מטבעות', intro: 'המרת שקלים, דולרים, אירו ומטבעות נוספים לפי שערים מעודכנים מהמקור, עם שעת העדכון. מתאים לתמחור יבוא, להצעות מחיר במטבע זר ולבדיקה מהירה.' },
+  units: { h1: 'המרת יחידות אורך ומרחק', intro: 'המרה מדויקת בין מטר, סנטימטר, קילומטר, פיט, אינץ\' ומייל. שימושי למידות מתוכניות ומספקים בחו"ל ולהצעות מחיר.' },
+  metals: { h1: 'מחשבון הערכת שווי למתכות יקרות', intro: 'הערכת שווי לזהב, כסף, פלטינה, פלדיום ורודיום לפי משקל, טוהר ומחיר ייחוס לגרם שאפשר לשנות. זו הערכה, לא מחיר שוק.' },
+  crypto: { h1: 'ממיר קריפטו לדולר ולשקל', intro: 'כמה שווים ביטקוין, אתריום, סולנה, ריפל וטרון בדולרים ובשקלים, לפי מחירים מעודכנים מהמקור עם שעת העדכון.' },
+};
+
+function PublicTools({ initialTab }) {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('currency');
+  const toolPage = TOOL_PAGE[initialTab] || null;
+  const seoPath = toolPage ? `/he/tools/${initialTab}` : '/he/tools';
+  const [activeTab, setActiveTab] = useState(toolPage ? initialTab : 'currency');
 
   useEffect(() => {
     // ר' הערה מלאה ב-Contact.jsx - /tools הלא-מקודד הוא alias לתאימות
@@ -43,8 +55,8 @@ function PublicTools() {
     }
 
     // One public SEO authority (src/shared/publicSeoRoutes.js), shared with the prerender build (2026-09-28).
-    setSeoMeta(publicSeo('/he/tools'));
-  }, [navigate]);
+    setSeoMeta(publicSeo(seoPath));
+  }, [navigate, seoPath]);
 
   // PRODUCT_TRUTH_CAPABILITY: public_currency_converter
   // PRODUCT_TRUTH_CAPABILITY: public_crypto_calculator
@@ -131,9 +143,9 @@ function PublicTools() {
         {/* PRODUCT_TRUTH_DECORATIVE: navigation link back to the landing page of the same language (Task 36, L3) */}
         <a href="/he" data-testid="tools-home" onClick={(e) => { e.preventDefault(); navigate('/he'); }} style={{ position: 'absolute', top: '12px', insetInlineStart: '16px', color: TOOLS.accent, fontSize: '0.95rem', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', minHeight: '44px' }}>חזרה לדף הבית</a>
         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}><ProFlowLogo size={30} darkText /></div>
-        <h1 style={{ fontSize: '2.2rem', marginBottom: '10px', fontWeight: 700, color: TOOLS.textPrimary }}>מרכז הכלים והמחשבונים העסקיים</h1>
+        <h1 style={{ fontSize: '2.2rem', marginBottom: '10px', fontWeight: 700, color: TOOLS.textPrimary }}>{toolPage ? toolPage.h1 : 'מרכז הכלים והמחשבונים העסקיים'}</h1>
         <p style={{ fontSize: '1.05rem', color: TOOLS.textSecondary, maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
-          מחשבונים לעסקים, ליבואנים ולעצמאים: המרת מטבעות וקריפטו לפי שערים מעודכנים מהמקור, המרת יחידות אורך והערכת שווי למתכות יקרות.
+          {toolPage ? toolPage.intro : 'מחשבונים לעסקים, ליבואנים ולעצמאים: המרת מטבעות וקריפטו לפי שערים מעודכנים מהמקור, המרת יחידות אורך והערכת שווי למתכות יקרות.'}
         </p>
       </header>
 

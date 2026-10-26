@@ -114,10 +114,12 @@ export default function AppLocal() {
             ומחזירים תוכן-אמיתי-ורלוונטי (מרכז-הכלים המלא, עם כל 4 המחשבונים
             נגישים ללחיצה) במקום לנפול ל-wildcard (LandingLocal) כפי שקרה
             קודם - שיפור אמיתי ומוכח, גם בלי ייחוד-מטא-דאטה-פר-מחשבון. */}
-        <Route path="/he/tools/currency" element={<PublicTools />} />
-        <Route path="/he/tools/units" element={<PublicTools />} />
-        <Route path="/he/tools/metals" element={<PublicTools />} />
-        <Route path="/he/tools/crypto" element={<PublicTools />} />
+        {/* Owner console 2026-10-26 (typed: "מאשר את שבוע 1 של קידום האתר: ... דפי הכלים כעמודים עצמאיים ..."): every calculator route is its own
+            page - PublicTools opens on that calculator with its own heading, intro and SEO entry (src/shared/publicSeoRoutes.js) */}
+        <Route path="/he/tools/currency" element={<PublicTools initialTab="currency" />} />
+        <Route path="/he/tools/units" element={<PublicTools initialTab="units" />} />
+        <Route path="/he/tools/metals" element={<PublicTools initialTab="metals" />} />
+        <Route path="/he/tools/crypto" element={<PublicTools initialTab="crypto" />} />
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         {/* Task 23 (Phase 5): public digital business card (no sign-in; the page uses the card's own market language once loaded) */}
         <Route path="/card/:id" element={<PublicBusinessCard bundleIsHebrew={true} />} />
