@@ -19,6 +19,13 @@ describe('א2 - SMART PACK line retry', () => {
     const s = read('supabase', 'functions', 'subscription-authority', 'payplus.ts');
     expect(s).toMatch(/if \(!UUID\.test\(terminal\)\) \{ console\.error\(JSON\.stringify\(\{ fn: 'subscription-authority', incident: 'smart_pack_terminal_missing' \}\)\); return 'unknown'; \}/);
   });
+  it('a SMART PACK product missing from the PayPlus catalog is retried too (the second refusal, 2026-10-26)', () => {
+    const s = read('supabase', 'functions', 'subscription-authority', 'payplus.ts');
+    expect(s).toContain("if (productUid === null) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_product_missing' })); return 'unknown'; }");
+    const strip = (t) => t.replace(/\r/g, '').replace(/--[^\n]*\n/g, '').trim();
+    expect(strip(read('supabase', 'migrations', '20261026200000_smart_pack_line_reopen_product.sql')))
+      .toBe(strip(read('supabase', 'migrations', '20261026100000_smart_pack_line_reopen.sql')));
+  });
   it('the migration re-opens only paid, in-period refused lines of the live package without the line, and changes nothing else', () => {
     const m = read('supabase', 'migrations', '20261026100000_smart_pack_line_reopen.sql').replace(/--[^\n]*\n/g, '');
     expect(m).toMatch(/UPDATE public\.smart_pack_add_ons a\s+SET line_state = NULL, line_at = NULL/);
