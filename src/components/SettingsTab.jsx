@@ -16,6 +16,7 @@ import { BUSINESS_CARD_SETTINGS_COPY } from './businessCardSettingsCopy';
 import { useBusinessCardProfile } from '../hooks/useBusinessCardProfile';
 import { REMINDERS_COPY } from '../utils/reminders';
 import { DIAL_CHOICES, businessDial, joinPhone } from '../utils/phoneDial';
+import MailLink from './MailLink';
 
 // פונקציית עזר לזיהוי קידומת לפי מטבע עסק
 const getDialByCurrency = (curr, isLocal) => {
@@ -575,7 +576,7 @@ export default function SettingsTab({
                <p data-testid="settings-subscription-cancellation" style={{ margin: 0, fontSize: '0.8rem', color: NEON.textSecondary }}>
                  {subscriptionOffer.cancellation.text}{' '}
                  {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation, nothing changes in the account) */}
-                 <a href={subscriptionOffer.cancellation.href} style={{ color: NEON.violet, fontWeight: 600 }}>{subscriptionOffer.cancellation.linkLabel}</a>{' · '}
+                 <MailLink href={subscriptionOffer.cancellation.href} isHebrew={isHebrew} style={{ color: NEON.violet, fontWeight: 600 }}>{subscriptionOffer.cancellation.linkLabel}</MailLink>{' · '}
                  {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}
                  <a href={subscriptionOffer.cancellation.termsHref} target="_blank" rel="noopener noreferrer" style={{ color: NEON.violet }}>{subscriptionOffer.cancellation.termsLabel}</a>
                </p>

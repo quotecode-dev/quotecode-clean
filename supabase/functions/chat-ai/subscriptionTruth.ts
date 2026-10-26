@@ -151,19 +151,27 @@ export function classifySubscriptionIntents(message: unknown): SubscriptionInten
 const ils = (v: string) => `${v} ₪`;
 const usd = (v: string) => `${v} USD`;
 
-function priceLine(lang: Lang): string {
-  if (lang === 'he') {
+// Owner console 2026-10-26 (typed: "מאשר את התוכנית א עד ז ...", item ו; L-06 / L-11 / L-17): the reply LANGUAGE is the interface
+// language, the MARKET (prices, currency, purchase) is the account's - an Israeli account in English hears ₪ and "can be bought",
+// an account abroad in Hebrew hears USD and "not open yet". marketIL defaults to the language (the public chat: no account).
+function priceLine(lang: Lang, marketIL: boolean = lang === 'he'): string {
+  if (marketIL) {
     const p = S.prices.IL.package;
-    return `${planName(PKG, 'he')}: ${ils(p.month)} לחודש או ${ils(p.year)} לשנה. בתשלום שנתי החיסכון הוא ${p.annualSavingPercentExact ? '' : 'כ-'}${p.annualSavingPercentRounded}% - ${ils(p.annualSaving)} בשנה. המחירים כוללים מע״מ.`;
+    return lang === 'he'
+      ? `${planName(PKG, 'he')}: ${ils(p.month)} לחודש או ${ils(p.year)} לשנה. בתשלום שנתי החיסכון הוא ${p.annualSavingPercentExact ? '' : 'כ-'}${p.annualSavingPercentRounded}% - ${ils(p.annualSaving)} בשנה. המחירים כוללים מע״מ.`
+      : `${planName(PKG, 'en')}: ${ils(p.month)} per month or ${ils(p.year)} per year. Paying annually saves ${p.annualSavingPercentExact ? '' : 'approximately '}${p.annualSavingPercentRounded}% - ${ils(p.annualSaving)} per year. Prices include VAT.`;
   }
   const p = S.prices.INTERNATIONAL.package;
-  return `${planName(PKG, 'en')}: ${usd(p.month)} per month or ${usd(p.year)} per year. Paying annually saves ${p.annualSavingPercentExact ? '' : 'approximately '}${p.annualSavingPercentRounded}% - ${usd(p.annualSaving)} per year. Billing is always in USD; a price shown in your local currency is only an estimate.`;
+  return lang === 'he'
+    ? `${planName(PKG, 'he')}: ${usd(p.month)} לחודש או ${usd(p.year)} לשנה. בתשלום שנתי החיסכון הוא ${p.annualSavingPercentExact ? '' : 'כ-'}${p.annualSavingPercentRounded}% - ${usd(p.annualSaving)} בשנה. החיוב תמיד בדולר ארה״ב; מחיר במטבע מקומי הוא הערכה בלבד.`
+    : `${planName(PKG, 'en')}: ${usd(p.month)} per month or ${usd(p.year)} per year. Paying annually saves ${p.annualSavingPercentExact ? '' : 'approximately '}${p.annualSavingPercentRounded}% - ${usd(p.annualSaving)} per year. Billing is always in USD; a price shown in your local currency is only an estimate.`;
 }
 
-function catalogLine(lang: Lang): string {
+function catalogLine(lang: Lang, marketIL: boolean = lang === 'he'): string {
+  const price = marketIL ? ils(S.prices.IL.catalogBlock100) : usd(S.prices.INTERNATIONAL.catalogBlock100);
   return lang === 'he'
-    ? `כל מסלול בתשלום כולל ${S.catalog.includedProductsPerPaidPlan} מוצרי קטלוג; הרחבה של ${S.catalog.blockProducts} מוצרים נוספים עולה ${ils(S.prices.IL.catalogBlock100)} לחודש, ורק בבחירה מפורשת.`
-    : `Every paid plan includes ${S.catalog.includedProductsPerPaidPlan} catalog products; ${S.catalog.blockProducts} more products cost ${usd(S.prices.INTERNATIONAL.catalogBlock100)} per month, only when you explicitly choose it.`;
+    ? `כל מסלול בתשלום כולל ${S.catalog.includedProductsPerPaidPlan} מוצרי קטלוג; הרחבה של ${S.catalog.blockProducts} מוצרים נוספים עולה ${price} לחודש, ורק בבחירה מפורשת.`
+    : `Every paid plan includes ${S.catalog.includedProductsPerPaidPlan} catalog products; ${S.catalog.blockProducts} more products cost ${price} per month, only when you explicitly choose it.`;
 }
 
 function freeLine(lang: Lang): string {
@@ -180,19 +188,19 @@ function freeRulesLine(lang: Lang): string {
 
 // Owner console 2026-10-25 (typed L-06 / L-11 / L-17 ... "להפעלת הרכישה בישראל"): once active, the line says where to buy (Israel = the
 // Hebrew context) or that purchase is not open yet abroad (the English context) - from AI_FACTS.subscriptions.purchaseOpenMarkets
-function purchaseOpen(lang: Lang): boolean {
+function purchaseOpen(lang: Lang, marketIL: boolean = lang === 'he'): boolean {
   const open = (S as { purchaseOpenMarkets?: readonly string[] }).purchaseOpenMarkets ?? [];
-  return open.includes(lang === 'he' ? 'IL' : 'INTERNATIONAL');
+  return open.includes(marketIL ? 'IL' : 'INTERNATIONAL');
 }
-function notActiveLine(lang: Lang): string {
+function notActiveLine(lang: Lang, marketIL: boolean = lang === 'he'): string {
   if (S.planSystemActive) {
-    if (purchaseOpen(lang)) {
+    if (purchaseOpen(lang, marketIL)) {
       return lang === 'he'
         ? 'את המנוי אפשר לרכוש בחלון המסלולים, מכפתור המסלול בראש המסך: בתשלום חודשי או שנתי בכרטיס אשראי, וחשבונית מס-קבלה נשלחת במייל.'
         : 'You can buy the package in the plans window, from the plan button at the top of the screen: monthly or annual, by card, with a receipt by email.';
     }
     return lang === 'he'
-      ? 'רכישת מנוי עדיין לא פתוחה בחשבון הזה.'
+      ? 'רכישת מנוי עדיין לא פתוחה בחשבונות מחוץ לישראל.'
       : 'Subscriptions cannot be purchased yet for accounts outside Israel.';
   }
   return lang === 'he'
@@ -234,7 +242,7 @@ function mentionedLegacyPlans(message: string): LegacyPlanId[] {
 }
 
 /** The deterministic subscription answer. `account` = null for public chat. */
-export function formatSubscriptionAnswer(intents: readonly SubscriptionIntent[], message: string, isHebrew: boolean, account: AccountPlanContext | null): string {
+export function formatSubscriptionAnswer(intents: readonly SubscriptionIntent[], message: string, isHebrew: boolean, account: AccountPlanContext | null, marketIL: boolean = isHebrew): string {
   const lang: Lang = isHebrew ? 'he' : 'en';
   const has = (i: SubscriptionIntent) => intents.includes(i);
   const parts: string[] = [];
@@ -265,41 +273,41 @@ export function formatSubscriptionAnswer(intents: readonly SubscriptionIntent[],
         : `${named.map((id) => planName(id, 'en')).join(', ')} are quote presentation styles, not subscription plans. Existing rights on an earlier plan are kept and do not change automatically.`);
     }
     if (/free|חינם/i.test(message) && !named.length) parts.push(freeLine(lang));
-    parts.push(lang === 'he' ? `מחיר: ${priceLine('he')}` : `Price: ${priceLine('en')}`);
-    parts.push(catalogLine(lang));
+    parts.push(lang === 'he' ? `מחיר: ${priceLine('he', marketIL)}` : `Price: ${priceLine('en', marketIL)}`);
+    parts.push(catalogLine(lang, marketIL));
     parts.push(lang === 'he'
       ? `מסלול ${planName(PKG, 'he')} כולל את היכולות הזמינות במערכת; מה שעוד לא הוחלט (מגבלת הצעות, אחסון, מכסות AI וקבצים מצורפים) ${S.planSystemActive ? 'עדיין לא נקבע.' : 'יפורסם לפני ההפעלה.'}`
       : `The ${planName(PKG, 'en')} package includes the capabilities available in the system; what is not decided yet (quote limits, storage, AI quotas and attachments) ${S.planSystemActive ? 'has not been set yet.' : 'will be published before activation.'}`);
   }
   if (has('pricing') && !has('plan_contents')) {
-    if (lang === 'en' && /shekel|\bils\b|\bnis\b|₪|israel/i.test(message)) parts.push('On the International (English) site, plans are priced and billed in USD only.');
-    parts.push(lang === 'he' ? `${planList}. ${freeLine('he')} ${priceLine('he')}` : `${planList}. ${freeLine('en')} ${priceLine('en')}`);
-    parts.push(catalogLine(lang));
+    if (lang === 'en' && !marketIL && /shekel|\bils\b|\bnis\b|₪|israel/i.test(message)) parts.push('On the International (English) site, plans are priced and billed in USD only.');
+    parts.push(lang === 'he' ? `${planList}. ${freeLine('he')} ${priceLine('he', marketIL)}` : `${planList}. ${freeLine('en')} ${priceLine('en', marketIL)}`);
+    parts.push(catalogLine(lang, marketIL));
   }
   if (has('quota') || has('balance')) {
     if (!has('unlimited') && !has('trial') && !has('pricing')) parts.push(freeLine(lang));
     parts.push(freeRulesLine(lang));
     if (!has('unlimited')) parts.push(lang === 'he' ? `מנוי ${planName(PKG, 'he')} אינו מוגבל ל-${S.free.quotesTotal} ההצעות של מסלול החינם; מגבלות אחרות של המנוי טרם הוחלטו.` : `The ${planName(PKG, 'en')} package is not limited to the ${S.free.quotesTotal} quotes of the Free plan; any other limits have not been decided yet.`);
   }
-  if (has('annual') && !has('pricing') && !has('plan_contents')) parts.push(priceLine(lang));
-  const tail = notActiveLine(lang);
+  if (has('annual') && !has('pricing') && !has('plan_contents')) parts.push(priceLine(lang, marketIL));
+  const tail = notActiveLine(lang, marketIL);
   if (tail) parts.push(tail);
   return [...new Set(parts.filter(Boolean))].join(' ');
 }
 
 export type SubscriptionTruthResponse = { readonly answer: string; readonly intents: readonly SubscriptionIntent[] };
 
-export function resolveSubscriptionTruthResponse(message: unknown, isHebrew: boolean, account: AccountPlanContext | null): SubscriptionTruthResponse | null {
+export function resolveSubscriptionTruthResponse(message: unknown, isHebrew: boolean, account: AccountPlanContext | null, marketIL: boolean = isHebrew): SubscriptionTruthResponse | null {
   const text = String(message ?? '');
   const intents = classifySubscriptionIntents(text);
   if (!intents.length) return null;
-  return { answer: formatSubscriptionAnswer(intents, text, isHebrew, account), intents };
+  return { answer: formatSubscriptionAnswer(intents, text, isHebrew, account, marketIL), intents };
 }
 
 // ------------------------------------------------------------------------------------------------------- prompt block
-export function buildSubscriptionTruthBlock(isHebrew: boolean, marketUncertain = false): string {
+export function buildSubscriptionTruthBlock(isHebrew: boolean, marketUncertain = false, marketIL: boolean = isHebrew): string {
   const lang: Lang = isHebrew ? 'he' : 'en';
-  const market = isHebrew
+  const market = marketIL
     ? `Prices (ISRAEL/HEBREW CONTEXT ONLY - never mention $, USD, EUR or GBP as a TEKANGO plan price here): ${priceLine('he')} ${catalogLine('he')} Prices INCLUDE VAT - never add VAT on top and never state a VAT rate or breakdown for plan prices.`
     : `Prices (INTERNATIONAL/ENGLISH CONTEXT ONLY - NEVER mention NIS, ILS, shekels or ₪ here): ${priceLine('en')} ${catalogLine('en')} Never quote a plan price in another currency as if it were billed; a local-currency figure is only an estimate.`;
   const uncertain = !marketUncertain ? '' : isHebrew
@@ -314,7 +322,7 @@ export function buildSubscriptionTruthBlock(isHebrew: boolean, marketUncertain =
 - CANCELLATION AND REFUNDS (decided, published in the Terms of Service section 6): ${S.planSystemActive ? '' : 'once purchase opens, '}a subscription can be cancelled at any time by an email request (or a request from the plans window / settings); the team confirms the end date. An early end refunds the unused part of a prepaid period pro rata; a cancellation fee only where the law allows it and never above the cap stated in the Terms; the annual discount is never clawed back. Never promise anything beyond these terms.
 - Quote presentation styles (Owner 2026-10-14): every account can use all three styles - Classic (a clean business document), Modern (with product images) and Visual (with a lead project image). The business default style is set in Business settings (quote design) and can be changed on each quote. Never tie a style to a plan or a price.
 - The new plan system is ${S.planSystemActive
-    ? `active: the Free limit (10 quotes or 7 days) applies in both markets. ${purchaseOpen(lang)
+    ? `active: the Free limit (10 quotes or 7 days) applies in both markets. ${purchaseOpen(lang, marketIL)
       ? 'In THIS (Israeli) context the package (and SMART PACK) CAN be bought: in the plans window (the plan button at the top of the screen), monthly or annual, by card on a secure payment page, and an invoice-receipt is sent by email. Never claim a purchase was made, and never state an account\'s plan or balance except from the verified account section.'
       : 'In THIS (international) context purchase is NOT open yet - it opens later; never say a plan can be bought now. Never state an account\'s plan or balance except from the verified account section.'}`
     : 'NOT active yet: plans cannot be purchased yet, and no account has an active plan or balance in it. Never claim an active plan, an active balance, purchase availability or a trial.'} There is never a trial.
@@ -367,7 +375,8 @@ const QUOTA_SENTENCE = /\bquotes\b|\bquota\b|הצעות|מכסה|מכסת/i;
 const splitSentences = (t: string) => t.split(/(?<=[.!?])\s+|\n+/).map((s) => s.trim()).filter(Boolean);
 
 /** Retired / unapproved subscription claims in a MODEL answer (empty = clean). Deterministic answers are not checked here. */
-export function findSubscriptionClaimViolations(answer: unknown, isHebrew: boolean): SubscriptionClaimViolation[] {
+/** `marketIL` = the account's market (a shekel price is wrong only for an account abroad / the International context). */
+export function findSubscriptionClaimViolations(answer: unknown, marketIL: boolean): SubscriptionClaimViolation[] {
   const t = String(answer ?? '');
   const out = new Set<SubscriptionClaimViolation>();
   for (const [code, patterns] of Object.entries(ANYWHERE) as [SubscriptionClaimViolation, readonly RegExp[]][]) {
@@ -394,12 +403,12 @@ export function findSubscriptionClaimViolations(answer: unknown, isHebrew: boole
     const pctOk = new Set([S.prices.IL.package.annualSavingPercentRounded, S.prices.INTERNATIONAL.package.annualSavingPercentRounded, 14.81]);
     if ([...sentence.matchAll(/(\d+(?:[.,]\d+)?)\s*%/g)].map((m) => Number(m[1].replace(',', '.'))).some((n) => !pctOk.has(n))) out.add('UNAPPROVED_SAVING');
     // OD-08/11: no shekel price on the International/English side.
-    if (!isHebrew && /₪|\bILS\b|\bNIS\b|\bshekels?\b|שקל|ש"ח/i.test(sentence)) out.add('ILS_ON_INTERNATIONAL');
+    if (!marketIL && /₪|\bILS\b|\bNIS\b|\bshekels?\b|שקל|ש"ח/i.test(sentence)) out.add('ILS_ON_INTERNATIONAL');
   }
   return [...out];
 }
 
 /** The safe replacement when a model answer is rejected: the canonical plan statement (no account claim beyond the summary). */
-export function safeSubscriptionAnswer(isHebrew: boolean, account: AccountPlanContext | null): string {
-  return formatSubscriptionAnswer(['pricing', 'quota'], '', isHebrew, null) + (account ? ` ${accountPlanLine(account, isHebrew ? 'he' : 'en')}` : '');
+export function safeSubscriptionAnswer(isHebrew: boolean, account: AccountPlanContext | null, marketIL: boolean = isHebrew): string {
+  return formatSubscriptionAnswer(['pricing', 'quota'], '', isHebrew, null, marketIL) + (account ? ` ${accountPlanLine(account, isHebrew ? 'he' : 'en')}` : '');
 }

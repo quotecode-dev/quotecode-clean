@@ -21,6 +21,7 @@ import PackageOfferCards from './PackageOfferCards';
 import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText, israelPurchaseOpen, plansAvailabilityLine, smartPackStatusLine, pastDueLine } from '../domain/subscriptions/packageCheckout';
 import { formatShortDate } from '../utils/shortDate';
 import SmartPackAddOnOffer from './SmartPackAddOnOffer';
+import MailLink from './MailLink';
 
 // Owner 2026-10-25 ("למה פשוט לא לכתוב במסלולים שהוא נמצא עכשיו במסלול חינם, למה יש לו את האופציה לבחור את זה בכלל?"): the Free plan is
 // never a card to choose - the status lines above say the account is on it (and its balance); only the paid package card, single width.
@@ -30,18 +31,25 @@ import SmartPackAddOnOffer from './SmartPackAddOnOffer';
 // Owner console 2026-10-25 (typed: "מאשר לתקן את ממצאים 1 עד 13 בעברית ובאנגלית, כולל שינוי ב-L-01, L-14, L-17, L-22"): the account's
 // SMART PACK line, a failed renewal's line with the service mailbox, and an availability line that says the truth (loading + retry,
 // not open abroad, billing off) instead of "cannot be purchased yet"; the card of the account's own plan opens on its own period.
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null, smartPackAddOn = null, onRetrySummary = null }) {
+// item ד: amounts inside the SMART PACK information line are LTR atoms (the same rule as the card notes)
+const NUMERIC_TOKEN = /([≈₪$\u20AC\u00A3]*\d[\d.,]*%?)/;
+const isolateNumbers = (text) => String(text).split(NUMERIC_TOKEN).map((part, i) => (i % 2 === 1
+  ? <bdi key={i} dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{part}</bdi> : part));
+
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, accountCurrency = null, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null, smartPackAddOn = null, onRetrySummary = null }) {
   const [rate, setRate] = useState(null);
   const [pay, setPay] = useState({ busy: false, error: null });
   // Owner console 2026-10-21 (typed L-22 approval): the SMART PACK box state, so the local-currency estimate follows the total
   const [addOnTicked, setAddOnTicked] = useState(false);
-  const wantsEstimate = isOpen && !isLocalIsraeliBusiness && ESTIMATE_CURRENCIES.includes(String(currency || '').toUpperCase());
+  // Owner console 2026-10-26 (typed L-01 / L-22, item ג): the account's own currency (business settings) when the caller has it
+  const ownCurrency = accountCurrency || currency;
+  const wantsEstimate = isOpen && !isLocalIsraeliBusiness && ESTIMATE_CURRENCIES.includes(String(ownCurrency || '').toUpperCase());
   useEffect(() => {
     if (!wantsEstimate) return undefined;
     let alive = true;
-    loadUsdRate(currency).then((r) => { if (alive) setRate(r); }).catch(() => {});
+    loadUsdRate(ownCurrency).then((r) => { if (alive) setRate(r); }).catch(() => {});
     return () => { alive = false; };
-  }, [wantsEstimate, currency]);
+  }, [wantsEstimate, ownCurrency]);
   // a fresh pay button on every opening and when the browser brings this page back from the payment page (Back)
   useEffect(() => { if (isOpen) { setPay({ busy: false, error: null }); setAddOnTicked(false); } }, [isOpen]);
   useEffect(() => {
@@ -53,7 +61,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   const lang = isHebrew ? 'he' : 'en';
   const serverMarket = accountSummary?.state === 'ready' ? accountSummary.market : null;
   const market = serverMarket || (isLocalIsraeliBusiness ? 'IL' : 'INTERNATIONAL');
-  const m = pricingModalModel({ isHebrew, market, accountCurrency: market === 'IL' ? null : currency, estimateRate: rate });
+  const m = pricingModalModel({ isHebrew, market, accountCurrency: market === 'IL' ? null : ownCurrency, estimateRate: rate });
   const status = accountStatusModel(accountSummary, lang);
   const current = status.tone === 'plan' ? status.planId : null;
   const lifetime = isLifetime === true ? lifetimeAccountModel(lang) : null;
@@ -61,6 +69,8 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   const dateFor = (iso) => formatShortDate(iso, ready && accountSummary.market === 'IL' ? 'Local' : 'International');
   const smartPackLine = smartPackStatusLine(accountSummary, isHebrew, dateFor);
   const pastDue = pastDueLine(accountSummary, isHebrew);
+  // SMART PACK on the standing order (no end date): the subscriber's card shows the total charged each period
+  const smartPackRenewing = ready && accountSummary.smartPack?.active === true && accountSummary.smartPack.source === 'add_on' && !accountSummary.smartPack.until;
   // back from the payment page: the words of the state; SMART PACK only from the server summary (the plan is on the line below)
   const returnText = billingReturn?.state ? billingReturnText(billingReturn.state, isHebrew, {
     smartPack: accountSummary?.state === 'ready' && accountSummary.smartPack?.active === true, addOn: billingReturn.addOn === true,
@@ -126,7 +136,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
           <p data-testid="plans-modal-past-due" role="status" style={{ color: '#b45309', textAlign: 'center', margin: '0 0 4px', fontSize: '0.85rem', fontWeight: 600 }}>
             {pastDue.text}{' '}
             {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the service mailbox (updating the card is handled by the team; nothing changes in the account) */}
-            <a href={`mailto:${pastDue.mail}`} style={{ color: '#0F6672' }}><bdi dir="ltr">{pastDue.mail}</bdi></a>
+            <MailLink href={`mailto:${pastDue.mail}`} isHebrew={isHebrew} style={{ color: '#0F6672' }}><bdi dir="ltr">{pastDue.mail}</bdi></MailLink>
           </p>
         )}
         {/* Owner 2026-10-25: in Israel (purchase open) never "cannot be purchased yet", even for an account with nothing to buy */}
@@ -148,9 +158,13 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
             );
           })()}
 
+        {/* Owner console 2026-10-26 (typed L-22, item ד): abroad - SMART PACK as information only (same currency as the card; no box, no button) */}
+        {m.smartPackAbroad && !lifetime && ready && (
+          <p data-testid="plans-smart-pack-abroad" dir={isHebrew ? 'rtl' : 'ltr'} style={{ maxWidth: '440px', margin: '0 auto 12px', textAlign: 'center', color: '#475569', fontSize: '0.85rem' }}>{isolateNumbers(m.smartPackAbroad)}</p>
+        )}
         {/* never a second add-on page while the return from one is still being confirmed */}
         {smartPackAddOn && !lifetime && !(billingReturn?.addOn === true && ['waiting', 'timeout'].includes(billingReturn.state)) && <SmartPackAddOnOffer isHebrew={isHebrew} invoke={smartPackAddOn.invoke} onLeave={smartPackAddOn.onLeave} />}
-        <div style={{ marginBottom: '14px', maxWidth: '440px', marginInline: 'auto' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} currentPeriod={ready ? accountSummary.billingPeriod ?? null : null} purchase={purchase} onAddOnChange={setAddOnTicked} only={['all_inclusive']} /></div>
+        <div style={{ marginBottom: '14px', maxWidth: '440px', marginInline: 'auto' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} currentPeriod={ready ? accountSummary.billingPeriod ?? null : null} purchase={purchase} onAddOnChange={setAddOnTicked} only={['all_inclusive']} smartPackRenewing={smartPackRenewing} /></div>
 
         <p data-testid="plans-modal-price-note" data-price-note style={{ textAlign: 'center', color: '#334155', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 4px' }}>{m.priceNote}</p>
         {m.estimateNote && <p data-testid="plans-modal-estimate" style={{ textAlign: 'center', color: '#475569', fontSize: '0.8rem', margin: '0 0 4px' }}>{addOnTicked && m.estimateNoteWithAddOn ? m.estimateNoteWithAddOn : m.estimateNote}</p>}
@@ -158,7 +172,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
         <p data-testid="plans-modal-cancellation" style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>
           {m.cancellation.text}{' '}
           {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation, nothing changes in the account) */}
-          <a href={m.cancellation.href} style={{ color: '#0F6672', fontWeight: 600 }}>{m.cancellation.linkLabel}</a>{' · '}
+          <MailLink href={m.cancellation.href} isHebrew={isHebrew} data-testid="plans-modal-cancel-request" style={{ color: '#0F6672', fontWeight: 600 }}>{m.cancellation.linkLabel}</MailLink>{' · '}
           {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}
           <a href={m.cancellation.termsHref} target="_blank" rel="noopener noreferrer" style={{ color: '#0F6672' }}>{m.cancellation.termsLabel}</a>
         </p>

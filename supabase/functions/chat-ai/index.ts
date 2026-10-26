@@ -115,6 +115,10 @@ serve(async (req) => {
   let accountContext = null;
   let trustedFacts: TrustedServerFacts | null = null;
   let isHebrew = clientIsHebrew;
+  // Owner console 2026-10-26 (typed: "מאשר את התוכנית א עד ז ...", item ו; L-06 / L-11 / L-17): the reply LANGUAGE is the
+  // interface language the user works in; the MARKET (prices, currency, purchase, service mailbox) is the verified account's own -
+  // never the caller's claim. Without an account (public chat) both follow the page language, as before.
+  let marketIL = clientIsHebrew;
   if (verifiedUserId) {
     const { data: bizRow } = await adminClient
       .from('business_settings')
@@ -131,7 +135,7 @@ serve(async (req) => {
     // falls back to the caller's own dashboard-bundle locale for reply
     // LANGUAGE - it is never used to assert a commercial market/currency,
     // see buildPricingBlock/buildAccountContextBlock's own 'Unknown' branch.
-    isHebrew = isHebrewFromMarket(accountContext.market, clientIsHebrew);
+    marketIL = isHebrewFromMarket(accountContext.market, clientIsHebrew);
   }
 
   // §6: EXPLICIT quote context only - never automatic. Requires a verified
@@ -262,7 +266,7 @@ serve(async (req) => {
   const asksInvoicing = invoicingTruthApplies(AI_FACTS.invoicing) && classifyInvoicingIntent(lastUserMessage);
   const asksPayment = paymentTruthApplies(AI_FACTS.billing) && classifyPaymentIntent(lastUserMessage);
   if (asksInvoicing || asksPayment) {
-    const truth = asksInvoicing ? resolveInvoicingTruthResponse(isHebrew, AI_FACTS.invoicing, payloadAccount, subscriptionPurchaseOpen(isHebrew, AI_FACTS.billing)) : resolvePaymentTruthResponse(isHebrew, AI_FACTS.billing, payloadAccount);
+    const truth = asksInvoicing ? resolveInvoicingTruthResponse(isHebrew, AI_FACTS.invoicing, payloadAccount, subscriptionPurchaseOpen(marketIL, AI_FACTS.billing)) : resolvePaymentTruthResponse(isHebrew, AI_FACTS.billing, payloadAccount, marketIL);
     await logChat(truth.answer);
     return deterministicResponse(truth.answer, null, truth.factPayload);
   }
@@ -311,7 +315,7 @@ serve(async (req) => {
   // never from a plan the user claims. Runs after payment/invoicing (they keep first refusal on payment questions) and before
   // the market and capability routers. See subscriptionTruth.ts.
   {
-    const subscription = resolveSubscriptionTruthResponse(lastUserMessage, isHebrew, verifiedUserId && accountContext ? accountContext.account : null);
+    const subscription = resolveSubscriptionTruthResponse(lastUserMessage, isHebrew, verifiedUserId && accountContext ? accountContext.account : null, marketIL);
     // Owner LIVE check 2026-10-19: "how many quotes do I have for client X" is a question about the user's records, not about the plan
     // allowance - unless it names the plan (left / free / subscription...), it goes to the data tools
     const dataNotPlan = ownDataQuestion && hasDataQualifier(lastUserMessage) && !mentionsPlan(lastUserMessage);
@@ -536,9 +540,9 @@ serve(async (req) => {
   }
 
   // אכיפה גורפת ומדויקת שמחליפה את support ל-info בכל צורה שלא תהיה בעברית
-  // (isHebrew כאן הוא כבר הערך האפקטיבי - server-derived למשתמש מאומת,
+  // (לפי השוק של החשבון - marketIL - ולא לפי שפת הממשק: server-derived למשתמש מאומת,
   // client-supplied רק עבור הצ'אט הציבורי - ר' למעלה).
-  if (!isHebrew) {
+  if (!marketIL) {
     aiReply = aiReply.replace(/support@tekango\.com/gi, 'info@tekango.com');
   }
 
@@ -552,9 +556,9 @@ serve(async (req) => {
   // SUBSCRIPTION TRUTH answer gate: a model answer that states retired / unapproved plan truth (legacy plan names, a trial,
   // "unlimited", a monthly quote limit, annual pricing, an unapproved plan price, a shekel price on the International side)
   // is REJECTED and replaced by the canonical deterministic statement; the rejection is logged with its violation codes.
-  const subscriptionViolations = findSubscriptionClaimViolations(extracted.answer, isHebrew);
+  const subscriptionViolations = findSubscriptionClaimViolations(extracted.answer, marketIL);
   const answer = subscriptionViolations.length
-    ? safeSubscriptionAnswer(isHebrew, verifiedUserId && accountContext ? accountContext.account : null)
+    ? safeSubscriptionAnswer(isHebrew, verifiedUserId && accountContext ? accountContext.account : null, marketIL)
     : extracted.answer;
   if (subscriptionViolations.length) console.warn('chat-ai: model answer rejected by subscription truth gate:', subscriptionViolations.join(','));
   const NAV_FOCUS: Record<string, string> = { open_business_phone: 'business_phone', open_business_tax_id: 'business_tax_id', open_business_details: 'business_details' };
