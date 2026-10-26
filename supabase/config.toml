@@ -227,6 +227,13 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/billing-reconcile/index.ts"
 
+[functions.search-console]
+enabled = true
+# Owner console 2026-10-26 (typed: "מאשר לבנות מסך גוגל סרץ' קונסול במסך הניהול, בקריאה בלבד"): the admin's read-only Search Console
+# view. Super admin only - the JWT is verified by the gateway AND in code (business_settings.role); secret GSC_SERVICE_ACCOUNT_JSON.
+verify_jwt = true
+entrypoint = "./functions/search-console/index.ts"
+
 [functions.voice-ai]
 enabled = true
 # Owner 2026-10-19 (voice assistant): speech to text / text to speech for the smart chat. Signed-in users only - the JWT is

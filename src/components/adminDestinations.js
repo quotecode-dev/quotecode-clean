@@ -1,5 +1,5 @@
 import { createElement } from 'react';
-import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox, Briefcase, Settings2, KeyRound, Coins, Receipt, Scale } from 'lucide-react';
+import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox, Briefcase, Settings2, KeyRound, Coins, Receipt, Scale, SearchCheck } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminPlans from './AdminPlans';
 import AdminSystemActivity from './AdminSystemActivity';
@@ -11,6 +11,7 @@ import AdminPermissions from './AdminPermissions';
 import AdminTwinCosts from './AdminTwinCosts';
 import AdminExpenseInvoices from './AdminExpenseInvoices';
 import AdminBillingReconcile from './AdminBillingReconcile';
+import AdminSearchConsole from './AdminSearchConsole';
 
 // THE Admin destination registry - the one and only definition of what an
 // Admin destination is. The sidebar list, the mobile More list, the
@@ -133,6 +134,14 @@ export const ADMIN_DESTINATIONS = [
     title: { he: 'התאמת תשלומים - סופר אדמין', en: 'Payment reconciliation - Super Admin' },
     description: { he: 'השוואה יומית בין העסקאות בפיי פלוס לתשלומים שנרשמו אצלנו', en: 'A daily comparison of the PayPlus transactions with the payments we recorded' },
     render: (host) => createElement(AdminBillingReconcile, { isHebrew: host.isHebrew }),
+  },
+  // Owner console 2026-10-26 (typed: "מאשר לבנות מסך גוגל סרץ' קונסול במסך הניהול, בקריאה בלבד") - the Owner only (server: super admin only)
+  {
+    id: 'search-console', hub: 'system', icon: SearchCheck, permission: 'owner', mobile: 'more', available: true,
+    label: { he: "גוגל סרץ' קונסול", en: 'Google Search Console' },
+    title: { he: "גוגל סרץ' קונסול - סופר אדמין", en: 'Google Search Console - Super Admin' },
+    description: { he: 'קליקים, הופעות וחיפושים בגוגל, ומצב האינדוקס של הדפים', en: 'Clicks, impressions and searches on Google, and the indexing of the pages' },
+    render: (host) => createElement(AdminSearchConsole, { isHebrew: host.isHebrew }),
   },
 ];
 
