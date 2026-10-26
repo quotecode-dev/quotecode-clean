@@ -13,6 +13,7 @@ import PublicToolsEn from './components/PublicToolsEn';
 import Contact from './pages/Contact';
 import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
+import { PublicArticle, PublicArticlesIndex } from './pages/PublicArticle';
 
 export { PUBLIC_SEO_ROUTES } from './shared/publicSeoRoutes';
 
@@ -23,6 +24,9 @@ const PAGES = {
   contact: { he: () => <Contact isHebrew />, en: () => <Contact isHebrew={false} /> },
   privacy: { he: () => <Privacy isHebrew />, en: () => <Privacy isHebrew={false} /> },
   terms: { he: () => <Terms isHebrew />, en: () => <Terms isHebrew={false} /> },
+  // Owner console 2026-10-26 (SEO week 2, the night task: "כן אם אתה יכול תיצור גם את זה במשימת הלילה"): the guides
+  articles: { he: () => <PublicArticlesIndex lang="he" />, en: () => <PublicArticlesIndex lang="en" /> },
+  article: { he: (r) => <PublicArticle lang="he" slug={r.slug} />, en: (r) => <PublicArticle lang="en" slug={r.slug} /> },
 };
 
 export function renderPublicPage(route) {

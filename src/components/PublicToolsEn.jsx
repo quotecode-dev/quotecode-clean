@@ -397,6 +397,11 @@ function PublicToolsEn({ initialTab }) {
           <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: TOOLS.textSecondary, marginBottom: '15px' }}>
             Businesses, freelancers and importers need quick calculations every day: currency conversions, unit conversions when working with overseas suppliers, and value estimates. TEKANGO's tools hub keeps these calculations in one place, with the data source and its update time.
           </p>
+          {/* Owner 2026-10-26 (SEO week 2): the tools page links to the public guides */}
+          <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: TOOLS.textSecondary, margin: 0 }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: navigation link to the public guides index of the same language */}
+            <a href="/en/articles" data-testid="tools-guides" onClick={(e) => { e.preventDefault(); navigate('/en/articles'); }} style={{ color: TOOLS.accent, textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', minHeight: '44px' }}>Guides for small businesses: quotes and pricing</a>
+          </p>
         </section>
 
         {/* CTA Banner */}

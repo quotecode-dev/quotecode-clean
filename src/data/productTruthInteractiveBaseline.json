@@ -288,12 +288,12 @@
     "markers": 1
   },
   "src/components/PublicTools.jsx": {
-    "interactive": 8,
-    "markers": 12
+    "interactive": 9,
+    "markers": 13
   },
   "src/components/PublicToolsEn.jsx": {
-    "interactive": 8,
-    "markers": 12
+    "interactive": 9,
+    "markers": 13
   },
   "src/components/QuoteDraftNotices.jsx": {
     "interactive": 5,
@@ -679,6 +679,10 @@
     "interactive": 2,
     "markers": 2
   },
+  "src/pages/PublicArticle.jsx": {
+    "interactive": 6,
+    "markers": 6
+  },
   "src/pages/PublicBusinessCard.jsx": {
     "interactive": 0,
     "markers": 0
@@ -748,6 +752,10 @@
     "markers": 0
   },
   "src/shared/mailCompose.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/shared/publicArticles.js": {
     "interactive": 0,
     "markers": 0
   },

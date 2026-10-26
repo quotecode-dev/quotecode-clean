@@ -8,6 +8,7 @@ import SmartPublicQuote from '../components/SmartPublicQuote';
 import PublicBusinessCard from '../pages/PublicBusinessCard';
 import SampleQuote from '../pages/SampleQuote';
 import PublicTools from '../components/PublicTools';
+import { PublicArticle, PublicArticlesIndex } from '../pages/PublicArticle';
 import ProfessionalQuotePreview from '../pages/ProfessionalQuotePreview';
 import ProfessionalPublicPreview from '../pages/ProfessionalPublicPreview';
 import Terms from '../pages/Terms';
@@ -120,6 +121,9 @@ export default function AppLocal() {
         <Route path="/he/tools/units" element={<PublicTools initialTab="units" />} />
         <Route path="/he/tools/metals" element={<PublicTools initialTab="metals" />} />
         <Route path="/he/tools/crypto" element={<PublicTools initialTab="crypto" />} />
+        {/* Owner console 2026-10-26 (SEO week 2, the night task: "כן אם אתה יכול תיצור גם את זה במשימת הלילה"): the public guides - the index and one page per article */}
+        <Route path="/he/articles" element={<PublicArticlesIndex lang="he" />} />
+        <Route path="/he/articles/:slug" element={<PublicArticle lang="he" />} />
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         {/* Task 23 (Phase 5): public digital business card (no sign-in; the page uses the card's own market language once loaded) */}
         <Route path="/card/:id" element={<PublicBusinessCard bundleIsHebrew={true} />} />
