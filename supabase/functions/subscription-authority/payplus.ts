@@ -329,10 +329,7 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
     // 'unknown' when no answer came (tried again later, never recorded as failed).
     async addSmartPackLine(i: SmartPackLineRequest): Promise<'added' | 'not_added' | 'unknown'> {
       const terminal = i.terminalRef ?? cfg.terminalUid ?? '';
-      if (i.currency !== 'ILS' || !UUID.test(i.packageRequestRef)) return 'not_added';
-      // Owner 2026-10-26 (item א2): no account terminal is a configuration gap of OURS - retried (the line stays 'requested'),
-      // never recorded as refused (the first real add-on was refused this way before PayPlus was asked)
-      if (!UUID.test(terminal)) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_terminal_missing' })); return 'unknown'; }
+      if (i.currency !== 'ILS' || !UUID.test(i.packageRequestRef) || !UUID.test(terminal)) return 'not_added';
       const o = await orders.byPageRequest(i.packageRequestRef);
       if (!o) return 'unknown';
       if (o.recurringUid !== i.recurringRef || !o.valid || o.currency !== 'ILS' || o.attemptId !== i.packageAttemptId) return 'not_added';

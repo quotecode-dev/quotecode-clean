@@ -143,8 +143,7 @@ describe('addSmartPackLine (PayPlus)', () => {
     expect(await p.addSmartPackLine!({ ...lineBegin, terminalRef: null } as never)).toBe('added');
     expect(JSON.parse((fetch.mock.calls[2] as unknown as [string, { body: string }])[1].body)).toMatchObject({ terminal_uid: TERM });
     const none = vi.fn();
-    // Owner 2026-10-26 (item א2): no terminal at all = our configuration gap - retried ('unknown'), never a final refusal; nothing sent
-    expect(await createPayPlusProvider(config(none)).addSmartPackLine!({ ...lineBegin, terminalRef: null } as never)).toBe('unknown');
+    expect(await createPayPlusProvider(config(none)).addSmartPackLine!({ ...lineBegin, terminalRef: null } as never)).toBe('not_added');
     expect(none).not.toHaveBeenCalled();
     const env: Record<string, string> = { PAYPLUS_API_KEY: 'synthetic-api-key', PAYPLUS_SECRET_KEY: SECRET, PAYPLUS_PAYMENT_PAGE_UID: PAGE, PAYPLUS_ENVIRONMENT: 'production', PAYPLUS_TERMINAL_UID: 'not-a-uuid' };
     expect(payplusProviderFromSecrets((n) => env[n], 'https://project.supabase.co', vi.fn() as never, () => NOW)).not.toBeNull(); // a bad terminal never breaks checkout

@@ -459,12 +459,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-25 (typed: \"מאשר: מזהה המסוף כסוד, תיקון הצעת חכם פלוס והתחלת השורה במסד ...\"): the SMART PACK quote and line begin no longer require the standing order terminal (a pulled activation has none); the function uses PAYPLUS_TERMINAL_UID"
-    },
-    "20261026100000_smart_pack_line_reopen.sql": {
-      "sha256": "55b46157e516d455b726247a394a5505a9f6c231fbb983b80268d0d1d242eac3",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-26 (typed: \"מאשר את התוכנית א עד ז בשחרור אחד ...\", item א2): re-opens a paid, in-period SMART PACK line refused before PayPlus was asked (no account terminal); data only, idempotent"
     }
   }
 }
