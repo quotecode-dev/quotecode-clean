@@ -489,12 +489,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-26 (typed: \"מאשר הסרת חכם פלוס בשירות עצמי: בחודשי בסוף התקופה ששולמה בלי החזר, בשנתי לפי סעיף 6 ...\"): SMART PACK removed by the subscriber"
-    },
-    "20261027200000_second_charge_rejected.sql": {
-      "sha256": "8da26387c7edb161b9034d4db6a0d3119964516c18de9f841ffa706bb01f0fde",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-26 (typed approval: the first standing-order charge only after a whole period, an alert on a charge within a paid period, a question to PayPlus customer service)"
     }
   }
 }

@@ -167,9 +167,8 @@ BEGIN
     'P4c a provider clock a minute ahead of ours never turns the first charge into a renewal');
   -- review 2026-10-21: a SECOND callback (another event id) within the window - its stale predecessor does not end the window
   r := tst.pcb('tx-406-3-second', a, 'rec-406-3', now() + interval '2 minutes', 3000);
-  -- Owner 2026-10-26 (20261027200000): the second charge is recorded 'rejected' - the daily reconciliation reports it (UNLINKED)
-  PERFORM tst.ok(r ->> 'code' = 'second_charge_after_pull' AND r ->> 'outcome' = 'rejected' AND tst.ppaid(tst.pu(3)) = pt,
-    'P4d a second callback within 7 days of the pull extends nothing, is recorded rejected and reported (second_charge_after_pull)');
+  PERFORM tst.ok(r ->> 'code' = 'second_charge_after_pull' AND r ->> 'outcome' = 'stale' AND tst.ppaid(tst.pu(3)) = pt,
+    'P4d a second callback within 7 days of the pull extends nothing and is reported (second_charge_after_pull)');
   r := tst.pcb('tx-406-3-low', a, 'rec-406-3', now() + interval '3 minutes', 100);
   PERFORM tst.ok(r ->> 'code' = 'amount_mismatch' AND r ->> 'outcome' = 'rejected' AND tst.ppaid(tst.pu(3)) = pt,
     'P4e a callback of another amount after the pull is never swallowed as the first charge: rejected, amount_mismatch');

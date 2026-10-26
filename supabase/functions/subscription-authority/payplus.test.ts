@@ -6,7 +6,7 @@ import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { checkoutIntentHandler, checkoutStatusHandler, providerWebhookHandler, type BillingSql } from './billing';
 import { ACTIVATION_PHASE } from './authority';
-import { firstChargeFreeDays,
+import {
   buildGenerateLinkBody, createPayPlusProvider, israelDayOfMonth, mapPayPlusCallback, PAYPLUS_API_BASES, payplusDateToIso,
   payplusProviderFromSecrets, PAYPLUS_SECRET_NAMES, type PayPlusConfig, payplusStandingOrders, normalizeStandingOrder,
 } from './payplus';
@@ -58,10 +58,6 @@ describe('payment page (generateLink): the server attempt only, ILS, renewing', 
       refURL_callback: config().callbackUrl, send_failure_callback: true, items: [{ name: 'TEKANGO - מנוי חודשי', quantity: 1, price: 30, vat_type: 0 }] });
     expect(m.recurring_settings).toMatchObject({ instant_first_payment: true, recurring_type: 2, recurring_range: 1, number_of_charges: 0,
       start_date_on_payment_date: true, start_date: 18, successful_invoice: true, send_customer_success_email: true, customer_failure_email: true });
-    // Owner 2026-10-26: the first standing-order charge after the whole paid period - never a second charge the first night
-    expect(m.recurring_settings.jump_payments).toBe(firstChargeFreeDays(NOW, 'month'));
-    expect(y.recurring_settings.jump_payments).toBe(firstChargeFreeDays(NOW, 'year'));
-    expect(m.recurring_settings.jump_payments).toBeGreaterThanOrEqual(28);
     // Owner 2026-10-25: an Israeli customer gets the approval / failure email and an invoice-receipt for the first charge too
     expect(m).toMatchObject({ sendEmailApproval: true, sendEmailFailure: true, initial_invoice: true });
     expect(y).toMatchObject({ amount: 306, items: [{ name: 'TEKANGO - מנוי שנתי', price: 306, vat_type: 0 }] });
@@ -623,25 +619,5 @@ describe('checkout status: the server pull (prepared; the billing phase stays of
       expect(sent.length).toBeGreaterThan(0);
       expect(sent).toEqual(declared);
     }
-  });
-});
-
-// Owner console 2026-10-26 (typed: "מאשר תיקון יצירת הוראת הקבע כך שהחיוב הראשון שלה יהיה רק אחרי תקופה מלאה ..."): the free days until the
-// first standing-order charge are exactly the paid period (Israel calendar, the month clamp of Postgres' interval '1 month')
-describe('the first standing-order charge after the whole paid period', () => {
-  const il = (y: number, mo: number, d: number) => Date.UTC(y, mo - 1, d, 10, 0, 0); // 12:00 / 13:00 in Israel - the same Israel day
-  it('the live case: 25/10 -> 25/11 = 31 days; the year = 365 days', () => {
-    expect(firstChargeFreeDays(il(2026, 10, 25), 'month')).toBe(31);
-    expect(firstChargeFreeDays(il(2026, 10, 25), 'year')).toBe(365);
-  });
-  it('month ends clamp like Postgres: 31/01 -> 28/02 (28 days), 31/03 -> 30/04 (30), 30/12 -> 30/01 (31); a leap year', () => {
-    expect(firstChargeFreeDays(il(2026, 1, 31), 'month')).toBe(28);
-    expect(firstChargeFreeDays(il(2026, 3, 31), 'month')).toBe(30);
-    expect(firstChargeFreeDays(il(2026, 12, 30), 'month')).toBe(31);
-    expect(firstChargeFreeDays(il(2028, 1, 31), 'month')).toBe(29);
-    expect(firstChargeFreeDays(il(2028, 2, 29), 'year')).toBe(365);
-  });
-  it('the Israel day counts, not the UTC day: 31/10 00:30 Israel is still the 31st', () => {
-    expect(firstChargeFreeDays(Date.UTC(2026, 9, 30, 22, 30), 'month')).toBe(30); // 31/10 Israel -> 30/11
   });
 });
