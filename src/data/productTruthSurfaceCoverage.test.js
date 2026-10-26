@@ -90,6 +90,8 @@ const DECORATIVE_ROUTES = new Set([
   // Task 16 - Quote Experience V2: the no-auth, noindex synthetic sample quote (the real document in previewMode, no
   // approve / no network) - a demonstration surface, not a Product Truth capability.
   '/sample-quote', '/he/sample-quote', '/en/sample-quote',
+  // Owner 2026-10-26 (SEO week 2): the public guides - marketing content pages, not a Product Truth capability.
+  '/he/articles', '/en/articles', '/he/articles/:slug', '/en/articles/:slug',
 ]);
 
 describe('DEFECT-7 INDEPENDENT SURFACE COVERAGE (source-derived, not registry-derived)', () => {

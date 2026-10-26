@@ -20,6 +20,8 @@ export const LANDING_HREFLANG = [
   { lang: 'x-default', path: '/' },
 ];
 
+import { ARTICLES, ARTICLE_SLUGS, ARTICLES_INDEX, ARTICLES_DATE } from './publicArticles';
+
 const pair = (base) => [
   { lang: 'he', path: `/he${base}` },
   { lang: 'en', path: `/en${base}` },
@@ -202,6 +204,31 @@ export const PUBLIC_SEO_ROUTES = [
     hreflang: pair('/terms'),
   },
 ];
+
+// Owner console 2026-10-26 (SEO week 2, the night task: "כן אם אתה יכול תיצור גם את זה במשימת הלילה"): the guides index and the four
+// articles, each in Hebrew and English (content + titles: src/shared/publicArticles.js); one Article JSON-LD block per article page.
+for (const lang of ['he', 'en']) {
+  PUBLIC_SEO_ROUTES.push({ path: `/${lang}/articles`, page: 'articles', lang, title: ARTICLES_INDEX[lang].title, description: ARTICLES_INDEX[lang].description, hreflang: pair('/articles') });
+  for (const slug of ARTICLE_SLUGS) {
+    const a = ARTICLES[slug][lang];
+    const path = `/${lang}/articles/${slug}`;
+    PUBLIC_SEO_ROUTES.push({
+      path, page: 'article', slug, lang, title: a.title, description: a.description, hreflang: pair(`/articles/${slug}`),
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: a.h1,
+        description: a.description,
+        inLanguage: lang,
+        datePublished: ARTICLES_DATE,
+        dateModified: ARTICLES_DATE,
+        author: { '@type': 'Organization', name: 'TEKANGO' },
+        publisher: { '@type': 'Organization', name: 'TEKANGO' },
+        mainEntityOfPage: `https://www.tekango.com${path}`,
+      },
+    });
+  }
+}
 
 const BY_PATH = new Map(PUBLIC_SEO_ROUTES.map((r) => [r.path, r]));
 
