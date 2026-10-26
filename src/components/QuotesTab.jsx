@@ -108,6 +108,9 @@ function ClientTypeBadge({ clientType, isHebrew }) {
   );
 }
 
+// Owner 2026-10-26: the quote number is a link that opens the quote - the same font, size and place; underlined to show it opens
+const QUOTE_NUMBER_LINK = Object.freeze({ background: 'none', border: 'none', padding: 0, margin: 0, font: 'inherit', color: 'inherit', cursor: 'pointer',
+  textDecoration: 'underline', textUnderlineOffset: '2px', direction: 'ltr', unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' });
 // Owner R4: quote numbers are displayed WITHOUT a literal '#' - displayQuoteNumber / getQuoteViewLink live in utils/quoteListRows
 // (shared with the Task 17 Statistics screen).
 
@@ -792,6 +795,16 @@ export default function QuotesTab({
     if (isHebrew) return n === 1 ? 'צפייה אחת' : `${n} צפיות`;
     return n === 1 ? '1 view' : `${n} views`;
   };
+  // Owner console 2026-10-26 (typed approval of the quote-list items, L-07): the quote number opens the quote - a draft that can be
+  // edited opens in the editor, a final quote opens its customer view, every other quote opens its tracking details (the row's own
+  // handlers; nothing new is decided here)
+  const openFromNumber = (row) => {
+    const { quote, isLocked, actionKind } = row;
+    const draft = String(quote.status || 'draft').toLowerCase() === 'draft';
+    if ((draft && !isLocked) || actionKind === 'edit') handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote));
+    else if (actionKind === 'view') window.open(getQuoteViewLink(quote), '_blank');
+    else openTrackingFor(quote.id);
+  };
   const renderDetailPanel = (row, detailId) => {
     const { quote, firstItemDesc, emailStatus, isLocked, actionKind, actionLabel } = row;
     // Owner R4: the status-aware primary row action (Open & track / Continue editing / Open / View - same precedence, same
@@ -1231,7 +1244,11 @@ export default function QuotesTab({
                   >
                     <ChevronDown className="quote-modern-chevron" size={14} strokeWidth={2.4} aria-hidden="true" data-expanded={isExpanded ? 'true' : undefined} />
                   </button>
-                  <span className="quote-modern-number pf-num" dir="ltr">{displayQuoteNumber(quote)}</span>
+                  <span className="quote-modern-number pf-num" dir="ltr">
+                    {/* PRODUCT_TRUTH_DECORATIVE: the quote number opens the quote (the row's own edit / view / tracking action) */}
+                    <button type="button" data-testid="quote-number-open" onClick={(e) => { e.stopPropagation(); openFromNumber(row); }}
+                      aria-label={`${isHebrew ? 'פתיחת הצעה' : 'Open quote'} ${displayQuoteNumber(quote)}`} style={QUOTE_NUMBER_LINK}>{displayQuoteNumber(quote)}</button>
+                  </span>
                   <span className="quote-modern-client">
                     <span className="quote-modern-client-name" title={clientName}>{clientName}</span>
                   </span>
@@ -1511,7 +1528,11 @@ export default function QuotesTab({
                     </span>
                   </td>
                   <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center', color: NEON.textPrimary, direction: 'ltr', whiteSpace: 'nowrap' }}>
-                    <span data-qh="number" style={QH_CELL_STYLE.number}>{displayQuoteNumber(quote)}</span>
+                    <span data-qh="number" style={QH_CELL_STYLE.number}>
+                      {/* PRODUCT_TRUTH_DECORATIVE: the quote number opens the quote (the row's own edit / view / tracking action) */}
+                      <button type="button" data-testid="quote-number-open" onClick={(e) => { e.stopPropagation(); openFromNumber(row); }}
+                      aria-label={`${isHebrew ? 'פתיחת הצעה' : 'Open quote'} ${displayQuoteNumber(quote)}`} style={QUOTE_NUMBER_LINK}>{displayQuoteNumber(quote)}</button>
+                    </span>
                   </td>
                   {/* חוק ברזל (Final Quote-History Polish task - HE-Only Before-VAT
                       Density, נשמר): "לפני מע"מ: ₪X" זמין דרך title (hover)
@@ -1641,7 +1662,11 @@ export default function QuotesTab({
                         + 2px padding = 19.6px): the card stays 65.4px tall like base, so phones/768/820 show base's visible card count.
                         Owner console 2026-10-16: the view count (eye + number only) sits in the middle of this line. */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden', fontSize: '0.75rem', lineHeight: '16.8px', color: NEON.textMuted }}>
-                      <span data-qh="number" dir="ltr" style={{ fontWeight: '600', color: NEON.textPrimary, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', flexShrink: 0, whiteSpace: 'nowrap' }}>{displayQuoteNumber(quote)}</span>
+                      <span data-qh="number" dir="ltr" style={{ fontWeight: '600', color: NEON.textPrimary, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                        {/* PRODUCT_TRUTH_DECORATIVE: the quote number opens the quote (the row's own edit / view / tracking action) */}
+                        <button type="button" data-testid="quote-number-open" onClick={(e) => { e.stopPropagation(); openFromNumber(row); }}
+                      aria-label={`${isHebrew ? 'פתיחת הצעה' : 'Open quote'} ${displayQuoteNumber(quote)}`} style={QUOTE_NUMBER_LINK}>{displayQuoteNumber(quote)}</button>
+                      </span>
                       <span aria-hidden="true" style={{ flexShrink: 0 }}>·</span>
                       <span data-qh="date" style={{ direction: 'ltr', whiteSpace: 'nowrap', flexShrink: 0 }}>{formatShortDate(quote.created_at, dateMarket)}</span>
                     </div>
