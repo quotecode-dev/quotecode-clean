@@ -345,15 +345,11 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       }
       // review 2026-10-25: the cycle is sent back exactly as PayPlus holds it - an annual order is never rewritten as a monthly one
       if (o.recurringType !== 2 || o.recurringRange !== (i.period === 'year' ? 12 : 1)) return refuse('cycle', { type: o.recurringType, range: o.recurringRange, period: i.period });
-      // Owner 2026-10-26 (typed: "מאשר את תיקון קריאת הוראת הקבע לפי הסכום הכולל ..."): PayPlus answers the order WITHOUT its lines
-      // (production 2026-10-26: lines 0, amount 30; the sandbox 2026-10-21 too) - the order total stands for its lines then
-      if (o.items.length === 0 && o.amountMinor === i.packageAmountMinor + i.addOnAmountMinor) return 'added'; // a retry after a lost answer
       const prices = o.items.map((it) => it.priceMinor).sort((a, b) => a - b);
       const both = [i.packageAmountMinor, i.addOnAmountMinor].sort((a, b) => a - b);
       if (o.items.length === 2 && prices[0] === both[0] && prices[1] === both[1]) return 'added'; // a retry after a lost answer
-      const noLines = o.items.length === 0;
-      if (noLines ? o.amountMinor !== i.packageAmountMinor : (o.items.length !== 1 || o.items[0].priceMinor !== i.packageAmountMinor || o.items[0].quantity !== 1)) {
-        return refuse('lines', { lines: o.items.length, prices: o.items.map((it) => it.priceMinor), amount: o.amountMinor, expected: i.packageAmountMinor, quantity: o.items[0]?.quantity ?? null });
+      if (o.items.length !== 1 || o.items[0].priceMinor !== i.packageAmountMinor || o.items[0].quantity !== 1) {
+        return refuse('lines', { lines: o.items.length, prices: o.items.map((it) => it.priceMinor), expected: i.packageAmountMinor, quantity: o.items[0]?.quantity ?? null });
       }
       const productUid = await orders.productUidByName(PAYPLUS_SMART_PACK_ITEM_NAMES[i.period], 'ILS');
       if (productUid === undefined) return 'unknown';
@@ -362,11 +358,8 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       if (productUid === null) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_product_missing' })); return 'unknown'; }
       // the package line keeps its name on every later invoice: its own catalog product when there is one, else the order's own line
       const packageProduct = await orders.productUidByName(PAYPLUS_ITEM_NAMES[i.period], 'ILS');
-      if (packageProduct === undefined) return 'unknown';
-      // an order read without lines needs the package's own catalog product (a configuration gap of ours otherwise - retried)
-      if (noLines && !packageProduct) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'package_product_missing' })); return 'unknown'; }
       const r = await orders.updateLinesOutcome(o, terminal,
-        [{ productUid: packageProduct || o.items[0].productUid, priceMinor: noLines ? i.packageAmountMinor : o.items[0].priceMinor }, { productUid, priceMinor: i.addOnAmountMinor }],
+        [{ productUid: packageProduct || o.items[0].productUid, priceMinor: o.items[0].priceMinor }, { productUid, priceMinor: i.addOnAmountMinor }],
         i.nextChargeDate, { extraInfo: i.packageAttemptId, documents: true });
       if (r === 'rejected') return refuse('update', { packageProduct: Boolean(packageProduct), customer: Boolean(o.customerUid), cashier: Boolean(o.cashierUid), token: Boolean(o.cardToken) });
       return r === 'updated' ? 'added' : 'unknown';
