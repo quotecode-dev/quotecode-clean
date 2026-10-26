@@ -328,29 +328,20 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
     // 'added' only when PayPlus said success (or the order already carries both lines); 'not_added' when it cannot or said no;
     // 'unknown' when no answer came (tried again later, never recorded as failed).
     async addSmartPackLine(i: SmartPackLineRequest): Promise<'added' | 'not_added' | 'unknown'> {
-      // Owner 2026-10-26 (item א2, the third refusal): every refusal logs WHICH check refused (no personal data - flags, counts, amounts)
-      const refuse = (reason: string, detail: Record<string, unknown> = {}) => {
-        console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_line_refused', reason, ...detail }));
-        return 'not_added' as const;
-      };
       const terminal = i.terminalRef ?? cfg.terminalUid ?? '';
-      if (i.currency !== 'ILS' || !UUID.test(i.packageRequestRef)) return refuse('request', { ils: i.currency === 'ILS', requestRef: UUID.test(i.packageRequestRef) });
+      if (i.currency !== 'ILS' || !UUID.test(i.packageRequestRef)) return 'not_added';
       // Owner 2026-10-26 (item א2): no account terminal is a configuration gap of OURS - retried (the line stays 'requested'),
       // never recorded as refused (the first real add-on was refused this way before PayPlus was asked)
       if (!UUID.test(terminal)) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_terminal_missing' })); return 'unknown'; }
       const o = await orders.byPageRequest(i.packageRequestRef);
       if (!o) return 'unknown';
-      if (o.recurringUid !== i.recurringRef || !o.valid || o.currency !== 'ILS' || o.attemptId !== i.packageAttemptId) {
-        return refuse('order', { sameOrder: o.recurringUid === i.recurringRef, valid: o.valid, ils: o.currency === 'ILS', ourAttempt: o.attemptId === i.packageAttemptId });
-      }
+      if (o.recurringUid !== i.recurringRef || !o.valid || o.currency !== 'ILS' || o.attemptId !== i.packageAttemptId) return 'not_added';
       // review 2026-10-25: the cycle is sent back exactly as PayPlus holds it - an annual order is never rewritten as a monthly one
-      if (o.recurringType !== 2 || o.recurringRange !== (i.period === 'year' ? 12 : 1)) return refuse('cycle', { type: o.recurringType, range: o.recurringRange, period: i.period });
+      if (o.recurringType !== 2 || o.recurringRange !== (i.period === 'year' ? 12 : 1)) return 'not_added';
       const prices = o.items.map((it) => it.priceMinor).sort((a, b) => a - b);
       const both = [i.packageAmountMinor, i.addOnAmountMinor].sort((a, b) => a - b);
       if (o.items.length === 2 && prices[0] === both[0] && prices[1] === both[1]) return 'added'; // a retry after a lost answer
-      if (o.items.length !== 1 || o.items[0].priceMinor !== i.packageAmountMinor || o.items[0].quantity !== 1) {
-        return refuse('lines', { lines: o.items.length, prices: o.items.map((it) => it.priceMinor), expected: i.packageAmountMinor, quantity: o.items[0]?.quantity ?? null });
-      }
+      if (o.items.length !== 1 || o.items[0].priceMinor !== i.packageAmountMinor || o.items[0].quantity !== 1) return 'not_added';
       const productUid = await orders.productUidByName(PAYPLUS_SMART_PACK_ITEM_NAMES[i.period], 'ILS');
       if (productUid === undefined) return 'unknown';
       // Owner 2026-10-26 (item א2): no SMART PACK product in the PayPlus catalog is a configuration gap of OURS (a one-time page
@@ -361,8 +352,7 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       const r = await orders.updateLinesOutcome(o, terminal,
         [{ productUid: packageProduct || o.items[0].productUid, priceMinor: o.items[0].priceMinor }, { productUid, priceMinor: i.addOnAmountMinor }],
         i.nextChargeDate, { extraInfo: i.packageAttemptId, documents: true });
-      if (r === 'rejected') return refuse('update', { packageProduct: Boolean(packageProduct), customer: Boolean(o.customerUid), cashier: Boolean(o.cashierUid), token: Boolean(o.cardToken) });
-      return r === 'updated' ? 'added' : 'unknown';
+      return r === 'updated' ? 'added' : r === 'rejected' ? 'not_added' : 'unknown';
     },
   });
 }
@@ -432,14 +422,7 @@ export function payplusStandingOrders(cfg: { apiBase: string; apiKey: string; se
       ...(opt.extraInfo ? { extra_info: opt.extraInfo } : {}),
     });
     if (ok(j)) return 'updated';
-    // Owner 2026-10-26 (item א2): PayPlus' own refusal words are logged (its description / validation messages; never a card or customer value)
-    if (j && isObj(j.results) && typeof j.results.status === 'string') {
-      const msgs = Array.isArray(j.data) ? j.data.filter((m) => typeof m === 'string').map((m) => m.slice(0, 160)).slice(0, 5) : [];
-      console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'payplus_update_refused', code: j.results.code ?? null,
-        description: typeof j.results.description === 'string' ? j.results.description.slice(0, 200) : null, messages: msgs }));
-      return 'rejected';
-    }
-    return 'unknown';
+    return j && isObj(j.results) && typeof j.results.status === 'string' ? 'rejected' : 'unknown';
   };
   return Object.freeze({
     /** the standing order a payment page created, pulled by the page request id (no callback needed) */
