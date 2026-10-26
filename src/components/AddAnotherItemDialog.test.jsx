@@ -75,7 +75,7 @@ describe('QuoteForm: add another item from the catalog', () => {
     fireEvent.click(screen.getByText('Add to quote'));
   };
 
-  it('after a new item the question appears; Yes opens the wizard; two ticked items are checked together, appended in ONE update with the catalog hook, and asked again', async () => {
+  it('after a new item the question appears; Yes opens the wizard; two ticked items are checked together and appended in ONE update with the catalog hook', async () => {
     const onCatalogItemAdded = vi.fn();
     const p = formProps([], { onCatalogItemAdded });
     render(<QuoteForm {...p} />);
@@ -98,8 +98,8 @@ describe('QuoteForm: add another item from the catalog', () => {
       { description: 'Cistern install', quantity: '1', unit_price: '450', isFromCatalog: true, section_key: null },
     ]);
     expect(onCatalogItemAdded.mock.calls.map((c) => c[0])).toEqual(['2', '3']);
-    // Owner 2026-10-26 (typed L-09 / L-15, real-walk finding 4): every addition asks "add another item?" - a catalog selection too
-    expect(screen.getByTestId('add-another-item')).toBeTruthy();
+    // a whole selection does not ask "add another item?" again
+    expect(screen.queryByTestId('add-another-item')).toBeNull();
   });
 
   it('No closes the question and adds nothing more', () => {

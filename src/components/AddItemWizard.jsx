@@ -142,16 +142,12 @@ const isWizardPriceValid = (v) => !/,/.test(String(v)) && parsePriceInput(v).ok 
 // starts as "price for each", quantity 1 - the unit is never guessed from the name; per metre / m² is chosen on the check screen.
 const catalogPriceText = (p) => (p === null || p === undefined || p === '' || !Number.isFinite(Number(p)) || Number(p) < 0 ? '' : String(p));
 const draftFromService = (sv) => ({ key: String(sv.id), serviceId: String(sv.id), description: String(sv.name ?? ''), method: 'units', quantity: '1',
-  unitPrice: catalogPriceText(sv.price), useSizes: false, manualQty: '', widthCm: '', heightCm: '', unit: 'cm', extraRows: [], specRows: [], showDetails: false });
-// a ticked item's sizes are typed in its own cm / m (Owner 2026-10-26, the same engine as a typed item); every row -> canonical metres
-const pickSizeToM = (p, v) => cmToM(p.unit === 'm' ? convertSizeText(v, 'cm') : v);
-const pickSizeRows = (p) => [{ widthCm: p.widthCm, heightCm: p.heightCm, label: '' }, ...(p.extraRows || [])];
-const pickRowValue = (p, r) => computeMeasurementValue(p.method, pickSizeToM(p, r.widthCm), p.method === 'linear' ? undefined : pickSizeToM(p, r.heightCm));
+  unitPrice: catalogPriceText(sv.price), useSizes: false, manualQty: '', widthCm: '', heightCm: '' });
 const pickQuantity = (p) => {
   if (p.method === 'fixed') return 1;
   if (p.method === 'units') return Number(p.quantity) || 0;
   if (!p.useSizes) return Number(p.manualQty) || 0;
-  return pickSizeRows(p).map((r) => pickRowValue(p, r)).filter((v) => v != null && Number.isFinite(v)).reduce((sum, v) => sum + v, 0);
+  return computeMeasurementValue(p.method, cmToM(p.widthCm), p.method === 'linear' ? undefined : cmToM(p.heightCm)) || 0;
 };
 const pid = (idx, field) => `wiz-pick-${idx}-${field}`;
 
@@ -229,17 +225,6 @@ export default function AddItemWizard({
   const [blocked, setBlocked] = useState(null); // { id, errorId, label }
   const reviewHeadingRef = useRef(null);
   const addingRef = useRef(false);
-  // Owner 2026-10-26 (typed L-09 / L-15, real-walk finding 1): what the wizard held when it opened - leaving with anything else asks first
-  const initialSigRef = useRef(null);
-  const captureInitialRef = useRef(false);
-  const draftSig = JSON.stringify([description, pricingMethod, widthCm, heightCm, extraMeasureRows, quantity, unitPrice, sectionKey, specRows, useManualQty, manualQty, picks]);
-  // declared BEFORE the open effect: it reads the state the open effect set, one render later
-  useEffect(() => {
-    if (!isOpen) { initialSigRef.current = null; return; }
-    if (captureInitialRef.current) { initialSigRef.current = draftSig; captureInitialRef.current = false; }
-  });
-  const defaultSectionKeyRef = useRef(defaultSectionKey);
-  defaultSectionKeyRef.current = defaultSectionKey;
   const firstFieldRef = useRef(null);
   const dialogRef = useRef(null);
   const triggerElRef = useRef(null);
@@ -304,11 +289,10 @@ export default function AddItemWizard({
       // a draft saved by the earlier 4-step wizard (no stepModel) resumes on the item screen, or on the check if it was there
       setStep(rs.stepModel === 2 ? (rs.step === STEPS.REVIEW ? STEPS.REVIEW : STEPS.ITEM) : (rs.step === 4 ? STEPS.REVIEW : STEPS.ITEM));
       setErrors({});
-      captureInitialRef.current = true;
       return;
     }
     if (editingItem) {
-      const s = stateFromItem(editingItem, defaultSectionKeyRef.current);
+      const s = stateFromItem(editingItem, defaultSectionKey);
       setDescription(s.description);
       setCatalogServiceId(s.catalogServiceId);
       // חוק ברזל (Catalog First, Decision 6): במצב-עריכה תמיד מוצג שדה
@@ -337,7 +321,7 @@ export default function AddItemWizard({
       // הנחיה נפרד למצב-עריכה (t.editModeExplanation).
       setStep(STEPS.REVIEW);
     } else {
-      const s = blankState(defaultSectionKeyRef.current);
+      const s = blankState(defaultSectionKey);
       setDescription(s.description);
       setCatalogServiceId(s.catalogServiceId);
       // חוק ברזל (Catalog First, Decision 6): הוספה חדשה - כשיש קטלוג,
@@ -365,8 +349,7 @@ export default function AddItemWizard({
     }
     setErrors({});
     setMultiErrors({}); setPickNotice(''); setBlocked(null);
-    captureInitialRef.current = true;
-  }, [isOpen, editingItem]);
+  }, [isOpen, editingItem, defaultSectionKey, recommendedMethod]);
 
   // Context-Driven AI Chat V3, §10 "Item Wizard Context": the wizard is the
   // only place that actually knows its own live step/pricing-method/
@@ -449,24 +432,6 @@ export default function AddItemWizard({
     else if (bottom > body.scrollTop + body.clientHeight) body.scrollTop = Math.max(0, Math.min(top, bottom - body.clientHeight));
     if (typeof field.focus === 'function') field.focus({ preventScroll: true });
   }, [reveal]);
-
-  // Owner 2026-10-26 (typed L-15, real-walk finding 3): after a blocked attempt the "Complete" line and the messages follow every change -
-  // a field that was filled is no longer named (no stale red line), the next missing one is
-  useEffect(() => {
-    if (!isOpen || !blocked) return;
-    if (step === STEPS.REVIEW && picks.length > 0 && !editingItem) {
-      const { all, target } = computePickErrors();
-      setMultiErrors(all);
-      setBlocked(target);
-      return;
-    }
-    if (step === STEPS.ITEM && picks.length === 0) {
-      const e = computeStepErrors();
-      setErrors(e);
-      setBlocked(Object.keys(e).length ? firstMissing(e) : null);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [description, pricingMethod, unitPrice, quantity, widthCm, heightCm, extraMeasureRows, manualQty, useManualQty, picks]);
 
   function trapFocus(e) {
     if (e.key !== 'Tab' || !dialogRef.current) return;
@@ -605,7 +570,7 @@ export default function AddItemWizard({
     catalogNote: isHebrew
       ? 'הקטלוג שומר שם ומחיר בלבד. כל פריט מתחיל בכמות 1 ובמחיר לכל יחידה. אם המחיר הוא למטר או למ״ר, שנו את השיטה והזינו את האורך או השטח לפני ההוספה.'
       : 'The catalog stores a name and price only. Each item starts with quantity 1 and a price for each. For a price per metre or m², change the method and enter the length or area before adding.',
-    pickedHint: isHebrew ? 'לכתיבת פריט אחר, הקלידו כאן' : 'To type a different item, type here',
+    pickedHint: isHebrew ? 'נבחרו פריטים בקטלוג למטה. כדי לכתוב פריט אחר, הקלידו כאן.' : 'Items are ticked in the catalog below. To type a different item, start typing here.',
     switchToCatalogConfirm: isHebrew ? 'להחליף את הפריט שהתחלתם לכתוב בבחירה מהקטלוג? הפריטים שכבר בהצעה לא ישתנו.' : 'Replace the item you started typing with the catalog selection? Items already in the quote do not change.',
     switchToCatalogLabels: isHebrew ? { yes: 'להחליף', no: 'להשאיר' } : { yes: 'Replace', no: 'Keep it' },
     switchToFreeConfirm: isHebrew ? 'לבטל את הבחירה מהקטלוג ולכתוב פריט חדש?' : 'Clear the catalog selection and type a new item?',
@@ -619,14 +584,10 @@ export default function AddItemWizard({
     lineTotal: isHebrew ? 'סכום השורה' : 'Line total',
     selectedSum: isHebrew ? 'סכום הפריטים שנבחרו' : 'Total of the selected items',
     addMany: (n) => (isHebrew ? (n === 1 ? 'הוספת פריט אחד להצעה' : `הוספת ${n} פריטים להצעה`) : (n === 1 ? 'Add 1 item to the quote' : `Add ${n} items to the quote`)),
-    enterSizes: isHebrew ? 'הזנת מידות' : 'Enter sizes',
-    sizeLabel: (kind, u) => (isHebrew
-      ? `${kind === 'width' ? 'רוחב' : kind === 'height' ? 'גובה' : 'אורך'} (${u === 'm' ? 'מ\'' : 'ס״מ'})`
-      : `${kind === 'width' ? 'Width' : kind === 'height' ? 'Height' : 'Length'} (${u === 'm' ? 'm' : 'cm'})`),
-    leaveNewConfirm: isHebrew ? 'לצאת בלי להוסיף את הפריט? מה שהוקלד או סומן לא יישמר.' : 'Leave without adding the item? What you typed or ticked will not be kept.',
-    leaveEditConfirm: isHebrew ? 'לצאת בלי לשמור את השינויים בפריט?' : 'Leave without saving the changes to this item?',
-    leaveNewLabels: isHebrew ? { yes: 'לצאת בלי להוסיף', no: 'להמשיך' } : { yes: 'Leave without adding', no: 'Keep going' },
-    leaveEditLabels: isHebrew ? { yes: 'לצאת בלי לשמור', no: 'להמשיך' } : { yes: 'Leave without saving', no: 'Keep going' },
+    enterSizes: isHebrew ? 'הזנת מידות בס״מ' : 'Enter sizes in cm',
+    widthCmOnly: isHebrew ? 'רוחב (ס״מ)' : 'Width (cm)',
+    heightCmOnly: isHebrew ? 'גובה (ס״מ)' : 'Height (cm)',
+    lengthCmOnly: isHebrew ? 'אורך (ס״מ)' : 'Length (cm)',
     inQuoteAlready: isHebrew ? 'כבר קיים בהצעה; יתווסף כפריט נפרד.' : 'Already in the quote; it will be added as a separate item.',
     notInCatalog: isHebrew ? 'הפריט אינו זמין עוד בקטלוג.' : 'This item is no longer in the catalog.',
     keepAsFree: isHebrew ? 'להשאיר כפריט חופשי' : 'Keep it as a free item',
@@ -712,45 +673,27 @@ export default function AddItemWizard({
     if (!p || p.method === m) return;
     // the same rule as one item: a price typed for one unit is never kept silently for another
     if (p.unitPrice !== '' && !(await askConfirm(t.unitChangeConfirm, isHebrew))) return;
-    updatePick(idx, { method: m, useSizes: false, manualQty: '', widthCm: '', heightCm: '', extraRows: [], unit: 'cm', quantity: p.quantity || '1' });
+    updatePick(idx, { method: m, useSizes: false, manualQty: '', widthCm: '', heightCm: '', quantity: p.quantity || '1' });
     setReveal({ id: firstPickField(idx, m, false), n: Date.now() });
   }
   function setPickSizes(idx, useSizes) {
     const p = picks[idx];
     if (!p) return;
-    updatePick(idx, { useSizes, manualQty: '', widthCm: '', heightCm: '', extraRows: [], unit: 'cm' });
+    updatePick(idx, { useSizes, manualQty: '', widthCm: '', heightCm: '' });
     setReveal({ id: firstPickField(idx, p.method, useSizes), n: Date.now() });
   }
-  function changePickUnit(idx, next) {
-    const p = picks[idx];
-    if (!p || (p.unit || 'cm') === next) return;
-    updatePick(idx, { unit: next, widthCm: convertSizeText(p.widthCm, next), heightCm: convertSizeText(p.heightCm, next),
-      extraRows: (p.extraRows || []).map((r) => ({ ...r, widthCm: convertSizeText(r.widthCm, next), heightCm: convertSizeText(r.heightCm, next) })) });
-  }
-  function addPickRow(idx) {
-    const p = picks[idx];
-    if (!p) return;
-    const i = (p.extraRows || []).length;
-    updatePick(idx, { extraRows: [...(p.extraRows || []), { widthCm: '', heightCm: '', label: '' }] });
-    setReveal({ id: pid(idx, `xw${i}`), n: Date.now() });
-  }
-  const updatePickRow = (idx, i, patch) => { const p = picks[idx]; if (p) updatePick(idx, { extraRows: p.extraRows.map((r, ri) => (ri === i ? { ...r, ...patch } : r)) }); };
-  const removePickRow = (idx, i) => { const p = picks[idx]; if (p) updatePick(idx, { extraRows: p.extraRows.filter((_, ri) => ri !== i) }); };
-  const updatePickSpec = (idx, i, patch) => { const p = picks[idx]; if (p) updatePick(idx, { specRows: p.specRows.map((r, ri) => (ri === i ? { ...r, ...patch } : r)) }); };
   function removePick(idx) {
     const rest = picks.filter((_, i) => i !== idx);
     setPicks(rest); setMultiErrors({}); setBlocked(null);
-    if (rest.length === 0) { setStep(STEPS.ITEM); setPickNotice(t.noPicksLeft); return; }
-    // the focus moves to the item now in that place (never lost with the removed button)
-    setReveal({ id: pid(Math.min(idx, rest.length - 1), 'title'), n: Date.now() });
+    if (rest.length === 0) { setStep(STEPS.ITEM); setPickNotice(t.noPicksLeft); }
   }
-  function computePickErrors() {
+  function validatePicks() {
     const all = {};
     let first = null;
     picks.forEach((p, idx) => {
       const e = {};
       const order = [];
-      const miss = (field, msg, name, focusField = field) => { e[field] = msg; order.push([field, name, focusField]); };
+      const miss = (field, msg, name) => { e[field] = msg; order.push([field, name]); };
       if (!p.description.trim()) miss('description', t.missingDescription, t.fieldNames.description);
       else if (p.description.length > ITEM_DESCRIPTION_MAX) miss('description', t.descriptionTooLong(p.description.length), t.fieldNames.description);
       if (p.method === 'units' && !(Number(p.quantity) > 0)) miss('quantity', t.missingQuantity, t.fieldNames.quantity);
@@ -759,36 +702,24 @@ export default function AddItemWizard({
         else {
           if (!(Number(p.widthCm) > 0)) miss('width', p.method === 'linear' ? t.missingLength : t.missingWidth, p.method === 'linear' ? t.fieldNames.length : t.fieldNames.width);
           if (p.method === 'area' && !(Number(p.heightCm) > 0)) miss('height', t.missingHeight, t.fieldNames.height);
-          // an extra size that was started must be complete (never dropped silently - the same rule as a typed item)
-          (p.extraRows || []).forEach((r, i) => {
-            if (r.widthCm === '' && r.heightCm === '') return;
-            if (!(Number(r.widthCm) > 0)) miss(`row${i}`, t.rowNeedsWidth(i + 2), t.fieldNames.row(i + 2), `xw${i}`);
-            else if (p.method === 'area' && !(Number(r.heightCm) > 0)) miss(`row${i}`, t.rowNeedsHeight(i + 2), t.fieldNames.row(i + 2), `xh${i}`);
-          });
         }
       }
       if (p.unitPrice === '') miss('price', p.method === 'fixed' ? t.missingAmount : t.missingPrice, p.method === 'fixed' ? t.fieldNames.amount : t.fieldNames.price);
       else if (!isWizardPriceValid(p.unitPrice)) miss('price', t.invalidPrice, t.fieldNames.price);
       const available = !p.serviceId || (services || []).some((s) => String(s.id) === p.serviceId);
-      if (!available) miss('unavailable', t.unavailableError, t.fieldNames.unavailable, 'keep');
-      if (order.length) { all[idx] = e; if (!first) first = { idx, field: order[0][0], name: order[0][1], focusField: order[0][2] }; }
+      if (!available) miss('unavailable', t.unavailableError, t.fieldNames.unavailable);
+      if (order.length) { all[idx] = e; if (!first) first = { idx, field: order[0][0], name: order[0][1] }; }
     });
-    const target = first ? { id: pid(first.idx, first.focusField), errorId: `${pid(first.idx, first.field)}-error`, label: `${t.itemN(first.idx + 1)}: ${first.name}` } : null;
-    return { all, target };
-  }
-  function validatePicks() {
-    const { all, target } = computePickErrors();
     setMultiErrors(all);
+    if (!first) { setBlocked(null); return true; }
+    const id = pid(first.idx, first.field === 'unavailable' ? 'keep' : first.field);
+    const target = { id, errorId: `${pid(first.idx, first.field)}-error`, label: `${t.itemN(first.idx + 1)}: ${first.name}` };
     setBlocked(target);
-    if (!target) return true;
     setReveal({ ...target, n: Date.now() });
     return false;
   }
-
   function itemFromPick(p, finalSectionKey) {
     const base = { description: p.description, unit_price: p.unitPrice, isFromCatalog: !!p.serviceId, section_key: finalSectionKey };
-    const spec = (p.specRows || []).filter((r) => r.label.trim() || r.value.trim());
-    if ((p.specRows || []).length > 0) base.specification = spec;
     if (p.method === 'fixed') return { ...base, quantity: '1' };
     if (p.method === 'units') return { ...base, quantity: p.quantity || '1' };
     const pricingUnit = p.method === 'linear' ? 'linear_meter' : 'm2';
@@ -796,10 +727,10 @@ export default function AddItemWizard({
       return { ...base, quantity: '1', pricing_unit: pricingUnit, quantity_source: 'manual', calculation_method: 'manual', measurements: [], calculated_quantity: Number(p.manualQty) };
     }
     const calcMethod = resolveCalculationMethod(pricingUnit, 'calculated');
-    const measurements = pickSizeRows(p)
-      .map((r) => ({ widthM: pickSizeToM(p, r.widthCm), heightM: p.method === 'linear' ? '' : pickSizeToM(p, r.heightCm), label: r.label || '', value: pickRowValue(p, r) }))
-      .filter((r) => r.value != null && Number.isFinite(r.value))
-      .map((r) => ({ width: r.widthM, height: r.heightM, unit: 'm', calculated_area: r.value, label: r.label, is_pricing_driving: true }));
+    const widthMeters = cmToM(p.widthCm);
+    const heightMeters = p.method === 'linear' ? '' : cmToM(p.heightCm);
+    const value = computeMeasurementValue(p.method, widthMeters, p.method === 'linear' ? undefined : heightMeters);
+    const measurements = [{ width: widthMeters, height: heightMeters, unit: 'm', calculated_area: value, label: '', is_pricing_driving: true }];
     return { ...base, quantity: '1', pricing_unit: pricingUnit, quantity_source: 'calculated', calculation_method: calcMethod, measurements,
       calculated_quantity: sumMeasurementAreas(measurements, calcMethod) };
   }
@@ -825,7 +756,7 @@ export default function AddItemWizard({
   // בשקט ב-Confirm. שורה שלא נגעו בה כלל (שני השדות ריקים) אינה "התחילה",
   // ולכן מותר להתעלם ממנה בבטחה (בדיוק כמו התנהגות-הסינון הקיימת של
   // sumMeasurementAreas/handleConfirm).
-  function computeStepErrors() {
+  function validateStep() {
     const e = {};
     if (step === STEPS.ITEM) {
       if (!description.trim()) e.description = t.missingDescription;
@@ -856,10 +787,6 @@ export default function AddItemWizard({
         if (Object.keys(rowErrors).length > 0) e.rows = rowErrors;
       }
     }
-    return e;
-  }
-  function validateStep() {
-    const e = computeStepErrors();
     setErrors(e);
     return e;
   }
@@ -893,12 +820,6 @@ export default function AddItemWizard({
     if (Object.keys(e).length) return;
     setBlocked(null);
     setStep(STEPS.REVIEW);
-  }
-
-  async function requestClose() {
-    const changed = initialSigRef.current !== null && draftSig !== initialSigRef.current;
-    if (changed && !(await askConfirm(isEditMode ? t.leaveEditConfirm : t.leaveNewConfirm, isHebrew, isEditMode ? t.leaveEditLabels : t.leaveNewLabels))) return;
-    onClose();
   }
 
   function goBack() {
@@ -1160,12 +1081,12 @@ export default function AddItemWizard({
       ref={dialogRef}
       tabIndex={-1}
       style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', boxSizing: 'border-box', outline: 'none' }}
-      onKeyDown={(e) => { if (e.key === 'Escape') { requestClose(); return; } trapFocus(e); }}
+      onKeyDown={(e) => { if (e.key === 'Escape') { onClose(); return; } trapFocus(e); }}
     >
       <div style={{ background: NEON.bgCard, borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '92vh', overflow: 'hidden', boxShadow: '0 20px 60px -15px rgba(0,0,0,0.4)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}
       >
         {/* §51.16: ONE header row - title · AI action (centred on desktop) · Close; the ONE assistant opens above this dialog, the wizard stays as-is */}
-        <AiModalHeader className="pf-modal-head--bar" title={t.title} onClose={requestClose} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="ai-help-wizard"
+        <AiModalHeader className="pf-modal-head--bar" title={t.title} onClose={onClose} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="ai-help-wizard"
           style={{ borderBottom: `1px solid ${NEON.border}`, flexShrink: 0, color: NEON.textPrimary }} />
 
         <StepIndicator step={step} isHebrew={isHebrew} isNarrow={isNarrow} labels={t.stepLabels} stepOfTotal={t.stepOfTotal} />
@@ -1219,7 +1140,7 @@ export default function AddItemWizard({
                           {/* PRODUCT_TRUTH_DECORATIVE: ticks / unticks one saved catalog item for the shared check before adding; nothing is added from the list */}
                           <input type="checkbox" checked={on} onChange={() => togglePick(sv)} style={{ width: '20px', height: '20px', margin: 0, flexShrink: 0, accentColor: NEON.violet, cursor: 'pointer' }} />
                           <span style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{sv.name}</span>
-                          <bdi className="pf-money pf-money-slot" style={{ color: NEON.violet, fontWeight: 800 }}>{sym}{money(sv.price)}</bdi>
+                          <bdi className="pf-money" style={{ color: NEON.violet, fontWeight: 800, flexShrink: 0 }}>{sym}{money(sv.price)}</bdi>
                         </label>
                       );
                     })}
@@ -1291,7 +1212,7 @@ export default function AddItemWizard({
                   {/* PRODUCT_TRUTH_DECORATIVE: cm / m switch for the typed sizes (stored measurements stay metres) */}
                   {[['cm', t.unitCm], ['m', t.unitM]].map(([u, label]) => (
                     <button key={u} type="button" aria-pressed={measureUnit === u} onClick={() => changeMeasureUnit(u)} data-testid={`wiz-unit-${u}`}
-                      style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: measureUnit === u ? NEON.violet : 'transparent', color: measureUnit === u ? '#fff' : NEON.textSecondary }}>
+                      style={{ border: 'none', padding: '8px 16px', minHeight: '40px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: measureUnit === u ? NEON.violet : 'transparent', color: measureUnit === u ? '#fff' : NEON.textSecondary }}>
                       {label}
                     </button>
                   ))}
@@ -1351,7 +1272,7 @@ export default function AddItemWizard({
                         )}
                       </div>
                       {/* PRODUCT_TRUTH_DECORATIVE: removes one measurement row in the area/linear measuring step */}
-                      <button type="button" onClick={() => removeMeasureRow(idx)} aria-label={t.removeSize} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, padding: '10px', marginTop: '18px', minWidth: '44px', minHeight: '44px' }}>
+                      <button type="button" onClick={() => removeMeasureRow(idx)} aria-label={t.removeSize} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, padding: '10px', marginTop: '18px', minWidth: '40px', minHeight: '40px' }}>
                         <X size={18} />
                       </button>
                     </div>
@@ -1415,7 +1336,7 @@ export default function AddItemWizard({
                   <section key={p.key} data-testid={`wiz-pick-row-${idx}`} aria-labelledby={fid('title')}
                     style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '10px', padding: '12px 14px', marginBottom: '10px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                      <h4 id={fid('title')} tabIndex={-1} style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: NEON.textPrimary, outline: 'none' }}>{t.itemN(idx + 1)}</h4>
+                      <h4 id={fid('title')} style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: NEON.textPrimary }}>{t.itemN(idx + 1)}</h4>
                       {/* PRODUCT_TRUTH_DECORATIVE: removes one ticked catalog item from the selection on the check screen; nothing in the quote changes */}
                       <button type="button" id={fid('remove')} onClick={() => removePick(idx)} aria-label={t.removePick(p.description || t.itemN(idx + 1))}
                         style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', minHeight: '44px', padding: '0 6px' }}>
@@ -1451,68 +1372,20 @@ export default function AddItemWizard({
                     )}
                     {measured && p.useSizes && (
                       <>
-                        <div role="group" aria-label={t.sizeUnitLabel} style={{ display: 'inline-flex', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', overflow: 'hidden', margin: '10px 0 4px' }}>
-                          {/* PRODUCT_TRUTH_DECORATIVE: cm / m switch for one ticked item's typed sizes (stored measurements stay metres) */}
-                          {[['cm', t.unitCm], ['m', t.unitM]].map(([u, label]) => (
-                            <button key={u} type="button" aria-pressed={(p.unit || 'cm') === u} onClick={() => changePickUnit(idx, u)} data-testid={`${fid('unit')}-${u}`}
-                              style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: (p.unit || 'cm') === u ? NEON.violet : 'transparent', color: (p.unit || 'cm') === u ? '#fff' : NEON.textSecondary }}>
-                              {label}
-                            </button>
-                          ))}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', fontWeight: 700, color: NEON.textPrimary, margin: '6px 0 0' }}>{t.sizeN(1)}</div>
                         <div style={{ display: 'grid', gridTemplateColumns: p.method === 'area' ? '1fr 1fr' : '1fr', gap: '10px' }}>
                           <div>
-                            <FieldLabel htmlFor={fid('width')}>{t.sizeLabel(p.method === 'linear' ? 'length' : 'width', p.unit)}</FieldLabel>
+                            <FieldLabel htmlFor={fid('width')}>{p.method === 'linear' ? t.lengthCmOnly : t.widthCmOnly}</FieldLabel>
                             <input id={fid('width')} type="number" dir="ltr" min="0" step="any" value={p.widthCm} onChange={(ev) => updatePick(idx, { widthCm: ev.target.value })} {...errProps('width')} style={numInputStyle(isHebrew)} />
                             {e.width && <ErrorText id={`${fid('width')}-error`}>{e.width}</ErrorText>}
                           </div>
                           {p.method === 'area' && (
                             <div>
-                              <FieldLabel htmlFor={fid('height')}>{t.sizeLabel('height', p.unit)}</FieldLabel>
+                              <FieldLabel htmlFor={fid('height')}>{t.heightCmOnly}</FieldLabel>
                               <input id={fid('height')} type="number" dir="ltr" min="0" step="any" value={p.heightCm} onChange={(ev) => updatePick(idx, { heightCm: ev.target.value })} {...errProps('height')} style={numInputStyle(isHebrew)} />
                               {e.height && <ErrorText id={`${fid('height')}-error`}>{e.height}</ErrorText>}
                             </div>
                           )}
                         </div>
-                        {(p.extraRows || []).map((r, i) => {
-                          const rowErr = e[`row${i}`];
-                          const widthBad = !!rowErr && !(Number(r.widthCm) > 0);
-                          const heightBad = !!rowErr && !widthBad;
-                          const rowErrId = `${fid(`row${i}`)}-error`;
-                          return (
-                            <div key={i} style={{ marginTop: '12px', paddingTop: '12px', borderTop: `1px dashed ${NEON.border}` }}>
-                              <div style={{ fontSize: '0.8rem', fontWeight: 700, color: NEON.textPrimary }}>{t.sizeN(i + 2)}</div>
-                              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                                <div style={{ display: 'grid', gridTemplateColumns: p.method === 'area' ? '1fr 1fr' : '1fr', gap: '10px', flex: 1 }}>
-                                  <div>
-                                    <FieldLabel htmlFor={fid(`xw${i}`)}>{t.sizeLabel(p.method === 'linear' ? 'length' : 'width', p.unit)}</FieldLabel>
-                                    <input id={fid(`xw${i}`)} type="number" dir="ltr" min="0" step="any" value={r.widthCm} onChange={(ev) => updatePickRow(idx, i, { widthCm: ev.target.value })} aria-invalid={widthBad} aria-describedby={widthBad ? rowErrId : undefined} style={numInputStyle(isHebrew)} />
-                                  </div>
-                                  {p.method === 'area' && (
-                                    <div>
-                                      <FieldLabel htmlFor={fid(`xh${i}`)}>{t.sizeLabel('height', p.unit)}</FieldLabel>
-                                      <input id={fid(`xh${i}`)} type="number" dir="ltr" min="0" step="any" value={r.heightCm} onChange={(ev) => updatePickRow(idx, i, { heightCm: ev.target.value })} aria-invalid={heightBad} aria-describedby={heightBad ? rowErrId : undefined} style={numInputStyle(isHebrew)} />
-                                    </div>
-                                  )}
-                                </div>
-                                {/* PRODUCT_TRUTH_DECORATIVE: removes one extra size of a ticked item on the check screen */}
-                                <button type="button" onClick={() => removePickRow(idx, i)} aria-label={t.removeSize} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, marginTop: '22px', minWidth: '44px', minHeight: '44px' }}><X size={18} /></button>
-                              </div>
-                              {rowErr && <ErrorText id={rowErrId}>{rowErr}</ErrorText>}
-                              <input aria-label={t.sizeLabelOptional} placeholder={t.sizeLabelOptional} value={r.label} onChange={(ev) => updatePickRow(idx, i, { label: ev.target.value })} style={{ ...inputStyle(isHebrew), marginTop: '8px' }} />
-                            </div>
-                          );
-                        })}
-                        {/* PRODUCT_TRUTH_DECORATIVE: adds another size to a ticked item on the check screen */}
-                        <button type="button" onClick={() => addPickRow(idx)} style={{ background: 'none', border: `1px dashed ${NEON.violet}`, color: NEON.violet, borderRadius: '8px', padding: '10px 14px', cursor: 'pointer', fontWeight: '700', fontSize: '0.85rem', width: '100%', minHeight: '44px', marginTop: '12px' }}>
-                          {t.addAnotherSize}
-                        </button>
-                        {(p.extraRows || []).length > 0 && (
-                          <div style={{ marginTop: '8px', fontSize: '0.85rem', fontWeight: 700, color: NEON.textPrimary }}>
-                            {p.method === 'area' ? t.totalAreaLabel : t.totalLengthLabel}: {num(pickQuantity(p).toFixed(2))} {p.method === 'area' ? (isHebrew ? 'מ״ר' : 'm²') : (isHebrew ? 'מ\'' : 'm')}
-                          </div>
-                        )}
                         {/* PRODUCT_TRUTH_DECORATIVE: switches one ticked item from sizes back to a known area / length */}
                         <button type="button" onClick={() => setPickSizes(idx, false)} style={linkBtnStyle}>{p.method === 'area' ? t.knowArea : t.knowLength}</button>
                       </>
@@ -1523,26 +1396,6 @@ export default function AddItemWizard({
                     <div data-testid={`wiz-pick-total-${idx}`} style={{ marginTop: '8px', fontSize: '0.88rem', fontWeight: 800, color: NEON.violet }}>
                       {t.lineTotal}: {amt(pickQuantity(p) * (Number(p.unitPrice) || 0))}
                     </div>
-                    {!p.showDetails ? (
-                      // PRODUCT_TRUTH_DECORATIVE: opens the optional details for the customer of one ticked item (they do not change the price)
-                      <button type="button" onClick={() => updatePick(idx, { showDetails: true, specRows: (p.specRows || []).length ? p.specRows : [{ label: '', value: '' }] })} style={linkBtnStyle}>{t.addCustomerDetailsToggle}</button>
-                    ) : (
-                      <div style={{ marginTop: '10px' }}>
-                        <div style={{ fontSize: '0.85rem', fontWeight: 700, color: NEON.textPrimary }}>{t.addCustomerDetailsToggle}</div>
-                        <p style={{ fontSize: '0.76rem', color: NEON.textSecondary, margin: '2px 0' }}>{t.customerDetailsHelper}</p>
-                        <p style={{ fontSize: '0.75rem', color: NEON.textMuted, margin: '0 0 8px', fontStyle: 'italic' }}>{t.customerDetailsPriceNote}</p>
-                        {(p.specRows || []).map((r, i) => (
-                          <div key={i} style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-                            <input aria-label={t.detailLabel} placeholder={t.detailPlaceholder} value={r.label} onChange={(ev) => updatePickSpec(idx, i, { label: ev.target.value })} style={{ ...inputStyle(isHebrew), flex: 1 }} />
-                            <input aria-label={isHebrew ? 'ערך' : 'Value'} placeholder={t.detailValuePlaceholder} value={r.value} onChange={(ev) => updatePickSpec(idx, i, { value: ev.target.value })} style={{ ...inputStyle(isHebrew), flex: 1 }} />
-                            {/* PRODUCT_TRUTH_DECORATIVE: removes one optional detail row of a ticked item */}
-                            <button type="button" onClick={() => updatePick(idx, { specRows: p.specRows.filter((_, ri) => ri !== i) })} aria-label={isHebrew ? 'הסרת השורה' : 'Remove row'} style={{ background: 'rgba(239,68,68,0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '44px', minHeight: '44px', flexShrink: 0 }}><X size={12} strokeWidth={3} /></button>
-                          </div>
-                        ))}
-                        {/* PRODUCT_TRUTH_DECORATIVE: adds a blank optional detail row to one ticked item */}
-                        <button type="button" onClick={() => updatePick(idx, { specRows: [...(p.specRows || []), { label: '', value: '' }] })} style={{ background: 'none', border: `1px dashed ${NEON.borderStrong}`, borderRadius: '8px', padding: '10px', color: NEON.textSecondary, fontSize: '0.8rem', cursor: 'pointer', minHeight: '44px', width: '100%' }}>{t.addSpecRow}</button>
-                      </div>
-                    )}
                     {inQuote && <p data-testid={`wiz-pick-in-quote-${idx}`} style={{ ...detailNoteStyle, margin: '6px 0 0' }}>{t.inQuoteAlready}</p>}
                     {!available && (
                       <div style={{ marginTop: '6px' }}>
@@ -1619,7 +1472,7 @@ export default function AddItemWizard({
 
               {/* PRODUCT_TRUTH_DECORATIVE: 'Add customer details' toggle revealing optional spec rows and a unit/group picker */}
               {!showCustomerDetails ? (
-                <button type="button" onClick={() => setShowCustomerDetails(true)} style={{ background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', padding: '0 2px', minHeight: '44px', marginBottom: '6px', display: 'block' }}>
+                <button type="button" onClick={() => setShowCustomerDetails(true)} style={{ background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.85rem', fontWeight: '700', cursor: 'pointer', padding: 0, marginBottom: '14px', display: 'block' }}>
                   {t.addCustomerDetailsToggle}
                 </button>
               ) : (
@@ -1633,7 +1486,7 @@ export default function AddItemWizard({
                         <input aria-label={t.detailLabel} placeholder={t.detailPlaceholder} value={row.label} onChange={(e) => setSpecRows((rows) => rows.map((r, ri) => ri === i ? { ...r, label: e.target.value } : r))} style={{ ...inputStyle(isHebrew), flex: 1 }} />
                         <input aria-label={isHebrew ? 'ערך' : 'Value'} placeholder={t.detailValuePlaceholder} value={row.value} onChange={(e) => setSpecRows((rows) => rows.map((r, ri) => ri === i ? { ...r, value: e.target.value } : r))} style={{ ...inputStyle(isHebrew), flex: 1 }} />
                         {/* PRODUCT_TRUTH_DECORATIVE: removes one optional detail row from the item's spec list */}
-                        <button type="button" onClick={() => setSpecRows((rows) => rows.filter((_, ri) => ri !== i))} aria-label={isHebrew ? 'הסרת השורה' : 'Remove row'} style={{ background: 'rgba(239,68,68,0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '44px', minHeight: '44px', flexShrink: 0 }}><X size={12} strokeWidth={3} /></button>
+                        <button type="button" onClick={() => setSpecRows((rows) => rows.filter((_, ri) => ri !== i))} aria-label={isHebrew ? 'הסרת השורה' : 'Remove row'} style={{ background: 'rgba(239,68,68,0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '40px', flexShrink: 0 }}><X size={12} strokeWidth={3} /></button>
                       </div>
                     ))}
                     {/* PRODUCT_TRUTH_DECORATIVE: adds a new blank optional detail row to the item's spec list */}
@@ -1694,12 +1547,12 @@ export default function AddItemWizard({
           <div role="status" data-testid="wiz-blocked" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '10px', fontSize: '0.8rem', fontWeight: 700, color: NEON.red }}>
             <span>{t.completeLabel}</span>
             {/* PRODUCT_TRUTH_DECORATIVE: takes the user to the missing field (scrolls it into view and focuses it); nothing changes */}
-            <button type="button" onClick={() => setReveal({ ...blocked, n: Date.now() })} style={{ background: 'none', border: 'none', padding: '0 6px', color: NEON.red, fontWeight: 800, textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem', minHeight: '44px' }}>{blocked.label}</button>
+            <button type="button" onClick={() => setReveal({ ...blocked, n: Date.now() })} style={{ background: 'none', border: 'none', padding: '0 2px', color: NEON.red, fontWeight: 800, textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem', minHeight: '32px' }}>{blocked.label}</button>
           </div>
         )}
         <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
           {/* PRODUCT_TRUTH_DECORATIVE: footer 'Back' button; closes the wizard on the first step or steps back one page otherwise */}
-          <button type="button" onClick={step === STEPS.ITEM ? requestClose : goBack} style={secondaryBtnStyle}>
+          <button type="button" onClick={step === STEPS.ITEM ? onClose : goBack} style={secondaryBtnStyle}>
             {isHebrew ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
             {step === STEPS.ITEM ? t.cancel : t.back}
           </button>
@@ -1800,13 +1653,9 @@ function StepIndicator({ step, isHebrew, isNarrow, labels, stepOfTotal }) {
 
 // PRODUCT_TRUTH_DECORATIVE: MethodCard's own selectable div; a generic reusable pricing-method-selection card whose behavior is supplied by its callers (already assessed above)
 function MethodCard({ id, icon, title, example, recommended, recommendedLabel, onClick, selected, locked, lockedLabel, onKeyDown }) {
-  // Owner 2026-10-26 (real-walk finding 5): the focused card is always visibly marked (also after a programmatic focus)
-  const [focused, setFocused] = useState(false);
   return (
     <div
       id={id}
-      onFocus={() => setFocused(true)}
-      onBlur={() => setFocused(false)}
       role="button"
       tabIndex={0}
       onClick={onClick}
@@ -1817,8 +1666,6 @@ function MethodCard({ id, icon, title, example, recommended, recommendedLabel, o
         border: `2px solid ${selected ? NEON.violet : NEON.border}`,
         background: selected ? NEON.violetLighter : NEON.bgCardAlt,
         minHeight: '44px',
-        outline: focused ? `3px solid ${NEON.violetLight}` : 'none',
-        outlineOffset: '2px',
       }}
     >
       <div style={{ color: locked ? NEON.textMuted : NEON.violetLight, flexShrink: 0 }}>{locked ? <Lock size={22} /> : icon}</div>
@@ -1848,7 +1695,7 @@ function ErrorText({ id, children }) {
 // PRODUCT_TRUTH_DECORATIVE: EditLink's own generic reusable text-link button; renders whatever label/onClick its caller supplies
 function EditLink({ label, onClick }) {
   return (
-    <button type="button" onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: '6px 4px', minHeight: '44px' }}>
+    <button type="button" onClick={onClick} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: '6px 4px', minHeight: '32px' }}>
       <Pencil size={11} strokeWidth={2.5} />
       {label}
     </button>
@@ -1888,6 +1735,6 @@ function numInputStyle(isHebrew) {
 }
 
 const detailNoteStyle = { fontSize: '0.8rem', color: NEON.textSecondary, margin: '0 0 8px', lineHeight: '1.4' };
-const linkBtnStyle = { display: 'block', marginTop: '6px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', padding: '6px 0', minHeight: '44px' };
+const linkBtnStyle = { display: 'block', marginTop: '10px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.82rem', fontWeight: '600', cursor: 'pointer', padding: '6px 0', minHeight: '32px' };
 const primaryBtnStyle = { display: 'flex', alignItems: 'center', gap: '4px', background: NEON.gradient, color: 'white', border: 'none', padding: '12px 18px', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
 const secondaryBtnStyle = { display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, padding: '12px 18px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
