@@ -12,6 +12,7 @@ import {
   normalizeReminderSettings, behaviorBlockers, resolveSendingTimeZone, renderTemplateText, loadReminderSettings, saveReminderSettings,
   listReminderAudit, SERVER_AUTOMATION_ACTIVE, CUSTOMER_SENDING_ACTIVE,
 } from '../utils/reminders';
+import { askConfirm, whenAllowed, leaveLabels } from './AppDialog';
 
 const TEAL = '#0F6672';
 const VIOLET = '#5B3FB6';
@@ -95,7 +96,7 @@ export default function RemindersSettings({ isHebrew, isLocalIsraeliBusiness, cl
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(saved), [draft, saved]);
   // Owner 2026-10-25 (typed L-15 / L-01 / L-09): the phone Back and a menu item ask the same unsaved question as this screen's Back
-  useEffect(() => (typeof registerLeaveGuard === 'function' ? registerLeaveGuard(() => !dirty || window.confirm(C.leaveUnsaved)) : undefined), [registerLeaveGuard, dirty, C]);
+  useEffect(() => (typeof registerLeaveGuard === 'function' ? registerLeaveGuard(() => !dirty || askConfirm(C.leaveUnsaved, isHebrew, leaveLabels(isHebrew))) : undefined), [registerLeaveGuard, dirty, C, isHebrew]);
   const set = (patch) => { setStatus(null); setDraft((d) => ({ ...d, ...patch })); };
   const setBehavior = (id, on) => set({ behaviors: { ...draft.behaviors, [id]: on } });
   const setDays = (id, v) => { const days = { ...draft.days }; if (v) days[id] = Number(v); else delete days[id]; set({ days }); };
@@ -234,7 +235,7 @@ export default function RemindersSettings({ isHebrew, isLocalIsraeliBusiness, cl
       <style>{css}</style>
       <div>
         {/* PRODUCT_TRUTH_DECORATIVE: navigation back to the Business settings screen; changes no data */}
-        <button type="button" className="pf-rem-btn" onClick={() => { if (!dirty || window.confirm(C.leaveUnsaved)) onBack(); }} data-testid="reminders-back"><Arrow size={15} />{C.back}</button>
+        <button type="button" className="pf-rem-btn" onClick={() => whenAllowed(!dirty || askConfirm(C.leaveUnsaved, isHebrew, leaveLabels(isHebrew)), onBack)} data-testid="reminders-back"><Arrow size={15} />{C.back}</button>
       </div>
 
       <div className="pf-rem-card">

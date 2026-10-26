@@ -21,6 +21,7 @@ import PackageOfferCards from './PackageOfferCards';
 import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText, israelPurchaseOpen, plansAvailabilityLine, smartPackStatusLine, pastDueLine } from '../domain/subscriptions/packageCheckout';
 import { formatShortDate } from '../utils/shortDate';
 import SmartPackAddOnOffer from './SmartPackAddOnOffer';
+import SmartPackRemoval from './SmartPackRemoval';
 import MailLink from './MailLink';
 
 // Owner 2026-10-25 ("למה פשוט לא לכתוב במסלולים שהוא נמצא עכשיו במסלול חינם, למה יש לו את האופציה לבחור את זה בכלל?"): the Free plan is
@@ -36,7 +37,7 @@ const NUMERIC_TOKEN = /([≈₪$\u20AC\u00A3]*\d[\d.,]*%?)/;
 const isolateNumbers = (text) => String(text).split(NUMERIC_TOKEN).map((part, i) => (i % 2 === 1
   ? <bdi key={i} dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{part}</bdi> : part));
 
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, accountCurrency = null, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null, smartPackAddOn = null, onRetrySummary = null }) {
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, accountCurrency = null, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null, smartPackAddOn = null, smartPackRemoval = null, onRetrySummary = null }) {
   const [rate, setRate] = useState(null);
   const [pay, setPay] = useState({ busy: false, error: null });
   // Owner console 2026-10-21 (typed L-22 approval): the SMART PACK box state, so the local-currency estimate follows the total
@@ -132,6 +133,8 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
         {smartPackLine && (
           <p data-testid="plans-modal-smart-pack-status" role="status" style={{ color: '#0F6672', textAlign: 'center', margin: '0 0 4px', fontSize: '0.85rem', fontWeight: 600 }}>{smartPackLine}</p>
         )}
+        {/* 20261027100000 (Owner 2026-10-26): the subscriber removes SMART PACK - at the end of the paid period (a yearly one refunded per section 6) */}
+        {smartPackRemoval && !lifetime && <SmartPackRemoval isHebrew={isHebrew} invoke={smartPackRemoval.invoke} onDone={smartPackRemoval.onDone} />}
         {pastDue && (
           <p data-testid="plans-modal-past-due" role="status" style={{ color: '#b45309', textAlign: 'center', margin: '0 0 4px', fontSize: '0.85rem', fontWeight: 600 }}>
             {pastDue.text}{' '}

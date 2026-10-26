@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { ArrowLeft, ArrowRight, Share2 } from 'lucide-react';
 import { APP as NEON, RADIUS } from '../theme/neonTheme';
 import { EMPTY_SHARE_DEFAULTS, SHARE_TEXT_MAX, SHARE_VARIABLES, THANKS_TEXT_MAX, loadShareDefaults, normalizeShareDefaults, saveShareDefaults } from '../utils/shareDefaultsClient';
+import { askConfirm, whenAllowed, leaveLabels } from './AppDialog';
 
 const COPY = {
   he: {
@@ -53,7 +54,7 @@ export default function ShareDefaultsSettings({ isHebrew, client, userId, onBack
   }, [client, userId, loadRun]);
   const unsaved = load === 'ready' && JSON.stringify(draft) !== JSON.stringify(stored);
   // Owner 2026-10-25 (typed L-15 / L-01 / L-09): the phone Back and a menu item ask the same unsaved question as this screen's Back
-  useEffect(() => (typeof registerLeaveGuard === 'function' ? registerLeaveGuard(() => !unsaved || window.confirm(C.leaveUnsaved)) : undefined), [registerLeaveGuard, unsaved, C]);
+  useEffect(() => (typeof registerLeaveGuard === 'function' ? registerLeaveGuard(() => !unsaved || askConfirm(C.leaveUnsaved, isHebrew, leaveLabels(isHebrew))) : undefined), [registerLeaveGuard, unsaved, C, isHebrew]);
 
   const set = (k, v) => { setDraft((d) => ({ ...d, [k]: v })); setSave({ state: 'idle', errors: [] }); };
   const onSubmit = async (e) => {
@@ -75,7 +76,7 @@ export default function ShareDefaultsSettings({ isHebrew, client, userId, onBack
     <div data-testid="share-defaults-settings" data-state={load} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div>
         {/* PRODUCT_TRUTH_CAPABILITY: business_settings */}
-        <button type="button" onClick={() => { if (!unsaved || window.confirm(C.leaveUnsaved)) onBack(); }} data-testid="share-defaults-back" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '40px', padding: '0 12px', borderRadius: RADIUS.sm, border: `1px solid ${NEON.borderStrong}`, background: NEON.bgCard, color: NEON.textPrimary, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+        <button type="button" onClick={() => whenAllowed(!unsaved || askConfirm(C.leaveUnsaved, isHebrew, leaveLabels(isHebrew)), onBack)} data-testid="share-defaults-back" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '40px', padding: '0 12px', borderRadius: RADIUS.sm, border: `1px solid ${NEON.borderStrong}`, background: NEON.bgCard, color: NEON.textPrimary, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
           <Arrow size={15} aria-hidden="true" />{C.back}
         </button>
       </div>

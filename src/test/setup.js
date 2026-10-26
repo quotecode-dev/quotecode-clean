@@ -1,9 +1,12 @@
 import '@testing-library/jest-dom';
 import { afterEach } from 'vitest';
 import { resetQuotesListMemory } from '../utils/quotesListMemory';
+import { resetAppDialogs } from '../components/AppDialog';
 
 // the quote list's "show all" memory (Owner 2026-10-18 #2) lives while the app is open - every test starts compact
 afterEach(() => { resetQuotesListMemory(); });
+// Owner 2026-10-26: the app's own question window - every test starts with none open
+afterEach(() => { resetAppDialogs(); });
 
 // חוק ברזל (Smart Quote Structure-First UX Correction task, נתגלה תוך-כדי
 // כתיבת בדיקות): ב-Node 22+/vitest jsdom בקומבינציה הזו, window.localStorage

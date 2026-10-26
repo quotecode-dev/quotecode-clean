@@ -64,7 +64,7 @@ import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
 import CustomerTwinPanel from '../components/CustomerTwinPanel';
 import { twinPayloadFromEditor, twinPayloadFromQuoteRow } from '../utils/customerTwinClient';
 import { applyTwinEdit } from '../../supabase/functions/_shared/customerTwin.js';
-import { startPackageCheckout, packageCheckoutAvailable, israelPurchaseOpen, isAddOnReturn, smartPackAddOnAvailable, plansAvailabilityLine } from '../domain/subscriptions/packageCheckout';
+import { startPackageCheckout, packageCheckoutAvailable, israelPurchaseOpen, isAddOnReturn, smartPackAddOnAvailable, smartPackRemovalAvailable, plansAvailabilityLine } from '../domain/subscriptions/packageCheckout';
 import EditClientModal from '../components/EditClientModal';
 import EditExpenseModal from '../components/EditExpenseModal';
 import EmailConfirmModal from '../components/EmailConfirmModal';
@@ -133,6 +133,7 @@ import { loadServiceSchedule, normalizeServiceSchedule, probeServiceSchedule, sa
 import { loadShareDefaults } from '../utils/shareDefaultsClient';
 import { useInAppBack, closeTopDialogWithEscape } from '../hooks/useInAppBack';
 import NavBackBar from '../components/NavBackBar';
+import { askConfirm, showCopyText, andAllowed, whenAllowed, leaveLabels } from '../components/AppDialog';
 import { buildShareText } from '../../supabase/functions/_shared/shareMessage.js';
 
 // IRON-ILS-001: formatNum is now NON-MONEY only (quantities/measurements). Every displayed money
@@ -974,15 +975,17 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // night task 2026-10-19: a one-shot request from the bell to open one quote's tracking details in the list (consumed by QuotesTab)
   const [bellQuoteFocus, setBellQuoteFocus] = useState(null);
   useEffect(() => {
-    function handleAiNavigate(e) {
+    function handleAiNavigate(e, confirmed = false) {
       const action = e?.detail?.action;
       const focus = e?.detail?.meta?.focus || null;
       const { showQuoteForm, isDirty, isSuperAdmin } = aiNavStateRef.current;
       // AI HELP V4 §11: a destination that leaves the quote editor goes through the SAME unsaved-work guard as Cancel.
       const leavesEditor = showQuoteForm && action !== 'open_plan_information';
-      if (leavesEditor && isDirty()) {
+      if (leavesEditor && !confirmed && isDirty()) {
         const msg = isHebrew ? 'יש שינויים שלא נשמרו בהצעה. לעזוב את העורך? הטיוטה נשארת שמורה מקומית במכשיר הזה (לא בשרת).' : 'You have unsaved changes in this quote. Leave the editor? The draft stays stored locally on this device (not on the server).';
-        if (!window.confirm(msg)) return;
+        // Owner 2026-10-26 (typed L-15 / L-17 approval): the app's own question; the same navigation runs again after "leave"
+        askConfirm(msg, isHebrew, leaveLabels(isHebrew, 'editor')).then((ok) => { if (ok) handleAiNavigate(e, true); });
+        return;
       }
       const closeEditor = () => { if (showQuoteForm) { setEditingQuoteId(null); setIsCreatingQuote(false); } };
       const focusSettings = (target) => {
@@ -3203,7 +3206,7 @@ ${quoteViewLink}`
     const notice = missingPriceOutputNotice(quote, { isHebrew });
     if (!notice) return true;
     if (notice.blocked) { alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, notice.text); return false; }
-    return window.confirm(notice.text);
+    return askConfirm(notice.text, isHebrew);
   };
 
   // Owner 2026-10-23 (typed L-13, L-14, L-17, L-25, L-26): before ANY customer output of a quote whose validity has passed - the customer
@@ -3212,15 +3215,16 @@ ${quoteViewLink}`
     if (!isOpenQuoteExpired(quote)) return true;
     // the date in the account's own order (IRON-DATE-001); the expiry itself follows the quote (quoteValidityMarket)
     const day = formatShortDate(quote.valid_until, isLocalIsraeliBusiness ? 'Local' : 'International');
-    return window.confirm(isHebrew
+    return askConfirm(isHebrew
       ? `תוקף ההצעה הסתיים ב-${day}, והלקוח לא יוכל לאשר אותה. אפשר לעדכן את התוקף בעריכת ההצעה.
 
 להמשיך בכל זאת?`
       : `This quote's validity ended on ${day}, so your client won't be able to approve it. You can update the validity by editing the quote.
 
-Continue anyway?`);
+Continue anyway?`, isHebrew);
   };
-  const confirmBeforeCustomerOutput = (quote) => confirmMissingPrices(quote) && confirmExpiredValidity(quote);
+  // Owner 2026-10-26 (typed approval of the app's own question window): each answer may be pending - the second asks after the first said yes
+  const confirmBeforeCustomerOutput = (quote) => andAllowed(confirmMissingPrices(quote), () => confirmExpiredValidity(quote));
 
   // Task 28: "copy message" - the same message as WhatsApp, copied for the owner to paste and send HIMSELF (nothing is sent). It shares
   // the quote link, so it passes the same output gate as a public share (enforced phase: the server authorizes 'public_share' first and
@@ -3231,11 +3235,11 @@ Continue anyway?`);
       alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
     }
-    if (!confirmBeforeCustomerOutput(proposal)) return;
+    if (!(await confirmBeforeCustomerOutput(proposal))) return;
     let viewLink = null;
     const gate = outputGate('public_share', outputPhase);
     if (gate.mode === 'authority_required') {
-      const auth = await authorizeWithNotice({ channel: 'public_share', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (t) => window.confirm(t), isHebrew: isHebrew });
+      const auth = await authorizeWithNotice({ channel: 'public_share', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (t) => askConfirm(t, isHebrew), isHebrew: isHebrew });
       if (!auth.proceed) {
         if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null), type: 'error' });
         if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
@@ -3251,7 +3255,7 @@ Continue anyway?`);
       setStatusMsg({ text: isHebrew ? 'ההודעה הועתקה. הדביקו אותה ושלחו בעצמכם.' : 'Message copied. Paste it and send it yourself.', type: 'success' });
     } catch {
       // the browser refused the clipboard: show the exact text to copy by hand (never a false "copied")
-      window.prompt(isHebrew ? 'ההעתקה האוטומטית לא הותרה בדפדפן. העתיקו את ההודעה מכאן:' : 'The browser did not allow copying. Copy the message from here:', message);
+      showCopyText(message, isHebrew, isHebrew ? 'ההעתקה האוטומטית לא הותרה בדפדפן. העתיקו את ההודעה מכאן:' : 'The browser did not allow copying. Copy the message from here:');
     }
     // Owner 2026-10-25 (typed L-13): the message is copied to be sent (SMS, Messenger ...) - a Draft is marked Sent, as WhatsApp / email do
     // (in the enforced phase the server already marked it at authorization)
@@ -3281,30 +3285,34 @@ Continue anyway?`);
       alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
     }
-    if (!authorized && !confirmBeforeCustomerOutput(proposal)) return;
-    let rawPhone = proposal.clients?.phone ? proposal.clients.phone.trim() : '';
+    // Owner 2026-10-26: the questions are the app's own window - WhatsApp opens once they were answered
+    const openWhatsApp = () => {
+      let rawPhone = proposal.clients?.phone ? proposal.clients.phone.trim() : '';
     
-    let cleanPhone = rawPhone.replace(/[^\d+]/g, '');
+      let cleanPhone = rawPhone.replace(/[^\d+]/g, '');
 
-    if (cleanPhone.startsWith('00')) {
-      cleanPhone = '+' + cleanPhone.slice(2);
-    } else if (cleanPhone.startsWith('0') && !cleanPhone.startsWith('00')) {
-      cleanPhone = '+972' + cleanPhone.slice(1);
-    } else if (/^\d{9,15}$/.test(cleanPhone)) {
-      cleanPhone = '+' + cleanPhone;
-    }
+      if (cleanPhone.startsWith('00')) {
+        cleanPhone = '+' + cleanPhone.slice(2);
+      } else if (cleanPhone.startsWith('0') && !cleanPhone.startsWith('00')) {
+        cleanPhone = '+972' + cleanPhone.slice(1);
+      } else if (/^\d{9,15}$/.test(cleanPhone)) {
+        cleanPhone = '+' + cleanPhone;
+      }
     
-    const phoneForUrl = cleanPhone.replace('+', '');
+      const phoneForUrl = cleanPhone.replace('+', '');
 
-    const text = quoteShareMessage(proposal, authorized?.viewLink || null);
+      const text = quoteShareMessage(proposal, authorized?.viewLink || null);
     
-    const url = phoneForUrl 
-      ? `https://api.whatsapp.com/send?phone=${phoneForUrl}&text=${encodeURIComponent(text)}`
-      : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+      const url = phoneForUrl 
+        ? `https://api.whatsapp.com/send?phone=${phoneForUrl}&text=${encodeURIComponent(text)}`
+        : `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
       
-    if (authorized?.win && !authorized.win.closed) authorized.win.location.href = url;
-    else window.open(url, '_blank');
-    if (!authorized) markSentAfterShare(proposal); // legacy phase: WhatsApp opened with the quote message = sent
+      if (authorized?.win && !authorized.win.closed) authorized.win.location.href = url;
+      else window.open(url, '_blank');
+      if (!authorized) markSentAfterShare(proposal); // legacy phase: WhatsApp opened with the quote message = sent
+    };
+    if (!authorized) whenAllowed(confirmBeforeCustomerOutput(proposal), openWhatsApp);
+    else openWhatsApp();
   };
 
   // Enforced phase only: authorize on the server, then hand the capability link to WhatsApp. The blank tab is opened inside
@@ -3314,14 +3322,14 @@ Continue anyway?`);
       alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
     }
-    if (!confirmBeforeCustomerOutput(proposal)) return;
+    if (!(await confirmBeforeCustomerOutput(proposal))) return;
     const win = window.open('', '_blank');
     // Owner 2026-10-23: a window the browser blocked (e.g. after a long confirmation) stops here - before the output is authorized / used
     if (!win) {
       setStatusMsg({ text: isHebrew ? 'הדפדפן חסם את פתיחת הוואטסאפ. לחצו שוב על השליחה. אם זה חוזר, אפשרו חלונות קופצים לאתר.' : 'Your browser blocked the WhatsApp window. Click send again. If it keeps happening, allow pop-ups for this site.', type: 'error' });
       return;
     }
-    const auth = await authorizeWithNotice({ channel: 'send', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew: isHebrew });
+    const auth = await authorizeWithNotice({ channel: 'send', quoteId: proposal.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => askConfirm(text, isHebrew), isHebrew: isHebrew });
     if (!auth.proceed) {
       if (win && !win.closed) win.close();
       if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null), type: 'error' });
@@ -3360,7 +3368,7 @@ Continue anyway?`);
       return;
     }
     // Task 35 (F4): the ONE point every email path reaches (list chip + statistics) - the missing-price notice before the send
-    if (!confirmBeforeCustomerOutput(quote)) return;
+    if (!(await confirmBeforeCustomerOutput(quote))) return;
     const clientEmailVal = quote.clients?.email || quote.client_email || '';
     
     if (!clientEmailVal || !emailEmailValidation(clientEmailVal)) {
@@ -3386,7 +3394,7 @@ Continue anyway?`);
 
       let capabilityToken = null;
       if (sendGate.mode === 'authority_required') {
-        const auth = await authorizeWithNotice({ channel: 'send', quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew: isHebrew });
+        const auth = await authorizeWithNotice({ channel: 'send', quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => askConfirm(text, isHebrew), isHebrew: isHebrew });
         if (!auth.proceed) {
           setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
           if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null), type: 'error' });
@@ -3963,17 +3971,19 @@ Continue anyway?`);
     if (s.email) setBizEmail(s.email);
   };
   const leaveSettingsMsg = isHebrew ? 'יש שינויים בהגדרות העסק שלא נשמרו. לצאת בלי לשמור?' : 'Your business settings have unsaved changes. Leave without saving?';
+  // Owner 2026-10-26 (typed L-01 / L-15 approval): the app's own question (pending until answered); "leave" undoes the unsaved edits
   const mayLeaveSettings = () => {
     if (!settingsDirty) return true;
-    if (!window.confirm(leaveSettingsMsg)) return false;
-    revertUnsavedSettings();
-    return true;
+    return askConfirm(leaveSettingsMsg, isHebrew, leaveLabels(isHebrew)).then((ok) => {
+      if (ok) revertUnsavedSettings();
+      return ok;
+    });
   };
   // Owner console 2026-10-25, typed: "מאשר שינוי ב-L-15, L-01, L-09: חזרה במסכי המשנה ובעורך לפי ההמלצה" - an open settings sub-screen
   // (Reminders / Sharing & thank-you / Business card) registers its own unsaved-changes question; every way out asks it first
   const subLeaveGuardRef = useRef(null);
   const registerLeaveGuard = useCallback((fn) => { subLeaveGuardRef.current = fn; return () => { if (subLeaveGuardRef.current === fn) subLeaveGuardRef.current = null; }; }, []);
-  const mayLeaveSettingsScreen = () => (subLeaveGuardRef.current ? subLeaveGuardRef.current() : true) && mayLeaveSettings();
+  const mayLeaveSettingsScreen = () => andAllowed(subLeaveGuardRef.current ? subLeaveGuardRef.current() : true, mayLeaveSettings);
 
   // Owner 2026-10-24 (typed L-15, Doron's report: "after I finished the quote it sent me to the business details - why not earlier?
   // and after filling them it did not return me to the quote"): the business details a quote needs (phone, tax id) are asked BEFORE a new
@@ -4112,23 +4122,26 @@ Continue anyway?`);
     window.addEventListener(DAILY_TIP_ACTION_EVENT, onTipAction);
     return () => window.removeEventListener(DAILY_TIP_ACTION_EVENT, onTipAction);
   }, []);
-  const handleUseTemplate = (content) => {
+  const handleUseTemplate = async (content) => {
     setTemplateDialog(null);
     const f = templateToFormState(content, () => `tmp_section_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
     if (!f) return;
     // Owner round 1 (Codex spec A5): prices kept in another currency are removed only after the user agrees - no exchange rate is invented
     let templateItems = f.items;
     if (templateCurrencyMismatch(f, currency)) {
-      const ok = window.confirm(isHebrew
+      const ok = await askConfirm(isHebrew
         ? `התבנית שמורה ב-${f.currency}, וההצעה ב-${currency}. נעתיק את התיאורים והכמויות. המחירים יוסרו ותזינו אותם מחדש, כי אין כאן שער המרה. להמשיך בלי מחירים?`
-        : `The template is saved in ${f.currency} and the quote is in ${currency}. Descriptions and quantities are copied; the prices are removed for you to enter again, as no exchange rate is used. Continue without prices?`);
+        : `The template is saved in ${f.currency} and the quote is in ${currency}. Descriptions and quantities are copied; the prices are removed for you to enter again, as no exchange rate is used. Continue without prices?`, isHebrew,
+        isHebrew ? { yes: 'להמשיך בלי מחירים' } : { yes: 'Continue without prices' });
       if (!ok) return;
       templateItems = withoutPrices(f.items);
     } else if (templateCurrencyUnknown(f)) {
       // R-20: saved before the template remembered its currency - the user decides whether the prices are in this quote's currency
-      const keep = window.confirm(isHebrew
-        ? `התבנית נשמרה לפני שנשמר בה המטבע של המחירים. להשתמש במחירים כמו שהם, ב-${currency}? (ביטול: להעתיק את התיאורים והכמויות בלי מחירים)`
-        : `This template was saved before it remembered the currency of its prices. Use the prices as they are, in ${currency}? (Cancel: copy the descriptions and quantities without prices)`);
+      // Owner 2026-10-26: two named answers instead of OK / Cancel
+      const keep = await askConfirm(isHebrew
+        ? `התבנית נשמרה לפני שנשמר בה המטבע של המחירים. להשתמש במחירים כמו שהם, ב-${currency}? אפשר גם להעתיק רק את התיאורים והכמויות, בלי מחירים.`
+        : `This template was saved before it remembered the currency of its prices. Use the prices as they are, in ${currency}? You can also copy only the descriptions and quantities, without prices.`, isHebrew,
+        isHebrew ? { yes: 'להשתמש במחירים', no: 'בלי מחירים' } : { yes: 'Use the prices', no: 'Without prices' });
       if (!keep) templateItems = withoutPrices(f.items);
     }
     if (handleCreateNewQuoteClick() === false) return;
@@ -4253,7 +4266,7 @@ Continue anyway?`);
   const requestCancelEdit = async () => {
     if (quoteDraft.isDirty()) {
       const msg = isHebrew ? 'יש שינויים שלא נשמרו. לבטל ולמחוק את הטיוטה?' : 'You have unsaved changes. Discard them and delete the draft?';
-      if (!window.confirm(msg)) return;
+      if (!(await askConfirm(msg, isHebrew, isHebrew ? { yes: 'למחוק את הטיוטה', no: 'להמשיך לערוך', danger: true } : { yes: 'Delete the draft', no: 'Keep editing', danger: true }))) return;
     }
     await quoteDraft.discard();
     handleCancelEdit();
@@ -4263,7 +4276,7 @@ Continue anyway?`);
 
   // Owner console 2026-10-19, typed: "מאשר שינוי ב-L-15 ואת תוכנית החזרה בכל המסכים" - the in-app back stack (src/hooks/useInAppBack.js)
   const leaveEditorMsg = isHebrew ? 'יש שינויים שלא נשמרו בהצעה. לעזוב את העורך? הטיוטה נשארת שמורה מקומית במכשיר הזה (לא בשרת).' : 'You have unsaved changes in this quote. Leave the editor? The draft stays stored locally on this device (not on the server).';
-  const mayLeaveEditor = () => !quoteDraft.isDirty() || window.confirm(leaveEditorMsg);
+  const mayLeaveEditor = () => !quoteDraft.isDirty() || askConfirm(leaveEditorMsg, isHebrew, leaveLabels(isHebrew, 'editor'));
   // the sidebar / bottom row / More leave the editor through the same unsaved-work question as Back and the AI navigation
   // L-15 (Owner console 2026-10-22): a menu destination opens a clean screen - no Back button to the screen it was opened from
   // Owner 2026-10-24 (typed L-15, Doron's report): an unsaved quote kept alive behind another screen (e.g. Settings, opened for the
@@ -4273,7 +4286,8 @@ Continue anyway?`);
   const phoneHome = () => (typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 768px)').matches
     ? { key: 'main|||', tab: 'main', editor: false, editorAlive: false, settingsView: null, adminSection: null, adminUserId: null, search: '', status: 'All' }
     : null);
-  const guardedNav = (go) => { if (showQuoteForm && !mayLeaveEditor()) return; if (!mayLeaveSettingsScreen()) return; inAppBack.startFresh(phoneHome()); go(); };
+  // Owner 2026-10-26 (typed L-15 approval): each question may be the app's own window (pending) - the menu step runs once both said yes
+  const guardedNav = (go) => whenAllowed(andAllowed(showQuoteForm ? mayLeaveEditor() : true, mayLeaveSettingsScreen), () => { inAppBack.startFresh(phoneHome()); go(); });
   const isAdminTab = String(activeTab).startsWith('admin');
   const navScreen = {
     key: [activeTab, showQuoteForm && activeTab === 'main' ? 'editor' : '', activeTab === 'settings' ? settingsView : '', isAdminTab ? `${adminSection}:${adminSelectedUserId || ''}` : ''].join('|'),
@@ -4394,7 +4408,8 @@ Continue anyway?`);
 
   // Explicit discard of a restored/current draft from the banner.
   const discardRecoveredDraft = async () => {
-    if (!window.confirm(isHebrew ? 'למחוק את הטיוטה המשוחזרת ולבטל את העריכה?' : 'Delete the recovered draft and close the editor?')) return;
+    if (!(await askConfirm(isHebrew ? 'למחוק את הטיוטה המשוחזרת ולבטל את העריכה?' : 'Delete the recovered draft and close the editor?', isHebrew,
+      isHebrew ? { yes: 'למחוק את הטיוטה', no: 'ביטול', danger: true } : { yes: 'Delete the draft', no: 'Cancel', danger: true }))) return;
     await quoteDraft.discard();
     handleCancelEdit();
   };
@@ -4493,9 +4508,10 @@ Continue anyway?`);
     if (!session?.user?.id) return;
     // Owner round 1 (A6): the measured quote's example line is local only - it is never saved as if it were the user's own item
     if (items.some((it) => it && it._localExample)) {
-      if (window.confirm(isHebrew
+      if (await askConfirm(isHebrew
         ? 'ההצעה עדיין כוללת את שורת הדוגמה. להסיר אותה עכשיו? אחרי ההסרה בדקו את ההצעה ושמרו שוב.'
-        : 'The quote still includes the example line. Remove it now? Then check the quote and save again.')) {
+        : 'The quote still includes the example line. Remove it now? Then check the quote and save again.', isHebrew,
+        isHebrew ? { yes: 'להסיר', no: 'להשאיר' } : { yes: 'Remove', no: 'Keep' })) {
         setItems((prev) => {
           const rest = prev.filter((it) => !(it && it._localExample));
           return rest.length ? rest : [{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }];
@@ -5100,7 +5116,7 @@ Continue anyway?`);
       const scheduleNote = await syncServiceSchedule(quoteId);
       let leaveDraftNote = null;
       if (leaveDraftViaAuthority) {
-        const auth = await authorizeWithNotice({ channel: 'send', quoteId, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => window.confirm(text), isHebrew });
+        const auth = await authorizeWithNotice({ channel: 'send', quoteId, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => askConfirm(text, isHebrew), isHebrew });
         if (auth.proceed) {
           if (persistedStatus !== 'sent') await markQuoteStatusAfterOutput(quoteId, persistedStatus);
         } else {
@@ -7972,6 +7988,8 @@ Continue anyway?`);
         onRetrySummary={refreshAccountSummary}
         smartPackAddOn={smartPackAddOnAvailable(accountSummary, isLifetimeAccount)
           ? { invoke: invokeWithFreshSession, onLeave: (url) => { markBillingDeparture(session?.user?.id); window.location.assign(url); } } : null}
+        // Owner console 2026-10-26 (typed SMART PACK removal approval): the subscriber removes SMART PACK; the summary is read again after
+        smartPackRemoval={smartPackRemovalAvailable(accountSummary, isLifetimeAccount) ? { invoke: invokeWithFreshSession, onDone: refreshAccountSummaryQuiet } : null}
       />
       <CapabilityUpgradeNotice
         lang={isHebrew ? 'he' : 'en'}

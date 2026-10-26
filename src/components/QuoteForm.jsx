@@ -22,6 +22,7 @@ import AiHelpButton from './AiHelpButton';
 import CapabilityUpgradeNotice from './subscriptions/CapabilityUpgradeNotice';
 import ServiceScheduleFields from './ServiceScheduleFields';
 import AddressSuggestInput from './AddressSuggestInput';
+import { askConfirm } from './AppDialog';
 
 // OD-17: which capability each locked action of the form explains (the one CapabilityUpgradeNotice)
 const UPGRADE_CAPABILITY = Object.freeze({ professional: 'professional_quote.use', reuse: 'professional_quote.reuse', attachments: 'quote_attachment.upload',
@@ -182,12 +183,12 @@ export default function QuoteForm({
   // חוק ברזל: "confirmation if doing so would overwrite custom text" - אם
   // הערכים הנוכחיים כבר זהים לברירת-המחדל, אין מה "לאבד" ואין צורך לחסום
   // בדיאלוג-אישור מיותר.
-  const handleRestoreTermsWarrantyDefaults = () => {
+  const handleRestoreTermsWarrantyDefaults = async () => {
     if (isTermsWarrantyCustomized) {
       const msg = isHebrew
         ? 'פעולה זו תחליף את התנאים/האחריות המותאמים של הצעה זו בברירת המחדל הנוכחית מהגדרות העסק. להמשיך?'
         : 'This will replace this quote\'s customized terms/warranty with the current Business Settings defaults. Continue?';
-      if (!window.confirm(msg)) return;
+      if (!(await askConfirm(msg, isHebrew))) return;
     }
     setTerms(defaultTerms ?? '');
     setWarranty(defaultWarranty ?? '');
@@ -344,11 +345,11 @@ export default function QuoteForm({
   // לא הולך לאיבוד - section_key מתאפס לכולם) אך דורש אישור מפורש לפני
   // איבוד-המבנה עצמו (לא הנתונים) - "truthful blocking is better than
   // destructive convenience" מתייחס למקרה מסוכן-אמיתי, וזה אינו כזה.
-  const handleSwitchToRegular = () => {
+  const handleSwitchToRegular = async () => {
     const msg = isHebrew
       ? 'המעבר להצעה רגילה יאחד את כל היחידות לרשימה אחת. כל הפריטים והסכומים יישמרו במלואם. להמשיך?'
       : 'Switching to a regular quote will merge all units into one list. All items and amounts will be fully preserved. Continue?';
-    if (!window.confirm(msg)) return;
+    if (!(await askConfirm(msg, isHebrew))) return;
     setItems(prev => prev.map(it => ({ ...it, section_key: null })));
     setSections([]);
     setQuoteStructureMode('regular');
