@@ -344,13 +344,9 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       if (o.items.length !== 1 || o.items[0].priceMinor !== i.packageAmountMinor || o.items[0].quantity !== 1) return 'not_added';
       const productUid = await orders.productUidByName(PAYPLUS_SMART_PACK_ITEM_NAMES[i.period], 'ILS');
       if (productUid === undefined) return 'unknown';
-      // Owner 2026-10-26 (item א2): no SMART PACK product in the PayPlus catalog is a configuration gap of OURS (a one-time page
-      // creates no catalog product - the first real add-on was refused this way) - retried, never recorded as refused
-      if (productUid === null) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_product_missing' })); return 'unknown'; }
-      // the package line keeps its name on every later invoice: its own catalog product when there is one, else the order's own line
-      const packageProduct = await orders.productUidByName(PAYPLUS_ITEM_NAMES[i.period], 'ILS');
+      if (productUid === null) return 'not_added';
       const r = await orders.updateLinesOutcome(o, terminal,
-        [{ productUid: packageProduct || o.items[0].productUid, priceMinor: o.items[0].priceMinor }, { productUid, priceMinor: i.addOnAmountMinor }],
+        [{ productUid: o.items[0].productUid, priceMinor: o.items[0].priceMinor }, { productUid, priceMinor: i.addOnAmountMinor }],
         i.nextChargeDate, { extraInfo: i.packageAttemptId, documents: true });
       return r === 'updated' ? 'added' : r === 'rejected' ? 'not_added' : 'unknown';
     },

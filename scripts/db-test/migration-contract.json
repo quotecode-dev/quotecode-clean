@@ -465,12 +465,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-26 (typed: \"מאשר את התוכנית א עד ז בשחרור אחד ...\", item א2): re-opens a paid, in-period SMART PACK line refused before PayPlus was asked (no account terminal); data only, idempotent"
-    },
-    "20261026200000_smart_pack_line_reopen_product.sql": {
-      "sha256": "4d34b623ea2f8bb25c7cb9c98e0b4ce6b2999f137dfdb598f2504c5cab00d9a6",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-26 (typed: \"מאשר ליצור בפיי פלוס את שני מוצרי חכם פלוס ולשחרר את התיקון\"): re-opens the refused SMART PACK line again after the PayPlus catalog products were created; data only, idempotent (same statement as 20261026100000)"
     }
   }
 }
