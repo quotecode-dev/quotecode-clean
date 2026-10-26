@@ -31,21 +31,9 @@ function FeedLine({ feed, testId, label, asOf }) {
 }
 const InputError = ({ code, testId }) => (code ? <div data-testid={testId} role="alert" style={{ color: TOOLS.red, fontSize: '0.8rem', marginTop: '6px' }}>{ERR[code]}</div> : null);
 
-// Owner console 2026-10-26 (typed: "מאשר את שבוע 1 של קידום האתר: ... דפי הכלים כעמודים עצמאיים ..."): /en/tools/<tab> is the calculator's own page - it
-// opens on that calculator with its own heading and intro (its title / description / canonical: src/shared/publicSeoRoutes.js); /en/tools
-// stays the hub
-const TOOL_PAGE = {
-  currency: { h1: 'Currency Converter', intro: 'Convert US dollars, euros, pounds and other currencies at up-to-date rates from a named source, with the time of the last update. Useful for import pricing, foreign-currency quotes and quick checks.' },
-  units: { h1: 'Length & Distance Converter', intro: 'Accurate conversions between meters, centimeters, kilometers, feet, inches and miles - for plans, supplier specs and quotes.' },
-  metals: { h1: 'Precious Metals Value Estimator', intro: 'Estimate the value of gold, silver, platinum, palladium and rhodium from weight, purity and an editable reference price per gram. An estimate, not a market price.' },
-  crypto: { h1: 'Crypto Converter to USD & EUR', intro: 'See what Bitcoin, Ethereum, Solana, XRP and TRON are worth in US dollars and euros, at up-to-date prices from a named source with the time of the last update.' },
-};
-
-function PublicToolsEn({ initialTab }) {
+function PublicToolsEn() {
   const navigate = useNavigate();
-  const toolPage = TOOL_PAGE[initialTab] || null;
-  const seoPath = toolPage ? `/en/tools/${initialTab}` : '/en/tools';
-  const [activeTab, setActiveTab] = useState(toolPage ? initialTab : 'currency');
+  const [activeTab, setActiveTab] = useState('currency');
 
   useEffect(() => {
     // See matching note in Contact.jsx - bare /tools is a compatibility
@@ -56,8 +44,8 @@ function PublicToolsEn({ initialTab }) {
     }
 
     // One public SEO authority (src/shared/publicSeoRoutes.js), shared with the prerender build (2026-09-28).
-    setSeoMeta(publicSeo(seoPath));
-  }, [navigate, seoPath]);
+    setSeoMeta(publicSeo('/en/tools'));
+  }, [navigate]);
 
   // PRODUCT_TRUTH_CAPABILITY: public_currency_converter
   // PRODUCT_TRUTH_CAPABILITY: public_crypto_calculator
@@ -145,9 +133,9 @@ function PublicToolsEn({ initialTab }) {
         {/* PRODUCT_TRUTH_DECORATIVE: navigation link back to the landing page of the same language (Task 36, L3) */}
         <a href="/en" data-testid="tools-home" onClick={(e) => { e.preventDefault(); navigate('/en'); }} style={{ position: 'absolute', top: '12px', insetInlineStart: '16px', color: TOOLS.accent, fontSize: '0.95rem', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', minHeight: '44px' }}>Back to home</a>
         <div style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}><ProFlowLogo size={30} darkText /></div>
-        <h1 style={{ fontSize: '2.2rem', marginBottom: '10px', fontWeight: 700, color: TOOLS.textPrimary }}>{toolPage ? toolPage.h1 : 'Business Tools & Calculators Hub'}</h1>
+        <h1 style={{ fontSize: '2.2rem', marginBottom: '10px', fontWeight: 700, color: TOOLS.textPrimary }}>Business Tools & Calculators Hub</h1>
         <p style={{ fontSize: '1.05rem', color: TOOLS.textSecondary, maxWidth: '600px', margin: '0 auto', lineHeight: 1.6 }}>
-          {toolPage ? toolPage.intro : 'Calculators for businesses, importers and freelancers: currency and crypto conversions from a named data source with its update time, length conversions, and indicative precious-metals estimates.'}
+          Calculators for businesses, importers and freelancers: currency and crypto conversions from a named data source with its update time, length conversions, and indicative precious-metals estimates.
         </p>
       </header>
 

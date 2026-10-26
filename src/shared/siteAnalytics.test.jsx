@@ -23,10 +23,9 @@ describe('siteAnalytics rules', () => {
   beforeEach(() => { localStorage.clear(); });
 
   it('measures only the public marketing pages', () => {
-    // Owner 2026-10-26 (SEO week 1): a calculator page is now a public page of its own (/he/tools/currency), measured like the hub
-    for (const p of ['/', '/he', '/en', '/he/terms', '/en/privacy', '/he/contact', '/en/tools', '/he/tools/currency', '/en/tools/crypto', '/en/']) expect(isMeasuredPath(p)).toBe(true);
+    for (const p of ['/', '/he', '/en', '/he/terms', '/en/privacy', '/he/contact', '/en/tools', '/en/']) expect(isMeasuredPath(p)).toBe(true);
     for (const p of ['/dashboard', '/public-quote/c/abc123', '/en/public-quote/c/abc123', '/public-quote/1', '/quote/1', '/card/1',
-      '/ai-logs', '/professional-preview', '/he/sample-quote', '/he/tools/nope', '/nope']) expect(isMeasuredPath(p)).toBe(false);
+      '/ai-logs', '/professional-preview', '/he/sample-quote', '/he/tools/currency', '/nope']) expect(isMeasuredPath(p)).toBe(false);
   });
 
   it('runs only on the production host', () => {

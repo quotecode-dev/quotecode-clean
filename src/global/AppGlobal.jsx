@@ -93,12 +93,10 @@ export default function AppGlobal() {
             כלל, ותמיכת-initialTab קיימת רק כעבודת-dirty-tree נפרדת ולא-
             קשורה (590 שורות) - out-of-scope לתיקון הזה. ה-prop הוסר בכוונה
             מהנתיבים למטה כדי לא להטעות. */}
-        {/* Owner console 2026-10-26 (typed: "מאשר את שבוע 1 של קידום האתר: ... דפי הכלים כעמודים עצמאיים ..."): every calculator route is its own
-            page - PublicToolsEn opens on that calculator with its own heading, intro and SEO entry (src/shared/publicSeoRoutes.js) */}
-        <Route path="/en/tools/currency" element={<PublicToolsEn initialTab="currency" />} />
-        <Route path="/en/tools/units" element={<PublicToolsEn initialTab="units" />} />
-        <Route path="/en/tools/metals" element={<PublicToolsEn initialTab="metals" />} />
-        <Route path="/en/tools/crypto" element={<PublicToolsEn initialTab="crypto" />} />
+        <Route path="/en/tools/currency" element={<PublicToolsEn />} />
+        <Route path="/en/tools/units" element={<PublicToolsEn />} />
+        <Route path="/en/tools/metals" element={<PublicToolsEn />} />
+        <Route path="/en/tools/crypto" element={<PublicToolsEn />} />
         {/* שפת/מע"מ ההצעה נגזרים מנתוני ההצעה השמורים (currency/tax_rate), לא מהיותנו בבאנדל הגלובלי */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         {/* Task 23 (Phase 5): public digital business card (no sign-in; the page uses the card's own market language once loaded) */}

@@ -164,9 +164,8 @@ describe('one SEO authority - the live pages read the same table', () => {
   const pages = {
     'src/pages/LandingLocal.jsx': "publicSeo('/he')",
     'src/pages/LandingGlobal.jsx': "publicSeo('/en')",
-    // Owner 2026-10-26: the hub or the calculator's own page (seoPath = '/he/tools' or '/he/tools/<tab>')
-    'src/components/PublicTools.jsx': "publicSeo(seoPath)",
-    'src/components/PublicToolsEn.jsx': "publicSeo(seoPath)",
+    'src/components/PublicTools.jsx': "publicSeo('/he/tools')",
+    'src/components/PublicToolsEn.jsx': "publicSeo('/en/tools')",
     'src/pages/Contact.jsx': "publicSeoFor('contact'",
     'src/pages/Privacy.jsx': "publicSeoFor('privacy'",
     'src/pages/Terms.jsx': "publicSeoFor('terms'",
