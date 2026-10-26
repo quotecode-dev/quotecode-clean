@@ -75,6 +75,10 @@
     "interactive": 2,
     "markers": 2
   },
+  "src/components/AdminSearchConsole.jsx": {
+    "interactive": 1,
+    "markers": 1
+  },
   "src/components/AdminSidebarNav.jsx": {
     "interactive": 1,
     "markers": 1
@@ -1496,6 +1500,14 @@
     "markers": 0
   },
   "supabase/functions/resend-email-webhook/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/search-console/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/search-console/lib.ts": {
     "interactive": 0,
     "markers": 0
   },
