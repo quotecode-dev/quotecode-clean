@@ -465,30 +465,18 @@ export function payplusStandingOrders(cfg: { apiBase: string; apiKey: string; se
      *  answer's shape is not documented, so every object with a uid and that name is looked at). null = PayPlus answered and there is
      *  none; undefined = no answer. */
     async productUidByName(name: string, currency: 'ILS' | 'USD'): Promise<string | null | undefined> {
-      // Owner 2026-10-26 (the retries after PR #74 stayed 'unknown'): PayPlus answers this list as a BARE array of products whose id
-      // is 'uuid' (proven against the sandbox 2026-10-26) - never the { results, data } envelope of the other calls
-      let j: unknown = null;
-      try {
-        const res = await cfg.fetch(`${cfg.apiBase}/Products/View?currency_code=${currency}&skip=0&take=500`, { method: 'GET',
-          headers: { 'content-type': 'application/json', 'api-key': cfg.apiKey, 'secret-key': cfg.secretKey }, signal: AbortSignal.timeout(cfg.timeoutMs ?? 10_000) });
-        j = await res.json().catch(() => null);
-      } catch { j = null; }
-      const list = Array.isArray(j) ? j : isObj(j) && ok(j) ? j.data : undefined;
-      if (list === undefined) {
-        console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'payplus_products_unreadable', shape: Array.isArray(j) ? 'array' : isObj(j) ? 'object' : String(j) }));
-        return isObj(j) && isObj(j.results) ? null : undefined;
-      }
+      const j = await call('GET', `/Products/View?currency_code=${currency}&skip=0&take=500`);
+      if (!ok(j)) return j && isObj(j.results) ? null : undefined;
       const found: string[] = [];
       const visit = (v: unknown, depth: number) => {
         if (depth > 4) return;
         if (Array.isArray(v)) { v.forEach((x) => visit(x, depth + 1)); return; }
         if (!isObj(v)) return;
-        const uid = typeof v.uuid === 'string' ? v.uuid : typeof v.uid === 'string' ? v.uid : typeof v.product_uid === 'string' ? v.product_uid : null;
-        const sameCurrency = typeof v.currency_code !== 'string' || v.currency_code === currency;
-        if (uid && UUID.test(uid) && typeof v.name === 'string' && v.name.trim() === name && v.valid !== false && sameCurrency) found.push(uid);
+        const uid = typeof v.uid === 'string' ? v.uid : typeof v.product_uid === 'string' ? v.product_uid : null;
+        if (uid && UUID.test(uid) && typeof v.name === 'string' && v.name.trim() === name && v.valid !== false) found.push(uid);
         Object.values(v).forEach((x) => { if (isObj(x) || Array.isArray(x)) visit(x, depth + 1); });
       };
-      visit(list, 0);
+      visit(j!.data, 0);
       return found[0] ?? null;
     },
     /** replace the lines of a standing order (e.g. SMART PACK added / removed); the next charge from startDate, nothing charged now */

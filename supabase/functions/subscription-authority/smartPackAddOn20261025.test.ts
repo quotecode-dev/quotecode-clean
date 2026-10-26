@@ -179,19 +179,6 @@ describe('addSmartPackLine (PayPlus)', () => {
     // no package product in the catalog for an order without lines = our gap, retried
     expect(await run(answer(noLines), answer(products), answer({ products: [{ uid: PROD_SP, name: PAYPLUS_SMART_PACK_ITEM_NAMES.month }] })).p.addSmartPackLine!(lineBegin as never)).toBe('unknown');
   });
-  // Owner 2026-10-26: the PayPlus product list is a BARE array of { uuid, name, currency_code, valid } (sandbox proof 2026-10-26)
-  it('the real product list shape: a bare array, the id in uuid, the currency matched', async () => {
-    const bare = [{ uuid: PROD_PKG, name: 'TEKANGO - מנוי חודשי', currency_code: 'ILS', valid: true },
-      { uuid: '386c8e7d-0000-4000-8000-0000000000aa', name: PAYPLUS_SMART_PACK_ITEM_NAMES.month, currency_code: 'USD', valid: true },
-      { uuid: PROD_SP, name: PAYPLUS_SMART_PACK_ITEM_NAMES.month, currency_code: 'ILS', valid: true }];
-    const raw = (v: unknown) => ({ ok: true, json: async () => v });
-    const { fetch, p } = run(answer({ ...pkgOnly, items: [] }), raw(bare), raw(bare), answer({ recurring_payment_uid: REC }));
-    expect(await p.addSmartPackLine!(lineBegin as never)).toBe('added');
-    expect(JSON.parse((fetch.mock.calls[3] as unknown as [string, { body: string }])[1].body).items)
-      .toEqual([{ product_uid: PROD_PKG, quantity: 1, price: 30 }, { product_uid: PROD_SP, quantity: 1, price: 10 }]);
-    // an unreadable list (no answer) stays unknown - tried again, never refused
-    expect(await run(answer({ ...pkgOnly, items: [] }), raw('<html>')).p.addSmartPackLine!(lineBegin as never)).toBe('unknown');
-  });
   it('not_added: another standing order, an unexpected line, PayPlus said no; unknown: no answer, no SMART PACK product (our gap)', async () => {
     expect(await run(answer({ ...pkgOnly, uid: '9ab9e163-0000-4000-8000-0000000000ff' })).p.addSmartPackLine!(lineBegin as never)).toBe('not_added');
     // the cycle exactly as PayPlus holds it (an annual order never becomes monthly) and the order of OUR package attempt
