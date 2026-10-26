@@ -103,7 +103,7 @@ describe('app wiring (WhatsApp + copy message share ONE message builder)', () =>
     expect(fn.indexOf("authorizeWithNotice({ channel: 'public_share'")).toBeLessThan(fn.indexOf('navigator.clipboard.writeText'));
     expect(fn).toMatch(/if \(!auth\.proceed\) \{[\s\S]*?return;\s*\}/);
     expect(fn).toContain('isUnfinishedSavedQuote(proposal)');
-    expect(fn).toContain('showCopyText(message, isHebrew'); // a refused clipboard shows the text in the app's own window; never a false "copied"
+    expect(fn).toContain('window.prompt('); // a refused clipboard shows the text; never a false "copied"
   });
 });
 

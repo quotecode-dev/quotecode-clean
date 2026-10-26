@@ -83,8 +83,7 @@ export function consumptionNoticeText(remaining, isHebrew) {
 export async function authorizeWithNotice({ channel, quoteId, invoke, confirm, isHebrew, importLogo }) {
   const notice = await requestOutputNotice({ quoteId, invoke });
   if (!notice.ok) return { proceed: false, mode: 'blocked', code: notice.code };
-  // Owner 2026-10-26: the answer may be the app's own question window (a Promise) - awaited, and only an explicit yes goes on
-  if (notice.wouldConsume && !(typeof confirm === 'function' && (await confirm(consumptionNoticeText(notice.remaining, isHebrew))) === true)) {
+  if (notice.wouldConsume && !(typeof confirm === 'function' && confirm(consumptionNoticeText(notice.remaining, isHebrew)))) {
     return { proceed: false, mode: 'cancelled', code: 'cancelled_by_owner' };
   }
   const first = await requestOutputAuthorization({ channel, quoteId, invoke, expectedDigest: notice.contentDigest });

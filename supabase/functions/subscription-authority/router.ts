@@ -4,7 +4,6 @@
 //   POST {action:'checkout_intent', planId, blocks?, idempotencyKey}                       (user JWT; billing code phase 'off')
 //   POST {action:'checkout_status'}                  (user JWT; back from the payment page - the server pull; billing code phase 'off')
 //   POST {action:'smart_pack_add_on_quote'} / {action:'smart_pack_add_on_intent', idempotencyKey}   (user JWT; 20261025300000)
-//   POST {action:'smart_pack_removal_quote'} / {action:'smart_pack_removal_request', idempotencyKey} (user JWT; 20261027100000)
 //   POST {action:'import_logo', dataBase64}                                                (user JWT)
 //   POST .../subscription-authority/provider-event  (raw body; provider signature, NOT a user JWT; billing code phase 'off')
 // `account_summary` is NOT a route: the client calls the RPC public.get_account_summary() directly (one parser: the shared
@@ -14,12 +13,11 @@ import { userFromRequest, importLogoRoute, type JwtVerifier, type Resp, type Ass
 import { authorizeOutputRoute, type OutputRouteDeps } from './outputRoute.ts';
 import { outputNoticeRoute, type NoticeDeps } from './noticeRoute.ts';
 import { checkoutIntentHandler, checkoutStatusHandler, providerWebhookHandler, smartPackAddOnIntentHandler, smartPackAddOnQuoteHandler,
-  smartPackRemovalQuoteHandler, smartPackRemovalRequestHandler,
   type BillingPhase, type BillingProvider, type BillingSql } from './billing.ts';
 
 export const MAX_BODY_BYTES = 6 * 1024 * 1024; // logo base64 upper bound (same operational bound as quote-presentation)
 export const USER_ACTIONS = Object.freeze(['output_notice', 'authorize_output', 'checkout_intent', 'checkout_status', 'smart_pack_add_on_quote',
-  'smart_pack_add_on_intent', 'smart_pack_removal_quote', 'smart_pack_removal_request', 'import_logo'] as const);
+  'smart_pack_add_on_intent', 'import_logo'] as const);
 
 export type AuthorityDeps = {
   verifyJwt: JwtVerifier;
@@ -52,9 +50,6 @@ export async function routeAuthorityRequest(deps: AuthorityDeps, req: { method: 
     case 'checkout_status': return checkoutStatusHandler(deps.billing.phase, { sql: deps.billing.sql, provider: deps.billing.provider }, userId);
     case 'smart_pack_add_on_quote': return smartPackAddOnQuoteHandler(deps.billing.phase, { sql: deps.billing.sql }, userId);
     case 'smart_pack_add_on_intent': return smartPackAddOnIntentHandler(deps.billing.phase, { sql: deps.billing.sql, provider: deps.billing.provider }, userId, body);
-    // 20261027100000 (Owner 2026-10-26): SMART PACK removed by the subscriber
-    case 'smart_pack_removal_quote': return smartPackRemovalQuoteHandler(deps.billing.phase, { sql: deps.billing.sql }, userId);
-    case 'smart_pack_removal_request': return smartPackRemovalRequestHandler(deps.billing.phase, { sql: deps.billing.sql, provider: deps.billing.provider }, userId, body);
     case 'import_logo': return importLogoRoute(deps.logo, userId, body);
     default: return err(400, 'unknown_action'); // incl. 'account_summary' (RPC get_account_summary, not a route)
   }

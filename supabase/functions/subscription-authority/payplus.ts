@@ -15,7 +15,7 @@
 // Trust boundary (unchanged from billing.ts): the amount and the currency come from the server attempt; a callback's plan, card or
 // customer data is never read. Read: the event id, the result, the time, our own attempt id and the paid amount - the paid amount
 // only so SQL can require it to EQUAL the attempt before the subscription opens (it never sets a price or a right).
-import { parseProviderEvent, sha256Hex, cleanCheckoutCustomer, type CheckoutCustomer, type BillingPeriod, type BillingProvider, type EventType, type PulledCheckout, type PulledAddOn, type SmartPackLineRequest, type SmartPackRemovalRequest, type WebhookVerification } from './billing.ts';
+import { parseProviderEvent, sha256Hex, cleanCheckoutCustomer, type CheckoutCustomer, type BillingPeriod, type BillingProvider, type EventType, type PulledCheckout, type PulledAddOn, type SmartPackLineRequest, type WebhookVerification } from './billing.ts';
 
 type Fetch = (url: string, init: { method: string; headers: Record<string, string>; body?: string; signal?: AbortSignal }) =>
   Promise<{ ok: boolean; json(): Promise<unknown> }>;
@@ -323,38 +323,6 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       return { addOnId, amountMinor, currency: cur ?? null, approved: statusCode === PAYPLUS_SUCCESS_CODE && addOnId !== null,
         payloadSha256: await sha256Hex(enc.encode(JSON.stringify(seen))) };
     },
-    // Owner console 2026-10-26 (typed: "מאשר הסרת חכם פלוס בשירות עצמי: בחודשי בסוף התקופה ששולמה בלי החזר, בשנתי לפי סעיף 6 ..."): the SMART PACK line taken OFF
-    // the live standing order - ONE Update with the package line alone (its catalog product), the same cycle, from the next charge date.
-    // 'removed' when PayPlus said success (or the order already carries the package alone); 'refused' when it cannot or said no;
-    // 'unknown' when no answer came (tried again).
-    async removeSmartPackLine(i: SmartPackRemovalRequest): Promise<'removed' | 'refused' | 'unknown'> {
-      const refuse = (reason: string, detail: Record<string, unknown> = {}) => {
-        console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_removal_refused', reason, ...detail }));
-        return 'refused' as const;
-      };
-      const terminal = i.terminalRef ?? cfg.terminalUid ?? '';
-      if (i.currency !== 'ILS' || !UUID.test(i.packageRequestRef)) return refuse('request');
-      if (!UUID.test(terminal)) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_terminal_missing' })); return 'unknown'; }
-      const o = await orders.byPageRequest(i.packageRequestRef);
-      if (!o) return 'unknown';
-      if (o.recurringUid !== i.recurringRef || !o.valid || o.currency !== 'ILS' || o.attemptId !== i.packageAttemptId) {
-        return refuse('order', { sameOrder: o.recurringUid === i.recurringRef, valid: o.valid, ils: o.currency === 'ILS', ourAttempt: o.attemptId === i.packageAttemptId });
-      }
-      if (o.recurringType !== 2 || o.recurringRange !== (i.period === 'year' ? 12 : 1)) return refuse('cycle', { type: o.recurringType, range: o.recurringRange, period: i.period });
-      // the order total stands for its lines (PayPlus answers the order without them): the package alone = already removed
-      const total = o.items.length ? o.items.reduce((s, it) => s + it.priceMinor * (it.quantity || 1), 0) : o.amountMinor;
-      if (total === i.packageAmountMinor) return 'removed'; // a retry after a lost answer
-      if (total !== i.packageAmountMinor + i.addOnAmountMinor) return refuse('lines', { lines: o.items.length, amount: total, expected: i.packageAmountMinor + i.addOnAmountMinor });
-      const pkg = await orders.productUidByName(PAYPLUS_ITEM_NAMES[i.period], 'ILS');
-      if (pkg === undefined) return 'unknown';
-      if (pkg === null) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'package_product_missing' })); return 'unknown'; }
-      const r = await orders.updateLinesOutcome(o, terminal, [{ productUid: pkg, priceMinor: i.packageAmountMinor }], i.nextChargeDate,
-        { extraInfo: i.packageAttemptId, documents: true });
-      if (r === 'rejected') return refuse('update');
-      return r === 'updated' ? 'removed' : 'unknown';
-    },
-    // section 6 (a yearly SMART PACK removed): the pro-rata refund on the period's charge (the documented refund by transaction uid)
-    refund: (transactionUid: string, amountMinor: number) => orders.refund(transactionUid, amountMinor),
     // the SMART PACK line on the live package's standing order: read the order (by the package page request id), find the SMART PACK
     // product (the add-on page's line), then ONE Update with both lines from the next charge date - nothing is charged by it.
     // 'added' only when PayPlus said success (or the order already carries both lines); 'not_added' when it cannot or said no;

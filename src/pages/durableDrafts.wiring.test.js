@@ -78,9 +78,8 @@ describe('save / cancel / logout semantics', () => {
   });
   it('cancel with unsaved work asks for confirmation and clears the draft only after the explicit discard', () => {
     const fn = dash.slice(at('const requestCancelEdit = async () => {'), at('const draftLabelFor'));
-    // Owner console 2026-10-26 (typed approval naming L-15): the question is the app's own window, awaited before the discard
-    expect(fn).toMatch(/quoteDraft\.isDirty\(\)/); expect(fn).toMatch(/await askConfirm\(msg, isHebrew/);
-    expect(fn.indexOf('await askConfirm(msg')).toBeLessThan(fn.indexOf('await quoteDraft.discard()'));
+    expect(fn).toMatch(/quoteDraft\.isDirty\(\)/); expect(fn).toMatch(/window\.confirm/);
+    expect(fn.indexOf('window.confirm')).toBeLessThan(fn.indexOf('await quoteDraft.discard()'));
     expect(dash).toMatch(/onCancel=\{requestCancelEdit\}/);
   });
   it('EXPLICIT logout: warns about unsaved work, purges this user\'s drafts (+ blobs) and clears in-memory state; the modal shows the warning', () => {

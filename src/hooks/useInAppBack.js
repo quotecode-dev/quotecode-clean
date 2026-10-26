@@ -8,8 +8,6 @@
 // consumes that entry instead of adding one, so Back never revisits a screen twice.
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-const isPendingAnswer = (v) => !!v && typeof v.then === 'function';
-
 const MAX_DEPTH = 40;
 const innerScroller = (root) => root?.querySelector('.quote-modern-body') || root?.querySelector('.pf-screen > .pf-screen-body') || null;
 
@@ -17,9 +15,8 @@ const innerScroller = (root) => root?.querySelector('.quote-modern-body') || roo
  * screen: { key, tab, editor, ...anything apply() needs }   - the current screen (key = identity of the screen)
  * apply(snapshot): show that screen again                    - called with a recorded snapshot
  * closeTopWindow(): boolean                                  - closes the topmost open window; true when one was open
- * mayLeaveEditor(): boolean | Promise<boolean>              - the editor is open: ask about unsaved work; true = leave
- * mayLeaveScreen(): boolean | Promise<boolean>              - any other screen: ask about its unsaved work; true = leave (2026-10-25)
- *   (a Promise = the app's own question window is open - Owner 2026-10-26: the place is kept until it is answered)
+ * mayLeaveEditor(): boolean                                  - the editor is open: ask about unsaved work; true = leave
+ * mayLeaveScreen(): boolean                                  - any other screen: ask about its unsaved work; true = leave (2026-10-25)
  * leaveEditor(): void                                        - close the editor (the draft stays on this device)
  * onRoot(): void                                             - Back on the first screen with nothing open
  * scrollRoot(): Element | null                               - the workspace scroller
@@ -141,29 +138,13 @@ export function useInAppBack({ enabled, screen, apply, closeTopWindow, mayLeaveE
       if (h.closeTopWindow?.(lastWindowRef)) { stay(); return; }
       const cur = currentRef.current;
       const stack = stackRef.current;
+      if (cur.editor) {
+        if (!h.mayLeaveEditor?.()) { stay(); return; }
+        if (!stack.length) { h.leaveEditor?.(); stay(); return; }
+      }
       // Owner console 2026-10-25, typed L-15 / L-01 / L-09: a screen with unsaved work (Business settings, a settings sub-screen) asks
       // first - the phone Back never drops it silently
-      const asked = cur.editor ? h.mayLeaveEditor?.() : (stack.length && h.mayLeaveScreen ? h.mayLeaveScreen() : true);
-      // Owner console 2026-10-26 (typed: "מאשר החלפת חלונות הדפדפן בחלון של המערכת ... L-15 ..."): the question is the app's own window -
-      // the place is kept while it is open; "leave" then drops that kept place silently and takes the same step
-      if (isPendingAnswer(asked)) {
-        stay();
-        asked.then((ok) => {
-          if (ok !== true || currentRef.current.key !== cur.key) return;
-          if (cur.editor && !stackRef.current.length) { h.leaveEditor?.(); return; }
-          ignorePopRef.current += 1;
-          window.history.back();
-          stepBack(h, cur);
-        }, () => {});
-        return;
-      }
-      if (!asked) { stay(); return; }
-      if (cur.editor && !stack.length) { h.leaveEditor?.(); stay(); return; }
-      stepBack(h, cur);
-    };
-    // the step back to the screen below (or the first screen's question), once leaving is allowed
-    const stepBack = (h, cur) => {
-      const stack = stackRef.current;
+      if (stack.length && !cur.editor && h.mayLeaveScreen && !h.mayLeaveScreen()) { stay(); return; }
       if (stack.length) {
         const target = stack.pop();
         if (target.key !== cur.key) restoringRef.current = target.key;

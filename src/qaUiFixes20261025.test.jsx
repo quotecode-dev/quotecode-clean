@@ -81,9 +81,9 @@ describe('screens (B3, C2, C3, C4, C6, C7, C8, C12, email chip)', () => {
   it('the settings sub-views: a load-error text and retry, Back asks before unsaved changes are lost', () => {
     const rem = src('src/components/RemindersSettings.jsx');
     expect(rem).toContain("{load.code === 'unavailable' ? C.unavailable : C.loadFailed}");
-    expect(rem).toContain('whenAllowed(!dirty || askConfirm(C.leaveUnsaved, isHebrew, leaveLabels(isHebrew)), onBack)');
+    expect(rem).toContain('if (!dirty || window.confirm(C.leaveUnsaved)) onBack();');
     const share = src('src/components/ShareDefaultsSettings.jsx');
-    expect(share).toContain('whenAllowed(!unsaved || askConfirm(C.leaveUnsaved, isHebrew, leaveLabels(isHebrew)), onBack)');
+    expect(share).toContain('if (!unsaved || window.confirm(C.leaveUnsaved)) onBack();');
     expect(share).toContain('data-testid="share-defaults-retry"');
   });
   it('the task form tells the truth about the bell; the clients list says how to add the first client; the logo picker resets', () => {

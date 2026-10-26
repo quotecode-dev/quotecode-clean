@@ -19,8 +19,7 @@ function sameFile(list, att, index) {
 }
 
 // -> true when the click was taken over (an old link); false lets the normal link open.
-// notify (Owner 2026-10-26): the app's own notice window; without it the browser's alert, as before
-export function openAttachmentFresh(event, { att, index, loadedAt, reload, now = Date.now(), win = window, removedText = '', notify = null }) {
+export function openAttachmentFresh(event, { att, index, loadedAt, reload, now = Date.now(), win = window, removedText = '' }) {
   if (typeof reload !== 'function' || now - loadedAt < ATTACHMENT_LINK_FRESH_MS) return false;
   const tab = win.open('', '_blank');
   // a blocked tab: the link opens as it always did (the quote page itself never navigates away - a signature may be in progress)
@@ -34,7 +33,7 @@ export function openAttachmentFresh(event, { att, index, loadedAt, reload, now =
       const match = sameFile(fresh?.attachments, att, index);
       if (match.kind === 'removed') {
         try { tab.close(); } catch { /* already closed */ }
-        if (removedText) { try { (typeof notify === 'function' ? notify : (t) => win.alert(t))(removedText); } catch { /* no dialog */ } }
+        if (removedText) { try { win.alert(removedText); } catch { /* no dialog */ } }
         return;
       }
       go(match.kind === 'found' && match.file.url ? match.file.url : att.url);

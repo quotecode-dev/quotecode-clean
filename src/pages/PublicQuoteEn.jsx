@@ -28,7 +28,6 @@ import { outputGate, authorizeWithNotice, outputBlockedMessage } from '../domain
 import PublicThanksNotice from '../components/PublicThanksNotice';
 import { useAmountAxis } from '../quoteDocument/useAmountAxis';
 import { openAttachmentFresh } from '../utils/freshAttachmentLink';
-import { askConfirm, showNotice } from '../components/AppDialog';
 
 // Money Consolidation (Global Surface Audit finding I-1): this local
 // formatNum used to Math.round() every amount before formatting - silently
@@ -210,12 +209,12 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
     if (quoteData.viewerIsOwner === true) {
       const notice = missingPriceOutputNotice(quote, { isHebrew: false, items: publicItemsForNotice(items) });
       if (notice && notice.blocked) { setApproveToast({ type: 'error', message: notice.text }); return; }
-      if (notice && !(await askConfirm(notice.text, false))) return;
+      if (notice && !window.confirm(notice.text)) return;
     }
     const serverPhase = quoteData.capability ? 'off' : (quoteData.viewerIsOwner === true ? (quoteData.outputPhase || 'off') : 'off');
     const gate = outputGate(finalChannel, serverPhase);
     if (gate.mode === 'authority_required') {
-      const auth = await authorizeWithNotice({ channel: finalChannel, quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => askConfirm(text, false), isHebrew: false });
+      const auth = await authorizeWithNotice({ channel: finalChannel, quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => window.confirm(text), isHebrew: false });
       const snap = auth.proceed
         ? await supabase.functions.invoke('get-public-quote', { body: { output_grant: auth.grant, channel: finalChannel } })
         : null;
@@ -631,7 +630,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
       {hasAttachments ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {attachments.map((att, idx) => (
-            <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="pq-attachment-link" onClick={(e) => openAttachmentFresh(e, { att, index: idx, loadedAt: attachmentsLoadedAtRef.current, reload: reloadAttachments, notify: (t) => showNotice(t, false), removedText: 'This file is no longer attached to the quote.' })}>
+            <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="pq-attachment-link" onClick={(e) => openAttachmentFresh(e, { att, index: idx, loadedAt: attachmentsLoadedAtRef.current, reload: reloadAttachments, removedText: 'This file is no longer attached to the quote.' })}>
               📄 {att.file_name || `Attachment #${idx + 1}`}
             </a>
           ))}

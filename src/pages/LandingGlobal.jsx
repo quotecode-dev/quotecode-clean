@@ -219,8 +219,8 @@ export default function LandingGlobal({ onForgotPassword }) {
       priceMonth: est ? estOf(spMinor.month) : '$5',
       priceMonthLabel: est ? `per month, added to your plan (estimate; charged in USD: ${usdSmartPack('month')})` : 'per month, added to your plan',
       priceYear: est ? `or ${estOf(spMinor.year)} a year with a yearly plan (charged in USD: ${usdSmartPack('year')})` : 'or $51 a year with a yearly plan',
-      // Owner console 2026-10-26 (typed SMART PACK removal approval, L-14): removed in the plans window, at the end of the paid period
-      points: ['Add it only if you want it', 'Remove it any time - it ends with the paid period', 'Paid together with your plan'],
+      // Owner console 2026-10-25 (typed L-14): never 'add or remove any time' - stopping it is a request to us
+      points: ['Add it only if you want it', 'To stop it, write to us', 'Paid together with your plan'],
       // Owner 2026-10-20: what SMART PACK gives, next to its button too - a second check list in its own colour (the one source: addOnCatalog)
       // Owner 2026-10-20: on the landing list the attachments line names images too
       includes: SMART_PACK.includes.en.map((t) => (t === 'Files attached to a quote' ? 'Files and images attached to a quote' : t)),

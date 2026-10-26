@@ -7,7 +7,6 @@ import { X, LayoutTemplate, Trash2 } from 'lucide-react';
 import useFocusTrap from './quotePresentation/useFocusTrap';
 import { DEFAULT_TEMPLATE_KEEP, TEMPLATE_NAME_MAX, buildTemplateContent, templateSummary } from '../utils/quoteTemplates';
 import { createTemplate, deleteTemplate, listTemplates } from '../utils/quoteTemplatesClient';
-import { askConfirm } from './AppDialog';
 
 const COPY = {
   he: {
@@ -147,7 +146,7 @@ export function TemplatePickerDialog({ isHebrew, client, userId, formatMoney, on
   }, [client, userId]); // eslint-disable-line react-hooks/exhaustive-deps
   const selected = load.rows.find((r) => r.id === selectedId) || null;
   const remove = async (row) => {
-    if (!(await askConfirm(C.confirmDel(row.name), isHebrew, isHebrew ? { yes: 'למחוק', no: 'ביטול', danger: true } : { yes: 'Delete', no: 'Cancel', danger: true }))) return;
+    if (!window.confirm(C.confirmDel(row.name))) return;
     const r = await deleteTemplate(client, userId, row.id);
     if (!r.ok) { setNote(errText(C, r)); return; }
     setNote('');

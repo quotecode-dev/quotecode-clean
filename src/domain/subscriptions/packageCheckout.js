@@ -138,41 +138,6 @@ async function addOnCall(invoke, body) {
   return { ok: false, code: code || 'checkout_unavailable' };
 }
 
-// ---------------------------------------------------------------------------------------------- SMART PACK removal
-// Owner console 2026-10-26 (typed: "מאשר הסרת חכם פלוס בשירות עצמי: בחודשי בסוף התקופה ששולמה בלי החזר, בשנתי לפי סעיף 6 ..."): the date
-// and the refund come from the server (subscription-authority smart_pack_removal_quote / smart_pack_removal_request).
-
-/** may the window offer the removal? (server summary: Israel, an active package whose SMART PACK is a paid add-on; LIFETIME never) */
-export function smartPackRemovalAvailable(summary, isLifetime = false) {
-  if (isLifetime === true || summary?.state !== 'ready') return false;
-  if (!['prepared', 'enforced'].includes(summary.phase?.billing) || summary.market !== 'IL') return false;
-  return summary.planId === 'all_inclusive' && summary.subscriptionStatus === 'active' && summary.smartPack?.active === true && summary.smartPack.source === 'add_on';
-}
-
-/** -> { ok: true, period, effectiveAt, refundMinor } | { ok: false, code, effectiveAt? } */
-export async function loadSmartPackRemovalQuote({ invoke }) {
-  if (typeof invoke !== 'function') return { ok: false, code: 'invalid_request' };
-  const d = await addOnCall(invoke, { action: 'smart_pack_removal_quote' });
-  if (d.ok !== true) return d;
-  if (!['month', 'year'].includes(d.period) || typeof d.effectiveAt !== 'string' || !Number.isInteger(d.refundMinor) || d.refundMinor < 0) return { ok: false, code: 'checkout_unavailable' };
-  return { ok: true, period: d.period, effectiveAt: d.effectiveAt, refundMinor: d.refundMinor };
-}
-
-/** -> { ok: true, state: 'removed' | 'pending' | 'refused', effectiveAt, refundMinor } | { ok: false, code } */
-export async function removeSmartPack({ invoke, key = newCheckoutKey() }) {
-  if (typeof invoke !== 'function') return { ok: false, code: 'invalid_request' };
-  const d = await addOnCall(invoke, { action: 'smart_pack_removal_request', idempotencyKey: key });
-  if (d.ok === true && ['removed', 'pending', 'refused'].includes(d.state)) return { ok: true, state: d.state, effectiveAt: d.effectiveAt, refundMinor: Number.isInteger(d.refundMinor) ? d.refundMinor : 0 };
-  return { ok: false, code: d.ok === true ? 'checkout_unavailable' : d.code };
-}
-
-export function smartPackRemovalErrorMessage(code, isHebrew) {
-  if (code === 'pending') return isHebrew ? 'ההסרה בטיפול. נסו לפתוח שוב את חלון המסלולים בעוד כמה דקות.' : 'The removal is being processed. Open the plans window again in a few minutes.';
-  if (code === 'refused') return isHebrew ? 'לא הצלחנו להסיר את חכם פלוס כרגע, והוא נשאר במנוי. כתבו לנו ונטפל בזה: support@tekango.com' : 'We could not remove SMART PACK right now, and it stays on your plan. Write to us and we will take care of it: support@tekango.com';
-  if (code === 'retry_later') return isHebrew ? 'פעולה קודמת בחשבון עדיין בטיפול. נסו שוב בעוד כמה דקות.' : 'An earlier action on your account is still being processed. Try again in a few minutes.';
-  return isHebrew ? 'לא ניתן להסיר את חכם פלוס כרגע. נסו שוב בעוד רגע.' : 'SMART PACK cannot be removed right now. Try again in a moment.';
-}
-
 /** -> { ok: true, amountMinor, recurringMinor, period, periodEnd } | { ok: false, code } */
 export async function loadSmartPackAddOnQuote({ invoke }) {
   if (typeof invoke !== 'function') return { ok: false, code: 'invalid_request' };

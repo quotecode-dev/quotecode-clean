@@ -194,8 +194,8 @@ export default function LandingLocal({ onForgotPassword }) {
       priceMonth: '₪10',
       priceMonthLabel: 'לחודש, בתוספת למנוי',
       priceYear: 'או ₪102 לשנה במנוי שנתי',
-      // Owner console 2026-10-26 (typed: "מאשר הסרת חכם פלוס בשירות עצמי ... כולל שינוי ב-L-14 ..."): removed in the plans window, at the paid end
-      points: ['מוסיפים רק אם רוצים', 'מסירים בכל עת, וההסרה נכנסת לתוקף בסוף התקופה ששולמה', 'משלמים יחד עם המנוי, באותו מועד'],
+      // Owner console 2026-10-25 (typed L-14): never 'add or remove any time' - stopping it is a request to us
+      points: ['מוסיפים רק אם רוצים', 'להפסקה כותבים לנו', 'משלמים יחד עם המנוי, באותו מועד'],
       // Owner 2026-10-20: what SMART PACK gives, next to its button too - a second check list in its own colour (the one source: addOnCatalog)
       // Owner 2026-10-20: on the landing list the attachments line reads 'צירוף קבצים ותמונות להצעה' (images are attached files too)
       includes: SMART_PACK.includes.he.map((t) => (t === 'צירוף קבצים להצעה' ? 'צירוף קבצים ותמונות להצעה' : t)),

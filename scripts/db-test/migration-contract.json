@@ -483,12 +483,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-26 (typed approvals: the legacy documents table closed, a fixed search_path, and the SMART PACK line re-opened after the order-total fix)"
-    },
-    "20261027100000_smart_pack_removal.sql": {
-      "sha256": "eb060970c6e54982b56be869db2fe49321030fde657b3a72e500ca0a6033dbad",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-26 (typed: \"מאשר הסרת חכם פלוס בשירות עצמי: בחודשי בסוף התקופה ששולמה בלי החזר, בשנתי לפי סעיף 6 ...\"): SMART PACK removed by the subscriber"
     }
   }
 }

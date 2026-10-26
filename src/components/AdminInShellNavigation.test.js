@@ -109,8 +109,7 @@ describe('Admin shell-bypass calls: ZERO', () => {
     const src = stripComments(dashboard);
     // Owner 2026-10-24 (typed L-15): an unsaved quote kept alive behind another screen asks too
     // Owner 2026-10-25 (typed L-15 + L-01): unsaved business settings ask too before a menu destination
-    // Owner console 2026-10-26 (typed approval naming L-15): the questions may be the app's own window - the step runs after both said yes
-    expect(src).toContain('const guardedNav = (go) => whenAllowed(andAllowed(showQuoteForm ? mayLeaveEditor() : true, mayLeaveSettingsScreen), () => { inAppBack.startFresh(phoneHome()); go(); });');
+    expect(src).toMatch(/const guardedNav = \(go\) => \{ if \(showQuoteForm && !mayLeaveEditor\(\)\) return; if \(!mayLeaveSettingsScreen\(\)\) return; inAppBack\.startFresh\(phoneHome\(\)\); go\(\); \};/);
     expect(src).toMatch(/onSelect=\{\(id\) => \{ inAppBack\.startFresh\(phoneHome\(\)\); navigateToAdminSection\(id\); \}\}/);
     expect(src).toMatch(/onClick=\{\(\) => \{ inAppBack\.startFresh\(phoneHome\(\)\); navigateToAdminSection\(id\); setShowMobileMoreMenu\(false\); \}\}/);
     expect(src).toMatch(/onSettings=\{\(\) => \{ inAppBack\.startFresh\(phoneHome\(\)\); setActiveTab\('settings'\);/);

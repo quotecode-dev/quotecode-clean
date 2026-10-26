@@ -119,10 +119,6 @@ export type PulledCheckout = { attemptId: string | null; recurringRef: string; a
 export type PulledAddOn = { addOnId: string | null; amountMinor: number | null; currency: 'ILS' | 'USD' | null; approved: boolean; payloadSha256: string };
 /** 20261025300000: what the SMART PACK line on the live package's standing order needs (from SQL: smart_pack_add_on_line_begin) */
 // 20261025400000: terminalRef null = a standing order bound by the server pull (no terminal) - the provider uses the account terminal
-// Owner console 2026-10-26 (typed: "מאשר הסרת חכם פלוס בשירות עצמי: בחודשי בסוף התקופה ששולמה בלי החזר, בשנתי לפי סעיף 6 ..."): what taking the SMART PACK line off the standing order needs
-// (from SQL: smart_pack_removal_begin)
-export type SmartPackRemovalRequest = { removalId: string; packageAttemptId: string; recurringRef: string; terminalRef: string | null; packageRequestRef: string;
-  packageAmountMinor: number; addOnAmountMinor: number; period: BillingPeriod; currency: 'ILS'; nextChargeDate: string };
 export type SmartPackLineRequest = { addOnId: string; packageAttemptId: string; recurringRef: string; terminalRef: string | null; packageRequestRef: string;
   packageAmountMinor: number; addOnAmountMinor: number; period: BillingPeriod; currency: 'ILS'; nextChargeDate: string };
 
@@ -156,9 +152,6 @@ export interface BillingProvider {
   pullAddOnCheckout?(pageRequestUid: string): Promise<PulledAddOn | null>;
   /** the SMART PACK line on the live package's standing order: 'unknown' = no answer (tried again later) */
   addSmartPackLine?(i: SmartPackLineRequest): Promise<'added' | 'not_added' | 'unknown'>;
-  /** 20261027100000: the SMART PACK line taken off the standing order; a yearly SMART PACK refunded pro rata (section 6) */
-  removeSmartPackLine?(i: SmartPackRemovalRequest): Promise<'removed' | 'refused' | 'unknown'>;
-  refund?(transactionUid: string, amountMinor: number): Promise<{ ok: true; refundRef: string } | { ok: false }>;
 }
 
 // The only provider available today: none (OPEN-12). Checkout is unavailable and every webhook is refused.
@@ -298,14 +291,6 @@ export interface BillingSql {
   smartPackAddOnLineBegin?(addOnId: string): Promise<Record<string, unknown>>;
   smartPackAddOnLineFinish?(addOnId: string, added: boolean): Promise<Record<string, unknown>>;
   smartPackAddOnLineTargets?(userId: string): Promise<unknown>;
-  // 20261027100000 (Owner 2026-10-26): SMART PACK removed by the subscriber
-  smartPackRemovalQuote?(userId: string): Promise<Record<string, unknown>>;
-  requestSmartPackRemoval?(userId: string, idempotencyKey: string): Promise<Record<string, unknown>>;
-  smartPackRemovalBegin?(removalId: string): Promise<Record<string, unknown>>;
-  smartPackRemovalFinish?(removalId: string, removed: boolean): Promise<Record<string, unknown>>;
-  smartPackRemovalTargets?(userId: string): Promise<unknown>;
-  smartPackRemovalRefundsDue?(userId: string): Promise<unknown>;
-  recordSmartPackRemovalRefund?(removalId: string, refundRef: string): Promise<Record<string, unknown>>;
 }
 
 // ------------------------------------------------------------------------------------------------ checkout intent
@@ -500,92 +485,6 @@ async function addOnWebhook(deps: { sql: BillingSql; provider: BillingProvider }
     ...(r.activated === false && code ? { activated: false, code } : {}) } };
 }
 
-// ------------------------------------------------------------------------------------------------ SMART PACK removal
-// Owner console 2026-10-26 (typed: "מאשר הסרת חכם פלוס בשירות עצמי: בחודשי בסוף התקופה ששולמה בלי החזר, בשנתי לפי סעיף 6 ..."): the subscriber removes SMART PACK - it stops renewing (the
-// standing order line comes off now), runs to the end of the paid period, and a yearly SMART PACK is refunded pro rata less the fee.
-const REMOVAL_CODES: Record<string, number> = { checkout_unavailable: 503, not_eligible: 409, not_on_plan: 409, already_removed: 409, retry_later: 503,
-  invalid_request: 400 };
-const removalError = (r: unknown): Resp => {
-  const code = isObj(r) ? String(r.code) : '';
-  return err(REMOVAL_CODES[code] ?? 503, REMOVAL_CODES[code] ? code : 'checkout_unavailable');
-};
-
-export async function smartPackRemovalQuoteHandler(phase: BillingPhase, deps: { sql: BillingSql }, userId: string): Promise<Resp> {
-  if (phase === 'off') return err(503, 'checkout_unavailable');
-  if (typeof userId !== 'string' || !UUID.test(userId)) return err(401, 'not_authenticated');
-  if (typeof deps.sql.smartPackRemovalQuote !== 'function') return err(503, 'checkout_unavailable');
-  let r: Record<string, unknown>;
-  try { r = await deps.sql.smartPackRemovalQuote(userId); } catch { return err(503, 'checkout_unavailable'); }
-  if (!isObj(r) || r.ok !== true) {
-    // an already scheduled removal answers its date, so the window can say so
-    if (isObj(r) && r.code === 'already_removed' && isIso(r.effectiveAt)) return { status: 409, body: { ok: false, code: 'already_removed', effectiveAt: r.effectiveAt } };
-    return removalError(r);
-  }
-  const int = (v: unknown) => Number.isInteger(v) && (v as number) >= 0;
-  if (r.currency !== 'ILS' || !isPeriod(r.period) || !isIso(r.effectiveAt) || !int(r.refundMinor) || !int(r.recurringMinor)) return err(503, 'checkout_unavailable');
-  return { status: 200, body: { ok: true, period: r.period, effectiveAt: r.effectiveAt, refundMinor: r.refundMinor, recurringMinor: r.recurringMinor,
-    feeMinor: int(r.feeMinor) ? r.feeMinor : 0 } };
-}
-
-function parseRemovalRequest(b: Record<string, unknown>): SmartPackRemovalRequest | null {
-  const s = (v: unknown, re: RegExp) => typeof v === 'string' && re.test(v);
-  const pos = (v: unknown) => Number.isInteger(v) && (v as number) > 0;
-  if (!s(b.removalId, UUID) || !s(b.packageAttemptId, UUID) || typeof b.recurringRef !== 'string' || !b.recurringRef || !(b.terminalRef === null || s(b.terminalRef, UUID))
-      || !s(b.packageRequestRef, UUID) || !pos(b.packageAmountMinor) || !pos(b.addOnAmountMinor) || !isPeriod(b.period) || b.currency !== 'ILS'
-      || !s(b.nextChargeDate, /^\d{4}-\d{2}-\d{2}$/)) return null;
-  return { removalId: b.removalId as string, packageAttemptId: b.packageAttemptId as string, recurringRef: b.recurringRef, terminalRef: b.terminalRef as string | null,
-    packageRequestRef: b.packageRequestRef as string, packageAmountMinor: b.packageAmountMinor as number, addOnAmountMinor: b.addOnAmountMinor as number,
-    period: b.period, currency: 'ILS', nextChargeDate: b.nextChargeDate as string };
-}
-
-/** the line taken off after the request; 'unknown' leaves it 'requested' (tried again); every outcome but 'removed' is an incident */
-export async function completeSmartPackRemoval(deps: { sql: BillingSql; provider: BillingProvider }, removalId: string): Promise<'removed' | 'refused' | 'unknown' | 'skipped'> {
-  const { sql, provider } = deps;
-  const incident = (code: string) => console.error(JSON.stringify({ fn: 'subscription-authority', incident: code }));
-  if (typeof sql.smartPackRemovalBegin !== 'function' || typeof sql.smartPackRemovalFinish !== 'function') return 'skipped';
-  let b: Record<string, unknown>;
-  try { b = await sql.smartPackRemovalBegin(removalId); } catch { incident('smart_pack_removal_unknown'); return 'unknown'; }
-  if (!isObj(b) || b.ok !== true) return 'skipped';
-  const req = parseRemovalRequest(b);
-  const outcome = !req || typeof provider.removeSmartPackLine !== 'function' ? 'refused' : await provider.removeSmartPackLine(req).catch(() => 'unknown' as const);
-  if (outcome === 'unknown') { incident('smart_pack_removal_unknown'); return 'unknown'; }
-  try { await sql.smartPackRemovalFinish(removalId, outcome === 'removed'); } catch { incident('smart_pack_removal_unknown'); return 'unknown'; }
-  if (outcome !== 'removed') incident('smart_pack_removal_refused');
-  return outcome;
-}
-
-/** section 6: every yearly refund due of the account is refunded once (recorded with the provider's refund id) */
-export async function refundDueRemovals(deps: { sql: BillingSql; provider: BillingProvider }, userId: string): Promise<number> {
-  const { sql, provider } = deps;
-  if (typeof sql.smartPackRemovalRefundsDue !== 'function' || typeof sql.recordSmartPackRemovalRefund !== 'function' || typeof provider.refund !== 'function') return 0;
-  let due: unknown = [];
-  try { due = await sql.smartPackRemovalRefundsDue(userId); } catch { return 0; }
-  let n = 0;
-  for (const d of Array.isArray(due) ? due.slice(0, 3) : []) {
-    if (!isObj(d) || typeof d.removalId !== 'string' || !UUID.test(d.removalId) || typeof d.chargeRef !== 'string' || !Number.isInteger(d.amountMinor) || (d.amountMinor as number) <= 0) continue;
-    const r = await provider.refund(d.chargeRef, d.amountMinor as number).catch(() => ({ ok: false as const }));
-    if (!r.ok) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_removal_refund_failed' })); continue; }
-    try { await sql.recordSmartPackRemovalRefund(d.removalId, r.refundRef); n++; } catch { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_removal_refund_unrecorded' })); }
-  }
-  return n;
-}
-
-export async function smartPackRemovalRequestHandler(phase: BillingPhase, deps: { sql: BillingSql; provider: BillingProvider }, userId: string, body: unknown): Promise<Resp> {
-  if (phase === 'off') return err(503, 'checkout_unavailable');
-  if (typeof userId !== 'string' || !UUID.test(userId)) return err(401, 'not_authenticated');
-  const key = isObj(body) ? body.idempotencyKey : undefined; // the ONLY field read
-  if (typeof key !== 'string' || !/^[A-Za-z0-9_-]{16,128}$/.test(key)) return err(400, 'invalid_request');
-  const { sql } = deps;
-  if (typeof sql.requestSmartPackRemoval !== 'function') return err(503, 'checkout_unavailable');
-  let r: Record<string, unknown>;
-  try { r = await sql.requestSmartPackRemoval(userId, key); } catch { return err(503, 'checkout_unavailable'); }
-  if (!isObj(r) || r.ok !== true || typeof r.removalId !== 'string' || !UUID.test(r.removalId)) return removalError(r);
-  const outcome = r.state === 'requested' ? await completeSmartPackRemoval(deps, r.removalId) : r.state === 'removed' ? 'removed' : 'refused';
-  if (outcome === 'removed') await refundDueRemovals(deps, userId);
-  return { status: 200, body: { ok: true, state: outcome === 'removed' ? 'removed' : outcome === 'refused' ? 'refused' : 'pending',
-    ...(isIso(r.effectiveAt) ? { effectiveAt: r.effectiveAt } : {}), refundMinor: Number.isInteger(r.refundMinor) ? r.refundMinor : 0 } };
-}
-
 // ------------------------------------------------------------------------------------------------ verified webhook
 const OUTCOMES = new Set(['applied', 'stale', 'policy_pending', 'rejected']);
 export async function providerWebhookHandler(phase: BillingPhase, deps: { sql: BillingSql; provider: BillingProvider; now: () => number },
@@ -711,13 +610,6 @@ export async function checkoutStatusHandler(phase: BillingPhase, deps: { sql: Bi
       if (typeof id === 'string' && UUID.test(id)) await completeSmartPackLine(deps, id);
     }
   }
-  // 20261027100000: a SMART PACK removal whose answer was lost is tried again; a yearly refund still due is refunded
-  if (typeof sql.smartPackRemovalTargets === 'function') {
-    let ids: unknown = [];
-    try { ids = await sql.smartPackRemovalTargets(userId); } catch { ids = []; }
-    for (const id of Array.isArray(ids) ? ids.slice(0, 3) : []) if (typeof id === 'string' && UUID.test(id)) await completeSmartPackRemoval(deps, id);
-  }
-  await refundDueRemovals(deps, userId);
   return { status: 200, body: { ok: true, activated, waiting } };
 }
 
