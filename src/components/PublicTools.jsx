@@ -395,11 +395,6 @@ function PublicTools({ initialTab }) {
           <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: TOOLS.textSecondary, marginBottom: '15px' }}>
             עסקים, עצמאים ויבואנים נדרשים מדי יום לחישובים מהירים: המרת מטבעות, המרת יחידות בעבודה מול ספקים בחו"ל והערכת שווי. מרכז הכלים של TEKANGO מרכז את החישובים האלה במקום אחד, עם מקור הנתונים ומועד העדכון שלהם.
           </p>
-          {/* Owner 2026-10-26 (SEO week 2): the tools page links to the public guides */}
-          <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: TOOLS.textSecondary, margin: 0 }}>
-            {/* PRODUCT_TRUTH_DECORATIVE: navigation link to the public guides index of the same language */}
-            <a href="/he/articles" data-testid="tools-guides" onClick={(e) => { e.preventDefault(); navigate('/he/articles'); }} style={{ color: TOOLS.accent, textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', minHeight: '44px' }}>מדריכים לעסקים: הצעות מחיר ותמחור</a>
-          </p>
         </section>
 
         {/* CTA Banner */}

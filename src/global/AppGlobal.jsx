@@ -13,7 +13,6 @@ import SmartPublicQuote from '../components/SmartPublicQuote';
 import PublicBusinessCard from '../pages/PublicBusinessCard';
 import SampleQuote from '../pages/SampleQuote';
 import PublicToolsEn from '../components/PublicToolsEn';
-import { PublicArticle, PublicArticlesIndex } from '../pages/PublicArticle';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
 import Contact from '../pages/Contact';
@@ -100,9 +99,6 @@ export default function AppGlobal() {
         <Route path="/en/tools/units" element={<PublicToolsEn initialTab="units" />} />
         <Route path="/en/tools/metals" element={<PublicToolsEn initialTab="metals" />} />
         <Route path="/en/tools/crypto" element={<PublicToolsEn initialTab="crypto" />} />
-        {/* Owner console 2026-10-26 (SEO week 2, the night task: "כן אם אתה יכול תיצור גם את זה במשימת הלילה"): the public guides - the index and one page per article */}
-        <Route path="/en/articles" element={<PublicArticlesIndex lang="en" />} />
-        <Route path="/en/articles/:slug" element={<PublicArticle lang="en" />} />
         {/* שפת/מע"מ ההצעה נגזרים מנתוני ההצעה השמורים (currency/tax_rate), לא מהיותנו בבאנדל הגלובלי */}
         <Route path="/public-quote/:id" element={<SmartPublicQuote />} />
         {/* Task 23 (Phase 5): public digital business card (no sign-in; the page uses the card's own market language once loaded) */}
