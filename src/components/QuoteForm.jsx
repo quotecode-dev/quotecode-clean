@@ -247,12 +247,15 @@ export default function QuoteForm({
     setAnotherItemPrompt({ sectionKey: savedItem.section_key ?? null });
   };
   // Owner console 2026-10-26 (typed L-09 approval, docs/CODEX_ITEM_PATHS_SPEC_2026-10-26.md): the catalog items checked together in the
-  // wizard are added in ONE update, in their order; the wizard already reported each catalog item (onCatalogItemAdded). No "add another
-  // item?" question after a whole selection.
+  // wizard are added in ONE update, in their order; the wizard already reported each catalog item (onCatalogItemAdded).
+  // Owner console 2026-10-26 (typed L-09 / L-15, real-walk finding 4): "add another item?" follows EVERY addition, a catalog selection too.
   const handleWizardSaveMany = (added) => {
     if (!Array.isArray(added) || added.length === 0) return;
     setItems((prev) => [...prev, ...added]);
+    setAnotherItemPrompt({ sectionKey: added[0]?.section_key ?? null });
   };
+  // Owner 2026-10-26 (real-walk finding 5): a new unit opens with the cursor in its name
+  const [newUnitKey, setNewUnitKey] = useState(null);
 
   // AI Chat Hardening overnight task, Track B/C: bubbles the item-wizard's
   // own open/add-vs-edit/professional-vs-simple/measurements-present state
@@ -1034,6 +1037,7 @@ export default function QuoteForm({
                 onRename={(name) => renameSection(section.key, name)}
                 onRemove={() => requestRemoveSection(section, indices.length)}
                 onAddItem={() => openAddWizard(section.key)}
+                focusName={section.key === newUnitKey}
               >
                 {indices.map((index) => (
                   <div key={index}>{renderItemCard(index)}</div>
@@ -1065,7 +1069,7 @@ export default function QuoteForm({
             )}
 
             {/* PRODUCT_TRUTH_DECORATIVE: creates a new empty unit/room container in divided mode; sub-control of the already-documented measured_quote unit-board UI */}
-            <button type="button" onClick={addSection} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'none', border: `1px dashed ${NEON.borderStrong}`, color: NEON.violetLight, borderRadius: '10px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', minHeight: '44px' }}>
+            <button type="button" onClick={() => { const key = addSection(); if (key) setNewUnitKey(key); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'none', border: `1px dashed ${NEON.borderStrong}`, color: NEON.violetLight, borderRadius: '10px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', minHeight: '44px' }}>
               <Plus size={15} strokeWidth={3} />
               {sections.length === 0
                 ? (isHebrew ? 'הוספת היחידה הראשונה' : 'Add the first unit')
@@ -1727,7 +1731,7 @@ function CompactItemCard({
 // לא ניתן לשינוי-שם/הסרה (אין section אמיתית מאחוריו).
 function UnitCard({
   isHebrew, sym, formatMoneyDisplay, section, itemCount, subtotal, collapsed,
-  onToggleCollapse, onRename, onRemove, onAddItem, isUnassigned, children,
+  onToggleCollapse, onRename, onRemove, onAddItem, isUnassigned, children, focusName = false,
 }) {
   const unitLabel = section.name || (isHebrew ? 'יחידה זו' : 'this unit');
   return (
@@ -1745,6 +1749,7 @@ function UnitCard({
         ) : (
           <input
             type="text"
+            autoFocus={focusName}
             value={section.name}
             onChange={(e) => onRename(e.target.value)}
             placeholder={isHebrew ? 'לדוגמה: דירה 33, חדר שינה, בניין A' : 'e.g. Apartment 33, Bedroom, Building A'}
