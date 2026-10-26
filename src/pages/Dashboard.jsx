@@ -592,6 +592,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [editServicePrice, setEditServicePrice] = useState('');
 
   const [currency, setCurrency] = useState('ILS');
+  // Owner console 2026-10-26 (typed L-01 / L-22, item ג): the ACCOUNT's currency (business settings) for the plans window prices abroad -
+  // never the open quote's currency (opening a USD quote used to switch the plans window from GBP to USD)
+  const [businessCurrency, setBusinessCurrency] = useState(null);
 
   const [quoteSubject, setQuoteSubject] = useState('');
   const [attnName, setAttnName] = useState('');
@@ -1787,6 +1790,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         : (['USD', 'EUR', 'GBP'].includes(dataCurrUpper) ? dataCurrUpper : 'USD');
 
       setCurrency(userCurr);
+      setBusinessCurrency(userCurr);
       setTerms(defTerms);
       setWarranty(defWarranty);
 
@@ -1929,6 +1933,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setDefaultTerms(newData.default_terms || detectedTerms);
     setTrialEndsAt(newData.trial_ends_at);
     setCurrency((newData.country === 'Local' || newData.country === 'LCL') ? 'ILS' : (newData.currency || detectedCurr));
+    setBusinessCurrency((newData.country === 'Local' || newData.country === 'LCL') ? 'ILS' : (newData.currency || detectedCurr));
     setTerms(newData.default_terms || detectedTerms);
 
     setNeedsRegionChoice(false);
@@ -7942,6 +7947,8 @@ Continue anyway?`);
         isLifetime={isLifetimeAccount}
         // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #17: the account currency reaches the plans window again (the EUR / GBP estimate line)
         currency={currency}
+        // Owner console 2026-10-26 (typed L-01 / L-22, item ג): the business-settings currency wins over the open quote's currency
+        accountCurrency={businessCurrency}
         statusLine={accountStatusSentence(ownSubscriptionStatus, isHebrew, statusDate)}
         // Owner console 2026-10-22 (typed L-22 approval): the free card only while the free period is running
         freePlanActive={freePeriodActive(ownSubscriptionStatus, accountSummary)}

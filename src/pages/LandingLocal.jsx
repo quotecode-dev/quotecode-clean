@@ -11,6 +11,7 @@ import LandingPage from '../components/landing/LandingPage';
 import { SMART_PACK_ENABLED } from '../components/landing/smartPackFacts';
 import { ilsSmartPack, ilsWithSmartPack } from '../components/landing/smartPackFacts';
 import { SMART_PACK } from '../domain/subscriptions/addOnCatalog';
+import MailLink from '../components/MailLink';
 
 // Task 16 (correction A, 2026-10-05): the Local (HE / ILS) landing now uses the approved refined composition
 // (revision-r2-refined landing-he.html) through the shared LandingPage layout. This file keeps EVERY customer-facing
@@ -193,7 +194,8 @@ export default function LandingLocal({ onForgotPassword }) {
       priceMonth: '₪10',
       priceMonthLabel: 'לחודש, בתוספת למנוי',
       priceYear: 'או ₪102 לשנה במנוי שנתי',
-      points: ['מוסיפים רק אם רוצים', 'אפשר להוסיף ולהסיר בכל עת', 'משלמים יחד עם המנוי, באותו מועד'],
+      // Owner console 2026-10-25 (typed L-14): never 'add or remove any time' - stopping it is a request to us
+      points: ['מוסיפים רק אם רוצים', 'להפסקה כותבים לנו', 'משלמים יחד עם המנוי, באותו מועד'],
       // Owner 2026-10-20: what SMART PACK gives, next to its button too - a second check list in its own colour (the one source: addOnCatalog)
       // Owner 2026-10-20: on the landing list the attachments line reads 'צירוף קבצים ותמונות להצעה' (images are attached files too)
       includes: SMART_PACK.includes.he.map((t) => (t === 'צירוף קבצים להצעה' ? 'צירוף קבצים ותמונות להצעה' : t)),
@@ -232,7 +234,7 @@ export default function LandingLocal({ onForgotPassword }) {
         // Verifiable infrastructure facts only (TLS in transit, encryption at rest by the Supabase/PostgreSQL platform).
         { q: 'האם הנתונים העסקיים שלי מאובטחים בענן?', a: 'כן. הנתונים שמורים בענן ומוצפנים, גם בזמן ההעברה וגם באחסון. רק אתם יכולים לגשת לנתונים של החשבון שלכם.' },
         // Task 39 (Owner final scope): the cancellation-request path - a request handled by the team, never shown as an automatic cancellation.
-        { q: 'איך מבקשים ביטול מנוי?', a: <>אפשר לבקש ביטול מנוי בכל עת במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<a href="mailto:support@tekango.com?subject=%D7%91%D7%A7%D7%A9%D7%AA%20%D7%91%D7%99%D7%98%D7%95%D7%9C%20%D7%9E%D7%A0%D7%95%D7%99"><bdi dir="ltr">support@tekango.com</bdi></a> או מתוך חלון המסלולים במערכת. הצוות מטפל בבקשה ושולח אישור במייל. הביטול אינו אוטומטי. ביטול מנוי אינו מחיקת חשבון. תנאי הביטול וההחזרים מפורטים {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href="/he/terms#cancellation">בתנאי השימוש</a>.</> },
+        { q: 'איך מבקשים ביטול מנוי?', a: <>אפשר לבקש ביטול מנוי בכל עת במייל אל {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation) */}<MailLink href="mailto:support@tekango.com?subject=%D7%91%D7%A7%D7%A9%D7%AA%20%D7%91%D7%99%D7%98%D7%95%D7%9C%20%D7%9E%D7%A0%D7%95%D7%99&body=%D7%A9%D7%9C%D7%95%D7%9D%2C%20%D7%90%D7%91%D7%A7%D7%A9%20%D7%9C%D7%91%D7%98%D7%9C%20%D7%90%D7%AA%20%D7%94%D7%9E%D7%A0%D7%95%D7%99%20%D7%A9%D7%9C%D7%99." isHebrew><bdi dir="ltr">support@tekango.com</bdi></MailLink> או מתוך חלון המסלולים במערכת. הצוות מטפל בבקשה ושולח אישור במייל. הביטול אינו אוטומטי. ביטול מנוי אינו מחיקת חשבון. תנאי הביטול וההחזרים מפורטים {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}<a href="/he/terms#cancellation">בתנאי השימוש</a>.</> },
         { q: 'האם ניתן לייצא את נתוני ההצעות והדוחות לאקסל?', a: 'כן. אפשר לייצא בכל רגע את היסטוריית הצעות המחיר ואת דוחות ההוצאות לקובצי CSV שמתאימים לאקסל ולתוכנות הנהלת חשבונות.' },
         // Owner console 2026-10-20 (typed: "מאשר לשנות את נוסחי דף הנחיתה ואת הבדיקות שנועלות אותם: ... ושאלות נפוצות חדשות מאומתות"): questions
         // users asked in the smart chat and the support inbox; every answer = the verified how-to facts (src/data/productHowTo.js) and L-12 contact.
@@ -241,7 +243,7 @@ export default function LandingLocal({ onForgotPassword }) {
         { q: 'הלקוח יכול לחתום על ההצעה מהטלפון?', a: 'כן. הלקוח פותח את הקישור, מאשר את ההצעה וחותם עליה דיגיטלית, ומצב ההצעה מתעדכן אצלכם. הצעה חתומה נעולה לעריכה, ואפשר לשכפל אותה כדי ליצור ממנה הצעה חדשה.' },
         { q: 'אפשר לשמור מחירון קבוע של מוצרים ושירותים?', a: 'כן. מוסיפים לקטלוג פריטים עם המחירים שלהם, ובוחרים מהם כשמכינים הצעה.' },
         { q: 'אפשר להתחיל הצעה חדשה מהצעה קיימת?', a: 'כן. שומרים את ההצעה בתור תבנית, בלי פרטי הלקוח. בהצעה הבאה לוחצים "הצעה חדשה" ובוחרים "מתבנית שמורה".' },
-        { q: 'איך יוצרים איתכם קשר?', a: <>במייל {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the support mailbox */}<a href="mailto:support@tekango.com"><bdi dir="ltr">support@tekango.com</bdi></a>, או בצ׳אט שבפינת המסך. כרגע אין מענה טלפוני.</> },
+        { q: 'איך יוצרים איתכם קשר?', a: <>במייל {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the support mailbox */}<MailLink href="mailto:support@tekango.com" isHebrew><bdi dir="ltr">support@tekango.com</bdi></MailLink>, או בצ׳אט שבפינת המסך. כרגע אין מענה טלפוני.</> },
       ],
     },
     // Free business tools (base section, ledger L03 - base c65f742 LandingLocal.jsx:716-726, verbatim). The public tools

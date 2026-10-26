@@ -5,7 +5,7 @@
 // Market = the server account market (else the account's recorded business market) - never the UI language. Purchase is not available
 // (checkout is not activated), so nothing here starts a payment or changes a plan.
 import { FREE_QUOTES_TOTAL, ilsPackageAmount, usdPackageAmount, ilsAnnualSaving, usdAnnualSaving, ilsAnnualSavingRate, usdAnnualSavingRate } from '../../components/landing/landingPackageFacts';
-import { RATE_SOURCE_NAME, ESTIMATE_CURRENCIES } from './localPriceEstimate';
+import { RATE_SOURCE_NAME, ESTIMATE_CURRENCIES, CURRENCY_SYMBOL } from './localPriceEstimate';
 import { formatMoney, formatWholeMoney } from '../../utils/money';
 import { PLAN_NAMES } from '../../../supabase/functions/_shared/subscriptionContract.ts';
 import { ilsSmartPack, ilsWithSmartPack, usdSmartPack, usdWithSmartPack, SMART_PACK_PRICE_MINOR } from '../../components/landing/smartPackFacts';
@@ -49,8 +49,10 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
       label: isHebrew ? `הוספת ${SMART_PACK.name.he}` : `Add ${SMART_PACK.name.en}`,
       summary: SMART_PACK.summary[isHebrew ? 'he' : 'en'],
       perPeriod: il ? {
-        month: { add: isHebrew ? `(+${ilsSmartPack('month')} לחודש)` : `(+${ilsSmartPack('month')} / month)`, amount: ilsWithSmartPack('month'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${ilsPackageAmount('month')} + ${ilsSmartPack('month')}` },
-        year: { add: isHebrew ? `(+${ilsSmartPack('year')} לשנה)` : `(+${ilsSmartPack('year')} / year)`, amount: ilsWithSmartPack('year'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${ilsPackageAmount('year')} + ${ilsSmartPack('year')}` },
+        month: { add: isHebrew ? `(+${ilsSmartPack('month')} לחודש)` : `(+${ilsSmartPack('month')} / month)`, amount: ilsWithSmartPack('month'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${ilsPackageAmount('month')} + ${ilsSmartPack('month')}`,
+          total: isHebrew ? `כולל חכם פלוס: ${ilsWithSmartPack('month')} לחודש` : `Including SMART PACK: ${ilsWithSmartPack('month')} / month` },
+        year: { add: isHebrew ? `(+${ilsSmartPack('year')} לשנה)` : `(+${ilsSmartPack('year')} / year)`, amount: ilsWithSmartPack('year'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${ilsPackageAmount('year')} + ${ilsSmartPack('year')}`,
+          total: isHebrew ? `כולל חכם פלוס: ${ilsWithSmartPack('year')} לשנה` : `Including SMART PACK: ${ilsWithSmartPack('year')} / year` },
       } : {
         month: { add: isHebrew ? `(+${usdSmartPack('month')} לחודש)` : `(+${usdSmartPack('month')} / month)`, amount: usdWithSmartPack('month'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${usdPackageAmount('month').text} + ${usdSmartPack('month')}` },
         year: { add: isHebrew ? `(+${usdSmartPack('year')} לשנה)` : `(+${usdSmartPack('year')} / year)`, amount: usdWithSmartPack('year'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${usdPackageAmount('year').text} + ${usdSmartPack('year')}` },
@@ -72,18 +74,41 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
   const estimateNoteWithAddOn = !wantCur || !est ? null : (isHebrew
     ? `הערכה ב-${wantCur} בלבד, כולל חכם פלוס: כ-${estWith('month')} לחודש או כ-${estWith('year')} לשנה, לפי שער ${RATE_SOURCE_NAME} מ-${est.rateAsOf.slice(0, 10)}. החיוב בדולר ארה״ב.`
     : `Estimate in ${wantCur} only, with SMART PACK: about ${estWith('month')} per month or ${estWith('year')} per year at the ${RATE_SOURCE_NAME} rate of ${est.rateAsOf.slice(0, 10)}. Charged in USD.`);
+  // Owner console 2026-10-26 (typed: "... מחיר במטבע החשבון בחו"ל עם החיוב בדולר, ושורת מידע על חכם פלוס בחו"ל", L-01 / L-22, item ג):
+  // with a valid rate the card's main price is the ACCOUNT currency (a labelled estimate) and the card row states the USD amount charged
+  if (est) {
+    const usdPer = isHebrew ? { month: 'לחודש', year: 'לשנה' } : { month: 'per month', year: 'per year' };
+    pkg.prices = pkg.prices.map((r) => {
+      const a = r.period === 'month' ? mo : yr;
+      return { ...r, amount: a.estimateText,
+        per: isHebrew ? `${wantCur} ${r.period === 'month' ? '/ חודש' : '/ שנה'} · הערכה` : `${wantCur} / ${r.period} · estimate`,
+        note: `${isHebrew ? 'החיוב בדולר ארה״ב' : 'Charged in USD'}: ${a.text} ${usdPer[r.period]}${r.note ? `. ${r.note}` : ''}` };
+    });
+  }
+  // item ד: abroad, SMART PACK is an information line in the same currency - no box, no button: buying it outside Israel opens soon
+  const spEst = (period) => `≈${CURRENCY_SYMBOL[wantCur]}${formatMoney(majorUnits(Math.round(SMART_PACK_PRICE_MINOR.INTERNATIONAL[period] * est.rate)))}`;
+  const smartPackAbroad = il ? null : est
+    ? (isHebrew
+      ? `חכם פלוס: ${spEst('month')} לחודש או ${spEst('year')} לשנה בתוספת למנוי (הערכה; החיוב בדולר ארה״ב: ${usdSmartPack('month')} / ${usdSmartPack('year')}). הרכישה מחוץ לישראל תיפתח בקרוב.`
+      : `SMART PACK: ${spEst('month')} a month or ${spEst('year')} a year on top of your plan (estimate; charged in USD: ${usdSmartPack('month')} / ${usdSmartPack('year')}). Buying it outside Israel opens soon.`)
+    : (isHebrew
+      ? `חכם פלוס: ${usdSmartPack('month')} לחודש או ${usdSmartPack('year')} לשנה בתוספת למנוי, בדולר ארה״ב. הרכישה מחוץ לישראל תיפתח בקרוב.`
+      : `SMART PACK: ${usdSmartPack('month')} a month or ${usdSmartPack('year')} a year on top of your plan, in USD. Buying it outside Israel opens soon.`);
   return {
     plans: [free, pkg],
     priceNote: il
       ? (isHebrew ? 'המחירים כוללים מע״מ.' : 'Prices include VAT.')
-      : (isHebrew ? 'המחירים בדולר ארה״ב. החיוב בדולר ארה״ב.' : 'Prices are in US dollars. Charged in USD.'),
+      : est
+        ? (isHebrew ? `המחירים בכרטיס הם הערכה ב-${wantCur}. החיוב בדולר ארה״ב.` : `Prices on the card are an estimate in ${wantCur}. Charged in USD.`)
+        : (isHebrew ? 'המחירים בדולר ארה״ב. החיוב בדולר ארה״ב.' : 'Prices are in US dollars. Charged in USD.'),
+    smartPackAbroad,
     estimateNote,
     estimateNoteWithAddOn,
     // Task 39: the cancellation-request path (a request to the market's service mailbox, handled by the team - not an automatic cancellation).
     cancellation: {
       text: isHebrew ? 'ביטול מנוי: אפשר לבקש בכל עת במייל. הבקשה מטופלת בידי הצוות ומאושרת במייל; זה אינו ביטול אוטומטי ואינו מחיקת חשבון.' : 'Cancelling a subscription: you can ask at any time by email. Our team handles the request and confirms it by email; it is not an automatic cancellation and does not delete your account.',
       linkLabel: isHebrew ? 'שליחת בקשת ביטול' : 'Send a cancellation request',
-      href: `mailto:${il ? 'support@tekango.com' : 'info@tekango.com'}?subject=${encodeURIComponent(isHebrew ? 'בקשת ביטול מנוי' : 'Subscription cancellation request')}`,
+      href: `mailto:${il ? 'support@tekango.com' : 'info@tekango.com'}?subject=${encodeURIComponent(isHebrew ? 'בקשת ביטול מנוי' : 'Subscription cancellation request')}&body=${encodeURIComponent(isHebrew ? 'שלום, אבקש לבטל את המנוי שלי.' : 'Hello, I would like to cancel my subscription.')}`,
       termsLabel: isHebrew ? 'תנאי הביטול וההחזרים' : 'Cancellation and refund terms',
       termsHref: isHebrew ? '/he/terms#cancellation' : '/en/terms#cancellation',
     },

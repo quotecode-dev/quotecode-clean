@@ -9,6 +9,7 @@ import { useMemo, useState } from 'react';
 import { Phone, Mail, MapPin, Share2, Copy, Check, MessageCircle } from 'lucide-react';
 import ProFlowLogo from './ProFlowLogo';
 import { encodeQr, qrSvgPath } from '../utils/qrCode';
+import MailLink from './MailLink';
 
 const TEAL = '#0F6672';
 const BUSINESS_CARD_COPY = {
@@ -87,9 +88,9 @@ export default function BusinessCard({ card, shareUrl = null, onShare, onCopy, c
         )}
         {card.email && (
           // PRODUCT_TRUTH_CAPABILITY: digital_business_card
-          <a className="pf-bcard-row" href={`mailto:${card.email}`} aria-label={`${t.email} ${card.email}`} data-channel="email">
+          <MailLink className="pf-bcard-row" href={`mailto:${card.email}`} isHebrew={he} aria-label={`${t.email} ${card.email}`} data-channel="email">
             <Mail size={18} aria-hidden="true" /><span><bdi dir="ltr">{card.email}</bdi></span>
-          </a>
+          </MailLink>
         )}
         {card.address && (
           <div className="pf-bcard-row" aria-label={`${t.address} ${card.address}`} data-channel="address">
