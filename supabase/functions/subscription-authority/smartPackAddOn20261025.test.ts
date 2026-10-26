@@ -165,6 +165,20 @@ describe('addSmartPackLine (PayPlus)', () => {
     expect(await p.addSmartPackLine!(lineBegin as never)).toBe('added');
     expect(fetch).toHaveBeenCalledTimes(1);
   });
+  // Owner 2026-10-26 (typed: "מאשר את תיקון קריאת הוראת הקבע לפי הסכום הכולל ..."): PayPlus answers the order without its lines
+  it('an order read WITHOUT lines: its total stands for them - 30 = the package -> ONE Update with both catalog products; 40 = already added', async () => {
+    const noLines = { ...pkgOnly, items: [] };
+    const { fetch, p } = run(answer(noLines), answer(products), answer(products), answer({ recurring_payment_uid: REC }));
+    expect(await p.addSmartPackLine!(lineBegin as never)).toBe('added');
+    expect(JSON.parse((fetch.mock.calls[3] as unknown as [string, { body: string }])[1].body).items)
+      .toEqual([{ product_uid: PROD_PKG, quantity: 1, price: 30 }, { product_uid: PROD_SP, quantity: 1, price: 10 }]);
+    const done = run(answer({ ...noLines, amount: 40 }));
+    expect(await done.p.addSmartPackLine!(lineBegin as never)).toBe('added');
+    expect(done.fetch).toHaveBeenCalledTimes(1);
+    expect(await run(answer({ ...noLines, amount: 25 })).p.addSmartPackLine!(lineBegin as never)).toBe('not_added');
+    // no package product in the catalog for an order without lines = our gap, retried
+    expect(await run(answer(noLines), answer(products), answer({ products: [{ uid: PROD_SP, name: PAYPLUS_SMART_PACK_ITEM_NAMES.month }] })).p.addSmartPackLine!(lineBegin as never)).toBe('unknown');
+  });
   it('not_added: another standing order, an unexpected line, PayPlus said no; unknown: no answer, no SMART PACK product (our gap)', async () => {
     expect(await run(answer({ ...pkgOnly, uid: '9ab9e163-0000-4000-8000-0000000000ff' })).p.addSmartPackLine!(lineBegin as never)).toBe('not_added');
     // the cycle exactly as PayPlus holds it (an annual order never becomes monthly) and the order of OUR package attempt

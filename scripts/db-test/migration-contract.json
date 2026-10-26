@@ -477,6 +477,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-26 (item א2): re-opens the refused SMART PACK line for a retry whose refusal is now logged; data only, idempotent (same statement as 20261026100000)"
+    },
+    "20261026500000_security_documents_search_path_line_reopen.sql": {
+      "sha256": "af9013676a29f1445cb4fa9a3c3016e42c5acecd873200a6a8f3d48e829757b6",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-26 (typed approvals: the legacy documents table closed, a fixed search_path, and the SMART PACK line re-opened after the order-total fix)"
     }
   }
 }
