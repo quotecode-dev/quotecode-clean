@@ -75,6 +75,22 @@ export function payplusDateToIso(v: unknown): string | null {
   utc = wall - (jerusalemWallClockMs(utc) - utc); // second pass settles a DST edge
   return new Date(utc).toISOString();
 }
+// Owner console 2026-10-26 (typed: "מאשר תיקון יצירת הוראת הקבע כך שהחיוב הראשון שלה יהיה רק אחרי תקופה מלאה ..."): the first live
+// purchase (25/10) was charged twice - the page charged the first payment (instant_first_payment) and PayPlus charged the standing order
+// again the first night, because it started on the payment date with no free days. PayPlus docs (generateLink, recurring_settings):
+// jump_payments = "Give free X days ... the system will give 30 days free till first charge". The free days are exactly the paid
+// period - from today (Israel) to the same day next month / next year, clamped to the month's length the way Postgres adds
+// interval '1 month' / '1 year' to paid_through (2026-01-31 + 1 month = 2026-02-28) - so the first standing-order charge falls when
+// the paid period ends.
+export function firstChargeFreeDays(ms: number, period: 'month' | 'year'): number {
+  const d = new Date(jerusalemWallClockMs(ms));
+  const y = d.getUTCFullYear(); const m = d.getUTCMonth(); const day = d.getUTCDate();
+  const ty = period === 'year' ? y + 1 : (m === 11 ? y + 1 : y);
+  const tm = period === 'year' ? m : (m + 1) % 12;
+  const lastDay = new Date(Date.UTC(ty, tm + 1, 0)).getUTCDate();
+  const target = Date.UTC(ty, tm, Math.min(day, lastDay));
+  return Math.round((target - Date.UTC(y, m, day)) / 86_400_000);
+}
 /** day of the month today in Israel, capped at 28 so every month has it */
 export function israelDayOfMonth(ms: number): number {
   return Math.min(new Date(jerusalemWallClockMs(ms)).getUTCDate(), 28);
@@ -133,7 +149,8 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
       number_of_charges: 0, // renews until cancelled
       start_date_on_payment_date: true,
       start_date: israelDayOfMonth(i.nowMs),
-      jump_payments: 0,
+      // the first standing-order charge only after the whole paid period (never a second charge the first night)
+      jump_payments: firstChargeFreeDays(i.nowMs, i.billingPeriod === 'year' ? 'year' : 'month'),
       successful_invoice: !usd,
       customer_failure_email: !usd,
       send_customer_success_email: !usd,
