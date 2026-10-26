@@ -1357,6 +1357,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const openPlansForReturn = useCallback(() => setShowPricingModal(true), []);
   // Owner console 2026-10-25 (typed L-22 ... "להפעלת הרכישה בישראל"): while waiting the server also pulls the result from PayPlus
   const pullCheckoutStatus = useCallback(() => invokeWithFreshSession('subscription-authority', { body: { action: 'checkout_status' } }), []);
+  // Owner console 2026-10-26 (typed plan item א2: an automatic retry): a paid SMART PACK whose line is not on the standing order yet
+  // (it shows an end date) - opening the plans window asks the server once to add it, then reads the account summary again
+  const smartPackLinePending = accountSummary?.state === 'ready' && accountSummary.smartPack?.active === true
+    && accountSummary.smartPack.source === 'add_on' && !!accountSummary.smartPack.until;
+  useEffect(() => {
+    if (!showPricingModal || !smartPackLinePending) return undefined;
+    let alive = true;
+    pullCheckoutStatus().catch(() => null).then(() => { if (alive) refreshAccountSummaryQuiet(); });
+    return () => { alive = false; };
+  }, [showPricingModal, smartPackLinePending, pullCheckoutStatus, refreshAccountSummaryQuiet]);
   const billingReturn = useBillingReturn({ summary: accountSummary, userId: session?.user?.id, plansOpen: showPricingModal,
     refreshQuiet: refreshAccountSummaryQuiet, openPlans: openPlansForReturn, pullStatus: pullCheckoutStatus });
   // Owner console 2026-10-16 (approval naming L-03): the header medallion = the admin status medallion (same status, same icon, same
