@@ -495,12 +495,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-26 (typed approval: the first standing-order charge only after a whole period, an alert on a charge within a paid period, a question to PayPlus customer service)"
-    },
-    "20261027300000_security_definer_execute_least_privilege.sql": {
-      "sha256": "f8b275930c86e07a19c22a7cdf3744bbc701ac8d1499f542bdc48769504a25ff",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-26 (typed: the security findings 1 to 5 of the night report, released through the gate): nine SECURITY DEFINER functions no longer callable from outside"
     }
   }
 }

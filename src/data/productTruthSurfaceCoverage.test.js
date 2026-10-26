@@ -80,7 +80,6 @@ const ADMIN_ID_TO_CAPABILITY = {
   'twin-costs': 'admin_console', // Owner 2026-10-23 (L-22): the Owner-only Customer Twin cost view
   'expense-invoices': 'admin_console', // Owner 2026-10-22 (L-22): the Owner-only expense-invoice tool
   'billing-reconcile': 'admin_console', // Owner 2026-10-23 (L-22): the Owner-only payment reconciliation
-  'search-console': 'admin_console', // Owner 2026-10-26: the Owner-only read-only Google Search Console screen
 };
 // Real routes that are deliberately NOT a Product Truth capability (decorative/legal/marketing/
 // legacy-redirect/auth-recovery surfaces) - explicitly excluded, not silently ignored.
