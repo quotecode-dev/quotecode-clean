@@ -83,8 +83,7 @@ function PriceBlock({ plan, isHebrew, purchase = null, onAddOnChange = null, ini
               <span className="pf-money" data-price style={{ fontSize: '1.45rem', fontWeight: 800, color: '#0f172a', fontVariantNumeric: 'tabular-nums', direction: 'ltr', unicodeBidi: 'isolate' }}>{addOnFor(r)?.amount || r.amount}</span>
               {r.per && <span style={{ fontSize: '0.8rem', color: '#64748b' }}>{r.per}</span>}
             </div>
-            {/* Owner console 2026-10-26 (typed: "מאשר להציג את שורת המחיר הכולל עם חכם פלוס גם בלשונית השנתי"): every period shown, not only the account's own */}
-            {withSmartPack && plan.addOn?.perPeriod?.[r.period]?.total && (
+            {withSmartPack && r.period === initialPeriod && plan.addOn?.perPeriod?.[r.period]?.total && (
               <div data-testid="plans-smart-pack-total" dir={isHebrew ? 'rtl' : 'ltr'} style={{ marginTop: 2, fontSize: '0.85rem', fontWeight: 700, color: '#0F6672' }}>{isolateNumbers(plan.addOn.perPeriod[r.period].total)}</div>
             )}
             {addOnFor(r) && <div className="tl-plan-addon-line" data-addon-line={r.period} dir={isHebrew ? 'rtl' : 'ltr'}>{isolateNumbers(addOnFor(r).line)}</div>}
