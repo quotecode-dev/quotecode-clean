@@ -7,7 +7,6 @@
 // askConfirm(text, isHebrew, { yes, no, danger }) -> Promise<boolean>   (true only for the confirming button)
 // showNotice(text, isHebrew)                     -> Promise<void>
 // showCopyText(text, isHebrew, title)            -> Promise<void>      (a text the browser would not copy, selected for copying)
-// askChoice(text, isHebrew, { options, cancel })  -> Promise<value|null>  (named answers + Cancel; Escape / backdrop / Back = null)
 // A guard may answer at once (true / false) or with a pending question (a Promise): isPending / andAllowed / whenAllowed handle both.
 /* eslint-disable react-refresh/only-export-components -- the question API and its self-mounting host share one module-level queue (the host is never hot-swapped alone) */
 import { useEffect, useRef, useSyncExternalStore } from 'react';
@@ -48,7 +47,6 @@ function open(item) {
       // no page to draw in (a server render): the browser's own dialog, as before
       const w = typeof window !== 'undefined' ? window : null;
       if (item.kind === 'confirm') resolve(!!(w?.confirm && w.confirm(item.text)));
-      else if (item.kind === 'choice') resolve(null);
       else { try { if (item.kind === 'copy') w?.prompt?.(item.title || '', item.text); else w?.alert?.(item.text); } catch { /* no dialog */ } resolve(undefined); }
       return;
     }
@@ -75,12 +73,6 @@ export function showNotice(text, isHebrew) {
 export function showCopyText(text, isHebrew, title = '') {
   return open({ kind: 'copy', text: String(text ?? ''), title: String(title ?? ''), he: !!isHebrew }).then(() => undefined);
 }
-// Owner console 2026-10-26 (typed L-09 / L-15 / L-17 approval, docs/CODEX_ITEM_PATHS_SPEC_2026-10-26.md F-08): a question with named
-// answers and an explicit Cancel - Cancel is never one of the answers. options: [{ value, label }] (the first is the main answer).
-export function askChoice(text, isHebrew, { options = [], cancel = null } = {}) {
-  return open({ kind: 'choice', text: String(text ?? ''), he: !!isHebrew, options: options.map((o) => ({ value: o.value, label: String(o.label) })), cancel })
-    .then((v) => (options.some((o) => o.value === v) ? v : null));
-}
 /** the answers of an unsaved-work question: leave without saving / stay ('editor': leave the editor - its draft stays on the device) */
 export const leaveLabels = (isHebrew, what = 'save') => (isHebrew
   ? { yes: what === 'editor' ? 'לעזוב את העורך' : 'לצאת בלי לשמור', no: 'להישאר' }
@@ -90,11 +82,9 @@ export const leaveLabels = (isHebrew, what = 'save') => (isHebrew
 export function resetAppDialogs() {
   const open_ = queue;
   queue = [];
-  open_.forEach((q) => q.resolve(safeAnswer(q.kind)));
+  open_.forEach((q) => q.resolve(q.kind === 'confirm' ? false : undefined));
   if (host) { const { root, el } = host; host = null; try { root.unmount(); } catch { /* already gone */ } el.remove(); }
 }
-
-const safeAnswer = (kind) => (kind === 'confirm' ? false : kind === 'choice' ? null : undefined);
 
 const LABELS = {
   he: { yes: 'להמשיך', no: 'ביטול', ok: 'הבנתי', close: 'סגירה' },
@@ -116,7 +106,7 @@ function AppDialogHost() {
     const onKey = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault(); e.stopPropagation(); e.stopImmediatePropagation?.();
-        answer(id, safeAnswer(queue[0]?.kind));
+        answer(id, queue[0]?.kind === 'confirm' ? false : undefined);
         return;
       }
       if (e.key !== 'Tab') return;
@@ -138,9 +128,8 @@ function AppDialogHost() {
   }, [id]);
   if (!item) return null;
   const L = item.he ? LABELS.he : LABELS.en;
-  const choice = item.kind === 'choice';
-  const confirm = item.kind === 'confirm' || choice;
-  const safeValue = safeAnswer(item.kind);
+  const confirm = item.kind === 'confirm';
+  const safeValue = confirm ? false : undefined;
   const textId = `app-dialog-text-${item.id}`;
   return (
     <div className="qp-backdrop" style={{ zIndex: 2147483000 }} data-testid="app-dialog-backdrop"
@@ -156,14 +145,7 @@ function AppDialogHost() {
             style={{ width: '100%', boxSizing: 'border-box', marginTop: 10, padding: 8, borderRadius: 10, border: '1px solid var(--qp-border)', font: 'inherit', fontSize: '0.88rem', resize: 'vertical' }} />
         )}
         <div className="qp-dialog-actions">
-          {choice && item.options.map((o, i) => (
-            // PRODUCT_TRUTH_DECORATIVE: one named answer of the app's own question - the screen that asked carries on with it
-            <button key={String(o.value)} type="button" className={i === 0 ? 'qp-btn qp-btn--primary' : 'qp-btn'} onClick={() => answer(item.id, o.value)}
-              data-testid={`app-dialog-choice-${o.value}`}>
-              {o.label}
-            </button>
-          ))}
-          {confirm && !choice && (
+          {confirm && (
             // PRODUCT_TRUTH_DECORATIVE: the confirming answer of the app's own question - the screen that asked carries on
             <button type="button" className="qp-btn qp-btn--primary" onClick={() => answer(item.id, true)}
               style={item.danger ? { background: 'var(--qp-error)', borderColor: 'var(--qp-error)', color: '#fff' } : undefined} data-testid="app-dialog-yes">
@@ -172,7 +154,7 @@ function AppDialogHost() {
           )}
           {/* PRODUCT_TRUTH_DECORATIVE: the safe answer (cancel / close) - nothing changes */}
           <button type="button" className="qp-btn" ref={safeRef} onClick={() => answer(item.id, safeValue)} data-testid={confirm ? 'app-dialog-no' : 'app-dialog-close'}>
-            {choice ? (item.cancel || L.no) : confirm ? (item.no || L.no) : (item.kind === 'copy' ? L.close : L.ok)}
+            {confirm ? (item.no || L.no) : (item.kind === 'copy' ? L.close : L.ok)}
           </button>
         </div>
       </div>

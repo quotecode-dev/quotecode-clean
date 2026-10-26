@@ -137,20 +137,6 @@ function getOrderedMethods(recommendedMethod) {
 // up to 2 decimals, at most 10,000,000), minus thousands commas - the wizard hands the raw text to the quote, which reads it as a number.
 const isWizardPriceValid = (v) => !/,/.test(String(v)) && parsePriceInput(v).ok && parsePriceInput(v).value !== '';
 
-// Owner console 2026-10-26 (typed: "מאשר שינוי ב-L-09, L-15 ו-L-17 לפי docs/CODEX_ITEM_PATHS_SPEC_2026-10-26.md ..."): catalog items are
-// ticked (one or several) and checked together before they are added. The catalog stores a name and a price only, so every ticked item
-// starts as "price for each", quantity 1 - the unit is never guessed from the name; per metre / m² is chosen on the check screen.
-const catalogPriceText = (p) => (p === null || p === undefined || p === '' || !Number.isFinite(Number(p)) || Number(p) < 0 ? '' : String(p));
-const draftFromService = (sv) => ({ key: String(sv.id), serviceId: String(sv.id), description: String(sv.name ?? ''), method: 'units', quantity: '1',
-  unitPrice: catalogPriceText(sv.price), useSizes: false, manualQty: '', widthCm: '', heightCm: '' });
-const pickQuantity = (p) => {
-  if (p.method === 'fixed') return 1;
-  if (p.method === 'units') return Number(p.quantity) || 0;
-  if (!p.useSizes) return Number(p.manualQty) || 0;
-  return computeMeasurementValue(p.method, cmToM(p.widthCm), p.method === 'linear' ? undefined : cmToM(p.heightCm)) || 0;
-};
-const pid = (idx, field) => `wiz-pick-${idx}-${field}`;
-
 export default function AddItemWizard({
   isOpen,
   onClose,
@@ -172,9 +158,6 @@ export default function AddItemWizard({
   onDraftSnapshot,
   // Task 16: a NEW item added from a catalog service reports (serviceId, item) so its linked catalog image can be bound.
   onCatalogItemAdded,
-  // Owner 2026-10-26: several checked catalog items are added together (one update); the quote's items mark a catalog item already in it
-  onAddMany = null,
-  quoteItems = null,
 }) {
   // IRON-ILS-001: every money amount goes through the injected canonical formatter; the fallback is the same canonical
   // currency-keyed path ('₪' is only ever the Local/ILS symbol) - never a raw number or toFixed.
@@ -215,16 +198,6 @@ export default function AddItemWizard({
   const [specRows, setSpecRows] = useState([]);
   const [showCustomerDetails, setShowCustomerDetails] = useState(false);
   const [errors, setErrors] = useState({});
-  // Owner 2026-10-26 (L-09 / L-15 / L-17, Codex F-01..F-03): the ticked catalog drafts, their errors, and the guidance after a blocked
-  // action - the first missing field (and its message) is brought into the visible part of the window and focused; a short
-  // "Complete: ..." line sits next to the action itself.
-  const [picks, setPicks] = useState([]);
-  const [multiErrors, setMultiErrors] = useState({});
-  const [pickNotice, setPickNotice] = useState('');
-  const [reveal, setReveal] = useState(null); // { id, errorId, n }
-  const [blocked, setBlocked] = useState(null); // { id, errorId, label }
-  const reviewHeadingRef = useRef(null);
-  const addingRef = useRef(false);
   const firstFieldRef = useRef(null);
   const dialogRef = useRef(null);
   const triggerElRef = useRef(null);
@@ -281,8 +254,6 @@ export default function AddItemWizard({
       setSectionKey(rs.sectionKey ?? '');
       setSpecRows(Array.isArray(rs.specRows) ? rs.specRows : []);
       setShowCustomerDetails(!!rs.showCustomerDetails);
-      setPicks(Array.isArray(rs.picks) ? rs.picks : []);
-      setMultiErrors({}); setPickNotice(''); setBlocked(null);
       methodAtOpenRef.current = rs.methodAtOpen ?? null;
       hadMeasurementRowsAtOpenRef.current = !!rs.hadMeasurementRowsAtOpen;
       conversionConfirmedRef.current = !!rs.conversionConfirmed;
@@ -312,7 +283,6 @@ export default function AddItemWizard({
       setSectionKey(s.sectionKey);
       setSpecRows(s.specRows);
       setShowCustomerDetails(s.specRows.length > 0);
-      setPicks([]);
       methodAtOpenRef.current = s.pricingMethod;
       hadMeasurementRowsAtOpenRef.current = s._hadMeasurementRows;
       conversionConfirmedRef.current = false;
@@ -341,14 +311,12 @@ export default function AddItemWizard({
       setSectionKey(s.sectionKey);
       setSpecRows(s.specRows);
       setShowCustomerDetails(false);
-      setPicks([]);
       methodAtOpenRef.current = null;
       hadMeasurementRowsAtOpenRef.current = false;
       conversionConfirmedRef.current = false;
       setStep(STEPS.ITEM);
     }
     setErrors({});
-    setMultiErrors({}); setPickNotice(''); setBlocked(null);
   }, [isOpen, editingItem, defaultSectionKey, recommendedMethod]);
 
   // Context-Driven AI Chat V3, §10 "Item Wizard Context": the wizard is the
@@ -389,18 +357,16 @@ export default function AddItemWizard({
     if (!isOpen) { onDraftSnapshot(null); return; }
     onDraftSnapshot({
       stepModel: 2, step, description, catalogServiceId, showManualEntry, pricingMethod, measureUnit, useManualQty, manualQty, widthCm, heightCm, extraMeasureRows,
-      quantity, unitPrice, sectionKey, specRows, showCustomerDetails, picks,
+      quantity, unitPrice, sectionKey, specRows, showCustomerDetails,
       methodAtOpen: methodAtOpenRef.current, hadMeasurementRowsAtOpen: hadMeasurementRowsAtOpenRef.current, conversionConfirmed: conversionConfirmedRef.current,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, step, description, catalogServiceId, showManualEntry, pricingMethod, measureUnit, useManualQty, manualQty, widthCm, heightCm, extraMeasureRows, quantity, unitPrice, sectionKey, specRows, showCustomerDetails, picks]);
+  }, [isOpen, step, description, catalogServiceId, showManualEntry, pricingMethod, measureUnit, useManualQty, manualQty, widthCm, heightCm, extraMeasureRows, quantity, unitPrice, sectionKey, specRows, showCustomerDetails]);
 
   useEffect(() => {
     if (!isOpen) return;
     const t = setTimeout(() => {
-      // Owner 2026-10-26 (L-15): the check screen opens on its own heading (screen readers and the keyboard start there)
-      if (step === STEPS.REVIEW && reviewHeadingRef.current) reviewHeadingRef.current.focus({ preventScroll: true });
-      else if (firstFieldRef.current) firstFieldRef.current.focus();
+      if (firstFieldRef.current) firstFieldRef.current.focus();
       else dialogRef.current?.focus();
     }, 50);
     return () => clearTimeout(t);
@@ -414,24 +380,6 @@ export default function AddItemWizard({
       triggerElRef.current = null;
     }
   }, [isOpen]);
-
-  // Owner 2026-10-26 (L-15, Codex F-01 / F-02): the field to reveal (a missing one after a blocked action, or the first field a chosen
-  // method opened) and its message are scrolled into the visible part of the step body - between the heading and the buttons - and the
-  // field gets the focus. Measured against the scrolling body itself, never only against the screen.
-  useLayoutEffect(() => {
-    if (!reveal) return;
-    const body = stepBodyRef.current;
-    const field = typeof document !== 'undefined' ? document.getElementById(reveal.id) : null;
-    if (!body || !field) return;
-    const err = reveal.errorId ? document.getElementById(reveal.errorId) : null;
-    const b = body.getBoundingClientRect();
-    const rects = [field.getBoundingClientRect(), ...(err ? [err.getBoundingClientRect()] : [])];
-    const top = Math.min(...rects.map((r) => r.top)) - b.top + body.scrollTop - 12;
-    const bottom = Math.max(...rects.map((r) => r.bottom)) - b.top + body.scrollTop + 12;
-    if (top < body.scrollTop) body.scrollTop = Math.max(0, top);
-    else if (bottom > body.scrollTop + body.clientHeight) body.scrollTop = Math.max(0, Math.min(top, bottom - body.clientHeight));
-    if (typeof field.focus === 'function') field.focus({ preventScroll: true });
-  }, [reveal]);
 
   function trapFocus(e) {
     if (e.key !== 'Tab' || !dialogRef.current) return;
@@ -472,8 +420,7 @@ export default function AddItemWizard({
     step2Title: isHebrew ? 'איך מחשבים את המחיר?' : 'How is the price worked out?',
     step2Explanation: isHebrew ? 'בחרו איך אתם בדרך כלל גובים תשלום על המוצר או העבודה הזאת.' : 'Choose how you normally charge for this product or work.',
     methodFixed: isHebrew ? 'מחיר כולל' : 'One total price',
-    // Owner 2026-10-26 (L-17, Codex F-06): the example is in the quote's own currency, never the language's
-    methodFixedExample: isHebrew ? `לדוגמה: ${sym}${money(500)}` : `e.g. ${sym}${money(500)}`,
+    methodFixedExample: isHebrew ? 'לדוגמה: ₪500' : 'e.g. $500',
     methodUnitsChoice: isHebrew ? 'מחיר לכל יחידה' : 'Price for each',
     methodUnitsExample: isHebrew ? 'לדוגמה: 6 × 25 = 150' : 'e.g. 6 × 25 = 150',
     methodAreaChoice: isHebrew ? 'מחיר לפי שטח' : 'Price by area',
@@ -561,40 +508,6 @@ export default function AddItemWizard({
     upgradeNeeded: isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan',
     calcPreviewArea: isHebrew ? (w, h, m2) => `${w} × ${h} ${measureUnit === 'm' ? 'מ\'' : 'ס״מ'} = ${m2} מ״ר` : (w, h, m2) => `${w} × ${h} ${measureUnit === 'm' ? 'm' : 'cm'} = ${m2} m²`,
     calcPreviewLinear: isHebrew ? (l, m) => `${l} ${measureUnit === 'm' ? 'מ\'' : 'ס״מ'} = ${m} מ'` : (l, m) => `${l} ${measureUnit === 'm' ? 'm' : 'cm'} = ${m} m`,
-    completeLabel: isHebrew ? 'צריך להשלים:' : 'Complete:',
-    fieldNames: isHebrew
-      ? { description: 'שם הפריט', method: 'שיטת התמחור', amount: 'הסכום', quantity: 'הכמות', price: 'המחיר', width: 'הרוחב', height: 'הגובה', length: 'האורך', manualQty: 'הכמות', row: (n) => `מידה ${n}`, unavailable: 'פריט שאינו בקטלוג' }
-      : { description: 'item name', method: 'pricing method', amount: 'amount', quantity: 'quantity', price: 'price', width: 'width', height: 'height', length: 'length', manualQty: 'quantity', row: (n) => `size ${n}`, unavailable: 'an item no longer in the catalog' },
-    picked: (n) => (isHebrew ? `נבחרו ${n}` : `${n} selected`),
-    toReviewCount: (n) => (isHebrew ? `המשך לבדיקה (${n})` : `Continue to check (${n})`),
-    catalogNote: isHebrew
-      ? 'הקטלוג שומר שם ומחיר בלבד. כל פריט מתחיל בכמות 1 ובמחיר לכל יחידה. אם המחיר הוא למטר או למ״ר, שנו את השיטה והזינו את האורך או השטח לפני ההוספה.'
-      : 'The catalog stores a name and price only. Each item starts with quantity 1 and a price for each. For a price per metre or m², change the method and enter the length or area before adding.',
-    pickedHint: isHebrew ? 'נבחרו פריטים בקטלוג למטה. כדי לכתוב פריט אחר, הקלידו כאן.' : 'Items are ticked in the catalog below. To type a different item, start typing here.',
-    switchToCatalogConfirm: isHebrew ? 'להחליף את הפריט שהתחלתם לכתוב בבחירה מהקטלוג? הפריטים שכבר בהצעה לא ישתנו.' : 'Replace the item you started typing with the catalog selection? Items already in the quote do not change.',
-    switchToCatalogLabels: isHebrew ? { yes: 'להחליף', no: 'להשאיר' } : { yes: 'Replace', no: 'Keep it' },
-    switchToFreeConfirm: isHebrew ? 'לבטל את הבחירה מהקטלוג ולכתוב פריט חדש?' : 'Clear the catalog selection and type a new item?',
-    switchToFreeLabels: isHebrew ? { yes: 'לבטל את הבחירה', no: 'להשאיר' } : { yes: 'Clear the selection', no: 'Keep it' },
-    multiTitle: (n) => (isHebrew ? (n === 1 ? 'בדיקת פריט אחד לפני הוספה' : `בדיקת ${n} פריטים לפני הוספה`) : (n === 1 ? 'Check 1 item before adding' : `Check ${n} items before adding`)),
-    multiExplanation: isHebrew ? 'אפשר לשנות לכל פריט את השם, השיטה, הכמות והמחיר, או להסיר אותו.' : 'For each item you can change the name, method, quantity and price, or remove it.',
-    itemN: (n) => (isHebrew ? `פריט ${n}` : `Item ${n}`),
-    nameLabel: isHebrew ? 'שם הפריט' : 'Item name',
-    removePick: (name) => (isHebrew ? `הסרת ${name} מהבחירה` : `Remove ${name} from the selection`),
-    removeShort: isHebrew ? 'הסרה' : 'Remove',
-    lineTotal: isHebrew ? 'סכום השורה' : 'Line total',
-    selectedSum: isHebrew ? 'סכום הפריטים שנבחרו' : 'Total of the selected items',
-    addMany: (n) => (isHebrew ? (n === 1 ? 'הוספת פריט אחד להצעה' : `הוספת ${n} פריטים להצעה`) : (n === 1 ? 'Add 1 item to the quote' : `Add ${n} items to the quote`)),
-    enterSizes: isHebrew ? 'הזנת מידות בס״מ' : 'Enter sizes in cm',
-    widthCmOnly: isHebrew ? 'רוחב (ס״מ)' : 'Width (cm)',
-    heightCmOnly: isHebrew ? 'גובה (ס״מ)' : 'Height (cm)',
-    lengthCmOnly: isHebrew ? 'אורך (ס״מ)' : 'Length (cm)',
-    inQuoteAlready: isHebrew ? 'כבר קיים בהצעה; יתווסף כפריט נפרד.' : 'Already in the quote; it will be added as a separate item.',
-    notInCatalog: isHebrew ? 'הפריט אינו זמין עוד בקטלוג.' : 'This item is no longer in the catalog.',
-    keepAsFree: isHebrew ? 'להשאיר כפריט חופשי' : 'Keep it as a free item',
-    unavailableError: isHebrew ? 'הסירו את הפריט או השאירו אותו כפריט חופשי.' : 'Remove the item or keep it as a free item.',
-    noPicksLeft: isHebrew ? 'לא נשארו פריטים בבחירה. סמנו פריטים בקטלוג או כתבו פריט חדש.' : 'No items are left in the selection. Tick items in the catalog or type a new item.',
-    addTo: (name) => (isHebrew ? `יתווסף ל: ${name}` : `Added to: ${name}`),
-    lockedOption: isHebrew ? ' (לא כלול במסלול)' : ' (not in your plan)',
     destructiveConversionConfirm: isHebrew
       ? 'שינוי שיטת התמחור עלול לשנות את משמעות הסכומים הקיימים. להמשיך?'
       : 'Changing the pricing method may change how the existing numbers are interpreted. Continue?',
@@ -644,112 +557,6 @@ export default function AddItemWizard({
     });
   }
 
-  // Owner 2026-10-26: ticked catalog drafts (one list for one or several items)
-  const isMulti = !isEditMode && picks.length > 0;
-  const catalogOrder = (key) => { const i = (services || []).findIndex((s) => String(s.id) === key); return i < 0 ? Number.MAX_SAFE_INTEGER : i; };
-  const freeDraftStarted = () => description.trim() !== '' || pricingMethod !== null || unitPrice !== '';
-  function clearFreeDraft() {
-    setDescription(''); setCatalogServiceId(''); setPricingMethod(null); setUnitPrice(''); setQuantity('1'); setWidthCm(''); setHeightCm('');
-    setExtraMeasureRows([]); setUseManualQty(false); setManualQty(''); setErrors({});
-  }
-  async function togglePick(sv) {
-    const key = String(sv.id);
-    setPickNotice(''); setBlocked(null);
-    if (picks.some((p) => p.key === key)) { setPicks((prev) => prev.filter((p) => p.key !== key)); setMultiErrors({}); return; }
-    // a started free-text item is never mixed silently with a catalog item
-    if (picks.length === 0 && freeDraftStarted()) {
-      if (!(await askConfirm(t.switchToCatalogConfirm, isHebrew, t.switchToCatalogLabels))) return;
-      clearFreeDraft();
-    }
-    setPicks((prev) => (prev.some((p) => p.key === key) ? prev : [...prev, draftFromService(sv)].sort((a, b) => catalogOrder(a.key) - catalogOrder(b.key))));
-  }
-  function updatePick(idx, patch) {
-    setPicks((prev) => prev.map((p, i) => (i === idx ? { ...p, ...patch } : p)));
-    setMultiErrors((e) => { if (!e[idx]) return e; const next = { ...e }; delete next[idx]; return next; });
-  }
-  const firstPickField = (idx, m, useSizes) => pid(idx, m === 'fixed' ? 'price' : m === 'units' ? 'quantity' : useSizes ? 'width' : 'manualQty');
-  async function setPickMethod(idx, m) {
-    const p = picks[idx];
-    if (!p || p.method === m) return;
-    // the same rule as one item: a price typed for one unit is never kept silently for another
-    if (p.unitPrice !== '' && !(await askConfirm(t.unitChangeConfirm, isHebrew))) return;
-    updatePick(idx, { method: m, useSizes: false, manualQty: '', widthCm: '', heightCm: '', quantity: p.quantity || '1' });
-    setReveal({ id: firstPickField(idx, m, false), n: Date.now() });
-  }
-  function setPickSizes(idx, useSizes) {
-    const p = picks[idx];
-    if (!p) return;
-    updatePick(idx, { useSizes, manualQty: '', widthCm: '', heightCm: '' });
-    setReveal({ id: firstPickField(idx, p.method, useSizes), n: Date.now() });
-  }
-  function removePick(idx) {
-    const rest = picks.filter((_, i) => i !== idx);
-    setPicks(rest); setMultiErrors({}); setBlocked(null);
-    if (rest.length === 0) { setStep(STEPS.ITEM); setPickNotice(t.noPicksLeft); }
-  }
-  function validatePicks() {
-    const all = {};
-    let first = null;
-    picks.forEach((p, idx) => {
-      const e = {};
-      const order = [];
-      const miss = (field, msg, name) => { e[field] = msg; order.push([field, name]); };
-      if (!p.description.trim()) miss('description', t.missingDescription, t.fieldNames.description);
-      else if (p.description.length > ITEM_DESCRIPTION_MAX) miss('description', t.descriptionTooLong(p.description.length), t.fieldNames.description);
-      if (p.method === 'units' && !(Number(p.quantity) > 0)) miss('quantity', t.missingQuantity, t.fieldNames.quantity);
-      if (p.method === 'area' || p.method === 'linear') {
-        if (!p.useSizes) { if (!(Number(p.manualQty) > 0)) miss('manualQty', t.missingManualQty, t.fieldNames.manualQty); }
-        else {
-          if (!(Number(p.widthCm) > 0)) miss('width', p.method === 'linear' ? t.missingLength : t.missingWidth, p.method === 'linear' ? t.fieldNames.length : t.fieldNames.width);
-          if (p.method === 'area' && !(Number(p.heightCm) > 0)) miss('height', t.missingHeight, t.fieldNames.height);
-        }
-      }
-      if (p.unitPrice === '') miss('price', p.method === 'fixed' ? t.missingAmount : t.missingPrice, p.method === 'fixed' ? t.fieldNames.amount : t.fieldNames.price);
-      else if (!isWizardPriceValid(p.unitPrice)) miss('price', t.invalidPrice, t.fieldNames.price);
-      const available = !p.serviceId || (services || []).some((s) => String(s.id) === p.serviceId);
-      if (!available) miss('unavailable', t.unavailableError, t.fieldNames.unavailable);
-      if (order.length) { all[idx] = e; if (!first) first = { idx, field: order[0][0], name: order[0][1] }; }
-    });
-    setMultiErrors(all);
-    if (!first) { setBlocked(null); return true; }
-    const id = pid(first.idx, first.field === 'unavailable' ? 'keep' : first.field);
-    const target = { id, errorId: `${pid(first.idx, first.field)}-error`, label: `${t.itemN(first.idx + 1)}: ${first.name}` };
-    setBlocked(target);
-    setReveal({ ...target, n: Date.now() });
-    return false;
-  }
-  function itemFromPick(p, finalSectionKey) {
-    const base = { description: p.description, unit_price: p.unitPrice, isFromCatalog: !!p.serviceId, section_key: finalSectionKey };
-    if (p.method === 'fixed') return { ...base, quantity: '1' };
-    if (p.method === 'units') return { ...base, quantity: p.quantity || '1' };
-    const pricingUnit = p.method === 'linear' ? 'linear_meter' : 'm2';
-    if (!p.useSizes) {
-      return { ...base, quantity: '1', pricing_unit: pricingUnit, quantity_source: 'manual', calculation_method: 'manual', measurements: [], calculated_quantity: Number(p.manualQty) };
-    }
-    const calcMethod = resolveCalculationMethod(pricingUnit, 'calculated');
-    const widthMeters = cmToM(p.widthCm);
-    const heightMeters = p.method === 'linear' ? '' : cmToM(p.heightCm);
-    const value = computeMeasurementValue(p.method, widthMeters, p.method === 'linear' ? undefined : heightMeters);
-    const measurements = [{ width: widthMeters, height: heightMeters, unit: 'm', calculated_area: value, label: '', is_pricing_driving: true }];
-    return { ...base, quantity: '1', pricing_unit: pricingUnit, quantity_source: 'calculated', calculation_method: calcMethod, measurements,
-      calculated_quantity: sumMeasurementAreas(measurements, calcMethod) };
-  }
-  // ONE update for the whole selection (no half selection, no double click); the window closes only after the items were handed over
-  function handleConfirmMany() {
-    if (addingRef.current) return;
-    if (!validatePicks()) return;
-    addingRef.current = true;
-    try {
-      const finalSectionKey = sectionKey || null;
-      const items = picks.map((p) => itemFromPick(p, finalSectionKey));
-      if (typeof onCatalogItemAdded === 'function') picks.forEach((p, i) => { if (p.serviceId) onCatalogItemAdded(p.serviceId, items[i]); });
-      if (typeof onAddMany === 'function') onAddMany(items); else items.forEach((it) => onAdd(it));
-      onClose();
-    } finally {
-      addingRef.current = false;
-    }
-  }
-
   // חוק ברזל (Part E - תיקון-שורש לבאג-Codex "incomplete additional
   // measurements may disappear silently"): כל שורה נוספת שהתחילה (רוחב
   // או גובה כלשהו הוזן) חייבת להיות שלמה כדי להמשיך - לעולם לא מסוננת
@@ -788,49 +595,21 @@ export default function AddItemWizard({
       }
     }
     setErrors(e);
-    return e;
-  }
-
-  // Owner 2026-10-26 (L-15, Codex F-01): the first missing field in the order it is shown - name, method, quantity / sizes, price
-  function firstMissing(e) {
-    const order = [['description', 'wiz-description', 'wiz-description-error', t.fieldNames.description],
-      ['method', `wiz-method-${getOrderedMethods(recommendedMethod)[0]}`, 'wiz-method-error', t.fieldNames.method]];
-    if (pricingMethod === 'fixed') order.push(['unitPrice', 'wiz-fixed-amount', 'wiz-fixed-amount-error', t.fieldNames.amount]);
-    else if (pricingMethod === 'units') order.push(['quantity', 'wiz-quantity', 'wiz-quantity-error', t.fieldNames.quantity], ['unitPrice', 'wiz-unit-price', 'wiz-unitprice-error', t.fieldNames.price]);
-    else if (isMeasureMethod && useManualQty) order.push(['manualQty', 'wiz-manual-qty', 'wiz-manual-qty-error', t.fieldNames.manualQty], ['unitPrice', 'wiz-unit-price-m', 'wiz-unitpricem-error', t.fieldNames.price]);
-    else if (isMeasureMethod) {
-      order.push(['width', 'wiz-width', 'wiz-width-error', pricingMethod === 'linear' ? t.fieldNames.length : t.fieldNames.width], ['height', 'wiz-height', 'wiz-height-error', t.fieldNames.height]);
-      extraMeasureRows.forEach((row, idx) => {
-        if (!e.rows || !e.rows[idx]) return;
-        const widthBad = !(Number(row.widthCm) > 0);
-        order.push([`row${idx}`, widthBad ? `wiz-extra-width-${idx}` : `wiz-extra-height-${idx}`, `wiz-extra-row-error-${idx}`, t.fieldNames.row(idx + 2)]);
-      });
-      order.push(['unitPrice', 'wiz-unit-price-m', 'wiz-unitpricem-error', t.fieldNames.price]);
-    }
-    const hit = order.find(([key]) => (key.startsWith('row') ? e.rows && e.rows[Number(key.slice(3))] : e[key]));
-    return hit ? { id: hit[1], errorId: hit[2], label: hit[3] } : null;
+    return Object.keys(e).length === 0;
   }
 
   function goNext() {
-    // ticked catalog items go straight to their shared check (each one is completed there)
-    if (isMulti) { setErrors({}); setBlocked(null); setStep(STEPS.REVIEW); return; }
-    const e = validateStep();
-    const target = Object.keys(e).length ? firstMissing(e) : null;
-    if (target) { setBlocked(target); setReveal({ ...target, n: Date.now() }); return; }
-    if (Object.keys(e).length) return;
-    setBlocked(null);
+    if (!validateStep()) return;
     setStep(STEPS.REVIEW);
   }
 
   function goBack() {
     setErrors({});
-    setBlocked(null);
     setStep(STEPS.ITEM);
   }
 
   function goToStep(target) {
     setErrors({});
-    setBlocked(null);
     setStep(target);
   }
 
@@ -857,9 +636,20 @@ export default function AddItemWizard({
     }
     setPricingMethod(m);
     setErrors((e) => ({ ...e, method: undefined }));
-    setBlocked(null);
-    // Owner 2026-10-26 (L-15, Codex F-02): the fields the method opened are brought into view, the first one focused
-    setReveal({ id: m === 'fixed' ? 'wiz-fixed-amount' : m === 'units' ? 'wiz-quantity' : useManualQty ? 'wiz-manual-qty' : 'wiz-width', n: Date.now() });
+  }
+
+  function handleCatalogPick(id) {
+    setCatalogServiceId(id);
+    const svc = services.find((s) => String(s.id) === String(id));
+    if (svc) {
+      setDescription(svc.name);
+      setUnitPrice(String(svc.price));
+    }
+    // חוק ברזל (Catalog First, Decision 6): אחרי בחירה מהקטלוג עוברים
+    // לתצוגת ההזנה הידנית (עכשיו ממולאת-מראש עם השם/מחיר מהקטלוג) כדי
+    // לאפשר בדיקה/עריכה לפני "הבא" - "may safely prefill... name;
+    // description; known price" - לא מתקדמים אוטומטית לשלב הבא.
+    setShowManualEntry(true);
   }
 
   function handleConfirm() {
@@ -1031,15 +821,12 @@ export default function AddItemWizard({
   // Display-only unit word (stored measurements stay cm / m² / m); shared by the formula and the review step.
   const measureUnitWord = pricingMethod === 'area' ? (isHebrew ? 'מ״ר' : 'm²') : (isHebrew ? 'מ\'' : 'm');
   const priceIsValid = unitPrice !== '' && !Number.isNaN(Number(unitPrice)) && Number(unitPrice) >= 0;
-  // Owner 2026-10-26 (L-17, Codex F-05): every number and amount is its own LTR-isolated tabular atom (the words around them keep the language)
-  const num = (v) => <bdi className="pf-num">{v}</bdi>;
-  const amt = (v) => <bdi className="pf-money">{sym}{money(v)}</bdi>;
   let formulaText = null;
   if (priceIsValid && total != null) {
     if (isMeasureMethod && calculatedValue != null) {
-      formulaText = <>{num(calculatedValue.toFixed(2))} {measureUnitWord} × {amt(unitPrice)} = {amt(total)}</>;
+      formulaText = `${calculatedValue.toFixed(2)} ${measureUnitWord} × ${sym}${money(unitPrice)} = ${sym}${money(total)}`;
     } else if (pricingMethod === 'units' && Number(quantity) > 0) {
-      formulaText = <>{num(quantity)} × {amt(unitPrice)} = {amt(total)}</>;
+      formulaText = `${quantity} × ${sym}${money(unitPrice)} = ${sym}${money(total)}`;
     }
   }
 
@@ -1066,7 +853,7 @@ export default function AddItemWizard({
     : [];
 
   const methodResultLine = pricingMethod === 'fixed'
-    ? (total != null ? <>{t.totalLabel}: {amt(total)}</> : null)
+    ? (total != null ? `${t.totalLabel}: ${sym}${money(total)}` : null)
     : formulaText;
 
   const activeGroupName = sections && sections.length > 0 && sectionKey ? (sections.find((s) => s.key === sectionKey)?.name || t.noGroup) : null;
@@ -1083,7 +870,7 @@ export default function AddItemWizard({
       style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', boxSizing: 'border-box', outline: 'none' }}
       onKeyDown={(e) => { if (e.key === 'Escape') { onClose(); return; } trapFocus(e); }}
     >
-      <div style={{ background: NEON.bgCard, borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '92vh', overflow: 'hidden', boxShadow: '0 20px 60px -15px rgba(0,0,0,0.4)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}
+      <div style={{ background: NEON.bgCard, borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px -15px rgba(0,0,0,0.4)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}
       >
         {/* §51.16: ONE header row - title · AI action (centred on desktop) · Close; the ONE assistant opens above this dialog, the wizard stays as-is */}
         <AiModalHeader className="pf-modal-head--bar" title={t.title} onClose={onClose} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="ai-help-wizard"
@@ -1091,7 +878,7 @@ export default function AddItemWizard({
 
         <StepIndicator step={step} isHebrew={isHebrew} isNarrow={isNarrow} labels={t.stepLabels} stepOfTotal={t.stepOfTotal} />
 
-        <div ref={stepBodyRef} style={{ padding: '20px', overflowY: 'auto', flex: '1 1 auto', minHeight: 0 }}>
+        <div ref={stepBodyRef} style={{ padding: '20px', overflowY: 'auto', flex: '1 1 auto' }}>
           {step === STEPS.ITEM && (
             <div>
               {/* חוק ברזל (Smart Quote End-to-End Structural Unification
@@ -1114,13 +901,8 @@ export default function AddItemWizard({
                 ref={firstFieldRef}
                 type="text"
                 value={description}
-                onChange={(e) => {
-                  const v = e.target.value;
-                  // Owner 2026-10-26: typing a new item while catalog items are ticked asks first - never a silent mix
-                  if (isMulti) { askConfirm(t.switchToFreeConfirm, isHebrew, t.switchToFreeLabels).then((ok) => { if (ok) { setPicks([]); setMultiErrors({}); setBlocked(null); setDescription(v); } }); return; }
-                  setDescription(v); if (catalogServiceId) setCatalogServiceId('');
-                }}
-                placeholder={isMulti ? t.pickedHint : t.descPlaceholder}
+                onChange={(e) => { setDescription(e.target.value); if (catalogServiceId) setCatalogServiceId(''); }}
+                placeholder={t.descPlaceholder}
                 aria-invalid={!!errors.description}
                 aria-describedby={errors.description ? 'wiz-description-error' : undefined}
                 style={{ ...inputStyle(isHebrew), padding: '13px 14px' }}
@@ -1129,38 +911,34 @@ export default function AddItemWizard({
               {services && services.length > 0 && !isEditMode && (
                 <div style={{ marginTop: '12px' }}>
                   <FieldLabel>{t.catalogOrHeading}</FieldLabel>
-                  {/* Owner 2026-10-26 (L-09, Codex F-03): a real tick box per catalog item - one or several, counted; nothing is added from the list itself */}
-                  <div role="status" aria-live="polite" aria-atomic="true" data-testid="wiz-picked-count" style={{ fontSize: '0.78rem', fontWeight: 700, color: NEON.textSecondary, margin: '2px 0 4px' }}>{t.picked(picks.length)}</div>
                   <div data-testid="wiz-catalog-list" style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px', maxHeight: '176px', overflowY: 'auto' }}>
-                    {services.map((sv) => {
-                      const on = picks.some((p) => p.key === String(sv.id));
-                      return (
-                        <label key={sv.id} data-testid={`wiz-catalog-pick-${sv.id}`}
-                          style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: on ? NEON.violetLighter : NEON.bgCardAlt, border: `1px solid ${on ? NEON.violet : NEON.borderStrong}`, borderRadius: '10px', padding: '10px 12px', minHeight: '44px', cursor: 'pointer', fontSize: '0.84rem', fontWeight: 700, color: NEON.textPrimary }}>
-                          {/* PRODUCT_TRUTH_DECORATIVE: ticks / unticks one saved catalog item for the shared check before adding; nothing is added from the list */}
-                          <input type="checkbox" checked={on} onChange={() => togglePick(sv)} style={{ width: '20px', height: '20px', margin: 0, flexShrink: 0, accentColor: NEON.violet, cursor: 'pointer' }} />
-                          <span style={{ flex: 1, minWidth: 0, overflowWrap: 'anywhere' }}>{sv.name}</span>
-                          <bdi className="pf-money" style={{ color: NEON.violet, fontWeight: 800, flexShrink: 0 }}>{sym}{money(sv.price)}</bdi>
-                        </label>
-                      );
-                    })}
+                    {/* PRODUCT_TRUTH_DECORATIVE: selects a saved catalog service/product as the wizard item (fills name and price); sub-control of the already-documented add-item wizard flow */}
+                    {services.map((sv) => (
+                      <button
+                        key={sv.id}
+                        type="button"
+                        aria-pressed={String(catalogServiceId) === String(sv.id)}
+                        onClick={() => handleCatalogPick(sv.id)}
+                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', width: '100%', boxSizing: 'border-box', background: String(catalogServiceId) === String(sv.id) ? NEON.violetLighter : NEON.bgCardAlt, border: `1px solid ${String(catalogServiceId) === String(sv.id) ? NEON.violet : NEON.borderStrong}`, borderRadius: '10px', padding: '10px 12px', minHeight: '44px', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.84rem', fontWeight: 700, color: NEON.textPrimary }}
+                      >
+                        <span>{sv.name}</span>
+                        <span className="pf-money" style={{ color: NEON.violet, fontWeight: 800, flexShrink: 0 }}>{sym}{money(sv.price)}</span>
+                      </button>
+                    ))}
                   </div>
-                  {isMulti && <p data-testid="wiz-catalog-note" style={{ ...detailNoteStyle, margin: '8px 0 0' }}>{t.catalogNote}</p>}
                 </div>
               )}
-              {pickNotice && <p role="status" data-testid="wiz-pick-notice" style={{ ...detailNoteStyle, margin: '8px 0 0', color: NEON.textPrimary, fontWeight: 700 }}>{pickNotice}</p>}
             </div>
           )}
 
-          {step === STEPS.ITEM && !catalogListShown && !isMulti && (
+          {step === STEPS.ITEM && !catalogListShown && (
             <div style={{ marginTop: '18px' }}>
-              <StepHeading id="wiz-methods-title" title={t.step2Title} explanation={null} />
-              <div role="group" aria-labelledby="wiz-methods-title" aria-describedby={errors.method ? 'wiz-method-error' : undefined} style={{ display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : '1fr 1fr', gap: '8px' }}>
+              <StepHeading title={t.step2Title} explanation={null} />
+              <div style={{ display: 'grid', gridTemplateColumns: isNarrow ? '1fr' : '1fr 1fr', gap: '8px' }}>
                 {/* PRODUCT_TRUTH_DECORATIVE: selects one of the four pricing methods (all visible; the business recommendation first) on the item screen */}
                 {orderedMethods.map((m) => (
                   <MethodCard
                     key={m}
-                    id={`wiz-method-${m}`}
                     icon={methodMeta[m].icon}
                     title={methodMeta[m].title}
                     example={methodMeta[m].example}
@@ -1174,27 +952,27 @@ export default function AddItemWizard({
                   />
                 ))}
               </div>
-              {errors.method && <ErrorText id="wiz-method-error">{errors.method}</ErrorText>}
+              {errors.method && <ErrorText>{errors.method}</ErrorText>}
             </div>
           )}
 
-          {step === STEPS.ITEM && !catalogListShown && !isMulti && pricingMethod === 'fixed' && (
+          {step === STEPS.ITEM && !catalogListShown && pricingMethod === 'fixed' && (
             <div style={{ marginTop: '14px' }}>
               <p style={detailNoteStyle}>{step3Explanation}</p>
               <FieldLabel htmlFor="wiz-fixed-amount">{`${t.fixedAmountLabel} (${sym})`}</FieldLabel>
-              <input id="wiz-fixed-amount" type="number" dir="ltr" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-fixed-amount-error' : undefined} style={numInputStyle(isHebrew)} />
+              <input id="wiz-fixed-amount" type="number" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-fixed-amount-error' : undefined} style={inputStyle(isHebrew)} />
               {errors.unitPrice && <ErrorText id="wiz-fixed-amount-error">{errors.unitPrice}</ErrorText>}
             </div>
           )}
 
-          {step === STEPS.ITEM && !catalogListShown && !isMulti && pricingMethod === 'units' && (
+          {step === STEPS.ITEM && !catalogListShown && pricingMethod === 'units' && (
             <div style={{ marginTop: '14px' }}>
               <p style={detailNoteStyle}>{step3Explanation}</p>
               <FieldLabel htmlFor="wiz-quantity">{preservedUnitLabel ? `${t.quantityLabel.replace(/\?$/, '')} (${preservedUnitLabel})` : t.quantityLabel}</FieldLabel>
-              <input id="wiz-quantity" type="number" dir="ltr" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} aria-invalid={!!errors.quantity} aria-describedby={errors.quantity ? 'wiz-quantity-error' : undefined} style={numInputStyle(isHebrew)} />
+              <input id="wiz-quantity" type="number" min="0" step="any" value={quantity} onChange={(e) => setQuantity(e.target.value)} aria-invalid={!!errors.quantity} aria-describedby={errors.quantity ? 'wiz-quantity-error' : undefined} style={inputStyle(isHebrew)} />
               {errors.quantity && <ErrorText id="wiz-quantity-error">{errors.quantity}</ErrorText>}
               <FieldLabel htmlFor="wiz-unit-price">{`${t.unitPriceLabel} (${sym})`}</FieldLabel>
-              <input id="wiz-unit-price" type="number" dir="ltr" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-unitprice-error' : undefined} style={numInputStyle(isHebrew)} />
+              <input id="wiz-unit-price" type="number" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-unitprice-error' : undefined} style={inputStyle(isHebrew)} />
               {errors.unitPrice && <ErrorText id="wiz-unitprice-error">{errors.unitPrice}</ErrorText>}
               {formulaText && (
                 <div aria-live="polite" style={{ marginTop: '8px', fontSize: '0.9rem', color: NEON.violet, fontWeight: '800' }}>
@@ -1204,7 +982,7 @@ export default function AddItemWizard({
             </div>
           )}
 
-          {step === STEPS.ITEM && !catalogListShown && !isMulti && isMeasureMethod && (
+          {step === STEPS.ITEM && !catalogListShown && isMeasureMethod && (
             <div style={{ marginTop: '14px' }}>
               <p style={detailNoteStyle}>{step3Explanation}</p>
               {!useManualQty && (
@@ -1221,7 +999,7 @@ export default function AddItemWizard({
               {useManualQty ? (
                 <div>
                   <FieldLabel htmlFor="wiz-manual-qty">{pricingMethod === 'area' ? t.manualAreaLabel : t.manualLengthLabel}</FieldLabel>
-                  <input id="wiz-manual-qty" type="number" dir="ltr" min="0" step="any" value={manualQty} onChange={(e) => setManualQty(e.target.value)} aria-invalid={!!errors.manualQty} aria-describedby={errors.manualQty ? 'wiz-manual-qty-error' : undefined} style={numInputStyle(isHebrew)} />
+                  <input id="wiz-manual-qty" type="number" min="0" step="any" value={manualQty} onChange={(e) => setManualQty(e.target.value)} aria-invalid={!!errors.manualQty} aria-describedby={errors.manualQty ? 'wiz-manual-qty-error' : undefined} style={inputStyle(isHebrew)} />
                   {errors.manualQty && <ErrorText id="wiz-manual-qty-error">{errors.manualQty}</ErrorText>}
                   {/* PRODUCT_TRUTH_DECORATIVE: switches back from a known quantity to entering sizes */}
                   <button type="button" onClick={() => setUseManualQty(false)} style={linkBtnStyle}>{t.backToSizes}</button>
@@ -1232,13 +1010,13 @@ export default function AddItemWizard({
               <div style={{ display: 'grid', gridTemplateColumns: pricingMethod === 'area' ? '1fr 1fr' : '1fr', gap: '10px' }}>
                 <div>
                   <FieldLabel htmlFor="wiz-width">{pricingMethod === 'linear' ? t.lengthCm : t.widthCm}</FieldLabel>
-                  <input id="wiz-width" type="number" dir="ltr" min="0" step="any" value={widthCm} onChange={(e) => setWidthCm(e.target.value)} aria-invalid={!!errors.width} aria-describedby={errors.width ? 'wiz-width-error' : undefined} style={numInputStyle(isHebrew)} />
+                  <input id="wiz-width" type="number" min="0" step="any" value={widthCm} onChange={(e) => setWidthCm(e.target.value)} aria-invalid={!!errors.width} aria-describedby={errors.width ? 'wiz-width-error' : undefined} style={inputStyle(isHebrew)} />
                   {errors.width && <ErrorText id="wiz-width-error">{errors.width}</ErrorText>}
                 </div>
                 {pricingMethod === 'area' && (
                   <div>
                     <FieldLabel htmlFor="wiz-height">{t.heightCm}</FieldLabel>
-                    <input id="wiz-height" type="number" dir="ltr" min="0" step="any" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} aria-invalid={!!errors.height} aria-describedby={errors.height ? 'wiz-height-error' : undefined} style={numInputStyle(isHebrew)} />
+                    <input id="wiz-height" type="number" min="0" step="any" value={heightCm} onChange={(e) => setHeightCm(e.target.value)} aria-invalid={!!errors.height} aria-describedby={errors.height ? 'wiz-height-error' : undefined} style={inputStyle(isHebrew)} />
                     {errors.height && <ErrorText id="wiz-height-error">{errors.height}</ErrorText>}
                   </div>
                 )}
@@ -1252,9 +1030,6 @@ export default function AddItemWizard({
               {extraMeasureRows.map((row, idx) => {
                 const rowValue = computeMeasurementValue(pricingMethod, sizeToM(row.widthCm), pricingMethod === 'linear' ? undefined : sizeToM(row.heightCm));
                 const rowError = errors.rows && errors.rows[idx];
-                const rowWidthBad = !!rowError && !(Number(row.widthCm) > 0);
-                const rowHeightBad = !!rowError && !rowWidthBad;
-                const rowErrorId = rowError ? `wiz-extra-row-error-${idx}` : undefined;
                 return (
                   <div key={idx} style={{ marginTop: '14px', paddingTop: '14px', borderTop: `1px dashed ${NEON.border}` }}>
                     <div style={{ fontSize: '0.8rem', fontWeight: 700, color: NEON.textPrimary, marginBottom: '4px' }}>{t.sizeN(idx + 2)}</div>
@@ -1262,12 +1037,12 @@ export default function AddItemWizard({
                       <div style={{ display: 'grid', gridTemplateColumns: pricingMethod === 'area' ? '1fr 1fr' : '1fr', gap: '10px', flex: 1 }}>
                         <div>
                           <FieldLabel htmlFor={`wiz-extra-width-${idx}`}>{pricingMethod === 'linear' ? t.lengthCm : t.widthCm}</FieldLabel>
-                          <input id={`wiz-extra-width-${idx}`} type="number" dir="ltr" min="0" step="any" value={row.widthCm} onChange={(e) => updateMeasureRow(idx, 'widthCm', e.target.value)} aria-invalid={rowWidthBad} aria-describedby={rowWidthBad ? rowErrorId : undefined} style={numInputStyle(isHebrew)} />
+                          <input id={`wiz-extra-width-${idx}`} type="number" min="0" step="any" value={row.widthCm} onChange={(e) => updateMeasureRow(idx, 'widthCm', e.target.value)} aria-invalid={!!rowError} style={inputStyle(isHebrew)} />
                         </div>
                         {pricingMethod === 'area' && (
                           <div>
                             <FieldLabel htmlFor={`wiz-extra-height-${idx}`}>{t.heightCm}</FieldLabel>
-                            <input id={`wiz-extra-height-${idx}`} type="number" dir="ltr" min="0" step="any" value={row.heightCm} onChange={(e) => updateMeasureRow(idx, 'heightCm', e.target.value)} aria-invalid={rowHeightBad} aria-describedby={rowHeightBad ? rowErrorId : undefined} style={numInputStyle(isHebrew)} />
+                            <input id={`wiz-extra-height-${idx}`} type="number" min="0" step="any" value={row.heightCm} onChange={(e) => updateMeasureRow(idx, 'heightCm', e.target.value)} aria-invalid={!!rowError} style={inputStyle(isHebrew)} />
                           </div>
                         )}
                       </div>
@@ -1276,7 +1051,7 @@ export default function AddItemWizard({
                         <X size={18} />
                       </button>
                     </div>
-                    {rowError && <ErrorText id={rowErrorId}>{rowError}</ErrorText>}
+                    {rowError && <ErrorText>{rowError}</ErrorText>}
                     <input aria-label={t.sizeLabelOptional} placeholder={t.sizeLabelOptional} value={row.label} onChange={(e) => updateMeasureRow(idx, 'label', e.target.value)} style={{ ...inputStyle(isHebrew), marginTop: '8px' }} />
                     {rowValue != null && (
                       <div aria-live="polite" style={{ marginTop: '8px', fontSize: '0.85rem', color: NEON.violetLight, fontWeight: '600' }}>
@@ -1304,7 +1079,7 @@ export default function AddItemWizard({
               </>
               )}
               <FieldLabel htmlFor="wiz-unit-price-m">{`${pricingMethod === 'area' ? t.unitPriceArea : t.unitPriceLinear} (${sym})`}</FieldLabel>
-              <input id="wiz-unit-price-m" type="number" dir="ltr" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-unitpricem-error' : undefined} style={numInputStyle(isHebrew)} />
+              <input id="wiz-unit-price-m" type="number" min="0" step="any" value={unitPrice} onChange={(e) => setUnitPrice(e.target.value)} aria-invalid={!!errors.unitPrice} aria-describedby={errors.unitPrice ? 'wiz-unitpricem-error' : undefined} style={inputStyle(isHebrew)} />
               {errors.unitPrice && <ErrorText id="wiz-unitpricem-error">{errors.unitPrice}</ErrorText>}
               {formulaText && (
                 <div aria-live="polite" data-testid="wiz-calc" style={{ marginTop: '10px', padding: '10px 12px', borderRadius: '10px', background: NEON.bgCardAlt, display: 'grid', gap: '2px' }}>
@@ -1315,119 +1090,9 @@ export default function AddItemWizard({
             </div>
           )}
 
-
-          {step === STEPS.REVIEW && isMulti && (
-            <div data-testid="wiz-multi-review">
-              <StepHeading headingRef={reviewHeadingRef} title={t.multiTitle(picks.length)} explanation={t.multiExplanation} />
-              {sections && sections.length > 0 && (
-                <p data-testid="wiz-multi-target" style={{ ...detailNoteStyle, fontWeight: 700, color: NEON.textPrimary }}>{t.addTo(activeGroupName || t.noGroup)}</p>
-              )}
-              <p style={detailNoteStyle}>{t.catalogNote}</p>
-              {picks.map((p, idx) => {
-                const e = multiErrors[idx] || {};
-                const fid = (f) => pid(idx, f);
-                const errProps = (f) => ({ 'aria-invalid': !!e[f], 'aria-describedby': e[f] ? `${fid(f)}-error` : undefined });
-                const measured = p.method === 'area' || p.method === 'linear';
-                const available = !p.serviceId || (services || []).some((s) => String(s.id) === p.serviceId);
-                const inQuote = Array.isArray(quoteItems) && p.description.trim() !== ''
-                  && quoteItems.some((it) => it && String(it.description || '').trim() === p.description.trim());
-                const priceLabel = p.method === 'fixed' ? t.fixedAmountLabel : p.method === 'units' ? t.unitPriceLabel : p.method === 'area' ? t.unitPriceArea : t.unitPriceLinear;
-                return (
-                  <section key={p.key} data-testid={`wiz-pick-row-${idx}`} aria-labelledby={fid('title')}
-                    style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '10px', padding: '12px 14px', marginBottom: '10px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                      <h4 id={fid('title')} style={{ margin: 0, fontSize: '0.85rem', fontWeight: 800, color: NEON.textPrimary }}>{t.itemN(idx + 1)}</h4>
-                      {/* PRODUCT_TRUTH_DECORATIVE: removes one ticked catalog item from the selection on the check screen; nothing in the quote changes */}
-                      <button type="button" id={fid('remove')} onClick={() => removePick(idx)} aria-label={t.removePick(p.description || t.itemN(idx + 1))}
-                        style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.78rem', fontWeight: 700, cursor: 'pointer', minHeight: '44px', padding: '0 6px' }}>
-                        <X size={14} />{t.removeShort}
-                      </button>
-                    </div>
-                    <FieldLabel htmlFor={fid('description')}>{t.nameLabel}</FieldLabel>
-                    <input id={fid('description')} type="text" value={p.description} onChange={(ev) => updatePick(idx, { description: ev.target.value })} {...errProps('description')} style={inputStyle(isHebrew)} />
-                    {e.description && <ErrorText id={`${fid('description')}-error`}>{e.description}</ErrorText>}
-                    <FieldLabel htmlFor={fid('method')}>{t.step2Title}</FieldLabel>
-                    {/* PRODUCT_TRUTH_DECORATIVE: chooses how one ticked catalog item is priced (the same four methods; per metre / m² ask for the length / area) */}
-                    <select id={fid('method')} value={p.method} onChange={(ev) => setPickMethod(idx, ev.target.value)} style={inputStyle(isHebrew)}>
-                      {ALL_METHODS.map((m) => {
-                        const locked = (m === 'area' || m === 'linear') && !canUseProfessionalQuotes;
-                        return <option key={m} value={m} disabled={locked}>{methodMeta[m].title}{locked ? t.lockedOption : ''}</option>;
-                      })}
-                    </select>
-                    {p.method === 'units' && (
-                      <>
-                        <FieldLabel htmlFor={fid('quantity')}>{t.quantityLabel}</FieldLabel>
-                        <input id={fid('quantity')} type="number" dir="ltr" min="0" step="any" value={p.quantity} onChange={(ev) => updatePick(idx, { quantity: ev.target.value })} {...errProps('quantity')} style={numInputStyle(isHebrew)} />
-                        {e.quantity && <ErrorText id={`${fid('quantity')}-error`}>{e.quantity}</ErrorText>}
-                      </>
-                    )}
-                    {measured && !p.useSizes && (
-                      <>
-                        <FieldLabel htmlFor={fid('manualQty')}>{p.method === 'area' ? t.manualAreaLabel : t.manualLengthLabel}</FieldLabel>
-                        <input id={fid('manualQty')} type="number" dir="ltr" min="0" step="any" value={p.manualQty} onChange={(ev) => updatePick(idx, { manualQty: ev.target.value })} {...errProps('manualQty')} style={numInputStyle(isHebrew)} />
-                        {e.manualQty && <ErrorText id={`${fid('manualQty')}-error`}>{e.manualQty}</ErrorText>}
-                        {/* PRODUCT_TRUTH_DECORATIVE: switches one ticked item from a known area / length to entering its sizes in cm */}
-                        <button type="button" onClick={() => setPickSizes(idx, true)} style={linkBtnStyle}>{t.enterSizes}</button>
-                      </>
-                    )}
-                    {measured && p.useSizes && (
-                      <>
-                        <div style={{ display: 'grid', gridTemplateColumns: p.method === 'area' ? '1fr 1fr' : '1fr', gap: '10px' }}>
-                          <div>
-                            <FieldLabel htmlFor={fid('width')}>{p.method === 'linear' ? t.lengthCmOnly : t.widthCmOnly}</FieldLabel>
-                            <input id={fid('width')} type="number" dir="ltr" min="0" step="any" value={p.widthCm} onChange={(ev) => updatePick(idx, { widthCm: ev.target.value })} {...errProps('width')} style={numInputStyle(isHebrew)} />
-                            {e.width && <ErrorText id={`${fid('width')}-error`}>{e.width}</ErrorText>}
-                          </div>
-                          {p.method === 'area' && (
-                            <div>
-                              <FieldLabel htmlFor={fid('height')}>{t.heightCmOnly}</FieldLabel>
-                              <input id={fid('height')} type="number" dir="ltr" min="0" step="any" value={p.heightCm} onChange={(ev) => updatePick(idx, { heightCm: ev.target.value })} {...errProps('height')} style={numInputStyle(isHebrew)} />
-                              {e.height && <ErrorText id={`${fid('height')}-error`}>{e.height}</ErrorText>}
-                            </div>
-                          )}
-                        </div>
-                        {/* PRODUCT_TRUTH_DECORATIVE: switches one ticked item from sizes back to a known area / length */}
-                        <button type="button" onClick={() => setPickSizes(idx, false)} style={linkBtnStyle}>{p.method === 'area' ? t.knowArea : t.knowLength}</button>
-                      </>
-                    )}
-                    <FieldLabel htmlFor={fid('price')}>{`${priceLabel} (${sym})`}</FieldLabel>
-                    <input id={fid('price')} type="number" dir="ltr" min="0" step="any" value={p.unitPrice} onChange={(ev) => updatePick(idx, { unitPrice: ev.target.value })} {...errProps('price')} style={numInputStyle(isHebrew)} />
-                    {e.price && <ErrorText id={`${fid('price')}-error`}>{e.price}</ErrorText>}
-                    <div data-testid={`wiz-pick-total-${idx}`} style={{ marginTop: '8px', fontSize: '0.88rem', fontWeight: 800, color: NEON.violet }}>
-                      {t.lineTotal}: {amt(pickQuantity(p) * (Number(p.unitPrice) || 0))}
-                    </div>
-                    {inQuote && <p data-testid={`wiz-pick-in-quote-${idx}`} style={{ ...detailNoteStyle, margin: '6px 0 0' }}>{t.inQuoteAlready}</p>}
-                    {!available && (
-                      <div style={{ marginTop: '6px' }}>
-                        <p style={{ ...detailNoteStyle, margin: 0, color: NEON.red }}>{t.notInCatalog}</p>
-                        {/* PRODUCT_TRUTH_DECORATIVE: keeps a ticked item that left the catalog as a free item (its name and price as shown) */}
-                        <button type="button" id={fid('keep')} onClick={() => updatePick(idx, { serviceId: '' })} aria-describedby={e.unavailable ? `${fid('unavailable')}-error` : undefined} style={linkBtnStyle}>{t.keepAsFree}</button>
-                        {e.unavailable && <ErrorText id={`${fid('unavailable')}-error`}>{e.unavailable}</ErrorText>}
-                      </div>
-                    )}
-                  </section>
-                );
-              })}
-              {sections && sections.length > 0 && (
-                <div>
-                  <FieldLabel htmlFor="wiz-multi-section">{t.groupLabel}</FieldLabel>
-                  {/* PRODUCT_TRUTH_DECORATIVE: chooses the unit (apartment / room / area) the whole selection is added to */}
-                  <select id="wiz-multi-section" value={sectionKey} onChange={(ev) => setSectionKey(ev.target.value)} style={inputStyle(isHebrew)}>
-                    <option value="">{t.noGroup}</option>
-                    {sections.map((s) => <option key={s.key} value={s.key}>{s.name || t.noGroup}</option>)}
-                  </select>
-                </div>
-              )}
-              <div data-testid="wiz-multi-sum" style={{ marginTop: '12px', padding: '10px 12px', borderRadius: '10px', background: NEON.bgCardAlt, display: 'grid', gap: '2px' }}>
-                <span style={{ fontSize: '0.92rem', color: NEON.violet, fontWeight: 800 }}>{t.selectedSum}: {amt(picks.reduce((sum, p) => sum + pickQuantity(p) * (Number(p.unitPrice) || 0), 0))}</span>
-                <span style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{t.calcNote}</span>
-              </div>
-            </div>
-          )}
-
-          {step === STEPS.REVIEW && !isMulti && (
+          {step === STEPS.REVIEW && (
             <div>
-              <StepHeading headingRef={reviewHeadingRef} title={t.step4Title} explanation={isEditMode ? t.editModeExplanation : t.step4Explanation} />
+              <StepHeading title={t.step4Title} explanation={isEditMode ? t.editModeExplanation : t.step4Explanation} />
 
               <ReviewGroup label={description || '—'} isHebrew={isHebrew} onEdit={() => goToStep(STEPS.ITEM)} editLabel={t.changeName}>
                 {isMeasureMethod && useManualQty && (
@@ -1465,7 +1130,7 @@ export default function AddItemWizard({
               <div style={{ background: NEON.bgCardAlt, borderRadius: '10px', padding: '14px', marginBottom: '14px' }}>
                 {total != null && (
                   <div aria-live="polite" style={{ fontSize: '1rem', color: NEON.violet, fontWeight: '800' }}>
-                    {amt(total)}
+                    {sym}{money(total)}
                   </div>
                 )}
               </div>
@@ -1521,7 +1186,7 @@ export default function AddItemWizard({
                   </div>
                 )}
                 {pricingMethod === 'units' && (
-                  <div style={{ fontSize: '0.78rem', color: NEON.textSecondary, marginTop: '4px' }}>{num(quantity)} × {amt(unitPrice || 0)}</div>
+                  <div style={{ fontSize: '0.78rem', color: NEON.textSecondary, marginTop: '4px' }}>{quantity} × {sym}{money(unitPrice || 0)}</div>
                 )}
                 {activeSpecRows.length > 0 && (
                   <div style={{ fontSize: '0.78rem', color: NEON.textSecondary, marginTop: '4px' }}>
@@ -1529,7 +1194,7 @@ export default function AddItemWizard({
                   </div>
                 )}
                 {total != null && (
-                  <div style={{ fontWeight: '800', color: NEON.violet, marginTop: '6px' }}>{amt(total)}</div>
+                  <div style={{ fontWeight: '800', color: NEON.violet, marginTop: '6px' }}>{sym}{money(total)}</div>
                 )}
               </div>
             </div>
@@ -1541,16 +1206,7 @@ export default function AddItemWizard({
             lists"): position:sticky+bottom:0 בתוך אותו מכל-גלילה (לא
             fixed לכל המסך, כדי לא לשבור containment/overlay) - כפתורי
             הבא/חזרה תמיד נגישים בלי גלילה נוספת, גם עם 4+ שורות-מידה. */}
-        <div style={{ padding: '12px 20px 16px', borderTop: `1px solid ${NEON.border}`, background: NEON.bgCard, position: 'sticky', bottom: 0, flexShrink: 0 }}>
-        {/* Owner 2026-10-26 (L-15, Codex F-01): a blocked action always answers next to the button - what is missing, and a way to it */}
-        {blocked && (
-          <div role="status" data-testid="wiz-blocked" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px', marginBottom: '10px', fontSize: '0.8rem', fontWeight: 700, color: NEON.red }}>
-            <span>{t.completeLabel}</span>
-            {/* PRODUCT_TRUTH_DECORATIVE: takes the user to the missing field (scrolls it into view and focuses it); nothing changes */}
-            <button type="button" onClick={() => setReveal({ ...blocked, n: Date.now() })} style={{ background: 'none', border: 'none', padding: '0 2px', color: NEON.red, fontWeight: 800, textDecoration: 'underline', cursor: 'pointer', fontSize: '0.8rem', minHeight: '32px' }}>{blocked.label}</button>
-          </div>
-        )}
-        <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', padding: '16px 20px', borderTop: `1px solid ${NEON.border}`, background: NEON.bgCard, position: 'sticky', bottom: 0, flexShrink: 0 }}>
           {/* PRODUCT_TRUTH_DECORATIVE: footer 'Back' button; closes the wizard on the first step or steps back one page otherwise */}
           <button type="button" onClick={step === STEPS.ITEM ? onClose : goBack} style={secondaryBtnStyle}>
             {isHebrew ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
@@ -1558,7 +1214,7 @@ export default function AddItemWizard({
           </button>
           {/* PRODUCT_TRUTH_DECORATIVE: 'Add item' confirm button on the final review step; completes the already-documented add-item wizard */}
           {step === STEPS.REVIEW ? (
-            <button type="button" onClick={isMulti ? handleConfirmMany : handleConfirm} data-testid={isMulti ? 'wiz-add-many' : undefined} style={primaryBtnStyle}>{isMulti ? t.addMany(picks.length) : t.addItem}</button>
+            <button type="button" onClick={handleConfirm} style={primaryBtnStyle}>{t.addItem}</button>
           ) : (
             // PRODUCT_TRUTH_DECORATIVE: footer 'Next' button advancing the wizard, disabled until a pricing method is chosen
             <button
@@ -1566,11 +1222,10 @@ export default function AddItemWizard({
               onClick={goNext}
               style={primaryBtnStyle}
             >
-              {isMulti ? t.toReviewCount(picks.length) : t.toReview}
+              {t.toReview}
               {isHebrew ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
             </button>
           )}
-        </div>
         </div>
       </div>
     </div>
@@ -1581,10 +1236,10 @@ export default function AddItemWizard({
 // + one short explanatory sentence directly beneath it"): נקודת-רינדור
 // יחידה כדי שכל השלבים ישמרו על אותה מדרגיות ויזואלית (כותרת מודגשת,
 // הסבר משני קטן-יותר וממוסך) - לא ארבע מימושים עצמאיים שעלולים להתפצל.
-function StepHeading({ title, explanation, id, headingRef }) {
+function StepHeading({ title, explanation }) {
   return (
     <div style={{ marginBottom: '14px' }}>
-      <h3 id={id} ref={headingRef} tabIndex={headingRef ? -1 : undefined} style={{ fontSize: '0.95rem', fontWeight: '700', color: NEON.textPrimary, margin: 0, outline: 'none' }}>{title}</h3>
+      <h3 style={{ fontSize: '0.95rem', fontWeight: '700', color: NEON.textPrimary, margin: 0 }}>{title}</h3>
       {explanation && <p style={{ fontSize: '0.8rem', color: NEON.textSecondary, margin: '4px 0 0', lineHeight: '1.4' }}>{explanation}</p>}
     </div>
   );
@@ -1652,10 +1307,9 @@ function StepIndicator({ step, isHebrew, isNarrow, labels, stepOfTotal }) {
 }
 
 // PRODUCT_TRUTH_DECORATIVE: MethodCard's own selectable div; a generic reusable pricing-method-selection card whose behavior is supplied by its callers (already assessed above)
-function MethodCard({ id, icon, title, example, recommended, recommendedLabel, onClick, selected, locked, lockedLabel, onKeyDown }) {
+function MethodCard({ icon, title, example, recommended, recommendedLabel, onClick, selected, locked, lockedLabel, onKeyDown }) {
   return (
     <div
-      id={id}
       role="button"
       tabIndex={0}
       onClick={onClick}
@@ -1719,19 +1373,13 @@ function SummaryRow({ label, value }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', padding: '2px 0', flexDirection: 'row', gap: '8px' }}>
       <span style={{ color: NEON.textSecondary }}>{label}</span>
-      {/* Owner 2026-10-26 (L-17, Codex F-05): the value is its own isolated run with tabular digits */}
-      <bdi style={{ color: NEON.textPrimary, fontWeight: '600', fontVariantNumeric: 'tabular-nums' }}>{value}</bdi>
+      <span style={{ color: NEON.textPrimary, fontWeight: '600' }}>{value}</span>
     </div>
   );
 }
 
 function inputStyle(isHebrew) {
   return { width: '100%', padding: '11px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '16px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', minHeight: '44px' };
-}
-
-// Owner 2026-10-26 (L-17, Codex F-05): a number field is an LTR-isolated tabular value; it stays aligned to the start of the language
-function numInputStyle(isHebrew) {
-  return { ...inputStyle(isHebrew), direction: 'ltr', unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums' };
 }
 
 const detailNoteStyle = { fontSize: '0.8rem', color: NEON.textSecondary, margin: '0 0 8px', lineHeight: '1.4' };

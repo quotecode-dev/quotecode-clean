@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { answerAppDialog } from '../test/appDialog';
 import AddItemWizard from './AddItemWizard';
 
@@ -114,18 +114,14 @@ describe('AddItemWizard - Step 1 opens directly on the business task (no source-
     expect(screen.queryByText('Not in the catalog? Add a product or work manually')).toBeNull();
   });
 
-  // Owner console 2026-10-26 (typed L-09 approval, docs/CODEX_ITEM_PATHS_SPEC_2026-10-26.md): a catalog item is TICKED (one or several);
-  // the ticked items are completed on the shared check (every method stays choosable there) - never added straight from the list.
-  it('ticking a catalog item counts it and leads to the shared check, where every pricing method stays choosable', async () => {
+  it('picking a catalog item prefills description/price and reveals the (now pre-filled) manual field for review, without forcing a pricing method', () => {
     const services = [{ id: 1, name: 'Design consultation', price: 150 }];
     render(<AddItemWizard {...baseProps} services={services} />);
-    await act(async () => { fireEvent.click(screen.getByRole('checkbox', { name: /Design consultation/ })); });
-    expect(screen.getByTestId('wiz-picked-count').textContent).toBe('1 selected');
-    fireEvent.click(screen.getByText('Continue to check (1)'));
-    expect(screen.getByTestId('wiz-pick-row-0')).toBeTruthy();
-    expect(document.getElementById('wiz-pick-0-description').value).toBe('Design consultation');
-    const options = [...document.getElementById('wiz-pick-0-method').options].map((o) => o.textContent);
-    expect(options).toEqual(['One total price', 'Price for each', 'Price by area', 'Price by length']);
+    fireEvent.click(screen.getByText('Design consultation'));
+    expect(document.getElementById('wiz-description').value).toBe('Design consultation');
+    // Every pricing method remains genuinely choosable on the same screen - catalog never skips the choice.
+    expect(screen.getByText('One total price')).toBeTruthy();
+    expect(screen.getByText('Price for each')).toBeTruthy();
   });
 
   it('a job typed by hand (not in the catalog) goes straight to its price and is added as a new item', () => {
@@ -216,11 +212,9 @@ describe('AddItemWizard - Quantity ("Price for each")', () => {
     expect(screen.getByText('Enter how many units there are and the price for each.')).toBeTruthy();
     setValue(document.getElementById('wiz-quantity'), '6');
     setValue(document.getElementById('wiz-unit-price'), '25');
-    // Owner 2026-10-26 (L-17): the numbers are isolated atoms inside the same equation
-    const equation = (txt) => screen.getAllByText((_, el) => el?.textContent === txt && [...(el?.children || [])].some((c) => c.tagName === 'BDI'));
-    expect(equation('6 × $25.00 = $150.00').length).toBeGreaterThan(0);
+    expect(screen.getByText('6 × $25.00 = $150.00')).toBeTruthy();
     fireEvent.click(screen.getByText('Continue to check'));
-    expect(equation('6 × $25.00 = $150.00').length).toBeGreaterThan(0);
+    expect(screen.getByText('6 × $25.00 = $150.00')).toBeTruthy();
     fireEvent.click(screen.getByText('Add to quote'));
 
     const item = onAdd.mock.calls[0][0];
