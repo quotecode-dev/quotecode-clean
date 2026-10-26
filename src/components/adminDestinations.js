@@ -1,5 +1,5 @@
 import { createElement } from 'react';
-import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox, Briefcase, Settings2, KeyRound, Coins, Receipt, Scale, SearchCheck, Network } from 'lucide-react';
+import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox, Briefcase, Settings2, KeyRound, Coins, Receipt, Scale, SearchCheck } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminPlans from './AdminPlans';
 import AdminSystemActivity from './AdminSystemActivity';
@@ -12,7 +12,6 @@ import AdminTwinCosts from './AdminTwinCosts';
 import AdminExpenseInvoices from './AdminExpenseInvoices';
 import AdminBillingReconcile from './AdminBillingReconcile';
 import AdminSearchConsole from './AdminSearchConsole';
-import AdminAgentsRoom from './AdminAgentsRoom';
 
 // THE Admin destination registry - the one and only definition of what an
 // Admin destination is. The sidebar list, the mobile More list, the
@@ -143,14 +142,6 @@ export const ADMIN_DESTINATIONS = [
     title: { he: "גוגל סרץ' קונסול - סופר אדמין", en: 'Google Search Console - Super Admin' },
     description: { he: 'קליקים, הופעות וחיפושים בגוגל, ומצב האינדוקס של הדפים', en: 'Clicks, impressions and searches on Google, and the indexing of the pages' },
     render: (host) => createElement(AdminSearchConsole, { isHebrew: host.isHebrew }),
-  },
-  // Owner console 2026-10-27 (typed: "מאשר שלב 1 של חדר הסוכנים ...") - the Owner only (server: super admin only)
-  {
-    id: 'agents-room', hub: 'system', icon: Network, permission: 'owner', mobile: 'more', available: true,
-    label: { he: 'חדר הסוכנים', en: 'Agents room' },
-    title: { he: 'חדר הסוכנים - סופר אדמין', en: 'Agents room - Super Admin' },
-    description: { he: 'סוכני הקידום, השירות והאבטחה: מה מצאו ומה הם ממליצים', en: 'The SEO, service and security agents: what they found and recommend' },
-    render: (host) => createElement(AdminAgentsRoom, { isHebrew: host.isHebrew }),
   },
 ];
 
