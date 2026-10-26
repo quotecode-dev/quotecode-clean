@@ -27,6 +27,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/components/AdminAgentsRoom.jsx": {
+    "interactive": 1,
+    "markers": 1
+  },
   "src/components/AdminBillingReconcile.jsx": {
     "interactive": 3,
     "markers": 3
@@ -1296,6 +1300,14 @@
     "markers": 0
   },
   "supabase/functions/admin-set-lifetime/legacyPhaseGuard.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/agents-room/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/agents-room/lib.ts": {
     "interactive": 0,
     "markers": 0
   },
