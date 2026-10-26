@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { answerAppDialog } from '../test/appDialog';
 import AddItemWizard from './AddItemWizard';
 
 // Smart Quote Final UX Simplification task: 4 required stages only (What
@@ -490,18 +491,17 @@ describe('AddItemWizard - Add/Edit parity: editing reopens the same guided edito
     expect(item.description).toBe('Fixed item');
   });
 
-  it('warns before ANY pricing-method change in edit mode could reinterpret the existing numbers - not only when measurements would be lost', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+  // Owner console 2026-10-26 (typed approval naming L-09): the question is the app's own window, answered by its buttons
+  it('warns before ANY pricing-method change in edit mode could reinterpret the existing numbers - not only when measurements would be lost', async () => {
     const editingItem = { id: 'x', description: 'Item', quantity: '3', unit_price: '10', section_key: null };
     render(<AddItemWizard {...baseProps} editingItem={editingItem} />);
     fireEvent.click(screen.getByText('Change how it is priced'));
     fireEvent.click(screen.getByText('One total price'));
-    expect(confirmSpy).toHaveBeenCalled();
+    expect(await answerAppDialog(false)).toBe('Changing the pricing method may change how the existing numbers are interpreted. Continue?');
     // declined: the method stays "Price for each" with its numbers
     expect(screen.getByText('How is the price worked out?')).toBeTruthy();
     expect(document.getElementById('wiz-quantity').value).toBe('3');
     expect(document.getElementById('wiz-fixed-amount')).toBeNull();
-    confirmSpy.mockRestore();
   });
 });
 
@@ -642,13 +642,14 @@ describe('AddItemWizard - SQ-F03: non-destructive name-only edit preserves field
     expect(item.section_key).toBe('sec1');
   });
 
-  it('an explicit, confirmed pricing-method conversion does NOT preserve the old pricing_unit/quantity_source - this is an intentional semantic conversion, not a silent mutation', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+  it('an explicit, confirmed pricing-method conversion does NOT preserve the old pricing_unit/quantity_source - this is an intentional semantic conversion, not a silent mutation', async () => {
     const onAdd = vi.fn();
     const editingItem = { id: 'c1', description: 'Labor', quantity: '5', unit_price: '150', pricing_unit: 'hour', quantity_source: 'manual', calculation_method: 'manual', section_key: null };
     render(<AddItemWizard {...baseProps} onAdd={onAdd} editingItem={editingItem} />);
     fireEvent.click(screen.getByText('Change how it is priced'));
     fireEvent.click(screen.getByText('Price by area'));
+    await answerAppDialog(true);
+    await waitFor(() => expect(document.getElementById('wiz-width')).not.toBeNull());
     setValue(document.getElementById('wiz-width'), '300');
     setValue(document.getElementById('wiz-height'), '200');
     setValue(document.getElementById('wiz-unit-price-m'), '150');
@@ -659,7 +660,6 @@ describe('AddItemWizard - SQ-F03: non-destructive name-only edit preserves field
     expect(item.pricing_unit).toBe('m2');
     expect(item.quantity_source).toBe('calculated');
     expect(item.calculation_method).toBe('area');
-    confirmSpy.mockRestore();
   });
 });
 

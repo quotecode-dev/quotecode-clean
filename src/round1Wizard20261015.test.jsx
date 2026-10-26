@@ -3,6 +3,7 @@
 // for one unit is never kept silently for another; the AI context keeps its four step ids.
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { answerAppDialog } from './test/appDialog';
 import AddItemWizard from './components/AddItemWizard';
 
 const baseProps = {
@@ -104,24 +105,25 @@ describe('"I already know the area" - a manual measured quantity, no invented si
 });
 
 describe('a typed price is never kept silently for another unit', () => {
-  it('asks before switching the method once a price exists; declining keeps everything', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
+  // Owner console 2026-10-26 (typed approval naming L-09): the app's own question window, answered by its buttons
+  it('asks before switching the method once a price exists; declining keeps everything', async () => {
     render(<AddItemWizard {...baseProps} />);
     setValue(byId('wiz-description'), 'Window');
     fireEvent.click(screen.getByText('Price by area'));
     setValue(byId('wiz-unit-price-m'), '600');
     fireEvent.click(screen.getByText('Price by length'));
-    expect(confirmSpy).toHaveBeenCalledWith('Changing the unit requires reviewing the price. Continue?');
+    expect(await answerAppDialog(false)).toBe('Changing the unit requires reviewing the price. Continue?');
     expect(byId('wiz-height')).toBeTruthy();
     expect(byId('wiz-unit-price-m').value).toBe('600');
   });
 
-  it('no question before any price is typed', () => {
-    const confirmSpy = vi.spyOn(window, 'confirm');
+  it('no question before any price is typed', async () => {
     render(<AddItemWizard {...baseProps} />);
     fireEvent.click(screen.getByText('Price by area'));
     fireEvent.click(screen.getByText('Price by length'));
-    expect(confirmSpy).not.toHaveBeenCalled();
+    await new Promise((r) => setTimeout(r, 20));
+    expect(screen.queryByTestId('app-dialog-confirm')).toBeNull();
+    expect(byId('wiz-unit-price-m')).toBeTruthy();
   });
 });
 

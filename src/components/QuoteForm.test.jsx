@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { answerAppDialog } from '../test/appDialog';
 import QuoteForm from './QuoteForm';
 import { APP } from '../theme/neonTheme';
 
@@ -355,11 +356,11 @@ describe('QuoteForm - Divided quote unit board (Locked Decision 3/4/5/6/10)', ()
     expect(screen.getByText('Switch to a regular quote')).toBeTruthy();
   });
 
-  it('"Switch to a regular quote" asks for confirmation, then flattens sections and clears every item\'s section_key (Decision 8, Divided->Regular)', () => {
+  // Owner console 2026-10-26 (typed approval naming L-09): the app's own question window, answered by its buttons
+  it('"Switch to a regular quote" asks for confirmation, then flattens sections and clears every item\'s section_key (Decision 8, Divided->Regular)', async () => {
     const setItems = vi.fn();
     const setSections = vi.fn();
     const setQuoteStructureMode = vi.fn();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
     render(<QuoteForm {...baseProps({
       quoteStructureMode: 'divided',
       sections: [{ key: 'sec1', name: 'Apartment 33' }],
@@ -367,22 +368,20 @@ describe('QuoteForm - Divided quote unit board (Locked Decision 3/4/5/6/10)', ()
       setItems, setSections, setQuoteStructureMode,
     })} />);
     fireEvent.click(screen.getByText('Switch to a regular quote'));
-    expect(confirmSpy).toHaveBeenCalled();
-    expect(setSections).toHaveBeenCalledWith([]);
+    expect(await answerAppDialog(true)).toContain('Switching to a regular quote will merge all units into one list.');
+    await waitFor(() => expect(setSections).toHaveBeenCalledWith([]));
     expect(setQuoteStructureMode).toHaveBeenCalledWith('regular');
     const updater = setItems.mock.calls[0][0];
     const result = updater([{ description: 'Window', section_key: 'sec1' }]);
     expect(result[0].section_key).toBeNull();
-    confirmSpy.mockRestore();
   });
 
-  it('declining the confirmation leaves the divided structure untouched', () => {
+  it('declining the confirmation leaves the divided structure untouched', async () => {
     const setSections = vi.fn();
-    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(false);
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }], setSections })} />);
     fireEvent.click(screen.getByText('Switch to a regular quote'));
+    await answerAppDialog(false);
     expect(setSections).not.toHaveBeenCalled();
-    confirmSpy.mockRestore();
   });
 });
 

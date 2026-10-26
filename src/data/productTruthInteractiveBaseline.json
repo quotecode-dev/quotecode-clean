@@ -131,6 +131,10 @@
     "interactive": 10,
     "markers": 11
   },
+  "src/components/AppDialog.jsx": {
+    "interactive": 2,
+    "markers": 2
+  },
   "src/components/AttachmentCompatRoute.jsx": {
     "interactive": 1,
     "markers": 1
@@ -345,6 +349,10 @@
   },
   "src/components/SmartPackAddOnOffer.jsx": {
     "interactive": 2,
+    "markers": 3
+  },
+  "src/components/SmartPackRemoval.jsx": {
+    "interactive": 3,
     "markers": 3
   },
   "src/components/SmartPublicQuote.jsx": {
@@ -764,6 +772,10 @@
     "markers": 0
   },
   "src/shared/wipeUserData.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/test/appDialog.js": {
     "interactive": 0,
     "markers": 0
   },

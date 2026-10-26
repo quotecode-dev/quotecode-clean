@@ -30,6 +30,7 @@ import { outputGate, authorizeWithNotice, outputBlockedMessage } from '../domain
 import PublicThanksNotice from '../components/PublicThanksNotice';
 import { useAmountAxis } from '../quoteDocument/useAmountAxis';
 import { openAttachmentFresh } from '../utils/freshAttachmentLink';
+import { askConfirm, showNotice } from '../components/AppDialog';
 
 // חוק ברזל (תיקון בעלים - עיגול שקל שלם ל"סה"כ לתשלום", עקבי חשבונאית
 // ולא רק תצוגתי): קובץ זה הוא Local/ILS בלעדית (currencySymbol קבוע ל-₪
@@ -267,12 +268,12 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
     if (quoteData.viewerIsOwner === true) {
       const notice = missingPriceOutputNotice(quote, { isHebrew: true, items: publicItemsForNotice(items) });
       if (notice && notice.blocked) { setApproveToast({ type: 'error', message: notice.text }); return; }
-      if (notice && !window.confirm(notice.text)) return;
+      if (notice && !(await askConfirm(notice.text, true))) return;
     }
     const serverPhase = quoteData.capability ? 'off' : (quoteData.viewerIsOwner === true ? (quoteData.outputPhase || 'off') : 'off');
     const gate = outputGate(finalChannel, serverPhase);
     if (gate.mode === 'authority_required') {
-      const auth = await authorizeWithNotice({ channel: finalChannel, quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => window.confirm(text), isHebrew: true });
+      const auth = await authorizeWithNotice({ channel: finalChannel, quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => askConfirm(text, true), isHebrew: true });
       const snap = auth.proceed
         ? await supabase.functions.invoke('get-public-quote', { body: { output_grant: auth.grant, channel: finalChannel } })
         : null;
@@ -818,7 +819,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
       {hasAttachments ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {attachments.map((att, idx) => (
-            <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="pq-attachment-link" onClick={(e) => openAttachmentFresh(e, { att, index: idx, loadedAt: attachmentsLoadedAtRef.current, reload: reloadAttachments, removedText: 'הקובץ הזה כבר לא מצורף להצעה.' })}>
+            <a key={idx} href={att.url} target="_blank" rel="noopener noreferrer" className="pq-attachment-link" onClick={(e) => openAttachmentFresh(e, { att, index: idx, loadedAt: attachmentsLoadedAtRef.current, reload: reloadAttachments, notify: (t) => showNotice(t, true), removedText: 'הקובץ הזה כבר לא מצורף להצעה.' })}>
               📄 {att.file_name || `קובץ מצורף #${idx + 1}`}
             </a>
           ))}

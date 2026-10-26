@@ -5,6 +5,7 @@ import { X, Package, Ruler, ChevronRight, ChevronLeft, Lock, Check, Pencil, Spar
 import { APP as NEON } from '../theme/neonTheme';
 import { formatMoneyForCurrency } from '../utils/money';
 import { cmToM, mToCm, computeMeasurementValue, resolveCalculationMethod, getActiveQuantity, sumMeasurementAreas, isMeasurableUnit, getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
+import { askConfirm } from './AppDialog';
 
 // Task 34 extension (Owner AI specification, section ג): a MANUAL quantity with a measured unit (36 m², 8 linear meters, no measurement
 // rows - the AI-draft hand-off / the form's manual override) is a charged quantity in its own right: the unit is not proof that the quantity
@@ -612,7 +613,7 @@ export default function AddItemWizard({
     setStep(target);
   }
 
-  function choosePricingMethod(m) {
+  async function choosePricingMethod(m) {
     if (m === 'area' || m === 'linear') {
       if (!canUseProfessionalQuotes) {
         onRequestUpgrade?.();
@@ -620,17 +621,18 @@ export default function AddItemWizard({
       }
     }
     if (m === pricingMethod) return;
-    const confirmed = (text) => typeof window === 'undefined' || !window.confirm || window.confirm(text);
+    // Owner 2026-10-26 (typed L-09 approval): the app's own question window, in the wizard's language
+    const confirmed = (text) => askConfirm(text, isHebrew);
     if (isEditMode && methodAtOpenRef.current && methodAtOpenRef.current !== m) {
       // חוק ברזל (Part K - "never silently reinterpret... require explicit confirmation when destructive"): in edit, every real method
       // change may reinterpret the same raw numbers - always warned before it happens (now at the method choice itself).
-      if (!confirmed(t.destructiveConversionConfirm)) return;
+      if (!(await confirmed(t.destructiveConversionConfirm))) return;
       methodAtOpenRef.current = m;
       hadMeasurementRowsAtOpenRef.current = false;
       conversionConfirmedRef.current = true;
     } else if (!isEditMode && pricingMethod && unitPrice !== '') {
       // Owner round 1 (Codex spec §4.6): a price typed for one unit is never kept silently for another
-      if (!confirmed(t.unitChangeConfirm)) return;
+      if (!(await confirmed(t.unitChangeConfirm))) return;
     }
     setPricingMethod(m);
     setErrors((e) => ({ ...e, method: undefined }));

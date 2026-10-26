@@ -99,6 +99,14 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
     smartPackAddOnLineFinish: async (addOnId, added) => (await call('smart_pack_add_on_line_finish',
       { p_add_on_id: addOnId, p_added: added })) as Record<string, unknown>,
     smartPackAddOnLineTargets: (userId) => call('smart_pack_add_on_line_targets', { p_user_id: userId }),
+    // 20261027100000 (Owner 2026-10-26): SMART PACK removed by the subscriber
+    smartPackRemovalQuote: async (userId) => (await call('smart_pack_removal_quote', { p_user_id: userId })) as Record<string, unknown>,
+    requestSmartPackRemoval: async (userId, idempotencyKey) => (await call('request_smart_pack_removal', { p_user_id: userId, p_idempotency_key: idempotencyKey })) as Record<string, unknown>,
+    smartPackRemovalBegin: async (removalId) => (await call('smart_pack_removal_begin', { p_removal_id: removalId })) as Record<string, unknown>,
+    smartPackRemovalFinish: async (removalId, removed) => (await call('smart_pack_removal_finish', { p_removal_id: removalId, p_removed: removed })) as Record<string, unknown>,
+    smartPackRemovalTargets: (userId) => call('smart_pack_removal_targets', { p_user_id: userId }),
+    smartPackRemovalRefundsDue: (userId) => call('smart_pack_removal_refunds_due', { p_user_id: userId }),
+    recordSmartPackRemovalRefund: async (removalId, refundRef) => (await call('record_smart_pack_removal_refund', { p_removal_id: removalId, p_refund_ref: refundRef })) as Record<string, unknown>,
     applyVerifiedLineEvent: async (e) => {
       // The §2.4 signature has no removal parameter: a removal event is refused (no state change) until it is defined.
       if (e.removal) return { ok: false, code: 'invalid_event' };
