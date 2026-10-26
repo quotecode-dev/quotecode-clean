@@ -2,7 +2,7 @@
 // אחד ..."): the plans window of a subscriber whose SMART PACK renews with the plan says the total; abroad the card is in the account
 // currency with the USD charge, and SMART PACK is an information line - HE + EN.
 import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen, cleanup } from '@testing-library/react';
+import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { parseAccountSummary } from '../supabase/functions/_shared/subscriptionContract.ts';
 import PricingModal from './components/PricingModal';
 import { readFileSync } from 'node:fs';
@@ -30,6 +30,13 @@ describe('א - the total with SMART PACK on the subscriber card (HE + EN)', () =
     const s = S({ smartPack: { active: true, source: 'add_on', until: null } });
     open(isHebrew, { ...s, billingPeriod: 'year' });
     expect(screen.getByTestId('plans-smart-pack-total').textContent).toBe(text);
+  });
+  // Owner console 2026-10-26 (typed: "מאשר להציג את שורת המחיר הכולל עם חכם פלוס גם בלשונית השנתי")
+  it.each([[true, 'כולל חכם פלוס: ₪408.00 לשנה'], [false, 'Including SMART PACK: ₪408.00 / year']])('a monthly subscriber on the annual tab sees the annual total too (isHebrew %s)', (isHebrew, text) => {
+    open(isHebrew, S({ smartPack: { active: true, source: 'add_on', until: null } }));
+    fireEvent.click(document.querySelector('input[data-period="year"]'));
+    expect(screen.getByTestId('plans-smart-pack-total').textContent).toBe(text);
+    expect(screen.getByTestId('plans-modal-card-all_inclusive').querySelector('[data-price]').textContent).toBe('₪306.00');
   });
   it.each([true, false])('never a total while SMART PACK is not on the standing order (it ends on a date) or not active (isHebrew %s)', (isHebrew) => {
     open(isHebrew, S({ smartPack: { active: true, source: 'add_on', until: '2026-11-25T10:00:00.000Z' } }));
