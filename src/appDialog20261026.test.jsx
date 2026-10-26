@@ -6,7 +6,7 @@ import { act, fireEvent, renderHook, screen, waitFor } from '@testing-library/re
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { cwd } from 'node:process';
-import { askConfirm, showNotice, showCopyText, andAllowed, whenAllowed, leaveLabels } from './components/AppDialog';
+import { askConfirm, askChoice, showNotice, showCopyText, andAllowed, whenAllowed, leaveLabels } from './components/AppDialog';
 import { authorizeWithNotice } from './domain/subscriptions/outputAuthority';
 import { useInAppBack } from './hooks/useInAppBack';
 
@@ -35,7 +35,7 @@ describe('the app window', () => {
     expect(d.getAttribute('role')).toBe('alertdialog');
     expect(screen.getByTestId('app-dialog-yes').textContent).toBe('לצאת בלי לשמור');
     expect(screen.getByTestId('app-dialog-no').textContent).toBe('להישאר');
-    expect(document.activeElement).toBe(screen.getByTestId('app-dialog-no')); // the safe answer has the focus
+    await waitFor(() => expect(document.activeElement).toBe(screen.getByTestId('app-dialog-no'))); // the safe answer has the focus
     expect(d.closest('.no-print')).not.toBeNull(); // never printed (L-28)
     await act(async () => { fireEvent.click(screen.getByTestId('app-dialog-yes')); });
     await expect(p).resolves.toBe(true);
@@ -81,7 +81,7 @@ describe('the app window', () => {
     await screen.findByTestId('app-dialog-copy');
     const area = screen.getByTestId('app-dialog-copy-text');
     expect(area.value).toBe('Hi Dana, here is your quote');
-    expect(document.activeElement).toBe(area);
+    await waitFor(() => expect(document.activeElement).toBe(area));
     expect(screen.getByTestId('app-dialog-close').textContent).toBe('Close');
     await act(async () => { fireEvent.click(screen.getByTestId('app-dialog-close')); });
     await expect(c).resolves.toBeUndefined();
@@ -134,5 +134,33 @@ describe('the phone Back while the question window is open', () => {
     expect(applied).toEqual(['main|']);
     expect(hook.result.current.depth).toBe(0);
     push.mockRestore(); back.mockRestore();
+  });
+});
+
+// Owner console 2026-10-26 (typed L-17 approval, Codex F-08): the unknown-currency template question has two named answers and Cancel;
+// Escape / the backdrop / Back cancel - never "without prices"
+describe('a question with named answers', () => {
+  it('each answer is returned by name; Escape and the backdrop return null (cancel)', async () => {
+    const opts = { options: [{ value: 'with', label: 'Use the prices' }, { value: 'without', label: 'Without prices' }], cancel: 'Cancel' };
+    let p = askChoice('Use the prices?', false, opts);
+    await screen.findByTestId('app-dialog-choice');
+    expect(screen.getByTestId('app-dialog-no').textContent).toBe('Cancel');
+    await act(async () => { fireEvent.click(screen.getByTestId('app-dialog-choice-without')); });
+    await expect(p).resolves.toBe('without');
+    p = askChoice('Use the prices?', false, opts);
+    await screen.findByTestId('app-dialog-choice');
+    await act(async () => { fireEvent.keyDown(document.activeElement, { key: 'Escape' }); });
+    await expect(p).resolves.toBeNull();
+    p = askChoice('Use the prices?', false, opts);
+    await screen.findByTestId('app-dialog-choice');
+    await act(async () => { fireEvent.mouseDown(screen.getByTestId('app-dialog-backdrop')); });
+    await expect(p).resolves.toBeNull();
+  });
+  it('the template flow: cancel stops before any quote opens; "without prices" removes the prices only', () => {
+    const d = readFileSync(join(cwd(), 'src', 'pages', 'Dashboard.jsx'), 'utf8').replace(/\r/g, '');
+    const fn = d.slice(d.indexOf('const handleUseTemplate = async (content) => {'), d.indexOf('if (handleCreateNewQuoteClick() === false) return;'));
+    expect(fn).toContain('const choice = await askChoice(');
+    expect(fn).toContain('if (choice === null) return;');
+    expect(fn).toContain("if (choice === 'without') templateItems = withoutPrices(f.items);");
   });
 });

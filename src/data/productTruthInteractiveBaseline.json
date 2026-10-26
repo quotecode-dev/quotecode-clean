@@ -16,12 +16,12 @@
     "markers": 4
   },
   "src/components/AddAnotherItemDialog.jsx": {
-    "interactive": 6,
-    "markers": 7
+    "interactive": 2,
+    "markers": 2
   },
   "src/components/AddItemWizard.jsx": {
-    "interactive": 14,
-    "markers": 18
+    "interactive": 18,
+    "markers": 25
   },
   "src/components/AddressSuggestInput.jsx": {
     "interactive": 0,
@@ -132,8 +132,8 @@
     "markers": 11
   },
   "src/components/AppDialog.jsx": {
-    "interactive": 2,
-    "markers": 2
+    "interactive": 3,
+    "markers": 3
   },
   "src/components/AttachmentCompatRoute.jsx": {
     "interactive": 1,

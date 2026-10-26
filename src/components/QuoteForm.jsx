@@ -246,13 +246,12 @@ export default function QuoteForm({
     // Owner 2026-10-18 (L-09 approval): after a NEW item, ask "add another item?" - Yes opens the catalog tick list
     setAnotherItemPrompt({ sectionKey: savedItem.section_key ?? null });
   };
-  // every ticked catalog item = the same shape as a fixed-price catalog pick in the wizard (name, catalog price, quantity 1)
-  const handleAddCatalogItems = (picked) => {
-    const sectionKey = anotherItemPrompt?.sectionKey ?? null;
-    const added = picked.map((sv) => ({ description: sv.name, quantity: '1', unit_price: String(sv.price ?? ''), isFromCatalog: true, section_key: sectionKey }));
-    if (typeof onCatalogItemAdded === 'function') picked.forEach((sv, i) => onCatalogItemAdded(sv.id, added[i]));
+  // Owner console 2026-10-26 (typed L-09 approval, docs/CODEX_ITEM_PATHS_SPEC_2026-10-26.md): the catalog items checked together in the
+  // wizard are added in ONE update, in their order; the wizard already reported each catalog item (onCatalogItemAdded). No "add another
+  // item?" question after a whole selection.
+  const handleWizardSaveMany = (added) => {
+    if (!Array.isArray(added) || added.length === 0) return;
     setItems((prev) => [...prev, ...added]);
-    setAnotherItemPrompt(null);
   };
 
   // AI Chat Hardening overnight task, Track B/C: bubbles the item-wizard's
@@ -673,14 +672,12 @@ export default function QuoteForm({
         resumeState={wizardResumeState}
         onDraftSnapshot={(st) => { if (onWizardDraftChange) onWizardDraftChange(st ? { open: true, editingItemIndex, wizardSectionKey, state: st } : null); }}
         onCatalogItemAdded={onCatalogItemAdded}
+        onAddMany={handleWizardSaveMany}
+        quoteItems={items}
       />
       {anotherItemPrompt && !isAddWizardOpen && (
         <AddAnotherItemDialog
-          services={services}
           isHebrew={isHebrew}
-          sym={sym}
-          formatMoneyDisplay={fmtMoney}
-          onAddSelected={handleAddCatalogItems}
           onNewItem={() => { const key = anotherItemPrompt.sectionKey; setAnotherItemPrompt(null); openAddWizard(key); }}
           onClose={() => setAnotherItemPrompt(null)}
         />

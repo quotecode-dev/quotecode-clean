@@ -133,7 +133,7 @@ import { loadServiceSchedule, normalizeServiceSchedule, probeServiceSchedule, sa
 import { loadShareDefaults } from '../utils/shareDefaultsClient';
 import { useInAppBack, closeTopDialogWithEscape } from '../hooks/useInAppBack';
 import NavBackBar from '../components/NavBackBar';
-import { askConfirm, showCopyText, andAllowed, whenAllowed, leaveLabels } from '../components/AppDialog';
+import { askConfirm, askChoice, showCopyText, andAllowed, whenAllowed, leaveLabels } from '../components/AppDialog';
 import { buildShareText } from '../../supabase/functions/_shared/shareMessage.js';
 
 // IRON-ILS-001: formatNum is now NON-MONEY only (quantities/measurements). Every displayed money
@@ -4137,12 +4137,15 @@ Continue anyway?`, isHebrew);
       templateItems = withoutPrices(f.items);
     } else if (templateCurrencyUnknown(f)) {
       // R-20: saved before the template remembered its currency - the user decides whether the prices are in this quote's currency
-      // Owner 2026-10-26: two named answers instead of OK / Cancel
-      const keep = await askConfirm(isHebrew
+      // Owner console 2026-10-26 (typed L-17 approval, Codex spec F-08): two named answers and an explicit Cancel - Escape / the backdrop /
+      // Back cancel the whole template use (never "without prices")
+      const choice = await askChoice(isHebrew
         ? `התבנית נשמרה לפני שנשמר בה המטבע של המחירים. להשתמש במחירים כמו שהם, ב-${currency}? אפשר גם להעתיק רק את התיאורים והכמויות, בלי מחירים.`
         : `This template was saved before it remembered the currency of its prices. Use the prices as they are, in ${currency}? You can also copy only the descriptions and quantities, without prices.`, isHebrew,
-        isHebrew ? { yes: 'להשתמש במחירים', no: 'בלי מחירים' } : { yes: 'Use the prices', no: 'Without prices' });
-      if (!keep) templateItems = withoutPrices(f.items);
+        { options: isHebrew ? [{ value: 'with', label: 'להשתמש במחירים' }, { value: 'without', label: 'בלי מחירים' }] : [{ value: 'with', label: 'Use the prices' }, { value: 'without', label: 'Without prices' }],
+          cancel: isHebrew ? 'ביטול' : 'Cancel' });
+      if (choice === null) return;
+      if (choice === 'without') templateItems = withoutPrices(f.items);
     }
     if (handleCreateNewQuoteClick() === false) return;
     if (templateItems) setItems(templateItems);
