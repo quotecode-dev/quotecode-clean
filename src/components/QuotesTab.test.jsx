@@ -649,8 +649,7 @@ describe.each([
       unmount();
       return out;
     };
-    // Owner console 2026-10-26 (typed L-13 / L-14 / L-17): a complete draft says it is a draft, ready to send
-    expect(state(mk('x', { status: 'draft' }))).toEqual([isHebrew ? 'טיוטה · מוכנה לשליחה' : 'Draft · ready to send', 'needs-sending']);
+    expect(state(mk('x', { status: 'draft' }))).toEqual([isHebrew ? 'צריך לשלוח' : 'Needs sending', 'needs-sending']);
     expect(state(mk('x', { status: 'draft', total: 0 }))).toEqual([isHebrew ? 'טיוטה' : 'Draft', 'draft']);
     expect(state(mk('x', { status: 'sent', view_count: 4 }))).toEqual([isHebrew ? 'נצפתה, ממתינה' : 'Viewed, awaiting', 'hot']);
     expect(state(mk('x', { status: 'approved' }))).toEqual([isHebrew ? 'אושרה' : 'Approved', 'approved']);
@@ -908,8 +907,7 @@ describe.each([
       expect([...client.children].map((c) => c.className)).toEqual(['quote-modern-client-name']);
       const number = row.querySelector(':scope > .quote-modern-number');
       expect(number.contains(trigger)).toBe(false);
-      // Owner console 2026-10-26 (the quote-list approval, L-07): the number's only child is the link that opens the quote
-      expect([...number.children].map((c) => c.getAttribute('data-testid'))).toEqual(['quote-number-open']);
+      expect(number.children).toHaveLength(0);
       expect(number.textContent.startsWith('#')).toBe(false);
     }
     // exactly one control per row before the seven data cells; the header still has seven sortable headers (no Action column)

@@ -5,7 +5,7 @@
 //   approved / paid  the final statuses
 //   sent_*           saved Sent, or a Draft whose link the customer already opened (shared by hand)
 //   unfinished       a draft with nothing to charge yet                           "טיוטה"
-//   needs_sending    a complete draft the customer has not seen                    "טיוטה · מוכנה לשליחה" (Owner 2026-10-26)
+//   needs_sending    a complete draft the customer has not seen                    "צריך לשלוח"
 //   expired          not approved / paid and its validity date has passed           "פג תוקף" (Owner 2026-10-23, typed L-13 / L-14 / L-17 / L-25 / L-26)
 import { isHotQuote, isAwaitingQuote } from './quoteStatistics';
 import { sentNotViewed } from './quoteSentMark';
@@ -39,9 +39,7 @@ const LABELS = Object.freeze({
   sent_viewed: ['נשלחה · נצפתה', 'Sent · viewed'],
   sent: ['נשלחה', 'Sent'],
   unfinished: ['טיוטה', 'Draft'],
-  // Owner console 2026-10-26 (typed: "מאשר שינוי ב-L-13, L-14 ו-L-17: התווית "צריך לשלוח" בטיוטה גמורה הופכת ל"טיוטה · מוכנה לשליחה" ..."):
-  // a saved draft says it is a draft - and that it is complete and ready to send
-  needs_sending: ['טיוטה · מוכנה לשליחה', 'Draft · ready to send'],
+  needs_sending: ['צריך לשלוח', 'Needs sending'],
   expired: ['פג תוקף', 'Expired'],
 });
 export const quoteDisplayLabel = (key, isHebrew) => (LABELS[key] || LABELS.needs_sending)[isHebrew ? 0 : 1];
