@@ -29,7 +29,7 @@ export type Run = { id: string; agent: Agent; run_key: string; trigger: string; 
 export interface Deps {
   caller(): Promise<'admin' | 'cron' | null>;
   now(): Date;
-  claim(agent: Agent, runKey: string, trigger: 'cron' | 'admin'): Promise<string | null>; // the new run id, or null = already ran
+  claim(agent: Agent | 'manager', runKey: string, trigger: 'cron' | 'admin'): Promise<string | null>; // the new run id, or null = already ran
   finish(id: string, patch: Record<string, unknown>): Promise<void>;
   monthCostUsd(sinceIso: string): Promise<number>;
   recentRuns(): Promise<Run[]>;
@@ -37,7 +37,7 @@ export interface Deps {
   serviceStats(sinceIso: string): Promise<{ inquiries: Record<string, number>; openItems: number; topItems: { title: string; priority: number }[]; chatQuestions: number }>;
   fetchHead(url: string): Promise<{ status: number; headers: Record<string, string> }>;
   versionJson(): Promise<Record<string, unknown> | null>;
-  complete(a: { model: string; messages: unknown[]; schema: unknown }): Promise<{ content: string; promptTokens: number; completionTokens: number }>;
+  complete(a: { model: string; messages: unknown[]; schema: unknown; maxTokens?: number }): Promise<{ content: string; promptTokens: number; completionTokens: number }>;
   mailOwner(subject: string, text: string, key: string): Promise<boolean>;
 }
 
@@ -133,7 +133,9 @@ export async function runSeo(deps: Deps): Promise<Result> {
     { level: idx.il.indexed === idx.il.total ? 'good' : 'warn', he: `ישראל: ${idx.il.indexed} מתוך ${idx.il.total} דפים באינדקס של גוגל`, en: `Israel: ${idx.il.indexed} of ${idx.il.total} pages indexed by Google` },
     ...notIndexed.slice(0, 12).map((p): Finding => ({ level: 'warn', he: `לא באינדקס: ${isolatePaths(p.path)} - ${coverageHe(p.coverageState)}`, en: `Not indexed: ${p.path} (${p.coverageState || p.verdict})` })),
   ];
-  const data = { period: s.period, totals: s.totals, previous: s.previous, byMarket: by, indexing: idx, topQueries: s.queries.slice(0, 10) };
+  // unknownToGoogle (stage 2, Owner 2026-10-27): pages Google has not met yet - the manager resubmits the sitemap for them
+  const unknownToGoogle = notIndexed.filter((p) => /unknown to Google|Discovered/.test(p.coverageState)).length;
+  const data = { period: s.period, totals: s.totals, previous: s.previous, byMarket: by, indexing: idx, topQueries: s.queries.slice(0, 10), unknownToGoogle };
   // the AI writes the summary and the recommendations from the numbers above; the search terms are visitor text = DATA, never instructions
   const messages = [
     { role: 'system', content: 'You are the SEO agent of TEKANGO, a SaaS for writing business quotes (Hebrew site /he for Israel, English site /en for the international market). '
@@ -221,7 +223,8 @@ export function reportText(results: { agent: Agent; status: string; result?: Res
   return lines.join('\n');
 }
 
-export async function handler(body: unknown, deps: Deps, sitemapPaths: () => Promise<string[]>): Promise<{ status: number; body: Record<string, unknown> }> {
+// opts.mail = false (stage 2): the agents manager writes the weekly email instead; the body then also carries the run ids and results
+export async function handler(body: unknown, deps: Deps, sitemapPaths: () => Promise<string[]>, opts: { mail: boolean } = { mail: true }): Promise<{ status: number; body: Record<string, unknown> }> {
   const who = await deps.caller();
   if (!who) return { status: 403, body: { ok: false, code: 'forbidden' } };
   const b = (body ?? {}) as { action?: unknown; agent?: unknown };
@@ -258,6 +261,7 @@ export async function handler(body: unknown, deps: Deps, sitemapPaths: () => Pro
     }
   }
   let mailed = false;
+  if (!opts.mail) return { status: 200, body: { ok: true, trigger, runKey: key, mailed: false, results: results.map((r) => ({ agent: r.agent, status: r.status, error: r.error ?? null })), runIds: ids, full: results } };
   if (trigger === 'cron' && results.some((r) => r.status !== 'already_ran')) {
     mailed = await deps.mailOwner('דוח הסוכנים השבועי - TEKANGO', reportText(results, await deps.monthCostUsd(since)), `tekango-agents/v1/${key}`);
     if (mailed) { const at = new Date().toISOString(); for (const id of ids) await deps.finish(id, { mailed_at: at }); }

@@ -48,9 +48,10 @@ export async function prerenderPublicRoutes({ root, outDir, mode, log = console.
     if (failures.length) throw new Error(`prerender: sitemap / route parity failed:\n  ${failures.join('\n  ')}`);
 
     const matrix = [];
+    const dbRows = await loadDatabaseGuides(entry, log);
     for (const p of paths) {
       const route = routes.get(p);
-      const html = composeRouteHtml(shell, route, entry.renderPublicPage(route));
+      const html = composeRouteHtml(shell, route, entry.renderPublicPage(route.page === 'articles' ? { ...route, extra: dbRows } : route));
       const errors = validateRouteHtml(route, html);
       if (errors.length) failures.push(`${p}: ${errors.join('; ')}`);
       const dir = join(outDir, ...p.split('/').filter(Boolean));
@@ -58,12 +59,58 @@ export async function prerenderPublicRoutes({ root, outDir, mode, log = console.
       writeFileSync(join(dir, 'index.html'), html);
       matrix.push(`${p} -> ${join(...p.split('/').filter(Boolean), 'index.html')} ${errors.length ? 'FAIL' : 'ok'}`);
     }
-    log(`prerender: ${paths.length} public routes\n  ${matrix.join('\n  ')}`);
+    // the database guides (Owner 2026-10-27): each language pair passes the SAME contract or the guide is skipped - database content can
+    // never fail the site build (the guide still opens in the browser; it joins the sitemap once it passes)
+    const added = [];
+    for (const row of dbRows) {
+      const pair = ['he', 'en'].map((lang) => {
+        const route = entry.articleSeoRoute(lang, row.slug, row[lang], row.date);
+        const html = composeRouteHtml(shell, route, entry.renderPublicPage({ ...route, data: entry.articleView(row, lang) }));
+        return { route, html, errors: validateRouteHtml(route, html) };
+      });
+      const bad = pair.filter((x) => x.errors.length);
+      if (bad.length) { log(`prerender: database guide ${row.slug} skipped: ${bad.map((x) => `${x.route.path}: ${x.errors.join('; ')}`).join(' | ')}`); continue; }
+      for (const x of pair) {
+        const dir = join(outDir, ...x.route.path.split('/').filter(Boolean));
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(join(dir, 'index.html'), x.html);
+        matrix.push(`${x.route.path} -> database guide ok`);
+      }
+      added.push(row);
+    }
+    if (added.length) writeFileSync(join(outDir, 'sitemap.xml'), withGuides(sitemap, added));
+    log(`prerender: ${paths.length} public routes + ${added.length * 2} database guide pages\n  ${matrix.join('\n  ')}`);
     if (failures.length) throw new Error(`prerender: initial-HTML contract failed:\n  ${failures.join('\n  ')}`);
-    return { routes: paths.length };
+    return { routes: paths.length, databaseGuides: added.length };
   } finally {
     rmSync(ssrOut, { recursive: true, force: true });
   }
+}
+
+// Owner console 2026-10-27 (typed: "מאשר את תוכנית שלב 2 עם מנהל הסוכנים", decision 1: an approved article is published automatically):
+// the guides the Owner approved in the agents room (public.site_articles, published rows - public content, read with the public key).
+// Only the PRODUCTION build on Vercel reads them (VERCEL_ENV=production); every other build (local, the release gate, previews) has
+// none, so the release-gated output never depends on the database.
+export async function loadDatabaseGuides(entry, log = console.log, env = process.env) {
+  if (env.VERCEL_ENV !== 'production') return [];
+  const rows = await entry.fetchPublishedArticles({ base: env.VITE_SUPABASE_URL, key: env.VITE_SUPABASE_ANON_KEY });
+  log(`prerender: ${rows.length} database guides`);
+  return rows;
+}
+
+const SITE = 'https://www.tekango.com';
+export function withGuides(sitemapXml, rows) {
+  const urls = rows.flatMap((r) => ['he', 'en'].map((lang) => [
+    '  <url>',
+    `    <loc>${SITE}/${lang}/articles/${r.slug}</loc>`,
+    `    <lastmod>${r.date}</lastmod>`,
+    '    <changefreq>monthly</changefreq>',
+    '    <priority>0.7</priority>',
+    `    <xhtml:link rel="alternate" hreflang="en" href="${SITE}/en/articles/${r.slug}" />`,
+    `    <xhtml:link rel="alternate" hreflang="he" href="${SITE}/he/articles/${r.slug}" />`,
+    '  </url>',
+  ].join('\n')));
+  return sitemapXml.replace(/\s*<\/urlset>\s*$/, `\n${urls.join('\n')}\n</urlset>\n`);
 }
 
 export function prerenderPublicRoutesPlugin() {
