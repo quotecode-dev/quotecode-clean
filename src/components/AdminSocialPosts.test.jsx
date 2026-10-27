@@ -142,4 +142,25 @@ describe('stage 2: a connected account (Owner 2026-10-27, "מאשר את שלב 
     expect(screen.getByTestId('social-failed-p6')).toBeTruthy();
     expect(screen.getByTestId('social-copy-p6')).toBeTruthy(); // still copy / download / published by hand
   });
+
+  it.each([[true, 'פרסום עכשיו', 'הפוסט פורסם. הקישור אליו מופיע ברשימת "פורסמו לאחרונה".', 'הפוסט מתפרסם ממש עכשיו. רעננו בעוד דקה.'],
+    [false, 'Publish now', 'The post was published. Its link is in "Published lately".', 'The post is being published right now. Refresh in a minute.']])(
+    'isHebrew=%s: "publish now" on a ready post of a connected account only (Owner 2026-10-27, "מאשר")', async (isHebrew, label, okText, busyText) => {
+      const stuck = post('p9', 'ig_intl', 'approved', { decided_at: '2026-10-27T20:19:12.345+00:00' });
+      invoke.mockResolvedValue({ data: { ...STATE, autoChannels: ['fb_il', 'fb_intl', 'ig_il', 'ig_intl'], posts: [stuck, post('p3', 'tt_il', 'approved')] }, error: null });
+      render(<AdminSocialPosts isHebrew={isHebrew} />);
+      await screen.findByTestId('social-posts');
+      expect(screen.getByTestId('social-publish-now-p9').textContent).toBe(label);
+      expect(screen.getByTestId('social-publish-now-p9').className).toContain('av-primary');
+      expect(screen.getByTestId('social-copy-p9').className).not.toContain('av-primary');
+      expect(screen.queryByTestId('social-publish-now-p3')).toBeNull(); // TikTok stays manual
+      expect(screen.getByTestId('social-post-p9').textContent).not.toContain(isHebrew ? 'החשבון עוד לא נפתח' : 'The account is not open yet');
+      invoke.mockResolvedValueOnce({ data: { ok: true, status: 'published', url: 'https://www.instagram.com/p/ABC/' }, error: null });
+      fireEvent.click(screen.getByTestId('social-publish-now-p9'));
+      await waitFor(() => expect(invoke).toHaveBeenCalledWith('agents-room', { body: { action: 'publish_now', id: 'p9' } }));
+      await waitFor(() => expect(screen.getByTestId('social-posts-notice').textContent).toBe(okText));
+      invoke.mockResolvedValueOnce({ data: null, error: { context: { json: async () => ({ ok: false, code: 'publishing' }) } } });
+      fireEvent.click(screen.getByTestId('social-publish-now-p9'));
+      await waitFor(() => expect(screen.getByTestId('social-posts-notice').textContent).toBe(busyText));
+    });
 });
