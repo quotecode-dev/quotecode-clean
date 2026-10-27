@@ -227,6 +227,13 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/billing-reconcile/index.ts"
 
+[functions.agents-room]
+enabled = true
+# Owner console 2026-10-27 (typed: "מאשר שלב 1 של חדר הסוכנים ..."): the three read-only agents. Called by the weekly site cron with the
+# shared cron secret (x-cron-secret, checked in code) - no user JWT exists for a cron call; the Owner's screen is a super admin (checked in code).
+verify_jwt = false
+entrypoint = "./functions/agents-room/index.ts"
+
 [functions.search-console]
 enabled = true
 # Owner console 2026-10-26 (typed: "מאשר לבנות מסך גוגל סרץ' קונסול במסך הניהול, בקריאה בלבד"): the admin's read-only Search Console

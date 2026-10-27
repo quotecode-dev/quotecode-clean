@@ -27,7 +27,7 @@ describe('trial reminder copy - no legacy plan name, behavior unchanged', () => 
     // the daily job keeps its one schedule; the only other cron is the smart support email's evening summary (Owner 2026-10-20,
     // L-22 stage 2) the Owner's monthly expense-invoice scan (Owner 2026-10-22, typed L-22) the weekly support review (Owner 2026-10-23, typed L-22) and the daily payment reconciliation (Owner 2026-10-23, typed L-22) - no cron path reaches the retired trial job
     expect(vercel.crons.filter((c) => c.path === '/api/cron')).toEqual([{ path: '/api/cron', schedule: '0 8 * * *' }]);
-    expect(vercel.crons.map((c) => c.path).sort()).toEqual(['/api/billing-reconcile', '/api/cron', '/api/expense-scan', '/api/support-digest', '/api/support-weekly-review']);
+    expect(vercel.crons.map((c) => c.path).sort()).toEqual(['/api/agents-weekly', '/api/billing-reconcile', '/api/cron', '/api/expense-scan', '/api/support-digest', '/api/support-weekly-review']);
     expect(readFileSync('api/support-digest.js', 'utf-8')).not.toContain('send-trial-expiration-email');
     const cron = readFileSync('api/cron.js', 'utf-8');
     expect(cron).not.toContain("supabase.functions.invoke('send-trial-expiration-email', {");
