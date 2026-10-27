@@ -11,13 +11,13 @@
 // - the regression gates (publicSeoRoutes.test.js, prerenderedHtml.test.js) -> sitemap parity + locale rules.
 //
 // Locked policy (TEKANGO_AI_ARCHITECTURE.md §55.11): /he = Local canonical, /en = International canonical; "/" is NOT a page - the
-// middleware resolves it to /he or /en server-side before any content paints (middleware.ts), so "/" is never a canonical and is
-// only the hreflang x-default of the landing pair. HE entries are Hebrew / RTL / Local; EN entries are English / LTR / International.
+// middleware resolves it to /he or /en server-side before any content paints (middleware.ts), so "/" is never a canonical. Owner
+// 2026-10-27 ("מאשר תוכנית א לדף הבית, כולל שינוי בסעיף 55.11"): the landing x-default is /en (65% international), never "/". HE entries are Hebrew / RTL / Local; EN entries are English / LTR / International.
 
 export const LANDING_HREFLANG = [
   { lang: 'he', path: '/he' },
   { lang: 'en', path: '/en' },
-  { lang: 'x-default', path: '/' },
+  { lang: 'x-default', path: '/en' },
 ];
 
 import { ARTICLES, ARTICLE_SLUGS, ARTICLES_INDEX, ARTICLES_DATE } from './publicArticles';
