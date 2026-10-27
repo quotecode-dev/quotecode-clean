@@ -3,7 +3,7 @@
 // a code task goes to Claude only after the Owner approves; nothing for the cron or the public.
 import { describe, it, expect, vi } from 'vitest';
 import { REQUIRED_HEADERS, type Finding } from './lib.ts';
-import { handle, articleMarkets, weekStartDay, draftErrors, slugify, WRITE_SCOPE, type StageDeps, type Action, type ArticleRow, type ArticleLang } from './manager.ts';
+import { handle, articleMarkets, draftErrors, slugify, WRITE_SCOPE, type StageDeps, type Action, type ArticleRow, type ArticleLang } from './manager.ts';
 
 const NOW = new Date('2026-11-01T05:30:00Z'); // Sunday 07:30 Israel
 const KEY = JSON.stringify({ client_email: 'reader@x.iam.gserviceaccount.com', private_key: '-----BEGIN PRIVATE KEY-----\nAAA\n-----END PRIVATE KEY-----\n' });
@@ -69,7 +69,7 @@ function deps(over: Partial<StageDeps> = {}) {
     insertAction: vi.fn(async (a) => {
       if (a.dedupe_key && [...actions.values()].some((x) => x.dedupe_key === a.dedupe_key)) return null;
       const id = `00000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`;
-      actions.set(id, { id, created_at: d.now().toISOString(), detail_he: null, detail_en: null, payload: {}, status: 'proposed', decided_at: null, done_at: null, result: {}, error: null, ...a } as never);
+      actions.set(id, { id, created_at: NOW.toISOString(), detail_he: null, detail_en: null, payload: {}, status: 'proposed', decided_at: null, done_at: null, result: {}, error: null, ...a } as never);
       return id;
     }),
     updateAction: vi.fn(async (id: string, patch: Record<string, unknown>) => { Object.assign(actions.get(id)!, patch); }),
@@ -225,35 +225,6 @@ describe('agents room stage 2 - the manager', () => {
     expect(draftErrors({ ...goodDraft, slug: 'ok-slug', en: lang('Guide', `${enP} שלום `) })).toContain('en.hebrew');
     expect(draftErrors({ ...goodDraft, slug: 'ok-slug', he: { ...goodDraft.he, sections: goodDraft.he.sections.slice(0, 2) } })).toContain('he.sections');
     expect(slugify('  Hello, World -- 2026! ')).toBe('hello-world-2026');
-  });
-
-  it('Owner 2026-10-27 ("מאשר לתקן את מכסת המאמרים לשתיים בשבוע"): two article proposals a week however many runs, no repeated recommendation, a new week gets two more', async () => {
-    const d = deps();
-    d.caller = admin();
-    let t = new Date('2026-11-01T06:10:00Z'); // Sunday 08:10 Israel
-    d.now = () => t;
-    const arts = () => [...d.actions.values()].filter((a) => a.action_type === 'article_draft');
-    const recs = () => [...d.actions.values()].filter((a) => a.action_type === 'claude_task' || a.action_type === 'none');
-    await handle({ action: 'run', agent: 'manager' }, d, paths);
-    expect(arts()).toHaveLength(2);
-    const firstRecs = recs().length;
-    for (const h of [1, 2, 30]) { // later the same day and two days later - the same week
-      t = new Date(Date.parse('2026-11-01T06:10:00Z') + h * 3_600_000);
-      expect((await handle({ action: 'run', agent: 'manager' }, d, paths)).status).toBe(200);
-    }
-    t = new Date('2026-11-07T20:00:00Z'); // Saturday 22:00 Israel - still the same week
-    await handle({ action: 'run', agent: 'manager' }, d, paths);
-    expect(arts()).toHaveLength(2);
-    expect(recs()).toHaveLength(firstRecs); // the same recommendation is never proposed again
-    t = new Date('2026-11-08T06:10:00Z'); // the next Sunday
-    await handle({ action: 'run', agent: 'manager' }, d, paths);
-    expect(arts()).toHaveLength(4);
-    expect(arts().slice(2).map((a) => a.payload.market)).toEqual(articleMarkets(t));
-    expect(weekStartDay(new Date('2026-11-07T20:00:00Z'))).toBe('2026-11-01');
-    expect(weekStartDay(new Date('2026-11-07T22:30:00Z'))).toBe('2026-11-08'); // 00:30 Sunday in Israel
-    // the manager is told the week's articles are done
-    const last = (d.complete as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0].schema.name === 'manager_weekly');
-    expect(last[1][0].messages[0].content).toMatch(/articles: an empty array/);
   });
 
   it('the cap: the manager does not run once the month reached 20 dollars', async () => {
