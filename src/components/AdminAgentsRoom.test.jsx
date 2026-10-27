@@ -54,6 +54,12 @@ describe('the agents room', () => {
     expect(invoke).toHaveBeenCalledWith('agents-room', { body: { action: 'run', agent: 'service' } });
   });
 
+  it('Owner 2026-10-27: a cost under one cent shows 4 decimals, never $0.00', async () => {
+    invoke.mockResolvedValue({ data: { ...state, monthCostUsd: 0.0006 }, error: null });
+    render(<AdminAgentsRoom isHebrew />);
+    await waitFor(() => expect(screen.getByTestId('admin-agents-room-cost').textContent).toBe('$0.0006'));
+  });
+
   it('is an Owner-only tool in the System hub', () => {
     expect(ADMIN_DESTINATIONS.find((d) => d.id === 'agents-room')).toMatchObject({ hub: 'system', permission: 'owner', available: true });
   });
