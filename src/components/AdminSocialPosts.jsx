@@ -47,7 +47,7 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 6 }}>
           <span className="av-badge">{isHebrew ? net.he : net.en}</span>
           <span className="av-badge">{isHebrew ? mk.he : mk.en}</span>
-          {p.accountOpen === false && !auto && <span className="av-badge av-warn">{isHebrew ? 'החשבון עוד לא נפתח' : 'The account is not open yet'}</span>}
+          {p.accountOpen === false && <span className="av-badge av-warn">{isHebrew ? 'החשבון עוד לא נפתח' : 'The account is not open yet'}</span>}
           {auto && <span className="av-badge av-ok" data-testid={`social-auto-${a.id}`}>{isHebrew ? 'מחובר: יפורסם אוטומטית' : 'Connected: published automatically'}</span>}
           <span className="av-muted" style={{ fontSize: '0.78rem' }}><N v={formatShortDateTime(a.done_at || a.decided_at || a.created_at, ADMIN_DATE_MARKET)} /></span>
         </div>

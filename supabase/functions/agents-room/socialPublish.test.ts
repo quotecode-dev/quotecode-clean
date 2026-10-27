@@ -10,12 +10,10 @@ const ok = (j: unknown) => new Response(JSON.stringify(j), { status: 200 });
 const form = (init?: RequestInit) => Object.fromEntries(new URLSearchParams(String(init?.body ?? '')));
 
 describe('the Meta publication', () => {
-  it('the connected accounts: Facebook Israel, Facebook international, Instagram Israel and international - TikTok stays manual', () => {
-    expect(Object.keys(TARGETS).sort()).toEqual(['fb_il', 'fb_intl', 'ig_il', 'ig_intl']);
+  it('the connected accounts: Facebook Israel, Facebook international, Instagram Israel - TikTok and the international Instagram stay manual', () => {
+    expect(Object.keys(TARGETS).sort()).toEqual(['fb_il', 'fb_intl', 'ig_il']);
     expect(CHANNELS.find((c) => c.id === 'fb_intl')!.accountOpen).toBe(true);
     expect(TARGETS.ig_il).toMatchObject({ kind: 'instagram', tokenEnv: 'META_PAGE_IL_TOKEN' });
-    expect(TARGETS.ig_intl).toEqual({ kind: 'instagram', igUserId: '17841422352275530', tokenEnv: 'META_PAGE_INTL_TOKEN' });
-    expect(CHANNELS.find((c) => c.id === 'ig_intl')!.accountOpen).toBe(true);
   });
 
   it('Facebook: one photo post with the square image and the text, hashtags and link; the address of the new post comes back', async () => {
