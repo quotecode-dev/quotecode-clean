@@ -150,8 +150,7 @@ function ActionRow({ a, isHebrew, market, children }) {
   );
 }
 
-// onOpenInquiry (Owner 2026-10-27, "מאשר את התוכנית לגיא ולמיכל, כולל שינוי ב-L-22 במסך הפניות"): a red inquiry in the service card opens it
-export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
+export default function AdminAgentsRoom({ isHebrew }) {
   const [state, setState] = useState('loading');
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState(null);
@@ -393,17 +392,7 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                             {last.error && <p className="av-muted" style={{ fontSize: '0.8rem' }}>{isHebrew ? 'קוד: ' : 'Code: '}<bdi dir="ltr">{last.error}</bdi></p>}
                             {Array.isArray(last.findings) && last.findings.length > 0 && (
                               <ul style={{ margin: '0 0 8px', paddingInlineStart: 18, fontSize: '0.85rem', lineHeight: 1.6 }} data-testid={`agent-findings-${a.id}`}>
-                                {last.findings.map((f, i) => (
-                                  <li key={i} style={{ color: LEVEL_COLOR[f.level] || undefined }}>
-                                    {f.inquiryId && onOpenInquiry ? (
-                                      // PRODUCT_TRUTH_DECORATIVE: opens this inquiry in the inquiries screen (Owner 2026-10-27, L-22)
-                                      <button type="button" className="av-link" onClick={() => onOpenInquiry(f.inquiryId)} data-testid={`agent-inquiry-${f.inquiryId}`}
-                                        style={{ background: 'none', border: 0, padding: 0, color: 'inherit', font: 'inherit', textDecoration: 'underline', cursor: 'pointer', textAlign: 'start', minHeight: 24 }}>
-                                        {isHebrew ? f.he : f.en}
-                                      </button>
-                                    ) : (isHebrew ? f.he : f.en)}
-                                  </li>
-                                ))}
+                                {last.findings.map((f, i) => <li key={i} style={{ color: LEVEL_COLOR[f.level] || undefined }}>{isHebrew ? f.he : f.en}</li>)}
                               </ul>
                             )}
                           </>

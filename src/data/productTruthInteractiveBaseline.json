@@ -28,8 +28,8 @@
     "markers": 0
   },
   "src/components/AdminAgentsRoom.jsx": {
-    "interactive": 19,
-    "markers": 19
+    "interactive": 18,
+    "markers": 18
   },
   "src/components/AdminBillingReconcile.jsx": {
     "interactive": 3,
@@ -828,10 +828,6 @@
     "markers": 0
   },
   "src/utils/adminDates.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/adminInquiryFocus.js": {
     "interactive": 0,
     "markers": 0
   },

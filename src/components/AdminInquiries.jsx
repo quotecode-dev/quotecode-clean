@@ -9,7 +9,6 @@ import { Inbox, Search, Clock, Mail, MessageSquareText, Paperclip, X, ShieldChec
 import { supabase } from '../shared/supabase';
 import { formatShortDateTime } from '../utils/shortDate';
 import { ADMIN_DATE_MARKET } from '../utils/adminDates';
-import { peekInquiryFocus, takeInquiryFocus } from '../utils/adminInquiryFocus';
 import AdminWeeklyReview from './AdminWeeklyReview';
 import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
@@ -148,9 +147,6 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
   const [settings, setSettings] = useState(null);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [settingsError, setSettingsError] = useState('');
-  // Owner console 2026-10-27 ("מאשר את התוכנית לגיא ולמיכל, כולל שינוי ב-L-22 במסך הפניות"): arriving from the agents room's service card
-  // opens that one inquiry once the list is loaded; nothing else on this screen changes
-  const [focusId] = useState(peekInquiryFocus);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,13 +156,12 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
       .then(({ data, error }) => {
         if (cancelled) return;
         if (data) setRows(data); else if (error) setFailed(true);
-        if (data && focusId) { takeInquiryFocus(); const hit = data.find((r) => r.id === focusId); if (hit) { setSelected(hit); setReplyText(hit.draft_reply || ''); } }
         setLoading(false);
       });
     supabase.from('support_assistant_settings').select('auto_send_green, auto_send_yellow, paused').eq('id', 1).maybeSingle()
       .then(({ data }) => { if (!cancelled && data) setSettings(data); });
     return () => { cancelled = true; };
-  }, [focusId]);
+  }, []);
 
   const q = term.trim().toLowerCase();
   const byFilter = (r) => filter === 'all' || (filter === 'pending' ? isPending(r) : r.status === filter);

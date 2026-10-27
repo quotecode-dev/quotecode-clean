@@ -13,7 +13,6 @@ import AdminExpenseInvoices from './AdminExpenseInvoices';
 import AdminBillingReconcile from './AdminBillingReconcile';
 import AdminSearchConsole from './AdminSearchConsole';
 import AdminAgentsRoom from './AdminAgentsRoom';
-import { focusInquiry } from '../utils/adminInquiryFocus';
 
 // THE Admin destination registry - the one and only definition of what an
 // Admin destination is. The sidebar list, the mobile More list, the
@@ -151,11 +150,7 @@ export const ADMIN_DESTINATIONS = [
     label: { he: 'חדר הסוכנים', en: 'Agents room' },
     title: { he: 'חדר הסוכנים - סופר אדמין', en: 'Agents room - Super Admin' },
     description: { he: 'סוכני הקידום, השירות והאבטחה: מה מצאו ומה הם ממליצים', en: 'The SEO, service and security agents: what they found and recommend' },
-    render: (host) => createElement(AdminAgentsRoom, {
-      isHebrew: host.isHebrew,
-      // the service card's red inquiries open in the inquiries screen, only for an account that may open it (Owner 2026-10-27, L-22)
-      onOpenInquiry: host.can('inquiries.view') ? (id) => { focusInquiry(id); host.navigate('inquiries'); } : null,
-    }),
+    render: (host) => createElement(AdminAgentsRoom, { isHebrew: host.isHebrew }),
   },
 ];
 
