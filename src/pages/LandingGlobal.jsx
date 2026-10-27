@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, PackageCheck, Mail, BriefcaseBusiness, PenTool, Ruler, MessagesSquare, BarChart3, Zap } from 'lucide-react';
+import { Gift, PackageCheck, Mail, BriefcaseBusiness, BookOpen, PenTool, Ruler, MessagesSquare, BarChart3, Zap } from 'lucide-react';
 import { FONT_EN } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeo } from '../shared/publicSeoRoutes';
@@ -123,6 +123,8 @@ export default function LandingGlobal({ onForgotPassword }) {
         { id: 'workflow', label: 'How it works' },
         { id: 'plans', label: 'Plans' },
         { id: 'faq', label: 'FAQ' },
+        // Owner 2026-10-27 ("מאשר את תוכנית א"): the guides index is a separate page, not a landing section.
+        { id: 'guides', label: 'Guides', href: '/en/articles' },
       ],
       // No Hebrew letters on the International page: the switch is labelled in English.
       login: 'Sign In',
@@ -300,6 +302,7 @@ export default function LandingGlobal({ onForgotPassword }) {
         { kind: 'accessibility', label: 'Accessibility' },
         { href: '/en/contact', label: 'Contact Us (info@tekango.com)', icon: Mail },
         { href: '/en/tools', label: 'Business Tools', icon: BriefcaseBusiness },
+        { href: '/en/articles', label: 'Guides', icon: BookOpen },
       ],
     },
   };
