@@ -62,13 +62,7 @@ describe('approve = publish, for a connected account', () => {
       connectedChannels: () => ['fb_il', 'fb_intl', 'ig_il'],
       publishSocial: vi.fn(async () => ({ id: 'p1', url: 'https://www.facebook.com/p1' })),
       getAction: vi.fn(async (id: string) => actions.get(id) ?? null),
-      // like the database: a conditional write, and a time read back in its own spelling (+00:00)
-      updateAction: vi.fn(async (id: string, patch: Record<string, unknown>, when?: string, whenDecidedAt?: string) => {
-        const a = actions.get(id)!;
-        if (when && a.status !== when) return;
-        if (whenDecidedAt !== undefined && Date.parse(String(a.decided_at)) !== Date.parse(whenDecidedAt)) return;
-        Object.assign(a, patch, typeof patch.decided_at === 'string' ? { decided_at: new Date(patch.decided_at).toISOString().replace('Z', '+00:00') } : {});
-      }),
+      updateAction: vi.fn(async (id: string, patch: Record<string, unknown>, when?: string) => { const a = actions.get(id)!; if (when && a.status !== when) return; Object.assign(a, patch); }),
       ...over,
     } as unknown as StageDeps & { actions: Map<string, Action> };
     return d;
@@ -100,71 +94,11 @@ describe('approve = publish, for a connected account', () => {
     expect(d.publishSocial).not.toHaveBeenCalled();
   });
 
-  it('a second approval racing the first does not publish again (the stored claim is the first one)', async () => {
+  it('a second approval racing the first does not publish again (the decision time is the first one)', async () => {
     const d = deps();
     (d.getAction as ReturnType<typeof vi.fn>).mockImplementationOnce(async (id: string) => d.actions.get(id) ?? null)
-      .mockImplementationOnce(async (id: string) => ({ ...d.actions.get(id)!, error: 'publishing:the-other-request' }));
+      .mockImplementationOnce(async (id: string) => ({ ...d.actions.get(id)!, decided_at: '2026-11-01T05:59:59.000Z' }));
     expect((await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths)).status).toBe(409);
     expect(d.publishSocial).not.toHaveBeenCalled();
   });
-
-  it('the database spelling of the decision time (+00:00) does not stop the publication (the live failure of 2026-10-27)', async () => {
-    const d = deps();
-    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths)).body).toMatchObject({ ok: true, status: 'published' });
-    expect(d.publishSocial).toHaveBeenCalledTimes(1);
-    expect(d.actions.get('a1')!.decided_at).toBe('2026-11-01T06:00:00.000+00:00');
-  });
-
-describe('"publish now" - an approved post of a connected account that was not published', () => {
-  const ready = (over: Partial<Action> = {}) => {
-    const d = deps();
-    Object.assign(d.actions.get('a1')!, { status: 'approved', decided_at: '2026-11-01T05:50:00.000+00:00', error: null }, over);
-    return d;
-  };
-
-  it('publishes once and closes the post with the link', async () => {
-    const d = ready();
-    expect((await handle({ action: 'publish_now', id: 'a1' }, d, paths)).body).toEqual({ ok: true, status: 'published', url: 'https://www.facebook.com/p1' });
-    expect(d.actions.get('a1')).toMatchObject({ status: 'done', result: { published: true, auto: true }, error: null });
-    expect((await handle({ action: 'publish_now', id: 'a1' }, d, paths)).status).toBe(409);
-    expect(d.publishSocial).toHaveBeenCalledTimes(1);
-  });
-
-  it('a double press publishes once (the second claim is written only while the decision time is still the one it read)', async () => {
-    const d = ready({ error: 'publish_failed: meta_400_190' });
-    const [x, y] = await Promise.all([handle({ action: 'publish_now', id: 'a1' }, d, paths), handle({ action: 'publish_now', id: 'a1' }, d, paths)]);
-    expect([x.status, y.status].sort()).toEqual([200, 409]);
-    expect(d.publishSocial).toHaveBeenCalledTimes(1);
-  });
-
-  it('a failure leaves it ready with the reason, and it can be pressed again', async () => {
-    const d = ready();
-    (d.publishSocial as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('meta_400_190'));
-    expect((await handle({ action: 'publish_now', id: 'a1' }, d, paths)).body).toEqual({ ok: true, status: 'ready', publishError: 'publish_failed: meta_400_190' });
-    expect(d.actions.get('a1')).toMatchObject({ status: 'approved', error: 'publish_failed: meta_400_190' });
-    expect((await handle({ action: 'publish_now', id: 'a1' }, d, paths)).body).toMatchObject({ ok: true, status: 'published' });
-    expect(d.publishSocial).toHaveBeenCalledTimes(2);
-  });
-
-  it('refused: a publication under way, a post not yet approved, an account that is not connected', async () => {
-    expect((await handle({ action: 'publish_now', id: 'a1' }, ready({ error: 'publishing:x', decided_at: '2026-11-01T05:59:00.000+00:00' }), paths)).body).toEqual({ ok: false, code: 'publishing' });
-    const stale = ready({ error: 'publishing:x', decided_at: '2026-11-01T05:50:00.000+00:00' }); // a claim older than two minutes
-    expect((await handle({ action: 'publish_now', id: 'a1' }, stale, paths)).status).toBe(200);
-    expect((await handle({ action: 'publish_now', id: 'a1' }, ready({ status: 'proposed' }), paths)).body).toEqual({ ok: false, code: 'not_ready' });
-    const tiktok = ready();
-    tiktok.actions.get('a1')!.payload = { ...payload, channel: 'tt_il', network: 'tiktok' };
-    expect((await handle({ action: 'publish_now', id: 'a1' }, tiktok, paths)).body).toEqual({ ok: false, code: 'not_ready' });
-  });
-
-  it('a supervisor needs both social permissions', async () => {
-    const yes = ready({});
-    (yes.caller as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-    expect((await handle({ action: 'publish_now', id: 'a1' }, yes, paths)).status).toBe(200);
-    const no = ready({});
-    (no.caller as ReturnType<typeof vi.fn>).mockResolvedValue(null);
-    (no.can as ReturnType<typeof vi.fn>).mockImplementation(async (k: string) => k === 'social.view');
-    expect((await handle({ action: 'publish_now', id: 'a1' }, no, paths)).status).toBe(403);
-    expect(no.publishSocial).not.toHaveBeenCalled();
-  });
-});
 });

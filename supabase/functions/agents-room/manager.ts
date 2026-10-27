@@ -54,8 +54,7 @@ export interface StageDeps extends Deps {
   recentActions(): Promise<Action[]>; // the last 60 days, newest first
   insertAction(a: NewAction): Promise<string | null>; // null = the dedupe key exists (already done)
   // whenStatus: write only while the action still has that status (a decision taken meanwhile wins - the review of 2026-10-27)
-  // whenDecidedAt: also only while its decision time is still the one read (a "publish now" claim - never two publications)
-  updateAction(id: string, patch: Record<string, unknown>, whenStatus?: Action['status'], whenDecidedAt?: string): Promise<void>;
+  updateAction(id: string, patch: Record<string, unknown>, whenStatus?: Action['status']): Promise<void>;
   getAction(id: string): Promise<Action | null>;
   insertArticle(a: Omit<ArticleRow, 'id' | 'published_at' | 'status'> & { action_id: string }): Promise<string>;
   updateArticle(id: string, patch: Record<string, unknown>): Promise<void>;
@@ -67,8 +66,6 @@ export interface StageDeps extends Deps {
 
 type Out = { status: number; body: Record<string, unknown> };
 const nowIso = (d: StageDeps) => d.now().toISOString();
-// a social post being published carries its publication claim in error until the result is written
-const CLAIM = 'publishing:';
 const clip = (s: unknown, n: number) => String(s ?? '').replace(/[<>]/g, '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').trim().slice(0, n);
 
 // ---------------------------------------------------------------- article markets: 65% international over every 3 weeks
@@ -371,14 +368,22 @@ export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown
 
   // a social post (stage 1): the approval only marks it ready - the Owner posts it and then marks it published; nothing is posted here
   if (a.action_type === 'social_post') {
+    await d.updateAction(a.id, { status: 'approved', decided_at: at }, 'proposed');
     const channel = String(a.payload?.channel ?? '');
-    const connected = d.connectedChannels().includes(channel);
-    // stage 2: a connected account publishes now - only the request whose claim is stored publishes, never twice (the claim, not the
-    // decision time: the database spells a time its own way, and two presses can share a millisecond - the fix of 2026-10-27)
-    const claim = `${CLAIM}${crypto.randomUUID()}`;
-    await d.updateAction(a.id, { status: 'approved', decided_at: at, ...(connected ? { error: claim } : {}) }, 'proposed');
-    if (!connected) return { status: 200, body: { ok: true, status: 'ready' } };
-    return publishClaimed(d, a, channel, claim, 'not_pending');
+    if (!d.connectedChannels().includes(channel)) return { status: 200, body: { ok: true, status: 'ready' } };
+    // stage 2: a connected account publishes now - only the request that won the approval (decided_at is ours) publishes, never twice
+    const won = await d.getAction(a.id);
+    if (!won || won.status !== 'approved' || won.decided_at !== at) return { status: 409, body: { ok: false, code: 'not_pending' } };
+    try {
+      const p = await d.publishSocial(channel, a.payload);
+      await d.updateAction(a.id, { status: 'done', done_at: nowIso(d), result: { published: true, auto: true, url: p.url, id: p.id }, error: null }, 'approved');
+      return { status: 200, body: { ok: true, status: 'published', url: p.url } };
+    } catch (e) {
+      // the post stays ready: the Owner can retry or publish it by hand
+      const error = `publish_failed: ${String((e as Error)?.message ?? 'failed')}`.slice(0, 200);
+      await d.updateAction(a.id, { error }, 'approved');
+      return { status: 200, body: { ok: true, status: 'ready', publishError: error } };
+    }
   }
 
   if (a.action_type === 'claude_task') {
@@ -482,39 +487,6 @@ async function socialState(d: StageDeps): Promise<Out> {
   return { status: 200, body: { ok: true, posts, profile, canPublish: await d.can('social.publish'), autoChannels: d.connectedChannels() } };
 }
 
-// publishes a social post this request claimed (its claim is the stored one); a failure leaves it ready with the reason
-async function publishClaimed(d: StageDeps, a: Action, channel: string, claim: string, lost: string): Promise<Out> {
-  const won = await d.getAction(a.id);
-  if (!won || won.status !== 'approved' || won.error !== claim) return { status: 409, body: { ok: false, code: lost } };
-  try {
-    const p = await d.publishSocial(channel, a.payload);
-    await d.updateAction(a.id, { status: 'done', done_at: nowIso(d), result: { published: true, auto: true, url: p.url, id: p.id }, error: null }, 'approved');
-    return { status: 200, body: { ok: true, status: 'published', url: p.url } };
-  } catch (e) {
-    // the post stays ready: the Owner can press "publish now" again or publish it by hand
-    const error = `publish_failed: ${String((e as Error)?.message ?? 'failed')}`.slice(0, 200);
-    await d.updateAction(a.id, { error }, 'approved');
-    return { status: 200, body: { ok: true, status: 'ready', publishError: error } };
-  }
-}
-
-// "publish now" (Owner 2026-10-27, "מאשר"): an approved post of a connected account that was not published - the claim is written only
-// while the decision time is still the one read (and the new one is always later), so a double press publishes once
-async function publishNow(d: StageDeps, b: Record<string, unknown>): Promise<Out> {
-  const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
-  const channel = String(a?.payload?.channel ?? '');
-  if (!a || a.action_type !== 'social_post' || a.status !== 'approved' || !a.decided_at || !d.connectedChannels().includes(channel)) {
-    return { status: 409, body: { ok: false, code: 'not_ready' } };
-  }
-  const last = Date.parse(a.decided_at);
-  // a publication under way (claimed in the last two minutes) is not started again
-  if (String(a.error ?? '').startsWith(CLAIM) && d.now().getTime() - last < 120_000) return { status: 409, body: { ok: false, code: 'publishing' } };
-  const at = new Date(Math.max(d.now().getTime(), last + 1)).toISOString();
-  const claim = `${CLAIM}${crypto.randomUUID()}`;
-  await d.updateAction(a.id, { decided_at: at, error: claim }, 'approved', a.decided_at);
-  return publishClaimed(d, a, channel, claim, 'not_ready');
-}
-
 async function markDone(d: StageDeps, b: Record<string, unknown>): Promise<Out> {
   const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
   // an approved code task once Claude did it, or an approved social post once the Owner published it
@@ -531,14 +503,13 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
     // a supervisor (L-22, Owner 2026-10-27 "מאשר את שניהם"): the social posts only - read with social.view; approve / ask for a change /
     // not now / mark published with social.publish, and only on a social post (any other action is the Owner's)
     if (b.action === 'social_state') return (await d.can('social.view')) ? socialState(d) : forbidden;
-    if (b.action === 'decide' || b.action === 'revise' || b.action === 'mark_done' || b.action === 'publish_now') {
+    if (b.action === 'decide' || b.action === 'revise' || b.action === 'mark_done') {
       // both permissions, checked before anything is read (the review of 2026-10-27)
       if (!(await d.can('social.view')) || !(await d.can('social.publish'))) return forbidden;
       const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
       if (!a || a.action_type !== 'social_post') return forbidden;
       if (b.action === 'decide') return decide(d, b, await sitemapPaths());
       if (b.action === 'revise') return revise(d, b, await sitemapPaths());
-      if (b.action === 'publish_now') return publishNow(d, b);
       return markDone(d, b);
     }
     return forbidden;
@@ -586,8 +557,6 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
       return adminOnly(async () => revise(d, b, await sitemapPaths()));
     case 'mark_done':
       return adminOnly(() => markDone(d, b));
-    case 'publish_now':
-      return adminOnly(() => publishNow(d, b));
     case 'rename':
       return adminOnly(async () => {
         const agent = String(b.agent ?? '') as AnyAgent;
