@@ -15,11 +15,12 @@ export type Market = 'intl' | 'il';
 export type Channel = { id: string; network: Network; market: Market; perWeek: number; accountOpen: boolean };
 
 // accountOpen: the Owner has the account (Facebook Israel, Instagram, TikTok - assumed Israel, plan §accounts); the international
-// Facebook page opened 2026-10-27 (stage 2); the international Instagram / TikTok are not open yet - their posts wait until they open
+// Facebook page opened 2026-10-27 (stage 2); the international Instagram @tekangoglobal was linked to it 2026-10-27; the international
+// TikTok is not connected yet - its posts wait
 export const CHANNELS: readonly Channel[] = Object.freeze([
   { id: 'fb_intl', network: 'facebook', market: 'intl', perWeek: 3, accountOpen: true },
   { id: 'fb_il', network: 'facebook', market: 'il', perWeek: 2, accountOpen: true },
-  { id: 'ig_intl', network: 'instagram', market: 'intl', perWeek: 2, accountOpen: false },
+  { id: 'ig_intl', network: 'instagram', market: 'intl', perWeek: 2, accountOpen: true },
   { id: 'ig_il', network: 'instagram', market: 'il', perWeek: 1, accountOpen: true },
   { id: 'tt_intl', network: 'tiktok', market: 'intl', perWeek: 1, accountOpen: false },
   { id: 'tt_il', network: 'tiktok', market: 'il', perWeek: 1, accountOpen: true },
@@ -185,13 +186,14 @@ export async function runSocial(d: StageDeps, trigger: 'cron' | 'admin', paths: 
 // ---------------------------------------------------------------- stage 2: automatic publication after the approval
 // Owner console 2026-10-27, typed: "מאשר את שלב 2 של סוכנת הרשתות". The connected accounts (the TEKANGO Social Meta app, the page tokens
 // the Owner saved as function secrets - never in code, never in a log) publish on "approve": a Facebook page post with the square image,
-// an Instagram image post through the Israeli page. Any other account (TikTok, the international Instagram) stays manual.
+// an Instagram image post through its page (Israel; the international one since 2026-10-27, "מאשר"). TikTok stays manual.
 export const GRAPH = 'https://graph.facebook.com/v26.0';
 export type Target = { kind: 'facebook'; pageId: string; tokenEnv: string } | { kind: 'instagram'; igUserId: string; tokenEnv: string };
 export const TARGETS: Readonly<Record<string, Target>> = Object.freeze({
   fb_il: { kind: 'facebook', pageId: '1381375051729705', tokenEnv: 'META_PAGE_IL_TOKEN' }, // Tekango ישראל
   fb_intl: { kind: 'facebook', pageId: '1408027809060627', tokenEnv: 'META_PAGE_INTL_TOKEN' }, // Tekango Global
   ig_il: { kind: 'instagram', igUserId: '17841431179031610', tokenEnv: 'META_PAGE_IL_TOKEN' }, // @tekangoisrael, linked to Tekango ישראל
+  ig_intl: { kind: 'instagram', igUserId: '17841422352275530', tokenEnv: 'META_PAGE_INTL_TOKEN' }, // @tekangoglobal, linked to Tekango Global
 });
 export const imageUrl = (art: string) => `${ORIGIN}/social/art/${ART_KEYS.includes(art) ? art : 'quote'}.jpg`;
 export const facebookMessage = (p: { text?: unknown; hashtags?: unknown; link?: unknown }) =>

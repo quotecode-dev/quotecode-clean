@@ -75,7 +75,7 @@ describe('the accounts and the week (the Owner: "מה שאתה ממליץ")', ()
     expect(POSTS_PER_WEEK).toBe(10);
     expect(CHANNELS.filter((c) => c.market === 'intl').reduce((a, c) => a + c.perWeek, 0)).toBe(6);
     // the international Facebook page opened 2026-10-27 (stage 2); the international Instagram / TikTok not yet
-    expect(CHANNELS.filter((c) => !c.accountOpen).map((c) => c.id)).toEqual(['ig_intl', 'tt_intl']);
+    expect(CHANNELS.filter((c) => !c.accountOpen).map((c) => c.id)).toEqual(['tt_intl']);
   });
   it('the images are the eight guide illustrations of the site', () => {
     expect([...ART_KEYS]).toEqual([...SITE_ART_KEYS]);
