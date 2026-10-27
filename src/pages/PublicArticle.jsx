@@ -1,21 +1,15 @@
 // Owner console 2026-10-26 (SEO week 2, the night task): the public guides - /he|en/articles (the index) and /he|en/articles/<slug>
 // (one article). Content: src/shared/publicArticles.js; title / description / canonical / hreflang: src/shared/publicSeoRoutes.js.
 // The same light look as the public tools page (TOOLS tokens); Hebrew pages RTL, English pages LTR.
-// Owner 2026-10-27 (stage 2 of the agents room, "מאשר את תוכנית שלב 2 עם מנהל הסוכנים"): a guide the Owner approved in the agents room
-// lives in the database (src/shared/siteArticlesApi.js). The production build prerenders it (prop `data` / `extra`); in the browser a slug
-// that is not a static guide is read from the database, and the index lists the static guides first, then the database ones.
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ProFlowLogo from '../components/ProFlowLogo';
 import { FONT_HE, FONT_EN } from '../theme/neonTheme';
 import { TOOLS } from '../theme/toolsLightTheme';
 import { setSeoMeta } from '../utils/seoMeta';
-import { publicSeo, articleSeoRoute, seoOfRoute } from '../shared/publicSeoRoutes';
+import { publicSeo } from '../shared/publicSeoRoutes';
 import { ARTICLES, ARTICLE_SLUGS, ARTICLES_INDEX } from '../shared/publicArticles';
-import { fetchPublishedArticles, articleView } from '../shared/siteArticlesApi';
 import NotFound from './NotFound';
-
-const dbSource = () => ({ base: import.meta.env?.VITE_SUPABASE_URL, key: import.meta.env?.VITE_SUPABASE_ANON_KEY });
 
 const COPY = {
   he: { home: 'חזרה לדף הבית', guides: 'כל המדריכים', related: 'עוד בנושא', ctaTitle: 'מוכנים לשלוח את ההצעה הבאה?', ctaText: 'הפקת הצעות מחיר, ניהול לקוחות וחתימה דיגיטלית של הלקוח — הכול ב־TEKANGO.', cta: 'פתיחת חשבון', read: 'לקריאת המדריך' },
@@ -61,34 +55,17 @@ const h1Style = { fontSize: 'clamp(1.6rem, 5vw, 2.2rem)', lineHeight: 1.3, margi
 const introStyle = { fontSize: '1.08rem', lineHeight: 1.75, color: TOOLS.textSecondary, margin: 0 };
 const bodyStyle = { fontSize: '1.02rem', lineHeight: 1.8, color: TOOLS.textPrimary, margin: '0 0 12px' };
 
-export function PublicArticle({ lang, slug: slugProp, data = null }) {
+export function PublicArticle({ lang, slug: slugProp }) {
   const navigate = useNavigate();
   const params = useParams();
   const slug = slugProp || params.slug;
-  const staticArticle = ARTICLES[slug]?.[lang] || null;
-  // a database guide: given by the prerender (data), or read in the browser; 'loading' until the answer, then the row or null
-  const [db, setDb] = useState(() => (staticArticle ? null : data ? { view: data, date: null } : 'loading'));
-  const article = staticArticle || (db && db !== 'loading' ? db.view : null);
+  const article = ARTICLES[slug]?.[lang] || null;
   const t = COPY[lang];
 
   useEffect(() => {
-    if (staticArticle || data) return undefined;
-    let live = true;
-    setDb('loading');
-    fetchPublishedArticles({ ...dbSource(), slug }).then((rows) => {
-      if (live) setDb(rows[0] ? { view: articleView(rows[0], lang), date: rows[0].date } : null);
-    });
-    return () => { live = false; };
-  }, [staticArticle, data, slug, lang]);
+    if (article) setSeoMeta(publicSeo(`/${lang}/articles/${slug}`));
+  }, [article, lang, slug]);
 
-  useEffect(() => {
-    if (staticArticle) setSeoMeta(publicSeo(`/${lang}/articles/${slug}`));
-    else if (db && db !== 'loading' && db.date) setSeoMeta(seoOfRoute(articleSeoRoute(lang, slug, db.view, db.date)));
-    // still loading: an empty page is never indexable (the not-found rule); the guide's own signals replace this once it arrives
-    else if (db === 'loading') setSeoMeta({ title: lang === 'he' ? 'TEKANGO - מדריך' : 'TEKANGO - Guide', lang, noindex: true });
-  }, [staticArticle, db, lang, slug]);
-
-  if (db === 'loading' && !staticArticle) return <Shell lang={lang}><main style={{ minHeight: '40vh' }} aria-busy="true" /></Shell>;
   if (!article) return <NotFound isHebrew={lang === 'he'} />;
   return (
     <Shell lang={lang}>
@@ -124,28 +101,14 @@ export function PublicArticle({ lang, slug: slugProp, data = null }) {
   );
 }
 
-export function PublicArticlesIndex({ lang, extra = null }) {
+export function PublicArticlesIndex({ lang }) {
   const navigate = useNavigate();
   const index = ARTICLES_INDEX[lang];
   const t = COPY[lang];
-  // the database guides after the static ones: from the prerender (extra) or read in the browser
-  const [dbRows, setDbRows] = useState(extra || []);
 
   useEffect(() => {
     setSeoMeta(publicSeo(`/${lang}/articles`));
   }, [lang]);
-
-  useEffect(() => {
-    if (extra) return undefined;
-    let live = true;
-    fetchPublishedArticles(dbSource()).then((rows) => { if (live) setDbRows(rows); });
-    return () => { live = false; };
-  }, [extra]);
-
-  const items = [
-    ...ARTICLE_SLUGS.map((slug) => ({ slug, a: ARTICLES[slug][lang] })),
-    ...dbRows.map((r) => ({ slug: r.slug, a: r[lang] })),
-  ];
 
   return (
     <Shell lang={lang}>
@@ -153,7 +116,8 @@ export function PublicArticlesIndex({ lang, extra = null }) {
         <h1 style={h1Style}>{index.h1}</h1>
         <p style={introStyle}>{index.intro}</p>
         <ul style={{ listStyle: 'none', margin: '24px 0 0', padding: 0, display: 'grid', gap: '14px' }}>
-          {items.map(({ slug, a }) => {
+          {ARTICLE_SLUGS.map((slug) => {
+            const a = ARTICLES[slug][lang];
             const href = `/${lang}/articles/${slug}`;
             return (
               <li key={slug} style={{ background: TOOLS.bgCard, padding: '18px 20px', borderRadius: '12px', border: `1px solid ${TOOLS.border}` }}>

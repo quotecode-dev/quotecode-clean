@@ -207,39 +207,30 @@ export const PUBLIC_SEO_ROUTES = [
 
 // Owner console 2026-10-26 (SEO week 2, the night task: "כן אם אתה יכול תיצור גם את זה במשימת הלילה"): the guides index and the four
 // articles, each in Hebrew and English (content + titles: src/shared/publicArticles.js); one Article JSON-LD block per article page.
-// One article page's SEO entry - the static guides above and (Owner 2026-10-27, stage 2 of the agents room) the guides the Owner approved
-// in the agents room, which live in the database (src/shared/siteArticlesApi.js): the same title / description / hreflang / JSON-LD rules.
-export function articleSeoRoute(lang, slug, a, date) {
-  const path = `/${lang}/articles/${slug}`;
-  return {
-    path, page: 'article', slug, lang, title: a.title, description: a.description, hreflang: pair(`/articles/${slug}`),
-    structuredData: {
-      '@context': 'https://schema.org',
-      '@type': 'Article',
-      headline: a.h1,
-      description: a.description,
-      inLanguage: lang,
-      datePublished: date,
-      dateModified: date,
-      author: { '@type': 'Organization', name: 'TEKANGO' },
-      publisher: { '@type': 'Organization', name: 'TEKANGO' },
-      mainEntityOfPage: `https://www.tekango.com${path}`,
-    },
-  };
-}
-
 for (const lang of ['he', 'en']) {
   PUBLIC_SEO_ROUTES.push({ path: `/${lang}/articles`, page: 'articles', lang, title: ARTICLES_INDEX[lang].title, description: ARTICLES_INDEX[lang].description, hreflang: pair('/articles') });
-  for (const slug of ARTICLE_SLUGS) PUBLIC_SEO_ROUTES.push(articleSeoRoute(lang, slug, ARTICLES[slug][lang], ARTICLES_DATE));
+  for (const slug of ARTICLE_SLUGS) {
+    const a = ARTICLES[slug][lang];
+    const path = `/${lang}/articles/${slug}`;
+    PUBLIC_SEO_ROUTES.push({
+      path, page: 'article', slug, lang, title: a.title, description: a.description, hreflang: pair(`/articles/${slug}`),
+      structuredData: {
+        '@context': 'https://schema.org',
+        '@type': 'Article',
+        headline: a.h1,
+        description: a.description,
+        inLanguage: lang,
+        datePublished: ARTICLES_DATE,
+        dateModified: ARTICLES_DATE,
+        author: { '@type': 'Organization', name: 'TEKANGO' },
+        publisher: { '@type': 'Organization', name: 'TEKANGO' },
+        mainEntityOfPage: `https://www.tekango.com${path}`,
+      },
+    });
+  }
 }
 
 const BY_PATH = new Map(PUBLIC_SEO_ROUTES.map((r) => [r.path, r]));
-
-// The setSeoMeta() arguments of a route object that is not in the static table (a database guide, see articleSeoRoute).
-export function seoOfRoute(route) {
-  const { title, description, lang, hreflang, structuredData } = route;
-  return { title, description, lang, hreflang, structuredData, canonicalPath: route.path };
-}
 
 // The setSeoMeta() arguments of one public route (canonical = the route itself). Throws on an unknown route so a page can never
 // silently fall back to another page's metadata.

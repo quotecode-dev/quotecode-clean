@@ -15,9 +15,7 @@ import Privacy from './pages/Privacy';
 import Terms from './pages/Terms';
 import { PublicArticle, PublicArticlesIndex } from './pages/PublicArticle';
 
-export { PUBLIC_SEO_ROUTES, articleSeoRoute } from './shared/publicSeoRoutes';
-// Owner 2026-10-27 (stage 2 of the agents room): the guides the Owner approved live in the database - the production build reads them here
-export { fetchPublishedArticles, articleView } from './shared/siteArticlesApi';
+export { PUBLIC_SEO_ROUTES } from './shared/publicSeoRoutes';
 
 // page kind x locale -> the SAME component (and props) the live router mounts for that URL (AppLocal.jsx / AppGlobal.jsx).
 const PAGES = {
@@ -27,9 +25,8 @@ const PAGES = {
   privacy: { he: () => <Privacy isHebrew />, en: () => <Privacy isHebrew={false} /> },
   terms: { he: () => <Terms isHebrew />, en: () => <Terms isHebrew={false} /> },
   // Owner console 2026-10-26 (SEO week 2, the night task: "כן אם אתה יכול תיצור גם את זה במשימת הלילה"): the guides
-  // r.extra / r.data (Owner 2026-10-27): the database guides of the index / one database guide, given by the build
-  articles: { he: (r) => <PublicArticlesIndex lang="he" extra={r.extra} />, en: (r) => <PublicArticlesIndex lang="en" extra={r.extra} /> },
-  article: { he: (r) => <PublicArticle lang="he" slug={r.slug} data={r.data} />, en: (r) => <PublicArticle lang="en" slug={r.slug} data={r.data} /> },
+  articles: { he: () => <PublicArticlesIndex lang="he" />, en: () => <PublicArticlesIndex lang="en" /> },
+  article: { he: (r) => <PublicArticle lang="he" slug={r.slug} />, en: (r) => <PublicArticle lang="en" slug={r.slug} /> },
 };
 
 export function renderPublicPage(route) {

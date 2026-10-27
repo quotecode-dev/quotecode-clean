@@ -34,12 +34,8 @@ const MEASURED_PATHS = new Set(['/', ...PUBLIC_SEO_ROUTES.map((r) => r.path)]);
 
 const normalizePath = (pathname) => String(pathname || '').replace(/\/+$/, '') || '/';
 
-// Owner 2026-10-27 (stage 2 of the agents room): a guide the Owner approved lives in the database - its public page is measured too
-const DATABASE_GUIDE = /^\/(he|en)\/articles\/[a-z0-9]+(-[a-z0-9]+)*$/;
-
 export function isMeasuredPath(pathname) {
-  const p = normalizePath(pathname);
-  return MEASURED_PATHS.has(p) || DATABASE_GUIDE.test(p);
+  return MEASURED_PATHS.has(normalizePath(pathname));
 }
 
 export function isProductionHost(hostname) {

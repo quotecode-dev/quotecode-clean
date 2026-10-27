@@ -507,12 +507,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-27 (typed: stage 1 of the agents room - report by email too, a 20 dollar cap, 65% international, as a night task): the agent run log"
-    },
-    "20261027500000_agents_room_stage2.sql": {
-      "sha256": "7bdfd7ab0f4b8257d44f5867e283aa0fc65f3b54e9f783888d272625c004cd36",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-27 (typed: the stage 2 plan with the agents manager + the four decisions): the manager, the actions the Owner approves, agent names, Owner-approved articles"
     }
   }
 }
