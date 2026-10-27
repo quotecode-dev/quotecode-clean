@@ -13,6 +13,8 @@ import './adminUsers.css';
 import './adminV2.css';
 
 const N = ({ v }) => <bdi className="av-num">{v}</bdi>;
+// Owner 2026-10-27 ("מאשר לתקן את שלוש התקלות בחדר הסוכנים"): a cost under one cent shows 4 decimals, never $0.00 (= lib.ts usd)
+const usd = (v) => (v > 0 && v < 0.01 ? v.toFixed(4) : v.toFixed(2));
 const AGENTS = [
   { id: 'seo', icon: TrendingUp, he: 'סוכן הקידום', en: 'SEO agent', roleHe: 'גוגל סרץ׳ קונסול: חו״ל 65%, ישראל 35%. דוח שבועי במסך ובמייל.', roleEn: 'Google Search Console: international 65%, Israel 35%. A weekly report here and by email.' },
   { id: 'service', icon: Headset, he: 'סוכן השירות', en: 'Service agent', roleHe: 'הפניות של השבוע, הסקירה השבועית והצ׳אט החכם.', roleEn: 'The week\'s inquiries, the weekly review and the smart chat.' },
@@ -87,7 +89,7 @@ export default function AdminAgentsRoom({ isHebrew }) {
                 <div className="av-grid av-kpis av-section" data-testid="admin-agents-room-budget">
                   <div className="av-card av-accent-top">
                     <div className="av-label">{isHebrew ? 'עלות הבינה החודש' : 'AI cost this month'}</div>
-                    <div className="av-kpi-value" data-testid="admin-agents-room-cost"><N v={`$${Number(state.monthCostUsd).toFixed(2)}`} /></div>
+                    <div className="av-kpi-value" data-testid="admin-agents-room-cost"><N v={`$${usd(Number(state.monthCostUsd))}`} /></div>
                     <div className="av-muted" style={{ fontSize: '0.8rem' }}>{isHebrew ? <>מתוך תקרה של <N v={`$${state.cap}`} /></> : <>of a <N v={`$${state.cap}`} /> cap</>}</div>
                     <div aria-hidden="true" style={{ height: 6, background: '#e5ecee', borderRadius: 3, marginTop: 8 }}>
                       <div style={{ width: `${capPct}%`, height: 6, borderRadius: 3, background: capPct >= 100 ? '#8f3434' : '#315f6f' }} />
