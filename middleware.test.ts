@@ -159,14 +159,36 @@ describe('middleware default export (root only; matcher ["/"])', () => {
   it('canonical host, returning visitor who chose English in Israel: 302 to /en (preference honored)', () => {
     geo.country = 'IL';
     const res = middleware(req('https://www.tekango.com/?utm_source=x', { host: 'www.tekango.com', cookie: 'proflow_lang=en' }));
+    expect(res.status).toBe(302);
     expect(res.headers.get('location')).toBe('https://www.tekango.com/en?utm_source=x');
   });
 
-  it('geo unavailable, no preference, no Accept-Language: 302 to /en and no geo cookie', () => {
+  // Owner console 2026-10-27, typed: "מאשר תוכנית א לדף הבית, כולל שינוי בסעיף 55.11" - the default international resolution is permanent
+  it('geo unavailable, no preference, no Accept-Language: 308 (permanent) to /en, not cacheable, no geo cookie', () => {
     const res = middleware(req('https://www.tekango.com/', { host: 'www.tekango.com' }));
-    expect(res.status).toBe(302);
+    expect(res.status).toBe(308);
     expect(res.headers.get('location')).toBe('https://www.tekango.com/en');
+    expect(res.headers.get('cache-control')).toBe('private, no-store');
     expect(res.headers.get('set-cookie')).toBeNull();
+  });
+
+  it('a visitor outside Israel (Googlebot crawls from here): 308 to /en, not cacheable', () => {
+    geo.country = 'US';
+    const res = middleware(req('https://www.tekango.com/', { host: 'www.tekango.com', 'user-agent': 'Googlebot/2.1' }));
+    expect(res.status).toBe(308);
+    expect(res.headers.get('location')).toBe('https://www.tekango.com/en');
+    expect(res.headers.get('cache-control')).toBe('private, no-store');
+  });
+
+  it('a visitor\'s own choice stays temporary: ?lang=en, a saved English preference, a Hebrew Accept-Language', () => {
+    geo.country = 'US';
+    expect(middleware(req('https://www.tekango.com/?lang=en', { host: 'www.tekango.com' })).status).toBe(302);
+    expect(middleware(req('https://www.tekango.com/', { host: 'www.tekango.com', cookie: 'proflow_lang=en' })).status).toBe(302);
+    expect(middleware(req('https://www.tekango.com/?lang=he', { host: 'www.tekango.com' })).status).toBe(302);
+    geo.country = undefined;
+    const he = middleware(req('https://www.tekango.com/', { host: 'www.tekango.com', 'accept-language': 'he-IL,he;q=0.9' }));
+    expect(he.status).toBe(302);
+    expect(he.headers.get('location')).toBe('https://www.tekango.com/he');
   });
 
   it('Auth callback query on "/" is carried to the locale route unchanged', () => {

@@ -13,6 +13,8 @@ import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeo, articleSeoRoute, seoOfRoute } from '../shared/publicSeoRoutes';
 import { ARTICLES, ARTICLE_SLUGS, ARTICLES_INDEX } from '../shared/publicArticles';
 import { fetchPublishedArticles, articleView } from '../shared/siteArticlesApi';
+// Owner 2026-10-27 ("מאשר את האיורים"): an illustration on top of every guide and on its card in the index
+import { articleArt, ART_ALT, artSrc } from '../shared/articleArt';
 import NotFound from './NotFound';
 
 const dbSource = () => ({ base: import.meta.env?.VITE_SUPABASE_URL, key: import.meta.env?.VITE_SUPABASE_ANON_KEY });
@@ -94,6 +96,8 @@ export function PublicArticle({ lang, slug: slugProp, data = null }) {
     <Shell lang={lang}>
       <main style={{ maxWidth: '760px', margin: '0 auto 32px', padding: '0 16px', boxSizing: 'border-box' }}>
         <article>
+          <img src={artSrc(articleArt(slug))} alt={ART_ALT[articleArt(slug)][lang]} width="640" height="320" data-testid="article-art"
+            style={{ display: 'block', width: '100%', height: 'auto', borderRadius: '12px', border: `1px solid ${TOOLS.border}`, margin: '0 0 20px' }} />
           <h1 style={h1Style}>{article.h1}</h1>
           <p style={introStyle}>{article.intro}</p>
           {article.sections.map((sec) => (
@@ -156,7 +160,11 @@ export function PublicArticlesIndex({ lang, extra = null }) {
           {items.map(({ slug, a }) => {
             const href = `/${lang}/articles/${slug}`;
             return (
-              <li key={slug} style={{ background: TOOLS.bgCard, padding: '18px 20px', borderRadius: '12px', border: `1px solid ${TOOLS.border}` }}>
+              <li key={slug} style={{ background: TOOLS.bgCard, padding: '18px 20px', borderRadius: '12px', border: `1px solid ${TOOLS.border}`, display: 'flex', flexWrap: 'wrap', gap: '14px 18px', alignItems: 'flex-start' }}>
+                {/* the card's illustration is decoration next to the linked title (the title names the guide) */}
+                <img src={artSrc(articleArt(slug))} alt="" width="200" height="100" loading="lazy" data-testid={`article-art-${slug}`}
+                  style={{ display: 'block', width: 'min(100%, 200px)', height: 'auto', borderRadius: '10px', border: `1px solid ${TOOLS.border}`, flex: '0 0 auto' }} />
+                <div style={{ flex: '1 1 260px', minWidth: 0 }}>
                 <h2 style={{ fontSize: '1.2rem', margin: '0 0 6px', fontWeight: 700 }}>
                   {/* PRODUCT_TRUTH_DECORATIVE: link to one public guide */}
                   <a href={href} data-testid={`article-link-${slug}`} onClick={(e) => { e.preventDefault(); navigate(href); }} style={{ color: TOOLS.textPrimary, textDecoration: 'none' }}>{a.h1}</a>
@@ -164,6 +172,7 @@ export function PublicArticlesIndex({ lang, extra = null }) {
                 <p style={{ fontSize: '0.95rem', lineHeight: 1.7, color: TOOLS.textSecondary, margin: '0 0 4px' }}>{a.description}</p>
                 {/* PRODUCT_TRUTH_DECORATIVE: link to one public guide */}
                 <a href={href} aria-hidden="true" tabIndex={-1} onClick={(e) => { e.preventDefault(); navigate(href); }} style={linkStyle}>{t.read}</a>
+                </div>
               </li>
             );
           })}
