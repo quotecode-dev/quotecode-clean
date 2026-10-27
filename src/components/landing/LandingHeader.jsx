@@ -50,8 +50,7 @@ export default function LandingHeader({ nav, links, navigate, onForgotPassword }
   }, [open]);
 
   const close = () => setOpen(false);
-  // A section with its own `href` is a separate page (Owner 2026-10-27: the guides index), opened through the router; the rest are in-page anchors.
-  const sectionLinks = nav.sections.map((s) => ({ ...s, page: Boolean(s.href), href: s.href || `#${s.id}` }));
+  const sectionLinks = nav.sections.map((s) => ({ ...s, href: `#${s.id}` }));
 
   // Task 21: the drawer is rendered as a SIBLING of the header, never inside it - `.tl-header` has `backdrop-filter`, which makes it the
   // containing block of a `position: fixed` descendant, so a drawer inside it was clipped to the ~60px header box (links + sign-in invisible).
@@ -65,8 +64,8 @@ export default function LandingHeader({ nav, links, navigate, onForgotPassword }
         </a>
         <nav className="tl-menu" aria-label={nav.label}>
           {sectionLinks.map((s) => (
-            // PRODUCT_TRUTH_DECORATIVE: in-page anchor to a landing section, or the public guides page
-            <a key={s.id} className="tl-menu-link" href={s.href} onClick={s.page ? go(navigate, s.href) : undefined}>{s.label}</a>
+            // PRODUCT_TRUTH_DECORATIVE: in-page anchor to a landing section
+            <a key={s.id} className="tl-menu-link" href={s.href}>{s.label}</a>
           ))}
         </nav>
         <div className="tl-actions">
@@ -105,8 +104,8 @@ export default function LandingHeader({ nav, links, navigate, onForgotPassword }
             <button type="button" className="tl-drawer-close" aria-label={nav.closeMenu} onClick={close}><X size={22} aria-hidden="true" /></button>
             <nav className="tl-drawer-nav" aria-label={nav.label}>
               {sectionLinks.map((s) => (
-                // PRODUCT_TRUTH_DECORATIVE: in-page anchor to a landing section, or the public guides page (drawer copy of the header link)
-                <a key={s.id} href={s.href} onClick={s.page ? (e) => { close(); go(navigate, s.href)(e); } : close}>{s.label}</a>
+                // PRODUCT_TRUTH_DECORATIVE: in-page anchor to a landing section (drawer copy of the header link)
+                <a key={s.id} href={s.href} onClick={close}>{s.label}</a>
               ))}
               {/* Drawer = tablet/phone widths: the base narrow-width sign-in label (HE 'כניסה') when the copy has one. */}
               {/* PRODUCT_TRUTH_DECORATIVE: sign-in entry point for existing accounts (drawer copy) */}

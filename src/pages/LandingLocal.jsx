@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Gift, PackageCheck, Mail, BriefcaseBusiness, BookOpen, PenTool, Ruler, MessagesSquare, BarChart3, Zap } from 'lucide-react';
+import { Gift, PackageCheck, Mail, BriefcaseBusiness, PenTool, Ruler, MessagesSquare, BarChart3, Zap } from 'lucide-react';
 import { FONT_HE } from '../theme/neonTheme';
 import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeo } from '../shared/publicSeoRoutes';
@@ -95,8 +95,6 @@ export default function LandingLocal({ onForgotPassword }) {
         { id: 'workflow', label: 'איך זה עובד' },
         { id: 'plans', label: 'מסלולים' },
         { id: 'faq', label: 'שאלות' },
-        // Owner 2026-10-27 ("מאשר את תוכנית א"): the guides index is a separate page, not a landing section.
-        { id: 'guides', label: 'מדריכים', href: '/he/articles' },
       ],
       // Base labels (L05): desktop sign-in 'כניסה למערכת'; the narrow-width (drawer) label stays the base mobile 'כניסה'.
       login: 'כניסה למערכת',
@@ -273,7 +271,6 @@ export default function LandingLocal({ onForgotPassword }) {
         { kind: 'accessibility', label: 'נגישות' },
         { href: '/he/contact', label: 'צרו קשר (support@tekango.com)', icon: Mail },
         { href: '/he/tools', label: 'כלים לעסקים', icon: BriefcaseBusiness },
-        { href: '/he/articles', label: 'מדריכים', icon: BookOpen },
       ],
     },
   };
