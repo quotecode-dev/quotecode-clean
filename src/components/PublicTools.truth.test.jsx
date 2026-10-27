@@ -23,6 +23,7 @@ const erUSD = { result: 'success', provider: 'https://www.exchangerate-api.com',
 const cg = { bitcoin: { usd: 60000, last_updated_at: ER_TIME + 60 }, ethereum: { usd: 3000, last_updated_at: ER_TIME + 60 } }; // no solana / ripple / tron
 const fetchOk = (er) => vi.fn(async (url) => ({ ok: true, json: async () => (String(url).includes('er-api') ? er : cg) }));
 const fetchDown = () => vi.fn(async () => { throw new Error('network down'); });
+// Owner 2026-10-27 ("מאשר תוכנית א לדפי המחשבונים"): the hub shows cards only - the calculators are tested on a calculator page (its tabs still switch)
 
 afterEach(() => { vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
@@ -35,7 +36,7 @@ describe('L3 - the closing CTA opens account creation in the page language', () 
   });
   it('there is a way back to the landing page of the same language', () => {
     vi.stubGlobal('fetch', fetchDown()); vi.stubGlobal('localStorage', memoryStorage());
-    mount(<PublicTools />);
+    mount(<PublicTools initialTab="currency" />, '/he/tools/currency');
     expect(screen.getByTestId('tools-home').getAttribute('href')).toBe('/he');
   });
 });
@@ -43,7 +44,7 @@ describe('L3 - the closing CTA opens account creation in the page language', () 
 describe('L4 - data truth: no seed number shown as current, real source + provider time', () => {
   it('HE: providers down and no cache -> results say unavailable, never a number; no "live" wording', async () => {
     vi.stubGlobal('fetch', fetchDown()); vi.stubGlobal('localStorage', memoryStorage());
-    mount(<PublicTools />);
+    mount(<PublicTools initialTab="currency" />, '/he/tools/currency');
     await waitFor(() => expect(screen.getByTestId('tools-feed-currency').textContent).toMatch(/אינם זמינים|לא זמינ/));
     expect(screen.getByTestId('tools-currency-result').textContent).not.toMatch(/\d/);
     expect(document.body.textContent).not.toMatch(/און-ליין|שערים חיים|בזמן אמת/);
@@ -53,7 +54,7 @@ describe('L4 - data truth: no seed number shown as current, real source + provid
   });
   it('HE: a live answer shows the source and the PROVIDER update time (not the fetch time) and computes from it', async () => {
     vi.stubGlobal('fetch', fetchOk(erILS)); vi.stubGlobal('localStorage', memoryStorage());
-    mount(<PublicTools />);
+    mount(<PublicTools initialTab="currency" />, '/he/tools/currency');
     await waitFor(() => expect(screen.getByTestId('tools-feed-currency').textContent).toMatch(/ExchangeRate-API/));
     expect(screen.getByTestId('tools-feed-currency').textContent).toMatch(/12\/10\/2026/);
     // 100 USD -> ILS with USD = 0.27 per ILS => 370.37
@@ -61,7 +62,7 @@ describe('L4 - data truth: no seed number shown as current, real source + provid
   });
   it('HE: a coin the provider did not return is unavailable (never the old fixed price)', async () => {
     vi.stubGlobal('fetch', fetchOk(erILS)); vi.stubGlobal('localStorage', memoryStorage());
-    mount(<PublicTools />);
+    mount(<PublicTools initialTab="currency" />, '/he/tools/currency');
     fireEvent.click(screen.getByRole('button', { name: /קריפטו/ }));
     await waitFor(() => expect(screen.getByTestId('tools-feed-crypto').textContent).toMatch(/CoinGecko/));
     fireEvent.change(screen.getByLabelText(/מטבע קריפטו/), { target: { value: 'xrp' } });
@@ -72,7 +73,7 @@ describe('L4 - data truth: no seed number shown as current, real source + provid
   it('EN: providers down but an older cache exists -> shown as stale with ITS data time', async () => {
     const cache = { proflow_tools_cache_en_v2: JSON.stringify({ currency: { rates: erUSD.rates, asOf: ER_TIME * 1000, source: 'ExchangeRate-API' }, fetchedAt: (ER_TIME - 7200) * 1000 }) };
     vi.stubGlobal('fetch', fetchDown()); vi.stubGlobal('localStorage', memoryStorage(cache));
-    mount(<PublicToolsEn />, '/en/tools');
+    mount(<PublicToolsEn initialTab="currency" />, '/en/tools/currency');
     await waitFor(() => expect(screen.getByTestId('tools-feed-currency').textContent).toMatch(/may be out of date|not current/i));
     expect(screen.getByTestId('tools-feed-currency').textContent).toMatch(/10\/12\/2026/);
     expect(screen.getByTestId('tools-currency-result').textContent).toMatch(/\d/);
@@ -82,7 +83,7 @@ describe('L4 - data truth: no seed number shown as current, real source + provid
 describe('L5 - invalid input is refused with a message, never a value', () => {
   it.each(['-1', '', '1e999', 'abc'])('HE metals weight %j', async (w) => {
     vi.stubGlobal('fetch', fetchOk(erILS)); vi.stubGlobal('localStorage', memoryStorage());
-    mount(<PublicTools />);
+    mount(<PublicTools initialTab="currency" />, '/he/tools/currency');
     fireEvent.click(screen.getByRole('button', { name: /מתכות יקרות/ }));
     fireEvent.change(screen.getByLabelText(/משקל בגרמים/), { target: { value: w } });
     expect(screen.getByTestId('tools-metal-error').textContent.length).toBeGreaterThan(5);
@@ -91,14 +92,14 @@ describe('L5 - invalid input is refused with a message, never a value', () => {
   });
   it('EN currency amount -5 and crypto amount -1 are refused', async () => {
     vi.stubGlobal('fetch', fetchOk(erUSD)); vi.stubGlobal('localStorage', memoryStorage());
-    mount(<PublicToolsEn />, '/en/tools');
+    mount(<PublicToolsEn initialTab="currency" />, '/en/tools/currency');
     fireEvent.change(screen.getByLabelText(/^Amount/), { target: { value: '-5' } });
     expect(screen.getByTestId('tools-currency-error')).toBeTruthy();
     expect(screen.getByTestId('tools-currency-result').textContent).not.toMatch(/\d/);
   });
   it('0 is a valid quantity (value 0), decimals are kept', async () => {
     vi.stubGlobal('fetch', fetchOk(erILS)); vi.stubGlobal('localStorage', memoryStorage());
-    mount(<PublicTools />);
+    mount(<PublicTools initialTab="currency" />, '/he/tools/currency');
     fireEvent.click(screen.getByRole('button', { name: /מידות/ }));
     fireEvent.change(screen.getByLabelText(/ערך להמרה/), { target: { value: '0' } });
     expect(screen.queryByTestId('tools-units-error')).toBeNull();
@@ -109,7 +110,7 @@ describe('L5 - invalid input is refused with a message, never a value', () => {
 describe('units and metals math', () => {
   it('1 m -> 100 cm, and the swap converts back (100 cm -> 1 m)', () => {
     vi.stubGlobal('fetch', fetchDown()); vi.stubGlobal('localStorage', memoryStorage());
-    mount(<PublicTools />);
+    mount(<PublicTools initialTab="currency" />, '/he/tools/currency');
     fireEvent.click(screen.getByRole('button', { name: /מידות/ }));
     fireEvent.change(screen.getByLabelText(/יחידת יעד/), { target: { value: 'cm' } });
     expect(screen.getByTestId('tools-units-result').textContent).toMatch(/^100 /);
@@ -119,7 +120,7 @@ describe('units and metals math', () => {
   });
   it('24k = 99.9% fine gold: 10 g at the stated reference price is 10 x 0.999 x price (shown with its basis)', async () => {
     vi.stubGlobal('fetch', fetchOk(erUSD)); vi.stubGlobal('localStorage', memoryStorage());
-    mount(<PublicToolsEn />, '/en/tools');
+    mount(<PublicToolsEn initialTab="currency" />, '/en/tools/currency');
     fireEvent.click(screen.getByRole('button', { name: /Precious Metals/ }));
     const basis = screen.getByLabelText(/price per gram/i);
     expect(Number(basis.value)).toBe(75.6);
