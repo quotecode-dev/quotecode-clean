@@ -307,10 +307,6 @@
     "interactive": 9,
     "markers": 13
   },
-  "src/components/PublicToolsGuide.jsx": {
-    "interactive": 1,
-    "markers": 1
-  },
   "src/components/QuoteDraftNotices.jsx": {
     "interactive": 5,
     "markers": 5
@@ -780,10 +776,6 @@
     "markers": 0
   },
   "src/shared/publicSeoRoutes.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/shared/publicToolsGuides.js": {
     "interactive": 0,
     "markers": 0
   },

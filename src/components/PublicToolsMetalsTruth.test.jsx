@@ -26,7 +26,7 @@ function stubQuietFetch() {
 describe('Public metals calculator — truthful wording (HE)', () => {
   it('metals tab header never claims live rates, once the metals tab is open', () => {
     stubQuietFetch();
-    render(withRouter(<PublicTools initialTab="currency" />));
+    render(withRouter(<PublicTools />));
     fireEvent.click(screen.getByText('מתכות יקרות'));
     expect(screen.queryByText(/שווי מתכות יקרות לפי שערים חיים/)).toBeNull();
     expect(screen.getByText(/הערכת שווי משוערת/)).toBeTruthy();
@@ -34,7 +34,7 @@ describe('Public metals calculator — truthful wording (HE)', () => {
 
   it('hero paragraph no longer claims real-time metals conversion', () => {
     stubQuietFetch();
-    render(withRouter(<PublicTools initialTab="currency" />));
+    render(withRouter(<PublicTools />));
     expect(screen.queryByText(/מתכות יקרות וקריפטו בזמן אמת/)).toBeNull();
   });
 });
@@ -42,7 +42,7 @@ describe('Public metals calculator — truthful wording (HE)', () => {
 describe('Public metals calculator — truthful wording (EN)', () => {
   it('metals tab header never says "Live Rates", once the metals tab is open', () => {
     stubQuietFetch();
-    render(withRouter(<PublicToolsEn initialTab="currency" />));
+    render(withRouter(<PublicToolsEn />));
     fireEvent.click(screen.getByText('Precious Metals'));
     expect(screen.queryByText(/Precious Metals Value Calculator \(Live Rates\)/)).toBeNull();
     expect(screen.getByText(/Precious Metals Value Estimator/)).toBeTruthy();
@@ -50,7 +50,7 @@ describe('Public metals calculator — truthful wording (EN)', () => {
 
   it('hero paragraph no longer lumps precious metals in with "live" conversions', () => {
     stubQuietFetch();
-    render(withRouter(<PublicToolsEn initialTab="currency" />));
+    render(withRouter(<PublicToolsEn />));
     expect(screen.queryByText(/live currency, unit, precious metals, and crypto conversions/)).toBeNull();
   });
 });
