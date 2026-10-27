@@ -751,10 +751,6 @@
     "interactive": 2,
     "markers": 2
   },
-  "src/shared/articleArt.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/shared/brand.js": {
     "interactive": 0,
     "markers": 0

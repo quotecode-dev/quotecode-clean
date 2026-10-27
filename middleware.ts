@@ -107,11 +107,7 @@ export function resolveCanonicalRedirect(host: string, pathname: string, search:
 //   5. otherwise en (deterministic).
 // IRON RULE: this is anonymous PUBLIC UI routing only. It never reads or writes business_settings.country, signup_market, currency,
 // billing / legal region or any authenticated market identity, and nothing downstream may treat it as one.
-// Not cached: Cache-Control private,no-store + Vary, so one visitor's resolution can never be served to another.
-// Status (Owner console 2026-10-27, typed: "מאשר תוכנית א לדף הבית, כולל שינוי בסעיף 55.11"): Search Console still showed /en as
-// "Duplicate, Google chose different canonical" with Google's choice "/" - a TEMPORARY redirect keeps the source as the canonical.
-// So the default international resolution (no ?lang, no saved preference, and geo / Accept-Language -> en; Googlebot lands here) is a
-// PERMANENT 308 to /en - still private,no-store, so no browser keeps it. Hebrew (Israel) and any visitor's own choice stay a 302.
+// Not cached: 302 + Cache-Control private,no-store + Vary, so one visitor's resolution can never be served to another.
 // ==============================================================================
 export const LOCALE_PREF_COOKIE = 'proflow_lang';
 export type PublicLocale = 'he' | 'en';
@@ -140,13 +136,6 @@ export function resolveRootLocale({ search, cookieHeader, country, acceptLanguag
   const primary = String(acceptLanguage || '').split(',')[0].trim().toLowerCase();
   if (primary.startsWith('he') || primary.startsWith('iw')) return 'he';
   return 'en';
-}
-
-// 308 only for the default international resolution (see the status note above); a visitor's explicit ?lang= or saved preference,
-// and every Hebrew resolution, stay a temporary 302.
-export function rootRedirectStatus({ search, cookieHeader, locale }: { search: string; cookieHeader?: string | null; locale: PublicLocale }): 302 | 308 {
-  const chosen = asLocale(new URLSearchParams(search || '').get('lang')) || asLocale(readCookie(cookieHeader, LOCALE_PREF_COOKIE));
-  return locale === 'en' && !chosen ? 308 : 302;
 }
 
 // Absolute target on the SAME origin (canonical host or a Vercel preview): always /he or /en - never "/" - so no loop is possible
@@ -178,5 +167,5 @@ export default function middleware(request: Request) {
     // Unchanged geo hint for main.jsx (see the header of this file); still written on the redirect response.
     headers.append('Set-Cookie', `${GEO_COOKIE_NAME}=${encodeURIComponent(country)}; Path=/; Max-Age=${GEO_COOKIE_MAX_AGE}; SameSite=Lax; Secure`);
   }
-  return new Response(null, { status: rootRedirectStatus({ search: url.search, cookieHeader: request.headers.get('cookie'), locale }), headers });
+  return new Response(null, { status: 302, headers });
 }

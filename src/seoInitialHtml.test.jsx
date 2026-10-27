@@ -35,10 +35,9 @@ describe('public route authority <-> sitemap parity', () => {
     expect([...sitemapPaths(SITEMAP)].sort()).toEqual(PUBLIC_SEO_ROUTES.map((r) => r.path).sort());
   });
 
-  it('"/" is not a sitemap page (it is a server-side locale redirect); the landing x-default is /en (Owner 2026-10-27, §55.11)', () => {
+  it('"/" is not a sitemap page (it is a server-side locale redirect), but stays the landing x-default', () => {
     expect(sitemapPaths(SITEMAP)).not.toContain('/');
-    expect(LANDING_HREFLANG).toContainEqual({ lang: 'x-default', path: '/en' });
-    expect(LANDING_HREFLANG.some((h) => h.path === '/')).toBe(false);
+    expect(LANDING_HREFLANG).toContainEqual({ lang: 'x-default', path: '/' });
     expect(PUBLIC_SEO_ROUTES.some((r) => r.path === '/')).toBe(false);
   });
 

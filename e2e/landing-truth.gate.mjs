@@ -49,7 +49,7 @@ for (const [lang, path, dir] of [['he', '/he?lang=he', 'rtl'], ['en', '/en?lang=
       check('html lang/dir', m.htmlLang === lang && m.htmlDir === dir, `${m.htmlLang}/${m.htmlDir}`);
       check('title + description set for the market', m.title.includes('TEKANGO') && m.desc.length > 40, m.title);
       check('canonical is the market page', /\/(he|en)$/.test(new URL(m.canonical).pathname) && new URL(m.canonical).pathname.endsWith(lang), m.canonical);
-      check('hreflang he/en/x-default present', ['he=/he', 'en=/en', 'x-default=/en'].every((h) => m.hreflang.includes(h)), m.hreflang.join(','));
+      check('hreflang he/en/x-default present', ['he=/he', 'en=/en', 'x-default=/'].every((h) => m.hreflang.includes(h)), m.hreflang.join(','));
       check('no horizontal overflow', m.overflow <= 1, `overflow=${m.overflow}`);
       check('hero Free-10 line with its true status', lang === 'he' ? /10 הצעות מחיר חינם בסך הכול, בלי הגבלת זמן\. ההטבה עדיין לא הופעלה\./.test(m.text) : /10 free quotes in total · not active yet/.test(m.text));
       check('every Free-10 call to action carries its status', m.free10.length >= 2 && m.free10.every(Boolean), `count=${m.free10.length}`);
