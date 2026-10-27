@@ -36,6 +36,8 @@ function deps(over: Partial<StageDeps> = {}, aiPosts: Post[] | null = week()) {
     runs, actions, mails,
     caller: vi.fn(async () => 'admin' as const),
     can: vi.fn(async () => false),
+    connectedChannels: () => [], // stage 2: no Meta account connected unless a test says so
+    publishSocial: vi.fn(async () => { throw new Error('not_connected'); }),
     now: () => NOW,
     claim: vi.fn(async (agent, key, trigger) => { const id = `${agent}|${key}`; if (runs.has(id)) return null; runs.set(id, { id, agent, run_key: key, trigger, status: 'running' }); return id; }),
     finish: vi.fn(async (id: string, patch: Record<string, unknown>) => { Object.assign(runs.get(id)!, patch); cost += Number(patch.ai_cost_usd ?? 0); }),
@@ -72,7 +74,8 @@ describe('the accounts and the week (the Owner: "מה שאתה ממליץ")', ()
     expect(CHANNELS.map((c) => `${c.id}:${c.perWeek}`)).toEqual(['fb_intl:3', 'fb_il:2', 'ig_intl:2', 'ig_il:1', 'tt_intl:1', 'tt_il:1']);
     expect(POSTS_PER_WEEK).toBe(10);
     expect(CHANNELS.filter((c) => c.market === 'intl').reduce((a, c) => a + c.perWeek, 0)).toBe(6);
-    expect(CHANNELS.filter((c) => !c.accountOpen).map((c) => c.id)).toEqual(['fb_intl', 'ig_intl', 'tt_intl']);
+    // the international Facebook page opened 2026-10-27 (stage 2); the international Instagram / TikTok not yet
+    expect(CHANNELS.filter((c) => !c.accountOpen).map((c) => c.id)).toEqual(['ig_intl', 'tt_intl']);
   });
   it('the images are the eight guide illustrations of the site', () => {
     expect([...ART_KEYS]).toEqual([...SITE_ART_KEYS]);
