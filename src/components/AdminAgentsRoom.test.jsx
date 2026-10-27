@@ -36,6 +36,27 @@ describe('the agents room', () => {
     expect(screen.getByTestId('agent-card-service').dataset.status).toBe('never');
   });
 
+  // Owner console 2026-10-27, typed: "מאשר את התוכנית לגיא ולמיכל, כולל שינוי ב-L-22 במסך הפניות"
+  it.each([[true, 'לטיפולכם: דוח'], [false, 'For you to handle: דוח']])('isHebrew=%s: a red inquiry in the service card opens that inquiry; other findings stay text', async (isHebrew, label) => {
+    const service = { id: '3', agent: 'service', run_key: 'admin:2026-10-27T13', trigger: 'admin', status: 'done', started_at: '2026-10-27T11:24:00Z', finished_at: '2026-10-27T11:24:00Z',
+      summary: 'בשבוע האחרון: 1 פניות.', data: {}, ai_cost_usd: 0, mailed_at: null, error: null,
+      findings: [{ level: 'bad', he: '1 פניות שדורשות אתכם (אדום)', en: '1 inquiries that need you (red)' }, { level: 'bad', he: 'לטיפולכם: דוח', en: 'For you to handle: דוח', inquiryId: 'b2' }] };
+    invoke.mockResolvedValue({ data: { ...state, runs: [...state.runs, service] }, error: null });
+    const onOpenInquiry = vi.fn();
+    render(<AdminAgentsRoom isHebrew={isHebrew} onOpenInquiry={onOpenInquiry} />);
+    const link = await screen.findByTestId('agent-inquiry-b2');
+    expect(link.tagName).toBe('BUTTON');
+    expect(link.textContent).toBe(label);
+    expect(screen.getByTestId('agent-findings-service').querySelectorAll('button')).toHaveLength(1);
+    fireEvent.click(link);
+    expect(onOpenInquiry).toHaveBeenCalledWith('b2');
+    cleanup();
+    // without the permission (no handler) the same finding is plain text
+    render(<AdminAgentsRoom isHebrew={isHebrew} />);
+    await waitFor(() => expect(screen.getByTestId('agent-findings-service').textContent).toContain(label));
+    expect(screen.queryByTestId('agent-inquiry-b2')).toBeNull();
+  });
+
   it('EN: the English summary and findings', async () => {
     invoke.mockResolvedValue({ data: state, error: null });
     render(<AdminAgentsRoom isHebrew={false} />);
