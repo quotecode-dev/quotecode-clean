@@ -77,7 +77,11 @@ Deno.serve(async (req: Request) => {
       for (const m of msgs) { const k = m.bin || 'unsorted'; inquiries[k] = (inquiries[k] ?? 0) + 1; }
       const items = (await db(admin.from('support_review_items').select('title, priority').in('status', ['new', 'in_progress']).order('priority', { ascending: true }).limit(50))) as { title: string; priority: number }[];
       const chat = (await db(admin.from('chat_ai_daily_usage').select('questions').gte('usage_day', since.slice(0, 10)).limit(5000))) as { questions: number }[];
-      return { inquiries, openItems: items.length, topItems: items.slice(0, 3), chatQuestions: chat.reduce((a, r) => a + Number(r.questions || 0), 0) };
+      // the red inquiries still waiting for the Owner (any week), newest first - the service card links each one
+      const red = (await db(admin.from('support_inbound_messages').select('id, subject, from_address, received_at').eq('is_automated', false).eq('bin', 'red')
+        .in('status', ['waiting', 'draft']).order('received_at', { ascending: false }).limit(5))) as { id: string; subject: string | null; from_address: string | null; received_at: string }[];
+      const redOpen = red.map((m) => ({ id: m.id, subject: m.subject ?? '', from: m.from_address ?? '', received_at: m.received_at }));
+      return { inquiries, openItems: items.length, topItems: items.slice(0, 3), chatQuestions: chat.reduce((a, r) => a + Number(r.questions || 0), 0), redOpen };
     },
     fetchHead: async (url) => {
       const r = await timed(url, { method: 'GET', redirect: 'manual' }, 15000);
