@@ -14,10 +14,10 @@ export type Network = 'facebook' | 'instagram' | 'tiktok';
 export type Market = 'intl' | 'il';
 export type Channel = { id: string; network: Network; market: Market; perWeek: number; accountOpen: boolean };
 
-// accountOpen: the Owner has the account (Facebook Israel, Instagram, TikTok - assumed Israel, plan §accounts); the international accounts
-// are not open yet - their posts are prepared anyway and wait until the account opens
+// accountOpen: the Owner has the account (Facebook Israel, Instagram, TikTok - assumed Israel, plan §accounts); the international
+// Facebook page opened 2026-10-27 (stage 2); the international Instagram / TikTok are not open yet - their posts wait until they open
 export const CHANNELS: readonly Channel[] = Object.freeze([
-  { id: 'fb_intl', network: 'facebook', market: 'intl', perWeek: 3, accountOpen: false },
+  { id: 'fb_intl', network: 'facebook', market: 'intl', perWeek: 3, accountOpen: true },
   { id: 'fb_il', network: 'facebook', market: 'il', perWeek: 2, accountOpen: true },
   { id: 'ig_intl', network: 'instagram', market: 'intl', perWeek: 2, accountOpen: false },
   { id: 'ig_il', network: 'instagram', market: 'il', perWeek: 1, accountOpen: true },
@@ -182,6 +182,62 @@ export async function runSocial(d: StageDeps, trigger: 'cron' | 'admin', paths: 
 }
 
 // the Owner's "ask for a change" on a post that still waits: the same account, the same market, rewritten with the Owner's note
+// ---------------------------------------------------------------- stage 2: automatic publication after the approval
+// Owner console 2026-10-27, typed: "מאשר את שלב 2 של סוכנת הרשתות". The connected accounts (the TEKANGO Social Meta app, the page tokens
+// the Owner saved as function secrets - never in code, never in a log) publish on "approve": a Facebook page post with the square image,
+// an Instagram image post through the Israeli page. Any other account (TikTok, the international Instagram) stays manual.
+export const GRAPH = 'https://graph.facebook.com/v26.0';
+export type Target = { kind: 'facebook'; pageId: string; tokenEnv: string } | { kind: 'instagram'; igUserId: string; tokenEnv: string };
+export const TARGETS: Readonly<Record<string, Target>> = Object.freeze({
+  fb_il: { kind: 'facebook', pageId: '1381375051729705', tokenEnv: 'META_PAGE_IL_TOKEN' }, // Tekango ישראל
+  fb_intl: { kind: 'facebook', pageId: '1408027809060627', tokenEnv: 'META_PAGE_INTL_TOKEN' }, // Tekango Global
+  ig_il: { kind: 'instagram', igUserId: '17841431179031610', tokenEnv: 'META_PAGE_IL_TOKEN' }, // @tekangoisrael, linked to Tekango ישראל
+});
+export const imageUrl = (art: string) => `${ORIGIN}/social/art/${ART_KEYS.includes(art) ? art : 'quote'}.jpg`;
+export const facebookMessage = (p: { text?: unknown; hashtags?: unknown; link?: unknown }) =>
+  [String(p.text ?? ''), (Array.isArray(p.hashtags) ? p.hashtags : []).join(' '), String(p.link ?? '')].filter(Boolean).join('\n\n');
+// Instagram does not open links in a caption: the text and the hashtags only
+export const instagramCaption = (p: { text?: unknown; hashtags?: unknown }) =>
+  [String(p.text ?? ''), (Array.isArray(p.hashtags) ? p.hashtags : []).join(' ')].filter(Boolean).join('\n\n');
+
+type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
+const graphError = async (r: Response) => {
+  let code = `meta_${r.status}`;
+  try { const j = await r.json(); if (j?.error?.code) code = `meta_${r.status}_${j.error.code}`; } catch { /* the status is enough */ }
+  return new Error(code);
+};
+const post = async (f: Fetch, url: string, form: Record<string, string>) => {
+  const r = await f(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(form).toString() });
+  if (!r.ok) throw await graphError(r);
+  return await r.json();
+};
+// publishes one approved post; returns the public address of the new post. The token is read through `token(name)` and only sent to Meta.
+export async function publishToMeta(f: Fetch, token: (name: string) => string, channel: string, payload: Record<string, unknown>): Promise<{ url: string; id: string }> {
+  const t = TARGETS[channel];
+  if (!t) throw new Error('not_connected');
+  const access = token(t.tokenEnv);
+  if (!access) throw new Error('not_configured');
+  const image = imageUrl(String(payload.art ?? ''));
+  if (t.kind === 'facebook') {
+    const j = await post(f, `${GRAPH}/${t.pageId}/photos`, { url: image, message: facebookMessage(payload), access_token: access });
+    const id = String(j?.post_id ?? j?.id ?? '');
+    if (!id) throw new Error('meta_no_id');
+    return { id, url: `https://www.facebook.com/${id}` };
+  }
+  const created = await post(f, `${GRAPH}/${t.igUserId}/media`, { image_url: image, caption: instagramCaption(payload), access_token: access });
+  const creation = String(created?.id ?? '');
+  if (!creation) throw new Error('meta_no_id');
+  const published = await post(f, `${GRAPH}/${t.igUserId}/media_publish`, { creation_id: creation, access_token: access });
+  const id = String(published?.id ?? '');
+  if (!id) throw new Error('meta_no_id');
+  let url = 'https://www.instagram.com/tekangoisrael/';
+  try {
+    const r = await f(`${GRAPH}/${id}?${new URLSearchParams({ fields: 'permalink', access_token: access })}`);
+    if (r.ok) { const j = await r.json(); if (typeof j?.permalink === 'string' && j.permalink.startsWith('https://www.instagram.com/')) url = j.permalink; }
+  } catch { /* the profile address is enough */ }
+  return { id, url };
+}
+
 // at most 3 rewrites per post: the AI budget is shared with the Owner's runs (the review of 2026-10-27)
 export const MAX_REVISIONS = 3;
 export async function reviseSocial(d: StageDeps, a: Action, note: string, paths: string[]): Promise<{ ok: boolean; code?: string; cost: number; tokens: number }> {

@@ -121,3 +121,25 @@ describe('the agents room: 6 places, the social agent under the SEO agent, a lon
     expect(screen.getByTestId('agents-social-posts').hasAttribute('open')).toBe(true);
   });
 });
+
+describe('stage 2: a connected account (Owner 2026-10-27, "מאשר את שלב 2 של סוכנת הרשתות")', () => {
+  it.each([[true, 'מאשר ומפרסם', 'העתקת הקישור לפוסט'], [false, 'Approve and publish', 'Copy the post link']])('isHebrew=%s: approve-and-publish on a connected account, the link to a published post, a failure says publish by hand', async (isHebrew, approve, view) => {
+    const done = { ...post('p5', 'fb_intl', 'done'), result: { published: true, auto: true, url: 'https://www.facebook.com/1408027809060627_5' } };
+    const failed = { ...post('p6', 'ig_il', 'approved'), error: 'publish_failed: meta_400_190' };
+    const evil = { ...post('p7', 'fb_il', 'done'), result: { url: 'javascript:alert(1)' } };
+    invoke.mockResolvedValue({ data: { ...STATE, autoChannels: ['fb_il', 'fb_intl', 'ig_il'], posts: [post('p1', 'fb_il', 'proposed'), post('p8', 'tt_il', 'proposed'), done, failed, evil] }, error: null });
+    render(<AdminSocialPosts isHebrew={isHebrew} />);
+    await screen.findByTestId('social-posts');
+    expect(screen.getByTestId('social-approve-p1').textContent).toBe(approve);
+    expect(screen.getByTestId('social-auto-p1')).toBeTruthy();
+    expect(screen.queryByTestId('social-auto-p8')).toBeNull(); // TikTok stays manual
+    expect(screen.getByTestId('social-approve-p8').textContent).toBe(isHebrew ? 'מאשר' : 'Approve');
+    const link = screen.getByTestId('social-link-p5');
+    expect(link.textContent).toContain('https://www.facebook.com/1408027809060627_5');
+    expect(screen.getByTestId('social-copy-link-p5').textContent).toBe(view);
+    expect(link.querySelector('a')).toBeNull(); // the admin never opens another tab
+    expect(screen.queryByTestId('social-link-p7')).toBeNull(); // only a Meta address is ever a link
+    expect(screen.getByTestId('social-failed-p6')).toBeTruthy();
+    expect(screen.getByTestId('social-copy-p6')).toBeTruthy(); // still copy / download / published by hand
+  });
+});

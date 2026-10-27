@@ -10,6 +10,7 @@ import { type Agent } from './lib.ts';
 // Stage 2 (Owner console 2026-10-27, typed: "מאשר את תוכנית שלב 2 עם מנהל הסוכנים"): the agents manager, the Owner's approvals, agent
 // names, articles. New secret (optional until the Owner sets it): VERCEL_DEPLOY_HOOK_URL - the site rebuild after an approved article.
 import { handle, type StageDeps, type AnyAgent } from './manager.ts';
+import { TARGETS, publishToMeta } from './social.ts';
 import { rs256Sign, sitemapPaths, ORIGIN } from '../search-console/lib.ts';
 import { sendMail } from '../support-inbound/mail.ts';
 
@@ -61,6 +62,9 @@ Deno.serve(async (req: Request) => {
 
   const deps: StageDeps = {
     caller: async () => role,
+    // stage 2: the page tokens are function secrets (META_PAGE_IL_TOKEN / META_PAGE_INTL_TOKEN), read here only and sent to Meta only
+    connectedChannels: () => Object.entries(TARGETS).filter(([, t]) => !!(Deno.env.get(t.tokenEnv) ?? '').trim()).map(([id]) => id),
+    publishSocial: (channel, payload) => publishToMeta((u, i) => timed(u, i, 30000), (name) => (Deno.env.get(name) ?? '').trim(), channel, payload),
     can: async (permission) => {
       if (role === 'admin') return true;
       if (role === 'cron' || !asCaller) return false;
