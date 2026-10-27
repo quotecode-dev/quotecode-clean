@@ -1,5 +1,5 @@
 import { createElement } from 'react';
-import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox, Briefcase, Settings2, KeyRound, Coins, Receipt, Scale, SearchCheck, Network } from 'lucide-react';
+import { LayoutDashboard, Users2, CreditCard, Activity, Bot, Inbox, Briefcase, Settings2, KeyRound, Coins, Receipt, Scale, SearchCheck, Network, Megaphone } from 'lucide-react';
 import AdminOverview from './AdminOverview';
 import AdminPlans from './AdminPlans';
 import AdminSystemActivity from './AdminSystemActivity';
@@ -13,6 +13,7 @@ import AdminExpenseInvoices from './AdminExpenseInvoices';
 import AdminBillingReconcile from './AdminBillingReconcile';
 import AdminSearchConsole from './AdminSearchConsole';
 import AdminAgentsRoom from './AdminAgentsRoom';
+import AdminSocialPosts from './AdminSocialPosts';
 import { focusInquiry } from '../utils/adminInquiryFocus';
 
 // THE Admin destination registry - the one and only definition of what an
@@ -91,6 +92,15 @@ export const ADMIN_DESTINATIONS = [
     description: { he: 'פניות מהתמיכה ומהמידע, טיוטות ותשובות', en: 'Support and info emails, drafts and replies' },
     render: (host) => createElement(AdminInquiries, { isHebrew: host.isHebrew, canReply: host.can('inquiries.reply'), canSettings: host.can('inquiries.settings') }),
   },
+  // Owner console 2026-10-27 (L-22, "מאשר את שניהם"): the social agent's posts - a supervisor with social.view reads them, social.publish
+  // approves and marks them published (the agents-room function checks both again); never the rest of the agents room
+  {
+    id: 'social', hub: 'manage', icon: Megaphone, permission: 'social.view', mobile: 'more', available: true,
+    label: { he: 'רשתות חברתיות', en: 'Social media' },
+    title: { he: 'רשתות חברתיות - סופר אדמין', en: 'Social media - Super Admin' },
+    description: { he: 'פוסטים לפייסבוק, לאינסטגרם ולטיקטוק: אישור, העתקה ופרסום', en: 'Posts for Facebook, Instagram and TikTok: approve, copy and publish' },
+    render: (host) => createElement(AdminSocialPosts, { isHebrew: host.isHebrew }),
+  },
   // Owner console 2026-10-20 (L-22): the permissions screen - the Owner only, never a supervisor
   {
     id: 'permissions', hub: 'manage', icon: KeyRound, permission: 'owner', mobile: 'more', available: true,
@@ -165,6 +175,7 @@ export const ADMIN_PERMISSIONS = Object.freeze([
   ...ADMIN_DESTINATIONS.filter((d) => !d.isHub && d.permission !== 'owner').map((d) => Object.freeze({ id: d.permission, destination: d.id, label: d.label, action: false })),
   Object.freeze({ id: 'inquiries.reply', destination: 'inquiries', label: { he: 'מענה על פניות ושליחת תשובות', en: 'Reply to inquiries and send answers' }, action: true }),
   Object.freeze({ id: 'inquiries.settings', destination: 'inquiries', label: { he: 'שינוי הגדרות העוזר', en: 'Change the assistant settings' }, action: true }),
+  Object.freeze({ id: 'social.publish', destination: 'social', label: { he: 'אישור פוסטים וסימון פורסם', en: 'Approve posts and mark them published' }, action: true }),
 ]);
 
 /** Whether a destination is open for this access ({ owner, permissions[] }); a hub when at least one of its tools is. */

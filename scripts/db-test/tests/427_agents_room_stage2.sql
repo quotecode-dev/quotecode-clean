@@ -20,7 +20,8 @@ BEGIN
   PERFORM tst.ok(NOT has_table_privilege('anon', 'public.site_articles', 'INSERT') AND NOT has_table_privilege('anon', 'public.site_articles', 'UPDATE')
     AND NOT has_column_privilege('anon', 'public.site_articles', 'action_id', 'SELECT') AND has_column_privilege('anon', 'public.site_articles', 'he', 'SELECT'),
     'S5 the public may read the public article columns only and never write');
-  PERFORM tst.ok((SELECT count(*) = 4 FROM public.agent_profiles), 'S6 the four agents have a default name');
+  -- 20261028000000 (Owner 2026-10-27) adds the social agent as a fifth: this test checks the four stage-2 agents by name
+  PERFORM tst.ok((SELECT count(*) = 4 FROM public.agent_profiles WHERE agent IN ('manager', 'seo', 'service', 'security')), 'S6 the four agents have a default name');
 END $$;
 
 SELECT tst.lives($q$INSERT INTO public.agent_runs (agent, run_key, trigger) VALUES ('manager', 'cron:2026-11-01', 'cron')$q$, 'S7 the manager is an agent');

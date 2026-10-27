@@ -31,7 +31,7 @@ export type Run = { id: string; agent: Agent; run_key: string; trigger: string; 
 export interface Deps {
   caller(): Promise<'admin' | 'cron' | null>;
   now(): Date;
-  claim(agent: Agent | 'manager', runKey: string, trigger: 'cron' | 'admin'): Promise<string | null>; // the new run id, or null = already ran
+  claim(agent: Agent | 'manager' | 'social', runKey: string, trigger: 'cron' | 'admin'): Promise<string | null>; // the new run id, or null = already ran
   finish(id: string, patch: Record<string, unknown>): Promise<void>;
   monthCostUsd(sinceIso: string): Promise<number>;
   recentRuns(): Promise<Run[]>;
