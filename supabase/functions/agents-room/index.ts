@@ -6,7 +6,10 @@
 //  - Secrets (already set): GSC_SERVICE_ACCOUNT_JSON (read-only Search Console), OPENAI_API_KEY, RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS,
 //    CRON_SECRET. Nothing is ever published, sent to a customer or changed on the site.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { handler, type Deps, type Agent } from './lib.ts';
+import { type Agent } from './lib.ts';
+// Stage 2 (Owner console 2026-10-27, typed: "מאשר את תוכנית שלב 2 עם מנהל הסוכנים"): the agents manager, the Owner's approvals, agent
+// names, articles. New secret (optional until the Owner sets it): VERCEL_DEPLOY_HOOK_URL - the site rebuild after an approved article.
+import { handle, type StageDeps, type AnyAgent } from './manager.ts';
 import { rs256Sign, sitemapPaths, ORIGIN } from '../search-console/lib.ts';
 import { sendMail } from '../support-inbound/mail.ts';
 
@@ -52,10 +55,10 @@ Deno.serve(async (req: Request) => {
   const keyJson = Deno.env.get('GSC_SERVICE_ACCOUNT_JSON') ?? '';
   const sitemap = async () => { const r = await timed(`${ORIGIN}/sitemap.xml`); return r.ok ? await r.text() : ''; };
 
-  const deps: Deps = {
+  const deps: StageDeps = {
     caller: async () => role,
     now: () => new Date(),
-    claim: async (agent: Agent, runKey, trigger) => {
+    claim: async (agent: Agent | 'manager', runKey, trigger) => {
       const { data, error } = await admin.from('agent_runs').insert({ agent, run_key: runKey, trigger }).select('id').maybeSingle();
       if (error) { if ((error as { code?: string }).code === '23505') return null; console.error(`agents-room: claim ${(error as { code?: string }).code ?? ''}`); throw new Error('database'); }
       return (data as { id: string } | null)?.id ?? null;
@@ -84,14 +87,15 @@ Deno.serve(async (req: Request) => {
       return { status: r.status, headers };
     },
     versionJson: async () => { try { const r = await timed(`${ORIGIN}/version.json?t=${Date.now()}`); return r.ok ? await r.json() : null; } catch { return null; } },
-    complete: async ({ model, messages, schema }) => {
+    complete: async ({ model, messages, schema, maxTokens }) => {
       const legacy = model === 'gpt-4o-mini';
+      const max = maxTokens ?? 2000;
       const res = await timed('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: { Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ model, messages, response_format: { type: 'json_schema', json_schema: schema },
-          ...(legacy ? { max_tokens: 2000, temperature: 0.2 } : { max_completion_tokens: 2000, reasoning_effort: 'none' }) }),
-      }, 60000);
+          ...(legacy ? { max_tokens: max, temperature: 0.2 } : { max_completion_tokens: max, reasoning_effort: 'none' }) }),
+      }, max > 2000 ? 120000 : 60000);
       if (!res.ok) throw new Error(`ai_${res.status}`);
       const data = await res.json();
       const c = data?.choices?.[0];
@@ -106,12 +110,33 @@ Deno.serve(async (req: Request) => {
       });
       return r.ok;
     },
+    profiles: async () => (await db(admin.from('agent_profiles').select('agent, name_he, name_en'))) as never,
+    setProfile: async (agent: AnyAgent, nameHe, nameEn) => { await db(admin.from('agent_profiles').update({ name_he: nameHe, name_en: nameEn, updated_at: new Date().toISOString() }).eq('agent', agent)); },
+    recentActions: async () => (await db(admin.from('agent_actions').select('id, created_at, run_key, source, kind, action_type, title_he, title_en, detail_he, detail_en, payload, status, decided_at, done_at, result, error')
+      .gte('created_at', new Date(Date.now() - 60 * 86_400_000).toISOString()).order('created_at', { ascending: false }).limit(100))) as never,
+    insertAction: async (a) => {
+      const { data, error } = await admin.from('agent_actions').insert(a).select('id').maybeSingle();
+      if (error) { if ((error as { code?: string }).code === '23505') return null; console.error(`agents-room: action ${(error as { code?: string }).code ?? ''}`); throw new Error('database'); }
+      return (data as { id: string } | null)?.id ?? null;
+    },
+    updateAction: async (id, patch) => { await db(admin.from('agent_actions').update(patch).eq('id', id)); },
+    getAction: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('agent_actions').select('*').eq('id', id).maybeSingle())) as never : null),
+    insertArticle: async (a) => ((await db(admin.from('site_articles').insert(a).select('id').single())) as { id: string }).id,
+    updateArticle: async (id, patch) => { await db(admin.from('site_articles').update(patch).eq('id', id)); },
+    getArticle: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('site_articles').select('id, slug, market, status, he, en, published_at, created_at').eq('id', id).maybeSingle())) as never : null),
+    articleSlugs: async () => ((await db(admin.from('site_articles').select('slug').limit(1000))) as { slug: string }[]).map((r) => r.slug),
+    lastPublishedAt: async () => ((await db(admin.from('site_articles').select('published_at').eq('status', 'published').order('published_at', { ascending: false }).limit(1))) as { published_at: string }[])[0]?.published_at ?? null,
+    deployHook: async () => {
+      const url = (Deno.env.get('VERCEL_DEPLOY_HOOK_URL') ?? '').trim();
+      if (!/^https:\/\/api\.vercel\.com\/v1\/integrations\/deploy\//.test(url)) return 'not_configured';
+      try { const r = await timed(url, { method: 'POST' }, 15000); return r.ok ? 'ok' : 'failed'; } catch { return 'failed'; }
+    },
   };
 
   let body: unknown = null;
   try { body = await req.json(); } catch { return json(400, { ok: false, code: 'invalid_request' }); }
   try {
-    const r = await handler(body, deps, async () => sitemapPaths(await sitemap()));
+    const r = await handle(body, deps, async () => sitemapPaths(await sitemap()));
     return json(r.status, r.body);
   } catch (e) {
     console.error(`agents-room: failed ${(e as Error)?.message ?? ''}`.slice(0, 200));

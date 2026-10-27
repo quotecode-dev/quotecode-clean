@@ -28,8 +28,8 @@
     "markers": 0
   },
   "src/components/AdminAgentsRoom.jsx": {
-    "interactive": 1,
-    "markers": 1
+    "interactive": 18,
+    "markers": 18
   },
   "src/components/AdminBillingReconcile.jsx": {
     "interactive": 3,
@@ -122,6 +122,10 @@
   "src/components/AdminWeeklyReview.jsx": {
     "interactive": 5,
     "markers": 7
+  },
+  "src/components/AgentAvatar.jsx": {
+    "interactive": 0,
+    "markers": 0
   },
   "src/components/AiChatIcon.jsx": {
     "interactive": 0,
@@ -775,6 +779,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/shared/siteArticlesApi.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/shared/supabase.js": {
     "interactive": 0,
     "markers": 0
@@ -1308,6 +1316,10 @@
     "markers": 0
   },
   "supabase/functions/agents-room/lib.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/agents-room/manager.ts": {
     "interactive": 0,
     "markers": 0
   },

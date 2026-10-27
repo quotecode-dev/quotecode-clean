@@ -165,6 +165,10 @@
     {
       "path": "/api/agents-weekly",
       "schedule": "0 5,6 * * 0"
+    },
+    {
+      "path": "/api/agents-daily",
+      "schedule": "30 4 * * *"
     }
   ]
 }
