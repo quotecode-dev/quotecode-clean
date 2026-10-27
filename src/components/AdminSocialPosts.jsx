@@ -87,7 +87,7 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto }) {
             )}
           </>
         )}
-        {failed && <div className="av-notice av-bad" style={{ marginTop: 8 }} data-testid={`social-failed-${a.id}`}>{isHebrew ? 'הפרסום האוטומטי לא הצליח. אפשר לפרסם את הפוסט ידנית, ולסמן "פורסם".' : 'The automatic publication failed. You can publish the post by hand and mark it "Published".'}</div>}
+        {failed && <div className="av-notice av-bad" style={{ marginTop: 8 }} data-testid={`social-failed-${a.id}`}>{isHebrew ? 'הפרסום האוטומטי לא הצליח. אפשר לנסות שוב ב"פרסום עכשיו", או לפרסם את הפוסט ידנית ולסמן "פורסם".' : 'The automatic publication failed. You can try again with "Publish now", or publish the post by hand and mark it "Published".'}</div>}
         {published && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 }} data-testid={`social-link-${a.id}`}>
             <span className="av-muted" style={{ fontSize: '0.85rem' }}>{isHebrew ? 'פורסם אוטומטית:' : 'Published automatically:'}</span>
@@ -98,8 +98,12 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto }) {
         )}
         {canPublish && a.status === 'approved' && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
+            {auto && (
+              /* PRODUCT_TRUTH_DECORATIVE: publishes the approved post now to its connected account (once - Owner 2026-10-27, "מאשר") */
+              <button type="button" className="av-btn av-primary" disabled={off} onClick={() => onAct({ action: 'publish_now', id: a.id })} data-testid={`social-publish-now-${a.id}`}>{isHebrew ? 'פרסום עכשיו' : 'Publish now'}</button>
+            )}
             {/* PRODUCT_TRUTH_DECORATIVE: copies the post (text, hashtags, link) to paste into the network */}
-            <button type="button" className="av-btn av-primary" onClick={() => onCopy(fullText(p), isHebrew ? 'הטקסט הועתק. הדביקו אותו ברשת.' : 'The text was copied. Paste it into the network.')} data-testid={`social-copy-${a.id}`}>{isHebrew ? 'העתקת הטקסט' : 'Copy the text'}</button>
+            <button type="button" className={auto ? 'av-btn' : 'av-btn av-primary'} onClick={() => onCopy(fullText(p), isHebrew ? 'הטקסט הועתק. הדביקו אותו ברשת.' : 'The text was copied. Paste it into the network.')} data-testid={`social-copy-${a.id}`}>{isHebrew ? 'העתקת הטקסט' : 'Copy the text'}</button>
             {/* PRODUCT_TRUTH_DECORATIVE: downloads the post's square image */}
             <a className="av-btn" href={`/social/art/${p.art}.jpg`} download={`tekango-${p.art}.jpg`} data-testid={`social-download-${a.id}`}>{isHebrew ? 'הורדת התמונה' : 'Download the image'}</a>
             {p.network === 'tiktok' && (
@@ -135,6 +139,7 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
     const r = await callFn(body);
     setBusy('');
     const okText = r?.status === 'published' ? (isHebrew ? 'הפוסט פורסם. הקישור אליו מופיע ברשימת "פורסמו לאחרונה".' : 'The post was published. Its link is in "Published lately".')
+      : r?.status === 'ready' && r?.publishError && body.action === 'publish_now' ? (isHebrew ? 'הפרסום האוטומטי לא הצליח. הפוסט עדיין מחכה למטה.' : 'The automatic publication failed. The post still waits below.')
       : r?.status === 'ready' && r?.publishError ? (isHebrew ? 'אושר, אבל הפרסום האוטומטי לא הצליח. הפוסט מחכה לפרסום ידני למטה.' : 'Approved, but the automatic publication failed. The post waits below to be published by hand.')
       : r?.status === 'ready' ? (isHebrew ? 'אושר. הפוסט מוכן לפרסום למטה.' : 'Approved. The post is ready to publish below.')
       : r?.status === 'rejected' ? (isHebrew ? 'הוסר מהרשימה.' : 'Removed from the list.')
@@ -144,6 +149,8 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
       : r?.code === 'forbidden' ? (isHebrew ? 'אין לכם הרשאה לפעולה הזו.' : 'You do not have permission for this action.')
         : r?.code === 'revise_limit' ? (isHebrew ? 'הפוסט כבר תוקן 3 פעמים. אפשר לאשר אותו או לבחור "לא עכשיו".' : 'This post was already revised 3 times. Approve it or choose "Not now".')
           : r?.code === 'not_pending' ? (isHebrew ? 'הפוסט כבר טופל.' : 'This post was already handled.')
+            : r?.code === 'publishing' ? (isHebrew ? 'הפוסט מתפרסם ממש עכשיו. רעננו בעוד דקה.' : 'The post is being published right now. Refresh in a minute.')
+              : r?.code === 'not_ready' ? (isHebrew ? 'הפוסט כבר לא מחכה לפרסום.' : 'This post no longer waits to be published.')
         : (isHebrew ? 'הפעולה לא הושלמה. נסו שוב.' : 'The action did not complete. Try again.');
     setNotice(r?.ok ? { good: true, text: okText } : { good: false, text: failText });
     load();

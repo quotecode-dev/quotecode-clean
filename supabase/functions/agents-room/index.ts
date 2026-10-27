@@ -139,9 +139,10 @@ Deno.serve(async (req: Request) => {
       if (error) { if ((error as { code?: string }).code === '23505') return null; console.error(`agents-room: action ${(error as { code?: string }).code ?? ''}`); throw new Error('database'); }
       return (data as { id: string } | null)?.id ?? null;
     },
-    updateAction: async (id, patch, whenStatus) => {
+    updateAction: async (id, patch, whenStatus, whenDecidedAt) => {
       const q = admin.from('agent_actions').update(patch).eq('id', id);
-      await db(whenStatus ? q.eq('status', whenStatus) : q);
+      const s = whenStatus ? q.eq('status', whenStatus) : q;
+      await db(whenDecidedAt ? s.eq('decided_at', whenDecidedAt) : s);
     },
     getAction: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('agent_actions').select('*').eq('id', id).maybeSingle())) as never : null),
     insertArticle: async (a) => ((await db(admin.from('site_articles').insert(a).select('id').single())) as { id: string }).id,
