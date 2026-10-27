@@ -9,6 +9,7 @@ import { setSeoMeta } from '../utils/seoMeta';
 import { publicSeo } from '../shared/publicSeoRoutes';
 import { formatShortDateTime } from '../../supabase/functions/_shared/shortDate.js';
 import { usePublicToolsFeeds } from '../hooks/usePublicToolsFeeds';
+import { ToolHubCards, ToolGuide } from './PublicToolsGuide';
 import {
   parseToolNumber, INPUT_ERRORS, UNIT_FACTORS, convertLength, formatToolNumber, REFERENCE_METAL_USD_PER_GRAM, DEFAULT_PURITY,
   metalValueUsd, convertCurrency, CURRENCY_CODES,
@@ -153,6 +154,8 @@ function PublicToolsEn({ initialTab }) {
 
       {/* Main Container */}
       <main style={{ maxWidth: '800px', margin: '32px auto 40px', padding: '0 20px', position: 'relative', zIndex: 1 }}>
+        {/* Owner 2026-10-27 ("מאשר תוכנית א לדפי המחשבונים"): the hub shows the four calculators as cards; a calculator page shows its calculator */}
+        {!toolPage ? <ToolHubCards lang="en" navigate={navigate} /> : (
         <div style={{ background: TOOLS.bgCard, borderRadius: '12px', boxShadow: TOOLS.cardShadow, overflow: 'hidden', border: `1px solid ${TOOLS.border}` }}>
 
           {/* Tabs */}
@@ -390,13 +393,18 @@ function PublicToolsEn({ initialTab }) {
             )}
           </div>
         </div>
+        )}
 
-        {/* SEO Content Section */}
+        {/* SEO Content Section - the hub's general text, or the calculator's own guide (Owner 2026-10-27) */}
         <section style={{ marginTop: '40px', background: TOOLS.bgCard, padding: '30px', borderRadius: '12px', border: `1px solid ${TOOLS.border}` }}>
+          {toolPage ? <ToolGuide lang="en" tool={initialTab} /> : (
+          <>
           <h3 style={{ fontSize: '1.2rem', marginBottom: '15px', color: TOOLS.textPrimary }}>Tools for Businesses Working Across Borders</h3>
           <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: TOOLS.textSecondary, marginBottom: '15px' }}>
             Businesses, freelancers and importers need quick calculations every day: currency conversions, unit conversions when working with overseas suppliers, and value estimates. TEKANGO's tools hub keeps these calculations in one place, with the data source and its update time.
           </p>
+          </>
+          )}
           {/* Owner 2026-10-26 (SEO week 2): the tools page links to the public guides */}
           <p style={{ fontSize: '0.9rem', lineHeight: '1.6', color: TOOLS.textSecondary, margin: 0 }}>
             {/* PRODUCT_TRUTH_DECORATIVE: navigation link to the public guides index of the same language */}
