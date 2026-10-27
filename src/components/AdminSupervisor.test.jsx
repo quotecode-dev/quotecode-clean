@@ -41,7 +41,7 @@ describe('the two hubs ("ניהול" / "מערכת")', () => {
     const h = host(OWNER);
     render(<AdminHub host={h} hubId="manage" />);
     const cards = screen.getAllByTestId(/^admin-hub-card-/).map((c) => c.dataset.testid.replace('admin-hub-card-', ''));
-    expect(cards).toEqual(['overview', 'users', 'plans', 'inquiries', 'permissions']);
+    expect(cards).toEqual(['overview', 'users', 'plans', 'inquiries', 'social', 'permissions']); // + social (L-22, Owner 2026-10-27)
     fireEvent.click(screen.getByTestId('admin-hub-card-users'));
     expect(h.navigate).toHaveBeenCalledWith('users');
   });
@@ -110,7 +110,7 @@ describe('"הרשאות מנהל" (the Owner only)', () => {
     expect(screen.getAllByTestId('permissions-pick')).toHaveLength(2);
     fireEvent.click(screen.getAllByTestId('permissions-pick')[0]);
     const editor = screen.getByTestId('permissions-editor');
-    expect(within(editor).getAllByRole('checkbox')).toHaveLength(8);
+    expect(within(editor).getAllByRole('checkbox')).toHaveLength(10); // + social.view, social.publish (L-22, Owner 2026-10-27)
     expect(within(editor).getAllByRole('checkbox').every((c) => !c.checked)).toBe(true);
     fireEvent.click(screen.getByTestId('permission-users.view'));
     fireEvent.click(screen.getByTestId('permission-inquiries.view'));

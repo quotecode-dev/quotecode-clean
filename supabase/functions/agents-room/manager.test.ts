@@ -47,11 +47,13 @@ function deps(over: Partial<StageDeps> = {}) {
   const complete = vi.fn(async (a: { schema: { name: string } }) => {
     if (a.schema.name === 'seo_weekly') return { content: JSON.stringify({ summary_he: 'קידום.', summary_en: 'SEO.', recommendations: [] }), promptTokens: 1000, completionTokens: 300 };
     if (a.schema.name === 'manager_weekly') return { content: JSON.stringify(managerAi), promptTokens: 3000, completionTokens: 800 };
+    if (a.schema.name === 'social_week') return { content: JSON.stringify({ posts: [] }), promptTokens: 500, completionTokens: 100 }; // social.test.ts covers the posts
     return { content: JSON.stringify(goodDraft), promptTokens: 2000, completionTokens: 4000 };
   });
   const d: StageDeps & { runs: typeof runs; actions: typeof actions; articles: typeof articles; mails: typeof mails; google: typeof google } = {
     runs, actions, articles, mails, google,
     caller: vi.fn(async () => 'cron' as const),
+    can: vi.fn(async () => false), // a signed-in non-owner holds no supervisor permission unless a test says so
     now: () => NOW,
     claim: vi.fn(async (agent, key, trigger) => { const id = `${agent}|${key}`; if (runs.has(id)) return null; runs.set(id, { id, agent, run_key: key, trigger, status: 'running', started_at: NOW.toISOString(), findings: [], data: {} }); return id; }),
     finish: vi.fn(async (id: string, patch: Record<string, unknown>) => { Object.assign(runs.get(id)!, patch); cost += Number(patch.ai_cost_usd ?? 0); }),
@@ -91,7 +93,7 @@ describe('agents room stage 2 - the manager', () => {
     const d = deps();
     const r = await handle({ action: 'run' }, d, paths);
     expect(r.status).toBe(200);
-    expect((r.body.results as { agent: string; status: string }[]).map((x) => `${x.agent}:${x.status}`)).toEqual(['seo:done', 'service:done', 'security:done', 'manager:done']);
+    expect((r.body.results as { agent: string; status: string }[]).map((x) => `${x.agent}:${x.status}`)).toEqual(['seo:done', 'service:done', 'security:done', 'social:done', 'manager:done']); // + the social agent (Owner 2026-10-27), before the manager
     expect(r.body).not.toHaveProperty('full');
     expect(d.mails).toHaveLength(1);
     const m = d.mails[0];
