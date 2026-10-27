@@ -25,7 +25,7 @@ describe('Admin destination registry (ONE definition)', () => {
   // two hubs ("ניהול" / "מערכת") hold every tool; "הרשאות מנהל" joins as an Owner-only tool.
   // Owner console 2026-10-23, typed approval of L-22: "מסך עלויות בדיקת הלקוח בניהול" - an Owner-only tool in "מערכת"
   it('keeps every current destination (Overview, Users, Plans, Inquiries, Activity, AI Support) plus the two hubs and the permissions screen', () => {
-    expect(ADMIN_DESTINATIONS.map((d) => d.id).sort()).toEqual(['activity', 'agents-room', 'ai-support', 'billing-reconcile', 'expense-invoices', 'inquiries', 'manage', 'overview', 'permissions', 'plans', 'search-console', 'social', 'system', 'twin-costs', 'users']); // + search-console (Owner 2026-10-26); + social (L-22, Owner 2026-10-27)
+    expect(ADMIN_DESTINATIONS.map((d) => d.id).sort()).toEqual(['activity', 'agents-room', 'ai-support', 'billing-reconcile', 'expense-invoices', 'inquiries', 'manage', 'overview', 'permissions', 'plans', 'search-console', 'system', 'twin-costs', 'users']); // + search-console (Owner 2026-10-26)
   });
   it('sidebar groups, section ids and mobile list are all derived from the registry; the nav shows the two hubs only', () => {
     const navIds = ADMIN_NAV_GROUPS.flatMap((g) => g.items.map((i) => i.id)).sort();
@@ -46,7 +46,7 @@ describe('Admin destination registry (ONE definition)', () => {
       expect(canOpenDestination(d, { owner: false, permissions: [] }), d.id).toBe(false);
     }
     expect(ADMIN_DESTINATIONS.find((d) => d.id === 'permissions').permission).toBe('owner');
-    expect(ADMIN_PERMISSIONS.map((x) => x.id).sort()).toEqual(['activity.view', 'ai-support.view', 'inquiries.reply', 'inquiries.settings', 'inquiries.view', 'overview.view', 'plans.view', 'social.publish', 'social.view', 'users.view']); // + the social pair (L-22, Owner 2026-10-27)
+    expect(ADMIN_PERMISSIONS.map((x) => x.id).sort()).toEqual(['activity.view', 'ai-support.view', 'inquiries.reply', 'inquiries.settings', 'inquiries.view', 'overview.view', 'plans.view', 'users.view']);
   });
   it('a supervisor opens exactly the tools granted and the hub holding them - never the permissions screen', () => {
     const access = { owner: false, permissions: ['users.view', 'ai-support.view', 'inquiries.reply', 'inquiries.settings'] };

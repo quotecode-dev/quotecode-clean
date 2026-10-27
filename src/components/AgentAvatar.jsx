@@ -4,8 +4,7 @@
 import { useId } from 'react';
 
 const INK = '#1d2b33';
-// + social (Owner 2026-10-27, "מאשר את שלב 1 של סוכנת הרשתות"): the same line - a drawn face in her color, a heart in the corner
-const COLORS = { manager: '#315f6f', seo: '#2f7a5c', service: '#b8682f', security: '#3b4f8f', social: '#a8466a' };
+const COLORS = { manager: '#315f6f', seo: '#2f7a5c', service: '#b8682f', security: '#3b4f8f' };
 
 function Face({ agent }) {
   const eyes = (y = 64) => <><circle cx="50" cy={y} r="3.2" fill={INK} /><circle cx="70" cy={y} r="3.2" fill={INK} /></>;
@@ -52,18 +51,6 @@ function Face({ agent }) {
       <path d="M88 73 Q86 83 72 83" stroke={INK} strokeWidth="3" fill="none" /><circle cx="71" cy="83" r="3" fill={INK} />
     </>
   );
-  if (agent === 'social') return (
-    <>
-      <path d="M20 122 Q22 96 60 96 Q98 96 100 122 Z" fill="#fbeef3" />
-      <path d="M80 40 Q104 46 98 82 Q94 72 84 66 Z" fill="#2e1d14" />
-      <rect x="53" y="84" width="14" height="14" fill="#c99872" />
-      <circle cx="60" cy="62" r="26" fill="#ddaa80" />
-      <path d="M34 60 Q34 34 60 34 Q86 34 86 60 Q78 44 62 47 Q46 43 34 60 Z" fill="#2e1d14" />
-      <circle cx="35" cy="70" r="2.5" fill="#f5b942" /><circle cx="85" cy="70" r="2.5" fill="#f5b942" />
-      {cheeks}{eyes()}
-      <path d="M51 75 Q60 84 69 75" stroke={INK} strokeWidth="2.5" fill="none" strokeLinecap="round" />
-    </>
-  );
   return (
     <>
       <path d="M20 122 Q22 96 60 96 Q98 96 100 122 Z" fill="#eef1fb" />
@@ -84,7 +71,6 @@ function Mark({ agent }) {
   if (agent === 'manager') return <>{ring}<polygon points="90,83 92.23,88.93 98.56,89.22 93.61,93.17 95.29,99.28 90,95.8 84.71,99.28 86.39,93.17 81.44,89.22 87.77,88.93" fill="#f5b942" /></>;
   if (agent === 'seo') return <>{ring}<circle cx="88" cy="90" r="5.5" fill="none" stroke={c} strokeWidth="3" /><line x1="92" y1="94" x2="97" y2="99" stroke={c} strokeWidth="3.5" strokeLinecap="round" /></>;
   if (agent === 'service') return <>{ring}<path d="M83 85 h14 a3 3 0 0 1 3 3 v7 a3 3 0 0 1 -3 3 h-8 l-4 4 v-4 h-2 a3 3 0 0 1 -3 -3 v-7 a3 3 0 0 1 3 -3 z" fill={c} /></>;
-  if (agent === 'social') return <>{ring}<path d="M90 99 C82 93 80 89 82 86 C84 83 88 84 90 87 C92 84 96 83 98 86 C100 89 98 93 90 99 Z" fill={c} /></>;
   return <>{ring}<path d="M90 82 L99 85.5 V92 Q99 99 90 103 Q81 99 81 92 V85.5 Z" fill={c} /><path d="M86 92 L89 95 L94.5 89" stroke="#ffffff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></>;
 }
 

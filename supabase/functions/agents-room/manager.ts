@@ -15,10 +15,8 @@ import {
   type Deps, type Agent, type Finding, type Result, type Run,
 } from './lib.ts';
 import { parseServiceAccount, API, SITE_URL, TOKEN_URL, ORIGIN } from '../search-console/lib.ts';
-import { runSocial, reviseSocial } from './social.ts';
 
-// + the social agent (Owner 2026-10-27, "מאשר את שלב 1 של סוכנת הרשתות"; social.ts): it prepares posts that wait for the Owner, like the manager
-export const ALL_AGENTS = ['manager', ...AGENTS, 'social'] as const;
+export const ALL_AGENTS = ['manager', ...AGENTS] as const;
 export type AnyAgent = typeof ALL_AGENTS[number];
 export const ARTICLES_PER_WEEK = 2;
 export const MAX_RECOMMENDATIONS = 3;
@@ -28,7 +26,7 @@ const ADMIN_LINK = 'https://www.tekango.com/dashboard?view=admin&section=agents-
 const REBUILD_GRACE_MS = 10 * 60_000; // a published article is in the sitemap once the site rebuilt (about 2 minutes)
 
 export type Kind = 'auto' | 'system' | 'claude' | 'info';
-export type ActionType = 'sitemap_submit' | 'urgent_mail' | 'article_draft' | 'article_publish' | 'claude_task' | 'social_post' | 'none';
+export type ActionType = 'sitemap_submit' | 'urgent_mail' | 'article_draft' | 'article_publish' | 'claude_task' | 'none';
 export type Action = {
   id: string; created_at: string; run_key: string; source: AnyAgent; kind: Kind; action_type: ActionType;
   title_he: string; title_en: string; detail_he: string | null; detail_en: string | null; payload: Record<string, unknown>;
@@ -44,14 +42,11 @@ export type ArticleRow = { id: string; slug: string; market: 'intl' | 'il'; stat
   published_at: string | null; created_at?: string };
 
 export interface StageDeps extends Deps {
-  // a supervisor's permission, asked of the database as the caller (the Owner: always true; the cron: never)
-  can(permission: 'social.view' | 'social.publish'): Promise<boolean>;
   profiles(): Promise<Profile[]>;
   setProfile(agent: AnyAgent, nameHe: string, nameEn: string): Promise<void>;
   recentActions(): Promise<Action[]>; // the last 60 days, newest first
   insertAction(a: NewAction): Promise<string | null>; // null = the dedupe key exists (already done)
-  // whenStatus: write only while the action still has that status (a decision taken meanwhile wins - the review of 2026-10-27)
-  updateAction(id: string, patch: Record<string, unknown>, whenStatus?: Action['status']): Promise<void>;
+  updateAction(id: string, patch: Record<string, unknown>): Promise<void>;
   getAction(id: string): Promise<Action | null>;
   insertArticle(a: Omit<ArticleRow, 'id' | 'published_at' | 'status'> & { action_id: string }): Promise<string>;
   updateArticle(id: string, patch: Record<string, unknown>): Promise<void>;
@@ -363,12 +358,6 @@ export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown
     return { status: 200, body: { ok: true, status: 'published', slug: art.slug, deploy } };
   }
 
-  // a social post (stage 1): the approval only marks it ready - the Owner posts it and then marks it published; nothing is posted here
-  if (a.action_type === 'social_post') {
-    await d.updateAction(a.id, { status: 'approved', decided_at: at }, 'proposed');
-    return { status: 200, body: { ok: true, status: 'ready' } };
-  }
-
   if (a.action_type === 'claude_task') {
     const prompt = String(a.payload.prompt_he ?? '');
     const mailed = await d.mailOwner(`משימה ל-Claude מחדר הסוכנים: ${a.title_he.replace(/[⁦⁩]/g, '')}`.slice(0, 180),
@@ -380,17 +369,9 @@ export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown
   return { status: 409, body: { ok: false, code: 'not_pending' } };
 }
 
-export async function revise(d: StageDeps, b: { id?: unknown; note?: unknown }, paths: string[] = []): Promise<Out> {
+export async function revise(d: StageDeps, b: { id?: unknown; note?: unknown }): Promise<Out> {
   const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
   const note = clip(b.note, 500);
-  if (a && a.action_type === 'social_post') {
-    if (a.status !== 'proposed') return { status: 409, body: { ok: false, code: 'not_pending' } };
-    if (note.length < 3) return { status: 400, body: { ok: false, code: 'note_required' } };
-    if ((await d.monthCostUsd(monthStartIso(d.now()))) >= MONTHLY_CAP_USD) return { status: 409, body: { ok: false, code: 'cap_reached' } };
-    const r = await reviseSocial(d, a, note, paths);
-    await logCost(d, `srev:${a.id}:${d.now().getTime()}`.slice(0, 60), r.cost, r.tokens, `social post revision: ${String(a.payload?.channel ?? '')}`);
-    return r.ok ? { status: 200, body: { ok: true, status: 'revised' } } : { status: r.code === 'draft_failed' ? 502 : 409, body: { ok: false, code: r.code ?? 'draft_failed' } };
-  }
   if (!a || a.action_type !== 'article_publish' || a.status !== 'proposed') return { status: 409, body: { ok: false, code: 'not_pending' } };
   if (note.length < 3) return { status: 400, body: { ok: false, code: 'note_required' } };
   if ((await d.monthCostUsd(monthStartIso(d.now()))) >= MONTHLY_CAP_USD) return { status: 409, body: { ok: false, code: 'cap_reached' } };
@@ -436,7 +417,7 @@ export async function runDaily(d: StageDeps, paths: string[]): Promise<Out> {
 
 // ---------------------------------------------------------------- the weekly email, written by the manager
 export function managerReport(names: Record<string, string>, manager: Result | null, specialists: { agent: Agent; status: string; result?: Result; error?: string }[],
-  pending: { title_he: string; kind: Kind }[], monthCost: number, social: { status: string; result?: Result; error?: string } | null = null): string {
+  pending: { title_he: string; kind: Kind }[], monthCost: number): string {
   const role: Record<Agent, string> = { seo: 'סוכן הקידום', service: 'סוכנת השירות', security: 'סוכן האבטחה' };
   const strip = (s: string) => s.replace(/[⁦⁩]/g, '');
   const lines = ['דוח השבוע של חדר הסוכנים - TEKANGO', ''];
@@ -453,9 +434,6 @@ export function managerReport(names: Record<string, string>, manager: Result | n
     const who = `${names[r.agent] ?? role[r.agent]} (${role[r.agent]})`;
     lines.push(`■ ${who}: ${r.result ? strip(r.result.summaryHe) : r.status === 'skipped_cap' ? 'לא רץ: הגענו לתקרת העלות החודשית.' : `לא הושלם (${r.error ?? r.status}).`}`);
   }
-  if (social && social.status !== 'already_ran') {
-    lines.push(`■ ${names.social ?? 'סוכנת הרשתות'} (סוכנת הרשתות): ${social.result ? strip(social.result.summaryHe) : social.status === 'skipped_cap' ? 'לא רצה: הגענו לתקרת העלות החודשית.' : `לא הושלם (${social.error ?? social.status}).`}`);
-  }
   lines.push('', `עלות הבינה החודש: $${usd(monthCost)} מתוך $${MONTHLY_CAP_USD}.`, `לאישור בלחיצה, בחדר הסוכנים: ${ADMIN_LINK}`);
   return lines.join('\n');
 }
@@ -463,45 +441,13 @@ export function managerReport(names: Record<string, string>, manager: Result | n
 const pendingOf = (actions: Action[]) => actions.filter((a) => a.status === 'proposed' && (a.kind === 'system' || a.kind === 'claude'));
 
 // ---------------------------------------------------------------- the entry: stage-2 actions here, everything else through lib.handler
-// the social posts for the "Social media" screen (Owner or a supervisor with social.view) - the posts only, never the rest of the room
-async function socialState(d: StageDeps): Promise<Out> {
-  const posts = (await d.recentActions()).filter((a) => a.action_type === 'social_post').slice(0, 60);
-  const profile = (await d.profiles()).find((p) => p.agent === 'social') ?? null;
-  return { status: 200, body: { ok: true, posts, profile, canPublish: await d.can('social.publish') } };
-}
-
-async function markDone(d: StageDeps, b: Record<string, unknown>): Promise<Out> {
-  const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
-  // an approved code task once Claude did it, or an approved social post once the Owner published it
-  if (!a || (a.kind !== 'claude' && a.action_type !== 'social_post') || a.status !== 'approved') return { status: 409, body: { ok: false, code: 'not_approved' } };
-  await d.updateAction(a.id, { status: 'done', done_at: nowIso(d), ...(a.action_type === 'social_post' ? { result: { published: true } } : {}) }, 'approved');
-  return { status: 200, body: { ok: true, status: 'done' } };
-}
-
 export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Promise<string[]>): Promise<Out> {
   const who = await d.caller();
+  if (!who) return { status: 403, body: { ok: false, code: 'forbidden' } };
   const b = (body ?? {}) as Record<string, unknown>;
-  const forbidden: Out = { status: 403, body: { ok: false, code: 'forbidden' } };
-  if (!who) {
-    // a supervisor (L-22, Owner 2026-10-27 "מאשר את שניהם"): the social posts only - read with social.view; approve / ask for a change /
-    // not now / mark published with social.publish, and only on a social post (any other action is the Owner's)
-    if (b.action === 'social_state') return (await d.can('social.view')) ? socialState(d) : forbidden;
-    if (b.action === 'decide' || b.action === 'revise' || b.action === 'mark_done') {
-      // both permissions, checked before anything is read (the review of 2026-10-27)
-      if (!(await d.can('social.view')) || !(await d.can('social.publish'))) return forbidden;
-      const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
-      if (!a || a.action_type !== 'social_post') return forbidden;
-      if (b.action === 'decide') return decide(d, b, await sitemapPaths());
-      if (b.action === 'revise') return revise(d, b, await sitemapPaths());
-      return markDone(d, b);
-    }
-    return forbidden;
-  }
-  const adminOnly = (fn: () => Promise<Out>) => (who === 'admin' ? fn() : Promise.resolve(forbidden));
+  const adminOnly = (fn: () => Promise<Out>) => (who === 'admin' ? fn() : Promise.resolve({ status: 403, body: { ok: false, code: 'forbidden' } }));
 
   switch (b.action) {
-    case 'social_state':
-      return adminOnly(() => socialState(d));
     case 'state': {
       const r = await handler(body, d, sitemapPaths);
       if (r.status !== 200) return r;
@@ -515,31 +461,33 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
     }
     case 'run': {
       if (b.agent === 'manager') return adminOnly(async () => ({ status: 200, body: { ok: true, trigger: 'admin', results: [await runManager(d, 'admin', await sitemapPaths())].map((x) => ({ agent: 'manager', status: x.status, error: x.error ?? null })) } }));
-      if (b.agent === 'social') return adminOnly(async () => ({ status: 200, body: { ok: true, trigger: 'admin', results: [await runSocial(d, 'admin', await sitemapPaths())].map((x) => ({ agent: 'social', status: x.status, error: x.error ?? null })) } }));
       const r = await handler(body, d, sitemapPaths, { mail: false });
       if (r.status !== 200) return r;
       const { full, runIds, ...rest } = r.body as Record<string, unknown> & { full: { agent: Agent; status: string; result?: Result; error?: string }[]; runIds: string[] };
       if (who !== 'cron') return { status: 200, body: rest };
-      // the weekly run: the social agent prepares the week's posts before the manager sums up, so the email lists them as waiting
-      const s = await runSocial(d, 'cron', await sitemapPaths());
       const m = await runManager(d, 'cron', await sitemapPaths());
       let mailed = false;
-      if (full.some((x) => x.status !== 'already_ran') || m.status === 'done' || s.status === 'done') {
+      if (full.some((x) => x.status !== 'already_ran') || m.status === 'done') {
         const names = Object.fromEntries((await d.profiles()).map((p) => [p.agent, p.name_he]));
-        const text = managerReport(names, m.result ?? null, full, pendingOf(await d.recentActions()).reverse(), await d.monthCostUsd(monthStartIso(d.now())), s);
+        const text = managerReport(names, m.result ?? null, full, pendingOf(await d.recentActions()).reverse(), await d.monthCostUsd(monthStartIso(d.now())));
         mailed = await d.mailOwner('דוח השבוע של חדר הסוכנים - TEKANGO', text, `tekango-agents/v1/${String(rest.runKey)}`);
-        if (mailed) { const at = nowIso(d); for (const id of [...runIds, ...(s.id ? [s.id] : []), ...(m.id ? [m.id] : [])]) await d.finish(id, { mailed_at: at }); }
+        if (mailed) { const at = nowIso(d); for (const id of [...runIds, ...(m.id ? [m.id] : [])]) await d.finish(id, { mailed_at: at }); }
       }
-      return { status: 200, body: { ...rest, mailed, results: [...(rest.results as unknown[]), { agent: 'social', status: s.status, error: s.error ?? null }, { agent: 'manager', status: m.status, error: m.error ?? null }] } };
+      return { status: 200, body: { ...rest, mailed, results: [...(rest.results as unknown[]), { agent: 'manager', status: m.status, error: m.error ?? null }] } };
     }
     case 'daily':
       return who === 'cron' ? runDaily(d, await sitemapPaths()) : { status: 403, body: { ok: false, code: 'forbidden' } };
     case 'decide':
       return adminOnly(async () => decide(d, b, await sitemapPaths()));
     case 'revise':
-      return adminOnly(async () => revise(d, b, await sitemapPaths()));
+      return adminOnly(() => revise(d, b));
     case 'mark_done':
-      return adminOnly(() => markDone(d, b));
+      return adminOnly(async () => {
+        const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
+        if (!a || a.kind !== 'claude' || a.status !== 'approved') return { status: 409, body: { ok: false, code: 'not_approved' } };
+        await d.updateAction(a.id, { status: 'done', done_at: nowIso(d) });
+        return { status: 200, body: { ok: true, status: 'done' } };
+      });
     case 'rename':
       return adminOnly(async () => {
         const agent = String(b.agent ?? '') as AnyAgent;

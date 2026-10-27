@@ -33,9 +33,6 @@ Deno.serve(async (req: Request) => {
   const admin = createClient(supabaseUrl, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
 
   let role: 'admin' | 'cron' | null = null;
-  // a signed-in user who is not the Owner may still be a supervisor (L-22, Owner 2026-10-27): the permission is asked of the database AS
-  // THE CALLER (has_admin_permission, like support-admin), per request; any error = refused
-  let asCaller: ReturnType<typeof createClient> | null = null;
   const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
   const auth = req.headers.get('Authorization');
   if (cronSecret && sameText(req.headers.get('x-cron-secret') ?? '', cronSecret)) role = 'cron';
@@ -44,7 +41,6 @@ Deno.serve(async (req: Request) => {
       const caller = createClient(supabaseUrl, Deno.env.get('SUPABASE_ANON_KEY') ?? '', { global: { headers: { Authorization: auth } } });
       const uid = (await caller.auth.getUser()).data?.user?.id;
       if (uid) {
-        asCaller = caller;
         const { data } = await admin.from('business_settings').select('role').eq('user_id', uid).maybeSingle();
         if ((data as { role?: string } | null)?.role === 'super_admin') role = 'admin';
       }
@@ -61,16 +57,8 @@ Deno.serve(async (req: Request) => {
 
   const deps: StageDeps = {
     caller: async () => role,
-    can: async (permission) => {
-      if (role === 'admin') return true;
-      if (role === 'cron' || !asCaller) return false;
-      try {
-        const { data, error } = await asCaller.rpc('has_admin_permission', { p_permission: permission });
-        return !error && data === true;
-      } catch { return false; }
-    },
     now: () => new Date(),
-    claim: async (agent: Agent | 'manager' | 'social', runKey, trigger) => {
+    claim: async (agent: Agent | 'manager', runKey, trigger) => {
       const { data, error } = await admin.from('agent_runs').insert({ agent, run_key: runKey, trigger }).select('id').maybeSingle();
       if (error) { if ((error as { code?: string }).code === '23505') return null; console.error(`agents-room: claim ${(error as { code?: string }).code ?? ''}`); throw new Error('database'); }
       return (data as { id: string } | null)?.id ?? null;
@@ -135,10 +123,7 @@ Deno.serve(async (req: Request) => {
       if (error) { if ((error as { code?: string }).code === '23505') return null; console.error(`agents-room: action ${(error as { code?: string }).code ?? ''}`); throw new Error('database'); }
       return (data as { id: string } | null)?.id ?? null;
     },
-    updateAction: async (id, patch, whenStatus) => {
-      const q = admin.from('agent_actions').update(patch).eq('id', id);
-      await db(whenStatus ? q.eq('status', whenStatus) : q);
-    },
+    updateAction: async (id, patch) => { await db(admin.from('agent_actions').update(patch).eq('id', id)); },
     getAction: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('agent_actions').select('*').eq('id', id).maybeSingle())) as never : null),
     insertArticle: async (a) => ((await db(admin.from('site_articles').insert(a).select('id').single())) as { id: string }).id,
     updateArticle: async (id, patch) => { await db(admin.from('site_articles').update(patch).eq('id', id)); },

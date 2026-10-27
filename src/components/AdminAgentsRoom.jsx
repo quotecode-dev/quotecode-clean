@@ -11,7 +11,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import AdminScreenFrame from './AdminScreenFrame';
 import AgentAvatar from './AgentAvatar';
-import AdminSocialPosts from './AdminSocialPosts';
 import { formatShortDateTime } from '../utils/shortDate';
 import { ADMIN_DATE_MARKET } from '../utils/adminDates';
 import { ADMIN_COPY as C, t } from '../domain/admin/adminCopy';
@@ -26,11 +25,7 @@ const AGENTS = [
   { id: 'seo', he: 'סוכן הקידום', en: 'SEO agent', roleHe: 'גוגל סרץ׳ קונסול: חו״ל 65%, ישראל 35%. דוח שבועי במסך ובמייל.', roleEn: 'Google Search Console: international 65%, Israel 35%. A weekly report here and by email.' },
   { id: 'service', he: 'סוכנת השירות', en: 'Service agent', roleHe: 'הפניות של השבוע, הסקירה השבועית והצ׳אט החכם.', roleEn: 'The week\'s inquiries, the weekly review and the smart chat.' },
   { id: 'security', he: 'סוכן האבטחה', en: 'Security agent', roleHe: 'כל יום: כותרות ההגנה, הגרסה החיה וכל הדפים הציבוריים. מייל רק כשיש בעיה.', roleEn: 'Every day: the protection headers, the live build and every public page. An email only when there is a problem.' },
-  // Owner 2026-10-27 ("מאשר את שלב 1 של סוכנת הרשתות"; the layout: "תחלק את המסך ל 6 תוסיף את הסוכנת החדשה מתחת לגיא")
-  { id: 'social', he: 'סוכנת הרשתות', en: 'Social media agent', roleHe: 'פייסבוק, אינסטגרם וטיקטוק: ישראל בעברית, חו״ל באנגלית. כל פוסט רק אחרי אישור שלכם.', roleEn: 'Facebook, Instagram and TikTok: Israel in Hebrew, international in English. Every post only after your approval.' },
 ];
-// the agents grid: 6 places, 3 per row on a wide screen - the social agent under the SEO agent, two places left for future agents
-const GRID_SLOTS = 6;
 const STATUS = {
   done: { he: 'הושלם', en: 'Done', color: '#1f6b3a' },
   failed: { he: 'נכשל', en: 'Failed', color: '#8f3434' },
@@ -215,9 +210,6 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
   const profiles = Object.fromEntries((ok ? state.profiles || [] : []).map((p) => [p.agent, p]));
   const drafts = Object.fromEntries((ok ? state.drafts || [] : []).map((d) => [d.id, d]));
   const pending = actions.filter((a) => a.status === 'proposed' && (a.kind === 'system' || a.kind === 'claude'));
-  // the social posts have their own list on the manager's desk (AdminSocialPosts); they still count as waiting for approval
-  const pendingOthers = pending.filter((a) => a.action_type !== 'social_post');
-  const socialWaiting = pending.length - pendingOthers.length;
   const withClaude = actions.filter((a) => a.kind === 'claude' && a.status === 'approved');
   const lastManager = runs.find((r) => r.agent === 'manager' && r.status !== 'running' && !String(r.run_key).startsWith('draft:') && !String(r.run_key).startsWith('revise:'));
   const info = lastManager ? actions.filter((a) => a.kind === 'info' && a.run_key === lastManager.run_key) : [];
@@ -337,17 +329,11 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                   </button>
 
                   <h4 style={{ margin: '16px 0 8px' }}>{isHebrew ? 'מחכה לאישורכם' : 'Waiting for your approval'}</h4>
-                  {pendingOthers.length ? (
+                  {pending.length ? (
                     <ul style={{ margin: 0, padding: 0, display: 'grid', gap: 10 }} data-testid="agents-pending">
-                      {pendingOthers.map((a) => <ActionRow key={a.id} a={a} isHebrew={isHebrew} market={market}>{pendingButtons(a)}</ActionRow>)}
+                      {pending.map((a) => <ActionRow key={a.id} a={a} isHebrew={isHebrew} market={market}>{pendingButtons(a)}</ActionRow>)}
                     </ul>
-                  ) : !socialWaiting && <p className="av-muted" style={{ fontSize: '0.88rem' }} data-testid="agents-pending-empty">{isHebrew ? 'אין כרגע שום דבר שמחכה לכם.' : 'Nothing is waiting for you right now.'}</p>}
-
-                  {/* Owner 2026-10-27: every social post comes to the manager's desk - waiting, ready to publish, published */}
-                  <details style={{ marginTop: 14 }} open={socialWaiting > 0} data-testid="agents-social-posts">
-                    <summary style={{ fontWeight: 600 }}>{isHebrew ? 'פוסטים לרשתות החברתיות' : 'Social media posts'} · <N v={socialWaiting} /> {isHebrew ? 'מחכים' : 'waiting'}</summary>
-                    <div style={{ marginTop: 8 }}><AdminSocialPosts isHebrew={isHebrew} embedded key={updatedAt || 'first'} /></div>
-                  </details>
+                  ) : <p className="av-muted" style={{ fontSize: '0.88rem' }} data-testid="agents-pending-empty">{isHebrew ? 'אין כרגע שום דבר שמחכה לכם.' : 'Nothing is waiting for you right now.'}</p>}
 
                   {withClaude.length > 0 && (
                     <>
@@ -386,19 +372,16 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                   )}
                 </section>
 
-                {/* Owner 2026-10-27: 6 places, at most 3 per row; every card has the same height and a long report scrolls inside its own box */}
-                <div className="av-section" data-testid="agents-grid" style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(max(260px, calc((100% - 28px) / 3)), 1fr))' }}>
+                <div className="av-section" style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))' }}>
                   {AGENTS.map((a) => {
                     const mine = runs.filter((r) => r.agent === a.id);
                     const last = mine[0];
                     const st = last ? STATUS[last.status] || STATUS.failed : null;
                     const summary = last ? (isHebrew ? last.summary : last.data?.summaryEn || last.summary) : null;
                     return (
-                      <section key={a.id} className="av-card" data-testid={`agent-card-${a.id}`} data-status={last?.status || 'never'}
-                        style={{ display: 'flex', flexDirection: 'column', height: 520, minWidth: 0 }}>
+                      <section key={a.id} className="av-card" data-testid={`agent-card-${a.id}`} data-status={last?.status || 'never'}>
                         <AgentHead agent={a.id} meta={a} profile={profiles[a.id]} isHebrew={isHebrew} size={56} onSaved={load} onNotice={setNotice} />
                         <p className="av-muted" style={{ fontSize: '0.85rem', margin: '0 0 10px' }}>{isHebrew ? a.roleHe : a.roleEn}</p>
-                        <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', paddingInlineEnd: 4 }} data-testid={`agent-body-${a.id}`} tabIndex={0}>
                         {last ? (
                           <>
                             <div style={{ fontSize: '0.85rem', marginBottom: 6 }}>
@@ -425,6 +408,10 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                             )}
                           </>
                         ) : <p className="av-muted" style={{ fontSize: '0.85rem' }}>{isHebrew ? 'עוד לא רץ.' : 'Has not run yet.'}</p>}
+                        {/* PRODUCT_TRUTH_DECORATIVE: runs this read-only agent now (once an hour at most); it only reads and reports */}
+                        <button type="button" className="av-pill" onClick={() => run(a.id)} disabled={!!busy} data-testid={`agent-run-${a.id}`}>
+                          {busy === a.id ? (isHebrew ? 'רץ...' : 'Running...') : (isHebrew ? 'הרץ עכשיו' : 'Run now')}
+                        </button>
                         {mine.length > 1 && (
                           <details style={{ marginTop: 8, fontSize: '0.8rem' }}>
                             <summary>{isHebrew ? 'ריצות קודמות' : 'Earlier runs'}</summary>
@@ -435,20 +422,9 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                             </ul>
                           </details>
                         )}
-                        </div>
-                        {/* PRODUCT_TRUTH_DECORATIVE: runs this agent now (once an hour at most); it only reads and reports, or prepares posts that wait for approval */}
-                        <button type="button" className="av-pill" onClick={() => run(a.id)} disabled={!!busy} data-testid={`agent-run-${a.id}`} style={{ marginTop: 10, alignSelf: 'flex-start' }}>
-                          {busy === a.id ? (isHebrew ? 'רץ...' : 'Running...') : (isHebrew ? 'הרץ עכשיו' : 'Run now')}
-                        </button>
                       </section>
                     );
                   })}
-                  {Array.from({ length: Math.max(0, GRID_SLOTS - AGENTS.length) }, (_, i) => (
-                    <div key={`slot-${i}`} className="av-card" data-testid="agent-slot-empty"
-                      style={{ height: 520, border: '2px dashed #cfdbdf', background: 'transparent', boxShadow: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <span className="av-muted" style={{ fontSize: '0.9rem' }}>{isHebrew ? 'מקום פנוי לסוכן נוסף' : 'Room for another agent'}</span>
-                    </div>
-                  ))}
                 </div>
               </>
             )}
