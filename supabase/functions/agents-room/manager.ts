@@ -46,9 +46,6 @@ export type ArticleRow = { id: string; slug: string; market: 'intl' | 'il'; stat
 export interface StageDeps extends Deps {
   // a supervisor's permission, asked of the database as the caller (the Owner: always true; the cron: never)
   can(permission: 'social.view' | 'social.publish'): Promise<boolean>;
-  // stage 2 (Owner 2026-10-27, "מאשר את שלב 2 של סוכנת הרשתות"): the accounts whose page token is configured, and the publication itself
-  connectedChannels(): string[];
-  publishSocial(channel: string, payload: Record<string, unknown>): Promise<{ url: string; id: string }>;
   profiles(): Promise<Profile[]>;
   setProfile(agent: AnyAgent, nameHe: string, nameEn: string): Promise<void>;
   recentActions(): Promise<Action[]>; // the last 60 days, newest first
@@ -369,21 +366,7 @@ export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown
   // a social post (stage 1): the approval only marks it ready - the Owner posts it and then marks it published; nothing is posted here
   if (a.action_type === 'social_post') {
     await d.updateAction(a.id, { status: 'approved', decided_at: at }, 'proposed');
-    const channel = String(a.payload?.channel ?? '');
-    if (!d.connectedChannels().includes(channel)) return { status: 200, body: { ok: true, status: 'ready' } };
-    // stage 2: a connected account publishes now - only the request that won the approval (decided_at is ours) publishes, never twice
-    const won = await d.getAction(a.id);
-    if (!won || won.status !== 'approved' || won.decided_at !== at) return { status: 409, body: { ok: false, code: 'not_pending' } };
-    try {
-      const p = await d.publishSocial(channel, a.payload);
-      await d.updateAction(a.id, { status: 'done', done_at: nowIso(d), result: { published: true, auto: true, url: p.url, id: p.id }, error: null }, 'approved');
-      return { status: 200, body: { ok: true, status: 'published', url: p.url } };
-    } catch (e) {
-      // the post stays ready: the Owner can retry or publish it by hand
-      const error = `publish_failed: ${String((e as Error)?.message ?? 'failed')}`.slice(0, 200);
-      await d.updateAction(a.id, { error }, 'approved');
-      return { status: 200, body: { ok: true, status: 'ready', publishError: error } };
-    }
+    return { status: 200, body: { ok: true, status: 'ready' } };
   }
 
   if (a.action_type === 'claude_task') {
@@ -484,7 +467,7 @@ const pendingOf = (actions: Action[]) => actions.filter((a) => a.status === 'pro
 async function socialState(d: StageDeps): Promise<Out> {
   const posts = (await d.recentActions()).filter((a) => a.action_type === 'social_post').slice(0, 60);
   const profile = (await d.profiles()).find((p) => p.agent === 'social') ?? null;
-  return { status: 200, body: { ok: true, posts, profile, canPublish: await d.can('social.publish'), autoChannels: d.connectedChannels() } };
+  return { status: 200, body: { ok: true, posts, profile, canPublish: await d.can('social.publish') } };
 }
 
 async function markDone(d: StageDeps, b: Record<string, unknown>): Promise<Out> {

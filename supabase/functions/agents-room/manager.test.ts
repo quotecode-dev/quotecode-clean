@@ -53,9 +53,7 @@ function deps(over: Partial<StageDeps> = {}) {
   const d: StageDeps & { runs: typeof runs; actions: typeof actions; articles: typeof articles; mails: typeof mails; google: typeof google } = {
     runs, actions, articles, mails, google,
     caller: vi.fn(async () => 'cron' as const),
-    can: vi.fn(async () => false),
-    connectedChannels: () => [], // stage 2: no Meta account connected unless a test says so
-    publishSocial: vi.fn(async () => { throw new Error('not_connected'); }), // a signed-in non-owner holds no supervisor permission unless a test says so
+    can: vi.fn(async () => false), // a signed-in non-owner holds no supervisor permission unless a test says so
     now: () => NOW,
     claim: vi.fn(async (agent, key, trigger) => { const id = `${agent}|${key}`; if (runs.has(id)) return null; runs.set(id, { id, agent, run_key: key, trigger, status: 'running', started_at: NOW.toISOString(), findings: [], data: {} }); return id; }),
     finish: vi.fn(async (id: string, patch: Record<string, unknown>) => { Object.assign(runs.get(id)!, patch); cost += Number(patch.ai_cost_usd ?? 0); }),

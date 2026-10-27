@@ -27,13 +27,8 @@ async function callFn(body) {
 
 const fullText = (p) => [p.text, (p.hashtags || []).join(' '), p.link].filter(Boolean).join('\n\n');
 
-// stage 2 (Owner 2026-10-27, "מאשר את שלב 2 של סוכנת הרשתות"): only a Meta address the server returned is ever a link
-const postLink = (u) => (typeof u === 'string' && /^https:\/\/www\.(facebook|instagram)\.com\//.test(u) ? u : null);
-
-function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto }) {
+function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy }) {
   const p = a.payload || {};
-  const published = postLink(a.result?.url);
-  const failed = a.status === 'approved' && /^publish_failed/.test(a.error || '');
   const [revising, setRevising] = useState(false);
   const [note, setNote] = useState('');
   const net = NETWORK[p.network] || NETWORK.facebook;
@@ -48,7 +43,6 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto }) {
           <span className="av-badge">{isHebrew ? net.he : net.en}</span>
           <span className="av-badge">{isHebrew ? mk.he : mk.en}</span>
           {p.accountOpen === false && <span className="av-badge av-warn">{isHebrew ? 'החשבון עוד לא נפתח' : 'The account is not open yet'}</span>}
-          {auto && <span className="av-badge av-ok" data-testid={`social-auto-${a.id}`}>{isHebrew ? 'מחובר: יפורסם אוטומטית' : 'Connected: published automatically'}</span>}
           <span className="av-muted" style={{ fontSize: '0.78rem' }}><N v={formatShortDateTime(a.done_at || a.decided_at || a.created_at, ADMIN_DATE_MARKET)} /></span>
         </div>
         {/* the post in ITS account's language and direction (the Owner's market rule) */}
@@ -68,9 +62,7 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto }) {
           <>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
               {/* PRODUCT_TRUTH_DECORATIVE: approves the post - it becomes ready to publish; nothing is posted by the system */}
-              <button type="button" className="av-btn av-primary" disabled={off} onClick={() => onAct({ action: 'decide', id: a.id, decision: 'approve' })} data-testid={`social-approve-${a.id}`}>
-                {auto ? (isHebrew ? 'מאשר ומפרסם' : 'Approve and publish') : (isHebrew ? 'מאשר' : 'Approve')}
-              </button>
+              <button type="button" className="av-btn av-primary" disabled={off} onClick={() => onAct({ action: 'decide', id: a.id, decision: 'approve' })} data-testid={`social-approve-${a.id}`}>{isHebrew ? 'מאשר' : 'Approve'}</button>
               {/* PRODUCT_TRUTH_DECORATIVE: opens the one-sentence change request for the post */}
               <button type="button" className="av-btn" disabled={off} onClick={() => { setRevising(!revising); setNote(''); }} data-testid={`social-revise-${a.id}`}>{isHebrew ? 'בקשת תיקון' : 'Ask for a change'}</button>
               {/* PRODUCT_TRUTH_DECORATIVE: rejects the post - it is never published */}
@@ -86,15 +78,6 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto }) {
               </div>
             )}
           </>
-        )}
-        {failed && <div className="av-notice av-bad" style={{ marginTop: 8 }} data-testid={`social-failed-${a.id}`}>{isHebrew ? 'הפרסום האוטומטי לא הצליח. אפשר לפרסם את הפוסט ידנית, ולסמן "פורסם".' : 'The automatic publication failed. You can publish the post by hand and mark it "Published".'}</div>}
-        {published && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 }} data-testid={`social-link-${a.id}`}>
-            <span className="av-muted" style={{ fontSize: '0.85rem' }}>{isHebrew ? 'פורסם אוטומטית:' : 'Published automatically:'}</span>
-            <bdi dir="ltr" style={{ fontSize: '0.82rem', wordBreak: 'break-all' }}>{published}</bdi>
-            {/* PRODUCT_TRUTH_DECORATIVE: copies the address of the post the system published (the admin never opens another tab) */}
-            <button type="button" className="av-btn" onClick={() => onCopy(published, isHebrew ? 'הקישור לפוסט הועתק.' : 'The link to the post was copied.')} data-testid={`social-copy-link-${a.id}`}>{isHebrew ? 'העתקת הקישור לפוסט' : 'Copy the post link'}</button>
-          </div>
         )}
         {canPublish && a.status === 'approved' && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
@@ -134,9 +117,7 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
     setBusy(body.id); setNotice(null);
     const r = await callFn(body);
     setBusy('');
-    const okText = r?.status === 'published' ? (isHebrew ? 'הפוסט פורסם. הקישור אליו מופיע ברשימת "פורסמו לאחרונה".' : 'The post was published. Its link is in "Published lately".')
-      : r?.status === 'ready' && r?.publishError ? (isHebrew ? 'אושר, אבל הפרסום האוטומטי לא הצליח. הפוסט מחכה לפרסום ידני למטה.' : 'Approved, but the automatic publication failed. The post waits below to be published by hand.')
-      : r?.status === 'ready' ? (isHebrew ? 'אושר. הפוסט מוכן לפרסום למטה.' : 'Approved. The post is ready to publish below.')
+    const okText = r?.status === 'ready' ? (isHebrew ? 'אושר. הפוסט מוכן לפרסום למטה.' : 'Approved. The post is ready to publish below.')
       : r?.status === 'rejected' ? (isHebrew ? 'הוסר מהרשימה.' : 'Removed from the list.')
         : r?.status === 'revised' ? (isHebrew ? 'הפוסט תוקן. קראו אותו שוב.' : 'The post was revised. Read it again.')
           : (isHebrew ? 'סומן כפורסם.' : 'Marked as published.');
@@ -161,8 +142,7 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
   const ready = posts.filter((a) => a.status === 'approved');
   const published = posts.filter((a) => a.status === 'done').slice(0, 10);
   const name = ok && state.profile ? (isHebrew ? state.profile.name_he : state.profile.name_en) : (isHebrew ? 'סוכנת הרשתות' : 'The social agent');
-  const autoChannels = ok && Array.isArray(state.autoChannels) ? state.autoChannels : [];
-  const list = (items, testId) => <ul style={{ margin: 0, padding: 0, display: 'grid', gap: 10 }} data-testid={testId}>{items.map((a) => <PostCard key={a.id} a={a} isHebrew={isHebrew} canPublish={canPublish} busy={busy} onAct={onAct} onCopy={onCopy} auto={autoChannels.includes(a.payload?.channel)} />)}</ul>;
+  const list = (items, testId) => <ul style={{ margin: 0, padding: 0, display: 'grid', gap: 10 }} data-testid={testId}>{items.map((a) => <PostCard key={a.id} a={a} isHebrew={isHebrew} canPublish={canPublish} busy={busy} onAct={onAct} onCopy={onCopy} />)}</ul>;
 
   const body = state === 'loading' ? <p className="av-muted" role="status">{t(isHebrew, C.loading.he, C.loading.en)}</p>
     : !ok ? <div className="av-notice av-bad" role="alert" data-testid="social-posts-failed">{t(isHebrew, C.loadFailed.he, C.loadFailed.en)}</div>
