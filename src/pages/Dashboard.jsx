@@ -30,6 +30,7 @@ import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
 import { isFinancialChange } from '../utils/financialEdit';
 import { reportMonthRange, recurringMonthsInRange, calendarDateOf } from '../utils/recurringExpense';
 import { settingsFormDirty } from '../utils/settingsBaseline';
+import { logoBase64For } from '../utils/logoImport';
 import { isValidEmailAddress } from '../utils/emailAddress';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
 import { isQuoteImmutable, canMarkQuotePaid } from '../utils/quoteLock';
@@ -1410,15 +1411,13 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   };
   // Owner 2026-10-18 (Free-10 activation): a logo uploaded before the logo import existed is imported once at the first output
   // (the same import action as a new upload in Settings); PNG / JPEG / WebP only - anything else keeps the server refusal.
+  // Owner 2026-10-28 (typed L-01): a logo stored as data: is read directly - the site's security policy blocks fetching it (utils/logoImport.js)
   const importLogoForOutput = async () => {
     if (!bizLogoUrl) return false;
     try {
-      const res = await fetch(bizLogoUrl, { cache: 'no-store' });
-      if (!res.ok) return false;
-      const buf = new Uint8Array(await res.arrayBuffer());
-      let bin = '';
-      for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-      const { data, error } = await invokeWithFreshSession('subscription-authority', { body: { action: 'import_logo', dataBase64: btoa(bin) } });
+      const dataBase64 = await logoBase64For(bizLogoUrl);
+      if (!dataBase64) return false;
+      const { data, error } = await invokeWithFreshSession('subscription-authority', { body: { action: 'import_logo', dataBase64 } });
       return !error && data && data.ok === true;
     } catch {
       return false;
