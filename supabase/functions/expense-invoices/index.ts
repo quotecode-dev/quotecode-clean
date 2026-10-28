@@ -8,7 +8,7 @@
 //  - Secrets (the Owner sets them; never in code): GOOGLE_EXPENSES_CLIENT_ID / GOOGLE_EXPENSES_CLIENT_SECRET, OPENAI_API_KEY,
 //    PAYPLUS_API_KEY / PAYPLUS_SECRET_KEY / PAYPLUS_ENVIRONMENT (+ PAYPLUS_PROXY_URL, the fixed-IP relay), RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS (the monthly note), CRON_SECRET.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { expenseHandler, oauthCallback, scanBatch, payplusRecords, sameText, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
+import { expenseHandler, oauthCallback, scanBatch, payplusRecords, sameText, boiRate, BOI_RATE_CURRENCIES, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
 import { PAYPLUS_API_BASES } from '../subscription-authority/payplus.ts';
 import { sendMail } from '../support-inbound/mail.ts';
 import { payplusEgress, type FetchLike } from '../_shared/payplusEgress.ts';
@@ -237,6 +237,15 @@ Deno.serve(async (req: Request) => {
       if (!res.ok || out?.status !== 'success') throw new Error(`PayPlus ${res.status}: ${message(out?.message ?? out?.details ?? out?.status)}`);
       // created: the id when PayPlus gives it (the row is sent either way - never created twice)
       return typeof out?.details?.uuid === 'string' ? out.details.uuid : 'created';
+    },
+    // L-22 (Owner 2026-10-28): the Bank of Israel representative rate of the invoice date (the public SDMX service; the two weeks before
+    // the date cover weekends and holidays) - a foreign invoice is sent in shekels at that rate
+    ilsRate: async (currency, date) => {
+      if (!BOI_RATE_CURRENCIES.includes(currency) || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+      const from = new Date(Date.parse(`${date}T00:00:00Z`) - 14 * 86400000).toISOString().slice(0, 10);
+      const res = await timed(`https://edge.boi.gov.il/FusionEdgeServer/sdmx/v2/data/dataflow/BOI.STATISTICS/EXR/1.0/RER_${currency}_ILS?startperiod=${from}&endperiod=${date}&format=csv`, {}, GOOGLE_TIMEOUT_MS);
+      if (!res.ok) return null;
+      return boiRate(await res.text(), date);
     },
     notifyOwner: async (found) => {
       const to = (Deno.env.get('SUPPORT_OWNER_NOTIFY_ADDRESS') ?? '').trim();
