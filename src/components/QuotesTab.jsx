@@ -28,6 +28,7 @@ import { isQuoteImmutable, canMarkQuotePaid } from '../utils/quoteLock';
 import { isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
 import { formatQuoteFallback } from '../utils/quoteNumber';
 import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
+import { createPerPageMemo, settlePerPage } from './quotesPerPage';
 
 // חוק ברזל (Client Type Badge, Item 26 - עודכן לעיצוב הסופי לפי סבב תיקון
 // חזותי מהבעלים): מקור-האמת היחיד עדיין clients.client_type ('business'/
@@ -533,6 +534,8 @@ export default function QuotesTab({
     if (typeof window === 'undefined') return undefined;
     // the real geometry: rows that fit = (the list body's own height + the free space left under the work area, above the footer)
     // / one row's height. Skipped while a row is open (its details would make the page look full).
+    // Owner 2026-10-29 (L-29): a measure that flips back and forth at the same window size settles on the smaller value (no flicker)
+    const memo = createPerPageMemo();
     const measure = () => {
       const body = listBodyRef.current;
       const ws = screenRef.current;
@@ -548,7 +551,7 @@ export default function QuotesTab({
         if (foot) limit -= foot.getBoundingClientRect().height + (parseFloat(window.getComputedStyle(foot).marginTop) || 0);
       }
       const free = Math.max(0, limit - ws.getBoundingClientRect().bottom);
-      const n = Math.max(1, Math.floor((body.clientHeight + free + 0.5) / rowH));
+      const n = settlePerPage(memo, `${window.innerWidth}x${window.innerHeight}`, Math.max(1, Math.floor((body.clientHeight + free + 0.5) / rowH)));
       setPerPage((cur) => (cur === n ? cur : n));
     };
     measure();
