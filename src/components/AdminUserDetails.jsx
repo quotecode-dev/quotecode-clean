@@ -10,6 +10,8 @@ import AdminScreenFrame from './AdminScreenFrame';
 import './adminUsers.css';
 import './adminV2.css';
 import { accountDate, accountDateTime } from '../utils/adminDates';
+import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
+import { billingPreview, billingCardVisible, previewUnavailable, billingMoney, BILLING_COPY as B, REFUND_STATE, KIND_NAMES } from '../domain/admin/adminBilling';
 
 // TEKANGO Admin V1 (Task 2): a shell-preserving User Details VIEW (renders inside the same Admin content outlet as every other Admin
 // section - not a disconnected dark modal). Truthful data only; a failed count shows "unavailable", never a fake 0 (§2.3).
@@ -18,7 +20,7 @@ import { accountDate, accountDateTime } from '../utils/adminDates';
 // separate operational count, never a quota), the account information, this account's admin history and the protected actions.
 // Counts read the account's AUTH user id (adminTargetUserId) - the former business_settings.id read always failed. Dates by the
 // ACCOUNT's market (IRON-DATE-001).
-export default function AdminUserDetails({ account, isHebrew, onBack, onReset = null, onDelete = null, onLifetime = null, onTestMark = null, refreshKey = 0, accounts = [], onOpenActivity = null }) {
+export default function AdminUserDetails({ account, isHebrew, onBack, onReset = null, onDelete = null, onLifetime = null, onTestMark = null, refreshKey = 0, accounts = [], onOpenActivity = null, onBilling = null, billingNotice = null }) {
   const uid = adminTargetUserId(account);
   const [counts, setCounts] = useState({ quotes: 'loading', clients: 'loading', issued: 'loading' });
   const [history, setHistory] = useState('loading');
@@ -56,6 +58,20 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
     });
     return () => { cancelled = true; };
   }, [uid, refreshKey]);
+
+  // L-22 (Owner 2026-10-28, the subscription & payment card - docs/ADMIN_BILLING_BUTTONS_PLAN_2026-10-22.md): the server's preview of the
+  // paid package (admin-billing, super admin only) - read only when the Owner's billing actions are offered (onBilling)
+  const billingOn = typeof onBilling === 'function';
+  const [billing, setBilling] = useState(null);
+  useEffect(() => {
+    if (!billingOn) return undefined;
+    let cancelled = false;
+    setBilling('loading');
+    billingPreview(invokeWithFreshSession, uid, false).then((p) => { if (!cancelled) setBilling(p); });
+    return () => { cancelled = true; };
+  }, [uid, refreshKey, billingOn]);
+  const bill = billing && billing !== 'loading' ? billing : null;
+  const billPaid = bill?.ok === true;
 
   const { summary } = useAdminAccountSummary(uid);
   // Codex verification AV-01 (2026-10-17): while the summary is not ready the server list's status stands; when the summary FAILED
@@ -123,6 +139,39 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
         {testNotice && <p role="status" className="av-small" style={{ margin: '8px 0 0' }} data-testid="admin-test-notice">{t(isHebrew, testNotice.he, testNotice.en)}</p>}
       </article>
 
+      {(billingNotice || billingCardVisible(bill) || previewUnavailable(bill)) && (
+        <article className="av-card av-section" aria-label={t(isHebrew, B.title.he, B.title.en)} data-testid="admin-billing-card">
+          <h3>{t(isHebrew, B.title.he, B.title.en)}</h3>
+          {billingNotice && <div className={`av-notice ${billingNotice.good ? 'av-info' : 'av-bad'}`} role="status" data-testid="admin-billing-notice">{billingNotice.text}</div>}
+          {previewUnavailable(bill) && <p className="av-muted" data-testid="admin-billing-unavailable">{t(isHebrew, B.unavailable.he, B.unavailable.en)}</p>}
+          {billPaid && (
+            <>
+              <div className="av-statline"><span>{t(isHebrew, B.plan.he, B.plan.en)}</span><strong>{t(isHebrew, ...(bill.period === 'year' ? [B.year.he, B.year.en] : [B.month.he, B.month.en]))} · <bdi className="av-num">{billingMoney(bill.paidMinor, bill.currency)}</bdi></strong></div>
+              <div className="av-statline"><span>{t(isHebrew, B.paidThrough.he, B.paidThrough.en)}</span><strong><bdi className="av-num">{date(bill.paidThrough)}</bdi></strong></div>
+              <div className="av-statline"><span>{t(isHebrew, B.renewal.he, B.renewal.en)}</span><strong data-testid="admin-billing-renewal">
+                {bill.renewalStopped
+                  ? <>{t(isHebrew, B.renewalStopped.he, B.renewalStopped.en)} · {t(isHebrew, B.limitedOn.he, B.limitedOn.en).replace('{d}', '')}<bdi className="av-num">{date(bill.paidThrough)}</bdi></>
+                  : bill.hasStandingOrder ? t(isHebrew, B.renewalActive.he, B.renewalActive.en) : t(isHebrew, B.noStandingOrder.he, B.noStandingOrder.en)}
+              </strong></div>
+            </>
+          )}
+          {bill?.unsettledRefund && (
+            <div className="av-statline" data-testid="admin-billing-refund">
+              <span>{t(isHebrew, B.openRefund.he, B.openRefund.en)}: <bdi className="av-num">{billingMoney(bill.unsettledRefund.refundMinor, bill.unsettledRefund.currency)}</bdi> · {REFUND_STATE[bill.unsettledRefund.state] ? t(isHebrew, REFUND_STATE[bill.unsettledRefund.state].he, REFUND_STATE[bill.unsettledRefund.state].en) : ''}</span>
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the protected dialog that marks an owed refund as made (reason + admin password, server-verified) */}
+              <button type="button" className="av-btn" onClick={() => onBilling('settle_refund', account, bill)}><Lock size={15} aria-hidden="true" />{t(isHebrew, B.settleButton.he, B.settleButton.en)}</button>
+            </div>
+          )}
+          {bill?.openAction && (
+            <div className="av-statline" data-testid="admin-billing-open-action">
+              <span>{t(isHebrew, B.openAction.he, B.openAction.en)}: {KIND_NAMES[bill.openAction.kind] ? t(isHebrew, KIND_NAMES[bill.openAction.kind].he, KIND_NAMES[bill.openAction.kind].en) : ''} · {t(isHebrew, B.startedAt.he, B.startedAt.en).replace('{d}', '')}<bdi className="av-num">{dateTime(bill.openAction.createdAt)}</bdi></span>
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the protected dialog that closes an interrupted billing action (reason + admin password, server-verified) */}
+              <button type="button" className="av-btn" onClick={() => onBilling('resolve', account, bill)}><Lock size={15} aria-hidden="true" />{t(isHebrew, B.resolveButton.he, B.resolveButton.en)}</button>
+            </div>
+          )}
+        </article>
+      )}
+
       <div className="av-grid av-equal av-section">
         <article className="av-card" aria-label={t(isHebrew, C.planUsage.he, C.planUsage.en)}>
           <h3>{t(isHebrew, C.planUsage.he, C.planUsage.en)}</h3>
@@ -184,7 +233,7 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
             </div>
           )}
         </article>
-        {(onLifetime || onReset || onDelete) && (
+        {(onLifetime || onReset || onDelete || billPaid) && (
           <article className="av-card av-protection">
             <h3 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Lock size={17} aria-hidden="true" />{t(isHebrew, C.protectedActions.he, C.protectedActions.en)}</h3>
             <p className="av-muted av-small">{t(isHebrew, C.protectedIntro.he, C.protectedIntro.en)}</p>
@@ -195,6 +244,10 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
               {onReset && <button type="button" className="av-btn" onClick={() => onReset(account)}><Lock size={15} aria-hidden="true" />{t(isHebrew, C.resetQuotes.he, C.resetQuotes.en)}</button>}
               {/* PRODUCT_TRUTH_DECORATIVE: opens the protected delete-account dialog (reason + admin password + typed email, server-verified) */}
               {onDelete && <button type="button" className="av-btn" onClick={() => onDelete(account)}><Lock size={15} aria-hidden="true" />{t(isHebrew, C.deleteAccount.he, C.deleteAccount.en)}</button>}
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the protected stop-renewal dialog (reason + admin password, server-verified; the server cancels the PayPlus standing order) */}
+              {billPaid && !bill.renewalStopped && bill.hasStandingOrder && !bill.openAction && <button type="button" className="av-btn" data-testid="admin-billing-stop" onClick={() => onBilling('stop_renewal', account, bill)}><Lock size={15} aria-hidden="true" />{t(isHebrew, B.stopButton.he, B.stopButton.en)}</button>}
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the protected early-end dialog (the server's prorated refund, reason + admin password, server-verified) */}
+              {billPaid && !bill.openAction && <button type="button" className="av-btn" data-testid="admin-billing-end" onClick={() => onBilling('end_early', account, bill)}><Lock size={15} aria-hidden="true" />{t(isHebrew, B.endButton.he, B.endButton.en)}</button>}
             </div>
           </article>
         )}
