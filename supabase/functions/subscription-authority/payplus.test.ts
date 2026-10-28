@@ -507,8 +507,7 @@ describe('standing orders: pull, update, cancel (prepared)', () => {
     expect(await so(f).refund('tx-1', 1000)).toEqual({ ok: true, refundRef: 'refund-tx-1' });
     const [url, init] = f.mock.calls[0] as unknown as [string, { body: string }];
     expect(url).toBe(`${PAYPLUS_API_BASES.staging}/Transactions/RefundByTransactionUID`);
-    // Owner 2026-10-28 ("מאשר תיקון: הפקת חשבונית זיכוי בכל החזר דרך פיי פלוס"): every refund asks PayPlus for its credit document
-    expect(JSON.parse(init.body)).toEqual({ transaction_uid: 'tx-1', amount: 10, initial_invoice: true });
+    expect(JSON.parse(init.body)).toEqual({ transaction_uid: 'tx-1', amount: 10 });
     expect(await so(ok({ transaction: { uid: 'r', status_code: '006' } })).refund('tx-1', 1000)).toEqual({ ok: false });
     const bad = vi.fn(async () => ({ ok: true, json: async () => ({ results: { status: 'error' }, data: {} }) }));
     expect(await so(bad).refund('tx-1', 1000)).toEqual({ ok: false });

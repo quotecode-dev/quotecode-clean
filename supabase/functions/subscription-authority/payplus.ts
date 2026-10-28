@@ -558,9 +558,7 @@ export function payplusStandingOrders(cfg: { apiBase: string; apiKey: string; se
      *  own transaction uid is returned for the log. Not proven in the sandbox yet. */
     async refund(transactionUid: string, amountMinor: number): Promise<{ ok: true; refundRef: string } | { ok: false }> {
       if (!ref(transactionUid) || !Number.isInteger(amountMinor) || amountMinor <= 0) return { ok: false };
-      // Owner 2026-10-28 ("מאשר תיקון: הפקת חשבונית זיכוי בכל החזר דרך פיי פלוס"): without initial_invoice PayPlus refunds the money
-      // and issues NO document (docs: "As long your account connected to Invoice+ we will generate document for this action")
-      const j = await call('POST', '/Transactions/RefundByTransactionUID', { transaction_uid: transactionUid, amount: amountMinor / 100, initial_invoice: true });
+      const j = await call('POST', '/Transactions/RefundByTransactionUID', { transaction_uid: transactionUid, amount: amountMinor / 100 });
       const tx = ok(j) && isObj(j!.data) && isObj(j!.data.transaction) ? j!.data.transaction : null;
       const refundRef = tx && tx.status_code === PAYPLUS_SUCCESS_CODE ? ref(tx.uid) : null;
       return refundRef ? { ok: true, refundRef } : { ok: false };
