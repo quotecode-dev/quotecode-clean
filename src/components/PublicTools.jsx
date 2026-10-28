@@ -46,7 +46,13 @@ function PublicTools({ initialTab }) {
   const navigate = useNavigate();
   const toolPage = TOOL_PAGE[initialTab] || null;
   const seoPath = toolPage ? `/he/tools/${initialTab}` : '/he/tools';
-  const [activeTab, setActiveTab] = useState(toolPage ? initialTab : 'currency');
+  // 20261029000000 (Codex F14): the calculator shown follows the address (a card, a tab, Back / Forward) - the heading, the guide and
+  // the calculator are always the same page; a tab opens its calculator's own page
+  const routeTab = toolPage ? initialTab : 'currency';
+  const [activeTab, setTab] = useState(routeTab);
+  const [seenRoute, setSeenRoute] = useState(routeTab);
+  if (seenRoute !== routeTab) { setSeenRoute(routeTab); setTab(routeTab); }
+  const setActiveTab = (key) => { setTab(key); if (toolPage && key !== initialTab) navigate(`/he/tools/${key}`); };
 
   useEffect(() => {
     // ר' הערה מלאה ב-Contact.jsx - /tools הלא-מקודד הוא alias לתאימות

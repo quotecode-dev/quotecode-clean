@@ -11,7 +11,7 @@ import { smartPackRemovalAvailable } from './domain/subscriptions/packageCheckou
 
 const read = (...p) => readFileSync(join(cwd(), ...p), 'utf8');
 const AT = '2026-11-25T15:48:24.917Z';
-const invokeFor = (quote, request = { ok: true, state: 'removed', effectiveAt: AT, refundMinor: quote.refundMinor ?? 0 }) => vi.fn(async (_n, { body }) => ({
+const invokeFor = (quote, request = { ok: true, state: 'removed', effectiveAt: AT, refundMinor: quote.refundMinor ?? 0, refundState: (quote.refundMinor ?? 0) > 0 ? 'refunded' : 'none' }) => vi.fn(async (_n, { body }) => ({
   data: body.action === 'smart_pack_removal_quote' ? quote : request,
 }));
 const month = { ok: true, period: 'month', effectiveAt: AT, refundMinor: 0, recurringMinor: 1000, feeMinor: 0 };
@@ -43,6 +43,21 @@ describe('the removal in the plans window', () => {
     await act(async () => { fireEvent.click(screen.getByTestId('plans-smart-pack-removal-yes')); });
     expect((await screen.findByTestId('plans-smart-pack-removal-done')).textContent)
       .toBe('SMART PACK runs until 25/11/2026 and will not renew. A refund of ₪23.00 goes back to your card.');
+  });
+  // 20261029000000 (Codex F02): a refund not made yet is never promised as done
+  it('a refund still in progress says so, in Hebrew (rtl) and English (ltr)', async () => {
+    for (const he of [true, false]) {
+      const { unmount } = render(<SmartPackRemoval isHebrew={he} invoke={invokeFor(year, { ok: true, state: 'removed', effectiveAt: AT, refundMinor: 2300, refundState: 'pending' })} />);
+      fireEvent.click(await screen.findByTestId('plans-smart-pack-remove'));
+      await act(async () => { fireEvent.click(screen.getByTestId('plans-smart-pack-removal-yes')); });
+      const done = await screen.findByTestId('plans-smart-pack-removal-done');
+      expect(done.getAttribute('dir')).toBe(he ? 'rtl' : 'ltr');
+      expect(done.textContent).toBe(he
+        ? 'חכם פלוס יפעל עד 25/11/2026 ולא יתחדש. ההחזר של ₪23.00 עדיין בטיפול ויבוצע לכרטיס ששימש לתשלום. לשאלות כתבו לנו: support@tekango.com'
+        : 'SMART PACK runs until 25/11/2026 and will not renew. Your refund of ₪23.00 is still being processed and will go back to the card you paid with. Questions? Write to us: support@tekango.com');
+      expect(done.textContent).not.toMatch(/יגיע לכרטיס|goes back to your card\./);
+      unmount();
+    }
   });
   it('"No, keep it" changes nothing; a refused change says SMART PACK stays and how to reach us', async () => {
     const invoke = invokeFor(month, { ok: true, state: 'refused', effectiveAt: AT, refundMinor: 0 });

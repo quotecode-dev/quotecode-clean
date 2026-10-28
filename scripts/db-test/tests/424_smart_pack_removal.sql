@@ -77,8 +77,10 @@ SELECT tst.ok((SELECT (public.smart_pack_state(tst.tu(1)) ->> 'active')::boolean
 -- user 2: yearly -> removed -> the refund is due, then recorded once
 SELECT tst.tsq(format('SELECT public.smart_pack_removal_finish(%L, true)', (SELECT r ->> 'removalId' FROM r424 WHERE n = 2)));
 SELECT tst.ok(tst.tsq(format('SELECT public.smart_pack_removal_refunds_due(%L)', tst.tu(2))) -> 0 ->> 'chargeRef' = 'tx-424-year', 'T10 the yearly refund is due on the period charge');
-SELECT tst.ok((tst.tsq(format('SELECT public.record_smart_pack_removal_refund(%L, ''rf-424'')', (SELECT r ->> 'removalId' FROM r424 WHERE n = 2))) ->> 'ok')::boolean
-              AND tst.tsq(format('SELECT public.smart_pack_removal_refunds_due(%L)', tst.tu(2))) = '[]'::jsonb, 'T11 recorded once');
+-- 20261029000000 (Codex F01, Owner console 2026-10-28): the refund is claimed before PayPlus is asked, and recorded only from the claim
+SELECT tst.ok((tst.tsq(format('SELECT public.claim_smart_pack_removal_refund(%L)', (SELECT r ->> 'removalId' FROM r424 WHERE n = 2))) ->> 'ok')::boolean
+              AND (tst.tsq(format('SELECT public.record_smart_pack_removal_refund(%L, ''rf-424'')', (SELECT r ->> 'removalId' FROM r424 WHERE n = 2))) ->> 'ok')::boolean
+              AND tst.tsq(format('SELECT public.smart_pack_removal_refunds_due(%L)', tst.tu(2))) = '[]'::jsonb, 'T11 claimed, then recorded once');
 
 -- user 3: PayPlus refused -> nothing changes
 SELECT tst.tsq(format('SELECT public.smart_pack_removal_finish(%L, false)', (SELECT r ->> 'removalId' FROM r424 WHERE n = 3)));

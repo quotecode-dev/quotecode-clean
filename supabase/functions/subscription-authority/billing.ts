@@ -306,6 +306,9 @@ export interface BillingSql {
   smartPackRemovalTargets?(userId: string): Promise<unknown>;
   smartPackRemovalRefundsDue?(userId: string): Promise<unknown>;
   recordSmartPackRemovalRefund?(removalId: string, refundRef: string): Promise<Record<string, unknown>>;
+  // 20261029000000 (Codex F01/F02): a refund is claimed before PayPlus is asked; an unproven answer is left for the Owner
+  claimSmartPackRemovalRefund?(removalId: string): Promise<Record<string, unknown>>;
+  markSmartPackRemovalRefundUnknown?(removalId: string): Promise<Record<string, unknown>>;
 }
 
 // ------------------------------------------------------------------------------------------------ checkout intent
@@ -554,20 +557,48 @@ export async function completeSmartPackRemoval(deps: { sql: BillingSql; provider
   return outcome;
 }
 
-/** section 6: every yearly refund due of the account is refunded once (recorded with the provider's refund id) */
-export async function refundDueRemovals(deps: { sql: BillingSql; provider: BillingProvider }, userId: string): Promise<number> {
+/** section 6: every yearly refund due of the account is refunded once (recorded with the provider's refund id). 20261029000000 (Codex
+ *  F01/F02): each refund is CLAIMED first (one request wins - two tabs never refund twice); a refund PayPlus did not prove, or one made
+ *  but not recorded, is never sent again automatically - the daily reconciliation tells the Owner (REFUND_OWED). Answers per removal:
+ *  'refunded' (made and recorded) or 'pending'. */
+export async function refundDueRemovals(deps: { sql: BillingSql; provider: BillingProvider }, userId: string): Promise<Map<string, 'refunded' | 'pending'>> {
   const { sql, provider } = deps;
-  if (typeof sql.smartPackRemovalRefundsDue !== 'function' || typeof sql.recordSmartPackRemovalRefund !== 'function' || typeof provider.refund !== 'function') return 0;
+  const out = new Map<string, 'refunded' | 'pending'>();
+  if (typeof sql.smartPackRemovalRefundsDue !== 'function' || typeof sql.recordSmartPackRemovalRefund !== 'function' || typeof provider.refund !== 'function'
+      || typeof sql.claimSmartPackRemovalRefund !== 'function' || typeof sql.markSmartPackRemovalRefundUnknown !== 'function') return out;
   let due: unknown = [];
-  try { due = await sql.smartPackRemovalRefundsDue(userId); } catch { return 0; }
-  let n = 0;
+  try { due = await sql.smartPackRemovalRefundsDue(userId); } catch { return out; }
+  const log = (incident: string) => console.error(JSON.stringify({ fn: 'subscription-authority', incident }));
   for (const d of Array.isArray(due) ? due.slice(0, 3) : []) {
-    if (!isObj(d) || typeof d.removalId !== 'string' || !UUID.test(d.removalId) || typeof d.chargeRef !== 'string' || !Number.isInteger(d.amountMinor) || (d.amountMinor as number) <= 0) continue;
-    const r = await provider.refund(d.chargeRef, d.amountMinor as number).catch(() => ({ ok: false as const }));
-    if (!r.ok) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_removal_refund_failed' })); continue; }
-    try { await sql.recordSmartPackRemovalRefund(d.removalId, r.refundRef); n++; } catch { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_removal_refund_unrecorded' })); }
+    if (!isObj(d) || typeof d.removalId !== 'string' || !UUID.test(d.removalId)) continue;
+    out.set(d.removalId, 'pending');
+    let c: Record<string, unknown>;
+    try { c = await sql.claimSmartPackRemovalRefund(d.removalId); } catch { log('smart_pack_removal_refund_claim_failed'); continue; }
+    if (!isObj(c) || c.ok !== true) { if (isObj(c) && c.code === 'no_charge_ref') log('smart_pack_removal_refund_no_charge_ref'); continue; }
+    if (typeof c.chargeRef !== 'string' || !Number.isInteger(c.amountMinor) || (c.amountMinor as number) <= 0) {
+      await sql.markSmartPackRemovalRefundUnknown(d.removalId).catch(() => undefined);
+      log('smart_pack_removal_refund_needs_owner'); continue;
+    }
+    const r = await provider.refund(c.chargeRef, c.amountMinor as number).catch(() => ({ ok: false as const }));
+    if (!r.ok) {
+      // a refusal and a lost answer look the same here: never refunded again automatically (the Owner checks PayPlus)
+      await sql.markSmartPackRemovalRefundUnknown(d.removalId).catch(() => undefined);
+      log('smart_pack_removal_refund_needs_owner'); continue;
+    }
+    try {
+      const rec = await sql.recordSmartPackRemovalRefund(d.removalId, r.refundRef);
+      if (isObj(rec) && rec.ok === true) out.set(d.removalId, 'refunded'); else log('smart_pack_removal_refund_unrecorded');
+    } catch { log('smart_pack_removal_refund_unrecorded'); } // stays 'sending' - never sent again
   }
-  return n;
+  return out;
+}
+
+/** what the screen may promise: 'refunded' only when the refund was made and recorded */
+function removalRefundState(r: Record<string, unknown>, made: Map<string, 'refunded' | 'pending'>): 'refunded' | 'pending' | 'none' {
+  if (!Number.isInteger(r.refundMinor) || (r.refundMinor as number) <= 0) return 'none';
+  const now = typeof r.removalId === 'string' ? made.get(r.removalId) : undefined;
+  if (now) return now;
+  return r.refundState === 'refunded' ? 'refunded' : 'pending';
 }
 
 export async function smartPackRemovalRequestHandler(phase: BillingPhase, deps: { sql: BillingSql; provider: BillingProvider }, userId: string, body: unknown): Promise<Resp> {
@@ -581,9 +612,10 @@ export async function smartPackRemovalRequestHandler(phase: BillingPhase, deps: 
   try { r = await sql.requestSmartPackRemoval(userId, key); } catch { return err(503, 'checkout_unavailable'); }
   if (!isObj(r) || r.ok !== true || typeof r.removalId !== 'string' || !UUID.test(r.removalId)) return removalError(r);
   const outcome = r.state === 'requested' ? await completeSmartPackRemoval(deps, r.removalId) : r.state === 'removed' ? 'removed' : 'refused';
-  if (outcome === 'removed') await refundDueRemovals(deps, userId);
+  const made = outcome === 'removed' ? await refundDueRemovals(deps, userId) : new Map<string, 'refunded' | 'pending'>();
   return { status: 200, body: { ok: true, state: outcome === 'removed' ? 'removed' : outcome === 'refused' ? 'refused' : 'pending',
-    ...(isIso(r.effectiveAt) ? { effectiveAt: r.effectiveAt } : {}), refundMinor: Number.isInteger(r.refundMinor) ? r.refundMinor : 0 } };
+    ...(isIso(r.effectiveAt) ? { effectiveAt: r.effectiveAt } : {}), refundMinor: Number.isInteger(r.refundMinor) ? r.refundMinor : 0,
+    refundState: removalRefundState(r, made) } };
 }
 
 // ------------------------------------------------------------------------------------------------ verified webhook

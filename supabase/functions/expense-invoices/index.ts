@@ -8,7 +8,7 @@
 //  - Secrets (the Owner sets them; never in code): GOOGLE_EXPENSES_CLIENT_ID / GOOGLE_EXPENSES_CLIENT_SECRET, OPENAI_API_KEY,
 //    PAYPLUS_API_KEY / PAYPLUS_SECRET_KEY / PAYPLUS_ENVIRONMENT (+ PAYPLUS_PROXY_URL, the fixed-IP relay), RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS (the monthly note), CRON_SECRET.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { expenseHandler, oauthCallback, scanBatch, payplusRecords, payplusReason, createExpenseAt, subcategoryUuids, sameText, boiRate, BOI_RATE_CURRENCIES, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
+import { expenseHandler, oauthCallback, scanBatch, payplusPage, searchAllPages, PayplusCreateError, createAnswerDefinite, sameSupplier, payplusReason, createExpenseAt, subcategoryUuids, sameText, boiRate, BOI_RATE_CURRENCIES, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
 import { PAYPLUS_API_BASES } from '../subscription-authority/payplus.ts';
 import { sendMail } from '../support-inbound/mail.ts';
 import { payplusEgress, type FetchLike } from '../_shared/payplusEgress.ts';
@@ -193,7 +193,8 @@ Deno.serve(async (req: Request) => {
     },
     invoices: (ids) => db(admin.from('expense_invoices').select('*').in('id', ids)) as Promise<Record<string, unknown>[]>,
     updateUnlessSent: async (id, patch) => {
-      const rows = await db(admin.from('expense_invoices').update(patch).eq('id', id).not('status', 'in', '(sent,sending)').select('id')) as unknown[];
+      // 20261029000000 (Codex F05): an 'unknown' row (PayPlus may have it) is not edited or approved again either
+      const rows = await db(admin.from('expense_invoices').update(patch).eq('id', id).not('status', 'in', '(sent,sending,unknown)').select('id')) as unknown[];
       return rows.length === 1;
     },
     claimForSend: async (id) => {
@@ -201,7 +202,25 @@ Deno.serve(async (req: Request) => {
         .in('status', ['approved', 'send_failed']).select('*')) as Record<string, unknown>[];
       return rows[0] ?? null;
     },
-    finishSend: async (id, patch) => { await db(admin.from('expense_invoices').update({ ...patch, updated_at: new Date().toISOString() }).eq('id', id).eq('status', 'sending')); },
+    finishSend: async (id, patch) => { await db(admin.from('expense_invoices').update({ updated_at: new Date().toISOString(), ...patch }).eq('id', id).eq('status', 'sending')); },
+    claimUnknown: async (id) => {
+      const [cur] = await db(admin.from('expense_invoices').select('updated_at').eq('id', id).eq('status', 'unknown')) as { updated_at: string }[];
+      if (!cur) return null;
+      const rows = await db(admin.from('expense_invoices').update({ status: 'sending', updated_at: new Date().toISOString() }).eq('id', id)
+        .eq('status', 'unknown').eq('updated_at', cur.updated_at).select('*')) as Record<string, unknown>[];
+      return rows[0] ? { ...rows[0], unknown_since: cur.updated_at } as never : null;
+    },
+    expireStaleSending: async (cutoffIso) => {
+      const rows = await db(admin.from('expense_invoices').update({ status: 'unknown', updated_at: new Date().toISOString(),
+        send_error: 'השליחה לפיי פלוס נקטעה באמצע - לא ידוע אם ההוצאה נקלטה' }).eq('status', 'sending').lt('updated_at', cutoffIso).select('id')) as unknown[];
+      return rows.length;
+    },
+    sameInvoiceElsewhere: async (row) => {
+      if (!row.doc_number) return false;
+      const rows = await db(admin.from('expense_invoices').select('id, supplier_name, supplier_vat_id').eq('doc_number', String(row.doc_number))
+        .in('status', ['sending', 'sent', 'unknown']).neq('id', String(row.id))) as { supplier_name: string | null; supplier_vat_id: string | null }[];
+      return rows.some((r) => sameSupplier(r, row));
+    },
     settings: async () => ((await db(admin.from('expense_settings').select('expense_types, default_subcategory_id').eq('id', 1).maybeSingle()))
       ?? { expense_types: [], default_subcategory_id: null }) as { expense_types: { id: number; name: string }[]; default_subcategory_id: number | null },
     saveSettings: async (patch) => { await db(admin.from('expense_settings').update(patch).eq('id', 1)); },
@@ -217,29 +236,40 @@ Deno.serve(async (req: Request) => {
     },
     payplusSearch: async (search) => {
       const p = payplus();
-      const res = await timed(`${p.base}/books/expenses?search=${encodeURIComponent(search)}&skip=0&take=50`, { headers: p.headers }, GOOGLE_TIMEOUT_MS, egress.fetch);
-      const body = await res.json().catch(() => null);
-      // the documented "nothing found" answer is 400 with an empty object; any other failure blocks the send
-      if (res.status === 400 && body && typeof body === 'object' && !Array.isArray(body) && Object.keys(body).length === 0) return [];
-      if (!res.ok) throw new Error(`PayPlus search ${res.status}`);
-      const list = payplusRecords(body);
-      if (!list) throw new Error('PayPlus search answer not understood');
-      return list;
+      // 20261029000000 (Codex F05): every page, not only the first 50 records
+      return searchAllPages(async (skip, take) => {
+        const res = await timed(`${p.base}/books/expenses?search=${encodeURIComponent(search)}&skip=${skip}&take=${take}`, { headers: p.headers }, GOOGLE_TIMEOUT_MS, egress.fetch);
+        const body = await res.json().catch(() => null);
+        // the documented "nothing found" answer is 400 with an empty object; any other failure blocks the send
+        if (res.status === 400 && body && typeof body === 'object' && !Array.isArray(body) && Object.keys(body).length === 0) return 'empty';
+        if (!res.ok) throw new Error(`PayPlus search ${res.status}`);
+        const page = payplusPage(body);
+        if (!page) throw new Error('PayPlus search answer not understood');
+        return page;
+      });
     },
     payplusCreate: async (fields, file) => {
       const p = payplus();
       // a fresh form per address (a sent body is consumed)
-      const res = await createExpenseAt(async (path) => {
-        const form = new FormData();
-        for (const [k, v] of Object.entries(fields)) form.append(k, v);
-        if (file) form.append('doc_file', new Blob([fromBase64(file.base64)], { type: file.type }), file.name);
-        const r = await timed(`${p.base}${path}`, { method: 'POST', headers: p.headers, body: form }, 30000, egress.fetch);
-        return { status: r.status, text: await r.text().catch(() => '') };
-      });
+      let res: { status: number; text: string };
+      try {
+        res = await createExpenseAt(async (path) => {
+          const form = new FormData();
+          for (const [k, v] of Object.entries(fields)) form.append(k, v);
+          if (file) form.append('doc_file', new Blob([fromBase64(file.base64)], { type: file.type }), file.name);
+          const r = await timed(`${p.base}${path}`, { method: 'POST', headers: p.headers, body: form }, 30000, egress.fetch);
+          return { status: r.status, text: await r.text().catch(() => '') };
+        });
+      } catch (e) {
+        // 20261029000000 (Codex F05): no answer (a time-out, the network) - PayPlus may have created it
+        throw new PayplusCreateError(`PayPlus: ${String((e as Error)?.message || 'no answer')}`.slice(0, 200), false);
+      }
       const text = res.text;
       let out: { status?: unknown; details?: { uuid?: unknown } } | null = null;
       try { out = JSON.parse(text); } catch { out = null; }
-      if (res.status < 200 || res.status > 299 || out?.status !== 'success') throw new Error(`PayPlus ${res.status}: ${payplusReason(text)}`);
+      if (res.status < 200 || res.status > 299 || out?.status !== 'success') {
+        throw new PayplusCreateError(`PayPlus ${res.status}: ${payplusReason(text)}`, createAnswerDefinite(res.status, text));
+      }
       // created: the id when PayPlus gives it (the row is sent either way - never created twice)
       return typeof out?.details?.uuid === 'string' ? out.details.uuid : 'created';
     },

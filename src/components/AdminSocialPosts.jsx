@@ -30,10 +30,22 @@ const fullText = (p) => [p.text, (p.hashtags || []).join(' '), p.link].filter(Bo
 // stage 2 (Owner 2026-10-27, "מאשר את שלב 2 של סוכנת הרשתות"): only a Meta address the server returned is ever a link
 const postLink = (u) => (typeof u === 'string' && /^https:\/\/www\.(facebook|instagram)\.com\//.test(u) ? u : null);
 
+// 20261029000000 (Codex F08 / F10): the failure in plain words by Meta's reason; an outcome not known asks for a check first
+const NETWORK_NAME = { facebook: { he: 'בפייסבוק', en: 'on Facebook' }, instagram: { he: 'באינסטגרם', en: 'on Instagram' } };
+function publishFailureText(error, isHebrew) {
+  const code = /meta_\d+_(\d+)/.exec(error || '')?.[1] || '';
+  if (code === '190') return isHebrew ? 'החיבור לדף פג. צריך לחבר את הדף מחדש, ואחר כך ללחוץ "פרסום עכשיו".' : 'The connection to the page expired. Reconnect the page, then press "Publish now".';
+  if (['10', '200', '3'].includes(code)) return isHebrew ? 'לדף חסרה הרשאת פרסום. צריך לחבר אותו מחדש עם הרשאות הפרסום.' : 'The page is missing the publishing permission. Reconnect it with the publishing permissions.';
+  if (['4', '17', '32', '613'].includes(code)) return isHebrew ? 'מטא הגבילו את הפרסום זמנית. נסו שוב מאוחר יותר.' : 'Meta limited publishing for now. Try again later.';
+  return isHebrew ? 'הפרסום האוטומטי לא הצליח. אפשר לנסות שוב ב"פרסום עכשיו", או לפרסם את הפוסט ידנית ולסמן "פורסם".' : 'The automatic publication failed. You can try again with "Publish now", or publish the post by hand and mark it "Published".';
+}
+
 function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto }) {
   const p = a.payload || {};
   const published = postLink(a.result?.url);
   const failed = a.status === 'approved' && /^publish_failed/.test(a.error || '');
+  // no clear answer from Meta, or a publication that never finished: the post may already be online
+  const unknown = a.status === 'approved' && (/^publish_unknown/.test(a.error || '') || (/^publishing:/.test(a.error || '') && Date.now() - Date.parse(a.decided_at || 0) >= 120000));
   const [revising, setRevising] = useState(false);
   const [note, setNote] = useState('');
   const net = NETWORK[p.network] || NETWORK.facebook;
@@ -87,7 +99,10 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto }) {
             )}
           </>
         )}
-        {failed && <div className="av-notice av-bad" style={{ marginTop: 8 }} data-testid={`social-failed-${a.id}`}>{isHebrew ? 'הפרסום האוטומטי לא הצליח. אפשר לנסות שוב ב"פרסום עכשיו", או לפרסם את הפוסט ידנית ולסמן "פורסם".' : 'The automatic publication failed. You can try again with "Publish now", or publish the post by hand and mark it "Published".'}</div>}
+        {failed && <div className="av-notice av-bad" style={{ marginTop: 8 }} data-testid={`social-failed-${a.id}`}>{publishFailureText(a.error, isHebrew)}</div>}
+        {unknown && <div className="av-notice av-bad" style={{ marginTop: 8 }} data-testid={`social-unknown-${a.id}`}>{isHebrew
+          ? `לא ברור אם הפוסט פורסם. בדקו בדף ${(NETWORK_NAME[p.network] || NETWORK_NAME.facebook).he} לפני שמפרסמים שוב, כדי שלא יופיע פעמיים.`
+          : `We could not confirm whether the post was published. Check the page ${(NETWORK_NAME[p.network] || NETWORK_NAME.facebook).en} before publishing again, so it does not appear twice.`}</div>}
         {published && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', marginTop: 8 }} data-testid={`social-link-${a.id}`}>
             <span className="av-muted" style={{ fontSize: '0.85rem' }}>{isHebrew ? 'פורסם אוטומטית:' : 'Published automatically:'}</span>
@@ -98,9 +113,13 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto }) {
         )}
         {canPublish && a.status === 'approved' && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-            {auto && (
+            {auto && !unknown && (
               /* PRODUCT_TRUTH_DECORATIVE: publishes the approved post now to its connected account (once - Owner 2026-10-27, "מאשר") */
               <button type="button" className="av-btn av-primary" disabled={off} onClick={() => onAct({ action: 'publish_now', id: a.id })} data-testid={`social-publish-now-${a.id}`}>{isHebrew ? 'פרסום עכשיו' : 'Publish now'}</button>
+            )}
+            {auto && unknown && (
+              /* PRODUCT_TRUTH_DECORATIVE: the Owner checked the page and the post is not there - publishes it now (Codex F08) */
+              <button type="button" className="av-btn av-primary" disabled={off} onClick={() => onAct({ action: 'publish_now', id: a.id, confirm: 'not_published' })} data-testid={`social-publish-confirmed-${a.id}`}>{isHebrew ? 'הפוסט לא פורסם, לפרסם עכשיו' : 'It was not published - publish now'}</button>
             )}
             {/* PRODUCT_TRUTH_DECORATIVE: copies the post (text, hashtags, link) to paste into the network */}
             <button type="button" className={auto ? 'av-btn' : 'av-btn av-primary'} onClick={() => onCopy(fullText(p), isHebrew ? 'הטקסט הועתק. הדביקו אותו ברשת.' : 'The text was copied. Paste it into the network.')} data-testid={`social-copy-${a.id}`}>{isHebrew ? 'העתקת הטקסט' : 'Copy the text'}</button>
@@ -139,8 +158,9 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
     const r = await callFn(body);
     setBusy('');
     const okText = r?.status === 'published' ? (isHebrew ? 'הפוסט פורסם. הקישור אליו מופיע ברשימת "פורסמו לאחרונה".' : 'The post was published. Its link is in "Published lately".')
-      : r?.status === 'ready' && r?.publishError && body.action === 'publish_now' ? (isHebrew ? 'הפרסום האוטומטי לא הצליח. הפוסט עדיין מחכה למטה.' : 'The automatic publication failed. The post still waits below.')
-      : r?.status === 'ready' && r?.publishError ? (isHebrew ? 'אושר, אבל הפרסום האוטומטי לא הצליח. הפוסט מחכה לפרסום ידני למטה.' : 'Approved, but the automatic publication failed. The post waits below to be published by hand.')
+      : r?.status === 'unknown' ? (isHebrew ? 'לא התקבלה תשובה ברורה ממטא, ולכן לא ברור אם הפוסט פורסם. בדקו בדף לפני שמפרסמים שוב.' : 'Meta gave no clear answer, so it is not clear whether the post was published. Check the page before publishing again.')
+      : r?.status === 'ready' && r?.publishError && body.action === 'publish_now' ? `${publishFailureText(r.publishError, isHebrew)} ${isHebrew ? 'הפוסט עדיין מחכה למטה.' : 'The post still waits below.'}`
+      : r?.status === 'ready' && r?.publishError ? `${isHebrew ? 'אושר, אבל הפוסט לא פורסם.' : 'Approved, but the post was not published.'} ${publishFailureText(r.publishError, isHebrew)}`
       : r?.status === 'ready' ? (isHebrew ? 'אושר. הפוסט מוכן לפרסום למטה.' : 'Approved. The post is ready to publish below.')
       : r?.status === 'rejected' ? (isHebrew ? 'הוסר מהרשימה.' : 'Removed from the list.')
         : r?.status === 'revised' ? (isHebrew ? 'הפוסט תוקן. קראו אותו שוב.' : 'The post was revised. Read it again.')
@@ -151,8 +171,10 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
           : r?.code === 'not_pending' ? (isHebrew ? 'הפוסט כבר טופל.' : 'This post was already handled.')
             : r?.code === 'publishing' ? (isHebrew ? 'הפוסט מתפרסם ממש עכשיו. רעננו בעוד דקה.' : 'The post is being published right now. Refresh in a minute.')
               : r?.code === 'not_ready' ? (isHebrew ? 'הפוסט כבר לא מחכה לפרסום.' : 'This post no longer waits to be published.')
+                : r?.code === 'publish_unknown' ? (isHebrew ? 'לא ברור אם הפוסט כבר פורסם. בדקו בדף, ואם הוא לא שם לחצו "הפוסט לא פורסם, לפרסם עכשיו".' : 'It is not clear whether the post was already published. Check the page; if it is not there, press "It was not published - publish now".')
         : (isHebrew ? 'הפעולה לא הושלמה. נסו שוב.' : 'The action did not complete. Try again.');
-    setNotice(r?.ok ? { good: true, text: okText } : { good: false, text: failText });
+    // a failed or unknown publication is never shown as a success (Codex F10)
+    setNotice(r?.ok ? { good: !r.publishError, text: okText } : { good: false, text: failText });
     load();
     return r;
   };

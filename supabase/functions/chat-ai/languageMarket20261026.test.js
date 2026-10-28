@@ -13,6 +13,31 @@ import { AI_FACTS } from './aiFacts.generated.ts';
 const here = path.dirname(fileURLToPath(import.meta.url));
 const HEBREW = /[֐-׿]/;
 
+// 20261029000000 (Codex F16): the assembled prompt and the fixed answers - the market decides every commercial fact and the mailbox
+describe('the assembled prompt follows the market, never the reply language', () => {
+  const account = { summaryState: 'not_activated', planId: null, free10Remaining: null, subscriptionStatus: null, outputPhase: 'off' };
+  const prompt = (isHebrew, market) => buildSystemPrompt({ isHebrew, accountContext: { market, account, currentArea: null } });
+  it('an Israeli account writing in English: purchase is open, the Israeli mailbox, no "not open yet"', () => {
+    const p = prompt(false, 'Local');
+    expect(p).toMatch(/The support email for this account \(its market, whatever the reply language\): support@tekango\.com/);
+    expect(p).not.toMatch(/purchase is not open yet\./);
+    expect(p).not.toMatch(/For Hebrew users, use|For English users, use/);
+  });
+  it('an account abroad writing in Hebrew: purchase not open, the international mailbox', () => {
+    const p = prompt(true, 'International');
+    expect(p).toMatch(/The support email for this account \(its market, whatever the reply language\): info@tekango\.com/);
+    expect(p).toMatch(/purchase is not open yet\./);
+  });
+  it('an account whose market is not known yet is never told it can buy, in either language', () => {
+    for (const he of [true, false]) expect(prompt(he, 'Unknown')).toMatch(/purchase is not open yet\./);
+  });
+  it('the fixed Hebrew answer abroad never names the shekel', () => {
+    const pay = (isHebrew, marketIL) => resolvePaymentTruthResponse(isHebrew, { ...AI_FACTS.billing, subscriptionCheckoutMarkets: [] }, undefined, marketIL).answer;
+    expect(pay(true, false)).not.toMatch(/₪/);
+    expect(pay(true, true)).toMatch(/₪ בשוק המקומי/);
+  });
+});
+
 describe('subscription answer: language from the interface, prices from the market', () => {
   const ask = (isHebrew, marketIL) => resolveSubscriptionTruthResponse(isHebrew ? 'כמה עולה המנוי?' : 'How much is the subscription?', isHebrew, null, marketIL).answer;
   it('Israeli account in English: English words, shekel prices, purchase open', () => {

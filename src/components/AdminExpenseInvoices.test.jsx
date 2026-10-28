@@ -101,6 +101,24 @@ describe('AdminExpenseInvoices', () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
+  // Owner console 2026-10-28 (L-22, Codex F05): an expense PayPlus may have received is checked there - never sent again automatically
+  it.each([true, false])('isHebrew=%s: an unknown expense has its own list and a check, never "Send" or edit', async (he) => {
+    rpc.mockResolvedValue(state({ invoices: [inv({ id: 'u1', status: 'unknown', sendError: 'לא התקבלה תשובה ברורה מפיי פלוס' }), inv({ id: 'b', status: 'approved' })] }));
+    invoke.mockResolvedValue({ data: { ok: true, results: [{ id: 'u1', ok: true, code: 'already_in_payplus' }] }, error: null });
+    const { findByTestId, getByTestId, queryByTestId } = render(<AdminExpenseInvoices isHebrew={he} />);
+    await findByTestId('expense-tab-unknown');
+    expect(getByTestId('expense-tab-unknown').textContent).toContain(he ? 'לבדיקה מול פיי פלוס' : 'Check in PayPlus');
+    fireEvent.click(getByTestId('expense-tab-approved'));
+    expect(getByTestId('expense-list').querySelectorAll('[data-invoice]').length).toBe(1);
+    fireEvent.click(getByTestId('expense-tab-unknown'));
+    expect(getByTestId('expense-unknown-u1').textContent).toContain(he ? 'היא לא תישלח שוב לבד' : 'It will not be sent again automatically');
+    expect(queryByTestId('expense-send')).toBeNull();
+    expect(queryByTestId('expense-edit-u1')).toBeNull();
+    expect(queryByTestId('expense-approve-u1')).toBeNull();
+    fireEvent.click(getByTestId('expense-reconcile'));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith('expense-invoices', { body: { action: 'reconcile', ids: ['u1'] } }));
+    expect((await findByTestId('expense-notice')).textContent).toBe(he ? 'נמצאו בפיי פלוס: 1.' : 'Found in PayPlus: 1.');
+  });
   it('a server failure shows the unavailable state, never an empty success', async () => {
     rpc.mockResolvedValue({ data: null, error: { message: 'x' } });
     const { findByTestId } = render(<AdminExpenseInvoices isHebrew />);

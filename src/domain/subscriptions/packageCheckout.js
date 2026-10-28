@@ -158,11 +158,15 @@ export async function loadSmartPackRemovalQuote({ invoke }) {
   return { ok: true, period: d.period, effectiveAt: d.effectiveAt, refundMinor: d.refundMinor };
 }
 
-/** -> { ok: true, state: 'removed' | 'pending' | 'refused', effectiveAt, refundMinor } | { ok: false, code } */
+/** -> { ok: true, state: 'removed' | 'pending' | 'refused', effectiveAt, refundMinor, refundState } | { ok: false, code }
+ * 20261029000000 (Codex F02): refundState 'refunded' only when the refund was made; anything else is 'pending' (never promised as done) */
 export async function removeSmartPack({ invoke, key = newCheckoutKey() }) {
   if (typeof invoke !== 'function') return { ok: false, code: 'invalid_request' };
   const d = await addOnCall(invoke, { action: 'smart_pack_removal_request', idempotencyKey: key });
-  if (d.ok === true && ['removed', 'pending', 'refused'].includes(d.state)) return { ok: true, state: d.state, effectiveAt: d.effectiveAt, refundMinor: Number.isInteger(d.refundMinor) ? d.refundMinor : 0 };
+  if (d.ok === true && ['removed', 'pending', 'refused'].includes(d.state)) {
+    const refundMinor = Number.isInteger(d.refundMinor) ? d.refundMinor : 0;
+    return { ok: true, state: d.state, effectiveAt: d.effectiveAt, refundMinor, refundState: refundMinor <= 0 ? 'none' : d.refundState === 'refunded' ? 'refunded' : 'pending' };
+  }
   return { ok: false, code: d.ok === true ? 'checkout_unavailable' : d.code };
 }
 

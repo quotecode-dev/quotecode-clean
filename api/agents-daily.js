@@ -12,7 +12,11 @@ export async function runAgentsDaily({ env, fetchImpl }) {
     body: JSON.stringify({ action: 'daily' }),
   });
   const body = await res.json().catch(() => null);
-  return { ok: res.ok, status: res.status, body };
+  // 20261029000000 (Codex F12): the function answers 200 also when part of the work failed - the body decides
+  const outcome = !res.ok || !body || body.ok !== true ? 'failed'
+    : body.security === 'failed' || body.urgent === false || body.sitemap === 'failed' ? 'partial'
+      : body.security === 'already_ran' ? 'skipped' : 'completed';
+  return { ok: outcome === 'completed' || outcome === 'skipped', outcome, status: res.status, body };
 }
 
 export default async function handler(req, res) {
@@ -23,7 +27,7 @@ export default async function handler(req, res) {
   }
   try {
     const r = await runAgentsDaily({ env: process.env, fetchImpl: fetch });
-    return res.status(r.ok ? 200 : 500).json({ success: r.ok, result: r.body });
+    return res.status(r.ok ? 200 : 500).json({ success: r.ok, outcome: r.outcome, result: r.body });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }

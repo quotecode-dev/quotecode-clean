@@ -43,6 +43,12 @@ describe('the database guides', () => {
     expect(await fetchPublishedArticles({ base: 'https://s.co', key: 'k', fetchImpl: vi.fn(async () => { throw new Error('offline'); }) })).toEqual([]);
     expect(await fetchPublishedArticles({ base: 'https://s.co', key: 'k', slug: '../x', fetchImpl: vi.fn() })).toEqual([]);
     expect(await fetchPublishedArticles({ base: '', key: 'k', fetchImpl: vi.fn() })).toEqual([]);
+    // 20261029000000 (Codex F13): strict (the production build) never takes a failed read for an empty catalog
+    await expect(fetchPublishedArticles({ base: 'https://s.co', key: 'k', fetchImpl: reply([], false), strict: true })).rejects.toThrow('articles_unavailable');
+    await expect(fetchPublishedArticles({ base: 'https://s.co', key: 'k', fetchImpl: vi.fn(async () => { throw new Error('offline'); }), strict: true })).rejects.toThrow('articles_unavailable:failed');
+    await expect(fetchPublishedArticles({ base: 'https://s.co', key: 'k', fetchImpl: vi.fn(async () => ({ ok: true, json: async () => ({ not: 'a list' }) })), strict: true })).rejects.toThrow('articles_unavailable:malformed');
+    await expect(fetchPublishedArticles({ base: '', key: 'k', fetchImpl: vi.fn(), strict: true })).rejects.toThrow('articles_unavailable:not_configured');
+    expect(await fetchPublishedArticles({ base: 'https://s.co', key: 'k', fetchImpl: reply([]), strict: true })).toEqual([]); // a real empty list
   });
 
   it('HE + EN: a database guide opens on the site with its own SEO signals; the index lists it after the static guides', async () => {
@@ -76,6 +82,14 @@ describe('the database guides', () => {
     expect(await loadDatabaseGuides(entry, () => {}, {})).toEqual([]);
     expect(entry.fetchPublishedArticles).not.toHaveBeenCalled();
     expect(await loadDatabaseGuides(entry, () => {}, { VERCEL_ENV: 'production', VITE_SUPABASE_URL: 'https://s.co', VITE_SUPABASE_ANON_KEY: 'k' })).toHaveLength(1);
+    expect(entry.fetchPublishedArticles).toHaveBeenCalledWith(expect.objectContaining({ strict: true }));
+    // 20261029000000 (Codex F13): a read that keeps failing stops the production build (the live site keeps its guides); one retry helps
+    const prod = { VERCEL_ENV: 'production', VITE_SUPABASE_URL: 'https://s.co', VITE_SUPABASE_ANON_KEY: 'k' };
+    const down = { fetchPublishedArticles: vi.fn(async () => { throw new Error('articles_unavailable:503'); }) };
+    await expect(loadDatabaseGuides(down, () => {}, prod, async () => {})).rejects.toThrow(/the build stops/);
+    expect(down.fetchPublishedArticles).toHaveBeenCalledTimes(3);
+    const flaky = { fetchPublishedArticles: vi.fn().mockRejectedValueOnce(new Error('articles_unavailable:timeout')).mockResolvedValueOnce([normalizeArticleRow(row)]) };
+    expect(await loadDatabaseGuides(flaky, () => {}, prod, async () => {})).toHaveLength(1);
     const xml = withGuides('<?xml version="1.0"?>\n<urlset>\n  <url><loc>https://www.tekango.com/he</loc></url>\n</urlset>\n', [normalizeArticleRow(row)]);
     expect(xml).toMatch(/<loc>https:\/\/www\.tekango\.com\/he\/articles\/hourly-pricing-guide<\/loc>\n {4}<lastmod>2026-11-02<\/lastmod>/);
     expect(xml).toMatch(/<loc>https:\/\/www\.tekango\.com\/en\/articles\/hourly-pricing-guide<\/loc>/);
