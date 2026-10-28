@@ -21,7 +21,8 @@ export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null, onR
   const [refreshKey, setRefreshKey] = useState(0);
   const server = useAdminDashboardSummary(refreshKey);
   const s = (server.state === 'ready' || server.state === 'stale') ? server.data : null;
-  const users = accounts.filter(a => a && a.role !== 'super_admin' && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');
+  // L-22 (Owner 2026-10-28): a test account the Owner marked is not counted
+  const users = accounts.filter(a => a && a.role !== 'super_admin' && a.is_test !== true && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');
   const { system, byId } = useAdminAccountSummaries(s ? [] : users.map(adminTargetUserId));
   const rows = s ? breakdownFromCounts(s.subscriptionStatus) : accountStatusBreakdown(users, (a) => (system === 'not_active' ? null : (byId[adminTargetUserId(a)] || null)));
   const count = (k) => rows.find((r) => r.key === k)?.count ?? 0;
