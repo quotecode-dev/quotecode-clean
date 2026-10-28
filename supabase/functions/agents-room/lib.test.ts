@@ -108,6 +108,8 @@ describe('agents-room', () => {
     expect(isolatePaths('1/2 ו־a/b')).toBe('1/2 ו־a/b');
     expect(coverageHe('URL is unknown to Google')).toBe('גוגל עוד לא מכיר את הדף');
     expect(coverageHe('Some new Google state')).toBe('סיבה אחרת, הפירוט בסרץ׳ קונסול');
+    expect(coverageHe('Excluded by ‘noindex’ tag')).toBe('הדף מסומן כלא מיועד לאינדקס');
+    expect(coverageHe("Excluded by 'noindex' tag")).toBe('הדף מסומן כלא מיועד לאינדקס');
     expect(usd(0.0006)).toBe('0.0006');
     expect(usd(0)).toBe('0.00');
     expect(usd(1.234)).toBe('1.23');
