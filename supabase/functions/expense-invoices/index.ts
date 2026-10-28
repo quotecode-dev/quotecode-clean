@@ -8,7 +8,7 @@
 //  - Secrets (the Owner sets them; never in code): GOOGLE_EXPENSES_CLIENT_ID / GOOGLE_EXPENSES_CLIENT_SECRET, OPENAI_API_KEY,
 //    PAYPLUS_API_KEY / PAYPLUS_SECRET_KEY / PAYPLUS_ENVIRONMENT (+ PAYPLUS_PROXY_URL, the fixed-IP relay), RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS (the monthly note), CRON_SECRET.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { expenseHandler, oauthCallback, scanBatch, payplusRecords, payplusReason, createExpenseAt, subcategoryUuids, sameText, boiRate, BOI_RATE_CURRENCIES, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
+import { expenseHandler, oauthCallback, scanBatch, payplusRecords, payplusReason, createExpenseAt, sameText, boiRate, BOI_RATE_CURRENCIES, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
 import { PAYPLUS_API_BASES } from '../subscription-authority/payplus.ts';
 import { sendMail } from '../support-inbound/mail.ts';
 import { payplusEgress, type FetchLike } from '../_shared/payplusEgress.ts';
@@ -243,39 +243,6 @@ Deno.serve(async (req: Request) => {
       // created: the id when PayPlus gives it (the row is sent either way - never created twice)
       return typeof out?.details?.uuid === 'string' ? out.details.uuid : 'created';
     },
-    // L-22 (Owner 2026-10-28, "שליחת סוג ההוצאה לפיי פלוס לפי המזהה שלהם"): the expense types list PayPlus's own form reads
-    payplusSubcategories: async () => {
-      const p = payplus();
-      const res = await timed(`${p.base}/books/categories/expense/list?skipEmpty=false`, { headers: p.headers }, GOOGLE_TIMEOUT_MS, egress.fetch);
-      if (!res.ok) return {};
-      return subcategoryUuids(await res.json().catch(() => null));
-    },
-    payplusList: async () => {
-      const p = payplus();
-      const all: Record<string, unknown>[] = [];
-      for (let skip = 0; skip < 1000; skip += 100) {
-        const res = await timed(`${p.base}/books/expenses?skip=${skip}&take=100`, { headers: p.headers }, GOOGLE_TIMEOUT_MS, egress.fetch);
-        const body = await res.json().catch(() => null);
-        if (res.status === 400 && body && typeof body === 'object' && !Array.isArray(body) && Object.keys(body).length === 0) break;
-        if (!res.ok) throw new Error(`PayPlus list ${res.status}`);
-        const page = payplusRecords(body);
-        if (!page) throw new Error('PayPlus list answer not understood');
-        all.push(...page);
-        if (page.length < 100) break;
-      }
-      return all;
-    },
-    payplusUpdate: async (uuid, fields) => {
-      const p = payplus();
-      const form = new FormData();
-      for (const [k, v] of Object.entries(fields)) form.append(k, v);
-      const res = await timed(`${p.base}/books/expenses/${encodeURIComponent(uuid)}`, { method: 'PUT', headers: p.headers, body: form }, 30000, egress.fetch);
-      const text = await res.text().catch(() => '');
-      let out: { status?: unknown } | null = null;
-      try { out = JSON.parse(text); } catch { out = null; }
-      if (!res.ok || out?.status !== 'success') throw new Error(`PayPlus ${res.status}: ${payplusReason(text)}`);
-    },
-    sentInvoices: () => db(admin.from('expense_invoices').select('*').eq('status', 'sent').limit(1000)) as Promise<Record<string, unknown>[]>,
     // L-22 (Owner 2026-10-28): the Bank of Israel representative rate of the invoice date (the public SDMX service; the two weeks before
     // the date cover weekends and holidays) - a foreign invoice is sent in shekels at that rate
     ilsRate: async (currency, date) => {

@@ -105,19 +105,6 @@ export default function AdminExpenseInvoices({ isHebrew }) {
     } catch { return { ok: false, code: 'failed' }; }
   }, []);
   const failed = () => setNotice({ good: false, text: isHebrew ? 'הפעולה נכשלה. שום דבר לא השתנה. נסו שוב.' : 'The action failed. Nothing changed. Try again.' });
-  // L-22 (Owner 2026-10-28, "שליחת סוג ההוצאה לפיי פלוס לפי המזהה שלהם"): once per opening, the expenses already in PayPlus without a
-  // type get their type (the server touches only PayPlus expenses that have no type)
-  useEffect(() => {
-    let cancelled = false;
-    call({ action: 'sync_types' }).then((r) => {
-      if (cancelled || !r?.ok) return;
-      if (r.types === 0) setNotice({ good: false, text: isHebrew ? 'פיי פלוס לא החזירו את רשימת סוגי ההוצאה, ולכן סוג ההוצאה לא נשלח.' : 'PayPlus did not return the expense types list, so the expense type was not sent.' });
-      else if (r.updated || r.failed) setNotice({ good: !r.failed, text: isHebrew
-        ? `סוג ההוצאה עודכן בפיי פלוס: ${r.updated}.${r.failed ? ` לא עודכנו: ${r.failed}.` : ''}`
-        : `Expense type set in PayPlus: ${r.updated}.${r.failed ? ` Not set: ${r.failed}.` : ''}` });
-    });
-    return () => { cancelled = true; };
-  }, [call, isHebrew]);
 
   const connect = async (mailbox) => {
     setBusy(`connect:${mailbox}`);
