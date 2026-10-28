@@ -444,19 +444,6 @@ export function payplusFields(row: InvoiceRow, subcategoryId: number, fx: IlsRat
   if (row.supplier_vat_id) f.supplier_vat_id = String(row.supplier_vat_id);
   return f;
 }
-/** L-22 (Owner 2026-10-28, "הצגת ההסבר המלא של פיי פלוס בשליחה שנדחתה"): PayPlus's own explanation of a refused request, from
- *  whichever field it comes in (message / results.description / details / status), else the start of the answer as plain text (an
- *  HTML page is reduced to its text). It never holds a key: only PayPlus's answer is read. */
-export function payplusReason(bodyText: string): string {
-  const raw = String(bodyText ?? '');
-  let o: Record<string, unknown> | null = null;
-  try { const v = JSON.parse(raw); o = v && typeof v === 'object' ? v as Record<string, unknown> : null; } catch { o = null; }
-  const pick = (v: unknown): string => (typeof v === 'string' ? v.trim() : v && typeof v === 'object' ? JSON.stringify(v) : '');
-  const r = o?.results as Record<string, unknown> | undefined;
-  const found = o ? [o.message, r?.description, r?.message, o.details, o.error, o.errors, r, o.status].map(pick).find(Boolean) : '';
-  const text = found || raw.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-  return (text || 'no answer body').slice(0, 300);
-}
 /** PayPlus answers a search with one of a few shapes; anything else is NOT understood (the send is blocked, never "nothing found"). */
 export function payplusRecords(v: unknown): Record<string, unknown>[] | null {
   const o = v as Record<string, unknown>;

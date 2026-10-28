@@ -4,7 +4,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   expenseHandler, oauthCallback, scanBatch, parseMessage, validateExtraction, vatRule, gmailQuery, payplusFields, invoicePatch, settingsPatch,
-  signState, verifyState, sameDocument, payplusRecords, callbackFailure, boiRate, payplusReason, EXPENSE_MODEL, EXPENSE_FALLBACK_MODEL, type ExpenseDeps,
+  signState, verifyState, sameDocument, payplusRecords, callbackFailure, boiRate, EXPENSE_MODEL, EXPENSE_FALLBACK_MODEL, type ExpenseDeps,
 } from './lib.ts';
 
 const NOW = Date.parse('2026-10-22T18:00:00Z');
@@ -364,17 +364,5 @@ describe('L-22 (Owner 2026-10-28, "שער יציג לפי תאריך החשבו�
   it('a foreign row without a rate gives no PayPlus fields', () => {
     expect(payplusFields({ doc_number: '1', doc_date: '2026-09-01', amount: 1, currency: 'USD' }, 1)).toBeNull();
     expect(payplusFields({ doc_number: '1', doc_date: '2026-09-01', amount: 1, currency: 'USD' }, 1, { rate: 3.5, date: '2026-09-01' })).toMatchObject({ amount: '3.50', currency_code: 'ILS' });
-  });
-});
-
-describe('L-22 (Owner 2026-10-28, "הצגת ההסבר המלא של פיי פלוס בשליחה שנדחתה"): PayPlus explains a refusal', () => {
-  it('from whichever field the explanation comes in; an HTML page becomes its text; an empty body says so', () => {
-    expect(payplusReason(JSON.stringify({ results: { status: 'error', code: 403, description: 'expenses module is not allowed for this key' }, data: null })))
-      .toBe('expenses module is not allowed for this key');
-    expect(payplusReason(JSON.stringify({ status: 'error', message: 'number must be numeric' }))).toBe('number must be numeric');
-    expect(payplusReason(JSON.stringify({ status: 'error', details: { field: 'subcategory_id' } }))).toBe('{"field":"subcategory_id"}');
-    expect(payplusReason('<html><head><style>p{}</style></head><body><h1>403 Forbidden</h1><p>Request blocked</p></body></html>')).toBe('403 Forbidden Request blocked');
-    expect(payplusReason('')).toBe('no answer body');
-    expect(payplusReason('x'.repeat(500))).toHaveLength(300);
   });
 });
