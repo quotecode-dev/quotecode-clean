@@ -22,8 +22,6 @@ export function parseDashboardSummary(d) {
     planSystem: d.planSystem === 'active' ? 'active' : 'not_active',
     // AV-09 (migration 20261017000000): the Free-10 counter is reported active only when the quota is enforced
     free10Counter: d.free10Counter === 'enforced' ? 'enforced' : 'not_enforced',
-    // L-22 (Owner 2026-10-28, migration 20261028100000): the marked test accounts, not counted above
-    testAccounts: isInt(d.testAccounts) ? d.testAccounts : 0,
   });
 }
 

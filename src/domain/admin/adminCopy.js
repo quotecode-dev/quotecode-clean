@@ -130,15 +130,6 @@ export const ADMIN_COPY = Object.freeze({
   noEvents: { he: 'לא נמצאו אירועים', en: 'No events found' },
   accountRegistered: { he: 'החשבון נרשם', en: 'Account registered' },
   unknownAction: { he: 'פעולה שלא זוהתה', en: 'Unrecognised action' },
-  // L-22 (Owner 2026-10-28): a test account the Owner marked is listed with a badge and not counted in the statistics
-  testBadge: { he: 'חשבון בדיקה', en: 'Test account' },
-  markTest: { he: 'סימון כחשבון בדיקה', en: 'Mark as a test account' },
-  unmarkTest: { he: 'ביטול סימון חשבון בדיקה', en: 'Remove the test-account mark' },
-  testHint: { he: 'חשבון בדיקה לא נספר בסטטיסטיקה, ונשאר ברשימת המשתמשים.', en: 'A test account is not counted in the statistics and stays in the users list.' },
-  testMarked: { he: 'החשבון סומן כחשבון בדיקה ולא נספר יותר בסטטיסטיקה.', en: 'The account is marked as a test account and is no longer counted.' },
-  testUnmarked: { he: 'הסימון הוסר. החשבון נספר שוב בסטטיסטיקה.', en: 'The mark was removed. The account is counted again.' },
-  testFailed: { he: 'הסימון לא נשמר. נסו שוב.', en: 'The mark was not saved. Try again.' },
-  kpiManagedNoteTests: { he: 'ללא חשבונות מערכת ו־{n} חשבונות בדיקה', en: 'System accounts and {n} test accounts excluded' },
   showMore: { he: 'הצגה נוספת', en: 'Show more' },
 });
 
@@ -148,14 +139,6 @@ export const ACTION_NAMES = Object.freeze({
   extend_trial: { he: 'הארכת ניסיון ותיק', en: 'Legacy trial extended' },
   delete_user: { he: 'מחיקת חשבון', en: 'Account deleted' },
   reset_quotes: { he: 'איפוס הצעות', en: 'Quotes reset' },
-  // L-22 (Owner 2026-10-28, "כיתובים לפעולות שלא זוהו ביומן ..."): the actions that showed as "unrecognised"
-  billing_stop_renewal: { he: 'עצירת חידוש מנוי', en: 'Subscription renewal stopped' },
-  billing_end_early: { he: 'סיום מנוי מוקדם', en: 'Subscription ended early' },
-  billing_resolve: { he: 'סגירת פעולת תשלום שנקטעה', en: 'Interrupted billing action resolved' },
-  billing_settle_refund: { he: 'רישום החזר כספי', en: 'Refund recorded' },
-  set_admin_permissions: { he: 'עדכון הרשאות מפקח', en: 'Supervisor permissions updated' },
-  mark_test_account: { he: 'סימון כחשבון בדיקה', en: 'Marked as a test account' },
-  unmark_test_account: { he: 'ביטול סימון חשבון בדיקה', en: 'Test account mark removed' },
 });
 export const OUTCOME_NAMES = Object.freeze({
   success: { he: 'אושר בשרת', en: 'Verified by server', tone: 'ok' },

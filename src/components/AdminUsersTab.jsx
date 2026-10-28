@@ -9,9 +9,8 @@ import { getFunctionErrorMessage } from '../utils/functionError';
 import AdminUsersView from './AdminUsersView';
 import AdminUserDetails from './AdminUserDetails';
 import AdminProtectedDialog from './AdminProtectedDialog';
-import { useAdminAccountSummary, legacyOperationsRetired, adminTargetUserId } from '../domain/subscriptions/adminAccountSummary';
+import { useAdminAccountSummary, legacyOperationsRetired } from '../domain/subscriptions/adminAccountSummary';
 import { accountDateTime } from '../utils/adminDates';
-import { supabase } from '../shared/supabase';
 
 export default function AdminUsersTab({
   isHebrew,
@@ -239,16 +238,6 @@ export default function AdminUsersTab({
     }
   };
 
-  // L-22 (Owner 2026-10-28): the Owner marks / unmarks a test account (set_admin_test_account, super admin only, audited); the
-  // accounts reload so the mark and the counts come back from the server
-  async function markTestAccount(account, isTest) {
-    const { data, error } = await supabase.rpc('set_admin_test_account', { p_user_id: adminTargetUserId(account), p_is_test: isTest });
-    if (error || !data?.ok) return false;
-    setRefreshKey((k) => k + 1);
-    if (typeof onAccountsChanged === 'function') await onAccountsChanged();
-    return true;
-  }
-
   function closeDialogs() {
     if (isResetting) return;
     const wasDone = actionDone;
@@ -359,7 +348,6 @@ export default function AdminUsersTab({
           onReset={!canProtect ? null : (a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setResetModalUser(a); }}
           onDelete={!canProtect ? null : (a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setDeleteModalUser(a); }}
           onLifetime={!canProtect ? null : (a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setActionDone(false); setLifetimeActionUser(a); }}
-          onTestMark={!canProtect ? null : markTestAccount}
           refreshKey={refreshKey}
         />
       ) : (
