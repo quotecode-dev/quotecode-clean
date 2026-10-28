@@ -86,11 +86,6 @@ export interface ExpenseDeps {
   payplusCreate(fields: Record<string, string>, file: { name: string; type: string; base64: string } | null): Promise<string>;
   /** PayPlus's expense types as type number -> type uuid ({} when the list is unavailable) */
   payplusSubcategories(): Promise<Record<string, string>>;
-  /** every PayPlus expense record (throws when the answer is not understood) */
-  payplusList(): Promise<Record<string, unknown>[]>;
-  payplusUpdate(uuid: string, fields: Record<string, string>): Promise<void>;
-  /** the rows already sent to PayPlus */
-  sentInvoices(): Promise<InvoiceRow[]>;
   /** the Bank of Israel representative rate of a currency (shekels per 1 unit) published on or before the date; null = none found */
   ilsRate(currency: string, date: string): Promise<IlsRate | null>;
   notifyOwner(found: number): Promise<void>;
@@ -466,12 +461,6 @@ export function subcategoryUuids(v: unknown): Record<string, string> {
   }
   return out;
 }
-const hasType = (item: Record<string, unknown>) => {
-  const s = item.subcategory as Record<string, unknown> | null | undefined;
-  return !!(s && (s.uuid || s.id));
-};
-/** L-22 (Owner 2026-10-28, "שליחת סוג ההוצאה לפיי פלוס לפי המזהה שלהם"): the expenses already sent that PayPlus holds WITHOUT a type
- *  get their type - the same fields they were sent with, plus the type's uuid. A PayPlus expense that has a type is never touched. */
 /** L-22 (Owner 2026-10-28, "שמירת מזהי סוגי ההוצאה של פיי פלוס בהגדרות הכלי"): the type uuids - PayPlus's list when it answers, and
  *  the uuids saved with the tool's types (they win: PayPlus's interface does not always give the list) */
 export async function typeUuids(deps: ExpenseDeps, s: Awaited<ReturnType<ExpenseDeps['settings']>>): Promise<Record<string, string>> {
@@ -479,32 +468,9 @@ export async function typeUuids(deps: ExpenseDeps, s: Awaited<ReturnType<Expense
   for (const t of s.expense_types || []) if (t.uuid) out[String(t.id)] = t.uuid;
   return out;
 }
-export async function syncTypes(deps: ExpenseDeps, s: Awaited<ReturnType<ExpenseDeps['settings']>>): Promise<{ updated: number; failed: number; types: number; error?: string }> {
-  const fallbackSub = s.default_subcategory_id;
-  const subs = await typeUuids(deps, s);
-  const types = Object.keys(subs).length;
-  let error: string | undefined;
-  const sent = await deps.sentInvoices();
-  if (!types || !sent.length) return { updated: 0, failed: 0, types };
-  const items = await deps.payplusList();
-  let updated = 0;
-  let failed = 0;
-  for (const item of items) {
-    if (hasType(item) || typeof item.uuid !== 'string') continue;
-    const row = sent.find((r) => r.payplus_uuid === item.uuid)
-      ?? sent.find((r) => !/^[0-9a-f-]{36}$/i.test(String(r.payplus_uuid)) && String(r.doc_number) === String(item.number));
-    if (!row) continue;
-    const sub = Number(row.subcategory_id) || fallbackSub;
-    const uuid = sub ? subs[String(sub)] : null;
-    if (!sub || !uuid) continue;
-    let fx: IlsRate | null = null;
-    if (String(row.currency) !== 'ILS') fx = await deps.ilsRate(String(row.currency), String(row.doc_date)).catch(() => null);
-    const fields = payplusFields(row, sub, fx, uuid);
-    if (!fields) { failed += 1; continue; }
-    try { await deps.payplusUpdate(item.uuid, fields); updated += 1; } catch (e) { failed += 1; error ??= String((e as Error)?.message || 'failed').slice(0, 300); }
-  }
-  return { updated, failed, types, ...(error ? { error } : {}) };
-}
+// L-22 (Owner 2026-10-28, "הסרת עדכון ההוצאות שנשלחו בפתיחת המסך"): the update of expenses already sent is removed - PayPlus's
+// PUT /books/expenses/{uuid} CREATED a new expense instead of updating (23 duplicates, deleted by hand). Nothing here changes an
+// expense already in PayPlus.
 /** L-22 (Owner 2026-10-28, "הצגת ההסבר המלא של פיי פלוס בשליחה שנדחתה"): PayPlus's own explanation of a refused request, from
  *  whichever field it comes in (message / results.description / details / status), else the start of the answer as plain text (an
  *  HTML page is reduced to its text). It never holds a key: only PayPlus's answer is read. */
@@ -691,12 +657,6 @@ export async function expenseHandler(body: Record<string, unknown>, deps: Expens
       const results = [];
       for (const id of ids as string[]) results.push(await sendOne(deps, id, s.default_subcategory_id, subs));
       return ok({ results });
-    }
-    case 'sync_types': {
-      const s = await deps.settings();
-      try { return ok(await syncTypes(deps, s)); } catch (e) {
-        return { status: 502, body: { ok: false, code: 'payplus_failed', error: String((e as Error)?.message || 'failed').slice(0, 300) } };
-      }
     }
     default:
       return bad(400, 'invalid_action');
