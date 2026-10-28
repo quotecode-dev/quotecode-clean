@@ -4,7 +4,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   expenseHandler, oauthCallback, scanBatch, parseMessage, validateExtraction, vatRule, gmailQuery, payplusFields, invoicePatch, settingsPatch,
-  signState, verifyState, sameDocument, payplusRecords, callbackFailure, boiRate, payplusReason, createExpenseAt, EXPENSE_MODEL, EXPENSE_FALLBACK_MODEL, type ExpenseDeps,
+  signState, verifyState, sameDocument, payplusRecords, callbackFailure, boiRate, payplusReason, EXPENSE_MODEL, EXPENSE_FALLBACK_MODEL, type ExpenseDeps,
 } from './lib.ts';
 
 const NOW = Date.parse('2026-10-22T18:00:00Z');
@@ -376,24 +376,5 @@ describe('L-22 (Owner 2026-10-28, "הצגת ההסבר המלא של פיי פל
     expect(payplusReason('<html><head><style>p{}</style></head><body><h1>403 Forbidden</h1><p>Request blocked</p></body></html>')).toBe('403 Forbidden Request blocked');
     expect(payplusReason('')).toBe('no answer body');
     expect(payplusReason('x'.repeat(500))).toHaveLength(300);
-  });
-});
-
-describe('L-22 (Owner 2026-10-28, "כתובת השליחה של הוצאה חדשה לפיי פלוס"): a new expense goes to /books/expenses', () => {
-  it('the first address is /books/expenses; an answer there is final', async () => {
-    const post = vi.fn(async () => ({ status: 200, text: '{"status":"success"}' }));
-    expect(await createExpenseAt(post)).toEqual({ status: 200, text: '{"status":"success"}' });
-    expect(post.mock.calls).toEqual([['/books/expenses']]);
-    const refused = vi.fn(async () => ({ status: 403, text: '{"message":"not allowed"}' }));
-    expect((await createExpenseAt(refused)).text).toBe('{"message":"not allowed"}');
-    expect(refused).toHaveBeenCalledTimes(1);
-  });
-  it('only an empty 403 (nothing created) tries /expenses once', async () => {
-    const post = vi.fn(async (path: string) => (path === '/books/expenses' ? { status: 403, text: ' ' } : { status: 200, text: 'ok' }));
-    expect(await createExpenseAt(post)).toEqual({ status: 200, text: 'ok' });
-    expect(post.mock.calls).toEqual([['/books/expenses'], ['/expenses']]);
-    const both = vi.fn(async () => ({ status: 403, text: '' }));
-    expect(await createExpenseAt(both)).toEqual({ status: 403, text: '' });
-    expect(both).toHaveBeenCalledTimes(2);
   });
 });

@@ -8,7 +8,7 @@
 //  - Secrets (the Owner sets them; never in code): GOOGLE_EXPENSES_CLIENT_ID / GOOGLE_EXPENSES_CLIENT_SECRET, OPENAI_API_KEY,
 //    PAYPLUS_API_KEY / PAYPLUS_SECRET_KEY / PAYPLUS_ENVIRONMENT (+ PAYPLUS_PROXY_URL, the fixed-IP relay), RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS (the monthly note), CRON_SECRET.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { expenseHandler, oauthCallback, scanBatch, payplusRecords, payplusReason, createExpenseAt, sameText, boiRate, BOI_RATE_CURRENCIES, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
+import { expenseHandler, oauthCallback, scanBatch, payplusRecords, payplusReason, sameText, boiRate, BOI_RATE_CURRENCIES, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
 import { PAYPLUS_API_BASES } from '../subscription-authority/payplus.ts';
 import { sendMail } from '../support-inbound/mail.ts';
 import { payplusEgress, type FetchLike } from '../_shared/payplusEgress.ts';
@@ -228,18 +228,14 @@ Deno.serve(async (req: Request) => {
     },
     payplusCreate: async (fields, file) => {
       const p = payplus();
-      // a fresh form per address (a sent body is consumed)
-      const res = await createExpenseAt(async (path) => {
-        const form = new FormData();
-        for (const [k, v] of Object.entries(fields)) form.append(k, v);
-        if (file) form.append('doc_file', new Blob([fromBase64(file.base64)], { type: file.type }), file.name);
-        const r = await timed(`${p.base}${path}`, { method: 'POST', headers: p.headers, body: form }, 30000, egress.fetch);
-        return { status: r.status, text: await r.text().catch(() => '') };
-      });
-      const text = res.text;
+      const form = new FormData();
+      for (const [k, v] of Object.entries(fields)) form.append(k, v);
+      if (file) form.append('doc_file', new Blob([fromBase64(file.base64)], { type: file.type }), file.name);
+      const res = await timed(`${p.base}/expenses`, { method: 'POST', headers: p.headers, body: form }, 30000, egress.fetch);
+      const text = await res.text().catch(() => '');
       let out: { status?: unknown; details?: { uuid?: unknown } } | null = null;
       try { out = JSON.parse(text); } catch { out = null; }
-      if (res.status < 200 || res.status > 299 || out?.status !== 'success') throw new Error(`PayPlus ${res.status}: ${payplusReason(text)}`);
+      if (!res.ok || out?.status !== 'success') throw new Error(`PayPlus ${res.status}: ${payplusReason(text)}`);
       // created: the id when PayPlus gives it (the row is sent either way - never created twice)
       return typeof out?.details?.uuid === 'string' ? out.details.uuid : 'created';
     },

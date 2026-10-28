@@ -457,18 +457,6 @@ export function payplusReason(bodyText: string): string {
   const text = found || raw.replace(/<script[\s\S]*?<\/script>|<style[\s\S]*?<\/style>/gi, ' ').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
   return (text || 'no answer body').slice(0, 300);
 }
-/** L-22 (Owner 2026-10-28, "כתובת השליחה של הוצאה חדשה לפיי פלוס"): every PayPlus expense address is under /books/expenses (the search
- *  answers there); the documented create address /expenses answered every live send with 403 and an empty body. A new expense goes to
- *  /books/expenses first; only that same empty 403 (nothing was created) tries the next address once. */
-export const PAYPLUS_EXPENSE_CREATE_PATHS = ['/books/expenses', '/expenses'] as const;
-export async function createExpenseAt(post: (path: string) => Promise<{ status: number; text: string }>): Promise<{ status: number; text: string }> {
-  let last = { status: 0, text: '' };
-  for (const path of PAYPLUS_EXPENSE_CREATE_PATHS) {
-    last = await post(path);
-    if (!(last.status === 403 && !String(last.text ?? '').trim())) return last;
-  }
-  return last;
-}
 /** PayPlus answers a search with one of a few shapes; anything else is NOT understood (the send is blocked, never "nothing found"). */
 export function payplusRecords(v: unknown): Record<string, unknown>[] | null {
   const o = v as Record<string, unknown>;
