@@ -103,7 +103,11 @@ describe('AdminExpenseInvoices', () => {
     he.unmount();
     invoke.mockResolvedValue({ data: { ok: true, updated: 0, failed: 0, types: 0 }, error: null });
     const en = render(<AdminExpenseInvoices isHebrew={false} />);
-    await waitFor(() => expect(en.getByTestId('expense-notice').textContent).toBe('PayPlus did not return the expense types list, so the expense type was not sent.'));
+    await waitFor(() => expect(en.getByTestId('expense-notice').textContent).toBe('No PayPlus expense type ids, so the expense type was not sent.'));
+    en.unmount();
+    invoke.mockResolvedValue({ data: null, error: { context: { json: async () => ({ ok: false, code: 'payplus_failed', error: 'PayPlus 403: not allowed' }) } } });
+    const he2 = render(<AdminExpenseInvoices isHebrew />);
+    await waitFor(() => expect(he2.getByTestId('expense-notice').textContent).toBe('עדכון סוג ההוצאה בפיי פלוס נכשל: PayPlus 403: not allowed'));
   });
 
   it('a server failure shows the unavailable state, never an empty success', async () => {
