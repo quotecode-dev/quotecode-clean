@@ -16,7 +16,7 @@ vi.mock('../shared/supabase', () => ({
 
 import AdminUserDetails from './AdminUserDetails';
 import AdminUsersTab from './AdminUsersTab';
-import { runBillingAction, billingPreview, billingCardVisible } from '../domain/admin/adminBilling';
+import { runBillingAction, billingPreview, billingCardVisible, billingRefundMoney, billingErrorText } from '../domain/admin/adminBilling';
 
 const UID = '11111111-1111-4111-8111-111111111111';
 const account = { id: 7, user_id: UID, business_name: 'עסק בדיקה ישראל', email: 'tekangoisrael@gmail.com', role: 'user', country: 'Local', created_at: '2026-10-19T10:00:00Z' };
@@ -52,6 +52,18 @@ describe('the client side of admin-billing', () => {
     expect(await billingPreview(inv, UID)).toEqual({ ok: false, code: 'billing_off' });
     expect(billingCardVisible({ ok: false, code: 'billing_off' })).toBe(false);
     expect(billingCardVisible({ ok: false, code: 'no_live_package', unsettledRefund: { actionId: 'x' } })).toBe(true);
+  });
+});
+
+describe('L-22 (Owner 2026-10-28, "החזר בקירוב במסך, והודעה ברורה כשהתקופה הבאה כבר שולמה")', () => {
+  it('a refund the whole-shekel display rounds says it is approximate; a whole amount stays exact', () => {
+    expect(billingRefundMoney(2463, 'ILS', true)).toBe('כ־₪25.00 (בקירוב)');
+    expect(billingRefundMoney(2463, 'ILS', false)).toBe('about ₪25.00 (approximately)');
+    expect(billingRefundMoney(3000, 'ILS', true)).toBe('₪30.00');
+  });
+  it('a later period already paid: a clear message in both languages, never "try again"', () => {
+    expect(billingErrorText({ code: 'future_period_paid' }, true)).toMatch(/^התקופה הבאה כבר שולמה/);
+    expect(billingErrorText({ code: 'future_period_paid' }, false)).toMatch(/^The next period is already paid/);
   });
 });
 
