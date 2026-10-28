@@ -11,7 +11,7 @@ import './adminUsers.css';
 import './adminV2.css';
 import { accountDate, accountDateTime } from '../utils/adminDates';
 import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
-import { billingPreview, billingCardVisible, billingMoney, BILLING_COPY as B, REFUND_STATE, KIND_NAMES } from '../domain/admin/adminBilling';
+import { billingPreview, billingCardVisible, previewUnavailable, billingMoney, BILLING_COPY as B, REFUND_STATE, KIND_NAMES } from '../domain/admin/adminBilling';
 
 // TEKANGO Admin V1 (Task 2): a shell-preserving User Details VIEW (renders inside the same Admin content outlet as every other Admin
 // section - not a disconnected dark modal). Truthful data only; a failed count shows "unavailable", never a fake 0 (§2.3).
@@ -139,10 +139,11 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
         {testNotice && <p role="status" className="av-small" style={{ margin: '8px 0 0' }} data-testid="admin-test-notice">{t(isHebrew, testNotice.he, testNotice.en)}</p>}
       </article>
 
-      {(billingNotice || billingCardVisible(bill)) && (
+      {(billingNotice || billingCardVisible(bill) || previewUnavailable(bill)) && (
         <article className="av-card av-section" aria-label={t(isHebrew, B.title.he, B.title.en)} data-testid="admin-billing-card">
           <h3>{t(isHebrew, B.title.he, B.title.en)}</h3>
           {billingNotice && <div className={`av-notice ${billingNotice.good ? 'av-info' : 'av-bad'}`} role="status" data-testid="admin-billing-notice">{billingNotice.text}</div>}
+          {previewUnavailable(bill) && <p className="av-muted" data-testid="admin-billing-unavailable">{t(isHebrew, B.unavailable.he, B.unavailable.en)}</p>}
           {billPaid && (
             <>
               <div className="av-statline"><span>{t(isHebrew, B.plan.he, B.plan.en)}</span><strong>{t(isHebrew, ...(bill.period === 'year' ? [B.year.he, B.year.en] : [B.month.he, B.month.en]))} · <bdi className="av-num">{billingMoney(bill.paidMinor, bill.currency)}</bdi></strong></div>

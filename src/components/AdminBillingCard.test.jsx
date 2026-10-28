@@ -103,13 +103,50 @@ describe('the stop-renewal flow (users screen)', () => {
     render(<AdminUsersTab isHebrew allAccounts={[account]} filteredAdminAccounts={[account]} selectedAccount={account} onBackFromDetails={vi.fn()} />);
     fireEvent.click(await screen.findByTestId('admin-billing-stop'));
     const dialog = await screen.findByTestId('admin-dialog-billing_stop');
-    expect(dialog.textContent).toContain('המנוי ממשיך עד 25/11/2026');
+    expect(dialog.textContent).toContain('המנוי ממשיך עד ⁦25/11/2026⁩');
     fireEvent.change(dialog.querySelector('textarea'), { target: { value: 'בקשת הבעלים' } });
     fireEvent.change(dialog.querySelector('input[type=password]'), { target: { value: 'pw' } });
     fireEvent.submit(dialog.querySelector('form'));
     await waitFor(() => expect(inv).toHaveBeenCalledWith('admin-billing', { body: expect.objectContaining({ action: 'stop_renewal', proofToken: 'P', expectedRefundMinor: 0 }) }));
     const doneClose = await waitFor(() => { const b = document.querySelector('.av-result button'); expect(b).not.toBeNull(); return b; });
     fireEvent.click(doneClose);
-    expect((await screen.findByTestId('admin-billing-notice')).textContent).toBe('החידוש הופסק. החשבון יוגבל ב־25/11/2026.');
+    expect((await screen.findByTestId('admin-billing-notice')).textContent).toBe('החידוש הופסק. החשבון יוגבל ב־⁦25/11/2026⁩.');
+  });
+
+  const openStop = async (answer) => {
+    inv.mockImplementation(async (fn, { body } = { body: {} }) => {
+      if (fn === 'admin-reauth-verify') return ok({ success: true, proofToken: 'P' });
+      if (body.action === 'preview') return ok(preview);
+      return ok(answer);
+    });
+    render(<AdminUsersTab isHebrew allAccounts={[account]} filteredAdminAccounts={[account]} selectedAccount={account} onBackFromDetails={vi.fn()} />);
+    fireEvent.click(await screen.findByTestId('admin-billing-stop'));
+    return screen.findByTestId('admin-dialog-billing_stop');
+  };
+
+  it('a reason the server would refuse (under 3 characters) stops before the password is sent', async () => {
+    const dialog = await openStop({ ok: true });
+    fireEvent.change(dialog.querySelector('textarea'), { target: { value: 'ab' } });
+    fireEvent.change(dialog.querySelector('input[type=password]'), { target: { value: 'pw' } });
+    fireEvent.submit(dialog.querySelector('form'));
+    expect((await screen.findByRole('alert')).textContent).toBe('הסיבה צריכה להיות באורך 3 עד 500 תווים.');
+    expect(inv.mock.calls.some(([fn]) => fn === 'admin-reauth-verify')).toBe(false);
+  });
+
+  it('PayPlus refused / not applied: never the green "done" screen - the dialog and the card say what happened', async () => {
+    const dialog = await openStop({ ok: true, actionId: 'A', kind: 'stop_renewal', cancelStatus: 'failed', refundStatus: 'none', refundMinor: 0, currency: 'ILS', applied: false, paidThrough: null });
+    fireEvent.change(dialog.querySelector('textarea'), { target: { value: 'בקשת הבעלים' } });
+    fireEvent.change(dialog.querySelector('input[type=password]'), { target: { value: 'pw' } });
+    fireEvent.submit(dialog.querySelector('form'));
+    expect((await screen.findByRole('alert')).textContent).toMatch(/^החידוש לא הופסק/);
+    expect(document.querySelector('.av-result')).toBeNull();
+  });
+
+  it('a supervisor (canProtect false) never reads the billing state and gets no billing button', async () => {
+    inv.mockResolvedValue(ok(preview));
+    render(<AdminUsersTab isHebrew allAccounts={[account]} filteredAdminAccounts={[account]} selectedAccount={account} onBackFromDetails={vi.fn()} canProtect={false} />);
+    await new Promise((r) => setTimeout(r, 30));
+    expect(inv.mock.calls.some(([fn]) => fn === 'admin-billing')).toBe(false);
+    expect(screen.queryByTestId('admin-billing-stop')).toBeNull();
   });
 });

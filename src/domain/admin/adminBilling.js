@@ -123,28 +123,41 @@ const CODE_TEXT = {
   invalid_request: { he: 'הבקשה לא תקינה. שום דבר לא השתנה.', en: 'Invalid request. Nothing changed.' },
 };
 
+/** a number / date / amount inside a sentence, isolated for bidi (LRI ... PDI) */
+export const iso = (v) => `⁦${v}⁩`;
+/** a template with one placeholder, the value isolated */
+export const fill = (template, key, v) => template.replace(key, iso(v));
+
+/** a reason the server accepts (3-500 characters after trimming) - checked BEFORE the password is sent */
+export const reasonOk = (reason) => { const n = String(reason || '').trim().length; return n >= 3 && n <= 500; };
+
 export function billingErrorText(r, isHebrew, currency = null) {
   if (r?.code === 'stale_preview') {
-    const m = billingMoney(r.refundMinor, currency);
+    const m = iso(billingMoney(r.refundMinor, currency));
     return isHebrew ? `הסכום השתנה בינתיים. הסכום החדש: ${m}. אשרו שוב.` : `The amount changed meanwhile. The new amount: ${m}. Confirm again.`;
   }
   const c = CODE_TEXT[r?.code] || { he: 'הפעולה נכשלה. נסו שוב בעוד רגע.', en: 'The action failed. Try again in a moment.' };
   return isHebrew ? c.he : c.en;
 }
 
-/** the result line shown over the card after an action the server confirmed */
-export function billingResultText(action, r, isHebrew, date) {
+/** the result of an answer the server accepted: { good, text } - "good" only when the server says it was applied */
+export function billingResult(action, r, isHebrew, date) {
   const he = isHebrew;
+  const notApplied = r.applied === false || ((action === 'stop_renewal' || action === 'end_early') && r.cancelStatus !== 'cancelled');
   if (action === 'stop_renewal') {
-    if (r.cancelStatus !== 'cancelled') return he ? 'פיי פלוס סירבו לעצור את הוראת הקבע. בדקו בממשק שלהם.' : 'PayPlus refused to stop the standing order. Check their panel.';
-    return he ? `החידוש הופסק. החשבון יוגבל ב־${date(r.paidThrough)}.` : `The renewal is stopped. The account is limited on ${date(r.paidThrough)}.`;
+    if (notApplied) return { good: false, text: he ? 'החידוש לא הופסק: פיי פלוס סירבו לעצור את הוראת הקבע, או שהמנוי השתנה בינתיים. בדקו בממשק של פיי פלוס.' : 'The renewal was not stopped: PayPlus refused to stop the standing order, or the subscription changed meanwhile. Check the PayPlus panel.' };
+    return { good: true, text: he ? `החידוש הופסק. החשבון יוגבל ב־${iso(date(r.paidThrough))}.` : `The renewal is stopped. The account is limited on ${iso(date(r.paidThrough))}.` };
   }
   if (action === 'end_early') {
-    const m = billingMoney(r.refundMinor, r.currency);
-    if (r.refundStatus === 'refunded') return he ? `המנוי הסתיים, וההחזר של ${m} נשלח.` : `The subscription ended, and the refund of ${m} was sent.`;
-    if (r.refundStatus === 'failed' || r.refundStatus === 'manual') return he ? 'המנוי הסתיים, וההחזר לא נשלח: יש להחזיר ידנית בפיי פלוס.' : 'The subscription ended, and the refund was not sent: refund it manually in PayPlus.';
-    return he ? 'המנוי הסתיים.' : 'The subscription ended.';
+    if (notApplied) return { good: false, text: he ? 'המנוי לא הסתיים ושום החזר לא נשלח: פיי פלוס סירבו לעצור את הוראת הקבע, או שהמנוי השתנה בינתיים. בדקו בממשק של פיי פלוס.' : 'The subscription did not end and no refund was sent: PayPlus refused to stop the standing order, or the subscription changed meanwhile. Check the PayPlus panel.' };
+    const m = iso(billingMoney(r.refundMinor, r.currency));
+    if (r.refundStatus === 'refunded') return { good: true, text: he ? `המנוי הסתיים, וההחזר של ${m} נשלח.` : `The subscription ended, and the refund of ${m} was sent.` };
+    if (r.refundStatus === 'failed' || r.refundStatus === 'manual') return { good: false, text: he ? 'המנוי הסתיים, וההחזר לא נשלח: יש להחזיר ידנית בפיי פלוס.' : 'The subscription ended, and the refund was not sent: refund it manually in PayPlus.' };
+    return { good: true, text: he ? 'המנוי הסתיים.' : 'The subscription ended.' };
   }
-  if (action === 'resolve') return he ? 'הפעולה נסגרה.' : 'The action is closed.';
-  return he ? 'ההחזר סומן כבוצע.' : 'The refund is marked as made.';
+  if (action === 'resolve') return { good: true, text: he ? 'הפעולה נסגרה.' : 'The action is closed.' };
+  return { good: true, text: he ? 'ההחזר סומן כבוצע.' : 'The refund is marked as made.' };
 }
+
+/** a preview that failed for a reason other than "nothing to show" - the card says the state is unavailable */
+export const previewUnavailable = (p) => !!p && p.ok !== true && !['no_live_package', 'lifetime_account', 'billing_off'].includes(p.code) && !p.unsettledRefund && !p.openAction;
