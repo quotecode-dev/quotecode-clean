@@ -55,14 +55,9 @@ export async function fetchPublishedArticles({ base, key, slug, fetchImpl = glob
     });
     if (!res.ok) return unavailable(String(res.status));
     const rows = await res.json();
-    if (!Array.isArray(rows)) return unavailable('malformed');
-    // Codex N12: strict (the production build) never drops a published guide silently - an invalid one stops the build by name
-    // (a row whose slug is a static guide is skipped on purpose: the static guide wins)
-    const invalid = rows.filter((r) => normalizeArticleRow(r) === null && !(r && ARTICLE_SLUGS.includes(r.slug)));
-    if (strict && invalid.length) throw new Error(`articles_invalid:${invalid.map((r) => String(r?.slug || '?')).join(',')}`);
-    return rows.map(normalizeArticleRow).filter(Boolean);
+    return Array.isArray(rows) ? rows.map(normalizeArticleRow).filter(Boolean) : unavailable('malformed');
   } catch (e) {
-    if (strict && /^articles_(unavailable|invalid):/.test(String(e?.message || ''))) throw e;
+    if (strict && String(e?.message || '').startsWith('articles_unavailable:')) throw e;
     return unavailable(e?.name === 'AbortError' ? 'timeout' : 'failed');
   } finally {
     if (timer) clearTimeout(timer);

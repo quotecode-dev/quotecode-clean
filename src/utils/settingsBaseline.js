@@ -8,8 +8,7 @@ export function settingsFormDirty(form, saved, { isLocalIsraeliBusiness = false 
   const s = (v) => String(v || '');
   return s(form.name) !== (s(saved.name) || 'TEKANGO') || s(form.taxId) !== s(saved.taxId)
     || s(form.phone) !== s(saved.phone) || s(form.address) !== s(saved.address)
-    // Codex N17: the saved email (a saved blank too) is always compared
-    || s(form.logo) !== s(saved.logo) || s(form.email) !== s(saved.email)
+    || s(form.logo) !== s(saved.logo) || (saved.email !== '' && s(form.email) !== s(saved.email))
     || s(form.terms) !== s(saved.terms) || s(form.warranty) !== s(saved.warranty)
     || (!isLocalIsraeliBusiness && !!saved.currency && s(form.currency) !== s(saved.currency))
     || s(form.domain) !== s(saved.domain);

@@ -84,8 +84,6 @@ export interface ExpenseDeps {
   expireStaleSending(cutoffIso: string): Promise<number>;
   /** another row with the same document number of the same supplier already sent / being sent / unknown */
   sameInvoiceElsewhere(row: InvoiceRow): Promise<boolean>;
-  /** Codex N06: unknown -> the Owner's decision, atomically; false = the row is no longer unknown */
-  resolveUnknown(id: string, patch: Record<string, unknown>): Promise<boolean>;
   settings(): Promise<{ expense_types: { id: number; name: string; uuid?: string }[]; default_subcategory_id: number | null }>;
   saveSettings(patch: Record<string, unknown>): Promise<void>;
   upload(path: string, base64: string, type: string): Promise<void>;
@@ -534,25 +532,16 @@ export function documentMatch(rec: Record<string, unknown>, row: InvoiceRow, sen
   const cust = (rec.customer ?? {}) as Record<string, unknown>;
   const sup = (rec.supplier ?? {}) as Record<string, unknown>;
   const recAmount = Number(rec.total_items_base_currency ?? rec.amount ?? rec.total ?? NaN);
-  // Codex N07: the shekel amount sent counts against an ILS (or unstated) record; the invoice's own amount only against a record in the
-  // invoice's own currency (a foreign invoice sent before 28/10 kept its currency) - never a currency mix
-  const recCurrency = String(rec.currency_code ?? rec.currency ?? '').trim().toUpperCase();
-  const near = (a: number | null) => a !== null && Number.isFinite(a) && Math.abs(recAmount - a) < 0.01;
-  const rowCurrency = String(row.currency ?? '').trim().toUpperCase();
-  const ownCurrency = recCurrency ? recCurrency === rowCurrency : rowCurrency === 'ILS';
-  const amountMatch = Number.isFinite(recAmount) && ((near(sentAmount) && (!recCurrency || recCurrency === 'ILS')) || (ownCurrency && near(Number(row.amount))));
-  // any of our amounts in any currency: never "none" (a currency we cannot tell apart is not proof of another document)
-  const anyNear = near(sentAmount) || near(Number(row.amount));
-  // the same supplier with no amount on the record is not certain either (Codex N07)
-  const sameSupplierAnswer: DocMatch = amountMatch ? 'match' : 'ambiguous';
+  // the shekel amount sent, or the invoice's own amount (a foreign invoice sent before 28/10 kept its currency)
+  const amountMatch = Number.isFinite(recAmount) && [sentAmount, Number(row.amount)].some((a) => a !== null && Number.isFinite(a) && Math.abs(recAmount - (a as number)) < 0.01);
+  const sameSupplierAnswer: DocMatch = amountMatch || !Number.isFinite(recAmount) ? 'match' : 'ambiguous';
   const recVat = [rec.supplier_vat_id, sup.vat_id, sup.vat_number, cust.vat_number, cust.customer_vat_id, cust.vat_id].map(digits).find(Boolean) ?? '';
   const myVat = digits(row.supplier_vat_id);
   if (recVat && myVat) return recVat !== myVat ? 'none' : sameSupplierAnswer;
   const names = [cust.customer_name, rec.supplier_name, sup.name].map(norm).filter(Boolean);
   const mine = norm(row.supplier_name);
-  if (names.length && mine) return names.includes(mine) ? sameSupplierAnswer : (anyNear ? 'ambiguous' : 'none');
-  // Codex N07: no supplier identity on one side - the same number is never "none" unless the record's known amount differs from ours
-  return Number.isFinite(recAmount) && !anyNear ? 'none' : 'ambiguous';
+  if (names.length && mine) return names.includes(mine) ? sameSupplierAnswer : (amountMatch ? 'ambiguous' : 'none');
+  return amountMatch ? 'ambiguous' : 'none';
 }
 /** the same document already in PayPlus (a certain match only) */
 export function sameDocument(rec: Record<string, unknown>, row: InvoiceRow, sentAmount: number | null = null): boolean {
@@ -639,11 +628,7 @@ async function sendOne(deps: ExpenseDeps, id: string, fallbackSub: number | null
       : fail('payplus_search_failed', `החיפוש בפיי פלוס נכשל, לא נשלח: ${m}`);
   }
   const doc = findDocument(found, row, Number(fields.amount));
-  if (doc === 'ambiguous') {
-    // Codex N06: waits in "Check in PayPlus" for the Owner's decision (found / duplicate / not created)
-    await deps.finishSend(id, { status: 'unknown', send_error: 'בפיי פלוס יש מסמך באותו מספר שלא ברור אם הוא של הספק הזה. בדקו בפיי פלוס ובחרו כאן מה נכון' });
-    return { id, ok: false, code: 'payplus_ambiguous' };
-  }
+  if (doc === 'ambiguous') return fail('payplus_ambiguous', 'בפיי פלוס יש מסמך באותו מספר שלא ברור אם הוא של הספק הזה. בדקו בפיי פלוס; אם זו אותה הוצאה, דחו את השורה כאן');
   const sent = async (uuid: string, code?: string): Promise<{ id: string; ok: boolean; code?: string }> => {
     // a row PayPlus has but we could not mark stays 'sending' - it becomes 'unknown', never sent again
     try { await deps.finishSend(id, { status: 'sent', payplus_uuid: uuid.slice(0, 80), send_error: null, sent_at: new Date(deps.now()).toISOString() }); }
@@ -667,8 +652,8 @@ async function sendOne(deps: ExpenseDeps, id: string, fallbackSub: number | null
   return sent(uuid);
 }
 
-/** 20261029000000 (Codex F05): an 'unknown' expense is checked in PayPlus (a full search, never a create): found = sent; anything else
- *  stays unknown until the Owner decides (Codex N05 / N06). UNKNOWN_SETTLE_MS: a 'sending' row untouched that long becomes unknown */
+/** 20261029000000 (Codex F05): an 'unknown' expense is checked in PayPlus (a full search, never a create): found = sent; not found after
+ *  15 minutes = can be sent again (send_failed - the Owner presses Send); unclear = stays unknown */
 export const UNKNOWN_SETTLE_MS = 15 * 60000;
 async function reconcileOne(deps: ExpenseDeps, id: string, fallbackSub: number | null, subs: Record<string, string>): Promise<{ id: string; ok: boolean; code?: string }> {
   const row = await deps.claimUnknown(id);
@@ -693,16 +678,10 @@ async function reconcileOne(deps: ExpenseDeps, id: string, fallbackSub: number |
       sent_at: new Date(deps.now()).toISOString() });
     return { id, ok: true, code: 'already_in_payplus' };
   }
-  // Codex N05 (Owner 2026-10-28, decision 2): not found is not proof that PayPlus did not create it - it stays here until the Owner decides
-  return back('not_in_payplus', 'ההוצאה לא נמצאה בחיפוש בפיי פלוס. אם בדקתם בפיי פלוס שהיא באמת לא שם, לחצו "לא נקלטה, לשלוח שוב"');
+  if (deps.now() - Date.parse(row.unknown_since) < UNKNOWN_SETTLE_MS) return back('too_early', 'ההוצאה עדיין לא מופיעה בחיפוש של פיי פלוס. בדקו שוב בעוד כמה דקות');
+  await deps.finishSend(id, { status: 'send_failed', send_error: 'ההוצאה לא נמצאה בפיי פלוס אחרי חיפוש מלא. אפשר לשלוח אותה שוב' });
+  return { id, ok: false, code: 'not_in_payplus' };
 }
-
-/** Codex N06 (Owner 2026-10-28, decision 2): the Owner's decision on an expense PayPlus may have - nothing is sent or searched here */
-export const RESOLUTIONS: Record<string, Record<string, unknown>> = Object.freeze({
-  found: { status: 'sent', payplus_uuid: 'owner-verified', send_error: 'סומנה ידנית: נמצאה בפיי פלוס' },
-  duplicate: { status: 'rejected', send_error: 'סומנה ידנית: כפולה, נסגרה' },
-  not_created: { status: 'send_failed', send_error: 'סומנה ידנית: לא נקלטה בפיי פלוס - אפשר לשלוח שוב' },
-});
 
 // ---------- the handler ----------
 const ok = (body: Record<string, unknown>): Resp => ({ status: 200, body: { ok: true, ...body } });
@@ -805,19 +784,6 @@ export async function expenseHandler(body: Record<string, unknown>, deps: Expens
       const subs = await typeUuids(deps, s);
       const results = [];
       for (const id of ids as string[]) results.push(await sendOne(deps, id, s.default_subcategory_id, subs));
-      return ok({ results });
-    }
-    // Codex N06 (Owner 2026-10-28, decision 2): found in PayPlus / a duplicate to close / not created (can be sent again)
-    case 'resolve': {
-      const ids = body.ids;
-      const patch = RESOLUTIONS[String(body.decision ?? '')];
-      if (!patch || !Array.isArray(ids) || !ids.length || ids.length > SEND_BATCH || !ids.every(isUuid)) return bad(400, 'invalid_request');
-      const at = new Date(deps.now()).toISOString();
-      const results = [];
-      for (const id of ids as string[]) {
-        const done = await deps.resolveUnknown(id, { ...patch, ...(patch.status === 'sent' ? { sent_at: at } : {}), updated_at: at });
-        results.push(done ? { id, ok: true } : { id, ok: false, code: 'not_unknown' });
-      }
       return ok({ results });
     }
     // 20261029000000 (Codex F05): "Check in PayPlus" for expenses PayPlus may have received (a search only - nothing is created)

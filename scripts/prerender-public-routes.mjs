@@ -59,8 +59,8 @@ export async function prerenderPublicRoutes({ root, outDir, mode, log = console.
       writeFileSync(join(dir, 'index.html'), html);
       matrix.push(`${p} -> ${join(...p.split('/').filter(Boolean), 'index.html')} ${errors.length ? 'FAIL' : 'ok'}`);
     }
-    // the database guides (Owner 2026-10-27): each language pair passes the SAME contract. Codex N12 (Owner 2026-10-28, decision 4): a
-    // published guide that fails it stops the production build by name and reason - the live site keeps serving it as it is
+    // the database guides (Owner 2026-10-27): each language pair passes the SAME contract or the guide is skipped - database content can
+    // never fail the site build (the guide still opens in the browser; it joins the sitemap once it passes)
     const added = [];
     for (const row of dbRows) {
       const pair = ['he', 'en'].map((lang) => {
@@ -70,7 +70,7 @@ export async function prerenderPublicRoutes({ root, outDir, mode, log = console.
         return { route, html, errors: validateRouteHtml(route, html) };
       });
       const bad = pair.filter((x) => x.errors.length);
-      if (bad.length) { failures.push(`database guide ${row.slug}: ${bad.map((x) => `${x.route.path}: ${x.errors.join('; ')}`).join(' | ')}`); continue; }
+      if (bad.length) { log(`prerender: database guide ${row.slug} skipped: ${bad.map((x) => `${x.route.path}: ${x.errors.join('; ')}`).join(' | ')}`); continue; }
       for (const x of pair) {
         const dir = join(outDir, ...x.route.path.split('/').filter(Boolean));
         mkdirSync(dir, { recursive: true });
@@ -103,12 +103,9 @@ export async function loadDatabaseGuides(entry, log = console.log, env = process
       const rows = await entry.fetchPublishedArticles({ base: env.VITE_SUPABASE_URL, key: env.VITE_SUPABASE_ANON_KEY, strict: true });
       log(`prerender: ${rows.length} database guides`);
       return rows;
-    } catch (e) {
-      last = e; log(`prerender: reading the database guides failed (${e?.message || 'failed'})`);
-      if (/^articles_invalid:/.test(String(e?.message || ''))) break; // Codex N12: an invalid guide is not fixed by trying again
-    }
+    } catch (e) { last = e; log(`prerender: reading the database guides failed (${e?.message || 'failed'})`); }
   }
-  throw new Error(`prerender: the database guides could not be read, or a published guide is invalid - the build stops so the live site keeps them (${last?.message || 'failed'})`);
+  throw new Error(`prerender: the database guides could not be read - the build stops so the live site keeps them (${last?.message || 'failed'})`);
 }
 
 const SITE = 'https://www.tekango.com';

@@ -242,12 +242,8 @@ function mentionedLegacyPlans(message: string): LegacyPlanId[] {
 }
 
 /** The deterministic subscription answer. `account` = null for public chat. */
-export function formatSubscriptionAnswer(intents: readonly SubscriptionIntent[], message: string, isHebrew: boolean, account: AccountPlanContext | null, marketIL: boolean = isHebrew,
-  marketKnown = true): string {
+export function formatSubscriptionAnswer(intents: readonly SubscriptionIntent[], message: string, isHebrew: boolean, account: AccountPlanContext | null, marketIL: boolean = isHebrew): string {
   const lang: Lang = isHebrew ? 'he' : 'en';
-  // Codex N13 (L-11/L-17/L-25): an account whose market is not known yet hears both markets' prices and never that it can buy
-  const price = (l: Lang) => (marketKnown ? priceLine(l, marketIL) : (l === 'he' ? `בישראל: ${priceLine('he', true)} מחוץ לישראל: ${priceLine('he', false)}` : `In Israel: ${priceLine('en', true)} Outside Israel: ${priceLine('en', false)}`));
-  const catalog = (l: Lang) => (marketKnown ? catalogLine(l, marketIL) : '');
   const has = (i: SubscriptionIntent) => intents.includes(i);
   const parts: string[] = [];
   const planList = lang === 'he' ? `המסלולים הם ${planName('free', 'he')} ומסלול אחד בתשלום, ${planName(PKG, 'he')}` : `The plans are ${planName('free', 'en')} and one paid package, ${planName(PKG, 'en')}`;
@@ -277,38 +273,35 @@ export function formatSubscriptionAnswer(intents: readonly SubscriptionIntent[],
         : `${named.map((id) => planName(id, 'en')).join(', ')} are quote presentation styles, not subscription plans. Existing rights on an earlier plan are kept and do not change automatically.`);
     }
     if (/free|חינם/i.test(message) && !named.length) parts.push(freeLine(lang));
-    parts.push(lang === 'he' ? `מחיר: ${price('he')}` : `Price: ${price('en')}`);
-    parts.push(catalog(lang));
+    parts.push(lang === 'he' ? `מחיר: ${priceLine('he', marketIL)}` : `Price: ${priceLine('en', marketIL)}`);
+    parts.push(catalogLine(lang, marketIL));
     parts.push(lang === 'he'
       ? `מסלול ${planName(PKG, 'he')} כולל את היכולות הזמינות במערכת; מה שעוד לא הוחלט (מגבלת הצעות, אחסון, מכסות AI וקבצים מצורפים) ${S.planSystemActive ? 'עדיין לא נקבע.' : 'יפורסם לפני ההפעלה.'}`
       : `The ${planName(PKG, 'en')} package includes the capabilities available in the system; what is not decided yet (quote limits, storage, AI quotas and attachments) ${S.planSystemActive ? 'has not been set yet.' : 'will be published before activation.'}`);
   }
   if (has('pricing') && !has('plan_contents')) {
     if (lang === 'en' && !marketIL && /shekel|\bils\b|\bnis\b|₪|israel/i.test(message)) parts.push('On the International (English) site, plans are priced and billed in USD only.');
-    parts.push(lang === 'he' ? `${planList}. ${freeLine('he')} ${price('he')}` : `${planList}. ${freeLine('en')} ${price('en')}`);
-    parts.push(catalog(lang));
+    parts.push(lang === 'he' ? `${planList}. ${freeLine('he')} ${priceLine('he', marketIL)}` : `${planList}. ${freeLine('en')} ${priceLine('en', marketIL)}`);
+    parts.push(catalogLine(lang, marketIL));
   }
   if (has('quota') || has('balance')) {
     if (!has('unlimited') && !has('trial') && !has('pricing')) parts.push(freeLine(lang));
     parts.push(freeRulesLine(lang));
     if (!has('unlimited')) parts.push(lang === 'he' ? `מנוי ${planName(PKG, 'he')} אינו מוגבל ל-${S.free.quotesTotal} ההצעות של מסלול החינם; מגבלות אחרות של המנוי טרם הוחלטו.` : `The ${planName(PKG, 'en')} package is not limited to the ${S.free.quotesTotal} quotes of the Free plan; any other limits have not been decided yet.`);
   }
-  if (has('annual') && !has('pricing') && !has('plan_contents')) parts.push(price(lang));
-  const tail = marketKnown ? notActiveLine(lang, marketIL) : (lang === 'he'
-    ? 'אפשרות הרכישה תלויה בשוק של החשבון, שעדיין לא נקבע. השלימו את פרטי העסק בהגדרות, ואז אפשר לבדוק בחלון המסלולים.'
-    : 'Whether a plan can be bought depends on the account\'s market, which is not set yet. Complete the business details in Settings, then check the plans window.');
+  if (has('annual') && !has('pricing') && !has('plan_contents')) parts.push(priceLine(lang, marketIL));
+  const tail = notActiveLine(lang, marketIL);
   if (tail) parts.push(tail);
   return [...new Set(parts.filter(Boolean))].join(' ');
 }
 
 export type SubscriptionTruthResponse = { readonly answer: string; readonly intents: readonly SubscriptionIntent[] };
 
-export function resolveSubscriptionTruthResponse(message: unknown, isHebrew: boolean, account: AccountPlanContext | null, marketIL: boolean = isHebrew,
-  marketKnown = true): SubscriptionTruthResponse | null {
+export function resolveSubscriptionTruthResponse(message: unknown, isHebrew: boolean, account: AccountPlanContext | null, marketIL: boolean = isHebrew): SubscriptionTruthResponse | null {
   const text = String(message ?? '');
   const intents = classifySubscriptionIntents(text);
   if (!intents.length) return null;
-  return { answer: formatSubscriptionAnswer(intents, text, isHebrew, account, marketIL, marketKnown), intents };
+  return { answer: formatSubscriptionAnswer(intents, text, isHebrew, account, marketIL), intents };
 }
 
 // ------------------------------------------------------------------------------------------------------- prompt block
@@ -416,6 +409,6 @@ export function findSubscriptionClaimViolations(answer: unknown, marketIL: boole
 }
 
 /** The safe replacement when a model answer is rejected: the canonical plan statement (no account claim beyond the summary). */
-export function safeSubscriptionAnswer(isHebrew: boolean, account: AccountPlanContext | null, marketIL: boolean = isHebrew, marketKnown = true): string {
-  return formatSubscriptionAnswer(['pricing', 'quota'], '', isHebrew, null, marketIL, marketKnown) + (account ? ` ${accountPlanLine(account, isHebrew ? 'he' : 'en')}` : '');
+export function safeSubscriptionAnswer(isHebrew: boolean, account: AccountPlanContext | null, marketIL: boolean = isHebrew): string {
+  return formatSubscriptionAnswer(['pricing', 'quota'], '', isHebrew, null, marketIL) + (account ? ` ${accountPlanLine(account, isHebrew ? 'he' : 'en')}` : '');
 }

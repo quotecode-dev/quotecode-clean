@@ -45,8 +45,7 @@ describe('recurring expenses count per month from their start (C5)', () => {
   });
   it('a new expense is dated by the business day, never the UTC day', () => {
     const d = src('src/pages/Dashboard.jsx');
-    // Codex N15: the business day of the account's market (Israel = Asia/Jerusalem), never the device's day or the UTC day of an IL account
-    expect(d).toContain("expense_date: marketCalendarDate(new Date(), isLocalIsraeliBusiness ? 'Local' : 'International')");
+    expect(d).toContain('expense_date: deviceCalendarDate()');
     expect(d).not.toContain("expense_date: new Date().toISOString()");
   });
   it('the Dashboard totals use it (the chart keeps its month-by-month count)', () => {

@@ -23,7 +23,7 @@ export type OurCharge = { providerEventId: string; attemptId: string | null; amo
 export type OurRefund = { transactionUid: string };
 export type FindingCode = 'UNLINKED' | 'MISSING_AT_PROVIDER' | 'AMOUNT_MISMATCH' | 'REFUND_UNRECORDED' | 'REFUND_OWED';
 /** 20261029000000 (Codex F01/F02): a SMART PACK removal refund the Owner must settle (unknown, stuck, or owed with no charge reference) */
-export type OwedRefund = { removalId: string; amountMinor: number; refundState: string; at: string; userId?: string };
+export type OwedRefund = { removalId: string; amountMinor: number; refundState: string; at: string };
 export type Finding = { code: FindingCode; uid: string; detail: Record<string, unknown> };
 export type Scale = 'minor' | 'major' | 'unknown';
 // matched = the same transaction AND the same verified amount; unverified = the same transaction whose amount could not be checked yet
@@ -133,9 +133,7 @@ export function reconcile(a: { provider: ProviderTx[]; charges: OurCharge[]; ref
 /** a removal refund still owed to a customer - one finding per removal (told once, like every finding) */
 export function owedFindings(owed: OwedRefund[]): Finding[] {
   return owed.filter((o) => o && typeof o.removalId === 'string' && UUID.test(o.removalId) && Number.isInteger(o.amountMinor) && o.amountMinor > 0)
-    // Codex N03: the account and the removal ride along, so the Owner can settle it from the screen
-    .map((o) => ({ code: 'REFUND_OWED' as const, uid: `removal:${o.removalId}`, detail: { amountMinor: o.amountMinor, currency: 'ILS', refundState: String(o.refundState ?? ''), at: o.at,
-      removalId: o.removalId, ...(typeof o.userId === 'string' && UUID.test(o.userId) ? { userId: o.userId } : {}) } }));
+    .map((o) => ({ code: 'REFUND_OWED' as const, uid: `removal:${o.removalId}`, detail: { amountMinor: o.amountMinor, currency: 'ILS', refundState: String(o.refundState ?? ''), at: o.at } }));
 }
 
 const LABEL: Record<FindingCode, string> = {

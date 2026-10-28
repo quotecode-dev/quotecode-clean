@@ -63,7 +63,7 @@ const SEND_CODES = {
   payplus_ambiguous: { he: 'בפיי פלוס יש מסמך באותו מספר שלא ברור אם הוא של הספק הזה', en: 'PayPlus has a document with the same number that may not be this supplier\'s' },
   duplicate_local: { he: 'חשבונית זהה של אותו ספק כבר נשלחה או בשליחה', en: 'the same invoice of this supplier was already sent or is being sent' },
   unrecorded: { he: 'נשלחה לפיי פלוס אבל לא נרשמה כאן - תעבור לבדיקה', en: 'sent to PayPlus but not recorded here - it moves to the check list' },
-  not_in_payplus: { he: 'לא נמצאה בחיפוש בפיי פלוס - בדקו שם ובחרו כאן', en: 'not found by the PayPlus search - check there and choose here' },
+  not_in_payplus: { he: 'לא נמצאה בפיי פלוס - אפשר לשלוח שוב', en: 'not found in PayPlus - it can be sent again' },
   too_early: { he: 'עדיין מוקדם לבדוק - נסו שוב בעוד כמה דקות', en: 'too early to check - try again in a few minutes' },
   not_unknown: { he: 'כבר לא ממתינה לבדיקה', en: 'no longer waiting for a check' },
 };
@@ -190,17 +190,6 @@ export default function AdminExpenseInvoices({ isHebrew }) {
         ? `נשלחו לפיי פלוס: ${good}.${bad.length ? ` לא נשלחו: ${bad.length} (${why(true)}).` : ''}`
         : `Sent to PayPlus: ${good}.${bad.length ? ` Not sent: ${bad.length} (${why(false)}).` : ''}` });
     }
-    reload();
-  };
-  // Codex N06 (Owner 2026-10-28, decision 2): the Owner's decision on one expense PayPlus may have
-  const resolve = async (id, decision) => {
-    setBusy(`resolve:${id}`);
-    const r = await call({ action: 'resolve', ids: [id], decision });
-    setBusy('');
-    const done = r.ok && (r.results || [])[0]?.ok;
-    setNotice({ good: !!done, text: done
-      ? (isHebrew ? { found: 'סומנה כנמצאה בפיי פלוס.', duplicate: 'סומנה ככפולה ונסגרה.', not_created: 'הוחזרה לרשימת "אושרו" - אפשר לשלוח אותה שוב.' }[decision] : { found: 'Marked as found in PayPlus.', duplicate: 'Marked as a duplicate and closed.', not_created: 'Back in "Approved" - it can be sent again.' }[decision])
-      : (isHebrew ? 'הפעולה לא הושלמה. רעננו ונסו שוב.' : 'The action did not complete. Refresh and try again.') });
     reload();
   };
   const openFile = async (id) => {
@@ -391,16 +380,6 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                           {r.status === 'unknown' && <div className="av-warn av-small" role="status" data-testid={`expense-unknown-${r.id}`}>{isHebrew
                             ? <>לא ידוע אם ההוצאה נקלטה בפיי פלוס (לא התקבלה תשובה ברורה). היא לא תישלח שוב לבד. לחצו "בדיקה בפיי פלוס".{r.sendError ? <> <bdi>{r.sendError}</bdi></> : null}</>
                             : <>It is not known whether PayPlus received this expense (no clear answer). It will not be sent again automatically. Press "Check in PayPlus".</>}</div>}
-                          {r.status === 'unknown' && (
-                            <div className="av-row-actions" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBlockStart: 8 }} data-testid={`expense-resolve-${r.id}`}>
-                              {/* PRODUCT_TRUTH_DECORATIVE: the Owner found this expense in PayPlus - marked sent, nothing is sent (Codex N06) */}
-                              <button type="button" className="av-btn" disabled={!!busy} onClick={() => resolve(r.id, 'found')} data-testid={`expense-resolve-found-${r.id}`}>{isHebrew ? 'נמצאה בפיי פלוס' : 'Found in PayPlus'}</button>
-                              {/* PRODUCT_TRUTH_DECORATIVE: the Owner says this row is a duplicate - closed, nothing is sent (Codex N06) */}
-                              <button type="button" className="av-btn" disabled={!!busy} onClick={() => resolve(r.id, 'duplicate')} data-testid={`expense-resolve-duplicate-${r.id}`}>{isHebrew ? 'כפולה, לסגור' : 'Duplicate, close it'}</button>
-                              {/* PRODUCT_TRUTH_DECORATIVE: the Owner checked PayPlus and it is not there - back to "Approved", to be sent again (Codex N06) */}
-                              <button type="button" className="av-btn" disabled={!!busy} onClick={() => resolve(r.id, 'not_created')} data-testid={`expense-resolve-not-created-${r.id}`}>{isHebrew ? 'לא נקלטה, לשלוח שוב' : 'Not received, send again'}</button>
-                            </div>
-                          )}
                           {r.status === 'sending' && <div className="av-warn av-small" role="status">{isHebrew ? 'בשליחה לפיי פלוס. אם זה נשאר כך, בדקו בפיי פלוס אם ההוצאה נוצרה.' : 'Being sent to PayPlus. If it stays like this, check in PayPlus whether the expense was created.'}</div>}
                           {!r.hasFile && <div className="av-warn av-small">{isHebrew ? 'אין קובץ במייל - החשבונית בגוף המייל או בקישור אצל הספק.' : 'No file in the email - the invoice is in the email body or behind a link at the supplier.'}</div>}
                           <div className="av-row-actions" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBlockStart: 8 }}>

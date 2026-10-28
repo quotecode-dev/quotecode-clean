@@ -121,11 +121,7 @@ async function ai(d: StageDeps, messages: unknown[]): Promise<{ posts: Post[] | 
       cost += costOf(model, r.promptTokens, r.completionTokens); tokens += r.promptTokens + r.completionTokens;
       const j = JSON.parse(r.content);
       if (Array.isArray(j?.posts)) return { posts: j.posts.map(normPost), cost, tokens };
-    } catch (e) {
-      // Codex N08: a paid answer that came back incomplete is counted too (the next model is tried)
-      const u = (e as { usage?: { promptTokens: number; completionTokens: number } })?.usage;
-      if (u) { cost += costOf(model, u.promptTokens, u.completionTokens); tokens += u.promptTokens + u.completionTokens; }
-    }
+    } catch { /* the next model */ }
   }
   return { posts: null, cost, tokens };
 }

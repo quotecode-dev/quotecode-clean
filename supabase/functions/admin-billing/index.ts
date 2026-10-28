@@ -52,7 +52,6 @@ Deno.serve(async (req: Request) => {
         p_refund_ref: a.refundRef, p_refunded_minor: a.refundedMinor }),
       unsettledRefund: async (userId) => (await rpc('billing_admin_unsettled_refund', { p_user_id: userId })) ?? null,
       settleRefund: (actionId, actorUserId) => rpc('billing_admin_settle_refund', { p_action_id: actionId, p_actor_user_id: actorUserId }),
-      settleRemovalRefund: (removalId, userId, refundRef) => rpc('settle_smart_pack_removal_refund', { p_removal_id: removalId, p_user_id: userId, p_refund_ref: refundRef }),
       payplus: (pp = adminPayplus((n) => Deno.env.get(n))).payplus,
       audit: (a) => writeAuditLog({ adminClient: admin, ...a }),
     };

@@ -531,12 +531,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-28 (typed L-01, L-06, L-09, L-11, L-12, L-15, L-17, L-22, L-23, L-24, L-25: the fixes of Codex review 25-28/10): removal refund claim and owed state, reconciliation after a removal, the one market rule in billing, the unknown expense state"
-    },
-    "20261029100000_codex_review_fixes_2.sql": {
-      "sha256": "45491e0968fa2ab9e91a70d051ca689261e6232670b9faef19101f9cbdbd5b08",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-28 (typed L-01, L-09, L-11, L-14, L-15, L-17, L-22, L-23, L-25: the fixes of Codex review of PR #113, with the four decisions): the article revision, the early-end basis after a removed line, a SMART PACK bought again can be removed again, the Owner settles an owed removal refund made in PayPlus"
     }
   }
 }

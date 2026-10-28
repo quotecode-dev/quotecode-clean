@@ -79,11 +79,9 @@ function deps(over: Partial<StageDeps> = {}) {
     updateAction: vi.fn(async (id: string, patch: Record<string, unknown>, when?: string) => { const a = actions.get(id)!; if (when && a.status !== when) return; Object.assign(a, patch); }),
     getAction: vi.fn(async (id: string) => actions.get(id) ?? null),
     insertArticle: vi.fn(async (a) => { const id = `10000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`; articles.set(id, { id, status: 'draft', published_at: null, ...a } as never); return id; }),
-    updateArticle: vi.fn(async (id: string, patch: Record<string, unknown>, when?: string, rev?: number) => {
-      const a = articles.get(id); if (!a || (when && a.status !== when) || (rev !== undefined && Number(a.revision ?? 0) !== rev)) return false;
-      Object.assign(a, patch); return true;
+    updateArticle: vi.fn(async (id: string, patch: Record<string, unknown>, when?: string) => {
+      const a = articles.get(id); if (!a || (when && a.status !== when)) return false; Object.assign(a, patch); return true;
     }),
-    pageHtml: vi.fn(async (url: string) => `<html><link rel="canonical" href="${url}"></html>`),
     getArticle: vi.fn(async (id: string) => articles.get(id) ?? null),
     articleSlugs: vi.fn(async () => [...articles.values()].map((a) => a.slug)),
     lastPublishedAt: vi.fn(async () => [...articles.values()].filter((a) => a.published_at).map((a) => a.published_at!).sort().pop() ?? null),
@@ -218,84 +216,6 @@ describe('agents room stage 2 - the manager', () => {
     expect((await handle({ action: 'decide', id: pub.id, decision: 'approve', revision: 0 }, d, paths)).body).toEqual({ ok: false, code: 'article_changed' });
     expect(d.articles.get(art.id)!.status).toBe('draft');
     expect((await handle({ action: 'decide', id: pub.id, decision: 'approve', revision: 1 }, d, paths)).body).toMatchObject({ ok: true, status: 'published' });
-  });
-  // Codex N01: the publication is ONE conditional write on the approved revision - a rewrite that lands between the check and the write wins
-  it('a rewrite stored between the check and the publication: nothing is published, the Owner reads the new text', async () => {
-    const d = deps();
-    const { pub, art } = await draftAndPublishAction(d);
-    const real = d.updateArticle as ReturnType<typeof vi.fn>;
-    const impl = real.getMockImplementation()!;
-    real.mockImplementationOnce(async (...args: unknown[]) => { d.articles.get(art.id)!.revision = 1; return impl(...args); }); // the rewrite lands first
-    expect((await handle({ action: 'decide', id: pub.id, decision: 'approve', revision: 0 }, d, paths)).body).toEqual({ ok: false, code: 'article_changed' });
-    expect(d.articles.get(art.id)).toMatchObject({ status: 'draft', published_at: null });
-    expect(d.deployHook).not.toHaveBeenCalled();
-    // a rewrite moves the text and the revision together
-    expect((await handle({ action: 'revise', id: pub.id, note: 'Shorter please' }, d, paths)).body).toMatchObject({ ok: true, status: 'revised' });
-    expect(d.articles.get(art.id)!.revision).toBe(2);
-    expect(d.actions.get(pub.id)!.payload.revision).toBe(2);
-  });
-  // Codex N08: a paid answer that came back incomplete is counted in the month's cost
-  it('an incomplete paid answer still counts its cost', async () => {
-    const plain = deps();
-    await handle({ action: 'run' }, plain, paths);
-    const d = deps();
-    const real = d.complete as ReturnType<typeof vi.fn>;
-    const impl = real.getMockImplementation()!;
-    let thrown = false;
-    real.mockImplementation(async (a: { schema: { name: string } }) => {
-      if (a.schema.name === 'manager_weekly' && !thrown) { thrown = true; throw Object.assign(new Error('ai_incomplete'), { usage: { promptTokens: 3000, completionTokens: 800 } }); }
-      return impl(a);
-    });
-    await handle({ action: 'run' }, d, paths);
-    const total = (x: ReturnType<typeof deps>) => [...x.runs.values()].reduce((s, r) => s + Number(r.ai_cost_usd ?? 0), 0);
-    expect(thrown).toBe(true);
-    expect(total(d)).toBeGreaterThan(total(plain));
-  });
-  // Codex N10: a retry of the weekly email that failed again is reported as tried
-  it('a weekly email retried and failed again says it was tried', async () => {
-    const d = deps({ mailOwner: vi.fn(async () => false) });
-    expect((await handle({ action: 'run' }, d, paths)).body).toMatchObject({ mailed: false, mailAttempted: true });
-    expect((await handle({ action: 'run' }, d, paths)).body).toMatchObject({ mailed: false, mailAttempted: true });
-  });
-  // Codex N11 (Owner 2026-10-28, decision 3): the article's own page must be on the site
-  it('the daily run verifies a published article page; one still missing two hours later is "unverified" and can be rebuilt', async () => {
-    const d = deps();
-    const { pub } = await draftAndPublishAction(d);
-    await handle({ action: 'decide', id: pub.id, decision: 'approve' }, d, paths);
-    const slug = String(d.actions.get(pub.id)!.result.slug);
-    const at = (ms: number) => { d.now = () => new Date(NOW.getTime() + ms); };
-    const page = d.pageHtml as ReturnType<typeof vi.fn>;
-    d.caller = vi.fn(async () => 'cron' as const); // the daily run is the cron's
-    // too soon: not checked
-    at(5 * 60000);
-    expect((await handle({ action: 'daily' }, d, paths)).body).toMatchObject({ articles: { verified: 0, unverified: 0 } });
-    expect(page).not.toHaveBeenCalled();
-    // after 10 minutes the page is missing (still building): not yet unverified
-    page.mockImplementation(async () => null);
-    at(30 * 60000);
-    d.runs.clear();
-    expect((await handle({ action: 'daily' }, d, paths)).body).toMatchObject({ articles: { verified: 0, unverified: 0 } });
-    // a noindex page is not on the site either; after two hours: unverified, with the rebuild button
-    page.mockImplementation(async (u: string) => `<link rel="canonical" href="${u}"><meta name="robots" content="noindex">`);
-    at(3 * 3600000);
-    d.runs.clear();
-    expect((await handle({ action: 'daily' }, d, paths)).body).toMatchObject({ articles: { verified: 0, unverified: 1 } });
-    expect(d.actions.get(pub.id)).toMatchObject({ error: 'deploy_unverified', result: { deploy: 'unverified', slug } });
-    // "Rebuild the site" (the Owner); the next daily run finds both pages: verified, never checked again
-    d.caller = admin();
-    expect((await handle({ action: 'redeploy', id: pub.id }, d, paths)).body).toMatchObject({ ok: true, deploy: 'ok' });
-    d.caller = vi.fn(async () => 'cron' as const);
-    page.mockImplementation(async (u: string) => `<link rel="canonical" href="${u}">`);
-    at(4 * 3600000);
-    d.runs.clear();
-    expect((await handle({ action: 'daily' }, d, paths)).body).toMatchObject({ articles: { verified: 1, unverified: 0 } });
-    expect(d.actions.get(pub.id)!.result).toMatchObject({ deploy: 'ok', verified: true });
-    expect(page.mock.calls.map((c) => c[0])).toContain(`https://www.tekango.com/he/articles/${slug}`);
-    const calls = page.mock.calls.length;
-    at(5 * 3600000);
-    d.runs.clear();
-    await handle({ action: 'daily' }, d, paths);
-    expect(page.mock.calls.length).toBe(calls);
   });
   it('a rejection after the approval does not unpublish the article', async () => {
     const d = deps();

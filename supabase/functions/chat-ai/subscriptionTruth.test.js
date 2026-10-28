@@ -102,17 +102,6 @@ describe('adversarial: the user cannot talk the assistant into a plan, a trial, 
       expect(classifySubscriptionIntents(m), m).toEqual([]);
     }
   });
-  // Codex N13 (L-11/L-17/L-25): a signed-in account whose market is not known yet hears both markets and never that it can buy
-  it('an account with no market yet: both markets priced, no purchase line, a neutral next step', () => {
-    for (const he of [true, false]) {
-      const r = resolveSubscriptionTruthResponse(he ? 'כמה עולה המנוי?' : 'how much does the subscription cost?', he, READY_FREE, he, false);
-      expect(r.answer).toMatch(he ? /בישראל: .* מחוץ לישראל: / : /In Israel: .* Outside Israel: /);
-      expect(r.answer).toMatch(he ? /תלויה בשוק של החשבון, שעדיין לא נקבע/ : /depends on the account's market, which is not set yet/);
-      expect(r.answer).toBe(resolveSubscriptionTruthResponse(he ? 'כמה עולה המנוי?' : 'how much does the subscription cost?', he, READY_FREE, !he, false).answer);
-      expect(safeSubscriptionAnswer(he, READY_FREE, he, false)).toMatch(he ? /מחוץ לישראל: / : /Outside Israel: /);
-    }
-    expect(indexSource).toContain("safeSubscriptionAnswer(isHebrew, verifiedUserId && accountContext ? accountContext.account : null, marketIL, !(verifiedUserId && accountContext?.market === 'Unknown'))");
-  });
   it('public chat (no account) never states an account plan', () => {
     const r = resolveSubscriptionTruthResponse('what plan am I on?', false, null);
     expect(r.answer).toMatch(/I don't have account information in this conversation/);
@@ -180,7 +169,7 @@ describe('prompt block + request boundary', () => {
     expect(indexSource).toMatch(/\.select\('role, country, phone, tax_id, is_lifetime'\)/);
     expect(indexSource).not.toMatch(/trial_ends_at|monthStartIso|monthlyUsed/);
     // Owner console 2026-10-26 (typed item ו; L-06 / L-11 / L-17): the reply language is the interface language, the market is the account's
-    expect(indexSource).toMatch(/const subscription = resolveSubscriptionTruthResponse\(lastUserMessage, isHebrew, verifiedUserId && accountContext \? accountContext\.account : null, marketIL,\n {6}!\(verifiedUserId && accountContext\?\.market === 'Unknown'\)\);/);
+    expect(indexSource).toMatch(/const subscription = resolveSubscriptionTruthResponse\(lastUserMessage, isHebrew, verifiedUserId && accountContext \? accountContext\.account : null, marketIL\);/);
     expect(indexSource).toMatch(/const subscriptionViolations = findSubscriptionClaimViolations\(extracted\.answer, marketIL\);/);
     // the subscription router runs after payment/invoicing and before the account-market and capability routers
     const iPay = indexSource.indexOf('if (asksInvoicing || asksPayment)');

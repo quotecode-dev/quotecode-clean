@@ -14,8 +14,7 @@ export async function runAgentsWeekly({ env, fetchImpl }) {
   // 20261029000000 (Codex F12): a failed agent, or work done whose report was not mailed, is a failure (the second call mails it)
   const results = Array.isArray(body?.results) ? body.results : [];
   const ran = results.some((x) => x?.status !== 'already_ran');
-  // Codex N10: a report delivery tried in this call (also the retry of an earlier failed one) that failed is a failure, never "skipped"
-  const outcome = !res.ok || !body || body.ok !== true || results.some((x) => x?.status === 'failed') || ((ran || body.mailAttempted === true) && body.mailed !== true) ? 'failed'
+  const outcome = !res.ok || !body || body.ok !== true || results.some((x) => x?.status === 'failed') || (ran && body.mailed !== true) ? 'failed'
     : ran ? 'completed' : 'skipped';
   return { ok: outcome !== 'failed', outcome, status: res.status, body };
 }

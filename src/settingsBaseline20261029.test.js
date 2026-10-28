@@ -24,17 +24,12 @@ describe('the Settings leave guard (Codex F17)', () => {
     expect(settingsFormDirty({ ...form, name: 'Other' }, saved)).toBe(true);
     expect(settingsFormDirty({ ...form, email: 'x@y.co' }, saved)).toBe(true);
   });
-  it('Codex N17: clearing the email is a change too', () => {
-    expect(settingsFormDirty({ ...form, email: '' }, { ...saved, email: 'a@b.co' })).toBe(true);
-  });
 });
 
 describe('the Dashboard wiring (Codex F17 / F18)', () => {
   const d = readFileSync('src/pages/Dashboard.jsx', 'utf8').replace(/\r\n/g, '\n');
   it('the baseline holds what the form shows, and leaving without saving restores every field', () => {
-    expect(d).toContain("Object.assign(savedSettingsRef.current, { terms: defTerms, warranty: defWarranty, currency: userCurr, domain: data.professional_domain || '',\n        email: data.email || userEmail || '' });");
-    // Codex N17: leaving without saving restores the stored email (no "or the old value" fallback)
-    expect(d).toContain("setBizEmail(s.email ?? '');");
+    expect(d).toContain("Object.assign(savedSettingsRef.current, { terms: defTerms, warranty: defWarranty, currency: userCurr, domain: data.professional_domain || '' })");
     expect(d).toContain("setDefaultTerms(s.terms || ''); setDefaultWarranty(s.warranty || ''); setProfessionalDomain(s.domain || '');");
     expect(d).toContain('if (s.currency) setSettingsCurrency(s.currency);');
   });
@@ -42,9 +37,7 @@ describe('the Dashboard wiring (Codex F17 / F18)', () => {
     expect(d).toContain('currency={settingsCurrency}\n              setCurrency={setSettingsCurrency}');
     expect(d).toContain("const enforcedCurrency = isLocalIsraeliBusiness ? 'ILS' : settingsCurrency;");
     expect(d).toContain('setBusinessCurrency(enforcedCurrency);');
-    // Codex N16: a new quote right after a save reads the ref, never a stale render's currency
-    expect(d).toContain('getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency: businessCurrencyRef.current || businessCurrency || currency })');
-    expect(d).toContain('const setBusinessCurrency = (c) => { businessCurrencyRef.current = c; setBusinessCurrencyState(c); };');
+    expect(d).toContain('getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency: businessCurrency || currency })');
     expect(d).not.toContain("const enforcedCurrency = isLocalIsraeliBusiness ? 'ILS' : currency;");
   });
 });

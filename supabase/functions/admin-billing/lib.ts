@@ -29,8 +29,6 @@ export interface AdminBillingDeps {
   recordRefund(a: { actionId: string; refundStatus: Exclude<RefundStatus, 'none'>; refundRef: string | null; refundedMinor: number | null }): Promise<Record<string, unknown>>;
   unsettledRefund(userId: string): Promise<Record<string, unknown> | null>;
   settleRefund(actionId: string, actorUserId: string): Promise<Record<string, unknown>>;
-  /** Codex N03 (Owner 2026-10-28, decision 1): an owed SMART PACK removal refund the Owner made in PayPlus, with its transaction number */
-  settleRemovalRefund(removalId: string, userId: string, refundRef: string): Promise<Record<string, unknown>>;
   /** null = the PayPlus secrets are not set (nothing can be stopped) */
   payplus: null | {
     terminalUid: string;
@@ -130,21 +128,6 @@ export async function adminBillingHandler(deps: AdminBillingDeps, callerId: stri
       afterState: { actionId, refundMinor: owed.refundMinor ?? null, currency: owed.currency ?? null, state: owed.state ?? null },
       outcome: isObj(r) && r.ok === true ? 'success' : 'error' });
     return isObj(r) && r.ok === true ? { status: 200, body: { ok: true, actionId, settled: true } } : refusal(r);
-  }
-
-  if (action === 'settle_removal_refund') {
-    // Codex N03 (Owner 2026-10-28, decision 1): the Owner made the owed SMART PACK removal refund in PayPlus - recorded with its PayPlus
-    // transaction number (the reconciliation then knows it); the proof is bound to this removal and this number
-    const removalId = b.removalId;
-    const refundRef = typeof b.refundRef === 'string' ? b.refundRef.trim() : '';
-    if (typeof removalId !== 'string' || !UUID.test(removalId) || refundRef.length < 3 || refundRef.length > 200) return err(400, 'invalid_request');
-    if (!(await deps.claimProof({ proofToken: b.proofToken, actorUserId: callerId, action: PROOF_ACTIONS.settle_refund, targetUserId: target,
-      params: { reason, removalId, refundRef } }).catch(() => false))) return err(403, 'reauth_required');
-    const r: Record<string, unknown> = await deps.settleRemovalRefund(removalId, target, refundRef).catch(() => ({ ok: false }));
-    await deps.audit({ actorUserId: callerId, targetUserId: target, action: PROOF_ACTIONS.settle_refund, reason,
-      afterState: { removalId, refundRef, refundMinor: isObj(r) ? r.refundMinor ?? null : null },
-      outcome: isObj(r) && r.ok === true ? 'success' : 'error' });
-    return isObj(r) && r.ok === true ? { status: 200, body: { ok: true, removalId, settled: true } } : refusal(r);
   }
 
   if (action === 'resolve') {
