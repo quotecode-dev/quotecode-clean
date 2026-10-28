@@ -84,8 +84,6 @@ export interface ExpenseDeps {
   // PayPlus: the records found for a search (throws when the search failed or its answer is not understood)
   payplusSearch(search: string): Promise<Record<string, unknown>[]>;
   payplusCreate(fields: Record<string, string>, file: { name: string; type: string; base64: string } | null): Promise<string>;
-  /** the Bank of Israel representative rate of a currency (shekels per 1 unit) published on or before the date; null = none found */
-  ilsRate(currency: string, date: string): Promise<IlsRate | null>;
   notifyOwner(found: number): Promise<void>;
 }
 
@@ -403,41 +401,14 @@ export async function scanBatch(deps: ExpenseDeps, budgetMs: number): Promise<{ 
 }
 
 // ---------- PayPlus ----------
-// L-22 (Owner 2026-10-28, "שער יציג לפי תאריך החשבונית בשליחה לפיי פלוס"): PayPlus's expense API takes no rate and books a foreign
-// amount at the rate of the day it is SENT. A foreign invoice is therefore sent in shekels at the Bank of Israel representative rate of
-// the invoice date (the last one published on or before it); the original amount, the rate and its date open the description.
-export type IlsRate = { rate: number; date: string };
-const ddmmyyyy = (iso: string) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
-/** the Bank of Israel series that are one unit each (no "per 100" series) */
-export const BOI_RATE_CURRENCIES = Object.freeze(['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'CHF']);
-/** the Bank of Israel SDMX csv of a daily representative-rate series: the last rate published on or before the date */
-export function boiRate(csv: string, date: string): IlsRate | null {
-  const lines = String(csv || '').trim().split(/\r?\n/);
-  const head = (lines.shift() || '').split(',');
-  const iT = head.indexOf('TIME_PERIOD'); const iV = head.indexOf('OBS_VALUE'); const iM = head.indexOf('UNIT_MULT');
-  if (iT < 0 || iV < 0) return null;
-  let best: IlsRate | null = null;
-  for (const l of lines) {
-    const c = l.split(',');
-    const d = c[iT]; const v = Number(c[iV]);
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(d || '') || d > date || !Number.isFinite(v) || v <= 0 || (iM >= 0 && c[iM] !== '0')) continue;
-    if (!best || d > best.date) best = { rate: v, date: d };
-  }
-  return best;
-}
-export function payplusFields(row: InvoiceRow, subcategoryId: number, fx: IlsRate | null = null): Record<string, string> | null {
+export function payplusFields(row: InvoiceRow, subcategoryId: number): Record<string, string> | null {
   const amount = Number(row.amount);
   if (!row.doc_number || !row.doc_date || !Number.isFinite(amount) || amount <= 0 || !row.currency) return null;
-  const foreign = String(row.currency) !== 'ILS';
-  if (foreign && !(fx && Number.isFinite(fx.rate) && fx.rate > 0)) return null;
   const supplier = String(row.supplier_name || '').slice(0, 120);
-  const what = `${supplier}${row.email_subject ? ` - ${String(row.email_subject)}` : ''}`;
-  const sent = foreign ? Math.round(amount * (fx as IlsRate).rate * 100) / 100 : amount;
-  const fxNote = foreign ? `${String(row.currency)} ${amount.toFixed(2)} × ${(fx as IlsRate).rate} (שער יציג ${ddmmyyyy((fx as IlsRate).date)})` : '';
   const f: Record<string, string> = {
-    number: String(row.doc_number), doc_date: String(row.doc_date), subcategory_id: String(subcategoryId), amount: sent.toFixed(2),
-    description: (foreign ? `${fxNote}${what ? ` · ${what}` : ''}` : what).slice(0, 200) || 'הוצאה',
-    currency_code: foreign ? 'ILS' : String(row.currency), amount_includes_vat: row.amount_includes_vat ? 'true' : 'false',
+    number: String(row.doc_number), doc_date: String(row.doc_date), subcategory_id: String(subcategoryId), amount: amount.toFixed(2),
+    description: `${supplier}${row.email_subject ? ` - ${String(row.email_subject)}` : ''}`.slice(0, 200) || 'הוצאה',
+    currency_code: String(row.currency), amount_includes_vat: row.amount_includes_vat ? 'true' : 'false',
     vat_percentage: String(Number(row.vat_percentage) || 0),
   };
   if (supplier) f.supplier_name = supplier;
@@ -453,11 +424,10 @@ export function payplusRecords(v: unknown): Record<string, unknown>[] | null {
 }
 const norm = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
 /** the same document already in PayPlus: the same number AND the same amount or the same supplier (another supplier's "1001" is not it) */
-export function sameDocument(rec: Record<string, unknown>, row: InvoiceRow, sentAmount: number | null = null): boolean {
+export function sameDocument(rec: Record<string, unknown>, row: InvoiceRow): boolean {
   if (String(rec.number ?? '').trim() !== String(row.doc_number ?? '').trim()) return false;
   const recAmount = Number(rec.total_items_base_currency ?? rec.amount ?? rec.total ?? NaN);
-  // the invoice's own amount, or the shekel amount a foreign invoice was sent with
-  const amountMatch = Number.isFinite(recAmount) && [Number(row.amount), sentAmount].some((a) => a !== null && Number.isFinite(a) && Math.abs(recAmount - (a as number)) < 0.01);
+  const amountMatch = Number.isFinite(recAmount) && Math.abs(recAmount - Number(row.amount)) < 0.01;
   const names = [(rec.customer as Record<string, unknown>)?.customer_name, rec.supplier_name, (rec.supplier as Record<string, unknown>)?.name].map(norm).filter(Boolean);
   const mine = norm(row.supplier_name);
   const supplierMatch = !!mine && names.some((n) => n.includes(mine) || mine.includes(n));
@@ -473,19 +443,13 @@ async function sendOne(deps: ExpenseDeps, id: string, fallbackSub: number | null
   };
   const sub = Number(row.subcategory_id) || fallbackSub;
   if (!sub) return fail('no_expense_type', 'חסר סוג הוצאה');
-  if (!payplusFields(row, sub, { rate: 1, date: '2000-01-01' })) return fail('missing_fields', 'חסרים מספר מסמך, תאריך או סכום');
-  // a foreign invoice: the representative rate of its date - never a guess; no rate = not sent
-  let fx: IlsRate | null = null;
-  if (String(row.currency) !== 'ILS') {
-    fx = await deps.ilsRate(String(row.currency), String(row.doc_date)).catch(() => null);
-    if (!fx) return fail('rate_unavailable', `השער היציג של ${String(row.currency)} ליום ${ddmmyyyy(String(row.doc_date))} לא נמצא, לא נשלח`);
-  }
-  const fields = payplusFields(row, sub, fx) as Record<string, string>;
+  const fields = payplusFields(row, sub);
+  if (!fields) return fail('missing_fields', 'חסרים מספר מסמך, תאריך או סכום');
   let found: Record<string, unknown>[];
   try { found = await deps.payplusSearch(fields.number); } catch (e) {
     return fail('payplus_search_failed', `החיפוש בפיי פלוס נכשל, לא נשלח: ${String((e as Error)?.message || '')}`);
   }
-  const existing = found.find((r) => sameDocument(r, row, Number(fields.amount)));
+  const existing = found.find((r) => sameDocument(r, row));
   if (existing) {
     await deps.finishSend(id, { status: 'sent', payplus_uuid: String(existing.docUID ?? existing.uuid ?? 'existing').slice(0, 80), send_error: null,
       sent_at: new Date(deps.now()).toISOString() });
