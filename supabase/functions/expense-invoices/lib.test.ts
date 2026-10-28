@@ -4,7 +4,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   expenseHandler, oauthCallback, scanBatch, parseMessage, validateExtraction, vatRule, gmailQuery, payplusFields, invoicePatch, settingsPatch,
-  signState, verifyState, sameDocument, payplusRecords, callbackFailure, EXPENSE_MODEL, EXPENSE_FALLBACK_MODEL, type ExpenseDeps,
+  signState, verifyState, sameDocument, payplusRecords, callbackFailure, boiRate, EXPENSE_MODEL, EXPENSE_FALLBACK_MODEL, type ExpenseDeps,
 } from './lib.ts';
 
 const NOW = Date.parse('2026-10-22T18:00:00Z');
@@ -71,6 +71,7 @@ function deps(over: Partial<ExpenseDeps> = {}) {
     download: async () => 'JVBERi0=',
     payplusSearch: vi.fn(async () => []),
     payplusCreate: vi.fn(async () => 'pp-uuid-1'),
+    ilsRate: vi.fn(async () => ({ rate: 3.7, date: '2026-09-01' })),
     notifyOwner: vi.fn(async () => {}),
     ...over,
   };
@@ -249,7 +250,10 @@ describe('approval and PayPlus', () => {
     const r = await expenseHandler({ action: 'send', ids: [id] }, d, 'u1');
     expect(r.body.results).toEqual([{ id, ok: true }]);
     const [fields, file] = (d.payplusCreate as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(fields).toMatchObject({ number: 'INV-1001', doc_date: '2026-09-01', subcategory_id: '5554', amount: '35.00', currency_code: 'USD', amount_includes_vat: 'false' });
+    // L-22 (Owner 2026-10-28): a foreign invoice goes in shekels at the representative rate of its date; the original amount opens the description
+    expect(fields).toMatchObject({ number: 'INV-1001', doc_date: '2026-09-01', subcategory_id: '5554', amount: '129.50', currency_code: 'ILS', amount_includes_vat: 'false' });
+    expect(fields.description).toBe('USD 35.00 × 3.7 (שער יציג 01/09/2026) · Supabase Inc - Your receipt');
+    expect(d.ilsRate).toHaveBeenCalledWith('USD', '2026-09-01');
     expect(file).toMatchObject({ name: 'Receipt.pdf', type: 'application/pdf' });
     expect(d.rows[id]).toMatchObject({ status: 'sent', payplus_uuid: 'pp-uuid-1' });
   });
@@ -314,5 +318,47 @@ describe('approval and PayPlus', () => {
     expect(settingsPatch({ expenseTypes: [{ id: 5554, name: 'תוכנה' }], defaultSubcategoryId: 5554 }, 'now')).toMatchObject({ default_subcategory_id: 5554 });
     expect(settingsPatch({ expenseTypes: [{ id: 5554, name: 'תוכנה' }], defaultSubcategoryId: 9 }, 'now')).toBeNull();
     expect(settingsPatch({ expenseTypes: [{ id: -1, name: 'x' }] }, 'now')).toBeNull();
+  });
+});
+
+describe('L-22 (Owner 2026-10-28, "שער יציג לפי תאריך החשבונית בשליחה לפיי פלוס"): a foreign invoice at the representative rate of its date', () => {
+  const csv = ['SERIES_CODE,FREQ,BASE_CURRENCY,COUNTER_CURRENCY,UNIT_MEASURE,DATA_TYPE,DATA_SOURCE,TIME_COLLECT,CONF_STATUS,PUB_WEBSITE,UNIT_MULT,COMMENTS,TIME_PERIOD,OBS_VALUE,RELEASE_STATUS',
+    'RER_USD_ILS,D,USD,ILS,ILS,OF00,BOI_MRKT,V,F,Y,0,,2026-10-22,3.712,YP', 'RER_USD_ILS,D,USD,ILS,ILS,OF00,BOI_MRKT,V,F,Y,0,,2026-10-23,3.705,YP',
+    'RER_USD_ILS,D,USD,ILS,ILS,OF00,BOI_MRKT,V,F,Y,0,,2026-10-26,3.078,YP'].join('\n');
+  it('the last rate published on or before the date (a weekend takes Friday); nothing before = none', () => {
+    expect(boiRate(csv, '2026-10-25')).toEqual({ rate: 3.705, date: '2026-10-23' });
+    expect(boiRate(csv, '2026-10-26')).toEqual({ rate: 3.078, date: '2026-10-26' });
+    expect(boiRate(csv, '2026-10-01')).toBeNull();
+    expect(boiRate('not,a,csv', '2026-10-25')).toBeNull();
+    expect(boiRate(csv.replace(/,0,,2026-10-23/, ',2,,2026-10-23'), '2026-10-25')).toEqual({ rate: 3.712, date: '2026-10-22' }); // a per-100 series is skipped
+  });
+  it('a shekel invoice is sent as it is - no rate is looked up', async () => {
+    const d = deps();
+    const id = '22222222-2222-2222-2222-222222222222';
+    d.rows[id] = { id, status: 'approved', supplier_name: 'גולן טלקום', email_subject: null, doc_number: '3413915', doc_date: '2026-09-15', amount: 88,
+      currency: 'ILS', amount_includes_vat: true, vat_percentage: 18, file_path: null };
+    await expenseHandler({ action: 'send', ids: [id] }, d, 'u1');
+    expect((d.payplusCreate as ReturnType<typeof vi.fn>).mock.calls[0][0]).toMatchObject({ amount: '88.00', currency_code: 'ILS', amount_includes_vat: 'true', vat_percentage: '18', description: 'גולן טלקום' });
+    expect(d.ilsRate).not.toHaveBeenCalled();
+  });
+  it('no rate for the date = not sent, with the reason; nothing reaches PayPlus', async () => {
+    const d = deps({ ilsRate: vi.fn(async () => null) });
+    const id = '33333333-3333-3333-3333-333333333333';
+    d.rows[id] = { id, status: 'approved', supplier_name: 'OpenAI', email_subject: null, doc_number: '9', doc_date: '2026-10-22', amount: 10, currency: 'USD', amount_includes_vat: false, vat_percentage: 0, file_path: null };
+    expect((await expenseHandler({ action: 'send', ids: [id] }, d, 'u1')).body.results).toEqual([{ id, ok: false, code: 'rate_unavailable' }]);
+    expect(d.rows[id]).toMatchObject({ status: 'send_failed', send_error: 'השער היציג של USD ליום 22/10/2026 לא נמצא, לא נשלח' });
+    expect(d.payplusSearch).not.toHaveBeenCalled();
+    expect(d.payplusCreate).not.toHaveBeenCalled();
+  });
+  it('the same number with the shekel amount already in PayPlus is the same document (never sent twice)', async () => {
+    const d = deps({ payplusSearch: vi.fn(async () => [{ number: 'X-7', docUID: 'existing-7', total_items_base_currency: 129.5 }]) });
+    const id = '44444444-4444-4444-4444-444444444444';
+    d.rows[id] = { id, status: 'approved', supplier_name: 'Other', email_subject: null, doc_number: 'X-7', doc_date: '2026-09-01', amount: 35, currency: 'USD', amount_includes_vat: false, vat_percentage: 0, file_path: null };
+    expect((await expenseHandler({ action: 'send', ids: [id] }, d, 'u1')).body.results).toEqual([{ id, ok: true, code: 'already_in_payplus' }]);
+    expect(d.payplusCreate).not.toHaveBeenCalled();
+  });
+  it('a foreign row without a rate gives no PayPlus fields', () => {
+    expect(payplusFields({ doc_number: '1', doc_date: '2026-09-01', amount: 1, currency: 'USD' }, 1)).toBeNull();
+    expect(payplusFields({ doc_number: '1', doc_date: '2026-09-01', amount: 1, currency: 'USD' }, 1, { rate: 3.5, date: '2026-09-01' })).toMatchObject({ amount: '3.50', currency_code: 'ILS' });
   });
 });

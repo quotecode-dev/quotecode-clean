@@ -55,6 +55,7 @@ const SEND_CODES = {
   not_approved: { he: 'לא אושרה', en: 'not approved' }, no_expense_type: { he: 'חסר סוג הוצאה', en: 'no expense type' },
   missing_fields: { he: 'חסרים מספר, תאריך או סכום', en: 'missing number, date or amount' }, payplus_failed: { he: 'פיי פלוס דחו', en: 'PayPlus refused' },
   payplus_search_failed: { he: 'החיפוש בפיי פלוס נכשל', en: 'the PayPlus search failed' },
+  rate_unavailable: { he: 'השער היציג של יום החשבונית לא נמצא', en: 'no representative rate for the invoice date' },
 };
 const N = ({ v }) => <bdi className="av-num">{v}</bdi>;
 const money = (amount, currency) => (amount === null || amount === undefined || !currency ? '—'
@@ -280,6 +281,8 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                     {busy === 'scan' ? (isHebrew ? 'סורק...' : 'Scanning...') : (isHebrew ? 'סריקת התיבות' : 'Scan the mailboxes')}
                   </button>
                   <p className="av-muted av-small">{isHebrew ? 'בכל 1 לחודש התיבות נסרקות לבד, ותקבלו מייל כשיש חשבוניות חדשות לאישור.' : 'On the 1st of every month the mailboxes are scanned automatically, and you get an email when new invoices wait for approval.'}</p>
+                  {/* L-22 (Owner 2026-10-28, "שער יציג לפי תאריך החשבונית בשליחה לפיי פלוס") */}
+                  <p className="av-muted av-small" data-testid="expense-fx-note">{isHebrew ? 'חשבונית במטבע זר נשלחת לפיי פלוס בשקלים, לפי השער היציג של בנק ישראל ביום החשבונית. הסכום המקורי והשער נכתבים בתיאור ההוצאה.' : 'A foreign-currency invoice is sent to PayPlus in shekels, at the Bank of Israel representative rate of the invoice date. The original amount and the rate are written in the expense description.'}</p>
                 </article>
 
                 <article className="av-card av-section" data-testid="expense-types">
