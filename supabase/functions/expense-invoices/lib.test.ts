@@ -456,36 +456,3 @@ describe('L-22 (Owner 2026-10-28, "שליחת סוג ההוצאה לפיי פל�
     expect(d.payplusUpdate).not.toHaveBeenCalled();
   });
 });
-
-describe('L-22 (Owner 2026-10-28, "שמירת מזהי סוגי ההוצאה של פיי פלוס בהגדרות הכלי"): the type ids saved with the tool', () => {
-  const SW = '0a14899e-db7d-4c1c-9cc8-0d27b5e09c20';
-  it('a type keeps its PayPlus id; a malformed id is refused', () => {
-    expect(settingsPatch({ expenseTypes: [{ id: 2402, name: 'תוכנה', uuid: ` ${SW.toUpperCase()} ` }, { id: 2403, name: 'טלפון' }], defaultSubcategoryId: 2402 }, 'T'))
-      .toEqual({ expense_types: [{ id: 2402, name: 'תוכנה', uuid: SW }, { id: 2403, name: 'טלפון' }], default_subcategory_id: 2402, updated_at: 'T' });
-    expect(settingsPatch({ expenseTypes: [{ id: 2402, name: 'תוכנה', uuid: 'not-an-id' }], defaultSubcategoryId: 2402 }, 'T')).toBeNull();
-  });
-  it('PayPlus gives no list: the saved id is used for the update and for a new expense; a refusal is reported in PayPlus words', async () => {
-    const d = deps({
-      settings: async () => ({ expense_types: [{ id: 2402, name: 'תוכנה', uuid: SW }], default_subcategory_id: 2402 }),
-      payplusSubcategories: vi.fn(async () => ({})),
-      sentInvoices: vi.fn(async () => [{ id: 'a', status: 'sent', payplus_uuid: 'pp-1', supplier_name: 'X', email_subject: null, doc_number: '1', doc_date: '2026-08-01', amount: 10, currency: 'ILS', amount_includes_vat: false, vat_percentage: 0, subcategory_id: 2402 },
-        { id: 'b', status: 'sent', payplus_uuid: 'pp-2', supplier_name: 'Y', email_subject: null, doc_number: '2', doc_date: '2026-08-01', amount: 20, currency: 'ILS', amount_includes_vat: false, vat_percentage: 0, subcategory_id: 2402 }]),
-      payplusList: vi.fn(async () => [{ uuid: 'pp-1', number: '1', subcategory: {} }, { uuid: 'pp-2', number: '2', subcategory: {} }]),
-      payplusUpdate: vi.fn(async (uuid: string) => { if (uuid === 'pp-2') throw new Error('PayPlus 422: subcategory_uuid is invalid'); }),
-    });
-    expect((await expenseHandler({ action: 'sync_types' }, d, 'u1')).body).toEqual({ ok: true, updated: 1, failed: 1, types: 1, error: 'PayPlus 422: subcategory_uuid is invalid' });
-    expect((d.payplusUpdate as ReturnType<typeof vi.fn>).mock.calls[0][1]).toMatchObject({ subcategory_uuid: SW });
-    const id = '77777777-7777-7777-7777-777777777777';
-    d.rows[id] = { id, status: 'approved', supplier_name: 'Z', email_subject: null, doc_number: '3', doc_date: '2026-08-01', amount: 5, currency: 'ILS', amount_includes_vat: false, vat_percentage: 0, file_path: null, subcategory_id: 2402 };
-    await expenseHandler({ action: 'send', ids: [id] }, d, 'u1');
-    expect((d.payplusCreate as ReturnType<typeof vi.fn>).mock.calls[0][0]).toMatchObject({ subcategory_uuid: SW });
-  });
-  it('the PayPlus list itself failing is reported to the screen', async () => {
-    const d = deps({
-      settings: async () => ({ expense_types: [{ id: 2402, name: 'תוכנה', uuid: SW }], default_subcategory_id: 2402 }),
-      sentInvoices: vi.fn(async () => [{ id: 'a', status: 'sent', payplus_uuid: 'pp-1', doc_number: '1' }]),
-      payplusList: vi.fn(async () => { throw new Error('PayPlus list 403'); }),
-    });
-    expect(await expenseHandler({ action: 'sync_types' }, d, 'u1')).toEqual({ status: 502, body: { ok: false, code: 'payplus_failed', error: 'PayPlus list 403' } });
-  });
-});

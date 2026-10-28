@@ -76,7 +76,7 @@ export interface ExpenseDeps {
   /** approved / send_failed -> sending, atomically; null = someone else claimed it or it is not approved */
   claimForSend(id: string): Promise<InvoiceRow | null>;
   finishSend(id: string, patch: Record<string, unknown>): Promise<void>;
-  settings(): Promise<{ expense_types: { id: number; name: string; uuid?: string }[]; default_subcategory_id: number | null }>;
+  settings(): Promise<{ expense_types: { id: number; name: string }[]; default_subcategory_id: number | null }>;
   saveSettings(patch: Record<string, unknown>): Promise<void>;
   upload(path: string, base64: string, type: string): Promise<void>;
   signedUrl(path: string): Promise<string | null>;
@@ -472,18 +472,9 @@ const hasType = (item: Record<string, unknown>) => {
 };
 /** L-22 (Owner 2026-10-28, "שליחת סוג ההוצאה לפיי פלוס לפי המזהה שלהם"): the expenses already sent that PayPlus holds WITHOUT a type
  *  get their type - the same fields they were sent with, plus the type's uuid. A PayPlus expense that has a type is never touched. */
-/** L-22 (Owner 2026-10-28, "שמירת מזהי סוגי ההוצאה של פיי פלוס בהגדרות הכלי"): the type uuids - PayPlus's list when it answers, and
- *  the uuids saved with the tool's types (they win: PayPlus's interface does not always give the list) */
-export async function typeUuids(deps: ExpenseDeps, s: Awaited<ReturnType<ExpenseDeps['settings']>>): Promise<Record<string, string>> {
-  const out: Record<string, string> = { ...(await deps.payplusSubcategories().catch(() => ({}))) };
-  for (const t of s.expense_types || []) if (t.uuid) out[String(t.id)] = t.uuid;
-  return out;
-}
-export async function syncTypes(deps: ExpenseDeps, s: Awaited<ReturnType<ExpenseDeps['settings']>>): Promise<{ updated: number; failed: number; types: number; error?: string }> {
-  const fallbackSub = s.default_subcategory_id;
-  const subs = await typeUuids(deps, s);
+export async function syncTypes(deps: ExpenseDeps, fallbackSub: number | null): Promise<{ updated: number; failed: number; types: number }> {
+  const subs = await deps.payplusSubcategories();
   const types = Object.keys(subs).length;
-  let error: string | undefined;
   const sent = await deps.sentInvoices();
   if (!types || !sent.length) return { updated: 0, failed: 0, types };
   const items = await deps.payplusList();
@@ -501,9 +492,9 @@ export async function syncTypes(deps: ExpenseDeps, s: Awaited<ReturnType<Expense
     if (String(row.currency) !== 'ILS') fx = await deps.ilsRate(String(row.currency), String(row.doc_date)).catch(() => null);
     const fields = payplusFields(row, sub, fx, uuid);
     if (!fields) { failed += 1; continue; }
-    try { await deps.payplusUpdate(item.uuid, fields); updated += 1; } catch (e) { failed += 1; error ??= String((e as Error)?.message || 'failed').slice(0, 300); }
+    try { await deps.payplusUpdate(item.uuid, fields); updated += 1; } catch { failed += 1; }
   }
-  return { updated, failed, types, ...(error ? { error } : {}) };
+  return { updated, failed, types };
 }
 /** L-22 (Owner 2026-10-28, "הצגת ההסבר המלא של פיי פלוס בשליחה שנדחתה"): PayPlus's own explanation of a refused request, from
  *  whichever field it comes in (message / results.description / details / status), else the start of the answer as plain text (an
@@ -618,16 +609,12 @@ export function invoicePatch(p: Record<string, unknown>): Record<string, unknown
 export function settingsPatch(p: Record<string, unknown>, nowIso: string): Record<string, unknown> | null {
   const types = p?.expenseTypes;
   if (!Array.isArray(types) || types.length > 40) return null;
-  const clean: { id: number; name: string; uuid?: string }[] = [];
+  const clean: { id: number; name: string }[] = [];
   for (const t of types) {
     const id = Number((t as Record<string, unknown>)?.id);
     const name = str((t as Record<string, unknown>)?.name, 60);
     if (!Number.isInteger(id) || id <= 0 || !name || clean.some((c) => c.id === id)) return null;
-    // L-22 (Owner 2026-10-28, "שמירת מזהי סוגי ההוצאה של פיי פלוס בהגדרות הכלי"): the type's PayPlus uuid, optional
-    const raw = (t as Record<string, unknown>)?.uuid;
-    const uuid = typeof raw === 'string' ? raw.trim().toLowerCase() : '';
-    if (uuid && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(uuid)) return null;
-    clean.push({ id, name, ...(uuid ? { uuid } : {}) });
+    clean.push({ id, name });
   }
   const def = p.defaultSubcategoryId === null || p.defaultSubcategoryId === undefined ? null : Number(p.defaultSubcategoryId);
   if (def !== null && !clean.some((c) => c.id === def)) return null;
@@ -687,16 +674,14 @@ export async function expenseHandler(body: Record<string, unknown>, deps: Expens
       const ids = body.ids;
       if (!Array.isArray(ids) || !ids.length || ids.length > SEND_BATCH || !ids.every(isUuid)) return bad(400, 'invalid_request');
       const s = await deps.settings();
-      const subs = await typeUuids(deps, s);
+      const subs = await deps.payplusSubcategories().catch(() => ({}));
       const results = [];
       for (const id of ids as string[]) results.push(await sendOne(deps, id, s.default_subcategory_id, subs));
       return ok({ results });
     }
     case 'sync_types': {
       const s = await deps.settings();
-      try { return ok(await syncTypes(deps, s)); } catch (e) {
-        return { status: 502, body: { ok: false, code: 'payplus_failed', error: String((e as Error)?.message || 'failed').slice(0, 300) } };
-      }
+      try { return ok(await syncTypes(deps, s.default_subcategory_id)); } catch { return bad(502, 'payplus_failed'); }
     }
     default:
       return bad(400, 'invalid_action');
