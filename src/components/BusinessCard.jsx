@@ -88,7 +88,7 @@ export default function BusinessCard({ card, shareUrl = null, onShare, onCopy, c
         )}
         {card.email && (
           // PRODUCT_TRUTH_CAPABILITY: digital_business_card
-          <MailLink className="pf-bcard-row" href={`mailto:${card.email}`} isHebrew={he} aria-label={`${t.email} ${card.email}`} data-channel="email">
+          <MailLink className="pf-bcard-row" href={`mailto:${card.email.replace(/%/g, '%25')}`} isHebrew={he} aria-label={`${t.email} ${card.email}`} data-channel="email">
             <Mail size={18} aria-hidden="true" /><span><bdi dir="ltr">{card.email}</bdi></span>
           </MailLink>
         )}

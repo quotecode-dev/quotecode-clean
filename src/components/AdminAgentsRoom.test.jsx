@@ -151,6 +151,25 @@ describe('the agents room - stage 2', () => {
     invoke.mockResolvedValueOnce({ data: { ok: true, status: 'published', deploy: 'not_configured' }, error: null });
     fireEvent.click(screen.getByTestId('action-approve-p1'));
     await waitFor(() => expect(screen.getByTestId('admin-agents-room-notice').textContent).toMatch(/קישור הבנייה מחדש עוד לא הוגדר/));
+    // 20261029000000 (Codex F07): the approval names the revision on the screen
+    expect(invoke).toHaveBeenCalledWith('agents-room', { body: { action: 'decide', id: 'p1', decision: 'approve', revision: 0 } });
+  });
+
+  // 20261029000000 (Codex F07 / F22): a draft changed since it was read is read again; a rebuild that did not start can be pressed again
+  it.each([[true], [false]])('isHebrew=%s: a changed draft is read again; a failed rebuild says so and rebuilds without a new approval', async (isHebrew) => {
+    const built = A('h1', { kind: 'system', action_type: 'article_publish', status: 'done', title_he: 'לקרוא ולפרסם: מדריך', title_en: 'Read and publish: A guide',
+      payload: { articleId: 'art9', slug: 'g' }, result: { slug: 'g', deploy: 'failed' }, error: 'deploy_failed' });
+    invoke.mockResolvedValue({ data: { ...stage2, actions: [...stage2.actions, built] }, error: null });
+    render(<AdminAgentsRoom isHebrew={isHebrew} />);
+    await waitFor(() => expect(screen.getByTestId('article-rebuild-h1')).toBeTruthy());
+    expect(screen.getByTestId('article-rebuild-h1').textContent).toContain(isHebrew ? 'בניית האתר מחדש לא התחילה' : 'the site rebuild did not start');
+    invoke.mockResolvedValueOnce({ data: { ok: true, status: 'redeployed', deploy: 'ok' }, error: null });
+    fireEvent.click(screen.getByTestId('article-rebuild-btn-h1'));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith('agents-room', { body: { action: 'redeploy', id: 'h1' } }));
+    await waitFor(() => expect(screen.getByTestId('admin-agents-room-notice').textContent).toBe(isHebrew ? 'האתר נבנה מחדש, וזה לוקח כ־2 דקות.' : 'The site is rebuilding; it takes about 2 minutes.'));
+    invoke.mockResolvedValueOnce({ data: null, error: { context: { json: async () => ({ ok: false, code: 'article_changed' }) } } });
+    fireEvent.click(screen.getByTestId('action-approve-p1'));
+    await waitFor(() => expect(screen.getByTestId('admin-agents-room-notice').textContent).toBe(isHebrew ? 'הטיוטה השתנתה מאז שנפתחה. קראו אותה שוב לפני האישור.' : 'The draft changed since it was opened. Read it again before approving.'));
   });
 
   it('a code task: approve emails the instruction; the approved one copies the instruction and can be marked done; a failure is said honestly', async () => {

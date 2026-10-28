@@ -15,7 +15,7 @@ import {
   type Deps, type Agent, type Finding, type Result, type Run,
 } from './lib.ts';
 import { parseServiceAccount, API, SITE_URL, TOKEN_URL, ORIGIN } from '../search-console/lib.ts';
-import { runSocial, reviseSocial } from './social.ts';
+import { runSocial, reviseSocial, TARGETS } from './social.ts';
 
 // + the social agent (Owner 2026-10-27, "מאשר את שלב 1 של סוכנת הרשתות"; social.ts): it prepares posts that wait for the Owner, like the manager
 export const ALL_AGENTS = ['manager', ...AGENTS, 'social'] as const;
@@ -48,7 +48,7 @@ export interface StageDeps extends Deps {
   can(permission: 'social.view' | 'social.publish'): Promise<boolean>;
   // stage 2 (Owner 2026-10-27, "מאשר את שלב 2 של סוכנת הרשתות"): the accounts whose page token is configured, and the publication itself
   connectedChannels(): string[];
-  publishSocial(channel: string, payload: Record<string, unknown>): Promise<{ url: string; id: string }>;
+  publishSocial(channel: string, payload: Record<string, unknown>, onContainer?: (containerId: string) => Promise<void>): Promise<{ url: string; id: string }>;
   profiles(): Promise<Profile[]>;
   setProfile(agent: AnyAgent, nameHe: string, nameEn: string): Promise<void>;
   recentActions(): Promise<Action[]>; // the last 60 days, newest first
@@ -58,7 +58,8 @@ export interface StageDeps extends Deps {
   updateAction(id: string, patch: Record<string, unknown>, whenStatus?: Action['status'], whenDecidedAt?: string): Promise<void>;
   getAction(id: string): Promise<Action | null>;
   insertArticle(a: Omit<ArticleRow, 'id' | 'published_at' | 'status'> & { action_id: string }): Promise<string>;
-  updateArticle(id: string, patch: Record<string, unknown>): Promise<void>;
+  // whenStatus: write only while the article still has that status; true = written (20261029000000, Codex F07)
+  updateArticle(id: string, patch: Record<string, unknown>, whenStatus?: ArticleRow['status']): Promise<boolean>;
   getArticle(id: string): Promise<ArticleRow | null>;
   articleSlugs(): Promise<string[]>;
   lastPublishedAt(): Promise<string | null>;
@@ -172,6 +173,8 @@ export async function runManager(d: StageDeps, trigger: 'cron' | 'admin', paths:
     await d.finish(id, { status: 'skipped_cap', finished_at: nowIso(d) });
     return { status: 'skipped_cap', id };
   }
+  // 20261029000000 (Codex F09): a paid AI call is counted even when the run fails after it
+  let spent = 0; let used = 0;
   try {
     const runs = await d.recentRuns();
     const specialists = AGENTS.map((a) => { const r = lastDone(runs, a); return r ? { agent: a, at: r.finished_at, summary: r.summary, findings: (r.findings || []).map((f) => ({ level: f.level, text: f.en })), data: r.data } : { agent: a, missing: true }; });
@@ -206,6 +209,7 @@ export async function runManager(d: StageDeps, trigger: 'cron' | 'admin', paths:
     type M = { summary_he: string; summary_en: string; recommendations: { kind: string; title_he: string; title_en: string; detail_he: string; detail_en: string; prompt_he: string }[];
       articles: { topic_he: string; topic_en: string; why_he: string; why_en: string }[] };
     const { j, cost, tokens } = await ai<M>(d, messages, MANAGER_SCHEMA, (x) => typeof x?.summary_he === 'string' && typeof x?.summary_en === 'string' && Array.isArray(x?.recommendations) && Array.isArray(x?.articles));
+    spent = cost; used = tokens;
     if (!j) throw new Error('ai_unavailable');
     const findings: Finding[] = [];
     const actionIds: string[] = [];
@@ -242,7 +246,7 @@ export async function runManager(d: StageDeps, trigger: 'cron' | 'admin', paths:
     return { status: 'done', id, result };
   } catch (e) {
     const error = String((e as Error)?.message ?? 'failed').slice(0, 120);
-    await d.finish(id, { status: 'failed', finished_at: nowIso(d), error });
+    await d.finish(id, { status: 'failed', finished_at: nowIso(d), error, ai_cost_usd: spent, tokens: used });
     return { status: 'failed', id, error };
   }
 }
@@ -328,14 +332,16 @@ async function logCost(d: StageDeps, key: string, cost: number, tokens: number, 
 }
 
 // ---------------------------------------------------------------- the Owner's decisions
-export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown; note?: unknown }, paths: string[]): Promise<Out> {
+export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown; note?: unknown; revision?: unknown }, paths: string[]): Promise<Out> {
   const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
   if (!a) return { status: 404, body: { ok: false, code: 'not_found' } };
   if (a.status !== 'proposed' || (a.kind !== 'system' && a.kind !== 'claude')) return { status: 409, body: { ok: false, code: 'not_pending' } };
   const at = nowIso(d);
   if (b.decision === 'reject') {
-    await d.updateAction(a.id, { status: 'rejected', decided_at: at });
-    if (a.action_type === 'article_publish' && typeof a.payload.articleId === 'string') await d.updateArticle(a.payload.articleId, { status: 'rejected' });
+    // 20261029000000 (Codex F07): only a draft still waiting is rejected - an approval taken meanwhile wins
+    if (a.action_type === 'article_publish' && typeof a.payload.articleId === 'string'
+        && !(await d.updateArticle(a.payload.articleId, { status: 'rejected' }, 'draft'))) return { status: 409, body: { ok: false, code: 'not_pending' } };
+    await d.updateAction(a.id, { status: 'rejected', decided_at: at }, 'proposed');
     return { status: 200, body: { ok: true, status: 'rejected' } };
   }
   if (b.decision !== 'approve') return { status: 400, body: { ok: false, code: 'bad_decision' } };
@@ -345,7 +351,8 @@ export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown
     const taken = [...new Set([...paths.filter((p) => p.startsWith('/en/articles/')).map((p) => p.slice('/en/articles/'.length)), ...(await d.articleSlugs())])];
     const p = a.payload as { market?: string; topic_he?: string; topic_en?: string };
     const r = await draftArticle(d, { market: p.market === 'il' ? 'il' : 'intl', topic_he: String(p.topic_he ?? ''), topic_en: String(p.topic_en ?? '') }, taken);
-    await logCost(d, `draft:${a.id}`, r.cost, r.tokens, `article draft: ${String(p.topic_en ?? '')}`);
+    // 20261029000000 (Codex F09): every paid attempt has its own key (a retry is counted too)
+    await logCost(d, `draft:${a.id}:${d.now().getTime()}`.slice(0, 60), r.cost, r.tokens, `article draft: ${String(p.topic_en ?? '')}`);
     if (!r.article) {
       await d.updateAction(a.id, { decided_at: at, error: `draft_invalid: ${r.errors.join(',')}`.slice(0, 200) });
       return { status: 502, body: { ok: false, code: 'draft_failed', errors: r.errors } };
@@ -360,10 +367,12 @@ export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown
 
   if (a.action_type === 'article_publish') {
     const id = String(a.payload.articleId ?? '');
+    // 20261029000000 (Codex F07): the approval names the revision the Owner read - a draft rewritten since then is read again first
+    if (Number(b.revision ?? 0) !== Number(a.payload.revision ?? 0)) return { status: 409, body: { ok: false, code: 'article_changed' } };
     const art = id ? await d.getArticle(id) : null;
     if (!art || art.status !== 'draft') return { status: 409, body: { ok: false, code: 'article_not_draft' } };
     if (draftErrors(art).length) return { status: 409, body: { ok: false, code: 'article_invalid' } };
-    await d.updateArticle(art.id, { status: 'published', published_at: at });
+    if (!(await d.updateArticle(art.id, { status: 'published', published_at: at }, 'draft'))) return { status: 409, body: { ok: false, code: 'article_not_draft' } };
     const deploy = await d.deployHook();
     await d.updateAction(a.id, { status: 'done', decided_at: at, done_at: nowIso(d), result: { slug: art.slug, deploy }, error: deploy === 'ok' ? null : `deploy_${deploy}` });
     return { status: 200, body: { ok: true, status: 'published', slug: art.slug, deploy } };
@@ -411,8 +420,11 @@ export async function revise(d: StageDeps, b: { id?: unknown; note?: unknown }, 
   const r = await draftArticle(d, { market: art.market, topic_he: art.he.h1, topic_en: art.en.h1 }, [], { note, previous: { he: art.he, en: art.en } });
   await logCost(d, `revise:${a.id}:${d.now().getTime()}`.slice(0, 60), r.cost, r.tokens, `article revision: ${art.slug}`);
   if (!r.article) return { status: 502, body: { ok: false, code: 'draft_failed', errors: r.errors } };
-  await d.updateArticle(art.id, { he: r.article.he, en: r.article.en }); // the slug stays: it is the address the Owner already saw
-  await d.updateAction(a.id, { title_he: `לקרוא ולפרסם: ${r.article.he.h1}`, title_en: `Read and publish: ${r.article.en.h1}`, detail_he: r.article.he.description, detail_en: r.article.en.description });
+  // 20261029000000 (Codex F07): the new revision is announced first (an approval of the old text is then refused), and the text is
+  // written only while the article is still a draft - an approval or a rejection taken meanwhile wins
+  await d.updateAction(a.id, { title_he: `לקרוא ולפרסם: ${r.article.he.h1}`, title_en: `Read and publish: ${r.article.en.h1}`, detail_he: r.article.he.description, detail_en: r.article.en.description,
+    payload: { ...a.payload, revision: Number(a.payload.revision ?? 0) + 1 } }, 'proposed');
+  if (!(await d.updateArticle(art.id, { he: r.article.he, en: r.article.en }, 'draft'))) return { status: 409, body: { ok: false, code: 'article_not_draft' } }; // the slug stays
   return { status: 200, body: { ok: true, status: 'revised' } };
 }
 
@@ -486,16 +498,48 @@ async function socialState(d: StageDeps): Promise<Out> {
 async function publishClaimed(d: StageDeps, a: Action, channel: string, claim: string, lost: string): Promise<Out> {
   const won = await d.getAction(a.id);
   if (!won || won.status !== 'approved' || won.error !== claim) return { status: 409, body: { ok: false, code: lost } };
+  let p: { url: string; id: string };
   try {
-    const p = await d.publishSocial(channel, a.payload);
-    await d.updateAction(a.id, { status: 'done', done_at: nowIso(d), result: { published: true, auto: true, url: p.url, id: p.id }, error: null }, 'approved');
-    return { status: 200, body: { ok: true, status: 'published', url: p.url } };
+    p = await d.publishSocial(channel, a.payload, (containerId) => d.updateAction(a.id, { result: { containerId } }, 'approved'));
   } catch (e) {
-    // the post stays ready: the Owner can press "publish now" again or publish it by hand
-    const error = `publish_failed: ${String((e as Error)?.message ?? 'failed')}`.slice(0, 200);
+    // 20261029000000 (Codex F08): a definite refusal leaves the post ready (publish now / by hand); an unknown outcome is never
+    // published again until the Owner checks the page and says it is not there
+    const code = String((e as Error)?.message ?? 'failed');
+    const definite = (e as { definite?: unknown })?.definite === true;
+    const error = `${definite ? 'publish_failed' : 'publish_unknown'}: ${code}`.slice(0, 200);
     await d.updateAction(a.id, { error }, 'approved');
-    return { status: 200, body: { ok: true, status: 'ready', publishError: error } };
+    if (definite) await metaIncident(d, channel, code).catch(() => undefined);
+    return { status: 200, body: { ok: true, status: definite ? 'ready' : 'unknown', publishError: error } };
   }
+  const done = { status: 'done', done_at: nowIso(d), result: { published: true, auto: true, url: p.url, id: p.id }, error: null };
+  try { await d.updateAction(a.id, done, 'approved'); }
+  catch { await d.updateAction(a.id, done, 'approved').catch(() => undefined); } // still not written: the claim stays - publish now asks first
+  return { status: 200, body: { ok: true, status: 'published', url: p.url } };
+}
+
+// 20261029000000 (Codex F10): Meta refused a publication - the Owner gets ONE email per account, reason and day (never the token)
+const CHANNEL_HE: Record<string, string> = { fb_il: 'פייסבוק ישראל', fb_intl: 'פייסבוק הבינלאומי', ig_il: 'אינסטגרם ישראל', ig_intl: 'אינסטגרם הבינלאומי' };
+export function metaReasonHe(code: string): string {
+  const c = /^meta_\d+_(\d+)$/.exec(code)?.[1] ?? '';
+  if (c === '190') return 'החיבור לדף פג (מפתח הגישה של הדף כבר לא תקף). צריך לחבר את הדף מחדש, ואחר כך ללחוץ "פרסום עכשיו".';
+  if (['10', '200', '3'].includes(c)) return 'לדף חסרה הרשאת פרסום. צריך לחבר אותו מחדש עם הרשאות הפרסום.';
+  if (['4', '17', '32', '613'].includes(c)) return 'מטא הגבילו את הפרסום זמנית. אפשר לנסות שוב מאוחר יותר.';
+  return `מטא דחו את הפרסום (${code}).`;
+}
+async function metaIncident(d: StageDeps, channel: string, code: string): Promise<void> {
+  if (!/^meta_/.test(code)) return;
+  const t = TARGETS[channel];
+  if (!t) return;
+  const day = israelParts(d.now()).day;
+  const where = CHANNEL_HE[channel] ?? channel;
+  const aid = await d.insertAction({ run_key: `meta:${day}`, source: 'social', kind: 'auto', action_type: 'urgent_mail',
+    title_he: `הפרסום ל${where} נכשל`, title_en: `Publishing to ${channel} failed`, detail_he: metaReasonHe(code), detail_en: code,
+    dedupe_key: `meta-incident:${t.tokenEnv}:${code}:${day}` });
+  if (!aid) return;
+  const sent = await d.mailOwner(`הפרסום האוטומטי ל${where} נכשל - TEKANGO`,
+    [`פוסט שאישרתם ל${where} לא פורסם.`, '', metaReasonHe(code), '', `מסך הרשתות בניהול: https://www.tekango.com/dashboard?view=admin&section=social`].join('\n'),
+    `tekango-agents/v1/meta/${t.tokenEnv}/${code}/${day}`).catch(() => false);
+  await d.updateAction(aid, { status: sent ? 'done' : 'failed', done_at: nowIso(d), ...(sent ? {} : { error: 'mail_failed' }) });
 }
 
 // "publish now" (Owner 2026-10-27, "מאשר"): an approved post of a connected account that was not published - the claim is written only
@@ -507,8 +551,12 @@ async function publishNow(d: StageDeps, b: Record<string, unknown>): Promise<Out
     return { status: 409, body: { ok: false, code: 'not_ready' } };
   }
   const last = Date.parse(a.decided_at);
+  const err = String(a.error ?? '');
   // a publication under way (claimed in the last two minutes) is not started again
-  if (String(a.error ?? '').startsWith(CLAIM) && d.now().getTime() - last < 120_000) return { status: 409, body: { ok: false, code: 'publishing' } };
+  if (err.startsWith(CLAIM) && d.now().getTime() - last < 120_000) return { status: 409, body: { ok: false, code: 'publishing' } };
+  // 20261029000000 (Codex F08): an outcome not known (no answer, or a claim that never finished) may already be online - published
+  // again only after the Owner checked the page and confirmed it is not there
+  if ((err.startsWith('publish_unknown') || err.startsWith(CLAIM)) && b.confirm !== 'not_published') return { status: 409, body: { ok: false, code: 'publish_unknown' } };
   const at = new Date(Math.max(d.now().getTime(), last + 1)).toISOString();
   const claim = `${CLAIM}${crypto.randomUUID()}`;
   await d.updateAction(a.id, { decided_at: at, error: claim }, 'approved', a.decided_at);
@@ -575,6 +623,22 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
         const text = managerReport(names, m.result ?? null, full, pendingOf(await d.recentActions()).reverse(), await d.monthCostUsd(monthStartIso(d.now())), s);
         mailed = await d.mailOwner('דוח השבוע של חדר הסוכנים - TEKANGO', text, `tekango-agents/v1/${String(rest.runKey)}`);
         if (mailed) { const at = nowIso(d); for (const id of [...runIds, ...(s.id ? [s.id] : []), ...(m.id ? [m.id] : [])]) await d.finish(id, { mailed_at: at }); }
+      } else {
+        // 20261029000000 (Codex F12): the first call's report was not mailed - this call mails it from the stored runs (no AI runs again;
+        // the same idempotency key, so a report that did go out is not sent twice)
+        const unmailed = (await d.recentRuns()).filter((r) => r.run_key === String(rest.runKey) && r.status !== 'running' && !r.mailed_at);
+        if (unmailed.length) {
+          const asResult = (r: Run): Result | undefined => (r.status === 'done'
+            ? { summaryHe: r.summary ?? '', summaryEn: String((r.data as { summaryEn?: unknown })?.summaryEn ?? ''), findings: r.findings ?? [], data: r.data ?? {}, costUsd: 0, tokens: 0 } : undefined);
+          const of = (agent: string) => unmailed.find((r) => String(r.agent) === agent);
+          const specialists = AGENTS.map((agent) => { const r = of(agent); return r ? { agent, status: r.status, result: asResult(r), error: r.error ?? undefined } : { agent, status: 'already_ran' }; });
+          const mr = of('manager'); const sr = of('social');
+          const names = Object.fromEntries((await d.profiles()).map((p) => [p.agent, p.name_he]));
+          const text = managerReport(names, mr ? asResult(mr) ?? null : null, specialists, pendingOf(await d.recentActions()).reverse(), await d.monthCostUsd(monthStartIso(d.now())),
+            sr ? { status: sr.status, result: asResult(sr), error: sr.error ?? undefined } : null);
+          mailed = await d.mailOwner('דוח השבוע של חדר הסוכנים - TEKANGO', text, `tekango-agents/v1/${String(rest.runKey)}`);
+          if (mailed) { const at = nowIso(d); for (const r of unmailed) await d.finish(r.id, { mailed_at: at }); }
+        }
       }
       return { status: 200, body: { ...rest, mailed, results: [...(rest.results as unknown[]), { agent: 'social', status: s.status, error: s.error ?? null }, { agent: 'manager', status: m.status, error: m.error ?? null }] } };
     }
@@ -588,6 +652,16 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
       return adminOnly(() => markDone(d, b));
     case 'publish_now':
       return adminOnly(() => publishNow(d, b));
+    // 20261029000000 (Codex F22): a published article whose site rebuild did not start is rebuilt again (no second approval)
+    case 'redeploy':
+      return adminOnly(async () => {
+        const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
+        const result = (a?.result ?? {}) as Record<string, unknown>;
+        if (!a || a.action_type !== 'article_publish' || a.status !== 'done' || result.deploy === 'ok') return { status: 409, body: { ok: false, code: 'not_pending' } };
+        const deploy = await d.deployHook();
+        await d.updateAction(a.id, { result: { ...result, deploy, redeployAt: nowIso(d) }, error: deploy === 'ok' ? null : `deploy_${deploy}` }, 'done');
+        return { status: 200, body: { ok: true, status: 'redeployed', deploy } };
+      });
     case 'rename':
       return adminOnly(async () => {
         const agent = String(b.agent ?? '') as AnyAgent;

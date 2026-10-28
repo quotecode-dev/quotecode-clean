@@ -21,7 +21,9 @@ import { payplusDateToIso } from '../subscription-authority/payplus.ts';
 export type ProviderTx = { uid: string; type: string; kind: 'charge' | 'refund' | 'other'; amount: number; currency: string; at: string; moreInfo: string | null };
 export type OurCharge = { providerEventId: string; attemptId: string | null; amountMinor: number; currency: string; at: string };
 export type OurRefund = { transactionUid: string };
-export type FindingCode = 'UNLINKED' | 'MISSING_AT_PROVIDER' | 'AMOUNT_MISMATCH' | 'REFUND_UNRECORDED';
+export type FindingCode = 'UNLINKED' | 'MISSING_AT_PROVIDER' | 'AMOUNT_MISMATCH' | 'REFUND_UNRECORDED' | 'REFUND_OWED';
+/** 20261029000000 (Codex F01/F02): a SMART PACK removal refund the Owner must settle (unknown, stuck, or owed with no charge reference) */
+export type OwedRefund = { removalId: string; amountMinor: number; refundState: string; at: string };
 export type Finding = { code: FindingCode; uid: string; detail: Record<string, unknown> };
 export type Scale = 'minor' | 'major' | 'unknown';
 // matched = the same transaction AND the same verified amount; unverified = the same transaction whose amount could not be checked yet
@@ -128,13 +130,20 @@ export function reconcile(a: { provider: ProviderTx[]; charges: OurCharge[]; ref
   return { matched, unverified, findings, scale, types };
 }
 
+/** a removal refund still owed to a customer - one finding per removal (told once, like every finding) */
+export function owedFindings(owed: OwedRefund[]): Finding[] {
+  return owed.filter((o) => o && typeof o.removalId === 'string' && UUID.test(o.removalId) && Number.isInteger(o.amountMinor) && o.amountMinor > 0)
+    .map((o) => ({ code: 'REFUND_OWED' as const, uid: `removal:${o.removalId}`, detail: { amountMinor: o.amountMinor, currency: 'ILS', refundState: String(o.refundState ?? ''), at: o.at } }));
+}
+
 const LABEL: Record<FindingCode, string> = {
   UNLINKED: 'חיוב בפיי פלוס שלא נקשר למנוי (נגבה כסף ואין זכאות)',
   MISSING_AT_PROVIDER: 'תשלום שנרשם אצלנו ולא נמצא בפיי פלוס',
   AMOUNT_MISMATCH: 'סכום או מטבע שונים בין פיי פלוס לבינינו',
   REFUND_UNRECORDED: 'החזר בפיי פלוס שלא נרשם אצלנו',
+  REFUND_OWED: 'החזר ללקוח שעוד לא בוצע או שלא ידוע אם בוצע',
 };
-const ORDER: FindingCode[] = ['UNLINKED', 'MISSING_AT_PROVIDER', 'AMOUNT_MISMATCH', 'REFUND_UNRECORDED'];
+const ORDER: FindingCode[] = ['UNLINKED', 'REFUND_OWED', 'MISSING_AT_PROVIDER', 'AMOUNT_MISMATCH', 'REFUND_UNRECORDED'];
 
 /** The Owner's email (Hebrew): the open findings not told yet, the most urgent first; null when there is nothing to tell. */
 export function alertText(newFindings: Finding[], matched: number, appUrl: string): { subject: string; text: string } | null {
@@ -204,7 +213,7 @@ export type ReconcileDeps = {
   /** a new run row; the site run only once per Israel day (null = already ran today) */
   claimRun: (day: string, source: 'cron' | 'admin') => Promise<string | null>;
   finishRun: (runId: string, patch: RunPatch) => Promise<void>;
-  source: (from: string, until: string) => Promise<{ charges: OurCharge[]; refunds: OurRefund[] }>;
+  source: (from: string, until: string) => Promise<{ charges: OurCharge[]; refunds: OurRefund[]; owedRefunds?: OwedRefund[] }>;
   history: (cfg: PayPlusRead, from: Date, until: Date, currency: string) => Promise<HistoryResult>;
   /** stores the findings once per (code, uid); returns the ones that are new. seenByOwner: the Owner's own run shows them on the
    *  screen, so they count as told (never emailed later) */
@@ -294,6 +303,7 @@ async function runOnce(runId: string, role: 'admin' | 'cron', now: Date, deps: R
   }
   const ours = await deps.source(providerFrom.toISOString(), until.toISOString());
   const r = reconcile({ provider, charges: ours.charges, refunds: ours.refunds, from: from.toISOString(), until: until.toISOString() });
+  r.findings.push(...owedFindings(ours.owedRefunds ?? []));
   const recovered = await incidentOpen();
   const fresh = await deps.saveFindings(runId, r.findings, role === 'admin');
   const types = unreadable ? { ...r.types, unreadable } : r.types;

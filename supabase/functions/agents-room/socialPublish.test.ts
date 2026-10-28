@@ -2,7 +2,7 @@
 // "approve" - a Facebook page photo post, an Instagram image post through the Israeli page. The page token is only sent to Meta; a
 // failure leaves the post ready for a manual publication; only the request that won the approval publishes.
 import { describe, it, expect, vi } from 'vitest';
-import { publishToMeta, facebookMessage, instagramCaption, imageUrl, TARGETS, GRAPH, CHANNELS } from './social.ts';
+import { publishToMeta, facebookMessage, instagramCaption, imageUrl, TARGETS, GRAPH, CHANNELS, MetaError } from './social.ts';
 import { handle, type StageDeps, type Action } from './manager.ts';
 
 const payload = { channel: 'fb_il', network: 'facebook', market: 'il', text: 'הצעת מחיר ברורה בכמה דקות.', hashtags: ['#הצעת_מחיר', '#TEKANGO'], link: 'https://www.tekango.com/he', art: 'quote' };
@@ -14,7 +14,7 @@ describe('the Meta publication', () => {
     expect(Object.keys(TARGETS).sort()).toEqual(['fb_il', 'fb_intl', 'ig_il', 'ig_intl']);
     expect(CHANNELS.find((c) => c.id === 'fb_intl')!.accountOpen).toBe(true);
     expect(TARGETS.ig_il).toMatchObject({ kind: 'instagram', tokenEnv: 'META_PAGE_IL_TOKEN' });
-    expect(TARGETS.ig_intl).toEqual({ kind: 'instagram', igUserId: '17841422352275530', tokenEnv: 'META_PAGE_INTL_TOKEN' });
+    expect(TARGETS.ig_intl).toEqual({ kind: 'instagram', igUserId: '17841422352275530', tokenEnv: 'META_PAGE_INTL_TOKEN', profileUrl: 'https://www.instagram.com/tekangoglobal/' });
     expect(CHANNELS.find((c) => c.id === 'ig_intl')!.accountOpen).toBe(true);
   });
 
@@ -49,6 +49,30 @@ describe('the Meta publication', () => {
     await expect(publishToMeta(f, () => 'PAGE-TOKEN', 'tt_il', payload)).rejects.toThrow('not_connected');
     expect(imageUrl('../../etc')).toBe('https://www.tekango.com/social/art/quote.jpg');
   });
+
+  // 20261029000000 (Codex F08 / F11): definite vs unknown, the container kept, each account's own fallback link
+  it('a coded Meta refusal is definite; no answer or a 5xx is unknown (the post may be online)', async () => {
+    const refused = vi.fn(async () => new Response(JSON.stringify({ error: { code: 190 } }), { status: 400 }));
+    await expect(publishToMeta(refused, () => 'T', 'fb_il', payload)).rejects.toMatchObject({ message: 'meta_400_190', definite: true });
+    const down = vi.fn(async () => new Response('', { status: 502 }));
+    await expect(publishToMeta(down, () => 'T', 'fb_il', payload)).rejects.toMatchObject({ message: 'meta_502', definite: false });
+    const noId = vi.fn(async () => ok({}));
+    await expect(publishToMeta(noId, () => 'T', 'fb_il', payload)).rejects.toMatchObject({ message: 'meta_no_id', definite: false });
+  });
+  it('Instagram: a failed container is definite (nothing published); the container id is kept before the publication', async () => {
+    const bad = vi.fn(async () => new Response('', { status: 503 }));
+    await expect(publishToMeta(bad, () => 'T', 'ig_il', { ...payload, channel: 'ig_il' })).rejects.toMatchObject({ definite: true });
+    const kept: string[] = [];
+    const f = vi.fn(async (url: string) => (url.endsWith('/media') ? ok({ id: 'c9' }) : url.endsWith('/media_publish') ? new Response('', { status: 500 }) : ok({})));
+    await expect(publishToMeta(f, () => 'T', 'ig_il', { ...payload, channel: 'ig_il' }, async (id) => { kept.push(id); })).rejects.toMatchObject({ definite: false });
+    expect(kept).toEqual(['c9']);
+  });
+  it('the international Instagram falls back to its own profile, never the Israeli one', async () => {
+    for (const permalink of [new Response('', { status: 500 }), ok({}), ok({ permalink: 'https://evil.example/p' })]) {
+      const f = vi.fn(async (url: string) => (url.endsWith('/media') ? ok({ id: 'c1' }) : url.endsWith('/media_publish') ? ok({ id: 'm1' }) : permalink));
+      expect((await publishToMeta(f, () => 'T', 'ig_intl', { ...payload, channel: 'ig_intl' })).url).toBe('https://www.instagram.com/tekangoglobal/');
+    }
+  });
 });
 
 describe('approve = publish, for a connected account', () => {
@@ -62,6 +86,11 @@ describe('approve = publish, for a connected account', () => {
       connectedChannels: () => ['fb_il', 'fb_intl', 'ig_il'],
       publishSocial: vi.fn(async () => ({ id: 'p1', url: 'https://www.facebook.com/p1' })),
       getAction: vi.fn(async (id: string) => actions.get(id) ?? null),
+      insertAction: vi.fn(async (a: Record<string, unknown>) => {
+        if ([...actions.values()].some((x) => (x as unknown as { dedupe_key?: string }).dedupe_key === a.dedupe_key)) return null;
+        const id = `m${actions.size}`; actions.set(id, { id, status: 'proposed', ...a } as unknown as Action); return id;
+      }),
+      mailOwner: vi.fn(async () => true),
       // like the database: a conditional write, and a time read back in its own spelling (+00:00)
       updateAction: vi.fn(async (id: string, patch: Record<string, unknown>, when?: string, whenDecidedAt?: string) => {
         const a = actions.get(id)!;
@@ -86,11 +115,51 @@ describe('approve = publish, for a connected account', () => {
   });
 
   it('a failure leaves the post approved (ready for a manual publication) with the reason', async () => {
-    const d = deps({ publishSocial: vi.fn(async () => { throw new Error('meta_400_190'); }) });
+    const d = deps({ publishSocial: vi.fn(async () => { throw new MetaError('meta_400_190', true); }) });
     const r = await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths);
     expect(r.body).toEqual({ ok: true, status: 'ready', publishError: 'publish_failed: meta_400_190' });
     expect(d.actions.get('a1')).toMatchObject({ status: 'approved', error: 'publish_failed: meta_400_190' });
     expect((await handle({ action: 'mark_done', id: 'a1' }, d, paths)).body).toMatchObject({ ok: true }); // published by hand
+  });
+
+  // 20261029000000 (Codex F10): the Owner is told once - the reason in plain words, never the token
+  it('a dead page connection emails the Owner once a day with what to do', async () => {
+    const d = deps({ publishSocial: vi.fn(async () => { throw new MetaError('meta_400_190', true); }) });
+    await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths);
+    expect(d.mailOwner).toHaveBeenCalledTimes(1);
+    const [subject, text, key] = (d.mailOwner as ReturnType<typeof vi.fn>).mock.calls[0] as [string, string, string];
+    expect(subject).toBe('הפרסום האוטומטי לפייסבוק ישראל נכשל - TEKANGO');
+    expect(text).toContain('החיבור לדף פג');
+    expect(text).not.toMatch(/TOKEN|access_token/);
+    expect(key).toBe('tekango-agents/v1/meta/META_PAGE_IL_TOKEN/meta_400_190/2026-11-01');
+    await handle({ action: 'publish_now', id: 'a1' }, d, paths);
+    expect(d.mailOwner).toHaveBeenCalledTimes(1); // the same account, reason and day: no second email
+  });
+
+  // 20261029000000 (Codex F08): an outcome not known is never published again without the Owner's check
+  it('no clear answer from Meta: unknown - "publish now" asks the Owner to check the page first', async () => {
+    const d = deps({ publishSocial: vi.fn(async () => { throw new Error('The signal has been aborted'); }) });
+    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths)).body)
+      .toEqual({ ok: true, status: 'unknown', publishError: 'publish_unknown: The signal has been aborted' });
+    expect((await handle({ action: 'publish_now', id: 'a1' }, d, paths)).body).toEqual({ ok: false, code: 'publish_unknown' });
+    expect(d.publishSocial).toHaveBeenCalledTimes(1);
+    expect(d.mailOwner).not.toHaveBeenCalled();
+    (d.publishSocial as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: 'p2', url: 'https://www.facebook.com/p2' });
+    expect((await handle({ action: 'publish_now', id: 'a1', confirm: 'not_published' }, d, paths)).body).toMatchObject({ ok: true, status: 'published' });
+  });
+  it('published at Meta but not recorded: the claim stays, so "publish now" asks first', async () => {
+    const d = deps();
+    const real = d.updateAction as ReturnType<typeof vi.fn>;
+    const impl = real.getMockImplementation()!;
+    real.mockImplementation(async (id: string, patch: Record<string, unknown>, when?: string, w2?: string) => {
+      if (patch.status === 'done') throw new Error('database');
+      return impl(id, patch, when, w2);
+    });
+    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths)).body).toMatchObject({ ok: true, status: 'published' });
+    expect(String(d.actions.get('a1')!.error)).toMatch(/^publishing:/);
+    real.mockImplementation(impl);
+    const later = { ...d, now: () => new Date('2026-11-01T06:10:00Z') } as typeof d;
+    expect((await handle({ action: 'publish_now', id: 'a1' }, later, paths)).body).toEqual({ ok: false, code: 'publish_unknown' });
   });
 
   it('an account that is not connected (TikTok) only becomes ready - nothing is sent to Meta', async () => {
@@ -139,7 +208,7 @@ describe('"publish now" - an approved post of a connected account that was not p
 
   it('a failure leaves it ready with the reason, and it can be pressed again', async () => {
     const d = ready();
-    (d.publishSocial as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('meta_400_190'));
+    (d.publishSocial as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new MetaError('meta_400_190', true));
     expect((await handle({ action: 'publish_now', id: 'a1' }, d, paths)).body).toEqual({ ok: true, status: 'ready', publishError: 'publish_failed: meta_400_190' });
     expect(d.actions.get('a1')).toMatchObject({ status: 'approved', error: 'publish_failed: meta_400_190' });
     expect((await handle({ action: 'publish_now', id: 'a1' }, d, paths)).body).toMatchObject({ ok: true, status: 'published' });
@@ -148,8 +217,10 @@ describe('"publish now" - an approved post of a connected account that was not p
 
   it('refused: a publication under way, a post not yet approved, an account that is not connected', async () => {
     expect((await handle({ action: 'publish_now', id: 'a1' }, ready({ error: 'publishing:x', decided_at: '2026-11-01T05:59:00.000+00:00' }), paths)).body).toEqual({ ok: false, code: 'publishing' });
-    const stale = ready({ error: 'publishing:x', decided_at: '2026-11-01T05:50:00.000+00:00' }); // a claim older than two minutes
-    expect((await handle({ action: 'publish_now', id: 'a1' }, stale, paths)).status).toBe(200);
+    // a claim older than two minutes never finished: the post may be online - only after the Owner checked (Codex F08)
+    const stale = ready({ error: 'publishing:x', decided_at: '2026-11-01T05:50:00.000+00:00' });
+    expect((await handle({ action: 'publish_now', id: 'a1' }, stale, paths)).body).toEqual({ ok: false, code: 'publish_unknown' });
+    expect((await handle({ action: 'publish_now', id: 'a1', confirm: 'not_published' }, stale, paths)).status).toBe(200);
     expect((await handle({ action: 'publish_now', id: 'a1' }, ready({ status: 'proposed' }), paths)).body).toEqual({ ok: false, code: 'not_ready' });
     const tiktok = ready();
     tiktok.actions.get('a1')!.payload = { ...payload, channel: 'tt_il', network: 'tiktok' };

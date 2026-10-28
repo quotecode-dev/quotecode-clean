@@ -4,7 +4,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   expenseHandler, oauthCallback, scanBatch, parseMessage, validateExtraction, vatRule, gmailQuery, payplusFields, invoicePatch, settingsPatch,
-  signState, verifyState, sameDocument, payplusRecords, callbackFailure, boiRate, payplusReason, createExpenseAt, subcategoryUuids, EXPENSE_MODEL, EXPENSE_FALLBACK_MODEL, type ExpenseDeps,
+  signState, verifyState, sameDocument, documentMatch, findDocument, sameSupplier, searchAllPages, payplusPage, PayplusCreateError, createAnswerDefinite, payplusRecords, callbackFailure, boiRate, payplusReason, createExpenseAt, subcategoryUuids, EXPENSE_MODEL, EXPENSE_FALLBACK_MODEL, type ExpenseDeps,
 } from './lib.ts';
 
 const NOW = Date.parse('2026-10-22T18:00:00Z');
@@ -61,9 +61,18 @@ function deps(over: Partial<ExpenseDeps> = {}) {
     isDuplicate: async (s, num) => Object.values(rows).some((r) => String(r.supplier_name).toLowerCase() === s.toLowerCase() && r.doc_number === num),
     insertInvoice: vi.fn(async (row) => { rows[String(row.id)] = { ...row }; return String(row.id); }),
     invoices: async (ids) => ids.map((i) => rows[i]).filter(Boolean),
-    updateUnlessSent: vi.fn(async (id, p) => { if (!rows[id] || ['sent', 'sending'].includes(String(rows[id].status))) return false; rows[id] = { ...rows[id], ...p }; return true; }),
+    updateUnlessSent: vi.fn(async (id, p) => { if (!rows[id] || ['sent', 'sending', 'unknown'].includes(String(rows[id].status))) return false; rows[id] = { ...rows[id], ...p }; return true; }),
     claimForSend: vi.fn(async (id) => { if (!rows[id] || !['approved', 'send_failed'].includes(String(rows[id].status))) return null; rows[id].status = 'sending'; return { ...rows[id] }; }),
     finishSend: vi.fn(async (id, p) => { if (rows[id]?.status === 'sending') rows[id] = { ...rows[id], ...p }; }),
+    claimUnknown: vi.fn(async (id) => {
+      if (rows[id]?.status !== 'unknown') return null;
+      const since = String(rows[id].updated_at ?? new Date(NOW).toISOString());
+      rows[id].status = 'sending';
+      return { ...rows[id], unknown_since: since } as never;
+    }),
+    expireStaleSending: vi.fn(async () => 0),
+    sameInvoiceElsewhere: vi.fn(async (row) => Object.values(rows).some((r) => r.id !== row.id && r.doc_number === row.doc_number
+      && ['sending', 'sent', 'unknown'].includes(String(r.status)) && sameSupplier(r, row))),
     settings: async () => ({ expense_types: [{ id: 5554, name: 'תוכנה' }], default_subcategory_id: 5554 }),
     saveSettings: vi.fn(async () => {}),
     upload: vi.fn(async () => {}),
@@ -266,7 +275,7 @@ describe('approval and PayPlus', () => {
     expect(d.payplusCreate).toHaveBeenCalledTimes(1);
   });
   it('a pending row is not sent; the same number AND amount already in PayPlus is never sent twice', async () => {
-    const d = deps({ payplusSearch: vi.fn(async () => [{ number: 'INV-1001', docUID: 'existing-1', total_items_base_currency: 35 }]) });
+    const d = deps({ payplusSearch: vi.fn(async () => [{ number: 'INV-1001', docUID: 'existing-1', total_items_base_currency: 35, customer: { customer_name: 'Supabase Inc' } }]) });
     const id = approved(d, { status: 'pending' });
     expect((await expenseHandler({ action: 'send', ids: [id] }, d, 'u1')).body.results).toEqual([{ id, ok: false, code: 'not_approved' }]);
     d.rows[id].status = 'approved';
@@ -356,7 +365,7 @@ describe('L-22 (Owner 2026-10-28, "שער יציג לפי תאריך החשבו�
     expect(d.payplusCreate).not.toHaveBeenCalled();
   });
   it('the same number with the shekel amount already in PayPlus is the same document (never sent twice)', async () => {
-    const d = deps({ payplusSearch: vi.fn(async () => [{ number: 'X-7', docUID: 'existing-7', total_items_base_currency: 129.5 }]) });
+    const d = deps({ payplusSearch: vi.fn(async () => [{ number: 'X-7', docUID: 'existing-7', total_items_base_currency: 129.5, customer: { customer_name: 'Other' } }]) });
     const id = '44444444-4444-4444-4444-444444444444';
     d.rows[id] = { id, status: 'approved', supplier_name: 'Other', email_subject: null, doc_number: 'X-7', doc_date: '2026-09-01', amount: 35, currency: 'USD', amount_includes_vat: false, vat_percentage: 0, file_path: null };
     expect((await expenseHandler({ action: 'send', ids: [id] }, d, 'u1')).body.results).toEqual([{ id, ok: true, code: 'already_in_payplus' }]);
@@ -365,6 +374,111 @@ describe('L-22 (Owner 2026-10-28, "שער יציג לפי תאריך החשבו�
   it('a foreign row without a rate gives no PayPlus fields', () => {
     expect(payplusFields({ doc_number: '1', doc_date: '2026-09-01', amount: 1, currency: 'USD' }, 1)).toBeNull();
     expect(payplusFields({ doc_number: '1', doc_date: '2026-09-01', amount: 1, currency: 'USD' }, 1, { rate: 3.5, date: '2026-09-01' })).toMatchObject({ amount: '3.50', currency_code: 'ILS' });
+  });
+});
+
+// Owner console 2026-10-28 (typed: "מאשר שינוי ב-L-01, ... L-22 ... לפי התוכנית לתיקון 22 ממצאי קודקס מ-28/10"): Codex F05 / F06
+describe('Codex F05 / F06: never twice, never another supplier document', () => {
+  const ILS_ROW = (o: P = {}) => ({ status: 'approved', supplier_name: 'Acme Ltd', supplier_vat_id: null, email_subject: null, doc_number: '1001', doc_date: '2026-09-01',
+    amount: 100, currency: 'ILS', amount_includes_vat: false, vat_percentage: 0, file_path: null, ...o });
+  const put = (d: ReturnType<typeof deps>, id: string, o: P = {}) => { d.rows[id] = { id, ...ILS_ROW(o) }; return id; };
+  const A = '55555555-5555-4555-8555-555555555551';
+  const B = '55555555-5555-4555-8555-555555555552';
+  it('the same number and amount of ANOTHER supplier is never taken as ours - and never created blindly either', async () => {
+    const d = deps({ payplusSearch: vi.fn(async () => [{ number: '1001', docUID: 'other-1', total_items_base_currency: 100, customer: { customer_name: 'Beta Corp' } }]) });
+    put(d, A);
+    expect((await expenseHandler({ action: 'send', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: false, code: 'payplus_ambiguous' }]);
+    expect(d.rows[A].status).toBe('send_failed');
+    expect(d.payplusCreate).not.toHaveBeenCalled();
+  });
+  it('a part of a name is not the same supplier ("Meta" is not "Metatron Ltd")', () => {
+    expect(documentMatch({ number: '1', total_items_base_currency: 5, customer: { customer_name: 'Metatron Ltd' } }, { doc_number: '1', supplier_name: 'Meta', amount: 9 })).toBe('none');
+    expect(sameSupplier({ supplier_name: 'Meta' }, { supplier_name: 'Metatron Ltd' })).toBe(false);
+  });
+  it('tax ids decide over names; a record without a supplier is never a certain match', () => {
+    expect(documentMatch({ number: '1', total_items_base_currency: 5, supplier_vat_id: '51-234567-8', customer: { customer_name: 'X' } }, { doc_number: '1', supplier_name: 'Y', supplier_vat_id: '512345678', amount: 5 })).toBe('match');
+    expect(documentMatch({ number: '1', total_items_base_currency: 5, supplier_vat_id: '511111111' }, { doc_number: '1', supplier_name: 'Y', supplier_vat_id: '512345678', amount: 5 })).toBe('none');
+    expect(documentMatch({ number: '1', total_items_base_currency: 5 }, { doc_number: '1', supplier_name: 'Y', amount: 5 })).toBe('ambiguous');
+    expect(findDocument([{ number: '1', total_items_base_currency: 5, customer: { customer_name: 'Y' } }, { number: '1', total_items_base_currency: 5, customer: { customer_name: 'Y' } }], { doc_number: '1', supplier_name: 'Y', amount: 5 }, 5)).toBe('ambiguous');
+  });
+  it('no answer from PayPlus after the create: unknown - never sent again automatically', async () => {
+    const d = deps({ payplusCreate: vi.fn(async () => { throw new PayplusCreateError('PayPlus: The signal has been aborted', false); }) });
+    put(d, A);
+    expect((await expenseHandler({ action: 'send', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: false, code: 'payplus_unknown' }]);
+    expect(d.rows[A].status).toBe('unknown');
+    expect((await expenseHandler({ action: 'send', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: false, code: 'not_approved' }]);
+    expect(d.payplusCreate).toHaveBeenCalledTimes(1);
+    expect((await expenseHandler({ action: 'update', id: A, patch: { status: 'approved' } }, d, 'u1')).status).toBe(409);
+  });
+  it('a definite PayPlus refusal stays a plain failure that can be sent again', async () => {
+    const d = deps({ payplusCreate: vi.fn(async () => { throw new PayplusCreateError('PayPlus 422: bad field', true); }) });
+    put(d, A);
+    expect((await expenseHandler({ action: 'send', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: false, code: 'payplus_failed' }]);
+    expect(d.rows[A].status).toBe('send_failed');
+  });
+  it('the answer classes: a 4xx (not 408) or a JSON refusal is definite; a time-out, 5xx, 408 or an unreadable 2xx is unknown', () => {
+    expect(createAnswerDefinite(422, '{}')).toBe(true);
+    expect(createAnswerDefinite(200, '{"status":"error"}')).toBe(true);
+    expect(createAnswerDefinite(408, '')).toBe(false);
+    expect(createAnswerDefinite(502, '')).toBe(false);
+    expect(createAnswerDefinite(200, '<html>')).toBe(false);
+  });
+  it('created in PayPlus but not marked here: the row stays sending (it becomes unknown) - never sent again', async () => {
+    const d = deps();
+    d.finishSend = vi.fn(async () => { throw new Error('database'); });
+    put(d, A);
+    expect((await expenseHandler({ action: 'send', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: false, code: 'unrecorded' }]);
+    expect(d.rows[A].status).toBe('sending');
+    expect(d.payplusCreate).toHaveBeenCalledTimes(1);
+  });
+  it('every send first turns a stuck "sending" (over 15 minutes) into unknown', async () => {
+    const d = deps();
+    put(d, A);
+    await expenseHandler({ action: 'send', ids: [A] }, d, 'u1');
+    expect(d.expireStaleSending).toHaveBeenCalledTimes(1);
+    const cutoff = Date.parse((d.expireStaleSending as ReturnType<typeof vi.fn>).mock.calls[0][0] as string);
+    expect(NOW - cutoff).toBeGreaterThanOrEqual(15 * 60000 - 1000);
+  });
+  it('the same invoice of the same supplier in another row is never sent twice', async () => {
+    const d = deps();
+    put(d, A, { status: 'sent', payplus_uuid: 'pp-1' });
+    put(d, B, { supplier_name: 'ACME  ltd' });
+    expect((await expenseHandler({ action: 'send', ids: [B] }, d, 'u1')).body.results).toEqual([{ id: B, ok: false, code: 'duplicate_local' }]);
+    expect(d.payplusCreate).not.toHaveBeenCalled();
+  });
+  it('the search reads every page; a total not reached or a repeated page blocks the send', async () => {
+    const rec = (i: number) => ({ number: '1001', n: i });
+    const pages = (total: number, per: number[]) => { let k = 0; return vi.fn(async () => { const c = per[k++] ?? 0; return { items: Array.from({ length: c }, (_, i) => rec(k * 100 + i)), total }; }); };
+    expect(await searchAllPages(pages(70, [50, 20]))).toHaveLength(70);
+    await expect(searchAllPages(pages(120, [50, 20]))).rejects.toThrow('search_incomplete');
+    const same = vi.fn(async () => ({ items: Array.from({ length: 50 }, () => rec(1)), total: null }));
+    await expect(searchAllPages(same)).rejects.toThrow('search_incomplete');
+    expect(await searchAllPages(async () => 'empty' as const)).toEqual([]);
+    expect(payplusPage({ status: 'success', details: { numItems: 70, items: [rec(1)] } })).toEqual({ items: [rec(1)], total: 70 });
+  });
+  it('the match on page 2 counts: already in PayPlus, nothing created', async () => {
+    const d = deps({ payplusSearch: vi.fn(async () => [...Array.from({ length: 50 }, (_, i) => ({ number: `1001-${i}` })), { number: '1001', docUID: 'p2', total_items_base_currency: 100, customer: { customer_name: 'Acme Ltd' } }]) });
+    put(d, A);
+    expect((await expenseHandler({ action: 'send', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: true, code: 'already_in_payplus' }]);
+    expect(d.payplusCreate).not.toHaveBeenCalled();
+  });
+  it('"Check in PayPlus": found = sent; not found after 15 minutes = can be sent again; too early or unclear = stays unknown; never a create', async () => {
+    const old = new Date(NOW - 20 * 60000).toISOString();
+    const fresh = new Date(NOW - 60000).toISOString();
+    let d = deps({ payplusSearch: vi.fn(async () => [{ number: '1001', docUID: 'pp-found', total_items_base_currency: 100, customer: { customer_name: 'Acme Ltd' } }]) });
+    put(d, A, { status: 'unknown', updated_at: fresh });
+    expect((await expenseHandler({ action: 'reconcile', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: true, code: 'already_in_payplus' }]);
+    expect(d.rows[A]).toMatchObject({ status: 'sent', payplus_uuid: 'pp-found' });
+    d = deps();
+    put(d, A, { status: 'unknown', updated_at: old });
+    expect((await expenseHandler({ action: 'reconcile', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: false, code: 'not_in_payplus' }]);
+    expect(d.rows[A].status).toBe('send_failed');
+    d = deps();
+    put(d, A, { status: 'unknown', updated_at: fresh });
+    expect((await expenseHandler({ action: 'reconcile', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: false, code: 'too_early' }]);
+    expect(d.rows[A]).toMatchObject({ status: 'unknown', updated_at: fresh });
+    expect(d.payplusCreate).not.toHaveBeenCalled();
+    expect((await expenseHandler({ action: 'reconcile', ids: [B] }, d, 'u1')).body.results).toEqual([{ id: B, ok: false, code: 'not_unknown' }]);
   });
 });
 

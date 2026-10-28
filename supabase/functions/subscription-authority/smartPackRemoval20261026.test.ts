@@ -84,14 +84,69 @@ describe('the removal on the server', () => {
   it('the request: only the idempotency key is read; the change is made at once and the answer says the state', async () => {
     const s = sql({ requestSmartPackRemoval: vi.fn(async () => ({ ok: true, removalId: RM, state: 'requested', effectiveAt: '2026-11-25T15:48:24.917Z', refundMinor: 0 })) });
     const r = await smartPackRemovalRequestHandler('enforced', { sql: s, provider: { removeSmartPackLine: async () => 'removed' } as never }, U, { idempotencyKey: 'rm-click-0000000001', amountMinor: 5 });
-    expect(r.body).toEqual({ ok: true, state: 'removed', effectiveAt: '2026-11-25T15:48:24.917Z', refundMinor: 0 });
+    expect(r.body).toEqual({ ok: true, state: 'removed', effectiveAt: '2026-11-25T15:48:24.917Z', refundMinor: 0, refundState: 'none' });
     expect(s.requestSmartPackRemoval).toHaveBeenCalledWith(U, 'rm-click-0000000001');
   });
-  it('section 6: a yearly refund due is refunded once on the period charge', async () => {
+  // 20261029000000 (Codex F01/F02): a shared claim - the first request wins, a second never refunds
+  const refundSql = (over: Record<string, unknown> = {}) => {
+    let state = 'due';
+    return {
+      smartPackRemovalRefundsDue: vi.fn(async () => (state === 'due' ? [{ removalId: RM, chargeRef: null, amountMinor: 2300 }] : [])),
+      claimSmartPackRemovalRefund: vi.fn(async () => { if (state !== 'due') return { ok: false, code: 'not_due' }; state = 'sending'; return { ok: true, removalId: RM, chargeRef: 'tx-year', amountMinor: 2300 }; }),
+      recordSmartPackRemovalRefund: vi.fn(async () => { if (state !== 'sending') return { ok: false }; state = 'refunded'; return { ok: true }; }),
+      markSmartPackRemovalRefundUnknown: vi.fn(async () => { state = 'unknown'; return { ok: true }; }),
+      state: () => state,
+      ...over,
+    };
+  };
+  it('section 6: a yearly refund due is claimed, refunded once on the period charge and recorded', async () => {
     const refund = vi.fn(async () => ({ ok: true as const, refundRef: 'rf-1' }));
-    const s = { smartPackRemovalRefundsDue: vi.fn(async () => [{ removalId: RM, chargeRef: 'tx-year', amountMinor: 2300 }]), recordSmartPackRemovalRefund: vi.fn(async () => ({ ok: true })) } as never as BillingSql;
-    expect(await refundDueRemovals({ sql: s, provider: { refund } as never }, U)).toBe(1);
+    const s = refundSql();
+    const made = await refundDueRemovals({ sql: s as never as BillingSql, provider: { refund } as never }, U);
+    expect(made.get(RM)).toBe('refunded');
     expect(refund).toHaveBeenCalledWith('tx-year', 2300);
     expect(s.recordSmartPackRemovalRefund).toHaveBeenCalledWith(RM, 'rf-1');
+  });
+  it('two requests at once (two tabs, or the removal and a status refresh) refund once', async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => { release = r; });
+    const refund = vi.fn(async () => { await gate; return { ok: true as const, refundRef: 'rf-1' }; });
+    const s = refundSql();
+    const a = refundDueRemovals({ sql: s as never as BillingSql, provider: { refund } as never }, U);
+    const b = refundDueRemovals({ sql: s as never as BillingSql, provider: { refund } as never }, U);
+    release();
+    await Promise.all([a, b]);
+    expect(refund).toHaveBeenCalledTimes(1);
+    expect(s.state()).toBe('refunded');
+  });
+  it('a refund PayPlus did not prove is left for the Owner and never sent again', async () => {
+    const refund = vi.fn(async () => ({ ok: false as const }));
+    const s = refundSql();
+    expect((await refundDueRemovals({ sql: s as never as BillingSql, provider: { refund } as never }, U)).get(RM)).toBe('pending');
+    expect(s.state()).toBe('unknown');
+    await refundDueRemovals({ sql: s as never as BillingSql, provider: { refund } as never }, U);
+    expect(refund).toHaveBeenCalledTimes(1);
+  });
+  it('a refund made but not recorded stays claimed and is never sent again', async () => {
+    const refund = vi.fn(async () => ({ ok: true as const, refundRef: 'rf-1' }));
+    const s = refundSql({ recordSmartPackRemovalRefund: vi.fn(async () => { throw new Error('db down'); }) });
+    expect((await refundDueRemovals({ sql: s as never as BillingSql, provider: { refund } as never }, U)).get(RM)).toBe('pending');
+    await refundDueRemovals({ sql: s as never as BillingSql, provider: { refund } as never }, U);
+    expect(refund).toHaveBeenCalledTimes(1);
+    expect(s.state()).toBe('sending');
+  });
+  it('no charge reference yet: nothing is sent, the refund stays owed', async () => {
+    const refund = vi.fn();
+    const s = refundSql({ claimSmartPackRemovalRefund: vi.fn(async () => ({ ok: false, code: 'no_charge_ref' })) });
+    expect((await refundDueRemovals({ sql: s as never as BillingSql, provider: { refund } as never }, U)).get(RM)).toBe('pending');
+    expect(refund).not.toHaveBeenCalled();
+  });
+  it('the request answers the refund state the screen may promise', async () => {
+    const yearly = (refundState: string) => vi.fn(async () => ({ ok: true, removalId: RM, state: 'removed', effectiveAt: '2026-11-25T15:48:24.917Z', refundMinor: 2300, refundState }));
+    const none = { smartPackRemovalRefundsDue: vi.fn(async () => []), claimSmartPackRemovalRefund: vi.fn(), recordSmartPackRemovalRefund: vi.fn(), markSmartPackRemovalRefundUnknown: vi.fn() };
+    const done = await smartPackRemovalRequestHandler('enforced', { sql: sql({ ...none, requestSmartPackRemoval: yearly('refunded') }), provider: { refund: vi.fn() } as never }, U, { idempotencyKey: 'rm-click-0000000002' });
+    expect(done.body.refundState).toBe('refunded');
+    const owed = await smartPackRemovalRequestHandler('enforced', { sql: sql({ ...none, requestSmartPackRemoval: yearly('unknown') }), provider: { refund: vi.fn() } as never }, U, { idempotencyKey: 'rm-click-0000000003' });
+    expect(owed.body.refundState).toBe('pending');
   });
 });

@@ -23,6 +23,8 @@ const EXPENSE_CATEGORY_LABELS = Object.freeze({
 const TABS = [
   { id: 'pending', he: 'ממתינות לאישור', en: 'Waiting for approval', statuses: ['pending'] },
   { id: 'approved', he: 'אושרו', en: 'Approved', statuses: ['approved', 'send_failed', 'sending'] },
+  // 20261029000000 (Codex F05): PayPlus may have received these - they are checked there, never sent again automatically
+  { id: 'unknown', he: 'לבדיקה מול פיי פלוס', en: 'Check in PayPlus', statuses: ['unknown'] },
   { id: 'sent', he: 'נשלחו לפיי פלוס', en: 'Sent to PayPlus', statuses: ['sent'] },
   { id: 'rejected', he: 'נדחו', en: 'Rejected', statuses: ['rejected'] },
   { id: 'excluded', he: 'סוננו', en: 'Filtered out', statuses: ['excluded'] },
@@ -56,6 +58,14 @@ const SEND_CODES = {
   missing_fields: { he: 'חסרים מספר, תאריך או סכום', en: 'missing number, date or amount' }, payplus_failed: { he: 'פיי פלוס דחו', en: 'PayPlus refused' },
   payplus_search_failed: { he: 'החיפוש בפיי פלוס נכשל', en: 'the PayPlus search failed' },
   rate_unavailable: { he: 'השער היציג של יום החשבונית לא נמצא', en: 'no representative rate for the invoice date' },
+  payplus_unknown: { he: 'לא ידוע אם נקלטה בפיי פלוס - עברה ל"לבדיקה מול פיי פלוס"', en: 'unknown whether PayPlus received it - moved to "Check in PayPlus"' },
+  search_incomplete: { he: 'החיפוש בפיי פלוס לא הושלם', en: 'the PayPlus search did not complete' },
+  payplus_ambiguous: { he: 'בפיי פלוס יש מסמך באותו מספר שלא ברור אם הוא של הספק הזה', en: 'PayPlus has a document with the same number that may not be this supplier\'s' },
+  duplicate_local: { he: 'חשבונית זהה של אותו ספק כבר נשלחה או בשליחה', en: 'the same invoice of this supplier was already sent or is being sent' },
+  unrecorded: { he: 'נשלחה לפיי פלוס אבל לא נרשמה כאן - תעבור לבדיקה', en: 'sent to PayPlus but not recorded here - it moves to the check list' },
+  not_in_payplus: { he: 'לא נמצאה בפיי פלוס - אפשר לשלוח שוב', en: 'not found in PayPlus - it can be sent again' },
+  too_early: { he: 'עדיין מוקדם לבדוק - נסו שוב בעוד כמה דקות', en: 'too early to check - try again in a few minutes' },
+  not_unknown: { he: 'כבר לא ממתינה לבדיקה', en: 'no longer waiting for a check' },
 };
 const N = ({ v }) => <bdi className="av-num">{v}</bdi>;
 const money = (amount, currency) => (amount === null || amount === undefined || !currency ? '—'
@@ -156,23 +166,29 @@ export default function AdminExpenseInvoices({ isHebrew }) {
     if (!allOk) failed();
     reload();
   };
-  const send = async (ids) => {
-    setBusy('send');
+  // action 'send' (approved rows) or 'reconcile' (20261029000000, Codex F05: rows PayPlus may have - a search only)
+  const send = async (ids, action = 'send') => {
+    setBusy(action);
     const results = [];
     // 10 at a time (the server's batch), every answer kept - a failed batch is reported, never hidden by a later one
     for (let i = 0; i < ids.length; i += 10) {
       const chunk = ids.slice(i, i + 10);
-      const r = await call({ action: 'send', ids: chunk });
+      const r = await call({ action, ids: chunk });
       if (!r.ok) { results.push(...chunk.map((id) => ({ id, ok: false, code: r.code || 'failed' }))); continue; }
       results.push(...(r.results || []));
     }
     setBusy('');
     const good = results.filter((x) => x.ok).length;
     const bad = results.filter((x) => !x.ok);
-    if (results.length) {
+    const why = (he) => [...new Set(bad.map((b) => SEND_CODES[b.code]?.[he ? 'he' : 'en'] || b.code))].join(', ');
+    if (results.length && action === 'reconcile') {
       setNotice({ good: bad.length === 0, text: isHebrew
-        ? `נשלחו לפיי פלוס: ${good}.${bad.length ? ` לא נשלחו: ${bad.length} (${[...new Set(bad.map((b) => SEND_CODES[b.code]?.he || b.code))].join(', ')}).` : ''}`
-        : `Sent to PayPlus: ${good}.${bad.length ? ` Not sent: ${bad.length} (${[...new Set(bad.map((b) => SEND_CODES[b.code]?.en || b.code))].join(', ')}).` : ''}` });
+        ? `נמצאו בפיי פלוס: ${good}.${bad.length ? ` עוד לא הוכרעו: ${bad.length} (${why(true)}).` : ''}`
+        : `Found in PayPlus: ${good}.${bad.length ? ` Not settled yet: ${bad.length} (${why(false)}).` : ''}` });
+    } else if (results.length) {
+      setNotice({ good: bad.length === 0, text: isHebrew
+        ? `נשלחו לפיי פלוס: ${good}.${bad.length ? ` לא נשלחו: ${bad.length} (${why(true)}).` : ''}`
+        : `Sent to PayPlus: ${good}.${bad.length ? ` Not sent: ${bad.length} (${why(false)}).` : ''}` });
     }
     reload();
   };
@@ -331,6 +347,12 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                       {isHebrew ? 'אישור כל הממתינות (בלי הלא בטוחות)' : 'Approve all waiting (not the uncertain ones)'}
                     </button>
                   )}
+                  {tab === 'unknown' && rows.length > 0 && (
+                    // PRODUCT_TRUTH_DECORATIVE: searches PayPlus for these expenses (a search only - nothing is created or sent)
+                    <button type="button" className="av-btn av-primary av-section" disabled={!!busy} onClick={() => send(rows.map((r) => r.id), 'reconcile')} data-testid="expense-reconcile">
+                      {busy === 'reconcile' ? (isHebrew ? 'בודק...' : 'Checking...') : (isHebrew ? 'בדיקה בפיי פלוס' : 'Check in PayPlus')}
+                    </button>
+                  )}
                   {tab === 'approved' && rows.length > 0 && (
                     // PRODUCT_TRUTH_DECORATIVE: sends the approved invoices to PayPlus expenses (the server searches PayPlus first - never twice)
                     <button type="button" className="av-btn av-primary av-section" disabled={!!busy || types.length === 0} onClick={() => send(rows.map((r) => r.id))} data-testid="expense-send">
@@ -355,6 +377,9 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                           {r.reason && <div className="av-small">{r.reason}</div>}
                           <div className="av-muted av-tiny">{isHebrew ? 'מאת ' : 'From '}<bdi dir="ltr">{r.emailFrom || '—'}</bdi> · <bdi dir="ltr">{r.mailbox}</bdi>{r.emailSubject ? <> · <bdi>{r.emailSubject}</bdi></> : null}</div>
                           {r.status === 'send_failed' && r.sendError && <div className="av-bad av-small" role="alert">{isHebrew ? 'לא נשלח: ' : 'Not sent: '}<bdi>{r.sendError}</bdi></div>}
+                          {r.status === 'unknown' && <div className="av-warn av-small" role="status" data-testid={`expense-unknown-${r.id}`}>{isHebrew
+                            ? <>לא ידוע אם ההוצאה נקלטה בפיי פלוס (לא התקבלה תשובה ברורה). היא לא תישלח שוב לבד. לחצו "בדיקה בפיי פלוס".{r.sendError ? <> <bdi>{r.sendError}</bdi></> : null}</>
+                            : <>It is not known whether PayPlus received this expense (no clear answer). It will not be sent again automatically. Press "Check in PayPlus".</>}</div>}
                           {r.status === 'sending' && <div className="av-warn av-small" role="status">{isHebrew ? 'בשליחה לפיי פלוס. אם זה נשאר כך, בדקו בפיי פלוס אם ההוצאה נוצרה.' : 'Being sent to PayPlus. If it stays like this, check in PayPlus whether the expense was created.'}</div>}
                           {!r.hasFile && <div className="av-warn av-small">{isHebrew ? 'אין קובץ במייל - החשבונית בגוף המייל או בקישור אצל הספק.' : 'No file in the email - the invoice is in the email body or behind a link at the supplier.'}</div>}
                           <div className="av-row-actions" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBlockStart: 8 }}>
@@ -364,7 +389,7 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                                 {preview?.id === r.id ? (isHebrew ? 'סגירת הקובץ' : 'Close the file') : (isHebrew ? 'הקובץ' : 'File')}
                               </button>
                             )}
-                            {r.status !== 'sent' && r.status !== 'sending' && (
+                            {r.status !== 'sent' && r.status !== 'sending' && r.status !== 'unknown' && (
                               <>
                                 {r.status !== 'approved' && r.status !== 'send_failed' && (
                                   // PRODUCT_TRUTH_DECORATIVE: approves this invoice (it is sent only with "Send to PayPlus")

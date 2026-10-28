@@ -92,11 +92,20 @@ export async function prerenderPublicRoutes({ root, outDir, mode, log = console.
 // the guides the Owner approved in the agents room (public.site_articles, published rows - public content, read with the public key).
 // Only the PRODUCTION build on Vercel reads them (VERCEL_ENV=production); every other build (local, the release gate, previews) has
 // none, so the release-gated output never depends on the database.
-export async function loadDatabaseGuides(entry, log = console.log, env = process.env) {
+// 20261029000000 (Codex F13): a read that failed is tried 3 times; still failing, the production build fails, so Vercel keeps serving the
+// current site with every published guide (an empty list would have dropped them from the pages and the sitemap)
+export async function loadDatabaseGuides(entry, log = console.log, env = process.env, wait = (ms) => new Promise((r) => setTimeout(r, ms))) {
   if (env.VERCEL_ENV !== 'production') return [];
-  const rows = await entry.fetchPublishedArticles({ base: env.VITE_SUPABASE_URL, key: env.VITE_SUPABASE_ANON_KEY });
-  log(`prerender: ${rows.length} database guides`);
-  return rows;
+  let last = null;
+  for (const pause of [0, 2000, 5000]) {
+    if (pause) await wait(pause);
+    try {
+      const rows = await entry.fetchPublishedArticles({ base: env.VITE_SUPABASE_URL, key: env.VITE_SUPABASE_ANON_KEY, strict: true });
+      log(`prerender: ${rows.length} database guides`);
+      return rows;
+    } catch (e) { last = e; log(`prerender: reading the database guides failed (${e?.message || 'failed'})`); }
+  }
+  throw new Error(`prerender: the database guides could not be read - the build stops so the live site keeps them (${last?.message || 'failed'})`);
 }
 
 const SITE = 'https://www.tekango.com';

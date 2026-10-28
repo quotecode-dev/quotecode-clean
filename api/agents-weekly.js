@@ -11,7 +11,12 @@ export async function runAgentsWeekly({ env, fetchImpl }) {
     body: JSON.stringify({ action: 'run', agent: 'all' }),
   });
   const body = await res.json().catch(() => null);
-  return { ok: res.ok, status: res.status, body };
+  // 20261029000000 (Codex F12): a failed agent, or work done whose report was not mailed, is a failure (the second call mails it)
+  const results = Array.isArray(body?.results) ? body.results : [];
+  const ran = results.some((x) => x?.status !== 'already_ran');
+  const outcome = !res.ok || !body || body.ok !== true || results.some((x) => x?.status === 'failed') || (ran && body.mailed !== true) ? 'failed'
+    : ran ? 'completed' : 'skipped';
+  return { ok: outcome !== 'failed', outcome, status: res.status, body };
 }
 
 export default async function handler(req, res) {
@@ -22,7 +27,7 @@ export default async function handler(req, res) {
   }
   try {
     const r = await runAgentsWeekly({ env: process.env, fetchImpl: fetch });
-    return res.status(r.ok ? 200 : 500).json({ success: r.ok, result: r.body });
+    return res.status(r.ok ? 200 : 500).json({ success: r.ok, outcome: r.outcome, result: r.body });
   } catch (error) {
     return res.status(500).json({ success: false, error: error.message });
   }

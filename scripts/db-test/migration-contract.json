@@ -525,6 +525,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-28 (typed L-22: labels for the unrecognised log actions and a test-account mark that is not counted in the statistics): the Owner-only test-account mark"
+    },
+    "20261029000000_codex_review_fixes.sql": {
+      "sha256": "cfe6fdfa4d42786c04b909719c6dc2627272cbe517568bdd08c12b944b440079",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-28 (typed L-01, L-06, L-09, L-11, L-12, L-15, L-17, L-22, L-23, L-24, L-25: the fixes of Codex review 25-28/10): removal refund claim and owed state, reconciliation after a removal, the one market rule in billing, the unknown expense state"
     }
   }
 }

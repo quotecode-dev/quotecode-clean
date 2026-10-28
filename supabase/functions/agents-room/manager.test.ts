@@ -76,10 +76,12 @@ function deps(over: Partial<StageDeps> = {}) {
       actions.set(id, { id, created_at: d.now().toISOString(), detail_he: null, detail_en: null, payload: {}, status: 'proposed', decided_at: null, done_at: null, result: {}, error: null, ...a } as never);
       return id;
     }),
-    updateAction: vi.fn(async (id: string, patch: Record<string, unknown>) => { Object.assign(actions.get(id)!, patch); }),
+    updateAction: vi.fn(async (id: string, patch: Record<string, unknown>, when?: string) => { const a = actions.get(id)!; if (when && a.status !== when) return; Object.assign(a, patch); }),
     getAction: vi.fn(async (id: string) => actions.get(id) ?? null),
     insertArticle: vi.fn(async (a) => { const id = `10000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`; articles.set(id, { id, status: 'draft', published_at: null, ...a } as never); return id; }),
-    updateArticle: vi.fn(async (id: string, patch: Record<string, unknown>) => { Object.assign(articles.get(id)!, patch); }),
+    updateArticle: vi.fn(async (id: string, patch: Record<string, unknown>, when?: string) => {
+      const a = articles.get(id); if (!a || (when && a.status !== when)) return false; Object.assign(a, patch); return true;
+    }),
     getArticle: vi.fn(async (id: string) => articles.get(id) ?? null),
     articleSlugs: vi.fn(async () => [...articles.values()].map((a) => a.slug)),
     lastPublishedAt: vi.fn(async () => [...articles.values()].filter((a) => a.published_at).map((a) => a.published_at!).sort().pop() ?? null),
@@ -162,6 +164,79 @@ describe('agents room stage 2 - the manager', () => {
     expect((await handle({ action: 'decide', id: other.id, decision: 'reject' }, d, paths)).body).toMatchObject({ status: 'rejected' });
   });
 
+  // 20261029000000 (Codex F12): the first weekly email failed - the second call mails the same report from the stored runs, no AI again
+  it('a weekly report that was not mailed goes out on the second call, once, with no AI call', async () => {
+    const d = deps();
+    const mail = d.mailOwner as ReturnType<typeof vi.fn>;
+    const impl = mail.getMockImplementation()!;
+    mail.mockImplementationOnce(async () => false);
+    const first = await handle({ action: 'run' }, d, paths);
+    expect(first.body.mailed).toBe(false);
+    const aiCalls = (d.complete as ReturnType<typeof vi.fn>).mock.calls.length;
+    mail.mockImplementation(impl);
+    const second = await handle({ action: 'run' }, d, paths);
+    expect(second.body.mailed).toBe(true);
+    expect(d.mails).toHaveLength(1);
+    expect(d.mails[0].key).toBe('tekango-agents/v1/cron:2026-11-01');
+    expect(d.mails[0].text).toMatch(/נועה, מנהלת הסוכנים:\nהשבוע: לכתוב מדריך באנגלית/);
+    expect((d.complete as ReturnType<typeof vi.fn>).mock.calls.length).toBe(aiCalls);
+    for (const run of d.runs.values()) expect(run.mailed_at).toBeTruthy();
+    await handle({ action: 'run' }, d, paths);
+    expect(d.mails).toHaveLength(1);
+  });
+  // 20261029000000 (Codex F07 / F09 / F22): the approved text is the published text; every paid attempt counts; a failed rebuild is retried
+  const draftAndPublishAction = async (d: ReturnType<typeof deps>) => {
+    await handle({ action: 'run' }, d, paths);
+    d.caller = admin();
+    const topic = [...d.actions.values()].find((a) => a.action_type === 'article_draft')!;
+    const r = await handle({ action: 'decide', id: topic.id, decision: 'approve' }, d, paths);
+    return { pub: d.actions.get(String(r.body.publishActionId))!, art: [...d.articles.values()][0] };
+  };
+  it('a rewrite that ends after the approval never replaces the approved text', async () => {
+    const d = deps();
+    const { pub, art } = await draftAndPublishAction(d);
+    const approvedText = JSON.stringify(art.en);
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => { release = r; });
+    const real = d.complete as ReturnType<typeof vi.fn>;
+    const impl = real.getMockImplementation()!;
+    real.mockImplementation(async (...args: unknown[]) => { await gate; return impl(...args); });
+    const rewrite = handle({ action: 'revise', id: pub.id, note: 'Shorter please' }, d, paths);
+    await new Promise((r) => setTimeout(r, 0));
+    expect((await handle({ action: 'decide', id: pub.id, decision: 'approve', revision: 0 }, d, paths)).body).toMatchObject({ ok: true, status: 'published' });
+    release();
+    expect((await rewrite).status).toBe(409);
+    expect(JSON.stringify(d.articles.get(art.id)!.en)).toBe(approvedText);
+  });
+  it('an approval of an older revision is refused - the Owner reads the rewritten draft first', async () => {
+    const d = deps();
+    const { pub, art } = await draftAndPublishAction(d);
+    expect((await handle({ action: 'revise', id: pub.id, note: 'Shorter please' }, d, paths)).body).toMatchObject({ ok: true, status: 'revised' });
+    expect(d.actions.get(pub.id)!.payload.revision).toBe(1);
+    expect((await handle({ action: 'decide', id: pub.id, decision: 'approve', revision: 0 }, d, paths)).body).toEqual({ ok: false, code: 'article_changed' });
+    expect(d.articles.get(art.id)!.status).toBe('draft');
+    expect((await handle({ action: 'decide', id: pub.id, decision: 'approve', revision: 1 }, d, paths)).body).toMatchObject({ ok: true, status: 'published' });
+  });
+  it('a rejection after the approval does not unpublish the article', async () => {
+    const d = deps();
+    const { pub, art } = await draftAndPublishAction(d);
+    const stale = { ...pub };
+    expect((await handle({ action: 'decide', id: pub.id, decision: 'approve' }, d, paths)).body).toMatchObject({ status: 'published' });
+    (d.getAction as ReturnType<typeof vi.fn>).mockImplementationOnce(async () => stale);
+    expect((await handle({ action: 'decide', id: pub.id, decision: 'reject' }, d, paths)).status).toBe(409);
+    expect(d.articles.get(art.id)!.status).toBe('published');
+    expect(d.actions.get(pub.id)!.status).toBe('done');
+  });
+  it('a rebuild that did not start is reported truthfully and can be pressed again, with no second approval', async () => {
+    const d = deps({ deployHook: vi.fn(async () => 'failed' as const) });
+    const { pub } = await draftAndPublishAction(d);
+    expect((await handle({ action: 'decide', id: pub.id, decision: 'approve' }, d, paths)).body).toMatchObject({ status: 'published', deploy: 'failed' });
+    expect(d.actions.get(pub.id)).toMatchObject({ status: 'done', error: 'deploy_failed' });
+    (d.deployHook as ReturnType<typeof vi.fn>).mockResolvedValueOnce('ok');
+    expect((await handle({ action: 'redeploy', id: pub.id }, d, paths)).body).toEqual({ ok: true, status: 'redeployed', deploy: 'ok' });
+    expect(d.actions.get(pub.id)).toMatchObject({ error: null, result: { deploy: 'ok' } });
+    expect((await handle({ action: 'redeploy', id: pub.id }, d, paths)).status).toBe(409);
+  });
   it('a draft that breaks the market rules is never stored', async () => {
     const d = deps({ complete: vi.fn(async (a: { schema: { name: string } }) => (a.schema.name === 'guide_article'
       ? { content: JSON.stringify({ ...goodDraft, en: lang('Prices in shekels', `${enP} Prices in ₪ for Israel. `) }), promptTokens: 1, completionTokens: 1 }
@@ -173,6 +248,10 @@ describe('agents room stage 2 - the manager', () => {
     expect(r.body.errors).toContain('en.israel');
     expect(d.articles.size).toBe(0);
     expect(d.actions.get(id!)!.status).toBe('proposed'); // the Owner can try again
+    // Codex F09: every paid attempt is counted (a retry is not lost under the first attempt's key)
+    (d as unknown as { now: () => Date }).now = () => new Date(NOW.getTime() + 5000);
+    await handle({ action: 'decide', id, decision: 'approve' }, d, paths);
+    expect([...d.runs.values()].filter((x) => String(x.run_key).startsWith(`draft:${id}:`)).length).toBe(2);
   });
 
   it('a code task: approve -> the Owner gets the full instruction for Claude by email; then "done"', async () => {

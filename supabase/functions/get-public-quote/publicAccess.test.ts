@@ -39,7 +39,7 @@ function world() {
   const objects = new Map<string, Uint8Array>();
   const caps = new Map<string, { quoteId: string; ops: string[]; revoked?: boolean }>();
   const grants = new Map<string, { quoteId: string; channel: string; used: boolean }>();
-  const live = new Map<string, { user_id: string; status: unknown; signature: unknown }>();
+  const live = new Map<string, { user_id: string; status: unknown; signature: unknown; signer_name?: unknown; signer_company?: unknown; signer_role?: unknown; signed_at?: unknown }>();
   for (const q of [QA, QB]) {
     const bytes = new TextEncoder().encode(canonicalJson(snapshotFor(q)));
     objects.set(canonicalSnapshotPath(OWNER, q, ATT), bytes);
@@ -93,7 +93,7 @@ describe('capability mode', () => {
     const q = r.body.quote as Record<string, unknown>;
     expect(q).toMatchObject({ id: QA, status: 'Sent', signature: null, is_owner_viewing: false, is_expired: false, total: 118 });
     expect(Object.keys(q).sort()).toEqual(['attn_name', 'attn_role', 'client_type', 'created_at', 'currency', 'discount', 'id', 'is_expired', 'is_owner_viewing', 'notes',
-      'project_name', 'quote_number', 'signature', 'status', 'subject', 'subtotal', 'tax_rate', 'terms', 'total', 'valid_until', 'warranty']);
+      'project_name', 'quote_number', 'signature', 'signed_at', 'signer_company', 'signer_name', 'signer_role', 'status', 'subject', 'subtotal', 'tax_rate', 'terms', 'total', 'valid_until', 'warranty']);
     expect(r.body.client).toEqual({ company_name: 'Acme', email: 'a@example.com', phone: '1', address: 'x' }); // allowlist: no internal_note
     expect(r.body.sections).toEqual([{ id: 's1', name: 'A' }, { id: 's2', name: 'B' }]);
     expect((r.body.items as Record<string, unknown>[])[0]).toMatchObject({ description: 'tile', price: 50, specification: [], measurements: [{ width: 1, height: 2, unit: 'm', calculated_area: 2, label: 'w', is_pricing_driving: true }] });
@@ -129,9 +129,16 @@ describe('capability mode', () => {
   });
   it('live approval state from another owner row is never mixed in', async () => {
     const w = world(); const t = await w.addCap(QA);
-    w.live.set(QA, { user_id: OTHER, status: 'Approved', signature: 'sig' });
+    w.live.set(QA, { user_id: OTHER, status: 'Approved', signature: 'sig', signer_name: 'Someone', signer_company: 'X', signer_role: 'CEO', signed_at: '2026-10-28T10:00:00Z' });
     const r = await serveCapability(w.deps, t);
-    expect(r.body.quote).toMatchObject({ status: null, signature: null });
+    expect(r.body.quote).toMatchObject({ status: null, signature: null, signer_name: null, signer_company: null, signer_role: null, signed_at: null });
+  });
+  // 20261029000000 (Codex F15, L-24): a fresh load of a signed capability link shows who signed (the owner-checked live row only)
+  it('a signed quote opened again shows the signer', async () => {
+    const w = world(); const t = await w.addCap(QA);
+    w.live.set(QA, { user_id: OWNER, status: 'Approved', signature: 'sig', signer_name: 'דנה כהן', signer_company: 'אקמה', signer_role: 'מנכ"לית', signed_at: '2026-10-28T10:00:00Z' });
+    const r = await serveCapability(w.deps, t);
+    expect(r.body.quote).toMatchObject({ status: 'Approved', signer_name: 'דנה כהן', signer_company: 'אקמה', signer_role: 'מנכ"לית', signed_at: '2026-10-28T10:00:00Z' });
   });
 });
 

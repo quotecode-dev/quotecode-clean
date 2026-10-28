@@ -3,13 +3,27 @@
 // started in January is 12,000 for that year in both). Pure: the period is passed in, "now" only bounds an open-ended custom range.
 
 const monthIndex = (d) => d.getFullYear() * 12 + d.getMonth();
+// 20261029000000 (Codex F21, IRON-DATE-001): a date-only value (YYYY-MM-DD) is its own calendar month in every time zone - never shifted
+// by the browser's zone; only a real moment is read in local time
+const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
+/** a date-only value as that calendar day at local midnight (so getFullYear / getMonth are the day written); other values as they are */
+export function calendarDateOf(value) {
+  const only = typeof value === 'string' ? value.trim().match(DATE_ONLY) : null;
+  return only ? new Date(Number(only[1]), Number(only[2]) - 1, Number(only[3])) : new Date(value);
+}
+export function monthIndexOf(value) {
+  const only = typeof value === 'string' ? value.trim().match(DATE_ONLY) : null;
+  if (only) return Number(only[1]) * 12 + Number(only[2]) - 1;
+  const d = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(d.getTime()) ? NaN : monthIndex(d);
+}
 
 /** The [from, to] calendar-month indices (year * 12 + month) of a finance report period. */
 export function reportMonthRange({ type, year, month, startDate, endDate, now = new Date() }) {
   if (type === 'custom') {
     return {
-      from: startDate ? monthIndex(new Date(startDate)) : -Infinity,
-      to: endDate ? monthIndex(new Date(endDate)) : monthIndex(now),
+      from: startDate ? monthIndexOf(startDate) : -Infinity,
+      to: endDate ? monthIndexOf(endDate) : monthIndex(now),
     };
   }
   const base = year * 12;
@@ -22,8 +36,8 @@ export function reportMonthRange({ type, year, month, startDate, endDate, now = 
 /** How many months of the range a recurring expense counts for (0 when it started after the range). */
 export function recurringMonthsInRange(expense, range) {
   if (!expense?.expense_date) return 0; // no start date (new Date(null) would be 1970) - counted nowhere
-  const started = new Date(expense.expense_date);
-  if (Number.isNaN(started.getTime())) return 0;
-  const from = Math.max(range.from, monthIndex(started));
+  const started = monthIndexOf(expense.expense_date);
+  if (Number.isNaN(started)) return 0;
+  const from = Math.max(range.from, started);
   return range.to >= from ? range.to - from + 1 : 0;
 }

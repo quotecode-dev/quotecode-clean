@@ -6,7 +6,8 @@
 //     take one (the public chat) - is removed before the answer is shown.
 // Pure (no Deno / network): runs identically under Deno and vitest.
 
-export function buildNoInventionBlock(isHebrew: boolean, screenshotsAvailable: boolean): string {
+// 20261029000000 (Codex F16): the mailbox follows the account market (marketIL), not the reply language
+export function buildNoInventionBlock(isHebrew: boolean, screenshotsAvailable: boolean, marketIL: boolean = isHebrew): string {
   return [
     '',
     'NO INVENTED ACTIONS (hard rule):',
@@ -14,7 +15,7 @@ export function buildNoInventionBlock(isHebrew: boolean, screenshotsAvailable: b
     screenshotsAvailable
       ? '- The user CAN paste one screenshot into a question (or attach it with the paperclip on a phone). The user can NOT attach files or documents (PDF, Word, Excel, etc.) - never ask for them.'
       : '- The user can NOT attach screenshots, files or documents in this chat - never ask for them.',
-    `- If you do not know how something is done in the product, say so plainly and suggest ${isHebrew ? 'support@tekango.com' : 'info@tekango.com'} - do not invent steps.`,
+    `- If you do not know how something is done in the product, say so plainly and suggest ${marketIL ? 'support@tekango.com' : 'info@tekango.com'} - do not invent steps.`,
   ].join('\n');
 }
 

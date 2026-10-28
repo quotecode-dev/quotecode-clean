@@ -8,7 +8,7 @@
 //    is read - without it every run is recorded as "not configured"), RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS, CRON_SECRET,
 //    PAYPLUS_PROXY_URL (the fixed-IP relay every PayPlus call goes through - the account's IP check; _shared/payplusEgress.ts).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { reconcileHandler, readHistory, type ReconcileDeps, type Finding, type OurCharge, type OurRefund } from './lib.ts';
+import { reconcileHandler, readHistory, type ReconcileDeps, type Finding, type OurCharge, type OurRefund, type OwedRefund } from './lib.ts';
 import { PAYPLUS_API_BASES } from '../subscription-authority/payplus.ts';
 import { sendMail } from '../support-inbound/mail.ts';
 import { payplusEgress } from '../_shared/payplusEgress.ts';
@@ -85,8 +85,8 @@ Deno.serve(async (req: Request) => {
       }).eq('run_id', runId));
     },
     source: async (from, until) => {
-      const r = await db(admin.rpc('billing_reconcile_source', { p_from: from, p_until: until })) as { charges?: OurCharge[]; refunds?: OurRefund[] } | null;
-      return { charges: Array.isArray(r?.charges) ? r.charges : [], refunds: Array.isArray(r?.refunds) ? r.refunds : [] };
+      const r = await db(admin.rpc('billing_reconcile_source', { p_from: from, p_until: until })) as { charges?: OurCharge[]; refunds?: OurRefund[]; owedRefunds?: OwedRefund[] } | null;
+      return { charges: Array.isArray(r?.charges) ? r.charges : [], refunds: Array.isArray(r?.refunds) ? r.refunds : [], owedRefunds: Array.isArray(r?.owedRefunds) ? r.owedRefunds : [] };
     },
     history: (cfg, from, until, currency) => readHistory(egress.fetch, cfg, from, until, currency),
     saveFindings: async (runId, findings, seenByOwner) => {
