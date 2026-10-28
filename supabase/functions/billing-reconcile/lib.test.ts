@@ -169,10 +169,12 @@ describe('one run', () => {
   // 20261029000000 (Codex F01/F02): a removal refund the Owner must settle is a finding of its own (told once, like every finding)
   it('an owed SMART PACK removal refund becomes REFUND_OWED', async () => {
     const RMV = '77777777-7777-4777-8777-777777777777';
-    const d = deps({ source: vi.fn(async () => ({ charges: [ours({})], refunds: [], owedRefunds: [{ removalId: RMV, amountMinor: 2300, refundState: 'unknown', at: '2026-11-01T10:00:00Z' }, { removalId: 'bad', amountMinor: 5, refundState: 'due', at: 'x' }] })) });
+    const d = deps({ source: vi.fn(async () => ({ charges: [ours({})], refunds: [], owedRefunds: [{ removalId: RMV, amountMinor: 2300, refundState: 'unknown', at: '2026-11-01T10:00:00Z', userId: '88888888-8888-4888-8888-888888888888' }, { removalId: 'bad', amountMinor: 5, refundState: 'due', at: 'x', userId: 'not-a-uuid' }] })) });
     await reconcileHandler({ action: 'run' }, d as unknown as ReconcileDeps, 'x');
     const saved = d.saveFindings.mock.calls[0][1] as Finding[];
-    expect(saved.filter((f) => f.code === 'REFUND_OWED')).toEqual([{ code: 'REFUND_OWED', uid: `removal:${RMV}`, detail: { amountMinor: 2300, currency: 'ILS', refundState: 'unknown', at: '2026-11-01T10:00:00Z' } }]);
+    expect(saved.filter((f) => f.code === 'REFUND_OWED')).toEqual([{ code: 'REFUND_OWED', uid: `removal:${RMV}`, detail: { amountMinor: 2300, currency: 'ILS', refundState: 'unknown', at: '2026-11-01T10:00:00Z',
+      removalId: RMV, userId: '88888888-8888-4888-8888-888888888888' } }]); // Codex N03: settled from the screen
+
   });
   it('the Owner\'s run is not mailed; no caller = 401; a second site run the same day does nothing', async () => {
     const admin = deps({ caller: vi.fn(async () => 'admin' as const) });

@@ -7,6 +7,8 @@ import { QUOTE_CURRENCY_SYMBOLS, formatMoneyForCurrency } from '../../utils/mone
 
 export const BILLING_PROOF_ACTIONS = Object.freeze({
   stop_renewal: 'billing_stop_renewal', end_early: 'billing_end_early', resolve: 'billing_resolve', settle_refund: 'billing_settle_refund',
+  // Codex N03 (Owner 2026-10-28, decision 1): an owed SMART PACK removal refund made in PayPlus - the same proof kind as settle_refund
+  settle_removal_refund: 'billing_settle_refund',
 });
 
 /** a function answer as { ok, ...body } - a non-2xx answer carries the server's own code in its body */
@@ -21,10 +23,11 @@ export async function billingPreview(invoke, targetUserId, waiveFee = false) {
   catch { return { ok: false, code: 'retry_later' }; }
 }
 
-export function billingParams(action, { reason, waiveFee = false, expectedRefundMinor = 0, actionId = null, stoppedAtPayPlus = null }) {
+export function billingParams(action, { reason, waiveFee = false, expectedRefundMinor = 0, actionId = null, stoppedAtPayPlus = null, ...rest }) {
   const r = String(reason || '').trim();
   if (action === 'resolve') return { reason: r, actionId, stoppedAtPayPlus };
   if (action === 'settle_refund') return { reason: r, actionId };
+  if (action === 'settle_removal_refund') return { reason: r, removalId: rest.removalId, refundRef: String(rest.refundRef || '').trim() };
   return { reason: r, waiveFee, expectedRefundMinor };
 }
 

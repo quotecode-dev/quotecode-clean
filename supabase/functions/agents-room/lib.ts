@@ -162,7 +162,11 @@ export async function runSeo(deps: Deps): Promise<Result> {
       costUsd += costOf(model, r.promptTokens, r.completionTokens); tokens += r.promptTokens + r.completionTokens;
       const j = JSON.parse(r.content);
       if (typeof j?.summary_he === 'string' && typeof j?.summary_en === 'string' && Array.isArray(j?.recommendations)) { ai = j; break; }
-    } catch { /* the next model */ }
+    } catch (e) {
+      // Codex N08: a paid answer that came back incomplete is counted too (the next model is tried)
+      const u = (e as { usage?: { promptTokens: number; completionTokens: number } })?.usage;
+      if (u) { costUsd += costOf(model, u.promptTokens, u.completionTokens); tokens += u.promptTokens + u.completionTokens; }
+    }
   }
   const recs = (ai?.recommendations ?? []).filter((r) => (r.market === 'intl' || r.market === 'il') && r.text_he && r.text_en).slice(0, 6)
     .map((r): Finding => ({ level: 'good', he: `${r.market === 'intl' ? 'חו״ל' : 'ישראל'}: ${isolatePaths(r.text_he.slice(0, 300))}`, en: `${r.market === 'intl' ? 'International' : 'Israel'}: ${r.text_en.slice(0, 300)}` }));

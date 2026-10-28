@@ -31,6 +31,7 @@ import { isFinancialChange } from '../utils/financialEdit';
 import { reportMonthRange, recurringMonthsInRange, calendarDateOf } from '../utils/recurringExpense';
 import { settingsFormDirty } from '../utils/settingsBaseline';
 import { logoBase64For } from '../utils/logoImport';
+import { marketCalendarDate } from '../utils/recurringExpense';
 import { isValidEmailAddress } from '../utils/emailAddress';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
 import { isQuoteImmutable, canMarkQuotePaid } from '../utils/quoteLock';
@@ -597,7 +598,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [currency, setCurrency] = useState('ILS');
   // Owner console 2026-10-26 (typed L-01 / L-22, item ג): the ACCOUNT's currency (business settings) for the plans window prices abroad -
   // never the open quote's currency (opening a USD quote used to switch the plans window from GBP to USD)
-  const [businessCurrency, setBusinessCurrency] = useState(null);
+  const [businessCurrency, setBusinessCurrencyState] = useState(null);
+  // Codex N16 (Owner 2026-10-28, L-01/L-09/L-15/L-23): a reset in the same click as a save (the profile-save resume) reads the saved
+  // currency at once, never the value captured by the earlier render
+  const businessCurrencyRef = useRef(null);
+  const setBusinessCurrency = (c) => { businessCurrencyRef.current = c; setBusinessCurrencyState(c); };
   // 20261029000000 (Codex F18, L-23 #17): the Settings currency is the business's own - never the open quote's currency
   const [settingsCurrency, setSettingsCurrency] = useState('USD');
 
@@ -1810,7 +1815,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setTerms(defTerms);
       setWarranty(defWarranty);
       // Codex F17: the stored baseline holds what the Settings form shows (the default terms text, the currency, the domain)
-      if (savedSettingsRef.current) Object.assign(savedSettingsRef.current, { terms: defTerms, warranty: defWarranty, currency: userCurr, domain: data.professional_domain || '' });
+      if (savedSettingsRef.current) Object.assign(savedSettingsRef.current, { terms: defTerms, warranty: defWarranty, currency: userCurr, domain: data.professional_domain || '',
+        email: data.email || userEmail || '' }); // Codex N17: the email the form shows for the stored row
 
       await supabase
         .from('business_settings')
@@ -2221,8 +2227,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       amount: Number(expenseAmount),
       category: expenseCategory,
       is_recurring: isRecurring,
-      // 20261029000000 (Codex F21): today on the business's own calendar (the device day), never the UTC day before it
-      expense_date: deviceCalendarDate()
+      // Codex N15 (IRON-DATE-001): today on the account market's calendar (Local: Jerusalem, International: UTC), never the device's
+      expense_date: marketCalendarDate(new Date(), isLocalIsraeliBusiness ? 'Local' : 'International')
     }]);
 
     if (error) {
@@ -3561,7 +3567,10 @@ Continue anyway?`, isHebrew);
   // IRON-MARKET-004: revenue (approved/paid - the unchanged definition) is totalled per persisted quote currency; amounts in
   // different currencies are never added, converted or relabelled with the account currency (which only sets display order).
   const isRevenueQuote = (q) => q.status?.toLowerCase() === 'approved' || q.status?.toLowerCase() === 'paid';
-  const accountCurrency = isLocalIsraeliBusiness ? 'ILS' : currency;
+  // Codex N14 (L-23, IRON-MARKET-004): the saved business currency, never the currency of the quote opened last
+  const accountCurrency = isLocalIsraeliBusiness ? 'ILS' : (businessCurrency || currency);
+  const accountSym = accountCurrency === 'ILS' ? '₪' : accountCurrency === 'EUR' ? '€' : accountCurrency === 'GBP' ? '£' : '$';
+  const formatAccountMoney = (val, cur) => formatMoneyForCurrency(val, cur || accountCurrency);
   const revenueTotals = totalsByQuoteCurrency(quotes, { include: isRevenueQuote, accountCurrency });
   const revenueMulti = revenueTotals.groups.length > 1 || revenueTotals.unknownCount > 0;
 
@@ -3949,7 +3958,7 @@ Continue anyway?`, isHebrew);
 
   const resetQuoteFormFields = () => {
     // Codex F18: a new quote starts in the business currency, never the last opened quote's
-    const pr = getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency: businessCurrency || currency });
+    const pr = getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency: businessCurrencyRef.current || businessCurrency || currency });
     setClientName(pr.clientName); setClientEmail(pr.clientEmail); setClientPhone(pr.clientPhone); setClientType(pr.clientType);
     setClientTaxId(pr.clientTaxId); setClientAddress(pr.clientAddress); setQuoteSubject(pr.quoteSubject); setAttnName(pr.attnName);
     setAttnRole(pr.attnRole); setValidUntil(pr.validUntil); setDiscount(pr.discount); setCurrency(pr.currency);
@@ -3980,7 +3989,7 @@ Continue anyway?`, isHebrew);
     const s = savedSettingsRef.current;
     if (!s) return;
     setBizName(s.name || 'TEKANGO'); setBizTaxId(s.taxId || ''); setBizPhone(s.phone || ''); setBizAddress(s.address || ''); setBizLogoUrl(s.logo || '');
-    if (s.email) setBizEmail(s.email);
+    setBizEmail(s.email ?? '');
     setDefaultTerms(s.terms || ''); setDefaultWarranty(s.warranty || ''); setProfessionalDomain(s.domain || '');
     if (s.currency) setSettingsCurrency(s.currency);
   };
@@ -4346,7 +4355,7 @@ Continue anyway?`, isHebrew);
   const draftLabelFor = (q, env) => (q ? formatQuoteFallback(q) : (env?.quoteId ? String(env.quoteId).slice(0, 8) : ''));
 
   const applyDraftPayload = (payload) => {
-    const pr = getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency: businessCurrency || currency });
+    const pr = getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency: businessCurrencyRef.current || businessCurrency || currency });
     const g = (k) => (payload && payload[k] !== undefined && payload[k] !== null ? payload[k] : pr[k]);
     setClientName(g('clientName')); setClientEmail(g('clientEmail')); setClientPhone(g('clientPhone')); setClientType(g('clientType'));
     setClientTaxId(g('clientTaxId')); setClientAddress(g('clientAddress')); setQuoteSubject(g('quoteSubject')); setAttnName(g('attnName'));
@@ -9047,8 +9056,8 @@ Continue anyway?`, isHebrew);
               setEditingExpense={setEditingExpense}
               handleDeleteExpense={requestDeleteExpense}
               isHebrew={isHebrew}
-              sym={sym}
-              formatMoneyDisplay={formatMoneyDisplay}
+              sym={accountSym}
+              formatMoneyDisplay={formatAccountMoney}
               t={t}
             />
           )}

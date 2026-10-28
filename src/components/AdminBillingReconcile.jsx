@@ -10,6 +10,7 @@ import { formatShortDateTime } from '../utils/shortDate';
 import { ADMIN_DATE_MARKET } from '../utils/adminDates';
 import { formatMoneyForCurrency } from '../utils/money';
 import { ADMIN_COPY as C, t } from '../domain/admin/adminCopy';
+import { runBillingAction } from '../domain/admin/adminBilling';
 import './adminUsers.css';
 import './adminV2.css';
 
@@ -63,6 +64,44 @@ function amountOf(f, isHebrew) {
   }
   if (Number.isFinite(d.amountMinor)) return ourAmount(d.amountMinor, d.currency);
   return providerAmount(d, isHebrew);
+}
+
+// Codex N03 (Owner 2026-10-28, decision 1): "Done in PayPlus" for a removal refund owed to a customer - the Owner's password and the
+// PayPlus transaction number of the refund; the debt is closed for good on the server (admin-billing, a single-use proof bound to both)
+function SettleOwedRefund({ f, isHebrew, busy, onSettled }) {
+  const [open, setOpen] = useState(false);
+  const [ref, setRef] = useState('');
+  const [password, setPassword] = useState('');
+  const [state, setState] = useState(null);
+  if (!open) {
+    return (
+      // PRODUCT_TRUTH_DECORATIVE: opens the protected form to record that this owed refund was made in PayPlus (nothing is refunded here)
+      <button type="button" className="av-btn av-primary" disabled={busy} onClick={() => setOpen(true)} data-testid={`reconcile-settle-${f.id}`}>{isHebrew ? 'בוצע בפיי פלוס' : 'Done in PayPlus'}</button>
+    );
+  }
+  const submit = async () => {
+    setState('busy');
+    const r = await runBillingAction((name, opts) => supabase.functions.invoke(name, opts), { action: 'settle_removal_refund', targetUserId: f.detail.userId,
+      password, reason: isHebrew ? 'ההחזר בוצע ידנית בפיי פלוס' : 'The refund was made by hand in PayPlus', removalId: f.detail.removalId, refundRef: ref });
+    setPassword('');
+    if (r.ok) { setState('done'); onSettled(); return; }
+    setState(r.code === 'reauth_failed' || r.code === 'reauth_required' ? 'password' : r.code === 'no_unsettled_refund' ? 'gone' : 'failed');
+  };
+  const msg = { password: isHebrew ? 'הסיסמה לא אושרה. נסו שוב.' : 'The password was not accepted. Try again.',
+    gone: isHebrew ? 'ההחזר הזה כבר לא פתוח.' : 'This refund is no longer open.', failed: isHebrew ? 'הרישום לא הושלם. נסו שוב.' : 'It was not recorded. Try again.',
+    done: isHebrew ? 'נרשם: ההחזר בוצע בפיי פלוס, והחוב נסגר.' : 'Recorded: the refund was made in PayPlus, and the debt is closed.' }[state];
+  return (
+    <div className="av-section" style={{ display: 'grid', gap: 8, maxWidth: 420 }} data-testid={`reconcile-settle-form-${f.id}`}>
+      <label className="av-field"><span>{isHebrew ? 'מספר העסקה של ההחזר בפיי פלוס' : 'The PayPlus transaction number of the refund'}</span>
+        <input dir="ltr" value={ref} onChange={(e) => setRef(e.target.value)} maxLength={200} data-testid={`reconcile-settle-ref-${f.id}`} /></label>
+      <label className="av-field"><span>{isHebrew ? 'הסיסמה שלכם' : 'Your password'}</span>
+        <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} data-testid={`reconcile-settle-password-${f.id}`} /></label>
+      {/* PRODUCT_TRUTH_DECORATIVE: records the refund made in PayPlus (password + transaction number, checked on the server) */}
+      <button type="button" className="av-btn av-primary" disabled={state === 'busy' || ref.trim().length < 3 || !password} onClick={submit} data-testid={`reconcile-settle-send-${f.id}`}>
+        {state === 'busy' ? (isHebrew ? 'רושם...' : 'Recording...') : (isHebrew ? 'רישום ההחזר' : 'Record the refund')}</button>
+      {msg && <div className={`av-notice ${state === 'done' ? 'av-ok' : 'av-bad'}`} role={state === 'done' ? 'status' : 'alert'}>{msg}</div>}
+    </div>
+  );
 }
 
 export default function AdminBillingReconcile({ isHebrew }) {
@@ -126,6 +165,9 @@ export default function AdminBillingReconcile({ isHebrew }) {
       </div>
       <p className="av-muted" style={{ margin: '4px 0' }}>{L(CODE_HELP[f.code] || { he: '', en: '' })}</p>
       <p style={{ margin: '4px 0', fontSize: 12 }}>{isHebrew ? 'מזהה העסקה: ' : 'Transaction id: '}<bdi dir="ltr" style={{ fontFamily: 'monospace' }}>{f.uid}</bdi></p>
+      {isOpen && f.code === 'REFUND_OWED' && f.detail?.removalId && f.detail?.userId && (
+        <SettleOwedRefund f={f} isHebrew={isHebrew} busy={!!busy} onSettled={() => setStatus(f.id, 'checked')} />
+      )}
       {isOpen ? (
         // PRODUCT_TRUTH_DECORATIVE: marks this finding as checked (super admin, server-checked; no payment changes)
         <button type="button" className="av-btn" disabled={!!busy} onClick={() => setStatus(f.id, 'checked')} data-testid={`reconcile-check-${f.id}`}>{isHebrew ? 'נבדק' : 'Checked'}</button>
