@@ -250,6 +250,32 @@ Deno.serve(async (req: Request) => {
       if (!res.ok) return {};
       return subcategoryUuids(await res.json().catch(() => null));
     },
+    payplusList: async () => {
+      const p = payplus();
+      const all: Record<string, unknown>[] = [];
+      for (let skip = 0; skip < 1000; skip += 100) {
+        const res = await timed(`${p.base}/books/expenses?skip=${skip}&take=100`, { headers: p.headers }, GOOGLE_TIMEOUT_MS, egress.fetch);
+        const body = await res.json().catch(() => null);
+        if (res.status === 400 && body && typeof body === 'object' && !Array.isArray(body) && Object.keys(body).length === 0) break;
+        if (!res.ok) throw new Error(`PayPlus list ${res.status}`);
+        const page = payplusRecords(body);
+        if (!page) throw new Error('PayPlus list answer not understood');
+        all.push(...page);
+        if (page.length < 100) break;
+      }
+      return all;
+    },
+    payplusUpdate: async (uuid, fields) => {
+      const p = payplus();
+      const form = new FormData();
+      for (const [k, v] of Object.entries(fields)) form.append(k, v);
+      const res = await timed(`${p.base}/books/expenses/${encodeURIComponent(uuid)}`, { method: 'PUT', headers: p.headers, body: form }, 30000, egress.fetch);
+      const text = await res.text().catch(() => '');
+      let out: { status?: unknown } | null = null;
+      try { out = JSON.parse(text); } catch { out = null; }
+      if (!res.ok || out?.status !== 'success') throw new Error(`PayPlus ${res.status}: ${payplusReason(text)}`);
+    },
+    sentInvoices: () => db(admin.from('expense_invoices').select('*').eq('status', 'sent').limit(1000)) as Promise<Record<string, unknown>[]>,
     // L-22 (Owner 2026-10-28): the Bank of Israel representative rate of the invoice date (the public SDMX service; the two weeks before
     // the date cover weekends and holidays) - a foreign invoice is sent in shekels at that rate
     ilsRate: async (currency, date) => {

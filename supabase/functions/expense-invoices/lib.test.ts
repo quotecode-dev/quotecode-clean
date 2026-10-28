@@ -72,6 +72,9 @@ function deps(over: Partial<ExpenseDeps> = {}) {
     payplusSearch: vi.fn(async () => []),
     payplusCreate: vi.fn(async () => 'pp-uuid-1'),
     payplusSubcategories: vi.fn(async () => ({})),
+    payplusList: vi.fn(async () => []),
+    payplusUpdate: vi.fn(async () => {}),
+    sentInvoices: vi.fn(async () => []),
     ilsRate: vi.fn(async () => ({ rate: 3.7, date: '2026-09-01' })),
     notifyOwner: vi.fn(async () => {}),
     ...over,
@@ -422,11 +425,35 @@ describe('L-22 (Owner 2026-10-28, "שליחת סוג ההוצאה לפיי פל�
     expect((await expenseHandler({ action: 'send', ids: [id] }, d, 'u1')).body.results).toEqual([{ id, ok: true }]);
     expect((d.payplusCreate as ReturnType<typeof vi.fn>).mock.calls[0][0].subcategory_uuid).toBeUndefined();
   });
-  it('L-22 (Owner 2026-10-28, "הסרת עדכון ההוצאות שנשלחו בפתיחת המסך"): there is no update of sent expenses any more', async () => {
-    const d = deps({ payplusSubcategories: vi.fn(async () => ({ 2402: SW })) });
-    expect(await expenseHandler({ action: 'sync_types' }, d, 'u1')).toEqual({ status: 400, body: { ok: false, code: 'invalid_action' } });
-    expect(d.payplusCreate).not.toHaveBeenCalled();
-    expect(d.payplusSubcategories).not.toHaveBeenCalled();
+  it('the expenses already in PayPlus WITHOUT a type get it (same fields + the uuid); one with a type is never touched', async () => {
+    const sent = [
+      { id: 'a', status: 'sent', payplus_uuid: 'pp-1', supplier_name: 'Electra', email_subject: null, doc_number: '477186582', doc_date: '2026-07-31', amount: 319, currency: 'ILS', amount_includes_vat: true, vat_percentage: 18, subcategory_id: 2404 },
+      { id: 'b', status: 'sent', payplus_uuid: 'created', supplier_name: 'Proton AG', email_subject: null, doc_number: '26288941', doc_date: '2026-08-18', amount: 47.88, currency: 'USD', amount_includes_vat: false, vat_percentage: 0, subcategory_id: null },
+      { id: 'c', status: 'sent', payplus_uuid: 'pp-3', supplier_name: 'X', email_subject: null, doc_number: '9', doc_date: '2026-08-18', amount: 5, currency: 'ILS', amount_includes_vat: false, vat_percentage: 0, subcategory_id: 2402 },
+    ];
+    const d = deps({
+      settings: async () => ({ expense_types: [{ id: 2402, name: 'תוכנה' }], default_subcategory_id: 2402 }),
+      payplusSubcategories: vi.fn(async () => ({ 2402: SW, 2404: EQ })),
+      sentInvoices: vi.fn(async () => sent),
+      payplusList: vi.fn(async () => [
+        { uuid: 'pp-1', number: '477186582', subcategory: {} },
+        { uuid: 'pp-2', number: '26288941', subcategory: {} },
+        { uuid: 'pp-3', number: '9', subcategory: { uuid: SW } },
+        { uuid: 'pp-9', number: 'not-ours', subcategory: {} },
+      ]),
+      ilsRate: vi.fn(async () => ({ rate: 2.986, date: '2026-08-18' })),
+    });
+    expect((await expenseHandler({ action: 'sync_types' }, d, 'u1')).body).toEqual({ ok: true, updated: 2, failed: 0, types: 2 });
+    const calls = (d.payplusUpdate as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls.map((c) => c[0])).toEqual(['pp-1', 'pp-2']);
+    expect(calls[0][1]).toMatchObject({ number: '477186582', amount: '319.00', vat_percentage: '18', subcategory_id: '2404', subcategory_uuid: EQ });
+    expect(calls[1][1]).toMatchObject({ number: '26288941', amount: '142.97', currency_code: 'ILS', subcategory_id: '2402', subcategory_uuid: SW });
+  });
+  it('no types list: nothing is changed and the screen is told', async () => {
+    const d = deps({ sentInvoices: vi.fn(async () => [{ id: 'a', status: 'sent', payplus_uuid: 'pp-1', doc_number: '1' }]) });
+    expect((await expenseHandler({ action: 'sync_types' }, d, 'u1')).body).toEqual({ ok: true, updated: 0, failed: 0, types: 0 });
+    expect(d.payplusList).not.toHaveBeenCalled();
+    expect(d.payplusUpdate).not.toHaveBeenCalled();
   });
 });
 
@@ -437,14 +464,28 @@ describe('L-22 (Owner 2026-10-28, "שמירת מזהי סוגי ההוצאה ש�
       .toEqual({ expense_types: [{ id: 2402, name: 'תוכנה', uuid: SW }, { id: 2403, name: 'טלפון' }], default_subcategory_id: 2402, updated_at: 'T' });
     expect(settingsPatch({ expenseTypes: [{ id: 2402, name: 'תוכנה', uuid: 'not-an-id' }], defaultSubcategoryId: 2402 }, 'T')).toBeNull();
   });
-  it('PayPlus gives no list: the saved id is used for a new expense', async () => {
+  it('PayPlus gives no list: the saved id is used for the update and for a new expense; a refusal is reported in PayPlus words', async () => {
     const d = deps({
       settings: async () => ({ expense_types: [{ id: 2402, name: 'תוכנה', uuid: SW }], default_subcategory_id: 2402 }),
       payplusSubcategories: vi.fn(async () => ({})),
+      sentInvoices: vi.fn(async () => [{ id: 'a', status: 'sent', payplus_uuid: 'pp-1', supplier_name: 'X', email_subject: null, doc_number: '1', doc_date: '2026-08-01', amount: 10, currency: 'ILS', amount_includes_vat: false, vat_percentage: 0, subcategory_id: 2402 },
+        { id: 'b', status: 'sent', payplus_uuid: 'pp-2', supplier_name: 'Y', email_subject: null, doc_number: '2', doc_date: '2026-08-01', amount: 20, currency: 'ILS', amount_includes_vat: false, vat_percentage: 0, subcategory_id: 2402 }]),
+      payplusList: vi.fn(async () => [{ uuid: 'pp-1', number: '1', subcategory: {} }, { uuid: 'pp-2', number: '2', subcategory: {} }]),
+      payplusUpdate: vi.fn(async (uuid: string) => { if (uuid === 'pp-2') throw new Error('PayPlus 422: subcategory_uuid is invalid'); }),
     });
+    expect((await expenseHandler({ action: 'sync_types' }, d, 'u1')).body).toEqual({ ok: true, updated: 1, failed: 1, types: 1, error: 'PayPlus 422: subcategory_uuid is invalid' });
+    expect((d.payplusUpdate as ReturnType<typeof vi.fn>).mock.calls[0][1]).toMatchObject({ subcategory_uuid: SW });
     const id = '77777777-7777-7777-7777-777777777777';
     d.rows[id] = { id, status: 'approved', supplier_name: 'Z', email_subject: null, doc_number: '3', doc_date: '2026-08-01', amount: 5, currency: 'ILS', amount_includes_vat: false, vat_percentage: 0, file_path: null, subcategory_id: 2402 };
-    expect((await expenseHandler({ action: 'send', ids: [id] }, d, 'u1')).body.results).toEqual([{ id, ok: true }]);
-    expect((d.payplusCreate as ReturnType<typeof vi.fn>).mock.calls[0][0]).toMatchObject({ subcategory_id: '2402', subcategory_uuid: SW });
+    await expenseHandler({ action: 'send', ids: [id] }, d, 'u1');
+    expect((d.payplusCreate as ReturnType<typeof vi.fn>).mock.calls[0][0]).toMatchObject({ subcategory_uuid: SW });
+  });
+  it('the PayPlus list itself failing is reported to the screen', async () => {
+    const d = deps({
+      settings: async () => ({ expense_types: [{ id: 2402, name: 'תוכנה', uuid: SW }], default_subcategory_id: 2402 }),
+      sentInvoices: vi.fn(async () => [{ id: 'a', status: 'sent', payplus_uuid: 'pp-1', doc_number: '1' }]),
+      payplusList: vi.fn(async () => { throw new Error('PayPlus list 403'); }),
+    });
+    expect(await expenseHandler({ action: 'sync_types' }, d, 'u1')).toEqual({ status: 502, body: { ok: false, code: 'payplus_failed', error: 'PayPlus list 403' } });
   });
 });
