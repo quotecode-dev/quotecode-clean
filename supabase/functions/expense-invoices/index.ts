@@ -8,7 +8,7 @@
 //  - Secrets (the Owner sets them; never in code): GOOGLE_EXPENSES_CLIENT_ID / GOOGLE_EXPENSES_CLIENT_SECRET, OPENAI_API_KEY,
 //    PAYPLUS_API_KEY / PAYPLUS_SECRET_KEY / PAYPLUS_ENVIRONMENT (+ PAYPLUS_PROXY_URL, the fixed-IP relay), RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS (the monthly note), CRON_SECRET.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { expenseHandler, oauthCallback, scanBatch, payplusRecords, sameText, boiRate, BOI_RATE_CURRENCIES, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
+import { expenseHandler, oauthCallback, scanBatch, payplusRecords, payplusReason, sameText, boiRate, BOI_RATE_CURRENCIES, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
 import { PAYPLUS_API_BASES } from '../subscription-authority/payplus.ts';
 import { sendMail } from '../support-inbound/mail.ts';
 import { payplusEgress, type FetchLike } from '../_shared/payplusEgress.ts';
@@ -29,7 +29,6 @@ async function timed(url: string, init: RequestInit, ms = GOOGLE_TIMEOUT_MS, f: 
   const t = setTimeout(() => abort.abort(), ms);
   try { return await f(url, { ...init, signal: abort.signal }); } finally { clearTimeout(t); }
 }
-const message = (v: unknown) => (typeof v === 'string' ? v : v && typeof v === 'object' ? JSON.stringify(v) : String(v ?? '')).slice(0, 200);
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
@@ -233,8 +232,10 @@ Deno.serve(async (req: Request) => {
       for (const [k, v] of Object.entries(fields)) form.append(k, v);
       if (file) form.append('doc_file', new Blob([fromBase64(file.base64)], { type: file.type }), file.name);
       const res = await timed(`${p.base}/expenses`, { method: 'POST', headers: p.headers, body: form }, 30000, egress.fetch);
-      const out = await res.json().catch(() => null);
-      if (!res.ok || out?.status !== 'success') throw new Error(`PayPlus ${res.status}: ${message(out?.message ?? out?.details ?? out?.status)}`);
+      const text = await res.text().catch(() => '');
+      let out: { status?: unknown; details?: { uuid?: unknown } } | null = null;
+      try { out = JSON.parse(text); } catch { out = null; }
+      if (!res.ok || out?.status !== 'success') throw new Error(`PayPlus ${res.status}: ${payplusReason(text)}`);
       // created: the id when PayPlus gives it (the row is sent either way - never created twice)
       return typeof out?.details?.uuid === 'string' ? out.details.uuid : 'created';
     },
