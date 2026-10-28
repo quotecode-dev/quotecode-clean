@@ -448,9 +448,7 @@ export function payplusFields(row: InvoiceRow, subcategoryId: number, fx: IlsRat
 export function payplusRecords(v: unknown): Record<string, unknown>[] | null {
   const o = v as Record<string, unknown>;
   const list = Array.isArray(v) ? v : Array.isArray(o?.data) ? o.data : Array.isArray(o?.details) ? o.details : Array.isArray(o?.results) ? o.results
-    : Array.isArray((o?.data as Record<string, unknown>)?.items) ? (o.data as Record<string, unknown>).items
-    // the live answer (seen 2026-10-28): { status: 'success', details: { numItems, numPages, items: [...] } } - an empty search is items: []
-    : Array.isArray((o?.details as Record<string, unknown>)?.items) ? (o.details as Record<string, unknown>).items : null;
+    : Array.isArray((o?.data as Record<string, unknown>)?.items) ? (o.data as Record<string, unknown>).items : null;
   return Array.isArray(list) ? (list as unknown[]).filter((r) => r && typeof r === 'object') as Record<string, unknown>[] : null;
 }
 const norm = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
