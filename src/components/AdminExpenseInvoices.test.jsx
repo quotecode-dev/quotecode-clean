@@ -57,14 +57,13 @@ describe('AdminExpenseInvoices', () => {
   it('sends 10 at a time and reports a failed batch instead of hiding it', async () => {
     const many = Array.from({ length: 12 }, (_, i) => inv({ id: `s${i}`, status: 'approved' }));
     rpc.mockResolvedValue(state({ invoices: many }));
-    invoke.mockImplementation(async (_n, { body }) => (body.action !== 'send' ? { data: { ok: true, updated: 0, failed: 0, types: 3 }, error: null }
-      : body.ids.length === 10 ? { data: { ok: true, results: body.ids.map((id) => ({ id, ok: true })) }, error: null } : httpError(500, { ok: false, code: 'failed' })));
+    invoke.mockImplementation(async (_n, { body }) => (body.ids.length === 10 ? { data: { ok: true, results: body.ids.map((id) => ({ id, ok: true })) }, error: null } : httpError(500, { ok: false, code: 'failed' })));
     const { findByTestId, getByTestId } = render(<AdminExpenseInvoices isHebrew />);
     await findByTestId('expense-empty');
     fireEvent.click(getByTestId('expense-tab-approved'));
     fireEvent.click(getByTestId('expense-send'));
     await waitFor(() => expect(getByTestId('expense-notice').textContent).toContain('נשלחו לפיי פלוס: 10. לא נשלחו: 2'));
-    expect(invoke.mock.calls.filter(([, o]) => o.body.action === 'send').map(([, o]) => o.body.ids.length)).toEqual([10, 2]);
+    expect(invoke.mock.calls.map(([, o]) => o.body.ids.length)).toEqual([10, 2]);
   });
   it("shows the server's own error code (not configured) from a non-2xx answer", async () => {
     invoke.mockResolvedValue(httpError(503, { ok: false, code: 'google_not_configured' }));
@@ -95,19 +94,11 @@ describe('AdminExpenseInvoices', () => {
     fireEvent.click(getByTestId('expense-tab-approved'));
     expect(getByTestId('expense-send').disabled).toBe(true);
   });
-  it('L-22 (Owner 2026-10-28): on opening, the expenses in PayPlus without a type get it, and the screen says so (HE + EN)', async () => {
-    invoke.mockResolvedValue({ data: { ok: true, updated: 22, failed: 1, types: 3 }, error: null });
-    const he = render(<AdminExpenseInvoices isHebrew />);
-    await waitFor(() => expect(he.getByTestId('expense-notice').textContent).toBe('סוג ההוצאה עודכן בפיי פלוס: 22. לא עודכנו: 1.'));
-    expect(invoke).toHaveBeenCalledWith('expense-invoices', { body: { action: 'sync_types' } });
-    he.unmount();
-    invoke.mockResolvedValue({ data: { ok: true, updated: 0, failed: 0, types: 0 }, error: null });
-    const en = render(<AdminExpenseInvoices isHebrew={false} />);
-    await waitFor(() => expect(en.getByTestId('expense-notice').textContent).toBe('No PayPlus expense type ids, so the expense type was not sent.'));
-    en.unmount();
-    invoke.mockResolvedValue({ data: null, error: { context: { json: async () => ({ ok: false, code: 'payplus_failed', error: 'PayPlus 403: not allowed' }) } } });
-    const he2 = render(<AdminExpenseInvoices isHebrew />);
-    await waitFor(() => expect(he2.getByTestId('expense-notice').textContent).toBe('עדכון סוג ההוצאה בפיי פלוס נכשל: PayPlus 403: not allowed'));
+  it('L-22 (Owner 2026-10-28, "הסרת עדכון ההוצאות שנשלחו בפתיחת המסך"): opening the screen never asks the server to change PayPlus', async () => {
+    const { findByTestId } = render(<AdminExpenseInvoices isHebrew />);
+    await findByTestId('expense-list');
+    await new Promise((r) => setTimeout(r, 50));
+    expect(invoke).not.toHaveBeenCalled();
   });
 
   it('a server failure shows the unavailable state, never an empty success', async () => {
