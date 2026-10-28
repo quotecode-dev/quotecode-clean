@@ -18,10 +18,20 @@ import { accountDate, accountDateTime } from '../utils/adminDates';
 // separate operational count, never a quota), the account information, this account's admin history and the protected actions.
 // Counts read the account's AUTH user id (adminTargetUserId) - the former business_settings.id read always failed. Dates by the
 // ACCOUNT's market (IRON-DATE-001).
-export default function AdminUserDetails({ account, isHebrew, onBack, onReset = null, onDelete = null, onLifetime = null, refreshKey = 0, accounts = [], onOpenActivity = null }) {
+export default function AdminUserDetails({ account, isHebrew, onBack, onReset = null, onDelete = null, onLifetime = null, onTestMark = null, refreshKey = 0, accounts = [], onOpenActivity = null }) {
   const uid = adminTargetUserId(account);
   const [counts, setCounts] = useState({ quotes: 'loading', clients: 'loading', issued: 'loading' });
   const [history, setHistory] = useState('loading');
+  // L-22 (Owner 2026-10-28): the Owner marks a test account (not counted in the statistics); the mark comes back with the reloaded accounts
+  const [testBusy, setTestBusy] = useState(false);
+  const [testNotice, setTestNotice] = useState(null);
+  const isTest = account.is_test === true;
+  const toggleTest = async () => {
+    setTestBusy(true); setTestNotice(null);
+    const ok = await onTestMark(account, !isTest).catch(() => false);
+    setTestBusy(false);
+    setTestNotice(ok ? (isTest ? C.testUnmarked : C.testMarked) : C.testFailed);
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -89,6 +99,7 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
           <div className="av-business">
             <strong style={{ fontSize: 22 }}><bdi>{name}</bdi></strong>
             {account.role === 'admin' && <span className="av-badge av-admin" style={{ marginInlineStart: 8 }}>{t(isHebrew, C.adminBadge.he, C.adminBadge.en)}</span>}
+            {isTest && <span className="av-badge av-warn" style={{ marginInlineStart: 8 }} data-testid="admin-test-badge">{t(isHebrew, C.testBadge.he, C.testBadge.en)}</span>}
             <span className="av-mail">{account.email}</span>
           </div>
           {statusUnknown
@@ -100,6 +111,16 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
           {status.key === 'free10_inactive' && !statusUnknown && <span className="av-badge av-warn">{isHebrew ? 'שיוך מסלול טרם הופעל' : 'Plan assignment not active'}</span>}
           <span className="av-badge" data-testid="admin-plan-neutral"><AdminPlanState summary={summary} isHebrew={isHebrew} compact={false} /></span>
         </div>
+        {onTestMark && (
+          <div className="av-pills" style={{ alignItems: 'center', marginTop: 10 }}>
+            {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
+            <button type="button" className="av-btn" disabled={testBusy} onClick={toggleTest} data-testid="admin-test-toggle">
+              {t(isHebrew, ...(isTest ? [C.unmarkTest.he, C.unmarkTest.en] : [C.markTest.he, C.markTest.en]))}
+            </button>
+            <span className="av-small av-muted">{t(isHebrew, C.testHint.he, C.testHint.en)}</span>
+          </div>
+        )}
+        {testNotice && <p role="status" className="av-small" style={{ margin: '8px 0 0' }} data-testid="admin-test-notice">{t(isHebrew, testNotice.he, testNotice.en)}</p>}
       </article>
 
       <div className="av-grid av-equal av-section">

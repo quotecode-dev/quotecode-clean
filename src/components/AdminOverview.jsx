@@ -27,8 +27,10 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onOpenU
   const [accountsStale, setAccountsStale] = useState(false);
   const server = useAdminDashboardSummary(refreshKey);
   const serverReady = (server.state === 'ready' || server.state === 'stale') && server.data;
-  const users = accounts.filter(a => a && a.role !== 'super_admin' && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');
-  const recentlyRegistered = [...users]
+  const listed = accounts.filter(a => a && a.role !== 'super_admin' && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');
+  // L-22 (Owner 2026-10-28): a test account the Owner marked stays in the lists but is not counted - also when the counts come from the rows
+  const users = listed.filter((a) => a.is_test !== true);
+  const recentlyRegistered = [...listed]
     .filter(a => a.created_at)
     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
     .slice(0, 8);
@@ -58,6 +60,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onOpenU
   const statusRows = s
     ? breakdownFromCounts(s.subscriptionStatus)
     : accountStatusBreakdown(users, (a) => (system === 'not_active' ? null : (byId[adminTargetUserId(a)] || null)));
+  const testCount = s ? s.testAccounts : listed.length - users.length;
   const loadState = s ? server.state : (server.state === 'loading' ? 'loading' : 'ready');
   const pct = (n) => (stats.managed > 0 ? `${((n / stats.managed) * 100).toFixed(1)}%` : '—');
 
@@ -74,7 +77,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onOpenU
   const fmtTime = (v) => formatShortDateTime(v, ADMIN_DATE_MARKET);
   const openUsers = (filter) => { setUsersFilterIntent(filter); onGoToUsers(); };
   const kpis = [
-    { key: 'managed', label: C.kpiManaged, value: stats.managed, note: C.kpiManagedNote, filter: {} },
+    { key: 'managed', label: C.kpiManaged, value: stats.managed, note: testCount > 0 ? { he: C.kpiManagedNoteTests.he.replace('{n}', testCount), en: C.kpiManagedNoteTests.en.replace('{n}', testCount) } : C.kpiManagedNote, filter: {} },
     { key: 'reg24h', label: C.kpi24h, value: stats.reg24h, note: C.kpi24hNote, filter: { registered: '24h' } },
     { key: 'signed10m', label: C.kpi10m, value: stats.signed10m, note: C.kpi10mNote, filter: { signedIn: '10m' } },
     { key: 'Local', label: C.israel, value: stats.Local, pct: pct(stats.Local), filter: { market: 'Local' } },
