@@ -9,7 +9,7 @@ import { articleSeoRoute } from './shared/publicSeoRoutes';
 import { isMeasuredPath } from './shared/siteAnalytics';
 import { PublicArticle, PublicArticlesIndex } from './pages/PublicArticle';
 import { withGuides, loadDatabaseGuides } from '../scripts/prerender-public-routes.mjs';
-import { composeRouteHtml, validateRouteHtml } from '../scripts/publicRouteHtml.mjs';
+import { composeRouteHtml, validateRouteHtml, withArticleData, ARTICLE_DATA_ID } from '../scripts/publicRouteHtml.mjs';
 import { renderPublicPage } from './entry-prerender';
 import { PUBLIC_SEO_ROUTES } from './shared/publicSeoRoutes';
 import { readFileSync } from 'node:fs';
@@ -101,6 +101,46 @@ describe('the database guides', () => {
     const broken = { ...full, en: { ...full.en, intro: `${full.en.intro} שלום` } };
     const route = articleSeoRoute('en', broken.slug, broken.en, broken.date);
     expect(validateRouteHtml(route, composeRouteHtml(SHELL, route, renderPublicPage({ ...route, data: articleView(broken, 'en') })))).not.toEqual([]);
+  });
+
+  it('Owner 2026-10-28: the guide page carries the guide; the browser opens it at once, never through a noindex loading page', async () => {
+    const SHELL = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8');
+    const heP = 'בעלי עסקים קטנים כותבים הצעות מחיר כל יום, וכדאי שכל הצעה תהיה ברורה, מסודרת וקלה לאישור עבור הלקוח שלכם. ';
+    const enP = 'Small business owners write quotes every day, and every quote should be clear, organized and easy for the client to approve. ';
+    const full = normalizeArticleRow({ ...row, he: lang('איך מתמחרים עבודה לפי שעה', heP.repeat(3)), en: lang('How to price </script> hourly work', enP.repeat(3)) });
+    for (const l of ['he', 'en']) {
+      const route = articleSeoRoute(l, full.slug, full[l], full.date);
+      const view = articleView(full, l);
+      const html = withArticleData(composeRouteHtml(SHELL, route, renderPublicPage({ ...route, data: view })), { slug: full.slug, lang: l, view, date: full.date });
+      expect(validateRouteHtml(route, html)).toEqual([]);
+      const carried = html.match(new RegExp(`<script type="application/json" id="${ARTICLE_DATA_ID}">([^<]*)</script>`));
+      expect(JSON.parse(carried[1])).toEqual({ slug: full.slug, lang: l, view, date: '2026-11-02' });
+
+      const tag = document.createElement('script');
+      tag.type = 'application/json';
+      tag.id = ARTICLE_DATA_ID;
+      tag.textContent = carried[1];
+      document.head.appendChild(tag);
+      const f = vi.fn(async () => ({ ok: true, json: async () => [] }));
+      vi.stubGlobal('fetch', f);
+      const robots = [];
+      const seen = new MutationObserver(() => robots.push(document.querySelector('meta[name="robots"]')?.getAttribute('content')));
+      seen.observe(document.head, { subtree: true, attributes: true, childList: true });
+      render(<MemoryRouter initialEntries={[`/${l}/articles/${full.slug}`]}><Routes><Route path={`/${l}/articles/:slug`} element={<PublicArticle lang={l} />} /></Routes></MemoryRouter>);
+      expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(full[l].h1); // the first render, no loading
+      await waitFor(() => expect(document.title).toBe(full[l].title));
+      seen.disconnect();
+      expect(document.querySelector('meta[name="robots"]').getAttribute('content')).toBe('index, follow');
+      expect(robots.filter((x) => /noindex/.test(x || ''))).toEqual([]);
+      expect(f).not.toHaveBeenCalled();
+      cleanup();
+      // another guide's page never borrows it: that slug is read from the database as before
+      vi.stubGlobal('fetch', reply([]));
+      render(<MemoryRouter initialEntries={[`/${l}/articles/other-guide`]}><Routes><Route path={`/${l}/articles/:slug`} element={<PublicArticle lang={l} />} /></Routes></MemoryRouter>);
+      await waitFor(() => expect(document.querySelector('meta[name="robots"]').getAttribute('content')).toMatch(/noindex/));
+      cleanup();
+      tag.remove();
+    }
   });
 
   it('a database guide page is measured like every public page', () => {

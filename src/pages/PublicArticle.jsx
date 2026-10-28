@@ -63,18 +63,36 @@ const h1Style = { fontSize: 'clamp(1.6rem, 5vw, 2.2rem)', lineHeight: 1.3, margi
 const introStyle = { fontSize: '1.08rem', lineHeight: 1.75, color: TOOLS.textSecondary, margin: 0 };
 const bodyStyle = { fontSize: '1.02rem', lineHeight: 1.8, color: TOOLS.textPrimary, margin: '0 0 12px' };
 
+// Owner 2026-10-28 ("מאשר את שני התיקונים"): the database guide the prerender put in this page (scripts/prerender-public-routes.mjs) -
+// the browser opens it at once instead of a 'loading' page with noindex, which Google indexed as "Excluded by 'noindex' tag"
+function embeddedGuide(slug, lang) {
+  if (typeof document === 'undefined') return null;
+  try {
+    const el = document.getElementById('tekango-article-data');
+    const v = el ? JSON.parse(el.textContent) : null;
+    return v && v.slug === slug && v.lang === lang && v.view ? { view: v.view, date: v.date || null } : null;
+  } catch {
+    return null;
+  }
+}
+
 export function PublicArticle({ lang, slug: slugProp, data = null }) {
   const navigate = useNavigate();
   const params = useParams();
   const slug = slugProp || params.slug;
   const staticArticle = ARTICLES[slug]?.[lang] || null;
-  // a database guide: given by the prerender (data), or read in the browser; 'loading' until the answer, then the row or null
-  const [db, setDb] = useState(() => (staticArticle ? null : data ? { view: data, date: null } : 'loading'));
+  // a database guide: given by the prerender (data), carried in the page, or read in the browser; 'loading' until the answer, then the row or null
+  const [db, setDb] = useState(() => (staticArticle ? null : data ? { view: data, date: null } : embeddedGuide(slug, lang) || 'loading'));
   const article = staticArticle || (db && db !== 'loading' ? db.view : null);
   const t = COPY[lang];
 
   useEffect(() => {
     if (staticArticle || data) return undefined;
+    const carried = embeddedGuide(slug, lang);
+    if (carried) {
+      setDb(carried);
+      return undefined;
+    }
     let live = true;
     setDb('loading');
     fetchPublishedArticles({ ...dbSource(), slug }).then((rows) => {
