@@ -47,7 +47,9 @@ const PREVIEW_FIELDS = ['currency', 'paidMinor', 'period', 'periodStart', 'paidT
   'proratedMinor', 'feeMinor', 'feeWaived', 'refundMinor', 'renewalStopped', 'hasStandingOrder', 'hasChargeRef'] as const;
 const SQL_REFUSALS: Record<string, number> = { billing_off: 503, invalid_request: 400, forbidden: 403, lifetime_account: 409, no_live_package: 409,
   already_stopped: 409, already_ended: 409, no_standing_order: 409, action_in_progress: 409, stale_preview: 409, already_finished: 409,
-  too_early_to_resolve: 409, no_unsettled_refund: 409 };
+  too_early_to_resolve: 409, no_unsettled_refund: 409,
+  // L-22 (Owner 2026-10-28, "החזר בקירוב במסך, והודעה ברורה כשהתקופה הבאה כבר שולמה"): a later period already paid - the screen says so
+  future_period_paid: 409 };
 const refusal = (r: unknown): Resp => {
   const code = isObj(r) && typeof r.code === 'string' && r.code in SQL_REFUSALS ? r.code : 'retry_later';
   return err(SQL_REFUSALS[code] ?? 503, code, code === 'stale_preview' && isObj(r) && Number.isInteger(r.refundMinor) ? { refundMinor: r.refundMinor } : {});

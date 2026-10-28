@@ -69,7 +69,8 @@ describe('admin-billing: who may act, what the client may send', () => {
     expect(d.audit).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'denied' }));
   });
   it('billing off / a stale preview / an open action: SQL refuses, PayPlus is never called', async () => {
-    for (const code of ['billing_off', 'stale_preview', 'action_in_progress']) {
+    // L-22 (Owner 2026-10-28, "...הודעה ברורה כשהתקופה הבאה כבר שולמה"): future_period_paid reaches the screen as itself
+    for (const code of ['billing_off', 'stale_preview', 'action_in_progress', 'future_period_paid']) {
       const d = deps({ begin: vi.fn(async () => ({ ok: false, code, refundMinor: 999 })) });
       const r = await adminBillingHandler(d, ADMIN, endEarly());
       expect(r.body.code).toBe(code);
