@@ -296,6 +296,10 @@ describe('approval and PayPlus', () => {
     expect(payplusRecords([{ number: '1' }])).toHaveLength(1);
     expect(payplusRecords({ data: [{ number: '1' }] })).toHaveLength(1);
     expect(payplusRecords({ status: 'ok' })).toBeNull();
+    // the live PayPlus answer (2026-10-28): the list under details.items; an empty search is an empty list, not an error
+    expect(payplusRecords({ status: 'success', details: { numItems: 0, numPages: 0, items: [], statistics: { totalAmount: 0 } } })).toEqual([]);
+    expect(payplusRecords({ status: 'success', details: { numItems: 1, items: [{ number: '217295035' }] } })).toHaveLength(1);
+    expect(payplusRecords({ status: 'success', details: { numItems: 1 } })).toBeNull();
     expect(sameDocument({ number: '1', customer: { customer_name: 'Supabase, Inc.' } }, { doc_number: '1', supplier_name: 'Supabase Inc', amount: 1 })).toBe(true);
   });
   it('a row without number / date / amount cannot be sent; at most 10 per call', async () => {
