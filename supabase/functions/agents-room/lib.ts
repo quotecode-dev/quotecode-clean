@@ -92,8 +92,7 @@ const COVERAGE_HE: Record<string, string> = {
   'Server error (5xx)': 'שגיאת שרת',
   'Redirect error': 'שגיאה בהפניה',
 };
-// Owner 2026-10-28 ("תעשה את התיקונים הנדרשים"): Google writes "Excluded by ‘noindex’ tag" with curly quotes - they count as straight ones
-export const coverageHe = (reason: string) => COVERAGE_HE[String(reason ?? '').replace(/[‘’]/g, "'")] ?? 'סיבה אחרת, הפירוט בסרץ׳ קונסול';
+export const coverageHe = (reason: string) => COVERAGE_HE[reason] ?? 'סיבה אחרת, הפירוט בסרץ׳ קונסול';
 
 // ---------------------------------------------------------------- seo
 const market = (path: string) => (path.startsWith('/en') ? 'intl' : path.startsWith('/he') ? 'il' : 'root');
