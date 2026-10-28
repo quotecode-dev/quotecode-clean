@@ -13,7 +13,7 @@
 import { readFileSync, writeFileSync, mkdirSync, rmSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { composeRouteHtml, validateRouteHtml, sitemapPaths, withArticleData } from './publicRouteHtml.mjs';
+import { composeRouteHtml, validateRouteHtml, sitemapPaths } from './publicRouteHtml.mjs';
 
 // Never generated as public marketing HTML, even if someone adds them to the sitemap by mistake.
 export const PRIVATE_ROUTE_PREFIXES = ['/dashboard', '/ai-logs', '/quote', '/public-quote', '/en/public-quote', '/professional-preview'];
@@ -65,8 +65,7 @@ export async function prerenderPublicRoutes({ root, outDir, mode, log = console.
     for (const row of dbRows) {
       const pair = ['he', 'en'].map((lang) => {
         const route = entry.articleSeoRoute(lang, row.slug, row[lang], row.date);
-        const view = entry.articleView(row, lang);
-        const html = withArticleData(composeRouteHtml(shell, route, entry.renderPublicPage({ ...route, data: view })), { slug: row.slug, lang, view, date: row.date });
+        const html = composeRouteHtml(shell, route, entry.renderPublicPage({ ...route, data: entry.articleView(row, lang) }));
         return { route, html, errors: validateRouteHtml(route, html) };
       });
       const bad = pair.filter((x) => x.errors.length);
