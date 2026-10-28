@@ -11,7 +11,7 @@ import AdminUserDetails from './AdminUserDetails';
 import AdminProtectedDialog from './AdminProtectedDialog';
 import { useAdminAccountSummary, legacyOperationsRetired, adminTargetUserId } from '../domain/subscriptions/adminAccountSummary';
 import { accountDate, accountDateTime } from '../utils/adminDates';
-import { billingPreview, runBillingAction, billingErrorText, billingResult, billingMoney, billingRefundMoney, fill, reasonOk, BILLING_COPY as B } from '../domain/admin/adminBilling';
+import { billingPreview, runBillingAction, billingErrorText, billingResult, billingMoney, fill, reasonOk, BILLING_COPY as B } from '../domain/admin/adminBilling';
 import { supabase } from '../shared/supabase';
 
 export default function AdminUsersTab({
@@ -389,13 +389,13 @@ export default function AdminUsersTab({
               <>
                 <div className="av-statline"><span>{t2(B.paid)}</span><span><bdi className="av-num">{billingMoney(p.paidMinor, p.currency)}</bdi> {fill(t2(B.periodDays), '{n}', String(p.daysInPeriod ?? '—'))}</span></div>
                 {line(B.unusedDays, p.unusedDays)}
-                {line(B.prorated, billingRefundMoney(p.proratedMinor, p.currency, isHebrew))}
-                {line(B.fee, billingRefundMoney(p.feeMinor, p.currency, isHebrew))}
+                {line(B.prorated, billingMoney(p.proratedMinor, p.currency))}
+                {line(B.fee, billingMoney(p.feeMinor, p.currency))}
                 <label className="av-small" style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '6px 0' }}>
                   <input type="checkbox" checked={billingWaive} disabled={isResetting || billingLoading} onChange={(e) => toggleBillingWaive(e.target.checked)} data-testid="admin-billing-waive" />
                   {t2(B.waiveFee)}
                 </label>
-                {line(B.refund, billingRefundMoney(p.refundMinor, p.currency, isHebrew), true)}
+                {line(B.refund, billingMoney(p.refundMinor, p.currency), true)}
                 <p className="av-small" style={{ margin: '8px 0' }}>{t2(B.endBody)}</p>
               </>
             )}
@@ -411,7 +411,7 @@ export default function AdminUsersTab({
               </>
             )}
             {action === 'settle_refund' && p.unsettledRefund && (
-              <p className="av-small" style={{ margin: '8px 0' }}>{fill(t2(B.settleBody), '{m}', billingRefundMoney(p.unsettledRefund.refundMinor, p.unsettledRefund.currency, isHebrew))}</p>
+              <p className="av-small" style={{ margin: '8px 0' }}>{fill(t2(B.settleBody), '{m}', billingMoney(p.unsettledRefund.refundMinor, p.unsettledRefund.currency))}</p>
             )}
           </AdminProtectedDialog>
         );

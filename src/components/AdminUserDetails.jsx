@@ -11,7 +11,7 @@ import './adminUsers.css';
 import './adminV2.css';
 import { accountDate, accountDateTime } from '../utils/adminDates';
 import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
-import { billingPreview, billingCardVisible, previewUnavailable, billingMoney, billingRefundMoney, BILLING_COPY as B, REFUND_STATE, KIND_NAMES } from '../domain/admin/adminBilling';
+import { billingPreview, billingCardVisible, previewUnavailable, billingMoney, BILLING_COPY as B, REFUND_STATE, KIND_NAMES } from '../domain/admin/adminBilling';
 
 // TEKANGO Admin V1 (Task 2): a shell-preserving User Details VIEW (renders inside the same Admin content outlet as every other Admin
 // section - not a disconnected dark modal). Truthful data only; a failed count shows "unavailable", never a fake 0 (§2.3).
@@ -157,7 +157,7 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
           )}
           {bill?.unsettledRefund && (
             <div className="av-statline" data-testid="admin-billing-refund">
-              <span>{t(isHebrew, B.openRefund.he, B.openRefund.en)}: <bdi className="av-num">{billingRefundMoney(bill.unsettledRefund.refundMinor, bill.unsettledRefund.currency, isHebrew)}</bdi> · {REFUND_STATE[bill.unsettledRefund.state] ? t(isHebrew, REFUND_STATE[bill.unsettledRefund.state].he, REFUND_STATE[bill.unsettledRefund.state].en) : ''}</span>
+              <span>{t(isHebrew, B.openRefund.he, B.openRefund.en)}: <bdi className="av-num">{billingMoney(bill.unsettledRefund.refundMinor, bill.unsettledRefund.currency)}</bdi> · {REFUND_STATE[bill.unsettledRefund.state] ? t(isHebrew, REFUND_STATE[bill.unsettledRefund.state].he, REFUND_STATE[bill.unsettledRefund.state].en) : ''}</span>
               {/* PRODUCT_TRUTH_DECORATIVE: opens the protected dialog that marks an owed refund as made (reason + admin password, server-verified) */}
               <button type="button" className="av-btn" onClick={() => onBilling('settle_refund', account, bill)}><Lock size={15} aria-hidden="true" />{t(isHebrew, B.settleButton.he, B.settleButton.en)}</button>
             </div>

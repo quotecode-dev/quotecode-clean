@@ -50,13 +50,6 @@ export function billingMoney(minor, currency) {
   if (!Number.isInteger(minor) || !currency) return '—';
   return `${QUOTE_CURRENCY_SYMBOLS[currency] || `${currency} `}${formatMoneyForCurrency(minor / 100, currency)}`;
 }
-// L-22 (Owner 2026-10-28, "החזר בקירוב במסך" - "לכתוב על ההחזר 25 ש"ח בקירוב ולא לשנות את החוק"): a refund amount the whole-shekel
-// display rounds says it is approximate (the server refunds the exact agorot); a whole amount stays as it is
-export function billingRefundMoney(minor, currency, isHebrew) {
-  const m = billingMoney(minor, currency);
-  if (!Number.isInteger(minor) || currency !== 'ILS' || minor % 100 === 0) return m;
-  return isHebrew ? `כ־${m} (בקירוב)` : `about ${m} (approximately)`;
-}
 
 export const BILLING_COPY = Object.freeze({
   title: { he: 'מנוי ותשלום', en: 'Subscription & payment' },
@@ -128,9 +121,6 @@ const CODE_TEXT = {
   finish_not_recorded: { he: 'הסיום לא נרשם בשרת. בדקו בפיי פלוס וסגרו את הפעולה.', en: 'The end was not recorded on the server. Check PayPlus and close the action.' },
   forbidden: { he: 'אין הרשאה לפעולה הזו.', en: 'Not allowed.' },
   invalid_request: { he: 'הבקשה לא תקינה. שום דבר לא השתנה.', en: 'Invalid request. Nothing changed.' },
-  // L-22 (Owner 2026-10-28, "הודעה ברורה כשהתקופה הבאה כבר שולמה")
-  future_period_paid: { he: 'התקופה הבאה כבר שולמה. קודם מחזירים בממשק של פיי פלוס את החיוב של התקופה הבאה, ורק אחר כך מסיימים את המנוי. שום דבר לא השתנה.',
-    en: 'The next period is already paid. First refund the next period\'s charge in the PayPlus panel, then end the subscription. Nothing changed.' },
 };
 
 /** a number / date / amount inside a sentence, isolated for bidi (LRI ... PDI) */
@@ -143,7 +133,7 @@ export const reasonOk = (reason) => { const n = String(reason || '').trim().leng
 
 export function billingErrorText(r, isHebrew, currency = null) {
   if (r?.code === 'stale_preview') {
-    const m = iso(billingRefundMoney(r.refundMinor, currency, isHebrew));
+    const m = iso(billingMoney(r.refundMinor, currency));
     return isHebrew ? `הסכום השתנה בינתיים. הסכום החדש: ${m}. אשרו שוב.` : `The amount changed meanwhile. The new amount: ${m}. Confirm again.`;
   }
   const c = CODE_TEXT[r?.code] || { he: 'הפעולה נכשלה. נסו שוב בעוד רגע.', en: 'The action failed. Try again in a moment.' };
@@ -160,7 +150,7 @@ export function billingResult(action, r, isHebrew, date) {
   }
   if (action === 'end_early') {
     if (notApplied) return { good: false, text: he ? 'המנוי לא הסתיים ושום החזר לא נשלח: פיי פלוס סירבו לעצור את הוראת הקבע, או שהמנוי השתנה בינתיים. בדקו בממשק של פיי פלוס.' : 'The subscription did not end and no refund was sent: PayPlus refused to stop the standing order, or the subscription changed meanwhile. Check the PayPlus panel.' };
-    const m = iso(billingRefundMoney(r.refundMinor, r.currency, he));
+    const m = iso(billingMoney(r.refundMinor, r.currency));
     if (r.refundStatus === 'refunded') return { good: true, text: he ? `המנוי הסתיים, וההחזר של ${m} נשלח.` : `The subscription ended, and the refund of ${m} was sent.` };
     if (r.refundStatus === 'failed' || r.refundStatus === 'manual') return { good: false, text: he ? 'המנוי הסתיים, וההחזר לא נשלח: יש להחזיר ידנית בפיי פלוס.' : 'The subscription ended, and the refund was not sent: refund it manually in PayPlus.' };
     return { good: true, text: he ? 'המנוי הסתיים.' : 'The subscription ended.' };
