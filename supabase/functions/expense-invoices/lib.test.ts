@@ -4,7 +4,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   expenseHandler, oauthCallback, scanBatch, parseMessage, validateExtraction, vatRule, gmailQuery, payplusFields, invoicePatch, settingsPatch,
-  signState, verifyState, sameDocument, payplusRecords, callbackFailure, boiRate, payplusReason, createExpenseAt, EXPENSE_MODEL, EXPENSE_FALLBACK_MODEL, type ExpenseDeps,
+  signState, verifyState, sameDocument, payplusRecords, callbackFailure, boiRate, payplusReason, createExpenseAt, subcategoryUuids, EXPENSE_MODEL, EXPENSE_FALLBACK_MODEL, type ExpenseDeps,
 } from './lib.ts';
 
 const NOW = Date.parse('2026-10-22T18:00:00Z');
@@ -71,6 +71,10 @@ function deps(over: Partial<ExpenseDeps> = {}) {
     download: async () => 'JVBERi0=',
     payplusSearch: vi.fn(async () => []),
     payplusCreate: vi.fn(async () => 'pp-uuid-1'),
+    payplusSubcategories: vi.fn(async () => ({})),
+    payplusList: vi.fn(async () => []),
+    payplusUpdate: vi.fn(async () => {}),
+    sentInvoices: vi.fn(async () => []),
     ilsRate: vi.fn(async () => ({ rate: 3.7, date: '2026-09-01' })),
     notifyOwner: vi.fn(async () => {}),
     ...over,
@@ -395,5 +399,60 @@ describe('L-22 (Owner 2026-10-28, "כתובת השליחה של הוצאה חד�
     const both = vi.fn(async () => ({ status: 403, text: '' }));
     expect(await createExpenseAt(both)).toEqual({ status: 403, text: '' });
     expect(both).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('L-22 (Owner 2026-10-28, "שליחת סוג ההוצאה לפיי פלוס לפי המזהה שלהם"): the expense type goes by its PayPlus uuid', () => {
+  const SW = '0a14899e-db7d-4c1c-9cc8-0d27b5e09c20';
+  const EQ = '5114636c-4094-481c-a8d3-d194152a9d50';
+  const list = { status: 'success', details: [{ id: 3086, name: 'הוצאות הנהלה וכלליות', subcategories: [{ id: 2402, uuid: SW }, { id: 2404, uuid: EQ }, { id: 'x', uuid: 'bad' }] }] };
+  it('reads PayPlus\'s expense types list as number -> uuid; anything else is no entry', () => {
+    expect(subcategoryUuids(list)).toEqual({ 2402: SW, 2404: EQ });
+    expect(subcategoryUuids(null)).toEqual({});
+    expect(subcategoryUuids({ details: 'x' })).toEqual({});
+  });
+  it('a new expense is sent with the type uuid (the number stays as before)', async () => {
+    const d = deps({ payplusSubcategories: vi.fn(async () => ({ 2402: SW })) });
+    const id = '55555555-5555-5555-5555-555555555555';
+    d.rows[id] = { id, status: 'approved', supplier_name: 'Electra', email_subject: null, doc_number: '477186582', doc_date: '2026-07-31', amount: 319, currency: 'ILS', amount_includes_vat: true, vat_percentage: 18, file_path: null, subcategory_id: 2402 };
+    expect((await expenseHandler({ action: 'send', ids: [id] }, d, 'u1')).body.results).toEqual([{ id, ok: true }]);
+    expect((d.payplusCreate as ReturnType<typeof vi.fn>).mock.calls[0][0]).toMatchObject({ subcategory_id: '2402', subcategory_uuid: SW, amount: '319.00' });
+  });
+  it('the types list unavailable: the expense is still sent, without the uuid', async () => {
+    const d = deps({ payplusSubcategories: vi.fn(async () => { throw new Error('down'); }) });
+    const id = '66666666-6666-6666-6666-666666666666';
+    d.rows[id] = { id, status: 'approved', supplier_name: 'Electra', email_subject: null, doc_number: '1', doc_date: '2026-07-31', amount: 10, currency: 'ILS', amount_includes_vat: false, vat_percentage: 0, file_path: null, subcategory_id: 2402 };
+    expect((await expenseHandler({ action: 'send', ids: [id] }, d, 'u1')).body.results).toEqual([{ id, ok: true }]);
+    expect((d.payplusCreate as ReturnType<typeof vi.fn>).mock.calls[0][0].subcategory_uuid).toBeUndefined();
+  });
+  it('the expenses already in PayPlus WITHOUT a type get it (same fields + the uuid); one with a type is never touched', async () => {
+    const sent = [
+      { id: 'a', status: 'sent', payplus_uuid: 'pp-1', supplier_name: 'Electra', email_subject: null, doc_number: '477186582', doc_date: '2026-07-31', amount: 319, currency: 'ILS', amount_includes_vat: true, vat_percentage: 18, subcategory_id: 2404 },
+      { id: 'b', status: 'sent', payplus_uuid: 'created', supplier_name: 'Proton AG', email_subject: null, doc_number: '26288941', doc_date: '2026-08-18', amount: 47.88, currency: 'USD', amount_includes_vat: false, vat_percentage: 0, subcategory_id: null },
+      { id: 'c', status: 'sent', payplus_uuid: 'pp-3', supplier_name: 'X', email_subject: null, doc_number: '9', doc_date: '2026-08-18', amount: 5, currency: 'ILS', amount_includes_vat: false, vat_percentage: 0, subcategory_id: 2402 },
+    ];
+    const d = deps({
+      settings: async () => ({ expense_types: [{ id: 2402, name: 'תוכנה' }], default_subcategory_id: 2402 }),
+      payplusSubcategories: vi.fn(async () => ({ 2402: SW, 2404: EQ })),
+      sentInvoices: vi.fn(async () => sent),
+      payplusList: vi.fn(async () => [
+        { uuid: 'pp-1', number: '477186582', subcategory: {} },
+        { uuid: 'pp-2', number: '26288941', subcategory: {} },
+        { uuid: 'pp-3', number: '9', subcategory: { uuid: SW } },
+        { uuid: 'pp-9', number: 'not-ours', subcategory: {} },
+      ]),
+      ilsRate: vi.fn(async () => ({ rate: 2.986, date: '2026-08-18' })),
+    });
+    expect((await expenseHandler({ action: 'sync_types' }, d, 'u1')).body).toEqual({ ok: true, updated: 2, failed: 0, types: 2 });
+    const calls = (d.payplusUpdate as ReturnType<typeof vi.fn>).mock.calls;
+    expect(calls.map((c) => c[0])).toEqual(['pp-1', 'pp-2']);
+    expect(calls[0][1]).toMatchObject({ number: '477186582', amount: '319.00', vat_percentage: '18', subcategory_id: '2404', subcategory_uuid: EQ });
+    expect(calls[1][1]).toMatchObject({ number: '26288941', amount: '142.97', currency_code: 'ILS', subcategory_id: '2402', subcategory_uuid: SW });
+  });
+  it('no types list: nothing is changed and the screen is told', async () => {
+    const d = deps({ sentInvoices: vi.fn(async () => [{ id: 'a', status: 'sent', payplus_uuid: 'pp-1', doc_number: '1' }]) });
+    expect((await expenseHandler({ action: 'sync_types' }, d, 'u1')).body).toEqual({ ok: true, updated: 0, failed: 0, types: 0 });
+    expect(d.payplusList).not.toHaveBeenCalled();
+    expect(d.payplusUpdate).not.toHaveBeenCalled();
   });
 });

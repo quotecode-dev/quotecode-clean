@@ -84,6 +84,13 @@ export interface ExpenseDeps {
   // PayPlus: the records found for a search (throws when the search failed or its answer is not understood)
   payplusSearch(search: string): Promise<Record<string, unknown>[]>;
   payplusCreate(fields: Record<string, string>, file: { name: string; type: string; base64: string } | null): Promise<string>;
+  /** PayPlus's expense types as type number -> type uuid ({} when the list is unavailable) */
+  payplusSubcategories(): Promise<Record<string, string>>;
+  /** every PayPlus expense record (throws when the answer is not understood) */
+  payplusList(): Promise<Record<string, unknown>[]>;
+  payplusUpdate(uuid: string, fields: Record<string, string>): Promise<void>;
+  /** the rows already sent to PayPlus */
+  sentInvoices(): Promise<InvoiceRow[]>;
   /** the Bank of Israel representative rate of a currency (shekels per 1 unit) published on or before the date; null = none found */
   ilsRate(currency: string, date: string): Promise<IlsRate | null>;
   notifyOwner(found: number): Promise<void>;
@@ -425,7 +432,9 @@ export function boiRate(csv: string, date: string): IlsRate | null {
   }
   return best;
 }
-export function payplusFields(row: InvoiceRow, subcategoryId: number, fx: IlsRate | null = null): Record<string, string> | null {
+// L-22 (Owner 2026-10-28, "שליחת סוג ההוצאה לפיי פלוס לפי המזהה שלהם"): PayPlus links an expense to its type by the type's uuid
+// (subcategory_uuid - what PayPlus's own expense form sends); the number alone left every expense without a type
+export function payplusFields(row: InvoiceRow, subcategoryId: number, fx: IlsRate | null = null, subcategoryUuid: string | null = null): Record<string, string> | null {
   const amount = Number(row.amount);
   if (!row.doc_number || !row.doc_date || !Number.isFinite(amount) || amount <= 0 || !row.currency) return null;
   const foreign = String(row.currency) !== 'ILS';
@@ -440,9 +449,52 @@ export function payplusFields(row: InvoiceRow, subcategoryId: number, fx: IlsRat
     currency_code: foreign ? 'ILS' : String(row.currency), amount_includes_vat: row.amount_includes_vat ? 'true' : 'false',
     vat_percentage: String(Number(row.vat_percentage) || 0),
   };
+  if (subcategoryUuid) f.subcategory_uuid = subcategoryUuid;
   if (supplier) f.supplier_name = supplier;
   if (row.supplier_vat_id) f.supplier_vat_id = String(row.supplier_vat_id);
   return f;
+}
+/** PayPlus's expense types list (categories -> subcategories) as type number -> type uuid; anything else is no entry */
+export function subcategoryUuids(v: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  const cats = (v as { details?: unknown })?.details;
+  for (const c of Array.isArray(cats) ? cats : []) {
+    for (const s of Array.isArray((c as { subcategories?: unknown })?.subcategories) ? (c as { subcategories: unknown[] }).subcategories : []) {
+      const { id, uuid } = (s ?? {}) as { id?: unknown; uuid?: unknown };
+      if (Number.isInteger(id) && typeof uuid === 'string' && /^[0-9a-f-]{36}$/i.test(uuid)) out[String(id)] = uuid;
+    }
+  }
+  return out;
+}
+const hasType = (item: Record<string, unknown>) => {
+  const s = item.subcategory as Record<string, unknown> | null | undefined;
+  return !!(s && (s.uuid || s.id));
+};
+/** L-22 (Owner 2026-10-28, "שליחת סוג ההוצאה לפיי פלוס לפי המזהה שלהם"): the expenses already sent that PayPlus holds WITHOUT a type
+ *  get their type - the same fields they were sent with, plus the type's uuid. A PayPlus expense that has a type is never touched. */
+export async function syncTypes(deps: ExpenseDeps, fallbackSub: number | null): Promise<{ updated: number; failed: number; types: number }> {
+  const subs = await deps.payplusSubcategories();
+  const types = Object.keys(subs).length;
+  const sent = await deps.sentInvoices();
+  if (!types || !sent.length) return { updated: 0, failed: 0, types };
+  const items = await deps.payplusList();
+  let updated = 0;
+  let failed = 0;
+  for (const item of items) {
+    if (hasType(item) || typeof item.uuid !== 'string') continue;
+    const row = sent.find((r) => r.payplus_uuid === item.uuid)
+      ?? sent.find((r) => !/^[0-9a-f-]{36}$/i.test(String(r.payplus_uuid)) && String(r.doc_number) === String(item.number));
+    if (!row) continue;
+    const sub = Number(row.subcategory_id) || fallbackSub;
+    const uuid = sub ? subs[String(sub)] : null;
+    if (!sub || !uuid) continue;
+    let fx: IlsRate | null = null;
+    if (String(row.currency) !== 'ILS') fx = await deps.ilsRate(String(row.currency), String(row.doc_date)).catch(() => null);
+    const fields = payplusFields(row, sub, fx, uuid);
+    if (!fields) { failed += 1; continue; }
+    try { await deps.payplusUpdate(item.uuid, fields); updated += 1; } catch { failed += 1; }
+  }
+  return { updated, failed, types };
 }
 /** L-22 (Owner 2026-10-28, "הצגת ההסבר המלא של פיי פלוס בשליחה שנדחתה"): PayPlus's own explanation of a refused request, from
  *  whichever field it comes in (message / results.description / details / status), else the start of the answer as plain text (an
@@ -491,7 +543,7 @@ export function sameDocument(rec: Record<string, unknown>, row: InvoiceRow, sent
   return amountMatch || supplierMatch;
 }
 
-async function sendOne(deps: ExpenseDeps, id: string, fallbackSub: number | null): Promise<{ id: string; ok: boolean; code?: string }> {
+async function sendOne(deps: ExpenseDeps, id: string, fallbackSub: number | null, subs: Record<string, string> = {}): Promise<{ id: string; ok: boolean; code?: string }> {
   const row = await deps.claimForSend(id);
   if (!row) return { id, ok: false, code: 'not_approved' };
   const fail = async (code: string, message: string) => {
@@ -507,7 +559,7 @@ async function sendOne(deps: ExpenseDeps, id: string, fallbackSub: number | null
     fx = await deps.ilsRate(String(row.currency), String(row.doc_date)).catch(() => null);
     if (!fx) return fail('rate_unavailable', `השער היציג של ${String(row.currency)} ליום ${ddmmyyyy(String(row.doc_date))} לא נמצא, לא נשלח`);
   }
-  const fields = payplusFields(row, sub, fx) as Record<string, string>;
+  const fields = payplusFields(row, sub, fx, subs[String(sub)] ?? null) as Record<string, string>;
   let found: Record<string, unknown>[];
   try { found = await deps.payplusSearch(fields.number); } catch (e) {
     return fail('payplus_search_failed', `החיפוש בפיי פלוס נכשל, לא נשלח: ${String((e as Error)?.message || '')}`);
@@ -622,9 +674,14 @@ export async function expenseHandler(body: Record<string, unknown>, deps: Expens
       const ids = body.ids;
       if (!Array.isArray(ids) || !ids.length || ids.length > SEND_BATCH || !ids.every(isUuid)) return bad(400, 'invalid_request');
       const s = await deps.settings();
+      const subs = await deps.payplusSubcategories().catch(() => ({}));
       const results = [];
-      for (const id of ids as string[]) results.push(await sendOne(deps, id, s.default_subcategory_id));
+      for (const id of ids as string[]) results.push(await sendOne(deps, id, s.default_subcategory_id, subs));
       return ok({ results });
+    }
+    case 'sync_types': {
+      const s = await deps.settings();
+      try { return ok(await syncTypes(deps, s.default_subcategory_id)); } catch { return bad(502, 'payplus_failed'); }
     }
     default:
       return bad(400, 'invalid_action');
