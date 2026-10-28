@@ -86,6 +86,7 @@ describe('approve = publish, for a connected account', () => {
       connectedChannels: () => ['fb_il', 'fb_intl', 'ig_il'],
       publishSocial: vi.fn(async () => ({ id: 'p1', url: 'https://www.facebook.com/p1' })),
       getAction: vi.fn(async (id: string) => actions.get(id) ?? null),
+      recentActions: vi.fn(async () => [...actions.values()].reverse()),
       insertAction: vi.fn(async (a: Record<string, unknown>) => {
         if ([...actions.values()].some((x) => (x as unknown as { dedupe_key?: string }).dedupe_key === a.dedupe_key)) return null;
         const id = `m${actions.size}`; actions.set(id, { id, status: 'proposed', ...a } as unknown as Action); return id;
@@ -134,6 +135,22 @@ describe('approve = publish, for a connected account', () => {
     expect(key).toBe('tekango-agents/v1/meta/META_PAGE_IL_TOKEN/meta_400_190/2026-11-01');
     await handle({ action: 'publish_now', id: 'a1' }, d, paths);
     expect(d.mailOwner).toHaveBeenCalledTimes(1); // the same account, reason and day: no second email
+  });
+
+  // Codex N09: an incident whose email failed is mailed again on the next failure of the same day - and only until it is delivered
+  it('a failed incident email is sent again on the next failure the same day, then not again', async () => {
+    const d = deps({ publishSocial: vi.fn(async () => { throw new MetaError('meta_400_190', true); }) });
+    const mail = d.mailOwner as ReturnType<typeof vi.fn>;
+    mail.mockImplementationOnce(async () => false);
+    await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths);
+    const incident = () => [...d.actions.values()].find((x) => x.action_type === 'urgent_mail')!;
+    expect(incident()).toMatchObject({ status: 'failed', error: 'mail_failed' });
+    await handle({ action: 'publish_now', id: 'a1' }, d, paths);
+    expect(mail).toHaveBeenCalledTimes(2);
+    expect(incident()).toMatchObject({ status: 'done', error: null });
+    await handle({ action: 'publish_now', id: 'a1' }, d, paths);
+    expect(mail).toHaveBeenCalledTimes(2);
+    expect([...d.actions.values()].filter((x) => x.action_type === 'urgent_mail')).toHaveLength(1);
   });
 
   // 20261029000000 (Codex F08): an outcome not known is never published again without the Owner's check

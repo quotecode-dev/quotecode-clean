@@ -64,6 +64,7 @@ function deps(over: Partial<ExpenseDeps> = {}) {
     updateUnlessSent: vi.fn(async (id, p) => { if (!rows[id] || ['sent', 'sending', 'unknown'].includes(String(rows[id].status))) return false; rows[id] = { ...rows[id], ...p }; return true; }),
     claimForSend: vi.fn(async (id) => { if (!rows[id] || !['approved', 'send_failed'].includes(String(rows[id].status))) return null; rows[id].status = 'sending'; return { ...rows[id] }; }),
     finishSend: vi.fn(async (id, p) => { if (rows[id]?.status === 'sending') rows[id] = { ...rows[id], ...p }; }),
+    resolveUnknown: vi.fn(async (id, p) => { if (rows[id]?.status !== 'unknown') return false; rows[id] = { ...rows[id], ...p }; return true; }),
     claimUnknown: vi.fn(async (id) => {
       if (rows[id]?.status !== 'unknown') return null;
       const since = String(rows[id].updated_at ?? new Date(NOW).toISOString());
@@ -275,7 +276,7 @@ describe('approval and PayPlus', () => {
     expect(d.payplusCreate).toHaveBeenCalledTimes(1);
   });
   it('a pending row is not sent; the same number AND amount already in PayPlus is never sent twice', async () => {
-    const d = deps({ payplusSearch: vi.fn(async () => [{ number: 'INV-1001', docUID: 'existing-1', total_items_base_currency: 35, customer: { customer_name: 'Supabase Inc' } }]) });
+    const d = deps({ payplusSearch: vi.fn(async () => [{ number: 'INV-1001', docUID: 'existing-1', total_items_base_currency: 35, currency_code: 'USD', customer: { customer_name: 'Supabase Inc' } }]) });
     const id = approved(d, { status: 'pending' });
     expect((await expenseHandler({ action: 'send', ids: [id] }, d, 'u1')).body.results).toEqual([{ id, ok: false, code: 'not_approved' }]);
     d.rows[id].status = 'approved';
@@ -310,7 +311,9 @@ describe('approval and PayPlus', () => {
     expect(payplusRecords({ status: 'success', details: { numItems: 0, numPages: 0, items: [], statistics: { totalAmount: 0 } } })).toEqual([]);
     expect(payplusRecords({ status: 'success', details: { numItems: 1, items: [{ number: '217295035' }] } })).toHaveLength(1);
     expect(payplusRecords({ status: 'success', details: { numItems: 1 } })).toBeNull();
-    expect(sameDocument({ number: '1', customer: { customer_name: 'Supabase, Inc.' } }, { doc_number: '1', supplier_name: 'Supabase Inc', amount: 1 })).toBe(true);
+    expect(sameDocument({ number: '1', total_items_base_currency: 1, customer: { customer_name: 'Supabase, Inc.' } }, { doc_number: '1', supplier_name: 'Supabase Inc', amount: 1, currency: 'ILS' })).toBe(true);
+    // Codex N07: the same supplier with no amount on the record is not a certain match
+    expect(sameDocument({ number: '1', customer: { customer_name: 'Supabase, Inc.' } }, { doc_number: '1', supplier_name: 'Supabase Inc', amount: 1 })).toBe(false);
   });
   it('a row without number / date / amount cannot be sent; at most 10 per call', async () => {
     expect(payplusFields({ doc_number: null, doc_date: '2026-09-01', amount: 1, currency: 'ILS' }, 1)).toBeNull();
@@ -388,15 +391,29 @@ describe('Codex F05 / F06: never twice, never another supplier document', () => 
     const d = deps({ payplusSearch: vi.fn(async () => [{ number: '1001', docUID: 'other-1', total_items_base_currency: 100, customer: { customer_name: 'Beta Corp' } }]) });
     put(d, A);
     expect((await expenseHandler({ action: 'send', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: false, code: 'payplus_ambiguous' }]);
-    expect(d.rows[A].status).toBe('send_failed');
+    // Codex N06: it waits in "Check in PayPlus" for the Owner's decision - never sendable again by itself
+    expect(d.rows[A].status).toBe('unknown');
     expect(d.payplusCreate).not.toHaveBeenCalled();
+  });
+  it('Codex N07: an amount counts only in its own currency; insufficient identity is never "none"', () => {
+    const usd = { doc_number: '7', supplier_name: 'Acme Ltd', amount: 35, currency: 'USD' };
+    // the shekel amount sent against an ILS record = ours; the USD amount against an ILS record is a currency mix = not certain
+    expect(documentMatch({ number: '7', total_items_base_currency: 128.1, currency_code: 'ILS', customer: { customer_name: 'Acme Ltd' } }, usd, 128.1)).toBe('match');
+    expect(documentMatch({ number: '7', total_items_base_currency: 35, currency_code: 'ILS', customer: { customer_name: 'Acme Ltd' } }, usd, 128.1)).toBe('ambiguous');
+    expect(documentMatch({ number: '7', total_items_base_currency: 35, currency_code: 'USD', customer: { customer_name: 'Acme Ltd' } }, usd, 128.1)).toBe('match');
+    // no supplier identity: the same number is "none" only when the known amount differs from every amount of ours
+    expect(documentMatch({ number: '7', total_items_base_currency: 35 }, usd, 128.1)).toBe('ambiguous');
+    expect(documentMatch({ number: '7' }, usd, 128.1)).toBe('ambiguous');
+    expect(documentMatch({ number: '7', total_items_base_currency: 999 }, usd, 128.1)).toBe('none');
+    // another supplier's name with one of our amounts in any currency: not certain either way
+    expect(documentMatch({ number: '7', total_items_base_currency: 35, customer: { customer_name: 'Beta Corp' } }, usd, 128.1)).toBe('ambiguous');
   });
   it('a part of a name is not the same supplier ("Meta" is not "Metatron Ltd")', () => {
     expect(documentMatch({ number: '1', total_items_base_currency: 5, customer: { customer_name: 'Metatron Ltd' } }, { doc_number: '1', supplier_name: 'Meta', amount: 9 })).toBe('none');
     expect(sameSupplier({ supplier_name: 'Meta' }, { supplier_name: 'Metatron Ltd' })).toBe(false);
   });
   it('tax ids decide over names; a record without a supplier is never a certain match', () => {
-    expect(documentMatch({ number: '1', total_items_base_currency: 5, supplier_vat_id: '51-234567-8', customer: { customer_name: 'X' } }, { doc_number: '1', supplier_name: 'Y', supplier_vat_id: '512345678', amount: 5 })).toBe('match');
+    expect(documentMatch({ number: '1', total_items_base_currency: 5, supplier_vat_id: '51-234567-8', customer: { customer_name: 'X' } }, { doc_number: '1', supplier_name: 'Y', supplier_vat_id: '512345678', amount: 5, currency: 'ILS' })).toBe('match');
     expect(documentMatch({ number: '1', total_items_base_currency: 5, supplier_vat_id: '511111111' }, { doc_number: '1', supplier_name: 'Y', supplier_vat_id: '512345678', amount: 5 })).toBe('none');
     expect(documentMatch({ number: '1', total_items_base_currency: 5 }, { doc_number: '1', supplier_name: 'Y', amount: 5 })).toBe('ambiguous');
     expect(findDocument([{ number: '1', total_items_base_currency: 5, customer: { customer_name: 'Y' } }, { number: '1', total_items_base_currency: 5, customer: { customer_name: 'Y' } }], { doc_number: '1', supplier_name: 'Y', amount: 5 }, 5)).toBe('ambiguous');
@@ -462,7 +479,7 @@ describe('Codex F05 / F06: never twice, never another supplier document', () => 
     expect((await expenseHandler({ action: 'send', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: true, code: 'already_in_payplus' }]);
     expect(d.payplusCreate).not.toHaveBeenCalled();
   });
-  it('"Check in PayPlus": found = sent; not found after 15 minutes = can be sent again; too early or unclear = stays unknown; never a create', async () => {
+  it('"Check in PayPlus": found = sent; not found = stays unknown (never sendable again by itself); never a create', async () => {
     const old = new Date(NOW - 20 * 60000).toISOString();
     const fresh = new Date(NOW - 60000).toISOString();
     let d = deps({ payplusSearch: vi.fn(async () => [{ number: '1001', docUID: 'pp-found', total_items_base_currency: 100, customer: { customer_name: 'Acme Ltd' } }]) });
@@ -471,14 +488,39 @@ describe('Codex F05 / F06: never twice, never another supplier document', () => 
     expect(d.rows[A]).toMatchObject({ status: 'sent', payplus_uuid: 'pp-found' });
     d = deps();
     put(d, A, { status: 'unknown', updated_at: old });
+    // Codex N05 (Owner 2026-10-28, decision 2): not found by the search is not proof - it stays unknown until the Owner decides
     expect((await expenseHandler({ action: 'reconcile', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: false, code: 'not_in_payplus' }]);
-    expect(d.rows[A].status).toBe('send_failed');
+    expect(d.rows[A].status).toBe('unknown');
     d = deps();
     put(d, A, { status: 'unknown', updated_at: fresh });
-    expect((await expenseHandler({ action: 'reconcile', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: false, code: 'too_early' }]);
+    expect((await expenseHandler({ action: 'reconcile', ids: [A] }, d, 'u1')).body.results).toEqual([{ id: A, ok: false, code: 'not_in_payplus' }]);
     expect(d.rows[A]).toMatchObject({ status: 'unknown', updated_at: fresh });
     expect(d.payplusCreate).not.toHaveBeenCalled();
     expect((await expenseHandler({ action: 'reconcile', ids: [B] }, d, 'u1')).body.results).toEqual([{ id: B, ok: false, code: 'not_unknown' }]);
+  });
+});
+
+// Owner console 2026-10-28 (typed: "מאשר שינוי ב-L-01, L-09, L-11, L-14, L-15, L-17, L-22, L-23, L-25 לפי התוכנית לתיקון 17 ממצאי קודקס על בקשת
+// מיזוג 113, כולל ארבע ההחלטות שהוצעו"), decision 2: the Owner decides an unknown expense - three buttons, nothing sent or searched
+describe('Codex N06: the Owner decides an expense PayPlus may have', () => {
+  const C = '66666666-6666-4666-8666-666666666661';
+  const row = (o: P = {}) => ({ id: C, status: 'unknown', supplier_name: 'Acme Ltd', doc_number: '9', doc_date: '2026-09-01', amount: 10, currency: 'ILS', ...o });
+  it('found = sent (marked by the Owner); duplicate = closed; not created = can be sent again; only an unknown row; never PayPlus', async () => {
+    for (const [decision, status] of [['found', 'sent'], ['duplicate', 'rejected'], ['not_created', 'send_failed']] as const) {
+      const d = deps();
+      d.rows[C] = row();
+      expect((await expenseHandler({ action: 'resolve', ids: [C], decision }, d, 'u1')).body.results).toEqual([{ id: C, ok: true }]);
+      expect(d.rows[C].status).toBe(status);
+      if (decision === 'found') expect(d.rows[C]).toMatchObject({ payplus_uuid: 'owner-verified', sent_at: expect.any(String) });
+      expect(d.payplusCreate).not.toHaveBeenCalled();
+      expect(d.payplusSearch).not.toHaveBeenCalled();
+    }
+    const d = deps();
+    d.rows[C] = row({ status: 'sent' });
+    expect((await expenseHandler({ action: 'resolve', ids: [C], decision: 'duplicate' }, d, 'u1')).body.results).toEqual([{ id: C, ok: false, code: 'not_unknown' }]);
+    expect(d.rows[C].status).toBe('sent');
+    expect((await expenseHandler({ action: 'resolve', ids: [C], decision: 'send' }, d, 'u1')).status).toBe(400);
+    expect((await expenseHandler({ action: 'resolve', ids: ['x'], decision: 'found' }, d, 'u1')).status).toBe(400);
   });
 });
 

@@ -31,6 +31,9 @@ describe('api/agents-weekly', () => {
     expect((await answer({ ok: true, mailed: false, results: [{ agent: 'seo', status: 'done' }] })).outcome).toBe('failed');
     expect((await answer({ ok: true, mailed: true, results: [{ agent: 'seo', status: 'failed' }] })).outcome).toBe('failed');
     expect((await answer({ ok: true, mailed: false, results: [{ agent: 'seo', status: 'already_ran' }] })).outcome).toBe('skipped');
+    // Codex N10: the retry of an earlier unmailed report was tried and failed again - a failure, never "skipped"
+    expect((await answer({ ok: true, mailed: false, mailAttempted: true, results: [{ agent: 'seo', status: 'already_ran' }] })).outcome).toBe('failed');
+    expect((await answer({ ok: true, mailed: true, mailAttempted: true, results: [{ agent: 'seo', status: 'already_ran' }] })).outcome).not.toBe('failed');
     expect((await answer({ ok: false })).ok).toBe(false);
   });
   it('runs on Sundays at 05:00 and 06:00 UTC (the morning in Israel)', () => {

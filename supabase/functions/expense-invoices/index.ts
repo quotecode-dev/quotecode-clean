@@ -215,6 +215,10 @@ Deno.serve(async (req: Request) => {
         send_error: 'השליחה לפיי פלוס נקטעה באמצע - לא ידוע אם ההוצאה נקלטה' }).eq('status', 'sending').lt('updated_at', cutoffIso).select('id')) as unknown[];
       return rows.length;
     },
+    resolveUnknown: async (id, patch) => {
+      const rows = await db(admin.from('expense_invoices').update(patch).eq('id', id).eq('status', 'unknown').select('id')) as unknown[];
+      return rows.length === 1;
+    },
     sameInvoiceElsewhere: async (row) => {
       if (!row.doc_number) return false;
       const rows = await db(admin.from('expense_invoices').select('id, supplier_name, supplier_vat_id').eq('doc_number', String(row.doc_number))

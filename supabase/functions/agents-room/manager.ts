@@ -41,7 +41,7 @@ export type Profile = { agent: AnyAgent; name_he: string; name_en: string };
 export type Section = { h: string; p: string[]; list: string[] };
 export type ArticleLang = { title: string; description: string; h1: string; intro: string; sections: Section[] };
 export type ArticleRow = { id: string; slug: string; market: 'intl' | 'il'; status: 'draft' | 'published' | 'rejected'; he: ArticleLang; en: ArticleLang;
-  published_at: string | null; created_at?: string };
+  published_at: string | null; created_at?: string; revision?: number };
 
 export interface StageDeps extends Deps {
   // a supervisor's permission, asked of the database as the caller (the Owner: always true; the cron: never)
@@ -59,7 +59,10 @@ export interface StageDeps extends Deps {
   getAction(id: string): Promise<Action | null>;
   insertArticle(a: Omit<ArticleRow, 'id' | 'published_at' | 'status'> & { action_id: string }): Promise<string>;
   // whenStatus: write only while the article still has that status; true = written (20261029000000, Codex F07)
-  updateArticle(id: string, patch: Record<string, unknown>, whenStatus?: ArticleRow['status']): Promise<boolean>;
+  // whenRevision (Codex N01): also only while the article is still that revision - the publication is of the exact text approved
+  updateArticle(id: string, patch: Record<string, unknown>, whenStatus?: ArticleRow['status'], whenRevision?: number): Promise<boolean>;
+  // Codex N11: the public page of a published article, to see that the rebuild really put it on the site (null = not reachable)
+  pageHtml(url: string): Promise<string | null>;
   getArticle(id: string): Promise<ArticleRow | null>;
   articleSlugs(): Promise<string[]>;
   lastPublishedAt(): Promise<string | null>;
@@ -157,7 +160,11 @@ async function ai<T>(d: StageDeps, messages: unknown[], schema: unknown, ok: (j:
       cost += costOf(model, r.promptTokens, r.completionTokens); tokens += r.promptTokens + r.completionTokens;
       const j = JSON.parse(r.content) as T;
       if (ok(j)) return { j, cost, tokens };
-    } catch { /* the next model */ }
+    } catch (e) {
+      // Codex N08: a paid answer that came back incomplete is counted too (the next model is tried)
+      const u = (e as { usage?: { promptTokens: number; completionTokens: number } })?.usage;
+      if (u) { cost += costOf(model, u.promptTokens, u.completionTokens); tokens += u.promptTokens + u.completionTokens; }
+    }
   }
   return { j: null, cost, tokens };
 }
@@ -372,7 +379,11 @@ export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown
     const art = id ? await d.getArticle(id) : null;
     if (!art || art.status !== 'draft') return { status: 409, body: { ok: false, code: 'article_not_draft' } };
     if (draftErrors(art).length) return { status: 409, body: { ok: false, code: 'article_invalid' } };
-    if (!(await d.updateArticle(art.id, { status: 'published', published_at: at }, 'draft'))) return { status: 409, body: { ok: false, code: 'article_not_draft' } };
+    // Codex N01: ONE conditional write - published only while it is still the draft revision the Owner approved
+    if (!(await d.updateArticle(art.id, { status: 'published', published_at: at }, 'draft', Number(b.revision ?? 0)))) {
+      const now = await d.getArticle(art.id);
+      return { status: 409, body: { ok: false, code: now && now.status === 'draft' ? 'article_changed' : 'article_not_draft' } };
+    }
     const deploy = await d.deployHook();
     await d.updateAction(a.id, { status: 'done', decided_at: at, done_at: nowIso(d), result: { slug: art.slug, deploy }, error: deploy === 'ok' ? null : `deploy_${deploy}` });
     return { status: 200, body: { ok: true, status: 'published', slug: art.slug, deploy } };
@@ -420,11 +431,12 @@ export async function revise(d: StageDeps, b: { id?: unknown; note?: unknown }, 
   const r = await draftArticle(d, { market: art.market, topic_he: art.he.h1, topic_en: art.en.h1 }, [], { note, previous: { he: art.he, en: art.en } });
   await logCost(d, `revise:${a.id}:${d.now().getTime()}`.slice(0, 60), r.cost, r.tokens, `article revision: ${art.slug}`);
   if (!r.article) return { status: 502, body: { ok: false, code: 'draft_failed', errors: r.errors } };
-  // 20261029000000 (Codex F07): the new revision is announced first (an approval of the old text is then refused), and the text is
-  // written only while the article is still a draft - an approval or a rejection taken meanwhile wins
+  // Codex N01: the text and its revision change together in ONE conditional write (still the draft, still the revision read) - an
+  // approval of the old revision then fails, and an approval or rejection taken meanwhile wins; the action learns the new revision after
+  const rev = Number(art.revision ?? 0);
+  if (!(await d.updateArticle(art.id, { he: r.article.he, en: r.article.en, revision: rev + 1 }, 'draft', rev))) return { status: 409, body: { ok: false, code: 'article_not_draft' } }; // the slug stays
   await d.updateAction(a.id, { title_he: `לקרוא ולפרסם: ${r.article.he.h1}`, title_en: `Read and publish: ${r.article.en.h1}`, detail_he: r.article.he.description, detail_en: r.article.en.description,
-    payload: { ...a.payload, revision: Number(a.payload.revision ?? 0) + 1 } }, 'proposed');
-  if (!(await d.updateArticle(art.id, { he: r.article.he, en: r.article.en }, 'draft'))) return { status: 409, body: { ok: false, code: 'article_not_draft' } }; // the slug stays
+    payload: { ...a.payload, revision: rev + 1 } }, 'proposed');
   return { status: 200, body: { ok: true, status: 'revised' } };
 }
 
@@ -455,7 +467,35 @@ export async function runDaily(d: StageDeps, paths: string[]): Promise<Out> {
     }
   }
   const sitemap = await maybeSubmitSitemap(d, key, false);
-  return { status: 200, body: { ok: true, runKey: key, security, urgent, sitemap } };
+  const articles = await verifyPublishedArticles(d).catch(() => 'failed' as const);
+  return { status: 200, body: { ok: true, runKey: key, security, urgent, sitemap, articles } };
+}
+
+// Codex N11 (Owner 2026-10-28, decision 3): a rebuild the hook accepted is not proof - the article's own page must be on the site (its
+// canonical address, no noindex). Found = verified; still missing 2 hours after the approval = 'unverified', and "Rebuild the site" returns
+export const ARTICLE_VERIFY_AFTER_MS = 10 * 60000;
+export const ARTICLE_UNVERIFIED_AFTER_MS = 2 * 3600000;
+export async function verifyPublishedArticles(d: StageDeps): Promise<{ verified: number; unverified: number }> {
+  const out = { verified: 0, unverified: 0 };
+  const now = d.now().getTime();
+  const open = (await d.recentActions()).filter((a) => a.action_type === 'article_publish' && a.status === 'done'
+    && (a.result as Record<string, unknown>)?.deploy === 'ok' && !(a.result as Record<string, unknown>)?.verified).slice(0, 5);
+  for (const a of open) {
+    const result = (a.result ?? {}) as Record<string, unknown>;
+    const slug = String(result.slug ?? '');
+    const age = now - Date.parse(String(result.redeployAt ?? a.done_at ?? a.decided_at ?? a.created_at)); // a rebuild pressed again counts from then
+    if (!/^[a-z0-9-]+$/.test(slug) || age < ARTICLE_VERIFY_AFTER_MS) continue;
+    const pages = await Promise.all(['he', 'en'].map((l) => d.pageHtml(`${ORIGIN}/${l}/articles/${slug}`)));
+    const live = pages.every((h, i) => !!h && h.includes(`/${['he', 'en'][i]}/articles/${slug}`) && !/<meta[^>]+name="robots"[^>]+noindex/i.test(h));
+    if (live) {
+      await d.updateAction(a.id, { result: { ...result, verified: true, verifiedAt: d.now().toISOString() } }, 'done');
+      out.verified += 1;
+    } else if (age > ARTICLE_UNVERIFIED_AFTER_MS) {
+      await d.updateAction(a.id, { result: { ...result, deploy: 'unverified' }, error: 'deploy_unverified' }, 'done');
+      out.unverified += 1;
+    }
+  }
+  return out;
 }
 
 // ---------------------------------------------------------------- the weekly email, written by the manager
@@ -532,14 +572,20 @@ async function metaIncident(d: StageDeps, channel: string, code: string): Promis
   if (!t) return;
   const day = israelParts(d.now()).day;
   const where = CHANNEL_HE[channel] ?? channel;
-  const aid = await d.insertAction({ run_key: `meta:${day}`, source: 'social', kind: 'auto', action_type: 'urgent_mail',
+  let aid = await d.insertAction({ run_key: `meta:${day}`, source: 'social', kind: 'auto', action_type: 'urgent_mail',
     title_he: `הפרסום ל${where} נכשל`, title_en: `Publishing to ${channel} failed`, detail_he: metaReasonHe(code), detail_en: code,
     dedupe_key: `meta-incident:${t.tokenEnv}:${code}:${day}` });
-  if (!aid) return;
+  if (!aid) {
+    // Codex N09: the incident of today exists - mailed again only when its email failed
+    const prev = (await d.recentActions()).find((a) => a.action_type === 'urgent_mail' && a.source === 'social' && a.run_key === `meta:${day}`
+      && a.title_en === `Publishing to ${channel} failed` && a.detail_en === code);
+    if (!prev || prev.status !== 'failed') return;
+    aid = prev.id;
+  }
   const sent = await d.mailOwner(`הפרסום האוטומטי ל${where} נכשל - TEKANGO`,
     [`פוסט שאישרתם ל${where} לא פורסם.`, '', metaReasonHe(code), '', `מסך הרשתות בניהול: https://www.tekango.com/dashboard?view=admin&section=social`].join('\n'),
     `tekango-agents/v1/meta/${t.tokenEnv}/${code}/${day}`).catch(() => false);
-  await d.updateAction(aid, { status: sent ? 'done' : 'failed', done_at: nowIso(d), ...(sent ? {} : { error: 'mail_failed' }) });
+  await d.updateAction(aid, { status: sent ? 'done' : 'failed', done_at: nowIso(d), error: sent ? null : 'mail_failed' });
 }
 
 // "publish now" (Owner 2026-10-27, "מאשר"): an approved post of a connected account that was not published - the claim is written only
@@ -618,7 +664,9 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
       const s = await runSocial(d, 'cron', await sitemapPaths());
       const m = await runManager(d, 'cron', await sitemapPaths());
       let mailed = false;
+      let mailAttempted = false; // Codex N10: a delivery tried in this call (first send or the retry) - its failure is a failure
       if (full.some((x) => x.status !== 'already_ran') || m.status === 'done' || s.status === 'done') {
+        mailAttempted = true;
         const names = Object.fromEntries((await d.profiles()).map((p) => [p.agent, p.name_he]));
         const text = managerReport(names, m.result ?? null, full, pendingOf(await d.recentActions()).reverse(), await d.monthCostUsd(monthStartIso(d.now())), s);
         mailed = await d.mailOwner('דוח השבוע של חדר הסוכנים - TEKANGO', text, `tekango-agents/v1/${String(rest.runKey)}`);
@@ -628,6 +676,7 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
         // the same idempotency key, so a report that did go out is not sent twice)
         const unmailed = (await d.recentRuns()).filter((r) => r.run_key === String(rest.runKey) && r.status !== 'running' && !r.mailed_at);
         if (unmailed.length) {
+          mailAttempted = true;
           const asResult = (r: Run): Result | undefined => (r.status === 'done'
             ? { summaryHe: r.summary ?? '', summaryEn: String((r.data as { summaryEn?: unknown })?.summaryEn ?? ''), findings: r.findings ?? [], data: r.data ?? {}, costUsd: 0, tokens: 0 } : undefined);
           const of = (agent: string) => unmailed.find((r) => String(r.agent) === agent);
@@ -640,7 +689,7 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
           if (mailed) { const at = nowIso(d); for (const r of unmailed) await d.finish(r.id, { mailed_at: at }); }
         }
       }
-      return { status: 200, body: { ...rest, mailed, results: [...(rest.results as unknown[]), { agent: 'social', status: s.status, error: s.error ?? null }, { agent: 'manager', status: m.status, error: m.error ?? null }] } };
+      return { status: 200, body: { ...rest, mailed, mailAttempted, results: [...(rest.results as unknown[]), { agent: 'social', status: s.status, error: s.error ?? null }, { agent: 'manager', status: m.status, error: m.error ?? null }] } };
     }
     case 'daily':
       return who === 'cron' ? runDaily(d, await sitemapPaths()) : { status: 403, body: { ok: false, code: 'forbidden' } };

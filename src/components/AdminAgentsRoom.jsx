@@ -392,6 +392,7 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                             {a.action_type === 'article_publish' && a.status === 'done' && a.result?.deploy && a.result.deploy !== 'ok' && (
                               <div style={{ marginTop: 6 }} data-testid={`article-rebuild-${a.id}`}>
                                 <div className="av-notice av-bad">{a.result.deploy === 'failed' ? REBUILD_FAILED[isHebrew ? 'he' : 'en']
+                                  : a.result.deploy === 'unverified' ? (isHebrew ? 'המאמר אושר, אבל הדף שלו עדיין לא נמצא באתר שעתיים אחרי האישור, ולכן גוגל לא רואה אותו. לחצו "בנייה מחדש".' : 'The article was approved, but its page is still not on the site two hours later, so Google does not see it. Press "Rebuild the site".')
                                   : (isHebrew ? 'קישור הבנייה מחדש עוד לא הוגדר, ולכן גוגל יראה את המאמר רק בעדכון הבא של האתר.' : 'The rebuild link is not set yet, so Google sees the article with the next site update.')}</div>
                                 {/* PRODUCT_TRUTH_DECORATIVE: starts the site rebuild again for this approved article (no second approval - Codex F22) */}
                                 <button type="button" className="av-btn" style={{ marginTop: 6 }} disabled={!!busy} onClick={() => act({ action: 'redeploy', id: a.id },

@@ -32,8 +32,8 @@
     "markers": 20
   },
   "src/components/AdminBillingReconcile.jsx": {
-    "interactive": 3,
-    "markers": 3
+    "interactive": 5,
+    "markers": 5
   },
   "src/components/AdminDestinationHost.jsx": {
     "interactive": 0,
@@ -44,8 +44,8 @@
     "markers": 1
   },
   "src/components/AdminExpenseInvoices.jsx": {
-    "interactive": 17,
-    "markers": 17
+    "interactive": 20,
+    "markers": 20
   },
   "src/components/AdminHub.jsx": {
     "interactive": 1,

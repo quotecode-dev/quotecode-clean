@@ -261,7 +261,7 @@ describe('smart chat - a client question is not a plan question (Owner LIVE chec
   it('index.ts: the subscription truth line is unchanged and skipped only for that case', () => {
     const src = fs.readFileSync(path.join(here, 'index.ts'), 'utf8');
     // Owner console 2026-10-26 (typed item ו; L-06 / L-11 / L-17): the reply language is the interface language, the market is the account's
-    expect(src).toMatch(/const subscription = resolveSubscriptionTruthResponse\(lastUserMessage, isHebrew, verifiedUserId && accountContext \? accountContext\.account : null, marketIL\);/);
+    expect(src).toMatch(/const subscription = resolveSubscriptionTruthResponse\(lastUserMessage, isHebrew, verifiedUserId && accountContext \? accountContext\.account : null, marketIL,\n {6}!\(verifiedUserId && accountContext\?\.market === 'Unknown'\)\);/);
     expect(src).toMatch(/const dataNotPlan = ownDataQuestion && hasDataQualifier\(lastUserMessage\) && !mentionsPlan\(lastUserMessage\);\n {4}if \(subscription && !dataNotPlan\) \{/);
   });
   it('an empty result is followed by the closest useful fact, and answers name the concrete records', () => {

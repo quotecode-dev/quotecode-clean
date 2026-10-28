@@ -119,7 +119,10 @@ Deno.serve(async (req: Request) => {
       if (!res.ok) throw new Error(`ai_${res.status}`);
       const data = await res.json();
       const c = data?.choices?.[0];
-      if (typeof c?.message?.content !== 'string') throw new Error('ai_incomplete');
+      // Codex N08: a paid answer without content still reports its usage, so the cost is counted
+      if (typeof c?.message?.content !== 'string') {
+        throw Object.assign(new Error('ai_incomplete'), { usage: { promptTokens: Number(data?.usage?.prompt_tokens ?? 0), completionTokens: Number(data?.usage?.completion_tokens ?? 0) } });
+      }
       return { content: c.message.content, promptTokens: Number(data?.usage?.prompt_tokens ?? 0), completionTokens: Number(data?.usage?.completion_tokens ?? 0) };
     },
     mailOwner: async (subject, text, key) => {
@@ -146,12 +149,15 @@ Deno.serve(async (req: Request) => {
     },
     getAction: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('agent_actions').select('*').eq('id', id).maybeSingle())) as never : null),
     insertArticle: async (a) => ((await db(admin.from('site_articles').insert(a).select('id').single())) as { id: string }).id,
-    updateArticle: async (id, patch, whenStatus) => {
-      const q = admin.from('site_articles').update(patch).eq('id', id);
-      const rows = await db((whenStatus ? q.eq('status', whenStatus) : q).select('id')) as unknown[];
+    updateArticle: async (id, patch, whenStatus, whenRevision) => {
+      let q = admin.from('site_articles').update(patch).eq('id', id);
+      if (whenStatus) q = q.eq('status', whenStatus);
+      if (whenRevision !== undefined) q = q.eq('revision', whenRevision); // Codex N01: one conditional write on the approved revision
+      const rows = await db(q.select('id')) as unknown[];
       return Array.isArray(rows) && rows.length === 1;
     },
-    getArticle: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('site_articles').select('id, slug, market, status, he, en, published_at, created_at').eq('id', id).maybeSingle())) as never : null),
+    pageHtml: async (url) => { try { const r = await timed(url, {}, 15000); return r.ok ? await r.text() : null; } catch { return null; } },
+    getArticle: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('site_articles').select('id, slug, market, status, he, en, published_at, created_at, revision').eq('id', id).maybeSingle())) as never : null),
     articleSlugs: async () => ((await db(admin.from('site_articles').select('slug').limit(1000))) as { slug: string }[]).map((r) => r.slug),
     lastPublishedAt: async () => ((await db(admin.from('site_articles').select('published_at').eq('status', 'published').order('published_at', { ascending: false }).limit(1))) as { published_at: string }[])[0]?.published_at ?? null,
     deployHook: async () => {

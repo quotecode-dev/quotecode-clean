@@ -7,6 +7,7 @@ import { adminBillingHandler, PROOF_ACTIONS, type AdminBillingDeps } from './lib
 const ADMIN = '99999999-9999-4999-8999-999999999999';
 const U = '11111111-1111-4111-8111-111111111111';
 const ACTION = '55555555-5555-4555-8555-555555555555';
+const RMV = '77777777-7777-4777-8777-777777777777';
 const REC = '9ab9e163-0000-4000-8000-000000000001';
 const TERM = '66f01674-0000-4000-8000-000000000002';
 const OWN_TERM = '66f01674-0000-4000-8000-000000000003';
@@ -27,6 +28,7 @@ function deps(over: Partial<AdminBillingDeps> = {}, begun: Record<string, unknow
     recordRefund: vi.fn(async () => ({ ok: true })),
     unsettledRefund: vi.fn(async () => null as Record<string, unknown> | null),
     settleRefund: vi.fn(async () => ({ ok: true })),
+    settleRemovalRefund: vi.fn(async () => ({ ok: true, removalId: RMV, refundMinor: 2300 })),
     payplus: { terminalUid: OWN_TERM, cancel: vi.fn(async () => { calls.push('cancel'); return 'cancelled' as 'cancelled' | 'rejected' | 'unknown'; }),
       refund: vi.fn(async () => { calls.push('refund'); return { ok: true as const, refundRef: 'refund-1' }; }) },
     audit: vi.fn(async () => {}),
@@ -215,6 +217,32 @@ describe('admin-billing: a refund owed is never lost', () => {
       .toBe('no_unsettled_refund');
     expect(none.settleRefund).not.toHaveBeenCalled();
   });
+  // Codex N03 (Owner 2026-10-28, decision 1): "Done in PayPlus" for an owed SMART PACK removal refund - the password proof is bound to
+  // the removal and the PayPlus transaction number; nothing is refunded here
+  it('an owed removal refund made in PayPlus is closed with its transaction number (re-auth bound to both)', async () => {
+    const d = deps();
+    const body = { action: 'settle_removal_refund', targetUserId: U, removalId: RMV, refundRef: ' 1234567 ', reason: 'made in PayPlus', proofToken: 'p' };
+    const r = await adminBillingHandler(d, ADMIN, body);
+    expect(d.claimProof).toHaveBeenCalledWith(expect.objectContaining({ action: PROOF_ACTIONS.settle_refund, targetUserId: U,
+      params: { reason: 'made in PayPlus', removalId: RMV, refundRef: '1234567' } }));
+    expect(d.settleRemovalRefund).toHaveBeenCalledWith(RMV, U, '1234567');
+    expect(r).toMatchObject({ status: 200, body: { ok: true, removalId: RMV, settled: true } });
+    expect(d.payplus!.refund).not.toHaveBeenCalled();
+    expect(d.audit).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'success', afterState: { removalId: RMV, refundRef: '1234567', refundMinor: 2300 } }));
+    // no proof = nothing written; a bad removal id or a too-short number = refused before the proof
+    const noProof = deps({ claimProof: vi.fn(async () => false) });
+    expect((await adminBillingHandler(noProof, ADMIN, body)).body.code).toBe('reauth_required');
+    expect(noProof.settleRemovalRefund).not.toHaveBeenCalled();
+    for (const bad of [{ removalId: 'x' }, { refundRef: 'ab' }, { refundRef: 'x'.repeat(201) }, { refundRef: 5 }]) {
+      const b = deps();
+      expect((await adminBillingHandler(b, ADMIN, { ...body, ...bad })).status).toBe(400);
+      expect(b.claimProof).not.toHaveBeenCalled();
+    }
+    // already closed (or another account): the SQL answer is passed on
+    const gone = deps({ settleRemovalRefund: vi.fn(async () => ({ ok: false, code: 'no_unsettled_refund' })) });
+    expect((await adminBillingHandler(gone, ADMIN, body)).body.code).toBe('no_unsettled_refund');
+    expect(gone.audit).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'error' }));
+  });
   it('a resolve too soon after the action began is refused by SQL (never racing the running request)', async () => {
     const d = deps({ openAction: vi.fn(async () => ({ actionId: ACTION, kind: 'end_early' })),
       finish: vi.fn(async () => ({ ok: false, code: 'too_early_to_resolve' })) });
@@ -237,5 +265,13 @@ describe('admin-billing: wiring', () => {
     }
     const reauth = readFileSync(new URL('../admin-reauth-verify/index.ts', import.meta.url), 'utf8');
     for (const a of Object.values(PROOF_ACTIONS)) expect(reauth).toContain(`'${a}'`);
+  });
+  it('Codex N03: the settle call matches its migration', () => {
+    const wiring = readFileSync(new URL('./index.ts', import.meta.url), 'utf8');
+    const sql = readFileSync(new URL('../../migrations/20261029100000_codex_review_fixes_2.sql', import.meta.url), 'utf8');
+    const sent = [...(/rpc\('settle_smart_pack_removal_refund', \{([^}]*)\}\)/.exec(wiring)?.[1] ?? '').matchAll(/(p_[a-z0-9_]+):/g)].map((m) => m[1]);
+    const declared = [...(/CREATE OR REPLACE FUNCTION public\.settle_smart_pack_removal_refund\(([^)]*)\)/.exec(sql)?.[1] ?? '').matchAll(/(p_[a-z0-9_]+)\s/g)].map((m) => m[1]);
+    expect(sent).toEqual(['p_removal_id', 'p_user_id', 'p_refund_ref']);
+    expect(sent).toEqual(declared);
   });
 });

@@ -317,7 +317,9 @@ serve(async (req) => {
   // never from a plan the user claims. Runs after payment/invoicing (they keep first refusal on payment questions) and before
   // the market and capability routers. See subscriptionTruth.ts.
   {
-    const subscription = resolveSubscriptionTruthResponse(lastUserMessage, isHebrew, verifiedUserId && accountContext ? accountContext.account : null, marketIL);
+    // Codex N13: a signed-in account whose market is not known yet is never told it can buy, nor priced in one market
+    const subscription = resolveSubscriptionTruthResponse(lastUserMessage, isHebrew, verifiedUserId && accountContext ? accountContext.account : null, marketIL,
+      !(verifiedUserId && accountContext?.market === 'Unknown'));
     // Owner LIVE check 2026-10-19: "how many quotes do I have for client X" is a question about the user's records, not about the plan
     // allowance - unless it names the plan (left / free / subscription...), it goes to the data tools
     const dataNotPlan = ownDataQuestion && hasDataQualifier(lastUserMessage) && !mentionsPlan(lastUserMessage);
@@ -560,7 +562,7 @@ serve(async (req) => {
   // is REJECTED and replaced by the canonical deterministic statement; the rejection is logged with its violation codes.
   const subscriptionViolations = findSubscriptionClaimViolations(extracted.answer, marketIL);
   const answer = subscriptionViolations.length
-    ? safeSubscriptionAnswer(isHebrew, verifiedUserId && accountContext ? accountContext.account : null, marketIL)
+    ? safeSubscriptionAnswer(isHebrew, verifiedUserId && accountContext ? accountContext.account : null, marketIL, !(verifiedUserId && accountContext?.market === 'Unknown'))
     : extracted.answer;
   if (subscriptionViolations.length) console.warn('chat-ai: model answer rejected by subscription truth gate:', subscriptionViolations.join(','));
   const NAV_FOCUS: Record<string, string> = { open_business_phone: 'business_phone', open_business_tax_id: 'business_tax_id', open_business_details: 'business_details' };
