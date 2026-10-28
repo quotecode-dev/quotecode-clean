@@ -108,8 +108,8 @@
     "markers": 1
   },
   "src/components/AdminUserDetails.jsx": {
-    "interactive": 10,
-    "markers": 10
+    "interactive": 6,
+    "markers": 6
   },
   "src/components/AdminUsersDestination.jsx": {
     "interactive": 0,
@@ -536,10 +536,6 @@
     "markers": 0
   },
   "src/domain/admin/adminAccountsClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/domain/admin/adminBilling.js": {
     "interactive": 0,
     "markers": 0
   },
