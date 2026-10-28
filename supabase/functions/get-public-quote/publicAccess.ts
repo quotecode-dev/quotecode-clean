@@ -66,14 +66,12 @@ export const decideLegacyAccess = decideLegacyIdAccess;
 // ---------------------------------------------------------------------------------------------------------------------
 // Capability / grant read path
 // ---------------------------------------------------------------------------------------------------------------------
-// 20261029000000 (Codex F15, L-24): the approval state carries who signed - a fresh load of a signed link shows the signer's name
-export type LiveQuote = { user_id: string; status: unknown; signature: unknown; signer_name?: unknown; signer_company?: unknown; signer_role?: unknown; signed_at?: unknown };
 export interface CapabilityDeps {
   resolve(tokenHash: string, op: 'view'): Promise<unknown>;               // resolve_public_capability
   redeem(grantHash: string, channel: GrantChannel): Promise<unknown>;     // redeem_output_grant
   readSnapshot(path: string): Promise<Uint8Array | null>;                 // service client, bucket quote-files
-  /** live approval state only (status / signature / owner / who signed); the deal content always comes from the snapshot */
-  readLiveQuote(quoteId: string): Promise<LiveQuote | null>;
+  /** live approval state only (status / signature / owner); the deal content always comes from the snapshot */
+  readLiveQuote(quoteId: string): Promise<{ user_id: string; status: unknown; signature: unknown } | null>;
   /** issuer/v2 only: the immutable logo object bytes (service client, bucket quote-files); null when missing */
   readLogo?(objectPath: string): Promise<Uint8Array | null>;
   /** Task 28: the verified owner's thank-you settings (service client, explicit columns); absent / throwing = no thanks */
@@ -126,7 +124,7 @@ export async function verifiedLogoDataUrl(logo: IssuedLogo, readLogo: ((p: strin
 
 /** Renderer contract (the same shape the legacy response has) built from the immutable snapshot + live approval state. */
 export function rendererFromSnapshot(snapshot: unknown, bound: BoundArtifact,
-  live: LiveQuote | null, ctx: { callerUserId: string | null; now: Date }): Record<string, unknown> | null {
+  live: { user_id: string; status: unknown; signature: unknown } | null, ctx: { callerUserId: string | null; now: Date }): Record<string, unknown> | null {
   if (!isObj(snapshot) || snapshot.kind !== SNAPSHOT_KIND || snapshot.schemaVersion !== 1) return null;
   if (snapshot.attemptId !== bound.attemptId || snapshot.ownerId !== bound.userId || snapshot.quoteId !== bound.quoteId) return null;
   const doc = snapshot.document; const issuer = snapshot.issuer;
@@ -147,9 +145,6 @@ export function rendererFromSnapshot(snapshot: unknown, bound: BoundArtifact,
       valid_until: q.valid_until, tax_rate: q.tax_rate, subtotal: q.subtotal, total: q.total, discount: q.discount, terms: q.terms,
       warranty: q.warranty, notes: q.notes, subject: q.subject,
       status: liveOk ? liveOk.status : null, signature: liveOk ? liveOk.signature : null,
-      // the owner-checked live approval only (never another account's row)
-      signer_name: liveOk ? liveOk.signer_name ?? null : null, signer_company: liveOk ? liveOk.signer_company ?? null : null,
-      signer_role: liveOk ? liveOk.signer_role ?? null : null, signed_at: liveOk ? liveOk.signed_at ?? null : null,
       currency: q.currency, client_type: q.client_type,
       is_owner_viewing: Boolean(ctx.callerUserId && ctx.callerUserId === bound.userId),
       is_expired: isQuoteAcceptanceExpired(q.valid_until, iss?.country, ctx.now),
@@ -177,7 +172,7 @@ export function rendererFromSnapshot(snapshot: unknown, bound: BoundArtifact,
 async function serveBound(deps: CapabilityDeps, bound: BoundArtifact, extra: Record<string, unknown>, opts: { thanks: boolean }): Promise<Resp> {
   const v = await readVerifiedSnapshot(bound, deps.readSnapshot);
   if (!v.ok) { deps.onIncident?.(v.reason); return unable(); }   // never a regenerated / mutable document
-  let live: LiveQuote | null = null;
+  let live: { user_id: string; status: unknown; signature: unknown } | null = null;
   try { live = await deps.readLiveQuote(bound.quoteId); } catch { return unable(); }
   const body = rendererFromSnapshot(v.snapshot, bound, live, { callerUserId: deps.callerUserId, now: (deps.now ?? (() => new Date()))() });
   if (!body) { deps.onIncident?.('snapshot_identity_mismatch'); return unable(); }

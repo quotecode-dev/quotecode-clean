@@ -55,16 +55,11 @@ async function callFn(body) {
   } catch { return { ok: false, code: 'unavailable' }; }
 }
 
-// 20261029000000 (Codex F22): an approved article whose site rebuild did not start - said plainly, with a button to rebuild again
-const REBUILD_FAILED = { he: 'המאמר אושר ונשמר, אבל בניית האתר מחדש לא התחילה, ולכן גוגל עוד לא רואה אותו. לחצו "בנייה מחדש" כדי לנסות שוב.',
-  en: 'The article was approved and saved, but the site rebuild did not start, so Google does not see it yet. Press "Rebuild the site" to try again.' };
-
 function errorText(code, isHebrew) {
   const he = { draft_failed: 'הטיוטה לא עברה את הבדיקות של השפה והשוק. אפשר לנסות שוב.', cap_reached: 'הגענו לתקרת העלות החודשית, ולכן הבינה לא רצה החודש.',
-    not_pending: 'הפעולה הזו כבר טופלה.', note_required: 'כתבו במשפט מה לתקן.', bad_name: 'שם חייב להיות באורך של 1 עד 30 תווים, בעברית ובאנגלית.', article_changed: 'הטיוטה השתנתה מאז שנפתחה. קראו אותה שוב לפני האישור.', article_not_draft: 'המאמר כבר אושר או נדחה.' };
+    not_pending: 'הפעולה הזו כבר טופלה.', note_required: 'כתבו במשפט מה לתקן.', bad_name: 'שם חייב להיות באורך של 1 עד 30 תווים, בעברית ובאנגלית.' };
   const en = { draft_failed: 'The draft did not pass the language and market checks. You can try again.', cap_reached: 'The monthly cost cap was reached, so the AI does not run this month.',
-    not_pending: 'This action was already handled.', note_required: 'Write in one sentence what to fix.', bad_name: 'A name must be 1 to 30 characters, in Hebrew and in English.',
-    article_changed: 'The draft changed since it was opened. Read it again before approving.', article_not_draft: 'The article was already approved or rejected.' };
+    not_pending: 'This action was already handled.', note_required: 'Write in one sentence what to fix.', bad_name: 'A name must be 1 to 30 characters, in Hebrew and in English.' };
   return (isHebrew ? he : en)[code] || (isHebrew ? 'הפעולה לא הושלמה. נסו שוב.' : 'The action did not complete. Try again.');
 }
 
@@ -200,13 +195,11 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
     load();
     return r;
   };
-  // 20261029000000 (Codex F07): an article approval names the revision on the screen - a draft rewritten since then is read again first
-  const decide = (a, decision) => act({ action: 'decide', id: a.id, decision, ...(a.action_type === 'article_publish' ? { revision: Number(a.payload?.revision ?? 0) } : {}) }, (r) => {
+  const decide = (a, decision) => act({ action: 'decide', id: a.id, decision }, (r) => {
     if (r.status === 'rejected') return isHebrew ? 'הוסר מהרשימה.' : 'Removed from the list.';
     if (r.status === 'drafted') return isHebrew ? 'הטיוטה מוכנה. היא מחכה למטה לקריאה ולאישור שלכם.' : 'The draft is ready. It waits below for you to read and approve.';
     if (r.status === 'published') return r.deploy === 'ok'
       ? (isHebrew ? 'המאמר פורסם. האתר מתעדכן, וזה לוקח כ־2 דקות.' : 'The article was published. The site is updating; it takes about 2 minutes.')
-      : r.deploy === 'failed' ? REBUILD_FAILED[isHebrew ? 'he' : 'en']
       : (isHebrew ? 'המאמר פורסם ומופיע באתר. קישור הבנייה מחדש עוד לא הוגדר, ולכן גוגל יראה אותו רק בעדכון הבא של האתר.' : 'The article was published and opens on the site. The rebuild link is not set yet, so Google sees it with the next site update.');
     if (r.status === 'approved') return isHebrew ? 'אישרתם. ההוראה המלאה ל־Claude נשלחה אליכם במייל, והיא גם כאן להעתקה.' : 'Approved. The full instruction for Claude was emailed to you and is also here to copy.';
     return isHebrew ? 'בוצע.' : 'Done.';
@@ -387,20 +380,7 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                     <details style={{ marginTop: 14 }} data-testid="agents-history">
                       <summary>{isHebrew ? 'מה כבר טופל' : 'Already handled'}</summary>
                       <ul style={{ margin: '8px 0 0', padding: 0, display: 'grid', gap: 8 }}>
-                        {history.map((a) => (
-                          <ActionRow key={a.id} a={a} isHebrew={isHebrew} market={market}>
-                            {a.action_type === 'article_publish' && a.status === 'done' && a.result?.deploy && a.result.deploy !== 'ok' && (
-                              <div style={{ marginTop: 6 }} data-testid={`article-rebuild-${a.id}`}>
-                                <div className="av-notice av-bad">{a.result.deploy === 'failed' ? REBUILD_FAILED[isHebrew ? 'he' : 'en']
-                                  : (isHebrew ? 'קישור הבנייה מחדש עוד לא הוגדר, ולכן גוגל יראה את המאמר רק בעדכון הבא של האתר.' : 'The rebuild link is not set yet, so Google sees the article with the next site update.')}</div>
-                                {/* PRODUCT_TRUTH_DECORATIVE: starts the site rebuild again for this approved article (no second approval - Codex F22) */}
-                                <button type="button" className="av-btn" style={{ marginTop: 6 }} disabled={!!busy} onClick={() => act({ action: 'redeploy', id: a.id },
-                                  (r) => (r.deploy === 'ok' ? (isHebrew ? 'האתר נבנה מחדש, וזה לוקח כ־2 דקות.' : 'The site is rebuilding; it takes about 2 minutes.') : REBUILD_FAILED[isHebrew ? 'he' : 'en']))}
-                                  data-testid={`article-rebuild-btn-${a.id}`}>{isHebrew ? 'בנייה מחדש' : 'Rebuild the site'}</button>
-                              </div>
-                            )}
-                          </ActionRow>
-                        ))}
+                        {history.map((a) => <ActionRow key={a.id} a={a} isHebrew={isHebrew} market={market} />)}
                       </ul>
                     </details>
                   )}

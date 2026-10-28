@@ -23,15 +23,6 @@ describe('api/agents-daily', () => {
     expect((await runAgentsDaily({ env: {}, fetchImpl: async () => { throw new Error('no call'); } })).ok).toBe(false);
     delete process.env.CRON_SECRET;
   });
-  // 20261029000000 (Codex F12): the body decides - a failed security run, an unsent urgent email or a failed sitemap is partial
-  it('a part that failed is reported as partial, never as a plain success', async () => {
-    const env = { VITE_SUPABASE_URL: 'https://synthetic.supabase.co', CRON_SECRET: 's' };
-    const answer = (body) => runAgentsDaily({ env, fetchImpl: async () => ({ ok: true, status: 200, json: async () => body }) });
-    expect(await answer({ ok: true, security: 'failed', urgent: null, sitemap: 'skipped' })).toMatchObject({ ok: false, outcome: 'partial' });
-    expect(await answer({ ok: true, security: 'done', urgent: false, sitemap: 'skipped' })).toMatchObject({ ok: false, outcome: 'partial' });
-    expect(await answer({ ok: true, security: 'already_ran', urgent: null, sitemap: 'skipped' })).toMatchObject({ ok: true, outcome: 'skipped' });
-    expect(await answer({ ok: true, security: 'done', urgent: null, sitemap: 'submitted' })).toMatchObject({ ok: true, outcome: 'completed' });
-  });
   it('runs every day at 04:30 UTC (the morning in Israel)', () => {
     const crons = JSON.parse(readFileSync('vercel.json', 'utf8')).crons;
     expect(crons).toContainEqual({ path: '/api/agents-daily', schedule: '30 4 * * *' });

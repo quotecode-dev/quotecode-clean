@@ -48,10 +48,7 @@ describe('no invented actions (Owner 2026-10-19)', () => {
     expect(buildNoInventionBlock(false, false)).toMatch(/can NOT attach screenshots, files or documents/);
     expect(buildNoInventionBlock(true, false)).toMatch(/support@tekango\.com/);
     const src = fs.readFileSync(path.join(here, 'index.ts'), 'utf8');
-    // 20261029000000 (Codex F16): the mailbox follows the account market, never the reply language
-    expect(src).toMatch(/const promptWithRules = systemPrompt \+ buildNoInventionBlock\(isHebrew, !!toolCtx, marketIL\);/);
-    expect(buildNoInventionBlock(false, false, true)).toMatch(/support@tekango\.com/); // a Local account writing in English
-    expect(buildNoInventionBlock(true, false, false)).toMatch(/info@tekango\.com/); // an International account writing in Hebrew
+    expect(src).toMatch(/const promptWithRules = systemPrompt \+ buildNoInventionBlock\(isHebrew, !!toolCtx\);/);
     expect(src).toMatch(/content: withTools \? modelInstructions : promptWithRules/);
     expect(src).toMatch(/aiReply = removeInventedOffers\(aiReply, \{ screenshots: !!toolCtx \}\);/);
   });

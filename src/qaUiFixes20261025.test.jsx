@@ -3,8 +3,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
-import process from 'node:process';
-import { reportMonthRange, recurringMonthsInRange, calendarDateOf, monthIndexOf } from './utils/recurringExpense';
+import { reportMonthRange, recurringMonthsInRange } from './utils/recurringExpense';
 import EditExpenseModal from './components/EditExpenseModal';
 
 afterEach(cleanup);
@@ -28,25 +27,6 @@ describe('recurring expenses count per month from their start (C5)', () => {
     expect(recurringMonthsInRange(jan, r('custom', 0, { startDate: '2026-03-01', endDate: '2026-05-31' }))).toBe(3);
     expect(recurringMonthsInRange(jan, reportMonthRange({ type: 'custom', now: new Date('2026-04-15') }))).toBe(4);
     expect(recurringMonthsInRange({ is_recurring: true, expense_date: null }, r('yearly', 0))).toBe(0);
-  });
-  // 20261029000000 (Codex F21, IRON-DATE-001): a month-start date is its own month in every browser time zone
-  it.each(['America/Los_Angeles', 'Asia/Jerusalem', 'Pacific/Auckland'])('TZ=%s: a recurring expense started on the 1st counts from that month', (tz) => {
-    const before = process.env.TZ;
-    process.env.TZ = tz;
-    try {
-      const may = { is_recurring: true, expense_date: '2026-05-01' };
-      expect(recurringMonthsInRange(may, r('yearly', 0))).toBe(8);
-      expect(recurringMonthsInRange(may, r('monthly', 3))).toBe(0); // never April
-      expect(recurringMonthsInRange(jan, r('custom', 0, { startDate: '2026-03-01', endDate: '2026-05-31' }))).toBe(3);
-      expect(monthIndexOf('2026-05-01')).toBe(2026 * 12 + 4);
-      expect(calendarDateOf('2026-05-01').getMonth()).toBe(4);
-      expect(calendarDateOf('2026-05-01').getDate()).toBe(1);
-    } finally { if (before === undefined) delete process.env.TZ; else process.env.TZ = before; }
-  });
-  it('a new expense is dated by the business day, never the UTC day', () => {
-    const d = src('src/pages/Dashboard.jsx');
-    expect(d).toContain('expense_date: deviceCalendarDate()');
-    expect(d).not.toContain("expense_date: new Date().toISOString()");
   });
   it('the Dashboard totals use it (the chart keeps its month-by-month count)', () => {
     const d = src('src/pages/Dashboard.jsx');

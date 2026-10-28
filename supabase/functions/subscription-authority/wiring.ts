@@ -107,8 +107,6 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
     smartPackRemovalTargets: (userId) => call('smart_pack_removal_targets', { p_user_id: userId }),
     smartPackRemovalRefundsDue: (userId) => call('smart_pack_removal_refunds_due', { p_user_id: userId }),
     recordSmartPackRemovalRefund: async (removalId, refundRef) => (await call('record_smart_pack_removal_refund', { p_removal_id: removalId, p_refund_ref: refundRef })) as Record<string, unknown>,
-    claimSmartPackRemovalRefund: async (removalId) => (await call('claim_smart_pack_removal_refund', { p_removal_id: removalId })) as Record<string, unknown>,
-    markSmartPackRemovalRefundUnknown: async (removalId) => (await call('mark_smart_pack_removal_refund_unknown', { p_removal_id: removalId })) as Record<string, unknown>,
     applyVerifiedLineEvent: async (e) => {
       // The §2.4 signature has no removal parameter: a removal event is refused (no state change) until it is defined.
       if (e.removal) return { ok: false, code: 'invalid_event' };

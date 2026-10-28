@@ -102,10 +102,6 @@ serve(async (req) => {
           return new Uint8Array(await data.arrayBuffer());
         },
         readLiveQuote: async (id) => {
-          // 20261029000000 (Codex F15): who signed too; a database without the signer columns still answers the approval state
-          const full = await adminClient.from('quotes').select('user_id, status, signature, signer_name, signer_company, signer_role, signed_at').eq('id', id).maybeSingle();
-          if (!full.error) return full.data ?? null;
-          if (!/signer_|signed_at/.test(String((full.error as { message?: string }).message ?? ''))) throw full.error;
           const { data, error } = await adminClient.from('quotes').select('user_id, status, signature').eq('id', id).maybeSingle();
           if (error) throw error;
           return data ?? null;

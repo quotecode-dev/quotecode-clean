@@ -64,7 +64,7 @@ Deno.serve(async (req: Request) => {
     caller: async () => role,
     // stage 2: the page tokens are function secrets (META_PAGE_IL_TOKEN / META_PAGE_INTL_TOKEN), read here only and sent to Meta only
     connectedChannels: () => Object.entries(TARGETS).filter(([, t]) => !!(Deno.env.get(t.tokenEnv) ?? '').trim()).map(([id]) => id),
-    publishSocial: (channel, payload, onContainer) => publishToMeta((u, i) => timed(u, i, 30000), (name) => (Deno.env.get(name) ?? '').trim(), channel, payload, onContainer),
+    publishSocial: (channel, payload) => publishToMeta((u, i) => timed(u, i, 30000), (name) => (Deno.env.get(name) ?? '').trim(), channel, payload),
     can: async (permission) => {
       if (role === 'admin') return true;
       if (role === 'cron' || !asCaller) return false;
@@ -146,11 +146,7 @@ Deno.serve(async (req: Request) => {
     },
     getAction: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('agent_actions').select('*').eq('id', id).maybeSingle())) as never : null),
     insertArticle: async (a) => ((await db(admin.from('site_articles').insert(a).select('id').single())) as { id: string }).id,
-    updateArticle: async (id, patch, whenStatus) => {
-      const q = admin.from('site_articles').update(patch).eq('id', id);
-      const rows = await db((whenStatus ? q.eq('status', whenStatus) : q).select('id')) as unknown[];
-      return Array.isArray(rows) && rows.length === 1;
-    },
+    updateArticle: async (id, patch) => { await db(admin.from('site_articles').update(patch).eq('id', id)); },
     getArticle: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('site_articles').select('id, slug, market, status, he, en, published_at, created_at').eq('id', id).maybeSingle())) as never : null),
     articleSlugs: async () => ((await db(admin.from('site_articles').select('slug').limit(1000))) as { slug: string }[]).map((r) => r.slug),
     lastPublishedAt: async () => ((await db(admin.from('site_articles').select('published_at').eq('status', 'published').order('published_at', { ascending: false }).limit(1))) as { published_at: string }[])[0]?.published_at ?? null,

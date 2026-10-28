@@ -140,15 +140,13 @@ export async function runSocial(d: StageDeps, trigger: 'cron' | 'admin', paths: 
     await d.finish(id, { status: 'skipped_cap', finished_at: now.toISOString() });
     return { status: 'skipped_cap', id };
   }
-  // 20261029000000 (Codex F09): a paid AI call is counted even when the run fails after it
-  let cost = 0; let tokens = 0;
   try {
     const week = weekStartDay(now);
     const actions = await d.recentActions();
     const thisWeek = (c: Channel) => actions.filter((a) => a.action_type === 'social_post' && a.payload?.channel === c.id && israelParts(new Date(a.created_at)).day >= week).length;
     const slots: { c: Channel; index: number }[] = [];
     for (const c of CHANNELS) for (let i = thisWeek(c); i < c.perWeek; i += 1) slots.push({ c, index: i });
-    let stored = 0; let dropped = 0;
+    let stored = 0; let dropped = 0; let cost = 0; let tokens = 0;
     if (slots.length) {
       const messages = [
         { role: 'system', content: systemPrompt(slots.map((s) => s.c)) },
@@ -179,7 +177,7 @@ export async function runSocial(d: StageDeps, trigger: 'cron' | 'admin', paths: 
     return { status: 'done', id, result };
   } catch (e) {
     const error = String((e as Error)?.message ?? 'failed').slice(0, 120);
-    await d.finish(id, { status: 'failed', finished_at: d.now().toISOString(), error, ai_cost_usd: cost, tokens });
+    await d.finish(id, { status: 'failed', finished_at: d.now().toISOString(), error });
     return { status: 'failed', id, error };
   }
 }
@@ -190,13 +188,12 @@ export async function runSocial(d: StageDeps, trigger: 'cron' | 'admin', paths: 
 // the Owner saved as function secrets - never in code, never in a log) publish on "approve": a Facebook page post with the square image,
 // an Instagram image post through its page (Israel; the international one since 2026-10-27, "מאשר"). TikTok stays manual.
 export const GRAPH = 'https://graph.facebook.com/v26.0';
-export type Target = { kind: 'facebook'; pageId: string; tokenEnv: string } | { kind: 'instagram'; igUserId: string; tokenEnv: string; profileUrl: string };
+export type Target = { kind: 'facebook'; pageId: string; tokenEnv: string } | { kind: 'instagram'; igUserId: string; tokenEnv: string };
 export const TARGETS: Readonly<Record<string, Target>> = Object.freeze({
   fb_il: { kind: 'facebook', pageId: '1381375051729705', tokenEnv: 'META_PAGE_IL_TOKEN' }, // Tekango ישראל
   fb_intl: { kind: 'facebook', pageId: '1408027809060627', tokenEnv: 'META_PAGE_INTL_TOKEN' }, // Tekango Global
-  // 20261029000000 (Codex F11): each Instagram account's own profile is the fallback link
-  ig_il: { kind: 'instagram', igUserId: '17841431179031610', tokenEnv: 'META_PAGE_IL_TOKEN', profileUrl: 'https://www.instagram.com/tekangoisrael/' }, // @tekangoisrael, linked to Tekango ישראל
-  ig_intl: { kind: 'instagram', igUserId: '17841422352275530', tokenEnv: 'META_PAGE_INTL_TOKEN', profileUrl: 'https://www.instagram.com/tekangoglobal/' }, // @tekangoglobal, linked to Tekango Global
+  ig_il: { kind: 'instagram', igUserId: '17841431179031610', tokenEnv: 'META_PAGE_IL_TOKEN' }, // @tekangoisrael, linked to Tekango ישראל
+  ig_intl: { kind: 'instagram', igUserId: '17841422352275530', tokenEnv: 'META_PAGE_INTL_TOKEN' }, // @tekangoglobal, linked to Tekango Global
 });
 export const imageUrl = (art: string) => `${ORIGIN}/social/art/${ART_KEYS.includes(art) ? art : 'quote'}.jpg`;
 export const facebookMessage = (p: { text?: unknown; hashtags?: unknown; link?: unknown }) =>
@@ -206,17 +203,10 @@ export const instagramCaption = (p: { text?: unknown; hashtags?: unknown }) =>
   [String(p.text ?? ''), (Array.isArray(p.hashtags) ? p.hashtags : []).join(' ')].filter(Boolean).join('\n\n');
 
 type Fetch = (url: string, init?: RequestInit) => Promise<Response>;
-/** 20261029000000 (Codex F08): definite = Meta refused (a 4xx with its own error code) or nothing was published (the Instagram container
- *  step); anything else (no answer, a time-out, a 5xx, a success without an id) is unknown - the post may be online */
-export class MetaError extends Error {
-  definite: boolean;
-  constructor(code: string, definite: boolean) { super(code); this.definite = definite; }
-}
 const graphError = async (r: Response) => {
   let code = `meta_${r.status}`;
-  let coded = false;
-  try { const j = await r.json(); if (j?.error?.code) { code = `meta_${r.status}_${j.error.code}`; coded = true; } } catch { /* the status is enough */ }
-  return new MetaError(code, coded && r.status >= 400 && r.status < 500);
+  try { const j = await r.json(); if (j?.error?.code) code = `meta_${r.status}_${j.error.code}`; } catch { /* the status is enough */ }
+  return new Error(code);
 };
 const post = async (f: Fetch, url: string, form: Record<string, string>) => {
   const r = await f(url, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams(form).toString() });
@@ -224,31 +214,25 @@ const post = async (f: Fetch, url: string, form: Record<string, string>) => {
   return await r.json();
 };
 // publishes one approved post; returns the public address of the new post. The token is read through `token(name)` and only sent to Meta.
-export async function publishToMeta(f: Fetch, token: (name: string) => string, channel: string, payload: Record<string, unknown>,
-  onContainer?: (containerId: string) => Promise<void>): Promise<{ url: string; id: string }> {
+export async function publishToMeta(f: Fetch, token: (name: string) => string, channel: string, payload: Record<string, unknown>): Promise<{ url: string; id: string }> {
   const t = TARGETS[channel];
-  if (!t) throw new MetaError('not_connected', true);
+  if (!t) throw new Error('not_connected');
   const access = token(t.tokenEnv);
-  if (!access) throw new MetaError('not_configured', true);
+  if (!access) throw new Error('not_configured');
   const image = imageUrl(String(payload.art ?? ''));
   if (t.kind === 'facebook') {
     const j = await post(f, `${GRAPH}/${t.pageId}/photos`, { url: image, message: facebookMessage(payload), access_token: access });
     const id = String(j?.post_id ?? j?.id ?? '');
-    if (!id) throw new MetaError('meta_no_id', false);
+    if (!id) throw new Error('meta_no_id');
     return { id, url: `https://www.facebook.com/${id}` };
   }
-  // the container publishes nothing: any failure here is definite
-  let creation = '';
-  try {
-    const created = await post(f, `${GRAPH}/${t.igUserId}/media`, { image_url: image, caption: instagramCaption(payload), access_token: access });
-    creation = String(created?.id ?? '');
-  } catch (e) { throw new MetaError(String((e as Error)?.message ?? 'meta_failed'), true); }
-  if (!creation) throw new MetaError('meta_no_id', true);
-  if (onContainer) await onContainer(creation).catch(() => undefined); // kept for the Owner's check - never re-published from it
+  const created = await post(f, `${GRAPH}/${t.igUserId}/media`, { image_url: image, caption: instagramCaption(payload), access_token: access });
+  const creation = String(created?.id ?? '');
+  if (!creation) throw new Error('meta_no_id');
   const published = await post(f, `${GRAPH}/${t.igUserId}/media_publish`, { creation_id: creation, access_token: access });
   const id = String(published?.id ?? '');
-  if (!id) throw new MetaError('meta_no_id', false);
-  let url = t.profileUrl;
+  if (!id) throw new Error('meta_no_id');
+  let url = 'https://www.instagram.com/tekangoisrael/';
   try {
     const r = await f(`${GRAPH}/${id}?${new URLSearchParams({ fields: 'permalink', access_token: access })}`);
     if (r.ok) { const j = await r.json(); if (typeof j?.permalink === 'string' && j.permalink.startsWith('https://www.instagram.com/')) url = j.permalink; }

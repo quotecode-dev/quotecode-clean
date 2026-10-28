@@ -43,11 +43,7 @@ describe('the robot check (Cloudflare Turnstile)', () => {
     // Owner 2026-10-25 (typed L-12): the address is trimmed before it reaches Auth
     expect(dash).toMatch(/signInWithPassword\(\{ email: emailInput\.trim\(\), password: passwordInput, options: \{ captchaToken: takeCaptchaToken\('auth'\) \} \}\)/);
     expect(dash).toMatch(/captchaToken: takeCaptchaToken\('reset'\),\n\s+\}\)\);/);
-    expect(dash).toMatch(/privacy_version: '2026-10-25'/);
-    // 20261029000000 (Codex F19): the consent record names the versions of the documents linked at signup (their 'last updated' date)
-    const day = (f) => { const m = readFileSync(`src/pages/${f}`, 'utf8').match(/Last updated: October (\d+), 2026/); return m ? `2026-10-${m[1].padStart(2, '0')}` : null; };
-    expect(dash).toContain(`terms_version: '${day('Terms.jsx')}'`);
-    expect(dash).toContain(`privacy_version: '${day('Privacy.jsx')}'`);
+    expect(dash).toMatch(/privacy_version: '2026-10-23'/);
   });
   it('the admin password re-check runs with the secret key, which Auth exempts from captcha (protected actions keep working)', () => {
     const src = readFileSync('supabase/functions/admin-reauth-verify/index.ts', 'utf8').replace(/\r\n/g, '\n');

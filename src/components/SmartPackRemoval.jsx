@@ -37,9 +37,7 @@ export default function SmartPackRemoval({ isHebrew, invoke, onDone }) {
       <p data-testid="plans-smart-pack-removal-done" role="status" dir={he ? 'rtl' : 'ltr'} style={{ ...box, color: '#0F6672', fontWeight: 700 }}>
         {result.state === 'removed'
           ? <>{he ? <>חכם פלוס יפעל עד {num(israelDate(result.effectiveAt))} ולא יתחדש.</> : <>SMART PACK runs until {num(israelDate(result.effectiveAt))} and will not renew.</>}
-            {/* 20261029000000 (Codex F02): the refund is promised as done only when it was made */}
-            {result.refundMinor > 0 && result.refundState === 'refunded' && <> {he ? <>החזר של {num(money(result.refundMinor))} יגיע לכרטיס.</> : <>A refund of {num(money(result.refundMinor))} goes back to your card.</>}</>}
-            {result.refundMinor > 0 && result.refundState !== 'refunded' && <> {he ? <>ההחזר של {num(money(result.refundMinor))} עדיין בטיפול ויבוצע לכרטיס ששימש לתשלום. לשאלות כתבו לנו: <bdi dir="ltr">support@tekango.com</bdi></> : <>Your refund of {num(money(result.refundMinor))} is still being processed and will go back to the card you paid with. Questions? Write to us: <bdi dir="ltr">support@tekango.com</bdi></>}</>}</>
+            {result.refundMinor > 0 && <> {he ? <>החזר של {num(money(result.refundMinor))} יגיע לכרטיס.</> : <>A refund of {num(money(result.refundMinor))} goes back to your card.</>}</>}</>
           : smartPackRemovalErrorMessage(result.code ?? (result.state === 'pending' ? 'pending' : 'refused'), he)}
       </p>
     );

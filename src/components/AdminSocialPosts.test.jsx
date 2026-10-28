@@ -163,24 +163,4 @@ describe('stage 2: a connected account (Owner 2026-10-27, "מאשר את שלב 
       fireEvent.click(screen.getByTestId('social-publish-now-p9'));
       await waitFor(() => expect(screen.getByTestId('social-posts-notice').textContent).toBe(busyText));
     });
-
-  // 20261029000000 (Codex F08 / F10): the reason in plain words; an outcome not known is checked on the page before publishing again
-  it.each([[true], [false]])('isHebrew=%s: a dead page connection says what to do; an unknown outcome asks to check first', async (isHebrew) => {
-    const dead = { ...post('p6', 'fb_il', 'approved'), decided_at: '2026-11-01T06:00:00Z', error: 'publish_failed: meta_400_190' };
-    const unsure = { ...post('p7', 'ig_intl', 'approved'), decided_at: '2026-11-01T06:00:00Z', error: 'publish_unknown: The signal has been aborted' };
-    invoke.mockResolvedValue({ data: { ...STATE, autoChannels: ['fb_il', 'fb_intl', 'ig_il', 'ig_intl'], posts: [dead, unsure] }, error: null });
-    render(<AdminSocialPosts isHebrew={isHebrew} />);
-    await screen.findByTestId('social-posts');
-    expect(screen.getByTestId('social-failed-p6').textContent).toBe(isHebrew ? 'החיבור לדף פג. צריך לחבר את הדף מחדש, ואחר כך ללחוץ "פרסום עכשיו".' : 'The connection to the page expired. Reconnect the page, then press "Publish now".');
-    expect(screen.getByTestId('social-unknown-p7').textContent).toContain(isHebrew ? 'לא ברור אם הפוסט פורסם. בדקו בדף באינסטגרם' : 'We could not confirm whether the post was published. Check the page on Instagram');
-    expect(screen.queryByTestId('social-publish-now-p7')).toBeNull();
-    expect(screen.getByTestId('social-publish-confirmed-p7').textContent).toBe(isHebrew ? 'הפוסט לא פורסם, לפרסם עכשיו' : 'It was not published - publish now');
-    invoke.mockResolvedValueOnce({ data: { ok: true, status: 'ready', publishError: 'publish_failed: meta_400_190' }, error: null });
-    fireEvent.click(screen.getByTestId('social-publish-now-p6'));
-    await waitFor(() => expect(screen.getByTestId('social-posts-notice').textContent).toContain(isHebrew ? 'החיבור לדף פג' : 'The connection to the page expired'));
-    expect(screen.getByTestId('social-posts-notice').className).toContain('av-bad'); // a failure is never shown as a success
-    invoke.mockResolvedValueOnce({ data: { ok: true, status: 'published', url: 'https://www.instagram.com/p/X/' }, error: null });
-    fireEvent.click(screen.getByTestId('social-publish-confirmed-p7'));
-    await waitFor(() => expect(invoke).toHaveBeenCalledWith('agents-room', { body: { action: 'publish_now', id: 'p7', confirm: 'not_published' } }));
-  });
 });

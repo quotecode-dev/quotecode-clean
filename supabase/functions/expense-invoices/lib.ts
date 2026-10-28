@@ -75,21 +75,13 @@ export interface ExpenseDeps {
   updateUnlessSent(id: string, patch: Record<string, unknown>): Promise<boolean>;
   /** approved / send_failed -> sending, atomically; null = someone else claimed it or it is not approved */
   claimForSend(id: string): Promise<InvoiceRow | null>;
-  /** a 'sending' row -> the patch (updated_at = now unless the patch names it) */
   finishSend(id: string, patch: Record<string, unknown>): Promise<void>;
-  // 20261029000000 (Codex F05): an expense PayPlus may have received is 'unknown' - never sent again automatically
-  /** unknown -> sending, atomically; the row with unknown_since (when it became unknown); null = not unknown or taken */
-  claimUnknown(id: string): Promise<(InvoiceRow & { unknown_since: string }) | null>;
-  /** 'sending' rows not touched since the cutoff (a send that died half-way) -> 'unknown' */
-  expireStaleSending(cutoffIso: string): Promise<number>;
-  /** another row with the same document number of the same supplier already sent / being sent / unknown */
-  sameInvoiceElsewhere(row: InvoiceRow): Promise<boolean>;
   settings(): Promise<{ expense_types: { id: number; name: string; uuid?: string }[]; default_subcategory_id: number | null }>;
   saveSettings(patch: Record<string, unknown>): Promise<void>;
   upload(path: string, base64: string, type: string): Promise<void>;
   signedUrl(path: string): Promise<string | null>;
   download(path: string): Promise<string | null>;
-  // PayPlus: the records found for a search - EVERY page (throws when the search failed, did not complete or its answer is not understood)
+  // PayPlus: the records found for a search (throws when the search failed or its answer is not understood)
   payplusSearch(search: string): Promise<Record<string, unknown>[]>;
   payplusCreate(fields: Record<string, string>, file: { name: string; type: string; base64: string } | null): Promise<string>;
   /** PayPlus's expense types as type number -> type uuid ({} when the list is unavailable) */
@@ -514,92 +506,16 @@ export function payplusRecords(v: unknown): Record<string, unknown>[] | null {
   return Array.isArray(list) ? (list as unknown[]).filter((r) => r && typeof r === 'object') as Record<string, unknown>[] : null;
 }
 const norm = (s: unknown) => String(s ?? '').toLowerCase().replace(/[^\p{L}\p{N}]/gu, '');
-const digits = (s: unknown) => String(s ?? '').replace(/\D/g, '');
-/** the same supplier (Codex F05 - another row of the same invoice): both tax ids decide, else the whole names */
-export function sameSupplier(a: Record<string, unknown>, b: Record<string, unknown>): boolean {
-  const va = digits(a.supplier_vat_id); const vb = digits(b.supplier_vat_id);
-  if (va && vb) return va === vb;
-  const na = norm(a.supplier_name);
-  return !!na && na === norm(b.supplier_name);
-}
-export type DocMatch = 'match' | 'ambiguous' | 'none';
-/** 20261029000000 (Codex F06): a PayPlus record vs our invoice. The same number is required; then the supplier: both tax ids -> they
- *  decide; else both names, compared whole (never a part of a name). The same supplier and the same amount (the shekel amount sent), or
- *  a record without an amount = 'match'. Another supplier with a different amount = 'none'. Anything in between (another name with the same amount, no supplier on
- *  the record, the same supplier with another amount) = 'ambiguous': never linked, never created - the Owner checks PayPlus. */
-export function documentMatch(rec: Record<string, unknown>, row: InvoiceRow, sentAmount: number | null = null): DocMatch {
-  if (String(rec.number ?? '').trim() !== String(row.doc_number ?? '').trim()) return 'none';
-  const cust = (rec.customer ?? {}) as Record<string, unknown>;
-  const sup = (rec.supplier ?? {}) as Record<string, unknown>;
-  const recAmount = Number(rec.total_items_base_currency ?? rec.amount ?? rec.total ?? NaN);
-  // the shekel amount sent, or the invoice's own amount (a foreign invoice sent before 28/10 kept its currency)
-  const amountMatch = Number.isFinite(recAmount) && [sentAmount, Number(row.amount)].some((a) => a !== null && Number.isFinite(a) && Math.abs(recAmount - (a as number)) < 0.01);
-  const sameSupplierAnswer: DocMatch = amountMatch || !Number.isFinite(recAmount) ? 'match' : 'ambiguous';
-  const recVat = [rec.supplier_vat_id, sup.vat_id, sup.vat_number, cust.vat_number, cust.customer_vat_id, cust.vat_id].map(digits).find(Boolean) ?? '';
-  const myVat = digits(row.supplier_vat_id);
-  if (recVat && myVat) return recVat !== myVat ? 'none' : sameSupplierAnswer;
-  const names = [cust.customer_name, rec.supplier_name, sup.name].map(norm).filter(Boolean);
-  const mine = norm(row.supplier_name);
-  if (names.length && mine) return names.includes(mine) ? sameSupplierAnswer : (amountMatch ? 'ambiguous' : 'none');
-  return amountMatch ? 'ambiguous' : 'none';
-}
-/** the same document already in PayPlus (a certain match only) */
+/** the same document already in PayPlus: the same number AND the same amount or the same supplier (another supplier's "1001" is not it) */
 export function sameDocument(rec: Record<string, unknown>, row: InvoiceRow, sentAmount: number | null = null): boolean {
-  return documentMatch(rec, row, sentAmount) === 'match';
-}
-/** all the records of a search: exactly one certain match, or 'ambiguous', or 'none' */
-export function findDocument(found: Record<string, unknown>[], row: InvoiceRow, sentAmount: number | null): { match: Record<string, unknown> } | 'ambiguous' | 'none' {
-  const all = found.map((r) => ({ r, m: documentMatch(r, row, sentAmount) }));
-  const matches = all.filter((x) => x.m === 'match');
-  if (matches.length === 1 && !all.some((x) => x.m === 'ambiguous')) return { match: matches[0].r };
-  return matches.length || all.some((x) => x.m === 'ambiguous') ? 'ambiguous' : 'none';
-}
-
-/** 20261029000000 (Codex F05): a create PayPlus may have accepted. definite = PayPlus answered a refusal (nothing was created);
- *  otherwise (no answer, a time-out, a server error, an answer not understood) it is unknown - never sent again automatically. */
-export class PayplusCreateError extends Error {
-  definite: boolean;
-  constructor(message: string, definite: boolean) { super(message); this.definite = definite; }
-}
-/** a create answer: a definite refusal = a 4xx other than 408, or a JSON answer whose status is not success */
-export function createAnswerDefinite(status: number, text: string): boolean {
-  if (status >= 400 && status < 500 && status !== 408) return true;
-  if (status >= 200 && status < 300) {
-    try { const o = JSON.parse(text); return !!o && typeof o === 'object' && typeof o.status === 'string' && o.status !== 'success'; } catch { return false; }
-  }
-  return false;
-}
-
-/** 20261029000000 (Codex F05): one page of a search (its records and PayPlus's total when given); null = not understood */
-export const SEARCH_PAGE = 50;
-export const SEARCH_MAX_PAGES = 20;
-export function payplusPage(v: unknown): { items: Record<string, unknown>[]; total: number | null } | null {
-  const items = payplusRecords(v);
-  if (!items) return null;
-  const d = (v as Record<string, unknown>)?.details as Record<string, unknown> | undefined;
-  const n = d && typeof d === 'object' ? Number(d.numItems) : NaN;
-  return { items, total: Number.isInteger(n) && n >= 0 ? n : null };
-}
-/** every page of a search: a short page ends it; PayPlus's total not reached, a page repeated or more than 1,000 records = the search did
- *  not complete (throws - the send is blocked, never "nothing found") */
-export async function searchAllPages(page: (skip: number, take: number) => Promise<{ items: Record<string, unknown>[]; total: number | null } | 'empty'>): Promise<Record<string, unknown>[]> {
-  const out: Record<string, unknown>[] = [];
-  let total: number | null = null;
-  let previous = '';
-  for (let p = 0; p < SEARCH_MAX_PAGES; p++) {
-    const r = await page(p * SEARCH_PAGE, SEARCH_PAGE);
-    const items = r === 'empty' ? [] : r.items;
-    if (r !== 'empty' && r.total !== null) total = r.total;
-    const first = items.length ? JSON.stringify(items[0]) : '';
-    if (p > 0 && first && first === previous) throw new Error('search_incomplete');
-    previous = first;
-    out.push(...items);
-    if (items.length < SEARCH_PAGE) {
-      if (total !== null && out.length < total) throw new Error('search_incomplete');
-      return out;
-    }
-  }
-  throw new Error('search_incomplete');
+  if (String(rec.number ?? '').trim() !== String(row.doc_number ?? '').trim()) return false;
+  const recAmount = Number(rec.total_items_base_currency ?? rec.amount ?? rec.total ?? NaN);
+  // the invoice's own amount, or the shekel amount a foreign invoice was sent with
+  const amountMatch = Number.isFinite(recAmount) && [Number(row.amount), sentAmount].some((a) => a !== null && Number.isFinite(a) && Math.abs(recAmount - (a as number)) < 0.01);
+  const names = [(rec.customer as Record<string, unknown>)?.customer_name, rec.supplier_name, (rec.supplier as Record<string, unknown>)?.name].map(norm).filter(Boolean);
+  const mine = norm(row.supplier_name);
+  const supplierMatch = !!mine && names.some((n) => n.includes(mine) || mine.includes(n));
+  return amountMatch || supplierMatch;
 }
 
 async function sendOne(deps: ExpenseDeps, id: string, fallbackSub: number | null, subs: Record<string, string> = {}): Promise<{ id: string; ok: boolean; code?: string }> {
@@ -619,68 +535,25 @@ async function sendOne(deps: ExpenseDeps, id: string, fallbackSub: number | null
     if (!fx) return fail('rate_unavailable', `השער היציג של ${String(row.currency)} ליום ${ddmmyyyy(String(row.doc_date))} לא נמצא, לא נשלח`);
   }
   const fields = payplusFields(row, sub, fx, subs[String(sub)] ?? null) as Record<string, string>;
-  // 20261029000000 (Codex F05): the same invoice of the same supplier in another row (already sent, being sent or unknown) is never sent again
-  if (await deps.sameInvoiceElsewhere(row).catch(() => true)) return fail('duplicate_local', 'חשבונית באותו מספר של אותו ספק כבר נשלחה, בשליחה או בבדיקה');
   let found: Record<string, unknown>[];
   try { found = await deps.payplusSearch(fields.number); } catch (e) {
-    const m = String((e as Error)?.message || '');
-    return m === 'search_incomplete' ? fail('search_incomplete', 'החיפוש בפיי פלוס לא הושלם (יותר מדי תוצאות), לא נשלח')
-      : fail('payplus_search_failed', `החיפוש בפיי פלוס נכשל, לא נשלח: ${m}`);
+    return fail('payplus_search_failed', `החיפוש בפיי פלוס נכשל, לא נשלח: ${String((e as Error)?.message || '')}`);
   }
-  const doc = findDocument(found, row, Number(fields.amount));
-  if (doc === 'ambiguous') return fail('payplus_ambiguous', 'בפיי פלוס יש מסמך באותו מספר שלא ברור אם הוא של הספק הזה. בדקו בפיי פלוס; אם זו אותה הוצאה, דחו את השורה כאן');
-  const sent = async (uuid: string, code?: string): Promise<{ id: string; ok: boolean; code?: string }> => {
-    // a row PayPlus has but we could not mark stays 'sending' - it becomes 'unknown', never sent again
-    try { await deps.finishSend(id, { status: 'sent', payplus_uuid: uuid.slice(0, 80), send_error: null, sent_at: new Date(deps.now()).toISOString() }); }
-    catch { return { id, ok: false, code: 'unrecorded' }; }
-    return code ? { id, ok: true, code } : { id, ok: true };
-  };
-  if (doc !== 'none') return sent(String(doc.match.docUID ?? doc.match.uuid ?? 'existing'), 'already_in_payplus');
-  let uuid: string;
-  try {
-    const base64 = row.file_path ? await deps.download(String(row.file_path)) : null;
-    const file = base64 ? { name: String(row.file_name || row.file_path), type: String(row.file_type || 'application/pdf'), base64 } : null;
-    uuid = await deps.payplusCreate(fields, file);
-  } catch (e) {
-    const m = String((e as Error)?.message || 'failed');
-    if (e instanceof PayplusCreateError && !e.definite) {
-      await deps.finishSend(id, { status: 'unknown', send_error: `לא התקבלה תשובה ברורה מפיי פלוס - לא ידוע אם ההוצאה נקלטה: ${m}`.slice(0, 300) }).catch(() => undefined);
-      return { id, ok: false, code: 'payplus_unknown' };
-    }
-    return fail('payplus_failed', m);
-  }
-  return sent(uuid);
-}
-
-/** 20261029000000 (Codex F05): an 'unknown' expense is checked in PayPlus (a full search, never a create): found = sent; not found after
- *  15 minutes = can be sent again (send_failed - the Owner presses Send); unclear = stays unknown */
-export const UNKNOWN_SETTLE_MS = 15 * 60000;
-async function reconcileOne(deps: ExpenseDeps, id: string, fallbackSub: number | null, subs: Record<string, string>): Promise<{ id: string; ok: boolean; code?: string }> {
-  const row = await deps.claimUnknown(id);
-  if (!row) return { id, ok: false, code: 'not_unknown' };
-  const back = async (code: string, message: string) => {
-    await deps.finishSend(id, { status: 'unknown', send_error: message.slice(0, 300), updated_at: row.unknown_since });
-    return { id, ok: false, code };
-  };
-  const sub = Number(row.subcategory_id) || fallbackSub;
-  let fx: IlsRate | null = null;
-  if (String(row.currency) !== 'ILS') fx = await deps.ilsRate(String(row.currency), String(row.doc_date)).catch(() => null);
-  const fields = sub && (String(row.currency) === 'ILS' || fx) ? payplusFields(row, sub, fx, subs[String(sub)] ?? null) : null;
-  if (!fields) return back('payplus_search_failed', 'לא ניתן לבדוק בפיי פלוס כרגע (חסרים פרטים או שער). נסו שוב');
-  let found: Record<string, unknown>[];
-  try { found = await deps.payplusSearch(String(fields.number)); } catch (e) {
-    return back(String((e as Error)?.message) === 'search_incomplete' ? 'search_incomplete' : 'payplus_search_failed', 'החיפוש בפיי פלוס לא הושלם. בדקו בפיי פלוס ידנית או נסו שוב');
-  }
-  const doc = findDocument(found, row, Number(fields.amount));
-  if (doc === 'ambiguous') return back('payplus_ambiguous', 'בפיי פלוס יש מסמך באותו מספר שלא ברור אם הוא של הספק הזה. בדקו בפיי פלוס');
-  if (doc !== 'none') {
-    await deps.finishSend(id, { status: 'sent', payplus_uuid: String(doc.match.docUID ?? doc.match.uuid ?? 'existing').slice(0, 80), send_error: null,
+  const existing = found.find((r) => sameDocument(r, row, Number(fields.amount)));
+  if (existing) {
+    await deps.finishSend(id, { status: 'sent', payplus_uuid: String(existing.docUID ?? existing.uuid ?? 'existing').slice(0, 80), send_error: null,
       sent_at: new Date(deps.now()).toISOString() });
     return { id, ok: true, code: 'already_in_payplus' };
   }
-  if (deps.now() - Date.parse(row.unknown_since) < UNKNOWN_SETTLE_MS) return back('too_early', 'ההוצאה עדיין לא מופיעה בחיפוש של פיי פלוס. בדקו שוב בעוד כמה דקות');
-  await deps.finishSend(id, { status: 'send_failed', send_error: 'ההוצאה לא נמצאה בפיי פלוס אחרי חיפוש מלא. אפשר לשלוח אותה שוב' });
-  return { id, ok: false, code: 'not_in_payplus' };
+  try {
+    const base64 = row.file_path ? await deps.download(String(row.file_path)) : null;
+    const file = base64 ? { name: String(row.file_name || row.file_path), type: String(row.file_type || 'application/pdf'), base64 } : null;
+    const uuid = await deps.payplusCreate(fields, file);
+    await deps.finishSend(id, { status: 'sent', payplus_uuid: uuid.slice(0, 80), send_error: null, sent_at: new Date(deps.now()).toISOString() });
+    return { id, ok: true };
+  } catch (e) {
+    return fail('payplus_failed', String((e as Error)?.message || 'failed'));
+  }
 }
 
 // ---------- the handler ----------
@@ -779,22 +652,10 @@ export async function expenseHandler(body: Record<string, unknown>, deps: Expens
     case 'send': {
       const ids = body.ids;
       if (!Array.isArray(ids) || !ids.length || ids.length > SEND_BATCH || !ids.every(isUuid)) return bad(400, 'invalid_request');
-      await deps.expireStaleSending(new Date(deps.now() - UNKNOWN_SETTLE_MS).toISOString()).catch(() => 0);
       const s = await deps.settings();
       const subs = await typeUuids(deps, s);
       const results = [];
       for (const id of ids as string[]) results.push(await sendOne(deps, id, s.default_subcategory_id, subs));
-      return ok({ results });
-    }
-    // 20261029000000 (Codex F05): "Check in PayPlus" for expenses PayPlus may have received (a search only - nothing is created)
-    case 'reconcile': {
-      const ids = body.ids;
-      if (!Array.isArray(ids) || !ids.length || ids.length > SEND_BATCH || !ids.every(isUuid)) return bad(400, 'invalid_request');
-      await deps.expireStaleSending(new Date(deps.now() - UNKNOWN_SETTLE_MS).toISOString()).catch(() => 0);
-      const s = await deps.settings();
-      const subs = await typeUuids(deps, s);
-      const results = [];
-      for (const id of ids as string[]) results.push(await reconcileOne(deps, id, s.default_subcategory_id, subs));
       return ok({ results });
     }
     default:

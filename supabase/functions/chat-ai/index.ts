@@ -266,9 +266,7 @@ serve(async (req) => {
   const asksInvoicing = invoicingTruthApplies(AI_FACTS.invoicing) && classifyInvoicingIntent(lastUserMessage);
   const asksPayment = paymentTruthApplies(AI_FACTS.billing) && classifyPaymentIntent(lastUserMessage);
   if (asksInvoicing || asksPayment) {
-    // 20261029000000 (Codex F16): an account whose market is not known yet is never told it can buy
-    const purchaseIL = accountContext?.market === 'Unknown' ? false : marketIL;
-    const truth = asksInvoicing ? resolveInvoicingTruthResponse(isHebrew, AI_FACTS.invoicing, payloadAccount, subscriptionPurchaseOpen(purchaseIL, AI_FACTS.billing)) : resolvePaymentTruthResponse(isHebrew, AI_FACTS.billing, payloadAccount, purchaseIL);
+    const truth = asksInvoicing ? resolveInvoicingTruthResponse(isHebrew, AI_FACTS.invoicing, payloadAccount, subscriptionPurchaseOpen(marketIL, AI_FACTS.billing)) : resolvePaymentTruthResponse(isHebrew, AI_FACTS.billing, payloadAccount, marketIL);
     await logChat(truth.answer);
     return deterministicResponse(truth.answer, null, truth.factPayload);
   }
@@ -415,7 +413,7 @@ serve(async (req) => {
   // only: used here to build the prompt, never persisted (the chat_logs
   // insert below references none of them).
   const helpBlocks = helpContext ? buildHelpContextBlocks(helpContext, activeBlockers, droppedBlockers, trustedFacts, isHebrew) : null;
-  const systemPrompt = buildSystemPrompt({ isHebrew, marketIL, guidedIntent, guidedSubtopic, accountContext, quoteContextBlock, workflowContext: effectiveWorkflowContext, helpBlocks, allowedNavigation: verifiedUserId ? navAllowed : null, draftSnapshot: reviewSnapshot });
+  const systemPrompt = buildSystemPrompt({ isHebrew, guidedIntent, guidedSubtopic, accountContext, quoteContextBlock, workflowContext: effectiveWorkflowContext, helpBlocks, allowedNavigation: verifiedUserId ? navAllowed : null, draftSnapshot: reviewSnapshot });
 
   // SMART CHAT (Owner console 2026-10-19, task-control activeTask.smartChatTools20261019, L-17 unlocked): a verified dashboard user's
   // question that reaches the model counts against the day's 30 (chat_ai_claim_question, the caller's own JWT; an admin is not
@@ -450,7 +448,7 @@ serve(async (req) => {
   // Owner 2026-10-19 ("איך אתה אומר שהוא לא ממציא"): every model answer is told never to offer an action the product does not have;
   // a pasted / attached screenshot exists only in the signed-in dashboard chat (Owner "כן לצילום מסך ... העתק הדבק")
   const screenshot = toolCtx ? rawScreenshot : null;
-  const promptWithRules = systemPrompt + buildNoInventionBlock(isHebrew, !!toolCtx, marketIL);
+  const promptWithRules = systemPrompt + buildNoInventionBlock(isHebrew, !!toolCtx);
   const modelInstructions = toolCtx ? promptWithRules + buildToolsPromptBlock(isHebrew, toolCtx.today) : promptWithRules;
 
   let data: Record<string, unknown> = {};

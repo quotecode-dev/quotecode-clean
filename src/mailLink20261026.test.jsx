@@ -11,21 +11,6 @@ import { mailComposeLinks, parseMailto } from './shared/mailCompose';
 afterEach(() => cleanup());
 const HREF = 'mailto:support@tekango.com?subject=%D7%91%D7%A7%D7%A9%D7%AA%20%D7%91%D7%99%D7%98%D7%95%D7%9C%20%D7%9E%D7%A0%D7%95%D7%99&body=%D7%A9%D7%9C%D7%95%D7%9D';
 
-// 20261029000000 (Codex F20): a literal % in an address never crashes a screen, and survives the round trip
-describe('an address with a literal %', () => {
-  it('parses without throwing, encodes % in the mailto link, and round-trips', () => {
-    expect(parseMailto('mailto:sales%team@example.com')).toEqual({ to: 'sales%team@example.com', subject: '', body: '' });
-    expect(parseMailto('mailto:sales%25team@example.com')).toEqual({ to: 'sales%team@example.com', subject: '', body: '' });
-    const links = mailComposeLinks({ to: 'sales%team@example.com', subject: 'שלום' });
-    expect(links.mailto.startsWith('mailto:sales%25team@example.com?')).toBe(true);
-    expect(parseMailto(links.mailto).to).toBe('sales%team@example.com');
-  });
-  it('the mail link renders for such an address', () => {
-    render(<MailLink href="mailto:sales%25team@example.com" isHebrew>sales%team@example.com</MailLink>);
-    expect(screen.getByText('sales%team@example.com')).toBeTruthy();
-  });
-});
-
 describe('mailCompose', () => {
   it('reads a mailto (address, subject, body) and refuses anything else', () => {
     expect(parseMailto(HREF)).toEqual({ to: 'support@tekango.com', subject: 'בקשת ביטול מנוי', body: 'שלום' });

@@ -2,7 +2,7 @@
 // every calculator page carries its own guide; Hebrew for Israel, English for the international market, each written on its own.
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup } from '@testing-library/react';
-import { MemoryRouter, Routes, Route, useLocation, useNavigate } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import PublicTools from './components/PublicTools.jsx';
 import PublicToolsEn from './components/PublicToolsEn.jsx';
 import { HUB_CARDS, TOOL_GUIDES } from './shared/publicToolsGuides';
@@ -31,36 +31,6 @@ describe('the hub: four cards, no calculator of its own', () => {
     }
     fireEvent.click(screen.getByTestId('tools-hub-open-units'), { button: 0 });
     expect(screen.getByTestId('where').textContent).toBe(`/${lang}/tools/units`);
-  });
-});
-
-// 20261029000000 (Codex F14): the router keeps the same component between the tools pages - the calculator, its heading and its guide
-// follow the address on a card click, a tab click and Back / Forward
-describe('moving between the tools pages shows the chosen calculator', () => {
-  const Back = () => { const nav = useNavigate(); return <button type="button" data-testid="go-back" onClick={() => nav(-1)}>back</button>; };
-  const app = (C, lang) => (
-    <Routes>
-      <Route path={`/${lang}/tools`} element={<><C /><Where /><Back /></>} />
-      {TOOLS4.map((k) => <Route key={k} path={`/${lang}/tools/${k}`} element={<><C initialTab={k} /><Where /><Back /></>} />)}
-    </Routes>
-  );
-  it.each([['he', PublicTools], ['en', PublicToolsEn]])('%s', (lang, C) => {
-    offline();
-    render(<MemoryRouter initialEntries={[`/${lang}/tools`]}>{app(C, lang)}</MemoryRouter>);
-    fireEvent.click(screen.getByTestId('tools-hub-open-units'), { button: 0 });
-    expect(screen.getByTestId('where').textContent).toBe(`/${lang}/tools/units`);
-    expect(screen.getByTestId('tools-units-result')).toBeTruthy();
-    expect(screen.queryByTestId('tools-currency-result')).toBeNull();
-    expect(screen.getByTestId('tools-guide-units')).toBeTruthy();
-    // a tab opens its calculator's own page (the heading and the guide follow)
-    fireEvent.click(screen.getByText(lang === 'he' ? 'המרת מטבעות' : 'Currency Converter'));
-    expect(screen.getByTestId('where').textContent).toBe(`/${lang}/tools/currency`);
-    expect(screen.getByTestId('tools-currency-result')).toBeTruthy();
-    expect(screen.getByTestId('tools-guide-currency')).toBeTruthy();
-    fireEvent.click(screen.getByTestId('go-back'));
-    expect(screen.getByTestId('where').textContent).toBe(`/${lang}/tools/units`);
-    expect(screen.getByTestId('tools-units-result')).toBeTruthy();
-    expect(screen.getByTestId('tools-guide-units')).toBeTruthy();
   });
 });
 

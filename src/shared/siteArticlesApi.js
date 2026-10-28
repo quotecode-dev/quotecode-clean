@@ -39,11 +39,8 @@ export function articleView(row, lang) {
 }
 
 // Published rows, newest first (slug = one article). Never throws: a failure is an empty list (the static guides still stand).
-// 20261029000000 (Codex F13): strict (the production build only) throws when the list could not be read - a failed read is never an
-// empty catalog, so a build never drops the guides already published
-export async function fetchPublishedArticles({ base, key, slug, fetchImpl = globalThis.fetch, timeoutMs = 8000, strict = false } = {}) {
-  const unavailable = (why) => { if (strict) throw new Error(`articles_unavailable:${why}`); return []; };
-  if (!base || !key || typeof fetchImpl !== 'function') return unavailable('not_configured');
+export async function fetchPublishedArticles({ base, key, slug, fetchImpl = globalThis.fetch, timeoutMs = 8000 } = {}) {
+  if (!base || !key || typeof fetchImpl !== 'function') return [];
   if (slug !== undefined && !SLUG.test(String(slug))) return [];
   const q = new URLSearchParams({ select: 'slug,market,he,en,published_at', status: 'eq.published', order: 'published_at.desc', limit: slug ? '1' : '200' });
   if (slug) q.set('slug', `eq.${slug}`);
@@ -53,12 +50,11 @@ export async function fetchPublishedArticles({ base, key, slug, fetchImpl = glob
     const res = await fetchImpl(`${String(base).replace(/\/$/, '')}/rest/v1/site_articles?${q}`, {
       headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' }, ...(abort ? { signal: abort.signal } : {}),
     });
-    if (!res.ok) return unavailable(String(res.status));
+    if (!res.ok) return [];
     const rows = await res.json();
-    return Array.isArray(rows) ? rows.map(normalizeArticleRow).filter(Boolean) : unavailable('malformed');
-  } catch (e) {
-    if (strict && String(e?.message || '').startsWith('articles_unavailable:')) throw e;
-    return unavailable(e?.name === 'AbortError' ? 'timeout' : 'failed');
+    return Array.isArray(rows) ? rows.map(normalizeArticleRow).filter(Boolean) : [];
+  } catch {
+    return [];
   } finally {
     if (timer) clearTimeout(timer);
   }

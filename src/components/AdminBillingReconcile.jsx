@@ -18,14 +18,12 @@ const CODE_LABEL = {
   MISSING_AT_PROVIDER: { he: 'מנוי בלי חיוב בפיי פלוס', en: 'Subscription, no PayPlus charge' },
   AMOUNT_MISMATCH: { he: 'סכום או מטבע שונים', en: 'Different amount or currency' },
   REFUND_UNRECORDED: { he: 'החזר שלא נרשם אצלנו', en: 'Refund we did not record' },
-  REFUND_OWED: { he: 'החזר ללקוח שעוד לא הושלם', en: 'Customer refund not completed' },
 };
 const CODE_HELP = {
   UNLINKED: { he: 'פיי פלוס גבו את הסכום, ואין אצלנו תשלום מאומת שנתן מנוי. לבדוק בפיי פלוס למי שייך החיוב.', en: 'PayPlus charged this amount and we have no verified payment that gave a subscription. Check in PayPlus who was charged.' },
   MISSING_AT_PROVIDER: { he: 'אצלנו נרשם תשלום שנתן מנוי, ופיי פלוס לא מציגים אותו בהיסטוריה.', en: 'We recorded a payment that gave a subscription, and PayPlus does not list it.' },
   AMOUNT_MISMATCH: { he: 'אותה עסקה, וסכום או מטבע שונים בין פיי פלוס לבינינו.', en: 'The same transaction with a different amount or currency at PayPlus and with us.' },
   REFUND_UNRECORDED: { he: 'פיי פלוס מציגים החזר שלא נעשה מהניהול ולא הגיע אלינו כאירוע.', en: 'PayPlus lists a refund that was not made from the admin and did not reach us as an event.' },
-  REFUND_OWED: { he: 'לקוח הסיר את חכם פלוס השנתי ומגיע לו החזר, וההחזר לא בוצע או שלא ידוע אם בוצע. לבדוק בפיי פלוס לפני כל החזר, כדי לא להחזיר פעמיים.', en: 'A customer removed the yearly SMART PACK and is owed a refund that was not made, or may not have been made. Check in PayPlus before any refund, so it is not refunded twice.' },
 };
 const RUN_STATUS = {
   ok: { he: 'הושלמה', en: 'Completed' }, failed: { he: 'נכשלה', en: 'Failed' }, running: { he: 'רצה', en: 'Running' },

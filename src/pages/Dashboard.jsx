@@ -28,8 +28,7 @@ import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quote
 import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
 import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
 import { isFinancialChange } from '../utils/financialEdit';
-import { reportMonthRange, recurringMonthsInRange, calendarDateOf } from '../utils/recurringExpense';
-import { settingsFormDirty } from '../utils/settingsBaseline';
+import { reportMonthRange, recurringMonthsInRange } from '../utils/recurringExpense';
 import { isValidEmailAddress } from '../utils/emailAddress';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
 import { isQuoteImmutable, canMarkQuotePaid } from '../utils/quoteLock';
@@ -597,8 +596,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // Owner console 2026-10-26 (typed L-01 / L-22, item ג): the ACCOUNT's currency (business settings) for the plans window prices abroad -
   // never the open quote's currency (opening a USD quote used to switch the plans window from GBP to USD)
   const [businessCurrency, setBusinessCurrency] = useState(null);
-  // 20261029000000 (Codex F18, L-23 #17): the Settings currency is the business's own - never the open quote's currency
-  const [settingsCurrency, setSettingsCurrency] = useState('USD');
 
   const [quoteSubject, setQuoteSubject] = useState('');
   const [attnName, setAttnName] = useState('');
@@ -1807,11 +1804,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
       setCurrency(userCurr);
       setBusinessCurrency(userCurr);
-      setSettingsCurrency(userCurr);
       setTerms(defTerms);
       setWarranty(defWarranty);
-      // Codex F17: the stored baseline holds what the Settings form shows (the default terms text, the currency, the domain)
-      if (savedSettingsRef.current) Object.assign(savedSettingsRef.current, { terms: defTerms, warranty: defWarranty, currency: userCurr, domain: data.professional_domain || '' });
 
       await supabase
         .from('business_settings')
@@ -1953,10 +1947,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setTrialEndsAt(newData.trial_ends_at);
     setCurrency((newData.country === 'Local' || newData.country === 'LCL') ? 'ILS' : (newData.currency || detectedCurr));
     setBusinessCurrency((newData.country === 'Local' || newData.country === 'LCL') ? 'ILS' : (newData.currency || detectedCurr));
-    setSettingsCurrency((newData.country === 'Local' || newData.country === 'LCL') ? 'ILS' : (newData.currency || detectedCurr));
     setTerms(newData.default_terms || detectedTerms);
-    if (savedSettingsRef.current) Object.assign(savedSettingsRef.current, { terms: newData.default_terms || detectedTerms, warranty: newData.default_warranty || '',
-      currency: (newData.country === 'Local' || newData.country === 'LCL') ? 'ILS' : (newData.currency || detectedCurr), domain: newData.professional_domain || '' });
 
     setNeedsRegionChoice(false);
     setPendingNewAccount(null);
@@ -2056,7 +2047,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     e.preventDefault();
     if (!session?.user?.id) return;
 
-    const enforcedCurrency = isLocalIsraeliBusiness ? 'ILS' : settingsCurrency;
+    const enforcedCurrency = isLocalIsraeliBusiness ? 'ILS' : currency;
 
     const payload = {
       business_name: bizName,
@@ -2091,8 +2082,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       else {
         localStorage.setItem('proflow_cached_country', bizCountry);
         rememberSavedSettings(payload);
-        savedSettingsRef.current.domain = professionalDomain || '';
-        setBusinessCurrency(enforcedCurrency); // Codex F18: the plans window and new quotes use the saved currency at once
         setStatusMsg({ text: isHebrew ? 'הגדרות העסק עודכנו בהצלחה!' : 'Business settings updated successfully!', type: 'success' });
         resolveBlockers(['SETTINGS_SAVE_FAILED']);
         // Owner 2026-10-24 (typed L-15): the details a quote was waiting for are complete -> back to where the user was
@@ -2222,8 +2211,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       amount: Number(expenseAmount),
       category: expenseCategory,
       is_recurring: isRecurring,
-      // 20261029000000 (Codex F21): today on the business's own calendar (the device day), never the UTC day before it
-      expense_date: deviceCalendarDate()
+      expense_date: new Date().toISOString().split('T')[0]
     }]);
 
     if (error) {
@@ -2668,11 +2656,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             ...(cleanSignupText(signupFullName) ? { full_name: cleanSignupText(signupFullName) } : {}),
             ...(cleanSignupText(signupBusinessName) ? { business_name: cleanSignupText(signupBusinessName) } : {}),
             // 2026-10-20: the Terms state the free plan as 10 quotes or 7 days (IRON-LANDING-001 amended)
-            // 20261029000000 (Codex F19, L-12): the version of the documents linked at signup (both last updated 25/10/2026); earlier
-            // consent records keep their own versions
-            terms_version: '2026-10-25', // Owner 2026-10-25: payments in Israel (before: 2026-10-24 a quote counts at its first save; 2026-10-23 the Free plan's 7 days)
+            terms_version: '2026-10-24', // Owner 2026-10-24 (typed L-14 + L-17): a quote counts at its first save with a client and an item (before: 2026-10-23, the Free plan's 7 days)
             // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
-            privacy_version: '2026-10-25', // Owner 2026-10-25: the payments section (before: 2026-10-23 consent by location + the Hebrew opt-out)
+            privacy_version: '2026-10-23', // Owner 2026-10-23 (item 7 א): consent by location + the Hebrew opt-out
             terms_accepted_at: new Date().toISOString(),
           }
         }
@@ -3602,13 +3588,13 @@ Continue anyway?`, isHebrew);
   const expenseReportRange = reportMonthRange({ type: financeReportType, year: reportYear, month: reportMonth, startDate, endDate });
   const expenseFactor = (exp) => (exp.is_recurring ? recurringMonthsInRange(exp, expenseReportRange) : 1);
   const filteredExpensesForReport = expenses.filter(exp => {
-    const expDate = calendarDateOf(exp.expense_date); // Codex F21: the day written, in every time zone
+    const expDate = new Date(exp.expense_date);
     if (exp.is_recurring) return recurringMonthsInRange(exp, expenseReportRange) > 0;
 
     if (financeReportType === 'custom') {
       if (!startDate && !endDate) return true;
-      const start = startDate ? calendarDateOf(startDate) : new Date(0);
-      const end = endDate ? calendarDateOf(endDate) : new Date();
+      const start = startDate ? new Date(startDate) : new Date(0);
+      const end = endDate ? new Date(endDate) : new Date();
       end.setHours(23, 59, 59, 999);
       return expDate >= start && expDate <= end;
     }
@@ -3658,7 +3644,7 @@ Continue anyway?`, isHebrew);
     let expense = 0;
 
     expenses.forEach(exp => {
-      const d = calendarDateOf(exp.expense_date);
+      const d = new Date(exp.expense_date);
       if (exp.is_recurring) {
         expense += Number(exp.amount || 0) * recurringMonthsInRange(exp, reportMonthRange({ type: 'monthly', year: reportYear, month: index }));
       } else if (d.getFullYear() === reportYear && d.getMonth() === index) {
@@ -3949,8 +3935,7 @@ Continue anyway?`, isHebrew);
   }, [editingQuoteId, isCreatingQuote, session?.user?.id]);
 
   const resetQuoteFormFields = () => {
-    // Codex F18: a new quote starts in the business currency, never the last opened quote's
-    const pr = getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency: businessCurrency || currency });
+    const pr = getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency });
     setClientName(pr.clientName); setClientEmail(pr.clientEmail); setClientPhone(pr.clientPhone); setClientType(pr.clientType);
     setClientTaxId(pr.clientTaxId); setClientAddress(pr.clientAddress); setQuoteSubject(pr.quoteSubject); setAttnName(pr.attnName);
     setAttnRole(pr.attnRole); setValidUntil(pr.validUntil); setDiscount(pr.discount); setCurrency(pr.currency);
@@ -3967,23 +3952,23 @@ Continue anyway?`, isHebrew);
   const savedSettingsRef = useRef(null);
   function rememberSavedSettings(row) {
     savedSettingsRef.current = { name: row?.business_name ?? '', taxId: row?.tax_id ?? '', email: row?.email ?? '', phone: row?.phone ?? '',
-      address: row?.address ?? '', logo: row?.logo_url ?? '', terms: row?.default_terms ?? '', warranty: row?.default_warranty ?? '',
-      currency: row?.currency ?? '', domain: row?.professional_domain ?? '' };
+      address: row?.address ?? '', logo: row?.logo_url ?? '', terms: row?.default_terms ?? '', warranty: row?.default_warranty ?? '' };
   }
   const savedProfile = () => {
     const s = savedSettingsRef.current || {};
     return { phone: s.phone ?? '', taxId: s.taxId ?? '', name: s.name ?? '', email: s.email ?? '' };
   };
-  // Codex F17: every field the form saves (utils/settingsBaseline.js)
-  const settingsDirty = activeTab === 'settings' && settingsFormDirty({ name: bizName, taxId: bizTaxId, phone: bizPhone, address: bizAddress, logo: bizLogoUrl,
-    email: bizEmail, terms: defaultTerms, warranty: defaultWarranty, currency: settingsCurrency, domain: professionalDomain }, savedSettingsRef.current, { isLocalIsraeliBusiness });
+  const settingsDirty = !!savedSettingsRef.current && activeTab === 'settings' && (() => {
+    const s = savedSettingsRef.current;
+    return String(bizName || '') !== String(s.name || 'TEKANGO') || String(bizTaxId || '') !== String(s.taxId || '')
+      || String(bizPhone || '') !== String(s.phone || '') || String(bizAddress || '') !== String(s.address || '')
+      || String(bizLogoUrl || '') !== String(s.logo || '') || (s.email !== '' && String(bizEmail || '') !== String(s.email || ''));
+  })();
   const revertUnsavedSettings = () => {
     const s = savedSettingsRef.current;
     if (!s) return;
     setBizName(s.name || 'TEKANGO'); setBizTaxId(s.taxId || ''); setBizPhone(s.phone || ''); setBizAddress(s.address || ''); setBizLogoUrl(s.logo || '');
     if (s.email) setBizEmail(s.email);
-    setDefaultTerms(s.terms || ''); setDefaultWarranty(s.warranty || ''); setProfessionalDomain(s.domain || '');
-    if (s.currency) setSettingsCurrency(s.currency);
   };
   const leaveSettingsMsg = isHebrew ? 'יש שינויים בהגדרות העסק שלא נשמרו. לצאת בלי לשמור?' : 'Your business settings have unsaved changes. Leave without saving?';
   // Owner 2026-10-26 (typed L-01 / L-15 approval): the app's own question (pending until answered); "leave" undoes the unsaved edits
@@ -4347,7 +4332,7 @@ Continue anyway?`, isHebrew);
   const draftLabelFor = (q, env) => (q ? formatQuoteFallback(q) : (env?.quoteId ? String(env.quoteId).slice(0, 8) : ''));
 
   const applyDraftPayload = (payload) => {
-    const pr = getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency: businessCurrency || currency });
+    const pr = getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency });
     const g = (k) => (payload && payload[k] !== undefined && payload[k] !== null ? payload[k] : pr[k]);
     setClientName(g('clientName')); setClientEmail(g('clientEmail')); setClientPhone(g('clientPhone')); setClientType(g('clientType'));
     setClientTaxId(g('clientTaxId')); setClientAddress(g('clientAddress')); setQuoteSubject(g('quoteSubject')); setAttnName(g('attnName'));
@@ -8931,8 +8916,8 @@ Continue anyway?`, isHebrew);
               setBizEmail={setBizEmail}
               bizPhone={bizPhone}
               setBizPhone={setBizPhone}
-              currency={settingsCurrency}
-              setCurrency={setSettingsCurrency}
+              currency={currency}
+              setCurrency={setCurrency}
               isLocalIsraeliBusiness={isLocalIsraeliBusiness}
               bizAddress={bizAddress}
               setBizAddress={setBizAddress}
