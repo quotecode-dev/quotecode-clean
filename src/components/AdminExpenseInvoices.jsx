@@ -70,7 +70,7 @@ export default function AdminExpenseInvoices({ isHebrew }) {
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState(null);
   const [edit, setEdit] = useState(null);
-  const [typeDraft, setTypeDraft] = useState({ id: '', name: '' });
+  const [typeDraft, setTypeDraft] = useState({ id: '', name: '', uuid: '' });
   const [googleLink, setGoogleLink] = useState(null);
   const [preview, setPreview] = useState(null);
   // the file preview's local copy is released when the screen closes
@@ -110,11 +110,16 @@ export default function AdminExpenseInvoices({ isHebrew }) {
   useEffect(() => {
     let cancelled = false;
     call({ action: 'sync_types' }).then((r) => {
-      if (cancelled || !r?.ok) return;
-      if (r.types === 0) setNotice({ good: false, text: isHebrew ? 'פיי פלוס לא החזירו את רשימת סוגי ההוצאה, ולכן סוג ההוצאה לא נשלח.' : 'PayPlus did not return the expense types list, so the expense type was not sent.' });
+      if (cancelled || !r) return;
+      // L-22 (Owner 2026-10-28, "שמירת מזהי סוגי ההוצאה של פיי פלוס בהגדרות הכלי"): PayPlus's own answer is shown when it refuses
+      if (!r.ok) {
+        if (r.code === 'payplus_failed') setNotice({ good: false, text: `${isHebrew ? 'עדכון סוג ההוצאה בפיי פלוס נכשל' : 'Setting the expense type in PayPlus failed'}${r.error ? `: ${r.error}` : '.'}` });
+        return;
+      }
+      if (r.types === 0) setNotice({ good: false, text: isHebrew ? 'אין מזהים של סוגי ההוצאה בפיי פלוס, ולכן סוג ההוצאה לא נשלח.' : 'No PayPlus expense type ids, so the expense type was not sent.' });
       else if (r.updated || r.failed) setNotice({ good: !r.failed, text: isHebrew
-        ? `סוג ההוצאה עודכן בפיי פלוס: ${r.updated}.${r.failed ? ` לא עודכנו: ${r.failed}.` : ''}`
-        : `Expense type set in PayPlus: ${r.updated}.${r.failed ? ` Not set: ${r.failed}.` : ''}` });
+        ? `סוג ההוצאה עודכן בפיי פלוס: ${r.updated}.${r.failed ? ` לא עודכנו: ${r.failed}${r.error ? ` (${r.error})` : ''}.` : ''}`
+        : `Expense type set in PayPlus: ${r.updated}.${r.failed ? ` Not set: ${r.failed}${r.error ? ` (${r.error})` : ''}.` : ''}` });
     });
     return () => { cancelled = true; };
   }, [call, isHebrew]);
@@ -307,7 +312,7 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                     <div key={x.id} className="av-toolbar" style={{ gap: 8, flexWrap: 'wrap' }}>
                       <label style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
                         <input type="radio" name="expense-default-type" checked={def === x.id} onChange={() => saveTypes(types, x.id)} disabled={!!busy} />
-                        {x.name} <N v={x.id} />
+                        {x.name} <N v={x.id} />{x.uuid && <span className="av-muted av-small">{isHebrew ? '(מזהה פיי פלוס שמור)' : '(PayPlus id saved)'}</span>}
                       </label>
                       {/* PRODUCT_TRUTH_DECORATIVE: removes this expense type from the tool's list (PayPlus itself is not changed) */}
                       <button type="button" className="av-btn" disabled={!!busy} onClick={() => saveTypes(types.filter((y) => y.id !== x.id), def === x.id ? null : def)}>{isHebrew ? 'הסרה' : 'Remove'}</button>
@@ -318,9 +323,12 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                       value={typeDraft.id} onChange={(e) => setTypeDraft({ ...typeDraft, id: e.target.value.replace(/\D/g, '') })} /></label>
                     <label className="av-field" style={{ inlineSize: 200 }}><span>{isHebrew ? 'שם הסוג' : 'Type name'}</span><input value={typeDraft.name}
                       onChange={(e) => setTypeDraft({ ...typeDraft, name: e.target.value })} /></label>
+                    {/* L-22 (Owner 2026-10-28, "שמירת מזהי סוגי ההוצאה של פיי פלוס בהגדרות הכלי"): the type's PayPlus id (optional) */}
+                    <label className="av-field" style={{ inlineSize: 320 }}><span>{isHebrew ? 'מזהה הסוג בפיי פלוס (לא חובה)' : 'PayPlus type id (optional)'}</span><input dir="ltr"
+                      value={typeDraft.uuid || ''} data-testid="expense-type-uuid" onChange={(e) => setTypeDraft({ ...typeDraft, uuid: e.target.value.trim() })} /></label>
                     {/* PRODUCT_TRUTH_DECORATIVE: adds an expense type to the tool's list (PayPlus itself is not changed) */}
                     <button type="button" className="av-btn" disabled={!!busy || !typeDraft.id || !typeDraft.name.trim()} data-testid="expense-type-add"
-                      onClick={() => { saveTypes([...types, { id: Number(typeDraft.id), name: typeDraft.name.trim() }], def ?? Number(typeDraft.id)); setTypeDraft({ id: '', name: '' }); }}>
+                      onClick={() => { saveTypes([...types, { id: Number(typeDraft.id), name: typeDraft.name.trim(), ...(typeDraft.uuid ? { uuid: typeDraft.uuid } : {}) }], def ?? Number(typeDraft.id)); setTypeDraft({ id: '', name: '', uuid: '' }); }}>
                       {isHebrew ? 'הוספה' : 'Add'}
                     </button>
                   </div>
