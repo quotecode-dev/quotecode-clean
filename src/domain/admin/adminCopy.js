@@ -215,4 +215,29 @@ export const DIALOG_COPY = Object.freeze({
     confirm: { he: 'הארכה', en: 'Extend' },
     scope: [],
   },
+  // L-22 (Owner 2026-10-28, the subscription & payment card): the amounts and dates are the server's, shown in the dialog's summary
+  billing_stop: {
+    title: { he: 'הפסקת חידוש', en: 'Stop renewal' },
+    body: { he: 'הוראת הקבע של הלקוח בפיי פלוס תבוטל. אין החזר.', en: 'The customer\'s PayPlus standing order is cancelled. No refund.' },
+    confirm: { he: 'הפסקת החידוש', en: 'Stop the renewal' },
+    scope: [],
+  },
+  billing_end: {
+    title: { he: 'סיום מוקדם והחזר', en: 'End early & refund' },
+    body: { he: 'המנוי מסתיים היום, והחלק שלא נוצל מוחזר לפי תנאי השימוש (סעיף 6).', en: 'The subscription ends today, and the unused part is refunded under the Terms (section 6).' },
+    confirm: { he: 'סיום והחזר', en: 'End and refund' },
+    scope: [],
+  },
+  billing_resolve: {
+    title: { he: 'סגירת פעולה שנקטעה', en: 'Close an interrupted action' },
+    body: { he: 'הפעולה תיסגר לפי מה שראיתם בממשק של פיי פלוס.', en: 'The action is closed by what you saw in the PayPlus panel.' },
+    confirm: { he: 'סגירת הפעולה', en: 'Close the action' },
+    scope: [],
+  },
+  billing_settle: {
+    title: { he: 'אישור החזר שבוצע', en: 'Confirm a refund made' },
+    body: { he: 'ההחזר יסומן כבוצע. בפיי פלוס עצמו לא משתנה כלום.', en: 'The refund is marked as made. Nothing changes in PayPlus itself.' },
+    confirm: { he: 'אישור ההחזר', en: 'Confirm the refund' },
+    scope: [],
+  },
 });

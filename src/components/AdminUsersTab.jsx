@@ -10,7 +10,8 @@ import AdminUsersView from './AdminUsersView';
 import AdminUserDetails from './AdminUserDetails';
 import AdminProtectedDialog from './AdminProtectedDialog';
 import { useAdminAccountSummary, legacyOperationsRetired, adminTargetUserId } from '../domain/subscriptions/adminAccountSummary';
-import { accountDateTime } from '../utils/adminDates';
+import { accountDate, accountDateTime } from '../utils/adminDates';
+import { billingPreview, runBillingAction, billingErrorText, billingResultText, billingMoney, BILLING_COPY as B } from '../domain/admin/adminBilling';
 import { supabase } from '../shared/supabase';
 
 export default function AdminUsersTab({
@@ -48,6 +49,12 @@ export default function AdminUsersTab({
   // refreshes from the server (no page reload)
   const [actionDone, setActionDone] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
+  // L-22 (Owner 2026-10-28, the subscription & payment card): the billing dialog ({ action, account, preview }), the fee waiver of an early
+  // end (re-read from the server), the Owner's answer for an interrupted action, and the result line shown over the card
+  const [billingDialog, setBillingDialog] = useState(null);
+  const [billingWaive, setBillingWaive] = useState(false);
+  const [billingStopped, setBillingStopped] = useState(null);
+  const [billingNotice, setBillingNotice] = useState(null);
 
   // פאנל "אבחון" (בדיקת מיילי תזכורת חי, דרך Resend) - מכווץ כברירת מחדל
   // ומופרד מהממשק הראשי לניהול משתמשים, כדי לא לבלבל בין כלי בדיקה/פיתוח
@@ -249,9 +256,59 @@ export default function AdminUsersTab({
     return true;
   }
 
+  const t2 = (x) => (isHebrew ? x.he : x.en);
+  const billingUid = billingDialog ? adminTargetUserId(billingDialog.account) : null;
+  const billingDate = (v) => (billingDialog ? accountDate(v, billingDialog.account, isHebrew ? 'Local' : 'International') : '');
+  function openBilling(action, account, preview) {
+    setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setActionDone(false);
+    setBillingWaive(false); setBillingStopped(null); setBillingNotice(null);
+    setBillingDialog({ action, account, preview });
+  }
+  async function toggleBillingWaive(next) {
+    setBillingWaive(next);
+    const p = await billingPreview(invokeWithFreshSession, billingUid, next);
+    if (p.ok) setBillingDialog((d) => (d ? { ...d, preview: { ...d.preview, ...p } } : d));
+    else setResetError(billingErrorText(p, isHebrew));
+  }
+  const handleBillingSubmit = async (e) => {
+    e.preventDefault();
+    if (!billingDialog) return;
+    const { action, preview: p } = billingDialog;
+    setResetError('');
+    try { validateReasonAndTarget(billingUid); } catch (err) { setResetError(err.message); return; }
+    if (action === 'resolve' && billingStopped === null) {
+      setResetError(isHebrew ? 'בחרו אם הוראת הקבע נעצרה בפיי פלוס.' : 'Choose whether the standing order was stopped in PayPlus.');
+      return;
+    }
+    setIsResetting(true);
+    const r = await runBillingAction(invokeWithFreshSession, {
+      action, targetUserId: billingUid, password: adminPasswordInput, reason: adminReasonInput,
+      waiveFee: action === 'end_early' ? billingWaive : false,
+      expectedRefundMinor: action === 'end_early' ? p.refundMinor : 0,
+      actionId: action === 'resolve' ? p.openAction?.actionId : action === 'settle_refund' ? p.unsettledRefund?.actionId : null,
+      stoppedAtPayPlus: billingStopped,
+    });
+    setIsResetting(false);
+    if (!r.ok) {
+      // the amount changed since the preview (a day passed): the new preview is shown for a fresh confirmation
+      if (r.code === 'stale_preview') {
+        const fresh = await billingPreview(invokeWithFreshSession, billingUid, billingWaive);
+        if (fresh.ok) setBillingDialog((d) => (d ? { ...d, preview: { ...d.preview, ...fresh } } : d));
+      }
+      setResetError(billingErrorText(r, isHebrew, p?.currency));
+      return;
+    }
+    const good = action === 'stop_renewal' ? r.cancelStatus === 'cancelled' : action === 'end_early' ? ['none', 'refunded'].includes(r.refundStatus) : true;
+    setBillingNotice({ uid: billingUid, good, text: billingResultText(action, { ...r, currency: r.currency ?? p?.currency }, isHebrew, billingDate) });
+    setAdminPasswordInput('');
+    setActionDone(true);
+  };
+
   function closeDialogs() {
     if (isResetting) return;
-    const wasDone = actionDone;
+    // a billing dialog always re-reads the server state on close (an action may be open after a lost answer)
+    const wasDone = actionDone || !!billingDialog;
+    setBillingDialog(null); setBillingStopped(null); setBillingWaive(false);
     // the account just deleted from its own details page: back to the list (it no longer exists)
     const deletedOpenAccount = wasDone && deleteModalUser && selectedAccount && deleteModalUser.id === selectedAccount.id;
     setResetModalUser(null); setDeleteModalUser(null); setLifetimeActionUser(null); setTrialActionUser(null);
@@ -294,6 +351,56 @@ export default function AdminUsersTab({
           busy={isResetting} error={resetError} done={actionDone} onSubmit={handleExecuteDataReset} onClose={closeDialogs}
         />
       )}
+
+      {/* L-22 (Owner 2026-10-28): the subscription & payment dialogs - every amount and date is the server's preview */}
+      {billingDialog && (() => {
+        const { action, preview: p } = billingDialog;
+        const kind = { stop_renewal: 'billing_stop', end_early: 'billing_end', resolve: 'billing_resolve', settle_refund: 'billing_settle' }[action];
+        const line = (label, value, strong = false) => <div className="av-statline"><span>{t2(label)}</span>{strong ? <strong><bdi className="av-num">{value}</bdi></strong> : <bdi className="av-num">{value}</bdi>}</div>;
+        return (
+          <AdminProtectedDialog
+            isHebrew={isHebrew} kind={kind} target={billingDialog.account}
+            reason={adminReasonInput} onReason={setAdminReasonInput} password={adminPasswordInput} onPassword={setAdminPasswordInput}
+            busy={isResetting} error={resetError} done={actionDone} onSubmit={handleBillingSubmit} onClose={closeDialogs}
+            disabled={isResetting || (action === 'resolve' && billingStopped === null)}
+          >
+            {action === 'stop_renewal' && (
+              <>
+                {line(B.paidThrough, billingDate(p.paidThrough), true)}
+                <p className="av-small" style={{ margin: '8px 0' }}>{t2(B.stopBody).replace('{d}', billingDate(p.paidThrough))}</p>
+              </>
+            )}
+            {action === 'end_early' && (
+              <>
+                <div className="av-statline"><span>{t2(B.paid)}</span><span><bdi className="av-num">{billingMoney(p.paidMinor, p.currency)}</bdi> {t2(B.periodDays).replace('{n}', String(p.daysInPeriod ?? '—'))}</span></div>
+                {line(B.unusedDays, p.unusedDays)}
+                {line(B.prorated, billingMoney(p.proratedMinor, p.currency))}
+                {line(B.fee, billingMoney(p.feeMinor, p.currency))}
+                <label className="av-small" style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '6px 0' }}>
+                  <input type="checkbox" checked={billingWaive} disabled={isResetting} onChange={(e) => toggleBillingWaive(e.target.checked)} data-testid="admin-billing-waive" />
+                  {t2(B.waiveFee)}
+                </label>
+                {line(B.refund, billingMoney(p.refundMinor, p.currency), true)}
+                <p className="av-small" style={{ margin: '8px 0' }}>{t2(B.endBody)}</p>
+              </>
+            )}
+            {action === 'resolve' && p.openAction && (
+              <>
+                <p className="av-small" style={{ margin: '8px 0' }}>{t2(B.resolveBody).replace('{d}', billingDate(p.openAction.createdAt))}</p>
+                {[true, false].map((v) => (
+                  <label key={String(v)} className="av-small" style={{ display: 'flex', gap: 6, alignItems: 'center', margin: '4px 0' }}>
+                    <input type="radio" name="billing-stopped-at-payplus" checked={billingStopped === v} disabled={isResetting} onChange={() => setBillingStopped(v)} />
+                    {t2(v ? B.stoppedThere : B.notStoppedThere)}
+                  </label>
+                ))}
+              </>
+            )}
+            {action === 'settle_refund' && p.unsettledRefund && (
+              <p className="av-small" style={{ margin: '8px 0' }}>{t2(B.settleBody).replace('{m}', billingMoney(p.unsettledRefund.refundMinor, p.unsettledRefund.currency))}</p>
+            )}
+          </AdminProtectedDialog>
+        );
+      })()}
 
       {/* Protected Actions: Lifetime grant/revoke — חוק ברזל (Explicit Lifetime Entitlement Model, 2026-09-08): commercial-entitlement
           mutation, a real server password check, an independent server-side guard. Shows the target, the current and the next state. */}
@@ -360,6 +467,8 @@ export default function AdminUsersTab({
           onDelete={!canProtect ? null : (a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setDeleteConfirmInput(''); setActionDone(false); setDeleteModalUser(a); }}
           onLifetime={!canProtect ? null : (a) => { setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setActionDone(false); setLifetimeActionUser(a); }}
           onTestMark={!canProtect ? null : markTestAccount}
+          onBilling={!canProtect ? null : openBilling}
+          billingNotice={billingNotice && billingNotice.uid === adminTargetUserId(selectedAccount) ? billingNotice : null}
           refreshKey={refreshKey}
         />
       ) : (
