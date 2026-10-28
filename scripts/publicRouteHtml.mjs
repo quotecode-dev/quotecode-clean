@@ -49,6 +49,14 @@ export function composeRouteHtml(shell, route, markup) {
   return html;
 }
 
+// Owner 2026-10-28 ("מאשר את שני התיקונים"): a database guide's page carries the guide itself, so the browser opens it at once - never
+// through a 'loading' page (noindex) that Google indexed as "Excluded by 'noindex' tag" (Search Console 2026-10-28).
+export const ARTICLE_DATA_ID = 'tekango-article-data';
+export function withArticleData(html, guide) {
+  const json = JSON.stringify(guide).replace(/</g, '\\u003c');
+  return replaceOnce(html, /<\/head>/, `    <script type="application/json" id="${ARTICLE_DATA_ID}">${json}</script>\n  </head>`, '</head>');
+}
+
 const pick = (html, re) => (html.match(re) || [])[1] ?? null;
 const decode = (s) => s.replace(/&quot;/g, '"').replace(/&#x27;|&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
 
