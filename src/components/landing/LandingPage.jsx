@@ -68,7 +68,10 @@ export default function LandingPage({
           <div className="tl-hero-copy">
             <div className="tl-hero-sequence" aria-hidden="true">
               <div className="tl-hero-scene-photo" aria-hidden="true">
-                <img src="/assets/landing/hero-workshop.webp" alt="" />
+                {/* Codex release 3 step 3 (Owner 2026-10-29, typed: "מאשר שחרור 3 של קודקס: ... ותמונת הפתיחה, כולל שינוי ב-L-02, L-15, בלי שינוי באנימציה ובמראה"): the real
+                    dimensions of the approved originals (the CSS still sizes them - no layout change) and the first visible image is
+                    fetched first; it is preloaded from the page head too (scripts/publicRouteHtml.mjs) */}
+                <img src="/assets/landing/hero-workshop.webp" alt="" width="1600" height="666" fetchpriority="high" decoding="async" />
               </div>
               <div className="tl-hero-sequence-copy">
                 <span className="tl-hero-sequence-eyebrow">{copy.hero.motion.eyebrow}</span>
@@ -79,6 +82,9 @@ export default function LandingPage({
               <img
                 className="tl-hero-sequence-phone"
                 src={isHe ? '/assets/landing/hero-phone-he.webp' : '/assets/landing/hero-phone-en.webp'}
+                width={isHe ? 809 : 920}
+                height={isHe ? 1419 : 1296}
+                decoding="async"
                 alt=""
                 aria-hidden="true"
               />
