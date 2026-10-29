@@ -1,6 +1,5 @@
 /// <reference types="https://deno.land/std@0.168.0/types.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { PublicPoolRefusal, reservePublicSlot, publicPoolAnswer } from './publicPool.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateChatRequest, classifySupportMessage, buildSystemPrompt, CHAT_CONTRACT_VERSION } from "./validation.ts";
 import { buildVerifiedAccountContext, fetchServerAccountSummary, isHebrewFromMarket, type BusinessSettingsRow } from "./accountContext.ts";
@@ -456,18 +455,11 @@ serve(async (req) => {
   const promptWithRules = systemPrompt + buildNoInventionBlock(isHebrew, !!toolCtx, marketIL);
   const modelInstructions = toolCtx ? promptWithRules + buildToolsPromptBlock(isHebrew, toolCtx.today) : promptWithRules;
 
-  // Codex release 2a (Owner 2026-10-29, typed: "מאשר שחרור 2א עכשיו: ...", decision 4, L-17): a caller that is not a verified dashboard user
-  // spends from ONE public pool of 500 provider attempts per UTC day; each physical attempt reserves first (publicPool.ts)
-  const publicPool = !(verifiedUserId && isDashboard);
   let data: Record<string, unknown> = {};
   // Task 35: the provider call is bounded - a hung model ends in the closed provider_failure state (the widget offers a retry)
   // Owner 2026-10-19 ("תחליף עכשיו כן"): the cheap model is the provider's replacement (no reasoning, so function calling works on
   // this endpoint); when it fails the old model answers the same request, so the chat never stops because of the switch.
   const callCheapModel = async (withTools: boolean, model: string) => {
-    if (publicPool) {
-      const slot = await reservePublicSlot(() => adminClient.rpc('chat_ai_public_reserve') as unknown as Promise<{ data: unknown; error: unknown }>);
-      if (slot !== 'ok') throw new PublicPoolRefusal(slot);
-    }
     const providerAbort = new AbortController();
     const providerTimer = setTimeout(() => providerAbort.abort(), 25000);
     const legacy = model === LEGACY_CHEAP_MODEL;
@@ -503,8 +495,7 @@ serve(async (req) => {
       const res = await callCheapModel(withTools, CHEAP_MODEL);
       if (res.ok) return res;
       console.warn(`chat-ai: ${CHEAP_MODEL} returned ${res.status}, answering with ${LEGACY_CHEAP_MODEL}`);
-    } catch (e) {
-      if (e instanceof PublicPoolRefusal) throw e; // no fallback attempt beyond the public pool
+    } catch {
       console.warn(`chat-ai: ${CHEAP_MODEL} unreachable, answering with ${LEGACY_CHEAP_MODEL}`);
     }
     return await callCheapModel(withTools, LEGACY_CHEAP_MODEL);
@@ -519,12 +510,7 @@ serve(async (req) => {
       }
 
       data = await openAiResponse.json();
-    } catch (e) {
-      if (e instanceof PublicPoolRefusal) {
-        const poolAnswer = publicPoolAnswer(isHebrew, e.reason);
-        await logChat(poolAnswer);
-        return deterministicResponse(poolAnswer, null, null);
-      }
+    } catch {
       return errorResponse('provider_failure', 'Failed to reach the AI provider', 502);
     }
   }

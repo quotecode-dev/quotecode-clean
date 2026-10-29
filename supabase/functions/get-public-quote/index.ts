@@ -170,7 +170,7 @@ serve(async (req) => {
       id, user_id, created_at, valid_until, tax_rate, subtotal, total,
       discount, terms, warranty, notes, subject, status, signature, currency, client_type,
       quote_number, attn_name, attn_role, project_name, signer_name, signer_company, signer_role, signed_at,
-      clients ( user_id, company_name, email, phone, address ),
+      clients ( company_name, email, phone, address ),
       quote_sections ( id, name, sort_order ),
       quote_items ( description, quantity, unit_price, total_price, price_missing, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, sort_order, quote_item_measurements ( width, height, unit, calculated_area, label, sort_order, is_pricing_driving ) )
     `;
@@ -178,7 +178,7 @@ serve(async (req) => {
       id, user_id, created_at, valid_until, tax_rate, subtotal, total,
       discount, terms, warranty, notes, subject, status, signature, currency, client_type,
       quote_number, attn_name, attn_role,
-      clients ( user_id, company_name, email, phone, address ),
+      clients ( company_name, email, phone, address ),
       quote_items ( description, quantity, unit_price, total_price )
     `;
 
@@ -288,8 +288,7 @@ serve(async (req) => {
         business_name: bizRow.business_name, logo_url: bizRow.logo_url, tax_id: bizRow.tax_id,
         email: bizRow.email, phone: bizRow.phone, address: bizRow.address, currency: bizRow.currency,
       } : null,
-      // Codex release 2a (Owner 2026-10-29, typed: "מאשר שחרור 2א עכשיו: ...", SEC-DB-02): a client of another account is never shown
-      client: quote.clients && quote.clients.user_id === quote.user_id ? {
+      client: quote.clients ? {
         company_name: quote.clients.company_name, email: quote.clients.email,
         phone: quote.clients.phone, address: quote.clients.address,
       } : null,

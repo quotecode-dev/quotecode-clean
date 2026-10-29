@@ -1722,9 +1722,5 @@
   "src/components/quotesPerPage.js": {
     "interactive": 0,
     "markers": 0
-  },
-  "supabase/functions/chat-ai/publicPool.ts": {
-    "interactive": 0,
-    "markers": 0
   }
 }
