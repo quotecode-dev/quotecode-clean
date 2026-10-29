@@ -549,12 +549,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-29 (typed: Codex release 2a now - no ownership transfer by email, no client of another account, a public chat ceiling of 500 a day (decision 4), including L-17): SEC-DB-05 trigger dropped, SEC-DB-02 same-tenant guards and document, SEC-AI-01 service-only public pool"
-    },
-    "20261030100000_signing_provenance_and_missing_price.sql": {
-      "sha256": "0a6bef6910fd2449c420db6e311829b7d2aed53a41078d8e3c3ba243c69bea6b",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-29 (typed: Codex release 2b - only the real signing function writes a signature, and no signing of a quote with a missing price (decision 3), including L-17, L-24): the signature fields guard, the readiness check in the shared signing core, the permanent capability rule in the signed legacy-id function"
     }
   }
 }

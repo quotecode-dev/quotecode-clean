@@ -37,15 +37,6 @@ const PATTERNS = [
     },
   },
   {
-    // Codex release 2b (Owner 2026-10-29, typed: "מאשר שחרור 2ב ... וחסימת חתימה על הצעה עם מחיר חסר (החלטה 3), כולל שינוי ב-L-17, L-24"): the signing core refuses a quote with a line without a price
-    category: 'missing_price',
-    test: (msg) => /missing prices/i.test(msg),
-    userMessage: {
-      he: '❌ עדיין חסרים מחירים בהצעה, ולכן אי אפשר לאשר ולחתום עליה. בקשו מהעסק הצעה מעודכנת.',
-      en: '❌ Some prices are still missing, so this quote cannot be approved or signed. Ask the business for an updated quote.',
-    },
-  },
-  {
     category: 'already_approved_or_unavailable',
     test: (msg) => /quote not found or cannot be approved/i.test(msg),
     userMessage: {

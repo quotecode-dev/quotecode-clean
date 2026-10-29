@@ -306,12 +306,6 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
     if (!signerName.trim()) { setSignerNameWarning(true); blocked = true; }
     if (!hasSigned) { setSignatureWarning(true); blocked = true; }
     if (blocked) return;
-    // Codex release 2b (Owner 2026-10-29, typed: "מאשר שחרור 2ב ... וחסימת חתימה על הצעה עם מחיר חסר (החלטה 3), כולל שינוי ב-L-17, L-24"): a quote with a line without a price is not signed
-    // (the server refuses it too) - the customer is told before anything is sent
-    if (missingPriceOutputNotice(quote, { isHebrew: false, items: publicItemsForNotice(items) })) {
-      setApproveToast({ type: 'error', message: classifyQuoteApprovalError('Missing prices', false).userMessage });
-      return;
-    }
     try {
       const signatureDataUrl = getSignatureDataUrl();
       // OD-02: approval/signature use the same artifact as the link. On the capability route the server resolves the token
