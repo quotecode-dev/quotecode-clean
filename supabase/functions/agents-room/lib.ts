@@ -69,12 +69,6 @@ export const costOf = (model: string, inTok: number, outTok: number) => {
   return Math.round(((inTok * a + outTok * b) / 1_000_000) * 10_000) / 10_000;
 };
 // Owner 2026-10-27 (typed: "מאשר לתקן את שלוש התקלות בחדר הסוכנים"): a cost under one cent is shown with 4 decimals, never as $0.00
-// Owner 2026-10-29 (L-22, typed: "מאשר שינוי ב-L-22: תיקון השם באותיות לטיניות בפוסטים של שירה ובמאמרים של נועה ..."): the brand is TEKANGO in Latin letters,
-// also inside Hebrew text. A Hebrew-letter spelling (טקנגו / טקאנגו, with a prefix letter: בטקנגו, ולטקנגו) becomes TEKANGO / ב-TEKANGO.
-// The social agent wrote "בטקנגו" in both Hebrew posts of 2026-10-26..29 because its Hebrew check refuses every other Latin word.
-const HEBREW_BRAND = /(^|[^א-ת])([ובלמשהכ]{0,2})(?:טקאנגו|טקנגו)(?![א-ת])/g;
-export const brandLatin = (s: string) => s.replace(HEBREW_BRAND, (_m, pre: string, prefix: string) => `${pre}${prefix ? `${prefix}-` : ''}TEKANGO`);
-export const hasHebrewBrand = (s: string) => /טקא?נגו/.test(s);
 export const usd = (v: number) => (v > 0 && v < 0.01 ? v.toFixed(4) : v.toFixed(2));
 
 // every URL path / link inside Hebrew text is an LTR isolate (LRI ... PDI), so "/en" never renders as "en/" (the articles use the same isolates)

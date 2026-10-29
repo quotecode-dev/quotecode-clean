@@ -4,7 +4,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { handle, type StageDeps, type Action } from './manager.ts';
 import { CHANNELS, POSTS_PER_WEEK, ART_KEYS, postErrors, type Post } from './social.ts';
-import { brandLatin, hasHebrewBrand } from './lib.ts';
 import { ART_KEYS as SITE_ART_KEYS } from '../../../src/shared/articleArt.js';
 
 const NOW = new Date('2026-11-01T05:30:00Z'); // Sunday 07:30 Israel
@@ -110,25 +109,6 @@ describe('a post is checked for its account before it is stored', () => {
     expect(postErrors(post('tt_intl', { video_scenes: ['one scene only, nothing else'] }), c('tt_intl'), PATHS)).toContain('video_scenes');
     expect(postErrors(post('tt_il', { video_script: 'A business owner opens a phone, picks a template and adds items. The quote goes out and the client signs it.' }), c('tt_il'), PATHS)).toContain('english_in_hebrew');
     expect(postErrors(post('ig_intl', { text: 'Too short.' }), c('ig_intl'), PATHS)).toContain('length');
-  });
-  // Owner 2026-10-29 (L-22): both Hebrew posts of that week wrote "בטקנגו" / "של טקנגו" - the brand is TEKANGO in Latin letters
-  it('the brand in Hebrew letters becomes TEKANGO before the post is stored, and never passes the checks', async () => {
-    expect(brandLatin('בטקנגו אפשר לבנות הצעה. במחשבון של טקנגו, ולטקנגו יש תבניות. #טקנגו (טקאנגו)'))
-      .toBe('ב-TEKANGO אפשר לבנות הצעה. במחשבון של TEKANGO, ול-TEKANGO יש תבניות. #TEKANGO (TEKANGO)');
-    expect(brandLatin(EN)).toBe(EN);
-    expect(hasHebrewBrand('ב-TEKANGO')).toBe(false);
-    expect(postErrors(post('fb_il', { text: `${HE} בטקנגו` }), c('fb_il'), PATHS)).toContain('brand_hebrew');
-    expect(postErrors(post('fb_il', { text: `${HE} ב-TEKANGO` }), c('fb_il'), PATHS)).toEqual([]);
-    const d = deps({}, week().map((p) => (p.channel === 'fb_il' || p.channel === 'tt_il'
-      ? { ...p, text: `${p.text} בטקנגו זה פשוט.`, hashtags: ['#הצעת_מחיר', '#טקנגו'], video_script: p.video_script ? `${p.video_script} של טקנגו.` : '' } : p)));
-    await handle({ action: 'run', agent: 'social' }, d, paths);
-    const il = posts(d).filter((a) => a.payload.channel === 'fb_il' || a.payload.channel === 'tt_il');
-    expect(il.length).toBeGreaterThan(0);
-    for (const a of il) {
-      expect(a.payload.text).toMatch(/ב-TEKANGO זה פשוט\.$/);
-      expect(a.payload.hashtags).toContain('#TEKANGO');
-      expect(JSON.stringify(a.payload)).not.toMatch(/טקא?נגו/);
-    }
   });
 });
 

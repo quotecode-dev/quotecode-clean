@@ -368,21 +368,6 @@ describe('agents room stage 2 - the manager', () => {
     expect([...d.runs.values()].filter((x) => String(x.run_key).startsWith(`draft:${id}:`)).length).toBe(2);
   });
 
-  // Owner 2026-10-29 (L-22): Noa's Hebrew article keeps the brand in Latin letters too
-  it('an article draft with the brand in Hebrew letters is stored with TEKANGO', async () => {
-    const he = { ...goodDraft.he, intro: `${heP}בטקנגו כותבים הצעה כזו בכמה דקות.`, sections: goodDraft.he.sections.map((s, i) => (i === 0 ? { ...s, p: [`${s.p[0]} של טקנגו`] } : s)) };
-    const d = deps({ complete: vi.fn(async (a: { schema: { name: string } }) => (a.schema.name === 'guide_article'
-      ? { content: JSON.stringify({ ...goodDraft, he }), promptTokens: 1, completionTokens: 1 }
-      : { content: '{}', promptTokens: 1, completionTokens: 1 })) as never });
-    const id = await d.insertAction({ run_key: 'k', source: 'manager', kind: 'system', action_type: 'article_draft', title_he: 'x', title_en: 'x', payload: { market: 'il', topic_he: 'x', topic_en: 'x' } });
-    d.caller = admin();
-    expect((await handle({ action: 'decide', id, decision: 'approve' }, d, paths)).status).toBe(200);
-    const art = [...d.articles.values()][0];
-    expect(art.he.intro).toMatch(/ב-TEKANGO כותבים הצעה כזו/);
-    expect(art.he.sections[0].p[0]).toMatch(/של TEKANGO$/);
-    expect(JSON.stringify(art)).not.toMatch(/טקא?נגו/);
-  });
-
   it('a code task: approve -> the Owner gets the full instruction for Claude by email; then "done"', async () => {
     const d = deps();
     await handle({ action: 'run' }, d, paths);
