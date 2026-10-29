@@ -374,6 +374,12 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
       blocked = true;
     }
     if (blocked) return;
+    // Codex release 2b (Owner 2026-10-29, typed: "מאשר שחרור 2ב ... וחסימת חתימה על הצעה עם מחיר חסר (החלטה 3), כולל שינוי ב-L-17, L-24"): a quote with a line without a price is not signed
+    // (the server refuses it too) - the customer is told before anything is sent
+    if (missingPriceOutputNotice(quote, { isHebrew: true, items: publicItemsForNotice(items) })) {
+      setApproveToast({ type: 'error', message: classifyQuoteApprovalError('Missing prices', true).userMessage });
+      return;
+    }
 
     try {
       // חוק ברזל: ה-RPC עצמו (public_approve_quote) נשאר בלתי-נגוע לגמרי -
