@@ -66,13 +66,60 @@ async function callFn(body) {
 const REBUILD_FAILED = { he: 'המאמר אושר ונשמר, אבל בניית האתר מחדש לא התחילה, ולכן גוגל עוד לא רואה אותו. לחצו "בנייה מחדש" כדי לנסות שוב.',
   en: 'The article was approved and saved, but the site rebuild did not start, so Google does not see it yet. Press "Rebuild the site" to try again.' };
 
+// Codex release 4 (Owner 2026-10-29, typed: "מאשר שינוי ב-L-22 לשחרור 4 של קודקס: הגנה מכפילויות מאמרים ושמירת תקציב בינה עם שריון מראש,
+// החלטות 6 ו-9 כמוצע, L-25 בלי שינוי, שחרור עד הלייב"): the budget and duplicate-topic texts of docs/CODEX_SPEC_MORNING_PLANS_2026-10-29.md
+// sections 4 and 6a, word for word
+const TOPIC_TEXT = {
+  duplicate_topic: { he: 'הנושא הזה כבר קיים במאמר או בטיוטה. פתחו את הפריט הקיים או בחרו נושא אחר. לא נוצרה טיוטה חדשה.',
+    en: 'This topic already exists in an article or draft. Open the existing item or choose another topic. No new draft was created.' },
+  possible_duplicate: { he: 'נמצא נושא דומה. בדקו את הפריט הקיים לפני אישור נושא נוסף.', en: 'A similar topic was found. Review the existing item before approving another topic.' },
+};
+const BUDGET_HELD = { he: 'חלק מהתקציב שמור לקריאות שעדיין לא התקבלה עליהן תשובה סופית.', en: 'Part of the budget is reserved for requests whose final outcome is still unknown.' };
+const BUDGET_BLOCKED = { he: 'תקציב הבינה נעצר, כי קריאה אחת עלתה יותר מהסכום שנשמר לה. לא בוצעה קריאה לבינה.',
+  en: 'The AI budget was stopped because one request cost more than the amount reserved for it. No AI request was made.' };
+const MATCH_KIND = {
+  static: { he: 'מדריך קבוע באתר', en: 'A guide on the site' }, published: { he: 'מאמר שפורסם', en: 'A published article' },
+  draft: { he: 'טיוטה שמחכה לקריאה', en: 'A draft waiting to be read' }, proposal: { he: 'נושא מוצע שמחכה לאישור', en: 'A proposed topic waiting for approval' },
+  claim: { he: 'נושא שכבר בכתיבה', en: 'A topic already being written' },
+};
+export const FOCUS_MIN = 10; // = agents-room articleTopics.ts FOCUS_MIN
+const RELEASE4_ERRORS = {
+  budget_insufficient: { he: 'אין בתקציב הבינה החודשי יתרה מספקת לפעולה הזו. לא בוצעה קריאה לבינה.', en: 'The monthly AI budget does not have enough available funds for this action. No AI request was made.' },
+  budget_blocked: BUDGET_BLOCKED, duplicate_topic: TOPIC_TEXT.duplicate_topic, possible_duplicate: TOPIC_TEXT.possible_duplicate,
+  article_inventory_unavailable: { he: 'לא הצלחנו לקרוא את כל המאמרים והטיוטות, ולכן לא נוצרה טיוטה. נסו שוב בעוד רגע.', en: 'We could not read all the articles and drafts, so no draft was created. Try again in a moment.' },
+  drafting: { he: 'הטיוטה כבר נכתבת. רעננו בעוד כמה דקות.', en: 'The draft is already being written. Refresh in a few minutes.' },
+};
+
 function errorText(code, isHebrew) {
   const he = { draft_failed: 'הטיוטה לא עברה את הבדיקות של השפה והשוק. אפשר לנסות שוב.', cap_reached: 'הגענו לתקרת העלות החודשית, ולכן הבינה לא רצה החודש.',
     not_pending: 'הפעולה הזו כבר טופלה.', note_required: 'כתבו במשפט מה לתקן.', bad_name: 'שם חייב להיות באורך של 1 עד 30 תווים, בעברית ובאנגלית.', article_changed: 'הטיוטה השתנתה מאז שנפתחה. קראו אותה שוב לפני האישור.', article_not_draft: 'המאמר כבר אושר או נדחה.' };
   const en = { draft_failed: 'The draft did not pass the language and market checks. You can try again.', cap_reached: 'The monthly cost cap was reached, so the AI does not run this month.',
     not_pending: 'This action was already handled.', note_required: 'Write in one sentence what to fix.', bad_name: 'A name must be 1 to 30 characters, in Hebrew and in English.',
     article_changed: 'The draft changed since it was opened. Read it again before approving.', article_not_draft: 'The article was already approved or rejected.' };
+  const release4 = RELEASE4_ERRORS[code];
+  if (release4) return isHebrew ? release4.he : release4.en;
   return (isHebrew ? he : en)[code] || (isHebrew ? 'הפעולה לא הושלמה. נסו שוב.' : 'The action did not complete. Try again.');
+}
+
+// the existing article / draft / proposal a topic repeats or resembles, its language, and the article itself when it is on the site
+function TopicIssue({ id, issue, isHebrew }) {
+  const m = issue.match;
+  const kind = m && MATCH_KIND[m.kind];
+  return (
+    <div className={`av-notice ${issue.code === 'duplicate_topic' ? 'av-bad' : ''}`} style={{ marginTop: 8 }} data-testid={`action-topic-${id}`} data-code={issue.code} role="status">
+      <div>{isHebrew ? TOPIC_TEXT[issue.code].he : TOPIC_TEXT[issue.code].en}</div>
+      {m && kind && (
+        <div style={{ marginTop: 4, fontSize: '0.86rem' }} data-testid={`action-topic-match-${id}`}>
+          {isHebrew ? kind.he : kind.en}{' · '}{m.lang === 'en' ? (isHebrew ? 'אנגלית' : 'English') : (isHebrew ? 'עברית' : 'Hebrew')}{': '}
+          <bdi dir={m.lang === 'en' ? 'ltr' : 'rtl'}>{m.title}</bdi>
+          {/* the admin never leaves its shell (AdminInShellNavigation): the article's address on the site is shown, not opened */}
+          {m.slug && (m.kind === 'static' || m.kind === 'published') && (
+            <div style={{ marginTop: 2 }}><bdi dir="ltr" data-testid={`action-topic-address-${id}`}>{`/${m.lang === 'en' ? 'en' : 'he'}/articles/${m.slug}`}</bdi></div>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function NameEditor({ agent, profile, isHebrew, onSaved, onNotice }) {
@@ -176,6 +223,9 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
   const [openDraft, setOpenDraft] = useState('');
   const [reviseFor, setReviseFor] = useState('');
   const [reviseNote, setReviseNote] = useState('');
+  // Codex release 4: a topic the server refused (duplicate) or held for a distinct focus (similar), and the focus typed per proposal
+  const [topicIssue, setTopicIssue] = useState({});
+  const [focusText, setFocusText] = useState({});
   const market = ADMIN_DATE_MARKET;
   const L = (o) => (isHebrew ? o.he : o.en);
 
@@ -203,13 +253,15 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
     setBusy(body.id || body.action); setNotice(null);
     const r = await callFn(body);
     setBusy('');
-    setNotice(r?.ok ? { good: true, text: okText(r) } : { good: false, text: errorText(r?.code, isHebrew) });
+    // Codex release 4: a refused topic / heading names the existing item it repeats
+    const match = !r?.ok && r?.match?.title && MATCH_KIND[r.match.kind] ? ` (${isHebrew ? MATCH_KIND[r.match.kind].he : MATCH_KIND[r.match.kind].en}: ${r.match.title})` : '';
+    setNotice(r?.ok ? { good: true, text: okText(r) } : { good: false, text: `${errorText(r?.code, isHebrew)}${match}` });
     load();
     return r;
   };
   // 20261029000000 (Codex F07): an article approval names the revision on the screen - a draft rewritten since then is read again first
   // Codex R01 (Owner 2026-10-29, L-22): the revision of the text on the screen - the article row's own (the action's copy may lag)
-  const decide = (a, decision) => act({ action: 'decide', id: a.id, decision, ...(a.action_type === 'article_publish' ? { revision: Number(drafts[a.payload?.articleId]?.revision ?? a.payload?.revision ?? 0) } : {}) }, (r) => {
+  const decide = (a, decision, extra = {}) => act({ action: 'decide', id: a.id, decision, ...extra, ...(a.action_type === 'article_publish' ? { revision: Number(drafts[a.payload?.articleId]?.revision ?? a.payload?.revision ?? 0) } : {}) }, (r) => {
     if (r.status === 'rejected') return isHebrew ? 'הוסר מהרשימה.' : 'Removed from the list.';
     if (r.status === 'drafted') return isHebrew ? 'הטיוטה מוכנה. היא מחכה למטה לקריאה ולאישור שלכם.' : 'The draft is ready. It waits below for you to read and approve.';
     if (r.status === 'published') return r.deploy === 'ok'
@@ -244,14 +296,31 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
 
   const pendingButtons = (a) => {
     const off = !!busy;
-    if (a.action_type === 'article_draft') return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-        {/* PRODUCT_TRUTH_DECORATIVE: approves the topic - the system writes a draft in Hebrew and English; nothing is published */}
-        <button type="button" className="av-btn av-primary" disabled={off} onClick={() => decide(a, 'approve')} data-testid={`action-approve-${a.id}`}>{busy === a.id ? (isHebrew ? 'כותבים...' : 'Writing...') : (isHebrew ? 'כתבו טיוטה' : 'Write a draft')}</button>
-        {/* PRODUCT_TRUTH_DECORATIVE: rejects the proposed topic */}
-        <button type="button" className="av-btn" disabled={off} onClick={() => decide(a, 'reject')} data-testid={`action-reject-${a.id}`}>{isHebrew ? 'לא עכשיו' : 'Not now'}</button>
-      </div>
-    );
+    if (a.action_type === 'article_draft') {
+      // Codex release 4 (decision 6): the same topic cannot be written; a similar one is written only with a distinct focus
+      const issue = topicIssue[a.id] || (a.payload?.similar ? { code: 'possible_duplicate', match: a.payload.similar } : null);
+      const needsFocus = issue?.code === 'possible_duplicate';
+      const focus = focusText[a.id] ?? a.payload?.focus ?? '';
+      const write = async () => {
+        const r = await decide(a, 'approve', needsFocus ? { focus } : {});
+        if (r?.code === 'duplicate_topic' || r?.code === 'possible_duplicate') setTopicIssue((m) => ({ ...m, [a.id]: { code: r.code, match: r.match || null } }));
+      };
+      return (
+        <>
+          {issue && <TopicIssue id={a.id} issue={issue} isHebrew={isHebrew} />}
+          {needsFocus && (
+            <label className="av-field" style={{ marginTop: 8 }}><span>{isHebrew ? 'במה הנושא הזה שונה? כתבו מיקוד אחר (לפחות 10 תווים)' : 'How is this topic different? Write a distinct focus (at least 10 characters)'}</span>
+              <textarea maxLength={300} value={focus} onChange={(e) => { const v = e.target.value; setFocusText((m) => ({ ...m, [a.id]: v })); }} data-testid={`action-focus-${a.id}`} style={{ minHeight: 56 }} /></label>
+          )}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: approves the topic - the system writes a draft in Hebrew and English; nothing is published */}
+            <button type="button" className="av-btn av-primary" disabled={off || issue?.code === 'duplicate_topic' || (needsFocus && focus.trim().length < FOCUS_MIN)} onClick={write} data-testid={`action-approve-${a.id}`}>{busy === a.id ? (isHebrew ? 'כותבים...' : 'Writing...') : (isHebrew ? 'כתבו טיוטה' : 'Write a draft')}</button>
+            {/* PRODUCT_TRUTH_DECORATIVE: rejects the proposed topic */}
+            <button type="button" className="av-btn" disabled={off} onClick={() => decide(a, 'reject')} data-testid={`action-reject-${a.id}`}>{isHebrew ? 'לא עכשיו' : 'Not now'}</button>
+          </div>
+        </>
+      );
+    }
     if (a.action_type === 'article_publish') {
       const art = drafts[a.payload?.articleId];
       return (
@@ -315,6 +384,7 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                     <div className="av-label">{isHebrew ? 'עלות הבינה החודש' : 'AI cost this month'}</div>
                     <div className="av-kpi-value" data-testid="admin-agents-room-cost"><N v={`$${usd(Number(state.monthCostUsd))}`} /></div>
                     <div className="av-muted" style={{ fontSize: '0.8rem' }}>{isHebrew ? <>מתוך תקרה של <N v={`$${state.cap}`} /></> : <>of a <N v={`$${state.cap}`} /> cap</>}</div>
+                    {Number(state.heldUsd) > 0 && <div className="av-muted" style={{ fontSize: '0.78rem', marginTop: 4 }} data-testid="admin-agents-room-held">{L(BUDGET_HELD)} <N v={`$${usd(Number(state.heldUsd))}`} /></div>}
                     <div aria-hidden="true" style={{ height: 6, background: '#e5ecee', borderRadius: 3, marginTop: 8 }}>
                       <div style={{ width: `${capPct}%`, height: 6, borderRadius: 3, background: capPct >= 100 ? '#8f3434' : '#315f6f' }} />
                     </div>
@@ -335,6 +405,7 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                     <span className="av-muted" style={{ fontSize: '0.8rem' }}>{isHebrew ? 'נפתח בעורך במחשב' : 'Opens in the editor on this computer'}</span>
                   </a>
                 </div>
+                {state.budgetBlocked && <div className="av-notice av-bad av-section" role="alert" data-testid="admin-agents-room-budget-blocked">{L(BUDGET_BLOCKED)}</div>}
                 {!state.googleConfigured && (
                   <div className="av-notice av-bad av-section" role="alert">{isHebrew ? 'המפתח של גוגל לא מוגדר בשרת, ולכן סוכן הקידום לא יכול לרוץ.' : 'The Google key is not set on the server, so the SEO agent cannot run.'}</div>
                 )}
