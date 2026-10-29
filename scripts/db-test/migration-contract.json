@@ -543,6 +543,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-29 (typed: Codex release 1 now - the output gate for a missing price on every new output including a re-send, decision 1, and the exact quota wording, decision 2, including L-09, L-13, L-14, L-15, L-17, L-24): one readiness rule over the canonical deal document, checked in prepare_quote_output before any reservation or finalized answer"
+    },
+    "20261030000000_security_release_2a.sql": {
+      "sha256": "39f0aa84d8e7ab0a392f9bf69a4ae39d3a51a0eb59266dfe744cb3147ec8cbc2",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-29 (typed: Codex release 2a now - no ownership transfer by email, no client of another account, a public chat ceiling of 500 a day (decision 4), including L-17): SEC-DB-05 trigger dropped, SEC-DB-02 same-tenant guards and document, SEC-AI-01 service-only public pool"
     }
   }
 }

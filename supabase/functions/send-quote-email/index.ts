@@ -213,6 +213,7 @@ serve(async (req) => {
         .from('clients')
         .select('email, company_name')
         .eq('id', quoteRow.client_id)
+        .eq('user_id', quoteRow.user_id) // Codex release 2a (Owner 2026-10-29, typed: "מאשר שחרור 2א עכשיו: ...", SEC-DB-02): never another account's client
         .maybeSingle()
       clientEmail = clientRow?.email ?? null
       clientCompanyName = clientRow?.company_name ?? null
