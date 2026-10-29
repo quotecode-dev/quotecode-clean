@@ -4557,6 +4557,14 @@ Continue anyway?`, isHebrew);
         : 'An unfinished quote cannot be saved as Sent / Approved / Paid. Add a product or work item with a price, or set the status back to Draft.');
       return;
     }
+    // Codex release 1 (Owner 2026-10-29, typed: "מאשר שחרור 1 של קודקס עכשיו: שער ההפקה למחיר חסר בכל פלט חדש כולל שליחה חוזרת ...", L-09 / L-14 / L-17):
+    // leaving Draft is a customer output - a quote with a line without a price is refused BEFORE anything is saved (the server refuses it
+    // too), so the sentence is exact: nothing was sent and this action used no additional quote. Saving it as a Draft stays as it is.
+    if (editingQuoteId && String(quotes.find((q) => q.id === editingQuoteId)?.status || '').toLowerCase() === 'draft'
+        && String(quoteStatus || '').toLowerCase() !== 'draft' && missingPriceItems(items).length) {
+      saveBlock('QUOTE_INCOMPLETE_ITEMS', outputBlockedMessage('missing_price', isHebrew));
+      return;
+    }
 
     if (clientEmail && clientEmail.trim() !== '' && !emailEmailValidation(clientEmail)) {
       saveBlock('QUOTE_INVALID_CLIENT_EMAIL', isHebrew ? 'כתובת המייל אינה תקינה.' : '❌ Invalid email address!');

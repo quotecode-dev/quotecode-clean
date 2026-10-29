@@ -147,6 +147,14 @@ export function outputBlockedMessage(code, isHebrew, free10 = null, billing = nu
       ? 'תמו 7 ימי החינם. הצעות שכבר יצאו נשארות זמינות. פרטי המסלולים זמינים במסך המסלולים.'
       : 'The 7 free days have ended. Quotes already sent stay available. Plan details are in the plans view.';
   }
+  // Codex release 1 (Owner 2026-10-29, typed: "מאשר שחרור 1 של קודקס עכשיו: שער ההפקה למחיר חסר בכל פלט חדש כולל שליחה חוזרת ..."; decision 2 = the exact quota sentence):
+  // the server refuses before anything is reserved or counted, and every editor route refuses before it saves - so this action used no
+  // additional quote (a Draft counted by the locked save rule keeps its existing count)
+  if (code === 'missing_price' || code === 'price_state_unverified') {
+    return isHebrew
+      ? 'יש בהצעה פריטים ללא מחיר. השלימו את המחירים לפני שליחה, שיתוף או הפקה. לא נשלח דבר, ולא נוצלה הצעה נוספת בפעולה הזו.'
+      : 'Some quote items have no price. Complete their prices before sending, sharing or exporting. Nothing was sent, and this attempt did not use an additional quote.';
+  }
   if (code === 'output_in_progress') {
     return isHebrew ? 'גרסה אחרת של ההצעה נמצאת כרגע בהפקה. נסו שוב בעוד רגע. דבר לא נשלח ולא נוצלה הצעה.' : 'Another version of this quote is being produced right now. Try again in a moment. Nothing was sent and no quote was used.';
   }
