@@ -1141,5 +1141,3913 @@
    "he": "שמיני עצרת / שמחת תורה",
    "en": "Shemini Atzeret / Simchat Torah"
   }
+ ],
+ "observances": [
+  {
+   "date": "2020-02-10",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2020-03-10",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2020-04-08",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2020-04-10",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2020-04-11",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2020-04-12",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2020-04-13",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2020-04-14",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2020-04-21",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2020-04-28",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2020-05-12",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2020-05-22",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2020-05-28",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2020-07-30",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2020-09-18",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2020-09-27",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2020-10-02",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2020-10-04",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2020-10-05",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2020-10-06",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2020-10-07",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2020-10-08",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2020-10-09",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2020-12-11",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2020-12-12",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2020-12-13",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2020-12-14",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2020-12-15",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2020-12-16",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2020-12-17",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2020-12-18",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2021-01-28",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2021-02-26",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2021-03-27",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2021-03-29",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2021-03-30",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2021-03-31",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2021-04-01",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2021-04-02",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2021-04-08",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2021-04-14",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2021-04-30",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2021-05-10",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2021-05-16",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2021-07-18",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2021-09-06",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2021-09-15",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2021-09-20",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2021-09-22",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2021-09-23",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2021-09-24",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2021-09-25",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2021-09-26",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2021-09-27",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2021-11-29",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2021-11-30",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2021-12-01",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2021-12-02",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2021-12-03",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2021-12-04",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2021-12-05",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2021-12-06",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2022-01-17",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2022-03-17",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2022-04-15",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2022-04-17",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2022-04-18",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2022-04-19",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2022-04-20",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2022-04-21",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2022-04-28",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2022-05-04",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2022-05-19",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2022-05-29",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2022-06-04",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2022-08-07",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2022-09-25",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2022-10-04",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2022-10-09",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2022-10-11",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2022-10-12",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2022-10-13",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2022-10-14",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2022-10-15",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2022-10-16",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2022-12-19",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2022-12-20",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2022-12-21",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2022-12-22",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2022-12-23",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2022-12-24",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2022-12-25",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2022-12-26",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2023-02-06",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2023-03-07",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2023-04-05",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2023-04-07",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2023-04-08",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2023-04-09",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2023-04-10",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2023-04-11",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2023-04-18",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2023-04-25",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2023-05-09",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2023-05-19",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2023-05-25",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2023-07-27",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2023-09-15",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2023-09-24",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2023-09-29",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2023-10-01",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2023-10-02",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2023-10-03",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2023-10-04",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2023-10-05",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2023-10-06",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2023-12-08",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2023-12-09",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2023-12-10",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2023-12-11",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2023-12-12",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2023-12-13",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2023-12-14",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2023-12-15",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2024-01-25",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2024-03-24",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2024-04-22",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2024-04-24",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2024-04-25",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2024-04-26",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2024-04-27",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2024-04-28",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2024-05-06",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2024-05-13",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2024-05-26",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2024-06-05",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2024-06-11",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2024-08-13",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2024-10-02",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2024-10-11",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2024-10-16",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2024-10-18",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2024-10-19",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2024-10-20",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2024-10-21",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2024-10-22",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2024-10-23",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2024-12-26",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2024-12-27",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2024-12-28",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2024-12-29",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2024-12-30",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2024-12-31",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2025-01-01",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2025-01-02",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2025-02-13",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2025-03-14",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2025-04-12",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2025-04-14",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2025-04-15",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2025-04-16",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2025-04-17",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2025-04-18",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2025-04-24",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2025-04-30",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2025-05-16",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2025-05-26",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2025-06-01",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2025-08-03",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2025-09-22",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2025-10-01",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2025-10-06",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2025-10-08",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2025-10-09",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2025-10-10",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2025-10-11",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2025-10-12",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2025-10-13",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2025-12-15",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2025-12-16",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2025-12-17",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2025-12-18",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2025-12-19",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2025-12-20",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2025-12-21",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2025-12-22",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2026-02-02",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2026-03-03",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2026-04-01",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2026-04-03",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2026-04-04",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2026-04-05",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2026-04-06",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2026-04-07",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2026-04-14",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2026-04-21",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2026-05-05",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2026-05-15",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2026-05-21",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2026-07-23",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2026-09-11",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2026-09-20",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2026-09-25",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2026-09-27",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2026-09-28",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2026-09-29",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2026-09-30",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2026-10-01",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2026-10-02",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2026-12-05",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2026-12-06",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2026-12-07",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2026-12-08",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2026-12-09",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2026-12-10",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2026-12-11",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2026-12-12",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2027-01-23",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2027-03-23",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2027-04-21",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2027-04-23",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2027-04-24",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2027-04-25",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2027-04-26",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2027-04-27",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2027-05-04",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2027-05-11",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2027-05-25",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2027-06-04",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2027-06-10",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2027-08-12",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2027-10-01",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2027-10-10",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2027-10-15",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2027-10-17",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2027-10-18",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2027-10-19",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2027-10-20",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2027-10-21",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2027-10-22",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2027-12-25",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2027-12-26",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2027-12-27",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2027-12-28",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2027-12-29",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2027-12-30",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2027-12-31",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2028-01-01",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2028-02-12",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2028-03-12",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2028-04-10",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2028-04-12",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2028-04-13",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2028-04-14",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2028-04-15",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2028-04-16",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2028-04-24",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2028-05-01",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2028-05-14",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2028-05-24",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2028-05-30",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2028-08-01",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2028-09-20",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2028-09-29",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2028-10-04",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2028-10-06",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2028-10-07",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2028-10-08",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2028-10-09",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2028-10-10",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2028-10-11",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2028-12-13",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2028-12-14",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2028-12-15",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2028-12-16",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2028-12-17",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2028-12-18",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2028-12-19",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2028-12-20",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2029-01-31",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2029-03-01",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2029-03-30",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2029-04-01",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2029-04-02",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2029-04-03",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2029-04-04",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2029-04-05",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2029-04-12",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2029-04-18",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2029-05-03",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2029-05-13",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2029-05-19",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2029-07-22",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2029-09-09",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2029-09-18",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2029-09-23",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2029-09-25",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2029-09-26",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2029-09-27",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2029-09-28",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2029-09-29",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2029-09-30",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2029-12-02",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2029-12-03",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2029-12-04",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2029-12-05",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2029-12-06",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2029-12-07",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2029-12-08",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2029-12-09",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2030-01-19",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2030-03-19",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2030-04-17",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2030-04-19",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2030-04-20",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2030-04-21",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2030-04-22",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2030-04-23",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2030-04-30",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2030-05-07",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2030-05-21",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2030-05-31",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2030-06-06",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2030-08-08",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2030-09-27",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2030-10-06",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2030-10-11",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2030-10-13",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2030-10-14",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2030-10-15",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2030-10-16",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2030-10-17",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2030-10-18",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2030-12-21",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2030-12-22",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2030-12-23",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2030-12-24",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2030-12-25",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2030-12-26",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2030-12-27",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2030-12-28",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2031-02-08",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2031-03-09",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2031-04-07",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2031-04-09",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2031-04-10",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2031-04-11",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2031-04-12",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2031-04-13",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2031-04-21",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2031-04-28",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2031-05-11",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2031-05-21",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2031-05-27",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2031-07-29",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2031-09-17",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2031-09-26",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2031-10-01",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2031-10-03",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2031-10-04",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2031-10-05",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2031-10-06",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2031-10-07",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2031-10-08",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2031-12-10",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2031-12-11",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2031-12-12",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2031-12-13",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2031-12-14",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2031-12-15",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2031-12-16",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2031-12-17",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2032-01-28",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2032-02-26",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2032-03-26",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2032-03-28",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2032-03-29",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2032-03-30",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2032-03-31",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2032-04-01",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2032-04-08",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2032-04-14",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2032-04-29",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2032-05-09",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2032-05-15",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2032-07-18",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2032-09-05",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2032-09-14",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2032-09-19",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2032-09-21",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2032-09-22",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2032-09-23",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2032-09-24",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2032-09-25",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2032-09-26",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2032-11-28",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2032-11-29",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2032-11-30",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2032-12-01",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2032-12-02",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2032-12-03",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2032-12-04",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2032-12-05",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2033-01-15",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2033-03-15",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2033-04-13",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2033-04-15",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2033-04-16",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2033-04-17",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2033-04-18",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2033-04-19",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2033-04-26",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2033-05-03",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2033-05-17",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2033-05-27",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2033-06-02",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2033-08-04",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2033-09-23",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2033-10-02",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2033-10-07",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2033-10-09",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2033-10-10",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2033-10-11",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2033-10-12",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2033-10-13",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2033-10-14",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2033-12-17",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2033-12-18",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2033-12-19",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2033-12-20",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2033-12-21",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2033-12-22",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2033-12-23",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2033-12-24",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2034-02-04",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2034-03-05",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2034-04-03",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2034-04-05",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2034-04-06",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2034-04-07",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2034-04-08",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2034-04-09",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2034-04-17",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2034-04-24",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2034-05-07",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2034-05-17",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2034-05-23",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2034-07-25",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2034-09-13",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2034-09-22",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2034-09-27",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2034-09-29",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2034-09-30",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2034-10-01",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2034-10-02",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2034-10-03",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2034-10-04",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2034-12-07",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2034-12-08",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2034-12-09",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2034-12-10",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2034-12-11",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2034-12-12",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2034-12-13",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2034-12-14",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2035-01-25",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2035-03-25",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2035-04-23",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2035-04-25",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2035-04-26",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2035-04-27",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2035-04-28",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2035-04-29",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2035-05-07",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2035-05-14",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2035-05-27",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2035-06-06",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2035-06-12",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2035-08-14",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2035-10-03",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2035-10-12",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2035-10-17",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2035-10-19",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2035-10-20",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2035-10-21",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2035-10-22",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2035-10-23",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2035-10-24",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2035-12-26",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2035-12-27",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2035-12-28",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2035-12-29",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2035-12-30",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2035-12-31",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2036-01-01",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2036-01-02",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2036-02-13",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2036-03-13",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2036-04-11",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2036-04-13",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2036-04-14",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2036-04-15",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2036-04-16",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2036-04-17",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2036-04-24",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2036-04-30",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2036-05-15",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2036-05-25",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2036-05-31",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2036-08-03",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2036-09-21",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2036-09-30",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2036-10-05",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2036-10-07",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2036-10-08",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2036-10-09",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2036-10-10",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2036-10-11",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2036-10-12",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2036-12-14",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2036-12-15",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2036-12-16",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2036-12-17",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2036-12-18",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2036-12-19",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2036-12-20",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2036-12-21",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2037-01-31",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2037-03-01",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2037-03-30",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2037-04-01",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2037-04-02",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2037-04-03",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2037-04-04",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2037-04-05",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2037-04-13",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2037-04-20",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2037-05-03",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2037-05-13",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2037-05-19",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2037-07-21",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2037-09-09",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2037-09-18",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2037-09-23",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2037-09-25",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2037-09-26",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2037-09-27",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2037-09-28",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2037-09-29",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2037-09-30",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2037-12-03",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2037-12-04",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2037-12-05",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2037-12-06",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2037-12-07",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2037-12-08",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2037-12-09",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2037-12-10",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2038-01-21",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2038-03-21",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2038-04-19",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2038-04-21",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2038-04-22",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2038-04-23",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2038-04-24",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2038-04-25",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2038-05-03",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2038-05-10",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2038-05-23",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2038-06-02",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2038-06-08",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2038-08-10",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2038-09-29",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2038-10-08",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2038-10-13",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2038-10-15",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2038-10-16",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2038-10-17",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2038-10-18",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2038-10-19",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2038-10-20",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2038-12-22",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2038-12-23",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2038-12-24",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2038-12-25",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2038-12-26",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2038-12-27",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2038-12-28",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2038-12-29",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2039-02-09",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2039-03-10",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2039-04-08",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2039-04-10",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2039-04-11",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2039-04-12",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2039-04-13",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2039-04-14",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2039-04-21",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2039-04-27",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2039-05-12",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2039-05-22",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2039-05-28",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2039-07-31",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2039-09-18",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2039-09-27",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2039-10-02",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2039-10-04",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2039-10-05",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2039-10-06",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2039-10-07",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2039-10-08",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2039-10-09",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2039-12-12",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2039-12-13",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2039-12-14",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2039-12-15",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2039-12-16",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2039-12-17",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2039-12-18",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2039-12-19",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  },
+  {
+   "date": "2040-01-30",
+   "key": "tu_bishvat",
+   "he": "ט״ו בשבט",
+   "en": "Tu BiShvat"
+  },
+  {
+   "date": "2040-02-28",
+   "key": "purim",
+   "he": "פורים",
+   "en": "Purim"
+  },
+  {
+   "date": "2040-03-28",
+   "key": "erev_pesach",
+   "he": "ערב פסח",
+   "en": "Erev Pesach"
+  },
+  {
+   "date": "2040-03-30",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2040-03-31",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2040-04-01",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2040-04-02",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2040-04-03",
+   "key": "chol_hamoed_pesach",
+   "he": "חול המועד פסח",
+   "en": "Passover (Chol HaMoed)"
+  },
+  {
+   "date": "2040-04-10",
+   "key": "yom_hashoah",
+   "he": "יום השואה",
+   "en": "Holocaust Remembrance Day"
+  },
+  {
+   "date": "2040-04-17",
+   "key": "yom_hazikaron",
+   "he": "יום הזיכרון",
+   "en": "Memorial Day"
+  },
+  {
+   "date": "2040-05-01",
+   "key": "lag_baomer",
+   "he": "ל״ג בעומר",
+   "en": "Lag BaOmer"
+  },
+  {
+   "date": "2040-05-11",
+   "key": "yom_yerushalayim",
+   "he": "יום ירושלים",
+   "en": "Jerusalem Day"
+  },
+  {
+   "date": "2040-05-17",
+   "key": "erev_shavuot",
+   "he": "ערב שבועות",
+   "en": "Erev Shavuot"
+  },
+  {
+   "date": "2040-07-19",
+   "key": "tisha_bav",
+   "he": "תשעה באב",
+   "en": "Tisha B'Av"
+  },
+  {
+   "date": "2040-09-07",
+   "key": "erev_rosh_hashanah",
+   "he": "ערב ראש השנה",
+   "en": "Erev Rosh Hashanah"
+  },
+  {
+   "date": "2040-09-16",
+   "key": "erev_yom_kippur",
+   "he": "ערב יום כיפור",
+   "en": "Erev Yom Kippur"
+  },
+  {
+   "date": "2040-09-21",
+   "key": "erev_sukkot",
+   "he": "ערב סוכות",
+   "en": "Erev Sukkot"
+  },
+  {
+   "date": "2040-09-23",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2040-09-24",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2040-09-25",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2040-09-26",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2040-09-27",
+   "key": "chol_hamoed_sukkot",
+   "he": "חול המועד סוכות",
+   "en": "Sukkot (Chol HaMoed)"
+  },
+  {
+   "date": "2040-09-28",
+   "key": "hoshana_rabbah",
+   "he": "הושענא רבה",
+   "en": "Hoshana Rabbah"
+  },
+  {
+   "date": "2040-11-30",
+   "key": "chanukah",
+   "he": "חנוכה (יום א׳)",
+   "en": "Hanukkah (day 1)"
+  },
+  {
+   "date": "2040-12-01",
+   "key": "chanukah",
+   "he": "חנוכה (יום ב׳)",
+   "en": "Hanukkah (day 2)"
+  },
+  {
+   "date": "2040-12-02",
+   "key": "chanukah",
+   "he": "חנוכה (יום ג׳)",
+   "en": "Hanukkah (day 3)"
+  },
+  {
+   "date": "2040-12-03",
+   "key": "chanukah",
+   "he": "חנוכה (יום ד׳)",
+   "en": "Hanukkah (day 4)"
+  },
+  {
+   "date": "2040-12-04",
+   "key": "chanukah",
+   "he": "חנוכה (יום ה׳)",
+   "en": "Hanukkah (day 5)"
+  },
+  {
+   "date": "2040-12-05",
+   "key": "chanukah",
+   "he": "חנוכה (יום ו׳)",
+   "en": "Hanukkah (day 6)"
+  },
+  {
+   "date": "2040-12-06",
+   "key": "chanukah",
+   "he": "חנוכה (יום ז׳)",
+   "en": "Hanukkah (day 7)"
+  },
+  {
+   "date": "2040-12-07",
+   "key": "chanukah",
+   "he": "חנוכה (יום ח׳)",
+   "en": "Hanukkah (day 8)"
+  }
  ]
 }
