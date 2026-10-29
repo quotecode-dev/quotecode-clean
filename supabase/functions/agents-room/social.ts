@@ -17,13 +17,14 @@ export type Channel = { id: string; network: Network; market: Market; perWeek: n
 
 // accountOpen: the Owner has the account (Facebook Israel, Instagram, TikTok - assumed Israel, plan §accounts); the international
 // Facebook page opened 2026-10-27 (stage 2); the international Instagram @tekangoglobal was linked to it 2026-10-27; the international
-// TikTok is not connected yet - its posts wait
+// TikTok is not connected yet - its posts wait. Owner 2026-10-29 (L-22, typed: "מאשר שינוי ב-L-22: חשבון הטיקטוק הבינלאומי של שירה מסומן כפתוח,"
+// "שחרור עד הלייב"): the international TikTok @tekangoglobal is open (its first video was posted 2026-10-29) - every account is open
 export const CHANNELS: readonly Channel[] = Object.freeze([
   { id: 'fb_intl', network: 'facebook', market: 'intl', perWeek: 3, accountOpen: true },
   { id: 'fb_il', network: 'facebook', market: 'il', perWeek: 2, accountOpen: true },
   { id: 'ig_intl', network: 'instagram', market: 'intl', perWeek: 2, accountOpen: true },
   { id: 'ig_il', network: 'instagram', market: 'il', perWeek: 1, accountOpen: true },
-  { id: 'tt_intl', network: 'tiktok', market: 'intl', perWeek: 1, accountOpen: false },
+  { id: 'tt_intl', network: 'tiktok', market: 'intl', perWeek: 1, accountOpen: true },
   { id: 'tt_il', network: 'tiktok', market: 'il', perWeek: 1, accountOpen: true },
 ] as Channel[]);
 export const POSTS_PER_WEEK = CHANNELS.reduce((a, c) => a + c.perWeek, 0);
