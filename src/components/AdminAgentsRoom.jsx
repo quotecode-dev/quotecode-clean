@@ -11,6 +11,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import AdminScreenFrame from './AdminScreenFrame';
 import AgentAvatar from './AgentAvatar';
+import TekangoAiIcon from './TekangoAiIcon';
 import AdminSocialPosts from './AdminSocialPosts';
 import { formatShortDateTime } from '../utils/shortDate';
 import { ADMIN_DATE_MARKET } from '../utils/adminDates';
@@ -29,6 +30,12 @@ const AGENTS = [
   // Owner 2026-10-27 ("מאשר את שלב 1 של סוכנת הרשתות"; the layout: "תחלק את המסך ל 6 תוסיף את הסוכנת החדשה מתחת לגיא")
   { id: 'social', he: 'סוכנת הרשתות', en: 'Social media agent', roleHe: 'פייסבוק, אינסטגרם וטיקטוק: ישראל בעברית, חו״ל באנגלית. כל פוסט רק אחרי אישור שלכם.', roleEn: 'Facebook, Instagram and TikTok: Israel in Hebrew, international in English. Every post only after your approval.' },
 ];
+// Owner 2026-10-29 (L-22, typed: "... וכפתור בדיקת סוכנים אצל קלוד בחדר הסוכנים, בשחרור אחד"; the place: "תשים את האייקון שלך כאן בצד
+// שמאל" - the empty end of the KPI row): opens a new Claude chat in the Owner's editor with the agents check (/agents-check,
+// .claude/skills/agents-check) - read and diagnose only. The editor's own link; only a computer with the editor opens it, so it is
+// hidden below 1000px. The icon is the series' existing TEKANGO AI icon (IRON-ICON-001), no new icon.
+export const AGENTS_CHECK_LINK = 'vscode://anthropic.claude-code/open?prompt=%2Fagents-check';
+
 // the agents grid: 6 places, 3 per row on a wide screen - the social agent under the SEO agent, two places left for future agents
 const GRID_SLOTS = 6;
 const STATUS = {
@@ -321,6 +328,12 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                     <div className="av-label">{isHebrew ? 'מחכה לאישורכם' : 'Waiting for your approval'}</div>
                     <div className="av-kpi-value" data-testid="agents-pending-count"><N v={pending.length} /></div>
                   </div>
+                  {/* PRODUCT_TRUTH_DECORATIVE: the editor's link - opens the agents check in a new Claude chat on the Owner's computer; it only reads */}
+                  <a className="av-card av-accent-top av-claude-check" href={AGENTS_CHECK_LINK} data-testid="agents-claude-check">
+                    <TekangoAiIcon size={34} />
+                    <span className="av-label">{isHebrew ? 'בדיקת סוכנים אצל Claude' : 'Agents check with Claude'}</span>
+                    <span className="av-muted" style={{ fontSize: '0.8rem' }}>{isHebrew ? 'נפתח בעורך במחשב' : 'Opens in the editor on this computer'}</span>
+                  </a>
                 </div>
                 {!state.googleConfigured && (
                   <div className="av-notice av-bad av-section" role="alert">{isHebrew ? 'המפתח של גוגל לא מוגדר בשרת, ולכן סוכן הקידום לא יכול לרוץ.' : 'The Google key is not set on the server, so the SEO agent cannot run.'}</div>
