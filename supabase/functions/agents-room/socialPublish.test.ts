@@ -153,6 +153,20 @@ describe('approve = publish, for a connected account', () => {
     expect([...d.actions.values()].filter((x) => x.action_type === 'urgent_mail')).toHaveLength(1);
   });
 
+  // Codex R04 (Owner 2026-10-29): Facebook's failed incident email is retried when Instagram of the SAME connection fails the same day
+  it('a failed incident of one channel is retried by another channel of the same connection', async () => {
+    const d = deps({ publishSocial: vi.fn(async () => { throw new MetaError('meta_400_190', true); }) });
+    const mail = d.mailOwner as ReturnType<typeof vi.fn>;
+    mail.mockImplementationOnce(async () => false);
+    await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths); // fb_il
+    d.actions.set('a2', { ...d.actions.get('a1')!, id: 'a2', status: 'proposed', decided_at: null, error: null, payload: { ...payload, channel: 'ig_il' } } as Action);
+    await handle({ action: 'decide', id: 'a2', decision: 'approve' }, d, paths); // ig_il, the same page token
+    const incidents = [...d.actions.values()].filter((x) => x.action_type === 'urgent_mail');
+    expect(incidents).toHaveLength(1);
+    expect(incidents[0]).toMatchObject({ status: 'done', error: null });
+    expect(mail).toHaveBeenCalledTimes(2);
+  });
+
   // 20261029000000 (Codex F08): an outcome not known is never published again without the Owner's check
   it('no clear answer from Meta: unknown - "publish now" asks the Owner to check the page first', async () => {
     const d = deps({ publishSocial: vi.fn(async () => { throw new Error('The signal has been aborted'); }) });

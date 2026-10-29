@@ -14,7 +14,8 @@ export async function runAgentsDaily({ env, fetchImpl }) {
   const body = await res.json().catch(() => null);
   // 20261029000000 (Codex F12): the function answers 200 also when part of the work failed - the body decides
   const outcome = !res.ok || !body || body.ok !== true ? 'failed'
-    : body.security === 'failed' || body.urgent === false || body.sitemap === 'failed' ? 'partial'
+    // Codex R06 (Owner 2026-10-29): the article-page check failing is a partial run too
+    : body.security === 'failed' || body.urgent === false || body.sitemap === 'failed' || body.articles === 'failed' ? 'partial'
       : body.security === 'already_ran' ? 'skipped' : 'completed';
   return { ok: outcome === 'completed' || outcome === 'skipped', outcome, status: res.status, body };
 }

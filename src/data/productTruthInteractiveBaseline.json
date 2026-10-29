@@ -44,8 +44,8 @@
     "markers": 1
   },
   "src/components/AdminExpenseInvoices.jsx": {
-    "interactive": 20,
-    "markers": 20
+    "interactive": 21,
+    "markers": 21
   },
   "src/components/AdminHub.jsx": {
     "interactive": 1,
@@ -1716,6 +1716,10 @@
     "markers": 0
   },
   "src/utils/logoImport.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/quotesPerPage.js": {
     "interactive": 0,
     "markers": 0
   }

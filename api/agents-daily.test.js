@@ -31,6 +31,9 @@ describe('api/agents-daily', () => {
     expect(await answer({ ok: true, security: 'done', urgent: false, sitemap: 'skipped' })).toMatchObject({ ok: false, outcome: 'partial' });
     expect(await answer({ ok: true, security: 'already_ran', urgent: null, sitemap: 'skipped' })).toMatchObject({ ok: true, outcome: 'skipped' });
     expect(await answer({ ok: true, security: 'done', urgent: null, sitemap: 'submitted' })).toMatchObject({ ok: true, outcome: 'completed' });
+    // Codex R06 (Owner 2026-10-29): the article-page check failing is partial too
+    expect(await answer({ ok: true, security: 'done', urgent: null, sitemap: 'skipped', articles: 'failed' })).toMatchObject({ ok: false, outcome: 'partial' });
+    expect(await answer({ ok: true, security: 'done', urgent: null, sitemap: 'skipped', articles: { verified: 1, unverified: 0 } })).toMatchObject({ ok: true, outcome: 'completed' });
   });
   it('runs every day at 04:30 UTC (the morning in Israel)', () => {
     const crons = JSON.parse(readFileSync('vercel.json', 'utf8')).crons;

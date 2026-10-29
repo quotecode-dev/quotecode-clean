@@ -2,6 +2,7 @@
 // records is named; nothing is guessed - the amount unit comes from the linked transactions, an unknown type code only counts; a charge
 // still waiting for its callback is not an alert yet; one site run a day; the Owner is mailed only about NEW findings of the site run.
 import { describe, it, expect, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
 import { normalizeProviderTx, reconcile, detectScale, alertText, historyBody, readHistory, reconcileHandler, israelDay,
   type ProviderTx, type OurCharge, type ReconcileDeps, type Finding } from './lib.ts';
 
@@ -15,7 +16,11 @@ const row = (o: Record<string, unknown> = {}, info: Record<string, unknown> = {}
 
 describe('normalize a PayPlus history row', () => {
   it('reads the documented fields', () => {
-    expect(normalizeProviderTx(row())).toEqual({ uid: 'tx1', type: '01', kind: 'charge', amount: 99000, currency: 'ILS', at: '2026-11-01T10:00:00.000Z', moreInfo: A1 });
+    expect(normalizeProviderTx(row())).toEqual({ uid: 'tx1', type: '01', kind: 'charge', amount: 99000, currency: 'ILS', at: '2026-11-01T10:00:00.000Z', moreInfo: A1, refs: ['tx1'] });
+  });
+  // Codex R03 (Owner 2026-10-29, L-22): the transaction number the Owner typed from the PayPlus panel is a reference of the row too
+  it('every number-like reference is kept beside the uuid', () => {
+    expect(normalizeProviderTx(row({ number: '1234567' }, { approval_number: 889 }))?.refs).toEqual(['tx1', '1234567', '889']);
   });
   it('a refund code is a refund, any other code only "other"; a non-uuid more_info is no link', () => {
     expect(normalizeProviderTx(row({ transaction_type: '03' }))?.kind).toBe('refund');
@@ -167,6 +172,23 @@ describe('one run', () => {
     expect(d.markMailed).toHaveBeenCalledWith('run-1', ['f-old', 'f-new']);
   });
   // 20261029000000 (Codex F01/F02): a removal refund the Owner must settle is a finding of its own (told once, like every finding)
+  // Codex R03: a refund the Owner closed with the transaction number (not the uuid) is a known refund
+  it('a refund closed with its PayPlus transaction number is not REFUND_UNRECORDED', () => {
+    const refund = { ...row({ uuid: 'rf-uuid-1', transaction_type: '03', number: '7788990' }) };
+    const p = normalizeProviderTx(refund)!;
+    expect(reconcile({ provider: [p], charges: [], refunds: [{ transactionUid: '7788990' }], ...W }).findings).toEqual([]);
+    expect(reconcile({ provider: [p], charges: [], refunds: [{ transactionUid: 'other' }], ...W }).findings.map((f) => f.code)).toEqual(['REFUND_UNRECORDED']);
+  });
+  // Codex R02: an older owed row learns its account and removal on the next run (once-per-finding keeps its status and history)
+  it('an owed refund found again is passed on to be enriched; nothing else is', async () => {
+    const RMV2 = '77777777-7777-4777-8777-777777777778';
+    const enrichOwed = vi.fn(async () => {});
+    const d = deps({ enrichOwed, source: vi.fn(async () => ({ charges: [ours({})], refunds: [], owedRefunds: [{ removalId: RMV2, amountMinor: 900, refundState: 'due', at: '2026-11-01T10:00:00Z', userId: '88888888-8888-4888-8888-888888888888' }] })) });
+    await reconcileHandler({ action: 'run' }, d as unknown as ReconcileDeps, 'x');
+    expect(enrichOwed).toHaveBeenCalledWith([expect.objectContaining({ code: 'REFUND_OWED', uid: `removal:${RMV2}`, detail: expect.objectContaining({ removalId: RMV2, userId: '88888888-8888-4888-8888-888888888888' }) })]);
+    const wiring = readFileSync('supabase/functions/billing-reconcile/index.ts', 'utf8');
+    expect(wiring).toContain(".update({ detail: f.detail }).eq('code', 'REFUND_OWED').eq('uid', f.uid).is('detail->>userId', null)");
+  });
   it('an owed SMART PACK removal refund becomes REFUND_OWED', async () => {
     const RMV = '77777777-7777-4777-8777-777777777777';
     const d = deps({ source: vi.fn(async () => ({ charges: [ours({})], refunds: [], owedRefunds: [{ removalId: RMV, amountMinor: 2300, refundState: 'unknown', at: '2026-11-01T10:00:00Z', userId: '88888888-8888-4888-8888-888888888888' }, { removalId: 'bad', amountMinor: 5, refundState: 'due', at: 'x', userId: 'not-a-uuid' }] })) });
