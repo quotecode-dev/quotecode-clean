@@ -50,6 +50,14 @@ export function holidaysFor(isLocalIsraeliBusiness) {
   for (const h of holidayData.days) { if (!map.has(h.date)) map.set(h.date, []); map.get(h.date).push({ key: h.key, he: h.he, en: h.en }); }
   return map;
 }
+// Owner 2026-10-29: Local/Israel only, the observances (Hanukkah, Purim, eves, Chol HaMoed...) - working days shown by name only. A
+// separate map, never passed to dayClassOf, so these days keep their ordinary / Saturday background. International -> an empty map.
+export function observancesFor(isLocalIsraeliBusiness) {
+  const map = new Map();
+  if (isLocalIsraeliBusiness !== true) return map;
+  for (const h of holidayData.observances) { if (!map.has(h.date)) map.set(h.date, []); map.get(h.date).push({ key: h.key, he: h.he, en: h.en }); }
+  return map;
+}
 export const holidayDataCovers = (iso) => { const y = Number(String(iso).slice(0, 4)); return y >= HOLIDAY_RANGE.from && y <= HOLIDAY_RANGE.to; };
 
 // The day class drives the day background. Local/Israel: holiday > saturday > ordinary. International: always ordinary.

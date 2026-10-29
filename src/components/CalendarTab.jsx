@@ -13,7 +13,7 @@ import { listTasks } from '../utils/tasksClient';
 import { listServiceSchedules } from '../utils/serviceScheduleClient';
 import {
   EN_WEEKDAYS, EN_WEEKDAYS_SHORT, HE_WEEKDAYS, HE_WEEKDAYS_SHORT, addDays, addMonths, buildCalendarEvents, dayClassOf, dayOfMonth, eventsByDate,
-  holidayDataCovers, holidaysFor, initialViewFor, marketToday, monthKey, monthTitle, monthWeeks, weekDates, weekday,
+  holidayDataCovers, holidaysFor, initialViewFor, marketToday, monthKey, monthTitle, monthWeeks, observancesFor, weekDates, weekday,
 } from '../utils/calendarModel';
 
 const CAL_CSS = `
@@ -47,6 +47,7 @@ const CAL_CSS = `
   .pf-cal-daynum { align-self: flex-start; display: inline-flex; align-items: center; justify-content: center; min-inline-size: 26px; block-size: 24px; padding-inline: 4px; border: none; border-radius: 999px; background: transparent; color: ${NEON.textPrimary}; font-size: 0.78rem; font-weight: 700; cursor: pointer; }
   .pf-cal-cell[aria-selected="true"] .pf-cal-daynum, .pf-cal-mini button[aria-pressed="true"] { background: ${NEON.textPrimary}; color: #fff; }
   .pf-cal-hol { font-size: 0.7rem; font-weight: 700; color: #1F5A4F; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pf-cal-hol[data-rest="false"] { color: #4B5B66; font-weight: 600; }
   .pf-cal-ev { display: block; inline-size: 100%; text-align: start; border: none; border-inline-start: 3px solid; border-radius: 4px; padding: 2px 5px; font: inherit; font-size: 0.72rem; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; cursor: pointer; }
   .pf-cal-ev[data-kind="task"] { background: #E3F1F2; border-color: #0F6672; color: #0B4F58; }
   .pf-cal-ev[data-kind="task"][data-status="overdue"] { border-color: #B42318; }
@@ -74,6 +75,7 @@ const CAL_CSS = `
   .pf-cal-agenda { display: flex; flex-direction: column; gap: 8px; min-inline-size: 0; }
   .pf-cal-dayhead { font-size: 0.95rem; font-weight: 800; }
   .pf-cal-holbanner { padding: 8px 12px; border-radius: 10px; border: 1px solid #C7E1D9; background: var(--cal-holiday); color: #1F5A4F; font-weight: 700; font-size: 0.82rem; }
+  .pf-cal-holbanner[data-rest="false"] { border-color: var(--cal-line); background: var(--cal-ordinary); color: #4B5B66; font-weight: 600; }
   .pf-cal-item { display: grid; grid-template-columns: 56px minmax(0, 1fr); gap: 8px; align-items: start; inline-size: 100%; text-align: start; padding: 8px 10px; border-radius: 10px; border: 1px solid ${NEON.border}; border-inline-start: 4px solid; background: ${NEON.bgCard}; font: inherit; color: ${NEON.textPrimary}; cursor: pointer; }
   .pf-cal-item[data-kind="task"] { border-inline-start-color: #0F6672; }
   .pf-cal-item[data-kind="task"][data-status="overdue"] { border-inline-start-color: #B42318; }
@@ -133,7 +135,13 @@ export default function CalendarTab({ client, userId, isHebrew, isLocalIsraeliBu
   const events = useMemo(() => buildCalendarEvents({ tasks, quotes, schedules: schedules.rows, market, now: clockNow }), [tasks, quotes, schedules.rows, market, clockNow]);
   const byDate = useMemo(() => eventsByDate(events.filter((e) => (e.kind === 'task' ? layers.tasks : e.kind === 'service' ? layers.service : layers.quotes))), [events, layers.tasks, layers.quotes, layers.service]);
   const classOf = (iso) => dayClassOf(iso, { isLocalIsraeliBusiness: local, holidays: showHolidays ? holidays : null });
-  const holidayNames = (iso) => (showHolidays ? (holidays.get(iso) || []).map((h) => L([h.he, h.en])) : []);
+  // Owner 2026-10-29: the observances (working days) follow the same layer, by name only - their day class is never 'holiday'
+  const observances = useMemo(() => observancesFor(local), [local]);
+  const holidayItems = (iso) => (showHolidays
+    ? [...(holidays.get(iso) || []).map((h) => ({ text: L([h.he, h.en]), rest: true })), ...(observances.get(iso) || []).map((h) => ({ text: L([h.he, h.en]), rest: false }))]
+    : []);
+  const holidayNames = (iso) => holidayItems(iso).map((h) => h.text);
+  const holidayLabel = (h, className) => <div key={h.text} className={className} title={h.text} data-rest={h.rest ? undefined : 'false'} data-testid="calendar-holiday">{h.text}</div>;
 
   const step = (dir) => setSelected((s) => (view === 'month' ? addMonths(s, dir) : addDays(s, view === 'week' ? 7 * dir : dir)));
   const openEvent = (e) => {
@@ -167,13 +175,13 @@ export default function CalendarTab({ client, userId, isHebrew, isLocalIsraeliBu
         {(isHebrew ? HE_WEEKDAYS_SHORT : EN_WEEKDAYS_SHORT).map((d) => <div key={d} className="pf-cal-dow" role="columnheader">{d}</div>)}
         {weeks.flat().map((iso) => {
           const evs = byDate.get(iso) || [];
-          const hol = holidayNames(iso);
+          const hol = holidayItems(iso);
           return (
             <div key={iso} className="pf-cal-cell" role="gridcell" data-date={iso} data-day-class={classOf(iso)} data-out={monthKey(iso) !== month ? 'true' : undefined}
               data-today={iso === today ? 'true' : undefined} aria-selected={iso === selected} aria-label={dayAria(iso)}>
               {/* PRODUCT_TRUTH_CAPABILITY: calendar */}
               <button type="button" className="pf-cal-daynum" onClick={() => setSelected(iso)} aria-label={dayAria(iso)}><bdi className="pf-num" dir="ltr">{dayOfMonth(iso)}</bdi></button>
-              {hol.map((h) => <div key={h} className="pf-cal-hol" title={h} data-testid="calendar-holiday">{h}</div>)}
+              {hol.map((h) => holidayLabel(h, 'pf-cal-hol'))}
               {evs.slice(0, maxPerCell).map(renderChip)}
               {/* QA 2026-10-25 (C6): the "+N" opens that day in the Day view, where every event of the day is listed */}
               {/* PRODUCT_TRUTH_DECORATIVE: switches the calendar to that day's view; changes no data */}
@@ -205,7 +213,7 @@ export default function CalendarTab({ client, userId, isHebrew, isLocalIsraeliBu
         <div className="pf-cal-hour">{L(['כל היום', 'All day'])}</div>
         {days.map((iso) => (
           <div key={iso} className="pf-cal-allday" data-date={iso} data-day-class={classOf(iso)}>
-            {holidayNames(iso).map((h) => <div key={h} className="pf-cal-hol" title={h} data-testid="calendar-holiday">{h}</div>)}
+            {holidayItems(iso).map((h) => holidayLabel(h, 'pf-cal-hol'))}
             {(byDate.get(iso) || []).filter((e) => !e.time).map(renderChip)}
           </div>
         ))}
@@ -227,7 +235,7 @@ export default function CalendarTab({ client, userId, isHebrew, isLocalIsraeliBu
     const weeks = monthWeeks(selected);
     const month = monthKey(selected);
     const evs = byDate.get(selected) || [];
-    const hol = holidayNames(selected);
+    const hol = holidayItems(selected);
     const upcoming = [];
     for (let i = 1; i <= 7 && upcoming.length < 6; i += 1) { const d = addDays(selected, i); for (const e of byDate.get(d) || []) if (upcoming.length < 6) upcoming.push(e); }
     const item = (e, showDate) => (
@@ -261,7 +269,7 @@ export default function CalendarTab({ client, userId, isHebrew, isLocalIsraeliBu
         </div>
         <div className="pf-cal-agenda">
           <div className="pf-cal-dayhead">{(isHebrew ? HE_WEEKDAYS : EN_WEEKDAYS)[weekday(selected)]}, <bdi className="pf-num" dir="ltr">{dateText(selected)}</bdi></div>
-          {hol.map((h) => <div key={h} className="pf-cal-holbanner" data-testid="calendar-holiday">{h}</div>)}
+          {hol.map((h) => holidayLabel(h, 'pf-cal-holbanner'))}
           {evs.length === 0 && <div className="pf-cal-state" data-testid="calendar-day-empty">{L(['אין משימות או מועדי הצעות ביום זה.', 'No tasks or quote deadlines on this day.'])}</div>}
           {evs.map((e) => item(e, false))}
           {upcoming.length > 0 && <div className="pf-cal-subhead">{L(['בימים הקרובים', 'Coming up'])}</div>}
