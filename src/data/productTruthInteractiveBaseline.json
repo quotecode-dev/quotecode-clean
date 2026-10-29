@@ -1730,5 +1730,13 @@
   "src/shared/RouteChunkBoundary.jsx": {
     "interactive": 1,
     "markers": 1
+  },
+  "supabase/functions/agents-room/aiBudget.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/agents-room/articleTopics.ts": {
+    "interactive": 0,
+    "markers": 0
   }
 }

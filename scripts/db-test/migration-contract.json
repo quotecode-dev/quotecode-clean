@@ -555,6 +555,18 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-29 (typed: Codex release 2b - only the real signing function writes a signature, and no signing of a quote with a missing price (decision 3), including L-17, L-24): the signature fields guard, the readiness check in the shared signing core, the permanent capability rule in the signed legacy-id function"
+    },
+    "20261030200000_agents_ai_budget.sql": {
+      "sha256": "0801a02fb9c3d2d2f37cd097e510ad08b91c14cf7db717a14ea018e1678e2cd8",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-29 (typed: Codex release 4 - duplicate article protection and the AI budget reserved in advance, decisions 6 and 9 as proposed, including L-22, L-25 unchanged): the agents' monthly AI budget ledger - reserve before every paid request, settle once, unknown keeps the hold, the October carry-in"
+    },
+    "20261030300000_agents_article_topics.sql": {
+      "sha256": "94eea02b91c4939eb3f389b859b8563e62f58ce2ca897218819790a9357fd95f",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-29 (typed: Codex release 4 - duplicate article protection and the AI budget reserved in advance, decisions 6 and 9 as proposed, including L-22, L-25 unchanged): the complete article inventory and the atomic topic claims of the article flow"
     }
   }
 }

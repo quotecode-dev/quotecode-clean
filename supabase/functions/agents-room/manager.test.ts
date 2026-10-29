@@ -4,6 +4,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { REQUIRED_HEADERS, type Finding } from './lib.ts';
 import { readFileSync } from 'node:fs';
+import { normTopic, type Inventory } from './articleTopics.ts';
 import { handle, articlePageIsLive, articleMarkets, weekStartDay, draftErrors, slugify, WRITE_SCOPE, type StageDeps, type Action, type ArticleRow, type ArticleLang } from './manager.ts';
 
 const NOW = new Date('2026-11-01T05:30:00Z'); // Sunday 07:30 Israel
@@ -30,6 +31,8 @@ function deps(over: Partial<StageDeps> = {}) {
   const runs = new Map<string, Record<string, unknown>>();
   const actions = new Map<string, Action & { dedupe_key?: string }>();
   const articles = new Map<string, ArticleRow>();
+  // Codex release 4: the topic claims (20261030300000) - one active flow per language, kind and normalized text
+  const claims: { ref_id: string; kind: 'topic' | 'title'; lang: 'he' | 'en'; norm: string; display: string; focus: string | null }[] = [];
   const mails: { subject: string; text: string; key: string }[] = [];
   const google: { url: string; init?: RequestInit }[] = [];
   let seq = 0; let cost = 0;
@@ -59,8 +62,8 @@ function deps(over: Partial<StageDeps> = {}) {
     if (a.schema.name === 'social_week') return { content: JSON.stringify({ posts: [] }), promptTokens: 500, completionTokens: 100 }; // social.test.ts covers the posts
     return { content: JSON.stringify(goodDraft), promptTokens: 2000, completionTokens: 4000 };
   });
-  const d: StageDeps & { runs: typeof runs; actions: typeof actions; articles: typeof articles; mails: typeof mails; google: typeof google } = {
-    runs, actions, articles, mails, google,
+  const d: StageDeps & { runs: typeof runs; actions: typeof actions; articles: typeof articles; mails: typeof mails; google: typeof google; claims: typeof claims } = {
+    runs, actions, articles, mails, google, claims,
     caller: vi.fn(async () => 'cron' as const),
     can: vi.fn(async () => false),
     connectedChannels: () => [], // stage 2: no Meta account connected unless a test says so
@@ -85,8 +88,10 @@ function deps(over: Partial<StageDeps> = {}) {
       actions.set(id, { id, created_at: d.now().toISOString(), detail_he: null, detail_en: null, payload: {}, status: 'proposed', decided_at: null, done_at: null, result: {}, error: null, ...a } as never);
       return id;
     }),
-    updateAction: vi.fn(async (id: string, patch: Record<string, unknown>, when?: string) => { const a = actions.get(id)!; if (when && a.status !== when) return; Object.assign(a, patch); }),
-    getAction: vi.fn(async (id: string) => actions.get(id) ?? null),
+    updateAction: vi.fn(async (id: string, patch: Record<string, unknown>, when?: string, whenAt?: string | null) => {
+      const a = actions.get(id)!; if (when && a.status !== when) return; if (whenAt !== undefined && (a.decided_at ?? null) !== whenAt) return; Object.assign(a, patch);
+    }),
+    getAction: vi.fn(async (id: string) => { const a = actions.get(id); return a ? structuredClone(a) : null; }), // a read is a copy, like the database
     insertArticle: vi.fn(async (a) => { const id = `10000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`; articles.set(id, { id, status: 'draft', published_at: null, ...a } as never); return id; }),
     updateArticle: vi.fn(async (id: string, patch: Record<string, unknown>, when?: string, rev?: number) => {
       const a = articles.get(id); if (!a || (when && a.status !== when) || (rev !== undefined && Number(a.revision ?? 0) !== rev)) return false;
@@ -94,7 +99,27 @@ function deps(over: Partial<StageDeps> = {}) {
     }),
     pageHtml: vi.fn(async (url: string) => articleHtml(url, [...articles.values()])),
     getArticle: vi.fn(async (id: string) => articles.get(id) ?? null),
-    articleSlugs: vi.fn(async () => [...articles.values()].map((a) => a.slug)),
+    articleInventory: vi.fn(async (): Promise<Inventory> => ({
+      articles: [...articles.values()].filter((a) => a.status !== 'rejected').map((a) => ({ id: a.id, slug: a.slug, status: a.status as 'draft' | 'published', market: a.market,
+        he: a.he?.h1 ?? null, en: a.en?.h1 ?? null, action_id: a.action_id ?? null })),
+      proposals: [...actions.values()].filter((a) => a.action_type === 'article_draft' && a.status === 'proposed')
+        .map((a) => ({ id: a.id, he: String(a.payload.topic_he ?? ''), en: String(a.payload.topic_en ?? ''), focus: (a.payload.focus as string) ?? null })),
+      claims: claims.map((c) => ({ ...c })),
+      slugs: [...articles.values()].map((a) => a.slug),
+    })),
+    claimTopic: vi.fn(async (ref: string, kind: 'topic' | 'title', he: string, en: string, focus: string | null) => {
+      if (actions.get(ref)?.status === 'rejected') throw new Error('database'); // agents_article_claim_invalid
+
+      const want = [{ lang: 'he' as const, norm: normTopic(he), display: he }, { lang: 'en' as const, norm: normTopic(en), display: en }];
+      for (const w of want) {
+        const other = claims.find((c) => c.lang === w.lang && c.kind === kind && c.norm === w.norm && c.ref_id !== ref);
+        if (other) return { ok: false as const, lang: w.lang, refId: other.ref_id };
+      }
+      for (let i = claims.length - 1; i >= 0; i -= 1) if (claims[i].ref_id === ref && claims[i].kind === kind) claims.splice(i, 1);
+      for (const w of want) claims.push({ ref_id: ref, kind, ...w, focus });
+      return { ok: true as const };
+    }),
+    releaseTopic: vi.fn(async (ref: string) => { for (let i = claims.length - 1; i >= 0; i -= 1) if (claims[i].ref_id === ref) claims.splice(i, 1); }),
     lastPublishedAt: vi.fn(async () => [...articles.values()].filter((a) => a.published_at).map((a) => a.published_at!).sort().pop() ?? null),
     deployHook: vi.fn(async () => 'ok' as const),
     ...over,
@@ -458,13 +483,24 @@ describe('agents room stage 2 - the manager', () => {
     expect(arts()).toHaveLength(2);
     expect(recs()).toHaveLength(firstRecs); // the same recommendation is never proposed again
     t = new Date('2026-11-08T06:10:00Z'); // the next Sunday
+    // Codex release 4 (decision 6): last week's topics are still waiting, so the same two are not stored again - new topics are
+    const firstWeek = d.complete as ReturnType<typeof vi.fn>;
+    const again = await handle({ action: 'run', agent: 'manager' }, d, paths); // the AI repeats last week's topics (another hour key)
+    expect(again.status).toBe(200);
+    expect(arts()).toHaveLength(2);
+    d.complete = vi.fn(async (a: { schema: { name: string } }) => (a.schema.name === 'manager_weekly'
+      ? { content: JSON.stringify({ summary_he: 'שבוע חדש.', summary_en: 'A new week.', recommendations: [],
+        articles: [{ topic_he: 'הצעת מחיר לניקיון משרדים', topic_en: 'Office cleaning quotes', why_he: 'x', why_en: 'x' }, { topic_he: 'מקדמה בהצעת מחיר', topic_en: 'Deposits in a quote', why_he: 'x', why_en: 'x' }] }),
+        promptTokens: 100, completionTokens: 100 }
+      : firstWeek(a))) as never;
+    t = new Date('2026-11-08T08:10:00Z');
     await handle({ action: 'run', agent: 'manager' }, d, paths);
     expect(arts()).toHaveLength(4);
     expect(arts().slice(2).map((a) => a.payload.market)).toEqual(articleMarkets(t));
     expect(weekStartDay(new Date('2026-11-07T20:00:00Z'))).toBe('2026-11-01');
     expect(weekStartDay(new Date('2026-11-07T22:30:00Z'))).toBe('2026-11-08'); // 00:30 Sunday in Israel
     // the manager is told the week's articles are done
-    const last = (d.complete as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0].schema.name === 'manager_weekly');
+    const last = firstWeek.mock.calls.filter((c) => c[0].schema.name === 'manager_weekly');
     expect(last[1][0].messages[0].content).toMatch(/articles: an empty array/);
   });
 
@@ -473,6 +509,207 @@ describe('agents room stage 2 - the manager', () => {
     const r = await handle({ action: 'run' }, d, paths);
     expect((r.body.results as { agent: string; status: string }[]).find((x) => x.agent === 'manager')!.status).toBe('skipped_cap');
     expect([...d.actions.values()].filter((a) => a.action_type === 'article_draft')).toHaveLength(0);
+  });
+});
+
+// Codex release 4 (Owner 2026-10-29, typed: "מאשר שינוי ב-L-22 לשחרור 4 של קודקס: הגנה מכפילויות מאמרים ושמירת תקציב בינה עם שריון מראש,
+// החלטות 6 ו-9 כמוצע, L-25 בלי שינוי, שחרור עד הלייב")
+describe('Codex release 4 - duplicate article topics (decision 6) and the AI budget (topic 6a)', () => {
+  type D = ReturnType<typeof deps>;
+  const propose = (d: D, he: string, en: string, extra: Record<string, unknown> = {}) => d.insertAction({ run_key: 'admin:2026-11-01T08', source: 'manager', kind: 'system',
+    action_type: 'article_draft', title_he: he, title_en: en, payload: { market: 'intl', topic_he: he, topic_en: en, ...extra } }) as Promise<string>;
+  const calls = (d: D, name: string) => (d.complete as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0].schema.name === name);
+  const approve = (d: D, id: string, extra: Record<string, unknown> = {}) => handle({ action: 'decide', id, decision: 'approve', ...extra }, d, paths);
+  const managerSays = (d: D, articles: { topic_he: string; topic_en: string }[]) => {
+    const first = d.complete as ReturnType<typeof vi.fn>;
+    d.complete = vi.fn(async (a: { schema: { name: string } }) => (a.schema.name === 'manager_weekly'
+      ? { content: JSON.stringify({ summary_he: 'השבוע.', summary_en: 'This week.', recommendations: [], articles: articles.map((x) => ({ ...x, why_he: 'x', why_en: 'x' })) }), promptTokens: 100, completionTokens: 100 }
+      : first(a))) as never;
+  };
+
+  it('boundary 1: the manager sees every existing topic; the same topic as a static guide (with niqqud) is not stored or refilled; a similar one waits with its match', async () => {
+    const d = deps(); d.caller = admin();
+    managerSays(d, [
+      { topic_he: 'הַצָּעַת מְחִיר לפי מידות: מטר רבוע ומטר אורך', topic_en: 'Tile installation price lists' }, // = the static guide in Hebrew
+      { topic_he: 'הצעות מחיר לשיפוצים', topic_en: 'Renovation quotes' }, // close to the renovation guide
+    ]);
+    const r = await handle({ action: 'run', agent: 'manager' }, d, paths);
+    expect((r.body.results as { status: string }[])[0].status).toBe('done');
+    const arts = [...d.actions.values()].filter((a) => a.action_type === 'article_draft');
+    expect(arts).toHaveLength(1);
+    expect(arts[0].payload.topic_en).toBe('Renovation quotes');
+    expect(arts[0].payload.similar).toMatchObject({ kind: 'static', slug: 'renovation-contractor-quote' });
+    expect(calls(d, 'manager_weekly')).toHaveLength(1); // no paid call refills the slot
+    const run = [...d.runs.values()].find((x) => x.agent === 'manager')!;
+    expect(run.findings).toEqual(expect.arrayContaining([expect.objectContaining({ level: 'warn', he: expect.stringMatching(/^נושא כפול לא נשמר/) })]));
+    expect(run.data).toMatchObject({ duplicates: 1, topicCoverage: { sent: 4, total: 4 } });
+    const user = JSON.parse(calls(d, 'manager_weekly')[0][0].messages[1].content);
+    expect(user.existingTopics).toEqual(expect.arrayContaining([{ he: 'תמחור יבוא עם המרת מטבעות', en: 'Import Pricing with Currency Conversion' }]));
+  });
+
+  it('boundary 2: a topic already in a draft (Hebrew only) is refused before any paid call, naming the draft', async () => {
+    const d = deps(); d.caller = admin();
+    const other = await propose(d, 'נושא אחר לגמרי', 'A different topic');
+    await d.insertArticle({ slug: 'hourly', market: 'il', he: lang('תמחור לפי שעה', heP), en: lang('Hourly rates explained', enP), action_id: other });
+    const id = await propose(d, 'תמחור לפי שעה!', 'Pricing by the hour for freelancers');
+    const r = await approve(d, id);
+    expect(r).toMatchObject({ status: 409, body: { ok: false, code: 'duplicate_topic', match: { kind: 'draft', lang: 'he', slug: 'hourly' } } });
+    expect(calls(d, 'guide_article')).toHaveLength(0);
+    expect(d.claims).toHaveLength(0);
+  });
+
+  it('a similar topic needs a distinct focus: refused without one (no paid call), written with one, and the focus reaches the writer', async () => {
+    const d = deps(); d.caller = admin();
+    const id = await propose(d, 'הצעות מחיר לשיפוצים', 'Renovation quotes');
+    expect(await approve(d, id)).toMatchObject({ status: 409, body: { code: 'possible_duplicate', match: { kind: 'static', slug: 'renovation-contractor-quote' } } });
+    expect(await approve(d, id, { focus: 'קצר' })).toMatchObject({ status: 409, body: { code: 'possible_duplicate' } });
+    expect(calls(d, 'guide_article')).toHaveLength(0);
+    const focus = 'שיפוץ מטבח בלבד: ארונות, משטח וחיבורי מים';
+    const r = await approve(d, id, { focus });
+    expect(r).toMatchObject({ status: 200, body: { status: 'drafted' } });
+    expect(calls(d, 'guide_article')).toHaveLength(1);
+    expect(JSON.parse(calls(d, 'guide_article')[0][0].messages[1].content).distinctFocus).toBe(focus);
+    expect(d.actions.get(id)!.payload.focus).toBe(focus);
+    expect(d.claims.filter((c) => c.ref_id === id).map((c) => `${c.kind}:${c.lang}`).sort()).toEqual(['title:en', 'title:he', 'topic:en', 'topic:he']);
+    expect(d.claims.find((c) => c.ref_id === id && c.kind === 'topic')!.focus).toBe(focus);
+  });
+
+  it('two approvals at once: a double press writes once; two flows of the same topic - one atomic claim, one paid writing', async () => {
+    const d = deps(); d.caller = admin();
+    const id = await propose(d, 'מקדמה בהצעת מחיר', 'Deposits in a quote');
+    const twice = await Promise.all([approve(d, id), approve(d, id)]);
+    expect(twice.map((x) => x.status).sort()).toEqual([200, 409]);
+    expect(twice.find((x) => x.status === 409)!.body.code).toBe('drafting');
+    expect(calls(d, 'guide_article')).toHaveLength(1);
+
+    const e = deps(); e.caller = admin();
+    const a1 = await propose(e, 'הצעת מחיר לגינון', 'Landscaping quotes');
+    const a2 = await propose(e, 'הצעת מחיר לגינון', 'Landscaping quotes');
+    // both read the inventory before either claims (a stale read): the claim itself decides
+    e.articleInventory = vi.fn(async () => ({ articles: [], proposals: [], claims: [], slugs: [] }));
+    const both = await Promise.all([approve(e, a1), approve(e, a2)]);
+    expect(both.map((x) => x.body.code ?? x.body.status).sort()).toEqual(['drafted', 'duplicate_topic']);
+    expect(calls(e, 'guide_article')).toHaveLength(1);
+  });
+
+  it('the written headings are checked again: never stored, published or rewritten into another article\'s heading', async () => {
+    const d = deps(); d.caller = admin();
+    const pubFlow = await propose(d, 'תמחור לפי שעה', 'Hourly pricing');
+    const pubId = await d.insertArticle({ slug: 'how-to-price-hourly-work', market: 'intl', he: goodDraft.he, en: goodDraft.en, action_id: pubFlow });
+    Object.assign(d.articles.get(pubId)!, { status: 'published', published_at: NOW.toISOString() });
+    // 1. a distinct topic whose written draft carries the published article's headings: not stored
+    const id = await propose(d, 'תוספת סוף שבוע בהצעת מחיר', 'Weekend surcharge in a quote');
+    const before = d.articles.size;
+    expect(await approve(d, id)).toMatchObject({ status: 409, body: { code: 'duplicate_topic', match: { kind: 'published', slug: 'how-to-price-hourly-work' } } });
+    expect(d.articles.size).toBe(before);
+    expect(d.actions.get(id)!.error).toBe('duplicate_topic');
+    // 2. a draft with a static guide's heading is not published
+    const flow = await propose(d, 'נושא', 'Topic');
+    const artId = await d.insertArticle({ slug: 'import-basics', market: 'il', he: lang('תמחור יבוא עם המרת מטבעות', heP), en: lang('Import pricing basics', enP), action_id: flow });
+    const pub = await d.insertAction({ run_key: 'x', source: 'manager', kind: 'system', action_type: 'article_publish', title_he: 'x', title_en: 'x', payload: { articleId: artId } }) as string;
+    expect(await approve(d, pub, { revision: 0 })).toMatchObject({ status: 409, body: { code: 'duplicate_topic', match: { kind: 'static', lang: 'he' } } });
+    expect(d.articles.get(artId)!.status).toBe('draft');
+    expect(d.deployHook).not.toHaveBeenCalled();
+    // 3. a rewrite into the published article's headings is refused and the text stays
+    const flow2 = await propose(d, 'נושא שני', 'Second topic');
+    const art2 = await d.insertArticle({ slug: 'second', market: 'intl', he: lang('מדריך שני', heP), en: lang('A second guide', enP), action_id: flow2 });
+    const pub2 = await d.insertAction({ run_key: 'x', source: 'manager', kind: 'system', action_type: 'article_publish', title_he: 'x', title_en: 'x', payload: { articleId: art2 } }) as string;
+    expect(await handle({ action: 'revise', id: pub2, note: 'שנו את הכותרת' }, d, paths)).toMatchObject({ status: 409, body: { code: 'duplicate_topic' } });
+    expect(d.articles.get(art2)!.en.h1).toBe('A second guide');
+    expect(Number(d.articles.get(art2)!.revision ?? 0)).toBe(0);
+  });
+
+  it('a failed writing keeps the topic claimed (no automatic second writing); only a rejection frees it', async () => {
+    const d = deps(); d.caller = admin();
+    const first = d.complete as ReturnType<typeof vi.fn>;
+    d.complete = vi.fn(async (a: { schema: { name: string } }) => (a.schema.name === 'guide_article'
+      ? { content: JSON.stringify({ ...goodDraft, en: lang('שלום', enP) }), promptTokens: 10, completionTokens: 10 } : first(a))) as never;
+    const id = await propose(d, 'הצעת מחיר לצביעה', 'Painting quotes');
+    expect((await approve(d, id)).body.code).toBe('draft_failed');
+    expect(d.claims.filter((c) => c.ref_id === id)).toHaveLength(2);
+    expect(d.actions.get(id)!.status).toBe('proposed');
+    expect((await handle({ action: 'decide', id, decision: 'reject' }, d, paths)).body.status).toBe('rejected');
+    expect(d.claims.filter((c) => c.ref_id === id)).toHaveLength(0);
+  });
+
+  it('a topic being written cannot be rejected under it; a flow rejected meanwhile stores nothing; an old writing claim can be pressed again', async () => {
+    const d = deps(); d.caller = admin();
+    const first = d.complete as ReturnType<typeof vi.fn>;
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((r) => { release = r; });
+    d.complete = vi.fn(async (a: { schema: { name: string } }) => { if (a.schema.name === 'guide_article') await gate; return first(a); }) as never;
+    const id = await propose(d, 'הצעת מחיר לצביעה', 'Painting quotes');
+    const writing = approve(d, id);
+    await vi.waitFor(() => expect(calls(d, 'guide_article')).toHaveLength(1));
+    expect(await handle({ action: 'decide', id, decision: 'reject' }, d, paths)).toMatchObject({ status: 409, body: { code: 'drafting' } });
+    d.actions.get(id)!.status = 'rejected'; // a rejection that slipped in anyway (e.g. straight in the database)
+    release();
+    expect(await writing).toMatchObject({ status: 409, body: { code: 'not_pending' } });
+    expect(d.articles.size).toBe(0);
+    expect(d.claims.filter((c) => c.kind === 'title')).toHaveLength(0);
+    // a writing claim older than the hold (a crashed request) does not block the Owner forever
+    const e = deps(); e.caller = admin();
+    const id2 = await propose(e, 'הצעת מחיר לריצוף', 'Flooring quotes');
+    Object.assign(e.actions.get(id2)!, { error: 'drafting:old', decided_at: new Date(NOW.getTime() - 16 * 60_000).toISOString() });
+    expect((await approve(e, id2)).body.status).toBe('drafted');
+  });
+
+  it('a skipped duplicate never makes a later proposal of the week vanish', async () => {
+    const d = deps(); d.caller = admin();
+    let t = new Date('2026-11-01T06:10:00Z'); d.now = () => t;
+    managerSays(d, [{ topic_he: 'תמחור יבוא עם המרת מטבעות', topic_en: 'Import Pricing with Currency Conversion' }, { topic_he: 'הצעת מחיר לניקיון', topic_en: 'Cleaning quotes' }]);
+    await handle({ action: 'run', agent: 'manager' }, d, paths);
+    managerSays(d, [{ topic_he: 'מקדמה בהצעת מחיר', topic_en: 'Deposits in a quote' }]);
+    t = new Date('2026-11-01T08:10:00Z');
+    await handle({ action: 'run', agent: 'manager' }, d, paths);
+    const arts = [...d.actions.values()].filter((a) => a.action_type === 'article_draft');
+    expect(arts.map((a) => `${a.payload.topic_en}|${a.dedupe_key}`)).toEqual(['Cleaning quotes|article:2026-11-01:0', 'Deposits in a quote|article:2026-11-01:1']);
+  });
+
+  it('the same distinct focus as another flow is a duplicate; a rewrite keeps the approved focus; an empty topic makes no call', async () => {
+    const d = deps(); d.caller = admin();
+    const focus = 'שיפוץ מטבח בלבד: ארונות, משטח וחיבורי מים';
+    const a1 = await propose(d, 'הצעות מחיר לשיפוצים', 'Renovation quotes');
+    const a2 = await propose(d, 'שיפוצים: הצעת מחיר', 'Renovation pricing');
+    expect((await approve(d, a1, { focus })).body.status).toBe('drafted');
+    expect(await approve(d, a2, { focus: ` ${focus}! ` })).toMatchObject({ status: 409, body: { code: 'duplicate_topic', match: { kind: 'claim', id: a1 } } });
+    const art = [...d.articles.values()][0];
+    const pub = [...d.actions.values()].find((x) => x.action_type === 'article_publish')!;
+    await handle({ action: 'revise', id: pub.id, note: 'יותר דוגמאות' }, d, paths);
+    expect(JSON.parse(calls(d, 'guide_article').at(-1)![0].messages[1].content).distinctFocus).toBe(focus);
+    expect(art.slug).toBeTruthy();
+    const before = calls(d, 'guide_article').length;
+    const empty = await propose(d, '?!', '...');
+    expect(await approve(d, empty)).toMatchObject({ status: 409, body: { code: 'draft_failed' } });
+    expect(calls(d, 'guide_article')).toHaveLength(before);
+  });
+
+  it('the inventory cannot be read: no manager run, no paid call, no draft', async () => {
+    const d = deps(); d.caller = admin();
+    d.articleInventory = vi.fn(async () => { throw new Error('database'); });
+    const r = await handle({ action: 'run', agent: 'manager' }, d, paths);
+    expect((r.body.results as { status: string; error: string }[])[0]).toMatchObject({ status: 'failed', error: 'article_inventory_unavailable' });
+    expect(calls(d, 'manager_weekly')).toHaveLength(0);
+    const id = await propose(d, 'הצעת מחיר לצביעה', 'Painting quotes');
+    expect(await approve(d, id)).toMatchObject({ status: 503, body: { code: 'article_inventory_unavailable' } });
+    expect(calls(d, 'guide_article')).toHaveLength(0);
+  });
+
+  it('the budget refuses a request: no fallback request, the runs are skipped with the reason, the approval says so, the numbers still go out', async () => {
+    const d = deps(); d.caller = admin();
+    d.complete = vi.fn(async () => { throw new Error('budget_insufficient'); }) as never;
+    const m = await handle({ action: 'run', agent: 'manager' }, d, paths);
+    expect((m.body.results as { status: string; error: string }[])[0]).toMatchObject({ status: 'skipped_cap', error: 'budget_insufficient' });
+    expect(calls(d, 'manager_weekly')).toHaveLength(1); // the fallback model is never tried
+    const s = await handle({ action: 'run', agent: 'social' }, d, paths);
+    expect((s.body.results as { status: string; error: string }[])[0]).toMatchObject({ status: 'skipped_cap', error: 'budget_insufficient' });
+    const seo = await handle({ action: 'run', agent: 'seo' }, d, paths);
+    expect((seo.body.results as { status: string }[])[0].status).toBe('done');
+    expect([...d.runs.values()].find((x) => x.agent === 'seo')!.data).toMatchObject({ note: 'budget_insufficient' });
+    const id = await propose(d, 'הצעת מחיר לצביעה', 'Painting quotes');
+    expect(await approve(d, id)).toMatchObject({ status: 409, body: { code: 'budget_insufficient' } });
+    expect(calls(d, 'guide_article')).toHaveLength(1);
+    expect(d.actions.get(id)!.status).toBe('proposed');
   });
 });
 

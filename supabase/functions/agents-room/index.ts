@@ -6,7 +6,12 @@
 //  - Secrets (already set): GSC_SERVICE_ACCOUNT_JSON (read-only Search Console), OPENAI_API_KEY, RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS,
 //    CRON_SECRET. Nothing is ever published, sent to a customer or changed on the site.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { type Agent } from './lib.ts';
+import { type Agent, israelParts } from './lib.ts';
+// Codex release 4 (Owner 2026-10-29, typed: "מאשר שינוי ב-L-22 לשחרור 4 של קודקס: הגנה מכפילויות מאמרים ושמירת תקציב בינה עם שריון מראש,
+// החלטות 6 ו-9 כמוצע, L-25 בלי שינוי, שחרור עד הלייב"): every AI request is reserved / settled in the budget ledger (20261030200000),
+// the article topics come from the whole inventory and are claimed atomically (20261030300000)
+import { budgetedComplete } from './aiBudget.ts';
+import { normTopic, type Inventory } from './articleTopics.ts';
 // Stage 2 (Owner console 2026-10-27, typed: "מאשר את תוכנית שלב 2 עם מנהל הסוכנים"): the agents manager, the Owner's approvals, agent
 // names, articles. New secret (optional until the Owner sets it): VERCEL_DEPLOY_HOOK_URL - the site rebuild after an approved article.
 import { handle, type StageDeps, type AnyAgent } from './manager.ts';
@@ -57,6 +62,10 @@ Deno.serve(async (req: Request) => {
     if (error) { console.error(`agents-room: database ${(error as { code?: string }).code ?? ''}`); throw new Error('database'); }
     return data;
   };
+  // `since` is an Israel month start (lib.monthStartIso): 12 hours later is still the 1st of that Israel month
+  type BudgetState = { committed_micros?: number; held_micros?: number; blocked?: boolean };
+  const budgetState = async (since: string): Promise<BudgetState> =>
+    (await db(admin.rpc('agents_ai_budget_state', { p_month: israelParts(new Date(Date.parse(since) + 12 * 3_600_000)).month }))) as BudgetState;
   const keyJson = Deno.env.get('GSC_SERVICE_ACCOUNT_JSON') ?? '';
   const sitemap = async () => { const r = await timed(`${ORIGIN}/sitemap.xml`); return r.ok ? await r.text() : ''; };
 
@@ -80,10 +89,9 @@ Deno.serve(async (req: Request) => {
       return (data as { id: string } | null)?.id ?? null;
     },
     finish: async (id, patch) => { await db(admin.from('agent_runs').update(patch).eq('id', id)); },
-    monthCostUsd: async (since) => {
-      const rows = (await db(admin.from('agent_runs').select('ai_cost_usd').gte('started_at', since))) as { ai_cost_usd: number }[];
-      return Math.round(rows.reduce((a, r) => a + Number(r.ai_cost_usd || 0), 0) * 10_000) / 10_000;
-    },
+    // the month of `since` (an Israel month start) in the reservation ledger: carried in + settled + held, rounded up to 1/10000 dollar
+    monthCostUsd: async (since) => Math.ceil(Number((await budgetState(since)).committed_micros ?? 0) / 100) / 10_000,
+    budgetHold: async (since) => { const s = await budgetState(since); return { heldUsd: Math.ceil(Number(s.held_micros ?? 0) / 100) / 10_000, blocked: s.blocked === true }; },
     recentRuns: async () => (await db(admin.from('agent_runs').select('id, agent, run_key, trigger, status, started_at, finished_at, summary, findings, data, ai_cost_usd, mailed_at, error')
       .order('started_at', { ascending: false }).limit(30))) as never,
     gsc: keyJson ? { caller: async () => 'admin', keyJson: () => keyJson, fetch: (u, i) => timed(u, i), now: () => new Date(), sitemapXml: sitemap, sign: rs256Sign } : null,
@@ -107,24 +115,23 @@ Deno.serve(async (req: Request) => {
       return { status: r.status, headers };
     },
     versionJson: async () => { try { const r = await timed(`${ORIGIN}/version.json?t=${Date.now()}`); return r.ok ? await r.json() : null; } catch { return null; } },
-    complete: async ({ model, messages, schema, maxTokens }) => {
-      const legacy = model === 'gpt-4o-mini';
-      const max = maxTokens ?? 2000;
-      const res = await timed('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, messages, response_format: { type: 'json_schema', json_schema: schema },
-          ...(legacy ? { max_tokens: max, temperature: 0.2 } : { max_completion_tokens: max, reasoning_effort: 'none' }) }),
-      }, max > 2000 ? 120000 : 60000);
-      if (!res.ok) throw new Error(`ai_${res.status}`);
-      const data = await res.json();
-      const c = data?.choices?.[0];
-      // Codex N08: a paid answer without content still reports its usage, so the cost is counted
-      if (typeof c?.message?.content !== 'string') {
-        throw Object.assign(new Error('ai_incomplete'), { usage: { promptTokens: Number(data?.usage?.prompt_tokens ?? 0), completionTokens: Number(data?.usage?.completion_tokens ?? 0) } });
-      }
-      return { content: c.message.content, promptTokens: Number(data?.usage?.prompt_tokens ?? 0), completionTokens: Number(data?.usage?.completion_tokens ?? 0) };
-    },
+    // Codex release 4: reserved before the request, settled once after it (aiBudget.ts); a refusal makes no request
+    complete: (a) => budgetedComplete({
+      month: () => israelParts(new Date()).month,
+      reserve: async (r) => {
+        const out = (await db(admin.rpc('agents_ai_reserve', { p_month: r.month, p_purpose: r.purpose, p_model: r.model, p_rate_version: r.rateVersion,
+          p_max_input: r.maxInput, p_max_output: r.maxOutput, p_reserved: r.micros }))) as { ok?: boolean; id?: string; code?: string };
+        if (out?.ok === true && typeof out.id === 'string') return { id: out.id };
+        return { refused: out?.code === 'budget_blocked' ? 'budget_blocked' : 'budget_insufficient' };
+      },
+      settle: async (id, outcome, usage, micros) => {
+        await db(admin.rpc('agents_ai_settle', { p_id: id, p_outcome: outcome, p_prompt_tokens: usage?.promptTokens ?? null,
+          p_completion_tokens: usage?.completionTokens ?? null, p_settled: micros }));
+      },
+      post: (body, ms) => timed('https://api.openai.com/v1/chat/completions', {
+        method: 'POST', headers: { Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}`, 'Content-Type': 'application/json' }, body,
+      }, ms),
+    }, a),
     mailOwner: async (subject, text, key) => {
       const to = (Deno.env.get('SUPPORT_OWNER_NOTIFY_ADDRESS') ?? '').trim();
       if (!to) return false;
@@ -145,7 +152,7 @@ Deno.serve(async (req: Request) => {
     updateAction: async (id, patch, whenStatus, whenDecidedAt) => {
       const q = admin.from('agent_actions').update(patch).eq('id', id);
       const s = whenStatus ? q.eq('status', whenStatus) : q;
-      await db(whenDecidedAt ? s.eq('decided_at', whenDecidedAt) : s);
+      await db(whenDecidedAt === undefined ? s : whenDecidedAt === null ? s.is('decided_at', null) : s.eq('decided_at', whenDecidedAt));
     },
     getAction: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('agent_actions').select('*').eq('id', id).maybeSingle())) as never : null),
     insertArticle: async (a) => ((await db(admin.from('site_articles').insert(a).select('id').single())) as { id: string }).id,
@@ -157,8 +164,19 @@ Deno.serve(async (req: Request) => {
       return Array.isArray(rows) && rows.length === 1;
     },
     pageHtml: async (url) => { try { const r = await timed(url, {}, 15000); return r.ok ? await r.text() : null; } catch { return null; } },
-    getArticle: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('site_articles').select('id, slug, market, status, he, en, published_at, created_at, revision').eq('id', id).maybeSingle())) as never : null),
-    articleSlugs: async () => ((await db(admin.from('site_articles').select('slug').limit(1000))) as { slug: string }[]).map((r) => r.slug),
+    getArticle: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('site_articles').select('id, slug, market, status, he, en, published_at, created_at, revision, action_id').eq('id', id).maybeSingle())) as never : null),
+    // ONE answer with every article, waiting proposal and active claim (no row window); anything malformed = unavailable
+    articleInventory: async () => {
+      const inv = (await db(admin.rpc('agents_article_inventory'))) as Inventory | null;
+      if (!inv || !Array.isArray(inv.articles) || !Array.isArray(inv.proposals) || !Array.isArray(inv.claims) || !Array.isArray(inv.slugs)) throw new Error('article_inventory_unavailable');
+      return inv;
+    },
+    claimTopic: async (ref, kind, he, en, focus) => {
+      const out = (await db(admin.rpc('agents_article_claim', { p_ref: ref, p_kind: kind, p_he_norm: normTopic(he).slice(0, 300), p_en_norm: normTopic(en).slice(0, 300),
+        p_he: he.slice(0, 300), p_en: en.slice(0, 300), p_focus: focus }))) as { ok?: boolean; lang?: string; ref_id?: string | null };
+      return out?.ok === true ? { ok: true } : { ok: false, lang: String(out?.lang ?? 'he'), refId: out?.ref_id ?? null };
+    },
+    releaseTopic: async (ref) => { await db(admin.rpc('agents_article_release', { p_ref: ref })); },
     lastPublishedAt: async () => ((await db(admin.from('site_articles').select('published_at').eq('status', 'published').order('published_at', { ascending: false }).limit(1))) as { published_at: string }[])[0]?.published_at ?? null,
     deployHook: async () => {
       const url = (Deno.env.get('VERCEL_DEPLOY_HOOK_URL') ?? '').trim();
