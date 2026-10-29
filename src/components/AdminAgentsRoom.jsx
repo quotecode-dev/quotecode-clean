@@ -421,10 +421,7 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                   )}
                 </section>
 
-                {/* Owner 2026-10-27: 6 places, at most 3 per row; every card has the same height and a long report scrolls inside its own box.
-                    Owner 2026-10-29 (L-22, typed: "מאשר שינוי ב-L-22: בחדר הסוכנים מתחת לרוחב 1000 כל כרטיס סוכן בגובה התוכן ובלי גלילה פנימית, במחשב בלי
-                    שינוי"): below 1000px .av-agent-card / .av-agent-body (adminV2.css) drop the fixed height and the inner scroll - on a phone a
-                    finger in the middle of the screen always landed inside a card's scrolling box and the page did not scroll */}
+                {/* Owner 2026-10-27: 6 places, at most 3 per row; every card has the same height and a long report scrolls inside its own box */}
                 <div className="av-section" data-testid="agents-grid" style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fill, minmax(max(260px, calc((100% - 28px) / 3)), 1fr))' }}>
                   {AGENTS.map((a) => {
                     const mine = runs.filter((r) => r.agent === a.id);
@@ -432,11 +429,11 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                     const st = last ? STATUS[last.status] || STATUS.failed : null;
                     const summary = last ? (isHebrew ? last.summary : last.data?.summaryEn || last.summary) : null;
                     return (
-                      <section key={a.id} className="av-card av-agent-card" data-testid={`agent-card-${a.id}`} data-status={last?.status || 'never'}
+                      <section key={a.id} className="av-card" data-testid={`agent-card-${a.id}`} data-status={last?.status || 'never'}
                         style={{ display: 'flex', flexDirection: 'column', height: 520, minWidth: 0 }}>
                         <AgentHead agent={a.id} meta={a} profile={profiles[a.id]} isHebrew={isHebrew} size={56} onSaved={load} onNotice={setNotice} />
                         <p className="av-muted" style={{ fontSize: '0.85rem', margin: '0 0 10px' }}>{isHebrew ? a.roleHe : a.roleEn}</p>
-                        <div className="av-agent-body" style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', paddingInlineEnd: 4 }} data-testid={`agent-body-${a.id}`} tabIndex={0}>
+                        <div style={{ flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overscrollBehavior: 'contain', paddingInlineEnd: 4 }} data-testid={`agent-body-${a.id}`} tabIndex={0}>
                         {last ? (
                           <>
                             <div style={{ fontSize: '0.85rem', marginBottom: 6 }}>

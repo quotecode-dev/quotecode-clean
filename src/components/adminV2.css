@@ -226,10 +226,6 @@ html[dir="rtl"] .av .av-business .av-mail { text-align: right; }
   .av-dialog .pf-modal-head-close-btn, .av-dialog .pf-ai-help-btn--header { min-height: 44px; min-width: 44px; }
   .av-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .av-claude-check { display: none; } /* the editor link works only on the Owner's computer */
-  /* Owner 2026-10-29 (L-22): on a phone / tablet an agent card is as tall as its report and the page scrolls from anywhere - the desktop's
-     fixed 520px card with an inner scrolling report (inline styles in AdminAgentsRoom.jsx) caught every swipe in the middle of the screen */
-  .av-agent-card { height: auto !important; }
-  .av-agent-body { flex: none !important; overflow-y: visible !important; overscroll-behavior: auto !important; }
   .av-two, .av-equal { grid-template-columns: 1fr; }
   .av-tablewrap.av-users-table { display: none; }
   .av-usercards { display: block; }

@@ -1,7 +1,6 @@
 // Owner console 2026-10-27: "מאשר את שלב 1 של סוכנת הרשתות" + the supervisor screen (L-22, "מאשר את שניהם") + the agents room layout
 // ("תחלק את המסך ל 6 תוסיף את הסוכנת החדשה מתחת לגיא ואם המלל ארוך אז שהוא יגלל בתוך התיבה שלו", "ככה יהיה לנו מקום לעוד 2 סוכנים").
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
-import { readFileSync } from 'node:fs';
 import { render, screen, fireEvent, waitFor, cleanup, within } from '@testing-library/react';
 
 const invoke = vi.fn();
@@ -115,16 +114,6 @@ describe('the agents room: 6 places, the social agent under the SEO agent, a lon
       expect(within(card).getByTestId(`agent-run-${id}`).parentElement).toBe(card); // "run now" stays visible below the scrolling report
     }
     expect(screen.getByTestId('agent-body-seo').textContent).toContain(isHebrew ? 'ממצא 39' : 'Finding 39');
-    // Owner 2026-10-29 (L-22): below 1000px the card grows with its report and nothing scrolls inside it - the desktop above is unchanged
-    for (const id of ['seo', 'service', 'security', 'social']) {
-      expect(screen.getByTestId(`agent-card-${id}`).classList.contains('av-agent-card')).toBe(true);
-      expect(screen.getByTestId(`agent-body-${id}`).classList.contains('av-agent-body')).toBe(true);
-    }
-    const css = readFileSync('src/components/adminV2.css', 'utf8').replace(/\r\n/g, '\n');
-    const small = css.slice(css.indexOf('@media (max-width: 999px) {'), css.indexOf('@media (max-width: 599px) {'));
-    expect(small).toContain('.av-agent-card { height: auto !important; }');
-    expect(small).toContain('.av-agent-body { flex: none !important; overflow-y: visible !important; overscroll-behavior: auto !important; }');
-    expect(css.slice(0, css.indexOf('@media (max-width: 999px) {'))).not.toContain('.av-agent-');
     expect(screen.getByTestId('agent-name-social').textContent).toBe(isHebrew ? 'שירה' : 'Shira');
     // the posts wait on the manager's desk, in their own list (the count of what waits includes them)
     expect(screen.getByTestId('agents-pending-count').textContent).toBe('2');
