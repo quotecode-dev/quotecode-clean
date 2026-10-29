@@ -6,9 +6,9 @@ import { exposeLoadedBuildIdentity } from './shared/versionAwareness'
 
 exposeLoadedBuildIdentity()
 
-// ייבוא שתי האפליקציות המבודדות שלנו
-import AppLocal from './local/AppLocal.jsx'
-import AppGlobal from './global/AppGlobal.jsx'
+// Codex release 3 step 2 (Owner 2026-10-29, typed: "מאשר שחרור 3 של קודקס: ... פיצול הקוד ... כולל שינוי ב-L-02, L-15, בלי שינוי באנימציה
+// ובמראה"): only the selected market's shell is downloaded (AppLocal OR AppGlobal, never both); it is mounted once its code is ready, so
+// the prerendered page stays on screen meanwhile
 
 // עדיפות ההכרעה: ?lang=en / ?lang=he גובר תמיד (לבדיקה נוחה של שתי השפות) <-
 // נתיב /en מפורש <- שפה שמורה מביקור קודם <- geo אנונימי (עוגיית
@@ -59,8 +59,14 @@ try {
 document.documentElement.lang = isEnglishEnv ? 'en' : 'he';
 document.documentElement.dir = isEnglishEnv ? 'ltr' : 'rtl';
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
-    {isEnglishEnv ? <AppGlobal /> : <AppLocal />}
-  </StrictMode>,
-)
+const loadShell = isEnglishEnv ? () => import('./global/AppGlobal.jsx') : () => import('./local/AppLocal.jsx')
+loadShell().then(({ default: App }) => {
+  createRoot(document.getElementById('root')).render(
+    <StrictMode>
+      <App />
+    </StrictMode>,
+  )
+}).catch((error) => {
+  // the prerendered page stays; a reload fetches the shell again
+  console.error('app shell failed to load:', error)
+})

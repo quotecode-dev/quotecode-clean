@@ -34,7 +34,14 @@ export function composeRouteHtml(shell, route, markup) {
   // The shell's generic SoftwareApplication JSON-LD (USD) is removed; a route with its own structured data carries it under the SAME
   // id setSeoMeta() maintains client-side, so the client updates this tag instead of adding a duplicate.
   html = replaceOnce(html, /\s*<script type="application\/ld\+json" id="proflow-static-structured-data">[\s\S]*?<\/script>/, '', 'static JSON-LD');
+  // Codex release 3 step 3 (Owner 2026-10-29, typed: "מאשר שחרור 3 של קודקס: ... ותמונת הפתיחה, כולל שינוי ב-L-02, L-15, בלי שינוי באנימציה ובמראה"): a landing page's
+  // two hero images are discovered from the initial HTML (the workshop photo is visible first; only the page's own language phone)
+  const heroPreload = route.path === '/he' || route.path === '/en'
+    ? ['<link rel="preload" as="image" href="/assets/landing/hero-workshop.webp" type="image/webp" fetchpriority="high" />',
+      `<link rel="preload" as="image" href="/assets/landing/hero-phone-${route.lang}.webp" type="image/webp" />`]
+    : [];
   const head = [
+    ...heroPreload,
     `<link rel="canonical" href="${absolute(route.path)}" />`,
     ...route.hreflang.map((h) => `<link rel="alternate" hreflang="${h.lang}" href="${absolute(h.path)}" />`),
     `<meta property="og:url" content="${absolute(route.path)}" />`,

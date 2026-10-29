@@ -1726,5 +1726,9 @@
   "supabase/functions/chat-ai/publicPool.ts": {
     "interactive": 0,
     "markers": 0
+  },
+  "src/shared/RouteChunkBoundary.jsx": {
+    "interactive": 1,
+    "markers": 1
   }
 }
