@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 
 const invoke = vi.fn();
 vi.mock('../shared/supabase', () => ({ supabase: { functions: { invoke: (...a) => invoke(...a) } } }));
-import AdminAgentsRoom from './AdminAgentsRoom';
+import AdminAgentsRoom, { AGENTS_CHECK_LINK } from './AdminAgentsRoom';
 import { ADMIN_DESTINATIONS } from './adminDestinations';
 
 afterEach(cleanup);
@@ -22,6 +22,20 @@ const state = {
 };
 
 describe('the agents room', () => {
+  // Owner 2026-10-29 (L-22): the agents check opens in a new Claude chat in the Owner's editor - a link, nothing is run by the site
+  it('the agents check link at the end of the KPI row, in both languages', async () => {
+    for (const isHebrew of [true, false]) {
+      invoke.mockResolvedValue({ data: state, error: null });
+      render(<AdminAgentsRoom isHebrew={isHebrew} />);
+      const a = await screen.findByTestId('agents-claude-check');
+      expect(a.getAttribute('href')).toBe('vscode://anthropic.claude-code/open?prompt=%2Fagents-check');
+      expect(AGENTS_CHECK_LINK).toBe(a.getAttribute('href'));
+      expect(a.textContent).toBe(isHebrew ? 'בדיקת סוכנים אצל Claudeנפתח בעורך במחשב' : 'Agents check with ClaudeOpens in the editor on this computer');
+      expect(screen.getByTestId('admin-agents-room-budget').lastElementChild).toBe(a);
+      expect(a.querySelector('[data-tekango-ai-icon="ai"]')).toBeTruthy();
+      cleanup();
+    }
+  });
   it('HE: the cost against the 20 dollar cap, the 65/35 split, and a card per agent with its last run', async () => {
     invoke.mockResolvedValue({ data: state, error: null });
     render(<AdminAgentsRoom isHebrew />);

@@ -7,7 +7,7 @@
 // (no shekels / Israel / VAT abroad, no dollars in Israel), a link to a real public page of the same market, an image from the eight
 // guide illustrations, a length that fits the network, and for TikTok a script in the account's language plus scene prompts for the
 // video tool. A post that fails the checks is dropped (counted), never stored.
-import { costOf, israelParts, runKey, monthStartIso, AI_MODEL, AI_FALLBACK_MODEL, MONTHLY_CAP_USD, type Finding, type Result } from './lib.ts';
+import { costOf, israelParts, runKey, monthStartIso, brandLatin, hasHebrewBrand, AI_MODEL, AI_FALLBACK_MODEL, MONTHLY_CAP_USD, type Finding, type Result } from './lib.ts';
 import { weekStartDay, type StageDeps, type Action } from './manager.ts';
 
 export type Network = 'facebook' | 'instagram' | 'tiktok';
@@ -67,6 +67,7 @@ export function postErrors(p: Post, c: Channel, paths: string[]): string[] {
     if ((spoken.match(/[א-ת]/g) || []).length < 40) e.push('not_hebrew');
     if (latinWords(spoken).length) e.push('english_in_hebrew');
     if (/\$|USD|דולר|€|EUR/.test(spoken)) e.push('foreign_money');
+    if (hasHebrewBrand(spoken)) e.push('brand_hebrew'); // the safety net under normPost's brandLatin (Owner 2026-10-29, L-22)
   } else {
     if (/[֐-׿]/.test(spoken)) e.push('hebrew_in_english');
     if (/₪|\bILS\b|\bNIS\b|shekel|israel|\bVAT\b/i.test(spoken)) e.push('israel_abroad');
@@ -81,10 +82,10 @@ export function postErrors(p: Post, c: Channel, paths: string[]): string[] {
 }
 
 const normPost = (p: Partial<Post>): Post => ({
-  channel: clip(p?.channel, 20), text: clip(p?.text, 1600),
-  hashtags: (Array.isArray(p?.hashtags) ? p!.hashtags : []).map((h) => clip(h, 41).replace(/\s+/g, '_')).filter(Boolean).map((h) => (h.startsWith('#') ? h : `#${h}`)).slice(0, 10),
+  channel: clip(p?.channel, 20), text: brandLatin(clip(p?.text, 1600)),
+  hashtags: (Array.isArray(p?.hashtags) ? p!.hashtags : []).map((h) => brandLatin(clip(h, 41)).replace(/\s+/g, '_')).filter(Boolean).map((h) => (h.startsWith('#') ? h : `#${h}`)).slice(0, 10),
   link_path: clip(p?.link_path, 120).replace(/^https?:\/\/[^/]+/, '').replace(/\/+$/, '') || '/',
-  art: clip(p?.art, 20), video_script: clip(p?.video_script, 1000),
+  art: clip(p?.art, 20), video_script: brandLatin(clip(p?.video_script, 1000)),
   video_scenes: (Array.isArray(p?.video_scenes) ? p!.video_scenes : []).map((s) => clip(s, 420)).filter(Boolean).slice(0, 10),
 });
 
@@ -106,7 +107,8 @@ const systemPrompt = (slots: Channel[]) => 'You are the social media agent of TE
   + 'the client\'s digital approval and signature, quote validity, free public calculators (currency, length units, precious metals, crypto) and free guides. '
   + 'Never claim anything else; never mention prices, plans, discounts, trials or "free" offers; never invent numbers or customers. '
   + 'Write exactly one post per slot below, in this order. Every account belongs to ONE market: il = Israel, written ONLY in natural Hebrew for Israeli business owners '
-  + '(plural address, Hebrew words only - no English words except the brand TEKANGO, Hebrew hashtags); intl = international, written ONLY in English (no Hebrew, '
+  + '(plural address, Hebrew words only - no English words except the brand, which is ALWAYS written TEKANGO in Latin letters, e.g. "ב-TEKANGO", '
+  + 'never transliterated into Hebrew letters; Hebrew hashtags); intl = international, written ONLY in English (no Hebrew, '
   + 'no shekels, no Israel, no VAT). Each post: text (facebook 300-900 characters, instagram 300-1200, tiktok a caption of 60-250), 3-6 hashtags in the account\'s '
   + 'language, link_path = one path from the given list of the SAME market (il -> /he..., intl -> /en...), art = the illustration that fits the topic. '
   + 'tiktok only: video_script = what is said / shown as captions in a 15-30 second video, in the account\'s language; video_scenes = 3-6 short scene prompts in '
