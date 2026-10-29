@@ -192,6 +192,19 @@ export default function AdminExpenseInvoices({ isHebrew }) {
     }
     reload();
   };
+  // Codex R07 (Owner 2026-10-29, L-22): a send that never finished goes to "Check in PayPlus" without sending anything
+  const releaseStuck = async () => {
+    setBusy('release_stuck');
+    const r = await call({ action: 'release_stuck' });
+    setBusy('');
+    // the server's own rule: only a "sending" untouched for 15 minutes is a send that never finished
+    const moved = Number(r.moved || 0);
+    setNotice({ good: !!r.ok, text: r.ok
+      ? (moved ? (isHebrew ? `${moved} הוצאות עברו ל"לבדיקה מול פיי פלוס".` : `${moved} expenses moved to "Check in PayPlus".`)
+        : (isHebrew ? 'אין כרגע שליחה תקועה. שליחה נחשבת תקועה אחרי 15 דקות בלי תשובה.' : 'No stuck send right now. A send counts as stuck after 15 minutes without an answer.'))
+      : (isHebrew ? 'הפעולה לא הושלמה. רעננו ונסו שוב.' : 'The action did not complete. Refresh and try again.') });
+    reload();
+  };
   // Codex N06 (Owner 2026-10-28, decision 2): the Owner's decision on one expense PayPlus may have
   const resolve = async (id, decision) => {
     setBusy(`resolve:${id}`);
@@ -356,6 +369,12 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                     // PRODUCT_TRUTH_DECORATIVE: approves every invoice in this list (nothing is sent until "Send to PayPlus")
                     <button type="button" className="av-btn av-primary av-section" disabled={!!busy} onClick={() => setStatus(rows.filter((r) => r.confidence !== 'low').map((r) => r.id), 'approved')} data-testid="expense-approve-all">
                       {isHebrew ? 'אישור כל הממתינות (בלי הלא בטוחות)' : 'Approve all waiting (not the uncertain ones)'}
+                    </button>
+                  )}
+                  {tab === 'approved' && rows.some((r) => r.status === 'sending') && (
+                    // PRODUCT_TRUTH_DECORATIVE: moves a send that never finished to "Check in PayPlus" (nothing is sent or created; Codex R07)
+                    <button type="button" className="av-btn av-section" disabled={!!busy} onClick={releaseStuck} data-testid="expense-release-stuck">
+                      {busy === 'release_stuck' ? (isHebrew ? 'בודק...' : 'Checking...') : (isHebrew ? 'שליחה שנתקעה: להעביר לבדיקה מול פיי פלוס' : 'Stuck send: move to Check in PayPlus')}
                     </button>
                   )}
                   {tab === 'unknown' && rows.length > 0 && (

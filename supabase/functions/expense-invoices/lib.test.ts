@@ -502,6 +502,20 @@ describe('Codex F05 / F06: never twice, never another supplier document', () => 
 
 // Owner console 2026-10-28 (typed: "מאשר שינוי ב-L-01, L-09, L-11, L-14, L-15, L-17, L-22, L-23, L-25 לפי התוכנית לתיקון 17 ממצאי קודקס על בקשת
 // מיזוג 113, כולל ארבע ההחלטות שהוצעו"), decision 2: the Owner decides an unknown expense - three buttons, nothing sent or searched
+// Codex R07 (Owner 2026-10-29, L-22): a send that never finished is released on its own - no types, no other send, no PayPlus call
+describe('Codex R07: a stuck send moves to "Check in PayPlus" by itself', () => {
+  it('only the 15-minute rule of the server; nothing is created or searched', async () => {
+    const d = deps();
+    const r = await expenseHandler({ action: 'release_stuck' }, d, 'u1');
+    expect(r).toMatchObject({ status: 200, body: { ok: true, moved: 0 } });
+    expect(d.expireStaleSending).toHaveBeenCalledWith(new Date(Number(d.expireStaleSending.mock.calls[0][0] ? Date.parse(d.expireStaleSending.mock.calls[0][0] as string) : 0)).toISOString());
+    expect(d.payplusCreate).not.toHaveBeenCalled();
+    expect(d.payplusSearch).not.toHaveBeenCalled();
+    const down = deps({ expireStaleSending: vi.fn(async () => { throw new Error('db'); }) });
+    expect((await expenseHandler({ action: 'release_stuck' }, down, 'u1')).status).toBe(503);
+  });
+});
+
 describe('Codex N06: the Owner decides an expense PayPlus may have', () => {
   const C = '66666666-6666-4666-8666-666666666661';
   const row = (o: P = {}) => ({ id: C, status: 'unknown', supplier_name: 'Acme Ltd', doc_number: '9', doc_date: '2026-09-01', amount: 10, currency: 'ILS', ...o });

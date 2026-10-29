@@ -33,7 +33,7 @@ export type Action = {
   id: string; created_at: string; run_key: string; source: AnyAgent; kind: Kind; action_type: ActionType;
   title_he: string; title_en: string; detail_he: string | null; detail_en: string | null; payload: Record<string, unknown>;
   status: 'proposed' | 'approved' | 'rejected' | 'done' | 'failed'; decided_at: string | null; done_at: string | null;
-  result: Record<string, unknown>; error: string | null;
+  result: Record<string, unknown>; error: string | null; dedupe_key?: string | null;
 };
 export type NewAction = Pick<Action, 'run_key' | 'source' | 'kind' | 'action_type' | 'title_he' | 'title_en'> &
   Partial<Pick<Action, 'detail_he' | 'detail_en' | 'payload' | 'status' | 'done_at' | 'result' | 'error'>> & { dedupe_key?: string };
@@ -374,10 +374,15 @@ export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown
 
   if (a.action_type === 'article_publish') {
     const id = String(a.payload.articleId ?? '');
-    // 20261029000000 (Codex F07): the approval names the revision the Owner read - a draft rewritten since then is read again first
-    if (Number(b.revision ?? 0) !== Number(a.payload.revision ?? 0)) return { status: 409, body: { ok: false, code: 'article_changed' } };
     const art = id ? await d.getArticle(id) : null;
     if (!art || art.status !== 'draft') return { status: 409, body: { ok: false, code: 'article_not_draft' } };
+    // 20261029000000 (Codex F07) + Codex R01 (Owner 2026-10-29, L-22): the approval names the revision the Owner READ, compared with the
+    // ARTICLE's own revision (the authority). An action whose payload lags behind (its update failed after the rewrite) is repaired here,
+    // with no AI call - it never blocks the approval of the text on the screen
+    if (Number(b.revision ?? 0) !== Number(art.revision ?? 0)) return { status: 409, body: { ok: false, code: 'article_changed' } };
+    if (Number(a.payload.revision ?? 0) !== Number(art.revision ?? 0)) {
+      await d.updateAction(a.id, { payload: { ...a.payload, revision: Number(art.revision ?? 0) } }, 'proposed').catch(() => undefined);
+    }
     if (draftErrors(art).length) return { status: 409, body: { ok: false, code: 'article_invalid' } };
     // Codex N01: ONE conditional write - published only while it is still the draft revision the Owner approved
     if (!(await d.updateArticle(art.id, { status: 'published', published_at: at }, 'draft', Number(b.revision ?? 0)))) {
@@ -474,6 +479,21 @@ export async function runDaily(d: StageDeps, paths: string[]): Promise<Out> {
 // Codex N11 (Owner 2026-10-28, decision 3): a rebuild the hook accepted is not proof - the article's own page must be on the site (its
 // canonical address, no noindex). Found = verified; still missing 2 hours after the approval = 'unverified', and "Rebuild the site" returns
 export const ARTICLE_VERIFY_AFTER_MS = 10 * 60000;
+const decodeHtml = (s: string) => s.replace(/&quot;/g, '"').replace(/&#0?39;|&apos;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+  .replace(/&nbsp;/g, ' ').replace(/&#(\d+);/g, (_m, n) => String.fromCodePoint(Number(n))).replace(/&amp;/g, '&');
+const squash = (s: string) => decodeHtml(s).replace(/\s+/g, ' ').trim();
+const attrsOf = (tag: string) => Object.fromEntries([...tag.matchAll(/([a-zA-Z-]+)\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))/g)]
+  .map((x) => [x[1].toLowerCase(), x[2] ?? x[3] ?? x[4] ?? '']));
+/** Codex R05: the initial HTML of an article page is that article - exact canonical, its heading and opening, indexable */
+export function articlePageIsLive(html: string, canonical: string, lang: { h1?: string; intro?: string } | null | undefined): boolean {
+  if (!lang || !lang.h1 || !lang.intro) return false;
+  const tags = (name: string) => [...html.matchAll(new RegExp(`<${name}\\b[^>]*>`, 'gi'))].map((x) => attrsOf(x[0]));
+  const canon = tags('link').filter((t) => (t.rel ?? '').toLowerCase().split(/\s+/).includes('canonical')).map((t) => t.href);
+  if (canon.length !== 1 || canon[0] !== canonical) return false;
+  if (tags('meta').some((t) => /^(robots|googlebot)$/i.test(t.name ?? '') && /noindex/i.test(t.content ?? ''))) return false;
+  const text = squash(html);
+  return text.includes(squash(lang.h1)) && text.includes(squash(lang.intro).slice(0, 60));
+}
 export const ARTICLE_UNVERIFIED_AFTER_MS = 2 * 3600000;
 export async function verifyPublishedArticles(d: StageDeps): Promise<{ verified: number; unverified: number }> {
   const out = { verified: 0, unverified: 0 };
@@ -485,8 +505,14 @@ export async function verifyPublishedArticles(d: StageDeps): Promise<{ verified:
     const slug = String(result.slug ?? '');
     const age = now - Date.parse(String(result.redeployAt ?? a.done_at ?? a.decided_at ?? a.created_at)); // a rebuild pressed again counts from then
     if (!/^[a-z0-9-]+$/.test(slug) || age < ARTICLE_VERIFY_AFTER_MS) continue;
-    const pages = await Promise.all(['he', 'en'].map((l) => d.pageHtml(`${ORIGIN}/${l}/articles/${slug}`)));
-    const live = pages.every((h, i) => !!h && h.includes(`/${['he', 'en'][i]}/articles/${slug}`) && !/<meta[^>]+name="robots"[^>]+noindex/i.test(h));
+    // Codex R05 (Owner 2026-10-29): the page must BE the article - its exact canonical address, its own heading and opening text in that
+    // language, and no noindex in any spelling; a page that only mentions the address is not proof
+    const art = await d.getArticle(String((a.payload as Record<string, unknown>)?.articleId ?? '')).catch(() => null);
+    const pages = await Promise.all((['he', 'en'] as const).map((l) => d.pageHtml(`${ORIGIN}/${l}/articles/${slug}`)));
+    const live = !!art && pages.every((h, i) => {
+      const lang = (['he', 'en'] as const)[i];
+      return !!h && articlePageIsLive(h, `${ORIGIN}/${lang}/articles/${slug}`, art[lang]);
+    });
     if (live) {
       await d.updateAction(a.id, { result: { ...result, verified: true, verifiedAt: d.now().toISOString() } }, 'done');
       out.verified += 1;
@@ -572,13 +598,14 @@ async function metaIncident(d: StageDeps, channel: string, code: string): Promis
   if (!t) return;
   const day = israelParts(d.now()).day;
   const where = CHANNEL_HE[channel] ?? channel;
+  const dedupeKey = `meta-incident:${t.tokenEnv}:${code}:${day}`;
   let aid = await d.insertAction({ run_key: `meta:${day}`, source: 'social', kind: 'auto', action_type: 'urgent_mail',
     title_he: `הפרסום ל${where} נכשל`, title_en: `Publishing to ${channel} failed`, detail_he: metaReasonHe(code), detail_en: code,
-    dedupe_key: `meta-incident:${t.tokenEnv}:${code}:${day}` });
+    dedupe_key: dedupeKey });
   if (!aid) {
-    // Codex N09: the incident of today exists - mailed again only when its email failed
-    const prev = (await d.recentActions()).find((a) => a.action_type === 'urgent_mail' && a.source === 'social' && a.run_key === `meta:${day}`
-      && a.title_en === `Publishing to ${channel} failed` && a.detail_en === code);
+    // Codex N09: the incident of today exists - mailed again only when its email failed. Codex R04: found by its de-duplication key, so a
+    // failure on another channel of the same connection (Facebook then Instagram) retries the same incident
+    const prev = (await d.recentActions()).find((a) => a.action_type === 'urgent_mail' && a.dedupe_key === dedupeKey);
     if (!prev || prev.status !== 'failed') return;
     aid = prev.id;
   }

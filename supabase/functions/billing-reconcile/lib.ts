@@ -18,7 +18,9 @@
 // convention of the PayPlus callback (subscription-authority payplusDateToIso); anything else is unreadable, never the runtime's zone.
 import { payplusDateToIso } from '../subscription-authority/payplus.ts';
 
-export type ProviderTx = { uid: string; type: string; kind: 'charge' | 'refund' | 'other'; amount: number; currency: string; at: string; moreInfo: string | null };
+export type ProviderTx = { uid: string; type: string; kind: 'charge' | 'refund' | 'other'; amount: number; currency: string; at: string; moreInfo: string | null;
+  /** Codex R03: every reference PayPlus shows for this transaction - its uuid and the transaction number the Owner sees in the panel */
+  refs?: string[] };
 export type OurCharge = { providerEventId: string; attemptId: string | null; amountMinor: number; currency: string; at: string };
 export type OurRefund = { transactionUid: string };
 export type FindingCode = 'UNLINKED' | 'MISSING_AT_PROVIDER' | 'AMOUNT_MISMATCH' | 'REFUND_UNRECORDED' | 'REFUND_OWED';
@@ -49,9 +51,14 @@ export function normalizeProviderTx(raw: unknown): ProviderTx | null {
   const at = payplusDateToIso(typeof info.transaction_at === 'string' ? info.transaction_at.trim() : typeof raw.created_at === 'string' ? raw.created_at.trim() : null);
   if (!uid || uid.length > 200 || !type || !Number.isFinite(amount) || !/^[A-Z]{3}$/.test(currency) || !at) return null;
   const more = typeof info.more_info === 'string' && UUID.test(info.more_info.trim()) ? info.more_info.trim() : null;
+  // Codex R03 (Owner 2026-10-29, L-22): a refund the Owner closed with the transaction number typed from the PayPlus panel is known by
+  // that number too - every number-like reference of the row is kept beside the uuid (a reference not present simply does not match)
+  const refOf = (v: unknown) => (typeof v === 'string' && v.trim() && v.trim().length <= 200 ? v.trim() : typeof v === 'number' && Number.isFinite(v) ? String(v) : null);
+  const refs = [uid, ...[raw.number, raw.transaction_number, raw.approval_number, raw.voucher_number, info.number, info.transaction_number, info.approval_number, info.voucher_number]
+    .map(refOf)].filter((x): x is string => !!x);
   // a negative amount is money going back to the customer: a refund whatever its code
   const kind = signed < 0 || REFUND_TYPES.includes(type) ? 'refund' : CHARGE_TYPES.includes(type) ? 'charge' : 'other';
-  return { uid, type, kind, amount, currency, at, moreInfo: more };
+  return { uid, type, kind, amount, currency, at, moreInfo: more, refs: [...new Set(refs)] };
 }
 
 const toMinor = (amount: number, scale: Scale) => (scale === 'major' ? Math.round(amount * 100) : amount);
@@ -104,7 +111,7 @@ export function reconcile(a: { provider: ProviderTx[]; charges: OurCharge[]; ref
     types[t.type] = (types[t.type] ?? 0) + 1;
     if (t.kind === 'other') continue;
     if (t.kind === 'refund') {
-      if (!known.has(t.uid) && inWindow(t.at)) findings.push({ code: 'REFUND_UNRECORDED', uid: t.uid, detail: { amount: t.amount, currency: t.currency, scale, at: t.at, type: t.type } });
+      if (!(t.refs ?? [t.uid]).some((ref) => known.has(ref)) && inWindow(t.at)) findings.push({ code: 'REFUND_UNRECORDED', uid: t.uid, detail: { amount: t.amount, currency: t.currency, scale, at: t.at, type: t.type } });
       continue;
     }
     charges.push(t);
@@ -220,6 +227,8 @@ export type ReconcileDeps = {
   /** stores the findings once per (code, uid); returns the ones that are new. seenByOwner: the Owner's own run shows them on the
    *  screen, so they count as told (never emailed later) */
   saveFindings: (runId: string, findings: Finding[], seenByOwner: boolean) => Promise<Finding[]>;
+  /** Codex R02: an owed refund finding stored before its account was carried gets it now (its status, mail and history stay) */
+  enrichOwed?: (findings: Finding[]) => Promise<void>;
   /** the open findings the Owner was not told about yet (a failed email is retried by the next site run) */
   unmailed: () => Promise<(Finding & { id: string })[]>;
   /** key: idempotent per message (findings/<run>, failed/<israel day>, recovered/<israel day>) */
@@ -308,6 +317,10 @@ async function runOnce(runId: string, role: 'admin' | 'cron', now: Date, deps: R
   r.findings.push(...owedFindings(ours.owedRefunds ?? []));
   const recovered = await incidentOpen();
   const fresh = await deps.saveFindings(runId, r.findings, role === 'admin');
+  // Codex R02 (Owner 2026-10-29, L-22): an older REFUND_OWED row (kept as it was by the once-per-finding rule) learns its account and
+  // removal, so "Done in PayPlus" appears on it too
+  const owedNow = r.findings.filter((f) => f.code === 'REFUND_OWED' && typeof f.detail.userId === 'string' && typeof f.detail.removalId === 'string');
+  if (owedNow.length && deps.enrichOwed) await deps.enrichOwed(owedNow).catch(() => undefined);
   const types = unreadable ? { ...r.types, unreadable } : r.types;
   await deps.finishRun(runId, { status: 'ok', windowFrom: from.toISOString(), windowUntil: until.toISOString(), providerCount: provider.length,
     oursCount: ours.charges.length, matched: r.matched, unverified: r.unverified, newFindings: fresh.length, scale: r.scale, types });
