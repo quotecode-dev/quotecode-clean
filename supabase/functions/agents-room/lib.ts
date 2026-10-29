@@ -9,7 +9,6 @@
 // agent that needs the AI is skipped (status skipped_cap) once the month's estimated cost reached the cap. The weekly cron run emails the
 // Owner one short Hebrew report (the Owner chose "דוח גם במייל"); an Owner "run now" only updates the screen.
 import { summary as gscSummary, indexing as gscIndexing, parseServiceAccount, signedAssertion, TOKEN_URL, ORIGIN, type Deps as GscDeps } from '../search-console/lib.ts';
-import { isBudgetRefusal } from './aiBudget.ts';
 
 export const AGENTS = ['seo', 'service', 'security'] as const;
 export type Agent = typeof AGENTS[number];
@@ -34,9 +33,7 @@ export interface Deps {
   now(): Date;
   claim(agent: Agent | 'manager' | 'social', runKey: string, trigger: 'cron' | 'admin'): Promise<string | null>; // the new run id, or null = already ran
   finish(id: string, patch: Record<string, unknown>): Promise<void>;
-  monthCostUsd(sinceIso: string): Promise<number>; // Codex release 4: the reservation ledger's month (carried in + settled + held)
-  // the part of the month held for requests whose outcome is not final, and an over-reservation stop (the screen says so)
-  budgetHold?(sinceIso: string): Promise<{ heldUsd: number; blocked: boolean }>;
+  monthCostUsd(sinceIso: string): Promise<number>;
   recentRuns(): Promise<Run[]>;
   gsc: GscDeps | null; // null = the Google key is not configured
   serviceStats(sinceIso: string): Promise<{ inquiries: Record<string, number>; openItems: number; topItems: { title: string; priority: number }[]; chatQuestions: number; redOpen?: OpenInquiry[] }>;
@@ -165,7 +162,6 @@ export async function runSeo(deps: Deps): Promise<Result> {
     { role: 'user', content: JSON.stringify({ ...data, notIndexed: notIndexed.slice(0, 20).map((p) => ({ path: p.path, reason: p.coverageState || p.verdict, ...(chosen(p) ? { googleChose: chosen(p) } : {}) })) }) },
   ];
   let costUsd = 0; let tokens = 0; let ai: { summary_he: string; summary_en: string; recommendations: { market: string; text_he: string; text_en: string }[] } | null = null;
-  let refused = '';
   for (const model of [AI_MODEL, AI_FALLBACK_MODEL]) {
     try {
       const r = await deps.complete({ model, messages, schema: SEO_SCHEMA });
@@ -173,8 +169,6 @@ export async function runSeo(deps: Deps): Promise<Result> {
       const j = JSON.parse(r.content);
       if (typeof j?.summary_he === 'string' && typeof j?.summary_en === 'string' && Array.isArray(j?.recommendations)) { ai = j; break; }
     } catch (e) {
-      // Codex release 4: the AI budget did not admit the request - no fallback request; the numbers report below still goes out
-      if (isBudgetRefusal(e)) { refused = String((e as Error).message); break; }
       // Codex N08: a paid answer that came back incomplete is counted too (the next model is tried)
       const u = (e as { usage?: { promptTokens: number; completionTokens: number } })?.usage;
       if (u) { costUsd += costOf(model, u.promptTokens, u.completionTokens); tokens += u.promptTokens + u.completionTokens; }
@@ -185,7 +179,7 @@ export async function runSeo(deps: Deps): Promise<Result> {
   const t = s.totals;
   const fallbackHe = `ב־28 הימים האחרונים: ${t.clicks} קליקים ו־${t.impressions} הופעות בגוגל. חו״ל: ${by.intl.impressions} הופעות, ישראל: ${by.il.impressions}.`;
   const fallbackEn = `In the last 28 days: ${t.clicks} clicks and ${t.impressions} impressions on Google. International: ${by.intl.impressions} impressions, Israel: ${by.il.impressions}.`;
-  return { summaryHe: isolatePaths((ai?.summary_he || fallbackHe).slice(0, 1500)), summaryEn: (ai?.summary_en || fallbackEn).slice(0, 1500), findings: [...findings, ...recs], data: { ...data, recommendations: recs.length }, costUsd, tokens, ...(ai ? {} : { note: refused || 'ai_unavailable' }) };
+  return { summaryHe: isolatePaths((ai?.summary_he || fallbackHe).slice(0, 1500)), summaryEn: (ai?.summary_en || fallbackEn).slice(0, 1500), findings: [...findings, ...recs], data: { ...data, recommendations: recs.length }, costUsd, tokens, ...(ai ? {} : { note: 'ai_unavailable' }) };
 }
 
 // ---------------------------------------------------------------- service
@@ -262,9 +256,7 @@ export async function handler(body: unknown, deps: Deps, sitemapPaths: () => Pro
   const since = monthStartIso(now);
   if (b.action === 'state') {
     if (who !== 'admin') return { status: 403, body: { ok: false, code: 'forbidden' } };
-    const hold = deps.budgetHold ? await deps.budgetHold(since) : { heldUsd: 0, blocked: false };
-    return { status: 200, body: { ok: true, cap: MONTHLY_CAP_USD, monthCostUsd: await deps.monthCostUsd(since), heldUsd: hold.heldUsd, budgetBlocked: hold.blocked,
-      split: SPLIT, runs: await deps.recentRuns(), googleConfigured: !!deps.gsc } };
+    return { status: 200, body: { ok: true, cap: MONTHLY_CAP_USD, monthCostUsd: await deps.monthCostUsd(since), split: SPLIT, runs: await deps.recentRuns(), googleConfigured: !!deps.gsc } };
   }
   if (b.action !== 'run') return { status: 400, body: { ok: false, code: 'bad_action' } };
   const list: Agent[] = b.agent === 'all' || (who === 'cron' && b.agent === undefined) ? [...AGENTS] : AGENTS.includes(b.agent as Agent) ? [b.agent as Agent] : [];

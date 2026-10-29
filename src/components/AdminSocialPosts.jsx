@@ -166,9 +166,6 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
         : r?.status === 'revised' ? (isHebrew ? 'הפוסט תוקן. קראו אותו שוב.' : 'The post was revised. Read it again.')
           : (isHebrew ? 'סומן כפורסם.' : 'Marked as published.');
     const failText = r?.code === 'cap_reached' ? (isHebrew ? 'הגענו לתקרת העלות החודשית.' : 'The monthly cost cap was reached.')
-      // Codex release 4 (Owner 2026-10-29, L-22): the AI budget reservation refused the rewrite - the spec's words
-      : r?.code === 'budget_insufficient' ? (isHebrew ? 'אין בתקציב הבינה החודשי יתרה מספקת לפעולה הזו. לא בוצעה קריאה לבינה.' : 'The monthly AI budget does not have enough available funds for this action. No AI request was made.')
-      : r?.code === 'budget_blocked' ? (isHebrew ? 'תקציב הבינה נעצר, כי קריאה אחת עלתה יותר מהסכום שנשמר לה. לא בוצעה קריאה לבינה.' : 'The AI budget was stopped because one request cost more than the amount reserved for it. No AI request was made.')
       : r?.code === 'forbidden' ? (isHebrew ? 'אין לכם הרשאה לפעולה הזו.' : 'You do not have permission for this action.')
         : r?.code === 'revise_limit' ? (isHebrew ? 'הפוסט כבר תוקן 3 פעמים. אפשר לאשר אותו או לבחור "לא עכשיו".' : 'This post was already revised 3 times. Approve it or choose "Not now".')
           : r?.code === 'not_pending' ? (isHebrew ? 'הפוסט כבר טופל.' : 'This post was already handled.')
