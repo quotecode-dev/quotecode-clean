@@ -1,9 +1,16 @@
-import { lazy, useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingLocal from '../pages/LandingLocal';
+import Dashboard from '../pages/Dashboard';
 import { rootRecoveryIntent, rootSignupIntent } from '../shared/supabase';
+import AILogs from '../pages/AILogs';
+import SmartPublicQuote from '../components/SmartPublicQuote';
+import PublicBusinessCard from '../pages/PublicBusinessCard';
+import SampleQuote from '../pages/SampleQuote';
 import PublicTools from '../components/PublicTools';
 import { PublicArticle, PublicArticlesIndex } from '../pages/PublicArticle';
+import ProfessionalQuotePreview from '../pages/ProfessionalQuotePreview';
+import ProfessionalPublicPreview from '../pages/ProfessionalPublicPreview';
 import Terms from '../pages/Terms';
 import Privacy from '../pages/Privacy';
 import Contact from '../pages/Contact';
@@ -11,17 +18,6 @@ import AttachmentCompatRoute from '../components/AttachmentCompatRoute';
 import UpdateAvailableBanner from '../shared/UpdateAvailableBanner';
 import RouteScrollManager from '../shared/RouteScrollManager';
 import SiteAnalytics from '../shared/SiteAnalyticsTracker';
-import RouteChunkBoundary from '../shared/RouteChunkBoundary';
-
-// Codex release 3 step 2 (Owner 2026-10-29, L-15): the heavy screens load on demand (RouteChunkBoundary) - a landing page no longer
-// downloads the Dashboard, the admin, the AI logs or the public quote renderers; the light public pages stay in the shell (prerendered)
-const Dashboard = lazy(() => import('../pages/Dashboard'));
-const AILogs = lazy(() => import('../pages/AILogs'));
-const SmartPublicQuote = lazy(() => import('../components/SmartPublicQuote'));
-const PublicBusinessCard = lazy(() => import('../pages/PublicBusinessCard'));
-const SampleQuote = lazy(() => import('../pages/SampleQuote'));
-const ProfessionalQuotePreview = lazy(() => import('../pages/ProfessionalQuotePreview'));
-const ProfessionalPublicPreview = lazy(() => import('../pages/ProfessionalPublicPreview'));
 
 export default function AppLocal() {
   useEffect(() => {
@@ -60,7 +56,6 @@ export default function AppLocal() {
           (session null / isPasswordRecoveryMode driven, mounted via the
           /dashboard Route below) is the sole real implementation now. */}
 
-      <RouteChunkBoundary isHebrew={true}>
       <Routes>
         {/* Password Recovery Fresh-Link Root-Landing Hardening (2026-09-15
             task): a fresh recovery-email link's own callback can still land
@@ -161,7 +156,6 @@ export default function AppLocal() {
             unknown path still renders NotFound - see src/components/AttachmentCompatRoute.jsx. */}
         <Route path="*" element={<AttachmentCompatRoute isHebrew={true} />} />
       </Routes>
-      </RouteChunkBoundary>
     </BrowserRouter>
   );
 }

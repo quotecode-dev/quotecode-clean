@@ -3,10 +3,15 @@
 // חל איסור מוחלט לפתוח הצעות מחיר בנתיב לא תואם שפה.
 // ==========================================
 
-import { lazy, useEffect } from 'react';
+import { useEffect } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import LandingGlobal from '../pages/LandingGlobal';
+import Dashboard from '../pages/Dashboard';
 import { rootRecoveryIntent, rootSignupIntent } from '../shared/supabase';
+import AILogs from '../pages/AILogs';
+import SmartPublicQuote from '../components/SmartPublicQuote';
+import PublicBusinessCard from '../pages/PublicBusinessCard';
+import SampleQuote from '../pages/SampleQuote';
 import PublicToolsEn from '../components/PublicToolsEn';
 import { PublicArticle, PublicArticlesIndex } from '../pages/PublicArticle';
 import Terms from '../pages/Terms';
@@ -16,15 +21,6 @@ import AttachmentCompatRoute from '../components/AttachmentCompatRoute';
 import UpdateAvailableBanner from '../shared/UpdateAvailableBanner';
 import RouteScrollManager from '../shared/RouteScrollManager';
 import SiteAnalytics from '../shared/SiteAnalyticsTracker';
-import RouteChunkBoundary from '../shared/RouteChunkBoundary';
-
-// Codex release 3 step 2 (Owner 2026-10-29, L-15): the heavy screens load on demand (RouteChunkBoundary) - a landing page no longer
-// downloads the Dashboard, the admin, the AI logs or the public quote renderers; the light public pages stay in the shell (prerendered)
-const Dashboard = lazy(() => import('../pages/Dashboard'));
-const AILogs = lazy(() => import('../pages/AILogs'));
-const SmartPublicQuote = lazy(() => import('../components/SmartPublicQuote'));
-const PublicBusinessCard = lazy(() => import('../pages/PublicBusinessCard'));
-const SampleQuote = lazy(() => import('../pages/SampleQuote'));
 
 export default function AppGlobal() {
   useEffect(() => {
@@ -63,7 +59,6 @@ export default function AppGlobal() {
           (session null / isPasswordRecoveryMode driven, mounted via the
           /dashboard Route below) is the sole real implementation now. */}
 
-      <RouteChunkBoundary isHebrew={false}>
       <Routes>
         {/* Password Recovery Fresh-Link Root-Landing Hardening (2026-09-15
             task) - EN twin of AppLocal.jsx's own identical "/" route fix;
@@ -132,7 +127,6 @@ export default function AppGlobal() {
             unknown path still renders NotFound - see src/components/AttachmentCompatRoute.jsx. */}
         <Route path="*" element={<AttachmentCompatRoute isHebrew={false} />} />
       </Routes>
-      </RouteChunkBoundary>
     </BrowserRouter>
   );
 }

@@ -36,17 +36,11 @@ function resolveImportSpecifier(fromFileAbs, specifier, existsFn) {
   return null;
 }
 
-// Codex release 3 step 2 (Owner 2026-10-29, L-15): a screen the market shell loads on demand (React.lazy(() => import('...'))) is still
-// part of that market's app - the reachability follows those relative dynamic imports too
-const DYNAMIC_IMPORT_RE = /\bimport\(\s*['"](\.[^'"]+)['"]\s*\)/g;
-
 function extractImportSpecifiers(text) {
   const specifiers = [];
-  for (const source of [IMPORT_RE.source, DYNAMIC_IMPORT_RE.source]) {
-    const re = new RegExp(source, 'g');
-    let m;
-    while ((m = re.exec(text)) !== null) specifiers.push(m[1]);
-  }
+  const re = new RegExp(IMPORT_RE.source, 'g');
+  let m;
+  while ((m = re.exec(text)) !== null) specifiers.push(m[1]);
   return specifiers;
 }
 

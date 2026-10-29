@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, beforeAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import AppLocal from './local/AppLocal';
 import AppGlobal from './global/AppGlobal';
@@ -263,9 +263,6 @@ async function waitForState(el, state) {
 }
 
 describe('Password Recovery Fresh-Link Root-Landing Hardening (2026-09-15 task) - real route resolution', () => {
-  // Codex release 3 step 2 (Owner 2026-10-29, L-15): the shells load the Dashboard on demand (React.lazy); its first transform in the test
-  // environment takes longer than a findBy wait, so it is loaded once up front - the assertions below are unchanged
-  beforeAll(async () => { await import('./pages/Dashboard'); }, 60000);
   beforeEach(() => {
     mockRootRecoveryIntent.isRecovery = false;
     mockRootRecoveryIntent.isError = false;

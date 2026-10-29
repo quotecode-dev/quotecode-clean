@@ -60,12 +60,8 @@ function AlignedNumber({ value }) {
   const match = text.match(/^([−-]?[₪$]?)([\d,]+)(\.\d+)?$/u);
   if (!match) return text;
   const [, prefix, integer, fraction] = match;
-  // Codex release 3 step 1 (Owner 2026-10-29, typed: "מאשר שחרור 3 של קודקס: נגישות המספרים ... כולל שינוי ב-L-02, L-15, בלי שינוי
-  // באנימציה ובמראה"): an aria-label on a plain span is not announced (a prohibited-ARIA finding on every sample number); the full value is
-  // one screen-reader-only text (.sr-only, out of the grid flow) and the two visual fragments stay hidden from assistive technology
   return (
-    <span className="tl-num-value">
-      <span className="sr-only">{text}</span>
+    <span className="tl-num-value" aria-label={text}>
       <span className="tl-num-integer" aria-hidden="true">{prefix}{integer}</span>
       <span className={`tl-num-fraction${fraction ? '' : ' tl-num-fraction--placeholder'}`} aria-hidden="true">
         {fraction || '.0'}
