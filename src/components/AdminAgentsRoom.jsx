@@ -201,8 +201,7 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
     return r;
   };
   // 20261029000000 (Codex F07): an article approval names the revision on the screen - a draft rewritten since then is read again first
-  // Codex R01 (Owner 2026-10-29, L-22): the revision of the text on the screen - the article row's own (the action's copy may lag)
-  const decide = (a, decision) => act({ action: 'decide', id: a.id, decision, ...(a.action_type === 'article_publish' ? { revision: Number(drafts[a.payload?.articleId]?.revision ?? a.payload?.revision ?? 0) } : {}) }, (r) => {
+  const decide = (a, decision) => act({ action: 'decide', id: a.id, decision, ...(a.action_type === 'article_publish' ? { revision: Number(a.payload?.revision ?? 0) } : {}) }, (r) => {
     if (r.status === 'rejected') return isHebrew ? 'הוסר מהרשימה.' : 'Removed from the list.';
     if (r.status === 'drafted') return isHebrew ? 'הטיוטה מוכנה. היא מחכה למטה לקריאה ולאישור שלכם.' : 'The draft is ready. It waits below for you to read and approve.';
     if (r.status === 'published') return r.deploy === 'ok'

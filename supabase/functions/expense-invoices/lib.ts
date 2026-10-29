@@ -820,12 +820,6 @@ export async function expenseHandler(body: Record<string, unknown>, deps: Expens
       }
       return ok({ results });
     }
-    // Codex R07 (Owner 2026-10-29, L-22): a "sending" left by a send that never finished moves to "Check in PayPlus" on its own button -
-    // no expense types, no other send and no PayPlus call are needed; nothing is created
-    case 'release_stuck': {
-      const moved = await deps.expireStaleSending(new Date(deps.now() - UNKNOWN_SETTLE_MS).toISOString()).catch(() => null);
-      return moved === null ? bad(503, 'retry_later') : ok({ moved });
-    }
     // 20261029000000 (Codex F05): "Check in PayPlus" for expenses PayPlus may have received (a search only - nothing is created)
     case 'reconcile': {
       const ids = body.ids;

@@ -99,12 +99,6 @@ Deno.serve(async (req: Request) => {
       const fresh = new Set((rows ?? []).map((r) => `${r.code}|${r.uid}`));
       return findings.filter((f) => fresh.has(`${f.code}|${f.uid}`));
     },
-    enrichOwed: async (findings) => {
-      for (const f of findings) {
-        // only a row that does not carry the account yet; its status, mail time and history are untouched
-        await db(admin.from('billing_reconcile_findings').update({ detail: f.detail }).eq('code', 'REFUND_OWED').eq('uid', f.uid).is('detail->>userId', null));
-      }
-    },
     unmailed: async () => (await db(admin.from('billing_reconcile_findings').select('id, code, uid, detail')
       .eq('status', 'new').is('mailed_at', null).order('created_at', { ascending: true }).limit(200)) ?? []) as (Finding & { id: string })[],
     mailOwner: async (subject, text, key) => {

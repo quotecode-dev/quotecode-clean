@@ -135,7 +135,7 @@ Deno.serve(async (req: Request) => {
     },
     profiles: async () => (await db(admin.from('agent_profiles').select('agent, name_he, name_en'))) as never,
     setProfile: async (agent: AnyAgent, nameHe, nameEn) => { await db(admin.from('agent_profiles').update({ name_he: nameHe, name_en: nameEn, updated_at: new Date().toISOString() }).eq('agent', agent)); },
-    recentActions: async () => (await db(admin.from('agent_actions').select('id, created_at, run_key, source, kind, action_type, title_he, title_en, detail_he, detail_en, payload, status, decided_at, done_at, result, error, dedupe_key')
+    recentActions: async () => (await db(admin.from('agent_actions').select('id, created_at, run_key, source, kind, action_type, title_he, title_en, detail_he, detail_en, payload, status, decided_at, done_at, result, error')
       .gte('created_at', new Date(Date.now() - 60 * 86_400_000).toISOString()).order('created_at', { ascending: false }).limit(100))) as never,
     insertAction: async (a) => {
       const { data, error } = await admin.from('agent_actions').insert(a).select('id').maybeSingle();

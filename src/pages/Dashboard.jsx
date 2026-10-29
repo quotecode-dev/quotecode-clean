@@ -3976,14 +3976,11 @@ Continue anyway?`, isHebrew);
   function rememberSavedSettings(row) {
     savedSettingsRef.current = { name: row?.business_name ?? '', taxId: row?.tax_id ?? '', email: row?.email ?? '', phone: row?.phone ?? '',
       address: row?.address ?? '', logo: row?.logo_url ?? '', terms: row?.default_terms ?? '', warranty: row?.default_warranty ?? '',
-      currency: row?.currency ?? '', domain: row?.professional_domain ?? '',
-      // Codex R08 (Owner 2026-10-29, L-01/L-15): the STORED business email, kept apart from the form baseline above (which shows the
-      // sign-in email when none is stored) - the business-details gate reads only what is really saved
-      storedEmail: row?.email ?? '' };
+      currency: row?.currency ?? '', domain: row?.professional_domain ?? '' };
   }
   const savedProfile = () => {
     const s = savedSettingsRef.current || {};
-    return { phone: s.phone ?? '', taxId: s.taxId ?? '', name: s.name ?? '', email: s.storedEmail ?? '' };
+    return { phone: s.phone ?? '', taxId: s.taxId ?? '', name: s.name ?? '', email: s.email ?? '' };
   };
   // Codex F17: every field the form saves (utils/settingsBaseline.js)
   const settingsDirty = activeTab === 'settings' && settingsFormDirty({ name: bizName, taxId: bizTaxId, phone: bizPhone, address: bizAddress, logo: bizLogoUrl,

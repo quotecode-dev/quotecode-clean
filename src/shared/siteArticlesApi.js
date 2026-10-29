@@ -20,23 +20,6 @@ function langOf(raw) {
   return out.title && out.description && out.h1 && out.intro && sections.length ? out : null;
 }
 
-// Codex R09 (Owner 2026-10-29, decision 4): why a published row is not usable - named with its slug when it stops the production build
-function langProblem(raw, lang) {
-  const l = raw && typeof raw === 'object' ? raw : null;
-  if (!l) return `${lang}: no content`;
-  const missing = ['title', 'description', 'h1', 'intro'].filter((k) => !str(l[k], 1200));
-  if (missing.length) return `${lang}: missing ${missing.join(', ')}`;
-  return `${lang}: no section with a heading and a paragraph`;
-}
-export function articleRowProblem(row) {
-  if (!row || typeof row !== 'object') return 'not a row';
-  if (!SLUG.test(String(row.slug || ''))) return 'invalid slug';
-  if (!langOf(row.he)) return langProblem(row.he, 'he');
-  if (!langOf(row.en)) return langProblem(row.en, 'en');
-  if (!/^\d{4}-\d{2}-\d{2}/.test(String(row.published_at || ''))) return 'no publication date';
-  return null;
-}
-
 // one checked row: { slug, market, date, he, en } or null (a malformed row never reaches a page)
 export function normalizeArticleRow(row) {
   if (!row || typeof row !== 'object' || !SLUG.test(String(row.slug || '')) || ARTICLE_SLUGS.includes(row.slug)) return null;
@@ -76,9 +59,7 @@ export async function fetchPublishedArticles({ base, key, slug, fetchImpl = glob
     // Codex N12: strict (the production build) never drops a published guide silently - an invalid one stops the build by name
     // (a row whose slug is a static guide is skipped on purpose: the static guide wins)
     const invalid = rows.filter((r) => normalizeArticleRow(r) === null && !(r && ARTICLE_SLUGS.includes(r.slug)));
-    if (strict && invalid.length) {
-      throw new Error(`articles_invalid:${invalid.map((r) => `${String(r?.slug || '?')} (${articleRowProblem(r) || 'invalid'})`).join('; ')}`);
-    }
+    if (strict && invalid.length) throw new Error(`articles_invalid:${invalid.map((r) => String(r?.slug || '?')).join(',')}`);
     return rows.map(normalizeArticleRow).filter(Boolean);
   } catch (e) {
     if (strict && /^articles_(unavailable|invalid):/.test(String(e?.message || ''))) throw e;
