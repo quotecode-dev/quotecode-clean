@@ -265,12 +265,6 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
     const finalChannel = printIntent === 'print' ? 'final_print' : 'final_pdf';
     // Task 35 (F4): the verified owner is told about lines without a price (and the partial total) before a final PDF / print;
     // cancel = nothing is authorized or printed. The flag reaches this page only once get-public-quote returns price_missing.
-    // Codex release 1 (Owner 2026-10-29, typed: "מאשר שחרור 1 של קודקס עכשיו: שער ההפקה למחיר חסר בכל פלט חדש כולל שליחה חוזרת ...", L-24): no product print / PDF of a quote with a line
-    // without a price for ANY viewer - the existing quote stays viewable (a browser's own print cannot be blocked)
-    if (quoteData.viewerIsOwner !== true && missingPriceOutputNotice(quote, { isHebrew: true, items: publicItemsForNotice(items) })) {
-      setApproveToast({ type: 'error', message: 'אפשר לצפות בהצעה הקיימת. להפקת מסמך מלא, בקשו מהעסק הצעה מעודכנת עם כל המחירים.' });
-      return;
-    }
     if (quoteData.viewerIsOwner === true) {
       const notice = missingPriceOutputNotice(quote, { isHebrew: true, items: publicItemsForNotice(items) });
       if (notice && notice.blocked) { setApproveToast({ type: 'error', message: notice.text }); return; }

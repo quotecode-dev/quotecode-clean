@@ -537,12 +537,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-28 (typed L-01, L-09, L-11, L-14, L-15, L-17, L-22, L-23, L-25: the fixes of Codex review of PR #113, with the four decisions): the article revision, the early-end basis after a removed line, a SMART PACK bought again can be removed again, the Owner settles an owed removal refund made in PayPlus"
-    },
-    "20261029200000_quote_missing_price_output_gate.sql": {
-      "sha256": "681f458df18a198874842fa807b0acf51c9293d2c02c2fae939ceb8194700603",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-29 (typed: Codex release 1 now - the output gate for a missing price on every new output including a re-send, decision 1, and the exact quota wording, decision 2, including L-09, L-13, L-14, L-15, L-17, L-24): one readiness rule over the canonical deal document, checked in prepare_quote_output before any reservation or finalized answer"
     }
   }
 }

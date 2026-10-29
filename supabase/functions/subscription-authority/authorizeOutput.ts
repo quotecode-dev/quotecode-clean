@@ -70,10 +70,6 @@ export const CODE_STATUS: Readonly<Record<string, number>> = Object.freeze({
   legacy_issue_policy_pending: 409,
   attachment_snapshot_policy_pending: 409,
   logo_snapshot_policy_pending: 409,  // a mutable external logo URL cannot enter an issued snapshot (no logo feature implied)
-  // Codex release 1 (Owner 2026-10-29, typed: "מאשר שחרור 1 של קודקס עכשיו: שער ההפקה למחיר חסר בכל פלט חדש כולל שליחה חוזרת ..."): a version with a line without a price never
-  // goes out on any channel, a re-send included (migration 20261029200000); nothing was reserved or counted
-  missing_price: 409,
-  price_state_unverified: 409,
   issuer_missing: 409,
   quote_changed: 409,
   output_in_progress: 409,  // Task 31 (Owner-authorized PREP extension): another version of this quote holds the one live reservation - retryable; nothing reserved or counted
