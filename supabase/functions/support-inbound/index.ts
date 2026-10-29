@@ -18,7 +18,7 @@ import { processInquiry, type InquiryRow } from "./process.ts";
 import { supabaseStore } from "./store.ts";
 
 declare const EdgeRuntime: { waitUntil(p: Promise<unknown>): void } | undefined;
-export const ROW_COLUMNS = 'id, status, stored_at, from_address, to_addresses, subject, text_body, attachments, message_id, is_automated, mailbox';
+export const ROW_COLUMNS = 'id, status, stored_at, from_address, to_addresses, subject, text_body, attachments, message_id, is_automated, mailbox, automation_class, reply_allowed, reference_ids, conversation_id, auth_results';
 const RESUME_AFTER_MS = 120000;
 
 const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -87,7 +87,7 @@ serve(async (req) => {
       now: () => new Date(),
     }).catch(async (e) => {
       console.error('support-inbound: handling failed', e instanceof Error ? e.message : e);
-      await store.update(target!.id, { bin: 'red', bin_reason: 'processing_failed', status: 'waiting', processed_at: new Date().toISOString() }, ['new']);
+      await store.update(target!.id, { bin: target!.reply_allowed === false ? 'grey' : 'red', bin_reason: 'processing_failed', status: 'waiting', processed_at: new Date().toISOString() }, ['new']);
     });
     if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime?.waitUntil) EdgeRuntime.waitUntil(work); else await work;
   }

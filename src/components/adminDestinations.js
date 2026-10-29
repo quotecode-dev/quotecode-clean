@@ -90,7 +90,7 @@ export const ADMIN_DESTINATIONS = [
     label: { he: 'פניות', en: 'Inquiries' },
     title: { he: 'פניות - סופר אדמין', en: 'Inquiries - Super Admin' },
     description: { he: 'פניות מהתמיכה ומהמידע, טיוטות ותשובות', en: 'Support and info emails, drafts and replies' },
-    render: (host) => createElement(AdminInquiries, { isHebrew: host.isHebrew, canReply: host.can('inquiries.reply'), canSettings: host.can('inquiries.settings') }),
+    render: (host) => createElement(AdminInquiries, { isHebrew: host.isHebrew, canReply: host.can('inquiries.reply'), canSettings: host.can('inquiries.settings'), canLink: host.isSuperAdmin === true }),
   },
   // Owner console 2026-10-27 (L-22, "מאשר את שניהם"): the social agent's posts - a supervisor with social.view reads them, social.publish
   // approves and marks them published (the agents-room function checks both again); never the rest of the agents room
