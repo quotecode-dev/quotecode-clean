@@ -2671,7 +2671,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             // consent records keep their own versions
             terms_version: '2026-10-25', // Owner 2026-10-25: payments in Israel (before: 2026-10-24 a quote counts at its first save; 2026-10-23 the Free plan's 7 days)
             // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
-            privacy_version: '2026-10-25', // Owner 2026-10-25: the payments section (before: 2026-10-23 consent by location + the Hebrew opt-out)
+            privacy_version: '2026-10-30', // Codex release 9 (Owner 2026-10-30, L-12): optional help emails need separate consent (before: 2026-10-25 the payments section; 2026-10-23 consent by location + the Hebrew opt-out)
             terms_accepted_at: new Date().toISOString(),
           }
         }
@@ -8987,6 +8987,7 @@ Continue anyway?`, isHebrew);
               shareDefaultsClient={supabase}
               shareDefaultsUserId={session?.user?.id}
               onShareDefaultsSaved={(v) => setShareTextDefault(v?.share_text || '')}
+              outreachClient={supabase}
             />
           )}
 

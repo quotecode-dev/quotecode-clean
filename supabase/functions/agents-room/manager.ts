@@ -15,14 +15,18 @@ import {
   type Deps, type Agent, type Finding, type Result, type Run,
 } from './lib.ts';
 import { parseServiceAccount, API, SITE_URL, TOKEN_URL, ORIGIN } from '../search-console/lib.ts';
-import { runSocial, reviseSocial, TARGETS } from './social.ts';
+import { runSocial, reviseSocial, openSocialSlots, TARGETS } from './social.ts';
+// Codex release 9 (Owner console 2026-10-30, continuous work + "מאשר את השמות מאיה ועומר לסוכנים החדשים"): Maya (Customer Success), Omer
+// (the daily LIVE check, run on GitHub - its result comes back through the live-check function) and the manager's "Run now" chain
+import { scanAndDraft, sendApproved, type CsDeps, type Signal } from './customerSuccess.ts';
+import { chainStart, chainStep, hourKey, type ChainDeps } from './chain.ts';
 import type { Competitive } from './marketing.ts';
 import { postMetrics, postComments, draftReplies, replyAction, replyErrors, publishReply, type Graph, type PublishedPost, type Metrics, type NewComment } from './socialReplies.ts';
 import { isBudgetRefusal, isAmbiguous, AMBIGUOUS, BUDGET_CODES } from './aiBudget.ts';
 import { checkTopic, checkFocus, normTopic, topicContext, cleanFocus, FOCUS_MIN, type Inventory, type TopicRef } from './articleTopics.ts';
 
 // + the social agent (Owner 2026-10-27, "מאשר את שלב 1 של סוכנת הרשתות"; social.ts): it prepares posts that wait for the Owner, like the manager
-export const ALL_AGENTS = ['manager', ...AGENTS, 'social'] as const;
+export const ALL_AGENTS = ['manager', ...AGENTS, 'social', 'customer_success', 'live_check'] as const;
 export type AnyAgent = typeof ALL_AGENTS[number];
 export const ARTICLES_PER_WEEK = 2;
 export const MAX_RECOMMENDATIONS = 3;
@@ -32,7 +36,7 @@ const ADMIN_LINK = 'https://www.tekango.com/dashboard?view=admin&section=agents-
 const REBUILD_GRACE_MS = 10 * 60_000; // a published article is in the sitemap once the site rebuilt (about 2 minutes)
 
 export type Kind = 'auto' | 'system' | 'claude' | 'info';
-export type ActionType = 'sitemap_submit' | 'urgent_mail' | 'article_draft' | 'article_publish' | 'claude_task' | 'social_post' | 'social_reply' | 'none';
+export type ActionType = 'sitemap_submit' | 'urgent_mail' | 'article_draft' | 'article_publish' | 'claude_task' | 'social_post' | 'social_reply' | 'outreach_draft' | 'none';
 export type Action = {
   id: string; created_at: string; run_key: string; source: AnyAgent; kind: Kind; action_type: ActionType;
   title_he: string; title_en: string; detail_he: string | null; detail_en: string | null; payload: Record<string, unknown>;
@@ -47,7 +51,9 @@ export type ArticleLang = { title: string; description: string; h1: string; intr
 export type ArticleRow = { id: string; slug: string; market: 'intl' | 'il'; status: 'draft' | 'published' | 'rejected'; he: ArticleLang; en: ArticleLang;
   published_at: string | null; created_at?: string; revision?: number; action_id?: string | null };
 
-export interface StageDeps extends Deps {
+// Codex release 9: Maya's and the chain's data (optional - an older wiring without them simply has no Maya / no chain)
+export interface StageDeps extends Deps, Partial<Omit<CsDeps, 'now'>>,
+  Partial<Pick<ChainDeps, 'callerId' | 'latestRuns' | 'chainOfHour' | 'chainCreate' | 'chainGet' | 'chainActive' | 'chainLease' | 'chainSave' | 'getRun' | 'dispatchLiveCheck'>> {
   // a supervisor's permission, asked of the database as the caller (the Owner: always true; the cron: never)
   can(permission: 'social.view' | 'social.publish'): Promise<boolean>;
   // stage 2 (Owner 2026-10-27, "מאשר את שלב 2 של סוכנת הרשתות"): the accounts whose page token is configured, and the publication itself
@@ -485,6 +491,7 @@ export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown
   const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
   if (!a) return { status: 404, body: { ok: false, code: 'not_found' } };
   if (a.status !== 'proposed' || (a.kind !== 'system' && a.kind !== 'claude')) return { status: 409, body: { ok: false, code: 'not_pending' } };
+  if (a.action_type === 'outreach_draft') return decideOutreach(d, a, b);
   const at = nowIso(d);
   // Codex R4-03: an article rejection is ONE locked database decision - refused while a fresh writing token is held, otherwise the
   // waiting topic / draft is rejected and its flow's identities are freed together (a stale rejection can no longer be overwritten)
@@ -622,6 +629,78 @@ export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown
   return { status: 409, body: { ok: false, code: 'not_pending' } };
 }
 
+// Codex release 9, topic 9: Maya's draft - "דחייה / Reject" closes the case for ever; "אישור ההודעה הזו / Approve this message" approves THAT
+// text (the Owner's edit, when he edited it) for THAT recipient, then everything is checked again before the one send (customerSuccess.ts)
+const csReady = (d: StageDeps): d is StageDeps & CsDeps => !!(d.csSignals && d.csCountSince && d.csInsertCase && d.csUpdateCase && d.csClaim && d.csIssueToken && d.mailCustomer);
+const plainText = (v: unknown, n: number) => String(v ?? '').replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/\r\n?/g, '\n').trim().slice(0, n);
+async function decideOutreach(d: StageDeps, a: Action, b: { decision?: unknown; text?: unknown }): Promise<Out> {
+  if (!csReady(d)) return { status: 503, body: { ok: false, code: 'unavailable' } };
+  const p = (a.payload ?? {}) as Record<string, unknown>;
+  const caseId = String(p.caseId ?? '');
+  const at = nowIso(d);
+  if (b.decision === 'reject') {
+    await d.updateAction(a.id, { status: 'rejected', decided_at: at }, 'proposed');
+    await d.csUpdateCase(caseId, { status: 'rejected', updated_at: at }, 'draft');
+    return { status: 200, body: { ok: true, status: 'rejected' } };
+  }
+  if (b.decision !== 'approve') return { status: 400, body: { ok: false, code: 'bad_decision' } };
+  const text = b.text === undefined ? String(p.text ?? '') : plainText(b.text, 3000);
+  if (text.length < 10) return { status: 400, body: { ok: false, code: 'outreach_text_required' } };
+  // the approval claim: one decision time - a second approval (another tab) finds it taken
+  await d.updateAction(a.id, { status: 'approved', decided_at: at, payload: { ...p, text } }, 'proposed', null);
+  const won = await d.getAction(a.id);
+  // the database spells the time its own way (+00:00) - the same instant is compared, never the text (review 30/10)
+  if (!won || won.status !== 'approved' || Date.parse(String(won.decided_at)) !== Date.parse(at)) return { status: 409, body: { ok: false, code: 'not_pending' } };
+  const market = p.market === 'IL' ? 'IL' : 'INTERNATIONAL';
+  const r = await sendApproved(d, { caseId, userId: String(p.userId ?? ''), signal: String(p.signal ?? '') as Signal, market,
+    lang: p.lang === 'he' ? 'he' : 'en', recipient: String(p.recipient ?? ''), subject: String(p.subject ?? ''), text });
+  if (!r.ok) {
+    await d.updateAction(a.id, { status: 'failed', done_at: nowIso(d), error: r.code ?? 'failed' }, 'approved');
+    return { status: 409, body: { ok: false, code: r.code ?? 'failed' } };
+  }
+  await d.updateAction(a.id, { status: r.status === 'sent' ? 'done' : 'failed', done_at: nowIso(d), result: { delivery: r.status }, error: r.status === 'sent' ? null : `send_${r.status}` }, 'approved');
+  return { status: 200, body: { ok: true, status: r.status } };
+}
+
+// Maya's scan (daily with the security agent, or "Run now"): drafts only - nothing reaches a customer here
+export async function runCustomerSuccess(d: StageDeps, trigger: 'cron' | 'admin', key?: string): Promise<{ status: string; id?: string; result?: Result; error?: string }> {
+  if (!csReady(d)) return { status: 'failed', error: 'not_configured' };
+  const k = key ?? runKey(trigger, d.now());
+  const id = await d.claim('customer_success', k, trigger);
+  if (!id) return { status: 'already_ran' };
+  try {
+    const r = await scanAndDraft(d, k, (x) => d.insertAction(x));
+    await d.finish(id, { status: 'done', finished_at: nowIso(d), summary: r.result.summaryHe, findings: r.result.findings, data: { ...r.result.data, summaryEn: r.result.summaryEn }, ai_cost_usd: 0, tokens: 0 });
+    return { status: 'done', id, result: r.result };
+  } catch (e) {
+    const error = String((e as Error)?.message ?? 'failed').slice(0, 120);
+    await d.finish(id, { status: 'failed', finished_at: nowIso(d), error });
+    return { status: 'failed', id, error };
+  }
+}
+
+// Omer's "Run now": the run row is claimed here (the hour guard), the GitHub job reports into that same row (live-check function)
+export async function runLiveCheck(d: StageDeps): Promise<{ status: string; error?: string }> {
+  if (!d.dispatchLiveCheck) return { status: 'failed', error: 'dispatch_not_configured' };
+  const id = await d.claim('live_check', runKey('admin', d.now()), 'admin');
+  if (!id) return { status: 'already_ran' };
+  const sent = await d.dispatchLiveCheck(id);
+  if (sent === 'ok') return { status: 'dispatched' };
+  const error = sent === 'not_configured' ? 'dispatch_not_configured' : 'dispatch_failed';
+  await d.finish(id, { status: 'failed', finished_at: nowIso(d), error });
+  return { status: 'failed', error };
+}
+
+const chainReady = (d: StageDeps) => !!(d.callerId && d.latestRuns && d.chainOfHour && d.chainCreate && d.chainGet && d.chainActive && d.chainLease && d.chainSave && d.getRun && d.dispatchLiveCheck);
+const chainDeps = (d: StageDeps, sitemapPaths: () => Promise<string[]>) => ({
+  ...d,
+  paths: sitemapPaths,
+  openSocialSlots: async () => openSocialSlots(await d.recentActions(), d.now()),
+  runCustomerSuccessNow: () => runCustomerSuccess(d, 'admin'),
+  runSocialNow: async () => runSocial(d, 'admin', await sitemapPaths()),
+  runManagerNow: async () => runManager(d, 'admin', await sitemapPaths()),
+}) as StageDeps & ChainDeps;
+
 export async function revise(d: StageDeps, b: { id?: unknown; note?: unknown }, paths: string[] = []): Promise<Out> {
   const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
   const note = clip(b.note, 500);
@@ -696,7 +775,8 @@ export async function runDaily(d: StageDeps, paths: string[]): Promise<Out> {
   const sitemap = await maybeSubmitSitemap(d, key, false);
   const articles = await verifyPublishedArticles(d).catch(() => 'failed' as const);
   const social = await socialDaily(d, key).catch(() => ({ metrics: 0, comments: 0, drafted: 0, purged: 0, failed: true }));
-  return { status: 200, body: { ok: true, runKey: key, security, urgent, sitemap, articles, social } };
+  const customerSuccess = csReady(d) ? (await runCustomerSuccess(d, 'cron', key).catch(() => ({ status: 'failed' }))).status : 'not_configured';
+  return { status: 200, body: { ok: true, runKey: key, security, urgent, sitemap, articles, social, customerSuccess } };
 }
 
 // Codex release 8 (Owner 2026-10-30): once a day - the results of our published posts, new comments as replies waiting for the Owner
@@ -942,11 +1022,15 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
         const art = await d.getArticle(String(a.payload.articleId ?? ''));
         if (art) drafts.push(art);
       }
-      return { status: 200, body: { ...r.body, profiles: await d.profiles(), actions: actions.slice(0, 60), pending: pendingOf(actions).length, drafts } };
+      // Codex release 9: the manager chain of this hour (or the one still running) - a refreshed screen continues it
+      const chain = chainReady(d) ? ((await d.chainActive!()) ?? (await d.chainOfHour!(hourKey(d.now())))) : null;
+      return { status: 200, body: { ...r.body, profiles: await d.profiles(), actions: actions.slice(0, 60), pending: pendingOf(actions).length, drafts, chain, chainAvailable: chainReady(d) } };
     }
     case 'run': {
       if (b.agent === 'manager') return adminOnly(async () => ({ status: 200, body: { ok: true, trigger: 'admin', results: [await runManager(d, 'admin', await sitemapPaths())].map((x) => ({ agent: 'manager', status: x.status, error: x.error ?? null })) } }));
       if (b.agent === 'social') return adminOnly(async () => ({ status: 200, body: { ok: true, trigger: 'admin', results: [await runSocial(d, 'admin', await sitemapPaths())].map((x) => ({ agent: 'social', status: x.status, error: x.error ?? null })) } }));
+      if (b.agent === 'customer_success') return adminOnly(async () => ({ status: 200, body: { ok: true, trigger: 'admin', results: [await runCustomerSuccess(d, 'admin')].map((x) => ({ agent: 'customer_success', status: x.status, error: x.error ?? null })) } }));
+      if (b.agent === 'live_check') return adminOnly(async () => ({ status: 200, body: { ok: true, trigger: 'admin', results: [await runLiveCheck(d)].map((x) => ({ agent: 'live_check', status: x.status, error: x.error ?? null })) } }));
       const r = await handler(body, d, sitemapPaths, { mail: false });
       if (r.status !== 200) return r;
       const { full, runIds, ...rest } = r.body as Record<string, unknown> & { full: { agent: Agent; status: string; result?: Result; error?: string }[]; runIds: string[] };
@@ -982,6 +1066,11 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
       }
       return { status: 200, body: { ...rest, mailed, mailAttempted, results: [...(rest.results as unknown[]), { agent: 'social', status: s.status, error: s.error ?? null }, { agent: 'manager', status: m.status, error: m.error ?? null }] } };
     }
+    // Codex release 9, topic 11: the manager's "Run now" - start (or show) this hour's chain, then one step per call
+    case 'chain_start':
+      return adminOnly(async () => (chainReady(d) ? chainStart(chainDeps(d, sitemapPaths)) : { status: 503, body: { ok: false, code: 'unavailable' } }));
+    case 'chain_step':
+      return adminOnly(async () => (chainReady(d) ? chainStep(chainDeps(d, sitemapPaths), b.id) : { status: 503, body: { ok: false, code: 'unavailable' } }));
     case 'daily':
       return who === 'cron' ? runDaily(d, await sitemapPaths()) : { status: 403, body: { ok: false, code: 'forbidden' } };
     case 'decide':

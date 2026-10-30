@@ -285,3 +285,9 @@ enabled = true
 # with x-schedule-secret = SCHEDULE_MONITOR_SECRET (checked in code) - no user JWT exists for that call.
 verify_jwt = false
 entrypoint = "./functions/scheduled-health/index.ts"
+
+[functions.live-check]
+enabled = true
+# Codex release 9 (Owner 2026-10-30): Omer's daily LIVE check - called only by the GitHub job with x-live-check-secret (checked in code)
+verify_jwt = false
+entrypoint = "./functions/live-check/index.ts"

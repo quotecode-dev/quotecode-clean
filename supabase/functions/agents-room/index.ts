@@ -5,6 +5,10 @@
 //    constant-time). Every other call is a verified super admin (JWT + business_settings.role), checked in code.
 //  - Secrets (already set): GSC_SERVICE_ACCOUNT_JSON (read-only Search Console), OPENAI_API_KEY, RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS,
 //    CRON_SECRET. Nothing is ever published, sent to a customer or changed on the site.
+//  - Codex release 9 (Owner 2026-10-30): Maya's approved help email is the ONE customer send - only after the Owner approved that exact
+//    draft (manager.ts decideOutreach). Optional secret LIVE_CHECK_DISPATCH_TOKEN (a GitHub token with Actions write on this repository):
+//    GitHub cannot limit such a token to one workflow - it can start ANY dispatchable workflow here, so it is installed only by the
+//    Owner's explicit decision. Without it Omer's "Run now" and the chain say the dispatch is not configured (the daily schedule runs anyway).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { recordRun } from '../_shared/scheduledHealth.ts'; // Codex release 7: the cron window is reported
 import { type Agent, israelParts } from './lib.ts';
@@ -21,6 +25,9 @@ import { handle, type StageDeps, type AnyAgent } from './manager.ts';
 import { TARGETS, publishToMeta } from './social.ts';
 import { rs256Sign, sitemapPaths, ORIGIN } from '../search-console/lib.ts';
 import { sendMail } from '../support-inbound/mail.ts';
+import type { Chain, Step } from './chain.ts';
+
+const LIVE_CHECK_WORKFLOW = 'https://api.github.com/repos/quotecode-dev/quotecode-clean/actions/workflows/daily-live-check.yml/dispatches';
 
 const corsHeaders = { 'Access-Control-Allow-Origin': '*', 'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type' };
 const json = (status: number, body: Record<string, unknown>) => new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } });
@@ -45,6 +52,7 @@ Deno.serve(async (req: Request) => {
   // a signed-in user who is not the Owner may still be a supervisor (L-22, Owner 2026-10-27): the permission is asked of the database AS
   // THE CALLER (has_admin_permission, like support-admin), per request; any error = refused
   let asCaller: ReturnType<typeof createClient> | null = null;
+  let callerUid: string | null = null;
   const cronSecret = Deno.env.get('CRON_SECRET') ?? '';
   const auth = req.headers.get('Authorization');
   if (cronSecret && sameText(req.headers.get('x-cron-secret') ?? '', cronSecret)) role = 'cron';
@@ -55,7 +63,7 @@ Deno.serve(async (req: Request) => {
       if (uid) {
         asCaller = caller;
         const { data } = await admin.from('business_settings').select('role').eq('user_id', uid).maybeSingle();
-        if ((data as { role?: string } | null)?.role === 'super_admin') role = 'admin';
+        if ((data as { role?: string } | null)?.role === 'super_admin') { role = 'admin'; callerUid = uid; }
       }
     } catch { role = null; }
   }
@@ -242,6 +250,56 @@ Deno.serve(async (req: Request) => {
       .eq('action_type', 'social_reply').gte('created_at', new Date(Date.now() - 30 * 86_400_000).toISOString()).order('created_at', { ascending: false }).limit(100))) as never,
     purgeReplyTexts: async () => Number(await db(admin.rpc('agents_purge_reply_texts'))) || 0,
     competitive: (queries) => collectWeek(marketing, queries),
+    // ---- Codex release 9: Maya (customer_success_signals and her cases - service only, migration 20261031100000)
+    csSignals: async (user) => (await db(admin.rpc('customer_success_signals', { p_user: user ?? null }))) as never,
+    csCountSince: async (since) => {
+      const { count, error } = await admin.from('customer_success_cases').select('id', { count: 'exact', head: true }).gte('created_at', since);
+      if (error) throw new Error('database');
+      return count ?? 0;
+    },
+    csInsertCase: async (row) => {
+      const { data, error } = await admin.from('customer_success_cases').insert(row).select('id').maybeSingle();
+      if (error) { if ((error as { code?: string }).code === '23505') return null; console.error(`agents-room: case ${(error as { code?: string }).code ?? ''}`); throw new Error('database'); }
+      return (data as { id: string } | null)?.id ?? null;
+    },
+    csUpdateCase: async (id, patch, whenStatus) => {
+      if (!/^[0-9a-f-]{36}$/.test(id)) return false;
+      const q = admin.from('customer_success_cases').update(patch).eq('id', id);
+      const rows = (await db((whenStatus ? q.eq('status', whenStatus) : q).select('id'))) as unknown[];
+      return Array.isArray(rows) && rows.length === 1;
+    },
+    csClaim: async (caseId) => (await db(admin.rpc('customer_success_claim', { p_case: caseId }))) === true,
+    csIssueToken: async (user) => { const t = await db(admin.rpc('outreach_issue_token', { p_user: user })); return typeof t === 'string' && /^[0-9a-f]{64}$/.test(t) ? t : null; },
+    // the customer guard of the shared sender (a no-reply address is refused); the case id is the provider key - one email per case
+    mailCustomer: (m) => sendMail({ fetch: (u, i) => fetch(u, i), apiKey: Deno.env.get('RESEND_API_KEY') ?? '', timeoutMs: 20000 },
+      { from: m.from, replyTo: m.replyTo, to: m.to, subject: m.subject, text: m.text, idempotencyKey: m.key, customer: { replyAllowed: true, automatic: false } }),
+    // ---- Codex release 9: Omer and the manager chain
+    callerId: () => callerUid,
+    latestRuns: async () => ((await db(admin.rpc('agents_latest_runs'))) ?? {}) as never,
+    chainOfHour: async (hourKey) => (await db(admin.from('agent_chains').select('*').eq('hour_key', hourKey).maybeSingle())) as Chain | null,
+    chainCreate: async (hourKey, steps: Step[], createdBy) => {
+      const { data, error } = await admin.from('agent_chains').insert({ hour_key: hourKey, steps, created_by: createdBy }).select('*').maybeSingle();
+      if (error) { if ((error as { code?: string }).code === '23505') return null; console.error(`agents-room: chain ${(error as { code?: string }).code ?? ''}`); throw new Error('database'); }
+      return data as Chain | null;
+    },
+    chainGet: async (id) => (await db(admin.from('agent_chains').select('*').eq('id', id).maybeSingle())) as Chain | null,
+    chainActive: async () => ((await db(admin.from('agent_chains').select('*').eq('status', 'running').order('created_at', { ascending: false }).limit(1))) as Chain[])[0] ?? null,
+    chainLease: async (id, seconds) => (await db(admin.rpc('agents_chain_lease', { p_id: id, p_seconds: seconds }))) as Chain | null,
+    chainSave: async (id, steps, status, lease) => {
+      const q = admin.from('agent_chains').update({ steps, status, lease_until: null, ...(status === 'running' ? {} : { finished_at: new Date().toISOString() }) }).eq('id', id);
+      await db(lease ? q.eq('lease_until', lease) : q.is('lease_until', null));
+    },
+    getRun: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('agent_runs').select('status, finished_at, data, error').eq('id', id).maybeSingle())) as never : null),
+    dispatchLiveCheck: async (runId) => {
+      const token = (Deno.env.get('LIVE_CHECK_DISPATCH_TOKEN') ?? '').trim();
+      if (!token) return 'not_configured';
+      try {
+        const r = await timed(LIVE_CHECK_WORKFLOW, { method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ref: 'main', inputs: { run_id: runId } }) }, 15000);
+        try { await r.body?.cancel(); } catch { /* no body needed */ }
+        return r.status === 204 ? 'ok' : 'failed';
+      } catch { return 'failed'; }
+    },
     deployHook: async () => {
       const url = (Deno.env.get('VERCEL_DEPLOY_HOOK_URL') ?? '').trim();
       if (!/^https:\/\/api\.vercel\.com\/v1\/integrations\/deploy\//.test(url)) return 'not_configured';

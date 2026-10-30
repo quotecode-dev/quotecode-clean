@@ -43,7 +43,7 @@ describe('the robot check (Cloudflare Turnstile)', () => {
     // Owner 2026-10-25 (typed L-12): the address is trimmed before it reaches Auth
     expect(dash).toMatch(/signInWithPassword\(\{ email: emailInput\.trim\(\), password: passwordInput, options: \{ captchaToken: takeCaptchaToken\('auth'\) \} \}\)/);
     expect(dash).toMatch(/captchaToken: takeCaptchaToken\('reset'\),\n\s+\}\)\);/);
-    expect(dash).toMatch(/privacy_version: '2026-10-25'/);
+    expect(dash).toMatch(/privacy_version: '2026-10-30'/); // Codex release 9 (Owner 2026-10-30, L-12): the optional help emails line
     // 20261029000000 (Codex F19): the consent record names the versions of the documents linked at signup (their 'last updated' date)
     const day = (f) => { const m = readFileSync(`src/pages/${f}`, 'utf8').match(/Last updated: October (\d+), 2026/); return m ? `2026-10-${m[1].padStart(2, '0')}` : null; };
     expect(dash).toContain(`terms_version: '${day('Terms.jsx')}'`);
@@ -54,11 +54,11 @@ describe('the robot check (Cloudflare Turnstile)', () => {
     expect(src).toMatch(/const checkClient = createClient\(supabaseUrl, secretKey, \{ auth: \{ persistSession: false, autoRefreshToken: false \} \}\);/);
     expect(src).not.toMatch(/createClient\(supabaseUrl, anonKey\);/);
   });
-  it('the Privacy Policy names the check and what it sends, in Hebrew and English, dated 25 October 2026 (consent by location, Owner 2026-10-23; payments section updated 2026-10-25)', () => {
+  it('the Privacy Policy names the check and what it sends, in Hebrew and English, dated 30 October 2026 (consent by location, Owner 2026-10-23; payments section 2026-10-25; optional help emails 2026-10-30)', () => {
     const p = readFileSync('src/pages/Privacy.jsx', 'utf8').replace(/\r\n/g, '\n');
     expect(p).toContain('בדיקת אבטחה של Cloudflare (Turnstile) שחוסמת רובוטים');
     expect(p).toContain('a Cloudflare security check (Turnstile) to block bots');
-    expect(p).toContain('עדכון אחרון: 25 באוקטובר 2026');
-    expect(p).toContain('Last updated: October 25, 2026');
+    expect(p).toContain('עדכון אחרון: 30 באוקטובר 2026');
+    expect(p).toContain('Last updated: October 30, 2026');
   });
 });
