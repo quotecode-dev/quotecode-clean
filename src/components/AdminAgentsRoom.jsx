@@ -16,7 +16,6 @@ import AdminSocialPosts from './AdminSocialPosts';
 import { formatShortDateTime } from '../utils/shortDate';
 import { ADMIN_DATE_MARKET } from '../utils/adminDates';
 import { ADMIN_COPY as C, t } from '../domain/admin/adminCopy';
-import { ARTICLES } from '../shared/publicArticles';
 import './adminUsers.css';
 import './adminV2.css';
 
@@ -76,9 +75,8 @@ const TOPIC_TEXT = {
   possible_duplicate: { he: 'נמצא נושא דומה. בדקו את הפריט הקיים לפני אישור נושא נוסף.', en: 'A similar topic was found. Review the existing item before approving another topic.' },
 };
 const BUDGET_HELD = { he: 'חלק מהתקציב שמור לקריאות שעדיין לא התקבלה עליהן תשובה סופית.', en: 'Part of the budget is reserved for requests whose final outcome is still unknown.' };
-// Codex R4-09: the stopped budget says what is true - further requests are stopped (an earlier request caused the stop)
-const BUDGET_BLOCKED = { he: 'תקציב הבינה נעצר, כי קריאה אחת עלתה יותר מהסכום שנשמר לה. לא יישלחו עוד קריאות לבינה.',
-  en: 'The AI budget was stopped because one request cost more than the amount reserved for it. No further AI requests will be sent.' };
+const BUDGET_BLOCKED = { he: 'תקציב הבינה נעצר, כי קריאה אחת עלתה יותר מהסכום שנשמר לה. לא בוצעה קריאה לבינה.',
+  en: 'The AI budget was stopped because one request cost more than the amount reserved for it. No AI request was made.' };
 const MATCH_KIND = {
   static: { he: 'מדריך קבוע באתר', en: 'A guide on the site' }, published: { he: 'מאמר שפורסם', en: 'A published article' },
   draft: { he: 'טיוטה שמחכה לקריאה', en: 'A draft waiting to be read' }, proposal: { he: 'נושא מוצע שמחכה לאישור', en: 'A proposed topic waiting for approval' },
@@ -90,11 +88,6 @@ const RELEASE4_ERRORS = {
   budget_blocked: BUDGET_BLOCKED, duplicate_topic: TOPIC_TEXT.duplicate_topic, possible_duplicate: TOPIC_TEXT.possible_duplicate,
   article_inventory_unavailable: { he: 'לא הצלחנו לקרוא את כל המאמרים והטיוטות, ולכן לא נוצרה טיוטה. נסו שוב בעוד רגע.', en: 'We could not read all the articles and drafts, so no draft was created. Try again in a moment.' },
   drafting: { he: 'הטיוטה כבר נכתבת. רעננו בעוד כמה דקות.', en: 'The draft is already being written. Refresh in a few minutes.' },
-  // Codex R4-08 / R4-09 / R4-03 / R4-05 (night task 29-30/10)
-  budget_stopped: { he: 'תקציב הבינה עצר ניסיונות נוספים. ייתכן שניסיון קודם בפעולה הזו כבר עלה כסף.', en: 'The AI budget stopped further attempts. An earlier attempt in this action may already have cost money.' },
-  ai_unknown_outcome: { he: 'לא התקבלה תשובה ברורה מהבינה. הסכום נשאר שמור, ולא נשלח ניסיון נוסף. אפשר לנסות שוב מאוחר יותר.', en: 'The AI gave no clear answer. The amount stays reserved and no further attempt was sent. You can try again later.' },
-  already_drafted: { he: 'הטיוטה של הנושא הזה כבר נכתבה. רעננו את המסך.', en: 'The draft for this topic was already written. Refresh the screen.' },
-  article_flow_unavailable: { he: 'לא הצלחנו לקרוא את אישור הנושא של הטיוטה, ולכן היא לא נכתבה מחדש. נסו שוב בעוד רגע.', en: 'We could not read the approval of this draft\'s topic, so it was not rewritten. Try again in a moment.' },
 };
 
 function errorText(code, isHebrew) {
@@ -109,18 +102,9 @@ function errorText(code, isHebrew) {
 }
 
 // the existing article / draft / proposal a topic repeats or resembles, its language, and the article itself when it is on the site
-// Codex R4-10: a duplicate refusal can be checked again (the server decides again) - Codex R4-12: the existing item opens here, in the admin
-function TopicIssue({ id, issue, isHebrew, onRecheck }) {
+function TopicIssue({ id, issue, isHebrew }) {
   const m = issue.match;
   const kind = m && MATCH_KIND[m.kind];
-  const [item, setItem] = useState(null);
-  const open = async () => {
-    if (item) { setItem(null); return; }
-    if (m.kind === 'static') { const a = ARTICLES[m.slug]; setItem(a ? { article: { slug: m.slug, he: a.he, en: a.en } } : { failed: true }); return; }
-    const r = await callFn({ action: 'topic_item', kind: m.kind, id: m.id });
-    setItem(r?.ok ? r : { failed: true });
-  };
-  const canOpen = !!m && ((m.kind === 'static' && !!m.slug) || !!m.id);
   return (
     <div className={`av-notice ${issue.code === 'duplicate_topic' ? 'av-bad' : ''}`} style={{ marginTop: 8 }} data-testid={`action-topic-${id}`} data-code={issue.code} role="status">
       <div>{isHebrew ? TOPIC_TEXT[issue.code].he : TOPIC_TEXT[issue.code].en}</div>
@@ -132,20 +116,6 @@ function TopicIssue({ id, issue, isHebrew, onRecheck }) {
           {m.slug && (m.kind === 'static' || m.kind === 'published') && (
             <div style={{ marginTop: 2 }}><bdi dir="ltr" data-testid={`action-topic-address-${id}`}>{`/${m.lang === 'en' ? 'en' : 'he'}/articles/${m.slug}`}</bdi></div>
           )}
-        </div>
-      )}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 6 }}>
-        {/* PRODUCT_TRUTH_DECORATIVE: shows / hides the existing item inside the admin (Codex R4-12) */}
-        {canOpen && <button type="button" className="av-btn" onClick={open} aria-expanded={!!item} data-testid={`action-topic-open-${id}`}>{item ? (isHebrew ? 'הסתרת הפריט הקיים' : 'Hide the existing item') : (isHebrew ? 'פתיחת הפריט הקיים' : 'Open the existing item')}</button>}
-        {/* PRODUCT_TRUTH_DECORATIVE: lets the server check this topic again after the existing item changed (Codex R4-10) */}
-        {issue.code === 'duplicate_topic' && onRecheck && <button type="button" className="av-btn" onClick={onRecheck} data-testid={`action-topic-recheck-${id}`}>{isHebrew ? 'בדיקה מחדש' : 'Check again'}</button>}
-      </div>
-      {item?.failed && <div className="av-muted" style={{ marginTop: 6, fontSize: '0.85rem' }}>{isHebrew ? 'לא הצלחנו לפתוח את הפריט הקיים.' : 'We could not open the existing item.'}</div>}
-      {item?.article && <ArticlePreview article={item.article} isHebrew={isHebrew} />}
-      {item?.topic && !item.article && (
-        <div style={{ marginTop: 6, fontSize: '0.86rem' }} data-testid={`action-topic-item-${id}`}>
-          <div><bdi dir="auto">{item.topic.he}</bdi>{' · '}<bdi dir="ltr">{item.topic.en}</bdi></div>
-          {item.topic.focus && <div className="av-muted">{isHebrew ? 'מיקוד: ' : 'Focus: '}<bdi dir="auto">{item.topic.focus}</bdi></div>}
         </div>
       )}
     </div>
@@ -337,11 +307,10 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
       };
       return (
         <>
-          {issue && <TopicIssue id={a.id} issue={issue} isHebrew={isHebrew} onRecheck={() => setTopicIssue((m) => { const n = { ...m }; delete n[a.id]; return n; })} />}
+          {issue && <TopicIssue id={a.id} issue={issue} isHebrew={isHebrew} />}
           {needsFocus && (
             <label className="av-field" style={{ marginTop: 8 }}><span>{isHebrew ? 'במה הנושא הזה שונה? כתבו מיקוד אחר (לפחות 10 תווים)' : 'How is this topic different? Write a distinct focus (at least 10 characters)'}</span>
-              {/* the manager's own suggestion is only an example (placeholder) - the Owner writes the approved focus */}
-              <textarea maxLength={300} value={focus} placeholder={a.payload?.ai_focus || ''} onChange={(e) => { const v = e.target.value; setFocusText((m) => ({ ...m, [a.id]: v })); }} data-testid={`action-focus-${a.id}`} style={{ minHeight: 56 }} /></label>
+              <textarea maxLength={300} value={focus} onChange={(e) => { const v = e.target.value; setFocusText((m) => ({ ...m, [a.id]: v })); }} data-testid={`action-focus-${a.id}`} style={{ minHeight: 56 }} /></label>
           )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
             {/* PRODUCT_TRUTH_DECORATIVE: approves the topic - the system writes a draft in Hebrew and English; nothing is published */}
@@ -354,26 +323,13 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
     }
     if (a.action_type === 'article_publish') {
       const art = drafts[a.payload?.articleId];
-      // Codex R4-04: a draft whose headings are similar to an existing item is published only with a distinct focus
-      const pubIssue = topicIssue[a.id] || null;
-      const pubNeedsFocus = pubIssue?.code === 'possible_duplicate';
-      const pubFocus = focusText[a.id] ?? '';
-      const publish = async () => {
-        const r = await decide(a, 'approve', pubNeedsFocus ? { focus: pubFocus } : {});
-        if (r?.code === 'duplicate_topic' || r?.code === 'possible_duplicate') setTopicIssue((m) => ({ ...m, [a.id]: { code: r.code, match: r.match || null } }));
-      };
       return (
         <>
-          {pubIssue && <TopicIssue id={a.id} issue={pubIssue} isHebrew={isHebrew} onRecheck={() => setTopicIssue((m) => { const n = { ...m }; delete n[a.id]; return n; })} />}
-          {pubNeedsFocus && (
-            <label className="av-field" style={{ marginTop: 8 }}><span>{isHebrew ? 'במה המאמר הזה שונה? כתבו מיקוד אחר (לפחות 10 תווים)' : 'How is this article different? Write a distinct focus (at least 10 characters)'}</span>
-              <textarea maxLength={300} value={pubFocus} onChange={(e) => { const v = e.target.value; setFocusText((m) => ({ ...m, [a.id]: v })); }} data-testid={`action-focus-${a.id}`} style={{ minHeight: 56 }} /></label>
-          )}
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
             {/* PRODUCT_TRUTH_DECORATIVE: shows / hides the draft to read before approving */}
             <button type="button" className="av-btn" onClick={() => setOpenDraft(openDraft === a.id ? '' : a.id)} aria-expanded={openDraft === a.id} data-testid={`action-read-${a.id}`}>{isHebrew ? 'קריאת הטיוטה' : 'Read the draft'}</button>
             {/* PRODUCT_TRUTH_DECORATIVE: publishes the approved article on the public site (the site rebuilds itself) */}
-            <button type="button" className="av-btn av-primary" disabled={off || !art || pubIssue?.code === 'duplicate_topic' || (pubNeedsFocus && pubFocus.trim().length < FOCUS_MIN)} onClick={publish} data-testid={`action-approve-${a.id}`}>{isHebrew ? 'מאשר ומפרסם' : 'Approve and publish'}</button>
+            <button type="button" className="av-btn av-primary" disabled={off || !art} onClick={() => decide(a, 'approve')} data-testid={`action-approve-${a.id}`}>{isHebrew ? 'מאשר ומפרסם' : 'Approve and publish'}</button>
             {/* PRODUCT_TRUTH_DECORATIVE: opens the one-sentence revision request for the draft */}
             <button type="button" className="av-btn" disabled={off} onClick={() => { setReviseFor(reviseFor === a.id ? '' : a.id); setReviseNote(''); }} data-testid={`action-revise-${a.id}`}>{isHebrew ? 'בקשת תיקון' : 'Ask for a change'}</button>
             {/* PRODUCT_TRUTH_DECORATIVE: rejects the draft - it is never published */}

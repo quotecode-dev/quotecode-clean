@@ -66,11 +66,6 @@ Deno.serve(async (req: Request) => {
   type BudgetState = { committed_micros?: number; held_micros?: number; blocked?: boolean };
   const budgetState = async (since: string): Promise<BudgetState> =>
     (await db(admin.rpc('agents_ai_budget_state', { p_month: israelParts(new Date(Date.parse(since) + 12 * 3_600_000)).month }))) as BudgetState;
-  const nrm = (s: string) => normTopic(s).slice(0, 300);
-  const lifecycle = (out: unknown) => {
-    const o = (out ?? {}) as { ok?: boolean; code?: string; lang?: string; ref_id?: string | null; article_id?: string; publish_action_id?: string };
-    return { ok: o.ok === true, code: o.code, lang: o.lang, refId: o.ref_id ?? null, articleId: o.article_id, publishActionId: o.publish_action_id };
-  };
   const keyJson = Deno.env.get('GSC_SERVICE_ACCOUNT_JSON') ?? '';
   const sitemap = async () => { const r = await timed(`${ORIGIN}/sitemap.xml`); return r.ok ? await r.text() : ''; };
 
@@ -124,10 +119,8 @@ Deno.serve(async (req: Request) => {
     complete: (a) => budgetedComplete({
       month: () => israelParts(new Date()).month,
       reserve: async (r) => {
-        // Codex R4-11 (20261030400000): the run / action / logical operation of the attempt
-        const uuidOrNull = (v?: string) => (v && /^[0-9a-f-]{36}$/.test(v) ? v : null);
         const out = (await db(admin.rpc('agents_ai_reserve', { p_month: r.month, p_purpose: r.purpose, p_model: r.model, p_rate_version: r.rateVersion,
-          p_max_input: r.maxInput, p_max_output: r.maxOutput, p_reserved: r.micros, p_run_ref: r.ref?.run ?? null, p_action_ref: uuidOrNull(r.ref?.action), p_op_ref: uuidOrNull(r.ref?.op) }))) as { ok?: boolean; id?: string; code?: string };
+          p_max_input: r.maxInput, p_max_output: r.maxOutput, p_reserved: r.micros }))) as { ok?: boolean; id?: string; code?: string };
         if (out?.ok === true && typeof out.id === 'string') return { id: out.id };
         return { refused: out?.code === 'budget_blocked' ? 'budget_blocked' : 'budget_insufficient' };
       },
@@ -135,7 +128,6 @@ Deno.serve(async (req: Request) => {
         await db(admin.rpc('agents_ai_settle', { p_id: id, p_outcome: outcome, p_prompt_tokens: usage?.promptTokens ?? null,
           p_completion_tokens: usage?.completionTokens ?? null, p_settled: micros }));
       },
-      noteProvider: async (id, providerRef) => { await db(admin.rpc('agents_ai_note_provider', { p_id: id, p_provider_ref: providerRef })); },
       post: (body, ms) => timed('https://api.openai.com/v1/chat/completions', {
         method: 'POST', headers: { Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}`, 'Content-Type': 'application/json' }, body,
       }, ms),
@@ -163,6 +155,7 @@ Deno.serve(async (req: Request) => {
       await db(whenDecidedAt === undefined ? s : whenDecidedAt === null ? s.is('decided_at', null) : s.eq('decided_at', whenDecidedAt));
     },
     getAction: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('agent_actions').select('*').eq('id', id).maybeSingle())) as never : null),
+    insertArticle: async (a) => ((await db(admin.from('site_articles').insert(a).select('id').single())) as { id: string }).id,
     updateArticle: async (id, patch, whenStatus, whenRevision) => {
       let q = admin.from('site_articles').update(patch).eq('id', id);
       if (whenStatus) q = q.eq('status', whenStatus);
@@ -178,18 +171,12 @@ Deno.serve(async (req: Request) => {
       if (!inv || !Array.isArray(inv.articles) || !Array.isArray(inv.proposals) || !Array.isArray(inv.claims) || !Array.isArray(inv.slugs)) throw new Error('article_inventory_unavailable');
       return inv;
     },
-    // Codex R4-01..R4-03 (20261030400000): each lifecycle write is ONE locked database transaction
-    admitArticle: async (action, token, holdSeconds, topic, focus) => lifecycle(await db(admin.rpc('agents_article_admit', { p_action: action, p_token: token,
-      p_hold_seconds: holdSeconds, p_he_norm: nrm(topic.he), p_en_norm: nrm(topic.en), p_he: topic.he.slice(0, 300), p_en: topic.en.slice(0, 300),
-      p_focus: focus, p_focus_norm: focus ? nrm(focus) || null : null }))),
-    saveDraft: async (action, token, a, pub) => lifecycle(await db(admin.rpc('agents_article_save_draft', { p_action: action, p_token: token, p_slug: a.slug,
-      p_market: a.market, p_he: a.he, p_en: a.en, p_he_norm: nrm(a.he.h1), p_en_norm: nrm(a.en.h1), p_pub_title_he: pub.title_he, p_pub_title_en: pub.title_en,
-      p_pub_detail_he: pub.detail_he, p_pub_detail_en: pub.detail_en }))),
-    rewriteArticle: async (article, revision, he, en) => lifecycle(await db(admin.rpc('agents_article_rewrite', { p_article: article, p_revision: revision,
-      p_he: he, p_en: en, p_he_norm: nrm(he.h1), p_en_norm: nrm(en.h1) }))),
-    publishArticle: async (article, revision, heads, focus) => lifecycle(await db(admin.rpc('agents_article_publish', { p_article: article, p_revision: revision,
-      p_he_norm: nrm(heads.he), p_en_norm: nrm(heads.en), p_focus: focus, p_focus_norm: focus ? nrm(focus) || null : null }))),
-    rejectArticleFlow: async (action, holdSeconds) => lifecycle(await db(admin.rpc('agents_article_reject', { p_action: action, p_hold_seconds: holdSeconds }))),
+    claimTopic: async (ref, kind, he, en, focus) => {
+      const out = (await db(admin.rpc('agents_article_claim', { p_ref: ref, p_kind: kind, p_he_norm: normTopic(he).slice(0, 300), p_en_norm: normTopic(en).slice(0, 300),
+        p_he: he.slice(0, 300), p_en: en.slice(0, 300), p_focus: focus }))) as { ok?: boolean; lang?: string; ref_id?: string | null };
+      return out?.ok === true ? { ok: true } : { ok: false, lang: String(out?.lang ?? 'he'), refId: out?.ref_id ?? null };
+    },
+    releaseTopic: async (ref) => { await db(admin.rpc('agents_article_release', { p_ref: ref })); },
     lastPublishedAt: async () => ((await db(admin.from('site_articles').select('published_at').eq('status', 'published').order('published_at', { ascending: false }).limit(1))) as { published_at: string }[])[0]?.published_at ?? null,
     deployHook: async () => {
       const url = (Deno.env.get('VERCEL_DEPLOY_HOOK_URL') ?? '').trim();

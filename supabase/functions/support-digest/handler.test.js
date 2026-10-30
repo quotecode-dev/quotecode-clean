@@ -8,15 +8,13 @@ vi.mock('https://esm.sh/@supabase/supabase-js@2', () => ({
     from: (table) => {
       const q = { table, ops: [] };
       const chain = (name) => (...args) => { q.ops.push([name, ...args]); return q; };
-      for (const m of ['select', 'eq', 'in', 'is', 'gte', 'lt', 'order', 'limit', 'delete']) q[m] = chain(m);
+      for (const m of ['select', 'eq', 'in', 'gte', 'lt', 'order', 'limit', 'delete']) q[m] = chain(m);
       q.upsert = (row) => { q.ops.push(['upsert', row]); return q; };
       q.update = (patch) => { q.ops.push(['update', patch]); return q; };
       q.then = (ok, bad) => {
         const op = q.ops[0]?.[0];
         let res = { data: [], error: null };
         if (table === 'support_digest_runs' && op === 'upsert') { const fresh = !h.state.claimed; h.state.claimed = true; res = { data: fresh ? [{ day: q.ops[0][1].day }] : [], error: null }; }
-        // Codex release 5: the Owner-alert retry reads the rows not yet alerted
-        else if (table === 'support_inbound_messages' && op === 'select' && q.ops.some((o) => o[0] === 'is')) res = { data: h.state.unalerted ?? [], error: null };
         else if (table === 'support_inbound_messages' && op === 'select' && q.ops.some((o) => o[0] === 'in')) res = { data: [{ from_address: 'a@x.test', subject: 's', bin: 'red', status: 'waiting', summary: 'wants a refund', reply_sent_by: null, stored_at: '2026-10-20T08:00:00Z' }], error: null };
         return Promise.resolve(res).then(ok, bad);
       };
@@ -51,18 +49,9 @@ describe('support-digest (evening summary)', () => {
     expect(await (await call()).json()).toMatchObject({ ok: true, sent: true, day: '2026-10-20' });
     expect(provider).toHaveLength(1);
     expect(provider[0].body.to).toEqual(['owner@gmail.test']);
-    expect(provider[0].body.subject).toBe('סיכום הפניות של היום - שיחות שממתינות לך: 1');
+    expect(provider[0].body.subject).toBe('סיכום הפניות של היום: 1 ממתינות לך');
     expect(provider[0].headers['Idempotency-Key']).toBe('tekango-support/v1/digest/2026-10-20');
     expect(await (await call()).json()).toMatchObject({ ok: true, skipped: 'already_sent' });
     expect(provider).toHaveLength(1);
-  });
-  // Codex release 5 (decision 7): an Owner alert whose delivery failed is retried with the SAME slot before the summary
-  it('retries a failed red / grey Owner alert once, with the original idempotency slot', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-20T17:00:00Z'));
-    h.state.unalerted = [{ id: '55555555-5555-4555-8555-555555555555', status: 'waiting', bin: 'grey', from_address: 'x.noreply@bank.test', to_addresses: ['support@abc.resend.app'], subject: 'Notice', text_body: 'x', mailbox: 'support', owner_notified_at: null }];
-    await call();
-    expect(provider[0].headers['Idempotency-Key']).toBe('tekango-support/v1/55555555-5555-4555-8555-555555555555/owner');
-    expect(provider[0].body.text.split(String.fromCharCode(10))[0]).toBe('ייתכן שזו הודעה אוטומטית. היא נשמרה לבדיקה ולא נשלחה תשובה לשולח.');
-    expect(provider[1].headers['Idempotency-Key']).toBe('tekango-support/v1/digest/2026-10-20');
   });
 });

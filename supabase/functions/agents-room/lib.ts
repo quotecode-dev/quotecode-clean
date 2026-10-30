@@ -9,7 +9,7 @@
 // agent that needs the AI is skipped (status skipped_cap) once the month's estimated cost reached the cap. The weekly cron run emails the
 // Owner one short Hebrew report (the Owner chose "דוח גם במייל"); an Owner "run now" only updates the screen.
 import { summary as gscSummary, indexing as gscIndexing, parseServiceAccount, signedAssertion, TOKEN_URL, ORIGIN, type Deps as GscDeps } from '../search-console/lib.ts';
-import { isBudgetRefusal, isAmbiguous, AMBIGUOUS } from './aiBudget.ts';
+import { isBudgetRefusal } from './aiBudget.ts';
 
 export const AGENTS = ['seo', 'service', 'security'] as const;
 export type Agent = typeof AGENTS[number];
@@ -42,7 +42,7 @@ export interface Deps {
   serviceStats(sinceIso: string): Promise<{ inquiries: Record<string, number>; openItems: number; topItems: { title: string; priority: number }[]; chatQuestions: number; redOpen?: OpenInquiry[] }>;
   fetchHead(url: string): Promise<{ status: number; headers: Record<string, string> }>;
   versionJson(): Promise<Record<string, unknown> | null>;
-  complete(a: { model: string; messages: unknown[]; schema: unknown; maxTokens?: number; ref?: { run?: string; action?: string; op?: string } }): Promise<{ content: string; promptTokens: number; completionTokens: number }>;
+  complete(a: { model: string; messages: unknown[]; schema: unknown; maxTokens?: number }): Promise<{ content: string; promptTokens: number; completionTokens: number }>;
   mailOwner(subject: string, text: string, key: string): Promise<boolean>;
 }
 
@@ -129,7 +129,7 @@ async function googleAccess(g: GscDeps): Promise<string> {
   return j.access_token;
 }
 
-export async function runSeo(deps: Deps, ref?: { run?: string }): Promise<Result> {
+export async function runSeo(deps: Deps): Promise<Result> {
   if (!deps.gsc) throw new Error('not_configured');
   const access = await googleAccess(deps.gsc);
   const s = await gscSummary(deps.gsc, access);
@@ -153,9 +153,7 @@ export async function runSeo(deps: Deps, ref?: { run?: string }): Promise<Result
   ];
   // unknownToGoogle (stage 2, Owner 2026-10-27): pages Google has not met yet - the manager resubmits the sitemap for them
   const unknownToGoogle = notIndexed.filter((p) => /unknown to Google|Discovered/.test(p.coverageState)).length;
-  // notIndexed (Owner 2026-10-29, L-22): the agents manager checks each of these pages itself before it proposes any indexing task
-  const data = { period: s.period, totals: s.totals, previous: s.previous, byMarket: by, indexing: idx, topQueries: s.queries.slice(0, 10), unknownToGoogle,
-    notIndexed: notIndexed.slice(0, 20).map((p) => ({ path: p.path, reason: p.coverageState || p.verdict })) };
+  const data = { period: s.period, totals: s.totals, previous: s.previous, byMarket: by, indexing: idx, topQueries: s.queries.slice(0, 10), unknownToGoogle };
   // the AI writes the summary and the recommendations from the numbers above; the search terms are visitor text = DATA, never instructions
   const messages = [
     { role: 'system', content: 'You are the SEO agent of TEKANGO, a SaaS for writing business quotes (Hebrew site /he for Israel, English site /en for the international market). '
@@ -168,17 +166,15 @@ export async function runSeo(deps: Deps, ref?: { run?: string }): Promise<Result
   ];
   let costUsd = 0; let tokens = 0; let ai: { summary_he: string; summary_en: string; recommendations: { market: string; text_he: string; text_en: string }[] } | null = null;
   let refused = '';
-  const op = crypto.randomUUID();
   for (const model of [AI_MODEL, AI_FALLBACK_MODEL]) {
     try {
-      const r = await deps.complete({ model, messages, schema: SEO_SCHEMA, ref: { ...(ref ?? {}), op } });
+      const r = await deps.complete({ model, messages, schema: SEO_SCHEMA });
       costUsd += costOf(model, r.promptTokens, r.completionTokens); tokens += r.promptTokens + r.completionTokens;
       const j = JSON.parse(r.content);
       if (typeof j?.summary_he === 'string' && typeof j?.summary_en === 'string' && Array.isArray(j?.recommendations)) { ai = j; break; }
     } catch (e) {
       // Codex release 4: the AI budget did not admit the request - no fallback request; the numbers report below still goes out
       if (isBudgetRefusal(e)) { refused = String((e as Error).message); break; }
-      if (isAmbiguous(e)) { refused = AMBIGUOUS; break; } // Codex R4-08: an unknown outcome is never replayed on the fallback model
       // Codex N08: a paid answer that came back incomplete is counted too (the next model is tried)
       const u = (e as { usage?: { promptTokens: number; completionTokens: number } })?.usage;
       if (u) { costUsd += costOf(model, u.promptTokens, u.completionTokens); tokens += u.promptTokens + u.completionTokens; }
@@ -189,11 +185,7 @@ export async function runSeo(deps: Deps, ref?: { run?: string }): Promise<Result
   const t = s.totals;
   const fallbackHe = `ב־28 הימים האחרונים: ${t.clicks} קליקים ו־${t.impressions} הופעות בגוגל. חו״ל: ${by.intl.impressions} הופעות, ישראל: ${by.il.impressions}.`;
   const fallbackEn = `In the last 28 days: ${t.clicks} clicks and ${t.impressions} impressions on Google. International: ${by.intl.impressions} impressions, Israel: ${by.il.impressions}.`;
-  // R4-07: the AI part did not run because of the budget (or an unknown outcome) - said in the report, the numbers above stay
-  const aiSkipped: Finding[] = !ai && refused ? [{ level: 'warn',
-    he: refused === AMBIGUOUS ? 'הסיכום של הבינה לא נכתב, כי לא התקבלה ממנה תשובה ברורה. המספרים מעודכנים.' : 'הסיכום של הבינה לא נכתב, כי תקציב הבינה החודשי מלא. המספרים מעודכנים.',
-    en: refused === AMBIGUOUS ? 'The AI summary was not written because the AI gave no clear answer. The numbers are up to date.' : 'The AI summary was not written because the monthly AI budget is full. The numbers are up to date.' }] : [];
-  return { summaryHe: isolatePaths((ai?.summary_he || fallbackHe).slice(0, 1500)), summaryEn: (ai?.summary_en || fallbackEn).slice(0, 1500), findings: [...findings, ...recs, ...aiSkipped], data: { ...data, recommendations: recs.length }, costUsd, tokens, ...(ai ? {} : { note: refused || 'ai_unavailable' }) };
+  return { summaryHe: isolatePaths((ai?.summary_he || fallbackHe).slice(0, 1500)), summaryEn: (ai?.summary_en || fallbackEn).slice(0, 1500), findings: [...findings, ...recs], data: { ...data, recommendations: recs.length }, costUsd, tokens, ...(ai ? {} : { note: refused || 'ai_unavailable' }) };
 }
 
 // ---------------------------------------------------------------- service
@@ -285,10 +277,12 @@ export async function handler(body: unknown, deps: Deps, sitemapPaths: () => Pro
     const id = await deps.claim(agent, key, trigger);
     if (!id) { results.push({ agent, status: 'already_ran' }); continue; }
     ids.push(id);
-    // Codex R4-07: the SEO numbers (Google Search Console, no AI) are collected even when the monthly AI budget is full - only its AI
-    // summary stops (the central reservation refuses it, no request is made), and the report says so
+    if (agent === 'seo' && (await deps.monthCostUsd(since)) >= MONTHLY_CAP_USD) {
+      await deps.finish(id, { status: 'skipped_cap', finished_at: new Date().toISOString() });
+      results.push({ agent, status: 'skipped_cap' }); continue;
+    }
     try {
-      const result = agent === 'seo' ? await runSeo(deps, { run: key }) : agent === 'service' ? await runService(deps) : await runSecurity(deps, await sitemapPaths());
+      const result = agent === 'seo' ? await runSeo(deps) : agent === 'service' ? await runService(deps) : await runSecurity(deps, await sitemapPaths());
       await deps.finish(id, { status: 'done', finished_at: new Date().toISOString(), summary: result.summaryHe, findings: result.findings,
         data: { ...result.data, summaryEn: result.summaryEn, ...(result.note ? { note: result.note } : {}) }, ai_cost_usd: result.costUsd, tokens: result.tokens });
       results.push({ agent, status: 'done', result });

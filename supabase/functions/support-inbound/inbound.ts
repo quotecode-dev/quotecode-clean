@@ -4,7 +4,7 @@
 //    executable is ever stored or rendered); attachments are metadata only (never downloaded, never opened).
 //  - A message is stored only when it was sent to one of the configured support / info addresses (SUPPORT_INBOUND_ADDRESSES).
 
-import { classifyAutomation, referenceIds } from './triage.ts';
+import { isAutomatedMessage } from './triage.ts';
 import { mailboxOf } from './templates.ts';
 
 export const MAX_TEXT_CHARS = 100000;
@@ -69,8 +69,6 @@ export function buildInboundRow({ eventId, webhookData, email }: { eventId: stri
     ? { spf: authValue(email.authentication.spf), dkim: authValue(email.authentication.dkim), dmarc: authValue(email.authentication.dmarc) }
     : null;
   const receivedAt = Date.parse(email?.created_at ?? webhookData?.created_at);
-  const subject = typeof (email?.subject ?? webhookData?.subject) === 'string' ? String(email?.subject ?? webhookData?.subject) : null;
-  const automation = classifyAutomation(email?.headers, from.address, subject, text || null, auth);
   return {
     provider: 'resend',
     provider_event_id: String(eventId).slice(0, 200),
@@ -87,10 +85,6 @@ export function buildInboundRow({ eventId, webhookData, email }: { eventId: stri
     received_at: new Date(Number.isFinite(receivedAt) ? receivedAt : Date.now()).toISOString(),
     // stage 2 (Owner console 2026-10-20): the mailbox the customer wrote to, and whether this is an automated message (never answered)
     mailbox: mailboxOf(addressList(email?.to ?? webhookData?.to)),
-    // Codex release 5 (decision 7): the persisted verdict + reply ban; both automatic classes count as automated for older readers
-    ...automation,
-    is_automated: automation.automation_class !== 'human',
-    // Codex release 5 (decision 8): the bounded RFC ids this email replies to (In-Reply-To + References), for its conversation
-    reference_ids: referenceIds(header(email?.headers, 'in-reply-to'), header(email?.headers, 'references')),
+    is_automated: isAutomatedMessage(email?.headers, from.address, typeof (email?.subject ?? webhookData?.subject) === 'string' ? String(email?.subject ?? webhookData?.subject) : null),
   };
 }

@@ -20,7 +20,7 @@ export type Lang = 'he' | 'en';
 export type Inventory = {
   articles: { id: string; slug: string; status: 'draft' | 'published'; market?: string; he: string | null; en: string | null; action_id: string | null }[];
   proposals: { id: string; he: string | null; en: string | null; focus?: string | null }[];
-  claims: { ref_id: string; kind: 'topic' | 'title'; lang: Lang; norm: string; display: string; focus?: string | null; focus_norm?: string | null }[];
+  claims: { ref_id: string; kind: 'topic' | 'title'; lang: Lang; norm: string; display: string; focus?: string | null }[];
   slugs: string[];
 };
 export type TopicRef = { kind: 'static' | 'published' | 'draft' | 'proposal' | 'claim'; lang: Lang; title: string; slug?: string; id?: string };
@@ -128,15 +128,10 @@ export function checkTopic(inv: Inventory, candidate: { he: string; en: string }
 export const TOPIC_CONTEXT_MAX = 300;
 export function topicContext(inv: Inventory): { topics: { he: string; en: string }[]; total: number } {
   const fixed = STATIC_ARTICLES.map((s) => ({ he: s.he, en: s.en })); // the static guides are always sent
-  // Codex release 4 (spec 4): + the topics / headings flows hold (claims), each Hebrew + English pair once
-  const claimed = new Map<string, { he: string; en: string }>();
-  for (const c of inv.claims) { const k = `${c.ref_id}|${c.kind}`; const e = claimed.get(k) ?? { he: '', en: '' }; e[c.lang] = c.display; claimed.set(k, e); }
-  const seen = new Set<string>();
   const rest: { he: string; en: string }[] = [
     ...inv.articles.map((a) => ({ he: String(a.he ?? ''), en: String(a.en ?? '') })),
     ...inv.proposals.map((p) => ({ he: String(p.he ?? ''), en: String(p.en ?? '') })),
-    ...claimed.values(),
-  ].filter((t) => { const k = `${normTopic(t.he)}|${normTopic(t.en)}`; if (seen.has(k)) return false; seen.add(k); return true; });
+  ];
   return { topics: [...fixed, ...rest.slice(-(TOPIC_CONTEXT_MAX - fixed.length))], total: fixed.length + rest.length };
 }
 
@@ -144,7 +139,7 @@ export function topicContext(inv: Inventory): { topics: { he: string; en: string
 export function checkFocus(inv: Inventory, focus: string, exclude: { actionId?: string | null } = {}): TopicRef | null {
   const n = normTopic(focus);
   if (!n) return null;
-  const c = inv.claims.find((x) => x.ref_id !== exclude.actionId && x.kind === 'topic' && (x.focus_norm ?? normTopic(x.focus)) === n);
+  const c = inv.claims.find((x) => x.ref_id !== exclude.actionId && x.kind === 'topic' && normTopic(x.focus) === n);
   if (c) return { kind: 'claim', lang: c.lang, title: c.display, id: c.ref_id };
   const p = inv.proposals.find((x) => x.id !== exclude.actionId && normTopic(x.focus) === n);
   return p ? { kind: 'proposal', lang: 'he', title: String(p.he ?? ''), id: p.id } : null;

@@ -264,8 +264,8 @@ describe('the agents room - Codex release 4', () => {
     render(<AdminAgentsRoom isHebrew={isHebrew} />);
     await waitFor(() => expect(screen.getByTestId('admin-agents-room-held')).toBeTruthy());
     expect(screen.getByTestId('admin-agents-room-held').textContent).toBe(isHebrew ? 'חלק מהתקציב שמור לקריאות שעדיין לא התקבלה עליהן תשובה סופית. $0.25' : 'Part of the budget is reserved for requests whose final outcome is still unknown. $0.25');
-    expect(screen.getByTestId('admin-agents-room-budget-blocked').textContent).toBe(isHebrew ? 'תקציב הבינה נעצר, כי קריאה אחת עלתה יותר מהסכום שנשמר לה. לא יישלחו עוד קריאות לבינה.'
-      : 'The AI budget was stopped because one request cost more than the amount reserved for it. No further AI requests will be sent.');
+    expect(screen.getByTestId('admin-agents-room-budget-blocked').textContent).toBe(isHebrew ? 'תקציב הבינה נעצר, כי קריאה אחת עלתה יותר מהסכום שנשמר לה. לא בוצעה קריאה לבינה.'
+      : 'The AI budget was stopped because one request cost more than the amount reserved for it. No AI request was made.');
     invoke.mockResolvedValueOnce({ data: null, error: { context: { json: async () => ({ ok: false, code: 'budget_insufficient' }) } } });
     fireEvent.click(screen.getByTestId('action-approve-t1'));
     await waitFor(() => expect(screen.getByTestId('admin-agents-room-notice').textContent).toBe(isHebrew ? 'אין בתקציב הבינה החודשי יתרה מספקת לפעולה הזו. לא בוצעה קריאה לבינה.'
@@ -293,60 +293,5 @@ describe('the agents room - Codex release 4', () => {
     expect(screen.queryByTestId('action-topic-t1')).toBeNull();
     expect(screen.queryByTestId('action-focus-t1')).toBeNull();
     expect(screen.getByTestId('action-approve-t1').disabled).toBe(false);
-  });
-});
-
-// Night task 29-30/10: docs/CODEX_REVIEW_RELEASE4_2026-10-29.md - R4-04 (focus at publication), R4-09 (the copy), R4-10 (check again), R4-12 (open the item)
-describe('the agents room - the review of release 4', () => {
-  it.each([[true], [false]])('isHebrew=%s: a duplicate can be checked again, and the matched item opens inside the admin (static guide and draft)', async (isHebrew) => {
-    invoke.mockResolvedValue({ data: stage2, error: null });
-    render(<AdminAgentsRoom isHebrew={isHebrew} />);
-    await waitFor(() => expect(screen.getByTestId('action-approve-t1')).toBeTruthy());
-    invoke.mockResolvedValueOnce({ data: null, error: { context: { json: async () => ({ ok: false, code: 'duplicate_topic', match: { kind: 'static', lang: 'en', title: 'Renovation Contractor Quotes: What to Include', slug: 'renovation-contractor-quote' } }) } } });
-    fireEvent.click(screen.getByTestId('action-approve-t1'));
-    await waitFor(() => expect(screen.getByTestId('action-topic-t1')).toBeTruthy());
-    expect(screen.getByTestId('action-approve-t1').disabled).toBe(true);
-    fireEvent.click(screen.getByTestId('action-topic-open-t1'));
-    await waitFor(() => expect(screen.getByTestId('article-preview-renovation-contractor-quote').textContent).toContain(isHebrew ? 'הצעת מחיר של קבלן שיפוצים' : 'Renovation Contractor Quotes'));
-    expect(screen.getByTestId('action-topic-open-t1').textContent).toBe(isHebrew ? 'הסתרת הפריט הקיים' : 'Hide the existing item');
-    fireEvent.click(screen.getByTestId('action-topic-recheck-t1'));
-    expect(screen.queryByTestId('action-topic-t1')).toBeNull();
-    expect(screen.getByTestId('action-approve-t1').disabled).toBe(false);
-    // a matched draft is read through the guarded server action
-    invoke.mockResolvedValueOnce({ data: null, error: { context: { json: async () => ({ ok: false, code: 'duplicate_topic', match: { kind: 'draft', lang: 'he', title: 'איך מתמחרים', id: 'art1' } }) } } });
-    fireEvent.click(screen.getByTestId('action-approve-t1'));
-    await waitFor(() => expect(screen.getByTestId('action-topic-open-t1')).toBeTruthy());
-    invoke.mockResolvedValueOnce({ data: { ok: true, article: stage2.drafts[0] }, error: null });
-    fireEvent.click(screen.getByTestId('action-topic-open-t1'));
-    await waitFor(() => expect(invoke).toHaveBeenCalledWith('agents-room', { body: { action: 'topic_item', kind: 'draft', id: 'art1' } }));
-    await waitFor(() => expect(screen.getByTestId('action-topic-t1').querySelector('[data-testid="article-preview-hourly"]')).toBeTruthy());
-  });
-
-  it.each([[true], [false]])('isHebrew=%s: a draft with similar headings is published only with a distinct focus', async (isHebrew) => {
-    invoke.mockResolvedValue({ data: stage2, error: null });
-    render(<AdminAgentsRoom isHebrew={isHebrew} />);
-    await waitFor(() => expect(screen.getByTestId('action-approve-p1')).toBeTruthy());
-    invoke.mockResolvedValueOnce({ data: null, error: { context: { json: async () => ({ ok: false, code: 'possible_duplicate', match: { kind: 'static', lang: 'en', title: 'Renovation Contractor Quotes: What to Include', slug: 'renovation-contractor-quote' } }) } } });
-    fireEvent.click(screen.getByTestId('action-approve-p1'));
-    await waitFor(() => expect(screen.getByTestId('action-focus-p1')).toBeTruthy());
-    expect(screen.getByTestId('action-approve-p1').disabled).toBe(true);
-    fireEvent.change(screen.getByTestId('action-focus-p1'), { target: { value: 'שיפוץ מרפסות בלבד' } });
-    invoke.mockResolvedValueOnce({ data: { ok: true, status: 'published', deploy: 'ok' }, error: null });
-    fireEvent.click(screen.getByTestId('action-approve-p1'));
-    await waitFor(() => expect(invoke).toHaveBeenCalledWith('agents-room', { body: { action: 'decide', id: 'p1', decision: 'approve', focus: 'שיפוץ מרפסות בלבד', revision: 0 } }));
-  });
-
-  it.each([[true], [false]])('isHebrew=%s: a stop after a paid attempt and an unknown outcome are said truthfully', async (isHebrew) => {
-    invoke.mockResolvedValue({ data: stage2, error: null });
-    render(<AdminAgentsRoom isHebrew={isHebrew} />);
-    await waitFor(() => expect(screen.getByTestId('action-approve-t1')).toBeTruthy());
-    invoke.mockResolvedValueOnce({ data: null, error: { context: { json: async () => ({ ok: false, code: 'budget_stopped' }) } } });
-    fireEvent.click(screen.getByTestId('action-approve-t1'));
-    await waitFor(() => expect(screen.getByTestId('admin-agents-room-notice').textContent).toBe(isHebrew ? 'תקציב הבינה עצר ניסיונות נוספים. ייתכן שניסיון קודם בפעולה הזו כבר עלה כסף.'
-      : 'The AI budget stopped further attempts. An earlier attempt in this action may already have cost money.'));
-    invoke.mockResolvedValueOnce({ data: null, error: { context: { json: async () => ({ ok: false, code: 'ai_unknown_outcome' }) } } });
-    fireEvent.click(screen.getByTestId('action-approve-t1'));
-    await waitFor(() => expect(screen.getByTestId('admin-agents-room-notice').textContent).toBe(isHebrew ? 'לא התקבלה תשובה ברורה מהבינה. הסכום נשאר שמור, ולא נשלח ניסיון נוסף. אפשר לנסות שוב מאוחר יותר.'
-      : 'The AI gave no clear answer. The amount stays reserved and no further attempt was sent. You can try again later.'));
   });
 });

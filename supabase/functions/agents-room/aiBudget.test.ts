@@ -1,7 +1,7 @@
 // Codex release 4 (Owner 2026-10-29, typed: "מאשר שינוי ב-L-22 לשחרור 4 של קודקס: הגנה מכפילויות מאמרים ושמירת תקציב בינה עם שריון מראש,
 // החלטות 6 ו-9 כמוצע, L-25 בלי שינוי, שחרור עד הלייב"), topic 6a: every AI request is reserved before it and settled once after it.
 import { describe, it, expect, vi } from 'vitest';
-import { budgetedComplete, microsOf, inputBound, requestBody, isBudgetRefusal, isAmbiguous, AMBIGUOUS, RATES, INPUT_OVERHEAD_TOKENS, type BudgetDeps } from './aiBudget.ts';
+import { budgetedComplete, microsOf, inputBound, requestBody, isBudgetRefusal, RATES, INPUT_OVERHEAD_TOKENS, type BudgetDeps } from './aiBudget.ts';
 import { PRICES } from './lib.ts';
 
 const req = { model: 'gpt-6-luna', messages: [{ role: 'user', content: 'שלום עולם' }], schema: { name: 'manager_weekly', strict: true, schema: {} }, maxTokens: 2000 };
@@ -56,17 +56,12 @@ describe('the AI budget reservation (Codex release 4, topic 6a)', () => {
   });
 
   it('no answer / a time-out / an unreadable answer / an answer without usage keep the whole reservation (unknown), never free', async () => {
-    // Codex R4-08: an unknown outcome is a typed ambiguous error - every caller stops its whole operation (no fallback, no retry)
     const b1 = budget(async () => { throw new Error('aborted'); });
-    const e1 = await budgetedComplete(b1, req).catch((x) => x);
-    expect(e1.message).toBe(AMBIGUOUS); expect(isAmbiguous(e1)).toBe(true); expect(e1.reason).toBe('aborted');
+    await expect(budgetedComplete(b1, req)).rejects.toThrow('aborted');
     expect(b1.settle).toHaveBeenCalledWith('att-1', 'unknown', null, null);
     const b2 = budget(async () => new Response('not json', { status: 200 }));
-    expect(isAmbiguous(await budgetedComplete(b2, req).catch((x) => x))).toBe(true);
+    await expect(budgetedComplete(b2, req)).rejects.toThrow();
     expect(b2.settle).toHaveBeenCalledWith('att-1', 'unknown', null, null);
-    const b4 = budget(async () => answer(null, null)); // neither content nor usage
-    expect(isAmbiguous(await budgetedComplete(b4, req).catch((x) => x))).toBe(true);
-    expect(b4.settle).toHaveBeenCalledWith('att-1', 'unknown', null, null);
     const b3 = budget(async () => answer(null));
     expect((await budgetedComplete(b3, req)).content).toBe('{"ok":true}');
     expect(b3.settle).toHaveBeenCalledWith('att-1', 'unknown', null, null);
@@ -80,12 +75,8 @@ describe('the AI budget reservation (Codex release 4, topic 6a)', () => {
     }
     for (const status of [408, 500, 502, 504]) {
       const b = budget(async () => new Response('{}', { status }));
-      const e = await budgetedComplete(b, req).catch((x) => x);
-      expect(isAmbiguous(e)).toBe(true); expect(e.reason).toBe(`ai_${status}`);
+      await expect(budgetedComplete(b, req)).rejects.toThrow(`ai_${status}`);
       expect(b.settle).toHaveBeenCalledWith('att-1', 'unknown', null, null);
-    }
-    for (const status of [400, 401, 429]) { // a definite refusal is not ambiguous - the fallback model may be tried
-      expect(isAmbiguous(await budgetedComplete(budget(async () => new Response('{}', { status })), req).catch((x) => x))).toBe(false);
     }
     const b2 = budget(async () => answer({ prompt_tokens: 50, completion_tokens: 7 }, null));
     expect(b2.settle).not.toHaveBeenCalled();

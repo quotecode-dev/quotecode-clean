@@ -263,9 +263,8 @@ describe('the evening summary (20:00 Israel time)', () => {
   it('counts the day by colour and lists what waits, address and summary each on its own line', () => {
     const r = (o) => ({ from_address: 'a@x.test', subject: 's', bin: 'green', status: 'answered', bin_reason: null, summary: null, reply_sent_by: 'assistant', stored_at: '2026-10-20T08:00:00Z', ...o });
     const d = buildDigest('2026-10-20', [r({}), r({ bin: 'red', status: 'waiting', reply_sent_by: null, summary: 'wants a refund' })], [r({ bin: 'red', status: 'waiting', summary: 'wants a refund' })]);
-    // Codex release 5 (decision 8): the waiting emails are counted by conversation; grey is counted on its own
-    expect(d.subject).toBe('סיכום הפניות של היום - שיחות שממתינות לך: 1');
-    expect(d.text).toContain('ירוק: 1  ·  צהוב: 0  ·  אדום: 1  ·  אפור: 0  ·  שחור: 0');
+    expect(d.subject).toBe('סיכום הפניות של היום: 1 ממתינות לך');
+    expect(d.text).toContain('ירוק: 1  ·  צהוב: 0  ·  אדום: 1  ·  שחור: 0');
     expect(d.text).toContain('פניות שהעוזר ענה עליהן אוטומטית: 1');
     expect(d.text.split('\n')).toEqual(expect.arrayContaining(['אדום - צריך אותך', 'a@x.test', 'wants a refund']));
   });

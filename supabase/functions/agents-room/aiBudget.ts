@@ -16,12 +16,6 @@ export const DEFAULT_MAX_OUTPUT = 2000;
 export const BUDGET_CODES = ['budget_insufficient', 'budget_blocked'] as const;
 export type BudgetCode = typeof BUDGET_CODES[number];
 export const isBudgetRefusal = (e: unknown) => BUDGET_CODES.includes(String((e as Error)?.message ?? '') as BudgetCode);
-// Codex R4-08: a request whose outcome is unknown (no answer, 408 / 5xx, unreadable, no usage and no content) - the caller stops the whole
-// logical operation (no fallback model, no outer retry); the reservation stays held. The original reason is kept in `reason`.
-export const AMBIGUOUS = 'ai_unknown_outcome';
-export const isAmbiguous = (e: unknown) => (e as { ambiguous?: unknown })?.ambiguous === true;
-const ambiguous = (reason: string) => Object.assign(new Error(AMBIGUOUS), { ambiguous: true, reason });
-export type AiRef = { run?: string; action?: string; op?: string };
 
 /** worst-case / observed cost in micro-dollars, rounded up; null = no known tariff */
 export function microsOf(model: string, inputTokens: number, outputTokens: number): number | null {
@@ -41,37 +35,33 @@ export function requestBody(a: { model: string; messages: unknown[]; schema: unk
 
 export interface BudgetDeps {
   month(): string; // the Israel month (YYYY-MM) of now
-  reserve(r: { month: string; purpose: string; model: string; rateVersion: string; maxInput: number; maxOutput: number; micros: number; ref?: AiRef }): Promise<{ id: string } | { refused: BudgetCode }>;
+  reserve(r: { month: string; purpose: string; model: string; rateVersion: string; maxInput: number; maxOutput: number; micros: number }): Promise<{ id: string } | { refused: BudgetCode }>;
   settle(id: string, outcome: 'settled' | 'failed' | 'unknown', usage: { promptTokens: number; completionTokens: number } | null, micros: number | null): Promise<void>;
   post(body: string, timeoutMs: number): Promise<Response>; // throws on no answer / time-out
-  noteProvider?(id: string, providerRef: string): Promise<void>; // R4-11: the provider's own response id, when it answered
 }
 export type Completion = { content: string; promptTokens: number; completionTokens: number };
 
-export async function budgetedComplete(b: BudgetDeps, a: { model: string; messages: unknown[]; schema: unknown; maxTokens?: number; ref?: AiRef }): Promise<Completion> {
+export async function budgetedComplete(b: BudgetDeps, a: { model: string; messages: unknown[]; schema: unknown; maxTokens?: number }): Promise<Completion> {
   const { body, maxOutput } = requestBody(a);
   const maxInput = inputBound(body);
   const worst = microsOf(a.model, maxInput, maxOutput);
   if (worst === null) throw new Error('budget_unknown_tariff');
   const purpose = String((a.schema as { name?: unknown })?.name ?? 'agents').slice(0, 60) || 'agents';
-  const r = await b.reserve({ month: b.month(), purpose, model: a.model, rateVersion: RATE_VERSION, maxInput, maxOutput, micros: Math.max(1, worst), ...(a.ref ? { ref: a.ref } : {}) });
+  const r = await b.reserve({ month: b.month(), purpose, model: a.model, rateVersion: RATE_VERSION, maxInput, maxOutput, micros: Math.max(1, worst) });
   if ('refused' in r) throw new Error(r.refused); // no request was made
   const settle = (outcome: 'settled' | 'failed' | 'unknown', usage: { promptTokens: number; completionTokens: number } | null) =>
     b.settle(r.id, outcome, usage, usage ? microsOf(a.model, usage.promptTokens, usage.completionTokens) : null).catch(() => undefined); // a failed settlement keeps the hold
   let res: Response;
-  try { res = await b.post(body, maxOutput > 2000 ? 120000 : 60000); } catch (e) { await settle('unknown', null); throw ambiguous(String((e as Error)?.message ?? 'no_answer')); }
+  try { res = await b.post(body, maxOutput > 2000 ? 120000 : 60000); } catch (e) { await settle('unknown', null); throw e; }
   if (!res.ok) {
     try { await res.body?.cancel(); } catch { /* the status is enough */ }
     // a definite refusal (4xx: bad request, auth, rate limit) produced nothing = 0; a server / gateway error or a time-out status (5xx,
     // 408) may come after a billed generation = unknown, the reservation stays held
-    const definite = res.status >= 400 && res.status < 500 && res.status !== 408;
-    await settle(definite ? 'failed' : 'unknown', null);
-    throw definite ? new Error(`ai_${res.status}`) : ambiguous(`ai_${res.status}`);
+    await settle(res.status >= 400 && res.status < 500 && res.status !== 408 ? 'failed' : 'unknown', null);
+    throw new Error(`ai_${res.status}`);
   }
   let data: { choices?: { message?: { content?: unknown } }[]; usage?: { prompt_tokens?: unknown; completion_tokens?: unknown } };
-  try { data = await res.json(); } catch { await settle('unknown', null); throw ambiguous('unreadable'); }
-  const providerRef = String((data as { id?: unknown })?.id ?? '').slice(0, 120);
-  if (providerRef && b.noteProvider) await b.noteProvider(r.id, providerRef).catch(() => undefined);
+  try { data = await res.json(); } catch (e) { await settle('unknown', null); throw e; }
   const p = Number(data?.usage?.prompt_tokens ?? NaN); const q = Number(data?.usage?.completion_tokens ?? NaN);
   const known = Number.isInteger(p) && Number.isInteger(q) && p >= 0 && q >= 0;
   // an answer without its usage: the cost is not known, so the whole reservation stays held (the run reports 0 tokens)
@@ -79,9 +69,6 @@ export async function budgetedComplete(b: BudgetDeps, a: { model: string; messag
   await settle(known ? 'settled' : 'unknown', known ? usage : null);
   const c = data?.choices?.[0];
   // Codex N08: a paid answer without content still reports its usage, so the cost is counted
-  if (typeof c?.message?.content !== 'string') {
-    if (!known) throw ambiguous('no_content_no_usage'); // R4-08: neither content nor usage - the outcome is unknown, never replayed
-    throw Object.assign(new Error('ai_incomplete'), { usage });
-  }
+  if (typeof c?.message?.content !== 'string') throw Object.assign(new Error('ai_incomplete'), { usage });
   return { content: c.message.content, ...usage };
 }

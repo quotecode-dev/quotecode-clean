@@ -129,18 +129,13 @@ describe('agents-room', () => {
     expect(d2.mails).toHaveLength(0); // an admin "run now" never emails
   });
 
-  // Codex R4-07: a full month (20 dollars settled or held) stops only the AI summary - the reservation refuses it before any request;
-  // the SEO numbers from Google are still collected and reported, and the free agents still run
-  it('the monthly cap: the SEO numbers still go out, only its AI summary is skipped (no request); the free agents still run', async () => {
+  it('the monthly cap: the AI agent is skipped once the month reached 20 dollars; the free agents still run', async () => {
     const d = deps({ monthCostUsd: vi.fn(async () => MONTHLY_CAP_USD) });
-    d.complete = vi.fn(async () => { throw new Error('budget_insufficient'); }) as never; // the central reservation at a full month
     await handler({ action: 'run' }, d, paths);
-    const seo = d.runs.get('seo|cron:2026-10-27')!;
-    expect(seo.status).toBe('done');
-    expect(seo.data).toMatchObject({ note: 'budget_insufficient' });
-    expect((seo.findings as { he: string }[]).at(-1)!.he).toBe('הסיכום של הבינה לא נכתב, כי תקציב הבינה החודשי מלא. המספרים מעודכנים.');
-    expect(d.complete).toHaveBeenCalledTimes(1); // refused at the reservation; the fallback model is never tried
+    expect(d.runs.get('seo|cron:2026-10-27')!.status).toBe('skipped_cap');
+    expect(d.complete).not.toHaveBeenCalled();
     expect(d.runs.get('service|cron:2026-10-27')!.status).toBe('done');
+    expect(d.mails[0].text).toMatch(/תקרת העלות/);
   });
 
   it('service: counts only (no AI, no email to anyone else); security: headers, a clean live build and every public page', async () => {

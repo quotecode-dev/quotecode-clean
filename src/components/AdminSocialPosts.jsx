@@ -168,10 +168,7 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
     const failText = r?.code === 'cap_reached' ? (isHebrew ? 'הגענו לתקרת העלות החודשית.' : 'The monthly cost cap was reached.')
       // Codex release 4 (Owner 2026-10-29, L-22): the AI budget reservation refused the rewrite - the spec's words
       : r?.code === 'budget_insufficient' ? (isHebrew ? 'אין בתקציב הבינה החודשי יתרה מספקת לפעולה הזו. לא בוצעה קריאה לבינה.' : 'The monthly AI budget does not have enough available funds for this action. No AI request was made.')
-      : r?.code === 'budget_blocked' ? (isHebrew ? 'תקציב הבינה נעצר, כי קריאה אחת עלתה יותר מהסכום שנשמר לה. לא יישלחו עוד קריאות לבינה.' : 'The AI budget was stopped because one request cost more than the amount reserved for it. No further AI requests will be sent.')
-      // Codex R4-08 / R4-09: an earlier attempt of this rewrite may have cost money; an unknown outcome is never retried by itself
-      : r?.code === 'budget_stopped' ? (isHebrew ? 'תקציב הבינה עצר ניסיונות נוספים. ייתכן שניסיון קודם בפעולה הזו כבר עלה כסף.' : 'The AI budget stopped further attempts. An earlier attempt in this action may already have cost money.')
-      : r?.code === 'ai_unknown_outcome' ? (isHebrew ? 'לא התקבלה תשובה ברורה מהבינה. הסכום נשאר שמור, ולא נשלח ניסיון נוסף. אפשר לנסות שוב מאוחר יותר.' : 'The AI gave no clear answer. The amount stays reserved and no further attempt was sent. You can try again later.')
+      : r?.code === 'budget_blocked' ? (isHebrew ? 'תקציב הבינה נעצר, כי קריאה אחת עלתה יותר מהסכום שנשמר לה. לא בוצעה קריאה לבינה.' : 'The AI budget was stopped because one request cost more than the amount reserved for it. No AI request was made.')
       : r?.code === 'forbidden' ? (isHebrew ? 'אין לכם הרשאה לפעולה הזו.' : 'You do not have permission for this action.')
         : r?.code === 'revise_limit' ? (isHebrew ? 'הפוסט כבר תוקן 3 פעמים. אפשר לאשר אותו או לבחור "לא עכשיו".' : 'This post was already revised 3 times. Approve it or choose "Not now".')
           : r?.code === 'not_pending' ? (isHebrew ? 'הפוסט כבר טופל.' : 'This post was already handled.')

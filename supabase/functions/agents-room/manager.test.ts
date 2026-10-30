@@ -5,7 +5,7 @@ import { describe, it, expect, vi } from 'vitest';
 import { REQUIRED_HEADERS, type Finding } from './lib.ts';
 import { readFileSync } from 'node:fs';
 import { normTopic, type Inventory } from './articleTopics.ts';
-import { handle, articlePageIsLive, articleMarkets, weekStartDay, draftErrors, slugify, WRITE_SCOPE, pagePathsIn, pageHealthy, type StageDeps, type Action, type ArticleRow, type ArticleLang } from './manager.ts';
+import { handle, articlePageIsLive, articleMarkets, weekStartDay, draftErrors, slugify, WRITE_SCOPE, type StageDeps, type Action, type ArticleRow, type ArticleLang } from './manager.ts';
 
 const NOW = new Date('2026-11-01T05:30:00Z'); // Sunday 07:30 Israel
 const KEY = JSON.stringify({ client_email: 'reader@x.iam.gserviceaccount.com', private_key: '-----BEGIN PRIVATE KEY-----\nAAA\n-----END PRIVATE KEY-----\n' });
@@ -32,30 +32,7 @@ function deps(over: Partial<StageDeps> = {}) {
   const actions = new Map<string, Action & { dedupe_key?: string }>();
   const articles = new Map<string, ArticleRow>();
   // Codex release 4: the topic claims (20261030300000) - one active flow per language, kind and normalized text
-  const claims: { ref_id: string; kind: 'topic' | 'title'; lang: 'he' | 'en'; norm: string; display: string; focus: string | null; focus_norm?: string | null }[] = [];
-  // Codex R4-01: ONE identity namespace across topic / heading / focus, per flow (article_identity_owners)
-  const owners = new Map<string, string>();
-  const release = (ref: string) => {
-    for (let i = claims.length - 1; i >= 0; i -= 1) if (claims[i].ref_id === ref) claims.splice(i, 1);
-    for (const [k, v] of [...owners]) if (v === ref) owners.delete(k);
-  };
-  const claimCore = (ref: string, kind: 'topic' | 'title', he: string, en: string, focus: string | null): { ok: boolean; code?: string; lang?: string; refId?: string | null } => {
-    const a = actions.get(ref);
-    if (!a || a.action_type !== 'article_draft' || a.status === 'rejected') throw new Error('database'); // agents_article_claim_invalid
-    const ids: [string, string][] = [['he', normTopic(he)], ['en', normTopic(en)], ...(focus ? [['focus', normTopic(focus)] as [string, string]] : [])];
-    for (const [l, n] of ids) { const o = owners.get(`${l}|${n}`); if (o && o !== ref) return { ok: false, code: 'duplicate_topic', lang: l, refId: o }; }
-    for (let i = claims.length - 1; i >= 0; i -= 1) if (claims[i].ref_id === ref && claims[i].kind === kind) claims.splice(i, 1);
-    claims.push({ ref_id: ref, kind, lang: 'he', norm: normTopic(he), display: he, focus, focus_norm: focus ? normTopic(focus) : null },
-      { ref_id: ref, kind, lang: 'en', norm: normTopic(en), display: en, focus, focus_norm: focus ? normTopic(focus) : null });
-    for (const [l, n] of ids) owners.set(`${l}|${n}`, ref);
-    for (const [k, v] of [...owners]) {
-      if (v !== ref) continue;
-      const [l, n] = [k.slice(0, k.indexOf('|')), k.slice(k.indexOf('|') + 1)];
-      const held = claims.some((c) => c.ref_id === ref && ((l !== 'focus' && c.lang === l && c.norm === n) || (l === 'focus' && c.focus_norm === n)));
-      if (!held) owners.delete(k);
-    }
-    return { ok: true };
-  };
+  const claims: { ref_id: string; kind: 'topic' | 'title'; lang: 'he' | 'en'; norm: string; display: string; focus: string | null }[] = [];
   const mails: { subject: string; text: string; key: string }[] = [];
   const google: { url: string; init?: RequestInit }[] = [];
   let seq = 0; let cost = 0;
@@ -85,14 +62,7 @@ function deps(over: Partial<StageDeps> = {}) {
     if (a.schema.name === 'social_week') return { content: JSON.stringify({ posts: [] }), promptTokens: 500, completionTokens: 100 }; // social.test.ts covers the posts
     return { content: JSON.stringify(goodDraft), promptTokens: 2000, completionTokens: 4000 };
   });
-  const addAction = (a: Record<string, unknown>): string | null => {
-    if (a.dedupe_key && [...actions.values()].some((x) => x.dedupe_key === a.dedupe_key)) return null;
-    const id = `00000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`;
-    actions.set(id, { id, created_at: d.now().toISOString(), detail_he: null, detail_en: null, payload: {}, status: 'proposed', decided_at: null, done_at: null, result: {}, error: null, ...a } as never);
-    return id;
-  };
-  const d: StageDeps & { runs: typeof runs; actions: typeof actions; articles: typeof articles; mails: typeof mails; google: typeof google; claims: typeof claims;
-    insertArticle(a: Record<string, unknown>): Promise<string> } = {
+  const d: StageDeps & { runs: typeof runs; actions: typeof actions; articles: typeof articles; mails: typeof mails; google: typeof google; claims: typeof claims } = {
     runs, actions, articles, mails, google, claims,
     caller: vi.fn(async () => 'cron' as const),
     can: vi.fn(async () => false),
@@ -112,7 +82,12 @@ function deps(over: Partial<StageDeps> = {}) {
     profiles: vi.fn(async () => [{ agent: 'manager', name_he: 'נועה', name_en: 'Noa' }, { agent: 'seo', name_he: 'גיא', name_en: 'Guy' }, { agent: 'service', name_he: 'מיכל', name_en: 'Michal' }, { agent: 'security', name_he: 'אבי', name_en: 'Avi' }] as never),
     setProfile: vi.fn(async () => undefined),
     recentActions: vi.fn(async () => [...actions.values()].reverse()),
-    insertAction: vi.fn(async (a) => addAction(a)),
+    insertAction: vi.fn(async (a) => {
+      if (a.dedupe_key && [...actions.values()].some((x) => x.dedupe_key === a.dedupe_key)) return null;
+      const id = `00000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`;
+      actions.set(id, { id, created_at: d.now().toISOString(), detail_he: null, detail_en: null, payload: {}, status: 'proposed', decided_at: null, done_at: null, result: {}, error: null, ...a } as never);
+      return id;
+    }),
     updateAction: vi.fn(async (id: string, patch: Record<string, unknown>, when?: string, whenAt?: string | null) => {
       const a = actions.get(id)!; if (when && a.status !== when) return; if (whenAt !== undefined && (a.decided_at ?? null) !== whenAt) return; Object.assign(a, patch);
     }),
@@ -132,70 +107,19 @@ function deps(over: Partial<StageDeps> = {}) {
       claims: claims.map((c) => ({ ...c })),
       slugs: [...articles.values()].map((a) => a.slug),
     })),
-    // Codex R4-01..R4-03 (20261030400000): the locked lifecycle writes, with the database's rules (one identity namespace per flow)
-    admitArticle: vi.fn(async (action: string, token: string, hold: number, topic: { he: string; en: string }, focus: string | null) => {
-      const a = actions.get(action);
-      if (!a || a.status !== 'proposed') return { ok: false, code: 'not_pending' };
-      if (String(a.error ?? '').startsWith('drafting:') && Date.parse(String(a.decided_at)) > d.now().getTime() - hold * 1000) return { ok: false, code: 'drafting' };
-      const stored = [...articles.values()].find((x) => x.action_id === action);
-      if (stored) return { ok: false, code: 'already_drafted', articleId: stored.id };
-      const c = claimCore(action, 'topic', topic.he, topic.en, focus);
-      if (!c.ok) return c;
-      Object.assign(a, { error: token, decided_at: d.now().toISOString(), ...(focus ? { payload: { ...a.payload, focus } } : {}) });
-      return { ok: true };
-    }),
-    saveDraft: vi.fn(async (action: string, token: string, art: { slug: string; market: 'intl' | 'il'; he: ArticleLang; en: ArticleLang }, pub: { title_he: string; title_en: string; detail_he: string; detail_en: string }) => {
-      const a = actions.get(action);
-      if (!a || a.status !== 'proposed' || a.error !== token) return { ok: false, code: 'not_pending' };
-      const c = claimCore(action, 'title', art.he.h1, art.en.h1, (a.payload.focus as string) ?? null);
-      if (!c.ok) { a.error = 'duplicate_topic'; return c; }
-      const articleId = `10000000-0000-4000-8000-${String(++seq).padStart(12, '0')}`;
-      articles.set(articleId, { id: articleId, status: 'draft', published_at: null, revision: 0, action_id: action, ...art } as never);
-      Object.assign(a, { status: 'done', done_at: d.now().toISOString(), error: null, result: { articleId, slug: art.slug } });
-      const publishActionId = addAction({ run_key: a.run_key, source: 'manager', kind: 'system', action_type: 'article_publish', title_he: pub.title_he, title_en: pub.title_en,
-        detail_he: pub.detail_he, detail_en: pub.detail_en, payload: { articleId, slug: art.slug, revision: 0 }, dedupe_key: `publish:${articleId}` });
-      return { ok: true, articleId, publishActionId };
-    }),
-    rewriteArticle: vi.fn(async (id: string, rev: number, he: ArticleLang, en: ArticleLang) => {
-      const s = articles.get(id);
-      if (!s || s.status !== 'draft') return { ok: false, code: 'article_not_draft' };
-      if (Number(s.revision ?? 0) !== rev) return { ok: false, code: 'article_changed' };
-      if (s.action_id) { const c = claimCore(s.action_id, 'title', he.h1, en.h1, (actions.get(s.action_id)?.payload.focus as string) ?? null); if (!c.ok) return c; }
-      Object.assign(s, { he, en, revision: rev + 1 });
-      return { ok: true };
-    }),
-    publishArticle: vi.fn(async (id: string, rev: number, heads: { he: string; en: string }, focus: string | null) => {
-      const s = articles.get(id);
-      if (!s || s.status !== 'draft') return { ok: false, code: 'article_not_draft' };
-      if (Number(s.revision ?? 0) !== rev) return { ok: false, code: 'article_changed' };
-      if (s.action_id) {
-        if (focus) {
-          const flow = actions.get(s.action_id)!; flow.payload = { ...flow.payload, focus };
-          const t = claims.filter((c) => c.ref_id === s.action_id && c.kind === 'topic');
-          const c = claimCore(s.action_id, 'topic', t.find((x) => x.lang === 'he')?.display ?? heads.he, t.find((x) => x.lang === 'en')?.display ?? heads.en, focus);
-          if (!c.ok) return c;
-        }
-        const c = claimCore(s.action_id, 'title', heads.he, heads.en, null);
-        if (!c.ok) return c;
+    claimTopic: vi.fn(async (ref: string, kind: 'topic' | 'title', he: string, en: string, focus: string | null) => {
+      if (actions.get(ref)?.status === 'rejected') throw new Error('database'); // agents_article_claim_invalid
+
+      const want = [{ lang: 'he' as const, norm: normTopic(he), display: he }, { lang: 'en' as const, norm: normTopic(en), display: en }];
+      for (const w of want) {
+        const other = claims.find((c) => c.lang === w.lang && c.kind === kind && c.norm === w.norm && c.ref_id !== ref);
+        if (other) return { ok: false as const, lang: w.lang, refId: other.ref_id };
       }
-      Object.assign(s, { status: 'published', published_at: d.now().toISOString() });
-      return { ok: true };
+      for (let i = claims.length - 1; i >= 0; i -= 1) if (claims[i].ref_id === ref && claims[i].kind === kind) claims.splice(i, 1);
+      for (const w of want) claims.push({ ref_id: ref, kind, ...w, focus });
+      return { ok: true as const };
     }),
-    rejectArticleFlow: vi.fn(async (action: string, hold: number) => {
-      const a = actions.get(action);
-      if (!a || a.status !== 'proposed') return { ok: false, code: 'not_pending' };
-      let flow: string | null = action;
-      if (a.action_type === 'article_draft') {
-        if (String(a.error ?? '').startsWith('drafting:') && Date.parse(String(a.decided_at)) > d.now().getTime() - hold * 1000) return { ok: false, code: 'drafting' };
-      } else {
-        const s = articles.get(String(a.payload.articleId ?? ''));
-        if (!s || s.status !== 'draft') return { ok: false, code: 'not_pending' };
-        s.status = 'rejected'; flow = s.action_id ?? null;
-      }
-      Object.assign(a, { status: 'rejected', decided_at: d.now().toISOString() });
-      if (flow) release(flow);
-      return { ok: true };
-    }),
+    releaseTopic: vi.fn(async (ref: string) => { for (let i = claims.length - 1; i >= 0; i -= 1) if (claims[i].ref_id === ref) claims.splice(i, 1); }),
     lastPublishedAt: vi.fn(async () => [...articles.values()].filter((a) => a.published_at).map((a) => a.published_at!).sort().pop() ?? null),
     deployHook: vi.fn(async () => 'ok' as const),
     ...over,
@@ -333,8 +257,7 @@ describe('agents room stage 2 - the manager', () => {
   it('a rewrite stored between the check and the publication: nothing is published, the Owner reads the new text', async () => {
     const d = deps();
     const { pub, art } = await draftAndPublishAction(d);
-    // Codex R4-02: the publication is one locked write - a rewrite that landed first makes it refuse, changing nothing
-    const real = d.publishArticle as ReturnType<typeof vi.fn>;
+    const real = d.updateArticle as ReturnType<typeof vi.fn>;
     const impl = real.getMockImplementation()!;
     real.mockImplementationOnce(async (...args: unknown[]) => { d.articles.get(art.id)!.revision = 1; return impl(...args); }); // the rewrite lands first
     expect((await handle({ action: 'decide', id: pub.id, decision: 'approve', revision: 0 }, d, paths)).body).toEqual({ ok: false, code: 'article_changed' });
@@ -376,7 +299,6 @@ describe('agents room stage 2 - the manager', () => {
     const slug = String(d.actions.get(pub.id)!.result.slug);
     const at = (ms: number) => { d.now = () => new Date(NOW.getTime() + ms); };
     const page = d.pageHtml as ReturnType<typeof vi.fn>;
-    page.mockClear(); // the manager's own page-health check (Owner 2026-10-29) ran during the setup
     d.caller = vi.fn(async () => 'cron' as const); // the daily run is the cron's
     // too soon: not checked
     at(5 * 60000);
@@ -788,190 +710,6 @@ describe('Codex release 4 - duplicate article topics (decision 6) and the AI bud
     expect(await approve(d, id)).toMatchObject({ status: 409, body: { code: 'budget_insufficient' } });
     expect(calls(d, 'guide_article')).toHaveLength(1);
     expect(d.actions.get(id)!.status).toBe('proposed');
-  });
-});
-
-// Night task 29-30/10 (Owner-typed: "אשר משימת לילה: תיקון כל ממצאי קודקס על שחרור 4 ..." + "מאשר להוסיף למשימת הלילה, כולל שינוי ב-L-22: נועה
-// בודקת את הדף בעצמה לפני משימת אינדוקס, דף תקין הופך ללידיעה בלבד, ואין חזרה לפי כתובת הדף"): docs/CODEX_REVIEW_RELEASE4_2026-10-29.md R4-01..R4-12
-describe('Codex review of release 4 (R4-01..R4-12) and the indexing check of the manager', () => {
-  type D = ReturnType<typeof deps>;
-  const propose = (d: D, he: string, en: string, extra: Record<string, unknown> = {}) => d.insertAction({ run_key: 'admin:2026-11-01T08', source: 'manager', kind: 'system',
-    action_type: 'article_draft', title_he: he, title_en: en, payload: { market: 'intl', topic_he: he, topic_en: en, ...extra } }) as Promise<string>;
-  const calls = (d: D, name: string) => (d.complete as ReturnType<typeof vi.fn>).mock.calls.filter((c) => c[0].schema.name === name);
-  const approve = (d: D, id: string, extra: Record<string, unknown> = {}) => handle({ action: 'decide', id, decision: 'approve', ...extra }, d, paths);
-  const writer = (d: D, draft: (a: { schema: { name: string } }) => unknown) => {
-    const first = d.complete as ReturnType<typeof vi.fn>;
-    d.complete = vi.fn(async (a: { schema: { name: string } }) => (a.schema.name === 'guide_article' ? draft(a) : first(a))) as never;
-  };
-  const stale = (d: D) => { d.articleInventory = vi.fn(async () => ({ articles: [], proposals: [], claims: [], slugs: [] })); };
-
-  it('R4-01: one identity namespace - another flow\'s written heading blocks a topic, and the same focus is taken once, even after stale reads', async () => {
-    const d = deps(); d.caller = admin();
-    const a = await propose(d, 'תמחור לפי שעה', 'Hourly pricing');
-    expect((await approve(d, a)).body.status).toBe('drafted'); // its heading: "How to price hourly work"
-    stale(d);
-    const b = await propose(d, 'משהו אחר לגמרי', 'How to price hourly work');
-    expect(await approve(d, b)).toMatchObject({ status: 409, body: { code: 'duplicate_topic', match: { kind: 'claim', id: a, lang: 'en' } } });
-    expect(calls(d, 'guide_article')).toHaveLength(1);
-    const e = deps(); e.caller = admin(); stale(e);
-    const f1 = await propose(e, 'שיפוצי מטבח', 'Kitchen renovation quotes'); const f2 = await propose(e, 'שיפוצי אמבטיה', 'Bathroom renovation quotes');
-    const focus = 'רק הצעות לשיפוץ חדר רחצה קטן';
-    const both = await Promise.all([approve(e, f1, { focus }), approve(e, f2, { focus: `${focus}!` })]);
-    expect(both.map((x) => x.body.code ?? x.body.status).sort()).toEqual(['drafted', 'duplicate_topic']);
-    expect(calls(e, 'guide_article')).toHaveLength(1);
-  });
-
-  it('R4-02: a rewrite that loses to another changes nothing - not the article, not the registry', async () => {
-    const d = deps(); d.caller = admin();
-    const id = await propose(d, 'תמחור לפי שעה', 'Hourly pricing');
-    await approve(d, id);
-    const pub = [...d.actions.values()].find((x) => x.action_type === 'article_publish')!;
-    const art = [...d.articles.values()][0];
-    writer(d, () => ({ content: JSON.stringify({ ...goodDraft, he: lang('גרסה שנייה לתמחור', heP), en: lang('A second take on hourly work', enP) }), promptTokens: 1, completionTokens: 1 }));
-    const real = d.rewriteArticle as ReturnType<typeof vi.fn>; const impl = real.getMockImplementation()!;
-    real.mockImplementationOnce(async (...args: unknown[]) => { d.articles.get(art.id)!.revision = 1; return impl(...args); }); // another rewrite won first
-    expect((await handle({ action: 'revise', id: pub.id, note: 'שנו כותרת' }, d, paths)).body).toMatchObject({ code: 'article_changed' });
-    expect(d.articles.get(art.id)!.en.h1).toBe('How to price hourly work');
-    expect(d.claims.filter((c) => c.kind === 'title').map((c) => c.display).sort()).toEqual(['How to price hourly work', 'איך מתמחרים עבודה לפי שעה']);
-  });
-
-  it('R4-03: a rejection is refused while the writing is held, and a rejected flow stores nothing; an interrupted earlier press is resumed, not rewritten', async () => {
-    const d = deps(); d.caller = admin();
-    const id = await propose(d, 'הצעת מחיר לצביעה', 'Painting quotes');
-    let release: () => void = () => undefined;
-    const gate = new Promise<void>((r) => { release = r; });
-    writer(d, async () => { await gate; return { content: JSON.stringify(goodDraft), promptTokens: 1, completionTokens: 1 }; });
-    const writing = approve(d, id);
-    await vi.waitFor(() => expect(calls(d, 'guide_article')).toHaveLength(1));
-    expect((await handle({ action: 'decide', id, decision: 'reject' }, d, paths)).body.code).toBe('drafting');
-    release();
-    expect((await writing).body.status).toBe('drafted');
-    expect(d.actions.get(id)!.status).toBe('done');
-    // legacy: an article stored for a flow that is still waiting (a partial write of before) is resumed, never written again
-    const e = deps(); e.caller = admin();
-    const f = await propose(e, 'הצעת מחיר לריצוף', 'Flooring quotes');
-    await e.insertArticle({ slug: 'flooring', market: 'intl', he: goodDraft.he, en: goodDraft.en, action_id: f });
-    expect(await approve(e, f)).toMatchObject({ status: 409, body: { code: 'already_drafted' } });
-    expect(calls(e, 'guide_article')).toHaveLength(0);
-  });
-
-  it('R4-04: headings similar to an existing guide are not stored, rewritten or published without an approved distinct focus', async () => {
-    const d = deps(); d.caller = admin();
-    const similarDraft = { ...goodDraft, he: lang('הצעות מחיר לשיפוצים', heP), en: lang('Renovation quotes', enP) };
-    writer(d, () => ({ content: JSON.stringify(similarDraft), promptTokens: 1, completionTokens: 1 }));
-    const id = await propose(d, 'תוספת סוף שבוע בהצעת מחיר', 'Weekend surcharge in a quote');
-    expect(await approve(d, id)).toMatchObject({ status: 409, body: { code: 'possible_duplicate', match: { kind: 'static', slug: 'renovation-contractor-quote' } } });
-    expect(d.articles.size).toBe(0);
-    expect(d.actions.get(id)!.error).toBe('possible_duplicate'); // the token was given back: the Owner may answer with a focus
-    expect((await approve(d, id, { focus: 'רק תוספת עבודה בסופי שבוע בשיפוצים' })).body.status).toBe('drafted');
-    // a legacy draft with similar headings and no approved focus is not published until the Owner gives one
-    const e = deps(); e.caller = admin();
-    const flow = await propose(e, 'נושא ישן', 'An old topic');
-    const art = await e.insertArticle({ slug: 'legacy', market: 'intl', he: similarDraft.he, en: similarDraft.en, action_id: flow, revision: 0 });
-    const pub = await e.insertAction({ run_key: 'x', source: 'manager', kind: 'system', action_type: 'article_publish', title_he: 'x', title_en: 'x', payload: { articleId: art } }) as string;
-    expect(await approve(e, pub, { revision: 0 })).toMatchObject({ status: 409, body: { code: 'possible_duplicate' } });
-    expect(e.articles.get(art)!.status).toBe('draft');
-    expect((await approve(e, pub, { revision: 0, focus: 'הצעות לשיפוץ מרפסות בלבד, בלי פנים הבית' })).body.status).toBe('published');
-    expect(e.actions.get(flow)!.payload.focus).toBe('הצעות לשיפוץ מרפסות בלבד, בלי פנים הבית');
-  });
-
-  it('R4-05: a rewrite reads the inventory and the topic approval BEFORE paying - unreadable = no provider call, nothing changed', async () => {
-    const d = deps(); d.caller = admin();
-    const id = await propose(d, 'תמחור לפי שעה', 'Hourly pricing');
-    await approve(d, id);
-    const pub = [...d.actions.values()].find((x) => x.action_type === 'article_publish')!;
-    const before = calls(d, 'guide_article').length;
-    const inv = d.articleInventory;
-    d.articleInventory = vi.fn(async () => { throw new Error('database'); });
-    expect(await handle({ action: 'revise', id: pub.id, note: 'יותר דוגמאות' }, d, paths)).toMatchObject({ status: 503, body: { code: 'article_inventory_unavailable' } });
-    d.articleInventory = inv;
-    const get = d.getAction as ReturnType<typeof vi.fn>; const impl = get.getMockImplementation()!;
-    get.mockImplementation(async (x: string) => (x === id ? (() => { throw new Error('database'); })() : impl(x)));
-    expect(await handle({ action: 'revise', id: pub.id, note: 'יותר דוגמאות' }, d, paths)).toMatchObject({ status: 503, body: { code: 'article_flow_unavailable' } });
-    expect(calls(d, 'guide_article')).toHaveLength(before);
-    expect(Number([...d.articles.values()][0].revision ?? 0)).toBe(0);
-  });
-
-  it('R4-06: a skipped duplicate keeps its market open - the week stays one international + one Israel', async () => {
-    const d = deps(); d.caller = admin();
-    let t = new Date('2026-11-08T06:10:00Z'); d.now = () => t; // a week of [intl, il]
-    expect(articleMarkets(t)).toEqual(['intl', 'il']);
-    const first = d.complete as ReturnType<typeof vi.fn>;
-    const says = (articles: { topic_he: string; topic_en: string }[]) => { d.complete = vi.fn(async (a: { schema: { name: string } }) => (a.schema.name === 'manager_weekly'
-      ? { content: JSON.stringify({ summary_he: 'x', summary_en: 'x', recommendations: [], articles: articles.map((x) => ({ ...x, why_he: 'x', why_en: 'x', closest_existing: '', distinct_focus: '' })) }), promptTokens: 1, completionTokens: 1 }
-      : first(a))) as never; };
-    says([{ topic_he: 'תמחור יבוא עם המרת מטבעות', topic_en: 'Import Pricing with Currency Conversion' }, { topic_he: 'הצעת מחיר לניקיון', topic_en: 'Cleaning quotes' }]);
-    await handle({ action: 'run', agent: 'manager' }, d, paths);
-    says([{ topic_he: 'מקדמה בהצעת מחיר', topic_en: 'Deposits in a quote' }]);
-    t = new Date('2026-11-08T08:10:00Z');
-    await handle({ action: 'run', agent: 'manager' }, d, paths);
-    const arts = [...d.actions.values()].filter((a) => a.action_type === 'article_draft');
-    expect(arts.map((a) => `${a.payload.topic_en}:${a.payload.market}`)).toEqual(['Cleaning quotes:il', 'Deposits in a quote:intl']);
-  });
-
-  it('R4-08 / R4-09 / R4-11: an unknown outcome is never replayed; a stop after a paid attempt says so; every attempt carries its action and operation', async () => {
-    const d = deps(); d.caller = admin();
-    writer(d, () => { throw Object.assign(new Error('ai_unknown_outcome'), { ambiguous: true }); });
-    const id = await propose(d, 'הצעת מחיר לצביעה', 'Painting quotes');
-    expect(await approve(d, id)).toMatchObject({ status: 409, body: { code: 'ai_unknown_outcome' } });
-    expect(calls(d, 'guide_article')).toHaveLength(1); // no fallback model, no second writing round
-    expect(d.actions.get(id)!.status).toBe('proposed');
-    // a paid unusable first answer, then the budget refuses the fallback: not "no AI request was made"
-    const e = deps(); e.caller = admin();
-    let n = 0;
-    writer(e, () => { n += 1; if (n === 1) return { content: 'not json', promptTokens: 10, completionTokens: 10 }; throw new Error('budget_insufficient'); });
-    const f = await propose(e, 'הצעת מחיר לצביעה', 'Painting quotes');
-    expect(await approve(e, f)).toMatchObject({ status: 409, body: { code: 'budget_stopped' } });
-    const refs = calls(e, 'guide_article').map((c) => c[0].ref);
-    expect(refs.every((r) => r.action === f && r.op === refs[0].op)).toBe(true);
-    // the manager's own run: an unknown outcome fails the run, one request only
-    const g = deps(); g.caller = admin();
-    g.complete = vi.fn(async () => { throw Object.assign(new Error('ai_unknown_outcome'), { ambiguous: true }); }) as never;
-    const r = await handle({ action: 'run', agent: 'manager' }, g, paths);
-    expect((r.body.results as { status: string; error: string }[])[0]).toMatchObject({ status: 'failed', error: 'ai_unknown_outcome' });
-    expect(calls(g, 'manager_weekly')).toHaveLength(1);
-  });
-
-  it('R4-12: the matched draft / topic is read inside the admin, Owner only', async () => {
-    const d = deps(); d.caller = admin();
-    const id = await propose(d, 'תמחור לפי שעה', 'Hourly pricing', { focus: 'מיקוד' });
-    await approve(d, id);
-    const art = [...d.articles.values()][0];
-    expect((await handle({ action: 'topic_item', kind: 'draft', id: art.id }, d, paths)).body).toMatchObject({ ok: true, article: { id: art.id } });
-    expect((await handle({ action: 'topic_item', kind: 'claim', id }, d, paths)).body).toMatchObject({ ok: true, topic: { he: 'תמחור לפי שעה' }, article: { id: art.id } });
-    d.caller = vi.fn(async () => 'cron' as const);
-    expect((await handle({ action: 'topic_item', kind: 'draft', id: art.id }, d, paths)).status).toBe(403);
-  });
-
-  it('Owner 2026-10-29 (L-22): a healthy page Google did not index is information, never a code task; a broken page is; no repeat by page address', async () => {
-    const healthyTerms = '<html><head><title>TEKANGO - Terms of Service</title><link rel="canonical" href="https://www.tekango.com/en/terms"><meta name="robots" content="index, follow"></head><body>Terms</body></html>';
-    const recs = [
-      { kind: 'claude', title_he: 'בדיקת דף התנאים באנגלית', title_en: 'Check the English terms page', detail_he: 'גוגל סרק את /en/terms ולא הכניס.', detail_en: 'Google crawled /en/terms but did not index it.', prompt_he: 'בדקו את הדף /en/terms באתר: שהוא מחזיר תשובה תקינה, שאין noindex, ושהכתובת הראשית נכונה. תקנו אם צריך.' },
-      { kind: 'claude', title_he: 'בדיקת דף הפרטיות', title_en: 'Check the privacy page', detail_he: 'גוגל לא הכניס את /en/privacy.', detail_en: 'Google did not index /en/privacy.', prompt_he: 'בדקו את הדף /en/privacy באתר: נמצא בו noindex, תקנו את הקוד כדי שהדף יהיה ניתן לאינדוקס.' },
-    ];
-    const run = async (d: D) => {
-      d.runs.set('seo|prev', { id: 'seo|prev', agent: 'seo', run_key: 'prev', trigger: 'cron', status: 'done', started_at: NOW.toISOString(), finished_at: NOW.toISOString(), findings: [],
-        data: { notIndexed: [{ path: '/en/terms', reason: 'Crawled - currently not indexed' }, { path: '/en/privacy', reason: 'Excluded by noindex' }] } });
-      d.pageHtml = vi.fn(async (u: string) => (u.endsWith('/en/terms') ? healthyTerms : healthyTerms.replace('index, follow', 'noindex').replace('/en/terms', '/en/privacy')));
-      const first = d.complete as ReturnType<typeof vi.fn>;
-      d.complete = vi.fn(async (a: { schema: { name: string } }) => (a.schema.name === 'manager_weekly'
-        ? { content: JSON.stringify({ summary_he: 'x', summary_en: 'x', recommendations: recs, articles: [] }), promptTokens: 1, completionTokens: 1 } : first(a))) as never;
-      return handle({ action: 'run', agent: 'manager' }, d, paths);
-    };
-    const d = deps(); d.caller = admin();
-    await run(d);
-    const byTitle = (t: string) => [...d.actions.values()].find((a) => a.title_en === t)!;
-    expect(byTitle('Check the English terms page')).toMatchObject({ kind: 'info', action_type: 'none', payload: {} });
-    expect(byTitle('Check the privacy page')).toMatchObject({ kind: 'claude', action_type: 'claude_task' });
-    const user = JSON.parse((d.complete as ReturnType<typeof vi.fn>).mock.calls.find((c) => c[0].schema.name === 'manager_weekly')![0].messages[1].content);
-    expect(user.pageHealth).toEqual([{ path: '/en/terms', healthy: true, problems: [] }, { path: '/en/privacy', healthy: false, problems: ['noindex'] }]);
-    // the next run (another hour): the same pages are not raised again, under any wording
-    recs[0] = { ...recs[0], title_he: 'שוב דף התנאים', title_en: 'The terms page again' };
-    d.now = () => new Date(NOW.getTime() + 3 * 3600000);
-    await run(d);
-    expect([...d.actions.values()].filter((a) => /terms|privacy/i.test(a.title_en))).toHaveLength(2);
-    expect(pagePathsIn('see https://www.tekango.com/en/terms/ and /he/articles/x-y.')).toEqual(['/en/terms', '/he/articles/x-y']);
-    expect(pageHealthy(null, 'https://www.tekango.com/en/terms')).toEqual({ healthy: false, problems: ['no_answer'] });
   });
 });
 

@@ -4,10 +4,6 @@
 // every inquiry shows its colour and state, the mailbox it was sent to, a counter of what waits for the Owner, the assistant settings
 // (sending by colour - off = drafts only, the trial - and the stop switch) and the Owner's actions in the inquiry dialog. Every write
 // goes through the support-admin function (super admin check + the one mail gate); this screen only reads the tables.
-// Codex release 5 (Owner console 2026-10-29 night, decisions 7-8, L-22; L-25 dates / dialog unchanged): GREY = possibly automatic (kept
-// for review, no reply); a sender that may not be answered shows why and offers no reply (the server refuses it anyway); one list row
-// per conversation, and the dialog shows the conversation's timeline (received emails + everything we sent, with its delivery state).
-// The Owner alone links / unlinks a message (canLink); a deep link still opens that exact message.
 import { useEffect, useState } from 'react';
 import { Inbox, Search, Clock, Mail, MessageSquareText, Paperclip, X, ShieldCheck, AtSign, CircleDot, Settings2, Send, Sparkles, Ban, Info, Palette, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
 import { supabase } from '../shared/supabase';
@@ -71,27 +67,6 @@ const INQUIRIES_COPY = Object.freeze({
     en: 'While sending by itself is off, every reply waits as a draft for your approval. The fixed acknowledgement of a red inquiry is always sent unless every email is stopped. Red alerts and the evening summary always reach you.',
   },
   settingsFailed: { he: 'שמירת ההגדרה נכשלה.', en: 'Could not save the setting.' },
-  maybeAutomatic: { he: 'ייתכן שזו הודעה אוטומטית. היא נשמרה לבדיקה ולא נשלחה תשובה לשולח.', en: 'This may be an automated message. It was kept for review and no reply was sent.' },
-  noReplyAddress: { he: 'הכתובת הזו אינה מיועדת למענה. בדקו את ההודעה לפני יצירת קשר בדרך אחרת.', en: 'This address is not intended for replies. Review the message before contacting the sender another way.' },
-  conversation: { he: 'שיחה', en: 'Conversation' },
-  conversationCount: { he: (n) => `שיחה: ${n} הודעות`, en: (n) => `Conversation: ${n} messages` },
-  newInConversation: { he: 'הודעה חדשה באותה שיחה', en: 'New message in this conversation' },
-  suggested: { he: 'ייתכן שההודעה קשורה לשיחה קיימת. היא לא אוחדה אוטומטית.', en: 'This message may belong to an existing conversation. It was not merged automatically.' },
-  linkSuggested: { he: 'צירוף לשיחה הקיימת', en: 'Add to the existing conversation' },
-  unlink: { he: 'הוצאה לשיחה נפרדת', en: 'Move to a separate conversation' },
-  linked: { he: 'השיוך לשיחה נשמר.', en: 'The conversation was updated.' },
-  sentState: { he: 'נשלח', en: 'Sent' },
-  unknownState: { he: 'השליחה לא אומתה', en: 'Delivery not confirmed' },
-  failedState: { he: 'השליחה נכשלה', en: 'Sending failed' },
-  viewOriginal: { he: 'צפייה בהודעה המקורית', en: 'View the original message' },
-  thisMessage: { he: 'ההודעה הפתוחה', en: 'The open message' },
-  ackKind: { he: 'אישור קבלה קבוע', en: 'Fixed acknowledgement' },
-  assistantKind: { he: 'תשובת העוזר', en: 'The assistant\'s reply' },
-  ownerKind: { he: 'תשובת בעל המערכת', en: 'The Owner\'s reply' },
-  textNotKept: { he: 'הנוסח המדויק לא נשמר.', en: 'The exact text was not kept.' },
-  threadLoading: { he: 'טוען את השיחה…', en: 'Loading the conversation...' },
-  threadFailed: { he: 'טעינת השיחה נכשלה.', en: 'Could not load the conversation.' },
-  threadTruncated: { he: 'מוצגות 100 ההודעות האחרונות בשיחה.', en: 'Showing the latest 100 messages of the conversation.' },
 });
 
 const BINS = {
@@ -99,7 +74,6 @@ const BINS = {
   yellow: { color: '#EAB308', he: 'צהוב', en: 'Yellow' },
   red: { color: '#DC2626', he: 'אדום', en: 'Red' },
   black: { color: '#1F2937', he: 'שחור', en: 'Black' },
-  grey: { color: '#94A3B8', he: 'אפור', en: 'Grey' },
 };
 const STATES = {
   new: { he: 'בטיפול העוזר', en: 'Being sorted' },
@@ -108,7 +82,6 @@ const STATES = {
   answered: { he: 'נענתה', en: 'Answered' },
   dismissed: { he: 'לא נשלחה', en: 'Not sent' },
   ignored: { he: 'ללא מענה (מייל אוטומטי)', en: 'Not answered (automated)' },
-  thanks: { he: 'ללא מענה (תודה בלבד)', en: 'Not answered (thanks only)' },
 };
 const REASONS = {
   automated: { he: 'מייל אוטומטי או רשימת תפוצה', en: 'Automated email or mailing list' },
@@ -127,8 +100,6 @@ const REASONS = {
   'model:request': { he: 'בקשה ליכולת חדשה', en: 'A feature request' },
   'model:red': { he: 'נושא שדורש אותך', en: 'A topic that needs you' },
   'model:black': { he: 'ספאם או פרסום', en: 'Spam or advertising' },
-  possible_automatic: { he: 'ייתכן שזו הודעה אוטומטית', en: 'Possibly an automated message' },
-  thanks_only: { he: 'תודה בלבד בשיחה קיימת', en: 'Only thanks in an existing conversation' },
 };
 const FILTERS = ['all', 'pending', 'answered', 'dismissed', 'ignored'];
 const FILTER_LABELS = {
@@ -139,7 +110,7 @@ const isPending = (r) => r.status === 'waiting' || r.status === 'draft';
 const COLOUR_ALL = { he: 'כל הצבעים', en: 'All colours' };
 const COLOUR_UNSORTED = { he: 'טרם נקבע צבע', en: 'Not sorted yet' };
 // sort keys: colour by urgency (red first when descending), state by what needs the Owner, the rest as text / time
-const BIN_RANK = { red: 5, yellow: 4, green: 3, grey: 2, black: 1 };
+const BIN_RANK = { red: 4, yellow: 3, green: 2, black: 1 };
 const STATE_RANK = { waiting: 6, draft: 5, new: 4, answered: 3, dismissed: 2, ignored: 1 };
 const SORTERS = {
   bin: (r) => BIN_RANK[r.bin] || 0,
@@ -150,19 +121,6 @@ const SORTERS = {
   state: (r) => STATE_RANK[r.status] || 0,
 };
 const canAct = (r) => ['new', 'waiting', 'draft'].includes(r.status);
-// decision 7: the persisted reply ban (the server checks the same and refuses)
-const replyable = (r) => r.reply_allowed !== false && (r.automation_class || 'human') === 'human' && r.bin !== 'grey' && r.bin !== 'black';
-// decision 8: one list row per conversation - its most urgent waiting message, else its newest (an email without one is its own)
-const convKey = (r) => r.conversation_id || `message:${r.id}`;
-function groupByConversation(list) {
-  const groups = new Map();
-  for (const r of list) groups.set(convKey(r), [...(groups.get(convKey(r)) || []), r]);
-  return [...groups.values()].map((msgs) => {
-    const pending = msgs.filter(isPending).sort((a, b) => (BIN_RANK[b.bin] || 0) - (BIN_RANK[a.bin] || 0));
-    const newest = [...msgs].sort((a, b) => (Date.parse(b.received_at || '') || 0) - (Date.parse(a.received_at || '') || 0))[0];
-    return pending[0] || newest;
-  });
-}
 
 function BinDot({ bin, isHebrew }) {
   const b = BINS[bin];
@@ -172,7 +130,7 @@ function BinDot({ bin, isHebrew }) {
 
 // Owner console 2026-10-20 (L-22 supervisor): canReply = may send / redraft / dismiss (inquiries.reply), canSettings = may change the
 // assistant settings (inquiries.settings); the Owner holds both. The server (support-admin) checks the same permissions again.
-export default function AdminInquiries({ isHebrew = true, canReply = true, canSettings = true, canLink = false }) {
+export default function AdminInquiries({ isHebrew = true, canReply = true, canSettings = true }) {
   const t = Object.fromEntries(Object.entries(INQUIRIES_COPY).map(([k, v]) => [k, isHebrew ? v.he : v.en]));
   const L = (entry) => (entry ? (isHebrew ? entry.he : entry.en) : '');
   const [rows, setRows] = useState([]);
@@ -193,26 +151,11 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
   // Owner console 2026-10-27 ("מאשר את התוכנית לגיא ולמיכל, כולל שינוי ב-L-22 במסך הפניות"): arriving from the agents room's service card
   // opens that one inquiry once the list is loaded; nothing else on this screen changes
   const [focusId] = useState(peekInquiryFocus);
-  // decision 8: the open message's conversation, read through support-admin (inquiries.view)
-  const [thread, setThread] = useState(null);
-  const threadFor = selected?.conversation_id || null;
-
-  useEffect(() => {
-    if (!threadFor) { setThread(null); return undefined; }
-    let cancelled = false;
-    setThread({ conversation: threadFor, loading: true });
-    supabase.functions.invoke('support-admin', { body: { action: 'conversation', id: selected.id } })
-      .then(({ data }) => { if (!cancelled) setThread(data?.ok ? { conversation: threadFor, ...data } : { conversation: threadFor, failed: true }); })
-      .catch(() => { if (!cancelled) setThread({ conversation: threadFor, failed: true }); });
-    return () => { cancelled = true; };
-    // the timeline is read again only when the open message moves to another conversation
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [threadFor]);
 
   useEffect(() => {
     let cancelled = false;
     supabase.from('support_inbound_messages')
-      .select('id, status, bin, bin_reason, summary, mailbox, reply_language, draft_reply, ack_sent_at, reply_text, reply_sent_at, reply_sent_by, from_address, from_name, to_addresses, subject, text_body, attachments, auth_results, received_at, conversation_id, association, suggested_conversation_id, reply_allowed, automation_class')
+      .select('id, status, bin, bin_reason, summary, mailbox, reply_language, draft_reply, ack_sent_at, reply_text, reply_sent_at, reply_sent_by, from_address, from_name, to_addresses, subject, text_body, attachments, auth_results, received_at')
       .order('received_at', { ascending: false }).limit(500)
       .then(({ data, error }) => {
         if (cancelled) return;
@@ -232,7 +175,7 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
   // text columns compare in the screen's language (Hebrew first on a Hebrew screen), numbers inside text in numeric order
   const collator = new Intl.Collator(isHebrew ? 'he' : 'en', { sensitivity: 'base', numeric: true });
   const cmp = (x, y) => (typeof x === 'string' && typeof y === 'string' ? collator.compare(x, y) : (x < y ? -1 : x > y ? 1 : 0));
-  const shown = groupByConversation(rows.filter((r) => byFilter(r) && byBin(r) && (!q || [r.from_address, r.from_name, r.subject, r.text_body].some((v) => String(v || '').toLowerCase().includes(q)))))
+  const shown = rows.filter((r) => byFilter(r) && byBin(r) && (!q || [r.from_address, r.from_name, r.subject, r.text_body].some((v) => String(v || '').toLowerCase().includes(q))))
     .map((r, i) => ({ r, i })).sort((a, b) => { const x = sortValue(a.r); const y = sortValue(b.r); const c = cmp(x, y); return (sort.dir === 'asc' ? c : -c) || a.i - b.i; }).map((o) => o.r);
   const toggleSort = (key) => setSort((cur) => (cur.key === key ? { key, dir: cur.dir === 'asc' ? 'desc' : 'asc' } : { key, dir: key === 'received' || key === 'bin' ? 'desc' : 'asc' }));
   const pendingCount = rows.filter(isPending).length;
@@ -242,9 +185,7 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
   const sender = (r) => (r.from_name ? `${r.from_name} <${r.from_address}>` : r.from_address);
   const preview = (r) => String(r.text_body || '').replace(/\s+/g, ' ').slice(0, 140);
   const mailboxOf = (r) => (r.mailbox ? `${r.mailbox}@tekango.com` : '-');
-  const stateText = (r) => (r.status === 'ignored' && r.bin_reason === 'thanks_only' ? L(STATES.thanks) : L(STATES[r.status]) || r.status);
-  const convSize = (r) => (r.conversation_id ? rows.filter((x) => x.conversation_id === r.conversation_id).length : 1);
-  const subjectText = (r) => (convSize(r) > 1 ? `${r.subject || t.noSubject} · ${t.conversationCount(convSize(r))}` : r.subject || t.noSubject);
+  const stateText = (r) => L(STATES[r.status]) || r.status;
   const reasonText = (reason) => {
     const s = String(reason || '');
     if (s.startsWith('word:')) return isHebrew ? `המילה "${s.slice(5)}"` : `The word "${s.slice(5)}"`;
@@ -277,9 +218,8 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
         if (action === 'send') { patchRow(selected.id, { status: 'answered', reply_text: extra.text, reply_sent_at: new Date().toISOString(), reply_sent_by: 'owner' }); setNotice(t.done); }
         if (action === 'dismiss') { patchRow(selected.id, { status: 'dismissed' }); setNotice(t.dismissed); }
         if (action === 'redraft') { patchRow(selected.id, { draft_reply: data.draft }); setReplyText(data.draft); setNotice(t.drafted); }
-        if (action === 'link' || action === 'unlink') { patchRow(selected.id, { conversation_id: data.conversation_id, association: 'manual', suggested_conversation_id: null }); setNotice(t.linked); }
       } else {
-        setNotice(code === 'no_safe_answer' ? t.noSafeDraft : code === 'already_handled' ? t.handled : code === 'reply_not_allowed' ? t.noReplyAddress : t.actionFailed);
+        setNotice(code === 'no_safe_answer' ? t.noSafeDraft : code === 'already_handled' ? t.handled : t.actionFailed);
       }
     } catch {
       setNotice(t.actionFailed);
@@ -321,7 +261,7 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
               {FILTERS.map((f) => <option key={f} value={f}>{L(FILTER_LABELS[f])}</option>)}
             </select>
             <select className="admin-inquiry-filter" aria-label={t.colourFilter} value={binFilter} onChange={(e) => setBinFilter(e.target.value)} data-testid="inquiries-bin-filter">
-              {['all', 'red', 'yellow', 'green', 'grey', 'black', 'unsorted'].map((b) => <option key={b} value={b}>{b === 'all' ? L(COLOUR_ALL) : b === 'unsorted' ? L(COLOUR_UNSORTED) : L(BINS[b])}</option>)}
+              {['all', 'red', 'yellow', 'green', 'black', 'unsorted'].map((b) => <option key={b} value={b}>{b === 'all' ? L(COLOUR_ALL) : b === 'unsorted' ? L(COLOUR_UNSORTED) : L(BINS[b])}</option>)}
             </select>
             {pendingCount > 0 && <span className="admin-count-pill" data-testid="inquiries-pending">{pendingCount}</span>}
             {/* Owner console 2026-10-23 (typed L-22): the weekly review of bug reports and requests - a list with a status per item */}
@@ -371,7 +311,7 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
                       <td><span className="admin-date" dir="ltr">{when(r.received_at)}</span></td>
                       <td><span className="admin-support-cell" dir="ltr">{sender(r)}</span></td>
                       <td><span className="admin-support-cell" dir="ltr" data-testid="inquiry-mailbox">{mailboxOf(r)}</span></td>
-                      <td><span className="admin-support-cell" dir="auto" style={startAlign} data-testid="inquiry-subject">{subjectText(r)}</span></td>
+                      <td><span className="admin-support-cell" dir="auto" style={startAlign} data-testid="inquiry-subject">{r.subject || t.noSubject}</span></td>
                       <td><span className={isPending(r) ? 'admin-inquiry-state is-pending' : 'admin-inquiry-state'}>{stateText(r)}</span></td>
                     </tr>
                   ))}
@@ -386,7 +326,7 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
                     <div className="admin-identity"><strong dir="ltr">{r.from_address}</strong><span dir="ltr">{when(r.received_at)}</span></div>
                     <span className="admin-inquiry-when"><BinDot bin={r.bin} isHebrew={isHebrew} /><span className={isPending(r) ? 'admin-inquiry-state is-pending' : 'admin-inquiry-state'}>{stateText(r)}</span></span>
                   </div>
-                  <p className="admin-support-cell" dir="auto"><strong>{subjectText(r)}</strong> · {preview(r)}</p>
+                  <p className="admin-support-cell" dir="auto"><strong>{r.subject || t.noSubject}</strong> · {preview(r)}</p>
                   <p className="admin-support-cell" dir="ltr" style={{ margin: 0, fontSize: 11 }}>{mailboxOf(r)}</p>
                 </article>
               ))}
@@ -405,8 +345,6 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
               <button className="admin-icon-button" style={{ marginInlineStart: 'auto' }} aria-label={t.close} onClick={() => setSelected(null)}><X size={16} /></button>
             </h2>
             <p className="admin-inquiry-when" style={{ margin: '0 0 8px' }}><BinDot bin={selected.bin} isHebrew={isHebrew} /><strong>{L(BINS[selected.bin]) || ''}</strong> · <span className={isPending(selected) ? 'admin-inquiry-state is-pending' : 'admin-inquiry-state'}>{stateText(selected)}</span></p>
-            {selected.bin === 'grey' && <p role="note" data-testid="inquiry-grey" style={{ margin: '0 0 8px', fontSize: 13 }}>{t.maybeAutomatic}</p>}
-            {(selected.reply_allowed === false || selected.bin === 'grey') && <p role="note" data-testid="inquiry-no-reply" style={{ margin: '0 0 8px', fontSize: 13, color: '#9A4040' }}>{t.noReplyAddress}</p>}
             {selected.bin_reason && detail(t.why, Info, reasonText(selected.bin_reason))}
             {selected.summary && detail(t.summary, Sparkles, selected.summary)}
             {detail(t.time, Clock, when(selected.received_at), true)}
@@ -421,61 +359,7 @@ export default function AdminInquiries({ isHebrew = true, canReply = true, canSe
               selected.ack_sent_at ? t.ackSent(isolated(selected.ack_sent_at)) : null,
               selected.reply_sent_at ? `${t.replySent(isolated(selected.reply_sent_at), selected.reply_sent_by)}\n\n${selected.reply_text || ''}` : null,
             ].filter(Boolean).join('\n\n') || t.nothingSent)}
-            {thread && (
-              <div className="admin-details-row" style={{ flexDirection: 'column', alignItems: 'stretch' }} data-testid="inquiry-thread">
-                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><MessageSquareText size={13} color="#0F6672" />{t.conversation}</span>
-                {thread.loading ? <span role="status">{t.threadLoading}</span> : thread.failed ? <span role="status">{t.threadFailed}</span> : (
-                  <ol aria-label={t.conversation} style={{ listStyle: 'none', margin: 0, padding: 0, display: 'grid', gap: 8 }}>
-                    {[...(thread.messages || []).map((m) => ({ at: Date.parse(m.received_at || '') || 0, m })), ...(thread.outbound || []).map((o) => ({ at: Date.parse(o.created_at || '') || 0, o }))]
-                      .sort((a, b) => a.at - b.at).map(({ m, o }) => (m ? (
-                        <li key={`in-${m.id}`} data-testid="thread-in" aria-current={m.id === selected.id ? 'true' : undefined} style={{ borderInlineStart: `3px solid ${BINS[m.bin]?.color || '#CBD5E1'}`, paddingInlineStart: 8, display: 'grid', gap: 2 }}>
-                          <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
-                            <BinDot bin={m.bin} isHebrew={isHebrew} /><span className="admin-date" dir="ltr">{when(m.received_at)}</span><span dir="ltr" style={{ overflowWrap: 'anywhere' }}>{m.from_address}</span>
-                            {m.id === selected.id ? <strong>{t.thisMessage}</strong> : m.association === 'reference' ? <span>{t.newInConversation}</span> : null}
-                          </span>
-                          <span dir="auto" style={{ whiteSpace: 'pre-wrap', textAlign: 'start', overflowWrap: 'anywhere' }}>{String(m.text_body || '').slice(0, 300) || '-'}</span>
-                          {m.id !== selected.id && (
-                            // PRODUCT_TRUTH_CAPABILITY: admin_console
-                            <button type="button" className="admin-sort" style={{ justifySelf: 'start' }} onClick={() => openInquiry(rows.find((x) => x.id === m.id) || m)} data-testid="thread-view-original">{t.viewOriginal}</button>
-                          )}
-                        </li>
-                      ) : (
-                        <li key={`out-${o.id}`} data-testid="thread-out" style={{ borderInlineStart: '3px solid #0F6672', paddingInlineStart: 8, display: 'grid', gap: 2 }}>
-                          <span style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', fontSize: 12 }}>
-                            <Send size={12} aria-hidden="true" /><strong>{o.kind === 'ack' ? t.ackKind : o.kind === 'owner' ? t.ownerKind : t.assistantKind}</strong>
-                            <span className="admin-date" dir="ltr">{when(o.created_at)}</span>
-                            <span data-testid="thread-out-state">{o.state === 'sent' ? t.sentState : o.state === 'unknown' ? t.unknownState : t.failedState}</span>
-                          </span>
-                          <span dir="auto" style={{ whiteSpace: 'pre-wrap', textAlign: 'start', overflowWrap: 'anywhere' }}>{o.body_known === false || !o.body_text ? t.textNotKept : String(o.body_text).slice(0, 600)}</span>
-                        </li>
-                      )))}
-                  </ol>
-                )}
-                {thread.truncated && <span role="note" style={{ fontSize: 12 }}>{t.threadTruncated}</span>}
-              </div>
-            )}
-            {selected.association === 'suggested' && selected.suggested_conversation_id && (
-              <div className="admin-inquiry-actions" data-testid="inquiry-suggested" style={{ alignItems: 'center' }}>
-                <p role="note" style={{ margin: 0, fontSize: 13 }}>{t.suggested}</p>
-                {canLink && (
-                  // PRODUCT_TRUTH_CAPABILITY: admin_console
-                  <button type="button" disabled={busy} onClick={() => act('link', { target: selected.suggested_conversation_id })} data-testid="inquiry-link">{t.linkSuggested}</button>
-                )}
-              </div>
-            )}
-            {canLink && selected.conversation_id && convSize(selected) > 1 && (
-              <div className="admin-inquiry-actions">
-                {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-                <button type="button" disabled={busy} onClick={() => act('unlink')} data-testid="inquiry-unlink">{t.unlink}</button>
-              </div>
-            )}
-            {canReply && canAct(selected) && !replyable(selected) && (
-              <div className="admin-inquiry-actions">
-                {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-                <button type="button" disabled={busy} onClick={() => act('dismiss')} data-testid="inquiry-dismiss"><Ban size={15} />{t.dismiss}</button>
-              </div>
-            )}
-            {canReply && canAct(selected) && replyable(selected) && (
+            {canReply && canAct(selected) && (
               <div className="admin-inquiry-reply" data-testid="inquiry-reply">
                 <label htmlFor="inquiry-reply-text">{t.reply}</label>
                 <textarea id="inquiry-reply-text" dir={replyDir} rows={8} value={replyText} onChange={(e) => setReplyText(e.target.value)} disabled={busy} data-testid="inquiry-reply-text" />

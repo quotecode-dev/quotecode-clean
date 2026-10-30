@@ -6,9 +6,7 @@
 //  - Automated mail (auto-replies, bounces, mailing lists, no-reply senders) is BLACK and is never answered.
 //  - The model's answer is data: anything that is not exactly one of the four bins, or a low confidence, becomes RED.
 
-// Codex release 5 (Owner console 2026-10-29 night, decision 7): GREY = possibly automatic - kept for the Owner's review with one alert,
-// never acknowledged, drafted or answered.
-export type Bin = 'green' | 'yellow' | 'red' | 'black' | 'grey';
+export type Bin = 'green' | 'yellow' | 'red' | 'black';
 export type YellowKind = 'bug' | 'request';
 export type Triage = { bin: Bin; reason: string; summary: string | null; kind: YellowKind | null };
 
@@ -70,104 +68,6 @@ export function isAutomatedMessage(headers: unknown, fromAddress: string, subjec
   return false;
 }
 
-// ---- Codex release 5, topic 5 (decision 7): the persisted automation policy -------------------------------------------------------
-export const AUTOMATION_VERSION = 'support-auto-2026-10-30';
-export type AutomationClass = 'human' | 'confirmed_automatic' | 'possible_automatic';
-export type Automation = { automation_class: AutomationClass; automation_evidence: string; automation_version: string; reply_allowed: boolean };
-
-// no-reply / do-not-reply at a local-part boundary: noreply@, microsoft-noreply@, info.noreply@, donotreply+x@, no_reply@
-const NO_REPLY_LOCAL = /(^|[._+-])(no[-_]?reply|do[-_]?not[-_]?reply)([._+-]|$)/;
-const BOUNCE_LOCAL = /^(mailer-daemon|postmaster|bounces?|notifications?|alerts?)([+.-].*)?$/;
-// exact known system senders - recognised only together with a passing provider authentication result (never a domain substring)
-const KNOWN_SYSTEM_SENDERS = new Set(['microsoft-noreply@microsoft.com', 'account-security-noreply@accountprotection.microsoft.com',
-  'no-reply@accounts.google.com', 'noreply@github.com']);
-
-export function isNoReplyAddress(address: string): boolean {
-  return NO_REPLY_LOCAL.test((String(address || '').toLowerCase().split('@')[0] || '').trim());
-}
-
-/** Provider header shapes: an object, or a list of {name, value} - lower-case names, trimmed single-spaced values. */
-export function normalizeHeaders(headers: unknown): Record<string, string> {
-  const h: Record<string, string> = {};
-  const put = (k: unknown, v: unknown) => {
-    const name = String(k ?? '').trim().toLowerCase();
-    if (name && !(name in h)) h[name] = String(Array.isArray(v) ? v[0] ?? '' : v ?? '').replace(/\s+/g, ' ').trim().toLowerCase().slice(0, 998);
-  };
-  if (Array.isArray(headers)) for (const e of headers) put((e as { name?: unknown })?.name, (e as { value?: unknown })?.value);
-  else if (headers && typeof headers === 'object') for (const [k, v] of Object.entries(headers as Record<string, unknown>)) put(k, v);
-  return h;
-}
-
-function headerEvidence(h: Record<string, string>): string | null {
-  if (h['auto-submitted'] && h['auto-submitted'] !== 'no') return 'header:auto-submitted';
-  for (const k of ['x-autoreply', 'x-autorespond', 'x-auto-response-suppress']) if (h[k]) return `header:${k}`;
-  if (['bulk', 'list', 'junk', 'auto_reply'].includes(h['precedence'] || '')) return 'header:precedence';
-  if (h['list-id']) return 'header:list-id';
-  if (h['list-unsubscribe']) return 'header:list-unsubscribe';
-  return null;
-}
-
-/** The verdict that is STORED with the email. Confirmed automatic -> BLACK; possibly automatic -> GREY; both never get a reply.
- *  Headers are sender-supplied: an authored red request (deletion, privacy, legal, money) with automatic headers is NOT discarded -
- *  it stays visible to the Owner as possibly automatic. A mail-authentication report stays BLACK (Owner console 2026-10-20). */
-export function classifyAutomation(headers: unknown, fromAddress: string, subject: string | null, text: string | null,
-  auth: { spf?: string; dkim?: string; dmarc?: string } | null = null): Automation {
-  const v = (cls: AutomationClass, evidence: string): Automation =>
-    ({ automation_class: cls, automation_evidence: evidence.slice(0, 300), automation_version: AUTOMATION_VERSION, reply_allowed: cls === 'human' });
-  const from = String(fromAddress || '').toLowerCase().trim();
-  const local = from.split('@')[0] || '';
-  const domain = from.split('@')[1] || '';
-  if (OWN_DOMAINS.some((d) => domain === d || domain.endsWith(`.${d}`))) return v('confirmed_automatic', 'own_domain');
-  if (REPORT_SENDER.test(local) || REPORT_SUBJECT.test(String(subject || ''))) return v('confirmed_automatic', 'auth_report');
-  if (BOUNCE_LOCAL.test(local)) return v('confirmed_automatic', 'system_sender');
-  const authPass = auth?.dkim === 'pass' || auth?.dmarc === 'pass';
-  if (KNOWN_SYSTEM_SENDERS.has(from) && authPass) return v('confirmed_automatic', 'known_system_sender');
-  const fromHeaders = headerEvidence(normalizeHeaders(headers));
-  if (fromHeaders) {
-    const authored = keywordTriage(subject, classificationView(text));
-    if (authored && authored.reason !== 'attachment') return v('possible_automatic', `${fromHeaders}+${authored.reason}`);
-    return v('confirmed_automatic', fromHeaders);
-  }
-  if (NO_REPLY_LOCAL.test(local)) return v('possible_automatic', 'local_part:no-reply');
-  return v('human', 'none');
-}
-
-// footer boilerplate (a trailing block only): privacy / terms / unsubscribe links, copyright, "sent to", a postal address line
-const FOOTER_LINE = /(privacy (statement|policy|notice)|terms (of (use|service)|and conditions)|unsubscribe|manage (your )?(preferences|subscriptions?)|view (it |this email )?in (your )?browser|all rights reserved|this (e-?mail|message) was sent to|you (are receiving|received) this|do not reply to this|please do not reply|מדיניות (ה)?פרטיות|להסרה מרשימת|לביטול (ה)?הרשמה|כל הזכויות שמורות)/i;
-const FOOTER_SHAPE = (l: string) => l.length <= 200 && (FOOTER_LINE.test(l) || /^(©|\(c\)|copyright\b)/i.test(l) || /^https?:\/\/\S+$/i.test(l)
-  || (/^[^.?!]{0,100}\b\d{4,7}\b[^.?!]{0,40}$/.test(l) && /,/.test(l)));
-
-/** What the fixed red rules read: the newest authored part (quoted history dropped) without a trailing footer block. The stored
- *  original stays intact; a real request inside the body is never trimmed (only trailing footer-shaped lines are). */
-export function classificationView(text: string | null): string {
-  const lines = newestPart(text).split('\n');
-  let end = lines.length;
-  while (end > 0 && (!lines[end - 1].trim() || FOOTER_SHAPE(lines[end - 1].trim()))) end--;
-  return lines.slice(0, end).join('\n').trim();
-}
-
-/** A follow-up that only says thanks / ok - never answered automatically (no loops). */
-export function acknowledgementOnly(text: string | null): boolean {
-  const t = classificationView(text).replace(/[\s.,!?:;)(\-–—'"🙏👍😊]+/gu, ' ').trim().toLowerCase();
-  return t.length > 0 && t.length <= 60
-    && /^((many thanks|thanks?( a lot| so much| you)?|thank you( (very|so) much)?|ok(ay)?|great|perfect|got it|received|noted|cheers|תודה( רבה)?( לכם)?|תודה על (התשובה|העזרה)|מעולה|אחלה|בסדר|קיבלתי|סבבה|מצוין)\s*)+$/.test(t);
-}
-
-/** RFC Message-IDs from In-Reply-To and References: bounded, well-formed only, nearest (last) first. */
-export function referenceIds(inReplyTo: unknown, references: unknown): string[] {
-  const all = `${String(references ?? '').slice(0, 20000)} ${String(inReplyTo ?? '').slice(0, 2000)}`.match(/<[^<>\s",()]{3,248}>/g) || [];
-  const out: string[] = [];
-  for (const id of all.reverse()) if (!out.includes(id)) out.push(id);
-  return out.slice(0, 20);
-}
-
-/** The subject for the suggestion-only fallback: reply / forward prefixes stripped, words and numbers kept. */
-export function subjectNorm(subject: string | null): string | null {
-  let s = String(subject || '').toLowerCase().replace(/\s+/g, ' ').trim();
-  for (let i = 0; i < 5; i++) s = s.replace(/^((re|fw|fwd|aw|sv|tr|השב|תשובה|הועבר)\s*(\[\d+\])?\s*:\s*)/i, '').trim();
-  return s ? s.slice(0, 300) : null;
-}
-
 /** Hebrew when the text has Hebrew letters and they outnumber the Latin ones (spec 3.6: answer in the language they wrote). */
 export function detectLanguage(subject: string | null, text: string | null): 'he' | 'en' {
   const s = `${subject || ''} ${String(text || '').slice(0, 2000)}`;
@@ -198,7 +98,6 @@ export function parseModelTriage(raw: unknown): Triage {
   const bin = String(v?.bin || '').toLowerCase();
   const confidence = Number(v?.confidence);
   const summary = typeof v?.summary === 'string' ? v.summary.replace(/\s+/g, ' ').trim().slice(0, 300) || null : null;
-  // the model never chooses grey (only the stored automation policy does)
   if (!['green', 'yellow', 'red', 'black'].includes(bin)) return { bin: 'red', reason: 'model_unknown_bin', summary, kind: null };
   if (!Number.isFinite(confidence) || confidence < MIN_CONFIDENCE) return { bin: 'red', reason: 'low_confidence', summary, kind: null };
   if (bin === 'yellow') {
