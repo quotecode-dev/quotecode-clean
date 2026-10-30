@@ -1,8 +1,0 @@
-{
-  "name": "tekango-live-check-runner",
-  "private": true,
-  "description": "Omer, the daily LIVE check runner (Codex release 9) - installed alone on the GitHub runner with npm ci",
-  "dependencies": {
-    "@playwright/test": "1.63.0"
-  }
-}

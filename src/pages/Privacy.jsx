@@ -31,7 +31,7 @@ export default function Privacy({ isHebrew }) {
 
   const t = isHebrew ? {
     title: 'מדיניות פרטיות (Privacy Policy)',
-    lastUpdated: 'עדכון אחרון: 30 באוקטובר 2026',
+    lastUpdated: 'עדכון אחרון: 25 באוקטובר 2026',
     back: 'חזרה',
     sections: [
       {
@@ -68,7 +68,7 @@ export default function Privacy({ isHebrew }) {
       },
       {
         title: '8. הודעות ודיוור',
-        content: 'נשלח אליכם הודעות הנדרשות להפעלת החשבון והשירות (כגון אימות חשבון, איפוס סיסמה ותשובות לפניות). קבלת תנאי השימוש אינה הסכמה לדיוור שיווקי; אם יופעל דיוור שיווקי, הוא יישלח רק בהסכמה נפרדת, עם אפשרות הסרה. נוכל להכין הצעות לעזרה אישית על סמך אירועים תפעוליים בחשבון, כגון תחילת השימוש, מצב מסלול או תשלום והצעות שממתינות לאישור. הודעות עזרה יזומות שאינן נדרשות להפעלת השירות יישלחו רק לאחר הסכמה נפרדת, ואפשר להסירן בכל עת. הודעה נשלחת רק לאחר בדיקת הצוות ואישור התוכן והנמען.'
+        content: 'נשלח אליכם הודעות הנדרשות להפעלת החשבון והשירות (כגון אימות חשבון, איפוס סיסמה ותשובות לפניות). קבלת תנאי השימוש אינה הסכמה לדיוור שיווקי; אם יופעל דיוור שיווקי, הוא יישלח רק בהסכמה נפרדת, עם אפשרות הסרה.'
       },
       {
         title: '9. נושאים שטרם הוכרעו',
@@ -77,7 +77,7 @@ export default function Privacy({ isHebrew }) {
     ]
   } : {
     title: 'Privacy Policy',
-    lastUpdated: 'Last updated: October 30, 2026',
+    lastUpdated: 'Last updated: October 25, 2026',
     back: 'Go Back',
     sections: [
       {
@@ -114,7 +114,7 @@ export default function Privacy({ isHebrew }) {
       },
       {
         title: '8. Messages and Marketing',
-        content: 'We send messages needed to operate your account and the service (such as account verification, password reset and replies to your requests). Accepting the Terms of Service is not consent to marketing emails; if marketing emails are introduced, they will be sent only with separate consent and an unsubscribe option. We may prepare individual help drafts using account events such as onboarding, plan or payment status, and quotes awaiting approval. Optional proactive help emails require separate consent and can be stopped at any time. A message is sent only after our team reviews and approves its content and recipient.'
+        content: 'We send messages needed to operate your account and the service (such as account verification, password reset and replies to your requests). Accepting the Terms of Service is not consent to marketing emails; if marketing emails are introduced, they will be sent only with separate consent and an unsubscribe option.'
       },
       {
         title: '9. Matters Not Yet Decided',

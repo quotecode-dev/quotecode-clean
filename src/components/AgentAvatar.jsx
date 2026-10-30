@@ -5,9 +5,7 @@ import { useId } from 'react';
 
 const INK = '#1d2b33';
 // + social (Owner 2026-10-27, "מאשר את שלב 1 של סוכנת הרשתות"): the same line - a drawn face in her color, a heart in the corner
-// + Codex release 9 (Owner 2026-10-30, names Maya and Omer): customer success = a hand-holding ring buoy, the LIVE checker = a browser window
-// with a check - the same line, frame and drawn-face style
-const COLORS = { manager: '#315f6f', seo: '#2f7a5c', service: '#b8682f', security: '#3b4f8f', social: '#a8466a', customer_success: '#7d5a9a', live_check: '#5c6b2f' };
+const COLORS = { manager: '#315f6f', seo: '#2f7a5c', service: '#b8682f', security: '#3b4f8f', social: '#a8466a' };
 
 function Face({ agent }) {
   const eyes = (y = 64) => <><circle cx="50" cy={y} r="3.2" fill={INK} /><circle cx="70" cy={y} r="3.2" fill={INK} /></>;
@@ -66,30 +64,6 @@ function Face({ agent }) {
       <path d="M51 75 Q60 84 69 75" stroke={INK} strokeWidth="2.5" fill="none" strokeLinecap="round" />
     </>
   );
-  if (agent === 'customer_success') return (
-    <>
-      <path d="M20 122 Q22 96 60 96 Q98 96 100 122 Z" fill="#f4eef9" />
-      <circle cx="60" cy="30" r="11" fill="#4a2c1c" />
-      <rect x="53" y="84" width="14" height="14" fill="#e2b08a" />
-      <circle cx="60" cy="62" r="26" fill="#f0c39c" />
-      <path d="M34 62 Q32 36 60 36 Q88 36 86 62 Q80 46 64 46 Q58 52 44 50 Q38 54 34 62 Z" fill="#4a2c1c" />
-      {cheeks}{eyes()}
-      <path d="M50 75 Q60 85 70 75" stroke={INK} strokeWidth="2.5" fill="none" strokeLinecap="round" />
-    </>
-  );
-  if (agent === 'live_check') return (
-    <>
-      <path d="M20 122 Q22 96 60 96 Q98 96 100 122 Z" fill="#f1f4e8" />
-      <rect x="53" y="84" width="14" height="14" fill="#c99872" />
-      <circle cx="60" cy="62" r="26" fill="#ddaa80" />
-      <path d="M34 58 Q36 34 60 34 Q84 34 86 58 Q80 44 70 44 L66 40 L62 44 Q46 42 34 58 Z" fill="#3b2a1a" />
-      <circle cx="50" cy="64" r="7.5" fill="none" stroke={INK} strokeWidth="2.5" />
-      <circle cx="70" cy="64" r="7.5" fill="none" stroke={INK} strokeWidth="2.5" />
-      <line x1="57.5" y1="64" x2="62.5" y2="64" stroke={INK} strokeWidth="2.5" />
-      {eyes()}
-      <path d="M52 77 Q60 82 68 77" stroke={INK} strokeWidth="2.5" fill="none" strokeLinecap="round" />
-    </>
-  );
   return (
     <>
       <path d="M20 122 Q22 96 60 96 Q98 96 100 122 Z" fill="#eef1fb" />
@@ -111,8 +85,6 @@ function Mark({ agent }) {
   if (agent === 'seo') return <>{ring}<circle cx="88" cy="90" r="5.5" fill="none" stroke={c} strokeWidth="3" /><line x1="92" y1="94" x2="97" y2="99" stroke={c} strokeWidth="3.5" strokeLinecap="round" /></>;
   if (agent === 'service') return <>{ring}<path d="M83 85 h14 a3 3 0 0 1 3 3 v7 a3 3 0 0 1 -3 3 h-8 l-4 4 v-4 h-2 a3 3 0 0 1 -3 -3 v-7 a3 3 0 0 1 3 -3 z" fill={c} /></>;
   if (agent === 'social') return <>{ring}<path d="M90 99 C82 93 80 89 82 86 C84 83 88 84 90 87 C92 84 96 83 98 86 C100 89 98 93 90 99 Z" fill={c} /></>;
-  if (agent === 'customer_success') return <>{ring}<circle cx="90" cy="92" r="7" fill="none" stroke={c} strokeWidth="4" /><path d="M90 83 V87 M90 97 V101 M81 92 H85 M95 92 H99" stroke="#ffffff" strokeWidth="2.2" /></>;
-  if (agent === 'live_check') return <>{ring}<rect x="81" y="84" width="18" height="15" rx="2.5" fill="none" stroke={c} strokeWidth="2.5" /><line x1="81" y1="88.5" x2="99" y2="88.5" stroke={c} strokeWidth="2" /><path d="M85.5 93.5 L88.5 96.5 L94.5 90.8" stroke={c} strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></>;
   return <>{ring}<path d="M90 82 L99 85.5 V92 Q99 99 90 103 Q81 99 81 92 V85.5 Z" fill={c} /><path d="M86 92 L89 95 L94.5 89" stroke="#ffffff" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round" /></>;
 }
 

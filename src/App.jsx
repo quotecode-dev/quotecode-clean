@@ -16,8 +16,6 @@ import PublicToolsEn from './components/PublicToolsEn';
 import Terms from './pages/Terms';
 import Privacy from './pages/Privacy';
 import Contact from './pages/Contact';
-// Codex release 9 (Owner 2026-10-30): the unsubscribe link of an optional help email
-import AccountOutreachUnsubscribe from './pages/AccountOutreachUnsubscribe';
 import { supabase } from './supabase';
 import { isHebrewEnv } from './utils/regionConfig';
 
@@ -296,9 +294,6 @@ export default function App() {
         <Route path="/terms" element={<Terms isHebrew={isHebrew} />} />
         <Route path="/privacy" element={<Privacy isHebrew={isHebrew} />} />
         <Route path="/contact" element={<Contact isHebrew={isHebrew} />} />
-        <Route path="/unsubscribe" element={<AccountOutreachUnsubscribe isHebrew={isHebrew} />} />
-        <Route path="/he/unsubscribe" element={<AccountOutreachUnsubscribe isHebrew={true} />} />
-        <Route path="/en/unsubscribe" element={<AccountOutreachUnsubscribe isHebrew={false} />} />
 
         <Route path="/he/terms" element={<Terms isHebrew={true} />} />
         <Route path="/he/privacy" element={<Privacy isHebrew={true} />} />

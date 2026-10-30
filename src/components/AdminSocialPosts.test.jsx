@@ -104,11 +104,9 @@ describe('the agents room: 6 places, the social agent under the SEO agent, a lon
     render(<AdminAgentsRoom isHebrew={isHebrew} />);
     const grid = await screen.findByTestId('agents-grid');
     const cells = [...grid.children].map((c) => c.getAttribute('data-testid'));
-    // Codex release 9 (Owner 2026-10-30, Maya and Omer): the two free places are now the customer success agent and the LIVE checker
-    expect(cells).toEqual(['agent-card-seo', 'agent-card-service', 'agent-card-security', 'agent-card-social', 'agent-card-customer_success', 'agent-card-live_check']);
+    expect(cells).toEqual(['agent-card-seo', 'agent-card-service', 'agent-card-security', 'agent-card-social', 'agent-slot-empty', 'agent-slot-empty']);
     expect(grid.style.gridTemplateColumns).toContain('calc((100% - 28px) / 3)'); // at most three per row -> the social agent sits under the SEO agent
-    expect(screen.queryByTestId('agent-slot-empty')).toBeNull();
-    expect(screen.queryByText(empty)).toBeNull(); // the "room for another agent" place is gone
+    expect(screen.getAllByTestId('agent-slot-empty')[0].textContent).toBe(empty);
     for (const id of ['seo', 'social']) {
       const card = screen.getByTestId(`agent-card-${id}`);
       expect(card.style.height).toBe('520px');

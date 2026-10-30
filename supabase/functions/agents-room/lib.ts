@@ -33,8 +33,7 @@ export type Run = { id: string; agent: Agent; run_key: string; trigger: string; 
 export interface Deps {
   caller(): Promise<'admin' | 'cron' | null>;
   now(): Date;
-  // + customer_success / live_check (Codex release 9, Owner 2026-10-30: Maya and Omer)
-  claim(agent: Agent | 'manager' | 'social' | 'customer_success' | 'live_check', runKey: string, trigger: 'cron' | 'admin'): Promise<string | null>; // the new run id, or null = already ran
+  claim(agent: Agent | 'manager' | 'social', runKey: string, trigger: 'cron' | 'admin'): Promise<string | null>; // the new run id, or null = already ran
   finish(id: string, patch: Record<string, unknown>): Promise<void>;
   monthCostUsd(sinceIso: string): Promise<number>; // Codex release 4: the reservation ledger's month (carried in + settled + held)
   // the part of the month held for requests whose outcome is not final, and an over-reservation stop (the screen says so)

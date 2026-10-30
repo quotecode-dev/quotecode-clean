@@ -17,8 +17,6 @@ import { useBusinessCardProfile } from '../hooks/useBusinessCardProfile';
 import { REMINDERS_COPY } from '../utils/reminders';
 import { DIAL_CHOICES, businessDial, joinPhone } from '../utils/phoneDial';
 import MailLink from './MailLink';
-// Codex release 9 (Owner 2026-10-30, L-12 / L-15 / L-17): the owner's own consent to optional help emails
-import AccountOutreachPreferences from './AccountOutreachPreferences';
 
 // פונקציית עזר לזיהוי קידומת לפי מטבע עסק
 const getDialByCurrency = (curr, isLocal) => {
@@ -73,7 +71,6 @@ export default function SettingsTab({
   presentationController = null,
   // Task 20: the ONE entry to Reminders & automation (Owner clarification 2026-10-09). Absent client/userId => no entry button.
   remindersClient = null,
-  outreachClient = null, // Codex release 9: absent => no help-emails section
   remindersUserId = null,
   // Task 40: a one-shot request to open a sub-screen (only 'reminders', from the welcome item's link); cleared via onViewRequestDone
   viewRequest = null,
@@ -587,7 +584,6 @@ export default function SettingsTab({
            )}
         </div>
       </section>
-      {outreachClient && <AccountOutreachPreferences isHebrew={isHebrew} client={outreachClient} />}
       </div>
     </div>
   );
