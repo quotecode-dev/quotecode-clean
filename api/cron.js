@@ -106,13 +106,16 @@ export default async function handler(req, res) {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const { ok, logs, failures } = await runCron({ supabase, env: process.env, fetchImpl: fetch });
+    // Codex SEC-LOG-02 (Owner 2026-10-30): the details (provider texts, recipients) stay in the server log; the answer names only the steps
+    console.log('cron:', logs.join(' | '));
+    if (failures.length) console.error('cron failures:', failures.join(' | '));
     return res.status(ok ? 200 : 500).json({
       success: ok,
-      message: `${ok ? 'Cron executed successfully.' : 'Cron finished with failures.'} ${logs.join(' | ')}`,
-      failures,
+      message: ok ? 'Cron executed successfully.' : 'Cron finished with failures.',
+      failures: failures.map((f) => String(f).split(':')[0]),
     });
   } catch (error) {
     console.error('Cron job error:', error.message);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: 'cron_failed' });
   }
 }

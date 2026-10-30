@@ -2,7 +2,8 @@ import { buildQuoteEmail, safeLogoUrl, safeQuoteLink, inlineLogoAttachment, INLI
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { formatEmailTotal } from "./emailMoney.ts"
-import { decideEmailLink, loggableBody } from "./capabilityLink.ts"
+import { decideEmailLink } from "./capabilityLink.ts"
+import { readReservation, outcomeOf, REFUSALS, UNVERIFIED, UNKNOWN, PROVIDER_REFUSED } from "./sendLedger.ts"
 import { classifyPhaseRead } from "../_shared/activationPhase.ts"
 import { decidePriceGate } from "./priceGate.ts"
 
@@ -87,7 +88,7 @@ serve(async (req) => {
 
   try {
     const body = await req.json()
-    console.log("Incoming request body:", JSON.stringify(loggableBody(body)))
+    // Codex SEC-LOG-01 (Owner 2026-10-30): the request body (addresses, quote details, links) is never logged
 
     const { quoteId } = body
 
@@ -307,39 +308,67 @@ serve(async (req) => {
     // (resend-email-webhook) יוכל לזהות איזו הצעת מחיר לסמן כ"נכשלה"
     const tags = quoteId ? [{ name: 'quote_id', value: String(quoteId) }] : undefined;
 
-    // PRODUCT_TRUTH_CAPABILITY: quote_email
-    const res = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-      },
-      body: JSON.stringify({
-        from: senderAddressFor(effectiveHebrew, bizName),
-        to: [clientEmail],
-        ...(replyToAddress(bizEmail) ? { reply_to: replyToAddress(bizEmail) } : {}),
-        subject: subject,
-        html: html,
-        text: text,
-        ...(logoAttachment ? { attachments: [logoAttachment] } : {}),
-        ...(tags ? { tags } : {}),
-      }),
-    })
-
-    const data = await res.json()
-    console.log("Resend API response:", JSON.stringify(data))
-
-    if (!res.ok) {
-      throw new EmailRefusal(typeof data?.message === 'string' && data.message ? data.message.slice(0, 300) : 'Failed to send email via Resend')
+    // Codex SEC-EF-02 (Owner 2026-10-30): the send is reserved in the database BEFORE the provider is called (sendLedger.ts);
+    // an unreadable reservation sends nothing
+    const { data: reserved, error: reserveErr } = await supabaseAdmin.rpc('quote_email_reserve', { p_quote: quoteId, p_user: callerUser.id, p_recipient: clientEmail })
+    const reservation = reserveErr ? null : readReservation(reserved)
+    if (!reservation) throw new EmailRefusal(UNVERIFIED)
+    if (!reservation.ok) throw new EmailRefusal(REFUSALS[reservation.code])
+    const settle = async (state: 'sent' | 'failed' | 'unknown', providerId: string | null) => {
+      const { error: settleErr } = await supabaseAdmin.rpc('quote_email_settle', { p_id: reservation.id, p_state: state, p_provider_id: providerId })
+      if (settleErr) console.error('send-quote-email: the send record was not settled', reservation.id)
     }
 
-    return new Response(JSON.stringify(data), {
+    // PRODUCT_TRUTH_CAPABILITY: quote_email
+    let res: Response
+    // a bounded wait (well under the 2-minute in-flight window): a hung provider call becomes UNKNOWN, retried with the same key
+    const abort = new AbortController()
+    const timer = setTimeout(() => abort.abort(), 25000)
+    try {
+      res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        signal: abort.signal,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Idempotency-Key': reservation.send_key,
+        },
+        body: JSON.stringify({
+          from: senderAddressFor(effectiveHebrew, bizName),
+          to: [clientEmail],
+          ...(replyToAddress(bizEmail) ? { reply_to: replyToAddress(bizEmail) } : {}),
+          subject: subject,
+          html: html,
+          text: text,
+          ...(logoAttachment ? { attachments: [logoAttachment] } : {}),
+          ...(tags ? { tags } : {}),
+        }),
+      })
+    } catch {
+      await settle('unknown', null)
+      throw new EmailRefusal(UNKNOWN)
+    } finally {
+      clearTimeout(timer)
+    }
+
+    // deno-lint-ignore no-explicit-any
+    const data: any = await res.json().catch(() => null)
+    // a retry answered 409 = the provider already holds this key (the earlier attempt reached it): never a second email - kept as sent
+    const state = res.status === 409 && reservation.retry ? 'sent' : outcomeOf(res.status)
+    await settle(state, typeof data?.id === 'string' ? data.id : null)
+    // Codex SEC-LOG-01 / SEC-LOG-02: only the quote, the outcome and the status are logged; the provider's text never reaches the browser
+    console.log('send-quote-email:', String(quoteId), state, res.status)
+    if (state === 'unknown') throw new EmailRefusal(UNKNOWN)
+    if (state === 'failed') throw new EmailRefusal(PROVIDER_REFUSED)
+
+    return new Response(JSON.stringify({ id: typeof data?.id === 'string' ? data.id : null }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
     })
   } catch (error: unknown) {
     const message = error instanceof EmailRefusal ? error.message : 'Email sending failed'
-    console.error("Error sending email:", error instanceof Error ? error.message : String(error))
+    // Codex SEC-LOG-01: a refusal's own fixed text, otherwise only the error type (a parse error could quote the request body)
+    console.error("Error sending email:", error instanceof EmailRefusal ? error.message : error instanceof Error ? error.name : 'unknown')
     return new Response(JSON.stringify({ error: message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 400,

@@ -14,7 +14,20 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 //
 // מתאם את האירוע להצעת המחיר המקורית דרך tags.quote_id שמצורף לכל שליחה
 // ב-send-quote-email (Resend מחזיר את אותם tags בחזרה בכל אירוע Webhook).
+//
+// Codex SEC-EF-03 / SEC-LOG-02 (Owner console 2026-10-30, typed: "אשר עבודה רצופה מעכשיו: ממצאי האבטחה ..."):
+//  - a signature older or newer than 5 minutes is refused (a captured request cannot be replayed later);
+//  - every event id is accepted once (resend_webhook_events) and a bounce marks the quote only when it belongs to the quote's NEWEST
+//    sent email (quote_email_sends) - an old bounce never turns a newer, good send red;
+//  - errors answer with a fixed code, never a database / provider message.
 // ==========================================
+
+export const MAX_SKEW_SECONDS = 300;
+/** Standard Webhooks freshness: the signed timestamp (seconds) within 5 minutes of now. */
+export function timestampFresh(svixTimestamp: string, nowSeconds: number): boolean {
+  if (!/^[0-9]{9,11}$/.test(svixTimestamp)) return false;
+  return Math.abs(nowSeconds - Number(svixTimestamp)) <= MAX_SKEW_SECONDS;
+}
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -89,6 +102,9 @@ serve(async (req) => {
     if (!isValid) {
       return jsonResponse({ error: 'Invalid webhook signature' }, 401);
     }
+    if (!timestampFresh(svixTimestamp, Math.floor(Date.now() / 1000))) {
+      return jsonResponse({ error: 'stale_webhook' }, 401);
+    }
 
     const event = JSON.parse(rawBody);
     const eventType: string = event?.type || '';
@@ -99,7 +115,8 @@ serve(async (req) => {
       return jsonResponse({ received: true, ignored: eventType }, 200);
     }
 
-    const quoteId = extractQuoteId(event?.data?.tags);
+    const taggedQuote = extractQuoteId(event?.data?.tags);
+    const quoteId = taggedQuote && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(taggedQuote) ? taggedQuote : null;
     if (!quoteId) {
       // מייל שנכשל/הוחזר בלי quote_id מתויג (למשל מיילי תזכורת אחרים) - אין
       // מה לעדכן, אבל זו לא שגיאה מבחינת Resend
@@ -110,26 +127,22 @@ serve(async (req) => {
     const secretKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? '';
     const adminClient = createClient(supabaseUrl, secretKey);
 
-    const bounceReason = event?.data?.bounce?.message || event?.data?.bounce?.type || eventType;
-
-    const { error: updateErr } = await adminClient
-      .from('quotes')
-      .update({
-        email_bounced: true,
-        email_bounce_reason: bounceReason,
-        email_bounced_at: new Date().toISOString(),
-      })
-      .eq('id', quoteId);
-
-    if (updateErr) {
-      console.error(`Failed to mark quote ${quoteId} as bounced:`, updateErr.message);
-      return jsonResponse({ error: updateErr.message }, 500);
+    const emailId = typeof event?.data?.email_id === 'string' ? event.data.email_id : null;
+    const bounceReason = String(event?.data?.bounce?.message || event?.data?.bounce?.type || eventType).slice(0, 300);
+    // the event record and the bounce mark are one database transaction (resend_webhook_accept): a failure records nothing, so the
+    // provider's retry is applied
+    const { data: verdict, error: acceptErr } = await adminClient.rpc('resend_webhook_accept', { p_event_id: svixId, p_event_type: eventType, p_email_id: emailId, p_quote: quoteId, p_reason: bounceReason });
+    if (acceptErr) {
+      console.error('resend-email-webhook: the event could not be recorded');
+      return jsonResponse({ error: 'store_failed' }, 500);
+    }
+    if (verdict?.accept !== true) {
+      return jsonResponse({ received: true, skipped: String(verdict?.reason || 'not_current') }, 200);
     }
 
     return jsonResponse({ received: true, quoteId, marked: 'bounced' }, 200);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('resend-email-webhook error:', message);
-    return jsonResponse({ error: message }, 400);
+    console.error('resend-email-webhook error:', error instanceof Error ? error.name : 'unknown');
+    return jsonResponse({ error: 'invalid_request' }, 400);
   }
 });

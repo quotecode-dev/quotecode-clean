@@ -14,6 +14,8 @@
 // Outcomes: 'ok' (every stage completed), 'partial' (the quote exists but named stages did not complete), 'failed' (the quote was not
 // saved; `wrote` lists anything that nevertheless remains written).
 
+import { uploadContentType } from './quoteFileTypes';
+
 export const QUOTE_FILES_BUCKET = 'quote-files';
 
 // RFC 4122 v4 from getRandomValues (crypto.randomUUID needs a secure context; the Owner test URL is plain http on the LAN).
@@ -97,7 +99,8 @@ async function uploadAll(supabase, plan) {
     const path = buildAttachmentPath(plan.userId, plan.quoteId, file.name, base + i);
     let error;
     try {
-      ({ error } = await supabase.storage.from(QUOTE_FILES_BUCKET).upload(path, file, { upsert: false }));
+      // Codex SEC-ST-02: a type outside the bucket's list is stored as a generic file (utils/quoteFileTypes.js)
+      ({ error } = await supabase.storage.from(QUOTE_FILES_BUCKET).upload(path, file, { upsert: false, contentType: uploadContentType(file) }));
     } catch (e) { error = e; }
     if (error) failures.push(file.name);
     else uploaded.push({ path, file });

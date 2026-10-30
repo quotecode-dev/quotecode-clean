@@ -1738,5 +1738,17 @@
   "supabase/functions/agents-room/articleTopics.ts": {
     "interactive": 0,
     "markers": 0
+  },
+  "src/utils/csvCell.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/send-quote-email/sendLedger.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteFileTypes.js": {
+    "interactive": 0,
+    "markers": 0
   }
 }

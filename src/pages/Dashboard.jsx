@@ -9,6 +9,7 @@ import ProFlowLogo from '../components/ProFlowLogo';
 import AccessibilityModal from '../components/AccessibilityModal';
 import AIChatWidget from '../AIChatWidget';
 import { AI_NAVIGATE_EVENT } from '../utils/safeNavigation';
+import { csvRow } from '../utils/csvCell';
 import { OPEN_REMINDERS_SETTINGS_EVENT } from '../utils/reminders';
 import { BELL_SUBJECT_EVENT, firstFreeSignatureQuoteId } from '../utils/bellSubject';
 import { markQuoteSentAfterShare } from '../utils/quoteSentMark';
@@ -2451,7 +2452,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     const keys = Object.keys(dataArray[0]);
     const csvContent = [
       keys.join(','),
-      ...dataArray.map(row => keys.map(key => JSON.stringify(row[key] ?? '')).join(','))
+      // Codex SEC-FE-04 (Owner 2026-10-30): standard CSV quoting + formula-safe text; numbers stay numbers (utils/csvCell.js)
+      ...dataArray.map(row => csvRow(keys.map(key => row[key] ?? '')))
     ].join('\n');
 
     const blob = new Blob(["\ufeff" + csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -2605,16 +2607,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
 
     try {
     if (isSignUp) {
-      const { data: existingBiz } = await supabase
-        .from('business_settings')
-        .select('email')
-        .eq('email', emailInput.trim())
-        .maybeSingle();
-
-      if (existingBiz) {
-        setAuthError(bundleIsHebrew ? 'כתובת המייל כבר רשומה במערכת. אפשר להתחבר או לאפס את הסיסמה.' : 'Email already registered! Please sign in or use password reset.');
-        return;
-      }
+      // Codex SEC-FE-05 (Owner console 2026-10-30, L-12 / L-15): no lookup of who is registered, and the same answer whether the
+      // address is new or already has an account (the sign-up form never tells a stranger that an address exists)
 
       // signup_market נשמר ב-user_metadata ברגע ה-signUp() עצמו - מקור האמת
       // היחיד לאזור המשפטי של החשבון החדש ל-Tier 2 (ר' fetchSettings למעלה),
@@ -2689,16 +2683,16 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         // server error were all misreported as a duplicate-account
         // problem, sending the user toward the wrong fix. normalizeAuthError
         // classifies the real cause instead (see authErrorClassification.js).
-        setAuthError(normalizeAuthError(error, bundleIsHebrew).message);
+        const signUpError = normalizeAuthError(error, bundleIsHebrew);
+        // Codex SEC-FE-05: an existing address looks exactly like a new sign-up (same text, same success styling)
+        if (signUpError.category === 'already_registered') setAuthSuccess(signUpError.message);
+        else setAuthError(signUpError.message);
       } else {
-        if (data?.user && data.user.identities && data.user.identities.length === 0) {
-          setAuthError(bundleIsHebrew ? 'כתובת המייל כבר רשומה במערכת. אפשר להתחבר.' : 'Email already exists! Please sign in.');
-        } else {
-          // Owner P0 (Task 38 finding): when email confirmation is required there is no session yet - say so plainly
-          setAuthSuccess(data?.session
-            ? (bundleIsHebrew ? 'ההרשמה הצליחה! מאתחל את החשבון...' : 'Sign up successful! Setting up your account...')
-            : (bundleIsHebrew ? 'ההרשמה התקבלה. שלחנו אליכם מייל לאימות - פתחו את הקישור שבו כדי להפעיל את החשבון.' : 'Sign-up received. We sent you a verification email - open the link in it to activate your account.'));
-        }
+        // Owner P0 (Task 38 finding): when email confirmation is required there is no session yet - say so plainly; an address that
+        // already has an account gets the very same answer (Codex SEC-FE-05)
+        setAuthSuccess(data?.session && !(data?.user?.identities && data.user.identities.length === 0)
+          ? (bundleIsHebrew ? 'ההרשמה הצליחה! מאתחל את החשבון...' : 'Sign up successful! Setting up your account...')
+          : (bundleIsHebrew ? 'אם הכתובת עוד לא רשומה, שלחנו אליה מייל לאימות - פתחו את הקישור שבו כדי להפעיל את החשבון. אם כבר יש לכם חשבון, התחברו או אפסו את הסיסמה.' : 'If this address is not registered yet, we sent it a verification email - open the link in it to activate your account. If you already have an account, sign in or reset your password.'));
       }
     } else {
       const { error } = await supabase.auth.signInWithPassword({ email: emailInput.trim(), password: passwordInput, options: { captchaToken: takeCaptchaToken('auth') } });

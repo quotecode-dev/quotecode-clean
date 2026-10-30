@@ -64,7 +64,8 @@ describe('index.ts wiring', () => {
   it('the link decision runs after the JWT owner check and before any send; the token is never logged', () => {
     expect(src.indexOf('quoteRow.user_id !== callerUser.id')).toBeLessThan(src.indexOf('decideEmailLink('));
     expect(src.indexOf('const canonicalQuoteLink = linkDecision.link;')).toBeGreaterThan(src.indexOf('if (!linkDecision.ok)'));
-    expect(src).toContain('JSON.stringify(loggableBody(body))');
+    // Codex SEC-LOG-01 (Owner 2026-10-30): the body is no longer logged at all (not even redacted)
+    expect(src).not.toContain('loggableBody(body)');
     expect(src).toMatch(/const PROD_ORIGIN = 'https:\/\/www\.tekango\.com';/);
   });
   it('loggableBody redacts only the token; a body without it logs identically', () => {
