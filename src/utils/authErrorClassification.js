@@ -124,8 +124,9 @@ const PATTERNS = [
     // account. This pattern now only fires for the real duplicate case.
     test: (err) => /already registered|user already exists/i.test(String(err?.message || '')),
     userMessage: (_err, isHebrew) => (isHebrew
-      ? 'כתובת המייל כבר רשומה במערכת. אפשר להתחבר או לאפס את הסיסמה.'
-      : 'Email already registered! Please sign in or use password reset.'),
+      // Codex SEC-FE-05 (Owner 2026-10-30): the same answer as a new sign-up - never "this address exists"
+      ? 'אם הכתובת עוד לא רשומה, שלחנו אליה מייל לאימות - פתחו את הקישור שבו כדי להפעיל את החשבון. אם כבר יש לכם חשבון, התחברו או אפסו את הסיסמה.'
+      : 'If this address is not registered yet, we sent it a verification email - open the link in it to activate your account. If you already have an account, sign in or reset your password.'),
   },
   {
     category: 'password_reuse',

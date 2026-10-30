@@ -585,6 +585,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-29 night (typed night task: all of Codex's findings on release 4 and release 5 with decisions 7 and 8 as proposed, including L-22, L-25 and the other screen/date locks unchanged; + the manager's own page check before an indexing task): Codex release 5 topic 7 - support conversations, outbound records, one acknowledgement per conversation, Owner link/unlink audit (decision 8)"
+    },
+    "20261030700000_security_followups.sql": {
+      "sha256": "c3d7804f2f6442d388dfae93fccd86cc0baa205bb0042762d48cf5a56fc3f31b",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-30 (typed: continuous work - the remaining security findings and releases 6, 7, 8 and 9, each through its own gate, including L-22, L-23, L-26, L-12, L-15 and L-17; L-13 only for the test-account recipient refusal in release 9): Codex security follow-ups - quote email send record (EF-02), webhook event + bounce mark once for the current send (EF-03), no TRUNCATE/TRIGGER/REFERENCES for app roles (DB-06), throttled view counter (DB-07), quote-files file types and stored-total limits (ST-02)"
     }
   }
 }
