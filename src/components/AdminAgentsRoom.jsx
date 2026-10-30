@@ -313,8 +313,7 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
   const drafts = Object.fromEntries((ok ? state.drafts || [] : []).map((d) => [d.id, d]));
   const pending = actions.filter((a) => a.status === 'proposed' && (a.kind === 'system' || a.kind === 'claude'));
   // the social posts have their own list on the manager's desk (AdminSocialPosts); they still count as waiting for approval
-  // Codex release 8: a reply to a comment waits with the social posts (its own buttons are in the social screen), never as a code task
-  const pendingOthers = pending.filter((a) => a.action_type !== 'social_post' && a.action_type !== 'social_reply');
+  const pendingOthers = pending.filter((a) => a.action_type !== 'social_post');
   const socialWaiting = pending.length - pendingOthers.length;
   const withClaude = actions.filter((a) => a.kind === 'claude' && a.status === 'approved');
   const lastManager = runs.find((r) => r.agent === 'manager' && r.status !== 'running' && !String(r.run_key).startsWith('draft:') && !String(r.run_key).startsWith('revise:'));

@@ -12,8 +12,6 @@ import { type Agent, israelParts } from './lib.ts';
 // החלטות 6 ו-9 כמוצע, L-25 בלי שינוי, שחרור עד הלייב"): every AI request is reserved / settled in the budget ledger (20261030200000),
 // the article topics come from the whole inventory and are claimed atomically (20261030300000)
 import { budgetedComplete } from './aiBudget.ts';
-import { collectWeek, type MarketingDeps, type MarketKey, type Snapshot } from './marketing.ts';
-import { GRAPH } from './social.ts';
 import { normTopic, type Inventory } from './articleTopics.ts';
 // Stage 2 (Owner console 2026-10-27, typed: "מאשר את תוכנית שלב 2 עם מנהל הסוכנים"): the agents manager, the Owner's approvals, agent
 // names, articles. New secret (optional until the Owner sets it): VERCEL_DEPLOY_HOOK_URL - the site rebuild after an approved article.
@@ -76,32 +74,6 @@ Deno.serve(async (req: Request) => {
   };
   const keyJson = Deno.env.get('GSC_SERVICE_ACCOUNT_JSON') ?? '';
   const sitemap = async () => { const r = await timed(`${ORIGIN}/sitemap.xml`); return r.ok ? await r.text() : ''; };
-
-  // Codex release 8 (Owner 2026-10-30, decisions 12-13): the search-data service - server-only login / password, every request reserved
-  // against the 10 USD monthly data cap and settled with the provider's own cost
-  const marketing: MarketingDeps = {
-    now: () => new Date(),
-    creds: () => {
-      const login = (Deno.env.get('DATAFORSEO_LOGIN') ?? '').trim(); const password = (Deno.env.get('DATAFORSEO_PASSWORD') ?? '').trim();
-      return login && password ? { login, password } : null;
-    },
-    fetch: (url, init) => timed(url, init, 60000),
-    reserve: async (purpose, hold) => {
-      const r = (await db(admin.rpc('agents_data_reserve', { p_purpose: purpose, p_hold_micros: hold }))) as { ok?: boolean; id?: string; code?: string } | null;
-      return r?.ok === true && typeof r.id === 'string' ? { ok: true, id: r.id } : { ok: false, code: String(r?.code ?? 'data_budget_blocked') };
-    },
-    settle: async (id, state, cost) => { await db(admin.rpc('agents_data_settle', { p_id: id, p_state: state, p_cost_micros: cost ?? null })); },
-    keywords: async () => ((await db(admin.from('marketing_keywords').select('id, market, keyword').eq('active', true).order('created_at').limit(200))) as { id: string; market: MarketKey; keyword: string }[]),
-    addKeywords: async (rows) => { await db(admin.from('marketing_keywords').upsert(rows.map((r) => ({ ...r, source: 'search_console' })), { onConflict: 'market,keyword', ignoreDuplicates: true })); },
-    competitors: async () => ((await db(admin.from('marketing_competitors').select('domain, market'))) as { domain: string; market: MarketKey }[]),
-    weekSnapshots: async (week) => ((await db(admin.from('marketing_rank_snapshots').select('keyword_id, our_position, competitor_positions, search_volume, depth').eq('week', week))) as Record<string, unknown>[])
-      .map((r): Snapshot => ({ keywordId: String(r.keyword_id), ourPosition: (r.our_position as number | null) ?? null, competitorPositions: (r.competitor_positions ?? {}) as Record<string, number>,
-        searchVolume: (r.search_volume as number | null) ?? null, depth: Number(r.depth) || 100 })),
-    saveSnapshots: async (week, rows) => {
-      await db(admin.from('marketing_rank_snapshots').upsert(rows.map((r) => ({ week, keyword_id: r.keywordId, our_position: r.ourPosition, competitor_positions: r.competitorPositions,
-        search_volume: r.searchVolume, depth: r.depth })), { onConflict: 'week,keyword_id', ignoreDuplicates: true }));
-    },
-  };
 
   const deps: StageDeps = {
     caller: async () => role,
@@ -220,28 +192,6 @@ Deno.serve(async (req: Request) => {
       p_he_norm: nrm(heads.he), p_en_norm: nrm(heads.en), p_focus: focus, p_focus_norm: focus ? nrm(focus) || null : null }))),
     rejectArticleFlow: async (action, holdSeconds) => lifecycle(await db(admin.rpc('agents_article_reject', { p_action: action, p_hold_seconds: holdSeconds }))),
     lastPublishedAt: async () => ((await db(admin.from('site_articles').select('published_at').eq('status', 'published').order('published_at', { ascending: false }).limit(1))) as { published_at: string }[])[0]?.published_at ?? null,
-    // Codex release 8 (Owner 2026-10-30): the Graph API of a connected account - its page token is read here only and sent to Meta only
-    graph: async (channel, method, path, params) => {
-      const t = TARGETS[channel];
-      const token = t ? (Deno.env.get(t.tokenEnv) ?? '').trim() : '';
-      if (!token || !/^[0-9_/a-z]+$/i.test(path)) return { ok: false, status: 0, json: null };
-      try {
-        const q = new URLSearchParams({ ...params, access_token: token });
-        const r = method === 'GET' ? await timed(`${GRAPH}/${path}?${q}`, {}, 15000)
-          : await timed(`${GRAPH}/${path}`, { method: 'POST', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: q.toString() }, 20000);
-        return { ok: r.ok, status: r.status, json: await r.json().catch(() => null) };
-      } catch { return { ok: false, status: 0, json: null }; }
-    },
-    saveMetrics: async (rows) => {
-      await db(admin.from('social_post_metrics').upsert(rows.map((m) => ({ action_id: m.actionId, network: m.network, likes: m.likes, comments: m.comments, shares: m.shares,
-        reach: m.reach, reach_available: m.reachAvailable, fetched_at: new Date().toISOString() }))));
-    },
-    postMetricsRows: async () => ((await db(admin.from('social_post_metrics').select('action_id, network, likes, comments, shares, reach, reach_available, fetched_at').limit(60))) as Record<string, unknown>[])
-      .map((m) => ({ actionId: String(m.action_id), network: m.network as never, likes: m.likes as never, comments: m.comments as never, shares: m.shares as never, reach: m.reach as never, reachAvailable: m.reach_available === true })),
-    replyActions: async () => (await db(admin.from('agent_actions').select('id, created_at, run_key, source, kind, action_type, title_he, title_en, detail_he, detail_en, payload, status, decided_at, done_at, result, error, dedupe_key')
-      .eq('action_type', 'social_reply').gte('created_at', new Date(Date.now() - 30 * 86_400_000).toISOString()).order('created_at', { ascending: false }).limit(100))) as never,
-    purgeReplyTexts: async () => Number(await db(admin.rpc('agents_purge_reply_texts'))) || 0,
-    competitive: (queries) => collectWeek(marketing, queries),
     deployHook: async () => {
       const url = (Deno.env.get('VERCEL_DEPLOY_HOOK_URL') ?? '').trim();
       if (!/^https:\/\/api\.vercel\.com\/v1\/integrations\/deploy\//.test(url)) return 'not_configured';

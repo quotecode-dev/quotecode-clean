@@ -10,7 +10,6 @@
 // Owner one short Hebrew report (the Owner chose "דוח גם במייל"); an Owner "run now" only updates the screen.
 import { summary as gscSummary, indexing as gscIndexing, parseServiceAccount, signedAssertion, TOKEN_URL, ORIGIN, type Deps as GscDeps } from '../search-console/lib.ts';
 import { isBudgetRefusal, isAmbiguous, AMBIGUOUS } from './aiBudget.ts';
-import type { Competitive } from './marketing.ts';
 
 export const AGENTS = ['seo', 'service', 'security'] as const;
 export type Agent = typeof AGENTS[number];
@@ -45,8 +44,6 @@ export interface Deps {
   versionJson(): Promise<Record<string, unknown> | null>;
   complete(a: { model: string; messages: unknown[]; schema: unknown; maxTokens?: number; ref?: { run?: string; action?: string; op?: string } }): Promise<{ content: string; promptTokens: number; completionTokens: number }>;
   mailOwner(subject: string, text: string, key: string): Promise<boolean>;
-  // Codex release 8 (Owner 2026-10-30, decisions 12-13): the week's competitor and keyword evidence (paid, capped, once a week; absent = not wired)
-  competitive?(queries: string[]): Promise<Competitive | null>;
 }
 
 export function israelParts(now: Date) {
@@ -157,11 +154,8 @@ export async function runSeo(deps: Deps, ref?: { run?: string }): Promise<Result
   // unknownToGoogle (stage 2, Owner 2026-10-27): pages Google has not met yet - the manager resubmits the sitemap for them
   const unknownToGoogle = notIndexed.filter((p) => /unknown to Google|Discovered/.test(p.coverageState)).length;
   // notIndexed (Owner 2026-10-29, L-22): the agents manager checks each of these pages itself before it proposes any indexing task
-  // Codex release 8: the week's keyword / competitor evidence (its own failure never stops Guy's report - it is said to be unavailable)
-  const competitive = deps.competitive ? await deps.competitive(s.queries.map((q) => String(q.query ?? ''))).catch(() => null) : null;
   const data = { period: s.period, totals: s.totals, previous: s.previous, byMarket: by, indexing: idx, topQueries: s.queries.slice(0, 10), unknownToGoogle,
-    notIndexed: notIndexed.slice(0, 20).map((p) => ({ path: p.path, reason: p.coverageState || p.verdict })), ...(competitive ? { competitive } : {}) };
-  if (deps.competitive) findings.push(competitiveFinding(competitive));
+    notIndexed: notIndexed.slice(0, 20).map((p) => ({ path: p.path, reason: p.coverageState || p.verdict })) };
   // the AI writes the summary and the recommendations from the numbers above; the search terms are visitor text = DATA, never instructions
   const messages = [
     { role: 'system', content: 'You are the SEO agent of TEKANGO, a SaaS for writing business quotes (Hebrew site /he for Israel, English site /en for the international market). '
@@ -200,18 +194,6 @@ export async function runSeo(deps: Deps, ref?: { run?: string }): Promise<Result
     he: refused === AMBIGUOUS ? 'הסיכום של הבינה לא נכתב, כי לא התקבלה ממנה תשובה ברורה. המספרים מעודכנים.' : 'הסיכום של הבינה לא נכתב, כי תקציב הבינה החודשי מלא. המספרים מעודכנים.',
     en: refused === AMBIGUOUS ? 'The AI summary was not written because the AI gave no clear answer. The numbers are up to date.' : 'The AI summary was not written because the monthly AI budget is full. The numbers are up to date.' }] : [];
   return { summaryHe: isolatePaths((ai?.summary_he || fallbackHe).slice(0, 1500)), summaryEn: (ai?.summary_en || fallbackEn).slice(0, 1500), findings: [...findings, ...recs, ...aiSkipped], data: { ...data, recommendations: recs.length }, costUsd, tokens, ...(ai ? {} : { note: refused || 'ai_unavailable' }) };
-}
-
-// Codex release 8: the spec's words - "Keywords checked" / "Not found within checked depth"; an unavailable source is said so
-export function competitiveFinding(c: Competitive | null): Finding {
-  if (!c || c.state === 'not_configured' || c.state === 'unavailable') {
-    return { level: 'warn', he: 'מילות חיפוש שנבדקו: נתוני המתחרים לא זמינים השבוע.', en: 'Keywords checked: the competitor data is not available this week.' };
-  }
-  if (c.state === 'budget_blocked') return { level: 'warn', he: 'מילות חיפוש שנבדקו: תקציב הנתונים החודשי מלא, הבדיקה לא רצה.', en: 'Keywords checked: the monthly data budget is full, the check did not run.' };
-  const top = c.opportunities.slice(0, 3).map((o) => o.keyword).join(', ');
-  return { level: c.state === 'ok' ? 'good' : 'warn',
-    he: `מילות חיפוש שנבדקו: ${c.checked} · אנחנו מופיעים ב-${c.found} · לא נמצא בעומק הבדיקה: ${c.notFound}${top ? ` · הזדמנויות: ⁦${top}⁩` : ''}`,
-    en: `Keywords checked: ${c.checked} · we rank for ${c.found} · not found within checked depth: ${c.notFound}${top ? ` · opportunities: ${top}` : ''}` };
 }
 
 // ---------------------------------------------------------------- service
