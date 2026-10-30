@@ -465,12 +465,9 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                           </div>
                           {preview?.id === r.id && (
                             <div className="av-section" data-testid="expense-file-preview">
-                              {/* PRODUCT_TRUTH_DECORATIVE: the invoice file - a PDF or an image is shown in place, any other type is only downloaded (never shown inside the admin page) */}
                               {preview.type.startsWith('image/')
                                 ? <img src={preview.src} alt={isHebrew ? 'החשבונית' : 'The invoice'} style={{ maxInlineSize: '100%', borderRadius: 8 }} />
-                                : preview.type === 'application/pdf'
-                                  ? <iframe src={preview.src} title={isHebrew ? 'החשבונית' : 'The invoice'} style={{ inlineSize: '100%', blockSize: '70vh', border: '1px solid #e2e8f0', borderRadius: 8 }} data-testid="expense-file-frame" />
-                                  : <a className="av-btn" href={preview.src} download data-testid="expense-file-download">{isHebrew ? 'הורדת הקובץ' : 'Download the file'}</a>}
+                                : <iframe src={preview.src} title={isHebrew ? 'החשבונית' : 'The invoice'} style={{ inlineSize: '100%', blockSize: '70vh', border: '1px solid #e2e8f0', borderRadius: 8 }} />}
                             </div>
                           )}
                           {edit?.id === r.id && (
