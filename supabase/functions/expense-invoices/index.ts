@@ -8,7 +8,6 @@
 //  - Secrets (the Owner sets them; never in code): GOOGLE_EXPENSES_CLIENT_ID / GOOGLE_EXPENSES_CLIENT_SECRET, OPENAI_API_KEY,
 //    PAYPLUS_API_KEY / PAYPLUS_SECRET_KEY / PAYPLUS_ENVIRONMENT (+ PAYPLUS_PROXY_URL, the fixed-IP relay), RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS (the monthly note), CRON_SECRET.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { recordRun } from '../_shared/scheduledHealth.ts'; // Codex release 7: the cron window is reported
 import { expenseHandler, oauthCallback, scanBatch, payplusPage, searchAllPages, PayplusCreateError, createAnswerDefinite, sameSupplier, payplusReason, createExpenseAt, subcategoryUuids, sameText, boiRate, BOI_RATE_CURRENCIES, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
 import { PAYPLUS_API_BASES } from '../subscription-authority/payplus.ts';
 import { sendMail } from '../support-inbound/mail.ts';
@@ -333,8 +332,6 @@ Deno.serve(async (req: Request) => {
     EdgeRuntime.waitUntil((async () => {
       const r = await scanBatch(deps, BUDGET_MS.cron).catch(() => null);
       if (r && r.found > 0) await deps.notifyOwner(r.found).catch(() => {});
-      // Codex release 7: the monthly window is reported from inside the background work (a 202 is not a completion)
-      await recordRun(admin, 'expense-scan', r ? 200 : 500, r ? { ok: true, ...r } as never : { ok: false, code: 'scan_failed' });
     })());
     return json(202, { ok: true, started: true });
   }

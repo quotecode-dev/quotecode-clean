@@ -8,7 +8,6 @@
 //    is read - without it every run is recorded as "not configured"), RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS, CRON_SECRET,
 //    PAYPLUS_PROXY_URL (the fixed-IP relay every PayPlus call goes through - the account's IP check; _shared/payplusEgress.ts).
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { recordRun } from '../_shared/scheduledHealth.ts'; // Codex release 7: the cron window is reported
 import { reconcileHandler, readHistory, type ReconcileDeps, type Finding, type OurCharge, type OurRefund, type OwedRefund } from './lib.ts';
 import { PAYPLUS_API_BASES } from '../subscription-authority/payplus.ts';
 import { sendMail } from '../support-inbound/mail.ts';
@@ -132,11 +131,9 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return json(400, { ok: false, code: 'invalid_request' }); }
   try {
     const r = await reconcileHandler(body, deps, APP_URL);
-    if (role === 'cron') await recordRun(admin, 'billing-reconcile', r.status, r.body);
     return json(r.status, r.body);
   } catch (e) {
     console.error(`billing-reconcile: failed ${(e as Error)?.message ?? ''}`.slice(0, 200));
-    if (role === 'cron') await recordRun(admin, 'billing-reconcile', 500, { ok: false, code: 'failed' });
     return json(500, { ok: false, code: 'failed' });
   } finally {
     egress.close();

@@ -2,7 +2,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildSubscriptionEmailSafeResponse } from "./safeResponse.ts";
-import { recordRun } from "../_shared/scheduledHealth.ts"; // Codex release 7: the daily cron window is reported
 
 // ==========================================
 // Subscriptions cutover (2026-10-07): only the retired legacy plan name was removed from the test-mode copy; the batch
@@ -255,9 +254,7 @@ serve(async (req) => {
     // המנוי נכנס למצב cancel-at-period-end מאושר (או שקול) - לא בכל חידוש
     // חודשי רגיל. עד אז, batch mode מחזיר תשובה מפורשת "לא מיושם" ולעולם
     // לא שולח מייל.
-    const batchAnswer = buildSubscriptionEmailSafeResponse();
-    await recordRun(adminClient, 'daily-cron', 200, batchAnswer as never);
-    return jsonResponse(batchAnswer, 200);
+    return jsonResponse(buildSubscriptionEmailSafeResponse(), 200);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('send-subscription-expiration-email error:', message);

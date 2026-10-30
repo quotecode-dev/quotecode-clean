@@ -597,12 +597,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-30 (typed: continuous work - the remaining security findings and releases 6, 7, 8 and 9, each through its own gate, including L-22, L-23, L-26, L-12, L-15 and L-17; L-13 only for the test-account recipient refusal in release 9): Codex release 6 - one canonical record per supplier document (VAT + type + number), copies stored and linked, never sent (decision 10)"
-    },
-    "20261030900000_scheduled_health.sql": {
-      "sha256": "07c15d531c7d95fc52a7b17a0300dd4d45a8175a767058d5ef048d40db078e42",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-30 (typed: continuous work - the remaining security findings and releases 6, 7, 8 and 9, each through its own gate, including L-22, L-23, L-26, L-12, L-15 and L-17; L-13 only for the test-account recipient refusal in release 9): Codex release 7 - scheduled-run watcher outside Vercel: job registry, server-derived windows, incidents with one alert and one recovery notice (decision 11)"
     }
   }
 }

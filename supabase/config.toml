@@ -278,10 +278,3 @@ enabled = true
 # account. The code-level activation phase is off; the function is not deployed by this change.
 verify_jwt = false
 entrypoint = "./functions/subscription-authority/index.ts"
-
-[functions.scheduled-health]
-enabled = true
-# Codex release 7 (Owner 2026-10-30, decision 11): the watcher of the scheduled runs, called only by the database's schedule (pg_cron)
-# with x-schedule-secret = SCHEDULE_MONITOR_SECRET (checked in code) - no user JWT exists for that call.
-verify_jwt = false
-entrypoint = "./functions/scheduled-health/index.ts"

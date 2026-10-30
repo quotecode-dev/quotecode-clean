@@ -6,7 +6,6 @@
 //  - Secrets (already set): GSC_SERVICE_ACCOUNT_JSON (read-only Search Console), OPENAI_API_KEY, RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS,
 //    CRON_SECRET. Nothing is ever published, sent to a customer or changed on the site.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
-import { recordRun } from '../_shared/scheduledHealth.ts'; // Codex release 7: the cron window is reported
 import { type Agent, israelParts } from './lib.ts';
 // Codex release 4 (Owner 2026-10-29, typed: "מאשר שינוי ב-L-22 לשחרור 4 של קודקס: הגנה מכפילויות מאמרים ושמירת תקציב בינה עם שריון מראש,
 // החלטות 6 ו-9 כמוצע, L-25 בלי שינוי, שחרור עד הלייב"): every AI request is reserved / settled in the budget ledger (20261030200000),
@@ -203,9 +202,6 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return json(400, { ok: false, code: 'invalid_request' }); }
   try {
     const r = await handle(body, deps, async () => sitemapPaths(await sitemap()));
-    // Codex release 7: the weekly / daily cron windows are reported (a manual run never satisfies a window)
-    const cronAction = (body as { action?: unknown })?.action;
-    if (role === 'cron' && (cronAction === 'run' || cronAction === 'daily')) await recordRun(admin, cronAction === 'daily' ? 'agents-daily' : 'agents-weekly', r.status, r.body as never);
     return json(r.status, r.body);
   } catch (e) {
     console.error(`agents-room: failed ${(e as Error)?.message ?? ''}`.slice(0, 200));
