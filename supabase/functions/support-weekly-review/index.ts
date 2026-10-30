@@ -4,6 +4,7 @@
 //    constant-time). The Owner's "run now" is a verified super admin (JWT + business_settings.role).
 //  - Secrets (already set for the support email): OPENAI_API_KEY, RESEND_API_KEY, SUPPORT_OWNER_NOTIFY_ADDRESS, CRON_SECRET.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { recordRun } from '../_shared/scheduledHealth.ts'; // Codex release 7: the cron window is reported
 import { reviewHandler, type ReviewDeps } from './lib.ts';
 import { sendMail } from '../support-inbound/mail.ts';
 
@@ -87,9 +88,11 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return json(400, { ok: false, code: 'invalid_request' }); }
   try {
     const r = await reviewHandler(body, deps, APP_URL);
+    if (role === 'cron') await recordRun(admin, 'support-weekly-review', r.status, r.body);
     return json(r.status, r.body);
   } catch (e) {
     console.error(`support-weekly-review: failed ${(e as Error)?.message ?? ''}`.slice(0, 200));
+    if (role === 'cron') await recordRun(admin, 'support-weekly-review', 500, { ok: false, code: 'failed' });
     return json(500, { ok: false, code: 'failed' });
   }
 });
