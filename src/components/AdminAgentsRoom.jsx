@@ -7,7 +7,7 @@
 // (an article topic -> a draft to read -> publish; a code task for Claude), what is with Claude, information, and the history. Every agent
 // has a drawn character (AgentAvatar, style A chosen by the Owner) and a name the Owner gives it. Nothing here acts without the Owner's click;
 // the function checks the admin and the action again.
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import AdminScreenFrame from './AdminScreenFrame';
 import AgentAvatar from './AgentAvatar';
@@ -30,6 +30,9 @@ const AGENTS = [
   { id: 'security', he: 'סוכן האבטחה', en: 'Security agent', roleHe: 'כל יום: כותרות ההגנה, הגרסה החיה וכל הדפים הציבוריים. מייל רק כשיש בעיה.', roleEn: 'Every day: the protection headers, the live build and every public page. An email only when there is a problem.' },
   // Owner 2026-10-27 ("מאשר את שלב 1 של סוכנת הרשתות"; the layout: "תחלק את המסך ל 6 תוסיף את הסוכנת החדשה מתחת לגיא")
   { id: 'social', he: 'סוכנת הרשתות', en: 'Social media agent', roleHe: 'פייסבוק, אינסטגרם וטיקטוק: ישראל בעברית, חו״ל באנגלית. כל פוסט רק אחרי אישור שלכם.', roleEn: 'Facebook, Instagram and TikTok: Israel in Hebrew, international in English. Every post only after your approval.' },
+  // Codex release 9 (Owner console 2026-10-30, continuous work + "מאשר את השמות מאיה ועומר לסוכנים החדשים"): the two new places of the grid
+  { id: 'customer_success', he: 'סוכנת הצלחת הלקוחות', en: 'Customer success agent', roleHe: 'כל יום: חשבונות שאולי צריכים עזרה. טיוטה נכתבת רק למי שביקש הודעות עזרה, וכל הודעה נשלחת רק אחרי אישור שלכם.', roleEn: 'Every day: accounts that may need help. A draft is written only for those who asked for help emails, and every message is sent only after your approval.' },
+  { id: 'live_check', he: 'בודק האתר החי', en: 'Live site checker', roleHe: 'כל בוקר: נכנס לשני חשבונות הבדיקה בדפדפן אמיתי, בעברית ובאנגלית ובארבעה גדלי מסך. בלי רכישה ובלי הרשמה.', roleEn: 'Every morning: signs in to the two test accounts in a real browser, in Hebrew and English, at four screen sizes. No purchase and no signup.' },
 ];
 // Owner 2026-10-29 (L-22, typed: "... וכפתור בדיקת סוכנים אצל קלוד בחדר הסוכנים, בשחרור אחד"; the place: "תשים את האייקון שלך כאן בצד
 // שמאל" - the empty end of the KPI row): opens a new Claude chat in the Owner's editor with the agents check (/agents-check,
@@ -37,13 +40,38 @@ const AGENTS = [
 // hidden below 1000px. The icon is the series' existing TEKANGO AI icon (IRON-ICON-001), no new icon.
 export const AGENTS_CHECK_LINK = 'vscode://anthropic.claude-code/open?prompt=%2Fagents-check';
 
-// the agents grid: 6 places, 3 per row on a wide screen - the social agent under the SEO agent, two places left for future agents
+// the agents grid: 6 places, 3 per row on a wide screen - the social agent under the SEO agent; Codex release 9 filled the last two (Maya, Omer)
 const GRID_SLOTS = 6;
 const STATUS = {
   done: { he: 'הושלם', en: 'Done', color: '#1f6b3a' },
   failed: { he: 'נכשל', en: 'Failed', color: '#8f3434' },
   running: { he: 'רץ עכשיו', en: 'Running', color: '#7a4f0a' },
   skipped_cap: { he: 'לא רץ - הגענו לתקרה', en: 'Skipped - the cap was reached', color: '#7a4f0a' },
+  // Codex release 9: a LIVE check that could not decide is never shown as healthy
+  inconclusive: { he: 'לא הוכרע', en: 'Inconclusive', color: '#7a4f0a' },
+};
+// Codex release 9, topic 11: the manager chain - each agent's result on the screen, the spec's words exactly
+const CHAIN_STATUS = {
+  pending: { he: 'בתור', en: 'Queued' },
+  ran: { he: 'הורץ', en: 'Ran' },
+  skipped_fresh: { he: 'דולג — הדוח עדיין עדכני', en: 'Skipped — report is still fresh' },
+  skipped_week: { he: 'דולג — הפוסטים לשבוע כבר מוכנים', en: 'Skipped — this week’s posts are already prepared' },
+  already_running: { he: 'כבר פועל', en: 'Already running' },
+  waiting: { he: 'ממתין לתוצאת בדיקת ה-LIVE', en: 'Waiting for the LIVE check result' },
+  not_run_hour: { he: 'לא הורץ — מגבלת השעה', en: 'Not run — hourly limit' },
+  not_run_budget: { he: 'לא הורץ — אין יתרה מספקת בתקציב', en: 'Not run — insufficient available budget' },
+  not_run_inconclusive: { he: 'לא הורץ — הבדיקה האחרונה לא הוכרעה', en: 'Not run — recent check was inconclusive' },
+  failed: { he: 'נכשל', en: 'Failed' },
+};
+const CHAIN_PARTIAL = { he: 'הסיכום חלקי: חלק מהדוחות לא הושלמו או אינם עדכניים.', en: 'The summary is partial: some reports failed or are stale.' };
+const chainPartial = (steps) => (steps || []).some((x) => x.status === 'failed' || String(x.status).startsWith('not_run') || x.status === 'already_running');
+// Codex release 9, topic 9: Maya's draft - the signals and the answers of an approval
+const SIGNAL_LABEL = {
+  no_quote_onboarding: { he: 'נרשמו ועוד לא יצרו הצעה ראשונה', en: 'Registered without a first quote' },
+  free_ending: { he: 'מסלול החינם מסתיים', en: 'Free plan ending' },
+  quote_awaiting_response: { he: 'הצעה שממתינה לתשובה', en: 'A quote awaiting a response' },
+  renewal_failed_grace: { he: 'חיוב שלא הושלם, בתקופת חסד', en: 'Payment not completed, in the grace period' },
+  paid_inactive: { he: 'מנוי פעיל שלא נכנס שבועיים', en: 'An active subscriber inactive for two weeks' },
 };
 const ACTION_STATUS = {
   proposed: { he: 'מחכה', en: 'Waiting', cls: 'av-warn' }, approved: { he: 'אושר', en: 'Approved', cls: 'av-ok' },
@@ -95,6 +123,13 @@ const RELEASE4_ERRORS = {
   ai_unknown_outcome: { he: 'לא התקבלה תשובה ברורה מהבינה. הסכום נשאר שמור, ולא נשלח ניסיון נוסף. אפשר לנסות שוב מאוחר יותר.', en: 'The AI gave no clear answer. The amount stays reserved and no further attempt was sent. You can try again later.' },
   already_drafted: { he: 'הטיוטה של הנושא הזה כבר נכתבה. רעננו את המסך.', en: 'The draft for this topic was already written. Refresh the screen.' },
   article_flow_unavailable: { he: 'לא הצלחנו לקרוא את אישור הנושא של הטיוטה, ולכן היא לא נכתבה מחדש. נסו שוב בעוד רגע.', en: 'We could not read the approval of this draft\'s topic, so it was not rewritten. Try again in a moment.' },
+  // Codex release 9 (topics 9-11)
+  outreach_stale: { he: 'מצב החשבון השתנה, ולכן ההודעה כבר לא מתאימה ולא נשלחה.', en: 'The account changed, so the message no longer fits and was not sent.' },
+  outreach_no_consent: { he: 'בעל החשבון ביטל את ההסכמה להודעות עזרה, ולכן ההודעה לא נשלחה.', en: 'The account owner withdrew consent to help emails, so the message was not sent.' },
+  outreach_recipient_changed: { he: 'כתובת המייל או השוק של החשבון השתנו, ולכן ההודעה לא נשלחה.', en: 'The account\'s email address or market changed, so the message was not sent.' },
+  outreach_text_required: { he: 'כתבו את נוסח ההודעה.', en: 'Write the message text.' },
+  dispatch_not_configured: { he: 'החיבור לגיטהאב עוד לא הוגדר, ולכן הבדיקה לא התחילה.', en: 'The GitHub connection is not set yet, so the check did not start.' },
+  dispatch_failed: { he: 'גיטהאב לא קיבל את הבקשה, ולכן הבדיקה לא התחילה. נסו שוב מאוחר יותר.', en: 'GitHub did not accept the request, so the check did not start. Try again later.' },
 };
 
 function errorText(code, isHebrew) {
@@ -274,10 +309,45 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
     setBusy('');
     const statuses = r?.ok ? (r.results || []).map((x) => x.status) : [];
     if (statuses.includes('already_ran')) setNotice({ good: true, text: isHebrew ? 'הסוכן כבר רץ בשעה הזו. התוצאה למטה.' : 'The agent already ran this hour. The result is below.' });
+    // Codex release 9: Omer's check runs on GitHub - its result reaches his card later
+    else if (statuses.includes('dispatched')) setNotice({ good: true, text: isHebrew ? 'הבדיקה התחילה. התוצאה תופיע בכרטיס בעוד כ־20 דקות.' : 'The check started. The result appears on the card in about 20 minutes.' });
+    else if (r?.ok && RELEASE4_ERRORS[(r.results || [])[0]?.error]) setNotice({ good: false, text: errorText((r.results || [])[0].error, isHebrew) });
     else if (r?.ok && statuses.every((s) => s === 'done')) setNotice({ good: true, text: isHebrew ? 'הסוכן סיים. התוצאה למטה.' : 'The agent finished. The result is below.' });
     else setNotice({ good: false, text: isHebrew ? 'הסוכן לא הושלם. הפירוט בכרטיס שלו.' : 'The agent did not complete. Details are on its card.' });
     load();
   };
+
+  // Codex release 9, topic 11: the manager's "Run now" = every due agent, then the manager - a stored job advanced one step per call; a
+  // refreshed screen continues a running chain, a waiting LIVE check is asked again every 20 seconds
+  const [chain, setChain] = useState(null);
+  const stepping = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const advance = useCallback(async (id) => {
+    if (stepping.current) return;
+    stepping.current = true;
+    try {
+      for (let i = 0; i < 240 && mounted.current; i += 1) {
+        const r = await callFn({ action: 'chain_step', id });
+        if (!mounted.current) break;
+        if (!r?.ok || !r.chain) { setNotice({ good: false, text: isHebrew ? 'ההרצה של כל הסוכנים נעצרה. רעננו כדי להמשיך.' : 'Running all the agents stopped. Refresh to continue.' }); break; }
+        setChain(r.chain);
+        if (r.chain.status !== 'running') { load(); break; }
+        if (r.busy || r.chain.steps.some((x) => x.step === 'live_wait' && x.status === 'waiting')) await new Promise((res) => setTimeout(res, 20000));
+      }
+    } finally { stepping.current = false; }
+  }, [isHebrew, load]);
+  const [outreachText, setOutreachText] = useState({}); // Codex release 9: the Owner's edit of a Maya draft, per action
+  const runChain = async () => {
+    setBusy('manager'); setNotice(null);
+    const r = await callFn({ action: 'chain_start' });
+    setBusy('');
+    if (!r?.ok || !r.chain) { setNotice({ good: false, text: isHebrew ? 'ההרצה לא התחילה. נסו שוב.' : 'The run did not start. Try again.' }); return; }
+    setChain(r.chain);
+    if (r.hourLimit) setNotice({ good: true, text: isHebrew ? 'כל הסוכנים כבר הורצו בשעה הזו. התוצאה למטה.' : 'All the agents already ran this hour. The result is below.' });
+  };
+  useEffect(() => { if (state && typeof state === 'object' && state.chain) setChain((c) => (c && c.id === state.chain.id ? c : state.chain)); }, [state]);
+  useEffect(() => { if (chain?.status === 'running') advance(chain.id); }, [chain?.id, chain?.status, advance]);
 
   const act = async (body, okText) => {
     setBusy(body.id || body.action); setNotice(null);
@@ -299,6 +369,10 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
       : r.deploy === 'failed' ? REBUILD_FAILED[isHebrew ? 'he' : 'en']
       : (isHebrew ? 'המאמר פורסם ומופיע באתר. קישור הבנייה מחדש עוד לא הוגדר, ולכן גוגל יראה אותו רק בעדכון הבא של האתר.' : 'The article was published and opens on the site. The rebuild link is not set yet, so Google sees it with the next site update.');
     if (r.status === 'approved') return isHebrew ? 'אישרתם. ההוראה המלאה ל־Claude נשלחה אליכם במייל, והיא גם כאן להעתקה.' : 'Approved. The full instruction for Claude was emailed to you and is also here to copy.';
+    // Codex release 9: Maya's message - sent / the email service did not confirm (never resent by itself) / not sent
+    if (r.status === 'sent') return isHebrew ? 'ההודעה נשלחה ללקוח.' : 'The message was sent to the customer.';
+    if (r.status === 'unknown') return isHebrew ? 'שירות המייל לא אישר שההודעה נשלחה. היא לא תישלח שוב אוטומטית.' : 'The email service did not confirm the message was sent. It will not be resent automatically.';
+    if (r.status === 'failed') return isHebrew ? 'ההודעה לא נשלחה.' : 'The message was not sent.';
     return isHebrew ? 'בוצע.' : 'Done.';
   });
   const copy = async (text) => {
@@ -394,6 +468,34 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
         </>
       );
     }
+    if (a.action_type === 'outreach_draft') {
+      const p = a.payload || {};
+      const editing = Object.prototype.hasOwnProperty.call(outreachText, a.id);
+      const text = editing ? outreachText[a.id] : String(p.text || '');
+      const sig = SIGNAL_LABEL[p.signal];
+      return (
+        <>
+          <div className="av-muted" style={{ fontSize: '0.84rem', marginTop: 6, lineHeight: 1.6 }} data-testid={`outreach-meta-${a.id}`}>
+            <div>{isHebrew ? 'נמען מאומת: ' : 'Verified recipient: '}<bdi dir="ltr">{p.recipient}</bdi></div>
+            <div>{isHebrew ? 'השוק והשפה: ' : 'Market and language: '}{p.market === 'IL' ? (isHebrew ? 'ישראל, עברית' : 'Israel, Hebrew') : (isHebrew ? 'חו״ל, אנגלית' : 'International, English')}</div>
+            {sig && <div>{isHebrew ? 'הסיבה: ' : 'Reason: '}{isHebrew ? sig.he : sig.en}</div>}
+            <div>{isHebrew ? 'בעל החשבון ביקש הודעות עזרה. בסוף ההודעה תתווסף שורה להפסקת ההודעות.' : 'The account owner asked for help emails. A line to stop them is added at the end of the message.'}</div>
+          </div>
+          {editing && (
+            <label className="av-field" style={{ marginTop: 8 }}><span>{isHebrew ? 'נוסח ההודעה' : 'The message text'}</span>
+              <textarea dir="auto" maxLength={3000} value={text} onChange={(e) => { const v = e.target.value; setOutreachText((m) => ({ ...m, [a.id]: v })); }} data-testid={`outreach-text-${a.id}`} style={{ minHeight: 140 }} /></label>
+          )}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: opens the message text for editing - nothing is sent */}
+            {!editing && <button type="button" className="av-btn" disabled={off} onClick={() => setOutreachText((m) => ({ ...m, [a.id]: String(p.text || '') }))} data-testid={`outreach-edit-${a.id}`}>{isHebrew ? 'עריכה' : 'Edit'}</button>}
+            {/* PRODUCT_TRUTH_DECORATIVE: sends THIS message to THIS recipient once, after the server checks consent and the account again (admin only) */}
+            <button type="button" className="av-btn av-primary" disabled={off || (editing && text.trim().length < 10)} onClick={() => decide(a, 'approve', editing ? { text } : {})} data-testid={`action-approve-${a.id}`}>{isHebrew ? 'אישור ההודעה הזו' : 'Approve this message'}</button>
+            {/* PRODUCT_TRUTH_DECORATIVE: rejects the draft - this account is not contacted for this reason again */}
+            <button type="button" className="av-btn" disabled={off} onClick={() => decide(a, 'reject')} data-testid={`action-reject-${a.id}`}>{isHebrew ? 'דחייה' : 'Reject'}</button>
+          </div>
+        </>
+      );
+    }
     return (
       <>
         {a.payload?.prompt_he && <details style={{ marginTop: 6 }}><summary>{isHebrew ? 'ההוראה ל־Claude' : 'The instruction for Claude'}</summary><pre dir="auto" style={{ whiteSpace: 'pre-wrap', fontFamily: 'inherit', fontSize: '0.85rem', margin: '6px 0 0' }}>{a.payload.prompt_he}</pre></details>}
@@ -468,10 +570,29 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                     </div>
                   ) : <p className="av-muted" style={{ fontSize: '0.85rem' }}>{isHebrew ? `${managerName} עוד לא סיכמה שבוע. היא תרוץ ביום ראשון, או עכשיו בכפתור.` : `${managerName} has not summarized a week yet. She runs on Sunday, or now with the button.`}</p>}
                   {managerSummary && <p style={{ fontSize: '0.98rem', lineHeight: 1.65, margin: '0 0 10px', fontWeight: 500 }} data-testid="agent-summary-manager">{managerSummary}</p>}
-                  {/* PRODUCT_TRUTH_DECORATIVE: runs the agents manager now (once an hour at most) - she only proposes; nothing is done without approval */}
-                  <button type="button" className="av-pill" onClick={() => run('manager')} disabled={!!busy} data-testid="agent-run-manager">
-                    {busy === 'manager' ? (isHebrew ? 'רצה...' : 'Running...') : (isHebrew ? 'הרץ עכשיו' : 'Run now')}
+                  {/* Codex release 9, topic 11: every agent whose report is due, then the manager - no email and no customer message */}
+                  {/* PRODUCT_TRUTH_DECORATIVE: runs the due agents, then the agents manager (once an hour at most) - nothing is done without approval */}
+                  <button type="button" className="av-pill" onClick={() => (state.chainAvailable ? runChain() : run('manager'))} disabled={!!busy || chain?.status === 'running'} data-testid="agent-run-manager">
+                    {busy === 'manager' || chain?.status === 'running' ? (isHebrew ? 'רצה...' : 'Running...') : (isHebrew ? 'הרץ עכשיו' : 'Run now')}
                   </button>
+                  {chain && (
+                    <div style={{ marginTop: 10 }} data-testid="agents-chain" data-status={chain.status}>
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: 4 }}>{isHebrew ? 'הרצה של כל הסוכנים' : 'Running all the agents'} · <N v={formatShortDateTime(chain.created_at, market)} /></div>
+                      <ul style={{ margin: 0, paddingInlineStart: 18, fontSize: '0.86rem', lineHeight: 1.7 }} aria-live="polite">
+                        {chain.steps.filter((x) => x.step !== 'live_wait').map((x) => {
+                          const meta = x.step === 'manager' ? MANAGER : AGENTS.find((g) => g.id === x.step);
+                          const nm = profiles[x.step] ? (isHebrew ? profiles[x.step].name_he : profiles[x.step].name_en) : (meta ? L(meta) : x.step);
+                          const st = CHAIN_STATUS[x.status] || CHAIN_STATUS.failed;
+                          return (
+                            <li key={x.step} data-testid={`chain-step-${x.step}`} data-status={x.status}>
+                              <bdi>{nm}</bdi>: {L(st)}{x.code && x.status === 'failed' ? <> ({RELEASE4_ERRORS[x.code] ? errorText(x.code, isHebrew) : <bdi dir="ltr">{x.code}</bdi>})</> : null}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                      {chain.status !== 'running' && chainPartial(chain.steps) && <p className="av-muted" style={{ fontSize: '0.84rem', margin: '6px 0 0' }} data-testid="agents-chain-partial">{L(CHAIN_PARTIAL)}</p>}
+                    </div>
+                  )}
 
                   <h4 style={{ margin: '16px 0 8px' }}>{isHebrew ? 'מחכה לאישורכם' : 'Waiting for your approval'}</h4>
                   {pendingOthers.length ? (
@@ -545,7 +666,7 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                   {AGENTS.map((a) => {
                     const mine = runs.filter((r) => r.agent === a.id);
                     const last = mine[0];
-                    const st = last ? STATUS[last.status] || STATUS.failed : null;
+                    const st = last ? (a.id === 'live_check' && last.status === 'done' && last.data?.outcome === 'inconclusive' ? STATUS.inconclusive : STATUS[last.status] || STATUS.failed) : null;
                     const summary = last ? (isHebrew ? last.summary : last.data?.summaryEn || last.summary) : null;
                     return (
                       <section key={a.id} className="av-card av-agent-card" data-testid={`agent-card-${a.id}`} data-status={last?.status || 'never'}
@@ -558,7 +679,7 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
                             <div style={{ fontSize: '0.85rem', marginBottom: 6 }}>
                               <span style={{ color: st.color, fontWeight: 600 }}>{L(st)}</span>
                               {' · '}<N v={formatShortDateTime(last.finished_at || last.started_at, market)} />
-                              {' · '}{last.trigger === 'cron' ? (String(last.run_key).startsWith('daily:') ? (isHebrew ? 'ריצה יומית' : 'daily run') : (isHebrew ? 'ריצה שבועית' : 'weekly run')) : (isHebrew ? 'הרצה ידנית' : 'run now')}
+                              {' · '}{last.trigger === 'cron' ? (String(last.run_key).startsWith('daily:') || a.id === 'live_check' ? (isHebrew ? 'ריצה יומית' : 'daily run') : (isHebrew ? 'ריצה שבועית' : 'weekly run')) : (isHebrew ? 'הרצה ידנית' : 'run now')}
                             </div>
                             {summary && <p style={{ fontSize: '0.92rem', lineHeight: 1.6, margin: '0 0 8px' }} data-testid={`agent-summary-${a.id}`}>{summary}</p>}
                             {last.error && <p className="av-muted" style={{ fontSize: '0.8rem' }}>{isHebrew ? 'קוד: ' : 'Code: '}<bdi dir="ltr">{last.error}</bdi></p>}

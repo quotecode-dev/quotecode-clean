@@ -17,6 +17,8 @@ export const REFUSALS: Record<string, string> = {
 };
 export const UNVERIFIED = 'QUOTE_EMAIL_UNVERIFIED: the send could not be recorded - nothing was sent.';
 export const UNKNOWN = 'QUOTE_EMAIL_UNKNOWN: the email service did not confirm the send.';
+// Codex release 9, L-13 (Owner 2026-10-30): a registered LIVE-check test account emails a quote only to its own test mailbox
+export const TEST_RECIPIENT = 'QUOTE_EMAIL_TEST_RECIPIENT: a test account sends quotes only to its registered test address.';
 export const PROVIDER_REFUSED = 'Failed to send email via Resend';
 
 /** The reservation answer of the database -> a typed reservation; anything else = null (the caller refuses, fail closed). */

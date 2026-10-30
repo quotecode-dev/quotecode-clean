@@ -28,8 +28,8 @@
     "markers": 0
   },
   "src/components/AdminAgentsRoom.jsx": {
-    "interactive": 23,
-    "markers": 23
+    "interactive": 26,
+    "markers": 26
   },
   "src/components/AdminBillingReconcile.jsx": {
     "interactive": 5,
@@ -1768,6 +1768,34 @@
     "markers": 0
   },
   "supabase/functions/agents-room/socialReplies.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/AccountOutreachPreferences.jsx": {
+    "interactive": 0,
+    "markers": 1
+  },
+  "src/pages/AccountOutreachUnsubscribe.jsx": {
+    "interactive": 2,
+    "markers": 2
+  },
+  "supabase/functions/agents-room/chain.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/agents-room/customerSuccess.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/live-check/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/live-check/lib.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/accountOutreachCopy.js": {
     "interactive": 0,
     "markers": 0
   }

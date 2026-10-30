@@ -145,6 +145,13 @@ const recentTexts = (actions: Action[], now: Date) => actions
   .filter((a) => a.action_type === 'social_post' && now.getTime() - Date.parse(a.created_at) < 14 * 86_400_000)
   .map((a) => firstLine(String(a.payload?.text ?? ''), 120));
 
+// Codex release 9 (topic 11): the week's posts still missing (0 = the week is prepared - the manager chain then skips the social agent)
+export function openSocialSlots(actions: Action[], now: Date): number {
+  const week = weekStartDay(now);
+  return CHANNELS.reduce((n, c) => n + Math.max(0, c.perWeek - actions.filter((a) => a.action_type === 'social_post' && a.payload?.channel === c.id
+    && israelParts(new Date(a.created_at)).day >= week).length), 0);
+}
+
 // the week's posts: once per week per account (Sunday-Saturday, Israel), however many times it runs
 export async function runSocial(d: StageDeps, trigger: 'cron' | 'admin', paths: string[]): Promise<{ status: string; id?: string; result?: Result; error?: string }> {
   const now = d.now();

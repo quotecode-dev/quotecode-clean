@@ -609,6 +609,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-30 (typed: continuous work - the remaining security findings and releases 6, 7, 8 and 9, each through its own gate, including L-22, L-23, L-26, L-12, L-15 and L-17; L-13 only for the test-account recipient refusal in release 9): Codex release 8 - data spend ledger (10 USD), tracked keywords / competitors / weekly rank snapshots, post results, social_reply action + 30-day comment text limit (decisions 12-14 + the Owner reply addition)"
+    },
+    "20261031100000_new_agents.sql": {
+      "sha256": "4bae974fa5b4d257bef3c40631c3b7bb4df9dceee254d0d7c8feba2ae6f6e7db",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-30 (typed: continuous work - the remaining security findings and releases 6, 7, 8 and 9, each through its own gate, including L-22, L-23, L-26, L-12, L-15 and L-17; L-13 only for the test-account recipient refusal in release 9): Codex release 9: Maya (customer success, consent, unsubscribe, one case per account and signal), Omer (the daily LIVE check personas, the test-recipient refusal), the manager chain"
     }
   }
 }

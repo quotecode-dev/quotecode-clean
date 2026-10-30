@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { formatEmailTotal } from "./emailMoney.ts"
 import { decideEmailLink } from "./capabilityLink.ts"
-import { readReservation, outcomeOf, REFUSALS, UNVERIFIED, UNKNOWN, PROVIDER_REFUSED } from "./sendLedger.ts"
+import { readReservation, outcomeOf, REFUSALS, UNVERIFIED, UNKNOWN, PROVIDER_REFUSED, TEST_RECIPIENT } from "./sendLedger.ts"
 import { classifyPhaseRead } from "../_shared/activationPhase.ts"
 import { decidePriceGate } from "./priceGate.ts"
 
@@ -310,6 +310,11 @@ serve(async (req) => {
 
     // Codex SEC-EF-02 (Owner 2026-10-30): the send is reserved in the database BEFORE the provider is called (sendLedger.ts);
     // an unreadable reservation sends nothing
+    // Codex release 9, L-13 (Owner 2026-10-30, typed: "... L-13 רק לחסימת הנמען של חשבונות הבדיקה בשחרור 9 ..."): a registered LIVE-check
+    // test account emails a quote ONLY to its own test mailbox - refused before anything is reserved or sent (never silently redirected)
+    const { data: recipientAllowed, error: recipientErr } = await supabaseAdmin.rpc('live_check_recipient_allowed', { p_user: callerUser.id, p_recipient: clientEmail })
+    if (recipientErr) throw new EmailRefusal(UNVERIFIED)
+    if (recipientAllowed !== true) throw new EmailRefusal(TEST_RECIPIENT)
     const { data: reserved, error: reserveErr } = await supabaseAdmin.rpc('quote_email_reserve', { p_quote: quoteId, p_user: callerUser.id, p_recipient: clientEmail })
     const reservation = reserveErr ? null : readReservation(reserved)
     if (!reservation) throw new EmailRefusal(UNVERIFIED)

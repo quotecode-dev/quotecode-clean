@@ -8,7 +8,8 @@ SELECT tst.seed();
 DO $$
 BEGIN
   PERFORM tst.ok((SELECT name_he = 'שירה' AND name_en = 'Shira' FROM public.agent_profiles WHERE agent = 'social'), 'SO1 the social agent has its default name');
-  PERFORM tst.ok((SELECT count(*) = 5 FROM public.agent_profiles), 'SO2 five agents have a name');
+  -- Codex release 9 (20261031100000) adds Maya and Omer - the first five keep their names (DB test 448 R2 checks the two new ones)
+  PERFORM tst.ok((SELECT count(*) = 5 FROM public.agent_profiles WHERE agent IN ('manager', 'seo', 'service', 'security', 'social')), 'SO2 five agents have a name');
   PERFORM tst.ok(NOT has_table_privilege('anon', 'public.agent_actions', 'SELECT') AND NOT has_table_privilege('authenticated', 'public.agent_actions', 'SELECT')
     AND NOT has_table_privilege('authenticated', 'public.agent_profiles', 'UPDATE') AND NOT has_table_privilege('service_role', 'public.agent_actions', 'DELETE'),
     'SO3 the grants did not move: closed to the app, the server never deletes');

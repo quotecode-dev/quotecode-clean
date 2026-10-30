@@ -93,6 +93,15 @@ const PATTERNS = [
       en: '⚠️ The email service did not confirm the send. Try again in a few minutes. If it was already sent, it will not be sent twice.',
     },
   },
+  // Codex release 9, L-13 (Owner 2026-10-30): a registered LIVE-check test account emails a quote only to its own test mailbox
+  {
+    category: 'send_test_recipient',
+    test: (msg) => /^QUOTE_EMAIL_TEST_RECIPIENT:/.test(msg),
+    userMessage: {
+      he: '❌ המייל לא נשלח: חשבון בדיקה שולח הצעות רק לכתובת הבדיקה הרשומה שלו.',
+      en: '❌ The email was not sent: a test account sends quotes only to its registered test address.',
+    },
+  },
   {
     category: 'send_unverified',
     test: (msg) => /^QUOTE_EMAIL_UNVERIFIED:/.test(msg),
