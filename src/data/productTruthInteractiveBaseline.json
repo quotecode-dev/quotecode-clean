@@ -1750,5 +1750,17 @@
   "src/utils/quoteFileTypes.js": {
     "interactive": 0,
     "markers": 0
+  },
+  "supabase/functions/_shared/scheduledHealth.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/scheduled-health/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/scheduled-health/lib.ts": {
+    "interactive": 0,
+    "markers": 0
   }
 }

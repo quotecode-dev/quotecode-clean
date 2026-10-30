@@ -12,6 +12,7 @@ import { israelClock, buildDigest, DIGEST_HOUR } from "../support-inbound/digest
 import { processInquiry, retryOwnerAlert } from "../support-inbound/process.ts";
 import { supabaseStore } from "../support-inbound/store.ts";
 import { sendMail } from "../support-inbound/mail.ts";
+import { recordRun } from "../_shared/scheduledHealth.ts"; // Codex release 7: the evening window is reported
 
 const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 const ROW = 'id, status, stored_at, from_address, to_addresses, subject, text_body, attachments, message_id, is_automated, mailbox, automation_class, reply_allowed, reference_ids, conversation_id, auth_results';
@@ -42,10 +43,12 @@ serve(async (req) => {
     .is('owner_notified_at', null).gte('stored_at', new Date(now.getTime() - 3 * 24 * 3600 * 1000).toISOString()).lt('stored_at', stuckBefore).limit(20);
   for (const row of unalerted ?? []) await retryOwnerAlert(row, { store, mail, ownerAddress, now: () => new Date() }).catch(() => false);
 
+  // Codex release 7: every answer of the 20:00 slot reports how the evening window ended
+  const done = async (body: Record<string, unknown>, status = 200) => { await recordRun(admin, 'support-digest', status, body); return json(body, status); };
   const { data: claimed, error: claimErr } = await admin.from('support_digest_runs').upsert({ day }, { onConflict: 'day', ignoreDuplicates: true }).select('day');
-  if (claimErr) return json({ ok: false, code: 'store_failed' }, 500);
-  if (!claimed?.length) return json({ ok: true, skipped: 'already_sent', day });
-  if (!ownerAddress) return json({ ok: true, skipped: 'no_owner_address', day });
+  if (claimErr) return done({ ok: false, code: 'store_failed' }, 500);
+  if (!claimed?.length) return done({ ok: true, skipped: 'already_sent', day });
+  if (!ownerAddress) return done({ ok: true, skipped: 'no_owner_address', day });
 
   const since = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
   const [{ data: today }, { data: waiting }] = await Promise.all([
@@ -57,8 +60,8 @@ serve(async (req) => {
   if (!r.ok) {
     // the day is released so the next cron run (or a manual call) can try again
     await admin.from('support_digest_runs').delete().eq('day', day);
-    return json({ ok: false, code: 'provider_failure' }, 502);
+    return done({ ok: false, code: 'provider_failure' }, 502);
   }
   await admin.from('support_digest_runs').update({ sent_at: new Date().toISOString() }).eq('day', day);
-  return json({ ok: true, sent: true, day, handled_stuck: stuck?.length ?? 0 });
+  return done({ ok: true, sent: true, day, handled_stuck: stuck?.length ?? 0 });
 });
