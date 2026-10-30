@@ -60,47 +60,6 @@ const PATTERNS = [
       en: '❌ The email was not sent: the quote prices could not be verified right now. Please try again in a moment.',
     },
   },
-  // Codex SEC-EF-02 (Owner 2026-10-30): the send record of send-quote-email (sendLedger.ts) - stable code prefixes
-  {
-    category: 'send_in_progress',
-    test: (msg) => /^QUOTE_EMAIL_IN_PROGRESS:/.test(msg),
-    userMessage: {
-      he: '❌ ההצעה נשלחת ממש עכשיו. חכו רגע ובדקו שוב.',
-      en: '❌ This quote is being sent right now. Wait a moment and check again.',
-    },
-  },
-  {
-    category: 'send_cooldown',
-    test: (msg) => /^QUOTE_EMAIL_COOLDOWN:/.test(msg),
-    userMessage: {
-      he: '❌ ההצעה נשלחה לכתובת הזו לפני רגע. אפשר לשלוח אותה שוב בעוד שתי דקות.',
-      en: '❌ This quote was just sent to this address. You can send it again in two minutes.',
-    },
-  },
-  {
-    category: 'send_limit',
-    test: (msg) => /^QUOTE_EMAIL_LIMIT:/.test(msg),
-    userMessage: {
-      he: '❌ הגעתם למגבלת השליחה היומית במייל. אפשר לשלוח שוב מחר, או לשתף את ההצעה בוואטסאפ.',
-      en: '❌ You reached the daily email sending limit. You can send again tomorrow, or share the quote on WhatsApp.',
-    },
-  },
-  {
-    category: 'send_unknown',
-    test: (msg) => /^QUOTE_EMAIL_UNKNOWN:/.test(msg),
-    userMessage: {
-      he: '⚠️ שירות המייל לא אישר שהמייל נשלח. נסו לשלוח שוב בעוד כמה דקות. אם הוא כבר נשלח, הוא לא יישלח פעמיים.',
-      en: '⚠️ The email service did not confirm the send. Try again in a few minutes. If it was already sent, it will not be sent twice.',
-    },
-  },
-  {
-    category: 'send_unverified',
-    test: (msg) => /^QUOTE_EMAIL_UNVERIFIED:/.test(msg),
-    userMessage: {
-      he: '❌ המייל לא נשלח: לא ניתן היה לרשום את השליחה כרגע. נסו שוב בעוד רגע.',
-      en: '❌ The email was not sent: the send could not be recorded right now. Please try again in a moment.',
-    },
-  },
   {
     category: 'sender_configuration',
     test: (msg) => /RESEND_API_KEY|cannot verify quote region|cannot establish a trustworthy business region/i.test(msg),

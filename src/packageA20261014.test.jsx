@@ -27,13 +27,8 @@ describe('public quote not found', () => {
 });
 
 describe('sign-up message', () => {
-  // Codex SEC-FE-05 (Owner console 2026-10-30, L-12): without a session the answer is the same for a new address and an address that
-  // already has an account (it says a verification email was sent if the address is new); with a real new session it keeps "setting up"
-  it('without a session the message is the uniform verification answer; with a session it keeps "setting up"', () => {
+  it('without a session (email verification required) the message says a verification email was sent; with a session it keeps "setting up"', () => {
     const d = read('pages/Dashboard.jsx');
-    expect(d).toContain("? (bundleIsHebrew ? 'ההרשמה הצליחה! מאתחל את החשבון...' : 'Sign up successful! Setting up your account...')");
-    expect(d).toContain("'אם הכתובת עוד לא רשומה, שלחנו אליה מייל לאימות - פתחו את הקישור שבו כדי להפעיל את החשבון. אם כבר יש לכם חשבון, התחברו או אפסו את הסיסמה.'");
-    expect(d).not.toContain(".eq('email', emailInput.trim())");
-    expect(d).not.toContain('כתובת המייל כבר רשומה במערכת');
+    expect(d).toMatch(/setAuthSuccess\(data\?\.session\n\s*\? \(bundleIsHebrew \? 'ההרשמה הצליחה! מאתחל את החשבון\.\.\.' : 'Sign up successful! Setting up your account\.\.\.'\)\n\s*: \(bundleIsHebrew \? 'ההרשמה התקבלה\. שלחנו אליכם מייל לאימות - פתחו את הקישור שבו כדי להפעיל את החשבון\.' : 'Sign-up received\. We sent you a verification email - open the link in it to activate your account\.'\)\);/);
   });
 });

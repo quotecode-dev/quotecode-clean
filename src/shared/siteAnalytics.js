@@ -147,17 +147,7 @@ export function syncMeasurement({ isHebrew, consent, region = false, win = windo
   const loc = win.location;
   const allowed = measurementAllowed({ pathname: loc.pathname, search: loc.search, hash: loc.hash, hostname: loc.hostname, isHebrew, consent, region, authContext });
   win[`ga-disable-${GA_MEASUREMENT_ID}`] = !allowed;
-  if (!allowed) {
-    win.__tekangoLastMeasured = '';
-    // Codex SEC-FE-02 (Owner 2026-10-30): a third-party tag loaded on a public page keeps its access to the URL and the page after an
-    // in-app navigation - turning it off is not enough. Entering a private page (a quote, sign-in / reset, the app) with the tag in
-    // memory loads that page once more from the server, without the tag (the fresh load never loads it there, so no loop).
-    const privatePage = !isMeasuredPath(loc.pathname) || carriesAuthState(loc.search, loc.hash);
-    if (win.__tekangoGtagLoaded && privatePage && typeof loc.reload === 'function') {
-      try { loc.reload(); } catch { /* the tag stays disabled */ }
-    }
-    return false;
-  }
+  if (!allowed) { win.__tekangoLastMeasured = ''; return false; }
   const pageLocation = sanitizedPageLocation({ origin: loc.origin, pathname: loc.pathname, search: loc.search });
   // inside the SPA the referrer is the previous measured page (empty after a private page); the first page uses the sanitized
   // browser referrer
