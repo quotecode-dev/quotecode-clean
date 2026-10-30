@@ -188,18 +188,27 @@ Deno.serve(async (req: Request) => {
     },
     insertInvoice: async (row) => {
       const { data, error } = await admin.from('expense_invoices').insert(row).select('id').maybeSingle();
-      if (error) { if ((error as { code?: string }).code === '23505') return null; throw new Error('database'); }
+      // Codex release 6: only the same email again (the mailbox replay) is swallowed - a copy of a known document is stored and linked
+      // by the database (20261030800000), any other conflict is a failure (the email is retried)
+      if (error) { if ((error as { code?: string }).code === '23505' && /expense_invoices_mailbox_message_id_key/.test(String((error as { message?: string }).message))) return null; throw new Error('database'); }
       return (data as { id?: string } | null)?.id ?? null;
     },
     invoices: (ids) => db(admin.from('expense_invoices').select('*').in('id', ids)) as Promise<Record<string, unknown>[]>,
     updateUnlessSent: async (id, patch) => {
       // 20261029000000 (Codex F05): an 'unknown' row (PayPlus may have it) is not edited or approved again either
-      const rows = await db(admin.from('expense_invoices').update(patch).eq('id', id).not('status', 'in', '(sent,sending,unknown)').select('id')) as unknown[];
-      return rows.length === 1;
+      const { data, error } = await admin.from('expense_invoices').update(patch).eq('id', id).not('status', 'in', '(sent,sending,unknown)').select('id');
+      if (error) {
+        const m = String((error as { message?: string }).message);
+        if (m.includes('expense_identity_exists')) return 'identity_exists';
+        if (m.includes('expense_duplicate_not_sendable')) return 'duplicate_copy';
+        console.error(`expense-invoices: database ${(error as { code?: string }).code ?? ''}`);
+        throw new Error('database');
+      }
+      return Array.isArray(data) && data.length === 1;
     },
     claimForSend: async (id) => {
       const rows = await db(admin.from('expense_invoices').update({ status: 'sending', updated_at: new Date().toISOString() }).eq('id', id)
-        .in('status', ['approved', 'send_failed']).select('*')) as Record<string, unknown>[];
+        .in('status', ['approved', 'send_failed']).is('duplicate_of', null).select('*')) as Record<string, unknown>[];
       return rows[0] ?? null;
     },
     finishSend: async (id, patch) => { await db(admin.from('expense_invoices').update({ updated_at: new Date().toISOString(), ...patch }).eq('id', id).eq('status', 'sending')); },
