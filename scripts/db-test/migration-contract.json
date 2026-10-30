@@ -567,6 +567,24 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-29 (typed: Codex release 4 - duplicate article protection and the AI budget reserved in advance, decisions 6 and 9 as proposed, including L-22, L-25 unchanged): the complete article inventory and the atomic topic claims of the article flow"
+    },
+    "20261030400000_agents_release4_fixes.sql": {
+      "sha256": "a20478485d87096e6bcf2a41d2268d7b38897251a8fb510293bb9e376c464186",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-29 night (typed night task: all of Codex's findings on release 4 and release 5 with decisions 7 and 8 as proposed, including L-22, L-25 and the other screen/date locks unchanged; + the manager's own page check before an indexing task): the fixes of Codex review of release 4 - one identity namespace, locked article lifecycle writes, attempt correlation"
+    },
+    "20261030500000_support_automation_policy.sql": {
+      "sha256": "52b937299dd2f35240d9dbd518dedeb13d6754b66dc4d5d60a6ccbb8477dad47",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-29 night (typed night task: all of Codex's findings on release 4 and release 5 with decisions 7 and 8 as proposed, including L-22, L-25 and the other screen/date locks unchanged; + the manager's own page check before an indexing task): Codex release 5 topic 5 - automation class, grey bin, permanent reply ban, bounded non-sending history reclassification (decision 7)"
+    },
+    "20261030600000_support_conversations.sql": {
+      "sha256": "6e065f332572ae567a52d03a7397adf1a880e0fdf1f9d2a5eb06b10d6650a38a",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-29 night (typed night task: all of Codex's findings on release 4 and release 5 with decisions 7 and 8 as proposed, including L-22, L-25 and the other screen/date locks unchanged; + the manager's own page check before an indexing task): Codex release 5 topic 7 - support conversations, outbound records, one acknowledgement per conversation, Owner link/unlink audit (decision 8)"
     }
   }
 }
