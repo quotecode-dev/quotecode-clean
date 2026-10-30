@@ -10,12 +10,14 @@
 //   * never anything else: no code change, no paid ads, no message to a customer.
 // The database repeats the rule (agent_actions: kind <-> action_type check), so a wrong pairing cannot even be stored.
 import {
-  handler, runSecurity, costOf, israelParts, runKey, monthStartIso, usd, isolatePaths, brandLatin,
+  handler, runSecurity, costOf, israelParts, runKey, monthStartIso, usd, isolatePaths, brandLatin, competitiveFinding,
   AGENTS, AI_MODEL, AI_FALLBACK_MODEL, MONTHLY_CAP_USD, SPLIT,
   type Deps, type Agent, type Finding, type Result, type Run,
 } from './lib.ts';
 import { parseServiceAccount, API, SITE_URL, TOKEN_URL, ORIGIN } from '../search-console/lib.ts';
 import { runSocial, reviseSocial, TARGETS } from './social.ts';
+import type { Competitive } from './marketing.ts';
+import { postMetrics, postComments, draftReplies, replyAction, replyErrors, publishReply, type Graph, type PublishedPost, type Metrics, type NewComment } from './socialReplies.ts';
 import { isBudgetRefusal, isAmbiguous, AMBIGUOUS, BUDGET_CODES } from './aiBudget.ts';
 import { checkTopic, checkFocus, normTopic, topicContext, cleanFocus, FOCUS_MIN, type Inventory, type TopicRef } from './articleTopics.ts';
 
@@ -30,7 +32,7 @@ const ADMIN_LINK = 'https://www.tekango.com/dashboard?view=admin&section=agents-
 const REBUILD_GRACE_MS = 10 * 60_000; // a published article is in the sitemap once the site rebuilt (about 2 minutes)
 
 export type Kind = 'auto' | 'system' | 'claude' | 'info';
-export type ActionType = 'sitemap_submit' | 'urgent_mail' | 'article_draft' | 'article_publish' | 'claude_task' | 'social_post' | 'none';
+export type ActionType = 'sitemap_submit' | 'urgent_mail' | 'article_draft' | 'article_publish' | 'claude_task' | 'social_post' | 'social_reply' | 'none';
 export type Action = {
   id: string; created_at: string; run_key: string; source: AnyAgent; kind: Kind; action_type: ActionType;
   title_he: string; title_en: string; detail_he: string | null; detail_en: string | null; payload: Record<string, unknown>;
@@ -51,6 +53,12 @@ export interface StageDeps extends Deps {
   // stage 2 (Owner 2026-10-27, "מאשר את שלב 2 של סוכנת הרשתות"): the accounts whose page token is configured, and the publication itself
   connectedChannels(): string[];
   publishSocial(channel: string, payload: Record<string, unknown>, onContainer?: (containerId: string) => Promise<void>): Promise<{ url: string; id: string }>;
+  // Codex release 8 (Owner 2026-10-30): the Graph API of a connected account (its own page token), the results of our posts, the replies
+  graph?: Graph;
+  saveMetrics?(rows: Metrics[]): Promise<void>;
+  postMetricsRows?(): Promise<Metrics[]>;
+  replyActions?(): Promise<Action[]>; // the social_reply actions of the last 30 days (a separate list - replies never push posts out)
+  purgeReplyTexts?(): Promise<number>;
   profiles(): Promise<Profile[]>;
   setProfile(agent: AnyAgent, nameHe: string, nameEn: string): Promise<void>;
   recentActions(): Promise<Action[]>; // the last 60 days, newest first
@@ -473,7 +481,7 @@ async function checkHeadings(d: StageDeps, heads: { he: string; en: string }, se
 const HOLD_SECONDS = DRAFT_HOLD_MS / 1000;
 
 // ---------------------------------------------------------------- the Owner's decisions
-export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown; note?: unknown; revision?: unknown; focus?: unknown }, paths: string[]): Promise<Out> {
+export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown; note?: unknown; revision?: unknown; focus?: unknown; text?: unknown }, paths: string[]): Promise<Out> {
   const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
   if (!a) return { status: 404, body: { ok: false, code: 'not_found' } };
   if (a.status !== 'proposed' || (a.kind !== 'system' && a.kind !== 'claude')) return { status: 409, body: { ok: false, code: 'not_pending' } };
@@ -578,6 +586,31 @@ export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown
     return publishClaimed(d, a, channel, claim, 'not_pending');
   }
 
+  // Codex release 8 (Owner 2026-10-30): a reply to a comment - published only now, with the text the Owner approved (edited or the draft)
+  if (a.action_type === 'social_reply') {
+    const channel = String(a.payload?.channel ?? '');
+    const text = clip(typeof b.text === 'string' ? b.text : a.payload?.draft, 600);
+    const market = a.payload?.market === 'il' ? 'il' : 'intl';
+    if (!d.graph || !TARGETS[channel]) return { status: 409, body: { ok: false, code: 'not_connected' } };
+    const errs = replyErrors(text, market);
+    if (errs.length) return { status: 400, body: { ok: false, code: 'reply_invalid', errors: errs } };
+    const claim = `${CLAIM}${crypto.randomUUID()}`;
+    await d.updateAction(a.id, { status: 'approved', decided_at: at, error: claim, payload: { ...a.payload, approved_text: text } }, 'proposed');
+    const won = await d.getAction(a.id);
+    if (!won || won.status !== 'approved' || won.error !== claim) return { status: 409, body: { ok: false, code: 'not_pending' } };
+    try {
+      const id = await publishReply(d.graph, channel, TARGETS[channel].kind, String(a.payload?.comment_id ?? ''), text);
+      await d.updateAction(a.id, { status: 'done', done_at: nowIso(d), result: { published: true, id }, error: null }, 'approved');
+      return { status: 200, body: { ok: true, status: 'published' } };
+    } catch (e) {
+      // a definite refusal returns the reply to the waiting list with the reason; an unknown outcome is never published again by itself
+      const definite = (e as { definite?: unknown })?.definite === true;
+      const error = `${definite ? 'publish_failed' : 'publish_unknown'}: ${String((e as Error)?.message ?? 'failed')}`.slice(0, 200);
+      await d.updateAction(a.id, definite ? { status: 'proposed', decided_at: null, error } : { error }, 'approved');
+      return { status: 200, body: { ok: true, status: definite ? 'failed' : 'unknown', publishError: error } };
+    }
+  }
+
   if (a.action_type === 'claude_task') {
     const prompt = String(a.payload.prompt_he ?? '');
     const mailed = await d.mailOwner(`משימה ל-Claude מחדר הסוכנים: ${a.title_he.replace(/[⁦⁩]/g, '')}`.slice(0, 180),
@@ -662,7 +695,39 @@ export async function runDaily(d: StageDeps, paths: string[]): Promise<Out> {
   }
   const sitemap = await maybeSubmitSitemap(d, key, false);
   const articles = await verifyPublishedArticles(d).catch(() => 'failed' as const);
-  return { status: 200, body: { ok: true, runKey: key, security, urgent, sitemap, articles } };
+  const social = await socialDaily(d, key).catch(() => ({ metrics: 0, comments: 0, drafted: 0, purged: 0, failed: true }));
+  return { status: 200, body: { ok: true, runKey: key, security, urgent, sitemap, articles, social } };
+}
+
+// Codex release 8 (Owner 2026-10-30): once a day - the results of our published posts, new comments as replies waiting for the Owner
+// (sensitive ones without a draft), and the 30-day limit on the comment texts. Nothing is published here.
+export function publishedPosts(actions: Action[], now: Date): PublishedPost[] {
+  return actions.filter((a) => a.action_type === 'social_post' && a.status === 'done' && TARGETS[String(a.payload?.channel ?? '')]
+    && typeof (a.result as Record<string, unknown>)?.id === 'string' && now.getTime() - Date.parse(String(a.done_at ?? a.created_at)) < 14 * 86_400_000)
+    .slice(0, 20).map((a) => ({ actionId: a.id, channel: String(a.payload.channel), network: TARGETS[String(a.payload.channel)].kind,
+      market: (a.payload.market === 'il' ? 'il' : 'intl') as 'il' | 'intl', postId: String((a.result as Record<string, unknown>).id) }));
+}
+export async function socialDaily(d: StageDeps, key: string): Promise<{ metrics: number; comments: number; drafted: number; purged: number; failed?: boolean; budget?: string }> {
+  const out: { metrics: number; comments: number; drafted: number; purged: number; budget?: string } = { metrics: 0, comments: 0, drafted: 0, purged: 0 };
+  out.purged = d.purgeReplyTexts ? await d.purgeReplyTexts().catch(() => 0) : 0;
+  if (!d.graph) return out;
+  const posts = publishedPosts(await d.recentActions(), d.now());
+  const metrics: Metrics[] = [];
+  const fresh: NewComment[] = [];
+  const known = new Set((d.replyActions ? await d.replyActions() : []).map((a) => String(a.payload?.comment_id ?? '')));
+  for (const p of posts) {
+    metrics.push(await postMetrics(d.graph, p));
+    for (const c of await postComments(d.graph, p)) if (!known.has(c.commentId)) { known.add(c.commentId); fresh.push(c); }
+  }
+  if (metrics.length && d.saveMetrics) { await d.saveMetrics(metrics); out.metrics = metrics.length; }
+  if (fresh.length) {
+    const calm = fresh.filter((c) => !replyAction(key, c, null).payload.sensitive);
+    const r = await draftReplies((x) => d.complete(x), calm, { run: key });
+    if (r.cost || r.tokens) await logCost(d, `reply:${key}`.slice(0, 60), r.cost, r.tokens, 'social reply drafts');
+    if (r.refused) out.budget = r.refused;
+    for (const c of fresh.slice(0, 20)) if (await d.insertAction(replyAction(key, c, r.drafts.get(c.commentId) ?? null))) { out.comments += 1; if (r.drafts.has(c.commentId)) out.drafted += 1; }
+  }
+  return out;
 }
 
 // Codex N11 (Owner 2026-10-28, decision 3): a rebuild the hook accepted is not proof - the article's own page must be on the site (its
@@ -735,6 +800,13 @@ export function managerReport(names: Record<string, string>, manager: Result | n
   if (social && social.status !== 'already_ran') {
     lines.push(`■ ${names.social ?? 'סוכנת הרשתות'} (סוכנת הרשתות): ${social.result ? strip(social.result.summaryHe) : social.status === 'skipped_cap' ? 'לא רצה: הגענו לתקרת העלות החודשית.' : `לא הושלם (${social.error ?? social.status}).`}`);
   }
+  // Codex release 8 (Owner 2026-10-30): the week's keyword evidence, from the stored SEO run only (a retry of the email adds no paid call)
+  const seo = specialists.find((r) => r.agent === 'seo');
+  const comp = seo?.result?.data?.competitive as Competitive | undefined;
+  if (seo?.result && 'competitive' in (seo.result.data ?? {})) {
+    lines.push(`■ ${strip(competitiveFinding(comp ?? null).he)}${comp?.spentUsd ? ` (עלות הנתונים השבוע: $${usd(comp.spentUsd)})` : ''}`);
+  }
+  if (pending.length) lines.push('', 'המלצה לשבוע הבא — מחכה לאישורכם.');
   lines.push('', `עלות הבינה החודש: $${usd(monthCost)} מתוך $${MONTHLY_CAP_USD}.`, `לאישור בלחיצה, בחדר הסוכנים: ${ADMIN_LINK}`);
   return lines.join('\n');
 }
@@ -746,7 +818,10 @@ const pendingOf = (actions: Action[]) => actions.filter((a) => a.status === 'pro
 async function socialState(d: StageDeps): Promise<Out> {
   const posts = (await d.recentActions()).filter((a) => a.action_type === 'social_post').slice(0, 60);
   const profile = (await d.profiles()).find((p) => p.agent === 'social') ?? null;
-  return { status: 200, body: { ok: true, posts, profile, canPublish: await d.can('social.publish'), autoChannels: d.connectedChannels() } };
+  // Codex release 8: the replies waiting / handled (30 days) and the results of the published posts
+  const replies = d.replyActions ? (await d.replyActions().catch(() => [])).slice(0, 40) : [];
+  const metrics = d.postMetricsRows ? await d.postMetricsRows().catch(() => []) : [];
+  return { status: 200, body: { ok: true, posts, profile, canPublish: await d.can('social.publish'), autoChannels: d.connectedChannels(), replies, metrics } };
 }
 
 // publishes a social post this request claimed (its claim is the stored one); a failure leaves it ready with the reason
@@ -845,7 +920,7 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
       // both permissions, checked before anything is read (the review of 2026-10-27)
       if (!(await d.can('social.view')) || !(await d.can('social.publish'))) return forbidden;
       const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
-      if (!a || a.action_type !== 'social_post') return forbidden;
+      if (!a || (a.action_type !== 'social_post' && a.action_type !== 'social_reply')) return forbidden;
       if (b.action === 'decide') return decide(d, b, await sitemapPaths());
       if (b.action === 'revise') return revise(d, b, await sitemapPaths());
       if (b.action === 'publish_now') return publishNow(d, b);

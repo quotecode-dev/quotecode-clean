@@ -40,7 +40,58 @@ function publishFailureText(error, isHebrew) {
   return isHebrew ? 'הפרסום האוטומטי לא הצליח. אפשר לנסות שוב ב"פרסום עכשיו", או לפרסם את הפוסט ידנית ולסמן "פורסם".' : 'The automatic publication failed. You can try again with "Publish now", or publish the post by hand and mark it "Published".';
 }
 
-function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto }) {
+// Codex release 8 (Owner console 2026-10-30, typed: "מאשר להוסיף לשחרור 8 תשובות של שירה לתגובות, כטיוטה לאישור שלי", L-22): a comment on our
+// post and Shira's draft reply - published only with the Owner's approval, with the text as approved (edited or the draft). A sensitive
+// comment comes without a draft: the Owner writes the answer. The comment's text is kept 30 days.
+const REPLY = {
+  sensitive: { he: 'נושא רגיש (כסף, ביטול, פרטיות או תלונה): שירה לא כתבה טיוטה. כתבו את התשובה בעצמכם.', en: 'A sensitive topic (money, cancellation, privacy or a complaint): Shira wrote no draft. Write the answer yourselves.' },
+  label: { he: 'התשובה שתפורסם', en: 'The reply that will be published' },
+  approve: { he: 'אישור ופרסום התשובה', en: 'Approve and publish the reply' },
+  purged: { he: 'טקסט התגובה נמחק אחרי 30 יום.', en: 'The comment text was deleted after 30 days.' },
+};
+const WHERE = { fb_il: { he: 'פייסבוק ישראל', en: 'Facebook Israel' }, fb_intl: { he: 'פייסבוק חו״ל', en: 'Facebook international' }, ig_il: { he: 'אינסטגרם ישראל', en: 'Instagram Israel' }, ig_intl: { he: 'אינסטגרם חו״ל', en: 'Instagram international' } };
+function ReplyCard({ a, isHebrew, canPublish, busy, onAct }) {
+  const p = a.payload || {};
+  const [text, setText] = useState(p.draft || '');
+  const off = !!busy || !canPublish;
+  const where = WHERE[p.channel] ? (isHebrew ? WHERE[p.channel].he : WHERE[p.channel].en) : p.channel;
+  return (
+    <li className="av-card" style={{ listStyle: 'none', padding: 12 }} data-testid={`social-reply-${a.id}`}>
+      <div className="av-muted" style={{ fontSize: '0.82rem' }}>{where}{p.author ? <> · <bdi>{p.author}</bdi></> : null}</div>
+      {p.comment_text ? <p dir="auto" style={{ margin: '6px 0', whiteSpace: 'pre-wrap', overflowWrap: 'anywhere' }}>{p.comment_text}</p>
+        : <p className="av-muted" style={{ margin: '6px 0', fontSize: '0.85rem' }}>{isHebrew ? REPLY.purged.he : REPLY.purged.en}</p>}
+      {p.sensitive && <div className="av-notice av-bad" role="note" style={{ margin: '6px 0' }} data-testid={`social-reply-sensitive-${a.id}`}>{isHebrew ? REPLY.sensitive.he : REPLY.sensitive.en}</div>}
+      {a.status === 'proposed' && (
+        <>
+          <label style={{ display: 'grid', gap: 4, fontSize: '0.85rem' }}>{isHebrew ? REPLY.label.he : REPLY.label.en}
+            <textarea dir={p.market === 'il' ? 'rtl' : 'ltr'} rows={3} maxLength={600} value={text} onChange={(e) => setText(e.target.value)} disabled={off} data-testid={`social-reply-text-${a.id}`} />
+          </label>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: publishes this reply under the comment, with the approved text (Owner 2026-10-30, release 8) */}
+            <button type="button" className="av-btn av-primary" disabled={off || text.trim().length < 2} onClick={() => onAct({ action: 'decide', id: a.id, decision: 'approve', text })} data-testid={`social-reply-approve-${a.id}`}>{isHebrew ? REPLY.approve.he : REPLY.approve.en}</button>
+            {/* PRODUCT_TRUTH_DECORATIVE: no reply to this comment */}
+            <button type="button" className="av-btn" disabled={off} onClick={() => onAct({ action: 'decide', id: a.id, decision: 'reject' })} data-testid={`social-reply-reject-${a.id}`}>{isHebrew ? 'לא עכשיו' : 'Not now'}</button>
+          </div>
+        </>
+      )}
+      {a.status === 'done' && <p className="av-muted" style={{ margin: '6px 0 0', fontSize: '0.85rem' }}>{isHebrew ? 'התשובה פורסמה: ' : 'The reply was published: '}<span dir="auto">{p.approved_text}</span></p>}
+      {a.error && /^publish_/.test(a.error) && <div className="av-notice av-bad" role="alert" style={{ marginTop: 6 }}>{publishFailureText(a.error, isHebrew)}</div>}
+    </li>
+  );
+}
+// the results of a published post: what the current permissions allow; reach missing = said so, never 0
+function PostResults({ m, isHebrew }) {
+  if (!m) return <p className="av-muted" style={{ margin: '6px 0 0', fontSize: '0.82rem' }} data-testid="social-metrics-unavailable">{isHebrew ? 'נתוני הפוסט אינם זמינים בהרשאות הנוכחיות.' : 'Post metrics are unavailable with the current permissions.'}</p>;
+  const part = (he, en, v) => (v === null || v === undefined ? null : <span>{isHebrew ? he : en} <N v={v} /></span>);
+  return (
+    <p className="av-muted" style={{ margin: '6px 0 0', fontSize: '0.82rem', display: 'flex', gap: 10, flexWrap: 'wrap' }} data-testid={`social-metrics-${m.actionId}`}>
+      {part('לייקים', 'Likes', m.likes)}{part('תגובות', 'Comments', m.comments)}{part('שיתופים', 'Shares', m.shares)}
+      {m.reachAvailable ? part('חשיפה', 'Reach', m.reach) : <span>{isHebrew ? 'חשיפה: נתוני הפוסט אינם זמינים בהרשאות הנוכחיות.' : 'Reach: post metrics are unavailable with the current permissions.'}</span>}
+    </p>
+  );
+}
+
+function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto, metrics }) {
   const p = a.payload || {};
   const published = postLink(a.result?.url);
   const failed = a.status === 'approved' && /^publish_failed/.test(a.error || '');
@@ -111,6 +162,7 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto }) {
             <button type="button" className="av-btn" onClick={() => onCopy(published, isHebrew ? 'הקישור לפוסט הועתק.' : 'The link to the post was copied.')} data-testid={`social-copy-link-${a.id}`}>{isHebrew ? 'העתקת הקישור לפוסט' : 'Copy the post link'}</button>
           </div>
         )}
+        {metrics !== undefined && <PostResults m={metrics} isHebrew={isHebrew} />}
         {canPublish && a.status === 'approved' && (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
             {auto && !unknown && (
@@ -157,7 +209,10 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
     setBusy(body.id); setNotice(null);
     const r = await callFn(body);
     setBusy('');
-    const okText = r?.status === 'published' ? (isHebrew ? 'הפוסט פורסם. הקישור אליו מופיע ברשימת "פורסמו לאחרונה".' : 'The post was published. Its link is in "Published lately".')
+    // Codex release 8: a reply to a comment speaks of the reply
+    const okText = body.text !== undefined && r?.status === 'published' ? (isHebrew ? 'התשובה פורסמה מתחת לתגובה.' : 'The reply was published under the comment.')
+      : body.text !== undefined && (r?.status === 'failed' || r?.status === 'unknown') ? `${isHebrew ? 'התשובה לא פורסמה.' : 'The reply was not published.'} ${publishFailureText(r.publishError || '', isHebrew)}`
+      : r?.status === 'published' ? (isHebrew ? 'הפוסט פורסם. הקישור אליו מופיע ברשימת "פורסמו לאחרונה".' : 'The post was published. Its link is in "Published lately".')
       : r?.status === 'unknown' ? (isHebrew ? 'לא התקבלה תשובה ברורה ממטא, ולכן לא ברור אם הפוסט פורסם. בדקו בדף לפני שמפרסמים שוב.' : 'Meta gave no clear answer, so it is not clear whether the post was published. Check the page before publishing again.')
       : r?.status === 'ready' && r?.publishError && body.action === 'publish_now' ? `${publishFailureText(r.publishError, isHebrew)} ${isHebrew ? 'הפוסט עדיין מחכה למטה.' : 'The post still waits below.'}`
       : r?.status === 'ready' && r?.publishError ? `${isHebrew ? 'אושר, אבל הפוסט לא פורסם.' : 'Approved, but the post was not published.'} ${publishFailureText(r.publishError, isHebrew)}`
@@ -165,7 +220,9 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
       : r?.status === 'rejected' ? (isHebrew ? 'הוסר מהרשימה.' : 'Removed from the list.')
         : r?.status === 'revised' ? (isHebrew ? 'הפוסט תוקן. קראו אותו שוב.' : 'The post was revised. Read it again.')
           : (isHebrew ? 'סומן כפורסם.' : 'Marked as published.');
-    const failText = r?.code === 'cap_reached' ? (isHebrew ? 'הגענו לתקרת העלות החודשית.' : 'The monthly cost cap was reached.')
+    const failText = r?.code === 'reply_invalid' ? (isHebrew ? 'התשובה צריכה להיות בשפת החשבון, קצרה, ובלי מחירים או מבצעים.' : 'The reply must be in the account\'s language, short, and without prices or offers.')
+      : r?.code === 'not_connected' ? (isHebrew ? 'החשבון לא מחובר, ולכן אי אפשר לפרסם את התשובה מכאן.' : 'The account is not connected, so the reply cannot be published from here.')
+      : r?.code === 'cap_reached' ? (isHebrew ? 'הגענו לתקרת העלות החודשית.' : 'The monthly cost cap was reached.')
       // Codex release 4 (Owner 2026-10-29, L-22): the AI budget reservation refused the rewrite - the spec's words
       : r?.code === 'budget_insufficient' ? (isHebrew ? 'אין בתקציב הבינה החודשי יתרה מספקת לפעולה הזו. לא בוצעה קריאה לבינה.' : 'The monthly AI budget does not have enough available funds for this action. No AI request was made.')
       : r?.code === 'budget_blocked' ? (isHebrew ? 'תקציב הבינה נעצר, כי קריאה אחת עלתה יותר מהסכום שנשמר לה. לא יישלחו עוד קריאות לבינה.' : 'The AI budget was stopped because one request cost more than the amount reserved for it. No further AI requests will be sent.')
@@ -197,7 +254,11 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
   const published = posts.filter((a) => a.status === 'done').slice(0, 10);
   const name = ok && state.profile ? (isHebrew ? state.profile.name_he : state.profile.name_en) : (isHebrew ? 'סוכנת הרשתות' : 'The social agent');
   const autoChannels = ok && Array.isArray(state.autoChannels) ? state.autoChannels : [];
-  const list = (items, testId) => <ul style={{ margin: 0, padding: 0, display: 'grid', gap: 10 }} data-testid={testId}>{items.map((a) => <PostCard key={a.id} a={a} isHebrew={isHebrew} canPublish={canPublish} busy={busy} onAct={onAct} onCopy={onCopy} auto={autoChannels.includes(a.payload?.channel)} />)}</ul>;
+  const metricsBy = new Map((ok && Array.isArray(state.metrics) ? state.metrics : []).map((m) => [m.actionId, m]));
+  const list = (items, testId) => <ul style={{ margin: 0, padding: 0, display: 'grid', gap: 10 }} data-testid={testId}>{items.map((a) => <PostCard key={a.id} a={a} isHebrew={isHebrew} canPublish={canPublish} busy={busy} onAct={onAct} onCopy={onCopy} auto={autoChannels.includes(a.payload?.channel)} metrics={a.status === 'done' && a.result?.id ? (metricsBy.get(a.id) ?? null) : undefined} />)}</ul>;
+  const replies = ok && Array.isArray(state.replies) ? state.replies : [];
+  const repliesWaiting = replies.filter((a) => a.status === 'proposed');
+  const repliesDone = replies.filter((a) => a.status !== 'proposed').slice(0, 10);
 
   const body = state === 'loading' ? <p className="av-muted" role="status">{t(isHebrew, C.loading.he, C.loading.en)}</p>
     : !ok ? <div className="av-notice av-bad" role="alert" data-testid="social-posts-failed">{t(isHebrew, C.loadFailed.he, C.loadFailed.en)}</div>
@@ -213,6 +274,15 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
           <h4 style={{ margin: '4px 0 8px' }}>{isHebrew ? 'פוסטים שמחכים לאישור' : 'Posts waiting for approval'} · <N v={waiting.length} /></h4>
           {waiting.length ? list(waiting, 'social-waiting') : <p className="av-muted" style={{ fontSize: '0.88rem' }} data-testid="social-waiting-empty">{isHebrew ? 'אין פוסטים שמחכים.' : 'No posts are waiting.'}</p>}
           {ready.length > 0 && <><h4 style={{ margin: '16px 0 8px' }}>{isHebrew ? 'מוכן לפרסום' : 'Ready to publish'} · <N v={ready.length} /></h4>{list(ready, 'social-ready')}</>}
+          <h4 style={{ margin: '16px 0 8px' }}>{isHebrew ? 'תגובות שמחכות לתשובה' : 'Comments waiting for a reply'} · <N v={repliesWaiting.length} /></h4>
+          {repliesWaiting.length ? <ul style={{ margin: 0, padding: 0, display: 'grid', gap: 10 }} data-testid="social-replies-waiting">{repliesWaiting.map((a) => <ReplyCard key={a.id} a={a} isHebrew={isHebrew} canPublish={canPublish} busy={busy} onAct={onAct} />)}</ul>
+            : <p className="av-muted" style={{ fontSize: '0.88rem' }} data-testid="social-replies-empty">{isHebrew ? 'אין תגובות שמחכות.' : 'No comments are waiting.'}</p>}
+          {repliesDone.length > 0 && (
+            <details style={{ marginTop: 10 }} data-testid="social-replies-done">
+              <summary>{isHebrew ? 'תגובות שטופלו' : 'Handled comments'}</summary>
+              <ul style={{ margin: '8px 0 0', padding: 0, display: 'grid', gap: 10 }}>{repliesDone.map((a) => <ReplyCard key={a.id} a={a} isHebrew={isHebrew} canPublish={canPublish} busy={busy} onAct={onAct} />)}</ul>
+            </details>
+          )}
           {published.length > 0 && (
             <details style={{ marginTop: 14 }} data-testid="social-published">
               <summary>{isHebrew ? 'פורסמו לאחרונה' : 'Published lately'}</summary>

@@ -603,6 +603,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-30 (typed: continuous work - the remaining security findings and releases 6, 7, 8 and 9, each through its own gate, including L-22, L-23, L-26, L-12, L-15 and L-17; L-13 only for the test-account recipient refusal in release 9): Codex release 7 - scheduled-run watcher outside Vercel: job registry, server-derived windows, incidents with one alert and one recovery notice (decision 11)"
+    },
+    "20261031000000_marketing_intelligence.sql": {
+      "sha256": "2994a004a220273458feae9396bbe439a6fc9066a7260c3e1fa058cacf60af35",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-30 (typed: continuous work - the remaining security findings and releases 6, 7, 8 and 9, each through its own gate, including L-22, L-23, L-26, L-12, L-15 and L-17; L-13 only for the test-account recipient refusal in release 9): Codex release 8 - data spend ledger (10 USD), tracked keywords / competitors / weekly rank snapshots, post results, social_reply action + 30-day comment text limit (decisions 12-14 + the Owner reply addition)"
     }
   }
 }

@@ -88,8 +88,8 @@
     "markers": 1
   },
   "src/components/AdminSocialPosts.jsx": {
-    "interactive": 11,
-    "markers": 11
+    "interactive": 13,
+    "markers": 13
   },
   "src/components/AdminSubscriptionState.jsx": {
     "interactive": 0,
@@ -1760,6 +1760,14 @@
     "markers": 0
   },
   "supabase/functions/scheduled-health/lib.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/agents-room/marketing.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/agents-room/socialReplies.ts": {
     "interactive": 0,
     "markers": 0
   }
