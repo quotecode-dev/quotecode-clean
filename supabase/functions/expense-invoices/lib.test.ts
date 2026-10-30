@@ -618,3 +618,23 @@ describe('L-22 (Owner 2026-10-28, "שמירת מזהי סוגי ההוצאה ש�
     expect((d.payplusCreate as ReturnType<typeof vi.fn>).mock.calls[0][0]).toMatchObject({ subcategory_id: '2402', subcategory_uuid: SW });
   });
 });
+
+// Codex release 6 (Owner 2026-10-30, decision 10): the database's canonical-document guard (20261030800000) reaches the screen as a code
+describe('release 6 - one canonical record per supplier document', () => {
+  it('an approval of a copy, or an edit that duplicates another document, answers 409 with its own code (not "already sent")', async () => {
+    const d = deps({ updateUnlessSent: vi.fn(async () => 'duplicate_copy' as const) });
+    expect(await expenseHandler({ action: 'update', id: '11111111-1111-4111-8111-111111111111', patch: { status: 'approved' } }, d, 'u1'))
+      .toEqual({ status: 409, body: { ok: false, code: 'duplicate_copy', updated: 0 } });
+    const e = deps({ updateUnlessSent: vi.fn(async () => 'identity_exists' as const) });
+    expect(await expenseHandler({ action: 'update', id: '11111111-1111-4111-8111-111111111111', patch: { docNumber: 'INV-77' } }, e, 'u1'))
+      .toEqual({ status: 409, body: { ok: false, code: 'identity_exists', updated: 0 } });
+  });
+  it('the store only swallows the mailbox replay, refuses to claim a copy and maps the guard errors', async () => {
+    const { readFileSync } = await import('node:fs');
+    const src = readFileSync('supabase/functions/expense-invoices/index.ts', 'utf8');
+    expect(src).toContain('/expense_invoices_mailbox_message_id_key/.test(');
+    expect(src).toContain(".in('status', ['approved', 'send_failed']).is('duplicate_of', null)");
+    expect(src).toContain("if (m.includes('expense_identity_exists')) return 'identity_exists';");
+    expect(src).toContain("if (m.includes('expense_duplicate_not_sendable')) return 'duplicate_copy';");
+  });
+});

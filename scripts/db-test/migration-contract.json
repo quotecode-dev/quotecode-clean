@@ -591,6 +591,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-30 (typed: continuous work - the remaining security findings and releases 6, 7, 8 and 9, each through its own gate, including L-22, L-23, L-26, L-12, L-15 and L-17; L-13 only for the test-account recipient refusal in release 9): Codex security follow-ups - quote email send record (EF-02), webhook event + bounce mark once for the current send (EF-03), no TRUNCATE/TRIGGER/REFERENCES for app roles (DB-06), throttled view counter (DB-07), quote-files file types and stored-total limits (ST-02)"
+    },
+    "20261030800000_expense_invoice_identity.sql": {
+      "sha256": "ddf01017545ef92ed7868936cec3600c088d791cb8ee81495eee63e81cd9f5de",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-30 (typed: continuous work - the remaining security findings and releases 6, 7, 8 and 9, each through its own gate, including L-22, L-23, L-26, L-12, L-15 and L-17; L-13 only for the test-account recipient refusal in release 9): Codex release 6 - one canonical record per supplier document (VAT + type + number), copies stored and linked, never sent (decision 10)"
     }
   }
 }

@@ -67,6 +67,10 @@ const SEND_CODES = {
   too_early: { he: 'עדיין מוקדם לבדוק - נסו שוב בעוד כמה דקות', en: 'too early to check - try again in a few minutes' },
   not_unknown: { he: 'כבר לא ממתינה לבדיקה', en: 'no longer waiting for a check' },
 };
+// Codex release 6 (Owner console 2026-10-30, decision 10, L-22): one canonical record per supplier document (migration 20261030800000)
+const DUPLICATE_COPY = { he: 'החשבונית הזו כבר קיימת בכלי. העותק הנוסף נשמר לתיעוד ולא יישלח שוב לפיי פלוס.', en: 'This invoice already exists in the tool. The additional copy is kept as evidence and will not be sent to PayPlus again.' };
+const DUPLICATE_CONFLICT = { he: 'נמצאו פרטים סותרים לחשבונית הזו. בדקו אותם לפני אישור או שליחה.', en: 'Conflicting details were found for this invoice. Review them before approval or sending.' };
+const IDENTITY_CODES = { identity_exists: DUPLICATE_COPY, duplicate_copy: DUPLICATE_COPY };
 const N = ({ v }) => <bdi className="av-num">{v}</bdi>;
 const money = (amount, currency) => (amount === null || amount === undefined || !currency ? '—'
   : `${QUOTE_CURRENCY_SYMBOLS[currency] || `${currency} `}${formatMoneyForCurrency(amount, currency)}`);
@@ -160,10 +164,11 @@ export default function AdminExpenseInvoices({ isHebrew }) {
     let allOk = true;
     for (let i = 0; i < ids.length; i += 200) {
       const r = await call({ action: 'update', ids: ids.slice(i, i + 200), patch: { status } });
-      if (!r.ok) allOk = false;
+      if (!r.ok) allOk = IDENTITY_CODES[r.code] ? r.code : false;
     }
     setBusy('');
-    if (!allOk) failed();
+    if (IDENTITY_CODES[allOk]) setNotice({ good: false, text: IDENTITY_CODES[allOk][isHebrew ? 'he' : 'en'] });
+    else if (!allOk) failed();
     reload();
   };
   // action 'send' (approved rows) or 'reconcile' (20261029000000, Codex F05: rows PayPlus may have - a search only)
@@ -241,6 +246,7 @@ export default function AdminExpenseInvoices({ isHebrew }) {
       amountIncludesVat: edit.amountIncludesVat, vatPercentage: vat, subcategoryId: edit.subcategoryId ? Number(edit.subcategoryId) : null, category: edit.category,
     } });
     setBusy('');
+    if (!r.ok && IDENTITY_CODES[r.code]) { setNotice({ good: false, text: IDENTITY_CODES[r.code][isHebrew ? 'he' : 'en'] }); return; }
     if (!r.ok) { failed(); return; }
     setEdit(null);
     reload();
@@ -255,6 +261,11 @@ export default function AdminExpenseInvoices({ isHebrew }) {
 
   const data = state && typeof state === 'object' ? state : null;
   const invoices = data?.invoices || [];
+  // a copy whose amount, currency or date differ from its canonical document (shown as a conflict to review)
+  const conflictOf = (r) => {
+    const c = r.duplicateOf ? invoices.find((x) => x.id === r.duplicateOf) : null;
+    return !!c && (Number(c.amount) !== Number(r.amount) || c.currency !== r.currency || c.docDate !== r.docDate);
+  };
   const types = data?.settings?.expenseTypes || [];
   const def = data?.settings?.defaultSubcategoryId ?? null;
   const current = TABS.find((x) => x.id === tab);
@@ -405,6 +416,8 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                             {r.subcategoryId ? <>{' · '}{typeName(r.subcategoryId) || r.subcategoryId}</> : null}
                           </div>
                           {r.reason && <div className="av-small">{r.reason}</div>}
+                          {r.duplicateOf && <div className="av-muted av-small" role="status" data-testid={`expense-duplicate-${r.id}`}>{DUPLICATE_COPY[isHebrew ? 'he' : 'en']}</div>}
+                          {r.duplicateOf && conflictOf(r) && <div className="av-warn av-small" role="status" data-testid={`expense-conflict-${r.id}`}>{DUPLICATE_CONFLICT[isHebrew ? 'he' : 'en']}</div>}
                           <div className="av-muted av-tiny">{isHebrew ? 'מאת ' : 'From '}<bdi dir="ltr">{r.emailFrom || '—'}</bdi> · <bdi dir="ltr">{r.mailbox}</bdi>{r.emailSubject ? <> · <bdi>{r.emailSubject}</bdi></> : null}</div>
                           {r.status === 'send_failed' && r.sendError && <div className="av-bad av-small" role="alert">{isHebrew ? 'לא נשלח: ' : 'Not sent: '}<bdi>{r.sendError}</bdi></div>}
                           {r.status === 'unknown' && <div className="av-warn av-small" role="status" data-testid={`expense-unknown-${r.id}`}>{isHebrew
@@ -431,7 +444,7 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                             )}
                             {r.status !== 'sent' && r.status !== 'sending' && r.status !== 'unknown' && (
                               <>
-                                {r.status !== 'approved' && r.status !== 'send_failed' && (
+                                {r.status !== 'approved' && r.status !== 'send_failed' && !r.duplicateOf && (
                                   // PRODUCT_TRUTH_DECORATIVE: approves this invoice (it is sent only with "Send to PayPlus")
                                   <button type="button" className="av-btn av-primary" disabled={!!busy} onClick={() => setStatus([r.id], 'approved')} data-testid={`expense-approve-${r.id}`}>{isHebrew ? 'אישור' : 'Approve'}</button>
                                 )}

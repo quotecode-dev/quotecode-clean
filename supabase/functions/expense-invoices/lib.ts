@@ -72,7 +72,8 @@ export interface ExpenseDeps {
   insertInvoice(row: InvoiceRow): Promise<string | null>;
   invoices(ids: string[]): Promise<InvoiceRow[]>;
   /** a change of a row that is not sent / being sent; false = the row was sent or is being sent (nothing changed) */
-  updateUnlessSent(id: string, patch: Record<string, unknown>): Promise<boolean>;
+  /** true = updated; false = sent / sending / unknown (not changed); a code = refused by the canonical-document guard (20261030800000) */
+  updateUnlessSent(id: string, patch: Record<string, unknown>): Promise<boolean | 'identity_exists' | 'duplicate_copy'>;
   /** approved / send_failed -> sending, atomically; null = someone else claimed it or it is not approved */
   claimForSend(id: string): Promise<InvoiceRow | null>;
   /** a 'sending' row -> the patch (updated_at = now unless the patch names it) */
@@ -788,8 +789,14 @@ export async function expenseHandler(body: Record<string, unknown>, deps: Expens
       const patch = invoicePatch(body.patch as Record<string, unknown>);
       if (!patch) return bad(400, 'invalid_request');
       let updated = 0;
-      for (const id of ids as string[]) if (await deps.updateUnlessSent(id, { ...patch, updated_at: new Date(deps.now()).toISOString() })) updated += 1;
-      return updated === ids.length ? ok({ updated }) : { status: 409, body: { ok: false, code: 'already_sent', updated } };
+      let refusal: string | null = null;
+      for (const id of ids as string[]) {
+        const r = await deps.updateUnlessSent(id, { ...patch, updated_at: new Date(deps.now()).toISOString() });
+        if (r === true) updated += 1; else if (typeof r === 'string') refusal = r;
+      }
+      if (updated === ids.length) return ok({ updated });
+      // Codex release 6: a copy of an existing document is never approved; an edit never creates a second canonical document
+      return { status: 409, body: { ok: false, code: refusal ?? 'already_sent', updated } };
     }
     case 'settings': {
       const patch = settingsPatch(body, new Date(deps.now()).toISOString());
