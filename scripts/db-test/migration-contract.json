@@ -615,6 +615,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-30 (typed: continuous work - the remaining security findings and releases 6, 7, 8 and 9, each through its own gate, including L-22, L-23, L-26, L-12, L-15 and L-17; L-13 only for the test-account recipient refusal in release 9): Codex release 9: Maya (customer success, consent, unsubscribe, one case per account and signal), Omer (the daily LIVE check personas, the test-recipient refusal), the manager chain"
+    },
+    "20261031200000_quote_email_lifecycle.sql": {
+      "sha256": "f6af82f00af2bf4edd41ebfe5d09004e257bf57e29308328333ee993b9b3d615",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-31 (typed: the six Codex groups in order, each through its own gate to LIVE, including L-02, L-13, L-15, L-17, L-18, L-22 and the 30/10 locks, decisions a-h and the wording as recommended): Codex review group 1 - the quote email send record tells the truth: fingerprint (decision b), unresolved after 23 hours + explicit send anyway (decision a), held bounces applied on settle, the server clears only an older bounce (F02-F05)"
     }
   }
 }

@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2"
 import { formatEmailTotal } from "./emailMoney.ts"
 import { decideEmailLink } from "./capabilityLink.ts"
-import { readReservation, outcomeOf, REFUSALS, UNVERIFIED, UNKNOWN, PROVIDER_REFUSED, TEST_RECIPIENT } from "./sendLedger.ts"
+import { readReservation, outcomeOf, REFUSALS, UNVERIFIED, UNKNOWN, RECEIVED, PROVIDER_REFUSED, TEST_RECIPIENT, emailFingerprint } from "./sendLedger.ts"
 import { classifyPhaseRead } from "../_shared/activationPhase.ts"
 import { decidePriceGate } from "./priceGate.ts"
 
@@ -315,7 +315,22 @@ serve(async (req) => {
     const { data: recipientAllowed, error: recipientErr } = await supabaseAdmin.rpc('live_check_recipient_allowed', { p_user: callerUser.id, p_recipient: clientEmail })
     if (recipientErr) throw new EmailRefusal(UNVERIFIED)
     if (recipientAllowed !== true) throw new EmailRefusal(TEST_RECIPIENT)
-    const { data: reserved, error: reserveErr } = await supabaseAdmin.rpc('quote_email_reserve', { p_quote: quoteId, p_user: callerUser.id, p_recipient: clientEmail })
+    // Codex review 2026-10-31 F02 / F03 (decisions a + b): the provider request is built once; its fingerprint goes to the reservation
+    // (a retry of an unconfirmed send must be the same email), and only the user's explicit "send anyway" (newSend) issues a new key
+    const providerBody = JSON.stringify({
+      from: senderAddressFor(effectiveHebrew, bizName),
+      to: [clientEmail],
+      ...(replyToAddress(bizEmail) ? { reply_to: replyToAddress(bizEmail) } : {}),
+      subject: subject,
+      html: html,
+      text: text,
+      ...(logoAttachment ? { attachments: [logoAttachment] } : {}),
+      ...(tags ? { tags } : {}),
+    })
+    const fingerprint = await emailFingerprint(providerBody, linkDecision.mode === 'capability' ? body.capabilityToken : null)
+    const { data: reserved, error: reserveErr } = await supabaseAdmin.rpc('quote_email_reserve', {
+      p_quote: quoteId, p_user: callerUser.id, p_recipient: clientEmail, p_fingerprint: fingerprint, p_new_send: body.newSend === true,
+    })
     const reservation = reserveErr ? null : readReservation(reserved)
     if (!reservation) throw new EmailRefusal(UNVERIFIED)
     if (!reservation.ok) throw new EmailRefusal(REFUSALS[reservation.code])
@@ -338,16 +353,7 @@ serve(async (req) => {
           'Authorization': `Bearer ${RESEND_API_KEY}`,
           'Idempotency-Key': reservation.send_key,
         },
-        body: JSON.stringify({
-          from: senderAddressFor(effectiveHebrew, bizName),
-          to: [clientEmail],
-          ...(replyToAddress(bizEmail) ? { reply_to: replyToAddress(bizEmail) } : {}),
-          subject: subject,
-          html: html,
-          text: text,
-          ...(logoAttachment ? { attachments: [logoAttachment] } : {}),
-          ...(tags ? { tags } : {}),
-        }),
+        body: providerBody,
       })
     } catch {
       await settle('unknown', null)
@@ -358,12 +364,13 @@ serve(async (req) => {
 
     // deno-lint-ignore no-explicit-any
     const data: any = await res.json().catch(() => null)
-    // a retry answered 409 = the provider already holds this key (the earlier attempt reached it): never a second email - kept as sent
-    const state = res.status === 409 && reservation.retry ? 'sent' : outcomeOf(res.status)
+    // Codex review F02: a 409 is never a success (the provider holds an earlier attempt of this key, or a concurrent one) and a 2xx
+    // without a provider id is not proof - both stay UNKNOWN; the user decides with "send anyway"
+    const state = outcomeOf(res.status, data?.id)
     await settle(state, typeof data?.id === 'string' ? data.id : null)
     // Codex SEC-LOG-01 / SEC-LOG-02: only the quote, the outcome and the status are logged; the provider's text never reaches the browser
     console.log('send-quote-email:', String(quoteId), state, res.status)
-    if (state === 'unknown') throw new EmailRefusal(UNKNOWN)
+    if (state === 'unknown') throw new EmailRefusal(res.status === 409 && reservation.retry ? RECEIVED : UNKNOWN)
     if (state === 'failed') throw new EmailRefusal(PROVIDER_REFUSED)
 
     return new Response(JSON.stringify({ id: typeof data?.id === 'string' ? data.id : null }), {
