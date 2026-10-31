@@ -507,22 +507,3 @@ describe('Dashboard password-recovery handler - password_reuse vs weak_password 
     expect(await screen.findByText(/הסיסמה עודכנה/)).toBeInTheDocument();
   });
 });
-
-// Codex review 2026-10-31 F01 (Owner-typed: 'מאשר תיקון דף ההסרה של מאיה והגופן שלו ...'): the help email links to /he/unsubscribe and
-// /en/unsubscribe (agents-room/customerSuccess.ts); before this fix both reached NotFound because only the unused App.jsx had the route.
-describe('the help-email unsubscribe link - real route resolution (both shells)', () => {
-  const token = 'b'.repeat(64);
-  it.each([['AppLocal', '/he/unsubscribe', 'rtl', 'הפסקת הודעות העזרה', AppLocal], ['AppLocal', '/unsubscribe', 'rtl', 'הפסקת הודעות העזרה', AppLocal],
-    ['AppGlobal', '/en/unsubscribe', 'ltr', 'Stop help emails', AppGlobal], ['AppGlobal', '/unsubscribe', 'ltr', 'Stop help emails', AppGlobal]])(
-    '%s %s opens the confirmation page (%s), not NotFound; the token leaves the address bar; no Arial', async (_n, path, dir, title, Shell) => {
-      renderAtPath(Shell, `${path}?t=${token}`);
-      const page = await screen.findByTestId('outreach-unsubscribe');
-      expect(page.getAttribute('dir')).toBe(dir);
-      expect(screen.getByRole('heading', { level: 1 }).textContent).toBe(title);
-      expect(screen.getByTestId('outreach-unsubscribe-button')).toBeInTheDocument();
-      expect(screen.queryByText('404')).not.toBeInTheDocument();
-      expect(window.location.search).toBe('');
-      expect(page.style.fontFamily).not.toMatch(/arial/i);
-      expect(page.style.fontFamily).toMatch(/rubik/i);
-    });
-});

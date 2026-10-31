@@ -49,7 +49,7 @@ export default function AccountOutreachUnsubscribe({ isHebrew }) {
   };
 
   return (
-    <main dir={isHebrew ? 'rtl' : 'ltr'} data-testid="outreach-unsubscribe" style={{ fontFamily: "'Rubik', sans-serif", background: '#f4f7f8', minHeight: '100vh', color: '#172129', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', boxSizing: 'border-box' }}>
+    <main dir={isHebrew ? 'rtl' : 'ltr'} data-testid="outreach-unsubscribe" style={{ fontFamily: "'Rubik', Arial, Segoe UI, Tahoma, sans-serif", background: '#f4f7f8', minHeight: '100vh', color: '#172129', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 16px', boxSizing: 'border-box' }}>
       <section style={{ background: '#ffffff', border: '1px solid #d9e0e3', borderRadius: 12, padding: 24, maxWidth: 520, width: '100%', boxSizing: 'border-box' }}>
         <h1 style={{ fontSize: '1.3rem', margin: '0 0 12px' }}>{c.title}</h1>
         {state === 'missing' && <p role="status" data-testid="outreach-unsubscribe-missing" style={{ lineHeight: 1.6, margin: '0 0 16px' }}>{c.missing}</p>}

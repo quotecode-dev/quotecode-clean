@@ -25,9 +25,6 @@ const AILogs = lazy(() => import('../pages/AILogs'));
 const SmartPublicQuote = lazy(() => import('../components/SmartPublicQuote'));
 const PublicBusinessCard = lazy(() => import('../pages/PublicBusinessCard'));
 const SampleQuote = lazy(() => import('../pages/SampleQuote'));
-// Codex review 2026-10-31 F01 (Owner-typed: "מאשר תיקון דף ההסרה של מאיה והגופן שלו ..."): the unsubscribe link of a help email
-// (built by agents-room/customerSuccess.ts) was registered only in the unused App.jsx and reached NotFound
-const AccountOutreachUnsubscribe = lazy(() => import('../pages/AccountOutreachUnsubscribe'));
 
 export default function AppGlobal() {
   useEffect(() => {
@@ -128,8 +125,6 @@ export default function AppGlobal() {
         <Route path="/en/privacy" element={<Privacy isHebrew={false} />} />
         <Route path="/contact" element={<Contact isHebrew={false} />} />
         <Route path="/en/contact" element={<Contact isHebrew={false} />} />
-        <Route path="/unsubscribe" element={<AccountOutreachUnsubscribe isHebrew={false} />} />
-        <Route path="/en/unsubscribe" element={<AccountOutreachUnsubscribe isHebrew={false} />} />
 
         {/* SEO indexing remediation (2026-09-16 TEST task, item B7): see the
             identical AppLocal.jsx comment above / src/pages/NotFound.jsx. */}
