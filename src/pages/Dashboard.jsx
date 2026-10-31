@@ -60,7 +60,7 @@ import { excludeUntouchedPlaceholderItems } from '../utils/structuredQuoteItemPe
 import { getBusinessProfileGateMessage, getMissingBusinessProfileFields } from '../utils/businessProfileCompleteness';
 import { getDashboardNavCapabilities } from '../utils/dashboardNavCapabilities';
 import { getFunctionErrorMessage } from '../utils/functionError';
-import { classifyQuoteEmailError, SEND_ANYWAY_CATEGORIES } from '../utils/quoteEmailErrorClassification';
+import { classifyQuoteEmailError } from '../utils/quoteEmailErrorClassification';
 import ExcelJS from 'exceljs';
 
 import PricingModal from '../components/PricingModal';
@@ -3371,7 +3371,7 @@ Continue anyway?`, isHebrew);
     setPendingEmailQuote(quote);
   };
 
-  const executeEmailSend = async (quote, { newSend = false } = {}) => {
+  const executeEmailSend = async (quote) => {
     // OD-02: the ONE output-authority gate (server output phase; not enforced = unchanged behavior). Enforced: the server
     // authorizes right before the email is sent (below, after every local check) and the email carries the capability link.
     const sendGate = outputGate('send', outputPhase);
@@ -3431,9 +3431,7 @@ Continue anyway?`, isHebrew);
         logo: bizLogoUrl,
         isHebrew: isHebrew,
         // enforced phase only: the server verifies this token is bound to this quote and this account before using it
-        ...(capabilityToken ? { capabilityToken } : {}),
-        // Codex review 2026-10-31 F03 (decision a): only after the user confirmed "send anyway" below - never automatically
-        ...(newSend ? { newSend: true } : {})
+        ...(capabilityToken ? { capabilityToken } : {})
       };
 
       const { data, error } = await invokeWithFreshSession('send-quote-email', {
@@ -3448,10 +3446,11 @@ Continue anyway?`, isHebrew);
         throw new Error(data.error);
       }
 
-      // Codex review 2026-10-31 F05: the server clears an OLDER bounce mark when it records this send (quote_email_settle) - the browser
-      // no longer clears it after the answer (a bounce that arrived first was erased). The screen reads the mark back as it now stands.
-      const { data: bounceNow } = await supabase.from('quotes').select('email_bounced, email_bounce_reason, email_bounced_at').eq('id', quote.id).maybeSingle();
-      if (bounceNow) setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, email_bounced: bounceNow.email_bounced === true, email_bounce_reason: bounceNow.email_bounce_reason ?? null, email_bounced_at: bounceNow.email_bounced_at ?? null } : q));
+      // שליחה מחדש מנקה סימון "הוחזר" קודם - אחרת נורית אדומה ישנה הייתה
+      // ממשיכה להיראות גם אחרי שהכתובת תוקנה ונשלחה בהצלחה מחדש. הכשל
+      // האמיתי (אם יש) יגיע מאוחר יותר דרך ה-Webhook ויעדכן שוב לאדום.
+      await supabase.from('quotes').update({ email_bounced: false, email_bounce_reason: null, email_bounced_at: null }).eq('id', quote.id);
+      setQuotes(prev => prev.map(q => q.id === quote.id ? { ...q, email_bounced: false, email_bounce_reason: null, email_bounced_at: null } : q));
 
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'success' }));
       resolveBlockers(['EMAIL_SEND_FAILED', 'EMAIL_SEND_NETWORK', 'EMAIL_CLIENT_NO_EMAIL']);
@@ -3471,15 +3470,7 @@ Continue anyway?`, isHebrew);
       const rawMessage = await getFunctionErrorMessage(err, isHebrew ? 'שליחת המייל נכשלה' : 'Email sending failed');
       console.error("Email send error:", err, "| resolved server message:", rawMessage);
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-      const { category, userMessage } = classifyQuoteEmailError(rawMessage, isHebrew, { hadReadableServerResponse });
-      // Codex review 2026-10-31 F02 / F03 (decisions a + b): an earlier send was never confirmed - a new send only on the user's explicit "send anyway"
-      if (!newSend && SEND_ANYWAY_CATEGORIES.has(category)) {
-        const again = await askConfirm(`${userMessage}
-
-${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quote again anyway?'}`, isHebrew,
-          { yes: isHebrew ? 'לשלוח בכל זאת' : 'Send anyway' });
-        if (again) { await executeEmailSend(quote, { newSend: true }); return; }
-      }
+      const { userMessage } = classifyQuoteEmailError(rawMessage, isHebrew, { hadReadableServerResponse });
       alertWithBlocker(blockerCodeForEmailError(rawMessage, hadReadableServerResponse), { surface: 'main' }, userMessage);
     }
   };

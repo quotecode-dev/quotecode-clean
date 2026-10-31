@@ -93,31 +93,6 @@ const PATTERNS = [
       en: '⚠️ The email service did not confirm the send. Try again in a few minutes. If it was already sent, it will not be sent twice.',
     },
   },
-  // Codex review 2026-10-31 F02 / F03 (Owner-typed, decisions a + b): an earlier send was never confirmed - the screen offers "send anyway"
-  {
-    category: 'send_unresolved',
-    test: (msg) => /^QUOTE_EMAIL_UNRESOLVED:/.test(msg),
-    userMessage: {
-      he: '⚠️ שליחה קודמת של ההצעה לכתובת הזו לא אושרה על ידי שירות המייל, ועברו יותר מ־23 שעות. ייתכן שהמייל כבר הגיע ללקוח.',
-      en: '⚠️ An earlier send of this quote to this address was never confirmed by the email service, and more than 23 hours have passed. The customer may already have received it.',
-    },
-  },
-  {
-    category: 'send_changed',
-    test: (msg) => /^QUOTE_EMAIL_CHANGED:/.test(msg),
-    userMessage: {
-      he: '⚠️ ההצעה השתנתה מאז שליחה קודמת לכתובת הזו, ששירות המייל לא אישר. ייתכן שהלקוח כבר קיבל את הגרסה הקודמת.',
-      en: '⚠️ The quote changed since an earlier send to this address that the email service never confirmed. The customer may already have the previous version.',
-    },
-  },
-  {
-    category: 'send_received',
-    test: (msg) => /^QUOTE_EMAIL_RECEIVED:/.test(msg),
-    userMessage: {
-      he: '⚠️ שירות המייל כבר קיבל שליחה קודמת של ההצעה לכתובת הזו, אבל לא אישר שהיא נמסרה. ייתכן שהמייל כבר הגיע ללקוח.',
-      en: '⚠️ The email service already received an earlier send of this quote to this address but did not confirm delivery. The customer may already have it.',
-    },
-  },
   // Codex release 9, L-13 (Owner 2026-10-30): a registered LIVE-check test account emails a quote only to its own test mailbox
   {
     category: 'send_test_recipient',
@@ -151,9 +126,6 @@ const PATTERNS = [
 // כי בפועל זו הקטגוריה הסבירה ביותר לכל מסר-שרת אמיתי ולא-מסווג. רק
 // כשל-רשת אמיתי (getFunctionErrorMessage נפל חזרה ל-fallback הגנרי, כלומר
 // error.context לא היה קריא בכלל) מסווג "unknown_server_error/network".
-// the refusals that the screen answers with an explicit "send anyway" question (never an automatic new send)
-export const SEND_ANYWAY_CATEGORIES = new Set(['send_unresolved', 'send_changed', 'send_received']);
-
 export function classifyQuoteEmailError(rawMessage, isHebrew, { hadReadableServerResponse = true } = {}) {
   const msg = String(rawMessage || '');
   for (const pattern of PATTERNS) {

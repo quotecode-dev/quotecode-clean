@@ -133,7 +133,7 @@ describe('the four channels call the ONE gate before their output action', () =>
     expect(auth.indexOf("authorizeWithNotice({ channel: 'send'")).toBeLessThan(auth.indexOf('sendWhatsApp(proposal, {'));
   });
   it('Send via email (Dashboard.executeEmailSend): gate + authority before invoking send-quote-email', () => {
-    const fn = sliceFn(src('src/pages/Dashboard.jsx'), 'const executeEmailSend = async (quote, { newSend = false } = {}) => {', "invoke('send-quote-email'");
+    const fn = sliceFn(src('src/pages/Dashboard.jsx'), 'const executeEmailSend = async (quote) => {', "invoke('send-quote-email'");
     expect(fn).toContain("outputGate('send', outputPhase)");
     expect(fn).toContain("authorizeWithNotice({ channel: 'send'");
   });
