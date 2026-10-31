@@ -95,6 +95,8 @@ const DECORATIVE_ROUTES = new Set([
   '/sample-quote', '/he/sample-quote', '/en/sample-quote',
   // Owner 2026-10-26 (SEO week 2): the public guides - marketing content pages, not a Product Truth capability.
   '/he/articles', '/en/articles', '/he/articles/:slug', '/en/articles/:slug',
+  // Codex review 2026-10-31 F01: the help-email unsubscribe page (consent withdrawal, like the legal pages) - not a Product Truth capability.
+  '/unsubscribe', '/he/unsubscribe', '/en/unsubscribe',
 ]);
 
 describe('DEFECT-7 INDEPENDENT SURFACE COVERAGE (source-derived, not registry-derived)', () => {
