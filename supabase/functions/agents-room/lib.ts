@@ -209,10 +209,14 @@ export function competitiveFinding(c: Competitive | null): Finding {
     return { level: 'warn', he: 'מילות חיפוש שנבדקו: נתוני המתחרים לא זמינים השבוע.', en: 'Keywords checked: the competitor data is not available this week.' };
   }
   if (c.state === 'budget_blocked') return { level: 'warn', he: 'מילות חיפוש שנבדקו: תקציב הנתונים החודשי מלא, הבדיקה לא רצה.', en: 'Keywords checked: the monthly data budget is full, the check did not run.' };
+  // Codex review 2026-10-31 F15: another run is collecting this week right now (Owner wording "ממתין" / "Waiting")
+  if (c.state === 'running') return { level: 'warn', he: 'מילות חיפוש שנבדקו: ממתין לבדיקה של השבוע, שעדיין רצה.', en: 'Keywords checked: waiting for this week\'s check, which is still running.' };
+  // F14: keywords of a market whose data did not arrive are "unavailable" (Owner wording "לא זמין" / "Unavailable"), never "not found"
+  const na = c.unavailable ? { he: ` · לא זמין: ${c.unavailable}`, en: ` · unavailable: ${c.unavailable}` } : { he: '', en: '' };
   const top = c.opportunities.slice(0, 3).map((o) => o.keyword).join(', ');
   return { level: c.state === 'ok' ? 'good' : 'warn',
-    he: `מילות חיפוש שנבדקו: ${c.checked} · אנחנו מופיעים ב-${c.found} · לא נמצא בעומק הבדיקה: ${c.notFound}${top ? ` · הזדמנויות: ⁦${top}⁩` : ''}`,
-    en: `Keywords checked: ${c.checked} · we rank for ${c.found} · not found within checked depth: ${c.notFound}${top ? ` · opportunities: ${top}` : ''}` };
+    he: `מילות חיפוש שנבדקו: ${c.checked} · אנחנו מופיעים ב-${c.found} · לא נמצא בעומק הבדיקה: ${c.notFound}${na.he}${top ? ` · הזדמנויות: ⁦${top}⁩` : ''}`,
+    en: `Keywords checked: ${c.checked} · we rank for ${c.found} · not found within checked depth: ${c.notFound}${na.en}${top ? ` · opportunities: ${top}` : ''}` };
 }
 
 // ---------------------------------------------------------------- service

@@ -627,6 +627,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-31 (typed: the six Codex groups in order, each through its own gate to LIVE, including L-02, L-13, L-15, L-17, L-18, L-22 and the 30/10 locks, decisions a-h and the wording as recommended): Codex review group 2 - a claimed weekly review counts only once it completed (support_review_runs.completed_at, F11)"
+    },
+    "20261031400000_marketing_truth.sql": {
+      "sha256": "3add42a9e44752b94cf4b726b4f2fb30248e8bf8c09e9feb52d7166b5e2f6956",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-31 (typed: the six Codex groups in order, each through its own gate to LIVE, including L-02, L-13, L-15, L-17, L-18, L-22 and the 30/10 locks, decisions a-h and the wording as recommended): Codex review group 3 - Guy weekly data claimed before it is bought (marketing_weeks + claim / finish), unavailable never not found (snapshot our_status) (F14, F15)"
     }
   }
 }
