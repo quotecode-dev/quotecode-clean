@@ -35,7 +35,9 @@ export function classifyRun(job: ScheduledJob, status: number, body: Body): { ev
     }
     case 'agents-daily':
       if (b.ok !== true) return { event: 'failed', outcome: code(b.code, 'failed') };
-      if (b.security === 'failed' || b.urgent === false || b.sitemap === 'failed' || b.articles === 'failed') return { event: 'partial', outcome: 'partial' };
+      // Codex review 2026-10-31 F12: Shira's daily step and Maya's scan are part of the daily window too
+      if (b.security === 'failed' || b.urgent === false || b.sitemap === 'failed' || b.articles === 'failed'
+        || (b.social as { failed?: unknown } | undefined)?.failed === true || b.customerSuccess === 'failed') return { event: 'partial', outcome: 'partial' };
       return b.security === 'already_ran' ? { event: 'skipped', outcome: 'already_ran' } : { event: 'completed', outcome: 'ok' };
     case 'expense-scan': {
       if (b.ok !== true) return { event: 'failed', outcome: code(b.code, 'failed') };
@@ -43,6 +45,8 @@ export function classifyRun(job: ScheduledJob, status: number, body: Body): { ev
       return partial ? { event: 'partial', outcome: 'partial' } : { event: 'completed', outcome: 'ok' };
     }
     case 'daily-cron':
+      // Codex review 2026-10-31 F10: the Vercel parent passes the steps that already failed before it called this worker (rates)
+      if (Array.isArray(b.parentFailures) && b.parentFailures.length > 0) return { event: 'partial', outcome: `parent:${code(b.parentFailures[0], 'step')}` };
       return b.ok === false || (Array.isArray(b.errors) && b.errors.length > 0) ? { event: 'partial', outcome: 'send_errors' } : { event: 'completed', outcome: 'ok' };
   }
 }

@@ -9,6 +9,7 @@ const answer = (items: unknown[]) => JSON.stringify({ items });
 
 function deps(over: Partial<ReviewDeps> = {}) {
   const claimed = new Set<string>();
+  const completed = new Set<string>();
   const saved: { week: string; items: unknown[]; count: number }[] = [];
   const d: ReviewDeps & { saved: typeof saved } = {
     saved,
@@ -23,6 +24,8 @@ function deps(over: Partial<ReviewDeps> = {}) {
     saveItems: vi.fn(async (week, items, count) => { saved.push({ week, items, count }); }),
     mailOwner: vi.fn(async () => true),
     markMailed: vi.fn(async () => {}),
+    weekCompleted: vi.fn(async (w) => completed.has(w)),
+    markCompleted: vi.fn(async (w) => { completed.add(w); }),
     ...over,
   };
   return d;
@@ -70,6 +73,17 @@ describe('the review', () => {
     const d = deps({ complete: async () => ({ content: 'nope' }) });
     expect((await reviewHandler({ action: 'run' }, d, 'https://x')).body).toMatchObject({ ok: false, code: 'unreadable_answer' });
     expect((d.mailOwner as ReturnType<typeof vi.fn>).mock.calls[0][0]).toBe('הסקירה השבועית לא הושלמה');
+  });
+  // Codex review 2026-10-31 F11 (Owner-typed, L-22 named): a claim left by a failed run is never a healthy "already reviewed"
+  it('a week claimed by a run that never completed answers claim_incomplete; a completed one is skipped', async () => {
+    const d = deps({ complete: async () => ({ content: 'nope' }) });
+    await reviewHandler({ action: 'run' }, d, 'https://x');
+    expect(d.markCompleted).not.toHaveBeenCalled();
+    expect((await reviewHandler({ action: 'run' }, d, 'https://x')).body).toMatchObject({ ok: false, code: 'claim_incomplete' });
+    const ok = deps();
+    await reviewHandler({ action: 'run' }, ok, 'https://x');
+    expect(ok.markCompleted).toHaveBeenCalledTimes(1);
+    expect((await reviewHandler({ action: 'run' }, ok, 'https://x')).body).toMatchObject({ ok: true, skipped: 'already_reviewed' });
   });
   it('a quiet week: no model call, an honest short email', async () => {
     const d = deps({ inquiries: async () => [] });

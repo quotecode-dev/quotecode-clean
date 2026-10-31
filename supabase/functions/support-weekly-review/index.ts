@@ -81,6 +81,8 @@ Deno.serve(async (req: Request) => {
       });
       return r.ok;
     },
+    weekCompleted: async (week) => ((await db(admin.from('support_review_runs').select('completed_at').eq('week', week).maybeSingle())) as { completed_at?: string | null } | null)?.completed_at != null,
+    markCompleted: async (week) => { await db(admin.from('support_review_runs').update({ completed_at: new Date().toISOString() }).eq('week', week)); },
     markMailed: async (week) => { await db(admin.from('support_review_runs').update({ mailed_at: new Date().toISOString() }).eq('week', week)); },
   };
 
