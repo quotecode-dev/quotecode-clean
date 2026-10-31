@@ -28,10 +28,6 @@ export interface ReviewDeps {
   saveItems(week: string, items: ReviewItem[], inquiries: number): Promise<void>;
   mailOwner(subject: string, text: string, week: string): Promise<boolean>;
   markMailed(week: string): Promise<void>;
-  // Codex review 2026-10-31 F11 (Owner-typed, the 30/10 locks named; migration 20261031300000): a claimed week counts as reviewed only
-  // once the review really completed - a claim left by a failed run is never a healthy "already reviewed"
-  weekCompleted(week: string): Promise<boolean>;
-  markCompleted(week: string): Promise<void>;
 }
 
 /** Israel calendar parts of an instant: the date, the hour and the weekday (0 = Sunday). */
@@ -139,11 +135,7 @@ export async function reviewHandler(body: Record<string, unknown>, deps: ReviewD
   // the cron only works at Sunday 20:00 Israel time; the Owner's "run now" works any time (it reviews the past 7 days)
   if (who === 'cron' && (p.weekday !== REVIEW_WEEKDAY || p.hour !== REVIEW_HOUR)) return { status: 200, body: { ok: true, skipped: 'not_review_time' } };
   const week = reviewKey(now);
-  if (!(await deps.claimWeek(week))) {
-    return (await deps.weekCompleted(week))
-      ? { status: 200, body: { ok: true, skipped: 'already_reviewed', week } }
-      : { status: 200, body: { ok: false, code: 'claim_incomplete', week } };
-  }
+  if (!(await deps.claimWeek(week))) return { status: 200, body: { ok: true, skipped: 'already_reviewed', week } };
   const since = new Date(now.getTime() - 7 * 86400000).toISOString();
   const list = (await deps.inquiries(since, now.toISOString())).slice(0, MAX_INQUIRIES);
   const items = list.length ? validateReview(await extract(deps, buildMessages(list)), list) : [];
@@ -155,7 +147,6 @@ export async function reviewHandler(body: Record<string, unknown>, deps: ReviewD
     return { status: 200, body: { ok: false, code: 'unreadable_answer', week, inquiries: list.length } };
   }
   await deps.saveItems(week, items, list.length);
-  await deps.markCompleted(week);
   const mail = ownerEmail(week, items, list.length, appUrl);
   const mailed = await deps.mailOwner(mail.subject, mail.text, week);
   if (mailed) await deps.markMailed(week);

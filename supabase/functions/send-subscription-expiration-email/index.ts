@@ -256,10 +256,7 @@ serve(async (req) => {
     // חודשי רגיל. עד אז, batch mode מחזיר תשובה מפורשת "לא מיושם" ולעולם
     // לא שולח מייל.
     const batchAnswer = buildSubscriptionEmailSafeResponse();
-    // Codex review 2026-10-31 F10: the daily window also carries the steps the Vercel job already failed before calling this worker
-    // (step names only, e.g. "rates") - a failed parent step is never recorded as a completed window
-    const parentFailures = (Array.isArray(body.parentFailures) ? body.parentFailures : []).filter((x: unknown) => typeof x === 'string' && /^[a-z0-9_-]{1,30}$/.test(x)).slice(0, 5);
-    await recordRun(adminClient, 'daily-cron', 200, { ...(batchAnswer as Record<string, unknown>), ...(parentFailures.length ? { parentFailures } : {}) });
+    await recordRun(adminClient, 'daily-cron', 200, batchAnswer as never);
     return jsonResponse(batchAnswer, 200);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';

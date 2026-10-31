@@ -8,16 +8,13 @@ vi.mock('https://esm.sh/@supabase/supabase-js@2', () => ({
     from: (table) => {
       const q = { table, ops: [] };
       const chain = (name) => (...args) => { q.ops.push([name, ...args]); return q; };
-      for (const m of ['select', 'eq', 'in', 'is', 'gte', 'lt', 'order', 'limit', 'delete', 'maybeSingle']) q[m] = chain(m);
+      for (const m of ['select', 'eq', 'in', 'is', 'gte', 'lt', 'order', 'limit', 'delete']) q[m] = chain(m);
       q.upsert = (row) => { q.ops.push(['upsert', row]); return q; };
       q.update = (patch) => { q.ops.push(['update', patch]); return q; };
       q.then = (ok, bad) => {
         const op = q.ops[0]?.[0];
         let res = { data: [], error: null };
         if (table === 'support_digest_runs' && op === 'upsert') { const fresh = !h.state.claimed; h.state.claimed = true; res = { data: fresh ? [{ day: q.ops[0][1].day }] : [], error: null }; }
-        // Codex review 2026-10-31 F11: the claim row says whether the digest really went out
-        else if (table === 'support_digest_runs' && op === 'update') { if (q.ops[0][1]?.sent_at) h.state.sentAt = q.ops[0][1].sent_at; }
-        else if (table === 'support_digest_runs' && op === 'select') res = { data: { sent_at: h.state.sentAt ?? null }, error: null };
         // Codex release 5: the Owner-alert retry reads the rows not yet alerted
         else if (table === 'support_inbound_messages' && op === 'select' && q.ops.some((o) => o[0] === 'is')) res = { data: h.state.unalerted ?? [], error: null };
         else if (table === 'support_inbound_messages' && op === 'select' && q.ops.some((o) => o[0] === 'in')) res = { data: [{ from_address: 'a@x.test', subject: 's', bin: 'red', status: 'waiting', summary: 'wants a refund', reply_sent_by: null, stored_at: '2026-10-20T08:00:00Z' }], error: null };
@@ -58,12 +55,6 @@ describe('support-digest (evening summary)', () => {
     expect(provider[0].headers['Idempotency-Key']).toBe('tekango-support/v1/digest/2026-10-20');
     expect(await (await call()).json()).toMatchObject({ ok: true, skipped: 'already_sent' });
     expect(provider).toHaveLength(1);
-  });
-  it('Codex review F11: a claim left by a run that never sent is a failure of the window, never "already sent"', async () => {
-    vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(new Date('2026-10-20T17:00:00Z'));
-    h.state.claimed = true; // another run claimed the day and never finished
-    expect(await (await call()).json()).toMatchObject({ ok: false, code: 'claim_incomplete' });
-    expect(provider).toHaveLength(0);
   });
   // Codex release 5 (decision 7): an Owner alert whose delivery failed is retried with the SAME slot before the summary
   it('retries a failed red / grey Owner alert once, with the original idempotency slot', async () => {

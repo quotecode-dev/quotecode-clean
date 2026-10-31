@@ -621,12 +621,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-31 (typed: the six Codex groups in order, each through its own gate to LIVE, including L-02, L-13, L-15, L-17, L-18, L-22 and the 30/10 locks, decisions a-h and the wording as recommended): Codex review group 1 - the quote email send record tells the truth: fingerprint (decision b), unresolved after 23 hours + explicit send anyway (decision a), held bounces applied on settle, the server clears only an older bounce (F02-F05)"
-    },
-    "20261031300000_monitor_truth.sql": {
-      "sha256": "36eb53a78860c490f8dbd8edd3265a185b57318ce20b4f76e3e72a4bafdd42b5",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-31 (typed: the six Codex groups in order, each through its own gate to LIVE, including L-02, L-13, L-15, L-17, L-18, L-22 and the 30/10 locks, decisions a-h and the wording as recommended): Codex review group 2 - a claimed weekly review counts only once it completed (support_review_runs.completed_at, F11)"
     }
   }
 }

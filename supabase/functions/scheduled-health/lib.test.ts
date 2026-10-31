@@ -28,13 +28,6 @@ describe('classifyRun - every worker answer', () => {
     expect(classifyRun('agents-daily', 200, { ok: true, security: 'done' })).toEqual({ event: 'completed', outcome: 'ok' });
     expect(classifyRun('expense-scan', 200, { ok: true, remaining: 0, failed: 0, errors: [] })).toEqual({ event: 'completed', outcome: 'ok' });
     expect(classifyRun('daily-cron', 200, { success: true, errors: [] })).toEqual({ event: 'completed', outcome: 'ok' });
-    // Codex review 2026-10-31 F10 / F12
-    expect(classifyRun('daily-cron', 200, { success: true, errors: [], parentFailures: ['rates'] })).toEqual({ event: 'partial', outcome: 'parent:rates' });
-    expect(classifyRun('agents-daily', 200, { ok: true, security: 'ok', customerSuccess: 'failed' })).toEqual({ event: 'partial', outcome: 'partial' });
-    expect(classifyRun('agents-daily', 200, { ok: true, security: 'ok', social: { failed: true } })).toEqual({ event: 'partial', outcome: 'partial' });
-    expect(classifyRun('agents-daily', 200, { ok: true, security: 'ok', customerSuccess: 'not_configured', social: { posted: 1 } })).toEqual({ event: 'completed', outcome: 'ok' });
-    expect(classifyRun('support-digest', 200, { ok: false, code: 'claim_incomplete' })).toEqual({ event: 'failed', outcome: 'claim_incomplete' });
-    expect(classifyRun('support-weekly-review', 200, { ok: false, code: 'claim_incomplete' })).toEqual({ event: 'failed', outcome: 'claim_incomplete' });
   });
   it('recording never throws and never changes the answer', async () => {
     const admin = { rpc: vi.fn(async () => { throw new Error('down'); }) };
@@ -52,8 +45,7 @@ describe('classifyRun - every worker answer', () => {
     expect(src('agents-room/index.ts')).toContain("if (role === 'cron' && (cronAction === 'run' || cronAction === 'daily')) await recordRun(admin");
     expect(src('expense-invoices/index.ts')).toContain("await recordRun(admin, 'expense-scan'");
     expect(src('support-digest/index.ts')).toContain("await recordRun(admin, 'support-digest', status, body)");
-    // Codex review 2026-10-31 F10 (Owner-typed, L-22 named): the worker records the window with the parent's failed steps
-    expect(src('send-subscription-expiration-email/index.ts')).toContain("await recordRun(adminClient, 'daily-cron', 200, { ...(batchAnswer as Record<string, unknown>), ...(parentFailures.length ? { parentFailures } : {}) })");
+    expect(src('send-subscription-expiration-email/index.ts')).toContain("await recordRun(adminClient, 'daily-cron', 200, batchAnswer as never)");
   });
 });
 

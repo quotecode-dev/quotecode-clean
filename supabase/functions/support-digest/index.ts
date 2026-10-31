@@ -47,13 +47,7 @@ serve(async (req) => {
   const done = async (body: Record<string, unknown>, status = 200) => { await recordRun(admin, 'support-digest', status, body); return json(body, status); };
   const { data: claimed, error: claimErr } = await admin.from('support_digest_runs').upsert({ day }, { onConflict: 'day', ignoreDuplicates: true }).select('day');
   if (claimErr) return done({ ok: false, code: 'store_failed' }, 500);
-  // Codex review 2026-10-31 F11: an existing claim is "already sent" only when the digest really went out; a claim left by a run that
-  // never finished is a failure of this window, not a healthy skip
-  if (!claimed?.length) {
-    const { data: run, error: runErr } = await admin.from('support_digest_runs').select('sent_at').eq('day', day).maybeSingle();
-    if (runErr) return done({ ok: false, code: 'store_failed' }, 500);
-    return run?.sent_at ? done({ ok: true, skipped: 'already_sent', day }) : done({ ok: false, code: 'claim_incomplete', day });
-  }
+  if (!claimed?.length) return done({ ok: true, skipped: 'already_sent', day });
   if (!ownerAddress) return done({ ok: true, skipped: 'no_owner_address', day });
 
   const since = new Date(now.getTime() - 24 * 3600 * 1000).toISOString();
