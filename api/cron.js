@@ -12,7 +12,7 @@ import { createClient } from '@supabase/supabase-js';
 // שלב: מפעיל את שתי ה-Edge Functions הייעודיות במצב "batch" - כל אחת אחראית
 // על זרם תזכורות עצמאי משלה (ניסיון חינמי / מנוי בתשלום) כך שאין כפילות
 // לוגיקה בין Vercel ל-Supabase, ואין תלות בין הזרמים אם אחד מהם נכשל.
-export async function triggerExpirationReminders(supabase, env, logs) {
+export async function triggerExpirationReminders(supabase, env, logs, priorFailures = []) {
   const failures = [];
   const cronSecret = env.CRON_SECRET;
   if (!cronSecret) {
@@ -26,7 +26,8 @@ export async function triggerExpirationReminders(supabase, env, logs) {
   logs.push('Trial reminders: not sent (retired - no trial exists and nothing changes when an old trial ends).');
 
   const { data: subData, error: subError } = await supabase.functions.invoke('send-subscription-expiration-email', {
-    body: { mode: 'batch' },
+    // Codex review 2026-10-31 F10: the steps that already failed (names only) - the worker records the daily window as partial
+    body: { mode: 'batch', ...(priorFailures.length ? { parentFailures: priorFailures.map((f) => String(f).split(':')[0]) } : {}) },
     headers: { 'x-cron-secret': cronSecret },
   });
   if (subError || subData?.error) {
@@ -83,7 +84,7 @@ export async function runCron({ supabase, env, fetchImpl }) {
 
   // תזכורות דו-שלביות (3 ימים / 24 שעות) לפני תפוגת ניסיון חינמי או מנוי בתשלום
   try {
-    failures.push(...await triggerExpirationReminders(supabase, env, logs));
+    failures.push(...await triggerExpirationReminders(supabase, env, logs, [...failures]));
   } catch (e) {
     console.error('Expiration reminder job failed:', e.message);
     failures.push(`reminders: ${e.message}`);

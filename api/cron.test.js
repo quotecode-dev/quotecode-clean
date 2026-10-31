@@ -62,6 +62,13 @@ describe('api/cron - write results are verified', () => {
     const r = await runCron({ supabase: sb, env: ENV, fetchImpl: async () => { throw new Error('network'); } });
     expect(r.ok).toBe(false);
     expect(sb.calls.invokes.map((i) => i.fn)).toEqual(['send-subscription-expiration-email']); // R-15: the trial emails are retired
+    // Codex review 2026-10-31 F10: the worker that records the daily window learns that the rates step failed (step name only)
+    expect(sb.calls.invokes[0].opts.body).toEqual({ mode: 'batch', parentFailures: ['rates'] });
+  });
+  it('Codex review F10: a clean run passes no failed steps to the worker', async () => {
+    const sb = fakeSupabase();
+    await runCron({ supabase: sb, env: ENV, fetchImpl: ratesOk });
+    expect(sb.calls.invokes[0].opts.body).toEqual({ mode: 'batch' });
   });
 
   // Night task 2026-10-16 (R-15, Owner default 2): there is no trial (OD-01) and nothing changes when an old trial ends, so the
