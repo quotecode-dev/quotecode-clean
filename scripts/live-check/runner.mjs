@@ -45,11 +45,6 @@ function judge(f, market, errors) {
   return null;
 }
 
-// the header renders the plan medallion twice (desktop and phone containers, one hidden by the layout) - take the one on screen,
-// and wait for it (isVisible never waits)
-const planButton = (page) => page.locator('[data-testid="header-plan-button"]:visible').first();
-const shown = (locator) => locator.waitFor({ state: 'visible', timeout: 20000 }).then(() => true, () => false);
-
 async function withRetry(fn) {
   try { return await fn(); } catch (e) {
     if (Date.now() - STARTED > BUDGET_MS) return { ok: false, code: 'budget' };
@@ -102,11 +97,12 @@ async function main() {
         await ctx.addInitScript(([key, value, l]) => { try { localStorage.setItem(key, value); localStorage.setItem('proflow_lang', l); } catch { /* storage blocked */ } },
           [`sb-${ref}-auth-token`, JSON.stringify(session), lang]);
         steps.push({ market, size, step: 'dashboard', ...(await withRetry(() => checkPage(ctx, market, '/dashboard', async (page) => {
-          return (await shown(planButton(page))) ? null : 'not_signed_in';
+          const signedIn = await page.getByTestId('header-plan-button').first().isVisible({ timeout: 20000 }).catch(() => false);
+          return signedIn ? null : 'not_signed_in';
         }))) });
         steps.push({ market, size, step: 'plans', ...(await withRetry(() => checkPage(ctx, market, '/dashboard', async (page) => {
-          const button = planButton(page);
-          if (!(await shown(button))) return 'not_signed_in';
+          const button = page.getByTestId('header-plan-button').first();
+          if (!(await button.isVisible({ timeout: 20000 }).catch(() => false))) return 'not_signed_in';
           await button.click();
           return (await page.getByTestId('plans-modal').isVisible({ timeout: 15000 }).catch(() => false)) ? null : 'plans_not_open';
         }))) });
