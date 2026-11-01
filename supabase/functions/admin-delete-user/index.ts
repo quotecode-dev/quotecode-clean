@@ -203,6 +203,12 @@ serve(async (req) => {
         .from('quotecode_documents').delete().eq('user_id', targetUserId).select('id');
       quotecodeDocumentsRemoved = qcdErr ? 'unavailable' : (qcdRows || []).length;
 
+      // Codex review 2026-10-31 F30 (Owner-typed, L-18 named; migration 20261031500000): the quote-email send records keep no recipient
+      // address of this account (non-personal tombstones stay for the provider replay), and Maya's drafts for it keep no text, address or
+      // evidence - one database call, before the Auth account goes
+      const { error: eraseErr } = await adminClient.rpc('account_erase_agent_and_email_records', { p_user: targetUserId });
+      if (eraseErr) throw new Error('Failed to erase the email send records and help drafts');
+
       if (targetBiz?.id) {
         const { error: bizDelErr } = await adminClient.from('business_settings').delete().eq('id', targetBiz.id);
         if (bizDelErr) throw new Error(`Failed to delete business_settings: ${bizDelErr.message}`);

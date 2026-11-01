@@ -178,4 +178,36 @@ describe('the Owner decision in the agents room (manager.decide)', () => {
     expect(get().status).toBe('failed');
     expect(x.mails).toHaveLength(0);
   });
+  // Codex review 2026-10-31 F20 (Owner-typed, L-22 named): two approvals in the same millisecond with different texts - exactly one mail,
+  // carrying the STORED approval (the loser never sends its own local text)
+  it('two approvals at once: one mail, with the text that was stored', async () => {
+    const { d, x, get } = room([row()]);
+    await x.d.csInsertCase({ user_id: row().account_id, signal_code: 'no_quote_onboarding', evidence: {} });
+    const [r1, r2] = await Promise.all([
+      decide(d, { id: 'a9', decision: 'approve', text: 'שלום,\n\nנוסח ראשון של הבעלים' }, []),
+      decide(d, { id: 'a9', decision: 'approve', text: 'שלום,\n\nנוסח שני של הבעלים' }, []),
+    ]);
+    expect([r1.status, r2.status].sort()).toEqual([200, 409]);
+    expect(x.mails).toHaveLength(1);
+    expect(x.mails[0].text.startsWith(String((get().payload as Record<string, unknown>).text))).toBe(true);
+  });
+});
+
+// Codex review 2026-10-31 F21: the atomic daily admission (csAdmit) - the priority order, the cap stops the scan, an open account is skipped
+describe('the daily admission', () => {
+  it('the spec priority decides who gets the last draft; the cap stops the scan', async () => {
+    const admitted: string[] = [];
+    const x = cs([row({ account_id: 'b1', signal_code: 'paid_inactive' }), row({ account_id: 'b2', signal_code: 'renewal_failed_grace', evidence: { asOf: NOW.toISOString(), graceEndsAt: '2026-11-02T09:00:00Z' } })], {
+      csAdmit: async (r, _day, cap) => (admitted.length >= Math.min(cap, 1) ? { id: null, code: 'cap' } : (admitted.push(r.signal_code), { id: `c-${r.user_id}` })),
+    });
+    const run = await scanAndDraft(x.d, 'k', async () => 'act');
+    expect(admitted).toEqual(['renewal_failed_grace']);
+    expect(run.drafted.map((v) => v.row.signal_code)).toEqual(['renewal_failed_grace']);
+    expect(run.result.findings.some((f) => /טיוטות יחכו למחר/.test(f.he))).toBe(true);
+  });
+  it('an account with an open proposal is not given a second one', async () => {
+    const x = cs([row({ signal_code: 'free_ending' })], { csAdmit: async () => ({ id: null, code: 'account_open' }) });
+    const run = await scanAndDraft(x.d, 'k', async () => 'act');
+    expect(run.drafted).toHaveLength(0);
+  });
 });
