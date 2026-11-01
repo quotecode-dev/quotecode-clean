@@ -209,6 +209,11 @@ describe('EN / International totals: cents kept, persisted currency, no VAT line
     expect(container.textContent).toContain('Discount (10%):');
     expect(strip(container.querySelector('.pq-discount-negative.pf-money').textContent)).toBe('$20.00');
   });
+  it('L-27 (Owner 2026-11-01): the rows read subtotal, then discount, then total, as in Hebrew', () => {
+    const { container } = en({ quote: { discount: 10, subtotal: 200, total: 180 } });
+    const labels = [...container.querySelectorAll('.pq-totals-grid .pq-total-label, .pq-totals-grid .pq-total-final-label')].map((e) => e.textContent);
+    expect(labels).toEqual(['Subtotal:', 'Discount (10%):', 'Total:']);
+  });
   it('when no total is stored the subtotal is the total (never 0)', () => {
     expect(finalTotal(en({ quote: { total: 0, subtotal: 75.25 } }).container)).toBe('$75.25');
   });
