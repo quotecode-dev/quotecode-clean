@@ -29,7 +29,8 @@ concurrency:
 jobs:
   live-check:
     name: daily LIVE check (Omer)
-    if: github.repository == 'quotecode-dev/quotecode-clean' && github.ref == 'refs/heads/main'
+    # Codex review 2026-10-31 F27: only the schedule or an agents-room run id starts the job - a bare hand dispatch never runs (no minutes)
+    if: github.repository == 'quotecode-dev/quotecode-clean' && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || inputs.run_id != '')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: live-check

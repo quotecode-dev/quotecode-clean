@@ -25,6 +25,20 @@ export interface LiveDeps {
   mailOwner(subject: string, text: string, key: string): Promise<boolean>;
   recordHealth(event: 'completed' | 'failed' | 'partial', outcome: string): Promise<void>;
   signOut(accessToken: string): Promise<boolean>; // ends the session this run used (review 30/10: no long-lived refresh token is left)
+  // Codex review 2026-10-31 F27: the LIVE-check runs started this month (scheduled + manual) - the monthly runner cap is enforced here
+  monthRuns?(): Promise<number>;
+}
+// F27: at most 40 runs a month (40 x 30 minutes x 0.006 USD = 7.20 USD, under the approved 10 USD runner cap)
+export const MONTHLY_RUNS = 40;
+// F23: the complete matrix a "passed" report must hold - 2 markets x 4 sizes x 5 steps, each once
+export const PASS_STEPS = ['public_home', 'public_privacy', 'public_tools', 'dashboard', 'plans'] as const;
+/** The user id a session token belongs to (its own claim - read only to bind a sign-out to its persona; the signature is Auth's job). */
+export function tokenSubject(token: string): string | null {
+  try {
+    const part = token.split('.')[1] ?? '';
+    const json = JSON.parse(atob(part.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(part.length / 4) * 4, '=')));
+    return typeof json?.sub === 'string' ? json.sub : null;
+  } catch { return null; }
 }
 
 export const SIZES = ['1440x900', '1180x820', '820x1180', '390x844'] as const;
@@ -57,6 +71,8 @@ export function readReport(b: Record<string, unknown>): { runId: string; outcome
     if (!raw || typeof raw !== 'object') return null;
     const { market, size, step, ok, code, hash } = raw;
     if ((market !== 'il' && market !== 'intl') || !(SIZES as readonly string[]).includes(String(size)) || !STEP_RE.test(String(step)) || typeof ok !== 'boolean') return null;
+    // F23: only the known steps, each market x size x step once
+    if (!(String(step) in STEP_LABEL) || steps.some((x) => x.market === market && x.size === String(size) && x.step === String(step))) return null;
     if (code !== undefined && !CODE_RE.test(String(code))) return null;
     if (hash !== undefined && !/^[0-9a-f]{64}$/.test(String(hash))) return null;
     steps.push({ market, size: String(size), step: String(step), ok, ...(code !== undefined ? { code: String(code) } : {}), ...(hash !== undefined ? { hash: String(hash) } : {}) });
@@ -67,6 +83,12 @@ export function readReport(b: Record<string, unknown>): { runId: string; outcome
   const version: Record<string, string> = {};
   for (const k of ['before', 'after']) if (typeof v[k] === 'string' && /^[0-9a-f]{6,64}$/.test(v[k] as string)) version[k] = v[k] as string;
   if (b.outcome === 'passed' && steps.some((s) => !s.ok)) return null; // a pass with a failed step is not a pass
+  // F23: a pass covers the whole approved matrix, gives no reason, and was measured on ONE deployment (both fingerprints, equal)
+  if (b.outcome === 'passed') {
+    const cells = new Set(steps.map((s) => `${s.market}|${s.size}|${s.step}`));
+    const full = (['il', 'intl'] as const).every((m) => SIZES.every((z) => PASS_STEPS.every((p) => cells.has(`${m}|${z}|${p}`))));
+    if (!full || reason !== null || !version.before || !version.after || version.before !== version.after) return null;
+  }
   if (b.outcome === 'failed' && !steps.some((s) => !s.ok)) return null;
   return { runId: b.runId, outcome: b.outcome, steps, reason, version };
 }
@@ -110,9 +132,20 @@ export async function handle(body: unknown, d: LiveDeps): Promise<Out> {
   if (b.action === 'signout') {
     const t = typeof b.accessToken === 'string' ? b.accessToken : '';
     if (!/^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(t) || t.length > 4096) return { status: 400, body: { ok: false, code: 'bad_token' } };
+    // F24: a sign-out is bound to the persona it names - the token must belong to that registered test account, never another user
+    if (b.persona !== 'il' && b.persona !== 'intl') return { status: 400, body: { ok: false, code: 'bad_persona' } };
+    const p = await d.persona(b.persona);
+    if (!p || tokenSubject(t) !== p.userId) return { status: 403, body: { ok: false, code: 'not_persona_session' } };
     return { status: 200, body: { ok: await d.signOut(t) } };
   }
   if (b.action === 'begin') {
+    // F27: the monthly runner cap (an unreadable count refuses - fail closed)
+    if (d.monthRuns) {
+      const n = await d.monthRuns().catch(() => Infinity);
+      // a manual / chain run row was already created by the agents room (it counts itself); a scheduled run is not created yet
+      const manual = b.runId !== undefined && b.runId !== null && b.runId !== '';
+      if (manual ? n > MONTHLY_RUNS : n >= MONTHLY_RUNS) return { status: 429, body: { ok: false, code: 'monthly_cap' } };
+    }
     if (b.runId !== undefined && b.runId !== null && b.runId !== '') {
       const id = String(b.runId);
       const run = UUID_RE.test(id) ? await d.getRun(id) : null;

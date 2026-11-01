@@ -2,7 +2,7 @@
 // manager; fresh = latest attempt succeeded within 24 hours (exactly 24 is fresh); one step per call under a lease; the LIVE check is
 // dispatched first and the manager waits for its answer or its deadline; ZERO email from the chain.
 import { describe, it, expect, vi } from 'vitest';
-import { chainStart, chainStep, isFresh, hourKey, partialOf, STEPS, LIVE_DEADLINE_MS, type Chain, type ChainDeps, type Latest, type Step } from './chain.ts';
+import { chainStart, chainStep, chainTick, isFresh, hourKey, partialOf, STEPS, LIVE_DEADLINE_MS, CHAIN_DEADLINE_MS, type Chain, type ChainDeps, type Latest, type Step } from './chain.ts';
 import { REQUIRED_HEADERS } from './lib.ts';
 import type { StageDeps } from './manager.ts';
 
@@ -117,10 +117,88 @@ describe('the chain', () => {
     expect(r.body).toMatchObject({ ok: true, busy: true });
     expect(f.d.dispatchLiveCheck).not.toHaveBeenCalled();
   });
-  it('an agent already running is reported, not started again; the hour limit is said', async () => {
+  // Codex review 2026-10-31 F26 (Owner-typed, L-22 named - this guard expected "already running"): the chain WAITS for the other run
+  it('an agent another run is working on is waited for, never started again', async () => {
     const f = fake({ seo: { running: true }, live_check: fresh(2) });
     await chainStart(f.d);
     for (let i = 0; i < 2; i += 1) await chainStep(f.d, f.get().id);
-    expect(f.get().steps[1]).toMatchObject({ step: 'seo', status: 'already_running' });
+    expect(f.get().steps[1]).toMatchObject({ step: 'seo', status: 'waiting_run' });
+  });
+});
+
+// Codex review 2026-10-31 F25 / F26 (Owner-typed, L-22 named)
+describe('the chain waits for running work and continues without a screen', () => {
+  const allFresh = () => ({ seo: fresh(1), service: fresh(1), security: fresh(1), customer_success: fresh(1), live_check: fresh(1) } as Latest);
+  it('F26: a specialist another run is working on is waited for; its own outcome is taken when it ends; the manager runs only after', async () => {
+    const latest = { ...allFresh(), seo: { running: true } } as Latest;
+    const f = fake(latest);
+    await chainStart(f.d);
+    await until(f, 12);
+    expect(f.get().steps.find((x) => x.step === 'seo')).toMatchObject({ status: 'waiting_run' });
+    expect(f.calls).not.toContain('manager');
+    latest.seo = fresh(0);
+    await until(f, 12);
+    expect(f.get().steps.find((x) => x.step === 'seo')).toMatchObject({ status: 'skipped_fresh' });
+    expect(f.calls.filter((c) => c === 'manager')).toHaveLength(1);
+    expect(f.get().status).toBe('done');
+  });
+  it('F26: a waited run that never ends within the deadline is "already running", never marked failed by the chain', async () => {
+    const f = fake({ ...allFresh(), service: { running: true } } as Latest);
+    await chainStart(f.d);
+    await until(f, 6);
+    f.tick(LIVE_DEADLINE_MS + 60_000);
+    await until(f, 12);
+    expect(f.get().steps.find((x) => x.step === 'service')).toMatchObject({ status: 'already_running' });
+    expect(partialOf(f.get().steps)).toBe(true);
+  });
+  it('F26: the scheduled LIVE check that is running is waited for, and its own outcome is taken', async () => {
+    const latest = { ...allFresh(), live_check: { running: true } } as Latest;
+    const f = fake(latest);
+    await chainStart(f.d);
+    await until(f, 12);
+    expect(f.d.dispatchLiveCheck).not.toHaveBeenCalled();
+    expect(f.get().steps.find((x) => x.step === 'live_wait')).toMatchObject({ status: 'waiting' });
+    latest.live_check = { running: false, lastTerminal: { status: 'done', finishedAt: NOW.toISOString(), outcome: 'passed' } };
+    await until(f, 12);
+    expect(f.get().steps.find((x) => x.step === 'live_wait')).toMatchObject({ status: 'ran' });
+  });
+  it('F26: a LIVE step that did not dispatch is carried by the wait as its own status, never "fresh"', async () => {
+    const f = fake({ ...allFresh(), live_check: fresh(2, 'done', 'inconclusive') } as Latest);
+    await chainStart(f.d);
+    await until(f, 12);
+    expect(f.get().steps.find((x) => x.step === 'live_wait')!.status).toBe('not_run_inconclusive');
+  });
+  it('F26: the manager gets each step status and its own chain key', async () => {
+    const f = fake(allFresh());
+    await chainStart(f.d);
+    await until(f, 12);
+    const [steps, key] = (f.d as unknown as { runManagerNow: ReturnType<typeof vi.fn> }).runManagerNow.mock.calls[0];
+    expect(steps.map((x: Step) => x.step)).toEqual([...STEPS]);
+    expect(String(key)).toBe(f.get().hour_key); // the chain's own hour key, never another chain's
+    expect(String(key)).toMatch(/^chain:/);
+  });
+  it('F25: the server tick advances a running chain with no screen and stops at a wait; a chain older than 2 hours is closed', async () => {
+    const f = fake(allFresh());
+    await chainStart(f.d);
+    const r = await chainTick(f.d as never);
+    expect(r.body.ok).toBe(true);
+    expect(f.get().status).toBe('done');
+    const idle = await chainTick(f.d as never);
+    expect(idle.body).toMatchObject({ ok: true, idle: true });
+    // a chain left with only waits stops the tick at once (no fast loop)
+    const waiting = fake({ ...allFresh(), seo: { running: true } } as Latest);
+    await chainStart(waiting.d);
+    const before = Date.now();
+    await chainTick(waiting.d as never);
+    expect(Date.now() - before).toBeLessThan(2000);
+    expect(waiting.get().steps.find((x) => x.step === 'seo')!.status).toBe('waiting_run');
+    expect(waiting.get().steps.find((x) => x.step === 'manager')!.status).toBe('pending');
+    const old = fake({ ...allFresh(), seo: { running: true } } as Latest);
+    await chainStart(old.d);
+    old.tick(CHAIN_DEADLINE_MS + 60_000);
+    expect((await chainTick(old.d as never)).body).toMatchObject({ closed: true });
+    expect(old.get().status).toBe('failed');
+    expect(old.get().steps.every((x) => x.status !== 'pending' && x.status !== 'waiting_run')).toBe(true);
+    expect(old.mails).toHaveLength(0);
   });
 });
