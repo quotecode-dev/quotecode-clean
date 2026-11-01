@@ -661,14 +661,15 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   const totalsBlock = (
     <div className="pq-totals-wrap" style={{ display: 'flex', justifyContent: 'flex-end' }}>
       <div className="pq-section pq-totals-grid pq-totals-box" style={{ display: 'grid', gridTemplateColumns: '1fr auto' }}>
+        {/* Owner console 2026-11-01 (L-27, typed: "סכום ביניים, אחריו ההנחה ואחריה הסה"כ, כמו בעברית") */}
+        <span className="pq-total-label">Subtotal:</span>
+        <span className="pf-money pq-total-value">{currencySymbol}{formatNum(subtotal)}</span>
         {Number(quote.discount) > 0 && (
           <>
             <span className="pq-total-label pq-discount-negative">Discount ({quote.discount}%):</span>
             <span className="pf-money pq-total-value pq-discount-negative">{currencySymbol}{formatNum(Math.max(subtotal - total, 0))}</span>
           </>
         )}
-        <span className="pq-total-label">Subtotal:</span>
-        <span className="pf-money pq-total-value">{currencySymbol}{formatNum(subtotal)}</span>
         <div className="pq-total-rule" />
         <span className="pq-total-final-label">Total:</span>
         <span className="pf-money pq-total-final-amount">{currencySymbol}{formatNum(total)}</span>
