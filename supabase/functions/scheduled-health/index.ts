@@ -31,12 +31,6 @@ Deno.serve(async (req: Request) => {
         return r.ok;
       },
     });
-    // Codex review 2026-10-31 F19: the 30-day limit on social comment texts is kept by this 10-minute tick too (never only by Shira's
-    // daily run); a failure here never changes the monitor's own answer
-    if (r.status === 200) {
-      const { error: purgeErr } = await admin.rpc('agents_purge_reply_texts');
-      if (purgeErr) console.error('scheduled-health: the comment-text purge failed');
-    }
     return json(r.status, r.body);
   } catch {
     console.error('scheduled-health: the evaluation failed');

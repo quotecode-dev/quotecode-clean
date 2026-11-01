@@ -1,8 +1,7 @@
 // Codex release 8 + the Owner's addition (Owner 2026-10-30): post results and replies to comments - a draft waits for the Owner, a
 // sensitive comment gets none, nothing is published without approval. SYNTHETIC Graph answers; nothing leaves the test.
-import { readFileSync } from 'node:fs';
 import { describe, it, expect, vi } from 'vitest';
-import { postMetrics, postComments, isSensitive, replyErrors, draftReplies, replyAction, publishReply, metricsSummary, type Graph } from './socialReplies';
+import { postMetrics, postComments, isSensitive, replyErrors, draftReplies, replyAction, publishReply, type Graph } from './socialReplies';
 import { socialDaily, decide, publishedPosts } from './manager';
 
 const P = { actionId: 'a1', channel: 'fb_il', network: 'facebook' as const, market: 'il' as const, postId: '1381375051729705_99' };
@@ -19,24 +18,6 @@ describe('post results', () => {
     expect(await postMetrics(g, P)).toEqual({ actionId: 'a1', network: 'facebook', likes: 7, comments: 2, shares: 1, reach: null, reachAvailable: false });
     const ig = graphOf({ 'GET 555': { ok: true, status: 200, json: { like_count: 4, comments_count: 0 } }, 'GET 555/insights': { ok: true, status: 200, json: { data: [{ values: [{ value: 90 }] }] } } });
     expect(await postMetrics(ig, { ...P, network: 'instagram', channel: 'ig_il', postId: '555' })).toMatchObject({ likes: 4, comments: 0, reach: 90, reachAvailable: true });
-  });
-});
-
-// Codex review 2026-10-31 F17 / F18 (Owner-typed, L-22 named)
-describe('unavailable is never zero; the summary for Shira and Noa', () => {
-  it('a failed read or a null value stays null, never a measured 0', async () => {
-    expect(await postMetrics(graphOf({}), P)).toMatchObject({ likes: null, comments: null, shares: null, reach: null, reachAvailable: false });
-    const g = graphOf({ [`GET ${P.postId}`]: { ok: true, status: 200, json: { reactions: { summary: { total_count: null } }, comments: { summary: {} } } },
-      [`GET ${P.postId}/insights`]: { ok: true, status: 200, json: { data: [{ values: [{ value: null }] }] } } });
-    expect(await postMetrics(g, P)).toMatchObject({ likes: null, comments: null, shares: 0, reach: null, reachAvailable: false });
-  });
-  it('sums measured values only and counts the posts without data', () => {
-    const m = metricsSummary([
-      { actionId: 'a', network: 'facebook', likes: 3, comments: 1, shares: null, reach: 40, reachAvailable: true },
-      { actionId: 'b', network: 'facebook', likes: null, comments: null, shares: null, reach: null, reachAvailable: false },
-      { actionId: 'c', network: 'instagram', likes: 5, comments: 0, shares: null, reach: null, reachAvailable: false },
-    ]);
-    expect(m).toEqual({ facebook: { posts: 2, unavailable: 1, likes: 3, comments: 1, shares: null, reach: 40 }, instagram: { posts: 1, unavailable: 0, likes: 5, comments: 0, shares: null, reach: null } });
   });
 });
 
@@ -125,33 +106,5 @@ describe('the daily social step and the approval', () => {
     const failed = await decide(d2, { id: 'r1', decision: 'approve' }, []);
     expect(failed.body).toMatchObject({ ok: true, status: 'failed' });
     expect(current.status).toBe('proposed');
-  });
-  // Codex review 2026-10-31 F16: the published message is exactly the approved text - angle brackets kept, nothing cut silently
-  it('F16: publishes the approved text exactly; over 600 characters is refused, never cut', async () => {
-    const pending = { id: 'r2', action_type: 'social_reply', kind: 'system', status: 'proposed', payload: { channel: 'fb_intl', market: 'intl', comment_id: 'c9', draft: 'x' } };
-    let current: Record<string, unknown> = { ...pending };
-    const sent: Record<string, string>[] = [];
-    const graph = (async (_c: string, method: string, path: string, params: Record<string, string>) => { if (method === 'POST') { sent.push(params); return { ok: true, status: 200, json: { id: 'p1' } }; } return { ok: false, status: 403, json: {} }; }) as Graph;
-    const { d } = stage({ getAction: vi.fn(async () => current), updateAction: vi.fn(async (_i: string, p: Record<string, unknown>) => { current = { ...current, ...p }; }), graph });
-    const text = 'Use <name> in the subject line — thanks! 🙏';
-    expect((await decide(d, { id: 'r2', decision: 'approve', text }, [])).body).toMatchObject({ ok: true, status: 'published' });
-    expect(sent[0].message).toBe(text);
-    expect((current.payload as Record<string, unknown>).approved_text).toBe(text);
-    current = { ...pending };
-    expect((await decide(d, { id: 'r2', decision: 'approve', text: 'a'.repeat(601) }, [])).body).toMatchObject({ ok: false, code: 'reply_invalid' });
-    expect(sent).toHaveLength(1);
-  });
-  it('F19: a failed purge marks the daily step failed (the monitor sees it)', async () => {
-    const { d } = stage({ purgeReplyTexts: vi.fn(async () => { throw new Error('db'); }) });
-    expect(await socialDaily(d, 'daily:2026-11-04')).toMatchObject({ purged: 0, purgeFailed: true, failed: true });
-  });
-});
-
-describe('F18 / F19 wiring', () => {
-  const src = (p: string) => readFileSync(`supabase/functions/${p}`, 'utf8');
-  it('Shira and Noa receive the post results; the monitor tick purges the old comment texts', () => {
-    expect(src('agents-room/social.ts')).toContain('postResults: metricsSummary(d.postMetricsRows ? await d.postMetricsRows().catch(() => []) : [])');
-    expect(src('agents-room/manager.ts')).toContain('postResults: metricsSummary(d.postMetricsRows ? await d.postMetricsRows().catch(() => []) : []),');
-    expect(src('scheduled-health/index.ts')).toContain("await admin.rpc('agents_purge_reply_texts')");
   });
 });

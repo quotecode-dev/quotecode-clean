@@ -102,23 +102,13 @@ Deno.serve(async (req: Request) => {
     keywords: async () => ((await db(admin.from('marketing_keywords').select('id, market, keyword').eq('active', true).order('created_at').limit(200))) as { id: string; market: MarketKey; keyword: string }[]),
     addKeywords: async (rows) => { await db(admin.from('marketing_keywords').upsert(rows.map((r) => ({ ...r, source: 'search_console' })), { onConflict: 'market,keyword', ignoreDuplicates: true })); },
     competitors: async () => ((await db(admin.from('marketing_competitors').select('domain, market'))) as { domain: string; market: MarketKey }[]),
-    weekSnapshots: async (week) => ((await db(admin.from('marketing_rank_snapshots').select('keyword_id, our_position, competitor_positions, search_volume, depth, our_status').eq('week', week))) as Record<string, unknown>[])
+    weekSnapshots: async (week) => ((await db(admin.from('marketing_rank_snapshots').select('keyword_id, our_position, competitor_positions, search_volume, depth').eq('week', week))) as Record<string, unknown>[])
       .map((r): Snapshot => ({ keywordId: String(r.keyword_id), ourPosition: (r.our_position as number | null) ?? null, competitorPositions: (r.competitor_positions ?? {}) as Record<string, number>,
-        searchVolume: (r.search_volume as number | null) ?? null, depth: Number(r.depth) || 100, ourStatus: r.our_status === 'unavailable' ? 'unavailable' : 'checked' })),
-    // Codex review 2026-10-31 F14: only the markets being (re)collected are written - a resumed market replaces its unavailable rows
+        searchVolume: (r.search_volume as number | null) ?? null, depth: Number(r.depth) || 100 })),
     saveSnapshots: async (week, rows) => {
       await db(admin.from('marketing_rank_snapshots').upsert(rows.map((r) => ({ week, keyword_id: r.keywordId, our_position: r.ourPosition, competitor_positions: r.competitorPositions,
-        search_volume: r.searchVolume, depth: r.depth, our_status: r.ourStatus ?? 'checked' })), { onConflict: 'week,keyword_id' }));
+        search_volume: r.searchVolume, depth: r.depth })), { onConflict: 'week,keyword_id', ignoreDuplicates: true }));
     },
-    // Codex review 2026-10-31 F15: the week is claimed before any paid request (migration 20261031400000)
-    claimWeek: async (week, run) => {
-      const r = (await db(admin.rpc('marketing_week_claim', { p_week: week, p_run: run, p_lease_seconds: 900 }))) as { status?: string; result?: unknown; previous?: unknown } | null;
-      if (r?.status === 'done') return { status: 'done', result: r.result as never };
-      if (r?.status === 'running') return { status: 'running' };
-      if (r?.status === 'claimed') return { status: 'claimed', previous: (r.previous ?? null) as never };
-      throw new Error('week_claim_unreadable');
-    },
-    finishWeek: async (week, run, result) => { await db(admin.rpc('marketing_week_finish', { p_week: week, p_run: run, p_state: result.state, p_result: result })); },
   };
 
   const deps: StageDeps = {
@@ -197,11 +187,8 @@ Deno.serve(async (req: Request) => {
     },
     profiles: async () => (await db(admin.from('agent_profiles').select('agent, name_he, name_en'))) as never,
     setProfile: async (agent: AnyAgent, nameHe, nameEn) => { await db(admin.from('agent_profiles').update({ name_he: nameHe, name_en: nameEn, updated_at: new Date().toISOString() }).eq('agent', agent)); },
-    // Codex review 2026-10-31 F19: a social reply older than 30 days is never served with its comment text or author, even if a purge failed
-    recentActions: async () => ((await db(admin.from('agent_actions').select('id, created_at, run_key, source, kind, action_type, title_he, title_en, detail_he, detail_en, payload, status, decided_at, done_at, result, error, dedupe_key')
-      .gte('created_at', new Date(Date.now() - 60 * 86_400_000).toISOString()).order('created_at', { ascending: false }).limit(100))) as Record<string, unknown>[])
-      .map((a) => (a.action_type === 'social_reply' && Date.now() - Date.parse(String(a.created_at)) >= 30 * 86_400_000 && a.payload && typeof a.payload === 'object'
-        ? { ...a, payload: Object.fromEntries(Object.entries(a.payload as Record<string, unknown>).filter(([k]) => k !== 'comment_text' && k !== 'author')) } : a)) as never,
+    recentActions: async () => (await db(admin.from('agent_actions').select('id, created_at, run_key, source, kind, action_type, title_he, title_en, detail_he, detail_en, payload, status, decided_at, done_at, result, error, dedupe_key')
+      .gte('created_at', new Date(Date.now() - 60 * 86_400_000).toISOString()).order('created_at', { ascending: false }).limit(100))) as never,
     insertAction: async (a) => {
       const { data, error } = await admin.from('agent_actions').insert(a).select('id').maybeSingle();
       if (error) { if ((error as { code?: string }).code === '23505') return null; console.error(`agents-room: action ${(error as { code?: string }).code ?? ''}`); throw new Error('database'); }
@@ -257,7 +244,7 @@ Deno.serve(async (req: Request) => {
       await db(admin.from('social_post_metrics').upsert(rows.map((m) => ({ action_id: m.actionId, network: m.network, likes: m.likes, comments: m.comments, shares: m.shares,
         reach: m.reach, reach_available: m.reachAvailable, fetched_at: new Date().toISOString() }))));
     },
-    postMetricsRows: async () => ((await db(admin.from('social_post_metrics').select('action_id, network, likes, comments, shares, reach, reach_available, fetched_at').order('fetched_at', { ascending: false }).limit(60))) as Record<string, unknown>[])
+    postMetricsRows: async () => ((await db(admin.from('social_post_metrics').select('action_id, network, likes, comments, shares, reach, reach_available, fetched_at').limit(60))) as Record<string, unknown>[])
       .map((m) => ({ actionId: String(m.action_id), network: m.network as never, likes: m.likes as never, comments: m.comments as never, shares: m.shares as never, reach: m.reach as never, reachAvailable: m.reach_available === true })),
     replyActions: async () => (await db(admin.from('agent_actions').select('id, created_at, run_key, source, kind, action_type, title_he, title_en, detail_he, detail_en, payload, status, decided_at, done_at, result, error, dedupe_key')
       .eq('action_type', 'social_reply').gte('created_at', new Date(Date.now() - 30 * 86_400_000).toISOString()).order('created_at', { ascending: false }).limit(100))) as never,
