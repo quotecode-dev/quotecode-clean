@@ -36,9 +36,6 @@ Deno.serve(async (req: Request) => {
     if (r.status === 200) {
       const { error: purgeErr } = await admin.rpc('agents_purge_reply_texts');
       if (purgeErr) console.error('scheduled-health: the comment-text purge failed');
-      // Codex review 2026-10-31 F30 (decision c): recipient addresses in the send records and in Maya's handled drafts after 30 days
-      const { error: retentionErr } = await admin.rpc('privacy_retention_tick');
-      if (retentionErr) console.error('scheduled-health: the retention step failed');
     }
     return json(r.status, r.body);
   } catch {

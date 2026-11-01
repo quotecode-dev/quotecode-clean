@@ -633,12 +633,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-31 (typed: the six Codex groups in order, each through its own gate to LIVE, including L-02, L-13, L-15, L-17, L-18, L-22 and the 30/10 locks, decisions a-h and the wording as recommended): Codex review group 3 - Guy weekly data claimed before it is bought (marketing_weeks + claim / finish), unavailable never not found (snapshot our_status) (F14, F15)"
-    },
-    "20261031500000_maya_privacy.sql": {
-      "sha256": "aa38527a0a08455a279bd5c820799619683fa2743dc3115650324bf5d7b1ec55",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-10-31 (typed: the six Codex groups in order, each through its own gate to LIVE, including L-02, L-13, L-15, L-17, L-18, L-22 and the 30/10 locks, decisions a-h and the wording as recommended): Codex review group 4 - Maya drafts admitted atomically (customer_success_admit, F21), account erasure of email records and help drafts (F30, L-18), 30-day address retention (decision c)"
     }
   }
 }

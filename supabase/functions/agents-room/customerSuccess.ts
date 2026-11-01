@@ -11,8 +11,6 @@ import { israelParts, type Finding, type Result } from './lib.ts';
 
 export const DAILY_DRAFTS = 20;
 export const SIGNALS = ['no_quote_onboarding', 'free_ending', 'quote_awaiting_response', 'renewal_failed_grace', 'paid_inactive'] as const;
-// Codex review 2026-10-31 F21: the spec's priority when the day's drafts run out - grace, Free ending, onboarding, awaiting, inactive
-export const PRIORITY: readonly string[] = ['renewal_failed_grace', 'free_ending', 'no_quote_onboarding', 'quote_awaiting_response', 'paid_inactive'];
 export type Signal = typeof SIGNALS[number];
 export type SignalRow = { account_id: string; signal_code: Signal; evidence: Record<string, unknown>; market: 'IL' | 'INTERNATIONAL'; email: string;
   consent: boolean; suppressed: boolean; has_case: boolean };
@@ -23,9 +21,6 @@ export interface CsDeps {
   csSignals(user?: string): Promise<SignalRow[]>;
   csCountSince(sinceIso: string): Promise<number>; // the cases opened since (today's drafts)
   csInsertCase(row: { user_id: string; signal_code: Signal; evidence: Record<string, unknown> }): Promise<string | null>; // null = it exists
-  // Codex review 2026-10-31 F21 (migration 20261031500000): ONE transaction admits a draft - today's cap of 20 (Israel day), one open
-  // proposal per account, one case per account and signal for ever. code: 'cap' | 'exists' | 'account_open'.
-  csAdmit?(row: { user_id: string; signal_code: Signal; evidence: Record<string, unknown> }, dayStartIso: string, cap: number): Promise<{ id: string | null; code?: string }>;
   csUpdateCase(id: string, patch: Record<string, unknown>, whenStatus?: string): Promise<boolean>;
   // the send claim: consent + suppression + draft -> sending in ONE database statement (customer_success_claim; review 30/10)
   csClaim(caseId: string): Promise<boolean>;
@@ -122,12 +117,11 @@ export async function scanAndDraft(d: CsDeps, key: string, insertDraft: (a: Retu
   const rows = await d.csSignals();
   const p = israelParts(now);
   const dayStart = new Date(Date.parse(`${p.day}T00:00:00Z`) - 3 * 3_600_000); // Israel midnight, at most 1 hour early in winter
-  let room = d.csAdmit ? DAILY_DRAFTS : Math.max(0, DAILY_DRAFTS - await d.csCountSince(dayStart.toISOString()));
-  let capped = false;
+  let room = Math.max(0, DAILY_DRAFTS - await d.csCountSince(dayStart.toISOString()));
   const counts = Object.fromEntries(SIGNALS.map((s) => [s, { found: 0, noConsent: 0, suppressed: 0, already: 0, drafted: 0 } as Record<string, number>])) as Record<Signal, Record<string, number>>;
   const drafted: CsRun['drafted'] = [];
   let missingFacts = 0; let overLimit = 0;
-  for (const row of [...rows].sort((a, b) => PRIORITY.indexOf(a.signal_code) - PRIORITY.indexOf(b.signal_code))) {
+  for (const row of rows) {
     const c = counts[row.signal_code];
     if (!c) continue;
     c.found += 1;
@@ -136,16 +130,9 @@ export async function scanAndDraft(d: CsDeps, key: string, insertDraft: (a: Retu
     if (!row.consent) { c.noConsent += 1; continue; }
     const draft = draftText(row);
     if (!draft) { missingFacts += 1; continue; }
-    if (room <= 0 || capped) { overLimit += 1; continue; }
-    let caseId: string | null;
-    if (d.csAdmit) {
-      const r = await d.csAdmit({ user_id: row.account_id, signal_code: row.signal_code, evidence: row.evidence }, dayStart.toISOString(), DAILY_DRAFTS);
-      if (r.code === 'cap') { capped = true; overLimit += 1; continue; }
-      caseId = r.id;
-    } else {
-      caseId = await d.csInsertCase({ user_id: row.account_id, signal_code: row.signal_code, evidence: row.evidence });
-    }
-    if (!caseId) { c.already += 1; continue; } // a concurrent run took it, or this account already has an open proposal
+    if (room <= 0) { overLimit += 1; continue; }
+    const caseId = await d.csInsertCase({ user_id: row.account_id, signal_code: row.signal_code, evidence: row.evidence });
+    if (!caseId) { c.already += 1; continue; } // a concurrent run took it - one case per account and signal, for ever
     const actionId = await insertDraft(outreachAction(key, row, caseId, draft));
     if (actionId) await d.csUpdateCase(caseId, { action_id: actionId });
     room -= 1; c.drafted += 1;

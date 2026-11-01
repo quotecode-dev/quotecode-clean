@@ -651,16 +651,14 @@ async function decideOutreach(d: StageDeps, a: Action, b: { decision?: unknown; 
   if (b.decision !== 'approve') return { status: 400, body: { ok: false, code: 'bad_decision' } };
   const text = b.text === undefined ? String(p.text ?? '') : plainText(b.text, 3000);
   if (text.length < 10) return { status: 400, body: { ok: false, code: 'outreach_text_required' } };
-  // Codex review 2026-10-31 F20: the approval claim is a unique token stored with the text (not a time - two approvals can share a
-  // millisecond); only the request whose token is stored sends, and it sends the STORED approval, never its own local copy
-  const approvalClaim = crypto.randomUUID();
-  await d.updateAction(a.id, { status: 'approved', decided_at: at, payload: { ...p, text, approvalClaim } }, 'proposed', null);
+  // the approval claim: one decision time - a second approval (another tab) finds it taken
+  await d.updateAction(a.id, { status: 'approved', decided_at: at, payload: { ...p, text } }, 'proposed', null);
   const won = await d.getAction(a.id);
-  const wp = (won?.payload ?? {}) as Record<string, unknown>;
-  if (!won || won.status !== 'approved' || wp.approvalClaim !== approvalClaim) return { status: 409, body: { ok: false, code: 'not_pending' } };
-  const market = wp.market === 'IL' ? 'IL' : 'INTERNATIONAL';
-  const r = await sendApproved(d, { caseId: String(wp.caseId ?? caseId), userId: String(wp.userId ?? ''), signal: String(wp.signal ?? '') as Signal, market,
-    lang: wp.lang === 'he' ? 'he' : 'en', recipient: String(wp.recipient ?? ''), subject: String(wp.subject ?? ''), text: String(wp.text ?? '') });
+  // the database spells the time its own way (+00:00) - the same instant is compared, never the text (review 30/10)
+  if (!won || won.status !== 'approved' || Date.parse(String(won.decided_at)) !== Date.parse(at)) return { status: 409, body: { ok: false, code: 'not_pending' } };
+  const market = p.market === 'IL' ? 'IL' : 'INTERNATIONAL';
+  const r = await sendApproved(d, { caseId, userId: String(p.userId ?? ''), signal: String(p.signal ?? '') as Signal, market,
+    lang: p.lang === 'he' ? 'he' : 'en', recipient: String(p.recipient ?? ''), subject: String(p.subject ?? ''), text });
   if (!r.ok) {
     await d.updateAction(a.id, { status: 'failed', done_at: nowIso(d), error: r.code ?? 'failed' }, 'approved');
     return { status: 409, body: { ok: false, code: r.code ?? 'failed' } };

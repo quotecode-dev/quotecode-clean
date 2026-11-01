@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, cleanup, fireEvent } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { readFileSync } from 'node:fs';
@@ -23,10 +23,6 @@ vi.mock('../shared/supabase', () => ({
 afterEach(() => cleanup());
 
 const NOW = new Date('2026-10-04T09:00:00Z');
-// Owner console 2026-11-01 (typed: "מאשר לקבע את התאריך בשתי בדיקות מסמך ההצעה, לצרף לקבוצה 4 ולהמשיך בשחרור"): the sample quote is valid
-// 27 days from NOW, so the clock stays at NOW - the document is checked as it is on the day it was made, not on the day the suite runs.
-beforeAll(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(NOW); });
-afterAll(() => { vi.useRealTimers(); });
 const css = readFileSync(join(cwd(), 'src/quoteDocument/quoteDocument.css'), 'utf8');
 
 const PAGES = [

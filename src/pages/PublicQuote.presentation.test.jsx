@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, beforeAll, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import PublicQuote from './PublicQuote';
@@ -13,10 +13,6 @@ vi.mock('../shared/supabase', () => ({
 }));
 
 const NOW = new Date('2026-10-04T09:00:00Z');
-// Owner console 2026-11-01 (typed: "מאשר לקבע את התאריך בשתי בדיקות מסמך ההצעה, לצרף לקבוצה 4 ולהמשיך בשחרור"): the sample quote is valid
-// 27 days from NOW, so the clock stays at NOW - the document is checked as it is on the day it was made, not on the day the suite runs.
-beforeAll(() => { vi.useFakeTimers({ toFake: ['Date'] }); vi.setSystemTime(NOW); });
-afterAll(() => { vi.useRealTimers(); });
 
 function heData(overrides = {}) {
   const { quoteData } = buildSampleQuote({ locale: 'he', now: NOW });
