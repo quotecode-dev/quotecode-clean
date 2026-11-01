@@ -37,7 +37,8 @@ describe('api/cron - quote reminder false-sent removed', () => {
     expect(r.ok).toBe(true);
     expect(sb.calls.from).not.toContain('quotes');
     expect(sb.calls.updates).toHaveLength(0);
-    expect(sb.calls.from).toEqual(['app_settings']);
+    // Owner console 2026-11-01: the exchange-rates step is retired - the job writes no table at all
+    expect(sb.calls.from).toEqual([]);
   });
 
   it('source: no quotes query and no expiration_reminder_sent mutation remain in the activation path', () => {
@@ -49,21 +50,19 @@ describe('api/cron - quote reminder false-sent removed', () => {
 });
 
 describe('api/cron - write results are verified', () => {
-  it('exchange-rates upsert error -> run fails (not "updated successfully")', async () => {
-    const sb = fakeSupabase({ upsertError: { message: 'permission denied for table app_settings' } });
-    const r = await runCron({ supabase: sb, env: ENV, fetchImpl: ratesOk });
-    expect(r.ok).toBe(false);
-    expect(r.failures.join()).toMatch(/exchange_rates upsert failed/);
-    expect(r.logs.join()).not.toMatch(/Exchange rates updated successfully/);
-  });
-
-  it('rates API outage -> run fails, reminders still run', async () => {
-    const sb = fakeSupabase();
-    const r = await runCron({ supabase: sb, env: ENV, fetchImpl: async () => { throw new Error('network'); } });
-    expect(r.ok).toBe(false);
+  // Owner console 2026-11-01 (typed: "מאשר להוריד את שלב שערי המטבע מההרצה היומית, שחרור עד הלייב"): the step wrote to app_settings, a
+  // table that never existed and that nothing reads - it failed every day and made the daily window partial (Codex F10)
+  it('the exchange-rates step is retired: no rates fetch, no app_settings write, a clean run completes the window', async () => {
+    const sb = fakeSupabase({ upsertError: { message: 'relation "public.app_settings" does not exist' } });
+    let fetched = 0;
+    const r = await runCron({ supabase: sb, env: ENV, fetchImpl: async () => { fetched += 1; throw new Error('network'); } });
+    expect(r.ok).toBe(true);
+    expect(fetched).toBe(0);
+    expect(sb.calls.upserts).toHaveLength(0);
     expect(sb.calls.invokes.map((i) => i.fn)).toEqual(['send-subscription-expiration-email']); // R-15: the trial emails are retired
-    // Codex review 2026-10-31 F10: the worker that records the daily window learns that the rates step failed (step name only)
-    expect(sb.calls.invokes[0].opts.body).toEqual({ mode: 'batch', parentFailures: ['rates'] });
+    expect(sb.calls.invokes[0].opts.body).toEqual({ mode: 'batch' });
+    const src = readFileSync(resolve(process.cwd(), 'api/cron.js'), 'utf8');
+    expect(src).not.toMatch(/app_settings'|er-api\.com|refreshExchangeRates\(/);
   });
   it('Codex review F10: a clean run passes no failed steps to the worker', async () => {
     const sb = fakeSupabase();
