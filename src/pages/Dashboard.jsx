@@ -32,6 +32,7 @@ import { isFinancialChange } from '../utils/financialEdit';
 import { reportMonthRange, recurringMonthsInRange, calendarDateOf } from '../utils/recurringExpense';
 import { settingsFormDirty } from '../utils/settingsBaseline';
 import { logoBase64For } from '../utils/logoImport';
+import { reportSignup } from '../shared/siteAnalytics';
 import { marketCalendarDate } from '../utils/recurringExpense';
 import { isValidEmailAddress } from '../utils/emailAddress';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
@@ -2671,7 +2672,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             // consent records keep their own versions
             terms_version: '2026-10-25', // Owner 2026-10-25: payments in Israel (before: 2026-10-24 a quote counts at its first save; 2026-10-23 the Free plan's 7 days)
             // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
-            privacy_version: '2026-10-30', // Codex release 9 (Owner 2026-10-30, L-12): optional help emails need separate consent (before: 2026-10-25 the payments section; 2026-10-23 consent by location + the Hebrew opt-out)
+            privacy_version: '2026-11-02', // Owner 2026-11-01 (L-12): the one sign-up event (before: 2026-10-30 Codex release 9, L-12: optional help emails need separate consent; before: 2026-10-25 the payments section; 2026-10-23 consent by location + the Hebrew opt-out)
             terms_accepted_at: new Date().toISOString(),
           }
         }
@@ -2688,6 +2689,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         if (signUpError.category === 'already_registered') setAuthSuccess(signUpError.message);
         else setAuthError(signUpError.message);
       } else {
+        // Owner console 2026-11-01 (L-12): one sign_up event for a NEW account only; an address that already has an account comes back with no identities
+        if (data?.user && !(data.user.identities && data.user.identities.length === 0)) reportSignup({ isHebrew: bundleIsHebrew });
         // Owner P0 (Task 38 finding): when email confirmation is required there is no session yet - say so plainly; an address that
         // already has an account gets the very same answer (Codex SEC-FE-05)
         setAuthSuccess(data?.session && !(data?.user?.identities && data.user.identities.length === 0)

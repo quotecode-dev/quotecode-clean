@@ -142,6 +142,26 @@ function ensureGtag(win, doc, pageLocation, pageReferrer) {
   doc.head.appendChild(s);
 }
 
+// Owner console 2026-11-01 (typed: "מאשר שינוי ב-L-12: אירוע נרשם אחד לגוגל בלי פרטים מזהים ועדכון סעיף 4 במדיניות הפרטיות, שחרור עד הלייב"): one sign_up event when a new
+// account is created. The sign-up happens in the app, where no third-party tag may run (Codex SEC-FE-02), so it is one plain request and no script.
+// It carries the visitor's own measurement ids only - no name, no e-mail, no account id - and a public page as its address, never the app's. It is sent
+// only for a visitor already measured on the public pages (the _ga cookie exists, which a declined or withdrawn choice removes), under the same rules.
+const cookieValue = (cookie, name) => {
+  const found = String(cookie || '').split(';').map((c) => c.trim()).find((c) => c.startsWith(`${name}=`));
+  return found ? found.slice(name.length + 1) : '';
+};
+export function reportSignup({ isHebrew, win = typeof window !== 'undefined' ? window : null, doc = typeof document !== 'undefined' ? document : null, consent = readConsent() }) {
+  try {
+    if (!win || !doc || !isProductionHost(win.location.hostname) || consent === 'denied' || (isHebrew !== true && consent !== 'granted')) return false;
+    const client = /^GA\d\.\d\.(\d+\.\d+)$/.exec(cookieValue(doc.cookie, '_ga'));
+    if (!client) return false;
+    const session = /^GS\d\.\d\.s?(\d+)/.exec(cookieValue(doc.cookie, `_ga_${GA_MEASUREMENT_ID.slice(2)}`));
+    const params = new URLSearchParams({ v: '2', tid: GA_MEASUREMENT_ID, cid: client[1], en: 'sign_up', dl: `${win.location.origin}/${isHebrew === true ? 'he' : 'en'}` });
+    if (session) params.set('sid', session[1]);
+    return win.navigator.sendBeacon(`https://www.google-analytics.com/g/collect?${params.toString()}`) === true;
+  } catch { return false; }
+}
+
 /** Codex review 2026-10-31 F07: the measurement tag is in memory and this address is private (not a measured public page, or it carries
  *  a sign-in state) - such a navigation must be a full page load, and nothing private may render in this document. */
 export function taggedPrivate(href, win = typeof window !== 'undefined' ? window : null) {

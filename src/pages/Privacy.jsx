@@ -31,7 +31,7 @@ export default function Privacy({ isHebrew }) {
 
   const t = isHebrew ? {
     title: 'מדיניות פרטיות (Privacy Policy)',
-    lastUpdated: 'עדכון אחרון: 30 באוקטובר 2026',
+    lastUpdated: 'עדכון אחרון: 2 בנובמבר 2026',
     back: 'חזרה',
     sections: [
       {
@@ -52,7 +52,7 @@ export default function Privacy({ isHebrew }) {
         id: 'cookies',
         title: '4. שימוש ב-Cookies',
         cookieChoice: true,
-        content: 'האתר והמערכת משתמשים בעוגיות (Cookies) ובאחסון מקומי בדפדפן משני סוגים. הכרחיים: לשמירת ההתחברות שלכם (Session), לאבטחה, לזיכרון שפת הממשק (העוגייה proflow_lang, לשנה) ולזיכרון מדינת הגלישה שלפיה נבחר דף הבית (העוגייה proflow_geo_country, ליממה). מדידה: בדפים הציבוריים בלבד, עוגיות של Google Analytics (כמו _ga, נשמרות עד שנתיים) שמבחינות בין ביקור חוזר לביקור חדש. באתר באנגלית, וגם באתר בעברית למבקרים מהאיחוד האירופי, מהאזור הכלכלי האירופי, מבריטניה ומשווייץ (או כשלא ידוע מאיפה הביקור), עוגיות המדידה נשמרות רק אחרי שהמבקר מאשר אותן. באתר בעברית, למבקרים מכל מקום אחר, המדידה פועלת כברירת מחדל, ואפשר לבטל אותה בכל עת בכפתור שלמטה. אפשר לחסום או למחוק עוגיות בהגדרות הדפדפן, או להתקין את תוסף הדפדפן של Google לחסימת Google Analytics. איננו משתמשים בעוגיות פרסום.'
+        content: 'האתר והמערכת משתמשים בעוגיות (Cookies) ובאחסון מקומי בדפדפן משני סוגים. הכרחיים: לשמירת ההתחברות שלכם (Session), לאבטחה, לזיכרון שפת הממשק (העוגייה proflow_lang, לשנה) ולזיכרון מדינת הגלישה שלפיה נבחר דף הבית (העוגייה proflow_geo_country, ליממה). מדידה: בדפים הציבוריים בלבד, עוגיות של Google Analytics (כמו _ga, נשמרות עד שנתיים) שמבחינות בין ביקור חוזר לביקור חדש. כשמבקר שנמדד פותח חשבון חדש, נשלח ל-Google Analytics אירוע אחד, ״נרשם״, בלי שם, בלי מייל ובלי פרט מזהה אחר, כדי שנדע כמה נרשמים מגיעים מכל מקור. הוא כפוף לאותם כללים של עוגיות המדידה. באתר באנגלית, וגם באתר בעברית למבקרים מהאיחוד האירופי, מהאזור הכלכלי האירופי, מבריטניה ומשווייץ (או כשלא ידוע מאיפה הביקור), עוגיות המדידה נשמרות רק אחרי שהמבקר מאשר אותן. באתר בעברית, למבקרים מכל מקום אחר, המדידה פועלת כברירת מחדל, ואפשר לבטל אותה בכל עת בכפתור שלמטה. אפשר לחסום או למחוק עוגיות בהגדרות הדפדפן, או להתקין את תוסף הדפדפן של Google לחסימת Google Analytics. איננו משתמשים בעוגיות פרסום.'
       },
       {
         title: '5. אבטחת מידע',
@@ -77,7 +77,7 @@ export default function Privacy({ isHebrew }) {
     ]
   } : {
     title: 'Privacy Policy',
-    lastUpdated: 'Last updated: October 30, 2026',
+    lastUpdated: 'Last updated: November 2, 2026',
     back: 'Go Back',
     sections: [
       {
@@ -97,7 +97,7 @@ export default function Privacy({ isHebrew }) {
       {
         id: 'cookies',
         title: '4. Cookies',
-        content: 'The website and the app use cookies and browser storage of two kinds. Essential: to keep you signed in (session), for security, to remember the interface language (the proflow_lang cookie, one year) and the browsing country used to choose the home page (the proflow_geo_country cookie, one day). Measurement: on the public pages only, Google Analytics cookies (such as _ga, kept for up to two years) that tell a returning visit from a new one. On the English website, and on the Hebrew website for visitors in the European Union, the European Economic Area, the United Kingdom and Switzerland (or when the visitor\'s country is unknown), these measurement cookies are set only after you accept them in the cookie notice, and you can change your choice at any time with the button below; on the Hebrew website, for visitors anywhere else, measurement runs by default and can be turned off at any time. You can also block or delete cookies in your browser settings, or install Google\'s browser add-on that blocks Google Analytics. We do not use advertising cookies.',
+        content: 'The website and the app use cookies and browser storage of two kinds. Essential: to keep you signed in (session), for security, to remember the interface language (the proflow_lang cookie, one year) and the browsing country used to choose the home page (the proflow_geo_country cookie, one day). Measurement: on the public pages only, Google Analytics cookies (such as _ga, kept for up to two years) that tell a returning visit from a new one. When a measured visitor opens a new account, one “signed up” event is sent to Google Analytics, with no name, no email and no other identifying detail, so that we know how many sign-ups come from each source. It follows the same rules as the measurement cookies. On the English website, and on the Hebrew website for visitors in the European Union, the European Economic Area, the United Kingdom and Switzerland (or when the visitor\'s country is unknown), these measurement cookies are set only after you accept them in the cookie notice, and you can change your choice at any time with the button below; on the Hebrew website, for visitors anywhere else, measurement runs by default and can be turned off at any time. You can also block or delete cookies in your browser settings, or install Google\'s browser add-on that blocks Google Analytics. We do not use advertising cookies.',
         cookieChoice: true
       },
       {

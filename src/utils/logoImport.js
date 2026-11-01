@@ -24,3 +24,22 @@ export async function logoBase64For(url, fetchImpl = globalThis.fetch) {
     return null;
   }
 }
+
+// Owner console 2026-11-01 (typed: "מאשר שינוי ב-L-01: ייבוא לוגו ישן גם בהדפסה ובהורדת PDF מעמוד ההצעה, בעברית ובאנגלית, שחרור עד הלייב"): the quote page's
+// print and PDF reach the same server refusal as a send, but only the main screen imported an old logo. Reached only by the verified owner
+// (the authority path of the quote page): the logo is the signed-in owner's own, read from their settings. Any failure keeps the refusal as it was.
+export async function importOwnerLogo({ client, invoke, fetchImpl = globalThis.fetch }) {
+  try {
+    const { data: auth } = await client.auth.getSession();
+    const userId = auth?.session?.user?.id;
+    if (!userId) return false;
+    const { data: row, error: readError } = await client.from('business_settings').select('logo_url').eq('user_id', userId).maybeSingle();
+    if (readError || !row?.logo_url) return false;
+    const dataBase64 = await logoBase64For(row.logo_url, fetchImpl);
+    if (!dataBase64) return false;
+    const { data, error } = await invoke('subscription-authority', { body: { action: 'import_logo', dataBase64 } });
+    return !error && !!data && data.ok === true;
+  } catch {
+    return false;
+  }
+}

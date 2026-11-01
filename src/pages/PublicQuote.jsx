@@ -27,6 +27,7 @@ import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine } fr
 import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
 import { formatDeviceShortDateTime } from '../utils/shortDate';
 import { outputGate, authorizeWithNotice, outputBlockedMessage } from '../domain/subscriptions/outputAuthority';
+import { importOwnerLogo } from '../utils/logoImport';
 import PublicThanksNotice from '../components/PublicThanksNotice';
 import { useAmountAxis } from '../quoteDocument/useAmountAxis';
 import { openAttachmentFresh } from '../utils/freshAttachmentLink';
@@ -279,7 +280,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
     const serverPhase = quoteData.capability ? 'off' : (quoteData.viewerIsOwner === true ? (quoteData.outputPhase || 'off') : 'off');
     const gate = outputGate(finalChannel, serverPhase);
     if (gate.mode === 'authority_required') {
-      const auth = await authorizeWithNotice({ channel: finalChannel, quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => askConfirm(text, true), isHebrew: true });
+      const auth = await authorizeWithNotice({ channel: finalChannel, quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => askConfirm(text, true), isHebrew: true, importLogo: () => importOwnerLogo({ client: supabase, invoke: (name, opts) => invokeWithFreshSession(name, opts) }) });
       const snap = auth.proceed
         ? await supabase.functions.invoke('get-public-quote', { body: { output_grant: auth.grant, channel: finalChannel } })
         : null;
