@@ -1,33 +1,25 @@
--- Owner console 2026-11-01, L-22 (migration 20261101050000). Disposable postgres:17 harness ONLY. ONE transaction, rolled back.
--- Proves: a credit note is stored with the document it cancels, can only be excluded or rejected, and an ordinary charge is not affected.
+-- Owner console 2026-11-01, L-22 (migrations 20261101050000, 20261101060000). Disposable postgres:17 harness ONLY. ONE transaction, rolled back.
+-- Proves: a credit note is stored with the document it cancels, walks the same approval and sending path as any document, and an ordinary charge is not affected.
 BEGIN;
 SELECT tst.seed();
 
 INSERT INTO public.expense_invoices (id, mailbox, message_id, supplier_name, supplier_vat_id, doc_type, doc_number, credited_doc_number, doc_date, amount, currency, status) VALUES
-  ('a4550000-0000-4000-8000-000000000001', 'quotecodedev@gmail.com', 'm455-1', 'אור ממן', '311214605', 'credit_note', '30530', '30529', '2026-11-01', 370, 'ILS', 'excluded');
+  ('a4550000-0000-4000-8000-000000000001', 'quotecodedev@gmail.com', 'm455-1', 'אור ממן', '311214605', 'credit_note', '30530', '30529', '2026-11-01', 370, 'ILS', 'pending');
 SELECT tst.ok((SELECT doc_type = 'credit_note' AND credited_doc_number = '30529' FROM public.expense_invoices WHERE id = 'a4550000-0000-4000-8000-000000000001'),
-  'C1 a credit note is stored with the document it cancels');
+  'C1 a credit note is stored with the document it cancels and waits for approval');
 
-DO $$ DECLARE v_status text; BEGIN
-  FOREACH v_status IN ARRAY ARRAY['pending', 'approved', 'sending', 'send_failed', 'unknown'] LOOP
-    BEGIN
-      UPDATE public.expense_invoices SET status = v_status WHERE id = 'a4550000-0000-4000-8000-000000000001';
-      RAISE EXCEPTION 'C2 a credit note reached status %', v_status;
-    EXCEPTION WHEN check_violation THEN NULL;
-    END;
-  END LOOP;
-END $$;
-SELECT tst.ok(true, 'C2 a credit note cannot be pending, approved, sending, failed or unknown');
+UPDATE public.expense_invoices SET status = 'approved' WHERE id = 'a4550000-0000-4000-8000-000000000001';
+UPDATE public.expense_invoices SET status = 'sending' WHERE id = 'a4550000-0000-4000-8000-000000000001';
+UPDATE public.expense_invoices SET status = 'sent', payplus_uuid = 'x' WHERE id = 'a4550000-0000-4000-8000-000000000001';
+SELECT tst.ok((SELECT status = 'sent' FROM public.expense_invoices WHERE id = 'a4550000-0000-4000-8000-000000000001'), 'C2 a credit note can be approved and sent');
 
 DO $$ BEGIN
-  UPDATE public.expense_invoices SET status = 'sent', payplus_uuid = 'x' WHERE id = 'a4550000-0000-4000-8000-000000000001';
-  RAISE EXCEPTION 'C3 a credit note reached sent';
+  INSERT INTO public.expense_invoices (id, mailbox, message_id, supplier_name, doc_type, doc_number, amount, currency, status) VALUES
+    ('a4550000-0000-4000-8000-000000000004', 'quotecodedev@gmail.com', 'm455-4', 'בזק', 'credit_note', 'CR 1', -10, 'ILS', 'pending');
+  RAISE EXCEPTION 'C3 a negative amount was stored';
 EXCEPTION WHEN check_violation THEN NULL;
 END $$;
-SELECT tst.ok(true, 'C3 a credit note cannot be sent');
-
-UPDATE public.expense_invoices SET status = 'rejected' WHERE id = 'a4550000-0000-4000-8000-000000000001';
-SELECT tst.ok((SELECT status = 'rejected' FROM public.expense_invoices WHERE id = 'a4550000-0000-4000-8000-000000000001'), 'C4 it can be rejected');
+SELECT tst.ok(true, 'C3 the stored amount stays positive; only the function sends the minus');
 
 DO $$ BEGIN
   INSERT INTO public.expense_invoices (id, mailbox, message_id, supplier_name, doc_type, doc_number, credited_doc_number, amount, currency, status) VALUES

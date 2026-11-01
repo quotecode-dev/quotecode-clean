@@ -57,7 +57,7 @@ export function linkedSenderQuery(): string {
 }
 export type Extraction = {
   isInvoice: boolean; addressedToUs: boolean; businessRelated: boolean; confidence: 'high' | 'medium' | 'low'; reason: string;
-  mainDocumentIndex: number | null; supplierName: string | null; supplierVatId: string | null; supplierCountry: 'IL' | 'foreign' | 'unknown';
+  mainDocumentIndex: number | null; supplierName: string | null; supplierVatId: string | null; supplierCountry: 'IL' | 'foreign' | 'unknown'; supplierTaxStatus: 'exempt' | 'licensed' | 'unknown';
   docType: 'tax_invoice' | 'receipt' | 'tax_invoice_receipt' | 'credit_note' | 'other'; docNumber: string | null; docDate: string | null; creditedDocNumber: string | null;
   totalAmount: number | null; currency: string | null; vatAmount: number | null; category: string;
 };
@@ -267,12 +267,13 @@ export const EXTRACTION_SCHEMA = Object.freeze({
   schema: {
     type: 'object', additionalProperties: false,
     required: ['is_invoice', 'addressed_to_us', 'business_related', 'confidence', 'reason_he', 'main_document_index', 'supplier_name', 'supplier_vat_id',
-      'supplier_country', 'doc_type', 'doc_number', 'credited_doc_number', 'doc_date', 'total_amount', 'currency', 'vat_amount', 'category'],
+      'supplier_country', 'supplier_tax_status', 'doc_type', 'doc_number', 'credited_doc_number', 'doc_date', 'total_amount', 'currency', 'vat_amount', 'category'],
     properties: {
       is_invoice: { type: 'boolean' }, addressed_to_us: { type: 'boolean' }, business_related: { type: 'boolean' },
       confidence: { type: 'string', enum: ['high', 'medium', 'low'] }, reason_he: { type: 'string' },
       main_document_index: { type: ['integer', 'null'] }, supplier_name: { type: ['string', 'null'] }, supplier_vat_id: { type: ['string', 'null'] },
       supplier_country: { type: 'string', enum: ['IL', 'foreign', 'unknown'] },
+      supplier_tax_status: { type: 'string', enum: ['exempt', 'licensed', 'unknown'] },
       doc_type: { type: 'string', enum: ['tax_invoice', 'receipt', 'tax_invoice_receipt', 'credit_note', 'other'] },
       doc_number: { type: ['string', 'null'] }, credited_doc_number: { type: ['string', 'null'] }, doc_date: { type: ['string', 'null'] }, total_amount: { type: ['number', 'null'] },
       currency: { type: ['string', 'null'] }, vat_amount: { type: ['number', 'null'] }, category: { type: 'string', enum: [...EXPENSE_CATEGORIES] },
@@ -291,6 +292,8 @@ const SYSTEM_PROMPT = [
   '- A supplier credit note or refund document ("חשבונית מס זיכוי", "חשבונית זיכוי", "credit note", a refund line, "מסמך זה מבטל מסמך") IS a real document:',
   '  is_invoice true, doc_type "credit_note", total_amount the credited amount as a positive number even when it is printed without a minus, and',
   '  credited_doc_number the number of the document it cancels or credits when printed (else null). For every other document credited_doc_number is null.',
+  '- supplier_tax_status: "exempt" when the document shows an exempt dealer ("עוסק פטור", "פטור ממע"מ"); "licensed" when it shows an authorised dealer or a company',
+  '  ("עוסק מורשה", "חברה בע"מ", "חשבונית מס", a VAT line); else "unknown". On a credit note vat_amount is the printed VAT as a positive number, 0 for an exempt dealer.',
   '- addressed_to_us: true when the document is addressed to one of the names / emails above (or to the account holder of that mailbox).',
   '- business_related: true for anything used to run a software / SaaS business: hosting, cloud, domains, software subscriptions, AI services,',
   '  advertising, phone and internet, computers and equipment, accountants, lawyers, freelancers, payment and bank fees, office costs, courses about',
@@ -334,14 +337,15 @@ export function validateExtraction(content: string, docCount: number, now: numbe
     supplierName: str(j.supplier_name, 200),
     supplierVatId: vat.length >= 5 && vat.length <= 12 ? vat : null,
     supplierCountry: j.supplier_country === 'IL' || j.supplier_country === 'foreign' ? j.supplier_country : 'unknown',
+    supplierTaxStatus: j.supplier_tax_status === 'exempt' || j.supplier_tax_status === 'licensed' ? j.supplier_tax_status : 'unknown',
     docType: ['tax_invoice', 'receipt', 'tax_invoice_receipt', 'credit_note'].includes(j.doc_type as string) ? j.doc_type as Extraction['docType'] : 'other',
     docNumber: str(j.doc_number, 80),
     creditedDocNumber: j.doc_type === 'credit_note' ? str(j.credited_doc_number, 80) : null,
     docDate: date,
-    // Owner 2026-11-01 (L-22): a credit note may print a minus; it is stored as the positive credited amount and never counts as an expense
+    // Owner 2026-11-01 (L-22): a credit note may print a minus; it is stored as the positive credited amount and goes to PayPlus with a minus
     totalAmount: num(j.doc_type === 'credit_note' && typeof j.total_amount === 'number' ? Math.abs(j.total_amount) : j.total_amount, 10000000),
     currency: /^[A-Z]{3}$/.test(cur) ? cur : null,
-    vatAmount: num(j.vat_amount, 10000000),
+    vatAmount: num(j.doc_type === 'credit_note' && typeof j.vat_amount === 'number' ? Math.abs(j.vat_amount) : j.vat_amount, 10000000),
     category: EXPENSE_CATEGORIES.includes(j.category as string) ? j.category as string : 'other',
   };
 }
@@ -349,7 +353,12 @@ export function validateExtraction(content: string, docCount: number, now: numbe
 /** The VAT rule (code, not the model): a charge in ILS by a supplier that is not foreign, with VAT on the document (printed VAT or a tax
  *  invoice) = VAT included at 18%; anything else (a foreign supplier, a USD / EUR charge, a receipt without VAT) = no VAT.
  *  To confirm with the accountant. */
-export function vatRule(x: Pick<Extraction, 'supplierCountry' | 'currency' | 'vatAmount' | 'docType'>): { amountIncludesVat: boolean; vatPercentage: number } {
+export function vatRule(x: Pick<Extraction, 'supplierCountry' | 'currency' | 'vatAmount' | 'docType'> & { supplierTaxStatus?: Extraction['supplierTaxStatus'] }): { amountIncludesVat: boolean; vatPercentage: number } {
+  // Owner console 2026-11-01 (typed: "תבדיל שיש גם זיכוי של עוסק פטור שהוא ללא מע"מ וגם סוג של זיכוי של עוסק מורשה/חברה בע"מ שהוא עם מע"מ")
+  if (x.docType === 'credit_note') {
+    const credited = x.supplierCountry !== 'foreign' && x.currency === 'ILS' && x.supplierTaxStatus !== 'exempt' && ((x.vatAmount ?? 0) > 0 || x.supplierTaxStatus === 'licensed');
+    return credited ? { amountIncludesVat: true, vatPercentage: ISRAEL_VAT_PERCENT } : { amountIncludesVat: false, vatPercentage: 0 };
+  }
   const withVat = x.supplierCountry !== 'foreign' && x.currency === 'ILS'
     && ((x.vatAmount ?? 0) > 0 || (x.supplierCountry === 'IL' && (x.docType === 'tax_invoice' || x.docType === 'tax_invoice_receipt')));
   return withVat ? { amountIncludesVat: true, vatPercentage: ISRAEL_VAT_PERCENT } : { amountIncludesVat: false, vatPercentage: 0 };
@@ -390,11 +399,11 @@ export async function processMessage(deps: ExpenseDeps, mailbox: string, access:
   if (!x) throw new Error('unreadable_answer');
   if (!x.isInvoice) { await deps.markSeen(mailbox, id, 'not_invoice'); return 'not_invoice'; }
   const duplicate = x.supplierName && x.docNumber ? await deps.isDuplicate(x.supplierName, x.docNumber) : false;
-  // Owner console 2026-11-01 (typed: "מאשר: זיהוי חשבוניות זיכוי בכלי ההוצאות, סימון בלי אפשרות אישור, כולל שינוי ב-L-22 ..."): a credit note is kept for the record, never as an expense
-  const isCredit = x.docType === 'credit_note';
-  const keep = x.addressedToUs && x.businessRelated && !duplicate && !isCredit;
-  const reason = isCredit && !duplicate ? `חשבונית זיכוי - לא נספרת כהוצאה ולא נשלחת לפיי פלוס. ${x.reason}` : duplicate ? `כפילות: חשבונית ${x.docNumber} של ${x.supplierName} כבר נמצאה` : !x.addressedToUs ? `לא על שמכם. ${x.reason}`
-    : !x.businessRelated ? `נראית פרטית. ${x.reason}` : x.confidence === 'low' ? `לא בטוח. ${x.reason}` : x.reason;
+  // Owner console 2026-11-01 (typed: "מאשר שינוי ב-L-22: כל חשבונית חיוב עוברת לפיי פלוס בפלוס וכל חשבונית זיכוי עוברת לפיי פלוס במינוס, כל מסמך בפני עצמו, בלי חישוב נטו, אחרי אישור שלי במסך, שחרור עד הלייב"):
+  // a credit note waits for approval like any document
+  const keep = x.addressedToUs && x.businessRelated && !duplicate;
+  const reason = duplicate ? `כפילות: חשבונית ${x.docNumber} של ${x.supplierName} כבר נמצאה` : !x.addressedToUs ? `לא על שמכם. ${x.reason}`
+    : !x.businessRelated ? `נראית פרטית. ${x.reason}` : x.confidence === 'low' ? `לא בטוח. ${x.reason}` : x.docType === 'credit_note' ? `חשבונית זיכוי. ${x.reason}` : x.reason;
   const doc = x.mainDocumentIndex !== null ? docs[x.mainDocumentIndex] : docs.length === 1 ? docs[0] : null;
   const vat = vatRule(x);
   const rowId = deps.uuid();
@@ -507,13 +516,16 @@ export function payplusFields(row: InvoiceRow, subcategoryId: number, fx: IlsRat
   const supplier = String(row.supplier_name || '').slice(0, 120);
   const what = `${supplier}${row.email_subject ? ` - ${String(row.email_subject)}` : ''}`;
   const sent = foreign ? Math.round(amount * (fx as IlsRate).rate * 100) / 100 : amount;
+  // Owner console 2026-11-01 (L-22, "כל חשבונית זיכוי עוברת לפיי פלוס במינוס"): PayPlus's own expense form sends doc_type_code; its credit note is inv_refund
+  const isCredit = row.doc_type === 'credit_note';
   const fxNote = foreign ? `${String(row.currency)} ${amount.toFixed(2)} × ${(fx as IlsRate).rate} (שער יציג ${ddmmyyyy((fx as IlsRate).date)})` : '';
   const f: Record<string, string> = {
-    number: String(row.doc_number), doc_date: String(row.doc_date), subcategory_id: String(subcategoryId), amount: sent.toFixed(2),
+    number: String(row.doc_number), doc_date: String(row.doc_date), subcategory_id: String(subcategoryId), amount: (isCredit ? -sent : sent).toFixed(2),
     description: (foreign ? `${fxNote}${what ? ` · ${what}` : ''}` : what).slice(0, 200) || 'הוצאה',
     currency_code: foreign ? 'ILS' : String(row.currency), amount_includes_vat: row.amount_includes_vat ? 'true' : 'false',
     vat_percentage: String(Number(row.vat_percentage) || 0),
   };
+  if (isCredit) f.doc_type_code = 'inv_refund';
   if (subcategoryUuid) f.subcategory_uuid = subcategoryUuid;
   if (supplier) f.supplier_name = supplier;
   if (row.supplier_vat_id) f.supplier_vat_id = String(row.supplier_vat_id);
@@ -600,9 +612,11 @@ export function documentMatch(rec: Record<string, unknown>, row: InvoiceRow, sen
   const near = (a: number | null) => a !== null && Number.isFinite(a) && Math.abs(recAmount - a) < 0.01;
   const rowCurrency = String(row.currency ?? '').trim().toUpperCase();
   const ownCurrency = recCurrency ? recCurrency === rowCurrency : rowCurrency === 'ILS';
-  const amountMatch = Number.isFinite(recAmount) && ((near(sentAmount) && (!recCurrency || recCurrency === 'ILS')) || (ownCurrency && near(Number(row.amount))));
+  // Owner 2026-11-01 (L-22): a credit note is in PayPlus with a minus
+  const ownAmount = row.doc_type === 'credit_note' ? -Number(row.amount) : Number(row.amount);
+  const amountMatch = Number.isFinite(recAmount) && ((near(sentAmount) && (!recCurrency || recCurrency === 'ILS')) || (ownCurrency && near(ownAmount)));
   // any of our amounts in any currency: never "none" (a currency we cannot tell apart is not proof of another document)
-  const anyNear = near(sentAmount) || near(Number(row.amount));
+  const anyNear = near(sentAmount) || near(ownAmount);
   // the same supplier with no amount on the record is not certain either (Codex N07)
   const sameSupplierAnswer: DocMatch = amountMatch ? 'match' : 'ambiguous';
   const recVat = [rec.supplier_vat_id, sup.vat_id, sup.vat_number, cust.vat_number, cust.customer_vat_id, cust.vat_id].map(digits).find(Boolean) ?? '';
