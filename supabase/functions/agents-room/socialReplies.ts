@@ -16,7 +16,26 @@ export type PublishedPost = { actionId: string; channel: string; network: 'faceb
 export type Metrics = { actionId: string; network: 'facebook' | 'instagram'; likes: number | null; comments: number | null; shares: number | null; reach: number | null; reachAvailable: boolean };
 export type NewComment = { channel: string; network: 'facebook' | 'instagram'; market: Market; postId: string; postActionId: string; commentId: string; text: string; author: string; createdAt: string };
 
-const num = (v: unknown) => (Number.isFinite(Number(v)) && Number(v) >= 0 ? Math.round(Number(v)) : null);
+// Codex review 2026-10-31 F17: a value the network did not return (null / missing / empty) is unknown - never a measured 0
+const num = (v: unknown) => {
+  const n = typeof v === 'number' ? v : typeof v === 'string' && v.trim() !== '' ? Number(v) : NaN;
+  return Number.isFinite(n) && n >= 0 ? Math.round(n) : null;
+};
+
+/** Codex review 2026-10-31 F18: the results of our recent posts per network, for Shira's weekly plan and Noa - sums over MEASURED values
+ *  only; posts without any result are counted as unavailable (no extra paid call; the rows are already stored). */
+export function metricsSummary(rows: Metrics[]): Record<string, { posts: number; unavailable: number; likes: number | null; comments: number | null; shares: number | null; reach: number | null }> {
+  const out: Record<string, { posts: number; unavailable: number; likes: number | null; comments: number | null; shares: number | null; reach: number | null }> = {};
+  const add = (a: number | null, b: number | null) => (b === null ? a : (a ?? 0) + b);
+  for (const m of rows.slice(0, 40)) {
+    const o = out[m.network] ??= { posts: 0, unavailable: 0, likes: null, comments: null, shares: null, reach: null };
+    o.posts += 1;
+    if (m.likes === null && m.comments === null && m.shares === null && m.reach === null) { o.unavailable += 1; continue; }
+    o.likes = add(o.likes, m.likes); o.comments = add(o.comments, m.comments); o.shares = add(o.shares, m.shares);
+    o.reach = m.reachAvailable ? add(o.reach, m.reach) : o.reach;
+  }
+  return out;
+}
 const OWN_IG = new Set(['tekangoisrael', 'tekangoglobal']);
 
 /** The results of one published post. */
