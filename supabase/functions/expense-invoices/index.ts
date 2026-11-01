@@ -9,7 +9,7 @@
 //    PAYPLUS_API_KEY / PAYPLUS_SECRET_KEY / PAYPLUS_ENVIRONMENT (+ PAYPLUS_PROXY_URL, the fixed-IP relay), RESEND_API_KEY + SUPPORT_OWNER_NOTIFY_ADDRESS (the monthly note), CRON_SECRET.
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { recordRun } from '../_shared/scheduledHealth.ts'; // Codex release 7: the cron window is reported
-import { linkedDocumentUrl, MAX_FILE_BYTES, expenseHandler, oauthCallback, scanBatch, payplusPage, searchAllPages, PayplusCreateError, createAnswerDefinite, sameSupplier, payplusReason, createExpenseAt, subcategoryUuids, sameText, boiRate, BOI_RATE_CURRENCIES, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
+import { expenseHandler, oauthCallback, scanBatch, payplusPage, searchAllPages, PayplusCreateError, createAnswerDefinite, sameSupplier, payplusReason, createExpenseAt, subcategoryUuids, sameText, boiRate, BOI_RATE_CURRENCIES, BUDGET_MS, LIST_CAP, type ExpenseDeps } from './lib.ts';
 import { PAYPLUS_API_BASES } from '../subscription-authority/payplus.ts';
 import { sendMail } from '../support-inbound/mail.ts';
 import { payplusEgress, type FetchLike } from '../_shared/payplusEgress.ts';
@@ -141,18 +141,6 @@ Deno.serve(async (req: Request) => {
     },
     getMessage: (access, id) => google(`messages/${encodeURIComponent(id)}?format=full`, access),
     getAttachment: async (access, mid, aid) => String((await google(`messages/${encodeURIComponent(mid)}/attachments/${encodeURIComponent(aid)}`, access)).data || ''),
-    // 2026-11-01: the PayPlus invoice-receipt behind the email link (lib.ts linkedDocumentUrl allows only the PayPlus document address);
-    // no redirect is followed, and only a real PDF within the file limit is kept
-    fetchDocument: async (url) => {
-      if (!linkedDocumentUrl(url)) return null;
-      const res = await timed(url, { redirect: 'error' }).catch(() => null);
-      if (!res || !res.ok) return null;
-      const buf = new Uint8Array(await res.arrayBuffer());
-      if (buf.length < 5 || buf.length > MAX_FILE_BYTES || String.fromCharCode(...buf.subarray(0, 5)) !== '%PDF-') return null;
-      let bin = '';
-      for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
-      return btoa(bin);
-    },
     complete: async ({ model, messages, schema }) => {
       const legacy = model === 'gpt-4o-mini';
       const res = await timed('https://api.openai.com/v1/chat/completions', {
@@ -183,15 +171,6 @@ Deno.serve(async (req: Request) => {
       const out = new Set<string>();
       for (let i = 0; i < ids.length; i += 300) {
         const rows = await db(admin.from('expense_mail_seen').select('message_id').eq('mailbox', mailbox).neq('outcome', 'retry').in('message_id', ids.slice(i, i + 300))) as { message_id: string }[];
-        rows.forEach((r) => out.add(r.message_id));
-      }
-      return out;
-    },
-    notInvoiceBefore: async (mailbox, ids, before) => {
-      const out = new Set<string>();
-      for (let i = 0; i < ids.length; i += 300) {
-        const rows = await db(admin.from('expense_mail_seen').select('message_id').eq('mailbox', mailbox).eq('outcome', 'not_invoice').lt('seen_at', before)
-          .in('message_id', ids.slice(i, i + 300))) as { message_id: string }[];
         rows.forEach((r) => out.add(r.message_id));
       }
       return out;

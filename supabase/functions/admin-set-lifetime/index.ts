@@ -2,6 +2,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { claimReauthProof, writeAuditLog } from "../_shared/adminReauth.ts";
+import { checkLegacyOperationAllowed } from "./legacyPhaseGuard.ts";
 
 // ==========================================
 // TEKANGO Admin V1 (Task 3.3): Grant/Revoke Lifetime. Explicit is_lifetime
@@ -76,9 +77,13 @@ serve(async (req) => {
     if (callerBiz?.role !== 'super_admin') return jsonResponse({ error: 'Forbidden: super_admin role required' }, 403);
 
     const action = grant ? 'grant_lifetime' : 'revoke_lifetime';
-    // Owner console 2026-11-01 (typed: "מאשר להחזיר את הענקת המנוי לכל החיים בניהול, כולל שינוי ב-L-22, שחרור עד הלייב"): the 2026-10-07 legacy-phase guard is removed here - the plan system honors is_lifetime (unlimited quotes,
-    // SMART PACK, no payment page), so the grant / revoke stays available with the plan system on. The re-auth proof, the super admin
-    // check, the read-back and the audit log are unchanged. (admin-extend-trial keeps its guard.)
+    // Legacy-record operation: refused once the subscription free_issue phase is enforced (409 legacy_trial_retired),
+    // before the re-auth proof is claimed and before any write. See ./legacyPhaseGuard.ts.
+    const legacyGuard = await checkLegacyOperationAllowed(adminClient);
+    if (!legacyGuard.allow) {
+      await writeAuditLog({ adminClient, actorUserId: callerUser.id, targetUserId, action, reason, outcome: 'denied' });
+      return jsonResponse({ error: legacyGuard.code }, legacyGuard.status);
+    }
 
     const proof = await claimReauthProof({
       adminClient, proofToken, actorUserId: callerUser.id, action, targetUserId, params: { reason },

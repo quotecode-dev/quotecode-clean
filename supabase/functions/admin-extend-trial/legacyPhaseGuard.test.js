@@ -59,9 +59,7 @@ describe('both Edge functions use the guard before the proof claim and before an
   it('the guard module is byte-identical in admin-extend-trial and admin-set-lifetime', () => {
     expect(read('supabase', 'functions', 'admin-set-lifetime', 'legacyPhaseGuard.ts').equals(read('supabase', 'functions', 'admin-extend-trial', 'legacyPhaseGuard.ts'))).toBe(true);
   });
-  // Owner console 2026-11-01 (typed: "מאשר להחזיר את הענקת המנוי לכל החיים בניהול, כולל שינוי ב-L-22 ..."): only the trial extension keeps the
-  // guard - the Lifetime grant / revoke works with the plan system on (tested in src/lifetimeGrant20261101.test.jsx)
-  for (const fn of ['admin-extend-trial']) {
+  for (const fn of ['admin-extend-trial', 'admin-set-lifetime']) {
     it(`${fn}: guard -> 409/503 refusal precedes claimReauthProof and the business_settings update`, () => {
       const src = read('supabase', 'functions', fn, 'index.ts').toString('utf8');
       expect(src).toContain('import { checkLegacyOperationAllowed } from "./legacyPhaseGuard.ts";');

@@ -297,8 +297,7 @@ describe('Admin sources: no active legacy plan labels (static, comments stripped
       const allowed = f === 'AdminUsersView.jsx'
         ? ['Lifetime', 'Revoke Lifetime: ${name(a)}', 'Grant Lifetime: ${name(a)}']
         : f === 'AdminUsersTab.jsx'
-          // Owner console 2026-11-01 (typed: "מאשר להחזיר את הענקת המנוי לכל החיים בניהול, כולל שינוי ב-L-22 ..."): what Lifetime does in the plan system
-          ? ['Lifetime: the app and the chat show the account as a "Lifetime subscription", with every capability open, including SMART PACK and quotes without a limit, and no charge. If the account has an active paid subscription, its standing order is not stopped from here.',
+          ? ['Lifetime: the app and the chat show the account as a "Lifetime subscription" with every capability open and no charge. In the plan system it does not change a plan or a balance.',
             // Owner console 2026-10-16 (L-07, codes -> subscription status): the Lifetime dialog states in words
             'מנוי לכל החיים', 'Lifetime subscription', 'ללא מנוי לכל החיים', 'No Lifetime subscription',
             // Owner console 2026-10-17 ("מאשר תיקון כל 16 הממצאים של קודקס", AV-03): the revoke dialog explains the revoke
@@ -313,11 +312,10 @@ describe('Admin sources: no active legacy plan labels (static, comments stripped
       expect(code, f).not.toMatch(/resolveAccountEntitlement|getDisplayIdentityLabel|AdminPackageIcon/);
     });
   }
-  // Owner console 2026-11-01 (L-22): only the trial extension is a retired legacy operation - the Lifetime grant / revoke works again
-  it('AdminUsersTab legacy operations: the trial extension submit disabled and handler refused once retired; server refusal localized', () => {
+  it('AdminUsersTab legacy operations: submit disabled and handler refused once retired; server refusal localized', () => {
     const src = readFileSync(join(dir, 'AdminUsersTab.jsx'), 'utf8');
-    expect(src.match(/disabled=\{isResetting \|\| legacyRetired\}/g)).toHaveLength(1);
-    expect(src.match(/if \(legacyRetired\) throw new Error\(legacyRetiredText\);/g)).toHaveLength(1);
+    expect(src.match(/disabled=\{isResetting \|\| legacyRetired\}/g)).toHaveLength(2);
+    expect(src.match(/if \(legacyRetired\) throw new Error\(legacyRetiredText\);/g)).toHaveLength(2);
     expect(src).toContain("message === 'legacy_trial_retired' ? legacyRetiredText : message");
     // // Owner console 2026-10-16, typed: "מאשר מימוש אפיון האדמין של קודקס (CODEX_SPEC_ADMIN_REDESIGN_2026-10-16) ... ופתיחת L-03 L-07 L-17 L-20 לשינויים שבאפיון" - the trial dialog is the shared protected dialog (its copy in domain/admin/adminCopy.js)
     expect(src).toContain('kind="trial"');
