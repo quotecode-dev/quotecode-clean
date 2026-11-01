@@ -39,15 +39,6 @@ Deno.serve(async (req: Request) => {
       // Codex review 2026-10-31 F30 (decision c): recipient addresses in the send records and in Maya's handled drafts after 30 days
       const { error: retentionErr } = await admin.rpc('privacy_retention_tick');
       if (retentionErr) console.error('scheduled-health: the retention step failed');
-      // Codex review 2026-10-31 F25: a "Run now" chain continues with the screen closed - the agents room advances it (about 100 s)
-      // after this answer; its failure never changes the monitor's answer
-      const cron = Deno.env.get('CRON_SECRET') ?? '';
-      if (cron) {
-        const tick = fetch(`${Deno.env.get('SUPABASE_URL') ?? ''}/functions/v1/agents-room`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-cron-secret': cron },
-          body: JSON.stringify({ action: 'chain_tick' }), signal: AbortSignal.timeout(130_000) }).then((x) => x.body?.cancel()).catch(() => console.error('scheduled-health: the chain tick failed'));
-        // deno-lint-ignore no-explicit-any
-        try { (globalThis as any).EdgeRuntime?.waitUntil?.(tick); } catch { /* the tick is best effort */ }
-      }
     }
     return json(r.status, r.body);
   } catch {

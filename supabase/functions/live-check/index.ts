@@ -59,14 +59,6 @@ Deno.serve(async (req: Request) => {
       });
       return r.ok;
     },
-    // Codex review 2026-10-31 F27: this month's LIVE-check runs (Israel month start, the same as the agents' budget month)
-    monthRuns: async () => {
-      const p = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Jerusalem', year: 'numeric', month: '2-digit' }).formatToParts(new Date());
-      const ym = `${p.find((x) => x.type === 'year')?.value}-${p.find((x) => x.type === 'month')?.value}-01T00:00:00+02:00`;
-      const { count, error } = await admin.from('agent_runs').select('id', { count: 'exact', head: true }).eq('agent', 'live_check').gte('started_at', new Date(ym).toISOString());
-      if (error) throw new Error('database');
-      return count ?? 0;
-    },
     signOut: async (token) => {
       try { const { error } = await admin.auth.admin.signOut(token, 'local'); return !error; } catch { return false; }
     },

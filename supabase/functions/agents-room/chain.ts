@@ -12,9 +12,7 @@ import type { StageDeps } from './manager.ts';
 
 export const STEPS = ['live_check', 'seo', 'service', 'security', 'customer_success', 'social', 'live_wait', 'manager'] as const;
 export type StepId = typeof STEPS[number];
-// Codex review 2026-10-31 F26: 'waiting_run' = another run of that agent is still working - the chain waits for it (35 minutes at most)
-// instead of skipping it, and the manager runs only after every step ended
-export type StepStatus = 'pending' | 'ran' | 'skipped_fresh' | 'skipped_week' | 'already_running' | 'waiting' | 'waiting_run' | 'not_run_hour' | 'not_run_budget'
+export type StepStatus = 'pending' | 'ran' | 'skipped_fresh' | 'skipped_week' | 'already_running' | 'waiting' | 'not_run_hour' | 'not_run_budget'
   | 'not_run_inconclusive' | 'failed';
 export type Step = { step: StepId; status: StepStatus; at?: string; code?: string; runId?: string; dispatchedAt?: string };
 export type Chain = { id: string; hour_key: string; status: 'running' | 'done' | 'failed'; steps: Step[]; created_at: string; finished_at: string | null; lease_until?: string | null };
@@ -41,10 +39,8 @@ export interface ChainDeps {
   paths(): Promise<string[]>; // the sitemap's public pages (the security agent checks them)
   runCustomerSuccessNow(): Promise<{ status: string; error?: string }>;
   runSocialNow(): Promise<{ status: string; error?: string }>;
-  runManagerNow(steps?: Step[], key?: string): Promise<{ status: string; error?: string }>;
+  runManagerNow(): Promise<{ status: string; error?: string }>;
 }
-// F25: a chain the scheduled tick finds running longer than this is closed (its unfinished steps "not run")
-export const CHAIN_DEADLINE_MS = 2 * 3_600_000;
 type Out = { status: number; body: Record<string, unknown> };
 type D = StageDeps & ChainDeps;
 
@@ -71,23 +67,12 @@ export async function chainStart(d: D): Promise<Out> {
   return { status: 200, body: { ok: true, chain: await d.chainOfHour(key), hourLimit: true } };
 }
 
-/** F26: an agent another run was working on - wait for it (the deadline), then take its own outcome; never mark its run failed. */
-function awaitOther(s: Step, info: Latest[string] | undefined, now: Date, at: string): Step {
-  const since = s.dispatchedAt ?? at;
-  if (info?.running) return age(now, since) < LIVE_DEADLINE_MS ? { ...s, status: 'waiting_run', at, dispatchedAt: since } : { ...s, status: 'already_running', at };
-  const t = info?.lastTerminal;
-  if (t && t.status === 'done' && age(now, t.finishedAt) <= DAY_MS) return { ...s, status: t.outcome === 'inconclusive' ? 'not_run_inconclusive' : 'skipped_fresh', at };
-  return { ...s, status: 'failed', at, code: t?.status ? String(t.status).slice(0, 60) : 'no_result' };
-}
-
-async function runStep(d: D, s: Step, steps: Step[], latest: Latest, now: Date, chainHour = ''): Promise<Step> {
+async function runStep(d: D, s: Step, steps: Step[], latest: Latest, now: Date): Promise<Step> {
   const at = now.toISOString();
   const info = latest[s.step === 'live_wait' ? 'live_check' : s.step];
-  if (s.status === 'waiting_run') return awaitOther(s, info, now, at);
   switch (s.step) {
     case 'live_check': {
-      // F26: the scheduled 05:17 check (or another run) is working - the chain waits for its answer (live_wait), it does not skip it
-      if (info?.running) return { ...s, status: 'waiting', at, dispatchedAt: at };
+      if (info?.running) return { ...s, status: 'already_running', at };
       const t = info?.lastTerminal;
       if (t && t.status === 'done' && age(now, t.finishedAt) <= DAY_MS) {
         return { ...s, status: t.outcome === 'inconclusive' ? 'not_run_inconclusive' : 'skipped_fresh', at };
@@ -100,20 +85,20 @@ async function runStep(d: D, s: Step, steps: Step[], latest: Latest, now: Date, 
       return { ...s, status: 'failed', at, code: sent === 'not_configured' ? 'dispatch_not_configured' : 'dispatch_failed' };
     }
     case 'seo': case 'service': case 'security': {
-      if (info?.running) return awaitOther(s, info, now, at);
+      if (info?.running) return { ...s, status: 'already_running', at };
       if (isFresh(info, now)) return { ...s, status: 'skipped_fresh', at };
       const r = await handler({ action: 'run', agent: s.step }, d, () => d.paths(), { mail: false });
       const x = ((r.body.results ?? []) as { status: string; error?: string | null }[])[0];
       return { ...s, status: x ? mapRun(x.status) : 'failed', at, ...(x?.error ? { code: String(x.error).slice(0, 60) } : {}) };
     }
     case 'customer_success': {
-      if (info?.running) return awaitOther(s, info, now, at);
+      if (info?.running) return { ...s, status: 'already_running', at };
       if (isFresh(info, now)) return { ...s, status: 'skipped_fresh', at };
       const r = await d.runCustomerSuccessNow();
       return { ...s, status: mapRun(r.status), at, ...(r.error ? { code: r.error.slice(0, 60) } : {}) };
     }
     case 'social': {
-      if (info?.running) return awaitOther(s, info, now, at);
+      if (info?.running) return { ...s, status: 'already_running', at };
       if ((await d.openSocialSlots()) === 0) return { ...s, status: 'skipped_week', at };
       if ((await d.monthCostUsd(monthStartIso(now))) >= MONTHLY_CAP_USD) return { ...s, status: 'not_run_budget', at };
       const r = await d.runSocialNow();
@@ -121,16 +106,7 @@ async function runStep(d: D, s: Step, steps: Step[], latest: Latest, now: Date, 
     }
     case 'live_wait': {
       const live = steps.find((x) => x.step === 'live_check');
-      // F26: the LIVE step did not dispatch (fresh / failed / hourly limit / inconclusive) - the wait carries ITS status, never "fresh"
-      if (!live || live.status !== 'waiting') return { ...s, status: live ? live.status : 'failed', at, ...(live?.code ? { code: live.code } : {}) };
-      if (!live.runId) {
-        // another run (the scheduled one) is working: its own outcome, read from the latest runs, once it ends
-        if (info?.running && age(now, live.dispatchedAt) < LIVE_DEADLINE_MS) return { ...s, status: 'waiting', at };
-        const t = info?.lastTerminal;
-        if (info?.running || !t) return { ...s, status: 'failed', at, code: 'timeout' };
-        return { ...s, status: t.status === 'done' && t.outcome === 'passed' ? 'ran' : t.status === 'done' && t.outcome === 'inconclusive' ? 'not_run_inconclusive' : 'failed', at,
-          ...(t.outcome && t.outcome !== 'passed' ? { code: String(t.outcome).slice(0, 60) } : {}) };
-      }
+      if (!live || live.status !== 'waiting' || !live.runId) return { ...s, status: live?.status === 'waiting' ? 'failed' : 'skipped_fresh', at };
       const run = await d.getRun(live.runId);
       if (run && run.status !== 'running') {
         const outcome = String(run.data?.outcome ?? '');
@@ -142,8 +118,7 @@ async function runStep(d: D, s: Step, steps: Step[], latest: Latest, now: Date, 
       return { ...s, status: 'failed', at, code: 'timeout' };
     }
     case 'manager': {
-      // F26: the manager gets each step's exact status, and runs under the chain's own key (an individual run this hour never takes it)
-      const r = await d.runManagerNow(steps, chainHour || hourKey(now));
+      const r = await d.runManagerNow();
       return { ...s, status: mapRun(r.status), at, ...(r.error ? { code: r.error.slice(0, 60) } : {}) };
     }
   }
@@ -159,18 +134,14 @@ export async function chainStep(d: D, id: unknown): Promise<Out> {
     return c ? { status: 200, body: { ok: true, chain: c, busy: c.status === 'running' } } : { status: 404, body: { ok: false, code: 'not_found' } };
   }
   const steps = held.steps.map((x) => ({ ...x }));
-  // F26: the next step - every pending agent first, then the waits (another run working, the LIVE answer), the manager last
-  const waits = (x: Step) => x.status === 'waiting_run' || (x.step === 'live_wait' && x.status === 'waiting');
-  let i = steps.findIndex((x) => x.status === 'pending' && x.step !== 'manager');
-  if (i < 0) i = steps.findIndex(waits);
-  if (i < 0) i = steps.findIndex((x) => x.status === 'pending');
+  const i = steps.findIndex((x) => x.status === 'pending' || (x.step === 'live_wait' && x.status === 'waiting'));
   if (i < 0) {
     await d.chainSave(id, steps, 'done', held.lease_until ?? null);
     return { status: 200, body: { ok: true, chain: { ...held, steps, status: 'done' }, partial: partialOf(steps) } };
   }
   let next: Step;
   try {
-    next = await runStep(d, steps[i], steps, await d.latestRuns(), d.now(), held.hour_key);
+    next = await runStep(d, steps[i], steps, await d.latestRuns(), d.now());
   } catch (e) {
     next = { ...steps[i], status: 'failed', at: d.now().toISOString(), code: String((e as Error)?.message ?? 'failed').slice(0, 60) };
   }
@@ -178,35 +149,7 @@ export async function chainStep(d: D, id: unknown): Promise<Out> {
   // the LIVE check's own row shows its answer once it came (or its deadline passed)
   const live = steps.findIndex((x) => x.step === 'live_check');
   if (next.step === 'live_wait' && next.status !== 'waiting' && live >= 0 && steps[live].status === 'waiting') steps[live] = { ...steps[live], status: next.status, ...(next.code ? { code: next.code } : {}) };
-  const done = !steps.some((x) => x.status === 'pending' || waits(x));
+  const done = !steps.some((x) => x.status === 'pending' || (x.step === 'live_wait' && x.status === 'waiting'));
   await d.chainSave(id, steps, done ? 'done' : 'running', held.lease_until ?? null);
   return { status: 200, body: { ok: true, chain: { ...held, steps, status: done ? 'done' : 'running' }, ...(done ? { partial: partialOf(steps) } : {}) } };
-}
-
-/** Codex review 2026-10-31 F25: the scheduled tick (every 10 minutes, scheduled-health -> agents-room chain_tick) advances a running chain
- *  with no screen open - the same one-step-under-a-lease calls as the screen; a new step starts only in the first 20 seconds (a paid step
- *  that starts always has time to finish), and only waits left = the next tick asks again (never a fast loop); older than 2 hours = closed. */
-export async function chainTick(d: D, budgetMs = 20_000): Promise<Out> {
-  const active = await d.chainActive();
-  if (!active) return { status: 200, body: { ok: true, idle: true } };
-  const now = d.now();
-  if (age(now, active.created_at) > CHAIN_DEADLINE_MS) {
-    const held = await d.chainLease(active.id, LEASE_SECONDS);
-    if (!held) return { status: 200, body: { ok: true, busy: true } };
-    const steps = held.steps.map((x) => (x.status === 'pending' || x.status === 'waiting' || x.status === 'waiting_run'
-      ? { ...x, status: 'failed' as const, at: now.toISOString(), code: 'deadline' } : x));
-    await d.chainSave(active.id, steps, 'failed', held.lease_until ?? null);
-    return { status: 200, body: { ok: true, closed: true } };
-  }
-  const started = Date.now();
-  let last: Out = { status: 200, body: { ok: true, chain: active } };
-  while (Date.now() - started < budgetMs) {
-    last = await chainStep(d, active.id);
-    const c = last.body.chain as Chain | undefined;
-    if (!c || c.status !== 'running' || last.body.busy) break;
-    // only waits are left (the manager stays pending until they end) - the next tick asks again
-    if (!c.steps.some((x) => x.status === 'pending' && x.step !== 'manager') && c.steps.some((x) => x.status === 'waiting_run' || (x.step === 'live_wait' && x.status === 'waiting'))) break;
-    if (!c.steps.some((x) => x.status === 'pending')) break;
-  }
-  return last;
 }

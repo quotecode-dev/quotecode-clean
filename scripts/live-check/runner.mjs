@@ -25,15 +25,8 @@ async function call(body) {
   const r = await fetch(FN, { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-live-check-secret': SECRET }, body: JSON.stringify(body) });
   return { status: r.status, body: await r.json().catch(() => null) };
 }
-// Codex review 2026-10-31 F23: the deployment identity = version.json AND the entry script / style files the live page loads
 async function versionHash() {
-  try {
-    const r = await fetch(`${SITE}/version.json?t=${Date.now()}`, { cache: 'no-store' });
-    const h = await fetch(`${SITE}/he?t=${Date.now()}`, { cache: 'no-store' });
-    if (!r.ok || !h.ok) return null;
-    const assets = [...new Set((await h.text()).match(/\/assets\/[A-Za-z0-9._-]+\.(?:js|css)/g) ?? [])].sort();
-    return assets.length ? sha(JSON.stringify({ v: await r.json(), assets })) : null;
-  } catch { return null; }
+  try { const r = await fetch(`${SITE}/version.json?t=${Date.now()}`, { cache: 'no-store' }); return r.ok ? sha(JSON.stringify(await r.json())) : null; } catch { return null; }
 }
 
 // the facts of the rendered page: horizontal overflow, the direction of the app's own root, its font, and the page's own errors
@@ -57,21 +50,11 @@ function judge(f, market, errors) {
 const planButton = (page) => page.locator('[data-testid="header-plan-button"]:visible').first();
 const shown = (locator) => locator.waitFor({ state: 'visible', timeout: 20000 }).then(() => true, () => false);
 
-// Codex review 2026-10-31 F22: one bounded retry for an exception AND for a returned transient result (a slow sign-in, a plans window
-// that did not open, a timeout, no answer, a 5xx); a real defect (overflow, direction, font, page error, 4xx) is final at once
-export const TRANSIENT = /^(not_signed_in|plans_not_open|timeout|error|http_0|http_5\d\d)$/;
-export async function withRetry(fn, started = STARTED, budget = BUDGET_MS) {
-  let first;
-  try { first = await fn(); } catch (e) { first = { ok: false, code: /timeout/i.test(String(e?.message ?? e)) ? 'timeout' : 'error' }; }
-  if (first?.ok || !TRANSIENT.test(String(first?.code ?? ''))) return first;
-  if (Date.now() - started > budget) return { ok: false, code: 'budget' };
-  try { return await fn(); } catch (e2) { return { ok: false, code: /timeout/i.test(String(e2?.message ?? e2)) ? 'timeout' : 'error' }; }
-}
-// the session request: one retry on no answer / 5xx
-async function sessionFor(market) {
-  let s = await call({ action: 'session', persona: market }).catch(() => ({ status: 0, body: null }));
-  if (s.status === 0 || s.status >= 500) s = await call({ action: 'session', persona: market }).catch(() => ({ status: 0, body: null }));
-  return s;
+async function withRetry(fn) {
+  try { return await fn(); } catch (e) {
+    if (Date.now() - STARTED > BUDGET_MS) return { ok: false, code: 'budget' };
+    try { return await fn(); } catch (e2) { return { ok: false, code: /timeout/i.test(String(e2?.message ?? e2)) ? 'timeout' : 'error' }; }
+  }
 }
 
 async function checkPage(context, market, path, after) {
@@ -105,10 +88,8 @@ async function main() {
   try {
     for (const market of ['il', 'intl']) {
       const lang = market === 'il' ? 'he' : 'en';
-      const s = await sessionFor(market);
+      const s = await call({ action: 'session', persona: market });
       const session = s.status === 200 && s.body?.ok ? s.body.session : null;
-      // F24: whatever happens in this market, the session it minted is signed out - and a refused sign-out makes the run inconclusive
-      try {
       for (const [w, h] of SIZES) {
         const size = `${w}x${h}`;
         // the public pages, anonymous
@@ -132,12 +113,7 @@ async function main() {
         await ctx.close();
         if (Date.now() - STARTED > BUDGET_MS) { reason = 'budget'; break; }
       }
-      } finally {
-        if (session) {
-          const out = await call({ action: 'signout', persona: market, accessToken: session.access_token }).catch(() => null);
-          if (!(out?.status === 200 && out.body?.ok === true)) reason = reason ?? 'signout_failed';
-        }
-      }
+      if (session) await call({ action: 'signout', accessToken: session.access_token }).catch(() => null);
       if (reason) break;
     }
   } catch (e) {
@@ -156,7 +132,4 @@ async function main() {
   if (r.status !== 200) process.exit(1);
 }
 
-// run only as the job's entry point (the tests import withRetry)
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/').split('/').pop())) {
-  main().catch((e) => { console.log(`live-check: failed ${sha(String(e?.message ?? e)).slice(0, 12)}`); process.exit(1); });
-}
+main().catch((e) => { console.log(`live-check: failed ${sha(String(e?.message ?? e)).slice(0, 12)}`); process.exit(1); });

@@ -58,8 +58,6 @@ const CHAIN_STATUS = {
   skipped_week: { he: 'דולג — הפוסטים לשבוע כבר מוכנים', en: 'Skipped — this week’s posts are already prepared' },
   already_running: { he: 'כבר פועל', en: 'Already running' },
   waiting: { he: 'ממתין לתוצאת בדיקת ה-LIVE', en: 'Waiting for the LIVE check result' },
-  // Codex review 2026-10-31 F26 (Owner wording "ממתין" / "Waiting"): another run of this agent is still working
-  waiting_run: { he: 'ממתין', en: 'Waiting' },
   not_run_hour: { he: 'לא הורץ — מגבלת השעה', en: 'Not run — hourly limit' },
   not_run_budget: { he: 'לא הורץ — אין יתרה מספקת בתקציב', en: 'Not run — insufficient available budget' },
   not_run_inconclusive: { he: 'לא הורץ — הבדיקה האחרונה לא הוכרעה', en: 'Not run — recent check was inconclusive' },
@@ -335,8 +333,7 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
         if (!r?.ok || !r.chain) { setNotice({ good: false, text: isHebrew ? 'ההרצה של כל הסוכנים נעצרה. רעננו כדי להמשיך.' : 'Running all the agents stopped. Refresh to continue.' }); break; }
         setChain(r.chain);
         if (r.chain.status !== 'running') { load(); break; }
-        // F26: any wait (the LIVE answer, or another run of an agent) is asked again every 20 seconds - never a fast loop
-        if (r.busy || r.chain.steps.some((x) => x.status === 'waiting_run' || (x.step === 'live_wait' && x.status === 'waiting'))) await new Promise((res) => setTimeout(res, 20000));
+        if (r.busy || r.chain.steps.some((x) => x.step === 'live_wait' && x.status === 'waiting')) await new Promise((res) => setTimeout(res, 20000));
       }
     } finally { stepping.current = false; }
   }, [isHebrew, load]);
