@@ -270,6 +270,12 @@ Deno.serve(async (req: Request) => {
       if (error) throw new Error('database');
       return count ?? 0;
     },
+    csAdmit: async (row, dayStart, cap) => {
+      const r = (await db(admin.rpc('customer_success_admit', { p_user: row.user_id, p_signal: row.signal_code, p_evidence: row.evidence, p_day_start: dayStart, p_cap: cap }))) as { ok?: boolean; id?: string; code?: string } | null;
+      if (r?.ok === true && typeof r.id === 'string') return { id: r.id };
+      if (r?.ok === false && typeof r.code === 'string') return { id: null, code: r.code };
+      throw new Error('database');
+    },
     csInsertCase: async (row) => {
       const { data, error } = await admin.from('customer_success_cases').insert(row).select('id').maybeSingle();
       if (error) { if ((error as { code?: string }).code === '23505') return null; console.error(`agents-room: case ${(error as { code?: string }).code ?? ''}`); throw new Error('database'); }
