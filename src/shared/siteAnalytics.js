@@ -142,6 +142,16 @@ function ensureGtag(win, doc, pageLocation, pageReferrer) {
   doc.head.appendChild(s);
 }
 
+/** Codex review 2026-10-31 F07: the measurement tag is in memory and this address is private (not a measured public page, or it carries
+ *  a sign-in state) - such a navigation must be a full page load, and nothing private may render in this document. */
+export function taggedPrivate(href, win = typeof window !== 'undefined' ? window : null) {
+  if (!win || !win.__tekangoGtagLoaded) return false;
+  try {
+    const u = new URL(String(href), win.location.origin);
+    return !isMeasuredPath(u.pathname) || carriesAuthState(u.search, u.hash);
+  } catch { return true; }
+}
+
 // called on every route change; returns true when a page view was sent
 export function syncMeasurement({ isHebrew, consent, region = false, win = window, doc = document, authContext = bootAuthContext }) {
   const loc = win.location;

@@ -68,6 +68,11 @@ const SEND_CODES = {
   not_unknown: { he: 'כבר לא ממתינה לבדיקה', en: 'no longer waiting for a check' },
 };
 // Codex release 6 (Owner console 2026-10-30, decision 10, L-22): one canonical record per supplier document (migration 20261030800000)
+// Codex review 2026-10-31 F09 (decision g; Owner wording): a copy the Owner marks as another document - a series or a period
+const SERIES_COPY = {
+  he: { open: 'מסמך אחר – סדרה או תקופה', label: 'סדרה או תקופה:', save: 'שמירה', cancel: 'ביטול', saved: 'נשמר. החשבונית נחשבת עכשיו למסמך נפרד, ואפשר להחזיר אותה לממתינות ולאשר.' },
+  en: { open: 'Another document – series or period', label: 'Series or period:', save: 'Save', cancel: 'Cancel', saved: 'Saved. The invoice now counts as a separate document; move it back to waiting to approve it.' },
+};
 const DUPLICATE_COPY = { he: 'החשבונית הזו כבר קיימת בכלי. העותק הנוסף נשמר לתיעוד ולא יישלח שוב לפיי פלוס.', en: 'This invoice already exists in the tool. The additional copy is kept as evidence and will not be sent to PayPlus again.' };
 const DUPLICATE_CONFLICT = { he: 'נמצאו פרטים סותרים לחשבונית הזו. בדקו אותם לפני אישור או שליחה.', en: 'Conflicting details were found for this invoice. Review them before approval or sending.' };
 const IDENTITY_CODES = { identity_exists: DUPLICATE_COPY, duplicate_copy: DUPLICATE_COPY };
@@ -84,6 +89,7 @@ export default function AdminExpenseInvoices({ isHebrew }) {
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState(null);
   const [edit, setEdit] = useState(null);
+  const [series, setSeries] = useState(null); // Codex review F09: { id, value } of the copy being marked as another document
   const [typeDraft, setTypeDraft] = useState({ id: '', name: '', uuid: '' });
   const [googleLink, setGoogleLink] = useState(null);
   const [preview, setPreview] = useState(null);
@@ -169,6 +175,15 @@ export default function AdminExpenseInvoices({ isHebrew }) {
     setBusy('');
     if (IDENTITY_CODES[allOk]) setNotice({ good: false, text: IDENTITY_CODES[allOk][isHebrew ? 'he' : 'en'] });
     else if (!allOk) failed();
+    reload();
+  };
+  const saveSeries = async (id, value) => {
+    setBusy('status');
+    const r = await call({ action: 'update', ids: [id], patch: { identitySeries: value.trim() } });
+    setBusy('');
+    if (r.ok) { setSeries(null); setNotice({ good: true, text: SERIES_COPY[isHebrew ? 'he' : 'en'].saved }); }
+    else if (IDENTITY_CODES[r.code]) setNotice({ good: false, text: IDENTITY_CODES[r.code][isHebrew ? 'he' : 'en'] });
+    else failed();
     reload();
   };
   // action 'send' (approved rows) or 'reconcile' (20261029000000, Codex F05: rows PayPlus may have - a search only)
@@ -418,6 +433,20 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                           {r.reason && <div className="av-small">{r.reason}</div>}
                           {r.duplicateOf && <div className="av-muted av-small" role="status" data-testid={`expense-duplicate-${r.id}`}>{DUPLICATE_COPY[isHebrew ? 'he' : 'en']}</div>}
                           {r.duplicateOf && conflictOf(r) && <div className="av-warn av-small" role="status" data-testid={`expense-conflict-${r.id}`}>{DUPLICATE_CONFLICT[isHebrew ? 'he' : 'en']}</div>}
+                          {/* Codex review 2026-10-31 F09 (decision g): a supplier may reuse a number in another series or period - the Owner says so here */}
+                          {r.duplicateOf && r.status !== 'sent' && (series?.id === r.id ? (
+                            <div className="av-row-actions" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center', marginBlockStart: 6 }} data-testid={`expense-series-form-${r.id}`}>
+                              <label className="av-small" htmlFor={`expense-series-${r.id}`}>{SERIES_COPY[isHebrew ? 'he' : 'en'].label}</label>
+                              <input id={`expense-series-${r.id}`} className="av-input" maxLength={40} value={series.value} onChange={(e) => setSeries({ id: r.id, value: e.target.value })} data-testid={`expense-series-input-${r.id}`} />
+                              {/* PRODUCT_TRUTH_DECORATIVE: saves the Owner's series / period of this copy - the database then treats it as its own document */}
+                              <button type="button" className="av-btn av-primary" disabled={!!busy || !series.value.trim()} onClick={() => saveSeries(r.id, series.value)} data-testid={`expense-series-save-${r.id}`}>{SERIES_COPY[isHebrew ? 'he' : 'en'].save}</button>
+                              {/* PRODUCT_TRUTH_DECORATIVE: closes the series form without a change */}
+                              <button type="button" className="av-btn" disabled={!!busy} onClick={() => setSeries(null)}>{SERIES_COPY[isHebrew ? 'he' : 'en'].cancel}</button>
+                            </div>
+                          ) : (
+                            // PRODUCT_TRUTH_DECORATIVE: opens the form to mark this copy as another document (a series or a period)
+                            <button type="button" className="av-btn" style={{ marginBlockStart: 6 }} disabled={!!busy} onClick={() => setSeries({ id: r.id, value: r.identitySeries || '' })} data-testid={`expense-series-${r.id}`}>{SERIES_COPY[isHebrew ? 'he' : 'en'].open}</button>
+                          ))}
                           <div className="av-muted av-tiny">{isHebrew ? 'מאת ' : 'From '}<bdi dir="ltr">{r.emailFrom || '—'}</bdi> · <bdi dir="ltr">{r.mailbox}</bdi>{r.emailSubject ? <> · <bdi>{r.emailSubject}</bdi></> : null}</div>
                           {r.status === 'send_failed' && r.sendError && <div className="av-bad av-small" role="alert">{isHebrew ? 'לא נשלח: ' : 'Not sent: '}<bdi>{r.sendError}</bdi></div>}
                           {r.status === 'unknown' && <div className="av-warn av-small" role="status" data-testid={`expense-unknown-${r.id}`}>{isHebrew

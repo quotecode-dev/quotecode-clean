@@ -15,6 +15,10 @@
     "interactive": 1,
     "markers": 4
   },
+  "src/components/AccountOutreachPreferences.jsx": {
+    "interactive": 0,
+    "markers": 1
+  },
   "src/components/AddAnotherItemDialog.jsx": {
     "interactive": 2,
     "markers": 2
@@ -44,8 +48,8 @@
     "markers": 1
   },
   "src/components/AdminExpenseInvoices.jsx": {
-    "interactive": 22,
-    "markers": 22
+    "interactive": 25,
+    "markers": 25
   },
   "src/components/AdminHub.jsx": {
     "interactive": 1,
@@ -403,6 +407,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/components/accountOutreachCopy.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/components/adminDestinations.js": {
     "interactive": 0,
     "markers": 0
@@ -524,6 +532,10 @@
     "markers": 0
   },
   "src/components/quotePresentation/useQuotePresentationEditor.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/quotesPerPage.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -671,6 +683,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/pages/AccountOutreachUnsubscribe.jsx": {
+    "interactive": 2,
+    "markers": 2
+  },
   "src/pages/Contact.jsx": {
     "interactive": 4,
     "markers": 3
@@ -751,6 +767,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/shared/RouteChunkBoundary.jsx": {
+    "interactive": 1,
+    "markers": 1
+  },
   "src/shared/RouteScrollManager.jsx": {
     "interactive": 0,
     "markers": 0
@@ -758,6 +778,10 @@
   "src/shared/SiteAnalyticsTracker.jsx": {
     "interactive": 3,
     "markers": 3
+  },
+  "src/shared/TaggedPrivateBoundary.jsx": {
+    "interactive": 0,
+    "markers": 0
   },
   "src/shared/UpdateAvailableBanner.jsx": {
     "interactive": 2,
@@ -939,6 +963,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/utils/csvCell.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/customerFriendlySpec.js": {
     "interactive": 0,
     "markers": 0
@@ -1008,6 +1036,10 @@
     "markers": 0
   },
   "src/utils/itemPrice.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/logoImport.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -1084,6 +1116,10 @@
     "markers": 0
   },
   "src/utils/quoteEmailErrorClassification.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/quoteFileTypes.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -1187,6 +1223,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/utils/settingsBaseline.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/shareDefaultsClient.js": {
     "interactive": 0,
     "markers": 0
@@ -1275,6 +1315,10 @@
     "interactive": 1,
     "markers": 0
   },
+  "supabase/functions/_shared/scheduledHealth.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/_shared/shareMessage.js": {
     "interactive": 0,
     "markers": 0
@@ -1335,6 +1379,22 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/agents-room/aiBudget.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/agents-room/articleTopics.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/agents-room/chain.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/agents-room/customerSuccess.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/agents-room/index.ts": {
     "interactive": 0,
     "markers": 0
@@ -1347,7 +1407,15 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/agents-room/marketing.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/agents-room/social.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/agents-room/socialReplies.ts": {
     "interactive": 0,
     "markers": 0
   },
@@ -1471,6 +1539,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/chat-ai/publicPool.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/chat-ai/quoteContext.ts": {
     "interactive": 0,
     "markers": 0
@@ -1527,6 +1599,14 @@
     "interactive": 0,
     "markers": 1
   },
+  "supabase/functions/live-check/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/live-check/lib.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/p0-aqp-0929-broker/bundle.ts": {
     "interactive": 0,
     "markers": 0
@@ -1552,6 +1632,14 @@
     "markers": 0
   },
   "supabase/functions/resend-email-webhook/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/scheduled-health/index.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/scheduled-health/lib.ts": {
     "interactive": 0,
     "markers": 0
   },
@@ -1584,6 +1672,10 @@
     "markers": 1
   },
   "supabase/functions/send-quote-email/priceGate.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/send-quote-email/sendLedger.ts": {
     "interactive": 0,
     "markers": 0
   },
@@ -1708,94 +1800,6 @@
     "markers": 0
   },
   "supabase/functions/voice-ai/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/settingsBaseline.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/logoImport.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/quotesPerPage.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/chat-ai/publicPool.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/shared/RouteChunkBoundary.jsx": {
-    "interactive": 1,
-    "markers": 1
-  },
-  "supabase/functions/agents-room/aiBudget.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/agents-room/articleTopics.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/csvCell.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/send-quote-email/sendLedger.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/quoteFileTypes.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/_shared/scheduledHealth.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/scheduled-health/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/scheduled-health/lib.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/agents-room/marketing.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/agents-room/socialReplies.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/AccountOutreachPreferences.jsx": {
-    "interactive": 0,
-    "markers": 1
-  },
-  "src/pages/AccountOutreachUnsubscribe.jsx": {
-    "interactive": 2,
-    "markers": 2
-  },
-  "supabase/functions/agents-room/chain.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/agents-room/customerSuccess.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/live-check/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/live-check/lib.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/accountOutreachCopy.js": {
     "interactive": 0,
     "markers": 0
   }

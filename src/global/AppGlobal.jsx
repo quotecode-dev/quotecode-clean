@@ -17,6 +17,7 @@ import UpdateAvailableBanner from '../shared/UpdateAvailableBanner';
 import RouteScrollManager from '../shared/RouteScrollManager';
 import SiteAnalytics from '../shared/SiteAnalyticsTracker';
 import RouteChunkBoundary from '../shared/RouteChunkBoundary';
+import TaggedPrivateBoundary from '../shared/TaggedPrivateBoundary';
 
 // Codex release 3 step 2 (Owner 2026-10-29, L-15): the heavy screens load on demand (RouteChunkBoundary) - a landing page no longer
 // downloads the Dashboard, the admin, the AI logs or the public quote renderers; the light public pages stay in the shell (prerendered)
@@ -67,7 +68,7 @@ export default function AppGlobal() {
           /dashboard Route below) is the sole real implementation now. */}
 
       <RouteChunkBoundary isHebrew={false}>
-      <Routes>
+      <TaggedPrivateBoundary><Routes>
         {/* Password Recovery Fresh-Link Root-Landing Hardening (2026-09-15
             task) - EN twin of AppLocal.jsx's own identical "/" route fix;
             see that file's comment and src/shared/supabase.js's
@@ -136,7 +137,7 @@ export default function AppGlobal() {
         {/* MD-2 (2026-09-25): an attachment storage-path URL opened from a stale pre-cutover tab resolves here; every other
             unknown path still renders NotFound - see src/components/AttachmentCompatRoute.jsx. */}
         <Route path="*" element={<AttachmentCompatRoute isHebrew={false} />} />
-      </Routes>
+      </Routes></TaggedPrivateBoundary>
       </RouteChunkBoundary>
     </BrowserRouter>
   );

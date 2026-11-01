@@ -639,6 +639,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-31 (typed: the six Codex groups in order, each through its own gate to LIVE, including L-02, L-13, L-15, L-17, L-18, L-22 and the 30/10 locks, decisions a-h and the wording as recommended): Codex review group 4 - Maya drafts admitted atomically (customer_success_admit, F21), account erasure of email records and help drafts (F30, L-18), 30-day address retention (decision c)"
+    },
+    "20261031600000_files_invoices_truth.sql": {
+      "sha256": "ac50ddcd7a47b9ca58cb82921774e8c28b879f603f60e3b772d0d82dd0a22212",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-31 (typed: the six Codex groups in order, each through its own gate to LIVE, including L-02, L-13, L-15, L-17, L-18, L-22 and the 30/10 locks, decisions a-h and the wording as recommended): Codex review group 6 - the file quota counts the incoming file (F06, decision h), invoice identity edits re-link (F08, decision f), the Owner series or period (F09, decision g)"
     }
   }
 }

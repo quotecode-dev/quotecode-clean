@@ -9,11 +9,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { Menu, X, LogIn, KeyRound } from 'lucide-react';
 import ProFlowLogo from '../ProFlowLogo';
+import { taggedPrivate } from '../../shared/siteAnalytics';
 
 function go(navigate, href) {
   return (e) => {
     if (!navigate || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
     e.preventDefault();
+    // Codex review 2026-10-31 F07 (Owner-typed, L-02 / L-15 named): with the measurement tag loaded on this public page, a private
+    // destination (sign-in, the app) is a full page load - the tag never stays in memory while a private page is shown
+    if (taggedPrivate(href)) { window.location.assign(href); return; }
     navigate(href);
   };
 }

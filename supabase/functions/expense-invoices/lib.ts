@@ -26,7 +26,9 @@ export const SEND_BATCH = 10;
 export const BUDGET_MS = Object.freeze({ admin: 40000, cron: 200000 });
 export const EXPENSE_CATEGORIES = Object.freeze(['software_cloud', 'ai', 'advertising', 'communication', 'equipment', 'professional', 'fees', 'office', 'other']);
 const FILE_TYPES = Object.freeze(['application/pdf', 'image/jpeg', 'image/png']);
-const EDITABLE = Object.freeze(['supplierName', 'docNumber', 'docDate', 'amount', 'currency', 'amountIncludesVat', 'vatPercentage', 'subcategoryId', 'category']);
+// Codex review 2026-10-31 F09 (decision g): identitySeries = the Owner's own "another document - series or period" of a copy (typed, never
+// inferred from OCR dates); null clears it
+const EDITABLE = Object.freeze(['supplierName', 'docNumber', 'docDate', 'amount', 'currency', 'amountIncludesVat', 'vatPercentage', 'subcategoryId', 'category', 'identitySeries']);
 
 export type Resp = { status: number; body: Record<string, unknown> };
 export type Attachment = { filename: string; mimeType: string; attachmentId: string; size: number };
@@ -726,6 +728,7 @@ export function invoicePatch(p: Record<string, unknown>): Record<string, unknown
     else if (k === 'vatPercentage') { if (!(typeof v === 'number' && v >= 0 && v <= 30)) return null; out.vat_percentage = v; }
     else if (k === 'subcategoryId') { if (v !== null && !(Number.isInteger(v) && (v as number) > 0)) return null; out.subcategory_id = v; }
     else if (k === 'category') { if (!EXPENSE_CATEGORIES.includes(v as string)) return null; out.category = v; }
+    else if (k === 'identitySeries') { if (v !== null && !(typeof v === 'string' && /^[\p{L}\p{N} ._/-]{1,40}$/u.test(v.trim()))) return null; out.identity_series = v === null ? null : (v as string).trim(); }
   }
   return Object.keys(out).length ? out : null;
 }

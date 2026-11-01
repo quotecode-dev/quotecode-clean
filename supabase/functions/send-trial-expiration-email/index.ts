@@ -86,7 +86,8 @@ serve(async (req) => {
         .maybeSingle();
 
       if (callerBizErr) {
-        return jsonResponse({ error: `Failed to verify caller permissions: ${callerBizErr.message}` }, 500);
+        // Codex review 2026-10-31 F29: a fixed code - never the database's own text
+        return jsonResponse({ error: 'permission_check_failed' }, 500);
       }
       if (callerBiz?.role !== 'super_admin') {
         return jsonResponse({ error: 'Forbidden: super_admin role required' }, 403);
@@ -159,11 +160,12 @@ serve(async (req) => {
       },
     });
 
-    for (const line of summary.errors) console.error(`send-trial-expiration-email: ${line}`);
-    return jsonResponse({ success: true, ...summary }, 200);
+    // Codex review 2026-10-31 F29: counts only - no user ids, provider or database text in the log or the answer
+    const { errors, ...counts } = summary;
+    if (errors.length) console.error(`send-trial-expiration-email: ${errors.length} error(s)`);
+    return jsonResponse({ success: true, ...counts, errorCount: errors.length }, 200);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('send-trial-expiration-email error:', message);
-    return jsonResponse({ error: message }, 400);
+    console.error('send-trial-expiration-email error:', error instanceof Error ? error.name : 'unknown');
+    return jsonResponse({ error: 'failed', code: 'internal' }, 400);
   }
 });
