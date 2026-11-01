@@ -42,45 +42,13 @@ export async function triggerExpirationReminders(supabase, env, logs, priorFailu
   return failures;
 }
 
-// עדכון אוטומטי של שערי מטבעות דרך API חיצוני ושמירה ב-Supabase (תוצאת הכתיבה נבדקת)
-export async function refreshExchangeRates(supabase, fetchImpl, logs) {
-  const response = await fetchImpl('https://open.er-api.com/v6/latest/USD');
-  const data = await response.json();
-  if (!data || !data.rates) throw new Error('rates API returned no rates');
+// Owner console 2026-11-01 (typed: "מאשר להוריד את שלב שערי המטבע מההרצה היומית, שחרור עד הלייב"): the exchange-rates step is retired.
+// It wrote the rates to public.app_settings - a table that was never created and that nothing reads (the calculator, the public tools
+// and the plans-window estimate fetch their rates directly) - so it failed every day; since Codex F10 the daily window was partial.
 
-  const liveRates = {
-    USD: 1,
-    ILS: data.rates.ILS || 3.65,
-    EUR: data.rates.EUR || 0.92,
-    GBP: data.rates.GBP || 0.78,
-    CAD: data.rates.CAD || 1.35,
-    AUD: data.rates.AUD || 1.52,
-    CHF: data.rates.CHF || 0.88,
-    JPY: data.rates.JPY || 150.0
-  };
-
-  const { error } = await supabase
-    .from('app_settings')
-    .upsert({
-      key: 'exchange_rates',
-      value: liveRates,
-      updated_at: new Date().toISOString()
-    }, { onConflict: 'key' });
-  if (error) throw new Error(`exchange_rates upsert failed: ${error.message}`);
-
-  logs.push('Exchange rates updated successfully.');
-}
-
-export async function runCron({ supabase, env, fetchImpl }) {
+export async function runCron({ supabase, env }) {
   const logs = [];
   const failures = [];
-
-  try {
-    await refreshExchangeRates(supabase, fetchImpl, logs);
-  } catch (e) {
-    console.error('Exchange rates step failed:', e.message);
-    failures.push(`rates: ${e.message}`);
-  }
 
   // תזכורות דו-שלביות (3 ימים / 24 שעות) לפני תפוגת ניסיון חינמי או מנוי בתשלום
   try {
@@ -106,7 +74,7 @@ export default async function handler(req, res) {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    const { ok, logs, failures } = await runCron({ supabase, env: process.env, fetchImpl: fetch });
+    const { ok, logs, failures } = await runCron({ supabase, env: process.env });
     // Codex SEC-LOG-02 (Owner 2026-10-30): the details (provider texts, recipients) stay in the server log; the answer names only the steps
     console.log('cron:', logs.join(' | '));
     if (failures.length) console.error('cron failures:', failures.join(' | '));
