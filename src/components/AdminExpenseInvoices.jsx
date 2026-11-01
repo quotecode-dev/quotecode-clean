@@ -73,6 +73,11 @@ const SERIES_COPY = {
   he: { open: 'מסמך אחר – סדרה או תקופה', label: 'סדרה או תקופה:', save: 'שמירה', cancel: 'ביטול', saved: 'נשמר. החשבונית נחשבת עכשיו למסמך נפרד, ואפשר להחזיר אותה לממתינות ולאשר.' },
   en: { open: 'Another document – series or period', label: 'Series or period:', save: 'Save', cancel: 'Cancel', saved: 'Saved. The invoice now counts as a separate document; move it back to waiting to approve it.' },
 };
+// Owner console 2026-11-01 (typed: "מאשר: זיהוי חשבוניות זיכוי בכלי ההוצאות, סימון בלי אפשרות אישור, כולל שינוי ב-L-22 ..."; "יש חשבונית חיוב על 390 ... חשבונית זיכוי של 370 כך שסך ההוצאה היא 20")
+const CREDIT_COPY = {
+  he: { badge: 'חשבונית זיכוי - לא נספרת כהוצאה ולא נשלחת לפיי פלוס', of: 'מבטלת את מסמך', net: 'הוצאה נטו', charge: 'חיוב', credit: 'זיכוי', doc: 'מסמך' },
+  en: { badge: 'Credit note - not counted as an expense and not sent to PayPlus', of: 'Cancels document', net: 'Net expense', charge: 'Charge', credit: 'Credit', doc: 'document' },
+};
 const DUPLICATE_COPY = { he: 'החשבונית הזו כבר קיימת בכלי. העותק הנוסף נשמר לתיעוד ולא יישלח שוב לפיי פלוס.', en: 'This invoice already exists in the tool. The additional copy is kept as evidence and will not be sent to PayPlus again.' };
 const DUPLICATE_CONFLICT = { he: 'נמצאו פרטים סותרים לחשבונית הזו. בדקו אותם לפני אישור או שליחה.', en: 'Conflicting details were found for this invoice. Review them before approval or sending.' };
 const IDENTITY_CODES = { identity_exists: DUPLICATE_COPY, duplicate_copy: DUPLICATE_COPY };
@@ -285,6 +290,9 @@ export default function AdminExpenseInvoices({ isHebrew }) {
   const def = data?.settings?.defaultSubcategoryId ?? null;
   const current = TABS.find((x) => x.id === tab);
   const rows = invoices.filter((i) => current.statuses.includes(i.status));
+  // a credit note names the charge it cancels: same supplier, same currency, the printed document number
+  const creditsOf = (r) => (r.docType === 'credit_note' || !r.docNumber ? [] : invoices.filter((c) => c.docType === 'credit_note' && c.creditedDocNumber === r.docNumber
+    && c.currency === r.currency && !c.duplicateOf && (c.supplierVatId && r.supplierVatId ? c.supplierVatId === r.supplierVatId : c.supplierName === r.supplierName)));
   const count = (tb) => invoices.filter((i) => tb.statuses.includes(i.status)).length;
   const typeName = (id) => types.find((x) => x.id === id)?.name;
   const title = isHebrew ? 'חשבוניות הוצאה' : 'Expense invoices';
@@ -430,6 +438,22 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                             {' · '}{(EXPENSE_CATEGORY_LABELS[r.category] || EXPENSE_CATEGORY_LABELS.other)[isHebrew ? 'he' : 'en']}
                             {r.subcategoryId ? <>{' · '}{typeName(r.subcategoryId) || r.subcategoryId}</> : null}
                           </div>
+                          {r.docType === 'credit_note' && (
+                            <div className="av-warn av-small" role="status" data-testid={`expense-credit-${r.id}`}>
+                              {CREDIT_COPY[isHebrew ? 'he' : 'en'].badge}
+                              {r.creditedDocNumber && <>{' · '}{CREDIT_COPY[isHebrew ? 'he' : 'en'].of} <bdi dir="ltr">{r.creditedDocNumber}</bdi></>}
+                            </div>
+                          )}
+                          {creditsOf(r).length > 0 && (() => {
+                            const credited = creditsOf(r).reduce((sum, c) => sum + (Number(c.amount) || 0), 0);
+                            const copy = CREDIT_COPY[isHebrew ? 'he' : 'en'];
+                            return (
+                              <div className="av-info av-small" role="status" data-testid={`expense-net-${r.id}`}>
+                                {copy.net}: <strong><N v={money(Math.max((Number(r.amount) || 0) - credited, 0), r.currency)} /></strong>
+                                {' ('}{copy.charge} <N v={money(r.amount, r.currency)} />{' - '}{copy.credit} <N v={money(credited, r.currency)} />{')'}
+                              </div>
+                            );
+                          })()}
                           {r.reason && <div className="av-small">{r.reason}</div>}
                           {r.duplicateOf && <div className="av-muted av-small" role="status" data-testid={`expense-duplicate-${r.id}`}>{DUPLICATE_COPY[isHebrew ? 'he' : 'en']}</div>}
                           {r.duplicateOf && conflictOf(r) && <div className="av-warn av-small" role="status" data-testid={`expense-conflict-${r.id}`}>{DUPLICATE_CONFLICT[isHebrew ? 'he' : 'en']}</div>}
@@ -473,7 +497,7 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                             )}
                             {r.status !== 'sent' && r.status !== 'sending' && r.status !== 'unknown' && (
                               <>
-                                {r.status !== 'approved' && r.status !== 'send_failed' && !r.duplicateOf && (
+                                {r.status !== 'approved' && r.status !== 'send_failed' && !r.duplicateOf && r.docType !== 'credit_note' && (
                                   // PRODUCT_TRUTH_DECORATIVE: approves this invoice (it is sent only with "Send to PayPlus")
                                   <button type="button" className="av-btn av-primary" disabled={!!busy} onClick={() => setStatus([r.id], 'approved')} data-testid={`expense-approve-${r.id}`}>{isHebrew ? 'אישור' : 'Approve'}</button>
                                 )}
@@ -481,7 +505,7 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                                   // PRODUCT_TRUTH_DECORATIVE: rejects this invoice (kept in the "Rejected" list)
                                   <button type="button" className="av-btn" disabled={!!busy} onClick={() => setStatus([r.id], 'rejected')} data-testid={`expense-reject-${r.id}`}>{isHebrew ? 'דחייה' : 'Reject'}</button>
                                 )}
-                                {r.status !== 'pending' && (
+                                {r.status !== 'pending' && r.docType !== 'credit_note' && (
                                   // PRODUCT_TRUTH_DECORATIVE: moves this invoice back to "Waiting for approval"
                                   <button type="button" className="av-btn" disabled={!!busy} onClick={() => setStatus([r.id], 'pending')}>{isHebrew ? 'החזרה לממתינות' : 'Back to waiting'}</button>
                                 )}

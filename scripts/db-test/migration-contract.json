@@ -645,6 +645,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-31 (typed: the six Codex groups in order, each through its own gate to LIVE, including L-02, L-13, L-15, L-17, L-18, L-22 and the 30/10 locks, decisions a-h and the wording as recommended): Codex review group 6 - the file quota counts the incoming file (F06, decision h), invoice identity edits re-link (F08, decision f), the Owner series or period (F09, decision g)"
+    },
+    "20261101050000_expense_credit_notes.sql": {
+      "sha256": "dcd824da749992425869b3157a52c8fcb908440ba36a9e5ddcdff6e24e01a6b7",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-11-01 (typed: \"מאשר: זיהוי חשבוניות זיכוי בכלי ההוצאות, סימון בלי אפשרות אישור, כולל שינוי ב-L-22, שחרור עד הלייב אחרי שמסיימים את הסרטון\"): a supplier credit note is recorded and can never be approved or sent"
     }
   }
 }
