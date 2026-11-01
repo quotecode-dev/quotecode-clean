@@ -25,6 +25,7 @@ import '../quoteDocument/quoteDocument.css';
 // Task 16 round 4: narrow-screen item rows (owned separately from quoteDocument.css; loaded after it).
 import '../quoteDocument/narrowItems.css';
 import { outputGate, authorizeWithNotice, outputBlockedMessage } from '../domain/subscriptions/outputAuthority';
+import { importOwnerLogo } from '../utils/logoImport';
 import PublicThanksNotice from '../components/PublicThanksNotice';
 import { useAmountAxis } from '../quoteDocument/useAmountAxis';
 import { openAttachmentFresh } from '../utils/freshAttachmentLink';
@@ -221,7 +222,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
     const serverPhase = quoteData.capability ? 'off' : (quoteData.viewerIsOwner === true ? (quoteData.outputPhase || 'off') : 'off');
     const gate = outputGate(finalChannel, serverPhase);
     if (gate.mode === 'authority_required') {
-      const auth = await authorizeWithNotice({ channel: finalChannel, quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => askConfirm(text, false), isHebrew: false });
+      const auth = await authorizeWithNotice({ channel: finalChannel, quoteId: quote.id, invoke: (name, opts) => invokeWithFreshSession(name, opts), confirm: (text) => askConfirm(text, false), isHebrew: false, importLogo: () => importOwnerLogo({ client: supabase, invoke: (name, opts) => invokeWithFreshSession(name, opts) }) });
       const snap = auth.proceed
         ? await supabase.functions.invoke('get-public-quote', { body: { output_grant: auth.grant, channel: finalChannel } })
         : null;
