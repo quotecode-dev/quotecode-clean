@@ -197,7 +197,8 @@ serve(async (req) => {
         .maybeSingle();
 
       if (callerBizErr) {
-        return jsonResponse({ error: `Failed to verify caller permissions: ${callerBizErr.message}` }, 500);
+        // Codex review 2026-10-31 F29: a fixed code - never the database's own text
+        return jsonResponse({ error: 'permission_check_failed' }, 500);
       }
       if (callerBiz?.role !== 'super_admin') {
         return jsonResponse({ error: 'Forbidden: super_admin role required' }, 403);
@@ -262,8 +263,8 @@ serve(async (req) => {
     await recordRun(adminClient, 'daily-cron', 200, { ...(batchAnswer as Record<string, unknown>), ...(parentFailures.length ? { parentFailures } : {}) });
     return jsonResponse(batchAnswer, 200);
   } catch (error: unknown) {
-    const message = error instanceof Error ? error.message : 'Unknown error';
-    console.error('send-subscription-expiration-email error:', message);
-    return jsonResponse({ error: message }, 400);
+    // Codex review 2026-10-31 F29: the error's type only in the log, a fixed code in the answer (api/cron.js still sees "error")
+    console.error('send-subscription-expiration-email error:', error instanceof Error ? error.name : 'unknown');
+    return jsonResponse({ error: 'failed', code: 'internal' }, 400);
   }
 });

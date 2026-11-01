@@ -230,6 +230,13 @@ Deno.serve(async (req: Request) => {
       return rows.length === 1;
     },
     sameInvoiceElsewhere: async (row) => {
+      // Codex review 2026-10-31 F09: a document with an identity is compared by its identity (supplier VAT + type + number + the Owner's
+      // series / period) - a reused number in another series is not "the same invoice"; without an identity the former rule stays
+      if (typeof row.document_identity === 'string' && row.document_identity) {
+        const same = await db(admin.from('expense_invoices').select('id').eq('document_identity', row.document_identity)
+          .in('status', ['sending', 'sent', 'unknown']).neq('id', String(row.id))) as unknown[];
+        return same.length > 0;
+      }
       if (!row.doc_number) return false;
       const rows = await db(admin.from('expense_invoices').select('id, supplier_name, supplier_vat_id').eq('doc_number', String(row.doc_number))
         .in('status', ['sending', 'sent', 'unknown']).neq('id', String(row.id))) as { supplier_name: string | null; supplier_vat_id: string | null }[];
