@@ -67,8 +67,9 @@ export default function AdminUsersTab({
   // They keep working while the new plan system is not active, and become unavailable once the free_issue (output) phase is
   // enforced - read from the read-only admin summary RPC for the dialog's target (no call when no dialog is open). The Edge
   // functions refuse independently (409 legacy_trial_retired). Admin never edits entitlement or ledger rows.
-  const legacyTarget = trialActionUser || lifetimeActionUser;
-  const { summary: legacyTargetSummary } = useAdminAccountSummary(legacyTarget ? legacyTarget.user_id : null);
+  // Owner console 2026-11-01 (typed: "מאשר להחזיר את הענקת המנוי לכל החיים בניהול, כולל שינוי ב-L-22, שחרור עד הלייב"): the Lifetime grant / revoke is NOT retired - the plan system honors is_lifetime (unlimited quotes,
+  // SMART PACK, no payment page); only the trial extension stays retired
+  const { summary: legacyTargetSummary } = useAdminAccountSummary(trialActionUser ? trialActionUser.user_id : null);
   const legacyRetired = legacyOperationsRetired(legacyTargetSummary);
   const legacyRetiredText = isHebrew
     ? 'הפעולה מהמערכת הקודמת אינה זמינה: מערכת המסלולים החדשה פעילה בחשבון. המסלול, היתרה והזכאות נקבעים רק בשרת.'
@@ -78,10 +79,11 @@ export default function AdminUsersTab({
   const revokeOnlyText = isHebrew
     ? 'ביטול LIFETIME: החשבון חוזר למצב שנקבע לפי נתוני החשבון והשרת (למשל מסלול החינם), ללא חיוב. מסלול או יתרה אינם נוצרים מהביטול.'
     : 'Revoking Lifetime: the account returns to the state its own data and the server give it (for example the Free plan), with no charge. Revoking creates no plan or balance.';
-  // Night task 2026-10-16 (PLN-7): what the Lifetime switch really does today
+  // Night task 2026-10-16 (PLN-7): what the Lifetime switch really does today (2026-11-01: in the plan system - quotes without a limit,
+  // SMART PACK, no payment page; a live standing order is not stopped from here)
   const legacyOnlyText = isHebrew
-    ? 'מנוי לכל החיים: המערכת והצ׳אט יציגו לחשבון „מנוי לכל החיים” וכל היכולות פתוחות בו, ללא חיוב. במערך המסלולים זה לא משנה מסלול או יתרה.'
-    : 'Lifetime: the app and the chat show the account as a "Lifetime subscription" with every capability open and no charge. In the plan system it does not change a plan or a balance.';
+    ? 'מנוי לכל החיים: המערכת והצ׳אט יציגו לחשבון „מנוי לכל החיים”, וכל היכולות פתוחות בו, כולל חכם פלוס והצעות בלי הגבלה, ללא חיוב. אם לחשבון יש מנוי בתשלום פעיל, הוראת הקבע שלו לא נעצרת מכאן.'
+    : 'Lifetime: the app and the chat show the account as a "Lifetime subscription", with every capability open, including SMART PACK and quotes without a limit, and no charge. If the account has an active paid subscription, its standing order is not stopped from here.';
 
 
 
@@ -205,7 +207,6 @@ export default function AdminUsersTab({
     setIsResetting(true);
     const nextIsLifetime = !(lifetimeActionUser.is_lifetime === true);
     try {
-      if (legacyRetired) throw new Error(legacyRetiredText);
       const targetUserId = lifetimeActionUser.user_id;
       validateReasonAndTarget(targetUserId);
       await runProtectedAction({
@@ -428,12 +429,11 @@ export default function AdminUsersTab({
             isHebrew={isHebrew} kind={targetIsLifetime ? 'revoke' : 'grant'} target={lifetimeActionUser}
             reason={adminReasonInput} onReason={setAdminReasonInput} password={adminPasswordInput} onPassword={setAdminPasswordInput}
             busy={isResetting} error={resetError} done={actionDone} onSubmit={handleExecuteLifetimeAction} onClose={closeDialogs}
-            disabled={isResetting || legacyRetired}
+            disabled={isResetting}
           >
             <div className="av-statline"><span>{isHebrew ? 'מצב נוכחי' : 'Current state'}</span><strong>{lifetimeWords(targetIsLifetime)}</strong></div>
             <div className="av-statline"><span>{isHebrew ? 'מצב לאחר פעולה' : 'Result'}</span><strong>{lifetimeWords(!targetIsLifetime)}</strong></div>
             <p className="av-small av-muted" style={{ margin: '8px 0' }}>{targetIsLifetime ? revokeOnlyText : legacyOnlyText}</p>
-            {legacyRetired && <div className="av-notice av-bad">{legacyRetiredText}</div>}
           </AdminProtectedDialog>
         );
       })()}
