@@ -197,13 +197,19 @@ describe('the Owner decision in the agents room (manager.decide)', () => {
 describe('the daily admission', () => {
   it('the spec priority decides who gets the last draft; the cap stops the scan', async () => {
     const admitted: string[] = [];
-    const x = cs([row({ account_id: 'b1', signal_code: 'paid_inactive' }), row({ account_id: 'b2', signal_code: 'renewal_failed_grace', evidence: { asOf: NOW.toISOString(), graceEndsAt: '2026-11-02T09:00:00Z' } })], {
+    const x = cs([row({ account_id: 'b1', signal_code: 'paid_inactive' }), row({ account_id: 'b2', signal_code: 'no_quote_onboarding' })], {
       csAdmit: async (r, _day, cap) => (admitted.length >= Math.min(cap, 1) ? { id: null, code: 'cap' } : (admitted.push(r.signal_code), { id: `c-${r.user_id}` })),
     });
     const run = await scanAndDraft(x.d, 'k', async () => 'act');
-    expect(admitted).toEqual(['renewal_failed_grace']);
-    expect(run.drafted.map((v) => v.row.signal_code)).toEqual(['renewal_failed_grace']);
+    expect(admitted).toEqual(['no_quote_onboarding']);
+    expect(run.drafted.map((v) => v.row.signal_code)).toEqual(['no_quote_onboarding']);
     expect(run.result.findings.some((f) => /טיוטות יחכו למחר/.test(f.he))).toBe(true);
+  });
+  // Owner console 2026-11-02 (stage 1, decision 2): a failed renewal has its own automatic emails - no second message to the same customer
+  it('a failed renewal gets no draft', async () => {
+    const x = cs([row({ account_id: 'b2', signal_code: 'renewal_failed_grace', evidence: { asOf: NOW.toISOString(), graceEndsAt: '2026-11-02T09:00:00Z' } })]);
+    const run = await scanAndDraft(x.d, 'k', async () => 'act');
+    expect(run.drafted).toEqual([]);
   });
   it('an account with an open proposal is not given a second one', async () => {
     const x = cs([row({ signal_code: 'free_ending' })], { csAdmit: async () => ({ id: null, code: 'account_open' }) });

@@ -66,6 +66,8 @@ import ExcelJS from 'exceljs';
 
 import PricingModal from '../components/PricingModal';
 import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
+import BillingNoticeBar from '../components/BillingNoticeBar';
+import { billingNoticeModel, billingBellItem, sendReminderText } from '../domain/subscriptions/billingNotices';
 import CustomerTwinPanel from '../components/CustomerTwinPanel';
 import { twinPayloadFromEditor, twinPayloadFromQuoteRow } from '../utils/customerTwinClient';
 import { applyTwinEdit } from '../../supabase/functions/_shared/customerTwin.js';
@@ -1387,6 +1389,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // words in its bubble); the plans window states the same status ("you have ... until X" where a real date exists).
   const statusDate = (v) => formatShortDate(v, isLocalIsraeliBusiness ? 'Local' : 'International');
   const ownSubscriptionStatus = accountStatus({ is_lifetime: isLifetimeAccount, trial_ends_at: trialEndsAt }, accountSummary);
+  const billingNotice = useMemo(() => billingNoticeModel(accountSummary, isLifetimeAccount), [accountSummary, isLifetimeAccount]);
   const headerPlanBadge = statusMedallionModel({ is_lifetime: isLifetimeAccount, trial_ends_at: trialEndsAt }, accountSummary, { isHebrew, formatDate: statusDate });
   // Owner console 2026-10-14 ("open every quote capability - area, length, AI, templates - to all users now"): while the new plan
   // system is NOT active (no account has a server plan yet, nothing is billed), every quote capability is open to every account, as it
@@ -3240,7 +3243,9 @@ ${quoteViewLink}`
 Continue anyway?`, isHebrew);
   };
   // Owner 2026-10-26 (typed approval of the app's own question window): each answer may be pending - the second asks after the first said yes
-  const confirmBeforeCustomerOutput = (quote) => andAllowed(confirmMissingPrices(quote), () => confirmExpiredValidity(quote));
+  // Owner console 2026-11-02 (typed: "מאשר בניית שלב 1: מסכי ימי החסד ומיילי החיוב שנכשל לפי ההחלטה מ-18/10, כולל שינוי ב-L-02, L-11, L-12, L-13 ו-L-15, עם ההמלצות בהחלטות 1, 2 ו-4, שחרור עד הלייב"): during the grace days a reminder before every send; the send stays allowed
+  const confirmGraceBeforeSend = () => (billingNotice?.state === 'grace' ? askConfirm(sendReminderText(billingNotice, Date.now(), isHebrew), isHebrew) : true);
+  const confirmBeforeCustomerOutput = (quote) => andAllowed(confirmGraceBeforeSend(), () => andAllowed(confirmMissingPrices(quote), () => confirmExpiredValidity(quote)));
 
   // Task 28: "copy message" - the same message as WhatsApp, copied for the owner to paste and send HIMSELF (nothing is sent). It shares
   // the quote link, so it passes the same output gate as a public share (enforced phase: the server authorizes 'public_share' first and
@@ -4147,6 +4152,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     try { setTipBellState(parseTipState(window.localStorage.getItem(tipStorageKey(tipUserId)))); } catch { setTipBellState(null); }
   }, [tipUserId, dailyTip]);
   const bellItemsWithTips = useMemo(() => [...bellAnnouncements, ...tipBellItems(tipBellState, dailyTip?.id || null)], [bellAnnouncements, tipBellState, dailyTip]);
+  // Owner console 2026-11-02 (typed: "מאשר בניית שלב 1: מסכי ימי החסד ומיילי החיוב שנכשל לפי ההחלטה מ-18/10, כולל שינוי ב-L-02, L-11, L-12, L-13 ו-L-15, עם ההמלצות בהחלטות 1, 2 ו-4, שחרור עד הלייב"): until the payment succeeds, whatever the reminder settings
+  const bellPinnedItems = useMemo(() => { const item = billingBellItem(billingNotice); return item ? [item] : []; }, [billingNotice]);
   const runDailyTipRef = useRef(runDailyTip);
   runDailyTipRef.current = runDailyTip;
   useEffect(() => {
@@ -5458,6 +5465,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   return (
     <AccountSummaryContext.Provider value={accountSummaryContextValue}>
     <div className="dash-app-shell" dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: isHebrew ? FONT_HE : FONT_EN, background: NEON.bg, color: NEON.textPrimary, minHeight: '100vh', display: 'flex', flexDirection: 'column', letterSpacing: '-0.01em', overflowX: 'clip' }}>
+      <BillingNoticeBar model={billingNotice} isHebrew={isHebrew} userId={session?.user?.id} onPay={() => setShowPricingModal(true)} onEnded={refreshAccountSummaryQuiet} />
 
       <style>{`
         @keyframes popupBounce {
@@ -8660,7 +8668,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                     <div className="dash-header-account">
                       <HeaderGreeting isHebrew={isHebrew} />
                       {/* Task 20: the bell opens the notification center (same 18px footprint; badge and panel are out of flow). */}
-                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellItemsWithTips} upgradeQuoteId={bellUpgradeQuoteId} />
+                      <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellItemsWithTips} pinnedItems={bellPinnedItems} upgradeQuoteId={bellUpgradeQuoteId} />
                       {/* Owner 2026-10-14: the round plan medallion replaces the avatar circle (no sign-in provider ever set a picture) -
                           the account's plan status from the one shared model; it opens the plans window. Not shown to the super admin. */}
                       {!isSuperAdmin && (
@@ -8676,7 +8684,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                   <div className="dash-header-badge-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {/* Task 20 (Owner console instruction 2026-10-09): the plans status indicator is removed from the mobile header and the
                         SAME notification bell takes its slot. The plans feature itself stays (Business settings › My subscription, Task 30). */}
-                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellItemsWithTips} upgradeQuoteId={bellUpgradeQuoteId} variant="mobile" />
+                    <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellItemsWithTips} pinnedItems={bellPinnedItems} upgradeQuoteId={bellUpgradeQuoteId} variant="mobile" />
                     {/* Owner 2026-10-14: the same round plan medallion as on desktop, outermost next to the bell */}
                     {!isSuperAdmin && (
                       <HeaderPlanMedallion model={headerPlanBadge} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />

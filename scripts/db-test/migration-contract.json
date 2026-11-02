@@ -663,6 +663,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-02 (typed: \"מאשר את התוכנית לשירה: מדידה יומית של כל פרסום, מסך מה תופס, טיוטות תשובה לכל התגובות באישור שלי, ושורת תחזוקה יומית, שחרור עד הלייב\"): the results of every post, the follower counts and the stills folder"
+    },
+    "20261102000000_customer_notices.sql": {
+      "sha256": "2a83ce370a93c4cf95abba54b8d2947a3cbd2198dd30c4904814271196d8d6e4",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-11-02 (typed: \"מאשר בניית שלב 1: מסכי ימי החסד ומיילי החיוב שנכשל לפי ההחלטה מ-18/10, כולל שינוי ב-L-02, L-11, L-12, L-13 ו-L-15, עם ההמלצות בהחלטות 1, 2 ו-4, שחרור עד הלייב\"): additive tables and service-only functions; replays cleanly (IF NOT EXISTS, CREATE OR REPLACE, ON CONFLICT DO NOTHING)."
     }
   }
 }
