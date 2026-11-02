@@ -17,10 +17,9 @@ function reloadOnce(error) {
   try {
     const last = Number(window.sessionStorage.getItem(RELOAD_KEY) || 0);
     if (Date.now() - last < RELOAD_WINDOW_MS) return;
-    // Owner console 2026-11-02 (typed: "מאשר את התוכנית ל-R09, R10, R18 ו-R19, כולל שינוי ב-L-22, L-02, L-15 ו-L-12, שחרור עד הלייב"), Codex R18: a draft that could not be kept stays on the page; the message and the retry remain
-    if (!flushAllDrafts()) return;
     window.sessionStorage.setItem(RELOAD_KEY, String(Date.now()));
   } catch { return; }
+  flushAllDrafts();
   window.location.reload();
 }
 

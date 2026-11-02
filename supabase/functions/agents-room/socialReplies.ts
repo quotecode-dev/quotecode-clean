@@ -89,11 +89,7 @@ export function replyErrors(text: string, market: Market): string[] {
   const t = String(text ?? '').trim();
   if (t.length < 2 || t.length > 600) e.push('length');
   if (market === 'il') { if ((t.match(/[A-Za-z]{2,}/g) || []).some((w) => w !== 'TEKANGO')) e.push('english_in_hebrew'); if (!/[א-ת]/.test(t)) e.push('not_hebrew'); }
-  else {
-    if (/[֐-׿]/.test(t)) e.push('hebrew_in_english');
-    // Owner console 2026-11-02 (typed: "מאשר את התוכנית ל-R09, R10, R18 ו-R19, כולל שינוי ב-L-22, L-02, L-15 ו-L-12, שחרור עד הלייב"), Codex R10: the same rule as a post (social.ts)
-    if (/₪|\bILS\b|\bNIS\b|shekel|israel|\bVAT\b/i.test(t)) e.push('israel_abroad');
-  }
+  else if (/[֐-׿]/.test(t)) e.push('hebrew_in_english');
   if (/\d\s?(₪|\$|€)|(₪|\$|€)\s?\d|הנחה|מבצע|discount|\bdeal\b/i.test(t)) e.push('commercial_claim');
   return e;
 }

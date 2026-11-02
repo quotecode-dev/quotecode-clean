@@ -4,7 +4,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import { publishToMeta, facebookMessage, instagramCaption, imageUrl, TARGETS, GRAPH, CHANNELS, MetaError } from './social.ts';
 import { handle, type StageDeps, type Action } from './manager.ts';
-import { socialPostDigest } from '../_shared/socialPostDigest.js';
 
 const payload = { channel: 'fb_il', network: 'facebook', market: 'il', text: 'הצעת מחיר ברורה בכמה דקות.', hashtags: ['#הצעת_מחיר', '#TEKANGO'], link: 'https://www.tekango.com/he', art: 'quote' };
 const ok = (j: unknown) => new Response(JSON.stringify(j), { status: 200 });
@@ -105,48 +104,20 @@ describe('approve = publish, for a connected account', () => {
     return d;
   }
   const paths = async () => ['/he'];
-  const seen = async (d: StageDeps) => socialPostDigest((await d.getAction('a1'))?.payload);
-
-  describe('Codex R09: only the version on the screen is approved', () => {
-    it('another version, or no version at all: refused, nothing published, the post still waits', async () => {
-      for (const digest of [socialPostDigest({ ...payload, text: 'גרסה ישנה שהוצגה בלשונית אחרת' }), undefined]) {
-        const d = deps();
-        expect((await handle({ action: 'decide', id: 'a1', decision: 'approve', digest }, d, paths)).body).toEqual({ ok: false, code: 'post_changed' });
-        expect(d.publishSocial).not.toHaveBeenCalled();
-        expect((await d.getAction('a1'))?.status).toBe('proposed');
-      }
-    });
-    it('a change of the image, the link or the hashtags counts as another version', () => {
-      const base = socialPostDigest(payload);
-      for (const over of [{ still_url: 'https://x/y.jpg' }, { link: 'https://www.tekango.com/he/other' }, { hashtags: ['#x'] }, { channel: 'ig_il' }]) expect(socialPostDigest({ ...payload, ...over })).not.toBe(base);
-    });
-    it('a rewrite that lands between the read and the claim: back to waiting, nothing published', async () => {
-      const d = deps();
-      const digest = await seen(d);
-      const real = d.updateAction;
-      d.updateAction = vi.fn(async (id: string, patch: Record<string, unknown>, when?: Action['status'], at?: string | null) => {
-        if (patch.status === 'approved') (await d.getAction(id))!.payload = { ...payload, text: 'נוסח אחר שנכתב עכשיו' };
-        return real(id, patch, when, at);
-      }) as StageDeps['updateAction'];
-      expect((await handle({ action: 'decide', id: 'a1', decision: 'approve', digest }, d, paths)).body).toEqual({ ok: false, code: 'post_changed' });
-      expect(d.publishSocial).not.toHaveBeenCalled();
-      expect(await d.getAction('a1')).toMatchObject({ status: 'proposed', decided_at: null, error: null });
-    });
-  });
 
   it('publishes once and closes the post with the link', async () => {
     const d = deps();
-    const r = await handle({ action: 'decide', id: 'a1', decision: 'approve', digest: await seen(d) }, d, paths);
+    const r = await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths);
     expect(r.body).toEqual({ ok: true, status: 'published', url: 'https://www.facebook.com/p1' });
     expect(d.publishSocial).toHaveBeenCalledTimes(1);
     expect(d.actions.get('a1')).toMatchObject({ status: 'done', result: { published: true, auto: true, url: 'https://www.facebook.com/p1' }, error: null });
-    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve', digest: await seen(d) }, d, paths)).status).toBe(409); // never twice
+    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths)).status).toBe(409); // never twice
     expect(d.publishSocial).toHaveBeenCalledTimes(1);
   });
 
   it('a failure leaves the post approved (ready for a manual publication) with the reason', async () => {
     const d = deps({ publishSocial: vi.fn(async () => { throw new MetaError('meta_400_190', true); }) });
-    const r = await handle({ action: 'decide', id: 'a1', decision: 'approve', digest: await seen(d) }, d, paths);
+    const r = await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths);
     expect(r.body).toEqual({ ok: true, status: 'ready', publishError: 'publish_failed: meta_400_190' });
     expect(d.actions.get('a1')).toMatchObject({ status: 'approved', error: 'publish_failed: meta_400_190' });
     expect((await handle({ action: 'mark_done', id: 'a1' }, d, paths)).body).toMatchObject({ ok: true }); // published by hand
@@ -155,7 +126,7 @@ describe('approve = publish, for a connected account', () => {
   // 20261029000000 (Codex F10): the Owner is told once - the reason in plain words, never the token
   it('a dead page connection emails the Owner once a day with what to do', async () => {
     const d = deps({ publishSocial: vi.fn(async () => { throw new MetaError('meta_400_190', true); }) });
-    await handle({ action: 'decide', id: 'a1', decision: 'approve', digest: await seen(d) }, d, paths);
+    await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths);
     expect(d.mailOwner).toHaveBeenCalledTimes(1);
     const [subject, text, key] = (d.mailOwner as ReturnType<typeof vi.fn>).mock.calls[0] as [string, string, string];
     expect(subject).toBe('הפרסום האוטומטי לפייסבוק ישראל נכשל - TEKANGO');
@@ -171,7 +142,7 @@ describe('approve = publish, for a connected account', () => {
     const d = deps({ publishSocial: vi.fn(async () => { throw new MetaError('meta_400_190', true); }) });
     const mail = d.mailOwner as ReturnType<typeof vi.fn>;
     mail.mockImplementationOnce(async () => false);
-    await handle({ action: 'decide', id: 'a1', decision: 'approve', digest: await seen(d) }, d, paths);
+    await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths);
     const incident = () => [...d.actions.values()].find((x) => x.action_type === 'urgent_mail')!;
     expect(incident()).toMatchObject({ status: 'failed', error: 'mail_failed' });
     await handle({ action: 'publish_now', id: 'a1' }, d, paths);
@@ -187,9 +158,9 @@ describe('approve = publish, for a connected account', () => {
     const d = deps({ publishSocial: vi.fn(async () => { throw new MetaError('meta_400_190', true); }) });
     const mail = d.mailOwner as ReturnType<typeof vi.fn>;
     mail.mockImplementationOnce(async () => false);
-    await handle({ action: 'decide', id: 'a1', decision: 'approve', digest: await seen(d) }, d, paths); // fb_il
+    await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths); // fb_il
     d.actions.set('a2', { ...d.actions.get('a1')!, id: 'a2', status: 'proposed', decided_at: null, error: null, payload: { ...payload, channel: 'ig_il' } } as Action);
-    await handle({ action: 'decide', id: 'a2', decision: 'approve', digest: socialPostDigest({ ...payload, channel: 'ig_il' }) }, d, paths); // ig_il, the same page token
+    await handle({ action: 'decide', id: 'a2', decision: 'approve' }, d, paths); // ig_il, the same page token
     const incidents = [...d.actions.values()].filter((x) => x.action_type === 'urgent_mail');
     expect(incidents).toHaveLength(1);
     expect(incidents[0]).toMatchObject({ status: 'done', error: null });
@@ -199,7 +170,7 @@ describe('approve = publish, for a connected account', () => {
   // 20261029000000 (Codex F08): an outcome not known is never published again without the Owner's check
   it('no clear answer from Meta: unknown - "publish now" asks the Owner to check the page first', async () => {
     const d = deps({ publishSocial: vi.fn(async () => { throw new Error('The signal has been aborted'); }) });
-    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve', digest: await seen(d) }, d, paths)).body)
+    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths)).body)
       .toEqual({ ok: true, status: 'unknown', publishError: 'publish_unknown: The signal has been aborted' });
     expect((await handle({ action: 'publish_now', id: 'a1' }, d, paths)).body).toEqual({ ok: false, code: 'publish_unknown' });
     expect(d.publishSocial).toHaveBeenCalledTimes(1);
@@ -215,7 +186,7 @@ describe('approve = publish, for a connected account', () => {
       if (patch.status === 'done') throw new Error('database');
       return impl(id, patch, when, w2);
     });
-    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve', digest: await seen(d) }, d, paths)).body).toMatchObject({ ok: true, status: 'published' });
+    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths)).body).toMatchObject({ ok: true, status: 'published' });
     expect(String(d.actions.get('a1')!.error)).toMatch(/^publishing:/);
     real.mockImplementation(impl);
     const later = { ...d, now: () => new Date('2026-11-01T06:10:00Z') } as typeof d;
@@ -225,23 +196,21 @@ describe('approve = publish, for a connected account', () => {
   it('an account that is not connected (TikTok) only becomes ready - nothing is sent to Meta', async () => {
     const d = deps();
     d.actions.get('a1')!.payload = { ...payload, channel: 'tt_il', network: 'tiktok' };
-    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve', digest: await seen(d) }, d, paths)).body).toEqual({ ok: true, status: 'ready' });
+    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths)).body).toEqual({ ok: true, status: 'ready' });
     expect(d.publishSocial).not.toHaveBeenCalled();
   });
 
   it('a second approval racing the first does not publish again (the stored claim is the first one)', async () => {
     const d = deps();
-    const digest = await seen(d);
-    const other = async (id: string) => ({ ...d.actions.get(id)!, error: 'publishing:the-other-request' });
     (d.getAction as ReturnType<typeof vi.fn>).mockImplementationOnce(async (id: string) => d.actions.get(id) ?? null)
-      .mockImplementationOnce(other).mockImplementationOnce(other); // the read after the claim, and the one before publishing
-    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve', digest }, d, paths)).status).toBe(409);
+      .mockImplementationOnce(async (id: string) => ({ ...d.actions.get(id)!, error: 'publishing:the-other-request' }));
+    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths)).status).toBe(409);
     expect(d.publishSocial).not.toHaveBeenCalled();
   });
 
   it('the database spelling of the decision time (+00:00) does not stop the publication (the live failure of 2026-10-27)', async () => {
     const d = deps();
-    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve', digest: await seen(d) }, d, paths)).body).toMatchObject({ ok: true, status: 'published' });
+    expect((await handle({ action: 'decide', id: 'a1', decision: 'approve' }, d, paths)).body).toMatchObject({ ok: true, status: 'published' });
     expect(d.publishSocial).toHaveBeenCalledTimes(1);
     expect(d.actions.get('a1')!.decided_at).toBe('2026-11-01T06:00:00.000+00:00');
   });

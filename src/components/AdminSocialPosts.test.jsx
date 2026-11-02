@@ -51,7 +51,7 @@ describe('the social posts', () => {
     await screen.findByTestId('social-posts');
     invoke.mockResolvedValueOnce({ data: { ok: true, status: 'ready' }, error: null });
     fireEvent.click(screen.getByTestId('social-approve-p1'));
-    await waitFor(() => expect(invoke).toHaveBeenCalledWith('agents-room', { body: { action: 'decide', id: 'p1', decision: 'approve', digest: expect.stringMatching(/^\d+-[0-9a-f]+$/) } }));
+    await waitFor(() => expect(invoke).toHaveBeenCalledWith('agents-room', { body: { action: 'decide', id: 'p1', decision: 'approve' } }));
     await waitFor(() => expect(screen.getByTestId('social-posts-notice').textContent).toBe('אושר. הפוסט מוכן לפרסום למטה.'));
     fireEvent.click(screen.getByTestId('social-revise-p2'));
     fireEvent.change(screen.getByTestId('social-revise-note-p2'), { target: { value: 'יותר קצר' } });

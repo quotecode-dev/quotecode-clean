@@ -65,26 +65,6 @@ describe('useQuoteDraftPersistence', () => {
     const { rerender } = mount(base()); rerender(base({ payload: { ...blank, notes: 'n' } }));
     expect(storage._m.size).toBe(0); act(() => { flushAllDrafts(); }); expect(storage._m.size).toBe(1);
   });
-  it('Codex R18: the flush says whether everything was kept', async () => {
-    const empty = mount(base());
-    expect(flushAllDrafts()).toBe(true); // nothing to keep
-    empty.unmount();
-    const typed = mount(base({ payload: { ...blank, clientName: 'ACME' } }));
-    let r; act(() => { r = flushAllDrafts(); }); expect(r).toBe(true);
-    typed.unmount();
-    // a picked file not stored yet
-    const file = new File(['x'], 'plan.pdf', { type: 'application/pdf' });
-    const picked = mount(base({ payload: { ...blank, clientName: 'ACME' }, files: [file] }));
-    act(() => { r = flushAllDrafts(); }); expect(r).toBe(false);
-    await flush(50);
-    act(() => { r = flushAllDrafts(); }); expect(r).toBe(true); // stored now
-    picked.unmount();
-    // the browser refuses to save
-    storage = memStorage({ fail: new Error('QuotaExceededError') }); store = createDraftStore({ storage, project: 'p' });
-    const full = mount(base({ payload: { ...blank, clientName: 'ACME' } }));
-    act(() => { r = flushAllDrafts(); }); expect(r).toBe(false);
-    full.unmount();
-  });
   it('unmount (sign-out / route change) flushes the last edit', async () => {
     const { rerender, unmount } = mount(base()); rerender(base({ payload: { ...blank, clientName: 'last-word' } }));
     unmount(); expect(createDraftStore({ storage, project: 'p' }).latestNew('u1').envelope.payload.clientName).toBe('last-word');

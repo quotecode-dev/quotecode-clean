@@ -260,12 +260,7 @@ export function createDraftStore({ storage, project = getDraftProjectId(), now =
 // synchronously BEFORE it reloads the page.
 const flushers = new Set();
 export function registerDraftFlush(fn) { flushers.add(fn); return () => flushers.delete(fn); }
-// Owner console 2026-11-02 (typed: "מאשר את התוכנית ל-R09, R10, R18 ו-R19, כולל שינוי ב-L-22, L-02, L-15 ו-L-12, שחרור עד הלייב"), Codex R18: false = something could not be kept (a storage failure, a picked file still being stored)
-export function flushAllDrafts() {
-  let safe = true;
-  for (const f of [...flushers]) { try { if (f() === false) safe = false; } catch { safe = false; } }
-  return safe;
-}
+export function flushAllDrafts() { for (const f of [...flushers]) { try { f(); } catch { /* best effort */ } } }
 
 // After an explicit logout purge, the unmounting editor must not re-write the draft it just lost (its cleanup flush
 // runs AFTER the purge). Writes for that user stay suppressed until they authenticate again.

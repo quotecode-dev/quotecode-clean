@@ -95,13 +95,12 @@ export default function useQuoteDraftPersistence({
   // synchronous flush: last-chance write of the envelope with whatever blobs are already staged
   const flushSync = useCallback(() => {
     const a = latest.current;
-    if (!a.enabled || !a.userId) return true;
+    if (!a.enabled || !a.userId) return;
     if (timer.current) { clearTimeout(timer.current); timer.current = null; }
-    if (!isDirty()) { store.remove(currentKey()); return true; }
+    if (!isDirty()) { store.remove(currentKey()); return; }
     const failed = (a.files || []).filter((f) => !f.id && !blobIds.current.has(f)).map((f) => f.name);
-    const res = writeEnvelope(failed);
+    writeEnvelope(failed);
     persistNow(); // finish any pending blob writes in the background
-    return res?.ok !== false && failed.length === 0; // Codex R18: the caller reloads the page only when nothing can be lost
   }, [store, isDirty, persistNow]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const sig = `${enabled}|${userId}|${mode}|${quoteId}|${draftId}|${formHash(payload)}|${JSON.stringify(payload?.items || []).length}|${(files || []).length}|${(pendingRemovals || []).join(',')}|${JSON.stringify(wizard || null)}`;

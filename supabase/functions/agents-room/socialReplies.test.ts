@@ -64,10 +64,6 @@ describe('comments and replies', () => {
     expect(replyErrors('Thanks for asking', 'il')).toContain('english_in_hebrew');
     expect(replyErrors('תודה', 'intl')).toContain('hebrew_in_english');
     expect(replyErrors('Only $9 today', 'intl')).toContain('commercial_claim');
-    // Codex R10
-    for (const t of ['In Israel this works too', 'VAT is added for you', 'It costs less in shekels', 'Prices in ILS', 'Prices in NIS']) expect(replyErrors(t, 'intl')).toContain('israel_abroad');
-    expect(replyErrors('Thanks, glad it helps your invoices', 'intl')).toEqual([]);
-    expect(replyErrors('תודה רבה על השאלה', 'il')).toEqual([]);
   });
   it('one AI call drafts the calm comments; an invalid draft is dropped', async () => {
     const complete = vi.fn(async () => ({ content: JSON.stringify({ replies: [{ comment_id: 'c1', reply: 'בהגדרות העסק יש שדה לוגו.' }, { comment_id: 'c9', reply: 'x' }] }), promptTokens: 10, completionTokens: 5 }));

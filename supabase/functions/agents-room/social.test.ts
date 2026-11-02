@@ -3,7 +3,6 @@
 // posts and marks published. Every post is checked for its account's language and market before it is stored.
 import { describe, it, expect, vi } from 'vitest';
 import { handle, type StageDeps, type Action } from './manager.ts';
-import { socialPostDigest } from '../_shared/socialPostDigest.js';
 import { CHANNELS, POSTS_PER_WEEK, ART_KEYS, postErrors, type Post } from './social.ts';
 import { brandLatin, hasHebrewBrand } from './lib.ts';
 import { ART_KEYS as SITE_ART_KEYS } from '../../../src/shared/articleArt.js';
@@ -186,7 +185,7 @@ describe('the Owner\'s decisions on a post', () => {
     const d = deps();
     await handle({ action: 'run', agent: 'social' }, d, paths);
     const [a, b] = posts(d);
-    expect((await handle({ action: 'decide', id: a.id, decision: 'approve', digest: socialPostDigest(a.payload) }, d, paths)).body).toMatchObject({ ok: true, status: 'ready' });
+    expect((await handle({ action: 'decide', id: a.id, decision: 'approve' }, d, paths)).body).toMatchObject({ ok: true, status: 'ready' });
     expect(d.actions.get(a.id)).toMatchObject({ status: 'approved' });
     expect(d.mailOwner).not.toHaveBeenCalled();
     expect((await handle({ action: 'mark_done', id: a.id }, d, paths)).body).toMatchObject({ ok: true, status: 'done' });
@@ -262,7 +261,7 @@ describe('the supervisor (L-22, Owner 2026-10-27 "מאשר את שניהם")', (
     await handle({ action: 'run', agent: 'social' }, owner, paths);
     const [a] = posts(owner);
     const d = sup(['social.view', 'social.publish'], { recentActions: owner.recentActions, getAction: owner.getAction, updateAction: owner.updateAction });
-    expect((await handle({ action: 'decide', id: a.id, decision: 'approve', digest: socialPostDigest(a.payload) }, d, paths)).body).toMatchObject({ ok: true, status: 'ready' });
+    expect((await handle({ action: 'decide', id: a.id, decision: 'approve' }, d, paths)).body).toMatchObject({ ok: true, status: 'ready' });
     expect((await handle({ action: 'mark_done', id: a.id }, d, paths)).body).toMatchObject({ ok: true });
     const task = await owner.insertAction({ run_key: 'k', source: 'manager', kind: 'claude', action_type: 'claude_task', title_he: 'x', title_en: 'x', payload: { prompt_he: 'x'.repeat(50) } });
     expect((await handle({ action: 'decide', id: task!, decision: 'approve' }, d, paths)).status).toBe(403);

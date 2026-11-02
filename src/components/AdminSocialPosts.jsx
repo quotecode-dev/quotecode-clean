@@ -3,7 +3,6 @@
 // marks a post ready; the Owner (or a supervisor holding social.publish) copies the text, downloads the image, posts it, then marks it
 // published. Every account is ONE market - an Israeli post is Hebrew right-to-left, an international post English left-to-right.
 // Reads / acts through the agents-room function (social_state / decide / revise / mark_done); the function checks the permission again.
-import { socialPostDigest } from '../../supabase/functions/_shared/socialPostDigest.js';
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import AdminScreenFrame from './AdminScreenFrame';
@@ -137,7 +136,7 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto, metrics 
           <>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
               {/* PRODUCT_TRUTH_DECORATIVE: approves the post - it becomes ready to publish; nothing is posted by the system */}
-              <button type="button" className="av-btn av-primary" disabled={off} onClick={() => onAct({ action: 'decide', id: a.id, decision: 'approve', digest: socialPostDigest(p) })} data-testid={`social-approve-${a.id}`}>
+              <button type="button" className="av-btn av-primary" disabled={off} onClick={() => onAct({ action: 'decide', id: a.id, decision: 'approve' })} data-testid={`social-approve-${a.id}`}>
                 {auto ? (isHebrew ? 'מאשר ומפרסם' : 'Approve and publish') : (isHebrew ? 'מאשר' : 'Approve')}
               </button>
               {/* PRODUCT_TRUTH_DECORATIVE: opens the one-sentence change request for the post */}
@@ -237,8 +236,6 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
       : r?.code === 'ai_unknown_outcome' ? (isHebrew ? 'לא התקבלה תשובה ברורה מהבינה. הסכום נשאר שמור, ולא נשלח ניסיון נוסף. אפשר לנסות שוב מאוחר יותר.' : 'The AI gave no clear answer. The amount stays reserved and no further attempt was sent. You can try again later.')
       : r?.code === 'forbidden' ? (isHebrew ? 'אין לכם הרשאה לפעולה הזו.' : 'You do not have permission for this action.')
         : r?.code === 'revise_limit' ? (isHebrew ? 'הפוסט כבר תוקן 3 פעמים. אפשר לאשר אותו או לבחור "לא עכשיו".' : 'This post was already revised 3 times. Approve it or choose "Not now".')
-          // Owner console 2026-11-02 (typed: "מאשר את התוכנית ל-R09, R10, R18 ו-R19, כולל שינוי ב-L-22, L-02, L-15 ו-L-12, שחרור עד הלייב"), Codex R09: nothing was published; the screen reloads with the current version
-          : r?.code === 'post_changed' ? (isHebrew ? 'הפוסט השתנה מאז שנפתח המסך, ולא פורסם. קראו אותו שוב ואשרו.' : 'The post changed since this screen opened, and it was not published. Read it again and approve.')
           : r?.code === 'not_pending' ? (isHebrew ? 'הפוסט כבר טופל.' : 'This post was already handled.')
             : r?.code === 'publishing' ? (isHebrew ? 'הפוסט מתפרסם ממש עכשיו. רעננו בעוד דקה.' : 'The post is being published right now. Refresh in a minute.')
               : r?.code === 'not_ready' ? (isHebrew ? 'הפוסט כבר לא מחכה לפרסום.' : 'This post no longer waits to be published.')
