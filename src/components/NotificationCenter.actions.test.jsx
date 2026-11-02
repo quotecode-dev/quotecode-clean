@@ -145,7 +145,10 @@ describe('floating notice', () => {
     expect(notice.textContent).toContain('1001');
     expect(document.querySelector('[data-testid="bell-float-action-quote"]').textContent).toBe('צפייה בהצעה');
     expect(loadFloatedKeys(USER).has('first_view:q1')).toBe(true);
-    fireEvent.click(document.querySelector('[data-testid="bell-float-close"]'));
+    // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקוני המעבר הרביעי וטקסט שירה, כולל שינוי ב-L-02, L-06, L-11, L-14, L-16, L-17 ו-L-22, שחרור עד הלייב"): a click inside keeps it, a click outside closes it (and it never floats again)
+    fireEvent.mouseDown(notice);
+    expect(document.querySelector('[data-testid="bell-float-notice"]')).toBeTruthy();
+    fireEvent.mouseDown(document.body);
     expect(document.querySelector('[data-testid="bell-float-notice"]')).toBeNull();
     first.unmount();
     mountBell({ client, quotes: [viewedQuote] });

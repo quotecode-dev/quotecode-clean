@@ -180,9 +180,10 @@ export function careLine(key: string, day: string, d: { rows: ContentRow[]; foll
   return { run_key: key, source: 'social' as const, kind: 'info' as const, action_type: 'none' as const, title_he: `שירה - תחזוקה יומית ${day}`, title_en: `Shira - daily care ${day}`, detail_he: he, detail_en: en, dedupe_key: `social-care:${day}` };
 }
 
+// Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקוני המעבר הרביעי וטקסט שירה, כולל שינוי ב-L-02, L-06, L-11, L-14, L-16, L-17 ו-L-22, שחרור עד הלייב") and "למה זה בכל מופיע כברירת מחדל, להוריד לגמרי": the fixed text says what the product does, nothing about free quotes or days
 const STILL_COPY: Record<Market, { text: string; hashtags: string[]; link: string }> = {
-  il: { text: 'הצעות מחיר מקצועיות מהטלפון: בונים, שולחים בוואטסאפ או במייל, והלקוח חותם דיגיטלית.\n\n10 הצעות חינם, ללא התחייבות וללא כרטיס אשראי. 10 הצעות או 7 ימים, המוקדם מביניהם.', hashtags: ['#הצעתמחיר', '#עסקיםקטנים', '#עצמאים'], link: `${ORIGIN}/he` },
-  intl: { text: 'Professional quotes from your phone: build it, send it by WhatsApp or email, and your client signs digitally.\n\n10 free quotes, no commitment, no credit card. 10 quotes or 7 days, whichever comes first.', hashtags: ['#quotes', '#smallbusiness', '#contractors'], link: `${ORIGIN}/en` },
+  il: { text: 'הצעות מחיר מקצועיות מהטלפון: בונים, שולחים בוואטסאפ או במייל, והלקוח חותם דיגיטלית.', hashtags: ['#הצעתמחיר', '#עסקיםקטנים', '#עצמאים'], link: `${ORIGIN}/he` },
+  intl: { text: 'Professional quotes from your phone: build it, send it by WhatsApp or email, and your client signs digitally.', hashtags: ['#quotes', '#smallbusiness', '#contractors'], link: `${ORIGIN}/en` },
 };
 export const STILL_CHANNELS: Record<Market, { id: string; network: 'facebook' | 'instagram'; he: string; en: string }[]> = {
   il: [{ id: 'fb_il', network: 'facebook', he: 'פייסבוק ישראל', en: 'Facebook Israel' }, { id: 'ig_il', network: 'instagram', he: 'אינסטגרם ישראל', en: 'Instagram Israel' }],

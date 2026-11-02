@@ -194,7 +194,7 @@ describe('decideFree10Action (attempted paid action after Free-10)', () => {
     const he = accountStatusModel(pkg(bill({ renewalStopped: true, paidThrough: '2026-11-20T21:59:00.000Z' })), 'he').detail;
     expect(he).toBe('החידוש האוטומטי הופסק — המנוי בתוקף עד \u206620/11/2026 23:59\u2069 (שעון ישראל)');
     expect(accountStatusModel(pkg(bill({ renewalStopped: true }), 'INTERNATIONAL'), 'en').detail)
-      .toBe('Automatic renewal is off — subscription valid until \u206611/20/2026 10:00\u2069 (UTC)');
+      .toMatch(/^Automatic renewal is off — subscription valid until \u2066\d{2}\/\d{2}\/2026 \d{2}:\d{2}\u2069$/); // IRON-DATE-001 amended 2026-11-02: the device's own clock, no zone named
     expect(accountStatusModel(pkg(bill(ended)), 'he').detail).toBe('המנוי הסתיים לבקשתכם');
     expect(accountStatusModel(pkg(bill({ ...ended, renewalStopped: false, limitedReason: 'payment_failed' })), 'he').detail).toBe('התשלום לחידוש המנוי לא עבר');
     expect(accountStatusModel(pkg(bill({ ...ended, renewalStopped: false, limitedReason: 'period_ended' })), 'en').detail).toBe('Paid period has ended');

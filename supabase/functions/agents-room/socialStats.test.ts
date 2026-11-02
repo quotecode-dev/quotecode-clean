@@ -122,8 +122,9 @@ describe('the stills folder', () => {
     expect(a.map((x) => x.payload.channel)).toEqual(['fb_il', 'ig_il']);
     expect(a[0]).toMatchObject({ kind: 'system', action_type: 'social_post', dedupe_key: 'still:s1:fb_il' });
     expect(a[0].payload.still_url).toBe(url);
-    expect(a[0].payload.text).toContain('10 הצעות או 7 ימים');
-    expect(stillActions('k', { id: 's2', market: 'intl', path: 'x', url })[1].payload.text).toContain('whichever comes first');
+    expect(a[0].payload.text).toContain('הצעות מחיר מקצועיות');
+    expect(a[0].payload.text).not.toMatch(/חינם|7 ימים|כרטיס אשראי/);
+    expect(stillActions('k', { id: 's2', market: 'intl', path: 'x', url })[1].payload.text).not.toMatch(/whichever comes first|free quotes|credit card/);
   });
   it('publishing uses the still from our own folder; any other address falls back to the illustration', async () => {
     const seen: string[] = [];

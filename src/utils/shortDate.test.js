@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { execFileSync } from 'node:child_process';
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import path from 'node:path';
@@ -8,6 +8,20 @@ import { formatShortDate, formatShortDateTime, calendarParts, resolveDateMarket,
 
 // IRON-DATE-001: ONE short-date primitive. Fixture 2026-09-13 is unambiguous (13 cannot be a month).
 describe('IRON-DATE-001 short-date primitive', () => {
+  // Owner console 2026-11-02 (typed: "מאשר שינוי בחוק IRON-DATE-001: במסכי המשתמש בשוק הבינלאומי שעה ותאריך של חותמת זמן מוצגים לפי שעון המכשיר של המשתמש; ישראל והניהול בלי שינוי"): the International cases below are a device set to UTC
+  beforeEach(() => { vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ timeZone: 'UTC' }); });
+  afterEach(() => { vi.restoreAllMocks(); });
+  it('the amended law: on a screen abroad the device clock decides; Israel never moves; no device = UTC', () => {
+    vi.restoreAllMocks();
+    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ timeZone: 'America/Los_Angeles' });
+    expect(formatShortDateTime('2026-09-14T05:00:00Z', 'International')).toBe('09/13/2026 22:00');
+    expect(formatShortDate('2026-09-14T05:00:00Z', 'International')).toBe('09/13/2026');
+    expect(formatShortDateTime('2026-09-14T05:00:00Z', 'Local')).toBe('14/09/2026 08:00');
+    expect(formatShortDate('2026-09-13', 'International')).toBe('09/13/2026');
+    vi.stubGlobal('window', undefined);
+    expect(formatShortDateTime('2026-09-14T05:00:00Z', 'International')).toBe('09/14/2026 05:00');
+    vi.unstubAllGlobals();
+  });
   it('renders the Owner fixture by market: Local 13/09/2026, International 09/13/2026', () => {
     expect(formatShortDate('2026-09-13', 'Local')).toBe('13/09/2026');
     expect(formatShortDate('2026-09-13', 'International')).toBe('09/13/2026');

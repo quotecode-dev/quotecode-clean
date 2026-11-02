@@ -106,7 +106,8 @@ export default function LandingGlobal({ onForgotPassword }) {
       } : {}),
       capacity: [`After the ${FREE_QUOTES_TOTAL} free quotes`, 'Monthly or annual billing, your choice'],
       features: ['The monthly plan renews every month', 'The annual plan renews every year'],
-      notice: 'Not available for purchase yet',
+      // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקוני המעבר הרביעי וטקסט שירה, כולל שינוי ב-L-02, L-06, L-11, L-14, L-16, L-17 ו-L-22, שחרור עד הלייב"): purchase abroad is open since PR #151, the same words as the Hebrew card
+      notice: 'Buy inside your account, in the plans window',
     },
   ];
 
@@ -258,7 +259,7 @@ export default function LandingGlobal({ onForgotPassword }) {
         { q: 'Does previewing another style change my plan?', a: 'No. Viewing the examples on this page does not change your plan or your quotes.' },
         { q: 'What happens to a shared quote after a plan change?', a: 'A shared or signed quotation stays as the customer received it, including its presentation.' },
         // OD-08: prices are the USD catalog and are charged in USD. Owner console 2026-11-01 (decision a): no Israeli VAT abroad (export of a service)
-        { q: 'Do the displayed prices include taxes?', a: 'Plan prices are listed in US dollars and are charged in USD; a price shown in pounds or euros is only an estimate. The amount shown in the plans window is the full amount charged, and no Israeli VAT is added.' },
+        { q: 'Do the displayed prices include taxes?', a: 'Plan prices are listed in US dollars and are charged in USD; a price shown in pounds or euros is only an estimate. The amount shown in the plans window is the full amount charged.' },
         // OD-01/OD-02 (Owner 2026-10-07): the trial question is replaced by the Free-10 policy, truthfully not yet activated.
         // Task 37 (Owner-approved): the same facts as scannable points.
         { q: 'How do the 10 free quotes work?', a: <>The new free plan includes 10 quotes in total, or 7 days from sign-up, whichever comes first. SMART PACK is included during those 7 days.<ul className="tl-faq-list"><li>A quote counts the first time it is saved with a customer and at least one item. Editing and saving it again does not count again.</li><li>Sending or producing the same version again for the same customer does not count, on any channel: sending it, a view link, a PDF or a print.</li><li>Changing the customer, the recipient name or the quote content and producing it again counts as another quote.</li><li>An empty draft and previews never count.</li><li>Deleting a quote does not give it back, and quotes already sent to customers stay available.</li></ul>For accounts opened before the free plan was activated, the 7 days count from the activation day.</> },
