@@ -7,7 +7,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '../shared/supabase';
 import AdminScreenFrame from './AdminScreenFrame';
 import AgentAvatar from './AgentAvatar';
-import AdminSocialResults from './AdminSocialResults';
 import { formatShortDateTime } from '../utils/shortDate';
 import { ADMIN_DATE_MARKET } from '../utils/adminDates';
 import { ADMIN_COPY as C, t } from '../domain/admin/adminCopy';
@@ -25,10 +24,6 @@ async function callFn(body) {
     return (await error?.context?.json?.().catch(() => null)) || { ok: false, code: 'unavailable' };
   } catch { return { ok: false, code: 'unavailable' }; }
 }
-
-// Owner console 2026-11-02 (the plan for Shira): a post of the stills folder shows and downloads its own ad
-const STILL = /^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/social-stills\//;
-const postImageOf = (p) => (STILL.test(String(p.still_url || '')) ? p.still_url : `/social/art/${p.art}.jpg`);
 
 const fullText = (p) => [p.text, (p.hashtags || []).join(' '), p.link].filter(Boolean).join('\n\n');
 
@@ -110,7 +105,7 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto, metrics 
   const off = !!busy;
   return (
     <li style={{ border: '1px solid #dfe7ea', borderRadius: 10, padding: 12, listStyle: 'none', display: 'flex', flexWrap: 'wrap', gap: 12 }} data-testid={`social-post-${a.id}`} data-status={a.status}>
-      <img src={postImageOf(p)} alt="" width="112" height="112" loading="lazy" style={{ borderRadius: 8, border: '1px solid #dfe7ea', flex: '0 0 auto' }} data-testid={`social-post-art-${a.id}`} />
+      <img src={`/social/art/${p.art}.jpg`} alt="" width="112" height="112" loading="lazy" style={{ borderRadius: 8, border: '1px solid #dfe7ea', flex: '0 0 auto' }} data-testid={`social-post-art-${a.id}`} />
       <div style={{ flex: '1 1 260px', minWidth: 0 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', marginBottom: 6 }}>
           <span className="av-badge">{isHebrew ? net.he : net.en}</span>
@@ -181,7 +176,7 @@ function PostCard({ a, isHebrew, canPublish, busy, onAct, onCopy, auto, metrics 
             {/* PRODUCT_TRUTH_DECORATIVE: copies the post (text, hashtags, link) to paste into the network */}
             <button type="button" className={auto ? 'av-btn' : 'av-btn av-primary'} onClick={() => onCopy(fullText(p), isHebrew ? 'הטקסט הועתק. הדביקו אותו ברשת.' : 'The text was copied. Paste it into the network.')} data-testid={`social-copy-${a.id}`}>{isHebrew ? 'העתקת הטקסט' : 'Copy the text'}</button>
             {/* PRODUCT_TRUTH_DECORATIVE: downloads the post's square image */}
-            <a className="av-btn" href={postImageOf(p)} download={`tekango-${p.art}.jpg`} data-testid={`social-download-${a.id}`}>{isHebrew ? 'הורדת התמונה' : 'Download the image'}</a>
+            <a className="av-btn" href={`/social/art/${p.art}.jpg`} download={`tekango-${p.art}.jpg`} data-testid={`social-download-${a.id}`}>{isHebrew ? 'הורדת התמונה' : 'Download the image'}</a>
             {p.network === 'tiktok' && (
               /* PRODUCT_TRUTH_DECORATIVE: copies the TikTok script and the video tool prompts */
               <button type="button" className="av-btn" onClick={() => onCopy([p.video_script, ...(p.video_scenes || []).map((s, i) => `${i + 1}. ${s}`)].join('\n'), isHebrew ? 'התסריט הועתק.' : 'The script was copied.')} data-testid={`social-copy-script-${a.id}`}>{isHebrew ? 'העתקת התסריט' : 'Copy the script'}</button>
@@ -294,10 +289,6 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
               <div style={{ marginTop: 8 }}>{list(published, 'social-published-list')}</div>
             </details>
           )}
-          <div style={{ marginTop: 16 }}>
-            <AdminSocialResults isHebrew={isHebrew} content={Array.isArray(state.content) ? state.content : []} care={state.care || null} stillsWaiting={state.stillsWaiting || { il: 0, intl: 0 }} canPublish={canPublish}
-              upload={async (b) => { const r = await callFn({ action: 'still_upload', ...b }); if (r?.ok === true) load(); return r?.ok === true; }} />
-          </div>
         </div>
       );
   if (embedded) return body;

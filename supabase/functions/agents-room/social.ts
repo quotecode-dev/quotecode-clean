@@ -11,7 +11,6 @@ import { costOf, israelParts, runKey, monthStartIso, brandLatin, hasHebrewBrand,
 import { weekStartDay, type StageDeps, type Action } from './manager.ts';
 import { isBudgetRefusal, isAmbiguous, AMBIGUOUS } from './aiBudget.ts';
 import { metricsSummary } from './socialReplies.ts';
-import { contentSummary } from './socialStats.ts';
 
 export type Network = 'facebook' | 'instagram' | 'tiktok';
 export type Market = 'intl' | 'il';
@@ -180,9 +179,7 @@ export async function runSocial(d: StageDeps, trigger: 'cron' | 'admin', paths: 
         { role: 'user', content: JSON.stringify({ today: israelParts(now).day, pathsIl: paths.filter((p) => p === '/he' || p.startsWith('/he/')),
           pathsIntl: paths.filter((p) => p === '/en' || p.startsWith('/en/')), recentPosts: recentTexts(actions, now),
           // Codex review 2026-10-31 F18: what our recent posts achieved, per network (measured values only)
-          postResults: metricsSummary(d.postMetricsRows ? await d.postMetricsRows().catch(() => []) : []),
-          // Owner console 2026-11-02 (the plan for Shira): what catches on by network, market and kind, also of what was uploaded by hand
-          contentResults: contentSummary(d.contentStats ? await d.contentStats().catch(() => []) : []) }) },
+          postResults: metricsSummary(d.postMetricsRows ? await d.postMetricsRows().catch(() => []) : []) }) },
       ];
       const r = await ai(d, messages, { run: key });
       cost = r.cost; tokens = r.tokens;
@@ -230,9 +227,6 @@ export const TARGETS: Readonly<Record<string, Target>> = Object.freeze({
   ig_intl: { kind: 'instagram', igUserId: '17841422352275530', tokenEnv: 'META_PAGE_INTL_TOKEN', profileUrl: 'https://www.instagram.com/tekangoglobal/' }, // @tekangoglobal, linked to Tekango Global
 });
 export const imageUrl = (art: string) => `${ORIGIN}/social/art/${ART_KEYS.includes(art) ? art : 'quote'}.jpg`;
-// Owner console 2026-11-02 (the plan for Shira, "נשים לה בתיקיה"): a ready ad of the folder - only an address of our own public bucket
-const STILL_URL = /^https:\/\/[a-z0-9]+\.supabase\.co\/storage\/v1\/object\/public\/social-stills\/(il|intl)\/[0-9a-f-]{36}\.jpg$/;
-export const postImage = (p: { art?: unknown; still_url?: unknown }) => (STILL_URL.test(String(p.still_url ?? '')) ? String(p.still_url) : imageUrl(String(p.art ?? '')));
 export const facebookMessage = (p: { text?: unknown; hashtags?: unknown; link?: unknown }) =>
   [String(p.text ?? ''), (Array.isArray(p.hashtags) ? p.hashtags : []).join(' '), String(p.link ?? '')].filter(Boolean).join('\n\n');
 // Instagram does not open links in a caption: the text and the hashtags only
@@ -264,7 +258,7 @@ export async function publishToMeta(f: Fetch, token: (name: string) => string, c
   if (!t) throw new MetaError('not_connected', true);
   const access = token(t.tokenEnv);
   if (!access) throw new MetaError('not_configured', true);
-  const image = postImage(payload);
+  const image = imageUrl(String(payload.art ?? ''));
   if (t.kind === 'facebook') {
     const j = await post(f, `${GRAPH}/${t.pageId}/photos`, { url: image, message: facebookMessage(payload), access_token: access });
     const id = String(j?.post_id ?? j?.id ?? '');
@@ -311,8 +305,6 @@ export async function reviseSocial(d: StageDeps, a: Action, note: string, paths:
   // the rewrite took time: if the post was approved / rejected meanwhile, that decision wins and the rewrite is dropped
   const fresh = await d.getAction(a.id);
   if (!fresh || fresh.status !== 'proposed') return { ok: false, code: 'not_pending', cost: r.cost, tokens: r.tokens };
-  // a still of the folder stays the post's image after a rewrite of its text
-  const still = a.payload?.still_url ? { still_url: a.payload.still_url, still_id: a.payload.still_id } : {};
-  await d.updateAction(a.id, { title_he: next.title_he, title_en: next.title_en, payload: { ...next.payload, ...still, revisions: revisions + 1 } }, 'proposed');
+  await d.updateAction(a.id, { title_he: next.title_he, title_en: next.title_en, payload: { ...next.payload, revisions: revisions + 1 } }, 'proposed');
   return { ok: true, cost: r.cost, tokens: r.tokens };
 }

@@ -1,14 +1,14 @@
 // Owner console 2026-11-01 (typed: "מאשר: זיהוי חשבוניות זיכוי בכלי ההוצאות, סימון בלי אפשרות אישור, כולל שינוי ב-L-22, שחרור עד הלייב אחרי שמסיימים את הסרטון"):
-// + (typed: "כל חשבונית זיכוי עוברת לפיי פלוס במינוס, כל מסמך בפני עצמו, בלי חישוב נטו, אחרי אישור שלי במסך"): the real case: Sparkiz credit note 30530, 370 ILS printed
+// a supplier credit note is recorded for the record and never enters the approval list. The real case: Sparkiz credit note 30530, 370 ILS printed
 // WITHOUT a minus, "מסמך זה מבטל מסמך מספר 30529".
 import { describe, it, expect, vi } from 'vitest';
-import { processMessage, validateExtraction, payplusFields, documentMatch, vatRule, EXTRACTION_SCHEMA, type ExpenseDeps } from './lib.ts';
+import { processMessage, validateExtraction, EXTRACTION_SCHEMA, type ExpenseDeps } from './lib.ts';
 
 const NOW = Date.parse('2026-11-02T08:00:00Z');
 const base = {
   is_invoice: true, addressed_to_us: true, business_related: true, confidence: 'high', reason_he: 'מסמך של ספרקיז על שם TEKANGO',
   main_document_index: null, supplier_name: 'אור ממן', supplier_vat_id: '311214605', supplier_country: 'IL', doc_type: 'credit_note', doc_number: '30530',
-  credited_doc_number: '30529', doc_date: '2026-11-01', total_amount: 370, currency: 'ILS', vat_amount: 0, category: 'ai', supplier_tax_status: 'unknown',
+  credited_doc_number: '30529', doc_date: '2026-11-01', total_amount: 370, currency: 'ILS', vat_amount: 0, category: 'ai',
 };
 const mail = (id: string) => ({
   id, internalDate: String(NOW),
@@ -48,37 +48,11 @@ describe('supplier credit notes', () => {
     expect(x.totalAmount).toBeNull();
     expect(x.creditedDocNumber).toBeNull();
   });
-  it('a credit note waits for approval like any document, and says what it is', async () => {
+  it('a credit note is recorded as excluded, says why, and never waits for approval', async () => {
     const d = deps(base);
-    expect(await processMessage(d, 'quotecodedev@gmail.com', 'acc', 'c1')).toBe('invoice');
-    expect(d.rows[0]).toMatchObject({ doc_type: 'credit_note', credited_doc_number: '30529', status: 'pending', amount: 370 });
-    expect(String(d.rows[0].reason)).toContain('חשבונית זיכוי');
-  });
-  it('it goes to PayPlus with a minus and the PayPlus credit-note type; a charge goes as before', () => {
-    const row = { doc_type: 'credit_note', doc_number: '30530', doc_date: '2026-11-01', amount: 370, currency: 'ILS', amount_includes_vat: true, vat_percentage: 18, supplier_name: 'אור ממן' };
-    const f = payplusFields(row, 7, null, null)!;
-    expect([f.amount, f.doc_type_code, f.amount_includes_vat, f.vat_percentage]).toEqual(['-370.00', 'inv_refund', 'true', '18']);
-    const c = payplusFields({ ...row, doc_type: 'tax_invoice_receipt', doc_number: '30529', amount: 390 }, 7, null, null)!;
-    expect(c.amount).toBe('390.00');
-    expect(c.doc_type_code).toBeUndefined();
-  });
-  it('a foreign credit note is sent in shekels with a minus', () => {
-    const f = payplusFields({ doc_type: 'credit_note', doc_number: 'CR1', doc_date: '2026-11-01', amount: 10, currency: 'USD', amount_includes_vat: false, vat_percentage: 0 }, 7, { rate: 3.5, date: '2026-11-01' }, null)!;
-    expect([f.amount, f.currency_code]).toEqual(['-35.00', 'ILS']);
-  });
-  it('the same credit note already in PayPlus with a minus is a match, never a second send', () => {
-    const row = { doc_type: 'credit_note', doc_number: '30530', amount: 370, currency: 'ILS', supplier_vat_id: '311214605', supplier_name: 'אור ממן' };
-    expect(documentMatch({ number: '30530', amount: -370, supplier: { vat_id: '311214605' } }, row, -370)).toBe('match');
-  });
-  it('an exempt dealer is without VAT; an authorised dealer or company is with VAT', () => {
-    const r = (o: Record<string, unknown>) => { const x = validateExtraction(JSON.stringify({ ...base, ...o }), 0, NOW)!; return vatRule(x); };
-    expect(r({ supplier_tax_status: 'exempt', vat_amount: 0 })).toEqual({ amountIncludesVat: false, vatPercentage: 0 });
-    expect(r({ supplier_tax_status: 'exempt', vat_amount: 56 })).toEqual({ amountIncludesVat: false, vatPercentage: 0 });
-    expect(r({ supplier_tax_status: 'licensed', vat_amount: null })).toEqual({ amountIncludesVat: true, vatPercentage: 18 });
-    expect(r({ supplier_tax_status: 'licensed', vat_amount: -56.44 })).toEqual({ amountIncludesVat: true, vatPercentage: 18 });
-    expect(r({ supplier_tax_status: 'unknown', vat_amount: 56.44 })).toEqual({ amountIncludesVat: true, vatPercentage: 18 });
-    expect(r({ supplier_tax_status: 'unknown', vat_amount: null })).toEqual({ amountIncludesVat: false, vatPercentage: 0 });
-    expect(r({ supplier_tax_status: 'licensed', supplier_country: 'foreign', currency: 'USD' })).toEqual({ amountIncludesVat: false, vatPercentage: 0 });
+    expect(await processMessage(d, 'quotecodedev@gmail.com', 'acc', 'c1')).toBe('excluded');
+    expect(d.rows[0]).toMatchObject({ doc_type: 'credit_note', credited_doc_number: '30529', status: 'excluded', amount: 370 });
+    expect(String(d.rows[0].reason)).toContain('חשבונית זיכוי - לא נספרת כהוצאה');
   });
   it('the charge itself still waits for approval as before', async () => {
     const d = deps({ ...base, doc_type: 'tax_invoice_receipt', doc_number: '30529', credited_doc_number: null, total_amount: 390 });

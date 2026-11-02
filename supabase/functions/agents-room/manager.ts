@@ -21,7 +21,6 @@ import { runSocial, reviseSocial, openSocialSlots, TARGETS } from './social.ts';
 import { scanAndDraft, sendApproved, type CsDeps, type Signal } from './customerSuccess.ts';
 import { chainStart, chainStep, chainTick, hourKey, type ChainDeps, type Step } from './chain.ts';
 import type { Competitive } from './marketing.ts';
-import { collectContent, commentablePosts, careLine, stillActions, type ContentRow, type Follower, type Still, type YouTube } from './socialStats.ts';
 import { postMetrics, postComments, draftReplies, replyAction, replyErrors, publishReply, metricsSummary, type Graph, type PublishedPost, type Metrics, type NewComment } from './socialReplies.ts';
 import { isBudgetRefusal, isAmbiguous, AMBIGUOUS, BUDGET_CODES } from './aiBudget.ts';
 import { checkTopic, checkFocus, normTopic, topicContext, cleanFocus, FOCUS_MIN, type Inventory, type TopicRef } from './articleTopics.ts';
@@ -66,15 +65,6 @@ export interface StageDeps extends Deps, Partial<Omit<CsDeps, 'now'>>,
   postMetricsRows?(): Promise<Metrics[]>;
   replyActions?(): Promise<Action[]>; // the social_reply actions of the last 30 days (a separate list - replies never push posts out)
   purgeReplyTexts?(): Promise<number>;
-  // Owner console 2026-11-02 (the plan for Shira): the results of every post, the follower counts and the stills folder
-  youtube?: YouTube;
-  saveContentStats?(rows: ContentRow[]): Promise<void>;
-  contentStats?(): Promise<ContentRow[]>;
-  saveFollowers?(day: string, rows: Follower[]): Promise<void>;
-  followersOn?(day: string): Promise<Follower[]>;
-  stillsWaiting?(): Promise<Still[]>;
-  stillQueued?(id: string): Promise<void>;
-  stillUpload?(market: 'il' | 'intl', fileName: string, base64: string): Promise<void>;
   profiles(): Promise<Profile[]>;
   setProfile(agent: AnyAgent, nameHe: string, nameEn: string): Promise<void>;
   recentActions(): Promise<Action[]>; // the last 60 days, newest first
@@ -813,19 +803,14 @@ export async function socialDaily(d: StageDeps, key: string): Promise<{ metrics:
   // monitor tick also purges on its own, so the 30-day limit never depends on this run
   out.purged = d.purgeReplyTexts ? await d.purgeReplyTexts().catch(() => { out.purgeFailed = true; out.failed = true; return 0; }) : 0;
   if (!d.graph) return out;
-  const recent = await d.recentActions();
-  const posts = publishedPosts(recent, d.now());
-  // Owner console 2026-11-02 (the plan for Shira): every post of the accounts, also those uploaded by hand; its comments are read like ours
-  const content = d.saveContentStats ? await collectContent(d.graph, d.connectedChannels(), d.youtube).catch(() => null) : null;
-  if (content?.rows.length) await d.saveContentStats!(content.rows).catch(() => { out.failed = true; });
-  const day = israelParts(d.now()).day;
-  if (content?.followers.length && d.saveFollowers) await d.saveFollowers(day, content.followers).catch(() => { out.failed = true; });
-  const commented = [...posts, ...commentablePosts(content?.rows ?? [], d.now(), new Set(posts.map((p) => p.postId)))];
+  const posts = publishedPosts(await d.recentActions(), d.now());
   const metrics: Metrics[] = [];
   const fresh: NewComment[] = [];
   const known = new Set((d.replyActions ? await d.replyActions() : []).map((a) => String(a.payload?.comment_id ?? '')));
-  for (const p of posts) metrics.push(await postMetrics(d.graph, p));
-  for (const p of commented) for (const c of await postComments(d.graph, p)) if (!known.has(c.commentId)) { known.add(c.commentId); fresh.push(c); }
+  for (const p of posts) {
+    metrics.push(await postMetrics(d.graph, p));
+    for (const c of await postComments(d.graph, p)) if (!known.has(c.commentId)) { known.add(c.commentId); fresh.push(c); }
+  }
   if (metrics.length && d.saveMetrics) { await d.saveMetrics(metrics); out.metrics = metrics.length; }
   if (fresh.length) {
     const calm = fresh.filter((c) => !replyAction(key, c, null).payload.sensitive);
@@ -833,25 +818,6 @@ export async function socialDaily(d: StageDeps, key: string): Promise<{ metrics:
     if (r.cost || r.tokens) await logCost(d, `reply:${key}`.slice(0, 60), r.cost, r.tokens, 'social reply drafts');
     if (r.refused) out.budget = r.refused;
     for (const c of fresh.slice(0, 20)) if (await d.insertAction(replyAction(key, c, r.drafts.get(c.commentId) ?? null))) { out.comments += 1; if (r.drafts.has(c.commentId)) out.drafted += 1; }
-  }
-  // the stills folder: one per market at a time, each waiting for the Owner; nothing is published here
-  let stillsQueued = 0;
-  if (d.stillsWaiting && d.stillQueued) {
-    const waiting = await d.stillsWaiting().catch(() => [] as Still[]);
-    for (const market of ['il', 'intl'] as const) {
-      const pending = recent.some((a) => a.action_type === 'social_post' && a.status === 'proposed' && a.payload?.still_id && a.payload?.market === market);
-      const still = pending ? null : waiting.find((s) => s.market === market);
-      if (!still) continue;
-      for (const a of stillActions(key, still)) if (await d.insertAction(a)) stillsQueued += 1;
-      await d.stillQueued(still.id).catch(() => { out.failed = true; });
-    }
-  }
-  // the daily line of the room (a second run the same day changes nothing: the dedupe key)
-  if (content) {
-    const yesterdayDay = israelParts(new Date(d.now().getTime() - 86_400_000)).day;
-    const yesterday = d.followersOn ? await d.followersOn(yesterdayDay).catch(() => [] as Follower[]) : [];
-    const waitingReplies = (d.replyActions ? await d.replyActions().catch(() => [] as Action[]) : []).filter((a) => a.status === 'proposed').length;
-    await d.insertAction({ ...careLine(key, day, { rows: content.rows, followers: content.followers, yesterday, waiting: waitingReplies, newComments: out.comments, stillsQueued }), status: 'done', done_at: nowIso(d) }).catch(() => { out.failed = true; });
   }
   return out;
 }
@@ -941,28 +907,13 @@ const pendingOf = (actions: Action[]) => actions.filter((a) => a.status === 'pro
 
 // ---------------------------------------------------------------- the entry: stage-2 actions here, everything else through lib.handler
 // the social posts for the "Social media" screen (Owner or a supervisor with social.view) - the posts only, never the rest of the room
-// Owner console 2026-11-02 (the plan for Shira, "נשים לה בתיקיה"): one ready ad into the folder - a JPEG, checked by its own bytes
-const STILL_MAX_BASE64 = 7_000_000;
-async function stillUpload(d: StageDeps, b: Record<string, unknown>): Promise<Out> {
-  const base64 = typeof b.dataBase64 === 'string' ? b.dataBase64 : '';
-  const market = b.market === 'il' || b.market === 'intl' ? b.market : null;
-  if (!market || !d.stillUpload || !base64 || base64.length > STILL_MAX_BASE64 || !base64.startsWith('/9j/')) return { status: 400, body: { ok: false, code: 'invalid_still' } };
-  await d.stillUpload(market, String(b.fileName ?? '').replace(/[\u0000-\u001F]/g, '').slice(0, 120), base64);
-  return { status: 200, body: { ok: true } };
-}
-
 async function socialState(d: StageDeps): Promise<Out> {
   const posts = (await d.recentActions()).filter((a) => a.action_type === 'social_post').slice(0, 60);
   const profile = (await d.profiles()).find((p) => p.agent === 'social') ?? null;
   // Codex release 8: the replies waiting / handled (30 days) and the results of the published posts
   const replies = d.replyActions ? (await d.replyActions().catch(() => [])).slice(0, 40) : [];
   const metrics = d.postMetricsRows ? await d.postMetricsRows().catch(() => []) : [];
-  // Owner console 2026-11-02 (the plan for Shira): what catches on, the daily line and the folder
-  const content = d.contentStats ? await d.contentStats().catch(() => []) : [];
-  const care = (await d.recentActions()).find((a) => a.source === 'social' && a.kind === 'info' && String(a.dedupe_key ?? '').startsWith('social-care:')) ?? null;
-  const waiting = d.stillsWaiting ? await d.stillsWaiting().catch(() => [] as Still[]) : [];
-  const stillsWaiting = { il: waiting.filter((s) => s.market === 'il').length, intl: waiting.filter((s) => s.market === 'intl').length };
-  return { status: 200, body: { ok: true, posts, profile, canPublish: await d.can('social.publish'), autoChannels: d.connectedChannels(), replies, metrics, content, care, stillsWaiting } };
+  return { status: 200, body: { ok: true, posts, profile, canPublish: await d.can('social.publish'), autoChannels: d.connectedChannels(), replies, metrics } };
 }
 
 // publishes a social post this request claimed (its claim is the stored one); a failure leaves it ready with the reason
@@ -1057,7 +1008,6 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
     // a supervisor (L-22, Owner 2026-10-27 "מאשר את שניהם"): the social posts only - read with social.view; approve / ask for a change /
     // not now / mark published with social.publish, and only on a social post (any other action is the Owner's)
     if (b.action === 'social_state') return (await d.can('social.view')) ? socialState(d) : forbidden;
-    if (b.action === 'still_upload') return (await d.can('social.view')) && (await d.can('social.publish')) ? stillUpload(d, b) : forbidden;
     if (b.action === 'decide' || b.action === 'revise' || b.action === 'mark_done' || b.action === 'publish_now') {
       // both permissions, checked before anything is read (the review of 2026-10-27)
       if (!(await d.can('social.view')) || !(await d.can('social.publish'))) return forbidden;
@@ -1075,8 +1025,6 @@ export async function handle(body: unknown, d: StageDeps, sitemapPaths: () => Pr
   switch (b.action) {
     case 'social_state':
       return adminOnly(() => socialState(d));
-    case 'still_upload':
-      return adminOnly(() => stillUpload(d, b));
     case 'state': {
       const r = await handler(body, d, sitemapPaths);
       if (r.status !== 200) return r;
