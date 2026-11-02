@@ -669,12 +669,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-02 (typed: \"מאשר בניית שלב 1: מסכי ימי החסד ומיילי החיוב שנכשל לפי ההחלטה מ-18/10, כולל שינוי ב-L-02, L-11, L-12, L-13 ו-L-15, עם ההמלצות בהחלטות 1, 2 ו-4, שחרור עד הלייב\"): additive tables and service-only functions; replays cleanly (IF NOT EXISTS, CREATE OR REPLACE, ON CONFLICT DO NOTHING)."
-    },
-    "20261102010000_expense_document_truth.sql": {
-      "sha256": "96d7165f031578e704d8fd9f118d2bec2657dbe68ba48009edf851d30351ba6b",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-11-02 (typed: \"מאשר תיקון R01 ו-R02 של קודקס, כולל שינוי ב-L-22, שחרור עד הלייב\"): a function body, one additive column, a backfill of credit notes; replays cleanly."
     }
   }
 }

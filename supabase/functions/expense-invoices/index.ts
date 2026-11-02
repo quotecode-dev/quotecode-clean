@@ -203,11 +203,9 @@ Deno.serve(async (req: Request) => {
       await db(admin.from('expense_mail_seen').upsert({ mailbox, message_id: id, outcome: 'retry', attempts, seen_at: new Date().toISOString() }));
       return attempts;
     },
-    isDuplicate: async (supplier, number, isCredit) => {
+    isDuplicate: async (supplier, number) => {
       const exact = supplier.replace(/[\\%_]/g, (c) => `\\${c}`).replace(/\*/g, '');
-      // Owner (typed: "מאשר תיקון R01 ו-R02 של קודקס, כולל שינוי ב-L-22, שחרור עד הלייב"), R01: a charge and its credit note with one number are two documents
-      const q = admin.from('expense_invoices').select('id').ilike('supplier_name', exact).eq('doc_number', number);
-      const rows = await db((isCredit ? q.eq('doc_type', 'credit_note') : q.or('doc_type.is.null,doc_type.neq.credit_note')).limit(1)) as unknown[];
+      const rows = await db(admin.from('expense_invoices').select('id').ilike('supplier_name', exact).eq('doc_number', number).limit(1)) as unknown[];
       return rows.length > 0;
     },
     insertInvoice: async (row) => {
@@ -261,9 +259,9 @@ Deno.serve(async (req: Request) => {
         return same.length > 0;
       }
       if (!row.doc_number) return false;
-      const rows = await db(admin.from('expense_invoices').select('id, supplier_name, supplier_vat_id, doc_type').eq('doc_number', String(row.doc_number))
-        .in('status', ['sending', 'sent', 'unknown']).neq('id', String(row.id))) as { supplier_name: string | null; supplier_vat_id: string | null; doc_type: string | null }[];
-      return rows.some((r) => sameSupplier(r, row) && (r.doc_type === 'credit_note') === (row.doc_type === 'credit_note'));
+      const rows = await db(admin.from('expense_invoices').select('id, supplier_name, supplier_vat_id').eq('doc_number', String(row.doc_number))
+        .in('status', ['sending', 'sent', 'unknown']).neq('id', String(row.id))) as { supplier_name: string | null; supplier_vat_id: string | null }[];
+      return rows.some((r) => sameSupplier(r, row));
     },
     settings: async () => ((await db(admin.from('expense_settings').select('expense_types, default_subcategory_id').eq('id', 1).maybeSingle()))
       ?? { expense_types: [], default_subcategory_id: null }) as { expense_types: { id: number; name: string }[]; default_subcategory_id: number | null },
