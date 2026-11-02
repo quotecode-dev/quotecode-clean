@@ -213,6 +213,11 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
     return next;
   }));
   const chosenIdx = lines.map((_, i) => i).filter((i) => selected[i]);
+  // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקון 4 התקלות בהצעה החכמה, שחרור עד הלייב"): a written measure stops being "not assigned" once a ticked line was given that quantity
+  const openMeasures = (draft?.unassignedMeasures || []).filter((text) => {
+    const n = positiveQuantity((String(text).match(/\d+(?:[.,]\d+)?/) || [''])[0]);
+    return n == null || !chosenIdx.some((i) => positiveQuantity(lines[i].quantityInput) === n);
+  });
   const lineIncomplete = (l) => positiveQuantity(l.quantityInput) == null || !l.unitChosen || !String(l.description || '').trim();
   const incompleteIdx = chosenIdx.filter((i) => lineIncomplete(lines[i]));
   const incomplete = incompleteIdx.length > 0;
@@ -350,7 +355,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                   );
                 })}
               </ul>
-              {draft.unassignedMeasures?.length > 0 && <div role="note" data-testid="ai-quote-draft-unassigned" style={{ fontSize: '0.78rem', color: NEON.amber || NEON.textSecondary, fontWeight: 600, lineHeight: 1.45 }}>{t.unassigned(draft.unassignedMeasures.join(', '))}</div>}
+              {openMeasures.length > 0 && <div role="note" data-testid="ai-quote-draft-unassigned" style={{ fontSize: '0.78rem', color: NEON.amber || NEON.textSecondary, fontWeight: 600, lineHeight: 1.45 }}>{t.unassigned(openMeasures.join(', '))}</div>}
               {draft.questions?.length > 0 && (
                 <div data-testid="ai-quote-draft-questions" style={{ fontSize: '0.8rem', color: NEON.textPrimary, lineHeight: 1.45 }}>
                   <strong>{t.questions}:</strong>
