@@ -96,7 +96,7 @@ export interface ExpenseDeps {
   markSeen(mailbox: string, id: string, outcome: 'invoice' | 'not_invoice' | 'failed'): Promise<void>;
   /** one more failed attempt of an email; returns the attempts so far */
   recordRetry(mailbox: string, id: string): Promise<number>;
-  isDuplicate(supplierName: string, docNumber: string): Promise<boolean>;
+  isDuplicate(supplierName: string, docNumber: string, isCredit: boolean): Promise<boolean>;
   insertInvoice(row: InvoiceRow): Promise<string | null>;
   invoices(ids: string[]): Promise<InvoiceRow[]>;
   /** a change of a row that is not sent / being sent; false = the row was sent or is being sent (nothing changed) */
@@ -400,7 +400,7 @@ export async function processMessage(deps: ExpenseDeps, mailbox: string, access:
   const x = validateExtraction(await extract(deps, buildExtractionMessages(msg, docs)), docs.length, deps.now());
   if (!x) throw new Error('unreadable_answer');
   if (!x.isInvoice) { await deps.markSeen(mailbox, id, 'not_invoice'); return 'not_invoice'; }
-  const duplicate = x.supplierName && x.docNumber ? await deps.isDuplicate(x.supplierName, x.docNumber) : false;
+  const duplicate = x.supplierName && x.docNumber ? await deps.isDuplicate(x.supplierName, x.docNumber, x.docType === 'credit_note') : false;
   // Owner console 2026-11-01 (typed: "מאשר שינוי ב-L-22: כל חשבונית חיוב עוברת לפיי פלוס בפלוס וכל חשבונית זיכוי עוברת לפיי פלוס במינוס, כל מסמך בפני עצמו, בלי חישוב נטו, אחרי אישור שלי במסך, שחרור עד הלייב"):
   // a credit note waits for approval like any document
   const keep = x.addressedToUs && x.businessRelated && !duplicate;
@@ -599,6 +599,17 @@ export function sameSupplier(a: Record<string, unknown>, b: Record<string, unkno
   return !!na && na === norm(b.supplier_name);
 }
 export type DocMatch = 'match' | 'ambiguous' | 'none';
+/** Owner console 2026-11-02 (typed: "מאשר תיקון R01 ו-R02 של קודקס, כולל שינוי ב-L-22, שחרור עד הלייב"): the date a PayPlus record states, or null */
+export function recordDate(rec: Record<string, unknown>): string | null {
+  for (const k of ['doc_date', 'date', 'value_date', 'document_date', 'issue_date']) {
+    const v = String(rec[k] ?? '').trim();
+    const iso = v.match(/^(\d{4}-\d{2}-\d{2})/);
+    if (iso) return iso[1];
+    const il = v.match(/^(\d{2})\/(\d{2})\/(\d{4})/);
+    if (il) return `${il[3]}-${il[2]}-${il[1]}`;
+  }
+  return null;
+}
 /** 20261029000000 (Codex F06): a PayPlus record vs our invoice. The same number is required; then the supplier: both tax ids -> they
  *  decide; else both names, compared whole (never a part of a name). The same supplier and the same amount (the shekel amount sent), or
  *  a record without an amount = 'match'. Another supplier with a different amount = 'none'. Anything in between (another name with the same amount, no supplier on
@@ -620,7 +631,17 @@ export function documentMatch(rec: Record<string, unknown>, row: InvoiceRow, sen
   // any of our amounts in any currency: never "none" (a currency we cannot tell apart is not proof of another document)
   const anyNear = near(sentAmount) || near(ownAmount);
   // the same supplier with no amount on the record is not certain either (Codex N07)
-  const sameSupplierAnswer: DocMatch = amountMatch ? 'match' : 'ambiguous';
+  // Codex R02: a record must prove it is this document - another date, or the Owner's own series with a date not proven, is for the Owner to check
+  const recDate = recordDate(rec);
+  const rowDate = String(row.doc_date ?? '').slice(0, 10);
+  const series = String(row.identity_series ?? '').trim();
+  const dateProblem = series ? recDate !== rowDate : !!recDate && !!rowDate && recDate !== rowDate;
+  const sameSupplierAnswer: DocMatch = amountMatch && !dateProblem ? 'match' : 'ambiguous';
+  // Codex R01: a charge is never its credit note. The other sign with another size is another document; the same size proves nothing
+  // (how PayPlus spells the sign of a credit note in this answer is not proven), so it goes to the Owner and is never created twice.
+  if (Number.isFinite(recAmount) && recAmount !== 0 && (recAmount < 0) !== (row.doc_type === 'credit_note')) {
+    return Math.abs(recAmount) === Math.abs(ownAmount) || (sentAmount !== null && Math.abs(recAmount) === Math.abs(sentAmount)) ? 'ambiguous' : 'none';
+  }
   const recVat = [rec.supplier_vat_id, sup.vat_id, sup.vat_number, cust.vat_number, cust.customer_vat_id, cust.vat_id].map(digits).find(Boolean) ?? '';
   const myVat = digits(row.supplier_vat_id);
   if (recVat && myVat) return recVat !== myVat ? 'none' : sameSupplierAnswer;
@@ -714,7 +735,8 @@ async function sendOne(deps: ExpenseDeps, id: string, fallbackSub: number | null
     return m === 'search_incomplete' ? fail('search_incomplete', 'החיפוש בפיי פלוס לא הושלם (יותר מדי תוצאות), לא נשלח')
       : fail('payplus_search_failed', `החיפוש בפיי פלוס נכשל, לא נשלח: ${m}`);
   }
-  const doc = findDocument(found, row, Number(fields.amount));
+  // Codex R02: the Owner checked PayPlus and said it is not there - this send does not stop again on a record that could not be proven
+  const doc = row.payplus_match_cleared === true ? 'none' : findDocument(found, row, Number(fields.amount));
   if (doc === 'ambiguous') {
     // Codex N06: waits in "Check in PayPlus" for the Owner's decision (found / duplicate / not created)
     await deps.finishSend(id, { status: 'unknown', send_error: 'בפיי פלוס יש מסמך באותו מספר שלא ברור אם הוא של הספק הזה. בדקו בפיי פלוס ובחרו כאן מה נכון' });
@@ -722,7 +744,7 @@ async function sendOne(deps: ExpenseDeps, id: string, fallbackSub: number | null
   }
   const sent = async (uuid: string, code?: string): Promise<{ id: string; ok: boolean; code?: string }> => {
     // a row PayPlus has but we could not mark stays 'sending' - it becomes 'unknown', never sent again
-    try { await deps.finishSend(id, { status: 'sent', payplus_uuid: uuid.slice(0, 80), send_error: null, sent_at: new Date(deps.now()).toISOString() }); }
+    try { await deps.finishSend(id, { status: 'sent', payplus_uuid: uuid.slice(0, 80), send_error: null, sent_at: new Date(deps.now()).toISOString(), payplus_match_cleared: false }); }
     catch { return { id, ok: false, code: 'unrecorded' }; }
     return code ? { id, ok: true, code } : { id, ok: true };
   };
@@ -777,7 +799,7 @@ async function reconcileOne(deps: ExpenseDeps, id: string, fallbackSub: number |
 export const RESOLUTIONS: Record<string, Record<string, unknown>> = Object.freeze({
   found: { status: 'sent', payplus_uuid: 'owner-verified', send_error: 'סומנה ידנית: נמצאה בפיי פלוס' },
   duplicate: { status: 'rejected', send_error: 'סומנה ידנית: כפולה, נסגרה' },
-  not_created: { status: 'send_failed', send_error: 'סומנה ידנית: לא נקלטה בפיי פלוס - אפשר לשלוח שוב' },
+  not_created: { status: 'send_failed', send_error: 'סומנה ידנית: לא נקלטה בפיי פלוס - אפשר לשלוח שוב', payplus_match_cleared: true },
 });
 
 // ---------- the handler ----------
