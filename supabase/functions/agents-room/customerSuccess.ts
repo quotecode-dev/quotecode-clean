@@ -128,6 +128,8 @@ export async function scanAndDraft(d: CsDeps, key: string, insertDraft: (a: Retu
   const drafted: CsRun['drafted'] = [];
   let missingFacts = 0; let overLimit = 0;
   for (const row of [...rows].sort((a, b) => PRIORITY.indexOf(a.signal_code) - PRIORITY.indexOf(b.signal_code))) {
+    // Owner console 2026-11-02 (typed: "מאשר בניית שלב 1: מסכי ימי החסד ומיילי החיוב שנכשל לפי ההחלטה מ-18/10, כולל שינוי ב-L-02, L-11, L-12, L-13 ו-L-15, עם ההמלצות בהחלטות 1, 2 ו-4, שחרור עד הלייב"), decision 2: a failed renewal has its own automatic emails (customer-notices) - no second message to the same customer
+    if (row.signal_code === 'renewal_failed_grace') continue;
     const c = counts[row.signal_code];
     if (!c) continue;
     c.found += 1;
