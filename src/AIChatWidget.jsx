@@ -1065,10 +1065,9 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
         display: 'flex',
         justifyContent: isHebrew ? 'flex-start' : 'flex-start',
       }}>
-        {/* Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקוני המעבר הרביעי וטקסט שירה, כולל שינוי ב-L-02, L-06, L-11, L-14, L-16, L-17 ו-L-22, שחרור עד הלייב"): closed, only the button takes a click - its box stayed clickable after the button stepped aside and blocked the Terms link under it */}
         <div style={{
           position: 'relative',
-          pointerEvents: isOpen ? 'auto' : 'none',
+          pointerEvents: 'auto',
           display: 'flex',
           flexDirection: 'column',
           alignItems: isHebrew ? 'flex-start' : 'flex-start'
@@ -1171,7 +1170,6 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
               aria-label={isHebrew ? 'צ׳אט AI' : 'AI Chat'}
               style={{
                 position: 'relative',
-                pointerEvents: 'auto',
                 background: NEON.gradient,
                 color: 'white',
                 border: 'none',

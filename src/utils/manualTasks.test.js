@@ -1,6 +1,6 @@
 // Task 18: the pure task rules - validation mirrors the database checks, the account market decides "today" / the clock, date-only
 // values never shift, grouping and the deterministic order.
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import {
   TASK_PRIORITIES, TASK_STATUSES, compareTasks, followUpDraftFor, groupTasks, isCalendarDate, marketClock, marketToday, normalizeTaskInput,
   shortTime, taskGroupOf, taskMarket,
@@ -40,17 +40,6 @@ describe('normalizeTaskInput (mirrors public.tasks checks)', () => {
 });
 
 describe('account-market dates (IRON-DATE-001)', () => {
-  // Owner console 2026-11-02 (typed: "מאשר שינוי בחוק IRON-DATE-001: במסכי המשתמש בשוק הבינלאומי שעה ותאריך של חותמת זמן מוצגים לפי שעון המכשיר של המשתמש; ישראל והניהול בלי שינוי"): a device set to UTC; another device's clock is checked below
-  beforeEach(() => { vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ timeZone: 'UTC' }); });
-  afterEach(() => { vi.restoreAllMocks(); });
-  it('abroad, "today" and the clock are the device\'s own', () => {
-    vi.restoreAllMocks();
-    vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ timeZone: 'America/Los_Angeles' });
-    const at = new Date('2026-10-10T02:30:00.000Z');
-    expect(marketToday('International', at)).toBe('2026-10-09');
-    expect(marketClock('International', at)).toBe('19:30');
-    expect(marketClock('Local', at)).toBe('05:30');
-  });
   // 2026-10-09T22:30Z is already 10 Oct 01:30 in Asia/Jerusalem but still 9 Oct 22:30 in UTC
   const late = new Date('2026-10-09T22:30:00.000Z');
   it('"today" and the clock are the account market\'s product day / time, never the browser zone', () => {

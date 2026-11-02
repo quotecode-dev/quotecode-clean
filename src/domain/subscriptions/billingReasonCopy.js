@@ -39,9 +39,8 @@ export function limitedReasonSentence(reason, isHebrew, { withKeep = false } = {
 export function billingEndLabel(iso, isHebrew, market) {
   const local = market === 'IL';
   const when = formatShortDateTime(iso, local ? 'Local' : 'International');
-  // IRON-DATE-001 as amended by the Owner 2026-11-02: abroad it is the device's own clock, so no zone is named
-  if (!local) return `⁦${when}⁩`;
-  return `⁦${when}⁩ (${isHebrew ? 'שעון ישראל' : 'Israel time'})`;
+  const zone = local ? (isHebrew ? 'שעון ישראל' : 'Israel time') : 'UTC';
+  return `⁦${when}⁩ (${zone})`;
 }
 
 /** the short account-status detail from the server billing block, or null when it says nothing new */

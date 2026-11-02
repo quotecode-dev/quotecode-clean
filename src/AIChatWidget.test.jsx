@@ -1046,14 +1046,6 @@ describe('Unified Header + Always-Available AI Chat task, §15 - overlay/focus c
     }
   });
 
-  // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקוני המעבר הרביעי וטקסט שירה, כולל שינוי ב-L-02, L-06, L-11, L-14, L-16, L-17 ו-L-22, שחרור עד הלייב"): the box of the closed launcher blocked the Terms link under it after the button stepped aside
-  it('closed, only the button takes a click', () => {
-    render(<AIChatWidget isHebrew={true} isDashboard={false} />);
-    const btn = document.querySelector('.ai-support-btn');
-    expect(btn.style.pointerEvents).toBe('auto');
-    expect(btn.parentElement.style.pointerEvents).toBe('none');
-  });
-
   it('focus returns to the element that opened Chat once it closes (external trigger - the real §12 Header/Sidebar entry-point shape, which stays mounted, unlike this widget\'s own default launcher button below which conditionally unmounts itself the instant Chat opens)', () => {
     render(<AIChatWidget isHebrew={true} isDashboard={true} />);
     const headerButton = document.createElement('button');

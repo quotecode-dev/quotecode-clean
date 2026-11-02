@@ -19,7 +19,7 @@ import {
 // answers with the provider's own update time, or "not available"), invalid input refused with a message, metals = an estimate from a
 // stated (editable) reference price, and the closing CTA opens account creation in English.
 const ERR = INPUT_ERRORS.en;
-const when = (ms) => formatShortDateTime(new Date(ms), 'International');
+const when = (ms) => `${formatShortDateTime(new Date(ms), 'International')} UTC`;
 const num = (n, digits = 2) => formatToolNumber(n, 'en-US', digits);
 
 function FeedLine({ feed, testId, label, asOf }) {

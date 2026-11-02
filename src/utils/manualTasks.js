@@ -4,8 +4,8 @@
 //
 // Dates (IRON-DATE-001): due_date is a DATE-ONLY calendar value ('YYYY-MM-DD') and due_time a local wall-clock time ('HH:MM[:SS]');
 // both are stored and compared as given - never shifted by a time zone or the UI language. "Today" and "now" are the AUTHENTICATED
-// ACCOUNT MARKET's day / clock (Local -> Asia/Jerusalem, International -> the device's own clock: IRON-DATE-001 as amended 2026-11-02).
-import { marketTimeZone, calendarParts, resolveDateMarket } from './shortDate';
+// ACCOUNT MARKET's product day / clock (Local -> Asia/Jerusalem, International -> UTC), never the browser zone.
+import { SHORT_DATE_TIME_ZONE, calendarParts, resolveDateMarket } from './shortDate';
 
 export const TASK_STATUSES = Object.freeze(['open', 'completed']);
 export const TASK_PRIORITIES = Object.freeze(['low', 'normal', 'high']);
@@ -29,7 +29,7 @@ export function marketToday(market, now = new Date()) {
 export function marketClock(market, now = new Date()) {
   const date = now instanceof Date ? now : new Date(now);
   if (Number.isNaN(date.getTime())) return null;
-  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: marketTimeZone(market), hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date);
+  const parts = new Intl.DateTimeFormat('en-GB', { timeZone: SHORT_DATE_TIME_ZONE[resolveDateMarket(market)], hour: '2-digit', minute: '2-digit', hourCycle: 'h23' }).formatToParts(date);
   const get = (t) => parts.find((p) => p.type === t)?.value;
   return `${get('hour')}:${get('minute')}`;
 }

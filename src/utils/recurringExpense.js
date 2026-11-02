@@ -2,15 +2,15 @@
 // never for months before it was created, and the same way in the period totals and in the monthly chart (a 1,000 monthly expense
 // started in January is 12,000 for that year in both). Pure: the period is passed in, "now" only bounds an open-ended custom range.
 
-import { marketTimeZone } from './shortDate';
+import { SHORT_DATE_TIME_ZONE } from './shortDate';
 
 const monthIndex = (d) => d.getFullYear() * 12 + d.getMonth();
 // 20261029000000 (Codex F21, IRON-DATE-001): a date-only value (YYYY-MM-DD) is its own calendar month in every time zone - never shifted
 // by the browser's zone; only a real moment is read in local time
 const DATE_ONLY = /^(\d{4})-(\d{2})-(\d{2})$/;
-/** Codex N15 (IRON-DATE-001): today (YYYY-MM-DD) on the account market's calendar - Local: Asia/Jerusalem, International: the device's own clock (amended 2026-11-02) */
+/** Codex N15 (IRON-DATE-001): today (YYYY-MM-DD) on the account market's calendar - Local: Asia/Jerusalem, International: UTC */
 export function marketCalendarDate(now = new Date(), market = 'International') {
-  const timeZone = marketTimeZone(market);
+  const timeZone = market === 'Local' ? SHORT_DATE_TIME_ZONE.Local : SHORT_DATE_TIME_ZONE.International;
   const p = Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone, year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(now).map((x) => [x.type, x.value]));
   return `${p.year}-${p.month}-${p.day}`;
 }

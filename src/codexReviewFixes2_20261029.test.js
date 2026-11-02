@@ -2,6 +2,7 @@
 // בקשת מיזוג 113, כולל ארבע ההחלטות שהוצעו"): the browser side of N03, N06, N11, N12, N14, N15 (docs/CODEX_REVIEW_CODEXFIX_2026-10-28.md).
 import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
+import process from 'node:process';
 import { marketCalendarDate } from './utils/recurringExpense';
 import { fetchPublishedArticles } from './shared/siteArticlesApi';
 import { loadDatabaseGuides } from '../scripts/prerender-public-routes.mjs';
@@ -10,19 +11,22 @@ import { billingParams, BILLING_PROOF_ACTIONS } from './domain/admin/adminBillin
 const src = (p) => readFileSync(p, 'utf8').replace(/\r\n/g, '\n');
 
 describe('N15: a new expense is dated by the account market calendar (IRON-DATE-001)', () => {
-  // IRON-DATE-001 as amended by the Owner 2026-11-02 (typed: "במסכי המשתמש בשוק הבינלאומי שעה ותאריך של חותמת זמן מוצגים לפי שעון המכשיר של המשתמש; ישראל והניהול בלי שינוי")
-  it('Israel = Jerusalem on any device; International = the day of the device, across day / month / year ends', () => {
+  it('the same instant on any device: Israel = Jerusalem, International = UTC, across day / month / year ends', () => {
+    // 2026-11-01T00:30Z: Jerusalem and UTC are both November 1 (a Los Angeles device would say October 31)
+    expect(marketCalendarDate(new Date('2026-11-01T00:30:00Z'), 'Local')).toBe('2026-11-01');
+    expect(marketCalendarDate(new Date('2026-11-01T00:30:00Z'), 'International')).toBe('2026-11-01');
+    // 22:30Z on December 31: Jerusalem is already January 1 of the next year, UTC is not
+    expect(marketCalendarDate(new Date('2026-12-31T22:30:00Z'), 'Local')).toBe('2027-01-01');
+    expect(marketCalendarDate(new Date('2026-12-31T22:30:00Z'), 'International')).toBe('2026-12-31');
+    expect(marketCalendarDate(new Date('2026-12-31T22:30:00Z'))).toBe('2026-12-31');
+    const before = process.env.TZ;
     try {
-      for (const [tz, nov, newYear] of [['UTC', '2026-10-31', '2026-12-31'], ['America/Los_Angeles', '2026-10-31', '2026-12-31'], ['Pacific/Kiritimati', '2026-11-01', '2027-01-01'], ['Asia/Jerusalem', '2026-11-01', '2027-01-01']]) {
-        vi.restoreAllMocks();
-        vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ timeZone: tz });
+      for (const tz of ['America/Los_Angeles', 'Pacific/Kiritimati', 'Asia/Jerusalem']) {
+        process.env.TZ = tz;
         expect(marketCalendarDate(new Date('2026-10-31T22:30:00Z'), 'Local')).toBe('2026-11-01');
-        expect(marketCalendarDate(new Date('2026-12-31T22:30:00Z'), 'Local')).toBe('2027-01-01');
-        expect(marketCalendarDate(new Date('2026-10-31T22:30:00Z'), 'International')).toBe(nov);
-        expect(marketCalendarDate(new Date('2026-12-31T22:30:00Z'), 'International')).toBe(newYear);
-        expect(marketCalendarDate(new Date('2026-12-31T22:30:00Z'))).toBe(newYear);
+        expect(marketCalendarDate(new Date('2026-10-31T22:30:00Z'), 'International')).toBe('2026-10-31');
       }
-    } finally { vi.restoreAllMocks(); }
+    } finally { if (before === undefined) delete process.env.TZ; else process.env.TZ = before; }
   });
 });
 

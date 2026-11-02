@@ -8,22 +8,13 @@
 // Calendar rule:
 //   - A date-only value ('YYYY-MM-DD', e.g. quotes.valid_until) is a calendar date: rendered as-is, never shifted by a time zone.
 //   - A timestamp (ISO string with time, Date, epoch ms) is converted to its calendar day in the market's product time zone:
-//       Local -> Asia/Jerusalem, International -> UTC. The machine/browser time zone never decides the day, with one exception:
-//       Owner console 2026-11-02 (typed: "מאשר שינוי בחוק IRON-DATE-001: במסכי המשתמש בשוק הבינלאומי שעה ותאריך של חותמת זמן מוצגים לפי שעון המכשיר של המשתמש; ישראל והניהול בלי שינוי"):
-//       on a user's screen in the International market it is the device's own clock (no device, as in an Edge Function or an email: UTC).
+//       Local -> Asia/Jerusalem, International -> UTC. The machine/browser time zone never decides the day.
 //     (OD-1 validity uses Anywhere-on-Earth for International *expiry*; that is an acceptance rule, not a display rule.)
 //   - A timestamp string without a zone designator is read as UTC (never as browser-local time).
 // Long-form prose dates ("September 13, 2026") are NOT this primitive; they are separate, documented exceptions.
 // Plain JS on purpose: Vite (src/utils/shortDate.js re-exports it) and Deno (chat-ai) load the same bytes.
 
 export const SHORT_DATE_TIME_ZONE = Object.freeze({ Local: 'Asia/Jerusalem', International: 'UTC' });
-
-// The zone a timestamp of this market is shown in: Local -> Israel on every screen; International -> the device on a screen, UTC on the server.
-export function marketTimeZone(market) {
-  if (resolveDateMarket(market) === 'Local') return SHORT_DATE_TIME_ZONE.Local;
-  if (typeof window === 'undefined') return SHORT_DATE_TIME_ZONE.International;
-  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || SHORT_DATE_TIME_ZONE.International; } catch { return SHORT_DATE_TIME_ZONE.International; }
-}
 
 // 'Local' | 'LCL' | true -> 'Local'; everything else -> 'International'. A boolean is accepted only where the caller's flag IS the
 // account market (e.g. the authenticated app's isHebrew = isHebrewEnv(stored country)); callers must never pass a language toggle.
@@ -47,7 +38,7 @@ function toInstant(value) {
 }
 
 function zonedParts(date, market, options) {
-  const timeZone = marketTimeZone(market);
+  const timeZone = SHORT_DATE_TIME_ZONE[resolveDateMarket(market)];
   const parts = new Intl.DateTimeFormat('en-CA', { timeZone, ...options }).formatToParts(date);
   return (type) => parts.find((p) => p.type === type)?.value;
 }

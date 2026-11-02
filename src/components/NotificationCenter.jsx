@@ -232,12 +232,8 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   useEffect(() => {
     if (!notice) return undefined;
     const onKey = (e) => { if (e.key === 'Escape' && document.activeElement?.closest?.('[data-testid="bell-float-notice"]')) setNotice(null); };
-    // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקוני המעבר הרביעי וטקסט שירה, כולל שינוי ב-L-02, L-06, L-11, L-14, L-16, L-17 ו-L-22, שחרור עד הלייב"): it covered buttons until its X was found; a click outside closes it, like the panel of the same bell
-    const onDown = (e) => { if (!e.target?.closest?.('[data-testid="bell-float-notice"]')) setNotice(null); };
     document.addEventListener('keydown', onKey);
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('touchstart', onDown);
-    return () => { document.removeEventListener('keydown', onKey); document.removeEventListener('mousedown', onDown); document.removeEventListener('touchstart', onDown); };
+    return () => document.removeEventListener('keydown', onKey);
   }, [notice]);
 
   // R-28 (night task 2026-10-16): the meta line is a list of isolated parts (a name in its own script, dates / times as LTR numbers),

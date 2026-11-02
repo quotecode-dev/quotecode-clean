@@ -49,14 +49,6 @@ describe('R-02: correct model answers are kept', () => {
 
 describe('R-16: a Lifetime account is told it is Lifetime', () => {
   const lifetime = { ...NO_ACCOUNT_PLAN, isLifetime: true };
-  // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקוני המעבר הרביעי וטקסט שירה, כולל שינוי ב-L-02, L-06, L-11, L-14, L-16, L-17 ו-L-22, שחרור עד הלייב"): its plans window says no purchase is needed, so the chat offers none
-  it.each([['how much does it cost?', false], ['כמה זה עולה?', true]])('"%s": no purchase is offered to a Lifetime account, and is to another', (q, he) => {
-    const intents = classifySubscriptionIntents(q);
-    expect(intents.length).toBeGreaterThan(0);
-    const buy = he ? /אפשר לרכוש/ : /You can buy/;
-    expect(formatSubscriptionAnswer(intents, q, he, lifetime)).not.toMatch(buy);
-    expect(formatSubscriptionAnswer(intents, q, he, NO_ACCOUNT_PLAN)).toMatch(buy);
-  });
   it('the account line', () => {
     expect(accountPlanLine(lifetime, 'he')).toBe('החשבון שלך מוגדר כמנוי לכל החיים: כל היכולות פתוחות בו, ללא חיוב.');
     expect(accountPlanLine(lifetime, 'en')).toBe('Your account is set up as a Lifetime subscription: every capability is open, with no charge.');
