@@ -262,6 +262,31 @@ Deno.serve(async (req: Request) => {
     replyActions: async () => (await db(admin.from('agent_actions').select('id, created_at, run_key, source, kind, action_type, title_he, title_en, detail_he, detail_en, payload, status, decided_at, done_at, result, error, dedupe_key')
       .eq('action_type', 'social_reply').gte('created_at', new Date(Date.now() - 30 * 86_400_000).toISOString()).order('created_at', { ascending: false }).limit(100))) as never,
     purgeReplyTexts: async () => Number(await db(admin.rpc('agents_purge_reply_texts'))) || 0,
+    // Owner console 2026-11-02 (the plan for Shira): YouTube's public numbers (the key is read here only and sent to Google only), the results of every post, the stills folder
+    youtube: (Deno.env.get('YOUTUBE_API_KEY') ?? '').trim() ? async (path, params) => {
+      try {
+        const r = await timed(`https://www.googleapis.com/youtube/v3/${path}?${new URLSearchParams({ ...params, key: (Deno.env.get('YOUTUBE_API_KEY') ?? '').trim() })}`, {}, 15000);
+        return r.ok ? await r.json() : null;
+      } catch { return null; }
+    } : undefined,
+    saveContentStats: async (rows) => {
+      await db(admin.from('social_content_stats').upsert(rows.map((r) => ({ network: r.network, post_id: r.postId, channel: r.channel, market: r.market, kind: r.kind, title: r.title, url: r.url, posted_at: r.postedAt,
+        views: r.views, likes: r.likes, comments: r.comments, shares: r.shares, reach: r.reach, fetched_at: new Date().toISOString() }))));
+    },
+    contentStats: async () => ((await db(admin.from('social_content_stats').select('network, post_id, channel, market, kind, title, url, posted_at, views, likes, comments, shares, reach').order('posted_at', { ascending: false, nullsFirst: false }).limit(200))) as Record<string, never>[])
+      .map((r) => ({ network: r.network, postId: r.post_id, channel: r.channel, market: r.market, kind: r.kind, title: r.title, url: r.url, postedAt: r.posted_at, views: r.views, likes: r.likes, comments: r.comments, shares: r.shares, reach: r.reach })),
+    saveFollowers: async (day, rows) => { await db(admin.from('social_followers').upsert(rows.map((f) => ({ channel: f.channel, day, followers: f.followers })))); },
+    followersOn: async (day) => ((await db(admin.from('social_followers').select('channel, followers').eq('day', day))) as { channel: string; followers: number }[]),
+    stillsWaiting: async () => ((await db(admin.from('social_stills').select('id, market, path').eq('status', 'waiting').order('created_at', { ascending: true }).limit(100))) as { id: string; market: 'il' | 'intl'; path: string }[])
+      .map((s) => ({ ...s, url: admin.storage.from('social-stills').getPublicUrl(s.path).data.publicUrl })),
+    stillQueued: async (id) => { await db(admin.from('social_stills').update({ status: 'queued', queued_at: new Date().toISOString() }).eq('id', id)); },
+    stillUpload: async (market, fileName, base64) => {
+      const path = `${market}/${crypto.randomUUID()}.jpg`;
+      const bytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+      const { error } = await admin.storage.from('social-stills').upload(path, bytes, { contentType: 'image/jpeg', upsert: false });
+      if (error) throw new Error('storage');
+      await db(admin.from('social_stills').insert({ market, path, file_name: fileName }));
+    },
     competitive: (queries) => collectWeek(marketing, queries),
     // ---- Codex release 9: Maya (customer_success_signals and her cases - service only, migration 20261031100000)
     csSignals: async (user) => (await db(admin.rpc('customer_success_signals', { p_user: user ?? null }))) as never,

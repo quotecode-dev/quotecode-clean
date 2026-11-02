@@ -95,6 +95,10 @@
     "interactive": 13,
     "markers": 13
   },
+  "src/components/AdminSocialResults.jsx": {
+    "interactive": 3,
+    "markers": 3
+  },
   "src/components/AdminSubscriptionState.jsx": {
     "interactive": 0,
     "markers": 0
@@ -536,6 +540,10 @@
     "markers": 0
   },
   "src/components/quotesPerPage.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/components/socialResultsSummary.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -1416,6 +1424,10 @@
     "markers": 0
   },
   "supabase/functions/agents-room/socialReplies.ts": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "supabase/functions/agents-room/socialStats.ts": {
     "interactive": 0,
     "markers": 0
   },
