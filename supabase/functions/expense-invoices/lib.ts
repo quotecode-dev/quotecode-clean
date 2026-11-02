@@ -292,8 +292,9 @@ const SYSTEM_PROMPT = [
   '- A supplier credit note or refund document ("חשבונית מס זיכוי", "חשבונית זיכוי", "credit note", a refund line, "מסמך זה מבטל מסמך") IS a real document:',
   '  is_invoice true, doc_type "credit_note", total_amount the credited amount as a positive number even when it is printed without a minus, and',
   '  credited_doc_number the number of the document it cancels or credits when printed (else null). For every other document credited_doc_number is null.',
-  '- supplier_tax_status: "exempt" when the document shows an exempt dealer ("עוסק פטור", "פטור ממע"מ"); "licensed" when it shows an authorised dealer or a company',
-  '  ("עוסק מורשה", "חברה בע"מ", "חשבונית מס", a VAT line); else "unknown". On a credit note vat_amount is the printed VAT as a positive number, 0 for an exempt dealer.',
+  '- supplier_tax_status: "exempt" when the document shows an exempt dealer ("עוסק פטור", "פטור ממע"מ"). This wins over everything else, also when the title says "חשבונית מס" and when a VAT line prints 0%.',
+  '  "licensed" when it shows an authorised dealer or a company ("עוסק מורשה", "חברה בע"מ") or prints VAT above 0. The title "חשבונית מס" alone is not enough. Else "unknown".',
+  '- vat_amount: the VAT printed on the document, 0 when it prints 0 or 0% or the supplier is an exempt dealer, null only when no VAT is printed at all. On a credit note as a positive number.',
   '- addressed_to_us: true when the document is addressed to one of the names / emails above (or to the account holder of that mailbox).',
   '- business_related: true for anything used to run a software / SaaS business: hosting, cloud, domains, software subscriptions, AI services,',
   '  advertising, phone and internet, computers and equipment, accountants, lawyers, freelancers, payment and bank fees, office costs, courses about',
@@ -356,10 +357,11 @@ export function validateExtraction(content: string, docCount: number, now: numbe
 export function vatRule(x: Pick<Extraction, 'supplierCountry' | 'currency' | 'vatAmount' | 'docType'> & { supplierTaxStatus?: Extraction['supplierTaxStatus'] }): { amountIncludesVat: boolean; vatPercentage: number } {
   // Owner console 2026-11-01 (typed: "תבדיל שיש גם זיכוי של עוסק פטור שהוא ללא מע"מ וגם סוג של זיכוי של עוסק מורשה/חברה בע"מ שהוא עם מע"מ")
   if (x.docType === 'credit_note') {
-    const credited = x.supplierCountry !== 'foreign' && x.currency === 'ILS' && x.supplierTaxStatus !== 'exempt' && ((x.vatAmount ?? 0) > 0 || x.supplierTaxStatus === 'licensed');
+    const credited = x.supplierCountry !== 'foreign' && x.currency === 'ILS' && x.supplierTaxStatus !== 'exempt' && x.vatAmount !== 0 && ((x.vatAmount ?? 0) > 0 || x.supplierTaxStatus === 'licensed');
     return credited ? { amountIncludesVat: true, vatPercentage: ISRAEL_VAT_PERCENT } : { amountIncludesVat: false, vatPercentage: 0 };
   }
-  const withVat = x.supplierCountry !== 'foreign' && x.currency === 'ILS'
+  // Owner 2026-11-02 (typed: "מאשר תיקון שירה, מע"מ של עוסק פטור כולל שינוי ב-L-22, רענון אוטומטי פעם אחת במסך הטעינה כולל שינוי ב-L-02 ו-L-15, ותיקון 30527 בפיי פלוס, שחרור עד הלייב"): a charge by what is printed too - an exempt dealer, or a printed VAT of 0, has no VAT, also when the title says "חשבונית מס"
+  const withVat = x.supplierCountry !== 'foreign' && x.currency === 'ILS' && x.supplierTaxStatus !== 'exempt' && x.vatAmount !== 0
     && ((x.vatAmount ?? 0) > 0 || (x.supplierCountry === 'IL' && (x.docType === 'tax_invoice' || x.docType === 'tax_invoice_receipt')));
   return withVat ? { amountIncludesVat: true, vatPercentage: ISRAEL_VAT_PERCENT } : { amountIncludesVat: false, vatPercentage: 0 };
 }
