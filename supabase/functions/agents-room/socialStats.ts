@@ -189,6 +189,30 @@ export const STILL_CHANNELS: Record<Market, { id: string; network: 'facebook' | 
   intl: [{ id: 'fb_intl', network: 'facebook', he: 'פייסבוק חו״ל', en: 'Facebook international' }, { id: 'ig_intl', network: 'instagram', he: 'אינסטגרם חו״ל', en: 'Instagram international' }],
 };
 /** One still of the folder as the posts of its market, each waiting for the Owner (never published here). */
+// Owner 2026-11-02 (typed: "מאשר בדיקת מידות בתיקיית הפרסומות של שירה: תמונה שלא מתאימה לפוסט נדחית בהעלאה עם הסבר, כולל שינוי ב-L-22, שחרור עד הלייב"):
+// the same image goes to a Facebook post and an Instagram post, so it must fit an Instagram post: 4:5 up to 1.91:1, at least 320 wide.
+export function stillFitsPost(width: number, height: number): boolean {
+  if (!(width >= 320) || !(height > 0)) return false;
+  const ratio = width / height;
+  return ratio >= 0.8 && ratio <= 1.91;
+}
+
+// the size written in a JPEG's own header; null when it cannot be read
+export function jpegSize(base64: string): { width: number; height: number } | null {
+  let b: Uint8Array;
+  try { b = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0)); } catch { return null; }
+  if (b[0] !== 0xff || b[1] !== 0xd8) return null;
+  let i = 2;
+  while (i + 8 < b.length) {
+    if (b[i] !== 0xff) return null;
+    const marker = b[i + 1];
+    if (marker === 0xff) { i += 1; continue; }
+    if (marker >= 0xc0 && marker <= 0xcf && marker !== 0xc4 && marker !== 0xc8 && marker !== 0xcc) return { height: (b[i + 5] << 8) + b[i + 6], width: (b[i + 7] << 8) + b[i + 8] };
+    i += 2 + (b[i + 2] << 8) + b[i + 3];
+  }
+  return null;
+}
+
 export function stillActions(key: string, s: Still) {
   const copy = STILL_COPY[s.market];
   return STILL_CHANNELS[s.market].map((c) => ({
