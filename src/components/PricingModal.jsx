@@ -18,7 +18,7 @@ import AiModalHeader from './AiModalHeader';
 import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
 import { accountStatusModel, lifetimeAccountModel } from '../domain/subscriptions/accountSummaryClient';
 import PackageOfferCards from './PackageOfferCards';
-import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText, israelPurchaseOpen, plansAvailabilityLine, smartPackStatusLine, pastDueLine } from '../domain/subscriptions/packageCheckout';
+import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText, israelPurchaseOpen, plansAvailabilityLine, smartPackStatusLine, pastDueLine, serviceMailbox } from '../domain/subscriptions/packageCheckout';
 import { formatShortDate } from '../utils/shortDate';
 import SmartPackAddOnOffer from './SmartPackAddOnOffer';
 import SmartPackRemoval from './SmartPackRemoval';
@@ -82,7 +82,8 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
     onPay: async (choice) => {
       setPay({ busy: true, error: null });
       const r = await onPurchase(choice).catch(() => ({ ok: false, code: 'checkout_unavailable' }));
-      if (!r || r.ok !== true) setPay({ busy: false, error: checkoutErrorMessage(r?.code, isHebrew) });
+      // 2026-11-01 (decision e): the service mailbox of the account's market (abroad info@)
+      if (!r || r.ok !== true) setPay({ busy: false, error: checkoutErrorMessage(r?.code, isHebrew, serviceMailbox(accountSummary)) });
     },
   } : null;
 
@@ -142,7 +143,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
             <MailLink href={`mailto:${pastDue.mail}`} isHebrew={isHebrew} style={{ color: '#0F6672' }}><bdi dir="ltr">{pastDue.mail}</bdi></MailLink>
           </p>
         )}
-        {/* Owner 2026-10-25: in Israel (purchase open) never "cannot be purchased yet", even for an account with nothing to buy */}
+        {/* Owner 2026-10-25: where purchase is open (Israel; abroad since 2026-11-01) never "cannot be purchased yet", even for an account with nothing to buy */}
         {purchase || israelPurchaseOpen(accountSummary)
           ? <div style={{ height: '12px' }} aria-hidden="true" />
           : (() => {
@@ -166,7 +167,7 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
           <p data-testid="plans-smart-pack-abroad" dir={isHebrew ? 'rtl' : 'ltr'} style={{ maxWidth: '440px', margin: '0 auto 12px', textAlign: 'center', color: '#475569', fontSize: '0.85rem' }}>{isolateNumbers(m.smartPackAbroad)}</p>
         )}
         {/* never a second add-on page while the return from one is still being confirmed */}
-        {smartPackAddOn && !lifetime && !(billingReturn?.addOn === true && ['waiting', 'timeout'].includes(billingReturn.state)) && <SmartPackAddOnOffer isHebrew={isHebrew} invoke={smartPackAddOn.invoke} onLeave={smartPackAddOn.onLeave} />}
+        {smartPackAddOn && !lifetime && !(billingReturn?.addOn === true && ['waiting', 'timeout'].includes(billingReturn.state)) && <SmartPackAddOnOffer market={accountSummary?.state === 'ready' ? accountSummary.market : null} isHebrew={isHebrew} invoke={smartPackAddOn.invoke} onLeave={smartPackAddOn.onLeave} />}
         <div style={{ marginBottom: '14px', maxWidth: '440px', marginInline: 'auto' }}><PackageOfferCards model={m} isHebrew={isHebrew} currentPlanId={current} currentPeriod={ready ? accountSummary.billingPeriod ?? null : null} purchase={purchase} onAddOnChange={setAddOnTicked} only={['all_inclusive']} smartPackRenewing={smartPackRenewing} /></div>
 
         <p data-testid="plans-modal-price-note" data-price-note style={{ textAlign: 'center', color: '#334155', fontSize: '0.85rem', fontWeight: 600, margin: '0 0 4px' }}>{m.priceNote}</p>

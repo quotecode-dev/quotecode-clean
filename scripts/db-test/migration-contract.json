@@ -675,6 +675,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-02 (typed: \"מאשר תיקון R01 ו-R02 של קודקס, כולל שינוי ב-L-22, שחרור עד הלייב\"): a function body, one additive column, a backfill of credit notes; replays cleanly."
+    },
+    "20261102020000_international_purchase_open.sql": {
+      "sha256": "6ab70f9ece0c79f60ec0c8ce67f487576e5b783af37269222bb825b2220f0be0",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-10-31 (typed: the six Codex groups in order, each through its own gate to LIVE, including L-02, L-13, L-15, L-17, L-18, L-22 and the 30/10 locks, decisions a-h and the wording as recommended): international purchase opens (USD), SMART PACK mid-period abroad, USD cancellation fee 5% capped at $27, owed refund currency"
     }
   }
 }

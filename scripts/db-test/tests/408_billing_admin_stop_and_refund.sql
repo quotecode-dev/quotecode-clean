@@ -350,8 +350,9 @@ BEGIN
   PERFORM public.record_verified_provider_event('payplus', 'tx-408-10', 'payment_confirmed', a, 'rec-408-10', 'term-408', now() - interval '3 days', repeat('e', 64), amt, 'USD');
   PERFORM tst.logout();
   p := tst.bprev(tst.bu(10));
-  PERFORM tst.ok(p ->> 'currency' = 'USD' AND (p ->> 'feeMinor')::int = 0 AND (p ->> 'refundMinor')::int = (p ->> 'proratedMinor')::int,
-    'B19 USD: no cancellation fee until an approved rule (Codex audit M-02)');
+  -- Owner decision c (2026-11-01, 20261101100000): USD = 5% capped at $27 - here 5% of 18.00 = 0.90
+  PERFORM tst.ok(p ->> 'currency' = 'USD' AND (p ->> 'feeMinor')::int = 90 AND (p ->> 'refundMinor')::int = greatest(0, (p ->> 'proratedMinor')::int - 90),
+    'B19 USD: the cancellation fee is 5% capped at $27 (Owner decision c; before it: no fee)');
 END $$;
 
 -- ---------------------------------------------------------------------------------------------------------------- the log + grants

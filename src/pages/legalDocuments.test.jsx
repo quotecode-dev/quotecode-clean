@@ -23,10 +23,10 @@ describe('Terms', () => {
   });
   it('purchase / renewal / cancellation / refund terms apply when a subscription is purchased, beside the true availability', () => {
     expect(he).toMatch(/בעת רכישת מנוי/); expect(he).toMatch(/אישור מפורש/); expect(he).toMatch(/זמינות כיום: מסלול החינם ורכישת המנוי פעילים/); // Owner console 2026-10-25 (typed L-12 / L-14 ...)
-    expect(en).toMatch(/when a subscription is purchased/); expect(en).toMatch(/explicit approval/); expect(en).toMatch(/Subscription purchase is open for accounts in Israel only; for accounts outside Israel, subscription purchase and online payment are not open yet/);
-    // Owner console 2026-10-25 (typed L-12 / L-14 ...): the Hebrew Terms name the payment provider (Israel buys); the English Terms do not
-    // (purchase abroad is not open); neither ever claims a general "checkout is active"
-    expect(he).toMatch(/פיי פלוס \(PayPlus\)/); expect(en).not.toMatch(/PayPlus/);
+    expect(en).toMatch(/when a subscription is purchased/); expect(en).toMatch(/explicit approval/); expect(en).toMatch(/Availability today: the Free plan and subscription purchase are active/); expect(en).toMatch(/Accounts outside Israel pay in USD, without Israeli VAT/); // Owner console 2026-11-01
+    // Owner console 2026-10-25 (typed L-12 / L-14 ...): the Hebrew Terms name the payment provider; since 2026-11-01 (purchase open abroad)
+    // the English Terms too; neither ever claims a general "checkout is active"
+    expect(he).toMatch(/פיי פלוס \(PayPlus\)/); expect(en).toMatch(/payment provider PayPlus/);
     expect(`${he}${en}`).not.toMatch(/checkout is active|תשלום פעיל/i);
   });
   it('the Owner\'s refund decision: pro-rata unused period, fee only where lawful + disclosed, capped, annual discount kept', () => {

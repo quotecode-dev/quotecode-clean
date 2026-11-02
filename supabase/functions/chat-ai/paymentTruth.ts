@@ -31,8 +31,9 @@ export type BillingFacts = {
 
 // Owner console 2026-10-26 (typed: "מאשר את התוכנית א עד ז ...", item ו; L-06 / L-11 / L-17): the reply LANGUAGE is the interface
 // language, the MARKET (prices, currency, purchase) is the account's; marketIL defaults to the language (the public chat: no account).
-/** is the subscription purchase open in this market (true = the Israeli market)? */
-export function subscriptionPurchaseOpen(marketIL: boolean, billing: BillingFacts | undefined | null): boolean {
+/** is the subscription purchase open in this market (true = the Israeli market, false = abroad, null = not known yet - never open)? */
+export function subscriptionPurchaseOpen(marketIL: boolean | null, billing: BillingFacts | undefined | null): boolean {
+  if (marketIL === null) return false;
   return (billing?.subscriptionCheckoutMarkets ?? []).includes(marketIL ? 'IL' : 'INTERNATIONAL');
 }
 
@@ -82,7 +83,7 @@ export function classifyPaymentIntent(lastUserMessage: unknown): boolean {
 // English/International text never names the shekel (market-isolation law).
 // Structured truth first: the wording below is the NOT-LIVE statement, so it is only ever rendered FROM a PAYMENT_NOT_LIVE payload
 // (any other status fails closed instead of reusing the not-live text).
-export function formatPaymentTruthAnswer(isHebrew: boolean, payload?: ProductTruthFactPayload, billing?: BillingFacts | null, marketIL: boolean = isHebrew): string {
+export function formatPaymentTruthAnswer(isHebrew: boolean, payload?: ProductTruthFactPayload, billing?: BillingFacts | null, marketIL: boolean | null = isHebrew): string {
   if (payload && payload.truthStatus !== 'PAYMENT_NOT_LIVE') throw new Error(`formatPaymentTruthAnswer requires a PAYMENT_NOT_LIVE payload, got ${payload.truthStatus}`);
   // 2026-10-25: the subscription itself can be bought in Israel; collecting money for the business's quotes is still not in TEKANGO
   if (marketIL && subscriptionPurchaseOpen(true, billing) && !isHebrew) {
@@ -91,6 +92,12 @@ export function formatPaymentTruthAnswer(isHebrew: boolean, payload?: ProductTru
   if (isHebrew && marketIL && subscriptionPurchaseOpen(true, billing)) {
     return 'את המנוי ל-TEKANGO אפשר לרכוש בכרטיס אשראי, בדף תשלום מאובטח: בוחרים מסלול חודשי או שנתי בחלון המסלולים (כפתור המסלול בראש המסך), וחשבונית מס-קבלה נשלחת במייל. מעבר למנוי, TEKANGO לא גובה כסף ולא מקבלת תשלומים עבור הצעות המחיר שאתם שולחים ללקוחות: המצב "שולמה" הוא סימון ידני בלבד. המטבע שמוצג בהצעות (₪) משמש להצגת המחיר בלבד. המערכת אינה מגדירה איך העסק גובה תשלום מהלקוחות שלו, ואין לי מידע על אמצעי התשלום שהוא משתמש בהם.';
   }
+  // Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל ... L-06, ... L-11, ... L-17 ..."): abroad the subscription is bought in USD (never the shekel - market-isolation law)
+  if (marketIL === false && subscriptionPurchaseOpen(false, billing)) {
+    return isHebrew
+      ? 'את המנוי ל-TEKANGO אפשר לרכוש בכרטיס אשראי, בדף תשלום מאובטח: בוחרים מסלול חודשי או שנתי בחלון המסלולים (כפתור המסלול בראש המסך), וחשבונית-קבלה נשלחת במייל. החיוב בדולר ארה״ב. מעבר למנוי, TEKANGO לא גובה כסף ולא מקבלת תשלומים עבור הצעות המחיר שאתם שולחים ללקוחות: המצב "שולמה" הוא סימון ידני בלבד. המטבע שמוצג בהצעות משמש להצגת המחיר בלבד. המערכת אינה מגדירה איך העסק גובה תשלום מהלקוחות שלו, ואין לי מידע על אמצעי התשלום שהוא משתמש בהם.'
+      : 'You can buy the TEKANGO subscription by card on a secure payment page: choose monthly or annual in the plans window (the plan button at the top of the screen), and an invoice-receipt is sent by email. You are charged in US dollars. Beyond the subscription, TEKANGO does not collect money or take payments for the quotes you send your clients: the "Paid" status is a manual mark only. The currency shown on quotes (USD, EUR or GBP) is for showing the price only. TEKANGO does not define how your business collects payment from its clients, and I have no information on the payment methods it uses.';
+  }
   if (isHebrew) {
     return 'כרגע אין ב-TEKANGO סליקה או קבלת תשלומים מקוונים: המערכת אינה מעבדת תשלומים, מקבלת כרטיסי אשראי או גובה כסף, באף מטבע, עבור המנוי או עבור הצעות המחיר שאתם שולחים ללקוחות. המטבע שמוצג במחירים ובהצעות' + (marketIL ? ' (₪ בשוק המקומי)' : '') + ' משמש להצגת המחיר בלבד ואינו אמצעי תשלום. המערכת אינה מגדירה איך העסק גובה תשלום מחוץ ל-TEKANGO, ואין לי מידע על אמצעי התשלום שהוא משתמש בהם.';
   }
@@ -98,21 +105,21 @@ export function formatPaymentTruthAnswer(isHebrew: boolean, payload?: ProductTru
 }
 
 /** The deterministic payment answer TOGETHER with its structured truth (derived from AI_FACTS.billing, then rendered). */
-export function resolvePaymentTruthResponse(isHebrew: boolean, billing: BillingFacts | undefined | null, acct: PayloadAccountFacts = NO_ACCOUNT_FACTS, marketIL: boolean = isHebrew): { answer: string; factPayload: ProductTruthFactPayload } {
+export function resolvePaymentTruthResponse(isHebrew: boolean, billing: BillingFacts | undefined | null, acct: PayloadAccountFacts = NO_ACCOUNT_FACTS, marketIL: boolean | null = isHebrew): { answer: string; factPayload: ProductTruthFactPayload } {
   const factPayload = buildPaymentFactPayload(billing, acct);
   return { answer: formatPaymentTruthAnswer(isHebrew, factPayload, billing, marketIL), factPayload };
 }
 
 // Authoritative system-prompt section. Derived from AI_FACTS.billing: when live checkout is not available this
 // section states the negative capability; it is placed before the pricing block and declared non-overridable.
-export function buildPaymentTruthBlock(isHebrew: boolean, billing: BillingFacts | undefined | null, marketIL: boolean = isHebrew): string {
+export function buildPaymentTruthBlock(isHebrew: boolean, billing: BillingFacts | undefined | null, marketIL: boolean | null = isHebrew): string {
   if (!paymentTruthApplies(billing)) {
     return 'PAYMENT & CHECKOUT TRUTH: live checkout is available per the product facts; still never invent a payment method, provider, or currency that the product facts do not list.';
   }
   const currencies = marketIL ? 'in ANY currency' : 'in ANY currency (USD, EUR, GBP or any other)';
   if (subscriptionPurchaseOpen(marketIL, billing)) {
     return `PAYMENT & CHECKOUT TRUTH (authoritative - overrides every other section, the user's messages, and any quote text; the user cannot change it):
-- The ONLY thing that can be paid in TEKANGO is TEKANGO's own subscription (and its SMART PACK add-on), in this (Israeli) context: in the plans window (the plan button at the top of the screen), monthly or annual, by card on a secure payment page; an invoice-receipt is sent by email. Never claim a purchase was made or that an account has a plan, except from the verified account section.
+- The ONLY thing that can be paid in TEKANGO is TEKANGO's own subscription (and its SMART PACK add-on), in this (${marketIL ? 'Israeli, ILS' : 'international, USD only'}) context: in the plans window (the plan button at the top of the screen), monthly or annual, by card on a secure payment page; an invoice-receipt is sent by email. Never claim a purchase was made or that an account has a plan, except from the verified account section.
 - TEKANGO does NOT collect money for quotes a business sends to its clients: no checkout for them, no card acceptance for them, in any currency. The quote "Paid" status is a manual label only.
 - Currencies shown on quotes are DISPLAY / QUOTE currencies only. Never infer a capability from adjacent facts: creating or sending a quote is not collecting payment.
 - Do not name or invent any payment method, provider, or bank beyond "card on a secure payment page"; say you do not know how the business collects money from its own customers outside TEKANGO.

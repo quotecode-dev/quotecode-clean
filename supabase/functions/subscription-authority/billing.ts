@@ -122,9 +122,9 @@ export type PulledAddOn = { addOnId: string | null; amountMinor: number | null; 
 // Owner console 2026-10-26 (typed: "מאשר הסרת חכם פלוס בשירות עצמי: בחודשי בסוף התקופה ששולמה בלי החזר, בשנתי לפי סעיף 6 ..."): what taking the SMART PACK line off the standing order needs
 // (from SQL: smart_pack_removal_begin)
 export type SmartPackRemovalRequest = { removalId: string; packageAttemptId: string; recurringRef: string; terminalRef: string | null; packageRequestRef: string;
-  packageAmountMinor: number; addOnAmountMinor: number; period: BillingPeriod; currency: 'ILS'; nextChargeDate: string };
+  packageAmountMinor: number; addOnAmountMinor: number; period: BillingPeriod; currency: 'ILS' | 'USD'; nextChargeDate: string };
 export type SmartPackLineRequest = { addOnId: string; packageAttemptId: string; recurringRef: string; terminalRef: string | null; packageRequestRef: string;
-  packageAmountMinor: number; addOnAmountMinor: number; period: BillingPeriod; currency: 'ILS'; nextChargeDate: string };
+  packageAmountMinor: number; addOnAmountMinor: number; period: BillingPeriod; currency: 'ILS' | 'USD'; nextChargeDate: string };
 
 /** Owner 2026-10-25 (the first real charge came back as "General Customer" with no email - no invoice, no approval email): the
  *  paying account's own business details from its settings row; each value is optional and validated before use. */
@@ -151,7 +151,7 @@ export interface BillingProvider {
   /** 20261022200000: the result of a payment page by its request id (createCheckout's pageRequestUid); null = nothing to read yet */
   pullCheckout?(pageRequestUid: string): Promise<PulledCheckout | null>;
   /** 20261025300000: the one-time SMART PACK page of an active subscriber (the server's pro-rata amount) */
-  createAddOnCheckout?(i: { addOnId: string; currency: 'ILS'; amountMinor: number; billingPeriod: BillingPeriod; customer?: CheckoutCustomer | null }):
+  createAddOnCheckout?(i: { addOnId: string; currency: 'ILS' | 'USD'; amountMinor: number; billingPeriod: BillingPeriod; customer?: CheckoutCustomer | null }):
     Promise<{ redirectUrl: string; pageRequestUid?: string } | null>;
   pullAddOnCheckout?(pageRequestUid: string): Promise<PulledAddOn | null>;
   /** the SMART PACK line on the live package's standing order: 'unknown' = no answer (tried again later) */
@@ -312,15 +312,19 @@ export interface BillingSql {
 }
 
 // ------------------------------------------------------------------------------------------------ checkout intent
-/** Owner 2026-10-25: the only market where purchasing is open (international waits for PayPlus foreign-currency approval) */
-export const OPEN_MARKET = 'IL' as const;
+/** Owner 2026-10-25: Israel opened (ILS). Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל לפי ההמלצות א-ה, כולל שינוי ב-L-01, ... L-22"): purchasing is open in both markets - abroad pays USD.
+ *  Each market pays only in its own currency (IRON-MARKET-001). */
+export const OPEN_MARKETS = Object.freeze(['IL', 'INTERNATIONAL'] as const);
+export const MARKET_CURRENCY: Readonly<Record<Market, 'ILS' | 'USD'>> = Object.freeze({ IL: 'ILS', INTERNATIONAL: 'USD' });
+const isOpenMarket = (m: unknown): m is Market => (OPEN_MARKETS as readonly unknown[]).includes(m);
+const isCurrency = (c: unknown): c is 'ILS' | 'USD' => c === 'ILS' || c === 'USD';
 const CHECKOUT_CODES: Record<string, number> = { checkout_unavailable: 503, account_unprovisioned: 409, idempotency_conflict: 409, invalid_request: 400,
   already_subscribed: 409,
   // 20261021200000: in the grace days a failed renewal is paid on the live standing order (no second subscription)
   payment_update_required: 409,
   // review 2026-10-22: the same click again for an attempt that is no longer pending (paid / expired) opens no new page
   checkout_not_pending: 409,
-  // 20261025200000 (Owner 2026-10-25): purchasing is open in Israel only
+  // a market outside OPEN_MARKETS (20261025200000; 20261101100000 opened INTERNATIONAL)
   market_not_open: 409 };
 export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: BillingSql; provider: BillingProvider }, userId: string, body: unknown): Promise<Resp> {
   if (phase === 'off') return err(503, 'checkout_unavailable');
@@ -349,8 +353,8 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
   if (typeof r.attemptId !== 'string' || !UUID.test(r.attemptId) || (r.market !== 'IL' && r.market !== 'INTERNATIONAL')
       || !['ILS', 'USD'].includes(r.currency as string) || !Number.isInteger(r.amountMinor)) return err(503, 'checkout_unavailable');
   if (r.state !== undefined && r.state !== 'pending') return err(409, 'checkout_not_pending');
-  // Owner 2026-10-25: Israel only until PayPlus approves foreign-currency billing (the SQL refuses first; never a page abroad)
-  if (r.market !== OPEN_MARKET) return err(409, 'market_not_open');
+  // Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל לפי ההמלצות א-ה, כולל שינוי ב-L-01, ... L-22"): purchasing is open in both markets (the SQL refuses any other market first)
+  if (!isOpenMarket(r.market) || MARKET_CURRENCY[r.market] !== r.currency) return err(409, 'market_not_open');
   // Defence in depth: the SQL amount must equal the server catalog computation for the server market (never a client value).
   const market = r.market as Market;
   let catalogRaw: unknown;
@@ -408,9 +412,10 @@ export async function smartPackAddOnQuoteHandler(phase: BillingPhase, deps: { sq
   let r: Record<string, unknown>;
   try { r = await deps.sql.smartPackAddOnQuote(userId); } catch { return err(503, 'checkout_unavailable'); }
   if (!isObj(r) || r.ok !== true) return addOnError(r);
-  if (r.currency !== 'ILS' || !Number.isInteger(r.amountMinor) || (r.amountMinor as number) <= 0 || !Number.isInteger(r.recurringMinor)
+  // 20261101100000: the account's own market currency (ILS in Israel, USD abroad)
+  if (!isOpenMarket(r.market) || MARKET_CURRENCY[r.market] !== r.currency || !Number.isInteger(r.amountMinor) || (r.amountMinor as number) <= 0 || !Number.isInteger(r.recurringMinor)
       || !isPeriod(r.period) || !isIso(r.periodEnd)) return err(503, 'checkout_unavailable');
-  return { status: 200, body: { ok: true, currency: 'ILS', amountMinor: r.amountMinor, recurringMinor: r.recurringMinor, period: r.period,
+  return { status: 200, body: { ok: true, currency: r.currency, amountMinor: r.amountMinor, recurringMinor: r.recurringMinor, period: r.period,
     periodEnd: r.periodEnd, ...(Number.isInteger(r.daysLeft) ? { daysLeft: r.daysLeft } : {}) } };
 }
 
@@ -425,16 +430,16 @@ export async function smartPackAddOnIntentHandler(phase: BillingPhase, deps: { s
   let r: Record<string, unknown>;
   try { r = await sql.createSmartPackAddOnIntent(userId, key); } catch { return err(503, 'checkout_unavailable'); }
   if (!isObj(r) || r.ok !== true) return addOnError(r);
-  if (typeof r.addOnId !== 'string' || !UUID.test(r.addOnId) || r.market !== OPEN_MARKET || r.currency !== 'ILS' || !Number.isInteger(r.amountMinor)
+  if (typeof r.addOnId !== 'string' || !UUID.test(r.addOnId) || !isOpenMarket(r.market) || MARKET_CURRENCY[r.market] !== r.currency || !Number.isInteger(r.amountMinor)
       || (r.amountMinor as number) <= 0 || !isPeriod(r.period)) return err(503, 'checkout_unavailable');
   if (r.state !== 'pending') return err(409, 'checkout_not_pending');
-  const addOnId = r.addOnId; const amountMinor = r.amountMinor as number;
+  const addOnId = r.addOnId; const amountMinor = r.amountMinor as number; const currency = r.currency as 'ILS' | 'USD';
   const httpsPage = (v: unknown): v is string => typeof v === 'string' && /^https:\/\//.test(v);
-  const answer = (redirectUrl: string): Resp => ({ status: 200, body: { ok: true, addOnId, currency: 'ILS', amountMinor, redirectUrl, state: 'pending' } });
+  const answer = (redirectUrl: string): Resp => ({ status: 200, body: { ok: true, addOnId, currency, amountMinor, redirectUrl, state: 'pending' } });
   const existing = sql.smartPackAddOnPage ? await sql.smartPackAddOnPage(addOnId, userId).catch(() => null) : null;
   if (httpsPage(existing)) return answer(existing);
   const customer = sql.checkoutCustomer ? cleanCheckoutCustomer(await sql.checkoutCustomer(userId).catch(() => null)) : null;
-  const hosted = await provider.createAddOnCheckout({ addOnId, currency: 'ILS', amountMinor, billingPeriod: r.period as BillingPeriod,
+  const hosted = await provider.createAddOnCheckout({ addOnId, currency, amountMinor, billingPeriod: r.period as BillingPeriod,
     ...(customer ? { customer } : {}) }).catch(() => null);
   if (!hosted || !httpsPage(hosted.redirectUrl)) return err(503, 'checkout_unavailable');
   const requestRef = typeof hosted.pageRequestUid === 'string' && UUID.test(hosted.pageRequestUid) ? hosted.pageRequestUid : null;
@@ -451,11 +456,11 @@ function parseLineRequest(b: Record<string, unknown>): SmartPackLineRequest | nu
   const s = (v: unknown, re: RegExp) => typeof v === 'string' && re.test(v);
   if (!s(b.addOnId, UUID) || !s(b.packageAttemptId, UUID) || typeof b.recurringRef !== 'string' || !b.recurringRef || !(b.terminalRef === null || s(b.terminalRef, UUID))
       || !s(b.packageRequestRef, UUID) || !Number.isInteger(b.packageAmountMinor) || (b.packageAmountMinor as number) <= 0
-      || !Number.isInteger(b.addOnAmountMinor) || (b.addOnAmountMinor as number) <= 0 || !isPeriod(b.period) || b.currency !== 'ILS'
+      || !Number.isInteger(b.addOnAmountMinor) || (b.addOnAmountMinor as number) <= 0 || !isPeriod(b.period) || !isCurrency(b.currency)
       || !s(b.nextChargeDate, /^\d{4}-\d{2}-\d{2}$/)) return null;
   return { addOnId: b.addOnId as string, packageAttemptId: b.packageAttemptId as string, recurringRef: b.recurringRef, terminalRef: (b.terminalRef as string | null),
     packageRequestRef: b.packageRequestRef as string, packageAmountMinor: b.packageAmountMinor as number, addOnAmountMinor: b.addOnAmountMinor as number,
-    period: b.period, currency: 'ILS', nextChargeDate: b.nextChargeDate as string };
+    period: b.period, currency: b.currency as 'ILS' | 'USD', nextChargeDate: b.nextChargeDate as string };
 }
 
 /** the SMART PACK line on the live standing order after a verified add-on payment. 'unknown' leaves it 'requested' (tried again on the
@@ -525,8 +530,9 @@ export async function smartPackRemovalQuoteHandler(phase: BillingPhase, deps: { 
     return removalError(r);
   }
   const int = (v: unknown) => Number.isInteger(v) && (v as number) >= 0;
-  if (r.currency !== 'ILS' || !isPeriod(r.period) || !isIso(r.effectiveAt) || !int(r.refundMinor) || !int(r.recurringMinor)) return err(503, 'checkout_unavailable');
-  return { status: 200, body: { ok: true, period: r.period, effectiveAt: r.effectiveAt, refundMinor: r.refundMinor, recurringMinor: r.recurringMinor,
+  if (!isCurrency(r.currency) || !isPeriod(r.period) || !isIso(r.effectiveAt) || !int(r.refundMinor) || !int(r.recurringMinor)) return err(503, 'checkout_unavailable');
+  // 20261101100000: the currency is answered so the window shows the account's own (₪ in Israel, $ abroad)
+  return { status: 200, body: { ok: true, currency: r.currency, period: r.period, effectiveAt: r.effectiveAt, refundMinor: r.refundMinor, recurringMinor: r.recurringMinor,
     feeMinor: int(r.feeMinor) ? r.feeMinor : 0 } };
 }
 
@@ -534,11 +540,11 @@ function parseRemovalRequest(b: Record<string, unknown>): SmartPackRemovalReques
   const s = (v: unknown, re: RegExp) => typeof v === 'string' && re.test(v);
   const pos = (v: unknown) => Number.isInteger(v) && (v as number) > 0;
   if (!s(b.removalId, UUID) || !s(b.packageAttemptId, UUID) || typeof b.recurringRef !== 'string' || !b.recurringRef || !(b.terminalRef === null || s(b.terminalRef, UUID))
-      || !s(b.packageRequestRef, UUID) || !pos(b.packageAmountMinor) || !pos(b.addOnAmountMinor) || !isPeriod(b.period) || b.currency !== 'ILS'
+      || !s(b.packageRequestRef, UUID) || !pos(b.packageAmountMinor) || !pos(b.addOnAmountMinor) || !isPeriod(b.period) || !isCurrency(b.currency)
       || !s(b.nextChargeDate, /^\d{4}-\d{2}-\d{2}$/)) return null;
   return { removalId: b.removalId as string, packageAttemptId: b.packageAttemptId as string, recurringRef: b.recurringRef, terminalRef: b.terminalRef as string | null,
     packageRequestRef: b.packageRequestRef as string, packageAmountMinor: b.packageAmountMinor as number, addOnAmountMinor: b.addOnAmountMinor as number,
-    period: b.period, currency: 'ILS', nextChargeDate: b.nextChargeDate as string };
+    period: b.period, currency: b.currency as 'ILS' | 'USD', nextChargeDate: b.nextChargeDate as string };
 }
 
 /** the line taken off after the request; 'unknown' leaves it 'requested' (tried again); every outcome but 'removed' is an incident */

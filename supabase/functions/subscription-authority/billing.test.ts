@@ -73,11 +73,17 @@ describe('checkout intent: server market + server catalog amount; redirect is no
     expect(provider.createCheckout).toHaveBeenCalledWith({ attemptId: ATT, currency: 'ILS', amountMinor: expected.amountMinor });
     expect(r).toEqual({ status: 200, body: { ok: true, attemptId: ATT, currency: 'ILS', amountMinor: expected.amountMinor, redirectUrl: 'https://provider.example/pay/abc', state: 'pending' } });
   });
-  it('Owner 2026-10-25: an INTERNATIONAL account gets no payment page - a "market: IL" in the body never opens one', async () => {
+  // Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל לפי ההמלצות א-ה ..."): abroad opens - in USD, whatever the body says
+  it('2026-11-01: an INTERNATIONAL account gets its USD page - a "market: IL" / "currency: ILS" in the body changes nothing', async () => {
     const sql = sqlFor('INTERNATIONAL'); const provider = okProvider();
-    expect(await checkoutIntentHandler('enforced', { sql, provider }, U, { planId: 'classic', blocks: 1, idempotencyKey: KEY, market: 'IL', currency: 'ILS' }))
+    const r = await checkoutIntentHandler('enforced', { sql, provider }, U, { planId: 'classic', blocks: 1, idempotencyKey: KEY, market: 'IL', currency: 'ILS' });
+    expect(r.status).toBe(200);
+    expect(r.body).toMatchObject({ ok: true, currency: 'USD' });
+    expect(provider.createCheckout).toHaveBeenCalledWith(expect.objectContaining({ currency: 'USD' }));
+    // a market whose currency is not its own is never a page (IRON-MARKET-001)
+    const mixed = { ...sqlFor('INTERNATIONAL'), createCheckoutIntent: vi.fn(async () => ({ ok: true, attemptId: ATT, market: 'INTERNATIONAL', currency: 'ILS', amountMinor: 1800, state: 'pending' })) } as never;
+    expect(await checkoutIntentHandler('enforced', { sql: mixed, provider: okProvider() }, U, { planId: 'classic', blocks: 1, idempotencyKey: KEY }))
       .toEqual({ status: 409, body: { ok: false, code: 'market_not_open' } });
-    expect(provider.createCheckout).not.toHaveBeenCalled();
     // the SQL refusal of 20261025200000 maps to the same answer
     const sql2 = { ...sqlFor('IL'), createCheckoutIntent: vi.fn(async () => ({ ok: false, code: 'market_not_open' })) } as never;
     expect(await checkoutIntentHandler('enforced', { sql: sql2, provider }, U, { planId: 'classic', idempotencyKey: KEY }))

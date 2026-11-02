@@ -4,11 +4,12 @@
 // period, and a yearly SMART PACK is refunded pro rata less the section 6 fee. Nothing is charged here.
 import { useEffect, useRef, useState } from 'react';
 import { formatShortDate } from '../utils/shortDate';
-import { formatWholeMoney } from '../utils/money';
-import { loadSmartPackRemovalQuote, removeSmartPack, smartPackRemovalErrorMessage } from '../domain/subscriptions/packageCheckout';
+import { formatMoneyForCurrency } from '../utils/money';
+import { loadSmartPackRemovalQuote, mailboxForCurrency, removeSmartPack, smartPackRemovalErrorMessage } from '../domain/subscriptions/packageCheckout';
 
-const money = (minor) => `₪${formatWholeMoney(minor / 100)}`;
-const israelDate = (iso) => formatShortDate(iso, 'Local');
+// Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל ... L-22"): the quote's own currency - ₪ whole shekels in Israel, $ abroad
+const moneyIn = (currency) => (minor) => `${currency === 'USD' ? '$' : '₪'}${formatMoneyForCurrency(minor / 100, currency)}`;
+const dateIn = (currency) => (iso) => formatShortDate(iso, currency === 'USD' ? 'International' : 'Local');
 const num = (text) => <bdi dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{text}</bdi>;
 const linkBtn = { background: 'none', border: 'none', padding: 0, color: '#0F6672', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit', minHeight: 32 };
 
@@ -32,6 +33,9 @@ export default function SmartPackRemoval({ isHebrew, invoke, onDone }) {
     return <p data-testid="plans-smart-pack-removed" dir={he ? 'rtl' : 'ltr'} style={box}>{he ? 'חכם פלוס לא יתחדש.' : 'SMART PACK will not renew.'}</p>;
   }
   if (quote.ok !== true) return null;
+  const money = moneyIn(quote.currency);
+  const israelDate = dateIn(quote.currency);
+  const mailbox = mailboxForCurrency(quote.currency);
   if (step === 'done' && result) {
     return (
       <p data-testid="plans-smart-pack-removal-done" role="status" dir={he ? 'rtl' : 'ltr'} style={{ ...box, color: '#0F6672', fontWeight: 700 }}>
@@ -39,8 +43,8 @@ export default function SmartPackRemoval({ isHebrew, invoke, onDone }) {
           ? <>{he ? <>חכם פלוס יפעל עד {num(israelDate(result.effectiveAt))} ולא יתחדש.</> : <>SMART PACK runs until {num(israelDate(result.effectiveAt))} and will not renew.</>}
             {/* 20261029000000 (Codex F02): the refund is promised as done only when it was made */}
             {result.refundMinor > 0 && result.refundState === 'refunded' && <> {he ? <>החזר של {num(money(result.refundMinor))} יגיע לכרטיס.</> : <>A refund of {num(money(result.refundMinor))} goes back to your card.</>}</>}
-            {result.refundMinor > 0 && result.refundState !== 'refunded' && <> {he ? <>ההחזר של {num(money(result.refundMinor))} עדיין בטיפול ויבוצע לכרטיס ששימש לתשלום. לשאלות כתבו לנו: <bdi dir="ltr">support@tekango.com</bdi></> : <>Your refund of {num(money(result.refundMinor))} is still being processed and will go back to the card you paid with. Questions? Write to us: <bdi dir="ltr">support@tekango.com</bdi></>}</>}</>
-          : smartPackRemovalErrorMessage(result.code ?? (result.state === 'pending' ? 'pending' : 'refused'), he)}
+            {result.refundMinor > 0 && result.refundState !== 'refunded' && <> {he ? <>ההחזר של {num(money(result.refundMinor))} עדיין בטיפול ויבוצע לכרטיס ששימש לתשלום. לשאלות כתבו לנו: <bdi dir="ltr">{mailbox}</bdi></> : <>Your refund of {num(money(result.refundMinor))} is still being processed and will go back to the card you paid with. Questions? Write to us: <bdi dir="ltr">{mailbox}</bdi></>}</>}</>
+          : smartPackRemovalErrorMessage(result.code ?? (result.state === 'pending' ? 'pending' : 'refused'), he, mailbox)}
       </p>
     );
   }

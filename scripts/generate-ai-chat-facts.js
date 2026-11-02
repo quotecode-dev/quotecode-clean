@@ -55,8 +55,9 @@ export const AI_FACTS_SCHEMA_VERSION = 3;
 // Owner console 2026-10-25 (typed "מאשר שינוי ב-L-01, L-06, L-07, L-11, L-12, L-14, L-17, L-22 להפעלת הרכישה בישראל"; Free-10 enforced in
 // both markets, purchase open in Israel only): the plan system is active.
 const SUBSCRIPTION_PLAN_SYSTEM_ACTIVE = true;
-// The markets where a TEKANGO subscription (and SMART PACK) can be bought - Israel only until PayPlus approves foreign-currency billing.
-const SUBSCRIPTION_PURCHASE_OPEN_MARKETS = Object.freeze(['IL']);
+// The markets where a TEKANGO subscription (and SMART PACK) can be bought - Israel (ILS, 2026-10-25) and abroad (USD):
+// Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל לפי ההמלצות א-ה, כולל שינוי ב-L-01, L-05, L-06, L-07, L-11, L-12, L-14, L-17, L-22").
+const SUBSCRIPTION_PURCHASE_OPEN_MARKETS = Object.freeze(['IL', 'INTERNATIONAL']);
 
 // The Owner decisions that are explicitly NOT decided (OWNER_DECISIONS_LOCKED_2026-10-07.md §4/§5). Never state a value.
 const NOT_DECIDED = Object.freeze([
