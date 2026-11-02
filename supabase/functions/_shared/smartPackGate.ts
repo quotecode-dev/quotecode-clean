@@ -20,12 +20,13 @@ export function smartPackAllowedBySummary(summary: AccountSummary | null | undef
  *  to "can this account get SMART PACK from the plans window right now?" - every "you can add it in the plans window" line (the SMART
  *  PACK notice, the voice note, the chat answer) promises it only when this says so. 'package' = buy the package with the SMART PACK
  *  box (Free, or an all-inclusive account the pay button serves); 'add_on' = an active subscriber adds it with a pro-rata charge;
- *  null = no path now (purchase closed / not Israel / a failed charge being retried / a stopped renewal / a legacy style plan / has it).
+ *  null = no path now (purchase closed / no market / a failed charge being retried / a stopped renewal / a legacy style plan / has it).
+ *  Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל ... L-05 ..."): both markets have the path (abroad in USD).
  *  (Here and not in subscriptionContract.ts: that contract is shared by functions outside this release.) */
 export function smartPackPurchasePath(summary: AccountSummary | null | undefined, isLifetime = false): 'package' | 'add_on' | null {
   if (isLifetime === true || summary?.state !== 'ready') return null;
   const s = summary as ReadySummary;
-  if ((s.phase.billing !== 'prepared' && s.phase.billing !== 'enforced') || s.market !== 'IL' || s.smartPack?.active) return null;
+  if ((s.phase.billing !== 'prepared' && s.phase.billing !== 'enforced') || (s.market !== 'IL' && s.market !== 'INTERNATIONAL') || s.smartPack?.active) return null;
   if (s.planId === 'all_inclusive' && s.billing?.limited) return 'package';
   if (s.planId === 'all_inclusive' && s.subscriptionStatus === 'active') return s.billing?.renewalStopped ? null : 'add_on';
   if (s.planId === 'all_inclusive') return s.subscriptionStatus === 'past_due' ? null : 'package'; // the same rule as the pay button

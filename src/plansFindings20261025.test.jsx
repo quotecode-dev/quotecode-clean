@@ -93,7 +93,7 @@ describe('5 - "you can add it in the plans window" only where it can be bought n
     expect(smartPackPurchasePath(limited())).toBe('package');
     expect(smartPackPurchasePath(pastDue())).toBeNull();
     expect(smartPackPurchasePath(stopped())).toBeNull();
-    expect(smartPackPurchasePath(intl())).toBeNull();
+    expect(smartPackPurchasePath(intl())).toBe('package'); // 2026-11-01: abroad too (a Free account abroad buys the package with the box)
     expect(smartPackPurchasePath(S({ plan: { id: 'classic' } }))).toBeNull();
     expect(smartPackPurchasePath(active(), true)).toBeNull();
     expect(smartPackAddOnAvailable(stopped())).toBe(false);
@@ -112,13 +112,13 @@ describe('5 - "you can add it in the plans window" only where it can be bought n
 });
 
 describe('7 - the availability line says the truth, with a retry (HE + EN)', () => {
-  it('loading / not readable / not open abroad', () => {
+  it('loading / not readable; abroad open since 2026-11-01 (no line)', () => {
     expect(plansAvailabilityLine({ state: 'loading' }, true)).toEqual({ kind: 'loading', text: 'טוען את פרטי החשבון…' });
     expect(plansAvailabilityLine({ state: 'loading' }, false).text).toBe('Loading your account details…');
     expect(plansAvailabilityLine({ state: 'unavailable', code: 'not_authenticated' }, true).text).toBe('לא הצלחנו לטעון את פרטי החשבון. אפשר לנסות שוב.');
     expect(plansAvailabilityLine({ state: 'invalid', code: 'schema' }, false).text).toBe('We could not load your account details. You can try again.');
-    expect(plansAvailabilityLine(intl(), true).text).toBe('הרכישה עדיין לא פתוחה בחשבונות מחוץ לישראל, ולא מתבצע חיוב.');
-    expect(plansAvailabilityLine(intl(), false).text).toBe('Purchasing is not open yet for accounts outside Israel, and nothing is charged.');
+    expect(plansAvailabilityLine(intl(), true)).toBeNull();
+    expect(plansAvailabilityLine(intl(), false)).toBeNull();
   });
   it.each(LANGS)('the plans window (isHebrew %s): a summary that did not load can be read again', (isHebrew) => {
     const retry = vi.fn();
@@ -149,11 +149,11 @@ describe('10 - the account\'s SMART PACK line (HE + EN)', () => {
       smartPack: { active: true, source: 'free_window', until: PAID_THROUGH } }), true, fmt)).toBe('חכם פלוס כלול בימי החינם עד 20/11/2026. כדי להמשיך איתו אחרי רכישת מנוי, סמנו את חכם פלוס בתשלום.');
     expect(smartPackStatusLine(S({ plan: { id: 'free' }, subscriptionStatus: 'none', billing: undefined, free10: { limit: 10, consumed: 1, reserved: 0, remaining: 9 },
       smartPack: { active: true, source: 'free_window', until: PAID_THROUGH } }), false, fmt)).toBe('SMART PACK is included in your free days until 20/11/2026. To keep it after you subscribe, tick SMART PACK when you pay.');
-    // no pay button (abroad) = no "tick it when you pay" (HE + EN)
+    // 2026-11-01: abroad there is a pay button with the SMART PACK box too = the same tip (HE + EN)
     const abroad = S({ market: 'INTERNATIONAL', plan: { id: 'free' }, subscriptionStatus: 'none', billing: undefined, free10: { limit: 10, consumed: 1, reserved: 0, remaining: 9 },
       smartPack: { active: true, source: 'free_window', until: PAID_THROUGH } });
-    expect(smartPackStatusLine(abroad, true, fmt)).toBe('חכם פלוס כלול בימי החינם עד 20/11/2026.');
-    expect(smartPackStatusLine(abroad, false, fmt)).toBe('SMART PACK is included in your free days until 20/11/2026.');
+    expect(smartPackStatusLine(abroad, true, fmt)).toBe('חכם פלוס כלול בימי החינם עד 20/11/2026. כדי להמשיך איתו אחרי רכישת מנוי, סמנו את חכם פלוס בתשלום.');
+    expect(smartPackStatusLine(abroad, false, fmt)).toBe('SMART PACK is included in your free days until 20/11/2026. To keep it after you subscribe, tick SMART PACK when you pay.');
     expect(smartPackStatusLine(active(), true, fmt)).toBeNull();
   });
   it.each(LANGS)('shown in the plans window (isHebrew %s)', (isHebrew) => {
@@ -178,9 +178,10 @@ describe('review follow-ups (HE + EN)', () => {
     expect(STATUS_MEDALLION_KIND.paid_past_due).toBe('plan');
     expect(STATUS_MEDALLION_KIND.paid_limited).toBe('plan');
   });
-  it('abroad: the same sentence in the notice and the plans window (EN), plural address in HE', () => {
-    expect(noticeCopy('en', 'smart_pack', intl()).explanation).toMatch(/ Purchasing is not open yet for accounts outside Israel\.$/);
-    expect(noticeCopy('he', 'smart_pack', intl()).explanation).toMatch(/ הרכישה עדיין לא פתוחה בחשבונות מחוץ לישראל\.$/);
+  it('abroad (2026-11-01): the notice promises the plans window with the USD price (EN), plural address in HE', () => {
+    expect(noticeCopy('en', 'smart_pack', intl()).explanation).toMatch(/ You can add it in the plans window\.$/);
+    expect(noticeCopy('en', 'smart_pack', intl()).eligible).toBe('Price: $5.00 a month, or $51.00 a year with an annual plan.');
+    expect(noticeCopy('he', 'smart_pack', intl()).explanation).toMatch(/ אפשר להוסיף אותו בחלון המסלולים\.$/);
     expect(accountStatusModel(pastDue(), 'he').detail).toBe('החיוב האחרון לא עבר');
     expect(read('src/components/PackageOfferCards.jsx')).toContain("isHebrew ? 'המסלול שלכם' : 'Your plan'");
   });

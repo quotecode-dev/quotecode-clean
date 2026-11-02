@@ -47,17 +47,13 @@ describe('א - the total with SMART PACK on the subscriber card (HE + EN)', () =
   });
 });
 
-describe('ד - abroad: SMART PACK information only (HE + EN), never in Israel', () => {
+// Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל לפי ההמלצות א-ה, כולל שינוי ב-L-01, L-05, ... L-22")
+describe('ד retired (2026-11-01): abroad SMART PACK is bought like in Israel - no information-only line (HE + EN)', () => {
   const intl = () => S({ market: 'INTERNATIONAL', plan: { id: 'free' }, subscriptionStatus: 'none', billing: undefined, billingPeriod: null,
     free10: { limit: 10, consumed: 1, reserved: 0, remaining: 9 } });
-  it.each([[true, 'הרכישה מחוץ לישראל תיפתח בקרוב.'], [false, 'Buying it outside Israel opens soon.']])('isHebrew %s', (isHebrew, end) => {
+  it.each([true, false])('isHebrew %s', (isHebrew) => {
     open(isHebrew, intl(), { currency: 'USD' });
-    const line = screen.getByTestId('plans-smart-pack-abroad');
-    expect(line.textContent.endsWith(end)).toBe(true);
-    expect(line).toHaveAttribute('dir', isHebrew ? 'rtl' : 'ltr');
-    expect(line.querySelectorAll('bdi[dir="ltr"]').length).toBeGreaterThanOrEqual(2);
-    expect(screen.queryByTestId('plans-smart-pack-add-on-pay')).toBeNull();
-    expect(document.querySelector('[data-addon-toggle]')).toBeNull();
+    expect(screen.queryByTestId('plans-smart-pack-abroad')).toBeNull();
   });
   it('Israel: no abroad line', () => {
     open(true, S());

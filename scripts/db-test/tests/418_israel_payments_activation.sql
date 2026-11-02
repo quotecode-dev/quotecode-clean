@@ -36,11 +36,12 @@ SELECT tst.ok((SELECT (r->>'ok')::boolean AND r->>'market' = 'IL' AND r->>'curre
 SELECT tst.ok((SELECT (r->>'ok')::boolean AND (r->>'amountMinor')::int = 30600 + 10200 AND (r->>'smartPack')::boolean
                  FROM public.create_package_checkout_intent('00000000-0000-4000-8000-00000000000a', 'year', 'k418-year-00000000001', true) r),
   'M9 an IL account gets an annual page with SMART PACK: 306.00 + 102.00 ILS');
-SELECT tst.ok((SELECT r = '{"ok": false, "code": "market_not_open"}'::jsonb
+-- Owner 2026-11-01 (20261101100000): the INTERNATIONAL market opened - its own USD page (before it: market_not_open, nothing recorded)
+SELECT tst.ok((SELECT (r->>'ok')::boolean AND r->>'market' = 'INTERNATIONAL' AND r->>'currency' = 'USD' AND (r->>'amountMinor')::int = 1800
                  FROM public.create_package_checkout_intent('00000000-0000-4000-8000-00000000000b', 'month', 'k418-intl-00000000001') r),
-  'M10 an INTERNATIONAL account gets no page (market_not_open)');
-SELECT tst.ok(NOT EXISTS (SELECT 1 FROM public.checkout_attempts WHERE user_id = '00000000-0000-4000-8000-00000000000b'),
-  'M11 nothing is recorded for the refused market');
+  'M10 an INTERNATIONAL account gets a monthly page: 18.00 USD (20261101100000)');
+SELECT tst.ok((SELECT count(*) = 1 AND bool_and(currency = 'USD' AND market = 'INTERNATIONAL') FROM public.checkout_attempts WHERE user_id = '00000000-0000-4000-8000-00000000000b'),
+  'M11 the attempt is recorded in USD for its own market');
 
 -- after a purchase started, a type change no longer moves the market
 UPDATE public.business_settings SET country = 'International' WHERE user_id = '00000000-0000-4000-8000-00000000000a';

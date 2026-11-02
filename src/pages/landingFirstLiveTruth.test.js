@@ -19,9 +19,9 @@ describe('Landing first-LIVE feature truth', () => {
     expect(he).not.toContain('זו העדפה בלבד שתילקח בחשבון בהמשך');
     expect(he).not.toContain('אם לא רוכשים מנוי בתום התקופה');
   });
-  it('EN: advertises the AI assistant inside authenticated workflows and states paid upgrades are unavailable', () => {
+  it('EN: advertises the AI assistant inside authenticated workflows and says where the paid package is bought (2026-11-01)', () => {
     expect(en).toContain('AI Assistant Inside Your Workflow');
-    expect(en).toContain('The paid package cannot be purchased yet');
+    expect(en).toContain('The paid package is bought inside your account, in the plans window');
     expect(en).not.toContain("it's only a preference we'll take into account later");
     expect(en).not.toContain('subscribe by the end of the trial');
   });

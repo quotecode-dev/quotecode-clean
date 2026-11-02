@@ -26,7 +26,8 @@ describe('L1 / L7: one meaning, true on LIVE and TEST', () => {
     expect(en).not.toMatch(/without a trial|no trial/i);
     expect(en).not.toMatch(/enrollment and billing are not active/i);
     expect(en).not.toMatch(/for review/i);
-    expect(en).toContain("trialNote: 'The paid package cannot be purchased yet, and the prices are shown for information only.'");
+    // IRON-LANDING-001 amended by the Owner 2026-11-01: the English page states where and how the package is bought
+    expect(en).toContain("trialNote: 'The paid package is bought inside your account, in the plans window: by card, monthly or annually, in US dollars.'");
   });
 });
 

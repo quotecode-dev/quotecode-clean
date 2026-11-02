@@ -63,7 +63,10 @@ describe('the removal on the server', () => {
   it('the quote: the period, the date it takes effect, the yearly refund only', async () => {
     const quote = { ok: true, period: 'month', currency: 'ILS', effectiveAt: '2026-11-25T15:48:24.917Z', refundMinor: 0, recurringMinor: 1000, feeMinor: 0 };
     expect((await smartPackRemovalQuoteHandler('enforced', { sql: { smartPackRemovalQuote: async () => quote } as never }, U)).body)
-      .toEqual({ ok: true, period: 'month', effectiveAt: quote.effectiveAt, refundMinor: 0, recurringMinor: 1000, feeMinor: 0 });
+      .toEqual({ ok: true, currency: 'ILS', period: 'month', effectiveAt: quote.effectiveAt, refundMinor: 0, recurringMinor: 1000, feeMinor: 0 });
+    // 2026-11-01: a USD removal quote answers its own currency (the window shows $)
+    expect((await smartPackRemovalQuoteHandler('enforced', { sql: { smartPackRemovalQuote: async () => ({ ...quote, currency: 'USD', recurringMinor: 500 }) } as never }, U)).body)
+      .toMatchObject({ ok: true, currency: 'USD', recurringMinor: 500 });
     expect((await smartPackRemovalQuoteHandler('enforced', { sql: { smartPackRemovalQuote: async () => ({ ok: false, code: 'already_removed', effectiveAt: quote.effectiveAt }) } as never }, U)).body)
       .toEqual({ ok: false, code: 'already_removed', effectiveAt: quote.effectiveAt });
   });

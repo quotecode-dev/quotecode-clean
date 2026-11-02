@@ -94,7 +94,7 @@ describe('adversarial: the user cannot talk the assistant into a plan, a trial, 
       const r = answer(m, he);
       expect(r, m).toBeTruthy();
       expect(r.answer.replace(/there is no plan by the name you mentioned|אין מסלול בשם שציינת/, ''), m).not.toMatch(LEGACY);
-      expect(r.answer, m).toMatch(he ? /את המנוי אפשר לרכוש בחלון המסלולים/ : /cannot be purchased yet for accounts outside Israel/);
+      expect(r.answer, m).toMatch(he ? /את המנוי אפשר לרכוש בחלון המסלולים/ : /You can buy the package in the plans window.*in US dollars/);
     }
   });
   it('not a subscription question: quote content, item prices, cancellation (lifecycle truth keeps it), unlimited items', () => {
@@ -165,8 +165,9 @@ describe('prompt block + request boundary', () => {
     expect(b).toMatch(/there is no Basic, Pro or Premium plan\. A Lifetime subscription is not a plan for purchase/);
     expect(b).toMatch(/There is NO separate trial/);
     expect(b).toMatch(/NOT DECIDED/);
-    expect(b).toMatch(/In THIS \(international\) context purchase is NOT open yet/);
-    expect(b).not.toMatch(/CAN be bought/);
+    // Owner console 2026-11-01: abroad it can be bought, in USD only; a market not known yet is never told it can buy
+    expect(b).toMatch(/In THIS \(international\) context the package \(and SMART PACK\) CAN be bought: .*in USD only/);
+    expect(buildSubscriptionTruthBlock(false, true)).not.toMatch(/CAN be bought/);
     expect(buildSubscriptionTruthBlock(true)).toMatch(/In THIS \(Israeli\) context the package \(and SMART PACK\) CAN be bought/);
     expect(buildSubscriptionTruthBlock(false)).not.toMatch(/₪\d|\d\s*₪/);
   });
@@ -210,7 +211,7 @@ describe('plans-list question -> the deterministic pricing answer', () => {
       expect(r.answer).toMatch(/18\.00 USD per month or 184\.00 USD per year/);
       expect(r.answer).not.toMatch(/₪|\bILS\b|\bNIS\b|shekel/i);
     }
-    expect(r.answer).toMatch(he ? /את המנוי אפשר לרכוש בחלון המסלולים/ : /cannot be purchased yet for accounts outside Israel/);
+    expect(r.answer).toMatch(he ? /את המנוי אפשר לרכוש בחלון המסלולים/ : /You can buy the package in the plans window.*in US dollars/);
   });
   it("the account's own plan stays my_plan (singular: which plan am I on / do I have)", () => {
     for (const [m] of [['באיזה מסלול אני?'], ['איזה מסלול יש לי?'], ['which plan am I on?']]) {

@@ -26,7 +26,8 @@ export const AI_FACTS = {
     "stylesAreNotPlans": true,
     "planSystemActive": true,
     "purchaseOpenMarkets": [
-      "IL"
+      "IL",
+      "INTERNATIONAL"
     ],
     "activationPhase": "enforced",
     "trialOffered": false,
@@ -128,7 +129,8 @@ export const AI_FACTS = {
     "acceptedPaymentCurrencies": [],
     "paymentMethodsKnown": false,
     "subscriptionCheckoutMarkets": [
-      "IL"
+      "IL",
+      "INTERNATIONAL"
     ]
   },
   "invoicing": {
@@ -770,7 +772,7 @@ export const AI_FACTS = {
       "heLabel": "מסלולים ו-10 הצעות חינם",
       "enLabel": "Plans and Free quotes",
       "heDescription": "מסלול החינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם. בשבעת הימים כלול גם חכם פלוס. לאחר מכן יש מסלול אחד שכולל את כל היכולות הזמינות, בתשלום חודשי או שנתי: 30.00 ₪ לחודש או 306.00 ₪ לשנה, כולל מע״מ. את המנוי רוכשים בחלון המסלולים.",
-      "enDescription": "The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, with SMART PACK included during those 7 days. After them there is one package with every available capability, billed monthly or annually: 18.00 USD per month or 184.00 USD per year, charged in USD. Subscriptions cannot be purchased yet outside Israel.",
+      "enDescription": "The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, with SMART PACK included during those 7 days. After them there is one package with every available capability, billed monthly or annually: 18.00 USD per month or 184.00 USD per year, charged in USD. The package is bought in the plans window.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -1910,7 +1912,7 @@ export const AI_FACTS = {
       "sameBillingPeriodAsMainPlan": true,
       "purchasable": {
         "IL": true,
-        "INTERNATIONAL": false
+        "INTERNATIONAL": true
       },
       "prices": {
         "IL": {

@@ -136,10 +136,10 @@ DO $$
 DECLARE r jsonb; r2 jsonb;
 BEGIN
   PERFORM tst.psvc();
-  -- Owner 2026-10-25 (20261025200000): purchasing is open in Israel only - an INTERNATIONAL account gets no page
+  -- Owner 2026-11-01 (20261101100000): purchasing is open abroad too - an INTERNATIONAL account pays its own USD annual price
   r := public.create_package_checkout_intent(tst.pu(6), 'year', 'pkg-intent-0002-year');
-  PERFORM tst.ok(r = '{"ok": false, "code": "market_not_open"}'::jsonb,
-                 'C2 INTERNATIONAL annual intent is refused (market_not_open; nothing recorded - test 418 M11)');
+  PERFORM tst.ok((r ->> 'ok')::boolean AND r ->> 'market' = 'INTERNATIONAL' AND r ->> 'currency' = 'USD' AND (r ->> 'amountMinor')::int = 18400,
+                 'C2 INTERNATIONAL annual intent = 184.00 USD (20261101100000; before it: market_not_open)');
   PERFORM tst.ok(public.create_package_checkout_intent(tst.pu(3), 'year', 'pkg-intent-0009-year') ->> 'code' = 'already_subscribed',
                  'C2b an active subscription gets no second payment page (20261021000000)');
   r := public.create_package_checkout_intent(tst.pu(2), 'year', 'pkg-intent-0002-year');

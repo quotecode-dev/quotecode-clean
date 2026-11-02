@@ -33,9 +33,10 @@ describe('the SMART PACK notice', () => {
     expect(off.explanation).not.toMatch(/חלון המסלולים/);
     expect(off.eligible).toBe('');
     expect(c.unchanged).toBe('לא בוצע שום שינוי ולא בוצע חיוב.');
+    // 2026-11-01: abroad it is bought too, at its USD price (IRON-MARKET-001: never the shekel abroad)
     expect(capabilityNoticeCopy('en', 'smart_pack', summary({ market: 'INTERNATIONAL' }))).toMatchObject({
-      title: 'This is part of SMART PACK', eligible: '' });
-    expect(capabilityNoticeCopy('en', 'smart_pack', summary({ market: 'INTERNATIONAL' })).explanation).toMatch(/Purchasing is not open yet for accounts outside Israel\.$/);
+      title: 'This is part of SMART PACK', eligible: 'Price: $5.00 a month, or $51.00 a year with an annual plan.' });
+    expect(capabilityNoticeCopy('en', 'smart_pack', summary({ market: 'INTERNATIONAL' })).explanation).toMatch(/You can add it in the plans window\.$/);
   });
   it('renders as the one capability dialog with the plans button', () => {
     const onUpgrade = vi.fn();
@@ -70,11 +71,12 @@ describe('blocked at the click (source guards)', () => {
 });
 
 describe('SMART PACK for an active subscriber', () => {
-  it('offered only to a live Israeli package without SMART PACK (server summary), never LIFETIME', () => {
+  it('offered only to a live package without SMART PACK (server summary; Israel and, since 2026-11-01, abroad), never LIFETIME', () => {
     expect(smartPackAddOnAvailable(summary())).toBe(true);
     expect(smartPackAddOnAvailable(summary(), true)).toBe(false);
     expect(smartPackAddOnAvailable(summary({ smartPack: { active: true, source: 'add_on', until: null } }))).toBe(false);
-    expect(smartPackAddOnAvailable(summary({ market: 'INTERNATIONAL' }))).toBe(false);
+    expect(smartPackAddOnAvailable(summary({ market: 'INTERNATIONAL' }))).toBe(true);
+    expect(smartPackAddOnAvailable(summary({ market: null }))).toBe(false);
     expect(smartPackAddOnAvailable(summary({ plan: { id: 'free' }, subscriptionStatus: 'none', free10: { limit: 10, consumed: 0, reserved: 0, remaining: 10 } }))).toBe(false);
     expect(smartPackAddOnAvailable(summary({ phase: { output: 'enforced', catalog: 'prepared', billing: 'off' } }))).toBe(false);
   });
@@ -82,7 +84,7 @@ describe('SMART PACK for an active subscriber', () => {
     const invoke = vi.fn(async (_fn, { body }) => ({ data: body.action === 'smart_pack_add_on_quote'
       ? { ok: true, currency: 'ILS', amountMinor: 667, recurringMinor: 1000, period: 'month', periodEnd: '2026-11-20T10:00:00.000Z' }
       : { ok: true, redirectUrl: 'https://payments.payplus.co.il/x' } }));
-    expect(await loadSmartPackAddOnQuote({ invoke })).toEqual({ ok: true, amountMinor: 667, recurringMinor: 1000, period: 'month', periodEnd: '2026-11-20T10:00:00.000Z' });
+    expect(await loadSmartPackAddOnQuote({ invoke })).toEqual({ ok: true, amountMinor: 667, recurringMinor: 1000, period: 'month', periodEnd: '2026-11-20T10:00:00.000Z', currency: 'ILS' });
     expect(await startSmartPackAddOn({ invoke, key: 'pkg_' + 'k'.repeat(32) })).toEqual({ ok: true, redirectUrl: 'https://payments.payplus.co.il/x' });
     expect(invoke.mock.calls[1][1]).toEqual({ body: { action: 'smart_pack_add_on_intent', idempotencyKey: 'pkg_' + 'k'.repeat(32) } });
     expect(smartPackAddOnErrorMessage('already_included', true)).toBe('חכם פלוס כבר פעיל בחשבון. לא בוצע חיוב.');

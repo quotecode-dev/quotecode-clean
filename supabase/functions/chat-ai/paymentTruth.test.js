@@ -90,13 +90,18 @@ describe('PAYMENT & CHECKOUT TRUTH prompt block', () => {
     expect(he).toMatch(/אין לי מידע על אמצעי התשלום שהוא משתמש בהם/);
     expect(he).not.toMatch(/(\$|USD|EUR|GBP|דולר|יורו|לירה)/);
     expect(he).not.toMatch(/(paypal|stripe|העברה בנקאית|מזומן|ביט|צ'ק|טרנזילה|קארדקום)/i);
-    // the English (international) answer is unchanged: no checkout at all
-    expect(formatPaymentTruthAnswer(false, undefined, AI_FACTS.billing)).toMatch(/no live checkout or payment processing/);
+    // Owner console 2026-11-01: the English (international) answer - the subscription in US dollars, never the shekel
+    const en = formatPaymentTruthAnswer(false, undefined, AI_FACTS.billing);
+    expect(en).toMatch(/You can buy the TEKANGO subscription by card on a secure payment page/);
+    expect(en).toMatch(/You are charged in US dollars\./);
+    expect(en).not.toMatch(/₪|\bILS\b|shekel/i);
+    // with purchase closed everywhere it still says there is no checkout
+    expect(formatPaymentTruthAnswer(false, undefined, { ...AI_FACTS.billing, subscriptionCheckoutMarkets: [] })).toMatch(/no live checkout or payment processing/);
   });
   it('is derived from the facts: negative capability when there is no live checkout, and authoritative/non-overridable', () => {
     const closed = { ...AI_FACTS.billing, subscriptionCheckoutMarkets: [] };
     for (const he of [true, false]) {
-      const block = buildPaymentTruthBlock(he, he ? closed : AI_FACTS.billing);
+      const block = buildPaymentTruthBlock(he, closed);
       expect(block).toMatch(/PAYMENT & CHECKOUT TRUTH \(authoritative/);
       expect(block).toMatch(/available: NO/);
       expect(block).toMatch(/does not yet have live payment\/checkout processing/);
