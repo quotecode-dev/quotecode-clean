@@ -4,7 +4,9 @@
 //  - Every post and video of the accounts, also those uploaded by hand: views, likes, comments, shares. A value the network did not return is unknown, never 0.
 //  - YouTube's public numbers with an API key. TikTok has no measurement: it needs an approved app.
 //  - The stills folder: one still per market at a time becomes a post for its Facebook and Instagram, waiting for the Owner. Nothing is published here.
-import { TARGETS, ORIGIN, type Market } from './social.ts';
+// Owner 2026-11-02 (typed: "מאשר תיקון שירה, מע"מ של עוסק פטור כולל שינוי ב-L-22, רענון אוטומטי פעם אחת במסך הטעינה כולל שינוי ב-L-02 ו-L-15, ותיקון 30527 בפיי פלוס, שחרור עד הלייב"): ORIGIN is read while this file loads, so it comes from a file outside the social.ts <-> socialStats.ts cycle
+import { ORIGIN } from '../search-console/lib.ts';
+import { TARGETS, type Market } from './social.ts';
 import type { Graph, PublishedPost } from './socialReplies.ts';
 
 export type ContentKind = 'video' | 'image' | 'text';
