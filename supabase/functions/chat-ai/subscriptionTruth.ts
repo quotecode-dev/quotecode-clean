@@ -195,12 +195,6 @@ function purchaseOpen(lang: Lang, marketIL: boolean = lang === 'he'): boolean {
 function notActiveLine(lang: Lang, marketIL: boolean = lang === 'he'): string {
   if (S.planSystemActive) {
     if (purchaseOpen(lang, marketIL)) {
-      // Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל ... L-06, ... L-11, ... L-17 ..."): abroad in US dollars, with an invoice-receipt (no Israeli VAT, so not a "tax" invoice-receipt)
-      if (!marketIL) {
-        return lang === 'he'
-          ? 'את המנוי אפשר לרכוש בחלון המסלולים, מכפתור המסלול בראש המסך: בתשלום חודשי או שנתי בכרטיס אשראי, בדולר ארה״ב, וחשבונית-קבלה נשלחת במייל.'
-          : 'You can buy the package in the plans window, from the plan button at the top of the screen: monthly or annual, by card, in US dollars, with a receipt by email.';
-      }
       return lang === 'he'
         ? 'את המנוי אפשר לרכוש בחלון המסלולים, מכפתור המסלול בראש המסך: בתשלום חודשי או שנתי בכרטיס אשראי, וחשבונית מס-קבלה נשלחת במייל.'
         : 'You can buy the package in the plans window, from the plan button at the top of the screen: monthly or annual, by card, with a receipt by email.';
@@ -335,11 +329,7 @@ export function buildSubscriptionTruthBlock(isHebrew: boolean, marketUncertain =
 - CANCELLATION AND REFUNDS (decided, published in the Terms of Service section 6): ${S.planSystemActive ? '' : 'once purchase opens, '}a subscription can be cancelled at any time by an email request (or a request from the plans window / settings); the team confirms the end date. An early end refunds the unused part of a prepaid period pro rata; a cancellation fee only where the law allows it and never above the cap stated in the Terms; the annual discount is never clawed back. Never promise anything beyond these terms.
 - Quote presentation styles (Owner 2026-10-14): every account can use all three styles - Classic (a clean business document), Modern (with product images) and Visual (with a lead project image). The business default style is set in Business settings (quote design) and can be changed on each quote. Never tie a style to a plan or a price.
 - The new plan system is ${S.planSystemActive
-    ? `active: the Free limit (10 quotes or 7 days) applies in both markets. ${marketUncertain
-      ? 'Whether a plan can be bought depends on this account\'s market, which is not set yet - never say a plan can be bought now. Never state an account\'s plan or balance except from the verified account section.'
-      : purchaseOpen(lang, marketIL) && !marketIL
-      ? 'In THIS (international) context the package (and SMART PACK) CAN be bought: in the plans window (the plan button at the top of the screen), monthly or annual, by card on a secure payment page, in USD only, and an invoice-receipt is sent by email. Never claim a purchase was made, and never state an account\'s plan or balance except from the verified account section.'
-      : purchaseOpen(lang, marketIL)
+    ? `active: the Free limit (10 quotes or 7 days) applies in both markets. ${purchaseOpen(lang, marketIL)
       ? 'In THIS (Israeli) context the package (and SMART PACK) CAN be bought: in the plans window (the plan button at the top of the screen), monthly or annual, by card on a secure payment page, and an invoice-receipt is sent by email. Never claim a purchase was made, and never state an account\'s plan or balance except from the verified account section.'
       : 'In THIS (international) context purchase is NOT open yet - it opens later; never say a plan can be bought now. Never state an account\'s plan or balance except from the verified account section.'}`
     : 'NOT active yet: plans cannot be purchased yet, and no account has an active plan or balance in it. Never claim an active plan, an active balance, purchase availability or a trial.'} There is never a trial.

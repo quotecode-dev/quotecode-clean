@@ -136,12 +136,11 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
     refURL_callback: cfg.callbackUrl,
     ...(cfg.cancelUrl ? { refURL_cancel: cfg.cancelUrl } : {}),
     send_failure_callback: true,
-    // Owner 2026-10-25: the customer gets the PayPlus approval / failure email and an invoice-receipt (Invoice+) for the first charge
-    // and every renewal. Owner console 2026-11-01 (decision b): abroad too - PayPlus writes a USD document in English (its document
-    // language follows the currency) with 0% VAT (decision a: the lines are vat_type 2, paying_vat false)
-    sendEmailApproval: true,
-    sendEmailFailure: true,
-    initial_invoice: true,
+    // Owner 2026-10-25: an Israeli customer gets the PayPlus approval / failure email and a tax invoice-receipt (Invoice+) for the
+    // first charge and every renewal; USD stays off (international purchasing is not open)
+    sendEmailApproval: !usd,
+    sendEmailFailure: !usd,
+    ...(usd ? {} : { initial_invoice: true }),
     items,
     recurring_settings: {
       instant_first_payment: true,
@@ -152,9 +151,9 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
       start_date: israelDayOfMonth(i.nowMs),
       // the first standing-order charge only after the whole paid period (never a second charge the first night)
       jump_payments: firstChargeFreeDays(i.nowMs, i.billingPeriod === 'year' ? 'year' : 'month'),
-      successful_invoice: true,
-      customer_failure_email: true,
-      send_customer_success_email: true,
+      successful_invoice: !usd,
+      customer_failure_email: !usd,
+      send_customer_success_email: !usd,
     },
   };
 }
@@ -165,15 +164,12 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
 // this page reaches the add-on row, never a package attempt. Same customer, approval email and invoice-receipt as the package page.
 export const PAYPLUS_ADD_ON_REF_PREFIX = 'sp_';
 export function buildAddOnLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | 'callbackUrl' | 'successUrl' | 'failureUrl' | 'cancelUrl' | 'addOnSuccessUrl' | 'addOnFailureUrl' | 'addOnCancelUrl'>,
-  i: { addOnId: string; amountMinor: number; billingPeriod: BillingPeriod; currency?: 'ILS' | 'USD'; customer?: CheckoutCustomer | null }): Record<string, unknown> {
-  // Owner console 2026-11-01 (decision d): abroad the same page in USD - English, VAT-exempt, no Israeli ID / instalments (as the package)
-  const usd = i.currency === 'USD';
+  i: { addOnId: string; amountMinor: number; billingPeriod: BillingPeriod; customer?: CheckoutCustomer | null }): Record<string, unknown> {
   return {
     payment_page_uid: cfg.paymentPageUid,
     charge_method: 1, // one charge now
     amount: i.amountMinor / 100,
-    currency_code: usd ? 'USD' : 'ILS',
-    ...(usd ? { language_code: 'en', paying_vat: false, hide_identification_id: true, hide_payments_field: true } : {}),
+    currency_code: 'ILS',
     more_info: PAYPLUS_ADD_ON_REF_PREFIX + i.addOnId,
     ...(i.customer && (i.customer.name || i.customer.email) ? { customer: {
       ...(i.customer.name ? { customer_name: i.customer.name } : {}),
@@ -188,8 +184,7 @@ export function buildAddOnLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | '
     sendEmailApproval: true,
     sendEmailFailure: true,
     initial_invoice: true,
-    items: [{ name: (usd ? PAYPLUS_SMART_PACK_ITEM_NAMES_EN : PAYPLUS_SMART_PACK_ITEM_NAMES)[i.billingPeriod], quantity: 1, price: i.amountMinor / 100,
-      vat_type: usd ? 2 : 0 }],
+    items: [{ name: PAYPLUS_SMART_PACK_ITEM_NAMES[i.billingPeriod], quantity: 1, price: i.amountMinor / 100, vat_type: 0 }],
   };
 }
 const addOnIdOf = (v: unknown): string | null =>
@@ -311,10 +306,10 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
         approved: o.valid && o.statusCode === PAYPLUS_SUCCESS_CODE, payloadSha256: await sha256Hex(enc.encode(JSON.stringify(seen))) };
     },
     // 20261025300000: the one-time SMART PACK page of an active subscriber
-    async createAddOnCheckout(i: { addOnId: string; currency: 'ILS' | 'USD'; amountMinor: number; billingPeriod: BillingPeriod; customer?: CheckoutCustomer | null }) {
-      if ((i.currency !== 'ILS' && i.currency !== 'USD') || !UUID.test(i.addOnId) || !Number.isInteger(i.amountMinor) || i.amountMinor <= 0
+    async createAddOnCheckout(i: { addOnId: string; currency: 'ILS'; amountMinor: number; billingPeriod: BillingPeriod; customer?: CheckoutCustomer | null }) {
+      if (i.currency !== 'ILS' || !UUID.test(i.addOnId) || !Number.isInteger(i.amountMinor) || i.amountMinor <= 0
           || (i.billingPeriod !== 'month' && i.billingPeriod !== 'year')) return null;
-      const body = buildAddOnLinkBody(cfg, { addOnId: i.addOnId, amountMinor: i.amountMinor, billingPeriod: i.billingPeriod, currency: i.currency,
+      const body = buildAddOnLinkBody(cfg, { addOnId: i.addOnId, amountMinor: i.amountMinor, billingPeriod: i.billingPeriod,
         customer: cleanCheckoutCustomer(i.customer) });
       let json: unknown;
       try {
@@ -355,20 +350,19 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
         return 'refused' as const;
       };
       const terminal = i.terminalRef ?? cfg.terminalUid ?? '';
-      if ((i.currency !== 'ILS' && i.currency !== 'USD') || !UUID.test(i.packageRequestRef)) return refuse('request');
+      if (i.currency !== 'ILS' || !UUID.test(i.packageRequestRef)) return refuse('request');
       if (!UUID.test(terminal)) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_terminal_missing' })); return 'unknown'; }
       const o = await orders.byPageRequest(i.packageRequestRef);
       if (!o) return 'unknown';
-      // 20261101100000: the order is in the request's own currency (ILS in Israel, USD abroad)
-      if (o.recurringUid !== i.recurringRef || !o.valid || o.currency !== i.currency || o.attemptId !== i.packageAttemptId) {
-        return refuse('order', { sameOrder: o.recurringUid === i.recurringRef, valid: o.valid, sameCurrency: o.currency === i.currency, ourAttempt: o.attemptId === i.packageAttemptId });
+      if (o.recurringUid !== i.recurringRef || !o.valid || o.currency !== 'ILS' || o.attemptId !== i.packageAttemptId) {
+        return refuse('order', { sameOrder: o.recurringUid === i.recurringRef, valid: o.valid, ils: o.currency === 'ILS', ourAttempt: o.attemptId === i.packageAttemptId });
       }
       if (o.recurringType !== 2 || o.recurringRange !== (i.period === 'year' ? 12 : 1)) return refuse('cycle', { type: o.recurringType, range: o.recurringRange, period: i.period });
       // the order total stands for its lines (PayPlus answers the order without them): the package alone = already removed
       const total = o.items.length ? o.items.reduce((s, it) => s + it.priceMinor * (it.quantity || 1), 0) : o.amountMinor;
       if (total === i.packageAmountMinor) return 'removed'; // a retry after a lost answer
       if (total !== i.packageAmountMinor + i.addOnAmountMinor) return refuse('lines', { lines: o.items.length, amount: total, expected: i.packageAmountMinor + i.addOnAmountMinor });
-      const pkg = await orders.productUidByName((i.currency === 'USD' ? PAYPLUS_ITEM_NAMES_EN : PAYPLUS_ITEM_NAMES)[i.period], i.currency);
+      const pkg = await orders.productUidByName(PAYPLUS_ITEM_NAMES[i.period], 'ILS');
       if (pkg === undefined) return 'unknown';
       if (pkg === null) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'package_product_missing' })); return 'unknown'; }
       const r = await orders.updateLinesOutcome(o, terminal, [{ productUid: pkg, priceMinor: i.packageAmountMinor }], i.nextChargeDate,
@@ -389,15 +383,14 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
         return 'not_added' as const;
       };
       const terminal = i.terminalRef ?? cfg.terminalUid ?? '';
-      if ((i.currency !== 'ILS' && i.currency !== 'USD') || !UUID.test(i.packageRequestRef)) return refuse('request', { currency: i.currency === 'ILS' || i.currency === 'USD', requestRef: UUID.test(i.packageRequestRef) });
+      if (i.currency !== 'ILS' || !UUID.test(i.packageRequestRef)) return refuse('request', { ils: i.currency === 'ILS', requestRef: UUID.test(i.packageRequestRef) });
       // Owner 2026-10-26 (item א2): no account terminal is a configuration gap of OURS - retried (the line stays 'requested'),
       // never recorded as refused (the first real add-on was refused this way before PayPlus was asked)
       if (!UUID.test(terminal)) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_terminal_missing' })); return 'unknown'; }
       const o = await orders.byPageRequest(i.packageRequestRef);
       if (!o) return 'unknown';
-      // 20261101100000: the order is in the request's own currency (ILS in Israel, USD abroad)
-      if (o.recurringUid !== i.recurringRef || !o.valid || o.currency !== i.currency || o.attemptId !== i.packageAttemptId) {
-        return refuse('order', { sameOrder: o.recurringUid === i.recurringRef, valid: o.valid, sameCurrency: o.currency === i.currency, ourAttempt: o.attemptId === i.packageAttemptId });
+      if (o.recurringUid !== i.recurringRef || !o.valid || o.currency !== 'ILS' || o.attemptId !== i.packageAttemptId) {
+        return refuse('order', { sameOrder: o.recurringUid === i.recurringRef, valid: o.valid, ils: o.currency === 'ILS', ourAttempt: o.attemptId === i.packageAttemptId });
       }
       // review 2026-10-25: the cycle is sent back exactly as PayPlus holds it - an annual order is never rewritten as a monthly one
       if (o.recurringType !== 2 || o.recurringRange !== (i.period === 'year' ? 12 : 1)) return refuse('cycle', { type: o.recurringType, range: o.recurringRange, period: i.period });
@@ -411,14 +404,13 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       if (noLines ? o.amountMinor !== i.packageAmountMinor : (o.items.length !== 1 || o.items[0].priceMinor !== i.packageAmountMinor || o.items[0].quantity !== 1)) {
         return refuse('lines', { lines: o.items.length, prices: o.items.map((it) => it.priceMinor), amount: o.amountMinor, expected: i.packageAmountMinor, quantity: o.items[0]?.quantity ?? null });
       }
-      const usd = i.currency === 'USD';
-      const productUid = await orders.productUidByName((usd ? PAYPLUS_SMART_PACK_ITEM_NAMES_EN : PAYPLUS_SMART_PACK_ITEM_NAMES)[i.period], i.currency);
+      const productUid = await orders.productUidByName(PAYPLUS_SMART_PACK_ITEM_NAMES[i.period], 'ILS');
       if (productUid === undefined) return 'unknown';
       // Owner 2026-10-26 (item א2): no SMART PACK product in the PayPlus catalog is a configuration gap of OURS (a one-time page
       // creates no catalog product - the first real add-on was refused this way) - retried, never recorded as refused
       if (productUid === null) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'smart_pack_product_missing' })); return 'unknown'; }
       // the package line keeps its name on every later invoice: its own catalog product when there is one, else the order's own line
-      const packageProduct = await orders.productUidByName((usd ? PAYPLUS_ITEM_NAMES_EN : PAYPLUS_ITEM_NAMES)[i.period], i.currency);
+      const packageProduct = await orders.productUidByName(PAYPLUS_ITEM_NAMES[i.period], 'ILS');
       if (packageProduct === undefined) return 'unknown';
       // an order read without lines needs the package's own catalog product (a configuration gap of ours otherwise - retried)
       if (noLines && !packageProduct) { console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'package_product_missing' })); return 'unknown'; }

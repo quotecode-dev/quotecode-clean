@@ -92,14 +92,12 @@ const OPEN_FACT = /VAT \d|מע"?״?מ \d|\d+\s*%|לפני מע|\bsav(e|es|ing|in
 const STYLE_ON_PACKAGE = /\b(Classic|Modern|Visual)\b/;
 // IRON-LANDING-001 amended 2026-10-25: Free-10 is active - the retired "not active yet" wording is a stale (false) claim now
 const STALE_INACTIVE = /עדיין לא הופעל|ההטבה עדיין לא|not active yet|is not active/i;
-// IRON-LANDING-001 amended by the Owner 2026-11-01 (typed): the English page, while purchase is open abroad, may say the package is bought
-// inside the account, in the plans window, by card, monthly or annually, in US dollars - never a checkout / buy-now / online-payment
-// claim; neither page names a payment method other than the card
-const EN_PURCHASE_CLAIM = /checkout|\bbuy now\b|\bpay now\b|\bpay online\b|online payment|credit card/i;
+// the English (international) page never claims a purchase; neither page names a payment method other than the card
+const EN_PURCHASE_CLAIM = /\b(buy|bought|purchase[ds]?|pay)\b[^.]{0,60}\b(account|plans window|card|now)\b|credit card|checkout/i;
 const OTHER_PAYMENT = /paypal|stripe|\bbit\b|(^|[\s("'״-])ביט($|[\s.,)"'״])|העברה בנקאית|bank transfer|מזומן|\bcash\b|(^|\s)צ['׳]ק($|[\s.,])/i;
 // Task 37: the Owner replaced the 2026-10-07 review notice (registration exists; checkout and Free-10 are off; no reviewer note to customers)
-// IRON-LANDING-001 amended 2026-10-25 (Owner typed): Free-10 active in both markets; buying inside the account (Israel; abroad since 2026-11-01)
-const NOTICE = { he: 'פותחים חשבון בחינם, ואת המנוי בתשלום רוכשים בתוך החשבון.', en: 'Open an account for free, and buy the paid package inside your account.' };
+// IRON-LANDING-001 amended 2026-10-25 (Owner typed): Free-10 active in both markets; buying inside the account in Israel only
+const NOTICE = { he: 'פותחים חשבון בחינם, ואת המנוי בתשלום רוכשים בתוך החשבון.', en: 'The paid package cannot be purchased yet, and there is no online payment. You can already open an account.' };
 const PRICE_NOTE = { he: 'המחירים כוללים מע״מ', en: 'Prices are in US dollars. Charged in USD.' };
 const PER = { he: { month: '/ חודש', year: '/ שנה' }, en: { month: 'USD / month', year: 'USD / year' } };
 const SAVING = {
@@ -283,7 +281,7 @@ describe('plan-card truth (IRON-LANDING-001 as amended 2026-10-11, PROFLOW_PROJE
       ['HE: a Free-10 CTA removed', 'he', HE, (m) => { m.free10 = m.free10.slice(1); }],
       ['HE: Free-10 presented as not active again (stale)', 'he', HE, (m) => { m.text += ' ההטבה עדיין לא הופעלה'; }],
       ['EN: the retired "Not active yet" status back on a CTA', 'en', EN, (m) => { m.free10[0].status = 'Not active yet'; }],
-      ['EN: a buy-now claim on the international page', 'en', EN, (m) => { m.text += ' Buy now and pay online.'; }],
+      ['EN: a purchase claim on the international page', 'en', EN, (m) => { m.text += ' Buy the package inside your account by card.'; }],
       ['HE: another payment method named', 'he', HE, (m) => { m.text += ' אפשר לשלם גם ב-PayPal'; }],
       ['EN: checkout claimed', 'en', EN, (m) => { m.text += ' Checkout is open.'; }],
     ];

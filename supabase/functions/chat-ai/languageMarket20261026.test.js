@@ -23,11 +23,10 @@ describe('the assembled prompt follows the market, never the reply language', ()
     expect(p).not.toMatch(/purchase is not open yet\./);
     expect(p).not.toMatch(/For Hebrew users, use|For English users, use/);
   });
-  it('an account abroad writing in Hebrew: purchase open in USD (2026-11-01), the international mailbox', () => {
+  it('an account abroad writing in Hebrew: purchase not open, the international mailbox', () => {
     const p = prompt(true, 'International');
     expect(p).toMatch(/The support email for this account \(its market, whatever the reply language\): info@tekango\.com/);
-    expect(p).not.toMatch(/purchase is not open yet\./);
-    expect(p).toMatch(/In THIS \(international\) context the package \(and SMART PACK\) CAN be bought/);
+    expect(p).toMatch(/purchase is not open yet\./);
   });
   it('an account whose market is not known yet is never told it can buy, in either language', () => {
     for (const he of [true, false]) expect(prompt(he, 'Unknown')).toMatch(/purchase is not open yet\./);
@@ -48,12 +47,12 @@ describe('subscription answer: language from the interface, prices from the mark
     expect(a).not.toMatch(/USD/);
     expect(a).toMatch(/You can buy the package in the plans window/);
   });
-  it('account abroad in Hebrew: Hebrew words, USD prices, purchase open in US dollars (2026-11-01)', () => {
+  it('account abroad in Hebrew: Hebrew words, USD prices, purchase not open yet', () => {
     const a = ask(true, false);
     expect(HEBREW.test(a)).toBe(true);
     expect(a).toMatch(/18\.00 USD לחודש/);
     expect(a).not.toMatch(/₪/);
-    expect(a).toMatch(/את המנוי אפשר לרכוש בחלון המסלולים.*בדולר ארה״ב/);
+    expect(a).toMatch(/רכישת מנוי עדיין לא פתוחה בחשבונות מחוץ לישראל/);
   });
   it('the matching combinations are unchanged (HE + IL, EN + abroad)', () => {
     expect(ask(true, true)).toBe(resolveSubscriptionTruthResponse('כמה עולה המנוי?', true, null).answer);
@@ -71,20 +70,16 @@ describe('payment answer and prompt blocks follow the market', () => {
     expect(HEBREW.test(a)).toBe(false);
     expect(a).toMatch(/You can buy the TEKANGO subscription by card/);
   });
-  it('account abroad in Hebrew: the subscription in US dollars, never the shekel (2026-11-01); a market not known yet is never open', () => {
+  it('account abroad in Hebrew: no purchase claim', () => {
     const a = resolvePaymentTruthResponse(true, AI_FACTS.billing, undefined, false).answer;
-    expect(a).toMatch(/את המנוי ל-TEKANGO אפשר לרכוש בכרטיס אשראי, בדף תשלום מאובטח/);
-    expect(a).toMatch(/החיוב בדולר ארה״ב\./);
-    expect(a).not.toMatch(/₪/);
-    expect(subscriptionPurchaseOpen(false, AI_FACTS.billing)).toBe(true);
+    expect(a).toMatch(/כרגע אין ב-TEKANGO סליקה/);
+    expect(subscriptionPurchaseOpen(false, AI_FACTS.billing)).toBe(false);
     expect(subscriptionPurchaseOpen(true, AI_FACTS.billing)).toBe(true);
-    expect(subscriptionPurchaseOpen(null, AI_FACTS.billing)).toBe(false);
   });
   it('the SMART PACK block: market prices, and abroad active only when the account section says so', () => {
     expect(buildAddOnTruthBlock(false, AI_FACTS.addOns, true)).toMatch(/Israel: ₪10(\.00)? per month/);
     expect(buildAddOnTruthBlock(true, AI_FACTS.addOns, false)).toMatch(/International: \$5(\.00)? per month/);
-    // 2026-11-01: abroad it can be bought too
-    expect(buildAddOnTruthBlock(true, AI_FACTS.addOns, false)).toMatch(/It can be purchased in the plans window/);
+    expect(buildAddOnTruthBlock(true, AI_FACTS.addOns, false)).toMatch(/ONLY when the verified account section says so \(e\.g\. during the 7 free days\)/);
     expect(buildSubscriptionTruthBlock(false, false, true)).toMatch(/ISRAEL\/HEBREW CONTEXT ONLY/);
     expect(buildSubscriptionTruthBlock(true, false, false)).toMatch(/INTERNATIONAL\/ENGLISH CONTEXT ONLY/);
   });

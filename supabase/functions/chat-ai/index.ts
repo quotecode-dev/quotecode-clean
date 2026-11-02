@@ -268,7 +268,7 @@ serve(async (req) => {
   const asksPayment = paymentTruthApplies(AI_FACTS.billing) && classifyPaymentIntent(lastUserMessage);
   if (asksInvoicing || asksPayment) {
     // 20261029000000 (Codex F16): an account whose market is not known yet is never told it can buy
-    const purchaseIL = accountContext?.market === 'Unknown' ? null : marketIL; // null = not known: never open (2026-11-01: both markets open)
+    const purchaseIL = accountContext?.market === 'Unknown' ? false : marketIL;
     const truth = asksInvoicing ? resolveInvoicingTruthResponse(isHebrew, AI_FACTS.invoicing, payloadAccount, subscriptionPurchaseOpen(purchaseIL, AI_FACTS.billing)) : resolvePaymentTruthResponse(isHebrew, AI_FACTS.billing, payloadAccount, purchaseIL);
     await logChat(truth.answer);
     return deterministicResponse(truth.answer, null, truth.factPayload);

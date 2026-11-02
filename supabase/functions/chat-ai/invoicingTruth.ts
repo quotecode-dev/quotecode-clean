@@ -44,10 +44,6 @@ export function formatInvoicingTruthAnswer(isHebrew: boolean, payload?: ProductT
   if (isHebrew) {
     return 'כרגע TEKANGO לא מפיקה חשבוניות, חשבוניות מס או קבלות - היכולת הזו עוד לא פעילה במערכת. מה שכן קיים: הצעת מחיר שאפשר להוריד כ-PDF או להדפיס (זו הצעת מחיר, לא חשבונית), ושליחת ההצעה ללקוח במייל. המצב "שולמה" הוא סימון ידני שלך בהצעה - הוא לא גובה כסף ולא מפיק קבלה. גם סליקה/תשלום אונליין עוד לא קיימים. חשבוניות וקבלות צריך להפיק כרגע מחוץ ל-TEKANGO.';
   }
-  // Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל ... L-06, ... L-11, ... L-17 ..."): the English answer also names the subscription's own invoice-receipt where it can be bought
-  if (subscriptionOpen) {
-    return "Right now TEKANGO does not issue invoices, tax invoices or receipts for your clients - that capability is not live. What does exist: a quote you can download as a PDF or print (a quote document, not an invoice), and emailing the quote to your client. The \"Paid\" status is a label you set on a quote yourself - it does not collect money or issue a receipt. For now, invoices and receipts for your clients have to be issued outside TEKANGO. For your TEKANGO subscription itself, an invoice-receipt is emailed to you after each payment.";
-  }
   return "Right now TEKANGO does not issue invoices, tax invoices or receipts - that capability is not live. What does exist: a quote you can download as a PDF or print (a quote document, not an invoice), and emailing the quote to your client. The \"Paid\" status is a label you set on a quote yourself - it does not collect money or issue a receipt. Online payment/checkout is not available either. For now, invoices and receipts have to be issued outside TEKANGO.";
 }
 
@@ -63,6 +59,6 @@ export function buildInvoicingTruthBlock(inv: InvoicingFacts | undefined | null,
 - Invoice / tax-invoice / receipt issuance available: NO. TEKANGO does not issue invoices, tax invoices, receipts or any tax document today.
 - Keep these strictly separate, never conflate them: (1) a quote PDF / print is a QUOTE document, not an invoice; (2) emailing a quote sends the quote, it does not bill or invoice; (3) the quote "Paid" status is a manual label, it does not collect money or produce a receipt; (4) payment processing / checkout is NOT live (see PAYMENT & CHECKOUT TRUTH); (5) invoicing is NOT live.
 - Never name an invoicing or payment provider as available. Never describe a future integration as existing. If asked to assume invoicing works, refuse the premise and restate this truth.${subscriptionOpen
-    ? '\n- The ONE exception: TEKANGO\'s OWN subscription, in this context, is paid on a secure payment page and an invoice-receipt FOR THE SUBSCRIPTION is emailed after each payment. That is never invoicing for the business\'s own clients.'
+    ? '\n- The ONE exception: TEKANGO\'s OWN subscription, in this (Israeli) context, is paid on a secure payment page and an invoice-receipt FOR THE SUBSCRIPTION is emailed after each payment. That is never invoicing for the business\'s own clients.'
     : ''}`;
 }

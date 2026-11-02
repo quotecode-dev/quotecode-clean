@@ -24,8 +24,8 @@ export const SMART_PACK = Object.freeze({
   comingSoon: Object.freeze({ he: Object.freeze([]), en: Object.freeze([]) }),
   optional: true,
   sameBillingPeriodAsMainPlan: true,
-  // per market: Israel open (2026-10-25); abroad open in USD - Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל לפי ההמלצות א-ה, כולל שינוי ב-L-01, L-05, L-06, L-07, L-11, L-12, L-14, L-17, L-22")
-  purchasable: Object.freeze({ IL: true, INTERNATIONAL: true }),
+  // per market: Israel open (2026-10-25), international not yet (PayPlus foreign-currency approval)
+  purchasable: Object.freeze({ IL: true, INTERNATIONAL: false }),
 });
 
 export const SUBSCRIPTION_ADD_ONS = Object.freeze([SMART_PACK]);

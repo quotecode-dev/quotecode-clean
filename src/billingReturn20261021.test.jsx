@@ -33,15 +33,13 @@ const active = (smart = false, limited = false) => summary({ plan: { id: 'all_in
     : { paidThrough: '2026-11-21T10:00:00.000Z', graceEndsAt: null, inGrace: false, limited: false },
   smartPack: { active: smart, source: smart ? 'add_on' : null, until: null } });
 
-// Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל לפי ההמלצות א-ה, כולל שינוי ב-L-01, L-05, ... L-22")
-describe('the market: Israel and abroad (2026-11-01)', () => {
-  it('an international account gets the pay button too (the connector charges USD abroad); an account without a market never', () => {
+describe('the market: Israel only', () => {
+  it('an international account never gets the pay button (the connector charges ILS only)', () => {
     expect(packageCheckoutAvailable(summary())).toBe(true);
-    expect(packageCheckoutAvailable(summary({ market: 'INTERNATIONAL' }))).toBe(true);
-    expect(packageCheckoutAvailable(summary({ market: null }))).toBe(false);
+    expect(packageCheckoutAvailable(summary({ market: 'INTERNATIONAL' }))).toBe(false);
     render(<PricingModal isOpen onClose={() => {}} isHebrew={false} isLocalIsraeliBusiness={false} accountSummary={summary({ market: 'INTERNATIONAL' })} onPurchase={vi.fn()} />);
-    expect(screen.getAllByTestId('plans-pay').length).toBeGreaterThan(0);
-    expect(screen.queryByTestId('plans-modal-availability')).toBeNull();
+    expect(screen.queryByTestId('plans-pay')).toBeNull();
+    expect(screen.getByTestId('plans-modal-availability')).toBeTruthy();
   });
 });
 

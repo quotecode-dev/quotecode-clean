@@ -32,7 +32,7 @@ export default function Terms({ isHebrew }) {
   // expansion) are unchanged.
   const t = isHebrew ? {
     title: 'תנאי שימוש (Terms of Service)',
-    lastUpdated: 'עדכון אחרון: 1 בנובמבר 2026',
+    lastUpdated: 'עדכון אחרון: 25 באוקטובר 2026',
     back: 'חזרה',
     sections: [
       {
@@ -120,7 +120,7 @@ export default function Terms({ isHebrew }) {
     ],
   } : {
     title: 'Terms of Service',
-    lastUpdated: 'Last updated: November 1, 2026',
+    lastUpdated: 'Last updated: October 25, 2026',
     back: 'Go Back',
     sections: [
       {
@@ -152,8 +152,7 @@ export default function Terms({ isHebrew }) {
         content: [
           'After the Free plan (10 quotes or 7 days, whichever ends first), the subscription is one package with every capability available in the Service, billed monthly or annually and renewing: 18.00 USD per month or 184.00 USD per year. Billing is always in USD; a price shown in your local currency is only an estimate. Quote presentation styles are not plans. Existing rights on an earlier plan are kept and do not change automatically.',
           'The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, and the SMART PACK add-on is included during those 7 days. A quote counts the first time it is saved with a client and at least one item; editing and saving it again does not count again. Producing the same version again for the same client, on any channel (sending it, sharing its public link, or its final PDF or print), does not count; changing the client, the recipient name or the quote content and producing it again counts as another quote. An empty draft and previews do not count, deleting a quote does not give one back, and existing documents stay accessible. Every paid plan includes 100 catalog products, and 100 more products cost 3.00 USD per month, only when you explicitly choose it.',
-          // Owner console 2026-11-01 (typed approval of the international purchase, L-14; decisions a and c): purchase open abroad, in USD
-          'Availability today: the Free plan and subscription purchase are active. The subscription is bought inside the account, in the plans window, by card on a secure payment page of the payment provider PayPlus. Accounts outside Israel pay in USD, without Israeli VAT.',
+          'Availability today: the Free plan is active. Subscription purchase is open for accounts in Israel only; for accounts outside Israel, subscription purchase and online payment are not open yet, and no payment is collected from them through the Service. Publishing the terms below does not activate payment for them.',
         ],
       },
       {
@@ -171,14 +170,14 @@ export default function Terms({ isHebrew }) {
           'You can ask to cancel a subscription at any time by email to info@tekango.com (subject: "Subscription cancellation request") or with a request from the plans window or the settings in the app. Our team handles the request and sends you a confirmation with the date the subscription ends and the charges stop; it is not an automatic cancellation in the app.',
           'You can choose either: (a) stopping the renewal - the subscription continues until the end of the period you paid for and does not renew after it; or (b) early termination - a request to end the subscription as soon as possible is handled within the time required by law, with a refund as described below.',
           'Refund: on early termination of a prepaid period, the proportional part of the unused period, from the date the cancellation takes effect, is refunded according to the price actually paid and the number of days in the period. The annual discount is not clawed back.',
-          'A cancellation fee is charged only where the law permits it and as disclosed before the purchase, and it never exceeds the lower of 5% of the transaction price or the fixed cap set by Israeli consumer protection law (for a purchase in US dollars: 27.00 USD). No cancellation fee is charged where the law forbids it (for example a cancellation because of a defect, non-conformity or non-supply), nothing is deducted beyond the balance from which a deduction is allowed, and no card-company fee is added automatically.',
+          'A cancellation fee is charged only where the law permits it and as disclosed before the purchase, and it never exceeds the lower of 5% of the transaction price or the fixed cap set by Israeli consumer protection law. No cancellation fee is charged where the law forbids it (for example a cancellation because of a defect, non-conformity or non-supply), nothing is deducted beyond the balance from which a deduction is allowed, and no card-company fee is added automatically.',
           'These terms do not limit the cancellation rights, deadlines and remedies under the law that applies to you. Cancelling a subscription is not closing the account and not a request to delete data - those are separate requests (see the Privacy Policy).',
         ],
       },
       {
         id: 'open',
         title: '7. Matters Not Yet Decided',
-        content: 'The following have not been decided yet and will be published once decided: quote limits of the paid plans; attachments; storage; AI quotas; and data and document retention periods.',
+        content: 'The following have not been decided yet and will be published once decided: quote limits of the paid plans; attachments; storage; AI quotas; taxes; and data and document retention periods.',
       },
       {
         id: 'ip',

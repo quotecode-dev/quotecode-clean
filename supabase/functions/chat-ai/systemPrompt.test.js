@@ -116,10 +116,8 @@ describe('buildSystemPrompt - EN (International) plan and price truth', () => {
     expect(prompt).toMatch(new RegExp(`Support Email: ${AI_FACTS.supportEmail.en.replace('.', '\\.')}`));
   });
 
-  // Owner console 2026-11-01: abroad the subscription is bought in USD - the only payable thing; quotes are never collected
-  it('the subscription is the only payable thing (USD), never quote checkout', () => {
-    expect(prompt).toMatch(/The ONLY thing that can be paid in TEKANGO is TEKANGO's own subscription \(and its SMART PACK add-on\), in this \(international, USD only\) context/);
-    expect(prompt).toMatch(/TEKANGO does NOT collect money for quotes a business sends to its clients/);
+  it('never claims live checkout/payment processing exists', () => {
+    expect(prompt).toMatch(/does not yet have live payment\/checkout processing/);
   });
 });
 

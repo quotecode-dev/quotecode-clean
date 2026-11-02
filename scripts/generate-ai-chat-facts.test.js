@@ -72,13 +72,13 @@ describe('generateAiFacts - canonical facts parity', () => {
     expect(S.free.existingDocumentsStayAccessible).toBe(true);
   });
 
-  it('Owner 2026-10-25: the plan system is active, purchase is open in Israel and (2026-11-01) abroad, there is no trial, and account state comes only from the server summary', () => {
+  it('Owner 2026-10-25: the plan system is active, purchase opens in Israel only, there is no trial, and account state comes only from the server summary', () => {
     expect(S.planSystemActive).toBe(true);
     expect(S.activationPhase).toBe('enforced');
-    expect(S.purchaseOpenMarkets).toEqual(['IL', 'INTERNATIONAL']);
+    expect(S.purchaseOpenMarkets).toEqual(['IL']);
     // the ONE payable thing is the subscription, in Israel; quote checkout / payment processing in general stays false
-    expect(facts.billing.subscriptionCheckoutMarkets).toEqual(['IL', 'INTERNATIONAL']);
-    expect(facts.addOns.find((a) => a.id === 'smart_pack').purchasable).toEqual({ IL: true, INTERNATIONAL: true });
+    expect(facts.billing.subscriptionCheckoutMarkets).toEqual(['IL']);
+    expect(facts.addOns.find((a) => a.id === 'smart_pack').purchasable).toEqual({ IL: true, INTERNATIONAL: false });
     expect(S.trialOffered).toBe(false);
     expect(S.accountStateSource).toBe('get_account_summary');
   });

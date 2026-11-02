@@ -526,7 +526,7 @@ export function buildSystemPrompt(params: BuildSystemPromptParams): string {
   const supportEmail = marketIL ? AI_FACTS.supportEmail.he : AI_FACTS.supportEmail.en;
   // 20261029000000 (Codex F16): purchase availability follows the verified market only - an account whose market is not known yet is
   // never told it can buy (the interface language never decides a commercial fact)
-  const purchaseIL = accountContext?.market === 'Unknown' ? null : marketIL; // null = not known: never open (2026-11-01: both markets open)
+  const purchaseIL = accountContext?.market === 'Unknown' ? false : marketIL;
   const languageInstruction = buildLanguageInstruction(isHebrew);
 
   const pricingBlock = buildSubscriptionTruthBlock(isHebrew, accountContext?.market === 'Unknown', marketIL);

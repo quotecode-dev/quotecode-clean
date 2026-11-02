@@ -2,12 +2,7 @@
 // the plans-window "pay" action. It asks the server (subscription-authority checkout_intent) for a payment page of the server attempt -
 // the amount, the currency and the SMART PACK line are the server's (create_package_checkout_intent + the price catalog), never a client
 // value - and only then leaves for the PayPlus page. A redirect is NOT a subscription: the package opens only after a verified PayPlus
-// payment. Shown only when the server billing phase is on ('prepared' TEST / 'enforced') and the account's market is open (2026-10-25:
-// Israel; Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל לפי ההמלצות א-ה, כולל שינוי ב-L-01, L-05, L-06, L-07, L-11, L-12, L-14, L-17, L-22"): abroad too, in USD).
-
-/** the markets where the subscription can be bought (each pays its own currency: IL = ILS, INTERNATIONAL = USD) */
-export const PURCHASE_OPEN_MARKETS = Object.freeze(['IL', 'INTERNATIONAL']);
-const marketOpen = (summary) => PURCHASE_OPEN_MARKETS.includes(summary?.market);
+// payment. Shown only when the server billing phase is on ('prepared' TEST / 'enforced') and the account is Israeli (2026-10-25: Israel only).
 
 const KEY_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-';
 
@@ -17,7 +12,7 @@ const KEY_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz012345
 export function packageCheckoutAvailable(summary, isLifetime = false) {
   if (isLifetime === true || summary?.state !== 'ready') return false;
   if (!['prepared', 'enforced'].includes(summary.phase?.billing)) return false;
-  if (!marketOpen(summary)) return false;
+  if (summary.market !== 'IL') return false;
   // Owner console 2026-10-25 (typed findings 1-13 approval): a failed renewal still being retried is paid on its standing order - the
   // server refuses a new page (payment_update_required), so no pay button is offered for it (pastDueLine says what to do)
   if (summary.subscriptionStatus === 'past_due' && summary.billing?.limited !== true) return false;
@@ -26,11 +21,10 @@ export function packageCheckoutAvailable(summary, isLifetime = false) {
   return true;
 }
 
-/** Owner 2026-10-25 ("לא להשאיר זנבות"): is purchasing open for this account's market (billing on)? Then no "cannot be
- *  purchased yet" line is ever shown to it - even to an account that has nothing to buy (Lifetime, a legacy plan).
- *  (The name is from when only Israel was open; since 2026-11-01 it is true in both markets.) */
+/** Owner 2026-10-25 ("לא להשאיר זנבות"): is purchasing open for this account's market (Israel, billing on)? Then no "cannot be
+ *  purchased yet" line is ever shown to it - even to an account that has nothing to buy (Lifetime, a legacy plan). */
 export function israelPurchaseOpen(summary) {
-  return summary?.state === 'ready' && ['prepared', 'enforced'].includes(summary.phase?.billing) && marketOpen(summary);
+  return summary?.state === 'ready' && ['prepared', 'enforced'].includes(summary.phase?.billing) && summary.market === 'IL';
 }
 
 /** one idempotency key per click: 32 random characters of the server's [A-Za-z0-9_-] alphabet */
@@ -70,7 +64,7 @@ export async function startPackageCheckout({ billingPeriod, smartPack = false, i
 /** may this account add SMART PACK now? (server summary only: Israel, billing on, a live package without SMART PACK; LIFETIME never) */
 export function smartPackAddOnAvailable(summary, isLifetime = false) {
   if (isLifetime === true || summary?.state !== 'ready') return false;
-  if (!['prepared', 'enforced'].includes(summary.phase?.billing) || !marketOpen(summary)) return false;
+  if (!['prepared', 'enforced'].includes(summary.phase?.billing) || summary.market !== 'IL') return false;
   return summary.planId === 'all_inclusive' && summary.subscriptionStatus === 'active' && summary.billing?.limited !== true
     && summary.billing?.renewalStopped !== true && summary.smartPack?.active !== true;
 }
@@ -92,7 +86,7 @@ export function plansAvailabilityLine(summary, isHebrew) {
   if (s === 'unavailable' || s === 'invalid') {
     return { kind: 'error', text: isHebrew ? 'לא הצלחנו לטעון את פרטי החשבון. אפשר לנסות שוב.' : 'We could not load your account details. You can try again.' };
   }
-  if (s === 'ready' && ['prepared', 'enforced'].includes(summary.phase?.billing) && summary.market === 'INTERNATIONAL' && !marketOpen(summary)) {
+  if (s === 'ready' && ['prepared', 'enforced'].includes(summary.phase?.billing) && summary.market === 'INTERNATIONAL') {
     return { kind: 'closed_abroad', text: isHebrew ? 'הרכישה עדיין לא פתוחה בחשבונות מחוץ לישראל, ולא מתבצע חיוב.' : 'Purchasing is not open yet for accounts outside Israel, and nothing is charged.' };
   }
   return null;
@@ -104,7 +98,7 @@ export function smartPackStatusLine(summary, isHebrew, formatDate) {
   const { source, until } = summary.smartPack;
   const date = until && typeof formatDate === 'function' ? formatDate(until) : null;
   if (source === 'free_window') {
-    // the tip only where the pay button with the SMART PACK box exists (purchasing on in the account's market)
+    // the tip only where the pay button with the SMART PACK box exists (Israel, purchasing on)
     const tip = packageCheckoutAvailable(summary) ? (isHebrew ? ' כדי להמשיך איתו אחרי רכישת מנוי, סמנו את חכם פלוס בתשלום.' : ' To keep it after you subscribe, tick SMART PACK when you pay.') : '';
     return isHebrew
       ? `חכם פלוס כלול בימי החינם${date ? ` עד ${date}` : ''}.${tip}`
@@ -151,17 +145,17 @@ async function addOnCall(invoke, body) {
 /** may the window offer the removal? (server summary: Israel, an active package whose SMART PACK is a paid add-on; LIFETIME never) */
 export function smartPackRemovalAvailable(summary, isLifetime = false) {
   if (isLifetime === true || summary?.state !== 'ready') return false;
-  if (!['prepared', 'enforced'].includes(summary.phase?.billing) || !marketOpen(summary)) return false;
+  if (!['prepared', 'enforced'].includes(summary.phase?.billing) || summary.market !== 'IL') return false;
   return summary.planId === 'all_inclusive' && summary.subscriptionStatus === 'active' && summary.smartPack?.active === true && summary.smartPack.source === 'add_on';
 }
 
-/** -> { ok: true, period, effectiveAt, refundMinor, currency } | { ok: false, code, effectiveAt? } */
+/** -> { ok: true, period, effectiveAt, refundMinor } | { ok: false, code, effectiveAt? } */
 export async function loadSmartPackRemovalQuote({ invoke }) {
   if (typeof invoke !== 'function') return { ok: false, code: 'invalid_request' };
   const d = await addOnCall(invoke, { action: 'smart_pack_removal_quote' });
   if (d.ok !== true) return d;
   if (!['month', 'year'].includes(d.period) || typeof d.effectiveAt !== 'string' || !Number.isInteger(d.refundMinor) || d.refundMinor < 0) return { ok: false, code: 'checkout_unavailable' };
-  return { ok: true, period: d.period, effectiveAt: d.effectiveAt, refundMinor: d.refundMinor, currency: d.currency === 'USD' ? 'USD' : 'ILS' };
+  return { ok: true, period: d.period, effectiveAt: d.effectiveAt, refundMinor: d.refundMinor };
 }
 
 /** -> { ok: true, state: 'removed' | 'pending' | 'refused', effectiveAt, refundMinor, refundState } | { ok: false, code }
@@ -176,24 +170,21 @@ export async function removeSmartPack({ invoke, key = newCheckoutKey() }) {
   return { ok: false, code: d.ok === true ? 'checkout_unavailable' : d.code };
 }
 
-/** Owner console 2026-11-01 (decision e): the service mailbox of a currency - ILS = Israel support@, USD = abroad info@ */
-export const mailboxForCurrency = (currency) => (currency === 'USD' ? 'info@tekango.com' : 'support@tekango.com');
-
-export function smartPackRemovalErrorMessage(code, isHebrew, mailbox = 'support@tekango.com') {
+export function smartPackRemovalErrorMessage(code, isHebrew) {
   if (code === 'pending') return isHebrew ? 'ההסרה בטיפול. נסו לפתוח שוב את חלון המסלולים בעוד כמה דקות.' : 'The removal is being processed. Open the plans window again in a few minutes.';
-  if (code === 'refused') return isHebrew ? `לא הצלחנו להסיר את חכם פלוס כרגע, והוא נשאר במנוי. כתבו לנו ונטפל בזה: ${mailbox}` : `We could not remove SMART PACK right now, and it stays on your plan. Write to us and we will take care of it: ${mailbox}`;
+  if (code === 'refused') return isHebrew ? 'לא הצלחנו להסיר את חכם פלוס כרגע, והוא נשאר במנוי. כתבו לנו ונטפל בזה: support@tekango.com' : 'We could not remove SMART PACK right now, and it stays on your plan. Write to us and we will take care of it: support@tekango.com';
   if (code === 'retry_later') return isHebrew ? 'פעולה קודמת בחשבון עדיין בטיפול. נסו שוב בעוד כמה דקות.' : 'An earlier action on your account is still being processed. Try again in a few minutes.';
   return isHebrew ? 'לא ניתן להסיר את חכם פלוס כרגע. נסו שוב בעוד רגע.' : 'SMART PACK cannot be removed right now. Try again in a moment.';
 }
 
-/** -> { ok: true, amountMinor, recurringMinor, period, periodEnd, currency } | { ok: false, code } */
+/** -> { ok: true, amountMinor, recurringMinor, period, periodEnd } | { ok: false, code } */
 export async function loadSmartPackAddOnQuote({ invoke }) {
   if (typeof invoke !== 'function') return { ok: false, code: 'invalid_request' };
   const d = await addOnCall(invoke, { action: 'smart_pack_add_on_quote' });
   if (d.ok !== true) return d;
-  if ((d.currency !== 'ILS' && d.currency !== 'USD') || !Number.isInteger(d.amountMinor) || d.amountMinor <= 0 || !Number.isInteger(d.recurringMinor)
+  if (d.currency !== 'ILS' || !Number.isInteger(d.amountMinor) || d.amountMinor <= 0 || !Number.isInteger(d.recurringMinor)
       || !['month', 'year'].includes(d.period) || typeof d.periodEnd !== 'string') return { ok: false, code: 'checkout_unavailable' };
-  return { ok: true, amountMinor: d.amountMinor, recurringMinor: d.recurringMinor, period: d.period, periodEnd: d.periodEnd, currency: d.currency };
+  return { ok: true, amountMinor: d.amountMinor, recurringMinor: d.recurringMinor, period: d.period, periodEnd: d.periodEnd };
 }
 
 /** -> { ok: true, redirectUrl } | { ok: false, code } */
@@ -204,21 +195,21 @@ export async function startSmartPackAddOn({ invoke, key = newCheckoutKey() }) {
   return { ok: false, code: d.ok === true ? 'checkout_unavailable' : d.code };
 }
 
-export function smartPackAddOnErrorMessage(code, isHebrew, mailbox = 'support@tekango.com') {
+export function smartPackAddOnErrorMessage(code, isHebrew) {
   if (code === 'already_included') return isHebrew ? 'חכם פלוס כבר פעיל בחשבון. לא בוצע חיוב.' : 'SMART PACK is already active on this account. Nothing was charged.';
   if (code === 'not_eligible') return isHebrew ? 'אפשר להוסיף חכם פלוס רק למנוי פעיל. לא בוצע חיוב.' : 'SMART PACK can be added only to an active package. Nothing was charged.';
-  return checkoutErrorMessage(code, isHebrew, mailbox);
+  return checkoutErrorMessage(code, isHebrew);
 }
 
-export function checkoutErrorMessage(code, isHebrew, mailbox = 'support@tekango.com') {
+export function checkoutErrorMessage(code, isHebrew) {
   if (code === 'already_subscribed') {
     return isHebrew ? 'בחשבון הזה כבר יש מנוי פעיל. דף התשלום לא נפתח.' : 'This account already has an active package. No payment page was opened.';
   }
   if (code === 'market_not_open') {
-    return isHebrew ? 'הרכישה עדיין לא פתוחה בשוק של החשבון הזה. לא בוצע חיוב.' : 'Purchasing is not open yet for this account\'s market. Nothing was charged.';
+    return isHebrew ? 'הרכישה עדיין לא פתוחה בחשבונות בחו"ל. לא בוצע חיוב.' : 'Purchasing is not open yet for accounts outside Israel. Nothing was charged.';
   }
   if (code === 'payment_update_required') {
-    return isHebrew ? `החיוב האחרון לא עבר. יתבצע ניסיון חיוב נוסף. לעדכון הכרטיס כתבו לנו: ${mailbox}` : `The last charge did not go through and is being retried. To update the card, write to us: ${mailbox}`;
+    return isHebrew ? 'החיוב האחרון לא עבר. יתבצע ניסיון חיוב נוסף. לעדכון הכרטיס כתבו לנו: support@tekango.com' : 'The last charge did not go through and is being retried. To update the card, write to us: support@tekango.com';
   }
   return isHebrew ? 'לא ניתן לפתוח את דף התשלום כרגע. לא בוצע חיוב. נסו שוב בעוד רגע.' : 'The payment page cannot be opened right now. Nothing was charged. Try again in a moment.';
 }

@@ -5,18 +5,17 @@
 import { useEffect, useRef, useState } from 'react';
 import { BrainCircuit } from 'lucide-react';
 import { SMART_PACK } from '../domain/subscriptions/addOnCatalog';
-import { formatMoneyForCurrency } from '../utils/money';
+import { formatWholeMoney } from '../utils/money';
 import { formatShortDate } from '../utils/shortDate';
-import { loadSmartPackAddOnQuote, mailboxForCurrency, smartPackAddOnErrorMessage, startSmartPackAddOn } from '../domain/subscriptions/packageCheckout';
+import { loadSmartPackAddOnQuote, smartPackAddOnErrorMessage, startSmartPackAddOn } from '../domain/subscriptions/packageCheckout';
 import MailLink from './MailLink';
 
-// IRON-ILS-001: a whole shekel with .00 (the server charges whole shekels); IRON-DATE-001: the market's short date (Israel DD/MM/YYYY).
-// Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל ... L-22"): abroad the server quotes USD - $ in cents, MM/DD/YYYY
-const moneyIn = (currency) => (minor) => `${currency === 'USD' ? '$' : '₪'}${formatMoneyForCurrency(minor / 100, currency)}`;
-const dateIn = (currency) => (iso) => formatShortDate(iso, currency === 'USD' ? 'International' : 'Local');
+// IRON-ILS-001: a whole shekel with .00 (the server charges whole shekels); IRON-DATE-001: the Israeli short date DD/MM/YYYY
+const money = (minor) => `₪${formatWholeMoney(minor / 100)}`;
+const israelDate = (iso) => formatShortDate(iso, 'Local');
 const num = (text) => <bdi dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{text}</bdi>;
 
-export default function SmartPackAddOnOffer({ isHebrew, invoke, onLeave, market = null }) {
+export default function SmartPackAddOnOffer({ isHebrew, invoke, onLeave }) {
   const [quote, setQuote] = useState(null); // null = loading; { ok, ... }
   const [pay, setPay] = useState({ busy: false, error: null });
   // the quote is read once per opening of the window (the caller's invoke may be a new function on every render)
@@ -32,8 +31,6 @@ export default function SmartPackAddOnOffer({ isHebrew, invoke, onLeave, market 
     return () => { alive = false; window.removeEventListener('pageshow', back); };
   }, []);
   if (!quote) return null; // still asking the server
-  // Codex I01 (Owner 2026-11-02): a failed answer has no currency - the account's own market decides, and an account abroad never sees the Israeli mailbox
-  const mailbox = mailboxForCurrency(quote.currency ?? (market === 'INTERNATIONAL' ? 'USD' : 'ILS'));
   // Owner console 2026-10-25 (typed: "... והסבר בחלון המסלולים כשאי אפשר להוסיף"): never a box that silently disappears - the account
   // is told why it cannot add SMART PACK now (already has it / not open abroad: the lines above say so already)
   if (quote.ok !== true || !Number.isFinite(Date.parse(quote.periodEnd))) {
@@ -46,20 +43,18 @@ export default function SmartPackAddOnOffer({ isHebrew, invoke, onLeave, market 
           ? (isHebrew ? 'כרגע אי אפשר להוסיף את חכם פלוס לחשבון הזה. כתבו לנו ונטפל בזה:' : 'SMART PACK cannot be added to this account right now. Write to us and we will take care of it:')
           : (isHebrew ? 'לא הצלחנו לטעון כרגע את הוספת חכם פלוס. נסו שוב בעוד רגע, או כתבו לנו:' : 'We could not load the SMART PACK option right now. Try again in a moment, or write to us:')}{' '}
         {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the service mailbox (nothing changes in the account) */}
-        <MailLink href={`mailto:${mailbox}`} isHebrew={isHebrew} style={{ color: '#0F6672' }}><bdi dir="ltr">{mailbox}</bdi></MailLink>
+        <MailLink href="mailto:support@tekango.com" isHebrew={isHebrew} style={{ color: '#0F6672' }}><bdi dir="ltr">support@tekango.com</bdi></MailLink>
       </p>
     );
   }
   const he = isHebrew;
-  const money = moneyIn(quote.currency);
-  const israelDate = dateIn(quote.currency);
   const year = quote.period === 'year';
   const per = year ? (he ? 'לשנה' : 'a year') : (he ? 'לחודש' : 'a month');
   const onPay = async () => {
     setPay({ busy: true, error: null });
     const r = await startSmartPackAddOn({ invoke }).catch(() => ({ ok: false, code: 'checkout_unavailable' }));
     if (r.ok) { onLeave(r.redirectUrl); return; }
-    setPay({ busy: false, error: smartPackAddOnErrorMessage(r.code, he, mailbox) });
+    setPay({ busy: false, error: smartPackAddOnErrorMessage(r.code, he) });
   };
   return (
     <section data-testid="plans-smart-pack-add-on" aria-label={he ? 'הוספת חכם פלוס' : 'Add SMART PACK'} dir={he ? 'rtl' : 'ltr'}

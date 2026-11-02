@@ -420,15 +420,16 @@ describe('review 2026-10-22: a click for an attempt that is no longer pending op
 });
 
 // Owner console 2026-10-21: payments go live in Hebrew AND English together - International = USD, an English page (prepared, inert)
-describe('International: USD + English page (open since 2026-11-01)', () => {
-  it('USD body: currency USD, English page, VAT-exempt English lines, no Israeli ID / instalments field, the receipt and the emails', () => {
+describe('International: USD + English page (prepared; the billing phase stays off)', () => {
+  it('USD body: currency USD, English page, VAT-exempt English lines, no Israeli ID / instalments field', () => {
     const b = buildGenerateLinkBody(config(), { attemptId: ATT, amountMinor: 2300, billingPeriod: 'month', nowMs: NOW, addOnAmountMinor: 500, currency: 'USD' });
     expect(b).toMatchObject({ amount: 23, currency_code: 'USD', language_code: 'en', paying_vat: false, hide_identification_id: true,
       hide_payments_field: true, more_info: ATT,
       items: [{ name: 'TEKANGO - Monthly subscription', price: 18, vat_type: 2 }, { name: 'TEKANGO - SMART PACK monthly', price: 5, vat_type: 2 }] });
-    // Owner console 2026-11-01 (decision b): abroad too - the invoice-receipt (PayPlus writes it in English for USD) and the emails
-    expect(b).toMatchObject({ sendEmailApproval: true, sendEmailFailure: true, initial_invoice: true });
-    expect(b.recurring_settings).toMatchObject({ successful_invoice: true, send_customer_success_email: true, customer_failure_email: true });
+    // Owner 2026-10-25: international purchasing is not open - no invoice / customer emails on a USD page
+    expect(b).toMatchObject({ sendEmailApproval: false, sendEmailFailure: false });
+    expect(b).not.toHaveProperty('initial_invoice');
+    expect(b.recurring_settings).toMatchObject({ successful_invoice: false, send_customer_success_email: false, customer_failure_email: false });
     const il = buildGenerateLinkBody(config(), { attemptId: ATT, amountMinor: 3000, billingPeriod: 'month', nowMs: NOW });
     expect(il).not.toHaveProperty('language_code');
     expect(il).not.toHaveProperty('paying_vat');

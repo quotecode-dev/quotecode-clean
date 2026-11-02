@@ -25,10 +25,9 @@ describe('Terms §4 billing truth', () => {
   // Task 39 (Owner-approved Terms, published on LIVE): the availability sentence states the true state (Free-10 stays prepared -
   // Owner option A, 2026-10-14); cancellation / refunds are DECIDED (section 6) - never "not decided".
   // Owner console 2026-10-25 (typed L-12 / L-14 ... "להפעלת הרכישה בישראל"): the Free plan and buying are active in Israel; abroad not open
-  // Owner console 2026-11-01 (typed approval of the international purchase, L-14): abroad too, in USD without Israeli VAT
-  it('states the facts: Free active; purchase open in both markets (by card through PayPlus; abroad in USD); cancellation terms decided', () => {
+  it('states the facts: Free active; purchase open in Israel only (by card through PayPlus); cancellation terms decided', () => {
     expect(T.he).toContain('זמינות כיום: מסלול החינם ורכישת המנוי פעילים. את המנוי רוכשים בתוך החשבון, בחלון המסלולים, בכרטיס אשראי בדף תשלום מאובטח של ספק התשלום פיי פלוס (PayPlus).');
-    expect(T.en).toContain('Availability today: the Free plan and subscription purchase are active. The subscription is bought inside the account, in the plans window, by card on a secure payment page of the payment provider PayPlus. Accounts outside Israel pay in USD, without Israeli VAT.');
+    expect(T.en).toContain('Availability today: the Free plan is active. Subscription purchase is open for accounts in Israel only; for accounts outside Israel, subscription purchase and online payment are not open yet, and no payment is collected from them through the Service.');
     expect(T.he).not.toMatch(/עדיין אינם פעילים/);
     expect(T.he).toContain('6. ביטול מנוי והחזרים');
     expect(T.en).toContain('You can ask to cancel a subscription at any time by email');
@@ -65,8 +64,7 @@ describe('Terms §4 - subscriptions cutover facts (OD-01..OD-08, OD-16)', () => 
   });
   it('every still-open legal branch is "not decided, published once decided" (cancellation / refunds are decided)', () => {
     expect(T.he).toContain('הנושאים הבאים טרם הוכרעו ויפורסמו כשיוכרעו: מגבלות ההצעות במסלולים בתשלום; קבצים מצורפים; נפח אחסון; מכסות AI; מיסוי מעבר לכלילת המע״מ במחירים בישראל; ומשך שמירת נתונים ומסמכים.');
-    // 2026-11-01 (decision a): the tax abroad is decided (USD without Israeli VAT, section 4)
-    expect(T.en).toContain('The following have not been decided yet and will be published once decided: quote limits of the paid plans; attachments; storage; AI quotas; and data and document retention periods.');
+    expect(T.en).toContain('The following have not been decided yet and will be published once decided: quote limits of the paid plans; attachments; storage; AI quotas; taxes; and data and document retention periods.');
   });
   it('no value of a not-decided branch is stated (no paid quote limit, storage size, AI quota or refund window)', () => {
     expect(terms).not.toMatch(/\b50 (?:new )?quotes|\d+\s?(?:MB|GB)|\d+ AI|refund within|\d+ days? refund/i);
@@ -77,10 +75,8 @@ describe('Privacy - the one payment provider is named with what it gets; retenti
   // Owner console 2026-10-25 (typed L-12 / L-14 ...): the subscription is bought on the PayPlus page (Israel only)
   it('names the payment provider, what passes to it and that card details never reach us (HE + EN); no broader claim', () => {
     expect(privacy).not.toMatch(/process billing|secure payment processors|עיבוד תשלומים,|ספקי סליקה מאובטחים/);
-    // Owner console 2026-11-01 (L-12): abroad too, in USD
-    expect(P.en).toContain('The subscription itself is bought through an external payment provider (see section 7); accounts outside Israel pay in USD.');
-    expect(P.en).toContain('Subscription purchases are made on a secure payment page of the payment provider PayPlus');
-    expect(P.en).not.toContain('does not process payments at this time');
+    expect(P.en).toContain('for accounts outside Israel, the service does not process payments at this time.');
+    expect(P.en).toContain('Subscription purchases (open for accounts in Israel only) are made on a secure payment page of the payment provider PayPlus');
     expect(P.he).toContain('רכישת המנוי עצמו מתבצעת באמצעות ספק תשלום חיצוני (ראו סעיף 7).');
     expect(P.he).toContain('רכישת מנוי מתבצעת בדף תשלום מאובטח של ספק התשלום פיי פלוס (PayPlus); מה שמועבר אליו מפורט בסעיף 7.');
     expect(P.he).toContain('שאינו מקבל את פרטי הכרטיס');

@@ -5,7 +5,7 @@
 // Market = the server account market (else the account's recorded business market) - never the UI language. Purchase is not available
 // (checkout is not activated), so nothing here starts a payment or changes a plan.
 import { FREE_QUOTES_TOTAL, ilsPackageAmount, usdPackageAmount, ilsAnnualSaving, usdAnnualSaving, ilsAnnualSavingRate, usdAnnualSavingRate } from '../../components/landing/landingPackageFacts';
-import { RATE_SOURCE_NAME, ESTIMATE_CURRENCIES } from './localPriceEstimate';
+import { RATE_SOURCE_NAME, ESTIMATE_CURRENCIES, CURRENCY_SYMBOL } from './localPriceEstimate';
 import { formatMoney, formatWholeMoney } from '../../utils/money';
 import { PLAN_NAMES } from '../../../supabase/functions/_shared/subscriptionContract.ts';
 import { ilsSmartPack, ilsWithSmartPack, usdSmartPack, usdWithSmartPack, SMART_PACK_PRICE_MINOR } from '../../components/landing/smartPackFacts';
@@ -54,11 +54,8 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
         year: { add: isHebrew ? `(+${ilsSmartPack('year')} לשנה)` : `(+${ilsSmartPack('year')} / year)`, amount: ilsWithSmartPack('year'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${ilsPackageAmount('year')} + ${ilsSmartPack('year')}`,
           total: isHebrew ? `כולל חכם פלוס: ${ilsWithSmartPack('year')} לשנה` : `Including SMART PACK: ${ilsWithSmartPack('year')} / year` },
       } : {
-        month: { add: isHebrew ? `(+${usdSmartPack('month')} לחודש)` : `(+${usdSmartPack('month')} / month)`, amount: usdWithSmartPack('month'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${usdPackageAmount('month').text} + ${usdSmartPack('month')}`,
-          // 2026-11-01: abroad too, the renewing total of an account that has SMART PACK
-          total: isHebrew ? `כולל חכם פלוס: ${usdWithSmartPack('month')} לחודש` : `Including SMART PACK: ${usdWithSmartPack('month')} / month` },
-        year: { add: isHebrew ? `(+${usdSmartPack('year')} לשנה)` : `(+${usdSmartPack('year')} / year)`, amount: usdWithSmartPack('year'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${usdPackageAmount('year').text} + ${usdSmartPack('year')}`,
-          total: isHebrew ? `כולל חכם פלוס: ${usdWithSmartPack('year')} לשנה` : `Including SMART PACK: ${usdWithSmartPack('year')} / year` },
+        month: { add: isHebrew ? `(+${usdSmartPack('month')} לחודש)` : `(+${usdSmartPack('month')} / month)`, amount: usdWithSmartPack('month'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${usdPackageAmount('month').text} + ${usdSmartPack('month')}` },
+        year: { add: isHebrew ? `(+${usdSmartPack('year')} לשנה)` : `(+${usdSmartPack('year')} / year)`, amount: usdWithSmartPack('year'), line: `${isHebrew ? 'כולל חכם פלוס' : 'With SMART PACK'}: ${usdPackageAmount('year').text} + ${usdSmartPack('year')}` },
       },
     },
   };
@@ -88,9 +85,15 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
         note: `${isHebrew ? 'החיוב בדולר ארה״ב' : 'Charged in USD'}: ${a.text} ${usdPer[r.period]}${r.note ? `. ${r.note}` : ''}` };
     });
   }
-  // item ד (2026-10-26) showed SMART PACK abroad as an information line only. Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה
-  // בחו"ל ... L-22"): it is bought abroad too - the card box and the add-on offer show it, so there is no separate line
-  const smartPackAbroad = null;
+  // item ד: abroad, SMART PACK is an information line in the same currency - no box, no button: buying it outside Israel opens soon
+  const spEst = (period) => `≈${CURRENCY_SYMBOL[wantCur]}${formatMoney(majorUnits(Math.round(SMART_PACK_PRICE_MINOR.INTERNATIONAL[period] * est.rate)))}`;
+  const smartPackAbroad = il ? null : est
+    ? (isHebrew
+      ? `חכם פלוס: ${spEst('month')} לחודש או ${spEst('year')} לשנה בתוספת למנוי (הערכה; החיוב בדולר ארה״ב: ${usdSmartPack('month')} / ${usdSmartPack('year')}). הרכישה מחוץ לישראל תיפתח בקרוב.`
+      : `SMART PACK: ${spEst('month')} a month or ${spEst('year')} a year on top of your plan (estimate; charged in USD: ${usdSmartPack('month')} / ${usdSmartPack('year')}). Buying it outside Israel opens soon.`)
+    : (isHebrew
+      ? `חכם פלוס: ${usdSmartPack('month')} לחודש או ${usdSmartPack('year')} לשנה בתוספת למנוי, בדולר ארה״ב. הרכישה מחוץ לישראל תיפתח בקרוב.`
+      : `SMART PACK: ${usdSmartPack('month')} a month or ${usdSmartPack('year')} a year on top of your plan, in USD. Buying it outside Israel opens soon.`);
   return {
     plans: [free, pkg],
     priceNote: il

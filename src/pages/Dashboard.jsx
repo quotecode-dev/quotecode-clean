@@ -2673,9 +2673,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             // 2026-10-20: the Terms state the free plan as 10 quotes or 7 days (IRON-LANDING-001 amended)
             // 20261029000000 (Codex F19, L-12): the version of the documents linked at signup (both last updated 25/10/2026); earlier
             // consent records keep their own versions
-            terms_version: '2026-11-01', // Owner 2026-11-01: purchase open abroad (USD); Owner 2026-10-25: payments in Israel (before: 2026-10-24 a quote counts at its first save; 2026-10-23 the Free plan's 7 days)
+            terms_version: '2026-10-25', // Owner 2026-10-25: payments in Israel (before: 2026-10-24 a quote counts at its first save; 2026-10-23 the Free plan's 7 days)
             // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
-            privacy_version: '2026-11-02', // Owner 2026-11-01 (L-12): the one sign-up event; 2026-11-02 payments abroad (USD) (before: 2026-10-30 Codex release 9, L-12: optional help emails need separate consent; before: 2026-10-25 the payments section; 2026-10-23 consent by location + the Hebrew opt-out)
+            privacy_version: '2026-11-02', // Owner 2026-11-01 (L-12): the one sign-up event (before: 2026-10-30 Codex release 9, L-12: optional help emails need separate consent; before: 2026-10-25 the payments section; 2026-10-23 consent by location + the Hebrew opt-out)
             terms_accepted_at: new Date().toISOString(),
           }
         }

@@ -92,8 +92,7 @@ describe('landing truth gate', () => {
     // Task 37: the Owner-approved L7 notice (registration exists; checkout and Free-10 are off) replaced the 2026-10-07 review notice
     // Owner console 2026-10-25 (typed L-06 ... "להפעלת הרכישה בישראל"): Free-10 active in both markets; buying open in Israel only
     expect(he).toContain("reviewNotice: 'פותחים חשבון בחינם, ואת המנוי בתשלום רוכשים בתוך החשבון.'");
-    // IRON-LANDING-001 amended by the Owner 2026-11-01: abroad too the package is bought inside the account
-    expect(en).toContain("reviewNotice: 'Open an account for free, and buy the paid package inside your account.'");
+    expect(en).toContain("reviewNotice: 'The paid package cannot be purchased yet, and there is no online payment. You can already open an account.'");
     expect(he).not.toMatch(/basicPricing|proPricing/);
     expect(en).not.toMatch(/basicPricing|proPricing/);
     expect(he).not.toMatch(/14 יום ניסיון|ניסיון PRO/);
@@ -102,9 +101,8 @@ describe('landing truth gate', () => {
     expect(he).toContain("trial: '10 הצעות מחיר חינם או 7 ימים מההרשמה, המוקדם מביניהם.'");
     expect(en).toContain("trial: '10 free quotes or 7 days, whichever comes first'");
     // Task 37: the same "paid / checkout not available" truth in the Owner-approved L1 wording
-    // IRON-LANDING-001 amended 2026-10-25 (HE) and by the Owner 2026-11-01 (EN): both pages say the package is bought inside the account
-    expect(en).toMatch(/The paid package is bought inside your account, in the plans window/);
-    expect(en).not.toMatch(/cannot be purchased yet/);
+    // IRON-LANDING-001 amended 2026-10-25: EN still not purchasable; HE bought inside the account
+    expect(en).toMatch(/The paid package cannot be purchased yet/);
     expect(he).toMatch(/את המנוי בתשלום רוכשים בתוך החשבון, בחלון המסלולים: בכרטיס אשראי, בתשלום חודשי או שנתי\./);
   });
 
