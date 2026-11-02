@@ -14,7 +14,7 @@ afterEach(() => { cleanup(); document.documentElement.lang = ''; });
 const read = (p) => fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), p), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
 
 describe('public quote not found', () => {
-  it.each([['he', 'הצעת המחיר לא נמצאה או שפג תוקפה', /Quote not found/], ['en', 'Quote not found or expired', /הצעת המחיר/]])('%s: one language, explicit dark text on a light page', async (lang, title, other) => {
+  it.each([['he', 'לא הצלחנו לפתוח את הצעת המחיר', /Quote not found/], ['en', 'We could not open this quote', /הצעת המחיר/]])('%s: one language, explicit dark text on a light page', async (lang, title, other) => {
     document.documentElement.lang = lang;
     const { findByTestId } = render(<MemoryRouter initialEntries={['/quote/00000000-0000-0000-0000-000000000000']}><Routes><Route path="/quote/:id" element={<SmartPublicQuote />} /></Routes></MemoryRouter>);
     const el = await findByTestId('public-quote-not-found', {}, { timeout: 4000 });

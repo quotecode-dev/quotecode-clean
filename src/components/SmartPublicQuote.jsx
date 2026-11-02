@@ -149,7 +149,8 @@ export default function SmartPublicQuote() {
     const en = typeof document !== 'undefined' && document.documentElement.lang === 'en';
     return (
       <div data-testid="public-quote-not-found" dir={en ? 'ltr' : 'rtl'} lang={en ? 'en' : 'he'} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box', background: '#f7f8f6', color: '#10252b', fontFamily: 'Rubik, Segoe UI, Arial, Tahoma, sans-serif', textAlign: 'center', padding: '24px', gap: '10px' }}>
-        <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#10252b' }}>{en ? 'Quote not found or expired' : 'הצעת המחיר לא נמצאה או שפג תוקפה'}</h1>
+        <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#10252b' }}>{/* Owner console 2026-11-02 (typed: "מאשר שינוי ב-L-04: הודעת קישור שלא נפתח בלי המילה תוקף, שחרור עד הלייב"): a link that did not open never blames a validity date */}
+          {en ? 'We could not open this quote' : 'לא הצלחנו לפתוח את הצעת המחיר'}</h1>
         <p style={{ margin: 0, fontSize: '1rem', color: '#3c4a52', maxWidth: '34rem', lineHeight: 1.5 }}>{en ? 'Please ask the business that sent it for an up-to-date link.' : 'אפשר לבקש מהעסק ששלח אותה קישור עדכני.'}</p>
       </div>
     );
