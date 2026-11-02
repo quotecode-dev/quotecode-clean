@@ -32,7 +32,7 @@ import { isFinancialChange } from '../utils/financialEdit';
 import { reportMonthRange, recurringMonthsInRange, calendarDateOf } from '../utils/recurringExpense';
 import { settingsFormDirty } from '../utils/settingsBaseline';
 import { logoBase64For } from '../utils/logoImport';
-import { reportSignup } from '../shared/siteAnalytics';
+import { inConsentRegion, reportSignup } from '../shared/siteAnalytics';
 import { marketCalendarDate } from '../utils/recurringExpense';
 import { isValidEmailAddress } from '../utils/emailAddress';
 import { isHebrewEnv, calculateQuoteFinancials, getMarketRoutingCorrection, getPostRecoveryLoginLang, canonicalMarket } from '../utils/regionConfig';
@@ -2693,7 +2693,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         else setAuthError(signUpError.message);
       } else {
         // Owner console 2026-11-01 (L-12): one sign_up event for a NEW account only; an address that already has an account comes back with no identities
-        if (data?.user && !(data.user.identities && data.user.identities.length === 0)) reportSignup({ isHebrew: bundleIsHebrew });
+        if (data?.user && !(data.user.identities && data.user.identities.length === 0)) fetchFreshGeoCountry().then((country) => reportSignup({ isHebrew: bundleIsHebrew, region: inConsentRegion(country) }));
         // Owner P0 (Task 38 finding): when email confirmation is required there is no session yet - say so plainly; an address that
         // already has an account gets the very same answer (Codex SEC-FE-05)
         setAuthSuccess(data?.session && !(data?.user?.identities && data.user.identities.length === 0)

@@ -1347,6 +1347,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "supabase/functions/_shared/socialPostDigest.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "supabase/functions/_shared/subscriptionContract.ts": {
     "interactive": 0,
     "markers": 0
