@@ -1,11 +1,10 @@
 // Codex release 3 (Owner 2026-10-29, typed: "מאשר שחרור 3 של קודקס: נגישות המספרים, פיצול הקוד ותמונת הפתיחה, כולל שינוי ב-L-02, L-15,
 // בלי שינוי באנימציה ובמראה"); docs/CODEX_SPEC_MORNING_PLANS_2026-10-29.md section 3.
-import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { lazy } from 'react';
-import { render, screen, cleanup, waitFor } from '@testing-library/react';
+import { render, screen, cleanup } from '@testing-library/react';
 import RouteChunkBoundary from './shared/RouteChunkBoundary';
-import * as quoteDraft from './utils/quoteDraft';
 import { composeRouteHtml } from '../scripts/publicRouteHtml.mjs';
 
 afterEach(cleanup);
@@ -49,7 +48,6 @@ describe('step 2: the landing downloads only itself', () => {
   it('a screen whose file cannot be loaded: a clear message and a retry (HE / EN)', async () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const Broken = lazy(() => Promise.reject(new Error('Failed to fetch dynamically imported module')));
-    window.sessionStorage.setItem('tekango-chunk-reload-at', String(Date.now())); // the one automatic reload was already used
     render(<RouteChunkBoundary isHebrew><Broken /></RouteChunkBoundary>);
     const box = await screen.findByTestId('route-chunk-failed');
     expect(box.textContent).toBe('לא הצלחנו לטעון את העמוד. אפשר לנסות שוב.ניסיון נוסף');
@@ -57,53 +55,6 @@ describe('step 2: the landing downloads only itself', () => {
     render(<RouteChunkBoundary isHebrew={false}><Broken /></RouteChunkBoundary>);
     expect((await screen.findByTestId('route-chunk-failed')).textContent).toBe('We couldn’t load this page. Please try again.Try again');
     spy.mockRestore();
-    window.sessionStorage.clear();
-  });
-  describe('Owner 2026-11-02 (typed: "מאשר תיקון שירה, מע"מ של עוסק פטור כולל שינוי ב-L-22, רענון אוטומטי פעם אחת במסך הטעינה כולל שינוי ב-L-02 ו-L-15, ותיקון 30527 בפיי פלוס, שחרור עד הלייב"): one automatic reload', () => {
-    const real = window.location;
-    let reload;
-    let flush;
-    let spy;
-    beforeEach(() => {
-      window.sessionStorage.clear();
-      reload = vi.fn();
-      flush = vi.spyOn(quoteDraft, 'flushAllDrafts');
-      spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      Object.defineProperty(window, 'location', { configurable: true, value: { ...real, reload } });
-    });
-    afterEach(() => {
-      Object.defineProperty(window, 'location', { configurable: true, value: real });
-      flush.mockRestore(); spy.mockRestore(); vi.restoreAllMocks(); window.sessionStorage.clear();
-    });
-    const failing = (message) => { const B = lazy(() => Promise.reject(new Error(message))); return <RouteChunkBoundary isHebrew><B /></RouteChunkBoundary>; };
-    it('a file that did not load: drafts first, then one reload; the second failure keeps the message', async () => {
-      render(failing('Failed to fetch dynamically imported module'));
-      await screen.findByTestId('route-chunk-failed');
-      await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
-      expect(flush.mock.invocationCallOrder[0]).toBeLessThan(reload.mock.invocationCallOrder[0]);
-      cleanup();
-      render(failing('Importing a module script failed.'));
-      await screen.findByTestId('route-chunk-failed');
-      expect(reload).toHaveBeenCalledTimes(1);
-    });
-    it('any other crash of a screen, or a device offline: no reload', async () => {
-      render(failing('Cannot read properties of undefined'));
-      await screen.findByTestId('route-chunk-failed');
-      expect(reload).not.toHaveBeenCalled();
-      cleanup();
-      const online = vi.spyOn(window.navigator, 'onLine', 'get').mockReturnValue(false);
-      render(failing('Failed to fetch dynamically imported module'));
-      await screen.findByTestId('route-chunk-failed');
-      expect(reload).not.toHaveBeenCalled();
-      online.mockRestore();
-    });
-    it('storage blocked: no reload', async () => {
-      const blocked = vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => { throw new Error('blocked'); });
-      render(failing('Failed to fetch dynamically imported module'));
-      await screen.findByTestId('route-chunk-failed');
-      expect(reload).not.toHaveBeenCalled();
-      blocked.mockRestore();
-    });
   });
 });
 

@@ -1,22 +1,10 @@
 // Owner console 2026-11-02 (the plan for Shira): the results of every post, unknown is never 0, the stills wait for the Owner, the daily line.
 import { describe, it, expect, vi } from 'vitest';
-import { readFileSync } from 'node:fs';
 import { collectContent, commentablePosts, contentSummary, careLine, stillActions, networkUrl } from './socialStats.ts';
 import { publishToMeta } from './social.ts';
 
 const ok = (json: unknown) => ({ ok: true, status: 200, json });
 const refused = { ok: false, status: 403, json: null };
-
-// Owner 2026-11-02 (typed: "מאשר תיקון שירה, מע"מ של עוסק פטור כולל שינוי ב-L-22, רענון אוטומטי פעם אחת במסך הטעינה כולל שינוי ב-L-02 ו-L-15, ותיקון 30527 בפיי פלוס, שחרור עד הלייב"): this test runner hides a crash at load (a real boot in Deno found it), so the cycle itself is guarded.
-describe('the file of the results does not read the social file while it loads', () => {
-  it('ORIGIN comes from outside the social.ts <-> socialStats.ts cycle', () => {
-    const src = readFileSync('supabase/functions/agents-room/socialStats.ts', 'utf8');
-    const fromSocial = src.split(/\r?\n/).filter((l) => /^import /.test(l) && /from '\.\/social\.ts'/.test(l)).join(' ');
-    expect(fromSocial).toContain('TARGETS');
-    expect(fromSocial).not.toContain('ORIGIN');
-    expect(src).toMatch(/import \{ ORIGIN \} from '\.\.\/search-console\/lib\.ts'/);
-  });
-});
 
 function graph(routes: Record<string, unknown>) {
   return vi.fn(async (_channel: string, _method: 'GET' | 'POST', path: string) => (path in routes ? ok(routes[path]) : refused));

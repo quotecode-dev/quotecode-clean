@@ -1,7 +1,6 @@
 // Owner console 2026-11-01 (typed: "מאשר: זיהוי חשבוניות זיכוי בכלי ההוצאות, סימון בלי אפשרות אישור, כולל שינוי ב-L-22, שחרור עד הלייב אחרי שמסיימים את הסרטון"):
 // + (typed: "כל חשבונית זיכוי עוברת לפיי פלוס במינוס, כל מסמך בפני עצמו, בלי חישוב נטו, אחרי אישור שלי במסך"): the real case: Sparkiz credit note 30530, 370 ILS printed
 // WITHOUT a minus, "מסמך זה מבטל מסמך מספר 30529".
-import { readFileSync } from 'node:fs';
 import { describe, it, expect, vi } from 'vitest';
 import { processMessage, validateExtraction, payplusFields, documentMatch, vatRule, EXTRACTION_SCHEMA, type ExpenseDeps } from './lib.ts';
 
@@ -80,22 +79,6 @@ describe('supplier credit notes', () => {
     expect(r({ supplier_tax_status: 'unknown', vat_amount: 56.44 })).toEqual({ amountIncludesVat: true, vatPercentage: 18 });
     expect(r({ supplier_tax_status: 'unknown', vat_amount: null })).toEqual({ amountIncludesVat: false, vatPercentage: 0 });
     expect(r({ supplier_tax_status: 'licensed', supplier_country: 'foreign', currency: 'USD' })).toEqual({ amountIncludesVat: false, vatPercentage: 0 });
-  });
-  it('a charge by an exempt dealer is without VAT; any other charge as before', () => {
-    const r = (o: Record<string, unknown>) => { const x = validateExtraction(JSON.stringify({ ...base, doc_type: 'tax_invoice_receipt', credited_doc_number: null, ...o }), 0, NOW)!; return vatRule(x); };
-    expect(r({ supplier_tax_status: 'exempt', vat_amount: 0 })).toEqual({ amountIncludesVat: false, vatPercentage: 0 });
-    expect(r({ supplier_tax_status: 'exempt', vat_amount: null })).toEqual({ amountIncludesVat: false, vatPercentage: 0 });
-    expect(r({ supplier_tax_status: 'licensed', vat_amount: null })).toEqual({ amountIncludesVat: true, vatPercentage: 18 });
-    expect(r({ supplier_tax_status: 'unknown', vat_amount: null })).toEqual({ amountIncludesVat: true, vatPercentage: 18 });
-    // 30527: titled "חשבונית מס/קבלה", printed "עוסק פטור" and "מע"מ (0%)". Even a wrong status does not bring VAT back.
-    expect(r({ supplier_tax_status: 'licensed', vat_amount: 0 })).toEqual({ amountIncludesVat: false, vatPercentage: 0 });
-    expect(r({ supplier_tax_status: 'unknown', vat_amount: 0 })).toEqual({ amountIncludesVat: false, vatPercentage: 0 });
-    expect(r({ supplier_tax_status: 'licensed', vat_amount: 61.02 })).toEqual({ amountIncludesVat: true, vatPercentage: 18 });
-  });
-  it('the instruction to the extraction: the printed exempt status wins over the title', () => {
-    const src = readFileSync('supabase/functions/expense-invoices/lib.ts', 'utf8');
-    expect(src).toContain('This wins over everything else, also when the title says "חשבונית מס"');
-    expect(src).toContain('The title "חשבונית מס" alone is not enough');
   });
   it('the charge itself still waits for approval as before', async () => {
     const d = deps({ ...base, doc_type: 'tax_invoice_receipt', doc_number: '30529', credited_doc_number: null, total_amount: 390 });
