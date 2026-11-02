@@ -681,12 +681,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-10-31 (typed: the six Codex groups in order, each through its own gate to LIVE, including L-02, L-13, L-15, L-17, L-18, L-22 and the 30/10 locks, decisions a-h and the wording as recommended): international purchase opens (USD), SMART PACK mid-period abroad, USD cancellation fee 5% capped at $27, owed refund currency"
-    },
-    "20261102030000_legacy_public_links_backfill.sql": {
-      "sha256": "3966e5a41af29423ca6cb0c6469316a01dbcdac37f3d95f43598fa05d6d9c1b7",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-11-02 (typed: \"מאשר טיפול מיידי בקישורי ההצעות הישנים לפני סוף הסבב\"): one additive backfill of an append-only list; replays cleanly (ON CONFLICT DO NOTHING)."
     }
   }
 }

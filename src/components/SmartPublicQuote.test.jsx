@@ -123,7 +123,7 @@ describe('SmartPublicQuote - Task 16 presentation wiring', () => {
     renderAt();
     // Owner package A 2026-10-14: one language (the page's own) - Hebrew unless <html lang="en">
     await waitFor(() => expect(screen.getByTestId('public-quote-not-found')).toBeInTheDocument());
-    expect(screen.getByText('לא הצלחנו לפתוח את הצעת המחיר')).toBeInTheDocument();
+    expect(screen.getByText('הצעת המחיר לא נמצאה או שפג תוקפה')).toBeInTheDocument();
     expect(screen.queryByText(/Quote not found/)).toBeNull();
   });
 });
