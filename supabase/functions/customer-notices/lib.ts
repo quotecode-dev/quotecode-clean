@@ -5,14 +5,17 @@
 // mailbox (the server refuses a second payment page during the grace days), so a reply to the email reaches it.
 
 export type Kind = 'failed_day1' | 'failed_day2' | 'failed_day3' | 'limited' | 'limited_weekly';
+export type LifeKind = 'welcome' | 'free_ending';
+export type LifeFact = { account_id: string; email: string; market: Fact['market']; kind: LifeKind; episode_at: string; free_ends_at: string | null; remaining: number | null };
 export type Fact = { account_id: string; email: string; market: 'IL' | 'INTERNATIONAL'; episode_at: string; grace_ends_at: string; limited: boolean;
   reason: 'payment_failed' | 'period_ended'; sent: Array<{ kind: string; seq: number }> };
 export type Due = { kind: Kind; seq: number };
 export type Outcome = { ok: boolean; status: number; id?: string | null; unknown?: boolean };
 export type Deps = {
   facts(user?: string): Promise<Fact[]>;
-  claim(user: string, kind: Kind, episode: string, seq: number, key: string): Promise<string | null>;
-  complete(user: string, kind: Kind, episode: string, seq: number, key: string, outcome: 'sent' | 'failed' | 'unknown' | 'cancelled', providerId?: string | null): Promise<boolean>;
+  lifecycle(user?: string): Promise<LifeFact[]>;
+  claim(user: string, kind: Kind | LifeKind, episode: string, seq: number, key: string): Promise<string | null>;
+  complete(user: string, kind: Kind | LifeKind, episode: string, seq: number, key: string, outcome: 'sent' | 'failed' | 'unknown' | 'cancelled', providerId?: string | null): Promise<boolean>;
   send(mail: { from: string; replyTo: string; to: string; subject: string; text: string; idempotencyKey: string }): Promise<Outcome>;
   now(): Date;
   uuid(): string;
@@ -104,6 +107,26 @@ export function healthOf(body: { ok?: unknown; failed?: unknown; unknown?: unkno
   return Number(body.failed) > 0 || Number(body.unknown) > 0 ? { event: 'partial', outcome: 'send_errors' } : { event: 'completed', outcome: 'ok' };
 }
 
+/** Owner console 2026-11-02 (typed on "מיילי שלב 2: ברוכים הבאים וסיום תקופת החינם": "מאשר אבל לא לעשות עכשיו, לשים בזכרון ותעשה אחרי כל מה שאציג בפנייך"). Service words only: no offer, no price, no link to the plans (the Owner's lawyer question stays open) */
+export function lifeContent(f: Pick<LifeFact, 'kind' | 'market' | 'free_ends_at' | 'remaining'>, now: Date): { subject: string; text: string } {
+  const endsSoon = !!f.free_ends_at && Date.parse(f.free_ends_at) <= now.getTime() + 24 * HOUR;
+  const n = Number(f.remaining);
+  if (f.market === 'IL') {
+    const sign = [`לכניסה לחשבון: ${LINK.IL}`, '', 'צוות TEKANGO'];
+    if (f.kind === 'welcome') {
+      return { subject: 'ברוכים הבאים ל-TEKANGO', text: ['שלום,', '', 'החשבון מוכן. הצעד הראשון: בונים הצעת מחיר ראשונה ושולחים אותה בוואטסאפ או במייל, והלקוח חותם דיגיטלית.', '', 'במסלול החינם יש 10 הצעות או 7 ימים, המוקדם מביניהם.', '', 'שאלה? אפשר פשוט להשיב למייל הזה.', '', ...sign].join('\n') };
+    }
+    const what = endsSoon && f.free_ends_at ? `תקופת החינם מסתיימת ב-${whenText(f.free_ends_at, f.market)}.` : n === 1 ? 'נותרה הצעת חינם אחת.' : `נותרו ${n} הצעות חינם.`;
+    return { subject: 'תקופת החינם ב-TEKANGO מסתיימת בקרוב', text: ['שלום,', '', what, '', 'אחרי הסיום אי אפשר יהיה להוציא הצעות חדשות, ומה שכבר נוצר נשאר זמין.', '', ...sign].join('\n') };
+  }
+  const sign = [`Sign in: ${LINK.INTERNATIONAL}`, '', 'The TEKANGO team'];
+  if (f.kind === 'welcome') {
+    return { subject: 'Welcome to TEKANGO', text: ['Hello,', '', 'Your account is ready. The first step: build your first quote and send it by WhatsApp or email, and your client signs digitally.', '', 'The free plan includes 10 quotes or 7 days, whichever comes first.', '', 'Questions? Just reply to this email.', '', ...sign].join('\n') };
+  }
+  const what = endsSoon && f.free_ends_at ? `Your free period ends on ${whenText(f.free_ends_at, f.market)}.` : n === 1 ? 'You have 1 free quote left.' : `You have ${n} free quotes left.`;
+  return { subject: 'Your TEKANGO free period ends soon', text: ['Hello,', '', what, '', 'After that you will not be able to issue new quotes. Everything you already created stays available.', '', ...sign].join('\n') };
+}
+
 export async function runNotices(d: Deps): Promise<{ ok: boolean; found: number; sent: number; failed: number; unknown: number; waiting: number }> {
   const now = d.now();
   const out = { ok: true, found: 0, sent: 0, failed: 0, unknown: 0, waiting: 0 };
@@ -130,6 +153,25 @@ export async function runNotices(d: Deps): Promise<{ ok: boolean; found: number;
     const r = await d.send({ from: s.from, replyTo: s.replyTo, to: fresh.email, subject, text, idempotencyKey: key });
     const outcome = r.ok ? 'sent' : r.unknown ? 'unknown' : 'failed';
     const recorded = await d.complete(f.account_id, due.kind, f.episode_at, due.seq, key, outcome, r.id ?? null);
+    if (outcome === 'sent') out.sent += 1;
+    if (outcome === 'failed' || !recorded) out.failed += 1;
+    if (outcome === 'unknown') out.unknown += 1;
+  }
+  const life = await d.lifecycle();
+  out.found += life.length;
+  for (const f of life) {
+    if (!inSendingHours(f.market, now)) { out.waiting += 1; continue; }
+    if (room <= 0) { out.waiting += 1; continue; }
+    room -= 1;
+    const key = await d.claim(f.account_id, f.kind, f.episode_at, 0, `customer-notice/${d.uuid()}`);
+    if (!key) continue;
+    const fresh = (await d.lifecycle(f.account_id)).find((x) => x.kind === f.kind);
+    if (!fresh) { await d.complete(f.account_id, f.kind, f.episode_at, 0, key, 'cancelled'); continue; }
+    const { subject, text } = lifeContent(fresh, now);
+    const s = SENDER[f.market];
+    const r = await d.send({ from: s.from, replyTo: s.replyTo, to: fresh.email, subject, text, idempotencyKey: key });
+    const outcome = r.ok ? 'sent' : r.unknown ? 'unknown' : 'failed';
+    const recorded = await d.complete(f.account_id, f.kind, f.episode_at, 0, key, outcome, r.id ?? null);
     if (outcome === 'sent') out.sent += 1;
     if (outcome === 'failed' || !recorded) out.failed += 1;
     if (outcome === 'unknown') out.unknown += 1;

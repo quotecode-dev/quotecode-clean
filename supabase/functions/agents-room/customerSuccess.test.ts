@@ -206,13 +206,17 @@ describe('the daily admission', () => {
     expect(run.result.findings.some((f) => /טיוטות יחכו למחר/.test(f.he))).toBe(true);
   });
   // Owner console 2026-11-02 (stage 1, decision 2): a failed renewal has its own automatic emails - no second message to the same customer
+  it('the free period ending gets no draft', async () => {
+    const x = cs([row({ account_id: 'b3', signal_code: 'free_ending', evidence: { remaining: 2, endsAt: '2026-10-31T10:00:00Z', asOf: NOW.toISOString() } })]);
+    expect((await scanAndDraft(x.d, 'k', async () => 'act')).drafted).toEqual([]);
+  });
   it('a failed renewal gets no draft', async () => {
     const x = cs([row({ account_id: 'b2', signal_code: 'renewal_failed_grace', evidence: { asOf: NOW.toISOString(), graceEndsAt: '2026-11-02T09:00:00Z' } })]);
     const run = await scanAndDraft(x.d, 'k', async () => 'act');
     expect(run.drafted).toEqual([]);
   });
   it('an account with an open proposal is not given a second one', async () => {
-    const x = cs([row({ signal_code: 'free_ending' })], { csAdmit: async () => ({ id: null, code: 'account_open' }) });
+    const x = cs([row({ signal_code: 'no_quote_onboarding' })], { csAdmit: async () => ({ id: null, code: 'account_open' }) });
     const run = await scanAndDraft(x.d, 'k', async () => 'act');
     expect(run.drafted).toHaveLength(0);
   });
