@@ -150,9 +150,10 @@ const cookieValue = (cookie, name) => {
   const found = String(cookie || '').split(';').map((c) => c.trim()).find((c) => c.startsWith(`${name}=`));
   return found ? found.slice(name.length + 1) : '';
 };
-export function reportSignup({ isHebrew, win = typeof window !== 'undefined' ? window : null, doc = typeof document !== 'undefined' ? document : null, consent = readConsent() }) {
+// Owner console 2026-11-02 (typed: "מאשר את התוכנית ל-R09, R10, R18 ו-R19, כולל שינוי ב-L-22, L-02, L-15 ו-L-12, שחרור עד הלייב"), Codex R19: the same location rule as a page view; a location not known counts as needing consent, and a _ga cookie alone is not consent
+export function reportSignup({ isHebrew, region = null, win = typeof window !== 'undefined' ? window : null, doc = typeof document !== 'undefined' ? document : null, consent = readConsent() }) {
   try {
-    if (!win || !doc || !isProductionHost(win.location.hostname) || consent === 'denied' || (isHebrew !== true && consent !== 'granted')) return false;
+    if (!win || !doc || !isProductionHost(win.location.hostname) || consent === 'denied' || (consentRequired({ pathname: win.location.pathname, isHebrew, region }) && consent !== 'granted')) return false;
     const client = /^GA\d\.\d\.(\d+\.\d+)$/.exec(cookieValue(doc.cookie, '_ga'));
     if (!client) return false;
     const session = /^GS\d\.\d\.s?(\d+)/.exec(cookieValue(doc.cookie, `_ga_${GA_MEASUREMENT_ID.slice(2)}`));

@@ -48,7 +48,7 @@ const env = ({ host = 'www.tekango.com', cookie = COOKIE, beacon = vi.fn(() => t
 describe('L-12: one sign-up event without identifying details', () => {
   it('sends the event once, with the measurement ids only and a public page as its address', () => {
     const e = env();
-    expect(reportSignup({ isHebrew: true, win: e.win, doc: e.doc, consent: null })).toBe(true);
+    expect(reportSignup({ isHebrew: true, region: false, win: e.win, doc: e.doc, consent: null })).toBe(true);
     expect(e.beacon).toHaveBeenCalledTimes(1);
     const u = new URL(e.beacon.mock.calls[0][0]);
     expect(u.origin + u.pathname).toBe('https://www.google-analytics.com/g/collect');
@@ -61,6 +61,16 @@ describe('L-12: one sign-up event without identifying details', () => {
     expect(reportSignup({ isHebrew: false, win: e.win, doc: e.doc, consent: 'granted' })).toBe(true);
     expect(new URL(e.beacon.mock.calls[0][0]).searchParams.get('dl')).toBe('https://www.tekango.com/en');
   });
+  it('Codex R19: a visitor in the consent region or with no known location needs an explicit choice, whatever the cookie says', () => {
+    for (const region of [true, null]) {
+      const e = env();
+      expect(reportSignup({ isHebrew: true, region, win: e.win, doc: e.doc, consent: null })).toBe(false);
+      expect(e.beacon).not.toHaveBeenCalled();
+      expect(reportSignup({ isHebrew: true, region, win: e.win, doc: e.doc, consent: 'granted' })).toBe(true);
+    }
+    const e = env();
+    expect(reportSignup({ isHebrew: true, win: e.win, doc: e.doc, consent: null })).toBe(false); // no location given
+  });
   it.each([
     ['a declined choice', { consent: 'denied' }, {}],
     ['a visitor never measured (no _ga cookie)', { consent: null }, { cookie: 'proflow_lang=he' }],
@@ -72,7 +82,7 @@ describe('L-12: one sign-up event without identifying details', () => {
   });
   it('the app sends it only for a new account, and no third-party script enters the app', () => {
     const dash = readFileSync('src/pages/Dashboard.jsx', 'utf8');
-    expect(dash).toContain('if (data?.user && !(data.user.identities && data.user.identities.length === 0)) reportSignup({ isHebrew: bundleIsHebrew });');
+    expect(dash).toContain('if (data?.user && !(data.user.identities && data.user.identities.length === 0)) fetchFreshGeoCountry().then((country) => reportSignup({ isHebrew: bundleIsHebrew, region: inConsentRegion(country) }));');
     expect(dash).not.toMatch(/googletagmanager/);
   });
   it('the Privacy Policy says so in both languages and still has no advertising cookies', () => {

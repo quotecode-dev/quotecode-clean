@@ -9,6 +9,7 @@
 //     itself through the deploy hook), hand a code task to Claude (an email to the Owner with the full instruction to paste);
 //   * never anything else: no code change, no paid ads, no message to a customer.
 // The database repeats the rule (agent_actions: kind <-> action_type check), so a wrong pairing cannot even be stored.
+import { socialPostDigest } from "../_shared/socialPostDigest.js";
 import {
   handler, runSecurity, costOf, israelParts, runKey, monthStartIso, usd, isolatePaths, brandLatin, competitiveFinding,
   AGENTS, AI_MODEL, AI_FALLBACK_MODEL, MONTHLY_CAP_USD, SPLIT,
@@ -503,7 +504,7 @@ async function checkHeadings(d: StageDeps, heads: { he: string; en: string }, se
 const HOLD_SECONDS = DRAFT_HOLD_MS / 1000;
 
 // ---------------------------------------------------------------- the Owner's decisions
-export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown; note?: unknown; revision?: unknown; focus?: unknown; text?: unknown }, paths: string[]): Promise<Out> {
+export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown; note?: unknown; revision?: unknown; focus?: unknown; text?: unknown; digest?: unknown }, paths: string[]): Promise<Out> {
   const a = typeof b.id === 'string' ? await d.getAction(b.id) : null;
   if (!a) return { status: 404, body: { ok: false, code: 'not_found' } };
   if (a.status !== 'proposed' || (a.kind !== 'system' && a.kind !== 'claude')) return { status: 409, body: { ok: false, code: 'not_pending' } };
@@ -601,10 +602,19 @@ export async function decide(d: StageDeps, b: { id?: unknown; decision?: unknown
   if (a.action_type === 'social_post') {
     const channel = String(a.payload?.channel ?? '');
     const connected = d.connectedChannels().includes(channel);
+    // Owner console 2026-11-02 (typed: "מאשר את התוכנית ל-R09, R10, R18 ו-R19, כולל שינוי ב-L-22, L-02, L-15 ו-L-12, שחרור עד הלייב"), Codex R09: only the version on the Owner's screen is approved
+    const seen = typeof b.digest === 'string' ? b.digest : '';
+    if (seen !== socialPostDigest(a.payload)) return { status: 409, body: { ok: false, code: 'post_changed' } };
     // stage 2: a connected account publishes now - only the request whose claim is stored publishes, never twice (the claim, not the
     // decision time: the database spells a time its own way, and two presses can share a millisecond - the fix of 2026-10-27)
     const claim = `${CLAIM}${crypto.randomUUID()}`;
     await d.updateAction(a.id, { status: 'approved', decided_at: at, ...(connected ? { error: claim } : {}) }, 'proposed');
+    // a rewrite that landed between the read and the claim: the post goes back to waiting, nothing is published
+    const held = await d.getAction(a.id);
+    if (held && socialPostDigest(held.payload) !== seen) {
+      await d.updateAction(a.id, { status: 'proposed', decided_at: null, error: null }, 'approved');
+      return { status: 409, body: { ok: false, code: 'post_changed' } };
+    }
     if (!connected) return { status: 200, body: { ok: true, status: 'ready' } };
     return publishClaimed(d, a, channel, claim, 'not_pending');
   }
@@ -974,7 +984,7 @@ async function publishClaimed(d: StageDeps, a: Action, channel: string, claim: s
   if (!won || won.status !== 'approved' || won.error !== claim) return { status: 409, body: { ok: false, code: lost } };
   let p: { url: string; id: string };
   try {
-    p = await d.publishSocial(channel, a.payload, (containerId) => d.updateAction(a.id, { result: { containerId } }, 'approved'));
+    p = await d.publishSocial(channel, won.payload, (containerId) => d.updateAction(a.id, { result: { containerId } }, 'approved'));
   } catch (e) {
     // 20261029000000 (Codex F08): a definite refusal leaves the post ready (publish now / by hand); an unknown outcome is never
     // published again until the Owner checks the page and says it is not there

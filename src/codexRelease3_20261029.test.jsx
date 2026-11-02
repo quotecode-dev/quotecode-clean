@@ -97,6 +97,14 @@ describe('step 2: the landing downloads only itself', () => {
       expect(reload).not.toHaveBeenCalled();
       online.mockRestore();
     });
+    it('Codex R18: a draft that could not be kept stays on the page: no reload, the message and the retry stay', async () => {
+      flush.mockReturnValue(false);
+      render(failing('Failed to fetch dynamically imported module'));
+      await screen.findByTestId('route-chunk-failed');
+      await waitFor(() => expect(flush).toHaveBeenCalled());
+      expect(reload).not.toHaveBeenCalled();
+      expect(window.sessionStorage.getItem('tekango-chunk-reload-at')).toBeNull();
+    });
     it('storage blocked: no reload', async () => {
       const blocked = vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => { throw new Error('blocked'); });
       render(failing('Failed to fetch dynamically imported module'));
