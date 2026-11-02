@@ -48,7 +48,7 @@ export function normalizeCatalog(rows) {
 // Unit words as they appear right AFTER a number (HE / EN). Order matters: the longer / more specific forms first.
 // A Hebrew alternative must end at a word end ((?![א-ת]); JS \b is ASCII-only), so "מרפסת" is never read as "מ״ר".
 const UNIT_PATTERNS = [
-  ['m2', /^(?:מ["״'׳]?ר(?![א-ת])|מטר(?:ים)?\s+מרובע(?:ים)?(?![א-ת])|sq\.?\s?m\b|sqm\b|m2\b|m²|square\s+met(?:er|re)s?\b)/i],
+  ['m2', /^(?:מ["״'׳]?ר(?![א-ת])|מטר(?:ים)?\s+(?:מרובע|רבוע)(?:ים)?(?![א-ת])|sq\.?\s?m\b|sqm\b|m2\b|m²|square\s+met(?:er|re)s?\b)/i],
   ['linear_meter', /^(?:מטר(?:ים)?\s+(?:אורך|רץ|רצים)(?![א-ת])|מ["״'׳]א(?![א-ת])|linear\s+met(?:er|re)s?\b|lin\.?\s?m\b|lm\b|running\s+met(?:er|re)s?\b)/i],
   ['cm', /^(?:ס["״'׳]?מ(?![א-ת])|סנטימטר(?:ים)?(?![א-ת])|cm\b|centimet(?:er|re)s?\b)/i],
   ['meter', /^(?:מטר(?:ים)?(?![א-ת])|מ['׳](?![א-ת])|met(?:er|re)s?\b|m\b)/i],
@@ -112,7 +112,12 @@ export function extractMeasures(text) {
     const word = w[0].toLowerCase();
     const bare = word.replace(/^[והבלמש](?=[א-ת]{3,})/, '');
     const value = WORD_NUMBERS.get(word) ?? WORD_NUMBERS.get(bare);
-    if (value != null) out.push({ value, unit: null, kind: 'number', text: w[0], start: w.index, end: w.index + w[0].length, word: true });
+    if (value == null) continue;
+    // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקון 4 התקלות בהצעה החכמה, שחרור עד הלייב"): a dictated "Twelve square meters" has the same unit as "12 square meters"
+    const after = src.slice(w.index + w[0].length);
+    const space = after.length - after.replace(/^\s+/, '').length;
+    const said = UNIT_PATTERNS.map(([id, pattern]) => [id, after.slice(space).match(pattern)]).find(([, u]) => u);
+    out.push({ value, unit: said ? said[0] : null, kind: 'number', text: src.slice(w.index, w.index + w[0].length + (said ? space + said[1][0].length : 0)), start: w.index, end: w.index + w[0].length + (said ? space + said[1][0].length : 0), word: true });
   }
   out.sort((a, b) => a.start - b.start);
   // Task 35: a dimension pair "4 על 2.5 מטר" / "120x100 cm" writes the unit once - the first number shares the length unit of the second
@@ -174,7 +179,7 @@ export function locateEvidence(source, evidence, taken = []) {
 export function catalogNameUnit(name) {
   const s = String(name || '');
   const tests = [
-    ['m2', /(?:^|[\s(/\-ל])(?:מ["״'׳]?ר|מטר\s+מרובע)(?![א-ת])|(?:per|\/)\s*(?:sq\.?\s?m|sqm|m2|m²|square\s+met(?:er|re))|\b(?:sqm|m2)\b|m²/i],
+    ['m2', /(?:^|[\s(/\-ל])(?:מ["״'׳]?ר|מטר\s+(?:מרובע|רבוע))(?![א-ת])|(?:per|\/)\s*(?:sq\.?\s?m|sqm|m2|m²|square\s+met(?:er|re))|\b(?:sqm|m2)\b|m²/i],
     ['linear_meter', /(?:^|[\s(/\-ל])(?:מטר\s+(?:אורך|רץ)|מ["״'׳]א)(?![א-ת])|(?:per|\/)\s*(?:linear\s+met(?:er|re)|lm|running\s+met(?:er|re))/i],
     ['kg', /(?:^|[\s(/\-ל])(?:ק["״'׳]ג|קילו)(?![א-ת])|(?:per|\/)\s*(?:kg|kilo)/i],
     ['hour', /(?:^|[\s(/\-ל])(?:שעה|שעת\s+עבודה)(?![א-ת])|(?:per|\/)\s*(?:hour|hr)\b|\bhourly\b/i],
@@ -251,7 +256,7 @@ export function buildDraftMessages({ description, isHebrew, catalog }) {
     'evidence: copy EXACTLY, character for character, the shortest part of the job description this item comes from, including its own quantity and unit when it has one (e.g. "ריצוף חדר הורים 40 מ״ר"). Each item has its OWN evidence - two items never use the same words; "" only when no words of the text belong to the item.',
     'description: short and concrete, WITHOUT the quantity and unit (they go in their own fields) and without dangling words such as "בשטח של", "במשך", "for", "of".',
     'subject: a short title of the WORK only (e.g. "ריצוף חדרי שינה", "Bedroom tiling") - never a person, family, company, address or the words "quote" / "הצעת מחיר".',
-    'unit: "m2" (square meters / מ״ר), "linear_meter" (running meters / מטר אורך), "kg", "hour", "day", "unit" (countable pieces) or null when the text gives no unit. A unit not in this list (e.g. liters, sq ft) -> unit null and write it in the description.',
+    'unit: "m2" (square meters / מ״ר / מטר מרובע / מטר רבוע), "linear_meter" (running meters / מטר אורך), "kg", "hour", "day", "unit" (countable pieces) or null when the text gives no unit. A unit not in this list (e.g. liters, sq ft) -> unit null and write it in the description.',
     'quantity + quantityBasis:',
     '  - "stated": the quantity is written in the text for THIS item, inside its evidence (e.g. "40 מ״ר" -> quantity 40, unit "m2"). Decimals are allowed. Prices, dates, phone numbers and percentages are never quantities.',
     '  - "derived": computed only from numbers written in the text when the meaning is unambiguous (e.g. a 4 x 2.5 m wall -> 10 m2); put the multiplication in derivation as "4 × 2.5". Never derive from a guessed number.',
@@ -350,7 +355,17 @@ export function parseDraftModelOutput(text, catalog, description = '') {
     const spanWords = parts.flatMap((c) => c.words);
     const words = significantWords(lineText).map(stem).filter((w) => has(spanWords, w));
     const own = words.length ? parts.filter((c) => words.every((w) => has(c.words, w))) : [];
-    return own.length === 1 ? own[0] : null;
+    if (own.length !== 1) return null;
+    // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקון 4 התקלות בהצעה החכמה, שחרור עד הלייב"): a clause holding nothing but one measure, right beside this line's clause, is this line's quantity ("ריצוף חדש, 12 מטר מרובע")
+    const at = parts.indexOf(own[0]);
+    const measureOnly = (c) => {
+      const f = c && free(c);
+      if (!f || f.length !== 1) return false;
+      return !significantWords(source.slice(c.start, f[0].m.start) + ' ' + source.slice(f[0].m.end, c.end)).length;
+    };
+    if (!free(own[0]).length && measureOnly(parts[at + 1])) return { start: own[0].start, end: parts[at + 1].end };
+    if (!free(own[0]).length && measureOnly(parts[at - 1])) return { start: parts[at - 1].start, end: own[0].end };
+    return own[0];
   };
   // the measure units a claimed line unit can be read from ('unit' / none = a bare count, never one side of a dimension pair)
   const fitsUnit = (m, unit) => (unit === 'm2' ? m.unit === 'm2'
