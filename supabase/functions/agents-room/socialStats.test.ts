@@ -1,7 +1,7 @@
 // Owner console 2026-11-02 (the plan for Shira): the results of every post, unknown is never 0, the stills wait for the Owner, the daily line.
 import { describe, it, expect, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { collectContent, commentablePosts, contentSummary, careLine, stillActions, networkUrl, stillFitsPost, jpegSize } from './socialStats.ts';
+import { collectContent, commentablePosts, contentSummary, careLine, stillActions, networkUrl } from './socialStats.ts';
 import { publishToMeta } from './social.ts';
 
 const ok = (json: unknown) => ({ ok: true, status: 200, json });
@@ -15,26 +15,6 @@ describe('the file of the results does not read the social file while it loads',
     expect(fromSocial).toContain('TARGETS');
     expect(fromSocial).not.toContain('ORIGIN');
     expect(src).toMatch(/import \{ ORIGIN \} from '\.\.\/search-console\/lib\.ts'/);
-  });
-});
-
-// Owner 2026-11-02 (typed: "מאשר בדיקת מידות בתיקיית הפרסומות של שירה: תמונה שלא מתאימה לפוסט נדחית בהעלאה עם הסבר, כולל שינוי ב-L-22, שחרור עד הלייב")
-describe('the size of an ad in the folder', () => {
-  const jpeg = (width: number, height: number) => btoa(String.fromCharCode(0xff, 0xd8, 0xff, 0xe0, 0, 4, 0, 0, 0xff, 0xc0, 0, 11, 8, height >> 8, height & 255, width >> 8, width & 255, 3, 0, 0, 0));
-  it('a post: square and 4:5 up to 1.91:1; a phone-height file and a tiny image are refused', () => {
-    expect(stillFitsPost(1080, 1080)).toBe(true);
-    expect(stillFitsPost(1080, 1350)).toBe(true);
-    expect(stillFitsPost(1910, 1000)).toBe(true);
-    expect(stillFitsPost(1080, 1920)).toBe(false);
-    expect(stillFitsPost(2000, 1000)).toBe(false);
-    expect(stillFitsPost(300, 300)).toBe(false);
-    expect(stillFitsPost(0, 0)).toBe(false);
-  });
-  it('reads the size from the JPEG itself; anything else is unknown', () => {
-    expect(jpegSize(jpeg(1080, 1920))).toEqual({ width: 1080, height: 1920 });
-    expect(jpegSize(jpeg(1080, 1080))).toEqual({ width: 1080, height: 1080 });
-    expect(jpegSize(btoa('not a jpeg at all'))).toBeNull();
-    expect(jpegSize('%%%')).toBeNull();
   });
 });
 

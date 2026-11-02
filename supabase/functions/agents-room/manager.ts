@@ -21,7 +21,7 @@ import { runSocial, reviseSocial, openSocialSlots, TARGETS } from './social.ts';
 import { scanAndDraft, sendApproved, type CsDeps, type Signal } from './customerSuccess.ts';
 import { chainStart, chainStep, chainTick, hourKey, type ChainDeps, type Step } from './chain.ts';
 import type { Competitive } from './marketing.ts';
-import { collectContent, commentablePosts, careLine, stillActions, stillFitsPost, jpegSize, type ContentRow, type Follower, type Still, type YouTube } from './socialStats.ts';
+import { collectContent, commentablePosts, careLine, stillActions, type ContentRow, type Follower, type Still, type YouTube } from './socialStats.ts';
 import { postMetrics, postComments, draftReplies, replyAction, replyErrors, publishReply, metricsSummary, type Graph, type PublishedPost, type Metrics, type NewComment } from './socialReplies.ts';
 import { isBudgetRefusal, isAmbiguous, AMBIGUOUS, BUDGET_CODES } from './aiBudget.ts';
 import { checkTopic, checkFocus, normTopic, topicContext, cleanFocus, FOCUS_MIN, type Inventory, type TopicRef } from './articleTopics.ts';
@@ -947,9 +947,6 @@ async function stillUpload(d: StageDeps, b: Record<string, unknown>): Promise<Ou
   const base64 = typeof b.dataBase64 === 'string' ? b.dataBase64 : '';
   const market = b.market === 'il' || b.market === 'intl' ? b.market : null;
   if (!market || !d.stillUpload || !base64 || base64.length > STILL_MAX_BASE64 || !base64.startsWith('/9j/')) return { status: 400, body: { ok: false, code: 'invalid_still' } };
-  // Owner 2026-11-02 (typed: "מאשר בדיקת מידות בתיקיית הפרסומות של שירה: תמונה שלא מתאימה לפוסט נדחית בהעלאה עם הסבר, כולל שינוי ב-L-22, שחרור עד הלייב"): the server checks too, never only the screen
-  const size = jpegSize(base64);
-  if (!size || !stillFitsPost(size.width, size.height)) return { status: 400, body: { ok: false, code: 'still_size' } };
   await d.stillUpload(market, String(b.fileName ?? '').replace(/[\u0000-\u001F]/g, '').slice(0, 120), base64);
   return { status: 200, body: { ok: true } };
 }

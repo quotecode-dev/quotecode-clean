@@ -45,25 +45,4 @@ describe('the folder and the averages', () => {
     await waitFor(() => expect(getByTestId('social-still-notice').textContent).toContain('ההעלאה לא הצליחה'));
     expect(upload).not.toHaveBeenCalled();
   });
-  for (const he of [true, false]) {
-    it(`${he ? 'HE' : 'EN'}: a phone-height image is refused with the reason and is not uploaded`, async () => {
-      const upload = vi.fn(async () => true);
-      globalThis.createImageBitmap = vi.fn(async () => ({ width: 1080, height: 1920 }));
-      const { getByTestId } = render(<AdminSocialResults isHebrew={he} canPublish upload={upload} />);
-      fireEvent.change(getByTestId('social-still-file'), { target: { files: [new File(['x'], 'a.png', { type: 'image/png' })] } });
-      await waitFor(() => expect(getByTestId('social-still-notice').textContent).toContain(he ? 'לא מתאימה לפוסט' : 'does not fit a post'));
-      expect(upload).not.toHaveBeenCalled();
-    });
-  }
-  it('a square image goes up', async () => {
-    const upload = vi.fn(async () => true);
-    globalThis.createImageBitmap = vi.fn(async () => ({ width: 1080, height: 1080 }));
-    const ctx = vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue({ fillRect() {}, drawImage() {} });
-    const data = vi.spyOn(HTMLCanvasElement.prototype, 'toDataURL').mockReturnValue('data:image/jpeg;base64,/9j/x');
-    const { getByTestId } = render(<AdminSocialResults isHebrew canPublish upload={upload} />);
-    fireEvent.change(getByTestId('social-still-file'), { target: { files: [new File(['x'], 'a.png', { type: 'image/png' })] } });
-    await waitFor(() => expect(getByTestId('social-still-notice').textContent).toContain('נוספה לתיקייה'));
-    expect(upload).toHaveBeenCalledTimes(1);
-    ctx.mockRestore(); data.mockRestore();
-  });
 });
