@@ -303,7 +303,8 @@ export function formatSubscriptionAnswer(intents: readonly SubscriptionIntent[],
   const tail = marketKnown ? notActiveLine(lang, marketIL) : (lang === 'he'
     ? 'אפשרות הרכישה תלויה בשוק של החשבון, שעדיין לא נקבע. השלימו את פרטי העסק בהגדרות, ואז אפשר לבדוק בחלון המסלולים.'
     : 'Whether a plan can be bought depends on the account\'s market, which is not set yet. Complete the business details in Settings, then check the plans window.');
-  if (tail) parts.push(tail);
+  // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקוני המעבר הרביעי וטקסט שירה, כולל שינוי ב-L-02, L-06, L-11, L-14, L-16, L-17 ו-L-22, שחרור עד הלייב"): a Lifetime account has nothing to buy, as its plans window says
+  if (tail && !account?.isLifetime) parts.push(tail);
   return [...new Set(parts.filter(Boolean))].join(' ');
 }
 

@@ -145,6 +145,7 @@ const draftFromService = (sv) => ({ key: String(sv.id), serviceId: String(sv.id)
   unitPrice: catalogPriceText(sv.price), useSizes: false, manualQty: '', widthCm: '', heightCm: '', unit: 'cm', extraRows: [], specRows: [], showDetails: false });
 // a ticked item's sizes are typed in its own cm / m (Owner 2026-10-26, the same engine as a typed item); every row -> canonical metres
 const pickSizeToM = (p, v) => cmToM(p.unit === 'm' ? convertSizeText(v, 'cm') : v);
+const roundsToNothing = (v) => v != null && Number.isFinite(v) && v.toFixed(2) === '0.00';
 const pickSizeRows = (p) => [{ widthCm: p.widthCm, heightCm: p.heightCm, label: '' }, ...(p.extraRows || [])];
 const pickRowValue = (p, r) => computeMeasurementValue(p.method, pickSizeToM(p, r.widthCm), p.method === 'linear' ? undefined : pickSizeToM(p, r.heightCm));
 const pickQuantity = (p) => {
@@ -513,6 +514,8 @@ export default function AddItemWizard({
     methodFixedExample: isHebrew ? `לדוגמה: ${sym}${money(500)}` : `e.g. ${sym}${money(500)}`,
     methodUnitsChoice: isHebrew ? 'מחיר לכל יחידה' : 'Price for each',
     methodUnitsExample: isHebrew ? 'לדוגמה: 6 × 25 = 150' : 'e.g. 6 × 25 = 150',
+    // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקוני המעבר הרביעי וטקסט שירה, כולל שינוי ב-L-02, L-06, L-11, L-14, L-16, L-17 ו-L-22, שחרור עד הלייב"): a real size that rounds to nothing gave a line of 0.00 and an amount of 0.00 with no warning
+    sizeTooSmall: isHebrew ? 'המידות קטנות מדי והכמות יוצאת 0.00. בדקו את המספרים ואת היחידה (ס״מ או מטר).' : 'The sizes are too small and the quantity comes out as 0.00. Check the numbers and the unit (cm or m).',
     methodAreaChoice: isHebrew ? 'מחיר לפי שטח' : 'Price by area',
     methodAreaExample: isHebrew ? 'לדוגמה: 4.4 מ״ר × 100 = 440' : 'e.g. 4.4 m² × 100 = 440',
     methodLinearChoice: isHebrew ? 'מחיר לפי אורך' : 'Price by length',
@@ -761,6 +764,7 @@ export default function AddItemWizard({
         else {
           if (!(Number(p.widthCm) > 0)) miss('width', p.method === 'linear' ? t.missingLength : t.missingWidth, p.method === 'linear' ? t.fieldNames.length : t.fieldNames.width);
           if (p.method === 'area' && !(Number(p.heightCm) > 0)) miss('height', t.missingHeight, t.fieldNames.height);
+          if (Number(p.widthCm) > 0 && (p.method === 'linear' || Number(p.heightCm) > 0) && roundsToNothing(pickSizeRows(p).map((r) => pickRowValue(p, r)).filter((v) => v != null && Number.isFinite(v)).reduce((sum, v) => sum + v, 0))) miss('width', t.sizeTooSmall, p.method === 'linear' ? t.fieldNames.length : t.fieldNames.width);
           // an extra size that was started must be complete (never dropped silently - the same rule as a typed item)
           (p.extraRows || []).forEach((r, i) => {
             if (r.widthCm === '' && r.heightCm === '') return;
@@ -844,6 +848,7 @@ export default function AddItemWizard({
       } else if (isMeasureMethod) {
         if (!(Number(widthCm) > 0)) e.width = pricingMethod === 'linear' ? t.missingLength : t.missingWidth;
         if (pricingMethod === 'area' && !(Number(heightCm) > 0)) e.height = t.missingHeight;
+        if (!e.width && !e.height && roundsToNothing(calculatedValue)) e.width = t.sizeTooSmall;
         if (unitPrice === '') e.unitPrice = t.missingPrice; else if (!isWizardPriceValid(unitPrice)) e.unitPrice = t.invalidPrice;
 
         const rowErrors = {};

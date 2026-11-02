@@ -266,6 +266,25 @@ describe('AddItemWizard - Area/Length, multiple sizes, and no silently-dropped m
     expect(item.measurements[0].height).toBe(2);
   });
 
+  // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקוני המעבר הרביעי וטקסט שירה, כולל שינוי ב-L-02, L-06, L-11, L-14, L-16, L-17 ו-L-22, שחרור עד הלייב"): a line of 0.00 m² and 0.00 passed with no warning
+  it('sizes that round to 0.00 stop with a message beside the field; the smallest real size still passes', () => {
+    const onAdd = vi.fn();
+    render(<AddItemWizard {...baseProps} onAdd={onAdd} />);
+    setValue(document.getElementById('wiz-description'), 'Window');
+    fireEvent.click(screen.getByText('Price by area'));
+    setValue(document.getElementById('wiz-width'), '1');
+    setValue(document.getElementById('wiz-height'), '1');
+    setValue(document.getElementById('wiz-unit-price-m'), '200');
+    fireEvent.click(screen.getByText('Continue to check'));
+    expect(document.getElementById('wiz-width-error').textContent).toMatch(/too small/);
+    expect(screen.queryByText('Add to quote')).toBeNull();
+    setValue(document.getElementById('wiz-width'), '10');
+    setValue(document.getElementById('wiz-height'), '10');
+    fireEvent.click(screen.getByText('Continue to check'));
+    fireEvent.click(screen.getByText('Add to quote'));
+    expect(onAdd).toHaveBeenCalled();
+  });
+
   it('switches to Length and computes using width only, height field hidden', () => {
     const onAdd = vi.fn();
     render(<AddItemWizard {...baseProps} onAdd={onAdd} />);

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent, within, act } from '@testing-library/react';
 import QuotesTab from './QuotesTab';
 import { formatMoneyForCurrency } from '../utils/money';
@@ -939,6 +939,9 @@ describe.each([
 // product time zone of the quote list - never the UI language. 2026-01-15T23:30Z is 01/15/2026 in UTC (International) and
 // 16/01/2026 in Asia/Jerusalem (Local).
 describe('QuotesTab dates follow the account market, not the UI language', () => {
+  // Owner console 2026-11-02 (typed: "מאשר שינוי בחוק IRON-DATE-001: במסכי המשתמש בשוק הבינלאומי שעה ותאריך של חותמת זמן מוצגים לפי שעון המכשיר של המשתמש; ישראל והניהול בלי שינוי"): a device set to UTC
+  beforeEach(() => { vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ timeZone: 'UTC' }); });
+  afterEach(() => { vi.restoreAllMocks(); });
   const late = { ...baseQuote, id: 'late', created_at: '2026-01-15T23:30:00.000Z' };
   const dateOf = (c) => c.querySelector('.quote-modern-date').textContent;
   it.each([
