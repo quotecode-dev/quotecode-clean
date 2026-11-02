@@ -206,13 +206,6 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/support-digest/index.ts"
 
-[functions.customer-notices]
-enabled = true
-# Owner console 2026-11-02 (typed: 'מאשר בניית שלב 1: מסכי ימי החסד ומיילי החיוב שנכשל לפי ההחלטה מ-18/10, כולל שינוי ב-L-02, L-11, L-12, L-13 ו-L-15, עם ההמלצות בהחלטות 1, 2 ו-4, שחרור עד הלייב'): the failed-renewal emails, called only by the site cron with the shared cron secret
-# (x-cron-secret = CRON_SECRET, checked in code) - no user JWT exists for a cron call.
-verify_jwt = false
-entrypoint = "./functions/customer-notices/index.ts"
-
 [functions.expense-invoices]
 enabled = true
 # Owner console 2026-10-22 (typed L-22: the expense-invoice tool): Google's OAuth redirect (GET .../oauth-callback) carries no user JWT -

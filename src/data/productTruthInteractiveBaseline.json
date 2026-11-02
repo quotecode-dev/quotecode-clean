@@ -171,10 +171,6 @@
     "interactive": 1,
     "markers": 1
   },
-  "src/components/BillingNoticeBar.jsx": {
-    "interactive": 2,
-    "markers": 2
-  },
   "src/components/BrandName.jsx": {
     "interactive": 0,
     "markers": 0
@@ -588,10 +584,6 @@
     "markers": 0
   },
   "src/domain/subscriptions/adminAccountSummary.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/domain/subscriptions/billingNotices.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -1580,14 +1572,6 @@
     "markers": 0
   },
   "supabase/functions/clever-processor/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/customer-notices/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/customer-notices/lib.ts": {
     "interactive": 0,
     "markers": 0
   },

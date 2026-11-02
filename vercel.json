@@ -169,10 +169,6 @@
     {
       "path": "/api/agents-daily",
       "schedule": "30 4 * * *"
-    },
-    {
-      "path": "/api/customer-notices",
-      "schedule": "5 * * * *"
     }
   ]
 }
