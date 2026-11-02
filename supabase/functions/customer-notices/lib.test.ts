@@ -1,6 +1,6 @@
 // Owner console 2026-11-02 (stage 1 of docs/SPEC_CUSTOMER_EMAILS_2026-11-02.md): the failed-renewal emails - when, in which words, and never twice.
 import { describe, it, expect, vi } from 'vitest';
-import { dueNotice, healthOf, inSendingHours, lifeContent, noticeContent, runNotices, type LifeFact, type Fact, type Deps, type Kind } from './lib.ts';
+import { dueNotice, healthOf, inSendingHours, noticeContent, runNotices, type Fact, type Deps, type Kind } from './lib.ts';
 
 const START = '2026-11-10T08:00:00.000Z';
 const END = '2026-11-13T08:00:00.000Z';
@@ -91,7 +91,6 @@ function deps(facts: Fact[], o: Partial<Deps> = {}) {
   const log: string[] = [];
   const d: Deps = {
     facts: vi.fn(async (user?: string) => (user ? facts.filter((f) => f.account_id === user) : facts)),
-    lifecycle: vi.fn(async () => [] as LifeFact[]),
     claim: vi.fn(async (_u, _k, _e, _s, key) => key),
     complete: vi.fn(async (_u, _k, _e, _s, _key, outcome) => { log.push(outcome); return true; }),
     send: vi.fn(async () => ({ ok: true, status: 200, id: 'p1' })),
@@ -101,39 +100,6 @@ function deps(facts: Fact[], o: Partial<Deps> = {}) {
   };
   return { d, log };
 }
-
-describe('stage 2: welcome and the free period', () => {
-  const now = new Date('2026-11-10T10:00:00Z');
-  const life = (o: Partial<LifeFact> = {}): LifeFact => ({ account_id: 'b1', email: 'new@example.com', market: 'IL', kind: 'welcome', episode_at: '2026-11-10T09:00:00.000Z', free_ends_at: '2026-11-17T09:00:00.000Z', remaining: 10, ...o });
-  it('the words, in the market\'s language; no offer, no price, no link to the plans', () => {
-    const he = lifeContent(life(), now);
-    expect(he.subject).toBe('ברוכים הבאים ל-TEKANGO');
-    expect(he.text).toContain('10 הצעות או 7 ימים');
-    const en = lifeContent(life({ market: 'INTERNATIONAL' }), now);
-    expect(en.text + en.subject).not.toMatch(/[א-ת]|Israel|ILS|₪|VAT/);
-    for (const c of [he, en, lifeContent(life({ kind: 'free_ending', remaining: 2 }), now), lifeContent(life({ kind: 'free_ending', remaining: 2, market: 'INTERNATIONAL' }), now)]) {
-      expect(c.text).not.toMatch(/₪|\$|מבצע|הנחה|offer|discount|plans/i);
-      expect(c.text).toContain('TEKANGO');
-    }
-  });
-  it('the free period: by what ends first', () => {
-    expect(lifeContent(life({ kind: 'free_ending', remaining: 2 }), now).text).toContain('נותרו 2 הצעות חינם.');
-    expect(lifeContent(life({ kind: 'free_ending', remaining: 1 }), now).text).toContain('נותרה הצעת חינם אחת.');
-    expect(lifeContent(life({ kind: 'free_ending', remaining: 1, market: 'INTERNATIONAL' }), now).text).toContain('You have 1 free quote left.');
-    expect(lifeContent(life({ kind: 'free_ending', remaining: 6, free_ends_at: '2026-11-11T08:00:00.000Z' }), now).text).toContain('תקופת החינם מסתיימת ב-11/11/2026 בשעה 10:00.');
-    expect(lifeContent(life({ kind: 'free_ending', remaining: 6, free_ends_at: '2026-11-11T08:00:00.000Z', market: 'INTERNATIONAL' }), now).text).toContain('November 11, 2026');
-  });
-  it('the run sends it once from the market mailbox, and a change after the claim cancels it', async () => {
-    const list = vi.fn(async () => [life()]);
-    const ok = deps([], { lifecycle: list });
-    expect((await runNotices(ok.d)).sent).toBe(1);
-    expect(ok.log).toEqual(['sent']);
-    expect((ok.d.send as ReturnType<typeof vi.fn>).mock.calls[0][0]).toMatchObject({ replyTo: 'support@tekango.com', to: 'new@example.com' });
-    const gone = deps([], { lifecycle: vi.fn(async (user?: string) => (user ? [] : [life()])) });
-    expect((await runNotices(gone.d)).sent).toBe(0);
-    expect(gone.log).toEqual(['cancelled']);
-  });
-});
 
 describe('what the watcher is told', () => {
   it('a clean run, a send problem, a failure', () => {

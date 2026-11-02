@@ -687,12 +687,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-02 (typed: \"מאשר טיפול מיידי בקישורי ההצעות הישנים לפני סוף הסבב\"): one additive backfill of an append-only list; replays cleanly (ON CONFLICT DO NOTHING)."
-    },
-    "20261102040000_customer_notices_stage2.sql": {
-      "sha256": "56b523cc964b6299b08c581faa7a2b239e9fca6f9f986bdd68196c7979bc62eb",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-11-02 (typed on \"מיילי שלב 2: ברוכים הבאים וסיום תקופת החינם\": \"מאשר אבל לא לעשות עכשיו, לשים בזכרון ותעשה אחרי כל מה שאציג בפנייך\"): a wider check and one service-only function; replays cleanly."
     }
   }
 }
