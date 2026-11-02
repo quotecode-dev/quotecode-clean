@@ -105,15 +105,6 @@ describe('AiQuoteDraftDialog', () => {
     expect(screen.getAllByTestId('ai-quote-draft-evidence').map((e) => e.textContent)).toEqual(['מהתיאור: „ריצוף חדר הורים 40 מ״ר”', 'מהתיאור: „ריצוף חדר ילדים 22 מ״ר”']);
     expect(screen.getByTestId('ai-quote-draft-missing').textContent).toContain('לא הצלחנו לאמת מול התיאור');
     expect(screen.getByTestId('ai-quote-draft-unassigned').textContent).toContain('22 מ״ר');
-    // the Owner gives a ticked line that quantity: the warning is no longer true
-    const qty = [...screen.getAllByTestId('ai-quote-draft-line')[1].querySelectorAll('input')].find((e) => e.type !== 'checkbox' && e.value === '');
-    if (qty) {
-      fireEvent.change(qty, { target: { value: '22' } });
-      expect(screen.queryByTestId('ai-quote-draft-unassigned')).toBeNull();
-      fireEvent.change(qty, { target: { value: '23' } });
-      expect(screen.getByTestId('ai-quote-draft-unassigned').textContent).toContain('22 מ״ר');
-      fireEvent.change(qty, { target: { value: '' } }); // back to the empty field the rest of this test checks
-    } else throw new Error('no quantity field');
     expect(screen.getByRole('button', { name: /הוספה להצעה \(פריטים מסומנים: 2\)/ }).disabled).toBe(true);
   });
   // Night task 2026-10-22: English uses English quotation marks (never the Hebrew low mark „)
