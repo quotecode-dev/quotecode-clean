@@ -532,16 +532,6 @@ describe('agents room stage 2 - the manager', () => {
     expect((await handle({ action: 'daily' }, d2, paths)).body).toMatchObject({ security: 'done', urgent: null, sitemap: 'submitted' });
   });
 
-  // Owner console 2026-11-03 (typed: "מאשר הפעלת הבדיקה היומית של עומר מהשרת ב-06:30, כולל שינוי ב-L-22 ובכלל F27, שחרור עד הלייב")
-  it('the daily run dispatches Omer\'s scheduled run (mode daily, no run id); a refused or missing dispatch is reported, never thrown', async () => {
-    const dispatch = vi.fn(async () => 'ok' as const);
-    const d = deps({ dispatchLiveCheck: dispatch });
-    expect((await handle({ action: 'daily' }, d, paths)).body).toMatchObject({ ok: true, liveCheck: 'ok' });
-    expect(dispatch).toHaveBeenCalledWith('', 'daily');
-    expect((await handle({ action: 'daily' }, deps({ dispatchLiveCheck: vi.fn(async () => { throw new Error('network'); }) }), paths)).body).toMatchObject({ ok: true, liveCheck: 'failed' });
-    expect((await handle({ action: 'daily' }, deps(), paths)).body).toMatchObject({ ok: true, liveCheck: 'not_configured' });
-  });
-
   it('the rules: 65% international over three weeks, the draft checks, clean slugs', () => {
     const weeks = Array.from({ length: 3 }, (_, i) => articleMarkets(new Date(NOW.getTime() + i * 7 * 86_400_000))).flat();
     expect(weeks.filter((m) => m === 'intl')).toHaveLength(4);

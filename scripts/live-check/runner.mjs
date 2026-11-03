@@ -6,8 +6,7 @@
 //  - Read-only: it opens screens and the plans window. It creates, saves, sends, signs and buys nothing (decision 18) - the report says so.
 //  - It reports typed steps and hashes only (decision 19): no screenshot, no page text, no address. A deployment that changed during
 //    the run makes the result inconclusive, never green. One transient retry per step, inside the 30-minute job budget.
-// Environment: LIVE_CHECK_URL (the live-check function URL), LIVE_CHECK_SECRET, RUN_ID (empty = the scheduled run), TRIGGER_MODE
-// ('daily' = the agents-room daily dispatch of the scheduled run).
+// Environment: LIVE_CHECK_URL (the live-check function URL), LIVE_CHECK_SECRET, RUN_ID (empty = the scheduled run).
 import { chromium } from '@playwright/test';
 import { createHash } from 'node:crypto';
 
@@ -17,7 +16,6 @@ const PUBLIC = { il: [['public_home', '/he'], ['public_privacy', '/he/privacy'],
   intl: [['public_home', '/en'], ['public_privacy', '/en/privacy'], ['public_tools', '/en/tools']] };
 const FN = process.env.LIVE_CHECK_URL || '';
 const EVENT = process.env.TRIGGER_EVENT || '';
-const MODE = process.env.TRIGGER_MODE || '';
 const SECRET = process.env.LIVE_CHECK_SECRET || '';
 const STARTED = Date.now();
 const BUDGET_MS = 25 * 60_000;
@@ -93,10 +91,8 @@ async function checkPage(context, market, path, after) {
 
 async function main() {
   if (!FN || SECRET.length < 32) { console.log('live-check: not configured'); process.exit(1); }
-  // a dispatch by hand in GitHub without an agents-room run id is refused - only the schedule makes the scheduled (emailing) run;
-  // Owner console 2026-11-03: the agents-room daily dispatch (mode daily) makes the same scheduled run (the function claims one a day)
-  const daily = MODE === 'daily' && !process.env.RUN_ID;
-  if (EVENT !== 'schedule' && !daily && !process.env.RUN_ID) { console.log('live-check: a manual run starts from the agents room (no run id)'); process.exit(1); }
+  // a dispatch by hand in GitHub without an agents-room run id is refused - only the schedule makes the scheduled (emailing) run
+  if (EVENT !== 'schedule' && !process.env.RUN_ID) { console.log('live-check: a manual run starts from the agents room (no run id)'); process.exit(1); }
   const begun = await call({ action: 'begin', runId: process.env.RUN_ID || null });
   if (begun.status !== 200 || !begun.body?.ok) { console.log(`live-check: begin refused ${begun.status} ${begun.body?.code ?? ''}`); process.exit(1); }
   if (begun.body.skip) { console.log('live-check: today\'s scheduled run already exists'); return; }

@@ -40,9 +40,6 @@ const AGENTS = [
 // hidden below 1000px. The icon is the series' existing TEKANGO AI icon (IRON-ICON-001), no new icon.
 export const AGENTS_CHECK_LINK = 'vscode://anthropic.claude-code/open?prompt=%2Fagents-check';
 
-// the manager rows that only log an AI cost outside her weekly run (agents-room manager.ts logCost: draft:, revise:, reply:, srev:)
-export const COST_ONLY_RUN = /^(draft|revise|reply|srev):/;
-
 // the agents grid: 6 places, 3 per row on a wide screen - the social agent under the SEO agent; Codex release 9 filled the last two (Maya, Omer)
 const GRID_SLOTS = 6;
 const STATUS = {
@@ -397,9 +394,7 @@ export default function AdminAgentsRoom({ isHebrew, onOpenInquiry = null }) {
   const pendingOthers = pending.filter((a) => a.action_type !== 'social_post' && a.action_type !== 'social_reply');
   const socialWaiting = pending.length - pendingOthers.length;
   const withClaude = actions.filter((a) => a.kind === 'claude' && a.status === 'approved');
-  // Owner console 2026-11-03 (typed: "מאשר תיקון הכרטיס של נועה ונוסח נתוני הפוסטים בחדר הסוכנים, כולל שינוי ב-L-22, שחרור עד הלייב"): a
-  // cost-only manager row (an article draft / revision, a comment reply draft, a social post revision) is never her summary
-  const lastManager = runs.find((r) => r.agent === 'manager' && r.status !== 'running' && !COST_ONLY_RUN.test(String(r.run_key)));
+  const lastManager = runs.find((r) => r.agent === 'manager' && r.status !== 'running' && !String(r.run_key).startsWith('draft:') && !String(r.run_key).startsWith('revise:'));
   const info = lastManager ? actions.filter((a) => a.kind === 'info' && a.run_key === lastManager.run_key) : [];
   const history = actions.filter((a) => a.status !== 'proposed' && !(a.kind === 'claude' && a.status === 'approved') && !(a.kind === 'info' && lastManager && a.run_key === lastManager.run_key)).slice(0, 12);
   const title = isHebrew ? 'חדר הסוכנים' : 'Agents room';

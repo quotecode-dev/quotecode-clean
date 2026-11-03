@@ -806,11 +806,7 @@ export async function runDaily(d: StageDeps, paths: string[]): Promise<Out> {
   const articles = await verifyPublishedArticles(d).catch(() => 'failed' as const);
   const social = await socialDaily(d, key).catch(() => ({ metrics: 0, comments: 0, drafted: 0, purged: 0, failed: true }));
   const customerSuccess = csReady(d) ? (await runCustomerSuccess(d, 'cron', key).catch(() => ({ status: 'failed' }))).status : 'not_configured';
-  // Owner console 2026-11-03 (typed: "מאשר הפעלת הבדיקה היומית של עומר מהשרת ב-06:30, כולל שינוי ב-L-22 ובכלל F27, שחרור עד הלייב"): GitHub
-  // starts its own schedule hours late, so this cron dispatches Omer's scheduled run; the live-check function still claims one a day and
-  // the GitHub schedule stays as the fallback (a later start finds today's run and skips)
-  const liveCheck = d.dispatchLiveCheck ? await d.dispatchLiveCheck('', 'daily').catch(() => 'failed' as const) : 'not_configured';
-  return { status: 200, body: { ok: true, runKey: key, security, urgent, sitemap, articles, social, customerSuccess, liveCheck } };
+  return { status: 200, body: { ok: true, runKey: key, security, urgent, sitemap, articles, social, customerSuccess } };
 }
 
 // Codex release 8 (Owner 2026-10-30): once a day - the results of our published posts, new comments as replies waiting for the Owner

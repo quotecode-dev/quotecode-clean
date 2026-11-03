@@ -4,7 +4,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 
 const invoke = vi.fn();
 vi.mock('../shared/supabase', () => ({ supabase: { functions: { invoke: (...a) => invoke(...a) } } }));
-import AdminAgentsRoom, { AGENTS_CHECK_LINK, COST_ONLY_RUN } from './AdminAgentsRoom';
+import AdminAgentsRoom, { AGENTS_CHECK_LINK } from './AdminAgentsRoom';
 import { ADMIN_DESTINATIONS } from './adminDestinations';
 
 afterEach(cleanup);
@@ -134,17 +134,6 @@ describe('the agents room - stage 2', () => {
     expect(screen.getByTestId('agents-with-claude').textContent).toMatch(/משימה שאושרה/);
     expect(screen.getByTestId('agents-info').textContent).toMatch(/המאמרים צריכים זמן/);
     expect(screen.getByTestId('agents-history').textContent).toMatch(/צריך להעלות את ההרשאה/);
-  });
-
-  // Owner console 2026-11-03 (typed: "מאשר תיקון הכרטיס של נועה ונוסח נתוני הפוסטים בחדר הסוכנים, כולל שינוי ב-L-22, שחרור עד הלייב")
-  it.each([[true, 'השבוע: מדריך אחד באנגלית.'], [false, 'This week: one English guide.']])('isHebrew=%s: a newer cost-only row (a reply draft, a post revision, an article draft) never replaces her summary', async (isHebrew, text) => {
-    const cost = (id, key, at) => ({ id, agent: 'manager', run_key: key, trigger: 'admin', status: 'done', started_at: at, finished_at: at, summary: 'social reply drafts', data: {}, findings: [], ai_cost_usd: 0.0002, error: null });
-    const runs = [cost('r', 'reply:daily:2026-11-03', '2026-11-03T04:30:00Z'), cost('v', 'srev:a1:1762146000000', '2026-11-02T20:00:00Z'), cost('d', 'draft:a2:1762140000000', '2026-11-02T18:00:00Z'), ...stage2.runs];
-    expect(COST_ONLY_RUN.test('cron:2026-11-01')).toBe(false);
-    invoke.mockResolvedValue({ data: { ...stage2, runs }, error: null });
-    render(<AdminAgentsRoom isHebrew={isHebrew} />);
-    await waitFor(() => expect(screen.getByTestId('agent-summary-manager').textContent).toBe(text));
-    expect(screen.getByTestId('agent-card-manager').textContent).not.toContain('social reply drafts');
   });
 
   it('EN: the same desk in English, with the English names', async () => {

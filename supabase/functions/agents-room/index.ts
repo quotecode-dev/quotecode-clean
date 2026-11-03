@@ -334,12 +334,12 @@ Deno.serve(async (req: Request) => {
       await db(lease ? q.eq('lease_until', lease) : q.is('lease_until', null));
     },
     getRun: async (id) => (/^[0-9a-f-]{36}$/.test(id) ? (await db(admin.from('agent_runs').select('status, finished_at, data, error').eq('id', id).maybeSingle())) as never : null),
-    dispatchLiveCheck: async (runId, mode) => {
+    dispatchLiveCheck: async (runId) => {
       const token = (Deno.env.get('LIVE_CHECK_DISPATCH_TOKEN') ?? '').trim();
       if (!token) return 'not_configured';
       try {
         const r = await timed(LIVE_CHECK_WORKFLOW, { method: 'POST', headers: { Authorization: `Bearer ${token}`, Accept: 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28', 'Content-Type': 'application/json' },
-          body: JSON.stringify({ ref: 'main', inputs: mode === 'daily' ? { mode: 'daily' } : { run_id: runId } }) }, 15000);
+          body: JSON.stringify({ ref: 'main', inputs: { run_id: runId } }) }, 15000);
         try { await r.body?.cancel(); } catch { /* no body needed */ }
         return r.status === 204 ? 'ok' : 'failed';
       } catch { return 'failed'; }

@@ -32,13 +32,7 @@ describe('the runner and the workflow', () => {
     expect(runner).toContain("if (!(out?.status === 200 && out.body?.ok === true)) reason = reason ?? 'signout_failed';");
     expect(runner).toMatch(/\} finally \{\r?\n\s+if \(session\) \{/);
   });
-  // F27 as changed by the Owner (console 2026-11-03, typed: "מאשר הפעלת הבדיקה היומית של עומר מהשרת ב-06:30, כולל שינוי ב-L-22 ובכלל F27,
-  // שחרור עד הלייב"): the schedule, an agents-room run id, or the agents-room daily dispatch (mode daily) - a bare hand dispatch still never runs
-  it('F27: only the schedule, an agents-room run id or the daily dispatch starts the job', () => {
-    const wf = readFileSync('.github/workflows/daily-live-check.yml', 'utf8');
-    expect(wf).toContain("(github.event_name == 'schedule' || inputs.run_id != '' || inputs.mode == 'daily')");
-    expect(wf).toContain('TRIGGER_MODE: ${{ inputs.mode }}');
-    expect(runner).toContain("const daily = MODE === 'daily' && !process.env.RUN_ID;");
-    expect(runner).toContain("if (EVENT !== 'schedule' && !daily && !process.env.RUN_ID) {");
+  it('F27: only the schedule or an agents-room run id starts the job', () => {
+    expect(readFileSync('.github/workflows/daily-live-check.yml', 'utf8')).toContain("(github.event_name == 'schedule' || inputs.run_id != '')");
   });
 });

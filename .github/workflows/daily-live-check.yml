@@ -18,13 +18,6 @@ on:
         description: 'The agents room run id (a manual run or the manager chain); empty = a scheduled run'
         required: false
         default: ''
-      # Owner console 2026-11-03 (typed: "מאשר הפעלת הבדיקה היומית של עומר מהשרת ב-06:30, כולל שינוי ב-L-22 ובכלל F27, שחרור עד הלייב"):
-      # the agents-room daily cron (06:30 Israel) starts the scheduled run - GitHub starts the schedule above hours late; the live-check
-      # function still claims one scheduled run a day, so a later scheduled start finds it and skips
-      mode:
-        description: 'daily = the agents-room daily cron starts the scheduled run (no run id)'
-        required: false
-        default: ''
 
 permissions:
   contents: read
@@ -36,9 +29,8 @@ concurrency:
 jobs:
   live-check:
     name: daily LIVE check (Omer)
-    # Codex review 2026-10-31 F27: only the schedule or an agents-room run id starts the job - a bare hand dispatch never runs (no minutes);
-    # Owner console 2026-11-03 (F27 changed by the Owner): also the agents-room daily dispatch (mode daily, at most one scheduled run a day)
-    if: github.repository == 'quotecode-dev/quotecode-clean' && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || inputs.run_id != '' || inputs.mode == 'daily')
+    # Codex review 2026-10-31 F27: only the schedule or an agents-room run id starts the job - a bare hand dispatch never runs (no minutes)
+    if: github.repository == 'quotecode-dev/quotecode-clean' && github.ref == 'refs/heads/main' && (github.event_name == 'schedule' || inputs.run_id != '')
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: live-check
@@ -62,5 +54,4 @@ jobs:
           LIVE_CHECK_SECRET: ${{ secrets.LIVE_CHECK_SECRET }}
           RUN_ID: ${{ inputs.run_id }}
           TRIGGER_EVENT: ${{ github.event_name }}
-          TRIGGER_MODE: ${{ inputs.mode }}
         run: node runner.mjs

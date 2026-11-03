@@ -36,8 +36,7 @@ export interface ChainDeps {
   // also releases the lease - written only while this call still holds the lease it took (a slower call never overwrites a newer one)
   chainSave(id: string, steps: Step[], status: Chain['status'], lease: string | null): Promise<void>;
   getRun(id: string): Promise<{ status: string; finished_at: string | null; data: Record<string, unknown>; error: string | null } | null>;
-  // mode 'daily' (Owner console 2026-11-03): the daily cron starts the scheduled run without a run id - the live-check function claims it
-  dispatchLiveCheck(runId: string, mode?: 'daily'): Promise<'ok' | 'not_configured' | 'failed'>;
+  dispatchLiveCheck(runId: string): Promise<'ok' | 'not_configured' | 'failed'>;
   openSocialSlots(): Promise<number>;
   paths(): Promise<string[]>; // the sitemap's public pages (the security agent checks them)
   runCustomerSuccessNow(): Promise<{ status: string; error?: string }>;
