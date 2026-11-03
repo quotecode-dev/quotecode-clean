@@ -211,6 +211,8 @@ export default function LandingGlobal({ onForgotPassword }) {
       demoTitle: 'Smart assistant',
       demoQuestion: 'How many quotes are waiting for approval this week?',
       demoAnswer: 'Three quotes are waiting for approval. Two of them were viewed today, worth following up.',
+      // Owner 2026-11-03: the voice-chat ad under the demo (logo and bottom bar removed, two lines)
+      hands: { title: 'Hands full?', accent: 'Ask out loud.', line: 'And hear the answer, right on the job.', alt: 'A tradesman tiling on his knees, hands busy with the work' },
       soon: 'Coming soon',
       features: [
         { icon: 'chat', title: 'A smart chat that knows your business', text: 'Ask about your quotes, clients, catalog and tasks, and get answers from your real data.' },
