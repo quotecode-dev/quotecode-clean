@@ -55,39 +55,7 @@ export interface SnapshotStorage {
 export interface PresentationSource { load(userId: string, quoteId: string): Promise<PresentationIntent> }
 /** Server-side, owner-scoped read of an uploaded media asset (e.g. `${userId}/assets/<id>.<ext>`); null when absent. */
 export interface MediaAssetSource { read(userId: string, assetId: string): Promise<Uint8Array | null> }
-// F17 (Owner console 2026-11-03, typed: "מאשר בניית קבצים מצורפים ללקוח בדרך הנעילה עם ההצעה, כולל שינוי ב-L-05, L-17 ו-L-24,
-// שחרור עד הלייב"; free and trial accounts included): every file attached to the quote is copied ONCE, create-only, to the attempt's
-// own folder under issued-documents, and the copies (path, sha256, bytes) are bound in the immutable snapshot. The customer sees
-// exactly the files of the issued version; a file replaced later reaches the customer only with a new issue.
-export type AttachmentRow = { id: string; file_name: string; storage_path: string };
-export type IssuedAttachment = { id: string; fileName: string; objectPath: string; sha256: string; bytes: number; mime: string };
-export interface AttachmentSource {
-  /** the quote's quote_attachments rows of this owner, ordered by created_at, id */
-  list(userId: string, quoteId: string): Promise<AttachmentRow[]>;
-  /** the stored bytes, or null when no object exists at the path */
-  read(path: string): Promise<Uint8Array | null>;
-  /** create-only write (upsert:false): 'created', or 'exists' when an object is already at the path */
-  put(path: string, bytes: Uint8Array, mime: string): Promise<'created' | 'exists'>;
-}
-export const ISSUED_ATTACHMENT_MAX_BYTES = 30 * 1024 * 1024;  // the editor's total limit; one file can never be larger
-const ATTACHMENT_MIME: Readonly<Record<string, string>> = Object.freeze({
-  pdf: 'application/pdf', png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif',
-  heic: 'image/heic', doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', txt: 'text/plain',
-  csv: 'text/csv', dwg: 'application/acad', dxf: 'application/dxf', zip: 'application/zip',
-});
-/** The editor's upload path `<owner>/<quoteId>_<ms>.<ext>` (the same rule get-public-quote applies); the lower-case ext or null. */
-export function sourceAttachmentExt(path: unknown, ownerId: string, quoteId: string): string | null {
-  if (typeof path !== 'string' || path.includes('..') || path.includes('\\') || path.startsWith('/')) return null;
-  const seg = path.split('/');
-  if (seg.length !== 2 || seg[0] !== ownerId || !UUID_RE.test(seg[0])) return null;
-  const m = new RegExp(`^${quoteId}_\\d+\\.([A-Za-z0-9]{1,10})$`).exec(seg[1]);
-  return m ? m[1].toLowerCase() : null;
-}
-export function issuedAttachmentPath(ownerId: string, quoteId: string, attemptId: string, id: string, ext: string): string {
-  return `issued-documents/${ownerId}/${quoteId}/${attemptId}/attachments/${id}.${ext}`;
-}
-export type Incident = { code: 'document_unavailable' | 'reconcile_error' | 'attachment_skipped'; attemptId?: string; quoteId?: string; detail: string };
+export type Incident = { code: 'document_unavailable' | 'reconcile_error'; attemptId?: string; quoteId?: string; detail: string };
 
 export type OutputResponse = { status: number; body: JsonObject };
 
@@ -200,14 +168,12 @@ export function parsePreparing(d: JsonObject): Preparing | null {
 
 /** The immutable full-document snapshot. Deterministic for one attempt (no wall-clock value; the issue time is the ledger's
  *  finalizedAt, `preparedAt` is the reservation time). */
-export function buildSnapshot(p: Preparing, intent: PresentationIntent, attachments: IssuedAttachment[] = []): JsonObject {
+export function buildSnapshot(p: Preparing, intent: PresentationIntent): JsonObject {
   return {
     kind: SNAPSHOT_KIND, schemaVersion: SNAPSHOT_SCHEMA_VERSION, attemptId: p.attemptId, ownerId: p.ownerId, quoteId: p.quoteId,
     customerBinding: p.customerBinding, requestedChannel: p.channel, preparedAt: p.reservedAt,
     contentDigest: p.contentDigest, issuerDigest: p.issuerDigest, presentationDigest: p.presentationDigest,
     document: p.document, issuer: p.issuer, presentation: presentationBody(intent),
-    // F17: only when files were attached, so a snapshot without attachments stays byte-identical to before
-    ...(attachments.length ? { attachments: attachments.map((a) => ({ ...a })) } : {}),
   };
 }
 
@@ -272,7 +238,6 @@ function validIntent(v: unknown): v is PresentationIntent {
 
 export function createQuoteOutputOrchestrator(deps: {
   sql: OutputSql; storage: SnapshotStorage; presentation: PresentationSource; assets: MediaAssetSource;
-  attachments?: AttachmentSource;
   hash?: (b: Uint8Array) => Promise<string>; onIncident?: (i: Incident) => void; writeAttempts?: number;
 }) {
   const { sql, storage, presentation, assets } = deps;
@@ -310,63 +275,15 @@ export function createQuoteOutputOrchestrator(deps: {
     } catch { return 'cleanup_error'; }  // the reconciler retries
   }
 
-  /** F17: the quote's attached files, each copied ONCE (create-only) to the attempt's own folder and read back (sha256, bytes).
-   *  Deterministic for one attempt: a retry / the reconciler finds the copies already there and binds the same bytes. A row whose
-   *  path is not the editor's own, or whose object is missing / too large, is skipped with an incident - the customer never got
-   *  such a file before either. A row count that differs from the bound document is a changed quote. */
-  async function frozenAttachments(p: Preparing): Promise<{ ok: true; list: IssuedAttachment[] } | { ok: false; code: string }> {
-    const src = deps.attachments;
-    if (!src) return { ok: true, list: [] };
-    let rows: AttachmentRow[];
-    try { rows = await src.list(p.ownerId, p.quoteId); } catch { return { ok: false, code: 'storage_unavailable' }; }
-    if (!Array.isArray(rows)) return { ok: false, code: 'storage_unavailable' };
-    const doc = isObject(p.document) ? p.document : null;
-    if (doc && typeof doc.attachmentCount === 'number' && doc.attachmentCount !== rows.length) return { ok: false, code: 'quote_changed' };
-    const skip = (id: string, detail: string) =>
-      onIncident({ code: 'attachment_skipped', attemptId: p.attemptId, quoteId: p.quoteId, detail: `${id || 'unknown'}: ${detail}` });
-    const list: IssuedAttachment[] = [];
-    try {
-      for (const row of rows) {
-        const id = isObject(row) && typeof row.id === 'string' ? row.id.toLowerCase() : '';
-        const ext = isObject(row) ? sourceAttachmentExt(row.storage_path, p.ownerId, p.quoteId) : null;
-        if (!UUID_RE.test(id) || !ext) { skip(id, 'path'); continue; }
-        const name = typeof row.file_name === 'string' ? row.file_name.trim().slice(0, 255) : '';
-        const objectPath = issuedAttachmentPath(p.ownerId, p.quoteId, p.attemptId, id, ext);
-        const mime = ATTACHMENT_MIME[ext] ?? 'application/octet-stream';
-        let copy = await src.read(objectPath);
-        if (!copy) {
-          const bytes = await src.read(row.storage_path);
-          if (!bytes || bytes.byteLength === 0) { skip(id, 'missing'); continue; }
-          if (bytes.byteLength > ISSUED_ATTACHMENT_MAX_BYTES) { skip(id, 'too_large'); continue; }
-          await src.put(objectPath, bytes, mime);  // 'exists' = a concurrent retry wrote it first; the read-back decides
-          copy = await src.read(objectPath);
-          if (!copy) return { ok: false, code: 'storage_unavailable' };
-        }
-        list.push({ id, fileName: name || `${id}.${ext}`, objectPath, sha256: await hash(copy), bytes: copy.byteLength, mime });
-      }
-    } catch { return { ok: false, code: 'storage_unavailable' }; }
-    return { ok: true, list };
-  }
-
-  /** Drift checks first (nothing is copied for a reservation that can never finalize), then the attachment copies, then the bytes. */
-  async function expectedWithAttachments(p: Preparing, intent: PresentationIntent, digest: string):
-    Promise<{ ok: true; bytes: Uint8Array } | { ok: false; code: string; retryable?: boolean }> {
-    const drift = expectedFor(p, intent, digest, []);
-    if (!drift.ok) return drift;
-    const fa = await frozenAttachments(p);
-    if (!fa.ok) return fa.code === 'quote_changed' ? { ok: false, code: 'quote_changed' } : { ok: false, code: fa.code, retryable: true };
-    return expectedFor(p, intent, digest, fa.list);
-  }
-
   /** The single FULL verifier: drift checks against the bound reservation, then the expected canonical bytes. */
-  function expectedFor(p: Preparing, intent: PresentationIntent, digest: string, attachments: IssuedAttachment[]): { ok: true; bytes: Uint8Array } | { ok: false; code: string } {
+  function expectedFor(p: Preparing, intent: PresentationIntent, digest: string): { ok: true; bytes: Uint8Array } | { ok: false; code: string } {
     if (p.currentDigest !== p.contentDigest) return { ok: false, code: 'quote_changed' };
     if (p.currentIssuerDigest !== p.issuerDigest) return { ok: false, code: 'issuer_changed' };
     if (digest !== p.presentationDigest || intent.style !== p.style || intent.styleVersion !== p.styleVersion
         || intent.media.length !== p.mediaCount) return { ok: false, code: 'presentation_changed' };
     // defence in depth (SQL refuses it at prepare): a logo URL is mutable, so it never enters an issued snapshot
     if (hasLogo(p.issuer)) return { ok: false, code: 'logo_snapshot_policy_pending' };
-    return { ok: true, bytes: new TextEncoder().encode(canonicalJson(buildSnapshot(p, intent, attachments))) };
+    return { ok: true, bytes: new TextEncoder().encode(canonicalJson(buildSnapshot(p, intent))) };
   }
 
   /** Verifies the stored artifact of a FINALIZED descriptor. Never regenerates a document. */
@@ -414,9 +331,7 @@ export function createQuoteOutputOrchestrator(deps: {
     const p = parsePreparing(prep);
     if (!p || p.ownerId !== userId || p.quoteId !== quoteId) return unavailable();
 
-    const expected = await expectedWithAttachments(p, intent, digest);
-    // a storage failure while copying the attachments: the attempt stays PREPARING; the same key retries, TTL expiry releases it
-    if (!expected.ok && expected.retryable) return unavailable(expected.code);
+    const expected = expectedFor(p, intent, digest);
     if (!expected.ok) {
       // the reservation can never finalize: abort it and remove ONLY its own (proven) object
       await call(() => sql.abort({ userId, attemptId: p.attemptId, failureCode: expected.code }));
@@ -496,8 +411,8 @@ export function createQuoteOutputOrchestrator(deps: {
           if (!p) { log.push({ attemptId, action: 'skip_state_unavailable' }); continue; }
           const v = await verifiedIntent(userId, quoteId);
           if (!v.ok) { log.push({ attemptId, action: 'skip_presentation_unverified' }); continue; }
-          const expected = await expectedWithAttachments(p, v.intent, v.digest);
-          if (!expected.ok) { log.push({ attemptId, action: expected.retryable ? 'skip_attachments_unavailable' : 'skip_drift', code: expected.code }); continue; }
+          const expected = expectedFor(p, v.intent, v.digest);
+          if (!expected.ok) { log.push({ attemptId, action: 'skip_drift', code: expected.code }); continue; }
           const obj = await storage.get(snapshotPath);
           if (!obj) { log.push({ attemptId, action: 'skip_no_object' }); continue; }
           if (!sameBytes(obj, expected.bytes)) { log.push({ attemptId, action: 'skip_object_not_expected_bytes' }); continue; }

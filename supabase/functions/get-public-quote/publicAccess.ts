@@ -76,8 +76,6 @@ export interface CapabilityDeps {
   readLiveQuote(quoteId: string): Promise<LiveQuote | null>;
   /** issuer/v2 only: the immutable logo object bytes (service client, bucket quote-files); null when missing */
   readLogo?(objectPath: string): Promise<Uint8Array | null>;
-  /** F17: a short-lived signed URL of one issued attachment copy (service client, bucket quote-files); null on failure */
-  signAttachment?(objectPath: string): Promise<string | null>;
   /** Task 28: the verified owner's thank-you settings (service client, explicit columns); absent / throwing = no thanks */
   readThanksRow?(ownerId: string): Promise<ThanksRow | null>;
   callerUserId: string | null;
@@ -126,27 +124,6 @@ export async function verifiedLogoDataUrl(logo: IssuedLogo, readLogo: ((p: strin
   return `data:${logo.mime};base64,${base64Of(bytes)}`;
 }
 
-// F17 (Owner console 2026-11-03, typed: "מאשר בניית קבצים מצורפים ללקוח בדרך הנעילה עם ההצעה, כולל שינוי ב-L-05, L-17 ו-L-24,
-// שחרור עד הלייב"): the files bound in the snapshot at issue time. Only copies in the attempt's own folder count; anything else in the
-// list is dropped (an incident). A snapshot without the list (issued before) has no customer files.
-export interface IssuedAttachmentRef { id: string; fileName: string; objectPath: string }
-const ATTACHMENT_NAME_MAX = 255;
-export function parseIssuedAttachments(snapshot: unknown, bound: BoundArtifact): { list: IssuedAttachmentRef[]; dropped: number } {
-  const raw = isObj(snapshot) && Array.isArray(snapshot.attachments) ? snapshot.attachments : [];
-  const list: IssuedAttachmentRef[] = [];
-  let dropped = 0;
-  for (const a of raw) {
-    const id = isObj(a) && typeof a.id === 'string' ? a.id : '';
-    const m = isObj(a) && typeof a.objectPath === 'string' ? /\/attachments\/([0-9a-f-]{36})\.([a-z0-9]{1,10})$/.exec(a.objectPath) : null;
-    const ok = isObj(a) && UUID_RE.test(id) && m && m[1] === id
-      && a.objectPath === `issued-documents/${bound.userId}/${bound.quoteId}/${bound.attemptId}/attachments/${id}.${m[2]}`
-      && typeof a.fileName === 'string' && a.fileName.length > 0 && a.fileName.length <= ATTACHMENT_NAME_MAX
-      && typeof a.sha256 === 'string' && /^[0-9a-f]{64}$/.test(a.sha256) && Number.isInteger(a.bytes) && (a.bytes as number) > 0;
-    if (ok) list.push({ id, fileName: a.fileName as string, objectPath: a.objectPath as string }); else dropped++;
-  }
-  return { list, dropped };
-}
-
 /** Renderer contract (the same shape the legacy response has) built from the immutable snapshot + live approval state. */
 export function rendererFromSnapshot(snapshot: unknown, bound: BoundArtifact,
   live: LiveQuote | null, ctx: { callerUserId: string | null; now: Date }): Record<string, unknown> | null {
@@ -192,7 +169,7 @@ export function rendererFromSnapshot(snapshot: unknown, bound: BoundArtifact,
       measurements: arr(i.measurements).slice().sort(sortBy).map((m) => ({ width: m.width, height: m.height, unit: m.unit,
         calculated_area: m.calculated_area, label: m.label, is_pricing_driving: m.is_pricing_driving !== false })),
     })),
-    attachments: [], // F17: serveBound fills the files bound in the snapshot (signed, short-lived); none for an older snapshot
+    attachments: [], // issued snapshots never carry attachments (attachment_snapshot_policy_pending / OPEN-13)
     capability: true,
   };
 }
@@ -211,16 +188,6 @@ async function serveBound(deps: CapabilityDeps, bound: BoundArtifact, extra: Rec
     if (!dataUrl) { deps.onIncident?.('issued_logo_unavailable'); return unable(); }
     (body.business as Record<string, unknown>).logo_url = dataUrl;
   }
-  // F17: the issued files, each with its own short-lived link (the same { id, file_name, url } the page already renders)
-  const issued = parseIssuedAttachments(v.snapshot, bound);
-  if (issued.dropped) deps.onIncident?.('issued_attachment_invalid');
-  const files: { id: string; file_name: string; url: string }[] = [];
-  for (const a of issued.list) {
-    let url: string | null = null;
-    try { url = deps.signAttachment ? await deps.signAttachment(a.objectPath) : null; } catch { url = null; }
-    if (url) files.push({ id: a.id, file_name: a.fileName, url }); else deps.onIncident?.('issued_attachment_unavailable');
-  }
-  body.attachments = files;
   // Task 28: the thank-you only on the customer view, from the LIVE server status / signature (rendererFromSnapshot keeps them only when
   // the live row belongs to the bound owner) and the bound owner's settings; output grants (final PDF / Print) never carry it.
   body.thanks = opts.thanks ? await resolvePublicThanks(body.quote as Record<string, unknown>, bound.userId, deps.readThanksRow) : null;

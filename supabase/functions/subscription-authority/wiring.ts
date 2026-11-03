@@ -8,7 +8,7 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { ACTIVATION_PHASE } from './authority.ts';
 import { createQuoteOutputOrchestrator } from './authorizeOutput.ts';
 import {
-  bucketAssetStorage, bucketSnapshotStorage, capabilityRpcs, freeIssuePhaseReader, marketInputsReader, quoteAttachmentSource, rpcAssetSql,
+  bucketAssetStorage, bucketSnapshotStorage, capabilityRpcs, freeIssuePhaseReader, marketInputsReader, rpcAssetSql,
   rpcOutputSql, storageMediaAssetSource, storagePresentationSource, strictRpc, BUCKET, type BucketApi, type Rpc, type TableReader,
 } from './adapters.ts';
 import { UNAVAILABLE_PROVIDER, type BillingSql } from './billing.ts';
@@ -133,9 +133,6 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
       orchestrator: createQuoteOutputOrchestrator({
         sql: rpcOutputSql(rpc), storage: bucketSnapshotStorage(bucket), presentation: storagePresentationSource(bucket),
         assets: storageMediaAssetSource(bucket),
-        // F17 (Owner 2026-11-03): the files attached to the quote are copied into the issued version
-        attachments: quoteAttachmentSource(bucket, (quoteId) => admin.from('quote_attachments').select('id, file_name, storage_path')
-          .eq('quote_id', quoteId).order('created_at', { ascending: true }).order('id', { ascending: true })),
         onIncident: (i) => console.error(JSON.stringify({ fn: 'subscription-authority', incident: i.code })),
       }),
       mintCapability: caps.mintCapability,
