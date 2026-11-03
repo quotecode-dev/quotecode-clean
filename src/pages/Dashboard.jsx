@@ -1034,12 +1034,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
           setActiveTab('main');
           handleCreateAiQuoteClickRef.current?.(); // the click-time SMART PACK decision (this listener is registered once per list change)
           break;
-        // Owner console 2026-11-03 (typed approval incl. L-17): "quote from a file", the same entry as its "New quote" menu choice
-        case 'open_file_quote':
-          closeEditor();
-          setActiveTab('main');
-          handleCreateFileQuoteClickRef.current?.();
-          break;
         case 'open_clients':
           closeEditor();
           setActiveTab('clients');
@@ -2683,7 +2677,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             // 2026-10-20: the Terms state the free plan as 10 quotes or 7 days (IRON-LANDING-001 amended)
             // 20261029000000 (Codex F19, L-12): the version of the documents linked at signup (both last updated 25/10/2026); earlier
             // consent records keep their own versions
-            terms_version: '2026-11-03', // Owner 2026-11-03 (L-12, L-14): the quote-from-file quota in section 7; Owner 2026-11-01: purchase open abroad (USD); Owner 2026-10-25: payments in Israel (before: 2026-10-24 a quote counts at its first save; 2026-10-23 the Free plan's 7 days)
+            terms_version: '2026-11-01', // Owner 2026-11-01: purchase open abroad (USD); Owner 2026-10-25: payments in Israel (before: 2026-10-24 a quote counts at its first save; 2026-10-23 the Free plan's 7 days)
             // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
             privacy_version: '2026-11-03', // Owner 2026-11-03 (L-12): reading a quote from a file; 2026-11-01 (L-12): the one sign-up event; 2026-11-02 payments abroad (USD) (before: 2026-10-30 Codex release 9, L-12: optional help emails need separate consent; before: 2026-10-25 the payments section; 2026-10-23 consent by location + the Hebrew opt-out)
             terms_accepted_at: new Date().toISOString(),
@@ -4088,7 +4082,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     setMeasuredQuoteEntry(true);
   };
   const handleCreateAiQuoteClickRef = useRef(null);
-  const handleCreateFileQuoteClickRef = useRef(null);
   const handleCreateAiQuoteClick = () => {
     // L-05 (2026-10-25): before any form or dialog opens; a Free account at its end sees the Free-10 window first (SMART PACK rides on the package)
     if (!smartPackAllowed) { if (!free10Blocked()) setLockedCapability('smart_pack'); return; }
@@ -4102,7 +4095,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     if (handleCreateNewQuoteClick('file') === false) return;
     setShowFileQuote(true);
   };
-  handleCreateFileQuoteClickRef.current = handleCreateFileQuoteClick;
   // the reviewed lines from the file dialog: ONLY the owner's own lines and prices join the form (the untouched blank row is replaced);
   // the subject is never filled from another business's document. Nothing is saved.
   const applyFileQuoteLines = (lines) => {
@@ -4162,7 +4154,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     // the quote the tip named while it is still unsent; otherwise the first unsent one
     if (tip.action === 'twin') { const q = firstUnsentQuote(quotes.filter((x) => x && x.id === tip.quoteId)) || firstUnsentQuote(quotes); if (q) setCustomerTwin({ mode: 'list', quote: q }); }
     else if (tip.action === 'smart_quote') handleCreateAiQuoteClick();
-    else if (tip.action === 'file_quote') handleCreateFileQuoteClick(); // Owner console 2026-11-03: the file tip opens the file dialog (same guard)
     else if (tip.action === 'chat') openAiChat();
     else if (tip.action === 'templates') handleOpenTemplatePicker();
   };

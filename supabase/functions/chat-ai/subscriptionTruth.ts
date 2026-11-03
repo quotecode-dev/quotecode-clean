@@ -23,12 +23,6 @@ type Lang = 'he' | 'en';
 type LegacyPlanId = 'classic' | 'modern' | 'visual';
 const LEGACY: readonly LegacyPlanId[] = ['classic', 'modern', 'visual'];
 const PKG = 'all_inclusive';
-// Owner console 2026-11-03 (typed: "מאשר תיקון כל אזכורי הצעת מחיר מקובץ לפי התוכנית (... מכסות ותנאי שימוש ...), כולל שינוי ב-L-05, L-06,
-// L-11, L-12, L-14, L-17 ו-L-22"): the one decided AI quota (migration 20261103100000, the Terms) - every other AI quota stays undecided
-const FILE_QUOTE_QUOTA = Object.freeze({
-  he: 'להצעת מחיר מקובץ (חלק מחכם פלוס) יש עד 50 קבצים בחודש, ועד 3 בשבעת הימים החינמיים.',
-  en: 'Quote from a file (part of SMART PACK) allows up to 50 files a month, and up to 3 during the 7 free days.',
-});
 
 export type SubscriptionIntent =
   | 'trial' | 'legacy_plan' | 'my_plan' | 'balance' | 'unlimited' | 'plan_contents' | 'pricing' | 'annual' | 'quota';
@@ -95,8 +89,7 @@ const QUOTA_SOFT = [/\bhow many quotes\b/i, /\bquotes?\b.{0,20}\b(per|a|each|eve
 const isQuotaQuestion = (t: string): boolean => P.quota.some((re) => re.test(t))
   || (QUOTA_SOFT.some((re) => re.test(t)) && (ALLOWANCE_EN.test(t) || ALLOWANCE_HE.test(t)) && !STATS_EN.test(t) && !STATS_HE.test(t));
 
-const FILE_BALANCE = /(קבצים|קובץ|\bfiles?\b|\bfile reads?\b)/i;
-const UNLIMITED_QUOTA =/\bunlimited\s+quotes\b|\bquotes\b.{0,20}\bunlimited\b|\b(is|are)\s+(it|this|that|they|there|tekango)\s+(really\s+)?unlimited\b|הצעות\s+(ללא|בלי)\s+הגבלה|(זה|האם)\s+(ללא|בלי)\s+הגבלה|^\s*(ללא|בלי)\s+הגבלה\s*[?？]?\s*$/i;
+const UNLIMITED_QUOTA = /\bunlimited\s+quotes\b|\bquotes\b.{0,20}\bunlimited\b|\b(is|are)\s+(it|this|that|they|there|tekango)\s+(really\s+)?unlimited\b|הצעות\s+(ללא|בלי)\s+הגבלה|(זה|האם)\s+(ללא|בלי)\s+הגבלה|^\s*(ללא|בלי)\s+הגבלה\s*[?？]?\s*$/i;
 
 // Task 40 (Owner, LIVE chat 2026-10-15): "which plans do you have?" asks for the plan list - it is answered by the deterministic
 // pricing answer (plan list + Free-10 + prices), never by the broad "which feature?" clarification. Plural forms only, so
@@ -149,9 +142,6 @@ export function classifySubscriptionIntents(message: unknown): SubscriptionInten
   for (const [intent, patterns] of Object.entries(P) as [SubscriptionIntent, readonly RegExp[]][]) {
     if (intent === 'pricing' ? hasPricingIntent(t) : intent === 'quota' ? isQuotaQuestion(t) : patterns.some((re) => re.test(t))) out.push(intent);
   }
-  // Owner console 2026-11-03 (typed approval incl. L-17): "how many FILES are left" is the quote-from-file balance (the verified account
-  // section), never the Free-10 quote balance
-  if (FILE_BALANCE.test(t)) { const i = out.indexOf('balance'); if (i >= 0) out.splice(i, 1); }
   // "unlimited" alone is only a plan question in a plan / quota context ("unlimited items in a quote" is not)
   if (out.length === 1 && out[0] === 'unlimited' && !PLAN_WORD_EN.test(t) && !PLAN_WORD_HE.test(t) && !UNLIMITED_QUOTA.test(t)) return [];
   return out;
@@ -296,8 +286,8 @@ export function formatSubscriptionAnswer(intents: readonly SubscriptionIntent[],
     parts.push(lang === 'he' ? `מחיר: ${price('he')}` : `Price: ${price('en')}`);
     parts.push(catalog(lang));
     parts.push(lang === 'he'
-      ? `מסלול ${planName(PKG, 'he')} כולל את היכולות הזמינות במערכת; מה שעוד לא הוחלט (מגבלת הצעות, אחסון, מכסות AI אחרות וקבצים מצורפים) ${S.planSystemActive ? 'עדיין לא נקבע.' : 'יפורסם לפני ההפעלה.'} ${FILE_QUOTE_QUOTA.he}`
-      : `The ${planName(PKG, 'en')} package includes the capabilities available in the system; what is not decided yet (quote limits, storage, other AI quotas and attachments) ${S.planSystemActive ? 'has not been set yet.' : 'will be published before activation.'} ${FILE_QUOTE_QUOTA.en}`);
+      ? `מסלול ${planName(PKG, 'he')} כולל את היכולות הזמינות במערכת; מה שעוד לא הוחלט (מגבלת הצעות, אחסון, מכסות AI וקבצים מצורפים) ${S.planSystemActive ? 'עדיין לא נקבע.' : 'יפורסם לפני ההפעלה.'}`
+      : `The ${planName(PKG, 'en')} package includes the capabilities available in the system; what is not decided yet (quote limits, storage, AI quotas and attachments) ${S.planSystemActive ? 'has not been set yet.' : 'will be published before activation.'}`);
   }
   if (has('pricing') && !has('plan_contents')) {
     if (lang === 'en' && !marketIL && /shekel|\bils\b|\bnis\b|₪|israel/i.test(message)) parts.push('On the International (English) site, plans are priced and billed in USD only.');
@@ -342,8 +332,7 @@ export function buildSubscriptionTruthBlock(isHebrew: boolean, marketUncertain =
 - ${market}${uncertain}
 - Free: ${S.free.quotesTotal} quotes in total OR 7 days from sign-up, whichever ends first; SMART PACK is included during those 7 days. A quote uses one the first time it is SAVED with a client and at least one item (editing and saving again never counts again); the same version re-sent to the same client never counts (any channel: send, public link, final PDF or final print), while a changed client, recipient name or content produced again counts as another quote. An empty draft and previews do not use one; deleting does not refund one; existing documents stay accessible.
 - There is NO separate trial: the Free plan itself is 10 quotes OR 7 days from sign-up, whichever ends first (never invent another trial length${S.planSystemActive ? '' : ', and the plan system is not active yet'}). There is NO monthly quote counter and NO "unlimited" plan: never say unlimited/ללא הגבלה/∞ (the package is only stated as not limited to the Free plan's 10 quotes). The only prices that exist are the ones above (monthly and annual, with the stated annual saving).
-- DECIDED AI quota (published in the Terms of Service): ${FILE_QUOTE_QUOTA.en}
-- NOT DECIDED (say "not decided yet" and never invent a value): paid plan quote limits beyond Free-10, storage, AI quotas other than quote from a file, attachments (types, sizes), ${isHebrew ? 'tax beyond the Israeli VAT inclusion' : 'any tax beyond the stated USD price'}.
+- NOT DECIDED (say "not decided yet" and never invent a value): paid plan quote limits beyond Free-10, storage, AI quotas, attachments (types, sizes), ${isHebrew ? 'tax beyond the Israeli VAT inclusion' : 'any tax beyond the stated USD price'}.
 - CANCELLATION AND REFUNDS (decided, published in the Terms of Service section 6): ${S.planSystemActive ? '' : 'once purchase opens, '}a subscription can be cancelled at any time by an email request (or a request from the plans window / settings); the team confirms the end date. An early end refunds the unused part of a prepaid period pro rata; a cancellation fee only where the law allows it and never above the cap stated in the Terms; the annual discount is never clawed back. Never promise anything beyond these terms.
 - Quote presentation styles (Owner 2026-10-14): every account can use all three styles - Classic (a clean business document), Modern (with product images) and Visual (with a lead project image). The business default style is set in Business settings (quote design) and can be changed on each quote. Never tie a style to a plan or a price.
 - The new plan system is ${S.planSystemActive

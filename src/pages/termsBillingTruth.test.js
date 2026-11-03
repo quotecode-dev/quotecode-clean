@@ -64,10 +64,9 @@ describe('Terms §4 - subscriptions cutover facts (OD-01..OD-08, OD-16)', () => 
     expect(T.en).not.toMatch(/₪|\bILS\b|\bNIS\b|shekel/i);
   });
   it('every still-open legal branch is "not decided, published once decided" (cancellation / refunds are decided)', () => {
-    // Owner console 2026-11-03 (typed approval incl. L-12, L-14): the quote-from-file quota is decided (50 a month, 3 in the 7 free days)
-    expect(T.he).toContain('הנושאים הבאים טרם הוכרעו ויפורסמו כשיוכרעו: מגבלות ההצעות במסלולים בתשלום; קבצים מצורפים; נפח אחסון; מכסות AI, למעט הצעת מחיר מקובץ: עד 50 קבצים בחודש, ועד 3 בשבעת הימים החינמיים; מיסוי מעבר לכלילת המע״מ במחירים בישראל; ומשך שמירת נתונים ומסמכים.');
+    expect(T.he).toContain('הנושאים הבאים טרם הוכרעו ויפורסמו כשיוכרעו: מגבלות ההצעות במסלולים בתשלום; קבצים מצורפים; נפח אחסון; מכסות AI; מיסוי מעבר לכלילת המע״מ במחירים בישראל; ומשך שמירת נתונים ומסמכים.');
     // 2026-11-01 (decision a): the tax abroad is decided (USD without Israeli VAT, section 4)
-    expect(T.en).toContain('The following have not been decided yet and will be published once decided: quote limits of the paid plans; attachments; storage; AI quotas, except quote from a file: up to 50 files a month, and up to 3 during the 7 free days; and data and document retention periods.');
+    expect(T.en).toContain('The following have not been decided yet and will be published once decided: quote limits of the paid plans; attachments; storage; AI quotas; and data and document retention periods.');
   });
   it('no value of a not-decided branch is stated (no paid quote limit, storage size, AI quota or refund window)', () => {
     expect(terms).not.toMatch(/\b50 (?:new )?quotes|\d+\s?(?:MB|GB)|\d+ AI|refund within|\d+ days? refund/i);

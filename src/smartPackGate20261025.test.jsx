@@ -26,8 +26,7 @@ describe('the SMART PACK notice', () => {
   it('says what SMART PACK is, its Israeli price and where to add it; nothing changed, nothing charged', () => {
     const c = capabilityNoticeCopy('he', 'smart_pack', summary());
     expect(c.title).toBe('האפשרות הזו כלולה בחכם פלוס');
-    // Owner console 2026-11-03 (typed approval incl. L-05: "... בדיקת הלקוח ברשימת חכם פלוס"): + Improve quote
-    expect(c.explanation).toMatch(/צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, הצעת מחיר מקובץ, שיפור ההצעה, וקבצים מצורפים להצעה\. אפשר להוסיף אותו בחלון המסלולים\.$/);
+    expect(c.explanation).toMatch(/צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, הצעת מחיר מקובץ, וקבצים מצורפים להצעה\. אפשר להוסיף אותו בחלון המסלולים\.$/);
     expect(c.eligible).toBe('המחיר: ₪10.00 לחודש, או ₪102.00 לשנה במנוי שנתי.');
     // the promise only while the plans window can sell it (purchasing off = no promise, no price)
     const off = capabilityNoticeCopy('he', 'smart_pack', summary({ phase: { output: 'enforced', catalog: 'prepared', billing: 'off' } }));

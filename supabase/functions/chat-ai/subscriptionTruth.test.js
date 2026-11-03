@@ -177,8 +177,7 @@ describe('prompt block + request boundary', () => {
     expect(JSON.stringify(r.value)).not.toMatch(/pro|visual|trial|accountSummary/);
   });
   it('index.ts fetches the summary with the caller\'s own JWT client, reads no legacy plan column and gates model answers', () => {
-    // Owner console 2026-11-03 (typed approval incl. L-11): + the caller's own file balance, the same JWT client, in parallel
-    expect(indexSource).toMatch(/\[accountSummary, fileReadBalance\] = await Promise\.all\(\[\s+fetchServerAccountSummary\(\(fn\) => callerClient\.rpc\(fn\)\),\s+fetchFileReadBalance\(\(fn\) => callerClient\.rpc\(fn\)\),\s+\]\);/);
+    expect(indexSource).toMatch(/accountSummary = await fetchServerAccountSummary\(\(fn\) => callerClient\.rpc\(fn\)\);/);
     expect(indexSource).toMatch(/\.select\('role, country, phone, tax_id, is_lifetime'\)/);
     expect(indexSource).not.toMatch(/trial_ends_at|monthStartIso|monthlyUsed/);
     // Owner console 2026-10-26 (typed item ו; L-06 / L-11 / L-17): the reply language is the interface language, the market is the account's

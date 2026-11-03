@@ -160,22 +160,13 @@ describe('the SMART PACK bell notice (L-17)', () => {
     expect(activeAnnouncements([SMART_PACK_ANNOUNCEMENT], new Date('2027-01-01T10:00:00Z'))).toHaveLength(0);
     expect(bellActionsFor({ ...SMART_PACK_ANNOUNCEMENT })).toEqual([{ kind: 'plans' }]);
   });
-  it('the copy states the catalog price; Israel: added in the plans window (2026-10-25); abroad: open too (2026-11-01)', () => {
+  it('the copy states the catalog price; Israel: added in the plans window (2026-10-25); abroad: not purchasable yet', () => {
     expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).toContain('₪10 לחודש');
     // findings 1-13 (2026-10-25, L-17): plural address; "in the plans window" (an active subscriber adds it there, not "to the payment")
     expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).toContain('אפשר להוסיף אותה בחלון המסלולים');
     expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).not.toMatch(/שלך|בחירה שלך/);
     expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).not.toContain('עם פתיחת המסלולים');
     expect(SMART_PACK_ANNOUNCEMENT.copy.en.body).toContain('$5 a month');
-    // Owner console 2026-11-03 (typed approval incl. L-17): purchase abroad is open - no "when the plans open"; v2 floats once more
-    expect(SMART_PACK_ANNOUNCEMENT.copy.en.body).toContain('Add it in the plans window');
-    expect(SMART_PACK_ANNOUNCEMENT.copy.en.body).not.toContain('when the plans open');
-    expect(SMART_PACK_ANNOUNCEMENT.key).toBe('announce:smart-pack:v2');
-  });
-  it('names quote from a file and Improve quote in both languages (Owner console 2026-11-03)', () => {
-    expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).toContain('הצעת מחיר מקובץ PDF או JPG');
-    expect(SMART_PACK_ANNOUNCEMENT.copy.he.body).toContain('שיפור ההצעה');
-    expect(SMART_PACK_ANNOUNCEMENT.copy.en.body).toContain('a quote from a PDF or JPG file');
-    expect(SMART_PACK_ANNOUNCEMENT.copy.en.body).toContain('Improve quote');
+    expect(SMART_PACK_ANNOUNCEMENT.copy.en.body).toContain('available to buy when the plans open');
   });
 });

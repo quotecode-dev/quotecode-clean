@@ -78,7 +78,6 @@ const ADMIN_ID_TO_CAPABILITY = {
   system: 'admin_console',
   permissions: 'admin_console',
   'twin-costs': 'admin_console', // Owner 2026-10-23 (L-22): the Owner-only Customer Twin cost view
-  'file-costs': 'admin_console', // Owner console 2026-11-03 (L-22): the Owner-only quote-from-file cost view
   'expense-invoices': 'admin_console', // Owner 2026-10-22 (L-22): the Owner-only expense-invoice tool
   'billing-reconcile': 'admin_console', // Owner 2026-10-23 (L-22): the Owner-only payment reconciliation
   'search-console': 'admin_console', // Owner 2026-10-26: the Owner-only read-only Google Search Console screen

@@ -46,26 +46,3 @@ describe('Customer Twin cost view', () => {
     expect(canOpenDestination(d, { owner: false, permissions: ['activity.view', 'ai-support.view'] })).toBe(false);
   });
 });
-
-// Owner console 2026-11-03 (typed approval incl. L-22): the same view for "quote from a file" reads (quote_file_admin_usage)
-describe('Quote from a file cost view', () => {
-  it('HE + EN: its own server function, its own words, numbers only', async () => {
-    rpc.mockResolvedValue({ data: { ok: true, days }, error: null });
-    render(<AdminTwinCosts isHebrew kind="file" />);
-    await waitFor(() => expect(screen.getByTestId('admin-file-costs-table')).toBeTruthy());
-    expect(rpc).toHaveBeenCalledWith('quote_file_admin_usage', { p_days: 30 });
-    expect(screen.getByTestId('admin-file-costs').textContent).toContain('קבצים שנקראו');
-    expect(screen.getByTestId('admin-file-costs-kpi-stored').textContent).toBe('15');
-    expect(screen.getByTestId('admin-file-costs-kpi-cost').textContent).toBe('$0.0036');
-    expect(screen.queryByTestId('admin-twin-costs')).toBeNull();
-    cleanup();
-    render(<AdminTwinCosts isHebrew={false} kind="file" />);
-    await waitFor(() => expect(screen.getByTestId('admin-file-costs-table')).toBeTruthy());
-    expect(screen.getByTestId('admin-file-costs').textContent).toContain('Files read');
-  });
-  it('is an Owner-only tool of the "מערכת" hub', () => {
-    const d = ADMIN_DESTINATIONS.find((x) => x.id === 'file-costs');
-    expect(d).toMatchObject({ hub: 'system', permission: 'owner' });
-    expect(canOpenDestination(d, { owner: false, permissions: ['activity.view', 'ai-support.view'] })).toBe(false);
-  });
-});

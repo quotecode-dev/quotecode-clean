@@ -41,17 +41,8 @@ describe('choosing the daily tip', () => {
   it('every tip has its words in both languages and a known action', () => {
     for (const t of DAILY_TIPS) {
       expect(t.he.text && t.he.action && t.en.text && t.en.action, t.id).toBeTruthy();
-      expect(['twin', 'smart_quote', 'file_quote', 'chat', 'templates']).toContain(t.action);
+      expect(['twin', 'smart_quote', 'chat', 'templates']).toContain(t.action);
     }
-  });
-  it('quote from a file (Owner console 2026-11-03): the day after the AI smart quote tip, both languages, opens the file dialog', () => {
-    const s = markTipShown(parseTipState(null), 'smart_quote', '2026-11-03');
-    const t = pickDailyTip(ctx({ quotesCount: 1 }), s, '2026-11-04');
-    expect(t.id).toBe('file_quote');
-    expect(t.icon).toBe('file');
-    expect(t.he.text).toContain('"הצעת מחיר מקובץ"');
-    expect(t.en.text).toContain('"Quote from a file"');
-    expect(readFileSync('src/pages/Dashboard.jsx', 'utf8')).toMatch(/tip\.action === 'file_quote'\) handleCreateFileQuoteClick\(\)/);
   });
 });
 

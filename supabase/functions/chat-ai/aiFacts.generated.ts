@@ -195,8 +195,8 @@ export const AI_FACTS = {
       "id": "quote_create",
       "heLabel": "יצירת הצעת מחיר חדשה",
       "enLabel": "Create a new quote",
-      "heDescription": "יצירת הצעת מחיר חדשה. טיוטה ותצוגה מקדימה אינן משתמשות באחת מ-10 ההצעות של מסלול חינם. תבניות: בעורך ההצעה, מתחת לכפתור השמירה, יש „שמירה כתבנית (בלי פרטי לקוח)” - נשמרים הנושא והפריטים, בלי פרטי הלקוח. כדי להתחיל הצעה מתבנית: בתפריט „הצעה חדשה” בוחרים „מתבנית שמורה” ומשם בוחרים את התבנית.",
-      "enDescription": "Create a new quote. Drafts and previews do not use one of the 10 quotes of the Free plan. Templates: in the quote editor, under the save button, there is \"Save as template (no customer details)\" - the subject and the items are saved, without the customer details. To start a quote from a template: in the \"New quote\" menu choose \"From a saved template\" and pick the template there.",
+      "heDescription": "יצירת הצעת מחיר חדשה. טיוטה ותצוגה מקדימה אינן משתמשות באחת מ-10 ההצעות של מסלול חינם. תבניות: בעורך ההצעה, מתחת לכפתור השמירה, יש „שמירה כתבנית (בלי פרטי לקוח)” - נשמרים הנושא והפריטים, בלי פרטי הלקוח. כדי להתחיל הצעה מתבנית: בתפריט „הצעה חדשה” בוחרים „התחלה מתבנית שמורה” ומשם בוחרים את התבנית.",
+      "enDescription": "Create a new quote. Drafts and previews do not use one of the 10 quotes of the Free plan. Templates: in the quote editor, under the save button, there is \"Save as template (no customer details)\" - the subject and the items are saved, without the customer details. To start a quote from a template: in the \"New quote\" menu choose \"Start from a saved template\" and pick the template there.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -1955,7 +1955,6 @@ export const AI_FACTS = {
           "צ׳אט קולי (שאלה בקול ותשובה מוקראת)",
           "הצעה חכמה עם AI, כולל הכתבה בקול",
           "הצעת מחיר מקובץ PDF או JPG, עם המחירים שלכם",
-          "שיפור ההצעה: איך הלקוח יראה את ההצעה לפני השליחה",
           "צירוף קבצים להצעה"
         ],
         "en": [
@@ -1963,7 +1962,6 @@ export const AI_FACTS = {
           "Voice chat (a spoken question and a read-aloud answer)",
           "An AI smart quote, including voice dictation",
           "A quote from a PDF or JPG file, with your own prices",
-          "Improve quote: how your client will see the quote before you send it",
           "Files attached to a quote"
         ]
       },

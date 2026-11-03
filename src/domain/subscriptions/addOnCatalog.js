@@ -13,15 +13,13 @@ export const SMART_PACK = Object.freeze({
   }),
   includes: Object.freeze({
     // Owner console 2026-11-03 (typed approval incl. L-06, L-22): + "quote from a file", right after the AI smart quote
-    // Owner console 2026-11-03 (typed: "מאשר תיקון כל אזכורי הצעת מחיר מקובץ לפי התוכנית (... בדיקת הלקוח ברשימת חכם פלוס), כולל שינוי ב-L-05,
-    // L-06, L-11, L-12, L-14, L-17 ו-L-22"): + Customer Twin ("שיפור ההצעה", its name in the app), which was missing from the list
-    he: Object.freeze(['צ׳אט חכם שקורא את הנתונים של המשתמש (הצעות, לקוחות, קטלוג, משימות)', 'צ׳אט קולי (שאלה בקול ותשובה מוקראת)', 'הצעה חכמה עם AI, כולל הכתבה בקול', 'הצעת מחיר מקובץ PDF או JPG, עם המחירים שלכם', 'שיפור ההצעה: איך הלקוח יראה את ההצעה לפני השליחה', 'צירוף קבצים להצעה']),
-    en: Object.freeze(["A smart chat that reads the user's own data (quotes, clients, catalog, tasks)", 'Voice chat (a spoken question and a read-aloud answer)', 'An AI smart quote, including voice dictation', 'A quote from a PDF or JPG file, with your own prices', 'Improve quote: how your client will see the quote before you send it', 'Files attached to a quote']),
+    he: Object.freeze(['צ׳אט חכם שקורא את הנתונים של המשתמש (הצעות, לקוחות, קטלוג, משימות)', 'צ׳אט קולי (שאלה בקול ותשובה מוקראת)', 'הצעה חכמה עם AI, כולל הכתבה בקול', 'הצעת מחיר מקובץ PDF או JPG, עם המחירים שלכם', 'צירוף קבצים להצעה']),
+    en: Object.freeze(["A smart chat that reads the user's own data (quotes, clients, catalog, tasks)", 'Voice chat (a spoken question and a read-aloud answer)', 'An AI smart quote, including voice dictation', 'A quote from a PDF or JPG file, with your own prices', 'Files attached to a quote']),
   }),
   // one short line for the plans views ("what is SMART PACK?" - Owner 2026-10-20: "אין שום הסבר למשתמש מה זה בכלל חכם פלוס")
   summary: Object.freeze({
-    he: 'כולל: צ׳אט חכם שקורא את נתוני החשבון, צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, הצעת מחיר מקובץ, שיפור ההצעה, וקבצים מצורפים להצעה.',
-    en: 'Includes: a smart chat that knows your data, voice chat, an AI smart quote with voice dictation, a quote from a file, Improve quote, and files attached to quotes.',
+    he: 'כולל: צ׳אט חכם שקורא את נתוני החשבון, צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, הצעת מחיר מקובץ, וקבצים מצורפים להצעה.',
+    en: 'Includes: a smart chat that knows your data, voice chat, an AI smart quote with voice dictation, a quote from a file, and files attached to quotes.',
   }),
   // Owner 2026-10-25 ("לא להשאיר זנבות"): Customer Twin ("שיפור ההצעה") is LIVE since PR #47 - nothing is "coming soon"
   comingSoon: Object.freeze({ he: Object.freeze([]), en: Object.freeze([]) }),
