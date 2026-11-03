@@ -74,7 +74,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       notice: null,
     },
     {
-      id: 'all_inclusive', icon: PackageCheck, name: 'All-inclusive', tagline: 'One package with all available core capabilities. SMART PACK is an optional paid add-on.',
+      id: 'all_inclusive', icon: PackageCheck, name: 'All-inclusive', tagline: 'One package with every available capability, billed monthly or annually.',
       prices: est ? [
         // Task 39: the local figure is a labelled estimate; the billed USD amount is stated on the same card row.
         { period: 'month', amount: month.estimateText, per: `${est.displayCurrency} / month · estimate`, note: <>Charged in USD: <bdi dir="ltr">{month.text}</bdi> per month</> },
