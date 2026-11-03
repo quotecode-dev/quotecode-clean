@@ -124,8 +124,8 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['quote_history_screen'], aiMayNavigate: true, safeNavigationId: 'open_quote_history', canonicalSources: ['src/components/QuotesTab.jsx'] }),
 
   capability('quote_create', 'יצירת הצעת מחיר חדשה', 'Create a new quote',
-    'יצירת הצעת מחיר חדשה. טיוטה ותצוגה מקדימה אינן משתמשות באחת מ-10 ההצעות של מסלול חינם. תבניות: בעורך ההצעה, מתחת לכפתור השמירה, יש „שמירה כתבנית (בלי פרטי לקוח)” - נשמרים הנושא והפריטים, בלי פרטי הלקוח. כדי להתחיל הצעה מתבנית: בתפריט „הצעה חדשה” בוחרים „התחלה מתבנית שמורה” ומשם בוחרים את התבנית.',
-    'Create a new quote. Drafts and previews do not use one of the 10 quotes of the Free plan. Templates: in the quote editor, under the save button, there is "Save as template (no customer details)" - the subject and the items are saved, without the customer details. To start a quote from a template: in the "New quote" menu choose "Start from a saved template" and pick the template there.',
+    'יצירת הצעת מחיר חדשה. טיוטה ותצוגה מקדימה אינן משתמשות באחת מ-10 ההצעות של מסלול חינם. תבניות: בעורך ההצעה, מתחת לכפתור השמירה, יש „שמירה כתבנית (בלי פרטי לקוח)” - נשמרים הנושא והפריטים, בלי פרטי הלקוח. כדי להתחיל הצעה מתבנית: בתפריט „הצעה חדשה” בוחרים „מתבנית שמורה” ומשם בוחרים את התבנית.',
+    'Create a new quote. Drafts and previews do not use one of the 10 quotes of the Free plan. Templates: in the quote editor, under the save button, there is "Save as template (no customer details)" - the subject and the items are saved, without the customer details. To start a quote from a template: in the "New quote" menu choose "From a saved template" and pick the template there.',
     {
       surfaces: ['dashboard', 'quote_editor'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_new_quote',
       deterministicFactKeys: ['subscriptions.free.quotesTotal'],

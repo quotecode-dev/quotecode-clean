@@ -32,7 +32,7 @@ export default function Terms({ isHebrew }) {
   // expansion) are unchanged.
   const t = isHebrew ? {
     title: 'תנאי שימוש (Terms of Service)',
-    lastUpdated: 'עדכון אחרון: 1 בנובמבר 2026',
+    lastUpdated: 'עדכון אחרון: 3 בנובמבר 2026',
     back: 'חזרה',
     sections: [
       {
@@ -89,7 +89,8 @@ export default function Terms({ isHebrew }) {
       {
         id: 'open',
         title: '7. נושאים שטרם הוכרעו',
-        content: 'הנושאים הבאים טרם הוכרעו ויפורסמו כשיוכרעו: מגבלות ההצעות במסלולים בתשלום; קבצים מצורפים; נפח אחסון; מכסות AI; מיסוי מעבר לכלילת המע״מ במחירים בישראל; ומשך שמירת נתונים ומסמכים.',
+        // Owner console 2026-11-03 (typed approval incl. L-12, L-14): the one decided AI quota - quote from a file
+        content: 'הנושאים הבאים טרם הוכרעו ויפורסמו כשיוכרעו: מגבלות ההצעות במסלולים בתשלום; קבצים מצורפים; נפח אחסון; מכסות AI, למעט הצעת מחיר מקובץ: עד 50 קבצים בחודש, ועד 3 בשבעת הימים החינמיים; מיסוי מעבר לכלילת המע״מ במחירים בישראל; ומשך שמירת נתונים ומסמכים.',
       },
       {
         id: 'ip',
@@ -120,7 +121,7 @@ export default function Terms({ isHebrew }) {
     ],
   } : {
     title: 'Terms of Service',
-    lastUpdated: 'Last updated: November 1, 2026',
+    lastUpdated: 'Last updated: November 3, 2026',
     back: 'Go Back',
     sections: [
       {
@@ -178,7 +179,7 @@ export default function Terms({ isHebrew }) {
       {
         id: 'open',
         title: '7. Matters Not Yet Decided',
-        content: 'The following have not been decided yet and will be published once decided: quote limits of the paid plans; attachments; storage; AI quotas; and data and document retention periods.',
+        content: 'The following have not been decided yet and will be published once decided: quote limits of the paid plans; attachments; storage; AI quotas, except quote from a file: up to 50 files a month, and up to 3 during the 7 free days; and data and document retention periods.',
       },
       {
         id: 'ip',

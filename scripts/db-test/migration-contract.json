@@ -705,6 +705,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-03 (typed: \"מאשר כלל קבוע שמנהל המערכת תמיד נחשב מנוי לכל החיים ולא תלוי במסלול, כולל שינוי ב-L-05 ו-L-22, שחרור עד הלייב\"): one trigger, one guard allowance and an idempotent UPDATE; replays cleanly (CREATE OR REPLACE / DROP TRIGGER IF EXISTS / UPDATE ... IS DISTINCT FROM)."
+    },
+    "20261103300000_quote_file_admin_usage.sql": {
+      "sha256": "b3fe487406b892a316b670185582edea0896e79de1b18512d244bbe7bb7d1214",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-11-03 (typed: \"מאשר תיקון כל אזכורי הצעת מחיר מקובץ לפי התוכנית (פעמון, צ'אט, מכסות ותנאי שימוש, יתרת קבצים בצ'אט, טיפ יומי, מסך ניהול, סוכנת הרשתות, בדיקת הלקוח ברשימת חכם פלוס), כולל שינוי ב-L-05, L-06, L-11, L-12, L-14, L-17 ו-L-22, שחרור עד הלייב\"): one read-only super-admin function (numbers only); replays cleanly (CREATE OR REPLACE)."
     }
   }
 }

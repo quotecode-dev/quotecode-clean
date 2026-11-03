@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { PublicPoolRefusal, reservePublicSlot, publicPoolAnswer } from './publicPool.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateChatRequest, classifySupportMessage, buildSystemPrompt, CHAT_CONTRACT_VERSION } from "./validation.ts";
-import { buildVerifiedAccountContext, fetchServerAccountSummary, isHebrewFromMarket, type BusinessSettingsRow } from "./accountContext.ts";
+import { buildVerifiedAccountContext, fetchServerAccountSummary, fetchFileReadBalance, isHebrewFromMarket, type BusinessSettingsRow, type FileReadBalance } from "./accountContext.ts";
 import { type AccountSummary } from "../_shared/subscriptionContract.ts";
 import { smartPackAllowedBySummary, smartPackPurchasePath } from "../_shared/smartPackGate.ts";
 import { resolveSubscriptionTruthResponse, findSubscriptionClaimViolations, safeSubscriptionAnswer } from "./subscriptionTruth.ts";
@@ -13,7 +13,7 @@ import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } f
 import { paymentTruthApplies, classifyPaymentIntent, resolvePaymentTruthResponse, subscriptionPurchaseOpen } from "./paymentTruth.ts";
 import { AI_FACTS } from "./aiFacts.generated.ts";
 import { invoicingTruthApplies, classifyInvoicingIntent, resolveInvoicingTruthResponse } from "./invoicingTruth.ts";
-import { capabilityTruthApplies, classifyCapabilityIntent, classifyBroadCapabilityQuestionSignal, resolveBroadCapabilityClarification, resolveCapabilityTruthResponse, BUILD_QUOTE_REQUEST, HOW_QUESTION } from "./capabilityTruth.ts";
+import { capabilityTruthApplies, classifyCapabilityIntent, classifyBroadCapabilityQuestionSignal, resolveBroadCapabilityClarification, resolveCapabilityTruthResponse, BUILD_QUOTE_REQUEST, QUOTE_FROM_FILE_REQUEST, HOW_QUESTION } from "./capabilityTruth.ts";
 import { howToStepsForCapability } from "./howToTruth.ts";
 import { classifyAccountMarketIntent, formatAccountMarketAnswer } from "./marketTruth.ts";
 import { buildAccountMarketFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
@@ -84,6 +84,7 @@ serve(async (req) => {
   // Subscriptions cutover (OD-20): the account's plan facts come ONLY from public.get_account_summary(), called below with the
   // caller's OWN JWT (the RPC derives identity from auth.uid() and takes no argument). Never from the request body.
   let accountSummary: AccountSummary = { state: 'unavailable', code: 'no_verified_user' };
+  let fileReadBalance: FileReadBalance | null = null;
   if (isDashboard) {
     const authHeader = req.headers.get('Authorization');
     if (authHeader) {
@@ -95,7 +96,11 @@ serve(async (req) => {
         if (verifiedUser?.id) {
           verifiedUserId = verifiedUser.id;
           attributedEmail = verifiedUser.email ?? 'unverified_dashboard_session';
-          accountSummary = await fetchServerAccountSummary((fn) => callerClient.rpc(fn));
+          // Owner console 2026-11-03 (typed approval incl. L-11): + the caller's own "quote from a file" balance, same JWT, in parallel
+          [accountSummary, fileReadBalance] = await Promise.all([
+            fetchServerAccountSummary((fn) => callerClient.rpc(fn)),
+            fetchFileReadBalance((fn) => callerClient.rpc(fn)),
+          ]);
         } else {
           attributedEmail = 'unverified_dashboard_session';
         }
@@ -126,7 +131,7 @@ serve(async (req) => {
       .select('role, country, phone, tax_id, is_lifetime')
       .eq('user_id', verifiedUserId)
       .maybeSingle();
-    accountContext = buildVerifiedAccountContext(bizRow as BusinessSettingsRow | null, currentArea, accountSummary);
+    accountContext = buildVerifiedAccountContext(bizRow as BusinessSettingsRow | null, currentArea, accountSummary, fileReadBalance);
     // AI HELP V4 - Layer 3 trusted facts, scoped to this verified user only (profile completeness, server account summary).
     // The retired monthly quote counter is no longer computed (OD-20).
     trustedFacts = deriveTrustedFacts(accountContext, bizRow as { phone?: string; tax_id?: string; country?: string; role?: string } | null,
@@ -381,7 +386,9 @@ serve(async (req) => {
         const capabilityAnswer = steps ? `${capabilityTruth.answer}\n\n${steps}` : capabilityTruth.answer;
         // Owner 2026-10-24 (typed L-17): "can you build / write me a quote" (ai_mutation about a quote) offers the AI smart quote button;
         // 2026-10-25 (QA report): only a build / write request - "can you send / delete my quote" gets no button
-        const navId = matched?.aiMayNavigate && matched.safeNavigationId ? matched.safeNavigationId
+        // Owner console 2026-11-03 (typed approval incl. L-17): a quote FROM a file offers its own dialog, not the AI smart quote
+        const navId = capabilityId === 'smart_quote' && QUOTE_FROM_FILE_REQUEST.some((re) => re.test(lastUserMessage)) ? 'open_file_quote'
+          : matched?.aiMayNavigate && matched.safeNavigationId ? matched.safeNavigationId
           : capabilityId === 'ai_mutation' && BUILD_QUOTE_REQUEST.some((re) => re.test(lastUserMessage)) ? 'open_ai_quote' : null;
         const navSuggestion = navId && verifiedUserId && navAllowed.includes(navId) ? { action: navId, focus: null } : null;
         await logChat(capabilityAnswer);

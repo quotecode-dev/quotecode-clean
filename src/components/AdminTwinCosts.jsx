@@ -16,7 +16,30 @@ const group = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
 const usd = (v) => `$${(Number.isFinite(Number(v)) ? Number(v) : 0).toFixed(4)}`;
 const N = ({ v }) => <bdi className="av-num">{v}</bdi>;
 
-export default function AdminTwinCosts({ isHebrew }) {
+// Owner console 2026-11-03 (typed: "מאשר תיקון כל אזכורי הצעת מחיר מקובץ לפי התוכנית (... מסך ניהול ...), כולל שינוי ב-L-05, L-06, L-11,
+// L-12, L-14, L-17 ו-L-22"): the same view for "quote from a file" reads (quote_file_admin_usage, migration 20261103300000) - its own words
+const KINDS = {
+  twin: {
+    rpc: 'customer_twin_admin_usage', testid: 'admin-twin-costs',
+    title: { he: 'עלויות בדיקת הלקוח', en: 'Customer check costs' },
+    subtitle: { he: 'כמה בדיקות רצו וכמה הן עלו לנו אצל ספק הבינה. מספרים בלבד, בלי תוכן ההצעות ובלי פרטי חשבונות.', en: 'How many checks ran and what they cost us at the AI provider. Numbers only - no quote content, no account details.' },
+    stored: { he: 'בדיקות שהושלמו', en: 'Checks completed' }, refunded: { he: 'בדיקות שהוחזרו', en: 'Checks given back' },
+    empty: { he: 'עדיין לא רצו בדיקות בתקופה הזו.', en: 'No checks ran in this period yet.' },
+    caption: { he: 'לפי יום (שעון ישראל). העלות לפי מחירון הספק, בדולרים.', en: 'By day (Israel time). Cost at the provider list price, in US dollars.' },
+  },
+  file: {
+    rpc: 'quote_file_admin_usage', testid: 'admin-file-costs',
+    title: { he: 'עלויות הצעת מחיר מקובץ', en: 'Quote from a file costs' },
+    subtitle: { he: 'כמה קבצים נקראו וכמה הם עלו לנו אצל ספק הבינה. מספרים בלבד, בלי הקבצים, בלי השורות ובלי פרטי חשבונות.', en: 'How many files were read and what they cost us at the AI provider. Numbers only - no files, no lines, no account details.' },
+    stored: { he: 'קבצים שנקראו', en: 'Files read' }, refunded: { he: 'קריאות שהוחזרו', en: 'Reads given back' },
+    empty: { he: 'עדיין לא נקראו קבצים בתקופה הזו.', en: 'No files were read in this period yet.' },
+    caption: { he: 'לפי יום (שעון ישראל). העלות כפי שנרשמה בכל קריאה, בדולרים.', en: 'By day (Israel time). Cost as recorded on each read, in US dollars.' },
+  },
+};
+
+export default function AdminTwinCosts({ isHebrew, kind = 'twin' }) {
+  const K = KINDS[kind] || KINDS.twin;
+  const L = (o) => (isHebrew ? o.he : o.en);
   const [days, setDays] = useState(30);
   const [rows, setRows] = useState('loading');
   const [updatedAt, setUpdatedAt] = useState(null);
@@ -26,30 +49,30 @@ export default function AdminTwinCosts({ isHebrew }) {
   useEffect(() => {
     let cancelled = false;
     setRows('loading');
-    Promise.resolve(supabase.rpc('customer_twin_admin_usage', { p_days: days })).then(({ data, error }) => {
+    Promise.resolve(supabase.rpc(K.rpc, { p_days: days })).then(({ data, error }) => {
       if (cancelled) return;
       if (error || !data || data.ok !== true || !Array.isArray(data.days)) { setRows('unavailable'); return; }
       setRows(data.days);
       setUpdatedAt(new Date().toISOString());
     }).catch(() => { if (!cancelled) setRows('unavailable'); });
     return () => { cancelled = true; };
-  }, [days, refreshKey]);
+  }, [days, refreshKey, K.rpc]);
 
   const list = Array.isArray(rows) ? rows : [];
   const sum = (k) => list.reduce((a, r) => a + (Number(r[k]) || 0), 0);
   const kpis = [
-    { key: 'stored', he: 'בדיקות שהושלמו', en: 'Checks completed', value: int(sum('stored')) },
-    { key: 'refunded', he: 'בדיקות שהוחזרו', en: 'Checks given back', value: int(sum('refunded')) },
+    { key: 'stored', ...K.stored, value: int(sum('stored')) },
+    { key: 'refunded', ...K.refunded, value: int(sum('refunded')) },
     { key: 'tokens', he: 'מילים שעובדו (טוקנים)', en: 'Tokens processed', value: group(int(sum('promptTokens') + sum('completionTokens'))) },
     { key: 'cost', he: 'עלות משוערת', en: 'Estimated cost', value: usd(sum('estimatedCostUsd')) },
   ];
-  const title = isHebrew ? 'עלויות בדיקת הלקוח' : 'Customer check costs';
+  const title = L(K.title);
+  const id = K.testid;
 
   return (
     <AdminScreenFrame
       title={title}
-      subtitle={isHebrew ? 'כמה בדיקות רצו וכמה הן עלו לנו אצל ספק הבינה. מספרים בלבד, בלי תוכן ההצעות ובלי פרטי חשבונות.'
-        : 'How many checks ran and what they cost us at the AI provider. Numbers only - no quote content, no account details.'}
+      subtitle={L(K.subtitle)}
       label={title}
       isHebrew={isHebrew}
       onRefresh={() => setRefreshKey((k) => k + 1)}
@@ -57,32 +80,32 @@ export default function AdminTwinCosts({ isHebrew }) {
       updatedAt={updatedAt}
       formatTime={(v) => formatShortDateTime(v, market)}
     >
-      <article className="av-card" data-testid="admin-twin-costs">
+      <article className="av-card" data-testid={id}>
         <div className="av-pills" role="group" aria-label={isHebrew ? 'תקופה' : 'Period'}>
           {PERIODS.map((p) => (
             // PRODUCT_TRUTH_DECORATIVE: chooses the period of the Customer Twin cost view (read-only)
-            <button key={p} type="button" className="av-pill" aria-pressed={days === p} onClick={() => setDays(p)} data-testid={`admin-twin-costs-period-${p}`}>
+            <button key={p} type="button" className="av-pill" aria-pressed={days === p} onClick={() => setDays(p)} data-testid={`${id}-period-${p}`}>
               {isHebrew ? <><N v={p} /> ימים אחרונים</> : <>Last <N v={p} /> days</>}
             </button>
           ))}
         </div>
 
         {rows === 'loading' ? <p className="av-muted" role="status">{t(isHebrew, C.loading.he, C.loading.en)}</p>
-          : rows === 'unavailable' ? <div className="av-notice av-bad" role="alert" data-testid="admin-twin-costs-unavailable">{t(isHebrew, C.loadFailed.he, C.loadFailed.en)}</div>
+          : rows === 'unavailable' ? <div className="av-notice av-bad" role="alert" data-testid={`${id}-unavailable`}>{t(isHebrew, C.loadFailed.he, C.loadFailed.en)}</div>
             : (
               <>
-                <div className="av-grid av-kpis av-section" data-testid="admin-twin-costs-kpis">
+                <div className="av-grid av-kpis av-section" data-testid={`${id}-kpis`}>
                   {kpis.map((k) => (
                     <div key={k.key} className="av-card av-accent-top" data-kpi={k.key}>
                       <div className="av-label">{isHebrew ? k.he : k.en}</div>
-                      <div className="av-kpi-value" data-testid={`admin-twin-costs-kpi-${k.key}`}>{k.value}</div>
+                      <div className="av-kpi-value" data-testid={`${id}-kpi-${k.key}`}>{k.value}</div>
                     </div>
                   ))}
                 </div>
-                {list.length === 0 ? <p className="av-muted av-section" role="status" data-testid="admin-twin-costs-empty">{isHebrew ? 'עדיין לא רצו בדיקות בתקופה הזו.' : 'No checks ran in this period yet.'}</p> : (
+                {list.length === 0 ? <p className="av-muted av-section" role="status" data-testid={`${id}-empty`}>{L(K.empty)}</p> : (
                   <div className="av-tablewrap av-section">
-                    <table data-testid="admin-twin-costs-table">
-                      <caption>{isHebrew ? 'לפי יום (שעון ישראל). העלות לפי מחירון הספק, בדולרים.' : 'By day (Israel time). Cost at the provider list price, in US dollars.'}</caption>
+                    <table data-testid={`${id}-table`}>
+                      <caption>{L(K.caption)}</caption>
                       <thead>
                         <tr>
                           <th scope="col">{isHebrew ? 'יום' : 'Day'}</th>

@@ -5,7 +5,7 @@
 // user asked for reduced motion. Law 45: the TEKANGO icons (the AI tile, the Customer Twin mark) and the app's own line icon for
 // templates. HE / RTL and EN / LTR.
 import { useEffect, useRef, useState } from 'react';
-import { X, FileStack } from 'lucide-react';
+import { X, FileStack, FileUp } from 'lucide-react';
 import TekangoAiIcon from './TekangoAiIcon';
 import CustomerTwinIcon from './CustomerTwinIcon';
 
@@ -60,9 +60,10 @@ export default function DailyTipCard({ tip, isHebrew, onAction, onDismiss, onTur
   useEffect(() => { left.current = AUTO_HIDE_MS; setLeaving(false); run(); return () => clearTimeout(timer.current); }, [tip?.id]);
   if (!tip) return null;
   const c = isHebrew ? tip.he : tip.en;
-  const mark = tip.icon === 'twin' ? <CustomerTwinIcon size={36} /> : tip.icon === 'template'
-    ? <span style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(135deg,#eef2ff,#e0f2fe)', color: '#3730a3', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><FileStack size={20} aria-hidden="true" /></span>
-    : <TekangoAiIcon size={36} />;
+  // the file tip (Owner console 2026-11-03) wears the approved "quote from a file" icon of the new-quote menu, framed like the template one
+  const lineMark = (Icon) => <span style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(135deg,#eef2ff,#e0f2fe)', color: '#3730a3', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={20} aria-hidden="true" /></span>;
+  const mark = tip.icon === 'twin' ? <CustomerTwinIcon size={36} /> : tip.icon === 'template' ? lineMark(FileStack)
+    : tip.icon === 'file' ? lineMark(FileUp) : <TekangoAiIcon size={36} />;
   return (
     <div className={`tk-tip no-print${leaving ? ' is-leaving' : ''}`} role="status" aria-live="polite" dir={isHebrew ? 'rtl' : 'ltr'} data-testid="daily-tip" data-tip={tip.id}
       style={{ '--tk-tip-ms': `${AUTO_HIDE_MS}ms`, '--tk-tip-origin': isHebrew ? 'right' : 'left' }}

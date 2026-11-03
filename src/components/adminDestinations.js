@@ -131,6 +131,14 @@ export const ADMIN_DESTINATIONS = [
     description: { he: 'כמה בדיקות רצו וכמה הן עלו לנו, לפי יום', en: 'How many checks ran and what they cost us, by day' },
     render: (host) => createElement(AdminTwinCosts, { isHebrew: host.isHebrew }),
   },
+  // Owner console 2026-11-03 (typed approval incl. L-22: "... מסך ניהול ..."): the same view for "quote from a file" reads - the Owner only
+  {
+    id: 'file-costs', hub: 'system', icon: Coins, permission: 'owner', mobile: 'more', available: true,
+    label: { he: 'עלויות הצעת מחיר מקובץ', en: 'Quote from a file costs' },
+    title: { he: 'עלויות הצעת מחיר מקובץ - סופר אדמין', en: 'Quote from a file costs - Super Admin' },
+    description: { he: 'כמה קבצים נקראו וכמה הם עלו לנו, לפי יום', en: 'How many files were read and what they cost us, by day' },
+    render: (host) => createElement(AdminTwinCosts, { isHebrew: host.isHebrew, kind: 'file' }),
+  },
   // Owner console 2026-10-22, typed approval of L-22: "כלי חשבוניות הוצאה במסך מערכת בניהול ..." - the Owner only (server: super admin only)
   {
     id: 'expense-invoices', hub: 'system', icon: Receipt, permission: 'owner', mobile: 'more', available: true,
