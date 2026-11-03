@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { ChevronDown, CirclePlus, Plus } from 'lucide-react';
-import { newQuoteChoices, templateChoice } from '../utils/newQuoteChoices';
+import { menuChoices } from '../utils/newQuoteChoices';
 
 // One "New quote" entry used by the sidebar row and the quotes toolbar. It presents three plain-language ways to
 // start a quote and only delegates to handlers the caller already owns:
@@ -11,15 +11,16 @@ import { newQuoteChoices, templateChoice } from '../utils/newQuoteChoices';
 // its inline alignment follows the trigger's real computed direction and is clamped inside the dashboard shell.
 const MENU_WIDTH = 268;
 
-export default function NewQuoteMenu({ isHebrew, variant = 'toolbar', onStandard, onAi, onStructured, onTemplate = null }) {
+export default function NewQuoteMenu({ isHebrew, variant = 'toolbar', onStandard, onAi, onStructured, onTemplate = null, onFile = null }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState(null);
   const wrapRef = useRef(null);
   const triggerRef = useRef(null);
   const menuRef = useRef(null);
   const menuId = useId();
-  const choices = typeof onTemplate === 'function' ? [...newQuoteChoices(isHebrew), templateChoice(isHebrew)] : newQuoteChoices(isHebrew);
-  const handlers = { standard: onStandard, ai: onAi || onStandard, structured: onStructured || onStandard, template: onTemplate };
+  // Owner 2026-11-03: "quote from a file" right after the AI smart quote, only where the caller offers it
+  const choices = menuChoices(isHebrew, { file: typeof onFile === 'function', template: typeof onTemplate === 'function' });
+  const handlers = { standard: onStandard, ai: onAi || onStandard, file: onFile, structured: onStructured || onStandard, template: onTemplate };
 
   const close = useCallback((restoreFocus = false) => {
     setOpen(false);

@@ -299,8 +299,8 @@ export const AI_FACTS = {
       "id": "smart_quote",
       "heLabel": "הצעת מחיר חכמה",
       "enLabel": "Smart Quote flow",
-      "heDescription": "הצעת מחיר חכמה עם AI (בתפריט „הצעה חדשה”): מתארים את העבודה במילים, וה-AI מציע שורות - תיאור, כמות ויחידה; מחיר רק כשהפריט קיים בקטלוג שלכם, אחרת המחיר נשאר ריק להזנה. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה; שום דבר לא נשמר או נשלח לבד. אפשר גם להכתיב את העבודה בקול (המיקרופון בפינת שדה התיאור) ולענות בקול על השאלות שהטיוטה שואלת.",
-      "enDescription": "AI smart quote (in the \"New quote\" menu): describe the job in words and the AI suggests lines - description, quantity and unit; a price only when the item is in your catalog, otherwise the price stays empty for you to enter. You review, correct and approve before anything enters the quote; nothing is saved or sent on its own. You can also dictate the job by voice (the microphone in the corner of the description field) and answer the draft’s questions by voice.",
+      "heDescription": "הצעת מחיר חכמה עם AI (בתפריט „הצעה חדשה”): מתארים את העבודה במילים, וה-AI מציע שורות - תיאור, כמות ויחידה; מחיר רק כשהפריט קיים בקטלוג שלכם, אחרת המחיר נשאר ריק להזנה. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה; שום דבר לא נשמר או נשלח לבד. אפשר גם להכתיב את העבודה בקול (המיקרופון בפינת שדה התיאור) ולענות בקול על השאלות שהטיוטה שואלת. בתפריט יש גם „הצעת מחיר מקובץ”: מעלים קובץ PDF או JPG אחד של הצעה או רשימת עבודות, וה-AI קורא ממנו שורות, כמויות, יחידות ומחירים. בבדיקה מוצגים לכל שורה „מחיר במסמך” ו„המחיר שלכם”, ורק המחירים שלכם נכנסים להצעה. הקובץ לא נשמר ולא מצורף להצעה. חלק מחכם פלוס: 50 קבצים בחודש, ו-3 בשבעת הימים החינמיים.",
+      "enDescription": "AI smart quote (in the \"New quote\" menu): describe the job in words and the AI suggests lines - description, quantity and unit; a price only when the item is in your catalog, otherwise the price stays empty for you to enter. You review, correct and approve before anything enters the quote; nothing is saved or sent on its own. You can also dictate the job by voice (the microphone in the corner of the description field) and answer the draft’s questions by voice. The menu also has \"Quote from a file\": upload one PDF or JPG of a quote or job list, and the AI reads its lines, quantities, units and prices. The review shows \"Price in the document\" and \"Your price\" on each line, and only your prices enter the quote. The file is not stored or attached to the quote. Part of SMART PACK: 50 files a month, and 3 during the 7 free days.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -1546,6 +1546,28 @@ export const AI_FACTS = {
       }
     },
     {
+      "id": "quote_from_file",
+      "capabilityIds": [
+        "smart_quote"
+      ],
+      "he": {
+        "task": "הצעת מחיר מקובץ",
+        "steps": [
+          "לוחצים \"הצעה חדשה\" ובוחרים \"הצעת מחיר מקובץ\".",
+          "לוחצים \"בחרו קובץ\", בוחרים קובץ PDF או JPG אחד ולוחצים \"קריאת הפרטים\".",
+          "בכל שורה מוצגים \"מחיר במסמך\" ו\"המחיר שלכם\". ממלאים את המחיר שלכם ולוחצים \"הוספת השורות להצעה\". הקובץ לא נשמר."
+        ]
+      },
+      "en": {
+        "task": "A quote from a file",
+        "steps": [
+          "Click \"New quote\" and choose \"Quote from a file\".",
+          "Click \"Choose a file\", pick one PDF or JPG and click \"Read details\".",
+          "Each line shows \"Price in the document\" and \"Your price\". Fill in your price and click \"Add the lines to the quote\". The file is not stored."
+        ]
+      }
+    },
+    {
       "id": "quote_attachment",
       "capabilityIds": [
         "attachments"
@@ -1932,12 +1954,14 @@ export const AI_FACTS = {
           "צ׳אט חכם שקורא את הנתונים של המשתמש (הצעות, לקוחות, קטלוג, משימות)",
           "צ׳אט קולי (שאלה בקול ותשובה מוקראת)",
           "הצעה חכמה עם AI, כולל הכתבה בקול",
+          "הצעת מחיר מקובץ PDF או JPG, עם המחירים שלכם",
           "צירוף קבצים להצעה"
         ],
         "en": [
           "A smart chat that reads the user's own data (quotes, clients, catalog, tasks)",
           "Voice chat (a spoken question and a read-aloud answer)",
           "An AI smart quote, including voice dictation",
+          "A quote from a PDF or JPG file, with your own prices",
           "Files attached to a quote"
         ]
       },

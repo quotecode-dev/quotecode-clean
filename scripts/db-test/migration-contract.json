@@ -693,6 +693,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-02 (typed on \"מיילי שלב 2: ברוכים הבאים וסיום תקופת החינם\": \"מאשר אבל לא לעשות עכשיו, לשים בזכרון ותעשה אחרי כל מה שאציג בפנייך\"): a wider check and one service-only function; replays cleanly."
+    },
+    "20261103100000_quote_file_reads.sql": {
+      "sha256": "e7126c539e3381a00b98cd445a2ccfd2fb0aab9c1cf58bdaa10091415449b676",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-11-03 (typed: \"מאשר הפעלת ארבעת הסוכנים ובניית הצעה מקובץ לפי האפיון וששת ההחלטות שלי, כולל שינוי ב-L-05, L-06, L-09, L-12, L-14, L-15, L-17, L-22, L-23, L-24, L-25, L-27 ו-L-28, שחרור עד הלייב\"): one closed counter table (no file content) and four functions; replays cleanly (IF NOT EXISTS / CREATE OR REPLACE)."
     }
   }
 }

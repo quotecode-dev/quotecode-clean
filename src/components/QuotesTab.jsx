@@ -162,6 +162,8 @@ export default function QuotesTab({
   onCreateStructuredQuote,
   onCreateFromTemplate = null,
   onCreateAiQuote,
+  // Owner 2026-11-03: "quote from a file" (SMART PACK) - shown right after the AI smart quote when the Dashboard passes it
+  onCreateFileQuote = null,
   // night task 2026-10-19 (Owner): a one-shot { quoteId, nonce } from the bell / floating notice - its page opens, then its tracking details
   focusQuoteRequest = null,
   onFocusQuoteConsumed = null,
@@ -1080,6 +1082,7 @@ export default function QuotesTab({
                 onAi={onCreateAiQuote}
                 onStructured={onCreateStructuredQuote}
                 onTemplate={onCreateFromTemplate}
+                onFile={onCreateFileQuote}
               />
             )}
           </div>

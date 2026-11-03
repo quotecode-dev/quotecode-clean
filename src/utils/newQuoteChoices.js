@@ -1,4 +1,4 @@
-import { FileText, LayoutTemplate, Ruler, Sparkles } from 'lucide-react';
+import { FileText, FileUp, LayoutTemplate, Ruler, Sparkles } from 'lucide-react';
 
 // The three plain-language ways to start a quote (labels + one-line hints, HE/EN).
 export function newQuoteChoices(isHebrew) {
@@ -24,6 +24,23 @@ export function newQuoteChoices(isHebrew) {
       hint: isHebrew ? 'מכניסים מידות, והמחיר מחושב לבד' : 'Enter the measurements - the price is calculated for you',
     },
   ];
+}
+
+// Owner console 2026-11-03 (typed approval incl. L-23): "quote from a file" (SMART PACK) - shown right after the AI smart quote
+// wherever the caller offers it (Owner: "אפשרות חמישית ... אחרי ההצעה החכמה").
+export function fileChoice(isHebrew) {
+  return {
+    id: 'file',
+    Icon: FileUp,
+    label: isHebrew ? 'הצעת מחיר מקובץ' : 'Quote from a file',
+    hint: isHebrew ? 'מעלים הצעה ב-PDF או JPG וקובעים את המחירים שלכם' : 'Upload a quote (PDF or JPG) and set your own prices',
+  };
+}
+
+// The menu order (Owner 2026-11-03): standard, AI, from a file (when offered), measured, template (when offered).
+export function menuChoices(isHebrew, { file = false, template = false } = {}) {
+  const [standard, ai, ...rest] = newQuoteChoices(isHebrew);
+  return [standard, ai, ...(file ? [fileChoice(isHebrew)] : []), ...rest, ...(template ? [templateChoice(isHebrew)] : [])];
 }
 
 // Task 27 (spec §6): the optional fourth way - start from a saved whole-quote template (shown only where the caller offers it).
