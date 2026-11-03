@@ -42,7 +42,7 @@ describe('F08: the annual saving with SMART PACK ticked', () => {
     const note = () => container.querySelector('[data-period-note="year"]').textContent;
     expect(note()).toBe('Save 15%');
     fireEvent.click(container.querySelector('[data-addon-toggle]'));
-    expect(note()).toBe('Save 15% base package only');
+    expect(note()).toBe('Save 15%. base package only');
   });
 });
 
