@@ -86,8 +86,9 @@ function ReplyCard({ a, isHebrew, canPublish, busy, onAct }) {
   );
 }
 // the results of a published post: what the current permissions allow; reach missing = said so, never 0
+// Owner console 2026-11-03 (typed L-22 approval): no results row yet = not collected yet (the daily run collects the first two weeks), not a permission
 function PostResults({ m, isHebrew }) {
-  if (!m) return <p className="av-muted" style={{ margin: '6px 0 0', fontSize: '0.82rem' }} data-testid="social-metrics-unavailable">{isHebrew ? 'נתוני הפוסט אינם זמינים בהרשאות הנוכחיות.' : 'Post metrics are unavailable with the current permissions.'}</p>;
+  if (!m) return <p className="av-muted" style={{ margin: '6px 0 0', fontSize: '0.82rem' }} data-testid="social-metrics-unavailable">{isHebrew ? 'עוד אין נתונים לפוסט הזה. הם נאספים פעם ביום, בשבועיים הראשונים אחרי הפרסום.' : 'No results for this post yet. They are collected once a day, for the first two weeks after publishing.'}</p>;
   const part = (he, en, v) => (v === null || v === undefined ? null : <span>{isHebrew ? he : en} <N v={v} /></span>);
   return (
     <p className="av-muted" style={{ margin: '6px 0 0', fontSize: '0.82rem', display: 'flex', gap: 10, flexWrap: 'wrap' }} data-testid={`social-metrics-${m.actionId}`}>
