@@ -54,7 +54,7 @@ export default function LandingLocal({ onForgotPassword }) {
       notice: null,
     },
     {
-      id: 'all_inclusive', icon: PackageCheck, name: 'הכול כלול', tagline: 'מסלול אחד עם כל היכולות הזמינות במערכת, בתשלום חודשי או שנתי.',
+      id: 'all_inclusive', icon: PackageCheck, name: 'הכול כלול', tagline: 'מסלול אחד עם כל יכולות הבסיס הזמינות. חכם פלוס הוא תוספת בתשלום לבחירה.',
       prices: [
         { period: 'month', amount: ilsPackageAmount('month'), per: '/ חודש' },
         // Task 26 (Owner 2026-10-11, exact wording): shown only while the annual period is chosen - the permanent saving rate and amount vs
