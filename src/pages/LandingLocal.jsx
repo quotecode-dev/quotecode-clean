@@ -184,8 +184,6 @@ export default function LandingLocal({ onForgotPassword }) {
       demoTitle: 'העוזר החכם',
       demoQuestion: 'כמה הצעות מחכות לאישור השבוע?',
       demoAnswer: 'שלוש הצעות מחכות לאישור. שתיים מהן נצפו היום, וכדאי לפנות שוב ללקוחות שקיבלו אותן.',
-      // Owner 2026-11-03: the voice-chat ad under the demo (logo and bottom bar removed, two lines)
-      hands: { title: 'הידיים תפוסות?', accent: 'שואלים בקול.', line: 'ושומעים את התשובה, גם מהשטח.', alt: 'בעל מקצוע מרצף על הברכיים, הידיים בעבודה' },
       soon: 'בקרוב',
       features: [
         { icon: 'chat', title: 'צ׳אט חכם שמכיר את העסק', text: 'שואלים על ההצעות, הלקוחות, הקטלוג והמשימות, ומקבלים תשובה מהנתונים האמיתיים שלכם.' },
