@@ -699,6 +699,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-03 (typed: \"מאשר הפעלת ארבעת הסוכנים ובניית הצעה מקובץ לפי האפיון וששת ההחלטות שלי, כולל שינוי ב-L-05, L-06, L-09, L-12, L-14, L-15, L-17, L-22, L-23, L-24, L-25, L-27 ו-L-28, שחרור עד הלייב\"): one closed counter table (no file content) and four functions; replays cleanly (IF NOT EXISTS / CREATE OR REPLACE)."
+    },
+    "20261103200000_super_admin_always_lifetime.sql": {
+      "sha256": "d5960cb484e938582ca1acfc433ef8c41c0ae08f5adbb9c155e24ec067774012",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-11-03 (typed: \"מאשר כלל קבוע שמנהל המערכת תמיד נחשב מנוי לכל החיים ולא תלוי במסלול, כולל שינוי ב-L-05 ו-L-22, שחרור עד הלייב\"): one trigger, one guard allowance and an idempotent UPDATE; replays cleanly (CREATE OR REPLACE / DROP TRIGGER IF EXISTS / UPDATE ... IS DISTINCT FROM)."
     }
   }
 }
