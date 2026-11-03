@@ -76,6 +76,18 @@ export default function SmartPackShowcase({ copy, isHe, plansHref }) {
             </div>
           </div>
 
+          {/* Owner 2026-11-03: the empty space under the demo filled with the voice-chat ad ("הידיים תפוסות? שואלים בקול."), its logo and
+              bottom bar removed, the text in two lines; the cards' structure is unchanged (the panel takes the demo's column only) */}
+          {copy.hands && (
+            <div className="sp-hands" data-testid="smart-pack-hands">
+              <div className="sp-hands-text">
+                <strong>{copy.hands.title} <em>{copy.hands.accent}</em></strong>
+                <span>{copy.hands.line}</span>
+              </div>
+              <img src="/assets/landing/smart-pack-hands.webp" alt={copy.hands.alt} loading="lazy" decoding="async" width="1000" height="1777" />
+            </div>
+          )}
+
           <ul className="sp-features">
             {copy.features.map((f, i) => {
               const Icon = ICONS[f.icon] || Sparkles;
