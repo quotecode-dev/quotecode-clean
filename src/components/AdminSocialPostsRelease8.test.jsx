@@ -33,6 +33,16 @@ describe('Shira\'s replies and the post results', () => {
     expect(screen.getByTestId('social-metrics-p4').textContent).toContain(he ? 'נתוני הפוסט אינם זמינים בהרשאות הנוכחיות.' : 'post metrics are unavailable with the current permissions.');
     expect(screen.getByTestId('social-metrics-p4').textContent).toContain('7');
   });
+  // Owner console 2026-11-03 (typed: "מאשר תיקון הכרטיס של נועה ונוסח נתוני הפוסטים בחדר הסוכנים, כולל שינוי ב-L-22, שחרור עד הלייב")
+  it.each([[true], [false]])('isHebrew=%s: a post with no results row yet says they are not collected yet, never a permission', async (he) => {
+    invoke.mockResolvedValue({ data: { ...STATE, metrics: [] }, error: null });
+    render(<AdminSocialPosts isHebrew={he} />);
+    await screen.findByTestId('social-replies-waiting');
+    fireEvent.click(screen.getByTestId('social-published').querySelector('summary'));
+    expect(screen.getByTestId('social-metrics-unavailable').textContent).toBe(he ? 'עוד אין נתונים לפוסט הזה. הם נאספים פעם ביום, בשבועיים הראשונים אחרי הפרסום.'
+      : 'No results for this post yet. They are collected once a day, for the first two weeks after publishing.');
+    expect(screen.getByTestId('social-published').textContent).not.toMatch(/הרשאות|permissions/);
+  });
   it('the approval sends the text exactly as edited', async () => {
     invoke.mockResolvedValue({ data: STATE, error: null });
     render(<AdminSocialPosts isHebrew />);
