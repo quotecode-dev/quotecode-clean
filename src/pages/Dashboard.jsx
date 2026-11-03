@@ -97,12 +97,14 @@ import { persistQuote, deleteQuoteWithAttachments, newUuid } from '../utils/quot
 import { resolveEditorAttachmentOpen } from '../utils/attachmentCompatPath';
 import QuotesTab from '../components/QuotesTab';
 import NewQuoteMenu from '../components/NewQuoteMenu';
-import { newQuoteChoices, templateChoice } from '../utils/newQuoteChoices';
+import { menuChoices } from '../utils/newQuoteChoices';
 import { SaveTemplateDialog, TemplatePickerDialog } from '../components/QuoteTemplateDialogs';
 import { matchesQuoteFilter } from '../utils/quoteStatusDisplay';
 import { templateToFormState, templateCurrencyMismatch, templateCurrencyUnknown, withoutPrices, templatePriceBasis, clientTypeForPriceBasis } from '../utils/quoteTemplates';
 import AiQuoteDraftDialog from '../components/AiQuoteDraftDialog';
 import { requestAiQuoteDraft, draftLinesToQuoteItems } from '../utils/aiQuoteDraftClient';
+import QuoteFromFileDialog from '../components/QuoteFromFileDialog';
+import { requestQuoteFromFile, readQuoteFileAllowance } from '../utils/quoteFromFileClient';
 import { buildQuoteDraftSnapshot } from '../utils/quoteDraftSnapshot';
 import { isUntouchedPlaceholderItem } from '../utils/structuredQuoteItemPersistence';
 import SidebarAccountMenu from '../components/SidebarAccountMenu';
@@ -522,6 +524,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // Task 21: a quote started from the "measured" choice (drives the wizard's measurement recommendation) and the AI quote-draft dialog.
   const [measuredQuoteEntry, setMeasuredQuoteEntry] = useState(false);
   const [showAiQuoteDraft, setShowAiQuoteDraft] = useState(false);
+  // Owner 2026-11-03: the "quote from a file" review dialog (SMART PACK)
+  const [showFileQuote, setShowFileQuote] = useState(false);
   const [shellDrawerOpen, setShellDrawerOpen] = useState(false);
   const closeShellDrawer = useCallback(() => setShellDrawerOpen(false), []);
   // AV-14: the admin page head opens the shared sidebar drawer on a portrait tablet
@@ -2116,7 +2120,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             setActiveTab('main');
             setStatusMsg({ text: isHebrew ? 'פרטי העסק נשמרו. חזרתם להצעה - אפשר לשמור אותה עכשיו.' : 'Business details saved. You are back in your quote - you can save it now.', type: 'success' });
           } else if (resume.kind === 'new_quote') {
-            const open = resume.variant === 'ai' ? handleCreateAiQuoteClick : resume.variant === 'structured' ? handleCreateStructuredQuoteClick : resume.variant === 'template' ? handleOpenTemplatePicker : handleCreateNewQuoteClick;
+            const open = resume.variant === 'ai' ? handleCreateAiQuoteClick : resume.variant === 'file' ? handleCreateFileQuoteClick : resume.variant === 'structured' ? handleCreateStructuredQuoteClick : resume.variant === 'template' ? handleOpenTemplatePicker : handleCreateNewQuoteClick;
             open();
             setStatusMsg({ text: isHebrew ? 'פרטי העסק נשמרו. אפשר להתחיל בהצעה החדשה.' : 'Business details saved. You can start your new quote.', type: 'success' });
           }
@@ -2675,7 +2679,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             // consent records keep their own versions
             terms_version: '2026-11-01', // Owner 2026-11-01: purchase open abroad (USD); Owner 2026-10-25: payments in Israel (before: 2026-10-24 a quote counts at its first save; 2026-10-23 the Free plan's 7 days)
             // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
-            privacy_version: '2026-11-02', // Owner 2026-11-01 (L-12): the one sign-up event; 2026-11-02 payments abroad (USD) (before: 2026-10-30 Codex release 9, L-12: optional help emails need separate consent; before: 2026-10-25 the payments section; 2026-10-23 consent by location + the Hebrew opt-out)
+            privacy_version: '2026-11-03', // Owner 2026-11-03 (L-12): reading a quote from a file; 2026-11-01 (L-12): the one sign-up event; 2026-11-02 payments abroad (USD) (before: 2026-10-30 Codex release 9, L-12: optional help emails need separate consent; before: 2026-10-25 the payments section; 2026-10-23 consent by location + the Hebrew opt-out)
             terms_accepted_at: new Date().toISOString(),
           }
         }
@@ -4085,6 +4089,19 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     setShowAiQuoteDraft(true);
   };
   handleCreateAiQuoteClickRef.current = handleCreateAiQuoteClick;
+  // Owner console 2026-11-03 (typed approval incl. L-05, L-17, L-23): "quote from a file" is SMART PACK - the same click-time guard as the AI quote
+  const handleCreateFileQuoteClick = () => {
+    if (!smartPackAllowed) { if (!free10Blocked()) setLockedCapability('smart_pack'); return; }
+    if (handleCreateNewQuoteClick('file') === false) return;
+    setShowFileQuote(true);
+  };
+  // the reviewed lines from the file dialog: ONLY the owner's own lines and prices join the form (the untouched blank row is replaced);
+  // the subject is never filled from another business's document. Nothing is saved.
+  const applyFileQuoteLines = (lines) => {
+    const drafted = draftLinesToQuoteItems(lines);
+    setItems((prev) => [...prev.filter((it) => !isUntouchedPlaceholderItem(it)), ...drafted]);
+    setShowFileQuote(false);
+  };
   // The user's explicit "add to quote" in the AI draft dialog: the chosen lines join the form's real items (the untouched blank row is
   // replaced, as handleAddFromCatalog does), and the suggested subject fills the subject only while it is still empty. Nothing is saved.
   const applyAiQuoteDraft = (lines, subject) => {
@@ -4112,7 +4129,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   // in this browser only; when the browser storage is unavailable no tip is shown at all (it could never be counted as seen).
   const [dailyTip, setDailyTip] = useState(null);
   const tipUserId = session?.user?.id || null;
-  const tipQuiet = !!tipUserId && activeTab === 'main' && !showQuoteForm && !customerTwin && !showPricingModal && !templateDialog && !showAiQuoteDraft && !showMobileNewQuoteMenu;
+  const tipQuiet = !!tipUserId && activeTab === 'main' && !showQuoteForm && !customerTwin && !showPricingModal && !templateDialog && !showAiQuoteDraft && !showFileQuote && !showMobileNewQuoteMenu;
   useEffect(() => {
     if (!tipQuiet || dailyTip) return undefined;
     const timer = setTimeout(() => {
@@ -8170,6 +8187,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onAi={handleCreateAiQuoteClick}
               onStructured={handleCreateStructuredQuoteClick}
               onTemplate={handleOpenTemplatePicker}
+              onFile={handleCreateFileQuoteClick}
             />
 
             {/* חוק ברזל (Functional Parity Across Viewports task, 2026-09-08):
@@ -8810,6 +8828,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                 onCreateStructuredQuote={handleCreateStructuredQuoteClick}
                 onCreateFromTemplate={handleOpenTemplatePicker}
                 onCreateAiQuote={handleCreateAiQuoteClick}
+                onCreateFileQuote={handleCreateFileQuoteClick}
                 focusQuoteRequest={bellQuoteFocus}
                 onFocusQuoteConsumed={() => setBellQuoteFocus(null)}
                 tasksClient={supabase}
@@ -8929,6 +8948,19 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onOpenChat={openAiChat}
               onClose={() => setShowAiQuoteDraft(false)}
               onApply={applyAiQuoteDraft}
+            />
+            {/* Owner 2026-11-03: quote from a file - the owner's reviewed lines and own prices only; the file and the document prices never leave the dialog */}
+            <QuoteFromFileDialog
+              isOpen={showFileQuote && isCreatingQuote && !editingQuoteId}
+              isHebrew={isHebrew}
+              sym={sym}
+              formatMoneyDisplay={formatMoneyDisplay}
+              currency={currency}
+              catalog={services}
+              readFile={(file) => requestQuoteFromFile(supabase, file)}
+              readAllowance={() => readQuoteFileAllowance(supabase)}
+              onClose={() => setShowFileQuote(false)}
+              onApply={applyFileQuoteLines}
             />
             </>
           )}
@@ -9332,13 +9364,13 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           style={{ position: 'fixed', insetInlineStart: '10px', insetInlineEnd: '10px', bottom: 'calc(58px + env(safe-area-inset-bottom, 0px))', background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.lg, boxShadow: '0 -6px 20px -4px rgba(31,27,46,0.22)', padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 9998, maxHeight: '70vh', overflowY: 'auto', boxSizing: 'border-box' }}
         >
           {/* PRODUCT_TRUTH_CAPABILITY: quote_create */}
-          {[...newQuoteChoices(isHebrew), templateChoice(isHebrew)].map(({ id, Icon, label, hint }) => (
+          {menuChoices(isHebrew, { file: true, template: true }).map(({ id, Icon, label, hint }) => (
             <button
               key={id}
               type="button"
               role="menuitem"
               data-choice={id}
-              onClick={() => { setShowMobileNewQuoteMenu(false); ({ standard: handleCreateNewQuoteClick, ai: handleCreateAiQuoteClick, structured: handleCreateStructuredQuoteClick, template: handleOpenTemplatePicker })[id](); }}
+              onClick={() => { setShowMobileNewQuoteMenu(false); ({ standard: handleCreateNewQuoteClick, ai: handleCreateAiQuoteClick, file: handleCreateFileQuoteClick, structured: handleCreateStructuredQuoteClick, template: handleOpenTemplatePicker })[id](); }}
               style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', width: '100%', boxSizing: 'border-box', minHeight: '48px', background: 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: NEON.textPrimary, cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left' }}
             >
               <Icon size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, marginTop: '1px', color: NEON.violet }} />

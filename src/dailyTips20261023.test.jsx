@@ -82,7 +82,7 @@ describe('the tip card', () => {
 describe('the Dashboard wiring', () => {
   const src = readFileSync('src/pages/Dashboard.jsx', 'utf8');
   it('only on the quotes list with nothing else open; actions reuse the existing paths', () => {
-    expect(src).toMatch(/const tipQuiet = !!tipUserId && activeTab === 'main' && !showQuoteForm && !customerTwin && !showPricingModal && !templateDialog && !showAiQuoteDraft && !showMobileNewQuoteMenu;/);
+    expect(src).toMatch(/const tipQuiet = !!tipUserId && activeTab === 'main' && !showQuoteForm && !customerTwin && !showPricingModal && !templateDialog && !showAiQuoteDraft && !showFileQuote && !showMobileNewQuoteMenu;/);
     expect(src).toMatch(/\{dailyTip && tipQuiet && \(\s*<DailyTipCard /);
     expect(src).toMatch(/tip\.action === 'smart_quote'\) handleCreateAiQuoteClick\(\)/);
     expect(src).toMatch(/tip\.action === 'templates'\) handleOpenTemplatePicker\(\)/);

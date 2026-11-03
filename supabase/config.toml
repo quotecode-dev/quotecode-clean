@@ -270,6 +270,14 @@ enabled = true
 verify_jwt = true
 entrypoint = "./functions/customer-twin/index.ts"
 
+[functions.quote-from-file]
+enabled = true
+# Owner console 2026-11-03: "quote from a file" (SMART PACK) - ONE PDF / JPG read by the AI provider into draft lines for the owner's
+# review. The file is never stored or logged. The JWT is verified by the gateway AND in code (auth.getUser) before the body is read;
+# the allowance is claimed with the caller JWT (quote_file_read_claim, auth.uid()).
+verify_jwt = true
+entrypoint = "./functions/quote-from-file/index.ts"
+
 [functions.get-business-card]
 enabled = true
 # Task 23 (local only, NOT deployed): the PUBLIC digital business card read (/card/:id). verify_jwt=false on purpose - the card is
