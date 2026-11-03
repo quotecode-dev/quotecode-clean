@@ -19,16 +19,19 @@ export const VOICE_ASSISTANT_ANNOUNCEMENT = Object.freeze({
 // Owner console 2026-10-20, typed: "מאשר שינוי ב-L-17: הודעה צפה אחת על חכם פלוס" - the SMART PACK add-on: floats once like every new bell item;
 // its action opens the plans view (where the add-on box is). Prices = addOnCatalog.js (10 ILS / 5 USD a month). Owner console 2026-10-25
 // (typed L-17 ... "להפעלת הרכישה בישראל"): purchasable in Israel (the HE text says so); abroad not yet (the EN text is unchanged).
+// Owner console 2026-11-03 (typed: "מאשר תיקון כל אזכורי הצעת מחיר מקובץ לפי התוכנית (פעמון, ...), כולל שינוי ב-L-05, L-06, L-11, L-12,
+// L-14, L-17 ו-L-22"): + quote from a file and Improve quote; the EN text no longer says "when the plans open" (abroad is open since
+// 2026-11-01); v2 = floats once more for every account.
 export const SMART_PACK_ANNOUNCEMENT = Object.freeze({
-  key: 'announce:smart-pack:v1',
+  key: 'announce:smart-pack:v2',
   kind: 'announce',
   action: 'plans',
   from: '2026-10-20',
   until: '2026-12-31',
   sortAt: '2026-10-20T00:00',
   copy: Object.freeze({
-    he: Object.freeze({ title: 'חדש: חכם פלוס', body: 'תוספת למנוי עם צ׳אט חכם שמכיר את הנתונים שלכם, צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, וקבצים מצורפים להצעה. ₪10 לחודש כולל מע״מ, לבחירתכם. אפשר להוסיף אותה בחלון המסלולים.' }),
-    en: Object.freeze({ title: 'New: SMART PACK', body: 'A plan add-on with a smart chat that knows your data, voice chat, an AI smart quote with voice dictation, and files attached to quotes. $5 a month, your choice. It will be available to buy when the plans open.' }),
+    he: Object.freeze({ title: 'חדש: חכם פלוס', body: 'תוספת למנוי עם צ׳אט חכם שמכיר את הנתונים שלכם, צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, הצעת מחיר מקובץ PDF או JPG, שיפור ההצעה וקבצים מצורפים להצעה. ₪10 לחודש כולל מע״מ, לבחירתכם. אפשר להוסיף אותה בחלון המסלולים.' }),
+    en: Object.freeze({ title: 'New: SMART PACK', body: 'A plan add-on with a smart chat that knows your data, voice chat, an AI smart quote with voice dictation, a quote from a PDF or JPG file, Improve quote and files attached to quotes. $5 a month, your choice. Add it in the plans window.' }),
   }),
 });
 

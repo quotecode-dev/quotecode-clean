@@ -76,6 +76,19 @@ export const BUILD_QUOTE_REQUEST: readonly RegExp[] = [
   /\b(make|prepare|build|write|draft|create)\s+me\s+(a\s+|the\s+)?quote\b/i,
 ];
 
+// Owner console 2026-11-03 (typed: "מאשר תיקון כל אזכורי הצעת מחיר מקובץ לפי התוכנית (... צ'אט ...), כולל שינוי ב-L-05, L-06, L-11, L-12,
+// L-14, L-17 ו-L-22"): a quote made FROM a file (another business's PDF / JPG) is the smart_quote capability's "quote from a file" - never
+// the PDF download (quote_pdf) nor attaching a file to a quote (attachments); these requests offer the open_file_quote button.
+export const QUOTE_FROM_FILE_REQUEST: readonly RegExp[] = [
+  /הצע\S*(\s+מחיר)?\s+(מ-?\s?|מתוך\s+)(ה?קובץ|pdf|jpe?g|ה?תמונה|ה?מסמך|ה?צילום)/i,
+  /(קובץ|pdf|jpe?g|תמונה|צילום|מסמך)\S*.{0,20}(ולקבל|ולהכין|וליצור|ולהפוך|להפוך|ליצור|להכין|יכין|תכין|יהפוך)\s.{0,15}הצע/i,
+  /הצע\S*(\s+מחיר)?\s+של\s+(בעל\s+מקצוע|עסק|ספק|קבלן|מתחרה|מישהו)\s+אחר/,
+  /\bquotes?\s+from\s+(a\s+|an\s+|the\s+|my\s+|another\s+|this\s+)?(file|pdf|jpe?g|photo|image|picture|document|scan)\b/i,
+  /\b(turn|convert|make)\b.{0,25}\b(file|pdf|jpe?g|photo|image|document)\b.{0,10}\b(into|to)\s+(a\s+|my\s+)?quote\b/i,
+  /\b(upload|import|scan)\b.{0,30}\b(another|other|competitor'?s?|supplier'?s?|someone else'?s?)\s+(business'?s?\s+)?quotes?\b/i,
+  /\b(upload|import)\b.{0,25}\b(file|pdf|jpe?g|photo|image|document)\b.{0,30}\b(make|create|build|get|generate|turn)\b.{0,20}\bquote\b/i,
+];
+
 // Ordered [id, patterns[]] pairs. Order matters: the most specific ("is the AI itself doing this
 // for me") patterns are checked first so "can the AI edit my quote" never gets swallowed by the
 // generic "quote_edit" pattern meant for "can I edit a quote myself".
@@ -110,6 +123,7 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     /(בעל.?פה|בקול|להכתיב|מכתיב|הכתבה|בדיבור|להקליט).{0,40}הצע|הצע.{0,40}(בעל.?פה|בקול|להכתיב|הכתבה|בדיבור|להקליט)/,
     /\b(by voice|dictat\w*)\b.{0,40}\bquotes?\b|\bquotes?\b.{0,40}\b(by voice|dictat\w*)\b/i,
     /הצעת מחיר חכמה/, /\bAI smart quote\b/i,
+    ...QUOTE_FROM_FILE_REQUEST, // Owner console 2026-11-03 - before quote_pdf / attachments below
   ]],
   ['reminders_automation', [
     /פופ.?אפ/, /\bpop-?\s?ups?\b/i,

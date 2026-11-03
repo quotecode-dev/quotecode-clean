@@ -90,7 +90,8 @@ describe('buildVerifiedAccountContext - minimal safe field allowlist', () => {
   });
   it('never includes role, business name, tax id, address, phone, or any other non-allowlisted field on the returned object', () => {
     const ctx = buildVerifiedAccountContext({ role: 'super_admin', country: 'Local', business_name: 'X', tax_id: '1', phone: '2' }, 'main');
-    expect(Object.keys(ctx).sort()).toEqual(['account', 'currentArea', 'market']);
+    expect(Object.keys(ctx).sort()).toEqual(['account', 'currentArea', 'fileReads', 'market']); // + fileReads (Owner console 2026-11-03, L-11): numbers only
+    expect(ctx.fileReads).toBeNull();
     expect(Object.keys(ctx.account).sort()).toEqual(['free10PeriodEnded', 'free10Remaining', 'isLifetime', 'outputPhase', 'planId', 'subscriptionStatus', 'summaryState']);
   });
   it('carries the allowlisted currentArea through unchanged', () => {

@@ -23,6 +23,14 @@ export const DAILY_TIPS = Object.freeze([
     en: { text: 'In the "AI smart quote" you describe the job in your own words and the assistant prepares a draft you can edit before saving.', action: 'Try it now' },
   }),
   Object.freeze({
+    // Owner console 2026-11-03 (typed: "מאשר תיקון כל אזכורי הצעת מחיר מקובץ לפי התוכנית (... טיפ יומי ...), כולל שינוי ב-L-05, L-06, L-11,
+    // L-12, L-14, L-17 ו-L-22"): quote from a file - after the AI smart quote tip, the same moment (at least one quote)
+    id: 'file_quote', icon: 'file', action: 'file_quote',
+    when: (c) => c.quotesCount >= 1,
+    he: { text: 'יש לכם הצעה של בעל מקצוע אחר כ-PDF או כתמונה? ב"הצעת מחיר מקובץ" ה-AI קורא את השורות, ואתם קובעים את המחירים שלכם.', action: 'לנסות עכשיו' },
+    en: { text: 'Have another business\'s quote as a PDF or photo? In "Quote from a file" the AI reads the lines and you set your own prices.', action: 'Try it now' },
+  }),
+  Object.freeze({
     id: 'voice', icon: 'ai', action: 'chat',
     when: (c) => c.mobile && c.voice,
     he: { text: 'בצ׳אט אפשר ללחוץ על המיקרופון ולשאול בקול, במקום להקליד.', action: 'לפתוח את הצ׳אט' },
