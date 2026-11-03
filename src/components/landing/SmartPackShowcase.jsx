@@ -7,7 +7,7 @@
 //  - Motion: a scripted assistant demo, a voice wave and staggered cards; everything is static and fully visible when the user asked
 //    for reduced motion.
 import { useEffect, useRef, useState } from 'react';
-import { Mic, Sparkles, Check, AudioLines, WandSparkles, FileStack, FileUp } from 'lucide-react';
+import { Mic, Sparkles, Check, AudioLines, WandSparkles, FileStack } from 'lucide-react';
 import TekangoAiIcon from '../TekangoAiIcon';
 import CustomerTwinIcon from '../CustomerTwinIcon';
 import './smartPack.css';
@@ -15,8 +15,7 @@ import { SMART_PACK_ENABLED } from './smartPackFacts';
 
 
 // Owner 2026-10-20 ("להחליף את האייקונים האלה גם למשהו מודרני יותר"): modern icons on a glossy animated tile
-// + Owner console 2026-11-03 ("מאשר את האייקון", law 45): the "quote from a file" card - the same arrow-out-of-a-page icon as its menu choice
-const ICONS = { voice: AudioLines, ai: WandSparkles, file: FileUp, files: FileStack };
+const ICONS = { voice: AudioLines, ai: WandSparkles, files: FileStack };
 // Owner console 2026-10-23 (law 45, "להחליף גם בדפי הנחיתה"): the smart chat card carries the TEKANGO AI tile itself, the Customer Twin
 // card the two-heads-and-lens mark (white on the animated tile); the demo's answer bubble the same AI tile
 const BRAND = { chat: 'ai', twin: 'twin' };
