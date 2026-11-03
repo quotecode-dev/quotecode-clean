@@ -1123,7 +1123,7 @@ export default function AddItemWizard({
   let formulaText = null;
   if (priceIsValid && total != null) {
     if (isMeasureMethod && calculatedValue != null) {
-      if (Number(calculatedValue.toFixed(2)) > 0) formulaText = <>{num(calculatedValue.toFixed(2))} {measureUnitWord} × {amt(unitPrice)} = {amt(total)}</>;
+      formulaText = <>{num(calculatedValue.toFixed(2))} {measureUnitWord} × {amt(unitPrice)} = {amt(total)}</>;
     } else if (pricingMethod === 'units' && Number(quantity) > 0) {
       formulaText = <>{num(quantity)} × {amt(unitPrice)} = {amt(total)}</>;
     }
@@ -1676,7 +1676,7 @@ export default function AddItemWizard({
                 {activeGroupName && <div style={{ fontSize: '0.76rem', color: NEON.textSecondary, marginTop: '2px' }}>{activeGroupName}</div>}
                 {isMeasureMethod && allRowsForReview.length > 0 && (
                   <div style={{ fontSize: '0.78rem', color: NEON.textSecondary, marginTop: '4px' }}>
-                    {allRowsForReview.length === 1 ? (isHebrew ? 'מידה אחת' : '1 size') : `${allRowsForReview.length} ${isHebrew ? 'מידות' : 'sizes'}`} · {calculatedValue != null ? calculatedValue.toFixed(2) : '—'} {measureUnitWord}
+                    {allRowsForReview.length} {isHebrew ? 'מידות' : 'sizes'} · {calculatedValue != null ? calculatedValue.toFixed(2) : '—'} {measureUnitWord}
                   </div>
                 )}
                 {pricingMethod === 'units' && (

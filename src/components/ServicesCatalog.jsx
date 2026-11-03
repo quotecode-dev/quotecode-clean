@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Package, PackagePlus, LayoutGrid, Pencil, Trash2, Save, X, Search, Image as ImageIcon, Lock } from 'lucide-react';
 import { APP as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from './../theme/neonTheme';
 import CatalogMediaControl from './quotePresentation/CatalogMediaControl';
@@ -127,29 +127,8 @@ export default function ServicesCatalog({
     '--svc-focus': NEON.violet,
   };
 
-  // Codex F06 (Owner 2026-11-03, L-23 #14): one measured actions track for the header and every row, so "fixed price" sits over the prices
-  const screenRef = useRef(null);
-  useLayoutEffect(() => {
-    const host = screenRef.current;
-    if (!host) return undefined;
-    const measure = () => {
-      let widest = 0;
-      for (const group of host.querySelectorAll('.svc-cat-row .svc-cat-actions')) {
-        const kids = [...group.children];
-        const width = kids.reduce((sum, el) => sum + el.getBoundingClientRect().width, 0) + Math.max(0, kids.length - 1) * 6;
-        if (width > widest) widest = width;
-      }
-      if (widest > 0) host.style.setProperty('--svc-actions-w', `${Math.ceil(widest)}px`);
-      else host.style.removeProperty('--svc-actions-w');
-    };
-    measure();
-    let alive = true;
-    if (document.fonts?.ready) document.fonts.ready.then(() => { if (alive) measure(); });
-    return () => { alive = false; };
-  }, [filteredServices, editingServiceId, isHebrew]);
-
   return (
-    <div ref={screenRef} className="pf-screen pf-work-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+    <div className="pf-screen pf-work-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
       {/* חוק ברזל (§H1): כותרת ברורה - "קטלוג שירותים ומוצרים"/"Services &
           Products Catalog" (הספק המדויק של המשימה). */}
       <h2 style={{ fontSize: '1.1rem', fontWeight: '800', margin: 0, marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px', ...neonGlowTextStyle }}>

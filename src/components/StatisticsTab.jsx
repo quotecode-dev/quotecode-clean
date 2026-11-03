@@ -97,7 +97,7 @@ export default function StatisticsTab({
         {L(['סטטיסטיקה', 'Statistics'])}
       </h2>
       <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: NEON.textSecondary }}>
-        {L(['מצב הצעות המחיר שלכם לפי הנתונים הקיימים', 'Your quote pipeline from your current quote data'])}
+        {L(['מצב הצעות המחיר שלך לפי הנתונים הקיימים', 'Your quote pipeline from your current quote data'])}
       </p>
 
       <div className="pf-stats-filters">

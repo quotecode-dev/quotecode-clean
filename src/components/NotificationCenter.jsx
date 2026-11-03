@@ -426,14 +426,12 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
 // the bell panel's place under its bell (the floating notice uses the very same place and size)
 function panelPlacement(btn, isHebrew) {
   const r = btn.getBoundingClientRect();
-  // Codex F15 (Owner 2026-11-03, L-11, L-17): the usable width, not a layout viewport wider than the screen
-  const vw = Math.min(window.innerWidth, document.documentElement.clientWidth || window.innerWidth, window.visualViewport?.width || window.innerWidth);
-  const width = Math.min(360, vw - 16);
-  const left = isHebrew ? Math.max(8, Math.min(r.left - 12, vw - width - 8)) : Math.max(8, Math.min(r.right + 12 - width, vw - width - 8));
+  const width = Math.min(360, window.innerWidth - 16);
+  const left = isHebrew ? Math.max(8, Math.min(r.left - 12, window.innerWidth - width - 8)) : Math.max(8, Math.min(r.right + 12 - width, window.innerWidth - width - 8));
   return { top: r.bottom + 10, left, width };
 }
 function panelBox(p) {
-  return { position: 'fixed', top: p.top, left: p.left, width: p.width, boxSizing: 'border-box', maxHeight: 'min(70vh, 520px)', overflowY: 'auto', background: '#fff', color: NEON.textPrimary, borderRadius: 14, boxShadow: '0 18px 40px -10px rgba(15,23,42,.35)', border: `1px solid ${NEON.border}`, textAlign: 'start', fontWeight: 400 };
+  return { position: 'fixed', top: p.top, left: p.left, width: p.width, maxHeight: 'min(70vh, 520px)', overflowY: 'auto', background: '#fff', color: NEON.textPrimary, borderRadius: 14, boxShadow: '0 18px 40px -10px rgba(15,23,42,.35)', border: `1px solid ${NEON.border}`, textAlign: 'start', fontWeight: 400 };
 }
 
 // the round X of the panel and of the floating notice; a 44px touch target on the phone

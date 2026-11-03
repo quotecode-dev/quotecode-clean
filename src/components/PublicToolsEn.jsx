@@ -139,7 +139,7 @@ function PublicToolsEn({ initialTab }) {
 
   const selectStyle = { width: '100%', padding: '12px', border: `1px solid ${TOOLS.borderStrong}`, borderRadius: '7px', minHeight: '44px', fontSize: '1rem', outline: 'none', background: TOOLS.bgInput, color: TOOLS.textPrimary, boxSizing: 'border-box' };
   const labelStyle = { display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '600', color: TOOLS.textSecondary };
-  const resultBoxStyle = { background: TOOLS.alt, padding: '20px', borderRadius: '12px', textAlign: 'center', border: `1px solid ${TOOLS.border}`, minWidth: 0 };
+  const resultBoxStyle = { background: TOOLS.alt, padding: '20px', borderRadius: '12px', textAlign: 'center', border: `1px solid ${TOOLS.border}` };
   const swapBtnStyle = { background: '#ffffff', border: `1px solid ${TOOLS.borderStrong}`, borderRadius: '7px', width: '46px', height: '46px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: TOOLS.violetLight };
   const numberInput = (id, value, setValue) => (
     <input id={id} type="text" inputMode="decimal" autoComplete="off" value={value} onChange={(e) => setValue(e.target.value)} style={selectStyle} />
@@ -346,7 +346,7 @@ function PublicToolsEn({ initialTab }) {
                 </div>
                 <InputError code={metalError} testId="tools-metal-error" />
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '15px', marginTop: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '12px' }}>
                   <div style={resultBoxStyle}>
                     <div style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>Estimated value (USD)</div>
                     <div data-testid="tools-metal-usd" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: TOOLS.amber }}>{metalUsdText}</div>
@@ -382,7 +382,7 @@ function PublicToolsEn({ initialTab }) {
                   <InputError code={coinIn.ok ? null : coinIn.code} testId="tools-crypto-error" />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '15px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
                   <div style={resultBoxStyle}>
                     <div style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>Estimated value (USD)</div>
                     <div data-testid="tools-crypto-usd" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: TOOLS.violetLighter }}>{cryptoUsdText}</div>

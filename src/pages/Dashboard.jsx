@@ -7245,7 +7245,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             background: #ffffff;
             /* ONE eight-track grid shared by the header row and every quote row (Owner R3): quote number, client, quote title,
                status, views, date, amount, action. Protected numeric/action tracks carry a px floor; client/title ellipsize. */
-            --qm-cols: minmax(84px, 72fr) minmax(0, 118fr) minmax(0, 104fr) minmax(136px, 104fr) minmax(68px, 64fr) minmax(64px, 104fr) minmax(88px, 96fr);
+            --qm-cols: minmax(84px, 72fr) minmax(0, 118fr) minmax(0, 104fr) minmax(70px, 104fr) minmax(68px, 64fr) minmax(64px, 104fr) minmax(88px, 96fr);
             --qm-gap: 6px;
           }
           /* selector chain outranks the shared ".pf-screen > .pf-screen-body > * { flex-shrink: 0 }" rule (the card is also a

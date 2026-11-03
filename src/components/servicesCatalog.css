@@ -36,8 +36,6 @@
 .svc-cat-desc { grid-area: desc; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
 .svc-cat-price { grid-area: price; min-width: 0; text-align: end; }
 .svc-cat-actions { grid-area: actions; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
-/* Codex F06 (Owner 2026-11-03, L-23 #14): the header and every row share one measured actions width, so the price column has one axis */
-.svc-cat-grid > .svc-cat-actions { min-width: var(--svc-actions-w, 0); }
 
 .svc-cat-head {
   padding: 6px 8px;

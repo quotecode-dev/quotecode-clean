@@ -312,7 +312,7 @@ export default function TasksTab({
             {L(['משימות', 'Tasks'])}
           </h2>
           <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: NEON.textSecondary }}>
-            {L(['משימות ידניות שנשמרות בחשבון שלכם וזמינות בכל מכשיר', 'Manual tasks saved to your account and available on every device'])}
+            {L(['משימות ידניות שנשמרות בחשבון שלך וזמינות בכל מכשיר', 'Manual tasks saved to your account and available on every device'])}
           </p>
         </div>
         {/* PRODUCT_TRUTH_CAPABILITY: manual_tasks */}

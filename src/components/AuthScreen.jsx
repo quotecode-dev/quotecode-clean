@@ -239,7 +239,7 @@ export default function AuthScreen({
                   {isHebrew ? ' ואת ' : ' and the '}
                   {/* PRODUCT_TRUTH_DECORATIVE: opens the Privacy Policy in a new tab (the signup form keeps its input) */}
                   <a href={isHebrew ? '/he/privacy' : '/en/privacy'} target="_blank" rel="noopener" style={{ color: NEON.violetLight, fontWeight: 600 }}>{isHebrew ? 'מדיניות הפרטיות' : 'Privacy Policy'}</a>
-                  {isHebrew ? ' ובסימון זה ניתנת הסכמתי להם.' : ' of TEKANGO.'}
+                  {isHebrew ? ' ואני מסכים/ה להם.' : ' of TEKANGO.'}
                 </span>
               </label>
             </>
