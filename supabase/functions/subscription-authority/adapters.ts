@@ -1,7 +1,7 @@
 // subscription-authority - I/O adapters from a minimal Supabase-like client shape to the pure interfaces (orchestrator,
 // output route, logo import). No Deno globals and no remote imports: the Edge entry passes the real supabase-js client;
 // tests pass in-memory fakes. Every adapter reads with the SERVICE client and takes the user id from the verified JWT.
-import type { MediaAssetSource, OutputSql, PresentationIntent, PresentationSource, SnapshotStorage } from './authorizeOutput.ts';
+import type { AttachmentRow, AttachmentSource, MediaAssetSource, OutputSql, PresentationIntent, PresentationSource, SnapshotStorage } from './authorizeOutput.ts';
 import type { AssetSql, AssetStorage } from './authority.ts';
 import { classifyPhaseRead, isMissingRelationError } from '../_shared/activationPhase.ts';
 import {
@@ -82,6 +82,19 @@ export function bucketSnapshotStorage(bucket: BucketApi): SnapshotStorage {
       const { error } = await bucket.remove([path]);
       if (error && !isStorageNotFound(error)) throw new Error('storage_unavailable');
     },
+  };
+}
+
+/** F17 (Owner 2026-11-03): the quote's attachment rows (service client, ordered created_at, id) + create-only copies in the bucket. */
+export function quoteAttachmentSource(bucket: BucketApi, listRows: (quoteId: string) => PromiseLike<{ data: unknown; error: unknown }>): AttachmentSource {
+  return {
+    async list(_userId: string, quoteId: string): Promise<AttachmentRow[]> {
+      const { data, error } = await listRows(quoteId);
+      if (error || !Array.isArray(data)) throw new Error('attachments_unavailable');
+      return data as AttachmentRow[];
+    },
+    read: (path) => readBytes(bucket, path),
+    put: (path, bytes, mime) => putNew(bucket, path, bytes, mime),
   };
 }
 

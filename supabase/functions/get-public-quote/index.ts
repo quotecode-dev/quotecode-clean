@@ -115,6 +115,11 @@ serve(async (req) => {
           if (error || !data) return null;
           return new Uint8Array(await data.arrayBuffer());
         },
+        // F17 (Owner 2026-11-03): an issued attachment copy, the same short-lived signed link as the legacy files
+        signAttachment: async (path) => {
+          const { data, error } = await adminClient.storage.from('quote-files').createSignedUrl(path, SIGNED_URL_EXPIRY_SECONDS);
+          return error || !data?.signedUrl ? null : data.signedUrl;
+        },
         readThanksRow,
         callerUserId,
         outputPhase,
