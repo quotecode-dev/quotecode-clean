@@ -99,8 +99,8 @@ export default function LandingGlobal({ onForgotPassword }) {
               ? { add: `(+${estOf(spMinor.month)} / month)`, amount: null, line: <>With SMART PACK: <bdi dir="ltr">{month.estimateText}</bdi> + <bdi dir="ltr">{estOf(spMinor.month)}</bdi> = <bdi dir="ltr">{estOf(withMinor('month'))}</bdi> per month (estimate). Charged in USD: <bdi dir="ltr">{usdWithSmartPack('month')}</bdi></> }
               : { add: `(+${usdSmartPack('month')} / month)`, amount: usdWithSmartPack('month'), line: <>With SMART PACK: <bdi dir="ltr">{month.text}</bdi> + <bdi dir="ltr">{usdSmartPack('month')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('month')}</bdi> per month (USD)</> },
             year: est
-              ? { add: `(+${estOf(spMinor.year)} / year)`, amount: null, line: <>With SMART PACK: <bdi dir="ltr">{year.estimateText}</bdi> + <bdi dir="ltr">{estOf(spMinor.year)}</bdi> = <bdi dir="ltr">{estOf(withMinor('year'))}</bdi> per year (estimate). Charged in USD: <bdi dir="ltr">{usdWithSmartPack('year')}</bdi></> }
-              : { add: `(+${usdSmartPack('year')} / year)`, amount: usdWithSmartPack('year'), line: <>With SMART PACK: <bdi dir="ltr">{year.text}</bdi> + <bdi dir="ltr">{usdSmartPack('year')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('year')}</bdi> per year (USD)</> },
+              ? { noteQualifier: 'This amount covers the base package only, not SMART PACK.', add: `(+${estOf(spMinor.year)} / year)`, amount: null, line: <>With SMART PACK: <bdi dir="ltr">{year.estimateText}</bdi> + <bdi dir="ltr">{estOf(spMinor.year)}</bdi> = <bdi dir="ltr">{estOf(withMinor('year'))}</bdi> per year (estimate). Charged in USD: <bdi dir="ltr">{usdWithSmartPack('year')}</bdi></> }
+              : { noteQualifier: 'This amount covers the base package only, not SMART PACK.', add: `(+${usdSmartPack('year')} / year)`, amount: usdWithSmartPack('year'), line: <>With SMART PACK: <bdi dir="ltr">{year.text}</bdi> + <bdi dir="ltr">{usdSmartPack('year')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('year')}</bdi> per year (USD)</> },
           },
         },
       } : {}),
@@ -271,7 +271,7 @@ export default function LandingGlobal({ onForgotPassword }) {
         { q: 'Can I export my financial reports and quotes?', a: 'Yes, you can easily export all your business quotes and expense reports into CSV format compatible with Excel and accounting software.' },
         // Owner console 2026-10-20 (landing copy approval): questions users asked in the smart chat and the support inbox; every answer =
         // the verified how-to facts (src/data/productHowTo.js) and the L-12 contact rule (email + chat, no phone).
-        { q: 'How do I sign up?', a: 'Choose "Get started", enter your email and a password, and accept the Terms of Use and the Privacy Policy. Then open the link we email you, and your account is ready. Before your first quote, add your business phone in Business Settings.' },
+        { q: 'How do I sign up?', a: 'Choose "10 free quotes", enter your email and a password, and accept the Terms of Use and the Privacy Policy. Then open the link we email you, and your account is ready. Before your first quote, add your business phone in Business Settings.' },
         { q: 'How do I send a quote to my customer?', a: 'Send it by email or WhatsApp, or copy a message with the quote link and paste it anywhere. Your customer opens the link on any device. You can also download the quote as a PDF.' },
         { q: 'Can my customer sign the quote on a phone?', a: 'Yes. Your customer opens the link, approves the quote and signs it digitally, and the quote status updates in your account. A signed quote is locked for editing; you can duplicate it to create a new quote.' },
         { q: 'Can I keep a fixed price list of products and services?', a: 'Yes. Add items with their prices to your catalog, and pick them when you build a quote.' },

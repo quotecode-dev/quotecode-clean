@@ -187,6 +187,16 @@
   overflow-wrap: anywhere;
 }
 
+/* Codex F01 (Owner 2026-11-03, L-02, L-24, L-28): a quote number and a date are one unit - they never break inside the value */
+.pq-letterhead .pq-meta-number .pq-meta-value,
+.pq-letterhead .pq-meta-date .pq-meta-value {
+  white-space: nowrap;
+  overflow-wrap: normal;
+}
+.pq-letterhead .pq-meta-valid .pq-meta-value {
+  overflow-wrap: normal;
+}
+
 .pq-letterhead .pq-header-valid.pq-is-expired,
 .pq-letterhead .pq-header-valid [data-testid='pq-header-expired'] {
   color: var(--pq-danger);
@@ -1780,6 +1790,12 @@
 .pq-pdf-capturing .pq-card .pq-letterhead .pq-lh-band .pq-meta-cell {
   background: #f3f5f6 !important;
   border: 1px solid #dde3e6 !important;
+}
+/* Codex F10 (Owner 2026-11-03, L-24, L-28): the canvas capture clipped the lower edge of the "Signed" pill - one explicit line box with room for the ink */
+.pq-pdf-capturing .pq-letterhead .pq-state-chip {
+  display: inline-block;
+  padding: 3px 10px 7px;
+  vertical-align: middle;
 }
 
 /* IRON-NUMERIC-001, Print and Direct PDF (Owner 2026-10-06 "יישור ספרות ... באופן גורף"): a quantity's unit label sits on its own line under

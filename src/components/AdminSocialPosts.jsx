@@ -307,7 +307,7 @@ export default function AdminSocialPosts({ isHebrew = true, embedded = false }) 
   const title = isHebrew ? 'רשתות חברתיות' : 'Social media';
   return (
     <AdminScreenFrame title={title} label={title} isHebrew={isHebrew} onRefresh={load} refreshing={state === 'loading'} updatedAt={updatedAt}
-      subtitle={isHebrew ? 'פוסטים לפייסבוק, לאינסטגרם ולטיקטוק. אחרי אישור מעתיקים את הטקסט, מורידים את התמונה ומפרסמים.' : 'Posts for Facebook, Instagram and TikTok. After approval, copy the text, download the image and publish.'}
+      subtitle={isHebrew ? 'פוסטים לפייסבוק, לאינסטגרם ולטיקטוק. בערוץ מחובר האישור מפרסם מיד. בערוץ לא מחובר מעתיקים את הטקסט, מורידים את התמונה ומפרסמים.' : 'Posts for Facebook, Instagram and TikTok. On a connected channel, approval publishes at once. On any other channel, copy the text, download the image and publish.'}
       formatTime={(v) => formatShortDateTime(v, ADMIN_DATE_MARKET)}>
       <article className="av-card" data-testid="admin-social">{body}</article>
     </AdminScreenFrame>

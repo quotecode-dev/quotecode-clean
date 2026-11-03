@@ -58,6 +58,9 @@ export default function AISupportLogsContent({ isHebrew }) {
   });
   const categories = ['ALL', ...new Set(logs.map((l) => l.category || 'GENERAL'))];
   const isCritical = (log) => !!log.category && log.category !== 'GENERAL';
+  // Codex F14 (Owner 2026-11-03, L-22): Hebrew words on the screen; the stored values and the filter values do not change
+  const HE_CATEGORY = { ALL: 'הכול', GENERAL: 'כללי', CANCELLATION: 'ביטול', FEATURE_REQUEST: 'בקשת יכולת', HARD_QUESTION: 'שאלה קשה' };
+  const categoryLabel = (c) => (isHebrew ? HE_CATEGORY[c] || c : c);
   const when = (log) => (log.created_at ? formatShortDateTime(log.created_at, ADMIN_DATE_MARKET) : '');
 
   const columns = [
@@ -71,7 +74,7 @@ export default function AISupportLogsContent({ isHebrew }) {
   const badge = (log) => (
     <span className={`admin-badge ${isCritical(log) ? 'admin-support-critical' : ''}`}>
       {isCritical(log) ? <AlertTriangle size={11} /> : <Tag size={11} />}
-      {log.category || 'GENERAL'}
+      {categoryLabel(log.category || 'GENERAL')}
     </span>
   );
   const title = isHebrew ? 'יומן שאלות ותשובות AI' : 'AI Support Logs';
@@ -106,7 +109,7 @@ export default function AISupportLogsContent({ isHebrew }) {
             </label>
             <select aria-label={isHebrew ? 'סינון קטגוריה' : 'Filter by category'} value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)}>
               {categories.map((cat) => (
-                <option key={cat} value={cat}>{isHebrew ? `קטגוריה: ${cat}` : `Category: ${cat}`}</option>
+                <option key={cat} value={cat}>{isHebrew ? `קטגוריה: ${categoryLabel(cat)}` : `Category: ${cat}`}</option>
               ))}
             </select>
           </div>
@@ -181,7 +184,7 @@ export default function AISupportLogsContent({ isHebrew }) {
             </h2>
             {detail(isHebrew ? 'זמן' : 'Time', Clock, '#7c3aed', when(selectedLog), true)}
             {detail(isHebrew ? 'כתובת המייל של המשתמש' : 'User email', Mail, '#4f46e5', selectedLog.user_email, true)}
-            {detail(isHebrew ? 'קטגוריה' : 'Category', Tag, '#f59e0b', selectedLog.category || 'GENERAL')}
+            {detail(isHebrew ? 'קטגוריה' : 'Category', Tag, '#f59e0b', categoryLabel(selectedLog.category || 'GENERAL'))}
             {detail(isHebrew ? 'שאלת הלקוח' : 'Customer question', HelpCircle, '#0ea5e9', selectedLog.user_question)}
             {detail(isHebrew ? 'תשובת ה-AI' : 'AI answer', MessageSquareText, '#10b981', selectedLog.ai_response)}
           </section>
