@@ -335,10 +335,6 @@
     "interactive": 32,
     "markers": 40
   },
-  "src/components/QuoteFromFileDialog.jsx": {
-    "interactive": 5,
-    "markers": 6
-  },
   "src/components/QuotePrintModeModal.jsx": {
     "interactive": 3,
     "markers": 3
@@ -1147,10 +1143,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/quoteFromFileClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/quoteListRows.js": {
     "interactive": 0,
     "markers": 0
@@ -1656,14 +1648,6 @@
     "markers": 0
   },
   "supabase/functions/p0-aqp-0929-broker/policy.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/quote-from-file/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/quote-from-file/lib.ts": {
     "interactive": 0,
     "markers": 0
   },

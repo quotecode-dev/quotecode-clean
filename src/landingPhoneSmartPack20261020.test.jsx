@@ -26,9 +26,8 @@ describe('phone: the style buttons right above the sample quote', () => {
 
 describe('SMART PACK explained next to its controls (HE / EN)', () => {
   const lists = {
-    // Owner 2026-11-03 (typed approval incl. L-06, L-22): + a quote from a file, right after the AI smart quote
-    he: ['צ׳אט חכם שקורא את הנתונים של המשתמש (הצעות, לקוחות, קטלוג, משימות)', 'צ׳אט קולי (שאלה בקול ותשובה מוקראת)', 'הצעה חכמה עם AI, כולל הכתבה בקול', 'הצעת מחיר מקובץ PDF או JPG, עם המחירים שלכם', 'צירוף קבצים ותמונות להצעה'],
-    en: ["A smart chat that reads the user's own data (quotes, clients, catalog, tasks)", 'Voice chat (a spoken question and a read-aloud answer)', 'An AI smart quote, including voice dictation', 'A quote from a PDF or JPG file, with your own prices', 'Files and images attached to a quote'],
+    he: ['צ׳אט חכם שקורא את הנתונים של המשתמש (הצעות, לקוחות, קטלוג, משימות)', 'צ׳אט קולי (שאלה בקול ותשובה מוקראת)', 'הצעה חכמה עם AI, כולל הכתבה בקול', 'צירוף קבצים ותמונות להצעה'],
+    en: ["A smart chat that reads the user's own data (quotes, clients, catalog, tasks)", 'Voice chat (a spoken question and a read-aloud answer)', 'An AI smart quote, including voice dictation', 'Files and images attached to a quote'],
   };
   for (const [name, Page, lang] of [['HE', LandingLocal, 'he'], ['EN', LandingGlobal, 'en']]) {
     it(`${name}: the plan-card box has its summary (outside its label); the promo strip has the second check list`, () => {

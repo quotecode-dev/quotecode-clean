@@ -48,9 +48,8 @@ describe('Dashboard new-quote entries (source guards)', () => {
     expect(src).toContain('onClick={() => { setShowMobileMoreMenu(false); setShowMobileNewQuoteMenu((prev) => !prev); }} aria-haspopup="menu"');
     expect(src).not.toContain('onClick={() => { setShowMobileMoreMenu(false); handleCreateNewQuoteClick(); }}');
     const sheet = src.slice(src.indexOf('className="no-print dash-mobile-newquote-menu"'), src.indexOf('closing the mobile \'New\' choices sheet'));
-    // Owner 2026-11-03 (typed approval incl. L-23): + "quote from a file" right after the AI smart quote
-    expect(sheet).toContain('menuChoices(isHebrew, { file: true, template: true }).map(');
-    expect(sheet).toContain('{ standard: handleCreateNewQuoteClick, ai: handleCreateAiQuoteClick, file: handleCreateFileQuoteClick, structured: handleCreateStructuredQuoteClick, template: handleOpenTemplatePicker }');
+    expect(sheet).toContain('[...newQuoteChoices(isHebrew), templateChoice(isHebrew)].map(');
+    expect(sheet).toContain('{ standard: handleCreateNewQuoteClick, ai: handleCreateAiQuoteClick, structured: handleCreateStructuredQuoteClick, template: handleOpenTemplatePicker }');
     expect(sheet).toContain('role="menuitem"');
   });
 });

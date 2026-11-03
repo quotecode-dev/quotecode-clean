@@ -160,33 +160,6 @@ export const PRODUCT_HOW_TO = Object.freeze([
       { file: 'src/components/NewQuoteMenu.jsx', labels: ['הצעה חדשה', 'New quote'] },
     ],
   },
-  // Owner console 2026-11-03 (typed approval incl. L-14, L-17): quote from a file (SMART PACK)
-  {
-    id: 'quote_from_file',
-    capabilityIds: ['smart_quote'],
-    he: {
-      task: 'הצעת מחיר מקובץ',
-      steps: [
-        'לוחצים "הצעה חדשה" ובוחרים "הצעת מחיר מקובץ".',
-        'לוחצים "בחרו קובץ", בוחרים קובץ PDF או JPG אחד ולוחצים "קריאת הפרטים".',
-        'בכל שורה מוצגים "מחיר במסמך" ו"המחיר שלכם". ממלאים את המחיר שלכם ולוחצים "הוספת השורות להצעה". הקובץ לא נשמר.',
-      ],
-    },
-    en: {
-      task: 'A quote from a file',
-      steps: [
-        'Click "New quote" and choose "Quote from a file".',
-        'Click "Choose a file", pick one PDF or JPG and click "Read details".',
-        'Each line shows "Price in the document" and "Your price". Fill in your price and click "Add the lines to the quote". The file is not stored.',
-      ],
-    },
-    evidence: [
-      { file: 'src/utils/newQuoteChoices.js', labels: ['הצעת מחיר מקובץ', 'Quote from a file'] },
-      { file: 'src/components/NewQuoteMenu.jsx', labels: ['הצעה חדשה', 'New quote'] },
-      { file: 'src/components/QuoteFromFileDialog.jsx', labels: ['בחרו קובץ', 'קריאת הפרטים', 'מחיר במסמך', 'המחיר שלכם', 'הוספת השורות להצעה',
-        'Choose a file', 'Read details', 'Price in the document', 'Your price', 'Add the lines to the quote'] },
-    ],
-  },
   {
     id: 'quote_attachment',
     capabilityIds: ['attachments'],
