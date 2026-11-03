@@ -236,7 +236,7 @@ export default function Terms({ isHebrew }) {
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
             {t.sections.map((sec, idx) => (
-              <section key={idx} id={sec.id}>
+              <section key={idx} id={sec.id} style={{ scrollMarginTop: '110px' }}>
                 <h2 style={{ fontSize: '1.25rem', fontWeight: '800', color: '#818cf8', marginBottom: '10px' }}>{sec.title}</h2>
                 {(Array.isArray(sec.content) ? sec.content : [sec.content]).map((para, i) => <p key={i} style={{ color: '#cbd5e1', fontSize: '1rem', lineHeight: '1.7', margin: '0 0 10px' }}>{para}</p>)}
               </section>

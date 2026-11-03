@@ -71,7 +71,7 @@ export default function LandingLocal({ onForgotPassword }) {
           summary: SMART_PACK.summary.he,
           perPeriod: {
             month: { add: <>(+<bdi dir="ltr">{ilsSmartPack('month')}</bdi> לחודש)</>, amount: ilsWithSmartPack('month'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('month')}</bdi> + <bdi dir="ltr">{ilsSmartPack('month')}</bdi></> },
-            year: { add: <>(+<bdi dir="ltr">{ilsSmartPack('year')}</bdi> לשנה)</>, amount: ilsWithSmartPack('year'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('year')}</bdi> + <bdi dir="ltr">{ilsSmartPack('year')}</bdi></> },
+            year: { noteQualifier: 'הסכום מתייחס למסלול בלבד, בלי חכם פלוס.', add: <>(+<bdi dir="ltr">{ilsSmartPack('year')}</bdi> לשנה)</>, amount: ilsWithSmartPack('year'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('year')}</bdi> + <bdi dir="ltr">{ilsSmartPack('year')}</bdi></> },
           },
         },
       } : {}),
@@ -240,7 +240,7 @@ export default function LandingLocal({ onForgotPassword }) {
         { q: 'האם ניתן לייצא את נתוני ההצעות והדוחות לאקסל?', a: 'כן. אפשר לייצא בכל רגע את היסטוריית הצעות המחיר ואת דוחות ההוצאות לקובצי CSV שמתאימים לאקסל ולתוכנות הנהלת חשבונות.' },
         // Owner console 2026-10-20 (typed: "מאשר לשנות את נוסחי דף הנחיתה ואת הבדיקות שנועלות אותם: ... ושאלות נפוצות חדשות מאומתות"): questions
         // users asked in the smart chat and the support inbox; every answer = the verified how-to facts (src/data/productHowTo.js) and L-12 contact.
-        { q: 'איך נרשמים?', a: 'לוחצים "מתחילים עכשיו", ממלאים אימייל וסיסמה ומאשרים את תנאי השימוש ואת מדיניות הפרטיות. אחר כך פותחים את הקישור שנשלח אליכם במייל, והחשבון מוכן. לפני ההצעה הראשונה ממלאים בהגדרות העסק את טלפון העסק ואת מספר העוסק.' },
+        { q: 'איך נרשמים?', a: 'לוחצים "10 הצעות חינם", ממלאים אימייל וסיסמה ומאשרים את תנאי השימוש ואת מדיניות הפרטיות. אחר כך פותחים את הקישור שנשלח אליכם במייל, והחשבון מוכן. לפני ההצעה הראשונה ממלאים בהגדרות העסק את טלפון העסק ואת מספר העוסק.' },
         { q: 'איך שולחים את ההצעה ללקוח?', a: 'שולחים אותה במייל או בוואטסאפ, או מעתיקים הודעה עם קישור להצעה ומדביקים אותה בכל מקום. הלקוח פותח את הקישור מכל מכשיר. אפשר גם להוריד את ההצעה כ-PDF.' },
         { q: 'הלקוח יכול לחתום על ההצעה מהטלפון?', a: 'כן. הלקוח פותח את הקישור, מאשר את ההצעה וחותם עליה דיגיטלית, ומצב ההצעה מתעדכן אצלכם. הצעה חתומה נעולה לעריכה, ואפשר לשכפל אותה כדי ליצור ממנה הצעה חדשה.' },
         { q: 'אפשר לשמור מחירון קבוע של מוצרים ושירותים?', a: 'כן. מוסיפים לקטלוג פריטים עם המחירים שלהם, ובוחרים מהם כשמכינים הצעה.' },

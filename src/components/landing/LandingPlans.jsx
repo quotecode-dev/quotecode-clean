@@ -42,7 +42,7 @@ function PlanPrice({ plan }) {
               {r.per && <span className="tl-plan-per">{r.per}</span>}
             </p>
             {addOnFor(r) && <p className="tl-plan-addon-line" data-addon-line={r.period}>{addOnFor(r).line}</p>}
-            {r.note && <p className="tl-plan-saving" data-period-note={r.period}>{r.note}</p>}
+            {r.note && <p className="tl-plan-saving" data-period-note={r.period}>{r.note}{addOnFor(r)?.noteQualifier ? <> {addOnFor(r).noteQualifier}</> : null}</p>}
           </div>
         ))}
       </div>

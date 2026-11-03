@@ -109,7 +109,7 @@ function PublicTools({ initialTab }) {
   const metalError = !gramsIn.ok ? gramsIn.code : !priceIn.ok ? priceIn.code : null;
   const metalUsd = metalError ? null : metalValueUsd(gramsIn.value, metalType, purity, priceIn.value);
   const metalUsdText = metalUsd == null ? '—' : `$${formatToolNumber(metalUsd, 'en-US', 2)}`;
-  const metalIlsText = metalUsd == null ? '—' : rates ? `${money(metalUsd / rates.USD)} ₪` : 'לא זמין (אין שער דולר)';
+  const metalIlsText = metalUsd == null ? '—' : rates ? `${money(metalUsd / rates.USD)}\u00A0₪` : 'לא זמין (אין שער דולר)';
 
   // Crypto
   const [cryptoCoin, setCryptoCoin] = useState('btc');
@@ -125,7 +125,7 @@ function PublicTools({ initialTab }) {
   const coinPrice = feeds.crypto.data?.prices?.[cryptoCoin] || null;
   const cryptoUsd = coinIn.ok && coinPrice ? coinIn.value * coinPrice.usd : null;
   const cryptoUsdText = cryptoUsd == null ? '—' : `$${formatToolNumber(cryptoUsd, 'en-US', 2)}`;
-  const cryptoIlsText = cryptoUsd == null ? '—' : rates ? `${money(cryptoUsd / rates.USD)} ₪` : 'לא זמין (אין שער דולר)';
+  const cryptoIlsText = cryptoUsd == null ? '—' : rates ? `${money(cryptoUsd / rates.USD)}\u00A0₪` : 'לא זמין (אין שער דולר)';
 
   const tabBtnStyle = (tabKey) => ({
     flex: 1, minWidth: '130px', padding: '16px 10px', border: 'none',
@@ -137,7 +137,7 @@ function PublicTools({ initialTab }) {
 
   const selectStyle = { width: '100%', padding: '12px', border: `1px solid ${TOOLS.borderStrong}`, borderRadius: '7px', minHeight: '44px', fontSize: '1rem', outline: 'none', background: TOOLS.bgInput, color: TOOLS.textPrimary, boxSizing: 'border-box' };
   const labelStyle = { display: 'block', marginBottom: '8px', fontSize: '0.85rem', fontWeight: '600', color: TOOLS.textSecondary };
-  const resultBoxStyle = { background: TOOLS.alt, padding: '20px', borderRadius: '12px', textAlign: 'center', border: `1px solid ${TOOLS.border}` };
+  const resultBoxStyle = { background: TOOLS.alt, padding: '20px', borderRadius: '12px', textAlign: 'center', border: `1px solid ${TOOLS.border}`, minWidth: 0 };
   const swapBtnStyle = { background: '#ffffff', border: `1px solid ${TOOLS.borderStrong}`, borderRadius: '7px', width: '46px', height: '46px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: TOOLS.violetLight };
   const numberInput = (id, value, setValue) => (
     <input id={id} type="text" inputMode="decimal" autoComplete="off" value={value} onChange={(e) => setValue(e.target.value)} style={{ ...selectStyle, direction: 'ltr', textAlign: 'right' }} />
@@ -344,7 +344,7 @@ function PublicTools({ initialTab }) {
                 </div>
                 <InputError code={metalError} testId="tools-metal-error" />
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px', marginTop: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '15px', marginTop: '12px' }}>
                   <div style={resultBoxStyle}>
                     <div style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>שווי משוער בשקלים (ILS)</div>
                     <div data-testid="tools-metal-ils" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: TOOLS.amber }}>{metalIlsText}</div>
@@ -380,7 +380,7 @@ function PublicTools({ initialTab }) {
                   <InputError code={coinIn.ok ? null : coinIn.code} testId="tools-crypto-error" />
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '15px' }}>
                   <div style={resultBoxStyle}>
                     <div style={{ fontSize: '0.85rem', color: TOOLS.textSecondary, marginBottom: '5px' }}>שווי משוער בשקלים (ILS)</div>
                     <div data-testid="tools-crypto-ils" style={{ fontSize: '1.5rem', fontWeight: 'bold', color: TOOLS.violetLighter }}>{cryptoIlsText}</div>
