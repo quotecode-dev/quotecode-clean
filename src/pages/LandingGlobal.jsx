@@ -216,6 +216,8 @@ export default function LandingGlobal({ onForgotPassword }) {
         { icon: 'chat', title: 'A smart chat that knows your business', text: 'Ask about your quotes, clients, catalog and tasks, and get answers from your real data.' },
         { icon: 'voice', title: 'Voice chat', text: 'Ask out loud and hear the answer, on site or when your hands are busy.' },
         { icon: 'ai', title: 'AI smart quote', text: 'Describe the job, or dictate it, and the AI drafts the quote lines. You review and approve.' },
+        // Owner console 2026-11-03, typed approval of the "quote from a file" landing card (HE + EN, L-06)
+        { icon: 'file', title: 'Quote from a file', text: 'Upload another business’s quote as a PDF or JPG. The AI reads the lines, quantities and prices; you set your own prices and see how much lower you are. The file is not stored.' },
         { icon: 'files', title: 'Files attached to the quote', text: 'Drawings, photos and documents attached to the quote your client receives.' },
         // Owner console 2026-10-22, typed L-14 approval: the Customer Twin card without "Coming soon", in the approved wording - LIVE since PR #47
         { icon: 'twin', title: 'Customer Twin', text: 'See your quote through your client’s eyes: three kinds of clients review it, so you can strengthen it before you send it.' },
