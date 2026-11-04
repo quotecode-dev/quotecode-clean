@@ -20,18 +20,34 @@ function isolateNumbers(text) {
 // server billing phase is on (`purchase.enabled`, packageCheckoutAvailable), the package card gets a pay button for the chosen period;
 // the ticked SMART PACK box joins the same payment. Off (today) = the card renders exactly as before.
 const PAY_COPY = {
-  he: { pay: 'לתשלום', busy: 'פותח את דף התשלום…', fee: 'ביטול מוקדם: החזר יחסי בניכוי דמי ביטול, לפי סעיף 6 בתנאי השימוש.' },
-  en: { pay: 'Pay now', busy: 'Opening the payment page…', fee: 'Early cancellation: a pro-rata refund less a cancellation fee, as set out in section 6 of the Terms.' },
+  he: { pay: 'לתשלום', resume: 'המשך החיוב המתחדש', busy: 'פותח את דף התשלום…', fee: 'ביטול מוקדם: החזר יחסי בניכוי דמי ביטול, לפי סעיף 6 בתנאי השימוש.' },
+  en: { pay: 'Pay now', resume: 'Continue the renewing charge', busy: 'Opening the payment page…', fee: 'Early cancellation: a pro-rata refund less a cancellation fee, as set out in section 6 of the Terms.' },
 };
+// Owner console 2026-11-04 (typed: "מאשר המשך חיוב מתחדש בלי חיוב מיידי מחלון המסלולים, כולל שינוי ב-L-01 ו-L-22, שחרור עד הלייב"): a
+// stopped renewal (`purchase.resume`) resumes on its own period and lines - the line above says when the charges start, nothing today
+// a sentence whose dates are each one LTR unit (in Hebrew a date ending a sentence must never read "2026./11/26")
+function DatedText({ text, date }) {
+  if (!date || !text.includes(date)) return text;
+  return text.split(date).flatMap((part, i) => (i === 0 ? [part] : [<bdi key={i} dir="ltr" data-resume-date>{date}</bdi>, part]));
+}
 function PayAction({ purchase, period, withAddOn, isHebrew }) {
   const t = PAY_COPY[isHebrew ? 'he' : 'en'];
+  const resume = purchase.resume || null;
+  // Owner console 2026-11-05: SMART PACK kept (active now) rides on the resumed standing order; ticked while not active = added right
+  // after the resume by the mid-period add-on (pro rata, SMART PACK only)
+  const addAfter = Boolean(resume && withAddOn && !resume.hadSmartPack);
   return (
     <div data-pay-action style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8 }}>
-      {/* PRODUCT_TRUTH_DECORATIVE: opens the PayPlus payment page of the SERVER attempt (package of the chosen period + the ticked SMART PACK line); rendered only while the server billing phase is on; the package opens only after a verified payment */}
-      <button type="button" data-testid="plans-pay" disabled={purchase.busy} onClick={() => purchase.onPay({ billingPeriod: period, smartPack: withAddOn })}
+      {resume?.line && <p data-testid="plans-resume-line" dir={isHebrew ? 'rtl' : 'ltr'} style={{ margin: 0, color: '#1e293b', fontSize: '0.85rem', fontWeight: 600 }}>
+        <DatedText text={resume.line} date={resume.date} /></p>}
+      {addAfter && resume.addOnNote && <p data-testid="plans-resume-addon-note" dir={isHebrew ? 'rtl' : 'ltr'} style={{ margin: 0, color: '#0F6672', fontSize: '0.82rem', fontWeight: 600 }}>
+        <DatedText text={resume.addOnNote} date={resume.date} /></p>}
+      {/* PRODUCT_TRUTH_DECORATIVE: opens the PayPlus payment page of the SERVER attempt (package of the chosen period + the ticked SMART PACK line); rendered only while the server billing phase is on; the package opens only after a verified payment; a resumed renewal charges nothing on that page */}
+      <button type="button" data-testid={resume ? 'plans-resume' : 'plans-pay'} disabled={purchase.busy}
+        onClick={() => purchase.onPay(resume ? { billingPeriod: resume.period, smartPack: Boolean(withAddOn && resume.hadSmartPack), addAfter } : { billingPeriod: period, smartPack: withAddOn })}
         style={{ minHeight: 44, borderRadius: 10, border: 'none', background: purchase.busy ? '#94a3b8' : '#0F6672', color: '#ffffff', fontWeight: 800,
           fontSize: '0.95rem', cursor: purchase.busy ? 'wait' : 'pointer' }}>
-        {purchase.busy ? t.busy : t.pay}
+        {purchase.busy ? t.busy : resume ? t.resume : t.pay}
       </button>
       {purchase.error && <p role="alert" data-testid="plans-pay-error" dir={isHebrew ? 'rtl' : 'ltr'} style={{ margin: 0, color: '#b91c1c', fontSize: '0.8rem' }}>{purchase.error}</p>}
       <p data-testid="plans-pay-fee" dir={isHebrew ? 'rtl' : 'ltr'} style={{ margin: 0, color: '#64748b', fontSize: '0.75rem' }}>{t.fee}</p>
@@ -52,11 +68,14 @@ function PriceBlock({ plan, isHebrew, purchase = null, onAddOnChange = null, ini
   const [period, setPeriod] = useState(initialPeriod && plan.prices.some((r) => r.period === initialPeriod) ? initialPeriod : plan.prices[0]?.period);
   // the account's period may arrive after the window opened (the summary was still loading)
   useEffect(() => { if (initialPeriod && plan.prices.some((r) => r.period === initialPeriod)) setPeriod(initialPeriod); }, [initialPeriod, plan.prices]);
-  const [withAddOn, setWithAddOn] = useState(false);
+  // 2026-11-05: on a resume the SMART PACK box starts as the account has it now
+  const [withAddOn, setWithAddOn] = useState(() => purchase?.resume?.hadSmartPack === true);
+  // 2026-11-04: a resume keeps its own period - no period choice (2026-11-05: with or without SMART PACK - the box stays)
+  const lockedPeriod = purchase?.resume?.period || null;
   const addOn = purchase?.enabled === true ? plan.addOn : null;
   const addOnFor = (r) => (withAddOn && addOn ? addOn.perPeriod[r.period] : null);
-  const choice = plan.periodChoice && plan.prices.length > 1 ? plan.periodChoice : null;
-  const shown = choice ? plan.prices.filter((r) => r.period === period) : plan.prices;
+  const choice = !lockedPeriod && plan.periodChoice && plan.prices.length > 1 ? plan.periodChoice : null;
+  const shown = lockedPeriod ? plan.prices.filter((r) => r.period === lockedPeriod) : choice ? plan.prices.filter((r) => r.period === period) : plan.prices;
   return (
     <div data-region="price">
       {choice && (
@@ -118,7 +137,7 @@ export default function PackageOfferCards({ model, isHebrew, currentPlanId = nul
             style={{ border: `${isCurrent ? 2 : 1}px solid ${isCurrent ? '#0F6672' : '#e2e8f0'}`, borderRadius: '12px', padding: '14px', background: '#f8fafc', minWidth: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <h3 style={{ margin: 0, color: '#1e293b', fontSize: '1.05rem' }}>{p.name}</h3>
             {p.tagline && <p style={{ margin: 0, color: '#475569', fontSize: '0.82rem' }}>{p.tagline}</p>}
-            <PriceBlock plan={p} isHebrew={isHebrew} purchase={purchase} onAddOnChange={onAddOnChange} initialPeriod={isCurrent ? currentPeriod : null} withSmartPack={isCurrent && smartPackRenewing} />
+            <PriceBlock plan={p} isHebrew={isHebrew} purchase={purchase} onAddOnChange={onAddOnChange} initialPeriod={isCurrent ? currentPeriod : null} withSmartPack={isCurrent && smartPackRenewing && !purchase?.resume} />
             <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '6px', fontSize: '0.8rem', color: '#334155' }}>
               {p.lines.map((line) => (
                 <li key={line} style={{ display: 'flex', alignItems: 'flex-start', gap: '6px' }}><Check size={14} color="#0F6672" aria-hidden="true" style={{ flexShrink: 0, marginTop: 2 }} />{line}</li>

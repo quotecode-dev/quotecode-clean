@@ -145,7 +145,9 @@ export interface BillingProvider {
     /** Owner 2026-10-20: the SMART PACK line of the same payment (amountMinor = package + add-on) */
     addOnAmountMinor?: number | null;
     /** Owner 2026-10-25: the account's own business name / email - the invoice and the payment emails go to them (never a body value) */
-    customer?: CheckoutCustomer | null }): Promise<{ redirectUrl: string; pageRequestUid?: string } | null>;
+    customer?: CheckoutCustomer | null;
+    /** Owner console 2026-11-04: a resumed renewal - nothing charged on the page, the standing order's first charge on this date (the paid period end) */
+    firstChargeAt?: string | null }): Promise<{ redirectUrl: string; pageRequestUid?: string } | null>;
   /** signature + timestamp window + source; returns the normalized event only when all three pass */
   verifyWebhook(rawBody: Uint8Array, headers: Headers, nowMs: number): Promise<WebhookVerification>;
   /** 20261022200000: the result of a payment page by its request id (createCheckout's pageRequestUid); null = nothing to read yet */
@@ -363,11 +365,17 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
   if (!expected || expected.currency !== r.currency || expected.amountMinor !== r.amountMinor) return err(503, 'checkout_unavailable');
   // the SQL attempt and the catalog must agree on the add-on line too (never a payment page for a line the attempt does not carry)
   if (isPackage && (r.addOnPriceId ?? null) !== (expected.addOnPriceId ?? null)) return err(503, 'checkout_unavailable');
+  // Owner console 2026-11-04 (typed: "מאשר המשך חיוב מתחדש בלי חיוב מיידי מחלון המסלולים, כולל שינוי ב-L-01 ו-L-22, שחרור עד הלייב"): a
+  // stopped renewal resumes - the SQL attempt carries the paid period end as its first charge; nothing is charged on the page
+  const rawFirstCharge: unknown = isPackage ? r.firstChargeAt ?? null : null;
+  if (rawFirstCharge !== null && (!isIso(rawFirstCharge) || Date.parse(rawFirstCharge) <= Date.now())) return err(503, 'checkout_unavailable');
+  const firstChargeAt = rawFirstCharge as string | null;
   // 20261022100000 (Codex audit H05): one provider page per attempt - a retry of the same attempt (same idempotency key) gets the
   // page it already has; a new page is kept once and the stored page always wins
   const httpsPage = (v: unknown): v is string => typeof v === 'string' && /^https:\/\//.test(v);
   const answer = (redirectUrl: string): Resp => ({ status: 200, body: { ok: true, attemptId: r.attemptId, currency: expected.currency,
-    amountMinor: expected.amountMinor, redirectUrl, state: 'pending', ...(isPackage ? { smartPack: Boolean(expected.addOnPriceId) } : {}) } });
+    amountMinor: expected.amountMinor, redirectUrl, state: 'pending', ...(isPackage ? { smartPack: Boolean(expected.addOnPriceId) } : {}),
+    ...(firstChargeAt ? { resume: true, firstChargeAt } : {}) } });
   const existing = deps.sql.checkoutPage ? await deps.sql.checkoutPage(r.attemptId, userId).catch(() => null) : null;
   if (httpsPage(existing)) return answer(existing);
   // Owner 2026-10-25: the paying account's own business name / email (its settings row, by the verified user id) - a failed read opens
@@ -375,7 +383,7 @@ export async function checkoutIntentHandler(phase: BillingPhase, deps: { sql: Bi
   const customer = deps.sql.checkoutCustomer ? cleanCheckoutCustomer(await deps.sql.checkoutCustomer(userId).catch(() => null)) : null;
   const hosted = await deps.provider.createCheckout({ attemptId: r.attemptId, currency: expected.currency, amountMinor: expected.amountMinor,
     ...(isPackage ? { billingPeriod: period as BillingPeriod, addOnAmountMinor: expected.addOnAmountMinor ?? null } : {}),
-    ...(customer ? { customer } : {}) }).catch(() => null);
+    ...(customer ? { customer } : {}), ...(firstChargeAt ? { firstChargeAt } : {}) }).catch(() => null);
   if (!hosted || !httpsPage(hosted.redirectUrl)) return err(503, 'checkout_unavailable');
   // 20261022200000: with the provider's page request id the page and the id are kept together (the server can pull the result later)
   const requestRef = typeof hosted.pageRequestUid === 'string' && UUID.test(hosted.pageRequestUid) ? hosted.pageRequestUid : null;
@@ -697,6 +705,7 @@ export async function checkoutStatusHandler(phase: BillingPhase, deps: { sql: Bi
   try { targets = parsePullTargets(await sql.checkoutPullTargets(userId)); } catch { return err(503, 'retry_later'); }
   if (!targets) return err(503, 'retry_later');
   let activated = false; let waiting = 0;
+  let resumed = false; // 2026-11-04: a resumed renewal's page was kept (nothing charged) - the return page says so, never "paid"
   for (const t of targets) {
     const p = await provider.pullCheckout(t.requestRef).catch(() => null);
     if (!p || !p.approved) { waiting++; continue; } // not paid (yet) / provider unreachable: the callback or a later pull decides
@@ -712,6 +721,7 @@ export async function checkoutStatusHandler(phase: BillingPhase, deps: { sql: Bi
     } catch { return err(503, 'retry_later'); }
     if (!isObj(r) || r.ok !== true) { waiting++; continue; }
     if (r.activated === true) activated = true;
+    if (r.resumed === true) resumed = true;
     const code = r.activated === false && typeof r.code === 'string' && /^[a-z_]{1,40}$/.test(r.code) ? r.code : null;
     // a verified payment that opened nothing (wrong amount, another package, ...) is an incident for the Owner - never silent
     if (r.pulled === true && code && code !== 'billing_not_enforced') {
@@ -756,7 +766,7 @@ export async function checkoutStatusHandler(phase: BillingPhase, deps: { sql: Bi
     for (const id of Array.isArray(ids) ? ids.slice(0, 3) : []) if (typeof id === 'string' && UUID.test(id)) await completeSmartPackRemoval(deps, id);
   }
   await refundDueRemovals(deps, userId);
-  return { status: 200, body: { ok: true, activated, waiting } };
+  return { status: 200, body: { ok: true, activated, waiting, ...(resumed ? { resumed: true } : {}) } };
 }
 
 // ------------------------------------------------------------------------------------------------ reference state model
