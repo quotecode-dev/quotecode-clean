@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './fonts.css'
 import './index.css'
 import { exposeLoadedBuildIdentity } from './shared/versionAwareness'
+import { captureInstallPrompt } from './shared/installApp'
 
 exposeLoadedBuildIdentity()
 
@@ -60,6 +61,8 @@ document.documentElement.lang = isEnglishEnv ? 'en' : 'he';
 document.documentElement.dir = isEnglishEnv ? 'ltr' : 'rtl';
 // Home-screen install (Owner console 2026-11-04, PROFLOW_TODO 5a): the installed app opens the dashboard in the language picked above.
 document.querySelector('link[rel="manifest"]')?.setAttribute('href', isEnglishEnv ? '/manifest-en.webmanifest' : '/manifest-he.webmanifest');
+// Owner console 2026-11-04 (typed: "מאשר את תוכנית ההתקנה, כולל שינוי ב-L-11 ו-L-17"): Chrome's install offer arrives once, early - kept for the in-site "Install"
+captureInstallPrompt();
 
 const loadShell = isEnglishEnv ? () => import('./global/AppGlobal.jsx') : () => import('./local/AppLocal.jsx')
 loadShell().then(({ default: App }) => {
