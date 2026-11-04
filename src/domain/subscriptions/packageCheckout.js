@@ -5,8 +5,6 @@
 // payment. Shown only when the server billing phase is on ('prepared' TEST / 'enforced') and the account's market is open (2026-10-25:
 // Israel; Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל לפי ההמלצות א-ה, כולל שינוי ב-L-01, L-05, L-06, L-07, L-11, L-12, L-14, L-17, L-22"): abroad too, in USD).
 
-import { calendarParts, formatShortDate } from '../../utils/shortDate';
-
 /** the markets where the subscription can be bought (each pays its own currency: IL = ILS, INTERNATIONAL = USD) */
 export const PURCHASE_OPEN_MARKETS = Object.freeze(['IL', 'INTERNATIONAL']);
 const marketOpen = (summary) => PURCHASE_OPEN_MARKETS.includes(summary?.market);
@@ -26,49 +24,6 @@ export function packageCheckoutAvailable(summary, isLifetime = false) {
   if (summary.planId === 'all_inclusive' && summary.subscriptionStatus === 'active') return summary.billing?.limited === true;
   if (summary.planId !== 'free' && summary.planId !== 'all_inclusive') return false; // a legacy style plan pays for nothing
   return true;
-}
-
-/** Owner console 2026-11-04 (typed: "מאשר המשך חיוב מתחדש בלי חיוב מיידי מחלון המסלולים, כולל שינוי ב-L-01 ו-L-22, שחרור עד הלייב"; the
- *  Owner: "לא שייך לחייב לקוח בחיוב חדש כשיש לו מנוי משולם"): may this stopped renewal resume from the plans window? Server summary only:
- *  a live package whose renewal was stopped, not limited, paid after today (Israel day) - never LIFETIME. Nothing is charged until the
- *  paid period ends (migration 20261104100000). */
-export function renewalResumeAvailable(summary, isLifetime = false) {
-  if (isLifetime === true || summary?.state !== 'ready') return false;
-  if (!['prepared', 'enforced'].includes(summary.phase?.billing) || !marketOpen(summary)) return false;
-  const b = summary.billing;
-  if (summary.planId !== 'all_inclusive' || summary.subscriptionStatus !== 'active' || b?.renewalStopped !== true || b?.limited === true) return false;
-  if (!['month', 'year'].includes(summary.billingPeriod) || typeof b?.paidThrough !== 'string') return false;
-  // the server's rule: the paid period ends after today's Israel day (IRON-DATE-001: the one calendar primitive)
-  const day = (v) => { const p = calendarParts(v, 'Local'); return p ? `${p.y}-${p.m}-${p.d}` : null; };
-  const end = day(b.paidThrough);
-  return end !== null && end > day(new Date());
-}
-
-/** the line above the resume button: the date of every charge from the end of the paid period (IRON-DATE-001 short date of the
- *  account's market - Israel DD/MM/YYYY, abroad MM/DD/YYYY) */
-export function renewalResumeDate(summary) {
-  if (calendarParts(summary?.billing?.paidThrough, 'Local') === null) return '';
-  return formatShortDate(summary.billing.paidThrough, summary.market === 'IL' ? 'Local' : 'International');
-}
-export function renewalResumeLine(summary, isHebrew) {
-  const date = renewalResumeDate(summary);
-  if (!date) return '';
-  const year = summary.billingPeriod === 'year';
-  return isHebrew
-    ? `בחרתם להמשיך עם החיוב המתחדש, ולכן תחויבו ${year ? 'בכל שנה' : 'בכל חודש'} בתאריך ${date}. עד אז לא יבוצע חיוב.`
-    : `You chose to continue the renewing charge, so you will be charged ${year ? 'every year' : 'every month'} on ${date}. Nothing is charged until then.`;
-}
-
-/** Owner console 2026-11-05 (typed: "מאשר חידוש עם או בלי חכם פלוס, והוספת חכם פלוס מיד בחיוב יחסי רק עליו, כולל שינוי ב-L-01 ו-L-22,
- *  שחרור עד הלייב"): SMART PACK ticked on a resume while it is not active now - it is added right after the resume, pro rata for SMART
- *  PACK only, and from the first charge date it is part of every charge */
-export function renewalResumeAddOnNote(summary, isHebrew) {
-  const date = renewalResumeDate(summary);
-  if (!date) return '';
-  const year = summary.billingPeriod === 'year';
-  return isHebrew
-    ? `חכם פלוס יתווסף מיד אחרי החידוש: תשלום יחסי רק עליו עד ${date}, ומ-${date} הוא כלול ${year ? 'בחיוב השנתי' : 'בחיוב החודשי'}.`
-    : `SMART PACK is added right after the renewal: a pro-rata payment for SMART PACK only until ${date}, and from ${date} it is part of the ${year ? 'yearly' : 'monthly'} charge.`;
 }
 
 /** Owner 2026-10-25 ("לא להשאיר זנבות"): is purchasing open for this account's market (billing on)? Then no "cannot be
@@ -94,7 +49,7 @@ export async function startPackageCheckout({ billingPeriod, smartPack = false, i
     return { ok: false, code: 'checkout_unavailable' };
   }
   const d = res?.data;
-  if (d && d.ok === true && typeof d.redirectUrl === 'string' && /^https:\/\//.test(d.redirectUrl)) return { ok: true, redirectUrl: d.redirectUrl, ...(d.resume === true ? { resume: true } : {}) };
+  if (d && d.ok === true && typeof d.redirectUrl === 'string' && /^https:\/\//.test(d.redirectUrl)) return { ok: true, redirectUrl: d.redirectUrl };
   let code = d && typeof d.code === 'string' ? d.code : null;
   if (!code) {
     try {
@@ -296,15 +251,9 @@ export function searchWithoutBillingReturn(search) {
 }
 
 /** 'confirmed' | 'waiting' | 'timeout' | 'failed' | 'cancelled' | null (plans system off / not ready: nothing to show) */
-export function billingReturnState(kind, summary, elapsedMs, { resume = false } = {}) {
+export function billingReturnState(kind, summary, elapsedMs) {
   if (!BILLING_RETURN_KINDS.includes(kind) || summary?.state !== 'ready') return null;
   if (!['prepared', 'enforced'].includes(summary.phase?.billing)) return null;
-  // 2026-11-04: back from a resumed renewal's page (nothing charged) - 'confirmed' only when the server says the renewal runs again
-  if (resume && !isAddOnReturn(kind)) {
-    if (summary.planId === 'all_inclusive' && summary.subscriptionStatus === 'active' && summary.billing?.renewalStopped === false) return 'confirmed';
-    if (kind === 'failed' || kind === 'cancelled') return kind;
-    return elapsedMs >= BILLING_RETURN_WAIT_MS ? 'timeout' : 'waiting';
-  }
   // a SMART PACK add-on: 'confirmed' only when the server says SMART PACK is active (the package was active already)
   if (isAddOnReturn(kind)) {
     if (summary.smartPack?.active === true) return 'confirmed';
@@ -320,20 +269,7 @@ export function billingReturnState(kind, summary, elapsedMs, { resume = false } 
 
 /** the words of a return state (HE / EN); smartPack = the server SMART PACK state (the plan itself is on the line below);
  *  addOn = back from a SMART PACK add-on page (20261025300000) */
-export function billingReturnText(state, isHebrew, { smartPack = false, addOn = false, resume = false, addAfter = false } = {}) {
-  // 2026-11-04: a resumed renewal - no payment was taken, so never "payment confirmed"
-  if (resume && !addOn) {
-    switch (state) {
-      case 'waiting': return isHebrew ? 'מאמתים את הפרטים… לא בוצע חיוב.' : 'Confirming your details… Nothing was charged.';
-      case 'confirmed': return (isHebrew ? 'החיוב המתחדש חודש. לא בוצע חיוב היום.' : 'Your renewing charge is back on. Nothing was charged today.')
-        // 2026-11-05: SMART PACK was ticked and is not active yet - its pro-rata offer is in this window
-        + (addAfter ? (isHebrew ? ' עכשיו אפשר להוסיף את חכם פלוס בחלון הזה, בתשלום יחסי רק עליו.' : ' You can now add SMART PACK in this window, with a pro-rata payment for SMART PACK only.') : '');
-      case 'timeout': return isHebrew ? 'האישור עדיין לא הגיע. אפשר לבדוק שוב בעוד רגע. לא בוצע חיוב.' : 'The confirmation has not arrived yet. You can check again in a moment. Nothing was charged.';
-      case 'failed': return isHebrew ? 'הפרטים לא נשמרו, והחיוב המתחדש לא חודש. אפשר לנסות שוב.' : 'Your details were not saved, and the renewing charge is not back on. You can try again.';
-      case 'cancelled': return isHebrew ? 'בוטל. לא בוצע חיוב.' : 'Cancelled. Nothing was charged.';
-      default: return '';
-    }
-  }
+export function billingReturnText(state, isHebrew, { smartPack = false, addOn = false } = {}) {
   if (addOn) {
     switch (state) {
       case 'waiting': return isHebrew ? 'מאמתים את התשלום… חכם פלוס ייפתח רק אחרי שהתשלום יאושר.' : 'Confirming your payment… SMART PACK opens only after the payment is confirmed.';

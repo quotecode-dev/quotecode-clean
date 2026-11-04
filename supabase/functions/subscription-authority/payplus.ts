@@ -91,16 +91,6 @@ export function firstChargeFreeDays(ms: number, period: 'month' | 'year'): numbe
   const target = Date.UTC(ty, tm, Math.min(day, lastDay));
   return Math.round((target - Date.UTC(y, m, day)) / 86_400_000);
 }
-/** Owner console 2026-11-04 (typed: "מאשר המשך חיוב מתחדש בלי חיוב מיידי מחלון המסלולים, כולל שינוי ב-L-01 ו-L-22, שחרור עד הלייב"): a
- *  resumed renewal charges nothing today - its standing order's first charge is the Israel day the paid period ends (sandbox 2026-11-04:
- *  instant_first_payment false + jump_payments N = the first charge N days from today, nothing charged on the page). null = not a
- *  future Israel day (the server never opens such a page). */
-export function resumeFreeDays(nowMs: number, firstChargeAtMs: number): number | null {
-  if (!Number.isFinite(firstChargeAtMs)) return null;
-  const day = (ms: number) => { const d = new Date(jerusalemWallClockMs(ms)); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()); };
-  const days = Math.round((day(firstChargeAtMs) - day(nowMs)) / 86_400_000);
-  return days >= 1 && days <= 400 ? days : null;
-}
 /** day of the month today in Israel, capped at 28 so every month has it */
 export function israelDayOfMonth(ms: number): number {
   return Math.min(new Date(jerusalemWallClockMs(ms)).getUTCDate(), 28);
@@ -119,8 +109,6 @@ export const PAYPLUS_SMART_PACK_ITEM_NAMES_EN = Object.freeze({ month: 'TEKANGO 
  *  USD = International, VAT-exempt: vat_type 2). */
 export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | 'callbackUrl' | 'successUrl' | 'failureUrl' | 'cancelUrl'>,
   i: { attemptId: string; amountMinor: number; billingPeriod: BillingPeriod; nowMs: number; addOnAmountMinor?: number | null; currency?: 'ILS' | 'USD';
-    /** a resumed renewal: nothing charged today, the first charge this many days from today (resumeFreeDays) */
-    resumeFreeDays?: number | null;
     customer?: CheckoutCustomer | null }): Record<string, unknown> {
   const amount = i.amountMinor / 100;
   const usd = i.currency === 'USD';
@@ -156,17 +144,14 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
     initial_invoice: true,
     items,
     recurring_settings: {
-      // a resumed renewal (2026-11-04): nothing charged on the page - the card is kept for the standing order only
-      instant_first_payment: !(Number.isInteger(i.resumeFreeDays) && (i.resumeFreeDays as number) >= 1),
+      instant_first_payment: true,
       recurring_type: 2, // monthly cycle
       recurring_range: i.billingPeriod === 'year' ? 12 : 1, // annual = every 12 months (PayPlus Q5 still open)
       number_of_charges: 0, // renews until cancelled
       start_date_on_payment_date: true,
       start_date: israelDayOfMonth(i.nowMs),
       // the first standing-order charge only after the whole paid period (never a second charge the first night)
-      // (a resumed renewal: the first charge on the day the paid period ends)
-      jump_payments: Number.isInteger(i.resumeFreeDays) && (i.resumeFreeDays as number) >= 1 ? i.resumeFreeDays
-        : firstChargeFreeDays(i.nowMs, i.billingPeriod === 'year' ? 'year' : 'month'),
+      jump_payments: firstChargeFreeDays(i.nowMs, i.billingPeriod === 'year' ? 'year' : 'month'),
       successful_invoice: true,
       customer_failure_email: true,
       send_customer_success_email: true,
@@ -276,17 +261,13 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
   return Object.freeze({
     name: PAYPLUS_PROVIDER_NAME,
     async createCheckout(i: { attemptId: string; currency: 'ILS' | 'USD'; amountMinor: number; billingPeriod?: BillingPeriod; addOnAmountMinor?: number | null;
-      customer?: CheckoutCustomer | null; firstChargeAt?: string | null }) {
+      customer?: CheckoutCustomer | null }) {
       // ILS (Israel) or USD (International, 2026-10-21 prepared); the package only (a legacy style plan carries no billing period)
       if ((i.currency !== 'ILS' && i.currency !== 'USD') || !UUID.test(i.attemptId) || !Number.isInteger(i.amountMinor) || i.amountMinor <= 0
           || (i.billingPeriod !== 'month' && i.billingPeriod !== 'year')
           || (i.addOnAmountMinor != null && (!Number.isInteger(i.addOnAmountMinor) || i.addOnAmountMinor <= 0 || i.addOnAmountMinor >= i.amountMinor))) return null;
-      // a resumed renewal (2026-11-04): its first charge must be a future Israel day - otherwise no page (never an immediate charge by mistake)
-      const now = cfg.now();
-      const freeDays = i.firstChargeAt == null ? null : resumeFreeDays(now, Date.parse(i.firstChargeAt));
-      if (i.firstChargeAt != null && freeDays === null) return null;
-      const body = buildGenerateLinkBody(cfg, { attemptId: i.attemptId, amountMinor: i.amountMinor, billingPeriod: i.billingPeriod, nowMs: now,
-        addOnAmountMinor: i.addOnAmountMinor ?? null, currency: i.currency, customer: cleanCheckoutCustomer(i.customer), resumeFreeDays: freeDays });
+      const body = buildGenerateLinkBody(cfg, { attemptId: i.attemptId, amountMinor: i.amountMinor, billingPeriod: i.billingPeriod, nowMs: cfg.now(),
+        addOnAmountMinor: i.addOnAmountMinor ?? null, currency: i.currency, customer: cleanCheckoutCustomer(i.customer) });
       let json: unknown;
       try {
         const res = await cfg.fetch(`${cfg.apiBase}/PaymentPages/generateLink`, {

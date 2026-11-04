@@ -33,20 +33,15 @@ const write = (key, v) => {
   } catch { /* no storage: the return simply does not survive a reload */ }
 };
 
-/** the pay button, right before leaving for the payment page; resume = a stopped renewal resumed (2026-11-04: nothing charged on that page) */
-// (2026-11-05: addAfter = SMART PACK was ticked on the resume while not active - its pro-rata offer follows in the plans window)
-export function markBillingDeparture(userId, now = Date.now(), resume = false, addAfter = false) {
-  if (typeof userId === 'string' && userId) {
-    write(DEPARTURE_KEY, { userId, at: now, ...(resume === true ? { resume: true } : {}), ...(resume === true && addAfter === true ? { addAfter: true } : {}) });
-  }
+/** the pay button, right before leaving for the payment page */
+export function markBillingDeparture(userId, now = Date.now()) {
+  if (typeof userId === 'string' && userId) write(DEPARTURE_KEY, { userId, at: now });
 }
 
 function departureOf(userId, now) {
   const d = readJson(DEPARTURE_KEY);
   return d && typeof d.userId === 'string' && d.userId === userId && Number.isFinite(d.at) && now - d.at >= 0 && now - d.at < DEPARTURE_KEEP_MS;
 }
-const departureIsResume = () => readJson(DEPARTURE_KEY)?.resume === true;
-const departureAddAfter = () => readJson(DEPARTURE_KEY)?.addAfter === true;
 
 /** -> { state, kind, dismiss, checkAgain } ; state = billingReturnState(...) or null */
 export default function useBillingReturn({ summary, userId, plansOpen, refreshQuiet, openPlans, pullStatus = null, now = () => Date.now() }) {
@@ -82,8 +77,7 @@ export default function useBillingReturn({ summary, userId, plansOpen, refreshQu
   const billingOn = ready && ['prepared', 'enforced'].includes(summary.phase?.billing);
   const t = now();
   const valid = !!ret && ready && billingOn && departureOf(userId, t) && t - ret.at < RETURN_KEEP_MS;
-  const resume = valid && departureIsResume();
-  const state = valid ? billingReturnState(ret.kind, summary, t - ret.from, { resume }) : null;
+  const state = valid ? billingReturnState(ret.kind, summary, t - ret.from) : null;
 
   const forget = useCallback(() => { write(RETURN_KEY, null); write(DEPARTURE_KEY, null); setRet(null); }, []);
 
@@ -123,5 +117,5 @@ export default function useBillingReturn({ summary, userId, plansOpen, refreshQu
     pullThenRefresh(true);
   }, [pullThenRefresh, now]);
 
-  return { state, kind: valid ? ret.kind : null, resume, addAfter: resume && departureAddAfter(), dismiss: forget, checkAgain };
+  return { state, kind: valid ? ret.kind : null, dismiss: forget, checkAgain };
 }
