@@ -89,6 +89,15 @@ export const QUOTE_FROM_FILE_REQUEST: readonly RegExp[] = [
   /\b(upload|import)\b.{0,25}\b(file|pdf|jpe?g|photo|image|document)\b.{0,30}\b(make|create|build|get|generate|turn)\b.{0,20}\bquote\b/i,
 ];
 
+// Owner console 2026-11-03 (typed: "מאשר תשובה קצרה בצ'אט לשאלות על הצעת מחיר מקובץ, כולל שינוי ב-L-17 ..."): the short answer to a
+// quote-from-file question - three sentences, only the labels the screens show (productHowTo.js quote_from_file evidence) and the decided
+// quota (migration 20261103100000, Terms section 7).
+export function quoteFromFileAnswer(isHebrew: boolean): string {
+  return isHebrew
+    ? 'כן. ב„הצעה חדשה” בוחרים „הצעת מחיר מקובץ”, מעלים קובץ PDF או JPG אחד, וה-AI קורא ממנו את השורות, הכמויות והמחירים. בכל שורה ממלאים את „המחיר שלכם”, ורק המחירים שלכם נכנסים להצעה; הקובץ לא נשמר. חלק מחכם פלוס: עד 50 קבצים בחודש, ועד 3 בשבעת הימים החינמיים.'
+    : 'Yes. In "New quote" choose "Quote from a file", upload one PDF or JPG, and the AI reads its lines, quantities and prices. Fill in "Your price" on each line - only your prices enter the quote, and the file is not stored. Part of SMART PACK: up to 50 files a month, and up to 3 during the 7 free days.';
+}
+
 // Ordered [id, patterns[]] pairs. Order matters: the most specific ("is the AI itself doing this
 // for me") patterns are checked first so "can the AI edit my quote" never gets swallowed by the
 // generic "quote_edit" pattern meant for "can I edit a quote myself".
