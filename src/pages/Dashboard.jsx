@@ -8071,9 +8071,10 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         freePlanActive={freePeriodActive(ownSubscriptionStatus, accountSummary)}
         // Owner 2026-10-20 (typed L-22 approval): the pay button (shown only while the server billing phase is on) leaves for the server
         // attempt's payment page; the package opens only after a verified payment
-        onPurchase={(choice) => startPackageCheckout({ ...choice, invoke: invokeWithFreshSession }).then((r) => { if (r.ok) { markBillingDeparture(session?.user?.id); window.location.assign(r.redirectUrl); } return r; })}
+        // Owner console 2026-11-04 (typed L-01 / L-22): the same action resumes a stopped renewal - the departure remembers it (nothing charged)
+        onPurchase={(choice) => startPackageCheckout({ ...choice, invoke: invokeWithFreshSession }).then((r) => { if (r.ok) { markBillingDeparture(session?.user?.id, Date.now(), r.resume === true, choice.addAfter === true); window.location.assign(r.redirectUrl); } return r; })}
         // Owner console 2026-10-21 (typed L-22 / L-01 approval): back from the payment page; "confirmed" only from the server summary
-        billingReturn={billingReturn.state ? { state: billingReturn.state, onCheckAgain: billingReturn.checkAgain, addOn: isAddOnReturn(billingReturn.kind) } : null}
+        billingReturn={billingReturn.state ? { state: billingReturn.state, onCheckAgain: billingReturn.checkAgain, addOn: isAddOnReturn(billingReturn.kind), resume: billingReturn.resume === true, addAfter: billingReturn.addAfter === true } : null}
         // Owner console 2026-10-25 ("ב: חיוב יחסי עכשיו"): an active subscriber without SMART PACK adds it - the server's pro-rata page
         // Owner console 2026-10-25 (findings 1-13): an account summary that did not load can be read again from the plans window
         onRetrySummary={refreshAccountSummary}

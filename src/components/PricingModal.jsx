@@ -18,7 +18,7 @@ import AiModalHeader from './AiModalHeader';
 import { pricingModalModel } from '../domain/subscriptions/pricingModalModel';
 import { accountStatusModel, lifetimeAccountModel } from '../domain/subscriptions/accountSummaryClient';
 import PackageOfferCards from './PackageOfferCards';
-import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText, israelPurchaseOpen, plansAvailabilityLine, smartPackStatusLine, pastDueLine, serviceMailbox } from '../domain/subscriptions/packageCheckout';
+import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText, israelPurchaseOpen, plansAvailabilityLine, smartPackStatusLine, pastDueLine, serviceMailbox, renewalResumeAvailable, renewalResumeLine, renewalResumeDate, renewalResumeAddOnNote } from '../domain/subscriptions/packageCheckout';
 import { formatShortDate } from '../utils/shortDate';
 import SmartPackAddOnOffer from './SmartPackAddOnOffer';
 import SmartPackRemoval from './SmartPackRemoval';
@@ -75,10 +75,17 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   // back from the payment page: the words of the state; SMART PACK only from the server summary (the plan is on the line below)
   const returnText = billingReturn?.state ? billingReturnText(billingReturn.state, isHebrew, {
     smartPack: accountSummary?.state === 'ready' && accountSummary.smartPack?.active === true, addOn: billingReturn.addOn === true,
+    resume: billingReturn.resume === true, addAfter: billingReturn.addAfter === true,
   }) : '';
   // the pay action (server billing phase on only); the server answers with the payment page of its own attempt
-  const purchase = typeof onPurchase === 'function' && packageCheckoutAvailable(accountSummary, isLifetime) ? {
+  // Owner console 2026-11-04 (typed L-01 / L-22): a stopped renewal resumes here - its own period and lines, nothing charged until the paid period ends
+  const canBuy = typeof onPurchase === 'function' && packageCheckoutAvailable(accountSummary, isLifetime);
+  const canResume = !canBuy && typeof onPurchase === 'function' && renewalResumeAvailable(accountSummary, isLifetime);
+  const purchase = canBuy || canResume ? {
     enabled: true, busy: pay.busy, error: pay.error,
+    // 2026-11-05 (typed: "מאשר חידוש עם או בלי חכם פלוס, והוספת חכם פלוס מיד בחיוב יחסי רק עליו ..."): with or without SMART PACK
+    ...(canResume ? { resume: { period: accountSummary.billingPeriod, hadSmartPack: accountSummary.smartPack?.active === true,
+      line: renewalResumeLine(accountSummary, isHebrew), addOnNote: renewalResumeAddOnNote(accountSummary, isHebrew), date: renewalResumeDate(accountSummary) } } : {}),
     onPay: async (choice) => {
       setPay({ busy: true, error: null });
       const r = await onPurchase(choice).catch(() => ({ ok: false, code: 'checkout_unavailable' }));
