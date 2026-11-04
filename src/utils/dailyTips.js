@@ -10,14 +10,6 @@ export const tipStorageKey = (userId) => `tekango.dailyTips.v${TIP_STATE_VERSION
 // priority order: the first eligible, unseen tip wins
 export const DAILY_TIPS = Object.freeze([
   Object.freeze({
-    // Owner console 2026-11-04 (typed: "מאשר את תוכנית ההתקנה, כולל שינוי ב-L-11 ו-L-17"): on a phone or tablet not yet running from the
-    // home-screen icon, first of all - once, like every tip; its button opens Chrome's install window or the iPhone explanation
-    id: 'install_app', icon: 'app', action: 'install',
-    when: (c) => !!c.installable,
-    he: { text: 'אפשר להתקין את TEKANGO במסך הבית ולפתוח אותה כמו אפליקציה, במסך מלא.', action: 'להתקנה' },
-    en: { text: 'You can add TEKANGO to your home screen and open it like an app, full screen.', action: 'Install' },
-  }),
-  Object.freeze({
     // Owner console 2026-10-25, typed: "מאשר שינוי ב-L-11 ו-L-17: השם \"שיפור ההצעה\" גם בטיפ היומי" - the button's name since 24/10
     id: 'twin_before_send', icon: 'twin', action: 'twin',
     when: (c) => !!c.unsentQuote,

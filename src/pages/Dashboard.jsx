@@ -138,9 +138,6 @@ import TekangoAiIcon from '../components/TekangoAiIcon';
 // Owner console 2026-10-23: the daily tip ("הידעתם?") - one a day at most, chosen by where the user is
 import DailyTipCard from '../components/DailyTipCard';
 import { pickDailyTip, parseTipState, markTipShown, turnTipsOff, tipStorageKey, firstUnsentQuote, tipBellItems, tipQuoteLabel, DAILY_TIP_ACTION_EVENT } from '../utils/dailyTips';
-// Owner console 2026-11-04: installing TEKANGO on the home screen from the site (the daily tip and the "More" menu)
-import InstallAppSheet, { INSTALL_APP_ICON } from '../components/InstallAppSheet';
-import { canOfferInstall, startInstall } from '../shared/installApp';
 import { loadServiceSchedule, normalizeServiceSchedule, probeServiceSchedule, saveServiceSchedule } from '../utils/serviceScheduleClient';
 import { loadShareDefaults } from '../utils/shareDefaultsClient';
 import { useInAppBack, closeTopDialogWithEscape } from '../hooks/useInAppBack';
@@ -4150,7 +4147,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       const tip = pickDailyTip({
         quotesCount: quotes.length, unsentQuote: firstUnsentQuote(quotes), voice: voiceSupported(),
         mobile: typeof window.matchMedia === 'function' && window.matchMedia('(max-width: 768px)').matches,
-        installable: canOfferInstall(),
       }, state, today);
       if (!tip) return;
       // Owner console 2026-10-23, typed: "מאשר שינוי ב-L-17: כל הפריטים בפעמון ממוינים מהחדש לישן, וטיפ בדיקת הלקוח מציין את ההצעה ופותח אותה": the Customer Twin tip remembers THE quote it shows (its button and its bell item open that quote)
@@ -4169,14 +4165,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     else if (tip.action === 'file_quote') handleCreateFileQuoteClick(); // Owner console 2026-11-03: the file tip opens the file dialog (same guard)
     else if (tip.action === 'chat') openAiChat();
     else if (tip.action === 'templates') handleOpenTemplatePicker();
-    else if (tip.action === 'install') runInstallApp();
-  };
-  // Owner console 2026-11-04 (typed: "מאשר את תוכנית ההתקנה, כולל שינוי ב-L-11 ו-L-17"): Chrome's own install window when the browser
-  // offered one; otherwise (iPhone / iPad, other browsers) the short explanation. Nothing is offered once the site runs from the icon.
-  const [installSheet, setInstallSheet] = useState(null);
-  const runInstallApp = async () => {
-    const r = await startInstall();
-    if (r.result === 'explain') setInstallSheet(r.steps);
   };
   const turnDailyTipsOff = () => {
     setDailyTip(null);
@@ -4189,8 +4177,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     if (!tipUserId) { setTipBellState(null); return; }
     try { setTipBellState(parseTipState(window.localStorage.getItem(tipStorageKey(tipUserId)))); } catch { setTipBellState(null); }
   }, [tipUserId, dailyTip]);
-  // the install tip leaves the bell once the site runs from the home-screen icon (Owner console 2026-11-04)
-  const bellItemsWithTips = useMemo(() => [...bellAnnouncements, ...tipBellItems(tipBellState, dailyTip?.id || null).filter((it) => it.tipAction !== 'install' || canOfferInstall())], [bellAnnouncements, tipBellState, dailyTip]);
+  const bellItemsWithTips = useMemo(() => [...bellAnnouncements, ...tipBellItems(tipBellState, dailyTip?.id || null)], [bellAnnouncements, tipBellState, dailyTip]);
   // Owner console 2026-11-02 (typed: "מאשר בניית שלב 1: מסכי ימי החסד ומיילי החיוב שנכשל לפי ההחלטה מ-18/10, כולל שינוי ב-L-02, L-11, L-12, L-13 ו-L-15, עם ההמלצות בהחלטות 1, 2 ו-4, שחרור עד הלייב"): until the payment succeeds, whatever the reminder settings
   const bellPinnedItems = useMemo(() => { const item = billingBellItem(billingNotice); return item ? [item] : []; }, [billingNotice]);
   const runDailyTipRef = useRef(runDailyTip);
@@ -8006,7 +7993,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       {dailyTip && tipQuiet && (
         <DailyTipCard tip={dailyTip} isHebrew={isHebrew} onAction={() => runDailyTip(dailyTip)} onDismiss={() => setDailyTip(null)} onTurnOff={turnDailyTipsOff} />
       )}
-      {installSheet && <InstallAppSheet steps={installSheet} isHebrew={isHebrew} onClose={() => setInstallSheet(null)} />}
       {customerTwin && (() => {
         // the product's market rule (CT-06): Local / LCL / IL / Israel = IL, any other stored country = International
         const twinMarket = isLocalIsraeliBusiness || /^(il|israel)$/i.test(String(bizCountry || '').trim()) ? 'IL' : (String(bizCountry || '').trim() ? 'INTERNATIONAL' : null);
@@ -9336,20 +9322,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               {isHebrew ? label.he : label.en}
             </button>
           ))}
-          {/* Owner console 2026-11-04 (typed: "מאשר את תוכנית ההתקנה, כולל שינוי ב-L-11 ו-L-17"): a standing way to install after the tip
-              is gone; hidden once the site runs from the home-screen icon. The items above and the sign-out below are unchanged. */}
-          {canOfferInstall() && (
-            // PRODUCT_TRUTH_DECORATIVE: opens Chrome's install window or the install explanation; changes no data
-            <button
-              role="menuitem"
-              data-testid="mobile-more-install-app"
-              onClick={() => { setShowMobileMoreMenu(false); runInstallApp(); }}
-              style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: NEON.textPrimary, cursor: 'pointer', fontSize: '0.85rem', fontWeight: '700', textAlign: isHebrew ? 'right' : 'left' }}
-            >
-              <img src={INSTALL_APP_ICON} alt="" width={18} height={18} style={{ borderRadius: '5px', flexShrink: 0 }} />
-              {isHebrew ? 'התקנת האפליקציה' : 'Install the app'}
-            </button>
-          )}
           {/* Task G (Owner-authorized, Mobile Sign Out): this menu had no
               account/session action at all before - Settings/Catalog above
               are byte-identical to before, untouched. Identity line reuses

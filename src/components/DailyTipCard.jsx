@@ -8,7 +8,6 @@ import { useEffect, useRef, useState } from 'react';
 import { X, FileStack, FileUp } from 'lucide-react';
 import TekangoAiIcon from './TekangoAiIcon';
 import CustomerTwinIcon from './CustomerTwinIcon';
-import { INSTALL_APP_ICON } from './InstallAppSheet';
 
 export const AUTO_HIDE_MS = 20000;
 const EXIT_MS = 220;
@@ -64,10 +63,7 @@ export default function DailyTipCard({ tip, isHebrew, onAction, onDismiss, onTur
   // the file tip (Owner console 2026-11-03) wears the approved "quote from a file" icon of the new-quote menu, framed like the template one
   const lineMark = (Icon) => <span style={{ width: 36, height: 36, borderRadius: 11, background: 'linear-gradient(135deg,#eef2ff,#e0f2fe)', color: '#3730a3', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}><Icon size={20} aria-hidden="true" /></span>;
   const mark = tip.icon === 'twin' ? <CustomerTwinIcon size={36} /> : tip.icon === 'template' ? lineMark(FileStack)
-    : tip.icon === 'file' ? lineMark(FileUp)
-    // the install tip (Owner console 2026-11-04) wears the approved TEKANGO home-screen icon itself
-    : tip.icon === 'app' ? <img src={INSTALL_APP_ICON} alt="" width={36} height={36} style={{ borderRadius: 10, boxShadow: '0 2px 6px rgba(15,23,42,.18)' }} data-testid="daily-tip-app-icon" />
-    : <TekangoAiIcon size={36} />;
+    : tip.icon === 'file' ? lineMark(FileUp) : <TekangoAiIcon size={36} />;
   return (
     <div className={`tk-tip no-print${leaving ? ' is-leaving' : ''}`} role="status" aria-live="polite" dir={isHebrew ? 'rtl' : 'ltr'} data-testid="daily-tip" data-tip={tip.id}
       style={{ '--tk-tip-ms': `${AUTO_HIDE_MS}ms`, '--tk-tip-origin': isHebrew ? 'right' : 'left' }}
