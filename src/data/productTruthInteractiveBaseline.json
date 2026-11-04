@@ -255,6 +255,10 @@
     "interactive": 1,
     "markers": 1
   },
+  "src/components/InstallAppSheet.jsx": {
+    "interactive": 1,
+    "markers": 1
+  },
   "src/components/MailLink.jsx": {
     "interactive": 6,
     "markers": 6
@@ -712,8 +716,8 @@
     "markers": 3
   },
   "src/pages/Dashboard.jsx": {
-    "interactive": 17,
-    "markers": 26
+    "interactive": 18,
+    "markers": 27
   },
   "src/pages/LandingGlobal.jsx": {
     "interactive": 1,
@@ -816,6 +820,10 @@
     "markers": 0
   },
   "src/shared/captcha.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/shared/installApp.js": {
     "interactive": 0,
     "markers": 0
   },

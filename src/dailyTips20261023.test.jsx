@@ -41,7 +41,7 @@ describe('choosing the daily tip', () => {
   it('every tip has its words in both languages and a known action', () => {
     for (const t of DAILY_TIPS) {
       expect(t.he.text && t.he.action && t.en.text && t.en.action, t.id).toBeTruthy();
-      expect(['twin', 'smart_quote', 'file_quote', 'chat', 'templates']).toContain(t.action);
+      expect(['install', 'twin', 'smart_quote', 'file_quote', 'chat', 'templates']).toContain(t.action);
     }
   });
   it('quote from a file (Owner console 2026-11-03): the day after the AI smart quote tip, both languages, opens the file dialog', () => {
@@ -55,8 +55,11 @@ describe('choosing the daily tip', () => {
   });
 });
 
+// by id: the install tip (Owner console 2026-11-04, typed L-11 + L-17) now comes first
+const tipById = (id) => DAILY_TIPS.find((t) => t.id === id);
+
 describe('the tip card', () => {
-  const tip = DAILY_TIPS[0];
+  const tip = tipById('twin_before_send');
   it('HE: "הידעתם?", the tip, its action, "הבנתי" and "לא להציג טיפים"; the TEKANGO mark; never a dialog', () => {
     vi.useFakeTimers();
     const onAction = vi.fn(); const onDismiss = vi.fn(); const onTurnOff = vi.fn();
@@ -76,7 +79,7 @@ describe('the tip card', () => {
   it('EN / LTR; it hides by itself, but not while the pointer is on it', () => {
     vi.useFakeTimers();
     const onDismiss = vi.fn();
-    render(<DailyTipCard tip={DAILY_TIPS[3]} isHebrew={false} onAction={() => {}} onDismiss={onDismiss} onTurnOff={() => {}} />);
+    render(<DailyTipCard tip={tipById('voice')} isHebrew={false} onAction={() => {}} onDismiss={onDismiss} onTurnOff={() => {}} />);
     expect(screen.getByTestId('daily-tip').getAttribute('dir')).toBe('ltr');
     expect(screen.getByTestId('daily-tip').textContent).toContain('Did you know?');
     fireEvent.mouseEnter(screen.getByTestId('daily-tip'));
@@ -101,7 +104,7 @@ describe('the Dashboard wiring', () => {
 
 describe('the Customer Twin tip names its quote (L-17, 23/10)', () => {
   it('the card shows the quote it means', () => {
-    render(<DailyTipCard tip={{ ...DAILY_TIPS[0], quoteId: 'q1', quoteLabel: 'A1042 · שיפוץ מטבח' }} isHebrew onAction={() => {}} onDismiss={() => {}} onTurnOff={() => {}} />);
+    render(<DailyTipCard tip={{ ...tipById('twin_before_send'), quoteId: 'q1', quoteLabel: 'A1042 · שיפוץ מטבח' }} isHebrew onAction={() => {}} onDismiss={() => {}} onTurnOff={() => {}} />);
     expect(screen.getByTestId('daily-tip-quote').textContent).toBe('ההצעה: A1042 · שיפוץ מטבח');
   });
 });
