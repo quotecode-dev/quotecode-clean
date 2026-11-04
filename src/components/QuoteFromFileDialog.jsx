@@ -11,7 +11,7 @@ import { X, FileUp, Check } from 'lucide-react';
 import AiModalHeader from './AiModalHeader';
 import { APP as NEON } from '../theme/neonTheme';
 import { getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
-import { MAX_FILE_BYTES, catalogPriceFor, checkPickedFile, compareTotals, fileSizeLabel, parseOwnPrice } from '../utils/quoteFromFileClient';
+import { MAX_FILE_BYTES, catalogPriceFor, checkPickedFile, compareTotals, parseOwnPrice } from '../utils/quoteFromFileClient';
 
 const UNITS = ['unit', 'm2', 'linear_meter', 'kg', 'hour', 'day'];
 const positiveQuantity = (v) => {
@@ -196,7 +196,7 @@ export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoney
                 <button type="button" onClick={() => inputRef.current?.click()} disabled={phase === 'loading'} style={secondaryBtn}>
                   <FileUp size={18} aria-hidden="true" />{t.choose}
                 </button>
-                {file && <span data-testid="quote-from-file-chosen" style={{ fontSize: '0.84rem', color: NEON.textPrimary, overflowWrap: 'anywhere' }}>{t.chosen}: <bdi>{file.name}</bdi> (<bdi dir="ltr">{fileSizeLabel(file.size)}</bdi>)</span>}
+                {file && <span data-testid="quote-from-file-chosen" style={{ fontSize: '0.84rem', color: NEON.textPrimary, overflowWrap: 'anywhere' }}>{t.chosen}: <bdi>{file.name}</bdi> (<bdi dir="ltr">{(file.size / (1024 * 1024)).toFixed(1)} MB</bdi>)</span>}
               </div>
               <small data-testid="quote-from-file-small-print" style={{ fontSize: '0.72rem', color: NEON.textSecondary, lineHeight: 1.45 }}>{t.small}</small>
               {allowanceText && <div data-testid="quote-from-file-allowance" style={{ fontSize: '0.78rem', color: NEON.textSecondary }}>{allowanceText}</div>}

@@ -22,14 +22,6 @@ export function checkPickedFile(file) {
   return null;
 }
 
-/** Owner console 2026-11-04 (typed: "מאשר תיקון הצגת גודל הקובץ, שחרור עד הלייב"): the size of the picked file - under 1 MB in KB (a 49 KB
- *  file showed "0.0 MB"), from about 1 MB in MB with one decimal (never "1000 KB" and up). */
-export function fileSizeLabel(bytes) {
-  const n = Number(bytes) > 0 ? Number(bytes) : 0;
-  const kb = Math.max(1, Math.round(n / 1024));
-  return kb < 1000 ? `${kb} KB` : `${(n / (1024 * 1024)).toFixed(1)} MB`;
-}
-
 async function answerBody(error) {
   const ctx = error?.context;
   if (ctx && typeof ctx.json === 'function') { try { return await ctx.json(); } catch { return null; } }
