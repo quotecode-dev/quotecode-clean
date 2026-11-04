@@ -58,6 +58,8 @@ try {
 // left-to-right until those effects ran (a visible LTR flash, caught by the WebKit leg of the browser matrix, 2026-09-22).
 document.documentElement.lang = isEnglishEnv ? 'en' : 'he';
 document.documentElement.dir = isEnglishEnv ? 'ltr' : 'rtl';
+// Home-screen install (Owner console 2026-11-04, PROFLOW_TODO 5a): the installed app opens the dashboard in the language picked above.
+document.querySelector('link[rel="manifest"]')?.setAttribute('href', isEnglishEnv ? '/manifest-en.webmanifest' : '/manifest-he.webmanifest');
 
 const loadShell = isEnglishEnv ? () => import('./global/AppGlobal.jsx') : () => import('./local/AppLocal.jsx')
 loadShell().then(({ default: App }) => {
