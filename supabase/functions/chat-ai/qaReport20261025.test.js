@@ -95,8 +95,7 @@ describe('QA report 2026-10-25: answers', () => {
     expect(paidHe).toContain('נעולה');
     expect(paidHe).not.toContain('"שליחה במייל"');
     expect(howToStepsForCapability('quote_status', 'How do I mark a quote as paid?', false, AI_FACTS.howTo)).toContain('"Quote status"');
-    // Owner console 2026-11-03 (typed approval incl. L-17): a quote-from-file question takes its short answer first; every other "how" unchanged
-    expect(index).toMatch(/const capabilityAnswer = shortFile \|\| \(steps \? `\$\{capabilityTruth\.answer\}\\n\\n\$\{steps\}` : capabilityTruth\.answer\);/);
+    expect(index).toMatch(/const capabilityAnswer = steps \? `\$\{capabilityTruth\.answer\}\\n\\n\$\{steps\}` : capabilityTruth\.answer;/);
   });
 
   it('the new how-to facts exist for the tasks the report found missing (L-14)', () => {

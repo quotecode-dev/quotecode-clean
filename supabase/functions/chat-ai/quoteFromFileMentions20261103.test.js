@@ -3,7 +3,7 @@
 // the chat routes "quote from a file" questions to the right answer and button, knows its quota and the user's own file balance.
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
-import { classifyCapabilityIntent, resolveCapabilityTruthResponse, QUOTE_FROM_FILE_REQUEST, quoteFromFileAnswer } from './capabilityTruth.ts';
+import { classifyCapabilityIntent, resolveCapabilityTruthResponse, QUOTE_FROM_FILE_REQUEST } from './capabilityTruth.ts';
 import { howToStepsForCapability } from './howToTruth.ts';
 import { classifySubscriptionIntents, resolveSubscriptionTruthResponse, buildSubscriptionTruthBlock } from './subscriptionTruth.ts';
 import { parseFileReadStatus, fetchFileReadBalance, buildVerifiedAccountContext } from './accountContext.ts';
@@ -52,34 +52,9 @@ describe('quote-from-file questions reach the smart quote capability (not the PD
     expect(NAV_LABELS.open_file_quote).toEqual({ he: 'פתיחת הצעת מחיר מקובץ', en: 'Open quote from a file' });
     expect(allowedNavigation({})).toContain('open_file_quote');
     expect(readFileSync('supabase/functions/chat-ai/index.ts', 'utf8'))
-      .toContain("const fileQuestion = capabilityId === 'smart_quote' && QUOTE_FROM_FILE_REQUEST.some((re) => re.test(lastUserMessage));");
+      .toContain("capabilityId === 'smart_quote' && QUOTE_FROM_FILE_REQUEST.some((re) => re.test(lastUserMessage)) ? 'open_file_quote'");
     expect(readFileSync('src/pages/Dashboard.jsx', 'utf8')).toMatch(/case 'open_file_quote':\r?\n {10}closeEditor\(\);\r?\n {10}setActiveTab\('main'\);\r?\n {10}handleCreateFileQuoteClickRef\.current\?\.\(\);/);
     expect(readFileSync('src/pages/Dashboard.jsx', 'utf8')).toContain('handleCreateFileQuoteClickRef.current = handleCreateFileQuoteClick;');
-  });
-});
-
-// Owner console 2026-11-03 (typed approval incl. L-17): "רק מוזר שההסבר הוא כזה ארוך" - a file question gets three sentences
-describe('the short answer to a quote-from-file question', () => {
-  it('HE / EN: three sentences, the screen labels, the file not stored, the quota - and nothing about the AI smart quote', () => {
-    const he = quoteFromFileAnswer(true);
-    const en = quoteFromFileAnswer(false);
-    for (const label of ['„הצעה חדשה”', '„הצעת מחיר מקובץ”', '„המחיר שלכם”', 'הקובץ לא נשמר', 'עד 50 קבצים בחודש', 'חכם פלוס']) expect(he).toContain(label);
-    for (const label of ['"New quote"', '"Quote from a file"', '"Your price"', 'the file is not stored', 'up to 50 files a month', 'SMART PACK']) expect(en).toContain(label);
-    expect(he).not.toMatch(/ניסיון|להכתיב|מיקרופון/);
-    expect(en).not.toMatch(/trial|dictate|microphone/i);
-    expect(he.split(/[.](?:\s|$)/).filter(Boolean)).toHaveLength(4); // "כן." + three sentences
-    expect(he.length).toBeLessThan(300);
-  });
-  it('index.ts answers a file question with it (available, no role) and skips the long description and the steps', () => {
-    const src = readFileSync('supabase/functions/chat-ai/index.ts', 'utf8');
-    expect(src).toContain("const shortFile = fileQuestion && capabilityTruth.factPayload.truthStatus === 'AVAILABLE' && capabilityTruth.factPayload.requiredRole === null");
-    expect(src).toContain('const capabilityAnswer = shortFile || (steps ?');
-    expect(src).toContain("const navId = fileQuestion ? 'open_file_quote'");
-  });
-  it('the smart quote capability payload for a file question is AVAILABLE without a role (the short answer is reachable)', () => {
-    const r = resolveCapabilityTruthResponse('smart_quote', facts, true);
-    expect(r.factPayload.truthStatus).toBe('AVAILABLE');
-    expect(r.factPayload.requiredRole).toBeNull();
   });
 });
 

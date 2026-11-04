@@ -13,7 +13,7 @@ import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } f
 import { paymentTruthApplies, classifyPaymentIntent, resolvePaymentTruthResponse, subscriptionPurchaseOpen } from "./paymentTruth.ts";
 import { AI_FACTS } from "./aiFacts.generated.ts";
 import { invoicingTruthApplies, classifyInvoicingIntent, resolveInvoicingTruthResponse } from "./invoicingTruth.ts";
-import { capabilityTruthApplies, classifyCapabilityIntent, classifyBroadCapabilityQuestionSignal, resolveBroadCapabilityClarification, resolveCapabilityTruthResponse, BUILD_QUOTE_REQUEST, QUOTE_FROM_FILE_REQUEST, quoteFromFileAnswer, HOW_QUESTION } from "./capabilityTruth.ts";
+import { capabilityTruthApplies, classifyCapabilityIntent, classifyBroadCapabilityQuestionSignal, resolveBroadCapabilityClarification, resolveCapabilityTruthResponse, BUILD_QUOTE_REQUEST, QUOTE_FROM_FILE_REQUEST, HOW_QUESTION } from "./capabilityTruth.ts";
 import { howToStepsForCapability } from "./howToTruth.ts";
 import { classifyAccountMarketIntent, formatAccountMarketAnswer } from "./marketTruth.ts";
 import { buildAccountMarketFactPayload, NO_ACCOUNT_FACTS, type PayloadAccountFacts } from "./productTruthPayload.ts";
@@ -380,19 +380,14 @@ serve(async (req) => {
       );
       if (capabilityTruth) {
         const matched = AI_FACTS.capabilities.find((c) => c.id === capabilityId);
-        const fileQuestion = capabilityId === 'smart_quote' && QUOTE_FROM_FILE_REQUEST.some((re) => re.test(lastUserMessage));
-        // Owner console 2026-11-03 (typed: "מאשר תשובה קצרה בצ'אט לשאלות על הצעת מחיר מקובץ, כולל שינוי ב-L-17 ..."; "רק מוזר שההסבר הוא
-        // כזה ארוך"): a question about a quote FROM a file gets the short quote-from-file answer, not the whole smart quote description
-        const shortFile = fileQuestion && capabilityTruth.factPayload.truthStatus === 'AVAILABLE' && capabilityTruth.factPayload.requiredRole === null
-          ? quoteFromFileAnswer(isHebrew) : '';
         // Owner 2026-10-25 (typed L-17, QA report): a "how do I ..." question gets the verified steps after the fixed answer
-        const steps = !shortFile && matched && HOW_QUESTION.test(lastUserMessage) && ['AVAILABLE', 'PLAN_NOT_DECIDED', 'PLAN_LOCKED'].includes(String(capabilityTruth.factPayload.truthStatus))
+        const steps = matched && HOW_QUESTION.test(lastUserMessage) && ['AVAILABLE', 'PLAN_NOT_DECIDED', 'PLAN_LOCKED'].includes(String(capabilityTruth.factPayload.truthStatus))
           ? howToStepsForCapability(capabilityId, lastUserMessage, isHebrew, AI_FACTS.howTo) : '';
-        const capabilityAnswer = shortFile || (steps ? `${capabilityTruth.answer}\n\n${steps}` : capabilityTruth.answer);
+        const capabilityAnswer = steps ? `${capabilityTruth.answer}\n\n${steps}` : capabilityTruth.answer;
         // Owner 2026-10-24 (typed L-17): "can you build / write me a quote" (ai_mutation about a quote) offers the AI smart quote button;
         // 2026-10-25 (QA report): only a build / write request - "can you send / delete my quote" gets no button
         // Owner console 2026-11-03 (typed approval incl. L-17): a quote FROM a file offers its own dialog, not the AI smart quote
-        const navId = fileQuestion ? 'open_file_quote'
+        const navId = capabilityId === 'smart_quote' && QUOTE_FROM_FILE_REQUEST.some((re) => re.test(lastUserMessage)) ? 'open_file_quote'
           : matched?.aiMayNavigate && matched.safeNavigationId ? matched.safeNavigationId
           : capabilityId === 'ai_mutation' && BUILD_QUOTE_REQUEST.some((re) => re.test(lastUserMessage)) ? 'open_ai_quote' : null;
         const navSuggestion = navId && verifiedUserId && navAllowed.includes(navId) ? { action: navId, focus: null } : null;
