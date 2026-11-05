@@ -656,18 +656,12 @@ export default function QuotesTab({
   const renderInlineActions = (quote, isLocked) => {
     // Owner console 2026-11-05 (typed, L-07 / L-29): "תקטין קצת את הכפתורים ב-10% בערך גם בנייד וגם המחשב" - the row-action chips are ~10%
     // smaller so the new "עריכה חכמה" chip fits without adding a row (padding / font / gap / icon all reduced).
-    // Owner console 2026-11-06 (typed, L-07 / L-29): every row chip the exact same height - all icons at chipIcon (12) and a uniform 1px border
-    // (transparent where no colour is wanted) so the AI chips no longer tower over the rest. box-sizing keeps the 1px border out of the outer height.
-    // On a phone (<=768px) the chips are a touch tighter (padding / font / icon-text gap) so five fit per row and "מחיקה" shares the last row
-    // with others instead of sitting alone - verified by eye at 360 / 384 / 390 / 412 in both languages. Desktop is unchanged (all nine on one row).
-    // A fixed height makes every chip pixel-identical regardless of the tiny per-icon glyph-height differences (otherwise ~1px apart); the
-    // box-sizing + centered content keeps it from clipping the 12px icon or the text.
-    const chipBase = { border: '1px solid transparent', boxSizing: 'border-box', borderRadius: RADIUS.sm, height: isMobileView ? '24px' : '26px', padding: isMobileView ? '0 4px' : '0 8px', cursor: 'pointer', fontSize: isMobileView ? '0.58rem' : '0.62rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: isMobileView ? '1px' : '4px', whiteSpace: 'nowrap' };
+    const chipBase = { border: 'none', borderRadius: RADIUS.sm, padding: '4px 8px', cursor: 'pointer', fontSize: '0.62rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' };
     const chipIcon = 12;
     const neutralChip = { background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.border}` };
     const neutralIconColor = NEON.textSecondary;
     return (
-      <div className="qt-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
         {/* PRODUCT_TRUTH_CAPABILITY: public_quote_view */}
         <button
           onClick={() => window.open(getQuoteViewLink(quote), '_blank')}
@@ -703,7 +697,7 @@ export default function QuotesTab({
             onClick={() => handleMarkQuotePaid(quote, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })}
             style={{ ...chipBase, background: APP_STATUS.paid.bg, color: APP_STATUS.paid.fg, border: `1px solid ${APP_STATUS.paid.border}` }}
           >
-            <PaidMarkIcon size={chipIcon} />
+            <PaidMarkIcon size={16} />
             <span>{isHebrew ? 'סימון כשולמה' : 'Mark as paid'}</span>
           </button>
         )}
@@ -718,7 +712,7 @@ export default function QuotesTab({
             title={isHebrew ? 'מציע מה לשנות בהצעה כדי שתהיה ברורה ואטרקטיבית יותר בעיני הלקוח שלכם.' : 'Suggests what to change in the quote so it is clearer and more attractive to your customer.'}
             style={{ ...chipBase, background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe' }}
           >
-            <CustomerTwinIcon size={chipIcon} />
+            <CustomerTwinIcon size={16} />
             <span>{isHebrew ? 'שיפור ההצעה' : 'Improve quote'}</span>
           </button>
         )}
@@ -736,7 +730,7 @@ export default function QuotesTab({
               data-testid="quote-ai-edit-row"
               style={{ ...chipBase, background: '#0e7490', color: '#fff', opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
             >
-              <TekangoAiIcon size={chipIcon} />
+              <TekangoAiIcon size={16} />
               <span>{isHebrew ? 'עריכה חכמה' : 'Smart edit'}</span>
             </button>
           </span>
@@ -795,15 +789,15 @@ export default function QuotesTab({
           <span>{isHebrew ? 'שליחה במייל' : 'Email'}</span>
         </button>
 
-        {/* Owner console 2026-11-06 (typed, L-07 / L-29): phone delete chip may share a row - the forced phone-only break was removed so the
-            chips wrap naturally and "מחיקה" sits with the others instead of alone. */}
+        {/* Owner console 2026-11-05 (typed, L-07 / L-29): phone-only line break so "מחיקה" sits alone on the last row (no effect on desktop - stays one row) */}
+        <div className="qt-del-break" aria-hidden="true" />
         <span style={{ position: 'relative', display: 'inline-block' }}>
           {/* PRODUCT_TRUTH_DECORATIVE: deletes a quote; per the registry's own header comment, quote deletion has no dedicated id among the 38 */}
           <button
             disabled={isLocked}
             title={isLocked ? (isHebrew ? 'לא ניתן למחוק הצעה חתומה' : 'Cannot delete a signed quote') : undefined}
             onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })); }}
-            style={{ ...chipBase, background: isLocked ? NEON.bgCardAlt : APP_STATUS.error.bg, color: isLocked ? NEON.textMuted : NEON.red, border: isLocked ? `1px solid ${NEON.border}` : '1px solid transparent', opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
+            style={{ ...chipBase, background: isLocked ? NEON.bgCardAlt : APP_STATUS.error.bg, color: isLocked ? NEON.textMuted : NEON.red, border: isLocked ? `1px solid ${NEON.border}` : 'none', opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
           >
             <Trash2 size={chipIcon} color={isLocked ? NEON.textMuted : NEON.red} strokeWidth={2.2} />
             <span>{isHebrew ? 'מחיקה' : 'Delete'}</span>

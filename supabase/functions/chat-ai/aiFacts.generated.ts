@@ -1568,31 +1568,6 @@ export const AI_FACTS = {
       }
     },
     {
-      "id": "smart_edit_quote",
-      "capabilityIds": [
-        "smart_quote",
-        "quote_edit"
-      ],
-      "he": {
-        "task": "עריכה חכמה",
-        "steps": [
-          "ברשימת \"הצעות מחיר\" מוצאים הצעה שעדיין לא נחתמה ולוחצים \"עריכה חכמה\" בשורת הפעולות של ההצעה.",
-          "ההצעה נפתחת לעריכה וחלון ה-AI מכוון אליה ושואל מה להוסיף או לשנות בהצעה הזו. מתארים במילים, או מכתיבים בקול.",
-          "ה-AI מציע שורות. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה. מחיר מוצע רק לפריט שקיים בקטלוג, וכל פעולת AI נספרת מהמכסה החודשית.",
-          "הצעה שהלקוח כבר חתם עליה נעולה - הכפתור לא פעיל (\"לא ניתן לערוך הצעה חתומה\")."
-        ]
-      },
-      "en": {
-        "task": "Smart edit",
-        "steps": [
-          "In the \"Quotes\" list, find a quote that is not signed yet and click \"Smart edit\" in the quote's row actions.",
-          "The quote opens for editing and the AI dialog is pointed at it, asking what to add or change in this quote. Describe it in words, or dictate by voice.",
-          "The AI suggests lines. Review, correct and approve before anything enters the quote. A price is suggested only for an item in your catalog, and each AI action counts against your monthly quota.",
-          "A quote the client has already signed is locked - the button is disabled (\"Cannot edit a signed quote\")."
-        ]
-      }
-    },
-    {
       "id": "quote_attachment",
       "capabilityIds": [
         "attachments"
