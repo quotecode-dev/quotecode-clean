@@ -564,7 +564,9 @@ html {
   box-shadow: inset 0 -1px 0 #E1E6E7;
 }
 
-/* Owner console 2026-11-05 (typed, L-07 / L-29): on a phone, force the "מחיקה" (Delete) chip onto its own last line, alone. A zero-size
-   flex item on wide screens (no break - every chip incl. Delete stays on one row), full-width below 520px (Delete wraps to a line by itself). */
-.qt-del-break { display: none; }
-@media (max-width: 520px) { .qt-del-break { display: block; flex-basis: 100%; width: 100%; height: 0; } }
+/* Owner console 2026-11-06 (typed, L-07 / L-29): on narrow phones (<=380px) tighten the quote-row action chips one more step, so even the
+   longer English labels ("Improve quote" / "Smart edit") still let five fit per row and "מחיקה" / "Delete" shares the last row instead of
+   sitting alone. Wider phones (the Owner's device is 384+) keep the comfortable size set inline in QuotesTab. */
+@media (max-width: 380px) {
+  .qt-chips button { padding: 0 3px !important; font-size: 0.55rem !important; }
+}
