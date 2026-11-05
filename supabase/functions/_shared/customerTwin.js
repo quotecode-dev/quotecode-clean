@@ -20,7 +20,7 @@ export const TWIN_PERSONAS = Object.freeze(['price', 'quality', 'skeptic']);
 export const TWIN_STATES = Object.freeze(['convinced', 'hesitant', 'may_stop']);
 export const TWIN_EDIT_TARGETS = Object.freeze(['terms', 'warranty', 'item']);
 export const TWIN_CHECK_IDS = Object.freeze(['breakdown', 'prices', 'warranty', 'payment', 'vat', 'disposal', 'validity']);
-const UNITS = ['unit', 'm2', 'linear_meter', 'kg', 'hour', 'day'];
+import { QUOTE_UNITS as UNITS } from './quoteUnits.js'; // Owner 2026-11-05: one shared list (+ the feet units)
 
 // ------------------------------------------------------------------------------------------------------------- market
 /** business_settings.country -> 'IL' | 'INTERNATIONAL' | null: Local / LCL / IL / Israel (any case) = IL; any other country = International

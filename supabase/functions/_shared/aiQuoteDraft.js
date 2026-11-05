@@ -15,13 +15,18 @@
 //   - a catalog price is bound only when the catalog row's own price unit is verified to match the line's unit (the catalog has no unit
 //     column, so only a unit written in the catalog name counts); otherwise the line keeps no price and says why.
 
+import { QUOTE_UNITS, METRIC_QUOTE_UNITS } from './quoteUnits.js';
 export const AI_QUOTE_DRAFT_CONTRACT_VERSION = 3; // Task 34: + per-line evidence span; 'unverified' gaps
 export const MIN_DESCRIPTION_CHARS = 5;
 export const MAX_DESCRIPTION_CHARS = 2000;
 export const MAX_DRAFT_ITEMS = 15;
 export const MAX_CATALOG_FOR_PROMPT = 120;
 export const MAX_QUESTIONS = 3;
-export const DRAFT_UNITS = ['unit', 'm2', 'linear_meter', 'kg', 'hour', 'day']; // = PROFESSIONAL_UNITS ids (src/utils/professionalQuoteItem.js)
+// = PROFESSIONAL_UNITS ids (src/utils/professionalQuoteItem.js); Owner 2026-11-05 (L-17): + the feet units of the international market
+export const DRAFT_UNITS = [...QUOTE_UNITS];
+// the units a market offers in a unit picker (a line keeps its own unit whatever the market)
+export const METRIC_DRAFT_UNITS = [...METRIC_QUOTE_UNITS];
+export const draftUnitsForMarket = (international) => (international ? DRAFT_UNITS : METRIC_DRAFT_UNITS);
 export const QUANTITY_BASES = ['stated', 'derived', 'implied_single', 'missing'];
 const MAX_LINE_CHARS = 200;
 const MAX_SUBJECT_CHARS = 120;
@@ -48,6 +53,11 @@ export function normalizeCatalog(rows) {
 // Unit words as they appear right AFTER a number (HE / EN). Order matters: the longer / more specific forms first.
 // A Hebrew alternative must end at a word end ((?![א-ת]); JS \b is ASCII-only), so "מרפסת" is never read as "מ״ר".
 const UNIT_PATTERNS = [
+  // feet first (Owner 2026-11-05): "sq ft" / "square feet" / "רגל רבועה", "linear ft" / "רגל אורך", then a plain foot / inch length
+  ['sq_ft', /^(?:רגל(?:יים)?\s+(?:רבוע|רבועה|רבועות|רבועים|מרובע|מרובעת|מרובעות|מרובעים)(?![א-ת])|sq\.?\s?f(?:ee)?t\b|sqft\b|ft²|ft2\b|square\s+f(?:oo|ee)t\b)/i],
+  ['linear_ft', /^(?:רגל(?:יים)?\s+(?:אורך|רץ|רצה)(?![א-ת])|linear\s+f(?:oo|ee)?t\b|lin\.?\s?ft\b|running\s+f(?:oo|ee)?t\b)/i],
+  ['inch', /^(?:אינץ['׳]?(?![א-ת])|אינצ['׳]ים(?![א-ת])|inch(?:es)?\b)/i],
+  ['foot', /^(?:רגל(?:יים)?(?![א-ת])|f(?:oo|ee)t\b|ft\b)/i],
   ['m2', /^(?:מ["״'׳]?ר(?![א-ת])|מטר(?:ים)?\s+(?:מרובע|רבוע)(?:ים)?(?![א-ת])|sq\.?\s?m\b|sqm\b|m2\b|m²|square\s+met(?:er|re)s?\b)/i],
   ['linear_meter', /^(?:מטר(?:ים)?\s+(?:אורך|רץ|רצים)(?![א-ת])|מ["״'׳]א(?![א-ת])|linear\s+met(?:er|re)s?\b|lin\.?\s?m\b|lm\b|running\s+met(?:er|re)s?\b)/i],
   ['cm', /^(?:ס["״'׳]?מ(?![א-ת])|סנטימטר(?:ים)?(?![א-ת])|cm\b|centimet(?:er|re)s?\b)/i],
@@ -60,12 +70,87 @@ const UNIT_PATTERNS = [
 const LENGTH_UNITS = new Set(['meter', 'linear_meter', 'cm']);
 const toMeters = (m) => (m.unit === 'cm' ? m.value / 100 : m.value);
 
-const WORD_NUMBERS = new Map(Object.entries({
-  'אחד': 1, 'אחת': 1, 'שניים': 2, 'שתיים': 2, 'שני': 2, 'שתי': 2, 'שלוש': 3, 'שלושה': 3, 'שלושת': 3, 'ארבע': 4, 'ארבעה': 4, 'ארבעת': 4,
-  'חמש': 5, 'חמישה': 5, 'חמשת': 5, 'שש': 6, 'שישה': 6, 'ששת': 6, 'שבע': 7, 'שבעה': 7, 'שבעת': 7, 'שמונה': 8, 'שמונת': 8, 'תשע': 9, 'תשעה': 9,
-  'תשעת': 9, 'עשר': 10, 'עשרה': 10, 'עשרת': 10,
-  one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12, pair: 2, dozen: 12,
-}));
+// Owner console 2026-11-05 (typed: "מאשר מספרים במילים ויחידות רגל מלאות לשוק הבינלאומי, כולל שינוי ב-L-09, L-14, L-15 ו-L-17, שחרור עד
+// הלייב"): feet. A foot length is a dimension of its own system - feet x feet = sq ft, NEVER mixed with meters and never converted silently.
+const FEET_LENGTH_UNITS = new Set(['foot', 'linear_ft', 'inch']);
+const toFeet = (m) => (m.unit === 'inch' ? m.value / 12 : m.value);
+
+// Owner console 2026-11-05 (same line): a dictated quantity is often written in WORDS ("שמונים וחמש מטר", "eighty-five square feet",
+// "two hundred and fifty", "שתיים וחצי"). Each number word has a role: add (a value), ten (10 - in Hebrew it also closes a teen:
+// "שנים עשר" = 2 + 10), hundred ("hundred" / "מאות": multiplies), thousand ("thousand" / "אלף" / "אלפים": multiplies and closes a group),
+// half ("וחצי" / "and a half").
+const NUMBER_WORDS = new Map([
+  ...Object.entries({
+    'אחד': 1, 'אחת': 1, 'שניים': 2, 'שתיים': 2, 'שנים': 2, 'שתים': 2, 'שני': 2, 'שתי': 2, 'שלוש': 3, 'שלושה': 3, 'שלושת': 3, 'ארבע': 4, 'ארבעה': 4,
+    'ארבעת': 4, 'חמש': 5, 'חמישה': 5, 'חמשת': 5, 'שש': 6, 'שישה': 6, 'ששת': 6, 'שבע': 7, 'שבעה': 7, 'שבעת': 7, 'שמונה': 8, 'שמונת': 8, 'תשע': 9,
+    'תשעה': 9, 'תשעת': 9, 'עשרים': 20, 'שלושים': 30, 'ארבעים': 40, 'חמישים': 50, 'שישים': 60, 'שבעים': 70, 'שמונים': 80, 'תשעים': 90,
+    'מאה': 100, 'מאתיים': 200, 'אלפיים': 2000,
+    one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, eleven: 11, twelve: 12, thirteen: 13, fourteen: 14,
+    fifteen: 15, sixteen: 16, seventeen: 17, eighteen: 18, nineteen: 19, twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70,
+    eighty: 80, ninety: 90, pair: 2, dozen: 12,
+  }).map(([w, v]) => [w, { role: 'add', value: v }]),
+  ...['עשר', 'עשרה', 'עשרת', 'ten'].map((w) => [w, { role: 'ten' }]),
+  ...['מאות', 'hundred'].map((w) => [w, { role: 'hundred' }]),
+  ...['אלף', 'אלפים', 'thousand'].map((w) => [w, { role: 'thousand' }]),
+  ...['חצי', 'half'].map((w) => [w, { role: 'half' }]),
+]);
+const MAX_WORD_NUMBER = 100000;
+// a word of the text -> its number role; one Hebrew prefix letter may be stripped (ו = the joining "and" of "וחמש", which continues a phrase)
+function numberWord(text) {
+  const w = text.toLowerCase();
+  if (NUMBER_WORDS.has(w)) return { ...NUMBER_WORDS.get(w), joined: false, prefixed: false };
+  if (/^[והבלמשכ][א-ת]{2,}$/.test(w) && NUMBER_WORDS.has(w.slice(1))) return { ...NUMBER_WORDS.get(w.slice(1)), joined: w[0] === 'ו', prefixed: w[0] !== 'ו' };
+  return null;
+}
+// The number phrases of a text, each { value, start, end }. A phrase is a run of number words separated by spaces or "-", where English
+// may join with "and" / "a" and Hebrew with the prefix ו. A phrase starts at a value (or "אלף" / "a thousand"); "half" / "hundred" alone,
+// two plain values side by side ("five six") and a prefixed word in the middle ("בשלוש") are never read as one number.
+export function wordNumberPhrases(text) {
+  const src = String(text || '');
+  const words = [...src.matchAll(/[A-Za-zא-ת]+/g)].map((m) => ({ text: m[0], start: m.index, end: m.index + m[0].length, n: numberWord(m[0]) }));
+  const glue = (from, to) => src.slice(from, to);
+  const out = [];
+  let i = 0;
+  while (i < words.length) {
+    const head = words[i];
+    const afterA = i > 0 && /^an?$/i.test(words[i - 1].text) && /^\s+$/.test(glue(words[i - 1].end, head.start)); // "a hundred", "a thousand"
+    const startsHere = head.n && (head.n.role === 'add' || head.n.role === 'ten' || (head.n.role === 'thousand' && /אלף$/.test(head.text))
+      || ((head.n.role === 'hundred' || head.n.role === 'thousand') && afterA && !/[א-ת]/.test(head.text)));
+    if (!startsHere) { i++; continue; }
+    let total = 0; let current = 0; let half = false; let end = head.end; let lastRole = null; let j = i;
+    while (j < words.length) {
+      const w = words[j];
+      if (j > i) {
+        // the separator from the previous consumed word: spaces, a hyphen, or the English "and" / "a" words (consumed here)
+        let k = j; let sep = glue(end, w.start);
+        while (k < words.length && /^(?:and|a|an)$/i.test(words[k].text) && /^\s+$/.test(glue(k === j ? end : words[k - 1].end, words[k].start))) k++;
+        if (k !== j) { if (k >= words.length) break; sep = glue(end, words[k].start); }
+        const next = words[k];
+        if (!next.n || next.n.prefixed || !/^(?:\s+|\s*-\s*|\s+(?:and\s+)?(?:a\s+|an\s+)?)$/i.test(sep.replace(/\b(?:and|a|an)\b/gi, ' '))) break;
+        const n = next.n;
+        const english = !/[א-ת]/.test(next.text);
+        // two plain values continue only as tens + unit ("twenty five", "עשרים וחמש") or after a hundred / thousand ("מאה ועשרים")
+        if (n.role === 'add' && lastRole === 'add' && !(current % 100 >= 20 && current % 10 === 0 && n.value < 10) && !(current % 100 === 0 && current > 0)) break;
+        if (n.role === 'ten' && !(lastRole === 'add' && current % 100 > 0 && current % 100 < 10) && !(current % 100 === 0 && current > 0)) break;
+        if (n.role === 'half' && !(n.joined || /\ba\s*$/i.test(sep))) break;
+        if (n.role === 'add' && !english && lastRole && !n.joined && lastRole !== 'hundred' && lastRole !== 'thousand') break;
+        j = k;
+      }
+      const n = words[j].n;
+      if (n.role === 'add') current += n.value;
+      else if (n.role === 'ten') current += 10;
+      else if (n.role === 'hundred') current = (current || 1) * 100;
+      else if (n.role === 'thousand') { total += (current || 1) * 1000; current = 0; }
+      else if (n.role === 'half') half = true;
+      lastRole = n.role; end = words[j].end; j++;
+      if (half) break;
+    }
+    const value = total + current + (half ? 0.5 : 0);
+    if (value > 0 && value <= MAX_WORD_NUMBER) out.push({ value, start: head.start, end, text: src.slice(head.start, end) });
+    i = Math.max(j, i + 1);
+  }
+  return out;
+}
 
 const round2 = (n) => Math.round(n * 100) / 100;
 const sameNumber = (a, b) => Math.abs(a - b) < 0.005;
@@ -108,23 +193,21 @@ export function extractMeasures(text) {
     const end = tokenEnd + (unit ? gap + unitText.length : 0);
     out.push({ value, unit, kind, text: src.slice(start, end), start, end });
   }
-  for (const w of src.matchAll(/[A-Za-zא-ת]+/g)) {
-    const word = w[0].toLowerCase();
-    const bare = word.replace(/^[והבלמש](?=[א-ת]{3,})/, '');
-    const value = WORD_NUMBERS.get(word) ?? WORD_NUMBERS.get(bare);
-    if (value == null) continue;
-    // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקון 4 התקלות בהצעה החכמה, שחרור עד הלייב"): a dictated "Twelve square meters" has the same unit as "12 square meters"
-    const after = src.slice(w.index + w[0].length);
+  // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקון 4 התקלות בהצעה החכמה, שחרור עד הלייב"): a dictated "Twelve square meters" has the same unit as "12 square meters"
+  // Owner console 2026-11-05 (L-09/L-14/L-15/L-17 line above): a whole number PHRASE in words ("שמונים וחמש מטר") is one number
+  for (const p of wordNumberPhrases(src)) {
+    const after = src.slice(p.end);
     const space = after.length - after.replace(/^\s+/, '').length;
     const said = UNIT_PATTERNS.map(([id, pattern]) => [id, after.slice(space).match(pattern)]).find(([, u]) => u);
-    out.push({ value, unit: said ? said[0] : null, kind: 'number', text: src.slice(w.index, w.index + w[0].length + (said ? space + said[1][0].length : 0)), start: w.index, end: w.index + w[0].length + (said ? space + said[1][0].length : 0), word: true });
+    const end = p.end + (said ? space + said[1][0].length : 0);
+    out.push({ value: p.value, unit: said ? said[0] : null, kind: 'number', text: src.slice(p.start, end), start: p.start, end, word: true });
   }
   out.sort((a, b) => a.start - b.start);
   // Task 35: a dimension pair "4 על 2.5 מטר" / "120x100 cm" writes the unit once - the first number shares the length unit of the second
   const nums = out.filter((m) => m.kind === 'number' && !m.word);
   for (let i = 0; i + 1 < nums.length; i++) {
     const a = nums[i]; const b = nums[i + 1];
-    if (!a.unit && LENGTH_UNITS.has(b.unit) && /^\s*(?:x|×|\*|על|by)\s*$/i.test(src.slice(a.end, b.start))) { a.unit = b.unit; a.dimPair = true; b.dimPair = true; }
+    if (!a.unit && (LENGTH_UNITS.has(b.unit) || FEET_LENGTH_UNITS.has(b.unit)) && /^\s*(?:x|×|\*|על|by)\s*$/i.test(src.slice(a.end, b.start))) { a.unit = b.unit; a.dimPair = true; b.dimPair = true; }
   }
   return out;
 }
@@ -179,6 +262,9 @@ export function locateEvidence(source, evidence, taken = []) {
 export function catalogNameUnit(name) {
   const s = String(name || '');
   const tests = [
+    // Owner 2026-11-05: feet first ("Deck per sq ft", "Fence / linear ft", "ריצוף לרגל רבועה")
+    ['sq_ft', /(?:^|[\s(/\-ל])רגל\s+(?:רבוע|רבועה|מרובע|מרובעת)(?![א-ת])|(?:per|\/)\s*(?:sq\.?\s?f(?:ee)?t|sqft|sf\b|ft²|square\s+f(?:oo|ee)t)|\bsq\.?\s?ft\b|ft²/i],
+    ['linear_ft', /(?:^|[\s(/\-ל])רגל\s+(?:אורך|רץ)(?![א-ת])|(?:per|\/)\s*(?:linear\s+f(?:oo|ee)?t\b|lin\.?\s?ft|lf\b|running\s+f(?:oo|ee)?t\b)/i],
     ['m2', /(?:^|[\s(/\-ל])(?:מ["״'׳]?ר|מטר\s+(?:מרובע|רבוע))(?![א-ת])|(?:per|\/)\s*(?:sq\.?\s?m|sqm|m2|m²|square\s+met(?:er|re))|\b(?:sqm|m2)\b|m²/i],
     ['linear_meter', /(?:^|[\s(/\-ל])(?:מטר\s+(?:אורך|רץ)|מ["״'׳]א)(?![א-ת])|(?:per|\/)\s*(?:linear\s+met(?:er|re)|lm|running\s+met(?:er|re))/i],
     ['kg', /(?:^|[\s(/\-ל])(?:ק["״'׳]ג|קילו)(?![א-ת])|(?:per|\/)\s*(?:kg|kilo)/i],
@@ -256,10 +342,11 @@ export function buildDraftMessages({ description, isHebrew, catalog }) {
     'evidence: copy EXACTLY, character for character, the shortest part of the job description this item comes from, including its own quantity and unit when it has one (e.g. "ריצוף חדר הורים 40 מ״ר"). Each item has its OWN evidence - two items never use the same words; "" only when no words of the text belong to the item.',
     'description: short and concrete, WITHOUT the quantity and unit (they go in their own fields) and without dangling words such as "בשטח של", "במשך", "for", "of".',
     'subject: a short title of the WORK only (e.g. "ריצוף חדרי שינה", "Bedroom tiling") - never a person, family, company, address or the words "quote" / "הצעת מחיר".',
-    'unit: "m2" (square meters / מ״ר / מטר מרובע / מטר רבוע), "linear_meter" (running meters / מטר אורך), "kg", "hour", "day", "unit" (countable pieces) or null when the text gives no unit. A unit not in this list (e.g. liters, sq ft) -> unit null and write it in the description.',
+    'unit: "m2" (square meters / מ״ר / מטר מרובע / מטר רבוע), "linear_meter" (running meters / מטר אורך), "sq_ft" (square feet / sq ft / רגל רבועה), "linear_ft" (linear or running feet / רגל אורך), "kg", "hour", "day", "unit" (countable pieces) or null when the text gives no unit. Use exactly the unit the text uses - never convert feet to meters or meters to feet. A unit not in this list (e.g. liters) -> unit null and write it in the description.',
+    'A quantity may be written in words ("שמונים וחמש מטר", "eighty-five square feet"): quantity is its number (85).',
     'quantity + quantityBasis:',
     '  - "stated": the quantity is written in the text for THIS item, inside its evidence (e.g. "40 מ״ר" -> quantity 40, unit "m2"). Decimals are allowed. Prices, dates, phone numbers and percentages are never quantities.',
-    '  - "derived": computed only from numbers written in the text when the meaning is unambiguous (e.g. a 4 x 2.5 m wall -> 10 m2); put the multiplication in derivation as "4 × 2.5". Never derive from a guessed number.',
+    '  - "derived": computed only from numbers written in the text when the meaning is unambiguous (e.g. a 4 x 2.5 m wall -> 10 m2; a 10 x 12 ft room -> 120 sq_ft); put the multiplication in derivation as "4 × 2.5". Never derive from a guessed number and never mix meters with feet.',
     '  - "implied_single": exactly ONE countable piece is clearly meant (e.g. "התקנת מזגן", "replace the front door") -> quantity 1, unit "unit".',
     '  - "missing": the text does not give the quantity (e.g. "פירוק ריצוף קיים" without its area) -> quantity null, and say in missing what is needed (e.g. the area in m²). Never use 1 or a sum of other items as a guess.',
     'derivation: only for "derived", otherwise null. missing: what the user still has to provide for this item (quantity, size, material...), otherwise null.',
@@ -293,7 +380,7 @@ function parseDerivation(text) {
 // Removes "<quantity> <unit>" from a description when it only repeats the line's own quantity ("ריצוף חדר הורים 40 מ״ר" -> "ריצוף חדר הורים").
 function stripRepeatedQuantity(description, quantity, unit) {
   if (quantity == null || !unit || unit === 'unit') return description;
-  const kept = extractMeasures(description).find((m) => !m.word && m.unit && (m.unit === unit || (unit === 'linear_meter' && m.unit === 'meter')) && sameNumber(m.value, quantity));
+  const kept = extractMeasures(description).find((m) => !m.word && m.unit && (m.unit === unit || (unit === 'linear_meter' && m.unit === 'meter') || (unit === 'linear_ft' && m.unit === 'foot')) && sameNumber(m.value, quantity));
   if (!kept) return description;
   const stripped = `${description.slice(0, kept.start)} ${description.slice(kept.end)}`
     .replace(/\s+([,;:)])/g, '$1').replace(/^[\s,;:–-]+|[\s,;:–-]+$/g, '').replace(/\s{2,}/g, ' ').trim();
@@ -370,7 +457,8 @@ export function parseDraftModelOutput(text, catalog, description = '') {
   // the measure units a claimed line unit can be read from ('unit' / none = a bare count, never one side of a dimension pair)
   const fitsUnit = (m, unit) => (unit === 'm2' ? m.unit === 'm2'
     : unit === 'linear_meter' ? m.unit === 'linear_meter' || m.unit === 'meter'
-      : unit === 'unit' || !unit ? !m.unit && !m.dimPair : m.unit === unit);
+      : unit === 'linear_ft' ? m.unit === 'linear_ft' || m.unit === 'foot'
+        : unit === 'unit' || !unit ? !m.unit && !m.dimPair : m.unit === unit);
   // pass 2: quantities, units and prices bound to each line's own span
   const items = [];
   for (const d of drafts) {
@@ -400,22 +488,28 @@ export function parseDraftModelOutput(text, catalog, description = '') {
         basis = 'missing'; gap = 'unverified';
       } else {
         used.add(hit.i);
-        const textUnit = hit.m.unit === 'meter' ? 'linear_meter' : hit.m.unit;
+        // Owner 2026-11-05: a bare "מטר" / "meters" (never "מטר אורך") said for an AREA job ("צבע לכל הדירה, 85 מטר") is the everyday way
+        // to say square meters - when the model read the line as an area, it stays m2 (likewise a bare "feet" read as sq ft)
+        const bareArea = (unit === 'm2' && hit.m.unit === 'meter') || (unit === 'sq_ft' && hit.m.unit === 'foot');
+        const textUnit = bareArea ? unit : hit.m.unit === 'meter' ? 'linear_meter' : hit.m.unit === 'foot' ? 'linear_ft' : DRAFT_UNITS.includes(hit.m.unit) ? hit.m.unit : null;
         unit = textUnit || (unit === 'unit' ? 'unit' : null); // the unit written in the text wins; a unit the text never wrote is not kept
       }
     } else if (basis === 'derived') {
       // Task 35 (F2): unit algebra, not only a product - exactly two LENGTHS written in the line's own clause (cm converted exactly to m)
       // make an AREA (m2); any other claimed unit, a count in the product or a bare number is never a derived quantity.
+      // Owner 2026-11-05: the same algebra in feet - two FEET lengths (an inch = 1/12 ft) make sq ft; a meter and a foot never multiply
       const factors = parseDerivation(raw.derivation);
-      const lengths = free(scope).filter(({ m }) => LENGTH_UNITS.has(m.unit));
+      const feet = unit === 'sq_ft';
+      const toBase = feet ? toFeet : toMeters;
+      const lengths = free(scope).filter(({ m }) => (feet ? FEET_LENGTH_UNITS : LENGTH_UNITS).has(m.unit));
       const picked = [];
-      const ok = factors && factors.length === 2 && unit === 'm2' && quantity != null && factors.every((f) => {
-        const hit = lengths.find(({ m, i }) => (sameNumber(m.value, f) || sameNumber(toMeters(m), f)) && !picked.some((p) => p.i === i));
+      const ok = factors && factors.length === 2 && (unit === 'm2' || feet) && quantity != null && factors.every((f) => {
+        const hit = lengths.find(({ m, i }) => (sameNumber(m.value, f) || sameNumber(toBase(m), f)) && !picked.some((p) => p.i === i));
         if (hit) picked.push(hit);
         return !!hit;
-      }) && sameNumber(round2(toMeters(picked[0].m) * toMeters(picked[1].m)), quantity);
+      }) && sameNumber(round2(toBase(picked[0].m) * toBase(picked[1].m)), quantity);
       if (!ok) { basis = 'missing'; gap = 'unverified'; } else {
-        derivation = picked.map(({ m }) => round2(toMeters(m))).join(' × ');
+        derivation = picked.map(({ m }) => round2(toBase(m))).join(' × ');
         picked.forEach(({ i }) => used.add(i));
       }
     } else if (basis === 'implied_single') {
@@ -462,7 +556,7 @@ export function parseDraftModelOutput(text, catalog, description = '') {
   const questions = (Array.isArray(parsed.questions) ? parsed.questions : []).map((q) => cleanText(q, MAX_NOTE_CHARS)).filter(Boolean).slice(0, MAX_QUESTIONS);
   // a written measure ("22 מ״ר", "3 שעות") that no line uses (by position) is shown to the user, never silently dropped
   const unassignedMeasures = measures
-    .filter((m, i) => !used.has(i) && m.kind === 'number' && m.unit && m.unit !== 'meter' && m.unit !== 'cm' && !m.word)
+    .filter((m, i) => !used.has(i) && m.kind === 'number' && m.unit && !['meter', 'cm', 'foot', 'inch'].includes(m.unit) && !m.word)
     .map((m) => m.text)
     .filter((t, i, all) => all.indexOf(t) === i)
     .slice(0, 6);

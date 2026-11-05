@@ -677,6 +677,7 @@ export default function QuoteForm({
         onCatalogItemAdded={onCatalogItemAdded}
         onAddMany={handleWizardSaveMany}
         quoteItems={items}
+        international={isLocalIsraeliBusiness === false}
       />
       {anotherItemPrompt && !isAddWizardOpen && (
         <AddAnotherItemDialog
