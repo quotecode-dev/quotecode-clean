@@ -8886,7 +8886,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onCancel={requestCancelEdit}
               onBack={inAppBack.back}
               onOpenCustomerTwin={() => setCustomerTwin({ mode: 'editor' })}
-              onOpenAiDraft={() => setShowAiQuoteDraft(true)}
               onSaveAsTemplate={() => setTemplateDialog('save')}
               clientName={clientName} setClientName={setClientName}
               clientEmail={clientEmail} setClientEmail={setClientEmail}
@@ -8962,11 +8961,9 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onCatalogItemAdded={presentationEditor.onCatalogItemAdded}
             />
             </QuoteCreatorLayout>
-            {/* Task 21: AI smart quote - reviewable AI draft lines applied explicitly to the open form (nothing saved / issued / sent).
-                Owner console 2026-11-05 (typed, L-09): also available when EDITING a quote that is not yet signed (approved / paid) - the
-                same dialog, opened from QuoteForm's "עריכה חכמה" button; applyAiQuoteDraft adds the AI lines to the current quote. */}
+            {/* Task 21: AI smart quote - reviewable AI draft lines applied explicitly to this unsaved form (nothing saved / issued / sent) */}
             <AiQuoteDraftDialog
-              isOpen={showAiQuoteDraft && showQuoteForm && (editingQuoteId === null || !['approved', 'paid'].includes(String(quoteStatus || '').toLowerCase()))}
+              isOpen={showAiQuoteDraft && isCreatingQuote && !editingQuoteId}
               isHebrew={isHebrew}
               sym={sym}
               formatMoneyDisplay={formatMoneyDisplay}

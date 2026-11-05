@@ -164,8 +164,6 @@ export default function LandingLocal({ onForgotPassword }) {
         title: 'כמו אפליקציה, בלי חנות',
         text: 'מתקינים את TEKANGO למסך הבית בלחיצה אחת, והעדכונים מיידיים, בלי הורדות ובלי המתנה.',
         sub: 'עובד באייפון ובאנדרואיד.',
-        installCta: 'התקנה למסך הבית',
-        chromeNote: 'מתקינים בדפדפן סמסונג אינטרנט? מומלץ לפתוח את הדף בכרום ולהתקין משם.',
       },
       // Authority ledger L07b: no eyebrow / heading (the base feature-card block had none).
       // Authority ledger L15 (rollback): the reference management preview and its three benefits are removed; the base

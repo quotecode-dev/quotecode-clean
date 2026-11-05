@@ -253,10 +253,6 @@
 .tl-install-text strong { font-size: 17px; color: var(--tl-ink); }
 .tl-install-text p { margin: 0; color: #2d3b42; font-size: 15px; line-height: 1.55; }
 .tl-install-sub { font-size: 13px; font-weight: 600; color: var(--tl-accent); }
-/* Owner 2026-11-05 (5יא follow-up): a calm "install to home screen" action in the band + a Chrome note for Samsung Internet */
-.tl-install-btn { align-self: flex-start; margin-top: 8px; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 16px; border-radius: 9px; border: 1px solid var(--tl-accent); background: var(--tl-accent); color: #ffffff; font-size: 14px; font-weight: 700; cursor: pointer; }
-.tl-install-btn:hover { filter: brightness(1.05); }
-.tl-install-chrome-note { margin-top: 8px; font-size: 13px; line-height: 1.5; color: #2d3b42; }
 @media (max-width: 520px) { .tl-install-band { align-items: flex-start; } }
 
 /* plans */

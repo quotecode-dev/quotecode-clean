@@ -13,7 +13,6 @@ const COPY = {
     ios: ['לוחצים על כפתור השיתוף בדפדפן (ריבוע עם חץ למעלה).', 'בוחרים "הוספה למסך הבית".'],
     browser: ['פותחים את תפריט הדפדפן (שלוש הנקודות).', 'בוחרים "התקנת אפליקציה" או "הוספה למסך הבית".'],
     after: 'האייקון של TEKANGO יופיע במסך הבית, והאתר ייפתח ממנו במסך מלא.',
-    chrome: 'מומלץ להתקין דרך דפדפן כרום. התקנה מדפדפן סמסונג אינטרנט נחסמת כרגע על ידי ההגנה של Google Play, וזו תקלה ידועה של הדפדפן. בכרום ההתקנה עוברת חלק.',
     ok: 'הבנתי',
   },
   en: {
@@ -21,12 +20,11 @@ const COPY = {
     ios: ['Tap the Share button in the browser (a square with an arrow up).', 'Choose "Add to Home Screen".'],
     browser: ['Open the browser menu (the three dots).', 'Choose "Install app" or "Add to Home screen".'],
     after: 'The TEKANGO icon appears on your home screen and opens the site full screen.',
-    chrome: 'Best installed from Chrome. Installing from Samsung Internet is currently blocked by Google Play Protect - a known browser issue, not ours. In Chrome the install goes through smoothly.',
     ok: 'Got it',
   },
 };
 
-export default function InstallAppSheet({ steps, isHebrew, onClose, recommendChrome = false }) {
+export default function InstallAppSheet({ steps, isHebrew, onClose }) {
   const cardRef = useRef(null);
   const okRef = useRef(null);
   useFocusTrap(cardRef, true);
@@ -47,12 +45,6 @@ export default function InstallAppSheet({ steps, isHebrew, onClose, recommendChr
           <img src={INSTALL_APP_ICON} alt="" width={48} height={48} style={{ borderRadius: '12px', flexShrink: 0, boxShadow: '0 2px 8px rgba(15,23,42,0.18)' }} />
           <h3 id="tk-install-title" style={{ margin: 0, fontSize: '1.05rem', fontWeight: 800, color: NEON.textPrimary, lineHeight: 1.35 }}>{t.title}</h3>
         </div>
-        {/* Owner 2026-11-05 (David Aluminum, Samsung Internet): a Chrome recommendation when the browser's own install is blocked by Play Protect */}
-        {recommendChrome && (
-          <p data-testid="install-chrome-note" style={{ margin: '0 0 14px', padding: '10px 12px', borderRadius: '10px', background: NEON.accentSoft || '#eef2ff', border: `1px solid ${NEON.border}`, color: NEON.textPrimary, fontSize: '0.85rem', lineHeight: 1.5, fontWeight: 600 }}>
-            {t.chrome}
-          </p>
-        )}
         <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {list.map((line, i) => (
             <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.92rem', lineHeight: 1.5, color: NEON.textPrimary }}>

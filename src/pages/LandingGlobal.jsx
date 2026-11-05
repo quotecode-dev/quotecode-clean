@@ -193,8 +193,6 @@ export default function LandingGlobal({ onForgotPassword }) {
         title: 'Like an app, without the store',
         text: 'Add TEKANGO to your home screen in one tap — updates are instant, with no downloads and no waiting.',
         sub: 'Works on iPhone and Android.',
-        installCta: 'Add to home screen',
-        chromeNote: 'Installing from Samsung Internet? Open this page in Chrome and install from there.',
       },
       // Authority ledger L07b: no eyebrow / heading (the base feature-card block had none).
       // Authority ledger L15 (rollback): the reference management preview and its three benefits are removed; the base
