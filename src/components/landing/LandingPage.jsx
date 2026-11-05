@@ -6,8 +6,10 @@
 // (ledger L15: no management preview) / current plans (+ the TEST-only proposed comparison) / FAQ / free business tools
 // (base section, ledger L03) / closing CTA / footer.
 // No public link to the sample-quote route (ledger L08). SSR-safe (rendered by src/entry-prerender.jsx).
-import { Fragment, useEffect, useRef } from 'react';
+import { Fragment, useEffect, useRef, useState, useCallback } from 'react';
 import { taggedPrivate } from '../../shared/siteAnalytics';
+import InstallAppSheet from '../InstallAppSheet';
+import { canOfferInstall, startInstall, isSamsungInternet, isInstalledApp, subscribeInstallPrompt } from '../../shared/installApp';
 import { ArrowUpRight } from 'lucide-react';
 import AIChatWidget from '../../AIChatWidget';
 import AccessibilityModal from '../AccessibilityModal';
@@ -45,6 +47,22 @@ export default function LandingPage({
   const isHe = lang === 'he';
   const rootRef = useRef(null);
   const ToolsIcon = copy.tools ? copy.tools.icon : null;
+
+  // Owner 2026-11-05: the landing install band became actionable. The install event is already captured globally (main.jsx);
+  // here we only show the button on a phone / tablet not yet running from the icon, and warn Samsung Internet users to use Chrome
+  // (its install is blocked by Play Protect). Client-only: during prerender window is absent, so nothing is offered.
+  const [installable, setInstallable] = useState(false);
+  const [onSamsung, setOnSamsung] = useState(false);
+  const [installSteps, setInstallSteps] = useState(null);
+  useEffect(() => {
+    const refresh = () => { setInstallable(canOfferInstall() && !isInstalledApp()); setOnSamsung(isSamsungInternet()); };
+    refresh();
+    return subscribeInstallPrompt(refresh);
+  }, []);
+  const onInstallClick = useCallback(async () => {
+    const r = await startInstall();
+    if (r.result === 'explain') setInstallSteps(r.steps);
+  }, []);
 
   // Light page background while the landing is mounted (overscroll / short-content areas): the app's global body is
   // dark for the authenticated shell. The class is removed on unmount, so no other route is affected. (Before JS, the
@@ -186,6 +204,16 @@ export default function LandingPage({
                   <strong>{copy.business.installBand.title}</strong>
                   <p>{copy.business.installBand.text}</p>
                   {copy.business.installBand.sub && <span className="tl-install-sub">{copy.business.installBand.sub}</span>}
+                  {/* Owner 2026-11-05: an actual install action (phones / tablets not yet installed); Chrome note for Samsung Internet */}
+                  {/* PRODUCT_TRUTH_DECORATIVE: adds TEKANGO to the home screen via the browser's own install (or shows how); it installs nothing new and changes no account data */}
+                  {installable && copy.business.installBand.installCta && (
+                    <button type="button" className="tl-install-btn" data-testid="landing-install-btn" onClick={onInstallClick}>
+                      {copy.business.installBand.installCta}
+                    </button>
+                  )}
+                  {installable && onSamsung && copy.business.installBand.chromeNote && (
+                    <span className="tl-install-chrome-note" data-testid="landing-install-chrome-note">{copy.business.installBand.chromeNote}</span>
+                  )}
                 </div>
               </div>
             )}
@@ -282,6 +310,7 @@ export default function LandingPage({
 
       <AIChatWidget isHebrew={isHe} isDashboard={false} />
       <AccessibilityModal isOpen={accessibilityOpen} onClose={onAccessibilityClose} isHebrew={isHe} />
+      {installSteps && <InstallAppSheet steps={installSteps} isHebrew={isHe} recommendChrome={onSamsung} onClose={() => setInstallSteps(null)} />}
     </div>
   );
 }

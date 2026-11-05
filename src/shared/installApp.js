@@ -32,6 +32,15 @@ export function isAppleMobile(nav = typeof navigator !== 'undefined' ? navigator
   return /iPhone|iPad|iPod/i.test(ua) || (/Macintosh/i.test(ua) && Number(nav.maxTouchPoints || 0) > 1);
 }
 
+/**
+ * Samsung Internet. Owner console 2026-11-05 (David Aluminum hit it on a Galaxy S24 Ultra): installing a PWA from Samsung Internet
+ * is currently blocked by Google Play Protect ("unsafe app blocked / built for an older version of Android") - a known Samsung
+ * Internet issue, not ours; Chrome is the clean path. Used to show an "install from Chrome" note, never to hide the button.
+ */
+export function isSamsungInternet(nav = typeof navigator !== 'undefined' ? navigator : null) {
+  return !!nav && /SamsungBrowser/i.test(String(nav.userAgent || ''));
+}
+
 /** a phone or a tablet: a touch screen as the main pointer */
 export function isTouchDevice(win = typeof window !== 'undefined' ? window : null) {
   if (!win) return false;
