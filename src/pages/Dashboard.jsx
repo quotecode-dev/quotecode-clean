@@ -8972,6 +8972,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onOpenChat={openAiChat}
               onClose={() => setShowAiQuoteDraft(false)}
               onApply={applyAiQuoteDraft}
+              international={!isLocalIsraeliBusiness}
             />
             {/* Owner 2026-11-03: quote from a file - the owner's reviewed lines and own prices only; the file and the document prices never leave the dialog */}
             <QuoteFromFileDialog
@@ -8985,6 +8986,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               readAllowance={() => readQuoteFileAllowance(supabase)}
               onClose={() => setShowFileQuote(false)}
               onApply={applyFileQuoteLines}
+              international={!isLocalIsraeliBusiness}
             />
             </>
           )}
