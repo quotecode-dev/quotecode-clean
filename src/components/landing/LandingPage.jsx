@@ -173,6 +173,22 @@ export default function LandingPage({
                 />
               </figure>
             </div>
+            {/* Owner console 2026-11-05 (typed: "מאשר להוסיף על ההתקנה למסך הבית בדפי הנחיתה, כולל שינוי ב-L-06, שחרור עד הלייב"; then
+                "אפשרות 1" - a calm band, not a pop-up): the add-to-home-screen advantage - like an app, no store, instant updates.
+                LIVE (the in-app install feature, PR #167/#168). */}
+            {copy.business.installBand && (
+              <div className="tl-install-band">
+                {/* Owner 2026-11-05 (L-45): the TEKANGO app icon itself (the one that lands on the home screen), never a generic icon */}
+                {copy.business.installBand.iconImg && (
+                  <img className="tl-install-icon" src={copy.business.installBand.iconImg} width="56" height="56" loading="lazy" decoding="async" alt={copy.business.installBand.iconAlt || ''} />
+                )}
+                <div className="tl-install-text">
+                  <strong>{copy.business.installBand.title}</strong>
+                  <p>{copy.business.installBand.text}</p>
+                  {copy.business.installBand.sub && <span className="tl-install-sub">{copy.business.installBand.sub}</span>}
+                </div>
+              </div>
+            )}
           </div>
         </section>
 

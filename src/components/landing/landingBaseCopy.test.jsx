@@ -89,6 +89,22 @@ describe('L04 - the four capability cards are the base titles and bodies', () =>
     expect(en).toContain('Ask about the step you are on or get guided help.');
     for (const s of ['ריצוף 40 מ״ר', 'tiling 40 m²', 'the AI suggests quote items']) { expect(he).not.toContain(s); expect(en).not.toContain(s); } // Task 34: no AI-draft claim before its Production release
   });
+  // Owner console 2026-11-05 (L-06): the add-to-home-screen band under the capabilities, both languages
+  it('the install-to-home-screen band (HE + EN), outside the locked five capability cards', () => {
+    expect(he).toContain('כמו אפליקציה, בלי חנות');
+    expect(he).toContain('מתקינים את TEKANGO למסך הבית בלחיצה אחת, והעדכונים מיידיים, בלי הורדות ובלי המתנה.');
+    expect(he).toContain('עובד באייפון ובאנדרואיד.');
+    expect(en).toContain('Like an app, without the store');
+    expect(en).toContain('Add TEKANGO to your home screen in one tap');
+    expect(en).toContain('Works on iPhone and Android.');
+    // it is a calm band, not a pop-up / animation, and its icon is the TEKANGO app icon (L-45), never a generic icon
+    const heHtml = ssr(<LandingLocal />, '/he');
+    expect(heHtml).toContain('tl-install-band');
+    expect(heHtml).toContain('/tekango-app-icon-192.png');
+    expect(heHtml).not.toMatch(/tl-install-pop|install-popup|@keyframes/);
+    // the five base capability cards are unchanged in count
+    expect(count(heHtml, 'class="tl-capability"')).toBe(5);
+  });
   it('EN: base bodies; "on every plan" is gone', () => {
     expect(en).toContain('Send a direct link to your client to review, print or save as PDF, digitally sign, and approve orders from any smartphone or computer.');
     expect(en).toContain('Track business profits, manage operating expenses, and see an up-to-date financial overview of your business.');
