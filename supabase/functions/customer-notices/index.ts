@@ -3,7 +3,7 @@
 // site cron every hour with the shared cron secret; customer_notices decides that nothing is sent twice.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendMail } from "../support-inbound/mail.ts";
-import { healthOf, runNotices, type BillingFact, type Fact, type LifeFact } from "./lib.ts";
+import { healthOf, runNotices, type Fact, type LifeFact } from "./lib.ts";
 
 const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
@@ -29,12 +29,6 @@ Deno.serve(async (req) => {
         const { data, error } = await admin.rpc('customer_notice_lifecycle_facts', user ? { p_user: user } : {});
         if (error) throw new Error('facts_failed');
         return (data ?? []) as LifeFact[];
-      },
-      // 2026-11-05 (night task item 2): the billing-change emails - their own switch (customer_notice_settings.billing_phase)
-      billing: async (user) => {
-        const { data, error } = await admin.rpc('customer_notice_billing_facts', user ? { p_user: user } : {});
-        if (error) throw new Error('facts_failed');
-        return (data ?? []) as BillingFact[];
       },
       claim: async (user, kind, episode, seq, key) => {
         const { data, error } = await admin.rpc('customer_notice_claim', { p_user: user, p_kind: kind, p_episode: episode, p_seq: seq, p_key: key });
