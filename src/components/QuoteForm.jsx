@@ -7,7 +7,6 @@ import EditItemPriceDialog from './EditItemPriceDialog';
 import AddAnotherItemDialog from './AddAnotherItemDialog';
 import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText, Building2, LayoutList, ArrowLeft, ArrowRight } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
-import TekangoAiIcon from './TekangoAiIcon';
 import { APP as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import QuotePresentationPanel from './quotePresentation/QuotePresentationPanel';
 import { calculateQuoteFinancials } from '../utils/regionConfig';
@@ -63,8 +62,6 @@ export default function QuoteForm({
   onBack = null, // Owner 2026-10-25 (typed L-09 / L-15): the same step as the phone Back - the draft stays on this device
   // Owner night task 2026-10-22 (typed approval, adding the entry button only): opens Customer Twin ("בדיקת הלקוח") for the open draft
   onOpenCustomerTwin = null,
-  // Owner console 2026-11-05 (typed, L-09): opens the smart-quote AI dialog to edit THIS quote (add / change lines, add a note), on any quote not yet signed
-  onOpenAiDraft = null,
   clientName, setClientName,
   clientEmail, setClientEmail,
   clientPhone, setClientPhone,
@@ -141,20 +138,6 @@ export default function QuoteForm({
   const isUnfinished = isUnfinishedQuoteForm({ items, totalAmount });
   // Task 16: a new quote, or a saved quote that stays a Draft, is saved as a draft (never sent or issued by saving)
   const savesAsDraft = !editingQuoteId || String(quoteStatus || '').toLowerCase() === 'draft';
-  // Owner console 2026-11-05 (typed, L-09): "edit with AI" on any quote not yet signed - reopens the same smart-quote AI dialog for THIS quote.
-  // A signed quote (approved / paid) is final, so the button is hidden there. The AI's lines are added to the current quote (applyAiQuoteDraft).
-  const aiEditStatus = String(quoteStatus || '').toLowerCase();
-  const canAiEdit = typeof onOpenAiDraft === 'function' && !!editingQuoteId && aiEditStatus !== 'approved' && aiEditStatus !== 'paid';
-  // Owner chose the compact-pair layout: on a narrow phone the new button shows a short label so the pair fits beside "שיפור ההצעה" on one row.
-  const [aiEditNarrow, setAiEditNarrow] = useState(false);
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const mq = window.matchMedia('(max-width: 560px)');
-    const sync = () => setAiEditNarrow(!!mq.matches);
-    sync();
-    if (mq.addEventListener) { mq.addEventListener('change', sync); return () => mq.removeEventListener('change', sync); }
-    mq.addListener(sync); return () => mq.removeListener(sync);
-  }, []);
   // SMART-QUOTE-04: the same case-insensitive match the save uses (Dashboard.handleSaveQuote) - disclosed before saving.
   const matchedClient = (clients || []).find((c) => (c.company_name || '').toLowerCase() === String(clientName || '').toLowerCase()) || null;
   // OD-1 issuer path: a past validity date is shown with the fix (extend it) - the stored date is only changed by the user.
@@ -752,21 +735,6 @@ export default function QuoteForm({
           </p>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-        {canAiEdit && (
-          // Owner console 2026-11-05 (typed, L-09): edit THIS quote with the smart AI, like creation - to the right of "שיפור ההצעה" (RTL), same row.
-          // Each AI request already draws from the monthly quota (requestAiQuoteDraft); a signed quote (approved / paid) has no button.
-          // PRODUCT_TRUTH_DECORATIVE: opens the smart-quote AI dialog for this quote; nothing in the quote changes until the user applies a drafted line
-          <button
-            type="button"
-            onClick={onOpenAiDraft}
-            data-testid="quote-ai-edit"
-            title={isHebrew ? 'עריכה חכמה: מבקשים מהבינה להוסיף או לשנות שורות והערות בהצעה הזו. כל פעולה יורדת מהמכסה החודשית.' : 'Smart edit: ask the AI to add or change lines and notes in this quote. Each action uses your monthly quota.'}
-            style={{ background: NEON.gradient, color: '#fff', border: 'none', padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px', boxShadow: NEON.glow }}
-          >
-            <TekangoAiIcon size={18} />
-            {aiEditNarrow ? (isHebrew ? 'עריכה' : 'Edit') : (isHebrew ? 'עריכה חכמה' : 'Smart edit')}
-          </button>
-        )}
         {typeof onOpenCustomerTwin === 'function' && (
           // PRODUCT_TRUTH_DECORATIVE: opens the Customer Twin panel for the open draft (internal; changes nothing by itself)
           <button

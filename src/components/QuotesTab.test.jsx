@@ -624,19 +624,21 @@ describe.each([
     expect(container.querySelector('.quote-modern-client-name').textContent).toBe('Client new');
   });
 
-  it('action label precedence: hot -> Open & track (even for a draft), unfinished draft -> Continue editing, complete draft -> Open, approved/paid -> View', () => {
+  it('action label precedence: hot -> Open & track, unfinished draft -> Continue editing, complete draft -> no primary button, approved/paid -> View', () => {
     const label = (quote) => {
       const { container, unmount } = render(<QuotesTab {...buildProps(isHebrew)} quotes={[quote]} allQuotes={[quote]} />);
       expect(container.querySelector('.quote-modern-action')).toBeNull(); // collapsed: no always-visible action
       fireEvent.click(container.querySelector('.quote-modern-toggle'));
-      const text = container.querySelector('.quote-modern-detail .quote-modern-action').textContent;
+      const action = container.querySelector('.quote-modern-detail .quote-modern-action');
+      const text = action ? action.textContent : null;
       unmount();
       return text;
     };
     expect(label(mk('x', { status: 'draft', view_count: 3 }))).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
     expect(label(mk('x', { status: 'sent', view_count: 3 }))).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
     expect(label(mk('x', { status: 'draft', total: 0 }))).toBe(isHebrew ? 'המשך העריכה' : 'Continue editing');
-    expect(label(mk('x', { status: 'draft' }))).toBe(isHebrew ? 'פתיחה' : 'Open');
+    // Owner console 2026-11-05 (typed, L-07 / L-29): the plain "פתיחה" primary button was removed - the card is already open, so no button here
+    expect(label(mk('x', { status: 'draft' }))).toBeNull();
     expect(label(mk('x', { status: 'approved', view_count: 8 }))).toBe(isHebrew ? 'צפייה' : 'View');
     expect(label(mk('x', { status: 'paid' }))).toBe(isHebrew ? 'צפייה' : 'View');
   });
@@ -838,7 +840,9 @@ describe.each([
   });
 
   it('every prior row action is reachable in the dropdown: the status-aware primary action first, then View/Edit/Duplicate/WhatsApp/Email/Delete', () => {
-    const { container } = render(<QuotesTab {...buildProps(isHebrew)} />);
+    // Owner console 2026-11-05 (typed, L-07 / L-29): the plain "open" state no longer shows a primary button; a status with a real
+    // primary action (an approved quote -> "צפייה"/"View") still shows it first, which is what this guard protects.
+    const { container } = render(<QuotesTab {...buildProps(isHebrew, { status: 'approved', view_count: 8 })} />);
     fireEvent.click(container.querySelector('.quote-modern-toggle'));
     const panel = container.querySelector('.quote-modern-detail');
     const primary = panel.querySelector('.quote-modern-action');
@@ -1010,5 +1014,38 @@ describe('QuotesTab hot-quote banner rotation (L-19 change 2026-10-18)', () => {
     const { container } = render(<QuotesTab {...buildProps(true)} quotes={list} allQuotes={list} />);
     act(() => { vi.advanceTimersByTime(20000); });
     expect(container.querySelector('[data-testid="hot-quote-banner"]').getAttribute('data-hot-quote-id')).toBe('only');
+  });
+});
+
+// Owner console 2026-11-05 (typed, L-07 / L-09 / L-29): the "עריכה חכמה" action moved into the quote row; the plain "פתיחה" primary button removed.
+describe('QuotesTab - the smart-edit (AI) row action', () => {
+  it('shows "עריכה חכמה" when onAiEdit is wired, and clicking it opens that quote through onAiEdit', () => {
+    const onAiEdit = vi.fn();
+    render(<QuotesTab {...buildProps(true, { status: 'sent' })} onAiEdit={onAiEdit} />);
+    expandFirstRow();
+    const btn = screen.getByTestId('quote-ai-edit-row');
+    expect(btn).toBeTruthy();
+    expect(btn).not.toBeDisabled();
+    fireEvent.click(btn);
+    expect(onAiEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it('is absent when onAiEdit is not provided', () => {
+    render(<QuotesTab {...buildProps(true, { status: 'sent' })} />);
+    expandFirstRow();
+    expect(screen.queryByTestId('quote-ai-edit-row')).toBeNull();
+  });
+
+  it('is disabled on a signed (approved) quote', () => {
+    render(<QuotesTab {...buildProps(true, { status: 'approved' })} onAiEdit={vi.fn()} />);
+    expandFirstRow();
+    expect(screen.getByTestId('quote-ai-edit-row')).toBeDisabled();
+  });
+
+  it('does not render the redundant plain "פתיחה" primary button (the card is already open)', () => {
+    render(<QuotesTab {...buildProps(true, { status: 'sent' })} onAiEdit={vi.fn()} />);
+    expandFirstRow();
+    const primary = screen.queryAllByText('פתיחה').filter((el) => el.closest('.quote-modern-action'));
+    expect(primary.length).toBe(0);
   });
 });

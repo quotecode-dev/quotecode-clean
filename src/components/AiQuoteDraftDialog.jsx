@@ -39,6 +39,12 @@ const COPY = {
     generate: 'יצירת טיוטה עם AI',
     generating: 'ה-AI מכין טיוטה…',
     manual: 'מילוי ידני',
+    // Owner console 2026-11-05 (typed, L-07 / L-09 / L-29): opened as "עריכה חכמה" from the quote row - the copy makes clear it edits THIS quote
+    editTitle: (q) => (q ? `עריכה חכמה — הצעה ${q}` : 'עריכה חכמה של ההצעה'),
+    editIntro: 'תארו מה להוסיף או לשנות בהצעה הזו. הבינה תציע פריטים, ומה שתבחרו יתווסף להצעה הנוכחית.',
+    editLabel: 'מה להוסיף או לשנות בהצעה הזו?',
+    editPlaceholder: 'לדוגמה: הוסיפו פירוק והרכבה של ארון מטבח, או שורת הנחה של 10%',
+    editGenerate: 'הצעת פריטים עם AI',
     tooShort: `כתבו לפחות ${MIN_DESCRIPTION_CHARS} תווים על העבודה.`,
     reviewTitle: 'טיוטה מוצעת — בדקו לפני שמוסיפים',
     reviewHint: 'סמנו את הפריטים שמתאימים ותקנו תיאור, כמות או יחידה לפי הצורך. אחרי ההוספה אפשר לערוך כל פריט בטופס. שום דבר לא נשמר עד שתשמרו את ההצעה.',
@@ -104,6 +110,11 @@ const COPY = {
     generate: 'Create with AI',
     generating: 'The AI is preparing a draft…',
     manual: 'Manual entry',
+    editTitle: (q) => (q ? `Smart edit — quote ${q}` : 'Smart edit of this quote'),
+    editIntro: 'Describe what to add or change in this quote. The AI suggests items, and what you choose is added to the current quote.',
+    editLabel: 'What to add or change in this quote?',
+    editPlaceholder: 'e.g. Add removing and refitting a kitchen cabinet, or a 10% discount line',
+    editGenerate: 'Suggest items with AI',
     tooShort: `Write at least ${MIN_DESCRIPTION_CHARS} characters about the job.`,
     reviewTitle: 'Suggested draft — check before adding',
     reviewHint: 'Tick the items that fit and correct the description, quantity or unit where needed. After adding, every item stays editable in the form. Nothing is saved until you save the quote.',
@@ -165,10 +176,16 @@ const inputStyle = (isHebrew) => ({ width: '100%', padding: '11px 12px', border:
 const primaryBtn = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.gradient, color: '#ffffff', border: 'none', padding: '12px 18px', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
 const secondaryBtn = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, padding: '12px 18px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
 
-export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply, onOpenChat, requestDraft, formatMoneyDisplay, sym, transcribe = null, international = false }) {
+export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply, onOpenChat, requestDraft, formatMoneyDisplay, sym, transcribe = null, international = false, editMode = false, quoteLabel = '' }) {
   // Owner 2026-11-05 (L-17): the units the market offers; a line keeps its own unit even when the market does not offer it
   const unitChoices = (own) => { const list = draftUnitsForMarket(international); return own && !list.includes(own) ? [...list, own] : list; };
   const t = COPY[isHebrew ? 'he' : 'en'];
+  // Owner console 2026-11-05 (typed, L-07 / L-09 / L-29): opened as "עריכה חכמה" from the quote row - name the quote and make clear it edits it
+  const headTitle = editMode ? t.editTitle(quoteLabel) : t.title;
+  const introText = editMode ? t.editIntro : t.intro;
+  const fieldLabel = editMode ? t.editLabel : t.label;
+  const fieldPlaceholder = editMode ? t.editPlaceholder : t.placeholder;
+  const generateText = editMode ? t.editGenerate : t.generate;
   const [description, setDescription] = useState('');
   const [phase, setPhase] = useState('describe'); // describe | loading | review
   const [errorCode, setErrorCode] = useState(null);
@@ -256,7 +273,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
     <div
       role="dialog"
       aria-modal="true"
-      aria-label={t.title}
+      aria-label={headTitle}
       dir={isHebrew ? 'rtl' : 'ltr'}
       ref={dialogRef}
       tabIndex={-1}
@@ -265,12 +282,12 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
       onKeyDown={(e) => { if (e.key === 'Escape') close(); }}
     >
       <div style={{ background: NEON.bgCard, borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px -15px rgba(0,0,0,0.4)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
-        <AiModalHeader className="pf-modal-head--bar" title={t.title} onClose={close} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="ai-quote-draft" />
+        <AiModalHeader className="pf-modal-head--bar" title={headTitle} onClose={close} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="ai-quote-draft" />
         <div style={{ padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: isHebrew ? 'right' : 'left' }}>
           {phase !== 'review' ? (
             <>
-              <p style={{ margin: 0, fontSize: '0.84rem', color: NEON.textSecondary, lineHeight: 1.45 }}>{t.intro}</p>
-              <label htmlFor="ai-quote-draft-description" style={{ fontSize: '0.86rem', fontWeight: 700, color: NEON.textPrimary }}>{t.label}</label>
+              <p style={{ margin: 0, fontSize: '0.84rem', color: NEON.textSecondary, lineHeight: 1.45 }}>{introText}</p>
+              <label htmlFor="ai-quote-draft-description" style={{ fontSize: '0.86rem', fontWeight: 700, color: NEON.textPrimary }}>{fieldLabel}</label>
               {/* Owner 2026-10-19: the microphone sits INSIDE the field's bottom corner - the action row keeps its two uniform buttons on one line */}
               <div style={{ position: 'relative' }}>
                 <textarea
@@ -279,7 +296,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                   value={description}
                   maxLength={MAX_DESCRIPTION_CHARS}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder={t.placeholder}
+                  placeholder={fieldPlaceholder}
                   disabled={phase === 'loading'}
                   aria-invalid={!!errorText}
                   aria-describedby={errorText ? 'ai-quote-draft-error' : undefined}
@@ -307,7 +324,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                 )}
                 {/* PRODUCT_TRUTH_CAPABILITY: smart_quote */}
                 <button type="button" onClick={generate} disabled={phase === 'loading'} style={{ ...primaryBtn, opacity: phase === 'loading' ? 0.7 : 1 }}>
-                  <Sparkles size={16} aria-hidden="true" />{phase === 'loading' ? t.generating : t.generate}
+                  <Sparkles size={16} aria-hidden="true" />{phase === 'loading' ? t.generating : generateText}
                 </button>
               </div>
             </>

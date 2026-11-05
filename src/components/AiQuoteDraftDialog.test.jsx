@@ -249,3 +249,27 @@ describe('AiQuoteDraftDialog', () => {
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('busy or temporarily unavailable'));
   });
 });
+
+// Owner console 2026-11-05 (typed, L-07 / L-09 / L-29): opened as "עריכה חכמה" from a quote row - the copy must name the quote and make
+// clear it edits THIS quote (not start a new one).
+describe('AiQuoteDraftDialog - edit mode (opened from a quote row)', () => {
+  it('names the quote and explains it edits this quote (HE)', () => {
+    render(<AiQuoteDraftDialog {...props({ editMode: true, quoteLabel: 'A100700', isHebrew: true })} />);
+    expect(screen.getByText('עריכה חכמה — הצעה A100700')).toBeTruthy();
+    expect(screen.getByText(/הבינה תציע פריטים, ומה שתבחרו יתווסף להצעה הנוכחית/)).toBeTruthy();
+    expect(screen.getByText('מה להוסיף או לשנות בהצעה הזו?')).toBeTruthy();
+  });
+
+  it('names the quote and explains it edits this quote (EN)', () => {
+    render(<AiQuoteDraftDialog {...props({ editMode: true, quoteLabel: 'A100700', isHebrew: false })} />);
+    expect(screen.getByText('Smart edit — quote A100700')).toBeTruthy();
+    expect(screen.getByText(/The AI suggests items, and what you choose is added to the current quote/)).toBeTruthy();
+    expect(screen.getByText('What to add or change in this quote?')).toBeTruthy();
+  });
+
+  it('keeps the creation copy when not in edit mode (HE)', () => {
+    render(<AiQuoteDraftDialog {...props({ editMode: false, isHebrew: true })} />);
+    expect(screen.getByText('הצעת מחיר חכמה עם AI')).toBeTruthy();
+    expect(screen.queryByText(/עריכה חכמה — הצעה/)).toBeNull();
+  });
+});
