@@ -279,14 +279,6 @@ export default function LandingLocal({ onForgotPassword }) {
         { href: '/he/tools', label: 'כלים לעסקים', icon: BriefcaseBusiness },
         { href: '/he/articles', label: 'מדריכים', icon: BookOpen },
       ],
-      // Owner console 2026-11-05 (typed L-06 approval): TEKANGO Israel's own accounts, small icons, a new tab each
-      socialLabel: 'TEKANGO ברשתות החברתיות',
-      social: [
-        { network: 'facebook', href: 'https://www.facebook.com/1381375051729705', label: 'TEKANGO ישראל בפייסבוק' },
-        { network: 'instagram', href: 'https://www.instagram.com/tekangoisrael/', label: 'TEKANGO ישראל באינסטגרם' },
-        { network: 'tiktok', href: 'https://www.tiktok.com/@tekangoisrael', label: 'TEKANGO ישראל בטיקטוק' },
-        { network: 'youtube', href: 'https://www.youtube.com/@tekangoisrael', label: 'TEKANGO ישראל ביוטיוב' },
-      ],
     },
   };
 

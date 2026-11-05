@@ -16,7 +16,6 @@ import LandingQuoteDocument from './LandingQuoteDocument';
 import QuoteStyleShowcase from './QuoteStyleShowcase';
 import LandingPlans from './LandingPlans';
 import SmartPackShowcase from './SmartPackShowcase';
-import SocialLinks from './SocialLinks';
 import { LANDING_CSS } from './landingStyles';
 import { useLauncherStepAside } from '../../hooks/useLauncherStepAside';
 
@@ -259,8 +258,6 @@ export default function LandingPage({
               );
             })}
           </nav>
-          {/* Owner console 2026-11-05 (typed L-06 approval): the market's own social accounts, small icons */}
-          <SocialLinks links={copy.footer.social || []} label={copy.footer.socialLabel} />
         </div>
       </footer>
 

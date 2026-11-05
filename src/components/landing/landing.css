@@ -306,11 +306,6 @@
 .tl-footer-links a, .tl-footer-links button { display: inline-flex; align-items: center; gap: 5px; min-height: 44px; padding: 0; border: 0; background: none; color: var(--tl-ink) !important; font: inherit; font-size: 14px; text-decoration: none; cursor: pointer; }
 .tl-footer-links a:hover, .tl-footer-links button:hover { color: var(--tl-accent-strong) !important; text-decoration: underline; }
 .tl-footer :focus-visible { outline-color: var(--tl-accent); }
-/* Owner console 2026-11-05 (typed L-06 approval): the market's own social accounts - small one-colour icons, a 44px target each,
-   on their own row at the end of the footer */
-.tl-footer-social { display: flex; gap: 6px; flex-basis: 100%; justify-content: center; }
-.tl-footer-social a { display: inline-flex; align-items: center; justify-content: center; width: 44px; height: 44px; border-radius: 10px; color: var(--tl-muted) !important; text-decoration: none; }
-.tl-footer-social a:hover { color: var(--tl-accent-strong) !important; background: var(--tl-line); }
 
 /* ---------- the sample quotation (readable: every text >= 12px) ---------- */
 .tl-doc { --tl-q: #315f67; position: relative; container: tl-document / inline-size; background: #ffffff; color: #1d262b; font-size: 13.5px; line-height: 1.45; box-shadow: 0 9px 28px rgba(16, 29, 35, .11); overflow: hidden; text-align: start; }

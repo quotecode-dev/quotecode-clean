@@ -310,14 +310,6 @@ export default function LandingGlobal({ onForgotPassword }) {
         { href: '/en/tools', label: 'Business Tools', icon: BriefcaseBusiness },
         { href: '/en/articles', label: 'Guides', icon: BookOpen },
       ],
-      // Owner console 2026-11-05 (typed L-06 approval): TEKANGO Global's own accounts, small icons, a new tab each
-      socialLabel: 'TEKANGO on social media',
-      social: [
-        { network: 'facebook', href: 'https://www.facebook.com/1408027809060627', label: 'TEKANGO Global on Facebook' },
-        { network: 'instagram', href: 'https://www.instagram.com/tekangoglobal/', label: 'TEKANGO Global on Instagram' },
-        { network: 'tiktok', href: 'https://www.tiktok.com/@tekangoglobal', label: 'TEKANGO Global on TikTok' },
-        { network: 'youtube', href: 'https://www.youtube.com/@tekangoglobal', label: 'TEKANGO Global on YouTube' },
-      ],
     },
   };
 
