@@ -22,7 +22,6 @@ import {
   computeMeasurementValue,
   normalizeSpecificationRows,
   groupItemsBySection,
-  formatMeasurementLine,
 } from './professionalQuoteItem';
 
 describe('cmToM / mToCm (Dimension Input — cm entry, Owner-required)', () => {
@@ -99,14 +98,11 @@ describe('Calculation method framework (§168 - real, extensible pricing-method 
     expect(getCalculationMethodLabel('linear', false)).toBe('Linear length');
   });
 
-  // Owner console 2026-11-05 (L-17): + the feet units, the same two formulas in feet
-  it('m2 / sq_ft (area) and linear_meter / linear_ft (linear) are the only measurable units', () => {
-    expect(UNIT_CALCULATION_METHOD).toEqual({ m2: 'area', linear_meter: 'linear', sq_ft: 'area', linear_ft: 'linear' });
-    expect(MEASURABLE_UNIT_IDS.sort()).toEqual(['linear_ft', 'linear_meter', 'm2', 'sq_ft']);
+  it('m2 and linear_meter are the only measurable units, mapped to area/linear respectively', () => {
+    expect(UNIT_CALCULATION_METHOD).toEqual({ m2: 'area', linear_meter: 'linear' });
+    expect(MEASURABLE_UNIT_IDS.sort()).toEqual(['linear_meter', 'm2']);
     expect(isMeasurableUnit('m2')).toBe(true);
     expect(isMeasurableUnit('linear_meter')).toBe(true);
-    expect(isMeasurableUnit('sq_ft')).toBe(true);
-    expect(isMeasurableUnit('linear_ft')).toBe(true);
     expect(isMeasurableUnit('kg')).toBe(false);
     expect(isMeasurableUnit('unit')).toBe(false);
   });
@@ -264,23 +260,8 @@ describe('getDefaultProfessionalUnit (business default — a suggestion, never a
 });
 
 describe('PROFESSIONAL_UNITS (Owner-approved §155.1.4/§156)', () => {
-  // Owner console 2026-11-05 (typed: "מאשר מספרים במילים ויחידות רגל מלאות לשוק הבינלאומי, כולל שינוי ב-L-09, L-14, L-15 ו-L-17"): eight units
-  it('defines exactly the eight approved units, no more, no less', () => {
-    expect(PROFESSIONAL_UNITS.map(u => u.id)).toEqual(['unit', 'm2', 'linear_meter', 'kg', 'hour', 'day', 'sq_ft', 'linear_ft']);
-    expect(getProfessionalUnitLabel('sq_ft', true)).toBe('רגל רבועה');
-    expect(getProfessionalUnitLabel('sq_ft', false)).toBe('sq ft');
-    expect(getProfessionalUnitLabel('linear_ft', true)).toBe('רגל אורך');
-    expect(getProfessionalUnitLabel('linear_ft', false)).toBe('linear ft');
-  });
-  it('the shared server unit list is the same ids (one list for every reader of a line unit)', async () => {
-    const { QUOTE_UNITS } = await import('../../supabase/functions/_shared/quoteUnits.js');
-    expect([...QUOTE_UNITS]).toEqual(PROFESSIONAL_UNITS.map(u => u.id));
-  });
-  it('a feet measurement row reads in feet and sq ft, never as metres', () => {
-    const fmt = (n) => String(n);
-    expect(formatMeasurementLine({ width: 10, height: 12, unit: 'ft', calculated_area: 120 }, false, fmt)).toBe('10 × 12 ft = 120 sq ft');
-    expect(formatMeasurementLine({ width: 10, height: 12, unit: 'ft', calculated_area: 120 }, true, fmt)).toBe('10 × 12 רגל = 120 רגל רבועה');
-    expect(formatMeasurementLine({ width: 3, height: 2, unit: 'm', calculated_area: 6 }, false, fmt)).toBe('3 × 2 m = 6 m²');
+  it('defines exactly the six approved units, no more, no less', () => {
+    expect(PROFESSIONAL_UNITS.map(u => u.id)).toEqual(['unit', 'm2', 'linear_meter', 'kg', 'hour', 'day']);
   });
 
   it('every unit carries both HE and EN labels', () => {

@@ -52,69 +52,7 @@ describe('numbers and units of the user text', () => {
     expect(extractMeasures(OWNER).map((m) => [m.value, m.unit, m.text])).toEqual([[40, 'm2', '40 מ״ר'], [22, 'm2', '22 מ״ר']]);
     expect(extractMeasures('12,5 מ"ר, 3 שעות, 2 ימי עבודה, 7.5 מטר אורך, 15 ק״ג').map((m) => [m.value, m.unit]))
       .toEqual([[12.5, 'm2'], [3, 'hour'], [2, 'day'], [7.5, 'linear_meter'], [15, 'kg']]);
-    // Owner 2026-11-05 (L-17): sq ft is a unit of its own now
-    expect(extractMeasures('1,200 sq ft deck and 35.5 m2 patio, 4 hours').map((m) => [m.value, m.unit])).toEqual([[1200, 'sq_ft'], [35.5, 'm2'], [4, 'hour']]);
-  });
-});
-
-describe('Owner 2026-11-05 ("מאשר מספרים במילים ויחידות רגל מלאות לשוק הבינלאומי, כולל שינוי ב-L-09, L-14, L-15 ו-L-17")', () => {
-  const read = (t) => extractMeasures(t).filter((m) => m.kind === 'number').map((m) => [m.value, m.unit]);
-  it('a whole number phrase in Hebrew words is one number, with the unit said after it', () => {
-    expect(read('צבע לכל הדירה, שמונים וחמש מטר. ריצוף חדש במטבח, שנים עשר מטר.')).toEqual([[85, 'meter'], [12, 'meter']]);
-    expect(read('שלוש מאות ועשרים מטר רבוע')).toEqual([[320, 'm2']]);
-    expect(read('מאה ועשר')).toEqual([[110, null]]);
-    expect(read('אלף ומאתיים')).toEqual([[1200, null]]);
-    expect(read('עשרים אלף')).toEqual([[20000, null]]);
-    expect(read('חמש עשרה שעות')).toEqual([[15, 'hour']]);
-    expect(read('שתיים וחצי ימי עבודה')).toEqual([[2.5, 'day']]);
-  });
-  it('the same in English words', () => {
-    expect(read('eighty-five linear feet')).toEqual([[85, 'linear_ft']]);
-    expect(read('two hundred and fifty sq ft')).toEqual([[250, 'sq_ft']]);
-    expect(read('one hundred ten hours')).toEqual([[110, 'hour']]);
-    expect(read('a thousand square feet')).toEqual([[1000, 'sq_ft']]);
-    expect(read('one and a half days')).toEqual([[1.5, 'day']]);
-  });
-  it('two separate numbers are never glued into one', () => {
-    expect(read('five six rooms')).toEqual([[5, null], [6, null]]);
-    expect(read('עשרים חמש')).toEqual([[20, null], [5, null]]);
-  });
-  it('feet units: sq ft, linear ft, a foot length and an inch (HE / EN)', () => {
-    expect(read('900 square feet, 40 linear ft, 12 ft, 6 inches')).toEqual([[900, 'sq_ft'], [40, 'linear_ft'], [12, 'foot'], [6, 'inch']]);
-    expect(read('250 רגל רבועה, 30 רגל אורך')).toEqual([[250, 'sq_ft'], [30, 'linear_ft']]);
-    expect(['Deck per sq ft', 'Fence / linear ft', 'ריצוף לרגל רבועה', 'Tiling per m2'].map(catalogNameUnit)).toEqual(['sq_ft', 'linear_ft', 'sq_ft', 'm2']);
-  });
-  it('a dictated phrase in words is verified exactly like digits (the Owner\'s video sentence)', () => {
-    const desc = 'תכין לי הצעה לשיפוץ דירת שלושה חדרים: צבע לכל הדירה, שמונים וחמש מטר. ריצוף חדש במטבח, שנים עשר מטר. ופירוק והרכבה של ארון מטבח.';
-    const r = parseDraftModelOutput(JSON.stringify({ subject: 's', questions: [], items: [
-      line({ description: 'צבע לכל הדירה', evidence: 'צבע לכל הדירה, שמונים וחמש מטר', quantity: 85, unit: 'm2', quantityBasis: 'stated' }),
-      line({ description: 'ריצוף חדש במטבח', evidence: 'ריצוף חדש במטבח, שנים עשר מטר', quantity: 12, unit: 'm2', quantityBasis: 'stated' }),
-      line({ description: 'פירוק והרכבה של ארון מטבח', evidence: 'פירוק והרכבה של ארון מטבח', quantity: 1, unit: 'unit', quantityBasis: 'implied_single' }),
-    ] }), [], desc);
-    // a bare "מטר" said for an area job stays square meters; nothing is "unverified"
-    expect(r.items.map((i) => [i.quantity, i.unit, i.quantityBasis, i.missing])).toEqual([[85, 'm2', 'stated', null], [12, 'm2', 'stated', null], [1, 'unit', 'implied_single', null]]);
-  });
-  it('an explicit running meter stays a length; a bare meter the model read as a length stays a length', () => {
-    const r = parseDraftModelOutput(JSON.stringify({ subject: 's', questions: [], items: [
-      line({ description: 'פנלים', evidence: 'פנלים 12 מטר אורך', quantity: 12, unit: 'm2', quantityBasis: 'stated' }),
-      line({ description: 'כבל', evidence: 'כבל 30 מטר', quantity: 30, unit: 'linear_meter', quantityBasis: 'stated' }),
-    ] }), [], 'פנלים 12 מטר אורך, כבל 30 מטר');
-    expect(r.items.map((i) => i.unit)).toEqual(['linear_meter', 'linear_meter']);
-  });
-  it('feet x feet = sq ft; a meter and a foot never multiply', () => {
-    const ok = parseDraftModelOutput(JSON.stringify({ subject: 's', questions: [], items: [
-      line({ description: 'New deck', evidence: 'New deck 10 x 12 ft', quantity: 120, unit: 'sq_ft', quantityBasis: 'derived', derivation: '10 × 12' })] }), [], 'New deck 10 x 12 ft');
-    expect(ok.items[0]).toMatchObject({ quantity: 120, unit: 'sq_ft', quantityBasis: 'derived', derivation: '10 × 12' });
-    const mixed = parseDraftModelOutput(JSON.stringify({ subject: 's', questions: [], items: [
-      line({ description: 'Deck', evidence: 'Deck 3 m by 10 ft', quantity: 30, unit: 'sq_ft', quantityBasis: 'derived', derivation: '3 × 10' })] }), [], 'Deck 3 m by 10 ft');
-    expect(mixed.items[0]).toMatchObject({ quantity: null, missing: 'unverified' });
-    const metricAsFeet = parseDraftModelOutput(JSON.stringify({ subject: 's', questions: [], items: [
-      line({ description: 'Wall', evidence: 'Wall 4 x 2.5 m', quantity: 10, unit: 'sq_ft', quantityBasis: 'derived', derivation: '4 × 2.5' })] }), [], 'Wall 4 x 2.5 m');
-    expect(metricAsFeet.items[0]).toMatchObject({ quantity: null, missing: 'unverified' });
-  });
-  it('the model may return the feet units', () => {
-    expect(DRAFT_RESPONSE_SCHEMA.schema.properties.items.items.properties.unit.enum).toEqual(expect.arrayContaining(['sq_ft', 'linear_ft']));
-    expect(buildDraftMessages({ description: 'job', isHebrew: false, catalog: [] })[0].content).toMatch(/never convert feet to meters/);
+    expect(extractMeasures('1,200 sq ft deck and 35.5 m2 patio, 4 hours').map((m) => [m.value, m.unit])).toEqual([[1200, null], [35.5, 'm2'], [4, 'hour']]);
   });
   it('a Hebrew word that only starts like a unit is not a unit ("40 מרפסות" is not 40 m²)', () => {
     expect(extractMeasures('40 מרפסות, 3 שעונים, 2 יומנים').map((m) => m.unit)).toEqual([null, null, null]);

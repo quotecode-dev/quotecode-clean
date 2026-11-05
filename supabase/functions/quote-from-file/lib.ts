@@ -6,14 +6,13 @@
 // memory, goes to the provider once, and nothing of it - name, bytes, hash, text, lines, prices - is logged or written anywhere.
 // The answer goes back to the owner's review screen only; the source prices never enter a quote.
 
-import { QUOTE_UNITS } from '../_shared/quoteUnits.js';
 export const MAX_FILE_BYTES = 8 * 1024 * 1024;
 export const MAX_PAGES = 5;
 export const MAX_LINES = 30;
 export const MAX_DESCRIPTION_CHARS = 200;
 export const FILE_MODEL = 'gpt-6-luna';
 export const PROVIDER_TIMEOUT_MS = 75000;
-export const UNITS = [...QUOTE_UNITS]; // = DRAFT_UNITS / PROFESSIONAL_UNITS ids (one shared list, Owner 2026-11-05)
+export const UNITS = ['unit', 'm2', 'linear_meter', 'kg', 'hour', 'day']; // = DRAFT_UNITS / PROFESSIONAL_UNITS ids
 export const CONTENT_TYPES: Readonly<Record<string, 'pdf' | 'jpg'>> = Object.freeze({ 'application/pdf': 'pdf', 'image/jpeg': 'jpg' });
 
 export type FileKind = 'pdf' | 'jpg';
@@ -87,7 +86,7 @@ export const SYSTEM_PROMPT = [
   'Return ONLY the work / product lines of the document, in its own order and language:',
   '- description: what is done or supplied, short and exact as printed (include size / material / model when printed on the line). Never',
   '  copy the other business name, phone, address, tax id, logo text, signature, bank details or terms into a line.',
-  '- quantity: the printed quantity, else null. unit: one of unit, m2 (square meter), linear_meter (running meter), sq_ft (square feet / sq ft / SF), linear_ft (linear or running feet / LF), kg, hour, day, else null. Use exactly the unit the document prints - never convert feet to meters or meters to feet.',
+  '- quantity: the printed quantity, else null. unit: one of unit, m2 (square meter), linear_meter (running meter), kg, hour, day, else null.',
   '- unitPrice: the printed price of ONE unit, else null. lineTotal: the printed total of the line, else null.',
   '- Never guess a number that is not clearly printed: use null. Never compute missing numbers.',
   'currency: the ISO code printed or implied by the symbol (ILS for ₪, USD for $, EUR for €, GBP for £), else null.',

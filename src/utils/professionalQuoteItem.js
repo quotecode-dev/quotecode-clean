@@ -10,10 +10,6 @@ export const PROFESSIONAL_UNITS = [
   { id: 'kg', he: 'ק״ג', en: 'kg' },
   { id: 'hour', he: 'שעה', en: 'hour' },
   { id: 'day', he: 'יום', en: 'day' },
-  // Owner console 2026-11-05 (typed: "מאשר מספרים במילים ויחידות רגל מלאות לשוק הבינלאומי, כולל שינוי ב-L-09, L-14, L-15 ו-L-17, שחרור עד
-  // הלייב"): the feet units of the international market (a feet item's measurement rows are stored in feet, row unit 'ft')
-  { id: 'sq_ft', he: 'רגל רבועה', en: 'sq ft' },
-  { id: 'linear_ft', he: 'רגל אורך', en: 'linear ft' },
 ];
 
 export function getProfessionalUnitLabel(unitId, isHebrew) {
@@ -39,10 +35,8 @@ export function getMeasurementDimensionUnit(isHebrew) {
 // לא string replacement נקודתי במסך בודד. formatNum מוזרק (לא מיובא כאן)
 // כדי לא ליצור תלות מעגלית בין utils.
 export function formatMeasurementLine(measurement, isHebrew, formatNum) {
-  // Owner 2026-11-05: a feet row (unit 'ft') reads in feet and sq ft - never as metres
-  const feet = measurement.unit === 'ft';
-  const dimUnit = feet ? (isHebrew ? 'רגל' : 'ft') : getMeasurementDimensionUnit(isHebrew);
-  const areaUnit = getProfessionalUnitLabel(feet ? 'sq_ft' : 'm2', isHebrew);
+  const dimUnit = getMeasurementDimensionUnit(isHebrew);
+  const areaUnit = getProfessionalUnitLabel('m2', isHebrew);
   const hasHeight = measurement.height != null;
   const dims = hasHeight
     ? `${formatNum(measurement.width)} × ${formatNum(measurement.height)} ${dimUnit}`
@@ -138,9 +132,6 @@ export function getCalculationMethodLabel(methodId, isHebrew) {
 export const UNIT_CALCULATION_METHOD = {
   m2: 'area',
   linear_meter: 'linear',
-  // Owner 2026-11-05: the same formulas in feet (feet x feet = sq ft; one length = linear ft) - never mixed with metres
-  sq_ft: 'area',
-  linear_ft: 'linear',
 };
 
 // נשמר לתאימות-לאחור (טסטים/צרכנים קיימים) - m² עדיין היחידה ה"ראשית".

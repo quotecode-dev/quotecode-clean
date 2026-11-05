@@ -11,9 +11,9 @@ import { X, FileUp, Check } from 'lucide-react';
 import AiModalHeader from './AiModalHeader';
 import { APP as NEON } from '../theme/neonTheme';
 import { getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
-import { draftUnitsForMarket } from '../../supabase/functions/_shared/aiQuoteDraft.js';
 import { MAX_FILE_BYTES, catalogPriceFor, checkPickedFile, compareTotals, fileSizeLabel, parseOwnPrice } from '../utils/quoteFromFileClient';
 
+const UNITS = ['unit', 'm2', 'linear_meter', 'kg', 'hour', 'day'];
 const positiveQuantity = (v) => {
   const n = Number(String(v ?? '').trim().replace(',', '.'));
   return String(v ?? '').trim() !== '' && Number.isFinite(n) && n > 0 && n <= 100000 ? Math.round(n * 1000) / 1000 : null;
@@ -89,9 +89,7 @@ const toRow = (line, catalog) => {
   };
 };
 
-export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoneyDisplay, currency, catalog, readFile, readAllowance, onClose, onApply, international = false }) {
-  // Owner 2026-11-05 (L-17): one shared unit list by market (the feet units abroad); a line keeps its own unit
-  const unitChoices = (own) => { const list = draftUnitsForMarket(international); return own && !list.includes(own) ? [...list, own] : list; };
+export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoneyDisplay, currency, catalog, readFile, readAllowance, onClose, onApply }) {
   const t = isHebrew ? COPY.he : COPY.en;
   const [phase, setPhase] = useState('pick');          // pick | loading | review
   const [file, setFile] = useState(null);
@@ -236,7 +234,7 @@ export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoney
                           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{t.unit}:
                             <select aria-label={t.unit} value={r.unit || ''} onChange={(e) => edit(i, { unit: e.target.value || null })} style={{ ...inputBase, padding: '6px 8px' }}>
                               <option value="">{t.noUnit}</option>
-                              {unitChoices(r.unit).map((u) => <option key={u} value={u}>{getProfessionalUnitLabel(u, isHebrew)}</option>)}
+                              {UNITS.map((u) => <option key={u} value={u}>{getProfessionalUnitLabel(u, isHebrew)}</option>)}
                             </select>
                           </label>
                         </span>

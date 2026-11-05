@@ -78,9 +78,6 @@ async function transcribe(audio: Uint8Array, mime: string, language: 'he' | 'en'
     form.append('file', new Blob([audio], { type: mime }), `voice.${ext}`);
     form.append('model', model);
     form.append('language', language);
-    // Owner console 2026-11-05 ("מאשר מספרים במילים ויחידות רגל מלאות לשוק הבינלאומי ..."): a dictated quantity comes back in digits
-    // ("85 מטר", not "שמונים וחמש מטר") - the smart quote also reads number words, this keeps the text the user sees exact and short
-    form.append('prompt', language === 'he' ? 'מספרים נכתבים בספרות: 85 מטר, 12 מ״ר, 3 חדרים, 2.5 שעות.' : 'Numbers are written in digits: 85 square feet, 12 m², 3 rooms, 2.5 hours.');
     form.append('response_format', 'json');
     const res = await providerFetch('https://api.openai.com/v1/audio/transcriptions', {
       method: 'POST', headers: { Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}` }, body: form,

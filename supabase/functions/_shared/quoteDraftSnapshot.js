@@ -11,7 +11,7 @@
 
 export const DRAFT_SNAPSHOT_VERSION = 1;
 export const DRAFT_SNAPSHOT_LIMITS = { items: 40, text: 200, subject: 120, section: 80 };
-import { QUOTE_UNITS as UNITS } from './quoteUnits.js'; // Owner 2026-11-05: one shared list (+ the feet units)
+const UNITS = ['unit', 'm2', 'linear_meter', 'kg', 'hour', 'day'];
 
 const text = (v, n) => (typeof v === 'string' ? v.replace(/\s+/g, ' ').trim().slice(0, n).trim() : '');
 const AMOUNT_GRAMMAR = /^(?:\d+|\d{1,3}(?:,\d{3})+)(?:\.\d+)?$/; // '.' decimal point; ',' only as complete thousands groups

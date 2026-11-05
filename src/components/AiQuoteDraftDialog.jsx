@@ -18,7 +18,7 @@ import { X, Sparkles, Check, Mic, Square } from 'lucide-react';
 import useVoiceRecorder from '../hooks/useVoiceRecorder';
 import AiModalHeader from './AiModalHeader';
 import { APP as NEON } from '../theme/neonTheme';
-import { MAX_DESCRIPTION_CHARS, MIN_DESCRIPTION_CHARS, draftUnitsForMarket } from '../../supabase/functions/_shared/aiQuoteDraft.js';
+import { MAX_DESCRIPTION_CHARS, MIN_DESCRIPTION_CHARS, DRAFT_UNITS } from '../../supabase/functions/_shared/aiQuoteDraft.js';
 import { getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
 
 const positiveQuantity = (v) => {
@@ -165,9 +165,7 @@ const inputStyle = (isHebrew) => ({ width: '100%', padding: '11px 12px', border:
 const primaryBtn = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.gradient, color: '#ffffff', border: 'none', padding: '12px 18px', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
 const secondaryBtn = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, padding: '12px 18px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
 
-export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply, onOpenChat, requestDraft, formatMoneyDisplay, sym, transcribe = null, international = false }) {
-  // Owner 2026-11-05 (L-17): the units the market offers; a line keeps its own unit even when the market does not offer it
-  const unitChoices = (own) => { const list = draftUnitsForMarket(international); return own && !list.includes(own) ? [...list, own] : list; };
+export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply, onOpenChat, requestDraft, formatMoneyDisplay, sym, transcribe = null }) {
   const t = COPY[isHebrew ? 'he' : 'en'];
   const [description, setDescription] = useState('');
   const [phase, setPhase] = useState('describe'); // describe | loading | review
@@ -342,7 +340,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                             <select aria-label={t.unit} aria-invalid={!line.unitChosen} value={line.unitChosen ? (line.unit || '') : '__choose'} onChange={(e) => { if (e.target.value !== '__choose') editLine(i, { unit: e.target.value || null }); }} style={{ padding: '6px 8px', border: `1px solid ${line.unitChosen ? NEON.borderStrong : (NEON.amber || NEON.red)}`, borderRadius: '7px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '16px', fontFamily: 'inherit' }}>
                               {!line.unitChosen && <option value="__choose" disabled>{t.chooseUnit}</option>}
                               <option value="">{t.noUnit}</option>
-                              {unitChoices(line.unit).map((u) => <option key={u} value={u}>{getProfessionalUnitLabel(u, isHebrew)}</option>)}
+                              {DRAFT_UNITS.map((u) => <option key={u} value={u}>{getProfessionalUnitLabel(u, isHebrew)}</option>)}
                             </select>
                           </label>
                         </span>

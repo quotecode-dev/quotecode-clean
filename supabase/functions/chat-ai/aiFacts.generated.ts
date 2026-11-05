@@ -324,8 +324,8 @@ export const AI_FACTS = {
       "id": "measured_quote",
       "heLabel": "הצעת מחיר מקצועית/מדודה",
       "enLabel": "Measured professional quote",
-      "heDescription": "הצעה לפי מידות: מוסיפים פריט ומודדים אותו במסך אחד (שטח, אורך, יחידות או מחיר קבוע; בס״מ או במטר, או כמות ידועה במ״ר / מ״א; בחשבון בינלאומי גם ברגל או באינץ׳, ואז המחיר לרגל רבועה / לרגל אורך - בלי המרה בין מטרים לרגל), ואז בודקים ומוסיפים להצעה. חלוקה לחדרים/אזורים/יחידות היא אפשרות לבחירה.",
-      "enDescription": "Measured quote: add an item and measure it on one screen (area, length, units or a fixed price; in cm or m, or a known quantity in m² / linear m; an international account can also measure in feet or inches and price per sq ft / linear ft - meters and feet are never converted into each other), then check it and add it to the quote. Grouping into rooms/areas/units is optional.",
+      "heDescription": "הצעה לפי מידות: מוסיפים פריט ומודדים אותו במסך אחד (שטח, אורך, יחידות או מחיר קבוע; בס״מ או במטר, או כמות ידועה במ״ר / מ״א), ואז בודקים ומוסיפים להצעה. חלוקה לחדרים/אזורים/יחידות היא אפשרות לבחירה.",
+      "enDescription": "Measured quote: add an item and measure it on one screen (area, length, units or a fixed price; in cm or m, or a known quantity in m² / linear m), then check it and add it to the quote. Grouping into rooms/areas/units is optional.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",

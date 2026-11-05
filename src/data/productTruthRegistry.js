@@ -166,8 +166,8 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['quote_editor'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_ai_quote', deterministicFactKeys: [], canonicalSources: ['src/components/QuoteForm.jsx', 'src/components/AiQuoteDraftDialog.jsx', 'src/components/QuoteFromFileDialog.jsx'] }), // Owner 2026-10-24 (typed L-14/L-17): the answer offers the button that opens it; Task 21: the AI-draft dialog of the AI smart-quote entry; night task 2026-10-16 (R-29): described as the menu offers it (ai-quote-draft was published with the new interface)
 
   capability('measured_quote', 'הצעת מחיר מקצועית/מדודה', 'Measured professional quote',
-    'הצעה לפי מידות: מוסיפים פריט ומודדים אותו במסך אחד (שטח, אורך, יחידות או מחיר קבוע; בס״מ או במטר, או כמות ידועה במ״ר / מ״א; בחשבון בינלאומי גם ברגל או באינץ׳, ואז המחיר לרגל רבועה / לרגל אורך - בלי המרה בין מטרים לרגל), ואז בודקים ומוסיפים להצעה. חלוקה לחדרים/אזורים/יחידות היא אפשרות לבחירה.',
-    'Measured quote: add an item and measure it on one screen (area, length, units or a fixed price; in cm or m, or a known quantity in m² / linear m; an international account can also measure in feet or inches and price per sq ft / linear ft - meters and feet are never converted into each other), then check it and add it to the quote. Grouping into rooms/areas/units is optional.',
+    'הצעה לפי מידות: מוסיפים פריט ומודדים אותו במסך אחד (שטח, אורך, יחידות או מחיר קבוע; בס״מ או במטר, או כמות ידועה במ״ר / מ״א), ואז בודקים ומוסיפים להצעה. חלוקה לחדרים/אזורים/יחידות היא אפשרות לבחירה.',
+    'Measured quote: add an item and measure it on one screen (area, length, units or a fixed price; in cm or m, or a known quantity in m² / linear m), then check it and add it to the quote. Grouping into rooms/areas/units is optional.',
     { surfaces: ['quote_editor'], operationType: 'mutate', subscriptionCapabilityId: 'professional_quote.use', canonicalSources: ['src/components/QuoteForm.jsx'] }),
 
   capability('professional_reuse', 'שימוש חוזר מקצועי בפריטים', 'Advanced professional item reuse',

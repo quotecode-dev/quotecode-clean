@@ -24,8 +24,8 @@
     "markers": 2
   },
   "src/components/AddItemWizard.jsx": {
-    "interactive": 26,
-    "markers": 33
+    "interactive": 24,
+    "markers": 31
   },
   "src/components/AddressSuggestInput.jsx": {
     "interactive": 0,
@@ -1344,10 +1344,6 @@
     "markers": 0
   },
   "supabase/functions/_shared/quoteStyleCapabilities.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/_shared/quoteUnits.js": {
     "interactive": 0,
     "markers": 0
   },

@@ -56,28 +56,11 @@ export const ITEM_DESCRIPTION_MAX = 255;
 const STEPS = { ITEM: 1, REVIEW: 2 };
 const ALL_METHODS = ['fixed', 'units', 'area', 'linear'];
 // A4: sizes are typed in cm (default) or m; the stored measurements stay canonical metres.
-// Owner console 2026-11-05 (typed: "מאשר מספרים במילים ויחידות רגל מלאות לשוק הבינלאומי, כולל שינוי ב-L-09, L-14, L-15 ו-L-17, שחרור עד
-// הלייב"): the international market may also type feet or inches. Those rows are stored in canonical FEET (row unit 'ft') and priced per
-// sq ft / linear ft. A metric size and a feet size never mix in one item, and a typed size is converted only when the user switches the unit.
 const round4 = (n) => Math.round(n * 10000) / 10000;
-const SIZE_IN_CM = { cm: 1, m: 100, in: 2.54, ft: 30.48 };
-const isFeetUnit = (u) => u === 'ft' || u === 'in';
-const convertSizeBetween = (v, from, to) => {
-  if (v === '' || v == null || !Number.isFinite(Number(v)) || from === to || !SIZE_IN_CM[from] || !SIZE_IN_CM[to]) return v;
-  return String(round4((Number(v) * SIZE_IN_CM[from]) / SIZE_IN_CM[to]));
+const convertSizeText = (v, toUnit) => {
+  if (v === '' || v == null || !Number.isFinite(Number(v))) return v;
+  return String(round4(toUnit === 'm' ? Number(v) / 100 : Number(v) * 100));
 };
-const convertSizeText = (v, toUnit) => convertSizeBetween(v, toUnit === 'm' ? 'cm' : 'm', toUnit);
-const toFeet = (unit, v) => {
-  if (v === '' || v == null) return '';
-  const n = Number(v);
-  if (!Number.isFinite(n)) return '';
-  return Math.round((unit === 'in' ? n / 12 : n) * 1e10) / 1e10;
-};
-// a typed size in its unit -> the canonical stored value (metres, or feet for a feet size)
-const sizeToBase = (unit, v) => (isFeetUnit(unit) ? toFeet(unit, v) : cmToM(unit === 'm' ? convertSizeText(v, 'cm') : v));
-// the priced unit of a measured method in the typed unit's system
-const measuredUnitFor = (method, unit) => (isFeetUnit(unit) ? (method === 'linear' ? 'linear_ft' : 'sq_ft') : (method === 'linear' ? 'linear_meter' : 'm2'));
-const isFeetPricingUnit = (u) => u === 'sq_ft' || u === 'linear_ft';
 
 function blankState(defaultSectionKey) {
   return {
@@ -105,24 +88,20 @@ function blankState(defaultSectionKey) {
 function stateFromItem(item, defaultSectionKey) {
   const pricingMethod = isManualMeasured(item)
     ? 'units'
-    : item.pricing_unit === 'linear_meter' || item.pricing_unit === 'linear_ft'
+    : item.pricing_unit === 'linear_meter'
       ? 'linear'
-      : item.pricing_unit === 'm2' || item.pricing_unit === 'sq_ft'
+      : item.pricing_unit === 'm2'
         ? 'area'
         : 'units';
   const rows = Array.isArray(item.measurements) ? item.measurements : [];
   const [firstRow, ...restRows] = rows;
-  // a feet item opens in feet (its rows are stored in feet); a metric item in cm, exactly as before
-  const feet = isFeetPricingUnit(item.pricing_unit);
-  const shown = (v) => (feet ? (v === '' || v == null ? '' : String(v)) : mToCm(v));
   return {
     description: item.description || '',
     catalogServiceId: '',
     pricingMethod,
-    measureUnit: feet ? 'ft' : 'cm',
-    widthCm: firstRow ? shown(firstRow.width) : '',
-    heightCm: firstRow ? shown(firstRow.height) : '',
-    extraMeasureRows: restRows.map((r) => ({ widthCm: shown(r.width), heightCm: shown(r.height), label: r.label || '' })),
+    widthCm: firstRow ? mToCm(firstRow.width) : '',
+    heightCm: firstRow ? mToCm(firstRow.height) : '',
+    extraMeasureRows: restRows.map((r) => ({ widthCm: mToCm(r.width), heightCm: mToCm(r.height), label: r.label || '' })),
     // חוק ברזל (SQ-F03-B - "non-area/non-length structured units being
     // collapsed": a manual hour/day/kg/professional-unit item can carry a
     // real effective quantity in calculated_quantity while its flat
@@ -165,7 +144,7 @@ const catalogPriceText = (p) => (p === null || p === undefined || p === '' || !N
 const draftFromService = (sv) => ({ key: String(sv.id), serviceId: String(sv.id), description: String(sv.name ?? ''), method: 'units', quantity: '1',
   unitPrice: catalogPriceText(sv.price), useSizes: false, manualQty: '', widthCm: '', heightCm: '', unit: 'cm', extraRows: [], specRows: [], showDetails: false });
 // a ticked item's sizes are typed in its own cm / m (Owner 2026-10-26, the same engine as a typed item); every row -> canonical metres
-const pickSizeToM = (p, v) => sizeToBase(p.unit || 'cm', v);
+const pickSizeToM = (p, v) => cmToM(p.unit === 'm' ? convertSizeText(v, 'cm') : v);
 const roundsToNothing = (v) => v != null && Number.isFinite(v) && v.toFixed(2) === '0.00';
 const pickSizeRows = (p) => [{ widthCm: p.widthCm, heightCm: p.heightCm, label: '' }, ...(p.extraRows || [])];
 const pickRowValue = (p, r) => computeMeasurementValue(p.method, pickSizeToM(p, r.widthCm), p.method === 'linear' ? undefined : pickSizeToM(p, r.heightCm));
@@ -201,8 +180,6 @@ export default function AddItemWizard({
   // Owner 2026-10-26: several checked catalog items are added together (one update); the quote's items mark a catalog item already in it
   onAddMany = null,
   quoteItems = null,
-  // Owner 2026-11-05: the international market may type sizes in feet / inches (priced per sq ft / linear ft)
-  international = false,
 }) {
   // IRON-ILS-001: every money amount goes through the injected canonical formatter; the fallback is the same canonical
   // currency-keyed path ('₪' is only ever the Local/ILS symbol) - never a raw number or toFixed.
@@ -309,7 +286,7 @@ export default function AddItemWizard({
       setCatalogServiceId(rs.catalogServiceId ?? '');
       setShowManualEntry(!!rs.showManualEntry);
       setPricingMethod(rs.pricingMethod ?? null);
-      setMeasureUnit(['m', 'ft', 'in'].includes(rs.measureUnit) ? rs.measureUnit : 'cm');
+      setMeasureUnit(rs.measureUnit === 'm' ? 'm' : 'cm');
       setUseManualQty(!!rs.useManualQty);
       setManualQty(rs.manualQty ?? '');
       setWidthCm(rs.widthCm ?? '');
@@ -343,7 +320,7 @@ export default function AddItemWizard({
       // override saved quote-item semantics during Edit."
       setShowManualEntry(true);
       setPricingMethod(s.pricingMethod);
-      setMeasureUnit(s.measureUnit || 'cm');
+      setMeasureUnit('cm');
       setUseManualQty(false);
       setManualQty('');
       setWidthCm(s.widthCm);
@@ -513,12 +490,6 @@ export default function AddItemWizard({
 
   if (!isOpen) return null;
 
-  // Owner 2026-11-05: the words of a typed size unit, and of the area / length it makes (metric or feet - never mixed)
-  const sizeWord = (u) => (isHebrew ? ({ cm: 'ס״מ', m: 'מ\'', ft: 'רגל', in: 'אינץ׳' }[u] || 'ס״מ') : ({ cm: 'cm', m: 'm', ft: 'ft', in: 'in' }[u] || 'cm'));
-  const areaWord = (feet) => (feet ? (isHebrew ? 'רגל רבועה' : 'sq ft') : (isHebrew ? 'מ״ר' : 'm²'));
-  const lengthWord = (feet) => (feet ? (isHebrew ? 'רגל' : 'ft') : (isHebrew ? 'מ\'' : 'm'));
-  const sizeUnitChoices = international ? ['cm', 'm', 'ft', 'in'] : ['cm', 'm'];
-
   const t = {
     title: isEditMode ? (isHebrew ? 'עריכת מוצר או עבודה' : 'Edit product or work') : (isHebrew ? 'הוספת מוצר או עבודה' : 'Add product or work'),
     step1Title: isHebrew ? 'מה מוסיפים?' : 'What are you adding?',
@@ -564,27 +535,23 @@ export default function AddItemWizard({
     step3TitleLinear: isHebrew ? 'אורך' : 'Length',
     step3ExplanationLinear: isHebrew ? 'הזינו את האורך והמחיר ליחידת אורך.' : 'Enter the length and the price per unit of length.',
     sizeN: isHebrew ? (n) => `מידה ${n}` : (n) => `Size ${n}`,
-    widthCm: isHebrew ? `רוחב (${sizeWord(measureUnit)})` : `Width (${sizeWord(measureUnit)})`,
-    heightCm: isHebrew ? `גובה (${sizeWord(measureUnit)})` : `Height (${sizeWord(measureUnit)})`,
-    lengthCm: isHebrew ? `אורך (${sizeWord(measureUnit)})` : `Length (${sizeWord(measureUnit)})`,
+    widthCm: isHebrew ? `רוחב (${measureUnit === 'm' ? 'מ\'' : 'ס״מ'})` : `Width (${measureUnit === 'm' ? 'm' : 'cm'})`,
+    heightCm: isHebrew ? `גובה (${measureUnit === 'm' ? 'מ\'' : 'ס״מ'})` : `Height (${measureUnit === 'm' ? 'm' : 'cm'})`,
+    lengthCm: isHebrew ? `אורך (${measureUnit === 'm' ? 'מ\'' : 'ס״מ'})` : `Length (${measureUnit === 'm' ? 'm' : 'cm'})`,
     sizeUnitLabel: isHebrew ? 'יחידת מידה' : 'Size unit',
     unitCm: isHebrew ? 'ס״מ' : 'cm',
     unitM: isHebrew ? 'מטר' : 'm',
-    unitFt: isHebrew ? 'רגל' : 'ft',
-    unitIn: isHebrew ? 'אינץ׳' : 'in',
     knowArea: isHebrew ? 'השטח כבר ידוע?' : 'I already know the area',
     knowLength: isHebrew ? 'האורך כבר ידוע?' : 'I already know the length',
     backToSizes: isHebrew ? 'חזרה להזנת מידות' : 'Enter sizes instead',
-    manualAreaLabel: isFeetUnit(measureUnit) ? (isHebrew ? 'כמה רגל רבועה?' : 'How many sq ft?') : (isHebrew ? 'כמה מ״ר?' : 'How many m²?'),
-    manualLengthLabel: isFeetUnit(measureUnit) ? (isHebrew ? 'כמה רגל של אורך?' : 'How many feet?') : (isHebrew ? 'כמה מטרים של אורך?' : 'How many metres?'),
+    manualAreaLabel: isHebrew ? 'כמה מ״ר?' : 'How many m²?',
+    manualLengthLabel: isHebrew ? 'כמה מטרים של אורך?' : 'How many metres?',
     missingManualQty: isHebrew ? 'יש להזין כמות גדולה מ-0' : 'Please enter a quantity greater than 0',
     toReview: isHebrew ? 'המשך לבדיקה' : 'Continue to check',
     unitChangeConfirm: isHebrew ? 'שינוי היחידה דורש בדיקה מחדש של המחיר. להמשיך?' : 'Changing the unit requires reviewing the price. Continue?',
     calcNote: isHebrew ? 'הנחה ומע״מ מחושבים בסיכום ההצעה' : 'Discount and tax are calculated in the quote summary',
-    unitPriceArea: isFeetUnit(measureUnit) ? (isHebrew ? 'מחיר לכל רגל רבועה' : 'Price per sq ft') : (isHebrew ? 'מחיר לכל מ״ר' : 'Price per m²'),
-    unitPriceLinear: isFeetUnit(measureUnit) ? (isHebrew ? 'מחיר לכל רגל' : 'Price per foot') : (isHebrew ? 'מחיר לכל מטר' : 'Price per metre'),
-    pickPriceArea: (u) => (isFeetUnit(u) ? (isHebrew ? 'מחיר לכל רגל רבועה' : 'Price per sq ft') : (isHebrew ? 'מחיר לכל מ״ר' : 'Price per m²')),
-    pickPriceLinear: (u) => (isFeetUnit(u) ? (isHebrew ? 'מחיר לכל רגל' : 'Price per foot') : (isHebrew ? 'מחיר לכל מטר' : 'Price per metre')),
+    unitPriceArea: isHebrew ? 'מחיר לכל מ״ר' : 'Price per m²',
+    unitPriceLinear: isHebrew ? 'מחיר לכל מטר' : 'Price per metre',
     addAnotherSize: isHebrew ? '+ הוספת מידה נוספת' : '+ Add another size',
     removeSize: isHebrew ? 'הסרת המידה' : 'Remove this size',
     sizeLabelOptional: isHebrew ? 'מיקום או שם — לא חובה' : 'Location or name — optional',
@@ -632,8 +599,8 @@ export default function AddItemWizard({
     rowNeedsHeight: isHebrew ? (n) => `במידה ${n} חסר גובה. השלימו או הסירו אותה.` : (n) => `Size ${n} needs a height. Complete or remove it.`,
     rowNeedsWidth: isHebrew ? (n) => `במידה ${n} חסר רוחב. השלימו או הסירו אותה.` : (n) => `Size ${n} needs a width. Complete or remove it.`,
     upgradeNeeded: isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan',
-    calcPreviewArea: (w, h, m2) => `${w} × ${h} ${sizeWord(measureUnit)} = ${m2} ${areaWord(isFeetUnit(measureUnit))}`,
-    calcPreviewLinear: (l, m) => `${l} ${sizeWord(measureUnit)} = ${m} ${lengthWord(isFeetUnit(measureUnit))}`,
+    calcPreviewArea: isHebrew ? (w, h, m2) => `${w} × ${h} ${measureUnit === 'm' ? 'מ\'' : 'ס״מ'} = ${m2} מ״ר` : (w, h, m2) => `${w} × ${h} ${measureUnit === 'm' ? 'm' : 'cm'} = ${m2} m²`,
+    calcPreviewLinear: isHebrew ? (l, m) => `${l} ${measureUnit === 'm' ? 'מ\'' : 'ס״מ'} = ${m} מ'` : (l, m) => `${l} ${measureUnit === 'm' ? 'm' : 'cm'} = ${m} m`,
     completeLabel: isHebrew ? 'צריך להשלים:' : 'Complete:',
     fieldNames: isHebrew
       ? { description: 'שם הפריט', method: 'שיטת התמחור', amount: 'הסכום', quantity: 'הכמות', price: 'המחיר', width: 'הרוחב', height: 'הגובה', length: 'האורך', manualQty: 'הכמות', row: (n) => `מידה ${n}`, unavailable: 'פריט שאינו בקטלוג' }
@@ -659,8 +626,8 @@ export default function AddItemWizard({
     addMany: (n) => (isHebrew ? (n === 1 ? 'הוספת פריט אחד להצעה' : `הוספת ${n} פריטים להצעה`) : (n === 1 ? 'Add 1 item to the quote' : `Add ${n} items to the quote`)),
     enterSizes: isHebrew ? 'הזנת מידות' : 'Enter sizes',
     sizeLabel: (kind, u) => (isHebrew
-      ? `${kind === 'width' ? 'רוחב' : kind === 'height' ? 'גובה' : 'אורך'} (${sizeWord(u || 'cm')})`
-      : `${kind === 'width' ? 'Width' : kind === 'height' ? 'Height' : 'Length'} (${sizeWord(u || 'cm')})`),
+      ? `${kind === 'width' ? 'רוחב' : kind === 'height' ? 'גובה' : 'אורך'} (${u === 'm' ? 'מ\'' : 'ס״מ'})`
+      : `${kind === 'width' ? 'Width' : kind === 'height' ? 'Height' : 'Length'} (${u === 'm' ? 'm' : 'cm'})`),
     leaveNewConfirm: isHebrew ? 'לצאת בלי להוסיף את הפריט? מה שהוקלד או סומן לא יישמר.' : 'Leave without adding the item? What you typed or ticked will not be kept.',
     leaveEditConfirm: isHebrew ? 'לצאת בלי לשמור את השינויים בפריט?' : 'Leave without saving the changes to this item?',
     leaveNewLabels: isHebrew ? { yes: 'לצאת בלי להוסיף', no: 'להמשיך' } : { yes: 'Leave without adding', no: 'Keep going' },
@@ -679,9 +646,8 @@ export default function AddItemWizard({
 
   const isMeasureMethod = pricingMethod === 'area' || pricingMethod === 'linear';
   // sizes are held in the unit the user types (measureUnit); every calculation goes through cm -> canonical metres
-  // (Owner 2026-11-05: a feet / inch size -> canonical feet)
-  const sizeToM = (v) => sizeToBase(measureUnit, v);
-  const feetSizes = isFeetUnit(measureUnit);
+  const toCm = (v) => (measureUnit === 'm' ? convertSizeText(v, 'cm') : v);
+  const sizeToM = (v) => cmToM(toCm(v));
   const widthM = sizeToM(widthCm);
   const heightM = sizeToM(heightCm);
   const manualQtyValue = useManualQty && Number(manualQty) > 0 ? Number(manualQty) : null;
@@ -698,15 +664,11 @@ export default function AddItemWizard({
         ? (primaryRowValue || 0) + validExtraRowValues.reduce((sum, v) => sum + v, 0)
         : null);
 
-  async function changeMeasureUnit(next) {
+  function changeMeasureUnit(next) {
     if (next === measureUnit) return;
-    // Owner 2026-11-05: metric <-> feet changes what the price is FOR (m² vs sq ft) - a typed price is never kept silently for another unit
-    if (isFeetUnit(next) !== isFeetUnit(measureUnit) && unitPrice !== '' && !(await askConfirm(t.unitChangeConfirm, isHebrew))) return;
-    const from = measureUnit;
-    setWidthCm((v) => convertSizeBetween(v, from, next));
-    setHeightCm((v) => convertSizeBetween(v, from, next));
-    setExtraMeasureRows((rows) => rows.map((r) => ({ ...r, widthCm: convertSizeBetween(r.widthCm, from, next), heightCm: convertSizeBetween(r.heightCm, from, next) })));
-    setManualQty((v) => (isFeetUnit(next) !== isFeetUnit(from) ? '' : v)); // a known m² is never re-read as sq ft
+    setWidthCm((v) => convertSizeText(v, next));
+    setHeightCm((v) => convertSizeText(v, next));
+    setExtraMeasureRows((rows) => rows.map((r) => ({ ...r, widthCm: convertSizeText(r.widthCm, next), heightCm: convertSizeText(r.heightCm, next) })));
     setMeasureUnit(next);
   }
 
@@ -755,23 +717,20 @@ export default function AddItemWizard({
     if (!p || p.method === m) return;
     // the same rule as one item: a price typed for one unit is never kept silently for another
     if (p.unitPrice !== '' && !(await askConfirm(t.unitChangeConfirm, isHebrew))) return;
-    updatePick(idx, { method: m, useSizes: false, manualQty: '', widthCm: '', heightCm: '', extraRows: [], unit: p.unit || 'cm', quantity: p.quantity || '1' });
+    updatePick(idx, { method: m, useSizes: false, manualQty: '', widthCm: '', heightCm: '', extraRows: [], unit: 'cm', quantity: p.quantity || '1' });
     setReveal({ id: firstPickField(idx, m, false), n: Date.now() });
   }
   function setPickSizes(idx, useSizes) {
     const p = picks[idx];
     if (!p) return;
-    updatePick(idx, { useSizes, manualQty: '', widthCm: '', heightCm: '', extraRows: [], unit: p.unit || 'cm' });
+    updatePick(idx, { useSizes, manualQty: '', widthCm: '', heightCm: '', extraRows: [], unit: 'cm' });
     setReveal({ id: firstPickField(idx, p.method, useSizes), n: Date.now() });
   }
-  async function changePickUnit(idx, next) {
+  function changePickUnit(idx, next) {
     const p = picks[idx];
-    const from = (p && p.unit) || 'cm';
-    if (!p || from === next) return;
-    if (isFeetUnit(next) !== isFeetUnit(from) && p.unitPrice !== '' && !(await askConfirm(t.unitChangeConfirm, isHebrew))) return;
-    updatePick(idx, { unit: next, widthCm: convertSizeBetween(p.widthCm, from, next), heightCm: convertSizeBetween(p.heightCm, from, next),
-      ...(isFeetUnit(next) !== isFeetUnit(from) ? { manualQty: '' } : {}),
-      extraRows: (p.extraRows || []).map((r) => ({ ...r, widthCm: convertSizeBetween(r.widthCm, from, next), heightCm: convertSizeBetween(r.heightCm, from, next) })) });
+    if (!p || (p.unit || 'cm') === next) return;
+    updatePick(idx, { unit: next, widthCm: convertSizeText(p.widthCm, next), heightCm: convertSizeText(p.heightCm, next),
+      extraRows: (p.extraRows || []).map((r) => ({ ...r, widthCm: convertSizeText(r.widthCm, next), heightCm: convertSizeText(r.heightCm, next) })) });
   }
   function addPickRow(idx) {
     const p = picks[idx];
@@ -838,7 +797,7 @@ export default function AddItemWizard({
     if ((p.specRows || []).length > 0) base.specification = spec;
     if (p.method === 'fixed') return { ...base, quantity: '1' };
     if (p.method === 'units') return { ...base, quantity: p.quantity || '1' };
-    const pricingUnit = measuredUnitFor(p.method, p.unit || 'cm');
+    const pricingUnit = p.method === 'linear' ? 'linear_meter' : 'm2';
     if (!p.useSizes) {
       return { ...base, quantity: '1', pricing_unit: pricingUnit, quantity_source: 'manual', calculation_method: 'manual', measurements: [], calculated_quantity: Number(p.manualQty) };
     }
@@ -846,7 +805,7 @@ export default function AddItemWizard({
     const measurements = pickSizeRows(p)
       .map((r) => ({ widthM: pickSizeToM(p, r.widthCm), heightM: p.method === 'linear' ? '' : pickSizeToM(p, r.heightCm), label: r.label || '', value: pickRowValue(p, r) }))
       .filter((r) => r.value != null && Number.isFinite(r.value))
-      .map((r) => ({ width: r.widthM, height: r.heightM, unit: isFeetUnit(p.unit) ? 'ft' : 'm', calculated_area: r.value, label: r.label, is_pricing_driving: true }));
+      .map((r) => ({ width: r.widthM, height: r.heightM, unit: 'm', calculated_area: r.value, label: r.label, is_pricing_driving: true }));
     return { ...base, quantity: '1', pricing_unit: pricingUnit, quantity_source: 'calculated', calculation_method: calcMethod, measurements,
       calculated_quantity: sumMeasurementAreas(measurements, calcMethod) };
   }
@@ -1011,14 +970,14 @@ export default function AddItemWizard({
         unit_price: unitPrice,
         isFromCatalog: !!catalogServiceId,
         section_key: finalSectionKey,
-        pricing_unit: measuredUnitFor(pricingMethod, measureUnit),
+        pricing_unit: pricingMethod === 'linear' ? 'linear_meter' : 'm2',
         quantity_source: 'manual',
         calculation_method: 'manual',
         measurements: [],
         calculated_quantity: Number(manualQty),
       };
     } else if (isMeasureMethod) {
-      const calcMethod = resolveCalculationMethod(measuredUnitFor(pricingMethod, measureUnit), 'calculated');
+      const calcMethod = resolveCalculationMethod(pricingMethod === 'linear' ? 'linear_meter' : 'm2', 'calculated');
       const originalMeasurements = isNonDestructiveEdit && Array.isArray(editingItem?.measurements) ? editingItem.measurements : [];
       const [originalFirstRow, ...originalExtraRows] = originalMeasurements;
       // חוק ברזל (SQ-F03 - "first measurement label being erased"): שורה 0
@@ -1044,7 +1003,7 @@ export default function AddItemWizard({
         .map((row) => ({
           width: row.widthM,
           height: row.heightM,
-          unit: feetSizes ? 'ft' : 'm',
+          unit: 'm',
           calculated_area: row.rowValue,
           label: row.label,
           is_pricing_driving: row.isDriving,
@@ -1082,7 +1041,7 @@ export default function AddItemWizard({
         unit_price: unitPrice,
         isFromCatalog: !!catalogServiceId,
         section_key: finalSectionKey,
-        pricing_unit: measuredUnitFor(pricingMethod, measureUnit),
+        pricing_unit: pricingMethod === 'linear' ? 'linear_meter' : 'm2',
         quantity_source: finalQuantitySource,
         calculation_method: finalCalcMethod,
         measurements: measurementRows,
@@ -1111,7 +1070,7 @@ export default function AddItemWizard({
         newItem.calculation_method = editingItem.calculation_method || 'manual';
         newItem.measurements = Array.isArray(editingItem.measurements) ? editingItem.measurements : [];
         newItem.calculated_quantity = (quantity !== '' && quantity != null && Number.isFinite(Number(quantity))) ? Number(quantity) : editingItem.calculated_quantity;
-      } else if (isNonDestructiveEdit && editingItem?.pricing_unit && !isMeasurableUnit(editingItem.pricing_unit)) {
+      } else if (isNonDestructiveEdit && editingItem?.pricing_unit && editingItem.pricing_unit !== 'm2' && editingItem.pricing_unit !== 'linear_meter') {
         newItem.pricing_unit = editingItem.pricing_unit;
         newItem.quantity_source = editingItem.quantity_source || 'manual';
         newItem.calculation_method = editingItem.calculation_method || 'manual';
@@ -1156,7 +1115,7 @@ export default function AddItemWizard({
       : (Number(unitPrice) || 0);
 
   // Display-only unit word (stored measurements stay cm / m² / m); shared by the formula and the review step.
-  const measureUnitWord = pricingMethod === 'area' ? areaWord(feetSizes) : lengthWord(feetSizes);
+  const measureUnitWord = pricingMethod === 'area' ? (isHebrew ? 'מ״ר' : 'm²') : (isHebrew ? 'מ\'' : 'm');
   const priceIsValid = unitPrice !== '' && !Number.isNaN(Number(unitPrice)) && Number(unitPrice) >= 0;
   // Owner 2026-10-26 (L-17, Codex F-05): every number and amount is its own LTR-isolated tabular atom (the words around them keep the language)
   const num = (v) => <bdi className="pf-num">{v}</bdi>;
@@ -1337,24 +1296,10 @@ export default function AddItemWizard({
           {step === STEPS.ITEM && !catalogListShown && !isMulti && isMeasureMethod && (
             <div style={{ marginTop: '14px' }}>
               <p style={detailNoteStyle}>{step3Explanation}</p>
-              {useManualQty && international && (
-                <div role="group" aria-label={t.sizeUnitLabel} style={{ display: 'inline-flex', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', overflow: 'hidden', marginBottom: '10px' }}>
-                  {/* PRODUCT_TRUTH_DECORATIVE: Owner 2026-11-05 - a known area / length in metric or in feet (international market) */}
-                  {[['m', pricingMethod === 'area' ? areaWord(false) : lengthWord(false)], ['ft', pricingMethod === 'area' ? areaWord(true) : lengthWord(true)]].map(([u, label]) => {
-                    const on = feetSizes === (u === 'ft');
-                    return (
-                      <button key={u} type="button" aria-pressed={on} onClick={() => changeMeasureUnit(u)} data-testid={`wiz-qtyunit-${u}`}
-                        style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: on ? NEON.violet : 'transparent', color: on ? '#fff' : NEON.textSecondary }}>
-                        {label}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
               {!useManualQty && (
                 <div role="group" aria-label={t.sizeUnitLabel} style={{ display: 'inline-flex', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', overflow: 'hidden', marginBottom: '10px' }}>
                   {/* PRODUCT_TRUTH_DECORATIVE: cm / m switch for the typed sizes (stored measurements stay metres) */}
-                  {sizeUnitChoices.map((u) => [u, { cm: t.unitCm, m: t.unitM, ft: t.unitFt, in: t.unitIn }[u]]).map(([u, label]) => (
+                  {[['cm', t.unitCm], ['m', t.unitM]].map(([u, label]) => (
                     <button key={u} type="button" aria-pressed={measureUnit === u} onClick={() => changeMeasureUnit(u)} data-testid={`wiz-unit-${u}`}
                       style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: measureUnit === u ? NEON.violet : 'transparent', color: measureUnit === u ? '#fff' : NEON.textSecondary }}>
                       {label}
@@ -1439,7 +1384,7 @@ export default function AddItemWizard({
 
               {calculatedValue != null && extraMeasureRows.length > 0 && (
                 <div aria-live="polite" style={{ marginTop: '14px', fontSize: '0.9rem', color: NEON.textPrimary, fontWeight: '700' }}>
-                  {pricingMethod === 'area' ? `${t.totalAreaLabel}: ${calculatedValue.toFixed(2)} ${areaWord(feetSizes)}` : `${t.totalLengthLabel}: ${calculatedValue.toFixed(2)} ${lengthWord(feetSizes)}`}
+                  {pricingMethod === 'area' ? `${t.totalAreaLabel}: ${calculatedValue.toFixed(2)} ${isHebrew ? 'מ״ר' : 'm²'}` : `${t.totalLengthLabel}: ${calculatedValue.toFixed(2)} ${isHebrew ? 'מ\'' : 'm'}`}
                 </div>
               )}
 
@@ -1476,7 +1421,7 @@ export default function AddItemWizard({
                 const available = !p.serviceId || (services || []).some((s) => String(s.id) === p.serviceId);
                 const inQuote = Array.isArray(quoteItems) && p.description.trim() !== ''
                   && quoteItems.some((it) => it && String(it.description || '').trim() === p.description.trim());
-                const priceLabel = p.method === 'fixed' ? t.fixedAmountLabel : p.method === 'units' ? t.unitPriceLabel : p.method === 'area' ? t.pickPriceArea(p.unit) : t.pickPriceLinear(p.unit);
+                const priceLabel = p.method === 'fixed' ? t.fixedAmountLabel : p.method === 'units' ? t.unitPriceLabel : p.method === 'area' ? t.unitPriceArea : t.unitPriceLinear;
                 return (
                   <section key={p.key} data-testid={`wiz-pick-row-${idx}`} aria-labelledby={fid('title')}
                     style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '10px', padding: '12px 14px', marginBottom: '10px' }}>
@@ -1508,23 +1453,7 @@ export default function AddItemWizard({
                     )}
                     {measured && !p.useSizes && (
                       <>
-                        {international && (
-                          <div role="group" aria-label={t.sizeUnitLabel} style={{ display: 'inline-flex', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', overflow: 'hidden', margin: '10px 0 4px' }}>
-                            {/* PRODUCT_TRUTH_DECORATIVE: Owner 2026-11-05 - a known quantity of one ticked item in metric or in feet (international market) */}
-                            {[['m', p.method === 'area' ? areaWord(false) : lengthWord(false)], ['ft', p.method === 'area' ? areaWord(true) : lengthWord(true)]].map(([u, label]) => {
-                              const on = isFeetUnit(p.unit) === (u === 'ft');
-                              return (
-                                <button key={u} type="button" aria-pressed={on} onClick={() => changePickUnit(idx, u)} data-testid={`${fid('qtyunit')}-${u}`}
-                                  style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: on ? NEON.violet : 'transparent', color: on ? '#fff' : NEON.textSecondary }}>
-                                  {label}
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                        <FieldLabel htmlFor={fid('manualQty')}>{p.method === 'area'
-                          ? (isFeetUnit(p.unit) ? (isHebrew ? 'כמה רגל רבועה?' : 'How many sq ft?') : (isHebrew ? 'כמה מ״ר?' : 'How many m²?'))
-                          : (isFeetUnit(p.unit) ? (isHebrew ? 'כמה רגל של אורך?' : 'How many feet?') : (isHebrew ? 'כמה מטרים של אורך?' : 'How many metres?'))}</FieldLabel>
+                        <FieldLabel htmlFor={fid('manualQty')}>{p.method === 'area' ? t.manualAreaLabel : t.manualLengthLabel}</FieldLabel>
                         <input id={fid('manualQty')} type="number" dir="ltr" min="0" step="any" value={p.manualQty} onChange={(ev) => updatePick(idx, { manualQty: ev.target.value })} {...errProps('manualQty')} style={numInputStyle(isHebrew)} />
                         {e.manualQty && <ErrorText id={`${fid('manualQty')}-error`}>{e.manualQty}</ErrorText>}
                         {/* PRODUCT_TRUTH_DECORATIVE: switches one ticked item from a known area / length to entering its sizes in cm */}
@@ -1535,7 +1464,7 @@ export default function AddItemWizard({
                       <>
                         <div role="group" aria-label={t.sizeUnitLabel} style={{ display: 'inline-flex', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', overflow: 'hidden', margin: '10px 0 4px' }}>
                           {/* PRODUCT_TRUTH_DECORATIVE: cm / m switch for one ticked item's typed sizes (stored measurements stay metres) */}
-                          {sizeUnitChoices.map((u) => [u, { cm: t.unitCm, m: t.unitM, ft: t.unitFt, in: t.unitIn }[u]]).map(([u, label]) => (
+                          {[['cm', t.unitCm], ['m', t.unitM]].map(([u, label]) => (
                             <button key={u} type="button" aria-pressed={(p.unit || 'cm') === u} onClick={() => changePickUnit(idx, u)} data-testid={`${fid('unit')}-${u}`}
                               style={{ border: 'none', padding: '8px 16px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', background: (p.unit || 'cm') === u ? NEON.violet : 'transparent', color: (p.unit || 'cm') === u ? '#fff' : NEON.textSecondary }}>
                               {label}
@@ -1592,7 +1521,7 @@ export default function AddItemWizard({
                         </button>
                         {(p.extraRows || []).length > 0 && (
                           <div style={{ marginTop: '8px', fontSize: '0.85rem', fontWeight: 700, color: NEON.textPrimary }}>
-                            {p.method === 'area' ? t.totalAreaLabel : t.totalLengthLabel}: {num(pickQuantity(p).toFixed(2))} {p.method === 'area' ? areaWord(isFeetUnit(p.unit)) : lengthWord(isFeetUnit(p.unit))}
+                            {p.method === 'area' ? t.totalAreaLabel : t.totalLengthLabel}: {num(pickQuantity(p).toFixed(2))} {p.method === 'area' ? (isHebrew ? 'מ״ר' : 'm²') : (isHebrew ? 'מ\'' : 'm')}
                           </div>
                         )}
                         {/* PRODUCT_TRUTH_DECORATIVE: switches one ticked item from sizes back to a known area / length */}
