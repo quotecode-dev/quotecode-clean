@@ -40,9 +40,11 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
       { period: 'year', amount: amount('year'), per: per.year, note: savingNote },
     ],
     periodChoice: isHebrew ? { legend: 'תקופת חיוב', labels: { month: 'חודשי', year: 'שנתי' } } : { legend: 'Billing period', labels: { month: 'Monthly', year: 'Annual' } },
+    // Owner console 2026-11-05 (typed: "מאשר הסרת השורה "אחרי 10 ההצעות החינמיות" מכרטיס המסלול בתוך המערכת, דפי הנחיתה בלי שינוי, כולל
+    // שינוי ב-L-01 ו-L-22, שחרור עד הלייב"): the Free-10 line is for the landing pages only - never inside the system
     lines: isHebrew
-      ? [`אחרי ${FREE_QUOTES_TOTAL} ההצעות החינמיות`, 'המנוי החודשי מתחדש כל חודש, והשנתי כל שנה']
-      : [`After the ${FREE_QUOTES_TOTAL} free quotes`, 'The monthly plan renews every month, the annual plan every year'],
+      ? ['המנוי החודשי מתחדש כל חודש, והשנתי כל שנה']
+      : ['The monthly plan renews every month, the annual plan every year'],
     // Owner console 2026-10-20 (typed: "מאשר שינוי ב-L-22: תיבת הוספה של חכם פלוס במסך המסלולים בתוך המערכת ..."): the unticked SMART PACK
     // add-on box - ticked, the shown price is the package plus the add-on for the chosen period (display only; purchase is not open)
     addOn: {
