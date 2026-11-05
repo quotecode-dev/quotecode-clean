@@ -48,10 +48,10 @@ describe('TEKANGO AI icons', () => {
       expect(s, f).toMatch(/<CustomerTwinIcon size=\{\d+\}/);
       expect(s, f).not.toMatch(/Sparkles|<AiRobotIcon/);
     }
-    // The dedicated customer-check surfaces carry no AI mark at all. QuoteForm is the one exception: Owner console 2026-11-05 added a
-    // smart-edit (AI) button there, which uses the one unified TEKANGO AI mark (law 45) - the same mark as the smart-quote entry - never a
-    // generic sparkle or robot. The customer-check button in QuoteForm still uses the Twin mark (asserted above).
-    for (const f of ['src/components/CustomerTwinPanel.jsx', 'src/components/QuotesTab.jsx']) {
+    // The dedicated customer-check surfaces carry no AI mark at all. QuotesTab is the one exception: Owner console 2026-11-05 moved the
+    // smart-edit (AI) action into the quote row, and it uses the one unified TEKANGO AI mark (law 45) - the same mark as the smart-quote
+    // entry - never a generic sparkle or robot. The customer-check ("שיפור ההצעה") button in the row still uses the Twin mark (asserted above).
+    for (const f of ['src/components/CustomerTwinPanel.jsx', 'src/components/QuoteForm.jsx']) {
       expect(readFileSync(f, 'utf8'), f).not.toMatch(/<TekangoAiIcon/);
     }
   });
