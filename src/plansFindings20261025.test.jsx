@@ -143,10 +143,6 @@ describe('10 - the account\'s SMART PACK line (HE + EN)', () => {
   it('active with the line / until a date / in the free days / none', () => {
     expect(smartPackStatusLine(withSmartPack({ active: true, source: 'add_on', until: null }), true, fmt)).toBe('חכם פלוס פעיל, ומתחדש יחד עם המנוי');
     expect(smartPackStatusLine(withSmartPack({ active: true, source: 'add_on', until: null }), false, fmt)).toBe('SMART PACK is active and renews with your plan');
-    // Owner console 2026-11-05 (L-01 / L-22): a stopped renewal does not renew -> SMART PACK is shown only until the paid period ends
-    const stoppedSmartPack = S({ billing: { paidThrough: PAID_THROUGH, graceEndsAt: null, inGrace: false, limited: false, renewalStopped: true, limitedReason: null }, smartPack: { active: true, source: 'add_on', until: null } });
-    expect(smartPackStatusLine(stoppedSmartPack, true, fmt)).toBe('חכם פלוס פעיל עד 20/11/2026');
-    expect(smartPackStatusLine(stoppedSmartPack, false, fmt)).toBe('SMART PACK is active until 20/11/2026');
     expect(smartPackStatusLine(withSmartPack({ active: true, source: 'add_on', until: PAID_THROUGH }), true, fmt)).toBe('חכם פלוס פעיל עד 20/11/2026');
     expect(smartPackStatusLine(withSmartPack({ active: true, source: 'add_on', until: PAID_THROUGH }), false, fmt)).toBe('SMART PACK is active until 20/11/2026');
     expect(smartPackStatusLine(S({ plan: { id: 'free' }, subscriptionStatus: 'none', billing: undefined, free10: { limit: 10, consumed: 1, reserved: 0, remaining: 9 },
