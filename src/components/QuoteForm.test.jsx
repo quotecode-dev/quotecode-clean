@@ -637,3 +637,38 @@ describe('QuoteForm - the validity date order follows the account market', () =>
     expect(field()?.value).toBe(shown);
   });
 });
+
+// Owner console 2026-11-05 (typed, L-09): "עריכה חכמה" on any quote not yet signed - the same smart-quote AI dialog, in edit mode.
+describe('QuoteForm - the smart-edit (AI) button on an unsigned quote', () => {
+  it('appears when editing a quote that is not signed, and calls onOpenAiDraft', () => {
+    const onOpenAiDraft = vi.fn();
+    render(<QuoteForm {...baseProps({ editingQuoteId: 'q-1', editingQuoteNumber: 100700, quoteStatus: 'sent', onOpenAiDraft, isHebrew: true })} />);
+    const btn = screen.getByTestId('quote-ai-edit');
+    expect(btn).toBeTruthy();
+    fireEvent.click(btn);
+    expect(onOpenAiDraft).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the Hebrew and English labels', () => {
+    const he = render(<QuoteForm {...baseProps({ editingQuoteId: 'q-7', editingQuoteNumber: 100701, quoteStatus: 'draft', onOpenAiDraft: vi.fn(), isHebrew: true })} />);
+    expect(he.getByTestId('quote-ai-edit').textContent).toMatch(/עריכה/);
+    he.unmount();
+    const en = render(<QuoteForm {...baseProps({ editingQuoteId: 'q-7', editingQuoteNumber: 100701, quoteStatus: 'draft', onOpenAiDraft: vi.fn(), isHebrew: false })} />);
+    expect(en.getByTestId('quote-ai-edit').textContent).toMatch(/edit/i);
+  });
+
+  it.each(['approved', 'paid', 'Approved', 'Paid'])('is hidden on a signed quote (status %s)', (status) => {
+    render(<QuoteForm {...baseProps({ editingQuoteId: 'q-2', editingQuoteNumber: 100702, quoteStatus: status, onOpenAiDraft: vi.fn() })} />);
+    expect(screen.queryByTestId('quote-ai-edit')).toBeNull();
+  });
+
+  it('is hidden while creating a new quote (the create-with-AI entry handles that case)', () => {
+    render(<QuoteForm {...baseProps({ editingQuoteId: null, quoteStatus: 'draft', onOpenAiDraft: vi.fn() })} />);
+    expect(screen.queryByTestId('quote-ai-edit')).toBeNull();
+  });
+
+  it('is hidden when no onOpenAiDraft handler is wired', () => {
+    render(<QuoteForm {...baseProps({ editingQuoteId: 'q-3', editingQuoteNumber: 100703, quoteStatus: 'sent' })} />);
+    expect(screen.queryByTestId('quote-ai-edit')).toBeNull();
+  });
+});

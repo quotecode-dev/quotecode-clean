@@ -336,8 +336,8 @@
     "markers": 5
   },
   "src/components/QuoteForm.jsx": {
-    "interactive": 32,
-    "markers": 40
+    "interactive": 33,
+    "markers": 41
   },
   "src/components/QuoteFromFileDialog.jsx": {
     "interactive": 5,
@@ -440,8 +440,8 @@
     "markers": 10
   },
   "src/components/landing/LandingPage.jsx": {
-    "interactive": 6,
-    "markers": 6
+    "interactive": 7,
+    "markers": 7
   },
   "src/components/landing/LandingPlans.jsx": {
     "interactive": 0,

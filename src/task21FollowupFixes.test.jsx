@@ -37,7 +37,9 @@ describe('Dashboard new-quote entries (source guards)', () => {
     const block = src.slice(src.indexOf('const handleCreateAiQuoteClick'), src.indexOf('const applyAiQuoteDraft'));
     expect(block).toContain('setShowAiQuoteDraft(true)');
     expect(block).not.toContain('openAiChat()');
-    expect(src).toMatch(/<AiQuoteDraftDialog[\s\S]{0,400}isOpen=\{showAiQuoteDraft && isCreatingQuote && !editingQuoteId\}/);
+    // Owner console 2026-11-05 (typed, L-09): the dialog now also opens when EDITING a quote that is not signed; it still opens on the
+    // blank new-quote form (editingQuoteId === null), which is what this guard protects.
+    expect(src).toMatch(/<AiQuoteDraftDialog[\s\S]{0,500}isOpen=\{showAiQuoteDraft && showQuoteForm && \(editingQuoteId === null \|\| !\['approved', 'paid'\]\.includes/);
   });
   it('applying a draft only changes the unsaved form state (no save call)', () => {
     const block = src.slice(src.indexOf('const applyAiQuoteDraft'), src.indexOf('// PRODUCT_TRUTH_CAPABILITY: quote_duplicate'));

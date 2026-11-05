@@ -46,7 +46,13 @@ describe('TEKANGO AI icons', () => {
     for (const f of ['src/components/CustomerTwinPanel.jsx', 'src/components/QuoteForm.jsx', 'src/components/QuotesTab.jsx']) {
       const s = readFileSync(f, 'utf8');
       expect(s, f).toMatch(/<CustomerTwinIcon size=\{\d+\}/);
-      expect(s, f).not.toMatch(/Sparkles|<AiRobotIcon|<TekangoAiIcon/);
+      expect(s, f).not.toMatch(/Sparkles|<AiRobotIcon/);
+    }
+    // The dedicated customer-check surfaces carry no AI mark at all. QuoteForm is the one exception: Owner console 2026-11-05 added a
+    // smart-edit (AI) button there, which uses the one unified TEKANGO AI mark (law 45) - the same mark as the smart-quote entry - never a
+    // generic sparkle or robot. The customer-check button in QuoteForm still uses the Twin mark (asserted above).
+    for (const f of ['src/components/CustomerTwinPanel.jsx', 'src/components/QuotesTab.jsx']) {
+      expect(readFileSync(f, 'utf8'), f).not.toMatch(/<TekangoAiIcon/);
     }
   });
 });
