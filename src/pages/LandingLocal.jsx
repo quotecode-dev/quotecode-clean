@@ -156,15 +156,6 @@ export default function LandingLocal({ onForgotPassword }) {
     },
     business: {
       phoneShowcaseAlt: 'בעל מקצוע מצביע על רשימת הצעות המחיר של TEKANGO בטלפון',
-      // Owner console 2026-11-05 (typed: "מאשר להוסיף על ההתקנה למסך הבית בדפי הנחיתה, כולל שינוי ב-L-06, שחרור עד הלייב"; "אפשרות 1"): the
-      // add-to-home-screen advantage, a calm band - no store, instant updates (the in-app install feature is LIVE, PR #167/#168)
-      installBand: {
-        iconImg: '/tekango-app-icon-192.png',
-        iconAlt: 'האייקון של TEKANGO במסך הבית',
-        title: 'כמו אפליקציה, בלי חנות',
-        text: 'מתקינים את TEKANGO למסך הבית בלחיצה אחת, והעדכונים מיידיים, בלי הורדות ובלי המתנה.',
-        sub: 'עובד באייפון ובאנדרואיד.',
-      },
       // Authority ledger L07b: no eyebrow / heading (the base feature-card block had none).
       // Authority ledger L15 (rollback): the reference management preview and its three benefits are removed; the base
       // five-card set is complete again (card 1 "הפקת הצעות מחיר בקלות", c65f742 LandingLocal.jsx:455-461, verbatim).
