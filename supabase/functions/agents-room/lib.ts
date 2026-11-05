@@ -106,9 +106,7 @@ const COVERAGE_HE: Record<string, string> = {
   'Redirect error': 'שגיאה בהפניה',
 };
 // Owner 2026-10-28 ("תעשה את התיקונים הנדרשים"): Google writes "Excluded by ‘noindex’ tag" with curly quotes - they count as straight ones
-// Owner 2026-11-05 (L-22): a state we do not know is shown in Google's own words (isolated), not as "another reason"
-export const coverageHe = (reason: string) => COVERAGE_HE[String(reason ?? '').replace(/[‘’]/g, "'")]
-  ?? (String(reason ?? '').trim() ? `מצב שגוגל כתב: ⁦${String(reason).trim().slice(0, 120)}⁩` : 'גוגל לא כתב סיבה');
+export const coverageHe = (reason: string) => COVERAGE_HE[String(reason ?? '').replace(/[‘’]/g, "'")] ?? 'סיבה אחרת, הפירוט בסרץ׳ קונסול';
 
 // ---------------------------------------------------------------- seo
 const market = (path: string) => (path.startsWith('/en') ? 'intl' : path.startsWith('/he') ? 'il' : 'root');
@@ -143,12 +141,9 @@ export async function runSeo(deps: Deps, ref?: { run?: string }): Promise<Result
   const by = { intl: { clicks: 0, impressions: 0 }, il: { clicks: 0, impressions: 0 }, root: { clicks: 0, impressions: 0 } };
   for (const p of s.pages) { const m = by[market(p.page)]; m.clicks += p.clicks; m.impressions += p.impressions; }
   const pages = ix.pages as { path: string; verdict: string; coverageState: string; googleCanonical?: string | null }[];
-  // Owner 2026-11-05 ("מאשר תיקון ספירת האינדקס של גיא, כולל שינוי ב-L-22"): a page Google did not answer for (verdict ERROR, after one
-  // retry) is "not checked" - never counted as not indexed and never handed to the manager as an indexing task
-  const unchecked = pages.filter((p) => p.verdict === 'ERROR');
   const idx = { intl: { indexed: 0, total: 0 }, il: { indexed: 0, total: 0 } };
-  for (const p of pages) { const m = market(p.path); if (m === 'root' || p.verdict === 'ERROR') continue; idx[m].total += 1; if (p.verdict === 'PASS') idx[m].indexed += 1; }
-  const notIndexed = pages.filter((p) => p.verdict !== 'PASS' && p.verdict !== 'ERROR');
+  for (const p of pages) { const m = market(p.path); if (m === 'root') continue; idx[m].total += 1; if (p.verdict === 'PASS') idx[m].indexed += 1; }
+  const notIndexed = pages.filter((p) => p.verdict !== 'PASS');
   // Owner 2026-10-27 ("מאשר את התוכנית לגיא ולמיכל"): the address Google chose instead of ours, when it differs - what to fix depends on it
   const chosen = (p: { path: string; googleCanonical?: string | null }) => (p.googleCanonical && p.googleCanonical !== p.path ? p.googleCanonical : null);
   const findings: Finding[] = [
@@ -159,8 +154,6 @@ export async function runSeo(deps: Deps, ref?: { run?: string }): Promise<Result
       return { level: 'warn', he: `לא באינדקס: ${isolatePaths(p.path)} - ${coverageHe(p.coverageState)}${c ? ` · גוגל בחר: ${isolatePaths(c)}` : ''}`,
         en: `Not indexed: ${p.path} (${p.coverageState || p.verdict}${c ? `; Google chose ${c}` : ''})` };
     }),
-    ...(unchecked.length ? [{ level: 'warn', he: `גוגל לא ענה, לא נבדק: ${unchecked.slice(0, 12).map((p) => isolatePaths(p.path)).join(', ')}`,
-      en: `Google did not answer, not checked: ${unchecked.slice(0, 12).map((p) => p.path).join(', ')}` } as Finding] : []),
   ];
   // unknownToGoogle (stage 2, Owner 2026-10-27): pages Google has not met yet - the manager resubmits the sitemap for them
   const unknownToGoogle = notIndexed.filter((p) => /unknown to Google|Discovered/.test(p.coverageState)).length;

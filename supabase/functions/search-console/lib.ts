@@ -133,9 +133,7 @@ export async function indexing(deps: Deps, access: string) {
       const i = next++;
       const path = paths[i];
       try {
-        // Owner 2026-11-05 ("מאשר תיקון ספירת האינדקס של גיא, כולל שינוי ב-L-22"): Google's inspection sometimes fails for a page; one retry
-        const inspect = () => call(deps, access, '/v1/urlInspection/index:inspect', { inspectionUrl: `${ORIGIN}${path}`, siteUrl: SITE_URL });
-        const j = await inspect().catch(inspect);
+        const j = await call(deps, access, '/v1/urlInspection/index:inspect', { inspectionUrl: `${ORIGIN}${path}`, siteUrl: SITE_URL });
         const r = j?.inspectionResult?.indexStatusResult ?? {};
         out[i] = { path, verdict: r.verdict ?? 'VERDICT_UNSPECIFIED', coverageState: r.coverageState ?? '', lastCrawlTime: r.lastCrawlTime ?? null,
           googleCanonical: typeof r.googleCanonical === 'string' ? r.googleCanonical.replace(ORIGIN, '') || '/' : null };
