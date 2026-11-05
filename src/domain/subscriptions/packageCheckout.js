@@ -54,9 +54,11 @@ export function renewalResumeLine(summary, isHebrew) {
   const date = renewalResumeDate(summary);
   if (!date) return '';
   const year = summary.billingPeriod === 'year';
+  // Owner console 2026-11-05 (typed "מאשר תיקון תצוגת החידוש, כולל שינוי ב-L-01 ו-L-22, שחרור עד הלייב"): the PayPlus page shows the
+  // recurring amount in its own "to pay" field, which confused owners (nothing is taken today) - say so here before they open the page
   return isHebrew
-    ? `בחרתם להמשיך עם החיוב המתחדש, ולכן תחויבו ${year ? 'בכל שנה' : 'בכל חודש'} בתאריך ${date}. עד אז לא יבוצע חיוב.`
-    : `You chose to continue the renewing charge, so you will be charged ${year ? 'every year' : 'every month'} on ${date}. Nothing is charged until then.`;
+    ? `בחרתם להמשיך עם החיוב המתחדש, ולכן תחויבו ${year ? 'בכל שנה' : 'בכל חודש'} בתאריך ${date}. עד אז לא יבוצע חיוב. בדף התשלום יוצג סכום החיוב המתחדש, אך לא ייגבה ממכם דבר היום.`
+    : `You chose to continue the renewing charge, so you will be charged ${year ? 'every year' : 'every month'} on ${date}. Nothing is charged until then. The payment page shows the recurring amount, but nothing is taken from you today.`;
 }
 
 /** Owner console 2026-11-05 (typed: "מאשר חידוש עם או בלי חכם פלוס, והוספת חכם פלוס מיד בחיוב יחסי רק עליו, כולל שינוי ב-L-01 ו-L-22,
@@ -157,6 +159,12 @@ export function smartPackStatusLine(summary, isHebrew, formatDate) {
   }
   if (source === 'add_on') {
     if (date) return isHebrew ? `חכם פלוס פעיל עד ${date}` : `SMART PACK is active until ${date}`;
+    // Owner console 2026-11-05 (typed "מאשר תיקון תצוגת החידוש, כולל שינוי ב-L-01 ו-L-22, שחרור עד הלייב"): a stopped renewal does NOT
+    // renew - SMART PACK then stays only until the paid period ends, never "renews with your plan"
+    if (summary.billing?.renewalStopped === true) {
+      const end = summary.billing.paidThrough && typeof formatDate === 'function' ? formatDate(summary.billing.paidThrough) : null;
+      if (end) return isHebrew ? `חכם פלוס פעיל עד ${end}` : `SMART PACK is active until ${end}`;
+    }
     return isHebrew ? 'חכם פלוס פעיל, ומתחדש יחד עם המנוי' : 'SMART PACK is active and renews with your plan';
   }
   return null;

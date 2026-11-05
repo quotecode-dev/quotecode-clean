@@ -37,9 +37,10 @@ describe('who may resume', () => {
     expect(renewalResumeAvailable(stopped({}, { paidThrough: new Date(Date.now() - 3600_000).toISOString() }))).toBe(false);
   });
   it('the line, in the Owner\'s words, with the market short date (monthly / yearly; Hebrew / English)', () => {
-    expect(renewalResumeLine(stopped(), true)).toBe(`בחרתם להמשיך עם החיוב המתחדש, ולכן תחויבו בכל חודש בתאריך ${dmy(PT)}. עד אז לא יבוצע חיוב.`);
+    // Owner console 2026-11-05 (L-01 / L-22): + a warning that the PayPlus page shows the recurring amount but nothing is taken today
+    expect(renewalResumeLine(stopped(), true)).toBe(`בחרתם להמשיך עם החיוב המתחדש, ולכן תחויבו בכל חודש בתאריך ${dmy(PT)}. עד אז לא יבוצע חיוב. בדף התשלום יוצג סכום החיוב המתחדש, אך לא ייגבה ממכם דבר היום.`);
     expect(renewalResumeLine(stopped({ billingPeriod: 'year' }), true)).toContain('בכל שנה');
-    expect(renewalResumeLine(stopped(), false)).toBe(`You chose to continue the renewing charge, so you will be charged every month on ${dmy(PT)}. Nothing is charged until then.`);
+    expect(renewalResumeLine(stopped(), false)).toBe(`You chose to continue the renewing charge, so you will be charged every month on ${dmy(PT)}. Nothing is charged until then. The payment page shows the recurring amount, but nothing is taken from you today.`);
   });
   it('the request passes the server answer\'s resume flag on (the departure remembers it)', async () => {
     const invoke = vi.fn(async () => ({ data: { ok: true, redirectUrl: 'https://payments.payplus.co.il/x', resume: true, firstChargeAt: PT } }));
