@@ -130,7 +130,8 @@ describe('the copy message action in the rendered row (synthetic)', () => {
       if (toggle) fireEvent.click(toggle);
     }
     const btn = screen.getAllByTestId('quote-copy-message')[0];
-    expect(btn.textContent).toBe('העתקת הודעה');
+    // Owner console 2026-11-05 (typed, L-07 / L-29): shortened to "העתקה" so all row chips (incl. Delete) fit on one row on desktop
+    expect(btn.textContent).toBe('העתקה');
     fireEvent.click(btn);
     expect(copyQuoteMessage).toHaveBeenCalledTimes(1);
     expect(copyQuoteMessage.mock.calls[0][0].id).toBe('q1');

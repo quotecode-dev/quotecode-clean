@@ -563,3 +563,8 @@ html {
 .pf-work-screen[data-qh-layout="table"] .pf-screen-body > table > tbody > tr > td {
   box-shadow: inset 0 -1px 0 #E1E6E7;
 }
+
+/* Owner console 2026-11-05 (typed, L-07 / L-29): on a phone, force the "מחיקה" (Delete) chip onto its own last line, alone. A zero-size
+   flex item on wide screens (no break - every chip incl. Delete stays on one row), full-width below 520px (Delete wraps to a line by itself). */
+.qt-del-break { display: none; }
+@media (max-width: 520px) { .qt-del-break { display: block; flex-basis: 100%; width: 100%; height: 0; } }

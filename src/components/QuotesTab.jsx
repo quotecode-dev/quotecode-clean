@@ -656,12 +656,12 @@ export default function QuotesTab({
   const renderInlineActions = (quote, isLocked) => {
     // Owner console 2026-11-05 (typed, L-07 / L-29): "תקטין קצת את הכפתורים ב-10% בערך גם בנייד וגם המחשב" - the row-action chips are ~10%
     // smaller so the new "עריכה חכמה" chip fits without adding a row (padding / font / gap / icon all reduced).
-    const chipBase = { border: 'none', borderRadius: RADIUS.sm, padding: '5px 9px', cursor: 'pointer', fontSize: '0.68rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' };
-    const chipIcon = 13;
+    const chipBase = { border: 'none', borderRadius: RADIUS.sm, padding: '4px 8px', cursor: 'pointer', fontSize: '0.62rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' };
+    const chipIcon = 12;
     const neutralChip = { background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.border}` };
     const neutralIconColor = NEON.textSecondary;
     return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
         {/* PRODUCT_TRUTH_CAPABILITY: public_quote_view */}
         <button
           onClick={() => window.open(getQuoteViewLink(quote), '_blank')}
@@ -776,7 +776,7 @@ export default function QuotesTab({
             style={{ ...chipBase, ...neutralChip }}
           >
             <ClipboardCopy size={chipIcon} color={neutralIconColor} strokeWidth={2.2} />
-            <span>{isHebrew ? 'העתקת הודעה' : 'Copy message'}</span>
+            <span>{isHebrew ? 'העתקה' : 'Copy'}</span>
           </button>
         )}
 
@@ -789,6 +789,8 @@ export default function QuotesTab({
           <span>{isHebrew ? 'שליחה במייל' : 'Email'}</span>
         </button>
 
+        {/* Owner console 2026-11-05 (typed, L-07 / L-29): phone-only line break so "מחיקה" sits alone on the last row (no effect on desktop - stays one row) */}
+        <div className="qt-del-break" aria-hidden="true" />
         <span style={{ position: 'relative', display: 'inline-block' }}>
           {/* PRODUCT_TRUTH_DECORATIVE: deletes a quote; per the registry's own header comment, quote deletion has no dedicated id among the 38 */}
           <button
