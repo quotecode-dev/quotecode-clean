@@ -185,6 +185,15 @@ export default function LandingGlobal({ onForgotPassword }) {
     },
     business: {
       phoneShowcaseAlt: 'A tradesperson pointing at the TEKANGO quotes list on a phone',
+      // Owner console 2026-11-05 (typed: "מאשר להוסיף על ההתקנה למסך הבית בדפי הנחיתה, כולל שינוי ב-L-06, שחרור עד הלייב"; "אפשרות 1"): the
+      // add-to-home-screen advantage, a calm band - no store, instant updates (the in-app install feature is LIVE, PR #167/#168)
+      installBand: {
+        iconImg: '/tekango-app-icon-192.png',
+        iconAlt: 'The TEKANGO icon on the home screen',
+        title: 'Like an app, without the store',
+        text: 'Add TEKANGO to your home screen in one tap — updates are instant, with no downloads and no waiting.',
+        sub: 'Works on iPhone and Android.',
+      },
       // Authority ledger L07b: no eyebrow / heading (the base feature-card block had none).
       // Authority ledger L15 (rollback): the reference management preview and its three benefits are removed; the base
       // five-card set is complete again (card 1 "Quotes Made Simple", c65f742 LandingGlobal.jsx:512-518, verbatim).
