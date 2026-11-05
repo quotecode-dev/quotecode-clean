@@ -17,7 +17,6 @@ import { sortQuotes, normalizeSortField } from '../utils/quoteListSort';
 import NewQuoteMenu from './NewQuoteMenu';
 import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search, ClipboardList, Clock } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
-import TekangoAiIcon from './TekangoAiIcon';
 import PaidMarkIcon from './PaidMarkIcon';
 import { nextSteps, NEXT_STEP_COPY } from '../utils/nextStep';
 import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
@@ -141,7 +140,6 @@ export default function QuotesTab({
   handleQuoteSort,
   handleExportQuotes,
   handleEditClick,
-  onAiEdit = null,
   handleDuplicateQuote,
   sendWhatsApp,
   copyQuoteMessage = null,
@@ -654,10 +652,7 @@ export default function QuotesTab({
   // חדש), Delete בלבד אדום. זהות/handler/entitlement-gating/tooltip/
   // aria-label של כל פעולה נשארו זהים לחלוטין - רק הצבע השתנה.
   const renderInlineActions = (quote, isLocked) => {
-    // Owner console 2026-11-05 (typed, L-07 / L-29): "תקטין קצת את הכפתורים ב-10% בערך גם בנייד וגם המחשב" - the row-action chips are ~10%
-    // smaller so the new "עריכה חכמה" chip fits without adding a row (padding / font / gap / icon all reduced).
-    const chipBase = { border: 'none', borderRadius: RADIUS.sm, padding: '5px 9px', cursor: 'pointer', fontSize: '0.68rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '5px', whiteSpace: 'nowrap' };
-    const chipIcon = 13;
+    const chipBase = { border: 'none', borderRadius: RADIUS.sm, padding: '6px 10px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', gap: '6px', whiteSpace: 'nowrap' };
     const neutralChip = { background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.border}` };
     const neutralIconColor = NEON.textSecondary;
     return (
@@ -667,7 +662,7 @@ export default function QuotesTab({
           onClick={() => window.open(getQuoteViewLink(quote), '_blank')}
           style={{ ...chipBase, background: NEON.violetLighter, color: NEON.violet }}
         >
-          <Eye size={chipIcon} color={NEON.violet} strokeWidth={2.2} />
+          <Eye size={14} color={NEON.violet} strokeWidth={2.2} />
           <span>{isHebrew ? 'צפייה' : 'View'}</span>
         </button>
 
@@ -679,7 +674,7 @@ export default function QuotesTab({
             onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote)); }}
             style={{ ...chipBase, ...neutralChip, opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
           >
-            <Pencil size={chipIcon} color={neutralIconColor} strokeWidth={2.2} />
+            <Pencil size={14} color={neutralIconColor} strokeWidth={2.2} />
             <span>{isHebrew ? 'עריכה' : 'Edit'}</span>
           </button>
           {activeTooltip.quoteId === quote.id && activeTooltip.action === 'edit' && (
@@ -697,7 +692,7 @@ export default function QuotesTab({
             onClick={() => handleMarkQuotePaid(quote, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })}
             style={{ ...chipBase, background: APP_STATUS.paid.bg, color: APP_STATUS.paid.fg, border: `1px solid ${APP_STATUS.paid.border}` }}
           >
-            <PaidMarkIcon size={16} />
+            <PaidMarkIcon size={18} />
             <span>{isHebrew ? 'סימון כשולמה' : 'Mark as paid'}</span>
           </button>
         )}
@@ -712,28 +707,9 @@ export default function QuotesTab({
             title={isHebrew ? 'מציע מה לשנות בהצעה כדי שתהיה ברורה ואטרקטיבית יותר בעיני הלקוח שלכם.' : 'Suggests what to change in the quote so it is clearer and more attractive to your customer.'}
             style={{ ...chipBase, background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe' }}
           >
-            <CustomerTwinIcon size={16} />
+            <CustomerTwinIcon size={18} />
             <span>{isHebrew ? 'שיפור ההצעה' : 'Improve quote'}</span>
           </button>
-        )}
-
-        {typeof onAiEdit === 'function' && (
-          <span style={{ position: 'relative', display: 'inline-block' }}>
-            {/* Owner console 2026-11-05 (typed, L-07 / L-09 / L-29): "עריכה חכמה" on the quote row - opens THIS quote for editing with the
-                smart-quote AI dialog pointed at it. The AI mark (law 45) is the one unified TEKANGO AI icon, same as the smart-quote entry. */}
-            {/* PRODUCT_TRUTH_DECORATIVE: opens this quote for editing and the AI dialog; nothing in the quote changes until the user applies a drafted line */}
-            <button
-              type="button"
-              disabled={isLocked}
-              title={isLocked ? (isHebrew ? 'לא ניתן לערוך הצעה חתומה' : 'Cannot edit a signed quote') : (isHebrew ? 'עריכה חכמה: פותח את ההצעה הזו ומבקש מהבינה מה להוסיף או לשנות בה.' : 'Smart edit: opens this quote and asks the AI what to add or change in it.')}
-              onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'edit', () => onAiEdit(quote)); }}
-              data-testid="quote-ai-edit-row"
-              style={{ ...chipBase, background: '#0e7490', color: '#fff', opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
-            >
-              <TekangoAiIcon size={16} />
-              <span>{isHebrew ? 'עריכה חכמה' : 'Smart edit'}</span>
-            </button>
-          </span>
         )}
 
         <span style={{ position: 'relative', display: 'inline-block' }}>
@@ -742,7 +718,7 @@ export default function QuotesTab({
             onClick={() => handleProtectedAction(quote.id, 'duplicate', () => handleDuplicateQuote(quote))}
             style={{ ...chipBase, ...neutralChip }}
           >
-            <Copy size={chipIcon} color={neutralIconColor} strokeWidth={2.2} />
+            <Copy size={14} color={neutralIconColor} strokeWidth={2.2} />
             <span>{isHebrew ? 'שכפול' : 'Duplicate'}</span>
           </button>
           {activeTooltip.quoteId === quote.id && activeTooltip.action === 'duplicate' && (
@@ -758,7 +734,7 @@ export default function QuotesTab({
             onClick={() => handleProtectedAction(quote.id, 'whatsapp', () => sendWhatsApp(quote))}
             style={{ ...chipBase, ...neutralChip }}
           >
-            <MessageCircle size={chipIcon} color={neutralIconColor} strokeWidth={2.2} />
+            <MessageCircle size={14} color={neutralIconColor} strokeWidth={2.2} />
             <span>{isHebrew ? 'וואטסאפ' : 'WhatsApp'}</span>
           </button>
           {activeTooltip.quoteId === quote.id && activeTooltip.action === 'whatsapp' && (
@@ -775,7 +751,7 @@ export default function QuotesTab({
             onClick={() => handleProtectedAction(quote.id, 'whatsapp', () => copyQuoteMessage(quote))}
             style={{ ...chipBase, ...neutralChip }}
           >
-            <ClipboardCopy size={chipIcon} color={neutralIconColor} strokeWidth={2.2} />
+            <ClipboardCopy size={14} color={neutralIconColor} strokeWidth={2.2} />
             <span>{isHebrew ? 'העתקת הודעה' : 'Copy message'}</span>
           </button>
         )}
@@ -785,7 +761,7 @@ export default function QuotesTab({
           onClick={() => setPendingEmailQuote(quote)}
           style={{ ...chipBase, ...neutralChip }}
         >
-          <Mail size={chipIcon} color={neutralIconColor} strokeWidth={2.2} />
+          <Mail size={14} color={neutralIconColor} strokeWidth={2.2} />
           <span>{isHebrew ? 'שליחה במייל' : 'Email'}</span>
         </button>
 
@@ -797,7 +773,7 @@ export default function QuotesTab({
             onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })); }}
             style={{ ...chipBase, background: isLocked ? NEON.bgCardAlt : APP_STATUS.error.bg, color: isLocked ? NEON.textMuted : NEON.red, border: isLocked ? `1px solid ${NEON.border}` : 'none', opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
           >
-            <Trash2 size={chipIcon} color={isLocked ? NEON.textMuted : NEON.red} strokeWidth={2.2} />
+            <Trash2 size={14} color={isLocked ? NEON.textMuted : NEON.red} strokeWidth={2.2} />
             <span>{isHebrew ? 'מחיקה' : 'Delete'}</span>
           </button>
           {activeTooltip.quoteId === quote.id && activeTooltip.action === 'delete' && (
@@ -861,9 +837,7 @@ export default function QuotesTab({
           : null;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {/* Owner console 2026-11-05 (typed, L-07 / L-29): the plain "פתיחה" primary button is removed - the card is already open, so it did
-            nothing. The useful status actions stay: "המשך העריכה" (edit), "צפייה" (view) and "פתיחה ומעקב" (track). */}
-        {actionLabel && actionKind !== 'open' && (
+        {actionLabel && (
           <div className="quote-modern-primary-row">
             {/* PRODUCT_TRUTH_CAPABILITY: quote_history */}
             <button

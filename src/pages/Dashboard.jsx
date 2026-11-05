@@ -3950,15 +3950,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     setStatusMsg({ text: isHebrew ? `עורך הצעה ${formatQuoteFallback(quote)}…` : `Editing Quote ${formatQuoteFallback(quote)}...`, type: 'success' });
   };
 
-  // Owner console 2026-11-05 (typed, L-07 / L-09 / L-29): "עריכה חכמה" from the quote row - open THIS quote for editing and immediately
-  // open the smart-quote AI dialog pointed at it (the dialog's edit copy names the quote and adds the AI's lines to it). A signed /
-  // approved quote is immutable: handleEditClick shows the blocker and no dialog opens.
-  const handleAiEditClick = async (quote) => {
-    if (isQuoteImmutable(quote)) { handleEditClick(quote); return; }
-    await handleEditClick(quote);
-    setShowAiQuoteDraft(true);
-  };
-
   // חוק ברזל (תיקון בעלים מאושר): setActiveTab('main') נוסף כאן כי ה-CTA
   // "הצעת מחיר חדשה" הוא פעולת-על גלובלית של הדשבורד, נגישה מתוך כל טאב
   // (Clients/Finances/Settings/Catalog) - אך טופס ההצעה עצמו מוצג רק תחת
@@ -8835,7 +8826,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                 handleQuoteSort={handleQuoteSort}
                 handleExportQuotes={handleExportQuotes}
                 handleEditClick={handleEditClick}
-                onAiEdit={handleAiEditClick}
                 handleDuplicateQuote={handleDuplicateQuote}
                 sendWhatsApp={sendWhatsApp}
                 copyQuoteMessage={copyQuoteMessage}
@@ -8896,6 +8886,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onCancel={requestCancelEdit}
               onBack={inAppBack.back}
               onOpenCustomerTwin={() => setCustomerTwin({ mode: 'editor' })}
+              onOpenAiDraft={() => setShowAiQuoteDraft(true)}
               onSaveAsTemplate={() => setTemplateDialog('save')}
               clientName={clientName} setClientName={setClientName}
               clientEmail={clientEmail} setClientEmail={setClientEmail}
@@ -8985,8 +8976,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onClose={() => setShowAiQuoteDraft(false)}
               onApply={applyAiQuoteDraft}
               international={!isLocalIsraeliBusiness}
-              editMode={editingQuoteId !== null}
-              quoteLabel={editingQuoteId ? formatQuoteFallback({ id: editingQuoteId, quote_number: editingOriginalQuote?.quote_number ?? null }) : ''}
             />
             {/* Owner 2026-11-03: quote from a file - the owner's reviewed lines and own prices only; the file and the document prices never leave the dialog */}
             <QuoteFromFileDialog

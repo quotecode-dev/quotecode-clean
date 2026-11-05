@@ -173,12 +173,10 @@ describe.each([
     for (const item of [...container.querySelectorAll('.quote-modern-item')]) {
       const key = letter[item.querySelector('.quote-modern-number').textContent.replace(/^#?A/, '')];
       fireEvent.click(item.querySelector('.quote-modern-toggle'));
-      const act = item.querySelector('.quote-modern-detail .quote-modern-action');
-      kinds[key] = act ? act.dataset.action : null;
+      kinds[key] = item.querySelector('.quote-modern-detail .quote-modern-action').dataset.action;
     }
-    // Owner console 2026-11-05 (typed, L-07 / L-29): the plain "open" state shows no primary button (the card is already open). The real
-    // status actions are unchanged: F = track (hot, even a draft), E = continue editing, C/D = view; A/B (plain open) now have none.
-    expect(kinds).toEqual({ A: null, B: null, C: 'view', D: 'view', E: 'edit', F: 'track' });
+    // F = track (hot, even a draft), E = continue editing, A/B = open, C/D = view - the unchanged precedence
+    expect(kinds).toEqual({ A: 'open', B: 'open', C: 'view', D: 'view', E: 'edit', F: 'track' });
   });
 
   it('switching to a different column starts ascending again', () => {
