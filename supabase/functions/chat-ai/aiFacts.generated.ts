@@ -1468,7 +1468,7 @@ export const AI_FACTS = {
         "steps": [
           "בתפריט הצד לוחצים על \"הצעות מחיר\" ומוצאים את ההצעה ברשימה.",
           "לוחצים \"פתיחה\" ליד ההצעה.",
-          "בוחרים \"שליחה במייל\", \"וואטסאפ\", או \"העתקה\" (מעתיק הודעה עם הקישור להצעה, להדבקה בכל מקום).",
+          "בוחרים \"שליחה במייל\", \"וואטסאפ\", או \"העתקת הודעה\" (מעתיק הודעה עם הקישור להצעה, להדבקה בכל מקום).",
           "הצעה בטיוטה מסומנת \"נשלחה\" אוטומטית אחרי שליחה במייל או פתיחת וואטסאפ."
         ]
       },
@@ -1477,7 +1477,7 @@ export const AI_FACTS = {
         "steps": [
           "In the sidebar click \"Quotes\" and find the quote in the list.",
           "Click \"Open\" next to the quote.",
-          "Choose \"Email\", \"WhatsApp\", or \"Copy\" (copies a message with the quote link to paste anywhere).",
+          "Choose \"Email\", \"WhatsApp\", or \"Copy message\" (copies a message with the quote link to paste anywhere).",
           "A draft is marked \"Sent\" automatically after an email send or when WhatsApp opens."
         ]
       }
@@ -1910,7 +1910,7 @@ export const AI_FACTS = {
         "steps": [
           "בודקים בכרטיס ההצעה שכתובת המייל של הלקוח נכונה. נקודה אדומה ליד המייל אומרת שהכתובת אינה קיימת או שהשליחה נכשלה.",
           "מבקשים מהלקוח לבדוק גם בתיקיית הספאם או דואר הזבל.",
-          "אפשר לשלוח שוב: ברשימת \"הצעות מחיר\" לוחצים \"פתיחה\" ליד ההצעה ואז \"שליחה במייל\", או לשלוח ב\"וואטסאפ\" או ב\"העתקה\"."
+          "אפשר לשלוח שוב: ברשימת \"הצעות מחיר\" לוחצים \"פתיחה\" ליד ההצעה ואז \"שליחה במייל\", או לשלוח ב\"וואטסאפ\" או ב\"העתקת הודעה\"."
         ]
       },
       "en": {
@@ -1918,7 +1918,7 @@ export const AI_FACTS = {
         "steps": [
           "Check in the quote that the client's email address is correct. A red dot next to the email means the address does not exist or the send failed.",
           "Ask the client to check the spam or junk folder too.",
-          "You can send again: in the \"Quotes\" list click \"Open\" next to the quote, then \"Email\" - or send it by \"WhatsApp\" or \"Copy\"."
+          "You can send again: in the \"Quotes\" list click \"Open\" next to the quote, then \"Email\" - or send it by \"WhatsApp\" or \"Copy message\"."
         ]
       }
     }
