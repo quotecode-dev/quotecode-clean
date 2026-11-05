@@ -4,18 +4,25 @@
 // account is limited", at limitation, then once a week until a payment. Decision 1: the card is updated by writing to the service
 // mailbox (the server refuses a second payment page during the grace days), so a reply to the email reaches it.
 
+import { formatShortDate } from '../_shared/shortDate.js';
+
 export type Kind = 'failed_day1' | 'failed_day2' | 'failed_day3' | 'limited' | 'limited_weekly';
 export type LifeKind = 'welcome' | 'free_ending';
 export type LifeFact = { account_id: string; email: string; market: Fact['market']; kind: LifeKind; episode_at: string; free_ends_at: string | null; remaining: number | null };
 export type Fact = { account_id: string; email: string; market: 'IL' | 'INTERNATIONAL'; episode_at: string; grace_ends_at: string; limited: boolean;
   reason: 'payment_failed' | 'period_ended'; sent: Array<{ kind: string; seq: number }> };
 export type Due = { kind: Kind; seq: number };
+// Owner console 2026-11-05 (typed: "מאשר בניית 10 המיילים מהטבלה במשימת הלילה, שחרור עד הלייב כשהמיילים כבויים ללקוחות עד שאאשר את
+// הנוסחים בבוקר"; migration 20261105100000): the customer's email on every billing change - its own switch (billing_phase)
+export type BillingKind = 'renewal_resumed' | 'smart_pack_added' | 'renewal_stopped' | 'ended_early' | 'smart_pack_removed' | 'annual_reminder' | 'first_purchase';
+export type BillingFact = { account_id: string; email: string; market: Fact['market']; kind: BillingKind; episode_at: string; details: Record<string, unknown> };
 export type Outcome = { ok: boolean; status: number; id?: string | null; unknown?: boolean };
 export type Deps = {
   facts(user?: string): Promise<Fact[]>;
   lifecycle(user?: string): Promise<LifeFact[]>;
-  claim(user: string, kind: Kind | LifeKind, episode: string, seq: number, key: string): Promise<string | null>;
-  complete(user: string, kind: Kind | LifeKind, episode: string, seq: number, key: string, outcome: 'sent' | 'failed' | 'unknown' | 'cancelled', providerId?: string | null): Promise<boolean>;
+  billing?(user?: string): Promise<BillingFact[]>;
+  claim(user: string, kind: Kind | LifeKind | BillingKind, episode: string, seq: number, key: string): Promise<string | null>;
+  complete(user: string, kind: Kind | LifeKind | BillingKind, episode: string, seq: number, key: string, outcome: 'sent' | 'failed' | 'unknown' | 'cancelled', providerId?: string | null): Promise<boolean>;
   send(mail: { from: string; replyTo: string; to: string; subject: string; text: string; idempotencyKey: string }): Promise<Outcome>;
   now(): Date;
   uuid(): string;
@@ -127,6 +134,91 @@ export function lifeContent(f: Pick<LifeFact, 'kind' | 'market' | 'free_ends_at'
   return { subject: 'Your TEKANGO free period ends soon', text: ['Hello,', '', what, '', 'After that you will not be able to issue new quotes. Everything you already created stays available.', '', ...sign].join('\n') };
 }
 
+/** 2026-11-05: the words of a billing-change email (Hebrew in Israel, English abroad; the market's currency; the IRON-DATE-001 short
+ *  date). null = the event lacks what its words need (never an email with a hole in it). No price of the plans beyond the account's own
+ *  amounts, never "free". */
+export function billingContent(f: Pick<BillingFact, 'kind' | 'market' | 'details'>): { subject: string; text: string } | null {
+  const d = f.details || {};
+  const he = f.market === 'IL';
+  const cur = d.currency === 'USD' ? 'USD' : d.currency === 'ILS' ? 'ILS' : null;
+  const money = (v: unknown) => (cur && Number.isInteger(v) ? `${cur === 'ILS' ? '₪' : '$'}${((v as number) / 100).toFixed(2)}` : null);
+  const date = (v: unknown) => (typeof v === 'string' && Number.isFinite(Date.parse(v)) ? formatShortDate(v, he ? 'Local' : 'International') : null);
+  const year = d.period === 'year';
+  const every = he ? (year ? 'בכל שנה' : 'בכל חודש') : (year ? 'every year' : 'every month');
+  const lines: string[] = [];
+  let subject = '';
+  switch (f.kind) {
+    case 'renewal_resumed': {
+      const amount = money(d.amountMinor); const first = date(d.firstChargeAt); const until = date(d.smartPackUntil);
+      if (!amount || !first) return null;
+      subject = he ? 'החיוב המתחדש של המנוי חודש' : 'Your renewing charge is back on';
+      lines.push(he ? 'החיוב המתחדש של המנוי שלכם ב-TEKANGO חודש. היום לא בוצע חיוב.' : 'The renewing charge of your TEKANGO subscription is back on. Nothing was charged today.');
+      lines.push(he ? `החיוב הבא: ${amount} בתאריך ${first}, ואחר כך ${every}${d.smartPack === true ? ', כולל חכם פלוס' : ''}.`
+        : `Your next charge: ${amount} on ${first}, then ${every}${d.smartPack === true ? ', SMART PACK included' : ''}.`);
+      if (until) lines.push(he ? `חכם פלוס נשאר פעיל עד ${until}, ולא יתחדש.` : `SMART PACK stays active until ${until} and will not renew.`);
+      break;
+    }
+    case 'smart_pack_added': {
+      const paid = money(d.amountMinor); const end = date(d.periodEnd); const total = money(d.totalMinor);
+      if (!paid || !end || !total) return null;
+      subject = he ? 'חכם פלוס פעיל בחשבון שלכם' : 'SMART PACK is active on your account';
+      lines.push(he ? 'חכם פלוס פעיל בחשבון שלכם מעכשיו.' : 'SMART PACK is active on your account from now on.');
+      lines.push(he ? `שולם היום ${paid}, על הימים עד ${end}.` : `Paid today: ${paid}, for the days until ${end}.`);
+      lines.push(he ? `מ-${end} החיוב ${every} הוא ${total}, כולל חכם פלוס.` : `From ${end} your charge ${every} is ${total}, SMART PACK included.`);
+      break;
+    }
+    case 'renewal_stopped': {
+      const through = date(d.paidThrough);
+      if (!through) return null;
+      subject = he ? 'החידוש האוטומטי של המנוי הופסק' : 'Your automatic renewal is stopped';
+      lines.push(he ? 'החידוש האוטומטי של המנוי שלכם ב-TEKANGO הופסק, ולא יבוצעו חיובים נוספים.' : 'The automatic renewal of your TEKANGO subscription is stopped, and no further charges will be made.');
+      lines.push(he ? `המנוי פעיל עד ${through}.` : `Your subscription stays active until ${through}.`);
+      lines.push(he ? 'אפשר לחדש בכל עת מחלון המסלולים, בלי חיוב עד סוף התקופה ששולמה.' : 'You can resume at any time from the plans window, with nothing charged until the paid period ends.');
+      break;
+    }
+    case 'ended_early': {
+      const end = date(d.effectiveEnd);
+      if (!end) return null;
+      const refund = Number.isInteger(d.refundMinor) && (d.refundMinor as number) > 0 ? money(d.refundMinor) : null;
+      subject = he ? 'המנוי ב-TEKANGO הסתיים' : 'Your TEKANGO subscription has ended';
+      lines.push(he ? `המנוי שלכם ב-TEKANGO הסתיים בתאריך ${end}, לפי בקשתכם.` : `Your TEKANGO subscription ended on ${end}, as you asked.`);
+      if (refund) lines.push(he ? `החזר של ${refund} יועבר לכרטיס שבו שילמתם, לפי סעיף 6 בתנאי השימוש.` : `A refund of ${refund} goes back to the card you paid with, as set out in section 6 of the Terms.`);
+      lines.push(he ? 'שום דבר לא נמחק, ומה שכבר נוצר נשאר זמין.' : 'Nothing is deleted, and everything you created stays available.');
+      break;
+    }
+    case 'smart_pack_removed': {
+      const at = date(d.effectiveAt);
+      if (!at) return null;
+      const refund = Number.isInteger(d.refundMinor) && (d.refundMinor as number) > 0 ? money(d.refundMinor) : null;
+      subject = he ? 'חכם פלוס לא יתחדש' : 'SMART PACK will not renew';
+      lines.push(he ? `חכם פלוס פעיל עד ${at} ולא יתחדש. מהחיוב הבא הסכום לא כולל את חכם פלוס.` : `SMART PACK stays active until ${at} and will not renew. From your next charge, the amount does not include SMART PACK.`);
+      if (refund) lines.push(he ? `החזר יחסי של ${refund} יועבר לכרטיס, לפי סעיף 6 בתנאי השימוש.` : `A pro-rata refund of ${refund} goes back to your card, as set out in section 6 of the Terms.`);
+      break;
+    }
+    case 'annual_reminder': {
+      const amount = money(d.amountMinor); const at = date(d.renewsAt);
+      if (!amount || !at) return null;
+      subject = he ? 'תזכורת: החידוש השנתי בעוד שבוע' : 'Reminder: your annual renewal is in a week';
+      lines.push(he ? `בתאריך ${at} יחויב החידוש השנתי של המנוי שלכם ב-TEKANGO, בסך ${amount}.` : `On ${at} the annual renewal of your TEKANGO subscription will be charged: ${amount}.`);
+      lines.push(he ? 'אם אינכם רוצים לחדש, אפשר להפסיק את החידוש לפני כן: השיבו למייל הזה ונטפל בזה.' : 'If you do not want to renew, you can stop the renewal before then: reply to this email and we will take care of it.');
+      break;
+    }
+    case 'first_purchase': {
+      const amount = money(d.amountMinor); const through = date(d.paidThrough);
+      if (!amount || !through) return null;
+      subject = he ? 'המנוי שלכם ב-TEKANGO פעיל' : 'Your TEKANGO subscription is active';
+      lines.push(he ? `תודה! המנוי ${year ? 'השנתי' : 'החודשי'} שלכם ב-TEKANGO פעיל${d.smartPack === true ? ', כולל חכם פלוס' : ''}.`
+        : `Thank you! Your ${year ? 'annual' : 'monthly'} TEKANGO subscription is active${d.smartPack === true ? ', SMART PACK included' : ''}.`);
+      lines.push(he ? `החיוב הבא: ${amount} בתאריך ${through}.` : `Your next charge: ${amount} on ${through}.`);
+      lines.push(he ? 'הקבלה על התשלום נשלחת אליכם בנפרד מחברת הסליקה.' : 'The receipt for your payment is sent to you separately by the payment company.');
+      break;
+    }
+    default: return null;
+  }
+  const sign = he ? [`לכניסה לחשבון: ${LINK.IL}`, '', 'צוות TEKANGO'] : [`Sign in: ${LINK.INTERNATIONAL}`, '', 'The TEKANGO team'];
+  return { subject, text: [he ? 'שלום,' : 'Hello,', '', ...lines.flatMap((l) => [l, '']), ...sign].join('\n') };
+}
+
 export async function runNotices(d: Deps): Promise<{ ok: boolean; found: number; sent: number; failed: number; unknown: number; waiting: number }> {
   const now = d.now();
   const out = { ok: true, found: 0, sent: 0, failed: 0, unknown: 0, waiting: 0 };
@@ -170,6 +262,25 @@ export async function runNotices(d: Deps): Promise<{ ok: boolean; found: number;
     const { subject, text } = lifeContent(fresh, now);
     const s = SENDER[f.market];
     const r = await d.send({ from: s.from, replyTo: s.replyTo, to: fresh.email, subject, text, idempotencyKey: key });
+    const outcome = r.ok ? 'sent' : r.unknown ? 'unknown' : 'failed';
+    const recorded = await d.complete(f.account_id, f.kind, f.episode_at, 0, key, outcome, r.id ?? null);
+    if (outcome === 'sent') out.sent += 1;
+    if (outcome === 'failed' || !recorded) out.failed += 1;
+    if (outcome === 'unknown') out.unknown += 1;
+  }
+  // 2026-11-05: the billing-change emails (their own switch in SQL; the same claim / complete - one email per account, kind and event)
+  const bill = typeof d.billing === 'function' ? await d.billing() : [];
+  out.found += bill.length;
+  for (const f of bill) {
+    if (!inSendingHours(f.market, now)) { out.waiting += 1; continue; }
+    if (room <= 0) { out.waiting += 1; continue; }
+    const content = billingContent(f);
+    if (!content) continue;
+    room -= 1;
+    const key = await d.claim(f.account_id, f.kind, f.episode_at, 0, `customer-notice/${d.uuid()}`);
+    if (!key) continue;
+    const s = SENDER[f.market];
+    const r = await d.send({ from: s.from, replyTo: s.replyTo, to: f.email, subject: content.subject, text: content.text, idempotencyKey: key });
     const outcome = r.ok ? 'sent' : r.unknown ? 'unknown' : 'failed';
     const recorded = await d.complete(f.account_id, f.kind, f.episode_at, 0, key, outcome, r.id ?? null);
     if (outcome === 'sent') out.sent += 1;

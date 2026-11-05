@@ -717,6 +717,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-04 (typed: \"מאשר המשך חיוב מתחדש בלי חיוב מיידי מחלון המסלולים, כולל שינוי ב-L-01 ו-L-22, שחרור עד הלייב\"): one nullable column, one event type, one new service-only function and three function bodies with marked changes; replays cleanly (ADD COLUMN IF NOT EXISTS / DROP+ADD CONSTRAINT / CREATE OR REPLACE)."
+    },
+    "20261105100000_billing_notices.sql": {
+      "sha256": "dad077e9071f31aa7900e0d4940eb132b225c2cf463d4797c92e42e6a22409a5",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-11-05 (typed: \"מאשר בניית 10 המיילים מהטבלה במשימת הלילה, שחרור עד הלייב כשהמיילים כבויים ללקוחות עד שאאשר את הנוסחים בבוקר\"): two settings columns, the notices kind list and one service-only read function; replays cleanly (ADD COLUMN IF NOT EXISTS / DROP+ADD CONSTRAINT / CREATE OR REPLACE)."
     }
   }
 }
