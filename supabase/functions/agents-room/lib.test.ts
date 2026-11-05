@@ -107,7 +107,9 @@ describe('agents-room', () => {
     expect(isolatePaths('כבר ⁦/en⁩ מבודד')).toBe('כבר ⁦/en⁩ מבודד');
     expect(isolatePaths('1/2 ו־a/b')).toBe('1/2 ו־a/b');
     expect(coverageHe('URL is unknown to Google')).toBe('גוגל עוד לא מכיר את הדף');
-    expect(coverageHe('Some new Google state')).toBe('סיבה אחרת, הפירוט בסרץ׳ קונסול');
+    // Owner 2026-11-05 (L-22): an unknown state is shown in Google's own words, isolated (the Hebrew outside the isolate stays Hebrew)
+    expect(coverageHe('Some new Google state')).toBe('מצב שגוגל כתב: ⁦Some new Google state⁩');
+    expect(coverageHe('')).toBe('גוגל לא כתב סיבה');
     expect(coverageHe('Excluded by ‘noindex’ tag')).toBe('הדף מסומן כלא מיועד לאינדקס');
     expect(coverageHe("Excluded by 'noindex' tag")).toBe('הדף מסומן כלא מיועד לאינדקס');
     expect(usd(0.0006)).toBe('0.0006');
@@ -185,6 +187,36 @@ describe('Owner 2026-10-27 ("מאשר את התוכנית לגיא ולמיכל,
     expect(f.every((x) => !/[A-Za-z]{3,}/.test(x.he.replace(/⁦[^⁩]*⁩/g, '')))).toBe(true);
     const user = JSON.parse((d.complete as ReturnType<typeof vi.fn>).mock.calls[0][0].messages[1].content as string);
     expect(user.notIndexed).toEqual([{ path: '/en', reason: 'Duplicate, Google chose different canonical than user', googleChose: '/he' }]);
+  });
+
+  it('Owner 2026-11-05 (L-22): Google fails for a page -> one retry; still failing = "not checked", never counted as not indexed, never handed to the manager', async () => {
+    const base = deps();
+    const tries = new Map<string, number>();
+    const gsc = { ...base.gsc!, fetch: vi.fn(async (url: string, init?: RequestInit) => {
+      if (url.includes('urlInspection')) {
+        const p = JSON.parse(String(init?.body)).inspectionUrl as string;
+        tries.set(p, (tries.get(p) ?? 0) + 1);
+        // /en fails every time; /he fails once and answers on the retry
+        if (p.endsWith('/en') || (p.endsWith('/he') && tries.get(p) === 1)) return new Response('{}', { status: 500 });
+        return ok({ inspectionResult: { indexStatusResult: { verdict: 'PASS', coverageState: 'Submitted and indexed' } } });
+      }
+      return (base.gsc!.fetch as (u: string, i?: RequestInit) => Promise<Response>)(url, init);
+    }) };
+    const d = deps({ gsc });
+    await handler({ action: 'run', agent: 'seo' }, d, paths);
+    const run = d.runs.get('seo|cron:2026-10-27')!;
+    expect([...tries.entries()].filter(([u]) => u.endsWith('/en') || u.endsWith('/he')).map(([, n]) => n)).toEqual([2, 2]);
+    const data = run.data as { indexing: { intl: { indexed: number; total: number }; il: { indexed: number; total: number } }; notIndexed: unknown[] };
+    expect(data.indexing.intl).toEqual({ indexed: 1, total: 1 }); // /en not checked: out of the count (the other international page is indexed)
+    expect(data.indexing.il.indexed).toBe(data.indexing.il.total);
+    expect(data.notIndexed).toEqual([]);
+    const f = run.findings as { he: string; en: string }[];
+    expect(f.some((x) => x.he === 'גוגל לא ענה, לא נבדק: ⁦/en⁩')).toBe(true);
+    expect(f.some((x) => x.en === 'Google did not answer, not checked: /en')).toBe(true);
+    expect(f.some((x) => /^לא באינדקס/.test(x.he))).toBe(false);
+    expect(f.every((x) => !/[A-Za-z]{3,}/.test(x.he.replace(/⁦[^⁩]*⁩/g, '')))).toBe(true);
+    const user = JSON.parse((d.complete as ReturnType<typeof vi.fn>).mock.calls[0][0].messages[1].content as string);
+    expect(user.notIndexed).toEqual([]);
   });
 
   it('service: every red inquiry still waiting is its own finding, linked by its id; none = no extra line', async () => {
