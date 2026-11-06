@@ -389,8 +389,11 @@ function buildAccountContextBlock(ctx: VerifiedAccountContext): string {
     marketLine,
     planLine,
   ];
-  // Owner console 2026-11-03 (typed approval incl. L-11, L-17): the caller's own "quote from a file" balance (server counter)
-  if (ctx.fileReads) lines.push(`- Quote from a file (SMART PACK) balance: ${ctx.fileReads.remaining} of ${ctx.fileReads.limit} files left ${ctx.fileReads.period === 'free' ? 'in the 7 free days' : 'this month'}. When asked how many files / file reads are left, state exactly this.`);
+  // Owner console 2026-11-03 (typed approval incl. L-11, L-17): the caller's own balance (server counter) - since 2026-11-06 the SMART PACK
+  // usage meter (it replaced the count of files)
+  if (ctx.smartPackUsage) lines.push(ctx.smartPackUsage.unlimited
+    ? '- SMART PACK usage: this account is not limited.'
+    : `- SMART PACK usage left this month: ${ctx.smartPackUsage.percentLeft}%. The AI actions of SMART PACK (a chat question that reads the account's own data, voice, the AI smart quote and smart edit, a quote from a file, Improve quote) use it; a plain question about the product does not. It renews at the start of each month. When asked how much is left, state exactly this percentage - never a number of files, checks or questions.`);
   if (ctx.currentArea) lines.push(`- Current screen: ${ctx.currentArea}`);
   return lines.join('\n');
 }

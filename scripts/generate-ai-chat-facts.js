@@ -65,7 +65,7 @@ const NOT_DECIDED = Object.freeze([
   'capability_matrix', // OPEN-02
   'free_catalog_limit', // OPEN-03
   'storage', // OPEN-04
-  'ai_quotas', // OPEN-05
+  // 'ai_quotas' (OPEN-05) is decided: the SMART PACK usage meter (Owner console 2026-11-06, migration 20261106100000, the Terms)
   'cancellation_refund_proration', // OPEN-09
   'tax_beyond_il_inclusion', // OPEN-11
   'attachments', // OPEN-13

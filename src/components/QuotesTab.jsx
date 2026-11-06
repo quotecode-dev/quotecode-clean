@@ -870,8 +870,11 @@ export default function QuotesTab({
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {/* Owner console 2026-11-05 (typed, L-07 / L-29): the plain "פתיחה" primary button is removed - the card is already open, so it did
-            nothing. The useful status actions stay: "המשך העריכה" (edit), "צפייה" (view) and "פתיחה ומעקב" (track). */}
-        {actionLabel && actionKind !== 'open' && (
+            nothing. The useful status actions stay: "המשך העריכה" (edit) and "צפייה" (view).
+            Owner console 2026-11-06 (typed: "אשר הסרת "פתיחה ומעקב" מתוך כרטיס הצעה פתוח בשתי השפות, כולל שינוי ב-L-07 ו-L-29"):
+            "פתיחה ומעקב" / "Open & track" is removed from inside the open card too - the card already shows the tracking. The hot-quote
+            banner above the list keeps its own "פתיחה ומעקב". */}
+        {actionLabel && actionKind !== 'open' && actionKind !== 'track' && (
           <div className="quote-modern-primary-row">
             {/* PRODUCT_TRUTH_CAPABILITY: quote_history */}
             <button

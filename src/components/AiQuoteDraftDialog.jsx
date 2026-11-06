@@ -20,6 +20,7 @@ import AiModalHeader from './AiModalHeader';
 import { APP as NEON } from '../theme/neonTheme';
 import { MAX_DESCRIPTION_CHARS, MIN_DESCRIPTION_CHARS, draftUnitsForMarket } from '../../supabase/functions/_shared/aiQuoteDraft.js';
 import { getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
+import { smartPackUsageText, smartPackUsedUpText } from '../utils/smartPackUsage';
 
 const positiveQuantity = (v) => {
   const n = Number(String(v ?? '').trim().replace(',', '.'));
@@ -41,7 +42,7 @@ const COPY = {
     manual: 'מילוי ידני',
     // Owner console 2026-11-05 (typed, L-07 / L-09 / L-29): opened as "עריכה חכמה" from the quote row - the copy makes clear it edits THIS quote
     editTitle: (q) => (q ? `עריכה חכמה — הצעה ${q}` : 'עריכה חכמה של ההצעה'),
-    editIntro: 'תארו מה להוסיף או לשנות בהצעה הזו. הבינה תציע פריטים, ומה שתבחרו יתווסף להצעה הנוכחית.',
+    editIntro: 'תארו מה להוסיף, לשנות או למחוק בהצעה הזו - שורות, כמויות, מחירים, הערות או הנחה. הבינה תציע את השינויים, ושום דבר לא משתנה עד שתאשרו.',
     editLabel: 'מה להוסיף או לשנות בהצעה הזו?',
     editPlaceholder: 'לדוגמה: הוסיפו פירוק והרכבה של ארון מטבח, או שורת הנחה של 10%',
     editGenerate: 'הצעת פריטים עם AI',
@@ -76,6 +77,12 @@ const COPY = {
     unassigned: (list) => `מידות מהתיאור שלא שויכו לאף פריט: ${list}. בדקו שלא חסר פריט.`,
     needQuantity: 'השלימו כמות בכל פריט מסומן (או בטלו את הסימון שלו) לפני ההוספה.',
     apply: (n) => `הוספה להצעה (פריטים מסומנים: ${n})`,
+    // Owner console 2026-11-06 (release B): changes to the open quote
+    applyChanges: 'החלת השינויים בהצעה',
+    changesTitle: 'שינויים בהצעה הקיימת',
+    changeQty: 'כמות', changePrice: 'מחיר', changeDesc: 'תיאור', instead: 'במקום',
+    changeDelete: 'מחיקת השורה', notesAppend: 'הוספה להערות', notesReplace: 'ההערות יוחלפו ב', notesClear: 'מחיקת ההערות',
+    discount: 'הנחה',
     again: 'תיאור אחר',
     cancel: 'ביטול',
     openChat: 'שאלו את צ׳אט ה-AI',
@@ -83,7 +90,7 @@ const COPY = {
     stopDictate: (s) => `עצירה ושימוש בהקלטה (0:${String(s).padStart(2, '0')})`,
     transcribing: 'ממיר את הדיבור לטקסט…',
     answerByVoice: 'מענה בקול לשאלות',
-    voiceErrors: { mic_denied: 'אין גישה למיקרופון. אפשר לאשר גישה בהגדרות הדפדפן, או להקליד.', failed: 'לא הצלחתי להבין את ההקלטה. אפשר לנסות שוב או להקליד.', limit: 'הגעתם למכסת הפעולות הקוליות היומית. אפשר להמשיך בהקלדה.', smart_pack: 'הצ׳אט הקולי וההכתבה הם חלק מחכם פלוס. אפשר להוסיף אותו בחלון המסלולים.' },
+    voiceErrors: { mic_denied: 'אין גישה למיקרופון. אפשר לאשר גישה בהגדרות הדפדפן, או להקליד.', failed: 'לא הצלחתי להבין את ההקלטה. אפשר לנסות שוב או להקליד.', limit: 'היתרה בחכם פלוס לחודש הזה לא מספיקה לקול. היא מתחדשת בתחילת החודש הבא. אפשר להמשיך בהקלדה.', smart_pack: 'הצ׳אט הקולי וההכתבה הם חלק מחכם פלוס. אפשר להוסיף אותו בחלון המסלולים.' },
     errors: {
       not_deployed: 'שירות טיוטות ה-AI עדיין לא מותקן בשרת הזה. אפשר למלא את ההצעה ידנית או לשאול את העוזר החכם בצ׳אט.',
       // Owner 2026-10-23 (morning report item 10): a busy server answers without the browser headers too - never called "not installed"
@@ -97,6 +104,8 @@ const COPY = {
       market_unresolved: 'כדי ליצור טיוטה צריך קודם להשלים את אזור העסק בהגדרות העסק.',
       // Owner 2026-10-20 (typed L-17 approval): the AI smart quote is SMART PACK once the plan system is enforced
       smart_pack_required: 'ההצעה החכמה עם AI היא חלק מחכם פלוס. אפשר להוסיף אותו בחלון המסלולים, או למלא את ההצעה ידנית.',
+      // Owner console 2026-11-06 (typed night-task approval): the month's SMART PACK usage is used up (the usage meter)
+      budget_exhausted: smartPackUsedUpText(true),
       unauthenticated: 'החיבור לחשבון פג. התחברו מחדש ונסו שוב.',
       invalid: `התיאור צריך להיות באורך ${MIN_DESCRIPTION_CHARS}–${MAX_DESCRIPTION_CHARS} תווים.`,
       failed: 'משהו השתבש ביצירת הטיוטה. נסו שוב, או מלאו את ההצעה ידנית.',
@@ -111,7 +120,7 @@ const COPY = {
     generating: 'The AI is preparing a draft…',
     manual: 'Manual entry',
     editTitle: (q) => (q ? `Smart edit — quote ${q}` : 'Smart edit of this quote'),
-    editIntro: 'Describe what to add or change in this quote. The AI suggests items, and what you choose is added to the current quote.',
+    editIntro: 'Describe what to add, change or remove in this quote - lines, quantities, prices, notes or a discount. The AI suggests the changes, and nothing changes until you approve.',
     editLabel: 'What to add or change in this quote?',
     editPlaceholder: 'e.g. Add removing and refitting a kitchen cabinet, or a 10% discount line',
     editGenerate: 'Suggest items with AI',
@@ -146,6 +155,11 @@ const COPY = {
     unassigned: (list) => `Measurements in your description not assigned to any item: ${list}. Check that no item is missing.`,
     needQuantity: 'Fill in the quantity of every ticked item (or untick it) before adding.',
     apply: (n) => `Add ${n} items to the quote`,
+    applyChanges: 'Apply the changes to the quote',
+    changesTitle: 'Changes to the current quote',
+    changeQty: 'Quantity', changePrice: 'Price', changeDesc: 'Description', instead: 'instead of',
+    changeDelete: 'Remove the line', notesAppend: 'Add to the notes', notesReplace: 'Replace the notes with', notesClear: 'Remove the notes',
+    discount: 'Discount',
     again: 'Different description',
     cancel: 'Cancel',
     openChat: 'Ask the AI chat',
@@ -153,7 +167,7 @@ const COPY = {
     stopDictate: (s) => `Stop and use the recording (0:${String(s).padStart(2, '0')})`,
     transcribing: 'Turning your speech into text…',
     answerByVoice: 'Answer the questions by voice',
-    voiceErrors: { mic_denied: 'No microphone access. You can allow it in your browser settings, or type.', failed: "I couldn't understand the recording. Try again or type.", limit: "You've reached today's voice limit. You can keep typing.", smart_pack: 'Voice chat and dictation are part of SMART PACK. You can add it in the plans window.' },
+    voiceErrors: { mic_denied: 'No microphone access. You can allow it in your browser settings, or type.', failed: "I couldn't understand the recording. Try again or type.", limit: "Your SMART PACK usage left this month is not enough for voice. It renews at the start of next month. You can keep typing.", smart_pack: 'Voice chat and dictation are part of SMART PACK. You can add it in the plans window.' },
     errors: {
       not_deployed: 'The AI draft service is not installed on this server yet (the server answered that it was not found). You can fill in the quote manually or ask the AI chat.',
       service_unreachable: 'The AI draft service did not respond this time, although the server is up. It may be busy. Try again in a moment, or fill in the quote manually.',
@@ -165,6 +179,7 @@ const COPY = {
       no_items: 'No items were found in the description. Try describing what the job includes in more detail.',
       market_unresolved: 'To create a draft, first complete your business region in Business settings.',
       smart_pack_required: 'The AI smart quote is part of SMART PACK. You can add it in the plans window, or fill in the quote manually.',
+      budget_exhausted: smartPackUsedUpText(false),
       unauthenticated: 'Your session expired. Sign in again and retry.',
       invalid: `The description must be ${MIN_DESCRIPTION_CHARS}–${MAX_DESCRIPTION_CHARS} characters long.`,
       failed: 'Something went wrong while creating the draft. Try again, or fill in the quote manually.',
@@ -176,7 +191,35 @@ const inputStyle = (isHebrew) => ({ width: '100%', padding: '11px 12px', border:
 const primaryBtn = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.gradient, color: '#ffffff', border: 'none', padding: '12px 18px', borderRadius: '8px', fontWeight: '700', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
 const secondaryBtn = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textSecondary, padding: '12px 18px', borderRadius: '8px', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', minHeight: '44px' };
 
-export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply, onOpenChat, requestDraft, formatMoneyDisplay, sym, transcribe = null, international = false, editMode = false, quoteLabel = '' }) {
+// Owner console 2026-11-06 (release B): the server's changes as one list the user ticks - line updates, removed lines, the notes, a discount
+// (a line change is shown only for a line of the open quote the request was sent with - never for a ref this browser does not know)
+function changeEntries(changes, quote) {
+  if (!changes) return [];
+  const known = new Set((quote?.items || []).map((it) => it.ref));
+  return [
+    ...(changes.updates || []).filter((u) => known.has(u.ref)).map((u) => ({ kind: 'update', ...u })),
+    ...(changes.deletes || []).filter((ref) => known.has(ref)).map((ref) => ({ kind: 'delete', ref })),
+    ...(changes.notes ? [{ kind: 'notes', ...changes.notes }] : []),
+    ...(changes.discountPercent != null ? [{ kind: 'discount', percent: changes.discountPercent }] : []),
+  ];
+}
+// what one change does, in words, with the line's current value beside the new one (numbers isolated; money in the form's own format)
+function describeChange(e, quote, t, isHebrew, sym, money) {
+  const line = e.ref ? (quote?.items || []).find((it) => it.ref === e.ref) : null;
+  const name = line ? (isHebrew ? `„${line.description}”` : `“${line.description}”`) : '';
+  const N = (v) => <bdi className="pf-num" dir="ltr">{v}</bdi>;
+  const M = (v) => <bdi className="pf-money" dir="ltr">{`${sym}${money(v)}`}</bdi>;
+  if (e.kind === 'delete') return <>{t.changeDelete} {name}</>;
+  if (e.kind === 'notes') return e.action === 'clear' ? <>{t.notesClear}</> : <>{e.action === 'append' ? t.notesAppend : t.notesReplace}: <bdi>{e.text}</bdi></>;
+  if (e.kind === 'discount') return <>{t.discount}: {N(`${e.percent}%`)}{quote && quote.discountPercent ? <> ({t.instead} {N(`${quote.discountPercent}%`)})</> : null}</>;
+  const parts = [];
+  if (e.quantity != null) parts.push(<span key="q">{t.changeQty}: {N(e.quantity)}{line?.quantity != null ? <> ({t.instead} {N(line.quantity)})</> : null}</span>);
+  if (e.unitPrice != null) parts.push(<span key="p">{t.changePrice}: {M(e.unitPrice)}{line?.unitPrice != null ? <> ({t.instead} {M(line.unitPrice)})</> : null}</span>);
+  if (e.description) parts.push(<span key="d">{t.changeDesc}: <bdi>{e.description}</bdi></span>);
+  return <>{name}: {parts.map((p, i) => (i ? [<span key={`s${i}`}>; </span>, p] : p))}</>;
+}
+
+export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply, onOpenChat, requestDraft, formatMoneyDisplay, sym, transcribe = null, international = false, editMode = false, quoteLabel = '', readUsage = null, currentQuote = null }) {
   // Owner 2026-11-05 (L-17): the units the market offers; a line keeps its own unit even when the market does not offer it
   const unitChoices = (own) => { const list = draftUnitsForMarket(international); return own && !list.includes(own) ? [...list, own] : list; };
   const t = COPY[isHebrew ? 'he' : 'en'];
@@ -192,6 +235,8 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
   const [draft, setDraft] = useState(null);
   const [lines, setLines] = useState([]);
   const [selected, setSelected] = useState([]);
+  // the changes the user UNticked (by kind + line ref); everything else is applied - a fresh draft starts with all ticked
+  const [unticked, setUnticked] = useState(() => new Set());
   const fieldRef = useRef(null);
   const dialogRef = useRef(null);
   const requestSeq = useRef(0);
@@ -199,11 +244,16 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
   const [confirmAgain, setConfirmAgain] = useState(false);
   const voiceTargetRef = useRef('describe'); // 'describe' = add to the description; 'answer' = add, then generate again
   const voice = useVoiceRecorder({ transcribe, onText: (text) => handleVoiceText(text) });
+  // Owner console 2026-11-06 (typed night-task approval): the SMART PACK usage line ("נשארו לכם 63% משימוש חכם פלוס החודש")
+  const [usage, setUsage] = useState(null);
+  const refreshUsage = () => { if (typeof readUsage === 'function') Promise.resolve(readUsage()).then((u) => setUsage(u || null)).catch(() => setUsage(null)); };
 
   useEffect(() => {
     if (!isOpen) return;
     setDescription(''); setPhase('describe'); setErrorCode(null); setDraft(null); setLines([]); setSelected([]);
     setTimeout(() => fieldRef.current?.focus(), 0);
+    refreshUsage();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   if (!isOpen) return null;
@@ -216,9 +266,11 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
     setErrorCode(null); setPhase('loading');
     const result = await requestDraft(text);
     if (seq !== requestSeq.current) return; // dialog closed or a newer request started
+    refreshUsage();
     if (result?.status === 'ok') {
       appliedRef.current = false;
-      setDraft({ ...result, sourceText: text }); setLines(result.items.map(toEditable)); setSelected(result.items.map(() => true)); setPhase('review');
+      setDraft({ ...result, sourceText: text }); setLines(result.items.map(toEditable)); setSelected(result.items.map(() => true));
+      setUnticked(new Set()); setPhase('review');
     } else {
       setErrorCode(result?.status || 'failed'); setPhase('describe');
     }
@@ -232,6 +284,10 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
     return next;
   }));
   const chosenIdx = lines.map((_, i) => i).filter((i) => selected[i]);
+  // Owner console 2026-11-06 (release B): the changes to the open quote, each one ticked by default and applied only when ticked
+  const entries = draft ? changeEntries(draft.changes, currentQuote) : [];
+  const changeKey = (e) => `${e.kind}-${e.ref ?? ''}`;
+  const chosenChanges = entries.filter((e) => !unticked.has(changeKey(e)));
   // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקון 4 התקלות בהצעה החכמה, שחרור עד הלייב"): a written measure stops being "not assigned" once a ticked line was given that quantity
   const openMeasures = (draft?.unassignedMeasures || []).filter((text) => {
     const n = positiveQuantity((String(text).match(/\d+(?:[.,]\d+)?/) || [''])[0]);
@@ -253,10 +309,11 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
     const l = lines[i];
     return { description: String(l.description).trim(), quantity: positiveQuantity(l.quantityInput), unit: l.unit || null, unitPrice: l.unitPrice, catalogId: l.unitPrice != null ? l.catalogId : null };
   });
+  const canApply = (chosen.length > 0 || chosenChanges.length > 0) && !incomplete;
   const apply = () => {
-    if (!chosen.length || incomplete || appliedRef.current) return;
+    if (!canApply || appliedRef.current) return;
     appliedRef.current = true; // one apply per draft (a double click never adds the lines twice)
-    onApply(chosen, draft.subject || '');
+    onApply(chosen, draft.subject || '', chosenChanges);
   };
   function handleVoiceText(text) {
     const joined = (description.trim() ? `${description.trim()}${voiceTargetRef.current === 'answer' ? '\n' : ' '}${text}` : text).slice(0, MAX_DESCRIPTION_CHARS);
@@ -287,6 +344,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
           {phase !== 'review' ? (
             <>
               <p style={{ margin: 0, fontSize: '0.84rem', color: NEON.textSecondary, lineHeight: 1.45 }}>{introText}</p>
+              {smartPackUsageText(usage, isHebrew) && <div data-testid="ai-quote-draft-usage" style={{ fontSize: '0.78rem', color: NEON.textSecondary }}>{smartPackUsageText(usage, isHebrew)}</div>}
               <label htmlFor="ai-quote-draft-description" style={{ fontSize: '0.86rem', fontWeight: 700, color: NEON.textPrimary }}>{fieldLabel}</label>
               {/* Owner 2026-10-19: the microphone sits INSIDE the field's bottom corner - the action row keeps its two uniform buttons on one line */}
               <div style={{ position: 'relative' }}>
@@ -336,6 +394,18 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                 <strong style={{ color: NEON.textPrimary }}>{t.yourText}:</strong> <bdi>{draft.sourceText}</bdi>
               </div>
               {draft.subject && <div style={{ fontSize: '0.82rem', color: NEON.textSecondary }}><strong style={{ color: NEON.textPrimary }}>{t.subject}:</strong> {draft.subject}</div>}
+              {entries.length > 0 && (
+                <div data-testid="ai-quote-draft-changes" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <strong style={{ fontSize: '0.84rem', color: NEON.textPrimary }}>{t.changesTitle}</strong>
+                  {entries.map((e) => (
+                    <label key={changeKey(e)} data-testid="ai-quote-draft-change" data-kind={e.kind} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '8px 12px', border: `1px solid ${!unticked.has(changeKey(e)) ? NEON.violetLight : NEON.border}`, borderRadius: '10px', background: !unticked.has(changeKey(e)) ? NEON.violetLighter : NEON.bgCardAlt, minHeight: '44px', boxSizing: 'border-box', fontSize: '0.8rem', color: NEON.textPrimary, cursor: 'pointer' }}>
+                      <input type="checkbox" checked={!unticked.has(changeKey(e))} onChange={() => setUnticked((all) => { const next = new Set(all); if (next.has(changeKey(e))) next.delete(changeKey(e)); else next.add(changeKey(e)); return next; })} style={{ width: '18px', height: '18px', marginTop: '2px', flexShrink: 0 }} />
+                      <span style={{ lineHeight: 1.45, overflowWrap: 'anywhere' }}>{describeChange(e, currentQuote, t, isHebrew, sym, formatMoneyDisplay)}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+              {lines.length > 0 && (
               <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }} data-testid="ai-quote-draft-lines">
                 {lines.map((line, i) => {
                   const qty = positiveQuantity(line.quantityInput);
@@ -374,6 +444,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                   );
                 })}
               </ul>
+              )}
               {openMeasures.length > 0 && <div role="note" data-testid="ai-quote-draft-unassigned" style={{ fontSize: '0.78rem', color: NEON.amber || NEON.textSecondary, fontWeight: 600, lineHeight: 1.45 }}>{t.unassigned(openMeasures.join(', '))}</div>}
               {draft.questions?.length > 0 && (
                 <div data-testid="ai-quote-draft-questions" style={{ fontSize: '0.8rem', color: NEON.textPrimary, lineHeight: 1.45 }}>
@@ -410,8 +481,8 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                 {/* PRODUCT_TRUTH_DECORATIVE: returns to the description step of the AI draft dialog (the description text is kept) */}
                 <button type="button" onClick={() => (edits ? setConfirmAgain(true) : goAgain())} style={secondaryBtn}>{t.again}</button>
                 {/* PRODUCT_TRUTH_CAPABILITY: smart_quote */}
-                <button type="button" onClick={apply} disabled={!chosen.length || incomplete} style={{ ...primaryBtn, opacity: chosen.length && !incomplete ? 1 : 0.6 }}>
-                  <Check size={16} aria-hidden="true" />{t.apply(chosen.length)}
+                <button type="button" onClick={apply} disabled={!canApply} style={{ ...primaryBtn, opacity: canApply ? 1 : 0.6 }}>
+                  <Check size={16} aria-hidden="true" />{chosenChanges.length ? t.applyChanges : t.apply(chosen.length)}
                 </button>
               </div>
             </>

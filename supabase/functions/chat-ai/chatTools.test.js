@@ -185,9 +185,12 @@ describe('smart chat - wiring in index.ts', () => {
   });
   it('tools are offered only to a verified dashboard user, after every deterministic truth gate', () => {
     // Codex audit H01 (Owner 2026-10-21): SMART PACK is part of the same condition (always true while the plan system is not enforced)
-    expect(src).toMatch(/const toolCtx: ToolContext \| null = smartPackAllowed && userJwtClient && verifiedUserId && accountContext && !reviewSnapshot/);
-    expect(src.indexOf('const toolCtx')).toBeGreaterThan(src.indexOf('resolveCapabilityTruthResponse('));
-    expect(src.indexOf('const toolCtx')).toBeGreaterThan(src.indexOf('deterministicHelpAnswer('));
+    // Owner 2026-11-06: 'let' - the SMART PACK usage meter may switch the tools off (0% left) right after
+    expect(src).toMatch(/let toolCtx: ToolContext \| null = smartPackAllowed && userJwtClient && verifiedUserId && accountContext && !reviewSnapshot/);
+    expect(src.indexOf('let toolCtx')).toBeGreaterThan(src.indexOf('resolveCapabilityTruthResponse('));
+    expect(src.indexOf('let toolCtx')).toBeGreaterThan(src.indexOf('deterministicHelpAnswer('));
+    // the only later assignment switches the tools OFF - never on
+    expect([...src.matchAll(/\btoolCtx = /g)].map((m) => src.slice(m.index, m.index + 15))).toEqual(['toolCtx = null;']);
   });
   it('the tools prompt block forbids invented numbers and currency mixing, and fences tool data', () => {
     const block = buildToolsPromptBlock(true, '2026-10-19');

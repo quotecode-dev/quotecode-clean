@@ -9,6 +9,7 @@ import AdminInquiries from './AdminInquiries';
 import AdminHub from './AdminHub';
 import AdminPermissions from './AdminPermissions';
 import AdminTwinCosts from './AdminTwinCosts';
+import AdminSmartPackUsage from './AdminSmartPackUsage';
 import AdminExpenseInvoices from './AdminExpenseInvoices';
 import AdminBillingReconcile from './AdminBillingReconcile';
 import AdminSearchConsole from './AdminSearchConsole';
@@ -138,6 +139,14 @@ export const ADMIN_DESTINATIONS = [
     title: { he: 'עלויות הצעת מחיר מקובץ - סופר אדמין', en: 'Quote from a file costs - Super Admin' },
     description: { he: 'כמה קבצים נקראו וכמה הם עלו לנו, לפי יום', en: 'How many files were read and what they cost us, by day' },
     render: (host) => createElement(AdminTwinCosts, { isHebrew: host.isHebrew, kind: 'file' }),
+  },
+  // Owner console 2026-11-06 (typed night-task approval incl. L-22): the SMART PACK usage meter - the real cost per feature and per account
+  {
+    id: 'smart-pack-usage', hub: 'system', icon: Coins, permission: 'owner', mobile: 'more', available: true,
+    label: { he: 'שימוש בחכם פלוס', en: 'SMART PACK usage' },
+    title: { he: 'שימוש בחכם פלוס - סופר אדמין', en: 'SMART PACK usage - Super Admin' },
+    description: { he: 'העלות האמיתית של יכולות ה-AI, לכל יכולת ולכל חשבון', en: 'The real cost of the AI features, per feature and per account' },
+    render: (host) => createElement(AdminSmartPackUsage, { isHebrew: host.isHebrew }),
   },
   // Owner console 2026-10-22, typed approval of L-22: "כלי חשבוניות הוצאה במסך מערכת בניהול ..." - the Owner only (server: super admin only)
   {

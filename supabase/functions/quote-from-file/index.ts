@@ -3,7 +3,8 @@
 // service role. Owner 2026-11-03: the file is never stored - it is read once into memory, sent to the provider once, and dropped.
 // Nothing here logs a body, a file name, a provider answer or an error object: only fixed incident codes.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { costMicros, FILE_MODEL, EXTRACTION_SCHEMA, handleQuoteFromFile, PROVIDER_TIMEOUT_MS, type Usage } from "./lib.ts";
+import { costMicros, meterCostUsdMicros, FILE_MODEL, EXTRACTION_SCHEMA, handleQuoteFromFile, PROVIDER_TIMEOUT_MS, type Usage } from "./lib.ts";
+import { claimMeter, finishMeter, usdMicrosOrReserve, RESERVE_MICROS } from "../_shared/usageMeter.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -60,6 +61,11 @@ Deno.serve(async (req: Request) => {
       if (error) throw new Error('finish');
       return data as Record<string, unknown>;
     },
+    // Owner 2026-11-06: the SMART PACK usage meter (claim with the caller's JWT, finish with the service role)
+    meterClaim: () => claimMeter(caller, 'file_quote', RESERVE_MICROS.file_quote),
+    meterFinish: (claimId, ok, u: Usage | null) => finishMeter(admin, claimId, ok, {
+      costUsdMicros: ok ? usdMicrosOrReserve(meterCostUsdMicros(u), (u?.promptTokens ?? 0) + (u?.completionTokens ?? 0), RESERVE_MICROS.file_quote) : 0,
+      model: u?.model ?? FILE_MODEL, promptTokens: u?.promptTokens ?? undefined, cachedTokens: u?.cachedTokens ?? undefined, completionTokens: u?.completionTokens ?? undefined }),
     readBody: (max) => readCapped(req, max),
     complete: async (messages) => {
       const abort = new AbortController();
@@ -77,10 +83,12 @@ Deno.serve(async (req: Request) => {
         const data = await res.json();
         const choice = data?.choices?.[0];
         const content = choice?.message?.content;
-        // a cut / refused answer is a failure (never half a list)
-        if (typeof content !== 'string' || (choice?.finish_reason && choice.finish_reason !== 'stop') || choice?.message?.refusal) throw new Error('provider_failure');
         const n = (v: unknown) => (Number.isInteger(v) ? (v as number) : null);
-        return { content, usage: { model: FILE_MODEL, promptTokens: n(data?.usage?.prompt_tokens), completionTokens: n(data?.usage?.completion_tokens), providerMs: Date.now() - started } };
+        const usage = { model: FILE_MODEL, promptTokens: n(data?.usage?.prompt_tokens), completionTokens: n(data?.usage?.completion_tokens), providerMs: Date.now() - started,
+          cachedTokens: n(data?.usage?.prompt_tokens_details?.cached_tokens) };
+        // a cut / refused answer is a failure (never half a list) - but the provider answered, so its usage goes with the failure (the meter)
+        if (typeof content !== 'string' || (choice?.finish_reason && choice.finish_reason !== 'stop') || choice?.message?.refusal) throw Object.assign(new Error('provider_failure'), { usage });
+        return { content, usage };
       } finally { clearTimeout(timer); }
     },
     onIncident: (code) => console.error(JSON.stringify({ fn: 'quote-from-file', incident: code })),

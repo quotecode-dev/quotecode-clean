@@ -624,7 +624,7 @@ describe.each([
     expect(container.querySelector('.quote-modern-client-name').textContent).toBe('Client new');
   });
 
-  it('action label precedence: hot -> Open & track, unfinished draft -> Continue editing, complete draft -> no primary button, approved/paid -> View', () => {
+  it('action label precedence: hot -> no primary button, unfinished draft -> Continue editing, complete draft -> no primary button, approved/paid -> View', () => {
     const label = (quote) => {
       const { container, unmount } = render(<QuotesTab {...buildProps(isHebrew)} quotes={[quote]} allQuotes={[quote]} />);
       expect(container.querySelector('.quote-modern-action')).toBeNull(); // collapsed: no always-visible action
@@ -634,8 +634,9 @@ describe.each([
       unmount();
       return text;
     };
-    expect(label(mk('x', { status: 'draft', view_count: 3 }))).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
-    expect(label(mk('x', { status: 'sent', view_count: 3 }))).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
+    // Owner console 2026-11-06 (typed, L-07 / L-29): "פתיחה ומעקב" / "Open & track" is removed from inside the open card
+    expect(label(mk('x', { status: 'draft', view_count: 3 }))).toBeNull();
+    expect(label(mk('x', { status: 'sent', view_count: 3 }))).toBeNull();
     expect(label(mk('x', { status: 'draft', total: 0 }))).toBe(isHebrew ? 'המשך העריכה' : 'Continue editing');
     // Owner console 2026-11-05 (typed, L-07 / L-29): the plain "פתיחה" primary button was removed - the card is already open, so no button here
     expect(label(mk('x', { status: 'draft' }))).toBeNull();
@@ -663,7 +664,7 @@ describe.each([
     expect(state(mk('x', { status: 'draft', view_count: 2 }))).toEqual([isHebrew ? 'נשלחה · נצפתה' : 'Sent · viewed', 'sent']);
     expect(state(mk('x', { status: 'draft', view_count: 3 }))).toEqual([isHebrew ? 'נצפתה, ממתינה' : 'Viewed, awaiting', 'hot']);  });
 
-  it('dropdown primary actions use the existing handlers: edit for Continue editing, the public link for View, the tracking panel for Open / Open & track', () => {
+  it('dropdown primary actions use the existing handlers: edit for Continue editing, the public link for View; a hot quote has no primary button inside', () => {
     const handleProtectedAction = vi.fn((id, action, fn) => fn());
     const handleEditClick = vi.fn();
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
@@ -690,13 +691,10 @@ describe.each([
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    const action = r3.container.querySelector('.quote-modern-detail .quote-modern-action');
-    expect(action).toHaveAttribute('aria-expanded', 'true');
-    expect(document.getElementById(action.getAttribute('aria-controls'))).toBeTruthy();
-    fireEvent.click(action); // Open & track from inside the dropdown never toggles it shut
-    expect(document.getElementById(action.getAttribute('aria-controls'))).toBeTruthy();
-    // the label never flips to Close
-    expect(action.textContent).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
+    // Owner console 2026-11-06 (typed, L-07 / L-29): the open card shows the tracking itself - no "Open & track" button inside it
+    expect(r3.container.querySelector('.quote-modern-detail')).toBeTruthy();
+    expect(r3.container.querySelector('.quote-modern-detail .quote-modern-action')).toBeNull();
+    expect(r3.container.querySelector('.quote-modern-detail').textContent).not.toContain(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
     r3.unmount();
     open.mockRestore();
   });
@@ -930,8 +928,9 @@ describe.each([
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     const panel = document.getElementById('quote-modern-detail-h');
     expect(panel).toBeTruthy();
-    expect(panel.querySelector('button')).toBe(panel.querySelector('.quote-modern-action'));
-    expect(panel.querySelector('.quote-modern-action').textContent).toBe(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
+    // Owner console 2026-11-06 (typed, L-07 / L-29): no "Open & track" primary button inside the open card of a hot quote
+    expect(panel.querySelector('.quote-modern-action')).toBeNull();
+    expect(panel.textContent).not.toContain(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
     for (const label of isHebrew ? ['צפייה', 'עריכה', 'שכפול', 'וואטסאפ', 'שליחה במייל', 'מחיקה'] : ['View', 'Edit', 'Duplicate', 'WhatsApp', 'Email', 'Delete']) expect(panel.textContent).toContain(label);
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'false');

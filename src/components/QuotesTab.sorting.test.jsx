@@ -177,8 +177,9 @@ describe.each([
       kinds[key] = act ? act.dataset.action : null;
     }
     // Owner console 2026-11-05 (typed, L-07 / L-29): the plain "open" state shows no primary button (the card is already open). The real
-    // status actions are unchanged: F = track (hot, even a draft), E = continue editing, C/D = view; A/B (plain open) now have none.
-    expect(kinds).toEqual({ A: null, B: null, C: 'view', D: 'view', E: 'edit', F: 'track' });
+    // status actions are unchanged: E = continue editing, C/D = view; A/B (plain open) now have none.
+    // Owner console 2026-11-06 (typed, L-07 / L-29): F (hot) has no "Open & track" button inside its open card either.
+    expect(kinds).toEqual({ A: null, B: null, C: 'view', D: 'view', E: 'edit', F: null });
   });
 
   it('switching to a different column starts ascending again', () => {
@@ -340,9 +341,8 @@ describe.each([
     expect(container.querySelector('#quote-modern-detail-quote-hotB')).not.toBeNull();
     fireEvent.click(eye);
     expect(container.querySelector('#quote-modern-detail-quote-hotB')).not.toBeNull();
-    const rowAction = container.querySelector('.quote-modern-item.is-hot .quote-modern-action');
-    expect(rowAction).toHaveAttribute('data-action', 'track');
-    expect(rowAction).toHaveAttribute('aria-expanded', 'true');
+    // Owner console 2026-11-06 (typed, L-07 / L-29): the open hot card has no "Open & track" button of its own
+    expect(container.querySelector('.quote-modern-item.is-hot .quote-modern-action')).toBeNull();
   });
 });
 

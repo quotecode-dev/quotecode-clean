@@ -64,6 +64,8 @@ export default function Terms({ isHebrew }) {
         content: [
           'אחרי מסלול החינם (10 הצעות או 7 ימים, המוקדם מביניהם), המנוי הוא מסלול אחד שכולל את כל היכולות הזמינות בשירות, בתשלום חודשי או שנתי מתחדש: 30.00 ₪ לחודש או 306.00 ₪ לשנה. המחירים כוללים מע״מ. סגנונות הצגת ההצעה אינם מסלולים. זכויות קיימות במסלול קודם נשמרות ואינן משתנות אוטומטית.',
           'מסלול חינם כולל 10 הצעות בסך הכול או 7 ימים מההרשמה, המוקדם מביניהם, ובשבעת הימים כלולה גם התוספת חכם פלוס. הצעה נספרת בפעם הראשונה שהיא נשמרת עם לקוח ולפחות פריט אחד; שמירה חוזרת אחרי עריכה אינה נספרת שוב. הפקה חוזרת של אותה גרסה לאותו לקוח, בכל ערוץ (שליחה, קישור ציבורי, PDF סופי או הדפסה סופית), אינה נספרת; שינוי הלקוח, שם הנמען או תוכן ההצעה והפקה מחדש נספרים כהצעה נוספת. טיוטה ריקה ותצוגה מקדימה אינן נספרות, מחיקת הצעה אינה מחזירה אותה, ומסמכים קיימים נשארים נגישים. כל מסלול בתשלום כולל 100 מוצרי קטלוג, והרחבה של 100 מוצרים נוספים עולה 5.00 ₪ לחודש, רק בבחירה מפורשת.',
+          // Owner console 2026-11-06 (typed night-task approval incl. L-12): the SMART PACK usage meter
+          'יכולות ה-AI של חכם פלוס (צ׳אט שקורא את נתוני החשבון, קול, הצעה חכמה ועריכה חכמה, הצעת מחיר מקובץ ושיפור ההצעה) מוגבלות במכסת שימוש חודשית: היתרה מוצגת באחוזים ומתחדשת בתחילת כל חודש קלנדרי (לפי שעון ישראל). פעולה שהיתרה לא מספיקה לה נעצרת עד תחילת החודש הבא. שאלה רגילה בצ׳אט על השימוש במערכת אינה נספרת.',
           'זמינות כיום: מסלול החינם ורכישת המנוי פעילים. את המנוי רוכשים בתוך החשבון, בחלון המסלולים, בכרטיס אשראי בדף תשלום מאובטח של ספק התשלום פיי פלוס (PayPlus).',
         ],
       },
@@ -90,7 +92,7 @@ export default function Terms({ isHebrew }) {
         id: 'open',
         title: '7. נושאים שטרם הוכרעו',
         // Owner console 2026-11-03 (typed approval incl. L-12, L-14): the one decided AI quota - quote from a file
-        content: 'הנושאים הבאים טרם הוכרעו ויפורסמו כשיוכרעו: מגבלות ההצעות במסלולים בתשלום; קבצים מצורפים; נפח אחסון; מכסות AI, למעט הצעת מחיר מקובץ: עד 50 קבצים בחודש, ועד 3 בשבעת הימים החינמיים; מיסוי מעבר לכלילת המע״מ במחירים בישראל; ומשך שמירת נתונים ומסמכים.',
+        content: 'הנושאים הבאים טרם הוכרעו ויפורסמו כשיוכרעו: מגבלות ההצעות במסלולים בתשלום; קבצים מצורפים; נפח אחסון; מיסוי מעבר לכלילת המע״מ במחירים בישראל; ומשך שמירת נתונים ומסמכים.',
       },
       {
         id: 'ip',
@@ -153,6 +155,8 @@ export default function Terms({ isHebrew }) {
         content: [
           'After the Free plan (10 quotes or 7 days, whichever ends first), the subscription is one package with every capability available in the Service, billed monthly or annually and renewing: 18.00 USD per month or 184.00 USD per year. Billing is always in USD; a price shown in your local currency is only an estimate. Quote presentation styles are not plans. Existing rights on an earlier plan are kept and do not change automatically.',
           'The Free plan includes 10 quotes in total or 7 days from sign-up, whichever ends first, and the SMART PACK add-on is included during those 7 days. A quote counts the first time it is saved with a client and at least one item; editing and saving it again does not count again. Producing the same version again for the same client, on any channel (sending it, sharing its public link, or its final PDF or print), does not count; changing the client, the recipient name or the quote content and producing it again counts as another quote. An empty draft and previews do not count, deleting a quote does not give one back, and existing documents stay accessible. Every paid plan includes 100 catalog products, and 100 more products cost 3.00 USD per month, only when you explicitly choose it.',
+          // Owner console 2026-11-06 (typed night-task approval incl. L-12): the SMART PACK usage meter
+          'The AI features of SMART PACK (a chat that reads your account data, voice, the AI smart quote and smart edit, quote from a file and Improve quote) are limited by a monthly usage allowance: what is left is shown as a percentage and renews at the start of each calendar month (Israel time). An action that what is left is not enough for stops until the start of the next month. A plain chat question about using the product does not count.',
           // Owner console 2026-11-01 (typed approval of the international purchase, L-14; decisions a and c): purchase open abroad, in USD
           'Availability today: the Free plan and subscription purchase are active. The subscription is bought inside the account, in the plans window, by card on a secure payment page of the payment provider PayPlus. Accounts outside Israel pay in USD, without Israeli VAT.',
         ],
@@ -179,7 +183,7 @@ export default function Terms({ isHebrew }) {
       {
         id: 'open',
         title: '7. Matters Not Yet Decided',
-        content: 'The following have not been decided yet and will be published once decided: quote limits of the paid plans; attachments; storage; AI quotas, except quote from a file: up to 50 files a month, and up to 3 during the 7 free days; and data and document retention periods.',
+        content: 'The following have not been decided yet and will be published once decided: quote limits of the paid plans; attachments; storage; and data and document retention periods.',
       },
       {
         id: 'ip',
