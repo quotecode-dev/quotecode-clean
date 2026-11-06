@@ -991,6 +991,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/utils/calcPosition.js": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/utils/calendarModel.js": {
     "interactive": 0,
     "markers": 0
@@ -1280,6 +1284,10 @@
     "markers": 0
   },
   "src/utils/smartPackUsage.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/smartPackUsageDays.js": {
     "interactive": 0,
     "markers": 0
   },

@@ -3,7 +3,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, act } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
-import DraggableCalculator, { clampCalcPos } from './components/DraggableCalculator';
+import DraggableCalculator from './components/DraggableCalculator';
+import { clampCalcPos } from './utils/calcPosition';
 
 afterEach(cleanup);
 

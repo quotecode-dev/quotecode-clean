@@ -6,7 +6,8 @@ import { readFileSync } from 'node:fs';
 
 const rpc = vi.fn();
 vi.mock('./shared/supabase', () => ({ supabase: { rpc: (...a) => rpc(...a) } }));
-const { default: AdminUserSmartPackUsage, usageDays } = await import('./components/AdminUserSmartPackUsage');
+const { default: AdminUserSmartPackUsage } = await import('./components/AdminUserSmartPackUsage');
+const { usageDays } = await import('./utils/smartPackUsageDays');
 
 afterEach(() => { cleanup(); rpc.mockReset(); });
 const DATA = { ok: true, month: '2026-11', smartPack: true, unlimited: false, budgetIls: 4, usedIls: 0.7, percentUsed: 17.5, percentLeft: 82, actions: 2,
