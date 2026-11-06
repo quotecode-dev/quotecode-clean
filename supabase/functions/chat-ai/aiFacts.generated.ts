@@ -1578,7 +1578,8 @@ export const AI_FACTS = {
         "steps": [
           "ברשימת \"הצעות מחיר\" מוצאים הצעה שעדיין לא נחתמה ולוחצים \"עריכה חכמה\" בשורת הפעולות של ההצעה.",
           "ההצעה נפתחת לעריכה וחלון ה-AI מכוון אליה ושואל מה להוסיף או לשנות בהצעה הזו. מתארים במילים, או מכתיבים בקול.",
-          "ה-AI מציע שורות. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה. מחיר מוצע רק לפריט שקיים בקטלוג, וכל פעולת AI נספרת מהמכסה החודשית.",
+          "ה-AI מציע שורות חדשות. בודקים, מתקנים ומאשרים, והשורות שבחרתם מתווספות להצעה. השורות שכבר בהצעה לא משתנות. מחיר מוצע רק לפריט שקיים בקטלוג.",
+          "כדי לשנות כמות או מחיר של שורה שכבר בהצעה, לוחצים בכרטיס הפריט \"עריכת מחיר וכמות\".",
           "הצעה שהלקוח כבר חתם עליה נעולה - הכפתור לא פעיל (\"לא ניתן לערוך הצעה חתומה\")."
         ]
       },
@@ -1587,8 +1588,32 @@ export const AI_FACTS = {
         "steps": [
           "In the \"Quotes\" list, find a quote that is not signed yet and click \"Smart edit\" in the quote's row actions.",
           "The quote opens for editing and the AI dialog is pointed at it, asking what to add or change in this quote. Describe it in words, or dictate by voice.",
-          "The AI suggests lines. Review, correct and approve before anything enters the quote. A price is suggested only for an item in your catalog, and each AI action counts against your monthly quota.",
+          "The AI suggests new lines. Review, correct and approve, and the lines you choose are added to the quote. Lines already in the quote do not change. A price is suggested only for an item in your catalog.",
+          "To change the quantity or the price of a line already in the quote, click \"Edit price and quantity\" on the item card.",
           "A quote the client has already signed is locked - the button is disabled (\"Cannot edit a signed quote\")."
+        ]
+      }
+    },
+    {
+      "id": "quote_item_price_quantity",
+      "capabilityIds": [
+        "quote_create",
+        "quote_edit"
+      ],
+      "he": {
+        "task": "שינוי כמות או מחיר של פריט בהצעה",
+        "steps": [
+          "בעורך ההצעה, בכרטיס הפריט, לוחצים \"עריכת מחיר וכמות\" (אותה פעולה נמצאת גם בתפריט \"פעולות נוספות\" של הפריט).",
+          "משנים את הכמות (מספר שלם או עשרוני, למשל 2.5) ואת המחיר. הסכום הצפוי לשורה מתעדכן מיד. לוחצים \"שמירה\" ואחר כך שומרים את ההצעה.",
+          "בפריט שמתומחר לפי שטח או אורך (מ״ר, מטר אורך) משנים את הכמות או את המידות בלחיצה על \"עריכה\" בכרטיס הפריט."
+        ]
+      },
+      "en": {
+        "task": "Changing the quantity or the price of an item in a quote",
+        "steps": [
+          "In the quote editor, on the item card, click \"Edit price and quantity\" (the same action is also in the item's \"More actions\" menu).",
+          "Change the quantity (a whole or decimal number, for example 2.5) and the price. The expected line total updates at once. Click \"Save\" and then save the quote.",
+          "For an item priced by area or length (m², linear meter) change the quantity or the measurements by clicking \"Edit\" on the item card."
         ]
       }
     },

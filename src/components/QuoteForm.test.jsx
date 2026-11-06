@@ -104,7 +104,7 @@ describe('QuoteForm - compact item card is the default for a real (non-blank) it
     // Compact: the description is shown as read-only text, not an editable input.
     expect(screen.getByText('Aluminum window')).toBeTruthy();
     expect(document.querySelector('input[value="Aluminum window"]')).toBeNull();
-    expect(screen.getByText('1.00 × $300.00')).toBeTruthy();
+    expect(screen.getByText('1 × $300.00')).toBeTruthy();
     // The card's own total is distinct from the (deliberately different, in
     // this fixture) footer subtotal/total - proves this is the card's own
     // total, not an accidental match against the totals footer below it.
@@ -577,7 +577,7 @@ describe('QuoteForm - consolidated actions menu', () => {
 describe('QuoteForm - Hebrew/RTL compact card', () => {
   it('renders the compact card correctly in Hebrew', () => {
     render(<QuoteForm {...baseProps({ isHebrew: true, sym: '₪' })} />);
-    expect(screen.getByText('1.00 × ₪300.00')).toBeTruthy();
+    expect(screen.getByText('1 × ₪300.00')).toBeTruthy();
   });
 });
 

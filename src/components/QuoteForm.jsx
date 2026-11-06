@@ -12,7 +12,7 @@ import QuotePresentationPanel from './quotePresentation/QuotePresentationPanel';
 import { calculateQuoteFinancials } from '../utils/regionConfig';
 import { formatMoneyForCurrency } from '../utils/money';
 import { formatQuoteFallback } from '../utils/quoteNumber';
-import { getProfessionalUnitLabel, getActiveQuantity, isProfessionalItem, isMeasurableUnit, withActiveQuantities, groupItemsBySection } from '../utils/professionalQuoteItem';
+import { getProfessionalUnitLabel, getActiveQuantity, isProfessionalItem, isMeasurableUnit, withActiveQuantities, groupItemsBySection, formatQuantity } from '../utils/professionalQuoteItem';
 import { computeItemWizardState } from '../utils/quoteWorkflowContext';
 import { isUntouchedPlaceholderItem } from '../utils/structuredQuoteItemPersistence';
 import { isUnfinishedQuoteForm } from '../utils/quoteCompleteness';
@@ -93,7 +93,6 @@ export default function QuoteForm({
   isLocalIsraeliBusiness,
   t,
   sym,
-  formatNum,
   formatMoneyDisplay,
   subtotal,
   discountAmount,
@@ -497,11 +496,13 @@ export default function QuoteForm({
     // Task 34 extension: an EMPTY price is a missing price ("enter a price"), never shown as a free line; an intentional 0 stays 0
     const priceMissing = item.unit_price === '' || item.unit_price == null;
     const priceText = priceMissing ? (isHebrew ? 'יש להזין מחיר' : 'Enter a price') : `${sym}${fmtMoney(item.unit_price)}`;
+    // Owner 2026-11-06 (release A): the quantity uses the shared quantity format (1, 2.5; area / length 3.40), never the money format
+    const qtyText = formatQuantity(activeQty, item.pricing_unit);
     const compactCalcSummary = isPro && isMeasurable
-      ? `${formatNum(activeQty)} ${unitPriceLabel} × ${priceText}`
+      ? `${qtyText} ${unitPriceLabel} × ${priceText}`
       : isPro && item.pricing_unit && item.pricing_unit !== 'unit'
-        ? `${formatNum(activeQty)} ${unitPriceLabel} × ${priceText}`
-        : `${formatNum(activeQty)} × ${priceText}`;
+        ? `${qtyText} ${unitPriceLabel} × ${priceText}`
+        : `${qtyText} × ${priceText}`;
     const compactHasSpec = Array.isArray(item.specification) && item.specification.length > 0;
     return (
       <CompactItemCard
@@ -511,6 +512,7 @@ export default function QuoteForm({
         total={priceMissing ? (isHebrew ? 'יש להזין מחיר' : 'Enter a price') : `${sym}${fmtMoney(activeQty * Number(item.unit_price || 0))}`}
         priceMissing={priceMissing}
         onEditPrice={() => { setOpenActionsMenu(null); setPriceEditIndex(index); }}
+        editPriceWithQuantity={!isMeasurable}
         hasSpec={compactHasSpec}
         sectionName={null}
         onExpand={() => openEditWizard(index)}
@@ -652,9 +654,23 @@ export default function QuoteForm({
           isHebrew={isHebrew}
           sym={sym}
           fmtMoney={fmtMoney}
-          formatNum={formatNum}
           onCancel={() => setPriceEditIndex(null)}
-          onSave={(price) => { handleItemChange(priceEditIndex, 'unit_price', price); setPriceEditIndex(null); }}
+          onSave={(price, quantity) => {
+            const index = priceEditIndex;
+            if (quantity === undefined) {
+              handleItemChange(index, 'unit_price', price);
+            } else {
+              // Owner 2026-11-06 (release A): the price and a changed quantity of an item that is not measured, in ONE update - a line that
+              // already carries its real amount in calculated_quantity (a fractional / AI count) keeps it there, any other line updates
+              // quantity (a fractional value is stored by withPersistableQuantity at save, exactly as the item window does)
+              setItems((prev) => prev.map((it, i) => {
+                if (i !== index) return it;
+                const carriesCalculated = it.calculated_quantity !== undefined && it.calculated_quantity !== null && it.calculated_quantity !== '';
+                return carriesCalculated ? { ...it, unit_price: price, calculated_quantity: quantity } : { ...it, unit_price: price, quantity: String(quantity) };
+              }));
+            }
+            setPriceEditIndex(null);
+          }}
         />
       )}
       <AddItemWizard
@@ -1566,7 +1582,7 @@ export default function QuoteForm({
 function CompactItemCard({
   isHebrew, name, calcSummary, total, hasSpec, sectionName,
   onExpand, menuOpen, onToggleMenu, onEdit, onDuplicate, canDuplicate, duplicateLocked,
-  sections, currentSectionKey, onMoveSection, onDelete, canDelete, onEditPrice = null, priceMissing = false,
+  sections, currentSectionKey, onMoveSection, onDelete, canDelete, onEditPrice = null, editPriceWithQuantity = false, priceMissing = false,
 }) {
   const [movingSectionOpen, setMovingSectionOpen] = useState(false);
   const triggerRef = useRef(null);
@@ -1638,10 +1654,10 @@ function CompactItemCard({
           <div style={{ fontWeight: '700', color: NEON.textPrimary, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '2px' }}>
             <span style={{ fontSize: '0.75rem', color: priceMissing ? (NEON.amber || NEON.textSecondary) : NEON.textSecondary, fontWeight: priceMissing ? 600 : 400 }}>{calcSummary}</span>
-            {/* PRODUCT_TRUTH_DECORATIVE: Task 34 - opens the per-item Edit price dialog (only the unit price changes; quantity / unit / source kept) */}
+            {/* PRODUCT_TRUTH_DECORATIVE: Task 34 - opens the per-item Edit price dialog (the unit price, and the quantity of an item that is not measured; unit / source kept) */}
             {onEditPrice && (
               <button type="button" data-testid="item-edit-price" onClick={onEditPrice} style={{ background: 'none', border: 'none', padding: '6px 2px', minHeight: '32px', cursor: 'pointer', color: NEON.violetLight, fontSize: '0.75rem', fontWeight: 700, textDecoration: 'underline' }}>
-                {isHebrew ? 'עריכת מחיר' : 'Edit price'}
+                {editPriceWithQuantity ? (isHebrew ? 'עריכת מחיר וכמות' : 'Edit price and quantity') : (isHebrew ? 'עריכת מחיר' : 'Edit price')}
               </button>
             )}
             {hasSpec && <CardBadge icon={<Paperclip size={10} />} label={isHebrew ? 'פרטים' : 'Details'} />}
@@ -1681,7 +1697,7 @@ function CompactItemCard({
               {/* PRODUCT_TRUTH_DECORATIVE: 'Edit' entry in the item actions menu; same destination as the Edit button above */}
               <MenuItem icon={<Pencil size={13} />} label={isHebrew ? 'עריכה' : 'Edit'} onClick={onEdit} />
               {/* PRODUCT_TRUTH_DECORATIVE: Task 34 - the same Edit price dialog from the item actions menu */}
-              {onEditPrice && <MenuItem icon={<Pencil size={13} />} label={isHebrew ? 'עריכת מחיר' : 'Edit price'} onClick={onEditPrice} />}
+              {onEditPrice && <MenuItem icon={<Pencil size={13} />} label={editPriceWithQuantity ? (isHebrew ? 'עריכת מחיר וכמות' : 'Edit price and quantity') : (isHebrew ? 'עריכת מחיר' : 'Edit price')} onClick={onEditPrice} />}
               {canDuplicate && (
                 <MenuItem
                   icon={duplicateLocked ? <Lock size={13} /> : <CopyPlus size={13} />}
