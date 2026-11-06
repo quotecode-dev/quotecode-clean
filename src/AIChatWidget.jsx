@@ -25,7 +25,7 @@ import { formatQuoteFallback } from './utils/quoteNumber';
 import AiChatIcon from './components/AiChatIcon';
 import TekangoAiIcon from './components/TekangoAiIcon';
 import { imageFromClipboard, imageFileToDataUrl, SCREENSHOT_COPY } from './utils/chatScreenshot';
-import { VOICE_COPY, VOICE_MODES, MAX_RECORD_SECONDS, readVoiceMode, saveVoiceMode, readVoiceDisclosed, saveVoiceDisclosed, pickRecorderMime, voiceSupported, blobToBase64, base64ToBlob } from './utils/voiceAssistant';
+import { VOICE_COPY, VOICE_MODES, MAX_RECORD_SECONDS, readVoiceMode, saveVoiceMode, readVoiceDisclosed, saveVoiceDisclosed, pickRecorderMime, voiceSupported, blobToBase64, base64ToBlob, voiceRefusalOf } from './utils/voiceAssistant';
 
 // Dynamic Compact Guided Buttons task: one small, purely-decorative icon
 // per top-level group (Section 7's own "small relevant icon" requirement).
@@ -742,7 +742,8 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
     try {
       const { data, error } = await supabase.functions.invoke('voice-ai', { body: { mode: 'speak', text } });
       // Owner 2026-10-20 (typed L-17 approval): 403 = voice is SMART PACK (the plan system is enforced)
-      if (error) { if (error?.context?.status === 429) addVoiceNote(voiceCopy.limit); else if (error?.context?.status === 403) addSmartPackNote(); return; }
+      // Owner 2026-11-06: 403 budget_exhausted = the month's SMART PACK usage is used up (the usage meter)
+      if (error) { const why = await voiceRefusalOf(error); if (why === 'limit') addVoiceNote(voiceCopy.limit); else if (why === 'smart_pack') addSmartPackNote(); return; }
       if (!data?.ok || !data.audio) return;
       stopPlayback();
       const url = URL.createObjectURL(base64ToBlob(data.audio, data.mime || 'audio/mpeg'));
@@ -773,7 +774,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
       try {
         const audio = await blobToBase64(blob);
         const { data, error } = await supabase.functions.invoke('voice-ai', { body: { mode: 'transcribe', audio, mime: blob.type } });
-        if (error) { if (error?.context?.status === 403) addSmartPackNote(); else addVoiceNote(error?.context?.status === 429 ? voiceCopy.limit : voiceCopy.failed); return; }
+        if (error) { const why = await voiceRefusalOf(error); if (why === 'smart_pack') addSmartPackNote(); else addVoiceNote(why === 'limit' ? voiceCopy.limit : voiceCopy.failed); return; }
         const text = data?.ok ? String(data.text || '').trim() : '';
         if (!text) { addVoiceNote(voiceCopy.failed); return; }
         await sendTextRef.current?.(text);

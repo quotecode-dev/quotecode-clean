@@ -7,6 +7,9 @@
 // The answer goes back to the owner's review screen only; the source prices never enter a quote.
 
 import { QUOTE_UNITS } from '../_shared/quoteUnits.js';
+// Owner console 2026-11-06 (typed night-task approval, the SMART PACK usage meter): every read is metered on top of its claim (the count
+// of 50 / 3 reads is lifted - the meter decides); the real cost of the provider usage is counted, a call the provider never answered is not
+import { tokenCostUsdMicros, BUDGET_EXHAUSTED, type MeterClaim } from '../_shared/usageMeter.ts';
 export const MAX_FILE_BYTES = 8 * 1024 * 1024;
 export const MAX_PAGES = 5;
 export const MAX_LINES = 30;
@@ -17,7 +20,7 @@ export const UNITS = [...QUOTE_UNITS]; // = DRAFT_UNITS / PROFESSIONAL_UNITS ids
 export const CONTENT_TYPES: Readonly<Record<string, 'pdf' | 'jpg'>> = Object.freeze({ 'application/pdf': 'pdf', 'image/jpeg': 'jpg' });
 
 export type FileKind = 'pdf' | 'jpg';
-export type Usage = { model: string; promptTokens: number | null; completionTokens: number | null; providerMs: number | null };
+export type Usage = { model: string; promptTokens: number | null; completionTokens: number | null; providerMs: number | null; cachedTokens?: number | null };
 export type ReadLine = { description: string; quantity: number | null; unit: string | null; unitPrice: number | null; lineTotal: number | null };
 
 /** The real type from the first bytes (never the name or the declared type alone). */
@@ -153,6 +156,10 @@ export interface HandlerDeps {
   claim(): Promise<ClaimAnswer>;
   /** quote_file_read_finish (service role): ok = counted, else given back */
   finish(claimId: string, ok: boolean, usage: Usage | null): Promise<Record<string, unknown> | null>;
+  /** the SMART PACK usage meter: hold the read's maximum cost with the CALLER's token (smart_pack_usage_claim) */
+  meterClaim(): Promise<MeterClaim>;
+  /** the SMART PACK usage meter (service role): ok = the real cost of the usage is counted, else given back */
+  meterFinish(claimId: string, ok: boolean, usage: Usage | null): Promise<void>;
   /** the request body, read with the byte cap; null = larger than the cap */
   readBody(max: number): Promise<Uint8Array | null>;
   /** ONE provider call, no retry, no fallback model */
@@ -161,8 +168,14 @@ export interface HandlerDeps {
 }
 
 const CLAIM_STATUS: Readonly<Record<string, number>> = Object.freeze({
-  smart_pack_required: 403, quota_exhausted: 429, too_many_failures: 429, in_progress: 409,
+  smart_pack_required: 403, quota_exhausted: 429, too_many_failures: 429, in_progress: 409, [BUDGET_EXHAUSTED]: 403,
 });
+
+/** micro-USD of one read at the model's real prices (the meter); the cost view keeps its own conservative estimate (costMicros) */
+export function meterCostUsdMicros(u: Usage | null): number {
+  if (!u) return 0;
+  return tokenCostUsdMicros({ model: u.model, promptTokens: u.promptTokens ?? 0, cachedTokens: u.cachedTokens ?? 0, completionTokens: u.completionTokens ?? 0 });
+}
 
 /** The whole request after the method check: auth -> allowance -> capped body -> type / size / pages -> one provider call -> validate. */
 export async function handleQuoteFromFile(deps: HandlerDeps, req: { contentType: string | null; contentLength: number | null }):
@@ -174,9 +187,26 @@ export async function handleQuoteFromFile(deps: HandlerDeps, req: { contentType:
   try { userId = await deps.userId(); } catch { userId = null; }
   if (!userId) return { status: 401, body: { ok: false, code: 'unauthenticated' } };
 
+  // the SMART PACK usage meter FIRST: refused (not enough left / no SMART PACK / unreadable) = nothing else happens, and the read's own
+  // claim is never touched (a meter refusal is not a failed read - it never counts towards "too many failures today")
+  let meter: MeterClaim;
+  try { meter = await deps.meterClaim(); } catch { meter = { ok: false, code: 'meter_unavailable' }; }
+  if (!meter.ok) {
+    const code = meter.code === BUDGET_EXHAUSTED || meter.code === 'smart_pack_required' ? meter.code : 'unavailable';
+    return { status: CLAIM_STATUS[code] ?? 503, body: { ok: false, code, status: null } };
+  }
+  const meterId = meter.claimId;
+  let metered = false;
+  const meterDone = async (ok: boolean, usage: Usage | null) => {
+    if (metered) return;
+    metered = true;
+    try { await deps.meterFinish(meterId, ok, usage); } catch { deps.onIncident?.('meter_finish_failed'); }
+  };
+
   let claim: ClaimAnswer;
-  try { claim = await deps.claim(); } catch { return { status: 503, body: { ok: false, code: 'unavailable' } }; }
+  try { claim = await deps.claim(); } catch { await meterDone(false, null); return { status: 503, body: { ok: false, code: 'unavailable' } }; }
   if (!claim?.ok || typeof claim.claimId !== 'string') {
+    await meterDone(false, null);
     const code = typeof claim?.code === 'string' && CLAIM_STATUS[claim.code] ? claim.code : 'unavailable';
     return { status: CLAIM_STATUS[code] ?? 503, body: { ok: false, code, status: claim?.status ?? null } };
   }
@@ -189,22 +219,27 @@ export async function handleQuoteFromFile(deps: HandlerDeps, req: { contentType:
 
   let bytes: Uint8Array | null = null;
   try {
-    try { bytes = await deps.readBody(MAX_FILE_BYTES); } catch { return await giveBack(400, 'invalid_request'); }
-    if (!bytes) return await giveBack(413, 'too_large');
+    try { bytes = await deps.readBody(MAX_FILE_BYTES); } catch { await meterDone(false, null); return await giveBack(400, 'invalid_request'); }
+    if (!bytes) { await meterDone(false, null); return await giveBack(413, 'too_large'); }
     const kind = sniffKind(bytes);
-    if (!kind || kind !== kindDeclared) return await giveBack(415, 'unsupported_type');
+    if (!kind || kind !== kindDeclared) { await meterDone(false, null); return await giveBack(415, 'unsupported_type'); }
     if (kind === 'pdf') {
       const pages = pdfPageCount(bytes);
-      if (pages !== null && pages > MAX_PAGES) return await giveBack(413, 'too_many_pages');
+      if (pages !== null && pages > MAX_PAGES) { await meterDone(false, null); return await giveBack(413, 'too_many_pages'); }
     }
     let answer: { content: string; usage: Usage };
     try {
       answer = await deps.complete(buildMessages(kind, toBase64(bytes)));
-    } catch {
-      return await giveBack(502, 'provider_failure', { model: FILE_MODEL, promptTokens: null, completionTokens: null, providerMs: null });
+    } catch (e) {
+      // an answer the provider gave but that cannot be used (cut / refused) still cost the call: counted; no answer at all: given back
+      const answered = (e as { usage?: Usage } | null)?.usage ?? null;
+      await meterDone(!!answered, answered);
+      return await giveBack(502, 'provider_failure', answered ?? { model: FILE_MODEL, promptTokens: null, completionTokens: null, providerMs: null });
     } finally {
       bytes = null;
     }
+    // the provider answered: its real cost is counted (an unusable answer still cost the call)
+    await meterDone(true, answer.usage);
     const v = validateExtraction(answer.content);
     if (!v.ok) return await giveBack(422, v.code, answer.usage);
     let fin: Record<string, unknown> | null = null;

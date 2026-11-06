@@ -102,9 +102,11 @@ import { SaveTemplateDialog, TemplatePickerDialog } from '../components/QuoteTem
 import { matchesQuoteFilter } from '../utils/quoteStatusDisplay';
 import { templateToFormState, templateCurrencyMismatch, templateCurrencyUnknown, withoutPrices, templatePriceBasis, clientTypeForPriceBasis } from '../utils/quoteTemplates';
 import AiQuoteDraftDialog from '../components/AiQuoteDraftDialog';
-import { requestAiQuoteDraft, draftLinesToQuoteItems } from '../utils/aiQuoteDraftClient';
+import { requestAiQuoteDraft, draftLinesToQuoteItems, aiQuoteSnapshot, applyDraftUpdateToItem, applyDraftNotes } from '../utils/aiQuoteDraftClient';
 import QuoteFromFileDialog from '../components/QuoteFromFileDialog';
 import { requestQuoteFromFile, readQuoteFileAllowance } from '../utils/quoteFromFileClient';
+// Owner console 2026-11-06 (typed night-task approval): the SMART PACK usage line in the AI smart quote / smart edit window
+import { fetchSmartPackUsage } from '../utils/smartPackUsage';
 import { buildQuoteDraftSnapshot } from '../utils/quoteDraftSnapshot';
 import { isUntouchedPlaceholderItem } from '../utils/structuredQuoteItemPersistence';
 import SidebarAccountMenu from '../components/SidebarAccountMenu';
@@ -152,6 +154,8 @@ import { buildShareText } from '../../supabase/functions/_shared/shareMessage.js
 // amount goes through formatMoneyDisplay (defined in the component, currency-keyed) ->
 // utils/money.js formatMoneyForCurrency: ILS => whole shekel half-up ".00"; others full precision.
 const formatNum = (val) => formatMoney(val);
+// Owner console 2026-11-06 (typed night-task approval): the caller's own SMART PACK usage (one stable reader for the windows that show it)
+const readSmartPackUsage = () => fetchSmartPackUsage(supabase);
 const UUID_V4_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 // The server's two "free plan ended" refusals (10 quotes used, or the 7 free days ended - Owner 2026-10-20): both open the upgrade window
 const FREE10_END_CODES = new Set(['free_issue_limit_reached', 'free_period_ended']);
@@ -3954,6 +3958,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   // open the smart-quote AI dialog pointed at it (the dialog's edit copy names the quote and adds the AI's lines to it). A signed /
   // approved quote is immutable: handleEditClick shows the blocker and no dialog opens.
   const handleAiEditClick = async (quote) => {
+    // L-05 (Owner console 2026-10-25; release B 2026-11-06): SMART PACK is checked at the click, before the quote or the dialog opens
+    if (!smartPackAllowed) { setLockedCapability('smart_pack'); return; }
     if (isQuoteImmutable(quote)) { handleEditClick(quote); return; }
     await handleEditClick(quote);
     setShowAiQuoteDraft(true);
@@ -4124,9 +4130,35 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   };
   // The user's explicit "add to quote" in the AI draft dialog: the chosen lines join the form's real items (the untouched blank row is
   // replaced, as handleAddFromCatalog does), and the suggested subject fills the subject only while it is still empty. Nothing is saved.
-  const applyAiQuoteDraft = (lines, subject) => {
+  // Owner console 2026-11-06 (release B): the open quote the AI may change - taken when the request is sent (its lines by ref, never a
+  // price), kept to apply the reviewed changes to exactly those lines
+  const aiSnapshotRef = useRef({ real: [] });
+  const [aiCurrentQuote, setAiCurrentQuote] = useState(null);
+  const requestAiDraftForForm = (description) => {
+    const s = aiQuoteSnapshot(items, notes, discount, (it) => !isUntouchedPlaceholderItem(it) && !it._localExample);
+    aiSnapshotRef.current = s;
+    setAiCurrentQuote(s.empty ? null : s.snapshot);
+    return requestAiQuoteDraft(supabase, description, s.empty ? {} : { quote: s.snapshot });
+  };
+  const applyAiQuoteDraft = (lines, subject, changes = []) => {
     const drafted = draftLinesToQuoteItems(lines);
-    setItems((prev) => [...prev.filter((it) => !isUntouchedPlaceholderItem(it)), ...drafted]);
+    const real = aiSnapshotRef.current?.real || [];
+    const updates = new Map(); const deletes = new Set();
+    for (const ch of changes) {
+      const target = real[ch.ref - 1];
+      if (!target) continue;
+      if (ch.kind === 'update') updates.set(target, ch);
+      if (ch.kind === 'delete') deletes.add(target);
+    }
+    setItems((prev) => {
+      const kept = prev.filter((it) => !deletes.has(it)).map((it) => (updates.has(it) ? applyDraftUpdateToItem(it, updates.get(it)) : it));
+      const next = [...kept.filter((it) => !isUntouchedPlaceholderItem(it)), ...drafted];
+      return next.length ? next : [{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }];
+    });
+    const notesChange = changes.find((ch) => ch.kind === 'notes');
+    if (notesChange) setNotes((prev) => applyDraftNotes(prev, notesChange));
+    const discountChange = changes.find((ch) => ch.kind === 'discount');
+    if (discountChange) setDiscount(String(discountChange.percent));
     if (subject) setQuoteSubject((prev) => (String(prev || '').trim() ? prev : subject));
     setShowAiQuoteDraft(false);
   };
@@ -8070,6 +8102,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         isHebrew={isHebrew} 
         isLocalIsraeliBusiness={isLocalIsraeliBusiness} 
         accountSummary={accountSummary}
+        readUsage={readSmartPackUsage}
         isLifetime={isLifetimeAccount}
         // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #17: the account currency reaches the plans window again (the EUR / GBP estimate line)
         currency={currency}
@@ -8979,8 +9012,10 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               isHebrew={isHebrew}
               sym={sym}
               formatMoneyDisplay={formatMoneyDisplay}
-              requestDraft={(description) => requestAiQuoteDraft(supabase, description)}
+              requestDraft={requestAiDraftForForm}
+              currentQuote={aiCurrentQuote}
               transcribe={(blob) => transcribeRecording(supabase, blob)}
+              readUsage={readSmartPackUsage}
               onOpenChat={openAiChat}
               onClose={() => setShowAiQuoteDraft(false)}
               onApply={applyAiQuoteDraft}

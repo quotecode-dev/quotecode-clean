@@ -7,6 +7,11 @@
 BEGIN;
 SELECT tst.seed();
 
+-- 20261106100000 (Owner 2026-11-06, the SMART PACK usage meter): Production no longer limits the checks by count
+-- (customer_twin_monthly_limit() = 1,000,000, proved in 466). The count mechanics below (monthly first, then purchased checks, the
+-- cache, in-progress, refunds) are unchanged and still proven here at the original 20 - inside this rolled-back transaction only.
+CREATE OR REPLACE FUNCTION public.customer_twin_monthly_limit() RETURNS integer LANGUAGE sql IMMUTABLE SET search_path = pg_catalog, pg_temp AS $function$ SELECT 20 $function$;
+
 CREATE OR REPLACE FUNCTION tst.tsvc() RETURNS void LANGUAGE plpgsql AS $$
 BEGIN
   PERFORM set_config('request.jwt.claims', json_build_object('role', 'service_role')::text, false);

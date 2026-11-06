@@ -7,7 +7,7 @@
 // credential-free `no-cors` GET of the same URL tells "the server answered (the service itself did not)" apart from "no answer at all".
 // That check carries no Authorization header, no body and no cookies; a deployed ai-quote-draft rejects it (JWT required / POST only).
 import { sanitizeDraftResponse, validateDraftRequest } from '../../supabase/functions/_shared/aiQuoteDraft.js';
-import { isMeasurableUnit, resolveCalculationMethod } from './professionalQuoteItem';
+import { isMeasurableUnit, resolveCalculationMethod, getActiveQuantity } from './professionalQuoteItem';
 
 export const AI_QUOTE_DRAFT_FUNCTION = 'ai-quote-draft';
 
@@ -50,6 +50,8 @@ export async function classifyDraftError(error, { functionUrl = null, fetchImpl,
   if (name === 'FunctionsRelayError') return 'server_error';
   // Owner 2026-10-20 (typed L-17 approval): the AI smart quote is SMART PACK once the plan system is enforced
   if (status === 403 && code === 'smart_pack_required') return 'smart_pack_required';
+  // Owner console 2026-11-06 (typed night-task approval): the month's SMART PACK usage is used up (the usage meter)
+  if (status === 403 && code === 'budget_exhausted') return 'budget_exhausted';
   if (status === 401 || status === 403) return 'unauthenticated';
   if (status === 409 && code === 'market_unresolved') return 'market_unresolved';
   if (status === 422) return 'no_items';
@@ -66,13 +68,15 @@ export function draftFunctionUrl(supabase) {
   return typeof base === 'string' && base ? `${base.replace(/\/+$/, '')}/${AI_QUOTE_DRAFT_FUNCTION}` : null;
 }
 
-// Resolves to { status: 'ok', subject, items } or { status: <closed failure code> }. Never throws.
-export async function requestAiQuoteDraft(supabase, description, { fetchImpl } = {}) {
-  const checked = validateDraftRequest({ description });
+// Resolves to { status: 'ok', subject, items, changes } or { status: <closed failure code> }. Never throws.
+// Owner console 2026-11-06 (release B): + quote = the open quote (lines, notes, discount - never a price) so the AI can change it
+export async function requestAiQuoteDraft(supabase, description, { fetchImpl, quote = null } = {}) {
+  const checked = validateDraftRequest(quote ? { description, quote } : { description });
   if (!checked.ok) return { status: 'invalid' };
   const functionUrl = draftFunctionUrl(supabase);
   try {
-    const { data, error } = await supabase.functions.invoke(AI_QUOTE_DRAFT_FUNCTION, { body: { description: checked.value.description } });
+    const body = checked.value.quote ? { description: checked.value.description, quote: checked.value.quote } : { description: checked.value.description };
+    const { data, error } = await supabase.functions.invoke(AI_QUOTE_DRAFT_FUNCTION, { body });
     if (error) return { status: await classifyDraftError(error, { functionUrl, fetchImpl, descriptionLength: checked.value.description.length }) };
     const draft = sanitizeDraftResponse(data);
     return draft ? { status: 'ok', ...draft } : { status: 'failed' };
@@ -108,4 +112,55 @@ export function draftLinesToQuoteItems(lines) {
       ...(isMeasurableUnit(line.unit) ? { measurements: [] } : {}),
     };
   });
+}
+
+// Owner console 2026-11-06 (typed night-task approval; release B - "הצעה חכמה" and "עריכה חכמה" handle every section): the open quote
+// the AI may see and change. ONLY real lines (an untouched placeholder or the local example is never sent); NO price is sent - the
+// prices stay in the form (the dialog shows them from here, the model never sees them). refs = the position of each real line.
+export function aiQuoteSnapshot(items, notes, discount, isRealItem = () => true) {
+  const real = (Array.isArray(items) ? items : []).filter((it) => it && isRealItem(it));
+  const d = Number(discount);
+  const snapshot = {
+    items: real.map((it, i) => ({
+      ref: i + 1, description: String(it.description || ''), quantity: getActiveQuantity(it) || null, unit: it.pricing_unit || null,
+      unitPrice: it.unit_price === '' || it.unit_price == null ? null : Number(it.unit_price),
+    })),
+    notes: String(notes || ''),
+    discountPercent: Number.isFinite(d) && d > 0 ? d : 0,
+  };
+  return { snapshot, real, empty: real.length === 0 && !snapshot.notes.trim() && !snapshot.discountPercent };
+}
+
+/** one reviewed change applied to ONE form item - the same item shapes the item window and the quick dialog store */
+export function applyDraftUpdateToItem(item, update) {
+  let next = { ...item };
+  if (update.description) next.description = update.description;
+  if (update.unitPrice != null) next.unit_price = String(update.unitPrice);
+  if (update.quantity != null) {
+    const q = Number(update.quantity);
+    const unit = update.unit && update.unit !== (item.pricing_unit || 'unit') ? update.unit : null;
+    if (unit) {
+      // another unit: the line takes the unit's own shape (as a drafted line of that unit), its price and description kept
+      const shaped = draftLinesToQuoteItems([{ description: next.description, quantity: q, unit, unitPrice: null, catalogId: null }])[0];
+      next = { ...next, ...shaped, description: next.description, unit_price: next.unit_price, isFromCatalog: item.isFromCatalog };
+      if (unit === 'unit') { delete next.pricing_unit; delete next.calculated_quantity; delete next.quantity_source; delete next.calculation_method; }
+    } else if (isMeasurableUnit(item.pricing_unit)) {
+      // a measured line: the stated amount overrides the measurements (as the item window's manual override)
+      next = { ...next, calculated_quantity: q, quantity_source: 'manual', calculation_method: 'manual' };
+    } else if (item.calculated_quantity !== undefined && item.calculated_quantity !== null && item.calculated_quantity !== '') {
+      next.calculated_quantity = q;
+    } else {
+      next.quantity = String(q);
+    }
+  }
+  return next;
+}
+
+/** the notes after a reviewed notes change */
+export function applyDraftNotes(current, notes) {
+  if (!notes) return current;
+  if (notes.action === 'clear') return '';
+  if (notes.action === 'replace') return notes.text;
+  const prev = String(current || '').trimEnd();
+  return prev ? `${prev}\n${notes.text}` : notes.text;
 }

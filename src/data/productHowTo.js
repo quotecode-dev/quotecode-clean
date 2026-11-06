@@ -195,9 +195,9 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: 'עריכה חכמה',
       steps: [
         'ברשימת "הצעות מחיר" מוצאים הצעה שעדיין לא נחתמה ולוחצים "עריכה חכמה" בשורת הפעולות של ההצעה.',
-        'ההצעה נפתחת לעריכה וחלון ה-AI מכוון אליה ושואל מה להוסיף או לשנות בהצעה הזו. מתארים במילים, או מכתיבים בקול.',
-        'ה-AI מציע שורות חדשות. בודקים, מתקנים ומאשרים, והשורות שבחרתם מתווספות להצעה. השורות שכבר בהצעה לא משתנות. מחיר מוצע רק לפריט שקיים בקטלוג.',
-        'כדי לשנות כמות או מחיר של שורה שכבר בהצעה, לוחצים בכרטיס הפריט "עריכת מחיר וכמות".',
+        'ההצעה נפתחת לעריכה וחלון ה-AI מכוון אליה. מתארים במילים, או מכתיבים בקול, מה להוסיף, לשנות או למחוק - שורות, כמויות, מחירים, הערות או הנחה.',
+        'ה-AI מציע את השינויים בהצעה ואת השורות החדשות. בודקים, מסמנים את מה שמתאים ולוחצים "החלת השינויים בהצעה". מחיר משתנה רק כשכתבתם אותו בבקשה, ושום דבר לא נשמר עד ששומרים את ההצעה.',
+        'אפשר גם לשנות כמות או מחיר של שורה ידנית: בכרטיס הפריט לוחצים "עריכת מחיר וכמות".',
         'הצעה שהלקוח כבר חתם עליה נעולה - הכפתור לא פעיל ("לא ניתן לערוך הצעה חתומה").',
       ],
     },
@@ -205,15 +205,17 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: 'Smart edit',
       steps: [
         'In the "Quotes" list, find a quote that is not signed yet and click "Smart edit" in the quote\'s row actions.',
-        'The quote opens for editing and the AI dialog is pointed at it, asking what to add or change in this quote. Describe it in words, or dictate by voice.',
-        'The AI suggests new lines. Review, correct and approve, and the lines you choose are added to the quote. Lines already in the quote do not change. A price is suggested only for an item in your catalog.',
-        'To change the quantity or the price of a line already in the quote, click "Edit price and quantity" on the item card.',
+        'The quote opens for editing and the AI dialog is pointed at it. Describe in words, or dictate by voice, what to add, change or remove - lines, quantities, prices, notes or a discount.',
+        'The AI suggests the changes to the quote and any new lines. Review, tick what fits and click "Apply the changes to the quote". A price changes only when you wrote it in the request, and nothing is saved until you save the quote.',
+        'You can also change a line\'s quantity or price by hand: click "Edit price and quantity" on the item card.',
         'A quote the client has already signed is locked - the button is disabled ("Cannot edit a signed quote").',
       ],
     },
     evidence: [
       { file: 'src/components/QuotesTab.jsx', labels: ['עריכה חכמה', 'Smart edit', 'לא ניתן לערוך הצעה חתומה', 'Cannot edit a signed quote'] },
       { file: 'src/components/QuoteForm.jsx', labels: ['עריכת מחיר וכמות', 'Edit price and quantity'] },
+      // Owner console 2026-11-06 (release B): the smart edit applies the reviewed changes
+      { file: 'src/components/AiQuoteDraftDialog.jsx', labels: ['החלת השינויים בהצעה', 'Apply the changes to the quote'] },
     ],
   },
   // Owner console 2026-11-06 (typed L-09 / L-14 / L-17 / L-24 / L-27 approval, release A): the quick dialog edits the quantity too

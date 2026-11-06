@@ -4,6 +4,8 @@
 -- SMART PACK (and for everyone while the plan system is inert), the 51st refused without using anything; one read in flight; a failed
 -- read is given back; a stale read is given back after 10 minutes; the free 7 days give 3; without SMART PACK nothing; finishing is the
 -- service role's only.
+-- 20261106100000 (Owner 2026-11-06, the SMART PACK usage meter): the count limit is lifted - the 50 / 3 reads are no longer a cap (the
+-- meter decides, proved in 466); everything else here (one in flight, give-back, stale, SMART PACK) is unchanged.
 BEGIN;
 SELECT tst.seed();
 
@@ -48,9 +50,9 @@ END $$;
 
 -- ------------------------------------------------------------------------------------- T1. inert plan system: 50 a month for everyone
 SELECT tst.login('00000000-0000-4000-8000-00000000000a');
-SELECT tst.ok(public.quote_file_read_status() @> '{"ok":true,"smartPack":true,"limit":50,"used":0,"remaining":50}'::jsonb
+SELECT tst.ok(public.quote_file_read_status() @> '{"ok":true,"smartPack":true,"limit":1000000,"used":0,"remaining":1000000}'::jsonb
           AND public.quote_file_read_status() ->> 'period' ~ '^[0-9]{4}-[0-9]{2}$',
-  'T1 inert plan system: the account counts as SMART PACK - 50 of 50 this month');
+  'T1 inert plan system: the account counts as SMART PACK - no count limit this month');
 SELECT tst.logout();
 DO $$
 DECLARE r jsonb; c jsonb; i integer;
@@ -71,10 +73,10 @@ BEGIN
   PERFORM tst.ok((public.quote_file_read_status() ->> 'used')::int = 0, 'T3 a failed read is given back (0 used)');
   PERFORM tst.logout();
   FOR i IN 1..50 LOOP r := tst.fread('00000000-0000-4000-8000-00000000000a'); END LOOP;
-  PERFORM tst.ok((r ->> 'ok')::boolean AND (r -> 'status' ->> 'remaining')::int = 0, 'T4 the 50th read of the month uses the last one');
+  PERFORM tst.ok((r ->> 'ok')::boolean AND (r -> 'status' ->> 'used')::int = 50, 'T4 50 reads in a month are counted');
   r := tst.fread('00000000-0000-4000-8000-00000000000a');
-  PERFORM tst.ok(NOT (r ->> 'ok')::boolean AND r ->> 'code' = 'quota_exhausted' AND (r -> 'status' ->> 'used')::int = 50,
-    'T4b the 51st is refused (quota_exhausted) and uses nothing');
+  PERFORM tst.ok((r ->> 'ok')::boolean AND (r -> 'status' ->> 'used')::int = 51,
+    'T4b the 51st is no longer refused - the count limit is lifted (the SMART PACK usage meter decides)');
 END $$;
 
 -- ------------------------------------------------------------------------------------- T5. a stale read is given back after 10 minutes
@@ -101,16 +103,16 @@ UPDATE public.account_entitlements SET free_window_starts_at = now() - interval 
  WHERE user_id = '00000000-0000-4000-8000-00000000000c';
 SELECT set_config('session_replication_role', 'origin', true);
 SELECT tst.login('00000000-0000-4000-8000-00000000000c');
-SELECT tst.ok(public.quote_file_read_status() @> '{"smartPack":true,"period":"free","limit":3,"remaining":3}'::jsonb,
-  'T6 the free 7 days (SMART PACK included): 3 reads in the whole window');
+SELECT tst.ok(public.quote_file_read_status() @> '{"smartPack":true,"period":"free","limit":1000000,"remaining":1000000}'::jsonb,
+  'T6 the free 7 days (SMART PACK included): its own period, no count limit');
 SELECT tst.logout();
 DO $$
 DECLARE r jsonb; i integer;
 BEGIN
   FOR i IN 1..3 LOOP r := tst.fread('00000000-0000-4000-8000-00000000000c'); END LOOP;
-  PERFORM tst.ok((r ->> 'ok')::boolean AND (r -> 'status' ->> 'remaining')::int = 0, 'T6b the 3rd read in the free days is the last one');
+  PERFORM tst.ok((r ->> 'ok')::boolean AND (r -> 'status' ->> 'used')::int = 3, 'T6b 3 reads in the free days are counted');
   r := tst.fread('00000000-0000-4000-8000-00000000000c');
-  PERFORM tst.ok(r ->> 'code' = 'quota_exhausted', 'T6c the 4th is refused');
+  PERFORM tst.ok((r ->> 'ok')::boolean, 'T6c the 4th is no longer refused (the meter decides)');
 END $$;
 -- the free 7 days are over and there is no SMART PACK: nothing
 SELECT set_config('session_replication_role', 'replica', true);
@@ -126,8 +128,8 @@ SELECT set_config('session_replication_role', 'replica', true);
 UPDATE public.business_settings SET is_lifetime = true WHERE user_id = '00000000-0000-4000-8000-00000000000c';
 SELECT set_config('session_replication_role', 'origin', true);
 SELECT tst.login('00000000-0000-4000-8000-00000000000c');
-SELECT tst.ok(public.quote_file_read_status() @> '{"smartPack":true,"limit":50}'::jsonb AND public.quote_file_read_status() ->> 'period' <> 'free',
-  'T8 LIFETIME counts as SMART PACK: 50 a month');
+SELECT tst.ok(public.quote_file_read_status() @> '{"smartPack":true,"limit":1000000}'::jsonb AND public.quote_file_read_status() ->> 'period' <> 'free',
+  'T8 LIFETIME counts as SMART PACK, no count limit');
 SELECT tst.logout();
 
 ROLLBACK;

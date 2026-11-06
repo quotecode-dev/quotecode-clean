@@ -15,9 +15,13 @@ vi.mock('https://esm.sh/@supabase/supabase-js@2', () => ({
       s.queries.push(q);
       return q;
     };
-    // read-only: the ONLY rpc allowed is the caller's own account summary (the SMART PACK gate, a STABLE read); any other rpc is a write
-    return { auth: { getUser: async () => ({ data: { user: s.user } }) }, from: query, rpc: (fn) => {
+    // read-only: the ONLY rpcs allowed are the caller's own account summary (the SMART PACK gate, a STABLE read) and the SMART PACK
+    // usage meter (Owner 2026-11-06: claim with the caller's token, finish with the service role); any other rpc is a write
+    const auth = opts?.global?.headers?.Authorization ?? null;
+    return { auth: { getUser: async () => ({ data: { user: s.user } }) }, from: query, rpc: (fn, args) => {
       if (fn === 'get_account_summary') { s.reads.push(fn); return Promise.resolve(s.summary); }
+      if (fn === 'smart_pack_usage_claim') { s.meter.push({ fn, args, auth }); return Promise.resolve(s.claim); }
+      if (fn === 'smart_pack_usage_finish') { s.meter.push({ fn, args, auth }); return Promise.resolve({ data: { ok: true }, error: null }); }
       s.writes.push('rpc'); return Promise.resolve({});
     } };
   },
@@ -30,10 +34,11 @@ const NO_SMART_PACK = { ok: true, schema: 'account-summary/v1', version: 1, phas
   priceCatalogVersion: null, smartPack: { active: false, source: null, until: null } };
 const CATALOG = [{ id: 7, name: 'חלון אלומיניום 120×100', price: 1450 }, { id: 8, name: 'רשת', price: 80 }];
 let providerCalls;
-function setup({ user = { id: 'u-synthetic-1' }, country = 'Local', provider = null, summary = { data: { ok: false, code: 'not_activated' }, error: null } } = {}) {
-  h.state = { user, summary, reads: [], clientAuthHeaders: [], queries: [], writes: [], tables: { business_settings: { data: country ? { country } : null, error: null }, services: { data: CATALOG, error: null } } };
+function setup({ user = { id: 'u-synthetic-1' }, country = 'Local', provider = null, summary = { data: { ok: false, code: 'not_activated' }, error: null },
+  claim = { data: { ok: true, claimId: 'claim-1' }, error: null } } = {}) {
+  h.state = { user, summary, claim, meter: [], reads: [], clientAuthHeaders: [], queries: [], writes: [], tables: { business_settings: { data: country ? { country } : null, error: null }, services: { data: CATALOG, error: null } } };
   providerCalls = [];
-  globalThis.Deno = { env: { get: (k) => ({ SUPABASE_URL: 'https://synthetic.supabase.co', SUPABASE_ANON_KEY: 'anon-placeholder', OPENAI_API_KEY: 'placeholder' })[k] } };
+  globalThis.Deno = { env: { get: (k) => ({ SUPABASE_URL: 'https://synthetic.supabase.co', SUPABASE_ANON_KEY: 'anon-placeholder', OPENAI_API_KEY: 'placeholder', SUPABASE_SERVICE_ROLE_KEY: 'service-placeholder' })[k] } };
   globalThis.fetch = vi.fn(async (url, init) => {
     providerCalls.push({ url, body: JSON.parse(init.body) });
     if (provider) return provider(init);
@@ -66,13 +71,14 @@ describe('ai-quote-draft handler (synthetic, in-process)', () => {
     const body = await r.json();
     // Task 33 (v2) / Task 34 (v3): the stated 3 is inside its own evidence and kept; a line without verifiable evidence (or a 1 the text
     // never wrote) becomes a visible 'unverified' gap - never a borrowed or invented quantity
-    expect(body).toEqual({ contractVersion: 3, ok: true, language: 'he', subject: 'החלפת חלונות', questions: ['איזה סוג זיגוג?'], unassignedMeasures: [], items: [
+    expect(body).toEqual({ contractVersion: 3, ok: true, language: 'he', subject: 'החלפת חלונות', questions: ['איזה סוג זיגוג?'], unassignedMeasures: [], changes: { updates: [], deletes: [], notes: null, discountPercent: null }, items: [
       { description: 'חלון אלומיניום', quantity: 3, unit: 'unit', quantityBasis: 'stated', derivation: null, missing: null, evidence: 'החלפת 3 חלונות', unitPrice: 1450, catalogId: 7, catalogName: 'חלון אלומיניום 120×100', priceSource: 'catalog' },
       { description: 'פירוק חלון ישן', quantity: null, unit: 'unit', quantityBasis: 'missing', derivation: null, missing: 'unverified', evidence: null, unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none' },
       { description: 'איטום', quantity: null, unit: 'unit', quantityBasis: 'missing', derivation: null, missing: 'unverified', evidence: 'בסלון', unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none' },
     ] });
     // tenant: both reads are scoped to the VERIFIED user and run with the caller's own JWT (RLS); nothing is written
-    expect(h.state.clientAuthHeaders).toEqual(['Bearer synthetic-user-jwt']);
+    // (the second client is the service role's, used ONLY to finish the usage meter)
+    expect(h.state.clientAuthHeaders).toEqual(['Bearer synthetic-user-jwt', null]);
     expect(h.state.queries.map((q) => [q.table, q.cols, q.filters])).toEqual([
       ['business_settings', 'country', [['user_id', 'u-synthetic-1']]],
       ['services', 'id, name, price', [['user_id', 'u-synthetic-1']]],
@@ -133,6 +139,41 @@ describe('ai-quote-draft handler (synthetic, in-process)', () => {
     setup({ provider: () => new Response(JSON.stringify({ choices: [{ message: { content: 'not json' } }] }), { status: 200 }) });
     r = await h.handler(post({ description: 'החלפת חלון' }));
     expect([r.status, (await r.json()).code]).toEqual([502, 'malformed_provider_response']);
+  });
+});
+
+// Owner console 2026-11-06 (typed night-task approval): the SMART PACK usage meter
+describe('ai-quote-draft handler: the SMART PACK usage meter (synthetic)', () => {
+  const usage = { prompt_tokens: 3000, completion_tokens: 500, prompt_tokens_details: { cached_tokens: 1000 } };
+  it('claims the reserve with the CALLER token before the model, and counts the real cost of the provider usage with the service role', async () => {
+    setup();
+    const plain = globalThis.fetch;
+    globalThis.fetch = vi.fn(async (url, init) => { const res = await plain(url, init); const j = await res.json(); return new Response(JSON.stringify({ ...j, usage }), { status: 200 }); });
+    const r = await h.handler(post({ description: 'החלפת 3 חלונות בסלון' }));
+    expect(r.status).toBe(200);
+    expect(h.state.meter.map((m) => [m.fn, m.auth])).toEqual([['smart_pack_usage_claim', 'Bearer synthetic-user-jwt'], ['smart_pack_usage_finish', null]]);
+    expect(h.state.meter[0].args).toEqual({ p_feature: 'ai_draft', p_reserve_micros: 12000 });
+    // gpt-4o-mini: 2,000 x 0.15 + 1,000 x 0.075 + 500 x 0.60 = 675 micro-USD
+    expect(h.state.meter[1].args).toMatchObject({ p_claim_id: 'claim-1', p_ok: true, p_cost_usd_micros: 675, p_model: 'gpt-4o-mini', p_prompt_tokens: 3000, p_cached_tokens: 1000, p_completion_tokens: 500 });
+  });
+  it('0% left: 403 budget_exhausted - no model call, nothing to finish', async () => {
+    setup({ claim: { data: { ok: false, code: 'budget_exhausted' }, error: null } });
+    const r = await h.handler(post({ description: 'החלפת 3 חלונות בסלון' }));
+    expect([r.status, (await r.json()).code]).toEqual([403, 'budget_exhausted']);
+    expect(providerCalls).toEqual([]);
+    expect(h.state.meter.map((m) => m.fn)).toEqual(['smart_pack_usage_claim']);
+  });
+  it('the meter cannot be read: refused (503), no model call', async () => {
+    setup({ claim: { data: null, error: { message: 'down' } } });
+    const r = await h.handler(post({ description: 'החלפת 3 חלונות בסלון' }));
+    expect([r.status, (await r.json()).code]).toEqual([503, 'server_error']);
+    expect(providerCalls).toEqual([]);
+  });
+  it('the provider fails: the reserve is given back (finish not ok, 0 counted)', async () => {
+    setup({ provider: () => new Response('x', { status: 500 }) });
+    const r = await h.handler(post({ description: 'החלפת חלון' }));
+    expect(r.status).toBe(502);
+    expect(h.state.meter[1].args).toMatchObject({ p_ok: false, p_cost_usd_micros: 0 });
   });
 });
 

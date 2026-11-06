@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { cwd } from 'node:process';
 import {
-  buildMessages, cleanText, EXTRACTION_SCHEMA, handleQuoteFromFile, MAX_FILE_BYTES, pdfPageCount, sniffKind, validateExtraction, type HandlerDeps,
+  buildMessages, cleanText, EXTRACTION_SCHEMA, handleQuoteFromFile, MAX_FILE_BYTES, meterCostUsdMicros, pdfPageCount, sniffKind, validateExtraction, type HandlerDeps,
 } from './lib';
 
 const PDF = (pages: number, extra = '') => new TextEncoder().encode(`%PDF-1.7\n${Array.from({ length: pages }, (_, i) => `${i + 3} 0 obj << /Type /Page /Parent 2 0 R >> endobj\n`).join('')}2 0 obj << /Type /Pages /Count ${pages} >> endobj\n${extra}%%EOF`);
@@ -19,8 +19,13 @@ const usage = { model: 'gpt-6-luna', promptTokens: 1000, completionTokens: 200, 
 
 function deps(over: Partial<HandlerDeps> & { body?: Uint8Array | null } = {}) {
   const calls: string[] = [];
-  const d: HandlerDeps & { calls: string[]; finish: ReturnType<typeof vi.fn>; complete: ReturnType<typeof vi.fn> } = {
+  const meter: unknown[][] = [];
+  const d: HandlerDeps & { calls: string[]; meter: unknown[][]; finish: ReturnType<typeof vi.fn>; complete: ReturnType<typeof vi.fn> } = {
     calls,
+    meter,
+    // Owner 2026-11-06: the SMART PACK usage meter (recorded apart from the read's own calls)
+    meterClaim: async () => { meter.push(['claim']); return { ok: true, claimId: 'm1' }; },
+    meterFinish: async (id: string, ok: boolean, u: unknown) => { meter.push(['finish', id, ok, u]); },
     userId: async () => 'u1',
     claim: async () => { calls.push('claim'); return { ok: true, claimId: 'c1', status: { remaining: 49, limit: 50 } }; },
     finish: vi.fn(async (_id: string, ok: boolean) => { calls.push(ok ? 'finish:ok' : 'finish:back'); return { ok: true, status: { remaining: ok ? 49 : 50, limit: 50 } }; }),
@@ -154,5 +159,61 @@ describe('what reaches the provider, and what never reaches a log', () => {
   it('config: the gateway verifies the JWT too', () => {
     const cfg = readFileSync(join(cwd(), 'supabase/config.toml'), 'utf8').replace(/\r\n/g, '\n');
     expect(cfg).toMatch(/\[functions\.quote-from-file\]\nenabled = true\n(?:#[^\n]*\n)*verify_jwt = true\nentrypoint = "\.\/functions\/quote-from-file\/index\.ts"/);
+  });
+});
+
+// Owner console 2026-11-06 (typed night-task approval): the SMART PACK usage meter on top of the read's claim
+describe('the SMART PACK usage meter', () => {
+  it('a good read: the meter is claimed after the read claim and finished with the provider usage (counted)', async () => {
+    const d = deps();
+    const r = await handleQuoteFromFile(d, req());
+    expect(r.status).toBe(200);
+    expect(d.meter).toEqual([['claim'], ['finish', 'm1', true, usage]]);
+  });
+  it('not enough left: 403 budget_exhausted BEFORE the read is claimed (never a failed read), the file never read, no provider call', async () => {
+    const d = deps({ meterClaim: async () => ({ ok: false, code: 'budget_exhausted' }) });
+    const r = await handleQuoteFromFile(d, req());
+    expect([r.status, r.body.code]).toEqual([403, 'budget_exhausted']);
+    expect(d.calls).toEqual([]);
+  });
+  it('the meter cannot be read: 503, nothing claimed', async () => {
+    const d = deps({ meterClaim: async () => { throw new Error('down'); } });
+    const r = await handleQuoteFromFile(d, req());
+    expect([r.status, r.body.code]).toEqual([503, 'unavailable']);
+    expect(d.calls).toEqual([]);
+  });
+  it('the read itself is refused (in progress): the reserve is given back', async () => {
+    const d = deps({ claim: async () => ({ ok: false, code: 'in_progress' }) });
+    const r = await handleQuoteFromFile(d, req());
+    expect(r.status).toBe(409);
+    expect(d.meter).toEqual([['claim'], ['finish', 'm1', false, null]]);
+  });
+  it('a cut answer (the provider answered) still counts its usage; the read is given back', async () => {
+    const cut = Object.assign(new Error('provider_failure'), { usage });
+    const d = deps({ complete: vi.fn(async () => { throw cut; }) });
+    const r = await handleQuoteFromFile(d, req());
+    expect(r.status).toBe(502);
+    expect(d.meter).toEqual([['claim'], ['finish', 'm1', true, usage]]);
+    expect(d.calls.at(-1)).toBe('finish:back');
+  });
+  it('the provider fails: the meter is given back (not counted); a file refused before the call is given back too', async () => {
+    const d = deps({ complete: vi.fn(async () => { throw new Error('provider_failure'); }) });
+    await handleQuoteFromFile(d, req());
+    expect(d.meter).toEqual([['claim'], ['finish', 'm1', false, null]]);
+    const t = deps({ body: new TextEncoder().encode('plain text') });
+    await handleQuoteFromFile(t, req());
+    expect(t.meter).toEqual([['claim'], ['finish', 'm1', false, null]]);
+  });
+  it('an unusable answer still cost the call: the meter counts it, the read itself is given back', async () => {
+    const d = deps({ complete: vi.fn(async () => ({ content: 'not json', usage })) });
+    const r = await handleQuoteFromFile(d, req());
+    expect(r.status).toBe(422);
+    expect(d.meter).toEqual([['claim'], ['finish', 'm1', true, usage]]);
+    expect(d.calls.at(-1)).toBe('finish:back');
+  });
+  it('the meter cost uses the real model prices: 1,000 in (200 cached) + 200 out on gpt-6-luna', () => {
+    // 800 x 0.10 + 200 x 0.01 + 200 x 0.50 = 182 micro-USD
+    expect(meterCostUsdMicros({ ...usage, cachedTokens: 200 })).toBe(182);
+    expect(meterCostUsdMicros(null)).toBe(0);
   });
 });

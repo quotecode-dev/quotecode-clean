@@ -10,6 +10,8 @@ import CustomerTwinIcon from './CustomerTwinIcon';
 import useFocusTrap from './quotePresentation/useFocusTrap';
 import { twinChecklist } from '../../supabase/functions/_shared/customerTwin.js';
 import { fetchTwinStatus, requestCustomerTwin } from '../utils/customerTwinClient';
+// Owner console 2026-11-06 (typed night-task approval): the SMART PACK usage meter replaced the monthly count of checks
+import { fetchSmartPackUsage, smartPackUsageText, smartPackUsedUpText } from '../utils/smartPackUsage';
 import { calendarParts, formatShortDate } from '../utils/shortDate';
 import { formatMoneyForCurrency } from '../utils/money';
 
@@ -61,7 +63,6 @@ const COPY = {
     label: 'שיפור ההצעה', close: 'סגירה', // Owner 2026-10-24 (typed L-07, L-09, L-13, L-29): the button's name
     heroTitle: 'ראו את ההצעה דרך העיניים של הלקוח',
     heroText: 'המערכת בודקת את ההצעה מנקודת המבט של שלושה סוגי לקוחות, כדי שתוכלו לחזק אותה לפני השליחה.',
-    monthly: (r, l) => <>נשארו לכם <N v={r} /> מתוך <N v={l} /> בדיקות החודש</>,
     purchased: (r, t) => <>נשארו לכם <N v={r} /> מתוך <N v={t} /> הבדיקות שקניתם</>,
     checklistTitle: 'בדיקה בסיסית (חינם, בלי בינה מלאכותית)',
     checks: {
@@ -92,6 +93,7 @@ const COPY = {
     errors: {
       not_deployed: 'ניתוח הבינה עדיין לא זמין כאן. הבדיקה הבסיסית למעלה זמינה תמיד.',
       quota_exhausted: (l) => <>נוצלו כל <N v={l} /> הבדיקות של החודש.</>,
+      budget_exhausted: smartPackUsedUpText(true, false),
       smart_pack_required: 'ניתוח הבינה של שיפור ההצעה הוא חלק מחכם פלוס.',
       in_progress: 'ההצעה הזו כבר בבדיקה. נסו שוב בעוד רגע.',
       too_many_failures: 'היום היו כמה בדיקות שלא הצליחו. נסו שוב מחר.',
@@ -110,7 +112,6 @@ const COPY = {
     label: 'Improve quote', close: 'Close',
     heroTitle: "See your quote through your customer's eyes",
     heroText: 'The system reads your quote from the point of view of three kinds of customers, so you can strengthen it before you send it.',
-    monthly: (r, l) => <><N v={r} /> of <N v={l} /> checks left this month</>,
     purchased: (r, t) => <><N v={r} /> of <N v={t} /> purchased checks left</>,
     checklistTitle: 'Basic check (free, no AI)',
     checks: {
@@ -141,6 +142,7 @@ const COPY = {
     errors: {
       not_deployed: 'The AI analysis is not available here yet. The basic check above is always available.',
       quota_exhausted: (l) => <>You have used all <N v={l} /> checks for this month.</>,
+      budget_exhausted: smartPackUsedUpText(false, false),
       smart_pack_required: 'The AI analysis of Improve quote is part of SMART PACK.',
       in_progress: 'This quote is already being checked. Try again in a moment.',
       too_many_failures: 'Several checks did not complete today. Please try again tomorrow.',
@@ -176,6 +178,7 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
   const closeRef = useRef(null);
   const t = COPY[isHebrew ? 'he' : 'en'];
   const [status, setStatus] = useState(null);
+  const [usage, setUsage] = useState(null);
   const [run, setRun] = useState({ state: 'idle' });
   const [applied, setApplied] = useState(() => new Set());
   useFocusTrap(ref, open);
@@ -192,6 +195,7 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
     document.addEventListener('keydown', onKey);
     let live = true;
     fetchTwinStatus(supabase).then((r) => { if (live) setStatus(r.state === 'ok' ? r.status : null); });
+    fetchSmartPackUsage(supabase).then((u) => { if (live) setUsage(u); });
     return () => { live = false; document.removeEventListener('keydown', onKey); if (prev && typeof prev.focus === 'function') prev.focus(); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
@@ -207,6 +211,7 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
     const r = await requestCustomerTwin(supabase, quote);
     setRun(r);
     if (r.status) setStatus(r.status);
+    fetchSmartPackUsage(supabase).then(setUsage);
   };
   const approve = (edit, i) => {
     if (typeof onApplyEdit !== 'function') return;
@@ -253,10 +258,10 @@ export default function CustomerTwinPanel({ open, onClose, isHebrew, supabase, q
             </div>
           </section>
 
-          {s && (
+          {(smartPackUsageText(usage, isHebrew) || s?.purchasedTotal > 0) && (
             <div data-testid="customer-twin-counter" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {s.monthlyLimit > 0 && <span style={{ background: C.blueSoft, color: C.blue, borderRadius: 999, padding: '6px 12px', fontWeight: 700, fontSize: '0.85rem' }}>{t.monthly(s.monthlyRemaining, s.monthlyLimit)}</span>}
-              {s.purchasedTotal > 0 && <span style={{ background: '#f5f3ff', color: C.violet, borderRadius: 999, padding: '6px 12px', fontWeight: 700, fontSize: '0.85rem' }}>{t.purchased(s.purchasedRemaining, s.purchasedTotal)}</span>}
+              {smartPackUsageText(usage, isHebrew) && <span data-testid="customer-twin-usage" style={{ background: C.blueSoft, color: C.blue, borderRadius: 999, padding: '6px 12px', fontWeight: 700, fontSize: '0.85rem' }}>{smartPackUsageText(usage, isHebrew)}</span>}
+              {s?.purchasedTotal > 0 && <span style={{ background: '#f5f3ff', color: C.violet, borderRadius: 999, padding: '6px 12px', fontWeight: 700, fontSize: '0.85rem' }}>{t.purchased(s.purchasedRemaining, s.purchasedTotal)}</span>}
             </div>
           )}
 

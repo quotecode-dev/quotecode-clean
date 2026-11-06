@@ -1,6 +1,8 @@
 // Owner console 2026-11-03 (typed approval; spec docs/CODEX_SPEC_QUOTE_FROM_FILE_2026-11-03.md): "quote from a file" - the browser side.
 // ONE PDF or JPG (8 MB) goes to the Edge Function quote-from-file as raw bytes (never stored there or here); the answer is draft lines
 // with the price printed in the document, for the owner's review only. Nothing here keeps the file or the answer after the dialog.
+import { fetchSmartPackUsage } from './smartPackUsage';
+
 export const QUOTE_FROM_FILE_FUNCTION = 'quote-from-file';
 export const MAX_FILE_BYTES = 8 * 1024 * 1024;
 
@@ -55,12 +57,10 @@ export async function requestQuoteFromFile(supabase, file) {
   }
 }
 
-/** The caller's own allowance ({ limit, used, remaining, period, smartPack }) or null. */
+/** The caller's own allowance or null. Owner console 2026-11-06: the SMART PACK usage meter ({ percentLeft, unlimited }) replaced the
+ *  count of files - the same line every SMART PACK window shows. */
 export async function readQuoteFileAllowance(supabase) {
-  try {
-    const { data, error } = await supabase.rpc('quote_file_read_status');
-    return error || !data ? null : data;
-  } catch { return null; }
+  return fetchSmartPackUsage(supabase);
 }
 
 const norm = (s) => String(s || '').toLowerCase().replace(/[\s"'״׳`.,\-_/]+/g, ' ').trim();

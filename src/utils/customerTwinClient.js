@@ -61,7 +61,7 @@ export async function fetchTwinStatus(supabase) {
   } catch { return { state: 'unavailable' }; }
 }
 
-const KNOWN = new Set(['quota_exhausted', 'smart_pack_required', 'in_progress', 'too_many_failures', 'market_unresolved', 'nothing_to_check',
+const KNOWN = new Set(['quota_exhausted', 'budget_exhausted', 'smart_pack_required', 'in_progress', 'too_many_failures', 'market_unresolved', 'nothing_to_check',
   'quote_too_long', 'provider_failure', 'unauthenticated']);
 /** { state: 'ok', analysis, checklist, status, cached, analyzedAt, saved, refunded } | { state: <closed code>, status?, refunded? } */
 export async function requestCustomerTwin(supabase, quote) {
