@@ -4,36 +4,55 @@
 // the line total of a single fixed item), the item's current quantity + unit and the expected line total before quote-level rules (VAT /
 // discount / rounding are applied by the quote totals, as everywhere else). An empty price stays "missing" (never shown as free); 0 is an
 // intentional free line. Changing a price never updates the catalog. Cancel / Escape keep everything as it was.
+// Owner console 2026-11-06 (typed L-09 / L-14 / L-17 / L-24 / L-27 approval, release A): the quantity of an item that is NOT measured
+// (a count: unit, kg, hour, day, no unit) is edited here too; a measured item (m2 / linear meter / sq ft / linear ft) keeps its quantity
+// from the measurements (edited in the item window), shown read-only as before. The quantity is shown in the shared quantity format.
 import { useEffect, useRef, useState } from 'react';
 import { X } from 'lucide-react';
 import { APP as NEON } from '../theme/neonTheme';
-import { getActiveQuantity, getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
-import { parsePriceInput } from '../utils/itemPrice';
+import { getActiveQuantity, getProfessionalUnitLabel, isMeasurableUnit, formatQuantity } from '../utils/professionalQuoteItem';
+import { parsePriceInput, parseQuantityInput } from '../utils/itemPrice';
 
 
-export default function EditItemPriceDialog({ item, isHebrew, sym, fmtMoney, formatNum, onSave, onCancel }) {
+export default function EditItemPriceDialog({ item, isHebrew, sym, fmtMoney, onSave, onCancel }) {
   const [value, setValue] = useState(item?.unit_price === '' || item?.unit_price == null ? '' : String(item.unit_price));
   const [error, setError] = useState(false);
+  // the quantity box starts from the shown quantity; it counts as changed only when its TEXT changed - an untouched box never rewrites the
+  // stored amount (no float rounding, no refusal of a stored 0)
+  const [initialQtyText] = useState(item ? formatQuantity(getActiveQuantity(item), item.pricing_unit).replace(/,/g, '') : '');
+  const [qtyValue, setQtyValue] = useState(initialQtyText);
+  const [qtyError, setQtyError] = useState(false);
+  const qtyRef = useRef(null);
   const inputRef = useRef(null);
   useEffect(() => { inputRef.current?.focus(); inputRef.current?.select?.(); }, []);
   if (!item) return null;
-  const qty = getActiveQuantity(item);
   const unit = item.pricing_unit || null;
+  const qtyEditable = !isMeasurableUnit(unit);
+  const qtyTouched = qtyEditable && qtyValue.trim() !== initialQtyText;
+  const parsedQty = qtyTouched ? parseQuantityInput(qtyValue) : null;
+  const qty = qtyTouched && parsedQty.ok ? parsedQty.value : getActiveQuantity(item);
   const unitLabel = unit ? getProfessionalUnitLabel(unit, isHebrew) : null;
   const isSingleFixed = !unit && Number(qty) === 1;
   const priceLabel = unit && unit !== 'unit'
     ? (isHebrew ? `מחיר ל${unitLabel}` : `Price per ${unitLabel}`)
     : isSingleFixed ? (isHebrew ? 'מחיר לפריט (סכום כולל)' : 'Price for this item (total)') : (isHebrew ? 'מחיר ליחידה' : 'Price per unit');
   const parsed = parsePriceInput(value);
-  const lineTotal = parsed.ok && parsed.value !== '' ? Number(qty) * Number(parsed.value) : null;
+  const lineTotal = parsed.ok && parsed.value !== '' && (!qtyTouched || parsedQty.ok) ? Number(qty) * Number(parsed.value) : null;
   const save = () => {
     const p = parsePriceInput(value);
     if (!p.ok) { setError(true); inputRef.current?.focus(); return; }
+    if (qtyTouched) {
+      const q = parseQuantityInput(qtyValue);
+      if (!q.ok) { setQtyError(true); qtyRef.current?.focus(); return; }
+      onSave(p.value, q.value);
+      return;
+    }
+    // an untouched quantity leaves the item exactly as it was - only the price is saved
     onSave(p.value);
   };
   const t = isHebrew
-    ? { title: 'עריכת מחיר', qty: 'כמות', total: 'סכום צפוי לשורה', missing: 'יש להזין מחיר', note: 'מע״מ, הנחה ועיגול מחושבים בסיכום ההצעה. שינוי המחיר כאן לא משנה את הקטלוג.', save: 'שמירת מחיר', cancel: 'ביטול', invalid: 'הזינו מחיר תקין: מספר עם נקודה עשרונית (עד 2 ספרות אחריה), פסיק רק להפרדת אלפים (1,200) — או השאירו ריק.' }
-    : { title: 'Edit price', qty: 'Quantity', total: 'Expected line total', missing: 'Enter a price', note: 'VAT, discount and rounding are applied in the quote totals. Changing the price here does not change your catalog.', save: 'Save price', cancel: 'Cancel', invalid: 'Enter a valid price: a number with a decimal point (up to 2 decimals), commas only for thousands (1,200) — or leave it empty.' };
+    ? { title: qtyEditable ? 'עריכת מחיר וכמות' : 'עריכת מחיר', qty: 'כמות', total: 'סכום צפוי לשורה', missing: 'יש להזין מחיר', note: 'מע״מ, הנחה ועיגול מחושבים בסיכום ההצעה. שינוי המחיר כאן לא משנה את הקטלוג.', save: qtyEditable ? 'שמירה' : 'שמירת מחיר', cancel: 'ביטול', qtyInvalid: 'הזינו כמות תקינה: מספר גדול מ-0 ועד 100,000, עם נקודה עשרונית אם צריך (למשל 3 או 2.5).', invalid: 'הזינו מחיר תקין: מספר עם נקודה עשרונית (עד 2 ספרות אחריה), פסיק רק להפרדת אלפים (1,200) — או השאירו ריק.' }
+    : { title: qtyEditable ? 'Edit price and quantity' : 'Edit price', qty: 'Quantity', total: 'Expected line total', missing: 'Enter a price', note: 'VAT, discount and rounding are applied in the quote totals. Changing the price here does not change your catalog.', save: qtyEditable ? 'Save' : 'Save price', cancel: 'Cancel', qtyInvalid: 'Enter a valid quantity: a number above 0 and up to 100,000, with a decimal point if needed (for example 3 or 2.5).', invalid: 'Enter a valid price: a number with a decimal point (up to 2 decimals), commas only for thousands (1,200) — or leave it empty.' };
   return (
     <div
       role="dialog" aria-modal="true" aria-labelledby="pf-edit-price-title" dir={isHebrew ? 'rtl' : 'ltr'} data-testid="edit-item-price"
@@ -47,9 +66,23 @@ export default function EditItemPriceDialog({ item, isHebrew, sym, fmtMoney, for
           <button type="button" onClick={onCancel} aria-label={isHebrew ? 'סגירה' : 'Close'} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, minWidth: '44px', minHeight: '44px' }}><X size={18} /></button>
         </div>
         <div style={{ fontWeight: 700, color: NEON.textPrimary, fontSize: '0.9rem', margin: '4px 0 10px', overflowWrap: 'anywhere' }}>{item.description}</div>
-        <div data-testid="edit-price-qty" style={{ fontSize: '0.84rem', color: NEON.textSecondary, marginBottom: '10px' }}>
-          {t.qty}: <bdi className="pf-num" dir="ltr">{formatNum ? formatNum(qty) : qty}</bdi>{unitLabel && unit !== 'unit' ? ` ${unitLabel}` : ''}
-        </div>
+        {qtyEditable ? (
+          <div style={{ marginBottom: '10px' }}>
+            <label htmlFor="pf-edit-qty-input" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: NEON.textPrimary, marginBottom: '4px' }}>{unitLabel && unit !== 'unit' ? `${t.qty} (${unitLabel})` : t.qty}</label>
+            <input
+              id="pf-edit-qty-input" data-testid="edit-price-qty-input" ref={qtyRef} type="text" inputMode="decimal" dir="ltr" className="pf-num" value={qtyValue}
+              onChange={(e) => { setQtyValue(e.target.value); setQtyError(false); }}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); save(); } }}
+              aria-invalid={qtyError} aria-describedby={qtyError ? 'pf-edit-qty-error' : undefined}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '10px 12px', border: `1px solid ${qtyError ? NEON.red : NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '16px', textAlign: 'left' }}
+            />
+            {qtyError && <div id="pf-edit-qty-error" role="alert" style={{ color: NEON.red, fontSize: '0.8rem', marginTop: '4px' }}>{t.qtyInvalid}</div>}
+          </div>
+        ) : (
+          <div data-testid="edit-price-qty" style={{ fontSize: '0.84rem', color: NEON.textSecondary, marginBottom: '10px' }}>
+            {t.qty}: <bdi className="pf-num" dir="ltr">{formatQuantity(qty, unit)}</bdi>{unitLabel ? ` ${unitLabel}` : ''}
+          </div>
+        )}
         <label htmlFor="pf-edit-price-input" style={{ display: 'block', fontSize: '0.85rem', fontWeight: 700, color: NEON.textPrimary, marginBottom: '4px' }}>{`${priceLabel} (${sym})`}</label>
         <input
           id="pf-edit-price-input" ref={inputRef} type="text" inputMode="decimal" dir="ltr" className="pf-num" value={value}
@@ -60,13 +93,13 @@ export default function EditItemPriceDialog({ item, isHebrew, sym, fmtMoney, for
         />
         {error && <div id="pf-edit-price-error" role="alert" style={{ color: NEON.red, fontSize: '0.8rem', marginTop: '4px' }}>{t.invalid}</div>}
         <div id="pf-edit-price-total" data-testid="edit-price-total" aria-live="polite" style={{ marginTop: '10px', fontSize: '0.88rem', color: NEON.textPrimary }}>
-          {t.total}: {lineTotal != null ? <bdi className="pf-money" dir="ltr" style={{ fontWeight: 800 }}>{`${sym}${fmtMoney(lineTotal)}`}</bdi> : <span style={{ color: NEON.amber || NEON.textSecondary, fontWeight: 700 }}>{t.missing}</span>}
+          {t.total}: {lineTotal != null ? <bdi className="pf-money" dir="ltr" style={{ fontWeight: 800 }}>{`${sym}${fmtMoney(lineTotal)}`}</bdi> : <span style={{ color: NEON.amber || NEON.textSecondary, fontWeight: 700 }}>{qtyTouched && !parsedQty.ok ? '—' : t.missing}</span>}
         </div>
         <p style={{ margin: '8px 0 0', fontSize: '0.76rem', color: NEON.textSecondary, lineHeight: 1.45 }}>{t.note}</p>
         <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', marginTop: '14px', flexWrap: 'wrap' }}>
           {/* PRODUCT_TRUTH_DECORATIVE: cancels the Edit price dialog; nothing changes */}
           <button type="button" onClick={onCancel} style={{ minHeight: '44px', padding: '0 16px', borderRadius: '8px', border: `1px solid ${NEON.borderStrong}`, background: 'none', color: NEON.textSecondary, fontWeight: 600, cursor: 'pointer' }}>{t.cancel}</button>
-          {/* PRODUCT_TRUTH_DECORATIVE: saves only this item's unit price in the unsaved quote form (the quote itself is saved by the normal Save) */}
+          {/* PRODUCT_TRUTH_DECORATIVE: saves only this item's unit price (and, for an item that is not measured, its quantity) in the unsaved quote form (the quote itself is saved by the normal Save) */}
           <button type="button" onClick={save} style={{ minHeight: '44px', padding: '0 16px', borderRadius: '8px', border: 'none', background: NEON.gradient, color: '#fff', fontWeight: 700, cursor: 'pointer' }}>{t.save}</button>
         </div>
       </div>

@@ -151,6 +151,19 @@ export function isMeasurableUnit(unitId) {
   return Object.prototype.hasOwnProperty.call(UNIT_CALCULATION_METHOD, unitId);
 }
 
+// Owner console 2026-11-06 (typed L-09 / L-14 / L-17 / L-24 / L-27 approval, release A): a QUANTITY is not money. A count (unit, kg,
+// hour, day, no unit) shows only the decimals it really has (1, 2.5 - never "1.00"); an area / length keeps its approved look with at
+// least 2 decimals (3.40 m2, 36.00 m2). Every stored decimal is kept (3.375 stays 3.375). Display only - the stored value is untouched.
+export function formatQuantity(value, pricingUnit) {
+  const n = Number(value || 0);
+  const minimumFractionDigits = isMeasurableUnit(pricingUnit) ? 2 : 0;
+  try {
+    return n.toLocaleString('en-US', { minimumFractionDigits, maximumFractionDigits: 6 });
+  } catch {
+    return String(n);
+  }
+}
+
 // נקודת-קריאה יחידה לקביעת ה-calculation_method שיישמר בפועל על פריט -
 // override ידני (quantity_source==='manual') תמיד מנצח; אחרת נגזר
 // מ-pricing_unit; יחידה לא-נמדדת נופלת ל-'quantity' (כמות/יחידות ידנית,

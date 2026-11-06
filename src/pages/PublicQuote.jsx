@@ -23,7 +23,7 @@ import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuoteP
 import { classifyQuoteApprovalError } from '../utils/quoteApprovalErrorClassification';
 import { resolveQuoteExpired } from '../utils/quoteValidity';
 import { isUnfinishedSavedQuote, missingPriceOutputNotice, publicItemsForNotice } from '../utils/quoteCompleteness';
-import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine } from '../utils/professionalQuoteItem';
+import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine, formatQuantity } from '../utils/professionalQuoteItem';
 import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
 import { formatDeviceShortDateTime } from '../utils/shortDate';
 import { outputGate, authorizeWithNotice, outputBlockedMessage } from '../domain/subscriptions/outputAuthority';
@@ -51,19 +51,9 @@ import { askConfirm, showNotice } from '../components/AppDialog';
 // וכו') - הוא עצמו לעולם לא מעגל בפועל, בדיוק כמו formatMoney - כך שהחלפה
 // לקריאה ל-formatMoney אינה משנה שום התנהגות עיגול קיימת, רק מסירה שכפול.
 const formatNum = (val) => formatMoney(val);
-// A QUANTITY is not money: keep every stored decimal (3.375 m2 stays 3.375, never 3.38) - at least 2 decimals so an
-// area quantity keeps its approved look (3.40 m2). Display only; the stored / calculated value is untouched.
 // Item-table money strings of this length (symbol included, e.g. '₪98,765.00') switch the narrow-screen table to the
 // content-aware layout (see wideAmounts).
 const WIDE_AMOUNT_CHARS = 10;
-const formatQty = (val) => {
-  const n = Number(val || 0);
-  try {
-    return n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 6 });
-  } catch {
-    return String(n);
-  }
-};
 
 
 // חוק ברזל (Public Quote Section-Level Smart Dropdown task, supersedes the
@@ -591,7 +581,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
     return (
       <>
         {withQuantityLine && isPro && (
-          <div className="pq-item-detail pq-item-detail-strong">{`כמות: ${formatQty(activeQty)} ${unitLabel}`}</div>
+          <div className="pq-item-detail pq-item-detail-strong">{`כמות: ${formatQuantity(activeQty, item.pricing_unit)} ${unitLabel}`}</div>
         )}
         {measurements.length > 0 && (
           <div className="pq-item-detail">
@@ -755,7 +745,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
               return (
                 <tr role="row" key={index}>
                   <td headers={colId('desc')} role="cell" className="pq-td-desc" style={{ textAlign: 'right' }}>{renderDescriptionCell(item, null)}</td>
-                  <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}><span className="pq-num-slot">{isPro ? formatQty(activeQty) : rawQty}</span><span className="pq-unit-slot">{isPro && unitLabel ? `\u00a0${unitLabel}` : ''}</span></td>
+                  <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}><span className="pq-num-slot">{isPro ? formatQuantity(activeQty, item.pricing_unit) : rawQty}</span><span className="pq-unit-slot">{isPro && unitLabel ? `\u00a0${unitLabel}` : ''}</span></td>
                   <td headers={colId('price')} role="cell" className="pq-td-price" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>טרם תומחר</span> : <span className="pf-money">{currencySymbol}{formatWholeMoney(itemPrice)}</span>}</td>
                   <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>טרם תומחר</span> : <span className="pf-money">{currencySymbol}{formatWholeMoney(item.total_price || (rawQty * itemPrice))}</span>}</td>
                 </tr>
@@ -799,7 +789,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
                     return (
                       <tr role="row" key={i}>
                         <td headers={colId('desc')} role="cell" className="pq-td-desc" style={{ textAlign: 'right' }}>{renderDescriptionCell(item, renderItemDetailLines(item, true))}</td>
-                        <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}><span className="pq-num-slot">{isPro ? formatQty(activeQty) : rawQty}</span><span className="pq-unit-slot" /></td>
+                        <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}><span className="pq-num-slot">{isPro ? formatQuantity(activeQty, item.pricing_unit) : rawQty}</span><span className="pq-unit-slot" /></td>
                         <td headers={colId('price')} role="cell" className="pq-td-price" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>טרם תומחר</span> : <span className="pf-money">{currencySymbol}{formatWholeMoney(itemPrice)}</span>}</td>
                         <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>טרם תומחר</span> : <span className="pf-money">{currencySymbol}{formatWholeMoney(item.total_price || (rawQty * itemPrice))}</span>}</td>
                       </tr>
