@@ -45,7 +45,8 @@ describe('TEKANGO AI icons', () => {
   it('the Customer check entries and panel use the Customer Twin mark (no generic sparkle, not the old robot)', () => {
     for (const f of ['src/components/CustomerTwinPanel.jsx', 'src/components/QuoteForm.jsx', 'src/components/QuotesTab.jsx']) {
       const s = readFileSync(f, 'utf8');
-      expect(s, f).toMatch(/<CustomerTwinIcon size=\{\d+\}/);
+      // explicit size: a number, or the shared chipIcon constant the quote-row chips use (Owner console 2026-11-06, unified chip size)
+      expect(s, f).toMatch(/<CustomerTwinIcon size=\{(?:\d+|chipIcon)\}/);
       expect(s, f).not.toMatch(/Sparkles|<AiRobotIcon/);
     }
     // The dedicated customer-check surfaces carry no AI mark at all. QuotesTab is the one exception: Owner console 2026-11-05 moved the
