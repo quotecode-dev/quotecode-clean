@@ -19,14 +19,10 @@ const analysis = {
   persuasive: ['פירוט ברור'], blockers: ['אין אחריות'], strengthen: ['להוסיף אחריות'],
   edits: [{ target: 'warranty', itemNumber: null, text: 'אחריות ___ חודשים על העבודה', reason: 'הלקוח רוצה ביטחון' }],
 };
-// Owner 2026-11-06: the SMART PACK usage meter (smart_pack_usage_status) replaced the monthly count of checks - 63% before, 61% after a run
 function client({ status = { ok: true, monthlyLimit: 20, monthlyRemaining: 18, purchasedRemaining: 4, purchasedTotal: 10 }, invoke, session = true } = {}) {
-  let meterReads = 0;
   return {
     auth: { getSession: vi.fn(async () => ({ data: { session: session ? { access_token: 'tok' } : null } })), refreshSession: vi.fn(async () => ({ data: { session: null } })) },
-    rpc: vi.fn(async (fn) => (fn === 'smart_pack_usage_status'
-      ? { data: { ok: true, smartPack: true, unlimited: false, percentLeft: meterReads++ === 0 ? 63 : 61 }, error: null }
-      : { data: status, error: null })),
+    rpc: vi.fn(async () => ({ data: status, error: null })),
     functions: { invoke: invoke || vi.fn(async () => ({ data: { ok: true, cached: false, saved: true, analysis, checklist: [], status: { ...status, monthlyRemaining: 17 } }, error: null })) },
   };
 }
@@ -34,13 +30,12 @@ const errorReply = (body, status = 429) => vi.fn(async () => ({ data: null, erro
   status: { monthlyLimit: 20, monthlyRemaining: 0, purchasedRemaining: 0, purchasedTotal: 0 } }), { status }) } }));
 
 describe('Customer Twin panel', () => {
-  it('opens with the SMART PACK usage line (and purchased checks, if any) and the free checklist, nothing sent until the click', async () => {
+  it('opens with the counters ("2 of 20" / "4 of 10") and the free checklist, nothing sent until the click', async () => {
     const sb = client();
     render(<CustomerTwinPanel open onClose={() => {}} isHebrew supabase={sb} quote={quote} market="IL" mode="editor" onApplyEdit={() => {}} />);
     expect(screen.getByTestId('customer-twin-panel').getAttribute('dir')).toBe('rtl');
-    await waitFor(() => expect(screen.getByTestId('customer-twin-usage').textContent).toBe('נשארו לכם 63% משימוש חכם פלוס החודש'));
-    await waitFor(() => expect(screen.getByTestId('customer-twin-counter').textContent).toContain('נשארו לכם 4 מתוך 10 הבדיקות שקניתם'));
-    expect(screen.getByTestId('customer-twin-counter').textContent).not.toMatch(/מתוך 20/);
+    await waitFor(() => expect(screen.getByTestId('customer-twin-counter').textContent).toContain('נשארו לכם 18 מתוך 20 בדיקות החודש'));
+    expect(screen.getByTestId('customer-twin-counter').textContent).toContain('נשארו לכם 4 מתוך 10 הבדיקות שקניתם');
     const checks = screen.getByTestId('customer-twin-checklist');
     expect(checks.querySelector('[data-check="warranty"]').getAttribute('data-status')).toBe('missing');
     expect(checks.querySelector('[data-check="disposal"]').getAttribute('data-status')).toBe('ok');
@@ -67,7 +62,7 @@ describe('Customer Twin panel', () => {
     fireEvent.click(screen.getByTestId('customer-twin-apply'));
     expect(onApplyEdit).toHaveBeenCalledWith(analysis.edits[0]);
     expect(screen.getByText('נוסף להצעה')).toBeTruthy();
-    await waitFor(() => expect(screen.getByTestId('customer-twin-usage').textContent).toBe('נשארו לכם 61% משימוש חכם פלוס החודש'));
+    expect(screen.getByTestId('customer-twin-counter').textContent).toContain('17 מתוך 20');
   });
   it('a stored analysis shows its date; an answer that was not saved says so honestly', async () => {
     const cached = vi.fn(async () => ({ data: { ok: true, cached: true, analyzedAt: '2026-10-20T08:00:00Z', analysis, checklist: [] }, error: null }));

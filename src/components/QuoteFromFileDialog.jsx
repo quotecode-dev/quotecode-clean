@@ -13,7 +13,6 @@ import { APP as NEON } from '../theme/neonTheme';
 import { getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
 import { draftUnitsForMarket } from '../../supabase/functions/_shared/aiQuoteDraft.js';
 import { MAX_FILE_BYTES, catalogPriceFor, checkPickedFile, compareTotals, fileSizeLabel, parseOwnPrice } from '../utils/quoteFromFileClient';
-import { smartPackUsageText, smartPackUsedUpText } from '../utils/smartPackUsage';
 
 const positiveQuantity = (v) => {
   const n = Number(String(v ?? '').trim().replace(',', '.'));
@@ -26,6 +25,7 @@ const COPY = {
     intro: 'מעלים קובץ PDF או JPG של הצעה או רשימת עבודות. ה-AI קורא את השורות, הכמויות, המידות והמחירים, ואתם קובעים את המחירים שלכם.',
     choose: 'בחרו קובץ', chosen: 'הקובץ שנבחר', read: 'קריאת הפרטים', reading: 'קוראים את הקובץ…', cancel: 'ביטול', manual: 'מילוי ידני',
     small: 'הקובץ נשלח לספק ה-AI רק לקריאת הפרטים. אצלנו הקובץ לא נשמר ולא מצורף להצעה. הספק שומר עותק לזמן מוגבל, לפי התנאים שלו.',
+    allowance: (r, l, free) => (free ? `נשארו לכם ${r} מתוך ${l} קבצים בשבעת הימים החינמיים` : `נשארו לכם ${r} מתוך ${l} קבצים החודש`),
     reviewTitle: 'בדיקת השורות', reviewHint: 'בדקו כל שורה ומלאו את המחיר שלכם. ללקוח יוצא רק המחיר שלכם; המחיר במסמך מוצג רק כאן.',
     item: 'תיאור', qty: 'כמות', unit: 'יחידה', noUnit: 'ללא יחידה', docPrice: 'מחיר במסמך', docLineTotal: 'סה״כ השורה במסמך', ownPrice: 'המחיר שלכם',
     notRead: 'לא נקרא', fromCatalog: 'מהקטלוג שלכם',
@@ -42,7 +42,6 @@ const COPY = {
       unreadable: 'לא הצלחנו לקרוא את הקובץ. אפשר לנסות צילום ברור יותר או למלא ידנית.',
       smart_pack_required: 'הצעת מחיר מקובץ היא חלק מחכם פלוס. אפשר להוסיף אותו בחלון המסלולים, או למלא את ההצעה ידנית.',
       quota_exhausted: 'הגעתם למכסת הקבצים לתקופה הזו. אפשר להמשיך להכין הצעות ידנית.',
-      budget_exhausted: smartPackUsedUpText(true),
       too_many_failures: 'היו היום יותר מדי ניסיונות שלא הצליחו. אפשר לנסות שוב מחר או למלא ידנית.',
       in_progress: 'קובץ אחר עדיין נקרא. נסו שוב בעוד רגע.', offline: 'אין חיבור לאינטרנט כרגע.',
       failed: 'הקריאה לא הצליחה. אפשר לנסות שוב או למלא ידנית.',
@@ -53,6 +52,7 @@ const COPY = {
     intro: 'Upload a PDF or JPG of a quote or job list. The AI reads the lines, quantities, dimensions and prices, and you set your own prices.',
     choose: 'Choose a file', chosen: 'Chosen file', read: 'Read details', reading: 'Reading the file…', cancel: 'Cancel', manual: 'Fill in manually',
     small: 'The file is sent to our AI provider only to read the details. We do not store the file or attach it to your quote. The provider keeps a copy for a limited time under its own terms.',
+    allowance: (r, l, free) => (free ? `${r} of ${l} files left in your 7 free days` : `${r} of ${l} files left this month`),
     reviewTitle: 'Review the lines', reviewHint: 'Check each line and fill in your price. Only your price goes to the customer; the document price is shown here only.',
     item: 'Description', qty: 'Qty', unit: 'Unit', noUnit: 'No unit', docPrice: 'Price in the document', docLineTotal: 'Line total in the document', ownPrice: 'Your price',
     notRead: 'Not read', fromCatalog: 'From your catalog',
@@ -69,7 +69,6 @@ const COPY = {
       unreadable: 'We could not read the file. Try a clearer photo or fill in manually.',
       smart_pack_required: 'Quote from a file is part of SMART PACK. You can add it in the plans window, or fill in the quote manually.',
       quota_exhausted: 'You have reached the file limit for this period. You can keep creating quotes manually.',
-      budget_exhausted: smartPackUsedUpText(false),
       too_many_failures: 'There were too many unsuccessful tries today. Try again tomorrow or fill in manually.',
       in_progress: 'Another file is still being read. Try again in a moment.', offline: 'There is no internet connection right now.',
       failed: 'Reading did not work. Try again or fill in manually.',
@@ -134,8 +133,7 @@ export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoney
     setErrorCode(null); setPhase('loading');
     const r = await readFile(file);
     if (seq !== requestSeq.current) return;  // closed meanwhile
-    // Owner 2026-11-06: after a read the SMART PACK usage line is read again (the server meter, never the read's own counter)
-    if (typeof readAllowance === 'function') Promise.resolve(readAllowance()).then((a) => { if (seq === requestSeq.current) setAllowance(a || null); });
+    if (r?.allowance) setAllowance(r.allowance);
     if (r?.status === 'ok') {
       setFile(null); if (inputRef.current) inputRef.current.value = '';
       setResult({ currency: r.currency, documentTotal: r.documentTotal });
@@ -178,8 +176,8 @@ export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoney
     reset();
     onApply(lines);
   };
-  // Owner console 2026-11-06 (typed night-task approval): the SMART PACK usage meter replaced the count of files
-  const allowanceText = smartPackUsageText(allowance, isHebrew);
+  const free = allowance?.period === 'free';
+  const allowanceText = allowance && Number.isInteger(allowance.limit) && allowance.limit > 0 ? t.allowance(allowance.remaining, allowance.limit, free) : null;
   const errorText = errorCode ? (t.errors[errorCode] || t.errors.failed) : null;
   const gapText = cmp.gapPercent == null ? null : cmp.gapPercent < 0 ? t.cheaper(Math.abs(cmp.gapPercent)) : cmp.gapPercent > 0 ? t.dearer(cmp.gapPercent) : t.same;
 

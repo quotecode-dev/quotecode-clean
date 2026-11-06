@@ -2,7 +2,6 @@
 // with auth.getUser; the allowance is claimed with the CALLER's JWT (auth.uid() in SQL), storing / refunding use the service role.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { customerTwinHandler, TWIN_PROMPT_VERSION } from "./lib.ts";
-import { claimMeter, finishMeter, usdMicrosOrReserve, RESERVE_MICROS } from "../_shared/usageMeter.ts";
 import { calendarParts } from "../_shared/shortDate.js";
 
 const corsHeaders = {
@@ -66,18 +65,12 @@ Deno.serve(async (req: Request) => {
         const data = await res.json();
         const choice = data?.choices?.[0];
         const content = choice?.message?.content;
+        // a cut / refused answer is a failure (never half an analysis)
+        if (typeof content !== 'string' || (choice?.finish_reason && choice.finish_reason !== 'stop') || choice?.message?.refusal) throw new Error('provider_failure');
         const n = (v: unknown) => (Number.isInteger(v) ? (v as number) : null);
-        const usage = { promptTokens: n(data?.usage?.prompt_tokens), completionTokens: n(data?.usage?.completion_tokens), cachedTokens: n(data?.usage?.prompt_tokens_details?.cached_tokens) };
-        // a cut / refused answer is a failure (never half an analysis) - but the provider answered, so its usage goes with it (the meter)
-        if (typeof content !== 'string' || (choice?.finish_reason && choice.finish_reason !== 'stop') || choice?.message?.refusal) throw Object.assign(new Error('provider_failure'), { usage });
-        return { content, ...usage };
+        return { content, promptTokens: n(data?.usage?.prompt_tokens), completionTokens: n(data?.usage?.completion_tokens) };
       } finally { clearTimeout(timer); }
     },
-    // Owner 2026-11-06: the SMART PACK usage meter (claim with the caller's JWT, finish with the service role)
-    meterClaim: () => claimMeter(caller, 'customer_twin', RESERVE_MICROS.customer_twin),
-    meterFinish: (claimId, ok, costUsdMicros, u) => finishMeter(admin, claimId, ok, {
-      costUsdMicros: ok ? usdMicrosOrReserve(costUsdMicros, (u?.promptTokens ?? 0) + (u?.completionTokens ?? 0), RESERVE_MICROS.customer_twin) : 0, model: u?.model ?? null,
-      promptTokens: u?.promptTokens ?? undefined, cachedTokens: u?.cachedTokens ?? undefined, completionTokens: u?.completionTokens ?? undefined }),
     sha256: async (text) => {
       const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text));
       return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('');

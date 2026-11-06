@@ -13,12 +13,9 @@ import {
   TWIN_RESPONSE_SCHEMA, TWIN_PROMPT_VERSION, sanitizeTwinQuote, twinChecklist, twinContentKey, buildTwinMessages, validateTwinReply,
   parseStoredTwin, twinMarketOf, twinTooLong,
 } from '../_shared/customerTwin.js';
-// Owner console 2026-11-06 (typed night-task approval, the SMART PACK usage meter): a NEW analysis is metered on top of its claim (the
-// monthly 20 is lifted - the meter decides); a stored answer of the same content stays free (no meter at all)
-import { tokenCostUsdMicros, BUDGET_EXHAUSTED, type MeterClaim } from '../_shared/usageMeter.ts';
 
 export type Resp = { status: number; body: Record<string, unknown> };
-export type Usage = { model: string; promptTokens: number | null; completionTokens: number | null; providerMs: number; cachedTokens?: number | null };
+export type Usage = { model: string; promptTokens: number | null; completionTokens: number | null; providerMs: number };
 export const TWIN_MODEL = 'gpt-6-luna';
 export const TWIN_FALLBACK_MODEL = 'gpt-4o-mini';
 
@@ -29,11 +26,7 @@ export interface CustomerTwinDeps {
   store(claimId: string, result: Record<string, unknown>, usage: Usage): Promise<Record<string, unknown>>;
   refund(claimId: string, usage: Usage | null): Promise<Record<string, unknown>>;
   /** one provider call; returns the message content and the token usage, or throws (Error('model_unavailable') = try the fallback) */
-  complete(a: { model: string; messages: unknown[]; schema: unknown }): Promise<{ content: string; promptTokens: number | null; completionTokens: number | null; cachedTokens?: number | null }>;
-  /** the SMART PACK usage meter: hold the analysis' maximum cost with the CALLER's token (smart_pack_usage_claim) */
-  meterClaim(): Promise<MeterClaim>;
-  /** the SMART PACK usage meter (service role): ok = the real cost of the usage is counted, else given back */
-  meterFinish(claimId: string, ok: boolean, costUsdMicros: number, usage: Usage | null): Promise<void>;
+  complete(a: { model: string; messages: unknown[]; schema: unknown }): Promise<{ content: string; promptTokens: number | null; completionTokens: number | null }>;
   sha256(text: string): Promise<string>;
   today(): string;
   now(): number;
@@ -41,13 +34,7 @@ export interface CustomerTwinDeps {
 
 const isObj = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const err = (status: number, code: string, extra: Record<string, unknown> = {}): Resp => ({ status, body: { ok: false, code, ...extra } });
-const CLAIM_REFUSALS: Record<string, number> = { invalid_request: 400, quota_exhausted: 429, smart_pack_required: 403, in_progress: 409, too_many_failures: 429, [BUDGET_EXHAUSTED]: 403 };
-
-/** micro-USD of one analysis at the model's real prices (the meter) */
-export function twinCostUsdMicros(u: Usage | null): number {
-  if (!u) return 0;
-  return tokenCostUsdMicros({ model: u.model, promptTokens: u.promptTokens ?? 0, cachedTokens: u.cachedTokens ?? 0, completionTokens: u.completionTokens ?? 0 });
-}
+const CLAIM_REFUSALS: Record<string, number> = { invalid_request: 400, quota_exhausted: 429, smart_pack_required: 403, in_progress: 409, too_many_failures: 429 };
 
 export async function customerTwinHandler(deps: CustomerTwinDeps, body: unknown): Promise<Resp> {
   const raw = isObj(body) && isObj(body.quote) ? body.quote : null;
@@ -63,26 +50,13 @@ export async function customerTwinHandler(deps: CustomerTwinDeps, body: unknown)
 
   let sha: string;
   try { sha = await deps.sha256(twinContentKey(quote, TWIN_MODEL)); } catch { return err(503, 'retry_later'); }
-  // the SMART PACK usage meter FIRST: refused (not enough left / no SMART PACK / unreadable) = no claim of the check at all (a meter
-  // refusal never counts as a failed check); a stored answer of the same content gives the reserve back at once (free)
-  let meter: MeterClaim;
-  try { meter = await deps.meterClaim(); } catch { meter = { ok: false, code: 'meter_unavailable' }; }
-  if (!meter.ok) {
-    const code = meter.code === BUDGET_EXHAUSTED || meter.code === 'smart_pack_required' ? meter.code : 'retry_later';
-    return err(CLAIM_REFUSALS[code] ?? 503, code, { checklist, status: null });
-  }
-  const meterId = meter.claimId;
-  const meterBack = () => deps.meterFinish(meterId, false, 0, null).catch(() => undefined);
-
   let claim: Record<string, unknown>;
-  try { claim = await deps.claim(sha); } catch { await meterBack(); return err(503, 'retry_later'); } // fail closed
+  try { claim = await deps.claim(sha); } catch { return err(503, 'retry_later'); } // fail closed
   if (!isObj(claim) || claim.ok !== true) {
-    await meterBack();
     const code = isObj(claim) && typeof claim.code === 'string' && claim.code in CLAIM_REFUSALS ? claim.code : 'retry_later';
     return err(CLAIM_REFUSALS[code] ?? 503, code, { checklist, status: isObj(claim) && isObj(claim.status) ? claim.status : null });
   }
   if (claim.cached === true) {
-    await meterBack();
     const stored = parseStoredTwin(claim.result);
     if (stored) {
       return { status: 200, body: { ok: true, cached: true, analyzedAt: typeof claim.createdAt === 'string' ? claim.createdAt : null,
@@ -91,7 +65,7 @@ export async function customerTwinHandler(deps: CustomerTwinDeps, body: unknown)
     return err(503, 'retry_later');
   }
   const claimId = typeof claim.claimId === 'string' ? claim.claimId : null;
-  if (!claimId) { await meterBack(); return err(503, 'retry_later'); }
+  if (!claimId) return err(503, 'retry_later');
 
   // give the check back; refunded = SQL confirmed it (never promised without that)
   const giveBack = async (usage: Usage | null) => {
@@ -102,24 +76,14 @@ export async function customerTwinHandler(deps: CustomerTwinDeps, body: unknown)
   };
 
   const messages = buildTwinMessages({ quote, checklist, isHebrew });
-  let reply: { content: string; promptTokens: number | null; completionTokens: number | null; cachedTokens?: number | null } | null = null;
+  let reply: { content: string; promptTokens: number | null; completionTokens: number | null } | null = null;
   let model = TWIN_MODEL;
   const started = deps.now();
-  // an answer the provider gave but that cannot be used (cut / refused) still cost the call - its usage is kept for the meter
-  let answeredUnusable: { model: string; promptTokens: number | null; completionTokens: number | null; cachedTokens?: number | null } | null = null;
   for (const m of [TWIN_MODEL, TWIN_FALLBACK_MODEL]) {
     try { reply = await deps.complete({ model: m, messages, schema: TWIN_RESPONSE_SCHEMA }); model = m; break; }
-    catch (e) {
-      const u = (e as { usage?: { promptTokens: number | null; completionTokens: number | null; cachedTokens?: number | null } } | null)?.usage;
-      if (u) answeredUnusable = { model: m, ...u };
-      if (!(e instanceof Error && e.message === 'model_unavailable')) break;
-    }
+    catch (e) { if (!(e instanceof Error && e.message === 'model_unavailable')) break; }
   }
-  const usage: Usage = { model, promptTokens: reply?.promptTokens ?? null, completionTokens: reply?.completionTokens ?? null, providerMs: Math.max(0, deps.now() - started),
-    ...(reply?.cachedTokens != null ? { cachedTokens: reply.cachedTokens } : {}) };
-  // the meter: the provider answered = its real cost is counted (an unusable answer still cost the call); no answer = given back
-  const metered: Usage | null = reply ? usage : answeredUnusable ? { ...answeredUnusable, providerMs: usage.providerMs } : null;
-  await deps.meterFinish(meterId, !!metered, metered ? twinCostUsdMicros(metered) : 0, metered).catch(() => undefined);
+  const usage: Usage = { model, promptTokens: reply?.promptTokens ?? null, completionTokens: reply?.completionTokens ?? null, providerMs: Math.max(0, deps.now() - started) };
   if (!reply) { const g = await giveBack(usage); return err(502, 'provider_failure', { checklist, ...g }); }
   let parsed: unknown = null;
   try { parsed = JSON.parse(reply.content); } catch { parsed = null; }

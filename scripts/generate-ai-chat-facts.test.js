@@ -85,10 +85,9 @@ describe('generateAiFacts - canonical facts parity', () => {
 
   it('every open decision is listed as not decided (never a value)', () => {
     expect(S.notDecided).toEqual(expect.arrayContaining([
-      'paid_plan_quote_limits', 'capability_matrix', 'storage', 'attachments',
+      'paid_plan_quote_limits', 'capability_matrix', 'storage', 'ai_quotas', 'attachments',
       'cancellation_refund_proration', 'tax_beyond_il_inclusion',
     ]));
-    expect(S.notDecided).not.toContain('ai_quotas'); // decided 2026-11-06: the SMART PACK usage meter
     expect(S.notDecided).not.toContain('annual_billing'); // decided by §249
   });
 

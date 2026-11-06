@@ -47,7 +47,7 @@ describe('AiQuoteDraftDialog', () => {
     expect(p.onApply).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('checkbox', { name: 'פירוק חלון ישן' }));
     fireEvent.click(screen.getByRole('button', { name: /הוספה להצעה \(פריטים מסומנים: 1\)/ }));
-    expect(p.onApply).toHaveBeenCalledWith([{ description: 'חלון אלומיניום', quantity: 3, unit: 'unit', unitPrice: 1450, catalogId: 7 }], 'סלון', []); // release B: + the ticked changes (none)
+    expect(p.onApply).toHaveBeenCalledWith([{ description: 'חלון אלומיניום', quantity: 3, unit: 'unit', unitPrice: 1450, catalogId: 7 }], 'סלון');
   });
 
   it('Owner example: shows quantity, unit, price source and what is missing; a missing quantity blocks adding until the user fills it', async () => {
@@ -256,15 +256,14 @@ describe('AiQuoteDraftDialog - edit mode (opened from a quote row)', () => {
   it('names the quote and explains it edits this quote (HE)', () => {
     render(<AiQuoteDraftDialog {...props({ editMode: true, quoteLabel: 'A100700', isHebrew: true })} />);
     expect(screen.getByText('עריכה חכמה — הצעה A100700')).toBeTruthy();
-    // Owner 2026-11-06 (release B): the smart edit adds, changes or removes - lines, quantities, prices, notes or a discount
-    expect(screen.getByText(/תארו מה להוסיף, לשנות או למחוק בהצעה הזו - שורות, כמויות, מחירים, הערות או הנחה/)).toBeTruthy();
+    expect(screen.getByText(/הבינה תציע פריטים, ומה שתבחרו יתווסף להצעה הנוכחית/)).toBeTruthy();
     expect(screen.getByText('מה להוסיף או לשנות בהצעה הזו?')).toBeTruthy();
   });
 
   it('names the quote and explains it edits this quote (EN)', () => {
     render(<AiQuoteDraftDialog {...props({ editMode: true, quoteLabel: 'A100700', isHebrew: false })} />);
     expect(screen.getByText('Smart edit — quote A100700')).toBeTruthy();
-    expect(screen.getByText(/Describe what to add, change or remove in this quote - lines, quantities, prices, notes or a discount/)).toBeTruthy();
+    expect(screen.getByText(/The AI suggests items, and what you choose is added to the current quote/)).toBeTruthy();
     expect(screen.getByText('What to add or change in this quote?')).toBeTruthy();
   });
 

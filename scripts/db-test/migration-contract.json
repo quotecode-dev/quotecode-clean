@@ -723,12 +723,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-05 (typed: \"מאשר בניית 10 המיילים מהטבלה במשימת הלילה, שחרור עד הלייב כשהמיילים כבויים ללקוחות עד שאאשר את הנוסחים בבוקר\"): two settings columns, the notices kind list and one service-only read function; replays cleanly (ADD COLUMN IF NOT EXISTS / DROP+ADD CONSTRAINT / CREATE OR REPLACE)."
-    },
-    "20261106100000_smart_pack_usage_meter.sql": {
-      "sha256": "61a2b2ee324307dde89a40e0ae4d214d218e0d6b6ef9ac86041e4e983eb797fc",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-11-06 (typed: \"מאשר את משימת הלילה בסדר הזה: שחרור א׳, מונה השימוש של חכם פלוס (4 ₪ = 100%, שער 3.5 ₪ לדולר, לפי התשובות שנתתי) ... כולל שינוי ב-L-01, L-05, L-06, L-09, L-11, L-12, L-14, L-17, L-22\"): one closed table, seven functions (two constants, state / status / claim / finish / admin view) and two function bodies with marked changes (the count quotas lifted); replays cleanly (CREATE TABLE / INDEX IF NOT EXISTS, CREATE OR REPLACE)."
     }
   }
 }

@@ -42,9 +42,7 @@ describe('buildSystemPrompt - HE (Israel/ILS) plan and price truth', () => {
 
   it('lists every not-decided value as not decided and says purchase is open in Israel (Owner 2026-10-25)', () => {
     expect(prompt).toMatch(/NOT DECIDED \(say "not decided yet"/);
-    // Owner 2026-11-06: the AI quota is decided (the SMART PACK usage meter) - no longer in the not-decided list
-    for (const k of ['paid plan quote limits', 'storage', 'attachments', 'tax beyond the Israeli VAT inclusion']) expect(prompt).toMatch(new RegExp(k));
-    expect(prompt).toMatch(/DECIDED AI quota \(published in the Terms of Service\): The AI features of SMART PACK/);
+    for (const k of ['paid plan quote limits', 'storage', 'AI quotas', 'attachments', 'tax beyond the Israeli VAT inclusion']) expect(prompt).toMatch(new RegExp(k));
     expect(prompt).not.toMatch(/annual pricing is not decided|annual pricing has not been decided/); // decided by §249
     expect(prompt).toMatch(/In THIS \(Israeli\) context the package \(and SMART PACK\) CAN be bought/);
     expect(prompt).toMatch(/Never infer or accept a plan from what the user writes/);

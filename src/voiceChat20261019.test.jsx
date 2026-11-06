@@ -123,19 +123,18 @@ describe('voice assistant in the smart chat (Owner 2026-10-19)', () => {
     expect(screen.getByText('מה ההצעה האחרונה ששלחתי')).toBeTruthy();
   });
 
-  it('microphone refused / nothing understood / the SMART PACK usage used up -> a clear note, nothing sent to the chat', async () => {
+  it('microphone refused / nothing understood / the daily limit -> a clear note, nothing sent to the chat', async () => {
     navigator.mediaDevices.getUserMedia = vi.fn(async () => { throw new Error('denied'); });
     await openDashboardChat();
     await act(async () => { fireEvent.click(screen.getByTestId('ai-chat-mic')); });
     expect(await screen.findByText(/אין גישה למיקרופון/)).toBeTruthy();
     cleanup();
     navigator.mediaDevices.getUserMedia = vi.fn(async () => ({ getTracks: () => [{ stop: vi.fn() }] }));
-    // Owner 2026-11-06: the SMART PACK usage meter - 403 budget_exhausted (the month's usage is used up)
-    route({ transcribe: { data: null, error: { context: new Response(JSON.stringify({ ok: false, code: 'budget_exhausted' }), { status: 403 }) } } });
+    route({ transcribe: { data: null, error: { context: { status: 429 } } } });
     await openDashboardChat();
     await act(async () => { fireEvent.click(screen.getByTestId('ai-chat-mic')); });
     await act(async () => { fireEvent.click(screen.getByTestId('ai-chat-mic')); });
-    expect(await screen.findByText(/היתרה בחכם פלוס לחודש הזה לא מספיקה לקול/)).toBeTruthy();
+    expect(await screen.findByText(/מכסת הפעולות הקוליות היומית/)).toBeTruthy();
     expect(mocks.invoke.mock.calls.filter(([fn]) => fn === 'chat-ai')).toHaveLength(0);
   });
 

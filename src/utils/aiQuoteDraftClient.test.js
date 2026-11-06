@@ -30,18 +30,7 @@ describe('requestAiQuoteDraft', () => {
     const invoke = vi.fn(async () => ({ data: { contractVersion: 3, subject: 'x', questions: [], unassignedMeasures: [], items: [{ description: 'a', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', unitPrice: null, catalogId: null, priceSource: 'none' }] }, error: null }));
     const r = await requestAiQuoteDraft({ functions: { invoke } }, '  החלפת חלון  ');
     expect(invoke).toHaveBeenCalledWith(AI_QUOTE_DRAFT_FUNCTION, { body: { description: 'החלפת חלון' } });
-    expect(r).toEqual({ status: 'ok', subject: 'x', questions: [], unassignedMeasures: [], changes: { updates: [], deletes: [], notes: null, discountPercent: null }, items: [{ description: 'a', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', derivation: null, missing: null, evidence: null, unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none' }] });
-  });
-  // Owner console 2026-11-06 (release B): the open quote travels WITHOUT a price; a notes-only answer (no new line) is a valid draft
-  it('sends the open quote (lines, notes, discount - never a price) and keeps a changes-only answer', async () => {
-    const invoke = vi.fn(async () => ({ data: { contractVersion: 3, subject: '', questions: [], unassignedMeasures: [], items: [],
-      changes: { updates: [{ ref: 1, description: null, quantity: 4, unit: 'unit', unitPrice: null }], deletes: [2], notes: { action: 'append', text: 'העבודה תתבצע תוך שבוע.' }, discountPercent: 10 } }, error: null }));
-    const quote = { items: [{ description: 'חלון', quantity: 3, unit: 'unit', unitPrice: 1450 }, { description: 'רשת', quantity: 1, unit: null }], notes: 'הערה קיימת', discountPercent: 0 };
-    const r = await requestAiQuoteDraft({ functions: { invoke } }, 'תוסיף הערה שהעבודה תתבצע תוך שבוע, 4 חלונות, בלי רשת והנחה של 10%', { quote });
-    expect(invoke.mock.calls[0][1].body).toEqual({ description: 'תוסיף הערה שהעבודה תתבצע תוך שבוע, 4 חלונות, בלי רשת והנחה של 10%',
-      quote: { items: [{ ref: 1, description: 'חלון', quantity: 3, unit: 'unit' }, { ref: 2, description: 'רשת', quantity: 1, unit: null }], notes: 'הערה קיימת', discountPercent: 0 } });
-    expect(JSON.stringify(invoke.mock.calls[0][1].body)).not.toContain('1450');
-    expect(r).toMatchObject({ status: 'ok', items: [], changes: { updates: [{ ref: 1, quantity: 4 }], deletes: [2], notes: { action: 'append', text: 'העבודה תתבצע תוך שבוע.' }, discountPercent: 10 } });
+    expect(r).toEqual({ status: 'ok', subject: 'x', questions: [], unassignedMeasures: [], items: [{ description: 'a', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', derivation: null, missing: null, evidence: null, unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none' }] });
   });
   it('never calls the server for an invalid description and never throws', async () => {
     const invoke = vi.fn();

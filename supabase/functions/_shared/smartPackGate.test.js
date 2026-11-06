@@ -55,6 +55,6 @@ describe('chat-ai (source guard)', () => {
 describe('chat-ai: no data tool without SMART PACK (Codex audit H01, Owner 2026-10-21)', () => {
   const src = fs.readFileSync(path.join(HERE, '..', 'chat-ai', 'index.ts'), 'utf8').replace(/\r\n/g, '\n');
   it('the tool context itself requires SMART PACK, so a paraphrase that escaped the question classification never reaches the data', () => {
-    expect(src).toMatch(/let toolCtx: ToolContext \| null = smartPackAllowed && userJwtClient && verifiedUserId && accountContext && !reviewSnapshot/);
+    expect(src).toMatch(/const toolCtx: ToolContext \| null = smartPackAllowed && userJwtClient && verifiedUserId && accountContext && !reviewSnapshot/);
   });
 });

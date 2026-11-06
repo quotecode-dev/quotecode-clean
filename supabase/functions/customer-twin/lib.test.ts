@@ -1,7 +1,7 @@
 // customer-twin handler (Owner night task 2026-10-22; Codex review fixes 2026-10-23): allowance first and fail closed, a stored answer is
 // free, every failure says honestly whether the check was given back, the market is the account's (product rule), usage is kept.
 import { describe, it, expect, vi } from 'vitest';
-import { customerTwinHandler, twinCostUsdMicros, TWIN_MODEL, TWIN_FALLBACK_MODEL, type CustomerTwinDeps } from './lib.ts';
+import { customerTwinHandler, TWIN_MODEL, TWIN_FALLBACK_MODEL, type CustomerTwinDeps } from './lib.ts';
 
 const quote = {
   version: 1, market: 'INTERNATIONAL', currency: 'ILS', subject: 'Kitchen',
@@ -21,9 +21,6 @@ function deps(over: Partial<CustomerTwinDeps> = {}) {
     refund: vi.fn(async () => ({ ok: true, status: { monthlyRemaining: 20 } }) as Record<string, unknown>),
     complete: vi.fn(async () => ({ content: answer, promptTokens: 900, completionTokens: 300 })),
     sha256: vi.fn(async () => 'a'.repeat(64)),
-    // Owner 2026-11-06: the SMART PACK usage meter
-    meterClaim: vi.fn(async () => ({ ok: true, claimId: 'm1' }) as { ok: true; claimId: string } | { ok: false; code: string }),
-    meterFinish: vi.fn(async () => undefined),
     today: () => '2026-10-23',
     now: () => (t += 250),
     ...over,
@@ -122,63 +119,5 @@ describe('customer-twin handler', () => {
     const d = deps({ claim: vi.fn(async () => ({ ok: true, cached: false, source: 'monthly' }) as Record<string, unknown>) });
     expect((await customerTwinHandler(d, { quote })).body).toMatchObject({ code: 'retry_later' });
     expect(d.complete).not.toHaveBeenCalled();
-  });
-});
-
-// Owner console 2026-11-06 (typed night-task approval): the SMART PACK usage meter on top of the check's claim
-describe('customer-twin: the SMART PACK usage meter', () => {
-  it('a new analysis: the meter is claimed after the check claim and finished with the real cost of the provider usage', async () => {
-    const d = deps({ complete: vi.fn(async () => ({ content: answer, promptTokens: 900, completionTokens: 300, cachedTokens: 100 })) });
-    const r = await customerTwinHandler(d, { quote });
-    expect(r.status).toBe(200);
-    // gpt-6-luna: 800 x 0.10 + 100 x 0.01 + 300 x 0.50 = 231 micro-USD
-    expect(d.meterFinish).toHaveBeenCalledWith('m1', true, 231, { model: TWIN_MODEL, promptTokens: 900, completionTokens: 300, providerMs: 250, cachedTokens: 100 });
-  });
-  it('a stored answer of the same content stays free: the reserve is given back at once (0 counted), no model call', async () => {
-    const stored = JSON.parse(answer);
-    const d = deps({ claim: vi.fn(async () => ({ ok: true, cached: true, createdAt: '2026-10-20T08:00:00Z', result: { schema: 'customer-twin/1', ...stored } })) });
-    await customerTwinHandler(d, { quote });
-    expect(d.meterFinish).toHaveBeenCalledWith('m1', false, 0, null);
-    expect(d.complete).not.toHaveBeenCalled();
-  });
-  it('not enough left: 403 budget_exhausted BEFORE the check is claimed (never a failed check), no model call', async () => {
-    const d = deps({ meterClaim: vi.fn(async () => ({ ok: false, code: 'budget_exhausted' })) });
-    const r = await customerTwinHandler(d, { quote });
-    expect(r.status).toBe(403);
-    expect(r.body).toMatchObject({ ok: false, code: 'budget_exhausted' });
-    expect(d.claim).not.toHaveBeenCalled();
-    expect(d.refund).not.toHaveBeenCalled();
-    expect(d.complete).not.toHaveBeenCalled();
-  });
-  it('the meter cannot be read: 503 retry_later, the check is never claimed, no model call', async () => {
-    const d = deps({ meterClaim: vi.fn(async () => { throw new Error('down'); }) });
-    const r = await customerTwinHandler(d, { quote });
-    expect([r.status, r.body.code]).toEqual([503, 'retry_later']);
-    expect(d.claim).not.toHaveBeenCalled();
-    expect(d.complete).not.toHaveBeenCalled();
-  });
-  it('the check itself is refused (in progress): the reserve is given back', async () => {
-    const d = deps({ claim: vi.fn(async () => ({ ok: false, code: 'in_progress' })) });
-    const r = await customerTwinHandler(d, { quote });
-    expect(r.status).toBe(409);
-    expect(d.meterFinish).toHaveBeenCalledWith('m1', false, 0, null);
-  });
-  it('a cut answer (the provider answered) still counts its usage; the check is given back', async () => {
-    const cut = Object.assign(new Error('provider_failure'), { usage: { promptTokens: 900, completionTokens: 1400, cachedTokens: 0 } });
-    const d = deps({ complete: vi.fn(async () => { throw cut; }) });
-    const r = await customerTwinHandler(d, { quote });
-    expect(r.status).toBe(502);
-    // gpt-6-luna: 900 x 0.10 + 1,400 x 0.50 = 790 micro-USD
-    expect(d.meterFinish).toHaveBeenCalledWith('m1', true, 790, expect.objectContaining({ model: TWIN_MODEL, promptTokens: 900, completionTokens: 1400 }));
-    expect(d.refund).toHaveBeenCalled();
-  });
-  it('the provider never answers: the meter is given back (not counted)', async () => {
-    const d = deps({ complete: vi.fn(async () => { throw new Error('provider_failure'); }) });
-    await customerTwinHandler(d, { quote });
-    expect(d.meterFinish).toHaveBeenCalledWith('m1', false, 0, null);
-  });
-  it('the fallback model is priced as itself (gpt-4o-mini)', () => {
-    expect(twinCostUsdMicros({ model: TWIN_FALLBACK_MODEL, promptTokens: 1000, completionTokens: 100, providerMs: 1 })).toBe(210);
-    expect(twinCostUsdMicros(null)).toBe(0);
   });
 });

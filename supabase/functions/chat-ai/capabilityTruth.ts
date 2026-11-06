@@ -91,11 +91,11 @@ export const QUOTE_FROM_FILE_REQUEST: readonly RegExp[] = [
 
 // Owner console 2026-11-03 (typed: "מאשר תשובה קצרה בצ'אט לשאלות על הצעת מחיר מקובץ, כולל שינוי ב-L-17 ..."): the short answer to a
 // quote-from-file question - three sentences, only the labels the screens show (productHowTo.js quote_from_file evidence) and the decided
-// quota (since 2026-11-06 the SMART PACK usage meter, migration 20261106100000, Terms section 7).
+// quota (migration 20261103100000, Terms section 7).
 export function quoteFromFileAnswer(isHebrew: boolean): string {
   return isHebrew
-    ? 'כן. ב„הצעה חדשה” בוחרים „הצעת מחיר מקובץ”, מעלים קובץ PDF או JPG אחד, וה-AI קורא ממנו את השורות, הכמויות והמחירים. בכל שורה ממלאים את „המחיר שלכם”, ורק המחירים שלכם נכנסים להצעה; הקובץ לא נשמר. חלק מחכם פלוס, ונספר במכסת השימוש החודשית של חכם פלוס (היתרה מוצגת באחוזים).'
-    : 'Yes. In "New quote" choose "Quote from a file", upload one PDF or JPG, and the AI reads its lines, quantities and prices. Fill in "Your price" on each line - only your prices enter the quote, and the file is not stored. Part of SMART PACK, counted in its monthly usage allowance (shown as a percentage left).';
+    ? 'כן. ב„הצעה חדשה” בוחרים „הצעת מחיר מקובץ”, מעלים קובץ PDF או JPG אחד, וה-AI קורא ממנו את השורות, הכמויות והמחירים. בכל שורה ממלאים את „המחיר שלכם”, ורק המחירים שלכם נכנסים להצעה; הקובץ לא נשמר. חלק מחכם פלוס: עד 50 קבצים בחודש, ועד 3 בשבעת הימים החינמיים.'
+    : 'Yes. In "New quote" choose "Quote from a file", upload one PDF or JPG, and the AI reads its lines, quantities and prices. Fill in "Your price" on each line - only your prices enter the quote, and the file is not stored. Part of SMART PACK: up to 50 files a month, and up to 3 during the 7 free days.';
 }
 
 // Ordered [id, patterns[]] pairs. Order matters: the most specific ("is the AI itself doing this

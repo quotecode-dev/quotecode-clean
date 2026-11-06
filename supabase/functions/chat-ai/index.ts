@@ -3,7 +3,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { PublicPoolRefusal, reservePublicSlot, publicPoolAnswer } from './publicPool.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateChatRequest, classifySupportMessage, buildSystemPrompt, CHAT_CONTRACT_VERSION } from "./validation.ts";
-import { buildVerifiedAccountContext, fetchServerAccountSummary, fetchSmartPackUsage, isHebrewFromMarket, type BusinessSettingsRow, type SmartPackUsage } from "./accountContext.ts";
+import { buildVerifiedAccountContext, fetchServerAccountSummary, fetchFileReadBalance, isHebrewFromMarket, type BusinessSettingsRow, type FileReadBalance } from "./accountContext.ts";
 import { type AccountSummary } from "../_shared/subscriptionContract.ts";
 import { smartPackAllowedBySummary, smartPackPurchasePath } from "../_shared/smartPackGate.ts";
 import { resolveSubscriptionTruthResponse, findSubscriptionClaimViolations, safeSubscriptionAnswer } from "./subscriptionTruth.ts";
@@ -22,9 +22,7 @@ import { deriveTrustedFacts, reconcileBlockers, serverPrerequisites, classifyHel
 import { buildErrorEnvelope, withLegacyChoices, type ChatErrorCode } from "../_shared/aiChatContract.ts";
 import { classifyQuoteStatsIntent, computeQuoteStats, formatQuoteStatsAnswer, mentionsPlan, type QuoteStatRow } from "./quoteStatsTruth.ts";
 import { buildNoInventionBlock, removeInventedOffers } from "./noInvention.ts";
-import { CHEAP_MODEL, LEGACY_CHEAP_MODEL, TOOLS_MODEL, isOwnDataQuestion, hasDataQualifier, chatCompletionsTools, chatCompletionToolCalls, runToolLoop, buildToolsPromptBlock, dailyCapAnswer, smartPackUsedUpAnswer, smartPackMeterUnavailableAnswer, type ToolContext } from "./chatTools.ts";
-// Owner console 2026-11-06 (typed night-task approval): the SMART PACK usage meter - a data question is metered, a plain one is not
-import { claimMeter, finishMeter, tokenUsage, sumUsage, RESERVE_MICROS, BUDGET_EXHAUSTED, type TokenUsage } from "../_shared/usageMeter.ts";
+import { CHEAP_MODEL, LEGACY_CHEAP_MODEL, isOwnDataQuestion, hasDataQualifier, chatCompletionsTools, chatCompletionToolCalls, runToolLoop, buildToolsPromptBlock, dailyCapAnswer, type ToolContext } from "./chatTools.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -86,7 +84,7 @@ serve(async (req) => {
   // Subscriptions cutover (OD-20): the account's plan facts come ONLY from public.get_account_summary(), called below with the
   // caller's OWN JWT (the RPC derives identity from auth.uid() and takes no argument). Never from the request body.
   let accountSummary: AccountSummary = { state: 'unavailable', code: 'no_verified_user' };
-  let smartPackUsage: SmartPackUsage | null = null;
+  let fileReadBalance: FileReadBalance | null = null;
   if (isDashboard) {
     const authHeader = req.headers.get('Authorization');
     if (authHeader) {
@@ -98,11 +96,10 @@ serve(async (req) => {
         if (verifiedUser?.id) {
           verifiedUserId = verifiedUser.id;
           attributedEmail = verifiedUser.email ?? 'unverified_dashboard_session';
-          // Owner console 2026-11-03 (typed approval incl. L-11): + the caller's own balance, same JWT, in parallel - since 2026-11-06 the
-          // SMART PACK usage left this month (the meter replaced the count of files)
-          [accountSummary, smartPackUsage] = await Promise.all([
+          // Owner console 2026-11-03 (typed approval incl. L-11): + the caller's own "quote from a file" balance, same JWT, in parallel
+          [accountSummary, fileReadBalance] = await Promise.all([
             fetchServerAccountSummary((fn) => callerClient.rpc(fn)),
-            fetchSmartPackUsage((fn) => callerClient.rpc(fn)),
+            fetchFileReadBalance((fn) => callerClient.rpc(fn)),
           ]);
         } else {
           attributedEmail = 'unverified_dashboard_session';
@@ -134,7 +131,7 @@ serve(async (req) => {
       .select('role, country, phone, tax_id, is_lifetime')
       .eq('user_id', verifiedUserId)
       .maybeSingle();
-    accountContext = buildVerifiedAccountContext(bizRow as BusinessSettingsRow | null, currentArea, accountSummary, smartPackUsage);
+    accountContext = buildVerifiedAccountContext(bizRow as BusinessSettingsRow | null, currentArea, accountSummary, fileReadBalance);
     // AI HELP V4 - Layer 3 trusted facts, scoped to this verified user only (profile completeness, server account summary).
     // The retired monthly quote counter is no longer computed (OD-20).
     trustedFacts = deriveTrustedFacts(accountContext, bizRow as { phone?: string; tax_id?: string; country?: string; role?: string } | null,
@@ -438,12 +435,10 @@ serve(async (req) => {
   // SMART CHAT (Owner console 2026-10-19, task-control activeTask.smartChatTools20261019, L-17 unlocked): a verified dashboard user's
   // question that reaches the model counts against the day's 30 (chat_ai_claim_question, the caller's own JWT; an admin is not
   // counted). Over the cap -> a fixed answer, no model call. A claim failure never blocks the chat (AI-HELP-AVAILABILITY-001).
-  // Owner console 2026-11-06 (typed night-task approval): for a SMART PACK account the usage meter REPLACES the day's 30 - its data
-  // questions are metered below, its plain questions are free; an account without SMART PACK keeps the day's 30 unchanged.
   const userJwtClient = verifiedUserId && isDashboard
     ? createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: req.headers.get('Authorization') ?? '' } } })
     : null;
-  if (userJwtClient && !trustedFacts?.isAdmin && !smartPackAllowed) {
+  if (userJwtClient && !trustedFacts?.isAdmin) {
     try {
       const { data: claim, error: claimErr } = await userJwtClient.rpc('chat_ai_claim_question');
       if (claimErr) console.error('chat_ai_claim_question failed:', claimErr.message);
@@ -459,7 +454,7 @@ serve(async (req) => {
   // the read-only data tools are offered only to a verified dashboard user (never on the public chat, never with a review snapshot)
   // Codex audit H01 (Owner 2026-10-21 "כן, את כולן"; the typed L-17 SMART PACK gate): no data tool at all without SMART PACK - the
   // classification of the question above is not the only guard (a paraphrase must never reach the account's data)
-  let toolCtx: ToolContext | null = smartPackAllowed && userJwtClient && verifiedUserId && accountContext && !reviewSnapshot
+  const toolCtx: ToolContext | null = smartPackAllowed && userJwtClient && verifiedUserId && accountContext && !reviewSnapshot
     ? await (async () => {
       const { data: curRow } = await adminClient.from('business_settings').select('currency').eq('user_id', verifiedUserId).maybeSingle();
       const bizCur = String((curRow as { currency?: string } | null)?.currency || '').toUpperCase();
@@ -467,25 +462,6 @@ serve(async (req) => {
       return { db: userJwtClient, userId: verifiedUserId, accountCurrency, today: new Date().toISOString().slice(0, 10) };
     })()
     : null;
-  // Owner console 2026-11-06 (the SMART PACK usage meter): reading the account's data needs the month's usage. Less left than one data
-  // question can cost (or a meter that cannot be read) = no data tools: an own-data question gets the fixed answer, a plain question is
-  // answered as usual. The super admin is never limited.
-  if (toolCtx && userJwtClient && !trustedFacts?.isAdmin) {
-    let meterState: 'ok' | 'used_up' | 'unavailable' = 'unavailable';
-    try {
-      const { data: m, error: mErr } = await userJwtClient.rpc('smart_pack_usage_status');
-      const ms = (m || {}) as { ok?: boolean; unlimited?: boolean; remainingMicros?: number };
-      if (!mErr && ms.ok === true) meterState = ms.unlimited === true || Number(ms.remainingMicros) >= RESERVE_MICROS.chat_data ? 'ok' : 'used_up';
-    } catch { meterState = 'unavailable'; }
-    if (meterState !== 'ok') {
-      if (ownDataQuestion) {
-        const meterAnswer = meterState === 'used_up' ? smartPackUsedUpAnswer(isHebrew) : smartPackMeterUnavailableAnswer(isHebrew);
-        await logChat(meterAnswer);
-        return deterministicResponse(meterAnswer, null, null);
-      }
-      toolCtx = null;
-    }
-  }
   // Owner 2026-10-19 ("איך אתה אומר שהוא לא ממציא"): every model answer is told never to offer an action the product does not have;
   // a pasted / attached screenshot exists only in the signed-in dashboard chat (Owner "כן לצילום מסך ... העתק הדבק")
   const screenshot = toolCtx ? rawScreenshot : null;
@@ -572,23 +548,10 @@ serve(async (req) => {
   // answered exactly as before this change (the cheap model, no tools)
   const firstCalls = toolCtx && !screenshot ? chatCompletionToolCalls(data) : [];
   if (toolCtx && (firstCalls.length || screenshot)) {
-    // Owner console 2026-11-06: a data question is metered - its reserve is held before the stronger model (the caller's JWT), and the
-    // real cost of the cheap first call + every tool round is counted after (the service role); refused = the fixed answer, no data read
-    const meter = await claimMeter(userJwtClient as Parameters<typeof claimMeter>[0], 'chat_data', RESERVE_MICROS.chat_data);
-    if (!meter.ok) {
-      const meterAnswer = meter.code === BUDGET_EXHAUSTED ? smartPackUsedUpAnswer(isHebrew) : smartPackMeterUnavailableAnswer(isHebrew);
-      await logChat(meterAnswer);
-      return deterministicResponse(meterAnswer, null, null);
-    }
-    const usages: TokenUsage[] = screenshot ? [] : [tokenUsage(String((data as { model?: unknown })?.model || CHEAP_MODEL), (data as { usage?: unknown })?.usage)];
     const toolTurn = await runToolLoop({
       fetchImpl: fetch as unknown as Parameters<typeof runToolLoop>[0]['fetchImpl'], apiKey: Deno.env.get('OPENAI_API_KEY') ?? '',
       instructions: modelInstructions, messages, firstCalls, ctx: toolCtx, screenshot,
-      onUsage: (u) => { usages.push(tokenUsage(TOOLS_MODEL, u)); },
     });
-    // every provider answer cost money, whether or not the tool path ended in an answer
-    const spent = sumUsage(usages);
-    await finishMeter(adminClient as unknown as Parameters<typeof finishMeter>[0], meter.claimId, spent.costUsdMicros > 0, spent);
     if (toolTurn) {
       aiReply = toolTurn.answer;
     } else {

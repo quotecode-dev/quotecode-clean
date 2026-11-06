@@ -33,8 +33,7 @@ describe('prompt - catalog names/ids only, never prices; language from the serve
   it('never puts a price into the model input and states the output contract', () => {
     const msgs = buildDraftMessages({ description: 'job', isHebrew: true, catalog: normalizeCatalog(CATALOG) });
     expect(msgs[0].content).toContain('Hebrew');
-    // release B (Owner 2026-11-06): the ONLY price the model may return is one the request writes for an existing line (verified in the text)
-    expect(msgs[0].content).toContain('Never output a price, except unitPrice in changes.updates as written in the request.');
+    expect(msgs[0].content).toContain('Never output prices');
     expect(msgs[0].content).toContain('Never use 1 or a sum of other items as a guess');
     expect(msgs[1].content).not.toMatch(/1450|price/);
     expect(JSON.parse(msgs[1].content).catalog).toEqual([{ id: '7', name: 'חלון אלומיניום 120×100' }, { id: '9', name: 'רשת' }]);
@@ -44,10 +43,7 @@ describe('prompt - catalog names/ids only, never prices; language from the serve
     expect(DRAFT_RESPONSE_SCHEMA.strict).toBe(true);
     const props = DRAFT_RESPONSE_SCHEMA.schema.properties.items.items.properties;
     expect(Object.keys(props).sort()).toEqual(['catalogId', 'derivation', 'description', 'evidence', 'missing', 'quantity', 'quantityBasis', 'unit']);
-    // a NEW line never carries a price, total, VAT or discount; release B: only changes carry the user-written price / discount
-    expect(JSON.stringify(DRAFT_RESPONSE_SCHEMA.schema.properties.items)).not.toMatch(/price|total|"vat|discount/i);
-    expect(JSON.stringify({ ...DRAFT_RESPONSE_SCHEMA.schema.properties, changes: undefined })).not.toMatch(/price|total|"vat|discount/i);
-    expect(Object.keys(DRAFT_RESPONSE_SCHEMA.schema.properties.changes.properties).sort()).toEqual(['deletes', 'discountPercent', 'notes', 'updates']);
+    expect(JSON.stringify(DRAFT_RESPONSE_SCHEMA)).not.toMatch(/price|total|"vat|discount/i);
   });
 });
 
@@ -228,7 +224,7 @@ describe('browser re-check of the server response', () => {
       { description: 'b', quantity: 1, unit: 'bogus', quantityBasis: 'missing', unitPrice: null, priceSource: 'catalog' },
       { description: '' },
     ] });
-    expect(d).toEqual({ subject: 's', questions: ['q?'], unassignedMeasures: ['22 מ״ר'], changes: { updates: [], deletes: [], notes: null, discountPercent: null }, items: [
+    expect(d).toEqual({ subject: 's', questions: ['q?'], unassignedMeasures: ['22 מ״ר'], items: [
       { description: 'a', quantity: 2, unit: 'm2', quantityBasis: 'stated', derivation: null, missing: null, evidence: null, unitPrice: 10, catalogId: 7, catalogName: 'A', priceSource: 'catalog' },
       { description: 'b', quantity: null, unit: null, quantityBasis: 'missing', derivation: null, missing: null, evidence: null, unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none' },
     ] });
@@ -240,12 +236,10 @@ describe('browser re-check of the server response', () => {
 describe('ai-quote-draft Edge Function source guards', () => {
   const src = fs.readFileSync(path.resolve(HERE, '../ai-quote-draft/index.ts'), 'utf8');
   const config = fs.readFileSync(path.resolve(HERE, '../../config.toml'), 'utf8');
-  it('verifies the JWT in the gateway and in code, and reads with the caller JWT (RLS); the service role only finishes the usage meter', () => {
+  it('verifies the JWT in the gateway and in code, and reads with the caller JWT (RLS), never the service role', () => {
     expect(config).toMatch(/\[functions\.ai-quote-draft\]\r?\nenabled = true[\s\S]{0,400}?verify_jwt = true/);
     expect(src).toContain('caller.auth.getUser()');
-    // Owner 2026-11-06 (the SMART PACK usage meter): the service-role client exists ONLY for smart_pack_usage_finish
-    expect(src.match(/SERVICE_ROLE/g)).toHaveLength(1);
-    expect([...src.matchAll(/\badmin\b/g)].length).toBe([...src.matchAll(/finishMeter\(admin,/g)].length + 1);
+    expect(src).not.toMatch(/SERVICE_ROLE/);
     expect(src).toMatch(/from\('services'\)\.select\('id, name, price'\)\.eq\('user_id', userId\)/);
     expect(src).toMatch(/from\('business_settings'\)\.select\('country'\)\.eq\('user_id', userId\)/);
   });

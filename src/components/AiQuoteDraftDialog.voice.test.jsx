@@ -68,8 +68,7 @@ describe('AI smart quote dictation (Owner 2026-10-19)', () => {
     cleanup();
     render(<AiQuoteDraftDialog {...props({ transcribe: vi.fn(async () => ({ ok: false, code: 'limit' })) })} />);
     await recordOnce('ai-quote-draft-dictate');
-    // Owner 2026-11-06: 'limit' = the month's SMART PACK usage is used up (the usage meter replaced the day's voice count)
-    expect((await screen.findByTestId('ai-quote-draft-voice-error')).textContent).toMatch(/היתרה בחכם פלוס לחודש הזה לא מספיקה לקול/);
+    expect((await screen.findByTestId('ai-quote-draft-voice-error')).textContent).toMatch(/מכסת הפעולות הקוליות/);
     cleanup();
     delete window.MediaRecorder;
     render(<AiQuoteDraftDialog {...props({ transcribe: vi.fn() })} />);

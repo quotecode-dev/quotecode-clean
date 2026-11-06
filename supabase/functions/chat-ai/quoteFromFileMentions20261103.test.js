@@ -6,7 +6,7 @@ import { readFileSync } from 'node:fs';
 import { classifyCapabilityIntent, resolveCapabilityTruthResponse, QUOTE_FROM_FILE_REQUEST, quoteFromFileAnswer } from './capabilityTruth.ts';
 import { howToStepsForCapability } from './howToTruth.ts';
 import { classifySubscriptionIntents, resolveSubscriptionTruthResponse, buildSubscriptionTruthBlock } from './subscriptionTruth.ts';
-import { parseSmartPackUsageStatus, fetchSmartPackUsage, buildVerifiedAccountContext } from './accountContext.ts';
+import { parseFileReadStatus, fetchFileReadBalance, buildVerifiedAccountContext } from './accountContext.ts';
 import { buildSystemPrompt } from './validation.ts';
 import { AI_FACTS } from './aiFacts.generated.ts';
 import { NAV_ACTIONS, NAV_LABELS, allowedNavigation } from '../_shared/aiHelpContract.js';
@@ -63,10 +63,8 @@ describe('the short answer to a quote-from-file question', () => {
   it('HE / EN: three sentences, the screen labels, the file not stored, the quota - and nothing about the AI smart quote', () => {
     const he = quoteFromFileAnswer(true);
     const en = quoteFromFileAnswer(false);
-    // Owner 2026-11-06: the quota is the SMART PACK usage meter (a percentage), never a count of files
-    for (const label of ['„הצעה חדשה”', '„הצעת מחיר מקובץ”', '„המחיר שלכם”', 'הקובץ לא נשמר', 'במכסת השימוש החודשית של חכם פלוס', 'באחוזים']) expect(he).toContain(label);
-    for (const label of ['"New quote"', '"Quote from a file"', '"Your price"', 'the file is not stored', 'monthly usage allowance', 'SMART PACK']) expect(en).toContain(label);
-    expect(he + en).not.toMatch(/50|\b3 /);
+    for (const label of ['„הצעה חדשה”', '„הצעת מחיר מקובץ”', '„המחיר שלכם”', 'הקובץ לא נשמר', 'עד 50 קבצים בחודש', 'חכם פלוס']) expect(he).toContain(label);
+    for (const label of ['"New quote"', '"Quote from a file"', '"Your price"', 'the file is not stored', 'up to 50 files a month', 'SMART PACK']) expect(en).toContain(label);
     expect(he).not.toMatch(/ניסיון|להכתיב|מיקרופון/);
     expect(en).not.toMatch(/trial|dictate|microphone/i);
     expect(he.split(/[.](?:\s|$)/).filter(Boolean)).toHaveLength(4); // "כן." + three sentences
@@ -85,23 +83,20 @@ describe('the short answer to a quote-from-file question', () => {
   });
 });
 
-// Owner console 2026-11-06 (typed night-task approval): the AI quota is the SMART PACK usage meter - it replaced the count of files
-describe('the quota: the SMART PACK usage meter is decided (a monthly percentage); no count of files', () => {
-  it('the plan-contents answer states the monthly usage allowance as a percentage, and no AI quota is "not decided" any more (HE / EN)', () => {
+describe('the quota: decided for quote from a file, every other AI quota still undecided', () => {
+  it('the plan-contents answer states 50 a month and 3 in the free days (HE / EN)', () => {
     const he = resolveSubscriptionTruthResponse('מה כלול במנוי?', true, null).answer;
-    expect(he).toContain('מוגבלות במכסת שימוש חודשית; היתרה מוצגת באחוזים');
-    expect(he).toContain('שאלה רגילה בצ׳אט לא נספרת');
+    expect(he).toContain('עד 50 קבצים בחודש, ועד 3 בשבעת הימים החינמיים');
     expect(he).not.toContain('ניסיון'); // the Free plan is never called a trial
-    expect(he).not.toMatch(/מכסות AI אחרות|50 קבצים/);
+    expect(he).toContain('מכסות AI אחרות');
     const en = resolveSubscriptionTruthResponse('What does the subscription include?', false, null, false).answer;
-    expect(en).toContain('count against a monthly usage allowance, shown as a percentage left');
-    expect(en).not.toMatch(/other AI quotas|50 files/);
+    expect(en).toContain('up to 50 files a month, and up to 3 during the 7 free days');
+    expect(en).toContain('other AI quotas');
   });
-  it('the prompt block: the decided usage allowance; never a count stated as the limit', () => {
+  it('the prompt block: the decided quota, and "AI quotas other than quote from a file" not decided', () => {
     const block = buildSubscriptionTruthBlock(false);
     expect(block).toContain('DECIDED AI quota');
-    expect(block).toContain('Never state a number of files, checks, questions or voice actions as the limit.');
-    expect(block).not.toContain('AI quotas other than quote from a file');
+    expect(block).toContain('AI quotas other than quote from a file');
   });
   it('"how many files are left" is never the Free-10 quote balance', () => {
     expect(classifySubscriptionIntents('כמה קבצים נשארו לי?')).not.toContain('balance');
@@ -110,28 +105,25 @@ describe('the quota: the SMART PACK usage meter is decided (a monthly percentage
   });
 });
 
-describe("the user's own SMART PACK usage left (smart_pack_usage_status, the caller's JWT) - Owner 2026-11-06", () => {
-  it('parses the server meter strictly; anything else is unknown', () => {
-    expect(parseSmartPackUsageStatus({ ok: true, smartPack: true, unlimited: false, percentLeft: 63, usedMicros: 1480000 })).toEqual({ percentLeft: 63, unlimited: false });
-    expect(parseSmartPackUsageStatus({ ok: true, smartPack: true, unlimited: true, percentLeft: 100 })).toEqual({ percentLeft: 100, unlimited: true });
-    expect(parseSmartPackUsageStatus({ ok: true, smartPack: false, percentLeft: 100 })).toBeNull();
-    for (const bad of [101, -1, 2.5, '63', null]) expect(parseSmartPackUsageStatus({ ok: true, smartPack: true, percentLeft: bad })).toBeNull();
-    expect(parseSmartPackUsageStatus(null)).toBeNull();
+describe("the user's own file balance (quote_file_read_status, the caller's JWT)", () => {
+  it('parses the server counter strictly; anything else is unknown', () => {
+    expect(parseFileReadStatus({ ok: true, smartPack: true, period: '2026-11', limit: 50, used: 3, remaining: 47 })).toEqual({ remaining: 47, limit: 50, period: 'month' });
+    expect(parseFileReadStatus({ ok: true, smartPack: true, period: 'free', limit: 3, used: 1, remaining: 2 })).toEqual({ remaining: 2, limit: 3, period: 'free' });
+    expect(parseFileReadStatus({ ok: true, smartPack: false, period: '2026-11', limit: 0, used: 0, remaining: 0 })).toBeNull();
+    expect(parseFileReadStatus({ ok: true, smartPack: true, limit: 50, remaining: 51 })).toBeNull();
+    expect(parseFileReadStatus(null)).toBeNull();
   });
   it('fetch never throws and never invents a balance', async () => {
-    expect(await fetchSmartPackUsage(async () => ({ data: null, error: { code: '42501' } }))).toBeNull();
-    expect(await fetchSmartPackUsage(async () => { throw new Error('x'); })).toBeNull();
-    expect(await fetchSmartPackUsage(async (fn) => ({ data: fn === 'smart_pack_usage_status' ? { ok: true, smartPack: true, percentLeft: 63 } : null, error: null })))
-      .toEqual({ percentLeft: 63, unlimited: false });
+    expect(await fetchFileReadBalance(async () => ({ data: null, error: { code: '42501' } }))).toBeNull();
+    expect(await fetchFileReadBalance(async () => { throw new Error('x'); })).toBeNull();
+    expect(await fetchFileReadBalance(async (fn) => ({ data: fn === 'quote_file_read_status' ? { ok: true, smartPack: true, period: '2026-11', limit: 50, remaining: 47 } : null, error: null })))
+      .toEqual({ remaining: 47, limit: 50, period: 'month' });
   });
   it('the verified account section states it, and only when known', () => {
-    const withUsage = buildVerifiedAccountContext({ country: 'Local' }, null, null, { percentLeft: 63, unlimited: false });
-    const prompt = buildSystemPrompt({ isHebrew: true, accountContext: withUsage });
-    expect(prompt).toContain('SMART PACK usage left this month: 63%.');
-    expect(prompt).toContain('never a number of files, checks or questions');
-    expect(buildSystemPrompt({ isHebrew: true, accountContext: buildVerifiedAccountContext({ country: 'Local' }, null, null, { percentLeft: 100, unlimited: true }) }))
-      .toContain('SMART PACK usage: this account is not limited.');
+    const withBalance = buildVerifiedAccountContext({ country: 'Local' }, null, null, { remaining: 47, limit: 50, period: 'month' });
+    const prompt = buildSystemPrompt({ isHebrew: true, accountContext: withBalance });
+    expect(prompt).toContain('Quote from a file (SMART PACK) balance: 47 of 50 files left this month');
     const none = buildSystemPrompt({ isHebrew: true, accountContext: buildVerifiedAccountContext({ country: 'Local' }, null, null) });
-    expect(none).not.toContain('SMART PACK usage');
+    expect(none).not.toContain('Quote from a file (SMART PACK) balance');
   });
 });

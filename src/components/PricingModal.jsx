@@ -23,7 +23,6 @@ import { formatShortDate } from '../utils/shortDate';
 import SmartPackAddOnOffer from './SmartPackAddOnOffer';
 import SmartPackRemoval from './SmartPackRemoval';
 import MailLink from './MailLink';
-import { smartPackUsageText } from '../utils/smartPackUsage';
 
 // Owner 2026-10-25 ("למה פשוט לא לכתוב במסלולים שהוא נמצא עכשיו במסלול חינם, למה יש לו את האופציה לבחור את זה בכלל?"): the Free plan is
 // never a card to choose - the status lines above say the account is on it (and its balance); only the paid package card, single width.
@@ -38,7 +37,7 @@ const NUMERIC_TOKEN = /([≈₪$\u20AC\u00A3]*\d[\d.,]*%?)/;
 const isolateNumbers = (text) => String(text).split(NUMERIC_TOKEN).map((part, i) => (i % 2 === 1
   ? <bdi key={i} dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{part}</bdi> : part));
 
-export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, accountCurrency = null, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null, smartPackAddOn = null, smartPackRemoval = null, onRetrySummary = null, readUsage = null }) {
+export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeliBusiness, accountSummary, currency, accountCurrency = null, isLifetime = false, statusLine = null, onPurchase = null, billingReturn = null, smartPackAddOn = null, smartPackRemoval = null, onRetrySummary = null }) {
   const [rate, setRate] = useState(null);
   const [pay, setPay] = useState({ busy: false, error: null });
   // Owner console 2026-10-21 (typed L-22 approval): the SMART PACK box state, so the local-currency estimate follows the total
@@ -52,14 +51,6 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
     loadUsdRate(ownCurrency).then((r) => { if (alive) setRate(r); }).catch(() => {});
     return () => { alive = false; };
   }, [wantsEstimate, ownCurrency]);
-  // Owner console 2026-11-06 (typed night-task approval incl. L-01, L-22): the SMART PACK usage left this month, under its status line
-  const [usage, setUsage] = useState(null);
-  useEffect(() => {
-    if (!isOpen || typeof readUsage !== 'function') return undefined;
-    let alive = true;
-    Promise.resolve(readUsage()).then((u) => { if (alive) setUsage(u || null); }).catch(() => {});
-    return () => { alive = false; };
-  }, [isOpen, readUsage]);
   // a fresh pay button on every opening and when the browser brings this page back from the payment page (Back)
   useEffect(() => { if (isOpen) { setPay({ busy: false, error: null }); setAddOnTicked(false); } }, [isOpen]);
   useEffect(() => {
@@ -78,7 +69,6 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   const ready = accountSummary?.state === 'ready';
   const dateFor = (iso) => formatShortDate(iso, ready && accountSummary.market === 'IL' ? 'Local' : 'International');
   const smartPackLine = smartPackStatusLine(accountSummary, isHebrew, dateFor);
-  const usageLine = smartPackLine ? smartPackUsageText(usage, isHebrew) : null;
   const pastDue = pastDueLine(accountSummary, isHebrew);
   // SMART PACK on the standing order (no end date): the subscriber's card shows the total charged each period
   const smartPackRenewing = ready && accountSummary.smartPack?.active === true && accountSummary.smartPack.source === 'add_on' && !accountSummary.smartPack.until;
@@ -150,9 +140,6 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
         )}
         {smartPackLine && (
           <p data-testid="plans-modal-smart-pack-status" role="status" style={{ color: '#0F6672', textAlign: 'center', margin: '0 0 4px', fontSize: '0.85rem', fontWeight: 600 }}>{smartPackLine}</p>
-        )}
-        {usageLine && (
-          <p data-testid="plans-modal-smart-pack-usage" style={{ color: '#0F6672', textAlign: 'center', margin: '0 0 4px', fontSize: '0.8rem' }}>{usageLine}</p>
         )}
         {/* 20261027100000 (Owner 2026-10-26): the subscriber removes SMART PACK - at the end of the paid period (a yearly one refunded per section 6) */}
         {smartPackRemoval && !lifetime && <SmartPackRemoval isHebrew={isHebrew} invoke={smartPackRemoval.invoke} onDone={smartPackRemoval.onDone} />}

@@ -320,8 +320,6 @@ export type ToolLoopInput = {
   messages: Array<{ role: string; content: string }>; firstCalls: FirstToolCall[]; ctx: ToolContext; timeoutMs?: number;
   // Owner 2026-10-19: a pasted / attached screenshot for THIS question (data URL) - attached to the last user message only
   screenshot?: string | null;
-  // Owner 2026-11-06 (the SMART PACK usage meter): the provider usage of every round, as the provider returned it
-  onUsage?: (usage: unknown) => void;
 };
 
 /** The stronger model's turn: the first calls are executed, then the model may call tools again up to MAX_TOOL_ROUNDS rounds in total;
@@ -361,7 +359,6 @@ export async function runToolLoop(input: ToolLoopInput): Promise<{ answer: strin
       });
       if (!res.ok) return null;
       data = await res.json();
-      input.onUsage?.(data?.usage);
     } catch {
       return null;
     } finally {
@@ -387,19 +384,6 @@ export async function runToolLoop(input: ToolLoopInput): Promise<{ answer: strin
     }
   }
   return null;
-}
-
-// Owner console 2026-11-06 (typed night-task approval, the SMART PACK usage meter): at 0% the data questions stop until the next month;
-// a plain question about the product goes on as usual
-export function smartPackUsedUpAnswer(isHebrew: boolean): string {
-  return isHebrew
-    ? 'היתרה בחכם פלוס לחודש הזה לא מספיקה לקריאת הנתונים שלכם בצ׳אט (הצעות, לקוחות, קטלוג ומשימות). היא מתחדשת בתחילת החודש הבא. שאלות על השימוש ב-TEKANGO ממשיכות כרגיל.'
-    : 'Your SMART PACK usage left this month is not enough for reading your own data in the chat (quotes, clients, catalog and tasks). It renews at the start of next month. Questions about using TEKANGO go on as usual.';
-}
-export function smartPackMeterUnavailableAnswer(isHebrew: boolean): string {
-  return isHebrew
-    ? 'לא הצלחתי לבדוק כרגע את יתרת השימוש בחכם פלוס, ולכן לא קראתי את הנתונים שלכם. נסו שוב בעוד רגע.'
-    : 'I could not check your SMART PACK usage right now, so I did not read your data. Please try again in a moment.';
 }
 
 export function dailyCapAnswer(isHebrew: boolean, limit: number): string {

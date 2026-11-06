@@ -6,14 +6,11 @@
 //  - speak: an answer text (<= 1,500 characters) -> speech (mp3, base64 in JSON).
 //  - Identity: the gateway verifies the JWT (verify_jwt = true) and the code verifies it again with auth.getUser.
 //  - Language (IRON-AI-003): from business_settings.country only (Local -> Hebrew, International -> English), never from the body.
-//  - Cost (Owner console 2026-11-06, typed night-task approval - the SMART PACK usage meter replaces the day's 60): every operation
-//    holds its maximum cost with the caller's own JWT before the provider (smart_pack_usage_claim; 0% left -> 403 budget_exhausted)
-//    and is counted at its real cost after (the provider's duration / token usage for a recording, the characters for speech).
+//  - Cost: every operation claims one of the day's 60 (voice_ai_claim_operation, the caller's own JWT); over the cap -> 429.
 //  - Nothing is stored: no audio, no transcript, no log row. The provider sees only the recording / the answer text.
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { smartPackAllowedFor, SMART_PACK_REQUIRED } from "../_shared/smartPackGate.ts";
-import { claimMeter, finishMeter, transcribeUsageCostUsdMicros, speechCostUsdMicros, RESERVE_MICROS, BUDGET_EXHAUSTED } from "../_shared/usageMeter.ts";
 
 export const VOICE_CONTRACT_VERSION = 1;
 export const TRANSCRIBE_MODEL = 'gpt-transcribe';
@@ -74,7 +71,7 @@ async function providerFetch(url: string, init: RequestInit): Promise<Response |
   try { return await fetch(url, { ...init, signal: abort.signal }); } catch { return null; } finally { clearTimeout(timer); }
 }
 
-async function transcribe(audio: Uint8Array, mime: string, language: 'he' | 'en'): Promise<{ text: string; model: string; usage: unknown } | null> {
+async function transcribe(audio: Uint8Array, mime: string, language: 'he' | 'en'): Promise<string | null> {
   const ext = AUDIO_TYPES[mime];
   for (const model of [TRANSCRIBE_MODEL, TRANSCRIBE_FALLBACK_MODEL]) {
     const form = new FormData();
@@ -89,13 +86,13 @@ async function transcribe(audio: Uint8Array, mime: string, language: 'he' | 'en'
       method: 'POST', headers: { Authorization: `Bearer ${Deno.env.get('OPENAI_API_KEY')}` }, body: form,
     });
     if (!res || !res.ok) continue;
-    const data = await res.json().catch(() => null) as { text?: unknown; usage?: unknown } | null;
-    if (data && typeof data.text === 'string') return { text: data.text.trim(), model, usage: data.usage };
+    const data = await res.json().catch(() => null) as { text?: unknown } | null;
+    if (data && typeof data.text === 'string') return data.text.trim();
   }
   return null;
 }
 
-async function speak(text: string, isHebrew: boolean): Promise<{ audio: Uint8Array; model: string } | null> {
+async function speak(text: string, isHebrew: boolean): Promise<Uint8Array | null> {
   const attempts = [
     { model: SPEECH_MODEL, voice: 'marin', instructions: isHebrew ? 'Speak natural, clear Israeli Hebrew in a warm, friendly, professional tone.' : 'Speak clearly in a warm, friendly, professional tone.' },
     { model: SPEECH_FALLBACK_MODEL, voice: 'alloy' },
@@ -108,7 +105,7 @@ async function speak(text: string, isHebrew: boolean): Promise<{ audio: Uint8Arr
     });
     if (!res || !res.ok) continue;
     const buf = new Uint8Array(await res.arrayBuffer());
-    if (buf.length) return { audio: buf, model: a.model };
+    if (buf.length) return buf;
   }
   return null;
 }
@@ -150,35 +147,19 @@ serve(async (req) => {
   const isHebrew = country === 'Local';
 
   // Owner 2026-10-20 (typed L-17 approval): voice (chat voice + dictation) is SMART PACK once the plan system is enforced; refused
-  // before the meter and before any provider call
+  // before the daily claim and before any provider call
   if (!(await smartPackAllowedFor(caller))) return reply({ ok: false, code: SMART_PACK_REQUIRED }, 403);
 
-  const meter = await claimMeter(caller, 'voice', mode === 'transcribe' ? RESERVE_MICROS.voice_transcribe : RESERVE_MICROS.voice_speak);
-  if (!meter.ok) {
-    if (meter.code === BUDGET_EXHAUSTED) return reply({ ok: false, code: BUDGET_EXHAUSTED }, 403);
-    if (meter.code === SMART_PACK_REQUIRED) return reply({ ok: false, code: SMART_PACK_REQUIRED }, 403);
-    return reply({ ok: false, code: 'server_error' }, 500);
-  }
-  let secretKey = '';
-  try { secretKey = JSON.parse(Deno.env.get('SUPABASE_SECRET_KEYS') ?? '{}')['default'] ?? ''; } catch { secretKey = ''; }
-  if (!secretKey) secretKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-  const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data: claim, error: claimError } = await caller.rpc('voice_ai_claim_operation');
+  if (claimError) return reply({ ok: false, code: 'server_error' }, 500);
+  if ((claim as { allowed?: boolean } | null)?.allowed === false) return reply({ ok: false, code: 'daily_limit', limit: (claim as { limit?: number }).limit ?? 60 }, 429);
 
   if (mode === 'transcribe') {
     const transcript = await transcribe(audio as Uint8Array, mime, isHebrew ? 'he' : 'en');
-    if (transcript === null) {
-      await finishMeter(admin, meter.claimId, false, { costUsdMicros: 0 });
-      return reply({ ok: false, code: 'provider_failure' }, 502);
-    }
-    const cost = transcribeUsageCostUsdMicros(transcript.model, transcript.usage);
-    await finishMeter(admin, meter.claimId, true, { costUsdMicros: cost.costUsdMicros, model: transcript.model, units: cost.seconds });
-    return reply({ ok: true, text: transcript.text });
+    if (transcript === null) return reply({ ok: false, code: 'provider_failure' }, 502);
+    return reply({ ok: true, text: transcript });
   }
   const speech = await speak(text, isHebrew);
-  if (!speech) {
-    await finishMeter(admin, meter.claimId, false, { costUsdMicros: 0 });
-    return reply({ ok: false, code: 'provider_failure' }, 502);
-  }
-  await finishMeter(admin, meter.claimId, true, { costUsdMicros: speechCostUsdMicros(speech.model, text.length), model: speech.model, units: text.length });
-  return reply({ ok: true, audio: encodeBase64(speech.audio), mime: 'audio/mpeg' });
+  if (!speech) return reply({ ok: false, code: 'provider_failure' }, 502);
+  return reply({ ok: true, audio: encodeBase64(speech), mime: 'audio/mpeg' });
 });

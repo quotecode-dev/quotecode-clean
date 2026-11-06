@@ -73,23 +73,23 @@ export async function fetchServerAccountSummary(
   }
 }
 
-// Owner console 2026-11-06 (typed night-task approval, the SMART PACK usage meter - it replaces the count of files the 2026-11-03 line
-// showed here): the caller's own SMART PACK usage left this month - public.smart_pack_usage_status(), the same number every SMART PACK
-// window shows ("נשארו לכם 63% משימוש חכם פלוס החודש"), read with the caller's own JWT. Numbers only; null when unknown or not SMART PACK.
-export type SmartPackUsage = { percentLeft: number; unlimited: boolean };
-export function parseSmartPackUsageStatus(data: unknown): SmartPackUsage | null {
+// Owner console 2026-11-03 (typed: "מאשר תיקון כל אזכורי הצעת מחיר מקובץ לפי התוכנית (... יתרת קבצים בצ'אט ...), כולל שינוי ב-L-05, L-06,
+// L-11, L-12, L-14, L-17 ו-L-22"): the caller's own "quote from a file" balance - public.quote_file_read_status(), the same counter the
+// file dialog shows ("נשארו לכם 47 מתוך 50"), read with the caller's own JWT. Numbers only; null when unknown or not SMART PACK.
+export type FileReadBalance = { remaining: number; limit: number; period: 'month' | 'free' };
+export function parseFileReadStatus(data: unknown): FileReadBalance | null {
   const d = data as Record<string, unknown> | null;
   if (!d || typeof d !== 'object' || d.ok !== true || d.smartPack !== true) return null;
-  const percentLeft = d.percentLeft;
-  if (typeof percentLeft !== 'number' || !Number.isInteger(percentLeft) || percentLeft < 0 || percentLeft > 100) return null;
-  return { percentLeft, unlimited: d.unlimited === true };
+  const limit = Number(d.limit); const remaining = Number(d.remaining);
+  if (!Number.isInteger(limit) || !Number.isInteger(remaining) || limit <= 0 || limit > 1000 || remaining < 0 || remaining > limit) return null;
+  return { remaining, limit, period: d.period === 'free' ? 'free' : 'month' };
 }
-export async function fetchSmartPackUsage(
+export async function fetchFileReadBalance(
   rpc: (fn: string) => PromiseLike<{ data: unknown; error: unknown }>,
-): Promise<SmartPackUsage | null> {
+): Promise<FileReadBalance | null> {
   try {
-    const res = await rpc('smart_pack_usage_status');
-    return res.error ? null : parseSmartPackUsageStatus(res.data);
+    const res = await rpc('quote_file_read_status');
+    return res.error ? null : parseFileReadStatus(res.data);
   } catch {
     return null;
   }
@@ -103,7 +103,7 @@ export type VerifiedAccountContext = {
   market: 'Local' | 'International' | 'Unknown';
   account: AccountPlanContext;
   currentArea: string | null;
-  smartPackUsage?: SmartPackUsage | null; // Owner console 2026-11-06: the SMART PACK usage left this month (see parseSmartPackUsageStatus)
+  fileReads?: FileReadBalance | null; // Owner console 2026-11-03: the "quote from a file" balance (see parseFileReadStatus)
 };
 
 // §5.1's minimal, read-only allowlist - deliberately excludes everything
@@ -116,7 +116,7 @@ export function buildVerifiedAccountContext(
   row: BusinessSettingsRow | null | undefined,
   currentArea: string | null,
   summary: AccountSummary | null | undefined = null,
-  smartPackUsage: SmartPackUsage | null = null,
+  fileReads: FileReadBalance | null = null,
 ): VerifiedAccountContext {
   const fromSummary = accountPlanFromSummary(summary);
   // (as before the new interface) the super admin is never described as a Lifetime account
@@ -128,7 +128,7 @@ export function buildVerifiedAccountContext(
     row?.country === 'Local' ? 'Local' :
     row?.country === 'International' ? 'International' :
     'Unknown';
-  return { market, account, currentArea, smartPackUsage };
+  return { market, account, currentArea, fileReads };
 }
 
 // §4: for the AUTHENTICATED surface, the language policy is derived from

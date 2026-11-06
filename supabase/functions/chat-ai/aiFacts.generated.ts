@@ -117,6 +117,7 @@ export const AI_FACTS = {
       "capability_matrix",
       "free_catalog_limit",
       "storage",
+      "ai_quotas",
       "cancellation_refund_proration",
       "tax_beyond_il_inclusion",
       "attachments"
@@ -298,8 +299,8 @@ export const AI_FACTS = {
       "id": "smart_quote",
       "heLabel": "הצעת מחיר חכמה",
       "enLabel": "Smart Quote flow",
-      "heDescription": "הצעת מחיר חכמה עם AI (בתפריט „הצעה חדשה”): מתארים את העבודה במילים, וה-AI מציע שורות - תיאור, כמות ויחידה; מחיר רק כשהפריט קיים בקטלוג שלכם, אחרת המחיר נשאר ריק להזנה. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה; שום דבר לא נשמר או נשלח לבד. אפשר גם להכתיב את העבודה בקול (המיקרופון בפינת שדה התיאור) ולענות בקול על השאלות שהטיוטה שואלת. בתפריט יש גם „הצעת מחיר מקובץ”: מעלים קובץ PDF או JPG אחד של הצעה או רשימת עבודות, וה-AI קורא ממנו שורות, כמויות, יחידות ומחירים. בבדיקה מוצגים לכל שורה „מחיר במסמך” ו„המחיר שלכם”, ורק המחירים שלכם נכנסים להצעה. הקובץ לא נשמר ולא מצורף להצעה. חלק מחכם פלוס, ונספר במכסת השימוש של חכם פלוס לחודש (היתרה מוצגת באחוזים).",
-      "enDescription": "AI smart quote (in the \"New quote\" menu): describe the job in words and the AI suggests lines - description, quantity and unit; a price only when the item is in your catalog, otherwise the price stays empty for you to enter. You review, correct and approve before anything enters the quote; nothing is saved or sent on its own. You can also dictate the job by voice (the microphone in the corner of the description field) and answer the draft’s questions by voice. The menu also has \"Quote from a file\": upload one PDF or JPG of a quote or job list, and the AI reads its lines, quantities, units and prices. The review shows \"Price in the document\" and \"Your price\" on each line, and only your prices enter the quote. The file is not stored or attached to the quote. Part of SMART PACK, counted in its monthly usage allowance (shown as a percentage left).",
+      "heDescription": "הצעת מחיר חכמה עם AI (בתפריט „הצעה חדשה”): מתארים את העבודה במילים, וה-AI מציע שורות - תיאור, כמות ויחידה; מחיר רק כשהפריט קיים בקטלוג שלכם, אחרת המחיר נשאר ריק להזנה. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה; שום דבר לא נשמר או נשלח לבד. אפשר גם להכתיב את העבודה בקול (המיקרופון בפינת שדה התיאור) ולענות בקול על השאלות שהטיוטה שואלת. בתפריט יש גם „הצעת מחיר מקובץ”: מעלים קובץ PDF או JPG אחד של הצעה או רשימת עבודות, וה-AI קורא ממנו שורות, כמויות, יחידות ומחירים. בבדיקה מוצגים לכל שורה „מחיר במסמך” ו„המחיר שלכם”, ורק המחירים שלכם נכנסים להצעה. הקובץ לא נשמר ולא מצורף להצעה. חלק מחכם פלוס: 50 קבצים בחודש, ו-3 בשבעת הימים החינמיים.",
+      "enDescription": "AI smart quote (in the \"New quote\" menu): describe the job in words and the AI suggests lines - description, quantity and unit; a price only when the item is in your catalog, otherwise the price stays empty for you to enter. You review, correct and approve before anything enters the quote; nothing is saved or sent on its own. You can also dictate the job by voice (the microphone in the corner of the description field) and answer the draft’s questions by voice. The menu also has \"Quote from a file\": upload one PDF or JPG of a quote or job list, and the AI reads its lines, quantities, units and prices. The review shows \"Price in the document\" and \"Your price\" on each line, and only your prices enter the quote. The file is not stored or attached to the quote. Part of SMART PACK: 50 files a month, and 3 during the 7 free days.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -1576,9 +1577,9 @@ export const AI_FACTS = {
         "task": "עריכה חכמה",
         "steps": [
           "ברשימת \"הצעות מחיר\" מוצאים הצעה שעדיין לא נחתמה ולוחצים \"עריכה חכמה\" בשורת הפעולות של ההצעה.",
-          "ההצעה נפתחת לעריכה וחלון ה-AI מכוון אליה. מתארים במילים, או מכתיבים בקול, מה להוסיף, לשנות או למחוק - שורות, כמויות, מחירים, הערות או הנחה.",
-          "ה-AI מציע את השינויים בהצעה ואת השורות החדשות. בודקים, מסמנים את מה שמתאים ולוחצים \"החלת השינויים בהצעה\". מחיר משתנה רק כשכתבתם אותו בבקשה, ושום דבר לא נשמר עד ששומרים את ההצעה.",
-          "אפשר גם לשנות כמות או מחיר של שורה ידנית: בכרטיס הפריט לוחצים \"עריכת מחיר וכמות\".",
+          "ההצעה נפתחת לעריכה וחלון ה-AI מכוון אליה ושואל מה להוסיף או לשנות בהצעה הזו. מתארים במילים, או מכתיבים בקול.",
+          "ה-AI מציע שורות חדשות. בודקים, מתקנים ומאשרים, והשורות שבחרתם מתווספות להצעה. השורות שכבר בהצעה לא משתנות. מחיר מוצע רק לפריט שקיים בקטלוג.",
+          "כדי לשנות כמות או מחיר של שורה שכבר בהצעה, לוחצים בכרטיס הפריט \"עריכת מחיר וכמות\".",
           "הצעה שהלקוח כבר חתם עליה נעולה - הכפתור לא פעיל (\"לא ניתן לערוך הצעה חתומה\")."
         ]
       },
@@ -1586,9 +1587,9 @@ export const AI_FACTS = {
         "task": "Smart edit",
         "steps": [
           "In the \"Quotes\" list, find a quote that is not signed yet and click \"Smart edit\" in the quote's row actions.",
-          "The quote opens for editing and the AI dialog is pointed at it. Describe in words, or dictate by voice, what to add, change or remove - lines, quantities, prices, notes or a discount.",
-          "The AI suggests the changes to the quote and any new lines. Review, tick what fits and click \"Apply the changes to the quote\". A price changes only when you wrote it in the request, and nothing is saved until you save the quote.",
-          "You can also change a line's quantity or price by hand: click \"Edit price and quantity\" on the item card.",
+          "The quote opens for editing and the AI dialog is pointed at it, asking what to add or change in this quote. Describe it in words, or dictate by voice.",
+          "The AI suggests new lines. Review, correct and approve, and the lines you choose are added to the quote. Lines already in the quote do not change. A price is suggested only for an item in your catalog.",
+          "To change the quantity or the price of a line already in the quote, click \"Edit price and quantity\" on the item card.",
           "A quote the client has already signed is locked - the button is disabled (\"Cannot edit a signed quote\")."
         ]
       }
