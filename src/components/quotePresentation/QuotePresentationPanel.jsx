@@ -1,15 +1,12 @@
-// Task 16 - the creator's "Quote appearance" panel (mounted ONCE inside QuoteForm step 4). Style cards (draft override /
-// business default), detail preference, images, preview access, the presentation-tier context and the explicit
+// Task 16 - the creator's "Quote appearance" panel (mounted ONCE inside QuoteForm step 4). The style line (since 2026-11-06 the style
+// is set in the business settings only - no style cards here), detail preference, images, preview access, the presentation-tier context and the explicit
 // "Issue quote" action. Read-only (frozen style shown) for an issued or locked quote.
 import { useState } from 'react';
 import { Eye, Send, RefreshCw, Save } from 'lucide-react';
 import { STYLE_COPY, styleSupportsImages } from '../../quoteDocument/quoteStyles';
-import QuoteStylePicker from './QuoteStylePicker';
 import QuoteMediaManager from './QuoteMediaManager';
-import LockedStyleDrawer from './LockedStyleDrawer';
 import IssueQuoteDialog from './IssueQuoteDialog';
 import { needsDowngradeNotice } from './presentationState';
-import { presentationErrorMessage } from './presentationCopy';
 import { QP_VARS } from './qpTheme';
 import './quotePresentation.css';
 
@@ -25,8 +22,6 @@ export default function QuotePresentationPanel({
   issueBusy = false,
 }) {
   const { copy, lang, context, value, effective, readOnly, tier } = ctl;
-  const [defaultMsg, setDefaultMsg] = useState(null);
-  const [busyStyle, setBusyStyle] = useState(null);
   const [issueDialog, setIssueDialog] = useState(null); // null | 'confirm' | 'not_entitled'
   const styleCopy = lang === 'he' ? STYLE_COPY.he : STYLE_COPY.en;
   const title = (s) => styleCopy[s]?.title || s;
@@ -39,15 +34,6 @@ export default function QuotePresentationPanel({
   // an existing quote's saved record must be known before anything can change (never overwrite an unknown record)
   const locked = readOnly || !ctl.editable;
   const recordPending = !!editingQuoteId && !readOnly && !ctl.recordReady;
-
-  const makeDefault = async (style) => {
-    setBusyStyle(style);
-    setDefaultMsg(null);
-    const r = await ctl.makeDefault(style);
-    setBusyStyle(null);
-    if (r.ok) setDefaultMsg({ kind: 'ok', text: copy.defaultSaved(title(style)) });
-    else if (r.code !== 'style_not_entitled' && r.code !== 'context_unavailable') setDefaultMsg({ kind: 'error', text: copy.defaultFailed(presentationErrorMessage(lang, r.code)) });
-  };
 
   const startIssue = () => {
     if (!effective.entitled) { setIssueDialog('not_entitled'); return; }
@@ -73,9 +59,6 @@ export default function QuotePresentationPanel({
         )}
       </div>
 
-      {ready && (
-        <p className="qp-review-note" data-testid="qp-plan-context">{copy.entitlement[tier] || copy.entitlement.classic}</p>
-      )}
       {(context.status === 'loading' || context.status === 'idle') && <p className="qp-notice" role="status" data-testid="qp-context-loading">{copy.contextLoading}</p>}
       {context.status === 'error' && (
         <p className="qp-notice" role="alert" data-testid="qp-context-error">
@@ -103,45 +86,14 @@ export default function QuotePresentationPanel({
         <p className="qp-notice qp-notice--warn" role="note" data-testid="qp-downgrade-notice">{copy.downgradeNotice(title(value.style))}</p>
       )}
 
-      <div className="qp-section qp-section--styles">
-        <QuoteStylePicker
-          lang={lang}
-          tier={tier}
-          mode="quote"
-          selectedStyle={value.style}
-          effectiveStyle={effective.style}
-          businessDefault={ctl.businessDefault}
-          readOnly={locked}
-          tierKnown={ready}
-          busyStyle={busyStyle}
-          onSelect={ctl.chooseStyle}
-          onLockedSelect={ctl.chooseStyle}
-          onMakeDefault={ready ? makeDefault : null}
-          idPrefix="qp-quote-style"
-        />
-        {ready && !locked && value.style && (
-          <div className="qp-row" style={{ marginTop: 8 }}>
-            {/* PRODUCT_TRUTH_CAPABILITY: quote_create */}
-            <button type="button" className="qp-btn qp-btn--ghost" onClick={ctl.resetToBusinessDefault} data-testid="qp-use-default">{copy.useBusinessDefault}</button>
-          </div>
-        )}
-        {ready && (
-          <p className="qp-preview-notice" role="status" data-testid="qp-preview-notice">
-            {ctl.previewStyle && ctl.previewStyle !== effective.style
-              ? (() => { const [b, rest] = copy.previewOther(title(ctl.previewStyle), title(effective.style)); return <><b>{b}</b>{rest}</>; })()
-              : (() => { const [b, rest] = copy.previewSame(title(effective.style)); return <><b>{b}</b>{rest}</>; })()}
-          </p>
-        )}
-        <LockedStyleDrawer
-          lang={lang}
-          style={ctl.ui.lockedStyle}
-          onClose={ctl.closeLockedDialog}
-          onOpenPreview={ctl.ui.layout === 'stack' ? ctl.previewLockedStyle : null}
-        />
-        {defaultMsg && (
-          <p className={`qp-notice${defaultMsg.kind === 'error' ? ' qp-notice--error' : ''}`} role={defaultMsg.kind === 'error' ? 'alert' : 'status'}>{defaultMsg.text}</p>
-        )}
-      </div>
+      {/* Owner console 2026-11-06 (release C, typed approval incl. L-06 / L-09: "בהצעת מחיר לא צריך להציע את שלושת הסגנונות, זה נקבע כבר
+          בכרטיס העסק" + "כן שורת הסבר"): the quote no longer offers the three style cards - ONE line says which style this quote uses and
+          where the style is set. A quote that already carries its own style keeps it (never rewritten here). */}
+      {ready && (
+        <p className="qp-preview-notice" role="status" data-testid="qp-style-line">
+          {value.style && value.style !== ctl.businessDefault ? copy.styleLineOwn(title(effective.style)) : copy.styleLine(title(effective.style))}
+        </p>
+      )}
 
       <div className="qp-section">
         <h4 id="qp-detail-label" className="qp-section-title">{copy.detailLabel}</h4>

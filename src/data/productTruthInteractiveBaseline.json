@@ -123,6 +123,10 @@
     "interactive": 10,
     "markers": 10
   },
+  "src/components/AdminUserSmartPackUsage.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/components/AdminUsersDestination.jsx": {
     "interactive": 0,
     "markers": 0
@@ -340,8 +344,8 @@
     "markers": 5
   },
   "src/components/QuoteForm.jsx": {
-    "interactive": 32,
-    "markers": 40
+    "interactive": 33,
+    "markers": 41
   },
   "src/components/QuoteFromFileDialog.jsx": {
     "interactive": 5,
@@ -516,8 +520,8 @@
     "markers": 4
   },
   "src/components/quotePresentation/QuotePresentationPanel.jsx": {
-    "interactive": 7,
-    "markers": 7
+    "interactive": 6,
+    "markers": 6
   },
   "src/components/quotePresentation/QuotePreviewPane.jsx": {
     "interactive": 4,

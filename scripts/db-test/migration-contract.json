@@ -729,6 +729,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-06 (typed: \"מאשר את משימת הלילה בסדר הזה: שחרור א׳, מונה השימוש של חכם פלוס (4 ₪ = 100%, שער 3.5 ₪ לדולר, לפי התשובות שנתתי) ... כולל שינוי ב-L-01, L-05, L-06, L-09, L-11, L-12, L-14, L-17, L-22\"): one closed table, seven functions (two constants, state / status / claim / finish / admin view) and two function bodies with marked changes (the count quotas lifted); replays cleanly (CREATE TABLE / INDEX IF NOT EXISTS, CREATE OR REPLACE)."
+    },
+    "20261106200000_smart_pack_usage_account.sql": {
+      "sha256": "a54de1a573c038b6cd23f301884fe27386e4c42b03788fb47e04b04885e77887",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-11-06 (typed: \"מאשר את שחרור ג׳, כולל שינוי ב-L-06, L-09, L-14, L-17 ו-L-22\"): one super-admin-only read function (one account's SMART PACK usage this month, per day); replays cleanly (CREATE OR REPLACE)."
     }
   }
 }

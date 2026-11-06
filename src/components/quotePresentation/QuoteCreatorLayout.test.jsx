@@ -59,15 +59,15 @@ describe('QuoteCreatorLayout + QuotePreviewPane', () => {
     expect(screen.getByTestId('typed').value).toBe('Kav');
   });
 
-  it('a locked style preview carries a visible "preview only" label outside the document; EN market uses PublicQuoteEn', async () => {
+  // release C (Owner console 2026-11-06): the quote offers no style cards, so no locked-style preview starts from the quote any more
+  it('EN market: the preview uses PublicQuoteEn in the business style; no style card and no "preview only" label in the quote', async () => {
     window.innerWidth = 390;
     render(<Harness currency="USD" />);
-    await waitFor(() => expect(screen.getByTestId('qp-quote-style-locked-visual')).toBeTruthy());
-    fireEvent.click(screen.getByTestId('qp-quote-style-select-visual'));
-    fireEvent.click(await screen.findByTestId('qp-locked-preview'));
+    await waitFor(() => expect(screen.getByTestId('qp-creator').dataset.layout).toBe('stack'));
+    expect(screen.queryByTestId('qp-quote-style-select-visual')).toBe(null);
+    fireEvent.click(screen.getByTestId('qp-open-preview'));
     const page = await screen.findByTestId('pq-en');
-    expect(page.dataset.style).toBe('visual');
-    expect(screen.getByTestId('qp-preview-only-label').textContent).toMatch(/Preview only/);
-    expect(page.closest('[data-testid="qp-preview-only-label"]')).toBe(null);
+    expect(page.dataset.style).toBe('classic');
+    expect(screen.queryByTestId('qp-preview-only-label')).toBe(null);
   });
 });

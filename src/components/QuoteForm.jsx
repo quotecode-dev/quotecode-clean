@@ -647,6 +647,14 @@ export default function QuoteForm({
           case). Padding reduced now that there's no outer frame competing
           for visual weight with the section cards inside it. */}
       <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
+      {/* Owner console 2026-11-06 (release C, typed approval incl. L-09: "צריך לשים כפתור מחשבון - שיצוף תמיד ... בהכנת הצעה ובעריכת
+          הצעה ובכל מקום שצריך מחשבון"): a floating Calculator button while the quote editor is open (new / edit, and above the smart quote
+          / smart edit and the price windows that open over it); it opens the same calculator, for calculation only. The small
+          "מחשבון" link below stays (Locked Decision 2). */}
+      {/* PRODUCT_TRUTH_CAPABILITY: editor_calculator */}
+      <button type="button" className="pf-calc-fab" onClick={() => setIsCalcOpen(true)} aria-label={isHebrew ? 'מחשבון' : 'Calculator'} title={isHebrew ? 'מחשבון' : 'Calculator'} data-testid="calc-fab" style={{ background: NEON.gradient, boxShadow: NEON.glow }}>
+        <Calculator size={24} strokeWidth={2.2} aria-hidden="true" />
+      </button>
 
       {priceEditIndex != null && items[priceEditIndex] && (
         <EditItemPriceDialog

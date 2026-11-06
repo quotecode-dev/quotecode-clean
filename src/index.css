@@ -533,6 +533,17 @@ html {
 .pf-wizard-head .pf-modal-head-close-btn { min-width: 44px; min-height: 44px; }
 .pf-wizard-head .pf-ai-help-btn { min-height: 44px; }
 @media (max-width: 600px) { .pf-modal-head--bar { padding: 10px 12px; } }
+/* Owner console 2026-11-06 (release C, typed approval incl. L-14 / L-17): in the 560px smart quote / smart edit window a long title
+   ("עריכה חכמה — הצעה A100703") + "צריכים עזרה? שאלו את העוזר החכם" pushed the Close 6px out of the window (sideways scroll, LIVE at
+   720px). The title may wrap to a second line instead; above 600px only (the phone layout below is unchanged). */
+/* Owner console 2026-11-06 (release C, L-09): the floating Calculator button of the quote editor - above the windows that open over the
+   editor (z 10000), below the calculator itself; on a phone (the bottom bar, 768px and below) above the bottom bar */
+.pf-calc-fab { position: fixed; inset-inline-end: 18px; bottom: 24px; z-index: 10001; width: 52px; height: 52px; border-radius: 50%; border: none;
+  color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.pf-calc-fab:focus-visible { outline: 3px solid #0F6672; outline-offset: 3px; }
+@media (max-width: 768px) { .pf-calc-fab { bottom: calc(104px + env(safe-area-inset-bottom, 0px)); inset-inline-end: 14px; } }
+.pf-modal-head--fit { grid-template-columns: minmax(0, 1fr) auto auto; }
+.pf-modal-head--fit .pf-modal-head-title-text { white-space: normal; overflow-wrap: anywhere; }
 @media (max-width: 360px) {
   .pf-modal-head { gap: 4px; }
   .pf-modal-head-title-text { font-size: 0.8rem; }

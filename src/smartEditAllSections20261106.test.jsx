@@ -36,6 +36,17 @@ describe('the server: the changes, every number verified in the request', () => 
     const c = parseDraftChanges({ updates: [{ ref: 1, description: 'x', quantity: null, unit: null, unitPrice: null }], deletes: [1], notes: { action: 'replace', text: 'תשלום מראש.' }, discountPercent: 5 }, null, 'הנחה 5%, הערה: תשלום מראש');
     expect(c).toEqual({ updates: [], deletes: [], notes: { action: 'replace', text: 'תשלום מראש.' }, discountPercent: 5 });
   });
+  // Owner console 2026-11-06 (release C, L-14 / L-17): found on LIVE - "הוסיפו הנחה של 5%" came back as the discount AND as a notes line
+  it('a discount request never touches the notes; a notes change needs the request to name the notes and is never the request itself', () => {
+    const live = parseDraftChanges({ updates: [], deletes: [], notes: { action: 'append', text: 'הוסיפו הנחה של 5%' }, discountPercent: 5 }, QUOTE, 'הוסיפו הנחה של 5%');
+    expect(live).toEqual({ updates: [], deletes: [], notes: null, discountPercent: 5 });
+    const en = parseDraftChanges({ updates: [], deletes: [], notes: { action: 'append', text: 'A 5% discount.' }, discountPercent: 5 }, QUOTE, 'Add a 5% discount');
+    expect(en).toEqual({ updates: [], deletes: [], notes: null, discountPercent: 5 });
+    const copy = parseDraftChanges({ updates: [], deletes: [], notes: { action: 'append', text: 'תוסיף להערות: תשלום מראש' }, discountPercent: null }, QUOTE, 'תוסיף להערות: תשלום מראש');
+    expect(copy.notes).toBeNull();
+    expect(parseDraftChanges({ updates: [], deletes: [], notes: { action: 'append', text: 'Payment in advance.' }, discountPercent: null }, QUOTE, 'Add to the notes: payment in advance').notes)
+      .toEqual({ action: 'append', text: 'Payment in advance.' });
+  });
   it('nothing new and nothing changed is still "empty"', () => {
     expect(parseDraftModelOutput(out({ updates: [], deletes: [], notes: { action: 'none', text: '' }, discountPercent: null }), [], 'משהו', QUOTE)).toEqual({ ok: false, code: 'empty' });
   });

@@ -420,7 +420,7 @@ export function buildDraftMessages({ description, isHebrew, catalog, quote = nul
     `questions: up to ${MAX_QUESTIONS} short clarification questions for the information that is missing, otherwise an empty array.`,
     'items are only NEW lines. Never repeat a line of currentQuote in items.',
     'changes (always present; empty arrays, notes action "none" and discountPercent null when nothing of the quote changes):',
-    '  - changes.notes: when the request asks to write, add, change or remove text in the quote NOTES (הערות / notes): "append" adds text after the existing notes, "replace" rewrites them, "clear" removes them; text = the notes text itself, written in full sentences. A request about the notes NEVER becomes an item.',
+    '  - changes.notes: when the request asks to write, add, change or remove text in the quote NOTES (הערות / notes): "append" adds text after the existing notes, "replace" rewrites them, "clear" removes them; text = the notes text itself, written in full sentences. A request about the notes NEVER becomes an item. ONLY a request that names the notes changes them: a discount, a price, a quantity or a line request leaves notes action "none", and the request itself is never copied into the notes.',
     '  - changes.discountPercent: a discount percentage the request itself writes (e.g. "הנחה של 10%" -> 10); otherwise null. Never invent one.',
     '  - changes.updates / changes.deletes: ONLY when currentQuote is given. To change an existing line, give its ref with ONLY the fields the request changes (the others null): description, quantity (+ unit), or unitPrice - a price ONLY when the request writes that price as a number for that line. To remove a line, put its ref in deletes. Never touch a line the request does not mention.',
     'Never output totals, VAT, dates, customer names or contact details. Never output a price, except unitPrice in changes.updates as written in the request.',
@@ -508,14 +508,23 @@ export function parseDraftChanges(raw, quote, description = '') {
     updates.push({ ref, description: desc, quantity, unit, unitPrice });
   }
   const deletes = [...new Set((Array.isArray(raw.deletes) ? raw.deletes : []).map(Number))].filter((r) => refs.has(r) && !seen.has(r));
+  // Owner console 2026-11-06 (release C, typed approval incl. L-14 / L-17): "הוסיפו הנחה של 5%" came back as the discount AND as the
+  // same sentence added to the notes. The notes change only when the request itself names the notes, and never as a copy of the request.
   const n = raw.notes;
-  const action = ['append', 'replace', 'clear'].includes(n?.action) ? n.action : 'none';
+  const action = ['append', 'replace', 'clear'].includes(n?.action) && NOTES_WORD_RE.test(text) ? n.action : 'none';
   const notesText = cleanNotes(n?.text, MAX_NOTES_CHARS);
+  if (notesText && sameWords(notesText, text)) return { updates, deletes, notes: null, discountPercent: discountOf(raw, writtenNumber) };
   const notes = action === 'clear' ? ((quote?.notes || '') ? { action, text: '' } : null)
     : (action === 'append' || action === 'replace') && notesText ? { action, text: notesText } : null;
+  return { updates, deletes, notes, discountPercent: discountOf(raw, writtenNumber) };
+}
+// the request names the notes ("הערות" / "הערה" / "notes" / "remarks"); words of the same text, punctuation and spacing ignored
+const NOTES_WORD_RE = /הער(?:ה|ות)|\bnotes?\b|\bremarks?\b/i;
+const wordsOf = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}%]+/gu, ' ').trim();
+const sameWords = (a, b) => !!wordsOf(a) && wordsOf(a) === wordsOf(b);
+function discountOf(raw, writtenNumber) {
   const dp = raw.discountPercent == null ? null : Number(raw.discountPercent);
-  const discountPercent = dp != null && dp >= 0 && dp <= 100 && writtenNumber(dp) ? dp : null;
-  return { updates, deletes, notes, discountPercent };
+  return dp != null && dp >= 0 && dp <= 100 && writtenNumber(dp) ? dp : null;
 }
 const hasChanges = (c) => !!c && (c.updates.length > 0 || c.deletes.length > 0 || !!c.notes || c.discountPercent != null);
 
