@@ -20,15 +20,5 @@ export const itemPricePayload = (item, activeQuantity) => {
   const unitPrice = missing ? 0 : Number(item.unit_price);
   return { unit_price: unitPrice, total_price: missing ? 0 : Number(activeQuantity) * unitPrice, price_missing: missing };
 };
-// Owner 2026-11-06 (release A): the quantity typed in the quick "Edit price and quantity" dialog - a number above 0, '.' as the only
-// decimal point (up to 6 places): "3", "2.5", at most 100,000 (the smart quote's own limit; quote_items.quantity is an integer column).
-// A comma, a sign, text or an empty field is refused with a message - never guessed.
-export const MAX_ITEM_QUANTITY = 100000;
-export const parseQuantityInput = (raw) => {
-  const v = String(raw ?? '').trim();
-  if (!/^\d+(\.\d{1,6})?$/.test(v)) return { ok: false };
-  const n = Number(v);
-  return Number.isFinite(n) && n > 0 && n <= MAX_ITEM_QUANTITY ? { ok: true, value: n } : { ok: false };
-};
 // load: a saved missing price returns to the form as '' (missing); every other stored value (a 0 included) is kept as stored
 export const formPriceFromSavedItem = (row) => (row?.price_missing === true ? '' : row?.unit_price);
