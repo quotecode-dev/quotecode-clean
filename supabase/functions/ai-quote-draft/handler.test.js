@@ -152,7 +152,12 @@ describe('ai-quote-draft handler: the SMART PACK usage meter (synthetic)', () =>
     const r = await h.handler(post({ description: 'החלפת 3 חלונות בסלון' }));
     expect(r.status).toBe(200);
     expect(h.state.meter.map((m) => [m.fn, m.auth])).toEqual([['smart_pack_usage_claim', 'Bearer synthetic-user-jwt'], ['smart_pack_usage_finish', null]]);
-    expect(h.state.meter[0].args).toEqual({ p_feature: 'ai_draft', p_reserve_micros: 12000 });
+    // 2026-11-07 (release D, M02): the reserve is this request's proven maximum in micro-USD (every byte sent + the 1,600 output cap at
+    // gpt-4o-mini's price), converted by the database at today's rate; the micro-ILS value is its 3.5 fallback
+    const a = h.state.meter[0].args;
+    expect(a.p_feature).toBe('ai_draft');
+    expect(a.p_reserve_usd_micros).toBeGreaterThan(960); // more than the output cap alone (1,600 x 0.60)
+    expect(a.p_reserve_micros).toBe(Math.ceil(a.p_reserve_usd_micros * 3.5));
     // gpt-4o-mini: 2,000 x 0.15 + 1,000 x 0.075 + 500 x 0.60 = 675 micro-USD
     expect(h.state.meter[1].args).toMatchObject({ p_claim_id: 'claim-1', p_ok: true, p_cost_usd_micros: 675, p_model: 'gpt-4o-mini', p_prompt_tokens: 3000, p_cached_tokens: 1000, p_completion_tokens: 500 });
   });

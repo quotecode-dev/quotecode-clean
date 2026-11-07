@@ -735,6 +735,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-06 (typed: \"מאשר את שחרור ג׳, כולל שינוי ב-L-06, L-09, L-14, L-17 ו-L-22\"): one super-admin-only read function (one account's SMART PACK usage this month, per day); replays cleanly (CREATE OR REPLACE)."
+    },
+    "20261108100000_smart_pack_meter_accuracy.sql": {
+      "sha256": "d85d277b9a135f5231ab82c528c8462e5913eea1e1b28dacfd55a4c53389e588",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-11-07 (typed: \"מאשר את שחרור ד׳ ושחרור ה׳ לפי ההמלצות, סעיף 3 לספור, ...\" + the plan): the meter accuracy - a micro-USD reserve converted at today's rate; a stale action counted at its reserve; replays cleanly (CREATE OR REPLACE, DROP IF EXISTS of the old claim signature)."
     }
   }
 }
