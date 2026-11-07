@@ -55,7 +55,7 @@ export function DraftConflictModal({ conflict, isHebrew, onReview, onUseSaved, o
         </h3>
         <p style={{ color: '#475569', fontSize: '0.92rem', lineHeight: 1.5, margin: '0 0 16px' }}>
           {deleted
-            ? (isHebrew ? `הצעה ${label} כבר אינה קיימת (או אינה ניתנת לעריכה). הטיוטה שלך נשמרה - היא לא תדרוס דבר.` : `Quote ${label} no longer exists (or can no longer be edited). Your draft is kept - it will not overwrite anything.`)
+            ? (isHebrew ? `${label ? `הצעה ${label}` : 'ההצעה'} כבר אינה קיימת (או אינה ניתנת לעריכה). הטיוטה שלך נשמרה - היא לא תדרוס דבר.` : `${label ? `Quote ${label}` : 'The quote'} no longer exists (or can no longer be edited). Your draft is kept - it will not overwrite anything.`)
             : (isHebrew ? `הצעה ${label} השתנתה בשרת (במכשיר או בחלון אחר) אחרי שהטיוטה נשמרה. כדי לא לדרוס שינויים שנשמרו, בחרו מה לעשות:` : `Quote ${label} changed on the server (another device or window) after your draft was saved. To avoid overwriting saved changes, choose:`)}
         </p>
         <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '10px' }}>
