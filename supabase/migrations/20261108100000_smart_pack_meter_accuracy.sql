@@ -1,5 +1,6 @@
 -- Owner console 2026-11-07 (typed: "מאשר את שחרור ד׳ ושחרור ה׳ לפי ההמלצות, סעיף 3 לספור, סעיף 9 בלי אזור זמן, כולל שינוי ב-L-01, L-05,
 -- L-06, L-09, L-11, L-12, L-14, L-17, L-22" + "מאשר את התוכנית לשחרור ה׳ ואחריו שחרור ד׳ כפי שהוצגה"): release D, the SMART PACK usage meter
+-- tekango-migration-contract: mode=transaction replay=required
 -- accuracy (Codex M02 / M03).
 --   1. The reserve of an action may be given in micro-USD (p_reserve_usd_micros, its proven maximum computed by the Edge Function) and is
 --      converted at TODAY's rate (smart_pack_usd_ils_rate) - never at a fixed 3.5. The old two-argument call keeps working.
