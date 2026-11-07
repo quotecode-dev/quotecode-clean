@@ -4448,7 +4448,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   });
 
   // ---- Durable drafts: restore / conflict handling (2026-09-21) ----
-  const draftLabelFor = (q, env) => (q ? formatQuoteFallback(q) : (env?.quoteId ? String(env.quoteId).slice(0, 8) : ''));
+  // Owner console 2026-11-07: a quote that is really gone is named without its internal id (the user never sees system codes)
+  const draftLabelFor = (q) => (q ? formatQuoteFallback(q) : '');
 
   const applyDraftPayload = (payload) => {
     const pr = getPristineQuoteFormState({ defaultTerms, defaultWarranty, isLocalIsraeliBusiness, currency: businessCurrencyRef.current || businessCurrency || currency });
@@ -4503,6 +4504,10 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     });
   };
 
+  const topDraftIsEdit = (uid) => {
+    try { return quoteDraft.store.listForUser(uid)[0]?.envelope?.mode === 'edit'; } catch { return false; }
+  };
+
   const runDraftRestore = async (uid) => {
     let list;
     try { list = quoteDraft.store.listForUser(uid); } catch { diagLog('draft-restore', { outcome: 'storage-error' }); return; }
@@ -4537,16 +4542,20 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   };
 
   // Restore ONLY after the authenticated identity is known and the quotes are loaded (isInitializing false), once per user.
+  // Owner console 2026-11-07 (typed: "...ולתקן את החזרה להצעה קיימת אחרי רענון..."): isInitializing ends before the quotes list arrives
+  // (loadData does not await fetchQuotes), so an EDIT draft did not find its quote and showed "no longer exists". An edit draft now waits
+  // until the quotes list loaded successfully; a new-quote draft needs no list and restores at once.
   useEffect(() => {
     const uid = session?.user?.id;
     if (!uid || isInitializing) return;
     if (restoreAttemptedForRef.current === uid) return;
-    restoreAttemptedForRef.current = uid;
     allowDraftWrites(uid);
+    if (!showQuoteForm && dataLoad.quotes !== 'ok' && topDraftIsEdit(uid)) return; // the quotes list is still loading
+    restoreAttemptedForRef.current = uid;
     if (showQuoteForm) return; // an editor is already open in memory (e.g. re-login after expiry): nothing to restore over it
     runDraftRestore(uid);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session?.user?.id, isInitializing]);
+  }, [session?.user?.id, isInitializing, dataLoad.quotes]);
 
   // Account switch on a still-mounted dashboard: never render or persist the previous user's editor for the new user.
   useEffect(() => {
