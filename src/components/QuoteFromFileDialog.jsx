@@ -220,6 +220,8 @@ export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoney
             <>
               <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: NEON.textPrimary }}>{t.reviewTitle}</h3>
               <p style={{ margin: 0, fontSize: '0.8rem', color: NEON.textSecondary, lineHeight: 1.45 }}>{t.reviewHint}</p>
+              {/* Owner console 2026-11-07 (F01): the usage line stays visible while the read lines are reviewed */}
+              {allowanceText && <div data-testid="quote-from-file-allowance" style={{ fontSize: '0.78rem', color: NEON.textSecondary }}>{allowanceText}</div>}
               <ul data-testid="quote-from-file-lines" style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {rows.map((r, i) => {
                   const own = parseOwnPrice(r.ownInput);
