@@ -231,16 +231,17 @@ export async function handleQuoteFromFile(deps: HandlerDeps, req: { contentType:
     try {
       answer = await deps.complete(buildMessages(kind, toBase64(bytes)));
     } catch (e) {
-      // an answer the provider gave but that cannot be used (cut / refused) still cost the call: counted; no answer at all: given back
+      // Owner 2026-11-06 (D01, "היא הרי לא היתה שמישה"): an answer that cannot be used (cut / refused) is NOT counted for the customer -
+      // its real cost stays on the claim for the Owner's cost view; no answer at all: given back
       const answered = (e as { usage?: Usage } | null)?.usage ?? null;
-      await meterDone(!!answered, answered);
+      await meterDone(false, answered);
       return await giveBack(502, 'provider_failure', answered ?? { model: FILE_MODEL, promptTokens: null, completionTokens: null, providerMs: null });
     } finally {
       bytes = null;
     }
-    // the provider answered: its real cost is counted (an unusable answer still cost the call)
-    await meterDone(true, answer.usage);
+    // the provider answered: a USABLE reading is counted at its real cost; an unusable one (not a quote / unreadable) is not (D01)
     const v = validateExtraction(answer.content);
+    await meterDone(v.ok, answer.usage);
     if (!v.ok) return await giveBack(422, v.code, answer.usage);
     let fin: Record<string, unknown> | null = null;
     try { fin = await deps.finish(claimId, true, answer.usage); } catch { deps.onIncident?.('finish_failed'); }

@@ -2,7 +2,7 @@
 -- Disposable postgres:17 harness ONLY. ONE transaction, rolled back.
 -- Proves: the table is closed to the app and keeps no content; the caller sees only their own meter; 4 ILS a month at 3.5 ILS per USD;
 -- a claim holds the action's maximum cost while it runs, so the budget can never be passed (also in parallel); a failed call is given
--- back (0 counted); a stale claim is given back after 10 minutes; at 0% the action is refused (budget_exhausted) and nothing is held;
+-- back (0 counted); a stale claim is COUNTED at its reserve after 10 minutes (2026-11-07, the Owner: "סעיף 3 לספור"); at 0% the action is refused (budget_exhausted) and nothing is held;
 -- without SMART PACK nothing; the super admin (who is also LIFETIME) is recorded but never refused; finishing is the service role's;
 -- the cost view is the super admin's; the count quotas of a quote from a file and Customer Twin are lifted.
 BEGIN;
@@ -48,9 +48,9 @@ BEGIN
                  = ARRAY['cached_tokens', 'claim_id', 'completion_tokens', 'cost_micros', 'cost_usd_micros', 'created_at', 'exempt', 'feature',
                          'finished_at', 'model', 'prompt_tokens', 'reserve_micros', 'state', 'units', 'usage_month', 'usd_ils_rate', 'user_id'],
     'T0b no content can be kept: ids, feature, month, state, model, counts and costs only');
-  PERFORM tst.ok(has_function_privilege('authenticated', 'public.smart_pack_usage_claim(text, bigint)', 'execute')
+  PERFORM tst.ok(has_function_privilege('authenticated', 'public.smart_pack_usage_claim(text, bigint, bigint)', 'execute')
                  AND has_function_privilege('authenticated', 'public.smart_pack_usage_status()', 'execute')
-                 AND NOT has_function_privilege('anon', 'public.smart_pack_usage_claim(text, bigint)', 'execute')
+                 AND NOT has_function_privilege('anon', 'public.smart_pack_usage_claim(text, bigint, bigint)', 'execute')
                  AND NOT has_function_privilege('anon', 'public.smart_pack_usage_status()', 'execute')
                  AND NOT has_function_privilege('authenticated', 'public.smart_pack_usage_finish(uuid, boolean, bigint, text, integer, integer, integer, numeric)', 'execute')
                  AND has_function_privilege('service_role', 'public.smart_pack_usage_finish(uuid, boolean, bigint, text, integer, integer, integer, numeric)', 'execute')
@@ -126,7 +126,7 @@ BEGIN
     'T5c a zero / over-large reserve or an unknown feature is refused (a plain chat question is never metered)');
 END $$;
 
--- ------------------------------------------------------------------------------------- T6. a stale claim is given back after 10 minutes
+-- ---------------------------------------------------------- T6. a stale claim is COUNTED at its reserve after 10 minutes (2026-11-07)
 DO $$
 DECLARE r jsonb; n jsonb;
 BEGIN
@@ -137,8 +137,8 @@ BEGIN
   PERFORM tst.login('00000000-0000-4000-8000-00000000000a');
   n := public.smart_pack_usage_claim('customer_twin', 1500000);
   PERFORM tst.logout();
-  PERFORM tst.ok((n ->> 'ok')::boolean AND (SELECT state = 'refunded' AND cost_micros = 0 FROM public.smart_pack_usage_claims WHERE claim_id = (r ->> 'claimId')::uuid),
-    'T6 an action left open for 10 minutes gives its reserve back before the next one starts');
+  PERFORM tst.ok((n ->> 'ok')::boolean AND (SELECT state = 'done' AND cost_micros = 1500000 AND model = 'reserve_not_finished' FROM public.smart_pack_usage_claims WHERE claim_id = (r ->> 'claimId')::uuid),
+    'T6 an action left open for 10 minutes is counted at its reserve before the next one starts (2026-11-07, the Owner: count it)');
 END $$;
 
 -- ------------------------------------------------------------------------------- T7. enforced plan system: SMART PACK decides

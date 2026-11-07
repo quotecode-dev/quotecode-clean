@@ -11,7 +11,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { smartPackAllowedFor, SMART_PACK_REQUIRED } from "../_shared/smartPackGate.ts";
 // Owner console 2026-11-06 (typed night-task approval, the SMART PACK usage meter): every AI smart quote / smart edit is metered - the
 // reserve is held before the provider call (refused at 0%: budget_exhausted, no call), the real cost of the provider's usage is counted after
-import { claimMeter, finishMeter, tokenUsage, sumUsage, usdMicrosOrReserve, RESERVE_MICROS, BUDGET_EXHAUSTED } from "../_shared/usageMeter.ts";
+import { claimMeter, finishMeter, tokenUsage, sumUsage, usdMicrosOrReserve, RESERVE_MICROS, BUDGET_EXHAUSTED, inputTokensMax, reserveUsdMicros } from "../_shared/usageMeter.ts";
 // Task 33 (contract v2): every line carries quantity + unit + a quantity basis that is CHECKED against the numbers of the user's own text
 // (a missing quantity stays visibly missing - never a silent 1); clarification questions and unassigned measures are returned; a catalog
 // price is bound only when its price unit is verified. The provider answers in a strict JSON schema (DRAFT_RESPONSE_SCHEMA).
@@ -76,7 +76,11 @@ serve(async (req) => {
   if (!secretKey) secretKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
   if (!secretKey) return reply({ ok: false, code: 'server_error' }, 503);
   const admin = createClient(supabaseUrl, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const claim = await claimMeter(caller, 'ai_draft', RESERVE_MICROS.ai_draft);
+  // Owner console 2026-11-07 (release D, Codex M02): the reserve is this request's proven maximum - every byte sent counted as a token
+  // + the 1,600 output cap, at gpt-4o-mini's price, in micro-USD (the database converts it at today's rate)
+  const messages = buildDraftMessages({ description: request.value.description, isHebrew, catalog, quote: request.value.quote ?? null });
+  const reserveUsd = reserveUsdMicros(['gpt-4o-mini'], inputTokensMax(messages), 1600);
+  const claim = await claimMeter(caller, 'ai_draft', RESERVE_MICROS.ai_draft, reserveUsd);
   if (!claim.ok) {
     if (claim.code === BUDGET_EXHAUSTED) return reply({ ok: false, code: BUDGET_EXHAUSTED }, 403);
     if (claim.code === SMART_PACK_REQUIRED) return reply({ ok: false, code: SMART_PACK_REQUIRED }, 403);
@@ -84,6 +88,7 @@ serve(async (req) => {
   }
 
   let modelText: unknown;
+  let spent: ReturnType<typeof sumUsage> | null = null;
   const abort = new AbortController();
   const timer = setTimeout(() => abort.abort(), PROVIDER_TIMEOUT_MS);
   try {
@@ -92,7 +97,7 @@ serve(async (req) => {
       headers: { 'Authorization': `Bearer ${Deno.env.get('OPENAI_API_KEY')}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: buildDraftMessages({ description: request.value.description, isHebrew, catalog, quote: request.value.quote ?? null }),
+        messages,
         response_format: { type: 'json_schema', json_schema: DRAFT_RESPONSE_SCHEMA },
         max_tokens: 1600,
         temperature: 0.1,
@@ -105,9 +110,7 @@ serve(async (req) => {
     }
     const data = await providerResponse.json();
     modelText = data?.choices?.[0]?.message?.content;
-    // the provider answered: its real cost is counted (an unusable answer still cost the call; no usage numbers = the reserve)
-    const spent = sumUsage([tokenUsage('gpt-4o-mini', data?.usage)]);
-    await finishMeter(admin, claim.claimId, true, { ...spent, costUsdMicros: usdMicrosOrReserve(spent.costUsdMicros, spent.promptTokens + spent.completionTokens, RESERVE_MICROS.ai_draft) });
+    spent = sumUsage([tokenUsage('gpt-4o-mini', data?.usage)]);
   } catch {
     await finishMeter(admin, claim.claimId, false, { costUsdMicros: 0, model: 'gpt-4o-mini' });
     return reply({ ok: false, code: 'provider_failure' }, 502);
@@ -116,6 +119,13 @@ serve(async (req) => {
   }
 
   const draft = parseDraftModelOutput(modelText, catalog, request.value.description, request.value.quote ?? null);
+  // the provider answered: a USABLE result is counted at its real cost (no usage numbers = the reserve); an unusable one (malformed /
+  // nothing to offer) is NOT counted for the customer - the Owner 2026-11-06 (D01): "היא הרי לא היתה שמישה" - its real cost is still
+  // recorded on the claim (cost_usd_micros) for the Owner's cost view
+  if (spent) {
+    const real = { ...spent, costUsdMicros: usdMicrosOrReserve(spent.costUsdMicros, spent.promptTokens + spent.completionTokens, RESERVE_MICROS.ai_draft) };
+    await finishMeter(admin, claim.claimId, draft.ok, real);
+  }
   if (!draft.ok) return reply({ ok: false, code: draft.code === 'empty' ? 'no_items' : 'malformed_provider_response' }, draft.code === 'empty' ? 422 : 502);
   // release B (Owner 2026-11-06): + the changes to the open quote (additive; an older browser ignores them)
   return reply({ ok: true, language: isHebrew ? 'he' : 'en', subject: draft.subject, items: draft.items, questions: draft.questions, unassignedMeasures: draft.unassignedMeasures,

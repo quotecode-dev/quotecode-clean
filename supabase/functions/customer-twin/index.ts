@@ -74,7 +74,7 @@ Deno.serve(async (req: Request) => {
       } finally { clearTimeout(timer); }
     },
     // Owner 2026-11-06: the SMART PACK usage meter (claim with the caller's JWT, finish with the service role)
-    meterClaim: () => claimMeter(caller, 'customer_twin', RESERVE_MICROS.customer_twin),
+    meterClaim: (reserveUsd) => claimMeter(caller, 'customer_twin', RESERVE_MICROS.customer_twin, reserveUsd ?? null),
     meterFinish: (claimId, ok, costUsdMicros, u) => finishMeter(admin, claimId, ok, {
       costUsdMicros: ok ? usdMicrosOrReserve(costUsdMicros, (u?.promptTokens ?? 0) + (u?.completionTokens ?? 0), RESERVE_MICROS.customer_twin) : 0, model: u?.model ?? null,
       promptTokens: u?.promptTokens ?? undefined, cachedTokens: u?.cachedTokens ?? undefined, completionTokens: u?.completionTokens ?? undefined }),

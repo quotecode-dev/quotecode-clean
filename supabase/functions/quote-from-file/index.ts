@@ -3,8 +3,8 @@
 // service role. Owner 2026-11-03: the file is never stored - it is read once into memory, sent to the provider once, and dropped.
 // Nothing here logs a body, a file name, a provider answer or an error object: only fixed incident codes.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { costMicros, meterCostUsdMicros, FILE_MODEL, EXTRACTION_SCHEMA, handleQuoteFromFile, PROVIDER_TIMEOUT_MS, type Usage } from "./lib.ts";
-import { claimMeter, finishMeter, usdMicrosOrReserve, RESERVE_MICROS } from "../_shared/usageMeter.ts";
+import { costMicros, meterCostUsdMicros, FILE_MODEL, MAX_PAGES, buildMessages, EXTRACTION_SCHEMA, handleQuoteFromFile, PROVIDER_TIMEOUT_MS, type Usage } from "./lib.ts";
+import { claimMeter, inputTokensMax, reserveUsdMicros, FILE_PAGE_TOKENS_MAX, finishMeter, usdMicrosOrReserve, RESERVE_MICROS } from "../_shared/usageMeter.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -62,9 +62,13 @@ Deno.serve(async (req: Request) => {
       return data as Record<string, unknown>;
     },
     // Owner 2026-11-06: the SMART PACK usage meter (claim with the caller's JWT, finish with the service role)
-    meterClaim: () => claimMeter(caller, 'file_quote', RESERVE_MICROS.file_quote),
+    // Owner console 2026-11-07 (release D, Codex M02): the proven maximum - the pages at a fixed page bound + the instructions, + the
+    // 6,000 output cap, at the model's price (micro-USD; the database converts it at today's rate)
+    meterClaim: () => claimMeter(caller, 'file_quote', RESERVE_MICROS.file_quote,
+      reserveUsdMicros([FILE_MODEL], MAX_PAGES * FILE_PAGE_TOKENS_MAX + inputTokensMax(buildMessages('pdf', '')), 6000)),
     meterFinish: (claimId, ok, u: Usage | null) => finishMeter(admin, claimId, ok, {
-      costUsdMicros: ok ? usdMicrosOrReserve(meterCostUsdMicros(u), (u?.promptTokens ?? 0) + (u?.completionTokens ?? 0), RESERVE_MICROS.file_quote) : 0,
+      // the real cost whenever the provider answered - counted only when ok; an unusable answer keeps it on the claim (D01, the Owner)
+      costUsdMicros: u ? usdMicrosOrReserve(meterCostUsdMicros(u), (u?.promptTokens ?? 0) + (u?.completionTokens ?? 0), RESERVE_MICROS.file_quote) : 0,
       model: u?.model ?? FILE_MODEL, promptTokens: u?.promptTokens ?? undefined, cachedTokens: u?.cachedTokens ?? undefined, completionTokens: u?.completionTokens ?? undefined }),
     readBody: (max) => readCapped(req, max),
     complete: async (messages) => {
