@@ -4,15 +4,12 @@
 export const PRESENTATION_COPY = Object.freeze({
   he: {
     panelEyebrow: 'מראה ההצעה מול הלקוח',
-    panelTitle: 'עיצוב ההצעה',
+    panelTitle: 'בחירת סגנון לטיוטה',
     entitlement: { classic: 'בחשבון הזה Classic כלול. אפשר לצפות ב־Modern וב־Visual בתצוגה מקדימה, בלי לשנות את הטיוטה או את המנוי.', modern: 'בחשבון הזה Classic ו־Modern עם תמונות כלולים. אפשר לצפות ב־Visual בתצוגה מקדימה.', visual: 'בחשבון הזה כל שלושת הסגנונות כלולים.' },
     // OD-17 / OPEN-02: a locked style never names the plan that would include it (the commercial matrix is not approved)
     cardShort: { classic: 'הצעה מקצועית נקייה וברורה', modern: 'תמונות מוצר שמסבירות את ההצעה', visual: 'הצגת פרויקט עשירה שמבוססת על תמונות' },
     previewOther: (p, d) => [`תצוגה מקדימה של ${p}.`, ` הסגנון שנבחר לטיוטה נשאר ${d}; המנוי לא השתנה.`],
     previewSame: (d) => [`הטיוטה משתמשת ב־${d}`, ', הכלול בחשבון.'],
-    // Owner console 2026-11-06 (release C): the one style line of the quote editor (the style is set in the business settings)
-    styleLine: (d) => `סגנון ההצעה: ${d}, לפי הגדרות העסק. לשינוי: הגדרות העסק › עיצוב הצעות המחיר.`,
-    styleLineOwn: (d) => `סגנון ההצעה: ${d}, כפי שנשמר בהצעה הזו. הסגנון להצעות חדשות נקבע בהגדרות העסק › עיצוב הצעות המחיר.`,
     drawerTitle: (name) => `תצוגה מקדימה: ${name}`,
     drawerBody: 'אפשר להתרשם מהסגנון בלי לשנות את המנוי או את הסגנון שנבחר לטיוטה.',
     drawerBack: 'חזרה לסגנון הטיוטה',
@@ -144,14 +141,12 @@ export const PRESENTATION_COPY = Object.freeze({
   },
   en: {
     panelEyebrow: 'Customer-facing appearance',
-    panelTitle: 'Quote appearance',
+    panelTitle: 'Choose the draft style',
     entitlement: { classic: 'Classic is included in this account. You can preview Modern and Visual without changing the draft or the subscription.', modern: 'Classic and Modern with images are included in this account. You can preview Visual.', visual: 'All three styles are included in this account.' },
     // OD-17 / OPEN-02: a locked style never names the plan that would include it (the commercial matrix is not approved)
     cardShort: { classic: 'A clean, professional quotation', modern: 'Product images that explain the offer', visual: 'A rich, image-led project presentation' },
     previewOther: (p, d) => [`Preview of ${p}.`, ` The draft style stays ${d}; the subscription did not change.`],
     previewSame: (d) => [`The draft uses ${d}`, ', which is included in this account.'],
-    styleLine: (d) => `Quote style: ${d}, from your business settings. To change it: Business Settings › Quote design.`,
-    styleLineOwn: (d) => `Quote style: ${d}, as saved on this quote. The style for new quotes is set in Business Settings › Quote design.`,
     drawerTitle: (name) => `Preview: ${name}`,
     drawerBody: 'You can look at this style without changing the subscription or the style chosen for the draft.',
     drawerBack: 'Back to the draft style',

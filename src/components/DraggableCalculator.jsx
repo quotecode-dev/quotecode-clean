@@ -3,7 +3,6 @@
 // ==============================================================================
 
 import { useState, useEffect, useRef } from 'react';
-import { CALC_WIDTH, clampCalcPos } from '../utils/calcPosition';
 
 export default function DraggableCalculator({ isOpen, onClose, isHebrew, currency }) {
   const [pos, setPos] = useState({ x: 0, y: 0 });
@@ -88,49 +87,38 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
 
   useEffect(() => {
     if (isOpen) {
-      setPos(clampCalcPos({
+      setPos({
         x: Math.max(0, (window.innerWidth - 340) / 2),
         y: Math.max(0, (window.innerHeight - 520) / 2)
-      }));
+      });
     }
   }, [isOpen]);
 
-  // Owner console 2026-11-06 (release C, typed approval incl. L-09: "או לפחות להזיז אותו גם הנייד" + "לא צריך X רק הזזה"): the drag works
-  // with a mouse, a finger and a pen (pointer events; the page does not scroll while dragging), and the calculator always stays inside
-  // the screen - also after a rotation - so its top bar (drag + close) is never lost.
   useEffect(() => {
-    const handleMove = (e) => {
+    const handleMouseMove = (e) => {
       if (!isDragging) return;
       const dx = e.clientX - dragStart.current.x;
       const dy = e.clientY - dragStart.current.y;
-      setPos(clampCalcPos({ x: dragStart.current.posX + dx, y: dragStart.current.posY + dy }));
+      setPos({
+        x: dragStart.current.posX + dx,
+        y: Math.max(0, dragStart.current.posY + dy)
+      });
     };
-    const handleUp = () => setIsDragging(false);
+    
+    const handleMouseUp = () => setIsDragging(false);
 
     if (isDragging) {
-      window.addEventListener('pointermove', handleMove);
-      window.addEventListener('pointerup', handleUp);
-      window.addEventListener('pointercancel', handleUp);
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
     }
-
+    
     return () => {
-      window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleUp);
-      window.removeEventListener('pointercancel', handleUp);
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
     };
   }, [isDragging]);
 
-  useEffect(() => {
-    if (!isOpen) return undefined;
-    const keepInside = () => setPos((p) => clampCalcPos(p));
-    window.addEventListener('resize', keepInside);
-    return () => window.removeEventListener('resize', keepInside);
-  }, [isOpen]);
-
-  const handlePointerDown = (e) => {
-    if (e.button !== undefined && e.button !== 0) return;
-    if (e.target.closest && e.target.closest('button')) return; // the close button keeps its own click
-    e.preventDefault();
+  const handleMouseDown = (e) => {
     setIsDragging(true);
     dragStart.current = { x: e.clientX, y: e.clientY, posX: pos.x, posY: pos.y };
   };
@@ -215,8 +203,7 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
         position: 'fixed',
         left: `${pos.x}px`,
         top: `${pos.y}px`,
-        width: `${CALC_WIDTH}px`,
-        maxWidth: '100vw',
+        width: '340px',
         background: '#f8fafc',
         borderRadius: '16px',
         boxShadow: isDragging ? '0 30px 60px rgba(0,0,0,0.3)' : '0 15px 35px rgba(0,0,0,0.2)',
@@ -232,8 +219,7 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
       }}
     >
       <div
-        onPointerDown={handlePointerDown}
-        data-testid="calc-drag-bar"
+        onMouseDown={handleMouseDown}
         style={{
           background: 'linear-gradient(135deg, #4f46e5, #6366f1)',
           color: 'white',
@@ -242,8 +228,7 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
           justifyContent: 'space-between',
           alignItems: 'center',
           cursor: isDragging ? 'grabbing' : 'grab',
-          userSelect: 'none',
-          touchAction: 'none'
+          userSelect: 'none'
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>

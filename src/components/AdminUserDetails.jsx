@@ -7,7 +7,6 @@ import { adminTargetUserId, useAdminAccountSummary, accountStatus, statusFromKey
 import PlanMedallionMark from './PlanMedallionMark';
 import { ADMIN_COPY as C, ACTION_NAMES, OUTCOME_NAMES, t } from '../domain/admin/adminCopy';
 import AdminScreenFrame from './AdminScreenFrame';
-import AdminUserSmartPackUsage from './AdminUserSmartPackUsage';
 import './adminUsers.css';
 import './adminV2.css';
 import { accountDate, accountDateTime } from '../utils/adminDates';
@@ -185,8 +184,6 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
           </div>
           <div className="av-statline"><span>{t(isHebrew, C.issuedQuotes.he, C.issuedQuotes.en)}</span><strong>{countValue(counts.issued)}</strong></div>
           <p className="av-tiny av-muted">{t(isHebrew, C.issuedNote.he, C.issuedNote.en)}</p>
-          {/* Owner console 2026-11-06 (release C, L-22): this account's SMART PACK usage this month */}
-          <AdminUserSmartPackUsage uid={uid} isHebrew={isHebrew} refreshKey={refreshKey} />
         </article>
         <article className="av-card" aria-label={t(isHebrew, C.accountInfo.he, C.accountInfo.en)}>
           <h3>{t(isHebrew, C.accountInfo.he, C.accountInfo.en)}</h3>

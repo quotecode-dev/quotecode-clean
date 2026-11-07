@@ -123,10 +123,6 @@
     "interactive": 10,
     "markers": 10
   },
-  "src/components/AdminUserSmartPackUsage.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/components/AdminUsersDestination.jsx": {
     "interactive": 0,
     "markers": 0
@@ -344,8 +340,8 @@
     "markers": 5
   },
   "src/components/QuoteForm.jsx": {
-    "interactive": 33,
-    "markers": 41
+    "interactive": 32,
+    "markers": 40
   },
   "src/components/QuoteFromFileDialog.jsx": {
     "interactive": 5,
@@ -520,8 +516,8 @@
     "markers": 4
   },
   "src/components/quotePresentation/QuotePresentationPanel.jsx": {
-    "interactive": 6,
-    "markers": 6
+    "interactive": 7,
+    "markers": 7
   },
   "src/components/quotePresentation/QuotePreviewPane.jsx": {
     "interactive": 4,
@@ -991,10 +987,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/calcPosition.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/calendarModel.js": {
     "interactive": 0,
     "markers": 0
@@ -1284,10 +1276,6 @@
     "markers": 0
   },
   "src/utils/smartPackUsage.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/smartPackUsageDays.js": {
     "interactive": 0,
     "markers": 0
   },

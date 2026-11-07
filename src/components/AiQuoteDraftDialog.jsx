@@ -339,7 +339,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
       onKeyDown={(e) => { if (e.key === 'Escape') close(); }}
     >
       <div style={{ background: NEON.bgCard, borderRadius: '16px', width: '100%', maxWidth: '560px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px -15px rgba(0,0,0,0.4)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
-        <AiModalHeader className="pf-modal-head--bar pf-modal-head--fit" title={headTitle} onClose={close} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="ai-quote-draft" />
+        <AiModalHeader className="pf-modal-head--bar" title={headTitle} onClose={close} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="ai-quote-draft" />
         <div style={{ padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: isHebrew ? 'right' : 'left' }}>
           {phase !== 'review' ? (
             <>

@@ -108,14 +108,15 @@ describe('M3 - unknown tier while the context loads / fails', () => {
     expect(screen.queryByTestId('qp-plan-context')).toBe(null);
     expect(screen.queryByTestId('qp-plan-test-notice')).toBe(null);
     expect(screen.queryByTestId('qp-downgrade-notice')).toBe(null);
-    // release C (2026-11-06): no style cards in the quote; the style line waits for the context like the plan sentence did
-    expect(screen.queryByTestId('qp-quote-style-select-classic')).toBe(null);
-    expect(screen.queryByTestId('qp-style-line')).toBe(null);
+    expect(screen.queryByTestId('qp-quote-style-locked-visual')).toBe(null);
+    expect(screen.queryByTestId('qp-quote-style-default-classic')).toBe(null);
+    expect(screen.getByTestId('qp-quote-style-select-classic').disabled).toBe(true);
     expect(screen.getByTestId('qp-issue-button').disabled).toBe(true);
     // retry recovers
     ctx('modern');
     await act(async () => { fireEvent.click(screen.getByText('Retry')); });
-    await waitFor(() => expect(screen.getByTestId('qp-style-line')).toBeTruthy());
+    await waitFor(() => expect(screen.getByTestId('qp-plan-context')).toBeTruthy());
+    expect(screen.getByTestId('qp-quote-style-select-classic').disabled).toBe(false);
   });
 });
 
@@ -157,9 +158,9 @@ describe('residual H1 - get_quote failure -> retry -> merge', () => {
     }
     render(<Panel />);
     expect((await screen.findByTestId('qp-record-pending')).textContent).toMatch(/could not be loaded/);
-    await waitFor(() => expect(screen.getByTestId('qp-style-line')).toBeTruthy());
-    // every edit is disabled: upload, issue (release C: no style cards in the quote)
-    expect(screen.queryByTestId('qp-quote-style-select-modern')).toBe(null);
+    await waitFor(() => expect(screen.getByTestId('qp-plan-context')).toBeTruthy());
+    // every edit is disabled: style cards, upload, issue
+    expect(screen.getByTestId('qp-quote-style-select-modern').disabled).toBe(true);
     expect(screen.queryByTestId('qp-media-upload')).toBe(null);
     expect(screen.getByTestId('qp-issue-button').disabled).toBe(true);
     client.fetchQuotePresentation.mockResolvedValueOnce({ ok: true, data: { draft: stored, issued: null, locked: false, urls: {} } });
@@ -167,7 +168,7 @@ describe('residual H1 - get_quote failure -> retry -> merge', () => {
     await waitFor(() => expect(JSON.parse(screen.getByTestId('st').textContent).style).toBe('visual'));
     expect(JSON.parse(screen.getByTestId('st').textContent).media).toHaveLength(2);
     expect(screen.queryByTestId('qp-record-pending')).toBe(null);
-    expect(screen.getByTestId('qp-style-line').textContent).toMatch(/Visual, as saved on this quote/);
+    expect(screen.getByTestId('qp-quote-style-select-modern').disabled).toBe(false);
   });
 
   it('a stashed choice is MERGED onto the ready record (stored style kept, images unioned) - nothing stored is dropped', async () => {
