@@ -540,21 +540,12 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
   // pass 1: the lines and the evidence span each one really has in the user's text
   const drafts = [];
   const taken = [];
-  // Owner console 2026-11-07 (typed: "מאשר שבעריכה חכמה השרת יזרוק פריט שחוזר על שורה קיימת או שאין לו מילים מהבקשה, כולל שינוי ב-L-09 ו-L-22"):
-  // in a smart EDIT the model sometimes returned the quote's own lines as new items ("הוסיפו הנחה של 5%" -> the two existing lines again).
-  // A new line there must not repeat an existing line and must come from the request's own words. Creating a quote is unchanged.
-  const requestWords = quote ? significantWords(source).map(stem) : [];
   for (const raw of parsed.items) {
     if (drafts.length >= MAX_DRAFT_ITEMS) break;
     if (!raw || typeof raw !== 'object') continue;
     const lineText = cleanText(raw.description, MAX_LINE_CHARS);
     if (!lineText) continue;
     const span = locateEvidence(source, raw.evidence, taken);
-    if (quote) {
-      const repeats = (quote.items || []).some((it) => sameWords(it.description, lineText));
-      const fromRequest = !!span || significantWords(lineText).map(stem).some((w) => requestWords.some((x) => sameWord(w, x)));
-      if (repeats || !fromRequest) continue;
-    }
     if (span) taken.push(span);
     drafts.push({ raw, lineText, span });
   }
