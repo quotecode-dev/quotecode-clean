@@ -16,6 +16,7 @@ vi.mock('../../utils/quotePresentationClient', () => client);
 
 import useQuotePresentationEditor, { __resetPresentationCachesForTests, syncPresentationAfterSave } from './useQuotePresentationEditor';
 import QuotePresentationPanel from './QuotePresentationPanel';
+import { presentationCopy } from './presentationCopy';
 import { createPristinePresentation } from './presentationState';
 
 const A = '11111111-1111-4111-8111-111111111111';
@@ -45,42 +46,28 @@ beforeEach(() => {
 });
 
 describe('QuotePresentationPanel', () => {
-  it('a locked style opens the explanation + preview offer and changes neither the draft style nor the default', async () => {
-    context('classic');
+  // Owner console 2026-11-06 (release C, typed approval incl. L-06 / L-09: "בהצעת מחיר לא צריך להציע את שלושת הסגנונות, זה נקבע כבר
+  // בכרטיס העסק" + "כן שורת הסבר"): no style cards in the quote - one line names the style and where it is set
+  it('no style cards in the quote: one line with the business style; nothing changes the draft style or the default', async () => {
+    context('modern', 'modern');
     render(<Harness />);
-    await waitFor(() => expect(client.fetchPresentationContext).toHaveBeenCalled());
-    expect(screen.getByTestId('qp-quote-style-locked-visual').textContent).toMatch(/Not included/);
-    fireEvent.click(screen.getByTestId('qp-quote-style-select-visual'));
-    const dialog = await screen.findByTestId('qp-locked-drawer');
-    expect(dialog.textContent).toMatch(/Visual/);
-    expect(screen.queryByTestId('qp-locked-tier')).toBe(null);
-    expect(screen.queryByTestId('qp-plan-test-notice')).toBe(null);
-    expect(dialog.querySelector('a[href]')).toBe(null);
-    fireEvent.click(screen.getByTestId('qp-locked-preview'));
+    const line = await screen.findByTestId('qp-style-line');
+    expect(line.textContent).toBe('Quote style: Modern with images, from your business settings. To change it: Business Settings › Quote design.');
+    for (const s of ['classic', 'modern', 'visual']) expect(screen.queryByTestId(`qp-quote-style-select-${s}`)).toBe(null);
+    expect(screen.queryByTestId('qp-plan-context')).toBe(null);
+    expect(screen.queryByTestId('qp-use-default')).toBe(null);
     expect(state().style).toBe(null);
-    expect(screen.getByTestId('default').textContent).toBe('null');
     expect(client.setDefaultStyle).not.toHaveBeenCalled();
     expect(client.saveQuotePresentation).not.toHaveBeenCalled();
-    // the style card for the quote stays on Classic
-    expect(screen.getByTestId('qp-quote-style-select-classic').getAttribute('aria-pressed')).toBe('true');
-    expect(screen.getByTestId('qp-quote-style-select-visual').getAttribute('aria-pressed')).toBe('false');
+    // images still follow the quote's style (Modern supports them)
+    expect(screen.getByTestId('qp-media')).toBeTruthy();
   });
 
-  it('an entitled style becomes the draft override; "Make default" calls setDefaultStyle', async () => {
-    context('modern');
-    client.setDefaultStyle.mockResolvedValue({ ok: true, data: { defaultStyle: 'modern' } });
-    render(<Harness />);
-    await screen.findByTestId('qp-quote-style-default-modern');
-    fireEvent.click(screen.getByTestId('qp-quote-style-select-modern'));
-    expect(state().style).toBe('modern');
-    expect(screen.getByTestId('qp-quote-style-select-modern').getAttribute('aria-pressed')).toBe('true');
-    // images become available for Modern
-    expect(screen.getByTestId('qp-media')).toBeTruthy();
-    await act(async () => { fireEvent.click(screen.getByTestId('qp-quote-style-default-modern')); });
-    expect(client.setDefaultStyle).toHaveBeenCalledWith('modern');
-    await waitFor(() => expect(screen.getByTestId('default').textContent).toBe('modern'));
-    // visual stays locked for the modern tier and never offers "Make default"
-    expect(screen.queryByTestId('qp-quote-style-default-visual')).toBe(null);
+  it('a quote that already carries its own style keeps it and the line says so', async () => {
+    context('visual', 'classic');
+    render(<Harness initial={{ style: 'visual', media: [], detail: null }} />);
+    expect((await screen.findByTestId('qp-style-line')).textContent).toMatch(/^Quote style: Visual, as saved on this quote. The style for new quotes is set in Business Settings › Quote design.$/);
+    expect(state().style).toBe('visual');
   });
 
   it('shows a non-destructive downgrade notice and the issue explanation instead of issuing an unentitled style', async () => {
@@ -115,7 +102,7 @@ describe('QuotePresentationPanel', () => {
     client.fetchQuotePresentation.mockResolvedValue({ ok: true, data: { draft: { style: 'modern', media: [] }, issued: { style: 'modern', styleVersion: 1, media: [] }, locked: false, urls: {} } });
     render(<Harness editingQuoteId="q9" savedStatus="sent" />);
     expect((await screen.findByTestId('qp-readonly')).textContent).toMatch(/issued in the Modern with images style/);
-    expect(screen.getByTestId('qp-quote-style-select-modern').getAttribute('aria-pressed')).toBe('true');
+    expect(screen.queryByTestId('qp-quote-style-select-modern')).toBe(null);
     expect(screen.queryByTestId('qp-issue')).toBe(null);
   });
 
@@ -130,58 +117,20 @@ describe('QuotePresentationPanel', () => {
   });
 });
 
-describe('refined R2 fidelity - plan context, inline locked explanation, preview notice', () => {
-  it('FREE / classic tier: plan sentence, "Requires" badges, inline drawer + immediate locked preview; images not offered', async () => {
+describe('release C - the style line replaces the plan sentence, the locks and the preview notice', () => {
+  it('classic: no plan sentence, no "Locked" card, no locked drawer; images not offered', async () => {
     context('classic');
     render(<Harness />);
-    expect((await screen.findByTestId('qp-plan-context')).textContent).toMatch(/Classic is included in this account/);
-    expect(screen.getByTestId('qp-quote-style-locked-modern').textContent).toMatch(/Locked/);
-    expect(screen.getByTestId('qp-quote-style-locked-modern').textContent).not.toMatch(/Requires|Modern plan/);
-    expect(screen.queryByTestId('qp-media')).toBe(null);
-    fireEvent.click(screen.getByTestId('qp-quote-style-select-visual'));
-    const drawer = await screen.findByTestId('qp-locked-drawer');
-    expect(drawer.getAttribute('role')).toBe('region'); // inline, not a modal
-    expect(screen.getByTestId('qp-preview-notice').textContent).toMatch(/Preview of Visual\. The draft style stays Classic; the subscription did not change\./);
-    // previewing a locked style never offers image upload (no entitlement claim)
-    expect(screen.queryByTestId('qp-media')).toBe(null);
-    expect(state().style).toBe(null);
-    fireEvent.click(screen.getByTestId('qp-locked-close'));
-    expect(screen.queryByTestId('qp-locked-drawer')).toBe(null);
-    expect(screen.getByTestId('qp-preview-notice').textContent).toMatch(/The draft uses Classic/);
-  });
-
-  it('a11y: focus moves into the explanation and returns to the locked style card on Escape and on "Back to the draft style"', async () => {
-    context('classic');
-    render(<Harness />);
-    const card = await screen.findByTestId('qp-quote-style-select-visual');
-    await waitFor(() => expect(card.disabled).toBe(false));
-    card.focus();
-    fireEvent.click(card);
-    const drawer = await screen.findByTestId('qp-locked-drawer');
-    expect(drawer.contains(document.activeElement)).toBe(true);
-    fireEvent.keyDown(document.activeElement, { key: 'Escape' });
-    await waitFor(() => expect(screen.queryByTestId('qp-locked-drawer')).toBe(null));
-    expect(document.activeElement).toBe(card);
-    // second path: the close button
-    fireEvent.click(card);
-    await screen.findByTestId('qp-locked-drawer');
-    fireEvent.click(screen.getByTestId('qp-locked-close'));
-    await waitFor(() => expect(screen.queryByTestId('qp-locked-drawer')).toBe(null));
-    expect(document.activeElement).toBe(card);
-  });
-
-  it('modern tier: only Visual requires an upgrade; all-included sentence for visual', async () => {
-    context('modern');
-    const { unmount } = render(<Harness />);
-    expect((await screen.findByTestId('qp-plan-context')).textContent).toMatch(/Classic and Modern with images are included/);
+    expect((await screen.findByTestId('qp-style-line')).textContent).toMatch(/^Quote style: Classic, from your business settings./);
+    expect(screen.queryByTestId('qp-plan-context')).toBe(null);
     expect(screen.queryByTestId('qp-quote-style-locked-modern')).toBe(null);
-    expect(screen.getByTestId('qp-quote-style-locked-visual')).toBeTruthy();
-    unmount();
-    __resetPresentationCachesForTests();
-    context('visual');
-    render(<Harness />);
-    expect((await screen.findByTestId('qp-plan-context')).textContent).toMatch(/All three styles are included/);
-    expect(screen.queryByTestId('qp-quote-style-locked-visual')).toBe(null);
+    expect(screen.queryByTestId('qp-locked-drawer')).toBe(null);
+    expect(screen.queryByTestId('qp-preview-notice')).toBe(null);
+    expect(screen.queryByTestId('qp-media')).toBe(null);
+  });
+  it('the Hebrew line names the same settings screen', () => {
+    expect(presentationCopy('he').styleLine('Classic')).toBe('סגנון ההצעה: Classic, לפי הגדרות העסק. לשינוי: הגדרות העסק › עיצוב הצעות המחיר.');
+    expect(presentationCopy('he').styleLineOwn('Visual')).toBe('סגנון ההצעה: Visual, כפי שנשמר בהצעה הזו. הסגנון להצעות חדשות נקבע בהגדרות העסק › עיצוב הצעות המחיר.');
   });
 });
 
