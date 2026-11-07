@@ -14,7 +14,9 @@ import { getActiveQuantity, getProfessionalUnitLabel, isMeasurableUnit, formatQu
 import { parsePriceInput, parseQuantityInput } from '../utils/itemPrice';
 
 
-export default function EditItemPriceDialog({ item, isHebrew, sym, fmtMoney, onSave, onCancel }) {
+// Owner console 2026-11-07 (typed: "מאשר את שחרור ד׳ ושחרור ה׳ לפי ההמלצות ...", F05): the totals note names VAT only for an Israeli account;
+// an international account (by its market, never by the display language) reads "Tax" - its quote has no Israeli VAT.
+export default function EditItemPriceDialog({ item, isHebrew, sym, fmtMoney, onSave, onCancel, international = false }) {
   const [value, setValue] = useState(item?.unit_price === '' || item?.unit_price == null ? '' : String(item.unit_price));
   const [error, setError] = useState(false);
   // the quantity box starts from the shown quantity; it counts as changed only when its TEXT changed - an untouched box never rewrites the
@@ -51,8 +53,8 @@ export default function EditItemPriceDialog({ item, isHebrew, sym, fmtMoney, onS
     onSave(p.value);
   };
   const t = isHebrew
-    ? { title: qtyEditable ? 'עריכת מחיר וכמות' : 'עריכת מחיר', qty: 'כמות', total: 'סכום צפוי לשורה', missing: 'יש להזין מחיר', note: 'מע״מ, הנחה ועיגול מחושבים בסיכום ההצעה. שינוי המחיר כאן לא משנה את הקטלוג.', save: qtyEditable ? 'שמירה' : 'שמירת מחיר', cancel: 'ביטול', qtyInvalid: 'הזינו כמות תקינה: מספר גדול מ-0 ועד 100,000, עם נקודה עשרונית אם צריך (למשל 3 או 2.5).', invalid: 'הזינו מחיר תקין: מספר עם נקודה עשרונית (עד 2 ספרות אחריה), פסיק רק להפרדת אלפים (1,200) — או השאירו ריק.' }
-    : { title: qtyEditable ? 'Edit price and quantity' : 'Edit price', qty: 'Quantity', total: 'Expected line total', missing: 'Enter a price', note: 'VAT, discount and rounding are applied in the quote totals. Changing the price here does not change your catalog.', save: qtyEditable ? 'Save' : 'Save price', cancel: 'Cancel', qtyInvalid: 'Enter a valid quantity: a number above 0 and up to 100,000, with a decimal point if needed (for example 3 or 2.5).', invalid: 'Enter a valid price: a number with a decimal point (up to 2 decimals), commas only for thousands (1,200) — or leave it empty.' };
+    ? { title: qtyEditable ? 'עריכת מחיר וכמות' : 'עריכת מחיר', qty: 'כמות', total: 'סכום צפוי לשורה', missing: 'יש להזין מחיר', note: `${international ? 'מס' : 'מע״מ'}, הנחה ועיגול מחושבים בסיכום ההצעה. שינוי המחיר כאן לא משנה את הקטלוג.`, save: qtyEditable ? 'שמירה' : 'שמירת מחיר', cancel: 'ביטול', qtyInvalid: 'הזינו כמות תקינה: מספר גדול מ-0 ועד 100,000, עם נקודה עשרונית אם צריך (למשל 3 או 2.5).', invalid: 'הזינו מחיר תקין: מספר עם נקודה עשרונית (עד 2 ספרות אחריה), פסיק רק להפרדת אלפים (1,200) — או השאירו ריק.' }
+    : { title: qtyEditable ? 'Edit price and quantity' : 'Edit price', qty: 'Quantity', total: 'Expected line total', missing: 'Enter a price', note: `${international ? 'Tax' : 'VAT'}, discount and rounding are applied in the quote totals. Changing the price here does not change your catalog.`, save: qtyEditable ? 'Save' : 'Save price', cancel: 'Cancel', qtyInvalid: 'Enter a valid quantity: a number above 0 and up to 100,000, with a decimal point if needed (for example 3 or 2.5).', invalid: 'Enter a valid price: a number with a decimal point (up to 2 decimals), commas only for thousands (1,200) — or leave it empty.' };
   return (
     <div
       role="dialog" aria-modal="true" aria-labelledby="pf-edit-price-title" dir={isHebrew ? 'rtl' : 'ltr'} data-testid="edit-item-price"

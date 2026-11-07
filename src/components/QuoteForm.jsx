@@ -660,6 +660,7 @@ export default function QuoteForm({
         <EditItemPriceDialog
           item={items[priceEditIndex]}
           isHebrew={isHebrew}
+          international={isLocalIsraeliBusiness === false}
           sym={sym}
           fmtMoney={fmtMoney}
           onCancel={() => setPriceEditIndex(null)}

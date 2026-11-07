@@ -72,7 +72,7 @@ describe('Terms §4 - subscriptions cutover facts (OD-01..OD-08, OD-16)', () => 
     expect(T.he.slice(T.he.indexOf('7. נושאים שטרם הוכרעו'))).not.toMatch(/מכסת שימוש/);
     // 2026-11-01 (decision a): the tax abroad is decided (USD without Israeli VAT, section 4)
     expect(T.en).toContain('The following have not been decided yet and will be published once decided: quote limits of the paid plans; attachments; storage; and data and document retention periods.');
-    expect(T.en).toContain('The AI features of SMART PACK (a chat that reads your account data, voice, the AI smart quote and smart edit, quote from a file and Improve quote) are limited by a monthly usage allowance: what is left is shown as a percentage and renews at the start of each calendar month (Israel time). An action that what is left is not enough for stops until the start of the next month. A plain chat question about using the product does not count.');
+    expect(T.en).toContain('The AI features of SMART PACK (a chat that reads your account data, voice, the AI smart quote and smart edit, quote from a file and Improve quote) are limited by a monthly usage allowance: what is left is shown as a percentage and renews on the 1st of each month. An action that what is left is not enough for stops until the start of the next month. A plain chat question about using the product does not count.');
     expect(T.en.slice(T.en.indexOf('7. Matters Not Yet Decided'))).not.toMatch(/usage allowance/);
   });
   it('no value of a not-decided branch is stated (no paid quote limit, storage size, AI quota or refund window)', () => {

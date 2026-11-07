@@ -136,8 +136,10 @@ export function applyDraftUpdateToItem(item, update) {
   let next = { ...item };
   if (update.description) next.description = update.description;
   if (update.unitPrice != null) next.unit_price = String(update.unitPrice);
-  if (update.quantity != null) {
-    const q = Number(update.quantity);
+  // Owner console 2026-11-07 (F03): a unit-only change keeps the line's current quantity and takes the new unit's shape
+  const unitOnly = update.quantity == null && update.unit && update.unit !== (item.pricing_unit || 'unit');
+  if (update.quantity != null || unitOnly) {
+    const q = update.quantity != null ? Number(update.quantity) : Number(getActiveQuantity(item)) || 1;
     const unit = update.unit && update.unit !== (item.pricing_unit || 'unit') ? update.unit : null;
     if (unit) {
       // another unit: the line takes the unit's own shape (as a drafted line of that unit), its price and description kept
