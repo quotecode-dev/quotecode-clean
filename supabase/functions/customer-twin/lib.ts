@@ -15,7 +15,7 @@ import {
 } from '../_shared/customerTwin.js';
 // Owner console 2026-11-06 (typed night-task approval, the SMART PACK usage meter): a NEW analysis is metered on top of its claim (the
 // monthly 20 is lifted - the meter decides); a stored answer of the same content stays free (no meter at all)
-import { tokenCostUsdMicros, inputTokensMax, reserveUsdMicros, BUDGET_EXHAUSTED, type MeterClaim } from '../_shared/usageMeter.ts';
+import { tokenCostUsdMicros, BUDGET_EXHAUSTED, type MeterClaim } from '../_shared/usageMeter.ts';
 
 export type Resp = { status: number; body: Record<string, unknown> };
 export type Usage = { model: string; promptTokens: number | null; completionTokens: number | null; providerMs: number; cachedTokens?: number | null };
@@ -31,7 +31,7 @@ export interface CustomerTwinDeps {
   /** one provider call; returns the message content and the token usage, or throws (Error('model_unavailable') = try the fallback) */
   complete(a: { model: string; messages: unknown[]; schema: unknown }): Promise<{ content: string; promptTokens: number | null; completionTokens: number | null; cachedTokens?: number | null }>;
   /** the SMART PACK usage meter: hold the analysis' maximum cost with the CALLER's token (smart_pack_usage_claim) */
-  meterClaim(reserveUsd?: number | null): Promise<MeterClaim>;
+  meterClaim(): Promise<MeterClaim>;
   /** the SMART PACK usage meter (service role): ok = the real cost of the usage is counted, else given back */
   meterFinish(claimId: string, ok: boolean, costUsdMicros: number, usage: Usage | null): Promise<void>;
   sha256(text: string): Promise<string>;
@@ -66,27 +66,9 @@ export async function customerTwinHandler(deps: CustomerTwinDeps, body: unknown)
   // the SMART PACK usage meter FIRST: refused (not enough left / no SMART PACK / unreadable) = no claim of the check at all (a meter
   // refusal never counts as a failed check); a stored answer of the same content gives the reserve back at once (free)
   let meter: MeterClaim;
-  // Owner console 2026-11-07 (release D, Codex M02): the reserve is this request's proven maximum - every byte sent counted as a token
-  // + the 1,400 output cap, for the model AND its fallback (micro-USD; the database converts it at today's rate)
-  const messages = buildTwinMessages({ quote, checklist, isHebrew });
-  try { meter = await deps.meterClaim(reserveUsdMicros([TWIN_MODEL, TWIN_FALLBACK_MODEL], inputTokensMax(messages), 1400)); } catch { meter = { ok: false, code: 'meter_unavailable' }; }
+  try { meter = await deps.meterClaim(); } catch { meter = { ok: false, code: 'meter_unavailable' }; }
   if (!meter.ok) {
     const code = meter.code === BUDGET_EXHAUSTED || meter.code === 'smart_pack_required' ? meter.code : 'retry_later';
-    // Owner console 2026-11-07 (Codex F02): not enough left this month - a STORED answer of the same content is still free; only a new
-    // check is refused (a new claim taken just to look is given straight back)
-    if (code === BUDGET_EXHAUSTED) {
-      let look: Record<string, unknown> | null = null;
-      try { look = await deps.claim(sha); } catch { look = null; }
-      if (isObj(look) && look.ok === true && look.cached === true) {
-        const stored = parseStoredTwin(look.result);
-        if (stored) {
-          return { status: 200, body: { ok: true, cached: true, analyzedAt: typeof look.createdAt === 'string' ? look.createdAt : null,
-            language: isHebrew ? 'he' : 'en', checklist, analysis: stored, status: look.status ?? null } };
-        }
-      } else if (isObj(look) && look.ok === true && typeof look.claimId === 'string') {
-        await deps.refund(look.claimId, null).catch(() => null);
-      }
-    }
     return err(CLAIM_REFUSALS[code] ?? 503, code, { checklist, status: null });
   }
   const meterId = meter.claimId;
@@ -119,6 +101,7 @@ export async function customerTwinHandler(deps: CustomerTwinDeps, body: unknown)
     return { refunded, status: refunded && isObj(r) && isObj(r.status) ? r.status : claim.status ?? null };
   };
 
+  const messages = buildTwinMessages({ quote, checklist, isHebrew });
   let reply: { content: string; promptTokens: number | null; completionTokens: number | null; cachedTokens?: number | null } | null = null;
   let model = TWIN_MODEL;
   const started = deps.now();
@@ -134,14 +117,13 @@ export async function customerTwinHandler(deps: CustomerTwinDeps, body: unknown)
   }
   const usage: Usage = { model, promptTokens: reply?.promptTokens ?? null, completionTokens: reply?.completionTokens ?? null, providerMs: Math.max(0, deps.now() - started),
     ...(reply?.cachedTokens != null ? { cachedTokens: reply.cachedTokens } : {}) };
-  let parsed: unknown = null;
-  if (reply) { try { parsed = JSON.parse(reply.content); } catch { parsed = null; } }
-  const analysis = reply ? validateTwinReply(parsed, quote) : null;
-  // the meter: a USABLE answer is counted at its real cost; an answer that cannot be used is NOT counted for the customer - the Owner
-  // 2026-11-06 (D01): "היא הרי לא היתה שמישה" - its real cost stays on the claim; no answer at all = given back
+  // the meter: the provider answered = its real cost is counted (an unusable answer still cost the call); no answer = given back
   const metered: Usage | null = reply ? usage : answeredUnusable ? { ...answeredUnusable, providerMs: usage.providerMs } : null;
-  await deps.meterFinish(meterId, !!analysis, metered ? twinCostUsdMicros(metered) : 0, metered).catch(() => undefined);
+  await deps.meterFinish(meterId, !!metered, metered ? twinCostUsdMicros(metered) : 0, metered).catch(() => undefined);
   if (!reply) { const g = await giveBack(usage); return err(502, 'provider_failure', { checklist, ...g }); }
+  let parsed: unknown = null;
+  try { parsed = JSON.parse(reply.content); } catch { parsed = null; }
+  const analysis = validateTwinReply(parsed, quote);
   if (!analysis) { const g = await giveBack(usage); return err(502, 'provider_failure', { checklist, ...g }); }
   const saved = await deps.store(claimId, analysis as Record<string, unknown>, usage).catch(() => null);
   if (!isObj(saved) || saved.ok !== true) {

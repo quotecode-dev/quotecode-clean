@@ -28,7 +28,7 @@ describe('the server: the changes, every number verified in the request', () => 
   });
   it('refs must exist; a line both changed and removed is only changed; an unchanged value is not a change', () => {
     const c = parseDraftChanges({ updates: [{ ref: 9, description: 'x', quantity: null, unit: null, unitPrice: null }, { ref: 1, description: 'חלון אלומיניום', quantity: 3, unit: null, unitPrice: null },
-      { ref: 2, description: 'רשת נגד יתושים', quantity: null, unit: null, unitPrice: null }], deletes: [2, 9, 1], notes: { action: 'none', text: '' }, discountPercent: null }, QUOTE, 'תמחק את החלון, 3, ותשנה את התיאור של הרשת');
+      { ref: 2, description: 'רשת נגד יתושים', quantity: null, unit: null, unitPrice: null }], deletes: [2, 9, 1], notes: { action: 'none', text: '' }, discountPercent: null }, QUOTE, 'תמחק את החלון, 3');
     expect(c.updates).toEqual([{ ref: 2, description: 'רשת נגד יתושים', quantity: null, unit: null, unitPrice: null }]);
     expect(c.deletes).toEqual([1]);
   });

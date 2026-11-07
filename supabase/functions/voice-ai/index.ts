@@ -13,7 +13,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { smartPackAllowedFor, SMART_PACK_REQUIRED } from "../_shared/smartPackGate.ts";
-import { claimMeter, finishMeter, transcribeUsageCostUsdMicros, transcribeCostUsdMicros, speechCostUsdMicros, RESERVE_MICROS, BUDGET_EXHAUSTED, RATE_ILS_PER_USD } from "../_shared/usageMeter.ts";
+import { claimMeter, finishMeter, transcribeUsageCostUsdMicros, speechCostUsdMicros, RESERVE_MICROS, BUDGET_EXHAUSTED } from "../_shared/usageMeter.ts";
 
 export const VOICE_CONTRACT_VERSION = 1;
 export const TRANSCRIBE_MODEL = 'gpt-transcribe';
@@ -153,12 +153,7 @@ serve(async (req) => {
   // before the meter and before any provider call
   if (!(await smartPackAllowedFor(caller))) return reply({ ok: false, code: SMART_PACK_REQUIRED }, 403);
 
-  // Owner console 2026-11-07 (release D, Codex M02): the reserve in micro-USD (converted at today's rate) - a recording: the longest one
-  // (60 s) on both models; a spoken answer: THIS text's characters on both models (its proven maximum)
-  const reserveUsd = mode === 'transcribe'
-    ? Math.max(transcribeCostUsdMicros('whisper-1', 60) + transcribeCostUsdMicros('gpt-transcribe', 60), Math.ceil(RESERVE_MICROS.voice_transcribe / RATE_ILS_PER_USD))
-    : speechCostUsdMicros('gpt-4o-mini-tts', text.length) + speechCostUsdMicros('tts-1', text.length);
-  const meter = await claimMeter(caller, 'voice', mode === 'transcribe' ? RESERVE_MICROS.voice_transcribe : RESERVE_MICROS.voice_speak, reserveUsd);
+  const meter = await claimMeter(caller, 'voice', mode === 'transcribe' ? RESERVE_MICROS.voice_transcribe : RESERVE_MICROS.voice_speak);
   if (!meter.ok) {
     if (meter.code === BUDGET_EXHAUSTED) return reply({ ok: false, code: BUDGET_EXHAUSTED }, 403);
     if (meter.code === SMART_PACK_REQUIRED) return reply({ ok: false, code: SMART_PACK_REQUIRED }, 403);
@@ -176,9 +171,7 @@ serve(async (req) => {
       return reply({ ok: false, code: 'provider_failure' }, 502);
     }
     const cost = transcribeUsageCostUsdMicros(transcript.model, transcript.usage);
-    // an empty transcript is not usable: NOT counted for the customer, its real cost kept on the claim (the Owner 2026-11-06, D01)
-    const usable = String(transcript.text || '').trim().length > 0;
-    await finishMeter(admin, meter.claimId, usable, { costUsdMicros: cost.costUsdMicros, model: transcript.model, units: cost.seconds });
+    await finishMeter(admin, meter.claimId, true, { costUsdMicros: cost.costUsdMicros, model: transcript.model, units: cost.seconds });
     return reply({ ok: true, text: transcript.text });
   }
   const speech = await speak(text, isHebrew);

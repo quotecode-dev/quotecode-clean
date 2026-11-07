@@ -188,13 +188,12 @@ describe('the SMART PACK usage meter', () => {
     expect(r.status).toBe(409);
     expect(d.meter).toEqual([['claim'], ['finish', 'm1', false, null]]);
   });
-  // 2026-11-07 (release D, the Owner's D01): an unusable answer is NOT counted for the customer; its usage travels with the finish
-  it('a cut answer (the provider answered) is not counted for the customer, its usage is kept; the read is given back', async () => {
+  it('a cut answer (the provider answered) still counts its usage; the read is given back', async () => {
     const cut = Object.assign(new Error('provider_failure'), { usage });
     const d = deps({ complete: vi.fn(async () => { throw cut; }) });
     const r = await handleQuoteFromFile(d, req());
     expect(r.status).toBe(502);
-    expect(d.meter).toEqual([['claim'], ['finish', 'm1', false, usage]]);
+    expect(d.meter).toEqual([['claim'], ['finish', 'm1', true, usage]]);
     expect(d.calls.at(-1)).toBe('finish:back');
   });
   it('the provider fails: the meter is given back (not counted); a file refused before the call is given back too', async () => {
@@ -205,11 +204,11 @@ describe('the SMART PACK usage meter', () => {
     await handleQuoteFromFile(t, req());
     expect(t.meter).toEqual([['claim'], ['finish', 'm1', false, null]]);
   });
-  it('an unusable answer (not a quote / unreadable) is not counted for the customer, its usage is kept; the read is given back', async () => {
+  it('an unusable answer still cost the call: the meter counts it, the read itself is given back', async () => {
     const d = deps({ complete: vi.fn(async () => ({ content: 'not json', usage })) });
     const r = await handleQuoteFromFile(d, req());
     expect(r.status).toBe(422);
-    expect(d.meter).toEqual([['claim'], ['finish', 'm1', false, usage]]);
+    expect(d.meter).toEqual([['claim'], ['finish', 'm1', true, usage]]);
     expect(d.calls.at(-1)).toBe('finish:back');
   });
   it('the meter cost uses the real model prices: 1,000 in (200 cached) + 200 out on gpt-6-luna', () => {

@@ -72,8 +72,7 @@ describe('voice-ai handler (synthetic, in-process) - Owner 2026-10-19', () => {
     expect(h.state.rpcs).toEqual(['get_account_summary', 'smart_pack_usage_claim', 'smart_pack_usage_finish']);
     expect(h.state.clientAuthHeaders).toEqual(['Bearer synthetic-user-jwt', null]);
     expect(h.state.meter.map((m) => [m.fn, m.auth])).toEqual([['smart_pack_usage_claim', 'Bearer synthetic-user-jwt'], ['smart_pack_usage_finish', null]]);
-    // 2026-11-07 (release D, M02): the reserve in micro-USD (60 s on both models, at least the old 40,000 micro-ILS), converted by the database
-    expect(h.state.meter[0].args).toEqual({ p_feature: 'voice', p_reserve_micros: 40002, p_reserve_usd_micros: 11429 });
+    expect(h.state.meter[0].args).toEqual({ p_feature: 'voice', p_reserve_micros: 40000 });
     expect(h.state.meter[1].args).toMatchObject({ p_ok: true, p_cost_usd_micros: 4500, p_model: 'gpt-transcribe' });
     expect(h.state.queries.map((q) => [q.table, q.cols, q.filters])).toEqual([['business_settings', 'country', [['user_id', 'u-voice-1']]]]);
     expect(h.state.writes).toEqual([]);
@@ -152,8 +151,7 @@ describe('voice-ai: the SMART PACK usage meter', () => {
   it('speech: the characters spoken are counted (gpt-4o-mini-tts, 25 micro-USD a character)', async () => {
     setup();
     await h.handler(post({ mode: 'speak', text: 'שלום עולם' }));
-    // 2026-11-07 (release D, M02): THIS text's proven maximum - 9 characters on both models (25 + 15 micro-USD each)
-    expect(h.state.meter[0].args).toEqual({ p_feature: 'voice', p_reserve_micros: 1260, p_reserve_usd_micros: 360 });
+    expect(h.state.meter[0].args).toEqual({ p_feature: 'voice', p_reserve_micros: 220000 });
     expect(h.state.meter[1].args).toMatchObject({ p_ok: true, p_cost_usd_micros: 225, p_model: 'gpt-4o-mini-tts', p_units: 9 });
   });
   it('a recording: the provider duration (whisper-1 seconds) or token usage is counted', async () => {

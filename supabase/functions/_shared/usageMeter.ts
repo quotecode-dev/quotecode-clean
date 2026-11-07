@@ -67,18 +67,6 @@ export function tokenCostUsdMicros(u: TokenUsage): number {
   return ceilMicros((u.promptTokens - cached) * p.input + cached * p.cached + u.completionTokens * p.output);
 }
 
-// Owner console 2026-11-07 (typed: "מאשר את שחרור ד׳ ושחרור ה׳ לפי ההמלצות, סעיף 3 לספור ..." + the plan, Codex M02): the reserve of a
-// token action is its PROVEN maximum - every byte of what is sent counted as one token (a token is never shorter than one byte; a
-// file's pages at a fixed page bound), plus the output cap, at each model's own price, summed over every model the action may call - in
-// micro-USD. The database converts it at today's rate (smart_pack_usage_claim, p_reserve_usd_micros), never at a fixed 3.5.
-export const FILE_PAGE_TOKENS_MAX = 10000;
-export function inputTokensMax(payload: unknown): number {
-  return new TextEncoder().encode(typeof payload === 'string' ? payload : JSON.stringify(payload ?? '')).length;
-}
-export function reserveUsdMicros(models: string[], inputTokens: number, maxOutputTokens: number): number {
-  return models.reduce((sum, m) => { const p = priceOf(m); return sum + ceilMicros(n(inputTokens) * p.input + n(maxOutputTokens) * p.output); }, 0);
-}
-
 /** the sum of several calls of one action (a fallback call, the tool rounds) */
 export function sumUsage(list: TokenUsage[]): { costUsdMicros: number; model: string | null; promptTokens: number; cachedTokens: number; completionTokens: number } {
   return list.reduce((acc, u) => ({
@@ -163,16 +151,10 @@ export function speechCostUsdMicros(model: string, chars: number): number {
 type RpcClient = { rpc: (fn: string, args?: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> };
 export type MeterClaim = { ok: true; claimId: string } | { ok: false; code: string };
 
-/** step 1 (the CALLER's token): hold the reserve. Anything unreadable is refused - no meter answer, no provider call.
- *  reserveUsdMicros (2026-11-07): the proven maximum in micro-USD - the database converts it at today's rate; reserveMicros (micro-ILS
- *  at 3.5) stays as the validated fallback value. */
-export async function claimMeter(caller: RpcClient, feature: MeterFeature, reserveMicros: number, reserveUsd: number | null = null): Promise<MeterClaim> {
+/** step 1 (the CALLER's token): hold the reserve. Anything unreadable is refused - no meter answer, no provider call. */
+export async function claimMeter(caller: RpcClient, feature: MeterFeature, reserveMicros: number): Promise<MeterClaim> {
   try {
-    const usd = reserveUsd != null && Number.isFinite(reserveUsd) && reserveUsd > 0 ? Math.ceil(reserveUsd) : null;
-    const ils = Math.min(2000000, Math.max(1, Math.ceil(usd != null ? usd * RATE_ILS_PER_USD : reserveMicros)));
-    const { data, error } = await caller.rpc('smart_pack_usage_claim', usd != null
-      ? { p_feature: feature, p_reserve_micros: ils, p_reserve_usd_micros: usd }
-      : { p_feature: feature, p_reserve_micros: ils });
+    const { data, error } = await caller.rpc('smart_pack_usage_claim', { p_feature: feature, p_reserve_micros: Math.ceil(reserveMicros) });
     const d = (data || {}) as { ok?: boolean; claimId?: string; code?: string };
     if (error || !d || typeof d !== 'object') return { ok: false, code: 'meter_unavailable' };
     if (d.ok === true && typeof d.claimId === 'string') return { ok: true, claimId: d.claimId };
@@ -189,21 +171,15 @@ export async function finishMeter(admin: RpcClient, claimId: string, ok: boolean
   fetchImpl: typeof fetch | null = (typeof fetch === 'function' ? fetch : null)): Promise<void> {
   let confirmed = false;
   let fxStale = false;
-  // Owner console 2026-11-07 (Codex M03, "סעיף 3 לספור"): up to 3 attempts; a claim the database already closed (or does not know) is not
-  // retried. A finish that never lands is counted at its reserve by the database after 10 minutes (never given back).
-  for (let attempt = 0; attempt < 3 && !confirmed; attempt += 1) {
-    try {
-      const { data, error } = await admin.rpc('smart_pack_usage_finish', {
-        p_claim_id: claimId, p_ok: ok, p_cost_usd_micros: Math.max(0, Math.ceil(cost.costUsdMicros || 0)), p_model: cost.model ?? null,
-        p_prompt_tokens: cost.promptTokens ?? null, p_cached_tokens: cost.cachedTokens ?? null, p_completion_tokens: cost.completionTokens ?? null,
-        p_units: cost.units ?? null,
-      });
-      confirmed = !error && !!data && (data as { ok?: unknown }).ok === true;
-      fxStale = confirmed && (data as { fxStale?: unknown }).fxStale === true;
-      const code = !error && data ? (data as { code?: unknown }).code : null;
-      if (code === 'already_finished' || code === 'no_claim') break;
-    } catch { confirmed = false; }
-  }
+  try {
+    const { data, error } = await admin.rpc('smart_pack_usage_finish', {
+      p_claim_id: claimId, p_ok: ok, p_cost_usd_micros: Math.max(0, Math.ceil(cost.costUsdMicros || 0)), p_model: cost.model ?? null,
+      p_prompt_tokens: cost.promptTokens ?? null, p_cached_tokens: cost.cachedTokens ?? null, p_completion_tokens: cost.completionTokens ?? null,
+      p_units: cost.units ?? null,
+    });
+    confirmed = !error && !!data && (data as { ok?: unknown }).ok === true;
+    fxStale = confirmed && (data as { fxStale?: unknown }).fxStale === true;
+  } catch { confirmed = false; }
   if (!confirmed) console.error(JSON.stringify({ incident: 'smart_pack_meter_finish_unconfirmed' }));
   if (fxStale && fetchImpl) await refreshFxRate(admin, fetchImpl);
 }

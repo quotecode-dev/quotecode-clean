@@ -24,7 +24,7 @@ import { classifyQuoteStatsIntent, computeQuoteStats, formatQuoteStatsAnswer, me
 import { buildNoInventionBlock, removeInventedOffers } from "./noInvention.ts";
 import { CHEAP_MODEL, LEGACY_CHEAP_MODEL, TOOLS_MODEL, isOwnDataQuestion, hasDataQualifier, chatCompletionsTools, chatCompletionToolCalls, runToolLoop, buildToolsPromptBlock, dailyCapAnswer, smartPackUsedUpAnswer, smartPackMeterUnavailableAnswer, type ToolContext } from "./chatTools.ts";
 // Owner console 2026-11-06 (typed night-task approval): the SMART PACK usage meter - a data question is metered, a plain one is not
-import { RATE_ILS_PER_USD, claimMeter, finishMeter, tokenUsage, sumUsage, RESERVE_MICROS, BUDGET_EXHAUSTED, type TokenUsage } from "../_shared/usageMeter.ts";
+import { claimMeter, finishMeter, tokenUsage, sumUsage, RESERVE_MICROS, BUDGET_EXHAUSTED, type TokenUsage } from "../_shared/usageMeter.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -574,7 +574,7 @@ serve(async (req) => {
   if (toolCtx && (firstCalls.length || screenshot)) {
     // Owner console 2026-11-06: a data question is metered - its reserve is held before the stronger model (the caller's JWT), and the
     // real cost of the cheap first call + every tool round is counted after (the service role); refused = the fixed answer, no data read
-    const meter = await claimMeter(userJwtClient as Parameters<typeof claimMeter>[0], 'chat_data', RESERVE_MICROS.chat_data, Math.ceil(RESERVE_MICROS.chat_data / RATE_ILS_PER_USD));
+    const meter = await claimMeter(userJwtClient as Parameters<typeof claimMeter>[0], 'chat_data', RESERVE_MICROS.chat_data);
     if (!meter.ok) {
       const meterAnswer = meter.code === BUDGET_EXHAUSTED ? smartPackUsedUpAnswer(isHebrew) : smartPackMeterUnavailableAnswer(isHebrew);
       await logChat(meterAnswer);
@@ -586,28 +586,21 @@ serve(async (req) => {
       instructions: modelInstructions, messages, firstCalls, ctx: toolCtx, screenshot,
       onUsage: (u) => { usages.push(tokenUsage(TOOLS_MODEL, u)); },
     });
-    // Owner console 2026-11-07 (release D, Codex M04): every provider call of the question is counted - the cheap first call, every tool
-    // round AND the plain fallback answer; a call that gave no usage numbers counts the action's reserve (never 0). Finished once, after
-    // the fallback. A finish that never lands is counted at its reserve by the database (the Owner: "סעיף 3 לספור").
-    let fallbackFailed = false;
+    // every provider answer cost money, whether or not the tool path ended in an answer
+    const spent = sumUsage(usages);
+    await finishMeter(adminClient as unknown as Parameters<typeof finishMeter>[0], meter.claimId, spent.costUsdMicros > 0, spent);
     if (toolTurn) {
       aiReply = toolTurn.answer;
     } else {
       console.warn('chat-ai: tool path failed, falling back to the plain answer');
       try {
         const fallback = await callCheapWithFallback(false);
-        if (!fallback.ok) { fallbackFailed = true; } else {
-          const fb = await fallback.json();
-          usages.push(tokenUsage(String((fb as { model?: unknown })?.model || CHEAP_MODEL), (fb as { usage?: unknown })?.usage));
-          aiReply = replyText(fb);
-        }
-      } catch { fallbackFailed = true; }
+        if (!fallback.ok) return errorResponse('provider_failure', 'The AI provider returned an error', 502);
+        aiReply = replyText(await fallback.json());
+      } catch {
+        return errorResponse('provider_failure', 'Failed to reach the AI provider', 502);
+      }
     }
-    const spent = sumUsage(usages);
-    const missingUsage = usages.some((u) => u.promptTokens + u.completionTokens === 0) || (!toolTurn && usages.length === 0);
-    const costUsdMicros = missingUsage ? Math.max(spent.costUsdMicros, Math.ceil(RESERVE_MICROS.chat_data / RATE_ILS_PER_USD)) : spent.costUsdMicros;
-    await finishMeter(adminClient as unknown as Parameters<typeof finishMeter>[0], meter.claimId, costUsdMicros > 0, { ...spent, costUsdMicros });
-    if (fallbackFailed) return errorResponse('provider_failure', 'The AI provider returned an error', 502);
   }
   if (typeof aiReply !== 'string') {
     return errorResponse('malformed_provider_response', 'The AI provider returned an unexpected response shape', 502);

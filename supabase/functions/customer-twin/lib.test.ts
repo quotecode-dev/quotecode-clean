@@ -141,31 +141,14 @@ describe('customer-twin: the SMART PACK usage meter', () => {
     expect(d.meterFinish).toHaveBeenCalledWith('m1', false, 0, null);
     expect(d.complete).not.toHaveBeenCalled();
   });
-  // 2026-11-07 (release D, Codex F02): not enough left - a STORED answer of the same content is still served free; otherwise the claim
-  // taken only to look is given straight back, and no model is called
-  it('not enough left: 403 budget_exhausted, the look-up claim is given back at once, no model call', async () => {
+  it('not enough left: 403 budget_exhausted BEFORE the check is claimed (never a failed check), no model call', async () => {
     const d = deps({ meterClaim: vi.fn(async () => ({ ok: false, code: 'budget_exhausted' })) });
     const r = await customerTwinHandler(d, { quote });
     expect(r.status).toBe(403);
     expect(r.body).toMatchObject({ ok: false, code: 'budget_exhausted' });
-    expect(d.claim).toHaveBeenCalledTimes(1);
-    expect(d.refund).toHaveBeenCalledWith('c1', null);
-    expect(d.complete).not.toHaveBeenCalled();
-  });
-  it('not enough left but the same content was already checked: the stored answer is served free (F02)', async () => {
-    const stored = JSON.parse(answer);
-    const d = deps({ meterClaim: vi.fn(async () => ({ ok: false, code: 'budget_exhausted' })),
-      claim: vi.fn(async () => ({ ok: true, cached: true, createdAt: '2026-10-20T08:00:00Z', result: { schema: 'customer-twin/1', ...stored }, status: { monthlyRemaining: 5 } })) });
-    const r = await customerTwinHandler(d, { quote });
-    expect(r.status).toBe(200);
-    expect(r.body).toMatchObject({ ok: true, cached: true });
+    expect(d.claim).not.toHaveBeenCalled();
     expect(d.refund).not.toHaveBeenCalled();
     expect(d.complete).not.toHaveBeenCalled();
-  });
-  it('the meter is claimed with the proven maximum of this request in micro-USD (the model and its fallback)', async () => {
-    const d = deps();
-    await customerTwinHandler(d, { quote });
-    expect(d.meterClaim.mock.calls[0][0]).toBeGreaterThan(2 * 1400 * 0.5); // more than both output caps alone
   });
   it('the meter cannot be read: 503 retry_later, the check is never claimed, no model call', async () => {
     const d = deps({ meterClaim: vi.fn(async () => { throw new Error('down'); }) });
@@ -180,15 +163,13 @@ describe('customer-twin: the SMART PACK usage meter', () => {
     expect(r.status).toBe(409);
     expect(d.meterFinish).toHaveBeenCalledWith('m1', false, 0, null);
   });
-  // 2026-11-07 (release D, the Owner's D01 "היא הרי לא היתה שמישה"): an unusable answer is NOT counted for the customer; its real cost
-  // still travels with the finish (kept on the claim)
-  it('a cut answer (the provider answered) is not counted for the customer, its real cost is kept; the check is given back', async () => {
+  it('a cut answer (the provider answered) still counts its usage; the check is given back', async () => {
     const cut = Object.assign(new Error('provider_failure'), { usage: { promptTokens: 900, completionTokens: 1400, cachedTokens: 0 } });
     const d = deps({ complete: vi.fn(async () => { throw cut; }) });
     const r = await customerTwinHandler(d, { quote });
     expect(r.status).toBe(502);
     // gpt-6-luna: 900 x 0.10 + 1,400 x 0.50 = 790 micro-USD
-    expect(d.meterFinish).toHaveBeenCalledWith('m1', false, 790, expect.objectContaining({ model: TWIN_MODEL, promptTokens: 900, completionTokens: 1400 }));
+    expect(d.meterFinish).toHaveBeenCalledWith('m1', true, 790, expect.objectContaining({ model: TWIN_MODEL, promptTokens: 900, completionTokens: 1400 }));
     expect(d.refund).toHaveBeenCalled();
   });
   it('the provider never answers: the meter is given back (not counted)', async () => {
