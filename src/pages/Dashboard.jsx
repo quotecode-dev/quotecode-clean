@@ -5546,7 +5546,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         </div>
         {/* AI HELP V4 §15 (region choice): identity is verified but the market is not chosen yet - restricted setup help only
             (the server sees no business row, so it answers market-neutrally; no private business data exists yet). */}
-        <AIChatWidget isHebrew={screenHe} isDashboard={true} readUsage={readSmartPackUsage} currentArea="region_choice" helpSources={aiHelpSources} />
+        <AIChatWidget isHebrew={screenHe} isDashboard={true} currentArea="region_choice" helpSources={aiHelpSources} />
       </div>
     );
   }
@@ -8018,7 +8018,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           trigger button on desktop - Landing/Contact/every other page's
           own separate AIChatWidget mount is untouched. */}
       <div className="dash-ai-chat-mount">
-        <AIChatWidget isHebrew={isHebrew} isDashboard={true} readUsage={readSmartPackUsage} currentArea={showPricingModal ? 'plans' : activeTab} businessDisplayName={(bizName && bizName !== 'TEKANGO' && bizName !== 'עסק חדש' && bizName !== 'New Business') ? bizName : null} workflowContext={quoteWorkflowContext} activeEditingQuoteId={showQuoteForm ? (editingQuoteId || null) : null} helpSources={aiHelpSources} getQuoteDraftSnapshot={showQuoteForm ? getAiReviewSnapshot : null} />
+        <AIChatWidget isHebrew={isHebrew} isDashboard={true} currentArea={showPricingModal ? 'plans' : activeTab} businessDisplayName={(bizName && bizName !== 'TEKANGO' && bizName !== 'עסק חדש' && bizName !== 'New Business') ? bizName : null} workflowContext={quoteWorkflowContext} activeEditingQuoteId={showQuoteForm ? (editingQuoteId || null) : null} helpSources={aiHelpSources} getQuoteDraftSnapshot={showQuoteForm ? getAiReviewSnapshot : null} />
       </div>
 
       {/* Status toast: same statusMsg state/role="status"/aria-live="polite"/

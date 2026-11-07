@@ -25,7 +25,6 @@ import { formatQuoteFallback } from './utils/quoteNumber';
 import AiChatIcon from './components/AiChatIcon';
 import TekangoAiIcon from './components/TekangoAiIcon';
 import { imageFromClipboard, imageFileToDataUrl, SCREENSHOT_COPY } from './utils/chatScreenshot';
-import { smartPackUsageText } from './utils/smartPackUsage';
 import { VOICE_COPY, VOICE_MODES, MAX_RECORD_SECONDS, readVoiceMode, saveVoiceMode, readVoiceDisclosed, saveVoiceDisclosed, pickRecorderMime, voiceSupported, blobToBase64, base64ToBlob, voiceRefusalOf } from './utils/voiceAssistant';
 
 // Dynamic Compact Guided Buttons task: one small, purely-decorative icon
@@ -150,14 +149,8 @@ function loadPublicMessages(isHebrew) {
   return [withCreatedAt({ role: 'assistant', content: computeDefaultWelcome(isHebrew, false) })];
 }
 
-export default function AIChatWidget({ isHebrew = true, isDashboard = false, currentArea = null, businessDisplayName = null, workflowContext = null, activeEditingQuoteId = null, helpSources = null, getQuoteDraftSnapshot = null, readUsage = null }) {
+export default function AIChatWidget({ isHebrew = true, isDashboard = false, currentArea = null, businessDisplayName = null, workflowContext = null, activeEditingQuoteId = null, helpSources = null, getQuoteDraftSnapshot = null }) {
   const [isOpen, setIsOpen] = useState(false);
-  // Owner console 2026-11-07 (typed: "מאשר את שחרור ד׳ ושחרור ה׳ לפי ההמלצות ...", F01): the same SMART PACK line as every SMART PACK window
-  // ("נשארו לכם 63% משימוש חכם פלוס החודש"), read when the chat opens, after every answer and after a dictation; none for the super admin
-  const [chatUsage, setChatUsage] = useState(null);
-  const refreshChatUsage = () => { if (typeof readUsage === 'function') Promise.resolve(readUsage()).then((u) => setChatUsage(u || null)).catch(() => setChatUsage(null)); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  useEffect(() => { if (isOpen) refreshChatUsage(); }, [isOpen]);
   // Task 34: the OPEN quote form's snapshot getter ({ identity, snapshot }) - read only at the explicit review click and again when its
   // answer arrives (always the latest render's getter, so a changed / different draft is detected).
   const draftGetterRef = useRef(null);
@@ -785,7 +778,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
         const text = data?.ok ? String(data.text || '').trim() : '';
         if (!text) { addVoiceNote(voiceCopy.failed); return; }
         await sendTextRef.current?.(text);
-      } catch { addVoiceNote(voiceCopy.failed); } finally { setTranscribing(false); refreshChatUsage(); }
+      } catch { addVoiceNote(voiceCopy.failed); } finally { setTranscribing(false); }
     };
     recorderRef.current = rec;
     rec.start();
@@ -1017,7 +1010,6 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
       })]));
     } finally {
       applyIfCurrent(() => setLoading(false));
-      refreshChatUsage();
     }
   };
 
@@ -1858,7 +1850,6 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                   </button>
                 </div>
               )}
-              {smartPackUsageText(chatUsage, isHebrew) && <div data-testid="ai-chat-usage" style={{ padding: '6px 12px 0', background: NEON.bgElevated, color: NEON.textSecondary, fontSize: '0.74rem', borderTop: `1px solid ${NEON.border}` }}>{smartPackUsageText(chatUsage, isHebrew)}</div>}
               <form onSubmit={handleSend} style={{ padding: '10px', background: NEON.bgElevated, borderTop: `1px solid ${NEON.border}`, display: 'flex', gap: '8px', flexShrink: 0 }}>
                 <input
                   ref={inputRef}

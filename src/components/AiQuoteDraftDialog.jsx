@@ -80,7 +80,7 @@ const COPY = {
     // Owner console 2026-11-06 (release B): changes to the open quote
     applyChanges: 'החלת השינויים בהצעה',
     changesTitle: 'שינויים בהצעה הקיימת',
-    changeQty: 'כמות', changeUnit: 'יחידה', changePrice: 'מחיר', changeDesc: 'תיאור', instead: 'במקום',
+    changeQty: 'כמות', changePrice: 'מחיר', changeDesc: 'תיאור', instead: 'במקום',
     changeDelete: 'מחיקת השורה', notesAppend: 'הוספה להערות', notesReplace: 'ההערות יוחלפו ב', notesClear: 'מחיקת ההערות',
     discount: 'הנחה',
     again: 'תיאור אחר',
@@ -157,7 +157,7 @@ const COPY = {
     apply: (n) => `Add ${n} items to the quote`,
     applyChanges: 'Apply the changes to the quote',
     changesTitle: 'Changes to the current quote',
-    changeQty: 'Quantity', changeUnit: 'Unit', changePrice: 'Price', changeDesc: 'Description', instead: 'instead of',
+    changeQty: 'Quantity', changePrice: 'Price', changeDesc: 'Description', instead: 'instead of',
     changeDelete: 'Remove the line', notesAppend: 'Add to the notes', notesReplace: 'Replace the notes with', notesClear: 'Remove the notes',
     discount: 'Discount',
     again: 'Different description',
@@ -214,8 +214,6 @@ function describeChange(e, quote, t, isHebrew, sym, money) {
   if (e.kind === 'discount') return <>{t.discount}: {N(`${e.percent}%`)}{quote && quote.discountPercent ? <> ({t.instead} {N(`${quote.discountPercent}%`)})</> : null}</>;
   const parts = [];
   if (e.quantity != null) parts.push(<span key="q">{t.changeQty}: {N(e.quantity)}{line?.quantity != null ? <> ({t.instead} {N(line.quantity)})</> : null}</span>);
-  // Owner console 2026-11-07 (F03): a unit-only change, in words, beside the line's current unit
-  if (e.quantity == null && e.unit) parts.push(<span key="u">{t.changeUnit}: {getProfessionalUnitLabel(e.unit, isHebrew)}{line?.unit ? <> ({t.instead} {getProfessionalUnitLabel(line.unit, isHebrew)})</> : null}</span>);
   if (e.unitPrice != null) parts.push(<span key="p">{t.changePrice}: {M(e.unitPrice)}{line?.unitPrice != null ? <> ({t.instead} {M(line.unitPrice)})</> : null}</span>);
   if (e.description) parts.push(<span key="d">{t.changeDesc}: <bdi>{e.description}</bdi></span>);
   return <>{name}: {parts.map((p, i) => (i ? [<span key={`s${i}`}>; </span>, p] : p))}</>;
@@ -318,7 +316,6 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
     onApply(chosen, draft.subject || '', chosenChanges);
   };
   function handleVoiceText(text) {
-    refreshUsage(); // Owner console 2026-11-07 (F01): a dictation is metered too - the line shows what is left after it
     const joined = (description.trim() ? `${description.trim()}${voiceTargetRef.current === 'answer' ? '\n' : ' '}${text}` : text).slice(0, MAX_DESCRIPTION_CHARS);
     setDescription(joined);
     if (voiceTargetRef.current === 'answer') generate(joined);
@@ -393,8 +390,6 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
             <>
               <h3 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 700, color: NEON.textPrimary }}>{t.reviewTitle}</h3>
               <p style={{ margin: 0, fontSize: '0.8rem', color: NEON.textSecondary, lineHeight: 1.45 }}>{t.reviewHint}</p>
-              {/* Owner console 2026-11-07 (F01): the usage line stays visible while the result is reviewed (what is left after this action) */}
-              {smartPackUsageText(usage, isHebrew) && <div data-testid="ai-quote-draft-usage" style={{ fontSize: '0.78rem', color: NEON.textSecondary }}>{smartPackUsageText(usage, isHebrew)}</div>}
               <div data-testid="ai-quote-draft-source" style={{ fontSize: '0.78rem', color: NEON.textSecondary, background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '8px', padding: '8px 10px', lineHeight: 1.45, overflowWrap: 'anywhere' }}>
                 <strong style={{ color: NEON.textPrimary }}>{t.yourText}:</strong> <bdi>{draft.sourceText}</bdi>
               </div>
