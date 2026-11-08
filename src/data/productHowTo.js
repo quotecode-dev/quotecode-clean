@@ -271,33 +271,6 @@ export const PRODUCT_HOW_TO = Object.freeze([
       { file: 'src/components/QuoteRowsEditor.jsx', labels: ['רק כאן', 'Only here', 'ביטול עדכון המחירים', 'Undo the price update'] },
     ],
   },
-  // Owner console 2026-11-08 (typed: "מאשר שינוי ב-L-14 לידע הצ'אט על תבנית יחידה בשלב 4"): unit templates
-  {
-    id: 'quote_unit_template',
-    capabilityIds: ['quote_create', 'quote_edit'],
-    he: {
-      task: 'תבנית יחידה - שמירת יחידה (למשל דירה) והוספתה להצעה אחרת',
-      steps: [
-        'בהצעה מחולקת ליחידות פותחים את תפריט היחידה (שלוש הנקודות בכותרת שלה) ובוחרים "שמירה כתבנית יחידה". נותנים שם ובוחרים אם לשמור מחירים ופרטים ללקוח. השורות, סוג החיוב והמידות נשמרים תמיד; פרטי לקוח, כתובת ושמות המקומות במידות לעולם לא נשמרים.',
-        'כדי להוסיף יחידה שמורה להצעה פתוחה לוחצים "מיחידה שמורה" מעל רשימת העבודות, בוחרים את התבנית ולוחצים "הוספה להצעה". יחידה אחת עם השורות שלה נוספת לסוף ההצעה.',
-        'כשהמטבע או בסיס המע״מ של המחירים בתבנית שונים מההצעה, המערכת שואלת לפני ההוספה אם להשתמש במחירים או להוסיף בלי מחירים.',
-        'בחלון התבניות אפשר לעבור בין "תבניות הצעה" ל"תבניות יחידה", ולמחוק תבנית משני הסוגים.',
-      ],
-    },
-    en: {
-      task: 'Unit templates - saving a unit (for example an apartment) and adding it to another quote',
-      steps: [
-        'In a quote divided into units open the unit menu (the three dots in its header) and choose "Save as unit template". Give it a name and choose whether to keep the prices and the details for the customer. The rows, the billing type and the sizes are always kept; customer details, the address and the place names of the sizes are never kept.',
-        'To add a saved unit to an open quote click "From a saved unit" above the list of work, pick the template and click "Add to the quote". One unit with its rows is added at the end of the quote.',
-        'When the currency or the VAT basis of the template prices differs from the quote, you are asked before adding whether to use the prices or add without prices.',
-        'In the template window you can switch between "Quote templates" and "Unit templates", and delete a template of either kind.',
-      ],
-    },
-    evidence: [
-      { file: 'src/components/QuoteForm.jsx', labels: ['שמירה כתבנית יחידה', 'Save as unit template', 'מיחידה שמורה', 'From a saved unit'] },
-      { file: 'src/components/QuoteTemplateDialogs.jsx', labels: ['הוספה להצעה', 'Add to the quote', 'תבניות הצעה', 'Quote templates', 'תבניות יחידה', 'Unit templates'] },
-    ],
-  },
   {
     id: 'quote_attachment',
     capabilityIds: ['attachments'],

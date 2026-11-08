@@ -100,8 +100,7 @@ import NewQuoteMenu from '../components/NewQuoteMenu';
 import { menuChoices } from '../utils/newQuoteChoices';
 import { SaveTemplateDialog, TemplatePickerDialog } from '../components/QuoteTemplateDialogs';
 import { matchesQuoteFilter } from '../utils/quoteStatusDisplay';
-import { templateToFormState, templateCurrencyMismatch, templateCurrencyUnknown, withoutPrices, templatePriceBasis, clientTypeForPriceBasis, unitTemplateToRows, unitTemplatePriceQuestions, TEMPLATE_KIND_UNIT } from '../utils/quoteTemplates';
-import { rowEntry } from '../utils/quoteItemEntry';
+import { templateToFormState, templateCurrencyMismatch, templateCurrencyUnknown, withoutPrices, templatePriceBasis, clientTypeForPriceBasis } from '../utils/quoteTemplates';
 import AiQuoteDraftDialog from '../components/AiQuoteDraftDialog';
 import { requestAiQuoteDraft, draftLinesToQuoteItems, aiQuoteSnapshot, applyDraftUpdateToItem, applyDraftNotes } from '../utils/aiQuoteDraftClient';
 import QuoteFromFileDialog from '../components/QuoteFromFileDialog';
@@ -1170,7 +1169,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // Task 27 (spec §6): the owner's default WhatsApp text (manual sharing). Preloaded so the share click stays synchronous (popup rules);
   // '' (none / not on this server / not loaded) keeps the built-in message unchanged.
   const [shareTextDefault, setShareTextDefault] = useState('');
-  const [templateDialog, setTemplateDialog] = useState(null); // Task 27 (spec §6): 'save' | 'pick' | null; stage 4: { kind: 'save-unit', section } | 'pick-unit'
+  const [templateDialog, setTemplateDialog] = useState(null); // Task 27 (spec §6): 'save' | 'pick' | null
   useEffect(() => {
     const uid = session?.user?.id;
     setShareTextDefault('');
@@ -4292,54 +4291,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     if (f.warranty !== null) setWarranty(f.warranty);
     if (f.notes !== null) setNotes(f.notes);
     if (f.presentation && hasServerContent(f.presentation)) { presentationSourceRef.current = 'local'; setQuotePresentation(f.presentation); }
-  };
-
-  // Owner console 2026-11-08 (stage 4 of the one quote builder, decision 6): a saved unit template adds ONE unit (count 1) with its rows at the end of the open quote - new keys, no ids, no price
-  // link. Prices in another currency, or a VAT basis that differs from the chosen client type (or is unknown), are used only after the
-  // user chooses; the existing client type is never changed (it is set from the template only when none was chosen yet).
-  const handleAddUnitTemplate = async (content) => {
-    setTemplateDialog(null);
-    const u = unitTemplateToRows(content, () => `tmp_section_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
-    if (!u) return;
-    // the same plan rule as "duplicate unit": a measured row is reused only with professional reuse (L-05 keeps it open today)
-    if (u.items.some((it) => it.pricing_unit) && !canUseCapability('professional_quote.reuse')) { setLockedCapability('professional_quote.reuse'); return; }
-    let rows = u.items;
-    const q = unitTemplatePriceQuestions(u, { currency, isLocal: isLocalIsraeliBusiness, clientType });
-    const priceChoice = async (text) => {
-      const choice = await askChoice(text, isHebrew,
-        { options: isHebrew ? [{ value: 'with', label: 'להשתמש במחירים' }, { value: 'without', label: 'בלי מחירים' }] : [{ value: 'with', label: 'Use the prices' }, { value: 'without', label: 'Without prices' }],
-          cancel: isHebrew ? 'ביטול' : 'Cancel' });
-      if (choice === 'without') rows = withoutPrices(rows);
-      return choice !== null;
-    };
-    if (q.currency === 'mismatch') {
-      const ok = await askConfirm(isHebrew
-        ? `היחידה שמורה ב-${u.currency}, וההצעה ב-${currency}. נעתיק את השורות והכמויות. המחירים יוסרו ותזינו אותם מחדש, כי אין כאן שער המרה. להמשיך בלי מחירים?`
-        : `The unit is saved in ${u.currency} and the quote is in ${currency}. The rows and quantities are copied; the prices are removed for you to enter again, as no exchange rate is used. Continue without prices?`, isHebrew,
-        isHebrew ? { yes: 'להמשיך בלי מחירים' } : { yes: 'Continue without prices' });
-      if (!ok) return;
-      rows = withoutPrices(rows);
-    } else if (q.currency === 'unknown') {
-      if (!(await priceChoice(isHebrew
-        ? `ביחידה הזו לא נשמר המטבע של המחירים. להשתמש במחירים כמו שהם, ב-${currency}? אפשר גם להעתיק רק את השורות והכמויות, בלי מחירים.`
-        : `This unit does not say the currency of its prices. Use the prices as they are, in ${currency}? You can also copy only the rows and quantities, without prices.`))) return;
-    }
-    const stillPriced = rows.some((it) => it.unit_price !== '' && it.unit_price != null);
-    if (stillPriced && q.basis) {
-      if (!(await priceChoice(q.basis === 'unknown'
-        ? (isHebrew ? 'ביחידה הזו לא נשמר אם המחירים כוללים מע״מ. להשתמש במחירים כמו שהם? אפשר גם להעתיק רק את השורות והכמויות, בלי מחירים.'
-          : 'This unit does not say whether its prices include VAT. Use the prices as they are? You can also copy only the rows and quantities, without prices.')
-        : u.priceBasis === 'incl_vat'
-          ? (isHebrew ? 'המחירים ביחידה כוללים מע״מ, וההצעה לפני מע״מ (לקוח עסקי). להשתמש במחירים כמו שהם? אפשר גם להעתיק בלי מחירים.'
-            : 'The unit\'s prices include VAT and this quote is before VAT (business client). Use the prices as they are? You can also copy without prices.')
-          : (isHebrew ? 'המחירים ביחידה לפני מע״מ, וההצעה כוללת מע״מ (לקוח פרטי). להשתמש במחירים כמו שהם? אפשר גם להעתיק בלי מחירים.'
-            : 'The unit\'s prices are before VAT and this quote includes VAT (private client). Use the prices as they are? You can also copy without prices.')))) return;
-    }
-    if (stillPriced && isLocalIsraeliBusiness && !clientType && u.priceBasis) { const t = clientTypeForPriceBasis(u.priceBasis); if (t) setClientType(t); }
-    // at the end of the quote (after the highest unit order); only the opening blank row with no unit is dropped
-    setSections((prev) => [...(prev || []), { ...u.section, sort_order: (prev || []).reduce((m, s) => Math.max(m, Number(s.sort_order) || 0), -1) + 1 }]);
-    setItems((prev) => [...(prev || []).filter((it) => !(isUntouchedPlaceholderItem(it) && !it.section_key)), ...rows]);
-    setQuoteStructureMode('divided');
   };
 
   // PRODUCT_TRUTH_CAPABILITY: quote_duplicate
@@ -8137,17 +8088,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         <TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
           onClose={() => setTemplateDialog(null)} onUse={handleUseTemplate} />
       )}
-      {/* Owner console 2026-11-08 (stage 4 of the one quote builder, decision 6): a unit template - saved from a unit's menu, added from "from a saved unit" */}
-      {templateDialog?.kind === 'save-unit' && session?.user?.id && (
-        <SaveTemplateDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
-          form={{ items, sections, currency, priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType) }}
-          unit={{ sectionKey: templateDialog.section.key, name: templateDialog.section.name, rowBilling: (it) => rowEntry(it, isLocalIsraeliBusiness === false).pricingMethod }}
-          onClose={() => setTemplateDialog(null)} />
-      )}
-      {templateDialog === 'pick-unit' && session?.user?.id && (
-        <TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`} kind={TEMPLATE_KIND_UNIT}
-          onClose={() => setTemplateDialog(null)} onUse={handleAddUnitTemplate} />
-      )}
       {dailyTip && tipQuiet && (
         <DailyTipCard tip={dailyTip} isHebrew={isHebrew} onAction={() => runDailyTip(dailyTip)} onDismiss={() => setDailyTip(null)} onTurnOff={turnDailyTipsOff} />
       )}
@@ -9034,8 +8974,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onBack={inAppBack.back}
               onOpenCustomerTwin={() => setCustomerTwin({ mode: 'editor' })}
               onSaveAsTemplate={() => setTemplateDialog('save')}
-              onSaveUnitTemplate={(section) => setTemplateDialog({ kind: 'save-unit', section })}
-              onAddUnitFromTemplate={() => setTemplateDialog('pick-unit')}
               clientName={clientName} setClientName={setClientName}
               clientEmail={clientEmail} setClientEmail={setClientEmail}
               clientPhone={clientPhone} setClientPhone={setClientPhone}

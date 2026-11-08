@@ -29,12 +29,11 @@ export async function listTemplates(client, userId) {
   } catch (e) { return fail('network', e?.message); }
 }
 
-// Owner console 2026-11-08 (stage 4 of the one quote builder, decision 6): built = a ready content (a unit template); otherwise the whole quote is built from the form
-export async function createTemplate(client, userId, name, form, keep, built = null) {
+export async function createTemplate(client, userId, name, form, keep) {
   if (!usable(client, userId)) return fail('not_signed_in');
   const n = normalizeTemplateName(name);
   if (!n.ok) return fail('invalid', n.error);
-  const content = stripForbiddenKeys(built || buildTemplateContent(form, keep));
+  const content = stripForbiddenKeys(buildTemplateContent(form, keep));
   if (content.schema !== TEMPLATE_SCHEMA || !Array.isArray(content.items) || content.items.length === 0) return fail('invalid', 'no_items');
   try {
     const { data, error } = await client.from('quote_templates').insert({ user_id: userId, name: n.value, content }).select(TEMPLATE_COLUMNS).single();
