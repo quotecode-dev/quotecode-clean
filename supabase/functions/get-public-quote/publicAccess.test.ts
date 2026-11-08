@@ -170,10 +170,7 @@ describe('legacy id mode (enforced: owner preview or legacy allowlist only; unif
   });
   it('index.ts wiring: refused ids return the SAME body/status as an unknown id, after the same two lookups', () => {
     const src = readFileSync(join(cwd(), 'supabase/functions/get-public-quote/index.ts'), 'utf8');
-    // Owner console 2026-11-08 (migration 20261108400000): the live read returns null for a missing quote and the id link answers it with
-    // the same 404 body
-    expect(src).toContain('if (!quote) return null;');
-    expect(src).toContain("if (!b) return jsonResponse({ error: 'Quote not found' }, 404);");
+    expect(src).toContain("if (!quote) return jsonResponse({ error: 'Quote not found' }, 404);");
     expect(UNIFORM_NOT_FOUND).toEqual({ status: 404, body: { error: 'Quote not found' } });
     expect(src).toMatch(/Promise\.all\(\[\s*phase === 'enforced' \? adminClient\.rpc\('is_legacy_public_quote'[\s\S]*?from\('quotes'\)\.select\('user_id'\)/);
     // continuation (D): the capability scope is read for every id (rollback-safe)

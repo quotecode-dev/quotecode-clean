@@ -747,12 +747,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-08 (typed: \"מאשר את שלב 3 (דירות זהות ומחיר משותף) ואת שלב 4 (תבנית יחידה) לפי ההחלטות, כולל מיגרציה ...\"): identical units (quote_sections.repeat_count 1..999) and a shared price (quote_items.price_link_id); save_quote_structured keeps stored values for an older payload; the deal document carries the count only above 1; replays cleanly (ADD COLUMN IF NOT EXISTS, guarded CHECK, CREATE OR REPLACE)."
-    },
-    "20261108400000_live_customer_link.sql": {
-      "sha256": "37b9f3208d94fa678a71990f38c63aadb26f17e2ad9bf7a3528d04583e961169",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-11-08 (typed: \"כל עוד הלקוח לא חתם ... כל שינוי ... משתקף אצל הלקוח\" + \"מאשר להחזיר הכול למה שהיה ... והקישור ללקוח מתעדכן עד החתימה, כולל שינוי ב-L-02 ... L-28, שחרור עד הלייב\"): the public page reads the live saved quote until the signature (public_quote_live_state / public_capability_live, same customer only), new signing functions bound to the version shown, the signed document frozen (quote_signed_documents); replays cleanly (CREATE TABLE IF NOT EXISTS, CREATE OR REPLACE, DROP TRIGGER IF EXISTS)."
     }
   }
 }

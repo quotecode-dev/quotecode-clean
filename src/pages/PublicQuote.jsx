@@ -128,7 +128,7 @@ const formatDisplayPhone = (phone) => {
 // `standalonePrint` (previewMode only): the preview IS the whole browser page (the /:lang/sample-quote route, never the
 // embedded creator preview), so its native Print uses the same A4 print contract as the public quote (the page print CSS
 // and the document's print rules) instead of printing the screen layout (cloud-fix3: footer-only second page).
-export default function PublicQuote({ quoteData, presentation = null, previewMode = false, detail = null, onApproved = null, standalonePrint = false, onFinalSnapshot = null, capabilityToken = null, thanks = null, onQuoteChanged = null, updatedTick = 0 }) {
+export default function PublicQuote({ quoteData, presentation = null, previewMode = false, detail = null, onApproved = null, standalonePrint = false, onFinalSnapshot = null, capabilityToken = null, thanks = null }) {
   const navigate = useNavigate();
   const { quote, business, client, items, attachments, sections: quoteSections } = quoteData;
   // Owner 2026-10-23 (typed L-09..L-27): an attachment link older than 4 minutes is re-read on click (utils/freshAttachmentLink.js)
@@ -319,13 +319,6 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
   useEffect(() => {
     if (hasSigned) setSignatureWarning(false);
   }, [hasSigned]);
-  // Owner console 2026-11-08: the business saved a change while this page was open - the page now shows the updated quote; a signature
-  // drawn on the earlier version is cleared and the customer is told to review it again before signing
-  useEffect(() => {
-    if (!updatedTick) return;
-    clearSignature();
-    setApproveToast({ type: 'success', message: classifyQuoteApprovalError('Quote updated', true).userMessage, durationMs: 9000 });
-  }, [updatedTick]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (signerName.trim()) setSignerNameWarning(false);
@@ -398,16 +391,9 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
       // a server without the new functions yet (the database is updated first) falls back to the former call
       const signer = { p_signer_name: signerName.trim(), p_signer_company: isBusinessCustomer ? (signerCompany.trim() || null) : null,
         p_signer_role: isBusinessCustomer ? (signerRole.trim() || null) : null };
-      // Owner console 2026-11-08 ("כל עוד הלקוח לא חתם ... כל שינוי ... משתקף אצל הלקוח"): the customer signs exactly the version this
-      // page shows - a change saved since it loaded is refused ("Quote updated") and the page reloads the updated quote
-      const version = typeof quoteData.version === 'string' && /^[0-9a-f]{64}$/.test(quoteData.version) ? quoteData.version : null;
-      let { error } = version
-        ? (capabilityToken
-          ? await supabase.rpc('public_sign_quote_capability_version', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl, ...signer, p_expected_version: version })
-          : await supabase.rpc('public_sign_quote_version', { p_quote_id: quote.id, p_signature_data_url: signatureDataUrl, ...signer, p_expected_version: version }))
-        : (capabilityToken
-          ? await supabase.rpc('public_approve_quote_capability_signed', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl, ...signer })
-          : await supabase.rpc('public_approve_quote_signed', { p_quote_id: quote.id, p_signature_data_url: signatureDataUrl, ...signer }));
+      let { error } = capabilityToken
+        ? await supabase.rpc('public_approve_quote_capability_signed', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl, ...signer })
+        : await supabase.rpc('public_approve_quote_signed', { p_quote_id: quote.id, p_signature_data_url: signatureDataUrl, ...signer });
       if (error && (error.code === 'PGRST202' || /could not find the function/i.test(String(error.message || '')))) {
         ({ error } = capabilityToken
           ? await supabase.rpc('public_approve_quote_capability', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl })
@@ -431,8 +417,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
       // ההצעה הזו (public_approve_quote, 20260909000000) - חשבון עסקי אחר
       // מותר לו לחתום כלקוח לגיטימי.
       console.error('Error approving quote:', err);
-      const { category, userMessage } = classifyQuoteApprovalError(err?.message, true);
-      if (category === 'quote_updated' && typeof onQuoteChanged === 'function') { onQuoteChanged(); return; } // the notice comes with the reload
+      const { userMessage } = classifyQuoteApprovalError(err?.message, true);
       setApproveToast({ type: 'error', message: userMessage });
     }
   };
@@ -1276,7 +1261,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
           />
         )}
       </div>
-      <Toast toast={approveToast} onDismiss={() => setApproveToast(null)} isHebrew={true} durationMs={approveToast?.durationMs ?? 4000} />
+      <Toast toast={approveToast} onDismiss={() => setApproveToast(null)} isHebrew={true} />
     </div>
   );
 }
