@@ -161,7 +161,7 @@ serve(async (req) => {
     selectedQuoteRequested = true;
     const richSelect = `
       id, user_id, quote_number, project_name, status, signature, currency, subtotal, tax_rate, total, created_at, valid_until,
-      quote_sections ( id, name ),
+      quote_sections ( id, name, repeat_count ),
       quote_items ( description, quantity, unit_price, total_price, pricing_unit, calculation_method, quantity_source, calculated_quantity, specification, section_id, quote_item_measurements ( width, height, unit, calculated_area, label ) )
     `;
     const flatSelect = `
@@ -175,7 +175,7 @@ serve(async (req) => {
     ({ data: quoteRow, error: quoteErr } = await adminClient.from('quotes').select(richSelect).eq('id', selectedQuoteId).maybeSingle());
     if (quoteErr) {
       const msg = String(quoteErr?.message || '');
-      const isMissingStructuredField = ['project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'quote_item_measurements', 'created_at', 'valid_until']
+      const isMissingStructuredField = ['repeat_count', 'project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'quote_item_measurements', 'created_at', 'valid_until']
         .some((col) => msg.includes(col));
       if (isMissingStructuredField) {
         ({ data: quoteRow, error: quoteErr } = await adminClient.from('quotes').select(flatSelect).eq('id', selectedQuoteId).maybeSingle());

@@ -182,7 +182,8 @@ export function rendererFromSnapshot(snapshot: unknown, bound: BoundArtifact,
     business: iss ? { business_name: iss.business_name, logo_url: iss.issuerProjection === 'issuer/v2' ? null : iss.logo_url, tax_id: iss.tax_id, email: iss.email, phone: iss.phone,
       address: iss.address, currency: iss.currency } : null,
     client: c ? { company_name: c.company_name, email: c.email, phone: c.phone, address: c.address } : null,
-    sections: arr(doc.sections).slice().sort(sortBy).map((s) => ({ id: s.id, name: s.name })),
+    // Owner console 2026-11-08 (stage 3 of the one quote builder): the frozen document carries repeat_count only above 1 - passed through as is
+    sections: arr(doc.sections).slice().sort(sortBy).map((s) => ({ id: s.id, name: s.name, ...(Number.isInteger(s.repeat_count) && (s.repeat_count as number) > 1 ? { repeat_count: s.repeat_count as number } : {}) })),
     items: arr(doc.items).slice().sort(sortBy).map((i) => ({
       description: i.description, quantity: i.quantity, price: i.unit_price, total_price: i.total_price,
       ...(i.price_missing === true ? { price_missing: true } : {}), // Task 35 (F4): from the issued deal document, only when true

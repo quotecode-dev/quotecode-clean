@@ -346,10 +346,15 @@ describe('QuoteForm - Divided quote unit board (Locked Decision 3/4/5/6/10)', ()
       calculated_quantity: 2, measurements: [{ id: 'm1', width: 1, height: 2, unit: 'm', calculated_area: 2, label: '', is_pricing_driving: true }] });
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 30' }, { key: 'sec2', name: 'Apartment 40' }], items: [window1], setItems, setSections })} />);
     fireEvent.click(screen.getAllByTestId('unit-duplicate')[0]);
-    const secs = setSections.mock.calls[0][0]([{ key: 'sec1', name: 'Apartment 30', sort_order: 0 }, { key: 'sec2', name: 'Apartment 40', sort_order: 1 }]);
-    expect(secs.map((s) => [s.name, s.sort_order])).toEqual([['Apartment 30', 0], ['Apartment 30 - copy', 1], ['Apartment 40', 2]]);
-    const copies = setItems.mock.calls[0][0]([window1]).slice(1);
+    // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17 / L-24..L-28): the copy counts 1, and the source row and its copy share one price link
+    const secs = setSections.mock.calls[0][0];
+    expect(secs.map((s) => [s.name, s.sort_order, s.repeat_count])).toEqual([['Apartment 30', 0, 1], ['Apartment 30 - copy', 1, 1], ['Apartment 40', 2, undefined]]);
+    const all = setItems.mock.calls[0][0];
+    const copies = all.slice(1);
     expect(copies).toHaveLength(1);
+    expect(all[0].price_link_id).toMatch(/^[0-9a-f-]{36}$/);
+    expect(copies[0].price_link_id).toBe(all[0].price_link_id);
+    expect(all[0]).toMatchObject({ id: 'db1', unit_price: '100' });
     expect(copies[0].id).toBeUndefined();
     expect(copies[0].section_key).toBe(secs[1].key);
     expect(copies[0].measurements[0]).toEqual({ width: 1, height: 2, unit: 'm', calculated_area: 2, label: '', is_pricing_driving: true });
@@ -610,5 +615,57 @@ describe('QuoteForm - the validity date order follows the account market', () =>
   ])('%s', (_label, props, shown) => {
     render(<QuoteForm {...baseProps({ ...props, validUntil: '2026-11-05' })} />);
     expect(field()?.value).toBe(shown);
+  });
+});
+
+// Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17): the unit menu - identical unit count and
+// "separate one copy" (with undo), on the real QuoteForm with live items / sections state
+import { useState as useStateS3 } from 'react';
+describe('QuoteForm - identical units (stage 3)', () => {
+  const tiles = (o = {}) => makeItem({ id: 'db1', description: 'Tiles', unit_price: '100', quantity: '1', section_key: 'sec1', ...o });
+  let state = null;
+  function Live({ initialSections, initialItems }) {
+    const [items, setItems] = useStateS3(initialItems);
+    const [sections, setSections] = useStateS3(initialSections);
+    state = { items, sections };
+    return <QuoteForm {...baseProps({ quoteStructureMode: 'divided', items, setItems, sections, setSections })} />;
+  }
+  it('the count: a whole number 1..999 with one confirm; the header shows "× N", the per-copy line and the total of all copies', () => {
+    render(<Live initialSections={[{ key: 'sec1', name: 'Type A', sort_order: 0 }]} initialItems={[tiles()]} />);
+    fireEvent.click(screen.getByTestId('unit-menu'));
+    fireEvent.click(screen.getByTestId('unit-repeat-open'));
+    const input = screen.getByTestId('unit-repeat-input');
+    for (const bad of ['0', '1000', '1.5', '']) {
+      fireEvent.change(input, { target: { value: bad } });
+      expect(screen.getByTestId('unit-repeat-confirm')).toBeDisabled();
+    }
+    fireEvent.change(input, { target: { value: '12' } });
+    fireEvent.click(screen.getByTestId('unit-repeat-confirm'));
+    expect(state.sections[0].repeat_count).toBe(12);
+    expect(screen.getByTestId('unit-repeat-badge').textContent).toBe('× 12');
+    expect(screen.getByTestId('unit-total').textContent).toBe('$1200.00');
+    expect(screen.getByTestId('unit-per-copy').textContent).toMatch(/\$100\.00 per unit × 12 = \$1200\.00/);
+    expect(screen.getByTestId('unit-per-copy').textContent).toContain('The rows here are for one unit');
+  });
+  it('at 1 nothing new is shown (no badge, no per-copy line)', () => {
+    render(<Live initialSections={[{ key: 'sec1', name: 'Type A', sort_order: 0 }]} initialItems={[tiles()]} />);
+    expect(screen.queryByTestId('unit-repeat-badge')).toBeNull();
+    expect(screen.queryByTestId('unit-per-copy')).toBeNull();
+    fireEvent.click(screen.getByTestId('unit-menu'));
+    expect(screen.queryByTestId('unit-separate')).toBeNull();
+  });
+  it('"separate one copy": the source counts one less, one linked copy right after it; no amount changes; undo restores all', () => {
+    render(<Live initialSections={[{ key: 'sec1', name: 'Type A', sort_order: 0, repeat_count: 3 }, { key: 'sec2', name: 'Shop', sort_order: 1 }]} initialItems={[tiles()]} />);
+    fireEvent.click(screen.getAllByTestId('unit-menu')[0]);
+    fireEvent.click(screen.getByTestId('unit-separate'));
+    expect(state.sections.map((s) => [s.name, s.repeat_count])).toEqual([['Type A', 2], ['Type A - copy', 1], ['Shop', undefined]]);
+    expect(state.items).toHaveLength(2);
+    expect(state.items[0]).toMatchObject({ id: 'db1', unit_price: '100', section_key: 'sec1' });
+    expect(state.items[1].id).toBeUndefined();
+    expect(state.items[1].section_key).toBe(state.sections[1].key);
+    expect(state.items[1].price_link_id).toBe(state.items[0].price_link_id);
+    fireEvent.click(screen.getByText('Undo'));
+    expect(state.sections.map((s) => [s.name, s.repeat_count])).toEqual([['Type A', 3], ['Shop', undefined]]);
+    expect(state.items).toEqual([tiles()]);
   });
 });

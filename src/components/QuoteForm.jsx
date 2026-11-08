@@ -3,15 +3,16 @@ import { businessDial, joinPhone } from '../utils/phoneDial';
 import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
 import QuoteRowsEditor from './QuoteRowsEditor';
-import { blankRowItem } from '../utils/quoteItemEntry';
-import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Plus, CopyPlus, ChevronDown, Pencil, RotateCcw, FileText, Building2, LayoutList, ArrowLeft, ArrowRight } from 'lucide-react';
+import { blankRowItem, rowEntry } from '../utils/quoteItemEntry';
+import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Plus, CopyPlus, ChevronDown, Pencil, RotateCcw, FileText, Building2, LayoutList, ArrowLeft, ArrowRight, MoreVertical } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import { APP as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import QuotePresentationPanel from './quotePresentation/QuotePresentationPanel';
 import { calculateQuoteFinancials } from '../utils/regionConfig';
 import { formatMoneyForCurrency } from '../utils/money';
 import { formatQuoteFallback } from '../utils/quoteNumber';
-import { isProfessionalItem, withActiveQuantities, groupItemsBySection } from '../utils/professionalQuoteItem';
+import { isProfessionalItem, withActiveQuantities, groupItemsBySection, normalizeRepeatCount, MAX_REPEAT_COUNT } from '../utils/professionalQuoteItem';
+import { newUuid } from '../utils/quoteSaveOrchestrator';
 import { computeItemWizardState } from '../utils/quoteWorkflowContext';
 import { isUntouchedPlaceholderItem } from '../utils/structuredQuoteItemPersistence';
 import { isUnfinishedQuoteForm } from '../utils/quoteCompleteness';
@@ -312,6 +313,13 @@ export default function QuoteForm({
     const unitItems = indices.map(i => items[i]);
     return calculateQuoteFinancials({ items: withActiveQuantities(unitItems), discount: 0 }).enteredSubtotal;
   };
+  // Owner console 2026-11-08 (stage 3, decision 4): a unit of N identical copies - the rows describe ONE copy, the unit total is computed
+  // from the stored quantities and prices x N (never a rounded per-copy amount multiplied)
+  const computeUnitTotal = (indices, n) => {
+    const unitItems = withActiveQuantities(indices.map(i => items[i])).map((it) => ({ ...it, quantity: Number(it.quantity || 0) * n }));
+    return calculateQuoteFinancials({ items: unitItems, discount: 0 }).enteredSubtotal;
+  };
+  const setUnitRepeat = (sectionKey, n) => setSections((prev) => prev.map((s) => (s.key === sectionKey ? { ...s, repeat_count: normalizeRepeatCount(n) } : s)));
 
   // חוק ברזל (Decision 8 - "change quote structure without data loss"):
   // Regular -> Divided לעולם לא נדרש למחוק/להמציא נתונים - בכל פריט קיים
@@ -323,26 +331,67 @@ export default function QuoteForm({
   const handleSwitchToDivided = () => setQuoteStructureMode('divided');
 
   // PRODUCT_TRUTH_CAPABILITY: professional_reuse
-  const duplicateUnit = (section) => {
-    const lines = items.filter((it) => it.section_key === section.key && !isUntouchedPlaceholderItem(it));
-    if (lines.some((it) => !canDuplicateRow(it))) { setShowUpgradeConfirm('reuse'); return; }
+  // Owner console 2026-11-08 (stage 3, decisions 4 + 5): ONE copy of a unit right after it (count 1, new rows, no saved ids); every source
+  // row and its copy share one price-link id (a row already linked keeps its group). sourceCount: the source unit's count afterwards.
+  // An edited row keeps its key (typed entry, focus) when its object is replaced.
+  const buildUnitCopy = (section, sourceCount) => {
     const key = `tmp_section_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    const name = section.name ? (isHebrew ? `${section.name} - עותק` : `${section.name} - copy`) : '';
-    setSections((prev) => {
-      const ordered = prev.slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-      const at = ordered.findIndex((s) => s.key === section.key);
-      const next = [...ordered.slice(0, at + 1), { key, name, sort_order: 0 }, ...ordered.slice(at + 1)];
-      return next.map((s, i) => ({ ...s, sort_order: i }));
-    });
-    const copies = lines.map((it) => {
-      const c = { ...it, section_key: key };
+    const name = section.name ? (isHebrew ? `${section.name} - עותק` : `${section.name} - copy`) : (isHebrew ? 'עותק' : 'Copy');
+    const ordered = sections.slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+    const at = ordered.findIndex((s) => s.key === section.key);
+    const nextSections = [
+      ...ordered.slice(0, at + 1).map((s) => (s.key === section.key ? { ...s, repeat_count: normalizeRepeatCount(sourceCount) } : s)),
+      { key, name, sort_order: 0, repeat_count: 1 },
+      ...ordered.slice(at + 1),
+    ].map((s, i) => ({ ...s, sort_order: i }));
+    const keys = rowKeys.current.map;
+    const copies = [];
+    const nextItems = items.map((it) => {
+      if (it.section_key !== section.key || isUntouchedPlaceholderItem(it)) return it;
+      const link = it.price_link_id || newUuid();
+      const c = { ...it, section_key: key, price_link_id: link };
+      // a saved "1, no unit" line reads as a fixed amount; its copy (no id yet) keeps the very same billing choice on screen
+      const billing = rowEntry(it, isLocalIsraeliBusiness === false).pricingMethod;
+      if (billing === 'fixed' || billing === 'units') c._billing = billing;
       delete c.id;
       if (Array.isArray(it.measurements)) c.measurements = it.measurements.map((m) => { const x = { ...m }; delete x.id; return x; });
       if (Array.isArray(it.specification)) c.specification = it.specification.map((r) => ({ ...r }));
-      return c;
+      copies.push(c);
+      if (it.price_link_id) return it;
+      const linked = { ...it, price_link_id: link };
+      if (keys.has(it)) keys.set(linked, keys.get(it));
+      return linked;
     });
-    setItems((prev) => [...prev, ...copies]);
+    return { key, nextSections, nextItems: [...nextItems, ...copies] };
+  };
+  const duplicateUnit = (section) => {
+    const lines = items.filter((it) => it.section_key === section.key && !isUntouchedPlaceholderItem(it));
+    if (lines.some((it) => !canDuplicateRow(it))) { setShowUpgradeConfirm('reuse'); return; }
+    const { key, nextSections, nextItems } = buildUnitCopy(section, normalizeRepeatCount(section.repeat_count));
+    setSections(nextSections);
+    setItems(nextItems);
     setNewUnitKey(key);
+  };
+  // "separate one copy" (N > 1): the source counts one less, one copy of it stands alone right after it - no amount or size changes;
+  // undo restores the whole action until the next change
+  const [unitUndo, setUnitUndo] = useState(null);
+  const separateOneCopy = (section) => {
+    const n = normalizeRepeatCount(section.repeat_count);
+    if (n < 2) return;
+    const lines = items.filter((it) => it.section_key === section.key && !isUntouchedPlaceholderItem(it));
+    if (lines.some((it) => !canDuplicateRow(it))) { setShowUpgradeConfirm('reuse'); return; }
+    const { key, nextSections, nextItems } = buildUnitCopy(section, n - 1);
+    setUnitUndo({ prevItems: items, prevSections: sections, nextItems, nextSections, name: section.name || '' });
+    setSections(nextSections);
+    setItems(nextItems);
+    setNewUnitKey(key);
+  };
+  const unitUndoLive = unitUndo && unitUndo.nextItems === items && unitUndo.nextSections === sections;
+  const undoSeparate = () => {
+    if (!unitUndoLive) return;
+    setSections(unitUndo.prevSections);
+    setItems(unitUndo.prevItems);
+    setUnitUndo(null);
   };
 
   // Divided -> Regular: תמיד בטוח (איחוד לרשימה שטוחה אחת, אף פריט/סכום
@@ -914,6 +963,15 @@ export default function QuoteForm({
         )}
         {structureMode === 'divided' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
+            {unitUndoLive && (
+              <div role="status" data-testid="unit-separate-undo" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '0.8rem', color: NEON.textSecondary }}>
+                <span>{isHebrew ? <>עותק אחד הופרד מהיחידה <bdi>{unitUndo.name}</bdi></> : <>One copy separated from <bdi>{unitUndo.name || 'the unit'}</bdi></>}</span>
+                {/* PRODUCT_TRUTH_DECORATIVE: undo "separate one copy" (stage 3) - the unit count and the rows return as they were */}
+                <button type="button" onClick={undoSeparate} style={{ minHeight: '40px', padding: '0 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
+                  {isHebrew ? 'ביטול' : 'Undo'}
+                </button>
+              </div>
+            )}
             {unitItemIndices.map(({ section, indices }) => (
               <UnitCard
                 key={section.key}
@@ -924,6 +982,10 @@ export default function QuoteForm({
                 itemCount={indices.filter(isRealLine).length}
                 rowCount={indices.length}
                 subtotal={computeUnitSubtotal(indices)}
+                repeatCount={normalizeRepeatCount(section.repeat_count)}
+                unitTotal={computeUnitTotal(indices, normalizeRepeatCount(section.repeat_count))}
+                onSetRepeat={(n) => setUnitRepeat(section.key, n)}
+                onSeparate={() => separateOneCopy(section)}
                 collapsed={collapsedUnitKeys.has(section.key)}
                 onToggleCollapse={() => toggleUnitCollapsed(section.key)}
                 onRename={(name) => renameSection(section.key, name)}
@@ -1462,8 +1524,30 @@ export default function QuoteForm({
 function UnitCard({
   isHebrew, sym, formatMoneyDisplay, section, itemCount, subtotal, collapsed,
   onToggleCollapse, onRename, onRemove, onAddItem, onDuplicate = null, isUnassigned, children, focusName = false, rowCount = null,
+  repeatCount = 1, unitTotal = null, onSetRepeat = null, onSeparate = null,
 }) {
   const unitLabel = section.name || (isHebrew ? 'יחידה זו' : 'this unit');
+  // Owner console 2026-11-08 (stage 3, decision 4): the unit menu - identical unit count (a whole number 1..999, one confirm) and
+  // "separate one copy"; the header shows "× N" and the total of all copies
+  const [menu, setMenu] = useState(false);
+  const [countDraft, setCountDraft] = useState(null);
+  const menuBtnRef = useRef(null);
+  const countRef = useRef(null);
+  useEffect(() => {
+    if (!menu) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') { setMenu(false); menuBtnRef.current?.focus(); } };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [menu]);
+  useEffect(() => { if (countDraft != null) countRef.current?.focus(); }, [countDraft != null]); // eslint-disable-line react-hooks/exhaustive-deps
+  const countText = String(countDraft ?? '').trim();
+  const countValid = /^\d+$/.test(countText) && Number(countText) >= 1 && Number(countText) <= MAX_REPEAT_COUNT;
+  const confirmCount = () => { if (!countValid) return; onSetRepeat?.(Number(countText)); setCountDraft(null); };
+  const multi = repeatCount > 1;
+  const shownTotal = multi && unitTotal != null ? unitTotal : subtotal;
+  // the equation is shown only when it is exact in the displayed cents
+  const exact = multi && unitTotal != null && Math.round(Number(subtotal) * 100) * repeatCount === Math.round(Number(unitTotal) * 100);
+  const unitMenuBtn = { display: 'block', width: '100%', textAlign: 'start', padding: '8px 10px', minHeight: '40px', background: 'none', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.84rem', color: NEON.textPrimary };
   return (
     <div style={{ border: `1px solid ${isUnassigned ? NEON.borderStrong : NEON.violetLight}`, borderRadius: '12px', background: NEON.bgCardAlt, overflow: 'visible' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '10px 12px', flexDirection: 'row' }}>
@@ -1487,6 +1571,12 @@ function UnitCard({
           />
         )}
 
+        {multi && (
+          <span data-testid="unit-repeat-badge" style={{ fontSize: '0.85rem', fontWeight: 800, color: NEON.textPrimary, whiteSpace: 'nowrap', padding: '2px 8px', borderRadius: '999px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}` }}>
+            × <bdi dir="ltr" className="pf-num">{repeatCount}</bdi>
+          </span>
+        )}
+
         {/* חוק ברזל (Decision 4 - "even when collapsed, the user must be
             able to see at minimum: item count; unit subtotal; whether it
             is empty"): גלוי תמיד בשורת-הכותרת עצמה, לא רק במצב-מורחב. */}
@@ -1497,7 +1587,31 @@ function UnitCard({
         </span>
 
         {itemCount > 0 && (
-          <span className="pf-money" style={{ fontSize: '0.85rem', fontWeight: 800, color: NEON.violet, whiteSpace: 'nowrap' }}>{sym}{formatMoneyDisplay(subtotal)}</span>
+          <bdi dir="ltr" className="pf-money" data-testid="unit-total" style={{ fontSize: '0.85rem', fontWeight: 800, color: NEON.violet, whiteSpace: 'nowrap' }}>{sym}{formatMoneyDisplay(shownTotal)}</bdi>
+        )}
+
+        {!isUnassigned && onSetRepeat && (
+          <div style={{ position: 'relative' }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: the unit menu (stage 3) - identical unit count and "separate one copy" */}
+            <button ref={menuBtnRef} type="button" aria-label={isHebrew ? 'פעולות ליחידה' : 'Unit actions'} aria-haspopup="menu" aria-expanded={menu} data-testid="unit-menu" onClick={() => setMenu((v) => !v)}
+              style={{ background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', cursor: 'pointer', color: NEON.textSecondary, width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <MoreVertical size={16} aria-hidden="true" />
+            </button>
+            {menu && (
+              <div role="menu" style={{ position: 'absolute', insetInlineEnd: 0, top: '100%', zIndex: 30, marginTop: '4px', minWidth: '200px', background: NEON.bgCard, border: `1px solid ${NEON.border}`, borderRadius: '10px', boxShadow: '0 12px 28px -10px rgba(15,23,42,0.35)', padding: '4px' }}>
+                {/* PRODUCT_TRUTH_DECORATIVE: unit menu (stage 3) - opens the identical unit count of this unit */}
+                <button type="button" role="menuitem" data-testid="unit-repeat-open" onClick={() => { setMenu(false); setCountDraft(String(repeatCount)); }} style={unitMenuBtn}>
+                  {isHebrew ? 'מספר יחידות זהות' : 'Identical unit count'}
+                </button>
+                {multi && (
+                  // PRODUCT_TRUTH_DECORATIVE: unit menu (stage 3) - separates one copy of a unit of N identical copies
+                  <button type="button" role="menuitem" data-testid="unit-separate" onClick={() => { setMenu(false); onSeparate?.(); }} style={unitMenuBtn}>
+                    {isHebrew ? 'הפרדת עותק אחד' : 'Separate one copy'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
         )}
 
         {/* PRODUCT_TRUTH_DECORATIVE: 'X' on a unit card that triggers the remove-unit confirmation flow, covered by the same non-destructive dialog as the unit-removal controls above */}
@@ -1513,6 +1627,45 @@ function UnitCard({
           visible even collapsed): כפתור-ההוספה נשאר גלוי גם כשמכווץ, לא רק
           בגוף-המורחב - הקשר-היחידה כבר ידוע (הצטרפות אוטומטית לאשף, ר'
           defaultSectionKey/wizardSectionKey ב-QuoteForm.jsx). */}
+      {countDraft != null && (
+        <div role="group" aria-label={isHebrew ? 'מספר יחידות זהות' : 'Identical unit count'} data-testid="unit-repeat-editor" style={{ padding: '0 12px 10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', fontWeight: 700, color: NEON.textPrimary }}>
+            {isHebrew ? 'מספר יחידות זהות' : 'Identical unit count'}
+            <input ref={countRef} type="text" inputMode="numeric" dir="ltr" className="pf-num" value={countDraft} data-testid="unit-repeat-input" aria-invalid={countText !== '' && !countValid}
+              onChange={(e) => setCountDraft(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirmCount(); } if (e.key === 'Escape') setCountDraft(null); }}
+              style={{ width: '72px', minHeight: '40px', padding: '0 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.86rem', textAlign: 'center' }} />
+          </label>
+          {/* PRODUCT_TRUTH_DECORATIVE: confirms the identical unit count (stage 3) */}
+          <button type="button" data-testid="unit-repeat-confirm" disabled={!countValid} onClick={confirmCount} style={{ minHeight: '40px', padding: '0 14px', border: 'none', borderRadius: '8px', background: countValid ? NEON.violet : NEON.borderStrong, color: '#fff', fontSize: '0.8rem', fontWeight: 700, cursor: countValid ? 'pointer' : 'not-allowed' }}>
+            {isHebrew ? 'אישור' : 'Confirm'}
+          </button>
+          {/* PRODUCT_TRUTH_DECORATIVE: closes the identical unit count without a change */}
+          <button type="button" onClick={() => setCountDraft(null)} style={{ minHeight: '40px', padding: '0 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: 'none', color: NEON.textPrimary, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
+            {isHebrew ? 'ביטול' : 'Cancel'}
+          </button>
+          {countText !== '' && !countValid && (
+            <span role="alert" style={{ flexBasis: '100%', fontSize: '0.72rem', fontWeight: 700, color: NEON.red }}>
+              {isHebrew ? `מספר שלם בין 1 ל-${MAX_REPEAT_COUNT}` : `A whole number from 1 to ${MAX_REPEAT_COUNT}`}
+            </span>
+          )}
+        </div>
+      )}
+
+      {multi && itemCount > 0 && (
+        <div data-testid="unit-per-copy" style={{ padding: '0 12px 10px', display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.78rem', color: NEON.textSecondary }}>
+          <span>
+            {exact ? (isHebrew
+              ? <><bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> לכל יחידה <span style={{ whiteSpace: 'nowrap' }}>× <bdi dir="ltr" className="pf-num">{repeatCount}</bdi></span> = <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>
+              : <><bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> per unit <bdi dir="ltr" className="pf-num" style={{ whiteSpace: 'nowrap' }}>× {repeatCount}</bdi> = <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>)
+              : (isHebrew
+              ? <>לכל יחידה <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> · <bdi dir="ltr" className="pf-num">{repeatCount}</bdi> יחידות: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>
+              : <>Per unit <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> · <bdi dir="ltr" className="pf-num">{repeatCount}</bdi> units: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>)}
+          </span>
+          <span>{isHebrew ? 'השורות כאן הן ליחידה אחת' : 'The rows here are for one unit'}</span>
+        </div>
+      )}
+
       <div style={{ padding: '0 12px 10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {/* PRODUCT_TRUTH_DECORATIVE: 'Add row to <unit>' button inside a unit card; adds a blank row in this unit (the one quote builder's rows) */}
         <button type="button" onClick={onAddItem} data-testid="unit-add-row" style={{ flex: '1 1 200px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, minHeight: '40px' }}>

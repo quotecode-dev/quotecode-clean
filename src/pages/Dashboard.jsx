@@ -56,7 +56,7 @@ import { quoteMatchesSearch } from '../utils/quoteSearch';
 import { formatMoney, formatMoneyForCurrency, totalsByQuoteCurrency, normalizeQuoteCurrency } from '../utils/money';
 import { CurrencyTotals } from '../components/NumericValue';
 import { compareClients } from '../utils/clientSort';
-import { withActiveQuantities, getActiveQuantity, sumMeasurementAreas, getEntryRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows, withPersistableQuantity } from '../utils/professionalQuoteItem';
+import { withWeightedActiveQuantities, normalizeRepeatCount, getActiveQuantity, sumMeasurementAreas, getEntryRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows, withPersistableQuantity } from '../utils/professionalQuoteItem';
 import { excludeUntouchedPlaceholderItems } from '../utils/structuredQuoteItemPersistence';
 import { getBusinessProfileGateMessage, getMissingBusinessProfileFields } from '../utils/businessProfileCompleteness';
 import { getDashboardNavCapabilities } from '../utils/dashboardNavCapabilities';
@@ -3006,6 +3006,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       const original = prev[index];
       const copy = { ...original, measurements: (original.measurements || []).map(m => ({ ...m })) };
       delete copy.id;
+      delete copy.price_link_id; // stage 3: a manual copy starts with its own price
       copy.measurements.forEach(m => delete m.id);
       const next = [...prev];
       next.splice(index + 1, 0, copy);
@@ -3032,6 +3033,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
         };
       }
       const next = { ...it, pricing_unit: unitId };
+      if (unitId !== (it.pricing_unit || null)) delete next.price_link_id; // stage 3: another billing basis leaves the shared-price group
       // חוק ברזל (§168 - real calculation-method framework, 30.B/30.E):
       // isMeasurableUnit/resolveCalculationMethod מחליפים את הבדיקה
       // הבודדת-לקבוע-אחד הקודמת (unitId === MEASURABLE_UNIT_ID) - יחידה
@@ -3566,11 +3568,12 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     // IRON-ILS-001 (2026-10-23): a shekel quote's agorot after the discount go to the discount (the quote's own currency when editing)
     currency: editingOriginalQuote ? editingOriginalQuote.currency : (isLocalIsraeliBusiness ? 'ILS' : currency),
     clientType,
-    items: withActiveQuantities(items),
+    // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17): each row weighted by its unit's identical-copy count
+    items: withWeightedActiveQuantities(items, sections),
     discount,
     taxRateOverride: previewTaxRateOverride,
   }, editingOriginalQuote && !isFinancialChange({ items: excludeUntouchedPlaceholderItems(items), discount, clientType, savedItems: editingOriginalQuote.quote_items || [], savedDiscount: editingOriginalQuote.discount,
-    savedClientType: editingOriginalQuote.client_type }).changed ? editingOriginalQuote.total : undefined, { editing: true });
+    savedClientType: editingOriginalQuote.client_type, sections, savedSections: editingOriginalQuote.quote_sections || [] }).changed ? editingOriginalQuote.total : undefined, { editing: true });
 
   const subtotal = previewFinancials.enteredSubtotal;
   const discountAmount = previewFinancials.discountAmount;
@@ -3844,6 +3847,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     // בנפרד ע"י הקורא (מיפוי id-ישן→tempKey-חדש), לא כאן.
     section_key: keepId ? (item.section_id || null) : undefined,
     calculation_method: item.calculation_method || null,
+    // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17): the internal shared-price group (a duplicate maps it to a new id)
+    price_link_id: item.price_link_id || null,
     measurements: (item.quote_item_measurements || [])
       .slice()
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
@@ -3904,7 +3909,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     setSections((quote.quote_sections || [])
       .slice()
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-      .map(s => ({ key: s.id, id: s.id, name: s.name, sort_order: s.sort_order || 0 })));
+      .map(s => ({ key: s.id, id: s.id, name: s.name, sort_order: s.sort_order || 0, repeat_count: normalizeRepeatCount(s.repeat_count) })));
     setQuoteStructureMode(inferStructureModeFromQuote(quote));
     setMeasuredQuoteEntry(false); setShowAiQuoteDraft(false); // Task 21: an existing quote is never a fresh measured / AI entry
 
@@ -4351,9 +4356,11 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     const newSections = oldSections.map((s, idx) => {
       const key = `tmp_section_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 8)}`;
       sectionIdToNewKey.set(s.id, key);
-      return { key, name: s.name, sort_order: idx };
+      return { key, name: s.name, sort_order: idx, repeat_count: normalizeRepeatCount(s.repeat_count) };
     });
     setSections(newSections);
+    // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17): a duplicated quote keeps its unit counts and gets a NEW id for every shared-price group
+    const priceLinkToNew = new Map();
     setQuoteStructureMode(inferStructureModeFromQuote(quote));
     setMeasuredQuoteEntry(false); setShowAiQuoteDraft(false); // Task 21: an existing quote is never a fresh measured / AI entry
 
@@ -4366,6 +4373,10 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         .map(item => {
           const mapped = mapQuoteItemToFormItem(item, { keepId: false });
           mapped.section_key = item.section_id ? (sectionIdToNewKey.get(item.section_id) || null) : null;
+          if (item.price_link_id) {
+            if (!priceLinkToNew.has(item.price_link_id)) priceLinkToNew.set(item.price_link_id, newUuid());
+            mapped.price_link_id = priceLinkToNew.get(item.price_link_id);
+          }
           return mapped;
         }));
     } else {
@@ -4720,10 +4731,17 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         // quote_sections הקיימות בשרת - עד כה מעולם לא נשלף כאן בכלל, כך
         // שלא הייתה שום דרך לדעת אילו יחידות הוסרו-בפועל מול sections
         // הנוכחי ב-state (נדרש כדי למחוק בדיוק את מה שהוסר, לא הכל).
-        const { data: fetchedSections, error: fetchSectionsErr } = await supabase
+        // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17): + repeat_count (forward-only column); before the migration the previous select runs
+        let { data: fetchedSections, error: fetchSectionsErr } = await supabase
           .from('quote_sections')
-          .select('id, name, sort_order')
+          .select('id, name, sort_order, repeat_count')
           .eq('quote_id', editingQuoteId);
+        if (fetchSectionsErr && String(fetchSectionsErr.message || '').includes('repeat_count')) {
+          ({ data: fetchedSections, error: fetchSectionsErr } = await supabase
+            .from('quote_sections')
+            .select('id, name, sort_order')
+            .eq('quote_id', editingQuoteId));
+        }
         if (fetchSectionsErr) {
           saveBlock('QUOTE_SAVE_VERIFY_FAILED', isHebrew
             ? 'לא ניתן היה לאמת את מבנה היחידות הקיים מול השרת. השמירה בוטלה כדי למנוע פגיעה בנתונים.'
@@ -4747,10 +4765,17 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         // בדיוק כמו למטה) לסביבה שעדיין לא עברה migration.
         const richItemCols = 'id, description, quantity, unit_price, total_price, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, sort_order, quote_item_measurements ( width, height, unit, label, is_pricing_driving )';
         // Task 35 (F4): + price_missing (forward-only column); before the migration exists the previous select runs unchanged
+        // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17): + price_link_id (forward-only column), dropped first if the column is not there yet
         let { data: fetchedItems, error: fetchItemsErr } = await supabase
           .from('quote_items')
-          .select(`${richItemCols}, price_missing`)
+          .select(`${richItemCols}, price_missing, price_link_id`)
           .eq('quote_id', editingQuoteId);
+        if (fetchItemsErr && String(fetchItemsErr.message || '').includes('price_link_id')) {
+          ({ data: fetchedItems, error: fetchItemsErr } = await supabase
+            .from('quote_items')
+            .select(`${richItemCols}, price_missing`)
+            .eq('quote_id', editingQuoteId));
+        }
         if (fetchItemsErr && String(fetchItemsErr.message || '').includes('price_missing')) {
           ({ data: fetchedItems, error: fetchItemsErr } = await supabase
             .from('quote_items')
@@ -4820,7 +4845,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         // Owner console 2026-11-08 (stage 2 of the one quote builder, typed incl. L-09): the rows can hold a blank row to type in - it is never
         // saved (excludeUntouchedPlaceholderItems below), so it never makes a save financial or structural either
         const formItems = excludeUntouchedPlaceholderItems(items);
-        const fin = isFinancialChange({ items: formItems, discount, clientType, savedItems: authoritativeItems, savedDiscount: authoritativeQuote.discount, savedClientType: authoritativeQuote.client_type });
+        const fin = isFinancialChange({ items: formItems, discount, clientType, savedItems: authoritativeItems, savedDiscount: authoritativeQuote.discount, savedClientType: authoritativeQuote.client_type,
+          sections, savedSections: authoritativeSections });
         isFinancialEdit = fin.changed;
         effectiveClientType = fin.clientTypeChanged ? normType(clientType) : normType(authoritativeQuote.client_type);
 
@@ -4856,6 +4882,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           specification: normalizeSpecificationRows(it.specification),
           section: it.section_key ?? it.section_id ?? null,
           calculation_method: it.calculation_method || null,
+          price_link_id: it.price_link_id || null, // stage 3: linking / unlinking a row is a saved change
           measurements: (Array.isArray(it.measurements) ? it.measurements : (Array.isArray(it.quote_item_measurements) ? it.quote_item_measurements : []))
             .map(measurementFingerprint).sort(),
         });
@@ -4904,7 +4931,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             country: region,
             currency: curr, // IRON-ILS-001 (2026-10-23): only a financial edit recalculates a saved quote
             clientType: effectiveClientType,
-            items: withActiveQuantities(items),
+            items: withWeightedActiveQuantities(items, sections), // stage 3: each row x its unit's count
             discount,
             taxRateOverride: persistedTaxRate,
           });
@@ -4983,7 +5010,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           country: bizCountry,
           currency: isLocalIsraeliBusiness ? 'ILS' : currency, // the same currency the new quote is saved with
           clientType,
-          items: withActiveQuantities(items),
+          items: withWeightedActiveQuantities(items, sections), // stage 3: each row x its unit's count
           discount,
         });
 
@@ -5074,6 +5101,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         id: s.id || null,
         name: s.name,
         sort_order: s.sort_order != null ? s.sort_order : idx,
+        repeat_count: normalizeRepeatCount(s.repeat_count), // stage 3
       }));
       const authoritativeItemIds = new Set((authoritativeItems || []).map((a) => a.id));
       const itemsPayload = itemsForPersist ? itemsForPersist.map((item, idx) => ({
@@ -5090,6 +5118,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         specification: normalizeSpecificationRows(item.specification),
         calculation_method: item.calculation_method || null,
         sort_order: idx,
+        price_link_id: item.price_link_id || null, // stage 3: the internal shared-price group (null = unlinked)
         measurements: (Array.isArray(item.measurements) ? item.measurements : [])
           .filter((m) => !(m.width === '' && m.height === ''))
           .map((m, mIdx) => ({
@@ -8074,7 +8103,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           : [clientName, clientEmail, clientPhone, clientTaxId, clientAddress, attnName, bizName];
         const payload = listQuote ? twinPayloadFromQuoteRow(listQuote, twinMarket, personal)
           : twinPayloadFromEditor({ market: twinMarket, currency: editingOriginalQuote ? editingOriginalQuote.currency : (isLocalIsraeliBusiness ? 'ILS' : currency),
-            quoteSubject, items, terms, warranty, validUntil, taxRate, clientType, discount, personal,
+            quoteSubject, items, sections, terms, warranty, validUntil, taxRate, clientType, discount, personal,
             financials: { subtotal, discountAmount, netAmount: previewFinancials.netAmount, taxAmount, total: totalAmount } });
         return (
           <CustomerTwinPanel
