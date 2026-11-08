@@ -198,6 +198,55 @@ export function rendererFromSnapshot(snapshot: unknown, bound: BoundArtifact,
   };
 }
 
+// Owner console 2026-11-08 ("כל עוד הלקוח לא חתם ... כל שינוי ... משתקף אצל הלקוח"; migration 20261108400000): a quote signed through
+// the live link is served from the document frozen at its signature (content, business details, files) + the live approval state.
+export interface SignedRecord { document: unknown; business: unknown; attachments: unknown }
+export function rendererFromSignedRecord(rec: SignedRecord, quoteId: string, ownerId: string, live: LiveQuote | null,
+  ctx: { callerUserId: string | null; now: Date }): Record<string, unknown> | null {
+  const doc = rec.document;
+  if (!isObj(doc) || doc.documentProjection !== 'quote-document/v1' || !isObj(doc.quote) || doc.quote.id !== quoteId) return null;
+  const q = doc.quote;
+  const liveOk = live && live.user_id === ownerId ? live : null;
+  const b = isObj(rec.business) ? rec.business : null;
+  const sortBy = (x: Record<string, unknown>, y: Record<string, unknown>) => (Number(x.sort_order) || 0) - (Number(y.sort_order) || 0);
+  const arr = (v: unknown) => (Array.isArray(v) ? v.filter(isObj) : []);
+  const c = isObj(doc.customer) ? doc.customer : null;
+  return {
+    quote: {
+      id: q.id, quote_number: q.quote_number, attn_name: q.attn_name, attn_role: q.attn_role, created_at: q.created_at,
+      valid_until: q.valid_until, tax_rate: q.tax_rate, subtotal: q.subtotal, total: q.total, discount: q.discount, terms: q.terms,
+      warranty: q.warranty, notes: q.notes, subject: q.subject,
+      status: liveOk ? liveOk.status : null, signature: liveOk ? liveOk.signature : null,
+      signer_name: liveOk ? liveOk.signer_name ?? null : null, signer_company: liveOk ? liveOk.signer_company ?? null : null,
+      signer_role: liveOk ? liveOk.signer_role ?? null : null, signed_at: liveOk ? liveOk.signed_at ?? null : null,
+      currency: q.currency, client_type: q.client_type,
+      is_owner_viewing: Boolean(ctx.callerUserId && ctx.callerUserId === ownerId),
+      is_expired: isQuoteAcceptanceExpired(q.valid_until, b?.country, ctx.now),
+      project_name: q.project_name,
+    },
+    business: b ? { business_name: b.business_name, logo_url: b.logo_url, tax_id: b.tax_id, email: b.email, phone: b.phone,
+      address: b.address, currency: b.currency } : null,
+    client: c ? { company_name: c.company_name, email: c.email, phone: c.phone, address: c.address } : null,
+    sections: arr(doc.sections).slice().sort(sortBy).map((s) => ({ id: s.id, name: s.name, ...(Number.isInteger(s.repeat_count) && (s.repeat_count as number) > 1 ? { repeat_count: s.repeat_count as number } : {}) })),
+    items: arr(doc.items).slice().sort(sortBy).map((i) => ({
+      description: i.description, quantity: i.quantity, price: i.unit_price, total_price: i.total_price,
+      ...(i.price_missing === true ? { price_missing: true } : {}),
+      pricing_unit: i.pricing_unit, calculated_quantity: i.calculated_quantity, quantity_source: i.quantity_source,
+      calculation_method: i.calculation_method, specification: Array.isArray(i.specification) ? i.specification : [],
+      section_id: i.section_id,
+      measurements: arr(i.measurements).slice().sort(sortBy).map((m) => ({ width: m.width, height: m.height, unit: m.unit,
+        calculated_area: m.calculated_area, label: m.label, is_pricing_driving: m.is_pricing_driving !== false })),
+    })),
+    attachments: [],
+  };
+}
+/** the files frozen with the signature: { id, file_name, storage_path } entries only */
+export function signedRecordAttachments(rec: SignedRecord): { id: string; file_name: string; storage_path: string }[] {
+  return (Array.isArray(rec.attachments) ? rec.attachments : []).filter((a): a is Record<string, unknown> => isObj(a)
+    && typeof a.id === 'string' && UUID_RE.test(a.id) && typeof a.file_name === 'string' && typeof a.storage_path === 'string')
+    .map((a) => ({ id: a.id as string, file_name: a.file_name as string, storage_path: a.storage_path as string }));
+}
+
 async function serveBound(deps: CapabilityDeps, bound: BoundArtifact, extra: Record<string, unknown>, opts: { thanks: boolean }): Promise<Resp> {
   const v = await readVerifiedSnapshot(bound, deps.readSnapshot);
   if (!v.ok) { deps.onIncident?.(v.reason); return unable(); }   // never a regenerated / mutable document

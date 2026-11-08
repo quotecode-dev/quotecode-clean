@@ -2,7 +2,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { isQuoteAcceptanceExpired } from './validity.ts'
 import { resolvePublicThanks, type ThanksRow } from './thanks.ts'
-import { decideLegacyAccess, outputPhaseOf, parsePublicRequest, serveCapability, serveGrant, UNIFORM_NOT_FOUND, type CapabilityDeps } from './publicAccess.ts'
+import { decideLegacyAccess, outputPhaseOf, parsePublicRequest, rendererFromSignedRecord, serveCapability, serveGrant, signedRecordAttachments, UNIFORM_NOT_FOUND, type CapabilityDeps, type LiveQuote, type SignedRecord } from './publicAccess.ts'
+import { tokenHash } from '../_shared/capabilityToken.ts'
 import { classifyPhaseRead, isMissingFunctionError } from '../_shared/activationPhase.ts'
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -84,6 +85,297 @@ serve(async (req) => {
       if (error) throw error;
       return data ?? null;
     };
+    // Owner console 2026-11-08 (migration 20261108400000): the live saved quote as the customer page shows it - the legacy id read,
+    // now also the read of a capability link until its signature
+    const readLiveBody = async (quoteId: string): Promise<Record<string, unknown> | null> => {
+      // עדכון 2026-08-28 (Quote Number Transition audit): quote_number כבר
+      // קיים בסביבה החיה כעמודה integer NOT NULL (global sequence, לא ה-
+      // migration של המאגר הזה - ר' PROFLOW_TODO.md item 17), כך שה-select
+      // הזה מצליח מבחינה טכנית ברגע שהפונקציה הזו עצמה נפרסת מחדש.
+      //
+      // עדכון 2026-08-31 (Path B - get-public-quote Warranty-only fix):
+      // attn_name/attn_role הוסרו במכוון מה-select ומהתגובה. עמודות אלו
+      // עדיין לא קיימות בסביבה החיה (item 18, migration לא הוחל) - כלילתן
+      // כאן הייתה גורמת ל-select כולו להיכשל על כל בקשה (PostgREST דוחה
+      // עמודה לא קיימת), כלומר מפילה את כל דף ה-Public Quote בשני השווקים.
+      // ההחזרה שלהן תתבצע בפריסה נפרדת לאחר שה-migration של item 18 יוחל
+      // על הסביבה החיה - לא כאן, לא כחלק מהתיקון הממוקד הזה.
+      // חוק ברזל (Smart Quote Guided UX Completion task, Part E - customer-
+      // facing structured display): נסיון-ראשון כולל את שדות/טבלאות ה-
+      // Professional Quotes המובנים (project_name/quote_sections, ו-quote_
+      // items.pricing_unit/calculated_quantity/quantity_source/specification/
+      // section_id + quote_item_measurements) - קיימים היום ב-TEST בלבד (ר'
+      // supabase/migrations/2026090[234]...). PostgREST דוחה select שלם אם
+      // עמודה/יחס כלשהו בו לא קיים (לא רק את החלק החסר) - כך שנסיון-חוזר
+      // ל-select השטוח המקורי, בזיהוי-מדויק של הודעת-שגיאת עמודה/יחס-חסרים
+      // בלבד (לא בליעת שגיאות אחרות), הוא הכרחי כדי שהפונקציה הזו תמשיך
+      // לעבוד ללא שינוי בכל סביבה שעדיין לא קיבלה את אותן migrations (למשל
+      // Production, נכון לתאריך המשימה הזו) - זהה לעיקרון שכבר הוקם ב-
+      // Dashboard.jsx (isMissingAttnColumnError וכו').
+      const richSelect = `
+        id, user_id, created_at, valid_until, tax_rate, subtotal, total,
+        discount, terms, warranty, notes, subject, status, signature, currency, client_type,
+        quote_number, attn_name, attn_role, project_name, signer_name, signer_company, signer_role, signed_at,
+        clients ( user_id, company_name, email, phone, address ),
+        quote_sections ( id, name, sort_order, repeat_count ),
+        quote_items ( description, quantity, unit_price, total_price, price_missing, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, sort_order, quote_item_measurements ( width, height, unit, calculated_area, label, sort_order, is_pricing_driving ) )
+      `;
+      const flatSelect = `
+        id, user_id, created_at, valid_until, tax_rate, subtotal, total,
+        discount, terms, warranty, notes, subject, status, signature, currency, client_type,
+        quote_number, attn_name, attn_role,
+        clients ( user_id, company_name, email, phone, address ),
+        quote_items ( description, quantity, unit_price, total_price )
+      `;
+
+      let quote: any;
+      let quoteErr: any;
+      ({ data: quote, error: quoteErr } = await adminClient
+        .from('quotes')
+        .select(richSelect)
+        .eq('id', quoteId)
+        .maybeSingle());
+
+      const isMissingStructuredFieldError = (err: any) => {
+        const msg = String(err?.message || '');
+        // night task 2026-10-16 (SND-9): price_missing too - the flat select does not read it, so a missing column falls back instead of failing
+        // 2026-10-25 (L-24): the stored signer too - a server before 20261025000000 falls back instead of failing
+        // Owner console 2026-11-08 (stage 3 of the one quote builder): the unit count too (20261108200000)
+        return ['repeat_count', 'signer_name', 'signer_company', 'signer_role', 'signed_at', 'price_missing', 'project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
+          .some((col) => msg.includes(col));
+      };
+
+      if (quoteErr && isMissingStructuredFieldError(quoteErr)) {
+        ({ data: quote, error: quoteErr } = await adminClient
+          .from('quotes')
+          .select(flatSelect)
+          .eq('id', quoteId)
+          .maybeSingle());
+      }
+
+      if (quoteErr) throw quoteErr;
+      if (!quote) return null;
+
+      const { data: bizRow } = await adminClient
+        .from('business_settings')
+        .select('business_name, logo_url, tax_id, email, phone, address, currency, country')
+        .eq('user_id', quote.user_id)
+        .maybeSingle();
+
+      // חוק ברזל (Signature Product/Security Contract Correction, systemic
+      // remediation continuation task, 2026-09-09): public_approve_quote
+      // (20260909000000) now rejects only THIS QUOTE'S OWN OWNER, not any
+      // authenticated business account - the prior broader UI gate
+      // (caller_is_business_account, any business account at all) blocked
+      // legitimate customers who also hold their own TEKANGO business
+      // account, a real product dead-end the Owner directly hit and
+      // reported. is_owner_viewing is the only signal the UI needs now - it
+      // already, correctly, mirrors the RPC's own (corrected) predicate
+      // exactly. Never used to bypass or weaken the RPC's own enforcement -
+      // the RPC remains the sole source of truth for the actual
+      // authorization decision; this flag is advisory-only for the UI.
+      const isOwner = Boolean(callerUserId && callerUserId === quote.user_id);
+
+      // Task 27 (spec §6): the owner's optional thank-you - read ONLY for a quote the server holds as signed; a missing table (migration
+      // 20261011110000 not applied) or any read failure simply means no thank-you (the quote itself is never affected).
+      const thanks = await resolvePublicThanks(quote, quote.user_id, readThanksRow);
+
+      const { data: attachmentRows } = await adminClient
+        .from('quote_attachments')
+        .select('id, file_name, storage_path')
+        .eq('quote_id', quoteId)
+        // Codex review 2026-10-23 R-04: a stable order and each file's own id, so a refreshed link is found by id - never another file that
+        // happens to share the name
+        .order('created_at', { ascending: true })
+        .order('id', { ascending: true });
+
+      const attachments: { id: string; file_name: string; url: string }[] = [];
+      for (const att of attachmentRows || []) {
+        if (!isValidAttachmentPath(att.storage_path, quote.user_id, quoteId)) continue;
+        const { data: signed } = await adminClient
+          .storage.from('quote-files')
+          .createSignedUrl(att.storage_path, SIGNED_URL_EXPIRY_SECONDS);
+        if (signed?.signedUrl) {
+          attachments.push({ id: att.id, file_name: att.file_name, url: signed.signedUrl });
+        }
+      }
+
+      return {
+        quote: {
+          id: quote.id,
+          quote_number: quote.quote_number,
+          attn_name: quote.attn_name,
+          attn_role: quote.attn_role,
+          created_at: quote.created_at,
+          valid_until: quote.valid_until,
+          tax_rate: quote.tax_rate,
+          subtotal: quote.subtotal,
+          total: quote.total,
+          discount: quote.discount,
+          terms: quote.terms,
+          warranty: quote.warranty,
+          notes: quote.notes,
+          subject: quote.subject,
+          status: quote.status,
+          signature: quote.signature,
+          currency: quote.currency,
+          client_type: quote.client_type,
+          is_owner_viewing: isOwner,
+          // OD-1: server truth for "may this quote still be accepted?" (the page falls back to the same rule when absent)
+          // PRODUCT_TRUTH_CAPABILITY: public_quote_sign
+          is_expired: isQuoteAcceptanceExpired(quote.valid_until, bizRow?.country),
+          // חוק ברזל (Part E): undefined כשה-select השטוח-בלבד רץ (עמודה
+          // לא קיימת בסביבה זו) - PublicQuote.jsx/PublicQuoteEn.jsx מתייחסים
+          // ל-undefined בדיוק כמו "אין פרויקט", לא שגיאה.
+          project_name: quote.project_name,
+          // Owner 2026-10-25 (typed L-24): who signed (stored with the signature; undefined on the flat fallback select)
+          signer_name: quote.signer_name, signer_company: quote.signer_company, signer_role: quote.signer_role, signed_at: quote.signed_at,
+        },
+        business: bizRow ? {
+          business_name: bizRow.business_name, logo_url: bizRow.logo_url, tax_id: bizRow.tax_id,
+          email: bizRow.email, phone: bizRow.phone, address: bizRow.address, currency: bizRow.currency,
+        } : null,
+        // Codex release 2a (Owner 2026-10-29, typed: "מאשר שחרור 2א עכשיו: ...", SEC-DB-02): a client of another account is never shown
+        client: quote.clients && quote.clients.user_id === quote.user_id ? {
+          company_name: quote.clients.company_name, email: quote.clients.email,
+          phone: quote.clients.phone, address: quote.clients.address,
+        } : null,
+        // חוק ברזל (Part E): [] כשה-select השטוח-בלבד רץ - זהה-בייט ל"אין
+        // קבוצות" הקיים, לא שדה חסר/undefined.
+        // Owner console 2026-11-08 (stage 3 of the one quote builder): a unit of N identical copies carries repeat_count ONLY when N > 1 (every existing response is unchanged)
+        sections: (quote.quote_sections || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
+          .map((s: any) => ({ id: s.id, name: s.name, ...(Number.isInteger(s.repeat_count) && s.repeat_count > 1 ? { repeat_count: s.repeat_count } : {}) })),
+        items: (quote.quote_items || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0)).map((i: any) => ({
+          description: i.description, quantity: i.quantity, price: i.unit_price, total_price: i.total_price,
+          // Task 35 (F4): the flag only when true - every existing response stays byte-identical
+          ...(i.price_missing === true ? { price_missing: true } : {}),
+          // חוק ברזל (Part E, customer-facing structured display): כל השדות
+          // הבאים undefined/[] עבור פריט שטוח (ללא pricing_unit) - זהה-בייט
+          // לתצוגה השטוחה הקיימת; PublicQuote.jsx/PublicQuoteEn.jsx חייבים
+          // להתייחס להיעדרם כ"פריט רגיל", לא לשגיאה.
+          pricing_unit: i.pricing_unit,
+          calculated_quantity: i.calculated_quantity,
+          quantity_source: i.quantity_source,
+          calculation_method: i.calculation_method,
+          specification: Array.isArray(i.specification) ? i.specification : [],
+          section_id: i.section_id,
+          measurements: (i.quote_item_measurements || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
+            .map((m: any) => ({ width: m.width, height: m.height, unit: m.unit, calculated_area: m.calculated_area, label: m.label, is_pricing_driving: m.is_pricing_driving !== false })),
+        })),
+        attachments,
+        // Subscriptions (allowlisted): the page picks the final PDF / Print path from these, never from a client flag
+        viewerIsOwner: isOwner,
+        outputPhase,
+        thanks,
+      };
+    };
+
+    // the live approval state only (status / signature / owner / who signed)
+    const readLiveQuote = async (id: string): Promise<LiveQuote | null> => {
+      // 20261029000000 (Codex F15): who signed too; a database without the signer columns still answers the approval state
+      const full = await adminClient.from('quotes').select('user_id, status, signature, signer_name, signer_company, signer_role, signed_at').eq('id', id).maybeSingle();
+      if (!full.error) return full.data ?? null;
+      if (!/signer_|signed_at/.test(String((full.error as { message?: string }).message ?? ''))) throw full.error;
+      const { data, error } = await adminClient.from('quotes').select('user_id, status, signature').eq('id', id).maybeSingle();
+      if (error) throw error;
+      return data ?? null;
+    };
+    // Owner console 2026-11-08 ("כל עוד הלקוח לא חתם ... כל שינוי ... משתקף אצל הלקוח"): while the public page is open it asks only for the
+    // current version ({..., version_only: true}) - no content, no view counted - and reloads the quote when the version changed
+    const versionOnly = !!body && typeof body === 'object' && (body as Record<string, unknown>).version_only === true;
+    type LiveState = { ok?: boolean; quoteId?: string; userId?: string; signed?: boolean; version?: string | null; signedDocument?: SignedRecord | null };
+    const liveStateOf = async (quoteId: string): Promise<LiveState | null> => {
+      const { data, error } = await adminClient.rpc('public_quote_live_state', { p_quote_id: quoteId });
+      if (error) { if (isMissingFunctionError(error)) return null; throw new Error('live quote state unavailable'); }
+      return (data ?? null) as LiveState | null;
+    };
+    // a quote signed through the live link: the frozen document + its frozen files (short-lived links) + the live approval state
+    const signedBody = async (st: LiveState): Promise<Record<string, unknown> | null> => {
+      const rec = st.signedDocument as SignedRecord;
+      const out = rendererFromSignedRecord(rec, st.quoteId as string, st.userId as string, await readLiveQuote(st.quoteId as string), { callerUserId, now: new Date() });
+      if (!out) return null;
+      const files: { id: string; file_name: string; url: string }[] = [];
+      for (const a of signedRecordAttachments(rec)) {
+        if (!isValidAttachmentPath(a.storage_path, st.userId as string, st.quoteId as string)) continue;
+        const { data: signed } = await adminClient.storage.from('quote-files').createSignedUrl(a.storage_path, SIGNED_URL_EXPIRY_SECONDS);
+        if (signed?.signedUrl) files.push({ id: a.id, file_name: a.file_name, url: signed.signedUrl });
+      }
+      out.attachments = files;
+      out.thanks = await resolvePublicThanks(out.quote as Record<string, unknown>, st.userId as string, readThanksRow);
+      out.version = st.version ?? null;
+      return out;
+    };
+    // the live saved quote with the version it shows: the version is read before and after the content and must be the same (a save
+    // that landed in between is read again), so the page never signs content other than what it shows
+    const liveBodyWithVersion = async (quoteId: string, first: LiveState): Promise<Record<string, unknown> | null> => {
+      let st = first;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const out = await readLiveBody(quoteId);
+        if (!out) return null;
+        const after = await liveStateOf(quoteId);
+        if (!after || !after.ok) return null;
+        if (after.signedDocument) return await signedBody(after);
+        if (after.version === st.version) { out.version = st.version ?? null; return out; }
+        st = after;
+      }
+      throw new Error('the quote keeps changing');
+    };
+    // the legacy id link
+    const serveLegacy = async (quoteId: string): Promise<Response> => {
+      // Legacy id mode: unchanged while free_issue is not enforced ('absent' = the subscription schema is not applied here).
+      // Enforced: only the verified owner (owner preview, non-consuming) or an is_legacy_public_quote id; everything else gets
+      // the SAME 404 as an unknown id. The same two lookups run for every id before deciding (no enumeration oracle).
+      // Continuation (D): a quote issued through the output authority stays capability-scoped in every phase (rollback-safe).
+      const scopedRes = await adminClient.rpc('is_capability_scoped_quote', { p_quote_id: quoteId });
+      if (scopedRes.error && !isMissingFunctionError(scopedRes.error)) throw new Error('capability scope check unavailable');
+      const capabilityScoped = !scopedRes.error && scopedRes.data === true;
+      if (phase === 'enforced' || capabilityScoped) {
+        const [legacyRes, ownerRes] = await Promise.all([
+          phase === 'enforced' ? adminClient.rpc('is_legacy_public_quote', { p_quote_id: quoteId }) : Promise.resolve({ data: false, error: null }),
+          adminClient.from('quotes').select('user_id').eq('id', quoteId).maybeSingle(),
+        ]);
+        if (legacyRes.error || ownerRes.error) throw new Error('legacy link check unavailable');
+        const decision = decideLegacyAccess({ phase, isLegacy: legacyRes.data, callerUserId, quoteOwnerId: ownerRes.data?.user_id ?? null, capabilityScoped });
+        if (decision !== 'serve') return jsonResponse({ ...UNIFORM_NOT_FOUND.body }, UNIFORM_NOT_FOUND.status);
+      }
+      const st = await liveStateOf(quoteId);
+      if (st && !st.ok) return jsonResponse({ error: 'Quote not found' }, 404);
+      if (versionOnly) return jsonResponse({ version: st?.version ?? null, signed: Boolean(st?.signed) }, 200);
+      if (st?.signedDocument) {
+        // the document frozen at the signature or nothing
+        const sb = await signedBody(st);
+        if (!sb) { console.error('get-public-quote: signed_document_unreadable'); return jsonResponse({ error: 'temporarily_unavailable' }, 503); }
+        return jsonResponse({ ...sb, viewerIsOwner: Boolean(callerUserId && callerUserId === st.userId), outputPhase }, 200);
+      }
+      const b = st ? await liveBodyWithVersion(quoteId, st) : await readLiveBody(quoteId);
+      if (!b) return jsonResponse({ error: 'Quote not found' }, 404);
+      return jsonResponse(b, 200);
+    };
+
+    // Owner console 2026-11-08: a capability link shows the LIVE saved quote until its signature (same owner AND the same customer it was
+    // sent to - public_capability_live), then the document frozen at the signature. A database before 20261108400000, and a quote signed
+    // before it, keep the issued snapshot (serveCapability below).
+    if (request.mode === 'capability') {
+      const hash = await tokenHash(request.token);
+      const liveRes = hash ? await adminClient.rpc('public_capability_live', { p_token_hash: hash }) : { data: { ok: false }, error: null };
+      if (liveRes.error && !isMissingFunctionError(liveRes.error)) throw new Error('live link state unavailable');
+      if (!liveRes.error) {
+        const st = (liveRes.data ?? null) as LiveState | null;
+        if (!st || !st.ok) return jsonResponse({ ...UNIFORM_NOT_FOUND.body }, UNIFORM_NOT_FOUND.status);
+        if (versionOnly) return jsonResponse({ version: st.version ?? null, signed: Boolean(st.signed) }, 200);
+        const extra = { capability: true, viewerIsOwner: false, outputPhase };   // a capability viewer is never the owner path
+        if (st.signedDocument) {
+          // the document frozen at the signature or nothing - never an older issued copy with the live signature on it
+          const sb = await signedBody(st);
+          if (!sb) { console.error('get-public-quote: signed_document_unreadable'); return jsonResponse({ error: 'temporarily_unavailable' }, 503); }
+          return jsonResponse({ ...sb, ...extra }, 200);
+        } else if (!st.signed) {
+          const b = await liveBodyWithVersion(st.quoteId as string, st);
+          if (!b) return jsonResponse({ ...UNIFORM_NOT_FOUND.body }, UNIFORM_NOT_FOUND.status);
+          return jsonResponse({ ...b, ...extra }, 200);
+        }
+      }
+    }
     if (request.mode === 'capability' || request.mode === 'grant') {
       const deps: CapabilityDeps = {
         resolve: async (hash, op) => {
@@ -101,15 +393,7 @@ serve(async (req) => {
           if (error || !data) return null;
           return new Uint8Array(await data.arrayBuffer());
         },
-        readLiveQuote: async (id) => {
-          // 20261029000000 (Codex F15): who signed too; a database without the signer columns still answers the approval state
-          const full = await adminClient.from('quotes').select('user_id, status, signature, signer_name, signer_company, signer_role, signed_at').eq('id', id).maybeSingle();
-          if (!full.error) return full.data ?? null;
-          if (!/signer_|signed_at/.test(String((full.error as { message?: string }).message ?? ''))) throw full.error;
-          const { data, error } = await adminClient.from('quotes').select('user_id, status, signature').eq('id', id).maybeSingle();
-          if (error) throw error;
-          return data ?? null;
-        },
+        readLiveQuote,
         readLogo: async (path) => {
           const { data, error } = await adminClient.storage.from('quote-files').download(path);
           if (error || !data) return null;
@@ -128,205 +412,7 @@ serve(async (req) => {
       const r = request.mode === 'capability' ? await serveCapability(deps, request.token) : await serveGrant(deps, request.grant, request.channel);
       return jsonResponse(r.body, r.status);
     }
-    const quoteId = request.quoteId;
-
-    // Legacy id mode: unchanged while free_issue is not enforced ('absent' = the subscription schema is not applied here).
-    // Enforced: only the verified owner (owner preview, non-consuming) or an is_legacy_public_quote id; everything else gets
-    // the SAME 404 as an unknown id. The same two lookups run for every id before deciding (no enumeration oracle).
-    // Continuation (D): a quote issued through the output authority stays capability-scoped in every phase (rollback-safe).
-    const scopedRes = await adminClient.rpc('is_capability_scoped_quote', { p_quote_id: quoteId });
-    if (scopedRes.error && !isMissingFunctionError(scopedRes.error)) throw new Error('capability scope check unavailable');
-    const capabilityScoped = !scopedRes.error && scopedRes.data === true;
-    if (phase === 'enforced' || capabilityScoped) {
-      const [legacyRes, ownerRes] = await Promise.all([
-        phase === 'enforced' ? adminClient.rpc('is_legacy_public_quote', { p_quote_id: quoteId }) : Promise.resolve({ data: false, error: null }),
-        adminClient.from('quotes').select('user_id').eq('id', quoteId).maybeSingle(),
-      ]);
-      if (legacyRes.error || ownerRes.error) throw new Error('legacy link check unavailable');
-      const decision = decideLegacyAccess({ phase, isLegacy: legacyRes.data, callerUserId, quoteOwnerId: ownerRes.data?.user_id ?? null, capabilityScoped });
-      if (decision !== 'serve') return jsonResponse({ ...UNIFORM_NOT_FOUND.body }, UNIFORM_NOT_FOUND.status);
-    }
-
-    // עדכון 2026-08-28 (Quote Number Transition audit): quote_number כבר
-    // קיים בסביבה החיה כעמודה integer NOT NULL (global sequence, לא ה-
-    // migration של המאגר הזה - ר' PROFLOW_TODO.md item 17), כך שה-select
-    // הזה מצליח מבחינה טכנית ברגע שהפונקציה הזו עצמה נפרסת מחדש.
-    //
-    // עדכון 2026-08-31 (Path B - get-public-quote Warranty-only fix):
-    // attn_name/attn_role הוסרו במכוון מה-select ומהתגובה. עמודות אלו
-    // עדיין לא קיימות בסביבה החיה (item 18, migration לא הוחל) - כלילתן
-    // כאן הייתה גורמת ל-select כולו להיכשל על כל בקשה (PostgREST דוחה
-    // עמודה לא קיימת), כלומר מפילה את כל דף ה-Public Quote בשני השווקים.
-    // ההחזרה שלהן תתבצע בפריסה נפרדת לאחר שה-migration של item 18 יוחל
-    // על הסביבה החיה - לא כאן, לא כחלק מהתיקון הממוקד הזה.
-    // חוק ברזל (Smart Quote Guided UX Completion task, Part E - customer-
-    // facing structured display): נסיון-ראשון כולל את שדות/טבלאות ה-
-    // Professional Quotes המובנים (project_name/quote_sections, ו-quote_
-    // items.pricing_unit/calculated_quantity/quantity_source/specification/
-    // section_id + quote_item_measurements) - קיימים היום ב-TEST בלבד (ר'
-    // supabase/migrations/2026090[234]...). PostgREST דוחה select שלם אם
-    // עמודה/יחס כלשהו בו לא קיים (לא רק את החלק החסר) - כך שנסיון-חוזר
-    // ל-select השטוח המקורי, בזיהוי-מדויק של הודעת-שגיאת עמודה/יחס-חסרים
-    // בלבד (לא בליעת שגיאות אחרות), הוא הכרחי כדי שהפונקציה הזו תמשיך
-    // לעבוד ללא שינוי בכל סביבה שעדיין לא קיבלה את אותן migrations (למשל
-    // Production, נכון לתאריך המשימה הזו) - זהה לעיקרון שכבר הוקם ב-
-    // Dashboard.jsx (isMissingAttnColumnError וכו').
-    const richSelect = `
-      id, user_id, created_at, valid_until, tax_rate, subtotal, total,
-      discount, terms, warranty, notes, subject, status, signature, currency, client_type,
-      quote_number, attn_name, attn_role, project_name, signer_name, signer_company, signer_role, signed_at,
-      clients ( user_id, company_name, email, phone, address ),
-      quote_sections ( id, name, sort_order, repeat_count ),
-      quote_items ( description, quantity, unit_price, total_price, price_missing, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, sort_order, quote_item_measurements ( width, height, unit, calculated_area, label, sort_order, is_pricing_driving ) )
-    `;
-    const flatSelect = `
-      id, user_id, created_at, valid_until, tax_rate, subtotal, total,
-      discount, terms, warranty, notes, subject, status, signature, currency, client_type,
-      quote_number, attn_name, attn_role,
-      clients ( user_id, company_name, email, phone, address ),
-      quote_items ( description, quantity, unit_price, total_price )
-    `;
-
-    let quote: any;
-    let quoteErr: any;
-    ({ data: quote, error: quoteErr } = await adminClient
-      .from('quotes')
-      .select(richSelect)
-      .eq('id', quoteId)
-      .maybeSingle());
-
-    const isMissingStructuredFieldError = (err: any) => {
-      const msg = String(err?.message || '');
-      // night task 2026-10-16 (SND-9): price_missing too - the flat select does not read it, so a missing column falls back instead of failing
-      // 2026-10-25 (L-24): the stored signer too - a server before 20261025000000 falls back instead of failing
-      // Owner console 2026-11-08 (stage 3 of the one quote builder): the unit count too (20261108200000)
-      return ['repeat_count', 'signer_name', 'signer_company', 'signer_role', 'signed_at', 'price_missing', 'project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
-        .some((col) => msg.includes(col));
-    };
-
-    if (quoteErr && isMissingStructuredFieldError(quoteErr)) {
-      ({ data: quote, error: quoteErr } = await adminClient
-        .from('quotes')
-        .select(flatSelect)
-        .eq('id', quoteId)
-        .maybeSingle());
-    }
-
-    if (quoteErr) throw quoteErr;
-    if (!quote) return jsonResponse({ error: 'Quote not found' }, 404);
-
-    const { data: bizRow } = await adminClient
-      .from('business_settings')
-      .select('business_name, logo_url, tax_id, email, phone, address, currency, country')
-      .eq('user_id', quote.user_id)
-      .maybeSingle();
-
-    // חוק ברזל (Signature Product/Security Contract Correction, systemic
-    // remediation continuation task, 2026-09-09): public_approve_quote
-    // (20260909000000) now rejects only THIS QUOTE'S OWN OWNER, not any
-    // authenticated business account - the prior broader UI gate
-    // (caller_is_business_account, any business account at all) blocked
-    // legitimate customers who also hold their own TEKANGO business
-    // account, a real product dead-end the Owner directly hit and
-    // reported. is_owner_viewing is the only signal the UI needs now - it
-    // already, correctly, mirrors the RPC's own (corrected) predicate
-    // exactly. Never used to bypass or weaken the RPC's own enforcement -
-    // the RPC remains the sole source of truth for the actual
-    // authorization decision; this flag is advisory-only for the UI.
-    const isOwner = Boolean(callerUserId && callerUserId === quote.user_id);
-
-    // Task 27 (spec §6): the owner's optional thank-you - read ONLY for a quote the server holds as signed; a missing table (migration
-    // 20261011110000 not applied) or any read failure simply means no thank-you (the quote itself is never affected).
-    const thanks = await resolvePublicThanks(quote, quote.user_id, readThanksRow);
-
-    const { data: attachmentRows } = await adminClient
-      .from('quote_attachments')
-      .select('id, file_name, storage_path')
-      .eq('quote_id', quoteId)
-      // Codex review 2026-10-23 R-04: a stable order and each file's own id, so a refreshed link is found by id - never another file that
-      // happens to share the name
-      .order('created_at', { ascending: true })
-      .order('id', { ascending: true });
-
-    const attachments: { id: string; file_name: string; url: string }[] = [];
-    for (const att of attachmentRows || []) {
-      if (!isValidAttachmentPath(att.storage_path, quote.user_id, quoteId)) continue;
-      const { data: signed } = await adminClient
-        .storage.from('quote-files')
-        .createSignedUrl(att.storage_path, SIGNED_URL_EXPIRY_SECONDS);
-      if (signed?.signedUrl) {
-        attachments.push({ id: att.id, file_name: att.file_name, url: signed.signedUrl });
-      }
-    }
-
-    return jsonResponse({
-      quote: {
-        id: quote.id,
-        quote_number: quote.quote_number,
-        attn_name: quote.attn_name,
-        attn_role: quote.attn_role,
-        created_at: quote.created_at,
-        valid_until: quote.valid_until,
-        tax_rate: quote.tax_rate,
-        subtotal: quote.subtotal,
-        total: quote.total,
-        discount: quote.discount,
-        terms: quote.terms,
-        warranty: quote.warranty,
-        notes: quote.notes,
-        subject: quote.subject,
-        status: quote.status,
-        signature: quote.signature,
-        currency: quote.currency,
-        client_type: quote.client_type,
-        is_owner_viewing: isOwner,
-        // OD-1: server truth for "may this quote still be accepted?" (the page falls back to the same rule when absent)
-        // PRODUCT_TRUTH_CAPABILITY: public_quote_sign
-        is_expired: isQuoteAcceptanceExpired(quote.valid_until, bizRow?.country),
-        // חוק ברזל (Part E): undefined כשה-select השטוח-בלבד רץ (עמודה
-        // לא קיימת בסביבה זו) - PublicQuote.jsx/PublicQuoteEn.jsx מתייחסים
-        // ל-undefined בדיוק כמו "אין פרויקט", לא שגיאה.
-        project_name: quote.project_name,
-        // Owner 2026-10-25 (typed L-24): who signed (stored with the signature; undefined on the flat fallback select)
-        signer_name: quote.signer_name, signer_company: quote.signer_company, signer_role: quote.signer_role, signed_at: quote.signed_at,
-      },
-      business: bizRow ? {
-        business_name: bizRow.business_name, logo_url: bizRow.logo_url, tax_id: bizRow.tax_id,
-        email: bizRow.email, phone: bizRow.phone, address: bizRow.address, currency: bizRow.currency,
-      } : null,
-      // Codex release 2a (Owner 2026-10-29, typed: "מאשר שחרור 2א עכשיו: ...", SEC-DB-02): a client of another account is never shown
-      client: quote.clients && quote.clients.user_id === quote.user_id ? {
-        company_name: quote.clients.company_name, email: quote.clients.email,
-        phone: quote.clients.phone, address: quote.clients.address,
-      } : null,
-      // חוק ברזל (Part E): [] כשה-select השטוח-בלבד רץ - זהה-בייט ל"אין
-      // קבוצות" הקיים, לא שדה חסר/undefined.
-      // Owner console 2026-11-08 (stage 3 of the one quote builder): a unit of N identical copies carries repeat_count ONLY when N > 1 (every existing response is unchanged)
-      sections: (quote.quote_sections || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
-        .map((s: any) => ({ id: s.id, name: s.name, ...(Number.isInteger(s.repeat_count) && s.repeat_count > 1 ? { repeat_count: s.repeat_count } : {}) })),
-      items: (quote.quote_items || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0)).map((i: any) => ({
-        description: i.description, quantity: i.quantity, price: i.unit_price, total_price: i.total_price,
-        // Task 35 (F4): the flag only when true - every existing response stays byte-identical
-        ...(i.price_missing === true ? { price_missing: true } : {}),
-        // חוק ברזל (Part E, customer-facing structured display): כל השדות
-        // הבאים undefined/[] עבור פריט שטוח (ללא pricing_unit) - זהה-בייט
-        // לתצוגה השטוחה הקיימת; PublicQuote.jsx/PublicQuoteEn.jsx חייבים
-        // להתייחס להיעדרם כ"פריט רגיל", לא לשגיאה.
-        pricing_unit: i.pricing_unit,
-        calculated_quantity: i.calculated_quantity,
-        quantity_source: i.quantity_source,
-        calculation_method: i.calculation_method,
-        specification: Array.isArray(i.specification) ? i.specification : [],
-        section_id: i.section_id,
-        measurements: (i.quote_item_measurements || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
-          .map((m: any) => ({ width: m.width, height: m.height, unit: m.unit, calculated_area: m.calculated_area, label: m.label, is_pricing_driving: m.is_pricing_driving !== false })),
-      })),
-      attachments,
-      // Subscriptions (allowlisted): the page picks the final PDF / Print path from these, never from a client flag
-      viewerIsOwner: isOwner,
-      outputPhase,
-      thanks,
-    }, 200);
+    return await serveLegacy(request.quoteId);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Unknown error';
     console.error('get-public-quote error:', message);

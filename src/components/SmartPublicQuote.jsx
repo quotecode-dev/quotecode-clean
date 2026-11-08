@@ -108,9 +108,57 @@ export default function SmartPublicQuote() {
     })();
   }, [id, capabilityToken, retryKey]);
 
+  // Owner console 2026-11-08 ("כל עוד הלקוח לא חתם!!! כל שינוי ולא משנה איזה שהמשתמש עשה משתקף אצל הלקוח"; migration 20261108400000):
+  // while the page is open and the quote is not signed, it asks the server for the current version only (every 15 seconds while visible,
+  // and when the customer returns to the tab) - no content, no view counted. When the business saved a change, the updated quote replaces
+  // the page at once and the customer is told to review it again (a signature drawn on the earlier version is cleared). A link that no
+  // longer opens (another customer now / deleted) shows the not-found page.
+  const [updatedTick, setUpdatedTick] = useState(0);
+  const [signedHere, setSignedHere] = useState(false);
+  const requestBody = useCallback((extra = {}) => (capabilityToken ? { capability_token: capabilityToken, ...extra } : { quote_id: id, ...extra }), [capabilityToken, id]);
+  const reloadQuote = useCallback(async ({ notice }) => {
+    const key = id;
+    const { data, error } = await supabase.functions.invoke('get-public-quote', { body: requestBody() });
+    if (processedIdRef.current !== key) return;
+    if (error) { if (error?.context?.status === 404) setState({ status: 'notfound', dto: null }); return; }
+    if (!data || !data.quote) return;
+    setState({ status: 'ready', dto: data });
+    if (data.thanks) setThanks(data.thanks);
+    if (notice) setUpdatedTick((n) => n + 1);
+    loadPresentation(capabilityToken ? null : key, capabilityToken).then((p) => { if (processedIdRef.current === key && p) setPresentation(p); });
+  }, [id, capabilityToken, requestBody]);
+  // not for a signed / expired quote (nothing can be signed there any more)
+  const liveVersion = state.status === 'ready' && !signedHere && typeof state.dto?.version === 'string' && !state.dto?.output_channel
+    && !state.dto?.quote?.signature && state.dto?.quote?.is_expired !== true ? state.dto.version : null;
+  useEffect(() => {
+    if (!liveVersion) return undefined;
+    let stopped = false;
+    let busy = false;
+    let lastAt = 0;
+    const check = async () => {
+      if (stopped || busy || (typeof document !== 'undefined' && document.visibilityState !== 'visible')) return;
+      if (Date.now() - lastAt < 4000) return; // returning to the tab several times in a row asks once
+      lastAt = Date.now();
+      busy = true;
+      try {
+        const { data, error } = await supabase.functions.invoke('get-public-quote', { body: requestBody({ version_only: true }) });
+        if (stopped) return;
+        if (error) { if (error?.context?.status === 404) setState({ status: 'notfound', dto: null }); return; }
+        if (data && typeof data.version === 'string' && data.version !== liveVersion) await reloadQuote({ notice: true });
+        else if (data && data.signed === true) await reloadQuote({ notice: false });
+      } catch { /* a failed check changes nothing; the next one tries again */ } finally { busy = false; }
+    };
+    const timer = setInterval(check, 15000);
+    const onVisible = () => { if (typeof document === 'undefined' || document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => { stopped = true; clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('focus', onVisible); };
+  }, [liveVersion, requestBody, reloadQuote]);
+
   // After a successful approval the server freezes the issued snapshot (the quote is now locked) - re-read it so the
   // page shows exactly what was frozen. A failure keeps whatever is already shown.
   const handleApproved = useCallback(() => {
+    setSignedHere(true);
     const key = id;
     loadPresentation(capabilityToken ? null : key, capabilityToken).then((p) => {
       if (processedIdRef.current === key && p) setPresentation(p);
@@ -174,6 +222,6 @@ export default function SmartPublicQuote() {
   const handleFinalSnapshot = (dto) => setState({ status: 'ready', dto });
 
   return isLocalQuote
-    ? <PublicQuote quoteData={state.dto} presentation={presentation} onApproved={handleApproved} onFinalSnapshot={handleFinalSnapshot} capabilityToken={capabilityToken} thanks={thanks} />
-    : <PublicQuoteEn quoteData={state.dto} presentation={presentation} onApproved={handleApproved} onFinalSnapshot={handleFinalSnapshot} capabilityToken={capabilityToken} thanks={thanks} />;
+    ? <PublicQuote quoteData={state.dto} presentation={presentation} onApproved={handleApproved} onFinalSnapshot={handleFinalSnapshot} capabilityToken={capabilityToken} thanks={thanks} onQuoteChanged={() => reloadQuote({ notice: true })} updatedTick={updatedTick} />
+    : <PublicQuoteEn quoteData={state.dto} presentation={presentation} onApproved={handleApproved} onFinalSnapshot={handleFinalSnapshot} capabilityToken={capabilityToken} thanks={thanks} onQuoteChanged={() => reloadQuote({ notice: true })} updatedTick={updatedTick} />;
 }
