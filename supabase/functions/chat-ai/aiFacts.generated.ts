@@ -323,8 +323,8 @@ export const AI_FACTS = {
       "id": "measured_quote",
       "heLabel": "הצעת מחיר מקצועית/מדודה",
       "enLabel": "Measured professional quote",
-      "heDescription": "הצעה לפי מידות: מוסיפים פריט ומודדים אותו במסך אחד (שטח, אורך, יחידות או מחיר קבוע; בס״מ או במטר, או כמות ידועה במ״ר / מ״א; בחשבון בינלאומי גם ברגל או באינץ׳, ואז המחיר לרגל רבועה / לרגל אורך - בלי המרה בין מטרים לרגל), ואז בודקים ומוסיפים להצעה. חלוקה לחדרים/אזורים/יחידות היא אפשרות לבחירה.",
-      "enDescription": "Measured quote: add an item and measure it on one screen (area, length, units or a fixed price; in cm or m, or a known quantity in m² / linear m; an international account can also measure in feet or inches and price per sq ft / linear ft - meters and feet are never converted into each other), then check it and add it to the quote. Grouping into rooms/areas/units is optional.",
+      "heDescription": "מידות בהצעה (בתוך הכפתור „הצעת מחיר”): בכל שורה בעורך בוחרים סוג חיוב - סכום קבוע, יחידות, שטח או אורך. בשטח ובאורך כותבים את המידות באותה שורה (במטר או בס״מ, או כמות ידועה במ״ר / מ״א, ואפשר מידה נוספת; בחשבון בינלאומי ברגל או באינץ׳, ומטר נשאר זמין - ואז המחיר לרגל רבועה / לרגל אורך, בלי המרה בין מטרים לרגל), והסכום מחושב מיד. חלוקה לחדרים / אזורים / יחידות היא אופציונלית.",
+      "enDescription": "Sizes in a quote (inside the one \"Quote\" entry): every row of the editor chooses its billing - a fixed amount, units, area or length. For area and length the sizes are typed in the same row (in m or cm, or a known quantity in m² / linear m, and another size can be added; an international account measures in feet or inches, metres stay available, and prices per sq ft / linear ft - metres and feet are never converted into each other), and the total is calculated at once. Grouping into rooms/areas/units is optional.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -1436,10 +1436,10 @@ export const AI_FACTS = {
         "task": "יצירת הצעת מחיר (גם הראשונה)",
         "steps": [
           "לפני ההצעה הראשונה צריך טלפון עסק (ובישראל גם ח.פ / עוסק מורשה) ב\"הגדרות העסק\".",
-          "לוחצים \"הצעה חדשה\" ובוחרים \"הצעת מחיר רגילה\".",
+          "לוחצים \"הצעה חדשה\" ובוחרים \"הצעת מחיר\".",
           "בשלב \"למי ההצעה?\" ממלאים את פרטי הלקוח ובוחרים \"סוג לקוח (חובה)\".",
-          "בשלב \"מה העבודה או המוצר?\" מוסיפים פריטים: כותבים תיאור, או בוחרים מהקטלוג (\"בחירת פריט מהקטלוג…\").",
-          "בשלב \"מחיר\" ממלאים כמות ומחיר.",
+          "בשלב \"מה העבודה או המוצר?\" כל שורה היא פריט: כותבים שם, או לוחצים על החץ (\"פתיחת הקטלוג\") ובוחרים מהקטלוג. בוחרים \"סוג חיוב\" - סכום קבוע, יחידות, שטח או אורך - וממלאים כמות או מידות ומחיר. \"הוספת שורה\" מוסיפה עוד פריט.",
+          "בשלב \"מחיר\" אפשר לתת הנחה על כל ההצעה.",
           "בשלב \"בדיקה ושמירה\" לוחצים \"הפקה ושמירה בענן\". כל הצעה חדשה נשמרת כטיוטה, ואחרי השמירה אפשר לשלוח אותה."
         ]
       },
@@ -1447,10 +1447,10 @@ export const AI_FACTS = {
         "task": "Creating a quote (including the first one)",
         "steps": [
           "Before the first quote a business phone is required in \"Business Settings\".",
-          "Click \"New quote\" and choose \"Standard quote\".",
+          "Click \"New quote\" and choose \"Quote\".",
           "In the \"Who is it for?\" step fill in the client details and choose the client type.",
-          "In the \"What work or product?\" step add items: type a description, or pick from the catalog (\"Choose from catalog...\").",
-          "In the \"Price\" step enter the quantity and the price.",
+          "In the \"What work or product?\" step every row is an item: type a name, or click the arrow (\"Open the catalog\") and pick from your catalog. Choose the \"Billing\" - a fixed amount, units, area or length - and fill in the quantity or the sizes and the price. \"Add row\" adds another item.",
+          "In the \"Price\" step you can give a discount on the whole quote.",
           "In the \"Review and save\" step click \"Generate & Save to Cloud\". Every new quote is saved as a draft; after saving you can send it."
         ]
       }
@@ -1578,7 +1578,7 @@ export const AI_FACTS = {
           "ברשימת \"הצעות מחיר\" מוצאים הצעה שעדיין לא נחתמה ולוחצים \"עריכה חכמה\" בשורת הפעולות של ההצעה.",
           "ההצעה נפתחת לעריכה וחלון ה-AI מכוון אליה. מתארים במילים, או מכתיבים בקול, מה להוסיף, לשנות או למחוק - שורות, כמויות, מחירים, הערות או הנחה.",
           "ה-AI מציע את השינויים בהצעה ואת השורות החדשות. בודקים, מסמנים את מה שמתאים ולוחצים \"החלת השינויים בהצעה\". מחיר משתנה רק כשכתבתם אותו בבקשה, ושום דבר לא נשמר עד ששומרים את ההצעה.",
-          "אפשר גם לשנות כמות או מחיר של שורה ידנית: בכרטיס הפריט לוחצים \"עריכת מחיר וכמות\".",
+          "אפשר גם לשנות כמות או מחיר של שורה ידנית, ישירות בשדות השורה בעורך ההצעה.",
           "הצעה שהלקוח כבר חתם עליה נעולה - הכפתור לא פעיל (\"לא ניתן לערוך הצעה חתומה\")."
         ]
       },
@@ -1588,7 +1588,7 @@ export const AI_FACTS = {
           "In the \"Quotes\" list, find a quote that is not signed yet and click \"Smart edit\" in the quote's row actions.",
           "The quote opens for editing and the AI dialog is pointed at it. Describe in words, or dictate by voice, what to add, change or remove - lines, quantities, prices, notes or a discount.",
           "The AI suggests the changes to the quote and any new lines. Review, tick what fits and click \"Apply the changes to the quote\". A price changes only when you wrote it in the request, and nothing is saved until you save the quote.",
-          "You can also change a line's quantity or price by hand: click \"Edit price and quantity\" on the item card.",
+          "You can also change a line's quantity or price by hand, right in the row's fields in the quote editor.",
           "A quote the client has already signed is locked - the button is disabled (\"Cannot edit a signed quote\")."
         ]
       }
@@ -1602,17 +1602,17 @@ export const AI_FACTS = {
       "he": {
         "task": "שינוי כמות או מחיר של פריט בהצעה",
         "steps": [
-          "בעורך ההצעה, בכרטיס הפריט, לוחצים \"עריכת מחיר וכמות\" (אותה פעולה נמצאת גם בתפריט \"פעולות נוספות\" של הפריט).",
-          "משנים את הכמות (מספר שלם או עשרוני, למשל 2.5) ואת המחיר. הסכום הצפוי לשורה מתעדכן מיד. לוחצים \"שמירה\" ואחר כך שומרים את ההצעה.",
-          "בפריט שמתומחר לפי שטח או אורך (מ״ר, מטר אורך) משנים את הכמות או את המידות בלחיצה על \"עריכה\" בכרטיס הפריט."
+          "בעורך ההצעה, בשורה של הפריט, משנים את הכמות (מספר שלם או עשרוני, למשל 2.5) או את המחיר ישירות בשדות. הסכום של השורה מתעדכן מיד, ואחר כך שומרים את ההצעה.",
+          "בפריט לפי \"שטח\" או \"אורך\" משנים את המידות באותה שורה. אפשר להוסיף \"מידה נוספת\", או לבחור בתפריט השורה \"כמות ידועה\" כשהשטח או האורך כבר ידועים.",
+          "מחיר נכתב עם נקודה עשרונית, למשל 1200.50. מחיר ריק מסומן כחסר ולא נחשב 0. פרטים נוספים ללקוח נמצאים בתפריט השורה, ב\"פרטים ללקוח\"."
         ]
       },
       "en": {
         "task": "Changing the quantity or the price of an item in a quote",
         "steps": [
-          "In the quote editor, on the item card, click \"Edit price and quantity\" (the same action is also in the item's \"More actions\" menu).",
-          "Change the quantity (a whole or decimal number, for example 2.5) and the price. The expected line total updates at once. Click \"Save\" and then save the quote.",
-          "For an item priced by area or length (m², linear meter) change the quantity or the measurements by clicking \"Edit\" on the item card."
+          "In the quote editor, on the item's row, change the quantity (a whole or decimal number, for example 2.5) or the price right in the fields. The row total updates at once; then save the quote.",
+          "For an item billed by \"Area\" or \"Length\" change the sizes in the same row. You can add \"Another size\", or choose \"Known amount\" in the row menu when the area or length is already known.",
+          "A price uses a decimal point, for example 1200.50. An empty price is marked as missing and never counts as 0. More details for the customer are in the row menu, under \"Details for the customer\"."
         ]
       }
     },

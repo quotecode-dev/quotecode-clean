@@ -98,45 +98,36 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe('QuoteForm - compact item card is the default for a real (non-blank) item', () => {
-  it('renders the compact summary (name, calc summary, total) instead of the full editable row', () => {
+// Owner console 2026-11-08 (stage 2 of the one quote builder, typed: "מאשר השלמת שלב 2 של בונה ההצעה לפי התוכנית, כולל שינוי ב-L-09, L-14,
+// L-15, L-17, L-23 ..."): every line is a row of the quote screen - the item cards, the item window's add flow, "add another item?" and the
+// quick "Edit price" window are replaced by the row (design A). The row behaviour itself is in src/quoteRowsEditor20261108.test.jsx.
+const rowOf = (name) => screen.getByDisplayValue(name).closest('.qrow-line');
+describe('QuoteForm - every line is a row', () => {
+  it('a line shows as an editable row with its own total (not a read-only card)', () => {
     render(<QuoteForm {...baseProps({ subtotal: 999, totalAmount: 999 })} />);
-    // Compact: the description is shown as read-only text, not an editable input.
-    expect(screen.getByText('Aluminum window')).toBeTruthy();
-    expect(document.querySelector('input[value="Aluminum window"]')).toBeNull();
-    expect(screen.getByText('1 × $300.00')).toBeTruthy();
-    // The card's own total is distinct from the (deliberately different, in
-    // this fixture) footer subtotal/total - proves this is the card's own
-    // total, not an accidental match against the totals footer below it.
-    expect(screen.getByText('$300.00')).toBeTruthy();
+    const row = rowOf('Aluminum window');
+    expect(row.querySelector('[data-testid^="qrow-total-"]').textContent).toBe('$300.00');
+    expect(screen.queryByText('1 × $300.00')).toBeNull();
   });
-
-  it('shows the empty-state message instead of any editable row when there are zero items (Smart Quote Guided UX Completion task - no more blank starter row)', () => {
-    render(<QuoteForm {...baseProps({ items: [] })} />);
-    expect(screen.getByText(/No products or work added to this quote yet/)).toBeTruthy();
-    expect(document.querySelector('input[placeholder="Description"]')).toBeNull();
+  it('with no line at all the list offers "Add row", which adds a blank row', () => {
+    const setItems = vi.fn();
+    render(<QuoteForm {...baseProps({ items: [], setItems })} />);
+    fireEvent.click(screen.getByTestId('qrow-add'));
+    expect(setItems.mock.calls[0][0]([])).toEqual([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false, section_key: null }]);
   });
-
-  it('expanding via the chevron opens the guided AddItemWizard in edit mode, populated with the real saved values (Add/Edit unification - no more inline classic-row editor)', () => {
+  it('details for the customer are open in the row when the line has them', () => {
+    render(<QuoteForm {...baseProps({ items: [makeItem({ description: 'Item', unit_price: '10', specification: [{ label: 'Color', value: 'Red' }] })] })} />);
+    expect(screen.getByDisplayValue('Color')).toBeTruthy();
+    expect(screen.getByDisplayValue('Red')).toBeTruthy();
+  });
+  it('no item window and no "add another item?" question open while adding rows', () => {
     render(<QuoteForm {...baseProps()} />);
-    fireEvent.click(screen.getByLabelText('Edit'));
-    expect(screen.getByRole('dialog')).toBeTruthy();
-    expect(screen.getByText('Edit product or work')).toBeTruthy();
-    expect(screen.getAllByText('Aluminum window').length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByTestId('qrow-add'));
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
 
-describe('QuoteForm - compact card optional indicators only appear when present', () => {
-  it('shows no specification/section badge when neither is set', () => {
-    render(<QuoteForm {...baseProps()} />);
-    expect(screen.queryByText('Details')).toBeNull();
-  });
-
-  it('shows a specification badge when the item has specification rows', () => {
-    render(<QuoteForm {...baseProps({ items: [makeItem({ description: 'Item', unit_price: '10', specification: [{ label: 'Color', value: 'Red' }] })] })} />);
-    expect(screen.getByText('Details')).toBeTruthy();
-  });
-
+describe('QuoteForm - units', () => {
   it('an empty-string unit name never silently vanishes - falls back to "(unnamed)" in the safe-removal dialog (superseded by the Unit Board in the Structure-First UX Correction task; same regression concern as the old per-item badge)', () => {
     // Regression: an empty-string section.name is falsy in JS - the fallback
     // must key off section presence, not the name string, or a freshly-
@@ -154,10 +145,11 @@ describe('QuoteForm - compact card optional indicators only appear when present'
 // SMART-QUOTE-01..04 (2026-09-22, Owner-locked) SUPERSEDE the former "Structure-First selector" (Locked Decision 1): there is no
 // compulsory structure decision any more; grouping is offered in context and remains fully available.
 describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
-  it('SMART-QUOTE-02: an undecided (null) structure shows the simple list with the Add action immediately - no structure question', () => {
+  it('SMART-QUOTE-02: an undecided (null) structure shows the simple list with a row to type in immediately - no structure question', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [] })} />);
-    // the main Add action, plus (Owner 2026-10-15) the same action offered again in the price step while the quote has no item
-    expect(screen.getAllByText('Add product or work')).toHaveLength(2);
+    // the rows' own "Add row", plus (Owner 2026-10-15) the price step's way back to step 2 while the quote has no item
+    expect(screen.getByTestId('qrow-add')).toBeTruthy();
+    expect(screen.getByTestId('sq-price-go-rows')).toBeTruthy();
     expect(screen.queryByText('How would you like to structure this quote?')).toBeNull();
     expect(screen.queryByText('Regular quote')).toBeNull();
     expect(screen.queryByText(/Smart Quote/)).toBeNull();
@@ -175,9 +167,10 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
     }
   });
 
-  it('the untouched placeholder row is not rendered as an "(unnamed)" card on a fresh quote', () => {
+  it('the untouched first line of a fresh quote is the empty row to type in - never an "(unnamed)" card', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }] })} />);
-    expect(screen.getByText('No products or work added to this quote yet.')).toBeTruthy();
+    expect(screen.queryByText('(unnamed)')).toBeNull();
+    expect(screen.getByRole('textbox', { name: 'Item' }).value).toBe('');
   });
 
   it('SMART-QUOTE-02: grouping by rooms / areas / units stays available as an optional, contextual action', () => {
@@ -271,32 +264,34 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
 });
 
 describe('QuoteForm - Regular quote flow (Locked Decision 2)', () => {
-  it('shows the primary Add action and no unit-management UI at all', () => {
+  it('shows the rows with "Add row" and no unit-management UI at all', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'regular' })} />);
-    expect(screen.getByText('Add product or work')).toBeTruthy();
+    expect(screen.getByTestId('qrow-add')).toBeTruthy();
     expect(screen.queryByText('How would you like to structure this quote?')).toBeNull();
     expect(screen.queryByText(/No items added yet/)).toBeNull();
   });
 });
 
 describe('QuoteForm - Task 21: the untouched placeholder is never a divided-mode item card', () => {
-  it('a fresh measured quote shows no "(unnamed) 1 x 0.00" card and no "1 item" count, but keeps the add-item path without a unit', () => {
+  it('a fresh divided quote shows no "(unnamed)" row and no "1 item" count, but keeps adding a row without a unit', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [], items: [makeItem()] })} />);
     expect(screen.queryByText('(unnamed)')).toBeNull();
     expect(screen.queryByText('1 item')).toBeNull();
-    expect(screen.getByText('Add product or work to Unassigned')).toBeTruthy();
+    expect(screen.getByText('Add a row with no unit')).toBeTruthy();
     expect(screen.getByText('Add the first unit')).toBeTruthy();
   });
-  it('once a real item exists it is counted and shown next to the hidden placeholder', () => {
+  it('once a real item exists it is counted; the untouched row stays a row to type in, never counted', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [], items: [makeItem(), makeItem({ description: 'Aluminium window', unit_price: '600' })] })} />);
     expect(screen.queryByText('(unnamed)')).toBeNull();
     expect(screen.getByText('1 item')).toBeTruthy();
-    expect(screen.getByText('Aluminium window')).toBeTruthy();
+    expect(screen.getByDisplayValue('Aluminium window')).toBeTruthy();
+    // the untouched first row stays as the empty row to type in, but is not counted
+    expect(screen.getAllByRole('textbox', { name: 'Item' }).map((el) => el.value)).toEqual(['', 'Aluminium window']);
   });
   it('with units and only the placeholder unassigned, no empty "Unassigned" card is shown', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }], items: [makeItem()] })} />);
-    expect(screen.queryByText('Add product or work to Unassigned')).toBeNull();
-    expect(screen.getByText('Add product or work to Apartment 33')).toBeTruthy();
+    expect(screen.queryByText('Add a row with no unit')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Add a row to Apartment 33' })).toBeTruthy();
   });
 });
 
@@ -306,26 +301,26 @@ describe('QuoteForm - Divided quote unit board (Locked Decision 3/4/5/6/10)', ()
     expect(screen.queryByText('Add product or work')).toBeNull();
   });
 
-  it('shows the unit\'s own real name in its per-unit Add Item button, item count, and offers "Add another unit"', () => {
+  it('shows the unit\'s own real name in its "Add a row" button, item count, and offers "Add another unit"', () => {
     render(<QuoteForm {...baseProps({
       quoteStructureMode: 'divided',
       sections: [{ key: 'sec1', name: 'Apartment 33' }],
       items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })],
     })} />);
-    expect(screen.getByText('Add product or work to Apartment 33')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add a row to Apartment 33' })).toBeTruthy();
     expect(screen.getByText('1 item')).toBeTruthy();
     expect(screen.getByText('Add another unit')).toBeTruthy();
   });
 
-  it('an unnamed (freshly created) unit falls back to "this unit" in its Add Item button', () => {
+  it('an unnamed (freshly created) unit falls back to "this unit" in its "Add a row" button', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: '' }] })} />);
-    expect(screen.getByText('Add product or work to this unit')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add a row to this unit' })).toBeTruthy();
   });
 
-  it('an empty unit visibly shows "No items added yet" and still exposes its Add Item action - collapsed or not', () => {
+  it('an empty unit visibly shows "No items added yet" and still exposes its "Add a row" action - collapsed or not', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 35' }], items: [] })} />);
     expect(screen.getByText('No items added yet')).toBeTruthy();
-    expect(screen.getByText('Add product or work to Apartment 35')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Add a row to Apartment 35' })).toBeTruthy();
   });
 
   it('offers "Add the first unit" when no unit exists yet, "Add another unit" once at least one does', () => {
@@ -335,10 +330,39 @@ describe('QuoteForm - Divided quote unit board (Locked Decision 3/4/5/6/10)', ()
     expect(screen.getByText('Add another unit')).toBeTruthy();
   });
 
-  it('clicking a unit\'s own Add Item button opens the wizard already scoped to that unit (no re-selection asked)', () => {
-    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }] })} />);
-    fireEvent.click(screen.getByText('Add product or work to Apartment 33'));
-    expect(screen.getByRole('dialog')).toBeTruthy();
+  it('a unit\'s own "Add a row" adds a blank row already in that unit (no window, no re-selection)', () => {
+    const setItems = vi.fn();
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }], setItems })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Add a row to Apartment 33' }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    const next = setItems.mock.calls[0][0]([]);
+    expect(next).toEqual([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false, section_key: 'sec1' }]);
+  });
+
+  it('"Duplicate unit" adds one copy right after it, with new lines (no saved ids) and its own sizes, its name ready to edit', () => {
+    const setItems = vi.fn();
+    const setSections = vi.fn();
+    const window1 = makeItem({ id: 'db1', description: 'Window', unit_price: '100', section_key: 'sec1', pricing_unit: 'm2', quantity_source: 'calculated', calculation_method: 'area',
+      calculated_quantity: 2, measurements: [{ id: 'm1', width: 1, height: 2, unit: 'm', calculated_area: 2, label: '', is_pricing_driving: true }] });
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 30' }, { key: 'sec2', name: 'Apartment 40' }], items: [window1], setItems, setSections })} />);
+    fireEvent.click(screen.getAllByTestId('unit-duplicate')[0]);
+    const secs = setSections.mock.calls[0][0]([{ key: 'sec1', name: 'Apartment 30', sort_order: 0 }, { key: 'sec2', name: 'Apartment 40', sort_order: 1 }]);
+    expect(secs.map((s) => [s.name, s.sort_order])).toEqual([['Apartment 30', 0], ['Apartment 30 - copy', 1], ['Apartment 40', 2]]);
+    const copies = setItems.mock.calls[0][0]([window1]).slice(1);
+    expect(copies).toHaveLength(1);
+    expect(copies[0].id).toBeUndefined();
+    expect(copies[0].section_key).toBe(secs[1].key);
+    expect(copies[0].measurements[0]).toEqual({ width: 1, height: 2, unit: 'm', calculated_area: 2, label: '', is_pricing_driving: true });
+    expect(copies[0].measurements).not.toBe(window1.measurements);
+  });
+
+  it('"Duplicate unit" of measured lines without the reuse entitlement shows the one capability notice and copies nothing', () => {
+    const setItems = vi.fn();
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', canUseProfessionalQuoteReuse: false, sections: [{ key: 'sec1', name: 'Apartment 30' }],
+      items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1', pricing_unit: 'm2', quantity_source: 'calculated', calculated_quantity: 2 })], setItems })} />);
+    fireEvent.click(screen.getByTestId('unit-duplicate'));
+    expect(screen.getByRole('dialog')).toHaveAttribute('data-capability', 'professional_quote.reuse');
+    expect(setItems).not.toHaveBeenCalled();
   });
 
   it('existing items with no section_key appear in a visible "Unassigned" unit, never silently disappear (Decision 8, Regular->Divided)', () => {
@@ -348,7 +372,7 @@ describe('QuoteForm - Divided quote unit board (Locked Decision 3/4/5/6/10)', ()
       items: [makeItem({ description: 'Legacy item', unit_price: '50' })],
     })} />);
     expect(screen.getByText('Unassigned')).toBeTruthy();
-    expect(screen.getByText('Legacy item')).toBeTruthy();
+    expect(screen.getByDisplayValue('Legacy item')).toBeTruthy();
   });
 
   it('offers a "Switch to a regular quote" link', () => {
@@ -444,140 +468,91 @@ describe('QuoteForm - safe unit removal (Locked Decision 7 - no silent data loss
   });
 });
 
-describe('QuoteForm - consolidated actions menu', () => {
-  it('opens on click and shows only supported actions', () => {
+describe('QuoteForm - the row menu', () => {
+  it('opens from the three dots and shows the row actions; only "Remove row" is red', () => {
     render(<QuoteForm {...baseProps({ items: [makeItem({ description: 'A' }), makeItem({ description: 'B' })] })} />);
-    const menuButtons = screen.getAllByLabelText('More actions');
-    fireEvent.click(menuButtons[0]);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Row actions' })[0]);
     const menu = screen.getByRole('menu');
-    expect(menu.textContent).toContain('Edit');
-    expect(menu.textContent).toContain('Duplicate item');
-    expect(menu.textContent).toContain('Delete item');
-  });
-
-  it('hides Delete when it is the only item (matches the pre-existing single-item protection)', () => {
-    render(<QuoteForm {...baseProps()} />);
-    fireEvent.click(screen.getByLabelText('More actions'));
-    const menu = screen.getByRole('menu');
-    expect(menu.textContent).not.toContain('Delete item');
-  });
-
-  it('only Delete carries destructive (red) styling among the menu actions', () => {
-    render(<QuoteForm {...baseProps({ items: [makeItem({ description: 'A' }), makeItem({ description: 'B' })] })} />);
-    fireEvent.click(screen.getAllByLabelText('More actions')[0]);
-    const items = screen.getAllByRole('menuitem');
-    const colors = items.map((el) => ({ label: el.textContent, color: el.style.color }));
-    const nonDelete = colors.filter((c) => !c.label.includes('Delete'));
-    const del = colors.find((c) => c.label.includes('Delete'));
-    // Task 16: QuoteForm uses the APP token set - APP.red is the destructive color (read from the token, never pinned).
+    expect(menu.textContent).toContain('Details for the customer');
+    expect(menu.textContent).toContain('Duplicate row');
+    expect(menu.textContent).toContain('Move down');
+    expect(menu.textContent).not.toContain('Move up');
+    expect(menu.textContent).toContain('Remove row');
     const hex = APP.red.replace('#', '');
     const red = `rgb(${parseInt(hex.slice(0, 2), 16)}, ${parseInt(hex.slice(2, 4), 16)}, ${parseInt(hex.slice(4, 6), 16)})`;
-    expect(del.color).toBe(red);
-    nonDelete.forEach((c) => expect(c.color).not.toBe(red));
+    const colors = screen.getAllByRole('menuitem').map((el) => ({ label: el.textContent, color: el.style.color }));
+    expect(colors.find((c) => c.label === 'Remove row').color).toBe(red);
+    colors.filter((c) => c.label !== 'Remove row').forEach((c) => expect(c.color).not.toBe(red));
   });
 
-  it('Edit opens the same guided AddItemWizard edit mode as the chevron button', () => {
-    render(<QuoteForm {...baseProps()} />);
-    fireEvent.click(screen.getByLabelText('More actions'));
-    fireEvent.click(screen.getByRole('menuitem', { name: /^Edit$/ }));
-    expect(screen.getByRole('dialog')).toBeTruthy();
-    expect(screen.getByText('Edit product or work')).toBeTruthy();
+  it('duplicate inserts a copy right after the line, without its saved id', () => {
+    const setItems = vi.fn();
+    const a = makeItem({ id: 'db1', description: 'A', unit_price: '5' });
+    const b = makeItem({ description: 'B' });
+    render(<QuoteForm {...baseProps({ items: [a, b], setItems })} />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Row actions' })[0]);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Duplicate row' }));
+    const next = setItems.mock.calls[0][0]([a, b]);
+    expect(next.map((x) => x.description)).toEqual(['A', 'A', 'B']);
+    expect(next[1].id).toBeUndefined();
   });
 
-  it('Duplicate calls the existing duplicateItem function with the correct index', () => {
-    const duplicateItem = vi.fn();
-    render(<QuoteForm {...baseProps({ duplicateItem })} />);
-    fireEvent.click(screen.getByLabelText('More actions'));
-    fireEvent.click(screen.getByRole('menuitem', { name: /Duplicate item/ }));
-    expect(duplicateItem).toHaveBeenCalledWith(0);
+  it('removing the only line leaves an empty row to type in (the quote is never left without a row)', () => {
+    const setItems = vi.fn();
+    render(<QuoteForm {...baseProps({ setItems })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Row actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Remove row' }));
+    expect(setItems.mock.calls[0][0]([makeItem({ description: 'Aluminum window' })])).toEqual([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false, section_key: null }]);
   });
 
-  it('Delete calls the existing removeItem function with the correct index', () => {
-    const removeItem = vi.fn();
-    render(<QuoteForm {...baseProps({ items: [makeItem({ description: 'A' }), makeItem({ description: 'B' })], removeItem })} />);
-    fireEvent.click(screen.getAllByLabelText('More actions')[1]);
-    fireEvent.click(screen.getByRole('menuitem', { name: /Delete item/ }));
-    expect(removeItem).toHaveBeenCalledWith(1);
+  it('"Move to unit" sets the line\'s unit', () => {
+    const setItems = vi.fn();
+    render(<QuoteForm {...baseProps({ items: [makeItem({ description: 'A' })], sections: [{ key: 'sec1', name: 'Kitchen' }], setItems })} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Row actions' }));
+    fireEvent.change(screen.getByRole('menu').querySelector('select'), { target: { value: 'sec1' } });
+    expect(setItems.mock.calls[0][0]([makeItem({ description: 'A' })])[0].section_key).toBe('sec1');
   });
 
-  it('"Move to unit" calls handleItemChange with section_key, reusing the existing setter', () => {
-    const handleItemChange = vi.fn();
-    render(<QuoteForm {...baseProps({
-      items: [makeItem({ description: 'A' })],
-      sections: [{ key: 'sec1', name: 'Kitchen' }],
-      handleItemChange,
-    })} />);
-    fireEvent.click(screen.getByLabelText('More actions'));
-    fireEvent.click(screen.getByRole('menuitem', { name: /Move to unit/ }));
-    const select = screen.getByRole('menu').querySelector('select');
-    fireEvent.change(select, { target: { value: 'sec1' } });
-    expect(handleItemChange).toHaveBeenCalledWith(0, 'section_key', 'sec1');
+  it('"Move down" swaps the line with the next one (the saved order follows the list)', () => {
+    const setItems = vi.fn();
+    const a = makeItem({ description: 'A' }); const b = makeItem({ description: 'B' });
+    render(<QuoteForm {...baseProps({ items: [a, b], setItems })} />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Row actions' })[0]);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Move down' }));
+    expect(setItems.mock.calls[0][0]([a, b]).map((x) => x.description)).toEqual(['B', 'A']);
   });
 
-  it('Duplicate is locked (shows the one capability upgrade notice) for a professional item without reuse entitlement', () => {
-    const duplicateItem = vi.fn();
+  it('duplicate is locked (the one capability notice) for a measured line without the reuse entitlement', () => {
+    const setItems = vi.fn();
     render(<QuoteForm {...baseProps({
       items: [makeItem({ description: 'Measured item', unit_price: '10', pricing_unit: 'm2', quantity_source: 'calculated', calculated_quantity: 5 })],
-      canUseProfessionalQuoteReuse: false,
-      duplicateItem,
+      canUseProfessionalQuoteReuse: false, setItems,
     })} />);
-    fireEvent.click(screen.getByLabelText('More actions'));
-    fireEvent.click(screen.getByRole('menuitem', { name: /Duplicate item/ }));
-    // Locked duplication must show the existing upgrade-confirmation UI and
-    // must NOT call the real duplicateItem function - not a silent no-op,
-    // not a silent bypass of the entitlement gate.
+    fireEvent.click(screen.getByRole('button', { name: 'Row actions' }));
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Duplicate row' }));
     const notice = screen.getByRole('dialog');
     expect(notice).toHaveAttribute('data-capability', 'professional_quote.reuse');
     expect(notice.textContent).not.toMatch(/PRO|Basic|BASIC|trial/);
-    expect(duplicateItem).not.toHaveBeenCalled();
-    // close is a no-op: still no duplication
-    fireEvent.click(screen.getByTestId('qf-upgrade-close'));
-    expect(screen.queryByRole('dialog')).toBeNull();
-    expect(duplicateItem).not.toHaveBeenCalled();
+    expect(setItems).not.toHaveBeenCalled();
   });
 
-  // Addendum (mid-task, real Owner-observed defect): the menu was
-  // position:absolute inside a scrollable/clipping ancestor
-  // (.dash-main-content, overflow:auto) - live-measured in a real browser,
-  // the old left/right:0 anchor pushed it 133px past that ancestor's own
-  // right edge in RTL, so it was silently clipped under the sidebar. Fixed
-  // by rendering via a React portal to document.body (immune to any
-  // ancestor's overflow) with real collision-aware positioning. jsdom can't
-  // meaningfully assert pixel collision math (getBoundingClientRect is all
-  // zeros there), so these tests lock in what jsdom *can* prove: the portal
-  // target itself, and the Escape/focus-return keyboard contract - the
-  // actual pixel-fits-viewport claim was verified live in a real browser
-  // at 320/360/392/430px and desktop, both languages (see the checkpoint).
-  describe('menu portal, Escape, and focus return (Addendum)', () => {
-    it('renders the open menu as a direct child of document.body, not nested inside the scrollable form (proves it cannot be clipped by an ancestor overflow)', () => {
-      render(<QuoteForm {...baseProps()} />);
-      fireEvent.click(screen.getByLabelText('More actions'));
-      const menu = screen.getByRole('menu');
-      expect(menu.parentElement).toBe(document.body);
-    });
-
-    it('closes the menu on Escape', () => {
-      render(<QuoteForm {...baseProps()} />);
-      fireEvent.click(screen.getByLabelText('More actions'));
-      expect(screen.getByRole('menu')).toBeTruthy();
-      fireEvent.keyDown(document, { key: 'Escape' });
-      expect(screen.queryByRole('menu')).toBeNull();
-    });
-
-    it('returns focus to the three-dot trigger button after the menu closes', () => {
-      render(<QuoteForm {...baseProps()} />);
-      const trigger = screen.getByLabelText('More actions');
-      fireEvent.click(trigger);
-      fireEvent.keyDown(document, { key: 'Escape' });
-      expect(document.activeElement).toBe(trigger);
-    });
+  it('Escape closes the menu and returns the focus to its three dots', () => {
+    render(<QuoteForm {...baseProps()} />);
+    const trigger = screen.getByRole('button', { name: 'Row actions' });
+    fireEvent.click(trigger);
+    expect(screen.getByRole('menu')).toBeTruthy();
+    fireEvent.keyDown(document, { key: 'Escape' });
+    expect(screen.queryByRole('menu')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
   });
 });
 
-describe('QuoteForm - Hebrew/RTL compact card', () => {
-  it('renders the compact card correctly in Hebrew', () => {
-    render(<QuoteForm {...baseProps({ isHebrew: true, sym: '₪' })} />);
-    expect(screen.getByText('1 × ₪300.00')).toBeTruthy();
+describe('QuoteForm - Hebrew/RTL rows', () => {
+  it('the row reads in Hebrew with the shekel total', () => {
+    render(<QuoteForm {...baseProps({ isHebrew: true, sym: '₪', isLocalIsraeliBusiness: true })} />);
+    expect(screen.getByTestId('quote-rows-editor').getAttribute('dir')).toBe('rtl');
+    expect(rowOf('Aluminum window').querySelector('[data-testid^="qrow-total-"]').textContent).toBe('₪300.00');
+    expect(screen.getByRole('button', { name: 'הוספת שורה' })).toBeTruthy();
   });
 });
 

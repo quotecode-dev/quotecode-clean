@@ -59,9 +59,12 @@ describe('L-23 the quote list, editor, catalog, finances (reverted behaviours)',
   it('#8 the save / error toast is centred over the workspace (half of the 178px sidebar)', () => {
     expect(dash).toContain("left: calc(50% ${isHebrew ? '- 89px' : '+ 89px'});");
   });
-  it('#13 the measured-quote hint promises no rooms', () => {
-    // the Owner's own choice (2026-10-18, "א"): the plainest wording
-    expect(read('utils/newQuoteChoices.js')).toContain("hint: isHebrew ? 'מכניסים מידות, והמחיר מחושב לבד' : 'Enter the measurements - the price is calculated for you',");
+  // #13 (the measured-quote hint) was replaced by the Owner console 2026-11-08 (design A + stage 2, typed incl. L-09 / L-23): the measured entry
+  // joined the one "הצעת מחיר" entry - its hint now names sizes in the row, still with no rooms
+  it('#13 the one quote entry names sizes and promises no rooms', () => {
+    const c = read('utils/newQuoteChoices.js');
+    expect(c).toContain("hint: isHebrew ? 'שורות של מוצרים ועבודות - בכמות, לפי מידות או בסכום קבוע' : 'Rows of products and work - by quantity, by size or a fixed amount',");
+    expect(c).not.toMatch(/חדרים|rooms/);
   });
   it('#14 the catalog row buttons show their words (icon + text, 44px)', () => {
     const c = read('components/ServicesCatalog.jsx');

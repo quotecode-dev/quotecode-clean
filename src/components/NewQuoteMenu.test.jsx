@@ -5,9 +5,10 @@ import SidebarAccountMenu from './SidebarAccountMenu';
 
 afterEach(cleanup);
 
+// Owner console 2026-11-08 (design A + stage 2 of the one quote builder, typed incl. L-09 / L-23): the regular and the measured entries are ONE "הצעת מחיר"
 describe.each([['Hebrew', true], ['English', false]])('NewQuoteMenu (%s)', (_l, isHebrew) => {
   it.each(['sidebar', 'toolbar'])('%s variant: menu semantics, keyboard navigation, focus return on Escape', (variant) => {
-    render(<NewQuoteMenu isHebrew={isHebrew} variant={variant} onStandard={vi.fn()} onAi={vi.fn()} onStructured={vi.fn()} />);
+    render(<NewQuoteMenu isHebrew={isHebrew} variant={variant} onStandard={vi.fn()} onAi={vi.fn()} onStructured={vi.fn()} onTemplate={vi.fn()} />);
     const trigger = screen.getByRole('button', { expanded: false });
     expect(trigger).toHaveAttribute('aria-haspopup', 'menu');
     fireEvent.click(trigger);
@@ -24,15 +25,15 @@ describe.each([['Hebrew', true], ['English', false]])('NewQuoteMenu (%s)', (_l, 
     expect(document.activeElement).toBe(trigger);
   });
 
-  it('the sidebar row keeps the dash-sidebar-cta class and the three plain-language labels', () => {
+  it('the sidebar row keeps the dash-sidebar-cta class and the plain-language labels (one quote entry)', () => {
     render(<NewQuoteMenu isHebrew={isHebrew} variant="sidebar" onStandard={vi.fn()} />);
     const trigger = screen.getByRole('button');
     expect(trigger).toHaveClass('dash-sidebar-cta');
     fireEvent.click(trigger);
     const labels = screen.getAllByRole('menuitem').map((i) => i.querySelector('strong').textContent);
     expect(labels).toEqual(isHebrew
-      ? ['הצעת מחיר רגילה', 'הצעת מחיר חכמה עם AI', 'הצעה לפי מידות']
-      : ['Standard quote', 'AI smart quote', 'Profession-aware measured quote']);
+      ? ['הצעת מחיר', 'הצעת מחיר חכמה עם AI']
+      : ['Quote', 'AI smart quote']);
   });
 });
 
