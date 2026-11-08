@@ -105,8 +105,11 @@ export function templateSummary(content) {
   if (!c) return null;
   const items = Array.isArray(c.items) ? c.items : [];
   const priced = items.filter((it) => num(it.unit_price) !== null);
+  // Owner console 2026-11-08 (stage 4 of the one quote builder, decision 6): a whole-quote or a unit template
+  const kind = templateKind(c);
   const copiesOf = new Map((Array.isArray(c.sections) ? c.sections : []).map((s) => [s?.key, normalizeRepeatCount(s?.repeat_count)]));
   return {
+    kind,
     itemCount: items.length,
     sectionCount: Array.isArray(c.sections) ? c.sections.length : 0,
     hasPrices: priced.length > 0,
@@ -135,7 +138,7 @@ export function withoutPrices(items) {
 // The NEW quote form state from a template. newKey() makes fresh section keys (never the template's own); items get no ids.
 export function templateToFormState(content, newKey) {
   const c = readTemplateContent(content);
-  if (!c) return null;
+  if (!c || templateKind(c) === TEMPLATE_KIND_UNIT) return null; // Owner console 2026-11-08 (stage 4 of the one quote builder, decision 6): a unit template is added to an open quote, never opened as one
   const sectionKeys = new Map();
   const sections = (Array.isArray(c.sections) ? c.sections : []).filter((s) => str(s?.name).trim()).map((s, i) => {
     const key = newKey(); sectionKeys.set(s.key, key);
@@ -164,5 +167,94 @@ export function templateToFormState(content, newKey) {
     warranty: typeof c.warranty === 'string' ? c.warranty : null,
     notes: typeof c.notes === 'string' ? c.notes : null,
     presentation: c.presentation ? normalizePresentationState(c.presentation) : null,
+  };
+}
+
+// Owner console 2026-11-08 (stage 4 of the one quote builder, typed: "מאשר את שלב 3 ... ואת שלב 4 (תבנית יחידה) לפי ההחלטות, כולל ... שינוי
+// ב-L-09, L-17, ..."; decision 6): a UNIT template - one unit with its rows, kept in the same table and schema ('quote-template/v1') with
+// kind: 'unit' (a record without kind is a whole-quote template). It keeps the jobs, the billing type, the numeric sizes (with their order
+// and the "counts in the price" flag - never a place name), the details only when chosen, the prices only when chosen (with their currency
+// and VAT basis); never ids, a price link, a unit count, a customer, an address, a date or a subject. It is inserted as ONE copy (count 1).
+export const TEMPLATE_KIND_UNIT = 'unit';
+export const templateKind = (content) => (content && content.kind === TEMPLATE_KIND_UNIT ? TEMPLATE_KIND_UNIT : 'quote');
+export const DEFAULT_UNIT_TEMPLATE_KEEP = Object.freeze({ prices: true, details: false });
+const sizeOf = (m, i) => {
+  const w = num(m?.width); const h = num(m?.height);
+  if (w === null && h === null) return null;
+  const out = { width: w, height: h, unit: ['m', 'cm', 'ft', 'in'].includes(m?.unit) ? m.unit : 'm', sort_order: i, is_pricing_driving: m?.is_pricing_driving !== false };
+  const a = num(m?.calculated_area);
+  if (a !== null) out.calculated_area = a;
+  return out;
+};
+// form = the editor state ({ items, sections, currency, priceBasis }); sectionKey = the unit to keep; rowBilling(item) = the row's billing
+// type on screen ('fixed' / 'units' / 'area' / 'linear'), so a fixed amount comes back as a fixed amount
+export function buildUnitTemplateContent(form, sectionKey, keep = DEFAULT_UNIT_TEMPLATE_KEEP, rowBilling = null) {
+  const k = { ...DEFAULT_UNIT_TEMPLATE_KEEP, ...(keep || {}) };
+  const section = (Array.isArray(form?.sections) ? form.sections : []).find((s) => s && s.key === sectionKey);
+  if (!section) return null;
+  const items = (Array.isArray(form?.items) ? form.items : []).filter((it) => it && it.section_key === sectionKey && str(it.description).trim())
+    .slice(0, TEMPLATE_MAX_ITEMS).map((raw) => {
+      const it = withPersistableQuantity(raw);
+      const line = { description: str(it.description, 1000).trim(), quantity: Math.max(1, Math.round(num(it.quantity) ?? 1)) };
+      if (k.prices) { const p = num(it.unit_price); if (p !== null) line.unit_price = p; }
+      if (it.pricing_unit) line.pricing_unit = str(it.pricing_unit, 40);
+      const cq = it.calculated_quantity === '' || it.calculated_quantity == null ? null : num(it.calculated_quantity);
+      if (it.pricing_unit && cq !== null) line.calculated_quantity = cq;
+      if (it.quantity_source === 'calculated' || it.quantity_source === 'manual') line.quantity_source = it.quantity_source;
+      if (typeof it.calculation_method === 'string' && it.calculation_method) line.calculation_method = str(it.calculation_method, 40);
+      const sizes = (Array.isArray(it.measurements) ? it.measurements : []).map(sizeOf).filter(Boolean).map((m, i) => ({ ...m, sort_order: i }));
+      if (sizes.length) line.measurements = sizes;
+      const billing = typeof rowBilling === 'function' ? rowBilling(raw) : null;
+      if (billing === 'fixed' || billing === 'units') line.billing = billing;
+      if (k.details) { const spec = normalizeSpecificationRows(it.specification); if (spec.length) line.specification = spec; }
+      line.section_key = 's1';
+      return line;
+    });
+  const content = { schema: TEMPLATE_SCHEMA, kind: TEMPLATE_KIND_UNIT, structure_mode: 'divided', sections: [{ key: 's1', name: str(section.name, 200).trim() }], items };
+  const priced = k.prices && items.some((it) => it.unit_price !== undefined);
+  if (priced && /^[A-Z]{3}$/.test(String(form?.currency || '').toUpperCase())) content.currency = String(form.currency).toUpperCase();
+  if (priced && PRICE_BASES.includes(form?.priceBasis)) content.price_basis = form.priceBasis;
+  return stripForbiddenKeys(content);
+}
+// Which price questions adding a unit template needs (the whole-quote template rules, R-03 / R-20 / A5): currency 'mismatch' (prices are
+// removed, after a confirm) or 'unknown' (use as is / without prices); for an Israeli quote basis 'unknown' or 'mismatch' (incl. vs before VAT
+// against the chosen client type). A quote with no client type yet asks nothing about the basis (the template's basis then sets it).
+export function unitTemplatePriceQuestions(u, { currency, isLocal, clientType } = {}) {
+  const priced = (u?.items || []).some((it) => it.unit_price !== '' && it.unit_price != null);
+  if (!priced) return { currency: null, basis: null };
+  const cur = currency ? String(currency).toUpperCase() : null;
+  const currencyQ = !u.currency ? 'unknown' : (cur && u.currency !== cur ? 'mismatch' : null);
+  if (currencyQ === 'mismatch' || !isLocal) return { currency: currencyQ, basis: null };
+  const quoteBasis = templatePriceBasis(true, clientType);
+  const basis = !u.priceBasis ? (quoteBasis ? 'unknown' : null) : (quoteBasis && u.priceBasis !== quoteBasis ? 'mismatch' : null);
+  return { currency: currencyQ, basis };
+}
+// A unit template -> ONE new unit (count 1, a fresh key from newKey()) and its rows (no ids, no price link), ready to add to the open quote
+export function unitTemplateToRows(content, newKey) {
+  const c = readTemplateContent(content);
+  if (!c || templateKind(c) !== TEMPLATE_KIND_UNIT) return null;
+  const src = (Array.isArray(c.sections) ? c.sections : [])[0];
+  if (!src || !str(src.name).trim()) return null;
+  const key = newKey();
+  const items = (Array.isArray(c.items) ? c.items : []).filter((it) => str(it?.description).trim()).map((it) => {
+    const row = { description: str(it.description, 1000), quantity: String(num(it.quantity) ?? 1), unit_price: num(it.unit_price) !== null ? String(num(it.unit_price)) : '', isFromCatalog: false, section_key: key };
+    if (it.pricing_unit) row.pricing_unit = str(it.pricing_unit, 40);
+    if (it.pricing_unit && num(it.calculated_quantity) !== null) row.calculated_quantity = num(it.calculated_quantity);
+    if (it.quantity_source === 'calculated' || it.quantity_source === 'manual') row.quantity_source = it.quantity_source;
+    if (typeof it.calculation_method === 'string' && it.calculation_method) row.calculation_method = it.calculation_method;
+    const sizes = (Array.isArray(it.measurements) ? it.measurements : []).map(sizeOf).filter(Boolean)
+      .map((m) => ({ width: m.width ?? '', height: m.height ?? '', unit: m.unit, calculated_area: m.calculated_area ?? null, label: '', is_pricing_driving: m.is_pricing_driving }));
+    if (sizes.length) row.measurements = sizes;
+    else if (it.pricing_unit && num(it.calculated_quantity) !== null && it.quantity_source !== 'calculated') { row.quantity_source = 'manual'; row.calculation_method = 'manual'; }
+    if (it.billing === 'fixed' || it.billing === 'units') row._billing = it.billing;
+    const spec = normalizeSpecificationRows(it.specification);
+    if (spec.length) row.specification = spec;
+    return row;
+  });
+  return {
+    section: { key, id: null, name: str(src.name, 200), repeat_count: 1 },
+    items,
+    currency: typeof c.currency === 'string' && /^[A-Z]{3}$/.test(c.currency) ? c.currency : null,
+    priceBasis: PRICE_BASES.includes(c.price_basis) ? c.price_basis : null,
   };
 }
