@@ -9,7 +9,7 @@
 // replace the item cards and the item window in the quote screen - details for the customer, extra sizes and a known area open inside the
 // row; the price and the quantity use the same grammar as the "Edit price" window (utils/itemPrice.js), an invalid value is shown at the
 // field and never stored; up / down move a row inside its unit; Enter in a filled row's price adds the next row.
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 import { MoreVertical, ChevronDown, Plus, X } from 'lucide-react';
 import { APP as NEON } from '../theme/neonTheme';
 import { buildQuoteItemFromEntry, blankRowItem, rowEntry, convertSizeBetween, isFeetUnit, isCountedMethod, sizeToBase } from '../utils/quoteItemEntry';
@@ -610,10 +610,23 @@ export default function QuoteRowsEditor({
         if (!item) return null;
         const k = keyOf(item);
         return (
-          <RowLine key={k} rowId={k} item={item} index={index} pos={pos} count={shown.length} store={store} t={t} isHebrew={isHebrew} international={international}
-            sym={sym} fmtMoney={fmtMoney} services={services} sections={sections} onItem={onItem} onDuplicate={onDuplicate} onRemove={onRemove} onMove={onMove}
-            onShift={onShift} onEnterNext={onEnterNext} onCatalogItemAdded={onCatalogItemAdded} canUseMeasured={canUseMeasured} onMeasuredLocked={onMeasuredLocked}
-            linked={linkedOf(index)} onLinkedAll={onLinkedAll} recommendedMethod={recommendedMethod} canRemove={items.length > 1} />
+          <Fragment key={k}>
+            {item._localExample && (
+              // Owner console 2026-11-08 (restore item 07; 4f1592f2:src/components/QuoteForm.jsx 1023-1031): the example line's mark and removal
+              <div data-testid="quote-example-badge" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '6px 10px', margin: '4px 0', borderRadius: '8px', background: '#fff4e2', border: '1px solid #f1c27d', color: '#8a4b00', fontSize: '0.78rem', fontWeight: 700 }}>
+                <span>{isHebrew ? 'דוגמה · לא נשמרת' : 'Example · not saved'}</span>
+                {/* PRODUCT_TRUTH_DECORATIVE: removes the local example line (Owner round 1, A6; restored 2026-11-08) */}
+                <button type="button" data-testid="quote-remove-example" onClick={() => setItems((prev) => { const rest = prev.filter((it) => !(it && it._localExample)); return rest.length ? rest : [blankRowItem(null)]; })}
+                  style={{ background: 'none', border: 'none', color: '#8a4b00', textDecoration: 'underline', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', padding: '4px 6px', minHeight: '40px' }}>
+                  {isHebrew ? 'הסרת הדוגמה' : 'Remove the example'}
+                </button>
+              </div>
+            )}
+            <RowLine rowId={k} item={item} index={index} pos={pos} count={shown.length} store={store} t={t} isHebrew={isHebrew} international={international}
+              sym={sym} fmtMoney={fmtMoney} services={services} sections={sections} onItem={onItem} onDuplicate={onDuplicate} onRemove={onRemove} onMove={onMove}
+              onShift={onShift} onEnterNext={onEnterNext} onCatalogItemAdded={onCatalogItemAdded} canUseMeasured={canUseMeasured} onMeasuredLocked={onMeasuredLocked}
+              linked={linkedOf(index)} onLinkedAll={onLinkedAll} recommendedMethod={recommendedMethod} canRemove={items.length > 1} />
+          </Fragment>
         );
       })}
       {undoLive && (

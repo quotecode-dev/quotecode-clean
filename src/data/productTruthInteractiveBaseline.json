@@ -336,8 +336,8 @@
     "markers": 5
   },
   "src/components/QuoteForm.jsx": {
-    "interactive": 36,
-    "markers": 39
+    "interactive": 37,
+    "markers": 40
   },
   "src/components/QuoteFromFileDialog.jsx": {
     "interactive": 5,
@@ -348,12 +348,12 @@
     "markers": 3
   },
   "src/components/QuoteRowsEditor.jsx": {
-    "interactive": 18,
-    "markers": 18
+    "interactive": 19,
+    "markers": 19
   },
   "src/components/QuoteTemplateDialogs.jsx": {
-    "interactive": 7,
-    "markers": 8
+    "interactive": 6,
+    "markers": 7
   },
   "src/components/QuotesTab.jsx": {
     "interactive": 33,
