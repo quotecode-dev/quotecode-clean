@@ -145,7 +145,6 @@ export function applyDraftUpdateToItem(item, update) {
       // another unit: the line takes the unit's own shape (as a drafted line of that unit), its price and description kept
       const shaped = draftLinesToQuoteItems([{ description: next.description, quantity: q, unit, unitPrice: null, catalogId: null }])[0];
       next = { ...next, ...shaped, description: next.description, unit_price: next.unit_price, isFromCatalog: item.isFromCatalog };
-      delete next.price_link_id; // Owner console 2026-11-08 (stage 3): another billing basis leaves the shared-price group
       if (unit === 'unit') { delete next.pricing_unit; delete next.calculated_quantity; delete next.quantity_source; delete next.calculation_method; }
     } else if (isMeasurableUnit(item.pricing_unit)) {
       // a measured line: the stated amount overrides the measurements (as the item window's manual override)

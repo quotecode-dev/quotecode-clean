@@ -2,7 +2,7 @@
 // payload (only quote content; the shared sanitizer drops everything else and removes the names / address the editor knows), reads the
 // caller's counters and asks the Edge Function customer-twin through the fresh-session path (CT-09). Never throws.
 import { sanitizeTwinQuote, twinTooLong, TWIN_QUOTE_VERSION } from '../../supabase/functions/_shared/customerTwin.js';
-import { getActiveQuantity, sectionRepeatOf } from './professionalQuoteItem';
+import { getActiveQuantity } from './professionalQuoteItem';
 import { financialsMatchingStored } from './storedQuoteFinancials';
 import { isQuoteAcceptanceExpired } from './quoteValidity';
 import { makeInvokeWithFreshSession } from '../shared/invokeWithFreshSession';
@@ -12,9 +12,8 @@ const num = (v) => (v === '' || v == null ? null : Number(v));
 const validityOf = (validUntil, market) => (!validUntil ? 'none'
   : isQuoteAcceptanceExpired(validUntil, market === 'INTERNATIONAL' ? 'International' : 'Local') ? 'expired' : 'ok');
 // each editor row keeps ITS number (ref) before empty rows are dropped - a suggestion lands on its own item (CT-02)
-// Owner console 2026-11-08 (stage 3 of the one quote builder): a row of a unit of N identical copies counts N times (the facts are the weighted totals)
-const itemsOf = (rows, copies = () => 1) => (rows || []).map((it, i) => ({
-  ref: i + 1, description: it.description, specification: it.specification, quantity: getActiveQuantity(it) * copies(it),
+const itemsOf = (rows) => (rows || []).map((it, i) => ({
+  ref: i + 1, description: it.description, specification: it.specification, quantity: getActiveQuantity(it),
   unit: it.pricing_unit || null, unitPrice: num(it.unit_price), priceMissing: it.price_missing === true || it.unit_price === '' || it.unit_price == null,
 }));
 
@@ -24,9 +23,9 @@ function build(raw, personal) {
 }
 
 /** the quote open in the editor -> { quote, tooLong } (market = the account's; the server uses its own anyway) */
-export function twinPayloadFromEditor({ market, currency, quoteSubject, items, sections = [], terms, warranty, validUntil, taxRate, clientType, discount, financials = {}, personal = [] }) {
+export function twinPayloadFromEditor({ market, currency, quoteSubject, items, terms, warranty, validUntil, taxRate, clientType, discount, financials = {}, personal = [] }) {
   return build({
-    version: TWIN_QUOTE_VERSION, market, currency, subject: quoteSubject, items: itemsOf(items, (it) => sectionRepeatOf(it, sections)), terms, warranty, validUntil,
+    version: TWIN_QUOTE_VERSION, market, currency, subject: quoteSubject, items: itemsOf(items), terms, warranty, validUntil,
     validity: validityOf(validUntil, market), taxRate: num(taxRate), clientType, discountPercent: num(discount),
     // CT-08: the editor's own canonical amounts (calculateQuoteFinancials)
     facts: { subtotal: financials.subtotal, discountAmount: financials.discountAmount, netAmount: financials.netAmount, taxAmount: financials.taxAmount, total: financials.total },
@@ -42,7 +41,7 @@ export function twinPayloadFromQuoteRow(quote, market, personal = []) {
   const f = financialsMatchingStored({ country: market === 'INTERNATIONAL' ? 'International' : 'Local', currency: quote.currency, clientType: quote.client_type,
     items: [{ quantity: 1, unit_price: Number(quote.subtotal) || 0 }], discount: quote.discount, taxRateOverride: typeof quote.tax_rate === 'number' ? quote.tax_rate : undefined }, quote.total);
   return build({
-    version: TWIN_QUOTE_VERSION, market, currency: quote.currency, subject: quote.quote_subject || quote.subject, items: itemsOf(rows, (it) => sectionRepeatOf(it, quote.quote_sections || [], { itemKeyField: 'section_id', sectionKeyField: 'id' })),
+    version: TWIN_QUOTE_VERSION, market, currency: quote.currency, subject: quote.quote_subject || quote.subject, items: itemsOf(rows),
     terms: quote.terms, warranty: quote.warranty, validUntil: quote.valid_until, validity: validityOf(quote.valid_until, market),
     taxRate: num(quote.tax_rate), clientType: quote.client_type, discountPercent: num(quote.discount),
     facts: { subtotal: num(quote.subtotal), discountAmount: f.discountAmount, netAmount: f.netAmount, taxAmount: f.taxAmount, total: num(quote.total) },

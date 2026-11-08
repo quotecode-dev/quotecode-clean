@@ -741,12 +741,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-07 (typed: \"מאשר את שחרור ד׳ ושחרור ה׳ לפי ההמלצות, סעיף 3 לספור, ...\" + the plan): the meter accuracy - a micro-USD reserve converted at today's rate; a stale action counted at its reserve; replays cleanly (CREATE OR REPLACE, DROP IF EXISTS of the old claim signature)."
-    },
-    "20261108200000_quote_unit_repeat_and_price_link.sql": {
-      "sha256": "bc3cdfcc64701b320e562ee54b875d75eaf913a4b39221c93e1320269fff4515",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-11-08 (typed: \"מאשר את שלב 3 (דירות זהות ומחיר משותף) ואת שלב 4 (תבנית יחידה) לפי ההחלטות, כולל מיגרציה ...\"): identical units (quote_sections.repeat_count 1..999) and a shared price (quote_items.price_link_id); save_quote_structured keeps stored values for an older payload; the deal document carries the count only above 1; replays cleanly (ADD COLUMN IF NOT EXISTS, guarded CHECK, CREATE OR REPLACE)."
     }
   }
 }

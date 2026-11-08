@@ -176,7 +176,7 @@ serve(async (req) => {
       discount, terms, warranty, notes, subject, status, signature, currency, client_type,
       quote_number, attn_name, attn_role, project_name, signer_name, signer_company, signer_role, signed_at,
       clients ( user_id, company_name, email, phone, address ),
-      quote_sections ( id, name, sort_order, repeat_count ),
+      quote_sections ( id, name, sort_order ),
       quote_items ( description, quantity, unit_price, total_price, price_missing, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, sort_order, quote_item_measurements ( width, height, unit, calculated_area, label, sort_order, is_pricing_driving ) )
     `;
     const flatSelect = `
@@ -199,8 +199,7 @@ serve(async (req) => {
       const msg = String(err?.message || '');
       // night task 2026-10-16 (SND-9): price_missing too - the flat select does not read it, so a missing column falls back instead of failing
       // 2026-10-25 (L-24): the stored signer too - a server before 20261025000000 falls back instead of failing
-      // Owner console 2026-11-08 (stage 3 of the one quote builder): the unit count too (20261108200000)
-      return ['repeat_count', 'signer_name', 'signer_company', 'signer_role', 'signed_at', 'price_missing', 'project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
+      return ['signer_name', 'signer_company', 'signer_role', 'signed_at', 'price_missing', 'project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
         .some((col) => msg.includes(col));
     };
 
@@ -301,9 +300,8 @@ serve(async (req) => {
       } : null,
       // חוק ברזל (Part E): [] כשה-select השטוח-בלבד רץ - זהה-בייט ל"אין
       // קבוצות" הקיים, לא שדה חסר/undefined.
-      // Owner console 2026-11-08 (stage 3 of the one quote builder): a unit of N identical copies carries repeat_count ONLY when N > 1 (every existing response is unchanged)
       sections: (quote.quote_sections || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
-        .map((s: any) => ({ id: s.id, name: s.name, ...(Number.isInteger(s.repeat_count) && s.repeat_count > 1 ? { repeat_count: s.repeat_count } : {}) })),
+        .map((s: any) => ({ id: s.id, name: s.name })),
       items: (quote.quote_items || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0)).map((i: any) => ({
         description: i.description, quantity: i.quantity, price: i.unit_price, total_price: i.total_price,
         // Task 35 (F4): the flag only when true - every existing response stays byte-identical

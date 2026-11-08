@@ -55,8 +55,7 @@ function mapItem(item) {
 export function buildPreviewQuoteData({ editor = {}, financials = {}, business = null, presentation = {} } = {}) {
   const sections = (Array.isArray(editor.sections) ? editor.sections : [])
     .filter((s) => str(s?.name).trim() !== '')
-    // Owner console 2026-11-08 (stage 3 of the one quote builder): the unit count only above 1 - the same shape get-public-quote returns
-    .map((s) => ({ id: s.key ?? s.id, name: s.name, ...(Number(s.repeat_count) > 1 ? { repeat_count: Number(s.repeat_count) } : {}) }));
+    .map((s) => ({ id: s.key ?? s.id, name: s.name }));
   const items = excludeUntouchedPlaceholderItems(Array.isArray(editor.items) ? editor.items : []).map(mapItem);
   const status = str(editor.quoteStatus || 'draft').toLowerCase();
 

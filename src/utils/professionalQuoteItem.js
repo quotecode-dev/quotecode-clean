@@ -334,25 +334,6 @@ export function withActiveQuantities(items) {
   return (items || []).map(it => ({ ...it, quantity: getActiveQuantity(it) }));
 }
 
-// Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17): a unit can stand for N identical copies
-// (quote_sections.repeat_count, a whole number 1..999). A row's own total stays the total of ONE copy; the quote total weights each
-// row by its unit's count - here, in ONE place, before calculateQuoteFinancials (which stays untouched, so the rounding point is the
-// same as before). A row without a unit, or whose unit is not found, counts once. The same join fields as groupItemsBySection.
-export const MAX_REPEAT_COUNT = 999;
-export function normalizeRepeatCount(value) {
-  const n = Number(value);
-  return Number.isInteger(n) && n >= 1 && n <= MAX_REPEAT_COUNT ? n : 1;
-}
-export function sectionRepeatOf(item, sections, { itemKeyField = 'section_key', sectionKeyField = 'key' } = {}) {
-  const key = item && item[itemKeyField];
-  if (!key) return 1;
-  const section = (Array.isArray(sections) ? sections : []).find((s) => s && s[sectionKeyField] === key);
-  return section ? normalizeRepeatCount(section.repeat_count) : 1;
-}
-export function withWeightedActiveQuantities(items, sections, opts) {
-  return (items || []).map((it) => ({ ...it, quantity: getActiveQuantity(it) * sectionRepeatOf(it, sections, opts) }));
-}
-
 // חוק ברזל (Smart Quote Final Closure task, Part E - "CRITICAL FINAL
 // CLARIFICATION: DO NOT MERGE SAME-NAME ITEMS", supersedes the Final Smart
 // Quote Correction task's same-commercial-item grouping): the Owner

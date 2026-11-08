@@ -54,8 +54,7 @@ describe('templates - content', () => {
     expect(templateSummary(c).subtotal).toBe(120 * 12.5 + 300 * 2);
     let n = 0;
     const f = templateToFormState(c, () => `new-${++n}`);
-    // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17 / L-24..L-28): + the unit count (1 = none)
-    expect(f.sections).toEqual([{ key: 'new-1', id: null, name: 'Walls', sort_order: 0, repeat_count: 1 }]);
+    expect(f.sections).toEqual([{ key: 'new-1', id: null, name: 'Walls', sort_order: 0 }]);
     expect(f.items[0]).toMatchObject({ description: 'Tiles', quantity: '1', unit_price: '120', pricing_unit: 'm2', calculated_quantity: 12.5, quantity_source: 'manual', section_key: 'new-1' });
     expect(f.items.every((it) => !('id' in it))).toBe(true);
     expect(f.quoteStructureMode).toBe('divided');

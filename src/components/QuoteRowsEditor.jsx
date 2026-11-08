@@ -13,7 +13,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { MoreVertical, ChevronDown, Plus, X } from 'lucide-react';
 import { APP as NEON } from '../theme/neonTheme';
 import { buildQuoteItemFromEntry, blankRowItem, rowEntry, convertSizeBetween, isFeetUnit } from '../utils/quoteItemEntry';
-import { getActiveQuantity, getProfessionalUnitLabel, formatQuantity, normalizeRepeatCount } from '../utils/professionalQuoteItem';
+import { getActiveQuantity, getProfessionalUnitLabel, formatQuantity } from '../utils/professionalQuoteItem';
 import { parsePriceInput, parseQuantityInput } from '../utils/itemPrice';
 import { askConfirm } from './AppDialog';
 
@@ -28,10 +28,6 @@ const COPY = {
     sizeLabel: 'שם, למשל סלון', priceError: 'מחיר לא תקין - מספר עם נקודה, למשל 1200.50', qtyError: 'כמות לא תקינה - מספר גדול מ-0',
     sizesLost: 'מעבר לסוג חיוב אחר ימחק את המידות של השורה. להמשיך?', perUnit: 'לכל',
     unitChange: 'מעבר בין מטרים לרגל משנה את היחידה שהמחיר נקבע לפיה (מ״ר או רגל רבועה). לבדוק את המחיר אחרי המעבר?',
-    linkedTo: 'המחיר השתנה ל-', linkedAsk: 'לעדכן גם {n} שורות מקושרות?', linkedAsk1: 'לעדכן גם את השורה המקושרת?',
-    linkedHere: 'רק כאן', linkedAll: 'עדכון כולן', linkedAll1: 'עדכון גם שם', linkedCancel: 'ביטול',
-    linkedCopies: 'כולל {c} יחידות זהות', linkedDone: 'עודכנו {n} מחירים מקושרים', linkedDone1: 'עודכן מחיר מקושר אחד', linkedUndo: 'ביטול עדכון המחירים',
-    linkBreak: 'למחיר של השורה הזאת מקושרות שורות ביחידות אחרות. שינוי סוג החיוב ינתק אותה מהקישור. להמשיך?',
   },
   en: {
     item: 'Item', billing: 'Billing', amount: 'Quantity / size', price: 'Price', total: 'Total', itemPlaceholder: 'Search the catalog or type a name',
@@ -43,10 +39,6 @@ const COPY = {
     sizeLabel: 'Name, e.g. Living room', priceError: 'Invalid price - a number with a dot, e.g. 1200.50', qtyError: 'Invalid quantity - a number above 0',
     sizesLost: "Switching the billing type removes this row's sizes. Continue?", perUnit: 'per',
     unitChange: 'Switching between metres and feet changes what the price is for (m² or sq ft). Check the price after switching?',
-    linkedTo: 'The price changed to ', linkedAsk: 'Update {n} linked rows too?', linkedAsk1: 'Update the linked row too?',
-    linkedHere: 'Only here', linkedAll: 'Update all', linkedAll1: 'Update it too', linkedCancel: 'Cancel',
-    linkedCopies: 'covers {c} identical units', linkedDone: '{n} linked prices updated', linkedDone1: '1 linked price updated', linkedUndo: 'Undo the price update',
-    linkBreak: 'Rows in other units share this row\'s price. Changing the billing type unlinks it. Continue?',
   },
 };
 const METHODS = ['fixed', 'units', 'area', 'linear'];
@@ -59,7 +51,6 @@ const hasSizes = (it) => Array.isArray(it?.measurements) && it.measurements.some
 const copyItem = (it) => {
   const copy = { ...it };
   delete copy.id;
-  delete copy.price_link_id; // Owner console 2026-11-08 (stage 3): a manually copied row starts with its own price
   if (Array.isArray(it.measurements)) copy.measurements = it.measurements.map((m) => { const c = { ...m }; delete c.id; return c; });
   if (Array.isArray(it.specification)) copy.specification = it.specification.map((r) => ({ ...r }));
   return copy;
@@ -117,7 +108,7 @@ function ItemField({ value, onText, onPick, services, t, rowId, inputRef, sym, f
 const fieldStyle = { minHeight: '40px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.84rem' };
 const errStyle = { flexBasis: '100%', margin: '2px 0 0', fontSize: '0.72rem', fontWeight: 700, color: NEON.red };
 
-function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney, services, sections, store, pos, count, onItem, onDuplicate, onRemove, onMove, onShift, onEnterNext, onCatalogItemAdded, canUseMeasured, onMeasuredLocked, linked = null, onLinkedAll = null }) {
+function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney, services, sections, store, pos, count, onItem, onDuplicate, onRemove, onMove, onShift, onEnterNext, onCatalogItemAdded, canUseMeasured, onMeasuredLocked }) {
   // a catalog line stays a catalog line when it is edited again (the entry's catalog mark; the media binding runs only on a new pick)
   const entryOf = (it) => ({ ...rowEntry(it, international), catalogServiceId: it.isFromCatalog ? 'catalog' : null });
   const [entry, setEntry] = useState(() => entryOf(item));
@@ -145,10 +136,6 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
   const [qtyErr, setQtyErr] = useState(false);
   const itemInput = useRef(null);
   const menuBtnRef = useRef(null);
-  // Owner console 2026-11-08 (stage 3, decision 5): a linked row's explicit new price asks whether the linked rows take it too
-  const priceAtFocus = useRef(null);
-  const [linkAsk, setLinkAsk] = useState(null);
-  const isLinked = !!(item.price_link_id && linked && linked.count > 0);
   useEffect(() => {
     if (store.focus === rowId) { store.focus = null; itemInput.current?.focus(); }
   }, [store, rowId]);
@@ -180,8 +167,6 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
     if (!conversionConfirmed && qtyUntouched && next.pricingMethod === 'units' && item.quantity !== undefined) built.quantity = item.quantity;
     // a fixed amount and "1 unit" are the same stored line - the row remembers which one the user chose (a screen-only mark, never saved)
     if (next.pricingMethod === 'fixed' || next.pricingMethod === 'units') built._billing = next.pricingMethod;
-    // stage 3: the shared-price link stays through any edit of the same billing basis; another basis unlinks the row (asked before)
-    if (item.price_link_id && next.pricingMethod === now.pricingMethod && (built.pricing_unit || null) === (item.pricing_unit || null)) built.price_link_id = item.price_link_id;
     lastBuilt.current = built;
     onItem(index, built);
     return built;
@@ -190,7 +175,6 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
   const changeMethod = async (m) => {
     if (isMeasured(m) && !canUseMeasured) { onMeasuredLocked?.(); return; }
     if (isMeasured(method) && !isMeasured(m) && hasSizes(item) && !(await askConfirm(t.sizesLost, isHebrew))) return;
-    if (m !== method && isLinked && !(await askConfirm(t.linkBreak, isHebrew))) return;
     apply({ pricingMethod: m, quantity: m === 'units' ? (entry.quantity || '1') : '1', useManualQty: isMeasured(m) ? entry.useManualQty : false });
   };
   // a known amount starts from the row's current amount (never an empty 0); sizes / known switch is a conversion of the row
@@ -204,7 +188,6 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
     const from = entry.measureUnit;
     if (next === from) return;
     const crossing = isFeetUnit(next) !== isFeetUnit(from);
-    if (crossing && isLinked && !(await askConfirm(t.linkBreak, isHebrew))) return;
     if (crossing && String(entry.unitPrice ?? '').trim() !== '' && !(await askConfirm(t.unitChange, isHebrew))) return;
     apply({
       measureUnit: next,
@@ -282,11 +265,6 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
       </div>
       <label className="qrow-price"><span className="qrow-mlabel">{t.price}</span>
       <input {...num} aria-label={t.price} aria-invalid={priceErr} value={entry.unitPrice} data-testid={`qrow-price-${rowId}`} onChange={(e) => apply({ unitPrice: e.target.value })}
-        onFocus={() => { priceAtFocus.current = String(entry.unitPrice ?? ''); }}
-        onBlur={() => {
-          const now = String(entry.unitPrice ?? '').trim();
-          if (isLinked && now !== '' && parsePriceInput(now).ok && priceAtFocus.current != null && now !== priceAtFocus.current.trim()) setLinkAsk({ from: priceAtFocus.current });
-        }}
         onKeyDown={(e) => { if (e.key === 'Enter' && String(entry.description).trim() !== '' && !priceErr) { e.preventDefault(); onEnterNext(index); } }}
         style={{ ...num.style, width: '84px' }} />
       {priceErr && <span role="alert" style={{ ...errStyle, display: 'block' }}>{t.priceError}</span>}
@@ -334,26 +312,6 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
           </div>
         )}
       </div>
-      {linkAsk && isLinked && (
-        <div className="qrow-extra" role="group" aria-label={linked.count === 1 ? t.linkedAsk1 : t.linkedAsk.replace('{n}', String(linked.count))} data-testid={`qrow-linkask-${rowId}`}
-          style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '8px 10px', border: `1px solid ${NEON.violetLight}`, borderRadius: '10px', background: NEON.bgCardAlt }}>
-          <span style={{ fontSize: '0.8rem', fontWeight: 700, color: NEON.textPrimary }}>
-            {t.linkedTo}<bdi dir="ltr" className="pf-money">{sym}{fmtMoney(Number(item.unit_price))}</bdi>{isMeasured(method) ? <> {t.perUnit} {calcUnit}</> : null}. {linked.count === 1 ? t.linkedAsk1 : t.linkedAsk.replace('{n}', String(linked.count))}
-          </span>
-          <span style={{ fontSize: '0.76rem', color: NEON.textSecondary }}>
-            {linked.names.map((n, i) => <span key={i}>{i > 0 ? ', ' : ''}<bdi>{n}</bdi></span>)}
-            {linked.copies > linked.count ? <> · {t.linkedCopies.replace('{c}', String(linked.copies))}</> : null}
-          </span>
-          <span style={{ display: 'inline-flex', gap: '6px', flexWrap: 'wrap', marginInlineStart: 'auto' }}>
-            {/* PRODUCT_TRUTH_DECORATIVE: shared price (stage 3) - keep the new price only in this row */}
-            <button type="button" data-testid={`qrow-link-here-${rowId}`} onClick={() => setLinkAsk(null)} style={linkBtn}>{t.linkedHere}</button>
-            {/* PRODUCT_TRUTH_DECORATIVE: shared price (stage 3) - the linked rows take the new price, each by its own sizes and unit count */}
-            <button type="button" data-testid={`qrow-link-all-${rowId}`} onClick={() => { const from = linkAsk.from; setLinkAsk(null); onLinkedAll?.(index, from); }} style={{ ...linkBtn, background: NEON.violet, color: '#fff', borderColor: NEON.violet }}>{linked.count === 1 ? t.linkedAll1 : t.linkedAll}</button>
-            {/* PRODUCT_TRUTH_DECORATIVE: shared price (stage 3) - cancel: this row returns to its previous price */}
-            <button type="button" data-testid={`qrow-link-cancel-${rowId}`} onClick={() => { const from = linkAsk.from; setLinkAsk(null); apply({ unitPrice: from }); }} style={linkBtn}>{t.linkedCancel}</button>
-          </span>
-        </div>
-      )}
       {isMeasured(method) && !entry.useManualQty && extra.length > 0 && (
         <div className="qrow-extra" data-testid={`qrow-extrasizes-${rowId}`} style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
           {extra.map((r, i) => (
@@ -391,7 +349,6 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
     </div>
   );
 }
-const linkBtn = { minHeight: '40px', padding: '0 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' };
 const menuBtn = { display: 'block', width: '100%', textAlign: 'start', padding: '8px 10px', minHeight: '40px', background: 'none', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.84rem', color: NEON.textPrimary };
 const iconBtn = { minWidth: '40px', minHeight: '40px', border: 'none', borderRadius: '8px', background: 'none', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
 
@@ -429,50 +386,6 @@ export default function QuoteRowsEditor({
     if (a == null || b == null) return;
     setItems((prev) => { const next = [...prev]; [next[a], next[b]] = [next[b], next[a]]; return next; });
   };
-  // Owner console 2026-11-08 (stage 3, decision 5): the rows sharing a row's price (linked by duplicating a unit) - their unit names and
-  // how many identical copies they stand for; "update all" reprices each one by the same item builder as typing the price in that row
-  const sectionOf = (key) => (key ? sections.find((s) => s.key === key) : null);
-  const linkedOf = (index) => {
-    const src = items[index];
-    if (!src?.price_link_id) return null;
-    const others = items.filter((it, i) => i !== index && it && it.price_link_id === src.price_link_id);
-    const names = [...new Set(others.map((it) => sectionOf(it.section_key)?.name || t.noUnit))];
-    return { count: others.length, names, copies: others.reduce((n, it) => n + normalizeRepeatCount(sectionOf(it.section_key)?.repeat_count), 0) };
-  };
-  const repriced = (it, priceValue) => {
-    const e = rowEntry(it, international);
-    const built = buildQuoteItemFromEntry({ ...e, unitPrice: priceValue, sectionKey: it.section_key ?? null, editingItem: it, isEditMode: true, conversionConfirmed: false });
-    if (e.pricingMethod === 'units' && it.quantity !== undefined) built.quantity = it.quantity;
-    if (it._billing) built._billing = it._billing;
-    built.price_link_id = it.price_link_id;
-    return built;
-  };
-  const [priceUndo, setPriceUndo] = useState(null);
-  const onLinkedAll = (index, fromText) => {
-    const src = items[index];
-    const p = parsePriceInput(String(src?.unit_price ?? ''));
-    if (!src?.price_link_id || !p.ok) return;
-    const before = parsePriceInput(String(fromText ?? ''));
-    const pairs = [];
-    const next = items.map((it, i) => {
-      if (!it) return it;
-      if (i === index) { if (before.ok) pairs.push([repriced(it, before.value), it]); return it; }
-      if (it.price_link_id !== src.price_link_id) return it;
-      const built = repriced(it, p.value);
-      store.map.set(built, keyOf(it));
-      pairs.push([it, built]);
-      return built;
-    });
-    setItems(next);
-    setPriceUndo({ pairs, count: pairs.length - (before.ok ? 1 : 0) });
-  };
-  const undoLive = priceUndo && priceUndo.pairs.every(([, after]) => items.includes(after));
-  const undoPrices = () => {
-    if (!undoLive) return;
-    const back = new Map(priceUndo.pairs.map(([b, a]) => [a, b]));
-    setItems((prev) => prev.map((it) => { const b = back.get(it); if (!b) return it; store.map.set(b, keyOf(it)); return b; }));
-    setPriceUndo(null);
-  };
   const addRow = () => {
     const row = blankRowItem(addSectionKey);
     store.focus = keyOf(row);
@@ -497,17 +410,9 @@ export default function QuoteRowsEditor({
         return (
           <RowLine key={k} rowId={k} item={item} index={index} pos={pos} count={shown.length} store={store} t={t} isHebrew={isHebrew} international={international}
             sym={sym} fmtMoney={fmtMoney} services={services} sections={sections} onItem={onItem} onDuplicate={onDuplicate} onRemove={onRemove} onMove={onMove}
-            onShift={onShift} onEnterNext={onEnterNext} onCatalogItemAdded={onCatalogItemAdded} canUseMeasured={canUseMeasured} onMeasuredLocked={onMeasuredLocked}
-            linked={linkedOf(index)} onLinkedAll={onLinkedAll} />
+            onShift={onShift} onEnterNext={onEnterNext} onCatalogItemAdded={onCatalogItemAdded} canUseMeasured={canUseMeasured} onMeasuredLocked={onMeasuredLocked} />
         );
       })}
-      {undoLive && (
-        <div role="status" data-testid="qrow-price-undo" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px', fontSize: '0.8rem', color: NEON.textSecondary }}>
-          <span>{priceUndo.count === 1 ? t.linkedDone1 : t.linkedDone.replace('{n}', String(priceUndo.count))}</span>
-          {/* PRODUCT_TRUTH_DECORATIVE: shared price (stage 3) - undo the last linked price update, the row that started it included */}
-          <button type="button" onClick={undoPrices} style={linkBtn}>{t.linkedUndo}</button>
-        </div>
-      )}
       {showAdd && (
         // PRODUCT_TRUTH_DECORATIVE: add row: appends a blank quote item row (the one quote builder's rows; sub-control of the existing add-item flow)
         <button type="button" data-testid="qrow-add" onClick={() => addRow()}

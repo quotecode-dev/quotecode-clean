@@ -107,10 +107,8 @@ export function serverFingerprintFromQuote(quote) {
     it.id, it.description ?? '', String(it.quantity ?? ''), String(it.unit_price ?? ''), it.pricing_unit ?? '', String(it.calculated_quantity ?? ''),
     it.section_id ?? '', JSON.stringify(it.specification ?? null),
     (it.quote_item_measurements || []).slice().sort((a, b) => String(a.id).localeCompare(String(b.id))).map((m) => [m.id, String(m.width ?? ''), String(m.height ?? ''), m.label ?? '', m.is_pricing_driving]),
-    // Owner console 2026-11-08 (stage 3 of the one quote builder): the price link / unit count enter only when present, so every existing baseline is unchanged
-    ...(it.price_link_id ? [it.price_link_id] : []),
   ]);
-  const sections = (quote.quote_sections || []).slice().sort((a, b) => String(a.id).localeCompare(String(b.id))).map((s) => [s.id, s.name ?? '', s.sort_order ?? 0, ...(Number(s.repeat_count) > 1 ? [Number(s.repeat_count)] : [])]);
+  const sections = (quote.quote_sections || []).slice().sort((a, b) => String(a.id).localeCompare(String(b.id))).map((s) => [s.id, s.name ?? '', s.sort_order ?? 0]);
   const base = {
     id: quote.id, status: quote.status ?? '', valid_until: quote.valid_until ?? '', terms: quote.terms ?? '', warranty: quote.warranty ?? '',
     notes: quote.notes ?? '', subject: quote.subject ?? quote.quote_subject ?? '', project_name: quote.project_name ?? '', discount: String(quote.discount ?? ''),

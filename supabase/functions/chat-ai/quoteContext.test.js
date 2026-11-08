@@ -82,8 +82,7 @@ describe('sanitizeQuoteContext - §6.3 field whitelist', () => {
     expect(ctx.subtotal).toBe(1000);
     expect(ctx.taxRate).toBe(0.18);
     expect(ctx.total).toBe(1180);
-    // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17 / L-24..L-28): + the unit count (1 = none)
-    expect(ctx.sections).toEqual([{ id: 's1', name: 'Section A', repeatCount: 1 }]);
+    expect(ctx.sections).toEqual([{ id: 's1', name: 'Section A' }]);
   });
 
   it('marks a quote locked when approved, paid, or signed - matching quoteLock.js isQuoteImmutable exactly', () => {
