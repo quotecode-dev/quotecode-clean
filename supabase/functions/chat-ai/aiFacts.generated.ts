@@ -323,7 +323,7 @@ export const AI_FACTS = {
       "id": "measured_quote",
       "heLabel": "הצעת מחיר מקצועית/מדודה",
       "enLabel": "Measured professional quote",
-      "heDescription": "מידות בהצעה (בתוך הכפתור „הצעת מחיר”): בכל שורה בעורך בוחרים אופן חיוב - סכום קבוע, יחידות, שטח, אורך, ק״ג, שעות או ימים. בשטח ובאורך כותבים את המידות באותה שורה (במטר או בס״מ, או כמות ידועה במ״ר / מ״א, ואפשר מידה נוספת; בחשבון בינלאומי ברגל או באינץ׳, ומטר נשאר זמין - ואז המחיר לרגל רבועה / לרגל אורך, בלי המרה בין מטרים לרגל), והסכום מחושב מיד. חלוקה לחדרים / אזורים / יחידות היא אופציונלית.",
+      "heDescription": "מידות בהצעה (בתוך הכפתור „הצעת מחיר”): בכל שורה בעורך בוחרים סוג חיוב - סכום קבוע, יחידות, שטח, אורך, ק״ג, שעות או ימים. בשטח ובאורך כותבים את המידות באותה שורה (במטר או בס״מ, או כמות ידועה במ״ר / מ״א, ואפשר מידה נוספת; בחשבון בינלאומי ברגל או באינץ׳, ומטר נשאר זמין - ואז המחיר לרגל רבועה / לרגל אורך, בלי המרה בין מטרים לרגל), והסכום מחושב מיד. חלוקה לחדרים / אזורים / יחידות היא אופציונלית.",
       "enDescription": "Sizes in a quote (inside the one \"Quote\" entry): every row of the editor chooses its billing - a fixed amount, units, area, length, kg, hours or days. For area and length the sizes are typed in the same row (in m or cm, or a known quantity in m² / linear m, and another size can be added; an international account measures in feet or inches, metres stay available, and prices per sq ft / linear ft - metres and feet are never converted into each other), and the total is calculated at once. Grouping into rooms/areas/units is optional.",
       "state": "LIVE_CURRENT",
       "markets": [
@@ -1438,7 +1438,7 @@ export const AI_FACTS = {
           "לפני ההצעה הראשונה צריך טלפון עסק (ובישראל גם ח.פ / עוסק מורשה) ב\"הגדרות העסק\".",
           "לוחצים \"הצעה חדשה\" ובוחרים \"הצעת מחיר\".",
           "בשלב \"למי ההצעה?\" ממלאים את פרטי הלקוח ובוחרים \"סוג לקוח (חובה)\".",
-          "בשלב \"מה העבודה או המוצר?\" כל שורה היא פריט: כותבים שם, או לוחצים על החץ (\"פתיחת הקטלוג\") ובוחרים מהקטלוג. בוחרים \"אופן חיוב\" - סכום קבוע, יחידות, שטח, אורך, ק״ג, שעות או ימים - וממלאים כמות או מידות ומחיר. \"הוספת שורה\" מוסיפה עוד פריט.",
+          "בשלב \"מה העבודה או המוצר?\" כל שורה היא פריט: כותבים שם, או לוחצים על החץ (\"פתיחת הקטלוג\") ובוחרים מהקטלוג. בוחרים \"סוג חיוב\" - סכום קבוע, יחידות, שטח, אורך, ק״ג, שעות או ימים - וממלאים כמות או מידות ומחיר. \"הוספת שורה\" מוסיפה עוד פריט.",
           "בשלב \"מחיר\" אפשר לתת הנחה על כל ההצעה.",
           "בשלב \"בדיקה ושמירה\" לוחצים \"הפקה ושמירה בענן\". כל הצעה חדשה נשמרת כטיוטה, ואחרי השמירה אפשר לשלוח אותה."
         ]
@@ -1449,7 +1449,7 @@ export const AI_FACTS = {
           "Before the first quote a business phone is required in \"Business Settings\".",
           "Click \"New quote\" and choose \"Quote\".",
           "In the \"Who is it for?\" step fill in the client details and choose the client type.",
-          "In the \"What work or product?\" step every row is an item: type a name, or click the arrow (\"Open the catalog\") and pick from your catalog. Choose the \"Billing method\" - a fixed amount, units, area, length, kg, hours or days - and fill in the quantity or the sizes and the price. \"Add row\" adds another item.",
+          "In the \"What work or product?\" step every row is an item: type a name, or click the arrow (\"Open the catalog\") and pick from your catalog. Choose the \"Billing\" - a fixed amount, units, area, length, kg, hours or days - and fill in the quantity or the sizes and the price. \"Add row\" adds another item.",
           "In the \"Price\" step you can give a discount on the whole quote.",
           "In the \"Review and save\" step click \"Generate & Save to Cloud\". Every new quote is saved as a draft; after saving you can send it."
         ]

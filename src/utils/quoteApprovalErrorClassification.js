@@ -51,9 +51,8 @@ const PATTERNS = [
     category: 'quote_updated',
     test: (msg) => /quote updated/i.test(msg),
     userMessage: {
-      // G9 (Owner 2026-11-08, the clarity fixes B3)
-      he: 'ההצעה עודכנה. עברו על השינויים לפני החתימה.',
-      en: 'This quote was updated. Review the changes before signing.',
+      he: 'העסק עדכן את ההצעה בזמן שהייתה פתוחה. עברו על ההצעה המעודכנת וחתמו שוב.',
+      en: 'The business updated this quote while it was open. Please review the updated quote and sign again.',
     },
   },
   {

@@ -40,7 +40,7 @@ describe('the row editor', () => {
     render(<Harness initial={[{ ...blankRowItem(), description: 'ריצוף', unit_price: '120' }]} />);
     const id = screen.getByTestId('quote-rows-editor').querySelector('[data-testid^="qrow-item-"]').dataset.testid.replace('qrow-item-', '');
     fireEvent.change(screen.getByTestId(`qrow-billing-${id}`), { target: { value: 'area' } });
-    expect(await answerAppDialog(true)).toContain('אופן החיוב ישתנה');
+    expect(await answerAppDialog(true)).toContain('שינוי היחידה דורש בדיקה מחדש של המחיר');
     await waitFor(() => expect(screen.getByTestId(`qrow-sizeunit-${id}`)).toBeTruthy());
     expect(screen.getByTestId(`qrow-sizeunit-${id}`).value).toBe('m');
     fireEvent.change(screen.getByTestId(`qrow-w-${id}`), { target: { value: '4' } });
@@ -48,19 +48,19 @@ describe('the row editor', () => {
     expect(last[0]).toMatchObject({ pricing_unit: 'm2', calculated_quantity: 12, quantity_source: 'calculated', calculation_method: 'area' });
     expect(last[0].measurements).toEqual([{ width: 4, height: 3, unit: 'm', calculated_area: 12, label: '', is_pricing_driving: true }]);
     expect(screen.getByTestId(`qrow-total-${id}`).textContent).toBe('₪1440.00');
-    expect(screen.getByTestId(`qrow-calc-${id}`).textContent).toBe('כמות לפי מידות: 12.00 מ״ר');
+    expect(screen.getByTestId(`qrow-calc-${id}`).textContent).toBe('12.00 מ״ר');
   });
   it('abroad: feet by default, sq ft', async () => {
     render(<Harness isHebrew={false} international initial={[{ ...blankRowItem(), description: 'Tiling', unit_price: '9' }]} />);
     const id = screen.getByTestId('quote-rows-editor').querySelector('[data-testid^="qrow-item-"]').dataset.testid.replace('qrow-item-', '');
     fireEvent.change(screen.getByTestId(`qrow-billing-${id}`), { target: { value: 'area' } });
-    expect(await answerAppDialog(true)).toContain('The billing method will change');
+    expect(await answerAppDialog(true)).toContain('Changing the unit requires reviewing the price');
     await waitFor(() => expect(screen.getByTestId(`qrow-sizeunit-${id}`)).toBeTruthy());
     expect(screen.getByTestId(`qrow-sizeunit-${id}`).value).toBe('ft');
     fireEvent.change(screen.getByTestId(`qrow-w-${id}`), { target: { value: '12' } });
     fireEvent.change(screen.getByTestId(`qrow-h-${id}`), { target: { value: '10' } });
     expect(last[0]).toMatchObject({ pricing_unit: 'sq_ft', calculated_quantity: 120 });
-    expect(screen.getByTestId(`qrow-calc-${id}`).textContent).toBe('Quantity from measurements: 120.00 sq ft');
+    expect(screen.getByTestId(`qrow-calc-${id}`).textContent).toBe('120.00 sq ft');
   });
   it('a fixed amount has no quantity field; decision 3: an old "1, no unit" line opens as a fixed amount', () => {
     render(<Harness initial={[{ id: 'old', description: 'הובלה', quantity: '1', unit_price: '250', isFromCatalog: false, section_key: null }]} />);
@@ -156,7 +156,7 @@ describe('the row price and quantity (the former quick window)', () => {
   it('a plain line: quantity 1 -> 3 is stored as text like the item window', async () => {
     render(<Harness2 initial={[line({ id: 'p', description: 'אסלה', unit_price: '40' })]} />);
     fireEvent.change(screen.getByTestId('qrow-billing-p'), { target: { value: 'units' } });
-    expect(await answerAppDialog(true)).toContain('אופן החיוב ישתנה');
+    expect(await answerAppDialog(true)).toContain('שינוי שיטת התמחור עלול לשנות את משמעות הסכומים הקיימים');
     await waitFor(() => expect(screen.getByTestId('qrow-qty-p')).toBeTruthy());
     fireEvent.change(screen.getByTestId('qrow-qty-p'), { target: { value: '3' } });
     expect(last[0].quantity).toBe('3');
@@ -252,7 +252,7 @@ describe('inside the row: a known area, more sizes, details for the customer', (
     render(<Harness2 initial={[sized]} />);
     fireEvent.change(screen.getByTestId('qrow-billing-w'), { target: { value: 'units' } });
     // restore item 03: a saved line asks the item window's question (4f1592f2 AddItemWizard destructiveConversionConfirm)
-    expect(await answerAppDialog(false)).toContain('אופן החיוב ישתנה');
+    expect(await answerAppDialog(false)).toContain('שינוי שיטת התמחור עלול לשנות את משמעות הסכומים הקיימים');
     await waitFor(() => expect(last[0]).toBe(sized));
   });
 });
@@ -328,7 +328,7 @@ describe('reviewer findings, fixed', () => {
       measurements: [{ width: 4, height: 3, unit: 'm', calculated_area: 12, label: '', is_pricing_driving: true }] }), blankRowItem()]} />);
     expect(screen.getByTestId('qrow-w-s').parentElement.style.direction).toBe('ltr');
     const calc = screen.getByTestId('qrow-calc-s');
-    expect(calc.textContent).toBe('כמות לפי מידות: 12.00 מ״ר');
+    expect(calc.textContent).toBe('12.00 מ״ר');
     expect(calc.querySelector('bdi').textContent).toBe('12.00');
     fireEvent.click(screen.getByTestId('quote-rows-editor').querySelectorAll('[data-testid^="qrow-catalog-"]')[1]);
     expect(screen.getAllByText('₪120.00').some((el) => el.closest('[role="listbox"]'))).toBe(true);
@@ -354,7 +354,7 @@ describe('the chosen billing survives a redraw', () => {
     expect(fixed).toMatchObject({ description: 'הובלה', quantity: '1', unit_price: '250', _billing: 'fixed' });
     unmount();
     render(<Harness2 initial={[fixed, { ...line({ id: 'u', unit_price: '9' }), _billing: 'units' }]} />);
-    expect(screen.getAllByRole('combobox', { name: 'אופן חיוב' }).map((el) => el.value)).toEqual(['fixed', 'units']);
+    expect(screen.getAllByRole('combobox', { name: 'סוג חיוב' }).map((el) => el.value)).toEqual(['fixed', 'units']);
   });
   it('the save payload never carries the screen mark', () => {
     const d = readFileSync('src/pages/Dashboard.jsx', 'utf8');

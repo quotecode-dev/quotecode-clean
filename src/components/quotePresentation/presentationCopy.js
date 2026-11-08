@@ -80,7 +80,7 @@ export const PRESENTATION_COPY = Object.freeze({
     },
     // preview
     preview: 'תצוגה מקדימה',
-    openPreview: 'תצוגה מקדימה שרק אתם רואים', // G10 (Owner 2026-11-08, the clarity fixes B3)
+    openPreview: 'פתחו תצוגה מקדימה',
     hidePreview: 'הסתירו תצוגה מקדימה',
     showPreview: 'הציגו תצוגה מקדימה',
     closePreview: 'סגרו תצוגה מקדימה',
@@ -217,7 +217,7 @@ export const PRESENTATION_COPY = Object.freeze({
       default: 'The image could not be uploaded.',
     },
     preview: 'Preview',
-    openPreview: 'Preview visible only to you',
+    openPreview: 'Open preview',
     hidePreview: 'Hide preview',
     showPreview: 'Show preview',
     closePreview: 'Close preview',

@@ -941,7 +941,7 @@ export default function QuoteForm({
             {/* Owner console 2026-11-08 (stage 2, typed L-23): the measured entry's locked hint becomes the row explanation */}
             <p data-testid="quote-rows-hint" style={{ margin: '8px 0 0', fontSize: '0.76rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
               {isHebrew
-                ? 'כל שורה היא מוצר או עבודה: בוחרים מהקטלוג או מקלידים שם, וקובעים אופן חיוב - סכום קבוע, יחידות, שטח, אורך, ק״ג, שעות או ימים.'
+                ? 'כל שורה היא מוצר או עבודה: בוחרים מהקטלוג או מקלידים שם, וקובעים סוג חיוב - סכום קבוע, יחידות, שטח, אורך, ק״ג, שעות או ימים.'
                 : 'Each row is a product or work item: pick it from your catalog or type a name, then choose how it is billed - a fixed amount, units, area, length, kg, hours or days.'}
             </p>
           </>
@@ -1200,10 +1200,6 @@ export default function QuoteForm({
           <div style={{ gridColumn: '1 / -1', marginTop: '6px' }} />
           <span style={{ ...neonGlowTextStyle, fontSize: '1rem', fontWeight: '800' }}>{t.totalAmount}</span>
           <span className="pf-money" style={{ color: NEON.violetLight, fontSize: '1rem', fontWeight: '800', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount)}</span>
-          {/* G4 (Owner 2026-11-08, the clarity fixes B3): a row holding a value that is not stored yet is not in the total */}
-          {(items || []).some((it) => it && it._invalid) && (
-            <span data-testid="sq-total-partial" style={{ gridColumn: '1 / -1', marginTop: '4px', fontSize: '0.74rem', fontWeight: 700, color: NEON.red }}>{isHebrew ? 'הסכום עדיין חלקי' : 'Partial total'}</span>
-          )}
           {isLocalIsraeliBusiness && isHebrew && (clientType === 'business' || clientType === 'private') && (
             <span data-testid="sq-prices-vat-basis" style={{ gridColumn: '1 / -1', marginTop: '4px', fontSize: '0.74rem', color: NEON.textSecondary }}>
               {clientType === 'private' ? 'המחירים בהצעה כוללים מע״מ' : 'המחירים בהצעה לפני מע״מ'}
@@ -1714,8 +1710,6 @@ function UnitCard({
               : <>Per unit <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> · <bdi dir="ltr" className="pf-num">{repeatCount}</bdi> units: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>)}
           </span>
           <span>{isHebrew ? 'השורות כאן הן ליחידה אחת' : 'The rows here are for one unit'}</span>
-          {/* G6 (Owner 2026-11-08, the clarity fixes B3): an edit here applies to every copy */}
-          <span data-testid="unit-applies-all">{isHebrew ? <>עריכה תחול על כל <bdi dir="ltr" className="pf-num">{repeatCount}</bdi> העותקים.</> : <>Edits apply to all <bdi dir="ltr" className="pf-num">{repeatCount}</bdi> copies.</>}</span>
         </div>
       )}
 

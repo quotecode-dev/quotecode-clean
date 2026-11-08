@@ -19,14 +19,14 @@ import { askConfirm } from './AppDialog';
 
 const COPY = {
   he: {
-    item: 'פריט', billing: 'אופן חיוב', amount: 'כמות / מידות', price: 'מחיר', total: 'סכום', itemPlaceholder: 'חפשו בקטלוג או הקלידו שם',
+    item: 'פריט', billing: 'סוג חיוב', amount: 'כמות / מידות', price: 'מחיר', total: 'סכום', itemPlaceholder: 'חפשו בקטלוג או הקלידו שם',
     fixed: 'סכום קבוע', units: 'יחידות', area: 'שטח', linear: 'אורך', qty: 'כמות', width: 'אורך', height: 'רוחב', length: 'אורך',
     addRow: 'הוספת שורה', menu: 'פעולות לשורה', duplicate: 'שכפול שורה', remove: 'הסרת שורה', moveTo: 'העברה ליחידה', noUnit: 'ללא יחידה',
     catalog: 'מהקטלוג', openCatalog: 'פתיחת הקטלוג', emptyCatalog: 'אין פריטים מתאימים בקטלוג - אפשר פשוט להקליד שם',
     details: 'פרטים ללקוח', detailLabel: 'שם הפרט, למשל צבע', detailValue: 'הערך, למשל לבן', addDetail: 'הוספת פרט', removeDetail: 'הסרת הפרט',
     moveUp: 'הזזה למעלה', moveDown: 'הזזה למטה', sizes: 'לפי מידות', known: 'כמות ידועה (בלי מידות)', moreSize: 'מידה נוספת', removeSize: 'הסרת המידה',
     sizeLabel: 'שם, למשל סלון', priceError: 'מחיר לא תקין - מספר עם נקודה, למשל 1200.50', qtyError: 'כמות לא תקינה - מספר גדול מ-0',
-    sizesLost: 'מעבר לאופן חיוב אחר ימחק את המידות של השורה. להמשיך?', perUnit: 'לכל',
+    sizesLost: 'מעבר לסוג חיוב אחר ימחק את המידות של השורה. להמשיך?', perUnit: 'לכל',
     unitChange: 'מעבר בין מטרים לרגל משנה את היחידה שהמחיר נקבע לפיה (מ״ר או רגל רבועה). לבדוק את המחיר אחרי המעבר?',
     linkedTo: 'המחיר השתנה ל-', linkedAsk: 'לעדכן גם {n} שורות מקושרות?', linkedAsk1: 'לעדכן גם את השורה המקושרת?',
     linkedHere: 'רק כאן', linkedAll: 'עדכון כולן', linkedAll1: 'עדכון גם שם', linkedCancel: 'ביטול',
@@ -41,21 +41,16 @@ const COPY = {
     rowNeedsFirst: (n) => `במידה ${n} חסר אורך. השלימו או הסירו אותה.`, rowNeedsSecond: (n) => `במידה ${n} חסר רוחב. השלימו או הסירו אותה.`,
     sizeTooSmall: 'המידות קטנות מדי והכמות יוצאת 0.00. בדקו את המספרים ואת היחידה (ס״מ או מטר).',
     missingQuantity: 'יש להזין כמות גדולה מ-0',
-    // Owner console 2026-11-08 (the clarity fixes of docs/CODEX_SPEC_QUOTE_BUILDER_COMPLETE_2026-11-08.md B3, inside the existing screen)
-    pricePer: { hour: 'מחיר לשעה', day: 'מחיר ליום', kg: 'מחיר לק״ג', m2: 'מחיר למ״ר', linear_meter: 'מחיר למטר אורך', sq_ft: 'מחיר לרגל רבועה', linear_ft: 'מחיר לרגל אורך' },
-    basisChange: 'אופן החיוב ישתנה. בדקו את הכמות והזינו מחיר לבסיס החדש.', basisYes: 'שינוי אופן חיוב', basisNo: 'שמירת אופן החיוב הקיים',
-    sizeIncomplete: 'המידה הזו חסרה. השלימו או הסירו אותה.', roundsZero: 'הכמות המחושבת מתעגלת לאפס. בדקו את המידות.',
-    qtyFromSizes: 'כמות לפי מידות', qtyKnown: 'כמות ידועה', tradeHint: 'מקובל בתחום שלכם לחייב לפי {m}.',
   },
   en: {
-    item: 'Item', billing: 'Billing method', amount: 'Quantity / size', price: 'Price', total: 'Total', itemPlaceholder: 'Search the catalog or type a name',
+    item: 'Item', billing: 'Billing', amount: 'Quantity / size', price: 'Price', total: 'Total', itemPlaceholder: 'Search the catalog or type a name',
     fixed: 'Fixed amount', units: 'Units', area: 'Area', linear: 'Length', qty: 'Quantity', width: 'Length', height: 'Width', length: 'Length',
     addRow: 'Add row', menu: 'Row actions', duplicate: 'Duplicate row', remove: 'Remove row', moveTo: 'Move to unit', noUnit: 'No unit',
     catalog: 'From the catalog', openCatalog: 'Open the catalog', emptyCatalog: 'No matching catalog item - just type a name',
     details: 'Details for the customer', detailLabel: 'Detail, e.g. Colour', detailValue: 'Value, e.g. White', addDetail: 'Add a detail', removeDetail: 'Remove detail',
     moveUp: 'Move up', moveDown: 'Move down', sizes: 'By sizes', known: 'Known amount (no sizes)', moreSize: 'Another size', removeSize: 'Remove size',
     sizeLabel: 'Name, e.g. Living room', priceError: 'Invalid price - a number with a dot, e.g. 1200.50', qtyError: 'Invalid quantity - a number above 0',
-    sizesLost: "Switching the billing method removes this row's sizes. Continue?", perUnit: 'per',
+    sizesLost: "Switching the billing type removes this row's sizes. Continue?", perUnit: 'per',
     unitChange: 'Switching between metres and feet changes what the price is for (m² or sq ft). Check the price after switching?',
     linkedTo: 'The price changed to ', linkedAsk: 'Update {n} linked rows too?', linkedAsk1: 'Update the linked row too?',
     linkedHere: 'Only here', linkedAll: 'Update all', linkedAll1: 'Update it too', linkedCancel: 'Cancel',
@@ -68,10 +63,6 @@ const COPY = {
     rowNeedsFirst: (n) => `Size ${n} needs a length. Complete or remove it.`, rowNeedsSecond: (n) => `Size ${n} needs a width. Complete or remove it.`,
     sizeTooSmall: 'The sizes are too small and the quantity comes out as 0.00. Check the numbers and the unit (cm or m).',
     missingQuantity: 'Please enter a quantity greater than 0',
-    pricePer: { hour: 'Price per hour', day: 'Price per day', kg: 'Price per kg', m2: 'Price per m²', linear_meter: 'Price per linear metre', sq_ft: 'Price per sq ft', linear_ft: 'Price per linear foot' },
-    basisChange: 'The billing method will change. Review the quantity and enter a price for the new unit.', basisYes: 'Change billing method', basisNo: 'Keep current billing method',
-    sizeIncomplete: 'This measurement is incomplete. Complete or remove it.', roundsZero: 'The calculated quantity rounds to zero. Check the measurements.',
-    qtyFromSizes: 'Quantity from measurements', qtyKnown: 'Known quantity', tradeHint: 'In your trade, charging by {m} is common.',
   },
 };
 // Owner console 2026-11-08 (restore item 01): every billing type of the Owner-approved unit set in every row (the order of the spec, B2);
@@ -158,13 +149,14 @@ function sizeProblems(e, t) {
   const rows = {};
   extra.forEach((r, i) => {
     if (!startedRow(r)) return;
-    if (!(Number(r.widthCm) > 0) || (!linear && !(Number(r.heightCm) > 0))) rows[i] = t.sizeIncomplete;
+    if (!(Number(r.widthCm) > 0)) rows[i] = t.rowNeedsFirst(i + 2);
+    else if (!linear && !(Number(r.heightCm) > 0)) rows[i] = t.rowNeedsSecond(i + 2);
   });
   if (Object.keys(rows).length) out.rows = rows;
   if (!out.main && !out.rows) {
     const valueOf = (r) => computeMeasurementValue(e.pricingMethod, sizeToBase(e.measureUnit, r.widthCm), linear ? undefined : sizeToBase(e.measureUnit, r.heightCm));
     const total = [e, ...extra.filter(startedRow)].map(valueOf).filter((v) => v != null && Number.isFinite(v)).reduce((s, v) => s + v, 0);
-    if (roundsToNothing(total)) out.main = t.roundsZero;
+    if (roundsToNothing(total)) out.main = t.sizeTooSmall;
   }
   return out.main || out.rows ? out : null;
 }
@@ -271,16 +263,16 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
   // line may reinterpret its numbers and is asked first; on a new row a price typed for one basis is never kept silently for another
   const conversionAsk = (m) => {
     if (isLinked) return t.linkBreak;
-    if (item.id) return t.basisChange;
+    if (item.id) return t.conversion;
     if (isMeasured(method) && !isMeasured(m) && hasSizes(item)) return t.sizesLost;
-    if (typed(entry.unitPrice)) return t.basisChange;
+    if (typed(entry.unitPrice)) return t.unitChangeAsk;
     return null;
   };
   const changeMethod = async (m) => {
     if (m === method) return;
     if (isMeasured(m) && !canUseMeasured) { onMeasuredLocked?.(); return; }
     const ask = conversionAsk(m);
-    if (ask && !(await askConfirm(ask, isHebrew, ask === t.basisChange ? { yes: t.basisYes, no: t.basisNo } : undefined))) return;
+    if (ask && !(await askConfirm(ask, isHebrew))) return;
     apply({ pricingMethod: m, quantity: isCountedMethod(m) ? (isCountedMethod(method) ? (entry.quantity || '1') : '1') : '1', useManualQty: isMeasured(m) ? entry.useManualQty : false });
   };
   // restore item 09 (decision 2: "catalog pick fills price + billing type"): a catalog item fills the name, the price and the catalog's
@@ -288,7 +280,7 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
   const pickCatalog = async (s) => {
     if (method !== 'units') {
       const ask = conversionAsk('units');
-      if (ask && !(await askConfirm(ask, isHebrew, ask === t.basisChange ? { yes: t.basisYes, no: t.basisNo } : undefined))) return;
+      if (ask && !(await askConfirm(ask, isHebrew))) return;
     }
     // the item window always started a catalog line at quantity 1 (4f1592f2 AddItemWizard 164-166)
     const built = apply({ description: String(s.name || ''), unitPrice: s.price == null ? '' : String(s.price), catalogServiceId: String(s.id),
@@ -321,9 +313,6 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
   // restore items 04 / 05: a marked row shows no amount (its stored amount is not what it shows now) until it is fixed
   const total = item._invalid || item.unit_price === '' || item.unit_price == null || !Number.isFinite(price) ? null : (method === 'fixed' ? price : qty * price);
   // a counted unit that is not plain "units" (hour / day / kg, a known m²) shows its unit next to the quantity
-  // G1: the price says what it is for - per hour / day / kg / m² / linear metre (feet abroad); units and a fixed amount keep "price"
-  const basisUnit = isCountedMethod(method) && method !== 'units' ? method : isMeasured(method) ? (method === 'area' ? (isFeetUnit(entry.measureUnit) ? 'sq_ft' : 'm2') : (isFeetUnit(entry.measureUnit) ? 'linear_ft' : 'linear_meter')) : null;
-  const priceLabel = basisUnit ? t.pricePer[basisUnit] : t.price;
   const countUnit = isCountedMethod(method) && method !== 'units' ? getProfessionalUnitLabel(method, isHebrew)
     : method === 'units' && item.pricing_unit && item.pricing_unit !== 'unit' ? getProfessionalUnitLabel(item.pricing_unit, isHebrew) : '';
   // restore item 04: the size problems of this row, shown once the row was left (or when it opens marked from a draft / a refused save)
@@ -369,7 +358,7 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
           <input {...num} aria-label={t.known} aria-invalid={qtyErr || qtyEmpty} value={entry.manualQty ?? ''} data-testid={`qrow-known-${rowId}`} onChange={(e) => apply({ manualQty: e.target.value })}
             onBlur={() => { if (!typed(entry.manualQty)) setQtyEmpty(true); }} />
           {unitSelect}
-          <span style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{calcUnit} · {t.qtyKnown}</span>
+          <span style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{calcUnit}</span>
           <span aria-hidden="true" style={{ flexBasis: '100%', height: 0 }} />
           {/* PRODUCT_TRUTH_DECORATIVE: restore item 02 (Owner 2026-11-08) - back from a known amount to typed sizes, beside the amount (the item window's "Enter sizes instead") */}
           <button type="button" data-testid={`qrow-sizemode-${rowId}`} data-mode="known" onClick={() => changeSizeMode(false)} style={inlineLink}>{t.backToSizes}</button>
@@ -396,7 +385,7 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
         </>)}
         {isMeasured(method) && !entry.useManualQty && (<>
           <span aria-hidden="true" style={{ flexBasis: '100%', height: 0 }} />
-          <span data-testid={`qrow-calc-${rowId}`} style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{qty && !item._invalid ? (<>{t.qtyFromSizes}: <bdi dir="ltr" className="pf-num">{formatQuantity(qty, item.pricing_unit)}</bdi> {calcUnit}</>) : ''}</span>
+          <span data-testid={`qrow-calc-${rowId}`} style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{qty && !item._invalid ? (<><bdi dir="ltr" className="pf-num">{formatQuantity(qty, item.pricing_unit)}</bdi> {calcUnit}</>) : ''}</span>
           {/* PRODUCT_TRUTH_DECORATIVE: adds another size line to this row (the item window's "another measurement"); sub-control of the measured row */}
           <button type="button" data-testid={`qrow-moresize-${rowId}`} onClick={() => setExtra([...extra, { widthCm: '', heightCm: '', label: '' }])}
             style={{ background: 'none', border: 'none', color: NEON.violet, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', minHeight: '40px', padding: '0 4px' }}>+ {t.moreSize}</button>
@@ -407,8 +396,8 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
         {qtyErr && <p role="alert" style={errStyle}>{t.qtyError}</p>}
         {!qtyErr && qtyEmpty && <p role="alert" data-testid={`qrow-qtyempty-${rowId}`} style={errStyle}>{t.missingQuantity}</p>}
       </div>
-      <label className="qrow-price"><span className="qrow-mlabel">{priceLabel}</span>
-      <input {...num} aria-label={priceLabel} aria-invalid={priceErr} value={entry.unitPrice} data-testid={`qrow-price-${rowId}`} onChange={(e) => apply({ unitPrice: e.target.value })}
+      <label className="qrow-price"><span className="qrow-mlabel">{t.price}</span>
+      <input {...num} aria-label={t.price} aria-invalid={priceErr} value={entry.unitPrice} data-testid={`qrow-price-${rowId}`} onChange={(e) => apply({ unitPrice: e.target.value })}
         onFocus={() => { priceAtFocus.current = String(entry.unitPrice ?? ''); }}
         onBlur={() => {
           const now = String(entry.unitPrice ?? '').trim();
@@ -611,9 +600,6 @@ export default function QuoteRowsEditor({
   };
   return (
     <div className="qrows" dir={isHebrew ? 'rtl' : 'ltr'} data-testid="quote-rows-editor">
-      {showHead && recommendedMethod && METHODS.includes(recommendedMethod) && recommendedMethod !== 'units' && recommendedMethod !== 'fixed' && (
-        <p data-testid="qrow-trade-hint" style={{ margin: '0 0 6px', fontSize: '0.78rem', color: NEON.textSecondary }}>{t.tradeHint.replace('{m}', t[recommendedMethod])}</p>
-      )}
       {showHead && (
         <div className="qrow qrow-head" aria-hidden="true">
           <span>{t.item}</span><span>{t.billing}</span><span>{t.amount}</span><span>{t.price}</span><span style={{ textAlign: 'right' }}>{t.total}</span><span />

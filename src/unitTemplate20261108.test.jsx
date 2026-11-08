@@ -75,7 +75,7 @@ describe('the template window - one screen for both kinds, used only where it be
     const onUse = vi.fn();
     render(<TemplatePickerDialog isHebrew client={client()} userId="u" formatMoney={(v) => `₪${v}`} onClose={() => {}} onUse={onUse} kind="unit" />);
     await waitFor(() => expect(screen.getAllByTestId('template-option')).toHaveLength(1));
-    expect(screen.getByText('הוספת יחידה מתבנית')).toBeTruthy(); // G7 (Owner 2026-11-08, the clarity fixes B3)
+    expect(screen.getByText('הוספה מיחידה שמורה')).toBeTruthy();
     // Owner console 2026-11-08 (restore item 13): the unit window shows only unit templates - no filter to the other kind
     expect(screen.queryByTestId('template-filter-quote')).toBeNull();
     fireEvent.click(screen.getByTestId('template-use'));
