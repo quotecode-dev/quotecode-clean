@@ -31,17 +31,16 @@ async function toReview() {
 
 describe('the menu: a fifth choice right after the AI smart quote (Owner decision 2)', () => {
   it('order with the file and template choices', () => {
-    // Owner console 2026-11-08 (design A + stage 2 of the one quote builder, typed incl. L-09 / L-23): the regular and the measured entries are ONE "הצעת מחיר"
-    expect(menuChoices(true, { file: true, template: true }).map((c) => c.id)).toEqual(['standard', 'ai', 'file', 'template']);
-    expect(menuChoices(false, { file: true }).map((c) => c.label)).toEqual(['Quote', 'AI smart quote', 'Quote from a file']);
-    expect(menuChoices(true).map((c) => c.id)).toEqual(['standard', 'ai']);
+    expect(menuChoices(true, { file: true, template: true }).map((c) => c.id)).toEqual(['standard', 'ai', 'file', 'structured', 'template']);
+    expect(menuChoices(false, { file: true }).map((c) => c.label)).toEqual(['Standard quote', 'AI smart quote', 'Quote from a file', 'Profession-aware measured quote']);
+    expect(menuChoices(true).map((c) => c.id)).toEqual(['standard', 'ai', 'structured']);
   });
   it('clicking it calls the file handler (never the blank-quote one)', () => {
     const onFile = vi.fn(); const onStandard = vi.fn();
     render(<NewQuoteMenu isHebrew onStandard={onStandard} onAi={vi.fn()} onStructured={vi.fn()} onFile={onFile} />);
     fireEvent.click(screen.getByRole('button', { name: /הצעה חדשה|הצעת מחיר חדשה/ }));
     const items = screen.getAllByRole('menuitem');
-    expect(items.map((i) => i.getAttribute('data-choice'))).toEqual(['standard', 'ai', 'file']);
+    expect(items.map((i) => i.getAttribute('data-choice'))).toEqual(['standard', 'ai', 'file', 'structured']);
     fireEvent.click(items[2]);
     expect(onFile).toHaveBeenCalledTimes(1); expect(onStandard).not.toHaveBeenCalled();
   });

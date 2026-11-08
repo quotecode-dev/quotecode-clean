@@ -581,29 +581,3 @@ html {
 @media (max-width: 380px) {
   .qt-chips button { padding: 0 3px !important; font-size: 0.55rem !important; }
 }
-
-/* Owner 2026-11-08 (night task, the one quote builder stage 2, design A): ONE row per item on a computer, a compact card on a phone */
-/* Owner console 2026-11-08 (stage 2 of the one quote builder): one row per line while the editor is wide; below 700px of EDITOR width (a
-   phone, a tablet in portrait beside the sidebar) every line is a labelled card - by the editor's own width (container query), not the screen */
-.qrows { container-type: inline-size; }
-.qrows .qrow { display: grid; grid-template-columns: minmax(0, 2fr) minmax(112px, 1fr) minmax(0, 2.6fr) 92px minmax(96px, max-content) 44px; gap: 8px; align-items: start; padding: 6px 0; border-bottom: 1px solid var(--pf-border, #e5e7eb); }
-.qrows .qrow-head { font-size: 0.72rem; font-weight: 700; color: #64748b; border-bottom: none; padding-bottom: 0; }
-.qrows .qrow-item { grid-area: auto; }
-.qrows .qrow-mlabel { display: none; }
-.qrows .qrow-billing select { width: 100%; }
-.qrows .qrow-extra { grid-column: 1 / -1; padding: 4px 0 2px; }
-@media (max-width: 768px) {
-  .qrows button, .qrows select, .qrows input { min-height: 44px; }
-}
-@container (max-width: 700px) {
-  .qrows .qrow-head { display: none; }
-  .qrows .qrow-line { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; grid-template-areas: "item item menu" "billing amount amount" "price total total"; padding: 10px; border: 1px solid var(--pf-border, #e5e7eb); border-radius: 12px; margin-bottom: 8px; }
-  .qrows .qrow-line > .qrow-item { grid-area: item; }
-  .qrows .qrow-line > .qrow-billing { grid-area: billing; }
-  .qrows .qrow-line > .qrow-amount { grid-area: amount; }
-  .qrows .qrow-line > .qrow-price { grid-area: price; }
-  .qrows .qrow-line > .qrow-price input { width: 100% !important; box-sizing: border-box; }
-  .qrows .qrow-line .qrow-mlabel { display: block; font-size: 0.7rem; font-weight: 700; color: #64748b; margin-bottom: 2px; }
-  .qrows .qrow-line > .qrow-total { align-self: end; padding-bottom: 10px; grid-area: total; }
-  .qrows .qrow-line > .qrow-menu { grid-area: menu; }
-}

@@ -18,8 +18,8 @@ export function isUntouchedPlaceholderItem(item) {
   // Already persisted (has a real quote_items id) - never a placeholder to
   // strip; only a not-yet-saved row can possibly be the default seed.
   if (item.id) return false;
-  // Owner console 2026-11-08 (stage 2 of the one quote builder, typed incl. L-09): a unit's "add row" makes a blank row INSIDE that unit -
-  // the unit alone is no content any more: a row with nothing typed in it is never saved, wherever it sits (it stays on screen to type in).
+  // Explicit section assignment is itself a real, deliberate user action.
+  if (item.section_key) return false;
   // Picking a catalog item is a real user action even before further edits.
   if (item.isFromCatalog) return false;
 

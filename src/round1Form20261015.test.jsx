@@ -33,18 +33,32 @@ function Stateful(o) {
   const [items, setItems] = useState([blank]);
   return <><QuoteForm {...props({ ...o, items, setItems })} /><output data-testid="items">{JSON.stringify(items)}</output></>;
 }
+const itemsNow = () => JSON.parse(screen.getByTestId('items').textContent);
 
-// Owner console 2026-11-08 (design A + stage 2 of the one quote builder, typed incl. L-09 / L-23): the measured entry joined the one "הצעת מחיר"
-// entry - every row chooses its billing, sizes are typed in the row; the local example (and its never-saved marker) left with the entry.
-describe('A1 / A6: the measured quote is one list (now the rows of the one quote entry)', () => {
-  it('an old internal measured entry opens the same rows: no rooms needed, rooms optional, area in the row', () => {
+describe('A1 / A6: the measured quote is one list with a local example', () => {
+  it('leads with measuring, says no rooms are needed, keeps rooms optional', () => {
     render(<Stateful isMeasuredEntry />);
-    expect(screen.getByRole('textbox', { name: 'פריט' })).toBeTruthy();
-    expect([...screen.getByRole('combobox', { name: 'סוג חיוב' }).options].map((o) => o.textContent)).toEqual(['סכום קבוע', 'יחידות', 'שטח', 'אורך']);
+    expect(screen.getByText('הוספת פריט לפי מידות')).toBeTruthy();
+    expect(screen.getByText('עוד אין פריטים. מוסיפים פריט ומודדים אותו, אין צורך לחלק לחדרים.')).toBeTruthy();
     expect(screen.getByText('חלוקה לחדרים / אזורים / יחידות (לא חובה)')).toBeTruthy();
     expect(screen.queryByText('הוספת היחידה הראשונה')).toBeNull();
     expect(screen.queryByText('לא משויך')).toBeNull();
+  });
+
+  it('the example: 100 x 200 cm at 600 per m2, badged as not saved, removable; the standard quote has no example', () => {
+    render(<Stateful isMeasuredEntry />);
+    fireEvent.click(screen.getByTestId('quote-show-example'));
+    const [ex] = itemsNow();
+    expect(itemsNow()).toHaveLength(1);
+    expect(ex).toMatchObject({ unit_price: '600', pricing_unit: 'm2', calculated_quantity: 2, _localExample: true });
+    expect(ex.measurements[0]).toMatchObject({ width: 1, height: 2, unit: 'm' });
+    expect(screen.getByTestId('quote-example-badge').textContent).toContain('דוגמה · לא נשמרת');
+    fireEvent.click(screen.getByText('הסרת הדוגמה'));
+    expect(itemsNow()).toEqual([blank]);
+    cleanup();
+    render(<Stateful />);
     expect(screen.queryByTestId('quote-show-example')).toBeNull();
+    expect(screen.getAllByText('הוספת מוצר או עבודה').length).toBeGreaterThan(0);
   });
 
   it('the Dashboard opens the measured quote as a list, never saves the example and never sends its marker to the database', () => {
@@ -144,7 +158,6 @@ describe('A5: a template in another currency', () => {
     const d = read('pages/Dashboard.jsx');
     expect(d).toContain('if (templateCurrencyMismatch(f, currency))');
     expect(d).toContain('templateItems = withoutPrices(f.items);');
-    // Owner console 2026-11-08 (stage 2, typed incl. L-09): the one entry is now "הצעת מחיר" - the empty picker names it
-    expect(read('components/QuoteTemplateDialogs.jsx')).toContain("empty: 'אין עדיין תבניות. אפשר ליצור הצעת מחיר ולשמור אותה כתבנית.'");
+    expect(read('components/QuoteTemplateDialogs.jsx')).toContain("empty: 'אין עדיין תבניות. אפשר ליצור הצעה רגילה ולשמור אותה כתבנית.'");
   });
 });

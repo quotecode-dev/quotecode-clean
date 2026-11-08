@@ -21,11 +21,10 @@ describe('every quantity display uses the shared format (no local money-style co
     expect(src).not.toMatch(/const formatQty\b/);
     expect(src.match(/formatQuantity\(activeQty, item\.pricing_unit\)/g)).toHaveLength(3);
   });
-  // Owner console 2026-11-08 (stage 2): the quote editor's item cards became rows - the row's measured amount uses the shared format
-  it('the quote editor row', () => {
-    const src = readFileSync('src/components/QuoteRowsEditor.jsx', 'utf8');
-    expect(src).toContain('formatQuantity(qty, item.pricing_unit)');
-    expect(src).not.toMatch(/qty\.toFixed\(/);
+  it('the quote editor card', () => {
+    const src = readFileSync('src/components/QuoteForm.jsx', 'utf8');
+    expect(src).toContain('const qtyText = formatQuantity(activeQty, item.pricing_unit);');
+    expect(src).not.toMatch(/formatNum\(activeQty\)/);
   });
 });
 

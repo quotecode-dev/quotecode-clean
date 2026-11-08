@@ -506,8 +506,7 @@ describe.each([
     expect(props.setStatusFilter).toHaveBeenCalledWith('sent');
   });
 
-  // Owner console 2026-11-08 (design A + stage 2 of the one quote builder, typed incl. L-09 / L-23): the regular and the measured entries are ONE "הצעת מחיר"
-  it('the New quote button is a menu with the plain-language choices wired to their handlers (one quote entry)', () => {
+  it('the New quote button is a menu with the three plain-language choices wired to their handlers', () => {
     const onCreateQuote = vi.fn();
     const onCreateAiQuote = vi.fn();
     const onCreateStructuredQuote = vi.fn();
@@ -518,11 +517,14 @@ describe.each([
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
     const items = within(screen.getByRole('menu')).getAllByRole('menuitem');
-    expect(items.map((i) => i.dataset.choice).filter((c) => c === 'standard' || c === 'ai' || c === 'structured')).toEqual(['standard', 'ai']);
+    expect(items).toHaveLength(3);
+    expect(items.map((i) => i.dataset.choice)).toEqual(['standard', 'ai', 'structured']);
     fireEvent.click(items[1]);
     expect(onCreateAiQuote).toHaveBeenCalledTimes(1);
     expect(screen.queryByRole('menu')).toBeNull();
-    expect(onCreateStructuredQuote).not.toHaveBeenCalled();
+    fireEvent.click(trigger);
+    fireEvent.click(screen.getAllByRole('menuitem')[2]);
+    expect(onCreateStructuredQuote).toHaveBeenCalledTimes(1);
     fireEvent.click(trigger);
     fireEvent.click(screen.getAllByRole('menuitem')[0]);
     expect(onCreateQuote).toHaveBeenCalledTimes(1);

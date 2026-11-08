@@ -24,11 +24,8 @@ describe('isUntouchedPlaceholderItem', () => {
     expect(isUntouchedPlaceholderItem({ description: 'Miscellaneous supplies', quantity: '2', unit_price: '30', section_key: null })).toBe(false);
   });
 
-  // Owner console 2026-11-08 (stage 2, typed incl. L-09): a blank row added inside a unit is not content - it is never saved
-  it('a blank row inside a unit is not saved; a sectioned row with anything in it is', () => {
-    expect(isUntouchedPlaceholderItem({ description: '', quantity: '1', unit_price: '', section_key: 'section-1' })).toBe(true);
-    expect(isUntouchedPlaceholderItem({ description: 'x', quantity: '1', unit_price: '', section_key: 'section-1' })).toBe(false);
-    expect(isUntouchedPlaceholderItem({ id: 'db1', description: '', quantity: '1', unit_price: '', section_key: 'section-1' })).toBe(false);
+  it('preserves a sectioned real item even if otherwise blank-looking', () => {
+    expect(isUntouchedPlaceholderItem({ description: '', quantity: '1', unit_price: '', section_key: 'section-1' })).toBe(false);
   });
 
   it('preserves a measurement-bearing item', () => {

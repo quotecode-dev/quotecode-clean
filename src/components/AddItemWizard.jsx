@@ -4,11 +4,14 @@ import AiModalHeader from './AiModalHeader';
 import { X, Package, Ruler, ChevronRight, ChevronLeft, Lock, Check, Pencil, Sparkles } from 'lucide-react';
 import { APP as NEON } from '../theme/neonTheme';
 import { formatMoneyForCurrency } from '../utils/money';
-import { computeMeasurementValue, resolveCalculationMethod, sumMeasurementAreas, isMeasurableUnit, getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
+import { cmToM, mToCm, computeMeasurementValue, resolveCalculationMethod, getActiveQuantity, sumMeasurementAreas, isMeasurableUnit, getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
 import { askConfirm } from './AppDialog';
 
-// stage 1 of the one quote builder (Owner 2026-11-08): the item shape and its size helpers live in utils/quoteItemEntry.js
-import { isManualMeasured, isFeetUnit, convertSizeBetween, sizeToBase, measuredUnitFor, buildQuoteItemFromEntry, entryFromItem } from '../utils/quoteItemEntry';
+// Task 34 extension (Owner AI specification, section ג): a MANUAL quantity with a measured unit (36 m², 8 linear meters, no measurement
+// rows - the AI-draft hand-off / the form's manual override) is a charged quantity in its own right: the unit is not proof that the quantity
+// came from dimensions. Such an item opens on its manual quantity (with its unit), never on invented width / height.
+const isManualMeasured = (item) => !!item && isMeasurableUnit(item.pricing_unit) && item.quantity_source === 'manual'
+  && !(Array.isArray(item.measurements) && item.measurements.length > 0);
 
 // Task 39: the stored item description limit (quote_items.description varchar(255)).
 export const ITEM_DESCRIPTION_MAX = 255;
@@ -52,7 +55,29 @@ export const ITEM_DESCRIPTION_MAX = 255;
 // review (derived from progress on the item screen), so the chat contract is unchanged.
 const STEPS = { ITEM: 1, REVIEW: 2 };
 const ALL_METHODS = ['fixed', 'units', 'area', 'linear'];
-// A4 / feet (Owner 2026-11-05): the size helpers moved to utils/quoteItemEntry.js (stage 1, unchanged).
+// A4: sizes are typed in cm (default) or m; the stored measurements stay canonical metres.
+// Owner console 2026-11-05 (typed: "מאשר מספרים במילים ויחידות רגל מלאות לשוק הבינלאומי, כולל שינוי ב-L-09, L-14, L-15 ו-L-17, שחרור עד
+// הלייב"): the international market may also type feet or inches. Those rows are stored in canonical FEET (row unit 'ft') and priced per
+// sq ft / linear ft. A metric size and a feet size never mix in one item, and a typed size is converted only when the user switches the unit.
+const round4 = (n) => Math.round(n * 10000) / 10000;
+const SIZE_IN_CM = { cm: 1, m: 100, in: 2.54, ft: 30.48 };
+const isFeetUnit = (u) => u === 'ft' || u === 'in';
+const convertSizeBetween = (v, from, to) => {
+  if (v === '' || v == null || !Number.isFinite(Number(v)) || from === to || !SIZE_IN_CM[from] || !SIZE_IN_CM[to]) return v;
+  return String(round4((Number(v) * SIZE_IN_CM[from]) / SIZE_IN_CM[to]));
+};
+const convertSizeText = (v, toUnit) => convertSizeBetween(v, toUnit === 'm' ? 'cm' : 'm', toUnit);
+const toFeet = (unit, v) => {
+  if (v === '' || v == null) return '';
+  const n = Number(v);
+  if (!Number.isFinite(n)) return '';
+  return Math.round((unit === 'in' ? n / 12 : n) * 1e10) / 1e10;
+};
+// a typed size in its unit -> the canonical stored value (metres, or feet for a feet size)
+const sizeToBase = (unit, v) => (isFeetUnit(unit) ? toFeet(unit, v) : cmToM(unit === 'm' ? convertSizeText(v, 'cm') : v));
+// the priced unit of a measured method in the typed unit's system
+const measuredUnitFor = (method, unit) => (isFeetUnit(unit) ? (method === 'linear' ? 'linear_ft' : 'sq_ft') : (method === 'linear' ? 'linear_meter' : 'm2'));
+const isFeetPricingUnit = (u) => u === 'sq_ft' || u === 'linear_ft';
 
 function blankState(defaultSectionKey) {
   return {
@@ -77,8 +102,46 @@ function blankState(defaultSectionKey) {
 // היום. פריט לא-נמדד תמיד נפתח לעריכה כ-'units' (הצגה שאינה מאבדת מידע:
 // הכמות/המחיר-ליחידה האמיתיים מוצגים כפי שהם) - לעולם לא מנוחש כ-'fixed'.
 // המשתמש עדיין יכול לבחור 'fixed' במפורש דרך שלב 2 אם זו אכן כוונתו.
-// stage 1 of the one quote builder (Owner 2026-11-08): moved verbatim to utils/quoteItemEntry.js (entryFromItem)
-const stateFromItem = entryFromItem;
+function stateFromItem(item, defaultSectionKey) {
+  const pricingMethod = isManualMeasured(item)
+    ? 'units'
+    : item.pricing_unit === 'linear_meter' || item.pricing_unit === 'linear_ft'
+      ? 'linear'
+      : item.pricing_unit === 'm2' || item.pricing_unit === 'sq_ft'
+        ? 'area'
+        : 'units';
+  const rows = Array.isArray(item.measurements) ? item.measurements : [];
+  const [firstRow, ...restRows] = rows;
+  // a feet item opens in feet (its rows are stored in feet); a metric item in cm, exactly as before
+  const feet = isFeetPricingUnit(item.pricing_unit);
+  const shown = (v) => (feet ? (v === '' || v == null ? '' : String(v)) : mToCm(v));
+  return {
+    description: item.description || '',
+    catalogServiceId: '',
+    pricingMethod,
+    measureUnit: feet ? 'ft' : 'cm',
+    widthCm: firstRow ? shown(firstRow.width) : '',
+    heightCm: firstRow ? shown(firstRow.height) : '',
+    extraMeasureRows: restRows.map((r) => ({ widthCm: shown(r.width), heightCm: shown(r.height), label: r.label || '' })),
+    // חוק ברזל (SQ-F03-B - "non-area/non-length structured units being
+    // collapsed": a manual hour/day/kg/professional-unit item can carry a
+    // real effective quantity in calculated_quantity while its flat
+    // quantity column is a different placeholder value - reading raw
+    // item.quantity here silently showed/re-saved the WRONG number the
+    // moment the field round-tripped through this wizard. getActiveQuantity
+    // (the one existing canonical authority, already used by Dashboard.jsx/
+    // QuoteForm.jsx for the exact same "what is the real charged quantity"
+    // question) is a strict superset: for an ordinary simple item with no
+    // calculated_quantity at all, it already falls back to item.quantity -
+    // byte-identical to the previous behavior for every non-professional
+    // item, so this only changes previously-wrong professional-manual cases.
+    quantity: pricingMethod === 'units' ? String(getActiveQuantity(item) || item.quantity || '1') : '1',
+    unitPrice: item.unit_price != null ? String(item.unit_price) : '',
+    sectionKey: item.section_key || defaultSectionKey || '',
+    specRows: Array.isArray(item.specification) ? item.specification.map((r) => ({ label: r.label || '', value: r.value || '' })) : [],
+    _hadMeasurementRows: rows.length > 0,
+  };
+}
 
 // חוק ברזל (Part B - "business type MUST influence which pricing methods
 // are shown first... but MUST NOT lock pricing"): בדיוק 2 שיטות בולטות
@@ -931,11 +994,155 @@ export default function AddItemWizard({
       setErrors({ method: t.missingMethod });
       return;
     }
-    // stage 1 of the one quote builder (Owner 2026-11-08): the ONE item-shape builder, shared with the row editor (verbatim move)
-    const newItem = buildQuoteItemFromEntry({
-      pricingMethod, description, unitPrice, catalogServiceId, sectionKey, quantity, measureUnit, useManualQty, manualQty,
-      widthCm, heightCm, extraMeasureRows, specRows, editingItem, isEditMode, conversionConfirmed: conversionConfirmedRef.current,
-    });
+    const finalSectionKey = sectionKey || null;
+    // חוק ברזל (SQ-F03): true רק כשזו עריכת פריט קיים שמעולם לא עברה
+    // קונברסיית-שיטה מפורשת-ומאושרת (Part K) - במקרה הזה, ורק בו, מותר
+    // לשמר בשקט שדות שלאשף אין UI עבורם כלל (ר' ההסבר ליד conversionConfirmedRef
+    // למעלה). קונברסיה מאושרת בפועל = כוונת-שינוי-פרשנות מפורשת של המשתמש,
+    // ואז השדות החדשים/הריקים של הענף הנוכחי הם הנכונים, לא שימור.
+    const isNonDestructiveEdit = isEditMode && !conversionConfirmedRef.current;
+
+    let newItem;
+    if (isMeasureMethod && useManualQty) {
+      // "I already know the area / length": the existing manual measured item (Task 34) - a charged quantity in its unit, no sizes
+      newItem = {
+        description,
+        quantity: '1',
+        unit_price: unitPrice,
+        isFromCatalog: !!catalogServiceId,
+        section_key: finalSectionKey,
+        pricing_unit: measuredUnitFor(pricingMethod, measureUnit),
+        quantity_source: 'manual',
+        calculation_method: 'manual',
+        measurements: [],
+        calculated_quantity: Number(manualQty),
+      };
+    } else if (isMeasureMethod) {
+      const calcMethod = resolveCalculationMethod(measuredUnitFor(pricingMethod, measureUnit), 'calculated');
+      const originalMeasurements = isNonDestructiveEdit && Array.isArray(editingItem?.measurements) ? editingItem.measurements : [];
+      const [originalFirstRow, ...originalExtraRows] = originalMeasurements;
+      // חוק ברזל (SQ-F03 - "first measurement label being erased"): שורה 0
+      // היחידה שהאשף אינו חושף לה שדה-label בכלל (רק לשורות "extra") -
+      // ה-label שלה קיים רק בפריט השמור המקורי, ומשוחזר כאן ישירות מ-
+      // editingItem, לא מ-state האשף (שמעולם לא קלט אותו).
+      const rawRows = [{ widthCm, heightCm, label: originalFirstRow?.label || '' }, ...extraMeasureRows];
+      const measurementRows = rawRows
+        .map((row, idx) => {
+          const rWidthM = sizeToM(row.widthCm);
+          const rHeightM = pricingMethod === 'linear' ? '' : sizeToM(row.heightCm);
+          const rowValue = computeMeasurementValue(pricingMethod, rWidthM, pricingMethod === 'linear' ? undefined : rHeightM);
+          // חוק ברזל (SQ-F03 - "is_pricing_driving being rewritten"): האשף
+          // אינו חושף UI לדגל הזה בכלל - שימור לפי מיקום-שורה מקורי (אותו
+          // עיקרון בדיוק כמו ה-label לעיל) הוא הדרך היחידה שלא לדרוס בשקט
+          // שורת-מידה שסומנה "תצוגה בלבד" (is_pricing_driving:false) בעורך
+          // הפריט הרגיל (Dashboard.jsx toggleMeasurementPricingDriving).
+          const originalRow = idx === 0 ? originalFirstRow : originalExtraRows[idx - 1];
+          const preservedDriving = originalRow && originalRow.is_pricing_driving === false ? false : true;
+          return { widthCm: row.widthCm, heightCm: row.heightCm, widthM: rWidthM, heightM: rHeightM, label: row.label || '', rowValue, isDriving: preservedDriving };
+        })
+        .filter((row) => row.rowValue != null && Number.isFinite(row.rowValue))
+        .map((row) => ({
+          width: row.widthM,
+          height: row.heightM,
+          unit: feetSizes ? 'ft' : 'm',
+          calculated_area: row.rowValue,
+          label: row.label,
+          is_pricing_driving: row.isDriving,
+        }));
+      // חוק ברזל (SQ-F03-A closure, real severe bug found by Codex's fresh
+      // re-review): סכימה נאיבית (reduce גולמי על כל measurementRows) הייתה
+      // מצרפת גם שורות is_pricing_driving===false ("תצוגה בלבד") לתוך הכמות
+      // בפועל - למשל שורה מתמחרת 1.5m² + שורת-תצוגה-בלבד 2m² (מחיר שמור
+      // 300 = 1.5×200) הייתה קופצת ל-3.5m²/700 אחרי עריכת-שם-בלבד גרידא,
+      // בלי שהמשתמש נגע במידות. sumMeasurementAreas (אותה סמכות קנונית
+      // יחידה שכבר משמשת בכל מקום אחר בפרויקט לאותה שאלה בדיוק, ר.
+      // professionalQuoteItem.js) מדלגת נכון על שורות תצוגה-בלבד - לא נוסחה
+      // שנייה, אותה סמכות בדיוק.
+      const totalValue = measurementRows.length > 0
+        ? sumMeasurementAreas(measurementRows, calcMethod)
+        : null;
+      // חוק ברזל (SQ-F03 - "measured item with manual quantity being
+      // re-emitted as calculated quantity"): האשף אינו חושף שדה-קלט לערך-
+      // ידני נפרד כלל - quantity_source==='manual' המקורי, כשקיים ולא
+      // מדובר בקונברסיה מאושרת, משוחזר במדויק (כולל calculated_quantity
+      // המספרי שנשמר), בדיוק כמו "override ידני תמיד מנצח" הקיים כבר
+      // ב-professionalQuoteItem.js/Dashboard.jsx toggleManualQuantityOverride.
+      const originalQuantitySource = isNonDestructiveEdit ? editingItem?.quantity_source : null;
+      const isManualPreserved = originalQuantitySource === 'manual';
+      const finalQuantitySource = isManualPreserved ? 'manual' : 'calculated';
+      const finalCalcMethod = isManualPreserved ? 'manual' : calcMethod;
+      const finalCalculatedQuantity = isManualPreserved
+        ? ((editingItem.calculated_quantity !== undefined && editingItem.calculated_quantity !== null && editingItem.calculated_quantity !== '')
+          ? editingItem.calculated_quantity
+          : (totalValue != null ? totalValue : ''))
+        : (totalValue != null ? totalValue : '');
+      newItem = {
+        description,
+        quantity: '1',
+        unit_price: unitPrice,
+        isFromCatalog: !!catalogServiceId,
+        section_key: finalSectionKey,
+        pricing_unit: measuredUnitFor(pricingMethod, measureUnit),
+        quantity_source: finalQuantitySource,
+        calculation_method: finalCalcMethod,
+        measurements: measurementRows,
+        calculated_quantity: finalCalculatedQuantity,
+      };
+    } else if (pricingMethod === 'units') {
+      newItem = {
+        description,
+        quantity: quantity || '1',
+        unit_price: unitPrice,
+        isFromCatalog: !!catalogServiceId,
+        section_key: finalSectionKey,
+      };
+      // חוק ברזל (SQ-F03 - "non-area/non-length structured units being
+      // collapsed into generic quantity semantics"): פריט לא-נמדד עם
+      // pricing_unit מקצועי (unit/kg/hour/day) עובר-הידרציה תמיד ל-
+      // pricingMethod 'units' הגנרי (האשף אינו מבחין ביניהם ב-UI כלל, ר'
+      // §J למעלה) - עריכה שלא כללה קונברסיה מפורשת-ומאושרת חייבת לשמר את
+      // ה-pricing_unit/quantity_source/calculation_method המדויקים, אחרת
+      // המחיקה השקטה שלהם הופכת פריט-שעות/ק"ג/יום מקצועי לפריט פשוט.
+      // Task 34: a manual measured item (isManualMeasured) keeps its measured unit, manual source and (empty) measurement rows as well
+      if (isNonDestructiveEdit && isManualMeasured(editingItem)) {
+        newItem.quantity = editingItem.quantity ?? '1';
+        newItem.pricing_unit = editingItem.pricing_unit;
+        newItem.quantity_source = 'manual';
+        newItem.calculation_method = editingItem.calculation_method || 'manual';
+        newItem.measurements = Array.isArray(editingItem.measurements) ? editingItem.measurements : [];
+        newItem.calculated_quantity = (quantity !== '' && quantity != null && Number.isFinite(Number(quantity))) ? Number(quantity) : editingItem.calculated_quantity;
+      } else if (isNonDestructiveEdit && editingItem?.pricing_unit && !isMeasurableUnit(editingItem.pricing_unit)) {
+        newItem.pricing_unit = editingItem.pricing_unit;
+        newItem.quantity_source = editingItem.quantity_source || 'manual';
+        newItem.calculation_method = editingItem.calculation_method || 'manual';
+        // חוק ברזל (SQ-F03-B closure, "ONE-PASS SMART QUOTE FINAL
+        // REMEDIATION" task): quantity_source/calculation_method/pricing_unit
+        // לבדם אינם מספיקים - בלעדי כתיבת calculated_quantity גם כן, פריט-
+        // שעות/ק"ג/יום ידני היה קורס לכמות האפקטיבית השגויה (getActiveQuantity
+        // נופל בחזרה ל-newItem.quantity הגולמי כש-calculated_quantity חסר).
+        // `quantity` כאן הוא שדה-הקלט של האשף עצמו, שכעת משוחזר-נכון מ-
+        // getActiveQuantity ב-stateFromItem (ר' התיקון למעלה) - כך שערך לא-
+        // נגוע (עריכת-שם-בלבד) משמר במדויק את המספר האמיתי, וערך שהמשתמש
+        // אכן שינה בכוונה בשדה הזה (שינוי-כמות לגיטימי לפריט-כמות-ידנית,
+        // לא קונברסיית-שיטה) עדיין מתקבל - לעולם לא "קפוא" על הערך המקורי.
+        newItem.calculated_quantity = (quantity !== '' && quantity != null && Number.isFinite(Number(quantity)))
+          ? Number(quantity)
+          : editingItem.calculated_quantity;
+      }
+    } else {
+      // 'fixed'
+      newItem = {
+        description,
+        quantity: '1',
+        unit_price: unitPrice,
+        isFromCatalog: !!catalogServiceId,
+        section_key: finalSectionKey,
+      };
+    }
+    if (editingItem && editingItem.id) newItem.id = editingItem.id;
+    if (specRows.length > 0) {
+      newItem.specification = specRows.filter((r) => r.label.trim() || r.value.trim());
+    }
     if (catalogServiceId && !isEditMode && typeof onCatalogItemAdded === 'function') onCatalogItemAdded(catalogServiceId, newItem);
     onAdd(newItem);
     onClose();
