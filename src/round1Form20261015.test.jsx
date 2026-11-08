@@ -40,7 +40,7 @@ describe('A1 / A6: the measured quote is one list (now the rows of the one quote
   it('an old internal measured entry opens the same rows: no rooms needed, rooms optional, area in the row', () => {
     render(<Stateful isMeasuredEntry />);
     expect(screen.getByRole('textbox', { name: 'פריט' })).toBeTruthy();
-    expect([...screen.getByRole('combobox', { name: 'סוג חיוב' }).options].map((o) => o.textContent)).toEqual(['סכום קבוע', 'יחידות', 'שטח', 'אורך', 'ק״ג', 'שעות', 'ימים']); // Owner console 2026-11-08 (restore item 01): kg / hours / days in every row again
+    expect([...screen.getByRole('combobox', { name: 'אופן חיוב' }).options].map((o) => o.textContent)).toEqual(['סכום קבוע', 'יחידות', 'שטח', 'אורך', 'ק״ג', 'שעות', 'ימים']); // Owner console 2026-11-08 (restore item 01): kg / hours / days in every row again
     expect(screen.getByText('חלוקה לחדרים / אזורים / יחידות (לא חובה)')).toBeTruthy();
     expect(screen.queryByText('הוספת היחידה הראשונה')).toBeNull();
     expect(screen.queryByText('לא משויך')).toBeNull();

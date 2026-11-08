@@ -11,7 +11,7 @@ import { askConfirm } from './AppDialog';
 
 const COPY = {
   he: {
-    saveTitle: 'שמירה כתבנית', pickTitle: 'התחלה מתבנית שמורה', close: 'סגירה', cancel: 'ביטול',
+    saveTitle: 'שמירה כתבנית', pickTitle: 'בחירת תבנית הצעה', // G7 (Owner 2026-11-08, the clarity fixes B3) close: 'סגירה', cancel: 'ביטול',
     name: 'שם התבנית', namePh: 'לדוגמה: שיפוץ אמבטיה בסיסי',
     keep: 'מה לשמור בתבנית', keepPrices: 'מחירים', keepTexts: 'תנאים, אחריות והערות', keepSubject: 'נושא ושם פרויקט', keepPresentation: 'עיצוב ותמונות',
     never: 'לא נשמרים לעולם: לקוח ואיש קשר, מספר הצעה, מצב, חתימה, תשלום, קישור ותאריכים.',
@@ -21,10 +21,10 @@ const COPY = {
     items: 'פריטים', sections: 'חלקים', subtotal: 'סכום לפני מע״מ והנחה', subtotalInclVat: 'סכום כולל מע״מ, לפני הנחה', noPrices: 'ללא מחירים', texts: 'כולל תנאים / אחריות / הערות', presentation: 'כולל עיצוב ותמונות',
     useHint: 'נפתחת הצעה חדשה שעדיין לא נשמרה. פרטי הלקוח, התוקף והתאריכים ימולאו מחדש.',
     // Owner console 2026-11-08 (stage 4 of the one quote builder, decision 6): unit templates
-    saveUnitTitle: 'שמירה כתבנית יחידה', pickUnitTitle: 'הוספה מיחידה שמורה', unitNamePh: 'לדוגמה: דירת 4 חדרים טיפוס א׳',
+    saveUnitTitle: 'שמירה כתבנית יחידה', pickUnitTitle: 'הוספת יחידה מתבנית', unitNamePh: 'לדוגמה: דירת 4 חדרים טיפוס א׳',
     keepDetails: 'פרטים ללקוח', neverUnit: 'לא נשמרים לעולם: לקוח, כתובת, שמות המקומות במידות, מספר היחידות הזהות ותאריכים.',
     filterQuotes: 'תבניות הצעה', filterUnits: 'תבניות יחידה', addUnit: 'הוספה להצעה',
-    unitHint: 'יחידה אחת עם השורות שלה נוספת לסוף ההצעה הפתוחה.',
+    unitHint: 'הוספת יחידה אחת להצעה הפתוחה - עם השורות שלה, בסוף ההצעה.',
     emptyUnit: 'אין עדיין תבניות יחידה. שומרים יחידה מתפריט היחידה, ב"שמירה כתבנית יחידה".',
     unitElsewhere: 'תבנית יחידה מוסיפים מתוך הצעה פתוחה, בכפתור "מיחידה שמורה".', quoteElsewhere: 'תבנית הצעה פותחים מ"הצעה חדשה", ב"מתבנית שמורה".',
     duplicateAny: 'כבר יש תבנית בשם הזה, של הצעה או של יחידה. בחרו שם אחר.',
@@ -35,7 +35,7 @@ const COPY = {
     },
   },
   en: {
-    saveTitle: 'Save as template', pickTitle: 'Start from a saved template', close: 'Close', cancel: 'Cancel',
+    saveTitle: 'Save as template', pickTitle: 'Choose a quote template', close: 'Close', cancel: 'Cancel',
     name: 'Template name', namePh: 'e.g. Basic bathroom renovation',
     keep: 'What to keep in the template', keepPrices: 'Prices', keepTexts: 'Terms, warranty and notes', keepSubject: 'Subject and project name', keepPresentation: 'Design and images',
     never: 'Never kept: the customer and contact, quote number, status, signature, payment, link and dates.',
@@ -44,10 +44,10 @@ const COPY = {
     use: 'Use template', del: 'Delete', confirmDel: (n) => `Delete the template "${n}"? It cannot be restored.`,
     items: 'Items', sections: 'Sections', subtotal: 'Amount before tax and discount', subtotalInclVat: 'Amount including VAT, before discount', noPrices: 'No prices', texts: 'Includes terms / warranty / notes', presentation: 'Includes design and images',
     useHint: 'Opens a new, unsaved quote; the customer, validity and dates are filled in fresh.',
-    saveUnitTitle: 'Save as unit template', pickUnitTitle: 'Add from a saved unit', unitNamePh: 'e.g. 4-room apartment, type A',
+    saveUnitTitle: 'Save as unit template', pickUnitTitle: 'Add unit from template', unitNamePh: 'e.g. 4-room apartment, type A',
     keepDetails: 'Details for the customer', neverUnit: 'Never kept: the customer, the address, the place names of the sizes, the identical unit count and dates.',
     filterQuotes: 'Quote templates', filterUnits: 'Unit templates', addUnit: 'Add to the quote',
-    unitHint: 'One unit with its rows is added at the end of the open quote.',
+    unitHint: 'Add one unit to this quote - with its rows, at the end of the quote.',
     emptyUnit: 'No unit templates yet. Save a unit from its unit menu, with "Save as unit template".',
     unitElsewhere: 'A unit template is added from an open quote, with "From a saved unit".', quoteElsewhere: 'A quote template is opened from "New quote", with "From a saved template".',
     duplicateAny: 'A quote or unit template with this name already exists. Choose another name.',

@@ -18,8 +18,8 @@ describe('live customer link (2026-11-08)', () => {
     const en = classifyQuoteApprovalError('Quote updated: reload the quote and sign again', false);
     expect(he.category).toBe('quote_updated');
     expect(en.category).toBe('quote_updated');
-    expect(he.userMessage).toBe('העסק עדכן את ההצעה בזמן שהייתה פתוחה. עברו על ההצעה המעודכנת וחתמו שוב.');
-    expect(en.userMessage).toBe('The business updated this quote while it was open. Please review the updated quote and sign again.');
+    expect(he.userMessage).toBe('ההצעה עודכנה. עברו על השינויים לפני החתימה.');
+    expect(en.userMessage).toBe('This quote was updated. Review the changes before signing.');
     // the other messages are unchanged
     expect(classifyQuoteApprovalError('Quote not found or cannot be approved', true).category).toBe('already_approved_or_unavailable');
   });
