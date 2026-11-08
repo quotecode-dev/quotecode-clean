@@ -928,8 +928,8 @@ export default function QuoteForm({
             {/* Owner console 2026-11-08 (stage 2, typed L-23): the measured entry's locked hint becomes the row explanation */}
             <p data-testid="quote-rows-hint" style={{ margin: '8px 0 0', fontSize: '0.76rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
               {isHebrew
-                ? 'כל שורה היא מוצר או עבודה: בוחרים מהקטלוג או מקלידים שם, וקובעים סוג חיוב - סכום קבוע, יחידות, שטח, אורך, ק״ג, שעות או ימים.'
-                : 'Each row is a product or work item: pick it from your catalog or type a name, then choose how it is billed - a fixed amount, units, area, length, kg, hours or days.'}
+                ? 'כל שורה היא מוצר או עבודה: בוחרים מהקטלוג או מקלידים שם, וקובעים סוג חיוב - סכום קבוע, יחידות, שטח או אורך.'
+                : 'Each row is a product or work item: pick it from your catalog or type a name, then choose how it is billed - a fixed amount, units, area or length.'}
             </p>
           </>
         )}
@@ -974,7 +974,7 @@ export default function QuoteForm({
             הקיימות ימשיכו לפעול ללא שינוי. */}
         {/* Owner console 2026-11-08 (stage 2, design A): every line is a row - the item cards and the item window are gone */}
         {structureMode === 'regular' && (
-          <QuoteRowsEditor recommendedMethod={recommendedPricingMethod} items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
+          <QuoteRowsEditor items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
                 international={isLocalIsraeliBusiness === false} sym={sym} fmtMoney={fmtMoney} onCatalogItemAdded={onCatalogItemAdded}
                 canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
                 canDuplicate={canDuplicateRow} onDuplicateLocked={() => setShowUpgradeConfirm('reuse')}
@@ -1006,7 +1006,7 @@ export default function QuoteForm({
                 onSetRepeat={(n) => setUnitRepeat(section.key, n)}
                 onSeparate={() => separateOneCopy(section)}
                 onSaveTemplate={typeof onSaveUnitTemplate === 'function' ? () => onSaveUnitTemplate(section) : null}
-                collapsed={collapsedUnitKeys.has(section.key) && !items.some((it) => it && it._invalid && it.section_key === section.key)}
+                collapsed={collapsedUnitKeys.has(section.key)}
                 onToggleCollapse={() => toggleUnitCollapsed(section.key)}
                 onRename={(name) => renameSection(section.key, name)}
                 onRemove={() => requestRemoveSection(section, indices.filter(isRealLine).length)}
@@ -1014,7 +1014,7 @@ export default function QuoteForm({
                 onDuplicate={() => duplicateUnit(section)}
                 focusName={section.key === newUnitKey}
               >
-                <QuoteRowsEditor recommendedMethod={recommendedPricingMethod} items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
+                <QuoteRowsEditor items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
                 international={isLocalIsraeliBusiness === false} sym={sym} fmtMoney={fmtMoney} onCatalogItemAdded={onCatalogItemAdded}
                 canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
                 canDuplicate={canDuplicateRow} onDuplicateLocked={() => setShowUpgradeConfirm('reuse')}
@@ -1035,12 +1035,12 @@ export default function QuoteForm({
                 itemCount={visibleUnassignedIndices.filter(isRealLine).length}
                 rowCount={visibleUnassignedIndices.length}
                 subtotal={computeUnitSubtotal(visibleUnassignedIndices)}
-                collapsed={collapsedUnitKeys.has('__unassigned__') && !items.some((it) => it && it._invalid && !sections.some((s) => s.key === it.section_key))}
+                collapsed={collapsedUnitKeys.has('__unassigned__')}
                 onToggleCollapse={() => toggleUnitCollapsed('__unassigned__')}
                 isUnassigned
                 onAddItem={() => addRowTo(null)}
               >
-                <QuoteRowsEditor recommendedMethod={recommendedPricingMethod} items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
+                <QuoteRowsEditor items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
                 international={isLocalIsraeliBusiness === false} sym={sym} fmtMoney={fmtMoney} onCatalogItemAdded={onCatalogItemAdded}
                 canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
                 canDuplicate={canDuplicateRow} onDuplicateLocked={() => setShowUpgradeConfirm('reuse')}

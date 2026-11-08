@@ -12,8 +12,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { MoreVertical, ChevronDown, Plus, X } from 'lucide-react';
 import { APP as NEON } from '../theme/neonTheme';
-import { buildQuoteItemFromEntry, blankRowItem, rowEntry, convertSizeBetween, isFeetUnit, isCountedMethod, sizeToBase } from '../utils/quoteItemEntry';
-import { getActiveQuantity, getProfessionalUnitLabel, formatQuantity, normalizeRepeatCount, computeMeasurementValue, formatMeasurementLine } from '../utils/professionalQuoteItem';
+import { buildQuoteItemFromEntry, blankRowItem, rowEntry, convertSizeBetween, isFeetUnit } from '../utils/quoteItemEntry';
+import { getActiveQuantity, getProfessionalUnitLabel, formatQuantity, normalizeRepeatCount } from '../utils/professionalQuoteItem';
 import { parsePriceInput, parseQuantityInput } from '../utils/itemPrice';
 import { askConfirm } from './AppDialog';
 
@@ -32,15 +32,6 @@ const COPY = {
     linkedHere: 'רק כאן', linkedAll: 'עדכון כולן', linkedAll1: 'עדכון גם שם', linkedCancel: 'ביטול',
     linkedCopies: 'כולל {c} יחידות זהות', linkedDone: 'עודכנו {n} מחירים מקושרים', linkedDone1: 'עודכן מחיר מקושר אחד', linkedUndo: 'ביטול עדכון המחירים',
     linkBreak: 'למחיר של השורה הזאת מקושרות שורות ביחידות אחרות. שינוי סוג החיוב ינתק אותה מהקישור. להמשיך?',
-    // Owner console 2026-11-08 (restore items 01-06, 09, 16, 17): the item window's own words (4f1592f2:src/components/AddItemWizard.jsx)
-    kg: 'ק״ג', hour: 'שעות', day: 'ימים', recommended: 'מומלץ',
-    knowArea: 'השטח כבר ידוע?', knowLength: 'האורך כבר ידוע?', backToSizes: 'חזרה להזנת מידות', refSizes: 'מידות לעיון',
-    conversion: 'שינוי שיטת התמחור עלול לשנות את משמעות הסכומים הקיימים. להמשיך?', unitChangeAsk: 'שינוי היחידה דורש בדיקה מחדש של המחיר. להמשיך?',
-    // the words of the row's own fields (length x width), so the message names the field the user sees
-    missingFirst: 'יש להזין אורך גדול מ-0', missingSecond: 'יש להזין רוחב גדול מ-0',
-    rowNeedsFirst: (n) => `במידה ${n} חסר אורך. השלימו או הסירו אותה.`, rowNeedsSecond: (n) => `במידה ${n} חסר רוחב. השלימו או הסירו אותה.`,
-    sizeTooSmall: 'המידות קטנות מדי והכמות יוצאת 0.00. בדקו את המספרים ואת היחידה (ס״מ או מטר).',
-    missingQuantity: 'יש להזין כמות גדולה מ-0',
   },
   en: {
     item: 'Item', billing: 'Billing', amount: 'Quantity / size', price: 'Price', total: 'Total', itemPlaceholder: 'Search the catalog or type a name',
@@ -56,19 +47,9 @@ const COPY = {
     linkedHere: 'Only here', linkedAll: 'Update all', linkedAll1: 'Update it too', linkedCancel: 'Cancel',
     linkedCopies: 'covers {c} identical units', linkedDone: '{n} linked prices updated', linkedDone1: '1 linked price updated', linkedUndo: 'Undo the price update',
     linkBreak: 'Rows in other units share this row\'s price. Changing the billing type unlinks it. Continue?',
-    kg: 'kg', hour: 'Hours', day: 'Days', recommended: 'Recommended',
-    knowArea: 'I already know the area', knowLength: 'I already know the length', backToSizes: 'Enter sizes instead', refSizes: 'Measurements for reference',
-    conversion: 'Changing the pricing method may change how the existing numbers are interpreted. Continue?', unitChangeAsk: 'Changing the unit requires reviewing the price. Continue?',
-    missingFirst: 'Please enter a length greater than 0', missingSecond: 'Please enter a width greater than 0',
-    rowNeedsFirst: (n) => `Size ${n} needs a length. Complete or remove it.`, rowNeedsSecond: (n) => `Size ${n} needs a width. Complete or remove it.`,
-    sizeTooSmall: 'The sizes are too small and the quantity comes out as 0.00. Check the numbers and the unit (cm or m).',
-    missingQuantity: 'Please enter a quantity greater than 0',
   },
 };
-// Owner console 2026-11-08 (restore item 01): every billing type of the Owner-approved unit set in every row (the order of the spec, B2);
-// restore item 06: the business's recommended type (advice only) comes first with its mark, as in the item window
-const METHODS = ['fixed', 'units', 'area', 'linear', 'kg', 'hour', 'day'];
-const orderedMethods = (rec) => (rec && METHODS.includes(rec) ? [rec, ...METHODS.filter((m) => m !== rec)] : METHODS);
+const METHODS = ['fixed', 'units', 'area', 'linear'];
 const sizeUnits = (international) => (international ? ['ft', 'in', 'm', 'cm'] : ['m', 'cm']);
 const sizeUnitLabel = (u, isHebrew) => ({ m: isHebrew ? 'מ׳' : 'm', cm: isHebrew ? 'ס״מ' : 'cm', ft: isHebrew ? 'רגל' : 'ft', in: isHebrew ? 'אינץ׳' : 'in' }[u] || u);
 const areaLabel = (entry, isHebrew) => getProfessionalUnitLabel(isFeetUnit(entry.measureUnit) ? 'sq_ft' : 'm2', isHebrew);
@@ -133,43 +114,10 @@ function ItemField({ value, onText, onPick, services, t, rowId, inputRef, sym, f
   );
 }
 
-// restore item 04 (Owner 2026-11-08): the item window's size check (4f1592f2:src/components/AddItemWizard.jsx 875-904) - a measured row
-// with content needs its sizes, a started extra size must be complete, and the quantity may not round to 0.00; an untouched size is ignored
-const roundsToNothing = (v) => v != null && Number.isFinite(v) && v.toFixed(2) === '0.00';
-const typed = (v) => String(v ?? '').trim() !== '';
-function sizeProblems(e, t) {
-  if (!isMeasured(e.pricingMethod) || e.useManualQty) return null;
-  const linear = e.pricingMethod === 'linear';
-  const extra = e.extraMeasureRows || [];
-  const startedRow = (r) => typed(r.widthCm) || (!linear && typed(r.heightCm));
-  if (!typed(e.description) && !typed(e.unitPrice) && !startedRow(e) && !extra.some(startedRow)) return null;
-  const out = {};
-  if (!(Number(e.widthCm) > 0)) out.main = t.missingFirst;
-  else if (!linear && !(Number(e.heightCm) > 0)) out.main = t.missingSecond;
-  const rows = {};
-  extra.forEach((r, i) => {
-    if (!startedRow(r)) return;
-    if (!(Number(r.widthCm) > 0)) rows[i] = t.rowNeedsFirst(i + 2);
-    else if (!linear && !(Number(r.heightCm) > 0)) rows[i] = t.rowNeedsSecond(i + 2);
-  });
-  if (Object.keys(rows).length) out.rows = rows;
-  if (!out.main && !out.rows) {
-    const valueOf = (r) => computeMeasurementValue(e.pricingMethod, sizeToBase(e.measureUnit, r.widthCm), linear ? undefined : sizeToBase(e.measureUnit, r.heightCm));
-    const total = [e, ...extra.filter(startedRow)].map(valueOf).filter((v) => v != null && Number.isFinite(v)).reduce((s, v) => s + v, 0);
-    if (roundsToNothing(total)) out.main = t.sizeTooSmall;
-  }
-  return out.main || out.rows ? out : null;
-}
-// restore item 05 (Owner 2026-11-08): what the screen shows is what is saved. While an open row holds a value that cannot be stored, its
-// line carries the screen-only mark _invalid (never sent - the save builds its rows field by field) and the save refuses the quote. The
-// typed text lives only in the open row: a row that opens again, or a line changed from outside (smart edit, a linked price), shows the
-// stored line again and drops the mark.
-const unmark = (it) => { const c = { ...it }; delete c._invalid; return c; };
-
 const fieldStyle = { minHeight: '40px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.84rem' };
 const errStyle = { flexBasis: '100%', margin: '2px 0 0', fontSize: '0.72rem', fontWeight: 700, color: NEON.red };
 
-function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney, services, sections, store, pos, count, onItem, onDuplicate, onRemove, onMove, onShift, onEnterNext, onCatalogItemAdded, canUseMeasured, onMeasuredLocked, linked = null, onLinkedAll = null, recommendedMethod = null, canRemove = true }) {
+function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney, services, sections, store, pos, count, onItem, onDuplicate, onRemove, onMove, onShift, onEnterNext, onCatalogItemAdded, canUseMeasured, onMeasuredLocked, linked = null, onLinkedAll = null }) {
   // a catalog line stays a catalog line when it is edited again (the entry's catalog mark; the media binding runs only on a new pick)
   const entryOf = (it) => ({ ...rowEntry(it, international), catalogServiceId: it.isFromCatalog ? 'catalog' : null });
   const [entry, setEntry] = useState(() => entryOf(item));
@@ -182,30 +130,19 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
   if (!opened.current) opened.current = openedOf(entry);
   // the line changed from outside (the smart edit keeps its id): the row reads it again, it never writes back its old values
   const lastBuilt = useRef(item);
-  // a row that opens on a marked line shows the stored line (its typed text is gone with the row that held it) - the mark goes too
-  useEffect(() => {
-    if (item._invalid) { const clean = unmark(item); lastBuilt.current = clean; onItem(index, clean); }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
   useEffect(() => {
     if (item === lastBuilt.current) return;
-    const clean = item._invalid ? unmark(item) : item;
-    lastBuilt.current = clean;
-    const fresh = entryOf(clean);
+    lastBuilt.current = item;
+    const fresh = entryOf(item);
     opened.current = openedOf(fresh);
     setEntry(fresh);
     setPriceErr(false);
     setQtyErr(false);
-    setQtyEmpty(false);
-    if (clean !== item) onItem(index, clean);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [item]);
   const [showDetails, setShowDetails] = useState(() => Array.isArray(item.specification) && item.specification.length > 0);
   const [priceErr, setPriceErr] = useState(false);
   const [qtyErr, setQtyErr] = useState(false);
-  // restore item 05: an emptied quantity stays empty and says so (the item window's missingQuantity), never becomes 1 by itself
-  const [qtyEmpty, setQtyEmpty] = useState(false);
-  const rowRef = useRef(null);
   const itemInput = useRef(null);
   const menuBtnRef = useRef(null);
   // Owner console 2026-11-08 (stage 3, decision 5): a linked row's explicit new price asks whether the linked rows take it too
@@ -226,30 +163,21 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
   const apply = (patch) => {
     const next = { ...entry, ...patch };
     setEntry(next);
-    if (typed(next.quantity) && (!isMeasured(next.pricingMethod) || !next.useManualQty)) setQtyEmpty(false);
-    if (typed(next.manualQty) && isMeasured(next.pricingMethod) && next.useManualQty) setQtyEmpty(false);
     const p = parsePriceInput(next.unitPrice);
     const o = opened.current;
-    const qtyUntouched = next.quantity === o.quantity && isCountedMethod(o.pricingMethod) && o.pricingMethod === next.pricingMethod;
+    const qtyUntouched = next.quantity === o.quantity && o.pricingMethod === 'units';
     const knownUntouched = o.useManualQty && next.manualQty === o.manualQty;
-    const qOk = !isCountedMethod(next.pricingMethod) || qtyUntouched || parseQuantityInput(next.quantity).ok;
+    const qOk = next.pricingMethod !== 'units' || qtyUntouched || parseQuantityInput(next.quantity).ok;
     const mOk = !(isMeasured(next.pricingMethod) && next.useManualQty) || knownUntouched || parseQuantityInput(next.manualQty).ok;
     setPriceErr(!p.ok);
     setQtyErr((!qOk && String(next.quantity ?? '').trim() !== '') || (!mOk && String(next.manualQty ?? '').trim() !== ''));
-    if (!p.ok || !qOk || !mOk || sizeProblems(next, t)) {
-      // Owner console 2026-11-08 (restore items 04 / 05): a row that cannot be stored is never saved with its previous value - the line
-      // keeps what was typed and is marked, and the save refuses the quote until the marked fields are fixed
-      const marked = { ...item, _invalid: true };
-      lastBuilt.current = marked;
-      onItem(index, marked);
-      return null;
-    }
+    if (!p.ok || !qOk || !mOk) return null;
     // a conversion = a billing type / size mode other than the line's own one right now (sizes -> known -> sizes counts the sizes again)
     const now = rowEntry(item, international);
     const conversionConfirmed = next.pricingMethod !== now.pricingMethod || !!next.useManualQty !== !!now.useManualQty;
     const built = buildQuoteItemFromEntry({ ...next, unitPrice: p.value, sectionKey: item.section_key ?? null, editingItem: item, isEditMode: true, conversionConfirmed });
     // an untouched count keeps its stored quantity column (an hours / kg line edited only in its price)
-    if (!conversionConfirmed && qtyUntouched && isCountedMethod(next.pricingMethod) && item.quantity !== undefined) built.quantity = item.quantity;
+    if (!conversionConfirmed && qtyUntouched && next.pricingMethod === 'units' && item.quantity !== undefined) built.quantity = item.quantity;
     // a fixed amount and "1 unit" are the same stored line - the row remembers which one the user chose (a screen-only mark, never saved)
     if (next.pricingMethod === 'fixed' || next.pricingMethod === 'units') built._billing = next.pricingMethod;
     // stage 3: the shared-price link stays through any edit of the same billing basis; another basis unlinks the row (asked before)
@@ -259,33 +187,11 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
     return built;
   };
   const method = entry.pricingMethod;
-  // Owner console 2026-11-08 (restore item 03): the item window's rule (4f1592f2 AddItemWizard 964-989) - every billing change of a saved
-  // line may reinterpret its numbers and is asked first; on a new row a price typed for one basis is never kept silently for another
-  const conversionAsk = (m) => {
-    if (isLinked) return t.linkBreak;
-    if (item.id) return t.conversion;
-    if (isMeasured(method) && !isMeasured(m) && hasSizes(item)) return t.sizesLost;
-    if (typed(entry.unitPrice)) return t.unitChangeAsk;
-    return null;
-  };
   const changeMethod = async (m) => {
-    if (m === method) return;
     if (isMeasured(m) && !canUseMeasured) { onMeasuredLocked?.(); return; }
-    const ask = conversionAsk(m);
-    if (ask && !(await askConfirm(ask, isHebrew))) return;
-    apply({ pricingMethod: m, quantity: isCountedMethod(m) ? (isCountedMethod(method) ? (entry.quantity || '1') : '1') : '1', useManualQty: isMeasured(m) ? entry.useManualQty : false });
-  };
-  // restore item 09 (decision 2: "catalog pick fills price + billing type"): a catalog item fills the name, the price and the catalog's
-  // billing type - units, quantity 1, as the item window opened a catalog line; replacing another basis is asked first (item 03)
-  const pickCatalog = async (s) => {
-    if (method !== 'units') {
-      const ask = conversionAsk('units');
-      if (ask && !(await askConfirm(ask, isHebrew))) return;
-    }
-    // the item window always started a catalog line at quantity 1 (4f1592f2 AddItemWizard 164-166)
-    const built = apply({ description: String(s.name || ''), unitPrice: s.price == null ? '' : String(s.price), catalogServiceId: String(s.id),
-      pricingMethod: 'units', quantity: '1', useManualQty: false });
-    if (built && typeof onCatalogItemAdded === 'function') onCatalogItemAdded(s.id, built);
+    if (isMeasured(method) && !isMeasured(m) && hasSizes(item) && !(await askConfirm(t.sizesLost, isHebrew))) return;
+    if (m !== method && isLinked && !(await askConfirm(t.linkBreak, isHebrew))) return;
+    apply({ pricingMethod: m, quantity: m === 'units' ? (entry.quantity || '1') : '1', useManualQty: isMeasured(m) ? entry.useManualQty : false });
   };
   // a known amount starts from the row's current amount (never an empty 0); sizes / known switch is a conversion of the row
   const changeSizeMode = (known) => {
@@ -310,14 +216,9 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
   };
   const qty = Number(getActiveQuantity(item) || 0);
   const price = Number(item.unit_price);
-  // restore items 04 / 05: a marked row shows no amount (its stored amount is not what it shows now) until it is fixed
-  const total = item._invalid || item.unit_price === '' || item.unit_price == null || !Number.isFinite(price) ? null : (method === 'fixed' ? price : qty * price);
+  const total = item.unit_price === '' || item.unit_price == null || !Number.isFinite(price) ? null : (method === 'fixed' ? price : qty * price);
   // a counted unit that is not plain "units" (hour / day / kg, a known m²) shows its unit next to the quantity
-  const countUnit = isCountedMethod(method) && method !== 'units' ? getProfessionalUnitLabel(method, isHebrew)
-    : method === 'units' && item.pricing_unit && item.pricing_unit !== 'unit' ? getProfessionalUnitLabel(item.pricing_unit, isHebrew) : '';
-  // restore item 04: the size problems of this row, shown once the row was left (or when it opens marked from a draft / a refused save)
-  const sizeErr = sizeProblems(entry, t);
-  const [showSizeErr, setShowSizeErr] = useState(false);
+  const countUnit = method === 'units' && item.pricing_unit && item.pricing_unit !== 'unit' ? getProfessionalUnitLabel(item.pricing_unit, isHebrew) : '';
   const unitSelect = (
     <select aria-label={t.amount} value={entry.measureUnit} onChange={(e) => changeMeasureUnit(e.target.value)} data-testid={`qrow-sizeunit-${rowId}`} style={{ ...fieldStyle, fontSize: '0.8rem' }}>
       {sizeUnits(international).map((u) => <option key={u} value={u}>{sizeUnitLabel(u, isHebrew)}</option>)}
@@ -332,43 +233,30 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
   // the sizes read left to right in both languages, exactly like the customer's quote (`4 × 3 m`)
   const sizeGroup = { display: 'inline-flex', alignItems: 'center', gap: '6px', direction: 'ltr' };
   return (
-    <div ref={rowRef} className="qrow qrow-line" role="group" aria-label={`${t.item} ${pos + 1}`} data-testid={`qrow-${rowId}`} data-invalid={item._invalid ? 'true' : undefined}
-      onFocus={() => setShowSizeErr(false)}
-      onBlur={(e) => {
-        // the message appears a moment after the row is left - never under a pointer mid-click (it would push the clicked button away),
-        // and not when the user is already back in the row
-        if (!e.currentTarget.contains(e.relatedTarget)) window.setTimeout(() => { if (!rowRef.current || !rowRef.current.contains(document.activeElement)) setShowSizeErr(true); }, 250);
-      }}>
+    <div className="qrow qrow-line" role="group" aria-label={`${t.item} ${pos + 1}`} data-testid={`qrow-${rowId}`}>
       <ItemField value={entry.description} rowId={rowId} t={t} services={services} inputRef={itemInput} sym={sym} fmtMoney={fmtMoney}
         onText={(v) => apply({ description: v, catalogServiceId: null })}
-        onPick={(s) => { pickCatalog(s); }} />
+        onPick={(s) => {
+          const built = apply({ description: String(s.name || ''), unitPrice: s.price == null ? '' : String(s.price), catalogServiceId: String(s.id) });
+          if (built && typeof onCatalogItemAdded === 'function') onCatalogItemAdded(s.id, built);
+        }} />
       <label className="qrow-billing"><span className="qrow-mlabel">{t.billing}</span>
       <select aria-label={t.billing} value={method} data-testid={`qrow-billing-${rowId}`} onChange={(e) => changeMethod(e.target.value)} style={fieldStyle}>
-        {orderedMethods(recommendedMethod).map((m) => <option key={m} value={m}>{m === recommendedMethod ? `${t[m]} · ${t.recommended}` : t[m]}</option>)}
+        {METHODS.map((m) => <option key={m} value={m}>{t[m]}</option>)}
       </select>
       </label>
       <div className="qrow-amount" style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
         {method !== 'fixed' && <span className="qrow-mlabel" style={{ flexBasis: '100%' }}>{t.amount}</span>}
-        {isCountedMethod(method) && (<>
+        {method === 'units' && (<>
           <input {...num} aria-label={t.qty} aria-invalid={qtyErr} value={entry.quantity} data-testid={`qrow-qty-${rowId}`} onChange={(e) => apply({ quantity: e.target.value })}
-            onBlur={() => { if (!typed(entry.quantity)) setQtyEmpty(true); }} />
+            onBlur={() => { if (String(entry.quantity).trim() === '') apply({ quantity: '1' }); }} />
           {countUnit && <span style={{ fontSize: '0.78rem', color: NEON.textSecondary }}>{countUnit}</span>}
         </>)}
         {isMeasured(method) && entry.useManualQty && (<>
-          <input {...num} aria-label={t.known} aria-invalid={qtyErr || qtyEmpty} value={entry.manualQty ?? ''} data-testid={`qrow-known-${rowId}`} onChange={(e) => apply({ manualQty: e.target.value })}
-            onBlur={() => { if (!typed(entry.manualQty)) setQtyEmpty(true); }} />
+          <input {...num} aria-label={t.known} aria-invalid={qtyErr} value={entry.manualQty ?? ''} data-testid={`qrow-known-${rowId}`} onChange={(e) => apply({ manualQty: e.target.value })} />
           {unitSelect}
           <span style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{calcUnit}</span>
-          <span aria-hidden="true" style={{ flexBasis: '100%', height: 0 }} />
-          {/* PRODUCT_TRUTH_DECORATIVE: restore item 02 (Owner 2026-11-08) - back from a known amount to typed sizes, beside the amount (the item window's "Enter sizes instead") */}
-          <button type="button" data-testid={`qrow-sizemode-${rowId}`} data-mode="known" onClick={() => changeSizeMode(false)} style={inlineLink}>{t.backToSizes}</button>
         </>)}
-        {isMeasured(method) && entry.useManualQty && entry.referenceSizes && hasSizes(item) && (
-          // restore item 16 (Owner 2026-11-08): a hand-set quantity is what is charged; the sizes it kept are shown for reference only
-          <span data-testid={`qrow-refsizes-${rowId}`} style={{ flexBasis: '100%', fontSize: '0.74rem', color: NEON.textSecondary }}>
-            {t.refSizes}: {item.measurements.map((m, i) => <span key={i}>{i > 0 ? ' · ' : ''}<bdi dir="ltr" className="pf-num">{formatMeasurementLine(m, isHebrew, (v) => formatQuantity(v))}</bdi></span>)}
-          </span>
-        )}
         {method === 'area' && !entry.useManualQty && (<>
           <span style={sizeGroup}>
             <input {...num} aria-label={t.width} value={entry.widthCm} data-testid={`qrow-w-${rowId}`} onChange={(e) => apply({ widthCm: e.target.value })} />
@@ -385,16 +273,12 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
         </>)}
         {isMeasured(method) && !entry.useManualQty && (<>
           <span aria-hidden="true" style={{ flexBasis: '100%', height: 0 }} />
-          <span data-testid={`qrow-calc-${rowId}`} style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{qty && !item._invalid ? (<><bdi dir="ltr" className="pf-num">{formatQuantity(qty, item.pricing_unit)}</bdi> {calcUnit}</>) : ''}</span>
+          <span data-testid={`qrow-calc-${rowId}`} style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{qty ? (<><bdi dir="ltr" className="pf-num">{formatQuantity(qty, item.pricing_unit)}</bdi> {calcUnit}</>) : ''}</span>
           {/* PRODUCT_TRUTH_DECORATIVE: adds another size line to this row (the item window's "another measurement"); sub-control of the measured row */}
           <button type="button" data-testid={`qrow-moresize-${rowId}`} onClick={() => setExtra([...extra, { widthCm: '', heightCm: '', label: '' }])}
             style={{ background: 'none', border: 'none', color: NEON.violet, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', minHeight: '40px', padding: '0 4px' }}>+ {t.moreSize}</button>
-          {/* PRODUCT_TRUTH_DECORATIVE: restore item 02 (Owner 2026-11-08) - "I already know the area / length" beside the sizes again (it had moved into the row menu) */}
-          <button type="button" data-testid={`qrow-sizemode-${rowId}`} data-mode="sizes" onClick={() => changeSizeMode(true)} style={inlineLink}>{method === 'area' ? t.knowArea : t.knowLength}</button>
-          {showSizeErr && sizeErr?.main && <p role="alert" data-testid={`qrow-sizeerr-${rowId}`} style={errStyle}>{sizeErr.main}</p>}
         </>)}
         {qtyErr && <p role="alert" style={errStyle}>{t.qtyError}</p>}
-        {!qtyErr && qtyEmpty && <p role="alert" data-testid={`qrow-qtyempty-${rowId}`} style={errStyle}>{t.missingQuantity}</p>}
       </div>
       <label className="qrow-price"><span className="qrow-mlabel">{t.price}</span>
       <input {...num} aria-label={t.price} aria-invalid={priceErr} value={entry.unitPrice} data-testid={`qrow-price-${rowId}`} onChange={(e) => apply({ unitPrice: e.target.value })}
@@ -420,6 +304,12 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
           <div role="menu" style={{ position: 'absolute', insetInlineEnd: 0, top: '100%', zIndex: 30, marginTop: '4px', minWidth: '190px', background: NEON.bgCard, border: `1px solid ${NEON.border}`, borderRadius: '10px', boxShadow: '0 12px 28px -10px rgba(15,23,42,0.35)', padding: '4px' }}>
             {/* PRODUCT_TRUTH_DECORATIVE: row menu 'details for the customer': opens the item's specification rows inside the row (the item window's details) */}
             <button type="button" role="menuitem" onClick={() => { close(); setShowDetails(true); if (specRows.length === 0) setEntry((e) => ({ ...e, specRows: [{ label: '', value: '' }] })); }} style={menuBtn}>{t.details}</button>
+            {isMeasured(method) && (
+              // PRODUCT_TRUTH_DECORATIVE: switches the measured row between typed sizes and a known amount (the item window's "I already know the area")
+              <button type="button" role="menuitem" data-testid={`qrow-sizemode-${rowId}`} data-mode={entry.useManualQty ? 'known' : 'sizes'} onClick={() => { close(); changeSizeMode(!entry.useManualQty); }} style={menuBtn}>
+                {entry.useManualQty ? t.sizes : t.known}
+              </button>
+            )}
             {/* PRODUCT_TRUTH_DECORATIVE: row menu 'duplicate row': copies this item as a new line (same as the item card's duplicate) */}
             <button type="button" role="menuitem" onClick={() => { close(); onDuplicate(index); }} style={menuBtn}>{t.duplicate}</button>
             {pos > 0 && (
@@ -439,10 +329,8 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
                 </select>
               </label>
             )}
-            {canRemove && (
-              // PRODUCT_TRUTH_DECORATIVE: row menu 'remove row': removes this item from the open quote (same as the item card's remove); restore item 17 (Owner 2026-11-08): shown only when the quote has more than one line, as before
-              <button type="button" role="menuitem" onClick={() => { close(); onRemove(index); }} style={{ ...menuBtn, color: NEON.red }}>{t.remove}</button>
-            )}
+            {/* PRODUCT_TRUTH_DECORATIVE: row menu 'remove row': removes this item from the open quote (same as the item card's remove) */}
+            <button type="button" role="menuitem" onClick={() => { close(); onRemove(index); }} style={{ ...menuBtn, color: NEON.red }}>{t.remove}</button>
           </div>
         )}
       </div>
@@ -481,7 +369,6 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
               </span>
               {/* PRODUCT_TRUTH_DECORATIVE: removes one extra size line of this row */}
               <button type="button" aria-label={t.removeSize} onClick={() => setExtra(extra.filter((_, j) => j !== i))} style={iconBtn}><X size={14} aria-hidden="true" /></button>
-              {showSizeErr && sizeErr?.rows?.[i] && <p role="alert" style={errStyle}>{sizeErr.rows[i]}</p>}
             </div>
           ))}
         </div>
@@ -504,7 +391,6 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
     </div>
   );
 }
-const inlineLink = { background: 'none', border: 'none', color: NEON.violet, fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', minHeight: '40px', padding: '0 4px', textDecoration: 'underline' };
 const linkBtn = { minHeight: '40px', padding: '0 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' };
 const menuBtn = { display: 'block', width: '100%', textAlign: 'start', padding: '8px 10px', minHeight: '40px', background: 'none', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.84rem', color: NEON.textPrimary };
 const iconBtn = { minWidth: '40px', minHeight: '40px', border: 'none', borderRadius: '8px', background: 'none', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
@@ -518,7 +404,6 @@ export default function QuoteRowsEditor({
   items, setItems, indices = null, addSectionKey = null, showHead = true, showAdd = true, keyStore = null,
   services = [], sections = [], isHebrew, international = false, sym = '', fmtMoney = (v) => Number(v).toFixed(2),
   onCatalogItemAdded = null, canUseMeasured = true, onMeasuredLocked = null, canDuplicate = () => true, onDuplicateLocked = null,
-  recommendedMethod = null,
 }) {
   const t = COPY[isHebrew ? 'he' : 'en'];
   const own = useRef(null);
@@ -557,7 +442,7 @@ export default function QuoteRowsEditor({
   const repriced = (it, priceValue) => {
     const e = rowEntry(it, international);
     const built = buildQuoteItemFromEntry({ ...e, unitPrice: priceValue, sectionKey: it.section_key ?? null, editingItem: it, isEditMode: true, conversionConfirmed: false });
-    if (isCountedMethod(e.pricingMethod) && it.quantity !== undefined) built.quantity = it.quantity;
+    if (e.pricingMethod === 'units' && it.quantity !== undefined) built.quantity = it.quantity;
     if (it._billing) built._billing = it._billing;
     built.price_link_id = it.price_link_id;
     return built;
@@ -613,7 +498,7 @@ export default function QuoteRowsEditor({
           <RowLine key={k} rowId={k} item={item} index={index} pos={pos} count={shown.length} store={store} t={t} isHebrew={isHebrew} international={international}
             sym={sym} fmtMoney={fmtMoney} services={services} sections={sections} onItem={onItem} onDuplicate={onDuplicate} onRemove={onRemove} onMove={onMove}
             onShift={onShift} onEnterNext={onEnterNext} onCatalogItemAdded={onCatalogItemAdded} canUseMeasured={canUseMeasured} onMeasuredLocked={onMeasuredLocked}
-            linked={linkedOf(index)} onLinkedAll={onLinkedAll} recommendedMethod={recommendedMethod} canRemove={items.length > 1} />
+            linked={linkedOf(index)} onLinkedAll={onLinkedAll} />
         );
       })}
       {undoLive && (

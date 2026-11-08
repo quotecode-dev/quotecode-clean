@@ -34,11 +34,6 @@ export const sizeToBase = (unit, v) => (isFeetUnit(unit) ? toFeet(unit, v) : cmT
 // the priced unit of a measured method in the typed unit's system
 export const measuredUnitFor = (method, unit) => (isFeetUnit(unit) ? (method === 'linear' ? 'linear_ft' : 'sq_ft') : (method === 'linear' ? 'linear_meter' : 'm2'));
 export const isFeetPricingUnit = (u) => u === 'sq_ft' || u === 'linear_ft';
-// Owner console 2026-11-08 (typed: "מאשר להחזיר הכול למה שהיה ... כולל שינוי ב-L-02 ... L-28"; restore item 01 of
-// docs/CODEX_SPEC_DEFAULTS_AND_CHANGES_2026-11-08.md): the counted professional units of the Owner-approved unit set (§155.1.4/§156) are a
-// billing type of every row again - stored exactly as the unit selector / the smart quote store them (pricing_unit + manual quantity)
-export const COUNTED_UNITS = Object.freeze(['kg', 'hour', 'day']);
-export const isCountedMethod = (m) => m === 'units' || COUNTED_UNITS.includes(m);
 
 /**
  * The quote form item of one entry - exactly what the item window's "add" produced before stage 1.
@@ -74,24 +69,8 @@ export function buildQuoteItemFromEntry(entry) {
       pricing_unit: measuredUnitFor(pricingMethod, measureUnit),
       quantity_source: 'manual',
       calculation_method: 'manual',
-      // restore item 16 (Owner 2026-11-08): the sizes of a line whose quantity was set by hand (the smart edit) stay as reference
-      measurements: isNonDestructiveEdit && editingItem?.quantity_source === 'manual' && Array.isArray(editingItem?.measurements) ? editingItem.measurements : [],
+      measurements: [],
       calculated_quantity: Number(manualQty),
-    };
-  } else if (COUNTED_UNITS.includes(pricingMethod)) {
-    // restore item 01 (Owner 2026-11-08): kg / hour / day - a professional quantity item, the shape of the unit selector and the smart quote
-    const q = quantity === '' || quantity == null ? NaN : Number(quantity);
-    const keep = isNonDestructiveEdit && editingItem?.pricing_unit === pricingMethod;
-    newItem = {
-      description,
-      quantity: quantity || '1',
-      unit_price: unitPrice,
-      isFromCatalog: !!catalogServiceId,
-      section_key: finalSectionKey,
-      pricing_unit: pricingMethod,
-      quantity_source: keep ? (editingItem.quantity_source || 'manual') : 'manual',
-      calculation_method: keep ? (editingItem.calculation_method || resolveCalculationMethod(pricingMethod, 'manual')) : resolveCalculationMethod(pricingMethod, 'manual'),
-      calculated_quantity: Number.isFinite(q) ? q : (keep ? editingItem.calculated_quantity : 1),
     };
   } else if (isMeasureMethod) {
     const calcMethod = resolveCalculationMethod(measuredUnitFor(pricingMethod, measureUnit), 'calculated');
@@ -259,21 +238,6 @@ export function rowEntry(item, international) {
     return { ...e, pricingMethod: linear ? 'linear' : 'area', useManualQty: true, manualQty: amount === '' || amount == null ? '' : String(amount), measureUnit: isFeetPricingUnit(item.pricing_unit) ? 'ft' : 'm' };
   }
   const hasSizes = Array.isArray(item.measurements) && item.measurements.length > 0;
-  // restore item 16 (Owner 2026-11-08): a measured line whose quantity was set by hand (the smart edit keeps its sizes) opens as a KNOWN
-  // amount - the hand-set quantity is what is charged; its sizes are shown for reference only
-  if (hasSizes && isMeasurableUnit(item.pricing_unit) && item.quantity_source === 'manual') {
-    const linear = item.pricing_unit === 'linear_meter' || item.pricing_unit === 'linear_ft';
-    const amount = item.calculated_quantity;
-    // its sizes stay in the entry (metric ones in metres, as every row shows them) so "Enter sizes instead" starts from them
-    const toM = (v) => (e.measureUnit === 'cm' ? convertSizeText(v, 'm') : v);
-    return { ...e, pricingMethod: linear ? 'linear' : 'area', useManualQty: true, manualQty: amount === '' || amount == null ? '' : String(amount),
-      measureUnit: isFeetPricingUnit(item.pricing_unit) ? 'ft' : 'm', referenceSizes: true, widthCm: toM(e.widthCm), heightCm: toM(e.heightCm),
-      extraMeasureRows: (e.extraMeasureRows || []).map((r) => ({ ...r, widthCm: toM(r.widthCm), heightCm: toM(r.heightCm) })) };
-  }
-  // restore item 01: a kg / hour / day line opens as its own billing type with its charged quantity
-  if (COUNTED_UNITS.includes(item.pricing_unit)) {
-    return { ...e, pricingMethod: item.pricing_unit, quantity: String(getActiveQuantity(item) || item.quantity || '1'), measureUnit: international ? 'ft' : 'm' };
-  }
   if (!hasSizes && e.pricingMethod !== 'area' && e.pricingMethod !== 'linear') return { ...e, measureUnit: international ? 'ft' : 'm' };
   // decision 2: metric sizes are shown in METRES in the row editor (the item window opens them in cm); the stored values are unchanged
   if (e.measureUnit === 'cm') {
