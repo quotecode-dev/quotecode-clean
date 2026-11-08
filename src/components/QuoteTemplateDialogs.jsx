@@ -155,9 +155,7 @@ export function TemplatePickerDialog({ isHebrew, client, userId, formatMoney, on
   const [load, setLoad] = useState({ state: 'loading', rows: [], text: '' });
   const [selectedId, setSelectedId] = useState(null);
   const [note, setNote] = useState('');
-  // Owner console 2026-11-08 (restore item 13 of docs/CODEX_SPEC_DEFAULTS_AND_CHANGES_2026-11-08.md): each window shows, uses and deletes
-  // only its own kind of template - the quote-template window as before stage 4 (one list), the unit-template window its unit templates
-  const filter = kind === TEMPLATE_KIND_UNIT ? TEMPLATE_KIND_UNIT : 'quote';
+  const [filter, setFilter] = useState(kind === TEMPLATE_KIND_UNIT ? TEMPLATE_KIND_UNIT : 'quote');
   useEffect(() => {
     let live = true;
     listTemplates(client, userId).then((r) => {
@@ -170,6 +168,14 @@ export function TemplatePickerDialog({ isHebrew, client, userId, formatMoney, on
   const shown = load.rows.filter((r) => templateKind(r.content) === filter);
   const selected = shown.find((r) => r.id === selectedId) || null;
   const usableHere = selected && templateKind(selected.content) === (kind === TEMPLATE_KIND_UNIT ? TEMPLATE_KIND_UNIT : 'quote');
+  const pickFilter = (f) => { setFilter(f); setSelectedId(load.rows.find((t) => templateKind(t.content) === f)?.id ?? null); };
+  const chip = (f, label) => (
+    // PRODUCT_TRUTH_DECORATIVE: template filter (stage 4) - shows the quote templates or the unit templates
+    <button key={f} type="button" aria-pressed={filter === f} data-testid={`template-filter-${f}`} onClick={() => pickFilter(f)}
+      style={{ minHeight: 40, padding: '0 14px', borderRadius: 999, border: `1px solid ${filter === f ? '#0F6672' : '#cbd5e1'}`, background: filter === f ? '#E3F1F2' : '#fff', color: '#1e293b', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+      {label} <bdi className="pf-num" dir="ltr">{load.rows.filter((r) => templateKind(r.content) === f).length}</bdi>
+    </button>
+  );
   const remove = async (row) => {
     if (!(await askConfirm(C.confirmDel(row.name), isHebrew, isHebrew ? { yes: 'למחוק', no: 'ביטול', danger: true } : { yes: 'Delete', no: 'Cancel', danger: true }))) return;
     const r = await deleteTemplate(client, userId, row.id);
@@ -182,6 +188,9 @@ export function TemplatePickerDialog({ isHebrew, client, userId, formatMoney, on
     <DialogShell titleId="pick-template-title" title={kind === TEMPLATE_KIND_UNIT ? C.pickUnitTitle : C.pickTitle} isHebrew={isHebrew} onClose={onClose} testId="pick-template-dialog">
       {load.state === 'loading' && <p role="status" style={{ fontSize: '0.86rem', color: '#475569' }}>{C.loading}</p>}
       {load.state === 'error' && <p role="alert" data-testid="template-list-error" style={{ fontSize: '0.86rem', color: '#9a3412', fontWeight: 600 }}>{load.text}</p>}
+      {load.state === 'ready' && (
+        <div role="group" aria-label={kind === TEMPLATE_KIND_UNIT ? C.pickUnitTitle : C.pickTitle} style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 10 }}>{chip('quote', C.filterQuotes)}{chip(TEMPLATE_KIND_UNIT, C.filterUnits)}</div>
+      )}
       {load.state === 'ready' && shown.length === 0 && <p data-testid="template-list-empty" style={{ fontSize: '0.86rem', color: '#475569' }}>{filter === TEMPLATE_KIND_UNIT ? C.emptyUnit : C.empty}</p>}
       {shown.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12 }}>

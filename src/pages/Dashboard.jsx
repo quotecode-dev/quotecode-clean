@@ -4335,8 +4335,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           : (isHebrew ? 'המחירים ביחידה לפני מע״מ, וההצעה כוללת מע״מ (לקוח פרטי). להשתמש במחירים כמו שהם? אפשר גם להעתיק בלי מחירים.'
             : 'The unit\'s prices are before VAT and this quote includes VAT (private client). Use the prices as they are? You can also copy without prices.')))) return;
     }
-    // Owner console 2026-11-08 (restore item 14 of docs/CODEX_SPEC_DEFAULTS_AND_CHANGES_2026-11-08.md): adding a unit never sets the quote's
-    // client type - the client type stays the user's choice (an empty one stays empty)
+    if (stillPriced && isLocalIsraeliBusiness && !clientType && u.priceBasis) { const t = clientTypeForPriceBasis(u.priceBasis); if (t) setClientType(t); }
     // at the end of the quote (after the highest unit order); only the opening blank row with no unit is dropped
     setSections((prev) => [...(prev || []), { ...u.section, sort_order: (prev || []).reduce((m, s) => Math.max(m, Number(s.sort_order) || 0), -1) + 1 }]);
     setItems((prev) => [...(prev || []).filter((it) => !(isUntouchedPlaceholderItem(it) && !it.section_key)), ...rows]);

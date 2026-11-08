@@ -339,9 +339,7 @@ export default function QuoteForm({
   // An edited row keeps its key (typed entry, focus) when its object is replaced.
   const buildUnitCopy = (section, sourceCount) => {
     const key = `tmp_section_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-    // Owner console 2026-11-08 (restore item 11 of docs/CODEX_SPEC_DEFAULTS_AND_CHANGES_2026-11-08.md): a copy of an unnamed unit keeps an
-    // empty name, as in stage 2 (78c2edaa:src/components/QuoteForm.jsx 330) - a named unit's copy is "<name> - עותק" as before
-    const name = section.name ? (isHebrew ? `${section.name} - עותק` : `${section.name} - copy`) : '';
+    const name = section.name ? (isHebrew ? `${section.name} - עותק` : `${section.name} - copy`) : (isHebrew ? 'עותק' : 'Copy');
     const ordered = sections.slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
     const at = ordered.findIndex((s) => s.key === section.key);
     const nextSections = [
@@ -522,17 +520,6 @@ export default function QuoteForm({
 
   // Owner 2026-10-15: the price step knows whether a real item exists, and a discount is a percentage between 0 and 100
   const hasRealItems = (items || []).some((it) => it && !isUntouchedPlaceholderItem(it));
-  // Owner console 2026-11-08 (restore item 07; body of 4f1592f2:src/components/QuoteForm.jsx 473-485): one synthetic example line, local
-  // only (never saved: the save asks to remove it first; editing it turns it into an ordinary line of the user's own). 100 x 200 cm at 600
-  // per m2 in the quote's currency.
-  const addLocalExample = () => {
-    const example = {
-      description: isHebrew ? 'חלון אלומיניום (דוגמה)' : 'Aluminium window (example)', quantity: '1', unit_price: '600', isFromCatalog: false, section_key: null,
-      pricing_unit: 'm2', quantity_source: 'calculated', calculation_method: 'area', calculated_quantity: 2,
-      measurements: [{ width: 1, height: 2, unit: 'm', calculated_area: 2, label: '', is_pricing_driving: true }], _localExample: true,
-    };
-    setItems((prev) => [...prev.filter((it) => !isUntouchedPlaceholderItem(it) && !(it && it._localExample)), example]);
-  };
   const discountInvalid = String(discount ?? '').trim() !== '' && (!Number.isFinite(Number(discount)) || Number(discount) < 0 || Number(discount) > 100);
 
   // חוק ברזל (Entitlement/Quota Centralization, §150, סעיף 4): קורא ישירות
@@ -992,14 +979,6 @@ export default function QuoteForm({
                 canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
                 canDuplicate={canDuplicateRow} onDuplicateLocked={() => setShowUpgradeConfirm('reuse')}
                 indices={orderedItemIndices} />
-        )}
-        {/* Owner console 2026-11-08 (restore item 07): the item window's local example (4f1592f2:src/components/QuoteForm.jsx 473-485,
-            1007-1035) - one never-saved line, 100 x 200 cm at 600 per m², offered while the quote has no real line yet */}
-        {structureMode === 'regular' && !hasRealItems && (
-          // PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line (100 x 200 cm at 600 per m2) to learn from (Owner round 1, A6; restored 2026-11-08)
-          <button type="button" data-testid="quote-show-example" onClick={addLocalExample} style={{ display: 'block', margin: '8px 0 0', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', color: NEON.textSecondary, fontSize: '0.8rem', fontWeight: 700, padding: '8px 12px', minHeight: '40px', cursor: 'pointer' }}>
-            {isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}
-          </button>
         )}
         {structureMode === 'divided' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>

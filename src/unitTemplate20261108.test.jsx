@@ -76,22 +76,21 @@ describe('the template window - one screen for both kinds, used only where it be
     render(<TemplatePickerDialog isHebrew client={client()} userId="u" formatMoney={(v) => `₪${v}`} onClose={() => {}} onUse={onUse} kind="unit" />);
     await waitFor(() => expect(screen.getAllByTestId('template-option')).toHaveLength(1));
     expect(screen.getByText('הוספה מיחידה שמורה')).toBeTruthy();
-    // Owner console 2026-11-08 (restore item 13): the unit window shows only unit templates - no filter to the other kind
-    expect(screen.queryByTestId('template-filter-quote')).toBeNull();
+    expect(screen.getByTestId('template-filter-unit').getAttribute('aria-pressed')).toBe('true');
     fireEvent.click(screen.getByTestId('template-use'));
     expect(onUse).toHaveBeenCalledWith(ROWS[1].content);
     expect(screen.getByTestId('template-use').textContent).toBe('הוספה להצעה');
   });
-  // Owner console 2026-11-08 (restore item 13 of docs/CODEX_SPEC_DEFAULTS_AND_CHANGES_2026-11-08.md): each window shows, uses and deletes
-  // only its own kind - the quote-template window lists only quote templates (as before stage 4), no filter to the unit templates
-  it('the quote-template window lists only quote templates; there is no way to reach (or delete) a unit template from it', async () => {
+  it('the filter shows the other kind for managing; using it there is disabled with where to use it', async () => {
     const onUse = vi.fn();
     render(<TemplatePickerDialog isHebrew={false} client={client()} userId="u" formatMoney={(v) => `$${v}`} onClose={() => {}} onUse={onUse} />);
     await waitFor(() => expect(screen.getAllByTestId('template-option')).toHaveLength(1));
     expect(screen.getByTestId('template-option').textContent).toBe('שיפוץ אמבטיה');
-    expect(screen.queryByTestId('template-filter-unit')).toBeNull();
-    expect(screen.queryByText('דירה טיפוס א׳')).toBeNull();
-    expect(screen.getByTestId('template-use')).not.toBeDisabled();
+    fireEvent.click(screen.getByTestId('template-filter-unit'));
+    expect(screen.getByTestId('template-option').textContent).toBe('דירה טיפוס א׳');
+    expect(screen.getByTestId('template-use')).toBeDisabled();
+    expect(screen.getByText('A unit template is added from an open quote, with "From a saved unit".')).toBeTruthy();
+    expect(screen.getByTestId('template-delete')).not.toBeDisabled();
   });
   it('no unit templates yet: a unit-specific empty line', async () => {
     render(<TemplatePickerDialog isHebrew client={client([ROWS[0]])} userId="u" formatMoney={(v) => v} onClose={() => {}} onUse={() => {}} kind="unit" />);
@@ -125,9 +124,7 @@ describe('the editor and the Dashboard wiring', () => {
     expect(d).toContain('const handleAddUnitTemplate = async (content) => {');
     expect(d).toContain("sort_order: (prev || []).reduce((m, s) => Math.max(m, Number(s.sort_order) || 0), -1) + 1 }]);");
     expect(d).toContain("filter((it) => !(isUntouchedPlaceholderItem(it) && !it.section_key))");
-    // Owner console 2026-11-08 (restore item 14): adding a unit never sets the quote's client type
-    expect(d).not.toContain("if (stillPriced && isLocalIsraeliBusiness && !clientType && u.priceBasis) { const t = clientTypeForPriceBasis(u.priceBasis); if (t) setClientType(t); }");
-    expect(d.slice(d.indexOf('const handleAddUnitTemplate'), d.indexOf('const handleDuplicateQuote'))).not.toContain('setClientType(');
+    expect(d).toContain("if (stillPriced && isLocalIsraeliBusiness && !clientType && u.priceBasis) { const t = clientTypeForPriceBasis(u.priceBasis); if (t) setClientType(t); }");
     expect(d).toContain("if (u.items.some((it) => it.pricing_unit) && !canUseCapability('professional_quote.reuse')) { setLockedCapability('professional_quote.reuse'); return; }");
     expect(d).toContain("<TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`} kind={TEMPLATE_KIND_UNIT}");
   });
