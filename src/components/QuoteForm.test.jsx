@@ -502,12 +502,17 @@ describe('QuoteForm - the row menu', () => {
     expect(next[1].id).toBeUndefined();
   });
 
-  it('removing the only line leaves an empty row to type in (the quote is never left without a row)', () => {
+  // Owner console 2026-11-08 (restore item 17 of docs/CODEX_SPEC_DEFAULTS_AND_CHANGES_2026-11-08.md): as before stage 2, the only line of
+  // the quote has no "Remove" (4f1592f2:src/components/QuoteForm.jsx 530-535 - shown only with more than one line)
+  it('the only line of the quote has no Remove; with two lines Remove is there', () => {
     const setItems = vi.fn();
-    render(<QuoteForm {...baseProps({ setItems })} />);
+    const { unmount } = render(<QuoteForm {...baseProps({ setItems })} />);
     fireEvent.click(screen.getByRole('button', { name: 'Row actions' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Remove row' }));
-    expect(setItems.mock.calls[0][0]([makeItem({ description: 'Aluminum window' })])).toEqual([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false, section_key: null }]);
+    expect(screen.queryByRole('menuitem', { name: 'Remove row' })).toBeNull();
+    unmount();
+    render(<QuoteForm {...baseProps({ setItems, items: [makeItem({ description: 'A' }), makeItem({ description: 'B' })] })} />);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Row actions' })[0]);
+    expect(screen.getByRole('menuitem', { name: 'Remove row' })).toBeTruthy();
   });
 
   it('"Move to unit" sets the line\'s unit', () => {

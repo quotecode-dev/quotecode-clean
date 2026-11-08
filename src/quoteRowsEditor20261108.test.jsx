@@ -35,10 +35,13 @@ describe('the row editor', () => {
     fireEvent.change(input, { target: { value: 'הובלה' } });
     expect(last[0]).toMatchObject({ description: 'הובלה', isFromCatalog: false });
   });
-  it('area in Israel: metres by default, length x width -> m², the same stored shape as the item window', () => {
+// Owner console 2026-11-08 (restore item 03 of docs/CODEX_SPEC_DEFAULTS_AND_CHANGES_2026-11-08.md): a billing change asks first again
+  it('area in Israel: metres by default, length x width -> m², the same stored shape as the item window', async () => {
     render(<Harness initial={[{ ...blankRowItem(), description: 'ריצוף', unit_price: '120' }]} />);
     const id = screen.getByTestId('quote-rows-editor').querySelector('[data-testid^="qrow-item-"]').dataset.testid.replace('qrow-item-', '');
     fireEvent.change(screen.getByTestId(`qrow-billing-${id}`), { target: { value: 'area' } });
+    expect(await answerAppDialog(true)).toContain('שינוי היחידה דורש בדיקה מחדש של המחיר');
+    await waitFor(() => expect(screen.getByTestId(`qrow-sizeunit-${id}`)).toBeTruthy());
     expect(screen.getByTestId(`qrow-sizeunit-${id}`).value).toBe('m');
     fireEvent.change(screen.getByTestId(`qrow-w-${id}`), { target: { value: '4' } });
     fireEvent.change(screen.getByTestId(`qrow-h-${id}`), { target: { value: '3' } });
@@ -47,10 +50,12 @@ describe('the row editor', () => {
     expect(screen.getByTestId(`qrow-total-${id}`).textContent).toBe('₪1440.00');
     expect(screen.getByTestId(`qrow-calc-${id}`).textContent).toBe('12.00 מ״ר');
   });
-  it('abroad: feet by default, sq ft', () => {
+  it('abroad: feet by default, sq ft', async () => {
     render(<Harness isHebrew={false} international initial={[{ ...blankRowItem(), description: 'Tiling', unit_price: '9' }]} />);
     const id = screen.getByTestId('quote-rows-editor').querySelector('[data-testid^="qrow-item-"]').dataset.testid.replace('qrow-item-', '');
     fireEvent.change(screen.getByTestId(`qrow-billing-${id}`), { target: { value: 'area' } });
+    expect(await answerAppDialog(true)).toContain('Changing the unit requires reviewing the price');
+    await waitFor(() => expect(screen.getByTestId(`qrow-sizeunit-${id}`)).toBeTruthy());
     expect(screen.getByTestId(`qrow-sizeunit-${id}`).value).toBe('ft');
     fireEvent.change(screen.getByTestId(`qrow-w-${id}`), { target: { value: '12' } });
     fireEvent.change(screen.getByTestId(`qrow-h-${id}`), { target: { value: '10' } });
@@ -148,14 +153,16 @@ describe('the row price and quantity (the former quick window)', () => {
     expect(last[0]).toMatchObject({ pricing_unit: 'hour', quantity_source: 'manual', calculated_quantity: 7.5 });
     expect(screen.getByTestId('qrow-total-h').textContent).toBe('₪750.00');
   });
-  it('a plain line: quantity 1 -> 3 is stored as text like the item window', () => {
+  it('a plain line: quantity 1 -> 3 is stored as text like the item window', async () => {
     render(<Harness2 initial={[line({ id: 'p', description: 'אסלה', unit_price: '40' })]} />);
     fireEvent.change(screen.getByTestId('qrow-billing-p'), { target: { value: 'units' } });
+    expect(await answerAppDialog(true)).toContain('שינוי שיטת התמחור עלול לשנות את משמעות הסכומים הקיימים');
+    await waitFor(() => expect(screen.getByTestId('qrow-qty-p')).toBeTruthy());
     fireEvent.change(screen.getByTestId('qrow-qty-p'), { target: { value: '3' } });
     expect(last[0].quantity).toBe('3');
     expect(screen.getByTestId('qrow-total-p').textContent).toBe('₪120.00');
   });
-  it('an invalid quantity is refused with a message and nothing changes; an emptied box returns to 1', () => {
+  it('an invalid quantity is refused with a message and nothing changes; an emptied box stays empty and says so', () => {
     render(<Harness2 initial={[line({ id: 'q', quantity: '2' })]} />);
     for (const bad of ['0', '-1', 'abc', '1,5', '1.1234567']) {
       fireEvent.change(screen.getByTestId('qrow-qty-q'), { target: { value: bad } });
@@ -165,7 +172,9 @@ describe('the row price and quantity (the former quick window)', () => {
     fireEvent.change(screen.getByTestId('qrow-qty-q'), { target: { value: '' } });
     expect(screen.queryByText('כמות לא תקינה - מספר גדול מ-0')).toBeNull();
     fireEvent.blur(screen.getByTestId('qrow-qty-q'));
-    expect(last[0].quantity).toBe('1');
+    // Owner console 2026-11-08 (restore item 05): an emptied quantity stays empty and says so - it never becomes 1 by itself
+    expect(screen.getByText('יש להזין כמות גדולה מ-0')).toBeTruthy();
+    expect(last[0]).toMatchObject({ quantity: '2', _invalid: true });
   });
   it('an untouched quantity never blocks a price edit and is never rewritten (a stored 0, a kg amount)', () => {
     render(<Harness2 initial={[line({ id: 'z', quantity: '0' }), line({ id: 'k', pricing_unit: 'kg', quantity_source: 'manual', calculation_method: 'manual', calculated_quantity: 2.5 })]} />);
@@ -190,18 +199,20 @@ describe('inside the row: a known area, more sizes, details for the customer', (
     const known = line({ id: 'k', unit_price: '35', pricing_unit: 'm2', quantity_source: 'manual', calculation_method: 'manual', measurements: [], calculated_quantity: 36 });
     render(<Harness2 initial={[known]} />);
     expect(screen.getByTestId('qrow-billing-k').value).toBe('area');
-    fireEvent.click(screen.getByTestId('qrow-menu-k'));
+    // restore item 02: the size-mode switch sits beside the amount again (not in the row menu)
     expect(screen.getByTestId('qrow-sizemode-k').dataset.mode).toBe('known');
-    fireEvent.click(screen.getByTestId('qrow-menu-k'));
+    expect(screen.getByTestId('qrow-sizemode-k').textContent).toBe('חזרה להזנת מידות');
     expect(screen.getByTestId('qrow-known-k').value).toBe('36');
     expect(last[0]).toBe(known);
     fireEvent.change(screen.getByTestId('qrow-known-k'), { target: { value: '40' } });
     expect(last[0]).toMatchObject({ id: 'k', quantity: '1', pricing_unit: 'm2', quantity_source: 'manual', calculation_method: 'manual', measurements: [], calculated_quantity: 40 });
     expect(screen.getByTestId('qrow-total-k').textContent).toBe('₪1400.00');
   });
-  it('"another size" adds a size line; both count (4 x 3 + 2 x 2 = 16 m²)', () => {
+  it('"another size" adds a size line; both count (4 x 3 + 2 x 2 = 16 m²)', async () => {
     render(<Harness2 initial={[line({ id: 's', description: 'ריצוף', unit_price: '10' })]} />);
     fireEvent.change(screen.getByTestId('qrow-billing-s'), { target: { value: 'area' } });
+    await answerAppDialog(true);
+    await waitFor(() => expect(screen.getByTestId('qrow-w-s')).toBeTruthy());
     fireEvent.change(screen.getByTestId('qrow-w-s'), { target: { value: '4' } });
     fireEvent.change(screen.getByTestId('qrow-h-s'), { target: { value: '3' } });
     fireEvent.click(screen.getByTestId('qrow-moresize-s'));
@@ -240,7 +251,8 @@ describe('inside the row: a known area, more sizes, details for the customer', (
       measurements: [{ width: 4, height: 3, unit: 'm', calculated_area: 12, label: '', is_pricing_driving: true }] });
     render(<Harness2 initial={[sized]} />);
     fireEvent.change(screen.getByTestId('qrow-billing-w'), { target: { value: 'units' } });
-    expect(await answerAppDialog(false)).toContain('ימחק את המידות');
+    // restore item 03: a saved line asks the item window's question (4f1592f2 AddItemWizard destructiveConversionConfirm)
+    expect(await answerAppDialog(false)).toContain('שינוי שיטת התמחור עלול לשנות את משמעות הסכומים הקיימים');
     await waitFor(() => expect(last[0]).toBe(sized));
   });
 });
@@ -266,16 +278,19 @@ describe('reviewer findings, fixed', () => {
     const area = line({ id: 'a', unit_price: '10', pricing_unit: 'm2', quantity_source: 'calculated', calculation_method: 'area', calculated_quantity: 20,
       measurements: [{ width: 5, height: 4, unit: 'm', calculated_area: 20, label: '', is_pricing_driving: true }] });
     render(<Harness2 initial={[area]} />);
-    fireEvent.click(screen.getByTestId('qrow-menu-a')); fireEvent.click(screen.getByTestId('qrow-sizemode-a'));
+    expect(screen.getByTestId('qrow-sizemode-a').textContent).toBe('השטח כבר ידוע?'); // restore item 02: beside the sizes
+    fireEvent.click(screen.getByTestId('qrow-sizemode-a'));
     expect(screen.getByTestId('qrow-known-a').value).toBe('20');
     expect(last[0]).toMatchObject({ quantity_source: 'manual', calculated_quantity: 20 });
-    fireEvent.click(screen.getByTestId('qrow-menu-a')); fireEvent.click(screen.getByTestId('qrow-sizemode-a'));
+    fireEvent.click(screen.getByTestId('qrow-sizemode-a'));
     expect(last[0]).toMatchObject({ quantity_source: 'calculated', calculated_quantity: 20 });
     expect(screen.getByTestId('qrow-total-a').textContent).toBe('₪200.00');
   });
-  it('an hourly line switched to area takes the sizes (4 x 5 = 20), never the old 3 hours', () => {
+  it('an hourly line switched to area takes the sizes (4 x 5 = 20), never the old 3 hours', async () => {
     render(<Harness2 initial={[line({ id: 'h', pricing_unit: 'hour', quantity_source: 'manual', calculation_method: 'manual', calculated_quantity: 3 })]} />);
     fireEvent.change(screen.getByTestId('qrow-billing-h'), { target: { value: 'area' } });
+    await answerAppDialog(true);
+    await waitFor(() => expect(screen.getByTestId('qrow-w-h')).toBeTruthy());
     fireEvent.change(screen.getByTestId('qrow-w-h'), { target: { value: '4' } });
     fireEvent.change(screen.getByTestId('qrow-h-h'), { target: { value: '5' } });
     expect(last[0]).toMatchObject({ pricing_unit: 'm2', quantity_source: 'calculated', calculated_quantity: 20 });

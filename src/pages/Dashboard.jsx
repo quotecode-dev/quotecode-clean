@@ -4672,6 +4672,11 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     // check a Save gets - and never issues a quote that still has a line without a price (it could not be sent or printed anyway)
     const editorForm = typeof document !== 'undefined' ? document.querySelector('form[data-quote-form="editor"]') : null;
     if (editorForm && typeof editorForm.reportValidity === 'function' && !editorForm.reportValidity()) return;
+    // Owner console 2026-11-08 (restore items 04 / 05): a row holding a value that cannot be stored is reported first, as on Save
+    if (items.some((it) => it && it._invalid)) {
+      setAlertModalMsg(isHebrew ? 'תקנו את השדות המסומנים ונסו לשמור שוב.' : 'Fix the highlighted fields and try saving again.');
+      return;
+    }
     if (missingPriceItems(items).length) {
       setAlertModalMsg(isHebrew ? 'יש בהצעה פריטים בלי מחיר. השלימו את המחירים לפני ההנפקה.' : 'Some items in this quote have no price. Enter the prices before issuing it.');
       return;
@@ -4712,6 +4717,13 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     }
     resolveBlockers(SAVE_ATTEMPT_CODES); // a new attempt re-evaluates the previous attempt's blockers (re-published below if still true)
     const saveBlock = (code, msg, opts = {}) => alertWithBlocker(code, { scope: 'editor', ...opts }, msg);
+    // Owner console 2026-11-08 (restore items 04 / 05 of docs/CODEX_SPEC_DEFAULTS_AND_CHANGES_2026-11-08.md): a row with an incomplete
+    // size, a size that rounds to 0.00, or an invalid price / quantity is never saved with its previous value - nothing is written until
+    // the marked fields are fixed (the rows keep what was typed, the local draft too)
+    if (items.some((it) => it && it._invalid)) {
+      saveBlock('QUOTE_INCOMPLETE_ITEMS', isHebrew ? 'תקנו את השדות המסומנים ונסו לשמור שוב.' : 'Fix the highlighted fields and try saving again.');
+      return;
+    }
     // SMART-QUOTE-01: an unfinished quote (no real priced item) can only be kept as a Draft - never saved as Sent/Approved/Paid.
     if (editingQuoteId && isUnfinishedQuoteForm({ items, totalAmount }) && String(quoteStatus || '').toLowerCase() !== 'draft') {
       saveBlock('QUOTE_UNFINISHED_NON_DRAFT_STATUS', isHebrew
@@ -9033,8 +9045,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onCancel={requestCancelEdit}
               onBack={inAppBack.back}
               onOpenCustomerTwin={() => setCustomerTwin({ mode: 'editor' })}
-              onSaveAsTemplate={() => setTemplateDialog('save')}
-              onSaveUnitTemplate={(section) => setTemplateDialog({ kind: 'save-unit', section })}
+              onSaveAsTemplate={() => { if (items.some((it) => it && it._invalid)) { setAlertModalMsg(isHebrew ? 'תקנו את השדות המסומנים ונסו לשמור שוב.' : 'Fix the highlighted fields and try saving again.'); return; } setTemplateDialog('save'); }}
+              onSaveUnitTemplate={(section) => { if (items.some((it) => it && it._invalid)) { setAlertModalMsg(isHebrew ? 'תקנו את השדות המסומנים ונסו לשמור שוב.' : 'Fix the highlighted fields and try saving again.'); return; } setTemplateDialog({ kind: 'save-unit', section }); }}
               onAddUnitFromTemplate={() => setTemplateDialog('pick-unit')}
               clientName={clientName} setClientName={setClientName}
               clientEmail={clientEmail} setClientEmail={setClientEmail}

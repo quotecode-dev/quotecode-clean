@@ -1,7 +1,7 @@
 // Owner console 2026-11-08 (stage 3 of the one quote builder, typed: "מאשר את שלב 3 (דירות זהות ומחיר משותף) ... כולל מיגרציה ושינוי
 // ב-L-09, L-17, L-24, L-25, L-26, L-27, L-28"): identical units (quote_sections.repeat_count) and a shared price (quote_items.price_link_id)
 import { describe, it, expect, afterEach } from 'vitest';
-import { render, screen, fireEvent, cleanup } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup, waitFor } from '@testing-library/react';
 import { useState } from 'react';
 import { readFileSync } from 'node:fs';
 import QuoteRowsEditor from './components/QuoteRowsEditor';
@@ -190,6 +190,10 @@ describe('the shared price after duplicating a unit (decision 5)', () => {
     expect(last[1].price_link_id).toBeUndefined();
     fireEvent.change(screen.getByTestId('qrow-billing-a'), { target: { value: 'area' } });
     expect(await answerAppDialog(true)).toContain('ינתק אותה מהקישור');
+    // restore item 04 (Owner 2026-11-08): an area row is stored once its sizes are complete
+    await waitFor(() => expect(screen.getByTestId('qrow-w-a')).toBeTruthy());
+    fireEvent.change(screen.getByTestId('qrow-w-a'), { target: { value: '4' } });
+    fireEvent.change(screen.getByTestId('qrow-h-a'), { target: { value: '3' } });
     expect(last[0].price_link_id).toBeUndefined();
     expect(last[0].pricing_unit).toBe('m2');
   });
