@@ -669,3 +669,24 @@ describe('QuoteForm - identical units (stage 3)', () => {
     expect(state.items).toEqual([tiles()]);
   });
 });
+
+// Owner console 2026-11-08 (stage 4 of the one quote builder, decision 6): the unit template entries in the editor
+describe('QuoteForm - unit templates (stage 4)', () => {
+  it('the unit menu saves THIS unit as a unit template; "from a saved unit" opens the unit templates', () => {
+    const onSaveUnitTemplate = vi.fn();
+    const onAddUnitFromTemplate = vi.fn();
+    const sec = { key: 'sec1', name: 'Type A', sort_order: 0 };
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [sec], items: [makeItem({ description: 'Tiles', unit_price: '100', section_key: 'sec1' })], onSaveUnitTemplate, onAddUnitFromTemplate })} />);
+    fireEvent.click(screen.getByTestId('unit-menu'));
+    fireEvent.click(screen.getByTestId('unit-save-template'));
+    expect(onSaveUnitTemplate).toHaveBeenCalledWith(sec);
+    fireEvent.click(screen.getByTestId('unit-from-template'));
+    expect(onAddUnitFromTemplate).toHaveBeenCalledTimes(1);
+  });
+  it('an empty or unnamed unit offers no "save as unit template"; no handler, no button', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: '', sort_order: 0 }], items: [], onSaveUnitTemplate: vi.fn() })} />);
+    fireEvent.click(screen.getByTestId('unit-menu'));
+    expect(screen.queryByTestId('unit-save-template')).toBeNull();
+    expect(screen.queryByTestId('unit-from-template')).toBeNull();
+  });
+});

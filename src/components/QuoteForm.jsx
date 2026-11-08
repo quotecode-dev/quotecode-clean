@@ -4,7 +4,7 @@ import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
 import QuoteRowsEditor from './QuoteRowsEditor';
 import { blankRowItem, rowEntry } from '../utils/quoteItemEntry';
-import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Plus, CopyPlus, ChevronDown, Pencil, RotateCcw, FileText, Building2, LayoutList, ArrowLeft, ArrowRight, MoreVertical } from 'lucide-react';
+import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Plus, CopyPlus, ChevronDown, Pencil, RotateCcw, FileText, Building2, LayoutList, ArrowLeft, ArrowRight, MoreVertical, LayoutTemplate } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import { APP as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import QuotePresentationPanel from './quotePresentation/QuotePresentationPanel';
@@ -77,6 +77,9 @@ export default function QuoteForm({
   validUntil, setValidUntil,
   serviceSchedule = null, setServiceSchedule = null, serviceScheduleState = 'ready',
   onSaveAsTemplate = null,
+  // Owner console 2026-11-08 (stage 4 of the one quote builder, decision 6): save one unit as a unit template / add one unit from a saved unit template
+  onSaveUnitTemplate = null,
+  onAddUnitFromTemplate = null,
   discount, setDiscount,
   terms, setTerms,
   warranty, setWarranty,
@@ -913,6 +916,13 @@ export default function QuoteForm({
                 <Building2 size={13} strokeWidth={2.2} />
                 {isHebrew ? 'חלוקה לחדרים / אזורים / יחידות (לא חובה)' : 'Group by rooms / areas / units (optional)'}
               </button>
+              {typeof onAddUnitFromTemplate === 'function' && (
+                // PRODUCT_TRUTH_DECORATIVE: "from a saved unit" (stage 4) - opens the unit templates; one unit with its rows is added to this quote
+                <button type="button" data-testid="unit-from-template" onClick={onAddUnitFromTemplate} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '2px 0' }}>
+                  <LayoutTemplate size={13} strokeWidth={2.2} />
+                  {isHebrew ? 'מיחידה שמורה' : 'From a saved unit'}
+                </button>
+              )}
             </div>
 
             {/* Owner console 2026-11-08 (stage 2, typed L-23): the measured entry's locked hint becomes the row explanation */}
@@ -942,6 +952,15 @@ export default function QuoteForm({
               <LayoutList size={13} strokeWidth={2.2} />
               {isHebrew ? 'מעבר להצעה רגילה' : 'Switch to a regular quote'}
             </button>
+            <div style={{ display: 'flex' }}>
+              {typeof onAddUnitFromTemplate === 'function' && (
+                // PRODUCT_TRUTH_DECORATIVE: "from a saved unit" (stage 4) - opens the unit templates; one unit with its rows is added to this quote
+                <button type="button" data-testid="unit-from-template" onClick={onAddUnitFromTemplate} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '6px 0 0' }}>
+                  <LayoutTemplate size={13} strokeWidth={2.2} />
+                  {isHebrew ? 'מיחידה שמורה' : 'From a saved unit'}
+                </button>
+              )}
+            </div>
           </>
         )}
         </div>
@@ -986,6 +1005,7 @@ export default function QuoteForm({
                 unitTotal={computeUnitTotal(indices, normalizeRepeatCount(section.repeat_count))}
                 onSetRepeat={(n) => setUnitRepeat(section.key, n)}
                 onSeparate={() => separateOneCopy(section)}
+                onSaveTemplate={typeof onSaveUnitTemplate === 'function' ? () => onSaveUnitTemplate(section) : null}
                 collapsed={collapsedUnitKeys.has(section.key)}
                 onToggleCollapse={() => toggleUnitCollapsed(section.key)}
                 onRename={(name) => renameSection(section.key, name)}
@@ -1524,7 +1544,7 @@ export default function QuoteForm({
 function UnitCard({
   isHebrew, sym, formatMoneyDisplay, section, itemCount, subtotal, collapsed,
   onToggleCollapse, onRename, onRemove, onAddItem, onDuplicate = null, isUnassigned, children, focusName = false, rowCount = null,
-  repeatCount = 1, unitTotal = null, onSetRepeat = null, onSeparate = null,
+  repeatCount = 1, unitTotal = null, onSetRepeat = null, onSeparate = null, onSaveTemplate = null,
 }) {
   const unitLabel = section.name || (isHebrew ? 'יחידה זו' : 'this unit');
   // Owner console 2026-11-08 (stage 3, decision 4): the unit menu - identical unit count (a whole number 1..999, one confirm) and
@@ -1603,6 +1623,12 @@ function UnitCard({
                 <button type="button" role="menuitem" data-testid="unit-repeat-open" onClick={() => { setMenu(false); setCountDraft(String(repeatCount)); }} style={unitMenuBtn}>
                   {isHebrew ? 'מספר יחידות זהות' : 'Identical unit count'}
                 </button>
+                {onSaveTemplate && itemCount > 0 && String(section.name || '').trim() !== '' && (
+                  // PRODUCT_TRUTH_DECORATIVE: unit menu (stage 4) - saves this unit and its rows as a unit template (the template window)
+                  <button type="button" role="menuitem" data-testid="unit-save-template" onClick={() => { setMenu(false); onSaveTemplate(); }} style={unitMenuBtn}>
+                    {isHebrew ? 'שמירה כתבנית יחידה' : 'Save as unit template'}
+                  </button>
+                )}
                 {multi && (
                   // PRODUCT_TRUTH_DECORATIVE: unit menu (stage 3) - separates one copy of a unit of N identical copies
                   <button type="button" role="menuitem" data-testid="unit-separate" onClick={() => { setMenu(false); onSeparate?.(); }} style={unitMenuBtn}>
