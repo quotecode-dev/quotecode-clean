@@ -5,7 +5,8 @@ import { sanitizeDraftSnapshot, DRAFT_SNAPSHOT_VERSION } from '../../supabase/fu
 import { getActiveQuantity } from './professionalQuoteItem';
 
 export function buildQuoteDraftSnapshot({ items, subject, sections }) {
-  const sectionName = new Map((Array.isArray(sections) ? sections : []).map((s) => [s.key ?? s.id, s.name]));
+  // Owner console 2026-11-08 (stage 3 of the one quote builder): a unit of N identical copies is named "name x N"
+  const sectionName = new Map((Array.isArray(sections) ? sections : []).map((s) => [s.key ?? s.id, Number(s.repeat_count) > 1 ? `${s.name} x ${Number(s.repeat_count)}` : s.name]));
   const rows = (Array.isArray(items) ? items : [])
     .filter((it) => it && typeof it.description === 'string' && it.description.trim())
     .map((it) => ({

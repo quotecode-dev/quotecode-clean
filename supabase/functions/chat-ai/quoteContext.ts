@@ -30,7 +30,7 @@ export type RawQuoteRow = {
   total?: number | null;
   created_at?: string | null;
   valid_until?: string | null;
-  quote_sections?: Array<{ id: string; name: string }> | null;
+  quote_sections?: Array<{ id: string; name: string; repeat_count?: number | null }> | null;
   quote_items?: Array<RawQuoteItemRow> | null;
 };
 
@@ -72,6 +72,8 @@ export type SanitizedQuoteItem = {
   calculatedQuantity: number | null;
   unitPrice: number | null;
   totalPrice: number | null;
+  // Owner console 2026-11-08 (stage 3 of the one quote builder): how many identical copies of its unit this line stands for (1 = none); totalPrice is ONE copy
+  unitCopies: number;
   measurements: Array<{ width: number | null; height: number | null; unit: string | null; calculatedArea: number | null; label: string | null }>;
   specification: string[];
 };
@@ -88,7 +90,7 @@ export type SanitizedQuoteContext = {
   createdAt: string | null;
   validUntil: string | null;
   isLocked: boolean;
-  sections: Array<{ id: string; name: string }>;
+  sections: Array<{ id: string; name: string; repeatCount: number }>;
   items: SanitizedQuoteItem[];
   // §6.4: a reconciliation flag only - never a "corrected" total. The model
   // is instructed (buildQuoteContextBlock below) to state the stored total
@@ -136,7 +138,10 @@ function isQuoteImmutable(row: Pick<RawQuoteRow, 'status' | 'signature'>): boole
 
 const RECONCILIATION_EPSILON = 0.01;
 
+const repeatOf = (value: unknown): number => (Number.isInteger(value) && (value as number) >= 1 && (value as number) <= 999 ? (value as number) : 1);
+
 export function sanitizeQuoteContext(row: RawQuoteRow): SanitizedQuoteContext {
+  const copiesBySection = new Map((row.quote_sections || []).map((s) => [s.id, repeatOf(s.repeat_count)]));
   const items: SanitizedQuoteItem[] = (row.quote_items || []).map((it) => ({
     description: boundText(it.description) || (it.description ? '(unnamed item)' : '(unnamed item)'),
     quantity: typeof it.quantity === 'number' ? it.quantity : null,
@@ -146,6 +151,7 @@ export function sanitizeQuoteContext(row: RawQuoteRow): SanitizedQuoteContext {
     calculatedQuantity: typeof it.calculated_quantity === 'number' ? it.calculated_quantity : null,
     unitPrice: typeof it.unit_price === 'number' ? it.unit_price : null,
     totalPrice: typeof it.total_price === 'number' ? it.total_price : null,
+    unitCopies: (it.section_id && copiesBySection.get(it.section_id)) || 1,
     measurements: (it.quote_item_measurements || []).slice(0, 20).map((m) => ({
       width: typeof m.width === 'number' ? m.width : null,
       height: typeof m.height === 'number' ? m.height : null,
@@ -157,7 +163,7 @@ export function sanitizeQuoteContext(row: RawQuoteRow): SanitizedQuoteContext {
   }));
 
   const computedFromItems = items.every((it) => typeof it.totalPrice === 'number')
-    ? Math.round(items.reduce((sum, it) => sum + (it.totalPrice || 0), 0) * 100) / 100
+    ? Math.round(items.reduce((sum, it) => sum + (it.totalPrice || 0) * it.unitCopies, 0) * 100) / 100
     : null;
 
   const storedTotal = typeof row.total === 'number' ? row.total : null;
@@ -177,7 +183,7 @@ export function sanitizeQuoteContext(row: RawQuoteRow): SanitizedQuoteContext {
     createdAt: boundText(row.created_at),
     validUntil: boundText(row.valid_until),
     isLocked: isQuoteImmutable(row),
-    sections: (row.quote_sections || []).map((s) => ({ id: s.id, name: boundText(s.name) || '' })),
+    sections: (row.quote_sections || []).map((s) => ({ id: s.id, name: boundText(s.name) || '', repeatCount: repeatOf(s.repeat_count) })),
     items,
     financialReconciliation: { computedFromItems, storedTotal, reconciles },
   };
@@ -204,7 +210,7 @@ export function buildQuoteContextBlock(ctx: SanitizedQuoteContext): string {
     lines.push(`NOTE: the item amounts available to you (sum ${ctx.financialReconciliation.computedFromItems}) do not reconcile with the stored total (${ctx.financialReconciliation.storedTotal}). State the stored total as authoritative and explain that the available inputs do not fully reconcile - do not invent a repair or silently pick one number.`);
   }
   if (ctx.sections.length > 0) {
-    lines.push(`Sections: ${ctx.sections.map((s) => s.name).filter(Boolean).join(', ') || '(unnamed sections)'}`);
+    lines.push(`Sections: ${ctx.sections.filter((s) => s.name).map((s) => (s.repeatCount > 1 ? `${s.name} x ${s.repeatCount} identical copies` : s.name)).join(', ') || '(unnamed sections)'}`);
   }
   lines.push('Items:');
   for (const it of ctx.items) {
@@ -212,7 +218,7 @@ export function buildQuoteContextBlock(ctx: SanitizedQuoteContext): string {
     const unitPart = it.pricingUnit ? ` ${it.pricingUnit}` : '';
     const methodPart = it.calculationMethod ? `, method: ${it.calculationMethod}` : '';
     const ratePart = it.unitPrice !== null ? `, rate ${it.unitPrice}` : '';
-    const totalPart = it.totalPrice !== null ? `, line total ${it.totalPrice}` : '';
+    const totalPart = it.totalPrice !== null ? `, line total ${it.totalPrice}${it.unitCopies > 1 ? ` per copy, x ${it.unitCopies} identical copies of its section` : ''}` : '';
     lines.push(`- ${it.description} (${qtyPart}${unitPart}${methodPart}${ratePart}${totalPart})`);
     if (it.measurements.length > 0) {
       const measurementsText = it.measurements

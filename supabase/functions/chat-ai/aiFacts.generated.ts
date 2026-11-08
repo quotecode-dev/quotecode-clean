@@ -1617,6 +1617,31 @@ export const AI_FACTS = {
       }
     },
     {
+      "id": "quote_identical_units",
+      "capabilityIds": [
+        "quote_create",
+        "quote_edit"
+      ],
+      "he": {
+        "task": "יחידות זהות (למשל כמה דירות זהות) ומחיר משותף אחרי שכפול יחידה",
+        "steps": [
+          "בהצעה מחולקת ליחידות פותחים את תפריט היחידה (שלוש הנקודות בכותרת שלה) ובוחרים \"מספר יחידות זהות\". מקלידים את מספר היחידות (מספר שלם) ומאשרים. השורות ביחידה הן ליחידה אחת, והסכום של היחידה ושל ההצעה נספר כפול מספר היחידות.",
+          "כדי לשנות יחידה אחת מתוך הקבוצה בוחרים בתפריט היחידה \"הפרדת עותק אחד\": מספר היחידות יורד ב-1, ונוצר אחריה עותק נפרד לעריכה. מיד אחרי ההפרדה אפשר ללחוץ \"ביטול\".",
+          "\"שכפול יחידה\" יוצר עותק אחד של היחידה עם השורות שלה, והמחירים של כל שורה והעותק שלה מקושרים. כשמשנים מחיר בשורה מקושרת, המערכת שואלת אם לעדכן גם את השורות המקושרות: \"רק כאן\", עדכון גם בהן, או \"ביטול\". אחרי עדכון אפשר ללחוץ \"ביטול עדכון המחירים\".",
+          "בהצעה ללקוח, בהדפסה ובקובץ מופיעים שם היחידה עם מספר העותקים (למשל דירה טיפוס א׳ × 12), הפירוט ליחידה אחת והסכום של כל העותקים."
+        ]
+      },
+      "en": {
+        "task": "Identical units (for example several identical apartments) and a shared price after duplicating a unit",
+        "steps": [
+          "In a quote divided into units open the unit menu (the three dots in its header) and choose \"Identical unit count\". Type the number of units (a whole number) and confirm. The rows of the unit are for one unit, and the unit and quote totals count every copy.",
+          "To change one unit of the group choose \"Separate one copy\" in the unit menu: the count goes down by 1 and a separate copy to edit appears right after it. Right after separating you can click \"Undo\".",
+          "\"Duplicate unit\" makes one copy of the unit with its rows, and the price of every row is linked to its copy. When you change the price of a linked row you are asked whether the linked rows take it too: \"Only here\", update them too, or \"Cancel\". After an update you can click \"Undo the price update\".",
+          "The customer quote, the print and the file show the unit name with its number of copies (for example Type A apartment × 12), the details for one unit and the total of all copies."
+        ]
+      }
+    },
+    {
       "id": "quote_attachment",
       "capabilityIds": [
         "attachments"

@@ -217,13 +217,22 @@ async function getQuote(ctx: ToolContext, a: Record<string, unknown>) {
   const num = Math.trunc(Number(a.quote_number));
   if (!Number.isFinite(num)) return { found: false };
   const { data, error } = await ctx.db.from('quotes')
-    .select('quote_number, project_name, status, subtotal, tax_rate, total, currency, created_at, valid_until, view_count, signed_at, clients ( company_name, contact_name ), quote_items ( description, quantity, unit_price, total_price )')
+    .select('quote_number, project_name, status, subtotal, tax_rate, total, currency, created_at, valid_until, view_count, signed_at, clients ( company_name, contact_name ), quote_sections ( id, name, repeat_count ), quote_items ( description, quantity, unit_price, total_price, section_id )')
     .eq('user_id', ctx.userId).eq('quote_number', num).limit(1);
   if (error) return { error: 'unavailable' };
   const q = (data || [])[0];
   if (!q) return { found: false };
   const cur = curOf(q.currency, ctx.accountCurrency);
   const items = Array.isArray(q.quote_items) ? q.quote_items : [];
+  // Owner console 2026-11-08 (stage 3 of the one quote builder): a line of a unit of N identical copies is ONE copy - said with the line
+  // deno-lint-ignore no-explicit-any
+  const unitOf = new Map((Array.isArray(q.quote_sections) ? q.quote_sections : []).map((s: any) => [s.id, s]));
+  // deno-lint-ignore no-explicit-any
+  const copiesNote = (it: any) => {
+    const s = it.section_id ? unitOf.get(it.section_id) : null;
+    const n = s && Number.isInteger(s.repeat_count) ? s.repeat_count : 1;
+    return n > 1 ? { unit: s.name || null, identical_copies: n, line_total_is_per_copy: true } : {};
+  };
   return {
     found: true, quote_number: q.quote_number, client: clientName(q), project: q.project_name || null,
     state: isExpired(q, ctx.today) ? 'expired' : quoteGroup(q),
@@ -232,7 +241,7 @@ async function getQuote(ctx: ToolContext, a: Record<string, unknown>) {
     viewed_by_client: Number(q.view_count || 0) > 0, signed_at: q.signed_at ? String(q.signed_at).slice(0, 10) : null,
     item_count: items.length,
     // deno-lint-ignore no-explicit-any
-    items: items.slice(0, 40).map((it: any) => ({ description: it.description, quantity: it.quantity, unit_price: money(cur, amount(it.unit_price)), line_total: money(cur, amount(it.total_price)) })),
+    items: items.slice(0, 40).map((it: any) => ({ description: it.description, quantity: it.quantity, unit_price: money(cur, amount(it.unit_price)), line_total: money(cur, amount(it.total_price)), ...copiesNote(it) })),
   };
 }
 

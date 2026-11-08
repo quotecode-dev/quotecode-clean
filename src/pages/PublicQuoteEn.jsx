@@ -58,12 +58,19 @@ function buildDisplaySections(items, sections) {
   if (!model.isDivided) return [];
   const display = model.units
     .filter((u) => u.itemCount > 0)
-    .map((u) => ({ key: u.key ?? u.id, title: u.title, items: u.items, subtotal: u.subtotal }));
+    .map((u) => ({ key: u.key ?? u.id, title: u.title, items: u.items, subtotal: u.subtotal, repeatCount: u.repeatCount || 1, unitTotal: u.unitTotal ?? u.subtotal }));
   if (model.unassignedItems.length > 0) {
     const subtotal = model.unassignedItems.reduce((sum, it) => sum + Number(it.total_price ?? (Number(it.quantity || 1) * Number(it.price || 0))), 0);
-    display.push({ key: '__unassigned__', title: 'Unassigned', items: model.unassignedItems, subtotal });
+    display.push({ key: '__unassigned__', title: 'Unassigned', items: model.unassignedItems, subtotal, repeatCount: 1, unitTotal: subtotal });
   }
   return display;
+}
+
+// Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-24..L-28): a unit of N identical copies reads "name × N";
+// at N = 1 the toggle text is exactly the previous string
+function sectionToggleText(section, chevron) {
+  if (!(section.repeatCount > 1)) return `${section.title} ${chevron}`;
+  return <>{section.title} <bdi dir="ltr" className="pf-num" style={{ whiteSpace: 'nowrap' }}>× {section.repeatCount}</bdi> {chevron}</>;
 }
 
 // Task 16: the same "every section open / every section closed" map the print chooser applies, reusable for an
@@ -521,7 +528,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
       const price = Number(it.price || it.unit_price || 0);
       return [price, Number(it.total_price || (Number(it.quantity || 1) * price))];
     }),
-    ...displaySections.map((sec) => Number(sec.subtotal || 0)),
+    ...displaySections.map((sec) => Number(sec.unitTotal ?? sec.subtotal ?? 0)),
   ].map((v) => `${currencySymbol}${formatNum(v)}`.length));
   const wideAmounts = longestItemMoney >= WIDE_AMOUNT_CHARS;
 
@@ -578,13 +585,13 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
                   <tr role="row" key={section.key}>
                     <td headers={colId('desc')} role="cell" className="pq-td-desc">
                       {/* PRODUCT_TRUTH_DECORATIVE: expands a collapsed line-item section row within the public quote view table */}
-                      <button type="button" className="pq-section-toggle" onClick={() => toggleSection(section.key)} aria-expanded={false}>{`${section.title} ${chevron}`}</button>
+                      <button type="button" className="pq-section-toggle" onClick={() => toggleSection(section.key)} aria-expanded={false}>{sectionToggleText(section, chevron)}</button>
                     </td>
                     <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}>{`${itemCount} item${itemCount === 1 ? '' : 's'}`}</td>
                     <td headers={colId('price')} role="cell" className="pq-td-price" style={{ textAlign: 'center' }}>—</td>
                     {/* IRON-NUMERIC-001 (local fix 7): a section summary amount is a SUMMARY value - it sits on the protected right axis
                         like the expanded section subtotal row; the item-column centring exception covers items only. */}
-                    <td headers={colId('total')} role="cell" className="pq-td-total pq-td-summary" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(section.subtotal)}</span></td>
+                    <td headers={colId('total')} role="cell" className="pq-td-total pq-td-summary" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(section.unitTotal)}</span></td>
                   </tr>
                 );
               }
@@ -593,7 +600,8 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
                   <tr role="row">
                     <td headers={colId('desc')} role="cell" colSpan="4" style={{ padding: '14px 10px 4px' }}>
                       {/* PRODUCT_TRUTH_DECORATIVE: collapses an expanded line-item section back to its summary row */}
-                      <button type="button" className="pq-section-toggle" onClick={() => toggleSection(section.key)} aria-expanded={true}>{`${section.title} ${chevron}`}</button>
+                      <button type="button" className="pq-section-toggle" onClick={() => toggleSection(section.key)} aria-expanded={true}>{sectionToggleText(section, chevron)}</button>
+                      {section.repeatCount > 1 && <span className="pq-unit-note" style={{ marginInlineStart: '8px', fontSize: '0.85em', color: '#64748b' }}>Details for one unit</span>}
                     </td>
                   </tr>
                   {section.items.map((item, i) => {
@@ -609,8 +617,10 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
                     );
                   })}
                   <tr role="row" className="pq-section-subtotal-row">
-                    <td headers={colId('desc')} role="cell" colSpan="3" style={{ textAlign: 'right', fontWeight: 700 }}>{`Total ${section.title}:`}</td>
-                    <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(section.subtotal)}</span></td>
+                    <td headers={colId('desc')} role="cell" colSpan="3" style={{ textAlign: 'right', fontWeight: 700 }}>{`Total ${section.title}:`}{section.repeatCount > 1 && (
+                      <span className="pq-unit-note" style={{ display: 'block', fontWeight: 400, whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(section.subtotal)}</span> per unit <bdi dir="ltr" className="pf-num">× {section.repeatCount}</bdi></span>
+                    )}</td>
+                    <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(section.unitTotal)}</span></td>
                   </tr>
                 </Fragment>
               );
