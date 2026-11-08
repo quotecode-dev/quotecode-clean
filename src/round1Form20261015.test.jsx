@@ -44,7 +44,8 @@ describe('A1 / A6: the measured quote is one list (now the rows of the one quote
     expect(screen.getByText('חלוקה לחדרים / אזורים / יחידות (לא חובה)')).toBeTruthy();
     expect(screen.queryByText('הוספת היחידה הראשונה')).toBeNull();
     expect(screen.queryByText('לא משויך')).toBeNull();
-    expect(screen.queryByTestId('quote-show-example')).toBeNull();
+    // Owner console 2026-11-08 (restore item 07): the local example is offered again while the quote has no real line
+    expect(screen.getByTestId('quote-show-example').textContent).toBe('הצגת דוגמה (לא נשמרת)');
   });
 
   it('the Dashboard opens the measured quote as a list, never saves the example and never sends its marker to the database', () => {

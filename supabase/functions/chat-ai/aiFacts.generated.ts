@@ -1653,7 +1653,7 @@ export const AI_FACTS = {
           "בהצעה מחולקת ליחידות פותחים את תפריט היחידה (שלוש הנקודות בכותרת שלה) ובוחרים \"שמירה כתבנית יחידה\". נותנים שם ובוחרים אם לשמור מחירים ופרטים ללקוח. השורות, סוג החיוב והמידות נשמרים תמיד; פרטי לקוח, כתובת ושמות המקומות במידות לעולם לא נשמרים.",
           "כדי להוסיף יחידה שמורה להצעה פתוחה לוחצים \"מיחידה שמורה\" מעל רשימת העבודות, בוחרים את התבנית ולוחצים \"הוספה להצעה\". יחידה אחת עם השורות שלה נוספת לסוף ההצעה.",
           "כשהמטבע או בסיס המע״מ של המחירים בתבנית שונים מההצעה, המערכת שואלת לפני ההוספה אם להשתמש במחירים או להוסיף בלי מחירים.",
-          "בחלון התבניות אפשר לעבור בין \"תבניות הצעה\" ל\"תבניות יחידה\", ולמחוק תבנית משני הסוגים."
+          "בחלון ההוספה מיחידה שמורה מופיעות רק תבניות יחידה, ובחלון התבניות של הצעה חדשה מופיעות רק תבניות הצעה. בכל חלון מוחקים רק את התבניות שלו."
         ]
       },
       "en": {
@@ -1662,7 +1662,7 @@ export const AI_FACTS = {
           "In a quote divided into units open the unit menu (the three dots in its header) and choose \"Save as unit template\". Give it a name and choose whether to keep the prices and the details for the customer. The rows, the billing type and the sizes are always kept; customer details, the address and the place names of the sizes are never kept.",
           "To add a saved unit to an open quote click \"From a saved unit\" above the list of work, pick the template and click \"Add to the quote\". One unit with its rows is added at the end of the quote.",
           "When the currency or the VAT basis of the template prices differs from the quote, you are asked before adding whether to use the prices or add without prices.",
-          "In the template window you can switch between \"Quote templates\" and \"Unit templates\", and delete a template of either kind."
+          "The window for adding a saved unit lists only unit templates, and the template window of a new quote lists only quote templates. Each window deletes only its own templates."
         ]
       }
     },
