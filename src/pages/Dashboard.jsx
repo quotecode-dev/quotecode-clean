@@ -3569,7 +3569,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     items: withActiveQuantities(items),
     discount,
     taxRateOverride: previewTaxRateOverride,
-  }, editingOriginalQuote && !isFinancialChange({ items, discount, clientType, savedItems: editingOriginalQuote.quote_items || [], savedDiscount: editingOriginalQuote.discount,
+  }, editingOriginalQuote && !isFinancialChange({ items: excludeUntouchedPlaceholderItems(items), discount, clientType, savedItems: editingOriginalQuote.quote_items || [], savedDiscount: editingOriginalQuote.discount,
     savedClientType: editingOriginalQuote.client_type }).changed ? editingOriginalQuote.total : undefined, { editing: true });
 
   const subtotal = previewFinancials.enteredSubtotal;
@@ -4745,7 +4745,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         // כי ה-authoritative snapshot עצמו לא היה מכיל את השדות האלה כלל.
         // Fallback בטוח (isMissingProfessionalColumnError, אותו עיקרון
         // בדיוק כמו למטה) לסביבה שעדיין לא עברה migration.
-        const richItemCols = 'id, description, quantity, unit_price, total_price, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, quote_item_measurements ( width, height, unit, label, is_pricing_driving )';
+        const richItemCols = 'id, description, quantity, unit_price, total_price, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, sort_order, quote_item_measurements ( width, height, unit, label, is_pricing_driving )';
         // Task 35 (F4): + price_missing (forward-only column); before the migration exists the previous select runs unchanged
         let { data: fetchedItems, error: fetchItemsErr } = await supabase
           .from('quote_items')
@@ -4817,14 +4817,17 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         // מדויק: לפריטים לא-מדודים הוא נופל בחזרה בדיוק לאותו quantity
         // שטוח, אז אין כאן שום שינוי-התנהגות לפריטים רגילים/קבועים.
         // Codex review 2026-10-23 R-07: the one shared decision (utils/financialEdit.js) - the editor preview uses it too
-        const fin = isFinancialChange({ items, discount, clientType, savedItems: authoritativeItems, savedDiscount: authoritativeQuote.discount, savedClientType: authoritativeQuote.client_type });
+        // Owner console 2026-11-08 (stage 2 of the one quote builder, typed incl. L-09): the rows can hold a blank row to type in - it is never
+        // saved (excludeUntouchedPlaceholderItems below), so it never makes a save financial or structural either
+        const formItems = excludeUntouchedPlaceholderItems(items);
+        const fin = isFinancialChange({ items: formItems, discount, clientType, savedItems: authoritativeItems, savedDiscount: authoritativeQuote.discount, savedClientType: authoritativeQuote.client_type });
         isFinancialEdit = fin.changed;
         effectiveClientType = fin.clientTypeChanged ? normType(clientType) : normType(authoritativeQuote.client_type);
 
         // מיפוי בטוח id-to-id בין הטופס לבין ה-authoritative snapshot -
         // נדרש הן לעדכון-description הממוקד הקיים, הן (חדש) לבדיקת שינוי-
         // מבנה למטה. לעולם לא לפי index.
-        const formIds = items.map(it => it.id);
+        const formIds = formItems.map(it => it.id);
         const authoritativeIds = authoritativeItems.map(it => it.id);
         const formIdsMappingSafe =
           formIds.length === authoritativeIds.length &&
@@ -4856,10 +4859,13 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           measurements: (Array.isArray(it.measurements) ? it.measurements : (Array.isArray(it.quote_item_measurements) ? it.quote_item_measurements : []))
             .map(measurementFingerprint).sort(),
         });
-        itemsStructurallyChanged = formIdsMappingSafe && items.some((formItem) => {
+        // Owner console 2026-11-08 (stage 2): a row moved up / down is a change of the saved order (sort_order) - saved like any structural change
+        const savedOrder = authoritativeItems.slice().sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)).map((a) => a.id);
+        const orderChanged = formIdsMappingSafe && authoritativeItems.every((a) => a.sort_order != null) && formIds.join('|') !== savedOrder.join('|');
+        itemsStructurallyChanged = formIdsMappingSafe && (orderChanged || formItems.some((formItem) => {
           const authItem = authoritativeItems.find(a => a.id === formItem.id);
           return !authItem || itemStructuralFingerprint(formItem) !== itemStructuralFingerprint(authItem);
-        });
+        }));
 
         if (isFinancialEdit) {
           const curr = (authoritativeQuote.currency || '').toUpperCase();

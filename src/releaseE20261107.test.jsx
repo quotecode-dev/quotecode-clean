@@ -7,7 +7,6 @@ import { readFileSync } from 'node:fs';
 import { parseDraftChanges, requestNamesUnit, sanitizeQuoteSnapshot, sanitizeDraftResponse, AI_QUOTE_DRAFT_CONTRACT_VERSION } from '../supabase/functions/_shared/aiQuoteDraft.js';
 import { applyDraftUpdateToItem } from './utils/aiQuoteDraftClient';
 import AiQuoteDraftDialog from './components/AiQuoteDraftDialog';
-import EditItemPriceDialog from './components/EditItemPriceDialog';
 
 afterEach(cleanup);
 const src = (p) => readFileSync(new URL(p, import.meta.url), 'utf8').replace(/\r\n/g, '\n');
@@ -84,15 +83,10 @@ describe('F04 / F05: market wording', () => {
     expect(terms).toContain('renews on the 1st of each month');
     expect(terms).not.toContain('calendar month (Israel time)');
   });
-  it('the quick price window names VAT only for an Israeli account, by market (never by the display language)', () => {
-    const item = { description: 'x', quantity: '1', unit_price: '10' };
-    const { rerender } = render(<EditItemPriceDialog item={item} isHebrew={false} sym="$" fmtMoney={(v) => String(v)} onSave={vi.fn()} onCancel={vi.fn()} international />);
-    expect(screen.getByTestId('edit-item-price').textContent).toContain('Tax, discount and rounding are applied in the quote totals.');
-    expect(screen.getByTestId('edit-item-price').textContent).not.toContain('VAT');
-    rerender(<EditItemPriceDialog item={item} isHebrew={false} sym="₪" fmtMoney={(v) => String(v)} onSave={vi.fn()} onCancel={vi.fn()} />);
-    expect(screen.getByTestId('edit-item-price').textContent).toContain('VAT, discount and rounding');
-    rerender(<EditItemPriceDialog item={item} isHebrew sym="₪" fmtMoney={(v) => String(v)} onSave={vi.fn()} onCancel={vi.fn()} />);
-    expect(screen.getByTestId('edit-item-price').textContent).toContain('מע״מ, הנחה ועיגול');
-    expect(src('./components/QuoteForm.jsx')).toMatch(/isHebrew=\{isHebrew\}\n {10}international=\{isLocalIsraeliBusiness === false\}/);
+  // Owner console 2026-11-08 (stage 2 of the one quote builder, typed incl. L-09 / L-17): the quick price window and its totals note are gone -
+  // the price is edited in the row; the row editor still gets the account market (never the display language)
+  it('the quote rows get the account market for their size units (never the display language)', () => {
+    expect(src('./components/QuoteForm.jsx')).toContain('international={isLocalIsraeliBusiness === false}');
+    expect(src('./components/QuoteForm.jsx')).not.toContain('EditItemPriceDialog');
   });
 });

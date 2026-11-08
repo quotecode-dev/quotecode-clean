@@ -39,10 +39,10 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: 'יצירת הצעת מחיר (גם הראשונה)',
       steps: [
         'לפני ההצעה הראשונה צריך טלפון עסק (ובישראל גם ח.פ / עוסק מורשה) ב"הגדרות העסק".',
-        'לוחצים "הצעה חדשה" ובוחרים "הצעת מחיר רגילה".',
+        'לוחצים "הצעה חדשה" ובוחרים "הצעת מחיר".',
         'בשלב "למי ההצעה?" ממלאים את פרטי הלקוח ובוחרים "סוג לקוח (חובה)".',
-        'בשלב "מה העבודה או המוצר?" מוסיפים פריטים: כותבים תיאור, או בוחרים מהקטלוג ("בחירת פריט מהקטלוג…").',
-        'בשלב "מחיר" ממלאים כמות ומחיר.',
+        'בשלב "מה העבודה או המוצר?" כל שורה היא פריט: כותבים שם, או לוחצים על החץ ("פתיחת הקטלוג") ובוחרים מהקטלוג. בוחרים "סוג חיוב" - סכום קבוע, יחידות, שטח או אורך - וממלאים כמות או מידות ומחיר. "הוספת שורה" מוסיפה עוד פריט.',
+        'בשלב "מחיר" אפשר לתת הנחה על כל ההצעה.',
         'בשלב "בדיקה ושמירה" לוחצים "הפקה ושמירה בענן". כל הצעה חדשה נשמרת כטיוטה, ואחרי השמירה אפשר לשלוח אותה.',
       ],
     },
@@ -50,18 +50,20 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: 'Creating a quote (including the first one)',
       steps: [
         'Before the first quote a business phone is required in "Business Settings".',
-        'Click "New quote" and choose "Standard quote".',
+        'Click "New quote" and choose "Quote".',
         'In the "Who is it for?" step fill in the client details and choose the client type.',
-        'In the "What work or product?" step add items: type a description, or pick from the catalog ("Choose from catalog...").',
-        'In the "Price" step enter the quantity and the price.',
+        'In the "What work or product?" step every row is an item: type a name, or click the arrow ("Open the catalog") and pick from your catalog. Choose the "Billing" - a fixed amount, units, area or length - and fill in the quantity or the sizes and the price. "Add row" adds another item.',
+        'In the "Price" step you can give a discount on the whole quote.',
         'In the "Review and save" step click "Generate & Save to Cloud". Every new quote is saved as a draft; after saving you can send it.',
       ],
     },
     evidence: [
       { file: 'src/components/NewQuoteMenu.jsx', labels: ['הצעה חדשה', 'New quote'] },
-      { file: 'src/utils/newQuoteChoices.js', labels: ['הצעת מחיר רגילה', 'Standard quote'] },
+      { file: 'src/utils/newQuoteChoices.js', labels: ['הצעת מחיר', 'Quote'] },
       { file: 'src/components/QuoteForm.jsx', labels: ['למי ההצעה?', 'Who is it for?', 'מה העבודה או המוצר?', 'What work or product?', 'בדיקה ושמירה', 'Review and save', 'סוג לקוח (חובה)', 'Every new quote is saved as a draft.'] },
-      { file: 'src/pages/Dashboard.jsx', labels: ['הפקה ושמירה בענן', 'Generate & Save to Cloud', 'בחירת פריט מהקטלוג…', 'Choose from catalog...'] },
+      // Owner console 2026-11-08 (stage 2 of the one quote builder, typed incl. L-14): the rows of step 2
+      { file: 'src/components/QuoteRowsEditor.jsx', labels: ['פתיחת הקטלוג', 'Open the catalog', 'סוג חיוב', 'Billing', 'הוספת שורה', 'Add row'] },
+      { file: 'src/pages/Dashboard.jsx', labels: ['הפקה ושמירה בענן', 'Generate & Save to Cloud'] },
     ],
   },
   {
@@ -197,7 +199,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
         'ברשימת "הצעות מחיר" מוצאים הצעה שעדיין לא נחתמה ולוחצים "עריכה חכמה" בשורת הפעולות של ההצעה.',
         'ההצעה נפתחת לעריכה וחלון ה-AI מכוון אליה. מתארים במילים, או מכתיבים בקול, מה להוסיף, לשנות או למחוק - שורות, כמויות, מחירים, הערות או הנחה.',
         'ה-AI מציע את השינויים בהצעה ואת השורות החדשות. בודקים, מסמנים את מה שמתאים ולוחצים "החלת השינויים בהצעה". מחיר משתנה רק כשכתבתם אותו בבקשה, ושום דבר לא נשמר עד ששומרים את ההצעה.',
-        'אפשר גם לשנות כמות או מחיר של שורה ידנית: בכרטיס הפריט לוחצים "עריכת מחיר וכמות".',
+        'אפשר גם לשנות כמות או מחיר של שורה ידנית, ישירות בשדות השורה בעורך ההצעה.',
         'הצעה שהלקוח כבר חתם עליה נעולה - הכפתור לא פעיל ("לא ניתן לערוך הצעה חתומה").',
       ],
     },
@@ -207,40 +209,39 @@ export const PRODUCT_HOW_TO = Object.freeze([
         'In the "Quotes" list, find a quote that is not signed yet and click "Smart edit" in the quote\'s row actions.',
         'The quote opens for editing and the AI dialog is pointed at it. Describe in words, or dictate by voice, what to add, change or remove - lines, quantities, prices, notes or a discount.',
         'The AI suggests the changes to the quote and any new lines. Review, tick what fits and click "Apply the changes to the quote". A price changes only when you wrote it in the request, and nothing is saved until you save the quote.',
-        'You can also change a line\'s quantity or price by hand: click "Edit price and quantity" on the item card.',
+        'You can also change a line\'s quantity or price by hand, right in the row\'s fields in the quote editor.',
         'A quote the client has already signed is locked - the button is disabled ("Cannot edit a signed quote").',
       ],
     },
     evidence: [
       { file: 'src/components/QuotesTab.jsx', labels: ['עריכה חכמה', 'Smart edit', 'לא ניתן לערוך הצעה חתומה', 'Cannot edit a signed quote'] },
-      { file: 'src/components/QuoteForm.jsx', labels: ['עריכת מחיר וכמות', 'Edit price and quantity'] },
       // Owner console 2026-11-06 (release B): the smart edit applies the reviewed changes
       { file: 'src/components/AiQuoteDraftDialog.jsx', labels: ['החלת השינויים בהצעה', 'Apply the changes to the quote'] },
     ],
   },
-  // Owner console 2026-11-06 (typed L-09 / L-14 / L-17 / L-24 / L-27 approval, release A): the quick dialog edits the quantity too
+  // Owner console 2026-11-06 (typed L-09 / L-14 / L-17 / L-24 / L-27 approval, release A): the quantity is edited too
+  // Owner console 2026-11-08 (stage 2 of the one quote builder, typed incl. L-09 / L-14): in the row itself - the quick window is gone
   {
     id: 'quote_item_price_quantity',
     capabilityIds: ['quote_create', 'quote_edit'],
     he: {
       task: 'שינוי כמות או מחיר של פריט בהצעה',
       steps: [
-        'בעורך ההצעה, בכרטיס הפריט, לוחצים "עריכת מחיר וכמות" (אותה פעולה נמצאת גם בתפריט "פעולות נוספות" של הפריט).',
-        'משנים את הכמות (מספר שלם או עשרוני, למשל 2.5) ואת המחיר. הסכום הצפוי לשורה מתעדכן מיד. לוחצים "שמירה" ואחר כך שומרים את ההצעה.',
-        'בפריט שמתומחר לפי שטח או אורך (מ״ר, מטר אורך) משנים את הכמות או את המידות בלחיצה על "עריכה" בכרטיס הפריט.',
+        'בעורך ההצעה, בשורה של הפריט, משנים את הכמות (מספר שלם או עשרוני, למשל 2.5) או את המחיר ישירות בשדות. הסכום של השורה מתעדכן מיד, ואחר כך שומרים את ההצעה.',
+        'בפריט לפי "שטח" או "אורך" משנים את המידות באותה שורה. אפשר להוסיף "מידה נוספת", או לבחור בתפריט השורה "כמות ידועה" כשהשטח או האורך כבר ידועים.',
+        'מחיר נכתב עם נקודה עשרונית, למשל 1200.50. מחיר ריק מסומן כחסר ולא נחשב 0. פרטים נוספים ללקוח נמצאים בתפריט השורה, ב"פרטים ללקוח".',
       ],
     },
     en: {
       task: 'Changing the quantity or the price of an item in a quote',
       steps: [
-        'In the quote editor, on the item card, click "Edit price and quantity" (the same action is also in the item\x27s "More actions" menu).',
-        'Change the quantity (a whole or decimal number, for example 2.5) and the price. The expected line total updates at once. Click "Save" and then save the quote.',
-        'For an item priced by area or length (m², linear meter) change the quantity or the measurements by clicking "Edit" on the item card.',
+        'In the quote editor, on the item\x27s row, change the quantity (a whole or decimal number, for example 2.5) or the price right in the fields. The row total updates at once; then save the quote.',
+        'For an item billed by "Area" or "Length" change the sizes in the same row. You can add "Another size", or choose "Known amount" in the row menu when the area or length is already known.',
+        'A price uses a decimal point, for example 1200.50. An empty price is marked as missing and never counts as 0. More details for the customer are in the row menu, under "Details for the customer".',
       ],
     },
     evidence: [
-      { file: 'src/components/QuoteForm.jsx', labels: ['עריכת מחיר וכמות', 'Edit price and quantity', 'פעולות נוספות', 'More actions', 'עריכה', 'Edit'] },
-      { file: 'src/components/EditItemPriceDialog.jsx', labels: ['שמירה', 'Save', 'סכום צפוי לשורה', 'Expected line total'] },
+      { file: 'src/components/QuoteRowsEditor.jsx', labels: ['שטח', 'Area', 'אורך', 'Length', 'מידה נוספת', 'Another size', 'כמות ידועה', 'Known amount', 'פרטים ללקוח', 'Details for the customer'] },
     ],
   },
   {

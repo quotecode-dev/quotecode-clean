@@ -1,27 +1,22 @@
-import { FileText, FileUp, LayoutTemplate, Ruler, Sparkles } from 'lucide-react';
+import { FileText, FileUp, LayoutTemplate, Sparkles } from 'lucide-react';
 
-// The three plain-language ways to start a quote (labels + one-line hints, HE/EN).
+// The plain-language ways to start a quote (labels + one-line hints, HE/EN).
+// Owner console 2026-11-08 (design A, typed: "מאשר חלופה א׳ - שורות ישירות, כפתור אחד "הצעת מחיר" ..." + stage 2 incl. L-09 / L-23): the
+// regular quote and the measured quote are ONE entry - "הצעת מחיר"; every row chooses its own billing (fixed, units, area, length). An old
+// internal call to the measured entry still opens the same editor.
 export function newQuoteChoices(isHebrew) {
   return [
     {
       id: 'standard',
       Icon: FileText,
-      label: isHebrew ? 'הצעת מחיר רגילה' : 'Standard quote',
-      hint: isHebrew ? 'מתחילים מטופס ריק ומוסיפים פריטים' : 'Start from a blank quote and add items',
+      label: isHebrew ? 'הצעת מחיר' : 'Quote',
+      hint: isHebrew ? 'שורות של מוצרים ועבודות - בכמות, לפי מידות או בסכום קבוע' : 'Rows of products and work - by quantity, by size or a fixed amount',
     },
     {
       id: 'ai',
       Icon: Sparkles,
       label: isHebrew ? 'הצעת מחיר חכמה עם AI' : 'AI smart quote',
       hint: isHebrew ? 'מתארים את העבודה וה-AI עוזר לנסח' : 'Describe the job and let AI help draft it',
-    },
-    {
-      id: 'structured',
-      Icon: Ruler,
-      label: isHebrew ? 'הצעה לפי מידות' : 'Profession-aware measured quote',
-      // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #13: round 1 (L-09) opens a measured quote as a simple list - the hint no longer promises rooms
-      // + Owner console 2026-10-18 ("אפילו ילד בן 10 יוכל להכין הצעה" -> "א"): the plainest wording
-      hint: isHebrew ? 'מכניסים מידות, והמחיר מחושב לבד' : 'Enter the measurements - the price is calculated for you',
     },
   ];
 }
@@ -37,7 +32,7 @@ export function fileChoice(isHebrew) {
   };
 }
 
-// The menu order (Owner 2026-11-03): standard, AI, from a file (when offered), measured, template (when offered).
+// The menu order (Owner 2026-11-03; the measured entry joined the quote 2026-11-08): quote, AI, from a file (when offered), template (when offered).
 export function menuChoices(isHebrew, { file = false, template = false } = {}) {
   const [standard, ai, ...rest] = newQuoteChoices(isHebrew);
   return [standard, ai, ...(file ? [fileChoice(isHebrew)] : []), ...rest, ...(template ? [templateChoice(isHebrew)] : [])];

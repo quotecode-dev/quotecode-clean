@@ -1,18 +1,17 @@
-import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { businessDial, joinPhone } from '../utils/phoneDial';
-import { createPortal } from 'react-dom';
 import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
-import EditItemPriceDialog from './EditItemPriceDialog';
-import AddAnotherItemDialog from './AddAnotherItemDialog';
-import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Lock, Plus, CopyPlus, ChevronDown, MoreVertical, Pencil, Trash2, FolderInput, ListPlus, RotateCcw, FileText, Building2, LayoutList, ArrowLeft, ArrowRight } from 'lucide-react';
+import QuoteRowsEditor from './QuoteRowsEditor';
+import { blankRowItem } from '../utils/quoteItemEntry';
+import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Plus, CopyPlus, ChevronDown, Pencil, RotateCcw, FileText, Building2, LayoutList, ArrowLeft, ArrowRight } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import { APP as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import QuotePresentationPanel from './quotePresentation/QuotePresentationPanel';
 import { calculateQuoteFinancials } from '../utils/regionConfig';
 import { formatMoneyForCurrency } from '../utils/money';
 import { formatQuoteFallback } from '../utils/quoteNumber';
-import { getProfessionalUnitLabel, getActiveQuantity, isProfessionalItem, isMeasurableUnit, withActiveQuantities, groupItemsBySection, formatQuantity } from '../utils/professionalQuoteItem';
+import { isProfessionalItem, withActiveQuantities, groupItemsBySection } from '../utils/professionalQuoteItem';
 import { computeItemWizardState } from '../utils/quoteWorkflowContext';
 import { isUntouchedPlaceholderItem } from '../utils/structuredQuoteItemPersistence';
 import { isUnfinishedQuoteForm } from '../utils/quoteCompleteness';
@@ -98,16 +97,11 @@ export default function QuoteForm({
   discountAmount,
   taxAmount,
   totalAmount,
-  removeItem,
-  handleItemChange,
   canUseAttachments,
   // Owner console 2026-10-25 (typed L-05 approval): attachments are SMART PACK while the plan system is enforced (Dashboard decides)
   smartPackAllowed = true,
   canUseProfessionalQuotes,
   recommendedPricingMethod,
-  // Owner round 1 (A1 / A6): the quote was opened as "measured" - the list leads with measuring and can show a local example
-  isMeasuredEntry = false,
-  duplicateItem,
   canUseProfessionalQuoteReuse,
   onOpenPricingModal,
   // OD-20: server account summary for the capability notice (current plan line); never a plan source for gates
@@ -129,8 +123,6 @@ export default function QuoteForm({
 }) {
   // IRON-ILS-001: money is displayed ONLY through the canonical currency-keyed path (Dashboard injects it; the fallback derives from the account market, never from UI language).
   const fmtMoney = formatMoneyDisplay || ((v) => formatMoneyForCurrency(v, isLocalIsraeliBusiness ? 'ILS' : undefined));
-  // Task 34 extension: the per-item "Edit price" dialog (index of the item whose price is being edited, or null)
-  const [priceEditIndex, setPriceEditIndex] = useState(null);
   // SMART-QUOTE-02: an undecided structure is simply the regular list (never a blocking first decision).
   const structureMode = quoteStructureMode || 'regular';
   // SMART-QUOTE-01: unfinished = no real priced item yet -> only an explicitly labelled unfinished draft can be saved.
@@ -164,12 +156,6 @@ export default function QuoteForm({
   const [showUpgradeConfirm, setShowUpgradeConfirm] = useState(null); // null | 'attachments' | 'professional'
   const [errorMessage, setErrorMessage] = useState('');
 
-  // חוק ברזל (Owner Visual Review - Correction 4, "one consolidated actions
-  // menu"): אינדקס יחיד פתוח (לא boolean-per-index) - מבטיח תפריט-פעולות
-  // אחד בכל רגע נתון, ונסגר אוטומטית בלחיצה מחוץ לתפריט (לא נשאר תקוע
-  // פתוח כשהמשתמש עובר הלאה).
-  const [openActionsMenu, setOpenActionsMenu] = useState(null);
-
   // חוק ברזל (Two-Stage Completion Task, Stage 1D - "simplify without losing
   // history"): שני textarea-ים גדולים תמיד-גלויים (תנאים+אחריות) תפסו שטח
   // אנכי משמעותי גם כשהם כבר בדיוק ברירת-המחדל מהגדרות העסק (המקרה הנפוץ
@@ -192,22 +178,6 @@ export default function QuoteForm({
     setTerms(defaultTerms ?? '');
     setWarranty(defaultWarranty ?? '');
   };
-  useEffect(() => {
-    if (openActionsMenu == null) return;
-    const closeMenu = () => setOpenActionsMenu(null);
-    // חוק ברזל (Addendum - תפריט-פעולות תפוס תחת סרגל צד, RTL): Escape סוגר
-    // את התפריט בדיוק כמו לחיצה-מחוץ-לו - נדרש מפורש (Addendum: "Escape").
-    // הזרת ה-focus לכפתור-המפעיל עצמו מטופלת בתוך CompactItemCard (שם ה-
-    // ref לכפתור בפועל קיים), לא כאן.
-    const onKeyDown = (e) => { if (e.key === 'Escape') closeMenu(); };
-    document.addEventListener('click', closeMenu);
-    document.addEventListener('keydown', onKeyDown);
-    return () => {
-      document.removeEventListener('click', closeMenu);
-      document.removeEventListener('keydown', onKeyDown);
-    };
-  }, [openActionsMenu]);
-
   // חוק ברזל (Owner-Approved Smart Quote UX, Stage 2): פעולת-כניסה דומיננטית
   // יחידה - פותחת AddItemWizard, שבסיום בונה אובייקט-פריט שלם (זהה-צורה
   // למה ש-handleProfessionalUnitChange/handleCatalogAdd הקיימים כבר מייצרים)
@@ -233,26 +203,36 @@ export default function QuoteForm({
     setWizardResumeState(wizardResume.state || null);
     setIsAddWizardOpen(true);
   }, [wizardResume]);
-  const openAddWizard = (sectionKey = null) => { setWizardSectionKey(sectionKey); setEditingItemIndex(null); setIsAddWizardOpen(true); };
-  const openEditWizard = (index) => { setEditingItemIndex(index); setIsAddWizardOpen(true); };
-  const [anotherItemPrompt, setAnotherItemPrompt] = useState(null);
+  // Owner console 2026-11-08 (stage 2, decision 8, typed: "מאשר החלטה 8 ..."): the item window opens only to finish (or cancel) an item
+  // window that an older draft restored; after it the work continues in the rows (no "add another item?" - a row is added in place).
   const handleWizardSave = (savedItem) => {
     if (editingItemIndex != null) {
       setItems(items.map((it, i) => (i === editingItemIndex ? savedItem : it)));
       return;
     }
-    setItems([...items, savedItem]);
-    // Owner 2026-10-18 (L-09 approval): after a NEW item, ask "add another item?" - Yes opens the catalog tick list
-    setAnotherItemPrompt({ sectionKey: savedItem.section_key ?? null });
+    setItems((prev) => [...prev.filter((it) => !isUntouchedPlaceholderItem(it)), savedItem]);
   };
   // Owner console 2026-10-26 (typed L-09 approval, docs/CODEX_ITEM_PATHS_SPEC_2026-10-26.md): the catalog items checked together in the
   // wizard are added in ONE update, in their order; the wizard already reported each catalog item (onCatalogItemAdded).
   // Owner console 2026-10-26 (typed L-09 / L-15, real-walk finding 4): "add another item?" follows EVERY addition, a catalog selection too.
   const handleWizardSaveMany = (added) => {
     if (!Array.isArray(added) || added.length === 0) return;
-    setItems((prev) => [...prev, ...added]);
-    setAnotherItemPrompt({ sectionKey: added[0]?.section_key ?? null });
+    setItems((prev) => [...prev.filter((it) => !isUntouchedPlaceholderItem(it)), ...added]);
   };
+  // the rows of every list share one key store, so a row keeps its typed entry and focus when its item object is replaced or it moves
+  const rowKeys = useRef(null);
+  if (!rowKeys.current) rowKeys.current = { map: new WeakMap(), seq: 0, focus: null };
+  // a unit's "add row": a blank row in that unit, focused
+  const addRowTo = (sectionKey) => {
+    const row = blankRowItem(sectionKey);
+    const store = rowKeys.current;
+    store.seq += 1;
+    store.map.set(row, `r${store.seq}`);
+    store.focus = `r${store.seq}`;
+    setItems((prev) => [...prev, row]);
+    if (sectionKey) setCollapsedUnitKeys((prev) => { if (!prev.has(sectionKey)) return prev; const next = new Set(prev); next.delete(sectionKey); return next; });
+  };
+  const canDuplicateRow = (it) => !(isProfessionalItem(it) && !canUseProfessionalQuoteReuse);
   // Owner 2026-10-26 (real-walk finding 5): a new unit opens with the cursor in its name
   const [newUnitKey, setNewUnitKey] = useState(null);
 
@@ -341,6 +321,29 @@ export default function QuoteForm({
   // למטה), בדיוק כפי שנדרש ("a clearly visible temporary Unassigned
   // container requiring review") בלי אף מוטציה על items/sections.
   const handleSwitchToDivided = () => setQuoteStructureMode('divided');
+
+  // PRODUCT_TRUTH_CAPABILITY: professional_reuse
+  const duplicateUnit = (section) => {
+    const lines = items.filter((it) => it.section_key === section.key && !isUntouchedPlaceholderItem(it));
+    if (lines.some((it) => !canDuplicateRow(it))) { setShowUpgradeConfirm('reuse'); return; }
+    const key = `tmp_section_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+    const name = section.name ? (isHebrew ? `${section.name} - עותק` : `${section.name} - copy`) : '';
+    setSections((prev) => {
+      const ordered = prev.slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+      const at = ordered.findIndex((s) => s.key === section.key);
+      const next = [...ordered.slice(0, at + 1), { key, name, sort_order: 0 }, ...ordered.slice(at + 1)];
+      return next.map((s, i) => ({ ...s, sort_order: i }));
+    });
+    const copies = lines.map((it) => {
+      const c = { ...it, section_key: key };
+      delete c.id;
+      if (Array.isArray(it.measurements)) c.measurements = it.measurements.map((m) => { const x = { ...m }; delete x.id; return x; });
+      if (Array.isArray(it.specification)) c.specification = it.specification.map((r) => ({ ...r }));
+      return c;
+    });
+    setItems((prev) => [...prev, ...copies]);
+    setNewUnitKey(key);
+  };
 
   // Divided -> Regular: תמיד בטוח (איחוד לרשימה שטוחה אחת, אף פריט/סכום
   // לא הולך לאיבוד - section_key מתאפס לכולם) אך דורש אישור מפורש לפני
@@ -455,86 +458,17 @@ export default function QuoteForm({
   }));
   const unassignedIndices = unsectionedItems.map((it) => items.indexOf(it));
   const orderedItemIndices = [...unitItemIndices.flatMap(g => g.indices), ...unassignedIndices];
-  // the untouched default placeholder row is not an item yet - no empty "(unnamed) 1 x 0.00" card on a fresh quote
-  const regularItemIndices = orderedItemIndices.filter((i) => !isUntouchedPlaceholderItem(items[i]));
   // Task 21: the same rule in divided mode - the untouched placeholder is never an "Unassigned" item card ("(unnamed) 1 x 0.00", "2 items").
   // The Unassigned card (and its add-item action) stays visible while there are no units yet, so adding a product never requires a unit first.
-  const visibleUnassignedIndices = unassignedIndices.filter((i) => !isUntouchedPlaceholderItem(items[i]));
-  const showUnassignedCard = visibleUnassignedIndices.length > 0 || unitItemIndices.length === 0;
-
-  // חוק ברזל (Smart Quote Structure-First UX Correction task): נקודת-
-  // רינדור משותפת יחידה לכרטיס-פריט קומפקטי - הרשימה השטוחה (Regular) וכל
-  // כרטיס-יחידה (Divided, ר' UnitCard למטה) קוראים לה, כך שאין שני עותקים
-  // בלתי-תלויים של אותו JSX/props. sectionName תמיד null כאן - במצב Regular
-  // אין sections בכלל (מבנה), ובמצב Divided ההכלה-בתוך-כרטיס-היחידה כבר
-  // מציינת את השיוך, תג-badge חוזר-על-עצמו היה כפילות-מיותרת.
-  // Owner round 1 (A6): one synthetic example line, local only (never saved: the save asks to remove it first; editing it in the item wizard
-  // turns it into an ordinary item of the user's own). 100 x 200 cm at 600 per m2 in the quote's currency.
-  const addLocalExample = () => {
-    const example = {
-      description: isHebrew ? 'חלון אלומיניום (דוגמה)' : 'Aluminium window (example)', quantity: '1', unit_price: '600', isFromCatalog: false, section_key: null,
-      pricing_unit: 'm2', quantity_source: 'calculated', calculation_method: 'area', calculated_quantity: 2,
-      measurements: [{ width: 1, height: 2, unit: 'm', calculated_area: 2, label: '', is_pricing_driving: true }], _localExample: true,
-    };
-    setItems((prev) => [...prev.filter((it) => !isUntouchedPlaceholderItem(it) && !(it && it._localExample)), example]);
-  };
-  const removeLocalExample = () => setItems((prev) => {
-    const rest = prev.filter((it) => !(it && it._localExample));
-    return rest.length ? rest : [{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }];
-  });
+  // Owner console 2026-11-08 (stage 2): a blank row is shown to type in but never counted (and never saved) - the Unassigned card shows ALL its
+  // rows while it is shown; it is shown when it has a real line, or while there are no units yet
+  const isRealLine = (i) => !isUntouchedPlaceholderItem(items[i]);
+  const showUnassignedCard = unassignedIndices.some(isRealLine) || unitItemIndices.length === 0;
+  const visibleUnassignedIndices = showUnassignedCard ? unassignedIndices : [];
 
   // Owner 2026-10-15: the price step knows whether a real item exists, and a discount is a percentage between 0 and 100
   const hasRealItems = (items || []).some((it) => it && !isUntouchedPlaceholderItem(it));
   const discountInvalid = String(discount ?? '').trim() !== '' && (!Number.isFinite(Number(discount)) || Number(discount) < 0 || Number(discount) > 100);
-
-  const renderItemCard = (index) => {
-    const item = items[index];
-    const isPro = isProfessionalItem(item);
-    const isMeasurable = isMeasurableUnit(item.pricing_unit);
-    const activeQty = getActiveQuantity(item);
-    const unitPriceLabel = getProfessionalUnitLabel(item.pricing_unit, isHebrew);
-    // Task 34 extension: an EMPTY price is a missing price ("enter a price"), never shown as a free line; an intentional 0 stays 0
-    const priceMissing = item.unit_price === '' || item.unit_price == null;
-    const priceText = priceMissing ? (isHebrew ? 'יש להזין מחיר' : 'Enter a price') : `${sym}${fmtMoney(item.unit_price)}`;
-    // Owner 2026-11-06 (release A): the quantity uses the shared quantity format (1, 2.5; area / length 3.40), never the money format
-    const qtyText = formatQuantity(activeQty, item.pricing_unit);
-    const compactCalcSummary = isPro && isMeasurable
-      ? `${qtyText} ${unitPriceLabel} × ${priceText}`
-      : isPro && item.pricing_unit && item.pricing_unit !== 'unit'
-        ? `${qtyText} ${unitPriceLabel} × ${priceText}`
-        : `${qtyText} × ${priceText}`;
-    const compactHasSpec = Array.isArray(item.specification) && item.specification.length > 0;
-    return (
-      <CompactItemCard
-        isHebrew={isHebrew}
-        name={item.isFromCatalog || item.description ? item.description : (isHebrew ? '(ללא שם)' : '(unnamed)')}
-        calcSummary={compactCalcSummary}
-        total={priceMissing ? (isHebrew ? 'יש להזין מחיר' : 'Enter a price') : `${sym}${fmtMoney(activeQty * Number(item.unit_price || 0))}`}
-        priceMissing={priceMissing}
-        onEditPrice={() => { setOpenActionsMenu(null); setPriceEditIndex(index); }}
-        editPriceWithQuantity={!isMeasurable}
-        hasSpec={compactHasSpec}
-        sectionName={null}
-        onExpand={() => openEditWizard(index)}
-        menuOpen={openActionsMenu === index}
-        onToggleMenu={(e) => { e.stopPropagation(); setOpenActionsMenu(openActionsMenu === index ? null : index); }}
-        onEdit={() => { setOpenActionsMenu(null); openEditWizard(index); }}
-        onDuplicate={() => {
-          setOpenActionsMenu(null);
-          // PRODUCT_TRUTH_CAPABILITY: professional_reuse
-          if (isPro && !canUseProfessionalQuoteReuse) { setShowUpgradeConfirm('reuse'); return; }
-          duplicateItem(index);
-        }}
-        canDuplicate={true}
-        duplicateLocked={isPro && !canUseProfessionalQuoteReuse}
-        sections={sections}
-        currentSectionKey={item.section_key || ''}
-        onMoveSection={(key) => { handleItemChange(index, 'section_key', key || null); }}
-        onDelete={() => { setOpenActionsMenu(null); removeItem(index); }}
-        canDelete={items.length > 1}
-      />
-    );
-  };
 
   // חוק ברזל (Entitlement/Quota Centralization, §150, סעיף 4): קורא ישירות
   // ל-entitlement.attachments (resolveAccountEntitlement, מחושב פעם אחת
@@ -656,32 +590,6 @@ export default function QuoteForm({
         <Calculator size={24} strokeWidth={2.2} aria-hidden="true" />
       </button>
 
-      {priceEditIndex != null && items[priceEditIndex] && (
-        <EditItemPriceDialog
-          item={items[priceEditIndex]}
-          isHebrew={isHebrew}
-          international={isLocalIsraeliBusiness === false}
-          sym={sym}
-          fmtMoney={fmtMoney}
-          onCancel={() => setPriceEditIndex(null)}
-          onSave={(price, quantity) => {
-            const index = priceEditIndex;
-            if (quantity === undefined) {
-              handleItemChange(index, 'unit_price', price);
-            } else {
-              // Owner 2026-11-06 (release A): the price and a changed quantity of an item that is not measured, in ONE update - a line that
-              // already carries its real amount in calculated_quantity (a fractional / AI count) keeps it there, any other line updates
-              // quantity (a fractional value is stored by withPersistableQuantity at save, exactly as the item window does)
-              setItems((prev) => prev.map((it, i) => {
-                if (i !== index) return it;
-                const carriesCalculated = it.calculated_quantity !== undefined && it.calculated_quantity !== null && it.calculated_quantity !== '';
-                return carriesCalculated ? { ...it, unit_price: price, calculated_quantity: quantity } : { ...it, unit_price: price, quantity: String(quantity) };
-              }));
-            }
-            setPriceEditIndex(null);
-          }}
-        />
-      )}
       <AddItemWizard
         isOpen={isAddWizardOpen}
         onClose={() => { setIsAddWizardOpen(false); setWizardResumeState(null); }}
@@ -704,14 +612,6 @@ export default function QuoteForm({
         quoteItems={items}
         international={isLocalIsraeliBusiness === false}
       />
-      {anotherItemPrompt && !isAddWizardOpen && (
-        <AddAnotherItemDialog
-          isHebrew={isHebrew}
-          onNewItem={() => { const key = anotherItemPrompt.sectionKey; setAnotherItemPrompt(null); openAddWizard(key); }}
-          onClose={() => setAnotherItemPrompt(null)}
-        />
-      )}
-
       {/* OD-17: the one capability notice (no Basic/Pro wording, no purchase, no mutation; close is a no-op) */}
       <CapabilityUpgradeNotice
         lang={isHebrew ? 'he' : 'en'}
@@ -948,15 +848,6 @@ export default function QuoteForm({
         {/* PRODUCT_TRUTH_CAPABILITY: smart_quote */}
         {structureMode === 'regular' && (
           <>
-            <button
-              type="button"
-              onClick={() => openAddWizard(null)}
-              style={{ background: NEON.gradient, border: 'none', color: 'white', padding: '13px 20px', borderRadius: '12px', cursor: 'pointer', fontWeight: '800', fontSize: '0.92rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', width: '100%', boxShadow: NEON.glow, marginBottom: '8px' }}
-            >
-              <Plus size={18} strokeWidth={3} />
-              {isMeasuredEntry ? (isHebrew ? 'הוספת פריט לפי מידות' : 'Add a measured item') : (isHebrew ? 'הוספת מוצר או עבודה' : 'Add product or work')}
-            </button>
-
             <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
               {/* PRODUCT_TRUTH_CAPABILITY: editor_calculator */}
               <button type="button" onClick={() => setIsCalcOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '2px 0' }}>
@@ -975,10 +866,11 @@ export default function QuoteForm({
               </button>
             </div>
 
-            <p style={{ margin: '8px 0 0', fontSize: '0.76rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
+            {/* Owner console 2026-11-08 (stage 2, typed L-23): the measured entry's locked hint becomes the row explanation */}
+            <p data-testid="quote-rows-hint" style={{ margin: '8px 0 0', fontSize: '0.76rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
               {isHebrew
-                ? 'אפשר להוסיף מוצר או עבודה, לבחור מהקטלוג או לתמחר לפי מידות.'
-                : 'Add a product or work item, pick one from your catalog, or price it by measurements — no internal terminology required.'}
+                ? 'כל שורה היא מוצר או עבודה: בוחרים מהקטלוג או מקלידים שם, וקובעים סוג חיוב - סכום קבוע, יחידות, שטח או אורך.'
+                : 'Each row is a product or work item: pick it from your catalog or type a name, then choose how it is billed - a fixed amount, units, area or length.'}
             </p>
           </>
         )}
@@ -1005,41 +897,6 @@ export default function QuoteForm({
         )}
         </div>
 
-        {structureMode === 'regular' && regularItemIndices.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '20px 14px', color: NEON.textSecondary, fontSize: '0.82rem', background: NEON.bgCardAlt, borderRadius: '10px', border: `1px dashed ${NEON.borderStrong}`, marginBottom: '10px' }}>
-            {isMeasuredEntry
-              ? (isHebrew ? 'עוד אין פריטים. מוסיפים פריט ומודדים אותו, אין צורך לחלק לחדרים.' : 'No items yet. Add an item and measure it - no need to split into rooms.')
-              : (isHebrew ? 'עדיין לא נוספו מוצרים או עבודות להצעה זו.' : 'No products or work added to this quote yet.')}
-            {isMeasuredEntry && (
-              // PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line (100 x 200 cm at 600 per m2) to learn from (Owner round 1, A6)
-              <button type="button" data-testid="quote-show-example" onClick={addLocalExample} style={{ display: 'block', margin: '10px auto 0', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', color: NEON.violetLight, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', padding: '8px 14px', minHeight: '40px' }}>
-                {isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* חוק ברזל (Smart Quote Guided UX Completion task, §C - Add/Edit
-            unification, נשמר): כל פריט הוא כרטיס-סיכום קומפקטי - עריכה
-            עוברת דרך AddItemWizard (editingItem), לא עוד שורה
-            קלאסית+פאנל-מקצועי inline. renderItemCard משותף בין הרשימה
-            השטוחה (Regular) לבין כל כרטיס-יחידה (Divided) - נקודת-רינדור
-            יחידה לכל פריט, לא שני עותקים בלתי-תלויים. */}
-        {structureMode === 'regular' && regularItemIndices.map((index) => (
-          <div key={index}>
-            {items[index]?._localExample && (
-              <div data-testid="quote-example-badge" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', padding: '6px 10px', marginBottom: '4px', borderRadius: '8px', background: '#fff4e2', border: '1px solid #f1c27a', color: '#8a4b00', fontSize: '0.76rem', fontWeight: 700 }}>
-                <span>{isHebrew ? 'דוגמה · לא נשמרת' : 'Example · not saved'}</span>
-                {/* PRODUCT_TRUTH_DECORATIVE: removes the local example line (Owner round 1, A6) */}
-                <button type="button" onClick={removeLocalExample} style={{ background: 'none', border: 'none', color: '#8a4b00', textDecoration: 'underline', fontSize: '0.76rem', fontWeight: 700, cursor: 'pointer', padding: '4px 0', minHeight: '32px' }}>
-                  {isHebrew ? 'הסרת הדוגמה' : 'Remove the example'}
-                </button>
-              </div>
-            )}
-            {renderItemCard(index)}
-          </div>
-        ))}
-
         {/* חוק ברזל (Part C/Locked Decision 4/5/7/10 - "the divided-quote
             unit board"): כל יחידה היא קונטיינר-עבודה חי וגלוי תמיד - שם,
             ספירת-פריטים, סכום-ביניים, מצב-ריק, פעולת-הוספה מפורשת - גם
@@ -1047,6 +904,14 @@ export default function QuoteForm({
             נקודת-הקיבוץ הקנונית; כאן נדרשים אינדקסים (לא אובייקטי-פריט,
             ר' unitItemIndices למעלה) כדי שפעולות עריכה/מחיקה/שכפול
             הקיימות ימשיכו לפעול ללא שינוי. */}
+        {/* Owner console 2026-11-08 (stage 2, design A): every line is a row - the item cards and the item window are gone */}
+        {structureMode === 'regular' && (
+          <QuoteRowsEditor items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
+                international={isLocalIsraeliBusiness === false} sym={sym} fmtMoney={fmtMoney} onCatalogItemAdded={onCatalogItemAdded}
+                canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
+                canDuplicate={canDuplicateRow} onDuplicateLocked={() => setShowUpgradeConfirm('reuse')}
+                indices={orderedItemIndices} />
+        )}
         {structureMode === 'divided' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
             {unitItemIndices.map(({ section, indices }) => (
@@ -1056,18 +921,22 @@ export default function QuoteForm({
                 sym={sym}
                 formatMoneyDisplay={fmtMoney}
                 section={section}
-                itemCount={indices.length}
+                itemCount={indices.filter(isRealLine).length}
+                rowCount={indices.length}
                 subtotal={computeUnitSubtotal(indices)}
                 collapsed={collapsedUnitKeys.has(section.key)}
                 onToggleCollapse={() => toggleUnitCollapsed(section.key)}
                 onRename={(name) => renameSection(section.key, name)}
-                onRemove={() => requestRemoveSection(section, indices.length)}
-                onAddItem={() => openAddWizard(section.key)}
+                onRemove={() => requestRemoveSection(section, indices.filter(isRealLine).length)}
+                onAddItem={() => addRowTo(section.key)}
+                onDuplicate={() => duplicateUnit(section)}
                 focusName={section.key === newUnitKey}
               >
-                {indices.map((index) => (
-                  <div key={index}>{renderItemCard(index)}</div>
-                ))}
+                <QuoteRowsEditor items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
+                international={isLocalIsraeliBusiness === false} sym={sym} fmtMoney={fmtMoney} onCatalogItemAdded={onCatalogItemAdded}
+                canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
+                canDuplicate={canDuplicateRow} onDuplicateLocked={() => setShowUpgradeConfirm('reuse')}
+                indices={indices} addSectionKey={section.key} showAdd={false} />
               </UnitCard>
             ))}
 
@@ -1081,16 +950,19 @@ export default function QuoteForm({
                 sym={sym}
                 formatMoneyDisplay={fmtMoney}
                 section={{ key: '__unassigned__', name: isHebrew ? 'לא משויך' : 'Unassigned' }}
-                itemCount={visibleUnassignedIndices.length}
+                itemCount={visibleUnassignedIndices.filter(isRealLine).length}
+                rowCount={visibleUnassignedIndices.length}
                 subtotal={computeUnitSubtotal(visibleUnassignedIndices)}
                 collapsed={collapsedUnitKeys.has('__unassigned__')}
                 onToggleCollapse={() => toggleUnitCollapsed('__unassigned__')}
                 isUnassigned
-                onAddItem={() => openAddWizard(null)}
+                onAddItem={() => addRowTo(null)}
               >
-                {visibleUnassignedIndices.map((index) => (
-                  <div key={index}>{renderItemCard(index)}</div>
-                ))}
+                <QuoteRowsEditor items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
+                international={isLocalIsraeliBusiness === false} sym={sym} fmtMoney={fmtMoney} onCatalogItemAdded={onCatalogItemAdded}
+                canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
+                canDuplicate={canDuplicateRow} onDuplicateLocked={() => setShowUpgradeConfirm('reuse')}
+                indices={visibleUnassignedIndices} showAdd={false} />
               </UnitCard>
             )}
 
@@ -1150,12 +1022,12 @@ export default function QuoteForm({
 
         <StepHeading n={3} title={isHebrew ? 'מחיר' : 'Price'} />
         {/* Owner 2026-10-15 (typed approval, David's video: the quote amount was typed into the discount): with no item yet, the price
-            step says where the price goes and opens the item window; the field is named for what it is - a discount on the whole quote. */}
+            step says where the price goes and moves to the first row (stage 2, 2026-11-08); the field is named for what it is - a discount on the whole quote. */}
         {!hasRealItems && (
           <div data-testid="sq-price-needs-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', padding: '10px 12px', marginBottom: '10px', borderRadius: '10px', background: NEON.violetLighter, border: `1px solid ${NEON.violetLight}`, color: NEON.textPrimary, fontSize: '0.82rem', lineHeight: 1.4 }}>
             <span style={{ minWidth: 0, flex: '1 1 220px' }}>{isHebrew ? 'קודם מוסיפים מוצר או עבודה עם מחיר (שלב 2). כאן רק הנחה על כל ההצעה.' : 'First add a product or work with its price (step 2). This is only a discount on the whole quote.'}</span>
-            {/* PRODUCT_TRUTH_DECORATIVE: opens the add-item window from the price step when the quote has no item yet */}
-            <button type="button" onClick={() => openAddWizard(null)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: NEON.gradient, color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 12px', minHeight: '40px', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
+            {/* PRODUCT_TRUTH_DECORATIVE: from the price step with no item yet: moves to the first row of step 2 (the one quote builder's rows) */}
+            <button type="button" data-testid="sq-price-go-rows" onClick={() => { const el = document.querySelector('[data-testid="quote-rows-editor"] [data-testid^="qrow-item-"]'); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } else if (structureMode === 'divided') addRowTo(null); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: NEON.gradient, color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 12px', minHeight: '40px', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
               <Plus size={14} strokeWidth={3} />
               {isHebrew ? 'הוספת מוצר או עבודה' : 'Add product or work'}
             </button>
@@ -1580,174 +1452,6 @@ export default function QuoteForm({
   );
 }
 
-// חוק ברזל (Owner Visual Review - Correction 4, "compact saved-item
-// row/card"): הפריט הגדול ביותר שנדחה בסבב הקודם. שם + סיכום-חישוב תמציתי
-// + סה"כ + תגיות אופציונליות (רק כשקיימות) + כפתור-הרחבה יחיד + תפריט-
-// פעולות מאוחד אחד (לא כמה כפתורים נפרדים כמו קודם). התפריט מכיל רק
-// פעולות נתמכות בפועל (Edit/Duplicate/Move section/Delete) - Delete
-// מופרד ויזואלית (קו+צבע אדום) כפעולה ההרסנית היחידה, בדיוק כנדרש.
-// אינו מכיל שום לוגיקת-עסק עצמאית - כל handler מועבר מלמעלה, מפעיל בדיוק
-// את אותן פונקציות קיימות (duplicateItem/removeItem/handleItemChange).
-function CompactItemCard({
-  isHebrew, name, calcSummary, total, hasSpec, sectionName,
-  onExpand, menuOpen, onToggleMenu, onEdit, onDuplicate, canDuplicate, duplicateLocked,
-  sections, currentSectionKey, onMoveSection, onDelete, canDelete, onEditPrice = null, editPriceWithQuantity = false, priceMissing = false,
-}) {
-  const [movingSectionOpen, setMovingSectionOpen] = useState(false);
-  const triggerRef = useRef(null);
-  const menuRef = useRef(null);
-  // חוק ברזל (Addendum - "menu partially clipped by the surrounding quote
-  // container"): נבדק ונחשף חי - הכפתור ⋮ יושב קרוב לגבול-הימני של
-  // .dash-main-content (הגלילה-הראשית, overflow:auto), והעיגון הישן
-  // (position:absolute, left/right:0 יחסי-ל-parent) הרחיב את התפריט
-  // 133px מעבר לגבול הזה, אל מתחת לסרגל-הצד - .dash-main-content קטע
-  // אותו בשקט (overflow:auto, לא נגלל-אליו אף פעם כי הוא מעבר לתוכן
-  // הרגיל). תיקון-שורש: לא רק להחליף left/right קשיח (זה עדיין ישבר
-  // בכל רוחב/מיקום אחר) - למדוד בפועל את מיקום-הכפתור מול חלון-התצוגה
-  // (לא מול ה-container) ולמקם את התפריט via portal (React.createPortal
-  // ל-document.body, position:fixed) כך שאף אב עם overflow לא יכול
-  // לקטוע אותו בכלל, עם זיהוי-התנגשות אמיתי (פינה שמתחלפת אם אין מקום).
-  const [coords, setCoords] = useState(null); // {top, left, placeAbove}
-  useLayoutEffect(() => {
-    if (!menuOpen) { setCoords(null); return; }
-    const trigger = triggerRef.current;
-    if (!trigger) return;
-    const reposition = () => {
-      const triggerRect = trigger.getBoundingClientRect();
-      const menuEl = menuRef.current;
-      const menuW = menuEl ? menuEl.offsetWidth : 190;
-      const menuH = menuEl ? menuEl.offsetHeight : 160;
-      const gap = 4;
-      const vw = window.innerWidth;
-      const vh = window.innerHeight;
-      // אנכי: ברירת-מחדל מתחת לכפתור; אם אין מקום - נפתח כלפי מעלה
-      // ("open upward... when there is insufficient space").
-      const fitsBelow = triggerRect.bottom + gap + menuH <= vh;
-      const top = fitsBelow ? triggerRect.bottom + gap : Math.max(gap, triggerRect.top - gap - menuH);
-      // אופקי: עוגן-מועדף תלוי-locale (ימין-ל-שמאל בעברית, מראה ב-
-      // אנגלית) - אך תמיד נבדק מול חלון-התצוגה בפועל (לא ה-container
-      // הפנימי) ומתהפך אם חורג. שני הכיוונים בודקים גם גלישה-שמאלה.
-      let left = isHebrew ? triggerRect.right - menuW : triggerRect.left;
-      if (left + menuW > vw - gap) left = vw - gap - menuW;
-      if (left < gap) left = gap;
-      setCoords({ top, left });
-    };
-    reposition();
-    // חלון-שנשתנה-גודל/גלילה בזמן שהתפריט פתוח - ממקם מחדש, לא נשאר
-    // "תקוע" במיקום-ישן שכבר לא תואם את מיקום הכפתור האמיתי.
-    window.addEventListener('resize', reposition);
-    window.addEventListener('scroll', reposition, true);
-    return () => {
-      window.removeEventListener('resize', reposition);
-      window.removeEventListener('scroll', reposition, true);
-    };
-  }, [menuOpen, movingSectionOpen, isHebrew]);
-
-  // חוק ברזל (Addendum - "returning focus to the three-dot trigger"): כל
-  // סגירה (Escape/click-outside/פעולה שנבחרה) חוזרת ל-focus על הכפתור
-  // המפעיל עצמו - לא "נזרקת" לתחילת הדף. נבדק guard על wasOpen כדי
-  // להימנע מ-focus מיותר ברינדור הראשוני (menuOpen מתחיל false).
-  const wasOpenRef = useRef(false);
-  useEffect(() => {
-    if (menuOpen) { wasOpenRef.current = true; return; }
-    if (wasOpenRef.current) {
-      wasOpenRef.current = false;
-      triggerRef.current?.focus();
-    }
-  }, [menuOpen]);
-
-  return (
-    <div style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '10px', padding: '10px 12px', marginBottom: '6px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexDirection: 'row' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontWeight: '700', color: NEON.textPrimary, fontSize: '0.85rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center', marginTop: '2px' }}>
-            <span style={{ fontSize: '0.75rem', color: priceMissing ? (NEON.amber || NEON.textSecondary) : NEON.textSecondary, fontWeight: priceMissing ? 600 : 400 }}>{calcSummary}</span>
-            {/* PRODUCT_TRUTH_DECORATIVE: Task 34 - opens the per-item Edit price dialog (the unit price, and the quantity of an item that is not measured; unit / source kept) */}
-            {onEditPrice && (
-              <button type="button" data-testid="item-edit-price" onClick={onEditPrice} style={{ background: 'none', border: 'none', padding: '6px 2px', minHeight: '32px', cursor: 'pointer', color: NEON.violetLight, fontSize: '0.75rem', fontWeight: 700, textDecoration: 'underline' }}>
-                {editPriceWithQuantity ? (isHebrew ? 'עריכת מחיר וכמות' : 'Edit price and quantity') : (isHebrew ? 'עריכת מחיר' : 'Edit price')}
-              </button>
-            )}
-            {hasSpec && <CardBadge icon={<Paperclip size={10} />} label={isHebrew ? 'פרטים' : 'Details'} />}
-            {sectionName && <CardBadge icon={<FolderInput size={10} />} label={sectionName} />}
-          </div>
-        </div>
-        <div className={priceMissing ? undefined : 'pf-money'} data-testid="item-line-total" style={{ fontWeight: '800', color: priceMissing ? (NEON.amber || NEON.textSecondary) : NEON.violet, fontSize: priceMissing ? '0.76rem' : '0.88rem', whiteSpace: 'nowrap', flexShrink: 0 }}>{total}</div>
-        {/* חוק ברזל (Smart Quote Final UX Simplification task, Part L -
-            "replace ambiguous chevrons with explicit visible edit
-            affordance"): טקסט "עריכה"/"Edit" גלוי, לא רק חץ-כיוון ללא
-            הסבר; יעד-מגע 44px לפחות (Part N - מובייל כמעמד ראשון). */}
-        {/* PRODUCT_TRUTH_DECORATIVE: 'Edit' button on an item's compact card that opens the AddItemWizard in edit mode; sub-control of the already-documented smart_quote/measured_quote add/edit-item flow */}
-        <button type="button" onClick={onExpand} aria-label={isHebrew ? 'עריכה' : 'Edit'} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', minWidth: '44px', minHeight: '44px', padding: '0 10px', justifyContent: 'center', cursor: 'pointer', color: NEON.textSecondary, flexShrink: 0, fontSize: '0.76rem', fontWeight: '600' }}>
-          <Pencil size={13} />
-          <span>{isHebrew ? 'עריכה' : 'Edit'}</span>
-        </button>
-        <div style={{ position: 'relative', flexShrink: 0 }}>
-          {/* PRODUCT_TRUTH_DECORATIVE: three-dot 'More actions' button that opens the per-item actions menu; a menu-toggle */}
-          <button ref={triggerRef} type="button" onClick={onToggleMenu} aria-label={isHebrew ? 'פעולות נוספות' : 'More actions'} aria-haspopup="menu" aria-expanded={menuOpen} style={{ background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: NEON.textSecondary }}>
-            <MoreVertical size={15} />
-          </button>
-          {/* PRODUCT_TRUTH_DECORATIVE: stopPropagation on the portal-rendered menu container to keep inner clicks from closing the menu; not a user-facing action */}
-          {menuOpen && createPortal(
-            <div
-              ref={menuRef}
-              role="menu"
-              onClick={(e) => e.stopPropagation()}
-              style={{
-                position: 'fixed',
-                top: coords ? `${coords.top}px` : '-9999px',
-                left: coords ? `${coords.left}px` : '-9999px',
-                visibility: coords ? 'visible' : 'hidden',
-                background: NEON.bgCard, border: `1px solid ${NEON.border}`, borderRadius: '8px',
-                boxShadow: '0 8px 24px -8px rgba(0,0,0,0.25)', minWidth: '190px', zIndex: 2000, overflow: 'hidden',
-              }}
-            >
-              {/* PRODUCT_TRUTH_DECORATIVE: 'Edit' entry in the item actions menu; same destination as the Edit button above */}
-              <MenuItem icon={<Pencil size={13} />} label={isHebrew ? 'עריכה' : 'Edit'} onClick={onEdit} />
-              {/* PRODUCT_TRUTH_DECORATIVE: Task 34 - the same Edit price dialog from the item actions menu */}
-              {onEditPrice && <MenuItem icon={<Pencil size={13} />} label={editPriceWithQuantity ? (isHebrew ? 'עריכת מחיר וכמות' : 'Edit price and quantity') : (isHebrew ? 'עריכת מחיר' : 'Edit price')} onClick={onEditPrice} />}
-              {canDuplicate && (
-                <MenuItem
-                  icon={duplicateLocked ? <Lock size={13} /> : <CopyPlus size={13} />}
-                  label={isHebrew ? 'שכפול פריט' : 'Duplicate item'}
-                  onClick={onDuplicate}
-                />
-              )}
-              {/* PRODUCT_TRUTH_DECORATIVE: 'Move to unit...' menu entry that opens an inline select to reassign the item's section; sub-action of quote-item organization */}
-              {sections && sections.length > 0 && (
-                <MenuItem icon={<ListPlus size={13} />} label={isHebrew ? 'העברה ליחידה…' : 'Move to unit...'} onClick={() => setMovingSectionOpen((v) => !v)} />
-              )}
-              {/* PRODUCT_TRUTH_DECORATIVE: stopPropagation on the 'move to unit' select wrapper, preventing it from closing the parent menu */}
-              {movingSectionOpen && (
-                <div style={{ padding: '4px 10px 8px' }} onClick={(e) => e.stopPropagation()}>
-                  <select
-                    autoFocus
-                    value={currentSectionKey}
-                    onChange={(e) => { onMoveSection(e.target.value); setMovingSectionOpen(false); }}
-                    style={{ width: '100%', padding: '5px 6px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.78rem' }}
-                  >
-                    <option value="">{isHebrew ? 'ללא יחידה' : 'No unit'}</option>
-                    {sections.map((s) => <option key={s.key} value={s.key}>{s.name || (isHebrew ? '(ללא שם)' : '(unnamed)')}</option>)}
-                  </select>
-                </div>
-              )}
-              {canDelete && (
-                <>
-                  <div style={{ borderTop: `1px solid ${NEON.border}` }} />
-                  {/* PRODUCT_TRUTH_DECORATIVE: 'Delete item' entry in the item actions menu; removes the line item from the quote */}
-                  <MenuItem icon={<Trash2 size={13} />} label={isHebrew ? 'מחיקת פריט' : 'Delete item'} onClick={onDelete} destructive />
-                </>
-              )}
-            </div>,
-            document.body
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 // חוק ברזל (Smart Quote Structure-First UX Correction task, Locked
 // Decision 4/5/10 - "every unit is a live working container"): כרטיס-
 // יחידה יחיד, מוצג תמיד (גם מכווץ) עם שם/ספירת-פריטים/סכום-ביניים/מצב-
@@ -1757,11 +1461,11 @@ function CompactItemCard({
 // לא ניתן לשינוי-שם/הסרה (אין section אמיתית מאחוריו).
 function UnitCard({
   isHebrew, sym, formatMoneyDisplay, section, itemCount, subtotal, collapsed,
-  onToggleCollapse, onRename, onRemove, onAddItem, isUnassigned, children, focusName = false,
+  onToggleCollapse, onRename, onRemove, onAddItem, onDuplicate = null, isUnassigned, children, focusName = false, rowCount = null,
 }) {
   const unitLabel = section.name || (isHebrew ? 'יחידה זו' : 'this unit');
   return (
-    <div style={{ border: `1px solid ${isUnassigned ? NEON.borderStrong : NEON.violetLight}`, borderRadius: '12px', background: NEON.bgCardAlt, overflow: 'hidden' }}>
+    <div style={{ border: `1px solid ${isUnassigned ? NEON.borderStrong : NEON.violetLight}`, borderRadius: '12px', background: NEON.bgCardAlt, overflow: 'visible' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '10px 12px', flexDirection: 'row' }}>
         {/* PRODUCT_TRUTH_DECORATIVE: chevron that expands/collapses a unit card's item list in divided mode */}
         <button type="button" onClick={onToggleCollapse} aria-label={collapsed ? (isHebrew ? 'הרחבת היחידה' : 'Expand unit') : (isHebrew ? 'כיווץ היחידה' : 'Collapse unit')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '32px', minHeight: '32px', flexShrink: 0 }}>
@@ -1809,41 +1513,26 @@ function UnitCard({
           visible even collapsed): כפתור-ההוספה נשאר גלוי גם כשמכווץ, לא רק
           בגוף-המורחב - הקשר-היחידה כבר ידוע (הצטרפות אוטומטית לאשף, ר'
           defaultSectionKey/wizardSectionKey ב-QuoteForm.jsx). */}
-      <div style={{ padding: '0 12px 10px' }}>
-        {/* PRODUCT_TRUTH_DECORATIVE: 'Add product or work to <unit>' button inside a unit card; opens the already-documented AddItemWizard pre-targeted at this unit */}
-        <button type="button" onClick={onAddItem} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, minHeight: '40px' }}>
+      <div style={{ padding: '0 12px 10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+        {/* PRODUCT_TRUTH_DECORATIVE: 'Add row to <unit>' button inside a unit card; adds a blank row in this unit (the one quote builder's rows) */}
+        <button type="button" onClick={onAddItem} data-testid="unit-add-row" style={{ flex: '1 1 200px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, minHeight: '40px' }}>
           <Plus size={14} strokeWidth={3} />
-          {isHebrew ? `הוספת מוצר או עבודה ל${unitLabel}` : `Add product or work to ${unitLabel}`}
+          <span>{isUnassigned ? (isHebrew ? 'הוספת שורה בלי יחידה' : 'Add a row with no unit') : (isHebrew ? <>הוספת שורה ל<bdi>{unitLabel}</bdi></> : <>Add a row to <bdi>{unitLabel}</bdi></>)}</span>
         </button>
+        {onDuplicate && !isUnassigned && (
+          // PRODUCT_TRUTH_DECORATIVE: 'Duplicate unit' inside a unit card: one copy of the unit and its lines right after it (new lines, no saved ids)
+          <button type="button" data-testid="unit-duplicate" onClick={onDuplicate} style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', minHeight: '44px' }}>
+            <CopyPlus size={14} aria-hidden="true" />
+            {isHebrew ? 'שכפול יחידה' : 'Duplicate unit'}
+          </button>
+        )}
       </div>
 
-      {!collapsed && itemCount > 0 && (
+      {!collapsed && (rowCount ?? itemCount) > 0 && (
         <div style={{ borderTop: `1px solid ${NEON.borderStrong}`, padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
           {children}
         </div>
       )}
     </div>
-  );
-}
-
-function CardBadge({ icon, label }) {
-  return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', background: NEON.violetLighter, color: NEON.violetLight, borderRadius: '999px', padding: '2px 7px', fontSize: '0.75rem', fontWeight: '600' }}>
-      {icon}{label}
-    </span>
-  );
-}
-
-// PRODUCT_TRUTH_DECORATIVE: generic reusable MenuItem component definition; behavior is entirely determined by its callers, each already assessed above
-function MenuItem({ icon, label, onClick, destructive }) {
-  return (
-    <button
-      type="button"
-      role="menuitem"
-      onClick={(e) => { e.stopPropagation(); onClick(e); }}
-      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', padding: '9px 12px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600', color: destructive ? NEON.red : NEON.textPrimary, textAlign: 'start' }}
-    >
-      {icon}{label}
-    </button>
   );
 }
