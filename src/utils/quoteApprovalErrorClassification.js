@@ -46,6 +46,16 @@ const PATTERNS = [
     },
   },
   {
+    // Owner console 2026-11-08 ("כל עוד הלקוח לא חתם ... כל שינוי ... משתקף אצל הלקוח"; migration 20261108400000): the business saved a
+    // change after the page was opened - nothing was signed, the page reloads the updated quote and the customer signs again
+    category: 'quote_updated',
+    test: (msg) => /quote updated/i.test(msg),
+    userMessage: {
+      he: 'העסק עדכן את ההצעה בזמן שהייתה פתוחה. עברו על ההצעה המעודכנת וחתמו שוב.',
+      en: 'The business updated this quote while it was open. Please review the updated quote and sign again.',
+    },
+  },
+  {
     category: 'already_approved_or_unavailable',
     test: (msg) => /quote not found or cannot be approved/i.test(msg),
     userMessage: {
