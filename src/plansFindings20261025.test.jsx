@@ -177,8 +177,9 @@ describe('review follow-ups (HE + EN)', () => {
     expect(JSON.parse(fetch.mock.calls[0][1].body).refURL_cancel).toBe('https://www.tekango.com/dashboard?billing=smart_pack_cancelled');
   });
   it('the admin filter / counts keep only the statuses its server knows; the new ones use the paid medallion (no new icon)', () => {
-    expect(ACCOUNT_STATUS_ORDER).not.toContain('paid_past_due');
-    expect(ACCOUNT_STATUS_ORDER).not.toContain('paid_limited');
+    // Owner console 2026-11-09 (typed incl. L-22, migration 20261109200000): the admin server function knows both now
+    expect(ACCOUNT_STATUS_ORDER).toContain('paid_past_due');
+    expect(ACCOUNT_STATUS_ORDER).toContain('paid_limited');
     expect(STATUS_MEDALLION_KIND.paid_past_due).toBe('plan');
     expect(STATUS_MEDALLION_KIND.paid_limited).toBe('plan');
   });

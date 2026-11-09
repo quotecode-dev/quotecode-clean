@@ -30,6 +30,7 @@ const C = {
   screens: { he: 'מסכים', en: 'Screens' },
   actions: { he: 'פעולות', en: 'Actions' },
   noResults: { he: 'לא נמצאו משתמשים.', en: 'No users found.' },
+  loadFailed: { he: 'לא הצלחנו לטעון את רשימת המפקחים. נסו שוב בעוד רגע.', en: 'We could not load the supervisors list. Try again in a moment.' },
 };
 
 export default function AdminPermissions({ isHebrew = true, accounts = [] }) {
@@ -42,10 +43,12 @@ export default function AdminPermissions({ isHebrew = true, accounts = [] }) {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
 
-  const load = () => supabase.rpc('list_admin_permission_holders').then(({ data, error }) => setHolders(error ? [] : (data || [])));
+  // Owner console 2026-11-09 (typed incl. L-22): a failed load says so - it never shows "no supervisors" and a count of 0
+  const load = () => supabase.rpc('list_admin_permission_holders').then(({ data, error }) => setHolders(error ? 'unavailable' : (data || [])));
+  const list = Array.isArray(holders) ? holders : [];
   useEffect(() => { load(); }, []);
 
-  const holderIds = new Set((holders || []).map((h) => h.user_id));
+  const holderIds = new Set(list.map((h) => h.user_id));
   const candidates = useMemo(() => {
     const q = term.trim().toLowerCase();
     if (!q) return [];
@@ -68,7 +71,7 @@ export default function AdminPermissions({ isHebrew = true, accounts = [] }) {
   const screens = ADMIN_PERMISSIONS.filter((p) => !p.action);
   const actions = ADMIN_PERMISSIONS.filter((p) => p.action);
   return (
-    <AdminScreenFrame title={t('title')} subtitle={C.subtitle[isHebrew ? 'he' : 'en']((holders || []).length)} label={t('title')} isHebrew={isHebrew}
+    <AdminScreenFrame title={t('title')} subtitle={holders === 'unavailable' ? t('loadFailed') : C.subtitle[isHebrew ? 'he' : 'en'](list.length)} label={t('title')} isHebrew={isHebrew}
       controls={(
         <div className="admin-filters">
           {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
@@ -126,7 +129,9 @@ export default function AdminPermissions({ isHebrew = true, accounts = [] }) {
       )}
       {notice && <p role="status" data-testid="permissions-notice" style={{ color: '#0F6672', fontSize: 13 }}>{notice}</p>}
 
-      {holders === null ? <p className="admin-empty" role="status">{t('loading')}</p> : holders.length === 0 ? (
+      {holders === null ? <p className="admin-empty" role="status">{t('loading')}</p> : holders === 'unavailable' ? (
+        <div className="av-notice av-bad" role="alert" data-testid="permissions-load-failed">{t('loadFailed')}</div>
+      ) : holders.length === 0 ? (
         <p className="admin-empty" role="status" data-testid="permissions-empty">{t('none')}</p>
       ) : (
         <ul className="admin-perm-list" data-testid="permissions-holders">
