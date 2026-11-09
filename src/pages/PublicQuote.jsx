@@ -401,18 +401,13 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
       // Owner console 2026-11-08 ("כל עוד הלקוח לא חתם ... כל שינוי ... משתקף אצל הלקוח"): the customer signs exactly the version this
       // page shows - a change saved since it loaded is refused ("Quote updated") and the page reloads the updated quote
       const version = typeof quoteData.version === 'string' && /^[0-9a-f]{64}$/.test(quoteData.version) ? quoteData.version : null;
-      let { error } = version
-        ? (capabilityToken
-          ? await supabase.rpc('public_sign_quote_capability_version', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl, ...signer, p_expected_version: version })
-          : await supabase.rpc('public_sign_quote_version', { p_quote_id: quote.id, p_signature_data_url: signatureDataUrl, ...signer, p_expected_version: version }))
-        : (capabilityToken
-          ? await supabase.rpc('public_approve_quote_capability_signed', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl, ...signer })
-          : await supabase.rpc('public_approve_quote_signed', { p_quote_id: quote.id, p_signature_data_url: signatureDataUrl, ...signer }));
-      if (error && (error.code === 'PGRST202' || /could not find the function/i.test(String(error.message || '')))) {
-        ({ error } = capabilityToken
-          ? await supabase.rpc('public_approve_quote_capability', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl })
-          : await supabase.rpc('public_approve_quote', { p_quote_id: quote.id, p_signature_data_url: signatureDataUrl }));
-      }
+      // Codex review 2026-11-09 (D1, Owner typed incl. L-05 / L-13 / L-17 / L-24-L-28): EVERY signature names the version this page shows -
+      // the version-less calls (and their fallback) are gone and closed on the server (20261109300000). A page without a version (should
+      // not happen once the quote is served live) reloads the quote first, exactly like a change saved since it opened.
+      if (!version) throw new Error('Quote updated');
+      const { error } = capabilityToken
+        ? await supabase.rpc('public_sign_quote_capability_version', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl, ...signer, p_expected_version: version })
+        : await supabase.rpc('public_sign_quote_version', { p_quote_id: quote.id, p_signature_data_url: signatureDataUrl, ...signer, p_expected_version: version });
 
       if (error) throw error;
       // חוק ברזל (Owner-Approved Signature Record Improvement): quote.signature

@@ -115,6 +115,8 @@ export const ADMIN_COPY = Object.freeze({
   verifiedAnnual: { he: 'שנתי מדווח מהשרת', en: 'Server-reported annual' },
   free10Counter: { he: 'מונה שרת מאומת ל־10 הצעות', en: 'Verified 10-quote counter' },
   notActivated: { he: 'טרם הופעל', en: 'Not activated' },
+  // Codex review 2026-11-09: the counter state is unknown (the summary did not load) - never shown as "not activated"
+  counterUnavailable: { he: 'מצב המונה לא זמין כרגע', en: 'Counter status unavailable' },
   active: { he: 'פעיל', en: 'Active' },
   periodNotice: { he: 'אם חסרה תקופת חיוב, המנוי לא מסווג אוטומטית כחודשי. עד שהמידע יתקבל מהשרת, יוצג ״מידע המנוי דורש אימות״.', en: 'Missing billing period? Do not assume monthly. Show “Subscription information needs verification” until the server supplies the fact.' },
   workByPlan: { he: 'עבודה לפי מסלול', en: 'Work by plan' },

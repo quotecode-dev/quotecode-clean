@@ -765,6 +765,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-09 (typed: \"מאשר את תיקוני האדמין כולל שינוי ב-L-22, שחרור עד הלייב\"): admin_account_status knows paid_limited / paid_past_due; get_admin_dashboard_summary counts them and testAccounts uses the users-list account set; get_admin_accounts gains p_test (the old 8-argument version is dropped first); get_admin_account_counts for the user details screen; get_admin_audit_log cap 10000; replays cleanly (DROP FUNCTION IF EXISTS, CREATE OR REPLACE). Proof: scripts/db-test/tests/473_admin_fixes.sql."
+    },
+    "20261109300000_signing_requires_version.sql": {
+      "sha256": "f0b1921e567a9c045d267dbd82595b3a87364deca3ac4fde0218dbe2b1c6e750",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-11-09 (typed: \"מאשר תיקון ממצאי קודקס 1-5 כולל L-05, L-13, L-17, L-24, L-25, L-26, L-27, L-28 ושחרור ללייב\"): Codex review D1 - the four version-less public signing functions (public_approve_quote, public_approve_quote_signed, public_approve_quote_capability, public_approve_quote_capability_signed) are closed to PUBLIC / anon / authenticated; a customer signs only through the versioned functions of 20261108400000. Bodies unchanged; replays cleanly (REVOKE + COMMENT). Proof: scripts/db-test/tests/474_signing_requires_version.sql."
     }
   }
 }

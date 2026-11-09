@@ -17,9 +17,14 @@ BEGIN
     PERFORM tst.ok(NOT has_function_privilege('anon', f, 'execute') AND NOT has_function_privilege('authenticated', f, 'execute'),
       'T1 ' || f || ' is not callable by anon or a signed-in user');
   END LOOP;
-  FOREACH f IN ARRAY ARRAY['public.public_approve_quote(uuid, text)', 'public.public_approve_quote_capability(text, text)',
+  FOREACH f IN ARRAY ARRAY['public.public_sign_quote_version(uuid, text, text, text, text, text)', 'public.public_sign_quote_capability_version(text, text, text, text, text, text)',
     'public.public_increment_quote_view(uuid)', 'public.public_record_quote_first_view(uuid)'] LOOP
     PERFORM tst.ok(has_function_privilege('anon', f, 'execute'), 'T2 ' || f || ' stays callable by the public quote page (anon)');
+  END LOOP;
+  -- 20261109300000 (Codex D1): the version-less signing functions are closed to the public page
+  FOREACH f IN ARRAY ARRAY['public.public_approve_quote(uuid, text)', 'public.public_approve_quote_capability(text, text)'] LOOP
+    PERFORM tst.ok(NOT has_function_privilege('anon', f, 'execute') AND NOT has_function_privilege('authenticated', f, 'execute'),
+      'T2b ' || f || ' is closed to anon and a signed-in user');
   END LOOP;
 END $$;
 

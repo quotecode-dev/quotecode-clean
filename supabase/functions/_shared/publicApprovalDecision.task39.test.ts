@@ -22,6 +22,8 @@ vi.mock('../../../src/shared/supabase', () => ({ supabase: { rpc: vi.fn() } }));
 
 const PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYGD4DwABBAEAwS2OUAAAAABJRU5ErkJggg==';
 const QID = 'a29b1fbb-f2ca-427d-88b2-6198d138eb89';
+// Codex review 2026-11-09 (D1, 20261109300000): every page that can be signed carries the version it shows; the signature names it
+const VER = 'ab'.repeat(32);
 const rpc = supabase.rpc as unknown as ReturnType<typeof vi.fn>;
 
 const data = (over: { quote?: Record<string, unknown>; client?: Record<string, unknown> } = {}) => ({
@@ -31,6 +33,7 @@ const data = (over: { quote?: Record<string, unknown>; client?: Record<string, u
   client: { company_name: 'Client Ltd', ...over.client },
   items: [{ id: 'i1', description: 'Synthetic item', quantity: 1, unit_price: 1000, total_price: 1000 }],
   attachments: [],
+  version: VER,
 });
 const HE = { Page: PublicQuote, activate: 'הפעלת אזור החתימה', approve: /אישור וחתימה על הצעת המחיר/, name: 'לדוגמה: ישראל ישראלי', clear: 'ניקוי החתימה',
   nameAlert: 'הזינו שם מלא לפני האישור', signAlert: 'חתמו על המסמך לפני האישור', signHeading: 'חתימת לקוח לאישור ההצעה:', signedBy: 'נחתם על ידי:', isHebrew: true };
@@ -106,16 +109,27 @@ describe.each([['HE / Local', HE], ['EN / International', EN]])('customer approv
     sign(container, L);
     clickApprove(L);
     await waitFor(() => expect(rpc).toHaveBeenCalledTimes(1));
-    expect(rpc).toHaveBeenCalledWith('public_approve_quote_signed', { p_quote_id: QID, p_signature_data_url: PNG, p_signer_name: 'Dana Levi', p_signer_company: 'Client Ltd', p_signer_role: null });
+    expect(rpc).toHaveBeenCalledWith('public_sign_quote_version', { p_quote_id: QID, p_signature_data_url: PNG, p_signer_name: 'Dana Levi', p_signer_company: 'Client Ltd', p_signer_role: null, p_expected_version: VER });
   });
-  it('a server without the new signing function falls back to the former call (signature only)', async () => {
-    rpc.mockResolvedValueOnce({ error: { code: 'PGRST202', message: 'Could not find the function public.public_approve_quote_signed' } }).mockResolvedValueOnce({ error: null });
+  // Codex review 2026-11-09 (D1): no version-less fallback any more - a missing function is an error, never a signature without a version
+  it('a server error on the versioned call never falls back to a version-less signature', async () => {
+    rpc.mockResolvedValueOnce({ error: { code: 'PGRST202', message: 'Could not find the function public.public_sign_quote_version' } });
     const { container } = mount(L);
     typeName(L, 'Dana Levi');
     sign(container, L);
     clickApprove(L);
-    await waitFor(() => expect(rpc).toHaveBeenCalledTimes(2));
-    expect(rpc).toHaveBeenLastCalledWith('public_approve_quote', { p_quote_id: QID, p_signature_data_url: PNG });
+    await screen.findByRole('status');
+    expect(rpc).toHaveBeenCalledTimes(1);
+    expect(rpc.mock.calls.map((c) => c[0])).toEqual(['public_sign_quote_version']);
+  });
+  it('a page without a version signs nothing (it would reload the quote first)', async () => {
+    const d = data(); delete (d as Record<string, unknown>).version;
+    const { container } = mount(L, d as ReturnType<typeof data>);
+    typeName(L, 'Dana Levi');
+    sign(container, L);
+    clickApprove(L);
+    await screen.findByRole('status');
+    expect(rpc).not.toHaveBeenCalled();
   });
   it('success shows the signed record (signer + the exact signature that was sent) and removes the signing controls', async () => {
     const { container } = mount(L);
@@ -300,12 +314,13 @@ describe('the canonical SQL predicate (public.public_approve_quote) is the singl
     expect(readFileSync(join(cwd(), 'src', 'shared', 'useSignaturePad.js'), 'utf8')).toMatch(/toDataURL\('image\/png'\)/);
   });
   it('both pages call the RPC with exactly the SQL parameter names - nothing the function would ignore or reject', () => {
-    const params = wrapperBody.match(/public_approve_quote\(p_quote_id uuid, p_signature_data_url text\)/);
-    expect(params).not.toBeNull();
+    // Codex review 2026-11-09 (D1): the pages sign through the versioned id function of 20261108400000 (the core is the same internal body)
+    expect(allSql).toMatch(/CREATE OR REPLACE FUNCTION public\.public_sign_quote_version\(p_quote_id uuid, p_signature_data_url text, p_signer_name text,\s+p_signer_company text, p_signer_role text, p_expected_version text\)/);
     for (const page of ['PublicQuote.jsx', 'PublicQuoteEn.jsx']) {
       const src = readFileSync(join(cwd(), 'src', 'pages', page), 'utf8');
-      const call = src.slice(src.indexOf("supabase.rpc('public_approve_quote'"), src.indexOf('});', src.indexOf("supabase.rpc('public_approve_quote'")));
-      expect(call.match(/\bp_[a-z_]+(?=:)/g), page).toEqual(['p_quote_id', 'p_signature_data_url']);
+      const call = src.slice(src.indexOf("supabase.rpc('public_sign_quote_version'"), src.indexOf('});', src.indexOf("supabase.rpc('public_sign_quote_version'")));
+      expect(call.match(/\bp_[a-z_]+(?=:)/g), page).toEqual(['p_quote_id', 'p_signature_data_url', 'p_expected_version']);
+      expect(call, page).toContain('...signer');
     }
   });
   it('every customer-reachable SQL rejection has a specific (non-generic) explanation in both languages', () => {
@@ -336,8 +351,9 @@ describe('the canonical SQL predicate (public.public_approve_quote) is the singl
     expect(dropSql).toMatch(/approve_quote_public/);
     const walk = (dir: string): string[] => readdirSync(dir, { withFileTypes: true }).flatMap((e) => e.isDirectory() ? walk(join(dir, e.name)) : /\.(jsx?|tsx?)$/.test(e.name) && !/\.test\./.test(e.name) ? [join(dir, e.name)] : []);
     const rpcNames = walk(join(cwd(), 'src')).flatMap((f) => [...readFileSync(f, 'utf8').matchAll(/\.rpc\('([a-z_]*approve[a-z_]*)'/g)].map((m) => m[1]));
-    // + the capability-link approval added with the output authority (20261007150600), same rules through the same internal body;
-    // + Owner 2026-10-25 (typed L-24): the two signing functions that also store the signer (20261025000000), same internal body
-    expect(new Set(rpcNames)).toEqual(new Set(['public_approve_quote', 'public_approve_quote_capability', 'public_approve_quote_signed', 'public_approve_quote_capability_signed']));
+    // Codex review 2026-11-09 (D1, 20261109300000): no client code calls a version-less approval any more (closed on the server)
+    expect(rpcNames).toEqual([]);
+    const signNames = walk(join(cwd(), 'src')).flatMap((f) => [...readFileSync(f, 'utf8').matchAll(/\.rpc\('(public_sign_[a-z_]*)'/g)].map((m) => m[1]));
+    expect(new Set(signNames)).toEqual(new Set(['public_sign_quote_version', 'public_sign_quote_capability_version']));
   });
 });

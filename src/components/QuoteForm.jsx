@@ -31,6 +31,9 @@ const UPGRADE_CAPABILITY = Object.freeze({ professional: 'professional_quote.use
 // AI HELP V4 §5: the browser's own required-field validation is the owner of these blockers; the product marks each required
 // control with data-help-field (never DOM text scraping) and the blocker resolves as soon as the field is filled.
 const INVALID_FIELD_BLOCKER = { client_name: 'QUOTE_MISSING_CLIENT', client_type: 'QUOTE_MISSING_CLIENT_TYPE' };
+// Codex review 2026-11-09: a business client's Tax ID made of spaces only is missing too - the same message; the browser checks a pattern
+// only on a non-empty value, so an empty field still meets "required" first
+const TAX_ID_NOT_BLANK = String.raw`.*\S.*`;
 
 // SMART-QUOTE first-use flow: a numbered step label (1 who / 2 what / 3 price / 4 review & save).
 function StepHeading({ n, title, hint }) {
@@ -834,6 +837,7 @@ export default function QuoteForm({
               onChange={(e) => { setClientTaxId(e.target.value); if (taxIdMissing) setTaxIdMissing(false); }}
               onInvalid={(e) => { e.preventDefault(); setTaxIdMissing(true); e.target.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); e.target.focus({ preventScroll: true }); }}
               required={clientType === 'business'} aria-invalid={taxIdMissing && clientType === 'business' ? true : undefined}
+              pattern={clientType === 'business' ? TAX_ID_NOT_BLANK : undefined}
               aria-describedby={taxIdMissing && clientType === 'business' ? 'sq-client-tax-id-missing' : undefined}
               style={{ width: '100%', padding: '11px 14px', border: `1px solid ${taxIdMissing && clientType === 'business' ? NEON.red : NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
             {taxIdMissing && clientType === 'business' && (
