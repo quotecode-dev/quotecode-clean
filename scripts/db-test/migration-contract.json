@@ -753,12 +753,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-08 (typed: \"כל עוד הלקוח לא חתם ... כל שינוי ... משתקף אצל הלקוח\" + \"מאשר להחזיר הכול למה שהיה ... והקישור ללקוח מתעדכן עד החתימה, כולל שינוי ב-L-02 ... L-28, שחרור עד הלייב\"): the public page reads the live saved quote until the signature (public_quote_live_state / public_capability_live, same customer only), new signing functions bound to the version shown, the signed document frozen (quote_signed_documents); replays cleanly (CREATE TABLE IF NOT EXISTS, CREATE OR REPLACE, DROP TRIGGER IF EXISTS)."
-    },
-    "20261109100000_quote_item_billing_method.sql": {
-      "sha256": "2af434292c899ca16d5c46cd4b34acf088d1c35e3aabf8bccb964eb4dd9e8393",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "Owner console 2026-11-09 (item 08, typed: \"שמור את אופן החיוב בשדה נפרד במסד. השורה תיפתח נכון, והמסמך של הלקוח לא ישתנה בכלל. זה דורש מיגרציה, ולכן שחרור ארוך יותר.\"; the 2026-11-08 restore approval incl. L-09, L-17, L-24): quote_items.billing_method (NULL / fixed / units) persisted by save_quote_structured (absent key keeps the stored value); never in the customer document, digest or public version. Proof: scripts/db-test/tests/472_quote_item_billing_method.sql."
     }
   }
 }

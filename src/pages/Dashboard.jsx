@@ -101,7 +101,7 @@ import { menuChoices } from '../utils/newQuoteChoices';
 import { SaveTemplateDialog, TemplatePickerDialog } from '../components/QuoteTemplateDialogs';
 import { matchesQuoteFilter } from '../utils/quoteStatusDisplay';
 import { templateToFormState, templateCurrencyMismatch, templateCurrencyUnknown, withoutPrices, templatePriceBasis, clientTypeForPriceBasis, unitTemplateToRows, unitTemplatePriceQuestions, TEMPLATE_KIND_UNIT } from '../utils/quoteTemplates';
-import { rowEntry, storedBillingMethod } from '../utils/quoteItemEntry';
+import { rowEntry } from '../utils/quoteItemEntry';
 import AiQuoteDraftDialog from '../components/AiQuoteDraftDialog';
 import { requestAiQuoteDraft, draftLinesToQuoteItems, aiQuoteSnapshot, applyDraftUpdateToItem, applyDraftNotes } from '../utils/aiQuoteDraftClient';
 import QuoteFromFileDialog from '../components/QuoteFromFileDialog';
@@ -3850,8 +3850,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     calculation_method: item.calculation_method || null,
     // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17): the internal shared-price group (a duplicate maps it to a new id)
     price_link_id: item.price_link_id || null,
-    // Owner console 2026-11-09 (item 08): the stored choice between a fixed amount and units reopens as the user chose it
-    ...(item.billing_method === 'fixed' || item.billing_method === 'units' ? { _billing: item.billing_method } : {}),
     measurements: (item.quote_item_measurements || [])
       .slice()
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
@@ -4830,17 +4828,10 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         const richItemCols = 'id, description, quantity, unit_price, total_price, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, sort_order, quote_item_measurements ( width, height, unit, label, is_pricing_driving )';
         // Task 35 (F4): + price_missing (forward-only column); before the migration exists the previous select runs unchanged
         // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17): + price_link_id (forward-only column), dropped first if the column is not there yet
-        // Owner console 2026-11-09 (item 08): + billing_method (forward-only column), dropped first if the column is not there yet
         let { data: fetchedItems, error: fetchItemsErr } = await supabase
           .from('quote_items')
-          .select(`${richItemCols}, price_missing, price_link_id, billing_method`)
+          .select(`${richItemCols}, price_missing, price_link_id`)
           .eq('quote_id', editingQuoteId);
-        if (fetchItemsErr && String(fetchItemsErr.message || '').includes('billing_method')) {
-          ({ data: fetchedItems, error: fetchItemsErr } = await supabase
-            .from('quote_items')
-            .select(`${richItemCols}, price_missing, price_link_id`)
-            .eq('quote_id', editingQuoteId));
-        }
         if (fetchItemsErr && String(fetchItemsErr.message || '').includes('price_link_id')) {
           ({ data: fetchedItems, error: fetchItemsErr } = await supabase
             .from('quote_items')
@@ -4954,7 +4945,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           section: it.section_key ?? it.section_id ?? null,
           calculation_method: it.calculation_method || null,
           price_link_id: it.price_link_id || null, // stage 3: linking / unlinking a row is a saved change
-          billing_method: storedBillingMethod(it), // item 08: switching a fixed amount <-> units is a saved change
           measurements: (Array.isArray(it.measurements) ? it.measurements : (Array.isArray(it.quote_item_measurements) ? it.quote_item_measurements : []))
             .map(measurementFingerprint).sort(),
         });
@@ -5191,7 +5181,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         calculation_method: item.calculation_method || null,
         sort_order: idx,
         price_link_id: item.price_link_id || null, // stage 3: the internal shared-price group (null = unlinked)
-        billing_method: storedBillingMethod(item), // item 08 (Owner 2026-11-09): fixed / units of a row without a unit; editor only
         measurements: (Array.isArray(item.measurements) ? item.measurements : [])
           .filter((m) => !(m.width === '' && m.height === ''))
           .map((m, mIdx) => ({

@@ -246,23 +246,12 @@ export function rowEntryFromItem(item, defaultSectionKey) {
 /** a blank row (decision 2): quantity 1, units, no price yet */
 export const blankRowItem = (sectionKey = null) => ({ description: '', quantity: '1', unit_price: '', isFromCatalog: false, section_key: sectionKey });
 
-// Owner console 2026-11-09 (item 08, typed: "שמור את אופן החיוב בשדה נפרד במסד. השורה תיפתח נכון, והמסמך של הלקוח לא ישתנה בכלל"):
-// the billing method stored for a row - only "fixed" / "units" of a row with no pricing unit and no sizes (both store the very same
-// line); every other row is described by its pricing unit, so nothing is stored (null). Migration 20261109100000 (quote_items.billing_method).
-export function storedBillingMethod(item) {
-  if (!item || item.pricing_unit) return null;
-  if ((Array.isArray(item.measurements) && item.measurements.length > 0) || (Array.isArray(item.quote_item_measurements) && item.quote_item_measurements.length > 0)) return null;
-  const b = item._billing || item.billing_method;
-  return b === 'fixed' || b === 'units' ? b : null;
-}
-
 /** the entry of a row when it opens: the item's own entry (decision 3), with the market's size unit for a row that has no sizes yet */
 export function rowEntry(item, international) {
   const opened = rowEntryFromItem(item, null);
-  // the row's own choice (a fixed amount and "1 unit" store the same line): the screen mark, else the stored billing method (item 08)
-  const chosen = item._billing || item.billing_method;
-  const e = (chosen === 'fixed' || chosen === 'units') && (opened.pricingMethod === 'fixed' || opened.pricingMethod === 'units')
-    ? { ...opened, pricingMethod: chosen, quantity: chosen === 'fixed' ? '1' : opened.quantity } : opened;
+  // the row's own screen mark (a fixed amount and "1 unit" store the same line): reopened as the user chose it
+  const e = (item._billing === 'fixed' || item._billing === 'units') && (opened.pricingMethod === 'fixed' || opened.pricingMethod === 'units')
+    ? { ...opened, pricingMethod: item._billing, quantity: item._billing === 'fixed' ? '1' : opened.quantity } : opened;
   // a known area / length (a manual measured item) opens as that billing type with its known amount, in its own unit
   if (isManualMeasured(item)) {
     const linear = item.pricing_unit === 'linear_meter' || item.pricing_unit === 'linear_ft';
