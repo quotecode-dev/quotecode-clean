@@ -63,7 +63,8 @@ describe('plan section 3: client details and the VAT basis', () => {
   it('contact details are one optional toggle; the Tax ID stays visible; client type explains VAT (Israel)', () => {
     render(<QuoteForm {...props()} />);
     expect(screen.queryByPlaceholderText('לדוגמה: שמעון לוי')).toBeNull();
-    expect(screen.getByText('ח״פ / עוסק / ת״ז')).toBeTruthy();
+    // Owner console 2026-11-09 (L-09 named in the approval): a business client's tax ID label is marked "(חובה)"
+    expect(screen.getByText('ח״פ / עוסק / ת״ז (חובה)')).toBeTruthy();
     expect(screen.getByTestId('sq-client-type-vat-help').textContent).toBe('סוג הלקוח קובע אם המחיר כולל מע״מ או לפני מע״מ.');
     fireEvent.click(screen.getByTestId('sq-client-contact-toggle'));
     expect(screen.getByPlaceholderText('לדוגמה: שמעון לוי')).toBeTruthy();

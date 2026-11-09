@@ -131,6 +131,9 @@ export default function QuoteForm({
   const structureMode = quoteStructureMode || 'regular';
   // SMART-QUOTE-01: unfinished = no real priced item yet -> only an explicitly labelled unfinished draft can be saved.
   const isUnfinished = isUnfinishedQuoteForm({ items, totalAmount });
+  // Owner console 2026-11-09 (typed: "מספר עוסק ... לכתוב שזה חובה, ולהוסיף הודעה בעברית (לא הודעה גנרית אלה הודעה ברורה שלנו)", incl. L-09):
+  // a business client's missing tax ID shows our own message under the field instead of the browser's bubble
+  const [taxIdMissing, setTaxIdMissing] = useState(false);
   // Task 16: a new quote, or a saved quote that stays a Draft, is saved as a draft (never sent or issued by saving)
   const savesAsDraft = !editingQuoteId || String(quoteStatus || '').toLowerCase() === 'draft';
   // SMART-QUOTE-04: the same case-insensitive match the save uses (Dashboard.handleSaveQuote) - disclosed before saving.
@@ -826,8 +829,18 @@ export default function QuoteForm({
             )}
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'ח״פ / עוסק / ת״ז' : 'Tax ID / ID'}</label>
-            <input type="text" value={clientTaxId} onChange={(e) => setClientTaxId(e.target.value)} required={clientType === 'business'} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
+            <label htmlFor="sq-client-tax-id" style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'ח״פ / עוסק / ת״ז' : 'Tax ID / ID'}{clientType === 'business' ? (isHebrew ? ' (חובה)' : ' (required)') : ''}</label>
+            <input id="sq-client-tax-id" data-testid="sq-client-tax-id" type="text" value={clientTaxId}
+              onChange={(e) => { setClientTaxId(e.target.value); if (taxIdMissing) setTaxIdMissing(false); }}
+              onInvalid={(e) => { e.preventDefault(); setTaxIdMissing(true); e.target.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); e.target.focus({ preventScroll: true }); }}
+              required={clientType === 'business'} aria-invalid={taxIdMissing && clientType === 'business' ? true : undefined}
+              aria-describedby={taxIdMissing && clientType === 'business' ? 'sq-client-tax-id-missing' : undefined}
+              style={{ width: '100%', padding: '11px 14px', border: `1px solid ${taxIdMissing && clientType === 'business' ? NEON.red : NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
+            {taxIdMissing && clientType === 'business' && (
+              <p id="sq-client-tax-id-missing" data-testid="sq-client-tax-id-missing" role="alert" style={{ margin: '4px 0 0', fontSize: '0.74rem', fontWeight: 700, color: NEON.red, lineHeight: 1.35 }}>
+                {isHebrew ? 'חסר מספר עוסק. ללקוח עסקי צריך למלא ח״פ, עוסק או ת״ז.' : 'Tax ID is missing. A business client needs a Tax ID.'}
+              </p>
+            )}
           </div>
 
           {/* Owner round 1 (2026-10-15, plan section 3): contact details and the attention contact are optional - one toggle, open by
@@ -1538,6 +1551,11 @@ export default function QuoteForm({
             כבר נבדקת לפני שהטופס הזה נפתח בכלל (handleProtectedAction ב-
             QuotesTab.jsx, isBasicOrAbove/isPro). אין צורך בשער שלישי, כפול
             ולא-מתואם, כאן. */}
+        {/* Owner console 2026-11-09 (typed: "הסה״כ לא מופיע ליד כפתור השמירה. - אם צריך תוסיף", incl. L-09): the same total as the summary, right above the save */}
+        <div data-testid="sq-save-total" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'baseline', columnGap: '12px', marginTop: '16px', padding: '0 4px' }}>
+          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: NEON.textPrimary }}>{isHebrew ? 'סה״כ לתשלום:' : 'Total to pay:'}</span>
+          <span className="pf-money" style={{ color: NEON.violetLight, fontSize: '1rem', fontWeight: '800', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount)}</span>
+        </div>
         {/* PRODUCT_TRUTH_DECORATIVE: the quote form's own submit button; the real create/edit distinction and capability markers live on the resolved onSave handler in Dashboard.jsx (quote_create/quote_edit), not on this generic form control - resolved by Claude after an agent flag, since this control is a cross-file prop-bound handler my scanner's local-declaration resolution structurally cannot attach to */}
         <button type="submit" data-testid="sq-save" style={{ width: '100%', background: editingQuoteId ? NEON.emeraldDark : NEON.gradient, color: 'white', border: 'none', padding: '13px', borderRadius: '12px', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', marginTop: '16px', boxShadow: editingQuoteId ? '0 4px 14px -2px rgba(16, 185, 129, 0.4)' : NEON.glow }}>
           {isUnfinished
