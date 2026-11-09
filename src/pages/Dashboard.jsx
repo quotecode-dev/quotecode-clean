@@ -335,11 +335,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // הכותרת הסגולה (ר' למטה) כדי שלא ידחוף תוכן כלל, גם לפני שהטיימר מפעיל.
   useEffect(() => {
     if (!statusMsg.text) return;
-    // Owner console 2026-11-09 ("אחרי השמירה אין הודעה שההצעה נשמרה ... - להוסיף הודעה"): the quote-saved message carries hold: 8000 and a
-    // close button; every other message keeps the 2.7 seconds
-    const timer = setTimeout(() => setStatusMsg({ text: '', type: 'success' }), statusMsg.hold || 2700);
+    const timer = setTimeout(() => setStatusMsg({ text: '', type: 'success' }), 2700);
     return () => clearTimeout(timer);
-  }, [statusMsg.text, statusMsg.hold]);
+  }, [statusMsg.text]);
   const [alertModalMsg, setAlertModalMsg] = useState(null); // חלון צף מודרני במרכז המסך עבור הודעות שגיאה/התרעה
   // AI HELP V4 (AI-HELP-AVAILABILITY-001): the owner of a blocked action shows its own message AND publishes the typed blocker code.
   // Dismissing the alert never clears the blocker - only confirmed resolution or a context transition does (see the effects below).
@@ -5392,8 +5390,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           : (String(quoteStatus || '').toLowerCase() === 'draft' || !quoteStatus
             ? (isHebrew ? `הטיוטה נשמרה בחשבון. סה״כ: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}` : `Draft saved to your account. Total: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}`)
             : (isHebrew ? `ההצעה נשמרה בחשבון. סה״כ: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}` : `Quote saved to your account. Total: ${sym}${formatMoneyDisplay(newQuoteFinancials.total)}`)),
-        type: 'success',
-        hold: 8000, // Owner 2026-11-09: the quote-saved message stays 8 seconds, with a close button
+        type: 'success'
       });
       if (presentationNote.kind === 'alert') setAlertModalMsg(scheduleNote ? `${presentationNote.text}\n${scheduleNote}` : presentationNote.text);
       else if (scheduleNote) setAlertModalMsg(scheduleNote);
@@ -7937,18 +7934,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
-          /* Owner console 2026-11-09 ("מאשר למרכז את ההודעה כולל שינוי ב-L-23"): popupBounce replaced the translateX(-50%), so the message
-             began at the centre and ran off the right edge; its own entry animation keeps the centring (L-23 #8) */
-          animation: statusToastIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-        }
-        @keyframes statusToastIn {
-          0% { transform: translateX(-50%) scale(0.6) translateY(8px); opacity: 0; }
-          70% { transform: translateX(-50%) scale(1.05) translateY(-2px); opacity: 1; }
-          100% { transform: translateX(-50%) scale(1) translateY(0); opacity: 1; }
-        }
-        @media (max-width: 768px) {
-          /* on a phone a long message wraps to two lines instead of being cut */
-          .dash-status-toast { white-space: normal; border-radius: 16px; width: max-content; }
+          animation: popupBounce 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
         }
         @media (min-width: 769px) {
           .dash-status-toast {
@@ -8163,12 +8149,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         >
           {statusMsg.type !== 'success' && <AlertTriangle size={14} strokeWidth={2.5} />}
           <span>{statusMsg.text}</span>
-          {statusMsg.hold && (
-            // PRODUCT_TRUTH_DECORATIVE: closes the quote-saved message (no capability)
-            <button type="button" data-testid="status-toast-close" onClick={() => setStatusMsg({ text: '', type: 'success' })}
-              aria-label={isHebrew ? 'סגירת ההודעה' : 'Close message'}
-              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', fontSize: '1rem', lineHeight: 1, padding: '2px 4px', minWidth: '24px', minHeight: '24px' }}>×</button>
-          )}
         </div>
       )}
 
