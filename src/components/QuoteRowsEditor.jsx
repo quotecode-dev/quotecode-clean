@@ -258,7 +258,7 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
     const built = buildQuoteItemFromEntry({ ...next, unitPrice: p.value, sectionKey: item.section_key ?? null, editingItem: item, isEditMode: true, conversionConfirmed });
     // an untouched count keeps its stored quantity column (an hours / kg line edited only in its price)
     if (!conversionConfirmed && qtyUntouched && isCountedMethod(next.pricingMethod) && item.quantity !== undefined) built.quantity = item.quantity;
-    // a fixed amount and "1 unit" are the same stored line - the row remembers which one the user chose (a screen-only mark, never saved)
+    // a fixed amount and "1 unit" are the same stored line - the row remembers which one the user chose (saved as billing_method, item 08)
     if (next.pricingMethod === 'fixed' || next.pricingMethod === 'units') built._billing = next.pricingMethod;
     // stage 3: the shared-price link stays through any edit of the same billing basis; another basis unlinks the row (asked before)
     if (item.price_link_id && next.pricingMethod === now.pricingMethod && (built.pricing_unit || null) === (item.pricing_unit || null)) built.price_link_id = item.price_link_id;
