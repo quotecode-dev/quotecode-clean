@@ -58,9 +58,9 @@ describe('admin subscription status (Owner 2026-10-16, admin spec §5)', () => {
     expect(kinds[main.indexOf('lifetime')]).toBe('lifetime');
     expect(kinds[main.indexOf('paid_monthly')]).toBe('plan');
     for (const kind of Object.values(STATUS_MEDALLION_KIND)) expect(PLAN_MEDALLION_VISUAL[kind], kind).toBeTruthy();
-    // Owner console 2026-11-09 (typed incl. L-22, migration 20261109200000): the admin server function now knows paid_past_due /
-    // paid_limited too, so every account status is an admin filter / count row
-    expect([...ACCOUNT_STATUS_ORDER].sort()).toEqual(Object.keys(ACCOUNT_STATUS).sort());
+    // findings 1-13 (2026-10-25): paid_past_due / paid_limited are the account's own view - not admin filter / count rows (its server
+    // function does not know them yet)
+    expect([...ACCOUNT_STATUS_ORDER, 'paid_past_due', 'paid_limited'].sort()).toEqual(Object.keys(ACCOUNT_STATUS).sort());
   });
 
   // Owner console 2026-10-16 (approval naming L-03): "the icon in the user interface and the admin must be the same"

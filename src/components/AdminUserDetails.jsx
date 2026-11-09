@@ -41,20 +41,20 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
     setCounts({ quotes: 'loading', clients: 'loading', issued: 'loading' });
     async function loadCounts() {
       try {
-        // Owner console 2026-11-09 (typed incl. L-22): the counts come from the server (get_admin_account_counts, migration
-        // 20261109200000) - reading the tables directly returned 0 for every account (their row policies show each user only their own)
-        const { data, error } = await supabase.rpc('get_admin_account_counts', { p_user_id: uid });
+        const [quotesRes, clientsRes, issuedRes] = await Promise.all([
+          supabase.from('quotes').select('id', { count: 'exact', head: true }).eq('user_id', uid),
+          supabase.from('clients').select('id', { count: 'exact', head: true }).eq('user_id', uid),
+          supabase.from('quotes').select('id', { count: 'exact', head: true }).eq('user_id', uid).neq('status', 'draft'),
+        ]);
         if (cancelled) return;
-        const ok = !error && data && data.schema === 'admin-account-counts/v1';
-        const n = (v) => (ok && Number.isInteger(v) && v >= 0 ? v : 'unavailable');
-        setCounts({ quotes: n(data?.quotes), clients: n(data?.clients), issued: n(data?.issued) });
+        const n = (r) => (r.error || !Number.isFinite(r.count) ? 'unavailable' : r.count);
+        setCounts({ quotes: n(quotesRes), clients: n(clientsRes), issued: n(issuedRes) });
       } catch {
         if (!cancelled) setCounts({ quotes: 'unavailable', clients: 'unavailable', issued: 'unavailable' });
       }
     }
     loadCounts();
-    // Owner 2026-11-09: the whole log (the server cap is 10000 since 20261109200000), so an older action of this account is not lost
-    supabase.rpc('get_admin_audit_log', { p_limit: 10000 }).then(({ data, error }) => {
+    supabase.rpc('get_admin_audit_log', { p_limit: 200 }).then(({ data, error }) => {
       if (!cancelled) setHistory(error ? 'unavailable' : (data || []).filter((r) => r.target_user_id === uid).slice(0, 10));
     });
     return () => { cancelled = true; };

@@ -75,8 +75,7 @@ SELECT tst.ok(public.admin_account_status('38000000-0000-4000-8000-0000000000a7'
 
 -- privileges: anon none; a regular account refused; the super admin served
 SELECT tst.ok(NOT has_function_privilege('anon', 'public.get_admin_dashboard_summary()', 'EXECUTE')
-          -- 20261109200000 (Owner 2026-11-09, incl. L-22): the users list gained p_test - the one version now has 9 arguments
-          AND NOT has_function_privilege('anon', 'public.get_admin_accounts(text, text, text, text, text, integer, integer, bigint[], text)', 'EXECUTE')
+          AND NOT has_function_privilege('anon', 'public.get_admin_accounts(text, text, text, text, text, integer, integer, bigint[])', 'EXECUTE')
           AND NOT has_function_privilege('authenticated', 'public.admin_account_status(uuid)', 'EXECUTE')
           AND NOT has_function_privilege('authenticated', 'public.account_billing_period(uuid)', 'EXECUTE')
           AND NOT has_function_privilege('authenticated', 'public.admin_market_of(text)', 'EXECUTE'), 'GRANTS: anon cannot call the admin RPCs; the helpers are internal');

@@ -21,22 +21,16 @@ export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null, onR
   const [refreshKey, setRefreshKey] = useState(0);
   const server = useAdminDashboardSummary(refreshKey);
   const s = (server.state === 'ready' || server.state === 'stale') ? server.data : null;
-  // Owner console 2026-11-09 (typed incl. L-22): a failed load shows the failure, never counts from the loaded rows (those rows carry no
-  // test-account mark, so they counted every test account); the loaded rows stand in only while the server function is not deployed
-  const failed = !s && server.state === 'unavailable';
   // L-22 (Owner 2026-10-28): a test account the Owner marked is not counted
   const users = accounts.filter(a => a && a.role !== 'super_admin' && a.is_test !== true && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');
-  const { system, byId } = useAdminAccountSummaries(s || failed ? [] : users.map(adminTargetUserId));
-  const rows = s ? breakdownFromCounts(s.subscriptionStatus) : failed ? breakdownFromCounts({}) : accountStatusBreakdown(users, (a) => (system === 'not_active' ? null : (byId[adminTargetUserId(a)] || null)));
+  const { system, byId } = useAdminAccountSummaries(s ? [] : users.map(adminTargetUserId));
+  const rows = s ? breakdownFromCounts(s.subscriptionStatus) : accountStatusBreakdown(users, (a) => (system === 'not_active' ? null : (byId[adminTargetUserId(a)] || null)));
   const count = (k) => rows.find((r) => r.key === k)?.count ?? 0;
   const managed = s ? s.managedAccounts : users.length;
   const planSystem = s ? s.planSystem : system;
-  const loadState = s ? server.state : failed ? 'unavailable' : (server.state === 'loading' ? 'loading' : 'ready');
-  const shown = (n) => (loadState === 'loading' || loadState === 'unavailable' ? '—' : n);
+  const loadState = s ? server.state : (server.state === 'loading' ? 'loading' : 'ready');
   const segments = rows.map(({ key, count: n }) => ({ key, count: n, color: STATUS_COLOR[key], label: tr(ACCOUNT_STATUS[key], isHebrew) }));
   const openUsers = (filter) => { setUsersFilterIntent(filter); if (onGoToUsers) onGoToUsers(); };
-  // Owner console 2026-11-09: a plan card counts the real accounts only, so its list shows the real accounts only
-  const openPlanUsers = (key) => openUsers({ status: key, test: 'exclude' });
 
   return (
     <AdminScreenFrame
@@ -53,11 +47,6 @@ export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null, onR
     >
       {/* the sketch: the account-status notice opens the body */}
       <div className="av-notice av-info" style={{ marginBlockEnd: 12 }}>{t(isHebrew, C.plansNotice.he, C.plansNotice.en)}</div>
-      {failed && (
-        <div className="av-notice av-bad" role="alert" data-testid="admin-plans-load-failed" style={{ marginBlockEnd: 12 }}>
-          <strong>{t(isHebrew, C.loadFailed.he, C.loadFailed.en)}</strong> {t(isHebrew, C.loadFailedHint.he, C.loadFailedHint.en)}
-        </div>
-      )}
       <div className="av-grid av-equal">
         <article className="av-card admin-legacy-breakdown" aria-label={isHebrew ? 'מסלולים ומנויים' : 'Plans & subscriptions'}>
           <h3>{isHebrew ? 'מסלולים ומנויים' : 'Plans & subscriptions'}</h3>
@@ -65,14 +54,14 @@ export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null, onR
             title={isHebrew ? 'מסלולים' : 'Plans'}
             description={segments.map((x) => `${x.label} ${x.count}`).join(', ')}
             segments={segments} isHebrew={isHebrew} state={loadState}
-            onSelect={(key) => openPlanUsers(key)}
+            onSelect={(key) => openUsers({ status: key })}
           />
         </article>
         <article className="av-card" aria-label={t(isHebrew, C.dataQuality.he, C.dataQuality.en)}>
           <h3>{t(isHebrew, C.dataQuality.he, C.dataQuality.en)}</h3>
-          <div className="av-statline"><span>{t(isHebrew, C.managedAccounts.he, C.managedAccounts.en)}</span><strong className="av-num">{shown(managed)}</strong></div>
-          <div className="av-statline"><span>{t(isHebrew, C.verifiedMonthly.he, C.verifiedMonthly.en)}</span><strong className="av-num">{shown(count('paid_monthly'))}</strong></div>
-          <div className="av-statline"><span>{t(isHebrew, C.verifiedAnnual.he, C.verifiedAnnual.en)}</span><strong className="av-num">{shown(count('paid_annual'))}</strong></div>
+          <div className="av-statline"><span>{t(isHebrew, C.managedAccounts.he, C.managedAccounts.en)}</span><strong className="av-num">{loadState === 'loading' ? '—' : managed}</strong></div>
+          <div className="av-statline"><span>{t(isHebrew, C.verifiedMonthly.he, C.verifiedMonthly.en)}</span><strong className="av-num">{loadState === 'loading' ? '—' : count('paid_monthly')}</strong></div>
+          <div className="av-statline"><span>{t(isHebrew, C.verifiedAnnual.he, C.verifiedAnnual.en)}</span><strong className="av-num">{loadState === 'loading' ? '—' : count('paid_annual')}</strong></div>
           <div className="av-statline"><span>{t(isHebrew, C.free10Counter.he, C.free10Counter.en)}</span><span className={`av-badge ${s?.free10Counter === 'enforced' ? 'av-ok' : 'av-warn'}`}>{s?.free10Counter === 'enforced' ? t(isHebrew, C.active.he, C.active.en) : t(isHebrew, C.notActivated.he, C.notActivated.en)}</span></div>
           <div className="av-notice av-section">{t(isHebrew, C.periodNotice.he, C.periodNotice.en)}</div>
         </article>
@@ -88,20 +77,12 @@ export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null, onR
           {rows.map(({ key, count: n }) => (
             <div key={key} className="av-card" data-status={key}>
               <span className="av-plan"><AdminAccountStatusIcon statusKey={key} size={32} /><strong>{tr(ACCOUNT_STATUS[key], isHebrew)}</strong></span>
-              <div className="av-kpi-value">{shown(n)}</div>
+              <div className="av-kpi-value">{loadState === 'loading' ? '—' : n}</div>
               <div className="av-tiny av-muted">{t(isHebrew, C.accounts.he, C.accounts.en)}</div>
               {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-              <button type="button" className="av-btn av-section" onClick={() => openPlanUsers(key)}>{t(isHebrew, C.viewUsers.he, C.viewUsers.en)}</button>
+              <button type="button" className="av-btn av-section" onClick={() => openUsers({ status: key })}>{t(isHebrew, C.viewUsers.he, C.viewUsers.en)}</button>
             </div>
           ))}
-          {/* Owner console 2026-11-09 (typed incl. L-22: "למה שלא יופיעו בסעיף נפרד כאן?"): the marked test accounts, apart from the plans */}
-          <div className="av-card" data-status="test" data-testid="admin-plans-test-card">
-            <span className="av-plan"><strong>{t(isHebrew, C.testAccountsCard.he, C.testAccountsCard.en)}</strong></span>
-            <div className="av-kpi-value">{s ? s.testAccounts : '—'}</div>
-            <div className="av-tiny av-muted">{t(isHebrew, C.accounts.he, C.accounts.en)} · {t(isHebrew, C.testAccountsCardNote.he, C.testAccountsCardNote.en)}</div>
-            {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
-            <button type="button" className="av-btn av-section" onClick={() => openUsers({ test: 'only' })}>{t(isHebrew, C.viewUsers.he, C.viewUsers.en)}</button>
-          </div>
         </div>
       </article>
     </AdminScreenFrame>

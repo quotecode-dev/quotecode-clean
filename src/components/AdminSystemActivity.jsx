@@ -38,8 +38,7 @@ export default function AdminSystemActivity({ accounts, isHebrew, onRefreshAccou
 
   useEffect(() => {
     let cancelled = false;
-    // Owner console 2026-11-09 (typed incl. L-22): "all time" is the whole log - the server cap is 10000 since 20261109200000 (was 200)
-    supabase.rpc('get_admin_audit_log', { p_limit: 10000 }).then(({ data, error }) => {
+    supabase.rpc('get_admin_audit_log', { p_limit: 200 }).then(({ data, error }) => {
       if (cancelled) return;
       setAuditRows(error ? 'unavailable' : (data || []));
       if (!error) setUpdatedAt(new Date().toISOString());

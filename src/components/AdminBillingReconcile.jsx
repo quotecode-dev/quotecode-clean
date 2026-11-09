@@ -181,9 +181,8 @@ export default function AdminBillingReconcile({ isHebrew }) {
   return (
     <AdminScreenFrame
       title={title}
-      // Owner console 2026-11-09 (typed incl. L-22): the "read only" sentence is gone - the screen's own form records a refund done in PayPlus
-      subtitle={isHebrew ? 'כל בוקר משווים את העסקאות בפיי פלוס לתשלומים שנרשמו אצלנו, ומציגים כאן כל הבדל.'
-        : 'Every morning the PayPlus transactions are compared with the payments we recorded, and every difference is shown here.'}
+      subtitle={isHebrew ? 'כל בוקר משווים את העסקאות בפיי פלוס לתשלומים שנרשמו אצלנו, ומציגים כאן כל הבדל. קריאה בלבד: שום תשלום או מנוי לא משתנים מכאן.'
+        : 'Every morning the PayPlus transactions are compared with the payments we recorded, and every difference is shown here. Read only: no payment or subscription changes from here.'}
       label={title}
       isHebrew={isHebrew}
       onRefresh={load}

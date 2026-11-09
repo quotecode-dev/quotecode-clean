@@ -25,9 +25,8 @@ export const ACCOUNT_STATUS = Object.freeze({
   paid_past_due: Object.freeze({ he: 'החיוב האחרון לא עבר', en: 'Last payment failed' }),
   paid_limited: Object.freeze({ he: 'המנוי הסתיים', en: 'Subscription ended' }),
 });
-// the admin filter / counts list only the statuses its server function knows; Owner console 2026-11-09 (incl. L-22, migration
-// 20261109200000): the server knows paid_past_due / paid_limited too, so a limited or failed-charge account is no longer counted as paid / free
-export const ACCOUNT_STATUS_ORDER = Object.freeze(['free10', 'trial', 'trial_ended', 'paid_monthly', 'paid_annual', 'lifetime', 'free10_inactive', 'paid_unverified', 'paid_past_due', 'paid_limited']);
+// the admin filter / counts list only the statuses its server function knows (paid_past_due / paid_limited are the account's own view)
+export const ACCOUNT_STATUS_ORDER = Object.freeze(['free10', 'trial', 'trial_ended', 'paid_monthly', 'paid_annual', 'lifetime', 'free10_inactive', 'paid_unverified']);
 // the chart / count always lists these (monthly and annual even at 0); the other two only when an account has them
 export const ACCOUNT_STATUS_ALWAYS_SHOWN = Object.freeze(['free10', 'trial', 'trial_ended', 'paid_monthly', 'paid_annual', 'lifetime']);
 export const ACCOUNT_STATUS_TITLE = Object.freeze({ he: 'התפלגות מסלולים', en: 'Subscription mix' });

@@ -140,12 +140,6 @@ export const ADMIN_COPY = Object.freeze({
   testFailed: { he: 'הסימון לא נשמר. נסו שוב.', en: 'The mark was not saved. Try again.' },
   kpiManagedNoteTests: { he: 'ללא חשבונות מערכת ו־{n} חשבונות בדיקה', en: 'System accounts and {n} test accounts excluded' },
   showMore: { he: 'הצגה נוספת', en: 'Show more' },
-  // Owner console 2026-11-09 (typed incl. L-22): the test accounts get their own card on the plans screen and their own filter in the list
-  testAccountsCard: { he: 'חשבונות בדיקה', en: 'Test accounts' },
-  testAccountsCardNote: { he: 'לא נספרים במסלולים', en: 'Not counted in the plans' },
-  accountKind: { he: 'סוג חשבון', en: 'Account type' },
-  allAccountKinds: { he: 'כל החשבונות', en: 'All accounts' },
-  realAccounts: { he: 'חשבונות אמיתיים', en: 'Real accounts' },
 });
 
 export const ACTION_NAMES = Object.freeze({
