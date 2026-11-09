@@ -47,9 +47,7 @@ export function normalizeTemplateName(name) {
 
 // form = the quote editor state (Dashboard): items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes,
 // quotePresentation. keep = which optional parts to include.
-// rowBilling (Codex review 2026-11-09, item 3 of section 08): the row's billing type on screen, like a unit template - a fixed amount and
-// "1 unit" store the same line, so the template remembers which one it was (only 'fixed' / 'units' are kept)
-export function buildTemplateContent(form, keep = DEFAULT_TEMPLATE_KEEP, rowBilling = null) {
+export function buildTemplateContent(form, keep = DEFAULT_TEMPLATE_KEEP) {
   const k = { ...DEFAULT_TEMPLATE_KEEP, ...(keep || {}) };
   const sections = (Array.isArray(form?.sections) ? form.sections : []).filter((s) => str(s?.name).trim())
     // Owner console 2026-11-08 (stage 3 of the one quote builder): a unit of N identical copies keeps its count (only above 1); the internal price link is never part of a template
@@ -69,9 +67,6 @@ export function buildTemplateContent(form, keep = DEFAULT_TEMPLATE_KEEP, rowBill
     if (spec.length) line.specification = spec;
     const sk = it.section_key != null ? keyOf.get(it.section_key) : null;
     if (sk) line.section_key = sk;
-    // only a row with no pricing unit (a fixed amount and "1 unit" store the same line); a measured / unit-priced row says it itself
-    const billing = typeof rowBilling === 'function' && !line.pricing_unit ? rowBilling(raw) : null;
-    if (billing === 'fixed' || billing === 'units') line.billing = billing;
     return line;
   });
   const content = {
@@ -158,7 +153,6 @@ export function templateToFormState(content, newKey) {
     const spec = normalizeSpecificationRows(it.specification);
     if (spec.length) row.specification = spec;
     if (it.section_key && sectionKeys.has(it.section_key)) row.section_key = sectionKeys.get(it.section_key);
-    if (it.billing === 'fixed' || it.billing === 'units') row._billing = it.billing; // the same as a unit template (Codex 2026-11-09)
     return row;
   });
   return {

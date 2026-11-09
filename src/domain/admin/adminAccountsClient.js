@@ -21,8 +21,7 @@ export function parseDashboardSummary(d) {
     signedInLast10m: d.signedInLast10m, market: Object.freeze({ ...market }), subscriptionStatus: Object.freeze({ ...status }),
     planSystem: d.planSystem === 'active' ? 'active' : 'not_active',
     // AV-09 (migration 20261017000000): the Free-10 counter is reported active only when the quota is enforced
-    // Codex review 2026-11-09: "not activated" only when the server said so; anything else is unknown (null)
-    free10Counter: d.free10Counter === 'enforced' || d.free10Counter === 'not_enforced' ? d.free10Counter : null,
+    free10Counter: d.free10Counter === 'enforced' ? 'enforced' : 'not_enforced',
     // L-22 (Owner 2026-10-28, migration 20261028100000): the marked test accounts, not counted above
     testAccounts: isInt(d.testAccounts) ? d.testAccounts : 0,
   });

@@ -1,11 +1,4 @@
 -- OD-9 public signing contract + OD-1 acceptance expiry (public_approve_quote after 20260922000000).
--- 20261109300000 (Codex D1, Owner typed 2026-11-09 incl. L-05 / L-13 / L-17 / L-24-L-28): the four version-less public signing functions
--- are closed to the public roles. This file proves their unchanged internal rules, so it re-opens them for the API roles INSIDE this
--- file only (closed again at its end); 474_signing_requires_version.sql proves they are closed on the migrated database.
-GRANT EXECUTE ON FUNCTION public.public_approve_quote(uuid, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.public_approve_quote_signed(uuid, text, text, text, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.public_approve_quote_capability(text, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.public_approve_quote_capability_signed(text, text, text, text, text) TO anon, authenticated;
 SELECT tst.seed();
 -- synthetic quotes owned by issuer tenant A (Local). Fixed ids; valid_until far future unless the case says otherwise.
 INSERT INTO public.quotes (id, user_id, quote_number, status, valid_until, currency, total) VALUES
@@ -71,10 +64,7 @@ DO $$ BEGIN
   PERFORM tst.ok(public.quote_acceptance_expired(DATE '2026-09-12', 'Local', TIMESTAMPTZ '2026-09-12 21:30:00+00'), 'Local: 00:30 Asia/Jerusalem next day is expired although UTC is still the validity day (market time zone decides, not the server)');
 
   -- privileges
+  PERFORM tst.ok(has_function_privilege('anon', 'public.public_approve_quote(uuid,text)', 'execute'), 'anon may execute public_approve_quote');
+  PERFORM tst.ok(has_function_privilege('authenticated', 'public.public_approve_quote(uuid,text)', 'execute'), 'authenticated may execute public_approve_quote');
   PERFORM tst.ok(NOT has_function_privilege('service_role', 'public.public_approve_quote(uuid,text)', 'execute'), 'service_role has no execute on public_approve_quote');
 END $$;
--- closed again (20261109300000): nothing of the re-opening above outlives this file
-REVOKE EXECUTE ON FUNCTION public.public_approve_quote(uuid, text) FROM anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.public_approve_quote_signed(uuid, text, text, text, text) FROM anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.public_approve_quote_capability(text, text) FROM anon, authenticated;
-REVOKE EXECUTE ON FUNCTION public.public_approve_quote_capability_signed(text, text, text, text, text) FROM anon, authenticated;

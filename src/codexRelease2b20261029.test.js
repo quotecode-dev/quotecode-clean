@@ -21,7 +21,7 @@ describe('decision 3: a quote with a missing price is not signed', () => {
     const s = src(file);
     const check = s.indexOf(`if (missingPriceOutputNotice(quote, { isHebrew: ${he}, items: publicItemsForNotice(items) })) {\n      setApproveToast({ type: 'error', message: classifyQuoteApprovalError('Missing prices', ${he}).userMessage });`);
     expect(check).toBeGreaterThan(0);
-    expect(check).toBeLessThan(s.indexOf("await supabase.rpc('public_sign_quote_capability_version'")); // Codex 2026-11-09 (D1): the versioned call
+    expect(check).toBeLessThan(s.indexOf("await supabase.rpc('public_approve_quote_capability_signed'"));
   });
 });
 

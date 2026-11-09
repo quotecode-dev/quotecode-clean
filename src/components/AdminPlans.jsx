@@ -73,10 +73,7 @@ export default function AdminPlans({ accounts, isHebrew, onGoToUsers = null, onR
           <div className="av-statline"><span>{t(isHebrew, C.managedAccounts.he, C.managedAccounts.en)}</span><strong className="av-num">{shown(managed)}</strong></div>
           <div className="av-statline"><span>{t(isHebrew, C.verifiedMonthly.he, C.verifiedMonthly.en)}</span><strong className="av-num">{shown(count('paid_monthly'))}</strong></div>
           <div className="av-statline"><span>{t(isHebrew, C.verifiedAnnual.he, C.verifiedAnnual.en)}</span><strong className="av-num">{shown(count('paid_annual'))}</strong></div>
-          <div className="av-statline"><span>{t(isHebrew, C.free10Counter.he, C.free10Counter.en)}</span>{loadState === 'loading' && !s ? <strong className="av-num">—</strong>
-            : s?.free10Counter === 'enforced' ? <span className="av-badge av-ok">{t(isHebrew, C.active.he, C.active.en)}</span>
-            : s?.free10Counter === 'not_enforced' ? <span className="av-badge av-warn">{t(isHebrew, C.notActivated.he, C.notActivated.en)}</span>
-            : <span className="av-badge av-warn" data-testid="admin-counter-unavailable">{t(isHebrew, C.counterUnavailable.he, C.counterUnavailable.en)}</span>}</div>
+          <div className="av-statline"><span>{t(isHebrew, C.free10Counter.he, C.free10Counter.en)}</span><span className={`av-badge ${s?.free10Counter === 'enforced' ? 'av-ok' : 'av-warn'}`}>{s?.free10Counter === 'enforced' ? t(isHebrew, C.active.he, C.active.en) : t(isHebrew, C.notActivated.he, C.notActivated.en)}</span></div>
           <div className="av-notice av-section">{t(isHebrew, C.periodNotice.he, C.periodNotice.en)}</div>
         </article>
       </div>

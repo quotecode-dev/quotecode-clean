@@ -4,13 +4,6 @@
 -- labels without a signature still work; real customer signing still works; a quote with a line without a price cannot be signed (nothing
 -- stored); the signed legacy-id function refuses a quote issued through the output authority in any phase.
 BEGIN;
--- 20261109300000 (Codex D1, Owner typed 2026-11-09 incl. L-05 / L-13 / L-17 / L-24-L-28): the four version-less public signing functions
--- are closed to the public roles. This file proves their unchanged internal rules, so it re-opens them for the API roles INSIDE this
--- file only (its transaction is rolled back); 474_signing_requires_version.sql proves they are closed on the migrated database.
-GRANT EXECUTE ON FUNCTION public.public_approve_quote(uuid, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.public_approve_quote_signed(uuid, text, text, text, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.public_approve_quote_capability(text, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.public_approve_quote_capability_signed(text, text, text, text, text) TO anon, authenticated;
 SELECT tst.seed();
 
 INSERT INTO public.quotes (id, user_id, quote_number, status, total, currency, valid_until) VALUES

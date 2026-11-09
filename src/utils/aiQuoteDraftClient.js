@@ -146,13 +146,7 @@ export function applyDraftUpdateToItem(item, update) {
       const shaped = draftLinesToQuoteItems([{ description: next.description, quantity: q, unit, unitPrice: null, catalogId: null }])[0];
       next = { ...next, ...shaped, description: next.description, unit_price: next.unit_price, isFromCatalog: item.isFromCatalog };
       delete next.price_link_id; // Owner console 2026-11-08 (stage 3): another billing basis leaves the shared-price group
-      if (unit === 'unit') {
-        delete next.pricing_unit; delete next.calculated_quantity; delete next.quantity_source; delete next.calculation_method;
-        // Codex review 2026-11-09 (item 4 of section 08): an explicit change to units is a units row - its sizes go with the old basis and
-        // the row is marked "units", so one unit never reopens as a fixed amount (a fixed amount and "1 unit" store the same line)
-        delete next.measurements; delete next.quote_item_measurements;
-        next._billing = 'units';
-      }
+      if (unit === 'unit') { delete next.pricing_unit; delete next.calculated_quantity; delete next.quantity_source; delete next.calculation_method; }
     } else if (isMeasurableUnit(item.pricing_unit)) {
       // a measured line: the stated amount overrides the measurements (as the item window's manual override)
       next = { ...next, calculated_quantity: q, quantity_source: 'manual', calculation_method: 'manual' };

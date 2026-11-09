@@ -8,13 +8,6 @@
 -- prep suite). Forced phase rows written directly by the DB owner are test devices; set_activation_phase gates are proven by
 -- the prep suite.
 BEGIN;
--- 20261109300000 (Codex D1, Owner typed 2026-11-09 incl. L-05 / L-13 / L-17 / L-24-L-28): the four version-less public signing functions
--- are closed to the public roles. This file proves their unchanged internal rules, so it re-opens them for the API roles INSIDE this
--- file only (its transaction is rolled back); 474_signing_requires_version.sql proves they are closed on the migrated database.
-GRANT EXECUTE ON FUNCTION public.public_approve_quote(uuid, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.public_approve_quote_signed(uuid, text, text, text, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.public_approve_quote_capability(text, text) TO anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.public_approve_quote_capability_signed(text, text, text, text, text) TO anon, authenticated;
 SET tekango.skip_signup_provisioning = 'on';  -- pre-A-1 fixture: this test seeds its entitlements by hand (20261018100000 test device)
 -- this file proves the NO-policy fallback (resolve_style_media_entitlement baseline): the Owner style / media policy v1 of
 -- 20261018100000 is removed inside this file's transaction (rolled back at the end, so the later suites keep it)
@@ -906,14 +899,17 @@ SELECT tst.ok(encode(pg_catalog.sha256(convert_to(tst.xtok(1), 'UTF8')), 'hex')
             = encode(extensions.digest(convert_to(tst.xtok(1), 'UTF8'), 'sha256'), 'hex')
           AND tst.xtok(1) ~ '^[A-Za-z0-9_-]{43}$',
   'M1 token hash: pg_catalog.sha256 = extensions.digest(..., sha256) (pgcrypto in schema extensions); test tokens are 43-char base64url');
-SELECT tst.ok(NOT has_function_privilege('service_role', 'public.public_approve_quote(uuid,text)', 'EXECUTE')
+SELECT tst.ok((SELECT string_agg(a::text, ',' ORDER BY a::text COLLATE "C") FROM pg_proc p, unnest(p.proacl) a
+                WHERE p.oid = 'public.public_approve_quote(uuid,text)'::regprocedure) = 'anon=X/postgres,authenticated=X/postgres,postgres=X/postgres'
+          AND has_function_privilege('anon', 'public.public_approve_quote_capability(text,text)', 'EXECUTE')
+          AND has_function_privilege('authenticated', 'public.public_approve_quote_capability(text,text)', 'EXECUTE')
           AND NOT has_function_privilege('service_role', 'public.public_approve_quote_capability(text,text)', 'EXECUTE')
           AND NOT has_function_privilege('anon', 'public.quote_public_approve_internal(uuid,text,boolean)', 'EXECUTE')
           AND NOT has_function_privilege('authenticated', 'public.quote_public_approve_internal(uuid,text,boolean)', 'EXECUTE')
           AND NOT has_function_privilege('service_role', 'public.quote_public_approve_internal(uuid,text,boolean)', 'EXECUTE')
           AND (SELECT proconfig @> ARRAY['search_path=public, pg_temp'] AND prosecdef FROM pg_proc
                 WHERE oid = 'public.public_approve_quote_capability(text,text)'::regprocedure),
-  'M2 approval functions: no service_role; internal helper: no API role (anon / authenticated: closed since 20261109300000, see 474)');
+  'M2 public_approve_quote keeps its ACL (anon, authenticated, owner); capability approval: anon + authenticated; internal helper: no API role');
 -- not enforced: the id path is unchanged (a post-cutover finalized quote is still approvable by id)
 UPDATE public.subscription_activation SET phase = 'shadow' WHERE component = 'free_issue';
 SELECT tst.anon();
