@@ -104,18 +104,19 @@ function Summary({ C, s, formatMoney }) {
 
 // PRODUCT_TRUTH_CAPABILITY: quote_create
 // unit = { sectionKey, name, rowBilling } saves ONE unit as a unit template (Owner console 2026-11-08 (stage 4 of the one quote builder, decision 6))
-export function SaveTemplateDialog({ isHebrew, client, userId, form, formatMoney, onClose, onSaved = null, unit = null }) {
+// rowBilling = the row's billing type on screen, kept in a whole-quote template too (Codex review 2026-11-09)
+export function SaveTemplateDialog({ isHebrew, client, userId, form, formatMoney, onClose, onSaved = null, unit = null, rowBilling = null }) {
   const C = COPY[isHebrew ? 'he' : 'en'];
   const [name, setName] = useState(unit ? String(unit.name || '') : '');
   const [keep, setKeep] = useState(unit ? { ...DEFAULT_UNIT_TEMPLATE_KEEP } : { ...DEFAULT_TEMPLATE_KEEP });
   const [state, setState] = useState({ phase: 'idle', text: '' });
-  const built = unit ? buildUnitTemplateContent(form, unit.sectionKey, keep, unit.rowBilling) : buildTemplateContent(form, keep);
+  const built = unit ? buildUnitTemplateContent(form, unit.sectionKey, keep, unit.rowBilling) : buildTemplateContent(form, keep, rowBilling);
   const preview = templateSummary(built);
   const noItems = !preview || preview.itemCount === 0;
   const submit = async (e) => {
     e.preventDefault();
     setState({ phase: 'saving', text: '' });
-    const r = await createTemplate(client, userId, name, form, keep, unit ? built : null);
+    const r = await createTemplate(client, userId, name, form, keep, built);
     if (r.ok) { setState({ phase: 'saved', text: C.saved }); if (typeof onSaved === 'function') onSaved(r.data); }
     else setState({ phase: 'error', text: unit && r?.error?.code === 'duplicate_name' ? C.duplicateAny : errText(C, r) });
   };

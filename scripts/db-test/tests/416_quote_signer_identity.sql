@@ -6,13 +6,22 @@ BEGIN;
 SELECT tst.seed();
 
 DO $$ BEGIN
-  PERFORM tst.ok(has_function_privilege('anon', 'public.public_approve_quote_signed(uuid,text,text,text,text)', 'execute')
-                 AND has_function_privilege('anon', 'public.public_approve_quote_capability_signed(text,text,text,text,text)', 'execute')
+  PERFORM tst.ok(has_function_privilege('anon', 'public.public_sign_quote_version(uuid,text,text,text,text,text)', 'execute')
+                 AND has_function_privilege('anon', 'public.public_sign_quote_capability_version(text,text,text,text,text,text)', 'execute')
+                 AND NOT has_function_privilege('anon', 'public.public_approve_quote_signed(uuid,text,text,text,text)', 'execute')
+                 AND NOT has_function_privilege('anon', 'public.public_approve_quote_capability_signed(text,text,text,text,text)', 'execute')
                  AND NOT has_function_privilege('anon', 'public.quote_record_signer(uuid,text,text,text)', 'execute')
                  AND NOT has_function_privilege('anon', 'public.quote_signer_text(text,int)', 'execute')
-                 AND has_function_privilege('anon', 'public.public_approve_quote(uuid,text)', 'execute'),
-    'S1 the public signing functions are callable by a customer; the helpers are not; the former function stays');
+                 AND NOT has_function_privilege('anon', 'public.public_approve_quote(uuid,text)', 'execute'),
+    'S1 a customer signs only through the versioned functions (20261109300000); the version-less ones and the helpers are closed');
 END $$;
+-- 20261109300000 (Codex D1, Owner typed 2026-11-09 incl. L-05 / L-13 / L-17 / L-24-L-28): the four version-less public signing functions
+-- are closed to the public roles. This file proves their unchanged internal rules, so it re-opens them for the API roles INSIDE this
+-- file only (its transaction is rolled back); 474_signing_requires_version.sql proves they are closed on the migrated database.
+GRANT EXECUTE ON FUNCTION public.public_approve_quote(uuid, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.public_approve_quote_signed(uuid, text, text, text, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.public_approve_quote_capability(text, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.public_approve_quote_capability_signed(text, text, text, text, text) TO anon, authenticated;
 
 -- a sent quote of the seed business
 INSERT INTO public.quotes (id, user_id, quote_number, status, total, currency, valid_until)

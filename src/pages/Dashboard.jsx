@@ -5114,7 +5114,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         email: clientEmail ? clientEmail.trim() : '',
         phone: clientPhone,
         client_type: clientType,
-        tax_id: clientTaxId,
+        tax_id: typeof clientTaxId === 'string' ? clientTaxId.trim() : clientTaxId, // Codex review 2026-11-09: like the email, no stray spaces
         address: clientAddress,
         notes: notes,
         user_id: session.user.id
@@ -8175,7 +8175,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       <AccessibilityModal isOpen={showAccessibility} onClose={() => setShowAccessibility(false)} isHebrew={isHebrew} />
       {templateDialog === 'save' && session?.user?.id && (
         <SaveTemplateDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
-          form={{ items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency, priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType) }} onClose={() => setTemplateDialog(null)} />
+          form={{ items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency, priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType) }}
+          rowBilling={(it) => rowEntry(it, isLocalIsraeliBusiness === false).pricingMethod} onClose={() => setTemplateDialog(null)} />
       )}
       {templateDialog === 'pick' && session?.user?.id && (
         <TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}

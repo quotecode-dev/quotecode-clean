@@ -10,12 +10,14 @@ const mig = readFileSync('supabase/migrations/20261025000000_quote_signer_identi
 
 describe('signer identity stored with the signature', () => {
   for (const [name, src, label] of [['he', he, 'נחתם על ידי:'], ['en', en, 'Signed by:']]) {
-    it(`${name}: signs through the new functions with the signer, falls back only when the function is missing`, () => {
-      expect(src).toContain("supabase.rpc('public_approve_quote_capability_signed', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl, ...signer })");
-      expect(src).toContain("supabase.rpc('public_approve_quote_signed', { p_quote_id: quote.id, p_signature_data_url: signatureDataUrl, ...signer })");
+    // Codex review 2026-11-09 (D1, Owner typed incl. L-24): the signer travels with the VERSIONED call; no version-less fallback any more
+    it(`${name}: signs through the versioned functions with the signer, never without a version`, () => {
+      expect(src).toContain("supabase.rpc('public_sign_quote_capability_version', { p_token: capabilityToken, p_signature_data_url: signatureDataUrl, ...signer, p_expected_version: version })");
+      expect(src).toContain("supabase.rpc('public_sign_quote_version', { p_quote_id: quote.id, p_signature_data_url: signatureDataUrl, ...signer, p_expected_version: version })");
       expect(src).toContain('p_signer_name: signerName.trim()');
       expect(src).toContain("p_signer_company: isBusinessCustomer ? (signerCompany.trim() || null) : null");
-      expect(src).toMatch(/error\.code === 'PGRST202' \|\| \/could not find the function\/i/);
+      expect(src).not.toContain("supabase.rpc('public_approve_quote");
+      expect(src).toContain("if (!version) throw new Error('Quote updated');");
     });
     it(`${name}: a later visit shows the stored signer`, () => {
       expect(src).toContain(') : quote.signer_name ? (');

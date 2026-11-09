@@ -66,7 +66,9 @@ describe('Codex verification fixes 2026-10-17', () => {
     expect(read('pages/Dashboard.jsx')).toContain('refreshAccounts: refreshAllAccounts,');
   });
   it('AV-09: the Free-10 counter is active only when enforced', () => {
-    expect(parseDashboardSummary({ ...summary }).free10Counter).toBe('not_enforced');
+    // Codex review 2026-11-09 (Owner typed incl. L-22): "not activated" only when the server said so; a missing value is unknown
+    expect(parseDashboardSummary({ ...summary }).free10Counter).toBe(null);
+    expect(parseDashboardSummary({ ...summary, free10Counter: 'not_enforced' }).free10Counter).toBe('not_enforced');
     expect(parseDashboardSummary({ ...summary, free10Counter: 'enforced' }).free10Counter).toBe('enforced');
     expect(read('components/AdminPlans.jsx')).toContain("s?.free10Counter === 'enforced'");
   });

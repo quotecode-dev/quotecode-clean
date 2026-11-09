@@ -4,6 +4,13 @@
 -- nothing); a signature freezes the signed document; the live state of a signed quote serves the frozen document; the new functions are
 -- callable by a customer, the state readers only by the server.
 BEGIN;
+-- 20261109300000 (Codex D1, Owner typed 2026-11-09 incl. L-05 / L-13 / L-17 / L-24-L-28): the four version-less public signing functions
+-- are closed to the public roles. This file proves their unchanged internal rules, so it re-opens them for the API roles INSIDE this
+-- file only (its transaction is rolled back); 474_signing_requires_version.sql proves they are closed on the migrated database.
+GRANT EXECUTE ON FUNCTION public.public_approve_quote(uuid, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.public_approve_quote_signed(uuid, text, text, text, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.public_approve_quote_capability(text, text) TO anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.public_approve_quote_capability_signed(text, text, text, text, text) TO anon, authenticated;
 SELECT tst.seed();
 
 DO $$ BEGIN
