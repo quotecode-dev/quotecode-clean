@@ -43,11 +43,13 @@ export async function fetchAdminDashboardSummary(client = supabase) {
   }
 }
 
-export async function fetchAdminAccountsPage(client = supabase, { query = '', market = null, status = null, sort = 'created_at', direction = 'desc', pageSize = 25, offset = 0, ids = null } = {}) {
+export async function fetchAdminAccountsPage(client = supabase, { query = '', market = null, status = null, sort = 'created_at', direction = 'desc', pageSize = 25, offset = 0, ids = null, test = null } = {}) {
   try {
     const { data, error, status: http } = await client.rpc('get_admin_accounts', {
       p_query: query || null, p_market: market, p_status: status, p_sort: sort, p_direction: direction,
       p_page_size: pageSize, p_offset: offset, p_ids: ids,
+      // Owner 2026-11-09 (migration 20261109200000): 'only' = the test accounts, 'exclude' = the real ones; sent only when chosen
+      ...(test === 'only' || test === 'exclude' ? { p_test: test } : {}),
     });
     if (error) return isMissing(error, http) ? { state: 'not_deployed' } : { state: 'unavailable', code: String(error.code || 'rpc_error') };
     const parsed = parseAccountsPage(data);

@@ -79,13 +79,15 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   // AV-05 / AV-06: a legend / link intent wins; otherwise the state saved when Details opened; otherwise the defaults
   const [init] = useState(() => {
     const intent = peekUsersFilterIntent();
-    if (intent) return { market: intent.market || 'all', status: intent.status || 'all', sort: { field: 'created_at', direction: 'desc' }, page: 0, scrollTop: 0 };
+    if (intent) return { market: intent.market || 'all', status: intent.status || 'all', test: intent.test || 'all', sort: { field: 'created_at', direction: 'desc' }, page: 0, scrollTop: 0 };
     const saved = peekUsersListState();
-    return saved || { market: 'all', status: 'all', sort: { field: 'created_at', direction: 'desc' }, page: 0, scrollTop: 0 };
+    return saved || { market: 'all', status: 'all', test: 'all', sort: { field: 'created_at', direction: 'desc' }, page: 0, scrollTop: 0 };
   });
   useEffect(() => { clearUsersFilterIntent(); clearUsersListState(); }, []);
   const [market, setMarket] = useState(init.market);
   const [statusFilter, setStatusFilter] = useState(init.status);
+  // Owner console 2026-11-09 (typed incl. L-22): all / the real accounts ('exclude') / the test accounts ('only')
+  const [testFilter, setTestFilter] = useState(init.test || 'all');
   const [sort, setSort] = useState(init.sort);
   const [page, setPage] = useState(init.page);
   const restoreScroll = useRef(init.scrollTop || 0);
@@ -106,7 +108,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   useEffect(() => { const h = setTimeout(() => { setQuery(search || ''); if ((search || '') !== searchSeen.current) { searchSeen.current = search || ''; setPage(0); } }, 250); return () => clearTimeout(h); }, [search]);
 
   const server = useAdminAccountsPage({
-    query, market: market === 'all' ? null : market, status: statusFilter === 'all' ? null : statusFilter,
+    query, market: market === 'all' ? null : market, status: statusFilter === 'all' ? null : statusFilter, test: testFilter === 'all' ? null : testFilter,
     sort: sort.field, direction: sort.direction, pageSize: PAGE_SIZE, offset: page * PAGE_SIZE,
   }, refreshKey);
   // the server list once it answered (or failed with no data yet); until then the loaded rows - no empty flash while it loads
@@ -140,7 +142,8 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
     const matchesSearch = `${account.business_name || ''} ${account.email || ''}`.toLowerCase().includes(term);
     const matchesMarket = market === 'all' || market === accountMarket(account);
     const matchesStatus = statusFilter === 'all' || accountStatus(account, null).key === statusFilter;
-    return matchesSearch && matchesMarket && matchesStatus;
+    const matchesTest = testFilter === 'all' || (testFilter === 'only') === (account.is_test === true);
+    return matchesSearch && matchesMarket && matchesStatus && matchesTest;
   }).sort(cmp);
 
   const failed = !serverMode && server.state === 'unavailable';
@@ -193,7 +196,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   const loading = server.state === 'loading' && users.length === 0;
   // AV-06: Details saves the list state (filters, sort, page, scroll) and the list restores it on the way back
   const scrollBody = () => (typeof document !== 'undefined' ? document.querySelector('.admin-screen > .pf-screen-body') : null);
-  const openDetails = (a) => { saveUsersListState({ market, status: statusFilter, sort, page, scrollTop: scrollBody()?.scrollTop || 0 }); onDetails(a); };
+  const openDetails = (a) => { saveUsersListState({ market, status: statusFilter, test: testFilter, sort, page, scrollTop: scrollBody()?.scrollTop || 0 }); onDetails(a); };
   useEffect(() => {
     if (!restoreScroll.current || pageRows.length === 0) return;
     const el = scrollBody(); if (el) el.scrollTop = restoreScroll.current;
@@ -202,7 +205,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   // AV-07: on phones / tablets (cards) the sort is one select - the same fields and directions as the table headers
   const SORT_OPTIONS = [['created_at', 'desc'], ['created_at', 'asc'], ['last_sign_in', 'desc'], ['last_sign_in', 'asc'], ['business_name', 'asc'], ['business_name', 'desc'], ['plan', 'asc'], ['plan', 'desc'], ['indicators', 'asc'], ['indicators', 'desc'], ['country', 'asc'], ['country', 'desc']];
   const sortLabel = (f, d) => { const w = { created_at: C.colRegistered, last_sign_in: C.colLastSignIn, business_name: C.colBusiness, country: C.colRegion, plan: C.colPlan, indicators: C.colIndicators }[f]; const dir = (f === 'created_at' || f === 'last_sign_in') ? (d === 'desc' ? C.newestFirst : C.oldestFirst) : (d === 'asc' ? C.aToZ : C.zToA); return `${t(isHebrew, w.he, w.en)}, ${t(isHebrew, dir.he, dir.en)}`; };
-  const clear = () => { onSearch(''); setQuery(''); setMarket('all'); setStatusFilter('all'); setPage(0); };
+  const clear = () => { onSearch(''); setQuery(''); setMarket('all'); setStatusFilter('all'); setTestFilter('all'); setPage(0); };
   const sortWords = { created_at: C.colRegistered, last_sign_in: C.colLastSignIn, business_name: C.colBusiness, country: C.colRegion, plan: C.colPlan, indicators: C.colIndicators }[sort.field];
   const from = total ? page * PAGE_SIZE + 1 : 0;
   const to = total ? Math.min(total, page * PAGE_SIZE + pageRows.length) : 0;
@@ -230,6 +233,14 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
             <option value="Local">{t(isHebrew, C.israel.he, C.israel.en)}</option>
             <option value="International">{t(isHebrew, C.international.he, C.international.en)}</option>
             <option value="Unknown">{t(isHebrew, C.unknown.he, C.unknown.en)}</option>
+          </select>
+        </label>
+        <label className="av-field">
+          <span>{t(isHebrew, C.accountKind.he, C.accountKind.en)}</span>
+          <select value={testFilter} data-testid="admin-users-test-filter" onChange={(e) => { setTestFilter(e.target.value); setPage(0); }}>
+            <option value="all">{t(isHebrew, C.allAccountKinds.he, C.allAccountKinds.en)}</option>
+            <option value="exclude">{t(isHebrew, C.realAccounts.he, C.realAccounts.en)}</option>
+            <option value="only">{t(isHebrew, C.testAccountsCard.he, C.testAccountsCard.en)}</option>
           </select>
         </label>
         {!wide && (

@@ -61,7 +61,10 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onOpenU
     ? breakdownFromCounts(s.subscriptionStatus)
     : accountStatusBreakdown(users, (a) => (system === 'not_active' ? null : (byId[adminTargetUserId(a)] || null)));
   const testCount = s ? s.testAccounts : listed.length - users.length;
-  const loadState = s ? server.state : (server.state === 'loading' ? 'loading' : 'ready');
+  // Owner console 2026-11-09 (typed incl. L-22): a failed load shows the failure, never figures counted from the loaded rows (those rows
+  // carry no test-account mark); the loaded rows stand in only while the server function is not deployed
+  const failed = !s && server.state === 'unavailable';
+  const loadState = s ? server.state : failed ? 'unavailable' : (server.state === 'loading' ? 'loading' : 'ready');
   const pct = (n) => (stats.managed > 0 ? `${((n / stats.managed) * 100).toFixed(1)}%` : '—');
 
   const [recentAudit, setRecentAudit] = useState('loading');
@@ -87,7 +90,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onOpenU
   const marketSegments = ['Local', 'International', 'Unknown'].map((k) => ({
     key: k, count: stats[k] || 0, color: MARKET_COLORS[k], label: t(isHebrew, ...(k === 'Local' ? [C.israel.he, C.israel.en] : k === 'International' ? [C.international.he, C.international.en] : [C.unknown.he, C.unknown.en])),
   }));
-  const valueOf = (v) => (loadState === 'loading' ? '—' : v);
+  const valueOf = (v) => (loadState === 'loading' || loadState === 'unavailable' ? '—' : v);
 
   return (
     <AdminScreenFrame
@@ -103,6 +106,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onOpenU
       controls={(
         <>
           <AdminPlanSystemNotice system={planSystem} isHebrew={isHebrew} />
+          {failed && <div className="av-notice av-bad" role="alert" data-testid="admin-overview-load-failed"><strong>{t(isHebrew, C.loadFailed.he, C.loadFailed.en)}</strong> {t(isHebrew, C.loadFailedHint.he, C.loadFailedHint.en)}</div>}
           {accountsStale && <div className="av-notice av-bad" role="alert">{isHebrew ? 'רשימות החשבונות לא עודכנו ברענון האחרון (הנרשמים לאחרונה מוצגים מהטעינה הקודמת). נסו לרענן שוב.' : 'The account lists did not update in the last refresh (recent registrations are from the previous load). Try refreshing again.'}</div>}
         </>
       )}
@@ -125,7 +129,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onOpenU
             title={t(isHebrew, C.subscriptionMix.he, C.subscriptionMix.en)}
             description={statusSegments.map((x) => `${x.label} ${x.count}`).join(', ')}
             segments={statusSegments} isHebrew={isHebrew} state={loadState}
-            onSelect={(key) => openUsers({ status: key })}
+            onSelect={(key) => openUsers({ status: key, test: 'exclude' })}
           />
         </article>
         <article className="av-card" aria-label={t(isHebrew, C.marketMix.he, C.marketMix.en)}>

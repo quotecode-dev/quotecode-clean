@@ -759,6 +759,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-09 (item 08, typed: \"שמור את אופן החיוב בשדה נפרד במסד. השורה תיפתח נכון, והמסמך של הלקוח לא ישתנה בכלל. זה דורש מיגרציה, ולכן שחרור ארוך יותר.\"; the 2026-11-08 restore approval incl. L-09, L-17, L-24): quote_items.billing_method (NULL / fixed / units) persisted by save_quote_structured (absent key keeps the stored value); never in the customer document, digest or public version. Proof: scripts/db-test/tests/472_quote_item_billing_method.sql."
+    },
+    "20261109200000_admin_fixes.sql": {
+      "sha256": "3512022495986dcf54beadab50bba6ae8b13f9a3b213a9015550e7dd6d4a40e6",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-11-09 (typed: \"מאשר את תיקוני האדמין כולל שינוי ב-L-22, שחרור עד הלייב\"): admin_account_status knows paid_limited / paid_past_due; get_admin_dashboard_summary counts them and testAccounts uses the users-list account set; get_admin_accounts gains p_test (the old 8-argument version is dropped first); get_admin_account_counts for the user details screen; get_admin_audit_log cap 10000; replays cleanly (DROP FUNCTION IF EXISTS, CREATE OR REPLACE). Proof: scripts/db-test/tests/473_admin_fixes.sql."
     }
   }
 }
