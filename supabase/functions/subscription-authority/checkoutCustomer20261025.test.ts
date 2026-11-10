@@ -67,12 +67,3 @@ describe('checkout intent: the customer comes from the account settings (never t
     expect((p.createCheckout.mock.calls[0] as unknown[])[0]).not.toHaveProperty('customer');
   });
 });
-
-// Owner console 2026-11-10: PayPlus lowercases its customer card ('minhat shay (london)'); the invoice gets the business name exactly as written
-describe('the invoice customer name (custom_invoice_name)', () => {
-  it('is the business name exactly, upper case kept; no name -> no field', () => {
-    const b = buildGenerateLinkBody(cfgUrls, { attemptId: ATT, amountMinor: 1800, billingPeriod: 'month', nowMs: NOW, currency: 'USD', customer: { name: 'Minhat Shay (London)', email: 'm@example.com' } });
-    expect(b.custom_invoice_name).toBe('Minhat Shay (London)');
-    expect(buildGenerateLinkBody(cfgUrls, { attemptId: ATT, amountMinor: 1800, billingPeriod: 'month', nowMs: NOW, customer: { name: null, email: 'm@example.com' } })).not.toHaveProperty('custom_invoice_name');
-  });
-});

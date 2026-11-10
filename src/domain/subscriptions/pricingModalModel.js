@@ -89,15 +89,6 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
         per: isHebrew ? `${wantCur} ${r.period === 'month' ? '/ חודש' : '/ שנה'} · הערכה` : `${wantCur} / ${r.period} · estimate`,
         note: `${isHebrew ? 'החיוב בדולר ארה״ב' : 'Charged in USD'}: ${a.text} ${usdPer[r.period]}${r.note ? `. ${r.note}` : ''}` };
     });
-    // Owner console 2026-11-10 ("למה אתה לא מתקן הכל ביחד"): with the SMART PACK box ticked the card kept a USD total under the
-    // "<currency> / month · estimate" label and a charged line without SMART PACK. Ticked, the main price is the ESTIMATE of the total (package +
-    // add-on, the same rate and rounding as estimateNoteWithAddOn) and the charged line is the USD total with SMART PACK
-    for (const p of ['month', 'year']) {
-      const row = pkg.prices.find((r) => r.period === p);
-      const saving = p === 'year' && savingNote ? `. ${savingNote}` : '';
-      pkg.addOn.perPeriod[p] = { ...pkg.addOn.perPeriod[p], amount: `${mo.estimateText.slice(0, 1)}${estWith(p)}`,
-        note: `${isHebrew ? 'החיוב בדולר ארה״ב' : 'Charged in USD'}: ${usdWithSmartPack(p)} ${usdPer[p]}${saving}`, per: row?.per ?? null };
-    }
   }
   // item ד (2026-10-26) showed SMART PACK abroad as an information line only. Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה
   // בחו"ל ... L-22"): it is bought abroad too - the card box and the add-on offer show it, so there is no separate line

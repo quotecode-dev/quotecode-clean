@@ -107,8 +107,7 @@ function PriceBlock({ plan, isHebrew, purchase = null, onAddOnChange = null, ini
               <div data-testid="plans-smart-pack-total" dir={isHebrew ? 'rtl' : 'ltr'} style={{ marginTop: 2, fontSize: '0.85rem', fontWeight: 700, color: '#0F6672' }}>{isolateNumbers(plan.addOn.perPeriod[r.period].total)}</div>
             )}
             {addOnFor(r) && <div className="tl-plan-addon-line" data-addon-line={r.period} dir={isHebrew ? 'rtl' : 'ltr'}>{isolateNumbers(addOnFor(r).line)}</div>}
-            {/* Owner console 2026-11-10: with SMART PACK ticked abroad the charged line includes SMART PACK (the add-on's own note) */}
-            {(addOnFor(r)?.note || r.note) && <div data-period-note={r.period} dir={isHebrew ? 'rtl' : 'ltr'} style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 6, background: '#e3f1ea', color: '#1e5c42', fontSize: '0.8rem', fontWeight: 700 }}>{isolateNumbers(addOnFor(r)?.note || r.note)}</div>}
+            {r.note && <div data-period-note={r.period} dir={isHebrew ? 'rtl' : 'ltr'} style={{ display: 'inline-block', marginTop: 4, padding: '2px 8px', borderRadius: 6, background: '#e3f1ea', color: '#1e5c42', fontSize: '0.8rem', fontWeight: 700 }}>{isolateNumbers(r.note)}</div>}
           </div>
         ))}
       </div>

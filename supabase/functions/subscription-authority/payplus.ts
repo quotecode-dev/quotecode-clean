@@ -145,8 +145,6 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
       ...(i.customer.name ? { customer_name: i.customer.name } : {}),
       ...(i.customer.email ? { email: i.customer.email } : {}),
     } } : {}),
-    // Owner console 2026-11-10: the invoice shows the business name exactly as in the account (PayPlus lowercases its customer card: "(london)")
-    ...(i.customer?.name ? { custom_invoice_name: i.customer.name } : {}),
     refURL_success: cfg.successUrl,
     refURL_failure: cfg.failureUrl,
     refURL_callback: cfg.callbackUrl,
@@ -199,8 +197,6 @@ export function buildAddOnLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | '
       ...(i.customer.name ? { customer_name: i.customer.name } : {}),
       ...(i.customer.email ? { email: i.customer.email } : {}),
     } } : {}),
-    // Owner console 2026-11-10: the invoice shows the business name exactly as in the account (PayPlus lowercases its customer card: "(london)")
-    ...(i.customer?.name ? { custom_invoice_name: i.customer.name } : {}),
     refURL_success: cfg.addOnSuccessUrl ?? cfg.successUrl,
     refURL_failure: cfg.addOnFailureUrl ?? cfg.failureUrl,
     refURL_callback: cfg.callbackUrl,
