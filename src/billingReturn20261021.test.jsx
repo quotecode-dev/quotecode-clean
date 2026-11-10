@@ -235,7 +235,7 @@ describe('Dashboard wiring (source guard)', () => {
     expect(dash).toMatch(/const pullCheckoutStatus = useCallback\(\(\) => invokeWithFreshSession\('subscription-authority', \{ body: \{ action: 'checkout_status' \} \}\), \[\]\);/);
     // Owner console 2026-11-04 (typed L-01 / L-22): the departure also remembers a resumed renewal (nothing charged on that page)
     // (2026-11-05: + SMART PACK ticked on the resume while not active - its pro-rata offer follows)
-    expect(dash).toMatch(/if \(r\.ok\) \{ markBillingDeparture\(session\?\.user\?\.id, Date\.now\(\), r\.resume === true, choice\.addAfter === true\); leaveForPayment\(r\.redirectUrl\); \}/); // Owner 2026-11-10: the PayPlus page opens in a window above the app
+    expect(dash).toMatch(/if \(r\.ok\) \{ markBillingDeparture\(session\?\.user\?\.id, Date\.now\(\), r\.resume === true, choice\.addAfter === true\); window\.location\.assign\(r\.redirectUrl\); \}/);
     // 20261025300000 (Owner console 2026-10-25, typed L-22 / L-01 approval): + whether the return is from a SMART PACK add-on page
     // (2026-11-04: + whether it is the return of a resumed renewal)
     expect(dash).toMatch(/billingReturn=\{billingReturn\.state \? \{ state: billingReturn\.state, onCheckAgain: billingReturn\.checkAgain, addOn: isAddOnReturn\(billingReturn\.kind\), resume: billingReturn\.resume === true, addAfter: billingReturn\.addAfter === true \} : null\}/);

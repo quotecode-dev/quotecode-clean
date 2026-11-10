@@ -54,9 +54,7 @@ describe('the invoice file inside the screen', () => {
   it('the content policy allows a local blob: frame and nothing wider (no plugin objects, Turnstile kept)', () => {
     const headers = JSON.parse(readFileSync(join(cwd(), 'vercel.json'), 'utf8')).headers.find((h) => h.source === '/(.*)').headers;
     const csp = headers.find((h) => h.key === 'Content-Security-Policy').value;
-    // Owner console 2026-11-10 (the PayPlus payment page in a window above the app): this site itself (the payment return) and the
-    // PayPlus payment host only - still no wildcard
-    expect(csp).toContain("frame-src 'self' blob: https://challenges.cloudflare.com https://payments.payplus.co.il;");
+    expect(csp).toContain('frame-src blob: https://challenges.cloudflare.com;');
     expect(csp).toContain("object-src 'none'");
     expect(csp).not.toMatch(/frame-src[^;]*\*/);
   });
