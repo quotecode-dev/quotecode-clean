@@ -363,7 +363,8 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   try { parsedItems = typeof quote.items === 'string' ? JSON.parse(quote.items) : (Array.isArray(quote.items) ? quote.items : []); } catch { /* keep default [] */ }
 
   const subtotal = quote.subtotal ? Number(quote.subtotal) : parsedItems.reduce((acc, item) => acc + (Number(item.price || item.unit_price || 0) * Number(item.quantity || 1)), 0);
-  const total = Number(quote.total || 0) > 0 ? Number(quote.total) : subtotal;
+  // Owner 2026-11-10 (Hebrew/English sync): with no stored total the discount still comes off, as on the Hebrew page (no VAT here)
+  const total = Number(quote.total || 0) > 0 ? Number(quote.total) : subtotal - (subtotal * (Number(quote.discount || 0) / 100));
 
   // Task 16 presentation (CONTRACT §3 public_get). Anything unexpected => legacy Classic, live branding, no media.
   // An ISSUED snapshot's frozen branding overrides the live business fields, so later profile edits never restyle it.
@@ -452,7 +453,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
 
   // Description cell: text, optional detail lines and (Modern/Visual) the row-bound thumbnail INSIDE the cell.
   const renderDescriptionCell = (item, detailLines) => {
-    const label = item.description || 'Item';
+    const label = item.description || item.name || 'Item';
     const thumb = showItemThumbs ? mediaForItem(docMedia, item.description) : null;
     if (!thumb) return <>{label}{detailLines}</>;
     return (
@@ -570,7 +571,14 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
           </tr>
         </thead>
         <tbody role="rowgroup">
-          {displaySections.length === 0 ? (
+          {/* Owner 2026-11-10 (Hebrew/English sync): a quote with no items states its amount in the table, as in Hebrew */}
+          {!items || items.length === 0 ? (
+            <tr role="row">
+              <td headers={`${colId('desc')} ${colId('total')}`} role="cell" colSpan="4" style={{ padding: '20px', textAlign: 'center' }}>
+                General quote for a total of <span className="pf-money">{currencySymbol}{formatNum(total)}</span>
+              </td>
+            </tr>
+          ) : displaySections.length === 0 ? (
             (items || []).map((item, i) => {
               const isPro = Boolean(item.pricing_unit);
               const activeQty = isPro ? getActiveQuantity({ quantity: item.quantity, calculated_quantity: item.calculated_quantity }) : Number(item.quantity || 1);
@@ -578,9 +586,9 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
               return (
                 <tr role="row" key={i}>
                   <td headers={colId('desc')} role="cell" className="pq-td-desc">{renderDescriptionCell(item, null)}</td>
-                  <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}><span className="pq-num-slot">{isPro ? formatQuantity(activeQty, item.pricing_unit) : item.quantity}</span><span className="pq-unit-slot">{isPro && unitLabel ? `\u00a0${unitLabel}` : ''}</span></td>
+                  <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}><span className="pq-num-slot">{isPro ? formatQuantity(activeQty, item.pricing_unit) : Number(item.quantity || 1)}</span><span className="pq-unit-slot">{isPro && unitLabel ? `\u00a0${unitLabel}` : ''}</span></td>
                   <td headers={colId('price')} role="cell" className="pq-td-price" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>Not priced yet</span> : <span className="pf-money">{currencySymbol}{formatNum(item.price)}</span>}</td>
-                  <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>Not priced yet</span> : <span className="pf-money">{currencySymbol}{formatNum(item.total_price || item.price * item.quantity)}</span>}</td>
+                  <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>Not priced yet</span> : <span className="pf-money">{currencySymbol}{formatNum(item.total_price || Number(item.price || 0) * Number(item.quantity || 1))}</span>}</td>
                 </tr>
               );
             })
@@ -620,9 +628,9 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
                     return (
                       <tr role="row" key={i}>
                         <td headers={colId('desc')} role="cell" className="pq-td-desc">{renderDescriptionCell(item, renderItemDetailLines(item, true))}</td>
-                        <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}><span className="pq-num-slot">{isPro ? formatQuantity(activeQty, item.pricing_unit) : item.quantity}</span><span className="pq-unit-slot" /></td>
+                        <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}><span className="pq-num-slot">{isPro ? formatQuantity(activeQty, item.pricing_unit) : Number(item.quantity || 1)}</span><span className="pq-unit-slot" /></td>
                         <td headers={colId('price')} role="cell" className="pq-td-price" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>Not priced yet</span> : <span className="pf-money">{currencySymbol}{formatNum(item.price)}</span>}</td>
-                        <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>Not priced yet</span> : <span className="pf-money">{currencySymbol}{formatNum(item.total_price || item.price * item.quantity)}</span>}</td>
+                        <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>Not priced yet</span> : <span className="pf-money">{currencySymbol}{formatNum(item.total_price || Number(item.price || 0) * Number(item.quantity || 1))}</span>}</td>
                       </tr>
                     );
                   })}
@@ -748,6 +756,10 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
             )}
           </div>
         )}
+        {/* Owner 2026-11-10 (Hebrew/English sync): a stored signature that is not an image still says it was received, as in Hebrew */}
+        {!(signatureSrc && signatureSrc.startsWith('data:image')) && (
+          <div className="pq-approval-record">The digital signature was received</div>
+        )}
       </div>
     );
   } else if (isExpired && !isUnfinishedDraft) {
@@ -777,9 +789,23 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
     </div>
   ) : null;
 
-  // Document footer (ledger D23, cloud-fix4): base c65f742 International page has NO footer (no credit line); the Task 16
-  // "{business} · {number}" line is removed.
-  const docFooter = null;
+  // Document footer: Owner 2026-11-10 (Hebrew/English sync, typed "כן" to the English credit line) - the same credit line as the
+  // Hebrew page (centred, the TEKANGO link to the English home). The Task 16 "{business} · {number}" line stays removed.
+  const docFooter = (
+    <div className="pq-doc-foot">
+      <span>This document was produced with{' '}
+        {previewMode ? (
+          <span dir="ltr" className="pq-doc-credit">TEKANGO</span>
+        ) : (
+          /* PRODUCT_TRUTH_DECORATIVE: footer TEKANGO branding link navigating to the main marketing homepage */
+          <span onClick={() => window.location.assign('/en')} dir="ltr" className="pq-doc-credit pq-doc-credit-link">
+            TEKANGO
+          </span>
+        )}
+        {' '}– the software that makes business life easy.
+      </span>
+    </div>
+  );
 
   // End of the document as ONE keep-together group (cloud-fix4, A13): the last body block (terms / notes, or the totals
   // when there are none) + the approval / status record + the footer. Chromium does not honour break-before: avoid at the

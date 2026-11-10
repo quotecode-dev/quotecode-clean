@@ -462,7 +462,7 @@ export default function AdminExpenseInvoices({ isHebrew }) {
                           {r.status === 'send_failed' && r.sendError && <div className="av-bad av-small" role="alert">{isHebrew ? 'לא נשלח: ' : 'Not sent: '}<bdi>{r.sendError}</bdi></div>}
                           {r.status === 'unknown' && <div className="av-warn av-small" role="status" data-testid={`expense-unknown-${r.id}`}>{isHebrew
                             ? <>לא ידוע אם ההוצאה נקלטה בפיי פלוס (לא התקבלה תשובה ברורה). היא לא תישלח שוב לבד. לחצו "בדיקה בפיי פלוס".{r.sendError ? <> <bdi>{r.sendError}</bdi></> : null}</>
-                            : <>It is not known whether PayPlus received this expense (no clear answer). It will not be sent again automatically. Press "Check in PayPlus".</>}</div>}
+                            : <>It is not known whether PayPlus received this expense (no clear answer). It will not be sent again automatically. Press "Check in PayPlus".{r.sendError ? <> <bdi>{r.sendError}</bdi></> : null}</>}</div>}
                           {r.status === 'unknown' && (
                             <div className="av-row-actions" style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBlockStart: 8 }} data-testid={`expense-resolve-${r.id}`}>
                               {/* PRODUCT_TRUTH_DECORATIVE: the Owner found this expense in PayPlus - marked sent, nothing is sent (Codex N06) */}

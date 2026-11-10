@@ -94,13 +94,9 @@ describe.each(PAGES)('%s public quote - document / action separation', (name, re
     expect(screen.getByRole('button', { name: t.approve })).toBeInTheDocument();
     // The printed / PDF copy keeps the static approval line (print-only on screen).
     expect(card.querySelector('.pq-approval.pq-print-only .pq-sigline')).not.toBeNull();
-    // ledger D23 (cloud-fix4): base footer - HE credit line only; EN has no footer (as base c65f742)
-    if (name === 'HE') {
-      expect(card.querySelector('.pq-doc-foot').textContent).toMatch(/^המסמך הופק באמצעות/);
-      expect(card.querySelector('.pq-doc-foot').textContent).not.toContain(data().business.business_name);
-    } else {
-      expect(card.querySelector('.pq-doc-foot')).toBeNull();
-    }
+    // ledger D23 (cloud-fix4): the credit line; Owner 2026-11-10 (Hebrew/English sync, typed "כן"): English has the same line now
+    expect(card.querySelector('.pq-doc-foot').textContent).toMatch(name === 'HE' ? /^המסמך הופק באמצעות/ : /^This document was produced with/);
+    expect(card.querySelector('.pq-doc-foot').textContent).not.toContain(data().business.business_name);
     // The page shell keeps the print/PDF hooks.
     const page = container.querySelector('.pq-page');
     expect(page.getAttribute('data-print-mode')).toBe('compact');

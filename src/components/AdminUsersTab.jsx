@@ -10,7 +10,7 @@ import AdminUsersView from './AdminUsersView';
 import AdminUserDetails from './AdminUserDetails';
 import AdminProtectedDialog from './AdminProtectedDialog';
 import { useAdminAccountSummary, legacyOperationsRetired, adminTargetUserId } from '../domain/subscriptions/adminAccountSummary';
-import { accountDate, accountDateTime } from '../utils/adminDates';
+import { accountDate, accountDateTime, ADMIN_DATE_MARKET } from '../utils/adminDates';
 import { billingPreview, runBillingAction, billingErrorText, billingResult, billingMoney, billingRefundMoney, fill, reasonOk, BILLING_COPY as B } from '../domain/admin/adminBilling';
 import { supabase } from '../shared/supabase';
 
@@ -261,7 +261,7 @@ export default function AdminUsersTab({
 
   const t2 = (x) => (isHebrew ? x.he : x.en);
   const billingUid = billingDialog ? adminTargetUserId(billingDialog.account) : null;
-  const billingDate = (v) => (billingDialog ? accountDate(v, billingDialog.account, isHebrew ? 'Local' : 'International') : '');
+  const billingDate = (v) => (billingDialog ? accountDate(v, billingDialog.account, ADMIN_DATE_MARKET) : '');
   function openBilling(action, account, preview) {
     setResetError(''); setAdminPasswordInput(''); setAdminReasonInput(''); setActionDone(false);
     setBillingWaive(false); setBillingStopped(null); setBillingNotice(null);
@@ -446,7 +446,7 @@ export default function AdminUsersTab({
           busy={isResetting} error={resetError} done={actionDone} onSubmit={handleExecuteTrialExtension} onClose={closeDialogs}
           disabled={isResetting || legacyRetired}
         >
-          <div className="av-statline"><span>{isHebrew ? 'תקופת ניסיון נוכחית' : 'Current trial'}</span>{trialActionUser?.trial_ends_at ? <bdi className="av-num">{accountDateTime(trialActionUser.trial_ends_at, trialActionUser, (isHebrew ? 'Local' : 'International'))}</bdi> : <span>{isHebrew ? 'אין' : 'None'}</span>}</div>
+          <div className="av-statline"><span>{isHebrew ? 'תקופת ניסיון נוכחית' : 'Current trial'}</span>{trialActionUser?.trial_ends_at ? <bdi className="av-num">{accountDateTime(trialActionUser.trial_ends_at, trialActionUser, ADMIN_DATE_MARKET)}</bdi> : <span>{isHebrew ? 'אין' : 'None'}</span>}</div>
           {legacyRetired && <div className="av-notice av-bad">{legacyRetiredText}</div>}
         </AdminProtectedDialog>
       )}

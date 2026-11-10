@@ -368,10 +368,10 @@ export default function QuotesTab({
       ? Number(quote.tax_rate)
       : 0.18;
     // Owner 2026-10-23: a business shekel quote's before-VAT amount uses the editor's IRON-ILS-001 rounding (an old quote keeps its own)
-    const bizNet = isBizClient && isHebrew
+    const bizNet = isBizClient && isLocalIsraeliBusiness === true
       ? financialsMatchingStored({ country: 'Local', currency: quote.currency, clientType: 'business', items: [{ quantity: 1, unit_price: Number(rawSubtotal) || 0 }], discount: rawDiscount, taxRateOverride: persistedTaxRate }, quote.total).netAmount
       : null;
-    const beforeVatAmount = isBizClient && isHebrew ? (bizNet ?? discBase) : (quote.total / (1 + persistedTaxRate));
+    const beforeVatAmount = isBizClient && isLocalIsraeliBusiness === true ? (bizNet ?? discBase) : (quote.total / (1 + persistedTaxRate));
 
     const quoteSym = getQuoteCurrencySymbol(quote.currency);
     // SMART-QUOTE-01: a draft with nothing to charge is labelled as an UNFINISHED draft in the list (never a plain "Draft").
@@ -620,7 +620,7 @@ export default function QuotesTab({
       // כתובת לא קיימת/הצעה שהוחזרה (מזוהה ע"י resend-email-webhook,
       // לא ע"י תוצאת השליחה המיידית) - נשארת אדומה עד שליחה מחדש מוצלחת
       <span
-        title={isHebrew ? 'כתובת המייל שאליה נשלחה ההצעה אינה קיימת' : 'The email address you sent does not exist'}
+        title={isHebrew ? 'כתובת המייל שאליה נשלחה ההצעה אינה קיימת' : 'The email address the quote was sent to does not exist'}
         style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: NEON.redDark, boxShadow: `0 0 0 3px ${APP_STATUS.error.bg}` }}
       />
     ) : emailStatus ? (
@@ -1147,7 +1147,7 @@ export default function QuotesTab({
               onClick={() => setShowMobileFilters(prev => !prev)}
               aria-haspopup="true"
               aria-expanded={showMobileFilters}
-              aria-label={isHebrew ? 'סינון ומיון' : 'Filters'}
+              aria-label={isHebrew ? 'סינון ומיון' : 'Filter and sort'}
               style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 12px', border: `1px solid ${statusFilter !== 'All' || showMobileFilters ? NEON.violet : NEON.borderStrong}`, borderRadius: RADIUS.sm, background: statusFilter !== 'All' ? NEON.violetLighter : NEON.bgInput, color: statusFilter !== 'All' ? NEON.violet : NEON.textSecondary, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
             >
               <Filter size={14} strokeWidth={2.2} />
@@ -1292,7 +1292,7 @@ export default function QuotesTab({
                     symbolGap
                     symbol={quoteSym}
                     text={amountText}
-                    title={isLocalIsraeliBusiness && isHebrew ? `לפני מע״מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
+                    title={isLocalIsraeliBusiness ? `${isHebrew ? 'לפני מע״מ' : 'Before VAT'}: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
                   />
                 </div>
                 {isExpanded && <div id={detailId} className="quote-modern-detail">{renderDetailPanel(row, detailId)}</div>}
@@ -1554,7 +1554,7 @@ export default function QuotesTab({
                       Density, נשמר): "לפני מע"מ: ₪X" זמין דרך title (hover)
                       על תא הסכום - לא כשורה נוספת גלויה. אין מקבילה ל-
                       International (Market Separation, ללא שינוי). */}
-                  <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness && isHebrew ? `לפני מע״מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}>
+                  <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center' }} title={isLocalIsraeliBusiness ? `${isHebrew ? 'לפני מע״מ' : 'Before VAT'}: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}>
                     <MoneyValue slot data-qh="amount" symbol={quoteSym} text={formatMoneyDisplay(quote.total, quote.currency)} style={{ ...QH_CELL_STYLE.amount, color: NEON.textPrimary }} />
                   </td>
                   <td style={{ padding: `11px ${QH_CELL_PAD}px`, verticalAlign: 'middle', textAlign: 'center' }}>
@@ -1670,7 +1670,7 @@ export default function QuotesTab({
                       data-testid="quote-card-amount"
                       data-qh="amount"
                       style={{ fontWeight: '500', color: NEON.textPrimary, fontSize: '0.875rem' }}
-                      title={isLocalIsraeliBusiness && isHebrew ? `לפני מע״מ: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
+                      title={isLocalIsraeliBusiness ? `${isHebrew ? 'לפני מע״מ' : 'Before VAT'}: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
                     />
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
