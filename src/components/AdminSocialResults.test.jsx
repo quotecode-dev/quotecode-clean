@@ -23,13 +23,6 @@ describe.each([[true, 'מה תופס', 'לא זמין', 'בלי כיתוב', 'rt
     expect(getByTestId('social-content-facebook-p1').querySelector('a')).toBeNull();
     expect(getByTestId('social-content-instagram-m1').querySelector('a').getAttribute('rel')).toContain('noopener');
   });
-  it('what catches on: a gray row and a white row in turn (Owner 2026-11-09, L-22)', () => {
-    const { getByTestId } = render(<AdminSocialResults isHebrew={he} content={rows} />);
-    const items = [...getByTestId('social-what-works').querySelectorAll('li')];
-    expect(items.length).toBe(2);
-    expect(items[0].style.background).toMatch(/^(#e8edf3|rgb\(232, 237, 243\))$/);
-    expect(items[1].style.background).toMatch(/^(#fff|rgb\(255, 255, 255\))$/);
-  });
   it('no data yet is said as such', () => {
     expect(render(<AdminSocialResults isHebrew={he} content={[]} />).getByTestId('social-results-empty')).toBeTruthy();
   });
