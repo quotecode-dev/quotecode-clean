@@ -622,8 +622,7 @@ describe.each([
     expect(container.querySelector('.quote-modern-client-name').textContent).toBe('Client new');
   });
 
-  it('no big status button inside an open card in any state (hot, draft, unfinished draft, approved, paid)', () => {
-    // Owner console 2026-11-10 (typed: "מאשר הסרת הכפתור הגדול מכרטיס הצעה פתוח (\"צפייה\" ו\"המשך העריכה\") בשתי השפות, כולל שינוי ב-L-07 ו-L-29, שחרור עד הלייב"): no big status button in an open card, in any state
+  it('action label precedence: hot -> no primary button, unfinished draft -> Continue editing, complete draft -> no primary button, approved/paid -> View', () => {
     const label = (quote) => {
       const { container, unmount } = render(<QuotesTab {...buildProps(isHebrew)} quotes={[quote]} allQuotes={[quote]} />);
       expect(container.querySelector('.quote-modern-action')).toBeNull(); // collapsed: no always-visible action
@@ -636,11 +635,11 @@ describe.each([
     // Owner console 2026-11-06 (typed, L-07 / L-29): "פתיחה ומעקב" / "Open & track" is removed from inside the open card
     expect(label(mk('x', { status: 'draft', view_count: 3 }))).toBeNull();
     expect(label(mk('x', { status: 'sent', view_count: 3 }))).toBeNull();
-    expect(label(mk('x', { status: 'draft', total: 0 }))).toBeNull();
+    expect(label(mk('x', { status: 'draft', total: 0 }))).toBe(isHebrew ? 'המשך העריכה' : 'Continue editing');
     // Owner console 2026-11-05 (typed, L-07 / L-29): the plain "פתיחה" primary button was removed - the card is already open, so no button here
     expect(label(mk('x', { status: 'draft' }))).toBeNull();
-    expect(label(mk('x', { status: 'approved', view_count: 8 }))).toBeNull();
-    expect(label(mk('x', { status: 'paid' }))).toBeNull();
+    expect(label(mk('x', { status: 'approved', view_count: 8 }))).toBe(isHebrew ? 'צפייה' : 'View');
+    expect(label(mk('x', { status: 'paid' }))).toBe(isHebrew ? 'צפייה' : 'View');
   });
 
   it('derives the state text: complete draft = Needs sending, unfinished draft = Draft, hot = Viewed/awaiting, approved colored text', () => {
@@ -663,8 +662,7 @@ describe.each([
     expect(state(mk('x', { status: 'draft', view_count: 2 }))).toEqual([isHebrew ? 'נשלחה · נצפתה' : 'Sent · viewed', 'sent']);
     expect(state(mk('x', { status: 'draft', view_count: 3 }))).toEqual([isHebrew ? 'נצפתה, ממתינה' : 'Viewed, awaiting', 'hot']);  });
 
-  it('the open card has no big status button; the action row Edit / View use the existing handlers; a hot quote has none either', () => {
-    // Owner console 2026-11-10 (typed: "מאשר הסרת הכפתור הגדול מכרטיס הצעה פתוח (\"צפייה\" ו\"המשך העריכה\") בשתי השפות, כולל שינוי ב-L-07 ו-L-29, שחרור עד הלייב"): no big status button in an open card, in any state
+  it('dropdown primary actions use the existing handlers: edit for Continue editing, the public link for View; a hot quote has no primary button inside', () => {
     const handleProtectedAction = vi.fn((id, action, fn) => fn());
     const handleEditClick = vi.fn();
     const open = vi.spyOn(window, 'open').mockImplementation(() => null);
@@ -673,8 +671,7 @@ describe.each([
     const unfinished = mk('u', { status: 'draft', total: 0 });
     const r1 = render(<QuotesTab {...props} quotes={[unfinished]} allQuotes={[unfinished]} />);
     fireEvent.click(r1.container.querySelector('.quote-modern-toggle'));
-    expect(r1.container.querySelector('.quote-modern-detail .quote-modern-action')).toBeNull();
-    fireEvent.click(within(r1.container.querySelector('.quote-modern-detail')).getByText(isHebrew ? 'עריכה' : 'Edit'));
+    fireEvent.click(r1.container.querySelector('.quote-modern-detail .quote-modern-action'));
     expect(handleProtectedAction).toHaveBeenCalledWith('u', 'edit', expect.any(Function));
     expect(handleEditClick).toHaveBeenCalledWith(unfinished);
     r1.unmount();
@@ -682,8 +679,8 @@ describe.each([
     const approved = mk('p', { status: 'approved' });
     const r2 = render(<QuotesTab {...props} quotes={[approved]} allQuotes={[approved]} />);
     fireEvent.click(r2.container.querySelector('.quote-modern-toggle'));
-    expect(r2.container.querySelector('.quote-modern-detail .quote-modern-action')).toBeNull();
-    expect(r2.container.querySelector('.quote-modern-detail').textContent).toContain(isHebrew ? 'צפייה' : 'View');
+    fireEvent.click(r2.container.querySelector('.quote-modern-detail .quote-modern-action'));
+    expect(open).toHaveBeenCalledWith(expect.stringContaining('/public-quote/p'), '_blank');
     r2.unmount();
 
     const hot = mk('h', { status: 'sent', view_count: 5 });
@@ -838,16 +835,19 @@ describe.each([
     expect(trigger).toHaveAttribute('aria-controls', `quote-modern-detail-${baseQuote.id}`);
   });
 
-  it('every row action is reachable in the dropdown: View/Edit/Duplicate/WhatsApp/Email/Delete (no big status button first)', () => {
-    // Owner console 2026-11-10 (typed: "מאשר הסרת הכפתור הגדול מכרטיס הצעה פתוח (\"צפייה\" ו\"המשך העריכה\") בשתי השפות, כולל שינוי ב-L-07 ו-L-29, שחרור עד הלייב"): no big status button in an open card, in any state
+  it('every prior row action is reachable in the dropdown: the status-aware primary action first, then View/Edit/Duplicate/WhatsApp/Email/Delete', () => {
     // Owner console 2026-11-05 (typed, L-07 / L-29): the plain "open" state no longer shows a primary button; a status with a real
     // primary action (an approved quote -> "צפייה"/"View") still shows it first, which is what this guard protects.
     const { container } = render(<QuotesTab {...buildProps(isHebrew, { status: 'approved', view_count: 8 })} />);
     fireEvent.click(container.querySelector('.quote-modern-toggle'));
     const panel = container.querySelector('.quote-modern-detail');
-    expect(panel.querySelector('.quote-modern-action')).toBeNull();
+    const primary = panel.querySelector('.quote-modern-action');
+    expect(primary).not.toBeNull();
+    expect(primary.dataset.action).toBeTruthy();
     const text = panel.textContent;
     for (const label of isHebrew ? ['צפייה', 'עריכה', 'שכפול', 'וואטסאפ', 'שליחה במייל', 'מחיקה'] : ['View', 'Edit', 'Duplicate', 'WhatsApp', 'Email', 'Delete']) expect(text).toContain(label);
+    // the primary action is the first focusable control in the dropdown (focus order: trigger -> primary -> secondary)
+    expect(panel.querySelector('button')).toBe(primary);
   });
 
   it('displays quote numbers without a literal # and in full (long alphanumeric), LTR-isolated', () => {

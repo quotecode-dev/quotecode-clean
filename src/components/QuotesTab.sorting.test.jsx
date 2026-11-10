@@ -163,8 +163,7 @@ describe.each([
     expect(columnOf(key)).toHaveAttribute('aria-sort', 'ascending');
   });
 
-  it('R4: no Action header or action cell; no big status button inside any open card', () => {
-    // Owner console 2026-11-10 (typed: "מאשר הסרת הכפתור הגדול מכרטיס הצעה פתוח (\"צפייה\" ו\"המשך העריכה\") בשתי השפות, כולל שינוי ב-L-07 ו-L-29, שחרור עד הלייב"): no big status button in an open card, in any state
+  it('R4: no Action header or action cell; every row keeps its status-aware primary action inside its own dropdown', () => {
     const { container } = render(<Harness isHebrew={isHebrew} initialField="id" initialDirection="desc" />);
     showAll(isHebrew);
     expect(header('action')).toBeNull();
@@ -180,7 +179,7 @@ describe.each([
     // Owner console 2026-11-05 (typed, L-07 / L-29): the plain "open" state shows no primary button (the card is already open). The real
     // status actions are unchanged: E = continue editing, C/D = view; A/B (plain open) now have none.
     // Owner console 2026-11-06 (typed, L-07 / L-29): F (hot) has no "Open & track" button inside its open card either.
-    expect(kinds).toEqual({ A: null, B: null, C: null, D: null, E: null, F: null });
+    expect(kinds).toEqual({ A: null, B: null, C: 'view', D: 'view', E: 'edit', F: null });
   });
 
   it('switching to a different column starts ascending again', () => {

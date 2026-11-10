@@ -842,8 +842,18 @@ export default function QuotesTab({
     else if (actionKind === 'view') window.open(getQuoteViewLink(quote), '_blank');
     else openTrackingFor(quote.id);
   };
-  const renderDetailPanel = (row) => {
-    const { quote, firstItemDesc, emailStatus, isLocked } = row;
+  const renderDetailPanel = (row, detailId) => {
+    const { quote, firstItemDesc, emailStatus, isLocked, actionKind, actionLabel } = row;
+    // Owner R4: the status-aware primary row action (Open & track / Continue editing / Open / View - same precedence, same
+    // handlers) lives inside the row's dropdown instead of a standalone Action column. Open / Open & track keep the tracking
+    // details open (never toggle them shut from inside).
+    const runAction = () => {
+      if (actionKind === 'edit') handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote));
+      else if (actionKind === 'view') window.open(getQuoteViewLink(quote), '_blank');
+      else openTrackingFor(quote.id);
+    };
+    const expands = actionKind === 'open' || actionKind === 'track';
+    const isExpanded = true;
     const clientType = quote.clients?.client_type;
     const clientTypeLabel = clientType === 'business'
       ? (isHebrew ? 'לקוח עסקי' : 'Business Client')
@@ -859,9 +869,26 @@ export default function QuotesTab({
           : null;
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {/* Owner console 2026-11-05 / 2026-11-06 removed "פתיחה" and "פתיחה ומעקב" here; Owner console 2026-11-10 (typed: "מאשר הסרת הכפתור
-            הגדול מכרטיס הצעה פתוח ("צפייה" ו"המשך העריכה") בשתי השפות, כולל שינוי ב-L-07 ו-L-29, שחרור עד הלייב"): the open card has no big
-            status button at all - "צפייה" / "עריכה" are in the action row below; the quote number still opens the quote. */}
+        {/* Owner console 2026-11-05 (typed, L-07 / L-29): the plain "פתיחה" primary button is removed - the card is already open, so it did
+            nothing. The useful status actions stay: "המשך העריכה" (edit) and "צפייה" (view).
+            Owner console 2026-11-06 (typed: "אשר הסרת "פתיחה ומעקב" מתוך כרטיס הצעה פתוח בשתי השפות, כולל שינוי ב-L-07 ו-L-29"):
+            "פתיחה ומעקב" / "Open & track" is removed from inside the open card too - the card already shows the tracking. The hot-quote
+            banner above the list keeps its own "פתיחה ומעקב". */}
+        {actionLabel && actionKind !== 'open' && actionKind !== 'track' && (
+          <div className="quote-modern-primary-row">
+            {/* PRODUCT_TRUTH_CAPABILITY: quote_history */}
+            <button
+              type="button"
+              className="quote-modern-action"
+              data-action={actionKind}
+              onClick={runAction}
+              aria-expanded={expands ? isExpanded : undefined}
+              aria-controls={expands ? detailId : undefined}
+            >
+              <span>{actionLabel}</span>
+            </button>
+          </div>
+        )}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '0.78rem', color: NEON.textSecondary }}>
           {clientTypeLabel && (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
