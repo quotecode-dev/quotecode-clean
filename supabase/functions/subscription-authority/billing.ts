@@ -128,17 +128,6 @@ export type SmartPackLineRequest = { addOnId: string; packageAttemptId: string; 
 
 /** Owner 2026-10-25 (the first real charge came back as "General Customer" with no email - no invoice, no approval email): the
  *  paying account's own business details from its settings row; each value is optional and validated before use. */
-// Owner console 2026-11-10 (typed: "מאשר שורת פריט ברורה בכל החזר דרך פיי פלוס לפי הטבלה, שחרור עד הלייב"): the product line of the credit
-// document of a refund (PayPlus takes it from more_info on a partial refund; without it the charge's own reference number was printed)
-export const PAYPLUS_REFUND_LINES = Object.freeze({
-  ILS: Object.freeze({ month: 'החזר: TEKANGO - מנוי חודשי', year: 'החזר: TEKANGO - מנוי שנתי', subscription: 'החזר: TEKANGO - מנוי', smartPack: 'החזר: חכם פלוס' }),
-  USD: Object.freeze({ month: 'Refund: TEKANGO - Monthly subscription', year: 'Refund: TEKANGO - Annual subscription', subscription: 'Refund: TEKANGO - subscription', smartPack: 'Refund: SMART PACK' }),
-});
-/** the refund line for a currency ('ILS' Hebrew, 'USD' English) - null when the currency is unknown (the line is then left to PayPlus) */
-export function refundLine(what: 'month' | 'year' | 'subscription' | 'smartPack', currency: unknown): string | null {
-  return currency === 'ILS' || currency === 'USD' ? PAYPLUS_REFUND_LINES[currency][what] : null;
-}
-
 export type CheckoutCustomer = { name: string | null; email: string | null };
 const CUSTOMER_EMAIL = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,24}$/;
 export function cleanCheckoutCustomer(v: unknown): CheckoutCustomer | null {
@@ -171,7 +160,7 @@ export interface BillingProvider {
   addSmartPackLine?(i: SmartPackLineRequest): Promise<'added' | 'not_added' | 'unknown'>;
   /** 20261027100000: the SMART PACK line taken off the standing order; a yearly SMART PACK refunded pro rata (section 6) */
   removeSmartPackLine?(i: SmartPackRemovalRequest): Promise<'removed' | 'refused' | 'unknown'>;
-  refund?(transactionUid: string, amountMinor: number, lineText?: string | null): Promise<{ ok: true; refundRef: string } | { ok: false }>;
+  refund?(transactionUid: string, amountMinor: number): Promise<{ ok: true; refundRef: string } | { ok: false }>;
 }
 
 // The only provider available today: none (OPEN-12). Checkout is unavailable and every webhook is refused.
@@ -318,10 +307,6 @@ export interface BillingSql {
   smartPackRemovalFinish?(removalId: string, removed: boolean): Promise<Record<string, unknown>>;
   smartPackRemovalTargets?(userId: string): Promise<unknown>;
   smartPackRemovalRefundsDue?(userId: string): Promise<unknown>;
-  /** Owner console 2026-11-10: the account's product market (business_settings.country) - the language of the refund line */
-  refundCurrency?(userId: string): Promise<'ILS' | 'USD' | null>;
-  /** Owner console 2026-11-10: run the customer emails of this account now (after a paid return) - never throws, never blocks the answer */
-  notifyCustomer?(userId: string): Promise<void>;
   recordSmartPackRemovalRefund?(removalId: string, refundRef: string): Promise<Record<string, unknown>>;
   // 20261029000000 (Codex F01/F02): a refund is claimed before PayPlus is asked; an unproven answer is left for the Owner
   claimSmartPackRemovalRefund?(removalId: string): Promise<Record<string, unknown>>;
@@ -598,8 +583,6 @@ export async function refundDueRemovals(deps: { sql: BillingSql; provider: Billi
   let due: unknown = [];
   try { due = await sql.smartPackRemovalRefundsDue(userId); } catch { return out; }
   const log = (incident: string) => console.error(JSON.stringify({ fn: 'subscription-authority', incident }));
-  // Owner console 2026-11-10: the credit document line "החזר: חכם פלוס" / "Refund: SMART PACK" in the account's language
-  const line = typeof sql.refundCurrency === 'function' ? refundLine('smartPack', await sql.refundCurrency(userId).catch(() => null)) : null;
   for (const d of Array.isArray(due) ? due.slice(0, 3) : []) {
     if (!isObj(d) || typeof d.removalId !== 'string' || !UUID.test(d.removalId)) continue;
     out.set(d.removalId, 'pending');
@@ -610,7 +593,7 @@ export async function refundDueRemovals(deps: { sql: BillingSql; provider: Billi
       await sql.markSmartPackRemovalRefundUnknown(d.removalId).catch(() => undefined);
       log('smart_pack_removal_refund_needs_owner'); continue;
     }
-    const r = await provider.refund(c.chargeRef, c.amountMinor as number, line).catch(() => ({ ok: false as const }));
+    const r = await provider.refund(c.chargeRef, c.amountMinor as number).catch(() => ({ ok: false as const }));
     if (!r.ok) {
       // a refusal and a lost answer look the same here: never refunded again automatically (the Owner checks PayPlus)
       await sql.markSmartPackRemovalRefundUnknown(d.removalId).catch(() => undefined);
@@ -721,12 +704,11 @@ export async function checkoutStatusHandler(phase: BillingPhase, deps: { sql: Bi
   let targets: PullTarget[] | null;
   try { targets = parsePullTargets(await sql.checkoutPullTargets(userId)); } catch { return err(503, 'retry_later'); }
   if (!targets) return err(503, 'retry_later');
-  let activated = false; let waiting = 0; let approvedAny = false;
+  let activated = false; let waiting = 0;
   let resumed = false; // 2026-11-04: a resumed renewal's page was kept (nothing charged) - the return page says so, never "paid"
   for (const t of targets) {
     const p = await provider.pullCheckout(t.requestRef).catch(() => null);
     if (!p || !p.approved) { waiting++; continue; } // not paid (yet) / provider unreachable: the callback or a later pull decides
-    approvedAny = true;
     if (p.attemptId !== t.attemptId) {
       // a page request answered with someone else's attempt id is never applied - an incident for the Owner
       console.error(JSON.stringify({ fn: 'subscription-authority', incident: 'pull_attempt_mismatch' }));
@@ -784,8 +766,6 @@ export async function checkoutStatusHandler(phase: BillingPhase, deps: { sql: Bi
     for (const id of Array.isArray(ids) ? ids.slice(0, 3) : []) if (typeof id === 'string' && UUID.test(id)) await completeSmartPackRemoval(deps, id);
   }
   await refundDueRemovals(deps, userId);
-  // a paid return (activated here or already by the callback): the customer's email goes out now, not at the next hourly cron
-  if (approvedAny && typeof sql.notifyCustomer === 'function') await sql.notifyCustomer(userId).catch(() => undefined);
   return { status: 200, body: { ok: true, activated, waiting, ...(resumed ? { resumed: true } : {}) } };
 }
 

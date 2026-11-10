@@ -107,7 +107,7 @@ describe('the removal on the server', () => {
     const s = refundSql();
     const made = await refundDueRemovals({ sql: s as never as BillingSql, provider: { refund } as never }, U);
     expect(made.get(RM)).toBe('refunded');
-    expect(refund).toHaveBeenCalledWith('tx-year', 2300, null); // no account currency in this fixture -> no line (Owner 2026-11-10)
+    expect(refund).toHaveBeenCalledWith('tx-year', 2300);
     expect(s.recordSmartPackRemovalRefund).toHaveBeenCalledWith(RM, 'rf-1');
   });
   it('two requests at once (two tabs, or the removal and a status refresh) refund once', async () => {

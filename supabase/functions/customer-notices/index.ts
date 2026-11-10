@@ -12,9 +12,6 @@ Deno.serve(async (req) => {
   const secret = Deno.env.get('CRON_SECRET') ?? '';
   if (!secret || req.headers.get('x-cron-secret') !== secret) return json({ ok: false, code: 'unauthorized' }, 401);
   const admin = createClient(Deno.env.get('SUPABASE_URL') ?? '', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '');
-  // Owner console 2026-11-10: subscription-authority asks for ONE account right after a paid return ({ user }); the hourly cron sends no body
-  let only: string | undefined;
-  try { const b = await req.json(); if (b && typeof b.user === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(b.user)) only = b.user; } catch { only = undefined; }
   const mail = { fetch: fetch as never, apiKey: Deno.env.get('RESEND_API_KEY') ?? '' };
   // recording never breaks or delays the job itself
   const report = async (body: Parameters<typeof healthOf>[0]) => {
@@ -24,21 +21,18 @@ Deno.serve(async (req) => {
   try {
     const body = await runNotices({
       facts: async (user) => {
-        const u = user ?? only;
-        const { data, error } = await admin.rpc('customer_notice_facts', u ? { p_user: u } : {});
+        const { data, error } = await admin.rpc('customer_notice_facts', user ? { p_user: user } : {});
         if (error) throw new Error('facts_failed');
         return (data ?? []) as Fact[];
       },
       lifecycle: async (user) => {
-        const u = user ?? only;
-        const { data, error } = await admin.rpc('customer_notice_lifecycle_facts', u ? { p_user: u } : {});
+        const { data, error } = await admin.rpc('customer_notice_lifecycle_facts', user ? { p_user: user } : {});
         if (error) throw new Error('facts_failed');
         return (data ?? []) as LifeFact[];
       },
       // 2026-11-05 (night task item 2): the billing-change emails - their own switch (customer_notice_settings.billing_phase)
       billing: async (user) => {
-        const u = user ?? only;
-        const { data, error } = await admin.rpc('customer_notice_billing_facts', u ? { p_user: u } : {});
+        const { data, error } = await admin.rpc('customer_notice_billing_facts', user ? { p_user: user } : {});
         if (error) throw new Error('facts_failed');
         return (data ?? []) as BillingFact[];
       },

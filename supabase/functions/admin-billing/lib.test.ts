@@ -21,8 +21,8 @@ function deps(over: Partial<AdminBillingDeps> = {}, begun: Record<string, unknow
       recurringRef: REC, terminalRef: TERM, chargeRef: 'tx-1' })),
     openAction: vi.fn(async () => null as Record<string, unknown> | null),
     begin: vi.fn(async () => ({ ok: true, actionId: ACTION, kind: 'end_early', alreadyStopped: false, recurringRef: REC, terminalRef: TERM,
-      chargeRef: 'tx-1', refundMinor: 1000, currency: 'ILS', period: 'month', ...begun })),
-    finish: vi.fn(async () => { calls.push('finish'); return { ok: true, applied: true, refundDue: true, refundMinor: 1000, chargeRef: 'tx-1', currency: 'ILS',
+      chargeRef: 'tx-1', refundMinor: 1000, currency: 'ILS', ...begun })),
+    finish: vi.fn(async () => { calls.push('finish'); return { ok: true, applied: true, refundDue: true, refundMinor: 1000, chargeRef: 'tx-1',
       paidThrough: '2026-10-22T21:00:00Z', ...finished }; }),
     refundSending: vi.fn(async () => { calls.push('sending'); return { ok: true }; }),
     recordRefund: vi.fn(async () => ({ ok: true })),
@@ -90,7 +90,7 @@ describe('admin-billing: stop, record, and only then refund the exact amount', (
     expect(d.calls).toEqual(['cancel', 'finish', 'sending', 'refund']);
     expect(d.payplus!.cancel).toHaveBeenCalledWith(REC, TERM);
     expect(d.finish).toHaveBeenCalledWith({ actionId: ACTION, cancelStatus: 'cancelled', resolvedByOwner: false });
-    expect(d.payplus!.refund).toHaveBeenCalledWith('tx-1', 1000, 'החזר: TEKANGO - מנוי חודשי'); // Owner 2026-11-10: the refund line
+    expect(d.payplus!.refund).toHaveBeenCalledWith('tx-1', 1000);
     expect(d.recordRefund).toHaveBeenCalledWith({ actionId: ACTION, refundStatus: 'refunded', refundRef: 'refund-1', refundedMinor: 1000 });
     expect(r).toMatchObject({ status: 200, body: { ok: true, applied: true, refundStatus: 'refunded', refundMinor: 1000 } });
     expect(d.audit).toHaveBeenCalledWith(expect.objectContaining({ outcome: 'success', action: 'billing_end_early' }));
@@ -146,7 +146,7 @@ describe('admin-billing: stop, record, and only then refund the exact amount', (
     const d = deps({}, { alreadyStopped: true });
     await adminBillingHandler(d, ADMIN, endEarly());
     expect(d.payplus!.cancel).not.toHaveBeenCalled();
-    expect(d.payplus!.refund).toHaveBeenCalledWith('tx-1', 1000, 'החזר: TEKANGO - מנוי חודשי'); // Owner 2026-11-10: the refund line
+    expect(d.payplus!.refund).toHaveBeenCalledWith('tx-1', 1000);
   });
   it('stop the renewal: no refund ever', async () => {
     const d = deps({}, { kind: 'stop_renewal', refundMinor: 0 }, { refundDue: false, refundMinor: 0 });
@@ -175,7 +175,7 @@ describe('admin-billing: the Owner resolves an interrupted action', () => {
       params: { reason: 'checked the PayPlus panel', actionId: ACTION, stoppedAtPayPlus: true } }));
     expect(d.payplus!.cancel).not.toHaveBeenCalled();
     expect(d.finish).toHaveBeenCalledWith({ actionId: ACTION, cancelStatus: 'cancelled', resolvedByOwner: true });
-    expect(d.payplus!.refund).toHaveBeenCalledWith('tx-1', 1000, 'החזר: TEKANGO - מנוי'); // Owner 2026-11-10: the refund line (no period known on the resolve path)
+    expect(d.payplus!.refund).toHaveBeenCalledWith('tx-1', 1000);
     expect(r.body).toMatchObject({ ok: true, applied: true, refundStatus: 'refunded' });
     const other = deps({ openAction: vi.fn(async () => ({ actionId: REC, kind: 'end_early' })) });
     expect((await adminBillingHandler(other, ADMIN, resolve())).body.code).toBe('no_open_action');
