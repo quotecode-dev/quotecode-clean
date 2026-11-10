@@ -123,7 +123,7 @@ describe('AiQuoteDraftDialog', () => {
     ] })) });
     render(<AiQuoteDraftDialog {...p} />);
     fireEvent.change(screen.getByLabelText('What is the job?'), { target: { value: 'tile the master bedroom 40 m2' } });
-    fireEvent.click(screen.getByRole('button', { name: /Create a draft with AI/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Create with AI/ }));
     await waitFor(() => expect(screen.getAllByTestId('ai-quote-draft-evidence')).toHaveLength(1));
     expect(screen.getByTestId('ai-quote-draft-evidence').textContent).toBe('From your description: “tile the master bedroom 40 m2”');
   });
@@ -245,7 +245,7 @@ describe('AiQuoteDraftDialog', () => {
     const dialog = screen.getByRole('dialog', { name: 'AI smart quote' });
     expect(dialog.getAttribute('dir')).toBe('ltr');
     fireEvent.change(screen.getByLabelText('What is the job?'), { target: { value: 'Replace three windows' } });
-    fireEvent.click(screen.getByRole('button', { name: /Create a draft with AI/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Create with AI/ }));
     await waitFor(() => expect(screen.getByRole('alert').textContent).toContain('busy or temporarily unavailable'));
   });
 });

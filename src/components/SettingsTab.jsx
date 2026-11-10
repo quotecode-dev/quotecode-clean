@@ -489,7 +489,7 @@ export default function SettingsTab({
             </label>
           </div>
           <div style={{ fontSize: '0.72rem', color: NEON.textMuted, marginTop: '4px' }}>
-            {isHebrew ? 'אפשר להעלות קובץ בגודל של עד 500 KB, בפורמט SVG, JPG או PNG.' : 'You can upload a file of up to 500 KB, in SVG, JPG or PNG format.'}
+            {isHebrew ? 'אפשר להעלות קבצים בגודל של עד 500 KB, בפורמטים המותרים בלבד (למשל SVG ו-JPG).' : 'Files up to 500KB only, formats: SVG, JPG, PNG, etc.'}
           </div>
           {logoError && (
             <div style={{ fontSize: '0.75rem', color: NEON.red, marginTop: '3px' }}>

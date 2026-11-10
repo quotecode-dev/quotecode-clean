@@ -76,7 +76,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onOpenU
     return () => { cancelled = true; };
   }, [refreshKey]);
 
-  const adminMarket = ADMIN_DATE_MARKET; // Owner 2026-11-10: never by the admin's language
+  const adminMarket = isHebrew ? 'Local' : 'International';
   const fmtTime = (v) => formatShortDateTime(v, ADMIN_DATE_MARKET);
   const openUsers = (filter) => { setUsersFilterIntent(filter); onGoToUsers(); };
   const kpis = [

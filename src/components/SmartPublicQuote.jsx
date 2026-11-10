@@ -170,11 +170,9 @@ export default function SmartPublicQuote() {
   }, [id, capabilityToken]);
 
   if (state.status === 'loading') {
-    // Owner 2026-11-10 (Hebrew/English sync): the loading line in the page's language, like the error screens below
-    const en = typeof document !== 'undefined' && document.documentElement.lang === 'en';
     return (
-      <div dir={en ? 'ltr' : 'rtl'} lang={en ? 'en' : 'he'} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif' }}>
-        <h2>{en ? 'Loading...' : 'טוען את הצעת המחיר...'}</h2>
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif' }}>
+        <h2>Loading...</h2>
       </div>
     );
   }

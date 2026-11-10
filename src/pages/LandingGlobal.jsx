@@ -290,7 +290,7 @@ export default function LandingGlobal({ onForgotPassword }) {
         { q: 'How do I send a quote to my customer?', a: 'Send it by email or WhatsApp, or copy a message with the quote link and paste it anywhere. Your customer opens the link on any device. You can also download the quote as a PDF.' },
         { q: 'Can my customer sign the quote on a phone?', a: 'Yes. Your customer opens the link, approves the quote and signs it digitally, and the quote status updates in your account. A signed quote is locked for editing; you can duplicate it to create a new quote.' },
         { q: 'Can I keep a fixed price list of products and services?', a: 'Yes. Add items with their prices to your catalog, and pick them when you build a quote.' },
-        { q: 'Can I start a new quote from an existing one?', a: 'Yes. Save a quote as a template, without the customer details. For the next quote, press "New quote" and choose "From a saved template".' },
+        { q: 'Can I start a new quote from an existing one?', a: 'Yes. Save a quote as a template, without the customer details, and start your next quote from that saved template.' },
         { q: 'How do I contact you?', a: <>Email {/* PRODUCT_TRUTH_DECORATIVE: mailto link to the support mailbox */}<MailLink href="mailto:info@tekango.com" isHebrew={false}><bdi dir="ltr">info@tekango.com</bdi></MailLink>, or use the chat in the corner of the screen. There is no phone support at the moment.</> },
       ],
     },

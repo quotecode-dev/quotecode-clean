@@ -21,7 +21,7 @@ export function pricingModalModel({ isHebrew, market, accountCurrency = null, es
   const amount = (period) => (il ? ilsPackageAmount(period) : usdPackageAmount(period).text);
   const rate = il ? ilsAnnualSavingRate() : usdAnnualSavingRate();
   const saving = il ? ilsAnnualSaving() : usdAnnualSaving();
-  const per = isHebrew ? { month: il ? '/ חודש' : 'USD / חודש', year: il ? '/ שנה' : 'USD / שנה' } : { month: il ? '/ month' : 'USD / month', year: il ? '/ year' : 'USD / year' };
+  const per = isHebrew ? { month: '/ חודש', year: '/ שנה' } : { month: il ? '/ month' : 'USD / month', year: il ? '/ year' : 'USD / year' };
   const savingNote = isHebrew
     ? `חיסכון של ${rate.exact ? '' : 'כ-'}${rate.text} — ${saving} בשנה`
     : `Save ${rate.exact ? '' : 'approximately '}${rate.text} — ${saving} per year`; // Task 30: the Owner's in-app wording (em dash)

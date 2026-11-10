@@ -813,7 +813,7 @@ export default function QuoteForm({
             </datalist>
           </div>
           <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'סוג לקוח (חובה)' : 'Client type (required)'}</label>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'סוג לקוח (חובה)' : 'Client Type'}</label>
             <select
               value={clientType}
               onChange={(e) => setClientType(e.target.value)}
@@ -1022,7 +1022,7 @@ export default function QuoteForm({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
             {unitUndoLive && (
               <div role="status" data-testid="unit-separate-undo" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', fontSize: '0.8rem', color: NEON.textSecondary }}>
-                <span>{isHebrew ? <>עותק אחד הופרד מהיחידה{unitUndo.name ? <> <bdi>{unitUndo.name}</bdi></> : null}</> : <>One copy separated from <bdi>{unitUndo.name || 'the unit'}</bdi></>}</span>
+                <span>{isHebrew ? <>עותק אחד הופרד מהיחידה <bdi>{unitUndo.name}</bdi></> : <>One copy separated from <bdi>{unitUndo.name || 'the unit'}</bdi></>}</span>
                 {/* PRODUCT_TRUTH_DECORATIVE: undo "separate one copy" (stage 3) - the unit count and the rows return as they were */}
                 <button type="button" onClick={undoSeparate} style={{ minHeight: '40px', padding: '0 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer' }}>
                   {isHebrew ? 'ביטול' : 'Undo'}
@@ -1182,8 +1182,7 @@ export default function QuoteForm({
           {/* Local Private: אין שורת "סכום ביניים" נפרדת - היא כפולה ל-total
               (שניהם ה-ברוטו שהוזן/ה-total הסופי). מציגים ישירות את פירוט
               החשבונאות הרגיל: סכום לפני מע"מ / מע"מ / סה"כ, בדיוק כמו Business. */}
-          {/* Owner 2026-11-10 (Hebrew/English sync): the VAT rows follow the market (an Israeli business), never the UI language */}
-          {!(isLocalIsraeliBusiness && clientType === 'private') && (
+          {!(isLocalIsraeliBusiness && isHebrew && clientType === 'private') && (
             <>
               <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{t.subtotal}</span>
               <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(subtotal)}</span>
@@ -1196,19 +1195,19 @@ export default function QuoteForm({
               <span className="pf-money" style={{ color: NEON.red, fontSize: '0.8rem', textAlign: 'right' }}>-{sym}{fmtMoney(discountAmount)}</span>
             </>
           )}
-          {isLocalIsraeliBusiness && clientType === 'private' ? (
+          {isLocalIsraeliBusiness && isHebrew && clientType === 'private' ? (
             // תצוגה חשבונאית רגילה (Private): "סכום לפני מע"מ" / "מע"מ (18%)"
             // - אותם ערכים בדיוק כמו קודם (netAmount=total-taxAmount, taxAmount),
             // רק תוויות/סדר שונים; אין נוסחה חדשה. כל הסכומים עוברים במסלול
             // ה-money הקנוני (IRON-ILS-001: שקל שלם עם .00 ב-Local).
             <>
-              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{isHebrew ? 'סכום לפני מע״מ:' : 'Before VAT:'}</span>
+              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>סכום לפני מע״מ:</span>
               <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount - taxAmount)}</span>
-              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{isHebrew ? 'מע״מ (18%):' : 'VAT (18%):'}</span>
+              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>מע״מ (18%):</span>
               <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(taxAmount)}</span>
             </>
           ) : (
-            isLocalIsraeliBusiness && (
+            isLocalIsraeliBusiness && isHebrew && (
               <>
                 <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{t.vat}</span>
                 <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(taxAmount)}</span>
@@ -1222,9 +1221,9 @@ export default function QuoteForm({
           {(items || []).some((it) => it && it._invalid) && (
             <span data-testid="sq-total-partial" style={{ gridColumn: '1 / -1', marginTop: '4px', fontSize: '0.74rem', fontWeight: 700, color: NEON.red }}>{isHebrew ? 'הסכום עדיין חלקי' : 'Partial total'}</span>
           )}
-          {isLocalIsraeliBusiness && (clientType === 'business' || clientType === 'private') && (
+          {isLocalIsraeliBusiness && isHebrew && (clientType === 'business' || clientType === 'private') && (
             <span data-testid="sq-prices-vat-basis" style={{ gridColumn: '1 / -1', marginTop: '4px', fontSize: '0.74rem', color: NEON.textSecondary }}>
-              {clientType === 'private' ? (isHebrew ? 'המחירים בהצעה כוללים מע״מ' : 'Prices in this quote include VAT') : (isHebrew ? 'המחירים בהצעה לפני מע״מ' : 'Prices in this quote are before VAT')}
+              {clientType === 'private' ? 'המחירים בהצעה כוללים מע״מ' : 'המחירים בהצעה לפני מע״מ'}
             </span>
           )}
         </div>
@@ -1359,7 +1358,7 @@ export default function QuoteForm({
 
           {canUseAttachments && (
             <div style={{ fontSize: '0.75rem', color: NEON.textMuted, fontWeight: '600', marginBottom: '8px' }}>
-              {isHebrew ? `נפח פנוי להעלאת קבצים: ${remainingMb} MB` : `Free space for attachments: ${remainingMb} MB`}
+              {isHebrew ? `נפח פנוי להעלאת קבצים: ${remainingMb} MB` : `Remaining: ${remainingMb}MB`}
             </div>
           )}
 

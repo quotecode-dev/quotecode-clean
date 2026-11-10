@@ -100,8 +100,7 @@ export default function NotificationCenter({ client, userId, isHebrew, isLocalIs
   const items = useMemo(() => (pinnedItems.length ? [...pinnedItems, ...unpinnedItems] : unpinnedItems), [pinnedItems, unpinnedItems]);
   // Task 40: the welcome item (a new account, reminders not Off - known only once the saved mode loaded) sits above the derived
   // reminders; it counts as unread only while a read mark can be saved, so a badge the user cannot clear never appears
-  // Owner 2026-11-10 (Hebrew/English sync): the support mailbox follows the market (an Israeli business), like the billing code
-  const supportEmail = (isLocalIsraeliBusiness === true || (isLocalIsraeliBusiness == null && isHebrew)) ? SUPPORT_EMAIL_HE : SUPPORT_EMAIL_EN;
+  const supportEmail = isHebrew ? SUPPORT_EMAIL_HE : SUPPORT_EMAIL_EN;
   const welcome = settingsLoaded && isWelcomeVisible({ accountCreatedAt: authUser?.created_at, mode: settings.mode, now: clock.getTime() });
   const welcomeRead = read.has(WELCOME_ITEM_KEY);
   // Owner console 2026-10-23, typed: "מאשר שינוי ב-L-02, L-04, L-11, L-12, L-14, L-17, L-24, L-26, L-27 ו-L-28: ... וטיפ יומי שנסגר נשמר בפעמון כנקרא למשך 30 יום עם אותו כפתור פעולה": a closed daily tip is a read item (preRead) - it never counts as unread
