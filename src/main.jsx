@@ -4,8 +4,15 @@ import './fonts.css'
 import './index.css'
 import { exposeLoadedBuildIdentity } from './shared/versionAwareness'
 import { captureInstallPrompt } from './shared/installApp'
+import { handOffBillingReturnInFrame } from './shared/paymentFrameReturn'
 
 exposeLoadedBuildIdentity()
+
+// Owner console 2026-11-10: the PayPlus page opens in a window above the app; its return lands in that window - hand it to the app
+// behind and do not start a second app inside the window (shared/paymentFrameReturn.js)
+if (!handOffBillingReturnInFrame()) boot()
+
+function boot() {
 
 // Codex release 3 step 2 (Owner 2026-10-29, typed: "מאשר שחרור 3 של קודקס: ... פיצול הקוד ... כולל שינוי ב-L-02, L-15, בלי שינוי באנימציה
 // ובמראה"): only the selected market's shell is downloaded (AppLocal OR AppGlobal, never both); it is mounted once its code is ready, so
@@ -75,3 +82,4 @@ loadShell().then(({ default: App }) => {
   // the prerendered page stays; a reload fetches the shell again
   console.error('app shell failed to load:', error)
 })
+}

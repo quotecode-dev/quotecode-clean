@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BILLING_RETURN_KINDS, BILLING_RETURN_POLL_MS, billingReturnFromSearch, billingReturnState, searchWithoutBillingReturn,
 } from '../domain/subscriptions/packageCheckout';
+import { PAYMENT_FRAME_RETURN } from '../shared/paymentFrameReturn';
 
 const RETURN_KEY = 'tekango:billing-return';
 const DEPARTURE_KEY = 'tekango:billing-departure';
@@ -86,6 +87,24 @@ export default function useBillingReturn({ summary, userId, plansOpen, refreshQu
   const state = valid ? billingReturnState(ret.kind, summary, t - ret.from, { resume }) : null;
 
   const forget = useCallback(() => { write(RETURN_KEY, null); write(DEPARTURE_KEY, null); setRet(null); }, []);
+
+  // Owner console 2026-11-10 (the payment page in a window above the app, components/PaymentFrame.jsx): the return arrives from that
+  // window instead of the address - the same return, without leaving the app
+  const nowRef = useRef(now);
+  nowRef.current = now;
+  useEffect(() => {
+    const onReturn = (e) => {
+      const kind = e && e.detail ? e.detail.kind : null;
+      if (!BILLING_RETURN_KINDS.includes(kind)) return;
+      const at = nowRef.current();
+      const v = { kind, at, from: at };
+      write(RETURN_KEY, v);
+      opened.current = false;
+      setRet(v);
+    };
+    window.addEventListener(PAYMENT_FRAME_RETURN, onReturn);
+    return () => window.removeEventListener(PAYMENT_FRAME_RETURN, onReturn);
+  }, []);
 
   // not this account's return, billing off, or too old: forget it (once the server summary of the signed-in account is known)
   useEffect(() => {
