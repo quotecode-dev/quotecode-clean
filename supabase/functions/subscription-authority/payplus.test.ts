@@ -4,7 +4,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { createHmac } from 'node:crypto';
 import { readFileSync } from 'node:fs';
-import { checkoutIntentHandler, checkoutStatusHandler, providerWebhookHandler, type BillingSql } from './billing';
+import { checkoutIntentHandler, checkoutStatusHandler, providerWebhookHandler, refundLine, type BillingSql } from './billing';
 import { ACTIVATION_PHASE } from './authority';
 import { firstChargeFreeDays,
   buildGenerateLinkBody, createPayPlusProvider, israelDayOfMonth, mapPayPlusCallback, PAYPLUS_API_BASES, payplusDateToIso,
@@ -63,7 +63,7 @@ describe('payment page (generateLink): the server attempt only, ILS, renewing', 
     expect(y.recurring_settings.jump_payments).toBe(firstChargeFreeDays(NOW, 'year'));
     expect(m.recurring_settings.jump_payments).toBeGreaterThanOrEqual(28);
     // Owner 2026-10-25: an Israeli customer gets the approval / failure email and an invoice-receipt for the first charge too
-    expect(m).toMatchObject({ sendEmailApproval: true, sendEmailFailure: true, initial_invoice: true });
+    expect(m).toMatchObject({ sendEmailApproval: false /* Owner 2026-11-10: no PayPlus confirmation email */, sendEmailFailure: true, initial_invoice: true });
     expect(y).toMatchObject({ amount: 306, items: [{ name: 'TEKANGO - מנוי שנתי', price: 306, vat_type: 0 }] });
     expect(y.recurring_settings).toMatchObject({ recurring_type: 2, recurring_range: 12 });
   });
@@ -427,7 +427,7 @@ describe('International: USD + English page (open since 2026-11-01)', () => {
       hide_payments_field: true, more_info: ATT,
       items: [{ name: 'TEKANGO - Monthly subscription', price: 18, vat_type: 2 }, { name: 'TEKANGO - SMART PACK monthly', price: 5, vat_type: 2 }] });
     // Owner console 2026-11-01 (decision b): abroad too - the invoice-receipt (PayPlus writes it in English for USD) and the emails
-    expect(b).toMatchObject({ sendEmailApproval: true, sendEmailFailure: true, initial_invoice: true });
+    expect(b).toMatchObject({ sendEmailApproval: false /* Owner 2026-11-10: no PayPlus confirmation email */, sendEmailFailure: true, initial_invoice: true });
     expect(b.recurring_settings).toMatchObject({ successful_invoice: true, send_customer_success_email: true, customer_failure_email: true });
     const il = buildGenerateLinkBody(config(), { attemptId: ATT, amountMinor: 3000, billingPeriod: 'month', nowMs: NOW });
     expect(il).not.toHaveProperty('language_code');
@@ -501,6 +501,22 @@ describe('standing orders: pull, update, cancel (prepared)', () => {
     expect(await so(vi.fn(async () => { throw new Error('timeout'); }) as never).cancel(REC, TERM)).toBe('unknown');
     expect(await so(vi.fn(async () => new Response('<html>', { status: 502 })) as never).cancel(REC, TERM)).toBe('unknown');
   });
+  // Owner console 2026-11-10 (typed: 'מאשר שורת פריט ברורה בכל החזר דרך פיי פלוס לפי הטבלה, שחרור עד הלייב')
+  it('refund line: the table - Hebrew for ILS, English for USD; unknown currency -> no line', () => {
+    expect(refundLine('month', 'ILS')).toBe('החזר: TEKANGO - מנוי חודשי');
+    expect(refundLine('year', 'ILS')).toBe('החזר: TEKANGO - מנוי שנתי');
+    expect(refundLine('smartPack', 'ILS')).toBe('החזר: חכם פלוס');
+    expect(refundLine('month', 'USD')).toBe('Refund: TEKANGO - Monthly subscription');
+    expect(refundLine('year', 'USD')).toBe('Refund: TEKANGO - Annual subscription');
+    expect(refundLine('smartPack', 'USD')).toBe('Refund: SMART PACK');
+    expect(refundLine('month', null)).toBeNull(); expect(refundLine('month', 'EUR')).toBeNull();
+  });
+  it('refund line: sent to PayPlus as more_info (the credit document product line); no line -> no more_info', async () => {
+    const f = ok({ transaction: { uid: 'refund-tx-2', status_code: '000', amount: 17.4 } });
+    expect(await so(f).refund('tx-2', 1740, 'Refund: TEKANGO - Monthly subscription')).toEqual({ ok: true, refundRef: 'refund-tx-2' });
+    const [, init] = f.mock.calls[0] as unknown as [string, { body: string }];
+    expect(JSON.parse(init.body)).toEqual({ transaction_uid: 'tx-2', amount: 17.4, initial_invoice: true, more_info: 'Refund: TEKANGO - Monthly subscription' });
+  });
   it('refund (20261022300000): POSTs RefundByTransactionUID with the charge and the amount; refunded only on success + 000', async () => {
     const f = ok({ transaction: { uid: 'refund-tx-1', status_code: '000', amount: 10 } });
     expect(await so(f).refund('tx-1', 1000)).toEqual({ ok: true, refundRef: 'refund-tx-1' });
@@ -560,6 +576,20 @@ describe('checkout status: the server pull (prepared; the billing phase stays of
     expect(r).toEqual({ status: 200, body: { ok: true, activated: true, waiting: 0 } });
     expect(sql.recordCheckoutPull).toHaveBeenCalledWith(expect.objectContaining({ attemptId: ATT, userId: U, providerAttemptId: ATT, recurringRef: REC,
       paidAmountMinor: 3000, paidCurrency: 'ILS' }));
+  });
+  // Owner console 2026-11-10 ('... ותיקון האיחור של המייל שלנו ...'): a paid return asks for the customer's email at once (not the hourly cron)
+  it('a paid return asks for the customer email of THIS account at once; an unpaid one does not', async () => {
+    const sql = sqlWith() as BillingSql & { notifyCustomer: ReturnType<typeof vi.fn> }; sql.notifyCustomer = vi.fn(async () => undefined);
+    await checkoutStatusHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: answer(standing()) })) }, U);
+    expect(sql.notifyCustomer).toHaveBeenCalledWith(U);
+    const idle = sqlWith() as BillingSql & { notifyCustomer: ReturnType<typeof vi.fn> }; idle.notifyCustomer = vi.fn(async () => undefined);
+    await checkoutStatusHandler('prepared', { sql: idle, provider: createPayPlusProvider(config({ fetch: answer(standing({ status_code: '003' })) })) }, U);
+    expect(idle.notifyCustomer).not.toHaveBeenCalled();
+  });
+  it('the email request failing never changes the answer', async () => {
+    const sql = sqlWith() as BillingSql & { notifyCustomer: ReturnType<typeof vi.fn> }; sql.notifyCustomer = vi.fn(async () => { throw new Error('down'); });
+    const r = await checkoutStatusHandler('prepared', { sql, provider: createPayPlusProvider(config({ fetch: answer(standing()) })) }, U);
+    expect(r).toEqual({ status: 200, body: { ok: true, activated: true, waiting: 0 } });
   });
   it('not paid yet / not approved / unreachable: nothing reaches SQL, the client keeps waiting', async () => {
     for (const f of [answer({}, 'error'), answer(standing({ status_code: '003' })), vi.fn(async () => { throw new Error('down'); })]) {

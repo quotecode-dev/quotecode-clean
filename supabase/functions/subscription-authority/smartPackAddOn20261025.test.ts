@@ -29,7 +29,7 @@ const answer = (data: unknown, status = 'success') => ({ ok: true, json: async (
 describe('the one-time SMART PACK page', () => {
   it('charge_method 1, the server amount, ILS, more_info sp_<id>, the SMART PACK line name, invoice + emails on, the add-on return pages', () => {
     const b = buildAddOnLinkBody(urls, { addOnId: ADD, amountMinor: 667, billingPeriod: 'month', customer: { name: 'עסק', email: 'biz@example.com' } });
-    expect(b).toMatchObject({ charge_method: 1, amount: 6.67, currency_code: 'ILS', more_info: `sp_${ADD}`, initial_invoice: true, sendEmailApproval: true,
+    expect(b).toMatchObject({ charge_method: 1, amount: 6.67, currency_code: 'ILS', more_info: `sp_${ADD}`, initial_invoice: true, sendEmailApproval: false /* Owner 2026-11-10: no PayPlus confirmation email */,
       sendEmailFailure: true, refURL_success: urls.addOnSuccessUrl, refURL_failure: urls.addOnFailureUrl, customer: { customer_name: 'עסק', email: 'biz@example.com' },
       items: [{ name: PAYPLUS_SMART_PACK_ITEM_NAMES.month, quantity: 1, price: 6.67, vat_type: 0 }] });
     expect(b).not.toHaveProperty('recurring_settings');
