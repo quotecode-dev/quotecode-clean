@@ -33,7 +33,7 @@ export default function AdminSystemActivity({ accounts, isHebrew, onRefreshAccou
 
   const users = accounts.filter(a => a && a.role !== 'super_admin' && !(a.email || '').toLowerCase().startsWith('deleted_') && (a.business_name || '').toLowerCase() !== 'deleted');
   const byUid = useMemo(() => new Map(accounts.filter(Boolean).map((a) => [a.user_id, a])), [accounts]);
-  const adminMarket = isHebrew ? 'Local' : 'International';
+  const adminMarket = ADMIN_DATE_MARKET; // Owner 2026-11-10: never by the admin's language
   const fmt = (v) => formatShortDateTime(v, ADMIN_DATE_MARKET);
 
   useEffect(() => {

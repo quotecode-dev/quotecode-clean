@@ -190,7 +190,7 @@ const DEFAULT_TERMS_HEB = `תנאים כלליים:
 const DEFAULT_TERMS_ENG = `General Terms:
 1. Validity: This quote is valid for 30 days from issuance.
 2. Payment: Payment shall be made in cash or via bank transfer as agreed in advance.
-3. Delivery: Product delivery within 30 business days from order confirmation and payment.`;
+3. Delivery: Product delivery within 30 business days from order confirmation and payment, unless stated otherwise.`;
 
 // חוק ברזל: אזור/מטבע/תקנון של חשבון *חדש* אינם נגזרים יותר מהבאנדל
 // (AppLocal/AppGlobal) שהציג את הדשבורד - הם נקבעים אך ורק ע"י geo טרי
@@ -1484,7 +1484,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // (Trial-warning banner and its show/hide state machine were removed by Owner request; trial days/expiry/entitlement are computed above and shown by the compact plan badge.)
   const t = {
     appName: bizName || 'TEKANGO',
-    appSub: isHebrew ? 'מערכת לניהול העסק ולהפקת הצעות מחיר' : 'Global SaaS Business & Quoting Platform',
+    appSub: isHebrew ? 'מערכת לניהול העסק ולהפקת הצעות מחיר' : 'Business management & quoting system',
     totalQuotes: isHebrew ? 'סך כל ההצעות' : 'TOTAL QUOTES',
     approvedPaid: isHebrew ? 'אושרו / שולמו' : 'APPROVED / PAID',
     totalRevenue: isHebrew ? 'סך הכנסות' : 'TOTAL REVENUE',
@@ -1515,7 +1515,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     servicesCatalog: isHebrew ? 'קטלוג שירותים ומוצרים' : 'Services & Products Catalog',
     expensesManagement: isHebrew ? 'ניהול הוצאות עסק' : 'Business Expenses Management',
     addExpenseBtn: isHebrew ? 'הוספת הוצאה' : 'Add Expense',
-    businessSettings: isHebrew ? 'הגדרות העסק והמנוי' : 'Business Settings',
+    businessSettings: isHebrew ? 'הגדרות העסק והמנוי' : 'Business & subscription settings',
     saveSettings: isHebrew ? 'שמירת הגדרות העסק' : 'Save Business Settings',
     businessNameLabel: isHebrew ? 'שם העסק' : 'Business Name',
     taxIdLabel: isHebrew ? 'ח.פ / עוסק מורשה' : 'Tax ID',
@@ -2159,7 +2159,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // QA 2026-10-25 (C1): returns whether it was saved - the client window closes only on true
   async function handleSaveUpdatedClient(updatedClient) {
     if (updatedClient.email && updatedClient.email.trim() !== '' && !emailEmailValidation(updatedClient.email)) {
-      setAlertModalMsg(isHebrew ? 'כתובת המייל אינה תקינה.' : '❌ Invalid email address!');
+      setAlertModalMsg(isHebrew ? 'כתובת המייל אינה תקינה.' : 'The email address is invalid.');
       return false;
     }
 
@@ -2197,7 +2197,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // isNew החדש שלו.
   async function handleCreateClient(newClient) {
     if (newClient.email && newClient.email.trim() !== '' && !emailEmailValidation(newClient.email)) {
-      setAlertModalMsg(isHebrew ? 'כתובת המייל אינה תקינה.' : '❌ Invalid email address!');
+      setAlertModalMsg(isHebrew ? 'כתובת המייל אינה תקינה.' : 'The email address is invalid.');
       return false;
     }
     if (!session?.user?.id) return false;
@@ -2422,12 +2422,12 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     );
 
     if (hasSignedOrApproved) {
-      alertWithBlocker('CLIENT_DELETE_HAS_QUOTES', { surface: 'clients' }, isHebrew ? 'שגיאה חמורה: לא ניתן למחוק לקוח שיש לו הצעה חתומה או מאושרת במערכת!' : 'Error: Cannot delete a client with a signed or approved quote!');
+      alertWithBlocker('CLIENT_DELETE_HAS_QUOTES', { surface: 'clients' }, isHebrew ? 'לא ניתן למחוק לקוח שיש לו הצעה חתומה או מאושרת במערכת.' : 'A client who has a signed or approved quote cannot be deleted.');
       return;
     }
 
     if (clientQuotes && clientQuotes.length > 0) {
-      alertWithBlocker('CLIENT_DELETE_HAS_QUOTES', { surface: 'clients' }, isHebrew ? 'שגיאה: לא ניתן למחוק לקוח שיש לו הצעות מחיר פעילות במערכת!' : 'Error: Cannot delete a client with existing quotes!');
+      alertWithBlocker('CLIENT_DELETE_HAS_QUOTES', { surface: 'clients' }, isHebrew ? 'לא ניתן למחוק לקוח שיש לו הצעות מחיר במערכת.' : 'A client who has quotes in the system cannot be deleted.');
       return;
     }
 
@@ -3416,7 +3416,7 @@ Continue anyway?`, isHebrew);
     
     if (!clientEmailVal || !emailEmailValidation(clientEmailVal)) {
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
-      alertWithBlocker('EMAIL_CLIENT_NO_EMAIL', { surface: 'main' }, isHebrew ? 'לא ניתן לשלוח את המייל: כתובת המייל של הלקוח חסרה או אינה תקינה.' : '❌ Invalid client email address!');
+      alertWithBlocker('EMAIL_CLIENT_NO_EMAIL', { surface: 'main' }, isHebrew ? 'לא ניתן לשלוח את המייל: כתובת המייל של הלקוח חסרה או אינה תקינה.' : 'The email cannot be sent: the client email address is missing or invalid.');
       return;
     }
 
@@ -4746,7 +4746,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     }
 
     if (clientEmail && clientEmail.trim() !== '' && !emailEmailValidation(clientEmail)) {
-      saveBlock('QUOTE_INVALID_CLIENT_EMAIL', isHebrew ? 'כתובת המייל אינה תקינה.' : '❌ Invalid email address!');
+      saveBlock('QUOTE_INVALID_CLIENT_EMAIL', isHebrew ? 'כתובת המייל אינה תקינה.' : 'The email address is invalid.');
       return;
     }
     // Task 27 (§253): a NEW quote after Free-10 is exhausted stops here, BEFORE any client or quote row is written; the form keeps every
@@ -8961,7 +8961,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           {/* חוק ברזל (Authenticated UI Coherence task, Duplicate Trial
               Messaging Removal): הטיקר של "ניסיון פעיל רגיל" (isPlainActiveTrial)
               הוסר מכאן - הוא היה מציג בדיוק אותו מספר-ימים-שנותרו
-              ({isHebrew ? `${trialDaysLeft} ימים נותרו` : `${trialDaysLeft} days left`})
+              ({isHebrew ? (trialDaysLeft === 1 ? 'נותר יום אחד' : `${trialDaysLeft} ימים נותרו`) : (trialDaysLeft === 1 ? '1 day left' : `${trialDaysLeft} days left`)})
               שהבאדג' הקומפקטי (PlanIdentityBadge variant="compact",
               daysLeft) כבר מציג תמיד למעלה - כפילות אמיתית, לא רק דמיון,
               per the Owner's own explicit "Remove duplicate remaining-

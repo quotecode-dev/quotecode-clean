@@ -65,7 +65,7 @@ describe('every SMART PACK window shows it', () => {
       onOpenChat={vi.fn()} requestDraft={requestDraft} readUsage={readUsage} />);
     await waitFor(() => expect(screen.getByTestId('ai-quote-draft-usage').textContent).toBe('40% of your SMART PACK usage left this month'));
     fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Replace three windows in the living room' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Create with AI' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Create a draft with AI' }));
     expect(await screen.findByText('Your SMART PACK usage left this month is not enough for this action. It renews at the start of next month. Meanwhile you can continue manually.')).toBeTruthy();
     await waitFor(() => expect(readUsage).toHaveBeenCalledTimes(2));
   });

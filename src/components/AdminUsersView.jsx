@@ -152,7 +152,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   // the per-account server summary for the visible page only (the counter / billing period); "not active" is global - one probe
   const { system, byId } = useAdminAccountSummaries(pageRows.map(adminTargetUserId));
   const summaryOf = (a) => (system === 'not_active' ? null : (byId[adminTargetUserId(a)] || null));
-  const adminMarket = isHebrew ? 'Local' : 'International';
+  const adminMarket = ADMIN_DATE_MARKET; // Owner 2026-11-10: never by the admin's language
 
   const setSortField = (field) => { setPage(0); setSort((s) => (s.field === field ? { field, direction: s.direction === 'asc' ? 'desc' : 'asc' } : { field, direction: field === 'created_at' || field === 'last_sign_in' ? 'desc' : 'asc' })); };
   const sortHead = (field, label) => {

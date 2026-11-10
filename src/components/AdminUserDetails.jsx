@@ -10,7 +10,7 @@ import AdminScreenFrame from './AdminScreenFrame';
 import AdminUserSmartPackUsage from './AdminUserSmartPackUsage';
 import './adminUsers.css';
 import './adminV2.css';
-import { accountDate, accountDateTime } from '../utils/adminDates';
+import { accountDate, accountDateTime, ADMIN_DATE_MARKET } from '../utils/adminDates';
 import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
 import { billingPreview, billingCardVisible, previewUnavailable, billingMoney, billingRefundMoney, BILLING_COPY as B, REFUND_STATE, KIND_NAMES } from '../domain/admin/adminBilling';
 
@@ -84,7 +84,7 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
   const serverStatus = account.status && !(account.status === 'lifetime' && account.is_lifetime !== true) ? account.status : null;
   const status = summaryReady || account.is_lifetime === true ? computedStatus : serverStatus ? statusFromKey(serverStatus, { until: account.trial_ends_at }) : computedStatus;
   const statusUnknown = summaryFailed && !serverStatus && status.key === 'free10_inactive';
-  const adminMarket = isHebrew ? 'Local' : 'International';
+  const adminMarket = ADMIN_DATE_MARKET; // Owner 2026-11-10: never by the admin's language
   const date = (v) => accountDate(v, account, adminMarket);
   const dateTime = (v) => accountDateTime(v, account, adminMarket);
   const countValue = (v) => (v === 'loading' ? '—' : v === 'unavailable' ? t(isHebrew, C.unavailable.he, C.unavailable.en) : <bdi className="av-num">{v}</bdi>);
