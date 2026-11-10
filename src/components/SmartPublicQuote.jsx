@@ -37,8 +37,6 @@ export default function SmartPublicQuote() {
   const [state, setState] = useState({ status: 'loading', dto: null });
   const [retryKey, setRetryKey] = useState(0); // R-19: "Try again" re-runs the load
   const [presentation, setPresentation] = useState(null);
-  const presentationRef = useRef(null);
-  presentationRef.current = presentation;
   // Task 27: the owner's thank-you arrives from the server only for a signed quote - re-read once right after a successful signature
   const [thanks, setThanks] = useState(null);
   const processedIdRef = useRef(null);
@@ -148,15 +146,6 @@ export default function SmartPublicQuote() {
         if (error) { if (error?.context?.status === 404) setState({ status: 'notfound', dto: null }); return; }
         if (data && typeof data.version === 'string' && data.version !== liveVersion) await reloadQuote({ notice: true });
         else if (data && data.signed === true) await reloadQuote({ notice: false });
-        else if (capabilityToken) {
-          // Owner console 2026-11-10 (finding 3): a change of style / logo / images (not the content) shows too, with the same notice
-          const p = await loadPresentation(null, capabilityToken);
-          if (stopped || !p || typeof p.fingerprint !== 'string') return;
-          if (presentationRef.current && presentationRef.current.fingerprint && p.fingerprint !== presentationRef.current.fingerprint) {
-            setPresentation(p);
-            setUpdatedTick((n) => n + 1);
-          }
-        }
       } catch { /* a failed check changes nothing; the next one tries again */ } finally { busy = false; }
     };
     const timer = setInterval(check, 15000);
@@ -164,7 +153,7 @@ export default function SmartPublicQuote() {
     document.addEventListener('visibilitychange', onVisible);
     window.addEventListener('focus', onVisible);
     return () => { stopped = true; clearInterval(timer); document.removeEventListener('visibilitychange', onVisible); window.removeEventListener('focus', onVisible); };
-  }, [liveVersion, requestBody, reloadQuote, capabilityToken]);
+  }, [liveVersion, requestBody, reloadQuote]);
 
   // After a successful approval the server freezes the issued snapshot (the quote is now locked) - re-read it so the
   // page shows exactly what was frozen. A failure keeps whatever is already shown.

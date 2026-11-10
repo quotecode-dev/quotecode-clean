@@ -119,9 +119,7 @@ export async function syncPresentationAfterSave({
 }) {
   const out = { saved: null, saveError: null, issued: null, issueError: null, issuedStyle: null, pending: false };
   if (!quoteId) return out;
-  // Owner console 2026-11-10 (finding 3): the appearance stays editable after the link went out - it locks only with the quote
-  // (approved / paid / signed); the customer's link shows each saved change until the signature
-  const frozen = !!(server && server.locked);
+  const frozen = !!(server && (server.issued || server.locked));
   const value = normalizePresentationState(presentation);
   let body = null;
   if (!frozen) {
@@ -158,7 +156,7 @@ export async function syncPresentationAfterSave({
   }
   const prev = String(previousStatus || '').toLowerCase();
   const next = String(persistedStatus || '').toLowerCase();
-  const shouldIssue = !isNew && !frozen && !(server && server.issued) && prev === 'draft' && NON_DRAFT_STATUSES.includes(next) && out.saved !== false;
+  const shouldIssue = !isNew && !frozen && prev === 'draft' && NON_DRAFT_STATUSES.includes(next) && out.saved !== false;
   if (shouldIssue) {
     const r = await client.issueQuotePresentation(quoteId);
     if (r && r.ok) {
@@ -299,9 +297,8 @@ export default function useQuotePresentationEditor({
     }
     setServer({ quoteId, status: 'ready', draft, issued, locked: d.locked === true });
     const L = latest.current;
-    // finding 3: only a locked quote is frozen; an issued one opens on its current (draft) appearance, the issued record otherwise
-    const frozenRecord = d.locked === true;
-    const stored = (frozenRecord || !draft) && issued ? { style: issued.style, media: issued.media || [] } : draft;
+    const frozenRecord = !!issued || d.locked === true;
+    const stored = issued ? { style: issued.style, media: issued.media || [] } : draft;
     const pending = takePendingPresentation(userId, quoteId);
     if (!frozenRecord && pending) {
       // unsaved change (no clean-hash re-base) so the next Save retries it - merged, never replacing the record
@@ -338,8 +335,8 @@ export default function useQuotePresentationEditor({
   const tier = context.tier;
   const businessDefault = context.defaultStyle;
   const value = useMemo(() => normalizePresentationState(presentation), [presentation]);
-  const frozenStyle = server.locked ? (server.issued?.style || null) : null;
-  const readOnly = !!server.locked;
+  const frozenStyle = server.issued?.style || null;
+  const readOnly = !!(server.issued || server.locked);
   // an EXISTING quote is editable only once its saved record is known; a new quote only needs the context
   const recordReady = !editingQuoteId || server.status === 'ready';
   const editable = !readOnly && recordReady;
@@ -458,7 +455,7 @@ export default function useQuotePresentationEditor({
     const r = await fetchQuotePresentation(sourceQuoteId);
     if (token !== copyTokenRef.current || !r.ok) return;
     const d = r.data || {};
-    const src = d.draft || (d.issued ? { style: d.issued.style, media: d.issued.media || [] } : null);
+    const src = d.issued ? { style: d.issued.style, media: d.issued.media || [] } : d.draft;
     if (!src) return;
     const s = normalizeStyleId(src.style);
     const ctx = latest.current.context;

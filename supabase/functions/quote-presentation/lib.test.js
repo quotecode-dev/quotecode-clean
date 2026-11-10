@@ -359,9 +359,8 @@ describe('planDraftSave', () => {
       expect(planDraftSave({ ...base, quote, style: 'classic' })).toMatchObject({ ok: false, code: 'quote_locked', status: 409 });
     }
   });
-  // Owner console 2026-11-10 (finding 3): the appearance stays editable after the link went out (the customer sees it until the signature)
-  it('an issued (sent, unsigned) quote still saves its appearance', () => {
-    expect(planDraftSave({ ...base, issued: { v: 1, style: 'classic' }, style: 'classic' })).toMatchObject({ ok: true });
+  it('issued quote save is refused (the snapshot is never overwritten)', () => {
+    expect(planDraftSave({ ...base, issued: { v: 1, style: 'classic' }, style: 'classic' })).toMatchObject({ ok: false, code: 'quote_issued', status: 409 });
   });
   it("another user's asset is refused", () => {
     expect(planDraftSave({ ...base, style: null, media: [{ assetId: A_OTHER, role: 'hero' }] })).toMatchObject({ ok: false, code: 'asset_not_owned' });

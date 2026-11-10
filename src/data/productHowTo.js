@@ -229,7 +229,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         'בעורך ההצעה, בשורה של הפריט, משנים את הכמות (מספר שלם או עשרוני, למשל 2.5) או את המחיר ישירות בשדות. הסכום של השורה מתעדכן מיד, ואחר כך שומרים את ההצעה.',
         'בפריט לפי "שטח" או "אורך" משנים את המידות באותה שורה. אפשר להוסיף "מידה נוספת", או ללחוץ ליד המידות על "השטח כבר ידוע?" או "האורך כבר ידוע?" כשהשטח או האורך כבר ידועים.',
-        'מחיר נכתב עם נקודה עשרונית, למשל 1200.50. מחיר ריק מסומן כחסר ולא נחשב 0. פרטים נוספים ללקוח נמצאים בכפתור "פעולות לעבודה" של השורה (בטלפון: שלוש הנקודות של השורה), ב"פרטים ללקוח".',
+        'מחיר נכתב עם נקודה עשרונית, למשל 1200.50. מחיר ריק מסומן כחסר ולא נחשב 0. פרטים נוספים ללקוח נמצאים בתפריט השורה, ב"פרטים ללקוח".',
       ],
     },
     en: {
@@ -237,7 +237,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         'In the quote editor, on the item\x27s row, change the quantity (a whole or decimal number, for example 2.5) or the price right in the fields. The row total updates at once; then save the quote.',
         'For an item billed by "Area" or "Length" change the sizes in the same row. You can add "Another size", or click "I already know the area" or "I already know the length" beside the sizes when the area or length is already known.',
-        'A price uses a decimal point, for example 1200.50. An empty price is marked as missing and never counts as 0. More details for the customer are in the "Row actions" button of the row (on a phone: the three dots of the row), under "Details for the customer".',
+        'A price uses a decimal point, for example 1200.50. An empty price is marked as missing and never counts as 0. More details for the customer are in the row menu, under "Details for the customer".',
       ],
     },
     evidence: [
@@ -251,8 +251,8 @@ export const PRODUCT_HOW_TO = Object.freeze([
     he: {
       task: 'יחידות זהות (למשל כמה דירות זהות) ומחיר משותף אחרי שכפול יחידה',
       steps: [
-        'בהצעה מחולקת ליחידות לוחצים על הכפתור "פעולות ליחידה" בכותרת שלה ובוחרים "מספר יחידות זהות". מקלידים את מספר היחידות (מספר שלם) ומאשרים. השורות ביחידה הן ליחידה אחת, והסכום של היחידה ושל ההצעה נספר כפול מספר היחידות.',
-        'כדי לשנות יחידה אחת מתוך הקבוצה בוחרים בכפתור "פעולות ליחידה" את "הפרדת עותק אחד": מספר היחידות יורד ב-1, ונוצר אחריה עותק נפרד לעריכה. מיד אחרי ההפרדה אפשר ללחוץ "ביטול".',
+        'בהצעה מחולקת ליחידות פותחים את תפריט היחידה (שלוש הנקודות בכותרת שלה) ובוחרים "מספר יחידות זהות". מקלידים את מספר היחידות (מספר שלם) ומאשרים. השורות ביחידה הן ליחידה אחת, והסכום של היחידה ושל ההצעה נספר כפול מספר היחידות.',
+        'כדי לשנות יחידה אחת מתוך הקבוצה בוחרים בתפריט היחידה "הפרדת עותק אחד": מספר היחידות יורד ב-1, ונוצר אחריה עותק נפרד לעריכה. מיד אחרי ההפרדה אפשר ללחוץ "ביטול".',
         '"שכפול יחידה" יוצר עותק אחד של היחידה עם השורות שלה, והמחירים של כל שורה והעותק שלה מקושרים. כשמשנים מחיר בשורה מקושרת, המערכת שואלת אם לעדכן גם את השורות המקושרות: "רק כאן", עדכון גם בהן, או "ביטול". אחרי עדכון אפשר ללחוץ "ביטול עדכון המחירים".',
         'בהצעה ללקוח, בהדפסה ובקובץ מופיעים שם היחידה עם מספר העותקים (למשל דירה טיפוס א׳ × 12), הפירוט ליחידה אחת והסכום של כל העותקים.',
       ],
@@ -260,8 +260,8 @@ export const PRODUCT_HOW_TO = Object.freeze([
     en: {
       task: 'Identical units (for example several identical apartments) and a shared price after duplicating a unit',
       steps: [
-        'In a quote divided into units click the "Unit actions" button in its header and choose "Identical unit count". Type the number of units (a whole number) and confirm. The rows of the unit are for one unit, and the unit and quote totals count every copy.',
-        'To change one unit of the group choose "Separate one copy" in the "Unit actions" button: the count goes down by 1 and a separate copy to edit appears right after it. Right after separating you can click "Undo".',
+        'In a quote divided into units open the unit menu (the three dots in its header) and choose "Identical unit count". Type the number of units (a whole number) and confirm. The rows of the unit are for one unit, and the unit and quote totals count every copy.',
+        'To change one unit of the group choose "Separate one copy" in the unit menu: the count goes down by 1 and a separate copy to edit appears right after it. Right after separating you can click "Undo".',
         '"Duplicate unit" makes one copy of the unit with its rows, and the price of every row is linked to its copy. When you change the price of a linked row you are asked whether the linked rows take it too: "Only here", update them too, or "Cancel". After an update you can click "Undo the price update".',
         'The customer quote, the print and the file show the unit name with its number of copies (for example Type A apartment × 12), the details for one unit and the total of all copies.',
       ],
@@ -278,7 +278,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
     he: {
       task: 'תבנית יחידה - שמירת יחידה (למשל דירה) והוספתה להצעה אחרת',
       steps: [
-        'בהצעה מחולקת ליחידות לוחצים על הכפתור "פעולות ליחידה" בכותרת שלה ובוחרים "שמירה כתבנית יחידה". נותנים שם ובוחרים אם לשמור מחירים ופרטים ללקוח. השורות, סוג החיוב והמידות נשמרים תמיד; פרטי לקוח, כתובת ושמות המקומות במידות לעולם לא נשמרים.',
+        'בהצעה מחולקת ליחידות פותחים את תפריט היחידה (שלוש הנקודות בכותרת שלה) ובוחרים "שמירה כתבנית יחידה". נותנים שם ובוחרים אם לשמור מחירים ופרטים ללקוח. השורות, סוג החיוב והמידות נשמרים תמיד; פרטי לקוח, כתובת ושמות המקומות במידות לעולם לא נשמרים.',
         'כדי להוסיף יחידה שמורה להצעה פתוחה לוחצים "מיחידה שמורה" מעל רשימת העבודות, בוחרים את התבנית ולוחצים "הוספה להצעה". יחידה אחת עם השורות שלה נוספת לסוף ההצעה.',
         'כשהמטבע או בסיס המע״מ של המחירים בתבנית שונים מההצעה, המערכת שואלת לפני ההוספה אם להשתמש במחירים או להוסיף בלי מחירים.',
         'בחלון ההוספה מיחידה שמורה מופיעות רק תבניות יחידה, ובחלון התבניות של הצעה חדשה מופיעות רק תבניות הצעה. בכל חלון מוחקים רק את התבניות שלו.',
@@ -287,7 +287,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
     en: {
       task: 'Unit templates - saving a unit (for example an apartment) and adding it to another quote',
       steps: [
-        'In a quote divided into units click the "Unit actions" button in its header and choose "Save as unit template". Give it a name and choose whether to keep the prices and the details for the customer. The rows, the billing type and the sizes are always kept; customer details, the address and the place names of the sizes are never kept.',
+        'In a quote divided into units open the unit menu (the three dots in its header) and choose "Save as unit template". Give it a name and choose whether to keep the prices and the details for the customer. The rows, the billing type and the sizes are always kept; customer details, the address and the place names of the sizes are never kept.',
         'To add a saved unit to an open quote click "From a saved unit" above the list of work, pick the template and click "Add to the quote". One unit with its rows is added at the end of the quote.',
         'When the currency or the VAT basis of the template prices differs from the quote, you are asked before adding whether to use the prices or add without prices.',
         'The window for adding a saved unit lists only unit templates, and the template window of a new quote lists only quote templates. Each window deletes only its own templates.',
@@ -318,7 +318,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       ],
     },
     evidence: [
-      { file: 'src/components/QuoteForm.jsx', labels: ['פרטים נוספים (לא חובה)', 'More details (optional)', 'קבצים מצורפים / שרטוטים', 'Attachments', 'צירוף קובץ', 'Attach file', 'בדיקה ושמירה'] },
+      { file: 'src/components/QuoteForm.jsx', labels: ['פרטים נוספים (לא חובה)', 'More details (optional)', 'קבצים מצורפים / שרטוטים', 'Attachments', 'צירוף קובץ', 'Attach File', 'בדיקה ושמירה'] },
     ],
   },
   {

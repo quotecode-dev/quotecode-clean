@@ -267,18 +267,16 @@ export default function LandingLocal({ onForgotPassword }) {
     // hub (/he/tools: currency, units, metals, crypto - App.jsx routes, no signup) exists; no plan / FREE claim here.
     tools: {
       title: 'כלים עסקיים חינמיים',
-      // Owner console 2026-11-10 (finding 8): the same words as the English card - "a free companion to TEKANGO"
-      text: <>מחשבונים חינמיים למטבעות, יחידות, מתכות וקריפטו. פתוחים לכולם, בלי הרשמה, כשירות חינמי נלווה ל-<BrandName onDark={false} />.</>,
+      text: 'מחשבונים חינמיים למטבעות, יחידות, מתכות וקריפטו. פתוחים לכולם, בלי הרשמה.',
       cta: 'למעבר לכלים העסקיים',
       href: '/he/tools',
       icon: BriefcaseBusiness,
     },
     // Closing band: outcome only - never the trial duration (it is stated in the hero, pricing and FAQ).
     // Authority ledger L07 (pointwise rollback): base closing title + text (c65f742 LandingLocal.jsx:736-737).
-    // Owner console 2026-11-10 (the 13 items): the closing text says 'מקצועית' as the English 'A professional quote'
     closing: {
       title: 'מוכנים ליצור את ההצעה הראשונה שלכם?',
-      text: 'הצעת מחיר מקצועית וברורה, שלב אחר שלב.',
+      text: 'הצעת מחיר ברורה, שלב אחר שלב.',
     },
     // Footer (ledger L17): base brand markup (c65f742 LandingLocal.jsx:765 `<BrandName />` on the dark footer); no new label.
     footer: {

@@ -720,7 +720,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   if (approved) {
     approvalRecord = (
       <div className="pq-section pq-approval pq-approval-signed" style={{ textAlign: 'start' }}>
-        <div className="pq-approval-title">✓ This quote has been approved and signed.</div>
+        <div className="pq-approval-title">✓ This quote has been successfully approved and signed!</div>
         {signatureSrc && signatureSrc.startsWith('data:image') && (
           <div className="pq-approval-record">
             {justSignedAt ? (

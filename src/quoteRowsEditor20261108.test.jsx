@@ -40,7 +40,7 @@ describe('the row editor', () => {
     render(<Harness initial={[{ ...blankRowItem(), description: 'ריצוף', unit_price: '120' }]} />);
     const id = screen.getByTestId('quote-rows-editor').querySelector('[data-testid^="qrow-item-"]').dataset.testid.replace('qrow-item-', '');
     fireEvent.change(screen.getByTestId(`qrow-billing-${id}`), { target: { value: 'area' } });
-    expect(await answerAppDialog(true)).toContain('המחיר הקודם היה'); // Owner console 2026-11-10 (Codex wording 1)
+    expect(await answerAppDialog(true)).toContain('אופן החיוב ישתנה');
     await waitFor(() => expect(screen.getByTestId(`qrow-sizeunit-${id}`)).toBeTruthy());
     expect(screen.getByTestId(`qrow-sizeunit-${id}`).value).toBe('m');
     fireEvent.change(screen.getByTestId(`qrow-w-${id}`), { target: { value: '4' } });
@@ -54,7 +54,7 @@ describe('the row editor', () => {
     render(<Harness isHebrew={false} international initial={[{ ...blankRowItem(), description: 'Tiling', unit_price: '9' }]} />);
     const id = screen.getByTestId('quote-rows-editor').querySelector('[data-testid^="qrow-item-"]').dataset.testid.replace('qrow-item-', '');
     fireEvent.change(screen.getByTestId(`qrow-billing-${id}`), { target: { value: 'area' } });
-    expect(await answerAppDialog(true)).toContain('The previous price was'); // Owner console 2026-11-10 (Codex wording 1)
+    expect(await answerAppDialog(true)).toContain('The billing method will change');
     await waitFor(() => expect(screen.getByTestId(`qrow-sizeunit-${id}`)).toBeTruthy());
     expect(screen.getByTestId(`qrow-sizeunit-${id}`).value).toBe('ft');
     fireEvent.change(screen.getByTestId(`qrow-w-${id}`), { target: { value: '12' } });
@@ -156,7 +156,7 @@ describe('the row price and quantity (the former quick window)', () => {
   it('a plain line: quantity 1 -> 3 is stored as text like the item window', async () => {
     render(<Harness2 initial={[line({ id: 'p', description: 'אסלה', unit_price: '40' })]} />);
     fireEvent.change(screen.getByTestId('qrow-billing-p'), { target: { value: 'units' } });
-    expect(await answerAppDialog(true)).toContain('המחיר הקודם היה'); // Owner console 2026-11-10 (Codex wording 1)
+    expect(await answerAppDialog(true)).toContain('אופן החיוב ישתנה');
     await waitFor(() => expect(screen.getByTestId('qrow-qty-p')).toBeTruthy());
     fireEvent.change(screen.getByTestId('qrow-qty-p'), { target: { value: '3' } });
     expect(last[0].quantity).toBe('3');
@@ -252,7 +252,7 @@ describe('inside the row: a known area, more sizes, details for the customer', (
     render(<Harness2 initial={[sized]} />);
     fireEvent.change(screen.getByTestId('qrow-billing-w'), { target: { value: 'units' } });
     // restore item 03: a saved line asks the item window's question (4f1592f2 AddItemWizard destructiveConversionConfirm)
-    expect(await answerAppDialog(false)).toContain('המחיר הקודם היה'); // Owner console 2026-11-10 (Codex wording 1)
+    expect(await answerAppDialog(false)).toContain('אופן החיוב ישתנה');
     await waitFor(() => expect(last[0]).toBe(sized));
   });
 });

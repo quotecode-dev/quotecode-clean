@@ -51,9 +51,6 @@ import {
   readDefaultStyle,
   resolveIssueSnapshot,
   resolvePublicPresentation,
-  resolveLivePresentation,
-  presentationFingerprint,
-  signedPath,
   resolveTier,
   settingsPath,
   sha256Hex,
@@ -251,10 +248,9 @@ async function optionalCaller(admin: Admin, authHeader: string | null | undefine
 
 const noPresentation = () => jsonResponse({ ...NO_PRESENTATION_BODY }, 200);
 
-// public_get {capabilityToken}: until the signature the CURRENT presentation, from the signature the one written then (finding 3, below).
+// public_get {capabilityToken}: the presentation of the IMMUTABLE issued snapshot only (no draft, no freeze, no write).
 // Unknown / revoked / expired / malformed token -> the same "no presentation" answer as any non-served id (no oracle).
-async function publicGetByCapability(ctx: Ctx) {
-  const { admin, body } = ctx;
+async function publicGetByCapability({ admin, body }: Ctx) {
   const hash = await tokenHash(body.capabilityToken);
   if (!hash) return noPresentation();
   const { data, error } = await admin.rpc('resolve_public_capability', { p_token_hash: hash, p_op: 'view' });
@@ -269,41 +265,11 @@ async function publicGetByCapability(ctx: Ctx) {
     return new Uint8Array(await r.data.arrayBuffer());
   };
   const v = await readVerifiedSnapshot(bound, read);
-  const sent = v.ok ? presentationFromSnapshot(v.snapshot) : null;
-  if (!sent) throw new PresentationError('document_unavailable', 503, 'The issued document is unavailable');
-  // Owner console 2026-11-10 (finding 3, typed: "מאשר תוכנית ממצא 3: עיצוב, לוגו ותמונות מתעדכנים אצל הלקוח עד החתימה ונעולים מרגע
-  // החתימה ..."): until the quote is signed the link shows the CURRENT style / logo / images (the stored draft + the business's branding
-  // now); from the signature on, the presentation of that moment - written once (signed.json) by the first read after the signature
-  // (the signing page reads it right away) - and never again a later change. No draft (legacy Classic) = what went out, as before.
-  const uid = bound.userId;
-  let pres = sent;
-  let mode = 'issued';
-  const quote = await loadQuote(admin, bound.quoteId).catch(() => null);
-  if (quote && quote.user_id === uid) {
-    const live = async () => {
-      const [draft, settings, tierInfo, business] = await Promise.all([
-        readJson(admin, draftPath(uid, quote.id)), readJson(admin, settingsPath(uid)), loadTier(admin, ctx.testMode, uid), loadBusiness(admin, uid),
-      ]);
-      return resolveLivePresentation({ draft, quote, tier: tierInfo.tier, defaultStyle: readDefaultStyle(settings), business, now: new Date() });
-    };
-    if (isLockedQuote(quote)) {
-      let signed = normalizeIssued(await readJson(admin, signedPath(uid, quote.id)));
-      if (!signed) {
-        const atSignature = await live();
-        if (atSignature) {
-          if (!await writeJson(admin, signedPath(uid, quote.id), atSignature, false)) signed = normalizeIssued(await readJson(admin, signedPath(uid, quote.id)));
-          signed = signed || atSignature;
-        }
-      }
-      if (signed) pres = signed;
-    } else {
-      const now = await live();
-      if (now) { pres = now; mode = 'live'; }
-    }
-  }
-  const urls = pres.media.length ? await signAssetUrls(admin, uid, uniqueAssetIds(pres.media)) : {};
-  return jsonResponse({ mode, style: pres.style, styleVersion: pres.styleVersion, branding: pres.branding,
-    media: publicMediaView(pres.media, urls), capability: true, fingerprint: presentationFingerprint(pres) }, 200);
+  const pres = v.ok ? presentationFromSnapshot(v.snapshot) : null;
+  if (!pres) throw new PresentationError('document_unavailable', 503, 'The issued document is unavailable');
+  const urls = pres.media.length ? await signAssetUrls(admin, bound.userId, uniqueAssetIds(pres.media)) : {};
+  return jsonResponse({ mode: 'issued', style: pres.style, styleVersion: pres.styleVersion, branding: pres.branding,
+    media: publicMediaView(pres.media, urls), capability: true }, 200);
 }
 
 async function publicGet(ctx: Ctx) {

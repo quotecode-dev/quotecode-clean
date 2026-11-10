@@ -542,12 +542,6 @@ html {
   color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
 .pf-calc-fab:focus-visible { outline: 3px solid #0F6672; outline-offset: 3px; }
 @media (max-width: 768px) { .pf-calc-fab { bottom: calc(104px + env(safe-area-inset-bottom, 0px)); inset-inline-end: 14px; } }
-/* Owner console 2026-11-10 (the 13 items, L-09): room after the editor content, so at the end of the page the floating Calculator button
-   never covers the totals or the save buttons (the button stands 24-76px above the bottom; on a phone 104-156px, above the bottom bar) */
-.pf-editor-form { padding-bottom: 64px; }
-/* Owner console 2026-11-10 (the 13 items): the dash of a row without an amount sits beside the row actions in Hebrew too */
-.qrows[dir='rtl'] .qrow-total.qrow-total-empty { text-align: left !important; }
-@media (max-width: 768px) { .pf-editor-form { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); } }
 .pf-modal-head--fit { grid-template-columns: minmax(0, 1fr) auto auto; }
 .pf-modal-head--fit .pf-modal-head-title-text { white-space: normal; overflow-wrap: anywhere; }
 @media (max-width: 360px) {
@@ -592,7 +586,7 @@ html {
 /* Owner console 2026-11-08 (stage 2 of the one quote builder): one row per line while the editor is wide; below 700px of EDITOR width (a
    phone, a tablet in portrait beside the sidebar) every line is a labelled card - by the editor's own width (container query), not the screen */
 .qrows { container-type: inline-size; }
-.qrows .qrow { display: grid; grid-template-columns: minmax(min(140px, 20%), 2fr) minmax(112px, 1fr) minmax(0, 2.6fr) 92px minmax(96px, max-content) minmax(44px, max-content); /* 2026-11-10 G6b: the row menu button carries its text; the item keeps its live-site width (138px at 768) */ gap: 8px; align-items: start; padding: 6px 0; border-bottom: 1px solid var(--pf-border, #e5e7eb); }
+.qrows .qrow { display: grid; grid-template-columns: minmax(0, 2fr) minmax(112px, 1fr) minmax(0, 2.6fr) 92px minmax(96px, max-content) 44px; gap: 8px; align-items: start; padding: 6px 0; border-bottom: 1px solid var(--pf-border, #e5e7eb); }
 .qrows .qrow-head { font-size: 0.72rem; font-weight: 700; color: #64748b; border-bottom: none; padding-bottom: 0; }
 .qrows .qrow-item { grid-area: auto; }
 .qrows .qrow-mlabel { display: none; }
@@ -604,8 +598,6 @@ html {
 @container (max-width: 700px) {
   .qrows .qrow-head { display: none; }
   .qrows .qrow-line { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 44px; grid-template-areas: "item item menu" "billing amount amount" "price total total"; padding: 10px; border: 1px solid var(--pf-border, #e5e7eb); border-radius: 12px; margin-bottom: 8px; }
-  /* Owner console 2026-11-10 ("ב"): on the phone the row menu stays the three dots of the live site; the text shows on desktop and tablet */
-  .qrows .qrow-line .qrow-menu-label { display: none; }
   .qrows .qrow-line > .qrow-item { grid-area: item; }
   .qrows .qrow-line > .qrow-billing { grid-area: billing; }
   .qrows .qrow-line > .qrow-amount { grid-area: amount; }

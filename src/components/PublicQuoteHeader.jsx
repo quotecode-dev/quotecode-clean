@@ -73,10 +73,10 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
 
   // ledger D08 (cloud-fix4): base c65f742 EN phone label "Valid:" (the compact branch: a phone viewport <= 768px, or the
   // compact preview frame); "Valid until" at document widths, Print and the Direct PDF capture (compact={false}).
-  // Owner console 2026-11-10 (the 13 items, L-24): "Valid until" in full on every device, as the Hebrew "בתוקף עד".
+  const phoneLabels = typeof compact === 'boolean' ? compact : isMobileView;
   const L = isHebrew
     ? { quote: 'הצעת מחיר', number: 'מס׳ הצעה', date: 'תאריך', valid: 'בתוקף עד', project: 'פרויקט', expired: 'פג תוקף', signed: 'נחתמה', taxId: 'ח״פ / עוסק:', phone: 'טלפון:' }
-    : { quote: 'Price Quote', number: 'Quote #', date: 'Date', valid: 'Valid until', project: 'Project', expired: 'Expired', signed: 'Signed', taxId: 'Tax ID:', phone: 'Phone:' };
+    : { quote: 'Price Quote', number: 'Quote #', date: 'Date', valid: phoneLabels ? 'Valid:' : 'Valid until', project: 'Project', expired: 'Expired', signed: 'Signed', taxId: 'Tax ID:', phone: 'Phone:' };
 
   const details = (
     <div className="pq-lh-details" dir={isHebrew ? 'rtl' : 'ltr'}>

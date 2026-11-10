@@ -320,10 +320,10 @@ describe('Owner 2026-10-06: real quote uses the landing sample paper frame', () 
 });
 
 describe('ledgers D08 / D25b (cloud-fix4)', () => {
-  it('EN: "Valid until" in full on phones (compact branch) and at document widths (Owner 2026-11-10)', () => {
+  it('EN: "Valid:" on phones (compact branch), "Valid until" at document widths', () => {
     window.matchMedia = vi.fn().mockImplementation((q) => ({ matches: true, media: q, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));
     const { container } = renderEn({ quoteData: enData() });
-    expect(container.querySelector('.pq-meta-valid .pq-meta-label').textContent).toBe('Valid until');
+    expect(container.querySelector('.pq-meta-valid .pq-meta-label').textContent).toBe('Valid:');
     cleanup();
     window.matchMedia = vi.fn().mockImplementation((q) => ({ matches: false, media: q, addEventListener: vi.fn(), removeEventListener: vi.fn(), addListener: vi.fn(), removeListener: vi.fn() }));
     const { container: c2 } = renderEn({ quoteData: enData() });
