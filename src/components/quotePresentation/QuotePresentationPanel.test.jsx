@@ -97,11 +97,17 @@ describe('QuotePresentationPanel', () => {
     expect(screen.getByTestId('qp-issue-button').disabled).toBe(true);
   });
 
-  it('an issued quote is read-only and shows its frozen style', async () => {
-    context('classic');
+  // Owner console 2026-11-10 (finding 3): a sent (issued) quote stays editable; only a locked (approved / paid / signed) one is read-only
+  it('an issued, unsigned quote stays editable; a locked one is read-only with its style', async () => {
+    context('modern', 'modern');
     client.fetchQuotePresentation.mockResolvedValue({ ok: true, data: { draft: { style: 'modern', media: [] }, issued: { style: 'modern', styleVersion: 1, media: [] }, locked: false, urls: {} } });
-    render(<Harness editingQuoteId="q9" savedStatus="sent" />);
-    expect((await screen.findByTestId('qp-readonly')).textContent).toMatch(/issued in the Modern with images style/);
+    const first = render(<Harness editingQuoteId="q8" savedStatus="sent" />);
+    await waitFor(() => expect(screen.queryByTestId('qp-readonly')).toBe(null));
+    first.unmount();
+    context('classic');
+    client.fetchQuotePresentation.mockResolvedValue({ ok: true, data: { draft: { style: 'modern', media: [] }, issued: { style: 'modern', styleVersion: 1, media: [] }, locked: true, urls: {} } });
+    render(<Harness editingQuoteId="q9" savedStatus="approved" />);
+    expect((await screen.findByTestId('qp-readonly')).textContent).toMatch(/Modern with images/);
     expect(screen.queryByTestId('qp-quote-style-select-modern')).toBe(null);
     expect(screen.queryByTestId('qp-issue')).toBe(null);
   });

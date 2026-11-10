@@ -299,6 +299,14 @@
 .tl-tools-copy { display: flex; gap: 14px; align-items: flex-start; flex: 1 1 420px; min-width: 0; }
 .tl-tools-copy h2 { font-size: 26px; line-height: 1.2; margin: 0 0 6px; }
 .tl-tools-copy p { margin: 0; color: var(--tl-muted); font-size: 16px; line-height: 1.6; max-width: 620px; }
+/* Owner console 2026-11-10 (the 13 items, L-02): the same card in both languages - text and button side by side from a tablet up (the longer
+   English button used to drop under the text up to ~850px), one above the other below it */
+@media (min-width: 768px) { .tl-tools { flex-wrap: nowrap; } .tl-tools > .tl-ghost { flex-shrink: 0; } }
+@media (max-width: 767px) { .tl-tools-copy { flex-basis: 100%; } }
+/* on a phone the button keeps one line in both languages (the English label broke into two at 390px) */
+@media (max-width: 480px) { .tl-tools > .tl-ghost { font-size: 14px; padding-left: 12px; padding-right: 12px; } }
+/* the briefcase tile keeps its square when the text beside it is narrow */
+.tl-tools-copy > .tl-capability-icon { flex-shrink: 0; }
 
 /* closing + footer */
 /* Closing band: LIGHT (cloud-fix4 A14, Codex P1 dark scope - the refined reference's dark .closing is not an approval;

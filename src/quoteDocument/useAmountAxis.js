@@ -78,7 +78,77 @@ export function syncUnitSlots(card) {
 }
 
 // the whole axis, in order (also run by generateQuotePdf on the Direct PDF clone, laid out at the A4 width)
-export function syncAllAmountAxes(card) { syncUnitSlots(card); syncDecimalColumns(card); syncAmountAxis(card); }
+// Owner console 2026-11-10 (finding 1 "א"): the Hebrew document mirrors the English one - the amount column sits against the table's
+// OUTER edge (left in RTL). Every amount of that column (item rows, collapsed-unit summaries, unit subtotals) and of the totals gets ONE
+// box width, in em of its own digits (so screen, native Print and the Direct PDF clone share it), with right-aligned digits inside:
+// the shared right edge / decimal axis of IRON-NUMERIC-001 stays, now at one box from the outer edge (quoteDocument.css, [dir='rtl']).
+const AMOUNT_COLUMN_MONEY = '.pq-commercial-table tbody td.pq-td-total .pf-money';
+export function syncMoneyBox(card) {
+  if (!card) return;
+  card.style.setProperty('--pq-money-box-n', '0'); // natural widths first (an earlier, larger box must not hold the size)
+  const els = [...card.querySelectorAll(AMOUNT_COLUMN_MONEY)];
+  const fsOf = (el) => parseFloat(viewOf(el).getComputedStyle(el).fontSize) || 16;
+
+  // the totals and the grand total (a larger size) must fit the same box, in units of the table digits; their text width (a range -
+  // the elements themselves are full-width grid cells)
+  const textWidth = (el) => {
+    const d = docOf(el);
+    if (!d || typeof d.createRange !== 'function') return 0;
+    const r = d.createRange(); r.selectNodeContents(el);
+    const w = r.getBoundingClientRect ? r.getBoundingClientRect().width : 0;
+    return Number.isFinite(w) ? w : 0;
+  };
+  const totals = [...card.querySelectorAll('.pq-totals-box .pq-total-value, .pq-totals-box .pq-total-final-amount')];
+  // the unit of the box: the table digits; a quote without item rows uses its totals' own digits
+  const plainTotal = totals.find((el) => el.classList.contains('pq-total-value')) || totals[0];
+  const tableFs = els.length ? fsOf(els[0]) : (plainTotal ? fsOf(plainTotal) : 16);
+  const n = Math.max(0,
+    ...els.map((el) => el.getBoundingClientRect().width / fsOf(el)),
+    ...totals.map((el) => textWidth(el) / tableFs));
+  const boxN = Math.ceil(n * 1000) / 1000 + 0.02;
+  card.style.setProperty('--pq-money-box-n', boxN.toFixed(3));
+
+  // Owner console 2026-11-10 (the 13 items, L-27): in Hebrew the "סה״כ" header ends on the amounts' right edge, as "Total" does in English
+  // (the box starts at the outer edge, so the header gets the box's width minus its own text as its outer padding; em of its own size)
+  const th = card.querySelector('.pq-commercial-table thead th.pq-th-total');
+  const td = card.querySelector('.pq-commercial-table tbody td.pq-td-total');
+  if (th) th.style.removeProperty('padding-left');
+  if (th && viewOf(th).getComputedStyle(th).direction === 'rtl') {
+    const thFs = fsOf(th);
+    const headW = textWidth(th);
+    const padL = td ? (parseFloat(viewOf(td).getComputedStyle(td).paddingLeft) || 0) : (parseFloat(viewOf(th).getComputedStyle(th).paddingLeft) || 0);
+    const want = padL + boxN * tableFs - headW;
+    const base = parseFloat(viewOf(th).getComputedStyle(th).paddingLeft) || 0;
+    if (headW > 0 && want > base) th.style.setProperty('padding-left', `${(want / thFs).toFixed(4)}em`, 'important'); // the phone rule pins 3px !important
+  }
+}
+
+// Owner console 2026-11-10 (the 13 items, L-27): the unit label sits after the number (right in English, left in Hebrew), so the
+// centred number+unit pair put the English numbers left of the "Qty" header. The number box itself is centred under the header, in both
+// languages: an empty space of the unit's width on the number's other side - only where the cell has room for it (never a wrap).
+export function syncQtyCentre(card) {
+  if (!card) return;
+  const tds = [...card.querySelectorAll('.pq-commercial-table tbody td.pq-td-qty')];
+  const pairs = tds.map((td) => ({ td, num: td.querySelector('.pq-num-slot'), unit: td.querySelector('.pq-unit-slot') })).filter((x) => x.num && x.unit);
+  for (const x of pairs) { x.num.style.marginLeft = ''; x.num.style.marginRight = ''; }
+  const inline = pairs.filter((x) => viewOf(x.unit).getComputedStyle(x.unit).display.startsWith('inline'));
+  if (!inline.length || inline.length !== pairs.length) return; // a wrapped column (labels on their own line) is already centred
+  const unitW = Math.max(0, ...inline.map((x) => x.unit.getBoundingClientRect().width));
+  if (!(unitW > 0)) return;
+  const fits = inline.every((x) => {
+    const cs = viewOf(x.td).getComputedStyle(x.td);
+    const room = x.td.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+    return room >= x.num.getBoundingClientRect().width + 2 * unitW + 1;
+  });
+  if (!fits) return;
+  for (const x of inline) {
+    const fs = parseFloat(viewOf(x.num).getComputedStyle(x.num).fontSize) || 16;
+    const rtl = viewOf(x.td).getComputedStyle(x.td).direction === 'rtl';
+    x.num.style[rtl ? 'marginRight' : 'marginLeft'] = `${(unitW / fs).toFixed(4)}em`;
+  }
+}
+
+export function syncAllAmountAxes(card) { syncUnitSlots(card); syncDecimalColumns(card); syncQtyCentre(card); syncMoneyBox(card); syncAmountAxis(card); }
 
 export function useAmountAxis(cardRef) {
   useLayoutEffect(() => {

@@ -650,6 +650,22 @@
   }
 }
 
+/* Owner console 2026-11-10 (typed: "מאשר הגדלת הטבלה במסמך הלקוח בעברית לגודל של האנגלית (16 פיקסלים) במחשב, טאבלט והדפסה, כולל שינוי
+   ב-L-02, L-24, L-27, L-28, שחרור עד הלייב"): the Hebrew table takes the English size on a computer, a tablet and on paper; the phone
+   (<= 640px) keeps its own shared sizes. */
+/* Owner console 2026-11-10 (finding 7 "כן"): the green signed box keeps inner padding on a computer, a tablet and paper too (the
+   document-grammar rule "padding: 12px 0 0" of .pq-approval had removed its sides), both languages */
+@media (min-width: 641px), print {
+  .pq-page .pq-card .pq-approval.pq-approval-signed { padding: 16px 20px; }
+}
+
+@media (min-width: 641px), print {
+  .pq-page[dir='rtl'] .pq-card .pq-commercial-table,
+  .pq-page[dir='rtl'] .pq-card .pq-commercial-table th {
+    font-size: 1rem;
+  }
+}
+
 /* A number is never split across lines (cloud-fix3): the quantity cell may wrap between the value and its unit, never
    inside the value (money cells are nowrap). */
 .pq-card .pq-commercial-table td.pq-td-qty {
@@ -855,8 +871,13 @@
   --pq-total-amount-size: 1rem;
 }
 
-.pq-page[dir='ltr'] .pq-card .pq-total-label {
-  font-size: 1rem;
+/* Owner console 2026-11-10 (finding 4 "כן"): on a phone the English totals labels keep the phone size of their amounts (as in Hebrew);
+   the 1rem label stays for a computer, a tablet and paper - where the Hebrew labels now take it too, beside their 16px amounts */
+@media (min-width: 641px), print {
+  .pq-page[dir='ltr'] .pq-card .pq-total-label,
+  .pq-page[dir='rtl'] .pq-card .pq-total-label {
+    font-size: 1rem;
+  }
 }
 
 .pq-page[dir='ltr'] .pq-card .pq-total-label,
@@ -1554,6 +1575,18 @@
   .pq-page .pq-card .pq-commercial-table .pq-th-total,
   .pq-page .pq-card .pq-commercial-table td.pq-td-price,
   .pq-page .pq-card .pq-commercial-table td.pq-td-total { text-align: right !important; }
+  /* Owner console 2026-11-10 (findings round, finding 1 "א"): the Hebrew document mirrors the English one - the unit-price and amount
+     columns sit against the table's OUTER edge (left in RTL). The money boxes keep their equal width and right-aligned text, so every
+     amount still shares ONE right edge (IRON-NUMERIC-001); useAmountAxis.syncAmountAxis fits the totals' amount column to that box. */
+  .pq-page[dir='rtl'] .pq-card .pq-commercial-table .pq-th-price,
+  .pq-page[dir='rtl'] .pq-card .pq-commercial-table .pq-th-total,
+  .pq-page[dir='rtl'] .pq-card .pq-commercial-table td.pq-td-price,
+  .pq-page[dir='rtl'] .pq-card .pq-commercial-table td.pq-td-total { text-align: left !important; }
+  /* finding 2: a number and its unit ("3.40 מ״ר") are never split across two lines, in both languages */
+  .pq-page .pq-card .pq-commercial-table td.pq-td-qty { white-space: nowrap; }
+  /* finding 6 "א": the discount line is red in both languages (the general total-label colour above used to win in Hebrew) */
+  .pq-page .pq-card .pq-total-label.pq-discount-negative,
+  .pq-page .pq-card .pq-total-value.pq-discount-negative { color: #dc2626; }
 
   .pq-page .pq-card .pq-attachments {
     margin: 0 0 20px;
@@ -1732,6 +1765,48 @@
   }
 }
 
+/* Owner console 2026-11-10 (findings round, finding 1 "א"): the Hebrew document mirrors the English one - the amount column sits against
+   the table's OUTER edge (left in RTL) on screen, in native Print and in the Direct PDF. Every amount of that column gets ONE box width
+   (--pq-money-box-n, in em of its own digits - useAmountAxis.syncMoneyBox) with right-aligned digits; the totals' amount column is
+   exactly that box + the cell paddings, so every amount keeps ONE right edge and ONE decimal axis (IRON-NUMERIC-001). */
+.pq-page[dir='rtl'] .pq-card .pq-commercial-table td.pq-td-total .pf-money {
+  display: inline-block !important;
+  box-sizing: border-box;
+  text-align: right !important;
+  min-width: calc(var(--pq-money-box-n, 0) * 1em) !important;
+}
+.pq-page[dir='rtl'] .pq-card .pq-totals-box.pq-totals-box {
+  --pq-amount-col: calc(var(--pq-money-box-n, 0) * var(--pq-amount-font, 1rem) + var(--pq-amount-pad-l, 6px) + var(--pq-amount-pad-r, 6px)) !important;
+}
+/* the phone rule above sets the totals columns directly (27%); in Hebrew the amount column is the money box there too */
+@media screen and (max-width: 640px) {
+  .pq-page[dir='rtl'] .pq-card .pq-totals-box { grid-template-columns: minmax(0, 1fr) var(--pq-amount-col) !important; }
+}
+@media print {
+  /* the Hebrew table digits are 1rem on paper now, as in English (finding 1 table size) */
+  .pq-page[dir='rtl']:not(.pq-preview) .pq-card .pq-totals-box.pq-totals-box { --pq-amount-font: 1rem !important; }
+}
+
+/* Owner console 2026-11-10 (findings 1 / 4): a quote without item rows has no table digits to measure - its totals take the size of
+   their labels (16px on a computer / tablet, 12px on a phone), both languages; with item rows useAmountAxis sets the measured size */
+@media (min-width: 641px) {
+  .pq-page .pq-card .pq-totals-box { --pq-amount-font: 1rem; }
+}
+@media screen and (max-width: 640px) {
+  .pq-page .pq-card .pq-totals-box { --pq-amount-font: 12px; }
+}
+
+/* Owner console 2026-11-10 (the 13 items, L-24 / L-27 / L-28): the Hebrew totals rows get the English spacing (10px between rows) */
+.pq-page[dir='rtl'] .pq-card .pq-totals-box { row-gap: 10px; }
+/* and the rule above the grand total sits as in English (no 6px gap above it, 2px below its line) */
+.pq-page[dir='rtl'] .pq-card .pq-total-rule { margin-top: 0; padding-top: 2px; }
+/* on a phone the grand-total words are the size of the grand-total amount (they were 19px beside 14.4px digits), both languages */
+@media screen and (max-width: 640px) {
+  .pq-page .pq-card .pq-totals-box .pq-total-final-label { font-size: calc(var(--pq-amount-font, 12px) * 1.2) !important; }
+}
+/* the quantity number box is centred under its header on screen, on paper and in the Direct PDF (useAmountAxis.syncQtyCentre, em units) */
+
+
 /* ---------- header band: output modes ----------
    SCREEN = the black band (above). NATIVE PRINT and the DIRECT PDF = the SAME band geometry, WHITE with dark text (Owner 2026-10-18 "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור")
    - no ink-heavy fill; the metadata cells become light boxes; only a real expired state keeps its warning colour. */
@@ -1798,14 +1873,9 @@
   vertical-align: middle;
 }
 
-/* IRON-NUMERIC-001, Print and Direct PDF (Owner 2026-10-06 "יישור ספרות ... באופן גורף"): a quantity's unit label sits on its own line under
-   the number, so every number line in the centred Quantity column holds only its equal-width number box (one decimal axis on A4). */
-@media print {
-  .pq-card .pq-commercial-table td.pq-td-qty .pq-unit-slot { display: block !important; min-width: 0 !important; }
-  .pq-card .pq-commercial-table td.pq-td-qty .pq-unit-slot:empty { display: none !important; }
-}
-.pq-pdf-capturing .pq-card .pq-commercial-table td.pq-td-qty .pq-unit-slot { display: block !important; min-width: 0 !important; }
-.pq-pdf-capturing .pq-card .pq-commercial-table td.pq-td-qty .pq-unit-slot:empty { display: none !important; }
+/* IRON-NUMERIC-001, Print and Direct PDF (Owner 2026-10-06 "יישור ספרות ... באופן גורף"): every number line in the centred Quantity column
+   holds its equal-width number box (one decimal axis on A4). Owner console 2026-11-10 (the 13 items, item 3 + L-28 "exactly as the screen"):
+   the unit stays beside its number on paper too, in its equal-width slot (useAmountAxis.syncUnitSlots / syncQtyCentre, em units). */
 /* IRON-NUMERIC-001 on paper: the totals amount column = the A4 table's Amount column (21%, 6px padding, the table's digit size) */
 @media print {
   .pq-page:not(.pq-preview) .pq-card .pq-totals-box { --pq-amount-col: 21% !important; --pq-amount-pad-l: 6px !important; --pq-amount-pad-r: 6px !important; --pq-amount-font: 13.5px !important; }

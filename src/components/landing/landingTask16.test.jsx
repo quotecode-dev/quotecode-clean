@@ -261,7 +261,7 @@ describe('cloud-fix4 A14 - landing truth, base restores, light regions, base col
 
   it('L03: the base free business tools section is back (base strings, /he|en/tools, no signup)', () => {
     expect(he).toMatch(/<h2 id="tl-tools-title">כלים עסקיים חינמיים<\/h2>/);
-    expect(text(he)).toContain('מחשבונים חינמיים למטבעות, יחידות, מתכות וקריפטו. פתוחים לכולם, בלי הרשמה.'); // Owner HE language edit 2026-10-06
+    expect(text(he)).toContain('מחשבונים חינמיים למטבעות, יחידות, מתכות וקריפטו. פתוחים לכולם, בלי הרשמה, כשירות חינמי נלווה ל-'); // Owner HE language edit 2026-10-06; 2026-11-10 finding 8: + the English "free companion"
     expect(text(he)).not.toContain('כתוסף חופשי');
     expect(he).toMatch(/<a class="tl-ghost" href="\/he\/tools">למעבר לכלים העסקיים/);
     expect(en).toMatch(/<h2 id="tl-tools-title">Free Business Tools<\/h2>/);
@@ -333,7 +333,7 @@ describe('cloud-fix4 A14 - landing truth, base restores, light regions, base col
     for (const html of [he, en]) expect((html.match(/class="tl-flow-step"/g) || []).length).toBe(3);
     for (const s of ['יצירה', 'שליחה', 'אישור וחתימה']) expect(he).toContain(`<h3>${s}</h3>`);
     for (const s of ['Create', 'Send', 'Approve &amp; Sign']) expect(en).toContain(`<h3>${s}</h3>`);
-    expect(he).toMatch(/<h2 id="tl-closing-title">מוכנים ליצור את ההצעה הראשונה שלכם\?<\/h2><p>הצעת מחיר ברורה, שלב אחר שלב\.<\/p>/);
+    expect(he).toMatch(/<h2 id="tl-closing-title">מוכנים ליצור את ההצעה הראשונה שלכם\?<\/h2><p>הצעת מחיר מקצועית וברורה, שלב אחר שלב\.<\/p>/);
     expect(en).toMatch(/<h2 id="tl-closing-title">Ready to create your first quote\?<\/h2><p>A professional quote, one clear step at a time\.<\/p>/);
     for (const s of ['הצעות מחיר שנראות כמו העסק שלכם', 'ארבעה צעדים', 'מהיצירה ועד אישור הלקוח', 'הצעת המחיר הבאה מתחילה בתהליך ברור']) expect(text(he)).not.toContain(s);
     for (const s of ['Quotes that look like your business', 'Four steps', 'From creation to customer approval', 'Your next quote starts with a clear process']) expect(text(en)).not.toContain(s);

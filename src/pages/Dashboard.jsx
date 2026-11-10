@@ -4147,8 +4147,11 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   handleCreateFileQuoteClickRef.current = handleCreateFileQuoteClick;
   // the reviewed lines from the file dialog: ONLY the owner's own lines and prices join the form (the untouched blank row is replaced);
   // the subject is never filled from another business's document. Nothing is saved.
+  // Owner console 2026-11-10 (G8 "א"): rows from the smart quote / smart edit / a file carry a screen-only review mark (never saved -
+  // the save builds its rows field by field); a line that came without a billing unit is marked too
+  const markForReview = (drafted, lines) => drafted.map((it, i) => ({ ...it, _review: true, ...(lines && lines[i] && !lines[i].unit ? { _noUnit: true } : {}) }));
   const applyFileQuoteLines = (lines) => {
-    const drafted = draftLinesToQuoteItems(lines);
+    const drafted = markForReview(draftLinesToQuoteItems(lines), lines);
     setItems((prev) => [...prev.filter((it) => !isUntouchedPlaceholderItem(it)), ...drafted]);
     setShowFileQuote(false);
   };
@@ -4165,7 +4168,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     return requestAiQuoteDraft(supabase, description, s.empty ? {} : { quote: s.snapshot });
   };
   const applyAiQuoteDraft = (lines, subject, changes = []) => {
-    const drafted = draftLinesToQuoteItems(lines);
+    const drafted = markForReview(draftLinesToQuoteItems(lines), lines);
     const real = aiSnapshotRef.current?.real || [];
     const updates = new Map(); const deletes = new Set();
     for (const ch of changes) {
@@ -5397,8 +5400,12 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         // ומספר אמיתי אוטומטית אחרי migration) - editingOriginalQuote כבר
         // קיים בהיקף (נשלף למעלה), ו-quote_number אינו משתנה בעריכה
         // (immutability trigger), כך שהוא עדיין מייצג את ההצעה הנוכחית.
+        // Owner console 2026-11-10 (G9 "א"): a quote whose link already reached the customer (sent, or opened by the customer) says that
+        // the customer's link now shows the change (the open link reflects every saved change until signed); any other quote as before
         text: editingQuoteId
-          ? (isHebrew ? `הצעת מחיר ${formatQuoteFallback(editingOriginalQuote || { id: editingQuoteId })} עודכנה בהצלחה!` : `Quote ${formatQuoteFallback(editingOriginalQuote || { id: editingQuoteId })} successfully updated!`)
+          ? ((editingOriginalQuote && (String(editingOriginalQuote.status || '').toLowerCase() === 'sent' || Number(editingOriginalQuote.view_count || 0) > 0))
+            ? (isHebrew ? 'השינויים נשמרו והקישור של הלקוח עודכן.' : "Changes saved. The client's link now shows the update.")
+            : (isHebrew ? `הצעת מחיר ${formatQuoteFallback(editingOriginalQuote || { id: editingQuoteId })} עודכנה בהצלחה!` : `Quote ${formatQuoteFallback(editingOriginalQuote || { id: editingQuoteId })} successfully updated!`))
           // מציגים את הסכום שבאמת נשמר (newQuoteFinancials.total) ולא את
           // totalAmount המחושב בגוף הקומפוננטה - עבור הצעה מקומית פרטית חדשה
           // הם אינם זהים (totalAmount עדיין מניח "נטו + מע"מ מעליו").
