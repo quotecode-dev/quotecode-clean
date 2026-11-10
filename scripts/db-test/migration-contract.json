@@ -771,6 +771,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-09 (typed: \"מאשר תיקון ממצאי קודקס 1-5 כולל L-05, L-13, L-17, L-24, L-25, L-26, L-27, L-28 ושחרור ללייב\"): Codex review D1 - the four version-less public signing functions (public_approve_quote, public_approve_quote_signed, public_approve_quote_capability, public_approve_quote_capability_signed) are closed to PUBLIC / anon / authenticated; a customer signs only through the versioned functions of 20261108400000. Bodies unchanged; replays cleanly (REVOKE + COMMENT). Proof: scripts/db-test/tests/474_signing_requires_version.sql."
+    },
+    "20261110100000_signed_quote_copy_link.sql": {
+      "sha256": "79d32cd6844daab5dfb946a19f981916dc79f8e52937f433eaa7cad9ee27dd5a",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "Owner console 2026-11-09 (typed: \"צריך לתת אפשרות העתקה, מה השאלה?\" + the night task \"מאשר משימת לילה 1-5: תיקון ההעתקה בהצעה חתומה עד שער עובר, ...\"): prepare_quote_output - channel public_share on a SIGNED quote returns the final result of the latest version already output to the same customer (alreadyFinalized; nothing reserved, counted or marked); output_notice - that signed quote answers alreadyFinalized and never wouldConsume. Every other channel and every unsigned closed state unchanged. Replays cleanly (CREATE OR REPLACE). Proof: scripts/db-test/tests/475_signed_quote_copy_link.sql."
     }
   }
 }

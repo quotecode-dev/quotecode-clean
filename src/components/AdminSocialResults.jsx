@@ -83,9 +83,10 @@ export default function AdminSocialResults({ isHebrew = true, content = [], care
         <strong>{c.title}</strong>
         <p className="av-muted av-small" style={{ margin: '6px 0' }}>{c.sub}</p>
         {!rows.length ? <p className="av-muted av-small" data-testid="social-results-empty">{c.none}</p> : (
-          <ul style={{ margin: 0, padding: 0, display: 'grid', gap: 8, listStyle: 'none' }} data-testid="social-what-works">
-            {summarize(content).map((g) => (
-              <li key={g.key} className="av-small" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'space-between' }}>
+          <ul style={{ margin: 0, padding: 0, display: 'grid', gap: 0, listStyle: 'none' }} data-testid="social-what-works">
+            {/* Owner 2026-11-09 (L-22): a gray row and a white row in turn, so each line reads as one */}
+            {summarize(content).map((g, i) => (
+              <li key={g.key} className="av-small" style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'space-between', padding: '8px 10px', borderRadius: 8, background: i % 2 === 0 ? '#e8edf3' : '#fff' }}>
                 <strong>{NETWORK[g.network]?.[l] || g.network} · {MARKET[g.market]?.[l] || g.market} · {KIND[g.kind]?.[l] || g.kind}</strong>
                 <span>{c.posts} <N v={g.posts} /> · {c.avgViews} {num(g.avgViews)} · {c.avgEng} <N v={g.avgEngagement} /></span>
               </li>
