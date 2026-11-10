@@ -45,6 +45,23 @@ export function buildAuthorityDeps(): AuthorityDeps | null {
       { p_user_id: userId, p_billing_period: billingPeriod, p_idempotency_key: idempotencyKey, p_smart_pack: smartPack })) as Record<string, unknown>,
     priceCatalog: (market) => call('get_price_catalog', { p_market: market }),
     // Owner 2026-10-25: the invoice / payment emails of PayPlus go to the account's own business name and email
+    // Owner console 2026-11-10: the language of a refund line = the account's product market (business_settings.country, the same rule as
+    // _shared/capabilityToken.ts marketFromCountry: Local / LCL = Israel -> ILS, International -> USD; anything else -> null, no line)
+    refundCurrency: async (userId) => {
+      const r = await tables.one('business_settings', 'country', 'user_id', userId);
+      const c = (r.data ?? {}) as { country?: unknown };
+      return c.country === 'Local' || c.country === 'LCL' ? 'ILS' : c.country === 'International' ? 'USD' : null;
+    },
+    // Owner console 2026-11-10: after a paid return, customer-notices runs for this account at once (the hourly cron stays the fallback)
+    notifyCustomer: async (userId) => {
+      const base = Deno.env.get('SUPABASE_URL') ?? ''; const secret = Deno.env.get('CRON_SECRET') ?? '';
+      if (!base || !secret) return;
+      const ctl = new AbortController(); const t = setTimeout(() => ctl.abort(), 8000);
+      try {
+        await fetch(`${base}/functions/v1/customer-notices`, { method: 'POST', signal: ctl.signal,
+          headers: { 'Content-Type': 'application/json', 'x-cron-secret': secret }, body: JSON.stringify({ user: userId }) });
+      } catch { /* the hourly cron sends it */ } finally { clearTimeout(t); }
+    },
     checkoutCustomer: async (userId) => {
       const r = await tables.one('business_settings', 'business_name, email', 'user_id', userId);
       if (r.error) throw new Error('customer_unavailable');

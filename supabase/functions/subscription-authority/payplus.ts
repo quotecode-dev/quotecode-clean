@@ -114,6 +114,8 @@ export const PAYPLUS_SMART_PACK_ITEM_NAMES = Object.freeze({ month: 'TEKANGO - �
 // English page, VAT-exempt lines (a customer abroad), no Israeli ID / instalments field. Prepared only - the billing phase stays off.
 export const PAYPLUS_ITEM_NAMES_EN = Object.freeze({ month: 'TEKANGO - Monthly subscription', year: 'TEKANGO - Annual subscription' });
 export const PAYPLUS_SMART_PACK_ITEM_NAMES_EN = Object.freeze({ month: 'TEKANGO - SMART PACK monthly', year: 'TEKANGO - SMART PACK annual' });
+// the refund lines live in billing.ts (shared with the SMART PACK removal refund); re-exported here
+export { PAYPLUS_REFUND_LINES, refundLine } from './billing.ts';
 
 /** The generateLink body for one server attempt. amountMinor is the server catalog amount (IL prices include VAT: vat_type 0;
  *  USD = International, VAT-exempt: vat_type 2). */
@@ -151,7 +153,8 @@ export function buildGenerateLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' 
     // Owner 2026-10-25: the customer gets the PayPlus approval / failure email and an invoice-receipt (Invoice+) for the first charge
     // and every renewal. Owner console 2026-11-01 (decision b): abroad too - PayPlus writes a USD document in English (its document
     // language follows the currency) with 0% VAT (decision a: the lines are vat_type 2, paying_vat false)
-    sendEmailApproval: true,
+    // Owner console 2026-11-10: no PayPlus payment-confirmation email (it duplicated the invoice email); the invoice and our own email stay
+    sendEmailApproval: false,
     sendEmailFailure: true,
     initial_invoice: true,
     items,
@@ -200,7 +203,8 @@ export function buildAddOnLinkBody(cfg: Pick<PayPlusConfig, 'paymentPageUid' | '
     // Owner console 2026-10-25 (findings 1-13): its own cancel page - never the package's (which would read "payment confirmed")
     ...((cfg.addOnCancelUrl ?? cfg.cancelUrl) ? { refURL_cancel: cfg.addOnCancelUrl ?? cfg.cancelUrl } : {}),
     send_failure_callback: true,
-    sendEmailApproval: true,
+    // Owner console 2026-11-10: no PayPlus payment-confirmation email (it duplicated the invoice email); the invoice and our own email stay
+    sendEmailApproval: false,
     sendEmailFailure: true,
     initial_invoice: true,
     items: [{ name: (usd ? PAYPLUS_SMART_PACK_ITEM_NAMES_EN : PAYPLUS_SMART_PACK_ITEM_NAMES)[i.billingPeriod], quantity: 1, price: i.amountMinor / 100,
@@ -396,7 +400,7 @@ export function createPayPlusProvider(cfg: PayPlusConfig): BillingProvider {
       return r === 'updated' ? 'removed' : 'unknown';
     },
     // section 6 (a yearly SMART PACK removed): the pro-rata refund on the period's charge (the documented refund by transaction uid)
-    refund: (transactionUid: string, amountMinor: number) => orders.refund(transactionUid, amountMinor),
+    refund: (transactionUid: string, amountMinor: number, lineText?: string | null) => orders.refund(transactionUid, amountMinor, lineText),
     // the SMART PACK line on the live package's standing order: read the order (by the package page request id), find the SMART PACK
     // product (the add-on page's line), then ONE Update with both lines from the next charge date - nothing is charged by it.
     // 'added' only when PayPlus said success (or the order already carries both lines); 'not_added' when it cannot or said no;
@@ -583,11 +587,12 @@ export function payplusStandingOrders(cfg: { apiBase: string; apiKey: string; se
     /** 20261022300000 (Terms section 6, early end): refund part of a charge (docs.payplus.co.il, Refund By Transaction UID:
      *  transaction_uid + amount, never more than the charge). Refunded only when PayPlus answers success with status 000; the refund's
      *  own transaction uid is returned for the log. Not proven in the sandbox yet. */
-    async refund(transactionUid: string, amountMinor: number): Promise<{ ok: true; refundRef: string } | { ok: false }> {
+    async refund(transactionUid: string, amountMinor: number, lineText?: string | null): Promise<{ ok: true; refundRef: string } | { ok: false }> {
       if (!ref(transactionUid) || !Number.isInteger(amountMinor) || amountMinor <= 0) return { ok: false };
       // Owner 2026-10-28 ("מאשר תיקון: הפקת חשבונית זיכוי בכל החזר דרך פיי פלוס"): without initial_invoice PayPlus refunds the money
       // and issues NO document (docs: "As long your account connected to Invoice+ we will generate document for this action")
-      const j = await call('POST', '/Transactions/RefundByTransactionUID', { transaction_uid: transactionUid, amount: amountMinor / 100, initial_invoice: true });
+      const line = typeof lineText === 'string' && lineText.trim() ? lineText.trim().slice(0, 100) : null;
+      const j = await call('POST', '/Transactions/RefundByTransactionUID', { transaction_uid: transactionUid, amount: amountMinor / 100, initial_invoice: true, ...(line ? { more_info: line } : {}) });
       const tx = ok(j) && isObj(j!.data) && isObj(j!.data.transaction) ? j!.data.transaction : null;
       const refundRef = tx && tx.status_code === PAYPLUS_SUCCESS_CODE ? ref(tx.uid) : null;
       return refundRef ? { ok: true, refundRef } : { ok: false };

@@ -12,6 +12,7 @@
 //   * a refund is marked 'sending' in SQL BEFORE PayPlus is called: a refund owed is never lost - the preview shows it until PayPlus
 //     confirmed it or the Owner confirms it from the PayPlus panel (settle_refund).
 //   * INERT: billing is 'off' - SQL answers billing_off before anything is recorded and PayPlus is never called.
+import { refundLine } from '../subscription-authority/billing.ts';
 export type Resp = { status: number; body: Record<string, unknown> };
 export type Kind = 'stop_renewal' | 'end_early';
 export const PROOF_ACTIONS = Object.freeze({ stop_renewal: 'billing_stop_renewal', end_early: 'billing_end_early', resolve: 'billing_resolve',
@@ -36,7 +37,7 @@ export interface AdminBillingDeps {
     terminalUid: string;
     /** 'unknown' = no readable answer (it may have stopped): the action stays open for the Owner (Codex audit 2026-10-22 H-02) */
     cancel(recurringUid: string, terminalUid: string): Promise<'cancelled' | 'rejected' | 'unknown'>;
-    refund(transactionUid: string, amountMinor: number): Promise<{ ok: true; refundRef: string } | { ok: false }>;
+    refund(transactionUid: string, amountMinor: number, lineText?: string | null): Promise<{ ok: true; refundRef: string } | { ok: false }>;
   };
   audit(a: { actorUserId: string; targetUserId: string; action: string; reason: string | null; beforeState?: unknown; afterState?: unknown;
     outcome: 'success' | 'denied' | 'error' }): Promise<void>;
@@ -58,7 +59,7 @@ const refusal = (r: unknown): Resp => {
 };
 
 /** finish -> (only when SQL says a refund is due) mark it sending -> refund -> record it. Never throws. */
-async function settle(deps: AdminBillingDeps, actionId: string, cancelStatus: 'cancelled' | 'failed', resolvedByOwner: boolean) {
+async function settle(deps: AdminBillingDeps, actionId: string, cancelStatus: 'cancelled' | 'failed', resolvedByOwner: boolean, hint?: { period?: unknown; currency?: unknown }) {
   let done: Record<string, unknown>;
   try { done = await deps.finish({ actionId, cancelStatus, resolvedByOwner }); } catch { done = { ok: false }; }
   if (!isObj(done) || done.ok !== true) return { recorded: false as const, done: isObj(done) ? done : {}, refundStatus: 'none' as RefundStatus };
@@ -73,7 +74,10 @@ async function settle(deps: AdminBillingDeps, actionId: string, cancelStatus: 'c
       return { recorded: true as const, done, refundStatus: 'none' as RefundStatus };
     }
     if (deps.payplus && typeof done.chargeRef === 'string' && done.chargeRef) {
-      const r = await deps.payplus.refund(done.chargeRef, refundMinor).catch(() => ({ ok: false as const }));
+      // Owner console 2026-11-10: the credit document line by the charge currency and the plan period ("החזר: TEKANGO - מנוי חודשי" / "Refund: ...")
+      const period = hint?.period;
+      const line = refundLine(period === 'month' || period === 'year' ? period : 'subscription', done.currency ?? hint?.currency);
+      const r = await deps.payplus.refund(done.chargeRef, refundMinor, line).catch(() => ({ ok: false as const }));
       if (r.ok) { refundStatus = 'refunded'; refundRef = r.refundRef; } else refundStatus = 'failed';
     } else {
       refundStatus = 'manual'; // the charge's transaction id (or the PayPlus secrets) unknown: refund it in the PayPlus panel
@@ -210,7 +214,7 @@ export async function adminBillingHandler(deps: AdminBillingDeps, callerId: stri
     cancelStatus = outcome === 'cancelled' ? 'cancelled' : 'failed';
   }
   // 2. record it; 3. refund only if SQL now says it is due
-  const s = await settle(deps, begun.actionId, cancelStatus, false);
+  const s = await settle(deps, begun.actionId, cancelStatus, false, { period: begun.period, currency: begun.currency });
   const record = { actionId: begun.actionId, kind, cancelStatus, refundStatus: s.refundStatus,
     refundMinor: Number.isInteger(begun.refundMinor) ? begun.refundMinor : 0, currency: begun.currency ?? null,
     applied: s.done.applied === true, paidThrough: s.done.paidThrough ?? null };

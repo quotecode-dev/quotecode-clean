@@ -26,7 +26,7 @@ describe('the one-time SMART PACK page abroad', () => {
   it('USD, English, VAT-exempt, the English line name, no Israeli ID / instalments field, the receipt and the emails', () => {
     const b = buildAddOnLinkBody(urls, { addOnId: ADD, amountMinor: 419, billingPeriod: 'month', currency: 'USD', customer: { name: 'Biz', email: 'biz@example.com' } });
     expect(b).toMatchObject({ charge_method: 1, amount: 4.19, currency_code: 'USD', language_code: 'en', paying_vat: false, hide_identification_id: true,
-      hide_payments_field: true, more_info: `sp_${ADD}`, sendEmailApproval: true, sendEmailFailure: true, initial_invoice: true,
+      hide_payments_field: true, more_info: `sp_${ADD}`, sendEmailApproval: false /* Owner 2026-11-10: no PayPlus confirmation email */, sendEmailFailure: true, initial_invoice: true,
       items: [{ name: PAYPLUS_SMART_PACK_ITEM_NAMES_EN.month, quantity: 1, price: 4.19, vat_type: 2 }] });
   });
   it('the Israeli page is unchanged (ILS, Hebrew line, VAT included)', () => {
