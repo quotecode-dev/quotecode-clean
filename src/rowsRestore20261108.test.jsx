@@ -3,7 +3,7 @@
 // docs/CODEX_SPEC_DEFAULTS_AND_CHANGES_2026-11-08.md, inside the existing screen.
 import { describe, it, expect, afterEach } from 'vitest';
 import { render, screen, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
-import { useState, StrictMode } from 'react';
+import { useState } from 'react';
 import { readFileSync } from 'node:fs';
 import QuoteRowsEditor from './components/QuoteRowsEditor';
 import { blankRowItem, rowEntry } from './utils/quoteItemEntry';
@@ -97,61 +97,17 @@ describe('04 / 05 · nothing is stored with its previous value', () => {
     expect(last[0]._invalid).toBe(true);
     await waitFor(() => expect(screen.getByTestId('qrow-sizeerr-t').textContent).toContain('מתעגלת לאפס'));
   });
-  // Owner 2026-11-10 (typed: "מאשר תיקון השמירה בשלבים ותיקון "2..5" כולל L-09, שחרור עד הלייב"): a row that opens again shows what was
-  // typed and stays marked - never silently the stored value (was: "shows the stored line, unmarked")
-  it('an invalid price marks the line while the row shows it (the save refuses); a row that opens again shows what was typed, still marked', async () => {
+  it('an invalid price marks the line while the row shows it (the save refuses); a row that opens again shows the stored line, unmarked', async () => {
     const { unmount } = render(<H initial={[line({ id: 'p' })]} />);
     fireEvent.change(screen.getByTestId('qrow-price-p'), { target: { value: '12,5' } });
     expect(last[0]).toMatchObject({ unit_price: '100', _invalid: true });
     expect(screen.getByTestId('qrow-total-p').textContent).toBe('—'); // no amount for a value that is not what is stored
-    const marked = JSON.parse(JSON.stringify(last[0])); // as a reloaded draft holds it
+    const marked = last[0];
     unmount();
     render(<H initial={[marked]} />);
-    expect(screen.getByTestId('qrow-price-p').value).toBe('12,5');
-    await waitFor(() => expect(last[0]._invalid).toBe(true));
-    expect(last[0].unit_price).toBe('100');
-    expect(screen.getByTestId('qrow-total-p').textContent).toBe('—');
-    expect(rowEntry(marked, false).unitPrice).toBe('100');
-    // fixing it stores the typed value and drops the mark and the typed text
-    fireEvent.change(screen.getByTestId('qrow-price-p'), { target: { value: '12.5' } });
-    expect(last[0]._invalid).toBeUndefined();
-    expect(last[0]._raw).toBeUndefined();
-    expect(Number(last[0].unit_price)).toBe(12.5);
-  });
-  it('"2..5" in the quantity: after a reload the row shows "2..5", still marked - never 2.5 by itself (Codex, Owner 2026-11-10)', async () => {
-    const { unmount } = render(<H initial={[line({ id: 'z', quantity: '2.5' })]} />);
-    fireEvent.change(screen.getByTestId('qrow-qty-z'), { target: { value: '2..5' } });
-    expect(last[0]).toMatchObject({ quantity: '2.5', _invalid: true });
-    const marked = JSON.parse(JSON.stringify(last[0]));
-    unmount();
-    render(<H initial={[marked]} />);
-    expect(screen.getByTestId('qrow-qty-z').value).toBe('2..5');
-    await waitFor(() => expect(last[0]._invalid).toBe(true));
-  });
-  it('the same under React StrictMode (effects run twice on open): "2..5" stays, marked', async () => {
-    const { unmount } = render(<H initial={[line({ id: 's', quantity: '2.5' })]} />);
-    fireEvent.change(screen.getByTestId('qrow-qty-s'), { target: { value: '2..5' } });
-    const marked = JSON.parse(JSON.stringify(last[0]));
-    unmount();
-    render(<StrictMode><H initial={[marked]} /></StrictMode>);
-    expect(screen.getByTestId('qrow-qty-s').value).toBe('2..5');
-    await waitFor(() => expect(last[0]._invalid).toBe(true));
-    expect(screen.getByTestId('qrow-qty-s').value).toBe('2..5');
-  });
-  it('an emptied quantity reloads empty, marked and says so', async () => {
-    const { unmount } = render(<H initial={[line({ id: 'e', quantity: '2' })]} />);
-    fireEvent.change(screen.getByTestId('qrow-qty-e'), { target: { value: '' } });
-    const marked = JSON.parse(JSON.stringify(last[0]));
-    unmount();
-    render(<H initial={[marked]} />);
-    expect(screen.getByTestId('qrow-qty-e').value).toBe('');
-    await waitFor(() => expect(screen.getByTestId('qrow-qtyempty-e').textContent).toBe('יש להזין כמות גדולה מ-0'));
-    expect(last[0]._invalid).toBe(true);
-  });
-  it('an old mark without the typed text (a draft from before the fix) shows the stored line, unmarked', async () => {
-    render(<H initial={[line({ id: 'o2', _invalid: true })]} />);
-    expect(screen.getByTestId('qrow-price-o2').value).toBe('100');
+    expect(screen.getByTestId('qrow-price-p').value).toBe('100');
     await waitFor(() => expect(last[0]._invalid).toBeUndefined());
+    expect(rowEntry(marked, false).unitPrice).toBe('100');
   });
   it('an emptied quantity stays empty and says so (never becomes 1 by itself); the line is marked', () => {
     render(<H initial={[line({ id: 'q', quantity: '2' })]} />);

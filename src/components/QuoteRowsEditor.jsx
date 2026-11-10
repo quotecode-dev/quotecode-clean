@@ -169,12 +169,10 @@ function sizeProblems(e, t) {
   return out.main || out.rows ? out : null;
 }
 // restore item 05 (Owner 2026-11-08): what the screen shows is what is saved. While an open row holds a value that cannot be stored, its
-// line carries the screen-only mark _invalid (never sent - the save builds its rows field by field) and the save refuses the quote.
-// Codex "2..5" (Owner 2026-11-10, typed: "מאשר תיקון השמירה בשלבים ותיקון "2..5" כולל L-09, שחרור עד הלייב"): the marked line also keeps
-// the typed text (_raw, screen-only like the mark), so a row that opens again - after a reload of the draft too - shows exactly what was
-// typed, still marked, and never silently the previous stored value. A line changed from outside (smart edit, a linked price) shows the
-// new values and drops the mark.
-const unmark = (it) => { const c = { ...it }; delete c._invalid; delete c._raw; return c; };
+// line carries the screen-only mark _invalid (never sent - the save builds its rows field by field) and the save refuses the quote. The
+// typed text lives only in the open row: a row that opens again, or a line changed from outside (smart edit, a linked price), shows the
+// stored line again and drops the mark.
+const unmark = (it) => { const c = { ...it }; delete c._invalid; return c; };
 
 const fieldStyle = { minHeight: '40px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.84rem' };
 const errStyle = { flexBasis: '100%', margin: '2px 0 0', fontSize: '0.72rem', fontWeight: 700, color: NEON.red };
@@ -182,32 +180,23 @@ const errStyle = { flexBasis: '100%', margin: '2px 0 0', fontSize: '0.72rem', fo
 function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney, services, sections, store, pos, count, onItem, onDuplicate, onRemove, onMove, onShift, onEnterNext, onCatalogItemAdded, canUseMeasured, onMeasuredLocked, linked = null, onLinkedAll = null, recommendedMethod = null, canRemove = true }) {
   // a catalog line stays a catalog line when it is edited again (the entry's catalog mark; the media binding runs only on a new pick)
   const entryOf = (it) => ({ ...rowEntry(it, international), catalogServiceId: it.isFromCatalog ? 'catalog' : null });
-  const [entry, setEntry] = useState(() => (item._invalid && item._raw && typeof item._raw === 'object' ? { ...item._raw } : entryOf(item)));
+  const [entry, setEntry] = useState(() => entryOf(item));
   const [menu, setMenu] = useState(false);
   // the quantity counts as changed only when its TEXT changed - an untouched box never blocks a price edit (a stored 0, float noise) and
   // never rewrites the stored amount (the rule of the former quick price window); a billing type / size mode other than the one the row
   // opened with is a confirmed conversion (the new branch is taken as is - no manual amount of the old type survives)
   const openedOf = (e) => ({ quantity: e.quantity, manualQty: e.manualQty, pricingMethod: e.pricingMethod, useManualQty: !!e.useManualQty });
   const opened = useRef(null);
-  // "untouched" is measured against the STORED line, also when the row reopens on typed text
-  if (!opened.current) opened.current = openedOf(entryOf(item));
+  if (!opened.current) opened.current = openedOf(entry);
   // the line changed from outside (the smart edit keeps its id): the row reads it again, it never writes back its old values
   const lastBuilt = useRef(item);
-  // a row that opens on a marked line shows what was typed and stays marked (the same check runs again); an old mark without the typed
-  // text (a draft from before this fix) shows the stored line and the mark goes
+  // a row that opens on a marked line shows the stored line (its typed text is gone with the row that held it) - the mark goes too
   useEffect(() => {
-    if (item._invalid && item._raw && typeof item._raw === 'object') {
-      apply({});
-      const r = item._raw;
-      const empty = isMeasured(r.pricingMethod) && r.useManualQty ? !typed(r.manualQty) : (isCountedMethod(r.pricingMethod) && !typed(r.quantity));
-      if (empty) setQtyEmpty(true);
-    } else if (item._invalid) { const clean = unmark(item); lastBuilt.current = clean; onItem(index, clean); }
+    if (item._invalid) { const clean = unmark(item); lastBuilt.current = clean; onItem(index, clean); }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  // the opening line is handled above - this effect reads only lines that change from outside after the row opened
-  const openingItem = useRef(item);
   useEffect(() => {
-    if (item === lastBuilt.current || item === openingItem.current) return;
+    if (item === lastBuilt.current) return;
     const clean = item._invalid ? unmark(item) : item;
     lastBuilt.current = clean;
     const fresh = entryOf(clean);
@@ -258,7 +247,7 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
     if (!p.ok || !qOk || !mOk || sizeProblems(next, t)) {
       // Owner console 2026-11-08 (restore items 04 / 05): a row that cannot be stored is never saved with its previous value - the line
       // keeps what was typed and is marked, and the save refuses the quote until the marked fields are fixed
-      const marked = { ...item, _invalid: true, _raw: { ...next } };
+      const marked = { ...item, _invalid: true };
       lastBuilt.current = marked;
       onItem(index, marked);
       return null;

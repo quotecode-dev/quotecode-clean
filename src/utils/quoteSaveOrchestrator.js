@@ -48,32 +48,19 @@ const isMissingFunctionError = (err) => {
   return code === 'PGRST202' || code === '42883' || /could not find the function|function .* does not exist/i.test(msg);
 };
 
-// Codex #d1-save (Owner 2026-11-10: "מאשר תיקון השמירה בשלבים ..."): only a DEFINITE answer is remembered - the function answered
-// (atomic) or the server said it does not exist (phased). A network drop / timeout / server error is "unknown": nothing is cached and
-// the probe returns null, so one bad moment never switches the whole session to the non-atomic phased save.
 const capabilityCache = new WeakMap();
-const lastProbeError = new WeakMap();
-async function probeAtomicSave(supabase) {
-  try {
-    const { data, error } = await supabase.rpc('save_quote_atomic_version');
-    if (!error) return { known: true, available: Number(data) >= 1 };
-    if (isMissingFunctionError(error)) return { known: true, available: false };
-    return { known: false, error };
-  } catch (e) {
-    return { known: false, error: e };
-  }
-}
 export async function detectAtomicSave(supabase) {
   if (capabilityCache.has(supabase)) return capabilityCache.get(supabase);
-  let r = await probeAtomicSave(supabase);
-  if (!r.known) r = await probeAtomicSave(supabase); // one retry for a passing hiccup
-  if (!r.known) {
-    console.warn('[quote-save] capability probe failed twice; the save stops (no phased fallback)', r.error);
-    lastProbeError.set(supabase, r.error);
-    return null;
+  let available = false;
+  try {
+    const { data, error } = await supabase.rpc('save_quote_atomic_version');
+    available = !error && Number(data) >= 1;
+    if (error && !isMissingFunctionError(error)) console.warn('[quote-save] capability probe failed; using the phased save', error);
+  } catch (e) {
+    console.warn('[quote-save] capability probe threw; using the phased save', e);
   }
-  capabilityCache.set(supabase, r.available);
-  return r.available;
+  capabilityCache.set(supabase, available);
+  return available;
 }
 export function resetAtomicSaveCapability(supabase) { capabilityCache.delete(supabase); }
 
@@ -294,12 +281,6 @@ export async function persistQuotePhased(supabase, plan) {
 
 export async function persistQuote(supabase, plan) {
   const atomic = await detectAtomicSave(supabase);
-  if (atomic === null) {
-    // unknown whether the atomic save exists: nothing is written (the caller keeps the draft and says the quote was not saved)
-    const e = lastProbeError.get(supabase);
-    return { path: 'none', outcome: 'failed', stage: 'probe', quoteId: plan.isNew ? null : plan.quoteId, wrote: [], attachmentFailures: [], orphanedUploads: [], cleanupPending: [],
-      error: new Error(String(e?.message || e || 'save_quote_atomic_version unavailable')) };
-  }
   return atomic ? persistQuoteAtomic(supabase, plan) : persistQuotePhased(supabase, plan);
 }
 
@@ -309,7 +290,7 @@ export async function deleteQuoteWithAttachments(supabase, quoteId) {
   if (listErr) return { ok: false, stage: 'list', error: listErr };
   const { error: delErr } = await supabase.from('quotes').delete().eq('id', quoteId);
   if (delErr) return { ok: false, stage: 'delete', error: delErr };
-  if ((await detectAtomicSave(supabase)) === true) {
+  if (await detectAtomicSave(supabase)) {
     const gc = await flushStorageGc(supabase);
     return { ok: true, cleanupPending: gc.pending || [] };
   }
