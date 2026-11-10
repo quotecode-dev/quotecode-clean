@@ -94,6 +94,8 @@ import { buildPreviewQuoteData } from '../components/quotePresentation/buildPrev
 import { createPristinePresentation, normalizePresentationState, hasServerContent } from '../components/quotePresentation/presentationState';
 import { purgePendingPresentations } from '../components/quotePresentation/pendingPresentationStore';
 import { persistQuote, deleteQuoteWithAttachments, newUuid } from '../utils/quoteSaveOrchestrator';
+import PaymentFrame from '../components/PaymentFrame';
+import { framedPaymentUrl, PAYMENT_FRAME_RETURN } from '../shared/paymentFrameReturn';
 import { resolveEditorAttachmentOpen } from '../utils/attachmentCompatPath';
 import QuotesTab from '../components/QuotesTab';
 import NewQuoteMenu from '../components/NewQuoteMenu';
@@ -3267,6 +3269,18 @@ Continue anyway?`, isHebrew);
   // Owner 2026-10-26 (typed approval of the app's own question window): each answer may be pending - the second asks after the first said yes
   // Owner console 2026-11-02 (typed: "מאשר בניית שלב 1: מסכי ימי החסד ומיילי החיוב שנכשל לפי ההחלטה מ-18/10, כולל שינוי ב-L-02, L-11, L-12, L-13 ו-L-15, עם ההמלצות בהחלטות 1, 2 ו-4, שחרור עד הלייב"): during the grace days a reminder before every send; the send stays allowed
   const confirmGraceBeforeSend = () => (billingNotice?.state === 'grace' ? askConfirm(sendReminderText(billingNotice, Date.now(), isHebrew), isHebrew) : true);
+  // Owner console 2026-11-10 (typed: "מאשר פתיחת דף התשלום של פיי פלוס כחלון מעל האפליקציה (כולל חזרה אוטומטית, ופתיחה רגילה אם החלון
+  // לא נטען), כולל שינוי ב-L-01 ו-L-22, שחרור עד הלייב"): a PayPlus payment page opens in a window above the app; any other address
+  // (and the window's fallback) leaves as a full page, as before
+  const [paymentUrl, setPaymentUrl] = useState(null);
+  const leaveForPayment = (url) => { if (framedPaymentUrl(url)) setPaymentUrl(url); else window.location.assign(url); };
+  const closePaymentWindow = useCallback(() => setPaymentUrl(null), []);
+  const paymentWindowFallback = useCallback((url) => { setPaymentUrl(null); window.location.assign(url); }, []);
+  const paymentWindowReturn = useCallback((kind) => {
+    setPaymentUrl(null);
+    window.dispatchEvent(new CustomEvent(PAYMENT_FRAME_RETURN, { detail: { kind } }));
+  }, []);
+
   const confirmBeforeCustomerOutput = (quote) => andAllowed(confirmGraceBeforeSend(), () => andAllowed(confirmMissingPrices(quote), () => confirmExpiredValidity(quote)));
 
   // Task 28: "copy message" - the same message as WhatsApp, copied for the owner to paste and send HIMSELF (nothing is sent). It shares
@@ -8245,6 +8259,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         // findings 1-13 (2026-10-25): "not open outside Israel" only when the server says so (billing on, market INTERNATIONAL)
         closedAbroad={plansAvailabilityLine(accountSummary, isHebrew)?.kind === 'closed_abroad'}
       />
+      {/* Owner console 2026-11-10: the PayPlus payment page in a window above the app (L-01, L-22) */}
+      <PaymentFrame url={paymentUrl} isHebrew={isHebrew} onClose={closePaymentWindow} onReturn={paymentWindowReturn} onFallback={paymentWindowFallback} />
       <PricingModal 
         isOpen={showPricingModal} 
         onClose={() => setShowPricingModal(false)} 
@@ -8263,14 +8279,14 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         // Owner 2026-10-20 (typed L-22 approval): the pay button (shown only while the server billing phase is on) leaves for the server
         // attempt's payment page; the package opens only after a verified payment
         // Owner console 2026-11-04 (typed L-01 / L-22): the same action resumes a stopped renewal - the departure remembers it (nothing charged)
-        onPurchase={(choice) => startPackageCheckout({ ...choice, invoke: invokeWithFreshSession }).then((r) => { if (r.ok) { markBillingDeparture(session?.user?.id, Date.now(), r.resume === true, choice.addAfter === true); window.location.assign(r.redirectUrl); } return r; })}
+        onPurchase={(choice) => startPackageCheckout({ ...choice, invoke: invokeWithFreshSession }).then((r) => { if (r.ok) { markBillingDeparture(session?.user?.id, Date.now(), r.resume === true, choice.addAfter === true); leaveForPayment(r.redirectUrl); } return r; })}
         // Owner console 2026-10-21 (typed L-22 / L-01 approval): back from the payment page; "confirmed" only from the server summary
         billingReturn={billingReturn.state ? { state: billingReturn.state, onCheckAgain: billingReturn.checkAgain, addOn: isAddOnReturn(billingReturn.kind), resume: billingReturn.resume === true, addAfter: billingReturn.addAfter === true } : null}
         // Owner console 2026-10-25 ("ב: חיוב יחסי עכשיו"): an active subscriber without SMART PACK adds it - the server's pro-rata page
         // Owner console 2026-10-25 (findings 1-13): an account summary that did not load can be read again from the plans window
         onRetrySummary={refreshAccountSummary}
         smartPackAddOn={smartPackAddOnAvailable(accountSummary, isLifetimeAccount)
-          ? { invoke: invokeWithFreshSession, onLeave: (url) => { markBillingDeparture(session?.user?.id); window.location.assign(url); } } : null}
+          ? { invoke: invokeWithFreshSession, onLeave: (url) => { markBillingDeparture(session?.user?.id); leaveForPayment(url); } } : null}
         // Owner console 2026-10-26 (typed SMART PACK removal approval): the subscriber removes SMART PACK; the summary is read again after
         smartPackRemoval={smartPackRemovalAvailable(accountSummary, isLifetimeAccount) ? { invoke: invokeWithFreshSession, onDone: refreshAccountSummaryQuiet } : null}
       />
