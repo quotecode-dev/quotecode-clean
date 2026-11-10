@@ -54,7 +54,7 @@ describe('QA report 2026-10-25: routing', () => {
       ['האם יש תבניות?', 'quote_create'], ['Do you have templates?', 'quote_create'], ['איך שומרים הצעה כתבנית?', 'quote_create'],
       ['האם אפשר לתמחר לפי מטר רבוע?', 'measured_quote'], ['Can I measure in square feet?', 'measured_quote'],
       ['איך מגדירים תוקף להצעה?', 'quote_expiry'], ['How do I set the valid until date?', 'quote_expiry'],
-      ['איך מייצאים הצעות לאקסל?', 'quote_csv'], ['איך מצרפים קובץ להצעה?', 'attachments'], ['How do I attach a file?', 'attachments'],
+      ['איך מייצאים הצעות לאקסל?', 'data_export'] /* Owner console 2026-11-10: the one plain export answer */, ['איך מצרפים קובץ להצעה?', 'attachments'], ['How do I attach a file?', 'attachments'],
     ];
     for (const [q, id] of cases) expect(classifyCapabilityIntent(q), q).toBe(id);
   });

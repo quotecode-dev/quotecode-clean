@@ -60,7 +60,7 @@ describe('03 · a billing change is asked first', () => {
     const saved = line({ id: 's' });
     render(<H initial={[saved]} />);
     fireEvent.change(screen.getByTestId('qrow-billing-s'), { target: { value: 'hour' } });
-    expect(await answerAppDialog(false)).toBe('אופן החיוב ישתנה. בדקו את הכמות והזינו מחיר לבסיס החדש.');
+    expect(await answerAppDialog(false)).toBe('המחיר הקודם היה ₪100.00 כסכום קבוע. הזינו מחיר לשעה.'); // Owner console 2026-11-10 (Codex wording 1)
     await waitFor(() => expect(last[0]).toBe(saved));
   });
   it('a new row with a typed price asks before the price is read for another unit; a new row without a price does not ask', async () => {
@@ -69,7 +69,7 @@ describe('03 · a billing change is asked first', () => {
     fireEvent.change(screen.getByTestId(`qrow-billing-${ids[1]}`), { target: { value: 'day' } });
     expect(last[1]).toMatchObject({ pricing_unit: 'day' });
     fireEvent.change(screen.getByTestId(`qrow-billing-${ids[0]}`), { target: { value: 'day' } });
-    expect(await answerAppDialog(true)).toBe('אופן החיוב ישתנה. בדקו את הכמות והזינו מחיר לבסיס החדש.');
+    expect(await answerAppDialog(true)).toBe('המחיר הקודם היה ₪50.00 ליחידה. הזינו מחיר ליום.'); // Owner console 2026-11-10 (Codex wording 1)
     await waitFor(() => expect(last[0]).toMatchObject({ pricing_unit: 'day', unit_price: '50' }));
   });
 });
@@ -195,7 +195,7 @@ describe('09 · a catalog pick fills the billing type too', () => {
     render(<H initial={[line({ id: 'c', pricing_unit: 'hour', quantity_source: 'manual', calculation_method: 'manual', calculated_quantity: 3 })]} />);
     fireEvent.click(screen.getByTestId('qrow-catalog-c'));
     fireEvent.pointerDown(screen.getByText('ריצוף סלון'));
-    expect(await answerAppDialog(true)).toBe('אופן החיוב ישתנה. בדקו את הכמות והזינו מחיר לבסיס החדש.');
+    expect(await answerAppDialog(true)).toMatch(/^המחיר הקודם היה .+\. הזינו מחיר .+\.$/); // Owner console 2026-11-10 (Codex wording 1)
     await waitFor(() => expect(last[0]).toMatchObject({ description: 'ריצוף סלון', unit_price: '120', quantity: '1', isFromCatalog: true }));
     // the item window started every catalog line at quantity 1
     expect(last[0].pricing_unit).toBeUndefined();

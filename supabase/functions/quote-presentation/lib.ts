@@ -131,6 +131,11 @@ export function draftPath(uid: unknown, quoteId: unknown): string {
 export function issuedPath(uid: unknown, quoteId: unknown): string {
   return `${userRoot(uid)}/quotes/${requireUuid(quoteId, 'quote id')}/issued.json`;
 }
+// Owner console 2026-11-10 (finding 3, typed: "מאשר תוכנית ממצא 3: עיצוב, לוגו ותמונות מתעדכנים אצל הלקוח עד החתימה ונעולים מרגע
+// החתימה ..."): the presentation the customer saw when the quote was signed, written once
+export function signedPath(uid: unknown, quoteId: unknown): string {
+  return `${userRoot(uid)}/quotes/${requireUuid(quoteId, 'quote id')}/signed.json`;
+}
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Request body helpers
@@ -515,8 +520,10 @@ export function planDraftSave({ quote, issued, existingDraft, style, media, tier
   now: Date;
 }): Ok<{ draft: Draft }> | Fail {
   if (isLockedQuote(quote)) return fail('quote_locked', 409, 'The quote is approved, paid or signed and can no longer change');
-  // Owner-facing 409 'quote_issued': an issued snapshot is frozen forever (documented in quotePresentationClient.js).
-  if (issued) return fail('quote_issued', 409, 'The quote presentation was already issued and is frozen');
+  // Owner console 2026-11-10 (finding 3): the presentation stays editable after the link went out - the customer's link shows the
+  // current style / logo / images until the quote is signed (public_get by capability), and locks at the signature. (The issued
+  // snapshot remains the record of what went out first; it no longer blocks a change.)
+  void issued;
   const previous = normalizeStoredDraft(existingDraft)?.style ?? null;
   // style omitted (undefined) => keep the stored draft style; explicit null => clear (use the business default).
   let nextStyle: QuoteStyleId | null = style === undefined ? previous : null;
@@ -640,6 +647,24 @@ export function resolvePublicPresentation({ issued, draft, quote, tier, defaultS
     return { mode: 'issued', style, styleVersion: snapshot.styleVersion, branding: snapshot.branding, media: snapshot.media, freeze: snapshot };
   }
   return { mode: 'draft', style, styleVersion: QUOTE_STYLE_VERSIONS[style], branding: null, media: styleSupportsImages(style) ? d.media : [], freeze: null };
+}
+
+// Owner console 2026-11-10 (finding 3): the live presentation of an unsigned quote whose link went out - the stored draft with the
+// business's current branding (the same snapshot an issue would write now); null without a draft (the issued record then applies)
+export function resolveLivePresentation({ draft, quote, tier, defaultStyle, business, now }: {
+  draft: unknown; quote: { status?: unknown; signature?: unknown }; tier: unknown; defaultStyle: unknown; business?: unknown; now?: Date;
+}): IssuedSnapshot | null {
+  if (!normalizeStoredDraft(draft)) return null;
+  const d = resolvePublicPresentation({ issued: null, draft, quote: { ...quote, status: 'sent', signature: null }, tier, defaultStyle, business, now });
+  return d.freeze ? normalizeIssued(d.freeze) : null;
+}
+
+// a short stable fingerprint of what the customer sees (style, version, branding, media) - the open page compares it to notice a change
+export function presentationFingerprint(p: { style: unknown; styleVersion: unknown; branding: unknown; media: unknown }): string {
+  const text = JSON.stringify([p.style, p.styleVersion, p.branding ?? null, p.media ?? []]);
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i += 1) { h ^= text.charCodeAt(i); h = Math.imul(h, 0x01000193) >>> 0; }
+  return h.toString(16).padStart(8, '0');
 }
 
 export function publicMediaView(media: MediaRef[], urls: Record<string, string | null>) {

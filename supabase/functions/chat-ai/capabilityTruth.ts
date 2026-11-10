@@ -296,6 +296,14 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
   ['public_metals_calculator', [/\bmetals? (calculator|price|rate)s?\b/i, /מחשבון מתכות/]],
   ['public_crypto_calculator', [/\bcrypto(currency)? (calculator|converter|price)\b/i, /מחשבון (קריפטו|מטבעות קריפטוגרפיים)/]],
 
+  // Owner console 2026-11-10 (typed: "אם משתמש שואל אם אפשר לייצא נתונים ודוחות התשובה של הצאט צריכה להיות 'כן, אפשר לייצא נתונים
+  // ודוחות לאקסל'"): any question about exporting data / reports / quotes / expenses - with or without the word Excel / CSV - gets that
+  // one plain answer in both languages (a PDF question is not an export-to-Excel question)
+  ['data_export', [
+    /^(?!.*\bpdf\b)(?=.*(לייצא|ייצוא|יצוא|להוציא|להעביר)).*(נתונים|דוחות|דו["״]חות|הצעות|הוצאות|אקסל|\bexcel\b|\bcsv\b)/i,
+    /^(?!.*\bpdf\b).*\bexport(s|ing|ed)?\b.{0,40}\b(data|reports?|quotes?|expenses?|excel|csv|everything|my\s+\w+)\b/i,
+    /^(?!.*\bpdf\b).*(אקסל|\bexcel\b|\bcsv\b)/i,
+  ]],
   // Owner 2026-10-25 (typed L-17, QA report): "Excel / אקסל" is the CSV export too (the file opens in Excel)
   ['quote_csv', [/\bexport\s+.{0,15}(quotes?)\s+.{0,10}csv\b/i, /\bcsv\b.{0,15}quotes?/i, /(יצוא|לייצא).{0,15}הצעות.{0,15}csv/i, /csv.{0,15}הצעות/i,
     /^(?!.*(הוצא|\bexpenses?\b)).*(אקסל|\bexcel\b)/i]],
@@ -661,6 +669,18 @@ export function resolveCapabilityTruthResponse(
       ? `לא. הורדה ל-PDF והדפסה הן שתי פעולות שונות: ${pdf ? label(pdf, true) : 'PDF'} מאפשרת להוריד או לשמור את ההצעה כקובץ; ${print ? label(print, true) : 'הדפסה'} שולחת את ההצעה להדפסה. בשתי הפעולות מופק אותו מסמך הצעת מחיר, ולא חשבונית.`
       : `No, PDF and Print are two different actions: ${pdf ? label(pdf, false) : 'PDF export'} downloads/saves the quote as a file, while ${print ? label(print, false) : 'Print'} sends it directly to a printer. Both produce the same quote document - not an invoice - just to a different destination.`;
     return { answer, factPayload };
+  }
+
+  // Owner console 2026-11-10: the one plain export answer (data_export above), backed by the quote CSV export's own structured truth
+  if (id === 'data_export') {
+    const exportState = resolveCapabilityAnswerState('quote_csv', facts, accountPlan, isAdmin);
+    const exportFact = facts.capabilities.find((c) => c.id === 'quote_csv');
+    if (!exportState || !exportFact) return resolveCapabilityTruthResponse('quote_csv', facts, isHebrew, accountPlan, isAdmin, accountMarket);
+    const exportViolations = checkStructuredStateInvariants(exportState);
+    if (exportViolations.length > 0) throw new CapabilityAnswerInvariantError('quote_csv', exportViolations);
+    const factPayload = buildCapabilityFactPayload(exportState, exportFact, acct);
+    if (factPayload.truthStatus === 'NOT_AVAILABLE') return resolveCapabilityTruthResponse('quote_csv', facts, isHebrew, accountPlan, isAdmin, accountMarket);
+    return { answer: isHebrew ? 'כן, אפשר לייצא נתונים ודוחות לאקסל.' : 'Yes, you can export data and reports to Excel.', factPayload };
   }
 
   const state = resolveCapabilityAnswerState(id, facts, accountPlan, isAdmin);

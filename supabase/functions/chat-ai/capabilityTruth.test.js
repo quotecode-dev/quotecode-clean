@@ -18,8 +18,8 @@ const DIRECT_QUESTIONS = {
   public_unit_converter: ['Is there a unit converter?', 'יש ממיר יחידות?'],
   public_metals_calculator: ['Do you have a metals calculator?', 'יש מחשבון מתכות?'],
   public_crypto_calculator: ['Is there a crypto calculator?', 'יש מחשבון קריפטו?'],
-  quote_csv: ['Can I export quotes to CSV?', 'אפשר לייצא הצעות ל-csv?'],
-  expense_csv: ['Can I export expenses to CSV?', 'אפשר לייצא הוצאות ל-csv?'],
+  // Owner console 2026-11-10: every export question (quotes / expenses / data / reports, with or without Excel / CSV) is ONE plain answer
+  data_export: ['Can I export quotes to CSV?', 'אפשר לייצא הצעות ל-csv?'],
   owner_whatsapp_share: ['Can I share a quote by WhatsApp?', 'אפשר לשלוח הצעה בוואטסאפ?'],
   public_whatsapp_contact: ['Is there a WhatsApp contact option for the customer?', 'יש יצירת קשר בוואטסאפ ללקוח?'],
   public_call: ['Is there a call button on the public quote?', 'יש כפתור התקשרות בהצעה הציבורית?'],
@@ -51,6 +51,17 @@ const DIRECT_QUESTIONS = {
   dashboard_overview: ['What is on the dashboard?', 'מה יש בלוח הבקרה?'],
   ai_chat: ['What can the AI chat assistant do?', 'מה ה-ai יכול לעשות?'],
 };
+
+describe('the plain export answer (Owner console 2026-11-10)', () => {
+  it('every export question, in any wording, gets "yes, export data and reports to Excel" - never a PDF question', () => {
+    for (const q of ['אפשר לייצא את הנתונים והדוחות?', 'אפשר לייצא הוצאות ל-csv?', 'איך מייצאים הצעות לאקסל?', 'Can I export my data and reports?', 'Can I export expenses to CSV?']) {
+      expect(classifyCapabilityIntent(q), q).toBe('data_export');
+    }
+    expect(formatCapabilityTruthAnswer('data_export', FACTS, true)).toBe('כן, אפשר לייצא נתונים ודוחות לאקסל.');
+    expect(formatCapabilityTruthAnswer('data_export', FACTS, false)).toBe('Yes, you can export data and reports to Excel.');
+    for (const q of ['אפשר לייצא PDF?', 'Can I export a quote as PDF?']) expect(classifyCapabilityIntent(q), q).not.toBe('data_export');
+  });
+});
 
 describe('classifyCapabilityIntent — direct questions (§52 answer matrix)', () => {
   for (const [id, [en, he]] of Object.entries(DIRECT_QUESTIONS)) {

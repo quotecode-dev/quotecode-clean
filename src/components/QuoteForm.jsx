@@ -765,7 +765,7 @@ export default function QuoteForm({
         </div>
       </div>
 
-      <form className="pf-screen-body" data-quote-form="editor" onSubmit={onSave} onInvalidCapture={(e) => { const code = INVALID_FIELD_BLOCKER[e.target?.dataset?.helpField]; if (code) publishBlocker(code, { scope: 'editor', stage: 'validating' }); }}>
+      <form className="pf-screen-body pf-editor-form" data-quote-form="editor" onSubmit={onSave} onInvalidCapture={(e) => { const code = INVALID_FIELD_BLOCKER[e.target?.dataset?.helpField]; if (code) publishBlocker(code, { scope: 'editor', stage: 'validating' }); }}>
         {/* SMART-QUOTE (2026-09-22, Owner-locked first-use flow): 1 who is it for -> 2 what work/product -> 3 price -> 4 review & save
             (preview/share/send follow from the saved quote). Professional capability (catalog, measured items, rooms/areas/units,
             attachments, terms) is unchanged - optional parts are progressive, never removed. */}
@@ -792,7 +792,7 @@ export default function QuoteForm({
             את אותו תיקון. */}
         <div style={{ marginBottom: '14px' }}>
         <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px' }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
+        <div style={{ fontSize: isHebrew ? '0.9rem' : '0.75rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: isHebrew ? 0 : '0.04em', marginBottom: '12px' }}>
           {isHebrew ? 'פרטי לקוח' : 'Client Details'}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', marginBottom: '12px' }}>
@@ -1251,7 +1251,7 @@ export default function QuoteForm({
         {showMoreDetails && (
           <div data-testid="sq-more-details">
         <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
-        <div style={{ fontSize: '0.75rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '12px' }}>
+        <div style={{ fontSize: isHebrew ? '0.9rem' : '0.75rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: isHebrew ? 0 : '0.04em', marginBottom: '12px' }}>
           {isHebrew ? 'פרטי הצעה' : 'Quote Details'}
         </div>
         <div style={{ marginBottom: '12px' }}>
@@ -1369,7 +1369,7 @@ export default function QuoteForm({
             style={{ background: NEON.violetLighter, color: NEON.violetLight, border: `1px solid ${NEON.borderStrong}`, padding: '6px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', marginBottom: (quoteFiles || []).length > 0 ? '8px' : '0', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
             <Paperclip size={13} strokeWidth={2.5} />
-            {isHebrew ? 'צירוף קובץ (עד 3 MB)' : 'Attach File (Max 3MB)'}
+            {/* Owner console 2026-11-10 (Codex wording 2 "א") */}{isHebrew ? 'צירוף קובץ ללקוח (עד 3 MB)' : 'Attach file for client (max 3 MB)'}
           </button>
 
           {(quoteFiles || []).length > 0 && (
@@ -1613,8 +1613,6 @@ function UnitCard({
   const confirmCount = () => { if (!countValid) return; onSetRepeat?.(Number(countText)); setCountDraft(null); };
   const multi = repeatCount > 1;
   const shownTotal = multi && unitTotal != null ? unitTotal : subtotal;
-  // the equation is shown only when it is exact in the displayed cents
-  const exact = multi && unitTotal != null && Math.round(Number(subtotal) * 100) * repeatCount === Math.round(Number(unitTotal) * 100);
   const unitMenuBtn = { display: 'block', width: '100%', textAlign: 'start', padding: '8px 10px', minHeight: '40px', background: 'none', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.84rem', color: NEON.textPrimary };
   return (
     <div style={{ border: `1px solid ${isUnassigned ? NEON.borderStrong : NEON.violetLight}`, borderRadius: '12px', background: NEON.bgCardAlt, overflow: 'visible' }}>
@@ -1662,8 +1660,10 @@ function UnitCard({
           <div style={{ position: 'relative' }}>
             {/* PRODUCT_TRUTH_DECORATIVE: the unit menu (stage 3) - identical unit count and "separate one copy" */}
             <button ref={menuBtnRef} type="button" aria-label={isHebrew ? 'פעולות ליחידה' : 'Unit actions'} aria-haspopup="menu" aria-expanded={menu} data-testid="unit-menu" onClick={() => setMenu((v) => !v)}
-              style={{ background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', cursor: 'pointer', color: NEON.textSecondary, width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              style={{ background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', cursor: 'pointer', color: NEON.textSecondary, minWidth: '32px', height: '32px', padding: '0 8px', gap: '4px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <MoreVertical size={16} aria-hidden="true" />
+              {/* Owner console 2026-11-10 (G6b "א"): the menu button says what it is */}
+              <span data-testid="unit-menu-label" style={{ fontSize: '0.74rem', fontWeight: 600 }}>{isHebrew ? 'פעולות ליחידה' : 'Unit actions'}</span>
             </button>
             {menu && (
               <div role="menu" style={{ position: 'absolute', insetInlineEnd: 0, top: '100%', zIndex: 30, marginTop: '4px', minWidth: '200px', background: NEON.bgCard, border: `1px solid ${NEON.border}`, borderRadius: '10px', boxShadow: '0 12px 28px -10px rgba(15,23,42,0.35)', padding: '4px' }}>
@@ -1729,12 +1729,10 @@ function UnitCard({
       {multi && itemCount > 0 && (
         <div data-testid="unit-per-copy" style={{ padding: '0 12px 10px', display: 'flex', flexDirection: 'column', gap: '2px', fontSize: '0.78rem', color: NEON.textSecondary }}>
           <span>
-            {exact ? (isHebrew
-              ? <><bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> לכל יחידה <span style={{ whiteSpace: 'nowrap' }}>× <bdi dir="ltr" className="pf-num">{repeatCount}</bdi></span> = <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>
-              : <><bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> per unit <bdi dir="ltr" className="pf-num" style={{ whiteSpace: 'nowrap' }}>× {repeatCount}</bdi> = <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>)
-              : (isHebrew
-              ? <>לכל יחידה <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> · <bdi dir="ltr" className="pf-num">{repeatCount}</bdi> יחידות: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>
-              : <>Per unit <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> · <bdi dir="ltr" className="pf-num">{repeatCount}</bdi> units: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>)}
+            {/* Owner console 2026-11-10 (G6a "א"): the sums by name, not as an equation - the same words in both languages */}
+            {isHebrew
+              ? <>סכום לדירה: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> · סכום לכל הדירות: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>
+              : <>Per apartment: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> · All apartments: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>}
           </span>
           <span>{isHebrew ? 'השורות כאן הן ליחידה אחת' : 'The rows here are for one unit'}</span>
           {/* G6 (Owner 2026-11-08, the clarity fixes B3): an edit here applies to every copy */}
@@ -1744,9 +1742,8 @@ function UnitCard({
 
       <div style={{ padding: '0 12px 10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {/* PRODUCT_TRUTH_DECORATIVE: 'Add row to <unit>' button inside a unit card; adds a blank row in this unit (the one quote builder's rows) */}
-        <button type="button" onClick={onAddItem} data-testid="unit-add-row" style={{ flex: '1 1 200px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, minHeight: '40px' }}>
-          <Plus size={14} strokeWidth={3} />
-          <span>{isUnassigned ? (isHebrew ? 'הוספת שורה בלי יחידה' : 'Add a row with no unit') : (isHebrew ? <>הוספת שורה ל<bdi>{unitLabel}</bdi></> : <>Add a row to <bdi>{unitLabel}</bdi></>)}</span>
+        <button type="button" onClick={onAddItem} data-testid="unit-add-row" style={{ flex: '1 1 140px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, minHeight: '40px' }}>
+          <span>{/* Owner console 2026-11-10: the + stays beside the first line when a long unit name wraps */}<Plus size={14} strokeWidth={3} aria-hidden="true" style={{ display: 'inline-block', verticalAlign: '-2px', marginInlineEnd: '6px' }} />{isUnassigned ? (isHebrew ? 'הוספת שורה בלי יחידה' : 'Add a row with no unit') : (isHebrew ? <>הוספת שורה ל<bdi>{unitLabel}</bdi></> : <>Add a row to <bdi>{unitLabel}</bdi></>)}</span>
         </button>
         {onDuplicate && !isUnassigned && (
           // PRODUCT_TRUTH_DECORATIVE: 'Duplicate unit' inside a unit card: one copy of the unit and its lines right after it (new lines, no saved ids)

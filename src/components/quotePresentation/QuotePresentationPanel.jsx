@@ -70,7 +70,8 @@ export default function QuotePresentationPanel({
 
       {readOnly && (
         <p className="qp-notice" role="note" data-testid="qp-readonly">
-          {issued ? copy.readOnlyIssued(title(effective.style)) : copy.readOnlyLocked(title(effective.style))}
+          {/* finding 3 (2026-11-10): only a locked (approved / paid / signed) quote is read-only now */}
+          {copy.readOnlyLocked(title(effective.style))}
         </p>
       )}
       {recordPending && (

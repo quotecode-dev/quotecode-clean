@@ -9,7 +9,7 @@
 // replace the item cards and the item window in the quote screen - details for the customer, extra sizes and a known area open inside the
 // row; the price and the quantity use the same grammar as the "Edit price" window (utils/itemPrice.js), an invalid value is shown at the
 // field and never stored; up / down move a row inside its unit; Enter in a filled row's price adds the next row.
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { MoreVertical, ChevronDown, Plus, X } from 'lucide-react';
 import { APP as NEON } from '../theme/neonTheme';
 import { buildQuoteItemFromEntry, blankRowItem, rowEntry, convertSizeBetween, isFeetUnit, isCountedMethod, sizeToBase } from '../utils/quoteItemEntry';
@@ -21,12 +21,13 @@ const COPY = {
   he: {
     item: 'פריט', billing: 'אופן חיוב', amount: 'כמות / מידות', price: 'מחיר', total: 'סכום', itemPlaceholder: 'חפשו בקטלוג או הקלידו שם',
     fixed: 'סכום קבוע', units: 'יחידות', area: 'שטח', linear: 'אורך', qty: 'כמות', width: 'אורך', height: 'רוחב', length: 'אורך',
-    addRow: 'הוספת שורה', menu: 'פעולות לשורה', duplicate: 'שכפול שורה', remove: 'הסרת שורה', moveTo: 'העברה ליחידה', noUnit: 'ללא יחידה',
+    addRow: 'הוספת שורה', menu: 'פעולות לעבודה', duplicate: 'שכפול שורה', remove: 'הסרת שורה', moveTo: 'העברה ליחידה', noUnit: 'ללא יחידה',
     catalog: 'מהקטלוג', openCatalog: 'פתיחת הקטלוג', emptyCatalog: 'אין פריטים מתאימים בקטלוג - אפשר פשוט להקליד שם',
     details: 'פרטים ללקוח', detailLabel: 'שם הפרט, למשל צבע', detailValue: 'הערך, למשל לבן', addDetail: 'הוספת פרט', removeDetail: 'הסרת הפרט',
     moveUp: 'הזזה למעלה', moveDown: 'הזזה למטה', sizes: 'לפי מידות', known: 'כמות ידועה (בלי מידות)', moreSize: 'מידה נוספת', removeSize: 'הסרת המידה',
     sizeLabel: 'שם, למשל סלון', priceError: 'מחיר לא תקין - מספר עם נקודה, למשל 1200.50', qtyError: 'כמות לא תקינה - מספר גדול מ-0',
     sizesLost: 'מעבר לאופן חיוב אחר ימחק את המידות של השורה. להמשיך?', perUnit: 'לכל',
+    reviewRows: 'בדקו את השורות לפני השמירה', missingPrice: 'חסר מחיר', chooseUnit: 'בחרו יחידת חיוב',
     unitChange: 'מעבר בין מטרים לרגל משנה את היחידה שהמחיר נקבע לפיה (מ״ר או רגל רבועה). לבדוק את המחיר אחרי המעבר?',
     linkedTo: 'המחיר השתנה ל-', linkedAsk: 'לעדכן גם {n} שורות מקושרות?', linkedAsk1: 'לעדכן גם את השורה המקושרת?',
     linkedHere: 'רק כאן', linkedAll: 'עדכון כולן', linkedAll1: 'עדכון גם שם', linkedCancel: 'ביטול',
@@ -56,6 +57,7 @@ const COPY = {
     moveUp: 'Move up', moveDown: 'Move down', sizes: 'By sizes', known: 'Known amount (no sizes)', moreSize: 'Another size', removeSize: 'Remove size',
     sizeLabel: 'Name, e.g. Living room', priceError: 'Invalid price - a number with a dot, e.g. 1200.50', qtyError: 'Invalid quantity - a number above 0',
     sizesLost: "Switching the billing method removes this row's sizes. Continue?", perUnit: 'per',
+    reviewRows: 'Review the rows before saving', missingPrice: 'Missing price', chooseUnit: 'Choose a billing unit',
     unitChange: 'Switching between metres and feet changes what the price is for (m² or sq ft). Check the price after switching?',
     linkedTo: 'The price changed to ', linkedAsk: 'Update {n} linked rows too?', linkedAsk1: 'Update the linked row too?',
     linkedHere: 'Only here', linkedAll: 'Update all', linkedAll1: 'Update it too', linkedCancel: 'Cancel',
@@ -273,6 +275,10 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
     if (next.pricingMethod === 'fixed' || next.pricingMethod === 'units') built._billing = next.pricingMethod;
     // stage 3: the shared-price link stays through any edit of the same billing basis; another basis unlinks the row (asked before)
     if (item.price_link_id && next.pricingMethod === now.pricingMethod && (built.pricing_unit || null) === (item.pricing_unit || null)) built.price_link_id = item.price_link_id;
+    // Owner console 2026-11-10 (G8 "א"): a row added by the smart quote / smart edit / quote from file keeps its screen-only review mark
+    // while it is edited; "choose a billing unit" goes once a billing type is chosen
+    if (item._review) built._review = true;
+    if (item._noUnit && next.pricingMethod === now.pricingMethod) built._noUnit = true;
     lastBuilt.current = built;
     onItem(index, built);
     return built;
@@ -287,11 +293,26 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
     if (typed(entry.unitPrice)) return t.basisChange;
     return null;
   };
+  // Owner console 2026-11-10 (Codex wording 1 "א"): the billing-change question names the previous price and the new basis
+  const basisPhrase = (m) => {
+    const imperial = entry.measureUnit ? isFeetUnit(entry.measureUnit) : !!international;
+    const he = { fixed: 'כסכום קבוע', units: 'ליחידה', area: imperial ? 'לרגל רבועה' : 'למ״ר', linear: imperial ? 'לרגל' : 'למטר', kg: 'לק״ג', hour: 'לשעה', day: 'ליום' };
+    const en = { fixed: 'as a fixed amount', units: 'per unit', area: imperial ? 'per sq ft' : 'per sq m', linear: imperial ? 'per foot' : 'per metre', kg: 'per kg', hour: 'per hour', day: 'per day' };
+    return (isHebrew ? he : en)[m] || '';
+  };
+  const basisChangeText = (m) => {
+    const p = parsePriceInput(entry.unitPrice);
+    if (!p.ok || !typed(entry.unitPrice) || !basisPhrase(method) || !basisPhrase(m)) return t.basisChange;
+    const old = `${sym}${fmtMoney(p.value)}`;
+    return isHebrew ? `המחיר הקודם היה ${old} ${basisPhrase(method)}. הזינו מחיר ${basisPhrase(m)}.`
+      : `The previous price was ${old} ${basisPhrase(method)}. Enter a price ${basisPhrase(m)}.`;
+  };
+  const askBasis = (ask, m) => askConfirm(ask === t.basisChange ? basisChangeText(m) : ask, isHebrew, ask === t.basisChange ? { yes: t.basisYes, no: t.basisNo } : undefined);
   const changeMethod = async (m) => {
     if (m === method) return;
     if (isMeasured(m) && !canUseMeasured) { onMeasuredLocked?.(); return; }
     const ask = conversionAsk(m);
-    if (ask && !(await askConfirm(ask, isHebrew, ask === t.basisChange ? { yes: t.basisYes, no: t.basisNo } : undefined))) return;
+    if (ask && !(await askBasis(ask, m))) return;
     apply({ pricingMethod: m, quantity: isCountedMethod(m) ? (isCountedMethod(method) ? (entry.quantity || '1') : '1') : '1', useManualQty: isMeasured(m) ? entry.useManualQty : false });
   };
   // restore item 09 (decision 2: "catalog pick fills price + billing type"): a catalog item fills the name, the price and the catalog's
@@ -299,7 +320,7 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
   const pickCatalog = async (s) => {
     if (method !== 'units') {
       const ask = conversionAsk('units');
-      if (ask && !(await askConfirm(ask, isHebrew, ask === t.basisChange ? { yes: t.basisYes, no: t.basisNo } : undefined))) return;
+      if (ask && !(await askBasis(ask, 'units'))) return;
     }
     // the item window always started a catalog line at quantity 1 (4f1592f2 AddItemWizard 164-166)
     const built = apply({ description: String(s.name || ''), unitPrice: s.price == null ? '' : String(s.price), catalogServiceId: String(s.id),
@@ -368,6 +389,7 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
       <select aria-label={t.billing} value={method} data-testid={`qrow-billing-${rowId}`} onChange={(e) => changeMethod(e.target.value)} style={fieldStyle}>
         {orderedMethods(recommendedMethod).map((m) => <option key={m} value={m}>{m === recommendedMethod ? `${t[m]} · ${t.recommended}` : t[m]}</option>)}
       </select>
+      {item._noUnit && <span data-testid={`qrow-chooseunit-${rowId}`} style={{ ...errStyle, display: 'block', whiteSpace: 'nowrap' }}>{t.chooseUnit}</span>}
       </label>
       <div className="qrow-amount" style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0, flexWrap: 'wrap' }}>
         {method !== 'fixed' && <span className="qrow-mlabel" style={{ flexBasis: '100%' }}>{t.amount}</span>}
@@ -428,15 +450,18 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
         onKeyDown={(e) => { if (e.key === 'Enter' && String(entry.description).trim() !== '' && !priceErr) { e.preventDefault(); onEnterNext(index); } }}
         style={{ ...num.style, width: '84px' }} />
       {priceErr && <span role="alert" style={{ ...errStyle, display: 'block' }}>{t.priceError}</span>}
+      {!priceErr && item._review && !typed(entry.unitPrice) && <span data-testid={`qrow-missingprice-${rowId}`} style={{ ...errStyle, display: 'block' }}>{t.missingPrice}</span>}
       </label>
-      <bdi dir="ltr" className="qrow-total pf-money" data-testid={`qrow-total-${rowId}`} style={{ fontWeight: 800, color: NEON.violet, whiteSpace: 'nowrap', minWidth: '72px', textAlign: 'right', lineHeight: '40px' }}>
+      <bdi dir="ltr" className={total == null ? 'qrow-total qrow-total-empty pf-money' : 'qrow-total pf-money'} data-testid={`qrow-total-${rowId}`} style={{ fontWeight: 800, color: NEON.violet, whiteSpace: 'nowrap', minWidth: 'var(--qrow-total-w, 72px)', boxSizing: 'border-box', justifySelf: 'end', textAlign: 'right', lineHeight: '40px' }}>
         {total == null ? '—' : `${sym}${fmtMoney(total)}`}
       </bdi>
       <div className="qrow-menu" style={{ position: 'relative' }}>
         {/* PRODUCT_TRUTH_DECORATIVE: row three-dot 'actions' button that opens the row menu; a menu-toggle */}
         <button ref={menuBtnRef} type="button" aria-label={t.menu} aria-haspopup="menu" aria-expanded={menu} data-testid={`qrow-menu-${rowId}`} onClick={() => setMenu((v) => !v)}
-          style={{ minWidth: '40px', minHeight: '40px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: 'none', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+          style={{ minWidth: '40px', minHeight: '40px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: 'none', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', padding: '0 8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
           <MoreVertical size={16} aria-hidden="true" />
+          {/* Owner console 2026-11-10 (G6b "א"): the menu button says what it is */}
+          <span className="qrow-menu-label" data-testid={`qrow-menu-label-${rowId}`} style={{ fontSize: '0.74rem', fontWeight: 600 }}>{t.menu}</span>
         </button>
         {menu && (
           <div role="menu" style={{ position: 'absolute', insetInlineEnd: 0, top: '100%', zIndex: 30, marginTop: '4px', minWidth: '190px', background: NEON.bgCard, border: `1px solid ${NEON.border}`, borderRadius: '10px', boxShadow: '0 12px 28px -10px rgba(15,23,42,0.35)', padding: '4px' }}>
@@ -585,6 +610,31 @@ export default function QuoteRowsEditor({
     return built;
   };
   const [priceUndo, setPriceUndo] = useState(null);
+  // Owner console 2026-11-10 (the 13 items, L-09): the amount column is exactly as wide as its widest amount, so every amount (right-aligned
+  // digits, one right edge) sits against the row actions - at the right in English, at the left in Hebrew - and the header above it
+  const rowsRoot = useRef(null);
+  const syncTotalWidth = () => {
+    const root = rowsRoot.current;
+    if (!root) return;
+    root.style.setProperty('--qrow-total-w', '0px'); // natural widths first
+    let w = 0;
+    for (const el of root.querySelectorAll('.qrow-total')) {
+      const rw = el.getBoundingClientRect().width;
+      if (Number.isFinite(rw) && rw > w) w = rw;
+    }
+    root.style.setProperty('--qrow-total-w', w > 0 ? `${Math.ceil(w)}px` : '72px');
+  };
+  useLayoutEffect(syncTotalWidth);
+  // the web font may arrive after the first layout and widen the digits: measure again then
+  useEffect(() => {
+    const fonts = typeof document !== 'undefined' ? document.fonts : null;
+    if (!fonts) return undefined;
+    let live = true;
+    const again = () => { if (live) syncTotalWidth(); };
+    if (fonts.ready && typeof fonts.ready.then === 'function') fonts.ready.then(again).catch(() => {});
+    if (typeof fonts.addEventListener === 'function') fonts.addEventListener('loadingdone', again);
+    return () => { live = false; if (typeof fonts.removeEventListener === 'function') fonts.removeEventListener('loadingdone', again); };
+  }, []);
   const onLinkedAll = (index, fromText) => {
     const src = items[index];
     const p = parsePriceInput(String(src?.unit_price ?? ''));
@@ -621,13 +671,17 @@ export default function QuoteRowsEditor({
     insertAfter(index, row);
   };
   return (
-    <div className="qrows" dir={isHebrew ? 'rtl' : 'ltr'} data-testid="quote-rows-editor">
+    <div ref={rowsRoot} className="qrows" dir={isHebrew ? 'rtl' : 'ltr'} data-testid="quote-rows-editor">
+      {/* Owner console 2026-11-10 (G8 "א"): rows that came from the smart quote / smart edit / a file are reviewed before saving */}
+      {(items || []).some((it) => it && it._review) && (
+        <p role="status" data-testid="qrow-review-note" style={{ margin: '0 0 8px', padding: '8px 10px', borderRadius: '8px', background: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412', fontSize: '0.82rem', fontWeight: 700 }}>{t.reviewRows}</p>
+      )}
       {showHead && recommendedMethod && METHODS.includes(recommendedMethod) && recommendedMethod !== 'units' && recommendedMethod !== 'fixed' && (
         <p data-testid="qrow-trade-hint" style={{ margin: '0 0 6px', fontSize: '0.78rem', color: NEON.textSecondary }}>{t.tradeHint.replace('{m}', t[recommendedMethod])}</p>
       )}
       {showHead && (
         <div className="qrow qrow-head" aria-hidden="true">
-          <span>{t.item}</span><span>{t.billing}</span><span>{t.amount}</span><span>{t.price}</span><span style={{ textAlign: 'right' }}>{t.total}</span><span />
+          <span>{t.item}</span><span>{t.billing}</span><span>{t.amount}</span><span>{t.price}</span><span style={{ justifySelf: 'end', minWidth: 'var(--qrow-total-w, 72px)', textAlign: 'right', whiteSpace: 'nowrap' }}>{t.total}</span><span style={{ visibility: 'hidden', display: 'flex', alignItems: 'center', gap: '4px', padding: '0 8px', border: '1px solid transparent', minWidth: '40px', whiteSpace: 'nowrap', textTransform: 'none', letterSpacing: 0 }}><MoreVertical size={16} /><span className="qrow-menu-label" style={{ fontSize: '0.74rem', fontWeight: 600 }}>{t.menu}</span></span>
         </div>
       )}
       {shown.map((index, pos) => {

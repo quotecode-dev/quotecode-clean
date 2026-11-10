@@ -649,7 +649,8 @@ describe('QuoteForm - identical units (stage 3)', () => {
     expect(state.sections[0].repeat_count).toBe(12);
     expect(screen.getByTestId('unit-repeat-badge').textContent).toBe('× 12');
     expect(screen.getByTestId('unit-total').textContent).toBe('$1200.00');
-    expect(screen.getByTestId('unit-per-copy').textContent).toMatch(/\$100\.00 per unit × 12 = \$1200\.00/);
+    // Owner console 2026-11-10 (G6a): the sums by name, not as an equation
+    expect(screen.getByTestId('unit-per-copy').textContent).toMatch(/Per apartment: \$100\.00 · All apartments: \$1200\.00/);
     expect(screen.getByTestId('unit-per-copy').textContent).toContain('The rows here are for one unit');
   });
   it('at 1 nothing new is shown (no badge, no per-copy line)', () => {
