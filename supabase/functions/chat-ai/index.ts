@@ -1,5 +1,6 @@
 /// <reference types="https://deno.land/std@0.168.0/types.d.ts" />
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { isUsCountry } from "../_shared/shortDate.js";
 import { PublicPoolRefusal, reservePublicSlot, publicPoolAnswer } from './publicPool.ts';
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { validateChatRequest, classifySupportMessage, buildSystemPrompt, CHAT_CONTRACT_VERSION } from "./validation.ts";
@@ -128,6 +129,7 @@ serve(async (req) => {
   // interface language the user works in; the MARKET (prices, currency, purchase, service mailbox) is the verified account's own -
   // never the caller's claim. Without an account (public chat) both follow the page language, as before.
   let marketIL = clientIsHebrew;
+  let accountIsUs = false; // Owner 2026-11-11 (IRON-DATE-001 as amended): a US business sees dates month first
   if (verifiedUserId) {
     const { data: bizRow } = await adminClient
       .from('business_settings')
@@ -135,6 +137,7 @@ serve(async (req) => {
       .eq('user_id', verifiedUserId)
       .maybeSingle();
     accountContext = buildVerifiedAccountContext(bizRow as BusinessSettingsRow | null, currentArea, accountSummary, smartPackUsage);
+    accountIsUs = isUsCountry((bizRow as { country?: string } | null)?.country);
     // AI HELP V4 - Layer 3 trusted facts, scoped to this verified user only (profile completeness, server account summary).
     // The retired monthly quote counter is no longer computed (OD-20).
     trustedFacts = deriveTrustedFacts(accountContext, bizRow as { phone?: string; tax_id?: string; country?: string; role?: string } | null,
@@ -237,7 +240,7 @@ serve(async (req) => {
   // own header for exactly what it does and does not cover yet.
   if (sanitizedSelectedQuote) {
     const factKind = classifyDirectFactIntent(lastUserMessage);
-    const factPayload = factKind ? resolveDirectFact(factKind, sanitizedSelectedQuote, isHebrew) : null;
+    const factPayload = factKind ? resolveDirectFact(factKind, sanitizedSelectedQuote, isHebrew, accountIsUs ? 'US' : null) : null;
     if (factPayload) {
       const factAnswer = formatDirectFactAnswer(factPayload, isHebrew);
       try {

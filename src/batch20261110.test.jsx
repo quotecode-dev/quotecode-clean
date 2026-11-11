@@ -13,7 +13,7 @@ function H({ initial, isHebrew = true }) {
 }
 
 describe.each([
-  [true, 'בדקו את השורות לפני השמירה', 'חסר מחיר', 'בחרו יחידת חיוב', 'פעולות לעבודה'],
+  [true, 'בדקו את השורות לפני השמירה', 'חסר מחיר', 'בחרו יחידת חיוב', 'פעולות לשורה'],
   [false, 'Review the rows before saving', 'Missing price', 'Choose a billing unit', 'Row actions'],
 ])('isHebrew=%s', (he, note, missing, unit, menu) => {
   it('G8: rows from the smart quote / a file - the review note, "missing price" by an empty price, "choose a billing unit"', () => {
@@ -42,7 +42,7 @@ describe('app items', () => {
     expect(css).toContain('.qrows .qrow-line .qrow-menu-label { display: none; }');
     expect(css).toMatch(/grid-template-columns: minmax\(min\(140px, 20%\), 2fr\) minmax\(112px, 1fr\)/);
     const howTo = src('./data/productHowTo.js');
-    expect(howTo).toContain('בכפתור "פעולות לעבודה" של השורה (בטלפון: שלוש הנקודות של השורה)');
+    expect(howTo).toContain('בכפתור "פעולות לשורה" של השורה (בטלפון: שלוש הנקודות של השורה)');
     expect(howTo).toContain('in the "Row actions" button of the row (on a phone: the three dots of the row)');
     expect(howTo.split('לוחצים על הכפתור "פעולות ליחידה" בכותרת שלה').length - 1).toBe(2);
     expect(howTo.split('click the "Unit actions" button in its header').length - 1).toBe(2);

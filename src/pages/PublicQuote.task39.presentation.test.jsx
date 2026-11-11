@@ -69,21 +69,21 @@ describe('header meta follows the quote market (number, issue date, validity)', 
     expect(container.querySelector('.pq-header-number')).toHaveTextContent('A100701');
     expect(container.textContent).toMatch(/תאריך:?\s*15\/01\/2026/);
   });
-  it('EN: quote number A100701 and the issue date in International MM/DD/YYYY', () => {
+  it('EN: quote number A100701 and the issue date in International DD/MM/YYYY (Owner 2026-11-11)', () => {
     const { container } = en();
     expect(container.querySelector('.pq-header-number')).toHaveTextContent('A100701');
-    expect(container.textContent).toMatch(/Date:?\s*01\/15\/2026/);
+    expect(container.textContent).toMatch(/Date:?\s*15\/01\/2026/);
   });
   it('the valid-until line uses the same market date order, and is absent when no validity date is stored', () => {
     const a = he({ quote: { valid_until: '2099-03-04' } }).container;
     expect(a.textContent).toMatch(/בתוקף עד:?\s*04\/03\/2099/);
     cleanup();
     const b = en({ quote: { valid_until: '2099-03-04' } }).container;
-    expect(b.textContent).toMatch(/Valid( until)?:?\s*03\/04\/2099/);
+    expect(b.textContent).toMatch(/Valid( until)?:?\s*04\/03\/2099/);
     cleanup();
-    // the new interface keeps the label and shows a dash when no validity date is stored (never an invented date)
+    // Owner 2026-11-11 (finding 12, option א): no validity date -> "תוקף: 30 יום", as the default terms say (never an invented date)
     const noValidity = he().container.querySelector('.pq-header-valid');
-    expect(noValidity === null || (/—/.test(noValidity.textContent) && !/\d/.test(noValidity.textContent))).toBe(true);
+    expect(noValidity.textContent).toBe('30 יום');
   });
   it('a quote without a persisted number shows the short id fallback, never an empty number', () => {
     const { container } = he({ quote: { quote_number: null } });
@@ -111,12 +111,13 @@ describe('recipient block', () => {
     expect(details[1]).toHaveTextContent('050-1234567');
     expect(box).toHaveTextContent('Haifa');
   });
-  it('EN: "To:" with the company, the English greeting, and the phone exactly as stored (no Israeli rewriting)', () => {
+  // Owner 2026-11-11 (finding 21): a US number is shown grouped like an Israeli one (never an Israeli rewriting)
+  it('EN: "To:" with the company, the English greeting, and a US phone grouped as "+1 (415) 555-0100"', () => {
     const { container } = en({ client: { phone: '+1 415 555 0100' } });
     const box = container.querySelector('.pq-recipient');
     expect(box).toHaveTextContent('To:');
     expect(box).toHaveTextContent('Hello, please find the price quote prepared for you below:');
-    expect(box).toHaveTextContent('+1 415 555 0100');
+    expect(box).toHaveTextContent('+1 (415) 555-0100');
   });
   it('a quote with no client record still addresses the reader (HE "מקבלי ההצעה", EN "Valued Client")', () => {
     expect(he({ client: null }).container.querySelector('.pq-recipient-name')).toHaveTextContent('מקבלי ההצעה');

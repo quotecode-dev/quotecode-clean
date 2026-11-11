@@ -90,7 +90,7 @@ export default function AdminPermissions({ isHebrew = true, accounts = [] }) {
           <ul className="admin-perm-list">
             {candidates.map((a) => (
               <li key={a.user_id}>
-                <span><strong dir="ltr">{a.email}</strong> · <bdi>{a.business_name || '-'}</bdi></span>
+                <span><strong dir="ltr">{a.email}</strong> · <bdi dir={isHebrew ? 'rtl' : 'ltr'}>{a.business_name || '-'}</bdi></span>
                 {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
                 <button type="button" className="admin-inquiry-settings-btn" onClick={() => open(a.user_id, a.email, a.business_name, [])} data-testid="permissions-pick">{t('pick')}</button>
               </li>
@@ -137,7 +137,7 @@ export default function AdminPermissions({ isHebrew = true, accounts = [] }) {
         <ul className="admin-perm-list" data-testid="permissions-holders">
           {holders.map((h) => (
             <li key={h.user_id} data-testid="permissions-holder">
-              <span><strong dir="ltr">{h.email}</strong> · <bdi>{h.business_name || '-'}</bdi>
+              <span><strong dir="ltr">{h.email}</strong> · <bdi dir={isHebrew ? 'rtl' : 'ltr'}>{h.business_name || '-'}</bdi>
                 <span className="admin-perm-chips">{(h.permissions || []).map((p) => { const d = ADMIN_PERMISSIONS.find((x) => x.id === p); return <span key={p} className="admin-badge">{d ? L(d.label) : p}</span>; })}</span>
               </span>
               {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}

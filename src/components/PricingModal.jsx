@@ -21,6 +21,7 @@ import PackageOfferCards from './PackageOfferCards';
 import { packageCheckoutAvailable, checkoutErrorMessage, billingReturnText, israelPurchaseOpen, plansAvailabilityLine, smartPackStatusLine, pastDueLine, serviceMailbox, renewalResumeAvailable, renewalResumeLine, renewalResumeDate, renewalResumeAddOnNote } from '../domain/subscriptions/packageCheckout';
 import { formatShortDate } from '../utils/shortDate';
 import SmartPackAddOnOffer from './SmartPackAddOnOffer';
+import { PAYMENT_FRAME_CLOSED } from '../shared/paymentFrameReturn';
 import SmartPackRemoval from './SmartPackRemoval';
 import MailLink from './MailLink';
 import { smartPackUsageText } from '../utils/smartPackUsage';
@@ -65,7 +66,8 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
   useEffect(() => {
     const back = () => setPay({ busy: false, error: null });
     window.addEventListener('pageshow', back);
-    return () => window.removeEventListener('pageshow', back);
+    window.addEventListener(PAYMENT_FRAME_CLOSED, back); // Owner 2026-11-11 (finding 30): the payment window closed without paying
+    return () => { window.removeEventListener('pageshow', back); window.removeEventListener(PAYMENT_FRAME_CLOSED, back); };
   }, []);
   if (!isOpen) return null;
   const lang = isHebrew ? 'he' : 'en';

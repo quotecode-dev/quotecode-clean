@@ -34,7 +34,7 @@ describe('L-29: the rows-per-page measure settles (the flicker of 29/10)', () =>
 describe('Codex R08 (L-01/L-15): the sign-in email is never a saved business email', () => {
   it('the business-details gate reads the stored email; the form baseline may show the sign-in email', () => {
     const d = src('src/pages/Dashboard.jsx');
-    expect(d).toContain("storedEmail: row?.email ?? '' };");
+    expect(d).toContain("storedEmail: row?.email ?? '', countryCode: countryCodeOf(row?.country) };"); // + the chosen country (Owner 2026-11-11)
     expect(d).toContain("return { phone: s.phone ?? '', taxId: s.taxId ?? '', name: s.name ?? '', email: s.storedEmail ?? '' };");
     // the leave-without-saving baseline keeps what the form shows (Codex N17)
     expect(d).toContain("email: data.email || userEmail || '' }); // Codex N17");

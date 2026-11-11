@@ -108,7 +108,10 @@ export function quoteCurrencyDisplayOrder(accountCurrency) {
   return first ? [first, ...QUOTE_CURRENCIES.filter((c) => c !== first)] : [...QUOTE_CURRENCIES];
 }
 
-export function totalsByQuoteCurrency(quotes, { include = () => true, accountCurrency = null } = {}) {
+// roundEachIls (Owner 2026-11-11, finding 32): a total shown above a LIST of quotes adds each quote's DISPLAYED whole-shekel amount, so it
+// always equals the sum of the cards on screen (IRON-ILS-001: each ILS amount is displayed rounded half-up to a whole shekel). Off by
+// default - every other aggregate keeps summing the stored values.
+export function totalsByQuoteCurrency(quotes, { include = () => true, accountCurrency = null, roundEachIls = false } = {}) {
   const sums = new Map();
   const counts = new Map();
   let unknownCount = 0;
@@ -116,7 +119,8 @@ export function totalsByQuoteCurrency(quotes, { include = () => true, accountCur
     if (!quote || !include(quote)) continue;
     const currency = normalizeQuoteCurrency(quote.currency);
     if (!currency) { unknownCount += 1; continue; }
-    const amount = Number(quote.total || 0);
+    const raw = Number(quote.total || 0);
+    const amount = roundEachIls && currency === 'ILS' && Number.isFinite(raw) ? Math.sign(raw) * Math.round(Math.abs(raw)) : raw;
     sums.set(currency, (sums.get(currency) || 0) + (Number.isFinite(amount) ? amount : 0));
     counts.set(currency, (counts.get(currency) || 0) + 1);
   }

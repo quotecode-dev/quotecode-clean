@@ -96,11 +96,11 @@ export default function LandingGlobal({ onForgotPassword }) {
           summary: SMART_PACK.summary.en,
           perPeriod: {
             month: est
-              ? { add: `(+${estOf(spMinor.month)} / month)`, amount: null, line: <>With SMART PACK: <bdi dir="ltr">{month.estimateText}</bdi> + <bdi dir="ltr">{estOf(spMinor.month)}</bdi> = <bdi dir="ltr">{estOf(withMinor('month'))}</bdi> per month (estimate). Charged in USD: <bdi dir="ltr">{usdWithSmartPack('month')}</bdi></> }
-              : { add: `(+${usdSmartPack('month')} / month)`, amount: usdWithSmartPack('month'), line: <>With SMART PACK: <bdi dir="ltr">{month.text}</bdi> + <bdi dir="ltr">{usdSmartPack('month')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('month')}</bdi> per month (USD)</> },
+              ? { add: `(+${estOf(spMinor.month)}\u00a0/\u00a0month)`, amount: null, line: <>With SMART PACK: <bdi dir="ltr">{month.estimateText}</bdi> + <bdi dir="ltr">{estOf(spMinor.month)}</bdi> = <bdi dir="ltr">{estOf(withMinor('month'))}</bdi> per month (estimate). Charged in USD: <bdi dir="ltr">{usdWithSmartPack('month')}</bdi></> }
+              : { add: `(+${usdSmartPack('month')}\u00a0/\u00a0month)`, amount: usdWithSmartPack('month'), line: <>With SMART PACK: <bdi dir="ltr">{month.text}</bdi> + <bdi dir="ltr">{usdSmartPack('month')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('month')}</bdi> per month (USD)</> },
             year: est
-              ? { noteQualifier: 'This amount covers the base package only, not SMART PACK.', add: `(+${estOf(spMinor.year)} / year)`, amount: null, line: <>With SMART PACK: <bdi dir="ltr">{year.estimateText}</bdi> + <bdi dir="ltr">{estOf(spMinor.year)}</bdi> = <bdi dir="ltr">{estOf(withMinor('year'))}</bdi> per year (estimate). Charged in USD: <bdi dir="ltr">{usdWithSmartPack('year')}</bdi></> }
-              : { noteQualifier: 'This amount covers the base package only, not SMART PACK.', add: `(+${usdSmartPack('year')} / year)`, amount: usdWithSmartPack('year'), line: <>With SMART PACK: <bdi dir="ltr">{year.text}</bdi> + <bdi dir="ltr">{usdSmartPack('year')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('year')}</bdi> per year (USD)</> },
+              ? { noteQualifier: 'This amount covers the base package only, not SMART PACK.', add: `(+${estOf(spMinor.year)}\u00a0/\u00a0year)`, amount: null, line: <>With SMART PACK: <bdi dir="ltr">{year.estimateText}</bdi> + <bdi dir="ltr">{estOf(spMinor.year)}</bdi> = <bdi dir="ltr">{estOf(withMinor('year'))}</bdi> per year (estimate). Charged in USD: <bdi dir="ltr">{usdWithSmartPack('year')}</bdi></> }
+              : { noteQualifier: 'This amount covers the base package only, not SMART PACK.', add: `(+${usdSmartPack('year')}\u00a0/\u00a0year)`, amount: usdWithSmartPack('year'), line: <>With SMART PACK: <bdi dir="ltr">{year.text}</bdi> + <bdi dir="ltr">{usdSmartPack('year')}</bdi> = <bdi dir="ltr">{usdWithSmartPack('year')}</bdi> per year (USD)</> },
           },
         },
       } : {}),
@@ -147,7 +147,7 @@ export default function LandingGlobal({ onForgotPassword }) {
       // L08: no public link / caption to the sample-quote route (no authority); the figure keeps an accessible name only.
       docLabel: 'Sample quotation in the Classic style',
       // OD-01 (Owner 2026-10-07): the trial line now states the Free-10 policy, marked as not yet activated.
-      trial: '10 free quotes or 7 days, whichever comes first',
+      trial: '10 free quotes or 7 days from sign-up, whichever comes first',
       motion: {
         eyebrow: 'Quotes that work as hard as you do',
         title: 'From the jobsite to a signed quote',

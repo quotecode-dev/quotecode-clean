@@ -13,7 +13,8 @@ import { useMoneySlotSize } from '../hooks/useMoneySlotSize';
 import { useQuoteHistoryGeometry, QH_CELL_PAD, QH_ACTION_COL, QH_CELL_STYLE } from '../hooks/useQuoteHistoryGeometry';
 import { formatShortDate } from '../utils/shortDate';
 import { relativeQuoteDay, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
-import { sortQuotes, normalizeSortField } from '../utils/quoteListSort';
+import { sortQuotes, normalizeSortField, firstItemDescription } from '../utils/quoteListSort';
+import QuoteSendMenu from './QuoteSendMenu';
 import NewQuoteMenu from './NewQuoteMenu';
 import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search, ClipboardList, Clock } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
@@ -117,6 +118,8 @@ const QUOTE_NUMBER_LINK = Object.freeze({ background: 'none', border: 'none', pa
 // (shared with the Task 17 Statistics screen).
 
 // Minimum work-screen width (CSS px) for the Owner R3 eight-column desktop table; measured at the 980px shell = 758px.
+// Owner 2026-11-11 (findings 4 + 24): unchanged - the desktop work screen (758px) keeps the table; the row's Send takes the trailing
+// padding and the client / title tracks give up that room (they ellipsize, as before)
 const R3_TABLE_MIN_WIDTH = 740;
 
 // the quote list pages (Owner 2026-10-18): the desktop page size before the screen is measured, and the phone / tablet page size
@@ -357,7 +360,7 @@ export default function QuotesTab({
     const isLocked = isQuoteImmutable(quote);
     const emailStatus = emailStatuses ? emailStatuses[quote.id] : null;
 
-    const firstItemDesc = quote.quote_items && quote.quote_items.length > 0 ? quote.quote_items[0].description : '';
+    const firstItemDesc = firstItemDescription(quote);
     const rawSubtotal = quote.subtotal || 0;
     const rawDiscount = quote.discount || 0;
     const discBase = rawSubtotal - ((rawSubtotal * rawDiscount) / 100);
@@ -410,7 +413,24 @@ export default function QuotesTab({
   const loadingText = loadState === 'retrying'
     ? (isHebrew ? 'טוענים את ההצעות… החיבור איטי, ממשיכים לנסות אוטומטית.' : 'Loading your quotes… the connection is slow, retrying automatically.')
     : (isHebrew ? 'טוענים את ההצעות…' : 'Loading your quotes…');
-  const emptyListText = quotesNotLoaded ? loadingText : (isHebrew ? 'לא נמצאו הצעות מחיר במסד הנתונים.' : 'No quotes found in the database.');
+  // Owner 2026-11-11 (finding 16): an account with NO quotes at all gets an invitation and a "new quote" button; a search / filter that
+  // finds nothing keeps its no-results text
+  const noQuotesAtAll = !quotesNotLoaded && overviewQuotes.length === 0;
+  const emptyListText = quotesNotLoaded ? loadingText : noQuotesAtAll
+    ? (isHebrew ? 'עוד אין הצעות. בואו ניצור את הראשונה' : "No quotes yet. Let's create your first one")
+    : (isHebrew ? 'לא נמצאו הצעות מחיר במסד הנתונים.' : 'No quotes found in the database.');
+  const emptyListContent = (
+    <span style={{ display: 'inline-flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
+      <span data-testid={quotesNotLoaded ? 'quotes-loading' : 'quotes-empty'} role={quotesNotLoaded ? 'status' : undefined}>{emptyListText}</span>
+      {noQuotesAtAll && typeof onCreateQuote === 'function' && (
+        // PRODUCT_TRUTH_DECORATIVE: opens the same new-quote path as the toolbar's "new quote" (its own checks run there)
+        <button type="button" data-testid="quotes-empty-new" onClick={() => onCreateQuote()}
+          style={{ minHeight: 44, padding: '0 18px', borderRadius: 10, border: 'none', background: '#0F6672', color: '#fff', fontWeight: 800, fontSize: '0.92rem', cursor: 'pointer', fontFamily: 'inherit' }}>
+          {isHebrew ? 'הצעה חדשה' : 'New quote'}
+        </button>
+      )}
+    </span>
+  );
   // "Awaiting" = reached the customer and not yet approved/paid. Owner bug 2026-10-14: a quote the customer has VIEWED (a shared link
   // keeps the saved status "draft") is awaiting too - the list labels it "viewed, awaiting", so the counter must count it.
   const overviewAwaiting = overviewQuotes.filter((quote) => {
@@ -425,7 +445,8 @@ export default function QuotesTab({
     return status === 'approved' || status === 'paid';
   }).length;
   // IRON-MARKET-004: the same quote population, totalled per persisted quote currency - never one mixed sum.
-  const overviewTotals = totalsByQuoteCurrency(overviewQuotes, { accountCurrency: currency });
+  // Owner 2026-11-11 (finding 32): the list total = the sum of the amounts the cards show (whole shekels each)
+  const overviewTotals = totalsByQuoteCurrency(overviewQuotes, { accountCurrency: currency, roundEachIls: true });
   const overviewMultiCurrency = overviewTotals.groups.length > 1;
   const overviewMulti = overviewMultiCurrency || overviewTotals.unknownCount > 0;
 
@@ -662,7 +683,7 @@ export default function QuotesTab({
     // with others instead of sitting alone - verified by eye at 360 / 384 / 390 / 412 in both languages. Desktop is unchanged (all nine on one row).
     // A fixed height makes every chip pixel-identical regardless of the tiny per-icon glyph-height differences (otherwise ~1px apart); the
     // box-sizing + centered content keeps it from clipping the 12px icon or the text.
-    const chipBase = { border: '1px solid transparent', boxSizing: 'border-box', borderRadius: RADIUS.sm, height: isMobileView ? '24px' : '26px', padding: isMobileView ? '0 4px' : '0 8px', cursor: 'pointer', fontSize: isMobileView ? '0.58rem' : '0.62rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: isMobileView ? '1px' : '4px', whiteSpace: 'nowrap' };
+    const chipBase = { border: '1px solid transparent', boxSizing: 'border-box', borderRadius: RADIUS.sm, height: isMobileView ? '44px' : '26px', /* Owner 2026-11-11 (finding 25, typed L-07 / L-29): a phone touch target is 44px */ padding: isMobileView ? '0 4px' : '0 8px', cursor: 'pointer', fontSize: isMobileView ? '0.58rem' : '0.62rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: isMobileView ? '1px' : '4px', whiteSpace: 'nowrap' };
     const chipIcon = 12;
     const neutralChip = { background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.border}` };
     const neutralIconColor = NEON.textSecondary;
@@ -842,6 +863,14 @@ export default function QuotesTab({
     else if (actionKind === 'view') window.open(getQuoteViewLink(quote), '_blank');
     else openTrackingFor(quote.id);
   };
+  // Owner 2026-11-11 (findings 4 + 26): the prominent Send of every row - the same gated actions as the open row's chips
+  const sendMenuFor = (quote, variant) => (
+    <QuoteSendMenu quote={quote} isHebrew={isHebrew} variant={variant}
+      onEmail={(q) => setPendingEmailQuote(q)}
+      onWhatsApp={(q) => handleProtectedAction(q.id, 'whatsapp', () => sendWhatsApp(q))}
+      onCopy={typeof copyQuoteMessage === 'function' ? (q) => handleProtectedAction(q.id, 'whatsapp', () => copyQuoteMessage(q)) : null} />
+  );
+
   const renderDetailPanel = (row) => {
     const { quote, firstItemDesc, emailStatus, isLocked } = row;
     const clientType = quote.clients?.client_type;
@@ -852,9 +881,9 @@ export default function QuotesTab({
         : null;
     const emailLabel = quote.email_bounced
       ? (isHebrew ? 'כתובת המייל אינה קיימת' : 'Email address does not exist')
-      : emailStatus === 'success'
-        ? (isHebrew ? 'אימייל נשלח בהצלחה' : 'Email sent successfully')
-        : emailStatus === 'failed'
+      // Owner 2026-11-11 (finding 10): the successful send is said ONCE, in the message "the email was sent to <address>" - the open card
+      // keeps only the failure / bounce states
+      : emailStatus === 'failed'
           ? (isHebrew ? 'שליחת המייל נכשלה' : 'Email failed')
           : null;
     return (
@@ -1186,7 +1215,7 @@ export default function QuotesTab({
                     onClick={() => handleQuoteSort(quoteSortField)}
                     title={isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction'}
                     aria-label={isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction'}
-                    style={{ flexShrink: 0, background: NEON.gradient, color: 'white', border: 'none', width: '30px', height: '30px', borderRadius: '7px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', boxShadow: NEON.glowSoft }}
+                    style={{ flexShrink: 0, background: NEON.gradient, color: 'white', border: 'none', width: '44px', height: '44px', borderRadius: '7px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', boxShadow: NEON.glowSoft }} /* Owner 2026-11-11 (finding 25): 44px */
                   >
                     {quoteSortDirection === 'asc' ? '▲' : '▼'}
                   </button>
@@ -1230,7 +1259,7 @@ export default function QuotesTab({
           <div className="quote-modern-body" data-testid="quote-modern-body" ref={listBodyRef}>
           {rowsMeta.length === 0 ? (
             <div className="quote-modern-empty">
-              <span data-testid={quotesNotLoaded ? 'quotes-loading' : 'quotes-empty'} role={quotesNotLoaded ? 'status' : undefined}>{emptyListText}</span>
+              {emptyListContent}
             </div>
           ) : pageRows.map((row) => {
             const { quote, quoteSym, isHot, tone, statusLabel } = row;
@@ -1295,6 +1324,7 @@ export default function QuotesTab({
                     title={isLocalIsraeliBusiness ? `${isHebrew ? 'לפני מע״מ' : 'Before VAT'}: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
                   />
                 </div>
+                {sendMenuFor(quote, 'row')}
                 {isExpanded && <div id={detailId} className="quote-modern-detail">{renderDetailPanel(row, detailId)}</div>}
               </div>
             );
@@ -1455,7 +1485,7 @@ export default function QuotesTab({
             {rowsMeta.length === 0 ? (
               <tr>
                 <td colSpan="6" style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.85rem' }}>
-                  <span data-testid={quotesNotLoaded ? 'quotes-loading' : 'quotes-empty'} role={quotesNotLoaded ? 'status' : undefined}>{emptyListText}</span>
+                  {emptyListContent}
                 </td>
               </tr>
             ) : (
@@ -1609,7 +1639,7 @@ export default function QuotesTab({
       <div ref={cardListRef} className="pf-screen-body" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {rowsMeta.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.85rem' }}>
-            <span data-testid={quotesNotLoaded ? 'quotes-loading' : 'quotes-empty'} role={quotesNotLoaded ? 'status' : undefined}>{emptyListText}</span>
+            {emptyListContent}
           </div>
         ) : (
           pageRows.map((row) => {
@@ -1696,6 +1726,7 @@ export default function QuotesTab({
                   </div>
                 </div>
               </button>
+              {sendMenuFor(quote, 'card')}
               {isExpanded && (
                 <div id={detailId} style={{ padding: '2px var(--pf-mobile-surface-pad, 10px) 12px', borderTop: `1px solid ${NEON.border}` }}>
                   {renderDetailPanel(row, detailId)}

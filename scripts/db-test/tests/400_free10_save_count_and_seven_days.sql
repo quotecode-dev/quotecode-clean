@@ -179,7 +179,8 @@ SELECT tst.throws(format('UPDATE public.quotes SET client_id = %L WHERE id = %L'
 SELECT tst.ok((SELECT client_id FROM public.quotes WHERE id = tst.wq(2)) = tst.wc(1) AND tst.wused(tst.wu(1)) = 10, 'S5d the refused save changed nothing');
 DO $$ DECLARE r jsonb; BEGIN
   r := tst.wout(tst.wu(1), tst.wq(11), 'send');
-  PERFORM tst.ok(r ->> 'state' = 'finalized' AND tst.wused(tst.wu(1)) = 10, 'S5e at 10 a quote already counted at its save is still sent (10)');
+  -- Owner 2026-11-11 (finding 7, typed: counted unsent drafts after the end 'גם הן חסומות'; 20261111100000): rule 4 reversed for drafts
+  PERFORM tst.ok(r ->> 'code' = 'free_issue_limit_reached' AND tst.wused(tst.wu(1)) = 10, 'S5e at 10 a draft counted at its save is NOT sent any more (10)');
   UPDATE public.quote_items SET unit_price = 160, total_price = 160 WHERE quote_id = tst.wq(1);
   r := tst.wout(tst.wu(1), tst.wq(1), 'send');
   PERFORM tst.ok(r ->> 'code' = 'free_issue_limit_reached' AND tst.wused(tst.wu(1)) = 10, 'S5f at 10 a changed version that would count is refused');
@@ -228,7 +229,8 @@ SELECT tst.throws(format('UPDATE public.quotes SET client_id = %L WHERE id = %L'
 SELECT tst.ok((SELECT client_id FROM public.quotes WHERE id = tst.wq(45)) IS NULL AND tst.wused(tst.wu(2)) = 3, 'S6m2 ... and rolled back (3)');
 DO $$ DECLARE r jsonb; s jsonb; b jsonb; BEGIN
   r := tst.wout(tst.wu(2), tst.wq(41), 'send');
-  PERFORM tst.ok(r ->> 'state' = 'finalized' AND tst.wused(tst.wu(2)) = 3, 'S6e a quote counted before the end is still sent (3)');
+  -- Owner 2026-11-11 (finding 7, 20261111100000): after the 7 days a draft counted before the end is not sent either
+  PERFORM tst.ok(r ->> 'code' = 'free_issue_limit_reached' AND tst.wused(tst.wu(2)) = 3, 'S6e after the 7 days a draft counted before the end is NOT sent (3)');
   PERFORM tst.ok(tst.wout(tst.wu(2), tst.wq(40), 'final_print') ->> 'alreadyFinalized' = 'true', 'S6f an already-output version prints again');
   UPDATE public.quote_items SET unit_price = 170, total_price = 170 WHERE quote_id = tst.wq(40);
   r := tst.wout(tst.wu(2), tst.wq(40), 'send');

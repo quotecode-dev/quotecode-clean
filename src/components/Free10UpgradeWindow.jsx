@@ -23,8 +23,9 @@ const COPY = {
     // Owner 2026-10-20: the 7 free days can end before the 10 quotes are used
     // Owner 2026-10-18: a limited paid account - its sentence by the server's reason (Codex audit M-01, billingReasonCopy)
     ended: (f) => `תמו ${FREE_DAYS_TOTAL} ימי החינם (נוצלו ${f.consumed} מתוך ${FREE_QUOTES_TOTAL} ההצעות החינמיות).`,
-    why: 'כדי ליצור הצעה חדשה או להעביר ללקוח הצעה בפעם הראשונה, צריך מנוי.',
-    allowed: 'אפשר להמשיך לצפות בהצעות הקיימות, לערוך טיוטות, לשלוח שוב הצעות שכבר יצאו ולעבוד עם לקוחות, משימות והוצאות.',
+    // Owner 2026-11-11 (finding 7, option א + "גם הן חסומות"; Codex U22): after the end, editing and sending drafts need the subscription too
+    why: 'כדי ליצור הצעה חדשה, לערוך הצעה או לשלוח ללקוח טיוטה, צריך מנוי. הצעה ששונתה אחרי שנשלחה נחשבת הצעה חדשה.',
+    allowed: 'אפשר להמשיך לצפות בהצעות הקיימות, לשלוח שוב הצעות שכבר יצאו בלי שינוי, למחוק הצעות ולעבוד עם לקוחות, משימות והוצאות.',
     choose: 'בחירת מנוי',
     unavailable: 'רכישת מנוי עדיין לא זמינה במערכת, ולא מתבצע חיוב.',
     // Owner console 2026-10-25 (findings 1-13): abroad the system is active - only purchasing is not open yet
@@ -36,8 +37,8 @@ const COPY = {
     title: 'Keep working without limits',
     used: (f) => `All ${FREE_QUOTES_TOTAL} free quotes have been used (${f.consumed} used${f.reserved ? `, ${f.reserved} being sent` : ''}).`,
     ended: (f) => `The ${FREE_DAYS_TOTAL} free days have ended (${f.consumed} of ${FREE_QUOTES_TOTAL} free quotes used).`,
-    why: 'A subscription is needed to create a new quote or to send a client a quote that was never sent.',
-    allowed: 'You can keep viewing your quotes, editing drafts, re-sending quotes that were already sent and working with clients, tasks and expenses.',
+    why: 'A subscription is needed to create a new quote, edit a quote or send a draft to a client. A quote changed after it was sent counts as a new quote.',
+    allowed: 'You can keep viewing your existing quotes, re-sending quotes that already went out unchanged, deleting quotes and working with clients, tasks and expenses.',
     choose: 'Choose a subscription',
     unavailable: 'Subscriptions cannot be purchased in the system yet, and nothing is charged.',
     closedAbroad: 'Purchasing is not open yet for accounts outside Israel, and nothing is charged.',
@@ -84,23 +85,24 @@ export default function Free10UpgradeWindow({ open, onClose, isHebrew, market, f
         <p data-testid="free10-upgrade-allowed" style={{ margin: '0 0 12px', color: '#475569', fontSize: '0.82rem' }}>{t.allowed}</p>
         <PackageOfferCards model={m} isHebrew={isHebrew} only={['all_inclusive']} testIdPrefix="free10-upgrade" />
         <p data-price-note style={{ margin: '10px 0 0', color: '#334155', fontSize: '0.82rem', fontWeight: 600 }}>{m.priceNote}</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 12, alignItems: 'center' }}>
+        {/* Owner 2026-11-11 (finding 45): the two buttons share ONE row in both languages (English stacked at 390) - each takes half and may wrap its own label */}
+        <div style={{ display: 'flex', flexWrap: 'nowrap', gap: 8, marginTop: 12, alignItems: 'stretch' }}>
           {typeof onChoose === 'function' ? (
             // PRODUCT_TRUTH_DECORATIVE: opens the plans window (where the server payment page is chosen); starts no payment by itself
             <button type="button" onClick={onChoose} data-testid="free10-upgrade-choose"
-              style={{ minHeight: 44, padding: '0 16px', borderRadius: 9, border: '1px solid #0F6672', background: '#ffffff', color: '#0F6672', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+              style={{ flex: '1 1 0', minWidth: 0, lineHeight: 1.2, minHeight: 44, padding: '4px 10px', borderRadius: 9, border: '1px solid #0F6672', background: '#ffffff', color: '#0F6672', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
               {t.choose}
             </button>
           ) : purchaseOpen ? null : (
             // PRODUCT_TRUTH_DECORATIVE: subscription choice shown as unavailable while checkout is not active; starts nothing
             <button type="button" disabled aria-describedby="free10-upgrade-unavailable" data-testid="free10-upgrade-choose"
-              style={{ minHeight: 44, padding: '0 16px', borderRadius: 9, border: '1px solid #94a3b8', background: '#e2e8f0', color: '#475569', fontWeight: 700, cursor: 'not-allowed', fontFamily: 'inherit' }}>
+              style={{ flex: '1 1 0', minWidth: 0, lineHeight: 1.2, minHeight: 44, padding: '4px 10px', borderRadius: 9, border: '1px solid #94a3b8', background: '#e2e8f0', color: '#475569', fontWeight: 700, cursor: 'not-allowed', fontFamily: 'inherit' }}>
               {t.choose}
             </button>
           )}
           {/* PRODUCT_TRUTH_DECORATIVE: closes the upgrade window and returns to the permitted flow; changes no data */}
           <button type="button" onClick={onClose} data-testid="free10-upgrade-close"
-            style={{ minHeight: 44, padding: '0 16px', borderRadius: 9, border: '1px solid #0F6672', background: '#0F6672', color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
+            style={{ flex: '1 1 0', minWidth: 0, lineHeight: 1.2, minHeight: 44, padding: '4px 10px', borderRadius: 9, border: '1px solid #0F6672', background: '#0F6672', color: '#ffffff', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
             {t.close}
           </button>
         </div>

@@ -3,6 +3,7 @@
 // ==============================================================================
 
 import { isValidEmailAddress } from '../utils/emailAddress';
+import { phonePlaceholder } from '../utils/phoneDisplay';
 import { useState, useEffect } from 'react';
 import AiModalHeader from './AiModalHeader';
 import AddressSuggestInput from './AddressSuggestInput';
@@ -142,7 +143,7 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
                   type="text" 
                   value={localPhone} 
                   onChange={(e) => handleLocalPhoneChange(e.target.value)} 
-                  placeholder="502345678" 
+                  placeholder={phonePlaceholder(defaultDial)} 
                   style={{ flex: 1, padding: '8px 10px', border: 'none', outline: 'none', background: 'transparent', direction: 'ltr', textAlign: 'left', fontSize: '0.85rem' }} 
                 />
               </div>

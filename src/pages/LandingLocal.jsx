@@ -70,8 +70,8 @@ export default function LandingLocal({ onForgotPassword }) {
           // Owner 2026-10-20 (phone): what SMART PACK gives, right under its box (the one source: addOnCatalog)
           summary: SMART_PACK.summary.he,
           perPeriod: {
-            month: { add: <>(+<bdi dir="ltr">{ilsSmartPack('month')}</bdi> לחודש)</>, amount: ilsWithSmartPack('month'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('month')}</bdi> + <bdi dir="ltr">{ilsSmartPack('month')}</bdi> = <bdi dir="ltr">{ilsWithSmartPack('month')}</bdi> לחודש</> },
-            year: { noteQualifier: 'הסכום מתייחס למסלול בלבד, בלי חכם פלוס.', add: <>(+<bdi dir="ltr">{ilsSmartPack('year')}</bdi> לשנה)</>, amount: ilsWithSmartPack('year'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('year')}</bdi> + <bdi dir="ltr">{ilsSmartPack('year')}</bdi> = <bdi dir="ltr">{ilsWithSmartPack('year')}</bdi> לשנה</> },
+            month: { add: <span style={{ whiteSpace: 'nowrap' }}>(+<bdi dir="ltr">{ilsSmartPack('month')}</bdi> לחודש)</span>, /* Owner 2026-11-11 (finding 25): "(+" never ends a line alone */ amount: ilsWithSmartPack('month'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('month')}</bdi> + <bdi dir="ltr">{ilsSmartPack('month')}</bdi> = <bdi dir="ltr">{ilsWithSmartPack('month')}</bdi> לחודש</> },
+            year: { noteQualifier: 'הסכום מתייחס למסלול בלבד, בלי חכם פלוס.', add: <span style={{ whiteSpace: 'nowrap' }}>(+<bdi dir="ltr">{ilsSmartPack('year')}</bdi> לשנה)</span>, amount: ilsWithSmartPack('year'), line: <>כולל חכם פלוס: <bdi dir="ltr">{ilsPackageAmount('year')}</bdi> + <bdi dir="ltr">{ilsSmartPack('year')}</bdi> = <bdi dir="ltr">{ilsWithSmartPack('year')}</bdi> לשנה</> },
           },
         },
       } : {}),

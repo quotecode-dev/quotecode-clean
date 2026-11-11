@@ -30,6 +30,7 @@ import PublicThanksNotice from '../components/PublicThanksNotice';
 import { useAmountAxis } from '../quoteDocument/useAmountAxis';
 import { openAttachmentFresh } from '../utils/freshAttachmentLink';
 import { askConfirm, showNotice } from '../components/AppDialog';
+import { formatIntlPhoneDisplay } from '../utils/phoneDisplay';
 
 // Money Consolidation (Global Surface Audit finding I-1): this local
 // formatNum used to Math.round() every amount before formatting - silently
@@ -81,9 +82,10 @@ function allSectionsMap(items, sections, open) {
   return map;
 }
 
+// Owner 2026-11-11 (finding 21): a US / Canada number is shown grouped ("+1 (202) 555-0143"); every other number as stored
 const formatDisplayPhone = (phone) => {
   if (!phone) return '';
-  return phone.trim();
+  return formatIntlPhoneDisplay(phone);
 };
 
 // PRODUCT_TRUTH_CAPABILITY: public_quote_view
@@ -344,6 +346,9 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
       setJustSignedImageDataUrl(signatureDataUrl);
       setJustSignedAt(new Date());
       setApproved(true);
+      // Owner 2026-11-11 (finding 18): the business owner gets one email that the customer signed - the server checks the signature
+      // itself and sends once; nothing on this page waits for it or shows its result
+      if (quote?.id) Promise.resolve(supabase.functions.invoke('quote-signed-notice', { body: { quote_id: quote.id } })).catch(() => {});
       // Task 16: the server freezes the presentation snapshot once the quote is locked - let the host re-fetch it.
       if (typeof onApproved === 'function') onApproved();
     } catch (err) {
@@ -959,11 +964,11 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
         <div style={{ marginBottom: '15px', display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
           {/* PRODUCT_TRUTH_DECORATIVE: clears the currently drawn signature before submission */}
           {(isActive || hasSigned) && (
-            <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>Clear Signature</button>
+            <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', minHeight: 44, borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>Clear Signature</button>
           )}
           {/* PRODUCT_TRUTH_DECORATIVE: ends signature-drawing mode without submitting approval */}
           {isActive && (
-            <button type="button" onClick={deactivateSigning} style={{ background: LIGHT.violet, color: 'white', border: 'none', padding: '4px 14px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Done</button>
+            <button type="button" onClick={deactivateSigning} style={{ background: LIGHT.violet, color: 'white', border: 'none', padding: '4px 14px', minHeight: 44, borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>Done drawing</button>
           )}
         </div>
         {signatureWarning && (
@@ -974,7 +979,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
         <div>
           {/* PRODUCT_TRUTH_CAPABILITY: public_quote_sign */}
           <button onClick={handleApprove} style={{ background: hasSigned ? LIGHT.gradient : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? LIGHT.glow : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>
-            Approve & Sign This Quote ✓
+            Approve & Sign This Quote{'\u00a0'}✓
           </button>
         </div>
       </div>

@@ -6,7 +6,7 @@
 // crosses the disc and the plan name shows in a bubble under it for a moment; at rest a soft halo pulses every few seconds; hover /
 // keyboard focus lifts the disc, wiggles the icon and shows the bubble; a press sinks it. prefers-reduced-motion: no motion, the bubble
 // only on hover / focus. Click opens the plans window. The model is planBadgeModel (one source with Settings and the plans window).
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Infinity as InfinityIcon, LayoutList, Sprout, Crown, CalendarCheck, Timer, TimerOff, CircleDashed } from 'lucide-react';
 import './headerPlanMedallion.css';
 
@@ -25,26 +25,55 @@ const VISUAL = {
 // Owner console 2026-10-16: the admin shows the SAME plan icon (PlanMedallionMark.jsx reads this one table)
 export const PLAN_MEDALLION_VISUAL = VISUAL;
 export const MEDALLION_INTRO_MS = 2600;
+// Owner 2026-11-11 (finding 8, typed L-03): how long the caption stays after a counted quote or a tap on a phone
+export const MEDALLION_POP_MS = 4000;
+const WARN_RING = { c1: '#fb923c', c2: '#ea580c' };
 
-export default function HeaderPlanMedallion({ model, isHebrew, onOpen }) {
+// caption (finding 8): the bubble's words when the caller adds to the status (the free days left); warn: the ring turns orange;
+// popKey: a change (a counted quote) shows the caption for a few seconds. A tap on a touch screen first shows the caption, the next
+// tap opens the plans window; a mouse click / keyboard opens it at once, as before.
+export default function HeaderPlanMedallion({ model, isHebrew, onOpen, caption = null, warn = false, popKey = null }) {
   const visual = VISUAL[model.kind] || VISUAL.plans;
   const { Icon } = visual;
+  const ring = warn ? WARN_RING : visual;
+  const words = caption || model.label;
   const gid = `hpm-g-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
   const [intro, setIntro] = useState(true);
+  const [shown, setShown] = useState(false);
+  const pointer = useRef('mouse');
+  const lastPop = useRef(popKey);
+  const hideTimer = useRef(null);
+  const show = () => {
+    setShown(true);
+    if (hideTimer.current) window.clearTimeout(hideTimer.current);
+    hideTimer.current = window.setTimeout(() => setShown(false), MEDALLION_POP_MS);
+  };
   useEffect(() => { const t = window.setTimeout(() => setIntro(false), MEDALLION_INTRO_MS); return () => window.clearTimeout(t); }, []);
+  useEffect(() => () => { if (hideTimer.current) window.clearTimeout(hideTimer.current); }, []);
+  useEffect(() => {
+    if (popKey === null || lastPop.current === popKey) { lastPop.current = popKey; return; }
+    const first = lastPop.current === null;
+    lastPop.current = popKey;
+    if (!first) show();
+  }, [popKey]);
+  const handleClick = (e) => {
+    if (pointer.current === 'touch' && !shown) { e.preventDefault(); show(); return; }
+    setShown(false);
+    onOpen?.(e);
+  };
   const hasProgress = model.kind === 'free10' && Number.isFinite(model.remaining) && Number.isFinite(model.total) && model.total > 0;
   const ratio = hasProgress ? Math.max(0, Math.min(1, model.remaining / model.total)) : 1;
-  const a11y = isHebrew ? `${model.label} - פתיחת חלון המסלולים` : `${model.label} - open the plans window`;
+  const a11y = isHebrew ? `${words} - פתיחת חלון המסלולים` : `${words} - open the plans window`;
   return (
     // PRODUCT_TRUTH_DECORATIVE: opens the in-app plans window (PricingModal); changes no data
-    <button type="button" className={`hpm${intro ? ' hpm--intro' : ''}${hasProgress ? ' hpm--progress' : ''}`} data-testid="header-plan-button" data-plan-kind={model.kind} onClick={onOpen} aria-haspopup="dialog" aria-label={a11y} style={{ '--hpm-ink': visual.ink, '--hpm-c1': visual.c1, '--hpm-c2': visual.c2, '--hpm-ratio': ratio }}>
+    <button type="button" className={`hpm${intro ? ' hpm--intro' : ''}${hasProgress ? ' hpm--progress' : ''}${shown ? ' hpm--show' : ''}${warn ? ' hpm--warn' : ''}`} data-testid="header-plan-button" data-plan-kind={model.kind} onPointerDown={(e) => { pointer.current = e.pointerType || 'mouse'; }} onClick={handleClick} aria-haspopup="dialog" aria-label={a11y} style={{ '--hpm-ink': visual.ink, '--hpm-c1': visual.c1, '--hpm-c2': visual.c2, '--hpm-ratio': ratio }}>
       <span className="hpm-halo" aria-hidden="true" />
       <span className="hpm-disc" aria-hidden="true">
         <svg className="hpm-ring" viewBox="0 0 40 40" focusable="false">
           <defs>
             <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor={visual.c1} />
-              <stop offset="1" stopColor={visual.c2} />
+              <stop offset="0" stopColor={ring.c1} />
+              <stop offset="1" stopColor={ring.c2} />
             </linearGradient>
           </defs>
           <circle className="hpm-track" cx="20" cy="20" r="17.5" pathLength="100" />
@@ -53,7 +82,7 @@ export default function HeaderPlanMedallion({ model, isHebrew, onOpen }) {
         <span className="hpm-icon"><Icon size={18} strokeWidth={2.4} /></span>
         <span className="hpm-shine" />
       </span>
-      <span className="hpm-bubble" aria-hidden="true" dir={isHebrew ? 'rtl' : 'ltr'}><bdi>{model.label}</bdi></span>
+      <span className="hpm-bubble" aria-hidden="true" dir={isHebrew ? 'rtl' : 'ltr'}><bdi>{words}</bdi></span>
     </button>
   );
 }

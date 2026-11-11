@@ -38,7 +38,8 @@ describe('header wiring (source)', () => {
   const d = read('pages/Dashboard.jsx');
   it('the avatar circle is gone; the round plan medallion opens the plans window and is hidden for the super admin', () => {
     expect(d).not.toMatch(/dash-header-avatar|headerAvatarUrl|className="dash-header-plan"/);
-    expect(d).toMatch(/\{!isSuperAdmin && \(\n\s*<HeaderPlanMedallion model=\{headerPlanBadge\} isHebrew=\{isHebrew\} onOpen=\{\(\) => setShowPricingModal\(true\)\} \/>/);
+    // Owner 2026-11-11 (finding 8, typed L-03): + the caption with the free days left, the orange ring and the pop after a counted quote
+    expect(d).toMatch(/\{!isSuperAdmin && \(\n\s*<HeaderPlanMedallion model=\{headerPlanBadge\} caption=\{headerCaption\} warn=\{headerWarn\} popKey=\{headerPopKey\} isHebrew=\{isHebrew\} onOpen=\{\(\) => setShowPricingModal\(true\)\} \/>/);
     // Owner console 2026-10-16 (approval naming L-03): the header medallion is the admin status medallion (subscriptionStatus.js)
     expect(d).toMatch(/const headerPlanBadge = statusMedallionModel\(\{ is_lifetime: isLifetimeAccount, trial_ends_at: trialEndsAt \}, accountSummary, \{ isHebrew, formatDate: statusDate \}\);/);
     expect(d.indexOf('const { summary: accountSummary')).toBeLessThan(d.indexOf('const headerPlanBadge ='));

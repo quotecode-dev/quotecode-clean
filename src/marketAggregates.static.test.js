@@ -54,7 +54,8 @@ describe('IRON-MARKET-004 static gate: no mixed-currency quote aggregate', () =>
 
   it('every aggregate consumer uses the helper and renders per-currency tokens', () => {
     const quotesTab = read('src/components/QuotesTab.jsx');
-    expect(quotesTab).toMatch(/const overviewTotals = totalsByQuoteCurrency\(overviewQuotes, \{ accountCurrency: currency \}\);/);
+    // Owner 2026-11-11 (finding 32, typed L-07): the list total adds each quote's displayed whole-shekel amount
+    expect(quotesTab).toMatch(/const overviewTotals = totalsByQuoteCurrency\(overviewQuotes, \{ accountCurrency: currency, roundEachIls: true \}\);/);
     expect(quotesTab).toMatch(/<CurrencyTotals className="quote-overview-value"[^>]*totals=\{overviewTotals\}/);
     expect(quotesTab).not.toMatch(/\boverviewTotal\b/);
 

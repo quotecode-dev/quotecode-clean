@@ -19,6 +19,9 @@ export default function TurnstileWidget({ slot = 'auth', isHebrew = true }) {
           language: isHebrew ? 'he' : 'en',
           theme: 'dark', // the auth card is dark
           size: 'flexible',
+          // Owner 2026-11-11 (finding 38, typed L-12): the box shows ONLY when Cloudflare really needs the visitor to act - never a
+          // "Success!" before anything was typed
+          appearance: 'interaction-only',
           callback: (token) => setCaptchaToken(slot, token),
           'expired-callback': () => setCaptchaToken(slot, null),
           'error-callback': () => { setCaptchaToken(slot, null); },
@@ -41,5 +44,6 @@ export default function TurnstileWidget({ slot = 'auth', isHebrew = true }) {
       }
     };
   }, [slot, isHebrew]);
-  return <div ref={box} className="auth-turnstile" data-testid={`turnstile-${slot}`} style={{ marginBottom: 12 }} />;
+  // Owner 2026-11-11 (finding 25): the box never sticks out of the form column on a phone; empty (nothing to show) it takes no space
+  return <div ref={box} className="auth-turnstile" data-testid={`turnstile-${slot}`} style={{ maxWidth: '100%', overflow: 'hidden' }} />;
 }

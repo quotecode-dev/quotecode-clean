@@ -128,14 +128,9 @@ export default function PublicQuoteHeader({ isHebrew, bizLogo, bizName, bizTaxId
       valueClass: `pq-header-valid${isExpired ? ' pq-is-expired' : ''}`,
       after: isExpired ? <span data-testid="pq-header-expired"> · {L.expired}</span> : null,
     })
-    : (
-      // Owner 2026-10-19 (option ב): the reserved cell keeps its exact place and size but shows nothing - no label, no dash (its
-      // invisible content only holds the approved three-cell geometry; screen readers skip it)
-      <div key="valid" className="pq-meta-cell pq-meta-valid pq-meta-placeholder no-print" data-html2canvas-ignore="true" aria-hidden="true" style={{ visibility: 'hidden' }}>
-        <div className="pq-meta-label">{L.valid}</div>
-        <div className="pq-meta-value pq-header-valid" aria-hidden="true">—</div>
-      </div>
-    );
+    // Owner 2026-11-11 (finding 12, option א; typed L-24, L-28): no validity date -> "תוקף: 30 יום" / "Validity: 30 days", as the default
+    // terms say ("תוקף ההצעה 30 ימים"). Display only: no date is stored and signing is not blocked. Paper = screen, so it prints too.
+    : cell('valid', isHebrew ? 'תוקף' : 'Validity', isHebrew ? '30 יום' : '30 days', { valueClass: 'pq-header-valid' });
   // project_name (IRON-QUOTE-002) is a metadata field like the others.
   const projectCell = projectName ? cell('project', L.project, projectName, { valueClass: 'pq-header-project' }) : null;
   const metaGrid = (cells, extraClass = '') => (
