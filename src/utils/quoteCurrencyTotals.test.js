@@ -71,12 +71,14 @@ describe('totalsByQuoteCurrency (IRON-MARKET-004)', () => {
 });
 
 // Owner 2026-11-11 (finding 32): the list total equals the sum of the displayed whole-shekel card amounts
-import { totalsByQuoteCurrency as totalsForList } from './money';
+import { roundIlsListTotals } from './money';
 describe('list total = sum of the displayed cards (ILS)', () => {
-  it('rounds each ILS quote half-up before adding; other currencies and the default keep the stored sum', () => {
+  it('only the ILS group becomes the sum of each quote rounded half-up; other currencies and the plain totals keep the stored sum', () => {
     const qs = [{ currency: 'ILS', total: 2919.5 }, { currency: 'ILS', total: 2920.4 }, { currency: 'USD', total: 10.005 }];
-    expect(totalsForList(qs, { roundEachIls: true }).groups.find((g) => g.currency === 'ILS').total).toBe(5840);
-    expect(totalsForList(qs).groups.find((g) => g.currency === 'ILS').total).toBeCloseTo(5839.9, 6);
-    expect(totalsForList(qs, { roundEachIls: true }).groups.find((g) => g.currency === 'USD').total).toBe(10.005);
+    expect(totalsByQuoteCurrency(qs).groups.find((g) => g.currency === 'ILS').total).toBeCloseTo(5839.9, 6);
+    const shown = roundIlsListTotals(totalsByQuoteCurrency(qs), qs);
+    expect(shown.groups.find((g) => g.currency === 'ILS').total).toBe(5840);
+    expect(shown.groups.find((g) => g.currency === 'USD').total).toBe(10.005);
+    expect(roundIlsListTotals({ groups: [] }, qs)).toEqual({ groups: [] });
   });
 });

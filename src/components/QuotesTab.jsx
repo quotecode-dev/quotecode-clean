@@ -5,7 +5,7 @@
 
 import { useState, useEffect, useLayoutEffect, useRef, Fragment } from 'react';
 import { MoneyValue, CurrencyTotals } from './NumericValue';
-import { totalsByQuoteCurrency } from '../utils/money';
+import { totalsByQuoteCurrency, roundIlsListTotals } from '../utils/money';
 import { isHotQuote } from '../utils/quoteStatistics';
 import { quoteDisplayStatus, quoteDisplayLabel, quoteDisplayTone, quoteDisplayChipRole, QUOTE_FILTER_OPTIONS, quoteFilterLabel } from '../utils/quoteStatusDisplay';
 import TekangoEyeIcon from './TekangoEyeIcon';
@@ -445,8 +445,9 @@ export default function QuotesTab({
     return status === 'approved' || status === 'paid';
   }).length;
   // IRON-MARKET-004: the same quote population, totalled per persisted quote currency - never one mixed sum.
+  const overviewTotals = totalsByQuoteCurrency(overviewQuotes, { accountCurrency: currency });
   // Owner 2026-11-11 (finding 32): the list total = the sum of the amounts the cards show (whole shekels each)
-  const overviewTotals = totalsByQuoteCurrency(overviewQuotes, { accountCurrency: currency, roundEachIls: true });
+  roundIlsListTotals(overviewTotals, overviewQuotes);
   const overviewMultiCurrency = overviewTotals.groups.length > 1;
   const overviewMulti = overviewMultiCurrency || overviewTotals.unknownCount > 0;
 

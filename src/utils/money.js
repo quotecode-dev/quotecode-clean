@@ -108,10 +108,7 @@ export function quoteCurrencyDisplayOrder(accountCurrency) {
   return first ? [first, ...QUOTE_CURRENCIES.filter((c) => c !== first)] : [...QUOTE_CURRENCIES];
 }
 
-// roundEachIls (Owner 2026-11-11, finding 32): a total shown above a LIST of quotes adds each quote's DISPLAYED whole-shekel amount, so it
-// always equals the sum of the cards on screen (IRON-ILS-001: each ILS amount is displayed rounded half-up to a whole shekel). Off by
-// default - every other aggregate keeps summing the stored values.
-export function totalsByQuoteCurrency(quotes, { include = () => true, accountCurrency = null, roundEachIls = false } = {}) {
+export function totalsByQuoteCurrency(quotes, { include = () => true, accountCurrency = null } = {}) {
   const sums = new Map();
   const counts = new Map();
   let unknownCount = 0;
@@ -119,8 +116,7 @@ export function totalsByQuoteCurrency(quotes, { include = () => true, accountCur
     if (!quote || !include(quote)) continue;
     const currency = normalizeQuoteCurrency(quote.currency);
     if (!currency) { unknownCount += 1; continue; }
-    const raw = Number(quote.total || 0);
-    const amount = roundEachIls && currency === 'ILS' && Number.isFinite(raw) ? Math.sign(raw) * Math.round(Math.abs(raw)) : raw;
+    const amount = Number(quote.total || 0);
     sums.set(currency, (sums.get(currency) || 0) + (Number.isFinite(amount) ? amount : 0));
     counts.set(currency, (counts.get(currency) || 0) + 1);
   }
@@ -128,4 +124,20 @@ export function totalsByQuoteCurrency(quotes, { include = () => true, accountCur
     .filter((currency) => sums.has(currency))
     .map((currency) => ({ currency, symbol: QUOTE_CURRENCY_SYMBOLS[currency], total: sums.get(currency), count: counts.get(currency) }));
   return { groups, unknownCount };
+}
+
+// Owner 2026-11-11 (finding 32): the total shown above the quotes LIST equals the sum of the cards on screen - its ILS group is the sum of
+// each quote's DISPLAYED whole-shekel amount (IRON-ILS-001 rounds every ILS amount half-up for display). It changes only that group of the
+// given per-currency totals (from totalsByQuoteCurrency, every group still keyed on its quote's own currency); other currencies untouched.
+export function roundIlsListTotals(totals, quotes) {
+  const group = totals?.groups?.find((g) => g.currency === 'ILS');
+  if (!group) return totals;
+  let shown = 0;
+  for (const quote of Array.isArray(quotes) ? quotes : []) {
+    if (!quote || normalizeQuoteCurrency(quote.currency) !== 'ILS') continue;
+    const value = Number(quote.total || 0);
+    if (Number.isFinite(value)) shown += Math.sign(value) * Math.round(Math.abs(value));
+  }
+  group.total = shown;
+  return totals;
 }
