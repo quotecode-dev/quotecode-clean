@@ -20,7 +20,7 @@ function qtyLabel(m, isHebrew, international) {
 }
 const priceLabel = (m, isHebrew, international) => (m === 'fixed'
   ? (isHebrew ? 'מחיר לכל העבודה' : 'Price for all the work')
-  : `${isHebrew ? 'מחיר' : 'Price'} ${methodLabel(m, isHebrew, international)}`);
+  : (isHebrew ? `מחיר ${methodLabel(m, true, international)}` : `Price ${methodLabel(m, false, international).toLowerCase()}`));
 
 export default function WorkItemDialog({ open, isHebrew, international = false, services = [], groupKind = 'section', sectionKey = null, groupName = '',
   canUseMeasured = true, onMeasuredLocked = null, onAdd, onClose, onOpenCalculator = null }) {
