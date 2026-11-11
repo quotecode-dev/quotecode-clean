@@ -307,6 +307,27 @@ export default function QuotesTab({
   const setListPage = (p) => { if (userId) { rememberedListPage.userId = userId; rememberedListPage.page = p; } setListPageState(p); };
   const [perPage, setPerPage] = useState(DEFAULT_QUOTES_PER_PAGE);
   const listBodyRef = useRef(null);
+  // Owner 2026-11-12 (ones under ones for every amount, every user): the amount track takes the width of the widest amount on the list
+  // (its painted text, measured once the fonts are in) - a 130,250.00 or a 1,234,567.00 never spills out of its column or moves the axis
+  useLayoutEffect(() => {
+    const body = listBodyRef.current;
+    const host = body && body.closest('.quote-modern-list');
+    if (!host || typeof document === 'undefined' || typeof document.createRange !== 'function') return undefined;
+    let live = true;
+    const measure = () => {
+      if (!live) return;
+      let max = 0;
+      host.querySelectorAll('.quote-modern-amount').forEach((el) => {
+        const r = document.createRange(); r.selectNodeContents(el);
+        const w = r.getBoundingClientRect ? r.getBoundingClientRect().width : 0;
+        if (Number.isFinite(w) && w > max) max = w;
+      });
+      if (max > 0) host.style.setProperty('--qm-amt-w', `${Math.ceil(max) + 8}px`);
+    };
+    measure();
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure).catch(() => {});
+    return () => { live = false; };
+  });
   // a search shows every match (never cut to 4)
   // The hot-quote banner opens the same tracking details panel as the hot row's "Open & track" action (open, never toggle closed).
   const openTrackingFor = (quoteId) => {

@@ -127,7 +127,9 @@ describe('approved dashboard QA fixes (source guards)', () => {
     expect(block).toMatch(/\.quote-modern-list\[dir="rtl"\] \.quote-modern-row > \.quote-modern-amount \{ padding-left: 6px; \}/);
     expect(block).toMatch(/\.quote-modern-list\[dir="ltr"\] \.quote-modern-row > \.quote-modern-amount \{ padding-right: 6px; \}/);
     expect(block).toMatch(/--qm-gap: 6px;/);
-    expect(block).toMatch(/\.quote-modern-amount\.is-long \{ font-size: 12\.5px; \}/);
+    // Owner 2026-11-12 (ones under ones for every amount): a long amount is no longer set smaller - the amount track grows to it
+    expect(block).not.toMatch(/\.quote-modern-amount\.is-long \{ font-size/);
+    expect(block).toMatch(/minmax\(max\(88px, var\(--qm-amt-w, 88px\)\), 96fr\)/);
   });
 
   it('the header block stays fixed at 40px above the list and the new-quote popover is width-capped', () => {

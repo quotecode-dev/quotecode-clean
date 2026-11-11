@@ -7675,7 +7675,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             /* ONE eight-track grid shared by the header row and every quote row (Owner R3): quote number, client, quote title,
                status, views, date, amount, action. Protected numeric/action tracks carry a px floor; client/title ellipsize. */
             /* Owner 2026-11-11 (finding 24, typed L-07 / L-29): the date track holds its painted words ("Yesterday, 23:59") - floor 64px -> 100px */
-            --qm-cols: minmax(84px, 72fr) minmax(0, 118fr) minmax(0, 104fr) minmax(136px, 104fr) minmax(68px, 64fr) minmax(100px, 104fr) minmax(88px, 96fr);
+            --qm-cols: minmax(84px, 72fr) minmax(0, 118fr) minmax(0, 104fr) minmax(136px, 104fr) minmax(68px, 64fr) minmax(100px, 104fr) minmax(max(88px, var(--qm-amt-w, 88px)), 96fr);
+            /* Owner 2026-11-12: the amount track is never narrower than the widest amount on the list (QuotesTab measures it: --qm-amt-w) */
             --qm-gap: 6px;
           }
           /* selector chain outranks the shared ".pf-screen > .pf-screen-body > * { flex-shrink: 0 }" rule (the card is also a
@@ -7800,7 +7801,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
              sits on the action side, which the real dir attribute of the list decides (the slot itself is a physical LTR atom) */
           .quote-modern-list[dir="rtl"] .quote-modern-row > .quote-modern-amount { padding-left: 6px; }
           .quote-modern-list[dir="ltr"] .quote-modern-row > .quote-modern-amount { padding-right: 6px; }
-          .quote-modern-row > .quote-modern-amount.is-long { font-size: 12.5px; }
+          /* Owner 2026-11-12 (ones under ones): a long amount keeps the size of every other amount - its track grows instead */
           /* Owner R5: the quote number is an LTR atom (its own "start" is left), but it must sit at the structural start of its
              column like its header label: right in HE, left in EN (the real dir attribute of the list decides) */
           .quote-modern-list[dir="rtl"] .quote-modern-row > .quote-modern-number { text-align: right; }
