@@ -35,7 +35,7 @@ const data = (over: { quote?: Record<string, unknown>; client?: Record<string, u
   attachments: [],
   version: VER,
 });
-const HE = { Page: PublicQuote, activate: 'לחצו כאן לחתימה', approve: /אישור וחתימה על הצעת המחיר/, name: 'לדוגמה: ישראל ישראלי', clear: 'ניקוי החתימה',
+const HE = { Page: PublicQuote, activate: 'הפעלת אזור החתימה', approve: /אישור וחתימה על הצעת המחיר/, name: 'לדוגמה: ישראל ישראלי', clear: 'ניקוי החתימה',
   nameAlert: 'הזינו שם מלא לפני האישור', signAlert: 'חתמו על המסמך לפני האישור', signHeading: 'חתימת לקוח לאישור ההצעה:', signedBy: 'נחתם על ידי:', isHebrew: true };
 const EN = { Page: PublicQuoteEn, activate: 'Tap to sign', approve: /Approve & Sign This Quote/, name: 'e.g. John Smith', clear: 'Clear Signature',
   nameAlert: "Please enter the signer's full name before approving", signAlert: 'Please sign the quote before approval', signHeading: 'Client Signature to Approve This Quote:', signedBy: 'Signed by:', isHebrew: false };
@@ -249,8 +249,8 @@ describe('the signed record and the acceptance window follow the account market 
       const { container } = mount(L);
       typeName(L, 'Dana Levi'); sign(container, L); clickApprove(L);
       await waitFor(() => expect(screen.getByText(new RegExp(L.signedBy))).toBeInTheDocument());
-      expect(document.body.textContent).toContain('13/10/2026'); // Owner 2026-11-11: day first in both markets
-      expect(document.body.textContent).not.toContain('10/13/2026');
+      expect(document.body.textContent).toContain(L === HE ? '13/10/2026' : '10/13/2026');
+      expect(document.body.textContent).not.toContain(L === HE ? '10/13/2026' : '13/10/2026');
       cleanup();
     }
   });

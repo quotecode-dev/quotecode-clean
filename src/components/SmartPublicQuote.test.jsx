@@ -121,10 +121,9 @@ describe('SmartPublicQuote - Task 16 presentation wiring', () => {
     invokeMock.mockResolvedValue({ data: null, error: { context: { status: 404 } } });
     fetchPresentationMock.mockResolvedValue({ ok: false, code: 'not_found' });
     renderAt();
-    // Owner 2026-11-11 (finding 27, typed L-04): a link without a prefix shows both languages, Hebrew first
+    // Owner package A 2026-10-14: one language (the page's own) - Hebrew unless <html lang="en">
     await waitFor(() => expect(screen.getByTestId('public-quote-not-found')).toBeInTheDocument());
     expect(screen.getByText('לא הצלחנו לפתוח את הצעת המחיר')).toBeInTheDocument();
-    expect(screen.getByText('We could not open this quote')).toBeInTheDocument();
     expect(screen.queryByText(/Quote not found/)).toBeNull();
   });
 });

@@ -6,10 +6,6 @@ import PublicQuoteEn from '../pages/PublicQuoteEn';
 import { fetchPublicPresentation } from '../utils/quotePresentationClient';
 import { scheduleFirstViewRecord } from '../utils/firstView';
 import { isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
-import { setInternationalDateOrder } from '../utils/shortDate';
-
-// Owner 2026-11-11 (IRON-DATE-001 as amended): the dates of the customer page follow the business that sent it (the server says only the order)
-const applyDateOrder = (dto) => { if (dto && (dto.dateOrder === 'MDY' || dto.dateOrder === 'DMY')) setInternationalDateOrder(dto.dateOrder); };
 
 // Task 16 - Quote Experience V2: the presentation (style / frozen branding / media, CONTRACT §3 public_get) is
 // requested IN PARALLEL with get-public-quote and is strictly optional: any failure, timeout or malformed payload
@@ -102,7 +98,7 @@ export default function SmartPublicQuote() {
 
       // Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #23: the quote shows at once again (the style still applies the moment it arrives - setPresentation above)
       if (processedIdRef.current !== id) return;
-      applyDateOrder(data); setState({ status: 'ready', dto: data });
+      setState({ status: 'ready', dto: data });
 
       // Fire-and-forget: ה-RPC עצמו כבר לא סופר צפיות של הבעלים
       // (auth.uid() = quotes.user_id) - נבדק ואומת ב-Phase 2. אין צורך
@@ -128,7 +124,7 @@ export default function SmartPublicQuote() {
     if (processedIdRef.current !== key) return;
     if (error) { if (error?.context?.status === 404) setState({ status: 'notfound', dto: null }); return; }
     if (!data || !data.quote) return;
-    applyDateOrder(data); setState({ status: 'ready', dto: data });
+    setState({ status: 'ready', dto: data });
     if (data.thanks) setThanks(data.thanks);
     if (notice) setUpdatedTick((n) => n + 1);
     loadPresentation(capabilityToken ? null : key, capabilityToken).then((p) => { if (processedIdRef.current === key && p) setPresentation(p); });
@@ -209,30 +205,14 @@ export default function SmartPublicQuote() {
   }
 
   if (state.status !== 'ready') {
-    // Owner P0 (Task 38 finding): readable contrast on every page background (the text was black on a near-black page, 1.03:1).
-    // Owner 2026-11-11 (finding 27, typed L-04): the page speaks the language of the business that sent the link. A link under /en/ is
-    // an International business's link -> English. Any other link cannot tell (an Israeli business's links have no prefix, and old
-    // International id links open without one too) -> both languages, Hebrew first. Nothing is asked from the server (a 404 must never
-    // reveal whether a link exists).
-    const enOnly = typeof window !== 'undefined' && /^\/en\//.test(window.location.pathname || '');
-    const he = (
-      <div key="he" dir="rtl" lang="he" data-testid="public-quote-not-found-he" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-        <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#10252b' }}>{/* Owner console 2026-11-02 (typed: "מאשר שינוי ב-L-04: הודעת קישור שלא נפתח בלי המילה תוקף, שחרור עד הלייב"): a link that did not open never blames a validity date */}
-          לא הצלחנו לפתוח את הצעת המחיר</h1>
-        <p style={{ margin: 0, fontSize: '1rem', color: '#3c4a52', maxWidth: '34rem', lineHeight: 1.5 }}>אפשר לבקש מהעסק ששלח אותה קישור עדכני.</p>
-      </div>
-    );
-    const en = (
-      <div key="en" dir="ltr" lang="en" data-testid="public-quote-not-found-en" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-        {enOnly
-          ? <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#10252b' }}>We could not open this quote</h1>
-          : <h2 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#10252b' }}>We could not open this quote</h2>}
-        <p style={{ margin: 0, fontSize: '1rem', color: '#3c4a52', maxWidth: '34rem', lineHeight: 1.5 }}>Please ask the business that sent it for an up-to-date link.</p>
-      </div>
-    );
+    // Owner P0 (Task 38 finding): readable contrast on every page background (the text was black on a near-black page, 1.03:1)
+    // and ONE language - the page's own (main.jsx sets <html lang> from the bundle), never both at once.
+    const en = typeof document !== 'undefined' && document.documentElement.lang === 'en';
     return (
-      <div data-testid="public-quote-not-found" dir={enOnly ? 'ltr' : 'rtl'} lang={enOnly ? 'en' : 'he'} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box', background: '#f7f8f6', color: '#10252b', fontFamily: 'Rubik, Segoe UI, Arial, Tahoma, sans-serif', textAlign: 'center', padding: '24px', gap: '28px' }}>
-        {enOnly ? en : [he, en]}
+      <div data-testid="public-quote-not-found" dir={en ? 'ltr' : 'rtl'} lang={en ? 'en' : 'he'} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box', background: '#f7f8f6', color: '#10252b', fontFamily: 'Rubik, Segoe UI, Arial, Tahoma, sans-serif', textAlign: 'center', padding: '24px', gap: '10px' }}>
+        <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#10252b' }}>{/* Owner console 2026-11-02 (typed: "מאשר שינוי ב-L-04: הודעת קישור שלא נפתח בלי המילה תוקף, שחרור עד הלייב"): a link that did not open never blames a validity date */}
+          {en ? 'We could not open this quote' : 'לא הצלחנו לפתוח את הצעת המחיר'}</h1>
+        <p style={{ margin: 0, fontSize: '1rem', color: '#3c4a52', maxWidth: '34rem', lineHeight: 1.5 }}>{en ? 'Please ask the business that sent it for an up-to-date link.' : 'אפשר לבקש מהעסק ששלח אותה קישור עדכני.'}</p>
       </div>
     );
   }
@@ -252,7 +232,7 @@ export default function SmartPublicQuote() {
     );
   }
   // the finalized snapshot (enforced phase, owner final PDF/Print) replaces the live view before capture/print
-  const handleFinalSnapshot = (dto) => { applyDateOrder(dto); setState({ status: 'ready', dto }); };
+  const handleFinalSnapshot = (dto) => setState({ status: 'ready', dto });
 
   return isLocalQuote
     ? <PublicQuote quoteData={state.dto} presentation={presentation} onApproved={handleApproved} onFinalSnapshot={handleFinalSnapshot} capabilityToken={capabilityToken} thanks={thanks} onQuoteChanged={() => reloadQuote({ notice: true })} updatedTick={updatedTick} />

@@ -179,7 +179,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   const business = (a) => (
     <div className="av-business">
       <span className="av-nameline">
-        <strong><bdi dir={isHebrew ? 'rtl' : 'ltr'}>{a.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</bdi></strong>
+        <strong><bdi>{a.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</bdi></strong>
         {a.role === 'admin' && <span className="av-badge av-admin">{t(isHebrew, C.adminBadge.he, C.adminBadge.en)}</span>}
         {a.is_test === true && <span className="av-badge av-warn" data-testid={`admin-row-test-${a.id}`}>{t(isHebrew, C.testBadge.he, C.testBadge.en)}</span>}
       </span>

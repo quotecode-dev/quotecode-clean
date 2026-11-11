@@ -152,9 +152,8 @@ describe('approved quotes workspace (source guards)', () => {
     expect(rule(block, '.quote-modern-head-row')).toMatch(/grid-template-columns: var\(--qm-cols\);/);
     expect(rule(block, '.quote-modern-row')).toMatch(/grid-template-columns: var\(--qm-cols\);/);
     // Owner R5: the leading 30px hold the row-edge dropdown trigger (the header strip reserves the same spacing)
-    // Owner 2026-11-11 (finding 4, typed L-07 / L-19 / L-29): + 64px at the trailing edge of both for the row's Send (outside every track)
-    expect(rule(block, '.quote-modern-row')).toMatch(/padding-inline: 30px 80px;/);
-    expect(rule(block, '.quote-modern-head-row')).toMatch(/padding-inline: 24px 70px;/);
+    expect(rule(block, '.quote-modern-row')).toMatch(/padding-inline: 30px 16px;/);
+    expect(rule(block, '.quote-modern-head-row')).toMatch(/padding-inline: 24px 6px;/);
     expect(rule(block, '.quote-modern-item')).toMatch(/border-inline-start: 4px solid transparent;/);
     expect(rule(block, '.quote-modern-item.is-hot')).toMatch(/#f66a25/);
   });

@@ -17,7 +17,7 @@ describe('the words of every billing email', () => {
     expect(billingContent(IL('renewal_resumed', { amountMinor: 4000, period: 'month', firstChargeAt: AT, smartPack: true }))!.text).toContain('₪40.00 בתאריך 25/11/2026, ואחר כך בכל חודש, כולל חכם פלוס.');
     expect(billingContent(IL('renewal_resumed', { amountMinor: 3000, period: 'month', firstChargeAt: AT, smartPack: false, smartPackUntil: AT }))!.text).toContain('חכם פלוס נשאר פעיל עד 25/11/2026, ולא יתחדש.');
     const en = billingContent(EN('renewal_resumed', { amountMinor: 1800, period: 'year', firstChargeAt: AT, smartPack: false }))!;
-    expect(en.text).toContain('Your next charge: $18.00 on 25/11/2026, then every year.');
+    expect(en.text).toContain('Your next charge: $18.00 on 11/25/2026, then every year.');
   });
   it('SMART PACK added, stopped renewal, early end, SMART PACK removed, annual reminder, first purchase', () => {
     expect(billingContent(IL('smart_pack_added', { amountMinor: 700, period: 'month', periodEnd: AT, totalMinor: 4000 }))!.text).toContain('שולם היום ₪7.00, על הימים עד 25/11/2026.');
@@ -26,7 +26,7 @@ describe('the words of every billing email', () => {
     expect(early).toContain('החזר של ₪13.50 יועבר לכרטיס שבו שילמתם, לפי סעיף 6 בתנאי השימוש.');
     expect(billingContent(IL('ended_early', { effectiveEnd: AT, refundMinor: 0 }))!.text).not.toContain('החזר');
     expect(billingContent(IL('smart_pack_removed', { effectiveAt: AT, refundMinor: 0, period: 'month' }))!.text).toContain('חכם פלוס פעיל עד 25/11/2026 ולא יתחדש.');
-    expect(billingContent(EN('annual_reminder', { amountMinor: 18400, renewsAt: AT }))!.text).toContain('On 25/11/2026 the annual renewal of your TEKANGO subscription will be charged: $184.00.');
+    expect(billingContent(EN('annual_reminder', { amountMinor: 18400, renewsAt: AT }))!.text).toContain('On 11/25/2026 the annual renewal of your TEKANGO subscription will be charged: $184.00.');
     expect(billingContent(IL('first_purchase', { amountMinor: 30600, period: 'year', paidThrough: AT, smartPack: false }))!.text).toContain('תודה! המנוי השנתי שלכם ב-TEKANGO פעיל.');
   });
   it('never an email with a hole, never "free", always the sign-off', () => {
@@ -56,16 +56,5 @@ describe('the run', () => {
     expect(claim).toHaveBeenCalledWith('u1', 'renewal_stopped', AT, 0, 'customer-notice/x');
     expect(send.mock.calls[0][0]).toMatchObject({ to: 'a@x.test', subject: 'החידוש האוטומטי של המנוי הופסק', from: 'TEKANGO Support <support@tekango.com>' });
     expect(complete).toHaveBeenCalledWith('u1', 'renewal_stopped', AT, 0, 'key-1', 'sent', 'm1');
-  });
-});
-
-// Owner 2026-11-11 (IRON-DATE-001 as amended): a business in the United States reads its email dates month first
-describe('a US business reads its billing dates month first', () => {
-  it('date_market US -> MM/DD/YYYY; any other business abroad -> DD/MM/YYYY', () => {
-    const AT_US = '2026-11-25T10:00:00Z';
-    const us = billingContent({ ...EN('annual_reminder', { amountMinor: 18400, renewsAt: AT_US }), date_market: 'US' })!;
-    expect(us.text).toContain('On 11/25/2026 the annual');
-    const other = billingContent(EN('annual_reminder', { amountMinor: 18400, renewsAt: AT_US }))!;
-    expect(other.text).toContain('On 25/11/2026 the annual');
   });
 });

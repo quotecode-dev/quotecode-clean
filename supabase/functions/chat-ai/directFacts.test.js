@@ -66,13 +66,10 @@ describe('resolveDirectFact', () => {
     expect(resolveDirectFact('quote_number', ctx, true)).toEqual({ kind: 'quote_number', value: '101041', isDraft: false });
   });
 
-  // Owner 2026-11-11 (IRON-DATE-001 as amended): Israel and every business abroad read day first; a US business month first
-  it('resolves creation_date formatted per the business country', () => {
+  it('resolves creation_date formatted per locale', () => {
     const he = resolveDirectFact('creation_date', ctx, true);
     const en = resolveDirectFact('creation_date', ctx, false);
-    const us = resolveDirectFact('creation_date', ctx, false, 'US');
-    expect(he.value).toBe(en.value);
-    expect(us.value).not.toBe(en.value);
+    expect(he.value).not.toBe(en.value);
     expect(he.kind).toBe('creation_date');
   });
 
@@ -80,14 +77,12 @@ describe('resolveDirectFact', () => {
     expect(resolveDirectFact('validity_date', ctx, true).kind).toBe('validity_date');
   });
 
-  it('IRON-DATE-001: date facts use the ONE primitive - Local and International 13/09/2026, a US business 09/13/2026, no zone shift', () => {
+  it('IRON-DATE-001: date facts use the ONE primitive - Local 13/09/2026, International 09/13/2026, no zone shift', () => {
     const q = sanitizeQuoteContext({ ...BASE_ROW, valid_until: '2026-09-13', created_at: '2026-09-13T09:00:00Z' });
     expect(resolveDirectFact('validity_date', q, true).value).toBe('13/09/2026');
-    expect(resolveDirectFact('validity_date', q, false).value).toBe('13/09/2026');
-    expect(resolveDirectFact('validity_date', q, false, 'US').value).toBe('09/13/2026');
+    expect(resolveDirectFact('validity_date', q, false).value).toBe('09/13/2026');
     expect(resolveDirectFact('creation_date', q, true).value).toBe('13/09/2026');
-    expect(resolveDirectFact('creation_date', q, false).value).toBe('13/09/2026');
-    expect(resolveDirectFact('creation_date', q, false, 'US').value).toBe('09/13/2026');
+    expect(resolveDirectFact('creation_date', q, false).value).toBe('09/13/2026');
   });
 
   it('resolves item_count as the real item array length', () => {

@@ -12,7 +12,5 @@ export function settingsFormDirty(form, saved, { isLocalIsraeliBusiness = false 
     || s(form.logo) !== s(saved.logo) || s(form.email) !== s(saved.email)
     || s(form.terms) !== s(saved.terms) || s(form.warranty) !== s(saved.warranty)
     || (!isLocalIsraeliBusiness && !!saved.currency && s(form.currency) !== s(saved.currency))
-    || s(form.domain) !== s(saved.domain)
-    // Owner 2026-11-11 (IRON-DATE-001 as amended): a business abroad chooses its country (it decides the date order)
-    || (!isLocalIsraeliBusiness && form.country !== undefined && s(form.country) !== s(saved.countryCode));
+    || s(form.domain) !== s(saved.domain);
 }

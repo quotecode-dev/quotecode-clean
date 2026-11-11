@@ -22,6 +22,6 @@ describe('admin dates (IRON-DATE-001 admin amendment)', () => {
     expect(accountDateTime('not a date', intl)).toBe('—');
   });
   it("the user's own International format is unchanged outside the admin", () => {
-    expect(formatShortDate('2026-09-01T10:00:00Z', 'International')).toBe('01/09/2026');
+    expect(formatShortDate('2026-09-01T10:00:00Z', 'International')).toBe('09/01/2026');
   });
 });

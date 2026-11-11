@@ -182,7 +182,6 @@ describe('canonicalMarket - one market rule for the language, the currency and t
     // + Codex LANG-01 (2026-10-18): an unknown stored country is International everywhere (never USD with a hidden 18%)
     expect(dash).toContain("const countryVal = canonicalMarket(data.country) || 'International';");
     // a save never rewrites the stored country while its market is unchanged (a stored 'Germany' or unknown 'ZZ' stays as stored)
-    // Owner 2026-11-11 (IRON-DATE-001 as amended): a business abroad that chose its country stores its code; otherwise the same rule
-    expect(dash).toContain(": (storedCountryRef.current && (canonicalMarket(storedCountryRef.current) || 'International') === bizCountry ? storedCountryRef.current : bizCountry),");
+    expect(dash).toContain("country: storedCountryRef.current && (canonicalMarket(storedCountryRef.current) || 'International') === bizCountry ? storedCountryRef.current : bizCountry,");
   });
 });

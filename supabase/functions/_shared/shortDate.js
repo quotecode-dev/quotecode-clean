@@ -1,13 +1,9 @@
 // IRON-DATE-001 - THE ONE product-owned short-date primitive (frontend + Edge Functions import this exact file).
 //
-// Contract (Owner rule; Owner console 2026-11-11, typed: "מאשר שינוי בחוק IRON-DATE-001: עסק שהמדינה שלו ארה"ב רואה חודש/יום/שנה; כל
-// עסק אחר, בישראל ובשאר העולם, רואה יום/חודש/שנה."):
-//   a business whose country is the United States ('US')  -> MM/DD/YYYY   (2026-09-13 -> 09/13/2026)
-//   every other business (Israel and the rest of the world) -> DD/MM/YYYY (2026-09-13 -> 13/09/2026); no country yet -> DD/MM/YYYY
-// The ACCOUNT (its stored country) alone decides the order. Currency, browser locale, OS locale and the UI language toggle never do.
-// Markets: 'Local' (Israel: DD/MM, Israel time), 'International' (DD/MM, UTC / the device), 'US' (MM/DD, UTC / the device). On a user's
-// screen the app sets the order of 'International' once from the account's country (setInternationalDateOrder), so every existing
-// 'International' caller shows a US account MM/DD; a server output with no screen passes 'US' itself.
+// Contract (Owner rule):
+//   Local / Hebrew market          -> DD/MM/YYYY   (2026-09-13 -> 13/09/2026)
+//   International / English market -> MM/DD/YYYY   (2026-09-13 -> 09/13/2026)
+// The ACCOUNT MARKET alone decides the order. Currency, browser locale, OS locale and the UI language toggle never do.
 //
 // Calendar rule:
 //   - A date-only value ('YYYY-MM-DD', e.g. quotes.valid_until) is a calendar date: rendered as-is, never shifted by a time zone.
@@ -22,26 +18,6 @@
 
 export const SHORT_DATE_TIME_ZONE = Object.freeze({ Local: 'Asia/Jerusalem', International: 'UTC' });
 
-// Owner 2026-11-11 (IRON-DATE-001 as amended): is this stored country the United States? (a code, or the name as the admin list writes it)
-export function isUsCountry(country) {
-  const c = typeof country === 'string' ? country.trim().toLowerCase() : '';
-  return c === 'us' || c === 'usa' || c === 'united states' || c === 'united states of america';
-}
-// The date market of an account: Israel -> 'Local'; the United States -> 'US'; every other country (or none yet) -> 'International'
-export function dateMarketForAccount({ isLocal, country }) {
-  if (isLocal === true) return 'Local';
-  return isUsCountry(country) ? 'US' : 'International';
-}
-// The order 'International' is shown in on THIS screen (browser only; a server never sets it): 'DMY' (default) or 'MDY' (a US account)
-let internationalOrder = 'DMY';
-export function setInternationalDateOrder(order) { internationalOrder = order === 'MDY' ? 'MDY' : 'DMY'; }
-export function internationalDateOrder() { return internationalOrder; }
-// true when this market shows (and a typed date is read as) month first
-export function isMonthFirst(market) {
-  const resolved = resolveDateMarket(market);
-  return resolved === 'US' || (resolved === 'International' && internationalOrder === 'MDY');
-}
-
 // The zone a timestamp of this market is shown in: Local -> Israel on every screen; International -> the device on a screen, UTC on the server.
 export function marketTimeZone(market) {
   if (resolveDateMarket(market) === 'Local') return SHORT_DATE_TIME_ZONE.Local;
@@ -53,7 +29,6 @@ export function marketTimeZone(market) {
 // account market (e.g. the authenticated app's isHebrew = isHebrewEnv(stored country)); callers must never pass a language toggle.
 export function resolveDateMarket(market) {
   if (market === true || market === 'Local' || market === 'LCL') return 'Local';
-  if (market === 'US') return 'US';
   return 'International';
 }
 
@@ -94,7 +69,7 @@ export function calendarParts(value, market) {
 export function formatShortDate(value, market) {
   const p = calendarParts(value, market);
   if (!p) return value === null || value === undefined ? '' : String(value);
-  return isMonthFirst(market) ? `${p.m}/${p.d}/${p.y}` : `${p.d}/${p.m}/${p.y}`;
+  return resolveDateMarket(market) === 'Local' ? `${p.d}/${p.m}/${p.y}` : `${p.m}/${p.d}/${p.y}`;
 }
 
 // Short date + 24h HH:mm, both in the market's product time zone (Admin/audit timestamps). Date-only input -> date only.

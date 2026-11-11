@@ -60,9 +60,9 @@ describe('shared formatter', () => {
 describe('manual email intro (send-quote-email, server-derived values)', () => {
   const base = { bizTitle: 'Synthetic Biz', vars: { customer: 'Dana', business: 'Synthetic Biz', number: 'A12002', total: '₪1,180.00' } };
   it('no owner text -> the built-in sentence, byte-identical (HE and EN)', () => {
-    expect(emailIntroHtml({ ...base, shareText: null, hebrew: true })).toBe('הצעת המחיר מאת <strong>Synthetic Biz</strong> ממתינה לכם בקישור שלמטה.');
-    expect(emailIntroHtml({ ...base, shareText: '   ', hebrew: false })).toBe('Your quote from <strong>Synthetic Biz</strong> is waiting for you at the link below.');
-    expect(emailIntroHtml({ ...base, shareText: 42, hebrew: false })).toBe('Your quote from <strong>Synthetic Biz</strong> is waiting for you at the link below.');
+    expect(emailIntroHtml({ ...base, shareText: null, hebrew: true })).toBe('מצורפת הצעת המחיר מאת <strong>Synthetic Biz</strong>.');
+    expect(emailIntroHtml({ ...base, shareText: '   ', hebrew: false })).toBe('Please find your quote attached from <strong>Synthetic Biz</strong>.');
+    expect(emailIntroHtml({ ...base, shareText: 42, hebrew: false })).toBe('Please find your quote attached from <strong>Synthetic Biz</strong>.');
   });
   it('owner text -> escaped HTML with server values; no link inside (the button stays the only link)', () => {
     const html = emailIntroHtml({ ...base, shareText: 'שלום {customer} <a href="https://evil.test">x</a> {number}', hebrew: true });

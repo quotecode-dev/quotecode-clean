@@ -29,8 +29,8 @@ describe('the robot check (Cloudflare Turnstile)', () => {
     const err = { message: 'captcha protection: request disallowed (captcha verification process failed)', code: 'captcha_failed' };
     expect(isCaptchaError(err)).toBe(true);
     expect(isCaptchaError({ message: 'Invalid login credentials' })).toBe(false);
-    expect(normalizeAuthError(err, true)).toEqual({ category: 'captcha_failed', message: 'בדיקת האבטחה לא הושלמה. נסו שוב בעוד רגע, ואם מופיעה תיבת בדיקה - סמנו אותה.' });
-    expect(normalizeAuthError(err, false).message).toBe('The security check did not complete. Try again in a moment, and if a check box appears, tick it.');
+    expect(normalizeAuthError(err, true)).toEqual({ category: 'captcha_failed', message: 'בדיקת האבטחה לא הושלמה. המתינו לסימון שהבדיקה עברה, ונסו שוב.' });
+    expect(normalizeAuthError(err, false).message).toBe('The security check did not complete. Wait until the check shows it passed, then try again.');
   });
   it('the login / signup form and the reset form each carry the check; the three Auth calls send the token', () => {
     vi.stubGlobal('scrollTo', () => {});

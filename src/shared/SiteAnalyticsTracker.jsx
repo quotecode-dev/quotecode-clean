@@ -10,7 +10,7 @@ import { CONSENT_EVENT, CONSENT_KEY, applyWithdrawal, consentRequired, inConsent
 
 const BUTTON = {
   background: 'transparent', color: '#f8fafc', border: '1px solid rgba(255,255,255,0.35)', borderRadius: '8px',
-  padding: '6px 14px', fontSize: '0.84rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', minHeight: '44px', minWidth: '84px',
+  padding: '8px 18px', fontSize: '0.88rem', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', minHeight: '44px', minWidth: '96px',
 };
 
 const COPY = {
@@ -74,19 +74,17 @@ export default function SiteAnalytics({ isHebrew, hostname = typeof window !== '
 
   return (
     <div role="region" aria-label={c.region} data-testid="analytics-consent-banner" dir={hebrewPage ? 'rtl' : 'ltr'}
-      // Owner 2026-11-11 (finding 33, typed L-12): low and compact - text and buttons share one row where they fit, so the notice never
-      // covers the sign-up button or the free terms on a phone / tablet
-      style={{ position: 'fixed', left: '8px', right: '8px', bottom: '8px', maxWidth: '640px', margin: '0 auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px',
+      style={{ position: 'fixed', left: '12px', right: '12px', bottom: '12px', maxWidth: '560px', margin: '0 auto',
         // above the chat button (z-index 999999) and the update banner until the visitor chooses
         zIndex: 1000000,
-        background: '#111827', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '12px', padding: '8px 12px',
-        boxShadow: '0 12px 32px rgba(0,0,0,0.45)', fontFamily: "'Rubik', Arial, sans-serif", fontSize: '0.8rem', boxSizing: 'border-box', textAlign: 'start' }}>
-      <p style={{ margin: 0, lineHeight: 1.4, flex: '1 1 260px', minWidth: 0 }}>
+        background: '#111827', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '12px', padding: '14px 16px',
+        boxShadow: '0 12px 32px rgba(0,0,0,0.45)', fontFamily: "'Rubik', Arial, sans-serif", fontSize: '0.88rem', boxSizing: 'border-box', textAlign: 'start' }}>
+      <p style={{ margin: '0 0 12px', lineHeight: 1.55 }}>
         {c.text}{' '}
         {/* PRODUCT_TRUTH_DECORATIVE: opens the Privacy Policy section on cookies (no state change) */}
         <a href={c.privacyHref} style={{ color: '#5eead4', fontWeight: 600 }}>{c.privacy}</a>
       </p>
-      <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end', flexWrap: 'nowrap', marginInlineStart: 'auto' }}>
+      <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
         {/* PRODUCT_TRUTH_DECORATIVE: stores "declined" in this browser - no measurement cookies are set */}
         <button type="button" data-testid="analytics-consent-decline" style={BUTTON} onClick={() => writeConsent('denied')}>{c.decline}</button>
         {/* PRODUCT_TRUTH_DECORATIVE: stores "accepted" in this browser - Google Analytics may then measure the public pages */}

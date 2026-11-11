@@ -14,50 +14,50 @@ describe('IRON-DATE-001 short-date primitive', () => {
   it('the amended law: on a screen abroad the device clock decides; Israel never moves; no device = UTC', () => {
     vi.restoreAllMocks();
     vi.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockReturnValue({ timeZone: 'America/Los_Angeles' });
-    expect(formatShortDateTime('2026-09-14T05:00:00Z', 'International')).toBe('13/09/2026 22:00');
-    expect(formatShortDate('2026-09-14T05:00:00Z', 'International')).toBe('13/09/2026');
+    expect(formatShortDateTime('2026-09-14T05:00:00Z', 'International')).toBe('09/13/2026 22:00');
+    expect(formatShortDate('2026-09-14T05:00:00Z', 'International')).toBe('09/13/2026');
     expect(formatShortDateTime('2026-09-14T05:00:00Z', 'Local')).toBe('14/09/2026 08:00');
-    expect(formatShortDate('2026-09-13', 'International')).toBe('13/09/2026');
+    expect(formatShortDate('2026-09-13', 'International')).toBe('09/13/2026');
     vi.stubGlobal('window', undefined);
-    expect(formatShortDateTime('2026-09-14T05:00:00Z', 'International')).toBe('14/09/2026 05:00');
+    expect(formatShortDateTime('2026-09-14T05:00:00Z', 'International')).toBe('09/14/2026 05:00');
     vi.unstubAllGlobals();
   });
-  it('renders the Owner fixture: Local and International 13/09/2026 (Owner 2026-11-11), a US business 09/13/2026', () => {
+  it('renders the Owner fixture by market: Local 13/09/2026, International 09/13/2026', () => {
     expect(formatShortDate('2026-09-13', 'Local')).toBe('13/09/2026');
-    expect(formatShortDate('2026-09-13', 'International')).toBe('13/09/2026');
+    expect(formatShortDate('2026-09-13', 'International')).toBe('09/13/2026');
     expect(formatShortDate('2026-09-13', 'LCL')).toBe('13/09/2026');
     expect(formatShortDate('2026-09-13', true)).toBe('13/09/2026');
-    expect(formatShortDate('2026-09-13', false)).toBe('13/09/2026');
+    expect(formatShortDate('2026-09-13', false)).toBe('09/13/2026');
   });
 
-  it('has no currency input at all - every International currency gets the same DD/MM/YYYY order', () => {
+  it('has no currency input at all - every International currency gets the same MM/DD/YYYY order', () => {
     expect(formatShortDate.length).toBe(2);
-    for (const junk of ['USD', 'EUR', 'GBP', 'ILS', 'he', 'en-GB']) expect(formatShortDate('2026-09-13', junk)).toBe('13/09/2026');
+    for (const junk of ['USD', 'EUR', 'GBP', 'ILS', 'he', 'en-GB']) expect(formatShortDate('2026-09-13', junk)).toBe('09/13/2026');
   });
 
   it('treats a date-only value as a calendar date (never shifted by a time zone)', () => {
     expect(calendarParts('2026-09-13', 'International')).toEqual({ y: '2026', m: '09', d: '13' });
     expect(formatShortDate('2026-01-01', 'Local')).toBe('01/01/2026');
-    expect(formatShortDate('2026-12-31', 'International')).toBe('31/12/2026');
+    expect(formatShortDate('2026-12-31', 'International')).toBe('12/31/2026');
   });
 
   it('converts timestamps in the market product time zone (Local Asia/Jerusalem, International UTC)', () => {
     expect(SHORT_DATE_TIME_ZONE).toEqual({ Local: 'Asia/Jerusalem', International: 'UTC' });
     // 22:30Z on the 12th is already the 13th in Jerusalem (UTC+3 in September) but still the 12th in UTC.
     expect(formatShortDate('2026-09-12T22:30:00Z', 'Local')).toBe('13/09/2026');
-    expect(formatShortDate('2026-09-12T22:30:00Z', 'International')).toBe('12/09/2026');
+    expect(formatShortDate('2026-09-12T22:30:00Z', 'International')).toBe('09/12/2026');
     expect(formatShortDate('2026-09-13T09:00:00+00:00', 'Local')).toBe('13/09/2026');
-    expect(formatShortDate(new Date('2026-09-13T09:00:00Z'), 'International')).toBe('13/09/2026');
-    expect(formatShortDate(Date.UTC(2026, 8, 13, 9), 'International')).toBe('13/09/2026');
+    expect(formatShortDate(new Date('2026-09-13T09:00:00Z'), 'International')).toBe('09/13/2026');
+    expect(formatShortDate(Date.UTC(2026, 8, 13, 9), 'International')).toBe('09/13/2026');
     // zone-less timestamp strings are UTC, never browser-local
-    expect(formatShortDate('2026-09-12T22:30:00', 'International')).toBe('12/09/2026');
+    expect(formatShortDate('2026-09-12T22:30:00', 'International')).toBe('09/12/2026');
     expect(formatShortDate('2026-09-12 22:30:00', 'Local')).toBe('13/09/2026');
   });
 
   it('formats date-times in the same zone with 24h time', () => {
     expect(formatShortDateTime('2026-09-13T09:05:00Z', 'Local')).toBe('13/09/2026 12:05');
-    expect(formatShortDateTime('2026-09-13T21:05:00Z', 'International')).toBe('13/09/2026 21:05');
-    expect(formatShortDateTime('2026-09-13', 'International')).toBe('13/09/2026');
+    expect(formatShortDateTime('2026-09-13T21:05:00Z', 'International')).toBe('09/13/2026 21:05');
+    expect(formatShortDateTime('2026-09-13', 'International')).toBe('09/13/2026');
   });
 
   it('never fabricates: empty -> "", unparseable -> unchanged', () => {
@@ -72,7 +72,7 @@ describe('IRON-DATE-001 short-date primitive', () => {
     const d = new Date(2026, 8, 13, 7, 4);
     expect(deviceCalendarDate(d)).toBe('2026-09-13');
     expect(formatDeviceShortDateTime(d, 'Local')).toBe('13/09/2026 07:04');
-    expect(formatDeviceShortDateTime(d, 'International')).toBe('13/09/2026 07:04');
+    expect(formatDeviceShortDateTime(d, 'International')).toBe('09/13/2026 07:04');
     expect(formatDeviceShortDateTime('garbage', 'Local')).toBe('');
   });
 
@@ -87,7 +87,7 @@ describe('IRON-DATE-001 short-date primitive', () => {
     const script = `import('file:///${mod.replace(/^\//, '')}').then(m=>console.log(JSON.stringify([m.formatShortDate('2026-09-13','Local'),m.formatShortDate('2026-09-13','International'),m.formatShortDate('2026-09-13T09:00:00Z','Local'),m.formatShortDate('2026-09-13T09:00:00Z','International')])))`;
     const outs = [['America/Los_Angeles', 'en-US'], ['Pacific/Kiritimati', 'he-IL'], ['Asia/Jerusalem', 'en-GB']].map(([TZ, LANG]) =>
       execFileSync(process.execPath, ['--input-type=module', '-e', script], { env: { ...process.env, TZ, LANG, LC_ALL: LANG }, encoding: 'utf8' }).trim());
-    for (const o of outs) expect(JSON.parse(o)).toEqual(['13/09/2026', '13/09/2026', '13/09/2026', '13/09/2026']); // Owner 2026-11-11: every non-US business is DD/MM
+    for (const o of outs) expect(JSON.parse(o)).toEqual(['13/09/2026', '09/13/2026', '13/09/2026', '09/13/2026']);
   });
 });
 
@@ -124,33 +124,5 @@ describe('IRON-DATE-001 ownership guard', () => {
   it('chat-ai directFacts and the app load the SAME primitive file', () => {
     expect(readFileSync(path.join(ROOT, 'supabase/functions/chat-ai/directFacts.ts'), 'utf8')).toMatch(/from "\.\.\/_shared\/shortDate\.js"/);
     expect(readFileSync(path.join(ROOT, 'src/utils/shortDate.js'), 'utf8')).toMatch(/from '\.\.\/\.\.\/supabase\/functions\/_shared\/shortDate\.js'/);
-  });
-});
-
-// Owner console 2026-11-11 (typed): "מאשר שינוי בחוק IRON-DATE-001: עסק שהמדינה שלו ארה"ב רואה חודש/יום/שנה; כל עסק אחר, בישראל ובשאר
-// העולם, רואה יום/חודש/שנה."
-import { isUsCountry, dateMarketForAccount, setInternationalDateOrder, isMonthFirst } from './shortDate';
-describe('IRON-DATE-001 as amended 2026-11-11: the business country decides', () => {
-  it('a US business sees MM/DD/YYYY; every other business DD/MM/YYYY; no country yet = DD/MM/YYYY', () => {
-    expect(formatShortDate('2026-09-13', 'US')).toBe('09/13/2026');
-    expect(formatShortDate('2026-09-13', 'International')).toBe('13/09/2026');
-    expect(formatShortDate('2026-09-13', 'Local')).toBe('13/09/2026');
-    expect(dateMarketForAccount({ isLocal: true, country: 'Local' })).toBe('Local');
-    expect(dateMarketForAccount({ isLocal: false, country: 'US' })).toBe('US');
-    expect(dateMarketForAccount({ isLocal: false, country: 'United States of America' })).toBe('US');
-    expect(dateMarketForAccount({ isLocal: false, country: 'CA' })).toBe('International');
-    expect(dateMarketForAccount({ isLocal: false, country: 'International' })).toBe('International');
-    expect(isUsCountry('usa')).toBe(true);
-    expect(isUsCountry('GB')).toBe(false);
-  });
-  it('the screen of a US account shows every International date month first; the setting never touches Local', () => {
-    setInternationalDateOrder('MDY');
-    try {
-      expect(formatShortDate('2026-09-13', 'International')).toBe('09/13/2026');
-      expect(formatShortDate('2026-09-13', 'Local')).toBe('13/09/2026');
-      expect(isMonthFirst('International')).toBe(true);
-    } finally { setInternationalDateOrder('DMY'); }
-    expect(formatShortDate('2026-09-13', 'International')).toBe('13/09/2026');
-    expect(isMonthFirst('US')).toBe(true);
   });
 });

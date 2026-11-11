@@ -259,33 +259,3 @@ describe('ai-quote-draft Edge Function source guards', () => {
     expect(src).not.toMatch(/body\.(isHebrew|language|market|userId)/);
   });
 });
-
-// Owner 2026-11-11 (finding 3, option ב): a price the user wrote goes to its line ("from your description"); a written quantity is kept
-import { parseDraftModelOutput as parseOwnerPrices, extractMeasures as measuresOf } from './aiQuoteDraft.js';
-describe('prices written in the description (Owner 2026-11-11)', () => {
-  const text = 'התקנת 3 מזגנים 2500 כל אחד, ריצוף 40 מ"ר ב-120 למטר, פירוק ריצוף קיים';
-  const item = (o) => ({ derivation: null, missing: null, catalogId: null, ...o });
-  const raw = { subject: 'עבודות', questions: [], changes: { updates: [], deletes: [], notes: { action: 'none', text: '' }, discountPercent: null }, items: [
-    item({ description: 'התקנת מזגנים', evidence: 'התקנת 3 מזגנים 2500 כל אחד', quantity: 3, unit: 'unit', quantityBasis: 'stated' }),
-    item({ description: 'ריצוף', evidence: 'ריצוף 40 מ"ר ב-120 למטר', quantity: 40, unit: 'm2', quantityBasis: 'stated' }),
-    item({ description: 'פירוק ריצוף קיים', evidence: 'פירוק ריצוף קיים', quantity: null, unit: null, quantityBasis: 'missing', missing: 'השטח' }),
-  ] };
-  it('a per-unit price is a price, never a quantity; "כל אחד" is not the number one', () => {
-    expect(measuresOf('ריצוף 40 מ"ר ב-120 למטר').map((m) => [m.value, m.kind])).toEqual([[40, 'number'], [120, 'price']]);
-    expect(measuresOf('התקנת 3 מזגנים 2500 כל אחד').map((m) => [m.value, m.kind])).toEqual([[3, 'number'], [2500, 'price']]);
-  });
-  it('each line keeps its written quantity and takes its own written price; a line without one has none', () => {
-    const out = parseOwnerPrices(JSON.stringify(raw), [], text);
-    expect(out.items.map((i) => [i.quantity, i.unitPrice, i.priceSource])).toEqual([[3, 2500, 'description'], [40, 120, 'description'], [null, null, 'none']]);
-  });
-  it('a catalog price wins over a written one', () => {
-    const r2 = { ...raw, items: [item({ description: 'התקנת מזגן', evidence: 'התקנת מזגן 2500 ש"ח', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', catalogId: 'c1' })] };
-    const out = parseOwnerPrices(JSON.stringify(r2), [{ id: 'c1', name: 'התקנת מזגן', price: 1900 }], 'התקנת מזגן 2500 ש"ח');
-    expect([out.items[0].unitPrice, out.items[0].priceSource]).toEqual([1900, 'catalog']);
-  });
-  it('a total of several pieces is never divided (no per-unit words) - no price', () => {
-    const r3 = { ...raw, items: [item({ description: 'התקנת מזגנים', evidence: 'התקנת 3 מזגנים 7500 ש"ח', quantity: 3, unit: 'unit', quantityBasis: 'stated' })] };
-    const out = parseOwnerPrices(JSON.stringify(r3), [], 'התקנת 3 מזגנים 7500 ש"ח');
-    expect([out.items[0].quantity, out.items[0].unitPrice]).toEqual([3, null]);
-  });
-});

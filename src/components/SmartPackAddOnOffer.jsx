@@ -9,7 +9,6 @@ import { formatMoneyForCurrency } from '../utils/money';
 import { formatShortDate } from '../utils/shortDate';
 import { loadSmartPackAddOnQuote, mailboxForCurrency, smartPackAddOnErrorMessage, startSmartPackAddOn } from '../domain/subscriptions/packageCheckout';
 import MailLink from './MailLink';
-import { PAYMENT_FRAME_CLOSED } from '../shared/paymentFrameReturn';
 
 // IRON-ILS-001: a whole shekel with .00 (the server charges whole shekels); IRON-DATE-001: the market's short date (Israel DD/MM/YYYY).
 // Owner console 2026-11-01 (typed: "מאשר פתיחת הרכישה בחו"ל ... L-22"): abroad the server quotes USD - $ in cents, MM/DD/YYYY
@@ -30,8 +29,7 @@ export default function SmartPackAddOnOffer({ isHebrew, invoke, onLeave, market 
     // a fresh pay button when the browser brings this page back from the payment page (Back)
     const back = () => setPay({ busy: false, error: null });
     window.addEventListener('pageshow', back);
-    window.addEventListener(PAYMENT_FRAME_CLOSED, back); // Owner 2026-11-11 (finding 30): the payment window closed without paying
-    return () => { alive = false; window.removeEventListener('pageshow', back); window.removeEventListener(PAYMENT_FRAME_CLOSED, back); };
+    return () => { alive = false; window.removeEventListener('pageshow', back); };
   }, []);
   if (!quote) return null; // still asking the server
   // Codex I01 (Owner 2026-11-02): a failed answer has no currency - the account's own market decides, and an account abroad never sees the Israeli mailbox

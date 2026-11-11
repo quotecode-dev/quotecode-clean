@@ -29,7 +29,7 @@ describe('the SMART PACK add-on abroad', () => {
     render(<SmartPackAddOnOffer isHebrew={false} invoke={invoke} onLeave={onLeave} />);
     await waitFor(() => expect(screen.getByTestId('plans-smart-pack-add-on')).toBeInTheDocument());
     expect(screen.getByTestId('plans-smart-pack-add-on').querySelector('h3').textContent).toBe('Add SMART PACK to your plan? (+$5.00 a month)');
-    expect(screen.getByTestId('plans-smart-pack-add-on-now').textContent).toBe('Pro-rated charge now until the end of your current billing month: $4.19 (until 27/11/2026)');
+    expect(screen.getByTestId('plans-smart-pack-add-on-now').textContent).toBe('Pro-rated charge now until the end of your current billing month: $4.19 (until 11/27/2026)');
     expect(screen.getByTestId('plans-smart-pack-add-on-pay').textContent).toBe('Yes, add SMART PACK - $4.19');
     expect(screen.getByTestId('plans-smart-pack-add-on').textContent).not.toMatch(/₪/);
   });
@@ -56,7 +56,7 @@ describe('the SMART PACK removal abroad', () => {
     render(<SmartPackRemoval isHebrew={false} invoke={invoke} onDone={() => {}} />);
     await waitFor(() => expect(screen.getByTestId('plans-smart-pack-remove')).toBeInTheDocument());
     screen.getByTestId('plans-smart-pack-remove').click();
-    await waitFor(() => expect(document.body.textContent).toMatch(/until 20\/10\/2027/));
+    await waitFor(() => expect(document.body.textContent).toMatch(/until 10\/20\/2027/));
     expect(document.body.textContent).toMatch(/\$46\.45 is refunded/);
     expect(document.body.textContent).not.toMatch(/₪/);
   });

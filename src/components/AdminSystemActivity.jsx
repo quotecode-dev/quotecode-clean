@@ -117,7 +117,7 @@ export default function AdminSystemActivity({ accounts, isHebrew, onRefreshAccou
                     return (
                       <div key={row.id} className="av-event">
                         <span className="av-eventdot" aria-hidden="true"><UserPlus size={17} /></span>
-                        <div><strong>{isHebrew ? 'חשבון חדש' : 'New account'}</strong><p><bdi dir={isHebrew ? 'rtl' : 'ltr'}>{row.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</bdi> · <bdi className="av-num">{row.email}</bdi></p><span className="av-badge">{isHebrew ? 'אירוע הרשמה' : 'Registration event'}</span></div>
+                        <div><strong>{isHebrew ? 'חשבון חדש' : 'New account'}</strong><p><bdi>{row.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</bdi> · <bdi className="av-num">{row.email}</bdi></p><span className="av-badge">{isHebrew ? 'אירוע הרשמה' : 'Registration event'}</span></div>
                         <time className="av-num">{accountDateTime(row.created_at, row, adminMarket)}</time>
                       </div>
                     );
@@ -131,11 +131,11 @@ export default function AdminSystemActivity({ accounts, isHebrew, onRefreshAccou
                       <span className="av-eventdot" aria-hidden="true"><ShieldCheck size={17} /></span>
                       <div>
                         <strong>{a ? t(isHebrew, a.he, a.en) : t(isHebrew, C.unknownAction.he, C.unknownAction.en)}</strong>
-                        <p>{target ? <bdi dir={isHebrew ? 'rtl' : 'ltr'}>{target.business_name || target.email}</bdi> : <span className="av-muted">{isHebrew ? 'חשבון שאינו זמין' : 'Account no longer available'}</span>}</p>
+                        <p>{target ? <bdi>{target.business_name || target.email}</bdi> : <span className="av-muted">{isHebrew ? 'חשבון שאינו זמין' : 'Account no longer available'}</span>}</p>
                         {/* the sketch: the outcome badge, then the reason as written and the admin who acted */}
                         <span className="av-pills" style={{ alignItems: 'center' }}>
                           {o && <span className={`av-badge av-${o.tone}`}>{t(isHebrew, o.he, o.en)}</span>}
-                          {(row.reason || actor) && <span className="av-small av-muted">{row.reason && <bdi dir="auto">{row.reason}</bdi>}{row.reason && actor && ' · '}{actor && <bdi dir={isHebrew ? 'rtl' : 'ltr'}>{actor.business_name || actor.email}</bdi>}</span>}
+                          {(row.reason || actor) && <span className="av-small av-muted">{row.reason && <bdi dir="auto">{row.reason}</bdi>}{row.reason && actor && ' · '}{actor && <bdi>{actor.business_name || actor.email}</bdi>}</span>}
                         </span>
                       </div>
                       <time className="av-num">{target ? accountDateTime(row.created_at, target, adminMarket) : fmt(row.created_at)}</time>

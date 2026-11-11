@@ -100,7 +100,7 @@ describe('landing truth gate', () => {
     expect(en).not.toMatch(/14-day|PRO trial|Free Trial/);
     // IRON-LANDING-001 amended 2026-10-25 (Owner typed): Free-10 active once verified in Production
     expect(he).toContain("trial: '10 הצעות מחיר חינם או 7 ימים מההרשמה, המוקדם מביניהם.'");
-    expect(en).toContain("trial: '10 free quotes or 7 days from sign-up, whichever comes first'");
+    expect(en).toContain("trial: '10 free quotes or 7 days, whichever comes first'");
     // Task 37: the same "paid / checkout not available" truth in the Owner-approved L1 wording
     // IRON-LANDING-001 amended 2026-10-25 (HE) and by the Owner 2026-11-01 (EN): both pages say the package is bought inside the account
     expect(en).toMatch(/The paid package is bought inside your account, in the plans window/);

@@ -22,7 +22,7 @@ describe('sent-on-share wiring', () => {
   });
   it('email: marks Sent only after the success, never in the enforced phase', () => {
     const b = body('executeEmailSend');
-    const ok = b.indexOf("// EMAIL_SENT_TO_ADDRESS"); // Owner 2026-11-11 (finding 10, typed L-13): the one success message "Email sent to <address>"
+    const ok = b.indexOf("'📧 Email sent successfully!'");
     const mark = b.indexOf("if (sendGate.mode !== 'authority_required') markSentAfterShare(quote);");
     expect(ok).toBeGreaterThan(-1); expect(mark).toBeGreaterThan(ok);
     expect(b.slice(b.indexOf('} catch (err)'))).not.toContain('markSentAfterShare');

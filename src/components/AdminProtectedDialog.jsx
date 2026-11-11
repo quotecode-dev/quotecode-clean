@@ -82,7 +82,7 @@ export default function AdminProtectedDialog({
           <div className="av-result" role="status">
             <div className="av-stateicon" style={{ margin: '0 auto 12px', background: '#e7f4ed', color: '#236241' }}><CheckCircle2 size={28} aria-hidden="true" /></div>
             <h3 id={`${id}-title`}>{t(isHebrew, D.done.he, D.done.en)}</h3>
-            <p id={`${id}-desc`} className="av-muted">{t(isHebrew, copy.title.he, copy.title.en)} · <bdi dir={isHebrew ? 'rtl' : 'ltr'}>{target?.business_name || target?.email}</bdi></p>
+            <p id={`${id}-desc`} className="av-muted">{t(isHebrew, copy.title.he, copy.title.en)} · <bdi>{target?.business_name || target?.email}</bdi></p>
             <div className="av-dialog-foot" style={{ justifyContent: 'center' }}>
               {/* PRODUCT_TRUTH_DECORATIVE: closes the result of a completed protected action and refreshes the admin data */}
               <button ref={doneCloseRef} type="button" className="av-btn av-primary" onClick={onClose}>{t(isHebrew, D.close.he, D.close.en)}</button>
@@ -95,7 +95,7 @@ export default function AdminProtectedDialog({
               <span className="av-step">{t(isHebrew, D.step.he, D.step.en)}</span>
             </div>
             <h3 id={`${id}-title`}>{t(isHebrew, copy.title.he, copy.title.en)}</h3>
-            <div className="av-business"><strong><bdi dir={isHebrew ? 'rtl' : 'ltr'}>{target?.business_name || '—'}</bdi></strong><span className="av-mail">{target?.email}</span></div>
+            <div className="av-business"><strong><bdi>{target?.business_name || '—'}</bdi></strong><span className="av-mail">{target?.email}</span></div>
             <p id={`${id}-desc`} className="av-muted av-section">{t(isHebrew, copy.body.he, copy.body.en)}</p>
             {(copy.scope.length > 0 || children) && (
               <div className="av-card av-impact av-section" style={{ boxShadow: 'none' }}>

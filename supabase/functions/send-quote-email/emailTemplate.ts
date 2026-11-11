@@ -80,10 +80,10 @@ export function buildQuoteEmail(o: {
         <br/>
         <p>לצפייה בהצעה המלאה, לאישור ההצעה או לחתימה דיגיטלית, לחצו על הכפתור הבא:</p>
         <div style="text-align: center; margin: 25px 0;">
-          <a href="${href}" style="background: #4f46e5; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 1rem; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);">צפייה בהצעת המחיר</a>
+          <a href="${href}" style="background: #4f46e5; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 1rem; box-shadow: 0 4px 6px rgba(79, 70, 229, 0.2);">צפה בהצעת המחיר</a>
         </div>
         <br/>
-        <p style="color: #64748b; font-size: 0.9rem;">נשמח לעמוד לשירותכם בכל שאלה!</p>
+        <p style="color: #64748b; font-size: 0.9rem;">נשמח לעמוד לשירותך לכל שאלה!</p>
         <p style="color: #64748b; font-size: 0.9rem; margin-top: 15px;">צוות ${biz}</p>
       </div>
     ` : `
@@ -110,7 +110,7 @@ export function buildQuoteEmail(o: {
   const text = o.hebrew
     ? [`שלום ${o.clientDisplayName},`, '', introText, '', `סך הכל לתשלום: ${totalText}`,
       ...(o.partialTotal ? ['הסכום חלקי: יש בהצעה פריטים שטרם תומחרו.'] : []), '',
-      'לצפייה בהצעה המלאה, לאישור ההצעה או לחתימה דיגיטלית:', o.quoteLink, '', 'נשמח לעמוד לשירותכם בכל שאלה!', `צוות ${o.bizTitle}`].join('\n')
+      'לצפייה בהצעה המלאה, לאישור ההצעה או לחתימה דיגיטלית:', o.quoteLink, '', 'נשמח לעמוד לשירותך לכל שאלה!', `צוות ${o.bizTitle}`].join('\n')
     : [`Hello ${o.clientDisplayName},`, '', introText, '', `Total Amount: ${totalText}`,
       ...(o.partialTotal ? ['Partial total: some items in this quote are not priced yet.'] : []), '',
       'To view, approve or digitally sign your quote:', o.quoteLink, '', 'Feel free to contact us with any questions!', `${o.bizTitle} Team`].join('\n');

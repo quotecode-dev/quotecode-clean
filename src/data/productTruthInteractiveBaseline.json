@@ -247,10 +247,6 @@
     "interactive": 6,
     "markers": 7
   },
-  "src/components/Free10EndedBar.jsx": {
-    "interactive": 1,
-    "markers": 1
-  },
   "src/components/Free10UpgradeWindow.jsx": {
     "interactive": 4,
     "markers": 4
@@ -319,10 +315,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/components/ProfileGateDialog.jsx": {
-    "interactive": 3,
-    "markers": 3
-  },
   "src/components/PublicQuoteHeader.jsx": {
     "interactive": 1,
     "markers": 1
@@ -344,8 +336,8 @@
     "markers": 1
   },
   "src/components/QuoteDraftNotices.jsx": {
-    "interactive": 7,
-    "markers": 7
+    "interactive": 5,
+    "markers": 5
   },
   "src/components/QuoteForm.jsx": {
     "interactive": 37,
@@ -363,17 +355,13 @@
     "interactive": 19,
     "markers": 19
   },
-  "src/components/QuoteSendMenu.jsx": {
-    "interactive": 2,
-    "markers": 4
-  },
   "src/components/QuoteTemplateDialogs.jsx": {
     "interactive": 6,
     "markers": 7
   },
   "src/components/QuotesTab.jsx": {
-    "interactive": 33,
-    "markers": 36
+    "interactive": 32,
+    "markers": 35
   },
   "src/components/RemindersFirstSetupNotice.jsx": {
     "interactive": 1,
@@ -393,7 +381,7 @@
   },
   "src/components/SettingsTab.jsx": {
     "interactive": 6,
-    "markers": 11
+    "markers": 10
   },
   "src/components/ShareDefaultsSettings.jsx": {
     "interactive": 3,
@@ -460,8 +448,8 @@
     "markers": 10
   },
   "src/components/landing/LandingPage.jsx": {
-    "interactive": 8,
-    "markers": 8
+    "interactive": 7,
+    "markers": 7
   },
   "src/components/landing/LandingPlans.jsx": {
     "interactive": 0,
@@ -1131,10 +1119,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/phoneDisplay.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/planCatalog.js": {
     "interactive": 0,
     "markers": 0
@@ -1740,14 +1724,6 @@
     "markers": 0
   },
   "supabase/functions/quote-presentation/lib.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/quote-signed-notice/index.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/quote-signed-notice/lib.ts": {
     "interactive": 0,
     "markers": 0
   },

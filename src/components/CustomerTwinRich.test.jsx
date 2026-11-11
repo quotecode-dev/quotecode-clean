@@ -18,7 +18,7 @@ describe('Customer Twin text runs', () => {
   });
   it('a d/m/y date follows the market; a date that does not exist is shown as written', () => {
     expect(runs('עד 03/04/2026')).toEqual(['03/04/2026']);
-    expect(runs('until 30/11/2026', 'INTERNATIONAL')).toEqual(['30/11/2026']); // Owner 2026-11-11: International is day first
+    expect(runs('until 11/30/2026', 'INTERNATIONAL')).toEqual(['11/30/2026']);
     expect(runs('until 31/02/2026', 'INTERNATIONAL')).toEqual(['31/02/2026']);
   });
   it('plain text stays plain (no HTML)', () => {

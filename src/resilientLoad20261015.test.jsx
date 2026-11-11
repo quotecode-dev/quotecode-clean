@@ -35,8 +35,7 @@ describe('the quotes list never reads a failed / pending load as "no quotes"', (
   });
   it('a successful answer with no quotes is the only "no quotes found"', () => {
     render(<QuotesTab {...props({ loadState: 'ok' })} />);
-    // Owner 2026-11-11 (finding 16, typed L-10): an account with no quotes is invited to create the first one
-    expect(screen.getAllByTestId('quotes-empty')[0].textContent).toBe('עוד אין הצעות. בואו ניצור את הראשונה');
+    expect(screen.getAllByTestId('quotes-empty')[0].textContent).toBe('לא נמצאו הצעות מחיר במסד הנתונים.');
     expect(document.querySelector('[data-qh-overview="all"] .quote-overview-value').textContent).toBe('0');
   });
   it('quotes already on screen stay visible while a reload is pending', () => {

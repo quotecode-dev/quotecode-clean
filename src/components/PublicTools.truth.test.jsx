@@ -75,7 +75,7 @@ describe('L4 - data truth: no seed number shown as current, real source + provid
     vi.stubGlobal('fetch', fetchDown()); vi.stubGlobal('localStorage', memoryStorage(cache));
     mount(<PublicToolsEn initialTab="currency" />, '/en/tools/currency');
     await waitFor(() => expect(screen.getByTestId('tools-feed-currency').textContent).toMatch(/may be out of date|not current/i));
-    expect(screen.getByTestId('tools-feed-currency').textContent).toMatch(/12\/10\/2026/);
+    expect(screen.getByTestId('tools-feed-currency').textContent).toMatch(/10\/12\/2026/);
     expect(screen.getByTestId('tools-currency-result').textContent).toMatch(/\d/);
   });
 });

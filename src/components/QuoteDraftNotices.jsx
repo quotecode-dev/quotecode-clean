@@ -8,28 +8,6 @@ const fmt = (ms, isHebrew) => {
   return formatDeviceShortDateTime(ms, (isHebrew ? 'Local' : 'International'));
 };
 
-// Owner 2026-11-11 (finding 9, option ב): a recovered draft no longer opens the editor by itself. The quotes list shows ONE row on top:
-// "there is an unsaved draft (date, time) - continue editing / delete"; the editor opens only on the click and the draft is never lost.
-// dateMarket = the authenticated account's date market (IRON-DATE-001), never the UI language.
-export function PendingDraftRow({ draft, isHebrew, dateMarket, onContinue, onDelete }) {
-  if (!draft) return null;
-  const when = formatDeviceShortDateTime(draft.updatedAt, dateMarket);
-  const btnStyle = (primary) => ({ minHeight: 44, padding: '0 14px', borderRadius: 8, border: primary ? 'none' : '1px solid #6ee7b7', background: primary ? '#0F6672' : '#fff', color: primary ? '#fff' : '#065f46', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' });
-  return (
-    <div role="status" data-testid="pending-draft-row" dir={isHebrew ? 'rtl' : 'ltr'}
-      style={{ background: '#ecfdf5', border: '1px solid #6ee7b7', color: '#065f46', borderRadius: 10, padding: '8px 12px', marginBottom: 12, fontSize: '0.9rem', display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-      {/* the words take their own line on a phone, the two buttons stay together under them - the same in both languages */}
-      <span style={{ flex: '1 1 300px', fontWeight: 600 }}>
-        {isHebrew ? 'יש טיוטה שלא נשמרה' : 'There is an unsaved draft'} (<bdi className="pf-num" dir="ltr">{when}</bdi>)
-      </span>
-      {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
-      <button type="button" data-testid="pending-draft-continue" onClick={onContinue} style={btnStyle(true)}>{isHebrew ? 'המשך עריכה' : 'Continue editing'}</button>
-      {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
-      <button type="button" data-testid="pending-draft-delete" onClick={onDelete} style={btnStyle(false)}>{isHebrew ? 'מחיקה' : 'Delete'}</button>
-    </div>
-  );
-}
-
 export function DraftRecoveredBanner({ info, isHebrew, onDiscard, onDismiss }) {
   if (!info) return null;
   return (

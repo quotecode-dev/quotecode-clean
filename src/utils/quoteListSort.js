@@ -48,21 +48,8 @@ export function getQuoteActionKind(quote) {
   return status === 'approved' || status === 'paid' ? 'view' : 'open';
 }
 
-// Owner 2026-11-11 (finding 15): the fallback title is the FIRST line of the quote in its own order (sort_order), never whatever
-// row the server happened to return first
-export function firstItemDescription(quote) {
-  const items = Array.isArray(quote?.quote_items) ? quote.quote_items : [];
-  if (!items.length) return '';
-  const ordered = items.map((it, i) => [it, i]).sort((x, y) => {
-    const a = Number.isFinite(Number(x[0]?.sort_order)) ? Number(x[0].sort_order) : Infinity;
-    const b = Number.isFinite(Number(y[0]?.sort_order)) ? Number(y[0].sort_order) : Infinity;
-    return a === b ? x[1] - y[1] : a - b;
-  });
-  return ordered[0][0]?.description || '';
-}
-
 export function quoteSubject(quote) {
-  return quote?.subject || quote?.quote_subject || firstItemDescription(quote) || '';
+  return quote?.subject || quote?.quote_subject || quote?.quote_items?.[0]?.description || '';
 }
 
 const stamp = (value) => { const t = Date.parse(value); return Number.isNaN(t) ? 0 : t; };

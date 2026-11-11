@@ -116,7 +116,7 @@ describe.each([
     expect(groups).toEqual(['overdue', 'today', 'upcoming', 'noDate']);
     const due = container.querySelector('[data-task-id="b"] [data-testid="task-due-date"]');
     expect(due).toHaveAttribute('dir', 'ltr');
-    expect(due.textContent).toBe('09/10/2026'); // Owner 2026-11-11: day first in both markets
+    expect(due.textContent).toBe(isHebrew ? '09/10/2026' : '10/09/2026');
     expect(container.querySelector('[data-task-id="b"] [data-testid="task-due-time"]').textContent).toBe('15:00');
     expect(screen.getByRole('heading', { name: new RegExp(X.overdue) })).toBeInTheDocument();
   });
@@ -180,7 +180,7 @@ describe.each([
     const { container, db } = setup(isHebrew, { initial: [T('a', { due_date: '2026-10-12', due_time: '08:15:00', priority: 'high' })] });
     await waitFor(() => expect(container.querySelector('[data-task-id="a"]')).not.toBeNull());
     fireEvent.click(within(container.querySelector('[data-task-id="a"]')).getAllByRole('button')[1]);
-    expect(container.querySelector('[name="due_date_text"]').value).toBe('12/10/2026'); // Owner 2026-11-11: day first in both markets
+    expect(container.querySelector('[name="due_date_text"]').value).toBe(isHebrew ? '12/10/2026' : '10/12/2026');
     expect(container.querySelector('[name="due_time"]').value).toBe('08:15');
     fill(container, 'title', 'Renamed');
     fireEvent.click(screen.getByTestId('task-save'));
@@ -251,12 +251,12 @@ describe.each([
     await screen.findByTestId('tasks-empty-open');
     fireEvent.click(screen.getByTestId('tasks-new'));
     fill(container, 'title', 'x');
-    // 31/04 does not exist (Owner 2026-11-11: Local and International both read DD/MM/YYYY)
-    fill(container, 'due_date_text', '31/04/2026');
+    // 31/04 (Local) and 04/31 (International) do not exist
+    fill(container, 'due_date_text', isHebrew ? '31/04/2026' : '04/31/2026');
     fireEvent.click(screen.getByTestId('task-save'));
     await screen.findByTestId('task-form-errors');
     expect(db.rows).toHaveLength(0);
-    fill(container, 'due_date_text', '13/05/2026');
+    fill(container, 'due_date_text', isHebrew ? '13/05/2026' : '05/13/2026');
     fireEvent.click(screen.getByTestId('task-save'));
     await waitFor(() => expect(db.rows).toHaveLength(1));
     expect(db.rows[0].due_date).toBe('2026-05-13');
@@ -267,7 +267,7 @@ describe('Tasks screen - account market, not UI language (IRON-DATE-001)', () =>
   it('Hebrew UI on an International account: International order and UTC "today"', async () => {
     const { container } = setup(true, { isLocalIsraeliBusiness: false, initial: [T('a', { due_date: '2026-10-09' })] });
     await waitFor(() => expect(container.querySelector('[data-task-id="a"]')).not.toBeNull());
-    expect(container.querySelector('[data-testid="task-due-date"]').textContent).toBe('09/10/2026');
+    expect(container.querySelector('[data-testid="task-due-date"]').textContent).toBe('10/09/2026');
     expect(container.querySelector('[data-task-id="a"]').getAttribute('data-group')).toBe('today');
   });
   it('English UI on a Local account: Local order', async () => {

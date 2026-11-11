@@ -417,9 +417,6 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
       setJustSignedImageDataUrl(signatureDataUrl);
       setJustSignedAt(new Date());
       setApproved(true);
-      // Owner 2026-11-11 (finding 18): the business owner gets one email that the customer signed - the server checks the signature
-      // itself and sends once; nothing on this page waits for it or shows its result
-      if (quote?.id) Promise.resolve(supabase.functions.invoke('quote-signed-notice', { body: { quote_id: quote.id } })).catch(() => {});
       // Task 16: the server freezes the presentation snapshot once the quote is locked - let the host re-fetch it.
       if (typeof onApproved === 'function') onApproved();
     } catch (err) {
@@ -1164,19 +1161,18 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
               type="button"
               onClick={activateSigning}
               style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', background: 'rgba(248,250,252,0.85)', border: 'none', color: '#475569', fontSize: '0.9rem', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-            >לחצו כאן לחתימה</button>
+            >הפעלת אזור החתימה</button>
           )}
         </div>
         <div style={{ marginBottom: '15px', display: 'flex', gap: '8px', justifyContent: 'center', flexWrap: 'wrap' }}>
           {/* PRODUCT_TRUTH_DECORATIVE: clears the currently drawn signature before submission */}
           {(isActive || hasSigned) && (
-            <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', minHeight: 44, borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>ניקוי החתימה</button>
+            <button type="button" onClick={clearSignature} style={{ background: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 12px', borderRadius: '6px', fontSize: '0.8rem', cursor: 'pointer' }}>ניקוי החתימה</button>
           )}
           {/* PRODUCT_TRUTH_DECORATIVE: ends signature-drawing mode without submitting approval */}
-          {/* Owner 2026-11-11 (finding 18 wording, finding 25 size; typed L-24): "סיום הציור" - it only ends the drawing, never the approval */}
           {isActive && (
-            <button type="button" onClick={deactivateSigning} style={{ background: LIGHT.violet, color: 'white', border: 'none', padding: '4px 14px', minHeight: 44, borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
-              סיום הציור
+            <button type="button" onClick={deactivateSigning} style={{ background: LIGHT.violet, color: 'white', border: 'none', padding: '4px 14px', borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
+              סיום
             </button>
           )}
         </div>
@@ -1185,7 +1181,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
         )}
         <div>
           {/* PRODUCT_TRUTH_CAPABILITY: public_quote_sign */}
-          <button onClick={handleApprove} style={{ background: hasSigned ? LIGHT.gradient : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? LIGHT.glow : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>אישור וחתימה על הצעת המחיר{'\u00a0'}✓</button>
+          <button onClick={handleApprove} style={{ background: hasSigned ? LIGHT.gradient : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? LIGHT.glow : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>אישור וחתימה על הצעת המחיר ✓</button>
         </div>
       </div>
     );

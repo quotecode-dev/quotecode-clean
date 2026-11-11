@@ -545,12 +545,6 @@ html {
 /* Owner console 2026-11-10 (the 13 items, L-09): room after the editor content, so at the end of the page the floating Calculator button
    never covers the totals or the save buttons (the button stands 24-76px above the bottom; on a phone 104-156px, above the bottom bar) */
 .pf-editor-form { padding-bottom: 64px; }
-/* Owner 2026-11-11 (finding 23, typed L-09): the floating Calculator never covers content - it hides while any window is open over the
-   editor (the smart quote / smart edit, prices, templates, send ...), and on a phone the form keeps room under its last field */
-body:has([role="dialog"][aria-modal="true"]) .pf-calc-fab { display: none; }
-/* Owner 2026-11-11 (finding 24): a "did you know?" tip never floats over an open window (send, plans, any dialog) */
-body:has([role="dialog"][aria-modal="true"]) .tk-tip { display: none; }
-@media (max-width: 768px) { .pf-editor-form { padding-bottom: 96px; } }
 /* Owner console 2026-11-10 (the 13 items): the dash of a row without an amount sits beside the row actions in Hebrew too */
 .qrows[dir='rtl'] .qrow-total.qrow-total-empty { text-align: left !important; }
 @media (max-width: 768px) { .pf-editor-form { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); } }
@@ -621,29 +615,3 @@ body:has([role="dialog"][aria-modal="true"]) .tk-tip { display: none; }
   .qrows .qrow-line > .qrow-total { align-self: end; padding-bottom: 10px; grid-area: total; }
   .qrows .qrow-line > .qrow-menu { grid-area: menu; }
 }
-
-/* Owner 2026-11-11 (findings 4 + 26, typed L-07 / L-19 / L-29): global (every list layout - desktop table, tablet and phone cards) */
-/* Owner 2026-11-11 (findings 4 + 26): the prominent Send of every row / card and its three choices */
-.quote-send--row { position: absolute; inset-inline-end: 8px; inset-block-start: 6px; z-index: 1; }
-.quote-card { position: relative; }
-/* on a card the Send has its own row under the card's two L-19 lines (their order and width are unchanged) */
-.quote-send--card { display: flex; justify-content: flex-end; padding: 0 var(--pf-mobile-surface-pad, 10px) 8px; }
-.quote-send-button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; block-size: 30px; inline-size: 64px; padding: 0 6px; border: 0; border-radius: 8px; background: #0F6672; color: #ffffff; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; }
-.quote-send--card .quote-send-button { block-size: 44px; inline-size: 80px; font-size: 13px; }
-.quote-send-button:hover { background: #0b4f58; }
-.quote-send-button:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
-.quote-send-menu { position: fixed; z-index: 10045; display: flex; flex-direction: column; min-inline-size: 210px; padding: 4px; background: #ffffff; border: 1px solid #dde1e8; border-radius: 10px; box-shadow: 0 14px 32px -12px rgba(15, 23, 42, 0.45); }
-.quote-send-item { display: flex; align-items: center; gap: 8px; min-block-size: 44px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: #1e293b; font: inherit; font-size: 13px; font-weight: 600; text-align: start; white-space: nowrap; cursor: pointer; }
-.quote-send-item:hover, .quote-send-item:focus-visible { background: #f1f5f9; outline: none; }
-
-/* Owner 2026-11-11 (finding 26, typed L-19): on a phone the quotes list is part of the page and the page scrolls - never a small frame that
-   scrolls inside the screen (the cards keep their L-19 order and width; tablets and desktop keep the screen's own scroll body) */
-@media (max-width: 768px) {
-  .pf-screen.quote-workspace[data-qh-layout="cards"] { flex: 0 0 auto; min-height: auto; }
-  .pf-screen.quote-workspace[data-qh-layout="cards"] > .pf-screen-body { flex: 0 0 auto; min-height: auto; overflow-y: visible; }
-}
-
-/* Owner 2026-11-11 (finding 7): with a fixed bar on top (the free quotes ended / a billing notice) the app below takes the REST of the
-   screen height - the sidebar's foot is never pushed below the bottom edge */
-.dash-app-shell > [data-testid="free10-ended-bar"] ~ .dash-shell-outer,
-.dash-app-shell > [data-testid="billing-notice-bar"] ~ .dash-shell-outer { flex: 1 1 0 !important; height: auto !important; min-height: 0 !important; }

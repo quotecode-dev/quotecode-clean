@@ -125,19 +125,3 @@ export function totalsByQuoteCurrency(quotes, { include = () => true, accountCur
     .map((currency) => ({ currency, symbol: QUOTE_CURRENCY_SYMBOLS[currency], total: sums.get(currency), count: counts.get(currency) }));
   return { groups, unknownCount };
 }
-
-// Owner 2026-11-11 (finding 32): the total shown above the quotes LIST equals the sum of the cards on screen - its ILS group is the sum of
-// each quote's DISPLAYED whole-shekel amount (IRON-ILS-001 rounds every ILS amount half-up for display). It changes only that group of the
-// given per-currency totals (from totalsByQuoteCurrency, every group still keyed on its quote's own currency); other currencies untouched.
-export function roundIlsListTotals(totals, quotes) {
-  const group = totals?.groups?.find((g) => g.currency === 'ILS');
-  if (!group) return totals;
-  let shown = 0;
-  for (const quote of Array.isArray(quotes) ? quotes : []) {
-    if (!quote || normalizeQuoteCurrency(quote.currency) !== 'ILS') continue;
-    const value = Number(quote.total || 0);
-    if (Number.isFinite(value)) shown += Math.sign(value) * Math.round(Math.abs(value));
-  }
-  group.total = shown;
-  return totals;
-}

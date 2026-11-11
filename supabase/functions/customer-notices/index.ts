@@ -3,7 +3,6 @@
 // site cron every hour with the shared cron secret; customer_notices decides that nothing is sent twice.
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { sendMail } from "../support-inbound/mail.ts";
-import { isUsCountry } from "../_shared/shortDate.js";
 import { healthOf, runNotices, type BillingFact, type Fact, type LifeFact } from "./lib.ts";
 
 const json = (body: Record<string, unknown>, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -41,14 +40,7 @@ Deno.serve(async (req) => {
         const u = user ?? only;
         const { data, error } = await admin.rpc('customer_notice_billing_facts', u ? { p_user: u } : {});
         if (error) throw new Error('facts_failed');
-        const rows = (data ?? []) as BillingFact[];
-        // Owner 2026-11-11 (IRON-DATE-001 as amended): a business in the United States reads its dates month first - the country is read
-        // here with the service role (no change to the facts function); a failed read keeps day first
-        const ids = [...new Set(rows.map((r) => r.account_id).filter(Boolean))];
-        if (!ids.length) return rows;
-        const { data: biz } = await admin.from('business_settings').select('user_id, country').in('user_id', ids);
-        const us = new Set((biz ?? []).filter((b: { country?: string }) => isUsCountry(b.country)).map((b: { user_id: string }) => b.user_id));
-        return rows.map((r) => (us.has(r.account_id) ? { ...r, date_market: 'US' } : r));
+        return (data ?? []) as BillingFact[];
       },
       claim: async (user, kind, episode, seq, key) => {
         const { data, error } = await admin.rpc('customer_notice_claim', { p_user: user, p_kind: kind, p_episode: episode, p_seq: seq, p_key: key });

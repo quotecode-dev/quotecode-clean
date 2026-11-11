@@ -13,32 +13,16 @@ const { default: SmartPublicQuote } = await import('./components/SmartPublicQuot
 afterEach(() => { cleanup(); document.documentElement.lang = ''; });
 const read = (p) => fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), p), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
 
-// Owner 2026-11-11 (finding 27, typed L-04): the language of the business that sent the link - /en/ = English only; a link without a
-// prefix (every Israeli link, old International id links) cannot tell -> both languages, Hebrew first. Readable contrast stays.
 describe('public quote not found', () => {
-  const renderPath = async (p) => {
-    window.history.pushState({}, '', p);
+  it.each([['he', 'לא הצלחנו לפתוח את הצעת המחיר', /Quote not found/], ['en', 'We could not open this quote', /הצעת המחיר/]])('%s: one language, explicit dark text on a light page', async (lang, title, other) => {
+    document.documentElement.lang = lang;
     const { findByTestId } = render(<MemoryRouter initialEntries={['/quote/00000000-0000-0000-0000-000000000000']}><Routes><Route path="/quote/:id" element={<SmartPublicQuote />} /></Routes></MemoryRouter>);
-    return findByTestId('public-quote-not-found', {}, { timeout: 4000 });
-  };
-  afterEach(() => window.history.pushState({}, '', '/'));
-  it('a link without a prefix: both languages, Hebrew first, explicit dark text on a light page', async () => {
-    document.documentElement.lang = 'en';
-    const el = await renderPath('/public-quote/00000000-0000-0000-0000-000000000000');
-    await waitFor(() => expect(el.querySelector('h1').textContent).toBe('לא הצלחנו לפתוח את הצעת המחיר'));
-    expect(el.textContent).toContain('We could not open this quote');
-    expect(el.textContent.indexOf('לא הצלחנו')).toBeLessThan(el.textContent.indexOf('We could not'));
-    expect(el.querySelector('[data-testid="public-quote-not-found-he"]').getAttribute('dir')).toBe('rtl');
-    expect(el.querySelector('[data-testid="public-quote-not-found-en"]').getAttribute('dir')).toBe('ltr');
+    const el = await findByTestId('public-quote-not-found', {}, { timeout: 4000 });
+    await waitFor(() => expect(el.querySelector('h1').textContent).toBe(title));
+    expect(el.textContent).not.toMatch(other);
+    expect(el.getAttribute('lang')).toBe(lang);
     expect(el.style.background).toMatch(/247, 248, 246|#f7f8f6/i);
     expect(el.querySelector('h1').style.color).toMatch(/16, 37, 43|#10252b/i);
-  });
-  it('an /en/ link: English only', async () => {
-    document.documentElement.lang = 'he';
-    const el = await renderPath('/en/public-quote/00000000-0000-0000-0000-000000000000');
-    await waitFor(() => expect(el.querySelector('h1').textContent).toBe('We could not open this quote'));
-    expect(el.textContent).not.toMatch(/הצעת המחיר/);
-    expect(el.getAttribute('lang')).toBe('en');
   });
 });
 

@@ -99,8 +99,7 @@ export function draftLinesToQuoteItems(lines) {
       description: line.description,
       quantity: String(quantity),
       unit_price: line.unitPrice != null ? String(line.unitPrice) : '',
-      // Owner 2026-11-11 (finding 3): a price from the user's own description is not a catalog price
-      isFromCatalog: line.catalogId != null && line.unitPrice != null && line.priceSource !== 'description',
+      isFromCatalog: line.catalogId != null && line.unitPrice != null,
     };
     if (!line.unit || line.unit === 'unit') return base;
     return {

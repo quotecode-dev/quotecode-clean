@@ -777,12 +777,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "Owner console 2026-11-09 (typed: \"צריך לתת אפשרות העתקה, מה השאלה?\" + the night task \"מאשר משימת לילה 1-5: תיקון ההעתקה בהצעה חתומה עד שער עובר, ...\"): prepare_quote_output - channel public_share on a SIGNED quote returns the final result of the latest version already output to the same customer (alreadyFinalized; nothing reserved, counted or marked); output_notice - that signed quote answers alreadyFinalized and never wouldConsume. Every other channel and every unsigned closed state unchanged. Replays cleanly (CREATE OR REPLACE). Proof: scripts/db-test/tests/475_signed_quote_copy_link.sql."
-    },
-    "20261111100000_free10_work_block_and_signed_notice.sql": {
-      "sha256": "60e1e853ca503d2a2527676ff88b83d5b13e17d4ab18e67cbd592e06e9017e8e",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required' (CREATE OR REPLACE / DROP TRIGGER IF EXISTS / CREATE TABLE IF NOT EXISTS)"
     }
   }
 }

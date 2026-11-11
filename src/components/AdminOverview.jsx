@@ -157,7 +157,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onOpenU
               <div key={a.id} className="av-statline">
                 {/* PRODUCT_TRUTH_CAPABILITY: admin_console */}
                 <button type="button" className="av-business" onClick={() => onOpenUser(a)} style={{ all: 'unset', cursor: 'pointer', minWidth: 0 }}>
-                  <strong><bdi dir={isHebrew ? 'rtl' : 'ltr'}>{a.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</bdi></strong>
+                  <strong><bdi>{a.business_name || (isHebrew ? 'עסק ללא שם' : 'Unnamed business')}</bdi></strong>
                   <span className="av-mail">{a.email}</span>
                 </button>
                 <bdi className="av-num av-small">{accountDate(a.created_at, a, adminMarket)}</bdi>
@@ -184,7 +184,7 @@ export default function AdminOverview({ accounts, isHebrew, onGoToUsers, onOpenU
                 <div>
                   <strong>{a ? t(isHebrew, a.he, a.en) : t(isHebrew, C.unknownAction.he, C.unknownAction.en)}</strong>
                   {/* the sketch: the account, then the outcome (and why, when it did not succeed) */}
-                  <p>{target ? <bdi dir={isHebrew ? 'rtl' : 'ltr'}>{target.business_name || target.email}</bdi> : <span className="av-muted">{isHebrew ? 'חשבון שאינו זמין' : 'Account no longer available'}</span>}</p>
+                  <p>{target ? <bdi>{target.business_name || target.email}</bdi> : <span className="av-muted">{isHebrew ? 'חשבון שאינו זמין' : 'Account no longer available'}</span>}</p>
                   {o && <span className={`av-badge av-${o.tone}`}>{t(isHebrew, o.he, o.en)}</span>}
                   {row.outcome !== 'success' && row.reason && <p className="av-small av-muted"><bdi dir="auto">{row.reason}</bdi></p>}
                 </div>

@@ -49,6 +49,6 @@ describe('wiring (source)', () => {
     expect(s).toMatch(/\{!isSuperAdmin && !lifetimeAccount && \(/);
     const d = src('pages/Dashboard.jsx');
     expect(d).toMatch(/const \{ isLifetime: isLifetimeAccount \} = resolvedIdentity;/);
-    expect(d.match(/isLifetime=\{isLifetimeAccount\}/g)).toHaveLength(3); // + the Free-10 ended bar (Owner 2026-11-11, finding 7)
+    expect(d.match(/isLifetime=\{isLifetimeAccount\}/g)).toHaveLength(2);
   });
 });

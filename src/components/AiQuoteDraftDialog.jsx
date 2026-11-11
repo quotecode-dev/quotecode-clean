@@ -63,7 +63,6 @@ const COPY = {
     againKeep: 'להישאר בטיוטה',
     price: 'מחיר',
     fromCatalog: 'מהקטלוג',
-    fromDescription: 'מהתיאור שלכם', // Owner 2026-11-11 (finding 3, option ב): a price the user wrote in the description
     catalogItem: (name) => `מהקטלוג: ${name}`,
     needsPrice: 'יש להזין מחיר',
     needsPriceNoMatch: 'יש להזין מחיר — לא נמצא פריט תואם בקטלוג',
@@ -142,7 +141,6 @@ const COPY = {
     againKeep: 'Stay in this draft',
     price: 'Price',
     fromCatalog: 'From catalog',
-    fromDescription: 'From your description',
     catalogItem: (name) => `From catalog: ${name}`,
     needsPrice: 'Enter a price',
     needsPriceNoMatch: 'Enter a price — no matching catalog item',
@@ -444,7 +442,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                         {basisText && <span data-testid="ai-quote-draft-basis" style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{basisText}</span>}
                         {missingText && <span data-testid="ai-quote-draft-missing" style={{ fontSize: '0.76rem', color: NEON.amber || NEON.textSecondary, fontWeight: 600 }}>{t.missingLabel}: {missingText}</span>}
                         <span data-testid="ai-quote-draft-price" data-price-source={line.priceSource} style={{ fontSize: '0.76rem', color: NEON.textSecondary }}>{t.price}: {line.unitPrice != null
-                          ? <><bdi className="pf-money" dir="ltr">{money(line.unitPrice)}</bdi> · {line.priceSource === 'description' ? t.fromDescription : (line.catalogName ? t.catalogItem(line.catalogName) : t.fromCatalog)}</>
+                          ? <><bdi className="pf-money" dir="ltr">{money(line.unitPrice)}</bdi> · {line.catalogName ? t.catalogItem(line.catalogName) : t.fromCatalog}</>
                           : <span style={{ color: NEON.amber || NEON.textSecondary, fontWeight: 600 }}>{line.priceSource === 'catalog_unit_unverified' && line.original.catalogName ? t.unitUnverified(line.original.catalogName) : (line.original.catalogName ? t.needsPrice : t.needsPriceNoMatch)}</span>}</span>
                       </span>
                     </li>

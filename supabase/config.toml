@@ -142,14 +142,6 @@ enabled = true
 verify_jwt = false
 entrypoint = "./functions/get-public-quote/index.ts"
 
-[functions.quote-signed-notice]
-enabled = true
-# Owner 2026-11-11 (finding 18): called anonymously by the customer page right after a signature, like get-public-quote. The boundary is in
-# the code: quote id only (UUID), service_role on the server only, the quote must be signed within two hours, one email per quote
-# (quote_signed_owner_notices is written first), the same answer for every id.
-verify_jwt = false
-entrypoint = "./functions/quote-signed-notice/index.ts"
-
 [functions.auth-send-email-hook]
 enabled = true
 # TEST-only preparation (Post-LIVE Priority 1, Auth email localization

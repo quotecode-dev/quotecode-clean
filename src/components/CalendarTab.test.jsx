@@ -90,7 +90,7 @@ describe('Calendar - HE / Local / Israel', () => {
 });
 
 describe('Calendar - EN / International (regular calendar, no holidays)', () => {
-  it('no holiday layer, no holiday labels, no Saturday / holiday classes; DD/MM dates (Owner 2026-11-11)', async () => {
+  it('no holiday layer, no holiday labels, no Saturday / holiday classes; MM/DD dates', async () => {
     const { container } = setup({ isHebrew: false, view: 'month' });
     await waitFor(() => expect(container.querySelector('[data-event-id="task:t1"]')).not.toBeNull());
     expect(container.querySelector('[data-layer="holidays"]')).toBeNull();
@@ -99,7 +99,7 @@ describe('Calendar - EN / International (regular calendar, no holidays)', () => 
     expect([...container.querySelectorAll('.pf-cal-cell')].every((c) => c.getAttribute('data-day-class') === 'ordinary')).toBe(true);
     expect([...container.querySelectorAll('.pf-cal-dow')].map((d) => d.textContent)[0]).toBe('Sun');
     fireEvent.click(container.querySelector('[data-view="day"]'));
-    expect(screen.getByTestId('calendar-period').textContent).toBe('09/10/2026');
+    expect(screen.getByTestId('calendar-period').textContent).toBe('10/09/2026');
   });
   it('Hebrew UI on an International account still shows no holidays (the account market decides, not the language)', () => {
     const { container } = setup({ isHebrew: true, local: false, view: 'month' });

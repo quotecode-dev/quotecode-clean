@@ -72,11 +72,11 @@ export function buildVerifyUrl(supabaseUrl: string, tokenHash: string, verifyTyp
 function wrapEmail(isHebrew: boolean, bodyHtml: string, withLogo = false) {
   return `<!DOCTYPE html>
 <html dir="${isHebrew ? 'rtl' : 'ltr'}" lang="${isHebrew ? 'he' : 'en'}">
-<body dir="${isHebrew ? 'rtl' : 'ltr'}" style="margin:0;padding:0;background:#f8fafc;font-family:Arial,Segoe UI,sans-serif;">
-  <table role="presentation" dir="${isHebrew ? 'rtl' : 'ltr'}" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:24px 0;">
+<body style="margin:0;padding:0;background:#f8fafc;font-family:Arial,Segoe UI,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:24px 0;">
     <tr>
       <td align="center">
-        <table role="presentation" dir="${isHebrew ? 'rtl' : 'ltr'}" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,0.06);">
           <tr>
             <td style="background:${HEADER_BG};padding:${withLogo ? '18px' : '20px'} 28px;" align="${isHebrew ? 'right' : 'left'}">
               ${withLogo
@@ -85,7 +85,7 @@ function wrapEmail(isHebrew: boolean, bodyHtml: string, withLogo = false) {
             </td>
           </tr>
           <tr>
-            <td dir="${isHebrew ? 'rtl' : 'ltr'}" style="padding:28px;direction:${isHebrew ? 'rtl' : 'ltr'};text-align:${isHebrew ? 'right' : 'left'};color:#1e293b;">
+            <td style="padding:28px;text-align:${isHebrew ? 'right' : 'left'};color:#1e293b;">
               ${bodyHtml}
             </td>
           </tr>

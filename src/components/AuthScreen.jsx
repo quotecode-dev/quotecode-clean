@@ -2,7 +2,6 @@
 // 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (AuthScreen.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
 // ==============================================================================
 
-import { useRef, useState } from 'react';
 import ProFlowLogo from './ProFlowLogo';
 import TurnstileWidget from './TurnstileWidget';
 import { CheckCircle2, AlertTriangle, Mail, Lock, LogIn, Rocket, KeyRound, X } from 'lucide-react';
@@ -51,28 +50,6 @@ export default function AuthScreen({
   setResetEmail,
   resetLoading
 }) {
-  // Owner 2026-11-11 (finding 37, typed L-12): an empty / invalid field shows OUR message next to it, in the form's language - never the
-  // browser's own bubble (it was English on the Hebrew form). The fields stay required; only the bubble is replaced (as the tax id field).
-  const [fieldError, setFieldError] = useState(null);
-  const firstInvalidAt = useRef(0);
-  const onInvalidField = (field) => (e) => {
-    e.preventDefault();
-    const now = Date.now();
-    if (now - firstInvalidAt.current < 300) return; // one message: the first invalid field of this attempt
-    firstInvalidAt.current = now;
-    const v = e.target.validity || {};
-    const he = isHebrew;
-    const text = field === 'email'
-      ? (v.valueMissing ? (he ? 'נא למלא כתובת מייל.' : 'Please enter your email address.') : (he ? 'כתובת המייל לא תקינה.' : 'This email address is not valid.'))
-      : field === 'password'
-        ? (he ? 'נא למלא סיסמה.' : 'Please enter a password.')
-        : (he ? 'כדי להירשם צריך לאשר את תנאי השימוש ומדיניות הפרטיות.' : 'To sign up, please accept the Terms of Use and the Privacy Policy.');
-    setFieldError({ field, text });
-    try { e.target.focus({ preventScroll: false }); } catch { /* focus is best effort */ }
-  };
-  const fieldErrorFor = (field) => (fieldError?.field === field
-    ? <p id={`auth-error-${field}`} role="alert" data-testid={`auth-field-error-${field}`} style={{ margin: '4px 0 0', fontSize: '0.78rem', fontWeight: 700, color: '#fca5a5', lineHeight: 1.4 }}>{fieldError.text}</p>
-    : null);
   const isHebURL = typeof window !== 'undefined' && (
     window.location.pathname.startsWith('/he') ||
     window.location.search.includes('lang=he') ||
@@ -210,7 +187,7 @@ export default function AuthScreen({
             ) : (
               // PRODUCT_TRUTH_DECORATIVE: sends the sign-up verification e-mail again (Supabase Auth); changes no product data
               <button type="button" onClick={onResendVerification} disabled={verifyResendState === 'sending'} data-testid="auth-resend-verification-btn"
-                style={{ background: 'transparent', border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, borderRadius: '8px', padding: '8px 14px', minHeight: '44px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                style={{ background: 'transparent', border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, borderRadius: '8px', padding: '8px 14px', minHeight: '40px', fontSize: '0.82rem', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
                 {verifyResendState === 'sending' ? (isHebrew ? 'שולחים…' : 'Sending…') : (isHebrew ? 'שליחה חוזרת של מייל האימות' : 'Resend the verification email')}
               </button>
             )}
@@ -226,16 +203,14 @@ export default function AuthScreen({
               <Mail size={13} color={NEON.violetLight} />
               {isHebrew ? 'כתובת מייל' : 'Email Address'}
             </label>
-            <input type="email" name="user_email_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={emailInput} onChange={(e) => { setEmailInput(e.target.value); if (fieldError?.field === 'email') setFieldError(null); }} onInvalid={onInvalidField('email')} aria-invalid={fieldError?.field === 'email' ? true : undefined} aria-describedby={fieldError?.field === 'email' ? 'auth-error-email' : undefined} required placeholder="user@example.com" style={{ width: '100%', padding: '9px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.9rem' }} />
-            {fieldErrorFor('email')}
+            <input type="email" name="user_email_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={emailInput} onChange={(e) => setEmailInput(e.target.value)} required placeholder="user@example.com" style={{ width: '100%', padding: '9px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.9rem' }} />
           </div>
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '4px' }}>
               <Lock size={13} color={NEON.violetLight} />
               {isHebrew ? 'סיסמה' : 'Password'}
             </label>
-            <input type="password" name="user_password_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={passwordInput} onChange={(e) => { setPasswordInput(e.target.value); if (fieldError?.field === 'password') setFieldError(null); }} onInvalid={onInvalidField('password')} aria-invalid={fieldError?.field === 'password' ? true : undefined} aria-describedby={fieldError?.field === 'password' ? 'auth-error-password' : undefined} required placeholder="••••••••" style={{ width: '100%', padding: '9px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.9rem', direction: 'ltr', textAlign: 'left' }} />
-            {fieldErrorFor('password')}
+            <input type="password" name="user_password_field" autoComplete="off" data-lpignore="true" data-bwignore="true" data-1p-ignore data-dashlane-ignore="true" data-form-type="other" value={passwordInput} onChange={(e) => setPasswordInput(e.target.value)} required placeholder="••••••••" style={{ width: '100%', padding: '9px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.9rem', direction: 'ltr', textAlign: 'left' }} />
           </div>
           {/* Owner 2026-10-15: optional full name + business name, and the required (never pre-ticked) Terms + Privacy consent */}
           {isSignUp && (
@@ -256,7 +231,7 @@ export default function AuthScreen({
               </div>
               <label style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '0.8rem', color: NEON.textSecondary, marginBottom: '16px', lineHeight: 1.5, cursor: 'pointer' }}>
                 {/* PRODUCT_TRUTH_DECORATIVE: the required, unticked Terms of Use + Privacy Policy consent of the signup form */}
-                <input type="checkbox" data-testid="signup-terms-consent" required checked={signupTermsAccepted} onChange={(e) => { setSignupTermsAccepted(e.target.checked); if (fieldError?.field === 'terms') setFieldError(null); }} onInvalid={onInvalidField('terms')} aria-describedby={fieldError?.field === 'terms' ? 'auth-error-terms' : undefined} style={{ marginTop: '3px', flex: 'none', accentColor: NEON.violetLight }} />
+                <input type="checkbox" data-testid="signup-terms-consent" required checked={signupTermsAccepted} onChange={(e) => setSignupTermsAccepted(e.target.checked)} style={{ marginTop: '3px', flex: 'none', accentColor: NEON.violetLight }} />
                 <span>
                   {isHebrew ? 'קראתי את ' : 'I have read and agree to the '}
                   {/* PRODUCT_TRUTH_DECORATIVE: opens the Terms of Use in a new tab (the signup form keeps its input) */}
@@ -267,7 +242,6 @@ export default function AuthScreen({
                   {isHebrew ? ' ובסימון זה ניתנת הסכמתי להם.' : ' of TEKANGO.'}
                 </span>
               </label>
-              {fieldErrorFor('terms')}
             </>
           )}
           {/* Owner console 2026-10-20 (L-12): the robot check of the signup / login form */}
@@ -278,13 +252,11 @@ export default function AuthScreen({
           </button>
         </form>
 
-        {/* Owner 2026-11-11 (finding 39, typed L-12): each link stays on ONE line ("Sign up!" / "Forgot password?" broke in two in English);
-            when both do not fit side by side the second moves under the first as a whole */}
-        <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '8px 12px', fontSize: '0.8rem' }}>
+        <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.8rem' }}>
           <button
             type="button"
             onClick={() => setIsSignUp(!isSignUp)}
-            style={{ background: 'none', border: 'none', color: NEON.violetLight, cursor: 'pointer', fontWeight: '600', padding: 0, whiteSpace: 'nowrap' }}
+            style={{ background: 'none', border: 'none', color: NEON.violetLight, cursor: 'pointer', fontWeight: '600', padding: 0 }}
           >
             {isSignUp
               ? (isHebrew ? 'כבר יש חשבון? כניסה למערכת' : 'Already have an account? Sign in')
@@ -294,7 +266,7 @@ export default function AuthScreen({
             <button
               type="button"
               onClick={() => setForgotOpen(true)}
-              style={{ background: 'none', border: 'none', color: NEON.textSecondary, cursor: 'pointer', textDecoration: 'underline', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}
+              style={{ background: 'none', border: 'none', color: NEON.textSecondary, cursor: 'pointer', textDecoration: 'underline', padding: 0, display: 'inline-flex', alignItems: 'center', gap: '4px' }}
             >
               <KeyRound size={12} />
               {isHebrew ? 'שכחת סיסמה?' : 'Forgot password?'}

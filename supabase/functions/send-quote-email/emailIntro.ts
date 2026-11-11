@@ -1,7 +1,7 @@
 // Task 28: the intro paragraph of the quote email. The owner's default share text (business_share_defaults.share_text, read by
 // index.ts for the VERIFIED owner of the quote only) replaces the built-in sentence, rendered by the ONE shared formatter as escaped HTML
 // with every variable value server-derived (customer / business / number / total). No owner text -> the built-in sentence (Task 29: the
-// business name HTML-escaped once; Owner 2026-11-11 (finding 11): the quote waits at the link - never "attached"; byte-identical to the previous template for safe names). The recipient, subject, link button, region and money are unchanged; the quote link stays the button only.
+// business name HTML-escaped once; byte-identical to the previous template for safe names). The recipient, subject, link button, region and money are unchanged; the quote link stays the button only.
 import { escapeHtml, renderShareTemplate } from '../_shared/shareMessage.js';
 
 export function emailIntroHtml(opts: {
@@ -11,6 +11,6 @@ export function emailIntroHtml(opts: {
   const custom = renderShareTemplate(typeof opts.shareText === 'string' ? opts.shareText : null, opts.vars, { format: 'html', rtl: opts.hebrew });
   if (custom !== null) return custom;
   return opts.hebrew
-    ? `הצעת המחיר מאת <strong>${escapeHtml(opts.bizTitle)}</strong> ממתינה לכם בקישור שלמטה.`
-    : `Your quote from <strong>${escapeHtml(opts.bizTitle)}</strong> is waiting for you at the link below.`;
+    ? `מצורפת הצעת המחיר מאת <strong>${escapeHtml(opts.bizTitle)}</strong>.`
+    : `Please find your quote attached from <strong>${escapeHtml(opts.bizTitle)}</strong>.`;
 }

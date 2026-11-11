@@ -112,20 +112,18 @@ describe('PublicQuoteHeader - Desktop branch unaffected by the Mobile fix', () =
     expect(card).toBeTruthy();
   });
 
-  // Owner 2026-11-11 (finding 12, option א; typed L-24, L-28): no validity date -> "תוקף: 30 יום" / "Validity: 30 days" - shown and printed
-  it('keeps the three-cell skeleton when valid_until is missing and says "30 days" (no date is invented)', () => {
+  it('keeps the three-cell screen skeleton when valid_until is missing, without inventing a date', () => {
     const { container } = render(<PublicQuoteHeader {...baseProps} quote={{ ...baseQuote, valid_until: null }} isHebrew={true} />);
     const cells = container.querySelectorAll('.pq-meta-cell');
     expect(cells).toHaveLength(3);
-    expect(container.querySelector('.pq-meta-placeholder')).toBeNull();
-    const valid = container.querySelector('.pq-header-valid');
-    expect(valid.textContent).toBe('30 יום');
-    expect(valid.closest('.pq-meta-cell').classList.contains('no-print')).toBe(false);
-    expect(container.textContent).toContain('תוקף');
-    expect(valid.textContent).not.toMatch(/\d{2}\/\d{2}\/\d{4}/);
-    const en = render(<PublicQuoteHeader {...baseProps} quote={{ ...baseQuote, valid_until: null }} isHebrew={false} />);
-    expect(en.container.querySelector('.pq-header-valid').textContent).toBe('30 days');
-    expect(en.container.textContent).toContain('Validity');
+    const placeholder = container.querySelector('.pq-meta-placeholder');
+    expect(placeholder).toBeTruthy();
+    expect(placeholder.classList.contains('no-print')).toBe(true);
+    expect(placeholder.getAttribute('data-html2canvas-ignore')).toBe('true');
+    // Owner 2026-10-19 (option ב): the same place and size, but nothing visible and nothing announced - no label, no dash
+    expect(placeholder.style.visibility).toBe('hidden');
+    expect(placeholder.getAttribute('aria-hidden')).toBe('true');
+    expect(placeholder.getAttribute('aria-label')).toBeNull();
   });
 });
 

@@ -127,18 +127,15 @@ describe('followUpDraftFor (hot quote -> task form; nothing is created)', () => 
 });
 
 describe('market-ordered entry (IRON-DATE-001)', () => {
-  // Owner 2026-11-11 (IRON-DATE-001 as amended): every business reads DD/MM/YYYY, a business in the United States MM/DD/YYYY
-  it('Local and International read DD/MM/YYYY, a US business MM/DD/YYYY; impossible dates are refused', async () => {
+  it('Local reads DD/MM/YYYY, International MM/DD/YYYY; impossible dates are refused', async () => {
     const { parseMarketDate, parseTimeText, marketDatePattern } = await import('./manualTasks');
     expect(parseMarketDate('09/10/2026', 'Local')).toBe('2026-10-09');
-    expect(parseMarketDate('09/10/2026', 'International')).toBe('2026-10-09');
-    expect(parseMarketDate('09/10/2026', 'US')).toBe('2026-09-10');
+    expect(parseMarketDate('09/10/2026', 'International')).toBe('2026-09-10');
     expect(parseMarketDate('9-1-2026', 'Local')).toBe('2026-01-09');
     expect(parseMarketDate('31/04/2026', 'Local')).toBeNull();
     expect(parseMarketDate('2026-10-09', 'Local')).toBeNull();
     expect(marketDatePattern('Local')).toBe('DD/MM/YYYY');
-    expect(marketDatePattern('International')).toBe('DD/MM/YYYY');
-    expect(marketDatePattern('US')).toBe('MM/DD/YYYY');
+    expect(marketDatePattern('International')).toBe('MM/DD/YYYY');
     expect(parseTimeText('9:30')).toBe('09:30');
     expect(parseTimeText('23:59')).toBe('23:59');
     expect(parseTimeText('24:00')).toBeNull();

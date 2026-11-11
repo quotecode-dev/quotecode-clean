@@ -312,13 +312,12 @@ describe('QuotesTab email indicator (functional, not decorative)', () => {
     expect(screen.getByText('כתובת המייל אינה קיימת')).toBeInTheDocument();
   });
 
-  // Owner 2026-11-11 (finding 10): the success is said once, in the message "Email sent to <address>" - never a second line in the card
-  it('renders no second success line in the card when emailStatus is "success"', () => {
+  it('renders a success-state message when emailStatus is "success"', () => {
     const props = buildProps(false, { id: baseQuote.id, email_bounced: false });
     props.emailStatuses = { [baseQuote.id]: 'success' };
     render(<QuotesTab {...props} />);
     expandFirstRow();
-    expect(screen.queryByText('Email sent successfully')).not.toBeInTheDocument();
+    expect(screen.getByText('Email sent successfully')).toBeInTheDocument();
   });
 });
 
@@ -947,10 +946,10 @@ describe('QuotesTab dates follow the account market, not the UI language', () =>
   const late = { ...baseQuote, id: 'late', created_at: '2026-01-15T23:30:00.000Z' };
   const dateOf = (c) => c.querySelector('.quote-modern-date').textContent;
   it.each([
-    ['Hebrew UI on an International account', true, false, '15/01/2026'],
+    ['Hebrew UI on an International account', true, false, '01/15/2026'],
     ['English UI on a Local account', false, true, '16/01/2026'],
     ['Hebrew UI on a Local account', true, true, '16/01/2026'],
-    ['English UI on an International account', false, false, '15/01/2026'],
+    ['English UI on an International account', false, false, '01/15/2026'],
   ])('%s', (_label, isHebrew, isLocalIsraeliBusiness, expected) => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-10-08T12:00:00.000Z'));

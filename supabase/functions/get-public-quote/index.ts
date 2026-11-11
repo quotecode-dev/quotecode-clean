@@ -5,7 +5,6 @@ import { resolvePublicThanks, type ThanksRow } from './thanks.ts'
 import { decideLegacyAccess, outputPhaseOf, parsePublicRequest, rendererFromSignedRecord, serveCapability, serveGrant, signedRecordAttachments, UNIFORM_NOT_FOUND, type CapabilityDeps, type LiveQuote, type SignedRecord } from './publicAccess.ts'
 import { tokenHash } from '../_shared/capabilityToken.ts'
 import { classifyPhaseRead, isMissingFunctionError } from '../_shared/activationPhase.ts'
-import { isUsCountry } from '../_shared/shortDate.js'
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
@@ -232,8 +231,6 @@ serve(async (req) => {
           // Owner 2026-10-25 (typed L-24): who signed (stored with the signature; undefined on the flat fallback select)
           signer_name: quote.signer_name, signer_company: quote.signer_company, signer_role: quote.signer_role, signed_at: quote.signed_at,
         },
-        // Owner 2026-11-11 (IRON-DATE-001 as amended): the date order of the business (its country is read here already)
-        dateOrder: isUsCountry(bizRow?.country) ? 'MDY' : 'DMY',
         business: bizRow ? {
           business_name: bizRow.business_name, logo_url: bizRow.logo_url, tax_id: bizRow.tax_id,
           email: bizRow.email, phone: bizRow.phone, address: bizRow.address, currency: bizRow.currency,
@@ -324,23 +321,6 @@ serve(async (req) => {
       throw new Error('the quote keeps changing');
     };
     // the legacy id link
-    // Owner 2026-11-11 (IRON-DATE-001 as amended): the customer page shows the dates in the order of the business that sent the quote -
-    // month first for a business in the United States, day first for every other business. ONLY this order is added (never the country).
-    const respondQuote = async (body: Record<string, unknown>, status = 200): Promise<Response> => {
-      const quoteId = status === 200 && body && typeof body === 'object' && body.quote && typeof (body.quote as { id?: unknown }).id === 'string'
-        ? (body.quote as { id: string }).id : null;
-      if (!quoteId || body.dateOrder === 'MDY' || body.dateOrder === 'DMY') return jsonResponse(body, status);
-      let dateOrder = 'DMY';
-      try {
-        const { data: q } = await adminClient.from('quotes').select('user_id').eq('id', quoteId).maybeSingle();
-        if (q?.user_id) {
-          const { data: b } = await adminClient.from('business_settings').select('country').eq('user_id', q.user_id).maybeSingle();
-          if (isUsCountry(b?.country)) dateOrder = 'MDY';
-        }
-      } catch { /* the default order */ }
-      return jsonResponse({ ...body, dateOrder }, status);
-    };
-
     const serveLegacy = async (quoteId: string): Promise<Response> => {
       // Legacy id mode: unchanged while free_issue is not enforced ('absent' = the subscription schema is not applied here).
       // Enforced: only the verified owner (owner preview, non-consuming) or an is_legacy_public_quote id; everything else gets
@@ -365,11 +345,11 @@ serve(async (req) => {
         // the document frozen at the signature or nothing
         const sb = await signedBody(st);
         if (!sb) { console.error('get-public-quote: signed_document_unreadable'); return jsonResponse({ error: 'temporarily_unavailable' }, 503); }
-        return await respondQuote({ ...sb, viewerIsOwner: Boolean(callerUserId && callerUserId === st.userId), outputPhase });
+        return jsonResponse({ ...sb, viewerIsOwner: Boolean(callerUserId && callerUserId === st.userId), outputPhase }, 200);
       }
       const b = st ? await liveBodyWithVersion(quoteId, st) : await readLiveBody(quoteId);
       if (!b) return jsonResponse({ error: 'Quote not found' }, 404);
-      return await respondQuote(b);
+      return jsonResponse(b, 200);
     };
 
     // Owner console 2026-11-08: a capability link shows the LIVE saved quote until its signature (same owner AND the same customer it was
@@ -388,11 +368,11 @@ serve(async (req) => {
           // the document frozen at the signature or nothing - never an older issued copy with the live signature on it
           const sb = await signedBody(st);
           if (!sb) { console.error('get-public-quote: signed_document_unreadable'); return jsonResponse({ error: 'temporarily_unavailable' }, 503); }
-          return await respondQuote({ ...sb, ...extra });
+          return jsonResponse({ ...sb, ...extra }, 200);
         } else if (!st.signed) {
           const b = await liveBodyWithVersion(st.quoteId as string, st);
           if (!b) return jsonResponse({ ...UNIFORM_NOT_FOUND.body }, UNIFORM_NOT_FOUND.status);
-          return await respondQuote({ ...b, ...extra });
+          return jsonResponse({ ...b, ...extra }, 200);
         }
       }
     }
@@ -430,7 +410,7 @@ serve(async (req) => {
         onIncident: (code) => console.error(`get-public-quote: ${code}`),
       };
       const r = request.mode === 'capability' ? await serveCapability(deps, request.token) : await serveGrant(deps, request.grant, request.channel);
-      return await respondQuote(r.body as Record<string, unknown>, r.status);
+      return jsonResponse(r.body, r.status);
     }
     return await serveLegacy(request.quoteId);
   } catch (error: unknown) {

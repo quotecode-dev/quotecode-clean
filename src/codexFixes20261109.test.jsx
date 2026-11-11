@@ -83,7 +83,7 @@ describe('4 · a Tax ID of spaces only is missing too', () => {
   it('the business Tax ID field also needs a non-space character (the same message and focus as an empty field)', () => {
     const f = read('src/components/QuoteForm.jsx');
     expect(f).toContain('const TAX_ID_NOT_BLANK = String.raw`.*\\S.*`;');
-    expect(f).toContain('pattern={taxIdRequired ? TAX_ID_NOT_BLANK : undefined}'); // Owner 2026-11-11 (finding 5): required in the Israeli market only
+    expect(f).toContain("pattern={clientType === 'business' ? TAX_ID_NOT_BLANK : undefined}");
     expect(new RegExp(`^(?:${String.raw`.*\S.*`})$`).test('   ')).toBe(false);
     expect(new RegExp(`^(?:${String.raw`.*\S.*`})$`).test(' 51-234567-8 ')).toBe(true);
   });

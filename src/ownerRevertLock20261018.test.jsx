@@ -124,8 +124,7 @@ describe('L-25 one market rule (Codex LANG-01 / LANG-02) and the admin dialog ba
   it('LANG-01: an unknown stored country is International everywhere; the stored value is kept on save', () => {
     const dash = read('pages/Dashboard.jsx');
     expect(dash).toContain("const countryVal = canonicalMarket(data.country) || 'International';");
-    // Owner 2026-11-11 (IRON-DATE-001 as amended): a business abroad that chose its country stores its code; otherwise the same rule
-    expect(dash).toContain(": (storedCountryRef.current && (canonicalMarket(storedCountryRef.current) || 'International') === bizCountry ? storedCountryRef.current : bizCountry),");
+    expect(dash).toContain("country: storedCountryRef.current && (canonicalMarket(storedCountryRef.current) || 'International') === bizCountry ? storedCountryRef.current : bizCountry,");
     expect(canonicalMarket('ZZ')).toBeNull();
     expect(canonicalMarket(' israel ')).toBe('Local');
   });
