@@ -150,7 +150,6 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
     // 2026-11-12 (unified quote): the two add buttons, plus (Owner 2026-10-15) the price step's way back to step 2 while the quote has no item
     expect(screen.getByTestId('sq-add-work')).toBeTruthy();
     expect(screen.getByTestId('sq-add-places')).toBeTruthy();
-    expect(screen.getByTestId('sq-price-go-rows')).toBeTruthy();
     expect(screen.queryByText('How would you like to structure this quote?')).toBeNull();
     expect(screen.queryByText('Regular quote')).toBeNull();
     expect(screen.queryByText(/Smart Quote/)).toBeNull();
@@ -188,7 +187,9 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
 
   it('SMART-QUOTE-03: a NEW quote offers no status choice - it is a Draft; Sent/Approved/Paid are edit-time lifecycle actions', () => {
     render(<QuoteForm {...baseProps({ editingQuoteId: null })} />);
-    expect(screen.getByTestId('sq-status-draft')).toHaveTextContent('Draft');
+    // 2026-11-12 (the demo summary): no status control for a new quote; it is saved as a draft ("saving is not sending")
+    expect(screen.queryByRole('combobox', { name: /status/i })).toBeNull();
+    expect(screen.getByTestId('sq-save-note')).toHaveTextContent('Saving is not sending');
     expect(screen.queryByRole('option', { name: 'Paid' })).toBeNull();
     expect(screen.queryByRole('option', { name: 'Approved' })).toBeNull();
   });
@@ -731,7 +732,7 @@ describe('QuoteForm - unit templates (stage 4)', () => {
 describe('QuoteForm - the summary and the quote details (unified quote)', () => {
   it('one total ("Total to pay") right above the one save, and the note under it', () => {
     render(<QuoteForm {...baseProps()} />);
-    expect(screen.getAllByText('Total to pay:')).toHaveLength(1);
+    expect(screen.getAllByText('Total to pay')).toHaveLength(1);
     expect([...screen.getByTestId('sq-summary').querySelectorAll('span')].filter((el) => /^Total/.test(el.textContent))).toHaveLength(1);
     expect(screen.getByTestId('sq-save-total').nextElementSibling).toBe(screen.getByTestId('sq-save'));
     expect(screen.getByTestId('sq-save-note').textContent).toBe('Saving is not sending. You can change it later too.');
@@ -740,13 +741,13 @@ describe('QuoteForm - the summary and the quote details (unified quote)', () => 
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided',
       sections: [{ key: 's1', name: 'Apartment 1', kind: 'apartment', repeat_count: 2 }],
       items: [makeItem({ description: 'Flooring', unit_price: '150', section_key: 's1' }), makeItem({ description: 'Windows', unit_price: '', section_key: 's1' })] })} />);
-    expect(screen.getByTestId('sq-summary-counts').textContent).toBe('Apartments: 2 · Work items: 2');
+    expect(screen.getByTestId('sq-summary-counts').textContent).toBe('Number of apartments: 2Work items in all copies: 4');
     expect(screen.getByTestId('sq-summary-missing').textContent).toBe('Price missing in 1 work item(s) (not priced yet)');
   });
   it('the details card names every extra; open, it has the discount, and an edit has its status there', () => {
     render(<QuoteForm {...baseProps({ isHebrew: true, sym: '₪', editingQuoteId: 'q1', quoteStatus: 'Draft', onSaveAsTemplate: vi.fn() })} />);
     expect(screen.getByTestId('sq-step-4').textContent).toContain('פרטי ההצעה');
-    expect(screen.getByTestId('sq-more-details-toggle').textContent).toContain('פרויקט, כתובת ותוקף · קבצים · תנאים ואחריות · הערות · הנחה · עיצוב ותמונות · מטבע · שמירה כתבנית');
+    expect(screen.getByTestId('sq-details').textContent).toContain('קבצים · תנאים ואחריות · הערות · הנחה · עיצוב ותמונות · מטבע · פרויקט ותוקף · שמירה כתבנית');
     if (!screen.queryByTestId('sq-more-details')) fireEvent.click(screen.getByTestId('sq-more-details-toggle'));
     const details = screen.getByTestId('sq-more-details');
     expect(details.querySelector('[data-testid="sq-discount"]')).not.toBeNull();

@@ -337,7 +337,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
     he: {
       task: "צירוף קובץ להצעה",
       steps: [
-        "בעורך ההצעה פותחים את הכרטיס \"פרטי ההצעה\" (\"פתיחת פרטי ההצעה\").",
+        "בעורך ההצעה, בכרטיס \"פרטי ההצעה\", לוחצים \"פתיחה\".",
         "בקטע \"קבצים מצורפים / שרטוטים\" לוחצים על כפתור צירוף הקובץ ובוחרים את הקובץ.",
         "לוחצים \"שמירת ההצעה\".",
       ],
@@ -345,13 +345,13 @@ export const PRODUCT_HOW_TO = Object.freeze([
     en: {
       task: "Attaching a file to a quote",
       steps: [
-        "In the quote editor open the \"Quote details\" card (\"Open quote details\").",
+        "In the quote editor, in the \"Quote details\" card, click \"Open\".",
         "In the \"Attachments\" section click the attach-file button and choose the file.",
         "Click \"Save the quote\".",
       ],
     },
     evidence: [
-      { file: 'src/components/QuoteForm.jsx', labels: ["פרטי ההצעה","Quote details","פתיחת פרטי ההצעה","Open quote details","קבצים מצורפים / שרטוטים","Attachments","צירוף קובץ","Attach file","שמירת ההצעה","Save the quote"] },
+      { file: 'src/components/QuoteForm.jsx', labels: ["פרטי ההצעה","Quote details","פתיחה","Open","קבצים מצורפים / שרטוטים","Attachments","צירוף קובץ","Attach file","שמירת ההצעה","Save the quote"] },
     ],
   },
   {
@@ -482,7 +482,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
     he: {
       task: "קביעת תוקף להצעה",
       steps: [
-        "בעורך ההצעה פותחים את הכרטיס \"פרטי ההצעה\" (\"פתיחת פרטי ההצעה\").",
+        "בעורך ההצעה, בכרטיס \"פרטי ההצעה\", לוחצים \"פתיחה\".",
         "בשדה \"בתוקף עד\" בוחרים את התאריך האחרון שבו הלקוח יכול לחתום, ולוחצים \"שמירת ההצעה\".",
         "אחרי התאריך הלקוח עדיין רואה את ההצעה, אבל אי אפשר לחתום עליה.",
       ],
@@ -490,13 +490,13 @@ export const PRODUCT_HOW_TO = Object.freeze([
     en: {
       task: "Setting how long a quote is valid",
       steps: [
-        "In the quote editor open the \"Quote details\" card (\"Open quote details\").",
+        "In the quote editor, in the \"Quote details\" card, click \"Open\".",
         "In the \"Valid Until\" field choose the last date the client can sign, and click \"Save the quote\".",
         "After that date the client still sees the quote but can no longer sign it.",
       ],
     },
     evidence: [
-      { file: 'src/components/QuoteForm.jsx', labels: ["פרטי ההצעה","Quote details","פתיחת פרטי ההצעה","Open quote details","פרויקט, כתובת ותוקף","שמירת ההצעה","Save the quote"] },
+      { file: 'src/components/QuoteForm.jsx', labels: ["פרטי ההצעה","Quote details","פתיחה","Open","פרויקט ותוקף","שמירת ההצעה","Save the quote"] },
       { file: 'src/pages/Dashboard.jsx', labels: ["בתוקף עד","Valid Until"] },
     ],
   },
@@ -506,19 +506,19 @@ export const PRODUCT_HOW_TO = Object.freeze([
     he: {
       task: "מתן הנחה בהצעה",
       steps: [
-        "בעורך ההצעה פותחים את הכרטיס \"פרטי ההצעה\" (\"פתיחת פרטי ההצעה\") וממלאים \"הנחה על כל ההצעה (%)\" - אחוז בין 0 ל-100.",
+        "בעורך ההצעה, בכרטיס \"פרטי ההצעה\", לוחצים \"פתיחה\" וממלאים \"הנחה על כל ההצעה (%)\" - אחוז בין 0 ל-100.",
         "הסכום ב\"סיכום ההצעה\" מתעדכן מיד. הנחה למוצר אחד בלבד נותנים דרך המחיר של אותה שורה.",
       ],
     },
     en: {
       task: "Giving a discount in a quote",
       steps: [
-        "In the quote editor open the \"Quote details\" card (\"Open quote details\") and fill in \"Discount on the whole quote (%)\" - a percentage between 0 and 100.",
+        "In the quote editor, in the \"Quote details\" card, click \"Open\" and fill in \"Discount on the whole quote (%)\" - a percentage between 0 and 100.",
         "The total in the \"Quote summary\" updates at once. A discount on a single item is given through that line's own price.",
       ],
     },
     evidence: [
-      { file: 'src/components/QuoteForm.jsx', labels: ["פרטי ההצעה","Quote details","פתיחת פרטי ההצעה","Open quote details","סיכום ההצעה","Quote summary","הנחה על כל ההצעה (%)","Discount on the whole quote (%)","הנחה יכולה להיות בין 0 ל־100."] },
+      { file: 'src/components/QuoteForm.jsx', labels: ["פרטי ההצעה","Quote details","פתיחה","Open","סיכום ההצעה","Quote summary","הנחה על כל ההצעה (%)","Discount on the whole quote (%)","הנחה יכולה להיות בין 0 ל־100."] },
     ],
   },
   {
@@ -527,7 +527,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
     he: {
       task: "תנאי תשלום, מקדמה ואחריות בהצעה",
       steps: [
-        "בעורך ההצעה פותחים את הכרטיס \"פרטי ההצעה\" (\"פתיחת פרטי ההצעה\") ומגיעים ל\"תנאים ואחריות\".",
+        "בעורך ההצעה, בכרטיס \"פרטי ההצעה\", לוחצים \"פתיחה\" ומגיעים ל\"תנאים ואחריות\".",
         "לוחצים \"התאמה להצעה זו\" וכותבים את תנאי התשלום, למשל מקדמה ותשלומים, ואת האחריות. זה טקסט שהלקוח רואה בהצעה; המערכת אינה גובה את התשלום.",
         "כדי שהתנאים ייכנסו אוטומטית לכל הצעה חדשה: ב\"הגדרות העסק\" ממלאים \"תנאים כלליים להצעות חדשות — ברירת מחדל\" ולוחצים \"שמירת הגדרות העסק\".",
       ],
@@ -535,13 +535,13 @@ export const PRODUCT_HOW_TO = Object.freeze([
     en: {
       task: "Payment terms, a deposit and warranty in a quote",
       steps: [
-        "In the quote editor open the \"Quote details\" card (\"Open quote details\") and go to \"Terms & Warranty\".",
+        "In the quote editor, in the \"Quote details\" card, click \"Open\" and go to \"Terms & Warranty\".",
         "Click \"Customize for this quote\" and write the payment terms, for example a deposit or installments, and the warranty. It is text the client sees in the quote; TEKANGO does not collect the payment.",
         "To have the terms in every new quote: in \"Business Settings\" fill in \"Default Terms & Conditions for New Quotes\" and click \"Save Business Settings\".",
       ],
     },
     evidence: [
-      { file: 'src/components/QuoteForm.jsx', labels: ["פרטי ההצעה","Quote details","פתיחת פרטי ההצעה","Open quote details","תנאים ואחריות","Terms & Warranty","התאמה להצעה זו","Customize for this quote"] },
+      { file: 'src/components/QuoteForm.jsx', labels: ["פרטי ההצעה","Quote details","פתיחה","Open","תנאים ואחריות","Terms & Warranty","התאמה להצעה זו","Customize for this quote"] },
       { file: 'src/components/SettingsTab.jsx', labels: ["תנאים כלליים להצעות חדשות — ברירת מחדל","Default Terms & Conditions for New Quotes","שמירת הגדרות העסק","Save Business Settings"] },
       { file: 'src/pages/Dashboard.jsx', labels: ["הגדרות העסק","Business Settings"] },
     ],

@@ -81,15 +81,16 @@ describe('plan section 3: client details and the VAT basis', () => {
     expect(screen.getByTestId('sq-client-contact-toggle').getAttribute('aria-expanded')).toBe('true');
   });
 
+  // 2026-11-12 (the demo summary, Owner-approved): the VAT notice at the top says how the prices are meant (it replaced the summary line)
   it('the totals say how the prices are meant: business before VAT, private including VAT; nothing for International', () => {
     render(<QuoteForm {...props({ clientType: 'business' })} />);
-    expect(screen.getByTestId('sq-prices-vat-basis').textContent).toBe('המחירים בהצעה לפני מע״מ');
+    expect(screen.getByTestId('sq-vat-notice').textContent).toContain('ללא מע״מ');
     cleanup();
     render(<QuoteForm {...props({ clientType: 'private' })} />);
-    expect(screen.getByTestId('sq-prices-vat-basis').textContent).toBe('המחירים בהצעה כוללים מע״מ');
+    expect(screen.getByTestId('sq-vat-notice').textContent).toContain('כולל מע״מ');
     cleanup();
     render(<QuoteForm {...props({ isHebrew: false, isLocalIsraeliBusiness: false, sym: '$', currency: 'USD' })} />);
-    expect(screen.queryByTestId('sq-prices-vat-basis')).toBeNull();
+    expect(screen.queryByTestId('sq-vat-notice')).toBeNull();
     expect(screen.queryByTestId('sq-client-type-vat-help')).toBeNull();
   });
 });
@@ -111,10 +112,9 @@ describe('plan section 4: save and issue wording', () => {
 describe('Owner 2026-10-15 (David): the price step points to the item, the discount is a 0-100 percentage', () => {
   it('with no item: the price step says where the price goes and opens the item window', () => {
     render(<Stateful />);
-    const hint = screen.getByTestId('sq-price-needs-item');
-    // 2026-11-12 (unified quote): the summary says where the price goes; its button opens the work window; the discount is in the quote details
-    expect(hint.textContent).toContain('עדיין אין עבודות בהצעה. המחיר נכנס בכל עבודה או מוצר.');
-    fireEvent.click(screen.getByTestId('sq-price-go-rows'));
+    // 2026-11-12 (the demo): the work card says where the work and the prices appear; its button opens the work window; the discount is in the quote details
+    expect(screen.getByTestId('sq-empty-work').textContent).toContain('כאן יופיעו העבודות והמחירים.');
+    fireEvent.click(screen.getByTestId('sq-add-work'));
     expect(screen.getByTestId('work-item-dialog')).toBeTruthy();
     fireEvent.click(screen.getByTestId('sq-more-details-toggle'));
     expect(screen.getByText('הנחה על כל ההצעה (%)')).toBeTruthy();

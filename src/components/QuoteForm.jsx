@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useContext } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { phonePlaceholder } from '../utils/phoneDisplay';
 import { businessDial, joinPhone } from '../utils/phoneDial';
 import DraggableCalculator from './DraggableCalculator';
@@ -7,8 +7,6 @@ import QuoteRowsEditor from './QuoteRowsEditor';
 import WorkItemDialog from './WorkItemDialog';
 import PlacesDialog from './PlacesDialog';
 import { defaultGroupName, groupWord } from '../utils/quoteGroups';
-import { createPortal } from 'react-dom';
-import { CreatorAsideContext } from './quotePresentation/creatorAside';
 import { rowEntry } from '../utils/quoteItemEntry';
 import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Plus, CopyPlus, ChevronDown, Pencil, RotateCcw, FileText, Building2, ArrowLeft, ArrowRight, MoreVertical } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
@@ -533,8 +531,6 @@ export default function QuoteForm({
   // 2026-11-12 (unified quote): the work window (target group) and the places window
   const [workTarget, setWorkTarget] = useState(undefined);
   const [placesOpen, setPlacesOpen] = useState(false);
-  // 2026-11-12: on a computer the summary sits beside the live preview (QuoteCreatorLayout gives the slot); otherwise it stays inline
-  const asideSlot = useContext(CreatorAsideContext);
   const realItemsNow = (items || []).filter((it) => it && !isUntouchedPlaceholderItem(it) && String(it.description || '').trim() !== '');
   const missingPriceCount = realItemsNow.filter((it) => it.unit_price === '' || it.unit_price == null).length;
   const groupKindNow = ((sections || []).find((sec) => sec && sec.kind) || {}).kind || null;
@@ -837,12 +833,12 @@ export default function QuoteForm({
         {flowStep === 'editor' && typeof onFlowStep === 'function' ? (
           <>
             {/* 2026-11-12 (unified quote): the client is chosen first; here a short strip with one way back to the client step */}
+            {vatNotice}
             <div className="sq-client-strip" data-testid="sq-client-strip">
               <span><strong>{clientName}</strong><small>{clientType === 'business' ? (isHebrew ? 'לקוח עסקי' : 'Business client') : (isHebrew ? 'לקוח פרטי' : 'Private client')}</small></span>
               {/* PRODUCT_TRUTH_DECORATIVE: goes back to the client step of the same quote (nothing is lost) */}
               <button type="button" className="sq-client-strip-edit" onClick={() => onFlowStep('client')}>{isHebrew ? 'עריכת הלקוח' : 'Edit client'}</button>
             </div>
-            {vatNotice}
           </>
         ) : (<>
         <StepHeading n={1} title={isHebrew ? 'למי מכינים את ההצעה?' : 'Who is this quote for?'} />
@@ -1003,6 +999,8 @@ export default function QuoteForm({
             <button type="button" className="sq-continue" data-testid="sq-client-continue" onClick={continueFromClient}>{isHebrew ? 'להמשך' : 'Continue'}</button>
           </div>
         ) : (<>
+        <div className="sq-editor-grid" data-testid="sq-editor-grid">
+        <div className="sq-g-head">
         <StepHeading n={2} title={isHebrew ? 'מה מוסיפים להצעה?' : 'What goes in the quote?'} />
         <div style={{ marginBottom: '10px' }}>
 
@@ -1015,17 +1013,10 @@ export default function QuoteForm({
             UI לניהול-יחידות לא מוצג במצב הזה בכלל. */}
         {/* PRODUCT_TRUTH_CAPABILITY: smart_quote */}
         {structureMode === 'regular' && (
-          <div className="sq-add-bar">
-            <div className="sq-add-choice">
-              {/* PRODUCT_TRUTH_DECORATIVE: opens the work window (work, place, calculation, price) for the quote's list */}
-              <button type="button" className="sq-add-btn sq-add-btn--primary" data-testid="sq-add-work" onClick={() => setWorkTarget({ key: null })}>{isHebrew ? '+ הוספת עבודה או מוצר' : '+ Add work or a product'}</button>
-              <small>{isHebrew ? 'להצעה רגילה: מוסיפים עבודות ומוצרים ישר לרשימה.' : 'For a regular quote: add work and products straight to the list.'}</small>
-            </div>
-            <div className="sq-add-choice">
-              {/* PRODUCT_TRUTH_DECORATIVE: opens the places window (apartments / rooms / floors, how many, identical) */}
-              <button type="button" className="sq-add-btn" data-testid="sq-add-places" onClick={() => setPlacesOpen(true)}>{isHebrew ? '+ הוספת דירה, חדר או קומה' : '+ Add an apartment, room or floor'}</button>
-              <small>{isHebrew ? 'כשיש כמה מקומות: מחלקים את ההצעה לדירות, חדרים או קומות, ולכל אחד העבודות שלו.' : 'When there are several places: split the quote into apartments, rooms or floors, each with its own work.'}</small>
-            </div>
+          <div className="sq-add-choice sq-add-choice--places">
+            {/* PRODUCT_TRUTH_DECORATIVE: opens the places window (apartments / rooms / floors, how many, identical) */}
+            <button type="button" className="sq-add-btn" data-testid="sq-add-places" onClick={() => setPlacesOpen(true)}>{isHebrew ? '+ הוספת דירה, חדר או קומה' : '+ Add an apartment, room or floor'}</button>
+            <small>{isHebrew ? 'כשיש כמה מקומות: מחלקים את ההצעה לדירות, חדרים או קומות, ולכל אחד העבודות שלו.' : 'When there are several places: split the quote into apartments, rooms or floors, each with its own work.'}</small>
           </div>
         )}
 
@@ -1043,7 +1034,10 @@ export default function QuoteForm({
           </div>
         )}
         </div>
-
+        </div>
+        {/* Owner 2026-11-12 (typed: the summary at the height of the frame beside it): the heading and the add buttons sit above the
+            work frame only, so the summary starts on the same line as the work frame ("עבודות ההצעה" / the first place) */}
+        <div className="sq-g-work">
         {/* חוק ברזל (Part C/Locked Decision 4/5/7/10 - "the divided-quote
             unit board"): כל יחידה היא קונטיינר-עבודה חי וגלוי תמיד - שם,
             ספירת-פריטים, סכום-ביניים, מצב-ריק, פעולת-הוספה מפורשת - גם
@@ -1052,21 +1046,30 @@ export default function QuoteForm({
             ר' unitItemIndices למעלה) כדי שפעולות עריכה/מחיקה/שכפול
             הקיימות ימשיכו לפעול ללא שינוי. */}
         {/* Owner console 2026-11-08 (stage 2, design A): every line is a row - the item cards and the item window are gone */}
-        {structureMode === 'regular' && !hasRealItems && (
-          <div className="sq-empty" data-testid="sq-empty-work">
-            <span>{isHebrew ? 'כאן יופיעו העבודות והמחירים.' : 'Work and prices will appear here.'}</span>
-            {/* PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line (100 x 200 cm at 600 per m2) to learn the row from */}
-            <button type="button" data-testid="quote-show-example" onClick={addLocalExample} style={{ display: 'block', margin: '8px 0 0', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', color: NEON.textSecondary, fontSize: '0.8rem', fontWeight: 700, padding: '8px 12px', minHeight: '40px', cursor: 'pointer' }}>
-              {isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}
-            </button>
-          </div>
-        )}
-        {structureMode === 'regular' && hasRealItems && (
-          <QuoteRowsEditor recommendedMethod={recommendedPricingMethod} items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
+        {structureMode === 'regular' && (
+          <section className="sq-work-card" data-testid="sq-work-card">
+            <h3 className="sq-card-title">{isHebrew ? 'עבודות ההצעה' : 'Quote work'}</h3>
+            {!hasRealItems ? (
+              <div className="sq-empty" data-testid="sq-empty-work">
+                <span>{isHebrew ? 'כאן יופיעו העבודות והמחירים.' : 'Work and prices will appear here.'}</span>
+                {/* PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line (100 x 200 cm at 600 per m2) to learn the row from */}
+                <button type="button" data-testid="quote-show-example" onClick={addLocalExample} style={{ display: 'block', margin: '8px 0 0', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', color: NEON.textSecondary, fontSize: '0.8rem', fontWeight: 700, padding: '8px 12px', minHeight: '40px', cursor: 'pointer' }}>
+                  {isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}
+                </button>
+              </div>
+            ) : (
+              <QuoteRowsEditor recommendedMethod={recommendedPricingMethod} items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
                 international={isLocalIsraeliBusiness === false} sym={sym} fmtMoney={fmtMoney} onCatalogItemAdded={onCatalogItemAdded}
                 canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
                 canDuplicate={canDuplicateRow} onDuplicateLocked={() => setShowUpgradeConfirm('reuse')}
                 indices={orderedItemIndices} />
+            )}
+            <div className="sq-add-choice sq-add-choice--work">
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the work window (work, place, calculation, price) for the quote's list */}
+              <button type="button" className="sq-add-btn sq-add-btn--primary" data-testid="sq-add-work" onClick={() => setWorkTarget({ key: null })}>{isHebrew ? '+ הוספת עבודה או מוצר' : '+ Add work or a product'}</button>
+              <small>{isHebrew ? 'להצעה רגילה: מוסיפים עבודות ומוצרים ישר לרשימה.' : 'For a regular quote: add work and products straight to the list.'}</small>
+            </div>
+          </section>
         )}
         {/* Owner console 2026-11-08 (restore item 07): the item window's local example (4f1592f2:src/components/QuoteForm.jsx 473-485,
             1007-1035) - one never-saved line, 100 x 200 cm at 600 per m², offered while the quote has no real line yet */}
@@ -1195,156 +1198,100 @@ export default function QuoteForm({
           </div>
         )}
 
-        {/* 2026-11-12 (unified quote, spec 1 rows 4 / 8): "סיכום ההצעה" - ONE total right above ONE "שמירת ההצעה"; beside the live
-            preview on a computer, below the work on a phone. Saving is not sending. */}
-        {(() => {
-          const summaryCard = (
-            <section className="sq-summary" data-testid="sq-summary" dir={isHebrew ? 'rtl' : 'ltr'}>
-              <StepHeading n={3} title={isHebrew ? 'סיכום ההצעה' : 'Quote summary'} />
-              {!editingQuoteId && (
-                // SMART-QUOTE-03: a NEW quote is always a Draft (no status choice at creation)
-                <span data-testid="sq-status-draft" className="sq-draft-badge">{isHebrew ? 'טיוטה' : 'Draft'}</span>
-              )}
-              {structureMode === 'divided' && (sections || []).length > 0 && (
-                <p className="sq-summary-line" data-testid="sq-summary-counts">
-                  {isHebrew
-                    ? <>{groupWord(groupKindNow, true, { plural: true })}: <bdi dir="ltr" className="pf-num">{(sections || []).reduce((n, sec) => n + Math.max(1, Number(sec.repeat_count) || 1), 0)}</bdi> · עבודות: <bdi dir="ltr" className="pf-num">{realItemsNow.length}</bdi></>
-                    : <>{groupWord(groupKindNow, false, { plural: true })}: <bdi dir="ltr" className="pf-num">{(sections || []).reduce((n, sec) => n + Math.max(1, Number(sec.repeat_count) || 1), 0)}</bdi> · Work items: <bdi dir="ltr" className="pf-num">{realItemsNow.length}</bdi></>}
-                </p>
-              )}
-              {missingPriceCount > 0 && (
-                <p className="sq-summary-line sq-summary-missing" data-testid="sq-summary-missing">
-                  {isHebrew ? <>חסר מחיר ב-<bdi dir="ltr" className="pf-num">{missingPriceCount}</bdi> עבודות (טרם תומחר)</> : <>Price missing in <bdi dir="ltr" className="pf-num">{missingPriceCount}</bdi> work item(s) (not priced yet)</>}
-                </p>
-              )}
-              {/* Owner 2026-10-15 (David's video: the quote amount was typed into the discount): with no work yet the summary says where
-                  the price goes and opens the work window */}
-              {!hasRealItems && (
-                <div data-testid="sq-price-needs-item" className="sq-summary-empty">
-                  <span>{isHebrew ? 'עדיין אין עבודות בהצעה. המחיר נכנס בכל עבודה או מוצר.' : 'No work in the quote yet. The price goes in each work item or product.'}</span>
-                  {/* PRODUCT_TRUTH_DECORATIVE: from the summary with no work yet: opens the work window */}
-                  <button type="button" data-testid="sq-price-go-rows" className="sq-add-btn" onClick={() => setWorkTarget({ key: null })}>{isHebrew ? '+ הוספת עבודה או מוצר' : '+ Add work or a product'}</button>
+        </div>
+
+        {/* Owner 2026-11-12 (typed: "אני רוצה שזה ישאר כמו הדמו שסיכום ההצעה ושמירת ההצעה יהיו ככה בדיוק!"): the summary card of the demo -
+            beside the work on a computer (1024+), after the work on a phone; ONE total right above ONE "שמירת ההצעה" (Owner 2026-11-09) */}
+        <aside className="sq-g-side">
+          <section className="sq-summary" data-testid="sq-summary" dir={isHebrew ? 'rtl' : 'ltr'}>
+            <div className="sq-summary-head" data-testid="sq-step-3">
+              <span className="sq-eyebrow">{isHebrew ? 'לפני ששומרים' : 'Before saving'}</span>
+              <h3>{isHebrew ? 'סיכום ההצעה' : 'Quote summary'}</h3>
+            </div>
+            {(() => {
+              const divided = structureMode === 'divided' && (sections || []).length > 0;
+              const repeatOf = (key) => { const sec = (sections || []).find((x) => x.key === key); return sec ? Math.max(1, Number(sec.repeat_count) || 1) : 1; };
+              const places = divided ? (sections || []).reduce((n, sec) => n + Math.max(1, Number(sec.repeat_count) || 1), 0) : 1;
+              const works = realItemsNow.reduce((n, it) => n + (divided ? repeatOf(it.section_key) : 1), 0);
+              const placesLabel = divided && groupKindNow
+                ? (isHebrew ? `מספר ${groupWord(groupKindNow, true, { plural: true })}` : `Number of ${groupWord(groupKindNow, false, { plural: true }).toLowerCase()}`)
+                : (isHebrew ? 'מספר דירות/חלקים' : 'Number of apartments/sections');
+              return (
+                <div className="sq-summary-counts" data-testid="sq-summary-counts">
+                  <span>{placesLabel}: <bdi dir="ltr" className="pf-num">{places}</bdi></span>
+                  <span>{isHebrew ? 'עבודות בכל העותקים' : 'Work items in all copies'}: <bdi dir="ltr" className="pf-num">{works}</bdi></span>
                 </div>
+              );
+            })()}
+            {missingPriceCount > 0 && (
+              <p className="sq-summary-line sq-summary-missing" data-testid="sq-summary-missing">
+                {isHebrew ? <>חסר מחיר ב-<bdi dir="ltr" className="pf-num">{missingPriceCount}</bdi> עבודות (טרם תומחר)</> : <>Price missing in <bdi dir="ltr" className="pf-num">{missingPriceCount}</bdi> work item(s) (not priced yet)</>}
+              </p>
+            )}
+            {/* one grid for every amount row: ONE amount column, one right edge (IRON-NUMERIC-001) */}
+            <div className="pf-money-row sq-summary-rows">
+              {isLocalIsraeliBusiness && clientType === 'private' ? (
+                <>
+                  <span>{isHebrew ? 'סכום לפני מע״מ' : 'Before VAT'}</span>
+                  <span className="pf-money">{sym}{fmtMoney(totalAmount - taxAmount)}</span>
+                </>
+              ) : (
+                <>
+                  <span>{isHebrew ? 'סכום העבודות' : 'Work total'}</span>
+                  <span className="pf-money">{sym}{fmtMoney(subtotal)}</span>
+                </>
               )}
-              {/* חוק ברזל (Global Surface Audit + Money Alignment Fix, סבב זה):
-                  כל שורה הייתה div נפרד עם display:flex/justifyContent:space-between
-                  משלה - כל שורה הייתה "קונטיינר flex" עצמאי, כך שרוחב עמודת הסכום
-                  נקבע בנפרד לכל שורה (shrink-to-fit) ולא היה עמודה משותפת אחת -
-                  תחת RTL, הסכום (הילד השני, "end" פיזית = שמאל) היה נדבק לקצה
-                  השמאלי הקבוע של השורה שלו, כך שהקצה השמאלי (לא הימני, איפה
-                  שהספרות בפועל) היה המשותף - בדיוק ההפך ממה שנדרש ליישור לפי
-                  ערך-מקום (ראה .pf-money-row/.pf-money-cell למטה). הפתרון
-                  המבני: כל שורות הטוטלים הן עכשיו ילדים ישירים של גריד אחד
-                  משותף (grid-template-columns: 1fr auto) - כך שעמודת הסכום
-                  (auto) מחושבת פעם אחת עבור כל השורות יחד, לא בנפרד לכל שורה;
-                  כל תג <> (React Fragment) לא יוצר DOM node נפרד ולכן לא שובר
-                  את שיתוף העמודה. textAlign:'right' על כל תא-סכום (לא מותנה
-                  ב-isHebrew - סכום כספי תמיד מיושר לימין הפיזי, גם תחת LTR
-                  (שם flex-end כבר יישר נכון קודם, ולא נפגע כאן)). קו הפרדה לפני
-                  השורה הסופית הוא ילד-גריד נפרד שפורש שתי העמודות
-                  (gridColumn:'1 / -1') כדי שהקו יהיה רציף על פני כל הרוחב, לא
-                  שני קטעים נפרדים בכל תא. */}
-              <div className="pf-money-row" style={{ display: 'grid', gridTemplateColumns: '1fr auto', columnGap: '10px', borderTop: `2px solid ${NEON.border}`, marginTop: '12px', paddingTop: '8px' }}>
-                {/* Local Private: אין שורת "סכום ביניים" נפרדת - היא כפולה ל-total
-                    (שניהם ה-ברוטו שהוזן/ה-total הסופי). מציגים ישירות את פירוט
-                    החשבונאות הרגיל: סכום לפני מע"מ / מע"מ / סה"כ, בדיוק כמו Business. */}
-                {/* Owner 2026-11-10 (Hebrew/English sync): the VAT rows follow the market (an Israeli business), never the UI language */}
-                {!(isLocalIsraeliBusiness && clientType === 'private') && (
-                  <>
-                    <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{t.subtotal}</span>
-                    <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(subtotal)}</span>
-                  </>
-                )}
-                {/* IRON-ILS-001 (2026-10-23): with no discount, the agorot moved to the discount show as a rounding discount once it changes the shown sum */}
-                {(discount > 0 || Math.round(Number(discountAmount) || 0) >= 1) && (
-                  <>
-                    <span style={{ color: NEON.red, fontSize: '0.8rem' }}>{discount > 0 ? (isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`) : (isHebrew ? 'הנחת עיגול:' : 'Rounding discount:')}</span>
-                    <span className="pf-money" style={{ color: NEON.red, fontSize: '0.8rem', textAlign: 'right' }}>-{sym}{fmtMoney(discountAmount)}</span>
-                  </>
-                )}
-                {isLocalIsraeliBusiness && clientType === 'private' ? (
-                  // תצוגה חשבונאית רגילה (Private): "סכום לפני מע"מ" / "מע"מ (18%)"
-                  // - אותם ערכים בדיוק כמו קודם (netAmount=total-taxAmount, taxAmount),
-                  // רק תוויות/סדר שונים; אין נוסחה חדשה. כל הסכומים עוברים במסלול
-                  // ה-money הקנוני (IRON-ILS-001: שקל שלם עם .00 ב-Local).
-                  <>
-                    <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{isHebrew ? 'סכום לפני מע״מ:' : 'Before VAT:'}</span>
-                    <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount - taxAmount)}</span>
-                    <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{isHebrew ? 'מע״מ (18%):' : 'VAT (18%):'}</span>
-                    <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(taxAmount)}</span>
-                  </>
-                ) : (
-                  isLocalIsraeliBusiness && (
+                  {/* IRON-ILS-001 (2026-10-23): with no discount, the agorot moved to the discount show as a rounding discount once it changes the shown sum */}
+                  {(discount > 0 || Math.round(Number(discountAmount) || 0) >= 1) && (
                     <>
-                      <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{t.vat}</span>
-                      <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(taxAmount)}</span>
+                      <span style={{ color: NEON.red, fontSize: '0.8rem' }}>{discount > 0 ? (isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`) : (isHebrew ? 'הנחת עיגול:' : 'Rounding discount:')}</span>
+                      <span className="pf-money" style={{ color: NEON.red, fontSize: '0.8rem', textAlign: 'right' }}>-{sym}{fmtMoney(discountAmount)}</span>
                     </>
-                  )
-                )}
-                {/* G4 (Owner 2026-11-08, the clarity fixes B3): a row holding a value that is not stored yet is not in the total */}
-                {(items || []).some((it) => it && it._invalid) && (
-                  <span data-testid="sq-total-partial" style={{ gridColumn: '1 / -1', marginTop: '4px', fontSize: '0.74rem', fontWeight: 700, color: NEON.red }}>{isHebrew ? 'הסכום עדיין חלקי' : 'Partial total'}</span>
-                )}
-                {isLocalIsraeliBusiness && (clientType === 'business' || clientType === 'private') && (
-                  <span data-testid="sq-prices-vat-basis" style={{ gridColumn: '1 / -1', marginTop: '4px', fontSize: '0.74rem', color: NEON.textSecondary }}>
-                    {clientType === 'private' ? (isHebrew ? 'המחירים בהצעה כוללים מע״מ' : 'Prices in this quote include VAT') : (isHebrew ? 'המחירים בהצעה לפני מע״מ' : 'Prices in this quote are before VAT')}
-                  </span>
-                )}
-              </div>
-
-              {isUnfinished && (
-                <div data-testid="sq-unfinished-notice" role="status" style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '10px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', fontSize: '0.8rem', fontWeight: 600 }}>
-                  {isHebrew
-                    ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). אפשר לשמור אותה רק כטיוטה לא גמורה - היא לא תוצג ללקוח כהצעה מוכנה.'
-                    : 'This quote is not finished yet (no product or work with a price). It can only be saved as an unfinished draft - it will not be shown to a customer as a ready quote.'}
-                </div>
+                  )}
+              {isLocalIsraeliBusiness && (
+                <>
+                  <span>{isHebrew ? 'מע״מ 18%' : 'VAT 18%'}</span>
+                  <span className="pf-money">{sym}{fmtMoney(taxAmount)}</span>
+                </>
               )}
-              {/* חוק ברזל (Trial Expiration -> FREE, Full Entitlement Audit + Fix):
-                  הכפתור הזה היה חסום לגמרי (disabled) כש-isTrialExpired, ללא תלות
-                  ב-plan/effectivePlan בכלל - כלומר חוסם גם יצירת ההצעה הראשונה/
-                  ה-5 המותרות ל-FREE אחרי שניסיון פג, בסתירה מלאה לדרישת הבעלים
-                  "FREE limits", לא "אפס לצמיתות". הוסר בכוונה - האכיפה הנכונה
-                  כבר קיימת בשתי נקודות: מכסת 5/חודש נבדקת ב-handleSaveQuote
-                  (Dashboard.jsx, עם effectivePlan המתוקן), וזכאות עריכה/שכפול
-                  כבר נבדקת לפני שהטופס הזה נפתח בכלל (handleProtectedAction ב-
-                  QuotesTab.jsx, isBasicOrAbove/isPro). אין צורך בשער שלישי, כפול
-                  ולא-מתואם, כאן. */}
-              {/* Owner console 2026-11-09 (typed: "הסה״כ לא מופיע ליד כפתור השמירה. - אם צריך תוסיף", incl. L-09): the same total as the summary, right above the save */}
-              <div data-testid="sq-save-total" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'baseline', columnGap: '12px', marginTop: '16px', padding: '0 4px' }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: NEON.textPrimary }}>{isHebrew ? 'סה״כ לתשלום:' : 'Total to pay:'}</span>
-                <span className="pf-money" style={{ color: NEON.violetLight, fontSize: '1rem', fontWeight: '800', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount)}</span>
-              </div>
-              {/* PRODUCT_TRUTH_DECORATIVE: the quote form's own submit button; the real create/edit distinction and capability markers live on the resolved onSave handler in Dashboard.jsx (quote_create/quote_edit), not on this generic form control - resolved by Claude after an agent flag, since this control is a cross-file prop-bound handler my scanner's local-declaration resolution structurally cannot attach to */}
-              <button type="submit" form="pf-editor-form" data-testid="sq-save" style={{ width: '100%', background: editingQuoteId ? NEON.emeraldDark : NEON.gradient, color: 'white', border: 'none', padding: '13px', borderRadius: '12px', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', marginTop: '16px', boxShadow: editingQuoteId ? '0 4px 14px -2px rgba(16, 185, 129, 0.4)' : NEON.glow }}>
-                {isUnfinished
-                  ? (isHebrew ? 'שמירה כטיוטה לא גמורה' : 'Save as unfinished draft')
-                  : (isHebrew ? 'שמירת ההצעה' : 'Save the quote')}
-              </button>
-              <p className="sq-save-note" data-testid="sq-save-note">{isHebrew ? 'שמירה אינה שליחה. תוכלו לשנות גם אחר כך.' : 'Saving is not sending. You can change it later too.'}</p>
-            </section>
-          );
-          return asideSlot ? createPortal(summaryCard, asideSlot) : summaryCard;
-        })()}
+                  {/* G4 (Owner 2026-11-08, the clarity fixes B3): a row holding a value that is not stored yet is not in the total */}
+                  {(items || []).some((it) => it && it._invalid) && (
+                    <span data-testid="sq-total-partial" style={{ gridColumn: '1 / -1', marginTop: '4px', fontSize: '0.74rem', fontWeight: 700, color: NEON.red }}>{isHebrew ? 'הסכום עדיין חלקי' : 'Partial total'}</span>
+                  )}
+            </div>
+                {isUnfinished && (
+                  <div data-testid="sq-unfinished-notice" role="status" style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '10px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', fontSize: '0.8rem', fontWeight: 600 }}>
+                    {isHebrew
+                      ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). אפשר לשמור אותה רק כטיוטה לא גמורה - היא לא תוצג ללקוח כהצעה מוכנה.'
+                      : 'This quote is not finished yet (no product or work with a price). It can only be saved as an unfinished draft - it will not be shown to a customer as a ready quote.'}
+                  </div>
+                )}
+            {/* Owner console 2026-11-09 (typed: "הסה״כ לא מופיע ליד כפתור השמירה. - אם צריך תוסיף", incl. L-09): the total right above the save */}
+            <div data-testid="sq-save-total" className="pf-money-row sq-summary-total">
+              <span>{isHebrew ? 'סה״כ לתשלום' : 'Total to pay'}</span>
+              <span className="pf-money">{sym}{fmtMoney(totalAmount)}</span>
+            </div>
+            {/* PRODUCT_TRUTH_DECORATIVE: the quote form's own submit button; the real create/edit distinction and capability markers live on the resolved onSave handler in Dashboard.jsx (quote_create/quote_edit), not on this generic form control - resolved by Claude after an agent flag, since this control is a cross-file prop-bound handler my scanner's local-declaration resolution structurally cannot attach to */}
+            <button type="submit" data-testid="sq-save" className="sq-save-btn">
+              {isUnfinished
+                ? (isHebrew ? 'שמירה כטיוטה לא גמורה' : 'Save as unfinished draft')
+                : (isHebrew ? 'שמירת ההצעה' : 'Save the quote')}
+            </button>
+            <p className="sq-save-note" data-testid="sq-save-note">{isHebrew ? 'שמירה אינה שליחה. תוכלו לשנות גם אחר כך.' : 'Saving is not sending. You can change it later too.'}</p>
+          </section>
+        </aside>
 
-        <StepHeading n={4} title={isHebrew ? 'פרטי ההצעה' : 'Quote details'} />
-        {/* Optional details stay one tap away (progressive disclosure); they open automatically when editing or when any of them
-            already holds a value, so nothing the user entered is ever hidden. */}
-        {/* PRODUCT_TRUTH_DECORATIVE: toggles visibility of the 'More details (optional)' progressive-disclosure section of the quote form */}
-        <button
-          type="button"
-          data-testid="sq-more-details-toggle"
-          aria-expanded={showMoreDetails}
-          onClick={() => setShowMoreDetails((v) => !v)}
-          style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '12px', padding: '12px 14px', cursor: 'pointer', color: NEON.textPrimary, fontWeight: 700, fontSize: '0.86rem', marginBottom: '14px', textAlign: isHebrew ? 'right' : 'left' }}
-        >
-          <span>
-            {isHebrew ? (showMoreDetails ? 'סגירת פרטי ההצעה' : 'פתיחת פרטי ההצעה') : (showMoreDetails ? 'Close quote details' : 'Open quote details')}
-            <span style={{ display: 'block', fontWeight: 500, fontSize: '0.75rem', color: NEON.textSecondary, marginTop: '2px' }}>
-              {isHebrew ? 'פרויקט, כתובת ותוקף · קבצים · תנאים ואחריות · הערות · הנחה · עיצוב ותמונות · מטבע · שמירה כתבנית' : 'Project, address and validity · Files · Terms and warranty · Notes · Discount · Design and images · Currency · Save as a template'}
-            </span>
-          </span>
-          <ChevronDown size={18} style={{ transform: showMoreDetails ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
-        </button>
+        <div className="sq-g-details">
+        <section className="sq-details-card" data-testid="sq-details">
+        <div className="sq-details-head">
+          <h3 data-testid="sq-step-4">{isHebrew ? 'פרטי ההצעה' : 'Quote details'}</h3>
+          {/* PRODUCT_TRUTH_DECORATIVE: opens / closes the quote details (files, terms, notes, discount, design, currency, project, save as a template) */}
+          <button type="button" className="sq-btn" data-testid="sq-more-details-toggle" aria-expanded={showMoreDetails} onClick={() => setShowMoreDetails((v) => !v)}>
+            {isHebrew ? (showMoreDetails ? 'סגירה' : 'פתיחה') : (showMoreDetails ? 'Close' : 'Open')}
+          </button>
+        </div>
+        <p className="sq-details-names">{isHebrew ? 'קבצים · תנאים ואחריות · הערות · הנחה · עיצוב ותמונות · מטבע · פרויקט ותוקף · שמירה כתבנית' : 'Files · Terms and warranty · Notes · Discount · Design and images · Currency · Project and validity · Save as a template'}</p>
+        <p className="sq-details-names">{isHebrew ? 'בעבודה עצמה: קטלוג, כמויות, מידות, חדר ופרטים ללקוח.' : 'In the work itself: catalog, quantities, sizes, room and details for the client.'}</p>
         {showMoreDetails && (
           <div data-testid="sq-more-details">
         <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
@@ -1643,6 +1590,9 @@ export default function QuoteForm({
         )}
           </div>
         )}
+        </section>
+        </div>
+        </div>
 
         {/* Task 16 retro ledger C03/C03b (2026-10-05): the submit label is the base t.generateSave / t.updateQuote again and the
             extra hint line is gone (no approval source for either change). The Save Draft vs Issue capability itself is unchanged:
