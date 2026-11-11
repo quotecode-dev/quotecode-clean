@@ -79,16 +79,15 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   // AV-05 / AV-06: a legend / link intent wins; otherwise the state saved when Details opened; otherwise the defaults
   const [init] = useState(() => {
     const intent = peekUsersFilterIntent();
-    if (intent) return { market: intent.market || 'all', status: intent.status || 'all', test: intent.test || 'exclude', sort: { field: 'created_at', direction: 'desc' }, page: 0, scrollTop: 0 };
+    if (intent) return { market: intent.market || 'all', status: intent.status || 'all', test: intent.test || 'all', sort: { field: 'created_at', direction: 'desc' }, page: 0, scrollTop: 0 };
     const saved = peekUsersListState();
-    return saved || { market: 'all', status: 'all', test: 'exclude', sort: { field: 'created_at', direction: 'desc' }, page: 0, scrollTop: 0 };
+    return saved || { market: 'all', status: 'all', test: 'all', sort: { field: 'created_at', direction: 'desc' }, page: 0, scrollTop: 0 };
   });
   useEffect(() => { clearUsersFilterIntent(); clearUsersListState(); }, []);
   const [market, setMarket] = useState(init.market);
   const [statusFilter, setStatusFilter] = useState(init.status);
   // Owner console 2026-11-09 (typed incl. L-22): all / the real accounts ('exclude') / the test accounts ('only')
-  // Owner console 2026-11-11 (typed L-22): the screen opens on the real accounts and "Clear" returns to them
-  const [testFilter, setTestFilter] = useState(init.test || 'exclude');
+  const [testFilter, setTestFilter] = useState(init.test || 'all');
   const [sort, setSort] = useState(init.sort);
   const [page, setPage] = useState(init.page);
   const restoreScroll = useRef(init.scrollTop || 0);
@@ -206,7 +205,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
   // AV-07: on phones / tablets (cards) the sort is one select - the same fields and directions as the table headers
   const SORT_OPTIONS = [['created_at', 'desc'], ['created_at', 'asc'], ['last_sign_in', 'desc'], ['last_sign_in', 'asc'], ['business_name', 'asc'], ['business_name', 'desc'], ['plan', 'asc'], ['plan', 'desc'], ['indicators', 'asc'], ['indicators', 'desc'], ['country', 'asc'], ['country', 'desc']];
   const sortLabel = (f, d) => { const w = { created_at: C.colRegistered, last_sign_in: C.colLastSignIn, business_name: C.colBusiness, country: C.colRegion, plan: C.colPlan, indicators: C.colIndicators }[f]; const dir = (f === 'created_at' || f === 'last_sign_in') ? (d === 'desc' ? C.newestFirst : C.oldestFirst) : (d === 'asc' ? C.aToZ : C.zToA); return `${t(isHebrew, w.he, w.en)}, ${t(isHebrew, dir.he, dir.en)}`; };
-  const clear = () => { onSearch(''); setQuery(''); setMarket('all'); setStatusFilter('all'); setTestFilter('exclude'); setPage(0); };
+  const clear = () => { onSearch(''); setQuery(''); setMarket('all'); setStatusFilter('all'); setTestFilter('all'); setPage(0); };
   const sortWords = { created_at: C.colRegistered, last_sign_in: C.colLastSignIn, business_name: C.colBusiness, country: C.colRegion, plan: C.colPlan, indicators: C.colIndicators }[sort.field];
   const from = total ? page * PAGE_SIZE + 1 : 0;
   const to = total ? Math.min(total, page * PAGE_SIZE + pageRows.length) : 0;
@@ -245,7 +244,7 @@ export default function AdminUsersView({ accounts, orderedAccounts = accounts, s
           </select>
         </label>
         {!wide && (
-          <label className="av-field av-sort">
+          <label className="av-field">
             <span>{isHebrew ? 'מיון' : 'Sort'}</span>
             <select value={`${sort.field}:${sort.direction}`} onChange={(e) => { const [field, direction] = e.target.value.split(':'); setPage(0); setSort({ field, direction }); }}>
               {SORT_OPTIONS.map(([f, d]) => <option key={`${f}:${d}`} value={`${f}:${d}`}>{sortLabel(f, d)}</option>)}

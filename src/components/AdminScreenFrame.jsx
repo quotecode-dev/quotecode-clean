@@ -42,7 +42,7 @@ export default function AdminScreenFrame({ title, subtitle, actions, controls, h
               <>
                 {staleSince
                   ? <span className="av-updated" role="status">{t(isHebrew, C.staleSince.he, C.staleSince.en)} <bdi className="av-num">{fmt(staleSince)}</bdi></span>
-                  : updatedAt && <span className="av-updated">{t(isHebrew, C.updatedAt.he, C.updatedAt.en)} <bdi className="av-num">{fmt(updatedAt)}</bdi> · {isHebrew ? 'שעון ישראל' : 'Israel time'}</span>}
+                  : updatedAt && <span className="av-updated">{t(isHebrew, C.updatedAt.he, C.updatedAt.en)} <bdi className="av-num">{fmt(updatedAt)}</bdi> · {isHebrew ? 'שעון ישראל' : 'UTC'}</span>}
                 {/* PRODUCT_TRUTH_DECORATIVE: reloads this admin screen's data from the server (read-only) */}
                 <button type="button" className="av-btn" onClick={onRefresh} disabled={refreshing}>
                   <RefreshCw size={16} aria-hidden="true" />{t(isHebrew, C.refresh.he, C.refresh.en)}
