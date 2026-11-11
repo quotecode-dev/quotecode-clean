@@ -144,7 +144,7 @@ describe('PublicQuote (HE) - expanded section, independent state', () => {
     expect(screen.getByText('כמות: 4.40 מ״ר')).toBeInTheDocument();
     expect(screen.getByText(/0\.80 × 1\.00 מ' = 0\.80 מ״ר/)).toBeInTheDocument();
     expect(screen.getByText(/Color/)).toBeInTheDocument();
-    expect(screen.getByText('סה״כ Apartment 33')).toBeInTheDocument();
+    expect(screen.getByText('סה״כ Apartment 33:')).toBeInTheDocument();
     // §4 - expanded item financials unchanged: the item's own row still
     // shows its own real quantity/unit price/line total (not the section
     // summary's "N פריטים"/"—" - those only apply to the collapsed row).
@@ -390,7 +390,7 @@ describe('PublicQuote (HE) - column geometry lock (Public Quote Section Dropdown
 
     const headingCell = screen.getByText(/▲ Apartment 33/).closest('td');
     expect(headingCell.getAttribute('colspan')).toBe('4');
-    const subtotalLabelCell = screen.getByText('סה״כ Apartment 33');
+    const subtotalLabelCell = screen.getByText('סה״כ Apartment 33:');
     expect(subtotalLabelCell.getAttribute('colspan')).toBe('3');
   });
 });

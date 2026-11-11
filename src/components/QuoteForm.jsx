@@ -1456,7 +1456,8 @@ export default function QuoteForm({
 
           {canUseAttachments && (
             <div style={{ fontSize: '0.75rem', color: NEON.textMuted, fontWeight: '600', marginBottom: '8px' }}>
-              {isHebrew ? `נפח פנוי להעלאת קבצים: ${remainingMb} MB` : `Free space for attachments: ${remainingMb} MB`}
+              {/* law 49 (2026-11-12): the number stays before its unit in Hebrew too */}
+              {isHebrew ? <>נפח פנוי להעלאת קבצים: <bdi dir="ltr">{`${remainingMb} MB`}</bdi></> : `Free space for attachments: ${remainingMb} MB`}
             </div>
           )}
 
@@ -1466,7 +1467,7 @@ export default function QuoteForm({
             style={{ background: NEON.violetLighter, color: NEON.violetLight, border: `1px solid ${NEON.borderStrong}`, padding: '6px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', marginBottom: (quoteFiles || []).length > 0 ? '8px' : '0', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
             <Paperclip size={13} strokeWidth={2.5} />
-            {/* Owner console 2026-11-10 (Codex wording 2 "א") */}{isHebrew ? 'צירוף קובץ ללקוח (עד 3 MB)' : 'Attach file for client (max 3 MB)'}
+            {/* Owner console 2026-11-10 (Codex wording 2 "א") */}{isHebrew ? <>צירוף קובץ ללקוח (עד <bdi dir="ltr">3 MB</bdi>)</> : 'Attach file for client (max 3 MB)'}
           </button>
 
           {(quoteFiles || []).length > 0 && (

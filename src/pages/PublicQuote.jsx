@@ -849,7 +849,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
                     );
                   })}
                   <tr role="row" className="pq-section-subtotal-row">
-                    <td headers={colId('desc')} role="cell" colSpan="3" style={{ textAlign: 'right', fontWeight: 700 }}>{`סה״כ ${section.title}`}{section.repeatCount > 1 && (
+                    <td headers={colId('desc')} role="cell" colSpan="3" style={{ textAlign: 'left', fontWeight: 700 }}>{`סה״כ ${section.title}:`}{section.repeatCount > 1 && (
                       <span className="pq-unit-note" style={{ display: 'block', fontWeight: 400, whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(section.subtotal)}</span> לכל יחידה × <bdi dir="ltr" className="pf-num">{section.repeatCount}</bdi></span>
                     )}</td>
                     <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(section.unitTotal)}</span></td>
