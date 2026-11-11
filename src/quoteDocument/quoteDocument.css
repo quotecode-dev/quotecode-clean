@@ -1895,3 +1895,9 @@
 .pq-group-switch > button[aria-pressed="true"] { border: 2px solid #0F6672; background: #e8f4f5; color: #0b3d44; }
 .pq-partial-label { margin: 0 0 10px; padding: 6px 10px; border-inline-start: 3px solid #94a3b8; color: #475569; font-size: 0.85rem; font-weight: 600; }
 @media print { .pq-group-controls { display: none !important; } }
+
+/* 2026-11-12 (law 49): a group total is set smaller (13px); in Hebrew its amount box takes the table box in pixels, so it ends on the
+   same right edge as every other amount (as in English) */
+.pq-page[dir='rtl'] .pq-card .pq-commercial-table .pq-section-subtotal-row td.pq-td-total .pf-money {
+  min-width: var(--pq-money-box-px, calc(var(--pq-money-box-n, 0) * 1em)) !important;
+}

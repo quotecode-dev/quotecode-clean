@@ -702,3 +702,4 @@ body:has([role="dialog"][aria-modal="true"]) .tk-tip { display: none; }
 /* 2026-11-12 (unified quote): the room of a work row */
 .qrows .qrow-room { font-size: 0.76rem; color: #475569; padding-top: 0; }
 .qrows .qrow-room-tag { display: inline-block; padding: 1px 8px; border-radius: 999px; background: #e8f4f5; color: #0F6672; font-weight: 700; }
+.sq-saved { width: 100%; box-sizing: border-box; }
