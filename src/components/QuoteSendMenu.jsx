@@ -1,7 +1,7 @@
 // Owner 2026-11-11 (findings 4 + 26, option ב; typed L-07, L-13, L-19, L-29): a prominent "Send" on every quote row, without opening the
 // row. It opens three choices that run the SAME paths as the open row's chips: email (the confirm window), WhatsApp and copy the message
 // with the link (the Owner's choice for the third option) - the same protected-action gate, output authority and Sent marking (L-13).
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Send, Mail, MessageCircle, ClipboardCopy } from 'lucide-react';
 
@@ -21,6 +21,18 @@ export default function QuoteSendMenu({ quote, isHebrew, variant = 'row', onEmai
     const pageWidth = document.documentElement.clientWidth || window.innerWidth;
     return isHebrew ? { ...v, left: Math.max(8, Math.round(b.left)) } : { ...v, right: Math.max(8, Math.round(pageWidth - b.right)) };
   };
+  // Owner 2026-11-11 (LIVE check): the page keeps a stable scrollbar gutter, so a fixed `right` is measured from an edge ~7px inside the
+  // page width the browser reports - the English menu stood ~7px (14 device px) away from its button's end. Before the first paint the
+  // menu's real box is compared with the button and the difference is corrected once (both languages; no correction when already flush).
+  useLayoutEffect(() => {
+    if (!open || !pos) return;
+    const b = wrap.current?.querySelector('.quote-send-button')?.getBoundingClientRect();
+    const m = menuRef.current?.getBoundingClientRect();
+    if (!b || !m) return;
+    const delta = isHebrew ? b.left - m.left : b.right - m.right;
+    if (Math.abs(delta) < 1) return; // after one correction the rest is under a pixel (rounding) - never a second pass
+    setPos((p) => (p ? (isHebrew ? { ...p, left: Math.max(8, Math.round(p.left + delta)) } : { ...p, right: Math.max(8, Math.round(p.right - delta)) }) : p));
+  }, [open, pos, isHebrew]);
   useEffect(() => {
     if (!open) return undefined;
     const away = (e) => { if (wrap.current && !wrap.current.contains(e.target) && !menuRef.current?.contains(e.target)) setOpen(false); };

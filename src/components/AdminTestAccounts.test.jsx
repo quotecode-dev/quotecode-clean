@@ -58,9 +58,13 @@ describe('the test-account mark (the Owner only)', () => {
     expect(screen.queryByTestId('admin-test-toggle')).toBeNull();
   });
 
+  // Owner console 2026-11-11 (typed L-22): the list opens on the real accounts; "all accounts" shows the marked one with its badge
   it('the users list keeps a marked account, with its badge', () => {
     const rows = [account, { ...account, id: 8, user_id: 'user-8', business_name: 'Test Biz', email: 'qa@example.test', is_test: true }];
     render(<AdminUsersView accounts={rows} orderedAccounts={rows} search="" onSearch={vi.fn()} onSort={vi.fn()} sortField="created_at" sortDirection="desc" isHebrew onDetails={vi.fn()} />);
+    expect(screen.getByTestId('admin-users-test-filter').value).toBe('exclude');
+    expect(screen.queryAllByTestId('admin-row-test-8')).toHaveLength(0);
+    fireEvent.change(screen.getByTestId('admin-users-test-filter'), { target: { value: 'all' } });
     expect(screen.getAllByTestId('admin-row-test-8').length).toBeGreaterThan(0);
     expect(screen.queryByTestId('admin-row-test-7')).toBeNull();
   });
