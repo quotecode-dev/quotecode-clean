@@ -38,10 +38,14 @@ function Stateful(o) {
 // entry - every row chooses its billing, sizes are typed in the row; the local example (and its never-saved marker) left with the entry.
 describe('A1 / A6: the measured quote is one list (now the rows of the one quote entry)', () => {
   it('an old internal measured entry opens the same rows: no rooms needed, rooms optional, area in the row', () => {
-    render(<Stateful isMeasuredEntry />);
+    const { unmount } = render(<QuoteForm {...props({ isMeasuredEntry: true, items: [{ ...blank, description: 'חלון', unit_price: '100' }] })} />);
     expect(screen.getByRole('textbox', { name: 'פריט' })).toBeTruthy();
     expect([...screen.getByRole('combobox', { name: 'אופן חיוב' }).options].map((o) => o.textContent)).toEqual(['סכום קבוע', 'יחידות', 'שטח', 'אורך', 'ק״ג', 'שעות', 'ימים']); // Owner console 2026-11-08 (restore item 01): kg / hours / days in every row again
-    expect(screen.getByText('חלוקה לחדרים / אזורים / יחידות (לא חובה)')).toBeTruthy();
+    unmount();
+    render(<Stateful isMeasuredEntry />);
+    // 2026-11-12 (unified quote): the two add buttons replace the grouping link
+    expect(screen.getByTestId('sq-add-work')).toBeTruthy();
+    expect(screen.getByTestId('sq-add-places').textContent).toBe('+ הוספת דירה, חדר או קומה');
     expect(screen.queryByText('הוספת היחידה הראשונה')).toBeNull();
     expect(screen.queryByText('לא משויך')).toBeNull();
     // Owner console 2026-11-08 (restore item 07): the local example is offered again while the quote has no real line
@@ -65,7 +69,9 @@ describe('plan section 3: client details and the VAT basis', () => {
     expect(screen.queryByPlaceholderText('לדוגמה: שמעון לוי')).toBeNull();
     // Owner console 2026-11-09 (L-09 named in the approval): a business client's tax ID label is marked "(חובה)"
     expect(screen.getByText('ח״פ / עוסק / ת״ז (חובה)')).toBeTruthy();
-    expect(screen.getByTestId('sq-client-type-vat-help').textContent).toBe('סוג הלקוח קובע אם המחיר כולל מע״מ או לפני מע״מ.');
+    // Owner console 2026-11-11 (typed): the exact VAT notice for the chosen client type replaces the general sentence
+    expect(screen.queryByTestId('sq-client-type-vat-help')).toBeNull();
+    expect(screen.getByTestId('sq-vat-notice').textContent).toBe('שימו לב: הסכומים ללקוח עסקי הינם ללא מע״מ, והמע״מ יתווסף למחיר הסופי');
     fireEvent.click(screen.getByTestId('sq-client-contact-toggle'));
     expect(screen.getByPlaceholderText('לדוגמה: שמעון לוי')).toBeTruthy();
   });
@@ -106,7 +112,11 @@ describe('Owner 2026-10-15 (David): the price step points to the item, the disco
   it('with no item: the price step says where the price goes and opens the item window', () => {
     render(<Stateful />);
     const hint = screen.getByTestId('sq-price-needs-item');
-    expect(hint.textContent).toContain('קודם מוסיפים מוצר או עבודה עם מחיר (שלב 2). כאן רק הנחה על כל ההצעה.');
+    // 2026-11-12 (unified quote): the summary says where the price goes; its button opens the work window; the discount is in the quote details
+    expect(hint.textContent).toContain('עדיין אין עבודות בהצעה. המחיר נכנס בכל עבודה או מוצר.');
+    fireEvent.click(screen.getByTestId('sq-price-go-rows'));
+    expect(screen.getByTestId('work-item-dialog')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('sq-more-details-toggle'));
     expect(screen.getByText('הנחה על כל ההצעה (%)')).toBeTruthy();
     expect(screen.getByTestId('sq-discount').getAttribute('inputmode')).toBe('decimal');
   });
@@ -116,6 +126,7 @@ describe('Owner 2026-10-15 (David): the price step points to the item, the disco
   });
   it('a discount outside 0-100 (the amount typed into it) is flagged next to the field, and the save refuses it', () => {
     render(<QuoteForm {...props({ discount: '2650' })} />);
+    fireEvent.click(screen.getByTestId('sq-more-details-toggle'));
     expect(screen.getByRole('alert').textContent).toBe('הנחה יכולה להיות בין 0 ל־100.');
     expect(screen.getByTestId('sq-discount').getAttribute('aria-invalid')).toBe('true');
     cleanup();

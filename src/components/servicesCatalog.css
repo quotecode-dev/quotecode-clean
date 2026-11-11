@@ -165,3 +165,7 @@
 @container svccat (max-width: 559.98px) {
   .svc-cat-thumb { width: 36px; height: 36px; }
 }
+
+/* 2026-11-12 (unified quote, spec 5): "how is it priced" inside the description cell */
+.svc-cat-basis { display: block; margin-top: 2px; font-size: 0.74rem; font-weight: 600; color: var(--svc-text-secondary, #475569); }
+.svc-cat-basis-select { margin-top: 6px; }

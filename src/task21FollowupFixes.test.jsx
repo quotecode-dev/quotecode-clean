@@ -35,7 +35,9 @@ describe('Dashboard new-quote entries (source guards)', () => {
   const src = read('pages/Dashboard.jsx');
   it('the AI choice opens the AI draft dialog on the blank form - it no longer just opens the general chat', () => {
     const block = src.slice(src.indexOf('const handleCreateAiQuoteClick'), src.indexOf('const applyAiQuoteDraft'));
-    expect(block).toContain('setShowAiQuoteDraft(true)');
+    // 2026-11-12 (unified quote, spec 1 row 2): the choice is remembered and the AI dialog opens right after the client step
+    expect(block).toContain("setPendingStartSource('ai')");
+    expect(src).toContain("if (pendingStartSource === 'ai') setShowAiQuoteDraft(true);");
     expect(block).not.toContain('openAiChat()');
     // Owner console 2026-11-05 (typed, L-09): the dialog now also opens when EDITING a quote that is not signed; it still opens on the
     // blank new-quote form (editingQuoteId === null), which is what this guard protects.
@@ -52,7 +54,7 @@ describe('Dashboard new-quote entries (source guards)', () => {
     const sheet = src.slice(src.indexOf('className="no-print dash-mobile-newquote-menu"'), src.indexOf('closing the mobile \'New\' choices sheet'));
     // Owner 2026-11-03 (typed approval incl. L-23): + "quote from a file" right after the AI smart quote
     expect(sheet).toContain('menuChoices(isHebrew, { file: true, template: true }).map(');
-    expect(sheet).toContain('{ standard: handleCreateNewQuoteClick, ai: handleCreateAiQuoteClick, file: handleCreateFileQuoteClick, structured: handleCreateStructuredQuoteClick, template: handleOpenTemplatePicker }');
+    expect(sheet).toContain('{ standard: handleCreateNewQuoteClick, ai: handleCreateAiQuoteClick, file: handleCreateFileQuoteClick, structured: handleCreateStructuredQuoteClick, template: handleCreateTemplateQuoteClick }');
     expect(sheet).toContain('role="menuitem"');
   });
 });

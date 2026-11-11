@@ -7,14 +7,13 @@ import { cwd } from 'node:process';
 
 const read = (p) => readFileSync(join(cwd(), p), 'utf8').split(String.fromCharCode(13)).join('');
 
-describe('menu1111: Send menu flush with its button', () => {
-  const m = read('src/components/QuoteSendMenu.jsx');
-  it('measures the rendered menu against the button before paint and corrects the difference once', () => {
-    expect(m).toContain("import { useEffect, useLayoutEffect, useRef, useState } from 'react';");
-    expect(m).toContain('const delta = isHebrew ? b.left - m.left : b.right - m.right;');
-    expect(m).toContain('if (Math.abs(delta) < 1) return;');
-    expect(m).toContain('right: Math.max(8, Math.round(p.right - delta))');
-    expect(m).toContain('left: Math.max(8, Math.round(p.left + delta))');
+// Owner 2026-11-11 (unified quote release, typed L-07 / L-13 / L-19 / L-29): the Send button on every row was removed - sending is from
+// the opened row again, as before PR #209
+describe('uq1112: no Send button on the quote rows', () => {
+  it('the list has no row Send menu and the menu component is gone', () => {
+    const q = read('src/components/QuotesTab.jsx');
+    expect(q).not.toMatch(/QuoteSendMenu|sendMenuFor/);
+    expect(read('src/index.css')).not.toMatch(/.quote-send/);
   });
 });
 

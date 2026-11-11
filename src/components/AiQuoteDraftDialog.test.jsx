@@ -47,7 +47,7 @@ describe('AiQuoteDraftDialog', () => {
     expect(p.onApply).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('checkbox', { name: 'פירוק חלון ישן' }));
     fireEvent.click(screen.getByRole('button', { name: /הוספה להצעה \(פריטים מסומנים: 1\)/ }));
-    expect(p.onApply).toHaveBeenCalledWith([{ description: 'חלון אלומיניום', quantity: 3, unit: 'unit', unitPrice: 1450, catalogId: 7 }], 'סלון', []); // release B: + the ticked changes (none)
+    expect(p.onApply).toHaveBeenCalledWith([{ description: 'חלון אלומיניום', quantity: 3, unit: 'unit', unitPrice: 1450, catalogId: 7 }], 'סלון', [], []); // release B: + the ticked changes (none); 2026-11-12: + the suggested places (none)
   });
 
   it('Owner example: shows quantity, unit, price source and what is missing; a missing quantity blocks adding until the user fills it', async () => {

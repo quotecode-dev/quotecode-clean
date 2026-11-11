@@ -4,19 +4,22 @@ import { FileText, FileUp, LayoutTemplate, Sparkles } from 'lucide-react';
 // Owner console 2026-11-08 (design A, typed: "מאשר חלופה א׳ - שורות ישירות, כפתור אחד "הצעת מחיר" ..." + stage 2 incl. L-09 / L-23): the
 // regular quote and the measured quote are ONE entry - "הצעת מחיר"; every row chooses its own billing (fixed, units, area, length). An old
 // internal call to the measured entry still opens the same editor.
+// Owner console 2026-11-11 (unified quote, typed incl. item 11 "תפריט הצעה חדשה"): the start window "איך תרצו להתחיל?" - four ways that
+// say HOW the quote starts (not what kind of quote it is); every way can hold apartments, measurements and files.
+export const START_SENTENCE = { he: 'אפשר הצעה קצרה או כמה דירות, עם עבודות, מידות וקבצים. הכול ניתן לשינוי בהמשך.', en: 'Create a short quote or cover several apartments, with work, measurements and files. You can change everything later.' };
 export function newQuoteChoices(isHebrew) {
   return [
     {
       id: 'standard',
       Icon: FileText,
-      label: isHebrew ? 'הצעת מחיר' : 'Quote',
-      hint: isHebrew ? 'שורות של מוצרים ועבודות - בכמות, לפי מידות או בסכום קבוע' : 'Rows of products and work - by quantity, by size or a fixed amount',
+      label: isHebrew ? 'ממלאים בעצמכם' : 'Fill it in yourselves',
+      hint: isHebrew ? 'עבודות, כמויות ומידות - בקצב שלכם' : 'Work, quantities and measurements at your own pace',
     },
     {
       id: 'ai',
       Icon: Sparkles,
-      label: isHebrew ? 'הצעת מחיר חכמה עם AI' : 'AI smart quote',
-      hint: isHebrew ? 'מתארים את העבודה וה-AI עוזר לנסח' : 'Describe the job and let AI help draft it',
+      label: isHebrew ? 'מתארים ל-AI' : 'Describe it to AI',
+      hint: isHebrew ? 'תיאור העבודה הופך לטיוטה לבדיקה' : 'Turn a description of the work into a draft to review',
     },
   ];
 }
@@ -27,8 +30,8 @@ export function fileChoice(isHebrew) {
   return {
     id: 'file',
     Icon: FileUp,
-    label: isHebrew ? 'הצעת מחיר מקובץ' : 'Quote from a file',
-    hint: isHebrew ? 'מעלים הצעה ב-PDF או JPG וקובעים את המחירים שלכם' : 'Upload a quote (PDF or JPG) and set your own prices',
+    label: isHebrew ? 'מעלים קובץ' : 'Upload a file',
+    hint: isHebrew ? 'מתחילים מ-PDF או JPG ומזינים את המחירים שלכם' : 'Start from a PDF or JPG and enter your own prices',
   };
 }
 
@@ -44,6 +47,6 @@ export function templateChoice(isHebrew) {
     id: 'template',
     Icon: LayoutTemplate,
     label: isHebrew ? 'מתבנית שמורה' : 'From a saved template',
-    hint: isHebrew ? 'פריטים, מחירים וטקסטים מתבנית ששמרתם' : 'Items, prices and texts from a template you saved',
+    hint: isHebrew ? 'משתמשים שוב בעבודות ובטקסטים ששמרתם' : 'Reuse the work and texts you saved',
   };
 }

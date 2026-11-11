@@ -55,8 +55,9 @@ describe('the floating button in the quote editor', () => {
     expect(src.match(/className="pf-calc-fab"/g)).toHaveLength(1);
     expect(src).toContain('<button type="button" className="pf-calc-fab" onClick={() => setIsCalcOpen(true)}');
     expect(src).toContain("aria-label={isHebrew ? 'מחשבון' : 'Calculator'}");
-    // the small link stays (Locked Decision 2)
-    expect(src).toContain("{isHebrew ? 'מחשבון' : 'Calculator'}\n              </button>".replace(/\n/g, src.includes('\r\n') ? '\r\n' : '\n'));
+    // the small link stays (Locked Decision 2) - since 2026-11-12 next to the price in the work window (spec section 4)
+    expect(src).toContain('onOpenCalculator={() => setIsCalcOpen(true)}');
+    expect(readFileSync('src/components/WorkItemDialog.jsx', 'utf8')).toContain("data-testid=\"work-calculator\" onClick={onOpenCalculator}>\n                    {isHebrew ? 'מחשבון' : 'Calculator'}");
   });
   it('it floats above the windows that open over the editor (z 10000) and below the calculator; above the phone bottom bar', () => {
     const css = readFileSync('src/index.css', 'utf8');

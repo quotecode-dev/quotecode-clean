@@ -71,7 +71,8 @@ describe('windows close only after a successful save (C1)', () => {
   });
   it('the client window, the catalog add form and the expense drawer wait for the result too', () => {
     expect(src('src/components/EditClientModal.jsx')).toContain('.then((saved) => { if (saved !== false) onClose(); });');
-    expect(src('src/components/ServicesCatalog.jsx')).toContain('Promise.resolve(handleAddService(e)).then((saved) => { if (saved !== false) setShowAddForm(false); });');
+    // 2026-11-12 (unified quote, spec 5): + the optional price basis; the form still closes only after the item was saved
+    expect(src('src/components/ServicesCatalog.jsx')).toContain("Promise.resolve(handleAddService(e, priceBasisForSave(newBasis))).then((saved) => { if (saved !== false) { setShowAddForm(false); setNewBasis(''); } });");
     expect(src('src/components/FinancesTab.jsx')).toContain('Promise.resolve(handleAddExpense(e)).then((saved) => { if (saved !== false) setShowAddExpenseForm(false); });');
   });
 });

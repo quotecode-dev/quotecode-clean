@@ -16,6 +16,7 @@ import { buildQuoteItemFromEntry, blankRowItem, rowEntry, convertSizeBetween, is
 import { getActiveQuantity, getProfessionalUnitLabel, formatQuantity, normalizeRepeatCount, computeMeasurementValue, formatMeasurementLine } from '../utils/professionalQuoteItem';
 import { parsePriceInput, parseQuantityInput } from '../utils/itemPrice';
 import { askConfirm } from './AppDialog';
+import { roomLabel } from '../utils/quoteGroups';
 
 const COPY = {
   he: {
@@ -493,6 +494,12 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
           </div>
         )}
       </div>
+      {typeof item.room === 'string' && item.room.trim() && (
+        // 2026-11-12 (unified quote, spec 1 row 6): which room this row is for (one row per room) - the same words the client sees
+        <div className="qrow-extra qrow-room" data-testid={`qrow-room-${rowId}`}>
+          {isHebrew ? 'איפה: ' : 'Where: '}<span className="qrow-room-tag">{roomLabel(item.room, isHebrew, (sections.find((sec) => sec.key === item.section_key) || {}).kind || 'section')}</span>
+        </div>
+      )}
       {linkAsk && isLinked && (
         <div className="qrow-extra" role="group" aria-label={linked.count === 1 ? t.linkedAsk1 : t.linkedAsk.replace('{n}', String(linked.count))} data-testid={`qrow-linkask-${rowId}`}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '8px 10px', border: `1px solid ${NEON.violetLight}`, borderRadius: '10px', background: NEON.bgCardAlt }}>

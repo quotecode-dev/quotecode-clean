@@ -14,7 +14,6 @@ import { useQuoteHistoryGeometry, QH_CELL_PAD, QH_ACTION_COL, QH_CELL_STYLE } fr
 import { formatShortDate } from '../utils/shortDate';
 import { relativeQuoteDay, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
 import { sortQuotes, normalizeSortField, firstItemDescription } from '../utils/quoteListSort';
-import QuoteSendMenu from './QuoteSendMenu';
 import NewQuoteMenu from './NewQuoteMenu';
 import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search, ClipboardList, Clock } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
@@ -864,13 +863,6 @@ export default function QuotesTab({
     else if (actionKind === 'view') window.open(getQuoteViewLink(quote), '_blank');
     else openTrackingFor(quote.id);
   };
-  // Owner 2026-11-11 (findings 4 + 26): the prominent Send of every row - the same gated actions as the open row's chips
-  const sendMenuFor = (quote, variant) => (
-    <QuoteSendMenu quote={quote} isHebrew={isHebrew} variant={variant}
-      onEmail={(q) => setPendingEmailQuote(q)}
-      onWhatsApp={(q) => handleProtectedAction(q.id, 'whatsapp', () => sendWhatsApp(q))}
-      onCopy={typeof copyQuoteMessage === 'function' ? (q) => handleProtectedAction(q.id, 'whatsapp', () => copyQuoteMessage(q)) : null} />
-  );
 
   const renderDetailPanel = (row) => {
     const { quote, firstItemDesc, emailStatus, isLocked } = row;
@@ -1288,7 +1280,7 @@ export default function QuotesTab({
                     aria-controls={detailId}
                     aria-label={`${clientName}, ${isHebrew ? 'הצגת פרטים נוספים' : 'Show more details'}`}
                   >
-                    <ChevronDown className="quote-modern-chevron" size={14} strokeWidth={2.4} aria-hidden="true" data-expanded={isExpanded ? 'true' : undefined} />
+                    <ChevronDown className="quote-modern-chevron" size={17} strokeWidth={2.8} aria-hidden="true" data-expanded={isExpanded ? 'true' : undefined} />
                   </button>
                   <span className="quote-modern-number pf-num" dir="ltr">
                     {/* PRODUCT_TRUTH_DECORATIVE: the quote number opens the quote (the row's own edit / view / tracking action) */}
@@ -1325,7 +1317,6 @@ export default function QuotesTab({
                     title={isLocalIsraeliBusiness ? `${isHebrew ? 'לפני מע״מ' : 'Before VAT'}: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
                   />
                 </div>
-                {sendMenuFor(quote, 'row')}
                 {isExpanded && <div id={detailId} className="quote-modern-detail">{renderDetailPanel(row, detailId)}</div>}
               </div>
             );
@@ -1679,7 +1670,7 @@ export default function QuotesTab({
                 aria-label={isHebrew ? 'הצגת פרטים נוספים' : 'Show more details'}
                 style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '9px var(--pf-mobile-surface-pad, 10px)', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontFamily: 'inherit' }}
               >
-                <ChevronDown data-qh="action" size={15} strokeWidth={2.4} color={NEON.violet} style={{ flexShrink: 0, marginTop: '2px', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
+                <ChevronDown data-qh="action" size={19} strokeWidth={2.8} color="#0F6672" style={{ flexShrink: 0, marginTop: '1px', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                 <div style={{ flex: '1 1 auto', minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
                     <span
@@ -1727,7 +1718,6 @@ export default function QuotesTab({
                   </div>
                 </div>
               </button>
-              {sendMenuFor(quote, 'card')}
               {isExpanded && (
                 <div id={detailId} style={{ padding: '2px var(--pf-mobile-surface-pad, 10px) 12px', borderTop: `1px solid ${NEON.border}` }}>
                   {renderDetailPanel(row, detailId)}

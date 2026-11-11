@@ -68,8 +68,8 @@ const data = (quote = {}) => ({
 
 describe('the customer page: no product print / PDF of a quote with a line without a price (viewing stays)', () => {
   it.each([
-    ['HE', PublicQuote, 'הדפסת המסמך', 'תמציתי', 'אפשר לצפות בהצעה הקיימת. להפקת מסמך מלא, בקשו מהעסק הצעה מעודכנת עם כל המחירים.'],
-    ['EN', PublicQuoteEn, 'Print Document', 'Compact', 'You can view the existing quote. For a complete document, ask the business for an updated quote with every price.'],
+    ['HE', PublicQuote, 'הדפסת המסמך', 'הדפסת מסמך חלקי', 'אפשר לצפות בהצעה הקיימת. להפקת מסמך מלא, בקשו מהעסק הצעה מעודכנת עם כל המחירים.'],
+    ['EN', PublicQuoteEn, 'Print Document', 'Print partial document', 'You can view the existing quote. For a complete document, ask the business for an updated quote with every price.'],
   ])('%s', async (_l, Page, printLabel, compact, refusal) => {
     const print = vi.spyOn(window, 'print').mockImplementation(() => {});
     render(<MemoryRouter><Page quoteData={data()} /></MemoryRouter>);
@@ -80,7 +80,7 @@ describe('the customer page: no product print / PDF of a quote with a line witho
     expect(print).not.toHaveBeenCalled();
     print.mockRestore();
   });
-  it.each([['HE', PublicQuote, 'הדפסת המסמך', 'תמציתי'], ['EN', PublicQuoteEn, 'Print Document', 'Compact']])('%s: a complete quote still prints', async (_l, Page, printLabel, compact) => {
+  it.each([['HE', PublicQuote, 'הדפסת המסמך', 'הדפסת מסמך חלקי'], ['EN', PublicQuoteEn, 'Print Document', 'Print partial document']])('%s: a complete quote still prints', async (_l, Page, printLabel, compact) => {
     const print = vi.spyOn(window, 'print').mockImplementation(() => {});
     const d = data(); d.items = [d.items[0]];
     render(<MemoryRouter><Page quoteData={d} /></MemoryRouter>);

@@ -1,11 +1,16 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { phonePlaceholder } from '../utils/phoneDisplay';
 import { businessDial, joinPhone } from '../utils/phoneDial';
 import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
 import QuoteRowsEditor from './QuoteRowsEditor';
-import { blankRowItem, rowEntry } from '../utils/quoteItemEntry';
-import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Plus, CopyPlus, ChevronDown, Pencil, RotateCcw, FileText, Building2, LayoutList, ArrowLeft, ArrowRight, MoreVertical, LayoutTemplate } from 'lucide-react';
+import WorkItemDialog from './WorkItemDialog';
+import PlacesDialog from './PlacesDialog';
+import { defaultGroupName, groupWord } from '../utils/quoteGroups';
+import { createPortal } from 'react-dom';
+import { CreatorAsideContext } from './quotePresentation/creatorAside';
+import { rowEntry } from '../utils/quoteItemEntry';
+import { Calculator, Calendar, Paperclip, MapPin, X, AlertTriangle, Plus, CopyPlus, ChevronDown, Pencil, RotateCcw, FileText, Building2, ArrowLeft, ArrowRight, MoreVertical } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import { APP as NEON, FONT_HE, lightHeadingTextStyle as neonGlowTextStyle } from '../theme/neonTheme';
 import QuotePresentationPanel from './quotePresentation/QuotePresentationPanel';
@@ -91,13 +96,16 @@ export default function QuoteForm({
   defaultWarranty,
   notes, setNotes,
   items, setItems,
-  sections, setSections, addSection, renameSection, removeSection,
+  sections, setSections, renameSection, removeSection,
   quoteStructureMode, setQuoteStructureMode,
   projectName, setProjectName,
   services,
   clients,
   isHebrew,
   isLocalIsraeliBusiness,
+  // 2026-11-12 (unified quote): 'client' = the first step only; 'editor' = the work screen with the client strip
+  flowStep = 'editor',
+  onFlowStep = null,
   t,
   sym,
   formatMoneyDisplay,
@@ -233,14 +241,8 @@ export default function QuoteForm({
   // the rows of every list share one key store, so a row keeps its typed entry and focus when its item object is replaced or it moves
   const rowKeys = useRef(null);
   if (!rowKeys.current) rowKeys.current = { map: new WeakMap(), seq: 0, focus: null };
-  // a unit's "add row": a blank row in that unit, focused
-  const addRowTo = (sectionKey) => {
-    const row = blankRowItem(sectionKey);
-    const store = rowKeys.current;
-    store.seq += 1;
-    store.map.set(row, `r${store.seq}`);
-    store.focus = `r${store.seq}`;
-    setItems((prev) => [...prev, row]);
+  // 2026-11-12: rows added from the work window open their (collapsed) group, so the new work is seen
+  const openGroup = (sectionKey) => {
     if (sectionKey) setCollapsedUnitKeys((prev) => { if (!prev.has(sectionKey)) return prev; const next = new Set(prev); next.delete(sectionKey); return next; });
   };
   const canDuplicateRow = (it) => !(isProfessionalItem(it) && !canUseProfessionalQuoteReuse);
@@ -338,7 +340,6 @@ export default function QuoteForm({
   // הפריטים הקיימים "נופלים" אוטומטית ל-"לא משויך" (unassignedIndices
   // למטה), בדיוק כפי שנדרש ("a clearly visible temporary Unassigned
   // container requiring review") בלי אף מוטציה על items/sections.
-  const handleSwitchToDivided = () => setQuoteStructureMode('divided');
 
   // PRODUCT_TRUTH_CAPABILITY: professional_reuse
   // Owner console 2026-11-08 (stage 3, decisions 4 + 5): ONE copy of a unit right after it (count 1, new rows, no saved ids); every source
@@ -529,9 +530,50 @@ export default function QuoteForm({
 
   // Owner 2026-10-15: the price step knows whether a real item exists, and a discount is a percentage between 0 and 100
   const hasRealItems = (items || []).some((it) => it && !isUntouchedPlaceholderItem(it));
+  // 2026-11-12 (unified quote): the work window (target group) and the places window
+  const [workTarget, setWorkTarget] = useState(undefined);
+  const [placesOpen, setPlacesOpen] = useState(false);
+  // 2026-11-12: on a computer the summary sits beside the live preview (QuoteCreatorLayout gives the slot); otherwise it stays inline
+  const asideSlot = useContext(CreatorAsideContext);
+  const realItemsNow = (items || []).filter((it) => it && !isUntouchedPlaceholderItem(it) && String(it.description || '').trim() !== '');
+  const missingPriceCount = realItemsNow.filter((it) => it.unit_price === '' || it.unit_price == null).length;
+  const groupKindNow = ((sections || []).find((sec) => sec && sec.kind) || {}).kind || null;
+  const addWorkRows = (rows) => {
+    setItems((prev) => [...(prev || []).filter((it) => !isUntouchedPlaceholderItem(it)), ...rows]);
+    if (workTarget && workTarget.key) openGroup(workTarget.key);
+    setWorkTarget(undefined);
+  };
+  const createPlaces = ({ kind, count, identical }) => {
+    const stamp = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+    const start = (sections || []).filter((sec) => (sec.kind || null) === kind).length;
+    const mk = (i) => ({ key: `tmp_section_${stamp}_${i}`, name: identical ? groupWord(kind, isHebrew) : defaultGroupName(kind, start + i, isHebrew),
+      sort_order: (sections || []).length + i, kind, ...(identical && count > 1 ? { repeat_count: count } : {}) });
+    const fresh = identical ? [mk(0)] : Array.from({ length: count }, (_, i) => mk(i));
+    setSections((prev) => [...(prev || []), ...fresh]);
+    // finding 5 (Owner real walk 2026-10-26): the new group opens with the cursor in its name
+    setNewUnitKey(fresh[0].key);
+    if (structureMode !== 'divided') {
+      // the loose rows typed before the division move into the first new group (nothing is lost)
+      setItems((prev) => (prev || []).filter((it) => !isUntouchedPlaceholderItem(it)).map((it) => (it.section_key ? it : { ...it, section_key: fresh[0].key })));
+      setQuoteStructureMode('divided');
+    }
+    setPlacesOpen(false);
+  };
+  // "להעתיק את מה שמילאתם ב<first>": the rows of the first group are copied into an empty later group (nothing existing is overwritten)
+  const copyFromFirstGroup = (targetKey) => {
+    const first = (sections || [])[0];
+    if (!first || first.key === targetKey) return;
+    setItems((prev) => {
+      const list = prev || [];
+      if (list.some((it) => it && it.section_key === targetKey && !isUntouchedPlaceholderItem(it))) return list;
+      const copies = list.filter((it) => it && it.section_key === first.key && !isUntouchedPlaceholderItem(it))
+        .map((it) => { const c = { ...it, section_key: targetKey }; delete c.id; delete c.price_link_id; return c; });
+      return [...list, ...copies];
+    });
+  };
   // Owner console 2026-11-08 (restore item 07; body of 4f1592f2:src/components/QuoteForm.jsx 473-485): one synthetic example line, local
   // only (never saved: the save asks to remove it first; editing it turns it into an ordinary line of the user's own). 100 x 200 cm at 600
-  // per m2 in the quote's currency.
+  // per m2 in the quote's currency. 2026-11-12 (unified quote): offered in the empty list line - no capability is lost.
   const addLocalExample = () => {
     const example = {
       description: isHebrew ? 'חלון אלומיניום (דוגמה)' : 'Aluminium window (example)', quantity: '1', unit_price: '600', isFromCatalog: false, section_key: null,
@@ -552,6 +594,23 @@ export default function QuoteForm({
   // Owner 2026-11-11 (finding 5, option א; typed L-09): a business client's tax id is required in the Israeli (Local) market only - the
   // market decides, never the UI language; abroad it is marked optional and the quote saves without it
   const taxIdRequired = clientType === 'business' && isLocalIsraeliBusiness !== false;
+  // Owner console 2026-11-11 (typed: the two sentences, "ללא מע״מ" / "כולל מע״מ" bold and in another colour): the VAT notice at the top of
+  // the quote, Israel only, once the client type is chosen
+  const vatNotice = isLocalIsraeliBusiness && (clientType === 'business' || clientType === 'private') ? (
+    <div className="sq-vat-notice" data-testid="sq-vat-notice" data-client-type={clientType} role="status">
+      {clientType === 'business'
+        ? (isHebrew ? <>שימו לב: הסכומים ללקוח עסקי הינם <strong className="sq-vat-word">ללא מע״מ</strong>, והמע״מ יתווסף למחיר הסופי</> : <>Please note: amounts for business clients <strong className="sq-vat-word">exclude VAT</strong>. VAT will be added to the final price</>)
+        : (isHebrew ? <>שימו לב: המחיר ללקוח פרטי הינו <strong className="sq-vat-word">כולל מע״מ</strong>, ולא יתווסף מע״מ לסכום הכללי</> : <>Please note: prices for private clients <strong className="sq-vat-word">include VAT</strong>. No VAT will be added to the total</>)}
+    </div>
+  ) : null;
+  // "להמשך" of the client step: the same required fields as a save (name, type, an Israeli business client's tax id)
+  const continueFromClient = () => {
+    const form = document.querySelector('form.pf-editor-form');
+    const fields = form ? [...form.querySelectorAll('input, select')].filter((el) => el.required) : [];
+    const bad = fields.find((el) => !el.checkValidity());
+    if (bad) { bad.reportValidity(); return; }
+    if (typeof onFlowStep === 'function') onFlowStep('editor');
+  };
   // PRODUCT_TRUTH_CAPABILITY: attachments
   const handleAttachmentClick = () => {
     if (!canUseAttachments) {
@@ -661,7 +720,7 @@ export default function QuoteForm({
       {/* Owner console 2026-11-06 (release C, typed approval incl. L-09: "צריך לשים כפתור מחשבון - שיצוף תמיד ... בהכנת הצעה ובעריכת
           הצעה ובכל מקום שצריך מחשבון"): a floating Calculator button while the quote editor is open (new / edit, and above the smart quote
           / smart edit and the price windows that open over it); it opens the same calculator, for calculation only. The small
-          "מחשבון" link below stays (Locked Decision 2). */}
+          "מחשבון" link stays - since 2026-11-12 next to the price in the work window (spec section 4). */}
       {/* PRODUCT_TRUTH_CAPABILITY: editor_calculator */}
       <button type="button" className="pf-calc-fab" onClick={() => setIsCalcOpen(true)} aria-label={isHebrew ? 'מחשבון' : 'Calculator'} title={isHebrew ? 'מחשבון' : 'Calculator'} data-testid="calc-fab" style={{ background: NEON.gradient, boxShadow: NEON.glow }}>
         <Calculator size={24} strokeWidth={2.2} aria-hidden="true" />
@@ -754,7 +813,7 @@ export default function QuoteForm({
         {/* Owner 2026-10-25 (typed L-09 / L-15): Back keeps the draft on this device (asks only when there are unsaved changes) */}
         {typeof onBack === 'function' && (
           // PRODUCT_TRUTH_DECORATIVE: leaves the editor like the phone Back; the local draft is kept, nothing is deleted or saved to the server
-          <button type="button" onClick={onBack} data-testid="editor-back" title={isHebrew ? 'חזרה בלי למחוק: הטיוטה נשארת שמורה במכשיר הזה' : 'Back without deleting: the draft stays on this device'}
+          <button type="button" onClick={flowStep === 'editor' && !editingQuoteId && typeof onFlowStep === 'function' ? () => onFlowStep('client') : onBack} data-testid="editor-back" title={isHebrew ? 'חזרה בלי למחוק: הטיוטה נשארת שמורה במכשיר הזה' : 'Back without deleting: the draft stays on this device'}
             style={{ background: NEON.bgCard, color: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
             {isHebrew ? <ArrowRight size={15} aria-hidden="true" /> : <ArrowLeft size={15} aria-hidden="true" />}
             {isHebrew ? 'חזרה' : 'Back'}
@@ -771,11 +830,22 @@ export default function QuoteForm({
         </div>
       </div>
 
-      <form className="pf-screen-body pf-editor-form" data-quote-form="editor" onSubmit={onSave} onInvalidCapture={(e) => { const code = INVALID_FIELD_BLOCKER[e.target?.dataset?.helpField]; if (code) publishBlocker(code, { scope: 'editor', stage: 'validating' }); }}>
+      <form id="pf-editor-form" className="pf-screen-body pf-editor-form" data-quote-form="editor" onSubmit={onSave} onInvalidCapture={(e) => { const code = INVALID_FIELD_BLOCKER[e.target?.dataset?.helpField]; if (code) publishBlocker(code, { scope: 'editor', stage: 'validating' }); }}>
         {/* SMART-QUOTE (2026-09-22, Owner-locked first-use flow): 1 who is it for -> 2 what work/product -> 3 price -> 4 review & save
             (preview/share/send follow from the saved quote). Professional capability (catalog, measured items, rooms/areas/units,
             attachments, terms) is unchanged - optional parts are progressive, never removed. */}
-        <StepHeading n={1} title={isHebrew ? 'למי ההצעה?' : 'Who is it for?'} />
+        {flowStep === 'editor' && typeof onFlowStep === 'function' ? (
+          <>
+            {/* 2026-11-12 (unified quote): the client is chosen first; here a short strip with one way back to the client step */}
+            <div className="sq-client-strip" data-testid="sq-client-strip">
+              <span><strong>{clientName}</strong><small>{clientType === 'business' ? (isHebrew ? 'לקוח עסקי' : 'Business client') : (isHebrew ? 'לקוח פרטי' : 'Private client')}</small></span>
+              {/* PRODUCT_TRUTH_DECORATIVE: goes back to the client step of the same quote (nothing is lost) */}
+              <button type="button" className="sq-client-strip-edit" onClick={() => onFlowStep('client')}>{isHebrew ? 'עריכת הלקוח' : 'Edit client'}</button>
+            </div>
+            {vatNotice}
+          </>
+        ) : (<>
+        <StepHeading n={1} title={isHebrew ? 'למי מכינים את ההצעה?' : 'Who is this quote for?'} />
         {/* V2 Visual Completion Pass: Client Details + Quote Details now sit
             side-by-side (Image 1 reference) via the same auto-fit/minmax grid
             pattern already used everywhere else in this file for field rows -
@@ -831,7 +901,7 @@ export default function QuoteForm({
               <option value="business">{isHebrew ? 'עסקי (חברה/עוסק)' : 'Business'}</option>
               <option value="private">{isHebrew ? 'פרטי' : 'Private'}</option>
             </select>
-            {isLocalIsraeliBusiness && (
+            {isLocalIsraeliBusiness && !vatNotice && (
               <p data-testid="sq-client-type-vat-help" style={{ margin: '4px 0 0', fontSize: '0.72rem', color: NEON.textSecondary, lineHeight: 1.35 }}>
                 {isHebrew ? 'סוג הלקוח קובע אם המחיר כולל מע״מ או לפני מע״מ.' : 'Customer type determines whether entered prices include VAT or exclude VAT.'}
               </p>
@@ -924,7 +994,16 @@ export default function QuoteForm({
           </div>
         )}
 
-        <StepHeading n={2} title={isHebrew ? 'מה העבודה או המוצר?' : 'What work or product?'} hint={isHebrew ? 'הוסיפו מוצר או עבודה - מהקטלוג, בכמות או לפי מידות.' : 'Add a product or work item - from your catalog, by quantity or by measurements.'} />
+        {vatNotice}
+        </>)}
+
+        {flowStep === 'client' ? (
+          <div className="sq-client-continue">
+            {/* PRODUCT_TRUTH_DECORATIVE: continues from the client step to the work screen of the same quote */}
+            <button type="button" className="sq-continue" data-testid="sq-client-continue" onClick={continueFromClient}>{isHebrew ? 'להמשך' : 'Continue'}</button>
+          </div>
+        ) : (<>
+        <StepHeading n={2} title={isHebrew ? 'מה מוסיפים להצעה?' : 'What goes in the quote?'} />
         <div style={{ marginBottom: '10px' }}>
 
         {/* SMART-QUOTE-02 (2026-09-22, Owner-locked): no compulsory structure-first decision. Every quote starts as one simple
@@ -936,69 +1015,32 @@ export default function QuoteForm({
             UI לניהול-יחידות לא מוצג במצב הזה בכלל. */}
         {/* PRODUCT_TRUTH_CAPABILITY: smart_quote */}
         {structureMode === 'regular' && (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '14px', flexWrap: 'wrap' }}>
-              {/* PRODUCT_TRUTH_CAPABILITY: editor_calculator */}
-              <button type="button" onClick={() => setIsCalcOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '2px 0' }}>
-                <Calculator size={13} strokeWidth={2.2} />
-                {isHebrew ? 'מחשבון' : 'Calculator'}
-              </button>
-              {/* חוק ברזל (Locked Decision 8 - "Regular -> Divided... the
-                  user may discover later that a regular quote should have
-                  been divided"): קישור-טקסט משני קבוע, לא רק בזמן-יצירה -
-                  פריטים קיימים (section_key===null תמיד במצב Regular) נופלים
-                  אוטומטית ל"לא משויך" הגלוי ברגע המעבר, בלי מוטציה כלל. */}
-              {/* PRODUCT_TRUTH_DECORATIVE: text link that switches structure mode from flat list to room/unit grouping; a UI-mode toggle within the already-documented smart_quote/measured_quote flow */}
-              <button type="button" onClick={handleSwitchToDivided} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '2px 0' }}>
-                <Building2 size={13} strokeWidth={2.2} />
-                {isHebrew ? 'חלוקה לחדרים / אזורים / יחידות (לא חובה)' : 'Group by rooms / areas / units (optional)'}
-              </button>
-              {typeof onAddUnitFromTemplate === 'function' && (
-                // PRODUCT_TRUTH_DECORATIVE: "from a saved unit" (stage 4) - opens the unit templates; one unit with its rows is added to this quote
-                <button type="button" data-testid="unit-from-template" onClick={onAddUnitFromTemplate} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '2px 0' }}>
-                  <LayoutTemplate size={13} strokeWidth={2.2} />
-                  {isHebrew ? 'מיחידה שמורה' : 'From a saved unit'}
-                </button>
-              )}
+          <div className="sq-add-bar">
+            <div className="sq-add-choice">
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the work window (work, place, calculation, price) for the quote's list */}
+              <button type="button" className="sq-add-btn sq-add-btn--primary" data-testid="sq-add-work" onClick={() => setWorkTarget({ key: null })}>{isHebrew ? '+ הוספת עבודה או מוצר' : '+ Add work or a product'}</button>
+              <small>{isHebrew ? 'להצעה רגילה: מוסיפים עבודות ומוצרים ישר לרשימה.' : 'For a regular quote: add work and products straight to the list.'}</small>
             </div>
-
-            {/* Owner console 2026-11-08 (stage 2, typed L-23): the measured entry's locked hint becomes the row explanation */}
-            <p data-testid="quote-rows-hint" style={{ margin: '8px 0 0', fontSize: '0.76rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
-              {isHebrew
-                ? 'כל שורה היא מוצר או עבודה: בוחרים מהקטלוג או מקלידים שם, וקובעים אופן חיוב - סכום קבוע, יחידות, שטח, אורך, ק״ג, שעות או ימים.'
-                : 'Each row is a product or work item: pick it from your catalog or type a name, then choose how it is billed - a fixed amount, units, area, length, kg, hours or days.'}
-            </p>
-          </>
+            <div className="sq-add-choice">
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the places window (apartments / rooms / floors, how many, identical) */}
+              <button type="button" className="sq-add-btn" data-testid="sq-add-places" onClick={() => setPlacesOpen(true)}>{isHebrew ? '+ הוספת דירה, חדר או קומה' : '+ Add an apartment, room or floor'}</button>
+              <small>{isHebrew ? 'כשיש כמה מקומות: מחלקים את ההצעה לדירות, חדרים או קומות, ולכל אחד העבודות שלו.' : 'When there are several places: split the quote into apartments, rooms or floors, each with its own work.'}</small>
+            </div>
+          </div>
         )}
 
-        {/* חוק ברזל (Locked Decision 3/4/6 - "the system first allows
-            creating the units"; "do not keep a visually-competing global
-            Add button"; "every unit is a live working container"): במצב
-            מחולק אין כפתור-הוספה גלובלי בכלל - כל פעולת-הוספה שייכת
-            ליחידה ספציפית (או ל"לא משויך" הגלוי), ר' לוח-היחידות למטה. */}
         {/* PRODUCT_TRUTH_CAPABILITY: measured_quote */}
         {structureMode === 'divided' && (
-          <>
-            <p style={{ margin: 0, fontSize: '0.78rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
-              {isHebrew
-                ? 'צרו את היחידות בהצעה, ואז הוסיפו לכל יחידה את המוצרים והעבודות שלה.'
-                : 'Create the units in the quote, then add the relevant products and work to each one.'}
-            </p>
-            {/* PRODUCT_TRUTH_DECORATIVE: text link that switches structure mode back to a regular flat item list; inverse of the mode-switch link above */}
-            <button type="button" onClick={handleSwitchToRegular} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '6px 0 0' }}>
-              <LayoutList size={13} strokeWidth={2.2} />
-              {isHebrew ? 'מעבר להצעה רגילה' : 'Switch to a regular quote'}
-            </button>
-            <div style={{ display: 'flex' }}>
-              {typeof onAddUnitFromTemplate === 'function' && (
-                // PRODUCT_TRUTH_DECORATIVE: "from a saved unit" (stage 4) - opens the unit templates; one unit with its rows is added to this quote
-                <button type="button" data-testid="unit-from-template" onClick={onAddUnitFromTemplate} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.76rem', fontWeight: '600', cursor: 'pointer', padding: '6px 0 0' }}>
-                  <LayoutTemplate size={13} strokeWidth={2.2} />
-                  {isHebrew ? 'מיחידה שמורה' : 'From a saved unit'}
-                </button>
-              )}
-            </div>
-          </>
+          <div className="sq-add-bar">
+            {/* PRODUCT_TRUTH_DECORATIVE: adds more places of the same kind (how many; identical or not) */}
+            <button type="button" className="sq-add-btn sq-add-btn--primary" data-testid="sq-add-more-places" onClick={() => setPlacesOpen(true)}>{isHebrew ? `+ הוספת ${groupWord(groupKindNow, true)}` : `+ Add ${groupWord(groupKindNow, false).toLowerCase()}`}</button>
+            {typeof onAddUnitFromTemplate === 'function' && (
+              // PRODUCT_TRUTH_DECORATIVE: "from a saved template" (stage 4) - opens the unit templates; one group with its rows is added to this quote
+              <button type="button" className="sq-add-btn" data-testid="unit-from-template" onClick={onAddUnitFromTemplate}>{isHebrew ? 'מתבנית שמורה' : 'From a saved template'}</button>
+            )}
+            {/* PRODUCT_TRUTH_DECORATIVE: removes the division - every row stays in the quote */}
+            <button type="button" className="sq-add-btn sq-add-btn--quiet" onClick={handleSwitchToRegular}>{isHebrew ? 'ביטול החלוקה (העבודות נשמרות)' : 'Remove the division (the work stays)'}</button>
+          </div>
         )}
         </div>
 
@@ -1010,7 +1052,16 @@ export default function QuoteForm({
             ר' unitItemIndices למעלה) כדי שפעולות עריכה/מחיקה/שכפול
             הקיימות ימשיכו לפעול ללא שינוי. */}
         {/* Owner console 2026-11-08 (stage 2, design A): every line is a row - the item cards and the item window are gone */}
-        {structureMode === 'regular' && (
+        {structureMode === 'regular' && !hasRealItems && (
+          <div className="sq-empty" data-testid="sq-empty-work">
+            <span>{isHebrew ? 'כאן יופיעו העבודות והמחירים.' : 'Work and prices will appear here.'}</span>
+            {/* PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line (100 x 200 cm at 600 per m2) to learn the row from */}
+            <button type="button" data-testid="quote-show-example" onClick={addLocalExample} style={{ display: 'block', margin: '8px 0 0', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', color: NEON.textSecondary, fontSize: '0.8rem', fontWeight: 700, padding: '8px 12px', minHeight: '40px', cursor: 'pointer' }}>
+              {isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}
+            </button>
+          </div>
+        )}
+        {structureMode === 'regular' && hasRealItems && (
           <QuoteRowsEditor recommendedMethod={recommendedPricingMethod} items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
                 international={isLocalIsraeliBusiness === false} sym={sym} fmtMoney={fmtMoney} onCatalogItemAdded={onCatalogItemAdded}
                 canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
@@ -1019,12 +1070,6 @@ export default function QuoteForm({
         )}
         {/* Owner console 2026-11-08 (restore item 07): the item window's local example (4f1592f2:src/components/QuoteForm.jsx 473-485,
             1007-1035) - one never-saved line, 100 x 200 cm at 600 per m², offered while the quote has no real line yet */}
-        {structureMode === 'regular' && !hasRealItems && (
-          // PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line (100 x 200 cm at 600 per m2) to learn from (Owner round 1, A6; restored 2026-11-08)
-          <button type="button" data-testid="quote-show-example" onClick={addLocalExample} style={{ display: 'block', margin: '8px 0 0', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', color: NEON.textSecondary, fontSize: '0.8rem', fontWeight: 700, padding: '8px 12px', minHeight: '40px', cursor: 'pointer' }}>
-            {isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}
-          </button>
-        )}
         {structureMode === 'divided' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '4px' }}>
             {unitUndoLive && (
@@ -1055,7 +1100,10 @@ export default function QuoteForm({
                 onToggleCollapse={() => toggleUnitCollapsed(section.key)}
                 onRename={(name) => renameSection(section.key, name)}
                 onRemove={() => requestRemoveSection(section, indices.filter(isRealLine).length)}
-                onAddItem={() => addRowTo(section.key)}
+                onAddItem={() => setWorkTarget({ key: section.key, name: section.name, kind: section.kind })}
+                onCopyFirst={sections.length > 1 && section.key !== sections[0].key && !indices.some(isRealLine) ? () => copyFromFirstGroup(section.key) : null}
+                copyFirstName={sections[0] ? sections[0].name : ''}
+                groupKind={section.kind || groupKindNow}
                 onDuplicate={() => duplicateUnit(section)}
                 focusName={section.key === newUnitKey}
               >
@@ -1083,7 +1131,7 @@ export default function QuoteForm({
                 collapsed={collapsedUnitKeys.has('__unassigned__') && !items.some((it) => it && it._invalid && !sections.some((s) => s.key === it.section_key))}
                 onToggleCollapse={() => toggleUnitCollapsed('__unassigned__')}
                 isUnassigned
-                onAddItem={() => addRowTo(null)}
+                onAddItem={() => setWorkTarget({ key: null })}
               >
                 <QuoteRowsEditor recommendedMethod={recommendedPricingMethod} items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={sections} isHebrew={isHebrew}
                 international={isLocalIsraeliBusiness === false} sym={sym} fmtMoney={fmtMoney} onCatalogItemAdded={onCatalogItemAdded}
@@ -1094,12 +1142,6 @@ export default function QuoteForm({
             )}
 
             {/* PRODUCT_TRUTH_DECORATIVE: creates a new empty unit/room container in divided mode; sub-control of the already-documented measured_quote unit-board UI */}
-            <button type="button" onClick={() => { const key = addSection(); if (key) setNewUnitKey(key); }} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'none', border: `1px dashed ${NEON.borderStrong}`, color: NEON.violetLight, borderRadius: '10px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer', minHeight: '44px' }}>
-              <Plus size={15} strokeWidth={3} />
-              {sections.length === 0
-                ? (isHebrew ? 'הוספת היחידה הראשונה' : 'Add the first unit')
-                : (isHebrew ? 'הוספת יחידה נוספת' : 'Add another unit')}
-            </button>
           </div>
         )}
 
@@ -1110,6 +1152,12 @@ export default function QuoteForm({
             (Dashboard.jsx) גם ככה לעולם לא מוחק פריטים, רק מאפס section_key -
             הדיאלוג הזה מוסיף את השקיפות/הבחירה שהייתה חסרה, לא בטיחות חדשה
             ברמת ה-state עצמו. */}
+        <WorkItemDialog open={workTarget !== undefined} isHebrew={isHebrew} international={isLocalIsraeliBusiness === false} services={services}
+          groupKind={(workTarget && workTarget.kind) || groupKindNow || 'section'} sectionKey={workTarget ? workTarget.key : null} groupName={workTarget && workTarget.name ? workTarget.name : ''}
+          canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
+          onAdd={addWorkRows} onClose={() => setWorkTarget(undefined)} onOpenCalculator={() => setIsCalcOpen(true)} />
+        <PlacesDialog open={placesOpen} isHebrew={isHebrew} knownKind={structureMode === 'divided' ? (groupKindNow || 'section') : null} onCreate={createPlaces} onClose={() => setPlacesOpen(false)}
+          onFromTemplate={typeof onAddUnitFromTemplate === 'function' && structureMode !== 'divided' ? () => { setPlacesOpen(false); onAddUnitFromTemplate(); } : null} />
         {unitRemovalTarget && (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }} dir={isHebrew ? 'rtl' : 'ltr'}>
             <div style={{ background: NEON.bgElevated, border: `1px solid ${NEON.border}`, padding: '22px', borderRadius: '14px', maxWidth: '380px', width: '90%', textAlign: isHebrew ? 'right' : 'left', boxShadow: '0 20px 40px -10px rgba(0,0,0,0.5)' }}>
@@ -1119,8 +1167,8 @@ export default function QuoteForm({
               </h3>
               <p style={{ margin: '0 0 12px', fontSize: '0.82rem', color: NEON.textSecondary, lineHeight: '1.4' }}>
                 {isHebrew
-                  ? `ליחידה זו יש ${unitRemovalTarget.itemCount} פריטים. הם לא יימחקו - לאן להעביר אותם?`
-                  : `This unit has ${unitRemovalTarget.itemCount} item(s). They will not be deleted - where should they move?`}
+                  ? `ב${unitRemovalTarget.name} יש ${unitRemovalTarget.itemCount} פריטים. הם לא יימחקו - לאן להעביר אותם?`
+                  : `${unitRemovalTarget.name} has ${unitRemovalTarget.itemCount} item(s). They will not be deleted - where should they move?`}
               </p>
               <select
                 aria-label={isHebrew ? 'העברת הפריטים אל' : 'Move items to'}
@@ -1140,103 +1188,145 @@ export default function QuoteForm({
                 </button>
                 {/* PRODUCT_TRUTH_DECORATIVE: confirms unit removal, reassigning the unit's items and deleting the now-empty container; a data-safe sub-action of unit management */}
                 <button type="button" onClick={confirmRemoveSection} style={{ flex: 1, background: NEON.red, border: 'none', color: 'white', borderRadius: '8px', padding: '10px', fontSize: '0.82rem', fontWeight: 700, cursor: 'pointer' }}>
-                  {isHebrew ? 'הסרת יחידה' : 'Remove unit'}
+                  {isHebrew ? `הסרת ה${groupWord(groupKindNow, true)}` : `Remove ${groupWord(groupKindNow, false).toLowerCase()}`}
                 </button>
               </div>
             </div>
           </div>
         )}
 
-        <StepHeading n={3} title={isHebrew ? 'מחיר' : 'Price'} />
-        {/* Owner 2026-10-15 (typed approval, David's video: the quote amount was typed into the discount): with no item yet, the price
-            step says where the price goes and moves to the first row (stage 2, 2026-11-08); the field is named for what it is - a discount on the whole quote. */}
-        {!hasRealItems && (
-          <div data-testid="sq-price-needs-item" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px', flexWrap: 'wrap', padding: '10px 12px', marginBottom: '10px', borderRadius: '10px', background: NEON.violetLighter, border: `1px solid ${NEON.violetLight}`, color: NEON.textPrimary, fontSize: '0.82rem', lineHeight: 1.4 }}>
-            <span style={{ minWidth: 0, flex: '1 1 220px' }}>{isHebrew ? 'קודם מוסיפים מוצר או עבודה עם מחיר (שלב 2). כאן רק הנחה על כל ההצעה.' : 'First add a product or work with its price (step 2). This is only a discount on the whole quote.'}</span>
-            {/* PRODUCT_TRUTH_DECORATIVE: from the price step with no item yet: moves to the first row of step 2 (the one quote builder's rows) */}
-            <button type="button" data-testid="sq-price-go-rows" onClick={() => { const el = document.querySelector('[data-testid="quote-rows-editor"] [data-testid^="qrow-item-"]'); if (el) { el.scrollIntoView({ block: 'center' }); el.focus(); } else if (structureMode === 'divided') addRowTo(null); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: NEON.gradient, color: '#fff', border: 'none', borderRadius: '8px', padding: '8px 12px', minHeight: '40px', fontSize: '0.8rem', fontWeight: 800, cursor: 'pointer' }}>
-              <Plus size={14} strokeWidth={3} />
-              {isHebrew ? 'הוספת מוצר או עבודה' : 'Add product or work'}
-            </button>
-          </div>
-        )}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 220px))', gap: '10px', marginBottom: '10px' }}>
-          <div>
-            <label htmlFor="sq-discount" style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'הנחה על כל ההצעה (%)' : 'Discount on the whole quote (%)'}</label>
-            <input id="sq-discount" data-testid="sq-discount" type="text" inputMode="decimal" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" aria-invalid={discountInvalid} aria-describedby={discountInvalid ? 'sq-discount-error' : undefined} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${discountInvalid ? NEON.red : NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
-            {discountInvalid && <div id="sq-discount-error" role="alert" style={{ color: NEON.red, fontSize: '0.74rem', marginTop: '4px' }}>{isHebrew ? 'הנחה יכולה להיות בין 0 ל־100.' : 'A discount can be between 0 and 100.'}</div>}
-          </div>
-        </div>
-        {/* חוק ברזל (Global Surface Audit + Money Alignment Fix, סבב זה):
-            כל שורה הייתה div נפרד עם display:flex/justifyContent:space-between
-            משלה - כל שורה הייתה "קונטיינר flex" עצמאי, כך שרוחב עמודת הסכום
-            נקבע בנפרד לכל שורה (shrink-to-fit) ולא היה עמודה משותפת אחת -
-            תחת RTL, הסכום (הילד השני, "end" פיזית = שמאל) היה נדבק לקצה
-            השמאלי הקבוע של השורה שלו, כך שהקצה השמאלי (לא הימני, איפה
-            שהספרות בפועל) היה המשותף - בדיוק ההפך ממה שנדרש ליישור לפי
-            ערך-מקום (ראה .pf-money-row/.pf-money-cell למטה). הפתרון
-            המבני: כל שורות הטוטלים הן עכשיו ילדים ישירים של גריד אחד
-            משותף (grid-template-columns: 1fr auto) - כך שעמודת הסכום
-            (auto) מחושבת פעם אחת עבור כל השורות יחד, לא בנפרד לכל שורה;
-            כל תג <> (React Fragment) לא יוצר DOM node נפרד ולכן לא שובר
-            את שיתוף העמודה. textAlign:'right' על כל תא-סכום (לא מותנה
-            ב-isHebrew - סכום כספי תמיד מיושר לימין הפיזי, גם תחת LTR
-            (שם flex-end כבר יישר נכון קודם, ולא נפגע כאן)). קו הפרדה לפני
-            השורה הסופית הוא ילד-גריד נפרד שפורש שתי העמודות
-            (gridColumn:'1 / -1') כדי שהקו יהיה רציף על פני כל הרוחב, לא
-            שני קטעים נפרדים בכל תא. */}
-        <div className="pf-money-row" style={{ display: 'grid', gridTemplateColumns: '1fr auto', columnGap: '10px', borderTop: `2px solid ${NEON.border}`, marginTop: '12px', paddingTop: '8px' }}>
-          {/* Local Private: אין שורת "סכום ביניים" נפרדת - היא כפולה ל-total
-              (שניהם ה-ברוטו שהוזן/ה-total הסופי). מציגים ישירות את פירוט
-              החשבונאות הרגיל: סכום לפני מע"מ / מע"מ / סה"כ, בדיוק כמו Business. */}
-          {/* Owner 2026-11-10 (Hebrew/English sync): the VAT rows follow the market (an Israeli business), never the UI language */}
-          {!(isLocalIsraeliBusiness && clientType === 'private') && (
-            <>
-              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{t.subtotal}</span>
-              <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(subtotal)}</span>
-            </>
-          )}
-          {/* IRON-ILS-001 (2026-10-23): with no discount, the agorot moved to the discount show as a rounding discount once it changes the shown sum */}
-          {(discount > 0 || Math.round(Number(discountAmount) || 0) >= 1) && (
-            <>
-              <span style={{ color: NEON.red, fontSize: '0.8rem' }}>{discount > 0 ? (isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`) : (isHebrew ? 'הנחת עיגול:' : 'Rounding discount:')}</span>
-              <span className="pf-money" style={{ color: NEON.red, fontSize: '0.8rem', textAlign: 'right' }}>-{sym}{fmtMoney(discountAmount)}</span>
-            </>
-          )}
-          {isLocalIsraeliBusiness && clientType === 'private' ? (
-            // תצוגה חשבונאית רגילה (Private): "סכום לפני מע"מ" / "מע"מ (18%)"
-            // - אותם ערכים בדיוק כמו קודם (netAmount=total-taxAmount, taxAmount),
-            // רק תוויות/סדר שונים; אין נוסחה חדשה. כל הסכומים עוברים במסלול
-            // ה-money הקנוני (IRON-ILS-001: שקל שלם עם .00 ב-Local).
-            <>
-              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{isHebrew ? 'סכום לפני מע״מ:' : 'Before VAT:'}</span>
-              <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount - taxAmount)}</span>
-              <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{isHebrew ? 'מע״מ (18%):' : 'VAT (18%):'}</span>
-              <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(taxAmount)}</span>
-            </>
-          ) : (
-            isLocalIsraeliBusiness && (
-              <>
-                <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{t.vat}</span>
-                <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(taxAmount)}</span>
-              </>
-            )
-          )}
-          <div style={{ gridColumn: '1 / -1', marginTop: '6px' }} />
-          <span style={{ ...neonGlowTextStyle, fontSize: '1rem', fontWeight: '800' }}>{t.totalAmount}</span>
-          <span className="pf-money" style={{ color: NEON.violetLight, fontSize: '1rem', fontWeight: '800', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount)}</span>
-          {/* G4 (Owner 2026-11-08, the clarity fixes B3): a row holding a value that is not stored yet is not in the total */}
-          {(items || []).some((it) => it && it._invalid) && (
-            <span data-testid="sq-total-partial" style={{ gridColumn: '1 / -1', marginTop: '4px', fontSize: '0.74rem', fontWeight: 700, color: NEON.red }}>{isHebrew ? 'הסכום עדיין חלקי' : 'Partial total'}</span>
-          )}
-          {isLocalIsraeliBusiness && (clientType === 'business' || clientType === 'private') && (
-            <span data-testid="sq-prices-vat-basis" style={{ gridColumn: '1 / -1', marginTop: '4px', fontSize: '0.74rem', color: NEON.textSecondary }}>
-              {clientType === 'private' ? (isHebrew ? 'המחירים בהצעה כוללים מע״מ' : 'Prices in this quote include VAT') : (isHebrew ? 'המחירים בהצעה לפני מע״מ' : 'Prices in this quote are before VAT')}
-            </span>
-          )}
-        </div>
+        {/* 2026-11-12 (unified quote, spec 1 rows 4 / 8): "סיכום ההצעה" - ONE total right above ONE "שמירת ההצעה"; beside the live
+            preview on a computer, below the work on a phone. Saving is not sending. */}
+        {(() => {
+          const summaryCard = (
+            <section className="sq-summary" data-testid="sq-summary" dir={isHebrew ? 'rtl' : 'ltr'}>
+              <StepHeading n={3} title={isHebrew ? 'סיכום ההצעה' : 'Quote summary'} />
+              {!editingQuoteId && (
+                // SMART-QUOTE-03: a NEW quote is always a Draft (no status choice at creation)
+                <span data-testid="sq-status-draft" className="sq-draft-badge">{isHebrew ? 'טיוטה' : 'Draft'}</span>
+              )}
+              {structureMode === 'divided' && (sections || []).length > 0 && (
+                <p className="sq-summary-line" data-testid="sq-summary-counts">
+                  {isHebrew
+                    ? <>{groupWord(groupKindNow, true, { plural: true })}: <bdi dir="ltr" className="pf-num">{(sections || []).reduce((n, sec) => n + Math.max(1, Number(sec.repeat_count) || 1), 0)}</bdi> · עבודות: <bdi dir="ltr" className="pf-num">{realItemsNow.length}</bdi></>
+                    : <>{groupWord(groupKindNow, false, { plural: true })}: <bdi dir="ltr" className="pf-num">{(sections || []).reduce((n, sec) => n + Math.max(1, Number(sec.repeat_count) || 1), 0)}</bdi> · Work items: <bdi dir="ltr" className="pf-num">{realItemsNow.length}</bdi></>}
+                </p>
+              )}
+              {missingPriceCount > 0 && (
+                <p className="sq-summary-line sq-summary-missing" data-testid="sq-summary-missing">
+                  {isHebrew ? <>חסר מחיר ב-<bdi dir="ltr" className="pf-num">{missingPriceCount}</bdi> עבודות (טרם תומחר)</> : <>Price missing in <bdi dir="ltr" className="pf-num">{missingPriceCount}</bdi> work item(s) (not priced yet)</>}
+                </p>
+              )}
+              {/* Owner 2026-10-15 (David's video: the quote amount was typed into the discount): with no work yet the summary says where
+                  the price goes and opens the work window */}
+              {!hasRealItems && (
+                <div data-testid="sq-price-needs-item" className="sq-summary-empty">
+                  <span>{isHebrew ? 'עדיין אין עבודות בהצעה. המחיר נכנס בכל עבודה או מוצר.' : 'No work in the quote yet. The price goes in each work item or product.'}</span>
+                  {/* PRODUCT_TRUTH_DECORATIVE: from the summary with no work yet: opens the work window */}
+                  <button type="button" data-testid="sq-price-go-rows" className="sq-add-btn" onClick={() => setWorkTarget({ key: null })}>{isHebrew ? '+ הוספת עבודה או מוצר' : '+ Add work or a product'}</button>
+                </div>
+              )}
+              {/* חוק ברזל (Global Surface Audit + Money Alignment Fix, סבב זה):
+                  כל שורה הייתה div נפרד עם display:flex/justifyContent:space-between
+                  משלה - כל שורה הייתה "קונטיינר flex" עצמאי, כך שרוחב עמודת הסכום
+                  נקבע בנפרד לכל שורה (shrink-to-fit) ולא היה עמודה משותפת אחת -
+                  תחת RTL, הסכום (הילד השני, "end" פיזית = שמאל) היה נדבק לקצה
+                  השמאלי הקבוע של השורה שלו, כך שהקצה השמאלי (לא הימני, איפה
+                  שהספרות בפועל) היה המשותף - בדיוק ההפך ממה שנדרש ליישור לפי
+                  ערך-מקום (ראה .pf-money-row/.pf-money-cell למטה). הפתרון
+                  המבני: כל שורות הטוטלים הן עכשיו ילדים ישירים של גריד אחד
+                  משותף (grid-template-columns: 1fr auto) - כך שעמודת הסכום
+                  (auto) מחושבת פעם אחת עבור כל השורות יחד, לא בנפרד לכל שורה;
+                  כל תג <> (React Fragment) לא יוצר DOM node נפרד ולכן לא שובר
+                  את שיתוף העמודה. textAlign:'right' על כל תא-סכום (לא מותנה
+                  ב-isHebrew - סכום כספי תמיד מיושר לימין הפיזי, גם תחת LTR
+                  (שם flex-end כבר יישר נכון קודם, ולא נפגע כאן)). קו הפרדה לפני
+                  השורה הסופית הוא ילד-גריד נפרד שפורש שתי העמודות
+                  (gridColumn:'1 / -1') כדי שהקו יהיה רציף על פני כל הרוחב, לא
+                  שני קטעים נפרדים בכל תא. */}
+              <div className="pf-money-row" style={{ display: 'grid', gridTemplateColumns: '1fr auto', columnGap: '10px', borderTop: `2px solid ${NEON.border}`, marginTop: '12px', paddingTop: '8px' }}>
+                {/* Local Private: אין שורת "סכום ביניים" נפרדת - היא כפולה ל-total
+                    (שניהם ה-ברוטו שהוזן/ה-total הסופי). מציגים ישירות את פירוט
+                    החשבונאות הרגיל: סכום לפני מע"מ / מע"מ / סה"כ, בדיוק כמו Business. */}
+                {/* Owner 2026-11-10 (Hebrew/English sync): the VAT rows follow the market (an Israeli business), never the UI language */}
+                {!(isLocalIsraeliBusiness && clientType === 'private') && (
+                  <>
+                    <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{t.subtotal}</span>
+                    <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(subtotal)}</span>
+                  </>
+                )}
+                {/* IRON-ILS-001 (2026-10-23): with no discount, the agorot moved to the discount show as a rounding discount once it changes the shown sum */}
+                {(discount > 0 || Math.round(Number(discountAmount) || 0) >= 1) && (
+                  <>
+                    <span style={{ color: NEON.red, fontSize: '0.8rem' }}>{discount > 0 ? (isHebrew ? `הנחה (${discount}%):` : `Discount (${discount}%):`) : (isHebrew ? 'הנחת עיגול:' : 'Rounding discount:')}</span>
+                    <span className="pf-money" style={{ color: NEON.red, fontSize: '0.8rem', textAlign: 'right' }}>-{sym}{fmtMoney(discountAmount)}</span>
+                  </>
+                )}
+                {isLocalIsraeliBusiness && clientType === 'private' ? (
+                  // תצוגה חשבונאית רגילה (Private): "סכום לפני מע"מ" / "מע"מ (18%)"
+                  // - אותם ערכים בדיוק כמו קודם (netAmount=total-taxAmount, taxAmount),
+                  // רק תוויות/סדר שונים; אין נוסחה חדשה. כל הסכומים עוברים במסלול
+                  // ה-money הקנוני (IRON-ILS-001: שקל שלם עם .00 ב-Local).
+                  <>
+                    <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{isHebrew ? 'סכום לפני מע״מ:' : 'Before VAT:'}</span>
+                    <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount - taxAmount)}</span>
+                    <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{isHebrew ? 'מע״מ (18%):' : 'VAT (18%):'}</span>
+                    <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(taxAmount)}</span>
+                  </>
+                ) : (
+                  isLocalIsraeliBusiness && (
+                    <>
+                      <span style={{ color: NEON.textSecondary, fontSize: '0.8rem' }}>{t.vat}</span>
+                      <span className="pf-money" style={{ color: NEON.textSecondary, fontSize: '0.8rem', textAlign: 'right' }}>{sym}{fmtMoney(taxAmount)}</span>
+                    </>
+                  )
+                )}
+                {/* G4 (Owner 2026-11-08, the clarity fixes B3): a row holding a value that is not stored yet is not in the total */}
+                {(items || []).some((it) => it && it._invalid) && (
+                  <span data-testid="sq-total-partial" style={{ gridColumn: '1 / -1', marginTop: '4px', fontSize: '0.74rem', fontWeight: 700, color: NEON.red }}>{isHebrew ? 'הסכום עדיין חלקי' : 'Partial total'}</span>
+                )}
+                {isLocalIsraeliBusiness && (clientType === 'business' || clientType === 'private') && (
+                  <span data-testid="sq-prices-vat-basis" style={{ gridColumn: '1 / -1', marginTop: '4px', fontSize: '0.74rem', color: NEON.textSecondary }}>
+                    {clientType === 'private' ? (isHebrew ? 'המחירים בהצעה כוללים מע״מ' : 'Prices in this quote include VAT') : (isHebrew ? 'המחירים בהצעה לפני מע״מ' : 'Prices in this quote are before VAT')}
+                  </span>
+                )}
+              </div>
 
-        <StepHeading n={4} title={isHebrew ? 'בדיקה ושמירה' : 'Review and save'} />
+              {isUnfinished && (
+                <div data-testid="sq-unfinished-notice" role="status" style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '10px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', fontSize: '0.8rem', fontWeight: 600 }}>
+                  {isHebrew
+                    ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). אפשר לשמור אותה רק כטיוטה לא גמורה - היא לא תוצג ללקוח כהצעה מוכנה.'
+                    : 'This quote is not finished yet (no product or work with a price). It can only be saved as an unfinished draft - it will not be shown to a customer as a ready quote.'}
+                </div>
+              )}
+              {/* חוק ברזל (Trial Expiration -> FREE, Full Entitlement Audit + Fix):
+                  הכפתור הזה היה חסום לגמרי (disabled) כש-isTrialExpired, ללא תלות
+                  ב-plan/effectivePlan בכלל - כלומר חוסם גם יצירת ההצעה הראשונה/
+                  ה-5 המותרות ל-FREE אחרי שניסיון פג, בסתירה מלאה לדרישת הבעלים
+                  "FREE limits", לא "אפס לצמיתות". הוסר בכוונה - האכיפה הנכונה
+                  כבר קיימת בשתי נקודות: מכסת 5/חודש נבדקת ב-handleSaveQuote
+                  (Dashboard.jsx, עם effectivePlan המתוקן), וזכאות עריכה/שכפול
+                  כבר נבדקת לפני שהטופס הזה נפתח בכלל (handleProtectedAction ב-
+                  QuotesTab.jsx, isBasicOrAbove/isPro). אין צורך בשער שלישי, כפול
+                  ולא-מתואם, כאן. */}
+              {/* Owner console 2026-11-09 (typed: "הסה״כ לא מופיע ליד כפתור השמירה. - אם צריך תוסיף", incl. L-09): the same total as the summary, right above the save */}
+              <div data-testid="sq-save-total" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'baseline', columnGap: '12px', marginTop: '16px', padding: '0 4px' }}>
+                <span style={{ fontSize: '0.9rem', fontWeight: 800, color: NEON.textPrimary }}>{isHebrew ? 'סה״כ לתשלום:' : 'Total to pay:'}</span>
+                <span className="pf-money" style={{ color: NEON.violetLight, fontSize: '1rem', fontWeight: '800', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount)}</span>
+              </div>
+              {/* PRODUCT_TRUTH_DECORATIVE: the quote form's own submit button; the real create/edit distinction and capability markers live on the resolved onSave handler in Dashboard.jsx (quote_create/quote_edit), not on this generic form control - resolved by Claude after an agent flag, since this control is a cross-file prop-bound handler my scanner's local-declaration resolution structurally cannot attach to */}
+              <button type="submit" form="pf-editor-form" data-testid="sq-save" style={{ width: '100%', background: editingQuoteId ? NEON.emeraldDark : NEON.gradient, color: 'white', border: 'none', padding: '13px', borderRadius: '12px', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', marginTop: '16px', boxShadow: editingQuoteId ? '0 4px 14px -2px rgba(16, 185, 129, 0.4)' : NEON.glow }}>
+                {isUnfinished
+                  ? (isHebrew ? 'שמירה כטיוטה לא גמורה' : 'Save as unfinished draft')
+                  : (isHebrew ? 'שמירת ההצעה' : 'Save the quote')}
+              </button>
+              <p className="sq-save-note" data-testid="sq-save-note">{isHebrew ? 'שמירה אינה שליחה. תוכלו לשנות גם אחר כך.' : 'Saving is not sending. You can change it later too.'}</p>
+            </section>
+          );
+          return asideSlot ? createPortal(summaryCard, asideSlot) : summaryCard;
+        })()}
+
+        <StepHeading n={4} title={isHebrew ? 'פרטי ההצעה' : 'Quote details'} />
         {/* Optional details stay one tap away (progressive disclosure); they open automatically when editing or when any of them
             already holds a value, so nothing the user entered is ever hidden. */}
         {/* PRODUCT_TRUTH_DECORATIVE: toggles visibility of the 'More details (optional)' progressive-disclosure section of the quote form */}
@@ -1248,9 +1338,9 @@ export default function QuoteForm({
           style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '12px', padding: '12px 14px', cursor: 'pointer', color: NEON.textPrimary, fontWeight: 700, fontSize: '0.86rem', marginBottom: '14px', textAlign: isHebrew ? 'right' : 'left' }}
         >
           <span>
-            {isHebrew ? 'פרטים נוספים (לא חובה)' : 'More details (optional)'}
+            {isHebrew ? (showMoreDetails ? 'סגירת פרטי ההצעה' : 'פתיחת פרטי ההצעה') : (showMoreDetails ? 'Close quote details' : 'Open quote details')}
             <span style={{ display: 'block', fontWeight: 500, fontSize: '0.75rem', color: NEON.textSecondary, marginTop: '2px' }}>
-              {isHebrew ? 'נושא, שם פרויקט, תוקף, קבצים, כתובת, תנאים והערות' : 'Subject, project name, validity, files, address, terms and notes'}
+              {isHebrew ? 'פרויקט, כתובת ותוקף · קבצים · תנאים ואחריות · הערות · הנחה · עיצוב ותמונות · מטבע · שמירה כתבנית' : 'Project, address and validity · Files · Terms and warranty · Notes · Discount · Design and images · Currency · Save as a template'}
             </span>
           </span>
           <ChevronDown size={18} style={{ transform: showMoreDetails ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
@@ -1259,7 +1349,7 @@ export default function QuoteForm({
           <div data-testid="sq-more-details">
         <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px', marginBottom: '14px' }}>
         <div style={{ fontSize: isHebrew ? '0.9rem' : '0.75rem', fontWeight: '800', color: NEON.textSecondary, textTransform: 'uppercase', letterSpacing: isHebrew ? 0 : '0.04em', marginBottom: '12px' }}>
-          {isHebrew ? 'פרטי הצעה' : 'Quote Details'}
+          {isHebrew ? 'נושא ופרויקט' : 'Subject and project'}
         </div>
         <div style={{ marginBottom: '12px' }}>
           <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>
@@ -1510,9 +1600,13 @@ export default function QuoteForm({
           <textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows="2" style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', lineHeight: '1.4' }} />
         </div>
         </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 220px))', gap: '10px', marginBottom: '10px' }}>
+          <div>
+            <label htmlFor="sq-discount" style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'הנחה על כל ההצעה (%)' : 'Discount on the whole quote (%)'}</label>
+            <input id="sq-discount" data-testid="sq-discount" type="text" inputMode="decimal" value={discount} onChange={(e) => setDiscount(e.target.value)} placeholder="0" aria-invalid={discountInvalid} aria-describedby={discountInvalid ? 'sq-discount-error' : undefined} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${discountInvalid ? NEON.red : NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
+            {discountInvalid && <div id="sq-discount-error" role="alert" style={{ color: NEON.red, fontSize: '0.74rem', marginTop: '4px' }}>{isHebrew ? 'הנחה יכולה להיות בין 0 ל־100.' : 'A discount can be between 0 and 100.'}</div>}
           </div>
-        )}
-
+        </div>
         {presentationController && (
           <QuotePresentationPanel
             ctl={presentationController}
@@ -1526,14 +1620,7 @@ export default function QuoteForm({
           />
         )}
 
-        {/* SMART-QUOTE-03: a NEW quote is always a Draft (no status choice at creation). Sent / Approved / Paid are later lifecycle
-            actions, available when editing a saved quote. An unfinished quote (SMART-QUOTE-01) can only stay a Draft. */}
-        {!editingQuoteId ? (
-          <div data-testid="sq-status-draft" style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginBottom: '12px', fontSize: '0.8rem', color: NEON.textSecondary }}>
-            <span style={{ background: NEON.bgCardAlt, border: `1px solid ${NEON.borderStrong}`, borderRadius: '999px', padding: '3px 10px', fontWeight: 800, color: NEON.textPrimary }}>{isHebrew ? 'טיוטה' : 'Draft'}</span>
-            <span>{isHebrew ? 'כל הצעה חדשה נשמרת כטיוטה. אחרי השמירה אפשר לצפות, לשתף ולשלוח אותה.' : 'Every new quote is saved as a draft. After saving you can preview, share and send it.'}</span>
-          </div>
-        ) : (
+        {editingQuoteId && (
           <div style={{ marginBottom: '12px', maxWidth: '320px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'מצב ההצעה' : 'Quote status'}</label>
@@ -1546,34 +1633,6 @@ export default function QuoteForm({
           </div>
           </div>
         )}
-        {isUnfinished && (
-          <div data-testid="sq-unfinished-notice" role="status" style={{ marginBottom: '12px', padding: '10px 12px', borderRadius: '10px', background: '#fff7ed', border: '1px solid #fed7aa', color: '#9a3412', fontSize: '0.8rem', fontWeight: 600 }}>
-            {isHebrew
-              ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). אפשר לשמור אותה רק כטיוטה לא גמורה - היא לא תוצג ללקוח כהצעה מוכנה.'
-              : 'This quote is not finished yet (no product or work with a price). It can only be saved as an unfinished draft - it will not be shown to a customer as a ready quote.'}
-          </div>
-        )}
-        {/* חוק ברזל (Trial Expiration -> FREE, Full Entitlement Audit + Fix):
-            הכפתור הזה היה חסום לגמרי (disabled) כש-isTrialExpired, ללא תלות
-            ב-plan/effectivePlan בכלל - כלומר חוסם גם יצירת ההצעה הראשונה/
-            ה-5 המותרות ל-FREE אחרי שניסיון פג, בסתירה מלאה לדרישת הבעלים
-            "FREE limits", לא "אפס לצמיתות". הוסר בכוונה - האכיפה הנכונה
-            כבר קיימת בשתי נקודות: מכסת 5/חודש נבדקת ב-handleSaveQuote
-            (Dashboard.jsx, עם effectivePlan המתוקן), וזכאות עריכה/שכפול
-            כבר נבדקת לפני שהטופס הזה נפתח בכלל (handleProtectedAction ב-
-            QuotesTab.jsx, isBasicOrAbove/isPro). אין צורך בשער שלישי, כפול
-            ולא-מתואם, כאן. */}
-        {/* Owner console 2026-11-09 (typed: "הסה״כ לא מופיע ליד כפתור השמירה. - אם צריך תוסיף", incl. L-09): the same total as the summary, right above the save */}
-        <div data-testid="sq-save-total" style={{ display: 'grid', gridTemplateColumns: '1fr auto', alignItems: 'baseline', columnGap: '12px', marginTop: '16px', padding: '0 4px' }}>
-          <span style={{ fontSize: '0.9rem', fontWeight: 800, color: NEON.textPrimary }}>{isHebrew ? 'סה״כ לתשלום:' : 'Total to pay:'}</span>
-          <span className="pf-money" style={{ color: NEON.violetLight, fontSize: '1rem', fontWeight: '800', textAlign: 'right' }}>{sym}{fmtMoney(totalAmount)}</span>
-        </div>
-        {/* PRODUCT_TRUTH_DECORATIVE: the quote form's own submit button; the real create/edit distinction and capability markers live on the resolved onSave handler in Dashboard.jsx (quote_create/quote_edit), not on this generic form control - resolved by Claude after an agent flag, since this control is a cross-file prop-bound handler my scanner's local-declaration resolution structurally cannot attach to */}
-        <button type="submit" data-testid="sq-save" style={{ width: '100%', background: editingQuoteId ? NEON.emeraldDark : NEON.gradient, color: 'white', border: 'none', padding: '13px', borderRadius: '12px', fontWeight: '800', fontSize: '0.95rem', cursor: 'pointer', marginTop: '16px', boxShadow: editingQuoteId ? '0 4px 14px -2px rgba(16, 185, 129, 0.4)' : NEON.glow }}>
-          {isUnfinished
-            ? (isHebrew ? 'שמירה כטיוטה לא גמורה' : 'Save as unfinished draft')
-            : (editingQuoteId ? t.updateQuote : t.generateSave)}
-        </button>
         {typeof onSaveAsTemplate === 'function' && (
           // PRODUCT_TRUTH_CAPABILITY: quote_create
           <button type="button" data-testid="sq-save-template" onClick={onSaveAsTemplate}
@@ -1581,9 +1640,13 @@ export default function QuoteForm({
             {isHebrew ? 'שמירה כתבנית (בלי פרטי לקוח)' : 'Save as template (no customer details)'}
           </button>
         )}
+          </div>
+        )}
+
         {/* Task 16 retro ledger C03/C03b (2026-10-05): the submit label is the base t.generateSave / t.updateQuote again and the
             extra hint line is gone (no approval source for either change). The Save Draft vs Issue capability itself is unchanged:
             saving still never issues the quote; issuing stays the explicit panel action. */}
+        </>)}
       </form>
     </div>
   );
@@ -1600,8 +1663,13 @@ function UnitCard({
   isHebrew, sym, formatMoneyDisplay, section, itemCount, subtotal, collapsed,
   onToggleCollapse, onRename, onRemove, onAddItem, onDuplicate = null, isUnassigned, children, focusName = false, rowCount = null,
   repeatCount = 1, unitTotal = null, onSetRepeat = null, onSeparate = null, onSaveTemplate = null,
+  onCopyFirst = null, copyFirstName = '', groupKind = null,
 }) {
-  const unitLabel = section.name || (isHebrew ? 'יחידה זו' : 'this unit');
+  // 2026-11-12 (unified quote): every label uses the chosen word (apartment / room / floor; "חלק" / "Section" otherwise)
+  const W = groupWord(groupKind, isHebrew);
+  const Wp = groupWord(groupKind, isHebrew, { plural: true });
+  const w = isHebrew ? W : W.toLowerCase();
+  const wp = isHebrew ? Wp : Wp.toLowerCase();
   // Owner console 2026-11-08 (stage 3, decision 4): the unit menu - identical unit count (a whole number 1..999, one confirm) and
   // "separate one copy"; the header shows "× N" and the total of all copies
   const [menu, setMenu] = useState(false);
@@ -1625,7 +1693,7 @@ function UnitCard({
     <div style={{ border: `1px solid ${isUnassigned ? NEON.borderStrong : NEON.violetLight}`, borderRadius: '12px', background: NEON.bgCardAlt, overflow: 'visible' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '10px 12px', flexDirection: 'row' }}>
         {/* PRODUCT_TRUTH_DECORATIVE: chevron that expands/collapses a unit card's item list in divided mode */}
-        <button type="button" onClick={onToggleCollapse} aria-label={collapsed ? (isHebrew ? 'הרחבת היחידה' : 'Expand unit') : (isHebrew ? 'כיווץ היחידה' : 'Collapse unit')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '32px', minHeight: '32px', flexShrink: 0 }}>
+        <button type="button" onClick={onToggleCollapse} aria-label={collapsed ? (isHebrew ? `פתיחת ה${W}` : `Expand ${w}`) : (isHebrew ? `סגירת ה${W}` : `Collapse ${w}`)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: NEON.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: '32px', minHeight: '32px', flexShrink: 0 }}>
           <ChevronDown size={16} style={{ transform: collapsed ? (isHebrew ? 'rotate(90deg)' : 'rotate(-90deg)') : 'rotate(0deg)', transition: 'transform 0.15s' }} />
         </button>
 
@@ -1639,6 +1707,7 @@ function UnitCard({
             autoFocus={focusName}
             value={section.name}
             onChange={(e) => onRename(e.target.value)}
+            aria-label={isHebrew ? `שם ה${W}` : `${W} name`}
             placeholder={isHebrew ? 'לדוגמה: דירה 33, חדר שינה, בניין A' : 'e.g. Apartment 33, Bedroom, Building A'}
             style={{ flex: '1 1 140px', minWidth: '120px', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', fontWeight: 800, textAlign: isHebrew ? 'right' : 'left' }}
           />
@@ -1666,28 +1735,28 @@ function UnitCard({
         {!isUnassigned && onSetRepeat && (
           <div style={{ position: 'relative' }}>
             {/* PRODUCT_TRUTH_DECORATIVE: the unit menu (stage 3) - identical unit count and "separate one copy" */}
-            <button ref={menuBtnRef} type="button" aria-label={isHebrew ? 'פעולות ליחידה' : 'Unit actions'} aria-haspopup="menu" aria-expanded={menu} data-testid="unit-menu" onClick={() => setMenu((v) => !v)}
+            <button ref={menuBtnRef} type="button" aria-label={isHebrew ? `פעולות ל${W}` : `${W} actions`} aria-haspopup="menu" aria-expanded={menu} data-testid="unit-menu" onClick={() => setMenu((v) => !v)}
               style={{ background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '6px', cursor: 'pointer', color: NEON.textSecondary, minWidth: '32px', height: '32px', padding: '0 8px', gap: '4px', whiteSpace: 'nowrap', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <MoreVertical size={16} aria-hidden="true" />
               {/* Owner console 2026-11-10 (G6b "א"): the menu button says what it is */}
-              <span data-testid="unit-menu-label" style={{ fontSize: '0.74rem', fontWeight: 600 }}>{isHebrew ? 'פעולות ליחידה' : 'Unit actions'}</span>
+              <span data-testid="unit-menu-label" style={{ fontSize: '0.74rem', fontWeight: 600 }}>{isHebrew ? `פעולות ל${W}` : `${W} actions`}</span>
             </button>
             {menu && (
               <div role="menu" style={{ position: 'absolute', insetInlineEnd: 0, top: '100%', zIndex: 30, marginTop: '4px', minWidth: '200px', background: NEON.bgCard, border: `1px solid ${NEON.border}`, borderRadius: '10px', boxShadow: '0 12px 28px -10px rgba(15,23,42,0.35)', padding: '4px' }}>
                 {/* PRODUCT_TRUTH_DECORATIVE: unit menu (stage 3) - opens the identical unit count of this unit */}
                 <button type="button" role="menuitem" data-testid="unit-repeat-open" onClick={() => { setMenu(false); setCountDraft(String(repeatCount)); }} style={unitMenuBtn}>
-                  {isHebrew ? 'מספר יחידות זהות' : 'Identical unit count'}
+                  {isHebrew ? `מספר ${Wp} זהות` : `Number of identical ${wp}`}
                 </button>
                 {onSaveTemplate && itemCount > 0 && String(section.name || '').trim() !== '' && (
                   // PRODUCT_TRUTH_DECORATIVE: unit menu (stage 4) - saves this unit and its rows as a unit template (the template window)
                   <button type="button" role="menuitem" data-testid="unit-save-template" onClick={() => { setMenu(false); onSaveTemplate(); }} style={unitMenuBtn}>
-                    {isHebrew ? 'שמירה כתבנית יחידה' : 'Save as unit template'}
+                    {isHebrew ? 'שמירה כתבנית' : 'Save as a template'}
                   </button>
                 )}
                 {multi && (
                   // PRODUCT_TRUTH_DECORATIVE: unit menu (stage 3) - separates one copy of a unit of N identical copies
                   <button type="button" role="menuitem" data-testid="unit-separate" onClick={() => { setMenu(false); onSeparate?.(); }} style={unitMenuBtn}>
-                    {isHebrew ? 'הפרדת עותק אחד' : 'Separate one copy'}
+                    {isHebrew ? `הפרדת ${W} אחת` : `Separate one ${w}`}
                   </button>
                 )}
               </div>
@@ -1697,7 +1766,7 @@ function UnitCard({
 
         {/* PRODUCT_TRUTH_DECORATIVE: 'X' on a unit card that triggers the remove-unit confirmation flow, covered by the same non-destructive dialog as the unit-removal controls above */}
         {!isUnassigned && (
-          <button type="button" onClick={onRemove} title={isHebrew ? 'הסרת יחידה' : 'Remove unit'} style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <button type="button" onClick={onRemove} title={isHebrew ? `הסרת ה${W}` : `Remove ${w}`} aria-label={isHebrew ? `הסרת ה${W}` : `Remove ${w}`} style={{ background: 'rgba(239, 68, 68, 0.15)', border: 'none', borderRadius: '6px', cursor: 'pointer', color: NEON.red, width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
             <X size={14} strokeWidth={3} />
           </button>
         )}
@@ -1709,9 +1778,9 @@ function UnitCard({
           בגוף-המורחב - הקשר-היחידה כבר ידוע (הצטרפות אוטומטית לאשף, ר'
           defaultSectionKey/wizardSectionKey ב-QuoteForm.jsx). */}
       {countDraft != null && (
-        <div role="group" aria-label={isHebrew ? 'מספר יחידות זהות' : 'Identical unit count'} data-testid="unit-repeat-editor" style={{ padding: '0 12px 10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+        <div role="group" aria-label={isHebrew ? `מספר ${Wp} זהות` : `Number of identical ${wp}`} data-testid="unit-repeat-editor" style={{ padding: '0 12px 10px', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', fontWeight: 700, color: NEON.textPrimary }}>
-            {isHebrew ? 'מספר יחידות זהות' : 'Identical unit count'}
+            {isHebrew ? `מספר ${Wp} זהות` : `Number of identical ${wp}`}
             <input ref={countRef} type="text" inputMode="numeric" dir="ltr" className="pf-num" value={countDraft} data-testid="unit-repeat-input" aria-invalid={countText !== '' && !countValid}
               onChange={(e) => setCountDraft(e.target.value)}
               onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); confirmCount(); } if (e.key === 'Escape') setCountDraft(null); }}
@@ -1738,25 +1807,31 @@ function UnitCard({
           <span>
             {/* Owner console 2026-11-10 (G6a "א"): the sums by name, not as an equation - the same words in both languages */}
             {isHebrew
-              ? <>סכום לדירה: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> · סכום לכל הדירות: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>
-              : <>Per apartment: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> · All apartments: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>}
+              ? <>סכום ל{W}: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> · סכום לכל ה{Wp}: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>
+              : <>Per {w}: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(subtotal)}</bdi> · All {wp}: <bdi dir="ltr" className="pf-money">{sym}{formatMoneyDisplay(unitTotal)}</bdi></>}
           </span>
-          <span>{isHebrew ? 'השורות כאן הן ליחידה אחת' : 'The rows here are for one unit'}</span>
+          <span>{isHebrew ? `השורות כאן הן ל${W} אחת` : `The rows here are for one ${w}`}</span>
           {/* G6 (Owner 2026-11-08, the clarity fixes B3): an edit here applies to every copy */}
-          <span data-testid="unit-applies-all">{isHebrew ? <>עריכה תחול על כל <bdi dir="ltr" className="pf-num">{repeatCount}</bdi> העותקים.</> : <>Edits apply to all <bdi dir="ltr" className="pf-num">{repeatCount}</bdi> copies.</>}</span>
+          <span data-testid="unit-applies-all">{isHebrew ? <>עריכה תחול על כל <bdi dir="ltr" className="pf-num">{repeatCount}</bdi> ה{Wp}.</> : <>Edits apply to all <bdi dir="ltr" className="pf-num">{repeatCount}</bdi> {wp}.</>}</span>
         </div>
       )}
 
       <div style={{ padding: '0 12px 10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {/* PRODUCT_TRUTH_DECORATIVE: 'Add row to <unit>' button inside a unit card; adds a blank row in this unit (the one quote builder's rows) */}
         <button type="button" onClick={onAddItem} data-testid="unit-add-row" style={{ flex: '1 1 140px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, minHeight: '40px' }}>
-          <span>{/* Owner console 2026-11-10: the + stays beside the first line when a long unit name wraps */}<Plus size={14} strokeWidth={3} aria-hidden="true" style={{ display: 'inline-block', verticalAlign: '-2px', marginInlineEnd: '6px' }} />{isUnassigned ? (isHebrew ? 'הוספת שורה בלי יחידה' : 'Add a row with no unit') : (isHebrew ? <>הוספת שורה ל<bdi>{unitLabel}</bdi></> : <>Add a row to <bdi>{unitLabel}</bdi></>)}</span>
+          <span>{/* Owner console 2026-11-10: the + stays beside the first line when a long unit name wraps */}<Plus size={14} strokeWidth={3} aria-hidden="true" style={{ display: 'inline-block', verticalAlign: '-2px', marginInlineEnd: '6px' }} />{isHebrew ? 'הוספת עבודה או מוצר' : 'Add work or a product'}</span>
         </button>
         {onDuplicate && !isUnassigned && (
           // PRODUCT_TRUTH_DECORATIVE: 'Duplicate unit' inside a unit card: one copy of the unit and its lines right after it (new lines, no saved ids)
           <button type="button" data-testid="unit-duplicate" onClick={onDuplicate} style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: 'none', border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 12px', borderRadius: '8px', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', minHeight: '44px' }}>
             <CopyPlus size={14} aria-hidden="true" />
-            {isHebrew ? 'שכפול יחידה' : 'Duplicate unit'}
+            {isHebrew ? `שכפול ${W}` : `Duplicate ${w}`}
+          </button>
+        )}
+        {typeof onCopyFirst === 'function' && !isUnassigned && (
+          // PRODUCT_TRUTH_DECORATIVE: copies the work rows of the first group into this empty group (nothing existing is overwritten)
+          <button type="button" data-testid="unit-copy-first" onClick={onCopyFirst} className="sq-copy-first">
+            {isHebrew ? <>להעתיק את מה שמילאתם ב<bdi>{copyFirstName}</bdi></> : <>Copy what you filled in <bdi>{copyFirstName}</bdi></>}
           </button>
         )}
       </div>

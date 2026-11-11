@@ -188,9 +188,11 @@ describe('the English cookie notice', () => {
 // Owner console 2026-10-23 (typed: "מאשר שינוי ב-L-12: סעיף 7 אפשרות א"): consent by LOCATION - the EU / EEA, the UK and Switzerland are asked
 // first on the Hebrew website too, an unknown country is asked too; elsewhere the Hebrew website measures by default and offers an opt-out
 describe('consent by location (item 7 א)', () => {
-  it('the consent region: EU / EEA / UK / CH -> true; Israel / US -> false; unknown -> null', () => {
+  it('the consent region: EU / EEA / UK / CH / Israel -> true; US -> false; unknown -> null', () => {
     for (const c of ['DE', 'fr', 'GB', 'CH', 'NO', 'IS', 'LI', 'IE']) expect(inConsentRegion(c)).toBe(true);
-    for (const c of ['IL', 'US', 'CA', 'AU']) expect(inConsentRegion(c)).toBe(false);
+    for (const c of ['US', 'CA', 'AU']) expect(inConsentRegion(c)).toBe(false);
+    // Owner console 2026-11-11 (typed L-12): Israel is asked first too
+    expect(inConsentRegion('IL')).toBe(true);
     for (const c of [null, undefined, '', 'XX1', 'Israel']) expect(inConsentRegion(c)).toBe(null);
   });
   it('the Hebrew website needs consent in the region and when the country is unknown; not elsewhere', () => {
@@ -218,11 +220,12 @@ describe('consent by location (item 7 א)', () => {
     expect(readConsent()).toBe('denied');
     expect(screen.queryByTestId('analytics-consent-banner')).toBeNull();
   });
-  it('a visitor from Israel on the Hebrew website: no notice (measured by default); UK is the United Kingdom', async () => {
+  // Owner console 2026-11-11 (typed L-12): a visitor from Israel on the Hebrew website is asked first too
+  it('a visitor from Israel on the Hebrew website: the notice shows (nothing measured before consent); UK is the United Kingdom', async () => {
     setCookie('IL');
     atHe();
     await act(async () => {});
-    expect(screen.queryByTestId('analytics-consent-banner')).toBeNull();
+    expect(screen.queryByTestId('analytics-consent-banner')).not.toBeNull();
     expect(inConsentRegion('uk')).toBe(true);
   });
   it('asks the server once; until it answers no notice; an unknown country gets the notice', async () => {

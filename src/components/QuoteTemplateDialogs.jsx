@@ -28,7 +28,7 @@ const COPY = {
     filterQuotes: 'תבניות הצעה', filterUnits: 'תבניות יחידה', addUnit: 'הוספה להצעה',
     unitHint: 'הוספת יחידה אחת להצעה הפתוחה - עם השורות שלה, בסוף ההצעה.',
     emptyUnit: 'אין עדיין תבניות יחידה. שומרים יחידה מתפריט היחידה, ב"שמירה כתבנית יחידה".',
-    unitElsewhere: 'תבנית יחידה מוסיפים מתוך הצעה פתוחה, בכפתור "מיחידה שמורה".', quoteElsewhere: 'תבנית הצעה פותחים מ"הצעה חדשה", ב"מתבנית שמורה".',
+    unitElsewhere: 'תבנית של מקום מוסיפים מתוך הצעה פתוחה, בכפתור "מתבנית שמורה".', quoteElsewhere: 'תבנית הצעה פותחים מ"הצעה חדשה", ב"מתבנית שמורה".',
     duplicateAny: 'כבר יש תבנית בשם הזה, של הצעה או של יחידה. בחרו שם אחר.',
     errors: {
       unavailable: 'תבניות עדיין לא זמינות בשרת הזה. אפשר להמשיך לעבוד עם הצעות כרגיל.', duplicate_name: 'כבר יש תבנית בשם הזה. בחרו שם אחר.',
@@ -52,7 +52,7 @@ const COPY = {
     filterQuotes: 'Quote templates', filterUnits: 'Unit templates', addUnit: 'Add to the quote',
     unitHint: 'Add one unit to this quote - with its rows, at the end of the quote.',
     emptyUnit: 'No unit templates yet. Save a unit from its unit menu, with "Save as unit template".',
-    unitElsewhere: 'A unit template is added from an open quote, with "From a saved unit".', quoteElsewhere: 'A quote template is opened from "New quote", with "From a saved template".',
+    unitElsewhere: 'A place template is added from an open quote, with "From a saved template".', quoteElsewhere: 'A quote template is opened from "New quote", with "From a saved template".',
     duplicateAny: 'A quote or unit template with this name already exists. Choose another name.',
     errors: {
       unavailable: 'Templates are not available on this server yet. Quotes themselves keep working normally.', duplicate_name: 'A template with this name already exists. Choose another name.',

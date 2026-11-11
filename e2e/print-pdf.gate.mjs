@@ -67,7 +67,7 @@ async function renderPublic(browser, { lang, quoteId, mode }) {
   await page.locator('.pq-card').waitFor({ timeout: 45000 });
   await page.waitForTimeout(1500);
   await page.getByRole('button', { name: /^(הדפס מסמך|Print Document)$/ }).first().click();
-  await page.getByRole('button').filter({ hasText: mode === 'expanded' ? /^(מורחב|Expanded)/ : /^(תמציתי|Compact)/ }).first().click();
+  await page.getByRole('button').filter({ hasText: mode === 'expanded' ? /(מורחב|Expanded|מסמך מלא|full document)/i : /(תמציתי|Compact|מסמך חלקי|partial document)/i }).first().click();
   await page.waitForTimeout(400);
   const printCalled = await page.evaluate(() => window.__printCalled || 0);
   await page.emulateMedia({ media: 'print' });

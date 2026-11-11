@@ -61,7 +61,7 @@ function renderLong({ Page, wrap, locale }, sections) {
     items = items.map((it, i) => ({ ...it, section_id: i % 2 ? 'sec-b' : 'sec-a' }));
     extra = { sections: [{ id: 'sec-a', name: 'A', sort_order: 0 }, { id: 'sec-b', name: 'B', sort_order: 1 }] };
   }
-  const el = <Page quoteData={{ ...sample.quoteData, items, ...extra }} presentation={sample.presentation} />;
+  const el = <Page detail="compact" quoteData={{ ...sample.quoteData, items, ...extra }} presentation={sample.presentation} />;
   return render(wrap ? <MemoryRouter>{el}</MemoryRouter> : el).container;
 }
 

@@ -4,6 +4,7 @@
 // The tree shape never changes between modes - the form column is always the same element - so switching orientation
 // or breakpoint never remounts the editor or resets any state.
 import { useEffect, useRef, useState } from 'react';
+import { CreatorAsideContext } from './creatorAside';
 import { QP_VARS } from './qpTheme';
 import QuotePreviewPane from './QuotePreviewPane';
 import useFocusTrap from './useFocusTrap';
@@ -43,6 +44,7 @@ export default function QuoteCreatorLayout({ ctl, previewData, children, enabled
   const split = useSplitMode(rootRef);
   const sheetOpen = enabled && !split && ctl.ui.sheetOpen;
   const showSplitPreview = enabled && split && !ctl.ui.splitHidden;
+  const [asideSlot, setAsideSlot] = useState(null);
   useFocusTrap(sheetRef, sheetOpen);
   const { setLayoutMode } = ctl;
   useEffect(() => { setLayoutMode(split ? 'split' : 'stack'); }, [split, setLayoutMode]);
@@ -71,7 +73,9 @@ export default function QuoteCreatorLayout({ ctl, previewData, children, enabled
   const modeClass = split ? `qp-creator--split${ctl.ui.splitHidden ? ' qp-creator--hidden' : ''}` : 'qp-creator--stack';
   return (
     <div ref={rootRef} className={`qp-creator ${enabled ? modeClass : ''}`} style={QP_VARS} data-testid="qp-creator" data-layout={split ? 'split' : 'stack'}>
-      <div className="qp-creator-form">{children}</div>
+      <CreatorAsideContext.Provider value={showSplitPreview ? asideSlot : null}>
+        <div className="qp-creator-form">{children}</div>
+      </CreatorAsideContext.Provider>
       {enabled && (
         <div
           ref={sheetRef}
@@ -80,6 +84,7 @@ export default function QuoteCreatorLayout({ ctl, previewData, children, enabled
           aria-modal={sheetOpen ? 'true' : undefined}
           aria-label={sheetOpen ? ctl.copy.preview : undefined}
         >
+          {showSplitPreview && <div className="qp-aside-slot" ref={setAsideSlot} data-testid="qp-aside-slot" />}
           {(showSplitPreview || sheetOpen) && (
             <QuotePreviewPane
               ctl={ctl}

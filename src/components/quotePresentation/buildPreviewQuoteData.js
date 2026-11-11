@@ -115,7 +115,8 @@ export function buildPreviewQuoteData({ editor = {}, financials = {}, business =
     style,
     styleVersion: QUOTE_STYLE_VERSIONS[style],
     branding: null,
-    detail: draft.detail || 'compact',
+    // 2026-11-12 (unified quote): "כך הלקוח יראה" opens like the client page - every group open
+    detail: 'expanded',
     media: draft.media.map((m) => {
       const url = typeof urls[m.assetId] === 'string' && urls[m.assetId] ? urls[m.assetId] : null;
       return { url, caption: m.caption, alt: m.alt || m.caption, role: m.role, itemKey: m.itemKey, missing: !url && urls[m.assetId] === null };
