@@ -254,6 +254,8 @@ html[dir="rtl"] .av .av-business .av-mail { text-align: right; }
   .av-toolbar { gap: 8px; }
   .av-toolbar .av-field { flex: 1; min-width: 140px; }
   .av-toolbar .av-search { flex-basis: 100%; min-width: 0; }
+  /* Owner console 2026-11-11 (typed L-21 + L-22): the sort list takes the full row on a phone - its English option text was cut */
+  .av-toolbar .av-sort { flex-basis: 100%; min-width: 0; }
   .av-pager { flex-wrap: wrap; font-size: 12px; }
   .av-equal, .av-two, .av-three { grid-template-columns: 1fr; }
   .av-event { grid-template-columns: 30px 1fr; gap: 10px; }
