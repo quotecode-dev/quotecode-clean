@@ -21,7 +21,7 @@ const COPY = {
   he: {
     item: 'פריט', billing: 'אופן חיוב', amount: 'כמות / מידות', price: 'מחיר', total: 'סכום', itemPlaceholder: 'חפשו בקטלוג או הקלידו שם',
     fixed: 'סכום קבוע', units: 'יחידות', area: 'שטח', linear: 'אורך', qty: 'כמות', width: 'אורך', height: 'רוחב', length: 'אורך',
-    addRow: 'הוספת שורה', menu: 'פעולות לעבודה', duplicate: 'שכפול שורה', remove: 'הסרת שורה', moveTo: 'העברה ליחידה', noUnit: 'ללא יחידה',
+    addRow: 'הוספת שורה', menu: 'פעולות לשורה', duplicate: 'שכפול שורה', remove: 'הסרת שורה', moveTo: 'העברה ליחידה', noUnit: 'ללא יחידה',
     catalog: 'מהקטלוג', openCatalog: 'פתיחת הקטלוג', emptyCatalog: 'אין פריטים מתאימים בקטלוג - אפשר פשוט להקליד שם',
     details: 'פרטים ללקוח', detailLabel: 'שם הפרט, למשל צבע', detailValue: 'הערך, למשל לבן', addDetail: 'הוספת פרט', removeDetail: 'הסרת הפרט',
     moveUp: 'הזזה למעלה', moveDown: 'הזזה למטה', sizes: 'לפי מידות', known: 'כמות ידועה (בלי מידות)', moreSize: 'מידה נוספת', removeSize: 'הסרת המידה',

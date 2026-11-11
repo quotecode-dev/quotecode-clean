@@ -27,7 +27,11 @@ import { useLauncherStepAside } from '../../hooks/useLauncherStepAside';
 // ONLY what a visitor clicks - the plan cards and their Free-10 button and every link / button / FAQ question / footer link. Body text,
 // headings and the sample quotations are no longer protected (visible on 72-77% of the phone scroll, 71-75% on desktop).
 const PROTECTED_FROM_LAUNCHER = '#plans .tl-plan, #plans .tl-plans-cta, '
-  + '.tl-hero a, .tl-hero button, .tl-section a, .tl-section button, .tl-section summary, .tl-closing a, .tl-closing button, .tl-footer a';
+  + '.tl-hero a, .tl-hero button, .tl-section a, .tl-section button, .tl-section summary, .tl-closing a, .tl-closing button, .tl-footer a, '
+  // Owner 2026-11-11 (finding 36, typed L-02): the free terms under the hero's call to action are part of the offer - never covered
+  + '.tl-hero .tl-trial, '
+  // Owner 2026-11-11 (finding 35, typed L-02): the first board's quote header (business details and the quote data row) is never covered
+  + '.tl-hero .tl-letterhead-band';
 
 function go(navigate, href) {
   return (e) => {
@@ -100,7 +104,11 @@ export default function LandingPage({
                 <span className="tl-hero-sequence-eyebrow">{copy.hero.motion.eyebrow}</span>
                 <div className="tl-hero-sequence-title">{copy.hero.motion.title}</div>
                 <p>{copy.hero.motion.text}</p>
-                <span className="tl-cta tl-hero-sequence-cta">{copy.hero.motion.cta}<ArrowUpRight size={17} strokeWidth={2.2} aria-hidden="true" /></span>
+                {/* Owner 2026-11-11 (finding 31, typed L-02 / L-06): it looks like a button, so it opens the sign-up like "10 free quotes"
+                    (inside the decorative sequence: not a tab stop - the real call to action below is the keyboard path) */}
+                {/* PRODUCT_TRUTH_DECORATIVE: opens the same sign-up as the "10 free quotes" call to action (no data change) */}
+                <button type="button" tabIndex={-1} className="tl-cta tl-hero-sequence-cta" onClick={go(navigate, copy.links.signup)}
+                  style={{ border: 0, font: 'inherit', cursor: 'pointer' }}>{copy.hero.motion.cta}<ArrowUpRight size={17} strokeWidth={2.2} aria-hidden="true" /></button>
               </div>
               <img
                 className="tl-hero-sequence-phone"

@@ -34,7 +34,7 @@ const props = (o = {}) => ({
 
 describe('2026-11-09 · tax ID required for a business client, with our own message', () => {
   it('Hebrew: the label says (חובה), a missing value shows our message (no browser bubble) and typing clears it', () => {
-    render(<QuoteForm {...props({ isHebrew: true, sym: '₪' })} />);
+    render(<QuoteForm {...props({ isHebrew: true, isLocalIsraeliBusiness: true, sym: '₪' })} />);
     expect(screen.getByText('ח״פ / עוסק / ת״ז (חובה)')).toBeTruthy();
     const input = screen.getByTestId('sq-client-tax-id');
     expect(input.required).toBe(true);
@@ -45,8 +45,16 @@ describe('2026-11-09 · tax ID required for a business client, with our own mess
     fireEvent.change(input, { target: { value: '123456782' } });
     expect(screen.queryByTestId('sq-client-tax-id-missing')).toBeNull();
   });
-  it('English: the label says (required) and the message is in English', () => {
-    render(<QuoteForm {...props()} />);
+  // Owner 2026-11-11 (finding 5, option א; typed L-09): abroad (the International market) the business client's Tax ID is optional
+  it('International: the label says (optional) and the quote saves without it', () => {
+    render(<QuoteForm {...props({ isLocalIsraeliBusiness: false, currency: 'USD' })} />);
+    expect(screen.getByText('Tax ID / ID (optional)')).toBeTruthy();
+    const input = screen.getByTestId('sq-client-tax-id');
+    expect(input.required).toBe(false);
+    expect(input.getAttribute('pattern')).toBeNull();
+  });
+  it('the Israeli market keeps it required whatever the UI language; the message is in English', () => {
+    render(<QuoteForm {...props({ isLocalIsraeliBusiness: true })} />);
     expect(screen.getByText('Tax ID / ID (required)')).toBeTruthy();
     fireEvent.invalid(screen.getByTestId('sq-client-tax-id'));
     expect(screen.getByTestId('sq-client-tax-id-missing').textContent).toBe('Tax ID is missing. A business client needs a Tax ID.');

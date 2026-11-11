@@ -53,9 +53,9 @@ const PRINT_VIEWPORT_W = Math.round((190 / 25.4) * 96); // .pq-card max-width 19
 
 const MARKETS = {
   he: { persona: 'LOCAL_PRO', key: 'PROFLOW_TEST_LOCAL_PRO_EMAIL', local: true,
-    t: { activate: /לחץ\/י כאן לחתימה/, done: /^סיום$/, approve: /אשר וחתום/, pdf: /הורד כ-PDF/, compact: /תמציתי/, signedDate: /תאריך ושעת חתימה/, digital: /חתימה דיגיטלית/ } },
+    t: { activate: /לחץ\/י כאן לחתימה/, done: /^סיום הציור$/, approve: /אשר וחתום/, pdf: /הורד כ-PDF/, compact: /תמציתי/, signedDate: /תאריך ושעת חתימה/, digital: /חתימה דיגיטלית/ } },
   en: { persona: 'INTL_PRO', key: 'PROFLOW_TEST_INTL_PRO_EMAIL', local: false,
-    t: { activate: /Tap to sign/, done: /^Done$/, approve: /Approve & Sign/, pdf: /Download PDF/, compact: /Compact/, signedDate: /Signed on:/, digital: /Digital Signature/ } },
+    t: { activate: /Tap to sign/, done: /^Done drawing$/, approve: /Approve & Sign/, pdf: /Download PDF/, compact: /Compact/, signedDate: /Signed on:/, digital: /Digital Signature/ } },
 };
 const STYLES = ['classic', 'modern', 'visual'];
 

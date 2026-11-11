@@ -131,7 +131,7 @@ describe('Dashboard: the Free-10 check precedes any insert / reservation on ever
   it('one decision from the server summary; only an attempted paid action opens the window', () => {
     // Owner 2026-10-18: LIFETIME is unlimited (also when granted after activation) - the server guard exempts it the same way
     expect(dash).toMatch(/const free10Blocked = \(\) => \{\s*\/\/[^\n]*\n\s*if \(isLifetimeAccount \|\| decideFree10Action\(accountSummary\)\.allowed\) return false;\s*setFree10Window\(true\);\s*return true;\s*\};/);
-    expect((dash.match(/setFree10Window\(true\)/g) || []).length).toBe(7); // the helper, three output refusals (WhatsApp, email, Task 28 copy message), the server create refusal, the editor issue / Sent through the authority (Owner 2026-10-18), the refused items of an existing draft (Owner 2026-10-20)
+    expect((dash.match(/setFree10Window\(true\)/g) || []).length).toBe(8); // Owner 2026-11-11 (finding 7): + the fixed bar's "choose a subscription" while buying is not open; the helper, three output refusals (WhatsApp, email, Task 28 copy message), the server create refusal, the editor issue / Sent through the authority (Owner 2026-10-18), the refused items of an existing draft (Owner 2026-10-20)
     expect(dash).not.toMatch(/setInterval\([^)]*Free10|setTimeout\([^)]*setFree10Window/);
   });
   it('new / measured / AI / duplicate stop before anything opens; save stops before persistQuote', () => {

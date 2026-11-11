@@ -4,6 +4,8 @@
 //   - the model prompt (catalog NAMES and ids only - the model never sees or produces a price),
 //   - strict output validation: unknown fields dropped, catalog ids must belong to the caller's own catalog, the unit price is bound
 //     SERVER-SIDE from that catalog row, every other line has NO price (the user enters it). No totals, VAT, discount or customer data.
+//     Owner 2026-11-11 (finding 3, option ב): + a price the USER wrote for a line in the description (per unit, or for one piece) is bound
+//     server-side from the text itself (priceSource 'description', "מהתיאור שלכם"); a catalog price wins; the model still returns none.
 // The draft is advice only: nothing is saved, issued or sent; the user applies the lines explicitly to the unsaved quote form.
 //
 // Task 33 (Owner finding: "ריצוף חדר הורים 40 מ״ר, ריצוף חדר ילדים 22 מ״ר, פירוק ריצוף קיים" came back as three lines of quantity 1).
@@ -208,6 +210,11 @@ function parseNumberToken(raw) {
   return Number(s.replace(',', '.'));
 }
 
+// Owner 2026-11-11 (finding 3): the words that make a written number a price (a currency, "per unit" words, "במחיר" / "price" before it)
+const PRICE_CURRENCY_AFTER = /^\s*(?:₪|ש["״'׳]?ח(?![א-ת])|שקל(?:ים)?(?![א-ת])|nis\b|ils\b|usd\b|eur\b|gbp\b|dollars?\b|euros?\b)/i;
+const PER_UNIT_AFTER = /^\s*(?:\+?\s*מע["״]מ\s*)?(?:ל(?:כל\s+)?(?:מטר|מ["״]ר|שעה|יום|יחידה|קילו|ק["״]ג|נקודה|פריט|חדר)(?![א-ת])|כל\s+אחד|כל\s+אחת|ליח(?:'|׳)?(?![א-ת])|per\s+(?:unit|hour|day|m2|sq\.?\s*ft|square|linear|meter|metre|foot|ft|item|piece|room)|each\b|an?\s+hour\b|\/\s*(?:m2|m²|hr|hour|h\b|unit|day|sq\s*ft|ft|m\b))/i;
+const PRICE_WORD_BEFORE = /(?:במחיר(?:\s+של)?|מחיר(?:\s+של)?|price(?:\s+of)?|\bat|\bfor)\s*[-:]?\s*$/i;
+
 // Every number written in the user's text (digits or a small number word) with its POSITION, the unit written right after it (if any) and
 // its kind. Task 34: only kind 'number' can ever be a quantity - a price, a date, a phone / id number or a percentage never is.
 export function extractMeasures(text) {
@@ -223,7 +230,12 @@ export function extractMeasures(text) {
     const before = src.slice(Math.max(0, start - 3), start);
     const rest = src.slice(tokenEnd);
     let kind = 'number';
-    if (/[₪$€£]\s*$/.test(before) || /^\s*(?:₪|ש["״'׳]?ח(?![א-ת])|שקל(?:ים)?(?![א-ת])|nis\b|ils\b|usd\b|eur\b|gbp\b|dollars?\b|euros?\b)/i.test(rest)) kind = 'price';
+    // Owner 2026-11-11 (finding 3): a number said PER unit ("120 למטר", "2500 כל אחד", "$45 per hour") or after "במחיר" / "price" is a
+    // price too - it is never a quantity candidate (it made a written quantity "ambiguous" and dropped it), and it can be the line's price
+    const wideBefore = src.slice(Math.max(0, start - 14), start);
+    const perUnit = PER_UNIT_AFTER.test(rest.replace(PRICE_CURRENCY_AFTER, ''));
+    if (/[₪$€£]\s*$/.test(before) || PRICE_CURRENCY_AFTER.test(rest)) kind = 'price';
+    else if (perUnit || PRICE_WORD_BEFORE.test(wideBefore)) kind = 'price';
     else if (/^\s*%/.test(rest)) kind = 'percent';
     else if (/^\/\d/.test(rest) || /\d\/$/.test(before)) kind = 'date';
     else if (m[0].replace(/\D/g, '').length >= 7 || /^-\d{2,}/.test(rest) || /\d-$/.test(before)) kind = 'id';
@@ -237,11 +249,13 @@ export function extractMeasures(text) {
       }
     }
     const end = tokenEnd + (unit ? gap + unitText.length : 0);
-    out.push({ value, unit, kind, text: src.slice(start, end), start, end });
+    out.push({ value, unit, kind, text: src.slice(start, end), start, end, ...(kind === 'price' ? { perUnit } : {}) });
   }
   // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקון 4 התקלות בהצעה החכמה, שחרור עד הלייב"): a dictated "Twelve square meters" has the same unit as "12 square meters"
   // Owner console 2026-11-05 (L-09/L-14/L-15/L-17 line above): a whole number PHRASE in words ("שמונים וחמש מטר") is one number
   for (const p of wordNumberPhrases(src)) {
+    // Owner 2026-11-11 (finding 3): "each" in Hebrew - "כל אחד" / "כל אחת" / "לכל אחד" - is not the number one
+    if (p.value === 1 && /(?:^|[\s(])ל?כל\s+$/.test(src.slice(Math.max(0, p.start - 6), p.start))) continue;
     const after = src.slice(p.end);
     const space = after.length - after.replace(/^\s+/, '').length;
     const said = UNIT_PATTERNS.map(([id, pattern]) => [id, after.slice(space).match(pattern)]).find(([, u]) => u);
@@ -581,6 +595,7 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     drafts.push({ raw, lineText, span });
   }
   const inSpan = (m, span) => span && m.start >= span.start && m.start < span.end;
+  const usedPrices = new Set(); // Owner 2026-11-11 (finding 3): a written price belongs to one line only
   const free = (span) => measures.map((m, i) => ({ m, i })).filter(({ m, i }) => m.kind === 'number' && !used.has(i) && inSpan(m, span));
   const clauses = textClauses(source);
   const has = (words, w) => words.some((x) => sameWord(w, x));
@@ -690,6 +705,19 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
       if (unitVerified && Number.isFinite(match.price) && match.price >= 0) { unitPrice = match.price; priceSource = 'catalog'; }
       else if (!unitVerified) priceSource = 'catalog_unit_unverified';
     }
+    // Owner 2026-11-11 (finding 3, option ב): a price the user WROTE for this line (its own words: "120 למטר", "2500 ש״ח" for one piece) goes
+    // to the line, marked "from your description"; a catalog price wins; the model never returns a price. Only ONE price in the line's own
+    // words, said per unit or for a single piece - a total of several pieces is never divided and two prices are never guessed between.
+    if (priceSource !== 'catalog') {
+      const own = scope || span;
+      const prices = measures.map((m, i) => ({ m, i })).filter(({ m, i }) => m.kind === 'price' && !usedPrices.has(i) && inSpan(m, own));
+      const single = quantity === 1 || basis === 'implied_single';
+      if (prices.length === 1 && (prices[0].m.perUnit || single) && prices[0].m.value >= 0 && prices[0].m.value <= 10000000) {
+        unitPrice = round2(prices[0].m.value);
+        priceSource = 'description';
+        usedPrices.add(prices[0].i);
+      }
+    }
     items.push({
       description: lineText,
       quantity,
@@ -736,9 +764,9 @@ export function sanitizeDraftResponse(data) {
       unitPrice: unitPrice != null && Number.isFinite(unitPrice) && unitPrice >= 0 ? unitPrice : null,
       catalogId: it?.catalogId ?? null,
       catalogName: typeof it?.catalogName === 'string' ? clip(it.catalogName, MAX_LINE_CHARS) : null,
-      priceSource: ['catalog', 'none', 'catalog_unit_unverified'].includes(it?.priceSource) ? it.priceSource : 'none',
+      priceSource: ['catalog', 'none', 'catalog_unit_unverified', 'description'].includes(it?.priceSource) ? it.priceSource : 'none',
     };
-  }).map((it) => (it.unitPrice == null && it.priceSource === 'catalog' ? { ...it, priceSource: 'none' } : it))
+  }).map((it) => (it.unitPrice == null && (it.priceSource === 'catalog' || it.priceSource === 'description') ? { ...it, priceSource: 'none' } : it))
     .filter((it) => it.description);
   const changes = sanitizeDraftChanges(data.changes);
   if (!items.length && !hasChanges(changes)) return null;

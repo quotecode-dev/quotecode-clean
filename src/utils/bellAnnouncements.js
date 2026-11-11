@@ -35,6 +35,20 @@ export const SMART_PACK_ANNOUNCEMENT = Object.freeze({
   }),
 });
 
+// Owner 2026-11-11 (finding 16): during the 7 free days SMART PACK is part of the account, so the bell says it is included in the first
+// 7 days instead of its price. The same key (it never floats again); the account summary decides (server truth), never a guess.
+export function smartPackAnnouncementFor(summary) {
+  const inFreeDays = summary?.state === 'ready' && summary.smartPack?.active === true && summary.smartPack?.source === 'free_window';
+  if (!inFreeDays) return SMART_PACK_ANNOUNCEMENT;
+  return Object.freeze({
+    ...SMART_PACK_ANNOUNCEMENT,
+    copy: Object.freeze({
+      he: Object.freeze({ title: 'חדש: חכם פלוס', body: 'תוספת למנוי עם צ׳אט חכם שמכיר את הנתונים שלכם, צ׳אט קולי, הצעה חכמה עם AI והכתבה בקול, הצעת מחיר מקובץ PDF או JPG, שיפור ההצעה וקבצים מצורפים להצעה. כלול ב-7 הימים הראשונים.' }),
+      en: Object.freeze({ title: 'New: SMART PACK', body: 'A plan add-on with a smart chat that knows your data, voice chat, an AI smart quote with voice dictation, a quote from a PDF or JPG file, Improve quote and files attached to quotes. Included in your first 7 days.' }),
+    }),
+  });
+}
+
 /** The announcements whose window contains today (the market day is close enough for a 6-week window - UTC day used). */
 export function activeAnnouncements(list, now = Date.now()) {
   const ms = now instanceof Date ? now.getTime() : Number(now);

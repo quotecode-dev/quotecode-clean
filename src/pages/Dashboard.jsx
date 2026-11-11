@@ -17,7 +17,8 @@ import { invokeWithFreshSession } from '../shared/invokeWithFreshSession';
 import { publishBlocker, resolveBlockers, clearScope, SAVE_ATTEMPT_CODES, blockerCodeForActionError, blockerCodeForSaveFailure, blockerCodeForEmailError } from '../utils/aiHelpBlockers';
 import AiHelpButton from '../components/AiHelpButton';
 import { computeQuoteWorkflowContext } from '../utils/quoteWorkflowContext';
-import { formatShortDate, deviceCalendarDate } from '../utils/shortDate';
+import { formatShortDate, deviceCalendarDate, isUsCountry, setInternationalDateOrder } from '../utils/shortDate';
+import { marketOfStoredCountry } from '../utils/regionConfig';
 import { isOpenQuoteExpired, isQuoteAcceptanceExpired } from '../utils/quoteValidity';
 import { resolveAdminMarket } from '../utils/adminMarket';
 import { diagLog, diagBoot, idPrefix, installLifecycleDiag } from '../utils/returnDiag';
@@ -26,7 +27,7 @@ import useQuoteDraftPersistence from '../hooks/useQuoteDraftPersistence';
 import { allowDraftWrites, decideRestore, suppressDraftWrites, flushAllDrafts, formHash, newDraftId, serverFingerprintFromQuote } from '../utils/quoteDraft';
 import { getBlobStore } from '../utils/draftAttachments';
 import { getPristineQuoteFormState, projectNameForPersist } from '../utils/quoteFormState';
-import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning } from '../components/QuoteDraftNotices';
+import { DraftConflictModal, DraftRecoveredBanner, DraftStorageWarning, DraftAttachmentsWarning, PendingDraftRow } from '../components/QuoteDraftNotices';
 import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
 import { isFinancialChange } from '../utils/financialEdit';
 import { reportMonthRange, recurringMonthsInRange, calendarDateOf } from '../utils/recurringExpense';
@@ -67,6 +68,8 @@ import ExcelJS from 'exceljs';
 import PricingModal from '../components/PricingModal';
 import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
 import BillingNoticeBar from '../components/BillingNoticeBar';
+import Free10EndedBar from '../components/Free10EndedBar';
+import ProfileGateDialog from '../components/ProfileGateDialog';
 import { billingNoticeModel, billingBellItem, sendReminderText } from '../domain/subscriptions/billingNotices';
 import CustomerTwinPanel from '../components/CustomerTwinPanel';
 import { twinPayloadFromEditor, twinPayloadFromQuoteRow } from '../utils/customerTwinClient';
@@ -81,7 +84,7 @@ import ClientsTab from '../components/ClientsTab';
 import FinancesTab from '../components/FinancesTab';
 import TasksTab from '../components/TasksTab';
 import NotificationCenter from '../components/NotificationCenter';
-import { VOICE_ASSISTANT_ANNOUNCEMENT, SMART_PACK_ANNOUNCEMENT } from '../utils/bellAnnouncements';
+import { VOICE_ASSISTANT_ANNOUNCEMENT, smartPackAnnouncementFor } from '../utils/bellAnnouncements';
 import { voiceSupported, transcribeRecording } from '../utils/voiceAssistant';
 import RemindersFirstSetupNotice from '../components/RemindersFirstSetupNotice';
 import CalendarTab from '../components/CalendarTab';
@@ -95,7 +98,7 @@ import { createPristinePresentation, normalizePresentationState, hasServerConten
 import { purgePendingPresentations } from '../components/quotePresentation/pendingPresentationStore';
 import { persistQuote, deleteQuoteWithAttachments, newUuid } from '../utils/quoteSaveOrchestrator';
 import PaymentFrame from '../components/PaymentFrame';
-import { framedPaymentUrl, PAYMENT_FRAME_RETURN } from '../shared/paymentFrameReturn';
+import { framedPaymentUrl, PAYMENT_FRAME_RETURN, PAYMENT_FRAME_CLOSED } from '../shared/paymentFrameReturn';
 import { resolveEditorAttachmentOpen } from '../utils/attachmentCompatPath';
 import QuotesTab from '../components/QuotesTab';
 import NewQuoteMenu from '../components/NewQuoteMenu';
@@ -189,6 +192,15 @@ const DEFAULT_TERMS_HEB = `תנאים כלליים:
 3. תשלום: התשלום יתבצע במזומן או באמצעות העברה בנקאית, בתנאים שיוסכמו מראש.
 4. אספקה: אספקת המוצרים תתבצע תוך 30 ימי עבודה ממועד אישור ההזמנה והתשלום, אלא אם כן צוין אחרת.`;
 
+// Owner 2026-11-11 (finding 43, Codex U25): the built-in Hebrew terms follow the client type - a business client is priced before VAT,
+// so its default says "המחירים אינם כוללים מע״מ". Only the untouched built-in text is swapped; terms the owner wrote are never changed.
+const DEFAULT_TERMS_HEB_BUSINESS = DEFAULT_TERMS_HEB.replace('2. מחירים: המחירים כוללים מע״מ, אלא אם צוין אחרת.', '2. מחירים: המחירים אינם כוללים מע״מ.');
+function termsForClientType(text, clientType) {
+  if (text === DEFAULT_TERMS_HEB && clientType === 'business') return DEFAULT_TERMS_HEB_BUSINESS;
+  if (text === DEFAULT_TERMS_HEB_BUSINESS && clientType !== 'business') return DEFAULT_TERMS_HEB;
+  return text;
+}
+
 const DEFAULT_TERMS_ENG = `General Terms:
 1. Validity: This quote is valid for 30 days from issuance.
 2. Payment: Payment shall be made in cash or via bank transfer as agreed in advance.
@@ -252,7 +264,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [session, setSession] = useState(null);
   // Owner 2026-10-19 (typed L-17 approval): the voice-assistant announcement only where the browser can record (the microphone shows)
   // Owner 2026-10-20 (L-17): the SMART PACK announcement is for every account (no device condition); the voice one needs a microphone
-  const [bellAnnouncements] = useState(() => (voiceSupported() ? [VOICE_ASSISTANT_ANNOUNCEMENT, SMART_PACK_ANNOUNCEMENT] : [SMART_PACK_ANNOUNCEMENT]));
+  const [voiceAnnounce] = useState(() => voiceSupported());
   const [isInitializing, setIsInitializing] = useState(true);
   const [emailInput, setEmailInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
@@ -310,6 +322,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   
   // the account's stored country exactly as saved (bizCountry holds its canonical market)
   const storedCountryRef = useRef(null);
+  // Owner 2026-11-11 (IRON-DATE-001 as amended): the country a business abroad chose ('' = not chosen yet; 'International' is no country)
+  const countryCodeOf = (stored) => { const c = marketOfStoredCountry(stored).countryCode; return c && c !== 'IL' ? c : ''; };
+  const [bizCountryCode, setBizCountryCode] = useState('');
   const [bizCountry, setBizCountry] = useState(() => {
     if (typeof window === 'undefined') return 'International';
     const cached = localStorage.getItem('proflow_cached_country');
@@ -1218,6 +1233,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const [wizardDraft, setWizardDraft] = useState(null);               // live snapshot of an unfinished item wizard
   const [wizardResume, setWizardResume] = useState(null);             // unfinished wizard to re-open after a restore
   const [recoveredDraftInfo, setRecoveredDraftInfo] = useState(null); // { updatedAt, mode, missingAttachments, conflictCopy }
+  // Owner 2026-11-11 (finding 9): a recovered draft waits on the quotes list ({ env, quote }) until the user continues or deletes it
+  const [pendingDraft, setPendingDraft] = useState(null);
   const [draftConflict, setDraftConflict] = useState(null);           // { envelope, quote, label, reason }
   const [editBaselineFingerprint, setEditBaselineFingerprint] = useState(null);
   const [editCleanHash, setEditCleanHash] = useState(null);
@@ -1413,6 +1430,25 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const ownSubscriptionStatus = accountStatus({ is_lifetime: isLifetimeAccount, trial_ends_at: trialEndsAt }, accountSummary);
   const billingNotice = useMemo(() => billingNoticeModel(accountSummary, isLifetimeAccount), [accountSummary, isLifetimeAccount]);
   const headerPlanBadge = statusMedallionModel({ is_lifetime: isLifetimeAccount, trial_ends_at: trialEndsAt }, accountSummary, { isHebrew, formatDate: statusDate });
+  // Owner 2026-11-11 (finding 8, the Owner's proposal; typed L-03): the counter stays inside the medallion. Its caption adds the free days
+  // left ("10 הצעות חינם · 3/10 נוצלו · עוד 4 ימים"); from 8/10 used or on the last day the ring turns orange; after every counted quote
+  // the caption pops for a few seconds (popKey = the server's consumed count). Header only - the admin's shared model is unchanged (L-22).
+  const headerFree10 = accountSummary?.state === 'ready' && headerPlanBadge.kind === 'free10' && accountSummary.free10 ? accountSummary.free10 : null;
+  const headerDaysLeft = headerFree10?.endsAt && !headerFree10.periodEnded ? Math.max(0, Math.ceil((Date.parse(headerFree10.endsAt) - Date.now()) / 86400000)) : null;
+  const headerCaption = headerDaysLeft === null || !Number.isFinite(headerDaysLeft) ? headerPlanBadge.label
+    : headerDaysLeft <= 1 ? `${headerPlanBadge.label} · ${isHebrew ? 'היום האחרון' : 'last day'}`
+      : `${headerPlanBadge.label} · ${isHebrew ? `עוד ${headerDaysLeft} ימים` : `${headerDaysLeft} days left`}`;
+  const headerWarn = !!headerFree10 && (Number(headerFree10.remaining) <= 2 || (headerDaysLeft !== null && headerDaysLeft <= 1));
+  const headerPopKey = headerFree10 ? Number(headerFree10.consumed) : null;
+  // Owner 2026-11-11 (finding 8): right after the e-mail confirmation the account is provisioned by the server AFTER the settings row is
+  // created - the summary is read again quietly until it is ready, so English never says "not yet active" on a live account
+  useEffect(() => {
+    if (!settingId || accountSummary?.state === 'ready') return undefined;
+    let n = 0; let t = null;
+    const tick = () => { n += 1; refreshAccountSummaryQuiet(); if (n < 6) t = window.setTimeout(tick, 1500 * n); };
+    t = window.setTimeout(tick, 800);
+    return () => { if (t) window.clearTimeout(t); };
+  }, [settingId, accountSummary?.state, refreshAccountSummaryQuiet]);
   // Owner console 2026-10-14 ("open every quote capability - area, length, AI, templates - to all users now"): while the new plan
   // system is NOT active (no account has a server plan yet, nothing is billed), every quote capability is open to every account, as it
   // will be within the 10 free quotes. Once the system is active, decideCapability ignores these values and the server capabilities rule.
@@ -1461,6 +1497,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setFree10Window(true);
     return true;
   };
+  // Owner 2026-11-11 (finding 7, "גם הן חסומות"): after the end a DRAFT (never output) goes out to no customer - also one counted at its
+  // save; a quote that already went out stays re-sendable (the server answers wouldConsume for a changed version, finding 42)
+  const draftOutputBlocked = (quote) => String(quote?.status || '').toLowerCase() === 'draft' && free10Blocked();
   // Owner 2026-10-20 (typed L-17 approval): the bell item of the first customer signature in the free plan also offers the plans -
   // only a Free account while the plan system is enforced (the server summary decides; LIFETIME never)
   const bellUpgradeQuoteId = useMemo(() => {
@@ -1810,6 +1849,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       // נשארת מותנית, כדי שתצוגה מקדימה חד-פעמית לא "תדביק" ביקורים
       // עתידיים בדפדפן הזה.
       storedCountryRef.current = data.country ?? null;
+      // Owner 2026-11-11 (IRON-DATE-001 as amended): a business in the United States sees month first, every other business day first
+      setInternationalDateOrder(isUsCountry(data.country) ? 'MDY' : 'DMY');
+      setBizCountryCode(countryCodeOf(data.country));
       setBizCountry(countryVal);
       if (!isExplicitEnglish && !isExplicitHebrew) {
         localStorage.setItem('proflow_cached_country', countryVal);
@@ -2100,7 +2142,9 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       default_terms: defaultTerms,
       default_warranty: defaultWarranty,
       // the market rule reads a stored country; a save never rewrites it (a stored 'Germany' stays 'Germany' while the market is unchanged)
-      country: storedCountryRef.current && (canonicalMarket(storedCountryRef.current) || 'International') === bizCountry ? storedCountryRef.current : bizCountry,
+      // Owner 2026-11-11 (IRON-DATE-001 as amended): a business abroad that chose its country stores that country's code (never Israel)
+      country: !isLocalIsraeliBusiness && bizCountryCode ? bizCountryCode
+        : (storedCountryRef.current && (canonicalMarket(storedCountryRef.current) || 'International') === bizCountry ? storedCountryRef.current : bizCountry),
       currency: enforcedCurrency,
       user_id: session.user.id
     };
@@ -2122,6 +2166,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       }
       else {
         localStorage.setItem('proflow_cached_country', bizCountry);
+        storedCountryRef.current = payload.country;
+        setInternationalDateOrder(!isLocalIsraeliBusiness && isUsCountry(payload.country) ? 'MDY' : 'DMY');
         rememberSavedSettings(payload);
         savedSettingsRef.current.domain = professionalDomain || '';
         setBusinessCurrency(enforcedCurrency); // Codex F18: the plans window and new quotes use the saved currency at once
@@ -2928,6 +2974,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   };
 
   const handleSignOut = async () => {
+    setInternationalDateOrder('DMY'); // the next account sets its own order
     const uid = session?.user?.id;
     explicitLogoutRef.current = true;
     if (uid) {
@@ -3274,7 +3321,7 @@ Continue anyway?`, isHebrew);
   // (and the window's fallback) leaves as a full page, as before
   const [paymentUrl, setPaymentUrl] = useState(null);
   const leaveForPayment = (url) => { if (framedPaymentUrl(url)) setPaymentUrl(url); else window.location.assign(url); };
-  const closePaymentWindow = useCallback(() => setPaymentUrl(null), []);
+  const closePaymentWindow = useCallback(() => { setPaymentUrl(null); window.dispatchEvent(new CustomEvent(PAYMENT_FRAME_CLOSED)); }, []);
   const paymentWindowFallback = useCallback((url) => { setPaymentUrl(null); window.location.assign(url); }, []);
   const paymentWindowReturn = useCallback((kind) => {
     setPaymentUrl(null);
@@ -3288,6 +3335,7 @@ Continue anyway?`, isHebrew);
   // the capability link is copied; refused / cancelled -> nothing is copied). "Copy link" semantics are not changed anywhere.
   // PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share
   const copyQuoteMessage = async (proposal) => {
+    if (draftOutputBlocked(proposal)) return;
     if (isUnfinishedSavedQuote(proposal)) {
       alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
@@ -3300,11 +3348,11 @@ Continue anyway?`, isHebrew);
       if (!auth.proceed) {
         if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null), type: 'error' });
         if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
-        refreshAccountSummary();
+        refreshAccountSummaryQuiet(); // Owner 2026-11-11 (finding 8): never a "not yet active" flash
         return;
       }
       viewLink = `${window.location.origin}${auth.publicPath}`;
-      refreshAccountSummary();
+      refreshAccountSummaryQuiet(); // Owner 2026-11-11 (finding 8): never a "not yet active" flash
     } else if (!gate.proceed) return;
     const message = quoteShareMessage(proposal, viewLink);
     try {
@@ -3332,6 +3380,7 @@ Continue anyway?`, isHebrew);
     // OD-02: the ONE output-authority gate, phase = the SERVER output phase (account summary). Not enforced -> unchanged
     // legacy behavior. Enforced -> the server authorizes first (reservation -> snapshot -> finalize) and only then is the
     // capability link handed to WhatsApp; the quote id alone is never sent to a client.
+    if (!authorized && draftOutputBlocked(proposal)) return; // Owner 2026-11-11 (finding 7): a draft goes out to no customer after the end
     if (!authorized) {
       const gate = outputGate('send', outputPhase);
       if (gate.mode === 'authority_required') { authorizeAndSendWhatsApp(proposal); return; }
@@ -3391,15 +3440,16 @@ Continue anyway?`, isHebrew);
       if (win && !win.closed) win.close();
       if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null), type: 'error' });
       if (FREE10_END_CODES.has(auth.code)) setFree10Window(true); // a first output after Free-10: the paid action itself
-      refreshAccountSummary();
+      refreshAccountSummaryQuiet(); // Owner 2026-11-11 (finding 8): never a "not yet active" flash
       return;
     }
     sendWhatsApp(proposal, { viewLink: `${window.location.origin}${auth.publicPath}`, win });
-    refreshAccountSummary();
+    refreshAccountSummaryQuiet(); // Owner 2026-11-11 (finding 8): never a "not yet active" flash
   };
 
   // SMART-QUOTE-01: an unfinished draft is stopped BEFORE the send confirmation (executeEmailSend re-checks as a second guard).
   const requestEmailSend = (quote) => {
+    if (quote && draftOutputBlocked(quote)) return;
     if (quote && isUnfinishedSavedQuote(quote)) {
       alertWithBlocker('QUOTE_INCOMPLETE_ITEMS', { surface: 'main' }, isHebrew ? 'ההצעה עדיין לא גמורה (אין בה מוצר או עבודה עם מחיר). השלימו אותה לפני שליחה ללקוח.' : 'This quote is not finished yet (no product or work with a price). Complete it before sending it to a customer.');
       return;
@@ -3434,7 +3484,8 @@ Continue anyway?`, isHebrew);
       return;
     }
 
-    setStatusMsg({ text: isHebrew ? 'שולח אימייל דרך הענן…' : 'Sending email via cloud...', type: 'success' });
+    // Owner 2026-11-11 (finding 10): ONE message - "sending the email…" while it goes, then "the email was sent to <address>" (no "via the cloud")
+    setStatusMsg({ text: isHebrew ? 'שולחים את המייל…' : 'Sending the email…', type: 'success' });
 
     try {
       const quoteCurr = (quote.currency || currency || 'USD').toUpperCase();
@@ -3456,7 +3507,7 @@ Continue anyway?`, isHebrew);
           setEmailStatuses(prev => ({ ...prev, [quote.id]: 'failed' }));
           if (auth.mode !== 'cancelled') setStatusMsg({ text: outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null), type: 'error' });
           if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
-          refreshAccountSummary();
+          refreshAccountSummaryQuiet(); // Owner 2026-11-11 (finding 8): never a "not yet active" flash
           return;
         }
         capabilityToken = capabilityTokenFromPath(auth.publicPath);
@@ -3499,7 +3550,7 @@ Continue anyway?`, isHebrew);
 
       setEmailStatuses(prev => ({ ...prev, [quote.id]: 'success' }));
       resolveBlockers(['EMAIL_SEND_FAILED', 'EMAIL_SEND_NETWORK', 'EMAIL_CLIENT_NO_EMAIL']);
-      setStatusMsg({ text: isHebrew ? '📧 המייל נשלח בהצלחה!' : '📧 Email sent successfully!', type: 'success' });
+      setStatusMsg({ text: isHebrew ? `המייל נשלח אל ⁦${clientEmailVal}⁩` : `Email sent to ⁦${clientEmailVal}⁩`, type: 'success' }); // EMAIL_SENT_TO_ADDRESS
       if (sendGate.mode !== 'authority_required') markSentAfterShare(quote); // legacy phase: the email went out = sent
     } catch (err) {
       // חוק ברזל (LIVE Admin Email Failure root-cause task, 2026-09-08):
@@ -3898,6 +3949,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       alertWithBlocker('QUOTE_IMMUTABLE_SIGNED', { surface: 'main' }, isHebrew ? 'לא ניתן לערוך הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
       return;
     }
+    // Owner 2026-11-11 (finding 7, option א): after the free quotes / days end (and a limited paid account), editing opens the plans window
+    if (free10Blocked()) return;
 
     captureCleanRef.current = true; // the clean baseline hash is captured on the render right after this state batch
     setEditBaselineFingerprint(serverFingerprintFromQuote(quote));
@@ -4042,7 +4095,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       currency: row?.currency ?? '', domain: row?.professional_domain ?? '',
       // Codex R08 (Owner 2026-10-29, L-01/L-15): the STORED business email, kept apart from the form baseline above (which shows the
       // sign-in email when none is stored) - the business-details gate reads only what is really saved
-      storedEmail: row?.email ?? '' };
+      storedEmail: row?.email ?? '', countryCode: countryCodeOf(row?.country) };
   }
   const savedProfile = () => {
     const s = savedSettingsRef.current || {};
@@ -4050,7 +4103,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   };
   // Codex F17: every field the form saves (utils/settingsBaseline.js)
   const settingsDirty = activeTab === 'settings' && settingsFormDirty({ name: bizName, taxId: bizTaxId, phone: bizPhone, address: bizAddress, logo: bizLogoUrl,
-    email: bizEmail, terms: defaultTerms, warranty: defaultWarranty, currency: settingsCurrency, domain: professionalDomain }, savedSettingsRef.current, { isLocalIsraeliBusiness });
+    email: bizEmail, terms: defaultTerms, warranty: defaultWarranty, currency: settingsCurrency, domain: professionalDomain, country: bizCountryCode }, savedSettingsRef.current, { isLocalIsraeliBusiness });
   const revertUnsavedSettings = () => {
     const s = savedSettingsRef.current;
     if (!s) return;
@@ -4058,6 +4111,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     setBizEmail(s.email ?? '');
     setDefaultTerms(s.terms || ''); setDefaultWarranty(s.warranty || ''); setProfessionalDomain(s.domain || '');
     if (s.currency) setSettingsCurrency(s.currency);
+    setBizCountryCode(s.countryCode || '');
   };
   const leaveSettingsMsg = isHebrew ? 'יש שינויים בהגדרות העסק שלא נשמרו. לצאת בלי לשמור?' : 'Your business settings have unsaved changes. Leave without saving?';
   // Owner 2026-10-26 (typed L-01 / L-15 approval): the app's own question (pending until answered); "leave" undoes the unsaved edits
@@ -4080,15 +4134,43 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   const profileResumeRef = useRef(null);
   // leaving Settings without completing them forgets the pending return (a later settings save never opens a quote by surprise)
   useEffect(() => { if (activeTab !== 'settings') profileResumeRef.current = null; }, [activeTab]);
+  // Owner 2026-11-11 (finding 1, option ב; typed L-15): the missing details are asked in a small window ON this screen (no trip to
+  // Settings, so no stale "back to Business settings" either - finding 41); "Continue" saves them and resumes where the user was.
+  // gateMessage stays the one rule's message (it is no longer shown: the window lists the same fields).
+  const [profileGate, setProfileGate] = useState(null); // { missing, resume }
   const openProfileGate = (gateMessage, resume) => {
     const missingProfile = getMissingBusinessProfileFields({ ...savedProfile(), isLocalIsraeliBusiness });
     if (missingProfile.includes('phone')) publishBlocker('PROFILE_MISSING_PHONE', { scope: 'profile' });
     if (missingProfile.includes('taxId')) publishBlocker('PROFILE_MISSING_TAX_ID', { scope: 'profile' });
-    profileResumeRef.current = resume;
-    // the first missing field (product-owned section ids rendered by SettingsTab) - reached once the alert is closed (effect below)
-    profileFocusRef.current = missingProfile.includes('phone') ? 'business_phone' : missingProfile.includes('taxId') ? 'business_tax_id' : 'business_details';
-    setAlertModalMsg(gateMessage);
-    setActiveTab('settings');
+    if (!missingProfile.length || !gateMessage) return;
+    setProfileGate({ missing: missingProfile, resume });
+  };
+  const saveProfileFromGate = async (f) => {
+    if (!settingId) return false;
+    const patch = {
+      ...(f.phone !== undefined ? { phone: f.phone } : {}), ...(f.taxId !== undefined ? { tax_id: f.taxId } : {}),
+      ...(f.name !== undefined ? { business_name: f.name } : {}), ...(f.email !== undefined ? { email: f.email } : {}),
+    };
+    if (!Object.keys(patch).length) return false;
+    const { error } = await supabase.from('business_settings').update(patch).eq('id', settingId);
+    if (error) return false;
+    if (f.phone !== undefined) setBizPhone(f.phone);
+    if (f.taxId !== undefined) setBizTaxId(f.taxId);
+    if (f.name !== undefined) setBizName(f.name);
+    if (f.email !== undefined) setBizEmail(f.email);
+    const s = savedSettingsRef.current || {};
+    savedSettingsRef.current = { ...s, ...(f.phone !== undefined ? { phone: f.phone } : {}), ...(f.taxId !== undefined ? { taxId: f.taxId } : {}),
+      ...(f.name !== undefined ? { name: f.name } : {}), ...(f.email !== undefined ? { email: f.email, storedEmail: f.email } : {}) };
+    resolveBlockers(['PROFILE_MISSING_PHONE', 'PROFILE_MISSING_TAX_ID']);
+    const resume = profileGate?.resume || null;
+    setProfileGate(null);
+    if (resume?.kind === 'new_quote') {
+      const open = resume.variant === 'ai' ? handleCreateAiQuoteClick : resume.variant === 'file' ? handleCreateFileQuoteClick : resume.variant === 'structured' ? handleCreateStructuredQuoteClick : resume.variant === 'template' ? handleOpenTemplatePicker : handleCreateNewQuoteClick;
+      open();
+    } else if (resume?.kind === 'resume_save') {
+      setStatusMsg({ text: isHebrew ? 'פרטי העסק נשמרו. אפשר לשמור את ההצעה עכשיו.' : 'Business details saved. You can save your quote now.', type: 'success' });
+    }
+    return true;
   };
   const profileFocusRef = useRef(null);
   useEffect(() => {
@@ -4258,6 +4340,11 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     try { setTipBellState(parseTipState(window.localStorage.getItem(tipStorageKey(tipUserId)))); } catch { setTipBellState(null); }
   }, [tipUserId, dailyTip]);
   // the install tip leaves the bell once the site runs from the home-screen icon (Owner console 2026-11-04)
+  // Owner 2026-11-11 (finding 16): the SMART PACK item follows the account summary (included in the 7 free days, else its price)
+  const bellAnnouncements = useMemo(() => {
+    const smart = smartPackAnnouncementFor(accountSummary);
+    return voiceAnnounce ? [VOICE_ASSISTANT_ANNOUNCEMENT, smart] : [smart];
+  }, [voiceAnnounce, accountSummary]);
   const bellItemsWithTips = useMemo(() => [...bellAnnouncements, ...tipBellItems(tipBellState, dailyTip?.id || null).filter((it) => it.tipAction !== 'install' || canOfferInstall())], [bellAnnouncements, tipBellState, dailyTip]);
   // Owner console 2026-11-02 (typed: "מאשר בניית שלב 1: מסכי ימי החסד ומיילי החיוב שנכשל לפי ההחלטה מ-18/10, כולל שינוי ב-L-02, L-11, L-12, L-13 ו-L-15, עם ההמלצות בהחלטות 1, 2 ו-4, שחרור עד הלייב"): until the payment succeeds, whatever the reminder settings
   const bellPinnedItems = useMemo(() => { const item = billingBellItem(billingNotice); return item ? [item] : []; }, [billingNotice]);
@@ -4599,8 +4686,9 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     const q = env.mode === 'edit' ? quotes.find((x) => x.id === env.quoteId) : null;
     const decision = decideRestore(env, q, { immutable: !!q && isQuoteImmutable(q) });
     diagLog('draft-restore', { outcome: decision });
-    if (decision === 'restore-new') { await openDraftEditor(uid, env); return; }
-    if (decision === 'restore-edit') { await openDraftEditor(uid, env, { quote: q }); return; }
+    // Owner 2026-11-11 (finding 9, option ב): never open the editor by itself - the list shows the draft row; the click opens it
+    if (decision === 'restore-new') { setPendingDraft({ env, quote: null }); return; }
+    if (decision === 'restore-edit') { setPendingDraft({ env, quote: q }); return; }
     setDraftConflict({ envelope: env, quote: q || null, label: draftLabelFor(q, env), reason: decision === 'conflict-changed' ? 'changed' : (q ? 'immutable' : 'missing') });
   };
 
@@ -4615,12 +4703,34 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     if (choice === 'saved' && c.quote && !isQuoteImmutable(c.quote)) handleEditClick(c.quote);
   };
 
+  const continuePendingDraft = async () => {
+    const p = pendingDraft; const uid = session?.user?.id;
+    if (!p || !uid) return;
+    setPendingDraft(null);
+    await openDraftEditor(uid, p.env, p.quote ? { quote: p.quote } : {});
+  };
+  const deletePendingDraft = async () => {
+    const p = pendingDraft; const uid = session?.user?.id;
+    if (!p || !uid) return;
+    if (!(await askConfirm(isHebrew ? 'למחוק את הטיוטה שלא נשמרה? אי אפשר לשחזר אותה.' : 'Delete the unsaved draft? It cannot be restored.', isHebrew,
+      isHebrew ? { yes: 'למחוק את הטיוטה', no: 'ביטול', danger: true } : { yes: 'Delete the draft', no: 'Cancel', danger: true }))) return;
+    const env = p.env;
+    quoteDraft.store.removeFor(uid, env.mode, env.mode === 'edit' ? env.quoteId : env.draftId);
+    await getBlobStore().deleteDraft(uid, env.mode === 'edit' ? `edit-${env.quoteId}` : env.draftId);
+    setPendingDraft(null);
+    setStatusMsg({ text: isHebrew ? 'הטיוטה נמחקה.' : 'Draft deleted.', type: 'success' });
+  };
+  // Any editor that opens replaces the waiting row (the draft itself stays in storage until saved or deleted)
+  useEffect(() => { if (showQuoteForm) setPendingDraft(null); }, [showQuoteForm]);
+
   // Explicit discard of a restored/current draft from the banner.
   const discardRecoveredDraft = async () => {
     if (!(await askConfirm(isHebrew ? 'למחוק את הטיוטה המשוחזרת ולבטל את העריכה?' : 'Delete the recovered draft and close the editor?', isHebrew,
       isHebrew ? { yes: 'למחוק את הטיוטה', no: 'ביטול', danger: true } : { yes: 'Delete the draft', no: 'Cancel', danger: true }))) return;
     await quoteDraft.discard();
     handleCancelEdit();
+    // Owner 2026-11-11 (finding 9): an explicit draft delete says "the draft was deleted", never "the action was cancelled"
+    setStatusMsg({ text: isHebrew ? 'הטיוטה נמחקה.' : 'Draft deleted.', type: 'success' });
   };
 
   // Restore ONLY after the authenticated identity is known and the quotes are loaded (isInitializing false), once per user.
@@ -5380,6 +5490,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       setPendingAttachmentRemovals([]);
       const presentationNote = await syncQuotePresentation(quoteId);
       const scheduleNote = await syncServiceSchedule(quoteId);
+      // Owner 2026-11-11 (finding 8): a save is where a quote is counted - the medallion counter updates (and pops) right after it
+      refreshAccountSummaryQuiet();
       let leaveDraftNote = null;
       if (leaveDraftViaAuthority) {
         const auth = await authorizeWithNotice({ channel: 'send', quoteId, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => askConfirm(text, isHebrew), isHebrew });
@@ -5391,7 +5503,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             : `${isHebrew ? 'ההצעה נשמרה כטיוטה. ' : 'The quote was saved as a draft. '}${outputBlockedMessage(auth.code, isHebrew, accountSummary?.state === 'ready' ? accountSummary.free10 : null, accountSummary?.state === 'ready' ? accountSummary.billing : null)}`;
           if (FREE10_END_CODES.has(auth.code)) setFree10Window(true);
         }
-        refreshAccountSummary();
+        refreshAccountSummaryQuiet(); // Owner 2026-11-11 (finding 8): never a "not yet active" flash
       }
 
       setStatusMsg({
@@ -5687,6 +5799,9 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     <AccountSummaryContext.Provider value={accountSummaryContextValue}>
     <div className="dash-app-shell" dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: isHebrew ? FONT_HE : FONT_EN, background: NEON.bg, color: NEON.textPrimary, minHeight: '100vh', display: 'flex', flexDirection: 'column', letterSpacing: '-0.01em', overflowX: 'clip' }}>
       <BillingNoticeBar model={billingNotice} isHebrew={isHebrew} userId={session?.user?.id} onPay={() => setShowPricingModal(true)} onEnded={refreshAccountSummaryQuiet} />
+      {/* Owner 2026-11-11 (finding 7): after the 10 free quotes / 7 free days, a fixed bar on every screen with "choose a subscription" */}
+      <Free10EndedBar summary={accountSummary} isLifetime={isLifetimeAccount} isHebrew={isHebrew}
+        onChoose={() => (packageCheckoutAvailable(accountSummary, isLifetimeAccount) ? setShowPricingModal(true) : setFree10Window(true))} />
 
       <style>{`
         @keyframes popupBounce {
@@ -7466,7 +7581,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             background: #ffffff;
             /* ONE eight-track grid shared by the header row and every quote row (Owner R3): quote number, client, quote title,
                status, views, date, amount, action. Protected numeric/action tracks carry a px floor; client/title ellipsize. */
-            --qm-cols: minmax(84px, 72fr) minmax(0, 118fr) minmax(0, 104fr) minmax(136px, 104fr) minmax(68px, 64fr) minmax(64px, 104fr) minmax(88px, 96fr);
+            /* Owner 2026-11-11 (finding 24, typed L-07 / L-29): the date track holds its painted words ("Yesterday, 23:59") - floor 64px -> 100px */
+            --qm-cols: minmax(84px, 72fr) minmax(0, 118fr) minmax(0, 104fr) minmax(136px, 104fr) minmax(68px, 64fr) minmax(100px, 104fr) minmax(88px, 96fr);
             --qm-gap: 6px;
           }
           /* selector chain outranks the shared ".pf-screen > .pf-screen-body > * { flex-shrink: 0 }" rule (the card is also a
@@ -7500,8 +7616,10 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             column-gap: var(--qm-gap);
             align-items: center;
             padding-block: 5px;
-            /* Owner R5: the leading 30px hold the dropdown trigger (24px + 3px each side), outside the quote-number track */
-            padding-inline: 30px 16px;
+            /* Owner R5: the leading 30px hold the dropdown trigger (24px + 3px each side), outside the quote-number track.
+               Owner 2026-11-11 (finding 4, typed L-07 / L-19 / L-29): the trailing 80px hold the row's "Send" (64px + the former 16px) -
+               outside every track, so no column moves relative to its header */
+            padding-inline: 30px 80px;
             font-size: 12px;
             line-height: 1.3;
           }
@@ -7683,8 +7801,9 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             grid-template-columns: var(--qm-cols);
             column-gap: var(--qm-gap);
             align-items: center;
-            /* Owner R5: 24px = the row's 30px leading padding (trigger spacer) + 4px edge border - the strip's 10px inset */
-            padding-inline: 24px 6px;
+            /* Owner R5: 24px = the row's 30px leading padding (trigger spacer) + 4px edge border - the strip's 10px inset;
+               Owner 2026-11-11 (finding 4): the trailing 70px = the row's 80px Send space - the strip's 10px inset */
+            padding-inline: 24px 70px;
             color: #64748b;
           }
           .quote-modern-head-cell { display: flex; align-items: center; justify-content: flex-start; min-width: 0; }
@@ -7955,9 +8074,11 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           box-shadow: 0 8px 20px -6px rgba(0,0,0,0.35);
           max-width: min(calc(100% - 24px), 420px);
           text-align: center;
-          white-space: nowrap;
+          /* Owner 2026-11-11 (finding 44, typed L-23): a long message wraps to more lines on every width - it was cut on both sides at 1440
+             (the text sits in a child span, so the ellipsis never applied and the centred line overflowed both edges) */
+          white-space: normal;
+          width: max-content;
           overflow: hidden;
-          text-overflow: ellipsis;
           /* Owner console 2026-11-09 ("מאשר למרכז את ההודעה כולל שינוי ב-L-23"): popupBounce replaced the translateX(-50%), so the message
              began at the centre and ran off the right edge; its own entry animation keeps the centring (L-23 #8) */
           animation: statusToastIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
@@ -8197,6 +8318,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       {templateDialog === 'save' && session?.user?.id && (
         <SaveTemplateDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
           form={{ items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency, priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType) }}
+          askPriceBasis={isLocalIsraeliBusiness === true && !templatePriceBasis(isLocalIsraeliBusiness, clientType)}
           rowBilling={(it) => rowEntry(it, isLocalIsraeliBusiness === false).pricingMethod} onClose={() => setTemplateDialog(null)} />
       )}
       {templateDialog === 'pick' && session?.user?.id && (
@@ -8207,6 +8329,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       {templateDialog?.kind === 'save-unit' && session?.user?.id && (
         <SaveTemplateDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
           form={{ items, sections, currency, priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType) }}
+          askPriceBasis={isLocalIsraeliBusiness === true && !templatePriceBasis(isLocalIsraeliBusiness, clientType)}
           unit={{ sectionKey: templateDialog.section.key, name: templateDialog.section.name, rowBilling: (it) => rowEntry(it, isLocalIsraeliBusiness === false).pricingMethod }}
           onClose={() => setTemplateDialog(null)} />
       )}
@@ -8253,6 +8376,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           />
         );
       })()}
+      <ProfileGateDialog open={!!profileGate} missing={profileGate?.missing || []} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness}
+        currency={businessCurrency || currency} onSave={saveProfileFromGate} onClose={() => setProfileGate(null)} />
       <Free10UpgradeWindow
         open={free10Window}
         onClose={() => setFree10Window(false)}
@@ -8532,7 +8657,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                 onSignOut={() => setShowSignOutModal(true)}
               />
               <div className="dash-sidebar-user-text">
-                <div className="dash-sidebar-user-bizname" dir="auto" title={bizName || ''}>{bizName || (isHebrew ? 'העסק שלי' : 'My Business')}</div>
+                <div className="dash-sidebar-user-bizname" dir={isHebrew ? 'rtl' : 'ltr'} title={bizName || ''}>{bizName || (isHebrew ? 'העסק שלי' : 'My Business')}</div>
                 <div className="dash-sidebar-user-name" title={session.user.email}><bdi dir="ltr">{session.user.email}</bdi></div>
               </div>
             </div>
@@ -8928,7 +9053,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                       {/* Owner 2026-10-14: the round plan medallion replaces the avatar circle (no sign-in provider ever set a picture) -
                           the account's plan status from the one shared model; it opens the plans window. Not shown to the super admin. */}
                       {!isSuperAdmin && (
-                        <HeaderPlanMedallion model={headerPlanBadge} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />
+                        <HeaderPlanMedallion model={headerPlanBadge} caption={headerCaption} warn={headerWarn} popKey={headerPopKey} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />
                       )}
                     </div>
                   </div>
@@ -8943,7 +9068,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                     <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellItemsWithTips} pinnedItems={bellPinnedItems} upgradeQuoteId={bellUpgradeQuoteId} variant="mobile" />
                     {/* Owner 2026-10-14: the same round plan medallion as on desktop, outermost next to the bell */}
                     {!isSuperAdmin && (
-                      <HeaderPlanMedallion model={headerPlanBadge} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />
+                      <HeaderPlanMedallion model={headerPlanBadge} caption={headerCaption} warn={headerWarn} popKey={headerPopKey} isHebrew={isHebrew} onOpen={() => setShowPricingModal(true)} />
                     )}
                   </div>
                 </div>
@@ -9024,6 +9149,10 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           )}
           {activeTab === 'main' && !showQuoteForm && (
             <RemindersFirstSetupNotice client={supabase} userId={session?.user?.id} isHebrew={isHebrew} />
+          )}
+          {activeTab === 'main' && !showQuoteForm && (
+            <PendingDraftRow draft={pendingDraft ? { updatedAt: pendingDraft.env.updatedAt } : null} isHebrew={isHebrew}
+              dateMarket={isLocalIsraeliBusiness ? 'Local' : 'International'} onContinue={continuePendingDraft} onDelete={deletePendingDraft} />
           )}
           {activeTab === 'main' && !showQuoteForm && (
               <QuotesTab
@@ -9107,7 +9236,9 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               clientName={clientName} setClientName={setClientName}
               clientEmail={clientEmail} setClientEmail={setClientEmail}
               clientPhone={clientPhone} setClientPhone={setClientPhone}
-              clientType={clientType} setClientType={setClientType}
+              clientType={clientType}
+              /* Owner 2026-11-11 (finding 43): choosing the client type in the editor swaps the untouched built-in Israeli terms to match */
+              setClientType={(v) => { setClientType(v); if (isLocalIsraeliBusiness) setTerms((t) => termsForClientType(t, v)); }}
               clientTaxId={clientTaxId} setClientTaxId={setClientTaxId}
               clientAddress={clientAddress} setClientAddress={setClientAddress}
               quoteSubject={quoteSubject} setQuoteSubject={setQuoteSubject}
@@ -9119,7 +9250,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               serviceSchedule={serviceSchedule} setServiceSchedule={setServiceSchedule} serviceScheduleState={serviceScheduleState}
               discount={discount} setDiscount={setDiscount}
               terms={terms} setTerms={setTerms}
-              defaultTerms={defaultTerms}
+              defaultTerms={isLocalIsraeliBusiness ? termsForClientType(defaultTerms, clientType) : defaultTerms}
               defaultWarranty={defaultWarranty}
               warranty={warranty} setWarranty={setWarranty}
               notes={notes} setNotes={setNotes}
@@ -9234,6 +9365,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           {activeTab === 'settings' && (
             <SettingsTab
               t={t}
+              bizCountryCode={bizCountryCode}
+              setBizCountryCode={setBizCountryCode}
               unsavedChanges={settingsDirty}
               isHebrew={isHebrew}
               handleSaveSettings={handleSaveSettings}

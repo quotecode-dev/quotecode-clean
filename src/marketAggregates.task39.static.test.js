@@ -73,6 +73,8 @@ describe('IRON-MARKET-004 static gate: no mixed-currency quote aggregate', () =>
     const quotesTab = read('src/components/QuotesTab.jsx');
     // the ONE cross-quote aggregate of the list is the overview row (Owner console approval 2026-10-13), grouped per currency
     expect(quotesTab).toMatch(/const overviewTotals = totalsByQuoteCurrency\(overviewQuotes, \{ accountCurrency: currency \}\);/);
+    // Owner 2026-11-11 (finding 32, typed L-07): then only the ILS group becomes the sum of the displayed whole-shekel amounts
+    expect(quotesTab).toContain('roundIlsListTotals(overviewTotals, overviewQuotes);');
     expect(quotesTab).toMatch(/<CurrencyTotals className="quote-overview-value"[^>]*totals=\{overviewTotals\}/);
     expect(quotesTab).not.toMatch(/\boverviewTotal\b/);
     expect(quotesTab).not.toMatch(/\.reduce\(/); // no other running sum in the list

@@ -45,8 +45,9 @@ const PATTERNS = [
     category: 'captcha_failed',
     test: (err) => isCaptchaError(err),
     userMessage: (_err, isHebrew) => (isHebrew
-      ? 'בדיקת האבטחה לא הושלמה. המתינו לסימון שהבדיקה עברה, ונסו שוב.'
-      : 'The security check did not complete. Wait until the check shows it passed, then try again.'),
+      // Owner 2026-11-11 (finding 38): the check box shows only when it needs the visitor, so the message never says to wait for a mark
+      ? 'בדיקת האבטחה לא הושלמה. נסו שוב בעוד רגע, ואם מופיעה תיבת בדיקה - סמנו אותה.'
+      : 'The security check did not complete. Try again in a moment, and if a check box appears, tick it.'),
   },
   {
     category: 'auth_rate_limit',

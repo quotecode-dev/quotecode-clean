@@ -66,16 +66,17 @@ function formatAmount(ctx: SanitizedQuoteContext): string {
 }
 
 // IRON-DATE-001: the shared product short-date primitive. isHebrew here is the server-derived account market
-// (isHebrewFromMarket), so Local -> DD/MM/YYYY and International -> MM/DD/YYYY; valid_until is a calendar date (no zone shift).
-function formatDate(iso: string, isHebrew: boolean): string {
-  return formatShortDate(iso, isHebrew ? 'Local' : 'International');
+// (isHebrewFromMarket). Owner 2026-11-11 (the law as amended): a business in the United States -> MM/DD/YYYY (dateMarket 'US'), every
+// other business -> DD/MM/YYYY; valid_until is a calendar date (no zone shift).
+function formatDate(iso: string, isHebrew: boolean, dateMarket: string | null = null): string {
+  return formatShortDate(iso, isHebrew ? 'Local' : (dateMarket === 'US' ? 'US' : 'International'));
 }
 
 // Returns null when the classified kind's own underlying data is genuinely
 // absent (e.g. a quote with no valid_until set) - the caller falls through
 // to the ordinary model path rather than fabricating "no date" as if it
 // were itself the fact (§20: "unknown remains unknown").
-export function resolveDirectFact(kind: DirectFactKind, ctx: SanitizedQuoteContext, isHebrew: boolean): DirectFactPayload | null {
+export function resolveDirectFact(kind: DirectFactKind, ctx: SanitizedQuoteContext, isHebrew: boolean, dateMarket: string | null = null): DirectFactPayload | null {
   switch (kind) {
     case 'amount': {
       if (ctx.total === null) return null;
@@ -91,11 +92,11 @@ export function resolveDirectFact(kind: DirectFactKind, ctx: SanitizedQuoteConte
     }
     case 'creation_date': {
       if (!ctx.createdAt) return null;
-      return { kind, value: formatDate(ctx.createdAt, isHebrew), isDraft: false };
+      return { kind, value: formatDate(ctx.createdAt, isHebrew, dateMarket), isDraft: false };
     }
     case 'validity_date': {
       if (!ctx.validUntil) return null;
-      return { kind, value: formatDate(ctx.validUntil, isHebrew), isDraft: false };
+      return { kind, value: formatDate(ctx.validUntil, isHebrew, dateMarket), isDraft: false };
     }
     case 'item_count': {
       return { kind, value: String(ctx.items.length), isDraft: false };

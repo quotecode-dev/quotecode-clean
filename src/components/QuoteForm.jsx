@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { phonePlaceholder } from '../utils/phoneDisplay';
 import { businessDial, joinPhone } from '../utils/phoneDial';
 import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
@@ -548,11 +549,16 @@ export default function QuoteForm({
   // (Core Architectural Law: "component C guesses plan" - בדיוק המקרה
   // שתועד). כבר כולל super_admin (entitlement.attachments = isSuperAdmin ||
   // planDef.attachments) - לא נדרש תנאי נפרד.
+  // Owner 2026-11-11 (finding 5, option א; typed L-09): a business client's tax id is required in the Israeli (Local) market only - the
+  // market decides, never the UI language; abroad it is marked optional and the quote saves without it
+  const taxIdRequired = clientType === 'business' && isLocalIsraeliBusiness !== false;
   // PRODUCT_TRUTH_CAPABILITY: attachments
   const handleAttachmentClick = () => {
     if (!canUseAttachments) {
       publishBlocker('ATTACHMENTS_REQUIRE_PRO', { scope: 'editor' });
-      setShowUpgradeConfirm('attachments');
+      // Owner 2026-11-11 (finding 46): the block stays; attachments belong to SMART PACK (the server grants the capability only while it
+      // is active), so the notice is the SMART PACK one with the plans button - never "the plans that will include this are not decided"
+      setShowUpgradeConfirm('smart_pack');
     } else if (!smartPackAllowed) {
       setShowUpgradeConfirm('smart_pack'); // L-05 (2026-10-25): the SMART PACK notice; no file picker opens
     } else {
@@ -823,7 +829,7 @@ export default function QuoteForm({
             >
               <option value="" disabled>{isHebrew ? 'בחירת סוג לקוח…' : 'Select Client Type...'}</option>
               <option value="business">{isHebrew ? 'עסקי (חברה/עוסק)' : 'Business'}</option>
-              <option value="private">{isHebrew ? 'פרטי (B2C)' : 'Private'}</option>
+              <option value="private">{isHebrew ? 'פרטי' : 'Private'}</option>
             </select>
             {isLocalIsraeliBusiness && (
               <p data-testid="sq-client-type-vat-help" style={{ margin: '4px 0 0', fontSize: '0.72rem', color: NEON.textSecondary, lineHeight: 1.35 }}>
@@ -832,15 +838,15 @@ export default function QuoteForm({
             )}
           </div>
           <div>
-            <label htmlFor="sq-client-tax-id" style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'ח״פ / עוסק / ת״ז' : 'Tax ID / ID'}{clientType === 'business' ? (isHebrew ? ' (חובה)' : ' (required)') : ''}</label>
+            <label htmlFor="sq-client-tax-id" style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'ח״פ / עוסק / ת״ז' : 'Tax ID / ID'}{taxIdRequired ? (isHebrew ? ' (חובה)' : ' (required)') : (clientType === 'business' ? (isHebrew ? ' (לא חובה)' : ' (optional)') : '')}</label>
             <input id="sq-client-tax-id" data-testid="sq-client-tax-id" type="text" value={clientTaxId}
               onChange={(e) => { setClientTaxId(e.target.value); if (taxIdMissing) setTaxIdMissing(false); }}
               onInvalid={(e) => { e.preventDefault(); setTaxIdMissing(true); e.target.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); e.target.focus({ preventScroll: true }); }}
-              required={clientType === 'business'} aria-invalid={taxIdMissing && clientType === 'business' ? true : undefined}
-              pattern={clientType === 'business' ? TAX_ID_NOT_BLANK : undefined}
-              aria-describedby={taxIdMissing && clientType === 'business' ? 'sq-client-tax-id-missing' : undefined}
-              style={{ width: '100%', padding: '11px 14px', border: `1px solid ${taxIdMissing && clientType === 'business' ? NEON.red : NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
-            {taxIdMissing && clientType === 'business' && (
+              required={taxIdRequired} aria-invalid={taxIdMissing && taxIdRequired ? true : undefined}
+              pattern={taxIdRequired ? TAX_ID_NOT_BLANK : undefined}
+              aria-describedby={taxIdMissing && taxIdRequired ? 'sq-client-tax-id-missing' : undefined}
+              style={{ width: '100%', padding: '11px 14px', border: `1px solid ${taxIdMissing && taxIdRequired ? NEON.red : NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
+            {taxIdMissing && taxIdRequired && (
               <p id="sq-client-tax-id-missing" data-testid="sq-client-tax-id-missing" role="alert" style={{ margin: '4px 0 0', fontSize: '0.74rem', fontWeight: 700, color: NEON.red, lineHeight: 1.35 }}>
                 {isHebrew ? 'חסר מספר עוסק. ללקוח עסקי צריך למלא ח״פ, עוסק או ת״ז.' : 'Tax ID is missing. A business client needs a Tax ID.'}
               </p>
@@ -875,14 +881,15 @@ export default function QuoteForm({
                 overflow-hidden. */}
             <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, overflow: 'hidden', boxSizing: 'border-box', minWidth: 0 }}>
               <div style={{ background: NEON.bgCardAlt, padding: '7px 10px', fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: `1px solid ${NEON.borderStrong}`, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {defaultLabel}
+                {/* Owner 2026-11-11 (findings 17 + 21): the code alone ("+1", "+972") so the number has room; the example follows the code */}
+                <bdi dir="ltr" title={defaultLabel}>{defaultDial}</bdi>
               </div>
               <input
                 type="text"
                 value={localPhone}
                 onChange={(e) => handleLocalPhoneChange(e.target.value)}
-                placeholder="502345678"
-                style={{ flex: '1 1 auto', minWidth: 0, padding: '7px 10px', border: 'none', outline: 'none', background: 'transparent', color: NEON.textPrimary, direction: 'ltr', textAlign: 'left', fontSize: '0.85rem' }}
+                placeholder={phonePlaceholder(defaultDial)}
+                style={{ flex: '1 1 auto', minWidth: 0, minHeight: 44, padding: '7px 10px', border: 'none', outline: 'none', background: 'transparent', color: NEON.textPrimary, direction: 'ltr', textAlign: 'left', fontSize: '0.85rem' }}
               />
             </div>
           </div>

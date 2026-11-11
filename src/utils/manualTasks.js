@@ -5,7 +5,7 @@
 // Dates (IRON-DATE-001): due_date is a DATE-ONLY calendar value ('YYYY-MM-DD') and due_time a local wall-clock time ('HH:MM[:SS]');
 // both are stored and compared as given - never shifted by a time zone or the UI language. "Today" and "now" are the AUTHENTICATED
 // ACCOUNT MARKET's day / clock (Local -> Asia/Jerusalem, International -> the device's own clock: IRON-DATE-001 as amended 2026-11-02).
-import { marketTimeZone, calendarParts, resolveDateMarket } from './shortDate';
+import { marketTimeZone, calendarParts, resolveDateMarket, isMonthFirst } from './shortDate';
 
 export const TASK_STATUSES = Object.freeze(['open', 'completed']);
 export const TASK_PRIORITIES = Object.freeze(['low', 'normal', 'high']);
@@ -54,10 +54,11 @@ export function parseMarketDate(text, market) {
   const m = typeof text === 'string' ? text.trim().match(/^(\d{1,2})[/.\-\s](\d{1,2})[/.\-\s](\d{4})$/) : null;
   if (!m) return null;
   const [a, b, y] = [m[1].padStart(2, '0'), m[2].padStart(2, '0'), m[3]];
-  const iso = resolveDateMarket(market) === 'Local' ? `${y}-${b}-${a}` : `${y}-${a}-${b}`;
+  // Owner 2026-11-11 (IRON-DATE-001 as amended): a typed date is read in the SAME order the account sees (a US account month first)
+  const iso = isMonthFirst(market) ? `${y}-${a}-${b}` : `${y}-${b}-${a}`;
   return isCalendarDate(iso) ? iso : null;
 }
-export const marketDatePattern = (market) => (resolveDateMarket(market) === 'Local' ? 'DD/MM/YYYY' : 'MM/DD/YYYY');
+export const marketDatePattern = (market) => (isMonthFirst(market) ? 'MM/DD/YYYY' : 'DD/MM/YYYY');
 
 // Time ENTRY as a 24-hour wall clock ('9:30' or '09:30') -> 'HH:MM', else null (never a browser AM/PM locale).
 export function parseTimeText(text) {

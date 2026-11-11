@@ -4,6 +4,8 @@
 const KINDS = ['processing', 'failed', 'cancelled', 'smart_pack', 'smart_pack_failed', 'smart_pack_cancelled'];
 export const PAYMENT_FRAME_RETURN = 'tekango:billing-return';
 export const PAYMENT_FRAME_LOAD_MS = 20000;
+// Owner 2026-11-11 (finding 30): the payment window was closed without paying - the pay buttons behind it become available again
+export const PAYMENT_FRAME_CLOSED = 'tekango:payment-window-closed';
 // set on the app window while the payment window is open (read by a page of this site that loads inside it)
 export const PAYMENT_WINDOW_OPEN = '__tekangoPaymentWindowOpen';
 // only the PayPlus payment pages open in the window; anything else keeps the full-page departure

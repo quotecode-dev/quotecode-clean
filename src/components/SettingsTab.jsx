@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import adminCountries from '../utils/adminCountries.json';
+import { phonePlaceholder } from '../utils/phoneDisplay';
 import { Settings, Building2, Hash, Mail, Phone, Coins, MapPin, Image as ImageIcon, FileText, Shield, ShieldCheck, Users, Ruler, LayoutTemplate, BellRing, IdCard, Share2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { APP as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from '../theme/neonTheme';
 import BusinessQuoteStyleSection from './quotePresentation/BusinessQuoteStyleSection';
@@ -32,7 +34,12 @@ const getDialByCurrency = (curr, isLocal) => {
 };
 
 // PRODUCT_TRUTH_CAPABILITY: business_settings
+// Owner 2026-11-11: the countries a business abroad can choose (Israel is the Local market, never chosen here)
+const BUSINESS_COUNTRIES = adminCountries.filter((c) => c && c.code && c.code !== 'IL').sort((a, b) => a.name.localeCompare(b.name, 'en'));
+
 export default function SettingsTab({
+  bizCountryCode = '',
+  setBizCountryCode = null,
   isHebrew,
   unsavedChanges = false, // Owner 2026-10-25 (typed L-15 + L-01): the form differs from what is stored
   handleSaveSettings,
@@ -362,13 +369,26 @@ export default function SettingsTab({
           {/* PRODUCT_TRUTH_CAPABILITY: profile_prerequisites */}
           <div id="pf-settings-business_tax_id">
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Hash size={13} color={NEON.amber} />{isHebrew ? 'ח.פ / עוסק מורשה / פטור' : 'Tax ID / Lic No'}</label>
-            <input type="text" value={bizTaxId} onChange={(e) => setBizTaxId(e.target.value)} placeholder="516000000" style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
+            <input type="text" value={bizTaxId} onChange={(e) => setBizTaxId(e.target.value)} placeholder={isLocalIsraeliBusiness === true ? '516000000' : '12-3456789'} style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
           </div>
           <div>
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Mail size={13} color={NEON.violetLight} />{isHebrew ? 'כתובת המייל של העסק' : 'Business Email'}</label>
             <input type="email" value={bizEmail} onChange={(e) => setBizEmail(e.target.value)} placeholder="business@example.com" style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
           </div>
 
+          {/* Owner 2026-11-11 (IRON-DATE-001 as amended, typed L-01 / L-11): a business abroad chooses its country - a business in the
+              United States sees dates month first, every other business day first. Israel is not offered here (it is the other market). */}
+          {isLocalIsraeliBusiness !== true && typeof setBizCountryCode === 'function' && (
+            <div id="pf-settings-business_country">
+              <label htmlFor="settings-business-country" style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'מדינת העסק' : 'Business country'}</label>
+              {/* PRODUCT_TRUTH_DECORATIVE: chooses the business country (stored on Save; it decides the date order) */}
+              <select id="settings-business-country" data-testid="settings-business-country" value={bizCountryCode || ''} onChange={(e) => setBizCountryCode(e.target.value)}
+                style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}>
+                <option value="">{isHebrew ? 'בחירת מדינה…' : 'Choose a country…'}</option>
+                {BUSINESS_COUNTRIES.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
+              </select>
+            </div>
+          )}
           <div id="pf-settings-business_phone">
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Phone size={13} color={NEON.emerald} />{isHebrew ? 'טלפון העסק' : 'Business Phone'}</label>
             <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, overflow: 'hidden', boxSizing: 'border-box' }}>
@@ -387,7 +407,7 @@ export default function SettingsTab({
                 type="text"
                 value={localPhone}
                 onChange={(e) => handleLocalPhoneChange(e.target.value)}
-                placeholder="500000000"
+                placeholder={phonePlaceholder(defaultDial)}
                 style={{ flex: 1, padding: '7px 8px', border: 'none', outline: 'none', background: 'transparent', color: NEON.textPrimary, direction: 'ltr', textAlign: 'left', fontSize: '0.85rem' }}
               />
             </div>
@@ -437,13 +457,16 @@ export default function SettingsTab({
               );
               return isLocalIsraeliBusiness === true ? [cityBlock, streetBlock] : [streetBlock, cityBlock];
             })()}
+            {/* Owner 2026-11-11 (finding 17): Israel has no state / province - the field shows for a business abroad only */}
+            {isLocalIsraeliBusiness !== true && (
+              <div>
+                <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: NEON.textMuted, marginBottom: '2px' }}>{isHebrew ? 'מדינה / מחוז (State)' : 'State / Province'}</label>
+                <input type="text" value={stateProv} onChange={(e) => handleAddressFieldChange(street, city, e.target.value, zipCode)} placeholder={isHebrew ? 'מדינה/אזור' : 'State / Region'} style={{ width: '100%', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+              </div>
+            )}
             <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: NEON.textMuted, marginBottom: '2px' }}>{isHebrew ? 'מדינה / מחוז (State)' : 'State / Province'}</label>
-              <input type="text" value={stateProv} onChange={(e) => handleAddressFieldChange(street, city, e.target.value, zipCode)} placeholder={isHebrew ? 'מדינה/אזור' : 'State / Region'} style={{ width: '100%', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
-            </div>
-            <div>
-              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: NEON.textMuted, marginBottom: '2px' }}>{isHebrew ? 'מיקוד (ZIP / Postal)' : 'ZIP / Postal Code'}</label>
-              <input type="text" value={zipCode} onChange={(e) => handleAddressFieldChange(street, city, stateProv, e.target.value)} placeholder="10001" style={{ width: '100%', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} />
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '400', color: NEON.textMuted, marginBottom: '2px' }}>{isHebrew ? 'מיקוד' : 'ZIP / Postal Code'}</label>
+              <input type="text" value={zipCode} onChange={(e) => handleAddressFieldChange(street, city, stateProv, e.target.value)} placeholder={isLocalIsraeliBusiness === true ? '6100000' : '10001'} style={{ width: '100%', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} />
             </div>
           </div>
         </div>

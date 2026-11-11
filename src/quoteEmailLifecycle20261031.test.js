@@ -43,7 +43,8 @@ describe('Dashboard.jsx executeEmailSend', () => {
     expect(body).toContain(".from('quotes').select('email_bounced, email_bounce_reason, email_bounced_at').eq('id', quote.id).maybeSingle()");
   });
   it('L-13 order unchanged: the success message, then the quote is marked sent', () => {
-    expect(body.indexOf("'📧 המייל נשלח בהצלחה!'")).toBeGreaterThan(0);
-    expect(body.indexOf('markSentAfterShare(quote)')).toBeGreaterThan(body.indexOf("'📧 המייל נשלח בהצלחה!'"));
+    // Owner 2026-11-11 (finding 10, typed L-13): the success message is now "המייל נשלח אל <address>"; the order is unchanged
+    expect(body.indexOf('המייל נשלח אל ')).toBeGreaterThan(0);
+    expect(body.indexOf('markSentAfterShare(quote)')).toBeGreaterThan(body.indexOf('המייל נשלח אל '));
   });
 });

@@ -119,11 +119,13 @@
   border-radius: 2px 0 0 0;
 }
 .hpm--intro .hpm-bubble, .hpm:hover .hpm-bubble, .hpm:focus-visible .hpm-bubble { opacity: 1; transform: none; }
+/* Owner 2026-11-11 (finding 8): after a counted quote / a tap on a phone the caption stays for a few seconds */
+.hpm--show .hpm-bubble { opacity: 1; transform: none; }
 
 @media (prefers-reduced-motion: reduce) {
   .hpm-halo, .hpm--intro .hpm-disc, .hpm--intro .hpm-arc, .hpm .hpm-icon, .hpm .hpm-shine { animation: none !important; }
   .hpm-disc, .hpm-bubble { transition: none; }
   .hpm:hover .hpm-disc, .hpm:focus-visible .hpm-disc { transform: none; }
   .hpm--intro .hpm-bubble { opacity: 0; }
-  .hpm:hover .hpm-bubble, .hpm:focus-visible .hpm-bubble { opacity: 1; transform: none; }
+  .hpm:hover .hpm-bubble, .hpm:focus-visible .hpm-bubble, .hpm--show .hpm-bubble { opacity: 1; transform: none; }
 }

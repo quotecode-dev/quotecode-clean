@@ -69,3 +69,16 @@ describe('totalsByQuoteCurrency (IRON-MARKET-004)', () => {
     expect(QUOTE_CURRENCY_SYMBOLS).toEqual({ ILS: '₪', USD: '$', EUR: '€', GBP: '£' });
   });
 });
+
+// Owner 2026-11-11 (finding 32): the list total equals the sum of the displayed whole-shekel card amounts
+import { roundIlsListTotals } from './money';
+describe('list total = sum of the displayed cards (ILS)', () => {
+  it('only the ILS group becomes the sum of each quote rounded half-up; other currencies and the plain totals keep the stored sum', () => {
+    const qs = [{ currency: 'ILS', total: 2919.5 }, { currency: 'ILS', total: 2920.4 }, { currency: 'USD', total: 10.005 }];
+    expect(totalsByQuoteCurrency(qs).groups.find((g) => g.currency === 'ILS').total).toBeCloseTo(5839.9, 6);
+    const shown = roundIlsListTotals(totalsByQuoteCurrency(qs), qs);
+    expect(shown.groups.find((g) => g.currency === 'ILS').total).toBe(5840);
+    expect(shown.groups.find((g) => g.currency === 'USD').total).toBe(10.005);
+    expect(roundIlsListTotals({ groups: [] }, qs)).toEqual({ groups: [] });
+  });
+});

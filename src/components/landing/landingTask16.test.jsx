@@ -44,11 +44,11 @@ describe('refined landing - sample quotation model (same fixture and rules as /s
     expect(m.raw.total - m.raw.tax).toBe(4302); // the shown lines add up exactly
     expect(m.date).toMatch(/^\d{2}\/\d{2}\/\d{4}$/);
   });
-  it('EN: International - full-precision formatter, no tax line, MM/DD/YYYY, no Hebrew', () => {
+  it('EN: International - full-precision formatter, no tax line, DD/MM/YYYY (Owner 2026-11-11), no Hebrew', () => {
     const m = buildLandingQuoteModel('en');
     expect(m.totals.total).toBe('$4,302.00');
     expect(m.totals.tax).toBeNull();
-    expect(m.date).toBe('10/04/2026');
+    expect(m.date).toBe('04/10/2026');
     expect(JSON.stringify(m)).not.toMatch(HEBREW);
     expect(JSON.stringify(m)).not.toMatch(/₪|ILS|NIS/);
   });

@@ -11,7 +11,9 @@ import { askConfirm } from './AppDialog';
 
 const COPY = {
   he: {
-    saveTitle: 'שמירה כתבנית', pickTitle: 'בחירת תבנית הצעה', // G7 (Owner 2026-11-08, the clarity fixes B3) close: 'סגירה', cancel: 'ביטול',
+    saveTitle: 'שמירה כתבנית', pickTitle: 'בחירת תבנית הצעה', close: 'סגירה', cancel: 'ביטול', // G7 (Owner 2026-11-08, the clarity fixes B3); Owner 2026-11-11 (finding 6): the two keys sat inside this comment, so the Hebrew button and the X had no name
+    // Owner 2026-11-11 (finding 14): an Israeli quote with no client type chosen yet asks whether the kept prices include VAT
+    basisQ: 'המחירים בתבנית:', basisIncl: 'כוללים מע״מ', basisExcl: 'לפני מע״מ', basisMissing: 'בחרו אם המחירים בתבנית כוללים מע״מ.',
     name: 'שם התבנית', namePh: 'לדוגמה: שיפוץ אמבטיה בסיסי',
     keep: 'מה לשמור בתבנית', keepPrices: 'מחירים', keepTexts: 'תנאים, אחריות והערות', keepSubject: 'נושא ושם פרויקט', keepPresentation: 'עיצוב ותמונות',
     never: 'לא נשמרים לעולם: לקוח ואיש קשר, מספר הצעה, מצב, חתימה, תשלום, קישור ותאריכים.',
@@ -36,6 +38,7 @@ const COPY = {
   },
   en: {
     saveTitle: 'Save as template', pickTitle: 'Choose a quote template', close: 'Close', cancel: 'Cancel',
+    basisQ: 'Template prices:', basisIncl: 'Include VAT', basisExcl: 'Before VAT', basisMissing: 'Choose whether the template prices include VAT.',
     name: 'Template name', namePh: 'e.g. Basic bathroom renovation',
     keep: 'What to keep in the template', keepPrices: 'Prices', keepTexts: 'Terms, warranty and notes', keepSubject: 'Subject and project name', keepPresentation: 'Design and images',
     never: 'Never kept: the customer and contact, quote number, status, signature, payment, link and dates.',
@@ -105,16 +108,21 @@ function Summary({ C, s, formatMoney }) {
 // PRODUCT_TRUTH_CAPABILITY: quote_create
 // unit = { sectionKey, name, rowBilling } saves ONE unit as a unit template (Owner console 2026-11-08 (stage 4 of the one quote builder, decision 6))
 // rowBilling = the row's billing type on screen, kept in a whole-quote template too (Codex review 2026-11-09)
-export function SaveTemplateDialog({ isHebrew, client, userId, form, formatMoney, onClose, onSaved = null, unit = null, rowBilling = null }) {
+// askPriceBasis = an Israeli (Local market) quote whose client type is not chosen yet (Owner 2026-11-11, finding 14) - the market decides, never the UI language
+export function SaveTemplateDialog({ isHebrew, client, userId, form: formIn, formatMoney, onClose, onSaved = null, unit = null, rowBilling = null, askPriceBasis = false }) {
   const C = COPY[isHebrew ? 'he' : 'en'];
+  const [chosenBasis, setChosenBasis] = useState(null);
+  const form = askPriceBasis && chosenBasis ? { ...formIn, priceBasis: chosenBasis } : formIn;
   const [name, setName] = useState(unit ? String(unit.name || '') : '');
   const [keep, setKeep] = useState(unit ? { ...DEFAULT_UNIT_TEMPLATE_KEEP } : { ...DEFAULT_TEMPLATE_KEEP });
   const [state, setState] = useState({ phase: 'idle', text: '' });
   const built = unit ? buildUnitTemplateContent(form, unit.sectionKey, keep, unit.rowBilling) : buildTemplateContent(form, keep, rowBilling);
   const preview = templateSummary(built);
   const noItems = !preview || preview.itemCount === 0;
+  const showBasis = askPriceBasis && keep.prices && !!preview?.hasPrices;
   const submit = async (e) => {
     e.preventDefault();
+    if (showBasis && !chosenBasis) { setState({ phase: 'error', text: C.basisMissing }); return; }
     setState({ phase: 'saving', text: '' });
     const r = await createTemplate(client, userId, name, form, keep, built);
     if (r.ok) { setState({ phase: 'saved', text: C.saved }); if (typeof onSaved === 'function') onSaved(r.data); }
@@ -135,6 +143,16 @@ export function SaveTemplateDialog({ isHebrew, client, userId, form, formatMoney
           <legend style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>{C.keep}</legend>
           {unit ? <>{box('prices', C.keepPrices)}{box('details', C.keepDetails)}</> : <>{box('prices', C.keepPrices)}{box('texts', C.keepTexts)}{box('subject', C.keepSubject)}{box('presentation', C.keepPresentation)}</>}
         </fieldset>
+        {showBasis && (
+          <fieldset data-testid="template-price-basis" style={{ border: 'none', padding: 0, margin: '10px 0 0' }}>
+            <legend style={{ fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>{C.basisQ}</legend>
+            {[['incl_vat', C.basisIncl], ['excl_vat', C.basisExcl]].map(([v, label]) => (
+              <label key={v} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minHeight: 44, marginInlineEnd: 16, fontSize: '0.86rem', color: '#1e293b', cursor: 'pointer' }}>
+                <input type="radio" name="template-price-basis" value={v} data-testid={`template-basis-${v}`} checked={chosenBasis === v} onChange={() => { setChosenBasis(v); setState({ phase: 'idle', text: '' }); }} />{label}
+              </label>
+            ))}
+          </fieldset>
+        )}
         <p data-testid="template-never" style={{ margin: '8px 0 0', fontSize: '0.78rem', color: '#475569' }}>{unit ? C.neverUnit : C.never}</p>
         {noItems ? <p role="status" style={{ color: '#9a3412', fontWeight: 600, fontSize: '0.82rem' }}>{C.noItems}</p> : <Summary C={C} s={preview} formatMoney={formatMoney} />}
         {state.text && <p role={state.phase === 'error' ? 'alert' : 'status'} data-testid="template-save-result" style={{ margin: '10px 0 0', fontSize: '0.84rem', fontWeight: 700, color: state.phase === 'error' ? '#991b1b' : '#166534' }}>{state.text}</p>}

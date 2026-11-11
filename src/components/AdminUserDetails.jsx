@@ -114,7 +114,7 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
       <article className="av-card">
         <div className="av-cardhead">
           <div className="av-business">
-            <strong style={{ fontSize: 22 }}><bdi>{name}</bdi></strong>
+            <strong style={{ fontSize: 22 }}><bdi dir={isHebrew ? 'rtl' : 'ltr'}>{name}</bdi></strong>
             {account.role === 'admin' && <span className="av-badge av-admin" style={{ marginInlineStart: 8 }}>{t(isHebrew, C.adminBadge.he, C.adminBadge.en)}</span>}
             {isTest && <span className="av-badge av-warn" style={{ marginInlineStart: 8 }} data-testid="admin-test-badge">{t(isHebrew, C.testBadge.he, C.testBadge.en)}</span>}
             <span className="av-mail">{account.email}</span>
@@ -217,7 +217,7 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
                         {/* the sketch: the outcome, then the admin who acted */}
                         <span className="av-pills" style={{ alignItems: 'center' }}>
                           {o && <span className={`av-badge av-${o.tone}`}>{t(isHebrew, o.he, o.en)}</span>}
-                          {actor && <span className="av-small av-muted"><bdi>{actor.business_name || actor.email}</bdi></span>}
+                          {actor && <span className="av-small av-muted"><bdi dir={isHebrew ? 'rtl' : 'ltr'}>{actor.business_name || actor.email}</bdi></span>}
                         </span>
                       </div>
                       <time className="av-num">{accountDateTime(row.created_at, account, adminMarket)}</time>

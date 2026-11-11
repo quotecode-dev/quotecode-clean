@@ -15,7 +15,8 @@ export type Due = { kind: Kind; seq: number };
 // Owner console 2026-11-05 (typed: "מאשר בניית 10 המיילים מהטבלה במשימת הלילה, שחרור עד הלייב כשהמיילים כבויים ללקוחות עד שאאשר את
 // הנוסחים בבוקר"; migration 20261105100000): the customer's email on every billing change - its own switch (billing_phase)
 export type BillingKind = 'renewal_resumed' | 'smart_pack_added' | 'renewal_stopped' | 'ended_early' | 'smart_pack_removed' | 'annual_reminder' | 'first_purchase';
-export type BillingFact = { account_id: string; email: string; market: Fact['market']; kind: BillingKind; episode_at: string; details: Record<string, unknown> };
+// date_market (Owner 2026-11-11, IRON-DATE-001 as amended): 'US' for a business in the United States (dates month first), else absent
+export type BillingFact = { account_id: string; email: string; market: Fact['market']; kind: BillingKind; episode_at: string; details: Record<string, unknown>; date_market?: string | null };
 export type Outcome = { ok: boolean; status: number; id?: string | null; unknown?: boolean };
 export type Deps = {
   facts(user?: string): Promise<Fact[]>;
@@ -137,12 +138,12 @@ export function lifeContent(f: Pick<LifeFact, 'kind' | 'market' | 'free_ends_at'
 /** 2026-11-05: the words of a billing-change email (Hebrew in Israel, English abroad; the market's currency; the IRON-DATE-001 short
  *  date). null = the event lacks what its words need (never an email with a hole in it). No price of the plans beyond the account's own
  *  amounts, never "free". */
-export function billingContent(f: Pick<BillingFact, 'kind' | 'market' | 'details'>): { subject: string; text: string } | null {
+export function billingContent(f: Pick<BillingFact, 'kind' | 'market' | 'details'> & { date_market?: string | null }): { subject: string; text: string } | null {
   const d = f.details || {};
   const he = f.market === 'IL';
   const cur = d.currency === 'USD' ? 'USD' : d.currency === 'ILS' ? 'ILS' : null;
   const money = (v: unknown) => (cur && Number.isInteger(v) ? `${cur === 'ILS' ? '₪' : '$'}${((v as number) / 100).toFixed(2)}` : null);
-  const date = (v: unknown) => (typeof v === 'string' && Number.isFinite(Date.parse(v)) ? formatShortDate(v, he ? 'Local' : 'International') : null);
+  const date = (v: unknown) => (typeof v === 'string' && Number.isFinite(Date.parse(v)) ? formatShortDate(v, he ? 'Local' : (f.date_market === 'US' ? 'US' : 'International')) : null);
   const year = d.period === 'year';
   const every = he ? (year ? 'בכל שנה' : 'בכל חודש') : (year ? 'every year' : 'every month');
   const lines: string[] = [];

@@ -7,7 +7,7 @@ import { businessDial, storedDial } from './utils/phoneDial';
 
 afterEach(cleanup);
 const NEW = { company_name: '', email: '', phone: '', client_type: 'business', tax_id: '', address: '', notes: '' };
-const prefixText = (container) => container.querySelector('input[placeholder="502345678"]').parentElement.textContent;
+const prefixText = (container) => container.querySelector('input[placeholder="1234 567890"], input[placeholder="50-1234567"], input[placeholder="(555) 123-4567"]').parentElement.textContent;
 const submit = (container) => fireEvent.submit(container.querySelector('form'));
 
 describe('client phone prefix (Owner 2026-10-19)', () => {
@@ -36,7 +36,7 @@ describe('client phone prefix (Owner 2026-10-19)', () => {
   it('typing a number saves it with the business prefix', () => {
     const onSave = vi.fn();
     const { container } = render(<EditClientModal isOpen isNew isHebrew={false} currency="GBP" client={{ ...NEW, company_name: 'Acme Ltd' }} onClose={() => {}} onSave={onSave} />);
-    fireEvent.change(container.querySelector('input[placeholder="502345678"]'), { target: { value: '20 7946 0958' } });
+    fireEvent.change(container.querySelector('input[placeholder="1234 567890"], input[placeholder="50-1234567"], input[placeholder="(555) 123-4567"]'), { target: { value: '20 7946 0958' } });
     submit(container);
     expect(onSave.mock.calls[0][0].phone).toBe('+44 20 7946 0958');
   });
@@ -55,8 +55,8 @@ describe('client phone prefix (Owner 2026-10-19)', () => {
     const client = { ...NEW, id: 'c2', company_name: 'Acme Ltd', phone: '+44 20 7946 0958' };
     const { container } = render(<EditClientModal isOpen isHebrew={false} currency="USD" client={client} onClose={() => {}} onSave={onSave} />);
     expect(prefixText(container)).toContain('GB (+44)');
-    expect(container.querySelector('input[placeholder="502345678"]').value).toBe('20 7946 0958');
-    fireEvent.change(container.querySelector('input[placeholder="502345678"]'), { target: { value: '20 7946 0000' } });
+    expect(container.querySelector('input[placeholder="1234 567890"], input[placeholder="50-1234567"], input[placeholder="(555) 123-4567"]').value).toBe('20 7946 0958');
+    fireEvent.change(container.querySelector('input[placeholder="1234 567890"], input[placeholder="50-1234567"], input[placeholder="(555) 123-4567"]'), { target: { value: '20 7946 0000' } });
     submit(container);
     expect(onSave.mock.calls[0][0].phone).toBe('+44 20 7946 0000');
   });
