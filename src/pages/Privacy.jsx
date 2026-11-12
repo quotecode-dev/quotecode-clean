@@ -146,7 +146,7 @@ export default function Privacy({ isHebrew }) {
       {/* Content */}
       <main style={{ flex: 1, padding: '40px 20px' }}>
         <div style={{ maxWidth: '850px', margin: '0 auto', background: '#111827', padding: '40px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.3)' }}>
-          <h1 style={{ fontSize: '2.4rem', fontWeight: '900', color: '#ffffff', marginBottom: '8px', letterSpacing: '-0.5px' }}>{/* law 49 (2026-11-12): "(Privacy Policy)" stays one piece when the title wraps */}{isHebrew ? <>מדיניות פרטיות <bdi dir="ltr">(Privacy Policy)</bdi></> : t.title}</h1>
+          <h1 style={{ fontSize: '2.4rem', fontWeight: '900', color: '#ffffff', marginBottom: '8px', letterSpacing: '-0.5px' }}>{/* law 49 (2026-11-12): "(Privacy Policy)" stays one piece when the title wraps */}{isHebrew ? <>מדיניות פרטיות <bdi dir="ltr" style={{ whiteSpace: 'nowrap' }}>(Privacy Policy)</bdi></> : t.title}</h1>
           <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '40px', fontWeight: '500' }}>{t.lastUpdated}</p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>

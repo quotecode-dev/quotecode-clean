@@ -1414,7 +1414,7 @@ export default function QuoteForm({
             style={{ background: NEON.violetLighter, color: NEON.violetLight, border: `1px solid ${NEON.borderStrong}`, padding: '6px 12px', borderRadius: '8px', fontWeight: '600', fontSize: '0.8rem', cursor: 'pointer', marginBottom: (quoteFiles || []).length > 0 ? '8px' : '0', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
           >
             <Paperclip size={13} strokeWidth={2.5} />
-            {/* Owner console 2026-11-10 (Codex wording 2 "א") */}{isHebrew ? <>צירוף קובץ ללקוח (עד <bdi dir="ltr">3 MB</bdi>)</> : 'Attach file for client (max 3 MB)'}
+            {/* Owner console 2026-11-10 (Codex wording 2 "א") */}{isHebrew ? <span>צירוף קובץ ללקוח (עד <bdi dir="ltr">3 MB</bdi>)</span> : 'Attach file for client (max 3 MB)'}
           </button>
 
           {(quoteFiles || []).length > 0 && (

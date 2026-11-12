@@ -83,7 +83,7 @@ describe('app items', () => {
   });
   it('wording 2: the attach button names the customer and keeps the size limit', () => {
     // 2026-11-12 (law 49): the same words; "3 MB" kept as one left-to-right piece in Hebrew
-    expect(src('./components/QuoteForm.jsx')).toContain("{isHebrew ? <>צירוף קובץ ללקוח (עד <bdi dir=\"ltr\">3 MB</bdi>)</> : 'Attach file for client (max 3 MB)'}");
+    expect(src('./components/QuoteForm.jsx')).toContain("{isHebrew ? <span>צירוף קובץ ללקוח (עד <bdi dir=\"ltr\">3 MB</bdi>)</span> : 'Attach file for client (max 3 MB)'}");
   });
   it('G6a / G6b: identical units show the sums by name; the unit menu button says what it is', () => {
     const qf = src('./components/QuoteForm.jsx');

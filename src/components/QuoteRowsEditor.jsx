@@ -403,7 +403,7 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
           <input {...num} aria-label={t.known} aria-invalid={qtyErr || qtyEmpty} value={entry.manualQty ?? ''} data-testid={`qrow-known-${rowId}`} onChange={(e) => apply({ manualQty: e.target.value })}
             onBlur={() => { if (!typed(entry.manualQty)) setQtyEmpty(true); }} />
           {unitSelect}
-          <span style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{calcUnit} · {t.qtyKnown}</span>
+          <span className="qrow-known-hint" style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{calcUnit} · {t.qtyKnown}</span>
           <span aria-hidden="true" style={{ flexBasis: '100%', height: 0 }} />
           {/* PRODUCT_TRUTH_DECORATIVE: restore item 02 (Owner 2026-11-08) - back from a known amount to typed sizes, beside the amount (the item window's "Enter sizes instead") */}
           <button type="button" data-testid={`qrow-sizemode-${rowId}`} data-mode="known" onClick={() => changeSizeMode(false)} style={inlineLink}>{t.backToSizes}</button>

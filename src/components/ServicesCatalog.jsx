@@ -225,7 +225,7 @@ export default function ServicesCatalog({
           <div style={{ flex: '1 1 140px' }}>
             <label htmlFor="svc-new-basis" style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{isHebrew ? 'איך מחשבים (לא חובה)' : 'How is it priced (optional)'}</label>
             <select id="svc-new-basis" data-testid="catalog-new-basis" value={newBasis} onChange={(e) => setNewBasis(e.target.value)}
-              style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary, minHeight: '34px' }}>
+              style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary, minHeight: '44px' }}>
               {basisOptions.map((b) => <option key={b} value={b === 'unit' ? '' : b}>{priceBasisLabel(b, isHebrew)}</option>)}
             </select>
           </div>
@@ -294,7 +294,7 @@ export default function ServicesCatalog({
                           value={editServiceName}
                           onChange={(e) => setEditServiceName(e.target.value)}
                         />
-                        <select className="svc-cat-input svc-cat-basis-select" aria-label={isHebrew ? 'איך מחשבים (לא חובה)' : 'How is it priced (optional)'} data-testid={`catalog-edit-basis-${svc.id}`}
+                        <select className="svc-cat-input svc-cat-basis-select" style={{ minHeight: '44px' }} aria-label={isHebrew ? 'איך מחשבים (לא חובה)' : 'How is it priced (optional)'} data-testid={`catalog-edit-basis-${svc.id}`}
                           value={editBasis} onChange={(e) => setEditBasis(e.target.value)}>
                           {basisOptions.map((b) => <option key={b} value={b === 'unit' ? '' : b}>{priceBasisLabel(b, isHebrew)}</option>)}
                         </select>
