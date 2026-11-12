@@ -2751,7 +2751,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             // consent records keep their own versions
             terms_version: '2026-11-03', // Owner 2026-11-03 (L-12, L-14): the quote-from-file quota in section 7; Owner 2026-11-01: purchase open abroad (USD); Owner 2026-10-25: payments in Israel (before: 2026-10-24 a quote counts at its first save; 2026-10-23 the Free plan's 7 days)
             // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
-            privacy_version: '2026-11-11', // Owner 2026-11-11 (L-12): the measurement question for visitors from Israel too; 2026-11-03 (L-12): reading a quote from a file; 2026-11-01 (L-12): the one sign-up event; 2026-11-02 payments abroad (USD) (before: 2026-10-30 Codex release 9, L-12: optional help emails need separate consent; before: 2026-10-25 the payments section; 2026-10-23 consent by location + the Hebrew opt-out)
+            privacy_version: '2026-11-12', // Owner 2026-11-11 (L-12, released 2026-11-12): the measurement question for visitors from Israel too; 2026-11-03 (L-12): reading a quote from a file; 2026-11-01 (L-12): the one sign-up event; 2026-11-02 payments abroad (USD) (before: 2026-10-30 Codex release 9, L-12: optional help emails need separate consent; before: 2026-10-25 the payments section; 2026-10-23 consent by location + the Hebrew opt-out)
             terms_accepted_at: new Date().toISOString(),
           }
         }
