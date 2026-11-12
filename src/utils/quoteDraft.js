@@ -109,10 +109,8 @@ export function serverFingerprintFromQuote(quote) {
     (it.quote_item_measurements || []).slice().sort((a, b) => String(a.id).localeCompare(String(b.id))).map((m) => [m.id, String(m.width ?? ''), String(m.height ?? ''), m.label ?? '', m.is_pricing_driving]),
     // Owner console 2026-11-08 (stage 3 of the one quote builder): the price link / unit count enter only when present, so every existing baseline is unchanged
     ...(it.price_link_id ? [it.price_link_id] : []),
-    // 2026-11-12 (unified quote): the room only when set - every existing baseline is unchanged
-    ...(it.room ? ['room:' + it.room] : []),
   ]);
-  const sections = (quote.quote_sections || []).slice().sort((a, b) => String(a.id).localeCompare(String(b.id))).map((s) => [s.id, s.name ?? '', s.sort_order ?? 0, ...(Number(s.repeat_count) > 1 ? [Number(s.repeat_count)] : []), ...(s.kind ? ['kind:' + s.kind] : [])]);
+  const sections = (quote.quote_sections || []).slice().sort((a, b) => String(a.id).localeCompare(String(b.id))).map((s) => [s.id, s.name ?? '', s.sort_order ?? 0, ...(Number(s.repeat_count) > 1 ? [Number(s.repeat_count)] : [])]);
   const base = {
     id: quote.id, status: quote.status ?? '', valid_until: quote.valid_until ?? '', terms: quote.terms ?? '', warranty: quote.warranty ?? '',
     notes: quote.notes ?? '', subject: quote.subject ?? quote.quote_subject ?? '', project_name: quote.project_name ?? '', discount: String(quote.discount ?? ''),

@@ -80,8 +80,7 @@ describe('the customer quote and the preview', () => {
     for (const [f, perUnit, times] of [['src/pages/PublicQuote.jsx', 'לכל יחידה', "<span style={{ whiteSpace: 'nowrap' }}>× <bdi dir=\"ltr\" className=\"pf-num\">{section.repeatCount}</bdi></span>"],
       ['src/pages/PublicQuoteEn.jsx', 'per unit', "<bdi dir=\"ltr\" className=\"pf-num\" style={{ whiteSpace: 'nowrap' }}>× {section.repeatCount}</bdi>"]]) {
       const s = read(f);
-      // 2026-11-12 (unified quote): the arrow comes before the name
-      expect(s).toContain("if (!(section.repeatCount > 1)) return <>{arrow} {section.title}</>;");
+      expect(s).toContain("if (!(section.repeatCount > 1)) return `${section.title} ${chevron}`;");
       expect(s).toContain(times);
       expect(s).toContain("className=\"pq-unit-note\" style={{ display: 'block', fontWeight: 400, whiteSpace: 'nowrap' }}");
       expect(s).toContain(perUnit);
@@ -91,7 +90,7 @@ describe('the customer quote and the preview', () => {
   it('the preview data and the public function carry repeat_count ONLY above 1 (every existing response unchanged)', () => {
     const d = buildPreviewQuoteData({ editor: { sections: [{ key: 'a', name: 'X', repeat_count: 12 }, { key: 'b', name: 'Y', repeat_count: 1 }], items: [] } });
     expect(d.quoteData.sections).toEqual([{ id: 'a', name: 'X', repeat_count: 12 }, { id: 'b', name: 'Y' }]);
-    expect(read('supabase/functions/get-public-quote/index.ts')).toContain('quote_sections ( id, name, sort_order, repeat_count, kind )');
+    expect(read('supabase/functions/get-public-quote/index.ts')).toContain('quote_sections ( id, name, sort_order, repeat_count )');
     expect(read('supabase/functions/get-public-quote/index.ts')).toContain('...(Number.isInteger(s.repeat_count) && s.repeat_count > 1 ? { repeat_count: s.repeat_count } : {})');
     expect(read('supabase/functions/get-public-quote/publicAccess.ts')).toContain('...(Number.isInteger(s.repeat_count) && (s.repeat_count as number) > 1 ? { repeat_count: s.repeat_count as number } : {})');
     for (const f of ['supabase/functions/get-public-quote/index.ts', 'supabase/functions/get-public-quote/publicAccess.ts']) {

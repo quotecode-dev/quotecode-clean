@@ -108,7 +108,7 @@ describe('the dialog: the changes are listed, ticked by default, applied only wh
       { kind: 'update', ref: 1, description: null, quantity: 4, unit: 'unit', unitPrice: 1500 },
       { kind: 'notes', action: 'append', text: 'העבודה תתבצע תוך שבוע.' },
       { kind: 'discount', percent: 10 },
-    ], []); // 2026-11-12: + the suggested places (none in an edit)
+    ]);
   });
 });
 

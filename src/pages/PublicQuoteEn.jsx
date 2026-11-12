@@ -17,7 +17,6 @@ import { formatQuoteFallback, formatQuoteNumber } from '../utils/quoteNumber';
 import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuotePdf';
 import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine, formatQuantity } from '../utils/professionalQuoteItem';
 import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
-import { groupWord, roomLabel } from '../utils/quoteGroups';
 import { formatDeviceShortDateTime } from '../utils/shortDate';
 import { QuoteMediaRail, QuoteMediaHero, QuoteItemThumb } from '../quoteDocument/QuoteMedia';
 import { mediaForItem } from '../quoteDocument/quoteMediaModel';
@@ -71,10 +70,8 @@ function buildDisplaySections(items, sections) {
 // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-24..L-28): a unit of N identical copies reads "name × N";
 // at N = 1 the toggle text is exactly the previous string
 function sectionToggleText(section, chevron) {
-  // 2026-11-12 (unified quote, Owner: the arrow beside the name - right in Hebrew, left in English): the arrow comes first
-  const arrow = chevron;
-  if (!(section.repeatCount > 1)) return <>{arrow} {section.title}</>;
-  return <>{arrow} {section.title} <bdi dir="ltr" className="pf-num" style={{ whiteSpace: 'nowrap' }}>× {section.repeatCount}</bdi></>;
+  if (!(section.repeatCount > 1)) return `${section.title} ${chevron}`;
+  return <>{section.title} <bdi dir="ltr" className="pf-num" style={{ whiteSpace: 'nowrap' }}>× {section.repeatCount}</bdi> {chevron}</>;
 }
 
 // Task 16: the same "every section open / every section closed" map the print chooser applies, reusable for an
@@ -120,16 +117,12 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   // single global smartDetailsExpanded boolean below (same rule as
   // PublicQuote.jsx/HE - see that file's own copy of this comment for the
   // full rationale). Keyed by section key; independent per section.
-  const [expandedSections, setExpandedSections] = useState(() => (docDetail === 'compact' ? allSectionsMap(items, quoteSections, false) : {}));
+  const [expandedSections, setExpandedSections] = useState(() => (docDetail === 'expanded' ? allSectionsMap(items, quoteSections, true) : {}));
   // Item-table semantics (cloud-fix4b, A12): a per-instance id prefix for the column headers, so every body cell names
   // its own header (headers="<th id>") - unique even when two documents share a page.
   const tableUid = useId();
   const colId = (key) => `${tableUid}-col-${key}`;
-  // 2026-11-12 (unified quote, Owner: "ההצעה נפתחת כשהכול פתוח"): a group with no entry is OPEN; the toggle stores the explicit state
-  const toggleSection = (key) => setExpandedSections((prev) => ({ ...prev, [key]: prev[key] === false }));
-  const [groupHelp, setGroupHelp] = useState(() => { try { return window.localStorage.getItem('tekango.pq.groupsHelp.v1') !== '1'; } catch { return true; } });
-  const [partialOutput, setPartialOutput] = useState(false);
-  const closeGroupHelp = () => { setGroupHelp(false); try { window.localStorage.setItem('tekango.pq.groupsHelp.v1', '1'); } catch { /* private window: shown again next time */ } };
+  const toggleSection = (key) => setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
 
   // Owner-Approved Signature Record Improvement - symmetric with
   // PublicQuote.jsx (HE); see that file's comment for the full audited-gap
@@ -188,7 +181,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   }, [docDetail]);
 
   useEffect(() => {
-    const handleAfterPrint = () => { setPrintModalOpen(false); setPartialOutput(false); };
+    const handleAfterPrint = () => setPrintModalOpen(false);
     window.addEventListener('afterprint', handleAfterPrint);
     return () => window.removeEventListener('afterprint', handleAfterPrint);
   }, []);
@@ -205,7 +198,6 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   const handleChooseOutputMode = async (mode) => {
     setPrintMode(mode);
     setExpandedSections(allSectionsMap(items, quoteSections, mode === 'expanded'));
-    setPartialOutput(mode === 'compact');
     setPrintModalOpen(false);
     // OD-02: the ONE output-authority gate for final Print / final PDF. The phase comes from the SERVER (get-public-quote):
     // a capability-URL viewer prints the already-finalized artifact; the verified owner in the enforced phase must obtain
@@ -262,7 +254,6 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
       setApproveToast({ type: 'error', message: "We couldn't generate the PDF file. Please try again." });
     } finally {
       setPdfGenerating(false);
-      setPartialOutput(false);
     }
   };
 
@@ -467,9 +458,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
 
   // Description cell: text, optional detail lines and (Modern/Visual) the row-bound thumbnail INSIDE the cell.
   const renderDescriptionCell = (item, detailLines) => {
-    // 2026-11-12 (unified quote, decision 2): the room tag beside the work ('all' = the whole place); a row without one shows nothing
-    const roomText = roomLabel(item.room, false, (quoteSections || []).find((sec) => sec.id === item.section_id)?.kind);
-    const label = <>{item.description || item.name || 'Item'}{roomText ? <span className="pq-room-tag">{roomText}</span> : null}</>;
+    const label = item.description || item.name || 'Item';
     const thumb = showItemThumbs ? mediaForItem(docMedia, item.description) : null;
     if (!thumb) return <>{label}{detailLines}</>;
     return (
@@ -571,24 +560,6 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   // Gate: scripts/task16/qa/a11y/table-semantics.mjs.
   const commercialTable = (
     <div className="pq-table-wrap" style={{ overflowX: 'auto' }}>
-      {displaySections.length > 0 && !previewMode && (
-        <div className="pq-group-controls no-print" data-html2canvas-ignore="true">
-          {groupHelp && (
-            <div className="pq-group-help" role="status">
-              <span>{"This quote is divided into @P. Tap the arrow next to an @S's name to show or hide its details. Use the button above to switch between the full document and summary rows.".replace('@P', groupWord(((quoteSections || []).find((sec) => sec.kind) || {}).kind, false, { plural: true }).toLowerCase()).replace('@S', groupWord(((quoteSections || []).find((sec) => sec.kind) || {}).kind, false).toLowerCase())}</span>
-              {/* PRODUCT_TRUTH_DECORATIVE: closes the one-time explanation of the arrows (remembered in this browser) */}
-              <button type="button" className="pq-group-help-ok" onClick={closeGroupHelp}>{'Got it'}</button>
-            </div>
-          )}
-          <div className="pq-group-switch" role="group">
-            {/* PRODUCT_TRUTH_DECORATIVE: opens every group of the document */}
-            <button type="button" aria-pressed={displaySections.every((sec) => expandedSections[sec.key] !== false)} onClick={() => setExpandedSections(allSectionsMap(items, quoteSections, true))}>{'Full document view'}</button>
-            {/* PRODUCT_TRUTH_DECORATIVE: closes every group of the document to its summary row */}
-            <button type="button" aria-pressed={displaySections.every((sec) => expandedSections[sec.key] === false)} onClick={() => setExpandedSections(allSectionsMap(items, quoteSections, false))}>{'Summary rows view'}</button>
-          </div>
-        </div>
-      )}
-      {partialOutput && displaySections.length > 0 && <p className="pq-partial-label">{'Partial document - work details are not shown'}</p>}
       <table role="table" className={`pq-commercial-table${wideAmounts ? ' pq-amounts-wide' : ''}`} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
         <colgroup>
           <col className="pq-col-desc" style={{ width: '40%' }} />
@@ -628,7 +599,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
             })
           ) : (
             displaySections.map((section) => {
-              const isOpen = expandedSections[section.key] !== false;
+              const isOpen = !!expandedSections[section.key];
               const chevron = isOpen ? '▲' : '▼';
               if (!isOpen) {
                 // Section Summary Row Correction (same rule as HE): real item count, "—", authoritative subtotal.
@@ -638,9 +609,6 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
                     <td headers={colId('desc')} role="cell" className="pq-td-desc">
                       {/* PRODUCT_TRUTH_DECORATIVE: expands a collapsed line-item section row within the public quote view table */}
                       <button type="button" className="pq-section-toggle" onClick={() => toggleSection(section.key)} aria-expanded={false}>{sectionToggleText(section, chevron)}</button>
-                      {section.repeatCount > 1 && (
-                        <span className="pq-unit-note" style={{ display: 'block', fontWeight: 400, whiteSpace: 'nowrap', fontSize: '0.85em', color: '#64748b' }}><span className="pf-money">{currencySymbol}{formatNum(section.subtotal)}</span> {"per @W".replace('@W', (quoteSections || []).find((sec) => sec.id === section.key)?.kind ? groupWord((quoteSections || []).find((sec) => sec.id === section.key).kind, false).toLowerCase() : 'unit')} <bdi dir="ltr" className="pf-num">× {section.repeatCount}</bdi></span>
-                      )}
                     </td>
                     <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}>{`${itemCount} item${itemCount === 1 ? '' : 's'}`}</td>
                     <td headers={colId('price')} role="cell" className="pq-td-price" style={{ textAlign: 'center' }}>—</td>

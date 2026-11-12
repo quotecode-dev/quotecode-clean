@@ -63,8 +63,7 @@ describe('L-23 the quote list, editor, catalog, finances (reverted behaviours)',
   // joined the one "הצעת מחיר" entry - its hint now names sizes in the row, still with no rooms
   it('#13 the one quote entry names sizes and promises no rooms', () => {
     const c = read('utils/newQuoteChoices.js');
-    // Owner console 2026-11-11 (unified quote, typed incl. item 11 + L-23): the start window "ממלאים בעצמכם" - its hint names quantities and sizes
-    expect(c).toContain("hint: isHebrew ? 'עבודות, כמויות ומידות - בקצב שלכם' : 'Work, quantities and measurements at your own pace',");
+    expect(c).toContain("hint: isHebrew ? 'שורות של מוצרים ועבודות - בכמות, לפי מידות או בסכום קבוע' : 'Rows of products and work - by quantity, by size or a fixed amount',");
     expect(c).not.toMatch(/חדרים|rooms/);
   });
   it('#14 the catalog row buttons show their words (icon + text, 44px)', () => {

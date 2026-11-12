@@ -783,12 +783,6 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required' (CREATE OR REPLACE / DROP TRIGGER IF EXISTS / CREATE TABLE IF NOT EXISTS)"
-    },
-    "20261112100000_unified_quote_kind_room_basis.sql": {
-      "sha256": "a142fbfde13efdcac0ed6bcdd46c8db2a9f5d721886f1d540f66933c04744b77",
-      "mode": "transaction",
-      "replay": "required",
-      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required' (ADD COLUMN IF NOT EXISTS / named CHECK added when missing / CREATE OR REPLACE)"
     }
   }
 }

@@ -78,9 +78,7 @@ describe('market, never the UI language', () => {
   it('the editor VAT rows follow the Israeli-business market only', () => {
     const qf = src('./components/QuoteForm.jsx');
     expect(qf).not.toContain('isLocalIsraeliBusiness && isHebrew');
-    // 2026-11-12 (the demo summary): the same rows, labels without a colon
-    expect(qf).toContain("isHebrew ? 'סכום לפני מע״מ' : 'Before VAT'");
-    expect(qf).toContain("isLocalIsraeliBusiness && clientType === 'private' ? (");
+    expect(qf).toContain("isHebrew ? 'סכום לפני מע״מ:' : 'Before VAT:'");
   });
   it('the quote list before-VAT amount and tooltip follow the market', () => {
     const qt = src('./components/QuotesTab.jsx');

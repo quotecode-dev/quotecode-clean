@@ -5,7 +5,6 @@ import CatalogMediaControl from './quotePresentation/CatalogMediaControl';
 import { catalogLinkFor } from './quotePresentation/useQuotePresentationEditor';
 import { presentationCopy } from './quotePresentation/presentationCopy';
 import { CAPABILITIES, decideCapability } from '../../supabase/functions/_shared/subscriptionContract.ts';
-import { priceBasesFor, priceBasisLabel, priceBasisForSave } from '../utils/catalogPriceBasis';
 import './servicesCatalog.css';
 
 const CATALOG_IMAGE_CAPABILITY = 'catalog_product_image.upload';
@@ -38,8 +37,6 @@ export default function ServicesCatalog({
   accountSummary,
   legacyCapabilities,
   onLockedCapability,
-  // 2026-11-12 (unified quote, spec 5): feet instead of metres in the "how is the price calculated" choice
-  international = false,
 }) {
   // חוק ברזל: החיפוש הוא סינון client-side בלבד על הנתונים שכבר נטענו
   // (services), ללא כל פנייה נוספת למסד הנתונים ובלי לשנות סכימה. מודל
@@ -108,13 +105,9 @@ export default function ServicesCatalog({
   }, [linkedAssetKey, ensureCatalogUrls]);
 
   // QA 2026-10-25 (C1): the add form closes only after the item was saved - a failed save keeps it open with the typed values
-  // 2026-11-12 (unified quote, spec 5): "how is the price calculated" (optional) for a new and an edited item
-  const [newBasis, setNewBasis] = useState('');
-  const [editBasis, setEditBasis] = useState('');
-  const basisOptions = priceBasesFor(international);
   const handleAddSubmit = (e) => {
     e.preventDefault();
-    Promise.resolve(handleAddService(e, priceBasisForSave(newBasis))).then((saved) => { if (saved !== false) { setShowAddForm(false); setNewBasis(''); } });
+    Promise.resolve(handleAddService(e)).then((saved) => { if (saved !== false) setShowAddForm(false); });
   };
 
   // Theme tokens for the scoped catalog stylesheet (servicesCatalog.css) - the catalog region only, no global reskin.
@@ -203,7 +196,6 @@ export default function ServicesCatalog({
             <input
               type="text"
               placeholder={t.serviceName}
-              data-testid="catalog-new-name"
               value={newServiceName}
               onChange={(e) => setNewServiceName(e.target.value)}
               required
@@ -217,19 +209,11 @@ export default function ServicesCatalog({
               type="number"
               step="0.01"
               placeholder={t.defaultPrice}
-              data-testid="catalog-new-price"
               value={newServicePrice}
               onChange={(e) => setNewServicePrice(e.target.value)}
               required
               style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
             />
-          </div>
-          <div style={{ flex: '1 1 140px' }}>
-            <label htmlFor="svc-new-basis" style={{ display: 'block', fontSize: '0.72rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{isHebrew ? 'איך מחשבים (לא חובה)' : 'How is it priced (optional)'}</label>
-            <select id="svc-new-basis" data-testid="catalog-new-basis" value={newBasis} onChange={(e) => setNewBasis(e.target.value)}
-              style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary, minHeight: '44px' }}>
-              {basisOptions.map((b) => <option key={b} value={b === 'unit' ? '' : b}>{priceBasisLabel(b, isHebrew)}</option>)}
-            </select>
           </div>
           <div style={{ display: 'flex', gap: '6px', flexShrink: 0 }}>
             {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
@@ -288,7 +272,6 @@ export default function ServicesCatalog({
                   <div className="svc-cat-grid svc-cat-row">
                     <div className="svc-cat-desc">
                       {isEditingThisSvc ? (
-                        <>
                         <input
                           type="text"
                           className="svc-cat-input"
@@ -296,11 +279,6 @@ export default function ServicesCatalog({
                           value={editServiceName}
                           onChange={(e) => setEditServiceName(e.target.value)}
                         />
-                        <select className="svc-cat-input svc-cat-basis-select" style={{ minHeight: '44px' }} aria-label={isHebrew ? 'איך מחשבים (לא חובה)' : 'How is it priced (optional)'} data-testid={`catalog-edit-basis-${svc.id}`}
-                          value={editBasis} onChange={(e) => setEditBasis(e.target.value)}>
-                          {basisOptions.map((b) => <option key={b} value={b === 'unit' ? '' : b}>{priceBasisLabel(b, isHebrew)}</option>)}
-                        </select>
-                        </>
                       ) : thumbAssetId ? (
                         <span className="svc-cat-with-thumb">
                           {typeof thumbUrl === 'string'
@@ -309,14 +287,12 @@ export default function ServicesCatalog({
                           <span className="svc-cat-text">
                             <span className="svc-cat-name" dir="auto">{name}</span>
                             {note && <span className="svc-cat-note" dir="auto">{note}</span>}
-                            {priceBasisForSave(svc.price_basis) && <span className="svc-cat-basis" data-testid={`catalog-basis-${svc.id}`}>{priceBasisLabel(svc.price_basis, isHebrew)}</span>}
                           </span>
                         </span>
                       ) : (
                         <>
                           <span className="svc-cat-name" dir="auto">{name}</span>
                           {note && <span className="svc-cat-note" dir="auto">{note}</span>}
-                          {priceBasisForSave(svc.price_basis) && <span className="svc-cat-basis" data-testid={`catalog-basis-${svc.id}`}>{priceBasisLabel(svc.price_basis, isHebrew)}</span>}
                         </>
                       )}
                     </div>
@@ -346,7 +322,7 @@ export default function ServicesCatalog({
                             className="svc-cat-btn svc-cat-btn--save svc-cat-btn--text"
                             aria-label={isHebrew ? `שמירת ${name}` : `Save ${name}`}
                             title={isHebrew ? 'שמירה' : 'Save'}
-                            onClick={() => handleSaveEditedService(svc.id, priceBasisForSave(editBasis))}
+                            onClick={() => handleSaveEditedService(svc.id)}
                           >
                             <Save size={18} strokeWidth={2.4} aria-hidden="true" /><span aria-hidden="true">{isHebrew ? 'שמירה' : 'Save'}</span>
                           </button>
@@ -374,7 +350,6 @@ export default function ServicesCatalog({
                               setEditingServiceId(svc.id);
                               setEditServiceName(svc.name);
                               setEditServicePrice(svc.price);
-                              setEditBasis(priceBasisForSave(svc.price_basis) || '');
                             }}
                           >
                             <Pencil size={18} strokeWidth={2.4} aria-hidden="true" /><span aria-hidden="true">{isHebrew ? 'עריכה' : 'Edit'}</span>

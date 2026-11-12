@@ -16,7 +16,6 @@ import { buildQuoteItemFromEntry, blankRowItem, rowEntry, convertSizeBetween, is
 import { getActiveQuantity, getProfessionalUnitLabel, formatQuantity, normalizeRepeatCount, computeMeasurementValue, formatMeasurementLine } from '../utils/professionalQuoteItem';
 import { parsePriceInput, parseQuantityInput } from '../utils/itemPrice';
 import { askConfirm } from './AppDialog';
-import { roomLabel } from '../utils/quoteGroups';
 
 const COPY = {
   he: {
@@ -403,7 +402,7 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
           <input {...num} aria-label={t.known} aria-invalid={qtyErr || qtyEmpty} value={entry.manualQty ?? ''} data-testid={`qrow-known-${rowId}`} onChange={(e) => apply({ manualQty: e.target.value })}
             onBlur={() => { if (!typed(entry.manualQty)) setQtyEmpty(true); }} />
           {unitSelect}
-          <span className="qrow-known-hint" style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{calcUnit} · {t.qtyKnown}</span>
+          <span style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{calcUnit} · {t.qtyKnown}</span>
           <span aria-hidden="true" style={{ flexBasis: '100%', height: 0 }} />
           {/* PRODUCT_TRUTH_DECORATIVE: restore item 02 (Owner 2026-11-08) - back from a known amount to typed sizes, beside the amount (the item window's "Enter sizes instead") */}
           <button type="button" data-testid={`qrow-sizemode-${rowId}`} data-mode="known" onClick={() => changeSizeMode(false)} style={inlineLink}>{t.backToSizes}</button>
@@ -494,12 +493,6 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
           </div>
         )}
       </div>
-      {typeof item.room === 'string' && item.room.trim() && (
-        // 2026-11-12 (unified quote, spec 1 row 6): which room this row is for (one row per room) - the same words the client sees
-        <div className="qrow-extra qrow-room" data-testid={`qrow-room-${rowId}`}>
-          {isHebrew ? 'איפה: ' : 'Where: '}<span className="qrow-room-tag">{roomLabel(item.room, isHebrew, (sections.find((sec) => sec.key === item.section_key) || {}).kind || 'section')}</span>
-        </div>
-      )}
       {linkAsk && isLinked && (
         <div className="qrow-extra" role="group" aria-label={linked.count === 1 ? t.linkedAsk1 : t.linkedAsk.replace('{n}', String(linked.count))} data-testid={`qrow-linkask-${rowId}`}
           style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', padding: '8px 10px', border: `1px solid ${NEON.violetLight}`, borderRadius: '10px', background: NEON.bgCardAlt }}>

@@ -272,8 +272,8 @@
     "markers": 1
   },
   "src/components/NewQuoteMenu.jsx": {
-    "interactive": 4,
-    "markers": 3
+    "interactive": 3,
+    "markers": 2
   },
   "src/components/NotificationCenter.jsx": {
     "interactive": 10,
@@ -298,10 +298,6 @@
   "src/components/PdfFileIcon.jsx": {
     "interactive": 0,
     "markers": 0
-  },
-  "src/components/PlacesDialog.jsx": {
-    "interactive": 6,
-    "markers": 6
   },
   "src/components/PlanIdentityBadge.jsx": {
     "interactive": 0,
@@ -352,8 +348,8 @@
     "markers": 7
   },
   "src/components/QuoteForm.jsx": {
-    "interactive": 38,
-    "markers": 42
+    "interactive": 37,
+    "markers": 40
   },
   "src/components/QuoteFromFileDialog.jsx": {
     "interactive": 5,
@@ -367,8 +363,8 @@
     "interactive": 19,
     "markers": 19
   },
-  "src/components/QuoteSavedScreen.jsx": {
-    "interactive": 4,
+  "src/components/QuoteSendMenu.jsx": {
+    "interactive": 2,
     "markers": 4
   },
   "src/components/QuoteTemplateDialogs.jsx": {
@@ -446,10 +442,6 @@
   "src/components/TurnstileWidget.jsx": {
     "interactive": 0,
     "markers": 0
-  },
-  "src/components/WorkItemDialog.jsx": {
-    "interactive": 8,
-    "markers": 8
   },
   "src/components/accountOutreachCopy.js": {
     "interactive": 0,
@@ -540,8 +532,8 @@
     "markers": 4
   },
   "src/components/quotePresentation/QuotePresentationPanel.jsx": {
-    "interactive": 4,
-    "markers": 4
+    "interactive": 6,
+    "markers": 6
   },
   "src/components/quotePresentation/QuotePreviewPane.jsx": {
     "interactive": 4,
@@ -784,12 +776,12 @@
     "markers": 0
   },
   "src/pages/PublicQuote.jsx": {
-    "interactive": 14,
-    "markers": 17
+    "interactive": 11,
+    "markers": 14
   },
   "src/pages/PublicQuoteEn.jsx": {
-    "interactive": 14,
-    "markers": 17
+    "interactive": 11,
+    "markers": 14
   },
   "src/pages/SampleQuote.jsx": {
     "interactive": 1,
@@ -1023,10 +1015,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/catalogPriceBasis.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/chatScreenshot.js": {
     "interactive": 0,
     "markers": 0
@@ -1204,10 +1192,6 @@
     "markers": 0
   },
   "src/utils/quoteFromFileClient.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/quoteGroups.js": {
     "interactive": 0,
     "markers": 0
   },

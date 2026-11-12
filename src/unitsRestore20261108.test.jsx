@@ -22,8 +22,7 @@ const EXAMPLE = { description: 'חלון אלומיניום (דוגמה)', quant
 describe('07 · the local measurement example', () => {
   it('the form offers it while the quote has no real line, with the item window\'s own line (100 x 200 cm at 600 per m²)', () => {
     const src = read('src/components/QuoteForm.jsx');
-    // 2026-11-12 (the demo): inside the work card - the example while there is no real line
-    expect(src).toContain('{!hasRealItems ? (');
+    expect(src).toContain("{structureMode === 'regular' && !hasRealItems && (");
     expect(src).toContain("{isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}");
     expect(src).toMatch(/measurements: \[\{ width: 1, height: 2, unit: 'm', calculated_area: 2, label: '', is_pricing_driving: true \}\], _localExample: true/);
     // the save still refuses the example (the existing guard)

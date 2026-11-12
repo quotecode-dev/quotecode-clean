@@ -47,8 +47,7 @@ describe('the wiring', () => {
   });
   it('the editor: a Back that keeps the draft, next to the unchanged Cancel', () => {
     const q = src('src/components/QuoteForm.jsx');
-    // 2026-11-12 (unified quote): on the work screen of a NEW quote the same Back goes one step back, to the client step
-    expect(q).toContain(`<button type="button" onClick={flowStep === 'editor' && !editingQuoteId && typeof onFlowStep === 'function' ? () => onFlowStep('client') : onBack} data-testid="editor-back"`);
+    expect(q).toContain('<button type="button" onClick={onBack} data-testid="editor-back"');
     expect(q).toContain("{isHebrew ? 'ביטול וחזרה לרשימה' : 'Cancel & Return'}");
     expect(q.indexOf('data-testid="editor-back"')).toBeLessThan(q.indexOf("'ביטול וחזרה לרשימה'"));
   });

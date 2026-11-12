@@ -86,7 +86,6 @@ const AMOUNT_COLUMN_MONEY = '.pq-commercial-table tbody td.pq-td-total .pf-money
 export function syncMoneyBox(card) {
   if (!card) return;
   card.style.setProperty('--pq-money-box-n', '0'); // natural widths first (an earlier, larger box must not hold the size)
-  card.style.setProperty('--pq-money-box-px', '0px');
   const els = [...card.querySelectorAll(AMOUNT_COLUMN_MONEY)];
   const fsOf = (el) => parseFloat(viewOf(el).getComputedStyle(el).fontSize) || 16;
 
@@ -108,8 +107,6 @@ export function syncMoneyBox(card) {
     ...totals.map((el) => textWidth(el) / tableFs));
   const boxN = Math.ceil(n * 1000) / 1000 + 0.02;
   card.style.setProperty('--pq-money-box-n', boxN.toFixed(3));
-  // 2026-11-12 (law 49): the same box in pixels, for an amount set in a smaller size (a group total row) - it keeps the one right edge
-  card.style.setProperty('--pq-money-box-px', `${(boxN * tableFs).toFixed(2)}px`);
 
   // Owner console 2026-11-10 (the 13 items, L-27): in Hebrew the "סה״כ" header ends on the amounts' right edge, as "Total" does in English
   // (the box starts at the outer edge, so the header gets the box's width minus its own text as its outer padding; em of its own size)

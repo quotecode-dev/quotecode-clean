@@ -141,7 +141,7 @@ describe('release C - the style line replaces the plan sentence, the locks and t
 });
 
 describe('in-panel action bar (refined R2)', () => {
-  it('no in-panel save (the one save is the summary), no client call; "Continue to issuing" opens the Issue confirmation', async () => {
+  it('"Save draft" submits the SAME form (no separate save path, no client call); "Continue to issuing" opens the Issue confirmation', async () => {
     context('modern');
     const onSubmit = vi.fn((e) => e.preventDefault());
     const onIssue = vi.fn();
@@ -152,9 +152,10 @@ describe('in-panel action bar (refined R2)', () => {
     }
     render(<F />);
     await waitFor(() => expect(screen.getByTestId('qp-issue-button').disabled).toBe(false));
-    // 2026-11-12 (unified quote, spec 1 row 4): ONE save - the summary's; the panel keeps only the issue action
-    expect(screen.queryByTestId('qp-save-draft')).toBe(null);
-    expect(onSubmit).not.toHaveBeenCalled();
+    expect(screen.getByTestId('qp-save-draft').getAttribute('type')).toBe('submit');
+    expect(screen.getByTestId('qp-save-draft').textContent).toMatch(/Save draft/);
+    fireEvent.click(screen.getByTestId('qp-save-draft'));
+    expect(onSubmit).toHaveBeenCalledTimes(1);
     expect(client.saveQuotePresentation).not.toHaveBeenCalled();
     expect(client.issueQuotePresentation).not.toHaveBeenCalled();
     expect(screen.getByTestId('qp-issue-button').textContent).toMatch(/Continue to issuing/);

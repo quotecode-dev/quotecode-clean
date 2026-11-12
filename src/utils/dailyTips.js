@@ -27,8 +27,8 @@ export const DAILY_TIPS = Object.freeze([
   Object.freeze({
     id: 'smart_quote', icon: 'ai', action: 'smart_quote',
     when: (c) => c.quotesCount >= 1,
-    he: { text: 'ב"הצעה חדשה" בוחרים "מתארים ל-AI", מתארים את העבודה במילים, והעוזר מכין טיוטה שאפשר לערוך לפני השמירה.', action: 'לנסות עכשיו' },
-    en: { text: 'In "New quote" choose "Describe it to AI", describe the job in your own words, and the assistant prepares a draft you can edit before saving.', action: 'Try it now' },
+    he: { text: 'ב"הצעת מחיר חכמה עם AI" מתארים את העבודה במילים, והעוזר מכין טיוטה שאפשר לערוך לפני השמירה.', action: 'לנסות עכשיו' },
+    en: { text: 'In the "AI smart quote" you describe the job in your own words and the assistant prepares a draft you can edit before saving.', action: 'Try it now' },
   }),
   Object.freeze({
     // Owner console 2026-11-03 (typed: "מאשר תיקון כל אזכורי הצעת מחיר מקובץ לפי התוכנית (... טיפ יומי ...), כולל שינוי ב-L-05, L-06, L-11,

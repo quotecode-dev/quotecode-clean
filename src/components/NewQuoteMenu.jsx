@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { ChevronDown, CirclePlus, Plus } from 'lucide-react';
-import { menuChoices, START_SENTENCE } from '../utils/newQuoteChoices';
+import { menuChoices } from '../utils/newQuoteChoices';
 
 // One "New quote" entry used by the sidebar row and the quotes toolbar. It presents three plain-language ways to
 // start a quote and only delegates to handlers the caller already owns:
@@ -30,7 +29,6 @@ export default function NewQuoteMenu({ isHebrew, variant = 'toolbar', onStandard
 
   const toggle = () => {
     if (open) { close(); return; }
-    // Owner console 2026-11-11 (unified quote, item 11): a centred window, not a popover - the measured position is no longer used
     const trigger = triggerRef.current;
     if (trigger) {
       const rect = trigger.getBoundingClientRect();
@@ -64,7 +62,7 @@ export default function NewQuoteMenu({ isHebrew, variant = 'toolbar', onStandard
       const next = event.key === 'ArrowDown' ? (index + 1) % items.length : (index <= 0 ? items.length - 1 : index - 1);
       items[next].focus();
     };
-    const onViewport = () => {};
+    const onViewport = () => close();
     document.addEventListener('mousedown', onPointer);
     document.addEventListener('keydown', onKey);
     window.addEventListener('resize', onViewport);
@@ -106,28 +104,19 @@ export default function NewQuoteMenu({ isHebrew, variant = 'toolbar', onStandard
           <ChevronDown size={17} strokeWidth={2.2} aria-hidden="true" />
         </button>
       )}
-      {open && pos && typeof document !== 'undefined' && createPortal(
-        <div className="pf-newquote-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) close(true); }}>
-          <div ref={menuRef} id={menuId} role="dialog" aria-modal="true" aria-labelledby={`${menuId}-title`} className="pf-newquote-window" dir={isHebrew ? 'rtl' : 'ltr'}>
-            <h2 id={`${menuId}-title`} className="pf-newquote-title">{isHebrew ? 'איך תרצו להתחיל?' : 'How would you like to start?'}</h2>
-            <p className="pf-newquote-sentence">{isHebrew ? START_SENTENCE.he : START_SENTENCE.en}</p>
-            <div className="pf-newquote-choices">
-              {/* PRODUCT_TRUTH_DECORATIVE: start choice that hands off to one of the caller's existing create handlers (fill in / AI / file / template); no behaviour of its own */}
-              {choices.map(({ id, Icon, label, hint }) => (
-                <button key={id} type="button" role="menuitem" data-choice={id} className="pf-newquote-item" onClick={() => choose(id)}>
-                  <Icon size={21} strokeWidth={1.6} aria-hidden="true" />
-                  <span className="pf-newquote-item-text">
-                    <strong>{label}</strong>
-                    <small>{hint}</small>
-                  </span>
-                </button>
-              ))}
-            </div>
-            {/* PRODUCT_TRUTH_DECORATIVE: closes the start window without starting a quote */}
-            <button type="button" className="pf-newquote-back" onClick={() => close(true)}>{isHebrew ? 'חזרה' : 'Back'}</button>
-          </div>
-        </div>,
-        document.body,
+      {open && pos && (
+        <div ref={menuRef} id={menuId} role="menu" className="pf-newquote-popover" style={pos} aria-label={isHebrew ? 'סוג הצעת מחיר חדשה' : 'New quote type'}>
+          {/* PRODUCT_TRUTH_DECORATIVE: menu choice that hands off to one of the caller's existing create handlers (standard / AI chat entry / measured structure); no behaviour of its own */}
+          {choices.map(({ id, Icon, label, hint }) => (
+            <button key={id} type="button" role="menuitem" data-choice={id} className="pf-newquote-item" onClick={() => choose(id)}>
+              <Icon size={19} strokeWidth={1.6} aria-hidden="true" />
+              <span className="pf-newquote-item-text">
+                <strong>{label}</strong>
+                <small>{hint}</small>
+              </span>
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

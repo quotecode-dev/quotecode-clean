@@ -185,10 +185,6 @@ export function buildQuoteItemFromEntry(entry) {
   if (specRows.length > 0) {
     newItem.specification = specRows.filter((r) => r.label.trim() || r.value.trim());
   }
-  // 2026-11-12 (unified quote): the room tag of the row survives every rebuild (an edit of the price, quantity or billing method);
-  // a new row takes the entry's room
-  const room = entry.room !== undefined ? entry.room : (editingItem && editingItem.room);
-  if (typeof room === 'string' && room.trim()) newItem.room = room.trim();
   return newItem;
 }
 

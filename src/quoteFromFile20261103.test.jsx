@@ -33,8 +33,7 @@ describe('the menu: a fifth choice right after the AI smart quote (Owner decisio
   it('order with the file and template choices', () => {
     // Owner console 2026-11-08 (design A + stage 2 of the one quote builder, typed incl. L-09 / L-23): the regular and the measured entries are ONE "הצעת מחיר"
     expect(menuChoices(true, { file: true, template: true }).map((c) => c.id)).toEqual(['standard', 'ai', 'file', 'template']);
-    // 2026-11-12 (unified quote, spec 1 row 2): the start window's four ways
-    expect(menuChoices(false, { file: true }).map((c) => c.label)).toEqual(['Fill it in yourselves', 'Describe it to AI', 'Upload a file']);
+    expect(menuChoices(false, { file: true }).map((c) => c.label)).toEqual(['Quote', 'AI smart quote', 'Quote from a file']);
     expect(menuChoices(true).map((c) => c.id)).toEqual(['standard', 'ai']);
   });
   it('clicking it calls the file handler (never the blank-quote one)', () => {

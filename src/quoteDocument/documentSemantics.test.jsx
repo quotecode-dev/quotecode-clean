@@ -38,7 +38,7 @@ const STYLES = ['classic', 'modern', 'visual'];
 function renderDoc({ Page, wrap, locale }, style, quoteOverrides = {}, extra = {}) {
   const sample = buildSampleQuote({ locale, style, length: 'long', images: false, now: NOW });
   const quoteData = { ...sample.quoteData, quote: { ...sample.quoteData.quote, ...quoteOverrides }, ...extra };
-  const el = <Page detail="compact" quoteData={quoteData} presentation={sample.presentation} />;
+  const el = <Page quoteData={quoteData} presentation={sample.presentation} />;
   const out = render(wrap ? <MemoryRouter>{el}</MemoryRouter> : el);
   return { ...out, quoteData };
 }
@@ -220,10 +220,10 @@ describe.each(PAGES)('$name quote document - centred item columns (Owner decisio
     const sample = buildSampleQuote({ locale: page.locale, length: 'short', images: false, now: NOW });
     const items = sample.quoteData.items.map((it) => ({ ...it, section_id: 'sec1' }));
     const { container, getByText } = renderDoc(page, 'classic', {}, { items, sections: [{ id: 'sec1', name: 'Room A' }] });
-    const summary = getByText(/▼ Room A/).closest('tr').querySelectorAll('td');
+    const summary = getByText(/Room A ▼/).closest('tr').querySelectorAll('td');
     for (const td of [summary[1], summary[2]]) expect(td.style.textAlign).toBe('center');
     expect(summary[3].style.textAlign).toBe('right');
-    fireEvent.click(getByText(/▼ Room A/));
+    fireEvent.click(getByText(/Room A ▼/));
     const body = container.querySelectorAll('table.pq-commercial-table tbody tr');
     let checked = 0;
     body.forEach((tr) => {

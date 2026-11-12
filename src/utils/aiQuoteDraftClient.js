@@ -70,13 +70,12 @@ export function draftFunctionUrl(supabase) {
 
 // Resolves to { status: 'ok', subject, items, changes } or { status: <closed failure code> }. Never throws.
 // Owner console 2026-11-06 (release B): + quote = the open quote (lines, notes, discount - never a price) so the AI can change it
-// 2026-11-12 (unified quote, spec 5): structure = ask for places / rooms too (a new quote that is not divided yet)
-export async function requestAiQuoteDraft(supabase, description, { fetchImpl, quote = null, structure = false } = {}) {
-  const checked = validateDraftRequest({ description, ...(quote ? { quote } : {}), ...(structure ? { structure: true } : {}) });
+export async function requestAiQuoteDraft(supabase, description, { fetchImpl, quote = null } = {}) {
+  const checked = validateDraftRequest(quote ? { description, quote } : { description });
   if (!checked.ok) return { status: 'invalid' };
   const functionUrl = draftFunctionUrl(supabase);
   try {
-    const body = { description: checked.value.description, ...(checked.value.quote ? { quote: checked.value.quote } : {}), ...(checked.value.structure ? { structure: true } : {}) };
+    const body = checked.value.quote ? { description: checked.value.description, quote: checked.value.quote } : { description: checked.value.description };
     const { data, error } = await supabase.functions.invoke(AI_QUOTE_DRAFT_FUNCTION, { body });
     if (error) return { status: await classifyDraftError(error, { functionUrl, fetchImpl, descriptionLength: checked.value.description.length }) };
     const draft = sanitizeDraftResponse(data);
@@ -102,8 +101,6 @@ export function draftLinesToQuoteItems(lines) {
       unit_price: line.unitPrice != null ? String(line.unitPrice) : '',
       // Owner 2026-11-11 (finding 3): a price from the user's own description is not a catalog price
       isFromCatalog: line.catalogId != null && line.unitPrice != null && line.priceSource !== 'description',
-      // 2026-11-12 (unified quote, spec 5): the room the description names (the place is mapped to its group by the caller)
-      ...(typeof line.room === 'string' && line.room ? { room: line.room } : {}),
     };
     if (!line.unit || line.unit === 'unit') return base;
     return {

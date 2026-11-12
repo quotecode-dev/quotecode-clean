@@ -44,9 +44,8 @@ describe('app items', () => {
     const howTo = src('./data/productHowTo.js');
     expect(howTo).toContain('בכפתור "פעולות לשורה" של השורה (בטלפון: שלוש הנקודות של השורה)');
     expect(howTo).toContain('in the "Row actions" button of the row (on a phone: the three dots of the row)');
-    // 2026-11-12 (unified quote): the button is named by the chosen word (apartment / room / floor) - the chat says where it is
-    expect(howTo.split('כפתור הפעולות').length - 1).toBeGreaterThanOrEqual(2);
-    expect(howTo.split('actions button in the header').length - 1).toBeGreaterThanOrEqual(2);
+    expect(howTo.split('לוחצים על הכפתור "פעולות ליחידה" בכותרת שלה').length - 1).toBe(2);
+    expect(howTo.split('click the "Unit actions" button in its header').length - 1).toBe(2);
   });
   it('the 13 items (Owner console 2026-11-10, L-02 / L-09 / L-24 / L-27 / L-28): Hebrew and English show the same, clear things', () => {
     const doc = src('./quoteDocument/quoteDocument.css');
@@ -69,7 +68,7 @@ describe('app items', () => {
     const qf = src('./components/QuoteForm.jsx');
     expect(qf).toContain(`data-testid="unit-add-row" style={{ flex: '1 1 140px',`); // 8
     expect(qf.split("fontSize: isHebrew ? '0.9rem' : '0.75rem', fontWeight: '800'").length - 1).toBe(2); // 9
-    expect(qf).toContain('<form id="pf-editor-form" className="pf-screen-body pf-editor-form"'); // 10
+    expect(qf).toContain('<form className="pf-screen-body pf-editor-form"'); // 10
     expect(src('./index.css')).toContain('.pf-editor-form { padding-bottom: 64px; }');
     const land = src('./components/landing/landing.css'); // 11
     expect(land).toContain('@media (min-width: 768px) { .tl-tools { flex-wrap: nowrap; } .tl-tools > .tl-ghost { flex-shrink: 0; } }');
@@ -82,15 +81,13 @@ describe('app items', () => {
     expect(dash).toContain("Changes saved. The client's link now shows the update.");
   });
   it('wording 2: the attach button names the customer and keeps the size limit', () => {
-    // 2026-11-12 (law 49): the same words; "3 MB" kept as one left-to-right piece in Hebrew
-    expect(src('./components/QuoteForm.jsx')).toContain("{isHebrew ? <span>צירוף קובץ ללקוח (עד <bdi dir=\"ltr\">3 MB</bdi>)</span> : 'Attach file for client (max 3 MB)'}");
+    expect(src('./components/QuoteForm.jsx')).toContain("'צירוף קובץ ללקוח (עד 3 MB)' : 'Attach file for client (max 3 MB)'");
   });
   it('G6a / G6b: identical units show the sums by name; the unit menu button says what it is', () => {
     const qf = src('./components/QuoteForm.jsx');
-    // 2026-11-12 (unified quote): the same names, in the chosen word (apartment / room / floor / section)
-    expect(qf).toContain('סכום ל{W}:');
-    expect(qf).toContain('Per {w}:');
-    expect(qf).toContain("{isHebrew ? `פעולות ל${W}` : `${W} actions`}</span>");
+    expect(qf).toContain('סכום לדירה:');
+    expect(qf).toContain('Per apartment:');
+    expect(qf).toContain("{isHebrew ? 'פעולות ליחידה' : 'Unit actions'}</span>");
   });
   it('finding 3: the editor locks the appearance only with the quote; the open customer page notices an appearance change', () => {
     expect(src('./components/quotePresentation/useQuotePresentationEditor.js')).toContain('const readOnly = !!server.locked;');

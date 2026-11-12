@@ -115,12 +115,10 @@ describe('the template window - one screen for both kinds, used only where it be
 });
 
 describe('the editor and the Dashboard wiring', () => {
-  it('the group menu offers "save as a template"; "from a saved template" is in the add bar (divided) and in the places window (regular)', () => {
+  it('the unit menu offers "save as unit template"; "from a saved unit" sits above the jobs in both modes', () => {
     const f = read('src/components/QuoteForm.jsx');
-    expect(f).toContain("{isHebrew ? 'שמירה כתבנית' : 'Save as a template'}");
-    expect(f.split('data-testid="unit-from-template"').length - 1).toBe(1);
-    expect(f).toContain("onFromTemplate={typeof onAddUnitFromTemplate === 'function' && structureMode !== 'divided'");
-    expect(read('src/components/PlacesDialog.jsx')).toContain('data-testid="places-from-template"');
+    expect(f).toContain("{isHebrew ? 'שמירה כתבנית יחידה' : 'Save as unit template'}");
+    expect(f.split('data-testid="unit-from-template"').length - 1).toBe(2);
   });
   it('the Dashboard adds ONE unit at the end, asks on another currency / VAT basis, never changes a chosen client type', () => {
     const d = read('src/pages/Dashboard.jsx');

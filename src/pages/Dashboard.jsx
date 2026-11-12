@@ -55,7 +55,6 @@ import { formatQuoteFallback } from '../utils/quoteNumber';
 import { sortQuotes } from '../utils/quoteListSort';
 import { quoteMatchesSearch } from '../utils/quoteSearch';
 import { formatMoney, formatMoneyForCurrency, totalsByQuoteCurrency, normalizeQuoteCurrency } from '../utils/money';
-import { defaultGroupName, groupWord } from '../utils/quoteGroups';
 import { CurrencyTotals } from '../components/NumericValue';
 import { compareClients } from '../utils/clientSort';
 import { withWeightedActiveQuantities, normalizeRepeatCount, getActiveQuantity, sumMeasurementAreas, getEntryRecommendedPricingMethod, isMeasurableUnit, resolveCalculationMethod, computeMeasurementValue, normalizeSpecificationRows, withPersistableQuantity } from '../utils/professionalQuoteItem';
@@ -103,12 +102,10 @@ import { framedPaymentUrl, PAYMENT_FRAME_RETURN, PAYMENT_FRAME_CLOSED } from '..
 import { resolveEditorAttachmentOpen } from '../utils/attachmentCompatPath';
 import QuotesTab from '../components/QuotesTab';
 import NewQuoteMenu from '../components/NewQuoteMenu';
-import QuoteSavedScreen from '../components/QuoteSavedScreen';
-import { getQuoteViewLink } from '../utils/quoteListRows';
-import { menuChoices, START_SENTENCE } from '../utils/newQuoteChoices';
+import { menuChoices } from '../utils/newQuoteChoices';
 import { SaveTemplateDialog, TemplatePickerDialog } from '../components/QuoteTemplateDialogs';
 import { matchesQuoteFilter } from '../utils/quoteStatusDisplay';
-import { templateToFormState, templateCurrencyMismatch, templateCurrencyUnknown, withoutPrices, templatePriceBasis, unitTemplateToRows, unitTemplatePriceQuestions, TEMPLATE_KIND_UNIT } from '../utils/quoteTemplates';
+import { templateToFormState, templateCurrencyMismatch, templateCurrencyUnknown, withoutPrices, templatePriceBasis, clientTypeForPriceBasis, unitTemplateToRows, unitTemplatePriceQuestions, TEMPLATE_KIND_UNIT } from '../utils/quoteTemplates';
 import { rowEntry, storedBillingMethod } from '../utils/quoteItemEntry';
 import AiQuoteDraftDialog from '../components/AiQuoteDraftDialog';
 import { requestAiQuoteDraft, draftLinesToQuoteItems, aiQuoteSnapshot, applyDraftUpdateToItem, applyDraftNotes } from '../utils/aiQuoteDraftClient';
@@ -553,11 +550,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   }, [showMobileNewQuoteMenu]);
   // Task 21: a quote started from the "measured" choice (drives the wizard's measurement recommendation) and the AI quote-draft dialog.
   const [measuredQuoteEntry, setMeasuredQuoteEntry] = useState(false);
-  // 2026-11-12 (unified quote, spec 1): a NEW quote starts at the client step; the chosen source (AI / file) opens after it
-  const [quoteFlowStep, setQuoteFlowStep] = useState('editor');
-  const [pendingStartSource, setPendingStartSource] = useState(null);
-  // 2026-11-12 (unified quote, spec 1 row 8): the saved screen after a save that did not reach the customer ({ quoteId, link })
-  const [savedScreen, setSavedScreen] = useState(null);
   const [showAiQuoteDraft, setShowAiQuoteDraft] = useState(false);
   // Owner 2026-11-03: the "quote from a file" review dialog (SMART PACK)
   const [showFileQuote, setShowFileQuote] = useState(false);
@@ -2192,7 +2184,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             setActiveTab('main');
             setStatusMsg({ text: isHebrew ? 'פרטי העסק נשמרו. חזרתם להצעה - אפשר לשמור אותה עכשיו.' : 'Business details saved. You are back in your quote - you can save it now.', type: 'success' });
           } else if (resume.kind === 'new_quote') {
-            const open = resume.variant === 'ai' ? handleCreateAiQuoteClick : resume.variant === 'file' ? handleCreateFileQuoteClick : resume.variant === 'structured' ? handleCreateStructuredQuoteClick : resume.variant === 'template' ? handleCreateTemplateQuoteClick : handleCreateNewQuoteClick;
+            const open = resume.variant === 'ai' ? handleCreateAiQuoteClick : resume.variant === 'file' ? handleCreateFileQuoteClick : resume.variant === 'structured' ? handleCreateStructuredQuoteClick : resume.variant === 'template' ? handleOpenTemplatePicker : handleCreateNewQuoteClick;
             open();
             setStatusMsg({ text: isHebrew ? 'פרטי העסק נשמרו. אפשר להתחיל בהצעה החדשה.' : 'Business details saved. You can start your new quote.', type: 'success' });
           }
@@ -2751,7 +2743,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
             // consent records keep their own versions
             terms_version: '2026-11-03', // Owner 2026-11-03 (L-12, L-14): the quote-from-file quota in section 7; Owner 2026-11-01: purchase open abroad (USD); Owner 2026-10-25: payments in Israel (before: 2026-10-24 a quote counts at its first save; 2026-10-23 the Free plan's 7 days)
             // 2026-10-20: the Privacy Policy gained the robot check line (L-12)
-            privacy_version: '2026-11-12', // Owner 2026-11-11 (L-12, released 2026-11-12): the measurement question for visitors from Israel too; 2026-11-03 (L-12): reading a quote from a file; 2026-11-01 (L-12): the one sign-up event; 2026-11-02 payments abroad (USD) (before: 2026-10-30 Codex release 9, L-12: optional help emails need separate consent; before: 2026-10-25 the payments section; 2026-10-23 consent by location + the Hebrew opt-out)
+            privacy_version: '2026-11-03', // Owner 2026-11-03 (L-12): reading a quote from a file; 2026-11-01 (L-12): the one sign-up event; 2026-11-02 payments abroad (USD) (before: 2026-10-30 Codex release 9, L-12: optional help emails need separate consent; before: 2026-10-25 the payments section; 2026-10-23 consent by location + the Hebrew opt-out)
             terms_accepted_at: new Date().toISOString(),
           }
         }
@@ -3202,11 +3194,10 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     setItems(prev => prev.map((it, i) => (i === itemIndex ? { ...it, specification: (it.specification || []).filter((_, ri) => ri !== rowIndex) } : it)));
   };
 
-  // 2026-11-12 (unified quote, spec 5): priceBasis = the optional "how is it priced" (null = per item, as every existing item)
-  async function handleAddService(e, priceBasis = null) {
+  async function handleAddService(e) {
     e.preventDefault();
     if (!session?.user?.id) return false;
-    const { error } = await supabase.from('services').insert([{ name: newServiceName, price: Number(newServicePrice), user_id: session.user.id, ...(priceBasis ? { price_basis: priceBasis } : {}) }]);
+    const { error } = await supabase.from('services').insert([{ name: newServiceName, price: Number(newServicePrice), user_id: session.user.id }]);
     if (error) {
       alertWithBlocker(blockerCodeForActionError('add_service', error.message), { surface: 'catalog' }, isHebrew ? 'שגיאה בהוספת השירות: ' + error.message : 'Error adding service: ' + error.message);
       return false;
@@ -3218,11 +3209,11 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     return true;
   }
 
-  async function handleSaveEditedService(serviceId, priceBasis = null) {
+  async function handleSaveEditedService(serviceId) {
     if (!session?.user?.id) return;
     const { error } = await supabase
       .from('services')
-      .update({ name: editServiceName, price: Number(editServicePrice), price_basis: priceBasis || null })
+      .update({ name: editServiceName, price: Number(editServicePrice) })
       .eq('id', serviceId);
 
     if (error) {
@@ -3896,7 +3887,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   aiNavStateRef.current = { showQuoteForm, isDirty: () => quoteDraft.isDirty(), isSuperAdmin };
   useEffect(() => { if (needsRegionChoice) publishBlocker('REGION_NOT_SELECTED', { scope: 'session' }); else resolveBlockers(['REGION_NOT_SELECTED']); }, [needsRegionChoice]);
   useEffect(() => { clearScope('surface'); }, [activeTab]);
-  useEffect(() => { if (activeTab !== 'main') setSavedScreen(null); }, [activeTab]);
 
   // חוק ברזל (Professional Quotes Stage C, §158): נקודת-מיפוי משותפת אחת
   // מ-quote_items(+quote_item_measurements) הגולמיים (כפי שנשלפים כבר
@@ -3955,8 +3945,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   };
 
   const handleEditClick = async (quote) => {
-    setQuoteFlowStep('editor'); // 2026-11-12 (unified quote): an existing quote / draft / copy opens at the work screen
-    setSavedScreen(null);
     if (isQuoteImmutable(quote)) {
       alertWithBlocker('QUOTE_IMMUTABLE_SIGNED', { surface: 'main' }, isHebrew ? 'לא ניתן לערוך הצעה מאושרת/חתומה.' : 'Cannot edit an approved/signed quote.');
       return;
@@ -4177,7 +4165,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     const resume = profileGate?.resume || null;
     setProfileGate(null);
     if (resume?.kind === 'new_quote') {
-      const open = resume.variant === 'ai' ? handleCreateAiQuoteClick : resume.variant === 'file' ? handleCreateFileQuoteClick : resume.variant === 'structured' ? handleCreateStructuredQuoteClick : resume.variant === 'template' ? handleCreateTemplateQuoteClick : handleCreateNewQuoteClick;
+      const open = resume.variant === 'ai' ? handleCreateAiQuoteClick : resume.variant === 'file' ? handleCreateFileQuoteClick : resume.variant === 'structured' ? handleCreateStructuredQuoteClick : resume.variant === 'template' ? handleOpenTemplatePicker : handleCreateNewQuoteClick;
       open();
     } else if (resume?.kind === 'resume_save') {
       setStatusMsg({ text: isHebrew ? 'פרטי העסק נשמרו. אפשר לשמור את ההצעה עכשיו.' : 'Business details saved. You can save your quote now.', type: 'success' });
@@ -4211,20 +4199,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     resetQuoteFormFields();
     setNewDraftUuid(newDraftId());
     setRecoveredDraftInfo(null);
-    setQuoteFlowStep('client');
-    setSavedScreen(null);
-    setPendingStartSource(null);
     return true;
-  };
-  // the client step's "להמשך" (or "עריכת הלקוח"); the source the user chose at the start window opens on the work screen
-  const handleQuoteFlowStep = (step) => {
-    setQuoteFlowStep(step);
-    if (step === 'editor' && pendingStartSource) {
-      if (pendingStartSource === 'ai') setShowAiQuoteDraft(true);
-      else if (pendingStartSource === 'file') setShowFileQuote(true);
-      else if (pendingStartSource === 'template') setTemplateDialog('pick');
-      setPendingStartSource(null);
-    }
   };
 
   // New-quote menu choices (sidebar row, toolbar, mobile bottom-row sheet). All start from the SAME reset as handleCreateNewQuoteClick:
@@ -4242,14 +4217,14 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     // L-05 (2026-10-25): before any form or dialog opens; a Free account at its end sees the Free-10 window first (SMART PACK rides on the package)
     if (!smartPackAllowed) { if (!free10Blocked()) setLockedCapability('smart_pack'); return; }
     if (handleCreateNewQuoteClick('ai') === false) return;
-    setPendingStartSource('ai'); // 2026-11-12: opens after the client step
+    setShowAiQuoteDraft(true);
   };
   handleCreateAiQuoteClickRef.current = handleCreateAiQuoteClick;
   // Owner console 2026-11-03 (typed approval incl. L-05, L-17, L-23): "quote from a file" is SMART PACK - the same click-time guard as the AI quote
   const handleCreateFileQuoteClick = () => {
     if (!smartPackAllowed) { if (!free10Blocked()) setLockedCapability('smart_pack'); return; }
     if (handleCreateNewQuoteClick('file') === false) return;
-    setPendingStartSource('file'); // 2026-11-12: opens after the client step
+    setShowFileQuote(true);
   };
   handleCreateFileQuoteClickRef.current = handleCreateFileQuoteClick;
   // the reviewed lines from the file dialog: ONLY the owner's own lines and prices join the form (the untouched blank row is replaced);
@@ -4272,34 +4247,10 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     const s = aiQuoteSnapshot(items, notes, discount, (it) => !isUntouchedPlaceholderItem(it) && !it._localExample);
     aiSnapshotRef.current = s;
     setAiCurrentQuote(s.empty ? null : s.snapshot);
-    // 2026-11-12 (unified quote, spec 5): a new quote that is not divided yet asks for the places / rooms too
-    return requestAiQuoteDraft(supabase, description, s.empty ? { structure: !editingQuoteId && quoteStructureMode !== 'divided' && !(sections || []).length } : { quote: s.snapshot });
+    return requestAiQuoteDraft(supabase, description, s.empty ? {} : { quote: s.snapshot });
   };
-  const applyAiQuoteDraft = (lines, subject, changes = [], places = []) => {
-    let drafted = markForReview(draftLinesToQuoteItems(lines), lines);
-    // 2026-11-12 (unified quote, spec 5): the suggested places become groups (only while the quote has none): identical = one group × N,
-    // otherwise N groups; a line's work goes to the first group of its place (the "copy from the first" button fills the others)
-    if (Array.isArray(places) && places.length && !(sections || []).length) {
-      const stamp = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
-      const firstKey = new Map();
-      const fresh = [];
-      for (const p of places) {
-        const n = Math.max(1, Math.min(20, Number(p.count) || 1));
-        const one = p.identical === 'yes' || n === 1;
-        const count = one ? 1 : n;
-        for (let i = 0; i < count; i += 1) {
-          const key = `tmp_section_${stamp}_${fresh.length}`;
-          if (i === 0) firstKey.set(p.key, key);
-          fresh.push({ key, kind: p.kind, sort_order: fresh.length,
-            name: one ? (p.name || (n > 1 ? groupWord(p.kind, isHebrew) : defaultGroupName(p.kind, 0, isHebrew))) : defaultGroupName(p.kind, i, isHebrew),
-            ...(one && n > 1 ? { repeat_count: n } : {}) });
-        }
-      }
-      const only = places.length === 1 ? firstKey.get(places[0].key) : null;
-      drafted = drafted.map((it, i) => ({ ...it, section_key: firstKey.get(lines[i] && lines[i].place) || only || null }));
-      setSections(fresh);
-      setQuoteStructureMode('divided');
-    }
+  const applyAiQuoteDraft = (lines, subject, changes = []) => {
+    const drafted = markForReview(draftLinesToQuoteItems(lines), lines);
     const real = aiSnapshotRef.current?.real || [];
     const updates = new Map(); const deletes = new Set();
     for (const ch of changes) {
@@ -4323,11 +4274,14 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
 
   // Task 27 (spec §6): start a NEW quote from a saved template. The Free-10 check runs before the picker opens and again through the
   // normal new-quote path; the template fills only items / sections / texts / presentation - never a customer, number, status or date.
-  // 2026-11-12 (unified quote, spec 1 row 2): "מתבנית שמורה" starts like every new quote (the Free-10 check and the business details
-  // first); the choice is remembered and the template picker opens right after the client step, filling this open quote
-  const handleCreateTemplateQuoteClick = () => {
-    if (handleCreateNewQuoteClick('template') === false) return;
-    setPendingStartSource('template');
+  const handleOpenTemplatePicker = () => {
+    if (free10Blocked()) return;
+    // Owner 2026-10-25 (typed L-15): the business details before a template opens; after saving them the picker opens again
+    if (settingId) {
+      const gateMessage = getBusinessProfileGateMessage({ ...savedProfile(), isLocalIsraeliBusiness, isHebrew });
+      if (gateMessage) { openProfileGate(gateMessage, { kind: 'new_quote', variant: 'template' }); return; }
+    }
+    setTemplateDialog('pick');
   };
 
   // Owner console 2026-10-23 ("פופאפ של פעם ביום ... לזהות איפה המשתמש נמצא ולהציע לו ... את התוספת שיכולה לסייע לו"; a small corner card,
@@ -4364,7 +4318,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     else if (tip.action === 'smart_quote') handleCreateAiQuoteClick();
     else if (tip.action === 'file_quote') handleCreateFileQuoteClick(); // Owner console 2026-11-03: the file tip opens the file dialog (same guard)
     else if (tip.action === 'chat') openAiChat();
-    else if (tip.action === 'templates') handleCreateTemplateQuoteClick();
+    else if (tip.action === 'templates') handleOpenTemplatePicker();
     else if (tip.action === 'install') runInstallApp();
   };
   // Owner console 2026-11-04 (typed: "מאשר את תוכנית ההתקנה, כולל שינוי ב-L-11 ו-L-17"): Chrome's own install window when the browser
@@ -4426,25 +4380,18 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       if (choice === null) return;
       if (choice === 'without') templateItems = withoutPrices(f.items);
     }
-    // 2026-11-12 (unified quote, spec 1 row 2 / decision: a template never changes the chosen client type): the template fills the
-    // quote that is already open after the client step. Prices with another VAT basis (or an unknown one) are used only after the user
-    // chooses - the same question as the unit template; Cancel leaves the quote as it was
-    const vatQ = unitTemplatePriceQuestions({ items: templateItems, currency: null, priceBasis: f.priceBasis }, { currency: null, isLocal: isLocalIsraeliBusiness, clientType });
-    if (vatQ.basis) {
-      const choice = await askChoice(vatQ.basis === 'unknown'
-        ? (isHebrew ? 'בתבנית הזו לא נשמר אם המחירים כוללים מע״מ. להשתמש במחירים כמו שהם? אפשר גם להעתיק רק את התיאורים והכמויות, בלי מחירים.'
-          : 'This template does not say whether its prices include VAT. Use the prices as they are? You can also copy only the descriptions and quantities, without prices.')
-        : f.priceBasis === 'incl_vat'
-          ? (isHebrew ? 'המחירים בתבנית כוללים מע״מ, וההצעה לפני מע״מ (לקוח עסקי). להשתמש במחירים כמו שהם? אפשר גם להעתיק בלי מחירים.'
-            : 'The template\'s prices include VAT and this quote is before VAT (business client). Use the prices as they are? You can also copy without prices.')
-          : (isHebrew ? 'המחירים בתבנית לפני מע״מ, וההצעה כוללת מע״מ (לקוח פרטי). להשתמש במחירים כמו שהם? אפשר גם להעתיק בלי מחירים.'
-            : 'The template\'s prices are before VAT and this quote includes VAT (private client). Use the prices as they are? You can also copy without prices.'), isHebrew,
-        { options: isHebrew ? [{ value: 'with', label: 'להשתמש במחירים' }, { value: 'without', label: 'בלי מחירים' }] : [{ value: 'with', label: 'Use the prices' }, { value: 'without', label: 'Without prices' }],
-          cancel: isHebrew ? 'ביטול' : 'Cancel' });
-      if (choice === null) return;
-      if (choice === 'without') templateItems = withoutPrices(templateItems);
-    }
+    if (handleCreateNewQuoteClick() === false) return;
     if (templateItems) setItems(templateItems);
+    // R-03 (Owner-approved L-09): prices that include VAT open as a private-client quote, prices before VAT as a business-client one;
+    // a template saved before it remembered this asks the user to check instead of guessing
+    const pricedTemplate = (templateItems || []).some((it) => it.unit_price !== '' && it.unit_price != null);
+    if (isLocalIsraeliBusiness && pricedTemplate) {
+      const templateClientType = clientTypeForPriceBasis(f.priceBasis);
+      if (templateClientType) setClientType(templateClientType);
+      else setAlertModalMsg(isHebrew
+        ? 'בתבנית הזו עדיין לא נשמר מידע אם המחירים כוללים מע״מ. בחרו את סוג הלקוח (פרטי: המחירים כוללים מע״מ; עסקי: המחירים לפני מע״מ), ובדקו את המחירים לפני השליחה.'
+        : 'This template was saved before it remembered whether its prices include VAT. Choose the client type (private: prices include VAT, business: before VAT) and check the prices before sending.');
+    }
     setSections(f.sections);
     setQuoteStructureMode(f.quoteStructureMode);
     if (f.quoteSubject) setQuoteSubject(f.quoteSubject);
@@ -4507,8 +4454,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   // PRODUCT_TRUTH_CAPABILITY: quote_duplicate
   const handleDuplicateQuote = async (quote) => {
     if (free10Blocked()) return; // a duplicate is a new quote
-    setQuoteFlowStep('editor'); // 2026-11-12 (unified quote): an existing quote / draft / copy opens at the work screen
-    setSavedScreen(null);
     setNewDraftUuid(newDraftId());
     setPendingAttachmentRemovals([]);
     setWizardDraft(null);
@@ -4662,12 +4607,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       if (pendingDelete) { setPendingDelete(null); return true; }
       if (editingClient || isCreatingClient) { setEditingClient(null); setIsCreatingClient(false); return true; }
       if (showPricingModal) { setShowPricingModal(false); return true; }
-      if (closeTopDialogWithEscape(memo)) return true;
-      // 2026-11-12 (unified quote): one step back - the work screen of a new quote returns to its client step (nothing is lost)
-      if (showQuoteForm && isCreatingQuote && !editingQuoteId && quoteFlowStep === 'editor') { setQuoteFlowStep('client'); return true; }
-      // the saved screen goes back to the list
-      if (savedScreen && !showQuoteForm) { setSavedScreen(null); return true; }
-      return false;
+      return closeTopDialogWithEscape(memo);
     },
     mayLeaveEditor,
     mayLeaveScreen: () => activeTab !== 'settings' || mayLeaveSettingsScreen(),
@@ -4698,8 +4638,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
   };
 
   const openDraftEditor = async (uid, env, { quote = null, asCopy = false, copyLabel = '' } = {}) => {
-    setQuoteFlowStep('editor'); // 2026-11-12 (unified quote): an existing quote / draft / copy opens at the work screen
-    setSavedScreen(null);
     setActiveTab('main');
     applyDraftPayload(env.payload);
     const blobKey = env.mode === 'edit' ? `edit-${env.quoteId}` : env.draftId;
@@ -5024,15 +4962,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         // Owner console 2026-11-09 (item 08): + billing_method (forward-only column), dropped first if the column is not there yet
         let { data: fetchedItems, error: fetchItemsErr } = await supabase
           .from('quote_items')
-          .select(`${richItemCols}, price_missing, price_link_id, billing_method, room`)
+          .select(`${richItemCols}, price_missing, price_link_id, billing_method`)
           .eq('quote_id', editingQuoteId);
-        // 2026-11-12 (unified quote): + room (20261112100000), dropped first if the column is not there yet
-        if (fetchItemsErr && String(fetchItemsErr.message || '').includes('room')) {
-          ({ data: fetchedItems, error: fetchItemsErr } = await supabase
-            .from('quote_items')
-            .select(`${richItemCols}, price_missing, price_link_id, billing_method`)
-            .eq('quote_id', editingQuoteId));
-        }
         if (fetchItemsErr && String(fetchItemsErr.message || '').includes('billing_method')) {
           ({ data: fetchedItems, error: fetchItemsErr } = await supabase
             .from('quote_items')
@@ -5153,7 +5084,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           calculation_method: it.calculation_method || null,
           price_link_id: it.price_link_id || null, // stage 3: linking / unlinking a row is a saved change
           billing_method: storedBillingMethod(it), // item 08: switching a fixed amount <-> units is a saved change
-          room: it.room || null, // 2026-11-12 (unified quote): a room-only change is a saved change
           measurements: (Array.isArray(it.measurements) ? it.measurements : (Array.isArray(it.quote_item_measurements) ? it.quote_item_measurements : []))
             .map(measurementFingerprint).sort(),
         });
@@ -5363,9 +5293,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       const trimmedAttnName = (attnName || '').trim();
       const attnFields = { attn_name: trimmedAttnName || clientName || null, attn_role: attnRole || null };
 
-      // 2026-11-12 (unified quote, spec 8.4): a group without a name is saved under its default name ("דירה 2", "Room 3") - it is never
-      // dropped while its rows still point at it (that made the whole save fail with "Unknown section_client_key")
-      const currentNamedSections = (sections || []).map((s, idx) => ((s.name || '').trim() !== '' ? s : { ...s, name: defaultGroupName(s.kind, idx, isHebrew) }));
+      const currentNamedSections = (sections || []).filter(s => (s.name || '').trim() !== '');
       const authoritativeSectionIds = new Set((authoritativeSections || []).map(s => s.id));
       const currentSectionIds = new Set(currentNamedSections.filter(s => s.id).map(s => s.id));
       const removedSectionIds = [...authoritativeSectionIds].filter(id => !currentSectionIds.has(id));
@@ -5375,7 +5303,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         name: s.name,
         sort_order: s.sort_order != null ? s.sort_order : idx,
         repeat_count: normalizeRepeatCount(s.repeat_count), // stage 3
-        kind: s.kind || null, // 2026-11-12 (unified quote): the group word the user chose
       }));
       const authoritativeItemIds = new Set((authoritativeItems || []).map((a) => a.id));
       const itemsPayload = itemsForPersist ? itemsForPersist.map((item, idx) => ({
@@ -5394,7 +5321,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         sort_order: idx,
         price_link_id: item.price_link_id || null, // stage 3: the internal shared-price group (null = unlinked)
         billing_method: storedBillingMethod(item), // item 08 (Owner 2026-11-09): fixed / units of a row without a unit; editor only
-        room: item.room || null, // 2026-11-12 (unified quote): the room tag ('all' = the whole place)
         measurements: (Array.isArray(item.measurements) ? item.measurements : [])
           .filter((m) => !(m.width === '' && m.height === ''))
           .map((m, mIdx) => ({
@@ -5567,11 +5493,9 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       // Owner 2026-11-11 (finding 8): a save is where a quote is counted - the medallion counter updates (and pops) right after it
       refreshAccountSummaryQuiet();
       let leaveDraftNote = null;
-      let reachedCustomer = !!(editingQuoteId && editingOriginalQuote && (String(editingOriginalQuote.status || '').toLowerCase() === 'sent' || Number(editingOriginalQuote.view_count || 0) > 0));
       if (leaveDraftViaAuthority) {
         const auth = await authorizeWithNotice({ channel: 'send', quoteId, invoke: (name, opts) => invokeWithFreshSession(name, opts), importLogo: importLogoForOutput, confirm: (text) => askConfirm(text, isHebrew), isHebrew });
         if (auth.proceed) {
-          reachedCustomer = true;
           if (persistedStatus !== 'sent') await markQuoteStatusAfterOutput(quoteId, persistedStatus);
         } else {
           leaveDraftNote = auth.mode === 'cancelled'
@@ -5616,8 +5540,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       resetQuoteFormFields();
       setRecoveredDraftInfo(null);
       setNewDraftUuid(null);
-      // 2026-11-12 (unified quote, spec 1 row 8): saving is not sending - a quote that did not reach the customer shows the saved screen
-      if (!reachedCustomer) setSavedScreen({ quoteId, link: getQuoteViewLink({ id: quoteId, tax_rate: isLocalIsraeliBusiness ? taxRate : 0, currency: isLocalIsraeliBusiness ? 'ILS' : currency }) });
       loadData(session.user.id, session.user.email);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
@@ -6042,7 +5964,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
            overflow into each other), so this band uses the same wrapped
            composition as mobile: date + Chat + badge on row 1, KPI block
            on row 2. Wide desktop (>1000px) keeps the original grid. */
-        @media (min-width: 768.02px) and (max-width: 1000px) {
+        @media (min-width: 769px) and (max-width: 1000px) {
           .dash-header-row {
             display: flex;
             flex-wrap: wrap;
@@ -7003,18 +6925,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           box-shadow: 0 14px 34px -10px rgba(15, 23, 42, 0.32);
         }
         .pf-newquote-popover { min-width: 0; max-width: min(268px, calc(100vw - 24px)); }
-        /* Owner console 2026-11-11 (unified quote, item 11): the start window "איך תרצו להתחיל?" - centred, four large choices with their
-           explanation line, and Back; it fits a 390px phone (one column) and a desktop (two columns) */
-        .pf-newquote-backdrop { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15, 23, 42, 0.45); }
-        .pf-newquote-window { box-sizing: border-box; inline-size: min(620px, 100%); max-block-size: calc(100dvh - 32px); overflow-y: auto; padding: 22px; border-radius: 16px; background: #ffffff; color: #0f172a; box-shadow: 0 24px 60px -18px rgba(15, 23, 42, 0.45); }
-        .pf-newquote-title { margin: 0 0 6px; font-size: 1.3rem; font-weight: 800; line-height: 1.3; }
-        .pf-newquote-sentence { margin: 0 0 16px; color: #475569; font-size: 0.92rem; line-height: 1.5; }
-        .pf-newquote-choices { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-        .pf-newquote-window .pf-newquote-item { min-block-size: 76px; padding: 14px; border: 1px solid #dde1e8; border-radius: 12px; }
-        .pf-newquote-window .pf-newquote-item svg { color: #0F6672; }
-        .pf-newquote-window .pf-newquote-item:hover, .pf-newquote-window .pf-newquote-item:focus-visible { border-color: #0F6672; background: #e8f4f5; }
-        .pf-newquote-back { margin-block-start: 14px; min-block-size: 44px; padding: 0 18px; border: 1px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer; }
-        @media (max-width: 560px) { .pf-newquote-choices { grid-template-columns: minmax(0, 1fr); } }
         .pf-newquote-item,
         .pf-account-item {
           display: flex;
@@ -7226,10 +7136,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           }
         }
 
-        /* Owner 2026-11-11 (unified quote release, typed L-01 .. L-04): the desktop blocks start at 768.02px, not 769px - a zoomed browser
-           can be 768.5px wide, where neither the phone (max 768px) nor the desktop rules applied (header pill over the stats, wrapped
-           "Business Settings", the "$" and amount on two lines at "tablet" width) */
-        @media (min-width: 768.02px) {
+        @media (min-width: 769px) {
           /* ===== Approved 980px composition =====
              Shell = one centered 980px column (index.css token). One flat navy band (#11274a, 68px) runs across the sidebar brand
              block and the header; the sidebar body (#102444) and the workspace (#f7f9fc) sit below it. All horizontal geometry
@@ -7675,8 +7582,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             /* ONE eight-track grid shared by the header row and every quote row (Owner R3): quote number, client, quote title,
                status, views, date, amount, action. Protected numeric/action tracks carry a px floor; client/title ellipsize. */
             /* Owner 2026-11-11 (finding 24, typed L-07 / L-29): the date track holds its painted words ("Yesterday, 23:59") - floor 64px -> 100px */
-            --qm-cols: minmax(84px, 72fr) minmax(0, 118fr) minmax(0, 104fr) minmax(136px, 104fr) minmax(68px, 64fr) minmax(100px, 104fr) minmax(max(88px, var(--qm-amt-w, 88px)), 96fr);
-            /* Owner 2026-11-12: the amount track is never narrower than the widest amount on the list (QuotesTab measures it: --qm-amt-w) */
+            --qm-cols: minmax(84px, 72fr) minmax(0, 118fr) minmax(0, 104fr) minmax(136px, 104fr) minmax(68px, 64fr) minmax(100px, 104fr) minmax(88px, 96fr);
             --qm-gap: 6px;
           }
           /* selector chain outranks the shared ".pf-screen > .pf-screen-body > * { flex-shrink: 0 }" rule (the card is also a
@@ -7710,8 +7616,10 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             column-gap: var(--qm-gap);
             align-items: center;
             padding-block: 5px;
-            /* Owner R5: the leading 30px hold the dropdown trigger (24px + 3px each side), outside the quote-number track */
-            padding-inline: 30px 16px;
+            /* Owner R5: the leading 30px hold the dropdown trigger (24px + 3px each side), outside the quote-number track.
+               Owner 2026-11-11 (finding 4, typed L-07 / L-19 / L-29): the trailing 80px hold the row's "Send" (64px + the former 16px) -
+               outside every track, so no column moves relative to its header */
+            padding-inline: 30px 80px;
             font-size: 12px;
             line-height: 1.3;
           }
@@ -7801,7 +7709,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
              sits on the action side, which the real dir attribute of the list decides (the slot itself is a physical LTR atom) */
           .quote-modern-list[dir="rtl"] .quote-modern-row > .quote-modern-amount { padding-left: 6px; }
           .quote-modern-list[dir="ltr"] .quote-modern-row > .quote-modern-amount { padding-right: 6px; }
-          /* Owner 2026-11-12 (ones under ones): a long amount keeps the size of every other amount - its track grows instead */
+          .quote-modern-row > .quote-modern-amount.is-long { font-size: 12.5px; }
           /* Owner R5: the quote number is an LTR atom (its own "start" is left), but it must sit at the structural start of its
              column like its header label: right in HE, left in EN (the real dir attribute of the list decides) */
           .quote-modern-list[dir="rtl"] .quote-modern-row > .quote-modern-number { text-align: right; }
@@ -7811,8 +7719,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           .quote-modern-list[dir="ltr"] .quote-modern-row > .quote-modern-views,
           .quote-modern-list[dir="ltr"] .quote-modern-head-views { padding-right: 10px; }
           /* Owner R4: no Action column - the status-aware primary action lives in the row dropdown (detail panel) */
-          /* Owner 2026-11-11 (unified quote release, typed L-07 / L-29): the Send left the rows, so the open arrow stands out instead */
-          .quote-modern-chevron { flex: none; color: #0F6672; transition: transform 0.15s ease; }
+          .quote-modern-chevron { flex: none; color: #64748b; transition: transform 0.15s ease; }
           .quote-modern-chevron[data-expanded="true"] { transform: rotate(180deg); }
           /* Owner R5: the trigger sits in the row's leading padding (right in HE, left in EN) - absolutely positioned, so it is
              not a grid track and never moves the quote number. Centered on the row content (the hot row's content starts 9px
@@ -7829,13 +7736,13 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             align-items: center;
             justify-content: center;
             padding: 0;
-            border: 1px solid #b9dcdf;
-            border-radius: 6px;
-            background: #e8f4f5;
-            color: #0F6672;
+            border: 0;
+            border-radius: 5px;
+            background: transparent;
+            color: #64748b;
             cursor: pointer;
           }
-          .quote-modern-toggle:hover { background: #d3eaec; }
+          .quote-modern-toggle:hover { background: #eef2f7; }
           .quote-modern-toggle:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 1px; }
           .quote-modern-client-name { min-width: 0; }
           .quote-modern-primary-row { display: flex; justify-content: flex-start; }
@@ -7894,8 +7801,9 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             grid-template-columns: var(--qm-cols);
             column-gap: var(--qm-gap);
             align-items: center;
-            /* Owner R5: 24px = the row's 30px leading padding (trigger spacer) + 4px edge border - the strip's 10px inset */
-            padding-inline: 24px 6px;
+            /* Owner R5: 24px = the row's 30px leading padding (trigger spacer) + 4px edge border - the strip's 10px inset;
+               Owner 2026-11-11 (finding 4): the trailing 70px = the row's 80px Send space - the strip's 10px inset */
+            padding-inline: 24px 70px;
             color: #64748b;
           }
           .quote-modern-head-cell { display: flex; align-items: center; justify-content: flex-start; min-width: 0; }
@@ -8115,7 +8023,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
            zone (isSuperAdmin-gated) - hidden here on desktop so it is never
            a second, duplicate "AI Support Logs" control once the topbar
            itself becomes visible at every viewport (see below). */
-        @media (min-width: 768.02px) {
+        @media (min-width: 769px) {
           .dash-topbar-ghost-btn {
             display: none;
           }
@@ -8184,7 +8092,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           /* on a phone a long message wraps to two lines instead of being cut */
           .dash-status-toast { white-space: normal; border-radius: 16px; width: max-content; }
         }
-        @media (min-width: 768.02px) {
+        @media (min-width: 769px) {
           .dash-status-toast {
             /* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #8: centred over the workspace again - half of today's 178px sidebar */
             left: calc(50% ${isHebrew ? '- 89px' : '+ 89px'});
@@ -8302,7 +8210,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         .dash-topbar-identity { display:flex; align-items:center; gap:12px; flex:1; overflow:hidden; }
         .dash-topbar-summary { width:100%; min-width:0; display:flex; flex-direction:column; gap:12px; }
         .dash-drawer-toggle,.dash-drawer-close { display:none; }
-        @media (min-width:768.02px) { .dash-topbar-actions .dash-topbar-ghost-btn { display:none; } }
+        @media (min-width:769px) { .dash-topbar-actions .dash-topbar-ghost-btn { display:none; } }
         @media (max-width:768px) {
           .dash-drawer-toggle,.dash-drawer-close { display:flex; min-height:44px; min-width:44px; align-items:center; justify-content:center; }
           .dash-operator-sidebar { display:none; position:fixed; inset-block:0; inset-inline-start:0; width:min(280px,calc(100vw - 44px)); height:100dvh; z-index:10001; overflow-y:auto; border-radius:0; }
@@ -8641,7 +8549,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onStandard={handleCreateNewQuoteClick}
               onAi={handleCreateAiQuoteClick}
               onStructured={handleCreateStructuredQuoteClick}
-              onTemplate={handleCreateTemplateQuoteClick}
+              onTemplate={handleOpenTemplatePicker}
               onFile={handleCreateFileQuoteClick}
             />
 
@@ -9246,15 +9154,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             <PendingDraftRow draft={pendingDraft ? { updatedAt: pendingDraft.env.updatedAt } : null} isHebrew={isHebrew}
               dateMarket={isLocalIsraeliBusiness ? 'Local' : 'International'} onContinue={continuePendingDraft} onDelete={deletePendingDraft} />
           )}
-          {activeTab === 'main' && !showQuoteForm && savedScreen && (
-            <QuoteSavedScreen
-              isHebrew={isHebrew}
-              onPreview={() => { if (typeof window !== 'undefined') window.open(savedScreen.link, '_blank'); }}
-              onEdit={(quotes || []).some((q) => q && q.id === savedScreen.quoteId) ? () => handleEditClick(quotes.find((q) => q && q.id === savedScreen.quoteId)) : null}
-              onList={() => setSavedScreen(null)}
-            />
-          )}
-          {activeTab === 'main' && !showQuoteForm && !savedScreen && (
+          {activeTab === 'main' && !showQuoteForm && (
               <QuotesTab
                 stickyTopBase={upperSectionHeight}
                 quotes={filteredQuotes}
@@ -9294,7 +9194,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                 currency={currency}
                 onCreateQuote={handleCreateNewQuoteClick}
                 onCreateStructuredQuote={handleCreateStructuredQuoteClick}
-                onCreateFromTemplate={handleCreateTemplateQuoteClick}
+                onCreateFromTemplate={handleOpenTemplatePicker}
                 onCreateAiQuote={handleCreateAiQuoteClick}
                 onCreateFileQuote={handleCreateFileQuoteClick}
                 focusQuoteRequest={bellQuoteFocus}
@@ -9323,8 +9223,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               })}
             >
             <QuoteForm
-              flowStep={quoteFlowStep}
-              onFlowStep={handleQuoteFlowStep}
               businessPhone={bizPhone}
               editingQuoteId={editingQuoteId}
               editingQuoteNumber={editingOriginalQuote?.quote_number ?? null}
@@ -9621,7 +9519,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               editServicePrice={editServicePrice}
               setEditServicePrice={setEditServicePrice}
               handleSaveEditedService={handleSaveEditedService}
-              international={isLocalIsraeliBusiness === false}
               handleDeleteService={requestDeleteService}
               sym={sym}
               formatMoneyDisplay={formatMoneyDisplay}
@@ -9862,9 +9759,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           onKeyDown={(e) => { if (e.key === 'Escape') { e.preventDefault(); setShowMobileNewQuoteMenu(false); } }}
           style={{ position: 'fixed', insetInlineStart: '10px', insetInlineEnd: '10px', bottom: 'calc(58px + env(safe-area-inset-bottom, 0px))', background: NEON.bgElevated, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.lg, boxShadow: '0 -6px 20px -4px rgba(31,27,46,0.22)', padding: '8px', display: 'flex', flexDirection: 'column', gap: '4px', zIndex: 9998, maxHeight: '70vh', overflowY: 'auto', boxSizing: 'border-box' }}
         >
-          {/* Owner console 2026-11-11 (unified quote, item 11): the same start window words as the desktop - title + sentence */}
-          <strong style={{ padding: '6px 12px 0', fontSize: '1rem', fontWeight: 800, color: NEON.textPrimary }}>{isHebrew ? 'איך תרצו להתחיל?' : 'How would you like to start?'}</strong>
-          <span style={{ padding: '0 12px 6px', fontSize: '0.78rem', color: NEON.textSecondary, lineHeight: 1.45 }}>{isHebrew ? START_SENTENCE.he : START_SENTENCE.en}</span>
           {/* PRODUCT_TRUTH_CAPABILITY: quote_create */}
           {menuChoices(isHebrew, { file: true, template: true }).map(({ id, Icon, label, hint }) => (
             <button
@@ -9872,7 +9766,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               type="button"
               role="menuitem"
               data-choice={id}
-              onClick={() => { setShowMobileNewQuoteMenu(false); ({ standard: handleCreateNewQuoteClick, ai: handleCreateAiQuoteClick, file: handleCreateFileQuoteClick, structured: handleCreateStructuredQuoteClick, template: handleCreateTemplateQuoteClick })[id](); }}
+              onClick={() => { setShowMobileNewQuoteMenu(false); ({ standard: handleCreateNewQuoteClick, ai: handleCreateAiQuoteClick, file: handleCreateFileQuoteClick, structured: handleCreateStructuredQuoteClick, template: handleOpenTemplatePicker })[id](); }}
               style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', width: '100%', boxSizing: 'border-box', minHeight: '48px', background: 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: NEON.textPrimary, cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left' }}
             >
               <Icon size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, marginTop: '1px', color: NEON.violet }} />

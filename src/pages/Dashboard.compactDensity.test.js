@@ -8,7 +8,7 @@ import { cwd } from 'node:process';
 const norm = (text) => text.split(String.fromCharCode(13)).join('');
 const dashboard = norm(readFileSync(join(cwd(), 'src', 'pages', 'Dashboard.jsx'), 'utf8'));
 const css = dashboard.replace(/\/\*[\s\S]*?\*\//g, '');
-const desktop = css.slice(css.search(/@media \(min-width: 768.02px\) \{\s*\.dash-sidebar \{\s*width: 178px;/));
+const desktop = css.slice(css.search(/@media \(min-width: 769px\) \{\s*\.dash-sidebar \{\s*width: 178px;/));
 
 const rule = (selector) => {
   // a rule starts its own line (so ".x-btn {" never matches inside ".y .x-btn {")

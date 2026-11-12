@@ -167,7 +167,7 @@ describe('finding 5: the small things', () => {
 });
 
 describe('finding 5: a new unit opens with the cursor in its name', () => {
-  it('the first group added from the places window focuses the new group name', async () => {
+  it('"Add the first unit" focuses the new unit name', async () => {
     let sections = [];
     const noop = () => {};
     const t = { clientEmail: 'Client email', clientName: 'Client name', clientPhone: 'Client phone', currency: 'Currency', description: 'Description', discount: 'Discount', generateSave: 'Generate & Save', quantity: 'Quantity', quoteItems: 'Quote Items', status: 'Status', subtotal: 'Subtotal', totalAmount: 'Total', totalPrice: 'Total price', unitPrice: 'Unit price', updateQuote: 'Update Quote', validUntil: 'Valid until', vat: 'VAT' };
@@ -175,7 +175,7 @@ describe('finding 5: a new unit opens with the cursor in its name', () => {
       clientPhone: '', setClientPhone: noop, clientType: 'business', setClientType: noop, clientTaxId: '', setClientTaxId: noop, clientAddress: '', setClientAddress: noop,
       quoteSubject: '', setQuoteSubject: noop, attnName: '', setAttnName: noop, attnRole: '', setAttnRole: noop, currency: 'USD', quoteStatus: 'draft', setQuoteStatus: noop,
       validUntil: '', setValidUntil: noop, discount: 0, setDiscount: noop, terms: '', setTerms: noop, warranty: '', setWarranty: noop, notes: '', setNotes: noop, items: [],
-      setItems: vi.fn(), sections, setSections: (fn) => { sections = typeof fn === 'function' ? fn(sections) : fn; }, addSection: () => { sections = [...sections, { key: 'tmp_section_new', name: '', sort_order: 0 }]; return 'tmp_section_new'; },
+      setItems: vi.fn(), sections, setSections: noop, addSection: () => { sections = [...sections, { key: 'tmp_section_new', name: '', sort_order: 0 }]; return 'tmp_section_new'; },
       renameSection: noop, removeSection: noop, quoteStructureMode: 'divided', setQuoteStructureMode: noop, isHebrew: false, t, sym: '$',
       formatNum: (n) => Number(n || 0).toFixed(2), formatMoneyDisplay: (n) => Number(n || 0).toFixed(2), handleItemChange: vi.fn(), duplicateItem: noop, removeItem: noop,
       projectName: '', setProjectName: noop, services: SERVICES, clients: [], isLocalIsraeliBusiness: false, subtotal: 0, discountAmount: 0, taxAmount: 0, totalAmount: 0,
@@ -184,8 +184,7 @@ describe('finding 5: a new unit opens with the cursor in its name', () => {
       toggleMeasurementPricingDriving: noop, addSpecificationRow: noop, handleSpecificationChange: noop, removeSpecificationRow: noop, onOpenPricingModal: noop,
       quoteFiles: [], setQuoteFiles: noop, allUserAttachments: [] });
     const { rerender } = render(<QuoteForm {...make()} />);
-    fireEvent.click(screen.getByTestId('sq-add-more-places'));
-    fireEvent.click(screen.getByTestId('places-next'));
+    fireEvent.click(screen.getByText('Add the first unit'));
     rerender(<QuoteForm {...make()} />);
     await waitFor(() => expect(document.activeElement?.getAttribute('placeholder')).toBe('e.g. Apartment 33, Bedroom, Building A'));
   });

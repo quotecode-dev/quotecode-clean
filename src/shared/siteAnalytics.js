@@ -17,9 +17,6 @@ export const CONSENT_REGION = Object.freeze(new Set([
   'SI', 'ES', 'SE', // EU 27
   'IS', 'LI', 'NO', // EEA
   'GB', 'CH', // UK, Switzerland
-  // Owner console 2026-11-11 (typed: "מאשר שינוי ב-L-12: הודעת העוגיות גם למבקרים מישראל באתר בעברית, בשחרור האחד"): Israel too -
-  // after Amendment 13 and the Privacy Protection Authority consent guidance (Feb 2026), a visitor in Israel is asked first as well
-  'IL',
 ]));
 /** the visitor's country (ISO 3166-1 alpha-2) -> true (ask first) / false (no consent needed) / null (unknown: ask first) */
 export function inConsentRegion(country) {

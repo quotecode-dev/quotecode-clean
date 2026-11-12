@@ -13,7 +13,7 @@ const indexCss = read('src', 'index.css');
 const css = dashboard.replace(/\/\*[\s\S]*?\*\//g, '');
 
 const desktopBlock = () => {
-  const start = css.search(/@media \(min-width: 768.02px\) \{\s*\.dash-sidebar \{\s*width: 178px;/);
+  const start = css.search(/@media \(min-width: 769px\) \{\s*\.dash-sidebar \{\s*width: 178px;/);
   expect(start).toBeGreaterThan(-1);
   let depth = 0;
   let i = css.indexOf('{', start);
@@ -127,9 +127,7 @@ describe('approved dashboard QA fixes (source guards)', () => {
     expect(block).toMatch(/\.quote-modern-list\[dir="rtl"\] \.quote-modern-row > \.quote-modern-amount \{ padding-left: 6px; \}/);
     expect(block).toMatch(/\.quote-modern-list\[dir="ltr"\] \.quote-modern-row > \.quote-modern-amount \{ padding-right: 6px; \}/);
     expect(block).toMatch(/--qm-gap: 6px;/);
-    // Owner 2026-11-12 (ones under ones for every amount): a long amount is no longer set smaller - the amount track grows to it
-    expect(block).not.toMatch(/\.quote-modern-amount\.is-long \{ font-size/);
-    expect(block).toMatch(/minmax\(max\(88px, var\(--qm-amt-w, 88px\)\), 96fr\)/);
+    expect(block).toMatch(/\.quote-modern-amount\.is-long \{ font-size: 12\.5px; \}/);
   });
 
   it('the header block stays fixed at 40px above the list and the new-quote popover is width-capped', () => {
@@ -155,8 +153,8 @@ describe('approved quotes workspace (source guards)', () => {
     expect(rule(block, '.quote-modern-row')).toMatch(/grid-template-columns: var\(--qm-cols\);/);
     // Owner R5: the leading 30px hold the row-edge dropdown trigger (the header strip reserves the same spacing)
     // Owner 2026-11-11 (finding 4, typed L-07 / L-19 / L-29): + 64px at the trailing edge of both for the row's Send (outside every track)
-    expect(rule(block, '.quote-modern-row')).toMatch(/padding-inline: 30px 16px;/);
-    expect(rule(block, '.quote-modern-head-row')).toMatch(/padding-inline: 24px 6px;/);
+    expect(rule(block, '.quote-modern-row')).toMatch(/padding-inline: 30px 80px;/);
+    expect(rule(block, '.quote-modern-head-row')).toMatch(/padding-inline: 24px 70px;/);
     expect(rule(block, '.quote-modern-item')).toMatch(/border-inline-start: 4px solid transparent;/);
     expect(rule(block, '.quote-modern-item.is-hot')).toMatch(/#f66a25/);
   });
@@ -184,9 +182,7 @@ describe('approved quotes workspace (source guards)', () => {
     expect(dashboard).toMatch(/const handleCreateStructuredQuoteClick = \(\) => \{\s*if \(handleCreateNewQuoteClick\('structured'\) === false\) return;\s*setMeasuredQuoteEntry\(true\);\s*\};/);
     // Owner console 2026-10-25 (typed L-05 approval): the SMART PACK click-time check comes first (its branch shows the Free-10 window or
     // the SMART PACK notice; nothing opens), then the same reset and the AI draft dialog
-    expect(dashboard).toMatch(/const handleCreateAiQuoteClick = \(\) => \{\r?\n(?:\s*\/\/[^\r\n]*\r?\n)*\s*if \(!smartPackAllowed\) \{ if \(!free10Blocked\(\)\) setLockedCapability\('smart_pack'\); return; \}\s*if \(handleCreateNewQuoteClick\('ai'\) === false\) return;\s*setPendingStartSource\('ai'\);[^\n]*\s*\};/);
-    // 2026-11-12 (unified quote, spec 1 row 2): the AI dialog opens right after the client step
-    expect(dashboard).toContain("if (pendingStartSource === 'ai') setShowAiQuoteDraft(true);");
+    expect(dashboard).toMatch(/const handleCreateAiQuoteClick = \(\) => \{\r?\n(?:\s*\/\/[^\r\n]*\r?\n)*\s*if \(!smartPackAllowed\) \{ if \(!free10Blocked\(\)\) setLockedCapability\('smart_pack'\); return; \}\s*if \(handleCreateNewQuoteClick\('ai'\) === false\) return;\s*setShowAiQuoteDraft\(true\);\s*\};/);
     expect(dashboard).toMatch(/onCreateStructuredQuote=\{handleCreateStructuredQuoteClick\}/);
     expect(dashboard).toMatch(/onCreateAiQuote=\{handleCreateAiQuoteClick\}/);
   });

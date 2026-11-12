@@ -1882,24 +1882,3 @@
   /* EN: the table's digits are 1rem (.pq-page[dir='ltr'] .pq-card .pq-commercial-table) */
   .pq-page[dir='ltr']:not(.pq-preview) .pq-card .pq-totals-box { --pq-amount-font: 1rem !important; }
 }
-
-/* 2026-11-12 (unified quote, Owner spec section 2): the client page of a divided quote - the arrow before each group name (never
-   printed / captured), the room tag beside a work row, the "full document / summary rows" switch with the one-time explanation, and
-   the label of a partial print / PDF. Logical properties only (RTL / LTR mirror). */
-.pq-room-tag { display: inline-block; margin-inline-start: 8px; padding: 1px 8px; border-radius: 6px; background: #eef1f4; color: #475569; font-size: 0.8em; font-weight: 600; white-space: nowrap; vertical-align: middle; }
-.pq-group-controls { display: flex; flex-direction: column; gap: 10px; margin-block-end: 12px; }
-.pq-group-help { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-radius: 10px; background: #e8f4f5; border: 1px solid #b9dcdf; color: #0b3d44; font-size: 0.9rem; line-height: 1.5; }
-.pq-group-help-ok { flex: none; min-block-size: 44px; min-inline-size: 64px; padding: 0 16px; border: 0; border-radius: 8px; background: #0F6672; color: #fff; font: inherit; font-weight: 700; cursor: pointer; }
-.pq-group-switch { display: flex; flex-wrap: wrap; gap: 8px; }
-.pq-group-switch > button { min-block-size: 44px; padding: 0 14px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; color: #1e293b; font: inherit; font-weight: 600; cursor: pointer; }
-.pq-group-switch > button[aria-pressed="true"] { border: 2px solid #0F6672; background: #e8f4f5; color: #0b3d44; }
-.pq-partial-label { margin: 0 0 10px; padding: 6px 10px; border-inline-start: 3px solid #94a3b8; color: #475569; font-size: 0.85rem; font-weight: 600; }
-@media print { .pq-group-controls { display: none !important; } }
-
-/* 2026-11-12 (law 49): a group total is set smaller (13px); in Hebrew its amount box takes the table box in pixels, so it ends on the
-   same right edge as every other amount (as in English) */
-.pq-page[dir='rtl'] .pq-card .pq-commercial-table .pq-section-subtotal-row td.pq-td-total .pf-money {
-  min-width: var(--pq-money-box-px, calc(var(--pq-money-box-n, 0) * 1em)) !important;
-}
-/* 2026-11-12 (the demo): the full / summary switch first, the one-time explanation under it ("the button above") */
-.pq-group-controls > .pq-group-help { order: 2; }

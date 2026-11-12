@@ -81,7 +81,7 @@ describe('ai-quote-draft handler (synthetic, in-process)', () => {
     expect(h.state.clientAuthHeaders).toEqual(['Bearer synthetic-user-jwt', null]);
     expect(h.state.queries.map((q) => [q.table, q.cols, q.filters])).toEqual([
       ['business_settings', 'country', [['user_id', 'u-synthetic-1']]],
-      ['services', 'id, name, price, price_basis', [['user_id', 'u-synthetic-1']]], // 2026-11-12: + the optional price basis
+      ['services', 'id, name, price', [['user_id', 'u-synthetic-1']]],
     ]);
     expect(h.state.writes).toEqual([]);
     // the model input carries the description and catalog names/ids only - never a price; language from the server market

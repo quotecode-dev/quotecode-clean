@@ -246,8 +246,7 @@ describe('ai-quote-draft Edge Function source guards', () => {
     // Owner 2026-11-06 (the SMART PACK usage meter): the service-role client exists ONLY for smart_pack_usage_finish
     expect(src.match(/SERVICE_ROLE/g)).toHaveLength(1);
     expect([...src.matchAll(/\badmin\b/g)].length).toBe([...src.matchAll(/finishMeter\(admin,/g)].length + 1);
-    // 2026-11-12 (unified quote, spec 5): + the catalog's optional price basis
-    expect(src).toMatch(/from\('services'\)\.select\('id, name, price, price_basis'\)\.eq\('user_id', userId\)/);
+    expect(src).toMatch(/from\('services'\)\.select\('id, name, price'\)\.eq\('user_id', userId\)/);
     expect(src).toMatch(/from\('business_settings'\)\.select\('country'\)\.eq\('user_id', userId\)/);
   });
   it('is read-only: no insert/update/upsert/delete/rpc and no logging of the description', () => {

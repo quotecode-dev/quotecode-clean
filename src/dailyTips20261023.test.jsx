@@ -97,8 +97,7 @@ describe('the Dashboard wiring', () => {
     expect(src).toMatch(/const tipQuiet = !!tipUserId && activeTab === 'main' && !showQuoteForm && !customerTwin && !showPricingModal && !templateDialog && !showAiQuoteDraft && !showFileQuote && !showMobileNewQuoteMenu;/);
     expect(src).toMatch(/\{dailyTip && tipQuiet && \(\s*<DailyTipCard /);
     expect(src).toMatch(/tip\.action === 'smart_quote'\) handleCreateAiQuoteClick\(\)/);
-    // 2026-11-12 (unified quote): the template start is remembered and its picker opens after the client step
-    expect(src).toMatch(/tip\.action === 'templates'\) handleCreateTemplateQuoteClick\(\)/);
+    expect(src).toMatch(/tip\.action === 'templates'\) handleOpenTemplatePicker\(\)/);
     expect(src).toMatch(/tip\.action === 'chat'\) openAiChat\(\)/);
   });
 });

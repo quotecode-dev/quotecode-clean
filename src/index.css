@@ -622,6 +622,20 @@ body:has([role="dialog"][aria-modal="true"]) .tk-tip { display: none; }
   .qrows .qrow-line > .qrow-menu { grid-area: menu; }
 }
 
+/* Owner 2026-11-11 (findings 4 + 26, typed L-07 / L-19 / L-29): global (every list layout - desktop table, tablet and phone cards) */
+/* Owner 2026-11-11 (findings 4 + 26): the prominent Send of every row / card and its three choices */
+.quote-send--row { position: absolute; inset-inline-end: 8px; inset-block-start: 6px; z-index: 1; }
+.quote-card { position: relative; }
+/* on a card the Send has its own row under the card's two L-19 lines (their order and width are unchanged) */
+.quote-send--card { display: flex; justify-content: flex-end; padding: 0 var(--pf-mobile-surface-pad, 10px) 8px; }
+.quote-send-button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; box-sizing: border-box; block-size: 30px; inline-size: 64px; padding: 0 6px; border: 0; border-radius: 8px; background: #0F6672; color: #ffffff; font: inherit; font-size: 12px; font-weight: 800; cursor: pointer; white-space: nowrap; }
+.quote-send--card .quote-send-button { block-size: 44px; inline-size: 80px; font-size: 13px; }
+.quote-send-button:hover { background: #0b4f58; }
+.quote-send-button:focus-visible { outline: 2px solid #0c5fe3; outline-offset: 2px; }
+.quote-send-menu { position: fixed; z-index: 10045; display: flex; flex-direction: column; min-inline-size: 210px; padding: 4px; background: #ffffff; border: 1px solid #dde1e8; border-radius: 10px; box-shadow: 0 14px 32px -12px rgba(15, 23, 42, 0.45); }
+.quote-send-item { display: flex; align-items: center; gap: 8px; min-block-size: 44px; padding: 0 12px; border: 0; border-radius: 7px; background: transparent; color: #1e293b; font: inherit; font-size: 13px; font-weight: 600; text-align: start; white-space: nowrap; cursor: pointer; }
+.quote-send-item:hover, .quote-send-item:focus-visible { background: #f1f5f9; outline: none; }
+
 /* Owner 2026-11-11 (finding 26, typed L-19): on a phone the quotes list is part of the page and the page scrolls - never a small frame that
    scrolls inside the screen (the cards keep their L-19 order and width; tablets and desktop keep the screen's own scroll body) */
 @media (max-width: 768px) {
@@ -633,118 +647,3 @@ body:has([role="dialog"][aria-modal="true"]) .tk-tip { display: none; }
    screen height - the sidebar's foot is never pushed below the bottom edge */
 .dash-app-shell > [data-testid="free10-ended-bar"] ~ .dash-shell-outer,
 .dash-app-shell > [data-testid="billing-notice-bar"] ~ .dash-shell-outer { flex: 1 1 0 !important; height: auto !important; min-height: 0 !important; }
-
-/* 2026-11-12 (unified quote, spec section 1): the client step "להמשך", the client strip of the work screen and the Owner's VAT notice
-   (the words "ללא מע״מ" / "כולל מע״מ" bold and in another colour). Logical properties only (RTL / LTR mirror). */
-.sq-vat-notice { margin: 0 0 14px; padding: 10px 14px; border-radius: 10px; background: #fff7e6; border: 1px solid #f3d38b; border-inline-start: 4px solid #d99725; color: #3b2a05; font-size: 0.9rem; line-height: 1.5; }
-.sq-vat-word { color: #b45309; font-weight: 800; }
-.sq-client-strip { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 12px; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: #ffffff; }
-.sq-client-strip > span { display: flex; flex-direction: column; min-width: 0; }
-.sq-client-strip strong { font-size: 1rem; overflow-wrap: anywhere; }
-.sq-client-strip small { color: #64748b; font-size: 0.8rem; }
-.sq-client-strip-edit, .sq-continue { flex: none; min-block-size: 44px; padding: 0 18px; border-radius: 10px; font: inherit; font-weight: 700; cursor: pointer; }
-.sq-client-strip-edit { border: 1px solid #cbd5e1; background: #ffffff; color: #0f172a; }
-.sq-client-continue { display: flex; justify-content: flex-start; margin: 4px 0 16px; }
-.sq-continue { border: 0; background: #0F6672; color: #ffffff; min-inline-size: 140px; }
-
-/* 2026-11-12 (unified quote, spec section 1): the work screen's two buttons with their help lines, and the work / places windows (one
-   question per step, Back on every step). Logical properties only; 44px touch targets; fits a 390px phone. */
-.sq-add-bar { display: flex; flex-wrap: wrap; gap: 12px; margin: 4px 0 14px; }
-.sq-add-choice { display: flex; flex-direction: column; gap: 4px; flex: 1 1 240px; min-width: 0; }
-.sq-add-choice small { color: #64748b; font-size: 0.78rem; line-height: 1.4; }
-.sq-add-btn { min-block-size: 44px; padding: 0 16px; border: 1px solid #b9dcdf; border-radius: 10px; background: #ffffff; color: #0b3d44; font: inherit; font-weight: 700; cursor: pointer; text-align: start; }
-.sq-add-btn--primary { border-color: #0F6672; background: #0F6672; color: #ffffff; }
-.sq-add-btn--quiet { border-color: transparent; background: transparent; color: #475569; font-weight: 600; }
-.sq-empty { margin: 4px 0 12px; padding: 14px; border: 1px dashed #cbd5e1; border-radius: 10px; color: #64748b; font-size: 0.88rem; }
-.sq-dialog-backdrop { position: fixed; inset: 0; z-index: 10050; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(15, 23, 42, 0.45); }
-.sq-dialog { box-sizing: border-box; inline-size: min(560px, 100%); max-block-size: calc(100dvh - 32px); overflow-y: auto; padding: 20px; border-radius: 16px; background: #ffffff; color: #0f172a; box-shadow: 0 24px 60px -18px rgba(15, 23, 42, 0.45); }
-.sq-dialog-steps { margin: 0 0 4px; color: #64748b; font-size: 0.8rem; }
-.sq-dialog-title { margin: 0 0 12px; font-size: 1.2rem; font-weight: 800; line-height: 1.3; }
-.sq-dialog-error { margin: 0 0 10px; padding: 8px 10px; border-radius: 8px; background: #fef2f2; color: #b42318; font-size: 0.85rem; font-weight: 600; }
-.sq-dialog-body { display: flex; flex-direction: column; gap: 10px; }
-.sq-dialog-small { margin: 0; color: #475569; font-size: 0.84rem; line-height: 1.45; }
-.sq-dialog-choices, .sq-dialog-catalog { display: flex; flex-wrap: wrap; gap: 8px; }
-.sq-chip { min-block-size: 44px; padding: 0 14px; border: 1px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 600; cursor: pointer; }
-.sq-chip.is-on, .sq-chip[aria-pressed="true"] { border: 2px solid #0F6672; background: #e8f4f5; color: #0b3d44; }
-.sq-check { display: flex; align-items: center; gap: 10px; min-block-size: 40px; font-weight: 600; }
-.sq-check input { inline-size: 22px; block-size: 22px; accent-color: #0F6672; }
-.sq-field { display: flex; flex-direction: column; gap: 4px; font-size: 0.85rem; font-weight: 600; min-width: 0; }
-.sq-field input { box-sizing: border-box; inline-size: 100%; min-block-size: 44px; padding: 0 12px; border: 1px solid #94a3b8; border-radius: 8px; font: inherit; }
-.sq-room-block { display: flex; flex-direction: column; gap: 8px; padding: 12px; border: 1px solid #e2e8f0; border-radius: 10px; }
-.sq-row2, .sq-size-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
-.sq-sizes { display: flex; flex-direction: column; gap: 10px; }
-.sq-dialog-actions { display: flex; justify-content: space-between; gap: 10px; margin-block-start: 16px; }
-.sq-btn { min-block-size: 44px; padding: 0 18px; border: 1px solid #cbd5e1; border-radius: 10px; background: #ffffff; color: #0f172a; font: inherit; font-weight: 700; cursor: pointer; }
-.sq-btn--primary { border-color: #0F6672; background: #0F6672; color: #ffffff; }
-
-/* 2026-11-12 (unified quote): copy the first group's work into an empty later group */
-.sq-copy-first { flex: 1 1 100%; min-height: 44px; padding: 9px 12px; border-radius: 8px; border: 1px dashed #0F6672; background: #e8f4f5; color: #0F6672; font-size: 0.82rem; font-weight: 700; cursor: pointer; }
-
-/* 2026-11-12 (unified quote): the summary card (one total + one save) and the details card */
-.sq-summary { margin: 14px 0 12px; padding: 14px; border: 1px solid #d6e3ea; border-radius: 16px; background: #fff; box-shadow: 0 1px 2px rgba(15,23,42,0.05); }
-.qp-aside-slot .sq-summary { margin: 0; }
-.sq-summary .pf-money-row { margin-top: 8px !important; }
-.sq-draft-badge { display: inline-block; margin: -4px 0 8px; padding: 2px 10px; border-radius: 999px; border: 1px solid #c9d6de; background: #f4f7f9; font-size: 0.78rem; font-weight: 800; color: #0f2235; }
-.sq-summary-line { margin: 0 0 6px; font-size: 0.82rem; font-weight: 600; color: #475569; }
-.sq-summary-missing { color: #9a3412; }
-.sq-summary-empty { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; justify-content: space-between; margin: 4px 0 8px; padding: 10px 12px; border-radius: 10px; background: #f4f7f9; font-size: 0.82rem; color: #334155; }
-.sq-summary-empty > span { flex: 1 1 200px; min-width: 0; }
-.sq-save-note { margin: 8px 0 0; font-size: 0.78rem; color: #475569; text-align: center; }
-
-/* 2026-11-12 (unified quote, spec 1 row 8): the saved screen */
-.sq-saved { max-width: 720px; margin: 16px auto; padding: 0 16px; }
-.sq-saved-back { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 8px 14px; margin-bottom: 12px; border-radius: 10px; border: 1px solid #c9d6de; background: #fff; color: #0f2235; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
-.sq-saved-card { padding: 28px 20px; border: 1px solid #d6e3ea; border-radius: 16px; background: #fff; text-align: center; box-shadow: 0 1px 2px rgba(15,23,42,0.05); }
-.sq-saved-icon { display: inline-flex; align-items: center; justify-content: center; width: 52px; height: 52px; border-radius: 50%; background: #e8f4f5; color: #0F6672; margin-bottom: 10px; }
-.sq-saved-card h2 { margin: 0 0 18px; font-size: 1.3rem; font-weight: 800; color: #0f2235; outline: none; }
-.sq-saved-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-.sq-saved-actions .sq-btn { min-height: 44px; flex: 1 1 160px; max-width: 220px; }
-/* 2026-11-12 (unified quote): the room of a work row */
-.qrows .qrow-room { font-size: 0.76rem; color: #475569; padding-top: 0; }
-.qrows .qrow-room-tag { display: inline-block; padding: 1px 8px; border-radius: 999px; background: #e8f4f5; color: #0F6672; font-weight: 700; }
-.sq-saved { width: 100%; box-sizing: border-box; }
-
-/* Owner 2026-11-12 (the demo, typed): the work screen - the work column, the summary beside it on a computer, after it on a phone */
-.sq-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "work" "side" "details"; column-gap: 16px; row-gap: 16px; align-items: start; }
-.sq-g-head { grid-area: head; min-width: 0; }
-.sq-g-work { grid-area: work; min-width: 0; }
-.sq-g-side { grid-area: side; min-width: 0; }
-.sq-g-details { grid-area: details; min-width: 0; }
-@media (min-width: 1024px) {
-  .sq-editor-grid { grid-template-columns: minmax(0, 1fr) 300px; grid-template-areas: "head ." "work side" "details side"; row-gap: 0; }
-  .sq-g-work { margin-bottom: 16px; }
-  .sq-g-head { margin-bottom: 4px; }
-  .sq-g-side { position: sticky; top: 12px; }
-}
-.sq-add-choice--places { margin-bottom: 12px; }
-.sq-work-card, .sq-details-card { border: 1px solid #d6e3ea; border-radius: 16px; background: #fff; padding: 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.05); }
-.sq-work-card { margin-bottom: 0; }
-.sq-card-title { margin: -16px -16px 14px; padding: 14px 16px; border-bottom: 1px solid #e2e8f0; font-size: 1.05rem; font-weight: 800; color: #0f2235; }
-.sq-add-choice--work { margin-top: 14px; }
-.sq-details-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 12px; border-bottom: 1px solid #e2e8f0; }
-.sq-details-head h3 { margin: 0; font-size: 1.05rem; font-weight: 800; color: #0f2235; }
-.sq-details-names { margin: 10px 0 0; font-size: 0.8rem; color: #475569; line-height: 1.55; }
-.sq-details-card [data-testid="sq-more-details"] { margin-top: 14px; }
-.sq-summary { margin: 0; padding: 18px; border-radius: 16px; border: 1px solid #d6e3ea; background: #fff; }
-.sq-summary-head { margin-bottom: 10px; }
-.sq-eyebrow { display: block; font-size: 0.74rem; font-weight: 800; color: #0F6672; }
-.sq-summary-head h3 { margin: 4px 0 0; font-size: 1.25rem; font-weight: 800; color: #0f2235; }
-.sq-summary-counts { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; font-size: 0.82rem; color: #475569; }
-.sq-summary .sq-summary-rows { display: grid; grid-template-columns: 1fr auto; column-gap: 10px; row-gap: 8px; margin: 0; padding: 0; border: 0; font-size: 0.88rem; color: #0f2235; }
-.sq-summary .sq-summary-rows > .pf-money, .sq-summary .sq-summary-total > .pf-money { text-align: right; }
-.sq-summary .sq-summary-total { display: grid; grid-template-columns: 1fr auto; align-items: baseline; column-gap: 10px; margin-top: 12px; padding-top: 12px; border-top: 1px solid #d6e3ea; font-size: 0.95rem; font-weight: 800; color: #0f2235; }
-.sq-summary .sq-summary-total > .pf-money { font-size: 1.2rem; font-weight: 800; }
-.sq-summary [data-testid="sq-unfinished-notice"] { margin-top: 12px; }
-.sq-save-btn { width: 100%; min-height: 48px; margin-top: 16px; border: none; border-radius: 12px; background: #136b5a; color: #fff; font-weight: 800; font-size: 0.95rem; cursor: pointer; }
-.sq-save-btn:focus-visible { outline: 3px solid #0F6672; outline-offset: 2px; }
-/* law 49 (2026-11-12): in a narrow row the "known quantity" hint has its own line in both languages */
-@container (max-width: 700px) { .qrows .qrow-known-hint { flex-basis: 100%; } }
-
-/* law 49 (2026-11-12): the same wrapping in Hebrew and English */
-.sq-nowrap { white-space: nowrap; }
-@media (max-width: 768px) {
-  .sq-add-bar .sq-add-btn { flex: 1 1 100%; }
-  .sq-unit-actions > button { flex: 1 1 100% !important; }
-}
-/* the catalog add form: every field one height (44px), so the three fields stand on one line */
-[data-testid="catalog-new-name"], [data-testid="catalog-new-price"] { min-height: 44px; }

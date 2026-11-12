@@ -30,7 +30,7 @@ function doc({ Page, locale }, { sections = false, wide = true } = {}) {
     items = items.map((it, i) => ({ ...it, section_id: i % 2 ? 'sec-b' : 'sec-a' }));
     extra = { sections: [{ id: 'sec-a', name: 'A', sort_order: 0 }, { id: 'sec-b', name: 'B', sort_order: 1 }] };
   }
-  return <Page detail="compact" quoteData={{ ...sample.quoteData, items, ...extra }} presentation={sample.presentation} />;
+  return <Page quoteData={{ ...sample.quoteData, items, ...extra }} presentation={sample.presentation} />;
 }
 const mount = (p, o) => { const el = doc(p, o); return render(p.wrap ? <MemoryRouter>{el}</MemoryRouter> : el).container; };
 
@@ -128,7 +128,7 @@ describe('item table semantics - explicit header association and roles', () => {
 
   it('HE no-items quote: the general-quote line (colspan 4) is associated with description + amount, not quantity / unit price', () => {
     const sample = buildSampleQuote({ locale: 'he', style: 'classic', length: 'short', images: false, now: NOW });
-    const c = render(<MemoryRouter><PublicQuote detail="compact" quoteData={{ ...sample.quoteData, items: [] }} presentation={sample.presentation} /></MemoryRouter>).container;
+    const c = render(<MemoryRouter><PublicQuote quoteData={{ ...sample.quoteData, items: [] }} presentation={sample.presentation} /></MemoryRouter>).container;
     const table = c.querySelector('.pq-card table.pq-commercial-table');
     const td = table.querySelector('tbody td[colspan="4"]');
     expect(spanKind(td)).toBe('general-quote');

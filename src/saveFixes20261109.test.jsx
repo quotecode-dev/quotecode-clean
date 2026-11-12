@@ -70,11 +70,11 @@ describe('2026-11-09 · the total right above the save button', () => {
   it('shows the same total as the summary, in both languages, before the save button', () => {
     render(<QuoteForm {...props({ isHebrew: true, sym: '₪' })} />);
     const box = screen.getByTestId('sq-save-total');
-    expect(box.textContent).toBe('סה״כ לתשלום₪354.00'); // 2026-11-12: the demo label, no colon
+    expect(box.textContent).toBe('סה״כ לתשלום:₪354.00');
     expect(box.nextElementSibling).toBe(screen.getByTestId('sq-save'));
     cleanup();
     render(<QuoteForm {...props()} />);
-    expect(screen.getByTestId('sq-save-total').textContent).toBe('Total to pay$354.00');
+    expect(screen.getByTestId('sq-save-total').textContent).toBe('Total to pay:$354.00');
   });
 });
 

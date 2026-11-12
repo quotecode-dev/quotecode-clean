@@ -34,13 +34,11 @@ describe('R-03: a template remembers whether its prices include VAT (L-09, Owner
     expect(buildTemplateContent(form({ priceBasis: 'bogus' })).price_basis).toBeUndefined();
     expect(templateToFormState({ ...c, price_basis: 'bogus' }, () => 'k').priceBasis).toBeNull();
   });
-  // 2026-11-12 (unified quote): the client type is chosen first, so a template never changes it - prices with another VAT basis (or an
-  // unknown one) are used only after the user chooses, the same rule as the unit template (Owner 2026-11-08, restore item 14)
-  it('using a template keeps the chosen client type and asks about prices with another or an unknown VAT basis', () => {
+  it('using a template sets the matching client type, or asks the user to check when the basis is unknown', () => {
     expect(dash).toContain('priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType)');
-    expect(dash).toContain("const vatQ = unitTemplatePriceQuestions({ items: templateItems, currency: null, priceBasis: f.priceBasis }, { currency: null, isLocal: isLocalIsraeliBusiness, clientType });");
-    expect(dash).toContain('בתבנית הזו לא נשמר אם המחירים כוללים מע״מ.');
-    expect(dash.slice(dash.indexOf('const handleUseTemplate'), dash.indexOf('const handleAddUnitTemplate'))).not.toContain('setClientType(');
+    expect(dash).toContain('const templateClientType = clientTypeForPriceBasis(f.priceBasis);');
+    expect(dash).toContain('if (templateClientType) setClientType(templateClientType);');
+    expect(dash).toContain('בתבנית הזו עדיין לא נשמר מידע אם המחירים כוללים מע״מ.');
   });
   it('the template summary names the right basis', () => {
     const dlg = read('src/components/QuoteTemplateDialogs.jsx');

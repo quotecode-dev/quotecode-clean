@@ -183,13 +183,10 @@ export function rendererFromSnapshot(snapshot: unknown, bound: BoundArtifact,
       address: iss.address, currency: iss.currency } : null,
     client: c ? { company_name: c.company_name, email: c.email, phone: c.phone, address: c.address } : null,
     // Owner console 2026-11-08 (stage 3 of the one quote builder): the frozen document carries repeat_count only above 1 - passed through as is
-    sections: arr(doc.sections).slice().sort(sortBy).map((s) => ({ id: s.id, name: s.name, ...(Number.isInteger(s.repeat_count) && (s.repeat_count as number) > 1 ? { repeat_count: s.repeat_count as number } : {}),
-      // 2026-11-12 (unified quote): the kind only when the document carries it
-      ...(typeof s.kind === 'string' && s.kind ? { kind: s.kind as string } : {}) })),
+    sections: arr(doc.sections).slice().sort(sortBy).map((s) => ({ id: s.id, name: s.name, ...(Number.isInteger(s.repeat_count) && (s.repeat_count as number) > 1 ? { repeat_count: s.repeat_count as number } : {}) })),
     items: arr(doc.items).slice().sort(sortBy).map((i) => ({
       description: i.description, quantity: i.quantity, price: i.unit_price, total_price: i.total_price,
       ...(i.price_missing === true ? { price_missing: true } : {}), // Task 35 (F4): from the issued deal document, only when true
-      ...(typeof i.room === 'string' && i.room ? { room: i.room as string } : {}), // 2026-11-12 (unified quote): only when set
       pricing_unit: i.pricing_unit, calculated_quantity: i.calculated_quantity, quantity_source: i.quantity_source,
       calculation_method: i.calculation_method, specification: Array.isArray(i.specification) ? i.specification : [],
       section_id: i.section_id,
@@ -230,13 +227,10 @@ export function rendererFromSignedRecord(rec: SignedRecord, quoteId: string, own
     business: b ? { business_name: b.business_name, logo_url: b.logo_url, tax_id: b.tax_id, email: b.email, phone: b.phone,
       address: b.address, currency: b.currency } : null,
     client: c ? { company_name: c.company_name, email: c.email, phone: c.phone, address: c.address } : null,
-    sections: arr(doc.sections).slice().sort(sortBy).map((s) => ({ id: s.id, name: s.name, ...(Number.isInteger(s.repeat_count) && (s.repeat_count as number) > 1 ? { repeat_count: s.repeat_count as number } : {}),
-      // 2026-11-12 (unified quote): the kind only when the document carries it
-      ...(typeof s.kind === 'string' && s.kind ? { kind: s.kind as string } : {}) })),
+    sections: arr(doc.sections).slice().sort(sortBy).map((s) => ({ id: s.id, name: s.name, ...(Number.isInteger(s.repeat_count) && (s.repeat_count as number) > 1 ? { repeat_count: s.repeat_count as number } : {}) })),
     items: arr(doc.items).slice().sort(sortBy).map((i) => ({
       description: i.description, quantity: i.quantity, price: i.unit_price, total_price: i.total_price,
       ...(i.price_missing === true ? { price_missing: true } : {}),
-      ...(typeof i.room === 'string' && i.room ? { room: i.room as string } : {}), // 2026-11-12 (unified quote): only when set
       pricing_unit: i.pricing_unit, calculated_quantity: i.calculated_quantity, quantity_source: i.quantity_source,
       calculation_method: i.calculation_method, specification: Array.isArray(i.specification) ? i.specification : [],
       section_id: i.section_id,
