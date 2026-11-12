@@ -1901,3 +1901,5 @@
 .pq-page[dir='rtl'] .pq-card .pq-commercial-table .pq-section-subtotal-row td.pq-td-total .pf-money {
   min-width: var(--pq-money-box-px, calc(var(--pq-money-box-n, 0) * 1em)) !important;
 }
+/* 2026-11-12 (the demo): the full / summary switch first, the one-time explanation under it ("the button above") */
+.pq-group-controls > .pq-group-help { order: 2; }
