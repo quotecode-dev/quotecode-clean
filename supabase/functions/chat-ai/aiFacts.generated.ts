@@ -298,8 +298,8 @@ export const AI_FACTS = {
       "id": "smart_quote",
       "heLabel": "הצעת מחיר חכמה",
       "enLabel": "Smart Quote flow",
-      "heDescription": "הצעת מחיר חכמה עם AI (בתפריט „הצעה חדשה”): מתארים את העבודה במילים, וה-AI מציע שורות - תיאור, כמות ויחידה; מחיר רק כשהפריט קיים בקטלוג שלכם, אחרת המחיר נשאר ריק להזנה. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה; שום דבר לא נשמר או נשלח לבד. אפשר גם להכתיב את העבודה בקול (המיקרופון בפינת שדה התיאור) ולענות בקול על השאלות שהטיוטה שואלת. בתפריט יש גם „הצעת מחיר מקובץ”: מעלים קובץ PDF או JPG אחד של הצעה או רשימת עבודות, וה-AI קורא ממנו שורות, כמויות, יחידות ומחירים. בבדיקה מוצגים לכל שורה „מחיר במסמך” ו„המחיר שלכם”, ורק המחירים שלכם נכנסים להצעה. הקובץ לא נשמר ולא מצורף להצעה. חלק מחכם פלוס, ונספר במכסת השימוש של חכם פלוס לחודש (היתרה מוצגת באחוזים).",
-      "enDescription": "AI smart quote (in the \"New quote\" menu): describe the job in words and the AI suggests lines - description, quantity and unit; a price only when the item is in your catalog, otherwise the price stays empty for you to enter. You review, correct and approve before anything enters the quote; nothing is saved or sent on its own. You can also dictate the job by voice (the microphone in the corner of the description field) and answer the draft’s questions by voice. The menu also has \"Quote from a file\": upload one PDF or JPG of a quote or job list, and the AI reads its lines, quantities, units and prices. The review shows \"Price in the document\" and \"Your price\" on each line, and only your prices enter the quote. The file is not stored or attached to the quote. Part of SMART PACK, counted in its monthly usage allowance (shown as a percentage left).",
+      "heDescription": "הצעת מחיר חכמה עם AI (בחלון „הצעה חדשה” ← „מתארים ל-AI”, אחרי שלב הלקוח): מתארים את העבודה במילים, וה-AI מציע שורות - תיאור, כמות ויחידה - וגם מבנה: דירות, חדרים או קומות, מספר עותקים זהים וחדר לכל עבודה. מחיר רק כשהפריט קיים בקטלוג שלכם או כשכתבתם אותו, אחרת המחיר נשאר ריק להזנה; מה שלא ברור מסומן ולא מנוחש, ואם לא כתוב אם הדירות זהות - הוא שואל. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה; שום דבר לא נשמר או נשלח לבד. אפשר גם להכתיב את העבודה בקול (המיקרופון בפינת שדה התיאור) ולענות בקול על השאלות שהטיוטה שואלת. בחלון יש גם „מעלים קובץ” (הצעת מחיר מקובץ): מעלים קובץ PDF או JPG אחד של הצעה או רשימת עבודות, וה-AI קורא ממנו שורות, כמויות, יחידות ומחירים. בבדיקה מוצגים לכל שורה „מחיר במסמך” ו„המחיר שלכם”, ורק המחירים שלכם נכנסים להצעה. הקובץ לא נשמר ולא מצורף להצעה. חלק מחכם פלוס, ונספר במכסת השימוש של חכם פלוס לחודש (היתרה מוצגת באחוזים).",
+      "enDescription": "AI smart quote (in the \"New quote\" window, \"Describe it to AI\", after the client step): describe the job in words and the AI suggests lines - description, quantity and unit - and a structure too: apartments, rooms or floors, the number of identical copies and a room for each work item. A price only when the item is in your catalog or you wrote it, otherwise the price stays empty for you to enter; what is unclear is marked, never guessed, and when it is not written whether the apartments are identical, it asks. You review, correct and approve before anything enters the quote; nothing is saved or sent on its own. You can also dictate the job by voice (the microphone in the corner of the description field) and answer the draft’s questions by voice. The window also has \"Upload a file\" (Quote from a file): upload one PDF or JPG of a quote or job list, and the AI reads its lines, quantities, units and prices. The review shows \"Price in the document\" and \"Your price\" on each line, and only your prices enter the quote. The file is not stored or attached to the quote. Part of SMART PACK, counted in its monthly usage allowance (shown as a percentage left).",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -323,8 +323,8 @@ export const AI_FACTS = {
       "id": "measured_quote",
       "heLabel": "הצעת מחיר מקצועית/מדודה",
       "enLabel": "Measured professional quote",
-      "heDescription": "מידות בהצעה (בתוך הכפתור „הצעת מחיר”): בכל שורה בעורך בוחרים אופן חיוב - סכום קבוע, יחידות, שטח, אורך, ק״ג, שעות או ימים. בשטח ובאורך כותבים את המידות באותה שורה (במטר או בס״מ, או כמות ידועה במ״ר / מ״א, ואפשר מידה נוספת; בחשבון בינלאומי ברגל או באינץ׳, ומטר נשאר זמין - ואז המחיר לרגל רבועה / לרגל אורך, בלי המרה בין מטרים לרגל), והסכום מחושב מיד. חלוקה לחדרים / אזורים / יחידות היא אופציונלית.",
-      "enDescription": "Sizes in a quote (inside the one \"Quote\" entry): every row of the editor chooses its billing - a fixed amount, units, area, length, kg, hours or days. For area and length the sizes are typed in the same row (in m or cm, or a known quantity in m² / linear m, and another size can be added; an international account measures in feet or inches, metres stay available, and prices per sq ft / linear ft - metres and feet are never converted into each other), and the total is calculated at once. Grouping into rooms/areas/units is optional.",
+      "heDescription": "מידות בהצעה (בעורך ההצעה, ב„+ הוספת עבודה או מוצר” ובשורות): בכל שורה בעורך בוחרים אופן חיוב - סכום קבוע, יחידות, שטח, אורך, ק״ג, שעות או ימים. בשטח ובאורך כותבים את המידות באותה שורה (במטר או בס״מ, או כמות ידועה במ״ר / מ״א, ואפשר מידה נוספת; בחשבון בינלאומי ברגל או באינץ׳, ומטר נשאר זמין - ואז המחיר לרגל רבועה / לרגל אורך, בלי המרה בין מטרים לרגל), והסכום מחושב מיד. אפשר לחלק את ההצעה לדירות, חדרים או קומות (״+ הוספת דירה, חדר או קומה״), עם עותקים זהים וחדר לכל עבודה - לא חובה.",
+      "enDescription": "Sizes in a quote (in the quote editor, in \"+ Add work or a product\" and in the rows): every row of the editor chooses its billing - a fixed amount, units, area, length, kg, hours or days. For area and length the sizes are typed in the same row (in m or cm, or a known quantity in m² / linear m, and another size can be added; an international account measures in feet or inches, metres stay available, and prices per sq ft / linear ft - metres and feet are never converted into each other), and the total is calculated at once. The quote can be divided into apartments, rooms or floors (\"+ Add an apartment, room or floor\"), with identical copies and a room for each work item - optional.",
       "state": "LIVE_CURRENT",
       "markets": [
         "local",
@@ -1360,8 +1360,8 @@ export const AI_FACTS = {
       "forbiddenClaimCodes": [
         "NO_AI_EXECUTION_CLAIM"
       ],
-      "heAnswerNote": "העוזר עונה ומדריך, ואינו מבצע פעולות במקומכם. להכנת הצעה בעזרת AI יש „הצעה חדשה” ← „הצעת מחיר חכמה עם AI”: מתארים את העבודה בכתב או מכתיבים בקול, וה-AI מציע שורות שבודקים ומאשרים.",
-      "enAnswerNote": "The assistant answers and guides; it does not act for you. To prepare a quote with AI, use “New quote” → “AI smart quote”: describe the job in writing or dictate it, and the AI suggests lines you review and approve."
+      "heAnswerNote": "העוזר עונה ומדריך, ואינו מבצע פעולות במקומכם. להכנת הצעה בעזרת AI יש הצעת מחיר חכמה עם AI: בחלון „הצעה חדשה” בוחרים „מתארים ל-AI”, מתארים את העבודה בכתב או מכתיבים בקול, וה-AI מציע שורות שבודקים ומאשרים.",
+      "enAnswerNote": "The assistant answers and guides; it does not act for you. To prepare a quote with AI, use the AI smart quote: in “New quote” choose “Describe it to AI”, describe the job in writing or dictate it, and the AI suggests lines you review and approve."
     },
     {
       "id": "automatic_customer_messages",
@@ -1436,22 +1436,48 @@ export const AI_FACTS = {
         "task": "יצירת הצעת מחיר (גם הראשונה)",
         "steps": [
           "לפני ההצעה הראשונה צריך טלפון עסק (ובישראל גם ח.פ / עוסק מורשה) ב\"הגדרות העסק\".",
-          "לוחצים \"הצעה חדשה\" ובוחרים \"הצעת מחיר\".",
-          "בשלב \"למי ההצעה?\" ממלאים את פרטי הלקוח ובוחרים \"סוג לקוח (חובה)\".",
-          "בשלב \"מה העבודה או המוצר?\" כל שורה היא פריט: כותבים שם, או לוחצים על החץ (\"פתיחת הקטלוג\") ובוחרים מהקטלוג. בוחרים \"אופן חיוב\" - סכום קבוע, יחידות, שטח, אורך, ק״ג, שעות או ימים - וממלאים כמות או מידות ומחיר. \"הוספת שורה\" מוסיפה עוד פריט.",
-          "בשלב \"מחיר\" אפשר לתת הנחה על כל ההצעה.",
-          "בשלב \"בדיקה ושמירה\" לוחצים \"הפקה ושמירה בענן\". כל הצעה חדשה נשמרת כטיוטה, ואחרי השמירה אפשר לשלוח אותה."
+          "לוחצים \"הצעה חדשה\". בחלון \"איך תרצו להתחיל?\" בוחרים \"ממלאים בעצמכם\" (לשלוש הדרכים האחרות יש הסבר משלהן).",
+          "בשלב \"למי מכינים את ההצעה?\" ממלאים את שם הלקוח, בוחרים \"סוג לקוח (חובה)\" ולוחצים \"להמשך\". בישראל מופיעה מיד הודעה אם הסכומים כוללים מע״מ או לא.",
+          "בשלב \"מה מוסיפים להצעה?\" לוחצים \"+ הוספת עבודה או מוצר\" ועונים על ארבע שאלות: איזו עבודה (שם, או בחירה מהקטלוג), איפה עושים אותה, איך מחשבים את המחיר וכמה זה עולה. העבודה נכנסת כשורה, ואפשר לשנות אותה בשורה עצמה. כשיש כמה דירות, חדרים או קומות לוחצים \"+ הוספת דירה, חדר או קומה\".",
+          "בכרטיס \"פרטי ההצעה\" נמצאים הפרויקט, הכתובת והתוקף, קבצים, תנאים ואחריות, הערות, הנחה, עיצוב ותמונות ומטבע.",
+          "ב\"סיכום ההצעה\" לוחצים \"שמירת ההצעה\". שמירה אינה שליחה: ההצעה נשמרת כטיוטה, ומופיע \"נשמרה. עדיין לא נשלחה.\" - משם אפשר לראות איך הלקוח יראה אותה, לחזור לעריכה או לעבור לרשימת ההצעות."
         ]
       },
       "en": {
         "task": "Creating a quote (including the first one)",
         "steps": [
           "Before the first quote a business phone is required in \"Business Settings\".",
-          "Click \"New quote\" and choose \"Quote\".",
-          "In the \"Who is it for?\" step fill in the client details and choose the client type.",
-          "In the \"What work or product?\" step every row is an item: type a name, or click the arrow (\"Open the catalog\") and pick from your catalog. Choose the \"Billing method\" - a fixed amount, units, area, length, kg, hours or days - and fill in the quantity or the sizes and the price. \"Add row\" adds another item.",
-          "In the \"Price\" step you can give a discount on the whole quote.",
-          "In the \"Review and save\" step click \"Generate & Save to Cloud\". Every new quote is saved as a draft; after saving you can send it."
+          "Click \"New quote\". In the \"How would you like to start?\" window choose \"Fill it in yourselves\" (the other three ways have their own steps).",
+          "In the \"Who is this quote for?\" step fill in the client name, choose the client type and click \"Continue\".",
+          "In the \"What goes in the quote?\" step click \"+ Add work or a product\" and answer four questions: what work (a name, or pick from the catalog), where it is done, how the price is calculated and how much it costs. The work becomes a row, and you can change it in the row itself. When there are several apartments, rooms or floors click \"+ Add an apartment, room or floor\".",
+          "The \"Quote details\" card holds the project, address and validity, files, terms and warranty, notes, discount, design and images and currency.",
+          "In the \"Quote summary\" click \"Save the quote\". Saving is not sending: the quote is saved as a draft and \"Saved. Not sent yet.\" appears - from there you can see how the client will see it, go back to editing or go to the quote list."
+        ]
+      }
+    },
+    {
+      "id": "quote_places",
+      "capabilityIds": [
+        "measured_quote",
+        "quote_create",
+        "quote_edit"
+      ],
+      "he": {
+        "task": "הצעה לכמה דירות, חדרים או קומות",
+        "steps": [
+          "בשלב \"מה מוסיפים להצעה?\" לוחצים \"+ הוספת דירה, חדר או קומה\", בוחרים מה מוסיפים (דירה, חדר, קומה או שם אחר) וכמה. כשיש יותר מאחת נשאלים אם העבודות זהות: \"כן\" - ממלאים פעם אחת והסכום מוכפל במספר; \"לא\" - כל אחת בנפרד.",
+          "בכל דירה (או חדר / קומה) לוחצים \"הוספת עבודה או מוצר\". בשאלה \"איפה עושים אותה?\" אפשר לבחור כמה חדרים - לכל חדר נוספת שורה נפרדת עם כמות ומחיר משלה (למשל ריצוף במטבח ובסלון באריחים שונים).",
+          "בדירה נוספת שעדיין ריקה מופיע כפתור להעתקת מה שמילאתם בראשונה. בכפתור הפעולות שבכותרת של כל דירה יש מספר עותקים זהים, הפרדת עותק ושמירה כתבנית; מתחת לרשימה יש \"מתבנית שמורה\" ו\"ביטול החלוקה (העבודות נשמרות)\".",
+          "הלקוח רואה את ההצעה כשהכול פתוח, עם חץ ליד שם כל דירה שסוגר ופותח את הפירוט, ובראש הרשימה \"תצוגת מסמך מלא\" ו\"תצוגת שורות סיכום\". בהדפסה ובקובץ בוחרים מסמך מלא או חלקי."
+        ]
+      },
+      "en": {
+        "task": "A quote for several apartments, rooms or floors",
+        "steps": [
+          "In the \"What goes in the quote?\" step click \"+ Add an apartment, room or floor\", choose what you add (an apartment, room, floor or another name) and how many. When there is more than one you are asked whether the work is identical: \"Yes\" - fill it in once and the amount is multiplied by the number; \"No\" - each one separately.",
+          "In each apartment (or room / floor) click \"Add work or a product\". In \"Where is this work done?\" you can choose several rooms - each room gets its own row with its own quantity and price (for example flooring in the kitchen and the living room with different tiles).",
+          "An added apartment that is still empty shows a button that copies what you filled in the first one. The actions button in the header of each apartment holds the number of identical copies, separating one copy and saving as a template; under the list there are \"From a saved template\" and \"Remove the division (the work stays)\".",
+          "The client sees the quote with everything open, an arrow beside each apartment name that closes and opens its details, and \"Full document view\" and \"Summary rows view\" above the list. Printing and the file offer a full or a partial document."
         ]
       }
     },
@@ -1510,15 +1536,15 @@ export const AI_FACTS = {
       "he": {
         "task": "שמירת הצעה כתבנית והתחלה מתבנית",
         "steps": [
-          "בעורך ההצעה, מתחת לכפתור השמירה, לוחצים \"שמירה כתבנית (בלי פרטי לקוח)\". נשמרים הנושא והפריטים, בלי פרטי הלקוח.",
-          "כדי להתחיל מתבנית: לוחצים \"הצעה חדשה\", בוחרים \"מתבנית שמורה\" ובוחרים את התבנית."
+          "בעורך ההצעה, בכרטיס \"פרטי ההצעה\", לוחצים \"שמירה כתבנית (בלי פרטי לקוח)\". נשמרים הנושא והפריטים, בלי פרטי הלקוח.",
+          "כדי להתחיל מתבנית: לוחצים \"הצעה חדשה\", בוחרים \"מתבנית שמורה\", ממלאים את הלקוח ולוחצים \"להמשך\", ואז בוחרים את התבנית. סוג הלקוח שבחרתם לא משתנה; כשהמחירים בתבנית לפי בסיס מע״מ אחר, נשאלים אם להשתמש בהם."
         ]
       },
       "en": {
         "task": "Saving a quote as a template and starting from a template",
         "steps": [
-          "In the quote editor, under the save button, click \"Save as template (no customer details)\". The subject and the items are saved, without the customer details.",
-          "To start from a template: click \"New quote\", choose \"From a saved template\" and pick the template."
+          "In the quote editor, in the \"Quote details\" card, click \"Save as template (no customer details)\". The subject and the items are saved, without the customer details.",
+          "To start from a template: click \"New quote\", choose \"From a saved template\", fill in the client and click \"Continue\", then pick the template. The client type you chose does not change."
         ]
       }
     },
@@ -1530,17 +1556,17 @@ export const AI_FACTS = {
       "he": {
         "task": "הצעת מחיר חכמה עם AI",
         "steps": [
-          "לוחצים \"הצעה חדשה\" ובוחרים \"הצעת מחיר חכמה עם AI\".",
-          "מתארים את העבודה במילים, או מכתיבים בקול בלחיצה על המיקרופון בפינת השדה.",
-          "ה-AI מציע שורות. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה. מחיר מוצע רק לפריט שקיים בקטלוג."
+          "לוחצים \"הצעה חדשה\", בוחרים \"מתארים ל-AI\", ממלאים את הלקוח ולוחצים \"להמשך\".",
+          "מתארים את העבודה במילים, או מכתיבים בקול בלחיצה על המיקרופון בפינת השדה. אפשר לתאר גם מבנה, למשל: שתי דירות זהות, בכל אחת ריצוף במטבח - וה-AI מציע את הדירות, מספר העותקים, העבודות והחדרים.",
+          "ה-AI מציע שורות לבדיקה. מחיר מוצע רק לפריט מהקטלוג או כשכתבתם אותו. מה שלא ברור מסומן ולא מנוחש, ואם לא כתוב אם הדירות זהות - הוא שואל. בודקים, מתקנים ומאשרים לפני שמשהו נכנס להצעה."
         ]
       },
       "en": {
         "task": "An AI smart quote",
         "steps": [
-          "Click \"New quote\" and choose \"AI smart quote\".",
-          "Describe the job in words, or dictate it by clicking the microphone in the corner of the field.",
-          "The AI suggests lines. Review, correct and approve before anything enters the quote. A price is suggested only for an item that is in your catalog."
+          "Click \"New quote\", choose \"Describe it to AI\", fill in the client and click \"Continue\".",
+          "Describe the job in words, or dictate it by clicking the microphone in the corner of the field. You can describe a structure too, for example: two identical apartments, flooring in the kitchen of each - and the AI suggests the apartments, the number of copies, the work and the rooms.",
+          "The AI suggests lines to check. A price is suggested only for an item from your catalog or when you wrote it. What is unclear is marked, never guessed, and when it is not written whether the apartments are identical, it asks. Review, correct and approve before anything enters the quote."
         ]
       }
     },
@@ -1552,7 +1578,7 @@ export const AI_FACTS = {
       "he": {
         "task": "הצעת מחיר מקובץ",
         "steps": [
-          "לוחצים \"הצעה חדשה\" ובוחרים \"הצעת מחיר מקובץ\".",
+          "לוחצים \"הצעה חדשה\", בוחרים \"מעלים קובץ\" (הצעת מחיר מקובץ), ממלאים את הלקוח ולוחצים \"להמשך\".",
           "לוחצים \"בחרו קובץ\", בוחרים קובץ PDF או JPG אחד ולוחצים \"קריאת הפרטים\".",
           "בכל שורה מוצגים \"מחיר במסמך\" ו\"המחיר שלכם\". ממלאים את המחיר שלכם ולוחצים \"הוספת השורות להצעה\". הקובץ לא נשמר."
         ]
@@ -1560,7 +1586,7 @@ export const AI_FACTS = {
       "en": {
         "task": "A quote from a file",
         "steps": [
-          "Click \"New quote\" and choose \"Quote from a file\".",
+          "Click \"New quote\", choose \"Upload a file\" (Quote from a file), fill in the client and click \"Continue\".",
           "Click \"Choose a file\", pick one PDF or JPG and click \"Read details\".",
           "Each line shows \"Price in the document\" and \"Your price\". Fill in your price and click \"Add the lines to the quote\". The file is not stored."
         ]
@@ -1623,21 +1649,21 @@ export const AI_FACTS = {
         "quote_edit"
       ],
       "he": {
-        "task": "יחידות זהות (למשל כמה דירות זהות) ומחיר משותף אחרי שכפול יחידה",
+        "task": "דירות זהות (או חדרים / קומות זהים) ומחיר משותף אחרי שכפול",
         "steps": [
-          "בהצעה מחולקת ליחידות לוחצים על הכפתור \"פעולות ליחידה\" בכותרת שלה ובוחרים \"מספר יחידות זהות\". מקלידים את מספר היחידות (מספר שלם) ומאשרים. השורות ביחידה הן ליחידה אחת, והסכום של היחידה ושל ההצעה נספר כפול מספר היחידות.",
-          "כדי לשנות יחידה אחת מתוך הקבוצה בוחרים בכפתור \"פעולות ליחידה\" את \"הפרדת עותק אחד\": מספר היחידות יורד ב-1, ונוצר אחריה עותק נפרד לעריכה. מיד אחרי ההפרדה אפשר ללחוץ \"ביטול\".",
-          "\"שכפול יחידה\" יוצר עותק אחד של היחידה עם השורות שלה, והמחירים של כל שורה והעותק שלה מקושרים. כשמשנים מחיר בשורה מקושרת, המערכת שואלת אם לעדכן גם את השורות המקושרות: \"רק כאן\", עדכון גם בהן, או \"ביטול\". אחרי עדכון אפשר ללחוץ \"ביטול עדכון המחירים\".",
-          "בהצעה ללקוח, בהדפסה ובקובץ מופיעים שם היחידה עם מספר העותקים (למשל דירה טיפוס א׳ × 12), הפירוט ליחידה אחת והסכום של כל העותקים."
+          "בהצעה מחולקת לוחצים על כפתור הפעולות בכותרת של הדירה (או החדר / הקומה) ובוחרים את מספר העותקים הזהים. מקלידים מספר שלם ולוחצים \"אישור\". השורות הן לעותק אחד, והסכום נספר כפול מספר העותקים.",
+          "כדי לשנות עותק אחד בוחרים באותו כפתור את הפרדת העותק: מספר העותקים יורד ב-1 ונוצר אחריו עותק נפרד לעריכה. מיד אחרי ההפרדה אפשר ללחוץ \"ביטול\".",
+          "השכפול יוצר עותק אחד עם השורות שלו, והמחירים של כל שורה והעותק שלה מקושרים. כשמשנים מחיר בשורה מקושרת נשאלים אם לעדכן גם את השורות המקושרות: \"רק כאן\", עדכון גם בהן, או \"ביטול\". אחרי עדכון אפשר ללחוץ \"ביטול עדכון המחירים\".",
+          "בהצעה ללקוח, בהדפסה ובקובץ מופיעים שם הדירה עם מספר העותקים (למשל דירה טיפוס א׳ × 12), הפירוט לעותק אחד והסכום של כל העותקים."
         ]
       },
       "en": {
-        "task": "Identical units (for example several identical apartments) and a shared price after duplicating a unit",
+        "task": "Identical apartments (or rooms / floors) and a shared price after duplicating",
         "steps": [
-          "In a quote divided into units click the \"Unit actions\" button in its header and choose \"Identical unit count\". Type the number of units (a whole number) and confirm. The rows of the unit are for one unit, and the unit and quote totals count every copy.",
-          "To change one unit of the group choose \"Separate one copy\" in the \"Unit actions\" button: the count goes down by 1 and a separate copy to edit appears right after it. Right after separating you can click \"Undo\".",
-          "\"Duplicate unit\" makes one copy of the unit with its rows, and the price of every row is linked to its copy. When you change the price of a linked row you are asked whether the linked rows take it too: \"Only here\", update them too, or \"Cancel\". After an update you can click \"Undo the price update\".",
-          "The customer quote, the print and the file show the unit name with its number of copies (for example Type A apartment × 12), the details for one unit and the total of all copies."
+          "In a divided quote click the actions button in the header of the apartment (or room / floor) and choose the number of identical copies. Type a whole number and click \"Confirm\". The rows are for one copy, and the total counts every copy.",
+          "To change one copy choose separating one copy in the same button: the count goes down by 1 and a separate copy to edit appears right after it. Right after separating you can click \"Undo\".",
+          "Duplicating makes one copy with its rows, and the price of every row is linked to its copy. When you change the price of a linked row you are asked whether the linked rows take it too: \"Only here\", update them too, or \"Cancel\". After an update you can click \"Undo the price update\".",
+          "The client quote, the print and the file show the apartment name with its number of copies (for example Type A apartment × 12), the details for one copy and the total of all copies."
         ]
       }
     },
@@ -1648,21 +1674,21 @@ export const AI_FACTS = {
         "quote_edit"
       ],
       "he": {
-        "task": "תבנית יחידה - שמירת יחידה (למשל דירה) והוספתה להצעה אחרת",
+        "task": "תבנית לדירה (או חדר / קומה) - שמירה והוספה להצעה אחרת",
         "steps": [
-          "בהצעה מחולקת ליחידות לוחצים על הכפתור \"פעולות ליחידה\" בכותרת שלה ובוחרים \"שמירה כתבנית יחידה\". נותנים שם ובוחרים אם לשמור מחירים ופרטים ללקוח. השורות, סוג החיוב והמידות נשמרים תמיד; פרטי לקוח, כתובת ושמות המקומות במידות לעולם לא נשמרים.",
-          "כדי להוסיף יחידה שמורה להצעה פתוחה לוחצים \"מיחידה שמורה\" מעל רשימת העבודות, בוחרים את התבנית ולוחצים \"הוספה להצעה\". יחידה אחת עם השורות שלה נוספת לסוף ההצעה.",
-          "כשהמטבע או בסיס המע״מ של המחירים בתבנית שונים מההצעה, המערכת שואלת לפני ההוספה אם להשתמש במחירים או להוסיף בלי מחירים.",
-          "בחלון ההוספה מיחידה שמורה מופיעות רק תבניות יחידה, ובחלון התבניות של הצעה חדשה מופיעות רק תבניות הצעה. בכל חלון מוחקים רק את התבניות שלו."
+          "בכפתור הפעולות שבכותרת של הדירה (או החדר / הקומה) בוחרים \"שמירה כתבנית\". נותנים שם ובוחרים אם לשמור מחירים ופרטים ללקוח. השורות, סוג החיוב והמידות נשמרים תמיד; פרטי לקוח, כתובת ושמות המקומות במידות לעולם לא נשמרים.",
+          "כדי להוסיף מקום שמור להצעה פתוחה לוחצים \"מתבנית שמורה\" (מתחת לרשימה בהצעה מחולקת, או בחלון של \"+ הוספת דירה, חדר או קומה\"), בוחרים את התבנית ולוחצים \"הוספה להצעה\". מקום אחד עם השורות שלו נוסף לסוף ההצעה.",
+          "כשהמטבע או בסיס המע״מ של המחירים בתבנית שונים מההצעה, נשאלים לפני ההוספה אם להשתמש במחירים או להוסיף בלי מחירים.",
+          "בחלון ההוספה מתבנית שמורה בתוך ההצעה מופיעות רק תבניות של מקום, ובחלון התבניות של הצעה חדשה מופיעות רק תבניות הצעה. בכל חלון מוחקים רק את התבניות שלו."
         ]
       },
       "en": {
-        "task": "Unit templates - saving a unit (for example an apartment) and adding it to another quote",
+        "task": "A template for an apartment (or room / floor) - saving it and adding it to another quote",
         "steps": [
-          "In a quote divided into units click the \"Unit actions\" button in its header and choose \"Save as unit template\". Give it a name and choose whether to keep the prices and the details for the customer. The rows, the billing type and the sizes are always kept; customer details, the address and the place names of the sizes are never kept.",
-          "To add a saved unit to an open quote click \"From a saved unit\" above the list of work, pick the template and click \"Add to the quote\". One unit with its rows is added at the end of the quote.",
+          "In the actions button in the header of the apartment (or room / floor) choose \"Save as a template\". Give it a name and choose whether to keep the prices and the details for the customer. The rows, the billing type and the sizes are always kept; customer details, the address and the place names of the sizes are never kept.",
+          "To add a saved place to an open quote click \"From a saved template\" (under the list in a divided quote, or in the window of \"+ Add an apartment, room or floor\"), pick the template and click \"Add to the quote\". One place with its rows is added at the end of the quote.",
           "When the currency or the VAT basis of the template prices differs from the quote, you are asked before adding whether to use the prices or add without prices.",
-          "The window for adding a saved unit lists only unit templates, and the template window of a new quote lists only quote templates. Each window deletes only its own templates."
+          "The window for adding from a saved template inside a quote lists only place templates, and the template window of a new quote lists only quote templates. Each window deletes only its own templates."
         ]
       }
     },
@@ -1674,17 +1700,17 @@ export const AI_FACTS = {
       "he": {
         "task": "צירוף קובץ להצעה",
         "steps": [
-          "בעורך ההצעה, בשלב \"בדיקה ושמירה\", פותחים את \"פרטים נוספים (לא חובה)\".",
+          "בעורך ההצעה, בכרטיס \"פרטי ההצעה\", לוחצים \"פתיחה\".",
           "בקטע \"קבצים מצורפים / שרטוטים\" לוחצים על כפתור צירוף הקובץ ובוחרים את הקובץ.",
-          "שומרים את ההצעה."
+          "לוחצים \"שמירת ההצעה\"."
         ]
       },
       "en": {
         "task": "Attaching a file to a quote",
         "steps": [
-          "In the quote editor, in the \"Review and save\" step, open \"More details (optional)\".",
+          "In the quote editor, in the \"Quote details\" card, click \"Open\".",
           "In the \"Attachments\" section click the attach-file button and choose the file.",
-          "Save the quote."
+          "Click \"Save the quote\"."
         ]
       }
     },
@@ -1717,14 +1743,14 @@ export const AI_FACTS = {
         "task": "הוספת פריט לקטלוג",
         "steps": [
           "בתפריט הצד לוחצים על \"קטלוג\" ואז \"הוספת פריט\".",
-          "ממלאים שם ומחיר ולוחצים \"שמירה\". הפריט יופיע בבחירה מהקטלוג בעורך ההצעה."
+          "ממלאים שם ומחיר. אפשר לבחור \"איך מחשבים (לא חובה)\" - ליחידה, למ״ר, למטר, לשעה, ליום, לק״ג או מחיר אחד לכל העבודה. לוחצים \"שמירה\". כשבוחרים את הפריט בהצעה, אופן החיוב נבחר לפיו; פריט בלי בחירה הוא ליחידה."
         ]
       },
       "en": {
         "task": "Adding a catalog item",
         "steps": [
           "In the sidebar click \"Catalog\" and then \"Add Item\".",
-          "Fill in a name and a price and click \"Save\". The item appears in the catalog picker of the quote editor."
+          "Fill in a name and a price. You can choose \"How is it priced (optional)\" - per item, per m², per metre, per hour, per day, per kg or one price for all the work. Click \"Save\". When you pick the item in a quote, its billing follows it; an item with no choice is per item."
         ]
       }
     },
@@ -1816,16 +1842,16 @@ export const AI_FACTS = {
       "he": {
         "task": "קביעת תוקף להצעה",
         "steps": [
-          "בעורך ההצעה, בשלב \"בדיקה ושמירה\", פותחים את \"פרטים נוספים (לא חובה)\".",
-          "בשדה \"בתוקף עד\" בוחרים את התאריך האחרון שבו הלקוח יכול לחתום, ושומרים את ההצעה.",
+          "בעורך ההצעה, בכרטיס \"פרטי ההצעה\", לוחצים \"פתיחה\".",
+          "בשדה \"בתוקף עד\" בוחרים את התאריך האחרון שבו הלקוח יכול לחתום, ולוחצים \"שמירת ההצעה\".",
           "אחרי התאריך הלקוח עדיין רואה את ההצעה, אבל אי אפשר לחתום עליה."
         ]
       },
       "en": {
         "task": "Setting how long a quote is valid",
         "steps": [
-          "In the quote editor, in the \"Review and save\" step, open \"More details (optional)\".",
-          "In the \"Valid Until\" field choose the last date the client can sign, and save the quote.",
+          "In the quote editor, in the \"Quote details\" card, click \"Open\".",
+          "In the \"Valid Until\" field choose the last date the client can sign, and click \"Save the quote\".",
           "After that date the client still sees the quote but can no longer sign it."
         ]
       }
@@ -1839,15 +1865,15 @@ export const AI_FACTS = {
       "he": {
         "task": "מתן הנחה בהצעה",
         "steps": [
-          "בעורך ההצעה, בשלב \"מחיר\", ממלאים את השדה \"הנחה על כל ההצעה (%)\" - אחוז בין 0 ל-100.",
-          "הסכום הכולל מתעדכן מיד. הנחה למוצר אחד בלבד נותנים דרך המחיר של אותה שורה."
+          "בעורך ההצעה, בכרטיס \"פרטי ההצעה\", לוחצים \"פתיחה\" וממלאים \"הנחה על כל ההצעה (%)\" - אחוז בין 0 ל-100.",
+          "הסכום ב\"סיכום ההצעה\" מתעדכן מיד. הנחה למוצר אחד בלבד נותנים דרך המחיר של אותה שורה."
         ]
       },
       "en": {
         "task": "Giving a discount in a quote",
         "steps": [
-          "In the quote editor, in the \"Price\" step, fill in \"Discount on the whole quote (%)\" - a percentage between 0 and 100.",
-          "The total updates at once. A discount on a single item is given through that line's own price."
+          "In the quote editor, in the \"Quote details\" card, click \"Open\" and fill in \"Discount on the whole quote (%)\" - a percentage between 0 and 100.",
+          "The total in the \"Quote summary\" updates at once. A discount on a single item is given through that line's own price."
         ]
       }
     },
@@ -1860,7 +1886,7 @@ export const AI_FACTS = {
       "he": {
         "task": "תנאי תשלום, מקדמה ואחריות בהצעה",
         "steps": [
-          "בעורך ההצעה, בשלב \"בדיקה ושמירה\", פותחים את \"פרטים נוספים (לא חובה)\" ומגיעים ל\"תנאים ואחריות\".",
+          "בעורך ההצעה, בכרטיס \"פרטי ההצעה\", לוחצים \"פתיחה\" ומגיעים ל\"תנאים ואחריות\".",
           "לוחצים \"התאמה להצעה זו\" וכותבים את תנאי התשלום, למשל מקדמה ותשלומים, ואת האחריות. זה טקסט שהלקוח רואה בהצעה; המערכת אינה גובה את התשלום.",
           "כדי שהתנאים ייכנסו אוטומטית לכל הצעה חדשה: ב\"הגדרות העסק\" ממלאים \"תנאים כלליים להצעות חדשות — ברירת מחדל\" ולוחצים \"שמירת הגדרות העסק\"."
         ]
@@ -1868,7 +1894,7 @@ export const AI_FACTS = {
       "en": {
         "task": "Payment terms, a deposit and warranty in a quote",
         "steps": [
-          "In the quote editor, in the \"Review and save\" step, open \"More details (optional)\" and go to \"Terms & Warranty\".",
+          "In the quote editor, in the \"Quote details\" card, click \"Open\" and go to \"Terms & Warranty\".",
           "Click \"Customize for this quote\" and write the payment terms, for example a deposit or installments, and the warranty. It is text the client sees in the quote; TEKANGO does not collect the payment.",
           "To have the terms in every new quote: in \"Business Settings\" fill in \"Default Terms & Conditions for New Quotes\" and click \"Save Business Settings\"."
         ]
@@ -1882,15 +1908,15 @@ export const AI_FACTS = {
       "he": {
         "task": "מע״מ בהצעה",
         "steps": [
-          "בשלב \"למי ההצעה?\" בוחרים סוג לקוח: \"עסקי (חברה/עוסק)\" - המחירים שמזינים הם לפני מע״מ, או \"פרטי\" - המחירים כוללים מע״מ.",
-          "שיעור המע״מ מחושב אוטומטית (18% בישראל) ואינו הגדרה שמשנים. סיכום ההצעה מציג את המע״מ ואת הסכום הכולל."
+          "בשלב \"למי מכינים את ההצעה?\" בוחרים סוג לקוח: \"עסקי (חברה/עוסק)\" - הסכומים ללא מע״מ, והמע״מ יתווסף למחיר הסופי; או \"פרטי\" - המחיר כולל מע״מ, ולא יתווסף מע״מ לסכום הכללי. הודעה על כך מופיעה מיד אחרי הבחירה, והמחיר בכל שורה פתוח לשינוי.",
+          "שיעור המע״מ מחושב אוטומטית (18% בישראל) ואינו הגדרה שמשנים. \"סיכום ההצעה\" מציג את המע״מ ואת הסכום הכולל."
         ]
       },
       "en": {
         "task": "VAT in a quote",
         "steps": [
-          "In the \"Who is it for?\" step choose the client type (\"Business\" or \"Private\").",
-          "For an international business no VAT is added automatically, and the VAT rate is not a setting. The quote summary shows the total."
+          "In the \"Who is this quote for?\" step choose the client type (\"Business\" or \"Private\").",
+          "For an international business no VAT is added automatically, and the VAT rate is not a setting. The \"Quote summary\" shows the total."
         ]
       }
     },
@@ -1986,7 +2012,7 @@ export const AI_FACTS = {
         "task": "סימון מצב הצעה (נשלחה, אושרה, שולמה)",
         "steps": [
           "ברשימת \"הצעות מחיר\" לוחצים \"פתיחה\" ליד ההצעה ואז \"עריכה\".",
-          "בשלב \"בדיקה ושמירה\", בשדה \"מצב ההצעה\", בוחרים \"נשלחה\", \"אושרה\" או \"שולמה\", ולוחצים \"עדכון ההצעה בענן\". המצב רק מסמן את ההצעה; הוא לא גובה תשלום.",
+          "בכרטיס \"פרטי ההצעה\", בשדה \"מצב ההצעה\", בוחרים \"נשלחה\", \"אושרה\" או \"שולמה\", ולוחצים \"שמירת ההצעה\". המצב רק מסמן את ההצעה; הוא לא גובה תשלום.",
           "הצעה שאושרה או שהלקוח חתם עליה נעולה לעריכה (\"לא ניתן לערוך הצעה חתומה\"). כשהלקוח שילם, פותחים את ההצעה ברשימה, לוחצים \"סימון כשולמה\" ומאשרים. אחרי הסימון אי אפשר לחזור ל\"אושרה\", והצעה ששולמה נעולה לגמרי."
         ]
       },
@@ -1994,7 +2020,7 @@ export const AI_FACTS = {
         "task": "Marking a quote's status (Sent, Approved, Paid)",
         "steps": [
           "In the \"Quotes\" list click \"Open\" next to the quote, then \"Edit\".",
-          "In the \"Review and save\" step, in \"Quote status\", choose \"Sent\", \"Approved\" or \"Paid\" and click \"Update Quote in Cloud\". The status only marks the quote; it does not collect payment.",
+          "In the \"Quote details\" card, in \"Quote status\", choose \"Sent\", \"Approved\" or \"Paid\" and click \"Save the quote\". The status only marks the quote; it does not collect payment.",
           "A quote that is approved or signed by the client is locked for editing (\"Cannot edit a signed quote\"). When the client has paid, open the quote in the list, click \"Mark as paid\" and confirm. After marking it you cannot go back to \"Approved\", and a paid quote is fully locked."
         ]
       }

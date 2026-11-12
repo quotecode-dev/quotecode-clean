@@ -2,7 +2,7 @@
 // is set in the business settings only - no style cards here), detail preference, images, preview access, the presentation-tier context and the explicit
 // "Issue quote" action. Read-only (frozen style shown) for an issued or locked quote.
 import { useState } from 'react';
-import { Eye, Send, RefreshCw, Save } from 'lucide-react';
+import { Eye, Send, RefreshCw } from 'lucide-react';
 import { STYLE_COPY, styleSupportsImages } from '../../quoteDocument/quoteStyles';
 import QuoteMediaManager from './QuoteMediaManager';
 import IssueQuoteDialog from './IssueQuoteDialog';
@@ -16,8 +16,7 @@ export default function QuotePresentationPanel({
   editingQuoteId = null,
   savedStatus = null, // the quote's status as saved on the server (issue is offered for a saved Draft)
   isUnfinished = false,
-  // true when the form's submit saves a draft (new quote, or a saved quote whose status stays Draft) - QuoteForm decides
-  savesAsDraft = false,
+  // 2026-11-12 (unified quote): no in-panel save any more - the one save is the summary's "שמירת ההצעה" (savesAsDraft is ignored)
   onIssue,
   issueBusy = false,
 }) {
@@ -96,18 +95,8 @@ export default function QuotePresentationPanel({
         </p>
       )}
 
-      <div className="qp-section">
-        <h4 id="qp-detail-label" className="qp-section-title">{copy.detailLabel}</h4>
-        <div className="qp-seg" role="group" aria-labelledby="qp-detail-label">
-          {['compact', 'expanded'].map((d) => (
-            // PRODUCT_TRUTH_DECORATIVE: preview/print detail preference (Compact / Expanded); never a plan feature, no data change
-            <button key={d} type="button" aria-pressed={(value.detail || 'compact') === d} onClick={() => ctl.setDetail(d)} data-testid={`qp-detail-${d}`}>
-              {d === 'compact' ? copy.compact : copy.expanded}
-            </button>
-          ))}
-        </div>
-        <p className="qp-hint">{copy.detailHint}</p>
-      </div>
+      {/* 2026-11-12 (unified quote, decision 2): the "detail level" control was removed - the client switches between the full document
+          and summary rows on the quote page itself, and the print window asks "full / partial" */}
 
       {showImages && <QuoteMediaManager ctl={ctl} items={items} readOnly={locked} />}
 
@@ -120,12 +109,7 @@ export default function QuotePresentationPanel({
           {/* refined R2 action bar: "Save draft" is the SAME form submit as the main save button (QuoteForm onSave ->
               handleSaveQuote; never sends or issues); "Continue to issuing" opens the existing Issue confirmation. */}
           <div className="qp-actionbar">
-            {savesAsDraft && (
-              // PRODUCT_TRUTH_CAPABILITY: quote_create
-              <button type="submit" className="qp-btn" disabled={issueBusy} data-testid="qp-save-draft">
-                <Save size={14} aria-hidden="true" />{isUnfinished ? copy.saveUnfinished : copy.saveDraft}
-              </button>
-            )}
+            {/* 2026-11-12 (unified quote, spec 1 row 4): ONE save - the summary's "שמירת ההצעה"; the panel keeps only the issue action */}
             {/* PRODUCT_TRUTH_CAPABILITY: quote_status */}
             <button
               type="button"

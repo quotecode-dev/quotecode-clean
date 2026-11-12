@@ -15,7 +15,7 @@ import { claimMeter, finishMeter, tokenUsage, sumUsage, usdMicrosOrReserve, RESE
 // Task 33 (contract v2): every line carries quantity + unit + a quantity basis that is CHECKED against the numbers of the user's own text
 // (a missing quantity stays visibly missing - never a silent 1); clarification questions and unassigned measures are returned; a catalog
 // price is bound only when its price unit is verified. The provider answers in a strict JSON schema (DRAFT_RESPONSE_SCHEMA).
-import { AI_QUOTE_DRAFT_CONTRACT_VERSION, DRAFT_RESPONSE_SCHEMA, validateDraftRequest, normalizeCatalog, buildDraftMessages, parseDraftModelOutput } from "../_shared/aiQuoteDraft.js";
+import { AI_QUOTE_DRAFT_CONTRACT_VERSION, draftResponseSchema, validateDraftRequest, normalizeCatalog, buildDraftMessages, parseDraftModelOutput } from "../_shared/aiQuoteDraft.js";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -66,7 +66,7 @@ serve(async (req) => {
   if (!(await smartPackAllowedFor(caller))) return reply({ ok: false, code: SMART_PACK_REQUIRED }, 403);
 
   const { data: services, error: servicesError } = await caller
-    .from('services').select('id, name, price').eq('user_id', userId).order('created_at', { ascending: true }).limit(200);
+    .from('services').select('id, name, price, price_basis').eq('user_id', userId).order('created_at', { ascending: true }).limit(200);
   if (servicesError) return reply({ ok: false, code: 'server_error' }, 500);
   const catalog = normalizeCatalog(services);
 
@@ -78,7 +78,9 @@ serve(async (req) => {
   const admin = createClient(supabaseUrl, secretKey, { auth: { persistSession: false, autoRefreshToken: false } });
   // Owner console 2026-11-07 (release D, Codex M02): the reserve is this request's proven maximum - every byte sent counted as a token
   // + the 1,600 output cap, at gpt-4o-mini's price, in micro-USD (the database converts it at today's rate)
-  const messages = buildDraftMessages({ description: request.value.description, isHebrew, catalog, quote: request.value.quote ?? null });
+  // 2026-11-12 (unified quote, spec 5): structure = places / rooms too, only when the browser asks (opt-in)
+  const structure = request.value.structure === true;
+  const messages = buildDraftMessages({ description: request.value.description, isHebrew, catalog, quote: request.value.quote ?? null, structure });
   const reserveUsd = reserveUsdMicros(['gpt-4o-mini'], inputTokensMax(messages), 1600);
   const claim = await claimMeter(caller, 'ai_draft', RESERVE_MICROS.ai_draft, reserveUsd);
   if (!claim.ok) {
@@ -98,7 +100,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages,
-        response_format: { type: 'json_schema', json_schema: DRAFT_RESPONSE_SCHEMA },
+        response_format: { type: 'json_schema', json_schema: draftResponseSchema(structure) },
         max_tokens: 1600,
         temperature: 0.1,
       }),
@@ -118,7 +120,7 @@ serve(async (req) => {
     clearTimeout(timer);
   }
 
-  const draft = parseDraftModelOutput(modelText, catalog, request.value.description, request.value.quote ?? null);
+  const draft = parseDraftModelOutput(modelText, catalog, request.value.description, request.value.quote ?? null, { structure, isHebrew });
   // the provider answered: a USABLE result is counted at its real cost (no usage numbers = the reserve); an unusable one (malformed /
   // nothing to offer) is NOT counted for the customer - the Owner 2026-11-06 (D01): "היא הרי לא היתה שמישה" - its real cost is still
   // recorded on the claim (cost_usd_micros) for the Owner's cost view
@@ -129,5 +131,5 @@ serve(async (req) => {
   if (!draft.ok) return reply({ ok: false, code: draft.code === 'empty' ? 'no_items' : 'malformed_provider_response' }, draft.code === 'empty' ? 422 : 502);
   // release B (Owner 2026-11-06): + the changes to the open quote (additive; an older browser ignores them)
   return reply({ ok: true, language: isHebrew ? 'he' : 'en', subject: draft.subject, items: draft.items, questions: draft.questions, unassignedMeasures: draft.unassignedMeasures,
-    changes: draft.changes });
+    changes: draft.changes, ...(structure ? { places: draft.places } : {}) });
 });

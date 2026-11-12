@@ -388,7 +388,7 @@ function mockMediaQueries(matching) {
     removeListener: vi.fn(),
   }));
 }
-const TABLET_QUERY = '(min-width: 769px) and (max-width: 1180px)';
+const TABLET_QUERY = '(min-width: 768.02px) and (max-width: 1180px)';
 const STATUS_MIX = [
   { ...baseQuote, id: 'q-draft-1', status: 'draft' },
   { ...baseQuote, id: 'q-sent-1', status: 'sent' },
@@ -508,6 +508,7 @@ describe.each([
   });
 
   // Owner console 2026-11-08 (design A + stage 2 of the one quote builder, typed incl. L-09 / L-23): the regular and the measured entries are ONE "הצעת מחיר"
+  // Owner console 2026-11-11 (unified quote, item 11): the start window is a dialog with the same choices and handlers
   it('the New quote button is a menu with the plain-language choices wired to their handlers (one quote entry)', () => {
     const onCreateQuote = vi.fn();
     const onCreateAiQuote = vi.fn();
@@ -518,11 +519,11 @@ describe.each([
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'true');
-    const items = within(screen.getByRole('menu')).getAllByRole('menuitem');
+    const items = within(screen.getByRole('dialog')).getAllByRole('menuitem');
     expect(items.map((i) => i.dataset.choice).filter((c) => c === 'standard' || c === 'ai' || c === 'structured')).toEqual(['standard', 'ai']);
     fireEvent.click(items[1]);
     expect(onCreateAiQuote).toHaveBeenCalledTimes(1);
-    expect(screen.queryByRole('menu')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
     expect(onCreateStructuredQuote).not.toHaveBeenCalled();
     fireEvent.click(trigger);
     fireEvent.click(screen.getAllByRole('menuitem')[0]);
@@ -533,12 +534,12 @@ describe.each([
     render(<QuotesTab {...buildProps(isHebrew)} onCreateQuote={vi.fn()} />);
     const trigger = screen.getByRole('button', { name: isHebrew ? 'הצעת מחיר חדשה' : 'New quote' });
     fireEvent.click(trigger);
-    expect(screen.getByRole('menu')).toBeInTheDocument();
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
-    expect(screen.queryByRole('menu')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
     fireEvent.click(trigger);
     fireEvent.mouseDown(document.body);
-    expect(screen.queryByRole('menu')).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 });
 

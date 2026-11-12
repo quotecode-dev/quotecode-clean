@@ -25,6 +25,7 @@ import { resolveQuoteExpired } from '../utils/quoteValidity';
 import { isUnfinishedSavedQuote, missingPriceOutputNotice, publicItemsForNotice } from '../utils/quoteCompleteness';
 import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine, formatQuantity } from '../utils/professionalQuoteItem';
 import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
+import { groupWord, roomLabel } from '../utils/quoteGroups';
 import { formatDeviceShortDateTime } from '../utils/shortDate';
 import { outputGate, authorizeWithNotice, outputBlockedMessage } from '../domain/subscriptions/outputAuthority';
 import { importOwnerLogo } from '../utils/logoImport';
@@ -87,8 +88,10 @@ function buildDisplaySections(items, sections) {
 // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-24..L-28): a unit of N identical copies reads "name × N";
 // at N = 1 the toggle text is exactly the previous string
 function sectionToggleText(section, chevron) {
-  if (!(section.repeatCount > 1)) return `${section.title} ${chevron}`;
-  return <>{section.title} <span style={{ whiteSpace: 'nowrap' }}>× <bdi dir="ltr" className="pf-num">{section.repeatCount}</bdi></span> {chevron}</>;
+  // 2026-11-12 (unified quote, Owner: the arrow beside the name - right in Hebrew, left in English): the arrow comes first
+  const arrow = chevron;
+  if (!(section.repeatCount > 1)) return <>{arrow} {section.title}</>;
+  return <>{arrow} {section.title} <span style={{ whiteSpace: 'nowrap' }}>× <bdi dir="ltr" className="pf-num">{section.repeatCount}</bdi></span></>;
 }
 
 // Task 16: the same "every section open / every section closed" map the print chooser applies, reusable for an
@@ -161,12 +164,16 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
   // (`!!expandedSections[key]` is false until explicitly toggled) and
   // expands fully independently of every other section - no accordion
   // coupling, matching §4's own explicit requirement.
-  const [expandedSections, setExpandedSections] = useState(() => (docDetail === 'expanded' ? allSectionsMap(items, quoteSections, true) : {}));
+  const [expandedSections, setExpandedSections] = useState(() => (docDetail === 'compact' ? allSectionsMap(items, quoteSections, false) : {}));
   // Item-table semantics (cloud-fix4b, A12): a per-instance id prefix for the column headers, so every body cell names
   // its own header (headers="<th id>") - unique even when two documents share a page.
   const tableUid = useId();
   const colId = (key) => `${tableUid}-col-${key}`;
-  const toggleSection = (key) => setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
+  // 2026-11-12 (unified quote, Owner: "ההצעה נפתחת כשהכול פתוח"): a group with no entry is OPEN; the toggle stores the explicit state
+  const toggleSection = (key) => setExpandedSections((prev) => ({ ...prev, [key]: prev[key] === false }));
+  const [groupHelp, setGroupHelp] = useState(() => { try { return window.localStorage.getItem('tekango.pq.groupsHelp.v1') !== '1'; } catch { return true; } });
+  const [partialOutput, setPartialOutput] = useState(false);
+  const closeGroupHelp = () => { setGroupHelp(false); try { window.localStorage.setItem('tekango.pq.groupsHelp.v1', '1'); } catch { /* private window: shown again next time */ } };
 
   // חוק ברזל (Owner-Approved Signature Record Improvement - audit-verified
   // gap): quotes.signature (data URL) הוא עמודת-החתימה היחידה שקיימת בפועל -
@@ -233,7 +240,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
   }, [docDetail]);
 
   useEffect(() => {
-    const handleAfterPrint = () => setPrintModalOpen(false);
+    const handleAfterPrint = () => { setPrintModalOpen(false); setPartialOutput(false); };
     window.addEventListener('afterprint', handleAfterPrint);
     return () => window.removeEventListener('afterprint', handleAfterPrint);
   }, []);
@@ -254,6 +261,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
   const handleChooseOutputMode = async (mode) => {
     setPrintMode(mode);
     setExpandedSections(allSectionsMap(items, quoteSections, mode === 'expanded'));
+    setPartialOutput(mode === 'compact');
     setPrintModalOpen(false);
     // OD-02: the ONE output-authority gate for final Print / final PDF. The phase comes from the SERVER (get-public-quote):
     // a capability-URL viewer prints the already-finalized artifact; the verified owner in the enforced phase must obtain
@@ -310,6 +318,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
       setApproveToast({ type: 'error', message: 'לא הצלחנו להפיק את קובץ ה-PDF. נסו שוב בעוד רגע.' });
     } finally {
       setPdfGenerating(false);
+      setPartialOutput(false);
     }
   };
 
@@ -624,7 +633,9 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
   // Description cell: the item text, optional detail lines, and (Modern/Visual) the row-bound product thumbnail INSIDE
   // the cell - never a fifth column.
   const renderDescriptionCell = (item, detailLines) => {
-    const label = item.description || item.name || 'פריט';
+    // 2026-11-12 (unified quote, decision 2): the room tag beside the work ('all' = the whole place); a row without one shows nothing
+    const roomText = roomLabel(item.room, true, (quoteSections || []).find((sec) => sec.id === item.section_id)?.kind);
+    const label = <>{item.description || item.name || 'פריט'}{roomText ? <span className="pq-room-tag">{roomText}</span> : null}</>;
     const thumb = showItemThumbs ? mediaForItem(docMedia, item.description) : null;
     if (!thumb) return <>{label}{detailLines}</>;
     return (
@@ -733,6 +744,24 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
   // Gate: scripts/task16/qa/a11y/table-semantics.mjs.
   const commercialTable = (
     <div className="pq-table-wrap" style={{ overflowX: 'auto' }}>
+      {displaySections.length > 0 && !previewMode && (
+        <div className="pq-group-controls no-print" data-html2canvas-ignore="true">
+          {groupHelp && (
+            <div className="pq-group-help" role="status">
+              <span>{"ההצעה שנשלחה אליכם מחולקת ל@P. לחיצה על החץ ליד שם ה@S פותחת או סוגרת את הפירוט. בכפתור שלמעלה אפשר לעבור בין מסמך מלא לשורות סיכום.".replace('@P', groupWord(((quoteSections || []).find((sec) => sec.kind) || {}).kind, true, { plural: true })).replace('@S', groupWord(((quoteSections || []).find((sec) => sec.kind) || {}).kind, true))}</span>
+              {/* PRODUCT_TRUTH_DECORATIVE: closes the one-time explanation of the arrows (remembered in this browser) */}
+              <button type="button" className="pq-group-help-ok" onClick={closeGroupHelp}>{'הבנתי'}</button>
+            </div>
+          )}
+          <div className="pq-group-switch" role="group">
+            {/* PRODUCT_TRUTH_DECORATIVE: opens every group of the document */}
+            <button type="button" aria-pressed={displaySections.every((sec) => expandedSections[sec.key] !== false)} onClick={() => setExpandedSections(allSectionsMap(items, quoteSections, true))}>{'תצוגת מסמך מלא'}</button>
+            {/* PRODUCT_TRUTH_DECORATIVE: closes every group of the document to its summary row */}
+            <button type="button" aria-pressed={displaySections.every((sec) => expandedSections[sec.key] === false)} onClick={() => setExpandedSections(allSectionsMap(items, quoteSections, false))}>{'תצוגת שורות סיכום'}</button>
+          </div>
+        </div>
+      )}
+      {partialOutput && displaySections.length > 0 && <p className="pq-partial-label">{'מסמך חלקי - פירוט העבודות אינו מוצג'}</p>}
       <table role="table" className={`pq-commercial-table${wideAmounts ? ' pq-amounts-wide' : ''}`} style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed', textAlign: 'right' }}>
         <colgroup>
           <col className="pq-col-desc" style={{ width: '40%' }} />
@@ -773,7 +802,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
             })
           ) : (
             displaySections.map((section) => {
-              const isOpen = !!expandedSections[section.key];
+              const isOpen = expandedSections[section.key] !== false;
               const chevron = isOpen ? '▲' : '▼';
               if (!isOpen) {
                 // Section Summary Row Correction: Quantity = real item count ("N פריטים", QuoteForm's own copy), Unit
@@ -784,6 +813,9 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
                     <td headers={colId('desc')} role="cell" className="pq-td-desc" style={{ textAlign: 'right' }}>
                       {/* PRODUCT_TRUTH_DECORATIVE: expands a collapsed line-item section row within the public quote view table */}
                       <button type="button" className="pq-section-toggle" onClick={() => toggleSection(section.key)} aria-expanded={false}>{sectionToggleText(section, chevron)}</button>
+                      {section.repeatCount > 1 && (
+                        <span className="pq-unit-note" style={{ display: 'block', fontWeight: 400, whiteSpace: 'nowrap', fontSize: '0.85em', color: '#64748b' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(section.subtotal)}</span> {"לכל @W".replace('@W', (quoteSections || []).find((sec) => sec.id === section.key)?.kind ? groupWord((quoteSections || []).find((sec) => sec.id === section.key).kind, true) : 'יחידה')} <bdi dir="ltr" className="pf-num">× {section.repeatCount}</bdi></span>
+                      )}
                     </td>
                     <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}>{`פריטים: ${itemCount}`}</td>
                     <td headers={colId('price')} role="cell" className="pq-td-price" style={{ textAlign: 'center' }}>—</td>
@@ -817,7 +849,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
                     );
                   })}
                   <tr role="row" className="pq-section-subtotal-row">
-                    <td headers={colId('desc')} role="cell" colSpan="3" style={{ textAlign: 'right', fontWeight: 700 }}>{`סה״כ ${section.title}`}{section.repeatCount > 1 && (
+                    <td headers={colId('desc')} role="cell" colSpan="3" style={{ textAlign: 'left', fontWeight: 700 }}>{`סה״כ ${section.title}:`}{section.repeatCount > 1 && (
                       <span className="pq-unit-note" style={{ display: 'block', fontWeight: 400, whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(section.subtotal)}</span> לכל יחידה × <bdi dir="ltr" className="pf-num">{section.repeatCount}</bdi></span>
                     )}</td>
                     <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(section.unitTotal)}</span></td>

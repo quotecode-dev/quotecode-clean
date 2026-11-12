@@ -31,37 +31,26 @@ describe.each([['Hebrew', true], ['English', false]])('NewQuoteMenu (%s)', (_l, 
     expect(trigger).toHaveClass('dash-sidebar-cta');
     fireEvent.click(trigger);
     const labels = screen.getAllByRole('menuitem').map((i) => i.querySelector('strong').textContent);
+    // Owner console 2026-11-11 (unified quote, item 11): the start window names HOW the quote starts
     expect(labels).toEqual(isHebrew
-      ? ['הצעת מחיר', 'הצעת מחיר חכמה עם AI']
-      : ['Quote', 'AI smart quote']);
+      ? ['ממלאים בעצמכם', 'מתארים ל-AI']
+      : ['Fill it in yourselves', 'Describe it to AI']);
   });
 });
 
-describe('NewQuoteMenu placement stays inside the shell', () => {
-  const rectOf = (left, right, bottom = 100) => ({ left, right, top: bottom - 40, bottom, width: right - left, height: 40, x: left, y: bottom - 40 });
-  const place = (dir, variant, trig, shell) => {
-    const spy = vi.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function () {
-      if (this.classList?.contains('dash-shell-outer')) return rectOf(...shell);
-      return rectOf(...trig);
-    });
-    window.innerWidth = 1001;
-    const { container } = render(<div className="dash-shell-outer" dir={dir}><NewQuoteMenu isHebrew={dir === 'rtl'} variant={variant} /></div>);
-    fireEvent.click(container.querySelector('button'));
-    const menu = screen.getByRole('menu');
-    const out = { left: parseFloat(menu.style.left), width: parseFloat(menu.style.width) };
-    spy.mockRestore();
-    return out;
-  };
-  it.each([
-    ['ltr', 'toolbar', [820, 976], [11, 991]],
-    ['rtl', 'toolbar', [26, 182], [11, 991]],
-    ['ltr', 'sidebar', [20, 190], [11, 991]],
-    ['rtl', 'sidebar', [812, 982], [11, 991]],
-  ])('%s %s menu is fully inside the shell with a capped width', (dir, variant, trig, shell) => {
-    const { left, width } = place(dir, variant, trig, shell);
-    expect(width).toBeLessThanOrEqual(268);
-    expect(left).toBeGreaterThanOrEqual(shell[0]);
-    expect(left + width).toBeLessThanOrEqual(shell[1]);
+// Owner console 2026-11-11 (unified quote, typed incl. item 11): a centred start window - title, the sentence that every way can hold
+// apartments, measurements and files, the four ways with their explanation lines, and Back (closes, focus returns to the trigger)
+describe.each([['Hebrew', true, 'איך תרצו להתחיל?', 'חזרה'], ['English', false, 'How would you like to start?', 'Back']])('the start window (%s)', (_l, isHebrew, title, back) => {
+  it('is a dialog with the title, the sentence, four ways and Back', () => {
+    render(<NewQuoteMenu isHebrew={isHebrew} variant="toolbar" onStandard={vi.fn()} onAi={vi.fn()} onFile={vi.fn()} onTemplate={vi.fn()} />);
+    const trigger = screen.getByRole('button');
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole('dialog', { name: title });
+    expect(dialog.textContent).toMatch(isHebrew ? /אפשר הצעה קצרה או כמה דירות/ : /several apartments/);
+    expect(screen.getAllByRole('menuitem').map((i) => i.dataset.choice)).toEqual(['standard', 'ai', 'file', 'template']);
+    fireEvent.click(screen.getByRole('button', { name: back }));
+    expect(screen.queryByRole('dialog')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
   });
 });
 

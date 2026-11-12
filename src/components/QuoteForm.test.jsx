@@ -109,11 +109,11 @@ describe('QuoteForm - every line is a row', () => {
     expect(row.querySelector('[data-testid^="qrow-total-"]').textContent).toBe('$300.00');
     expect(screen.queryByText('1 × $300.00')).toBeNull();
   });
-  it('with no line at all the list offers "Add row", which adds a blank row', () => {
-    const setItems = vi.fn();
-    render(<QuoteForm {...baseProps({ items: [], setItems })} />);
-    fireEvent.click(screen.getByTestId('qrow-add'));
-    expect(setItems.mock.calls[0][0]([])).toEqual([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false, section_key: null }]);
+  it('with no line at all the screen says where the work will appear and "+ Add work or a product" opens the work window', () => {
+    render(<QuoteForm {...baseProps({ items: [] })} />);
+    expect(screen.getByTestId('sq-empty-work')).toHaveTextContent('Work and prices will appear here.');
+    fireEvent.click(screen.getByTestId('sq-add-work'));
+    expect(screen.getByTestId('work-item-dialog')).toBeTruthy();
   });
   it('details for the customer are open in the row when the line has them', () => {
     render(<QuoteForm {...baseProps({ items: [makeItem({ description: 'Item', unit_price: '10', specification: [{ label: 'Color', value: 'Red' }] })] })} />);
@@ -137,7 +137,7 @@ describe('QuoteForm - units', () => {
       items: [makeItem({ description: 'Item', unit_price: '10', section_key: 'sec1' })],
       sections: [{ key: 'sec1', name: '' }],
     })} />);
-    fireEvent.click(screen.getByTitle('Remove unit'));
+    fireEvent.click(screen.getByTitle('Remove section'));
     expect(screen.getByText('Remove (unnamed)')).toBeTruthy();
   });
 });
@@ -147,9 +147,9 @@ describe('QuoteForm - units', () => {
 describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
   it('SMART-QUOTE-02: an undecided (null) structure shows the simple list with a row to type in immediately - no structure question', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [] })} />);
-    // the rows' own "Add row", plus (Owner 2026-10-15) the price step's way back to step 2 while the quote has no item
-    expect(screen.getByTestId('qrow-add')).toBeTruthy();
-    expect(screen.getByTestId('sq-price-go-rows')).toBeTruthy();
+    // 2026-11-12 (unified quote): the two add buttons, plus (Owner 2026-10-15) the price step's way back to step 2 while the quote has no item
+    expect(screen.getByTestId('sq-add-work')).toBeTruthy();
+    expect(screen.getByTestId('sq-add-places')).toBeTruthy();
     expect(screen.queryByText('How would you like to structure this quote?')).toBeNull();
     expect(screen.queryByText('Regular quote')).toBeNull();
     expect(screen.queryByText(/Smart Quote/)).toBeNull();
@@ -158,31 +158,38 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
   it('the four numbered steps appear in the first-use order: who -> what -> price -> review & save', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [] })} />);
     const order = ['sq-step-1', 'sq-step-2', 'sq-step-3', 'sq-step-4'].map((id) => screen.getByTestId(id));
-    expect(order[0]).toHaveTextContent('Who is it for?');
-    expect(order[1]).toHaveTextContent('What work or product?');
-    expect(order[2]).toHaveTextContent('Price');
-    expect(order[3]).toHaveTextContent('Review and save');
+    expect(order[0]).toHaveTextContent('Who is this quote for?');
+    expect(order[1]).toHaveTextContent('What goes in the quote?');
+    // 2026-11-12 (unified quote): the summary with the one save, then the quote details
+    expect(order[2]).toHaveTextContent('Quote summary');
+    expect(order[3]).toHaveTextContent('Quote details');
     for (let i = 1; i < order.length; i += 1) {
       expect(order[i - 1].compareDocumentPosition(order[i]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     }
   });
 
-  it('the untouched first line of a fresh quote is the empty row to type in - never an "(unnamed)" card', () => {
+  it('the untouched first line of a fresh quote is never an "(unnamed)" card - the screen shows the empty line instead', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [{ description: '', quantity: '1', unit_price: '', isFromCatalog: false }] })} />);
     expect(screen.queryByText('(unnamed)')).toBeNull();
-    expect(screen.getByRole('textbox', { name: 'Item' }).value).toBe('');
+    expect(screen.getByTestId('sq-empty-work')).toBeTruthy();
   });
 
   it('SMART-QUOTE-02: grouping by rooms / areas / units stays available as an optional, contextual action', () => {
     const setQuoteStructureMode = vi.fn();
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'regular', setQuoteStructureMode })} />);
-    fireEvent.click(screen.getByText('Group by rooms / areas / units (optional)'));
+    // 2026-11-12 (unified quote): "+ Add an apartment, room or floor" -> what -> how many -> identical?
+    fireEvent.click(screen.getByTestId('sq-add-places'));
+    fireEvent.click(screen.getByRole('button', { name: 'Apartment' }));
+    fireEvent.click(screen.getByTestId('places-next'));
+    fireEvent.click(screen.getByTestId('places-identical-no'));
     expect(setQuoteStructureMode).toHaveBeenCalledWith('divided');
   });
 
   it('SMART-QUOTE-03: a NEW quote offers no status choice - it is a Draft; Sent/Approved/Paid are edit-time lifecycle actions', () => {
     render(<QuoteForm {...baseProps({ editingQuoteId: null })} />);
-    expect(screen.getByTestId('sq-status-draft')).toHaveTextContent('Draft');
+    // 2026-11-12 (the demo summary): no status control for a new quote; it is saved as a draft ("saving is not sending")
+    expect(screen.queryByRole('combobox', { name: /status/i })).toBeNull();
+    expect(screen.getByTestId('sq-save-note')).toHaveTextContent('Saving is not sending');
     expect(screen.queryByRole('option', { name: 'Paid' })).toBeNull();
     expect(screen.queryByRole('option', { name: 'Approved' })).toBeNull();
   });
@@ -210,13 +217,15 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
     render(<QuoteForm {...baseProps()} />);
     expect(screen.queryByTestId('sq-unfinished-notice')).toBeNull();
     // Retro ledger C03 (2026-10-05): a new quote keeps the base label t.generateSave; the unapproved hint line is gone
-    expect(screen.getByTestId('sq-save')).toHaveTextContent('Generate & Save');
+    // 2026-11-12 (unified quote, spec 1 row 8): one label for every save; saving is not sending
+    expect(screen.getByTestId('sq-save')).toHaveTextContent('Save the quote');
+    expect(screen.getByTestId('sq-save-note')).toHaveTextContent('Saving is not sending. You can change it later too.');
     expect(screen.queryByTestId('sq-save-draft-hint')).toBeNull();
   });
 
   it('Task 16: an edit whose status is no longer Draft keeps the update label and no draft hint', () => {
     render(<QuoteForm {...baseProps({ editingQuoteId: 'q1', quoteStatus: 'Sent' })} />);
-    expect(screen.getByTestId('sq-save')).toHaveTextContent('Update Quote');
+    expect(screen.getByTestId('sq-save')).toHaveTextContent('Save the quote');
     expect(screen.queryByTestId('sq-save-draft-hint')).toBeNull();
   });
 
@@ -242,7 +251,7 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
     render(<QuoteForm {...baseProps({ isHebrew: true, sym: '₪', clientName: 'לקוח סינתטי', items: [], subtotal: 0, totalAmount: 0 })} />);
     expect(screen.getByTestId('sq-client-disclosure')).toHaveTextContent('ייווצר כרטיס לקוח חדש');
     expect(screen.getByTestId('sq-save')).toHaveTextContent('שמירה כטיוטה לא גמורה');
-    expect(screen.getByTestId('sq-step-1')).toHaveTextContent('למי ההצעה?');
+    expect(screen.getByTestId('sq-step-1')).toHaveTextContent('למי מכינים את ההצעה?');
   });
 
   it('optional details are progressive: collapsed on a fresh quote, open when any optional value exists', () => {
@@ -267,6 +276,7 @@ describe('QuoteForm - Regular quote flow (Locked Decision 2)', () => {
   it('shows the rows with "Add row" and no unit-management UI at all', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'regular' })} />);
     expect(screen.getByTestId('qrow-add')).toBeTruthy();
+    expect(screen.queryByTestId('unit-menu')).toBeNull();
     expect(screen.queryByText('How would you like to structure this quote?')).toBeNull();
     expect(screen.queryByText(/No items added yet/)).toBeNull();
   });
@@ -277,8 +287,8 @@ describe('QuoteForm - Task 21: the untouched placeholder is never a divided-mode
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [], items: [makeItem()] })} />);
     expect(screen.queryByText('(unnamed)')).toBeNull();
     expect(screen.queryByText('1 item')).toBeNull();
-    expect(screen.getByText('Add a row with no unit')).toBeTruthy();
-    expect(screen.getByText('Add the first unit')).toBeTruthy();
+    expect(screen.getByTestId('unit-add-row')).toHaveTextContent('Add work or a product');
+    expect(screen.getByTestId('sq-add-more-places')).toHaveTextContent('+ Add section');
   });
   it('once a real item exists it is counted; the untouched row stays a row to type in, never counted', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [], items: [makeItem(), makeItem({ description: 'Aluminium window', unit_price: '600' })] })} />);
@@ -290,8 +300,8 @@ describe('QuoteForm - Task 21: the untouched placeholder is never a divided-mode
   });
   it('with units and only the placeholder unassigned, no empty "Unassigned" card is shown', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }], items: [makeItem()] })} />);
-    expect(screen.queryByText('Add a row with no unit')).toBeNull();
-    expect(screen.getByRole('button', { name: 'Add a row to Apartment 33' })).toBeTruthy();
+    expect(screen.queryByText('Unassigned')).toBeNull();
+    expect(screen.getAllByTestId('unit-add-row')).toHaveLength(1);
   });
 });
 
@@ -301,42 +311,62 @@ describe('QuoteForm - Divided quote unit board (Locked Decision 3/4/5/6/10)', ()
     expect(screen.queryByText('Add product or work')).toBeNull();
   });
 
-  it('shows the unit\'s own real name in its "Add a row" button, item count, and offers "Add another unit"', () => {
+  it('a group card shows its own name, its item count, its add button, and the bar offers more places of the same kind', () => {
     render(<QuoteForm {...baseProps({
       quoteStructureMode: 'divided',
       sections: [{ key: 'sec1', name: 'Apartment 33' }],
       items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })],
     })} />);
-    expect(screen.getByRole('button', { name: 'Add a row to Apartment 33' })).toBeTruthy();
+    expect(screen.getByDisplayValue('Apartment 33')).toBeTruthy();
+    expect(screen.getByTestId('unit-add-row')).toHaveTextContent('Add work or a product');
     expect(screen.getByText('1 item')).toBeTruthy();
-    expect(screen.getByText('Add another unit')).toBeTruthy();
+    expect(screen.getByTestId('sq-add-more-places')).toBeTruthy();
   });
 
-  it('an unnamed (freshly created) unit falls back to "this unit" in its "Add a row" button', () => {
-    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: '' }] })} />);
-    expect(screen.getByRole('button', { name: 'Add a row to this unit' })).toBeTruthy();
+  it('the chosen word names the group actions (apartment), "Section" when no kind was chosen', () => {
+    const { unmount } = render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 1', kind: 'apartment' }] })} />);
+    expect(screen.getByTestId('unit-menu-label')).toHaveTextContent('Apartment actions');
+    expect(screen.getByTestId('sq-add-more-places')).toHaveTextContent('+ Add apartment');
+    unmount();
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', isHebrew: true, sym: '₪', sections: [{ key: 'sec1', name: '' }] })} />);
+    expect(screen.getByTestId('unit-menu-label')).toHaveTextContent('פעולות לחלק');
   });
 
   it('an empty unit visibly shows "No items added yet" and still exposes its "Add a row" action - collapsed or not', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 35' }], items: [] })} />);
     expect(screen.getByText('No items added yet')).toBeTruthy();
-    expect(screen.getByRole('button', { name: 'Add a row to Apartment 35' })).toBeTruthy();
+    expect(screen.getByTestId('unit-add-row')).toHaveTextContent('Add work or a product');
   });
 
-  it('offers "Add the first unit" when no unit exists yet, "Add another unit" once at least one does', () => {
-    const { rerender } = render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [] })} />);
-    expect(screen.getByText('Add the first unit')).toBeTruthy();
-    rerender(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }] })} />);
-    expect(screen.getByText('Add another unit')).toBeTruthy();
+  it('more places of the known kind ask only "how many" and add that many groups', () => {
+    const setSections = vi.fn();
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 1', kind: 'apartment' }], setSections })} />);
+    fireEvent.click(screen.getByTestId('sq-add-more-places'));
+    expect(screen.getByRole('heading', { name: 'How many apartments?' })).toBeTruthy();
+    fireEvent.change(screen.getByTestId('places-count'), { target: { value: '2' } });
+    fireEvent.click(screen.getByTestId('places-next'));
+    const next = setSections.mock.calls[0][0]([{ key: 'sec1', name: 'Apartment 1', kind: 'apartment' }]);
+    expect(next.map((x) => [x.name, x.kind])).toEqual([['Apartment 1', 'apartment'], ['Apartment 2', 'apartment'], ['Apartment 3', 'apartment']]);
   });
 
-  it('a unit\'s own "Add a row" adds a blank row already in that unit (no window, no re-selection)', () => {
+  it('a group\'s own add button opens the work window for that group (no re-selection of the group)', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', items: [], sections: [{ key: 'sec1', name: 'Apartment 33', kind: 'apartment' }] })} />);
+    fireEvent.click(screen.getByTestId('unit-add-row'));
+    expect(screen.getByTestId('work-item-dialog')).toBeTruthy();
+    expect(screen.getByTestId('work-item-dialog').textContent).toContain('Apartment 33');
+  });
+
+  it('a later empty group offers to copy what was filled in the first one; the copy has no saved ids', () => {
     const setItems = vi.fn();
-    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }], setItems })} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Add a row to Apartment 33' }));
-    expect(screen.queryByRole('dialog')).toBeNull();
-    const next = setItems.mock.calls[0][0]([]);
-    expect(next).toEqual([{ description: '', quantity: '1', unit_price: '', isFromCatalog: false, section_key: 'sec1' }]);
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', setItems,
+      sections: [{ key: 'sec1', name: 'Apartment 1', kind: 'apartment' }, { key: 'sec2', name: 'Apartment 2', kind: 'apartment' }],
+      items: [makeItem({ id: 'db1', description: 'Flooring', unit_price: '150', section_key: 'sec1' })] })} />);
+    expect(screen.getAllByTestId('unit-copy-first')).toHaveLength(1);
+    fireEvent.click(screen.getByTestId('unit-copy-first'));
+    const next = setItems.mock.calls[0][0]([makeItem({ id: 'db1', description: 'Flooring', unit_price: '150', section_key: 'sec1' })]);
+    expect(next).toHaveLength(2);
+    expect(next[1]).toMatchObject({ description: 'Flooring', section_key: 'sec2' });
+    expect(next[1].id).toBeUndefined();
   });
 
   it('"Duplicate unit" adds one copy right after it, with new lines (no saved ids) and its own sizes, its name ready to edit', () => {
@@ -380,9 +410,9 @@ describe('QuoteForm - Divided quote unit board (Locked Decision 3/4/5/6/10)', ()
     expect(screen.getByDisplayValue('Legacy item')).toBeTruthy();
   });
 
-  it('offers a "Switch to a regular quote" link', () => {
+  it('offers "Remove the division (the work stays)"', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }] })} />);
-    expect(screen.getByText('Switch to a regular quote')).toBeTruthy();
+    expect(screen.getByText('Remove the division (the work stays)')).toBeTruthy();
   });
 
   // Owner console 2026-10-26 (typed approval naming L-09): the app's own question window, answered by its buttons
@@ -396,7 +426,7 @@ describe('QuoteForm - Divided quote unit board (Locked Decision 3/4/5/6/10)', ()
       items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })],
       setItems, setSections, setQuoteStructureMode,
     })} />);
-    fireEvent.click(screen.getByText('Switch to a regular quote'));
+    fireEvent.click(screen.getByText('Remove the division (the work stays)'));
     expect(await answerAppDialog(true)).toContain('Switching to a regular quote will merge all units into one list.');
     await waitFor(() => expect(setSections).toHaveBeenCalledWith([]));
     expect(setQuoteStructureMode).toHaveBeenCalledWith('regular');
@@ -408,7 +438,7 @@ describe('QuoteForm - Divided quote unit board (Locked Decision 3/4/5/6/10)', ()
   it('declining the confirmation leaves the divided structure untouched', async () => {
     const setSections = vi.fn();
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }], setSections })} />);
-    fireEvent.click(screen.getByText('Switch to a regular quote'));
+    fireEvent.click(screen.getByText('Remove the division (the work stays)'));
     await answerAppDialog(false);
     expect(setSections).not.toHaveBeenCalled();
   });
@@ -418,9 +448,9 @@ describe('QuoteForm - safe unit removal (Locked Decision 7 - no silent data loss
   it('removes an empty unit immediately, with no confirmation dialog', () => {
     const removeSection = vi.fn();
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 35' }], items: [], removeSection })} />);
-    fireEvent.click(screen.getByTitle('Remove unit'));
+    fireEvent.click(screen.getByTitle('Remove section'));
     expect(removeSection).toHaveBeenCalledWith('sec1');
-    expect(screen.queryByText(/This unit has/)).toBeNull();
+    expect(screen.queryByText(/has 1 item\(s\)/)).toBeNull();
   });
 
   it('a non-empty unit opens a safe choice dialog instead of removing directly - cancel leaves everything untouched', () => {
@@ -431,11 +461,11 @@ describe('QuoteForm - safe unit removal (Locked Decision 7 - no silent data loss
       items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })],
       removeSection,
     })} />);
-    fireEvent.click(screen.getByTitle('Remove unit'));
-    expect(screen.getByText(/This unit has 1 item\(s\)/)).toBeTruthy();
+    fireEvent.click(screen.getByTitle('Remove section'));
+    expect(screen.getByText(/Apartment 33 has 1 item\(s\)/)).toBeTruthy();
     expect(removeSection).not.toHaveBeenCalled();
     fireEvent.click(screen.getByText('Cancel'));
-    expect(screen.queryByText(/This unit has/)).toBeNull();
+    expect(screen.queryByText(/has 1 item\(s\)/)).toBeNull();
     expect(removeSection).not.toHaveBeenCalled();
   });
 
@@ -448,8 +478,8 @@ describe('QuoteForm - safe unit removal (Locked Decision 7 - no silent data loss
       items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })],
       removeSection, setItems,
     })} />);
-    fireEvent.click(screen.getByTitle('Remove unit'));
-    fireEvent.click(screen.getByText('Remove unit'));
+    fireEvent.click(screen.getByTitle('Remove section'));
+    fireEvent.click(screen.getByText('Remove section'));
     const updater = setItems.mock.calls[0][0];
     const result = updater([{ description: 'Window', section_key: 'sec1' }]);
     expect(result[0].section_key).toBeNull();
@@ -464,9 +494,9 @@ describe('QuoteForm - safe unit removal (Locked Decision 7 - no silent data loss
       items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })],
       setItems,
     })} />);
-    fireEvent.click(screen.getAllByTitle('Remove unit')[0]);
+    fireEvent.click(screen.getAllByTitle('Remove section')[0]);
     fireEvent.change(screen.getByRole('combobox', { name: 'Move items to' }), { target: { value: 'sec2' } });
-    fireEvent.click(screen.getByText('Remove unit'));
+    fireEvent.click(screen.getByText('Remove section'));
     const updater = setItems.mock.calls[0][0];
     const result = updater([{ description: 'Window', section_key: 'sec1' }]);
     expect(result[0].section_key).toBe('sec2');
@@ -650,8 +680,8 @@ describe('QuoteForm - identical units (stage 3)', () => {
     expect(screen.getByTestId('unit-repeat-badge').textContent).toBe('× 12');
     expect(screen.getByTestId('unit-total').textContent).toBe('$1200.00');
     // Owner console 2026-11-10 (G6a): the sums by name, not as an equation
-    expect(screen.getByTestId('unit-per-copy').textContent).toMatch(/Per apartment: \$100\.00 · All apartments: \$1200\.00/);
-    expect(screen.getByTestId('unit-per-copy').textContent).toContain('The rows here are for one unit');
+    expect(screen.getByTestId('unit-per-copy').textContent).toMatch(/Per section: \$100\.00 · All sections: \$1200\.00/);
+    expect(screen.getByTestId('unit-per-copy').textContent).toContain('The rows here are for one section');
   });
   it('at 1 nothing new is shown (no badge, no per-copy line)', () => {
     render(<Live initialSections={[{ key: 'sec1', name: 'Type A', sort_order: 0 }]} initialItems={[tiles()]} />);
@@ -694,5 +724,34 @@ describe('QuoteForm - unit templates (stage 4)', () => {
     fireEvent.click(screen.getByTestId('unit-menu'));
     expect(screen.queryByTestId('unit-save-template')).toBeNull();
     expect(screen.queryByTestId('unit-from-template')).toBeNull();
+  });
+});
+
+// 2026-11-12 (unified quote, spec 1 rows 4 / 7 / 8): ONE total right above ONE save; "saving is not sending"; the quote details name
+// every extra and hold the discount, the status (edit only) and save as a template
+describe('QuoteForm - the summary and the quote details (unified quote)', () => {
+  it('one total ("Total to pay") right above the one save, and the note under it', () => {
+    render(<QuoteForm {...baseProps()} />);
+    expect(screen.getAllByText('Total to pay')).toHaveLength(1);
+    expect([...screen.getByTestId('sq-summary').querySelectorAll('span')].filter((el) => /^Total/.test(el.textContent))).toHaveLength(1);
+    expect(screen.getByTestId('sq-save-total').nextElementSibling).toBe(screen.getByTestId('sq-save'));
+    expect(screen.getByTestId('sq-save-note').textContent).toBe('Saving is not sending. You can change it later too.');
+  });
+  it('a divided quote counts its places and its work, and says how many have no price yet', () => {
+    render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided',
+      sections: [{ key: 's1', name: 'Apartment 1', kind: 'apartment', repeat_count: 2 }],
+      items: [makeItem({ description: 'Flooring', unit_price: '150', section_key: 's1' }), makeItem({ description: 'Windows', unit_price: '', section_key: 's1' })] })} />);
+    expect(screen.getByTestId('sq-summary-counts').textContent).toBe('Number of apartments: 2Work items in all copies: 4');
+    expect(screen.getByTestId('sq-summary-missing').textContent).toBe('Price missing in 1 work item(s) (not priced yet)');
+  });
+  it('the details card names every extra; open, it has the discount, and an edit has its status there', () => {
+    render(<QuoteForm {...baseProps({ isHebrew: true, sym: '₪', editingQuoteId: 'q1', quoteStatus: 'Draft', onSaveAsTemplate: vi.fn() })} />);
+    expect(screen.getByTestId('sq-step-4').textContent).toContain('פרטי ההצעה');
+    expect(screen.getByTestId('sq-details').textContent).toContain('קבצים · תנאים ואחריות · הערות · הנחה · עיצוב ותמונות · מטבע · פרויקט ותוקף · שמירה כתבנית');
+    if (!screen.queryByTestId('sq-more-details')) fireEvent.click(screen.getByTestId('sq-more-details-toggle'));
+    const details = screen.getByTestId('sq-more-details');
+    expect(details.querySelector('[data-testid="sq-discount"]')).not.toBeNull();
+    expect(details.querySelector('[data-testid="sq-save-template"]')).not.toBeNull();
+    expect(details.querySelector('option[value="Sent"]')).not.toBeNull();
   });
 });

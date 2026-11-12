@@ -111,11 +111,12 @@ describe('templates - dialogs', () => {
     const onTemplate = vi.fn();
     const { rerender, container } = render(<div className="dash-shell-outer"><NewQuoteMenu isHebrew onStandard={vi.fn()} /></div>);
     fireEvent.click(container.querySelector('.quote-primary-action'));
-    expect(container.querySelector('[data-choice="template"]')).toBeNull();
+    // 2026-11-12 (unified quote): the start window is a centred dialog on the page body
+    expect(document.querySelector('[data-choice="template"]')).toBeNull();
     rerender(<div className="dash-shell-outer"><NewQuoteMenu isHebrew onStandard={vi.fn()} onTemplate={onTemplate} /></div>);
     fireEvent.click(container.querySelector('.quote-primary-action'));
     fireEvent.click(container.querySelector('.quote-primary-action'));
-    fireEvent.click(container.querySelector('[data-choice="template"]'));
+    fireEvent.click(document.querySelector('[data-choice="template"]'));
     expect(onTemplate).toHaveBeenCalled();
   });
 });

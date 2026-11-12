@@ -36,8 +36,13 @@ export default function QuotePrintModeModal({ open, isHebrew, intent, onClose, o
     ? (isHebrew ? 'הורדת PDF' : 'Download PDF')
     : (isHebrew ? 'הדפסת מסמך' : 'Print document');
 
-  const compactDesc = isHebrew ? 'שורות פריטים וסיכום בלבד - ללא פירוט מידות מורחב' : 'Item lines and totals only - no expanded measurement detail';
-  const expandedDesc = isHebrew ? 'כולל פירוט מידות ומפרט מלא לכל פריט מקצועי' : 'Includes full measurements & specifications for every professional item';
+  // Owner 2026-11-11 (unified quote release, typed incl. the gate-tool change): plain names a 10-year-old understands -
+  // a full document / a partial document (print or download), each with one plain line
+  const pdf = intent === 'pdf';
+  const compactLabel = isHebrew ? (pdf ? 'הורדת מסמך חלקי' : 'הדפסת מסמך חלקי') : (pdf ? 'Download partial document' : 'Print partial document');
+  const expandedLabel = isHebrew ? (pdf ? 'הורדת מסמך מלא' : 'הדפסת מסמך מלא') : (pdf ? 'Download full document' : 'Print full document');
+  const compactDesc = isHebrew ? 'בלי פירוט המידות. בהצעה מחולקת: שמות וסכומים בלבד' : 'Without measurement details. In a divided quote: names and totals only';
+  const expandedDesc = isHebrew ? 'כל העבודות, המידות והפירוט' : 'All work, measurements and details';
 
   return (
     <div
@@ -71,9 +76,9 @@ export default function QuotePrintModeModal({ open, isHebrew, intent, onClose, o
             onClick={() => onChoose('compact')}
             style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left' }}
           >
-            <LayoutList size={18} color={LIGHT.violet} strokeWidth={2} />
+            <LayoutList size={18} color={LIGHT.violet} strokeWidth={2} style={{ flexShrink: 0 }} />
             <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontWeight: '700', fontSize: '0.88rem', color: '#1e293b' }}>{isHebrew ? 'תמציתי' : 'Compact'}</span>
+              <span style={{ fontWeight: '700', fontSize: '0.88rem', color: '#1e293b' }}>{compactLabel}</span>
               <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{compactDesc}</span>
             </span>
           </button>
@@ -83,9 +88,9 @@ export default function QuotePrintModeModal({ open, isHebrew, intent, onClose, o
             onClick={() => onChoose('expanded')}
             style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', boxSizing: 'border-box', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '12px 14px', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left' }}
           >
-            <FileDown size={18} color={LIGHT.violet} strokeWidth={2} />
+            <FileDown size={18} color={LIGHT.violet} strokeWidth={2} style={{ flexShrink: 0 }} />
             <span style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-              <span style={{ fontWeight: '700', fontSize: '0.88rem', color: '#1e293b' }}>{isHebrew ? 'מורחב' : 'Expanded'}</span>
+              <span style={{ fontWeight: '700', fontSize: '0.88rem', color: '#1e293b' }}>{expandedLabel}</span>
               <span style={{ fontSize: '0.72rem', color: '#64748b' }}>{expandedDesc}</span>
             </span>
           </button>

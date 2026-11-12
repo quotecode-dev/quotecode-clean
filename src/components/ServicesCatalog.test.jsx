@@ -187,7 +187,7 @@ describe('OD-19 compact catalog layout + unchanged behavior', () => {
     expect(within(row).getByRole('textbox', { name: 'Name' }).value).toBe('Glass panel');
     expect(within(row).getByRole('spinbutton', { name: 'Default price' }).value).toBe('191.16');
     fireEvent.click(within(row).getByRole('button', { name: 'Save Glass panel' }));
-    expect(p.handleSaveEditedService).toHaveBeenCalledWith('s1');
+    expect(p.handleSaveEditedService).toHaveBeenCalledWith('s1', null); // 2026-11-12: + the optional price basis (null = per item)
     fireEvent.click(within(row).getByRole('button', { name: 'Cancel editing Glass panel' }));
     expect(p.setEditingServiceId).toHaveBeenLastCalledWith(null);
   });
@@ -252,5 +252,19 @@ describe('catalog row thumbnail', () => {
     const p = props();
     render(<ServicesCatalog {...p} />);
     expect(p.presentationController.ensureUrls).not.toHaveBeenCalled();
+  });
+});
+
+// 2026-11-12 (unified quote, spec 5): "how is it priced" - optional, inside the description cell; per item = NULL; feet abroad
+describe('the catalog price basis', () => {
+  it('a new item can say how it is priced; per item is saved as nothing (NULL)', async () => {
+    const { priceBasisForSave, priceBasesFor, priceBasisLabel } = await import('../utils/catalogPriceBasis');
+    expect(priceBasisForSave('')).toBeNull();
+    expect(priceBasisForSave('unit')).toBeNull();
+    expect(priceBasisForSave('m2')).toBe('m2');
+    expect(priceBasisForSave('bogus')).toBeNull();
+    expect(priceBasesFor(true)).toContain('sq_ft');
+    expect(priceBasesFor(false)).toContain('linear_meter');
+    expect(priceBasisLabel('fixed', true)).toBe('מחיר אחד לכל העבודה');
   });
 });

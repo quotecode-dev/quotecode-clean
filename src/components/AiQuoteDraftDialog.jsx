@@ -20,6 +20,7 @@ import AiModalHeader from './AiModalHeader';
 import { APP as NEON } from '../theme/neonTheme';
 import { MAX_DESCRIPTION_CHARS, MIN_DESCRIPTION_CHARS, draftUnitsForMarket } from '../../supabase/functions/_shared/aiQuoteDraft.js';
 import { getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
+import { groupWord, roomLabel } from '../utils/quoteGroups';
 import { smartPackUsageText, smartPackUsedUpText } from '../utils/smartPackUsage';
 
 const positiveQuantity = (v) => {
@@ -81,6 +82,10 @@ const COPY = {
     // Owner console 2026-11-06 (release B): changes to the open quote
     applyChanges: 'החלת השינויים בהצעה',
     changesTitle: 'שינויים בהצעה הקיימת',
+    structureTitle: 'המבנה המוצע',
+    identicalNo: 'נפרדות',
+    identicalUnclear: 'נפרדות, עד שתענו על השאלה',
+    placeOf: 'מקום',
     changeQty: 'כמות', changeUnit: 'יחידה', changePrice: 'מחיר', changeDesc: 'תיאור', instead: 'במקום',
     changeDelete: 'מחיקת השורה', notesAppend: 'הוספה להערות', notesReplace: 'ההערות יוחלפו ב', notesClear: 'מחיקת ההערות',
     discount: 'הנחה',
@@ -159,6 +164,10 @@ const COPY = {
     apply: (n) => `Add to the quote (ticked items: ${n})`,
     applyChanges: 'Apply the changes to the quote',
     changesTitle: 'Changes to the current quote',
+    structureTitle: 'Suggested structure',
+    identicalNo: 'separate',
+    identicalUnclear: 'separate until you answer the question',
+    placeOf: 'Place',
     changeQty: 'Quantity', changeUnit: 'Unit', changePrice: 'Price', changeDesc: 'Description', instead: 'instead of',
     changeDelete: 'Remove the line', notesAppend: 'Add to the notes', notesReplace: 'Replace the notes with', notesClear: 'Remove the notes',
     discount: 'Discount',
@@ -311,13 +320,13 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
   const goAgain = () => { setConfirmAgain(false); setPhase('describe'); setDraft(null); setLines([]); };
   const chosen = chosenIdx.map((i) => {
     const l = lines[i];
-    return { description: String(l.description).trim(), quantity: positiveQuantity(l.quantityInput), unit: l.unit || null, unitPrice: l.unitPrice, catalogId: l.unitPrice != null ? l.catalogId : null };
+    return { description: String(l.description).trim(), quantity: positiveQuantity(l.quantityInput), unit: l.unit || null, unitPrice: l.unitPrice, ...(l.place ? { place: l.place } : {}), ...(l.room ? { room: l.room } : {}), catalogId: l.unitPrice != null ? l.catalogId : null };
   });
   const canApply = (chosen.length > 0 || chosenChanges.length > 0) && !incomplete;
   const apply = () => {
     if (!canApply || appliedRef.current) return;
     appliedRef.current = true; // one apply per draft (a double click never adds the lines twice)
-    onApply(chosen, draft.subject || '', chosenChanges);
+    onApply(chosen, draft.subject || '', chosenChanges, Array.isArray(draft.places) ? draft.places : []);
   };
   function handleVoiceText(text) {
     refreshUsage(); // Owner console 2026-11-07 (F01): a dictation is metered too - the line shows what is left after it
@@ -401,6 +410,15 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                 <strong style={{ color: NEON.textPrimary }}>{t.yourText}:</strong> <bdi>{draft.sourceText}</bdi>
               </div>
               {draft.subject && <div style={{ fontSize: '0.82rem', color: NEON.textSecondary }}><strong style={{ color: NEON.textPrimary }}>{t.subject}:</strong> {draft.subject}</div>}
+              {Array.isArray(draft.places) && draft.places.length > 0 && (
+                // 2026-11-12 (unified quote, spec 5): the suggested places - "דירה × 2" when the text says the work is identical
+                <div data-testid="ai-quote-draft-structure" style={{ fontSize: '0.82rem', color: NEON.textPrimary, background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '8px', padding: '8px 10px', lineHeight: 1.5 }}>
+                  <strong>{t.structureTitle}:</strong>{' '}
+                  {draft.places.map((p, i) => (
+                    <span key={p.key} data-testid="ai-quote-draft-place">{i > 0 ? ' · ' : ''}<bdi>{p.name || groupWord(p.kind, isHebrew)}</bdi>{p.count > 1 ? (p.identical === 'yes' ? <> × <bdi dir="ltr" className="pf-num">{p.count}</bdi></> : <> - <bdi dir="ltr" className="pf-num">{p.count}</bdi> {groupWord(p.kind, isHebrew, { plural: true })} ({p.identical === 'no' ? t.identicalNo : t.identicalUnclear})</>) : null}</span>
+                  ))}
+                </div>
+              )}
               {entries.length > 0 && (
                 <div data-testid="ai-quote-draft-changes" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                   <strong style={{ fontSize: '0.84rem', color: NEON.textPrimary }}>{t.changesTitle}</strong>
@@ -440,6 +458,9 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                             </select>
                           </label>
                         </span>
+                        {(line.place || line.room) && (
+                          <span data-testid="ai-quote-draft-where" style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{t.placeOf}: <bdi>{[(draft.places || []).find((p) => p.key === line.place)?.name || groupWord((draft.places || []).find((p) => p.key === line.place)?.kind || null, isHebrew), line.room ? roomLabel(line.room, isHebrew, (draft.places || []).find((p) => p.key === line.place)?.kind || 'section') : ''].filter(Boolean).join(' · ')}</bdi></span>
+                        )}
                         {line.evidence && <span data-testid="ai-quote-draft-evidence" style={{ fontSize: '0.74rem', color: NEON.textSecondary, overflowWrap: 'anywhere' }}>{t.evidence}: {isHebrew ? '„' : '“'}<bdi>{line.evidence}</bdi>”</span>}
                         {basisText && <span data-testid="ai-quote-draft-basis" style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{basisText}</span>}
                         {missingText && <span data-testid="ai-quote-draft-missing" style={{ fontSize: '0.76rem', color: NEON.amber || NEON.textSecondary, fontWeight: 600 }}>{t.missingLabel}: {missingText}</span>}

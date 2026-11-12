@@ -17,7 +17,7 @@ const data = (items, sections = [], quote = {}) => ({
 const priced = { description: 'ריצוף', quantity: 10, price: 100, total_price: 1000 };
 const missing = { description: 'פינוי פסולת', quantity: 1, price: 0, total_price: 0, price_missing: true };
 const free = { description: 'מתנה', quantity: 1, price: 0, total_price: 0 };
-const mount = (C, d) => render(<MemoryRouter><C quoteData={d} /></MemoryRouter>);
+const mount = (C, d) => render(<MemoryRouter><C detail="compact" quoteData={d} /></MemoryRouter>);
 const rowOf = (text) => screen.getAllByRole('row').find((r) => r.textContent.includes(text));
 
 describe('HE public quote', () => {
