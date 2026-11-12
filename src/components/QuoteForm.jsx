@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useRef } from 'react';
 import { phonePlaceholder } from '../utils/phoneDisplay';
 import { businessDial, joinPhone } from '../utils/phoneDial';
 import DraggableCalculator from './DraggableCalculator';
@@ -1053,7 +1053,7 @@ export default function QuoteForm({
               <div className="sq-empty" data-testid="sq-empty-work">
                 <span>{isHebrew ? 'כאן יופיעו העבודות והמחירים.' : 'Work and prices will appear here.'}</span>
                 {/* PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line (100 x 200 cm at 600 per m2) to learn the row from */}
-                <button type="button" data-testid="quote-show-example" onClick={addLocalExample} style={{ display: 'block', margin: '8px 0 0', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', color: NEON.textSecondary, fontSize: '0.8rem', fontWeight: 700, padding: '8px 12px', minHeight: '40px', cursor: 'pointer' }}>
+                <button type="button" data-testid="quote-show-example" onClick={addLocalExample} style={{ display: 'block', margin: '8px 0 0', background: 'none', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', color: NEON.textSecondary, fontSize: '0.8rem', fontWeight: 700, padding: '8px 12px', minHeight: '44px', cursor: 'pointer' }}>
                   {isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}
                 </button>
               </div>
@@ -1290,7 +1290,8 @@ export default function QuoteForm({
             {isHebrew ? (showMoreDetails ? 'סגירה' : 'פתיחה') : (showMoreDetails ? 'Close' : 'Open')}
           </button>
         </div>
-        <p className="sq-details-names">{isHebrew ? 'קבצים · תנאים ואחריות · הערות · הנחה · עיצוב ותמונות · מטבע · פרויקט ותוקף · שמירה כתבנית' : 'Files · Terms and warranty · Notes · Discount · Design and images · Currency · Project and validity · Save as a template'}</p>
+        <p className="sq-details-names">{(isHebrew ? ['קבצים', 'תנאים ואחריות', 'הערות', 'הנחה', 'עיצוב ותמונות', 'מטבע', 'פרויקט ותוקף', 'שמירה כתבנית'] : ['Files', 'Terms and warranty', 'Notes', 'Discount', 'Design and images', 'Currency', 'Project and validity', 'Save as a template'])
+          .map((x, i, all) => <Fragment key={x}><span className="sq-nowrap">{x}{i < all.length - 1 ? ' ·' : ''}</span>{i < all.length - 1 ? ' ' : ''}</Fragment>)}</p>
         <p className="sq-details-names">{isHebrew ? 'בעבודה עצמה: קטלוג, כמויות, מידות, חדר ופרטים ללקוח.' : 'In the work itself: catalog, quantities, sizes, room and details for the client.'}</p>
         {showMoreDetails && (
           <div data-testid="sq-more-details">
@@ -1767,9 +1768,9 @@ function UnitCard({
         </div>
       )}
 
-      <div style={{ padding: '0 12px 10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+      <div className="sq-unit-actions" style={{ padding: '0 12px 10px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         {/* PRODUCT_TRUTH_DECORATIVE: 'Add row to <unit>' button inside a unit card; adds a blank row in this unit (the one quote builder's rows) */}
-        <button type="button" onClick={onAddItem} data-testid="unit-add-row" style={{ flex: '1 1 140px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, minHeight: '40px' }}>
+        <button type="button" onClick={onAddItem} data-testid="unit-add-row" style={{ flex: '1 1 140px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', background: NEON.bgInput, border: `1px solid ${NEON.borderStrong}`, color: NEON.textPrimary, padding: '9px 10px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700, minHeight: '44px' }}>
           <span>{/* Owner console 2026-11-10: the + stays beside the first line when a long unit name wraps */}<Plus size={14} strokeWidth={3} aria-hidden="true" style={{ display: 'inline-block', verticalAlign: '-2px', marginInlineEnd: '6px' }} />{isHebrew ? 'הוספת עבודה או מוצר' : 'Add work or a product'}</span>
         </button>
         {onDuplicate && !isUnassigned && (

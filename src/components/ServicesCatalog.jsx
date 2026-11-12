@@ -203,6 +203,7 @@ export default function ServicesCatalog({
             <input
               type="text"
               placeholder={t.serviceName}
+              data-testid="catalog-new-name"
               value={newServiceName}
               onChange={(e) => setNewServiceName(e.target.value)}
               required
@@ -216,6 +217,7 @@ export default function ServicesCatalog({
               type="number"
               step="0.01"
               placeholder={t.defaultPrice}
+              data-testid="catalog-new-price"
               value={newServicePrice}
               onChange={(e) => setNewServicePrice(e.target.value)}
               required

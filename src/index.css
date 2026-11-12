@@ -739,3 +739,12 @@ body:has([role="dialog"][aria-modal="true"]) .tk-tip { display: none; }
 .sq-save-btn:focus-visible { outline: 3px solid #0F6672; outline-offset: 2px; }
 /* law 49 (2026-11-12): in a narrow row the "known quantity" hint has its own line in both languages */
 @container (max-width: 700px) { .qrows .qrow-known-hint { flex-basis: 100%; } }
+
+/* law 49 (2026-11-12): the same wrapping in Hebrew and English */
+.sq-nowrap { white-space: nowrap; }
+@media (max-width: 768px) {
+  .sq-add-bar .sq-add-btn { flex: 1 1 100%; }
+  .sq-unit-actions > button { flex: 1 1 100% !important; }
+}
+/* the catalog add form: every field one height (44px), so the three fields stand on one line */
+[data-testid="catalog-new-name"], [data-testid="catalog-new-price"] { min-height: 44px; }
