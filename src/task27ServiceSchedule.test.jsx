@@ -109,8 +109,11 @@ describe('work date - form fields', () => {
   it('HE: separate from the validity, typed in the account date format, time locked until a date exists', () => {
     const onChange = vi.fn();
     render(<div dir="rtl"><ServiceScheduleFields value={{ date: '', time: '' }} onChange={onChange} isHebrew /></div>);
-    expect(screen.getByText(/תאריך ביצוע \(לא חובה\)/)).toBeInTheDocument();
+    // 2026-11-15 (the approved demo): "תאריך העבודה (לא חובה)"; the explanation is the field's "?" text
+    expect(screen.getByText(/תאריך העבודה \(לא חובה\)/)).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId('sq-help-service-date'));
     expect(screen.getByText(/נפרד מתוקף ההצעה, לא מוצג ללקוח/)).toBeInTheDocument();
+    expect(screen.getByText(/שעת הגעה \(לא חובה\)/)).toBeInTheDocument();
     expect(screen.getByTestId('service-time')).toBeDisabled();
     fireEvent.change(screen.getByTestId('service-date'), { target: { value: '02112026' } });
     expect(onChange).toHaveBeenCalledWith({ date: '2026-11-02', time: '' });

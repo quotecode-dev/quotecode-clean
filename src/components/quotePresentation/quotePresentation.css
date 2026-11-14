@@ -17,6 +17,8 @@
   border: 1px solid var(--qp-border-strong); background: var(--qp-card); color: var(--qp-text); font: inherit; font-weight: 700; font-size: 0.8rem; cursor: pointer; }
 .qp-btn:hover:not(:disabled) { border-color: var(--qp-accent); }
 .qp-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+/* a one-word answer ("כן" / "Yes") is never a sliver: every button of the app's question window is at least 64px wide */
+.qp-dialog-actions .qp-btn { min-inline-size: 64px; }
 .qp-btn--primary { background: var(--qp-accent); border-color: var(--qp-accent); color: var(--qp-on-accent); }
 .qp-btn--primary:hover:not(:disabled) { background: var(--qp-accent-strong); }
 .qp-btn--ghost { background: transparent; border-color: transparent; color: var(--qp-accent); padding-inline: 6px; }

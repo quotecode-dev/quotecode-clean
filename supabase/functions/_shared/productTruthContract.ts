@@ -19,11 +19,15 @@
 export const PRODUCT_TRUTH_PAYLOAD_KIND = 'product_truth';
 export const PRODUCT_TRUTH_PAYLOAD_SCHEMA_VERSION = 1;
 
+/** 2026-11-13 (Owner answer "א"): the subscription capabilities that are part of SMART PACK - their truth is SMART_PACK */
+export const SMART_PACK_SUBSCRIPTION_CAPABILITIES: readonly string[] = Object.freeze(['quote_attachment.upload']);
+
 export const TRUTH_STATUSES = [
   'AVAILABLE', // the capability exists and is usable by (or not gated against) this account
   'NOT_AVAILABLE', // roadmap / unavailable / deprecated / not released / test-only - not a customer capability today
   'PLAN_LOCKED', // exists, plan-gated, THIS account's plan is below an APPROVED minimum (no minimum is approved today - OPEN-02)
   'PLAN_NOT_DECIDED', // exists; the subscription system gates it, but which plans include it is not decided (OPEN-02 / OPEN-13)
+  'SMART_PACK', // exists; it is part of the SMART PACK add-on (Owner 2026-11-13, answer "א" - attachments)
   'ROLE_LOCKED', // exists, role-gated, THIS account does not hold the role
   'MARKET_UNAVAILABLE', // live, but not in this account's market
   'PAYMENT_NOT_LIVE', // no checkout / payment processing exists
@@ -140,6 +144,12 @@ export function validateProductTruthPayload(p: unknown, options: { allowLegacyPl
     if (o.accountEntitlement !== 'DENIED') v.push('plan_locked_requires_entitlement_denied');
     if (o.claimScope !== 'ACCOUNT') v.push('plan_locked_requires_account_claim_scope');
     if (o.requiredRole !== null) v.push('plan_locked_must_not_carry_a_required_role');
+  }
+  if (status === 'SMART_PACK') {
+    if (o.minimumPlan !== null) v.push('smart_pack_must_not_carry_a_minimum_plan');
+    if (o.requiredRole !== null) v.push('smart_pack_must_not_carry_a_required_role');
+    if (o.claimScope !== 'CAPABILITY') v.push('smart_pack_requires_capability_claim_scope');
+    if (o.accountEntitlement !== 'NOT_APPLICABLE') v.push('smart_pack_requires_entitlement_not_applicable');
   }
   if (status === 'PLAN_NOT_DECIDED') {
     if (o.minimumPlan !== null) v.push('plan_not_decided_must_not_carry_a_minimum_plan');

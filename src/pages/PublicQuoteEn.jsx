@@ -16,7 +16,7 @@ import { formatMoney } from '../utils/money';
 import { formatQuoteFallback, formatQuoteNumber } from '../utils/quoteNumber';
 import { generateQuotePdf, buildQuotePdfFilename } from '../utils/generateQuotePdf';
 import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine, formatQuantity } from '../utils/professionalQuoteItem';
-import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
+import { buildDisplayTree, sectionOpenMap } from '../utils/displaySectionTree';
 import { groupWord, roomLabel } from '../utils/quoteGroups';
 import { formatDeviceShortDateTime } from '../utils/shortDate';
 import { QuoteMediaRail, QuoteMediaHero, QuoteItemThumb } from '../quoteDocument/QuoteMedia';
@@ -56,17 +56,12 @@ const WIDE_AMOUNT_CHARS = 10;
 // (non-divided) quote. "Unassigned" is the existing canonical label
 // QuoteForm.jsx already uses for this exact bucket - not invented here.
 function buildDisplaySections(items, sections) {
-  const model = buildCustomerPresentationModel(items, sections);
-  if (!model.isDivided) return [];
-  const display = model.units
-    .filter((u) => u.itemCount > 0)
-    .map((u) => ({ key: u.key ?? u.id, title: u.title, items: u.items, subtotal: u.subtotal, repeatCount: u.repeatCount || 1, unitTotal: u.unitTotal ?? u.subtotal }));
-  if (model.unassignedItems.length > 0) {
-    const subtotal = model.unassignedItems.reduce((sum, it) => sum + Number(it.total_price ?? (Number(it.quantity || 1) * Number(it.price || 0))), 0);
-    display.push({ key: '__unassigned__', title: 'Unassigned', items: model.unassignedItems, subtotal, repeatCount: 1, unitTotal: subtotal });
-  }
-  return display;
+  // 2026-11-13 (Owner: the customer sees the tree of headings in today's look): pre-order list, a parent before its children (shared with
+  // the HE page); a quote without parents gives exactly the list it gave before
+  return buildDisplayTree(items, sections, 'Unassigned');
 }
+// 2026-11-13: a heading's indent by its depth in the tree (depth 0 = no change at all)
+const indentOf = (section) => (section && section.depth ? { paddingInlineStart: `${10 + section.depth * 18}px` } : {});
 
 // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-24..L-28): a unit of N identical copies reads "name × N";
 // at N = 1 the toggle text is exactly the previous string
@@ -80,9 +75,8 @@ function sectionToggleText(section, chevron) {
 // Task 16: the same "every section open / every section closed" map the print chooser applies, reusable for an
 // externally-driven detail level (creator preview / sample route).
 function allSectionsMap(items, sections, open) {
-  const map = {};
-  buildDisplaySections(items, sections).forEach((s) => { map[s.key] = open; });
-  return map;
+  // 2026-11-13: the partial view keeps a heading that holds sub-headings open (its sub-headings fold to their summary rows)
+  return sectionOpenMap(buildDisplaySections(items, sections), open);
 }
 
 // Owner 2026-11-11 (finding 21): a US / Canada number is shown grouped ("+1 (202) 555-0143"); every other number as stored
@@ -158,6 +152,8 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printIntent, setPrintIntent] = useState('print');
   const [pdfGenerating, setPdfGenerating] = useState(false);
+  // 2026-11-13 (Owner: no triangles in print / PDF): true from the print choice until the browser's afterprint
+  const [printingNow, setPrintingNow] = useState(false);
   const cardRef = useRef(null);
   // IRON-NUMERIC-001: the totals share the table Amount column's axis on screen (Owner 2026-10-18)
   useAmountAxis(cardRef);
@@ -188,7 +184,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   }, [docDetail]);
 
   useEffect(() => {
-    const handleAfterPrint = () => { setPrintModalOpen(false); setPartialOutput(false); };
+    const handleAfterPrint = () => { setPrintModalOpen(false); setPartialOutput(false); setPrintingNow(false); };
     window.addEventListener('afterprint', handleAfterPrint);
     return () => window.removeEventListener('afterprint', handleAfterPrint);
   }, []);
@@ -244,7 +240,9 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
 
     if (printIntent === 'print') {
       // PRODUCT_TRUTH_CAPABILITY: quote_print
-      setTimeout(() => window.print(), 50);
+      setPrintingNow(true);
+      // window.print() returns when the print dialog closes (afterprint resets it too)
+      setTimeout(() => { window.print(); setPrintingNow(false); }, 50);
       return;
     }
 
@@ -445,7 +443,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
     return (
       <>
         {withQuantityLine && isPro && (
-          <div className="pq-item-detail pq-item-detail-strong">{`Quantity: ${formatQuantity(activeQty, item.pricing_unit)} ${unitLabel}`}</div>
+          <div className="pq-item-detail pq-item-detail-strong">{`Qty: ${formatQuantity(activeQty, item.pricing_unit)}\u00a0${unitLabel}`}</div>
         )}
         {measurements.length > 0 && (
           <div className="pq-item-detail">
@@ -575,7 +573,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
         <div className="pq-group-controls no-print" data-html2canvas-ignore="true">
           {groupHelp && (
             <div className="pq-group-help" role="status">
-              <span>{"This quote is divided into @P. Tap the arrow next to an @S's name to show or hide its details. Use the button above to switch between the full document and summary rows.".replace('@P', groupWord(((quoteSections || []).find((sec) => sec.kind) || {}).kind, false, { plural: true }).toLowerCase()).replace('@S', groupWord(((quoteSections || []).find((sec) => sec.kind) || {}).kind, false).toLowerCase())}</span>
+              <span>{"This quote is divided into @P. Tap the arrow next to @A @S's name to show or hide its details. Use the button above to switch between the full document and summary rows.".replace('@P', groupWord(((quoteSections || []).find((sec) => sec.kind) || {}).kind, false, { plural: true }).toLowerCase()).replace('@A', /^[aeiou]/i.test(groupWord(((quoteSections || []).find((sec) => sec.kind) || {}).kind, false)) ? 'an' : 'a').replace('@S', groupWord(((quoteSections || []).find((sec) => sec.kind) || {}).kind, false).toLowerCase())}</span>
               {/* PRODUCT_TRUTH_DECORATIVE: closes the one-time explanation of the arrows (remembered in this browser) */}
               <button type="button" className="pq-group-help-ok" onClick={closeGroupHelp}>{'Got it'}</button>
             </div>
@@ -584,7 +582,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
             {/* PRODUCT_TRUTH_DECORATIVE: opens every group of the document */}
             <button type="button" aria-pressed={displaySections.every((sec) => expandedSections[sec.key] !== false)} onClick={() => setExpandedSections(allSectionsMap(items, quoteSections, true))}>{'Full document view'}</button>
             {/* PRODUCT_TRUTH_DECORATIVE: closes every group of the document to its summary row */}
-            <button type="button" aria-pressed={displaySections.every((sec) => expandedSections[sec.key] === false)} onClick={() => setExpandedSections(allSectionsMap(items, quoteSections, false))}>{'Summary rows view'}</button>
+            <button type="button" aria-pressed={displaySections.every((sec) => (expandedSections[sec.key] !== false) === ((sec.children || []).length > 0))} onClick={() => setExpandedSections(allSectionsMap(items, quoteSections, false))}>{'Summary rows view'}</button>
           </div>
         </div>
       )}
@@ -627,17 +625,20 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
               );
             })
           ) : (
-            displaySections.map((section) => {
+            displaySections.filter((s) => !s.depth).map(function renderSection(section) {
               const isOpen = expandedSections[section.key] !== false;
-              const chevron = isOpen ? '▲' : '▼';
+              // 2026-11-13 (Owner): the triangle of a top heading keeps today's size, a sub-heading's is small; never in print / PDF
+              const noTriangle = pdfGenerating || printingNow;
+              // 2026-11-14 (Owner): closed = the triangle points to the heading's name (▶ in English), open = it points down (▼)
+              const chevron = section.depth ? (noTriangle ? null : <span className="pq-chev pq-chev-sub">{isOpen ? '▼' : '▶'}</span>) : (noTriangle ? '' : (isOpen ? '▼' : '▶'));
               if (!isOpen) {
                 // Section Summary Row Correction (same rule as HE): real item count, "—", authoritative subtotal.
-                const itemCount = section.items.length;
+                const itemCount = section.treeItemCount ?? section.items.length;
                 return (
                   <tr role="row" key={section.key}>
-                    <td headers={colId('desc')} role="cell" className="pq-td-desc">
+                    <td headers={colId('desc')} role="cell" className="pq-td-desc" {...(section.depth ? { style: indentOf(section) } : {})}>
                       {/* PRODUCT_TRUTH_DECORATIVE: expands a collapsed line-item section row within the public quote view table */}
-                      <button type="button" className="pq-section-toggle" onClick={() => toggleSection(section.key)} aria-expanded={false}>{sectionToggleText(section, chevron)}</button>
+                      <button type="button" className={noTriangle ? 'pq-section-toggle pq-no-chev' : 'pq-section-toggle'} onClick={() => toggleSection(section.key)} aria-expanded={false}>{sectionToggleText(section, chevron)}</button>
                       {section.repeatCount > 1 && (
                         <span className="pq-unit-note" style={{ display: 'block', fontWeight: 400, whiteSpace: 'nowrap', fontSize: '0.85em', color: '#64748b' }}><span className="pf-money">{currencySymbol}{formatNum(section.subtotal)}</span> {"per @W".replace('@W', (quoteSections || []).find((sec) => sec.id === section.key)?.kind ? groupWord((quoteSections || []).find((sec) => sec.id === section.key).kind, false).toLowerCase() : 'unit')} <bdi dir="ltr" className="pf-num">× {section.repeatCount}</bdi></span>
                       )}
@@ -653,9 +654,9 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
               return (
                 <Fragment key={section.key}>
                   <tr role="row">
-                    <td headers={colId('desc')} role="cell" colSpan="4" style={{ padding: '14px 10px 4px' }}>
+                    <td headers={colId('desc')} role="cell" colSpan="4" style={{ padding: '14px 10px 4px', ...indentOf(section) }}>
                       {/* PRODUCT_TRUTH_DECORATIVE: collapses an expanded line-item section back to its summary row */}
-                      <button type="button" className="pq-section-toggle" onClick={() => toggleSection(section.key)} aria-expanded={true}>{sectionToggleText(section, chevron)}</button>
+                      <button type="button" className={noTriangle ? 'pq-section-toggle pq-no-chev' : 'pq-section-toggle'} onClick={() => toggleSection(section.key)} aria-expanded={true}>{sectionToggleText(section, chevron)}</button>
                       {section.repeatCount > 1 && <span className="pq-unit-note" style={{ marginInlineStart: '8px', fontSize: '0.85em', color: '#64748b' }}>Details for one unit</span>}
                     </td>
                   </tr>
@@ -664,13 +665,14 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
                     const activeQty = isPro ? getActiveQuantity({ quantity: item.quantity, calculated_quantity: item.calculated_quantity }) : Number(item.quantity || 1);
                     return (
                       <tr role="row" key={i}>
-                        <td headers={colId('desc')} role="cell" className="pq-td-desc">{renderDescriptionCell(item, renderItemDetailLines(item, true))}</td>
+                        <td headers={colId('desc')} role="cell" className="pq-td-desc" {...(section.depth ? { style: indentOf(section) } : {})}>{renderDescriptionCell(item, renderItemDetailLines(item, true))}</td>
                         <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}><span className="pq-num-slot">{isPro ? formatQuantity(activeQty, item.pricing_unit) : Number(item.quantity || 1)}</span><span className="pq-unit-slot" /></td>
                         <td headers={colId('price')} role="cell" className="pq-td-price" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>Not priced yet</span> : <span className="pf-money">{currencySymbol}{formatNum(item.price)}</span>}</td>
                         <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>Not priced yet</span> : <span className="pf-money">{currencySymbol}{formatNum(item.total_price || Number(item.price || 0) * Number(item.quantity || 1))}</span>}</td>
                       </tr>
                     );
                   })}
+                  {(section.children || []).map(renderSection)}
                   <tr role="row" className="pq-section-subtotal-row">
                     <td headers={colId('desc')} role="cell" colSpan="3" style={{ textAlign: 'right', fontWeight: 700 }}>{`Total ${section.title}:`}{section.repeatCount > 1 && (
                       <span className="pq-unit-note" style={{ display: 'block', fontWeight: 400, whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatNum(section.subtotal)}</span> per unit <bdi dir="ltr" className="pf-num">× {section.repeatCount}</bdi></span>
@@ -1183,6 +1185,8 @@ const PQ_SCREEN_CSS = `
         }
         /* Direct PDF via html2canvas (applied only while generateQuotePdf runs; capture root = .pq-card): drops the
            card chrome and every .no-print element inside it - the on-screen action tiles never reach the PDF. */
+        .pq-chev-sub { font-size: 0.68em; vertical-align: 0.1em; }
+        .pq-pdf-capturing .pq-chev { display: none; }
         .pq-pdf-capturing .no-print {
           display: none !important;
         }
@@ -1211,6 +1215,8 @@ const PQ_SCREEN_CSS = `
 `;
 
 const PQ_PRINT_CSS = `
+        /* 2026-11-13 (Owner: no triangles in print / PDF) - also for the browser's own print */
+        @media print { .pq-chev { display: none !important; } .pq-section-toggle:not(.pq-no-chev)::first-letter { color: transparent; } }
         /* Item 7 (Public Quote Print): .no-print (src/index.css) hides every app control; this removes page chrome. */
         @media print {
           .pq-page {

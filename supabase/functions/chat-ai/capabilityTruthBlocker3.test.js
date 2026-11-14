@@ -133,7 +133,7 @@ describe('BLOCKER 3 §4.3 — deterministic product-capability-question guard ru
 
 describe('BLOCKER 3 §4.4 — invalid plan/role resolves fail-closed, never unqualified "available"', () => {
   it('an unrecognized plan tier string never resolves accountHasIt to true or false - it fails closed to unknown, and the answer still discloses the plan restriction rather than an unqualified "available"', () => {
-    const answer = formatCapabilityTruthAnswer('attachments', FACTS, false, 'NOT_A_REAL_PLAN_TIER', null);
+    const answer = formatCapabilityTruthAnswer('measured_quote', FACTS, false, 'NOT_A_REAL_PLAN_TIER', null);
     // Subscriptions cutover: plan inclusion is not decided (OPEN-13), so the answer discloses THAT - never "available to you".
     expect(answer).toMatch(/still undecided/);
     expect(answer).not.toMatch(/\bPRO\b/);

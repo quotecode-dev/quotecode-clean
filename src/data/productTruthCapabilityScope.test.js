@@ -153,10 +153,15 @@ describe('FINDING 3 scope - the same scope model under the OTHER truth kinds', (
     expect(passes(t, 'Yes - File attachments exists in TEKANGO, but it requires the PRO plan or above. Your current plan does not include it. Other products offer it too.', 'en')).toBe(true);
   });
   it('PLAN_NOT_DECIDED truth (current): availability elsewhere never substitutes for the in-TEKANGO existence + undecided plan inclusion', () => {
-    const t = truth('attachments', 'free');
+    const t = truth('measured_quote', 'free');
     expect(t.kind).toBe(TRUTH_KINDS.PLAN_NOT_DECIDED);
-    expect(passes(t, 'File attachments are available elsewhere, but TEKANGO lacks them.', 'en')).toBe(false);
-    expect(passes(t, 'Yes - File attachments exists in TEKANGO. Plan inclusion for it is still undecided. Other products offer it too.', 'en')).toBe(true);
+    expect(passes(t, 'Measured professional quotes are available elsewhere, but TEKANGO lacks them.', 'en')).toBe(false);
+    expect(passes(t, 'Yes - Measured professional quote exists in TEKANGO. Plan inclusion for it is still undecided. Other products offer it too.', 'en')).toBe(true);
+    // 2026-11-13 (Owner answer "א"): attachments are SMART PACK
+    const sp = truth('attachments', 'free');
+    expect(sp.kind).toBe(TRUTH_KINDS.SMART_PACK);
+    expect(passes(sp, 'File attachments are available elsewhere, but TEKANGO lacks them.', 'en')).toBe(false);
+    expect(passes(sp, 'Yes - File attachments exists in TEKANGO, and it is part of SMART PACK. Other products offer it too.', 'en')).toBe(true);
   });
   it('PAYMENT_NOT_LIVE truth: payments live in other products are not a false claim about TEKANGO; a TEKANGO claim still fails', () => {
     const t = truth('payment_truth_sentinel');

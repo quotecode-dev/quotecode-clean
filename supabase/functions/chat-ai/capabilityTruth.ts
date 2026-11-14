@@ -360,7 +360,8 @@ const CLASSIFIERS: ReadonlyArray<readonly [string, readonly RegExp[]]> = [
     // Bare noun mention, no verb ("attachments do not exist...") - "attachments" is specific enough
     // to this domain that a bare-word catch-all is safe, mirroring quote_pdf's own bare /\bpdf\b/i.
     /\battachments?\b/i,
-    /(לצרף|להעלות|מעלה).{0,20}(קבצים|שרטוטים|תמונות)/,
+    // 2026-11-13 (chat knowledge scan, section א 6): "צירוף קבצים" / "מצרפים קבצים" (the plural) too
+    /(לצרף|מצרפים|צירוף|להעלות|מעלה|מעלים).{0,20}(קבצים|שרטוטים|תמונות)/,
     // Owner 2026-10-25 (typed L-17, QA report): the singular too ("לצרף קובץ", "צירוף שרטוט", "attach a file")
     /(לצרף|מצרפים|לצרוף|צירוף|להעלות|מעלים).{0,20}(קובץ|שרטוט|מסמך|תמונה)/, /\battach(ing)?\s+(a\s+|the\s+|my\s+)?(file|drawing|document|photo|pdf)\b/i,
   ]],
@@ -578,6 +579,11 @@ function renderCapabilityProse(p: ProductTruthFactPayload, name: string, desc: s
       return isHebrew
         ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO, אך היא זמינה רק לתפקיד ${p.requiredRole}, אחרי אימות ההרשאה בשרת. הזמינות אינה תלויה במסלול. ${desc} לחשבון הנוכחי אין ההרשאה הזו.`
         : `Yes - ${name} exists in TEKANGO, but it is restricted to the server-verified ${p.requiredRole} role - not to a plan. ${desc} Your current account does not hold that role.`;
+    case 'SMART_PACK':
+      // 2026-11-13 (Owner answer "א", chat knowledge scan section א 6): the capability is part of SMART PACK
+      return isHebrew
+        ? `כן — האפשרות ״${name}״ קיימת ב-TEKANGO, והיא חלק מחכם פלוס. ${desc}`
+        : `Yes - ${name} exists in TEKANGO, and it is part of SMART PACK. ${desc}`;
     case 'PLAN_NOT_DECIDED':
       // OPEN-02 / OPEN-13: the capability exists; which plans include it is not decided, and the plan system is not active yet.
       // Never a minimum plan, never "your plan includes / lacks it".

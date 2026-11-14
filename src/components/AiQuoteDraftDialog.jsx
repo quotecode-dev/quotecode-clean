@@ -13,7 +13,7 @@
 // Owner console 2026-10-19 (voice assistant; "שזה ייושם גם בהצעת AI החכמה"): the description can be dictated (a microphone under the
 // field adds the spoken text to it), and the draft's clarification questions can be answered by voice - the answer is added to the
 // description and the draft is generated again. Shown only when the Dashboard passes `transcribe` and the browser can record.
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { X, Sparkles, Check, Mic, Square } from 'lucide-react';
 import useVoiceRecorder from '../hooks/useVoiceRecorder';
 import AiModalHeader from './AiModalHeader';
@@ -21,6 +21,7 @@ import { APP as NEON } from '../theme/neonTheme';
 import { MAX_DESCRIPTION_CHARS, MIN_DESCRIPTION_CHARS, draftUnitsForMarket } from '../../supabase/functions/_shared/aiQuoteDraft.js';
 import { getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
 import { groupWord, roomLabel } from '../utils/quoteGroups';
+import { draftPlaceRows, draftPlacePath } from '../utils/aiQuoteDraftClient';
 import { smartPackUsageText, smartPackUsedUpText } from '../utils/smartPackUsage';
 
 const positiveQuantity = (v) => {
@@ -96,6 +97,7 @@ const COPY = {
     stopDictate: (s) => `עצירה ושימוש בהקלטה (0:${String(s).padStart(2, '0')})`,
     transcribing: 'ממיר את הדיבור לטקסט…',
     answerByVoice: 'מענה בקול לשאלות',
+    voiceCut: `הטקסט ארוך מדי, ולכן נכנסו רק ${MAX_DESCRIPTION_CHARS.toLocaleString('en-US')} התווים הראשונים. הסוף לא נכנס - אפשר לקצר ולהכתיב שוב.`,
     voiceErrors: { mic_denied: 'אין גישה למיקרופון. אפשר לאשר גישה בהגדרות הדפדפן, או להקליד.', failed: 'לא הצלחתי להבין את ההקלטה. אפשר לנסות שוב או להקליד.', limit: 'היתרה בחכם פלוס לחודש הזה לא מספיקה לקול. היא מתחדשת בתחילת החודש הבא. אפשר להמשיך בהקלדה.', smart_pack: 'הצ׳אט הקולי וההכתבה הם חלק מחכם פלוס. אפשר להוסיף אותו בחלון המסלולים.' },
     errors: {
       not_deployed: 'שירות טיוטות ה-AI עדיין לא מותקן בשרת הזה. אפשר למלא את ההצעה ידנית או לשאול את העוזר החכם בצ׳אט.',
@@ -178,6 +180,7 @@ const COPY = {
     stopDictate: (s) => `Stop and use the recording (0:${String(s).padStart(2, '0')})`,
     transcribing: 'Turning your speech into text…',
     answerByVoice: 'Answer the questions by voice',
+    voiceCut: `The text is too long, so only the first ${MAX_DESCRIPTION_CHARS.toLocaleString('en-US')} characters went in. The end did not fit - you can shorten it and dictate again.`,
     voiceErrors: { mic_denied: 'No microphone access. You can allow it in your browser settings, or type.', failed: "I couldn't understand the recording. Try again or type.", limit: "Your SMART PACK usage left this month is not enough for voice. It renews at the start of next month. You can keep typing.", smart_pack: 'Voice chat and dictation are part of SMART PACK. You can add it in the plans window.' },
     errors: {
       not_deployed: 'The AI draft service is not installed on this server yet. You can fill in the quote manually or ask the AI chat.',
@@ -243,6 +246,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
   const fieldPlaceholder = editMode ? t.editPlaceholder : t.placeholder;
   const generateText = editMode ? t.editGenerate : t.generate;
   const [description, setDescription] = useState('');
+  const [voiceCut, setVoiceCut] = useState(false);
   const [phase, setPhase] = useState('describe'); // describe | loading | review
   const [errorCode, setErrorCode] = useState(null);
   const [draft, setDraft] = useState(null);
@@ -330,7 +334,10 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
   };
   function handleVoiceText(text) {
     refreshUsage(); // Owner console 2026-11-07 (F01): a dictation is metered too - the line shows what is left after it
-    const joined = (description.trim() ? `${description.trim()}${voiceTargetRef.current === 'answer' ? '\n' : ' '}${text}` : text).slice(0, MAX_DESCRIPTION_CHARS);
+    const full = description.trim() ? `${description.trim()}${voiceTargetRef.current === 'answer' ? '\n' : ' '}${text}` : text;
+    const joined = full.slice(0, MAX_DESCRIPTION_CHARS);
+    // 2026-11-13 (Owner, the 13/11 spec: no silent cut): a dictation longer than the field keeps its start and SAYS the end did not fit
+    setVoiceCut(full.length > MAX_DESCRIPTION_CHARS);
     setDescription(joined);
     if (voiceTargetRef.current === 'answer') generate(joined);
   }
@@ -361,18 +368,23 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
               {smartPackUsageText(usage, isHebrew) && <div data-testid="ai-quote-draft-usage" style={{ fontSize: '0.78rem', color: NEON.textSecondary }}>{smartPackUsageText(usage, isHebrew)}</div>}
               <label htmlFor="ai-quote-draft-description" style={{ fontSize: '0.86rem', fontWeight: 700, color: NEON.textPrimary }}>{fieldLabel}</label>
               {/* Owner 2026-10-19: the microphone sits INSIDE the field's bottom corner - the action row keeps its two uniform buttons on one line */}
-              <div style={{ position: 'relative' }}>
+              {/* 2026-11-14 (Owner: "תסדר גם את המיקרופון"): with the microphone the BOX is the wrapper and the text scrolls only above the
+                  microphone's strip - a long or dictated text never runs under the button (before: the field's own bottom padding scrolled
+                  with the text, so a line sat under the microphone). The look is the same box with the microphone in its bottom corner. */}
+              <div data-testid="ai-quote-draft-field-box" style={voice.supported
+                ? { position: 'relative', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, paddingBottom: '52px', boxSizing: 'border-box' }
+                : { position: 'relative' }}>
                 <textarea
                   id="ai-quote-draft-description"
                   ref={fieldRef}
                   value={description}
                   maxLength={MAX_DESCRIPTION_CHARS}
-                  onChange={(e) => setDescription(e.target.value)}
+                  onChange={(e) => { setDescription(e.target.value); setVoiceCut(false); }}
                   placeholder={fieldPlaceholder}
                   disabled={phase === 'loading'}
                   aria-invalid={!!errorText}
                   aria-describedby={errorText ? 'ai-quote-draft-error' : undefined}
-                  style={{ ...inputStyle(isHebrew), ...(voice.supported ? { paddingBottom: '52px' } : {}) }}
+                  style={{ ...inputStyle(isHebrew), ...(voice.supported ? { display: 'block', border: 'none', borderRadius: '8px 8px 0 0', background: 'transparent', paddingBottom: '4px', minHeight: '85px' /* 3 whole lines (16px × 1.45) + its padding: no half line at rest */ } : {}) }}
                 />
                 {voice.supported && (
                   /* PRODUCT_TRUTH_DECORATIVE: dictates the job description (the spoken text is added to the field; nothing is sent until "create") */
@@ -385,9 +397,11 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
               </div>
               {voice.busy && <div role="status" aria-live="polite" style={{ fontSize: '0.8rem', color: NEON.textSecondary }}>{t.transcribing}</div>}
               {voice.error && <div role="alert" data-testid="ai-quote-draft-voice-error" style={{ color: NEON.red, fontSize: '0.8rem', lineHeight: 1.4 }}>{t.voiceErrors[voice.error]}</div>}
+              {voiceCut && <div role="alert" data-testid="ai-quote-draft-voice-cut" style={{ color: NEON.red, fontSize: '0.8rem', lineHeight: 1.4 }}>{t.voiceCut}</div>}
               {errorText && <div id="ai-quote-draft-error" role="alert" style={{ color: NEON.red, fontSize: '0.8rem', lineHeight: 1.4 }}>{errorText}</div>}
               {phase === 'loading' && <div role="status" aria-live="polite" style={{ fontSize: '0.82rem', color: NEON.textSecondary }}>{t.generating}</div>}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end' }}>
+              {/* 2026-11-14 (Owner): on a phone the two buttons stay in ONE row in Hebrew and English alike (index.css .pf-aiq-actions) */}
+              <div className="pf-aiq-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end' }}>
                 {/* PRODUCT_TRUTH_DECORATIVE: closes the AI draft dialog and leaves the blank quote form for manual entry */}
                 <button type="button" onClick={close} style={secondaryBtn}>{t.manual}</button>
                 {['not_deployed', 'service_unreachable', 'unavailable', 'server_error', 'provider'].includes(errorCode) && onOpenChat && (
@@ -414,7 +428,14 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                 // 2026-11-12 (unified quote, spec 5): the suggested places - "דירה × 2" when the text says the work is identical
                 <div data-testid="ai-quote-draft-structure" style={{ fontSize: '0.82rem', color: NEON.textPrimary, background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: '8px', padding: '8px 10px', lineHeight: 1.5 }}>
                   <strong>{t.structureTitle}:</strong>{' '}
-                  {draft.places.map((p, i) => (
+                  {draft.tree ? (
+                    // 2026-11-13 (Owner: the headings are a TREE): the suggested headings, nested, each copy its own heading (no × N)
+                    <span style={{ display: 'block', marginTop: '2px' }}>
+                      {draftPlaceRows(draft.places).map(({ place, depth }) => (
+                        <span key={place.key} data-testid="ai-quote-draft-place" data-depth={depth} style={{ display: 'block', paddingInlineStart: `${depth * 14}px` }}><bdi>{place.name || groupWord(place.kind, isHebrew)}</bdi></span>
+                      ))}
+                    </span>
+                  ) : draft.places.map((p, i) => (
                     <span key={p.key} data-testid="ai-quote-draft-place">{i > 0 ? ' · ' : ''}<bdi>{p.name || groupWord(p.kind, isHebrew)}</bdi>{p.count > 1 ? (p.identical === 'yes' ? <> × <bdi dir="ltr" className="pf-num">{p.count}</bdi></> : <> - <bdi dir="ltr" className="pf-num">{p.count}</bdi> {groupWord(p.kind, isHebrew, { plural: true })} ({p.identical === 'no' ? t.identicalNo : t.identicalUnclear})</>) : null}</span>
                   ))}
                 </div>
@@ -458,7 +479,12 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                             </select>
                           </label>
                         </span>
-                        {(line.place || line.room) && (
+                        {draft.tree ? (() => {
+                          // 2026-11-13 (tree): the full path of the line's heading ("דירה 32 ← מטבח"); a line of no heading names nothing
+                          // (never a made-up "Section")
+                          const names = draftPlacePath(draft.places, line.place).map((p) => p.name || groupWord(p.kind, isHebrew));
+                          return names.length ? <span data-testid="ai-quote-draft-where" style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{t.placeOf}: <span dir={isHebrew ? 'rtl' : 'ltr'}>{names.map((n, j) => <Fragment key={j}>{j ? (isHebrew ? ' ← ' : ' → ') : ''}<bdi>{n}</bdi></Fragment>)}</span></span> : null;
+                        })() : (line.place || line.room) && (
                           <span data-testid="ai-quote-draft-where" style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{t.placeOf}: <bdi>{[(draft.places || []).find((p) => p.key === line.place)?.name || groupWord((draft.places || []).find((p) => p.key === line.place)?.kind || null, isHebrew), line.room ? roomLabel(line.room, isHebrew, (draft.places || []).find((p) => p.key === line.place)?.kind || 'section') : ''].filter(Boolean).join(' · ')}</bdi></span>
                         )}
                         {line.evidence && <span data-testid="ai-quote-draft-evidence" style={{ fontSize: '0.74rem', color: NEON.textSecondary, overflowWrap: 'anywhere' }}>{t.evidence}: {isHebrew ? '„' : '“'}<bdi>{line.evidence}</bdi>”</span>}

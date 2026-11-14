@@ -22,7 +22,7 @@ export const CAPABILITY_ANCHORS = {
   quote_edit: [{ file: 'src/pages/Dashboard.jsx', anchor: 'editingQuoteId' }],
   quote_duplicate: [{ file: 'src/pages/Dashboard.jsx', anchor: 'handleDuplicateQuote' }],
   quote_status: [{ file: 'src/components/QuotesTab.jsx', anchor: 'getStatusBadge' }],
-  smart_quote: [{ file: 'src/components/QuoteForm.jsx', anchor: "structureMode === 'regular'" }],
+  smart_quote: [{ file: 'src/components/AiQuoteDraftDialog.jsx', anchor: 'export default function AiQuoteDraftDialog' }],
   measured_quote: [{ file: 'src/components/QuoteForm.jsx', anchor: "structureMode === 'divided'" }],
   professional_reuse: [{ file: 'src/components/QuoteForm.jsx', anchor: 'canUseProfessionalQuoteReuse' }],
   clients: [{ file: 'src/components/ClientsTab.jsx', anchor: 'export default function ClientsTab' }],

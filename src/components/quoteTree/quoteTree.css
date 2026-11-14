@@ -1,0 +1,323 @@
+/* 2026-11-13 (Owner: the manual quote of the 13/11 demo - structure, flow and proportions from the demo; colours, fonts and components stay
+   the system's: the same palette as .sq-* in src/index.css). Spacing: ~8 between fields, 4-6 label->field, 12-16 between groups. */
+.qt { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.qt-card { border: 1px solid #d6e3ea; border-radius: 16px; background: #ffffff; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.qt-structure { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.qt-structure-btn { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; min-block-size: 48px; padding: 6px 40px;
+  border: 1px solid #b9dcdf; border-radius: 10px; background: #ffffff; color: #0b3d44; font: inherit; font-size: 0.92rem; font-weight: 700; cursor: pointer; text-align: center; }
+.qt-structure-btn[aria-pressed="true"] { border-color: #0F6672; background: #e8f4f5; }
+.qt-help { position: absolute; inset-inline-end: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
+  border: 0; background: transparent; cursor: pointer; padding: 0; }
+/* a help circle beside a field label (the client step): in the row, its popover opens toward the inside */
+.qt-help-wrap { position: relative; display: inline-flex; flex: 0 0 auto; }
+.qt-help.qt-help--inline { position: static; transform: none; }
+.qt-help-wrap .qt-pop { inset-inline-start: auto; inset-inline-end: 0; }
+.sq-client-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-block-size: 44px; }
+.sq-client-label > label { font-size: 0.8rem; font-weight: 700; color: #0b3d44; }
+.qt-help > span { width: 23px; height: 23px; border-radius: 50%; border: 1.5px solid #0F6672; color: #0F6672; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; background: #ffffff; }
+.qt-pop { position: absolute; z-index: 40; top: calc(100% + 6px); inset-inline-start: 0; inline-size: min(300px, calc(100vw - 32px)); padding: 10px 12px; border: 1px solid #d6e3ea;
+  border-radius: 10px; background: #ffffff; color: #334155; font-size: 0.84rem; font-weight: 500; line-height: 1.45; text-align: start; box-shadow: 0 12px 28px -10px rgba(15,23,42,0.35); }
+.qt-nav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.qt-chip { min-block-size: 44px; padding: 0 14px; border: 1px solid #b9dcdf; border-radius: 10px; background: #ffffff; color: #0b3d44; font: inherit; font-size: 0.86rem; font-weight: 700; cursor: pointer; }
+.qt-chip[aria-current="true"] { border-color: #0F6672; background: #e8f4f5; }
+.qt-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.qt-link { min-block-size: 44px; padding: 0 6px; border: 0; background: transparent; color: #0F6672; font: inherit; font-size: 0.86rem; font-weight: 700; cursor: pointer; }
+.qt-form { border: 1px solid #b9dcdf; border-radius: 12px; background: #f6fbfb; padding: 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.qt-form-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.qt-form-title { margin: 0; font-size: 0.9rem; font-weight: 700; color: #0b3d44; }
+.qt-to { font-size: 0.8rem; color: #0F6672; font-weight: 600; }
+/* the pricing list needs ~150px for its longest choice ("מחיר גלובלי", "Per work day") with the arrow - never cut */
+.qt-grid { display: grid; grid-template-columns: minmax(0, 2fr) 150px minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.qt-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.qt-label { display: flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: 700; color: #334155; min-height: 24px; }
+.qt-input, .qt-select { min-block-size: 44px; inline-size: 100%; min-width: 0; padding: 0 10px; border: 1px solid #c9d8df; border-radius: 8px; background: #ffffff; color: #0f172a; font: inherit; font-size: 16px; box-sizing: border-box; }
+.qt-add { min-block-size: 44px; padding: 0 16px; border: 0; border-radius: 10px; background: #0F6672; color: #ffffff; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
+.qt-strip { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 0.8rem; color: #475569; }
+.qt-strip .qt-link { min-block-size: 32px; font-size: 0.8rem; }
+.qt-note { font-size: 0.8rem; color: #9a3412; font-weight: 600; }
+.qt-head { display: flex; align-items: center; gap: 8px; min-block-size: 48px; padding-inline: 8px 0; border-radius: 10px; background: #f1f5f7; }
+.qt-head--sel { outline: 2px solid #0F6672; outline-offset: -2px; }
+.qt-tri { border: 0; background: transparent; color: #0b3d44; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0; }
+.qt-tri--top { font-size: 1rem; }
+.qt-tri--sub { font-size: 0.78rem; }
+.qt-head-name { flex: 1; min-width: 0; font-weight: 700; color: #0b3d44; font-size: 0.95rem; overflow-wrap: anywhere; }
+/* the heading total sits on the axis of the row sums (same slot width, digits flush right), the menu in the actions column */
+.qt-head-total { flex: 0 0 112px; box-sizing: border-box; padding-inline: 6px; text-align: right; font-weight: 700; color: #0F6672; font-size: 0.86rem; white-space: nowrap; }
+.qt-head-menu { flex: 0 0 96px; display: flex; justify-content: flex-end; padding-inline-end: 6px; box-sizing: border-box; }
+.qt-menu-dots { display: none; }
+.qt-rows .qt-menu-btn { min-width: 88px; }
+.qt-menu-btn { min-width: 44px; min-height: 44px; border: 1px solid #d6e3ea; border-radius: 8px; background: #ffffff; color: #0b3d44; font: inherit; font-weight: 700; cursor: pointer; padding: 0 10px; }
+/* the row menu: wide enough for "העברה אל: דירה 32 ← חדר ילדים" on one line; a name never breaks in its middle */
+.qt-menu { position: absolute; z-index: 45; inset-inline-end: 0; top: calc(100% + 4px); min-width: 260px; max-inline-size: min(420px, calc(100vw - 32px)); inline-size: max-content; margin: 0; padding: 4px; list-style: none; border: 1px solid #d6e3ea; border-radius: 10px; background: #fff; box-shadow: 0 12px 28px -10px rgba(15,23,42,0.35); }
+.qt-menu button { display: block; inline-size: 100%; min-block-size: 44px; padding: 0 10px; border: 0; background: transparent; color: #0f172a; font: inherit; font-size: 0.86rem; text-align: start; cursor: pointer; border-radius: 8px; }
+.qt-menu button:hover, .qt-menu button:focus-visible { background: #e8f4f5; }
+.qt-menu bdi { white-space: nowrap; }
+.qt-body[hidden] { display: none; }
+.qt-body { display: flex; flex-direction: column; gap: 8px; padding-inline-start: 14px; border-inline-start: 2px solid #e2ecef; margin-inline-start: 8px; }
+.qt-rows { inline-size: 100%; border-collapse: collapse; font-size: 0.86rem; table-layout: fixed; }
+.qt-col-qty { inline-size: 96px; } .qt-col-price { inline-size: 112px; } .qt-col-sum { inline-size: 112px; } .qt-col-act { inline-size: 104px; }
+.qt-rows th { text-align: start; font-size: 0.76rem; color: #475569; font-weight: 700; padding: 4px 6px; border-bottom: 1px solid #e2ecef; }
+.qt-rows td { padding: 6px; border-bottom: 1px solid #eef3f5; vertical-align: middle; color: #0f172a; }
+/* quantity / price / sum: one physical right digit edge in both languages (IRON-NUMERIC) */
+.qt-rows .qt-num { white-space: nowrap; text-align: right; }
+.qt-rows .qt-sum { font-weight: 700; }
+.qt-rows .qt-act { text-align: end; }
+.qt-rows .qt-desc { overflow-wrap: anywhere; }
+.qt-missing { color: #9a3412; font-weight: 600; }
+.qt-example { display: block; inline-size: fit-content; margin-block-end: 2px; padding: 1px 8px; border-radius: 8px; background: #fff4e2; border: 1px solid #f1c27d; color: #8a4b00; font-size: 0.74rem; font-weight: 700; }
+.qt-undo { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 0.82rem; color: #334155; }
+/* the in-page steps of the 13/11 demo: "→ חזרה", the question as a title, one card, "חזרה ללא שמירה" under it */
+.qt-card[hidden] { display: none; }
+.qt-page { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.qt-page-back { align-self: flex-start; }
+.qt-page-title { margin: 0; font-size: 1.35rem; font-weight: 800; color: #0b3d44; overflow-wrap: anywhere; outline: none; }
+.qt-page-card { padding: 16px; gap: 12px; }
+.qt-page-stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.qt-page-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-block-size: 44px; }
+.qt-page-label > label { font-size: 0.86rem; font-weight: 700; color: #0b3d44; }
+.qt-page-hint { margin: 0; font-size: 0.8rem; color: #475569; }
+.qt-page-hr { inline-size: 100%; margin: 4px 0; border: 0; border-top: 1px solid #e2ecef; }
+.qt-page-foot { display: flex; }
+.qt-wide { inline-size: 100%; }
+.qt-option { inline-size: 100%; min-block-size: 46px; padding: 0 12px; border: 1px solid #d6e3ea; border-radius: 10px; background: #ffffff; color: #0b3d44; font: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
+.qt-option:hover, .qt-option:focus-visible { background: #e8f4f5; }
+.qt-option--danger { color: #b91c1c; }
+.qt-quiet { min-block-size: 44px; padding: 0 14px; border: 1px solid #d6e3ea; border-radius: 10px; background: #ffffff; color: #0b3d44; font: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
+.qt-kinds { display: flex; flex-wrap: wrap; gap: 8px; }
+/* the demo bar: the actions from the start edge (save, what the client sees, summary), the total at the END edge (left in HE, right in EN) */
+.qt-bar { position: sticky; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 10px 12px;
+  border: 1px solid #d6e3ea; border-radius: 14px; background: #ffffff; box-shadow: 0 -6px 18px -12px rgba(15,23,42,0.35); }
+.qt-bar-total { display: flex; flex-direction: column; align-items: flex-end; text-align: end; font-size: 0.78rem; color: #475569; }
+.qt-bar-warn { flex: 1 0 100%; order: 3; font-size: 0.78rem; font-weight: 600; color: #9a3412; }
+.qt-bar-total strong { font-size: 1.05rem; color: #0b3d44; white-space: nowrap; }
+.qt-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.qt-bar .sq-save-btn { padding: 0 18px; white-space: nowrap; }
+.qt-catalog { position: relative; min-width: 0; }
+.qt-catalog-list { position: absolute; z-index: 35; inset-inline-start: 0; top: calc(100% + 4px); inline-size: max(100%, min(340px, calc(100vw - 48px))); box-sizing: border-box; max-block-size: 280px; /* at least its field; never past the screen */ overflow-y: auto;
+  margin: 0; padding: 4px; list-style: none; border: 1px solid #d6e3ea; border-radius: 10px; background: #fff; box-shadow: 0 12px 28px -10px rgba(15,23,42,0.35); }
+.qt-catalog-list li button { display: flex; justify-content: space-between; gap: 8px; inline-size: 100%; min-block-size: 44px; padding: 0 10px; border: 0; background: transparent; font: inherit; font-size: 0.86rem; color: #0f172a; cursor: pointer; text-align: start; border-radius: 8px; }
+.qt-catalog-list li button:hover, .qt-catalog-list li button:focus-visible { background: #e8f4f5; }
+.qt-catalog-new { color: #0F6672 !important; font-weight: 700; }
+.qt-catalog-price { flex: 0 0 auto; min-inline-size: 88px; text-align: right; color: #475569; }
+/* a number field keeps its digits LTR; in Hebrew its placeholder and digits sit on the start (right) edge like the label */
+.qt[dir='rtl'] .qt-input[dir='ltr'] { text-align: right; }
+/* the help of the last structure button opens toward the inside of the card */
+.qt-structure > div:last-child .qt-pop { inset-inline-start: auto; inset-inline-end: 0; }
+/* 2026-11-14 (eye check): on a wide screen the structure help opens ABOVE its button - it never covers the buttons of the row below (in
+   English the longer "From a saved template" sat under it); the phone keeps it in the flow (below) */
+@media (min-width: 768.02px) { .qt-structure .qt-pop { top: auto; bottom: calc(100% + 6px); } }
+@media (max-width: 767px) {
+  .qt-bar-total { order: -1; flex: 1 0 100%; flex-direction: row; justify-content: space-between; align-items: baseline; }
+}
+@media (max-width: 1023px) {
+  /* a tablet: the product on its own line, then pricing / quantity / price / add on one line */
+  .qt-grid { grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr) auto; }
+  .qt-grid > .qt-field--product { grid-column: 1 / -1; }
+}
+@media (max-width: 600px) {
+  .qt-structure { grid-template-columns: minmax(0, 1fr); }
+  .qt-card { padding: 8px; }
+  .qt-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .qt-grid > .qt-field--unit { grid-column: 1 / -1; }
+  .qt-add { grid-column: 1 / -1; }
+  .qt-body { padding-inline-start: 8px; margin-inline-start: 4px; }
+  .qt-rows thead { display: none; }
+  .qt-rows, .qt-rows tbody { display: block; }
+  .qt-rows colgroup { display: none; }
+  .qt-rows tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 2px 8px; align-items: end; padding: 6px 0; border-bottom: 1px solid #eef3f5; }
+  .qt-rows td { border: 0; padding: 2px 4px; }
+  .qt-rows td.qt-desc { grid-column: 1 / -1; }
+  .qt-rows td[colspan] { grid-column: 1 / -1; }
+  /* each number says what it is on a phone (the table head is hidden) */
+  .qt-rows td[data-label]::before { content: attr(data-label); display: block; font-size: 0.7rem; font-weight: 600; color: #64748b; }
+  .qt-rows .qt-menu-btn { min-width: 44px; }
+  .qt-head-total { flex-basis: auto; }
+  .qt-head-menu { flex-basis: auto; }
+  .qt-menu-text { display: none; }
+  .qt-menu-dots { display: inline; }
+  .qt-page-title { font-size: 1.15rem; }
+  /* a phone: the help of a structure button opens in the flow under its button - it never covers the next button */
+  .qt-structure .qt-pop { position: static; display: block; margin-block-start: 6px; inline-size: auto; box-shadow: none; }
+}
+@media print { .qt-help, .qt-tri { display: none; } }
+/* 2026-11-13 (the 13/11 demo): the quote summary opens right above the bar, at its end edge near the total */
+.qt-bar { position: relative; }
+.qt-summary-pop { position: absolute; bottom: calc(100% + 8px); inset-inline-end: 0; inline-size: min(400px, 100%); max-block-size: min(70vh, 560px); overflow-y: auto; z-index: 30;
+  border-radius: 16px; box-shadow: 0 18px 40px -16px rgba(15,23,42,0.45); }
+.qt-summary-pop .sq-summary { margin: 0; }
+/* the edit of a row: its own fields in a framed area; every control at least 44px */
+.qt-rows td.qt-edit { padding: 10px; background: #f6fbfb; border: 1px solid #b9dcdf; border-radius: 12px; }
+.qt-rows td.qt-edit .qt-form-title { margin-block-end: 6px; }
+.qt-rows td.qt-edit input, .qt-rows td.qt-edit select, .qt-rows td.qt-edit button { min-block-size: 44px; }
+.qt-rows td.qt-edit .qrow-menu button { min-inline-size: 44px; }
+/* the bar stays at the bottom while the work scrolls: a field reached by Tab (or scrolled to) is never left under it, and on a phone /
+   portrait tablet the bar sits above the fixed bottom navigation (66px, the same inset .dash-main-content keeps) */
+html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden])) { scroll-padding-bottom: 220px; }
+@media (max-width: 768px) {
+  .sq-g-bar { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
+  html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden])) { scroll-padding-bottom: 300px; }
+}
+/* eye review round 2 (2026-11-13) */
+/* a heading name in a button keeps its number with it ("+ הוספת כותרת בתוך דירה 32") */
+.qt-actions bdi { white-space: nowrap; }
+/* the add row stays one row in both languages where it fits */
+.qt-actions .sq-add-btn { padding: 0 12px; }
+/* the edit of a row: its own small buttons are full 44px targets too */
+.qt-rows td.qt-edit button { min-block-size: 44px !important; min-inline-size: 44px; }
+/* the summary amounts share one digit edge (the total row is a grid of its own) */
+.sq-summary .sq-summary-rows > .pf-money, .sq-summary .sq-summary-total > .pf-money { min-inline-size: 150px; }
+/* phone / portrait tablet: room after the bar, so pinned above the bottom navigation it never sits on the quote details */
+@media (max-width: 768px) { .sq-editor-grid { padding-block-end: 72px; } }
+/* eye review round 3: the three structure buttons on one line in both languages; the add row one row; triangles that read as triangles */
+.qt-structure-btn { padding-inline: 8px 38px; font-size: 0.85rem; }
+.qt-actions .sq-add-btn { font-size: 0.86rem; padding: 0 10px; }
+.qt-actions > .qt-link { font-size: 0.82rem; padding-inline: 2px; }
+.qt-tri--top { font-size: 1.2rem; }
+.qt-tri--sub { font-size: 0.95rem; }
+/* eye review round 3 (2026-11-13) */
+/* the add form's labels carry the demo's help circle at their end; the circle stays a 32px target so a narrow field keeps its label on one line */
+.qt-form .qt-label { justify-content: space-between; }
+.qt-form .qt-label > label { min-width: 0; }
+.qt-form .qt-label .qt-help--inline { width: 32px; height: 32px; margin-block: -4px; }
+.qt-row-sub { display: block; font-size: 0.74rem; color: #64748b; }
+@media (max-width: 600px) {
+  /* a phone: the catalog list is exactly its field - never past the screen */
+  .qt-catalog-list { inline-size: 100%; }
+  /* the "?" of a structure button stays on its button while its help opens under it */
+  .qt-structure .qt-help { top: 24px; }
+}
+.qt-rows td.qt-edit input, .qt-rows td.qt-edit select { min-block-size: 44px !important; }
+/* a computer: the price label ("מחיר ליחידה" + its "?") on one line in a nested heading's form too */
+@media (min-width: 1024px) {
+  .qt-grid { grid-template-columns: minmax(0, 1.6fr) 150px minmax(0, 0.9fr) minmax(0, 1.15fr) auto; }
+}
+@media (min-width: 1024px) {
+  .qt-grid { grid-template-columns: minmax(0, 1.75fr) 136px minmax(0, 0.9fr) minmax(0, 1.1fr) auto; }
+  /* a computer has no zoom-on-focus: 15px keeps every placeholder whole in a nested heading's form */
+  .qt-form .qt-input, .qt-form .qt-select { font-size: 15px; padding-inline: 8px; }
+}
+/* a phone: a customer detail's name and value one under the other - their placeholders are never cut */
+@media (max-width: 600px) { .qt-pair { flex-direction: column; } }
+
+/* ===== 2026-11-15 (Owner: "אני נותן לך ליישם דמו!!!") - the approved demo's layout rules, by window width (the app's 980px column and
+   sidebar match the demo frame one to one): one-row form from 951px; two columns up to 950px; rows as cards up to 950px; the structure
+   buttons stacked up to 700px; tighter up to 480px. Colours, fonts and components stay the system's. ===== */
+.qt-status { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 10px; border-radius: 10px; background: #eef7f7; color: #0b3d44; font-size: 0.84rem; font-weight: 600; }
+.qt-status--error { background: #fff4ed; color: #9a3412; }
+.qt-status .qt-link { min-block-size: 32px; }
+.qt-sr { position: absolute !important; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.qt-row-name { display: inline; padding: 0; border: 0; background: transparent; color: #0f172a; font: inherit; font-weight: 600; text-align: start; cursor: pointer; overflow-wrap: anywhere; }
+.qt-row-name:hover, .qt-row-name:focus-visible { color: #0F6672; text-decoration: underline; }
+.qt-head-name { display: block; border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; color: #0b3d44; font-size: 1rem; text-align: start; cursor: pointer; }
+.qt-head-name[aria-pressed="true"] { color: #0F6672; }
+.qt-head--sel { background: #dcefef; }
+.qt-catalog-line { display: flex; flex-direction: column; gap: 2px; font-size: 0.82rem; color: #334155; }
+.qt-catalog-line small { color: #64748b; }
+.qt-catalog-price { min-inline-size: 0; white-space: nowrap; }
+/* the tools row: clear at the start edge, the sizes-and-details link in the middle, the line total at the end edge */
+/* the demo (.mp-entry-tools, its last rule): clear in the wide first column; the sizes disclosure and the line sum together at the end */
+.qt-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 4px 12px; font-size: 0.8rem; color: #475569; }
+.qt-tools .qt-link { min-block-size: 32px; font-size: 0.8rem; }
+.qt-tools-clear { grid-column: 1; grid-row: 1; justify-self: start; }
+.qt-tools-more { grid-column: 2; grid-row: 1; }
+.qt-tools-sum { grid-column: 3; grid-row: 1; justify-self: end; white-space: nowrap; }
+.qt-more-body { display: flex; flex-direction: column; gap: 10px; padding-block-start: 6px; border-top: 1px solid #d6e3ea; }
+/* the demo's open disclosure: its title under the line, still the toggle */
+.qt-more-title { align-self: flex-start; min-block-size: 36px; padding: 0; border: 0; background: none; font: inherit; font-size: 0.82rem; font-weight: 600; color: #0b3d44; cursor: pointer; }
+.qt-more-body .qt-textarea { min-block-size: 96px; }
+.qt-measure { display: flex; flex-direction: column; gap: 8px; }
+.qt-toggle { display: flex; flex-wrap: wrap; gap: 8px; }
+.qt-toggle .qt-chip[aria-pressed="true"] { border-color: #0F6672; background: #e8f4f5; }
+.qt-measure-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+.qt-textarea { min-block-size: 64px; padding-block: 8px; resize: vertical; line-height: 1.4; }
+.qt-form--edit { background: #ffffff; }
+.qt-rows td.qt-edit { padding: 0; background: transparent; border: 0; }
+/* ≥951px: the form in one row - product 2.2fr, pricing 110px, quantity .8fr, price 1fr, the button (the Owner's proportions, 13/11) */
+@media (min-width: 951px) {
+  .qt-grid { grid-template-columns: minmax(150px, 2.2fr) 110px minmax(70px, 0.8fr) minmax(95px, 1fr) auto; }
+  .qt-grid.qt-grid--noqty { grid-template-columns: minmax(150px, 2.2fr) 110px minmax(95px, 1.8fr) auto; }
+  .qt-form .qt-select { padding-inline: 6px; }
+}
+/* ≤950px: two columns - the product on its own row, pricing | quantity, price | the button; the rows as cards */
+@media (max-width: 950px) {
+  .qt-grid, .qt-grid.qt-grid--noqty { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .qt-grid > .qt-field--product { grid-column: 1 / -1; }
+  .qt-grid.qt-grid--noqty > .qt-add { grid-column: auto; }
+  .qt-rows thead { display: none; }
+  .qt-rows, .qt-rows tbody { display: block; }
+  .qt-rows colgroup { display: none; }
+  .qt-rows tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px 8px; align-items: end; padding: 8px 0; border-bottom: 1px solid #eef3f5; }
+  .qt-rows td { border: 0; padding: 2px 4px; }
+  .qt-rows td.qt-desc, .qt-rows td[colspan], .qt-rows td.qt-act { grid-column: 1 / -1; }
+  .qt-rows td.qt-act { text-align: end; }
+  .qt-rows td[data-label]::before { content: attr(data-label); display: block; font-size: 0.7rem; font-weight: 600; color: #64748b; }
+  .qt-rows .qt-num { text-align: start; }
+  .qt-measure-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .qt-measure-row > .qt-field:first-child { grid-column: 1 / -1; }
+}
+/* the structure buttons one per row up to 700px */
+@media (max-width: 700px) { .qt-structure { grid-template-columns: minmax(0, 1fr); } }
+/* ≤480px: tighter - product, then pricing, then quantity | price, then the button; rows in two columns with the sum on its own row */
+@media (max-width: 480px) {
+  .qt-card { padding: 9px; }
+  .qt-form { padding: 9px; }
+  .qt-body { padding-inline-start: 5px; margin-inline-start: 4px; }
+  .qt-grid, .qt-grid.qt-grid--noqty { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .qt-grid > .qt-field--unit, .qt-grid > .qt-add { grid-column: 1 / -1; }
+  .qt-grid.qt-grid--noqty > .qt-field--price { grid-column: 1 / -1; }
+  .qt-rows tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .qt-rows td.qt-sum { grid-column: 1 / -1; }
+  .qt-head-name { font-size: 14px; }
+  .qt-head-total { font-size: 12px; }
+  .qt-tools { grid-template-columns: minmax(0, 1fr) auto; }
+  .qt-tools-sum { grid-column: 2; grid-row: 1; justify-self: end; }
+  .qt-tools-more { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
+  .qt-measure-row { grid-template-columns: minmax(0, 1fr); }
+}
+/* the structure help: above its button at every width (the demo), never in the flow */
+.qt-structure .qt-pop { position: absolute; top: auto; bottom: calc(100% + 8px); inline-size: min(300px, calc(100vw - 32px)); box-shadow: 0 12px 28px -10px rgba(15,23,42,0.35); margin: 0; }
+@media (max-width: 700px) { .qt-structure .qt-help { top: 50%; } }
+/* the demo's "פרטים נוספים להצעה (לא חובה)": a line under the work; open, its section buttons in two columns (one up to 768px) */
+.sq-extras { border-top: 1px solid #e2ecef; padding-block: 8px; }
+.sq-extras > summary { cursor: pointer; min-block-size: 44px; display: flex; align-items: center; gap: 6px; color: #0F6672; font-weight: 700; font-size: 0.92rem; list-style-position: inside; }
+.sq-extras-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-block: 8px; }
+.sq-extras-btn { min-block-size: 48px; padding: 0 12px; border: 1px solid #d6e3ea; border-radius: 10px; background: #ffffff; color: #0b3d44; font: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer; text-align: start; }
+.sq-extras-btn:hover, .sq-extras-btn:focus-visible { background: #e8f4f5; }
+@media (max-width: 768px) { .sq-extras-grid { grid-template-columns: minmax(0, 1fr); } }
+.sq-details-page .qt-page-card { display: flex; flex-direction: column; gap: 12px; }
+.sq-label-text { font-size: 0.86rem; font-weight: 700; color: #0b3d44; }
+/* the demo's summary: opens UP from its own button, 310px wide, at the button's end edge (its start edge up to 768px) */
+.qt-summary-anchor { position: relative; display: inline-flex; }
+.qt-bar .qt-summary-pop { position: absolute; bottom: calc(100% + 8px); inset-inline-end: 0; inset-inline-start: auto; inline-size: min(310px, calc(100vw - 20px)); max-block-size: min(70vh, 480px); overflow-y: auto; z-index: 30;
+  border-radius: 14px; box-shadow: 0 18px 40px -16px rgba(15,23,42,0.45); }
+.qt-bar .qt-summary-pop .sq-summary { margin: 0; padding: 12px; }
+/* the demo's bar up to 768px: the total on its own row (label at the start, the amount at the end); save | what the client sees; the summary */
+@media (max-width: 768px) {
+  .qt-bar { flex-direction: column; align-items: stretch; }
+  .qt-bar-total { order: -1; flex-direction: row; justify-content: space-between; align-items: baseline; }
+  .qt-bar-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+  .qt-bar-actions > .sq-save-btn, .qt-bar-actions > .sq-add-btn { inline-size: 100% !important; white-space: normal; }
+  .qt-bar-actions > .qt-summary-anchor { grid-column: 1 / -1; justify-self: start; }
+  .qt-bar .qt-summary-pop { inset-inline-start: 0; inset-inline-end: auto; }
+}
+
+/* 2026-11-15 (law 50/49 review of the demo match) */
+/* the demo: a thin line under the back / add row, before the work */
+.qt > .qt-card:not(.qt-page-card) > .qt-actions { padding-block-end: 10px; border-block-end: 1px solid #e2ecef; }
+/* the demo's disclosure triangle on "פרטים נוספים להצעה (לא חובה)" (closed points along the reading direction, open points down) */
+.sq-extras > summary { list-style: none; }
+.sq-extras > summary::-webkit-details-marker { display: none; }
+.sq-extras > summary::before { content: '◀'; font-size: 0.7em; }
+.sq-extras[dir='ltr'] > summary::before { content: '▶'; }
+.sq-extras[open] > summary::before { content: '▼'; }
+/* the same triangle on "סיכום ההצעה" */
+.qt-summary-tri { font-size: 0.7em; margin-inline-end: 6px; }
+/* the add steps: the demo's room before the step's button */
+.qt-page-stack > .qt-actions { margin-block-start: 16px; }
+@media (max-width: 480px) {
+  /* a form without a quantity (one price / by sizes): the add button takes the whole row on a phone too */
+  .qt-grid.qt-grid--noqty > .qt-add { grid-column: 1 / -1; }
+  /* the details page: "שמירת הפרטים" and "חזרה ללא שמירה" side by side in both languages (the demo) */
+  .sq-details-page .qt-actions { flex-wrap: nowrap; }
+  .sq-details-page .qt-actions > button { flex: 1 1 auto; padding-inline: 10px; }
+}

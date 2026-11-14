@@ -30,7 +30,7 @@ export type RawQuoteRow = {
   total?: number | null;
   created_at?: string | null;
   valid_until?: string | null;
-  quote_sections?: Array<{ id: string; name: string; repeat_count?: number | null }> | null;
+  quote_sections?: Array<{ id: string; name: string; repeat_count?: number | null; parent_section_id?: string | null }> | null;
   quote_items?: Array<RawQuoteItemRow> | null;
 };
 
@@ -74,6 +74,9 @@ export type SanitizedQuoteItem = {
   totalPrice: number | null;
   // Owner console 2026-11-08 (stage 3 of the one quote builder): how many identical copies of its unit this line stands for (1 = none); totalPrice is ONE copy
   unitCopies: number;
+  // 2026-11-13 (Owner: the manual quote of the 13/11 spec - the assistant explains every detail): the heading path of the line, top first
+  // ("Floor 10 > Apartment 22 > Kitchen"); null = the line is in no heading
+  heading: string | null;
   measurements: Array<{ width: number | null; height: number | null; unit: string | null; calculatedArea: number | null; label: string | null }>;
   specification: string[];
 };
@@ -90,7 +93,7 @@ export type SanitizedQuoteContext = {
   createdAt: string | null;
   validUntil: string | null;
   isLocked: boolean;
-  sections: Array<{ id: string; name: string; repeatCount: number }>;
+  sections: Array<{ id: string; name: string; repeatCount: number; path: string }>;
   items: SanitizedQuoteItem[];
   // §6.4: a reconciliation flag only - never a "corrected" total. The model
   // is instructed (buildQuoteContextBlock below) to state the stored total
@@ -140,8 +143,23 @@ const RECONCILIATION_EPSILON = 0.01;
 
 const repeatOf = (value: unknown): number => (Number.isInteger(value) && (value as number) >= 1 && (value as number) <= 999 ? (value as number) : 1);
 
+/** 2026-11-13: the heading path of a section, top first, joined by " > " (a loop or a missing parent ends the path - never an endless walk) */
+export function sectionPaths(sections: Array<{ id: string; name: string; parent_section_id?: string | null }>): Map<string, string> {
+  const byId = new Map(sections.map((s) => [s.id, s]));
+  const out = new Map<string, string>();
+  for (const s of sections) {
+    const names: string[] = []; const seen = new Set<string>();
+    for (let cur: typeof s | undefined = s; cur && !seen.has(cur.id) && names.length < 6; cur = cur.parent_section_id ? byId.get(cur.parent_section_id) : undefined) {
+      seen.add(cur.id); names.unshift((boundText(cur.name) || '(unnamed)').slice(0, 80)); // a path stays short (each name at most 80 characters)
+    }
+    out.set(s.id, names.join(' > '));
+  }
+  return out;
+}
+
 export function sanitizeQuoteContext(row: RawQuoteRow): SanitizedQuoteContext {
   const copiesBySection = new Map((row.quote_sections || []).map((s) => [s.id, repeatOf(s.repeat_count)]));
+  const pathBySection = sectionPaths(row.quote_sections || []);
   const items: SanitizedQuoteItem[] = (row.quote_items || []).map((it) => ({
     description: boundText(it.description) || (it.description ? '(unnamed item)' : '(unnamed item)'),
     quantity: typeof it.quantity === 'number' ? it.quantity : null,
@@ -152,6 +170,7 @@ export function sanitizeQuoteContext(row: RawQuoteRow): SanitizedQuoteContext {
     unitPrice: typeof it.unit_price === 'number' ? it.unit_price : null,
     totalPrice: typeof it.total_price === 'number' ? it.total_price : null,
     unitCopies: (it.section_id && copiesBySection.get(it.section_id)) || 1,
+    heading: (it.section_id && pathBySection.get(it.section_id)) || null,
     measurements: (it.quote_item_measurements || []).slice(0, 20).map((m) => ({
       width: typeof m.width === 'number' ? m.width : null,
       height: typeof m.height === 'number' ? m.height : null,
@@ -183,7 +202,7 @@ export function sanitizeQuoteContext(row: RawQuoteRow): SanitizedQuoteContext {
     createdAt: boundText(row.created_at),
     validUntil: boundText(row.valid_until),
     isLocked: isQuoteImmutable(row),
-    sections: (row.quote_sections || []).map((s) => ({ id: s.id, name: boundText(s.name) || '', repeatCount: repeatOf(s.repeat_count) })),
+    sections: (row.quote_sections || []).map((s) => ({ id: s.id, name: boundText(s.name) || '', repeatCount: repeatOf(s.repeat_count), path: pathBySection.get(s.id) || boundText(s.name) || '' })),
     items,
     financialReconciliation: { computedFromItems, storedTotal, reconciles },
   };
@@ -211,6 +230,8 @@ export function buildQuoteContextBlock(ctx: SanitizedQuoteContext): string {
   }
   if (ctx.sections.length > 0) {
     lines.push(`Sections: ${ctx.sections.filter((s) => s.name).map((s) => (s.repeatCount > 1 ? `${s.name} x ${s.repeatCount} identical copies` : s.name)).join(', ') || '(unnamed sections)'}`);
+    // 2026-11-13: headings inside headings (a room in an apartment, an apartment in a floor) - each heading's full path, top first
+    if (ctx.sections.some((s) => s.path && s.path.includes(' > '))) lines.push(`Heading tree (top > inside): ${ctx.sections.map((s) => s.path).filter(Boolean).join('; ').slice(0, 4000)}`);
   }
   lines.push('Items:');
   for (const it of ctx.items) {
@@ -219,7 +240,7 @@ export function buildQuoteContextBlock(ctx: SanitizedQuoteContext): string {
     const methodPart = it.calculationMethod ? `, method: ${it.calculationMethod}` : '';
     const ratePart = it.unitPrice !== null ? `, rate ${it.unitPrice}` : '';
     const totalPart = it.totalPrice !== null ? `, line total ${it.totalPrice}${it.unitCopies > 1 ? ` per copy, x ${it.unitCopies} identical copies of its section` : ''}` : '';
-    lines.push(`- ${it.description} (${qtyPart}${unitPart}${methodPart}${ratePart}${totalPart})`);
+    lines.push(`- ${it.description} (${qtyPart}${unitPart}${methodPart}${ratePart}${totalPart})${it.heading ? ` [under: ${it.heading}]` : ''}`);
     if (it.measurements.length > 0) {
       const measurementsText = it.measurements
         .map((m) => `${m.label ? m.label + ': ' : ''}${m.width ?? '?'}${m.height ? ' x ' + m.height : ''}${m.unit ? ' ' + m.unit : ''}${m.calculatedArea !== null ? ' = ' + m.calculatedArea : ''}`)

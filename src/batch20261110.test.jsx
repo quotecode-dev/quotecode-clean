@@ -45,8 +45,9 @@ describe('app items', () => {
     expect(howTo).toContain('בכפתור "פעולות לשורה" של השורה (בטלפון: שלוש הנקודות של השורה)');
     expect(howTo).toContain('in the "Row actions" button of the row (on a phone: the three dots of the row)');
     // 2026-11-12 (unified quote): the button is named by the chosen word (apartment / room / floor) - the chat says where it is
-    expect(howTo.split('כפתור הפעולות').length - 1).toBeGreaterThanOrEqual(2);
-    expect(howTo.split('actions button in the header').length - 1).toBeGreaterThanOrEqual(2);
+    // 2026-11-13 (the demo's options page): the heading button is the "⋯" of the heading - the chat says where it is
+    expect(howTo.split('כפתור \\"⋯\\"').length - 1).toBeGreaterThanOrEqual(2);
+    expect(howTo.split('\\"⋯\\" button').length - 1).toBeGreaterThanOrEqual(2);
   });
   it('the 13 items (Owner console 2026-11-10, L-02 / L-09 / L-24 / L-27 / L-28): Hebrew and English show the same, clear things', () => {
     const doc = src('./quoteDocument/quoteDocument.css');
@@ -54,7 +55,7 @@ describe('app items', () => {
     expect(src('./quoteDocument/useAmountAxis.js')).toContain('syncDecimalColumns(card); syncQtyCentre(card);'); // 2
     expect(doc).not.toMatch(/td.pq-td-qty .pq-unit-slot { display: block !important/); // item 3 + L-28: on paper the unit stays beside its number
     expect(src('./index.css')).toContain(".qrows[dir='rtl'] .qrow-total.qrow-total-empty { text-align: left !important; }");
-    expect(src('./components/QuoteForm.jsx')).toContain("<Plus size={14} strokeWidth={3} aria-hidden=\"true\" style={{ display: 'inline-block', verticalAlign: '-2px', marginInlineEnd: '6px' }} />");
+    // items 5 / 8 / 9 were the add buttons of the old unit cards - the 13/11 work area replaces them (typed L-09 for the 13/11 spec)
     expect(src('./pages/PublicQuoteEn.jsx')).toContain('✓ This quote has been approved and signed.</div>'); // 3
     expect(src('./pages/PublicQuote.jsx')).toContain('✓ הצעת המחיר אושרה ונחתמה.</div>');
     expect(src('./components/PublicQuoteHeader.jsx')).toContain("valid: 'Valid until',"); // 4
@@ -67,8 +68,6 @@ describe('app items', () => {
     expect(src('./quoteDocument/useAmountAxis.js')).toContain("th.style.setProperty('padding-left', ");
     expect(src('./components/landing/landing.css')).toContain('.tl-tools-copy > .tl-capability-icon { flex-shrink: 0; }');
     const qf = src('./components/QuoteForm.jsx');
-    expect(qf).toContain(`data-testid="unit-add-row" style={{ flex: '1 1 140px',`); // 8
-    expect(qf.split("fontSize: isHebrew ? '0.9rem' : '0.75rem', fontWeight: '800'").length - 1).toBe(2); // 9
     expect(qf).toContain('<form id="pf-editor-form" className="pf-screen-body pf-editor-form"'); // 10
     expect(src('./index.css')).toContain('.pf-editor-form { padding-bottom: 64px; }');
     const land = src('./components/landing/landing.css'); // 11
@@ -85,12 +84,15 @@ describe('app items', () => {
     // 2026-11-12 (law 49): the same words; "3 MB" kept as one left-to-right piece in Hebrew
     expect(src('./components/QuoteForm.jsx')).toContain("{isHebrew ? <span>צירוף קובץ ללקוח (עד <bdi dir=\"ltr\">3 MB</bdi>)</span> : 'Attach file for client (max 3 MB)'}");
   });
-  it('G6a / G6b: identical units show the sums by name; the unit menu button says what it is', () => {
-    const qf = src('./components/QuoteForm.jsx');
-    // 2026-11-12 (unified quote): the same names, in the chosen word (apartment / room / floor / section)
+  it('G6a / G6b: identical copies (older quotes) show the sums by name; the heading menu button says what it is', () => {
+    // 2026-11-13 (the 13/11 demo): the heading tree of the new work area - the menu button is the demo's three dots, named for the heading
+    const qf = src('./components/quoteTree/QuoteTreeEditor.jsx');
     expect(qf).toContain('סכום ל{W}:');
     expect(qf).toContain('Per {w}:');
-    expect(qf).toContain("{isHebrew ? `פעולות ל${W}` : `${W} actions`}</span>");
+    expect(qf).toContain("hMenu: (n) => `פעולות ל${n}`");
+    expect(qf).toContain('hMenu: (n) => `Actions for ${n}`');
+    // 2026-11-13 (the demo's options page): the heading button still names itself
+    expect(qf).toContain('aria-label={t.hMenu(');
   });
   it('finding 3: the editor locks the appearance only with the quote; the open customer page notices an appearance change', () => {
     expect(src('./components/quotePresentation/useQuotePresentationEditor.js')).toContain('const readOnly = !!server.locked;');

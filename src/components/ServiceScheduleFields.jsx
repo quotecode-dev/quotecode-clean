@@ -2,15 +2,18 @@
 // ("Valid until") and is never shown to the customer; it feeds the internal calendar only. Same typed-date pattern as "Valid until"
 // (account date format + the native picker); dates and times are LTR atoms. Disabled while loading, when the server does not have the
 // feature yet ('unavailable' - stated, never faked), or when the saved value could not be read ('error' - so it is never overwritten blind).
+// 2026-11-15 (the approved demo, "פרויקט, כתובת ותוקף"): two full-width fields, each with its own "?" - "תאריך העבודה (לא חובה)" and
+// "שעת הגעה (לא חובה)"; the explanation that was a line under them is the date's "?" text (nothing is dropped). The date field is
+// built like the validity field above it (the same mirroring: the digits LTR, aligned to the language's start, the calendar at the end).
 import { useRef } from 'react';
 import { Calendar } from 'lucide-react';
-import { APP as NEON } from '../theme/neonTheme';
+import { HelpCircle } from './quoteTree/QuoteTreeEditor';
 import { normalizeServiceSchedule } from '../utils/serviceScheduleClient';
 
 const NOTE = {
-  unavailable: ['תאריך ביצוע עדיין לא זמין בשרת הזה - ההצעה נשמרת כרגיל בלעדיו.', 'A work date is not available on this server yet - the quote saves normally without it.'],
-  error: ['לא ניתן היה לטעון את תאריך הביצוע השמור, ולכן אי אפשר לשנות אותו כרגע.', 'The saved work date could not be loaded, so it cannot be changed right now.'],
-  loading: ['טוען תאריך ביצוע…', 'Loading the work date...'],
+  unavailable: ['תאריך העבודה עדיין לא זמין בשרת הזה - ההצעה נשמרת כרגיל בלעדיו.', 'A work date is not available on this server yet - the quote saves normally without it.'],
+  error: ['לא ניתן היה לטעון את תאריך העבודה השמור, ולכן אי אפשר לשנות אותו כרגע.', 'The saved work date could not be loaded, so it cannot be changed right now.'],
+  loading: ['טוען את תאריך העבודה…', 'Loading the work date...'],
   time_without_date: ['כדי לשמור שעה יש לבחור גם תאריך.', 'Choose a date to keep a time.'],
   invalid_date: ['התאריך אינו תקין.', 'The date is not valid.'],
   invalid_time: ['השעה אינה תקינה.', 'The time is not valid.'],
@@ -38,37 +41,39 @@ export default function ServiceScheduleFields({ value, onChange, state = 'ready'
   };
   const check = normalizeServiceSchedule(v);
   const note = disabled ? NOTE[state] : (!check.ok ? NOTE[check.error] : null);
-  const inputStyle = { width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', boxSizing: 'border-box', background: disabled ? NEON.bgCardAlt : NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' };
-  const labelStyle = { display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' };
+  const dateLabel = L(['תאריך העבודה (לא חובה)', 'Work date (optional)']);
+  const timeLabel = L(['שעת הגעה (לא חובה)', 'Arrival time (optional)']);
+  const atom = { direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' };
   return (
-    <div data-testid="service-schedule" data-state={state} style={{ marginTop: '4px' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
-        <div>
-          <label htmlFor="sq-service-date" style={labelStyle}>
-            {L(['תאריך ביצוע (לא חובה)', 'Work date (optional)'])} <bdi className="pf-num" dir="ltr" style={{ color: NEON.violetLight, fontWeight: 'bold', whiteSpace: 'nowrap' }}>({formatLabel})</bdi>
-          </label>
-          <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-            <input id="sq-service-date" data-testid="service-date" type="text" inputMode="numeric" value={display(v.date)} onChange={onTyped} placeholder={formatLabel} disabled={disabled}
-              style={{ ...inputStyle, padding: '7px 32px 7px 10px' }} />
-            <input type="date" ref={pickerRef} value={/^\d{4}-\d{2}-\d{2}$/.test(v.date) ? v.date : ''} onChange={(e) => onChange({ ...v, date: e.target.value })} tabIndex={-1} aria-hidden="true"
-              style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} />
-            {/* PRODUCT_TRUTH_DECORATIVE: opens the native date picker for the optional work date; a generic form-field interaction helper */}
-            <button type="button" disabled={disabled} aria-label={L(['בחירת תאריך ביצוע', 'Pick a work date'])}
-              onClick={() => { const el = pickerRef.current; if (!el) return; if (typeof el.showPicker === 'function') el.showPicker(); else el.click(); }}
-              style={{ position: 'absolute', right: '8px', background: 'none', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', color: NEON.textMuted, padding: 0, display: 'flex', alignItems: 'center' }}>
-              <Calendar size={16} strokeWidth={2} />
-            </button>
-          </div>
+    <div data-testid="service-schedule" data-state={state} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div className="qt-field">
+        <div className="qt-page-label">
+          <label htmlFor="sq-service-date">{dateLabel} <bdi className="pf-num sq-nowrap" dir="ltr">({formatLabel})</bdi></label>
+          <HelpCircle inline testId="sq-help-service-date" label={L(['הסבר: תאריך העבודה', 'Explain: work date'])}
+            text={L(['מועד העבודה, האספקה או האירוע. נפרד מתוקף ההצעה, לא מוצג ללקוח, ומופיע ביומן הפנימי.', 'When the work, delivery or event happens. Separate from the quote validity, not shown to the customer, and listed in your internal calendar.'])} />
         </div>
-        <div>
-          <label htmlFor="sq-service-time" style={labelStyle}>{L(['שעה (לא חובה)', 'Time (optional)'])}</label>
-          <input id="sq-service-time" data-testid="service-time" type="time" step={60} value={v.time} onChange={(e) => onChange({ ...v, time: e.target.value })} disabled={disabled || !v.date} style={inputStyle} />
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+          <input id="sq-service-date" data-testid="service-date" className="qt-input" type="text" inputMode="numeric" value={display(v.date)} onChange={onTyped} placeholder={formatLabel} disabled={disabled}
+            style={{ ...atom, paddingInlineEnd: '36px' }} />
+          <input type="date" ref={pickerRef} value={/^\d{4}-\d{2}-\d{2}$/.test(v.date) ? v.date : ''} onChange={(e) => onChange({ ...v, date: e.target.value })} tabIndex={-1} aria-hidden="true"
+            style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} />
+          {/* PRODUCT_TRUTH_DECORATIVE: opens the native date picker for the optional work date; a generic form-field interaction helper */}
+          <button type="button" disabled={disabled} aria-label={L(['בחירת תאריך העבודה', 'Pick a work date'])}
+            onClick={() => { const el = pickerRef.current; if (!el) return; if (typeof el.showPicker === 'function') el.showPicker(); else el.click(); }}
+            style={{ position: 'absolute', insetInlineEnd: '6px', background: 'none', border: 'none', cursor: disabled ? 'not-allowed' : 'pointer', color: '#64748b', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', minWidth: 32, minHeight: 32 }}>
+            <Calendar size={16} strokeWidth={2} />
+          </button>
         </div>
       </div>
-      <div style={{ marginTop: '4px', fontSize: '0.72rem', color: NEON.textMuted }}>
-        {L(['מועד העבודה, האספקה או האירוע. נפרד מתוקף ההצעה, לא מוצג ללקוח, ומופיע ביומן הפנימי.', 'When the work, delivery or event happens. Separate from the quote validity, not shown to the customer, and listed in your internal calendar.'])}
+      <div className="qt-field">
+        <div className="qt-page-label">
+          <label htmlFor="sq-service-time">{timeLabel}</label>
+          <HelpCircle inline testId="sq-help-service-time" label={L(['הסבר: שעת הגעה', 'Explain: arrival time'])}
+            text={L(['השעה המתוכננת להגעה. אפשר לבחור שעה אחרי שבוחרים תאריך.', 'The planned arrival time. You can choose a time after choosing a date.'])} />
+        </div>
+        <input id="sq-service-time" data-testid="service-time" className="qt-input" type="time" step={60} value={v.time} onChange={(e) => onChange({ ...v, time: e.target.value })} disabled={disabled || !v.date} style={atom} />
       </div>
-      {note && <div data-testid="service-schedule-note" role="status" style={{ marginTop: '4px', fontSize: '0.75rem', fontWeight: 600, color: state === 'loading' ? NEON.textMuted : '#9a3412' }}>{L(note)}</div>}
+      {note && <div data-testid="service-schedule-note" role="status" style={{ fontSize: '0.75rem', fontWeight: 600, color: state === 'loading' ? '#64748b' : '#9a3412' }}>{L(note)}</div>}
     </div>
   );
 }

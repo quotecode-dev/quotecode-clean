@@ -115,12 +115,14 @@ describe('the template window - one screen for both kinds, used only where it be
 });
 
 describe('the editor and the Dashboard wiring', () => {
-  it('the group menu offers "save as a template"; "from a saved template" is in the add bar (divided) and in the places window (regular)', () => {
+  // 2026-11-13 (the 13/11 demo): the heading menu of the new work area; "from a saved template" once, beside the add buttons (rendered tests in QuoteForm.test.jsx)
+  it('the heading menu offers "save as a template"; "from a saved template" is in the work area', () => {
+    const tree = read('src/components/quoteTree/QuoteTreeEditor.jsx');
+    expect(tree).toContain("saveTemplate: 'שמירה כתבנית', fromTemplate: 'מתבנית שמורה'");
+    expect(tree).toContain("saveTemplate: 'Save as a template', fromTemplate: 'From a saved template'");
+    expect(tree.split('data-testid="unit-from-template"').length - 1).toBe(1);
     const f = read('src/components/QuoteForm.jsx');
-    expect(f).toContain("{isHebrew ? 'שמירה כתבנית' : 'Save as a template'}");
-    expect(f.split('data-testid="unit-from-template"').length - 1).toBe(1);
-    expect(f).toContain("onFromTemplate={typeof onAddUnitFromTemplate === 'function' && structureMode !== 'divided'");
-    expect(read('src/components/PlacesDialog.jsx')).toContain('data-testid="places-from-template"');
+    expect(f).toContain("onSaveHeadingTemplate={typeof onSaveUnitTemplate === 'function' ? onSaveUnitTemplate : null} onAddFromTemplate={typeof onAddUnitFromTemplate === 'function' ? onAddUnitFromTemplate : null}");
   });
   it('the Dashboard adds ONE unit at the end, asks on another currency / VAT basis, never changes a chosen client type', () => {
     const d = read('src/pages/Dashboard.jsx');

@@ -9,6 +9,7 @@ import { getActiveQuantity, normalizeSpecificationRows } from '../../utils/profe
 import { excludeUntouchedPlaceholderItems } from '../../utils/structuredQuoteItemPersistence';
 import { QUOTE_STYLE_VERSIONS, normalizeStyleId, DEFAULT_QUOTE_STYLE } from '../../quoteDocument/quoteStyles';
 import { normalizePresentationState } from './presentationState';
+import { defaultGroupName } from '../../utils/quoteGroups';
 
 const str = (v) => (v === undefined || v === null ? '' : String(v));
 const orNull = (v) => (v === undefined || v === null || v === '' ? null : v);
@@ -26,6 +27,7 @@ function mapItem(item) {
     price: Number(item.unit_price || 0),
     total_price: getActiveQuantity(item) * Number(item.unit_price || 0),
     pricing_unit: item.pricing_unit || undefined,
+    ...(typeof item.room === 'string' && item.room ? { room: item.room } : {}), // 2026-11-13: the room as get-public-quote returns it
     calculated_quantity: (item.calculated_quantity !== undefined && item.calculated_quantity !== '' && item.calculated_quantity !== null)
       ? Number(item.calculated_quantity) : undefined,
     quantity_source: item.quantity_source || undefined,
@@ -53,10 +55,14 @@ function mapItem(item) {
  * @param {object} args.presentation { style (effective), presentation (draft state), mediaUrls: { [assetId]: url|null } }
  */
 export function buildPreviewQuoteData({ editor = {}, financials = {}, business = null, presentation = {} } = {}) {
-  const sections = (Array.isArray(editor.sections) ? editor.sections : [])
-    .filter((s) => str(s?.name).trim() !== '')
-    // Owner console 2026-11-08 (stage 3 of the one quote builder): the unit count only above 1 - the same shape get-public-quote returns
-    .map((s) => ({ id: s.key ?? s.id, name: s.name, ...(Number(s.repeat_count) > 1 ? { repeat_count: Number(s.repeat_count) } : {}) }));
+  // 2026-11-13: a heading with no name gets the default name the save gives it (Dashboard: defaultGroupName(kind, its place)) - the preview
+  // shows it and its sub-headings exactly as the customer page will
+  const kept = (Array.isArray(editor.sections) ? editor.sections : []).map((s, idx) => (s && str(s.name).trim() === '' ? { ...s, name: defaultGroupName(s.kind, idx, editor.isHebrew !== false) } : s)).filter(Boolean);
+  const keptKeys = new Set(kept.map((s) => s.key ?? s.id));
+  // Owner console 2026-11-08 (stage 3 of the one quote builder): the unit count only above 1 - the same shape get-public-quote returns
+  // 2026-11-13: the kind and the parent heading only when set (the preview showed no rooms / kind before - it now matches the customer page)
+  const sections = kept.map((s) => ({ id: s.key ?? s.id, name: s.name, ...(Number(s.repeat_count) > 1 ? { repeat_count: Number(s.repeat_count) } : {}),
+    ...(s.kind ? { kind: s.kind } : {}), ...(s.parent_key && keptKeys.has(s.parent_key) ? { parent_id: s.parent_key } : {}) }));
   const items = excludeUntouchedPlaceholderItems(Array.isArray(editor.items) ? editor.items : []).map(mapItem);
   const status = str(editor.quoteStatus || 'draft').toLowerCase();
 

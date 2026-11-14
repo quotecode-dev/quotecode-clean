@@ -48,6 +48,8 @@ const text = (c) => c.textContent.replace(/\s+/g, ' ');
 describe('IRON-ILS-001 Quote Form (rendered)', () => {
   it('Local/ILS: item card, subtotal, discount, net, VAT and grand total are whole shekels with .00', () => {
     const { container } = render(<QuoteForm {...quoteFormProps({ ils: true })} />);
+    // 2026-11-13 (the demo): the subtotal / discount / VAT rows are in the summary that opens from the bar at the bottom
+    fireEvent.click(container.querySelector('[data-testid="qt-summary-toggle"]'));
     const s = text(container);
     expect(s).toContain('₪191.00'); // item 191.16
     expect(s).toContain('₪6,532.00'); // subtotal 6532.48
@@ -59,6 +61,7 @@ describe('IRON-ILS-001 Quote Form (rendered)', () => {
 
   it('International/USD: the same values keep cents and show no ₪', () => {
     const { container } = render(<QuoteForm {...quoteFormProps({ ils: false })} />);
+    fireEvent.click(container.querySelector('[data-testid="qt-summary-toggle"]'));
     const s = text(container);
     expect(s).toContain('$191.16');
     expect(s).toContain('$6,532.48');
