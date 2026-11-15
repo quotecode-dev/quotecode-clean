@@ -24,6 +24,8 @@ const corsHeaders = {
 
 // Task 35: the provider call is bounded - a hung model never keeps the dialog waiting (the user sees the closed "provider_failure" state)
 const PROVIDER_TIMEOUT_MS = 25000;
+// the two TEKANGO test accounts that get the model's raw answer (Owner 2026-11-15) - no other account ever does
+const DIAGNOSTIC_ACCOUNTS = ['tekangoisrael@gmail.com', 'tekangointernational@gmail.com'];
 const TREE_PROVIDER_TIMEOUT_MS = 60000; // 2026-11-13: a tree answer (floors / apartments / rooms) is longer
 
 function reply(body: Record<string, unknown>, status = 200) {
@@ -49,9 +51,11 @@ serve(async (req) => {
   const caller = createClient(supabaseUrl, anonKey, { global: { headers: { Authorization: authHeader } } });
 
   let userId: string | null = null;
+  let userEmail = '';
   try {
     const { data } = await caller.auth.getUser();
     userId = data?.user?.id ?? null;
+    userEmail = String(data?.user?.email ?? '').toLowerCase();
   } catch { userId = null; }
   if (!userId) return reply({ ok: false, code: 'unauthenticated' }, 401);
 
@@ -133,7 +137,11 @@ serve(async (req) => {
     await finishMeter(admin, claim.claimId, draft.ok, real);
   }
   if (!draft.ok) return reply({ ok: false, code: draft.code === 'empty' ? 'no_items' : 'malformed_provider_response' }, draft.code === 'empty' ? 422 : 502);
+  // Owner console 2026-11-15 (typed: "כולל פלט אבחון לחשבונות הבדיקה בלבד"): the model's raw answer, for the two TEKANGO test accounts only -
+  // never for any other account (the browser ignores the field)
+  let diagnostics: Record<string, unknown> | undefined;
+  if (DIAGNOSTIC_ACCOUNTS.includes(userEmail)) { try { diagnostics = { model: typeof modelText === 'string' ? JSON.parse(modelText) : modelText }; } catch { diagnostics = { model: String(modelText ?? '').slice(0, 20000) }; } }
   // release B (Owner 2026-11-06): + the changes to the open quote (additive; an older browser ignores them)
-  return reply({ ok: true, language: isHebrew ? 'he' : 'en', subject: draft.subject, items: draft.items, questions: draft.questions, unassignedMeasures: draft.unassignedMeasures,
+  return reply({ ...(diagnostics ? { diagnostics } : {}), ok: true, language: isHebrew ? 'he' : 'en', subject: draft.subject, items: draft.items, questions: draft.questions, unassignedMeasures: draft.unassignedMeasures,
     changes: draft.changes, ...(structure ? { places: draft.places } : {}), ...(tree ? { tree: true, ...(draft.overflow ? { overflow: draft.overflow } : {}) } : {}) });
 });
