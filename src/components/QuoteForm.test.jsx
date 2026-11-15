@@ -605,4 +605,35 @@ describe('QuoteForm - the bottom bar, the summary and the quote details', () => 
     openPage('status');
     expect(screen.getByTestId('sq-details-page').querySelector('option[value="Sent"]')).not.toBeNull();
   });
+  // 2026-11-15 (the demo): a details page keeps nothing until "שמירת הפרטים"; "חזרה ללא שמירה" puts every value back,
+  // and "→ חזרה" with an unsaved change is refused with the demo's sentence (nothing is lost)
+  function NotesForm() {
+    const [notes, setNotes] = useStateLive('Old note');
+    return <QuoteForm {...baseProps({ isHebrew: true, sym: '₪', notes, setNotes })} />;
+  }
+  it('"חזרה ללא שמירה" on a details page puts the values back as they were', () => {
+    render(<NotesForm />);
+    openPage('notes');
+    fireEvent.change(screen.getByLabelText('הערות לכל ההצעה'), { target: { value: 'New note' } });
+    expect(screen.getByLabelText('הערות לכל ההצעה').value).toBe('New note');
+    fireEvent.click(screen.getByTestId('sq-details-close'));
+    expect(screen.queryByTestId('sq-details-page')).toBeNull();
+    openPage('notes');
+    expect(screen.getByLabelText('הערות לכל ההצעה').value).toBe('Old note');
+  });
+  it('"→ חזרה" with an unsaved change stays on the page with the message; after "שמירת הפרטים" the change is kept', () => {
+    render(<NotesForm />);
+    openPage('notes');
+    fireEvent.change(screen.getByLabelText('הערות לכל ההצעה'), { target: { value: 'New note' } });
+    fireEvent.click(screen.getByTestId('sq-details-back'));
+    expect(screen.getByTestId('sq-details-page')).toBeTruthy();
+    expect(screen.getByTestId('sq-details-error').textContent).toBe('יש שינויים שטרם נשמרו. שמרו אותם, או לחצו ״חזרה ללא שמירה״.');
+    expect(screen.getByLabelText('הערות לכל ההצעה').value).toBe('New note');
+    fireEvent.click(screen.getByTestId('sq-details-save'));
+    expect(screen.queryByTestId('sq-details-page')).toBeNull();
+    openPage('notes');
+    expect(screen.getByLabelText('הערות לכל ההצעה').value).toBe('New note');
+    fireEvent.click(screen.getByTestId('sq-details-back'));
+    expect(screen.queryByTestId('sq-details-page')).toBeNull();
+  });
 });
