@@ -916,7 +916,7 @@ export default function QuoteForm({
         </>)}
 
         {flowStep === 'client' ? null : (<>
-        <div className="sq-editor-grid" data-testid="sq-editor-grid">
+        <div className="sq-editor-grid" data-testid="sq-editor-grid" style={detailsPage ? { gridTemplateAreas: '"details" "bar"' } : undefined}>{/* 2026-11-15: a details page leaves no empty rows (and gaps) above it */}
         <div className="sq-g-head" hidden={editorPage || Boolean(detailsPage)}>
         <StepHeading n={2} title={isHebrew ? 'מה מוסיפים להצעה?' : 'What goes in the quote?'} />
         </div>

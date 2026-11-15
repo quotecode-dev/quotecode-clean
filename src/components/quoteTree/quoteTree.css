@@ -346,3 +346,8 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
 @media (max-width: 768px) {
   .qt-bar-actions > .sq-add-btn, .qt-bar-actions > .sq-save-btn { justify-content: center; text-align: center; }
 }
+
+/* 2026-11-15 (law 49 round 6): the phone action-row buttons centre their words in both languages */
+@media (max-width: 480px) {
+  .qt > .qt-card > .qt-actions > .sq-add-btn { text-align: center; justify-content: center; }
+}
