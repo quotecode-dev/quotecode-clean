@@ -15,7 +15,7 @@ import { claimMeter, finishMeter, tokenUsage, sumUsage, usdMicrosOrReserve, RESE
 // Task 33 (contract v2): every line carries quantity + unit + a quantity basis that is CHECKED against the numbers of the user's own text
 // (a missing quantity stays visibly missing - never a silent 1); clarification questions and unassigned measures are returned; a catalog
 // price is bound only when its price unit is verified. The provider answers in a strict JSON schema (DRAFT_RESPONSE_SCHEMA).
-import { AI_QUOTE_DRAFT_CONTRACT_VERSION, draftResponseSchema, validateDraftRequest, normalizeCatalog, buildDraftMessages, parseDraftModelOutput } from "../_shared/aiQuoteDraft.js";
+import { AI_QUOTE_DRAFT_CONTRACT_VERSION, draftResponseSchema, validateDraftRequest, normalizeCatalog, buildDraftMessages, parseDraftModelOutput, TREE_MAX_TOKENS } from "../_shared/aiQuoteDraft.js";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,6 +24,7 @@ const corsHeaders = {
 
 // Task 35: the provider call is bounded - a hung model never keeps the dialog waiting (the user sees the closed "provider_failure" state)
 const PROVIDER_TIMEOUT_MS = 25000;
+const TREE_PROVIDER_TIMEOUT_MS = 60000; // 2026-11-13: a tree answer (floors / apartments / rooms) is longer
 
 function reply(body: Record<string, unknown>, status = 200) {
   return new Response(JSON.stringify({ contractVersion: AI_QUOTE_DRAFT_CONTRACT_VERSION, ...body }), {
@@ -80,8 +81,11 @@ serve(async (req) => {
   // + the 1,600 output cap, at gpt-4o-mini's price, in micro-USD (the database converts it at today's rate)
   // 2026-11-12 (unified quote, spec 5): structure = places / rooms too, only when the browser asks (opt-in)
   const structure = request.value.structure === true;
-  const messages = buildDraftMessages({ description: request.value.description, isHebrew, catalog, quote: request.value.quote ?? null, structure });
-  const reserveUsd = reserveUsdMicros(['gpt-4o-mini'], inputTokensMax(messages), 1600);
+  // 2026-11-13 (Owner: the headings are a TREE, typed and voice alike): the tree only when the browser asks for it
+  const tree = structure && request.value.tree === true;
+  const messages = buildDraftMessages({ description: request.value.description, isHebrew, catalog, quote: request.value.quote ?? null, structure, tree });
+  const maxTokens = tree ? TREE_MAX_TOKENS : 1600;
+  const reserveUsd = reserveUsdMicros(['gpt-4o-mini'], inputTokensMax(messages), maxTokens);
   const claim = await claimMeter(caller, 'ai_draft', RESERVE_MICROS.ai_draft, reserveUsd);
   if (!claim.ok) {
     if (claim.code === BUDGET_EXHAUSTED) return reply({ ok: false, code: BUDGET_EXHAUSTED }, 403);
@@ -92,7 +96,7 @@ serve(async (req) => {
   let modelText: unknown;
   let spent: ReturnType<typeof sumUsage> | null = null;
   const abort = new AbortController();
-  const timer = setTimeout(() => abort.abort(), PROVIDER_TIMEOUT_MS);
+  const timer = setTimeout(() => abort.abort(), tree ? TREE_PROVIDER_TIMEOUT_MS : PROVIDER_TIMEOUT_MS);
   try {
     const providerResponse = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -100,8 +104,8 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages,
-        response_format: { type: 'json_schema', json_schema: draftResponseSchema(structure) },
-        max_tokens: 1600,
+        response_format: { type: 'json_schema', json_schema: draftResponseSchema(structure, tree) },
+        max_tokens: maxTokens,
         temperature: 0.1,
       }),
       signal: abort.signal,
@@ -120,7 +124,7 @@ serve(async (req) => {
     clearTimeout(timer);
   }
 
-  const draft = parseDraftModelOutput(modelText, catalog, request.value.description, request.value.quote ?? null, { structure, isHebrew });
+  const draft = parseDraftModelOutput(modelText, catalog, request.value.description, request.value.quote ?? null, { structure, tree, isHebrew });
   // the provider answered: a USABLE result is counted at its real cost (no usage numbers = the reserve); an unusable one (malformed /
   // nothing to offer) is NOT counted for the customer - the Owner 2026-11-06 (D01): "היא הרי לא היתה שמישה" - its real cost is still
   // recorded on the claim (cost_usd_micros) for the Owner's cost view
@@ -131,5 +135,5 @@ serve(async (req) => {
   if (!draft.ok) return reply({ ok: false, code: draft.code === 'empty' ? 'no_items' : 'malformed_provider_response' }, draft.code === 'empty' ? 422 : 502);
   // release B (Owner 2026-11-06): + the changes to the open quote (additive; an older browser ignores them)
   return reply({ ok: true, language: isHebrew ? 'he' : 'en', subject: draft.subject, items: draft.items, questions: draft.questions, unassignedMeasures: draft.unassignedMeasures,
-    changes: draft.changes, ...(structure ? { places: draft.places } : {}) });
+    changes: draft.changes, ...(structure ? { places: draft.places } : {}), ...(tree ? { tree: true, ...(draft.overflow ? { overflow: draft.overflow } : {}) } : {}) });
 });

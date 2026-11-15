@@ -789,6 +789,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required' (ADD COLUMN IF NOT EXISTS / named CHECK added when missing / CREATE OR REPLACE)"
+    },
+    "20261113100000_quote_section_tree.sql": {
+      "sha256": "0fc121936be79fcc44073bdc63c9472cdfde963cc29d6be548b77e0aa7dc3f48",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required' (ADD COLUMN IF NOT EXISTS / named constraints added when missing / CREATE OR REPLACE / DROP TRIGGER IF EXISTS)"
     }
   }
 }

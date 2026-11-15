@@ -79,7 +79,9 @@ describe('adversarial: the user cannot talk the assistant into a plan, a trial, 
   it('HE pricing: ILS including VAT, nothing added on top, no foreign currency', () => {
     const he = answer('כמה עולים המסלולים?', true);
     expect(he.answer).toMatch(/הכול כלול: 30\.00 ₪ לחודש או 306\.00 ₪ לשנה\. בתשלום שנתי החיסכון הוא 15% - 54\.00 ₪ בשנה\. המחירים כוללים מע״מ/);
-    expect(he.answer).toMatch(/5\.00 ₪ לחודש/);
+    // 2026-11-13 (chat knowledge scan, section ג): no screen sells the catalog add-on - its price is never offered
+    expect(he.answer).toContain('כל מסלול בתשלום כולל 100 מוצרי קטלוג.');
+    expect(he.answer).not.toMatch(/5\.00 ₪ לחודש/);
     expect(he.answer).not.toMatch(/\$|USD|דולר|\+ ?מע/);
   });
   it('annual: the approved annual price and saving (§249 + the $184 amendment)', () => {

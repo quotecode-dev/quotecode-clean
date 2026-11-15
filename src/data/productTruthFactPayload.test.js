@@ -76,7 +76,8 @@ describe('A. the canonical derivation (registry + AI_FACTS + server facts) equal
     // legacy_v39: no verified plan -> underivable, never guessed
     expect(deriveExpectedFactPayload({ outcome: 'attachments', serverVerified: {}, ruleset: LEGACY_RULESET_ID })).toHaveProperty('problem');
     // current: plan inclusion is not decided, so no plan fact is needed (and none is asserted)
-    expect(deriveExpectedFactPayload({ outcome: 'attachments', serverVerified: {} })).toMatchObject({ truthStatus: 'PLAN_NOT_DECIDED', claimScope: 'CAPABILITY', minimumPlan: null, accountPlan: null, accountEntitlement: 'NOT_APPLICABLE' });
+    expect(deriveExpectedFactPayload({ outcome: 'attachments', serverVerified: {} })).toMatchObject({ truthStatus: 'SMART_PACK', claimScope: 'CAPABILITY', minimumPlan: null }); // 2026-11-13 (Owner "א")
+    expect(deriveExpectedFactPayload({ outcome: 'measured_quote', serverVerified: {} })).toMatchObject({ truthStatus: 'PLAN_NOT_DECIDED', claimScope: 'CAPABILITY', minimumPlan: null, accountPlan: null, accountEntitlement: 'NOT_APPLICABLE' });
     expect(isKnownOutcome('attachments')).toBe(true);
     expect(isKnownOutcome('nonsense')).toBe(false);
   });
@@ -169,8 +170,9 @@ describe('C. PROSE CONSISTENCY ATTACKS: prose that contradicts a valid structure
     expect(checkProseAgainstPayload(local, 'Your account is verified as Local, so prices in your account are shown in Israeli shekels (ILS).', 'en')).toEqual([]);
     expect(checkProseAgainstPayload(local, 'החשבון שלך מאומת בשוק המקומי, ולכן המחירים בחשבון שלך מוצגים בשקלים (₪).', 'he')).toEqual([]);
     expect(checkProseAgainstPayload(intl, "Your account is verified as International, so prices in your account are shown in your account's currency (USD, EUR or GBP).", 'en')).toEqual([]);
-    expect(checkProseAgainstPayload(payloadFor('attachments', 'visual', 'user', 'International'), 'Yes - File attachments exists in TEKANGO. Attaching files/drawings to a quote. Plan inclusion for it is still undecided.', 'en')).toEqual([]);
-    expect(checkProseAgainstPayload(payloadFor('attachments', 'free', 'user', 'Local'), 'כן - צירוף קבצים קיימת ב-TEKANGO. אילו מסלולים יכללו אותה - טרם הוחלט.', 'he')).toEqual([]);
+    expect(checkProseAgainstPayload(payloadFor('attachments', 'visual', 'user', 'International'), 'Yes - File attachments exists in TEKANGO, and it is part of SMART PACK. Attaching files and drawings to a quote.', 'en')).toEqual([]);
+    expect(checkProseAgainstPayload(payloadFor('attachments', 'free', 'user', 'Local'), 'כן - צירוף קבצים קיימת ב-TEKANGO, והיא חלק מחכם פלוס.', 'he')).toEqual([]);
+    expect(checkProseAgainstPayload(payloadFor('measured_quote', 'visual', 'user', 'International'), 'Yes - Measured professional quote exists in TEKANGO. Plan inclusion for it is still undecided.', 'en')).toEqual([]);
     expect(checkProseAgainstPayload(payloadFor('admin_console', 'free', 'super_admin', 'Local'), 'כן - מסך ניהול קיימת ב-TEKANGO וההרשאה שלך מאומתת.', 'he')).toEqual([]);
   });
 });

@@ -118,21 +118,24 @@ describe('formatCapabilityTruthAnswer — AI capability answer contract (§52.8 
 
   // Subscriptions cutover (OPEN-02 / OPEN-13): a subscription-gated capability exists; which plans include it is NOT decided.
   it('subscription-gated capability without a known account plan: says it exists and that plan inclusion is undecided (never a minimum plan)', () => {
-    const answer = formatCapabilityTruthAnswer('attachments', FACTS, false, null);
+    const answer = formatCapabilityTruthAnswer('measured_quote', FACTS, false, null);
     expect(answer).toMatch(/^Yes/);
     expect(answer).toMatch(/still undecided/);
+    // 2026-11-13 (Owner answer "א"): attachments are SMART PACK - named, never "undecided"
+    expect(formatCapabilityTruthAnswer('attachments', FACTS, false, null)).toMatch(/^Yes - File attachments exists in TEKANGO, and it is part of SMART PACK./);
+    expect(formatCapabilityTruthAnswer('attachments', FACTS, true, null)).toMatch(/והיא חלק מחכם פלוס/);
     expect(answer).not.toMatch(/\b(?:PRO|BASIC|Pro|Basic)\b|trial|unlimited/);
     expect(answer).not.toMatch(/does not have|not available/i);
   });
 
   it('subscription-gated capability, whatever the account plan: the same undecided answer - no plan includes or lacks it yet', () => {
     for (const plan of ['free', 'classic', 'modern', 'visual']) {
-      const answer = formatCapabilityTruthAnswer('attachments', FACTS, false, plan);
+      const answer = formatCapabilityTruthAnswer('measured_quote', FACTS, false, plan);
       expect(answer).toMatch(/^Yes/);
       expect(answer).toMatch(/still undecided/);
       expect(answer).not.toMatch(/your current plan|does not include it|includes it/i);
     }
-    expect(formatCapabilityTruthAnswer('attachments', FACTS, true, 'free')).toMatch(/(?:טרם|עדיין לא) הוחלט/);
+    expect(formatCapabilityTruthAnswer('measured_quote', FACTS, true, 'free')).toMatch(/(?:טרם|עדיין לא) הוחלט/);
   });
 
   it('a legacy plan value from the caller is not a known plan and changes nothing', () => {

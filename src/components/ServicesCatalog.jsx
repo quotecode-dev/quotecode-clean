@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Package, PackagePlus, LayoutGrid, Pencil, Trash2, Save, X, Search, Image as ImageIcon, Lock } from 'lucide-react';
+import { Package, PackagePlus, LayoutGrid, Pencil, Trash2, Save, X, Search, Image as ImageIcon, Lock, Download } from 'lucide-react';
 import { APP as NEON, lightHeadingTextStyle as neonGlowTextStyle, RADIUS, SHADOW } from './../theme/neonTheme';
 import CatalogMediaControl from './quotePresentation/CatalogMediaControl';
 import { catalogLinkFor } from './quotePresentation/useQuotePresentationEditor';
@@ -12,6 +12,7 @@ const CATALOG_IMAGE_CAPABILITY = 'catalog_product_image.upload';
 
 // PRODUCT_TRUTH_CAPABILITY: catalog
 export default function ServicesCatalog({
+  onExportCatalog = null,
   t,
   isHebrew,
   newServiceName,
@@ -168,17 +169,26 @@ export default function ServicesCatalog({
       {/* חוק ברזל (§H2): שורת-כלים ברירת-מחדל - חיפוש רחב + כפתור-פעולה
           ראשי אחד בלבד ("הוסף פריט"/"Add Item", סגול) - לא עוד שדות-יצירה
           קבועים מעורבים עם החיפוש. */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
-        <div style={{ position: 'relative', flex: '1 1 220px', minWidth: '160px' }}>
+      <div className="svc-toolbar" style={{ display: 'flex', gap: '8px', marginBottom: '14px', flexWrap: 'wrap' }}>
+        <div className="svc-search" style={{ position: 'relative', flex: '1 1 220px', minWidth: '160px' }}>
           <Search size={14} color={NEON.textMuted} style={{ position: 'absolute', top: '50%', [isHebrew ? 'right' : 'left']: '10px', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
           <input
             type="text"
             placeholder={isHebrew ? 'חיפוש בקטלוג…' : 'Search catalog...'}
             value={catalogSearchTerm}
             onChange={(e) => setCatalogSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: isHebrew ? '8px 32px 8px 12px' : '8px 12px 8px 32px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
+            style={{ width: '100%', minHeight: '44px', padding: isHebrew ? '8px 32px 8px 12px' : '8px 12px 8px 32px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
           />
         </div>
+        {typeof onExportCatalog === 'function' && (
+          // PRODUCT_TRUTH_CAPABILITY: catalog. Owner 2026-11-13 (part 1): the catalog to Excel (the items shown), beside "add item"
+          <button type="button" className="list-export-btn" data-testid="catalog-export" onClick={() => onExportCatalog(filteredServices)}
+            title={isHebrew ? 'ייצוא לאקסל' : 'Export to Excel'} aria-label={isHebrew ? 'ייצוא הקטלוג לאקסל' : 'Export the catalog to Excel'}
+            style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '0 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, background: NEON.bgCard, color: NEON.textSecondary, cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600', whiteSpace: 'nowrap' }}>
+            <Download size={15} strokeWidth={2.2} aria-hidden="true" />
+            <span className="list-export-label">{isHebrew ? 'ייצוא לאקסל' : 'Export to Excel'}</span>
+          </button>
+        )}
         {/* PRODUCT_TRUTH_CAPABILITY: catalog */}
         <button
           type="button"

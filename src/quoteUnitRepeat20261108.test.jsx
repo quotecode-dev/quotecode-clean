@@ -91,7 +91,8 @@ describe('the customer quote and the preview', () => {
   it('the preview data and the public function carry repeat_count ONLY above 1 (every existing response unchanged)', () => {
     const d = buildPreviewQuoteData({ editor: { sections: [{ key: 'a', name: 'X', repeat_count: 12 }, { key: 'b', name: 'Y', repeat_count: 1 }], items: [] } });
     expect(d.quoteData.sections).toEqual([{ id: 'a', name: 'X', repeat_count: 12 }, { id: 'b', name: 'Y' }]);
-    expect(read('supabase/functions/get-public-quote/index.ts')).toContain('quote_sections ( id, name, sort_order, repeat_count, kind )');
+    // 2026-11-13 (heading tree, Owner-typed L-09 / L-17): the parent heading joins the select; repeat_count stays only above 1
+    expect(read('supabase/functions/get-public-quote/index.ts')).toContain('quote_sections ( id, name, sort_order, repeat_count, kind, parent_section_id )');
     expect(read('supabase/functions/get-public-quote/index.ts')).toContain('...(Number.isInteger(s.repeat_count) && s.repeat_count > 1 ? { repeat_count: s.repeat_count } : {})');
     expect(read('supabase/functions/get-public-quote/publicAccess.ts')).toContain('...(Number.isInteger(s.repeat_count) && (s.repeat_count as number) > 1 ? { repeat_count: s.repeat_count as number } : {})');
     for (const f of ['supabase/functions/get-public-quote/index.ts', 'supabase/functions/get-public-quote/publicAccess.ts']) {
@@ -218,7 +219,8 @@ describe('reviewer findings, fixed (stage 3)', () => {
   });
   it('the chat get_quote tool says a unit line is one copy x N', () => {
     const s = read('supabase/functions/chat-ai/chatTools.ts');
-    expect(s).toContain('quote_sections ( id, name, repeat_count ), quote_items ( description, quantity, unit_price, total_price, section_id )');
+    // 2026-11-13 (the heading tree): the same read with the parent heading (and the same read without it before the migration)
+    expect(s).toContain("quote_sections ( id, name, repeat_count${withParent ? ', parent_section_id' : ''} ), quote_items ( description, quantity, unit_price, total_price, section_id )");
     expect(s).toContain('return n > 1 ? { unit: s.name || null, identical_copies: n, line_total_is_per_copy: true } : {};');
   });
   it('the customer unit total comes from the stored quantities and prices x N (the same sum as the stored subtotal), never rounded lines x N', () => {

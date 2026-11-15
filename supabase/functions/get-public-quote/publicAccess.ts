@@ -185,7 +185,9 @@ export function rendererFromSnapshot(snapshot: unknown, bound: BoundArtifact,
     // Owner console 2026-11-08 (stage 3 of the one quote builder): the frozen document carries repeat_count only above 1 - passed through as is
     sections: arr(doc.sections).slice().sort(sortBy).map((s) => ({ id: s.id, name: s.name, ...(Number.isInteger(s.repeat_count) && (s.repeat_count as number) > 1 ? { repeat_count: s.repeat_count as number } : {}),
       // 2026-11-12 (unified quote): the kind only when the document carries it
-      ...(typeof s.kind === 'string' && s.kind ? { kind: s.kind as string } : {}) })),
+      ...(typeof s.kind === 'string' && s.kind ? { kind: s.kind as string } : {}),
+      // 2026-11-13 (heading tree): the parent only when the frozen document carries it
+      ...(typeof s.parent_id === 'string' && UUID_RE.test(s.parent_id) ? { parent_id: s.parent_id as string } : {}) })),
     items: arr(doc.items).slice().sort(sortBy).map((i) => ({
       description: i.description, quantity: i.quantity, price: i.unit_price, total_price: i.total_price,
       ...(i.price_missing === true ? { price_missing: true } : {}), // Task 35 (F4): from the issued deal document, only when true
@@ -232,7 +234,9 @@ export function rendererFromSignedRecord(rec: SignedRecord, quoteId: string, own
     client: c ? { company_name: c.company_name, email: c.email, phone: c.phone, address: c.address } : null,
     sections: arr(doc.sections).slice().sort(sortBy).map((s) => ({ id: s.id, name: s.name, ...(Number.isInteger(s.repeat_count) && (s.repeat_count as number) > 1 ? { repeat_count: s.repeat_count as number } : {}),
       // 2026-11-12 (unified quote): the kind only when the document carries it
-      ...(typeof s.kind === 'string' && s.kind ? { kind: s.kind as string } : {}) })),
+      ...(typeof s.kind === 'string' && s.kind ? { kind: s.kind as string } : {}),
+      // 2026-11-13 (heading tree): the parent only when the frozen document carries it
+      ...(typeof s.parent_id === 'string' && UUID_RE.test(s.parent_id) ? { parent_id: s.parent_id as string } : {}) })),
     items: arr(doc.items).slice().sort(sortBy).map((i) => ({
       description: i.description, quantity: i.quantity, price: i.unit_price, total_price: i.total_price,
       ...(i.price_missing === true ? { price_missing: true } : {}),

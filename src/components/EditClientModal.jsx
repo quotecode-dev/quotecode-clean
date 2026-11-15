@@ -175,12 +175,12 @@ export default function EditClientModal({ isOpen, onClose, client, onSave, isHeb
               </div>
             </div>
             <div>
-              <label style={{ display: 'block', fontWeight: '600', color: APP.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'הערות / הנחיות' : 'Notes'}</label>
+              <label style={{ display: 'block', fontWeight: '600', color: APP.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'הערות / הנחיות' : 'Notes / instructions'}</label>
               <input type="text" value={notes} onChange={(e) => setNotes(e.target.value)} style={{ width: '100%', padding: '8px 10px', border: `1px solid ${APP.borderStrong}`, borderRadius: '6px', boxSizing: 'border-box' }} />
             </div>
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', marginTop: '20px', flexDirection: isHebrew ? 'row-reverse' : 'row' }}>
+          <div style={{ display: 'flex', gap: '8px', marginTop: '20px' }}>{/* 2026-11-15 (law 49): the window is RTL in Hebrew - the row mirrors by itself (Cancel at the start, the save at the end, as every other window) */}
             {/* PRODUCT_TRUTH_DECORATIVE: Cancel button discards the in-progress client create/edit form without saving */}
             <button type="button" onClick={onClose} style={{ flex: 1, background: APP.bgCardAlt, color: APP.textSecondary, border: `1px solid ${APP.borderStrong}`, padding: '10px', borderRadius: '6px', fontWeight: '600', fontSize: '0.9rem' }}>
               {isHebrew ? 'ביטול' : 'Cancel'}

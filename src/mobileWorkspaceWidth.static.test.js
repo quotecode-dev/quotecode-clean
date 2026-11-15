@@ -77,7 +77,9 @@ describe('IRON-MOBILE-WIDTH-001 static gate', () => {
   }
 
   it('primary surfaces inside screens carry the shared surface class (no second nested padding layer)', () => {
-    expect(read('components/QuoteForm.jsx').match(/className="pf-m-surface" style=\{\{ background: NEON\.bgCard, border: `1px solid \$\{NEON\.border\}`, boxShadow: '0 1px 2px rgba\(15,23,42,0\.05\)', borderRadius: '16px', padding: '16px'/g)).toHaveLength(6);
+    // 2026-11-15 (the approved demo): the quote details are no longer five cards in the editor - each section opens as its own page
+    // (the tree editor's own page card, quoteTree.css); one surface card stays in QuoteForm
+    expect(read('components/QuoteForm.jsx').match(/className="pf-m-surface" style=\{\{ background: NEON\.bgCard, border: `1px solid \$\{NEON\.border\}`, boxShadow: '0 1px 2px rgba\(15,23,42,0\.05\)', borderRadius: '16px', padding: '16px'/g)).toHaveLength(1);
     expect(read('components/FinancesTab.jsx').match(/className="pf-m-surface[^"]*"/g).length).toBeGreaterThanOrEqual(7);
     // KPI tiles: accent surfaces give back the extra border width, and their money figure fits the tile (container-relative size)
     expect(read('components/FinancesTab.jsx').match(/className="pf-m-surface pf-m-surface--accent pf-kpi-card"/g)).toHaveLength(4);

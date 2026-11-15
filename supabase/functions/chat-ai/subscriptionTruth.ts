@@ -177,11 +177,11 @@ function priceLine(lang: Lang, marketIL: boolean = lang === 'he'): string {
     : `${planName(PKG, 'en')}: ${usd(p.month)} per month or ${usd(p.year)} per year. Paying annually saves ${p.annualSavingPercentExact ? '' : 'approximately '}${p.annualSavingPercentRounded}% - ${usd(p.annualSaving)} per year. Billing is always in USD; a price shown in your local currency is only an estimate.`;
 }
 
-function catalogLine(lang: Lang, marketIL: boolean = lang === 'he'): string {
-  const price = marketIL ? ils(S.prices.IL.catalogBlock100) : usd(S.prices.INTERNATIONAL.catalogBlock100);
+// 2026-11-13 (chat knowledge scan of 12/11, section ג): no screen sells the catalog add-on - the answer never offers it
+function catalogLine(lang: Lang, _marketIL: boolean = lang === 'he'): string {
   return lang === 'he'
-    ? `כל מסלול בתשלום כולל ${S.catalog.includedProductsPerPaidPlan} מוצרי קטלוג; הרחבה של ${S.catalog.blockProducts} מוצרים נוספים עולה ${price} לחודש, ורק בבחירה מפורשת.`
-    : `Every paid plan includes ${S.catalog.includedProductsPerPaidPlan} catalog products; ${S.catalog.blockProducts} more products cost ${price} per month, only when you explicitly choose it.`;
+    ? `כל מסלול בתשלום כולל ${S.catalog.includedProductsPerPaidPlan} מוצרי קטלוג.`
+    : `Every paid plan includes ${S.catalog.includedProductsPerPaidPlan} catalog products.`;
 }
 
 function freeLine(lang: Lang): string {

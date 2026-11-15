@@ -6,7 +6,11 @@ import { getActiveQuantity } from './professionalQuoteItem';
 
 export function buildQuoteDraftSnapshot({ items, subject, sections }) {
   // Owner console 2026-11-08 (stage 3 of the one quote builder): a unit of N identical copies is named "name x N"
-  const sectionName = new Map((Array.isArray(sections) ? sections : []).map((s) => [s.key ?? s.id, Number(s.repeat_count) > 1 ? `${s.name} x ${Number(s.repeat_count)}` : s.name]));
+  // 2026-11-13 (heading tree): a heading is named by its whole path ("דירה 22 > מטבח") - two kitchens never look the same to the model
+  const list = Array.isArray(sections) ? sections : [];
+  const byKey = new Map(list.map((s) => [s.key ?? s.id, s]));
+  const pathName = (s) => { const names = []; const seen = new Set(); for (let c = s; c && !seen.has(c.key ?? c.id) && names.length < 5; c = c.parent_key ? byKey.get(c.parent_key) : null) { seen.add(c.key ?? c.id); names.unshift(c.name); } return names.join(' > '); };
+  const sectionName = new Map(list.map((s) => [s.key ?? s.id, Number(s.repeat_count) > 1 ? `${pathName(s)} x ${Number(s.repeat_count)}` : pathName(s)]));
   const rows = (Array.isArray(items) ? items : [])
     .filter((it) => it && typeof it.description === 'string' && it.description.trim())
     .map((it) => ({

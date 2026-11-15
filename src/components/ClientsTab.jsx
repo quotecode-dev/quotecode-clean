@@ -4,7 +4,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { quoteDisplayStatus, quoteDisplayLabel, quoteDisplayChipRole } from '../utils/quoteStatusDisplay';
-import { User, UserPlus, Pencil, Trash2, Hash, Mail, MapPin, StickyNote, ChevronDown, FileText, Search, ArrowUpDown, Check } from 'lucide-react';
+import { User, UserPlus, Pencil, Trash2, Hash, Mail, MapPin, StickyNote, ChevronDown, FileText, Search, ArrowUpDown, Check, Download } from 'lucide-react';
 import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, APP_FOCUS, RADIUS, SHADOW } from '../theme/neonTheme';
 import { formatAddress } from '../utils/addressFormat';
 import { formatShortDate } from '../utils/shortDate';
@@ -70,6 +70,7 @@ export default function ClientsTab({
   setEditingClient,
   handleDeleteClient,
   onCreateClient,
+  onExportClients = null,
   quotes = [],
   isHebrew
 }) {
@@ -286,6 +287,8 @@ export default function ClientsTab({
         .cli-row-btn { outline: none; }
         .cli-row-btn:focus-visible { outline: ${APP_FOCUS.width} solid ${APP_FOCUS.ring}; outline-offset: -2px; }
         .cli-row-expanded { background: ${NEON.bgCardAlt} !important; border-inline-start: 2px solid ${NEON.violet}; }
+        /* 2026-11-13: a phone - the search on its own line, the export and the sort together under it (never a squeezed, cut search) */
+        @media (max-width: 600px) { .cli-search-row { flex-wrap: wrap; } .cli-search-row > .cli-search { flex-basis: 100% !important; } }
       `}</style>
       {/* חוק ברזל (Consolidated Open UI Corrections task, §G1 - Clients
           page header): כותרת קצרה+ישירה (לקוחות/Clients, לא עוד "ניהול
@@ -320,17 +323,27 @@ export default function ClientsTab({
       {/* חוק ברזל (§G2): החיפוש עבר לשורה עצמאית משלו מתחת לכותרת (היה
           חולק שורה עם הכותרת) - "wide search below... the shared toolbar,"
           כדי שיקבל רוחב אמיתי, לא שרידי-מקום לצד הכותרת/הכפתור. */}
-      <div style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
-        <div style={{ position: 'relative', flex: '1 1 auto', minWidth: 0 }}>
+      <div className="cli-search-row" style={{ display: 'flex', gap: '8px', marginBottom: '14px' }}>
+        <div className="cli-search" style={{ position: 'relative', flex: '1 1 auto', minWidth: 0 }}>
           <Search size={14} color={NEON.textMuted} strokeWidth={2.2} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', [isHebrew ? 'right' : 'left']: '10px', pointerEvents: 'none' }} />
           <input
             type="text"
-            placeholder={isHebrew ? 'חיפוש לקוח לפי שם, אימייל או ח.פ…' : 'Search clients...'}
+            placeholder={isHebrew ? 'חיפוש לקוח לפי שם, אימייל או ח.פ…' : 'Search by name, email or company no.…'}
             value={clientSearchTerm}
             onChange={(e) => setClientSearchTerm(e.target.value)}
-            style={{ width: '100%', padding: isHebrew ? '8px 30px 8px 12px' : '8px 12px 8px 30px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
+            style={{ width: '100%', minHeight: '44px', padding: isHebrew ? '8px 30px 8px 12px' : '8px 12px 8px 30px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
           />
         </div>
+        {typeof onExportClients === 'function' && (
+          // PRODUCT_TRUTH_CAPABILITY: clients. Owner 2026-11-13 (part 1): the clients to Excel - beside the sort, at its right in Hebrew
+          // (L-26: "את היצוא לאקסל למקם מימין למיון"), mirrored in English
+          <button type="button" className="list-export-btn" data-testid="clients-export" onClick={onExportClients}
+            title={isHebrew ? 'ייצוא לאקסל' : 'Export to Excel'} aria-label={isHebrew ? 'ייצוא רשימת הלקוחות לאקסל' : 'Export the client list to Excel'}
+            style={{ flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '44px', padding: '0 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, background: NEON.bgCard, color: NEON.textSecondary, cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600', whiteSpace: 'nowrap' }}>
+            <Download size={15} strokeWidth={2.2} aria-hidden="true" />
+            <span className="list-export-label">{isHebrew ? 'ייצוא לאקסל' : 'Export to Excel'}</span>
+          </button>
+        )}
         {/* חוק ברזל (§4 - Narrow/mobile compact sorting control): מוצג רק
             במובייל - בדסקטופ שני כפתורי-המיון בכותרת-הטבלה כבר מספיקים,
             אין צורך בתפריט כפול. */}
@@ -423,7 +436,7 @@ export default function ClientsTab({
             </button>
             <span style={{ width: '140px', flexShrink: 0, direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'איש קשר' : 'Contact'}</span>
             <span style={{ width: '70px', flexShrink: 0, textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'הצעות' : 'Quotes'}</span>
-            <span style={{ width: '90px', flexShrink: 0, textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'פעילות אחרונה' : 'Last activity'}</span>
+            <span style={{ width: '90px', flexShrink: 0, whiteSpace: 'nowrap', textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'פעילות אחרונה' : 'Last activity'}</span>
           </div>
           <div className="pf-screen-body">
           {rowsMeta.length === 0 ? (

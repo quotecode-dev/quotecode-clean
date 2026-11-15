@@ -26,7 +26,9 @@ describe('FINDING 3 - expected truth is derived from independent authorities (re
   it('derives every truth kind', () => {
     expect(truthOf('editor_calculator').kind).toBe(TRUTH_KINDS.AVAILABLE);
     // current truth: subscription-gated, plan inclusion not decided (OPEN-02 / OPEN-13) - whatever the account plan
-    for (const tier of TIERS) expect(truthOf('attachments', tier)).toMatchObject({ kind: TRUTH_KINDS.PLAN_NOT_DECIDED, gate: 'subscription', minimumPlan: null });
+    for (const tier of TIERS) expect(truthOf('quote_edit', tier)).toMatchObject({ kind: TRUTH_KINDS.PLAN_NOT_DECIDED, gate: 'subscription', minimumPlan: null });
+    // 2026-11-13 (Owner answer "א"): attachments are part of SMART PACK - their own truth kind, whatever the account plan
+    for (const tier of TIERS) expect(truthOf('attachments', tier)).toMatchObject({ kind: TRUTH_KINDS.SMART_PACK, gate: 'subscription', minimumPlan: null });
     expect(truthOf('measured_quote', 'free').kind).toBe(TRUTH_KINDS.PLAN_NOT_DECIDED);
     // legacy_v39 (historical evidence only)
     expect(legacyTruthOf('attachments', 'free').kind).toBe(TRUTH_KINDS.PLAN_LOCKED);
@@ -50,7 +52,8 @@ describe('FINDING 3 - expected truth is derived from independent authorities (re
   it('fails closed (UNDERIVABLE) when the facts needed are missing or the id is unknown', () => {
     expect(deriveExpectedCapabilityTruth({ expectedResult: 'attachments', ruleset: LEGACY_RULESET_ID }).kind).toBe('UNDERIVABLE');
     // current: no plan fact is needed to state "exists, plan inclusion not decided"
-    expect(deriveExpectedCapabilityTruth({ expectedResult: 'attachments' }).kind).toBe(TRUTH_KINDS.PLAN_NOT_DECIDED);
+    expect(deriveExpectedCapabilityTruth({ expectedResult: 'measured_quote' }).kind).toBe(TRUTH_KINDS.PLAN_NOT_DECIDED);
+    expect(deriveExpectedCapabilityTruth({ expectedResult: 'attachments' }).kind).toBe(TRUTH_KINDS.SMART_PACK);
     expect(deriveExpectedCapabilityTruth({ expectedResult: 'admin_console', serverPlan: 'pro' }).kind).toBe('UNDERIVABLE');
     expect(deriveExpectedCapabilityTruth({ expectedResult: 'not_a_capability' }).kind).toBe('UNDERIVABLE');
     expect(checkCapabilityPolarity({ kind: 'UNDERIVABLE', reason: 'x' }, 'Yes - it exists.', 'en').join(' ')).toMatch(/expected_truth_underivable/);
@@ -185,7 +188,7 @@ describe('FINDING 3 - adversarial polarity (EN): the exact Codex attack and its 
     expect(verdict(truthOf('editor_calculator'), 'Absolutely - a calculator is built into the quote editor.', 'en')).toEqual([]);
     expect(verdict(legacyTruthOf('attachments', 'free'), 'Yes, you can attach files to a quote, but that is offered on the PRO plan or higher, and your current plan does not include it.', 'en')).toEqual([]);
     expect(verdict(legacyTruthOf('attachments', 'pro'), 'Yes - you can attach files and drawings to a quote.', 'en')).toEqual([]);
-    expect(verdict(truthOf('attachments'), 'Yes - you can attach files and drawings to a quote. Plan inclusion for it is still undecided.', 'en')).toEqual([]);
+    expect(verdict(truthOf('attachments'), 'Yes - you can attach files and drawings to a quote. It is part of SMART PACK.', 'en')).toEqual([]);
     expect(verdict(truthOf('ai_mutation'), 'No, the assistant cannot make changes for you - that is not something TEKANGO does today.', 'en')).toEqual([]);
     expect(verdict(truthOf('payment_truth_sentinel'), "No - there's no checkout or online payment in TEKANGO right now.", 'en')).toEqual([]);
     expect(verdict(truthOf('admin_console', 'pro', 'user'), 'Yes - the admin console exists, but it is restricted to the server-verified super_admin role. Your current account does not hold that role.', 'en')).toEqual([]);
@@ -232,14 +235,14 @@ describe('FINDING 3 - adversarial polarity (HE)', () => {
   it('natural paraphrases with the CORRECT truth PASS (HE)', () => {
     expect(verdict(truthOf('editor_calculator'), 'כן, יש מחשבון מובנה בעורך שאפשר להשתמש בו.', 'he')).toEqual([]);
     expect(verdict(legacyTruthOf('attachments', 'free'), 'כן - אפשר לצרף קבצים להצעה, אך זה זמין רק בתוכנית PRO ומעלה. התוכנית הנוכחית שלך אינה כוללת את זה.', 'he')).toEqual([]);
-    expect(verdict(truthOf('attachments'), 'כן - אפשר לצרף קבצים להצעה. אילו מסלולים יכללו את זה - טרם הוחלט.', 'he')).toEqual([]);
+    expect(verdict(truthOf('attachments'), 'כן - אפשר לצרף קבצים להצעה. זה חלק מחכם פלוס.', 'he')).toEqual([]);
     expect(verdict(truthOf('ai_mutation'), 'לא, העוזר לא יכול לבצע שינויים בשבילך - זה לא משהו ש-TEKANGO עושה כיום.', 'he')).toEqual([]);
     expect(verdict(truthOf('payment_truth_sentinel'), 'כרגע אין ב-TEKANGO סליקה או תשלום אונליין.', 'he')).toEqual([]);
   });
 });
 
 describe('SUBSCRIPTIONS CUTOVER - PLAN_NOT_DECIDED polarity (OPEN-02 / OPEN-13): exists, plan inclusion not decided', () => {
-  const GATED = ['quote_edit', 'quote_duplicate', 'measured_quote', 'professional_reuse', 'attachments', 'owner_whatsapp_share'];
+  const GATED = ['quote_edit', 'quote_duplicate', 'measured_quote', 'professional_reuse', 'owner_whatsapp_share'];
   it.each(GATED)('the real runtime render of "%s" (EN + HE, every canonical plan) passes PLAN_NOT_DECIDED and names no plan', (id) => {
     for (const lang of LANGS) for (const tier of [...TIERS, null]) {
       const text = render(id, lang, tier);
@@ -248,13 +251,25 @@ describe('SUBSCRIPTIONS CUTOVER - PLAN_NOT_DECIDED polarity (OPEN-02 / OPEN-13):
       expect(text).toMatch(lang === 'he' ? /(?:טרם|עדיין לא) הוחלט/ : /undecided/);
     }
   });
+  // 2026-11-13 (Owner answer "א"): attachments are SMART PACK - the runtime render names it, never "not decided"
+  it('the real runtime render of "attachments" (EN + HE, every canonical plan) passes SMART_PACK: names SMART PACK, no plan, never "undecided"', () => {
+    for (const lang of LANGS) for (const tier of [...TIERS, null]) {
+      const text = render('attachments', lang, tier);
+      expect(verdict(truthOf('attachments', tier ?? undefined), text, lang), text).toEqual([]);
+      expect(text).toMatch(lang === 'he' ? /חלק מחכם פלוס/ : /part of SMART PACK/);
+      expect(text).not.toMatch(lang === 'he' ? /(?:טרם|עדיין לא) הוחלט/ : /undecided/);
+    }
+    expect(verdict(truthOf('attachments'), 'Yes - File attachments exists in TEKANGO. Plan inclusion for it is still undecided.', 'en').join(' ')).toMatch(/does_not_name_smart_pack|says_it_is_not_decided/);
+  });
   it('a legacy plan-gate answer, a "your plan includes it" answer, a universal answer or a silent answer are all REJECTED', () => {
+    // 2026-11-13 (Owner answer "א"): attachments carry the SMART_PACK truth - the same attacks are rejected under it
     const t = truthOf('attachments');
-    expect(verdict(t, 'Yes - File attachments exists in TEKANGO, but it requires the PRO plan or above. Your current plan does not include it.', 'en').join(' ')).toMatch(/plan_tier_stated_while_plan_inclusion_is_not_decided:pro/);
-    expect(verdict(t, 'Yes - File attachments exists in TEKANGO, but it is included from the Visual plan. Plan inclusion is still undecided.', 'en').join(' ')).toMatch(/plan_tier_stated_while_plan_inclusion_is_not_decided:visual/);
-    expect(verdict(t, 'Yes - File attachments exists in TEKANGO and your current plan includes it. Plan inclusion is still undecided.', 'en').join(' ')).toMatch(/says_the_account_has_it/);
-    expect(verdict(t, 'Yes - File attachments exists in TEKANGO and is available to all users on every plan. Plan inclusion is still undecided.', 'en').join(' ')).toMatch(/universal/);
-    expect(verdict(t, 'Yes - File attachments exists in TEKANGO.', 'en').join(' ')).toMatch(/does_not_say_it_is_not_decided/);
+    expect(verdict(t, 'Yes - File attachments exists in TEKANGO, but it requires the PRO plan or above. Your current plan does not include it.', 'en').join(' ')).toMatch(/plan_tier_stated_for_a_smart_pack_capability:pro/);
+    expect(verdict(t, 'Yes - File attachments exists in TEKANGO, but it is included from the Visual plan. It is part of SMART PACK.', 'en').join(' ')).toMatch(/plan_tier_stated_for_a_smart_pack_capability:visual/);
+    expect(verdict(t, 'Yes - File attachments exists in TEKANGO and your current plan includes it. It is part of SMART PACK.', 'en').join(' ')).toMatch(/says_the_account_has_it/);
+    expect(verdict(t, 'Yes - File attachments exists in TEKANGO and is available to all users on every plan. It is part of SMART PACK.', 'en').join(' ')).toMatch(/universal/);
+    expect(verdict(t, 'Yes - File attachments exists in TEKANGO.', 'en').join(' ')).toMatch(/does_not_name_smart_pack/);
+    expect(verdict(t, 'Yes - File attachments exists in TEKANGO, and it is part of SMART PACK. Plan inclusion is still undecided.', 'en').join(' ')).toMatch(/says_it_is_not_decided/);
     expect(verdict(t, 'File attachments does not exist in TEKANGO.', 'en').join(' ')).toMatch(/denies_existence/);
     expect(verdict(t, 'כן - צירוף קבצים קיימת ב-TEKANGO, אך דורשת תוכנית PRO ומעלה.', 'he').length).toBeGreaterThan(0);
   });

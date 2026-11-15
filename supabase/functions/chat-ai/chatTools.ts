@@ -14,6 +14,7 @@
 //    account-wide statistics and the "does the product have tasks" capability answer for exactly those questions.
 
 import { money } from './quoteStatsTruth.ts';
+import { sectionPaths } from './quoteContext.ts';
 
 export const CHEAP_MODEL = 'gpt-6-luna';
 export const LEGACY_CHEAP_MODEL = 'gpt-4o-mini';
@@ -216,9 +217,12 @@ async function quoteOverview(ctx: ToolContext, a: Record<string, unknown>) {
 async function getQuote(ctx: ToolContext, a: Record<string, unknown>) {
   const num = Math.trunc(Number(a.quote_number));
   if (!Number.isFinite(num)) return { found: false };
-  const { data, error } = await ctx.db.from('quotes')
-    .select('quote_number, project_name, status, subtotal, tax_rate, total, currency, created_at, valid_until, view_count, signed_at, clients ( company_name, contact_name ), quote_sections ( id, name, repeat_count ), quote_items ( description, quantity, unit_price, total_price, section_id )')
+  // 2026-11-13: the heading tree (parent_section_id) - before its migration the same read without it
+  const read = (withParent: boolean) => ctx.db.from('quotes')
+    .select(`quote_number, project_name, status, subtotal, tax_rate, total, currency, created_at, valid_until, view_count, signed_at, clients ( company_name, contact_name ), quote_sections ( id, name, repeat_count${withParent ? ', parent_section_id' : ''} ), quote_items ( description, quantity, unit_price, total_price, section_id )`)
     .eq('user_id', ctx.userId).eq('quote_number', num).limit(1);
+  let { data, error } = await read(true);
+  if (error && String(error?.message || '').includes('parent_section_id')) ({ data, error } = await read(false));
   if (error) return { error: 'unavailable' };
   const q = (data || [])[0];
   if (!q) return { found: false };
@@ -233,6 +237,10 @@ async function getQuote(ctx: ToolContext, a: Record<string, unknown>) {
     const n = s && Number.isInteger(s.repeat_count) ? s.repeat_count : 1;
     return n > 1 ? { unit: s.name || null, identical_copies: n, line_total_is_per_copy: true } : {};
   };
+  // the heading path of a line, top first ("Floor 10 > Apartment 22 > Kitchen"); absent when the line is in no heading
+  const paths = sectionPaths(Array.isArray(q.quote_sections) ? q.quote_sections : []);
+  // deno-lint-ignore no-explicit-any
+  const headingOf = (it: any) => (it.section_id && paths.get(it.section_id) ? { heading: paths.get(it.section_id) } : {});
   return {
     found: true, quote_number: q.quote_number, client: clientName(q), project: q.project_name || null,
     state: isExpired(q, ctx.today) ? 'expired' : quoteGroup(q),
@@ -241,7 +249,7 @@ async function getQuote(ctx: ToolContext, a: Record<string, unknown>) {
     viewed_by_client: Number(q.view_count || 0) > 0, signed_at: q.signed_at ? String(q.signed_at).slice(0, 10) : null,
     item_count: items.length,
     // deno-lint-ignore no-explicit-any
-    items: items.slice(0, 40).map((it: any) => ({ description: it.description, quantity: it.quantity, unit_price: money(cur, amount(it.unit_price)), line_total: money(cur, amount(it.total_price)), ...copiesNote(it) })),
+    items: items.slice(0, 40).map((it: any) => ({ description: it.description, quantity: it.quantity, unit_price: money(cur, amount(it.unit_price)), line_total: money(cur, amount(it.total_price)), ...headingOf(it), ...copiesNote(it) })),
   };
 }
 

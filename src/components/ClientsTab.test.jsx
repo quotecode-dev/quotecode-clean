@@ -105,7 +105,7 @@ describe('ClientsTab - preserved behavior', () => {
   it('search input still calls setClientSearchTerm', () => {
     const setClientSearchTerm = vi.fn();
     renderClientsTab({ setClientSearchTerm });
-    fireEvent.change(screen.getByPlaceholderText('Search clients...'), { target: { value: 'Acme' } });
+    fireEvent.change(screen.getByPlaceholderText('Search by name, email or company no.…'), { target: { value: 'Acme' } });
     expect(setClientSearchTerm).toHaveBeenCalledWith('Acme');
   });
 
