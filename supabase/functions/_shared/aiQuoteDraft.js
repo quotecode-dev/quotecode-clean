@@ -1177,7 +1177,8 @@ export function roomsFromEvidence(tp, items) {
     if (hits.length !== 1) continue; // none, or several rooms in one line's words - never guessed
     const name = hits[0];
     // the line's own name still says the room ("ריצוף סלון") - nothing is lost, it stays as it is
-    if (significantWords(name).map(stem).filter((w) => !GENERIC_WORDS.has(w)).every((w) => significantWords(it.description).map(stem).some((x) => sameWord(w, x)))) continue;
+    const kept = (w) => significantWords(it.description).map(stem).some((x) => sameWord(w, x)) || normFinals(String(it.description).toLowerCase()).includes(normFinals(w.toLowerCase()));
+    if (normFinals(String(it.description).toLowerCase()).includes(normFinals(String(name).replace(/^חדר\s+/, '').toLowerCase())) || significantWords(name).map(stem).filter((w) => !GENERIC_WORDS.has(w)).every(kept)) continue;
     if (tp.places.some((p) => p.parent === pk && p.kind === 'room' && wordsOf(p.name) === wordsOf(name))) { it.place = tp.places.find((p) => p.parent === pk && p.kind === 'room' && wordsOf(p.name) === wordsOf(name)).key; it.room = null; continue; }
     const id = `${pk}|${wordsOf(name)}`;
     if (!made.has(id)) {
