@@ -50,10 +50,10 @@ describe('the server: identical copies -> one place × N, each line once, the qu
     expect(r.places).toEqual([apt('p1', { count: 2 })]);
     expect(view(r)).toEqual([['p1', 12, 'm2', 'stated', null], ['p1', 1, 'unit', 'implied_single', null]]);
   });
-  it('no copy has evidence: still one apartment × 2 with the lines once, the quantity an honest gap (never guessed)', () => {
+  it('no copy has evidence: still one apartment × 2 with the lines once; option ב (15/11): a quantity written in the text stands', () => {
     const r = parse({ items: [...en('p1', { evidence: '' }), ...en('p2', { evidence: '' })], places: [apt('p1'), apt('p2')] }, EN, false);
     expect(r.places).toEqual([apt('p1', { count: 2 })]);
-    expect(view(r)).toEqual([['p1', null, 'm2', 'missing', 'unverified'], ['p1', null, 'unit', 'missing', 'unverified']]);
+    expect(view(r)).toEqual([['p1', 12, 'm2', 'stated', null], ['p1', 1, 'unit', 'implied_single', null]]);
   });
   it('three identical apartments: × 3', () => {
     const text = 'שלוש דירות זהות, בכל אחת ריצוף במטבח 12 מ״ר והחלפת אסלה בשירותים';

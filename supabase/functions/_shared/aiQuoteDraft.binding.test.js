@@ -9,14 +9,14 @@ const rows = (r) => r.items.map((i) => [i.description, i.quantity, i.unit, i.mis
 const TEXT = 'ריצוף חדר הורים 40 מ״ר, ריצוף חדר ילדים 22 מ״ר';
 
 describe('reproduction: swapped quantities between jobs (failed before the fix)', () => {
-  it('a model answer that swaps 40 / 22 between the rooms is never accepted as is', () => {
+  it('option ב: the model\'s numbers stand as it wrote them (both are written in the text); the user reviews the lines', () => {
     const r = parse([
       L({ description: 'ריצוף חדר הורים', quantity: 22, unit: 'm2', quantityBasis: 'stated' }),
       L({ description: 'ריצוף חדר ילדים', quantity: 40, unit: 'm2', quantityBasis: 'stated' }),
     ], TEXT);
     const kept = r.items.filter((i) => i.quantity != null).map((i) => [i.description, i.quantity]);
-    expect(kept).not.toContainEqual(['ריצוף חדר הורים', 22]);
-    expect(kept).not.toContainEqual(['ריצוף חדר ילדים', 40]);
+    // Owner 2026-11-15 (option ב): the model's number stands when it is written in the text - the line is reviewed before it is added
+    expect(kept).toEqual([['ריצוף חדר הורים', 22], ['ריצוף חדר ילדים', 40]]);
   });
 });
 
@@ -30,32 +30,36 @@ describe('quantity bound to its own evidence', () => {
     expect(r.items.map((i) => i.evidence)).toEqual(['ריצוף חדר הורים 40 מ״ר', 'ריצוף חדר ילדים 22 מ״ר']);
     expect(r.unassignedMeasures).toEqual([]);
   });
-  it('swapped quantities with correct evidence -> both become "unverified" gaps; both measures stay unassigned', () => {
+  it('option ב: quantities the model swapped stand as written by it (both numbers are in the text); nothing is left unassigned', () => {
     const r = parse([
       L({ description: 'ריצוף חדר הורים', evidence: 'ריצוף חדר הורים 40 מ״ר', quantity: 22, unit: 'm2', quantityBasis: 'stated' }),
       L({ description: 'ריצוף חדר ילדים', evidence: 'ריצוף חדר ילדים 22 מ״ר', quantity: 40, unit: 'm2', quantityBasis: 'stated' }),
     ], TEXT);
-    expect(rows(r)).toEqual([['ריצוף חדר הורים', null, 'm2', 'unverified'], ['ריצוף חדר ילדים', null, 'm2', 'unverified']]);
-    expect(r.unassignedMeasures).toEqual(['40 מ״ר', '22 מ״ר']);
+    // Owner 2026-11-15 (option ב): the model's number stands when it is written in the text - the line is reviewed before it is added
+    expect(rows(r)).toEqual([['ריצוף חדר הורים', 22, 'm2', null], ['ריצוף חדר ילדים', 40, 'm2', null]]);
+    expect(r.unassignedMeasures).toEqual([]);
   });
-  it('swapped evidence (description of one room, evidence of the other) -> conflict, not accepted', () => {
+  it('option ב: swapped evidence - the model\'s numbers stand (written in the text)', () => {
     const r = parse([
       L({ description: 'ריצוף חדר הורים', evidence: 'ריצוף חדר ילדים 22 מ״ר', quantity: 22, unit: 'm2', quantityBasis: 'stated' }),
       L({ description: 'ריצוף חדר ילדים', evidence: 'ריצוף חדר הורים 40 מ״ר', quantity: 40, unit: 'm2', quantityBasis: 'stated' }),
     ], TEXT);
-    expect(r.items.map((i) => [i.quantity, i.missing])).toEqual([[null, 'unverified'], [null, 'unverified']]);
+    // Owner 2026-11-15 (option ב): the model's number stands when it is written in the text - the line is reviewed before it is added
+    expect(r.items.map((i) => [i.quantity, i.missing])).toEqual([[22, null], [40, null]]);
   });
-  it('no evidence / evidence not in the text / the same evidence twice -> unverified, never a guess', () => {
+  it('option ב: no evidence / evidence not in the text / the same evidence twice - a number written in the text stands; one never written stays empty', () => {
     const r = parse([
       L({ description: 'ריצוף חדר הורים', evidence: '', quantity: 40, unit: 'm2', quantityBasis: 'stated' }),
       L({ description: 'ריצוף חדר ילדים', evidence: 'ריצוף חדר ילדים 23 מ״ר', quantity: 22, unit: 'm2', quantityBasis: 'stated' }),
     ], TEXT);
-    expect(r.items.map((i) => i.missing)).toEqual(['unverified', 'unverified']);
+    // Owner 2026-11-15 (option ב): the model's number stands when it is written in the text - the line is reviewed before it is added
+    expect(r.items.map((i) => [i.quantity, i.missing])).toEqual([[40, null], [22, null]]);
+    expect(parse([L({ description: 'ריצוף', evidence: '', quantity: 35, unit: 'm2', quantityBasis: 'stated' })], TEXT).items[0]).toMatchObject({ quantity: null, missing: 'unverified' });
     const twice = parse([
       L({ description: 'ריצוף', evidence: 'ריצוף חדר הורים 40 מ״ר', quantity: 40, unit: 'm2', quantityBasis: 'stated' }),
       L({ description: 'ליטוש', evidence: 'ריצוף חדר הורים 40 מ״ר', quantity: 40, unit: 'm2', quantityBasis: 'stated' }),
     ], TEXT);
-    expect(twice.items.map((i) => [i.quantity, i.missing])).toEqual([[40, null], [null, 'unverified']]);
+    expect(twice.items.map((i) => [i.quantity, i.missing])).toEqual([[40, null], [40, null]]);
   });
   it('equal numbers in two jobs: each line uses ITS occurrence; one occurrence is never used twice', () => {
     const text = 'צביעת סלון 20 מ״ר, ריצוף מטבח 20 מ״ר';
@@ -83,17 +87,17 @@ describe('quantity bound to its own evidence', () => {
     ], text);
     expect(rows(r)).toEqual([['עבודת חשמלאי', 4, 'hour', null], ['טיח', 12, 'm2', null]]);
   });
-  it('a job without a quantity next to a job with one never borrows it', () => {
+  it('option ב: a quantity the model gives a job stands when it is written in the text; an implied single piece is 1', () => {
     const text = 'פירוק ריצוף קיים, וריצוף חדש 40 מ״ר';
     const r = parse([
       L({ description: 'פירוק ריצוף קיים', evidence: 'פירוק ריצוף קיים', quantity: 40, unit: 'm2', quantityBasis: 'stated' }),
       L({ description: 'ריצוף חדש', evidence: 'ריצוף חדש 40 מ״ר', quantity: 40, unit: 'm2', quantityBasis: 'stated' }),
     ], text);
-    expect(rows(r)).toEqual([['פירוק ריצוף קיים', null, 'm2', 'unverified'], ['ריצוף חדש', 40, 'm2', null]]);
-    // and an "implied" 1 is refused for a span that has its own written number
-    expect(parse([L({ description: 'ריצוף חדש', evidence: 'ריצוף חדש 40 מ״ר', quantity: 1, unit: 'unit', quantityBasis: 'implied_single' })], text).items[0].quantity).toBeNull();
+    // Owner 2026-11-15 (option ב): the model's number stands when it is written in the text - the line is reviewed before it is added
+    expect(rows(r)).toEqual([['פירוק ריצוף קיים', 40, 'm2', null], ['ריצוף חדש', 40, 'm2', null]]);
+    expect(parse([L({ description: 'ריצוף חדש', evidence: 'ריצוף חדש 40 מ״ר', quantity: 1, unit: 'unit', quantityBasis: 'implied_single' })], text).items[0].quantity).toBe(1);
   });
-  it('EN: the same binding rules (swap refused, own evidence kept, reordered lines)', () => {
+  it('EN: the same rule (option ב: the model\'s numbers stand when written in the text; own evidence kept, reordered lines)', () => {
     const text = 'Tile the master bedroom 40 m2, tile the kids room 22 m2';
     const ok = parse([
       L({ description: 'Kids room tiling', evidence: 'tile the kids room 22 m2', quantity: 22, unit: 'm2', quantityBasis: 'stated' }),
@@ -104,7 +108,8 @@ describe('quantity bound to its own evidence', () => {
       L({ description: 'Master bedroom tiling', evidence: 'Tile the master bedroom 40 m2', quantity: 22, unit: 'm2', quantityBasis: 'stated' }),
       L({ description: 'Kids room tiling', evidence: 'tile the kids room 22 m2', quantity: 40, unit: 'm2', quantityBasis: 'stated' }),
     ], text);
-    expect(swap.items.map((i) => i.missing)).toEqual(['unverified', 'unverified']);
+    // Owner 2026-11-15 (option ב): the model's number stands when it is written in the text - the line is reviewed before it is added
+    expect(swap.items.map((i) => [i.quantity, i.missing])).toEqual([[22, null], [40, null]]);
   });
   it('derived dimensions count only for the line whose evidence holds them', () => {
     const text = 'צביעת קיר בסלון 4 על 2.5 מטר, ותקרה במטבח 3 על 3 מטר';

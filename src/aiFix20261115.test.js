@@ -163,6 +163,29 @@ describe('round 2 - the answers the real model gave on LIVE', () => {
       line({ description: 'Install quartz countertop', evidence: 'a quartz countertop of 30 sq ft', quantity: 30, unit: 'sq_ft', quantityBasis: 'stated' })] }, false);
     expect(rows(r).map((x) => [x[1], x[2], x[4]])).toEqual([['Remove old cabinets', null, null], ['Install new cabinets', 12, 250], ['Install quartz countertop', 30, 70]]);
   });
+  // the exact answers of the real model on LIVE 2026-11-15 (diagnostics of the test account)
+  it('LIVE example 7 (EN): long keys "apartment_1A"/"apartment_1B" and place/line evidence written in Hebrew - every apartment keeps its own lines', () => {
+    const text = 'Two floors. Floor 1: apartment 1A and apartment 1B. Floor 2: apartment 2A. In each apartment replace 6 outlets at $45 each and paint 80 sq ft of walls at $3 per sq ft.';
+    const apts = ['apartment_1A', 'apartment_1B', 'apartment_2A'];
+    const r = P(text, { places: [pl('floor_1', 'floor', 'Floor 1', null, 'קומה 1: דירה 1A ודירה 1B'), pl('apartment_1A', 'apartment', 'apartment 1A', 'floor_1', 'דירה 1A'), pl('apartment_1B', 'apartment', 'apartment 1B', 'floor_1', 'דירה 1B'),
+      pl('floor_2', 'floor', 'Floor 2', null, 'קומה 2: דירה 2A'), pl('apartment_2A', 'apartment', 'apartment 2A', 'floor_2', 'דירה 2A')],
+    items: [...apts.map((place) => line({ description: 'Outlet replacement', evidence: 'בכל דירה להחליף 6 שקעים', quantity: 6, unit: 'unit', quantityBasis: 'stated', place })),
+      ...apts.map((place) => line({ description: 'Wall painting', evidence: 'בכל דירה לצבוע 80 רגל רבוע קירות', quantity: 80, unit: 'sq_ft', quantityBasis: 'stated', place }))] }, false);
+    expect(tree(r)).toEqual([['Floor 1', 'floor', null], ['apartment 1A', 'apartment', 'Floor 1'], ['apartment 1B', 'apartment', 'Floor 1'], ['Floor 2', 'floor', null], ['apartment 2A', 'apartment', 'Floor 2']]);
+    expect(sorted(r).map((x) => [x[0], x[1], x[2], x[4]])).toEqual(['apartment 1A', 'apartment 1B', 'apartment 2A'].flatMap((a) => [[a, 'Wall painting', 80, 3], [a, 'Outlet replacement', 6, 45]]));
+    // law 49: the model's quote was translated - the window still shows the user's OWN words around the number (as the Hebrew one does)
+    expect(r.items.map((it) => it.evidence)).toEqual([...Array(3).fill('In each apartment replace 6 outlets at $45 each'), ...Array(3).fill('paint 80 sq ft of walls at $3 per sq ft')]);
+    for (const it of r.items) expect(text.includes(it.evidence)).toBe(true);
+  });
+  it('LIVE example 10 (EN): the lines name their place by NAME ("apartment 48" for key "p2") - the floor, three apartments, both works with their prices in each', () => {
+    const text = 'Floor 24, apartment 48, apartment 49, apartment 50. In each apartment remove the existing tiles, 40 m² at $20 per sq m, and install new tiles. Installation only, the client brings the material, installation at $40 per sq m.';
+    const names = ['apartment 48', 'apartment 49', 'apartment 50'];
+    const r = P(text, { places: [pl('p1', 'floor', 'Floor 24', null, 'Floor 24'), ...names.map((n, i) => pl(`p${i + 2}`, 'apartment', n, 'p1', n, { identical: 'yes' }))],
+      items: [...names.map((place) => line({ description: 'Remove existing tiles', evidence: 'In each apartment remove the existing tiles, 40 m²', quantity: 40, unit: 'm2', quantityBasis: 'stated', place })),
+        ...names.map((place) => line({ description: 'Install new tiles', evidence: 'and install new tiles. Installation only, the client brings the material, installation at $40 per sq m.', quantity: 40, unit: 'm2', quantityBasis: 'stated', place }))] }, false);
+    expect(tree(r)).toEqual([['Floor 24', 'floor', null], ['apartment 48', 'apartment', 'Floor 24'], ['apartment 49', 'apartment', 'Floor 24'], ['apartment 50', 'apartment', 'Floor 24']]);
+    expect(sorted(r).map((x) => [x[0], x[1], x[2], x[4]])).toEqual(names.flatMap((a) => [[a, 'Remove existing tiles', 40, 20], [a, 'Install new tiles', 40, 40]]));
+  });
 });
 
 describe('round 2 - "להוסיף לקטלוג?" and the diagnostics (source)', () => {

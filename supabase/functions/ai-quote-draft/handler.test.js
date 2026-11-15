@@ -73,7 +73,9 @@ describe('ai-quote-draft handler (synthetic, in-process)', () => {
     // never wrote) becomes a visible 'unverified' gap - never a borrowed or invented quantity
     expect(body).toEqual({ contractVersion: 3, ok: true, language: 'he', subject: 'החלפת חלונות', questions: ['איזה סוג זיגוג?'], unassignedMeasures: [], changes: { updates: [], deletes: [], notes: null, discountPercent: null }, items: [
       { description: 'חלון אלומיניום', quantity: 3, unit: 'unit', quantityBasis: 'stated', derivation: null, missing: null, evidence: 'החלפת 3 חלונות', unitPrice: 1450, catalogId: 7, catalogName: 'חלון אלומיניום 120×100', priceSource: 'catalog' },
-      { description: 'פירוק חלון ישן', quantity: null, unit: 'unit', quantityBasis: 'missing', derivation: null, missing: 'unverified', evidence: null, unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none' },
+      // Owner 2026-11-15 (option ב): the model's 3 is written in the text - it stands (the line is reviewed before it is added); its quote is
+      // not in the text, so the window shows the user's own words around that 3 (law 49: every line shows where its number came from)
+      { description: 'פירוק חלון ישן', quantity: 3, unit: 'unit', quantityBasis: 'stated', derivation: null, missing: null, evidence: 'החלפת 3 חלונות בסלון', unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none' },
       { description: 'איטום', quantity: null, unit: 'unit', quantityBasis: 'missing', derivation: null, missing: 'unverified', evidence: 'בסלון', unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none' },
     ] });
     // tenant: both reads are scoped to the VERIFIED user and run with the caller's own JWT (RLS); nothing is written

@@ -9,24 +9,27 @@ const one = (r) => ({ q: r.items[0].quantity, u: r.items[0].unit, m: r.items[0].
 
 describe('F1 - broad evidence covering several jobs', () => {
   const TEXT = 'ריצוף חדר הורים 40 מ״ר, ריצוף חדר ילדים 22 מ״ר';
-  it('exact review input: one line "parents" = 22 with evidence spanning both rooms -> never verified', () => {
+  it('option ב: one line "parents" = 22 with evidence spanning both rooms - 22 is written in the text, it stands', () => {
     const r = parse([L({ description: 'ריצוף חדר הורים', quantity: 22, unit: 'm2', quantityBasis: 'stated', evidence: TEXT })], TEXT);
-    expect(r.items[0].quantity).toBeNull();
-    expect(['unverified', 'ambiguous']).toContain(r.items[0].missing);
+    // Owner 2026-11-15 (option ב): the model's number stands when it is written in the text - the line is reviewed before it is added
+    expect(r.items[0]).toMatchObject({ quantity: 22, missing: null });
   });
   it('the same broad span with the RIGHT number is attributed only through the line\'s own clause (40 for parents)', () => {
     expect(one(parse([L({ description: 'ריצוף חדר הורים', quantity: 40, unit: 'm2', quantityBasis: 'stated', evidence: TEXT })], TEXT))).toEqual({ q: 40, u: 'm2', m: null });
   });
-  it('a broad span whose clauses do not single out the line stays ambiguous (no guess between 40 and 22)', () => {
-    expect(one(parse([L({ description: 'ריצוף', quantity: 40, unit: 'm2', quantityBasis: 'stated', evidence: TEXT })], TEXT)).m).toBe('ambiguous');
+  it('option ב: a broad span - the model\'s 40 (written in the text) stands', () => {
+    // Owner 2026-11-15 (option ב): the model's number stands when it is written in the text - the line is reviewed before it is added
+    expect(one(parse([L({ description: 'ריצוף', quantity: 40, unit: 'm2', quantityBasis: 'stated', evidence: TEXT })], TEXT))).toEqual({ q: 40, u: 'm2', m: null });
   });
-  it('evidence that appears twice in the text is indistinct -> ambiguous', () => {
+  it('option ב: evidence that appears twice - the model\'s 20 (written in the text) stands', () => {
     const t = 'צביעת קיר 20 מ״ר בסלון וגם צביעת קיר 20 מ״ר בחדר';
-    expect(one(parse([L({ description: 'צביעת קיר', quantity: 20, unit: 'm2', quantityBasis: 'stated', evidence: 'צביעת קיר 20 מ״ר' })], t)).m).toBe('ambiguous');
+    // Owner 2026-11-15 (option ב): the model's number stands when it is written in the text - the line is reviewed before it is added
+    expect(one(parse([L({ description: 'צביעת קיר', quantity: 20, unit: 'm2', quantityBasis: 'stated', evidence: 'צביעת קיר 20 מ״ר' })], t))).toEqual({ q: 20, u: 'm2', m: null });
   });
   it('truncated evidence (cut inside a number or word) is not located', () => {
     expect(one(parse([L({ description: 'ריצוף חדר הורים', quantity: 4, unit: 'm2', quantityBasis: 'stated', evidence: 'ריצוף חדר הורים 4' })], TEXT)).m).toBe('unverified');
-    expect(one(parse([L({ description: 'ריצוף', quantity: 40, unit: 'm2', quantityBasis: 'stated', evidence: 'ריצוף חדר הור' })], TEXT)).m).toBe('unverified');
+    // option ב (15/11): truncated evidence no longer matters when the number itself (40) is written in the text
+    expect(one(parse([L({ description: 'ריצוף', quantity: 40, unit: 'm2', quantityBasis: 'stated', evidence: 'ריצוף חדר הור' })], TEXT)).q).toBe(40);
   });
   it('evidence may cut a word ending (live TEST: "…walls" copied as "…wall") but never a number', () => {
     const t = 'Paint 35 m2 of living room walls, agreed price $12 per m2, start on 10/15, call 555-1234567';
@@ -44,13 +47,13 @@ describe('F1 - broad evidence covering several jobs', () => {
     const t = '4 שעות עבודת חשמלאי ו-12 מ״ר טיח';
     expect(one(parse([L({ description: 'עבודת חשמלאי', quantity: 4, unit: 'hour', quantityBasis: 'stated', evidence: t })], t))).toEqual({ q: 4, u: 'hour', m: null });
     const e = 'Tile the master bedroom 40 m2, tile the kids room 22 m2';
-    expect(one(parse([L({ description: 'Master bedroom tiling', quantity: 22, unit: 'm2', quantityBasis: 'stated', evidence: e })], e)).q).toBeNull();
+    expect(one(parse([L({ description: 'Master bedroom tiling', quantity: 22, unit: 'm2', quantityBasis: 'stated', evidence: e })], e)).q).toBe(22); // option ב (15/11): written in the text
     expect(one(parse([L({ description: 'Master bedroom tiling', quantity: 40, unit: 'm2', quantityBasis: 'stated', evidence: e })], e)).q).toBe(40);
   });
   it('number words still count, inside their own clause', () => {
     const t = 'התקנת שלושה מזגנים בחדרים, ושני ברזים במטבח';
     expect(one(parse([L({ description: 'התקנת מזגנים', quantity: 3, unit: 'unit', quantityBasis: 'stated', evidence: t })], t))).toEqual({ q: 3, u: 'unit', m: null });
-    expect(one(parse([L({ description: 'התקנת מזגנים', quantity: 2, unit: 'unit', quantityBasis: 'stated', evidence: t })], t)).q).toBeNull();
+    expect(one(parse([L({ description: 'התקנת מזגנים', quantity: 2, unit: 'unit', quantityBasis: 'stated', evidence: t })], t)).q).toBe(2); // option ב (15/11): "שני" is written in the text
   });
 });
 
