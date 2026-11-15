@@ -5,7 +5,7 @@
 //   - a full "add work or product" form under EVERY open heading (and at the root), its target written out ("אל: דירה 22 ← סלון");
 //   - read rows with one "פעולות" menu (edit in place / duplicate / remove + undo / up / down / move); no "× N" for a new heading;
 //   - the quantity starts EMPTY; "מחיר גלובלי" = a fixed price for a row without a quantity; an empty price is not 0.
-import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { Fragment, useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
 import './quoteTree.css';
 import { buildQuoteItemFromEntry, rowEntry, isCountedMethod } from '../../utils/quoteItemEntry';
@@ -49,7 +49,7 @@ const T = {
     blockMove: 'השורה עדיין לא נוספה. לחצו ״הוספה״ או ״ניקוי השורה״ לפני המעבר.', blockNav: 'הוסיפו את השורה או נקו אותה לפני המעבר.',
     blockInside: 'הוסיפו את השורה או נקו אותה לפני הוספת חדר או כותרת.', blockStructure: 'הוסיפו את השורה או נקו אותה לפני החלפת המבנה.',
     blockOther: 'הוסיפו את השורה הנוכחית או נקו אותה לפני עבודה בדירה אחרת.', blockCopy: 'סיימו את השורה או נקו אותה לפני שכפול מוצר אחר.',
-    unsaved: 'יש שינויים שטרם נשמרו. שמרו אותם, או לחצו ״חזרה ללא שמירה״.', countRange: 'הקלידו מספר שלם מ־1 עד 20.', needEachName: (one) => 'כתבו שם לכל ' + one + '.',
+    unsaved: 'יש שינויים שטרם נשמרו. שמרו אותם, או לחצו ״חזרה ללא שמירה״.', countRange: 'הקלידו מספר שלם, 1 או יותר.', needEachName: (one) => 'כתבו שם לכל ' + one + '.',
     namesDistinct: 'תנו לכל כותרת שם שונה, כדי שיהיה קל לזהות אותה.', pendingAsk: 'יש פרטים שטרם נוספו. השלימו אותם, או לחצו ״חזרה ללא שמירה״.',
     pending: (p) => `בטופס "${p}" יש שורה שעוד לא נוספה.`, goPending: 'מעבר אליה',
     sizes: 'מידות', sizeW: 'אורך', sizeH: 'רוחב', addSize: '+ מידה נוספת', details: 'פירוט ללקוח', detailLabel: 'שם הפרט, למשל צבע', detailValue: 'הערך, למשל לבן', addDetail: '+ פרט נוסף',
@@ -111,7 +111,7 @@ const T = {
     blockMove: 'The row was not added yet. Click "Add" or "Clear" before moving on.', blockNav: 'Add the row or clear it before moving on.',
     blockInside: 'Add the row or clear it before adding a room or a heading.', blockStructure: 'Add the row or clear it before changing the structure.',
     blockOther: 'Add the current row or clear it before working on another place.', blockCopy: 'Finish the row or clear it before duplicating another product.',
-    unsaved: 'There are unsaved changes. Save them, or click "Back without saving".', countRange: 'Type a whole number from 1 to 20.', needEachName: (one) => 'Write a name for each ' + one + '.',
+    unsaved: 'There are unsaved changes. Save them, or click "Back without saving".', countRange: 'Type a whole number, 1 or more.', needEachName: (one) => 'Write a name for each ' + one + '.',
     namesDistinct: 'Give each heading a different name, so it is easy to tell apart.', pendingAsk: 'Some details were not added yet. Complete them, or click "Back without saving".',
     pending: (p) => `The form "${p}" has a row that was not added yet.`, goPending: 'Go to it',
     sizes: 'Sizes', sizeW: 'Length', sizeH: 'Width', addSize: '+ Another size', details: 'Details for the customer', detailLabel: 'Detail, e.g. Colour', detailValue: 'Value, e.g. White', addDetail: '+ Another detail',
@@ -176,13 +176,22 @@ export function HelpCircle({ text, label, inline = false, testId = 'qt-help' }) 
     return () => { document.removeEventListener('pointerdown', out); document.removeEventListener('keydown', esc); };
   }, [open]);
   const toggle = () => { if (pinned) { setPinned(false); setHover(false); setFocus(false); } else setPinned(true); };
+  // the demo (sbShow): an explanation that has no room above its circle (the top of the window or the fixed header) opens below it
+  const popRef = useRef(null);
+  const [below, setBelow] = useState(false);
+  useLayoutEffect(() => {
+    if (!open) { setBelow(false); return; }
+    const p = popRef.current; if (!p || typeof p.getBoundingClientRect !== 'function') return;
+    const bar = document.querySelector('.dash-topbar'); const barBottom = bar && getComputedStyle(bar).position === 'fixed' ? bar.getBoundingClientRect().bottom : 0;
+    if (!below && p.getBoundingClientRect().top < Math.max(0, barBottom) + 4) setBelow(true);
+  }, [open, below]);
   return (
     <span ref={ref} className={inline ? 'qt-help-wrap' : undefined} onMouseEnter={() => setHover(true)} onMouseLeave={() => setHover(false)}>
       {/* PRODUCT_TRUTH_DECORATIVE: the help circle of a structure button - explains it, never chooses it */}
       <span role="button" tabIndex={0} className={inline ? 'qt-help qt-help--inline' : 'qt-help'} aria-label={label} aria-expanded={open} data-testid={testId}
         onClick={(e) => { e.stopPropagation(); toggle(); }} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); toggle(); } }}
         onFocus={() => setFocus(true)} onBlur={() => setFocus(false)}><span aria-hidden="true">?</span></span>
-      {open && <span role="tooltip" className="qt-pop" data-testid="qt-help-pop">{text}</span>}
+      {open && <span ref={popRef} role="tooltip" className={below ? 'qt-pop qt-pop--below' : 'qt-pop'} data-testid="qt-help-pop">{text}</span>}
     </span>
   );
 }
@@ -293,8 +302,8 @@ function AddForm({ formKey, targetKey, sections, isHebrew, international, servic
     const mb = baseMethod(m);
     if ((mb === 'area' || mb === 'linear') && canUseMeasured === false) { onMeasuredLocked?.(); return; }
     set({ name: String(s.name || ''), catalogId: String(s.id), price: s.price == null ? '' : String(s.price), method: m, qty: '', known: true, sizes: [{ name: '', w: '', h: '' }], isNew: false, toCatalog: false });
-    // the demo: picking a product moves the cursor on to its quantity
-    setTimeout(() => qtyRef.current?.focus(), 0);
+    // the demo: picking a product moves the cursor on to its quantity (2026-11-15: without scrolling the page - the field keeps its place)
+    setTimeout(() => qtyRef.current?.focus({ preventScroll: true }), 0);
   };
   const clearForm = () => {
     if (editItem) { onCancelEdit?.(); return; }
@@ -552,7 +561,7 @@ function HeadingOptions({ isHebrew, section, kind, siblingNames, firstName, isFi
 /** the demo's kinds inside a parent: a floor holds apartments / rooms / topics, an apartment rooms / topics, a room topics */
 const kindsInside = (parentKind) => (parentKind === 'floor' ? ['apartment', 'room', 'section'] : parentKind === 'apartment' ? ['room', 'section'] : parentKind === 'room' ? ['section'] : ['floor', 'apartment', 'room', 'section']);
 
-/** the add step of the demo, in the page: the kind, how many (1-20), then the names (every name required, all different) */
+/** the add step of the demo, in the page: the kind, how many (1 or more), then the names (every name required, all different) */
 function AddStep({ isHebrew, parentKey, presetKind, sections, memory, onCreate, onClose }) {
   const t = T[isHebrew ? 'he' : 'en'];
   const [kind, setKind] = useState(presetKind || null);
@@ -565,7 +574,8 @@ function AddStep({ isHebrew, parentKey, presetKind, sections, memory, onCreate, 
   const one = kind ? (isHebrew ? kindWord(kind, true) : kindWord(kind, false).toLowerCase()) : '';
   const many = kind ? t.plural[kind] : '';
   const n = Number(count);
-  const countOk = /^\d+$/.test(String(count).trim()) && n >= 1 && n <= 20;
+  // spec 13/11 section 4: any whole number from 1 (the demo's 20 is not a limit of the product)
+  const countOk = /^\d+$/.test(String(count).trim()) && n >= 1;
   const shown = names.slice(0, n);
   const parent = parentKey ? sections.find((x) => keyOf(x) === parentKey) : null;
   const parentName = parent ? (parent.name || '') : '';
@@ -601,7 +611,7 @@ function AddStep({ isHebrew, parentKey, presetKind, sections, memory, onCreate, 
       {step === 'count' && (
         <div className="qt-page-stack">
           <PageField id="qt-count" label={t.countLabel(many)} help={t.countHelp(one)} t={t}>
-            <input id="qt-count" className="qt-input pf-num" type="number" min="1" max="20" step="1" inputMode="numeric" dir="ltr" data-testid="qt-count" autoFocus value={count} placeholder={t.countPh(many)}
+            <input id="qt-count" className="qt-input pf-num" type="number" min="1" step="1" inputMode="numeric" dir="ltr" data-testid="qt-count" autoFocus value={count} placeholder={t.countPh(many)}
               onChange={(e) => { setCount(e.target.value); setErr(''); }} />
           </PageField>
           {err && <div className="qt-note" role="alert">{err}</div>}
@@ -746,8 +756,7 @@ export default function QuoteTreeEditor({
   const flatRows = () => { const out = [...rowsOf(null)]; const walk = (k) => childrenOf(sections, k).forEach((s) => { out.push(...rowsOf(keyOf(s))); walk(keyOf(s)); }); walk(null); return out; };
   const editPlace = editing && editIndex >= 0 ? (simple ? null : placeOf(items[editIndex])) : undefined;
 
-  // Owner 2026-11-08 (restore item 17): the only line of the quote has no Remove
-  const realRows = (items || []).filter((it) => it && !it._localExample && String(it.description || '').trim()).length;
+  // Owner 2026-11-15 (answer א, replaces restore item 17 of 08/11): every row has Remove - also the only one (the demo); undo brings it back
   const unitWord = isHebrew ? 'יח׳' : 'pcs';
   const renderRows = (idx, placeKey) => {
     if (!idx.length) return null;
@@ -789,7 +798,7 @@ export default function QuoteTreeEditor({
                 <td className="qt-num qt-sum" data-label={t.colSum}>{priceMissing ? <span className="qt-missing">{t.notPriced}</span> : <span className="pf-money">{sym}{fmtMoney(lineTotal(it))}</span>}</td>
                 <td className="qt-act">
                   <RowMenu t={t} isHebrew={isHebrew} onEdit={() => startEdit(it)} onDuplicate={() => duplicateRow(i)}
-                    onRemove={realRows > 1 || it._localExample ? () => removeRow(i) : null} />
+                    onRemove={() => removeRow(i)} />
                 </td>
               </tr>
             );

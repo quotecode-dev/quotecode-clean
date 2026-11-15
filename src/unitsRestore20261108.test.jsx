@@ -29,7 +29,7 @@ describe('07 · the local measurement example', () => {
     expect(tree).toContain("example: 'Show an example (not saved)'");
     expect(tree).toContain("onShowExample && !items.some((it) => it && String(it.description || '').trim()) && !sections.length");
     expect(tree).toContain("{isHebrew ? 'דוגמה · לא נשמרת' : 'Example · not saved'}");
-    expect(tree).toContain('onRemove={realRows > 1 || it._localExample ? () => removeRow(i) : null}');
+    expect(tree).toContain('onRemove={() => removeRow(i)}'); // 2026-11-15 (answer א): every row - the example too - can be removed
     expect(src).toContain('onShowExample={addLocalExample}');
     expect(src).toMatch(/measurements: \[\{ width: 1, height: 2, unit: 'm', calculated_area: 2, label: '', is_pricing_driving: true \}\], _localExample: true/);
     // the save still refuses the example (the existing guard)

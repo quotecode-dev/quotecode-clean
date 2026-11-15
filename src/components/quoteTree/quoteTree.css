@@ -351,3 +351,6 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
 @media (max-width: 480px) {
   .qt > .qt-card > .qt-actions > .sq-add-btn { text-align: center; justify-content: center; }
 }
+
+/* 2026-11-15 (the demo's sbShow): no room above the circle -> the explanation opens below it */
+.qt-structure .qt-pop.qt-pop--below, .qt-pop.qt-pop--below { top: calc(100% + 8px); bottom: auto; }
