@@ -173,6 +173,9 @@ describe('round 2 - the answers the real model gave on LIVE', () => {
       ...apts.map((place) => line({ description: 'Wall painting', evidence: 'בכל דירה לצבוע 80 רגל רבוע קירות', quantity: 80, unit: 'sq_ft', quantityBasis: 'stated', place }))] }, false);
     expect(tree(r)).toEqual([['Floor 1', 'floor', null], ['apartment 1A', 'apartment', 'Floor 1'], ['apartment 1B', 'apartment', 'Floor 1'], ['Floor 2', 'floor', null], ['apartment 2A', 'apartment', 'Floor 2']]);
     expect(sorted(r).map((x) => [x[0], x[1], x[2], x[4]])).toEqual(['apartment 1A', 'apartment 1B', 'apartment 2A'].flatMap((a) => [[a, 'Wall painting', 80, 3], [a, 'Outlet replacement', 6, 45]]));
+    // law 49: the model's quote was translated - the window still shows the user's OWN words around the number (as the Hebrew one does)
+    expect(r.items.map((it) => it.evidence)).toEqual([...Array(3).fill('In each apartment replace 6 outlets at $45 each'), ...Array(3).fill('paint 80 sq ft of walls at $3 per sq ft')]);
+    for (const it of r.items) expect(text.includes(it.evidence)).toBe(true);
   });
   it('LIVE example 10 (EN): the lines name their place by NAME ("apartment 48" for key "p2") - the floor, three apartments, both works with their prices in each', () => {
     const text = 'Floor 24, apartment 48, apartment 49, apartment 50. In each apartment remove the existing tiles, 40 m² at $20 per sq m, and install new tiles. Installation only, the client brings the material, installation at $40 per sq m.';

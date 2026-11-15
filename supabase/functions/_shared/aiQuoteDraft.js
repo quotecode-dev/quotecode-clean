@@ -832,6 +832,17 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
         if (hits.length) {
           const h = hits.find(({ m, i }) => !used.has(i) && fitsUnit(m, unit)) || hits.find(({ i }) => !used.has(i)) || hits[0];
           used.add(h.i); qtyAt.set(d, h.i); trusted = true; basis = 'stated';
+          // the model's quote is not in the text (e.g. translated) - the user's own words around the number are the line's quote
+          if (!span) {
+            const c = clauses.find((x) => x.start <= h.m.start && h.m.end <= x.end);
+            if (c) {
+              let s0 = c.start; let e0 = c.end;
+              for (const mm of source.slice(c.start, h.m.start).matchAll(/[.!?:](?=\s)/g)) s0 = c.start + mm.index + 1;
+              const rest = source.slice(h.m.end, c.end).search(/[.!?:](?=\s|$)/); if (rest >= 0) e0 = h.m.end + rest;
+              const t = source.slice(s0, e0); const lead = t.length - t.trimStart().length; const txt = t.trim();
+              if (txt) { span = d.span = { start: s0 + lead, end: s0 + lead + txt.length, text: txt, occurrences: 1 }; scope = span; }
+            }
+          }
           if (h.m.unit) { const bareArea = (unit === 'm2' && h.m.unit === 'meter') || (unit === 'sq_ft' && h.m.unit === 'foot'); const tu = bareArea ? unit : h.m.unit === 'meter' ? 'linear_meter' : h.m.unit === 'foot' ? 'linear_ft' : DRAFT_UNITS.includes(h.m.unit) ? h.m.unit : null; if (tu) unit = tu; }
         }
       }
@@ -1138,7 +1149,8 @@ export function sharePerUnitPrice(drafts, items, { lineOf, priceAt, measures, so
     for (const d of drafts) {
       const it = items[lineOf.get(d)]; if (d === owner || !it || !d.span || it.priceSource === 'description') continue;
       if (d.span.start < s || d.span.start >= e || wordsOf(it.description) !== wordsOf(ownerItem.description)) continue;
-      if (measures.some((m) => m.kind === 'price' && m.start >= d.span.start && m.start < d.span.end)) continue;
+      const sameQuote = !!owner.span && d.span.start === owner.span.start && d.span.end === owner.span.end;
+      if (!sameQuote && measures.some((m) => m.kind === 'price' && m.start >= d.span.start && m.start < d.span.end)) continue;
       Object.assign(it, { unitPrice: ownerItem.unitPrice, priceSource: 'description' });
     }
   }
