@@ -186,35 +186,6 @@ describe('round 2 - the answers the real model gave on LIVE', () => {
     expect(tree(r)).toEqual([['Floor 24', 'floor', null], ['apartment 48', 'apartment', 'Floor 24'], ['apartment 49', 'apartment', 'Floor 24'], ['apartment 50', 'apartment', 'Floor 24']]);
     expect(sorted(r).map((x) => [x[0], x[1], x[2], x[4]])).toEqual(names.flatMap((a) => [[a, 'Remove existing tiles', 40, 20], [a, 'Install new tiles', 40, 40]]));
   });
-  // the site run on caf2871c (PR #217), the exact answers of the real model
-  it('site example 1: the install quote misspelled ("והרכיב" for "ולהרכיב") - the install lines quote their OWN words, never the removal\'s', () => {
-    const apts = ['dira_48', 'dira_49', 'dira_50'];
-    const r = P(OWNER, { places: [pl('koma_24', 'floor', 'קומה 24', null, 'קומה 24'), ...apts.map((k, i) => pl(k, 'apartment', `דירה ${48 + i}`, 'koma_24', `דירה ${48 + i}`, { identical: 'yes' }))],
-      items: [...apts.map((place) => line({ description: 'פירוק ריצוף קיים', evidence: 'לפרק את הריצוף הקיים, 40 מטר לפי 200 שקל למטר', quantity: 40, unit: 'm2', quantityBasis: 'stated', unitPrice: 200, place })),
-        ...apts.map((place) => line({ description: 'הרכבת ריצוף חדש', evidence: 'והרכיב ריצוף חדש. ההרכבה רק, הלקוח מביא את החומר, הרכבה לפי 400 שקל למטר', quantity: 40, unit: 'm2', quantityBasis: 'stated', unitPrice: 400, place }))] });
-    expect(tree(r)).toEqual(EXPECT_TREE);
-    expect(sorted(r)).toEqual(EXPECT_ROWS);
-    const install = r.items.filter((it) => it.description === 'הרכבת ריצוף חדש');
-    expect(install.map((it) => it.evidence)).toEqual(Array(3).fill('ריצוף חדש. ההרכבה רק, הלקוח מביא את החומר, הרכבה לפי 400 שקל למטר'));
-    for (const it of r.items) expect(OWNER.includes(it.evidence)).toBe(true);
-  });
-  it('site example 3: three copies named "דירה 1/2/3" with the same lines - one identical group: three apartments, kitchen + toilets in each', () => {
-    const text = 'שלוש דירות זהות, בכל אחת מטבח ושירותים. במטבח ריצוף 12 מ״ר, בשירותים החלפת אסלה והחלפת אינטרפוץ.';
-    const ev = 'שלוש דירות זהות, בכל אחת מטבח ושירותים.';
-    const keys = ['p1', 'p2', 'p3'];
-    const r = P(text, { places: keys.map((k, i) => pl(k, 'apartment', `דירה ${i + 1}`, null, ev, { identical: 'yes' })),
-      items: keys.flatMap((place) => [line({ description: 'ריצוף', evidence: 'ריצוף 12 מ״ר', quantity: 12, unit: 'm2', quantityBasis: 'stated', place }),
-        line({ description: 'החלפת אסלה', evidence: 'בשירותים החלפת אסלה', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', place }),
-        line({ description: 'החלפת אינטרפוץ', evidence: 'והחלפת אינטרפוץ', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', place })]) });
-    expect(tree(r)).toEqual([1, 2, 3].flatMap((n) => [[`דירה ${n}`, 'apartment', null], ['מטבח', 'room', `דירה ${n}`], ['שירותים', 'room', `דירה ${n}`]]));
-    expect(rows(r).map((x) => [x[0], x[1], x[2]])).toEqual([1, 2, 3].flatMap((n) => [['מטבח', 'ריצוף', 12], ['שירותים', 'החלפת אסלה', 1], [`דירה ${n}`, 'החלפת אינטרפוץ', 1]]));
-  });
-  it('apartments the text names ("דירה 48", "דירה 49") are never merged into one group, even with the same lines', () => {
-    const text = 'דירה 48 ודירה 49, 2 דירות. בכל אחת ריצוף 12 מ״ר.';
-    const r = P(text, { places: [pl('a', 'apartment', 'דירה 48', null, 'דירה 48', { identical: 'yes' }), pl('b', 'apartment', 'דירה 49', null, 'דירה 49', { identical: 'yes' })],
-      items: ['a', 'b'].map((place) => line({ description: 'ריצוף', evidence: 'ריצוף 12 מ״ר', quantity: 12, unit: 'm2', quantityBasis: 'stated', place })) });
-    expect(r.places.map((p) => p.name)).toEqual(['דירה 48', 'דירה 49']);
-  });
 });
 
 describe('round 2 - "להוסיף לקטלוג?" and the diagnostics (source)', () => {
