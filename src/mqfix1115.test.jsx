@@ -71,6 +71,11 @@ describe('4 · typing on a phone: the bottom bar and the calculator step aside',
   });
   it('the CSS hides the bottom bar and the calculator button only on a phone while typing', () => {
     expect(read('src/index.css')).toContain('@media (max-width: 768px) { html.pf-typing .mobile-bottom-nav, html.pf-typing .pf-calc-fab { display: none !important; } }');
+    // the field keeps its place in the page content; the browser's own scroll anchoring is off while the user is in the form (one anchor)
+    expect(read('src/index.css')).toContain('@media (max-width: 768px) { html.pf-anchor, html.pf-anchor .dash-main-content { overflow-anchor: none; } }');
+    const qf = read('src/components/QuoteForm.jsx');
+    expect(qf).toContain('const d = posOf(field) - rel;');
+    expect(qf).toContain("html.classList.add('pf-anchor');");
   });
 });
 

@@ -164,20 +164,35 @@ export default function QuoteForm({
     const html = document.documentElement;
     const typeable = (el) => Boolean(el) && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|reset|range|color|file|hidden)$/i.test(el.type || '')));
     const scrollerOf = (el) => { for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) { const oy = getComputedStyle(a).overflowY; if ((oy === 'auto' || oy === 'scroll') && a.scrollHeight > a.clientHeight + 1) return a; } return window; };
-    let field = null; let top = 0;
-    const on = (e) => { if (!phone.matches || !typeable(e.target)) return; field = e.target; top = field.getBoundingClientRect().top; html.classList.add('pf-typing'); };
-    const off = () => { setTimeout(() => { if (!typeable(document.activeElement)) { field = null; html.classList.remove('pf-typing'); } }, 0); };
-    const follow = () => { if (field) top = field.getBoundingClientRect().top; };
-    const keep = () => {
+    // the anchor is the element the user is on inside the quote form (a field, or the Add button). Its place in the page content is followed:
+    // when something above it appears or goes (the status line, the example button), the page is scrolled by the same amount, so it stays
+    // where the finger is. A scroll (the user's, or the browser showing the field above the keyboard) does not move it in the content.
+    let field = null; let scroller = window; let rel = 0;
+    const posOf = (el) => (scroller === window ? el.getBoundingClientRect().top + window.scrollY : el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop);
+    function keep() {
       if (!field || !field.isConnected || document.activeElement !== field) return;
-      const d = field.getBoundingClientRect().top - top;
-      if (Math.abs(d) > 1) scrollerOf(field).scrollBy(0, d);
-      top = field.getBoundingClientRect().top;
+      const d = posOf(field) - rel;
+      if (Math.abs(d) > 1) scroller.scrollBy(0, d);
+      rel = posOf(field);
+    }
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => keep()) : null;
+    const watch = () => { if (!ro) return; ro.disconnect(); ro.observe(document.body); if (scroller !== window) [...scroller.children].forEach((c) => ro.observe(c)); const f = field && field.closest('form'); if (f) ro.observe(f); };
+    const on = (e) => {
+      const el = e.target;
+      if (!phone.matches || !el || typeof el.closest !== 'function' || !el.closest('form')) return;
+      field = el; scroller = scrollerOf(el); rel = posOf(el); watch();
+      // the browser's own scroll anchoring would move the page a second time - this code is the one anchor while the user is in the form
+      html.classList.add('pf-anchor');
+      if (typeable(el)) html.classList.add('pf-typing'); else html.classList.remove('pf-typing');
     };
-    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(keep) : null;
-    if (ro) ro.observe(document.body);
-    document.addEventListener('focusin', on); document.addEventListener('focusout', off); window.addEventListener('scroll', follow, true);
-    return () => { if (ro) ro.disconnect(); document.removeEventListener('focusin', on); document.removeEventListener('focusout', off); window.removeEventListener('scroll', follow, true); html.classList.remove('pf-typing'); };
+    const off = () => { setTimeout(() => { const a = document.activeElement; if (!typeable(a)) html.classList.remove('pf-typing'); if (!a || a === document.body) field = null; }, 0); };
+    // a tap, a key or typing may change the page above the anchor a frame or two later - follow it for a moment
+    let until = 0; let raf = 0;
+    const tick = () => { keep(); raf = Date.now() < until ? requestAnimationFrame(tick) : 0; };
+    const settle = (e) => { if (!field || !e.target || typeof e.target.closest !== 'function' || !e.target.closest('form')) return; until = Date.now() + 900; if (!raf) raf = requestAnimationFrame(tick); };
+    const evs = [['focusin', on], ['focusout', off], ['click', settle], ['input', settle], ['keydown', settle]];
+    evs.forEach(([n, h]) => document.addEventListener(n, h, true));
+    return () => { if (ro) ro.disconnect(); if (raf) cancelAnimationFrame(raf); evs.forEach(([n, h]) => document.removeEventListener(n, h, true)); html.classList.remove('pf-typing'); html.classList.remove('pf-anchor'); };
   }, []);
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');

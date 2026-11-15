@@ -761,3 +761,4 @@ body:has([role="dialog"][aria-modal="true"]) .tk-tip { display: none; }
 
 /* 2026-11-15 (Owner video): on a phone, while a field has the keyboard, the bottom bar and the calculator button step aside */
 @media (max-width: 768px) { html.pf-typing .mobile-bottom-nav, html.pf-typing .pf-calc-fab { display: none !important; } }
+@media (max-width: 768px) { html.pf-anchor, html.pf-anchor .dash-main-content { overflow-anchor: none; } }
