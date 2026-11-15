@@ -3,6 +3,7 @@
 // ==============================================================================
 
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
+import SlideText from '../components/SlideText';
 import { useSearchParams } from 'react-router-dom';
 import { supabase, rootRecoveryIntent, consumeRootRecoveryIntent, consumeRootSignupIntent, isLocalTestMode } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
@@ -7463,7 +7464,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             font-weight: 700;
             line-height: 1.3;
             overflow: hidden;
-            text-overflow: ellipsis;
             white-space: nowrap;
             text-align: start;
           }
@@ -7473,9 +7473,16 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             font-weight: 400;
             line-height: 1.35;
             overflow: hidden;
-            text-overflow: ellipsis;
             white-space: nowrap;
             text-align: start;
+          }
+          /* 2026-11-15 (Owner: a long name slides): back and forth inside the card, a pause at each end */
+          .pf-slide { display: inline-block; white-space: nowrap; }
+          .pf-slide--on { animation: pf-slide-move 8s ease-in-out infinite alternate; will-change: transform; }
+          @keyframes pf-slide-move { 0%, 18% { transform: translateX(0); } 82%, 100% { transform: translateX(var(--pf-slide-x, 0px)); } }
+          @media (prefers-reduced-motion: reduce) {
+            .dash-sidebar-user-bizname, .dash-sidebar-user-name { white-space: normal; overflow-wrap: anywhere; }
+            .pf-slide, .pf-slide--on { animation: none; white-space: normal; display: inline; }
           }
 
           .dash-main-content {
@@ -8863,8 +8870,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                 onSignOut={() => setShowSignOutModal(true)}
               />
               <div className="dash-sidebar-user-text">
-                <div className="dash-sidebar-user-bizname" dir={isHebrew ? 'rtl' : 'ltr'} title={bizName || ''}>{bizName || (isHebrew ? 'העסק שלי' : 'My Business')}</div>
-                <div className="dash-sidebar-user-name" title={session.user.email}><bdi dir="ltr">{session.user.email}</bdi></div>
+                <SlideText className="dash-sidebar-user-bizname" dir={isHebrew ? 'rtl' : 'ltr'} title={bizName || ''}>{bizName || (isHebrew ? 'העסק שלי' : 'My Business')}</SlideText>
+                <SlideText className="dash-sidebar-user-name" title={session.user.email}><bdi dir="ltr">{session.user.email}</bdi></SlideText>
               </div>
             </div>
             {/* Owner console 2026-10-18, typed: "תחזיר רק מועל ע\"י": the quiet "Powered by TEKANGO" line under the business identity

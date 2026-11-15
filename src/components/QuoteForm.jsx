@@ -151,12 +151,34 @@ export default function QuoteForm({
   const validityExpired = isQuoteAcceptanceExpired(validUntil, isLocalIsraeliBusiness ? 'Local' : 'International');
   const hasOptionalDetails = Boolean(editingQuoteId || quoteSubject || projectName || (quoteFiles || []).length || clientAddress || notes || validUntil || attnName || attnRole || serviceSchedule?.date);
   const [showMoreDetails, setShowMoreDetails] = useState(hasOptionalDetails);
-  const hasClientContact = Boolean(String(clientEmail || '').trim() || String(clientPhone || '').trim() || String(attnName || '').trim() || String(attnRole || '').trim());
-  const [showClientContact, setShowClientContact] = useState(() => Boolean(editingQuoteId) || hasClientContact);
-  // a client picked from the list (or a restored draft) brings its contact details - they are shown, never hidden
-  useEffect(() => { if (hasClientContact) setShowClientContact(true); }, [hasClientContact]);
+  // 2026-11-15 (the demo, Codex D02; Owner: "גם ככה אין מקום בנייד"): the contact details stay folded - also when a chosen client fills
+  // them; "פרטי קשר (לא חובה)" opens them
+  const [showClientContact, setShowClientContact] = useState(false);
   // opens (never auto-closes) as soon as any optional value appears (e.g. a restored draft), so entered data is never hidden
   useEffect(() => { if (hasOptionalDetails) setShowMoreDetails(true); }, [hasOptionalDetails]);
+  // 2026-11-15 (Owner video: on a phone everything jumps while typing): while a field has the keyboard on a phone, the bottom bar and the
+  // calculator button step aside (html.pf-typing), and the field keeps its place on the screen when the page above it changes size
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const phone = window.matchMedia('(max-width: 768px)');
+    const html = document.documentElement;
+    const typeable = (el) => Boolean(el) && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|reset|range|color|file|hidden)$/i.test(el.type || '')));
+    const scrollerOf = (el) => { for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) { const oy = getComputedStyle(a).overflowY; if ((oy === 'auto' || oy === 'scroll') && a.scrollHeight > a.clientHeight + 1) return a; } return window; };
+    let field = null; let top = 0;
+    const on = (e) => { if (!phone.matches || !typeable(e.target)) return; field = e.target; top = field.getBoundingClientRect().top; html.classList.add('pf-typing'); };
+    const off = () => { setTimeout(() => { if (!typeable(document.activeElement)) { field = null; html.classList.remove('pf-typing'); } }, 0); };
+    const follow = () => { if (field) top = field.getBoundingClientRect().top; };
+    const keep = () => {
+      if (!field || !field.isConnected || document.activeElement !== field) return;
+      const d = field.getBoundingClientRect().top - top;
+      if (Math.abs(d) > 1) scrollerOf(field).scrollBy(0, d);
+      top = field.getBoundingClientRect().top;
+    };
+    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(keep) : null;
+    if (ro) ro.observe(document.body);
+    document.addEventListener('focusin', on); document.addEventListener('focusout', off); window.addEventListener('scroll', follow, true);
+    return () => { if (ro) ro.disconnect(); document.removeEventListener('focusin', on); document.removeEventListener('focusout', off); window.removeEventListener('scroll', follow, true); html.classList.remove('pf-typing'); };
+  }, []);
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
@@ -698,6 +720,8 @@ export default function QuoteForm({
         {/* PRODUCT_TRUTH_DECORATIVE: leaves the client step like the header Back; nothing is deleted */}
         {flowStep === 'client' && typeof onBack === 'function' && <button type="button" className="qt-link qt-page-back" data-testid="sq-client-back" onClick={onBack}>{isHebrew ? '→ חזרה' : '← Back'}</button>}
         <StepHeading n={1} title={isHebrew ? 'למי מכינים את ההצעה?' : 'Who is this quote for?'} />
+        {/* 2026-11-15 (Owner answer א): the VAT notice at the top of the client step, above the client fields - as in the editor */}
+        {vatNotice}
         {/* V2 Visual Completion Pass: Client Details + Quote Details now sit
             side-by-side (Image 1 reference) via the same auto-fit/minmax grid
             pattern already used everywhere else in this file for field rows -
@@ -805,7 +829,6 @@ export default function QuoteForm({
             )}
           </div>
           )}
-          {vatNotice}
 
           {/* Owner round 1 (2026-10-15, plan section 3): contact details and the attention contact are optional - one toggle, open by
               itself when any of them already holds a value. The Tax ID stays visible: it is required for a business client. */}

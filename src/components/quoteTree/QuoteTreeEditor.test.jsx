@@ -146,11 +146,14 @@ describe('headings: the add window, navigation, folding', () => {
     expect(dialog.querySelector('h3').textContent).toBe('כמה דירות להוסיף להצעה?');
     expect(screen.getByTestId('qt-count').value).toBe('');
     expect(screen.getByTestId('qt-count').getAttribute('placeholder')).toBe('הקלידו את מספר הדירות');
-    // the demo: "להמשך" waits for a whole number from 1 to 20
+    // "להמשך" waits for a whole number from 1 (2026-11-15, spec 13/11 section 4: no 20 limit)
     type(screen.getByTestId('qt-count'), '0');
     expect(within(dialog).getByRole('button', { name: 'להמשך' })).toBeDisabled();
-    type(screen.getByTestId('qt-count'), '21');
+    type(screen.getByTestId('qt-count'), '2.5');
     expect(within(dialog).getByRole('button', { name: 'להמשך' })).toBeDisabled();
+    type(screen.getByTestId('qt-count'), '21');
+    expect(within(dialog).getByRole('button', { name: 'להמשך' })).not.toBeDisabled();
+    expect(screen.getByTestId('qt-count').hasAttribute('max')).toBe(false);
     type(screen.getByTestId('qt-count'), '2');
     fireEvent.click(within(dialog).getByRole('button', { name: 'להמשך' }));
     type(screen.getByTestId('qt-name-0'), 'דירה 32');

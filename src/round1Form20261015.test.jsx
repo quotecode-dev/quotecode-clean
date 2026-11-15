@@ -77,9 +77,14 @@ describe('plan section 3: client details and the VAT basis', () => {
     expect(screen.getByPlaceholderText('לדוגמה: שמעון לוי')).toBeTruthy();
   });
 
-  it('existing contact details are never hidden', () => {
+  // 2026-11-15 (the demo, Codex D02; Owner approval of the 7 fixes): a client's contact details stay folded until "פרטי קשר" is opened
+  it('existing contact details stay folded until the toggle opens them (the values are kept)', () => {
     render(<QuoteForm {...props({ clientEmail: 'a@b.co' })} />);
-    expect(screen.getByTestId('sq-client-contact-toggle').getAttribute('aria-expanded')).toBe('true');
+    const toggle = screen.getByTestId('sq-client-contact-toggle');
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(toggle);
+    expect(toggle.getAttribute('aria-expanded')).toBe('true');
+    expect(screen.getByDisplayValue('a@b.co')).toBeTruthy();
   });
 
   // 2026-11-12 (the demo summary, Owner-approved): the VAT notice at the top says how the prices are meant (it replaced the summary line)
