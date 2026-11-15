@@ -689,13 +689,13 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: 'Downloading a quote as a PDF',
       steps: [
         'In the "Quotes" list click "Open" next to the quote and then "View" to see it the way the client sees it.',
-        'Click "Download PDF". The file can also be printed.',
+        'Click "Get PDF". The file can also be printed.',
       ],
     },
     evidence: [
       { file: 'src/components/QuotesTab.jsx', labels: ['צפייה', 'View'] },
       { file: 'src/pages/PublicQuote.jsx', labels: ['הורדה כ-PDF'] },
-      { file: 'src/pages/PublicQuoteEn.jsx', labels: ['Download PDF'] },
+      { file: 'src/pages/PublicQuoteEn.jsx', labels: ['Get PDF'] },
     ],
   },
   {

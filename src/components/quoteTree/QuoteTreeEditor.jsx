@@ -6,6 +6,7 @@
 //   - read rows with one "פעולות" menu (edit in place / duplicate / remove + undo / up / down / move); no "× N" for a new heading;
 //   - the quantity starts EMPTY; "מחיר גלובלי" = a fixed price for a row without a quantity; an empty price is not 0.
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import './quoteTree.css';
 import { buildQuoteItemFromEntry, rowEntry, isCountedMethod } from '../../utils/quoteItemEntry';
 import { askConfirm } from '../AppDialog';
@@ -652,6 +653,9 @@ export default function QuoteTreeEditor({
     if (!status.after) { setStatus((u) => (u ? { ...u, after: { items, sections } } : u)); return; }
     if (status.after.items !== items || status.after.sections !== sections) setStatus(null);
   }, [items, sections, status]);
+  // the demo: the status line is at the top of the editor page (QuoteForm's slot); alone (tests, other hosts) it stays in the card
+  const [statusSlot, setStatusSlot] = useState(null);
+  useEffect(() => { setStatusSlot(document.querySelector('[data-testid="qt-status-slot"]')); }, []);
   const done = (text) => { const before = { items, sections }; setStatus({ text, restore: () => { setSections(before.sections); setItems(before.items); } }); };
   const [lastMadeKind, setLastMadeKind] = useState(null);
   const [pending, setPending] = useState({}); // formKey -> label
@@ -891,13 +895,13 @@ export default function QuoteTreeEditor({
         sections={sections} memory={memory} onCreate={createHeadings} onClose={() => closePage(wizard.returnTo)} />}
       {!wizard && optionsPage()}
       <div className="qt-card" hidden={pageOpen}>
-        {status && (
+        {(() => { const el = status && (
           <div className={status.error ? 'qt-status qt-status--error' : 'qt-status'} role={status.error ? 'alert' : 'status'} data-testid={status.error ? 'qt-block' : 'qt-undo'}>
             <span>{status.text}</span>
             {/* PRODUCT_TRUTH_DECORATIVE: undoes the last change exactly */}
             {status.restore && <button type="button" className="qt-link" onClick={() => { if (blocked(t.blockMove)) return; status.restore(); setStatus(null); }}>{t.undoLast}</button>}
           </div>
-        )}
+        ); return statusSlot ? createPortal(el, statusSlot) : el; })()}
         <div className="qt-structure" role="group" aria-label={isHebrew ? 'מבנה ההצעה' : 'Quote structure'}>
           {[['simple', t.simple, t.helpSimple], ['grouped', t.grouped, t.helpGrouped], ['tiered', t.tiered, t.helpTiered]].map(([k, label, help]) => (
             <div key={k} style={{ position: 'relative' }}>
@@ -921,22 +925,22 @@ export default function QuoteTreeEditor({
         )}
         <div className="qt-actions">
           {/* PRODUCT_TRUTH_DECORATIVE: back - to the parent heading, to the whole quote, then to the client details (nothing is removed) */}
-          <button type="button" className="qt-link" data-testid="qt-back" onClick={goBack}>{backLabel}</button>
+          <button type="button" className="qt-link qt-act-back" data-testid="qt-back" onClick={goBack}>{backLabel}</button>
           {!simple && tops.length > 0 && (
             // PRODUCT_TRUTH_DECORATIVE: adds more top headings of the kind of the last one (how many, then names)
-            <button type="button" className="sq-add-btn" data-testid="qt-add-same" onClick={() => { if (blocked(t.blockNav)) return; const back = selected; setSelected(null); setWizard({ parentKey: null, presetKind: lastTopKind, returnTo: back }); }}>{t.addOf(kindWord(lastTopKind, isHebrew))}</button>
+            <button type="button" className="sq-add-btn qt-act-same" data-testid="qt-add-same" onClick={() => { if (blocked(t.blockNav)) return; const back = selected; setSelected(null); setWizard({ parentKey: null, presetKind: lastTopKind, returnTo: back }); }}>{t.addOf(kindWord(lastTopKind, isHebrew))}</button>
           )}
           {!simple && selected === null && (tops.length ? (
             // PRODUCT_TRUTH_DECORATIVE: adds top headings of another kind
-            <button type="button" className="sq-add-btn" data-testid="qt-add-other" onClick={() => { if (!blocked(t.blockMove)) setWizard({ parentKey: null, presetKind: null, returnTo: null }); }}>{t.addOther}</button>
+            <button type="button" className="sq-add-btn qt-act-other" data-testid="qt-add-other" onClick={() => { if (!blocked(t.blockMove)) setWizard({ parentKey: null, presetKind: null, returnTo: null }); }}>{t.addOther}</button>
           ) : (
             // PRODUCT_TRUTH_DECORATIVE: the first headings of the quote (choose the kind, how many, then names)
-            <button type="button" className="sq-add-btn" data-testid="qt-add-first" onClick={() => { if (!blocked(t.blockMove)) setWizard({ parentKey: null, presetKind: null, returnTo: null }); }}>{t.addFirst}</button>
+            <button type="button" className="sq-add-btn qt-act-first" data-testid="qt-add-first" onClick={() => { if (!blocked(t.blockMove)) setWizard({ parentKey: null, presetKind: null, returnTo: null }); }}>{t.addFirst}</button>
           ))}
           {/* PRODUCT_TRUTH_DECORATIVE: "from a saved template" (stage 4; Owner 13/11: in this row) - opens the unit templates; one heading with its rows is added */}
-          {onAddFromTemplate && (simple || selected === null) && <button type="button" className="sq-add-btn" data-testid="unit-from-template" onClick={() => { if (!blocked(t.blockMove)) onAddFromTemplate(); }}>{t.fromTemplate}</button>}
+          {onAddFromTemplate && (simple || selected === null) && <button type="button" className="sq-add-btn qt-act-tpl" data-testid="unit-from-template" onClick={() => { if (!blocked(t.blockMove)) onAddFromTemplate(); }}>{t.fromTemplate}</button>}
           {/* PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line to learn the row from (Owner restore item 07) */}
-          {onShowExample && !items.some((it) => it && String(it.description || '').trim()) && !sections.length && <button type="button" className="sq-add-btn" data-testid="quote-show-example" onClick={onShowExample}>{t.example}</button>}
+          {onShowExample && !items.some((it) => it && String(it.description || '').trim()) && !sections.length && <button type="button" className="sq-add-btn qt-act-example" data-testid="quote-show-example" onClick={onShowExample}>{t.example}</button>}
         </div>
         {showRootForm && (
           <AddForm formKey="__root__" targetKey={null} sections={sections} isHebrew={isHebrew} international={international} services={services} sym={sym} fmtMoney={fmtMoney}

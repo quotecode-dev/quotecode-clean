@@ -327,3 +327,16 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
   .qt-nav .qt-chip, .qt-kinds .qt-chip { padding-inline: 10px; }
   .qt-nav, .qt-kinds { gap: 6px; }
 }
+
+/* 2026-11-15 (law 49): the status line in its slot at the top of the editor page */
+.qt-status-slot:not(:empty) { margin-block-end: 10px; }
+/* one phone layout of the editor's action row in both languages: back at the start with "+ add <kind>" or the template beside it,
+   "+ add another kind" beside "from a template" (C9), a long button on its own full row */
+@media (max-width: 480px) {
+  .qt > .qt-card:not(.qt-page-card) > .qt-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-auto-flow: row dense; gap: 8px; align-items: center; }
+  .qt > .qt-card > .qt-actions > .qt-act-back { grid-column: 1; justify-self: start; }
+  .qt > .qt-card > .qt-actions > .qt-act-same, .qt > .qt-card > .qt-actions > .qt-act-tpl { grid-column: 2; }
+  .qt > .qt-card > .qt-actions > .qt-act-other { grid-column: 1; }
+  .qt > .qt-card > .qt-actions > .qt-act-first, .qt > .qt-card > .qt-actions > .qt-act-example { grid-column: 1 / -1; }
+  .qt > .qt-card > .qt-actions > .sq-add-btn { inline-size: 100%; }
+}

@@ -328,7 +328,7 @@ export default function ClientsTab({
           <Search size={14} color={NEON.textMuted} strokeWidth={2.2} style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)', [isHebrew ? 'right' : 'left']: '10px', pointerEvents: 'none' }} />
           <input
             type="text"
-            placeholder={isHebrew ? 'חיפוש לקוח לפי שם, אימייל או ח.פ…' : 'Search clients...'}
+            placeholder={isHebrew ? 'חיפוש לקוח לפי שם, אימייל או ח.פ…' : 'Search by name, email or company no.…'}
             value={clientSearchTerm}
             onChange={(e) => setClientSearchTerm(e.target.value)}
             style={{ width: '100%', minHeight: '44px', padding: isHebrew ? '8px 30px 8px 12px' : '8px 12px 8px 30px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}

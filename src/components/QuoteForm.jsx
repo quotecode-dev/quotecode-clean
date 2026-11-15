@@ -681,6 +681,8 @@ export default function QuoteForm({
         {/* SMART-QUOTE (2026-09-22, Owner-locked first-use flow): 1 who is it for -> 2 what work/product -> 3 price -> 4 review & save
             (preview/share/send follow from the saved quote). Professional capability (catalog, measured items, rooms/areas/units,
             attachments, terms) is unchanged - optional parts are progressive, never removed. */}
+        {/* 2026-11-15 (the demo): the editor's status line ("השורה נוספה להצעה. ביטול הפעולה האחרונה") at the top of the page */}
+        {flowStep !== 'client' && <div className="qt-status-slot" data-testid="qt-status-slot" />}
         {flowStep === 'editor' && typeof onFlowStep === 'function' ? (
           <div hidden={editorPage || Boolean(detailsPage)}>
             {/* 2026-11-12 (unified quote): the client is chosen first; here a short strip with one way back to the client step */}

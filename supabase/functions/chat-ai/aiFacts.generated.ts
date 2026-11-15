@@ -2048,7 +2048,7 @@ export const AI_FACTS = {
         "task": "Downloading a quote as a PDF",
         "steps": [
           "In the \"Quotes\" list click \"Open\" next to the quote and then \"View\" to see it the way the client sees it.",
-          "Click \"Download PDF\". The file can also be printed."
+          "Click \"Get PDF\". The file can also be printed."
         ]
       }
     },

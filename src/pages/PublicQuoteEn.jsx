@@ -866,7 +866,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
         style={{ background: LIGHT.gradient, color: 'white', border: 'none', cursor: pdfGenerating ? 'wait' : 'pointer', opacity: pdfGenerating ? 0.75 : 1 }}
       >
         {pdfGenerating ? <Loader2 size={26} strokeWidth={1.75} className="pq-spin" /> : <PdfFileIcon size={26} strokeWidth={1.75} />}
-        <span>{pdfGenerating ? 'Generating PDF...' : 'Download PDF'}</span>
+        <span>{pdfGenerating ? 'Generating PDF...' : 'Get PDF'}</span>
       </button>
       {/* PRODUCT_TRUTH_CAPABILITY: quote_print */}
       <button
