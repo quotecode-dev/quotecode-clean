@@ -319,7 +319,7 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
   .qt-grid.qt-grid--noqty > .qt-add { grid-column: 1 / -1; }
   /* the details page: "שמירת הפרטים" and "חזרה ללא שמירה" side by side in both languages (the demo) */
   .sq-details-page .qt-actions { flex-wrap: nowrap; }
-  .sq-details-page .qt-actions > button { flex: 1 1 auto; padding-inline: 10px; }
+  .sq-details-page .qt-actions > button { padding-inline: 10px; } /* natural width at the start (the demo) */
 }
 
 /* 2026-11-15 (law 49): on a phone the place chips and the kind chips are a little tighter, so three names / four kinds share one row in both languages */
