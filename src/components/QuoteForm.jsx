@@ -167,7 +167,7 @@ export default function QuoteForm({
     // the anchor is the element the user is on inside the quote form (a field, or the Add button). Its place in the page content is followed:
     // when something above it appears or goes (the status line, the example button), the page is scrolled by the same amount, so it stays
     // where the finger is. A scroll (the user's, or the browser showing the field above the keyboard) does not move it in the content.
-    let field = null; let scroller = window; let rel = 0;
+    let field = null; let scroller = window; let rel = 0; let back = 0;
     const posOf = (el) => (scroller === window ? el.getBoundingClientRect().top + window.scrollY : el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop);
     function keep() {
       if (!field || !field.isConnected || document.activeElement !== field) return;
@@ -183,16 +183,17 @@ export default function QuoteForm({
       field = el; scroller = scrollerOf(el); rel = posOf(el); watch();
       // the browser's own scroll anchoring would move the page a second time - this code is the one anchor while the user is in the form
       html.classList.add('pf-anchor');
-      if (typeable(el)) html.classList.add('pf-typing'); else html.classList.remove('pf-typing');
+      if (typeable(el)) { clearTimeout(back); html.classList.add('pf-typing'); } // leaving a field is handled by off() (after the tap)
     };
-    const off = () => { setTimeout(() => { const a = document.activeElement; if (!typeable(a)) html.classList.remove('pf-typing'); if (!a || a === document.body) field = null; }, 0); };
+    // the bottom bar comes back only after the tap that left the field is over (it never jumps in under the finger - 2026-11-15)
+    const off = () => { clearTimeout(back); back = setTimeout(() => { const a = document.activeElement; if (!typeable(a)) html.classList.remove('pf-typing'); if (!a || a === document.body) field = null; }, 400); };
     // a tap, a key or typing may change the page above the anchor a frame or two later - follow it for a moment
     let until = 0; let raf = 0;
     const tick = () => { keep(); raf = Date.now() < until ? requestAnimationFrame(tick) : 0; };
     const settle = (e) => { if (!field || !e.target || typeof e.target.closest !== 'function' || !e.target.closest('form')) return; until = Date.now() + 900; if (!raf) raf = requestAnimationFrame(tick); };
     const evs = [['focusin', on], ['focusout', off], ['click', settle], ['input', settle], ['keydown', settle]];
     evs.forEach(([n, h]) => document.addEventListener(n, h, true));
-    return () => { if (ro) ro.disconnect(); if (raf) cancelAnimationFrame(raf); evs.forEach(([n, h]) => document.removeEventListener(n, h, true)); html.classList.remove('pf-typing'); html.classList.remove('pf-anchor'); };
+    return () => { if (ro) ro.disconnect(); if (raf) cancelAnimationFrame(raf); evs.forEach(([n, h]) => document.removeEventListener(n, h, true)); clearTimeout(back); html.classList.remove('pf-typing'); html.classList.remove('pf-anchor'); };
   }, []);
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
