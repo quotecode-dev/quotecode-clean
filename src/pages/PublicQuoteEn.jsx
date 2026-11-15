@@ -696,7 +696,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
     <div className={`pq-section pq-attachments${hasAttachments ? '' : ' pq-attachments--empty'}`}>
       <div className="pq-attachments-title">
         <Paperclip size={14} strokeWidth={2.2} color="#7c3aed" />
-        Attached Files & Documents:
+        Attached Files & Drawings:
       </div>
       {hasAttachments ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>

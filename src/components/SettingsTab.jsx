@@ -455,7 +455,8 @@ export default function SettingsTab({
                   <AddressSuggestInput kind="city" enabled={isLocalIsraeliBusiness === true} isHebrew={isHebrew} value={city} onChange={(v) => handleAddressFieldChange(street, v, stateProv, zipCode)} inputProps={{ type: 'text', 'data-testid': 'settings-address-city', placeholder: isHebrew ? 'עיר' : 'City', style: { width: '100%', padding: '6px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' } }} />
                 </div>
               );
-              return isLocalIsraeliBusiness === true ? [cityBlock, streetBlock] : [streetBlock, cityBlock];
+              // night task 2026-11-16 (Owner typed, L-07 / L-08 / L-09, item 2): the city comes first in every language and market - the same order in Hebrew and English (the Israel suggestions still need it)
+                return [cityBlock, streetBlock];
             })()}
             {/* Owner 2026-11-11 (finding 17): Israel has no state / province - the field shows for a business abroad only */}
             {isLocalIsraeliBusiness !== true && (

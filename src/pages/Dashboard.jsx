@@ -47,6 +47,7 @@ import useBillingReturn, { markBillingDeparture } from '../hooks/useBillingRetur
 import HeaderPlanMedallion from '../components/HeaderPlanMedallion';
 import { accountStatus, statusMedallionModel, accountStatusSentence, freePeriodActive } from '../domain/subscriptions/subscriptionStatus';
 import { timeGreeting } from '../utils/timeGreeting';
+import { installPlaceholderSlide } from '../utils/placeholderSlide';
 import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
 import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
 import { decideCapability, outputPhaseOf, decideFree10Action, decideSmartPack } from '../../supabase/functions/_shared/subscriptionContract.ts';
@@ -267,6 +268,8 @@ const NEW_CLIENT = Object.freeze({});
 // PRODUCT_TRUTH_CAPABILITY: dashboard_overview
 export default function Dashboard({ bundleIsHebrew } = {}) {
   const now = new Date();
+  // night task 2026-11-16 (Owner typed, L-09, item 1): a sample text longer than its typing field slides inside it once, never cut
+  useEffect(() => (typeof document !== 'undefined' ? installPlaceholderSlide(document.body) : undefined), []);
 
   const [session, setSession] = useState(null);
   // Owner 2026-10-19 (typed L-17 approval): the voice-assistant announcement only where the browser can record (the microphone shows)
@@ -8266,7 +8269,9 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
            rule below 769px). */
         .dash-status-toast {
           position: fixed;
-          top: 16px;
+          /* night task 2026-11-16 (Owner typed, L-03 / L-04, item 4): the message sits UNDER the header band (phone band ends at ~88px,
+             desktop at 68px) - it covered the clock in English on a computer and the date / greeting on a phone; still centred (L-23 #8) */
+          top: 96px;
           left: 50%;
           transform: translateX(-50%);
           z-index: 99999;
@@ -8303,6 +8308,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           .dash-status-toast {
             /* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #8: centred over the workspace again - half of today's 178px sidebar */
             left: calc(50% ${isHebrew ? '- 89px' : '+ 89px'});
+            top: 76px;
           }
         }
         /* Desktop Header Removal task, §7 mount-scoping mechanism: hides

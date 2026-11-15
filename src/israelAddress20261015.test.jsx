@@ -208,7 +208,9 @@ describe('consumers and snapshot', () => {
       expect(src).toContain("import AddressSuggestInput from './AddressSuggestInput';");
       expect(src).toContain(`kind="city" enabled={${flag} === true}`);
       expect(src).toContain(`kind="street" enabled={${flag} === true}`);
-      expect(src).toMatch(new RegExp(`${flag} === true \\? \\[city(Block|Field), street(Block|Field)\\]`));
+      // night task 2026-11-16 (Owner typed, L-08, item 2): the city comes first in EVERY market and language (one order in Hebrew and English)
+      expect(src).toMatch(/return \[city(Block|Field), street(Block|Field)\];/);
+      expect(src).not.toMatch(/\[street(Block|Field), city(Block|Field)\]/);
     }
     expect(read('pages/Dashboard.jsx')).toContain('isIsraeliBusiness={isLocalIsraeliBusiness}');
   });
