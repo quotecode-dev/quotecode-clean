@@ -33,20 +33,22 @@ describe('prompt - catalog names/ids only, never prices; language from the serve
   it('never puts a price into the model input and states the output contract', () => {
     const msgs = buildDraftMessages({ description: 'job', isHebrew: true, catalog: normalizeCatalog(CATALOG) });
     expect(msgs[0].content).toContain('Hebrew');
-    // release B (Owner 2026-11-06): the ONLY price the model may return is one the request writes for an existing line (verified in the text)
-    expect(msgs[0].content).toContain('Never output a price, except unitPrice in changes.updates as written in the request.');
+    // Owner 2026-11-15 (option ב): the model returns the price the text writes for an item (checked: the number must be written in the text)
+    expect(msgs[0].content).toContain('unitPrice (of an item): the price the text writes for THIS item');
+    expect(msgs[0].content).toContain('Never compute, convert, add VAT to or guess a price.');
     expect(msgs[0].content).toContain('Never use 1 or a sum of other items as a guess');
     expect(msgs[1].content).not.toMatch(/1450|price/);
     expect(JSON.parse(msgs[1].content).catalog).toEqual([{ id: '7', name: 'חלון אלומיניום 120×100' }, { id: '9', name: 'רשת' }]);
     expect(buildDraftMessages({ description: 'job', isHebrew: false, catalog: [] })[0].content).toContain('English');
   });
-  it('the provider schema is strict and carries unit / basis / missing per line - no price field at all', () => {
+  it('the provider schema is strict and carries unit / basis / missing per line, and the price the text writes (option ב, 15/11)', () => {
     expect(DRAFT_RESPONSE_SCHEMA.strict).toBe(true);
     const props = DRAFT_RESPONSE_SCHEMA.schema.properties.items.items.properties;
-    expect(Object.keys(props).sort()).toEqual(['catalogId', 'derivation', 'description', 'evidence', 'missing', 'quantity', 'quantityBasis', 'unit']);
-    // a NEW line never carries a price, total, VAT or discount; release B: only changes carry the user-written price / discount
-    expect(JSON.stringify(DRAFT_RESPONSE_SCHEMA.schema.properties.items)).not.toMatch(/price|total|"vat|discount/i);
-    expect(JSON.stringify({ ...DRAFT_RESPONSE_SCHEMA.schema.properties, changes: undefined })).not.toMatch(/price|total|"vat|discount/i);
+    expect(Object.keys(props).sort()).toEqual(['catalogId', 'derivation', 'description', 'evidence', 'missing', 'quantity', 'quantityBasis', 'unit', 'unitPrice']);
+    // a NEW line carries only the price the text writes (unitPrice) - never a total, VAT or discount
+    expect(JSON.stringify(DRAFT_RESPONSE_SCHEMA.schema.properties.items)).not.toMatch(/total|"vat|discount/i);
+    // option ב (15/11): the only price outside the changes is the item's unitPrice (the price the text writes) - never a total, VAT or discount
+    expect(JSON.stringify({ ...DRAFT_RESPONSE_SCHEMA.schema.properties, changes: undefined }).replace(/"unitPrice"/g, "")).not.toMatch(/price|total|"vat|discount/i);
     expect(Object.keys(DRAFT_RESPONSE_SCHEMA.schema.properties.changes.properties).sort()).toEqual(['deletes', 'discountPercent', 'notes', 'updates']);
   });
 });
