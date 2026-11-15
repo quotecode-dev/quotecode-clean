@@ -60,7 +60,10 @@ describe('4 · typing on a phone: the bottom bar and the calculator step aside',
     const input = screen.getByTestId('sq-client-tax-id');
     act(() => { input.focus(); });
     expect(document.documentElement.classList.contains('pf-typing')).toBe(true);
-    await act(async () => { input.blur(); await new Promise((r) => setTimeout(r, 5)); });
+    // the bar comes back only after the tap that left the field is over (400 ms)
+    await act(async () => { input.blur(); await new Promise((r) => setTimeout(r, 50)); });
+    expect(document.documentElement.classList.contains('pf-typing')).toBe(true);
+    await act(async () => { await new Promise((r) => setTimeout(r, 450)); });
     expect(document.documentElement.classList.contains('pf-typing')).toBe(false);
     cleanup();
     mm(false);
