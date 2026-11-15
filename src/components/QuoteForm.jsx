@@ -694,6 +694,9 @@ export default function QuoteForm({
             </div>
           </div>
         ) : (<>
+        {/* 2026-11-15 (the demo): the client step's own "→ חזרה" above its question (the same as the header's Back) */}
+        {/* PRODUCT_TRUTH_DECORATIVE: leaves the client step like the header Back; nothing is deleted */}
+        {flowStep === 'client' && typeof onBack === 'function' && <button type="button" className="qt-link qt-page-back" data-testid="sq-client-back" onClick={onBack}>{isHebrew ? '→ חזרה' : '← Back'}</button>}
         <StepHeading n={1} title={isHebrew ? 'למי מכינים את ההצעה?' : 'Who is this quote for?'} />
         {/* V2 Visual Completion Pass: Client Details + Quote Details now sit
             side-by-side (Image 1 reference) via the same auto-fit/minmax grid

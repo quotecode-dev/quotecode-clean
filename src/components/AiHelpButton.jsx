@@ -15,7 +15,7 @@ function openAiHelp(context = null) {
 
 // PRODUCT_TRUTH_CAPABILITY: ai_chat
 export default function AiHelpButton({ isHebrew = false, long = false, header = false, style = null, testId = 'ai-help-in-context', context = null }) {
-  const longLabel = isHebrew ? 'צריכים עזרה? שאלו את העוזר החכם' : 'Need help? Ask AI';
+  const longLabel = isHebrew ? 'צריכים עזרה? שאלו את העוזר החכם' : 'Need help? Ask the smart assistant';
   const shortLabel = isHebrew ? 'שאלו את ה-AI' : 'Ask AI'; // 2026-11-14 (Owner "א"): as short as the English - the window title stays on one line
   const label = long ? longLabel : shortLabel;
   const accessible = isHebrew ? 'פתיחת הצ׳אט עם העוזר החכם לעזרה במסך הזה' : 'Ask AI - open the AI Chat about this screen';

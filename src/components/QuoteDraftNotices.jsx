@@ -44,12 +44,15 @@ export function DraftRecoveredBanner({ info, isHebrew, onDiscard, onDismiss }) {
           {isHebrew ? `לא ניתן היה לשחזר את הקבצים המצורפים הבאים - יש לבחור אותם מחדש: ${info.missingAttachments.join(', ')}` : `These attachments could not be recovered - please select them again: ${info.missingAttachments.join(', ')}`}
         </span>
       )}
+      {/* 2026-11-15 (law 49): the two buttons stay together in both languages */}
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
       {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
       <button type="button" onClick={onDiscard} style={{ background: 'white', color: '#065f46', border: '1px solid #6ee7b7', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', fontWeight: 600 }}>
         {isHebrew ? 'מחיקת טיוטה' : 'Discard draft'}
       </button>
       {/* PRODUCT_TRUTH_DECORATIVE: x dismiss button only hides the recovered-draft banner; does not touch the draft itself */}
       <button type="button" onClick={onDismiss} aria-label={isHebrew ? 'סגירה' : 'Dismiss'} style={{ background: 'transparent', color: '#065f46', border: 'none', cursor: 'pointer', fontSize: '1.1rem' }}>×</button>
+      </span>
     </div>
   );
 }

@@ -17,7 +17,7 @@ import { parseAccountSummary, planName, outputPhaseOf } from '../../../supabase/
 import { withBillingPeriod } from './subscriptionStatus';
 
 export const COPY = {
-  notActive: { he: 'מערך המסלולים טרם הופעל', en: 'Plan system not active yet' },
+  notActive: { he: 'מערך המסלולים טרם הופעל', en: 'Plans not active yet' },
   unassigned: { he: 'החשבון טרם שויך למסלול', en: 'Not assigned to a plan yet' },
   unavailable: { he: 'מצב המסלול אינו זמין כרגע', en: 'Plan state unavailable right now' },
   loading: { he: 'טוען מצב מסלול…', en: 'Loading plan state...' },

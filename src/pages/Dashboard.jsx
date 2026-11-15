@@ -8836,7 +8836,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             {isSuperAdmin && (
               <span className="dash-sidebar-admin-badge">
                 <Shield size={12} strokeWidth={2.5} />
-                SUPER ADMIN
+                {isHebrew ? 'מנהל ראשי' : 'SUPER ADMIN'}
               </span>
             )}
             {/* Final Dashboard/Sidebar Polish task, §C: the large standalone

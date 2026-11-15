@@ -172,8 +172,8 @@ describe('Owner locked Admin presentation', () => {
 describe('Admin User Details: server plan state + legacy audit section (OD-16/OD-20)', () => {
   const account = { id: 'row-1', user_id: 'user-1', business_name: 'Biz', email: 'biz@example.test', plan: 'pro', trial_ends_at: '2026-10-20T00:00:00+00:00', is_lifetime: false, role: 'user', country: 'Local' };
   const cases = [
-    ['not deployed (PGRST202)', () => ({ data: null, error: { code: 'PGRST202' }, status: 404 }), 'מערך המסלולים טרם הופעל', 'Plan system not active yet'],
-    ['not activated', () => ({ data: { ok: false, code: 'not_activated' }, error: null }), 'מערך המסלולים טרם הופעל', 'Plan system not active yet'],
+    ['not deployed (PGRST202)', () => ({ data: null, error: { code: 'PGRST202' }, status: 404 }), 'מערך המסלולים טרם הופעל', 'Plans not active yet'],
+    ['not activated', () => ({ data: { ok: false, code: 'not_activated' }, error: null }), 'מערך המסלולים טרם הופעל', 'Plans not active yet'],
     ['account not provisioned', () => ({ data: { ok: false, code: 'account_not_provisioned' }, error: null }), 'החשבון טרם שויך למסלול', 'Not assigned to a plan yet'],
     ['forbidden / other error', () => ({ data: null, error: { code: '42501' } }), 'מצב המסלול אינו זמין כרגע', 'Plan state unavailable right now'],
   ];
