@@ -37,10 +37,9 @@ describe('the comma of a dictation', () => {
     const r = parse([stated('12 מטר מרובע, ריצוף חדש')], 'אמבטיה, 12 מטר מרובע, ריצוף חדש.', CAT);
     expect(r.items[0]).toMatchObject({ quantity: 12, missing: null });
   });
-  it('option ב: the model\'s 12 (written in the text) stands even in a clause with words of its own', () => {
+  it('still never a guess: a clause with words of its own keeps its number', () => {
     const r = parse([stated('ריצוף חדש, 12 מטר מרובע צביעה')], 'ריצוף חדש, 12 מטר מרובע צביעה', CAT);
-    // Owner 2026-11-15 (option ב): the model's number stands when it is written in the text - the line is reviewed before it is added
-    expect(r.items[0].quantity).toBe(12);
+    expect(r.items[0].quantity).toBeNull();
   });
   it('still never a swap: two rooms, each with its own quantity', () => {
     const text = 'ריצוף חדר הורים, 40 מ״ר, ריצוף חדר ילדים, 22 מ״ר';
@@ -53,7 +52,6 @@ describe('the comma of a dictation', () => {
       L({ description: 'ריצוף חדר הורים', quantity: 22, unit: 'm2', quantityBasis: 'stated', evidence: 'ריצוף חדר הורים, 40 מ״ר' }),
       L({ description: 'ריצוף חדר ילדים', quantity: 40, unit: 'm2', quantityBasis: 'stated', evidence: 'ריצוף חדר ילדים, 22 מ״ר' }),
     ], text);
-    // Owner 2026-11-15 (option ב): the model's number stands when it is written in the text - the line is reviewed before it is added
-    expect(swapped.items.map((i) => i.quantity)).toEqual([22, 40]);
+    expect(swapped.items.map((i) => i.quantity)).toEqual([null, null]);
   });
 });
