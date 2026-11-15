@@ -54,7 +54,7 @@ export default function ServiceScheduleFields({ value, onChange, state = 'ready'
         </div>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
           <input id="sq-service-date" data-testid="service-date" className="qt-input" type="text" inputMode="numeric" value={display(v.date)} onChange={onTyped} placeholder={formatLabel} disabled={disabled}
-            style={{ ...atom, paddingInlineEnd: '36px' }} />
+            style={{ ...atom, ...(isHebrew ? { paddingLeft: '36px' } : { paddingRight: '36px' }) }} />
           <input type="date" ref={pickerRef} value={/^\d{4}-\d{2}-\d{2}$/.test(v.date) ? v.date : ''} onChange={(e) => onChange({ ...v, date: e.target.value })} tabIndex={-1} aria-hidden="true"
             style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} />
           {/* PRODUCT_TRUTH_DECORATIVE: opens the native date picker for the optional work date; a generic form-field interaction helper */}

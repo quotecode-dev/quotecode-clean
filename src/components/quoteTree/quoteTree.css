@@ -338,7 +338,7 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
   .qt > .qt-card > .qt-actions > .qt-act-same, .qt > .qt-card > .qt-actions > .qt-act-tpl { grid-column: 2; }
   .qt > .qt-card > .qt-actions > .qt-act-other { grid-column: 1; }
   .qt > .qt-card > .qt-actions > .qt-act-first, .qt > .qt-card > .qt-actions > .qt-act-example { grid-column: 1 / -1; }
-  .qt > .qt-card > .qt-actions > .sq-add-btn { inline-size: 100%; }
+  .qt > .qt-card > .qt-actions > .sq-add-btn { justify-self: start; } /* natural width at the start of its cell (the demo) */
 }
 
 /* 2026-11-15 (law 49/50 round 5) */
