@@ -71,8 +71,12 @@ describe('the server leaves everything else exactly as it was', () => {
     same([apt('p1', { identical: 'no' }), apt('p2', { identical: 'no' })], [...he('p1'), ...he('p2')], HE);
     same([apt('p1', { identical: 'unclear' }), apt('p2', { identical: 'unclear' })], [...he('p1'), ...he('p2')], HE);
   });
-  it('named places ("דירה 1" / "דירה 2"), different kinds, a copy with a count of its own', () => {
-    same([apt('p1', { name: 'דירה 1' }), apt('p2', { name: 'דירה 2' })], [...he('p1'), ...he('p2')], HE);
+  it('copies numbered by the model ("דירה 1" / "דירה 2", 1..N with N written) ARE the identical group (site example 3, 15/11) - one place × 2', () => {
+    const r = parse({ places: [apt('p1', { name: 'דירה 1' }), apt('p2', { name: 'דירה 2' })], items: [...he('p1'), ...he('p2')] }, HE, true);
+    expect(r.places.map((p) => [p.count, p.identical])).toEqual([[2, 'yes']]);
+    expect(r.items).toHaveLength(2);
+  });
+  it('different kinds, a copy with a count of its own', () => {
     same([apt('p1'), apt('p2', { kind: 'floor' })], [...he('p1'), ...he('p2')], HE);
     same([apt('p1', { count: 2 }), apt('p2')], [...he('p1'), ...he('p2')], 'שתי דירות ועוד דירה, 3 דירות, ריצוף במטבח 12 מ״ר והחלפת אסלה בשירותים');
   });

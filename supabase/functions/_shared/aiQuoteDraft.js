@@ -833,6 +833,15 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
           const h = hits.find(({ m, i }) => !used.has(i) && fitsUnit(m, unit)) || hits.find(({ i }) => !used.has(i)) || hits[0];
           used.add(h.i); qtyAt.set(d, h.i); trusted = true; basis = 'stated';
           // the model's quote is not in the text (e.g. translated) - the user's own words around the number are the line's quote
+          // a misspelled first word ("והרכיב" for "ולהרכיב") - the longest end of the model's quote written word for word, once, in the text
+          if (!span) {
+            const ws = String(raw.evidence || '').trim().split(/\s+/);
+            for (let k = 1; k < ws.length - 1 && !span; k += 1) {
+              const tail = ws.slice(k).join(' '); if (significantWords(tail).length < 2) break;
+              const at = source.indexOf(tail);
+              if (at >= 0 && source.indexOf(tail, at + 1) < 0) { span = d.span = { start: at, end: at + tail.length, text: tail, occurrences: 1 }; scope = span; }
+            }
+          }
           if (!span) {
             const c = clauses.find((x) => x.start <= h.m.start && h.m.end <= x.end);
             if (c) {
@@ -840,7 +849,10 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
               for (const mm of source.slice(c.start, h.m.start).matchAll(/[.!?:](?=\s)/g)) s0 = c.start + mm.index + 1;
               const rest = source.slice(h.m.end, c.end).search(/[.!?:](?=\s|$)/); if (rest >= 0) e0 = h.m.end + rest;
               const t = source.slice(s0, e0); const lead = t.length - t.trimStart().length; const txt = t.trim();
-              if (txt) { span = d.span = { start: s0 + lead, end: s0 + lead + txt.length, text: txt, occurrences: 1 }; scope = span; }
+              // never the words of another work's line ("40 מטר לפי 200 שקל למטר" is the removal's, not the install's)
+              const a0 = s0 + lead; const b0 = a0 + txt.length;
+              const other = drafts.some((o) => o !== d && o.span && o.span.start < b0 && a0 < o.span.end && wordsOf(o.raw.description) !== wordsOf(raw.description));
+              if (txt && !other) { span = d.span = { start: a0, end: b0, text: txt, occurrences: 1 }; scope = span; }
             }
           }
           if (h.m.unit) { const bareArea = (unit === 'm2' && h.m.unit === 'meter') || (unit === 'sq_ft' && h.m.unit === 'foot'); const tu = bareArea ? unit : h.m.unit === 'meter' ? 'linear_meter' : h.m.unit === 'foot' ? 'linear_ft' : DRAFT_UNITS.includes(h.m.unit) ? h.m.unit : null; if (tu) unit = tu; }
@@ -967,7 +979,7 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
   // 2026-11-15 (D): one quantity written once in a sentence for two works of the same kind is the quantity of both
   if (tp) shareSentenceQuantity(drafts, items, { lineOf, qtyAt, measures, source });
   sharePerUnitPrice(drafts, items, { lineOf, priceAt, measures, source });
-  if (tp) roomsFromEvidence(tp, items, isHebrew);
+  if (tp) roomsFromEvidence(tp, items, source);
   // 2026-11-15 (B): a work verified once for "בכל דירה" is copied to every one of those places (the same quantity, unit, price, evidence)
   if (spread) { const out = []; drafts.forEach((d) => { const it = items[lineOf.get(d)]; if (!it) return; out.push(it); for (const k of (spread.copies.get(d.raw) || [])) if (out.length < MAX_TREE_RESULT_ITEMS) out.push({ ...it, place: k }); }); items.splice(0, items.length, ...out); }
   // release B: a request may change the quote without any new line ("add 2 sentences to the notes")
@@ -1285,12 +1297,15 @@ const ROOM_IN_TEXT = [
   [/(?:^|[^א-ת])[ובל]?[בל]?(?:ה)?(מרפסת)(?![א-ת])/, 'מרפסת'], [/(?:^|[^א-ת])[ובל]?[בל]?(?:ה)?חדר\s+ה?(שינה|הורים|ילדים|רחצה)(?![א-ת])/, (m) => `חדר ${m[1]}`],
   [/\b(living\s+room)\b/i, 'Living room'], [/\b(kitchen)\b/i, 'Kitchen'], [/\b(bathroom)\b/i, 'Bathroom'], [/\b(bedroom)\b/i, 'Bedroom'], [/\b(balcony)\b/i, 'Balcony'],
 ];
-export function roomsFromEvidence(tp, items) {
-  const made = new Map();
+export function roomsFromEvidence(tp, items, source = '') {
+  const made = new Map(); const src = typeof source === 'string' ? source : '';
   for (const it of items) {
     const pk = it.place; const parent = pk ? tp.byKey.get(pk) : null;
     if (!parent || parent.kind === 'room' || !it.evidence) continue;
-    const hits = ROOM_IN_TEXT.map(([re, name]) => { const m = String(it.evidence).match(re); return m ? (typeof name === 'function' ? name(m) : name) : null; }).filter(Boolean);
+    let hits = ROOM_IN_TEXT.map(([re, name]) => { const m = String(it.evidence).match(re); return m ? (typeof name === 'function' ? name(m) : name) : null; }).filter(Boolean);
+    // none in its own words: the room word written right before its quote (the quote found once in the text, nothing else between)
+    if (!hits.length && src) { const ev = String(it.evidence); const at = src.indexOf(ev); if (at > 0 && src.indexOf(ev, at + 1) < 0) { const pre = src.slice(Math.max(0, at - 24), at);
+      hits = ROOM_IN_TEXT.map(([re, name]) => { const m = pre.match(new RegExp(`${re.source}\\s*$`, re.flags)); return m ? (typeof name === 'function' ? name(m) : name) : null; }).filter(Boolean); } }
     if (hits.length !== 1) continue; // none, or several rooms in one line's words - never guessed
     const name = hits[0];
     // the line's own name still says the room ("ריצוף סלון") - nothing is lost, it stays as it is
@@ -1329,13 +1344,19 @@ export function mergeIdenticalPlaceCopies(rawPlaces, rawItems, source = '') {
   for (const p of places) {
     if (!p || typeof p !== 'object' || p.identical !== 'yes' || typeof p.key !== 'string' || !p.key.trim() || !PLACE_KINDS.includes(p.kind)) continue;
     if (!(p.count == null || Number(p.count) === 1)) continue;
-    const g = `${p.kind}|${wordsOf(p.name)}|${typeof p.parent === 'string' ? p.parent : ''}`; // 2026-11-13: never across parents
+    // 2026-11-15: copies numbered by the model ("דירה 1", "דירה 2", "דירה 3") are grouped by the name without its number - checked below
+    const g = `${p.kind}|${wordsOf(p.name).replace(/\s*\d+$/, '')}|${typeof p.parent === 'string' ? p.parent : ''}`; // 2026-11-13: never across parents
     groups.set(g, [...(groups.get(g) || []), p]);
   }
   let outPlaces = places;
   for (const group of groups.values()) {
     const n = group.length;
     if (n < 2 || n > MAX_PLACE_COUNT || new Set(group.map((p) => p.key)).size !== n || !written.some((w) => sameNumber(w, n))) continue;
+    // the same name, or the same words numbered exactly 1..N - anything else ("דירה 48", "דירה 49") is not one identical group
+    const plain = group.every((p) => wordsOf(p.name) === wordsOf(group[0].name));
+    const nums = group.map((p) => Number((wordsOf(p.name).match(/\s(\d+)$/) || [])[1]));
+    const numbered = nums.every((x) => Number.isInteger(x)) && [...nums].sort((a, b) => a - b).every((x, i) => x === i + 1);
+    if (!plain && !numbered) continue;
     const sig = (key) => linesOf(key).map(lineKey).sort().join('\n');
     const first = sig(group[0].key);
     if (!first || !group.every((p) => sig(p.key) === first)) continue;
@@ -1347,7 +1368,7 @@ export function mergeIdenticalPlaceCopies(rawPlaces, rawItems, source = '') {
       const at = spare.findIndex((c) => lineKey(c) === lineKey(it));
       return at < 0 ? it : { ...spare.splice(at, 1)[0], place: keep };
     });
-    outPlaces = outPlaces.filter((p) => !copies.has(p?.key)).map((p) => (p === group[0] ? { ...p, count: n } : p));
+    outPlaces = outPlaces.filter((p) => !copies.has(p?.key)).map((p) => (p === group[0] ? { ...p, count: n, ...(plain ? {} : { name: String(p.name || '').replace(/\s*\d+\s*$/, '') }) } : p));
   }
   return { places: outPlaces, items };
 }
