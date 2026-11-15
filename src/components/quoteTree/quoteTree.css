@@ -321,3 +321,9 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
   .sq-details-page .qt-actions { flex-wrap: nowrap; }
   .sq-details-page .qt-actions > button { flex: 1 1 auto; padding-inline: 10px; }
 }
+
+/* 2026-11-15 (law 49): on a phone the place chips and the kind chips are a little tighter, so three names / four kinds share one row in both languages */
+@media (max-width: 480px) {
+  .qt-nav .qt-chip, .qt-kinds .qt-chip { padding-inline: 10px; }
+  .qt-nav, .qt-kinds { gap: 6px; }
+}

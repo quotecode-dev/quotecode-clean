@@ -119,7 +119,7 @@ describe('the editor and the Dashboard wiring', () => {
   it('the heading menu offers "save as a template"; "from a saved template" is in the work area', () => {
     const tree = read('src/components/quoteTree/QuoteTreeEditor.jsx');
     expect(tree).toContain("saveTemplate: 'שמירה כתבנית', fromTemplate: 'מתבנית שמורה'");
-    expect(tree).toContain("saveTemplate: 'Save as a template', fromTemplate: 'From a saved template'");
+    expect(tree).toContain("saveTemplate: 'Save as a template', fromTemplate: 'From a template'"); // 2026-11-15: the short English word (law 49)
     expect(tree.split('data-testid="unit-from-template"').length - 1).toBe(1);
     const f = read('src/components/QuoteForm.jsx');
     expect(f).toContain("onSaveHeadingTemplate={typeof onSaveUnitTemplate === 'function' ? onSaveUnitTemplate : null} onAddFromTemplate={typeof onAddUnitFromTemplate === 'function' ? onAddUnitFromTemplate : null}");

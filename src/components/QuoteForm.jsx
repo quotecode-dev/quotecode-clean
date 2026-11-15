@@ -1072,7 +1072,7 @@ export default function QuoteForm({
                 <div className="qt-bar-actions">
                   {/* PRODUCT_TRUTH_DECORATIVE: the quote form's own submit button; the real create/edit distinction and capability markers live on the resolved onSave handler in Dashboard.jsx (quote_create/quote_edit) */}
                   <button type="submit" data-testid="sq-save" className="sq-save-btn" style={{ inlineSize: 'auto', margin: 0 }} onClick={(e) => { if (pendingRows.length) { e.preventDefault(); setBarBlock(true); } }}>
-                    {isUnfinished ? (isHebrew ? 'שמירה כטיוטה לא גמורה' : 'Save as unfinished draft') : editingQuoteId ? (isHebrew ? 'עדכון ההצעה' : 'Update the quote') : (isHebrew ? 'שמירת ההצעה' : 'Save the quote')}
+                    {isUnfinished ? (isHebrew ? 'שמירה כטיוטה לא גמורה' : 'Save unfinished draft') : editingQuoteId ? (isHebrew ? 'עדכון ההצעה' : 'Update the quote') : (isHebrew ? 'שמירת ההצעה' : 'Save the quote')}
                   </button>
                   {presentationController && typeof presentationController.openPreview === 'function' && (
                     // PRODUCT_TRUTH_DECORATIVE: the preview only the user sees - what the client will see

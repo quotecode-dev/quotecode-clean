@@ -629,22 +629,22 @@ export const PRODUCT_HOW_TO = Object.freeze([
       steps: [
         "בשלב \"מה מוסיפים להצעה?\" בוחרים \"לפי דירות\" או \"קומות, דירות וחדרים\" ולוחצים \"+ הוספת דירה, קומה, חדר או נושא אחר\". בוחרים מה מוסיפים (קומה, דירה, חדר או נושא בשם אחר), כמה, ואת השמות שלהן (שדה ריק = שם לפי הסדר). כל אחת היא כותרת נפרדת עם העבודות שלה - גם כשהדירות זהות, כל דירה מופיעה בנפרד, ואפשר לשכפל דירה עם כל מה שבתוכה.",
         "מתחת לכל כותרת יש טופס \"מוסיפים עבודה או מוצר\", ובראשו כתוב לאן השורה נכנסת (\"אל:\"). ב\"קומות, דירות וחדרים\" אפשר להוסיף כותרת בתוך כותרת (\"+ הוספת כותרת בתוך\" ושם הכותרת) - חדרים בתוך דירה ודירות בתוך קומה, עד 4 רמות. ליד כל כותרת מוצג הסכום של כל מה שבתוכה, והמשולש סוגר ופותח אותה.",
-        "הכפתור \"⋯\" של כותרת פותח את עמוד האפשרויות שלה: שינוי השם (\"שמירת השם\"), שכפול עם כל מה שבתוכה, \"העתקת עבודות\" מהכותרת הראשונה באותה רמה (לכותרת ריקה), \"שמירה כתבנית\", \"הזזה למעלה\" / \"הזזה למטה\" ומחיקה \"עם התוכן\" - ואפשר לבטל. \"חזרה ללא שמירה\" יוצא בלי שינוי. בשורת ההוספה יש גם \"מתבנית שמורה\". הצעות ישנות שבהן דירה סומנה כמה עותקים זהים (× ומספר) נשארות כמו שהן.",
+        "הכפתור \"⋯\" של כותרת פותח את עמוד האפשרויות שלה: שינוי השם (\"שמירת השם\"), שכפול עם כל מה שבתוכה, \"העתקת עבודות\" מהכותרת הראשונה באותה רמה (לכותרת ריקה), \"שמירה כתבנית\" ומחיקה \"עם התוכן\" - ואפשר לבטל. \"חזרה ללא שמירה\" יוצא בלי שינוי. בשורת ההוספה יש גם \"מתבנית שמורה\". הצעות ישנות שבהן דירה סומנה כמה עותקים זהים (× ומספר) נשארות כמו שהן.",
         "הלקוח רואה את הכותרות ואת הכותרות שבתוכן, עם חץ ליד כל כותרת שסוגר ופותח את הפירוט (חץ גדול לכותרת ראשית וקטן לכותרת שבתוכה), ובראש הרשימה \"תצוגת מסמך מלא\" ו\"תצוגת שורות סיכום\". בהדפסה ובקובץ בוחרים מסמך מלא או חלקי, ושם אין חיצים.",
       ],
     },
     en: {
       task: "A quote for several apartments, rooms or floors",
       steps: [
-        "In the \"What goes in the quote?\" step choose \"By apartments\" or \"Floors, apartments, rooms\" and click \"+ Add an apartment, floor, room or other topic\". Choose what you add (a floor, apartment, room or another topic), how many, and what they are called (an empty field = a name in order). Each one is a separate heading with its own work - identical apartments are each shown separately too, and an apartment can be duplicated with everything inside it.",
+        "In the \"What goes in the quote?\" step choose \"By apartments\" or \"Floors, apartments, rooms\" and click \"+ Add apartment, floor, room or topic\". Choose what you add (a floor, apartment, room or another topic), how many, and what they are called (an empty field = a name in order). Each one is a separate heading with its own work - identical apartments are each shown separately too, and an apartment can be duplicated with everything inside it.",
         "Under each heading there is an \"Add work or a product\" form, and its top says where the row goes (\"To:\"). In \"Floors, apartments, rooms\" a heading can be added inside a heading (\"+ Add a heading inside\" and the heading name) - rooms inside an apartment and apartments inside a floor, up to 4 levels. Each heading shows the total of everything inside it, and its triangle closes and opens it.",
-        "A heading's \"⋯\" button opens its options page: the name (\"Save the name\"), duplicate with everything inside it, \"Copy the works from the first\" heading at the same level (into an empty heading), \"Save as a template\", \"Move up\" / \"Move down\" and delete \"with its content\" - and it can be undone. \"Back without saving\" leaves with no change. The add row also has \"From a saved template\". Older quotes where an apartment was marked as several identical copies (× and a number) stay as they are.",
+        "A heading's \"⋯\" button opens its options page: the name (\"Save the name\"), duplicate with everything inside it, \"Copy the works from the first\" heading at the same level (into an empty heading), \"Save as a template\" and delete \"with its content\" - and it can be undone. \"Back without saving\" leaves with no change. The add row also has \"From a template\". Older quotes where an apartment was marked as several identical copies (× and a number) stay as they are.",
         "The client sees the headings and the headings inside them, an arrow beside each heading that closes and opens its details (a big arrow for a main heading and a small one for a heading inside it), and \"Full document view\" and \"Summary rows view\" above the list. Printing and the file offer a full or a partial document, with no arrows.",
       ],
     },
     evidence: [
       { file: 'src/components/QuoteForm.jsx', labels: ["מה מוסיפים להצעה?","What goes in the quote?"] },
-      { file: 'src/components/quoteTree/QuoteTreeEditor.jsx', labels: ["לפי דירות","By apartments","קומות, דירות וחדרים","Floors, apartments, rooms","+ הוספת דירה, קומה, חדר או נושא אחר","+ Add an apartment, floor, room or other topic","מוסיפים עבודה או מוצר","Add work or a product","אל:","To:","שמירת השם","Save the name","העתקת עבודות","Copy the works from the first","שמירה כתבנית","Save as a template","הזזה למעלה","Move up","הזזה למטה","Move down","עם התוכן","with its content","חזרה ללא שמירה","Back without saving","מתבנית שמורה","From a saved template"] },
+      { file: 'src/components/quoteTree/QuoteTreeEditor.jsx', labels: ["לפי דירות","By apartments","קומות, דירות וחדרים","Floors, apartments, rooms","+ הוספת דירה, קומה, חדר או נושא אחר","+ Add apartment, floor, room or topic","מוסיפים עבודה או מוצר","Add work or a product","אל:","To:","שמירת השם","Save the name","העתקת עבודות","Copy the works from the first","שמירה כתבנית","Save as a template","עם התוכן","with its content","חזרה ללא שמירה","Back without saving","מתבנית שמורה","From a template"] },
       { file: 'src/pages/PublicQuote.jsx', labels: ["תצוגת מסמך מלא","תצוגת שורות סיכום"] },
       { file: 'src/pages/PublicQuoteEn.jsx', labels: ["Full document view","Summary rows view"] },
     ],
@@ -876,13 +876,13 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: "A template for an apartment (or room / floor) - saving it and adding it to another quote",
       steps: [
         "In the \"⋯\" button in the header of the apartment (or room / floor) choose \"Save as a template\". Give it a name and choose whether to keep the prices and the details for the customer. The rows, the billing type and the sizes are always kept; customer details, the address and the place names of the sizes are never kept.",
-        "To add a saved place to an open quote click \"From a saved template\" (in the row of add buttons at the top of the work area), pick the template and click \"Add to the quote\". One place with its rows is added at the end of the quote.",
+        "To add a saved place to an open quote click \"From a template\" (in the row of add buttons at the top of the work area), pick the template and click \"Add to the quote\". One place with its rows is added at the end of the quote.",
         "When the currency or the VAT basis of the template prices differs from the quote, you are asked before adding whether to use the prices or add without prices.",
         "The window for adding from a saved template inside a quote lists only place templates, and the template window of a new quote lists only quote templates. Each window deletes only its own templates.",
       ],
     },
     evidence: [
-      { file: 'src/components/quoteTree/QuoteTreeEditor.jsx', labels: ["שמירה כתבנית","Save as a template","מתבנית שמורה","From a saved template"] },
+      { file: 'src/components/quoteTree/QuoteTreeEditor.jsx', labels: ["שמירה כתבנית","Save as a template","מתבנית שמורה","From a template"] },
       { file: 'src/components/QuoteTemplateDialogs.jsx', labels: ["הוספה להצעה","Add to the quote","תבניות הצעה","Quote templates","תבניות יחידה","Unit templates"] },
     ],
   },

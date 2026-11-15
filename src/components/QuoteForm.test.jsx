@@ -199,7 +199,7 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
 
   it('SMART-QUOTE-01: an unfinished quote can only be saved as a clearly labelled unfinished draft (the label is on the save in the bar)', () => {
     render(<QuoteForm {...baseProps({ items: [], subtotal: 0, totalAmount: 0 })} />);
-    expect(screen.getByTestId('sq-save')).toHaveTextContent('Save as unfinished draft');
+    expect(screen.getByTestId('sq-save')).toHaveTextContent('Save unfinished draft');
     expect(screen.getByTestId('qt-bar-total-label')).toHaveTextContent('Partial total'); // the demo's "סכום חלקי"
   });
 
@@ -360,7 +360,7 @@ describe('QuoteForm - headings (apartments, floors, rooms) and their content', (
     expect(liveState.sections.map((s) => s.name)).toEqual(['Apartment 34']);
     expect(liveState.items.map((it) => [it.description, it.section_key])).toEqual([['Door', 'b']]);
     expect(screen.getByTestId('qt-undo')).toHaveTextContent('The place was removed with its content. You can undo it.');
-    fireEvent.click(within(screen.getByTestId('qt-undo')).getByRole('button', { name: 'Undo the last action' }));
+    fireEvent.click(within(screen.getByTestId('qt-undo')).getByRole('button', { name: 'Undo last action' }));
     expect(liveState.sections).toEqual(before.sections);
     expect(liveState.items).toEqual(before.items);
   });

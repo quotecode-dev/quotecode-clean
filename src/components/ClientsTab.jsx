@@ -436,7 +436,7 @@ export default function ClientsTab({
             </button>
             <span style={{ width: '140px', flexShrink: 0, direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'איש קשר' : 'Contact'}</span>
             <span style={{ width: '70px', flexShrink: 0, textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'הצעות' : 'Quotes'}</span>
-            <span style={{ width: '90px', flexShrink: 0, textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'פעילות אחרונה' : 'Last activity'}</span>
+            <span style={{ width: '90px', flexShrink: 0, whiteSpace: 'nowrap', textAlign: isHebrew ? 'right' : 'left' }}>{isHebrew ? 'פעילות אחרונה' : 'Last activity'}</span>
           </div>
           <div className="pf-screen-body">
           {rowsMeta.length === 0 ? (
