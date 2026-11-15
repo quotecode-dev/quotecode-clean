@@ -45,7 +45,7 @@ export function DraftRecoveredBanner({ info, isHebrew, onDiscard, onDismiss }) {
         </span>
       )}
       {/* 2026-11-15 (law 49): the two buttons stay together in both languages */}
-      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', flex: '1 1 100%' }}>
       {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
       <button type="button" onClick={onDiscard} style={{ background: 'white', color: '#065f46', border: '1px solid #6ee7b7', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', fontWeight: 600 }}>
         {isHebrew ? 'מחיקת טיוטה' : 'Discard draft'}

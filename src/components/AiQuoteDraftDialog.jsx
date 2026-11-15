@@ -531,7 +531,8 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                   </span>
                 </div>
               )}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end' }}>
+              {/* 2026-11-15 (law 49): the action row stays at the bottom of the window in both languages */}
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end', position: 'sticky', bottom: 0, zIndex: 1, background: NEON.bgCard, paddingBlock: '8px' }}>
                 {/* PRODUCT_TRUTH_DECORATIVE: returns to the description step of the AI draft dialog (the description text is kept) */}
                 <button type="button" onClick={() => (edits ? setConfirmAgain(true) : goAgain())} style={secondaryBtn}>{t.again}</button>
                 {/* PRODUCT_TRUTH_CAPABILITY: smart_quote */}

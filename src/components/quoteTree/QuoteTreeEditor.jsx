@@ -754,7 +754,7 @@ export default function QuoteTreeEditor({
     return (
       <table className="qt-rows" data-testid="qt-rows">
         <colgroup><col /><col className="qt-col-qty" /><col className="qt-col-price" /><col className="qt-col-sum" /><col className="qt-col-act" /></colgroup>
-        <thead><tr><th>{t.colWork}</th><th className="qt-num">{t.colQty}</th><th className="qt-num">{t.colPrice}</th><th className="qt-num">{t.colSum}</th><th className="qt-sr">{t.actions}</th></tr></thead>
+        <thead><tr><th>{t.colWork}</th><th className="qt-num">{t.colQty}</th><th className="qt-num">{t.colPrice}</th><th className="qt-num">{t.colSum}</th><th><span className="qt-sr">{t.actions}</span></th></tr></thead>
         <tbody>
           {idx.map((i) => {
             const it = items[i];

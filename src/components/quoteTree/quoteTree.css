@@ -340,3 +340,9 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
   .qt > .qt-card > .qt-actions > .qt-act-first, .qt > .qt-card > .qt-actions > .qt-act-example { grid-column: 1 / -1; }
   .qt > .qt-card > .qt-actions > .sq-add-btn { inline-size: 100%; }
 }
+
+/* 2026-11-15 (law 49/50 round 5) */
+.qt-status-slot:empty { display: none; }
+@media (max-width: 768px) {
+  .qt-bar-actions > .sq-add-btn, .qt-bar-actions > .sq-save-btn { justify-content: center; text-align: center; }
+}
