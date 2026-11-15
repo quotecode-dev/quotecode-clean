@@ -16,7 +16,6 @@
 import { getCapabilityById, PRODUCT_TRUTH_REGISTRY } from './productTruthRegistry.js';
 import { capabilityForRuleset, LEGACY_PLAN_IDS, LEGACY_RULESET_ID, CURRENT_RULESET_ID } from './productTruthLegacyPlanRules.js';
 import { PLAN_IDS as CANONICAL_PLAN_IDS } from '../../supabase/functions/_shared/subscriptionContract.ts';
-import { SMART_PACK_SUBSCRIPTION_CAPABILITIES } from '../../supabase/functions/_shared/productTruthContract.ts';
 import { AI_FACTS } from '../../supabase/functions/chat-ai/aiFacts.generated.ts';
 import {
   PRODUCT_TRUTH_PAYLOAD_KEYS, PRODUCT_TRUTH_PAYLOAD_KIND, PRODUCT_TRUTH_PAYLOAD_SCHEMA_VERSION, TRUTH_STATUSES, validateProductTruthPayload,
@@ -109,8 +108,8 @@ export function deriveExpectedFactPayload({ outcome, serverVerified, ruleset = C
     return ordered({ ...cbase, truthStatus: e === 'GRANTED' ? 'AVAILABLE' : 'ROLE_LOCKED', claimScope: 'ACCOUNT', requiredRole: cap.requiredRole, accountEntitlement: e });
   }
   if (cap.authorityType === 'subscription') {
-    // OPEN-02 / OPEN-13: plan inclusion not decided - a capability-scoped claim, no plan, no entitlement; a SMART PACK capability says so (13/11)
-    return ordered({ ...cbase, truthStatus: SMART_PACK_SUBSCRIPTION_CAPABILITIES.includes(cap.subscriptionCapabilityId) ? 'SMART_PACK' : 'PLAN_NOT_DECIDED', claimScope: 'CAPABILITY' });
+    // OPEN-02 / OPEN-13: plan inclusion not decided - a capability-scoped claim, no plan, no entitlement.
+    return ordered({ ...cbase, truthStatus: 'PLAN_NOT_DECIDED', claimScope: 'CAPABILITY' });
   }
   if (cap.authorityType === 'plan') {
     // legacy_v39 historical view only
@@ -166,7 +165,7 @@ export function checkFactPayloadAgainstCanonical(actual, outcome, serverVerified
 
 const STATUS_TO_KIND = Object.freeze({
   AVAILABLE: TRUTH_KINDS.AVAILABLE, NOT_AVAILABLE: TRUTH_KINDS.NOT_AVAILABLE, PLAN_LOCKED: TRUTH_KINDS.PLAN_LOCKED, ROLE_LOCKED: TRUTH_KINDS.ROLE_LOCKED,
-  PLAN_NOT_DECIDED: TRUTH_KINDS.PLAN_NOT_DECIDED, SMART_PACK: TRUTH_KINDS.SMART_PACK,
+  PLAN_NOT_DECIDED: TRUTH_KINDS.PLAN_NOT_DECIDED,
   MARKET_UNAVAILABLE: TRUTH_KINDS.MARKET_UNAVAILABLE, PAYMENT_NOT_LIVE: TRUTH_KINDS.PAYMENT_NOT_LIVE, INVOICING_NOT_ISSUED: TRUTH_KINDS.INVOICING_NOT_ISSUED,
   COMPARISON: TRUTH_KINDS.COMPARISON_BOTH_AVAILABLE, CLARIFICATION: TRUTH_KINDS.CLARIFICATION,
 });
@@ -177,7 +176,7 @@ export function payloadToTruth(p) {
   if (!kind) return { kind: 'UNDERIVABLE', reason: `no prose-consistency mapping for truth status ${p.truthStatus}` };
   return {
     kind, capabilityId: p.capabilityId ?? undefined, authority: 'structured payload',
-    gate: p.requiredRole !== null ? 'role' : p.minimumPlan !== null ? 'plan' : (p.truthStatus === 'PLAN_NOT_DECIDED' || p.truthStatus === 'SMART_PACK') ? 'subscription' : null, minimumPlan: p.minimumPlan, requiredRole: p.requiredRole,
+    gate: p.requiredRole !== null ? 'role' : p.minimumPlan !== null ? 'plan' : p.truthStatus === 'PLAN_NOT_DECIDED' ? 'subscription' : null, minimumPlan: p.minimumPlan, requiredRole: p.requiredRole,
   };
 }
 

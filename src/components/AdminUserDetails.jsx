@@ -125,7 +125,7 @@ export default function AdminUserDetails({ account, isHebrew, onBack, onReset = 
         </div>
         <div className="av-pills">
           <span className="av-badge" data-market={market}>{t(isHebrew, marketWords.he, marketWords.en)}</span>
-          {status.key === 'free10_inactive' && !statusUnknown && <span className="av-badge av-warn">{isHebrew ? 'שיוך מסלול טרם הופעל' : 'Plan not assigned'}</span>}
+          {status.key === 'free10_inactive' && !statusUnknown && <span className="av-badge av-warn">{isHebrew ? 'שיוך מסלול טרם הופעל' : 'Plan assignment not active'}</span>}
           <span className="av-badge" data-testid="admin-plan-neutral"><AdminPlanState summary={summary} isHebrew={isHebrew} compact={false} /></span>
         </div>
         {onTestMark && (

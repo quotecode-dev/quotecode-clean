@@ -65,9 +65,6 @@ import { getDashboardNavCapabilities } from '../utils/dashboardNavCapabilities';
 import { getFunctionErrorMessage } from '../utils/functionError';
 import { classifyQuoteEmailError, SEND_ANYWAY_CATEGORIES } from '../utils/quoteEmailErrorClassification';
 import ExcelJS from 'exceljs';
-import { downloadListXlsx } from '../utils/listExport';
-import { priceBasisLabel as catalogBasisLabel, priceBasisForSave as catalogBasisForSave } from '../utils/catalogPriceBasis';
-import { formatAddress as formatClientAddress } from '../utils/addressFormat';
 
 import PricingModal from '../components/PricingModal';
 import Free10UpgradeWindow from '../components/Free10UpgradeWindow';
@@ -114,7 +111,7 @@ import { matchesQuoteFilter } from '../utils/quoteStatusDisplay';
 import { templateToFormState, templateCurrencyMismatch, templateCurrencyUnknown, withoutPrices, templatePriceBasis, unitTemplateToRows, unitTemplatePriceQuestions, TEMPLATE_KIND_UNIT } from '../utils/quoteTemplates';
 import { rowEntry, storedBillingMethod } from '../utils/quoteItemEntry';
 import AiQuoteDraftDialog from '../components/AiQuoteDraftDialog';
-import { requestAiQuoteDraft, draftLinesToQuoteItems, aiQuoteSnapshot, applyDraftUpdateToItem, applyDraftNotes, aiPlacesToSections } from '../utils/aiQuoteDraftClient';
+import { requestAiQuoteDraft, draftLinesToQuoteItems, aiQuoteSnapshot, applyDraftUpdateToItem, applyDraftNotes } from '../utils/aiQuoteDraftClient';
 import QuoteFromFileDialog from '../components/QuoteFromFileDialog';
 import { requestQuoteFromFile, readQuoteFileAllowance } from '../utils/quoteFromFileClient';
 // Owner console 2026-11-06 (typed night-task approval): the SMART PACK usage line in the AI smart quote / smart edit window
@@ -2281,32 +2278,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     return true;
   }
 
-  // Owner 2026-11-13 (answer 3 "א", the demo's "שמירת הלקוח והמשך"): a NEW client of the client step is saved to the client list at once.
-  // The same table and fields as handleCreateClient; a client already in the list (same name) is never added twice.
-  async function handleSaveClientFromQuote(newClient) {
-    if (!session?.user?.id) return false;
-    const name = String(newClient?.company_name || '').trim();
-    if (!name) return false;
-    if (clients.some((c) => String(c.company_name || '').trim().toLowerCase() === name.toLowerCase() && c.user_id === session.user.id)) return true;
-    const email = String(newClient.email || '').trim();
-    const { error } = await supabase.from('clients').insert([{
-      company_name: name,
-      email: email && emailEmailValidation(email) ? email : '',
-      phone: newClient.phone || '',
-      client_type: newClient.client_type || null,
-      tax_id: newClient.tax_id || '',
-      address: newClient.address || '',
-      user_id: session.user.id,
-    }]);
-    if (error) {
-      alertWithBlocker(blockerCodeForActionError('create_client', error.message), { surface: 'clients' }, isHebrew ? 'שגיאה ביצירת הלקוח: ' + error.message : 'Error creating client: ' + error.message);
-      return false;
-    }
-    setStatusMsg({ text: isHebrew ? 'הלקוח נשמר ברשימת הלקוחות.' : 'The client was saved to your client list.', type: 'success' });
-    await fetchClients(session.user.id);
-    return true;
-  }
-
   async function handleSaveUpdatedExpense(updatedExpense) {
     const { error } = await supabase
       .from('expenses')
@@ -2667,41 +2638,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  };
-
-  // 2026-11-13 (Owner console, typed: "כן מאשר את שלושת החלקים"): the clients and the catalog to Excel - the same sheet as the quotes
-  // export (business name, export date, headers); the market decides the language and the date order, as in the quotes export
-  const exportHeader = (titleHe, titleEn) => ({
-    rtl: Boolean(isLocalIsraeliBusiness),
-    title: isLocalIsraeliBusiness ? `${bizName || 'TEKANGO'} – ${titleHe}` : `${bizName || 'TEKANGO'} – ${titleEn}`,
-    dateLine: isLocalIsraeliBusiness ? `תאריך הפקה: ${formatShortDate(deviceCalendarDate(), 'Local')}` : `Export Date: ${formatShortDate(deviceCalendarDate(), 'International')}`,
-  });
-  const handleExportClients = async (list) => {
-    const rows = Array.isArray(list) ? list : [];
-    if (!rows.length) { setAlertModalMsg(isHebrew ? 'אין נתונים לייצוא.' : 'No data to export.'); return; }
-    const local = Boolean(isLocalIsraeliBusiness);
-    const type = (c) => (c.client_type === 'business' ? (local ? 'לקוח עסקי' : 'Business client') : c.client_type === 'private' ? (local ? 'לקוח פרטי' : 'Private client') : '');
-    await downloadListXlsx({
-      ...exportHeader('רשימת לקוחות', 'Clients'),
-      fileName: 'clients_report.xlsx', sheetName: local ? 'לקוחות' : 'Clients',
-      headers: local ? ['שם הלקוח', 'סוג הלקוח', 'כתובת מייל', 'טלפון', 'ח״פ / ת״ז', 'כתובת', 'הערות', 'תאריך יצירה'] : ['Client', 'Client type', 'Email', 'Phone', 'Tax ID', 'Address', 'Notes', 'Created At'],
-      widths: [26, 14, 28, 16, 16, 30, 30, 16],
-      rows: rows.map((c) => [c.company_name || '', type(c), c.email || '', c.phone || '', c.tax_id || '', c.address ? formatClientAddress(c.address, local) : '', c.notes || '',
-        c.created_at ? formatShortDate(c.created_at, local ? 'Local' : 'International') : '']),
-    });
-  };
-  const handleExportCatalog = async (list) => {
-    const rows = Array.isArray(list) ? list : [];
-    if (!rows.length) { setAlertModalMsg(isHebrew ? 'אין נתונים לייצוא.' : 'No data to export.'); return; }
-    const local = Boolean(isLocalIsraeliBusiness);
-    await downloadListXlsx({
-      ...exportHeader('קטלוג שירותים ומוצרים', 'Services & Products Catalog'),
-      fileName: 'catalog_report.xlsx', sheetName: local ? 'קטלוג' : 'Catalog',
-      headers: local ? ['שם הפריט', 'מחיר', 'איך מחשבים', 'תיאור'] : ['Item', 'Price', 'How it is priced', 'Description'],
-      widths: [30, 16, 18, 40],
-      rows: rows.map((s) => [s.name || '', s.price == null || s.price === '' ? '' : `${sym}${formatMoneyDisplay(Number(s.price))}`,
-        catalogBasisLabel(catalogBasisForSave(s.price_basis) || 'unit', local), typeof s.description === 'string' ? s.description.trim() : '']),
-    });
   };
 
   const handleExportExpenses = () => {
@@ -3094,8 +3030,7 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // מסיר section - הפריטים ששייכים אליו לא נמחקים, רק "יוצאים" מהקטגוריה
   // (section_key מתאפס), זהה למשמעות ON DELETE SET NULL בסכימה עצמה.
   const removeSection = (key) => {
-    // 2026-11-13 (heading tree): the sub-headings of a removed heading move up to its own parent (never lost, never orphaned)
-    setSections(prev => { const gone = prev.find(s => s.key === key); return prev.filter(s => s.key !== key).map(s => (s.parent_key === key ? { ...s, parent_key: gone?.parent_key || null } : s)); });
+    setSections(prev => prev.filter(s => s.key !== key));
     setItems(prev => prev.map(it => (it.section_key === key ? { ...it, section_key: null } : it)));
   };
 
@@ -3281,21 +3216,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
     fetchServices(session.user.id);
     setStatusMsg({ text: isHebrew ? 'השירות נוסף לקטלוג בהצלחה!' : 'Service added to catalog successfully', type: 'success' });
     return true;
-  }
-
-  // 2026-11-13 (Owner: the manual quote of the 13/11 spec): "save to the catalog" from the add form - a NEW product only (a name already in the
-  // catalog is never added twice); the method is stored as the catalog's own price basis. Returns { ok } / { duplicate } - the form shows the result.
-  async function saveQuoteRowToCatalog({ name, price, method, international }) {
-    if (!session?.user?.id) return { ok: false };
-    const clean = String(name || '').trim();
-    if (!clean) return { ok: false };
-    if ((services || []).some((sv) => String(sv?.name || '').trim().toLowerCase() === clean.toLowerCase())) return { ok: false, duplicate: true };
-    const basis = { units: 'unit', area: international ? 'sq_ft' : 'm2', linear: international ? 'linear_ft' : 'linear_meter', hour: 'hour', day: 'day', kg: 'kg', fixed: 'fixed' }[method] || null;
-    const num = Number(price);
-    const { error } = await supabase.from('services').insert([{ name: clean, price: Number.isFinite(num) ? num : 0, user_id: session.user.id, ...(basis ? { price_basis: basis } : {}) }]);
-    if (error) return { ok: false };
-    fetchServices(session.user.id);
-    return { ok: true };
   }
 
   async function handleSaveEditedService(serviceId, priceBasis = null) {
@@ -4009,8 +3929,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     price_link_id: item.price_link_id || null,
     // Owner console 2026-11-09 (item 08): the stored choice between a fixed amount and units reopens as the user chose it
     ...(item.billing_method === 'fixed' || item.billing_method === 'units' ? { _billing: item.billing_method } : {}),
-    // 2026-11-13 (Owner: "מוצר מוגמר"): the saved room tag reopens - without it the next save sent room: null and erased it
-    ...(typeof item.room === 'string' && item.room ? { room: item.room } : {}),
     measurements: (item.quote_item_measurements || [])
       .slice()
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
@@ -4075,10 +3993,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     setSections((quote.quote_sections || [])
       .slice()
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-      .map(s => ({ key: s.id, id: s.id, name: s.name, sort_order: s.sort_order || 0, repeat_count: normalizeRepeatCount(s.repeat_count),
-        // 2026-11-13: the group word and the parent heading reopen as saved (key === id, so a parent's key is its id); without the kind
-        // the next save sent kind: null and erased it ("דירה" became "חלק")
-        ...(s.kind ? { kind: s.kind } : {}), ...(s.parent_section_id ? { parent_key: s.parent_section_id } : {}) })));
+      .map(s => ({ key: s.id, id: s.id, name: s.name, sort_order: s.sort_order || 0, repeat_count: normalizeRepeatCount(s.repeat_count) })));
     setQuoteStructureMode(inferStructureModeFromQuote(quote));
     setMeasuredQuoteEntry(false); setShowAiQuoteDraft(false); // Task 21: an existing quote is never a fresh measured / AI entry
 
@@ -4357,21 +4272,14 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     const s = aiQuoteSnapshot(items, notes, discount, (it) => !isUntouchedPlaceholderItem(it) && !it._localExample);
     aiSnapshotRef.current = s;
     setAiCurrentQuote(s.empty ? null : s.snapshot);
-    // 2026-11-13 (Owner: the headings are a TREE, typed and voice alike): a new quote asks for the tree - also after a structure choice or
-    // existing headings (the AI headings are appended, never replacing what is there)
-    return requestAiQuoteDraft(supabase, description, s.empty ? { structure: true, tree: true } : { quote: s.snapshot });
+    // 2026-11-12 (unified quote, spec 5): a new quote that is not divided yet asks for the places / rooms too
+    return requestAiQuoteDraft(supabase, description, s.empty ? { structure: !editingQuoteId && quoteStructureMode !== 'divided' && !(sections || []).length } : { quote: s.snapshot });
   };
   const applyAiQuoteDraft = (lines, subject, changes = [], places = []) => {
     let drafted = markForReview(draftLinesToQuoteItems(lines), lines);
     // 2026-11-12 (unified quote, spec 5): the suggested places become groups (only while the quote has none): identical = one group × N,
     // otherwise N groups; a line's work goes to the first group of its place (the "copy from the first" button fills the others)
-    if (Array.isArray(places) && places.length && places.some((p) => p && 'parent' in p)) {
-      // 2026-11-13 (tree): new headings appended after the existing ones, nested; each line in its own deepest heading; no × N
-      const built = aiPlacesToSections(places, lines, drafted, sections || [], { isHebrew, stamp: `${Date.now()}_${Math.random().toString(36).slice(2, 6)}` });
-      drafted = built.items;
-      setSections((prev) => [...(prev || []), ...built.sections]);
-      setQuoteStructureMode('divided');
-    } else if (Array.isArray(places) && places.length && !(sections || []).length) {
+    if (Array.isArray(places) && places.length && !(sections || []).length) {
       const stamp = `${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
       const firstKey = new Map();
       const fresh = [];
@@ -4661,10 +4569,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
     const newSections = oldSections.map((s, idx) => {
       const key = `tmp_section_${Date.now()}_${idx}_${Math.random().toString(36).slice(2, 8)}`;
       sectionIdToNewKey.set(s.id, key);
-      return { key, name: s.name, sort_order: idx, repeat_count: normalizeRepeatCount(s.repeat_count),
-        // 2026-11-13: the copy keeps each heading's kind (its parent is mapped below, once every new key exists)
-        ...(s.kind ? { kind: s.kind } : {}), _parentId: s.parent_section_id || null };
-    }).map(({ _parentId, ...s }) => (_parentId && sectionIdToNewKey.has(_parentId) ? { ...s, parent_key: sectionIdToNewKey.get(_parentId) } : s));
+      return { key, name: s.name, sort_order: idx, repeat_count: normalizeRepeatCount(s.repeat_count) };
+    });
     setSections(newSections);
     // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17): a duplicated quote keeps its unit counts and gets a NEW id for every shared-price group
     const priceLinkToNew = new Map();
@@ -5399,11 +5305,9 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
 
       // IRON-QUOTE-001/002/005: the persistence stages live in utils/quoteSaveOrchestrator.js (failure-injection tested). ATOMIC
       // (save_quote_atomic, when the prepared migration is applied) or PHASED (current schema, compensating + truthful reporting).
-      // 2026-11-14 (Owner approved): the name without spaces at its ends on both sides - the client step saved "Acme" for "Acme ", and the
-      // untrimmed match then added a second client
-      const existingClient = clients.find(c => String(c.company_name || '').trim().toLowerCase() === String(clientName || '').trim().toLowerCase() && c.user_id === session.user.id);
+      const existingClient = clients.find(c => c.company_name?.toLowerCase() === clientName.toLowerCase() && c.user_id === session.user.id);
       const clientPayload = {
-        company_name: String(clientName || '').trim(),
+        company_name: clientName,
         email: clientEmail ? clientEmail.trim() : '',
         phone: clientPhone,
         client_type: clientType,
@@ -5462,7 +5366,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       // 2026-11-12 (unified quote, spec 8.4): a group without a name is saved under its default name ("דירה 2", "Room 3") - it is never
       // dropped while its rows still point at it (that made the whole save fail with "Unknown section_client_key")
       const currentNamedSections = (sections || []).map((s, idx) => ((s.name || '').trim() !== '' ? s : { ...s, name: defaultGroupName(s.kind, idx, isHebrew) }));
-      const currentSectionKeys = new Set(currentNamedSections.map((s) => s.key));
       const authoritativeSectionIds = new Set((authoritativeSections || []).map(s => s.id));
       const currentSectionIds = new Set(currentNamedSections.filter(s => s.id).map(s => s.id));
       const removedSectionIds = [...authoritativeSectionIds].filter(id => !currentSectionIds.has(id));
@@ -5473,8 +5376,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         sort_order: s.sort_order != null ? s.sort_order : idx,
         repeat_count: normalizeRepeatCount(s.repeat_count), // stage 3
         kind: s.kind || null, // 2026-11-12 (unified quote): the group word the user chose
-        // 2026-11-13 (heading tree): the parent heading by its key; a parent no longer in the quote -> top level (as the server trigger does)
-        parent_client_key: s.parent_key && s.parent_key !== s.key && currentSectionKeys.has(s.parent_key) ? s.parent_key : null,
       }));
       const authoritativeItemIds = new Set((authoritativeItems || []).map((a) => a.id));
       const itemsPayload = itemsForPersist ? itemsForPersist.map((item, idx) => ({
@@ -5708,12 +5609,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       else if (presentationNote.kind === 'info') setStatusMsg({ text: presentationNote.text, type: 'success' });
       if (leaveDraftNote) setStatusMsg({ text: leaveDraftNote, type: 'error' });
 
-      // Owner 2026-11-13 (typed: "ברגע שלוחצים על שמירת ההצעה זה יקפיץ הודעה \" האם לשמור הצעה זאת כתבנית?\"", answers 6 / 7): asked after the
-      // FIRST save of a quote only (a saved quote shows "עדכון ההצעה" and is not asked); the template is built from the quote as it was saved
-      const templateAsk = !editingQuoteId && items.some((it) => it && !it._localExample && String(it.description || '').trim())
-        ? { form: { items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency, priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType) },
-          askPriceBasis: isLocalIsraeliBusiness === true && !templatePriceBasis(isLocalIsraeliBusiness, clientType) }
-        : null;
       await quoteDraft.discard(); // the draft is removed only after ALL required save stages succeeded
       clearScope('editor'); // confirmed resolution: every save stage succeeded
       setEditingQuoteId(null);
@@ -5725,9 +5620,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       if (!reachedCustomer) setSavedScreen({ quoteId, link: getQuoteViewLink({ id: quoteId, tax_rate: isLocalIsraeliBusiness ? taxRate : 0, currency: isLocalIsraeliBusiness ? 'ILS' : currency }) });
       loadData(session.user.id, session.user.email);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      if (templateAsk && await askConfirm(isHebrew ? 'האם לשמור הצעה זאת כתבנית?' : 'Save this quote as a template?', isHebrew, isHebrew ? { yes: 'כן', no: 'לא' } : { yes: 'Yes', no: 'No' })) {
-        setTemplateDialog({ kind: 'save-saved', ...templateAsk });
-      }
     } catch (err) {
       console.error(err);
       const f = blockerCodeForSaveFailure(err);
@@ -8521,12 +8413,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           askPriceBasis={isLocalIsraeliBusiness === true && !templatePriceBasis(isLocalIsraeliBusiness, clientType)}
           rowBilling={(it) => rowEntry(it, isLocalIsraeliBusiness === false).pricingMethod} onClose={() => setTemplateDialog(null)} />
       )}
-      {/* Owner 2026-11-13: the template of a quote just saved for the first time (its form as saved - the editor is already reset) */}
-      {templateDialog?.kind === 'save-saved' && session?.user?.id && (
-        <SaveTemplateDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
-          form={templateDialog.form} askPriceBasis={templateDialog.askPriceBasis}
-          rowBilling={(it) => rowEntry(it, isLocalIsraeliBusiness === false).pricingMethod} onClose={() => setTemplateDialog(null)} />
-      )}
       {templateDialog === 'pick' && session?.user?.id && (
         <TemplatePickerDialog isHebrew={isHebrew} client={supabase} userId={session.user.id} formatMoney={(v) => `${sym}${formatMoneyDisplay(v)}`}
           onClose={() => setTemplateDialog(null)} onUse={handleUseTemplate} />
@@ -8836,7 +8722,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             {isSuperAdmin && (
               <span className="dash-sidebar-admin-badge">
                 <Shield size={12} strokeWidth={2.5} />
-                {isHebrew ? 'מנהל ראשי' : 'SUPER ADMIN'}
+                SUPER ADMIN
               </span>
             )}
             {/* Final Dashboard/Sidebar Polish task, §C: the large standalone
@@ -9429,7 +9315,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                 editor: {
                   quoteId: editingQuoteId || newDraftUuid, quoteNumber: editingOriginalQuote?.quote_number ?? null, createdAt: editingOriginalQuote?.created_at,
                   clientName, clientEmail, clientPhone, clientType, clientAddress, quoteSubject, attnName, attnRole,
-                  currency: isLocalIsraeliBusiness ? 'ILS' : currency, quoteStatus, validUntil, discount, terms, warranty, notes, items, sections, projectName, isHebrew,
+                  currency: isLocalIsraeliBusiness ? 'ILS' : currency, quoteStatus, validUntil, discount, terms, warranty, notes, items, sections, projectName,
                 },
                 financials: { subtotal, taxRate, total: totalAmount },
                 business: { business_name: bizName, logo_url: bizLogoUrl, tax_id: bizTaxId, email: bizEmail, phone: bizPhone, address: bizAddress, currency: isLocalIsraeliBusiness ? 'ILS' : currency },
@@ -9438,7 +9324,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             >
             <QuoteForm
               flowStep={quoteFlowStep}
-              onSaveToCatalog={saveQuoteRowToCatalog}
               onFlowStep={handleQuoteFlowStep}
               businessPhone={bizPhone}
               editingQuoteId={editingQuoteId}
@@ -9447,7 +9332,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onCancel={requestCancelEdit}
               onBack={inAppBack.back}
               onOpenCustomerTwin={() => setCustomerTwin({ mode: 'editor' })}
-              onSaveClientNow={handleSaveClientFromQuote}
+              onSaveAsTemplate={() => { if (items.some((it) => it && it._invalid)) { setAlertModalMsg(isHebrew ? 'תקנו את השדות המסומנים ונסו לשמור שוב.' : 'Fix the highlighted fields and try saving again.'); return; } setTemplateDialog('save'); }}
               onSaveUnitTemplate={(section) => { if (items.some((it) => it && it._invalid)) { setAlertModalMsg(isHebrew ? 'תקנו את השדות המסומנים ונסו לשמור שוב.' : 'Fix the highlighted fields and try saving again.'); return; } setTemplateDialog({ kind: 'save-unit', section }); }}
               onAddUnitFromTemplate={() => setTemplateDialog('pick-unit')}
               clientName={clientName} setClientName={setClientName}
@@ -9564,7 +9449,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
 
           {activeTab === 'clients' && (
             <ClientsTab
-              onExportClients={() => handleExportClients(filteredClients)}
               filteredClients={filteredClients}
               clientSearchTerm={clientSearchTerm}
               setClientSearchTerm={setClientSearchTerm}
@@ -9722,7 +9606,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
 
           {activeTab === 'catalog' && (
             <ServicesCatalog
-              onExportCatalog={handleExportCatalog}
               t={t}
               isHebrew={isHebrew}
               newServiceName={newServiceName}

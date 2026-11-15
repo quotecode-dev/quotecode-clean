@@ -11,7 +11,7 @@ const read = (p) => readFileSync(join(root, p), 'utf8');
 
 describe('AiHelpButton', () => {
   it.each([
-    [true, false, 'שאלו את ה-AI'], [true, true, 'צריכים עזרה? שאלו את העוזר החכם'], [false, false, 'Ask AI'], [false, true, 'Need help? Ask the smart assistant'],
+    [true, false, 'שאלו את העוזר החכם'], [true, true, 'צריכים עזרה? שאלו את העוזר החכם'], [false, false, 'Ask AI'], [false, true, 'Need help? Ask AI'],
   ])('isHebrew=%s long=%s shows the visible label "%s" next to the canonical AI Chat icon', (isHebrew, long, label) => {
     render(<AiHelpButton isHebrew={isHebrew} long={long} testId="x" />);
     const btn = screen.getByTestId('x');

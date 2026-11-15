@@ -48,7 +48,7 @@ describe.each([['HE', PublicQuote, 'תצוגת מסמך מלא', 'תצוגת ש�
       mount();
       const toggle = document.querySelector('.pq-section-toggle');
       expect(toggle.getAttribute('aria-expanded')).toBe('true');
-      expect(toggle.textContent.trim().startsWith('▼')).toBe(true);
+      expect(toggle.textContent.trim().startsWith('▲')).toBe(true);
       expect(screen.getByText('Windows')).toBeInTheDocument();
       expect(screen.getByText(kitchen)).toBeInTheDocument();
       expect(screen.getByText(whole)).toBeInTheDocument();

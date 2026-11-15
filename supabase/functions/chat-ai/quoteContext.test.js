@@ -83,7 +83,7 @@ describe('sanitizeQuoteContext - §6.3 field whitelist', () => {
     expect(ctx.taxRate).toBe(0.18);
     expect(ctx.total).toBe(1180);
     // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-09 / L-17 / L-24..L-28): + the unit count (1 = none)
-    expect(ctx.sections).toEqual([{ id: 's1', name: 'Section A', repeatCount: 1, path: 'Section A' }]);
+    expect(ctx.sections).toEqual([{ id: 's1', name: 'Section A', repeatCount: 1 }]);
   });
 
   it('marks a quote locked when approved, paid, or signed - matching quoteLock.js isQuoteImmutable exactly', () => {
@@ -165,30 +165,5 @@ describe('buildQuoteContextBlock - §7 prompt-injection boundary', () => {
     const block = buildQuoteContextBlock(ctx);
     expect(block).toMatch(/do not invent a repair/i);
     expect(block).toContain('999');
-  });
-});
-
-// 2026-11-13 (Owner: the manual quote of the 13/11 spec - the assistant explains every detail): headings inside headings
-describe('sanitizeQuoteContext - the heading tree', () => {
-  const row = () => baseRow({
-    quote_sections: [{ id: 'f', name: 'Floor 10' }, { id: 'a', name: 'Apartment 22', parent_section_id: 'f' }, { id: 'k', name: 'Kitchen', parent_section_id: 'a' },
-      { id: 'x', name: 'Loop A', parent_section_id: 'y' }, { id: 'y', name: 'Loop B', parent_section_id: 'x' }],
-    quote_items: [{ description: 'Tiles', quantity: 1, unit_price: 100, total_price: 100, section_id: 'k' }, { description: 'Cleaning', quantity: 1, unit_price: 50, total_price: 50, section_id: null }],
-  });
-  it('each heading has its full path, top first; a loop ends the path (never an endless walk)', () => {
-    const ctx = sanitizeQuoteContext(row());
-    expect(ctx.sections.map((s) => s.path)).toEqual(['Floor 10', 'Floor 10 > Apartment 22', 'Floor 10 > Apartment 22 > Kitchen', 'Loop B > Loop A', 'Loop A > Loop B']);
-  });
-  it('a line carries its heading path; a line in no heading carries none', () => {
-    const ctx = sanitizeQuoteContext(row());
-    expect(ctx.items.map((it) => it.heading)).toEqual(['Floor 10 > Apartment 22 > Kitchen', null]);
-    const block = buildQuoteContextBlock(ctx);
-    expect(block).toContain('Heading tree (top > inside): Floor 10; Floor 10 > Apartment 22; Floor 10 > Apartment 22 > Kitchen');
-    expect(block).toContain('- Tiles (qty 1, rate 100, line total 100) [under: Floor 10 > Apartment 22 > Kitchen]');
-    expect(block.split('\n')).toContain('- Cleaning (qty 1, rate 50, line total 50)');
-  });
-  it('a flat quote (no parents) gets no heading-tree line', () => {
-    const block = buildQuoteContextBlock(sanitizeQuoteContext(baseRow()));
-    expect(block).not.toContain('Heading tree');
   });
 });

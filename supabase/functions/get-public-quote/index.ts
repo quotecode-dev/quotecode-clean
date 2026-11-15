@@ -118,7 +118,7 @@ serve(async (req) => {
         discount, terms, warranty, notes, subject, status, signature, currency, client_type,
         quote_number, attn_name, attn_role, project_name, signer_name, signer_company, signer_role, signed_at,
         clients ( user_id, company_name, email, phone, address ),
-        quote_sections ( id, name, sort_order, repeat_count, kind, parent_section_id ),
+        quote_sections ( id, name, sort_order, repeat_count, kind ),
         quote_items ( description, quantity, unit_price, total_price, price_missing, room, pricing_unit, calculated_quantity, quantity_source, specification, section_id, calculation_method, sort_order, quote_item_measurements ( width, height, unit, calculated_area, label, sort_order, is_pricing_driving ) )
       `;
       const flatSelect = `
@@ -143,20 +143,9 @@ serve(async (req) => {
         // 2026-10-25 (L-24): the stored signer too - a server before 20261025000000 falls back instead of failing
         // Owner console 2026-11-08 (stage 3 of the one quote builder): the unit count too (20261108200000)
         // 2026-11-12 (unified quote): the group kind and the room tag too (20261112100000)
-        // 2026-11-13 (heading tree): the parent heading too (20261113100000)
-        return ['parent_section_id', 'kind', 'room', 'repeat_count', 'signer_name', 'signer_company', 'signer_role', 'signed_at', 'price_missing', 'project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
+        return ['kind', 'room', 'repeat_count', 'signer_name', 'signer_company', 'signer_role', 'signed_at', 'price_missing', 'project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'sort_order', 'quote_item_measurements']
           .some((col) => msg.includes(col));
       };
-
-      // 2026-11-13 (security review): a server before the heading-tree migration - the same full read without the parent column (never
-      // the flat fallback, which would drop every heading, measurement and signer field)
-      if (quoteErr && String(quoteErr?.message || '').includes('parent_section_id')) {
-        ({ data: quote, error: quoteErr } = await adminClient
-          .from('quotes')
-          .select(richSelect.replace(', parent_section_id', ''))
-          .eq('id', quoteId)
-          .maybeSingle());
-      }
 
       if (quoteErr && isMissingStructuredFieldError(quoteErr)) {
         ({ data: quote, error: quoteErr } = await adminClient
@@ -261,9 +250,7 @@ serve(async (req) => {
         sections: (quote.quote_sections || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0))
           .map((s: any) => ({ id: s.id, name: s.name, ...(Number.isInteger(s.repeat_count) && s.repeat_count > 1 ? { repeat_count: s.repeat_count } : {}),
             // 2026-11-12 (unified quote): the kind ONLY when set (every existing response is unchanged)
-            ...(typeof s.kind === 'string' && s.kind ? { kind: s.kind } : {}),
-            // 2026-11-13 (heading tree): the parent heading ONLY when set (every existing response is unchanged)
-            ...(typeof s.parent_section_id === 'string' && s.parent_section_id ? { parent_id: s.parent_section_id } : {}) })),
+            ...(typeof s.kind === 'string' && s.kind ? { kind: s.kind } : {}) })),
         items: (quote.quote_items || []).slice().sort((a: any, b: any) => (a.sort_order || 0) - (b.sort_order || 0)).map((i: any) => ({
           description: i.description, quantity: i.quantity, price: i.unit_price, total_price: i.total_price,
           // Task 35 (F4): the flag only when true - every existing response stays byte-identical

@@ -112,7 +112,7 @@ export function serverFingerprintFromQuote(quote) {
     // 2026-11-12 (unified quote): the room only when set - every existing baseline is unchanged
     ...(it.room ? ['room:' + it.room] : []),
   ]);
-  const sections = (quote.quote_sections || []).slice().sort((a, b) => String(a.id).localeCompare(String(b.id))).map((s) => [s.id, s.name ?? '', s.sort_order ?? 0, ...(Number(s.repeat_count) > 1 ? [Number(s.repeat_count)] : []), ...(s.kind ? ['kind:' + s.kind] : []), ...(s.parent_section_id ? ['parent:' + s.parent_section_id] : [])]);
+  const sections = (quote.quote_sections || []).slice().sort((a, b) => String(a.id).localeCompare(String(b.id))).map((s) => [s.id, s.name ?? '', s.sort_order ?? 0, ...(Number(s.repeat_count) > 1 ? [Number(s.repeat_count)] : []), ...(s.kind ? ['kind:' + s.kind] : [])]);
   const base = {
     id: quote.id, status: quote.status ?? '', valid_until: quote.valid_until ?? '', terms: quote.terms ?? '', warranty: quote.warranty ?? '',
     notes: quote.notes ?? '', subject: quote.subject ?? quote.quote_subject ?? '', project_name: quote.project_name ?? '', discount: String(quote.discount ?? ''),

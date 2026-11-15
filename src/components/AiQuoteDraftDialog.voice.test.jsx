@@ -47,28 +47,6 @@ describe('AI smart quote dictation (Owner 2026-10-19)', () => {
     expect(p.requestDraft).not.toHaveBeenCalled();
   });
 
-  // 2026-11-13 (Owner, the 13/11 spec: never a silent cut): a dictation past the field's limit keeps the start and says so, in both languages
-  it('a dictation longer than the field: the first 2,000 characters go in and a message says the end did not fit; typing clears it', async () => {
-    const transcribe = vi.fn(async () => ({ ok: true, text: 'א'.repeat(2100) }));
-    render(<AiQuoteDraftDialog {...props({ transcribe })} />);
-    const field = screen.getByLabelText('מה העבודה?');
-    await recordOnce('ai-quote-draft-dictate');
-    await waitFor(() => expect(field.value).toHaveLength(2000));
-    expect(screen.getByTestId('ai-quote-draft-voice-cut').textContent).toBe('הטקסט ארוך מדי, ולכן נכנסו רק 2,000 התווים הראשונים. הסוף לא נכנס - אפשר לקצר ולהכתיב שוב.');
-    fireEvent.change(field, { target: { value: 'קצר יותר' } });
-    expect(screen.queryByTestId('ai-quote-draft-voice-cut')).toBeNull();
-    cleanup();
-    render(<AiQuoteDraftDialog {...props({ isHebrew: false, sym: '$', transcribe: vi.fn(async () => ({ ok: true, text: 'a'.repeat(2100) })) })} />);
-    await recordOnce('ai-quote-draft-dictate');
-    expect(await screen.findByTestId('ai-quote-draft-voice-cut')).toHaveTextContent('only the first 2,000 characters went in');
-  });
-  it('a dictation that fits shows no cut message', async () => {
-    render(<AiQuoteDraftDialog {...props({ transcribe: vi.fn(async () => ({ ok: true, text: 'פירוק ריצוף' })) })} />);
-    await recordOnce('ai-quote-draft-dictate');
-    await waitFor(() => expect(screen.getByLabelText('מה העבודה?').value).toBe('פירוק ריצוף'));
-    expect(screen.queryByTestId('ai-quote-draft-voice-cut')).toBeNull();
-  });
-
   it('the draft questions are answered by voice: the answer joins the description and the draft is created again', async () => {
     const transcribe = vi.fn(async () => ({ ok: true, text: 'שלושים מטר' }));
     const requestDraft = vi.fn().mockResolvedValueOnce(QUESTION_DRAFT).mockResolvedValueOnce(FULL_DRAFT);
@@ -101,25 +79,5 @@ describe('AI smart quote dictation (Owner 2026-10-19)', () => {
   it('English copy', () => {
     render(<AiQuoteDraftDialog {...props({ isHebrew: false, transcribe: vi.fn() })} />);
     expect(screen.getByTestId('ai-quote-draft-dictate').getAttribute('aria-label')).toBe('Dictate');
-  });
-
-  // 2026-11-14 (Owner: "תסדר גם את המיקרופון"): the box is the wrapper; the text scrolls only above the microphone's strip
-  it('the microphone sits in its own strip at the bottom of the box - the text area never runs under it', () => {
-    for (const isHebrew of [true, false]) {
-      render(<AiQuoteDraftDialog {...props({ isHebrew, transcribe: vi.fn() })} />);
-      const box = screen.getByTestId('ai-quote-draft-field-box');
-      const field = box.querySelector('textarea');
-      expect(box.style.paddingBottom).toBe('52px');
-      expect(box.style.border).toMatch(/1px solid/);
-      expect(field.style.paddingBottom).toBe('4px');
-      expect(field.style.border).not.toMatch(/solid/);
-      expect(field.style.background).toBe('transparent');
-      expect(box.contains(screen.getByTestId('ai-quote-draft-dictate'))).toBe(true);
-      cleanup();
-    }
-    // no microphone: the field keeps its own box, as before
-    render(<AiQuoteDraftDialog {...props()} />);
-    expect(screen.getByTestId('ai-quote-draft-field-box').style.border).toBe('');
-    expect(screen.getByTestId('ai-quote-draft-field-box').querySelector('textarea').style.border).toMatch(/1px solid/);
   });
 });

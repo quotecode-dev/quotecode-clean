@@ -182,7 +182,7 @@ const unmark = (it) => { const c = { ...it }; delete c._invalid; delete c._raw; 
 const fieldStyle = { minHeight: '40px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.84rem' };
 const errStyle = { flexBasis: '100%', margin: '2px 0 0', fontSize: '0.72rem', fontWeight: 700, color: NEON.red };
 
-function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney, services, sections, store, pos, count, onItem, onDuplicate, onRemove, onMove, onShift, onEnterNext, onCatalogItemAdded, canUseMeasured, onMeasuredLocked, linked = null, onLinkedAll = null, recommendedMethod = null, canRemove = true, detailsOnlyMenu = false }) {
+function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney, services, sections, store, pos, count, onItem, onDuplicate, onRemove, onMove, onShift, onEnterNext, onCatalogItemAdded, canUseMeasured, onMeasuredLocked, linked = null, onLinkedAll = null, recommendedMethod = null, canRemove = true }) {
   // a catalog line stays a catalog line when it is edited again (the entry's catalog mark; the media binding runs only on a new pick)
   const entryOf = (it) => ({ ...rowEntry(it, international), catalogServiceId: it.isFromCatalog ? 'catalog' : null });
   const [entry, setEntry] = useState(() => (item._invalid && item._raw && typeof item._raw === 'object' ? { ...item._raw } : entryOf(item)));
@@ -468,19 +468,17 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
           <div role="menu" style={{ position: 'absolute', insetInlineEnd: 0, top: '100%', zIndex: 30, marginTop: '4px', minWidth: '190px', background: NEON.bgCard, border: `1px solid ${NEON.border}`, borderRadius: '10px', boxShadow: '0 12px 28px -10px rgba(15,23,42,0.35)', padding: '4px' }}>
             {/* PRODUCT_TRUTH_DECORATIVE: row menu 'details for the customer': opens the item's specification rows inside the row (the item window's details) */}
             <button type="button" role="menuitem" onClick={() => { close(); setShowDetails(true); if (specRows.length === 0) setEntry((e) => ({ ...e, specRows: [{ label: '', value: '' }] })); }} style={menuBtn}>{t.details}</button>
-            {!detailsOnlyMenu && (
-              // PRODUCT_TRUTH_DECORATIVE: row menu 'duplicate row': copies this item as a new line (same as the item card's duplicate); hidden inside the new work area's "Edit" (its own menu duplicates with an exact cancel)
-              <button type="button" role="menuitem" onClick={() => { close(); onDuplicate(index); }} style={menuBtn}>{t.duplicate}</button>
-            )}
-            {!detailsOnlyMenu && pos > 0 && (
+            {/* PRODUCT_TRUTH_DECORATIVE: row menu 'duplicate row': copies this item as a new line (same as the item card's duplicate) */}
+            <button type="button" role="menuitem" onClick={() => { close(); onDuplicate(index); }} style={menuBtn}>{t.duplicate}</button>
+            {pos > 0 && (
               // PRODUCT_TRUTH_DECORATIVE: row menu 'move up' inside its unit (the saved order)
               <button type="button" role="menuitem" onClick={() => { close(); onShift(pos, -1); }} style={menuBtn}>{t.moveUp}</button>
             )}
-            {!detailsOnlyMenu && pos < count - 1 && (
+            {pos < count - 1 && (
               // PRODUCT_TRUTH_DECORATIVE: row menu 'move down' inside its unit (the saved order)
               <button type="button" role="menuitem" onClick={() => { close(); onShift(pos, 1); }} style={menuBtn}>{t.moveDown}</button>
             )}
-            {!detailsOnlyMenu && sections.length > 0 && (
+            {sections.length > 0 && (
               <label style={{ ...menuBtn, display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 {t.moveTo}
                 <select value={item.section_key || ''} onChange={(e) => { close(); onMove(index, e.target.value || null); }} style={fieldStyle}>
@@ -489,7 +487,7 @@ function RowLine({ item, index, rowId, t, isHebrew, international, sym, fmtMoney
                 </select>
               </label>
             )}
-            {!detailsOnlyMenu && canRemove && (
+            {canRemove && (
               // PRODUCT_TRUTH_DECORATIVE: row menu 'remove row': removes this item from the open quote (same as the item card's remove); restore item 17 (Owner 2026-11-08): shown only when the quote has more than one line, as before
               <button type="button" role="menuitem" onClick={() => { close(); onRemove(index); }} style={{ ...menuBtn, color: NEON.red }}>{t.remove}</button>
             )}
@@ -574,7 +572,7 @@ export default function QuoteRowsEditor({
   items, setItems, indices = null, addSectionKey = null, showHead = true, showAdd = true, keyStore = null,
   services = [], sections = [], isHebrew, international = false, sym = '', fmtMoney = (v) => Number(v).toFixed(2),
   onCatalogItemAdded = null, canUseMeasured = true, onMeasuredLocked = null, canDuplicate = () => true, onDuplicateLocked = null,
-  recommendedMethod = null, detailsOnlyMenu = false,
+  recommendedMethod = null,
 }) {
   const t = COPY[isHebrew ? 'he' : 'en'];
   const own = useRef(null);
@@ -713,7 +711,7 @@ export default function QuoteRowsEditor({
             <RowLine rowId={k} item={item} index={index} pos={pos} count={shown.length} store={store} t={t} isHebrew={isHebrew} international={international}
               sym={sym} fmtMoney={fmtMoney} services={services} sections={sections} onItem={onItem} onDuplicate={onDuplicate} onRemove={onRemove} onMove={onMove}
               onShift={onShift} onEnterNext={onEnterNext} onCatalogItemAdded={onCatalogItemAdded} canUseMeasured={canUseMeasured} onMeasuredLocked={onMeasuredLocked}
-              linked={linkedOf(index)} onLinkedAll={onLinkedAll} recommendedMethod={recommendedMethod} canRemove={items.length > 1} detailsOnlyMenu={detailsOnlyMenu} />
+              linked={linkedOf(index)} onLinkedAll={onLinkedAll} recommendedMethod={recommendedMethod} canRemove={items.length > 1} />
           </Fragment>
         );
       })}

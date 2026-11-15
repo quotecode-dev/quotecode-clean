@@ -24,7 +24,7 @@ import { classifyQuoteApprovalError } from '../utils/quoteApprovalErrorClassific
 import { resolveQuoteExpired } from '../utils/quoteValidity';
 import { isUnfinishedSavedQuote, missingPriceOutputNotice, publicItemsForNotice } from '../utils/quoteCompleteness';
 import { getActiveQuantity, getProfessionalUnitLabel, formatMeasurementLine, formatQuantity } from '../utils/professionalQuoteItem';
-import { buildDisplayTree, sectionOpenMap } from '../utils/displaySectionTree';
+import { buildCustomerPresentationModel } from '../utils/quotePresentationModel';
 import { groupWord, roomLabel } from '../utils/quoteGroups';
 import { formatDeviceShortDateTime } from '../utils/shortDate';
 import { outputGate, authorizeWithNotice, outputBlockedMessage } from '../domain/subscriptions/outputAuthority';
@@ -73,12 +73,17 @@ const WIDE_AMOUNT_CHARS = 10;
 // DividedQuoteUnits.jsx's own identical unassigned-subtotal reduce (line
 // ~425) - same authoritative data, not a third independent calculation.
 function buildDisplaySections(items, sections) {
-  // 2026-11-13 (Owner: the customer sees the tree of headings in today's look): pre-order list, a parent before its children (shared with
-  // the EN page); a quote without parents gives exactly the list it gave before
-  return buildDisplayTree(items, sections, 'לא משויך');
+  const model = buildCustomerPresentationModel(items, sections);
+  if (!model.isDivided) return [];
+  const display = model.units
+    .filter((u) => u.itemCount > 0)
+    .map((u) => ({ key: u.key ?? u.id, title: u.title, items: u.items, subtotal: u.subtotal, repeatCount: u.repeatCount || 1, unitTotal: u.unitTotal ?? u.subtotal }));
+  if (model.unassignedItems.length > 0) {
+    const subtotal = model.unassignedItems.reduce((sum, it) => sum + Number(it.total_price ?? (Number(it.quantity || 1) * Number(it.price || 0))), 0);
+    display.push({ key: '__unassigned__', title: 'לא משויך', items: model.unassignedItems, subtotal, repeatCount: 1, unitTotal: subtotal });
+  }
+  return display;
 }
-// 2026-11-13: a heading's indent by its depth in the tree (depth 0 = no change at all)
-const indentOf = (section) => (section && section.depth ? { paddingInlineStart: `${10 + section.depth * 18}px` } : {});
 
 // Owner console 2026-11-08 (stage 3 of the one quote builder, typed incl. L-24..L-28): a unit of N identical copies reads "name × N";
 // at N = 1 the toggle text is exactly the previous string
@@ -92,8 +97,9 @@ function sectionToggleText(section, chevron) {
 // Task 16: the same "every section open / every section closed" map the print chooser applies, reusable for an
 // externally-driven detail level (creator preview / sample route).
 function allSectionsMap(items, sections, open) {
-  // 2026-11-13: the partial view keeps a heading that holds sub-headings open (its sub-headings fold to their summary rows)
-  return sectionOpenMap(buildDisplaySections(items, sections), open);
+  const map = {};
+  buildDisplaySections(items, sections).forEach((s) => { map[s.key] = open; });
+  return map;
 }
 
 const formatDisplayPhone = (phone) => {
@@ -204,8 +210,6 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
   const [printModalOpen, setPrintModalOpen] = useState(false);
   const [printIntent, setPrintIntent] = useState('print');
   const [pdfGenerating, setPdfGenerating] = useState(false);
-  // 2026-11-13 (Owner: no triangles in print / PDF): true from the print choice until the browser's afterprint
-  const [printingNow, setPrintingNow] = useState(false);
   const cardRef = useRef(null);
   // IRON-NUMERIC-001: the totals share the table Amount column's axis on screen (Owner 2026-10-18)
   useAmountAxis(cardRef);
@@ -236,7 +240,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
   }, [docDetail]);
 
   useEffect(() => {
-    const handleAfterPrint = () => { setPrintModalOpen(false); setPartialOutput(false); setPrintingNow(false); };
+    const handleAfterPrint = () => { setPrintModalOpen(false); setPartialOutput(false); };
     window.addEventListener('afterprint', handleAfterPrint);
     return () => window.removeEventListener('afterprint', handleAfterPrint);
   }, []);
@@ -296,9 +300,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
 
     if (printIntent === 'print') {
       // PRODUCT_TRUTH_CAPABILITY: quote_print
-      setPrintingNow(true);
-      // window.print() returns when the print dialog closes (afterprint resets it too)
-      setTimeout(() => { window.print(); setPrintingNow(false); }, 50);
+      setTimeout(() => window.print(), 50);
       return;
     }
 
@@ -608,7 +610,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
     return (
       <>
         {withQuantityLine && isPro && (
-          <div className="pq-item-detail pq-item-detail-strong">{`כמות: ${formatQuantity(activeQty, item.pricing_unit)}\u00a0${unitLabel}`}</div>
+          <div className="pq-item-detail pq-item-detail-strong">{`כמות: ${formatQuantity(activeQty, item.pricing_unit)} ${unitLabel}`}</div>
         )}
         {measurements.length > 0 && (
           <div className="pq-item-detail">
@@ -755,7 +757,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
             {/* PRODUCT_TRUTH_DECORATIVE: opens every group of the document */}
             <button type="button" aria-pressed={displaySections.every((sec) => expandedSections[sec.key] !== false)} onClick={() => setExpandedSections(allSectionsMap(items, quoteSections, true))}>{'תצוגת מסמך מלא'}</button>
             {/* PRODUCT_TRUTH_DECORATIVE: closes every group of the document to its summary row */}
-            <button type="button" aria-pressed={displaySections.every((sec) => (expandedSections[sec.key] !== false) === ((sec.children || []).length > 0))} onClick={() => setExpandedSections(allSectionsMap(items, quoteSections, false))}>{'תצוגת שורות סיכום'}</button>
+            <button type="button" aria-pressed={displaySections.every((sec) => expandedSections[sec.key] === false)} onClick={() => setExpandedSections(allSectionsMap(items, quoteSections, false))}>{'תצוגת שורות סיכום'}</button>
           </div>
         </div>
       )}
@@ -799,21 +801,18 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
               );
             })
           ) : (
-            displaySections.filter((s) => !s.depth).map(function renderSection(section) {
+            displaySections.map((section) => {
               const isOpen = expandedSections[section.key] !== false;
-              // 2026-11-13 (Owner): the triangle of a top heading keeps today's size, a sub-heading's is small; never in print / PDF
-              const noTriangle = pdfGenerating || printingNow;
-              // 2026-11-14 (Owner): closed = the triangle points to the heading's name (◀ in Hebrew), open = it points down (▼)
-              const chevron = section.depth ? (noTriangle ? null : <span className="pq-chev pq-chev-sub">{isOpen ? '▼' : '◀'}</span>) : (noTriangle ? '' : (isOpen ? '▼' : '◀'));
+              const chevron = isOpen ? '▲' : '▼';
               if (!isOpen) {
                 // Section Summary Row Correction: Quantity = real item count ("N פריטים", QuoteForm's own copy), Unit
                 // Price = "—" (no meaningful single value across mixed pricing methods), Total = section subtotal.
-                const itemCount = section.treeItemCount ?? section.items.length;
+                const itemCount = section.items.length;
                 return (
                   <tr role="row" key={section.key}>
-                    <td headers={colId('desc')} role="cell" className="pq-td-desc" style={{ textAlign: 'right', ...indentOf(section) }}>
+                    <td headers={colId('desc')} role="cell" className="pq-td-desc" style={{ textAlign: 'right' }}>
                       {/* PRODUCT_TRUTH_DECORATIVE: expands a collapsed line-item section row within the public quote view table */}
-                      <button type="button" className={noTriangle ? 'pq-section-toggle pq-no-chev' : 'pq-section-toggle'} onClick={() => toggleSection(section.key)} aria-expanded={false}>{sectionToggleText(section, chevron)}</button>
+                      <button type="button" className="pq-section-toggle" onClick={() => toggleSection(section.key)} aria-expanded={false}>{sectionToggleText(section, chevron)}</button>
                       {section.repeatCount > 1 && (
                         <span className="pq-unit-note" style={{ display: 'block', fontWeight: 400, whiteSpace: 'nowrap', fontSize: '0.85em', color: '#64748b' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(section.subtotal)}</span> {"לכל @W".replace('@W', (quoteSections || []).find((sec) => sec.id === section.key)?.kind ? groupWord((quoteSections || []).find((sec) => sec.id === section.key).kind, true) : 'יחידה')} <bdi dir="ltr" className="pf-num">× {section.repeatCount}</bdi></span>
                       )}
@@ -829,9 +828,9 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
               return (
                 <Fragment key={section.key}>
                   <tr role="row">
-                    <td headers={colId('desc')} role="cell" colSpan="4" style={{ padding: '14px 10px 4px', textAlign: 'right', ...indentOf(section) }}>
+                    <td headers={colId('desc')} role="cell" colSpan="4" style={{ padding: '14px 10px 4px', textAlign: 'right' }}>
                       {/* PRODUCT_TRUTH_DECORATIVE: collapses an expanded line-item section back to its summary row */}
-                      <button type="button" className={noTriangle ? 'pq-section-toggle pq-no-chev' : 'pq-section-toggle'} onClick={() => toggleSection(section.key)} aria-expanded={true}>{sectionToggleText(section, chevron)}</button>
+                      <button type="button" className="pq-section-toggle" onClick={() => toggleSection(section.key)} aria-expanded={true}>{sectionToggleText(section, chevron)}</button>
                       {section.repeatCount > 1 && <span className="pq-unit-note" style={{ marginInlineStart: '8px', fontSize: '0.85em', color: '#64748b' }}>הפירוט ליחידה אחת</span>}
                     </td>
                   </tr>
@@ -842,14 +841,13 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
                     const activeQty = isPro ? getActiveQuantity({ quantity: item.quantity, calculated_quantity: item.calculated_quantity }) : rawQty;
                     return (
                       <tr role="row" key={i}>
-                        <td headers={colId('desc')} role="cell" className="pq-td-desc" style={{ textAlign: 'right', ...indentOf(section) }}>{renderDescriptionCell(item, renderItemDetailLines(item, true))}</td>
+                        <td headers={colId('desc')} role="cell" className="pq-td-desc" style={{ textAlign: 'right' }}>{renderDescriptionCell(item, renderItemDetailLines(item, true))}</td>
                         <td headers={colId('qty')} role="cell" className="pq-td-qty" style={{ textAlign: 'center' }}><span className="pq-num-slot">{isPro ? formatQuantity(activeQty, item.pricing_unit) : rawQty}</span><span className="pq-unit-slot" /></td>
                         <td headers={colId('price')} role="cell" className="pq-td-price" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>טרם תומחר</span> : <span className="pf-money">{currencySymbol}{formatWholeMoney(itemPrice)}</span>}</td>
                         <td headers={colId('total')} role="cell" className="pq-td-total" style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>{item.price_missing === true ? <span className="pq-price-missing" style={{ color: '#b45309', fontWeight: 600 }}>טרם תומחר</span> : <span className="pf-money">{currencySymbol}{formatWholeMoney(item.total_price || (rawQty * itemPrice))}</span>}</td>
                       </tr>
                     );
                   })}
-                  {(section.children || []).map(renderSection)}
                   <tr role="row" className="pq-section-subtotal-row">
                     <td headers={colId('desc')} role="cell" colSpan="3" style={{ textAlign: 'left', fontWeight: 700 }}>{`סה״כ ${section.title}:`}{section.repeatCount > 1 && (
                       <span className="pq-unit-note" style={{ display: 'block', fontWeight: 400, whiteSpace: 'nowrap' }}><span className="pf-money">{currencySymbol}{formatWholeMoney(section.subtotal)}</span> לכל יחידה × <bdi dir="ltr" className="pf-num">{section.repeatCount}</bdi></span>
@@ -1395,8 +1393,6 @@ const PQ_SCREEN_CSS = `
         /* Direct PDF via html2canvas: applied only while generateQuotePdf runs (html2canvas photographs the DOM, it
            does not print). The capture root is .pq-card: these rules drop the card's screen chrome and every .no-print
            element inside it - the on-screen action tiles (also data-html2canvas-ignore) never reach the PDF. */
-        .pq-chev-sub { font-size: 0.68em; vertical-align: 0.1em; }
-        .pq-pdf-capturing .pq-chev { display: none; }
         .pq-pdf-capturing .no-print {
           display: none !important;
         }
@@ -1425,8 +1421,6 @@ const PQ_SCREEN_CSS = `
 `;
 
 const PQ_PRINT_CSS = `
-        /* 2026-11-13 (Owner: no triangles in print / PDF) - also for the browser's own print */
-        @media print { .pq-chev { display: none !important; } .pq-section-toggle:not(.pq-no-chev)::first-letter { color: transparent; } }
         /* Item 7 (Public Quote Print): .no-print (src/index.css) hides every app control; this removes page chrome. */
         @media print {
           .pq-page {

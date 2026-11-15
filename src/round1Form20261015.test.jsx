@@ -39,13 +39,13 @@ function Stateful(o) {
 describe('A1 / A6: the measured quote is one list (now the rows of the one quote entry)', () => {
   it('an old internal measured entry opens the same rows: no rooms needed, rooms optional, area in the row', () => {
     const { unmount } = render(<QuoteForm {...props({ isMeasuredEntry: true, items: [{ ...blank, description: 'חלון', unit_price: '100' }] })} />);
-    // 2026-11-13 (the 13/11 demo, typed L-09): the line is a read row; the add form's "חישוב" offers every billing
-    expect(screen.getAllByTestId('qt-row').map((r) => r.querySelector('.qt-desc').textContent)).toEqual(['חלון']);
-    expect([...screen.getAllByTestId('qt-form')[0].querySelector('select').options].map((o) => o.textContent)).toEqual(['ליחידה', 'למ״ר', 'למטר', 'לשעה', 'ליום עבודה', 'לק״ג', 'מחיר גלובלי']);
+    expect(screen.getByRole('textbox', { name: 'פריט' })).toBeTruthy();
+    expect([...screen.getByRole('combobox', { name: 'אופן חיוב' }).options].map((o) => o.textContent)).toEqual(['סכום קבוע', 'יחידות', 'שטח', 'אורך', 'ק״ג', 'שעות', 'ימים']); // Owner console 2026-11-08 (restore item 01): kg / hours / days in every row again
     unmount();
     render(<Stateful isMeasuredEntry />);
-    // the three structure buttons replace the two add buttons; nothing is divided until the user chooses
-    expect(['qt-structure-simple', 'qt-structure-grouped', 'qt-structure-tiered'].map((id) => screen.getByTestId(id).textContent)).toEqual(['הצעה פשוטה', 'לפי דירות', 'קומות, דירות וחדרים']);
+    // 2026-11-12 (unified quote): the two add buttons replace the grouping link
+    expect(screen.getByTestId('sq-add-work')).toBeTruthy();
+    expect(screen.getByTestId('sq-add-places').textContent).toBe('+ הוספת דירה, חדר או קומה');
     expect(screen.queryByText('הוספת היחידה הראשונה')).toBeNull();
     expect(screen.queryByText('לא משויך')).toBeNull();
     // Owner console 2026-11-08 (restore item 07): the local example is offered again while the quote has no real line
@@ -68,8 +68,7 @@ describe('plan section 3: client details and the VAT basis', () => {
     render(<QuoteForm {...props()} />);
     expect(screen.queryByPlaceholderText('לדוגמה: שמעון לוי')).toBeNull();
     // Owner console 2026-11-09 (L-09 named in the approval): a business client's tax ID label is marked "(חובה)"
-    // 2026-11-13 (the 13/11 demo): the business client's number, still marked (חובה) (Owner 2026-11-09)
-    expect(screen.getByText('מספר עוסק מורשה / חברה (חובה)')).toBeTruthy();
+    expect(screen.getByText('ח״פ / עוסק / ת״ז (חובה)')).toBeTruthy();
     // Owner console 2026-11-11 (typed): the exact VAT notice for the chosen client type replaces the general sentence
     expect(screen.queryByTestId('sq-client-type-vat-help')).toBeNull();
     expect(screen.getByTestId('sq-vat-notice').textContent).toBe('שימו לב: הסכומים ללקוח עסקי הינם ללא מע״מ, והמע״מ יתווסף למחיר הסופי');
@@ -111,16 +110,14 @@ describe('plan section 4: save and issue wording', () => {
 });
 
 describe('Owner 2026-10-15 (David): the price step points to the item, the discount is a 0-100 percentage', () => {
-  it('with no item: the add form is where the work and its price go; the discount is in the quote details', () => {
+  it('with no item: the price step says where the price goes and opens the item window', () => {
     render(<Stateful />);
-    // 2026-11-13 (the 13/11 demo): the add form is open at the whole-quote level - its price field says what it is
-    const form = screen.getAllByTestId('qt-form')[0];
-    expect(screen.getAllByTestId('qt-form-to')[0].textContent).toBe('אל: כל ההצעה');
-    expect(form.textContent).toContain('מחיר ליחידה');
-    // 2026-11-15 (the approved demo): "פרטים נוספים להצעה (לא חובה)" -> "הנחה" opens the discount page
+    // 2026-11-12 (the demo): the work card says where the work and the prices appear; its button opens the work window; the discount is in the quote details
+    expect(screen.getByTestId('sq-empty-work').textContent).toContain('כאן יופיעו העבודות והמחירים.');
+    fireEvent.click(screen.getByTestId('sq-add-work'));
+    expect(screen.getByTestId('work-item-dialog')).toBeTruthy();
     fireEvent.click(screen.getByTestId('sq-more-details-toggle'));
-    fireEvent.click(screen.getByTestId('sq-extra-discount'));
-    expect(screen.getByText('הנחה באחוזים')).toBeTruthy();
+    expect(screen.getByText('הנחה על כל ההצעה (%)')).toBeTruthy();
     expect(screen.getByTestId('sq-discount').getAttribute('inputmode')).toBe('decimal');
   });
   it('with a real item the hint is gone', () => {
@@ -130,17 +127,11 @@ describe('Owner 2026-10-15 (David): the price step points to the item, the disco
   it('a discount outside 0-100 (the amount typed into it) is flagged next to the field, and the save refuses it', () => {
     render(<QuoteForm {...props({ discount: '2650' })} />);
     fireEvent.click(screen.getByTestId('sq-more-details-toggle'));
-    fireEvent.click(screen.getByTestId('sq-extra-discount'));
-    expect(screen.getByRole('alert').textContent).toBe('הנחה צריכה להיות בין 0 ל־100 אחוז.');
+    expect(screen.getByRole('alert').textContent).toBe('הנחה יכולה להיות בין 0 ל־100.');
     expect(screen.getByTestId('sq-discount').getAttribute('aria-invalid')).toBe('true');
-    // the page's own save keeps the page open while the discount is out of range
-    fireEvent.click(screen.getByTestId('sq-details-save'));
-    expect(screen.getByTestId('sq-details-page')).toBeTruthy();
     cleanup();
     render(<QuoteForm {...props({ discount: '10' })} />);
-    fireEvent.click(screen.getByTestId('sq-more-details-toggle'));
-    fireEvent.click(screen.getByTestId('sq-extra-discount'));
-    expect(screen.queryByText('הנחה צריכה להיות בין 0 ל־100 אחוז.')).toBeNull();
+    expect(screen.queryByText('הנחה יכולה להיות בין 0 ל־100.')).toBeNull();
     const d = read('pages/Dashboard.jsx');
     expect(d).toContain('if (!Number.isFinite(d) || d < 0 || d > 100) {');
     expect(d).toContain('ההנחה צריכה להיות בין 0 ל־100 אחוז. את המחיר רושמים במוצר או בעבודה (שלב 2).');

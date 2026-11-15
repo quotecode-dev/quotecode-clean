@@ -8,7 +8,7 @@
 // or receives generated prose. Every payload is validated (validateProductTruthPayload) before it is returned: a payload
 // that would contradict itself throws - the request fails closed rather than emitting a wrong structured truth.
 import {
-  PLAN_TIER_VALUES, SMART_PACK_SUBSCRIPTION_CAPABILITIES, PRODUCT_TRUTH_PAYLOAD_KEYS, PRODUCT_TRUTH_PAYLOAD_KIND, PRODUCT_TRUTH_PAYLOAD_SCHEMA_VERSION, validateProductTruthPayload,
+  PLAN_TIER_VALUES, PRODUCT_TRUTH_PAYLOAD_KEYS, PRODUCT_TRUTH_PAYLOAD_KIND, PRODUCT_TRUTH_PAYLOAD_SCHEMA_VERSION, validateProductTruthPayload,
   type AccountEntitlement, type AccountMarket, type ClaimScope, type MarketScope, type ProductTruthFactPayload, type RegistryState, type TruthStatus,
 } from "../_shared/productTruthContract.ts";
 import type { CapabilityAnswerState } from "./capabilityAnswerState.ts";
@@ -103,9 +103,8 @@ export function buildCapabilityFactPayload(state: CapabilityAnswerState, fact: C
     return seal({ ...common, registryState, truthStatus: status, claimScope, requiredRole: state.roleRestriction.requiredRole, accountEntitlement: e });
   }
   if (state.subscriptionGate) {
-    // 2026-11-13 (Owner answer "א"): a SMART PACK capability says so; any other gated one: plan inclusion not decided (OPEN-02 / OPEN-13)
-    const smartPack = SMART_PACK_SUBSCRIPTION_CAPABILITIES.includes(state.subscriptionGate.subscriptionCapabilityId);
-    return seal({ ...common, registryState, truthStatus: smartPack ? 'SMART_PACK' : 'PLAN_NOT_DECIDED', claimScope: 'CAPABILITY' });
+    // OPEN-02 / OPEN-13: gated by the subscription system, plan inclusion not decided - a CAPABILITY-scoped claim only.
+    return seal({ ...common, registryState, truthStatus: 'PLAN_NOT_DECIDED', claimScope: 'CAPABILITY' });
   }
   if (state.planRestriction) {
     const e = entitlement(state.planRestriction.accountHasIt);

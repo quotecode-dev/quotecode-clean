@@ -23,7 +23,7 @@ describe('buildSystemPrompt - HE (Israel/ILS) plan and price truth', () => {
     expect(prompt).toMatch(/SUBSCRIPTION & PLAN TRUTH/);
     expect(prompt).toContain(`הכול כלול: ${S.prices.IL.package.month} ₪ לחודש או ${S.prices.IL.package.year} ₪ לשנה`);
     expect(prompt).toContain('הכול כלול: 30.00 ₪ לחודש או 306.00 ₪ לשנה. בתשלום שנתי החיסכון הוא 15% - 54.00 ₪ בשנה.');
-    expect(prompt).not.toContain('5.00 ₪ לחודש'); // 2026-11-13: the catalog add-on is not offered (no screen sells it)
+    expect(prompt).toContain('5.00 ₪ לחודש');
     expect(prompt).toContain('המחירים כוללים מע״מ');
     expect(prompt).toMatch(/never add VAT on top/);
   });
@@ -88,7 +88,7 @@ describe('buildSystemPrompt - EN (International) plan and price truth', () => {
 
   it('states the canonical plans and the approved USD prices; billing always USD, local currency only an estimate (OD-06/07/08)', () => {
     expect(prompt).toContain('All-inclusive: 18.00 USD per month or 184.00 USD per year. Paying annually saves approximately 15% - 32.00 USD per year.');
-    expect(prompt).not.toContain('3.00 USD per month'); // 2026-11-13: the catalog add-on is not offered (no screen sells it)
+    expect(prompt).toContain('3.00 USD per month');
     expect(prompt).toMatch(/Billing is always in USD; a price shown in your local currency is only an estimate/);
   });
 

@@ -263,8 +263,6 @@ html[dir="rtl"] .av .av-business .av-mail { text-align: right; }
   .av-dialog { padding: 20px 16px; max-inline-size: 100%; border-radius: 13px; }
   .av-dialog h3 { font-size: 19px; }
   .av-dialog-foot button[type="submit"] { flex: 1; }
-  /* 2026-11-14 Owner-typed L-25 change: on a phone the action row ends the dialog (not sticky) - it never covers a field */
-  .av-dialog-foot { position: static; }
   .av-usercard .av-business .av-mail { font-size: 11px; }
   .av-plan, .av .admin-account-status.av-plan { white-space: normal; }
   /* details head on a phone: the name, then the status on its own line (never squeezed into two lines each) */

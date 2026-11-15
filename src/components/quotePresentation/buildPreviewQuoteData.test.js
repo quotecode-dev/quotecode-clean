@@ -27,8 +27,7 @@ describe('buildPreviewQuoteData', () => {
     });
     expect(Object.keys(quoteData).sort()).toEqual(['attachments', 'business', 'client', 'items', 'quote', 'sections']);
     expect(quoteData.quote).toMatchObject({ id: 'q-1', quote_number: 1048, subtotal: 1234.5, tax_rate: 0.18, total: 1456.71, discount: 10, status: 'draft', signature: null, is_owner_viewing: true, project_name: 'Office', attn_name: 'Studio Kav' });
-    // 2026-11-13: an unnamed heading gets the default name the save gives it (shown as on the customer page, never dropped)
-    expect(quoteData.sections).toEqual([{ id: 's1', name: 'Kitchen' }, { id: 's2', name: 'חלק 2' }]);
+    expect(quoteData.sections).toEqual([{ id: 's1', name: 'Kitchen' }]);
     // untouched placeholder dropped (same rule as the save); total_price is the save's own expression
     expect(quoteData.items).toHaveLength(2);
     expect(quoteData.items[0]).toMatchObject({ description: 'Shelf', quantity: 2, price: 100, total_price: 200, section_id: 's1' });

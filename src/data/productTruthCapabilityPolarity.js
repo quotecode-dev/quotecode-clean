@@ -28,14 +28,12 @@ export { LEGACY_RULESET_ID, CURRENT_RULESET_ID };
 // inclusion is not decided -> PLAN_NOT_DECIDED); 'legacy_v39' = the frozen pre-cutover plan gates, used ONLY to judge the
 // historical chat-ai v39 evidence captures against the rules in force when they were captured (productTruthLegacyPlanRules.js).
 import { AI_FACTS } from '../../supabase/functions/chat-ai/aiFacts.generated.ts';
-import { SMART_PACK_SUBSCRIPTION_CAPABILITIES } from '../../supabase/functions/_shared/productTruthContract.ts';
 import { clauseScopeAt, extractClaims, flipClaims, isRetractionSentence, resolveTekangoClaims } from './productTruthScopeClaims.js';
 
 export const TRUTH_KINDS = Object.freeze({
   AVAILABLE: 'AVAILABLE', // exists / supported for this account (gated-but-entitled counts)
   PLAN_LOCKED: 'PLAN_LOCKED', // exists, plan-gated, this account's plan is below the minimum
   PLAN_NOT_DECIDED: 'PLAN_NOT_DECIDED', // exists, subscription-gated, which plans include it is not decided (OPEN-02 / OPEN-13)
-  SMART_PACK: 'SMART_PACK', // exists, it is part of the SMART PACK add-on (Owner 2026-11-13, answer "א")
   ROLE_LOCKED: 'ROLE_LOCKED', // exists, role-gated, this account does not hold the role
   NOT_AVAILABLE: 'NOT_AVAILABLE', // roadmap / unavailable / deprecated / not released - not supported today
   MARKET_UNAVAILABLE: 'MARKET_UNAVAILABLE', // live, but not in this account's market
@@ -110,8 +108,7 @@ export function deriveExpectedCapabilityTruth({ expectedResult, serverPlan, serv
   const marketKey = MARKET_KEY[market];
   if (marketKey && Array.isArray(capability.markets) && !capability.markets.includes(marketKey)) return { ...base, kind: TRUTH_KINDS.MARKET_UNAVAILABLE, gate: null };
   if (capability.authorityType === 'subscription') {
-    const kind = SMART_PACK_SUBSCRIPTION_CAPABILITIES.includes(capability.subscriptionCapabilityId) ? TRUTH_KINDS.SMART_PACK : TRUTH_KINDS.PLAN_NOT_DECIDED;
-    return { ...base, kind, gate: 'subscription', minimumPlan: null, requiredRole: null };
+    return { ...base, kind: TRUTH_KINDS.PLAN_NOT_DECIDED, gate: 'subscription', minimumPlan: null, requiredRole: null };
   }
   if (capability.authorityType === 'role') {
     const e = deriveRegistryEntitlement(capability.id, serverPlan, serverRole, ruleset);
@@ -464,7 +461,6 @@ const COMPARISON = Object.freeze({
 });
 
 // "which plans include it is not decided" (OPEN-02 / OPEN-13)
-const NAMES_SMART_PACK = Object.freeze({ en: /\bSMART\s*PACK\b/i, he: /חכם\s*פלוס/ });
 const NOT_DECIDED = Object.freeze({
   en: /\b(?:not\s+(?:been\s+)?decided|undecided|not\s+yet\s+decided)\b/i,
   he: /(?:טרם\s+הוחלט|לא\s+הוחלט|טרם\s+נקבע)/,
@@ -526,17 +522,6 @@ export function checkCapabilityPolarity(truth, response, language, ruleset = CUR
       if (!c.accountLacks) v.push('plan_locked_expected_but_response_does_not_say_the_account_lacks_it');
       if (!c.statedPlanTiers.includes(truth.minimumPlan)) v.push(`plan_gate_not_disclosed:${truth.minimumPlan}`);
       if (wrongTier().length) v.push(`wrong_plan_tier_stated:${wrongTier().join(',')} (canonical minimum ${truth.minimumPlan})`);
-      break;
-    case TRUTH_KINDS.SMART_PACK:
-      // exists; it is part of SMART PACK - so no plan tier, no account has/lacks claim, no universal claim, and SMART PACK is named
-      if (c.existenceDenied) v.push('smart_pack_expected_but_response_denies_existence');
-      if (!c.existenceAffirmed) v.push('smart_pack_expected_but_response_does_not_affirm_existence');
-      if (c.statedPlanTiers.length) v.push(`plan_tier_stated_for_a_smart_pack_capability:${c.statedPlanTiers.join(',')}`);
-      if (c.accountHas) v.push('smart_pack_expected_but_response_says_the_account_has_it');
-      if (c.accountLacks) v.push('smart_pack_expected_but_response_says_the_account_lacks_it');
-      if (c.universal) v.push('smart_pack_expected_but_response_claims_universal_availability');
-      if (!NAMES_SMART_PACK[language].test(text)) v.push('smart_pack_expected_but_response_does_not_name_smart_pack');
-      if (NOT_DECIDED[language].test(text)) v.push('smart_pack_expected_but_response_says_it_is_not_decided');
       break;
     case TRUTH_KINDS.PLAN_NOT_DECIDED:
       // exists; which plans include it is NOT decided - so no plan tier, no account has/lacks claim, no universal claim

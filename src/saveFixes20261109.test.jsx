@@ -35,12 +35,12 @@ const props = (o = {}) => ({
 describe('2026-11-09 · tax ID required for a business client, with our own message', () => {
   it('Hebrew: the label says (חובה), a missing value shows our message (no browser bubble) and typing clears it', () => {
     render(<QuoteForm {...props({ isHebrew: true, isLocalIsraeliBusiness: true, sym: '₪' })} />);
-    expect(screen.getByText('מספר עוסק מורשה / חברה (חובה)')).toBeTruthy();
+    expect(screen.getByText('ח״פ / עוסק / ת״ז (חובה)')).toBeTruthy();
     const input = screen.getByTestId('sq-client-tax-id');
     expect(input.required).toBe(true);
     // fireEvent returns false when the handler called preventDefault - the browser's own bubble is suppressed
     expect(fireEvent.invalid(input)).toBe(false);
-    expect(screen.getByTestId('sq-client-tax-id-missing').textContent).toBe('חסר מספר עוסק. ללקוח עסקי צריך למלא מספר עוסק מורשה או חברה.');
+    expect(screen.getByTestId('sq-client-tax-id-missing').textContent).toBe('חסר מספר עוסק. ללקוח עסקי צריך למלא ח״פ, עוסק או ת״ז.');
     expect(input.getAttribute('aria-invalid')).toBe('true');
     fireEvent.change(input, { target: { value: '123456782' } });
     expect(screen.queryByTestId('sq-client-tax-id-missing')).toBeNull();
@@ -48,38 +48,33 @@ describe('2026-11-09 · tax ID required for a business client, with our own mess
   // Owner 2026-11-11 (finding 5, option א; typed L-09): abroad (the International market) the business client's Tax ID is optional
   it('International: the label says (optional) and the quote saves without it', () => {
     render(<QuoteForm {...props({ isLocalIsraeliBusiness: false, currency: 'USD' })} />);
-    expect(screen.getByText('Business / company number (optional)')).toBeTruthy();
+    expect(screen.getByText('Tax ID / ID (optional)')).toBeTruthy();
     const input = screen.getByTestId('sq-client-tax-id');
     expect(input.required).toBe(false);
     expect(input.getAttribute('pattern')).toBeNull();
   });
   it('the Israeli market keeps it required whatever the UI language; the message is in English', () => {
     render(<QuoteForm {...props({ isLocalIsraeliBusiness: true })} />);
-    expect(screen.getByText('Business / company number (required)')).toBeTruthy();
+    expect(screen.getByText('Tax ID / ID (required)')).toBeTruthy();
     fireEvent.invalid(screen.getByTestId('sq-client-tax-id'));
-    expect(screen.getByTestId('sq-client-tax-id-missing').textContent).toBe('The business number is missing. A business client needs a business or company number.');
+    expect(screen.getByTestId('sq-client-tax-id-missing').textContent).toBe('Tax ID is missing. A business client needs a Tax ID.');
   });
-  // 2026-11-13 (the 13/11 demo): a private client's ID is an optional detail (under "פרטי קשר (לא חובה)")
   it('a private client: not required and not marked', () => {
     render(<QuoteForm {...props({ isHebrew: true, clientType: 'private' })} />);
-    if (!screen.queryByText('ת״ז (לא חובה)')) fireEvent.click(screen.getByTestId('sq-client-contact-toggle'));
-    expect(screen.getByText('ת״ז (לא חובה)')).toBeTruthy();
+    expect(screen.getByText('ח״פ / עוסק / ת״ז')).toBeTruthy();
     expect(screen.getByTestId('sq-client-tax-id').required).toBe(false);
   });
 });
 
-// 2026-11-13 (the demo of 13/11, typed L-09 for the 13/11 spec): the total sits in the bar at the bottom, in the same bar as the one save
-describe('2026-11-09 · the total beside the save button', () => {
-  it('shows the same total as the summary, in both languages, in the bar with the save button', () => {
+describe('2026-11-09 · the total right above the save button', () => {
+  it('shows the same total as the summary, in both languages, before the save button', () => {
     render(<QuoteForm {...props({ isHebrew: true, sym: '₪' })} />);
-    const bar = screen.getByTestId('qt-bar');
-    expect(bar.querySelector('.qt-bar-total').textContent).toBe('סה״כ לתשלום₪354.00'); // the demo label, no colon
-    expect(bar.contains(screen.getByTestId('sq-save'))).toBe(true);
-    fireEvent.click(screen.getByTestId('qt-summary-toggle'));
-    expect(screen.getByTestId('sq-save-total').textContent).toBe('סה״כ לתשלום₪354.00');
+    const box = screen.getByTestId('sq-save-total');
+    expect(box.textContent).toBe('סה״כ לתשלום₪354.00'); // 2026-11-12: the demo label, no colon
+    expect(box.nextElementSibling).toBe(screen.getByTestId('sq-save'));
     cleanup();
     render(<QuoteForm {...props()} />);
-    expect(screen.getByTestId('qt-bar').querySelector('.qt-bar-total').textContent).toBe('Total to pay$354.00');
+    expect(screen.getByTestId('sq-save-total').textContent).toBe('Total to pay$354.00');
   });
 });
 

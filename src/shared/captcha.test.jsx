@@ -14,17 +14,6 @@ describe('the robot check (Cloudflare Turnstile)', () => {
     expect(turnstileSiteKey('tekango.com')).toBe(TURNSTILE_SITE_KEY_LIVE);
     for (const h of ['127.0.0.1', 'localhost', 'tekango.com.evil.test', 'test.tekango.com', '']) expect(turnstileSiteKey(h)).toBe(TURNSTILE_SITE_KEY_TEST);
   });
-  // Owner console 2026-11-13 (typed L-12): the box is always shown, not only when Cloudflare asks the visitor to act
-  it('the widget is rendered with appearance "always" in the form language', async () => {
-    const renderSpy = vi.fn(() => 'w1');
-    window.turnstile = { render: renderSpy, reset: vi.fn(), remove: vi.fn() };
-    const { default: TurnstileWidget } = await import('../components/TurnstileWidget');
-    render(<TurnstileWidget slot="auth" isHebrew />);
-    await vi.waitFor(() => expect(renderSpy).toHaveBeenCalled());
-    expect(renderSpy.mock.calls[0][1]).toMatchObject({ appearance: 'always', language: 'he' });
-    cleanup();
-    delete window.turnstile;
-  });
   it('a token is single use: taking it clears it and asks that form\'s widget for a new one', () => {
     const seen = [];
     const off = onCaptchaReset((slot) => seen.push(slot));

@@ -55,8 +55,9 @@ describe('the floating button in the quote editor', () => {
     expect(src.match(/className="pf-calc-fab"/g)).toHaveLength(1);
     expect(src).toContain('<button type="button" className="pf-calc-fab" onClick={() => setIsCalcOpen(true)}');
     expect(src).toContain("aria-label={isHebrew ? 'מחשבון' : 'Calculator'}");
-    // 2026-11-13 (the 13/11 demo, typed L-09): the work window is gone from the editor - the floating button is the one way to the calculator
-    expect(src).toContain('<DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)}');
+    // the small link stays (Locked Decision 2) - since 2026-11-12 next to the price in the work window (spec section 4)
+    expect(src).toContain('onOpenCalculator={() => setIsCalcOpen(true)}');
+    expect(readFileSync('src/components/WorkItemDialog.jsx', 'utf8')).toContain("data-testid=\"work-calculator\" onClick={onOpenCalculator}>\n                    {isHebrew ? 'מחשבון' : 'Calculator'}");
   });
   it('it floats above the windows that open over the editor (z 10000) and below the calculator; above the phone bottom bar', () => {
     const css = readFileSync('src/index.css', 'utf8');

@@ -51,9 +51,8 @@ describe('(1) registry -> payload: every capability x tier x role x market', () 
           expect(p.minimumPlan).toBeNull();
           expect(p.accountEntitlement).toBe(isAdmin === null ? 'UNKNOWN' : isAdmin ? 'GRANTED' : 'DENIED');
         } else if (c.subscriptionCapabilityId) {
-          // OPEN-02 / OPEN-13: plan inclusion not decided - whatever the account plan, a capability-scoped claim with no plan;
-          // 2026-11-13 (Owner answer "א"): a SMART PACK capability (attachments) is SMART_PACK, with the same shape
-          want = c.subscriptionCapabilityId === 'quote_attachment.upload' ? 'SMART_PACK' : 'PLAN_NOT_DECIDED';
+          // OPEN-02 / OPEN-13: plan inclusion not decided - whatever the account plan, a capability-scoped claim with no plan
+          want = 'PLAN_NOT_DECIDED';
           expect(c.planEligibility).toBe('not_decided');
           expect(p.minimumPlan).toBeNull();
           expect(p.requiredRole).toBeNull();
@@ -78,7 +77,7 @@ describe('(1) registry -> payload: every capability x tier x role x market', () 
 
   it('an unrecognised plan (incl. a retired legacy tier) fails closed to "no plan fact" (never an entitlement), and the payload stays valid', () => {
     for (const bad of ['platinum', 'pro', 'basic']) {
-      const r = resolveCapabilityTruthResponse('measured_quote', FACTS, false, bad, false, 'International');
+      const r = resolveCapabilityTruthResponse('attachments', FACTS, false, bad, false, 'International');
       expect(r.factPayload.accountPlan).toBeNull();
       expect(r.factPayload.accountEntitlement).toBe('NOT_APPLICABLE');
       expect(r.factPayload.truthStatus).toBe('PLAN_NOT_DECIDED');
@@ -176,18 +175,13 @@ describe('(2) payload -> prose: the prose is rendered FROM the payload', () => {
     }
   });
   it('the wording follows the payload status: PLAN_NOT_DECIDED says plan inclusion is undecided, ROLE_LOCKED the role, AVAILABLE neither a denial nor a restriction', () => {
-    const undecided = resolveCapabilityTruthResponse('measured_quote', FACTS, false, 'free', false, 'International');
+    const undecided = resolveCapabilityTruthResponse('attachments', FACTS, false, 'free', false, 'International');
     expect(undecided.factPayload.truthStatus).toBe('PLAN_NOT_DECIDED');
-    expect(undecided.answer).toMatch(/^Yes - Measured professional quote exists in TEKANGO\./);
+    expect(undecided.answer).toMatch(/^Yes - File attachments exists in TEKANGO\./);
     expect(undecided.answer).toMatch(/still undecided/);
     expect(undecided.answer).not.toMatch(/requires|does not include|\bPRO\b|\bBASIC\b/);
-    const undecidedHe = resolveCapabilityTruthResponse('measured_quote', FACTS, true, 'visual', false, 'Local');
+    const undecidedHe = resolveCapabilityTruthResponse('attachments', FACTS, true, 'visual', false, 'Local');
     expect(undecidedHe.answer).toMatch(/(?:טרם|עדיין לא) הוחלט/);
-    // 2026-11-13 (Owner answer "א"): SMART_PACK names SMART PACK in both languages
-    const sp = resolveCapabilityTruthResponse('attachments', FACTS, false, 'free', false, 'International');
-    expect(sp.factPayload.truthStatus).toBe('SMART_PACK');
-    expect(sp.answer).toMatch(/^Yes - File attachments exists in TEKANGO, and it is part of SMART PACK\. Attaching files and drawings to a quote: up to 3\sMB per file and 30\sMB per business\./);
-    expect(resolveCapabilityTruthResponse('attachments', FACTS, true, 'visual', false, 'Local').answer).toMatch(/^כן — האפשרות ״צירוף קבצים״ קיימת ב-TEKANGO, והיא חלק מחכם פלוס\./);
     const plain = resolveCapabilityTruthResponse('editor_calculator', FACTS, false, 'visual', false, 'International');
     expect(plain.factPayload.truthStatus).toBe('AVAILABLE');
     expect(plain.answer).not.toMatch(/requires|does not include|undecided/);
@@ -248,12 +242,7 @@ describe('(3) the contract validator: a self-contradicting or product-wide-curre
   });
   it('rejects gate contradictions: PLAN_LOCKED without a plan / with a granted entitlement; ROLE_LOCKED likewise; AVAILABLE with a denied entitlement', () => {
     // PLAN_LOCKED is only reachable once a minimum plan is approved (none today) - exercised on a synthetic, well-formed payload
-    const undecided = resolveCapabilityTruthResponse('measured_quote', FACTS, false, 'free', false, 'International').factPayload;
-    // 2026-11-13 (Owner answer "א"): the SMART_PACK payload has the PLAN_NOT_DECIDED shape rules
-    const sp = resolveCapabilityTruthResponse('attachments', FACTS, false, 'free', false, 'International').factPayload;
-    expect(validateProductTruthPayload(sp)).toEqual([]);
-    expect(validateProductTruthPayload(mutate(sp, { minimumPlan: 'visual' }))).toContain('smart_pack_must_not_carry_a_minimum_plan');
-    expect(validateProductTruthPayload(mutate(sp, { accountEntitlement: 'GRANTED' }))).toContain('smart_pack_requires_entitlement_not_applicable');
+    const undecided = resolveCapabilityTruthResponse('attachments', FACTS, false, 'free', false, 'International').factPayload;
     const locked = mutate(undecided, { truthStatus: 'PLAN_LOCKED', minimumPlan: 'visual', accountEntitlement: 'DENIED', claimScope: 'ACCOUNT' });
     expect(validateProductTruthPayload(locked)).toEqual([]);
     expect(validateProductTruthPayload(undecided)).toEqual([]);

@@ -6,7 +6,6 @@
 // Using a template opens a NEW, unsaved quote form (the normal Free-10 check applies before it opens); nothing is saved or sent.
 import { normalizePresentationState, hasServerContent } from '../components/quotePresentation/presentationState';
 import { normalizeSpecificationRows, withPersistableQuantity, normalizeRepeatCount } from './professionalQuoteItem';
-import { GROUP_KINDS } from './quoteGroups';
 
 export const TEMPLATE_SCHEMA = 'quote-template/v1';
 export const TEMPLATE_NAME_MAX = 80;
@@ -54,9 +53,7 @@ export function buildTemplateContent(form, keep = DEFAULT_TEMPLATE_KEEP, rowBill
   const k = { ...DEFAULT_TEMPLATE_KEEP, ...(keep || {}) };
   const sections = (Array.isArray(form?.sections) ? form.sections : []).filter((s) => str(s?.name).trim())
     // Owner console 2026-11-08 (stage 3 of the one quote builder): a unit of N identical copies keeps its count (only above 1); the internal price link is never part of a template
-    .map((s, i) => ({ key: `s${i + 1}`, name: str(s.name, 200).trim(), from: s.key, ...(normalizeRepeatCount(s.repeat_count) > 1 ? { repeat_count: normalizeRepeatCount(s.repeat_count) } : {}),
-      // 2026-11-13: the group word and the parent heading are part of the template (a template lost them before)
-      ...(GROUP_KINDS.includes(s.kind) ? { kind: s.kind } : {}), parentFrom: s.parent_key ?? null }));
+    .map((s, i) => ({ key: `s${i + 1}`, name: str(s.name, 200).trim(), from: s.key, ...(normalizeRepeatCount(s.repeat_count) > 1 ? { repeat_count: normalizeRepeatCount(s.repeat_count) } : {}) }));
   const keyOf = new Map(sections.map((s) => [s.from, s.key]));
   const items = (Array.isArray(form?.items) ? form.items : []).filter((it) => str(it?.description).trim()).slice(0, TEMPLATE_MAX_ITEMS).map((raw) => {
     // Owner 2026-10-23 (typed L-09 / L-17, morning report item 6): a fractional count (2.5) is kept exactly - stored the way a saved quote
@@ -72,7 +69,6 @@ export function buildTemplateContent(form, keep = DEFAULT_TEMPLATE_KEEP, rowBill
     if (spec.length) line.specification = spec;
     const sk = it.section_key != null ? keyOf.get(it.section_key) : null;
     if (sk) line.section_key = sk;
-    if (str(it.room).trim()) line.room = str(it.room, 60).trim(); // 2026-11-13: the room tag of an older quote's row
     // only a row with no pricing unit (a fixed amount and "1 unit" store the same line); a measured / unit-priced row says it itself
     const billing = typeof rowBilling === 'function' && !line.pricing_unit ? rowBilling(raw) : null;
     if (billing === 'fixed' || billing === 'units') line.billing = billing;
@@ -81,8 +77,7 @@ export function buildTemplateContent(form, keep = DEFAULT_TEMPLATE_KEEP, rowBill
   const content = {
     schema: TEMPLATE_SCHEMA,
     structure_mode: form?.quoteStructureMode === 'divided' ? 'divided' : null,
-    sections: sections.map(({ key, name, repeat_count, kind, parentFrom }) => ({ key, name, ...(repeat_count ? { repeat_count } : {}), ...(kind ? { kind } : {}),
-      ...(parentFrom && keyOf.has(parentFrom) && keyOf.get(parentFrom) !== key ? { parent_key: keyOf.get(parentFrom) } : {}) })),
+    sections: sections.map(({ key, name, repeat_count }) => ({ key, name, ...(repeat_count ? { repeat_count } : {}) })),
     items,
   };
   // Owner round 1 (Codex spec A5): kept prices remember their currency, so a quote in another currency never takes them over silently
@@ -152,8 +147,8 @@ export function templateToFormState(content, newKey) {
   const sectionKeys = new Map();
   const sections = (Array.isArray(c.sections) ? c.sections : []).filter((s) => str(s?.name).trim()).map((s, i) => {
     const key = newKey(); sectionKeys.set(s.key, key);
-    return { key, id: null, name: str(s.name, 200), sort_order: i, repeat_count: normalizeRepeatCount(s.repeat_count), ...(GROUP_KINDS.includes(s.kind) ? { kind: s.kind } : {}), _parent: s.parent_key ?? null };
-  }).map(({ _parent, ...s }) => (_parent && sectionKeys.has(_parent) && sectionKeys.get(_parent) !== s.key ? { ...s, parent_key: sectionKeys.get(_parent) } : s)); // 2026-11-13: kind + tree
+    return { key, id: null, name: str(s.name, 200), sort_order: i, repeat_count: normalizeRepeatCount(s.repeat_count) };
+  });
   const items = (Array.isArray(c.items) ? c.items : []).filter((it) => str(it?.description).trim()).map((it) => {
     const row = { description: str(it.description, 1000), quantity: String(num(it.quantity) ?? 1), unit_price: num(it.unit_price) !== null ? String(num(it.unit_price)) : '' };
     if (it.pricing_unit) row.pricing_unit = str(it.pricing_unit, 40);
@@ -163,7 +158,6 @@ export function templateToFormState(content, newKey) {
     const spec = normalizeSpecificationRows(it.specification);
     if (spec.length) row.specification = spec;
     if (it.section_key && sectionKeys.has(it.section_key)) row.section_key = sectionKeys.get(it.section_key);
-    if (str(it.room).trim()) row.room = str(it.room, 60).trim(); // 2026-11-13: the room tag returns with the template
     if (it.billing === 'fixed' || it.billing === 'units') row._billing = it.billing; // the same as a unit template (Codex 2026-11-09)
     return row;
   });

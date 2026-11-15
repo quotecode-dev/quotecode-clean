@@ -71,7 +71,7 @@ describe('PublicQuote (HE) - flat quote (no sections at all)', () => {
   it('renders the plain classic table, unchanged - no section control invented', () => {
     render(<MemoryRouter><PublicQuote detail="compact" quoteData={buildQuoteData([flatItem])} /></MemoryRouter>);
     expect(screen.getByText('Fixed work')).toBeInTheDocument();
-    expect(screen.queryByText(/[▼▲◀▶]/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/▼|▲/)).not.toBeInTheDocument();
   });
 
   it('a professional item with no section still shows its quantity+unit on its own row - there is no dropdown left anywhere to move it behind', () => {
@@ -80,7 +80,7 @@ describe('PublicQuote (HE) - flat quote (no sections at all)', () => {
     // IRON-NUMERIC-001 (Owner 2026-10-06 decimal axis): the number and its unit are separate slots of the same quantity cell
     expect(document.querySelector('td.pq-td-qty').textContent.replace(/\u00a0/g, ' ')).toMatch(/4\.40 מ״ר/);
     expect(screen.queryByText(/Color/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/[▼▲◀▶]/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/▼|▲/)).not.toBeInTheDocument();
   });
 });
 
@@ -88,7 +88,7 @@ describe('PublicQuote (HE) - collapsed section (default state)', () => {
   it('shows only the section name, one commercial-summary row, and the section total - zero Smart detail, zero item-level rows, zero global dropdown', () => {
     const apt33 = { ...measuredItem, section_id: 'sec1' };
     render(<MemoryRouter><PublicQuote detail="compact" quoteData={buildQuoteData([apt33], { sections: [{ id: 'sec1', name: 'Apartment 33' }] })} /></MemoryRouter>);
-    expect(screen.getByText(/[◀▶] Apartment 33/)).toBeInTheDocument();
+    expect(screen.getByText(/▼ Apartment 33/)).toBeInTheDocument();
     expect(screen.getAllByText(/440/).length).toBeGreaterThan(0);
     expect(screen.queryByText('Windows - apartment 33')).not.toBeInTheDocument();
     expect(screen.queryByText(/Color/)).not.toBeInTheDocument();
@@ -99,7 +99,7 @@ describe('PublicQuote (HE) - collapsed section (default state)', () => {
   it('a single-item section shows a real item count, "—" as unit price (never the section total mislabeled as a unit price, never 1/an invented average), and the authoritative section total (Public Quote Section Summary Row Correction task, Owner visual finding)', () => {
     const apt33 = { ...measuredItem, section_id: 'sec1' };
     render(<MemoryRouter><PublicQuote detail="compact" quoteData={buildQuoteData([apt33], { sections: [{ id: 'sec1', name: 'Apartment 33' }] })} /></MemoryRouter>);
-    const row = screen.getByText(/[◀▶] Apartment 33/).closest('tr');
+    const row = screen.getByText(/▼ Apartment 33/).closest('tr');
     expect(row).toHaveTextContent('פריטים: 1');
     expect(row).toHaveTextContent('—');
     expect(row).toHaveTextContent('440');
@@ -109,7 +109,7 @@ describe('PublicQuote (HE) - collapsed section (default state)', () => {
     const items = Array.from({ length: 5 }, (_, i) => ({ ...flatItem, description: `Item ${i + 1}`, section_id: 'sec1' }));
     const expectedTotal = items.reduce((sum, it) => sum + it.total_price, 0);
     render(<MemoryRouter><PublicQuote detail="compact" quoteData={buildQuoteData(items, { sections: [{ id: 'sec1', name: 'Living Room' }] })} /></MemoryRouter>);
-    const row = screen.getByText(/[◀▶] Living Room/).closest('tr');
+    const row = screen.getByText(/▼ Living Room/).closest('tr');
     expect(row).toHaveTextContent('פריטים: 5');
     expect(row).not.toHaveTextContent(/פריטים: 1(?![0-9])/);
     expect(row).toHaveTextContent('—');
@@ -122,8 +122,8 @@ describe('PublicQuote (HE) - collapsed section (default state)', () => {
     render(<MemoryRouter><PublicQuote detail="compact" quoteData={buildQuoteData([apt33, apt34], {
       sections: [{ id: 'sec1', name: 'Apartment 33' }, { id: 'sec2', name: 'Apartment 34' }],
     })} /></MemoryRouter>);
-    expect(screen.getByText(/[◀▶] Apartment 33/)).toBeInTheDocument();
-    expect(screen.getByText(/[◀▶] Apartment 34/)).toBeInTheDocument();
+    expect(screen.getByText(/▼ Apartment 33/)).toBeInTheDocument();
+    expect(screen.getByText(/▼ Apartment 34/)).toBeInTheDocument();
     expect(screen.queryByText('Windows - apartment 33')).not.toBeInTheDocument();
     expect(screen.queryByText('Fixed work 2')).not.toBeInTheDocument();
   });
@@ -137,9 +137,9 @@ describe('PublicQuote (HE) - expanded section, independent state', () => {
       sections: [{ id: 'sec1', name: 'Apartment 33' }, { id: 'sec2', name: 'Apartment 34' }],
     })} /></MemoryRouter>);
 
-    fireEvent.click(screen.getByText(/[◀▶] Apartment 33/));
+    fireEvent.click(screen.getByText(/▼ Apartment 33/));
 
-    expect(screen.getByText(/▼ Apartment 33/)).toBeInTheDocument();
+    expect(screen.getByText(/▲ Apartment 33/)).toBeInTheDocument();
     expect(screen.getByText('Windows - apartment 33')).toBeInTheDocument();
     expect(screen.getByText('כמות: 4.40 מ״ר')).toBeInTheDocument();
     expect(screen.getByText(/0\.80 × 1\.00 מ' = 0\.80 מ״ר/)).toBeInTheDocument();
@@ -153,7 +153,7 @@ describe('PublicQuote (HE) - expanded section, independent state', () => {
     expect(itemRow).toHaveTextContent('440.00');
     expect(itemRow).not.toHaveTextContent('—');
     // Section B stays collapsed and shows none of section A's content.
-    expect(screen.getByText(/[◀▶] Apartment 34/)).toBeInTheDocument();
+    expect(screen.getByText(/▼ Apartment 34/)).toBeInTheDocument();
     expect(screen.queryByText('Fixed work 2')).not.toBeInTheDocument();
   });
 
@@ -164,11 +164,11 @@ describe('PublicQuote (HE) - expanded section, independent state', () => {
       sections: [{ id: 'sec1', name: 'Apartment 33' }, { id: 'sec2', name: 'Apartment 34' }],
     })} /></MemoryRouter>);
 
-    fireEvent.click(screen.getByText(/[◀▶] Apartment 33/));
-    fireEvent.click(screen.getByText(/[◀▶] Apartment 34/));
+    fireEvent.click(screen.getByText(/▼ Apartment 33/));
+    fireEvent.click(screen.getByText(/▼ Apartment 34/));
 
-    expect(screen.getByText(/▼ Apartment 33/)).toBeInTheDocument();
-    expect(screen.getByText(/▼ Apartment 34/)).toBeInTheDocument();
+    expect(screen.getByText(/▲ Apartment 33/)).toBeInTheDocument();
+    expect(screen.getByText(/▲ Apartment 34/)).toBeInTheDocument();
     expect(screen.getByText('Windows - apartment 33')).toBeInTheDocument();
     expect(screen.getByText('Fixed work 2')).toBeInTheDocument();
   });
@@ -176,10 +176,10 @@ describe('PublicQuote (HE) - expanded section, independent state', () => {
   it('collapsing an expanded section again hides its Smart detail with zero leak, back to a summary row', () => {
     const apt33 = { ...measuredItem, section_id: 'sec1' };
     render(<MemoryRouter><PublicQuote detail="compact" quoteData={buildQuoteData([apt33], { sections: [{ id: 'sec1', name: 'Apartment 33' }] })} /></MemoryRouter>);
-    fireEvent.click(screen.getByText(/[◀▶] Apartment 33/));
-    expect(screen.getByText('Windows - apartment 33')).toBeInTheDocument();
     fireEvent.click(screen.getByText(/▼ Apartment 33/));
-    expect(screen.getByText(/[◀▶] Apartment 33/)).toBeInTheDocument();
+    expect(screen.getByText('Windows - apartment 33')).toBeInTheDocument();
+    fireEvent.click(screen.getByText(/▲ Apartment 33/));
+    expect(screen.getByText(/▼ Apartment 33/)).toBeInTheDocument();
     expect(screen.queryByText('Windows - apartment 33')).not.toBeInTheDocument();
     expect(screen.queryByText(/Color/)).not.toBeInTheDocument();
   });
@@ -188,12 +188,12 @@ describe('PublicQuote (HE) - expanded section, independent state', () => {
     const apt33 = { ...measuredItem, section_id: 'sec1' };
     const loose = { ...flatItem, description: 'Loose item' };
     render(<MemoryRouter><PublicQuote detail="compact" quoteData={buildQuoteData([apt33, loose], { sections: [{ id: 'sec1', name: 'Apartment 33' }] })} /></MemoryRouter>);
-    expect(screen.getByText(/[◀▶] לא משויך/)).toBeInTheDocument();
-    const row = screen.getByText(/[◀▶] לא משויך/).closest('tr');
+    expect(screen.getByText(/▼ לא משויך/)).toBeInTheDocument();
+    const row = screen.getByText(/▼ לא משויך/).closest('tr');
     expect(row).toHaveTextContent('פריטים: 1');
     expect(row).toHaveTextContent('—');
     expect(row).toHaveTextContent('150');
-    fireEvent.click(screen.getByText(/[◀▶] לא משויך/));
+    fireEvent.click(screen.getByText(/▼ לא משויך/));
     expect(screen.getByText('Loose item')).toBeInTheDocument();
   });
 });
@@ -220,11 +220,8 @@ describe('PublicQuote (HE) - Compact/Expanded print mode sets every section at o
     fireEvent.click(screen.getByText('הדפסת מסמך חלקי'));
     expect(screen.queryByText('Windows - apartment 33')).not.toBeInTheDocument();
     expect(screen.queryByText('Fixed work 2')).not.toBeInTheDocument();
-    // 2026-11-13 (Owner, typed L-24 / L-27 / L-28: "בהדפסה וב pdf שלא יראו את המשולשים"): while printing the summary rows show the
-    // heading names WITHOUT the triangle
-    expect(screen.getByText(/Apartment 33/)).toBeInTheDocument();
-    expect(screen.getByText(/Apartment 34/)).toBeInTheDocument();
-    expect(screen.queryByText(/[◀▶] Apartment 33/)).not.toBeInTheDocument();
+    expect(screen.getByText(/▼ Apartment 33/)).toBeInTheDocument();
+    expect(screen.getByText(/▼ Apartment 34/)).toBeInTheDocument();
   });
 });
 
@@ -232,7 +229,7 @@ describe('PublicQuoteEn - flat quote (no sections at all)', () => {
   it('renders the plain classic table, unchanged', () => {
     render(<PublicQuoteEn detail="compact" quoteData={buildQuoteData([flatItem], { quote: { currency: 'USD' } })} />);
     expect(screen.getByText('Fixed work')).toBeInTheDocument();
-    expect(screen.queryByText(/[▼▲◀▶]/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/▼|▲/)).not.toBeInTheDocument();
   });
 
   it('a professional item with no section still shows its quantity+unit on its own row', () => {
@@ -241,7 +238,7 @@ describe('PublicQuoteEn - flat quote (no sections at all)', () => {
     // IRON-NUMERIC-001 (Owner 2026-10-06 decimal axis): the number and its unit are separate slots of the same quantity cell
     expect(document.querySelector('td.pq-td-qty').textContent.replace(/\u00a0/g, ' ')).toMatch(/4\.40 m²/);
     expect(screen.queryByText(/Color/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/[▼▲◀▶]/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/▼|▲/)).not.toBeInTheDocument();
   });
 });
 
@@ -249,7 +246,7 @@ describe('PublicQuoteEn - collapsed section (default state)', () => {
   it('shows only the section name, one commercial-summary row, and the section total', () => {
     const apt33 = { ...measuredItem, section_id: 'sec1' };
     render(<PublicQuoteEn detail="compact" quoteData={buildQuoteData([apt33], { quote: { currency: 'USD' }, sections: [{ id: 'sec1', name: 'Apartment 33' }] })} />);
-    expect(screen.getByText(/[◀▶] Apartment 33/)).toBeInTheDocument();
+    expect(screen.getByText(/▼ Apartment 33/)).toBeInTheDocument();
     expect(screen.getAllByText(/440/).length).toBeGreaterThan(0);
     expect(screen.queryByText('Windows - apartment 33')).not.toBeInTheDocument();
     expect(screen.queryByText(/Color/)).not.toBeInTheDocument();
@@ -259,7 +256,7 @@ describe('PublicQuoteEn - collapsed section (default state)', () => {
   it('a single-item section shows a real singular item count, "—" as unit price, and the authoritative section total (Public Quote Section Summary Row Correction task, Owner visual finding)', () => {
     const apt33 = { ...measuredItem, section_id: 'sec1' };
     render(<PublicQuoteEn detail="compact" quoteData={buildQuoteData([apt33], { quote: { currency: 'USD' }, sections: [{ id: 'sec1', name: 'Apartment 33' }] })} />);
-    const row = screen.getByText(/[◀▶] Apartment 33/).closest('tr');
+    const row = screen.getByText(/▼ Apartment 33/).closest('tr');
     expect(row).toHaveTextContent('1 item');
     expect(row).not.toHaveTextContent('1 items');
     expect(row).toHaveTextContent('—');
@@ -270,7 +267,7 @@ describe('PublicQuoteEn - collapsed section (default state)', () => {
     const items = Array.from({ length: 5 }, (_, i) => ({ ...flatItem, description: `Item ${i + 1}`, section_id: 'sec1' }));
     const expectedTotal = items.reduce((sum, it) => sum + it.total_price, 0);
     render(<PublicQuoteEn detail="compact" quoteData={buildQuoteData(items, { quote: { currency: 'USD' }, sections: [{ id: 'sec1', name: 'Living Room' }] })} />);
-    const row = screen.getByText(/[◀▶] Living Room/).closest('tr');
+    const row = screen.getByText(/▼ Living Room/).closest('tr');
     expect(row).toHaveTextContent('5 items');
     expect(row).toHaveTextContent('—');
     expect(row).toHaveTextContent(String(expectedTotal));
@@ -286,11 +283,11 @@ describe('PublicQuoteEn - expanded section, independent state', () => {
       sections: [{ id: 'sec1', name: 'Apartment 33' }, { id: 'sec2', name: 'Apartment 34' }],
     })} />);
 
-    fireEvent.click(screen.getByText(/[◀▶] Apartment 33/));
+    fireEvent.click(screen.getByText(/▼ Apartment 33/));
 
-    expect(screen.getByText(/▼ Apartment 33/)).toBeInTheDocument();
+    expect(screen.getByText(/▲ Apartment 33/)).toBeInTheDocument();
     expect(screen.getByText('Windows - apartment 33')).toBeInTheDocument();
-    expect(screen.getByText('Qty: 4.40 m²')).toBeInTheDocument(); // 2026-11-14 (Owner): "Qty:" - one line on a phone
+    expect(screen.getByText('Quantity: 4.40 m²')).toBeInTheDocument();
     expect(screen.getByText(/0\.80 × 1\.00 m = 0\.80 m²/)).toBeInTheDocument();
     expect(screen.getByText(/Color/)).toBeInTheDocument();
     expect(screen.getByText('Total Apartment 33:')).toBeInTheDocument();
@@ -299,7 +296,7 @@ describe('PublicQuoteEn - expanded section, independent state', () => {
     expect(itemRow).toHaveTextContent('100.00');
     expect(itemRow).toHaveTextContent('440.00');
     expect(itemRow).not.toHaveTextContent('—');
-    expect(screen.getByText(/[◀▶] Apartment 34/)).toBeInTheDocument();
+    expect(screen.getByText(/▼ Apartment 34/)).toBeInTheDocument();
     expect(screen.queryByText('Fixed work 2')).not.toBeInTheDocument();
   });
 
@@ -307,12 +304,12 @@ describe('PublicQuoteEn - expanded section, independent state', () => {
     const apt33 = { ...measuredItem, section_id: 'sec1' };
     const loose = { ...flatItem, description: 'Loose item' };
     render(<PublicQuoteEn detail="compact" quoteData={buildQuoteData([apt33, loose], { quote: { currency: 'USD' }, sections: [{ id: 'sec1', name: 'Apartment 33' }] })} />);
-    expect(screen.getByText(/[◀▶] Unassigned/)).toBeInTheDocument();
-    const row = screen.getByText(/[◀▶] Unassigned/).closest('tr');
+    expect(screen.getByText(/▼ Unassigned/)).toBeInTheDocument();
+    const row = screen.getByText(/▼ Unassigned/).closest('tr');
     expect(row).toHaveTextContent('1 item');
     expect(row).toHaveTextContent('—');
     expect(row).toHaveTextContent('150');
-    fireEvent.click(screen.getByText(/[◀▶] Unassigned/));
+    fireEvent.click(screen.getByText(/▼ Unassigned/));
     expect(screen.getByText('Loose item')).toBeInTheDocument();
   });
 });
@@ -359,13 +356,13 @@ describe('PublicQuote (HE) - column geometry lock (Public Quote Section Dropdown
     const { container } = render(<MemoryRouter><PublicQuote detail="compact" quoteData={buildQuoteData([apt33], { sections: [{ id: 'sec1', name: 'Apartment 33' }] })} /></MemoryRouter>);
     const before = getColWidths(container);
 
-    fireEvent.click(screen.getByText(/[◀▶] Apartment 33/));
+    fireEvent.click(screen.getByText(/▼ Apartment 33/));
     expect(getColWidths(container)).toEqual(before);
     // Only one <colgroup> ever exists - detail content never adds a second
     // one or duplicates/overrides the column contract.
     expect(container.querySelectorAll('table colgroup').length).toBe(1);
 
-    fireEvent.click(screen.getByText(/▼ Apartment 33/));
+    fireEvent.click(screen.getByText(/▲ Apartment 33/));
     expect(getColWidths(container)).toEqual(before);
   });
 
@@ -378,20 +375,20 @@ describe('PublicQuote (HE) - column geometry lock (Public Quote Section Dropdown
     })} /></MemoryRouter>);
     const before = getColWidths(container);
 
-    fireEvent.click(screen.getByText(/[◀▶] Apartment 33/));
+    fireEvent.click(screen.getByText(/▼ Apartment 33/));
     expect(getColWidths(container)).toEqual(before);
-    fireEvent.click(screen.getByText(/[◀▶] Apartment 34/));
+    fireEvent.click(screen.getByText(/▼ Apartment 34/));
     expect(getColWidths(container)).toEqual(before);
-    fireEvent.click(screen.getByText(/[◀▶] לא משויך/));
+    fireEvent.click(screen.getByText(/▼ לא משויך/));
     expect(getColWidths(container)).toEqual(before);
   });
 
   it('the group heading and subtotal rows use colSpan to merge into the SAME 4-column contract, never a 5th column or an override', () => {
     const apt33 = { ...measuredItem, section_id: 'sec1' };
     render(<MemoryRouter><PublicQuote detail="compact" quoteData={buildQuoteData([apt33], { sections: [{ id: 'sec1', name: 'Apartment 33' }] })} /></MemoryRouter>);
-    fireEvent.click(screen.getByText(/[◀▶] Apartment 33/));
+    fireEvent.click(screen.getByText(/▼ Apartment 33/));
 
-    const headingCell = screen.getByText(/▼ Apartment 33/).closest('td');
+    const headingCell = screen.getByText(/▲ Apartment 33/).closest('td');
     expect(headingCell.getAttribute('colspan')).toBe('4');
     const subtotalLabelCell = screen.getByText('סה״כ Apartment 33:');
     expect(subtotalLabelCell.getAttribute('colspan')).toBe('3');
@@ -411,11 +408,11 @@ describe('PublicQuoteEn - column geometry lock', () => {
     const { container } = render(<PublicQuoteEn detail="compact" quoteData={buildQuoteData([apt33], { quote: { currency: 'USD' }, sections: [{ id: 'sec1', name: 'Apartment 33' }] })} />);
     const before = getColWidths(container);
 
-    fireEvent.click(screen.getByText(/[◀▶] Apartment 33/));
+    fireEvent.click(screen.getByText(/▼ Apartment 33/));
     expect(getColWidths(container)).toEqual(before);
     expect(container.querySelectorAll('table colgroup').length).toBe(1);
 
-    fireEvent.click(screen.getByText(/▼ Apartment 33/));
+    fireEvent.click(screen.getByText(/▲ Apartment 33/));
     expect(getColWidths(container)).toEqual(before);
   });
 });
@@ -425,7 +422,7 @@ describe('PublicQuote (HE) - Mobile 4-column geometry correction (Public Quote M
     const apt33 = { ...measuredItem, section_id: 'sec1' };
     const { container } = render(<MemoryRouter><PublicQuote detail="compact" quoteData={buildQuoteData([apt33], { sections: [{ id: 'sec1', name: 'Apartment 33' }] })} /></MemoryRouter>);
     expect(container.querySelectorAll('[data-label]').length).toBe(0);
-    fireEvent.click(screen.getByText(/[◀▶] Apartment 33/));
+    fireEvent.click(screen.getByText(/▼ Apartment 33/));
     expect(container.querySelectorAll('[data-label]').length).toBe(0);
   });
 
@@ -457,10 +454,10 @@ describe('PublicQuote (HE) - Mobile 4-column geometry correction (Public Quote M
   it('every money-bearing cell (flat rows, section summary, section items, section subtotal) is protected with white-space:nowrap, so a 7-digit total can never wrap mid-number', () => {
     const apt33 = { ...measuredItem, section_id: 'sec1' };
     render(<MemoryRouter><PublicQuote detail="compact" quoteData={buildQuoteData([apt33], { sections: [{ id: 'sec1', name: 'Apartment 33' }] })} /></MemoryRouter>);
-    const collapsedTotalCell = screen.getByText(/[◀▶] Apartment 33/).closest('tr').querySelectorAll('td')[3];
+    const collapsedTotalCell = screen.getByText(/▼ Apartment 33/).closest('tr').querySelectorAll('td')[3];
     expect(collapsedTotalCell.style.whiteSpace).toBe('nowrap');
 
-    fireEvent.click(screen.getByText(/[◀▶] Apartment 33/));
+    fireEvent.click(screen.getByText(/▼ Apartment 33/));
     const itemRow = screen.getByText('Windows - apartment 33').closest('tr');
     const itemCells = itemRow.querySelectorAll('td');
     expect(itemCells[2].style.whiteSpace).toBe('nowrap'); // Unit Price
@@ -475,7 +472,7 @@ describe('PublicQuote (HE) - Mobile 4-column geometry correction (Public Quote M
   it('a 7-digit section total (₪1,250,000.00) still renders as one complete, correctly-formatted string inside the real Total column, exactly where Desktop shows it', () => {
     const bigItem = { description: 'Full renovation package', quantity: 1, price: 1250000, total_price: 1250000, section_id: 'sec1' };
     render(<MemoryRouter><PublicQuote detail="compact" quoteData={buildQuoteData([bigItem], { sections: [{ id: 'sec1', name: 'Whole House' }] })} /></MemoryRouter>);
-    const row = screen.getByText(/[◀▶] Whole House/).closest('tr');
+    const row = screen.getByText(/▼ Whole House/).closest('tr');
     const cells = row.querySelectorAll('td');
     expect(cells[3]).toHaveTextContent('₪1,250,000.00');
     expect(cells[3].style.whiteSpace).toBe('nowrap');
@@ -514,7 +511,7 @@ describe('PublicQuoteEn - Mobile 4-column geometry correction', () => {
   it('a 7-digit section total still renders as one complete string in the Total column, protected with white-space:nowrap', () => {
     const bigItem = { description: 'Full renovation package', quantity: 1, price: 1250000, total_price: 1250000, section_id: 'sec1' };
     render(<PublicQuoteEn detail="compact" quoteData={buildQuoteData([bigItem], { quote: { currency: 'USD' }, sections: [{ id: 'sec1', name: 'Whole House' }] })} />);
-    const row = screen.getByText(/[◀▶] Whole House/).closest('tr');
+    const row = screen.getByText(/▼ Whole House/).closest('tr');
     const cells = row.querySelectorAll('td');
     expect(cells[3]).toHaveTextContent('$1,250,000.00');
     expect(cells[3].style.whiteSpace).toBe('nowrap');

@@ -200,8 +200,8 @@
     "markers": 0
   },
   "src/components/ClientsTab.jsx": {
-    "interactive": 11,
-    "markers": 11
+    "interactive": 10,
+    "markers": 10
   },
   "src/components/CustomerQuoteItemRow.jsx": {
     "interactive": 2,
@@ -352,8 +352,8 @@
     "markers": 7
   },
   "src/components/QuoteForm.jsx": {
-    "interactive": 21,
-    "markers": 23
+    "interactive": 38,
+    "markers": 42
   },
   "src/components/QuoteFromFileDialog.jsx": {
     "interactive": 5,
@@ -392,8 +392,8 @@
     "markers": 1
   },
   "src/components/ServicesCatalog.jsx": {
-    "interactive": 9,
-    "markers": 10
+    "interactive": 8,
+    "markers": 9
   },
   "src/components/SettingsTab.jsx": {
     "interactive": 6,
@@ -580,14 +580,6 @@
     "markers": 0
   },
   "src/components/quotePresentation/useQuotePresentationEditor.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/quoteTree/QuoteTreeEditor.jsx": {
-    "interactive": 40,
-    "markers": 41
-  },
-  "src/components/quoteTree/treeModel.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -1067,10 +1059,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/displaySectionTree.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/draftAttachments.js": {
     "interactive": 0,
     "markers": 0
@@ -1120,10 +1108,6 @@
     "markers": 0
   },
   "src/utils/itemPrice.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/listExport.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -1596,10 +1580,6 @@
     "markers": 0
   },
   "supabase/functions/chat-ai/accountContext.ts": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "supabase/functions/chat-ai/accountStateTruth.ts": {
     "interactive": 0,
     "markers": 0
   },

@@ -63,8 +63,7 @@ describe('the app copy says the same in both languages', () => {
   ])('Dashboard: %s', (pair) => expect(dash).toContain(pair));
   it('no emoji left in an English email message', () => expect(dash).not.toContain('❌ Invalid'));
   it('the editor, list, settings and AI dialog pairs', () => {
-    // 2026-11-13 (the 13/11 demo client step): the client type label in both languages
-    expect(src('./components/QuoteForm.jsx')).toContain("{isHebrew ? 'סוג הלקוח' : 'Client type'}");
+    expect(src('./components/QuoteForm.jsx')).toContain("'סוג לקוח (חובה)' : 'Client type (required)'");
     expect(src('./components/QuotesTab.jsx')).toContain("'The email address the quote was sent to does not exist'");
     expect(src('./components/SettingsTab.jsx')).toContain("'You can upload a file of up to 500 KB, in SVG, JPG or PNG format.'");
     expect(src('./components/AiQuoteDraftDialog.jsx')).toContain("generate: 'Create a draft with AI'");
@@ -79,10 +78,9 @@ describe('market, never the UI language', () => {
   it('the editor VAT rows follow the Israeli-business market only', () => {
     const qf = src('./components/QuoteForm.jsx');
     expect(qf).not.toContain('isLocalIsraeliBusiness && isHebrew');
-    // 2026-11-15 (the approved demo): the summary's four lines - the works, a discount, VAT (Israeli business only), the total
-    expect(qf).toContain("isHebrew ? 'סכום העבודות והמוצרים' : 'Works and products'");
-    expect(qf).toMatch(/\{isLocalIsraeliBusiness && \(<>\s*<span>\{clientType === 'private' \? \(isHebrew \? <>מתוכו מע״מ/);
-    expect(qf).toContain("isLocalIsraeliBusiness && clientType === 'private' ? totalAmount + (Number(discountAmount) || 0) : subtotal");
+    // 2026-11-12 (the demo summary): the same rows, labels without a colon
+    expect(qf).toContain("isHebrew ? 'סכום לפני מע״מ' : 'Before VAT'");
+    expect(qf).toContain("isLocalIsraeliBusiness && clientType === 'private' ? (");
   });
   it('the quote list before-VAT amount and tooltip follow the market', () => {
     const qt = src('./components/QuotesTab.jsx');

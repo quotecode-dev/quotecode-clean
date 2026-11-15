@@ -555,7 +555,7 @@ ${buildInvoicingTruthBlock(AI_FACTS.invoicing, subscriptionPurchaseOpen(purchase
 
 ${buildCapabilityTruthBlock({ capabilities: AI_FACTS.capabilities, nonCurrentCapabilities: AI_FACTS.nonCurrentCapabilities })}
 
-${buildHowToBlock(isHebrew, AI_FACTS.howTo, marketIL)}
+${buildHowToBlock(isHebrew, AI_FACTS.howTo)}
 
 ${pricingBlock}
 

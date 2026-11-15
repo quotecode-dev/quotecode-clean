@@ -8,7 +8,6 @@
 // That check carries no Authorization header, no body and no cookies; a deployed ai-quote-draft rejects it (JWT required / POST only).
 import { sanitizeDraftResponse, validateDraftRequest } from '../../supabase/functions/_shared/aiQuoteDraft.js';
 import { isMeasurableUnit, resolveCalculationMethod, getActiveQuantity } from './professionalQuoteItem';
-import { defaultGroupName } from './quoteGroups';
 
 export const AI_QUOTE_DRAFT_FUNCTION = 'ai-quote-draft';
 
@@ -72,13 +71,12 @@ export function draftFunctionUrl(supabase) {
 // Resolves to { status: 'ok', subject, items, changes } or { status: <closed failure code> }. Never throws.
 // Owner console 2026-11-06 (release B): + quote = the open quote (lines, notes, discount - never a price) so the AI can change it
 // 2026-11-12 (unified quote, spec 5): structure = ask for places / rooms too (a new quote that is not divided yet)
-// 2026-11-13 (Owner: the headings are a TREE): tree = floors / apartments / rooms with parents, each copy its own heading (on top of structure)
-export async function requestAiQuoteDraft(supabase, description, { fetchImpl, quote = null, structure = false, tree = false } = {}) {
-  const checked = validateDraftRequest({ description, ...(quote ? { quote } : {}), ...(structure ? { structure: true, ...(tree ? { tree: true } : {}) } : {}) });
+export async function requestAiQuoteDraft(supabase, description, { fetchImpl, quote = null, structure = false } = {}) {
+  const checked = validateDraftRequest({ description, ...(quote ? { quote } : {}), ...(structure ? { structure: true } : {}) });
   if (!checked.ok) return { status: 'invalid' };
   const functionUrl = draftFunctionUrl(supabase);
   try {
-    const body = { description: checked.value.description, ...(checked.value.quote ? { quote: checked.value.quote } : {}), ...(checked.value.structure ? { structure: true } : {}), ...(checked.value.tree ? { tree: true } : {}) };
+    const body = { description: checked.value.description, ...(checked.value.quote ? { quote: checked.value.quote } : {}), ...(checked.value.structure ? { structure: true } : {}) };
     const { data, error } = await supabase.functions.invoke(AI_QUOTE_DRAFT_FUNCTION, { body });
     if (error) return { status: await classifyDraftError(error, { functionUrl, fetchImpl, descriptionLength: checked.value.description.length }) };
     const draft = sanitizeDraftResponse(data);
@@ -95,54 +93,6 @@ export async function requestAiQuoteDraft(supabase, description, { fetchImpl, qu
 //     'manual' + calculation_method 'manual' + calculated_quantity, no measurement rows (the user can add them in the form later);
 //   - kg / hour / day: a professional quantity item (pricing_unit + manual quantity), exactly as the unit selector stores it.
 // The dialog never applies a line without a positive quantity (the user fills or unticks it first).
-/** 2026-11-13 (tree): the suggested headings in tree order with their depth (parents first; a heading is never hidden) */
-export function draftPlaceRows(places) {
-  const list = Array.isArray(places) ? places : []; const keys = new Set(list.map((p) => p.key)); const out = []; const seen = new Set();
-  const walk = (parent, depth) => list.filter((p) => ((p.parent && keys.has(p.parent)) ? p.parent : null) === parent)
-    .forEach((p) => { if (seen.has(p.key) || depth > 3) return; seen.add(p.key); out.push({ place: p, depth }); walk(p.key, depth + 1); });
-  walk(null, 0); list.forEach((p) => { if (!seen.has(p.key)) out.push({ place: p, depth: 0 }); });
-  return out;
-}
-/** 2026-11-13 (tree): the path of a heading from the top ([] = a line of the whole quote) */
-export function draftPlacePath(places, key) {
-  const byKey = new Map((Array.isArray(places) ? places : []).map((p) => [p.key, p])); const path = []; const seen = new Set();
-  for (let k = key; k && byKey.has(k) && !seen.has(k) && path.length < 4; k = byKey.get(k).parent || null) { seen.add(k); path.unshift(byKey.get(k)); }
-  return path;
-}
-/** 2026-11-13 (Owner: the headings are a TREE, no "× N" in a new quote): reviewed places -> NEW headings appended after `existing` (never
- *  replacing or merging them), nested by parent_key; each drafted line -> its own deepest heading (none = the whole quote). A place still
- *  carrying a count N (a group too big to expand on the server) -> N sibling headings, its lines repeated in each copy only when the
- *  text said identical. No repeat_count, no limit of 20. */
-export function aiPlacesToSections(places, lines, drafted, existing = [], { isHebrew = true, stamp = String(Date.now()) } = {}) {
-  const rows = draftPlaceRows(places).map((r) => r.place);
-  const firstOrder = (existing || []).reduce((m, s) => Math.max(m, Number(s?.sort_order) || 0), -1) + 1;
-  const fresh = []; const copiesOf = new Map(); const fills = new Map(); // fills: a heading key -> it takes the place's lines too
-  const siblings = (kind, parentKey) => [...(existing || []), ...fresh].filter((s) => s && s.kind === kind && (s.parent_key || null) === parentKey).length;
-  for (const p of rows) {
-    const n = Math.max(1, Math.floor(Number(p.count)) || 1);
-    // 2026-11-13 (system-impact review A3): a place under a parent of N copies is made under EVERY copy of that parent (never only the first);
-    // a copy takes the lines only when every copy level above it said "identical"
-    const parents = p.parent ? (copiesOf.get(p.parent) || [null]) : [null];
-    const keys = [];
-    for (const parentKey of parents) {
-      for (let i = 0; i < n; i += 1) {
-        const key = `tmp_section_${stamp}_${fresh.length}`; keys.push(key);
-        fills.set(key, (parentKey == null || fills.get(parentKey) !== false) && (i === 0 || p.identical === 'yes'));
-        fresh.push({ key, kind: p.kind, parent_key: parentKey, sort_order: firstOrder + fresh.length,
-          name: p.name ? (n > 1 ? `${p.name} ${i + 1}` : p.name) : defaultGroupName(p.kind, siblings(p.kind, parentKey), isHebrew) });
-      }
-    }
-    copiesOf.set(p.key, keys);
-  }
-  const extra = [];
-  const items = drafted.map((it, i) => {
-    const place = lines[i] && lines[i].place; const keys = copiesOf.get(place) || [];
-    keys.slice(1).filter((k) => fills.get(k)).forEach((k) => extra.push({ ...it, section_key: k }));
-    return { ...it, section_key: keys[0] || null };
-  });
-  return { sections: fresh, items: [...items, ...extra] };
-}
-
 export function draftLinesToQuoteItems(lines) {
   return (Array.isArray(lines) ? lines : []).map((line) => {
     const quantity = Number(line.quantity);

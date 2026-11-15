@@ -198,9 +198,9 @@ export default function PricingModal({ isOpen, onClose, isHebrew, isLocalIsraeli
         <p data-testid="plans-modal-cancellation" style={{ textAlign: 'center', color: '#64748b', fontSize: '0.78rem', margin: '0 0 10px' }}>
           {m.cancellation.text}{' '}
           {/* PRODUCT_TRUTH_DECORATIVE: mailto link that opens a cancellation-request email to the service mailbox (handled by the team; no automatic cancellation, nothing changes in the account) */}
-          <MailLink href={m.cancellation.href} isHebrew={isHebrew} data-testid="plans-modal-cancel-request" style={{ color: '#0F6672', fontWeight: 600, whiteSpace: 'nowrap' }}>{m.cancellation.linkLabel}</MailLink>{' · '}
+          <MailLink href={m.cancellation.href} isHebrew={isHebrew} data-testid="plans-modal-cancel-request" style={{ color: '#0F6672', fontWeight: 600 }}>{m.cancellation.linkLabel}</MailLink>{' · '}
           {/* PRODUCT_TRUTH_DECORATIVE: public legal page link (the cancellation and refund terms) */}
-          <a href={m.cancellation.termsHref} target="_blank" rel="noopener noreferrer" style={{ color: '#0F6672', whiteSpace: 'nowrap' }}>{m.cancellation.termsLabel}</a>
+          <a href={m.cancellation.termsHref} target="_blank" rel="noopener noreferrer" style={{ color: '#0F6672' }}>{m.cancellation.termsLabel}</a>
         </p>
         </>)}
         <div style={{ textAlign: 'center', color: '#64748b', fontSize: '0.75rem' }}>

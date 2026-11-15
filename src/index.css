@@ -517,13 +517,6 @@ html {
 .pf-modal-head-close-btn:focus-visible { outline: 3px solid #0F6672; outline-offset: 2px; border-radius: 6px; }
 .pf-ai-help-btn--header { min-height: 40px; padding: 7px 14px; }
 .pf-ai-help-btn--header .pf-ai-label-short { display: none; }
-/* 2026-11-14 (Owner "א"): the header's OWN width picks the label - a narrow window (edit client, 450px) shows the short label on a
-   desktop too, so the close X never reaches the window edge; Hebrew and English alike */
-.pf-modal-head { container-type: inline-size; container-name: pf-modal-head; }
-@container pf-modal-head (max-width: 480px) {
-  .pf-ai-help-btn--header .pf-ai-label-long { display: none; }
-  .pf-ai-help-btn--header .pf-ai-label-short { display: inline; }
-}
 @media (max-width: 600px) {
   .pf-modal-head { display: flex; align-items: center; gap: 6px; }
   .pf-modal-head-title { flex: 1 1 0; }
@@ -712,15 +705,17 @@ body:has([role="dialog"][aria-modal="true"]) .tk-tip { display: none; }
 .sq-saved { width: 100%; box-sizing: border-box; }
 
 /* Owner 2026-11-12 (the demo, typed): the work screen - the work column, the summary beside it on a computer, after it on a phone */
-/* 2026-11-13 (Owner: the summary at the bottom like the 13/11 demo, no side column) */
-/* 2026-11-13 (the 13/11 demo): the work, the quote details, then the bar (it stays at the bottom of the screen while the work scrolls) */
-.sq-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "work" "details" "bar"; column-gap: 16px; row-gap: 16px; align-items: start; }
-.sq-g-bar { grid-area: bar; min-width: 0; position: sticky; bottom: 0; z-index: 20; }
-.sq-g-head[hidden], .sq-g-details[hidden], .sq-g-bar[hidden] { display: none; }
+.sq-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr); grid-template-areas: "head" "work" "side" "details"; column-gap: 16px; row-gap: 16px; align-items: start; }
 .sq-g-head { grid-area: head; min-width: 0; }
 .sq-g-work { grid-area: work; min-width: 0; }
 .sq-g-side { grid-area: side; min-width: 0; }
 .sq-g-details { grid-area: details; min-width: 0; }
+@media (min-width: 1024px) {
+  .sq-editor-grid { grid-template-columns: minmax(0, 1fr) 300px; grid-template-areas: "head ." "work side" "details side"; row-gap: 0; }
+  .sq-g-work { margin-bottom: 16px; }
+  .sq-g-head { margin-bottom: 4px; }
+  .sq-g-side { position: sticky; top: 12px; }
+}
 .sq-add-choice--places { margin-bottom: 12px; }
 .sq-work-card, .sq-details-card { border: 1px solid #d6e3ea; border-radius: 16px; background: #fff; padding: 16px; box-shadow: 0 1px 2px rgba(15,23,42,0.05); }
 .sq-work-card { margin-bottom: 0; }
@@ -750,11 +745,6 @@ body:has([role="dialog"][aria-modal="true"]) .tk-tip { display: none; }
 @media (max-width: 768px) {
   .sq-add-bar .sq-add-btn { flex: 1 1 100%; }
   .sq-unit-actions > button { flex: 1 1 100% !important; }
-}
-/* 2026-11-14 (Owner: one row, not two): the AI smart quote window - on a phone the two buttons keep one row in both languages */
-@media (max-width: 480px) {
-  .pf-aiq-actions { gap: 6px !important; }
-  .pf-aiq-actions > button { padding-inline: 10px !important; white-space: nowrap; }
 }
 /* the catalog add form: every field one height (44px), so the three fields stand on one line */
 [data-testid="catalog-new-name"], [data-testid="catalog-new-price"] { min-height: 44px; }

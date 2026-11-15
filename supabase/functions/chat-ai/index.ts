@@ -11,7 +11,6 @@ import { resolveSubscriptionTruthResponse, findSubscriptionClaimViolations, safe
 import { ownsQuote, sanitizeQuoteContext, buildQuoteContextBlock, type RawQuoteRow } from "./quoteContext.ts";
 import { extractNavigationAction } from "./navigation.ts";
 import { classifyDirectFactIntent, resolveDirectFact, formatDirectFactAnswer } from "./directFacts.ts";
-import { asksSmartPackUsage, smartPackUsageAnswer, asksBillingProblem, billingProblemAnswer } from "./accountStateTruth.ts";
 import { paymentTruthApplies, classifyPaymentIntent, resolvePaymentTruthResponse, subscriptionPurchaseOpen } from "./paymentTruth.ts";
 import { AI_FACTS } from "./aiFacts.generated.ts";
 import { invoicingTruthApplies, classifyInvoicingIntent, resolveInvoicingTruthResponse } from "./invoicingTruth.ts";
@@ -165,7 +164,7 @@ serve(async (req) => {
     selectedQuoteRequested = true;
     const richSelect = `
       id, user_id, quote_number, project_name, status, signature, currency, subtotal, tax_rate, total, created_at, valid_until,
-      quote_sections ( id, name, repeat_count, parent_section_id ),
+      quote_sections ( id, name, repeat_count ),
       quote_items ( description, quantity, unit_price, total_price, pricing_unit, calculation_method, quantity_source, calculated_quantity, specification, section_id, quote_item_measurements ( width, height, unit, calculated_area, label ) )
     `;
     const flatSelect = `
@@ -177,10 +176,6 @@ serve(async (req) => {
     // deno-lint-ignore no-explicit-any
     let quoteErr: any = null;
     ({ data: quoteRow, error: quoteErr } = await adminClient.from('quotes').select(richSelect).eq('id', selectedQuoteId).maybeSingle());
-    // 2026-11-13: before the heading-tree migration the parent column is missing - the same rich read without it (never the flat fallback)
-    if (quoteErr && String(quoteErr?.message || '').includes('parent_section_id')) {
-      ({ data: quoteRow, error: quoteErr } = await adminClient.from('quotes').select(richSelect.replace(', parent_section_id', '')).eq('id', selectedQuoteId).maybeSingle());
-    }
     if (quoteErr) {
       const msg = String(quoteErr?.message || '');
       const isMissingStructuredField = ['repeat_count', 'project_name', 'quote_sections', 'pricing_unit', 'calculated_quantity', 'quantity_source', 'specification', 'section_id', 'calculation_method', 'quote_item_measurements', 'created_at', 'valid_until']
@@ -280,24 +275,6 @@ serve(async (req) => {
   // classifier does not recognise still reaches the model under the authoritative PAYMENT & CHECKOUT TRUTH block
   // in the system prompt (validation.ts). See paymentTruth.ts and TEKANGO_AI_ARCHITECTURE.md section 13.4.
   // AI HELP V4: invoicing truth is as deterministic as payment truth. A question about both gets both statements.
-  // 2026-11-13 (Owner console, typed L-14 / part 2 of the chat knowledge scan, section א 1-2): this account's SMART PACK usage left and
-  // its billing state are answered from the server (never the price list, never "how to buy") - before the payment / plan answers
-  if (verifiedUserId && isDashboard && accountContext) {
-    const usageAnswer = asksSmartPackUsage(lastUserMessage) ? smartPackUsageAnswer(accountContext.smartPackUsage, isHebrew) : null;
-    if (usageAnswer) {
-      await logChat(usageAnswer);
-      return deterministicResponse(usageAnswer, null, null);
-    }
-    if (asksBillingProblem(lastUserMessage)) {
-      const billingAnswer = billingProblemAnswer(accountSummary as unknown as Parameters<typeof billingProblemAnswer>[0], marketIL, isHebrew);
-      // 2026-11-14: null = the account could not be read - the regular payment / plan path below answers
-      if (billingAnswer) {
-        await logChat(billingAnswer);
-        return deterministicResponse(billingAnswer, null, null);
-      }
-    }
-  }
-
   const asksInvoicing = invoicingTruthApplies(AI_FACTS.invoicing) && classifyInvoicingIntent(lastUserMessage);
   const asksPayment = paymentTruthApplies(AI_FACTS.billing) && classifyPaymentIntent(lastUserMessage);
   if (asksInvoicing || asksPayment) {
@@ -416,7 +393,7 @@ serve(async (req) => {
           ? quoteFromFileAnswer(isHebrew) : '';
         // Owner 2026-10-25 (typed L-17, QA report): a "how do I ..." question gets the verified steps after the fixed answer
         const steps = !shortFile && matched && HOW_QUESTION.test(lastUserMessage) && ['AVAILABLE', 'PLAN_NOT_DECIDED', 'PLAN_LOCKED'].includes(String(capabilityTruth.factPayload.truthStatus))
-          ? howToStepsForCapability(capabilityId, lastUserMessage, isHebrew, AI_FACTS.howTo, marketIL) : '';
+          ? howToStepsForCapability(capabilityId, lastUserMessage, isHebrew, AI_FACTS.howTo) : '';
         const capabilityAnswer = shortFile || (steps ? `${capabilityTruth.answer}\n\n${steps}` : capabilityTruth.answer);
         // Owner 2026-10-24 (typed L-17): "can you build / write me a quote" (ai_mutation about a quote) offers the AI smart quote button;
         // 2026-10-25 (QA report): only a build / write request - "can you send / delete my quote" gets no button
@@ -648,10 +625,6 @@ serve(async (req) => {
 
   // an offer the product cannot keep (attaching a file / document; a screenshot outside the signed-in chat) is removed
   aiReply = removeInventedOffers(aiReply, { screenshots: !!toolCtx });
-  // 2026-11-13 (chat knowledge scan, section ג): a screenshot pasted without SMART PACK is not read - the answer says so, never silently
-  if (rawScreenshot && !screenshot && verifiedUserId && isDashboard && !smartPackAllowed) {
-    aiReply = `${aiReply}\n\n${isHebrew ? 'הסבר של צילום מסך הוא חלק מחכם פלוס, ולכן התמונה ששלחתם לא נקראה.' : 'Explaining a screenshot is part of SMART PACK, so the image you sent was not read.'}`;
-  }
 
   // §8: parse and validate any trailing navigation marker - the visible
   // answer never contains the raw "NAVIGATE: ..." line either way.
