@@ -401,15 +401,11 @@ describe('QuoteForm - the row menu', () => {
     expect(next[2].id).toBeUndefined();
   });
 
-  // Owner 2026-11-15 (answer א, replaces restore item 17 of 08/11): the only line of the quote has "Remove" too (the demo), with undo
-  it('the only line of the quote has Remove, and undo brings it back; with two lines Remove is there', () => {
-    function OneLine() { const [items, setItems] = useStateLive([makeItem({ description: 'Aluminum window', unit_price: '300' })]); return <QuoteForm {...baseProps({ items, setItems })} />; }
-    const { unmount } = render(<OneLine />);
+  // Owner console 2026-11-08 (restore item 17): the only line of the quote has no "Remove"
+  it('the only line of the quote has no Remove; with two lines Remove is there', () => {
+    const { unmount } = render(<QuoteForm {...baseProps()} />);
     fireEvent.click(screen.getByRole('button', { name: 'Actions' }));
-    fireEvent.click(screen.getByRole('menuitem', { name: 'Remove' }));
-    expect(screen.queryAllByTestId('qt-row')).toHaveLength(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Undo last action' }));
-    expect(screen.getAllByTestId('qt-row')).toHaveLength(1);
+    expect(screen.queryByRole('menuitem', { name: 'Remove' })).toBeNull();
     unmount();
     render(<QuoteForm {...baseProps({ items: [makeItem({ description: 'A', unit_price: '1' }), makeItem({ description: 'B', unit_price: '1' })] })} />);
     fireEvent.click(screen.getAllByRole('button', { name: 'Actions' })[0]);

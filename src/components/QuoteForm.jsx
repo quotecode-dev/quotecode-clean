@@ -151,49 +151,12 @@ export default function QuoteForm({
   const validityExpired = isQuoteAcceptanceExpired(validUntil, isLocalIsraeliBusiness ? 'Local' : 'International');
   const hasOptionalDetails = Boolean(editingQuoteId || quoteSubject || projectName || (quoteFiles || []).length || clientAddress || notes || validUntil || attnName || attnRole || serviceSchedule?.date);
   const [showMoreDetails, setShowMoreDetails] = useState(hasOptionalDetails);
-  // 2026-11-15 (the demo, Codex D02; Owner: "גם ככה אין מקום בנייד"): the contact details stay folded - also when a chosen client fills
-  // them; "פרטי קשר (לא חובה)" opens them
-  const [showClientContact, setShowClientContact] = useState(false);
+  const hasClientContact = Boolean(String(clientEmail || '').trim() || String(clientPhone || '').trim() || String(attnName || '').trim() || String(attnRole || '').trim());
+  const [showClientContact, setShowClientContact] = useState(() => Boolean(editingQuoteId) || hasClientContact);
+  // a client picked from the list (or a restored draft) brings its contact details - they are shown, never hidden
+  useEffect(() => { if (hasClientContact) setShowClientContact(true); }, [hasClientContact]);
   // opens (never auto-closes) as soon as any optional value appears (e.g. a restored draft), so entered data is never hidden
   useEffect(() => { if (hasOptionalDetails) setShowMoreDetails(true); }, [hasOptionalDetails]);
-  // 2026-11-15 (Owner video: on a phone everything jumps while typing): while a field has the keyboard on a phone, the bottom bar and the
-  // calculator button step aside (html.pf-typing), and the field keeps its place on the screen when the page above it changes size
-  useEffect(() => {
-    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
-    const phone = window.matchMedia('(max-width: 768px)');
-    const html = document.documentElement;
-    const typeable = (el) => Boolean(el) && (el.tagName === 'TEXTAREA' || (el.tagName === 'INPUT' && !/^(checkbox|radio|button|submit|reset|range|color|file|hidden)$/i.test(el.type || '')));
-    const scrollerOf = (el) => { for (let a = el.parentElement; a && a !== document.body; a = a.parentElement) { const oy = getComputedStyle(a).overflowY; if ((oy === 'auto' || oy === 'scroll') && a.scrollHeight > a.clientHeight + 1) return a; } return window; };
-    // the anchor is the element the user is on inside the quote form (a field, or the Add button). Its place in the page content is followed:
-    // when something above it appears or goes (the status line, the example button), the page is scrolled by the same amount, so it stays
-    // where the finger is. A scroll (the user's, or the browser showing the field above the keyboard) does not move it in the content.
-    let field = null; let scroller = window; let rel = 0;
-    const posOf = (el) => (scroller === window ? el.getBoundingClientRect().top + window.scrollY : el.getBoundingClientRect().top - scroller.getBoundingClientRect().top + scroller.scrollTop);
-    function keep() {
-      if (!field || !field.isConnected || document.activeElement !== field) return;
-      const d = posOf(field) - rel;
-      if (Math.abs(d) > 1) scroller.scrollBy(0, d);
-      rel = posOf(field);
-    }
-    const ro = typeof ResizeObserver === 'function' ? new ResizeObserver(() => keep()) : null;
-    const watch = () => { if (!ro) return; ro.disconnect(); ro.observe(document.body); if (scroller !== window) [...scroller.children].forEach((c) => ro.observe(c)); const f = field && field.closest('form'); if (f) ro.observe(f); };
-    const on = (e) => {
-      const el = e.target;
-      if (!phone.matches || !el || typeof el.closest !== 'function' || !el.closest('form')) return;
-      field = el; scroller = scrollerOf(el); rel = posOf(el); watch();
-      // the browser's own scroll anchoring would move the page a second time - this code is the one anchor while the user is in the form
-      html.classList.add('pf-anchor');
-      if (typeable(el)) html.classList.add('pf-typing'); else html.classList.remove('pf-typing');
-    };
-    const off = () => { setTimeout(() => { const a = document.activeElement; if (!typeable(a)) html.classList.remove('pf-typing'); if (!a || a === document.body) field = null; }, 0); };
-    // a tap, a key or typing may change the page above the anchor a frame or two later - follow it for a moment
-    let until = 0; let raf = 0;
-    const tick = () => { keep(); raf = Date.now() < until ? requestAnimationFrame(tick) : 0; };
-    const settle = (e) => { if (!field || !e.target || typeof e.target.closest !== 'function' || !e.target.closest('form')) return; until = Date.now() + 900; if (!raf) raf = requestAnimationFrame(tick); };
-    const evs = [['focusin', on], ['focusout', off], ['click', settle], ['input', settle], ['keydown', settle]];
-    evs.forEach(([n, h]) => document.addEventListener(n, h, true));
-    return () => { if (ro) ro.disconnect(); if (raf) cancelAnimationFrame(raf); evs.forEach(([n, h]) => document.removeEventListener(n, h, true)); html.classList.remove('pf-typing'); html.classList.remove('pf-anchor'); };
-  }, []);
   const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
@@ -735,8 +698,6 @@ export default function QuoteForm({
         {/* PRODUCT_TRUTH_DECORATIVE: leaves the client step like the header Back; nothing is deleted */}
         {flowStep === 'client' && typeof onBack === 'function' && <button type="button" className="qt-link qt-page-back" data-testid="sq-client-back" onClick={onBack}>{isHebrew ? '→ חזרה' : '← Back'}</button>}
         <StepHeading n={1} title={isHebrew ? 'למי מכינים את ההצעה?' : 'Who is this quote for?'} />
-        {/* 2026-11-15 (Owner answer א): the VAT notice at the top of the client step, above the client fields - as in the editor */}
-        {vatNotice}
         {/* V2 Visual Completion Pass: Client Details + Quote Details now sit
             side-by-side (Image 1 reference) via the same auto-fit/minmax grid
             pattern already used everywhere else in this file for field rows -
@@ -844,6 +805,7 @@ export default function QuoteForm({
             )}
           </div>
           )}
+          {vatNotice}
 
           {/* Owner round 1 (2026-10-15, plan section 3): contact details and the attention contact are optional - one toggle, open by
               itself when any of them already holds a value. The Tax ID stays visible: it is required for a business client. */}
