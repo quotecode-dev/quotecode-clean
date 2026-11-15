@@ -713,7 +713,8 @@ export default function QuoteTreeEditor({
     done(t.msgCopied);
     setItems((prev) => { const c = { ...prev[index] }; delete c.id; delete c.price_link_id; return insertAtEndOf(prev, placeOf(prev[index]), c); });
   };
-  const startEdit = (it) => { if (blocked(t.blockMove)) return; const place = placeOf(it); if (!simple && place) { setSelected(place); expand(place); } setEditing({ rowKey: rowKey(it) }); setStatus(null); };
+  // the demo: editing a row moves the chosen place to the row's place (a whole-quote row -> "כל ההצעה")
+  const startEdit = (it) => { if (blocked(t.blockMove)) return; const place = placeOf(it); if (!simple) { if (place) { setSelected(place); expand(place); } else { if (selected) lastTopic.current = selected; setSelected(null); } } setEditing({ rowKey: rowKey(it) }); setStatus(null); };
   const updateRow = (built) => {
     const rk = editing?.rowKey;
     done(t.msgUpdated);

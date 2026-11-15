@@ -48,7 +48,7 @@ export default function ServiceScheduleFields({ value, onChange, state = 'ready'
     <div data-testid="service-schedule" data-state={state} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div className="qt-field">
         <div className="qt-page-label">
-          <label htmlFor="sq-service-date">{dateLabel} <bdi className="pf-num sq-nowrap" dir="ltr">({formatLabel})</bdi></label>
+          <label htmlFor="sq-service-date">{dateLabel} <span className="sq-nowrap">({formatLabel})</span></label>
           <HelpCircle inline testId="sq-help-service-date" label={L(['הסבר: תאריך העבודה', 'Explain: work date'])}
             text={L(['מועד העבודה, האספקה או האירוע. נפרד מתוקף ההצעה, לא מוצג ללקוח, ומופיע ביומן הפנימי.', 'When the work, delivery or event happens. Separate from the quote validity, not shown to the customer, and listed in your internal calendar.'])} />
         </div>
