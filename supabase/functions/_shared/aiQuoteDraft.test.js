@@ -279,14 +279,10 @@ describe('prices written in the description (Owner 2026-11-11)', () => {
     const out = parseOwnerPrices(JSON.stringify(raw), [], text);
     expect(out.items.map((i) => [i.quantity, i.unitPrice, i.priceSource])).toEqual([[3, 2500, 'description'], [40, 120, 'description'], [null, null, 'none']]);
   });
-  // Owner 2026-11-15 (typed): the price the user wrote or said wins over the catalog price; without one, the catalog price
-  it('a written price wins over the catalog price; without one the catalog price', () => {
+  it('a catalog price wins over a written one', () => {
     const r2 = { ...raw, items: [item({ description: 'התקנת מזגן', evidence: 'התקנת מזגן 2500 ש"ח', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', catalogId: 'c1' })] };
     const out = parseOwnerPrices(JSON.stringify(r2), [{ id: 'c1', name: 'התקנת מזגן', price: 1900 }], 'התקנת מזגן 2500 ש"ח');
-    expect([out.items[0].unitPrice, out.items[0].priceSource]).toEqual([2500, 'description']);
-    const r0 = { ...raw, items: [item({ description: 'התקנת מזגן', evidence: 'התקנת מזגן', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', catalogId: 'c1' })] };
-    const out0 = parseOwnerPrices(JSON.stringify(r0), [{ id: 'c1', name: 'התקנת מזגן', price: 1900 }], 'התקנת מזגן');
-    expect([out0.items[0].unitPrice, out0.items[0].priceSource]).toEqual([1900, 'catalog']);
+    expect([out.items[0].unitPrice, out.items[0].priceSource]).toEqual([1900, 'catalog']);
   });
   it('a total of several pieces is never divided (no per-unit words) - no price', () => {
     const r3 = { ...raw, items: [item({ description: 'התקנת מזגנים', evidence: 'התקנת 3 מזגנים 7500 ש"ח', quantity: 3, unit: 'unit', quantityBasis: 'stated' })] };

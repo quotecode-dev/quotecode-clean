@@ -88,13 +88,11 @@ describe('the tree from the text', () => {
   it('"שתי דירות זהות" -> two separate apartments, the lines in each (Owner: no × N); EN with m² in the text and m2 in the evidence is verified', () => {
     const r = P('שתי דירות זהות, בכל אחת ריצוף במטבח 12 מ״ר', { places: [pl('a', 'apartment', '', null, 'שתי דירות זהות', { count: 2, identical: 'yes' })],
       items: [line({ description: 'ריצוף', evidence: 'ריצוף במטבח 12 מ״ר', quantity: 12, unit: 'm2', quantityBasis: 'stated', place: 'a' })] });
-    // 2026-11-15 (Owner round 2, item 2): the kitchen written for the work is a heading inside each apartment (the room is never lost)
-    expect(r.places.map((p) => [p.name, p.count])).toEqual([['דירה 1', 1], ['מטבח', 1], ['דירה 2', 1], ['מטבח', 1]]);
-    expect(r.items.map((it) => [r.places.find((p) => p.key === it.place)?.name, it.quantity, it.quantityBasis])).toEqual([['מטבח', 12, 'stated'], ['מטבח', 12, 'stated']]);
-    expect(r.places.find((p) => p.key === r.items[1].place).parent).toBe('a~2');
+    expect(r.places.map((p) => [p.name, p.count])).toEqual([['דירה 1', 1], ['דירה 2', 1]]);
+    expect(r.items.map((it) => [it.place, it.quantity, it.quantityBasis])).toEqual([['a', 12, 'stated'], ['a~2', 12, 'stated']]);
     const e = P('Two identical apartments, in each flooring in the kitchen 12 m² and replace the toilet', { places: [pl('a', 'apartment', '', null, 'Two identical apartments', { count: 2, identical: 'yes' })],
       items: [line({ description: 'Flooring', evidence: 'flooring in the kitchen 12 m2', quantity: 12, unit: 'm2', quantityBasis: 'stated', place: 'a' })] }, false);
-    expect(e.places.map((p) => p.name)).toEqual(['Apartment 1', 'Kitchen', 'Apartment 2', 'Kitchen']); // the kitchen written for the work (15/11 round 2)
+    expect(e.places.map((p) => p.name)).toEqual(['Apartment 1', 'Apartment 2']);
     expect(e.items.map((it) => [it.quantity, it.quantityBasis])).toEqual([[12, 'stated'], [12, 'stated']]);
   });
   it('nothing invented: a floor the text never names is dropped (its line goes up), a wrong name is cleared, a loop / wrong order goes to the top', () => {

@@ -9548,7 +9548,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onOpenChat={openAiChat}
               onClose={() => setShowAiQuoteDraft(false)}
               onApply={applyAiQuoteDraft}
-              saveToCatalog={saveQuoteRowToCatalog}
               international={!isLocalIsraeliBusiness}
               editMode={editingQuoteId !== null}
               quoteLabel={editingQuoteId ? formatQuoteFallback({ id: editingQuoteId, quote_number: editingOriginalQuote?.quote_number ?? null }) : ''}

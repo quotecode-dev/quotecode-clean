@@ -69,7 +69,6 @@ const COPY = {
     catalogItem: (name) => `מהקטלוג: ${name}`,
     needsPrice: 'יש להזין מחיר',
     needsPriceNoMatch: 'יש להזין מחיר — לא נמצא פריט תואם בקטלוג',
-    addToCatalog: 'להוסיף לקטלוג?',
     unitUnverified: (name) => `הפריט ״${name}״ נמצא בקטלוג, אבל לא ברור אם יחידת התמחור שלו תואמת ליחידה הזו. יש להזין מחיר.`,
     basis: { stated: 'הכמות מהתיאור', derived: (d) => `הכמות חושבה מהתיאור: ${d}`, implied_single: 'כמות 1 משתמעת מהתיאור — בדקו', edited: 'הכמות עודכנה ידנית' },
     missingLabel: 'חסר',
@@ -154,7 +153,6 @@ const COPY = {
     catalogItem: (name) => `From catalog: ${name}`,
     needsPrice: 'Enter a price',
     needsPriceNoMatch: 'Enter a price — no matching catalog item',
-    addToCatalog: 'Add to the catalog?',
     unitUnverified: (name) => `Found “${name}” in your catalog, but its price unit is not confirmed for this unit — enter a price`,
     basis: { stated: 'Quantity from your description', derived: (d) => `Calculated from your description: ${d}`, implied_single: 'Quantity 1 implied by your description — check it', edited: 'Changed by you' },
     missingLabel: 'Missing',
@@ -237,7 +235,7 @@ function describeChange(e, quote, t, isHebrew, sym, money) {
   return <>{name}: {parts.map((p, i) => (i ? [<span key={`s${i}`}>; </span>, p] : p))}</>;
 }
 
-export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply, onOpenChat, requestDraft, formatMoneyDisplay, sym, transcribe = null, international = false, editMode = false, quoteLabel = '', readUsage = null, currentQuote = null, saveToCatalog = null }) {
+export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply, onOpenChat, requestDraft, formatMoneyDisplay, sym, transcribe = null, international = false, editMode = false, quoteLabel = '', readUsage = null, currentQuote = null }) {
   // Owner 2026-11-05 (L-17): the units the market offers; a line keeps its own unit even when the market does not offer it
   const unitChoices = (own) => { const list = draftUnitsForMarket(international); return own && !list.includes(own) ? [...list, own] : list; };
   const t = COPY[isHebrew ? 'he' : 'en'];
@@ -256,8 +254,6 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
   const [selected, setSelected] = useState([]);
   // the changes the user UNticked (by kind + line ref); everything else is applied - a fresh draft starts with all ticked
   const [unticked, setUnticked] = useState(() => new Set());
-  // the lines (by index) the user asked to add to the catalog - a new draft starts with none
-  const [toCatalog, setToCatalog] = useState(() => new Set());
   const fieldRef = useRef(null);
   const dialogRef = useRef(null);
   const requestSeq = useRef(0);
@@ -271,7 +267,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
 
   useEffect(() => {
     if (!isOpen) return;
-    setDescription(''); setPhase('describe'); setErrorCode(null); setDraft(null); setLines([]); setSelected([]); setToCatalog(new Set());
+    setDescription(''); setPhase('describe'); setErrorCode(null); setDraft(null); setLines([]); setSelected([]);
     setTimeout(() => fieldRef.current?.focus(), 0);
     refreshUsage();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -290,7 +286,7 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
     refreshUsage();
     if (result?.status === 'ok') {
       appliedRef.current = false;
-      setDraft({ ...result, sourceText: text }); setLines(result.items.map(toEditable)); setSelected(result.items.map(() => true)); setToCatalog(new Set());
+      setDraft({ ...result, sourceText: text }); setLines(result.items.map(toEditable)); setSelected(result.items.map(() => true));
       setUnticked(new Set()); setPhase('review');
     } else {
       setErrorCode(result?.status || 'failed'); setPhase('describe');
@@ -334,13 +330,6 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
   const apply = () => {
     if (!canApply || appliedRef.current) return;
     appliedRef.current = true; // one apply per draft (a double click never adds the lines twice)
-    // the lines the user asked to add to the catalog (ticked lines only), one row per product name, after the quote lines are applied
-    if (typeof saveToCatalog === 'function') {
-      const methodOf = (u) => (u === 'm2' || u === 'sq_ft' ? 'area' : u === 'linear_meter' || u === 'linear_ft' ? 'linear' : ['hour', 'day', 'kg'].includes(u) ? u : 'units');
-      const names = new Set();
-      const rows = chosenIdx.filter((i) => toCatalog.has(i) && !lines[i].original.catalogName && lines[i].unitPrice != null).map((i) => lines[i]).filter((l) => { const n = String(l.description).trim().toLowerCase(); if (!n || names.has(n)) return false; names.add(n); return true; });
-      Promise.resolve().then(async () => { for (const l of rows) { try { await saveToCatalog({ name: String(l.description).trim(), price: l.unitPrice, method: methodOf(l.unit), international }); } catch { /* the quote lines are applied either way */ } } });
-    }
     onApply(chosen, draft.subject || '', chosenChanges, Array.isArray(draft.places) ? draft.places : []);
   };
   function handleVoiceText(text) {
@@ -504,13 +493,6 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                         <span data-testid="ai-quote-draft-price" data-price-source={line.priceSource} style={{ fontSize: '0.76rem', color: NEON.textSecondary }}>{t.price}: {line.unitPrice != null
                           ? <><bdi className="pf-money" dir="ltr">{money(line.unitPrice)}</bdi> · {line.priceSource === 'description' ? t.fromDescription : (line.catalogName ? t.catalogItem(line.catalogName) : t.fromCatalog)}</>
                           : <span style={{ color: NEON.amber || NEON.textSecondary, fontWeight: 600 }}>{line.priceSource === 'catalog_unit_unverified' && line.original.catalogName ? t.unitUnverified(line.original.catalogName) : (line.original.catalogName ? t.needsPrice : t.needsPriceNoMatch)}</span>}</span>
-                        {/* PRODUCT_TRUTH_DECORATIVE: a product with a price that is not in the catalog - asks whether to add it to the catalog (unticked; saved on "Add to the quote"; a product without a price is never saved to the catalog, as in the add form) */}
-                        {typeof saveToCatalog === 'function' && !line.original.catalogName && line.unitPrice != null && (
-                          <label data-testid="ai-quote-draft-to-catalog" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '0.78rem', fontWeight: 600, color: NEON.textPrimary, minHeight: '32px', cursor: 'pointer' }}>
-                            <input type="checkbox" checked={toCatalog.has(i)} onChange={() => setToCatalog((all) => { const next = new Set(all); if (next.has(i)) next.delete(i); else next.add(i); return next; })} style={{ width: '18px', height: '18px' }} />
-                            {t.addToCatalog}
-                          </label>
-                        )}
                       </span>
                     </li>
                   );
