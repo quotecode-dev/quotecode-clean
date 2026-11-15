@@ -263,7 +263,7 @@ export function extractMeasures(text) {
   // Owner console 2026-11-05 (L-09/L-14/L-15/L-17 line above): a whole number PHRASE in words ("שמונים וחמש מטר") is one number
   for (const p of wordNumberPhrases(src)) {
     // Owner 2026-11-11 (finding 3): "each" in Hebrew - "כל אחד" / "כל אחת" / "לכל אחד" - is not the number one
-    if (p.value === 1 && /(?:^|[\s(])ל?כל\s+$/.test(src.slice(Math.max(0, p.start - 6), p.start))) continue;
+    if (p.value === 1 && /(?:^|[\s(])[בל]?כל\s+$/.test(src.slice(Math.max(0, p.start - 6), p.start))) continue; // + "בכל אחד" (2026-11-15)
     const after = src.slice(p.end);
     const space = after.length - after.replace(/^\s+/, '').length;
     const said = UNIT_PATTERNS.map(([id, pattern]) => [id, after.slice(space).match(pattern)]).find(([, u]) => u);
@@ -519,6 +519,8 @@ const TREE_LINES = [
   'Never invent a floor, apartment, room, topic, name, parent or count. When the text names no places, places is [] and every item.place is null.',
   // 2026-11-15 (Owner video: "קומה 24, דירה 48, דירה 49, דירה 50. בכל דירה ..." came back without the floor and with the work in one apartment only)
   'A floor named before its apartments or rooms ("קומה 24, דירה 48, דירה 49", "Floor 3: apartment 5 and apartment 6") is a place of kind "floor" and the parent of each of them.',
+  'A room the text names for a piece of work ("בסלון ריצוף 30 מ״ר", "בחדר השינה פרקט", "in the bedroom") is a place of kind "room" inside its apartment (or at the top), and that work goes in it.',
+  'A number of identical places ("שלוש דירות זהות", "three identical apartments") is ONE place entry with that count and identical "yes", its work listed once - never the lines repeated without places.',
   'When the text says the same work is done in EACH of several named places ("בכל דירה", "בכל אחת", "לכל חדר", "in each apartment", "each room"), list that work once for EACH of those places (item.place = that place), every copy with the same description, quantity, unit and evidence.',
   'item.place: the key of the DEEPEST place the item belongs to (the kitchen of דירה 32, not דירה 32), or null when the text ties the item to no place (it belongs to the whole quote). item.room: "all" when the text says the whole place, otherwise null (rooms are places).',
   'When item.place is given, description is a short name of the WORK only, without the room or the place (they are shown separately), e.g. "החלפת אסלה" / "Toilet replacement", "ריצוף" / "Flooring"; in English it starts with a capital letter. This shortening is for description only: evidence still copies the user\'s own words exactly as written, room and place words included.',
@@ -690,8 +692,15 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
   const used = new Set();
   // 2026-11-13 (tree): the places first - each item's evidence is looked for inside its own place's part of the text
   const tp = structure && tree ? parsePlaceTree(parsed.places, source) : null;
-  if (tp) adoptUnderNamedFloors(tp, source);
-  const spread = tp ? distributeEachWork(tp, parsed.items, source) : null;
+  if (tp) {
+    // a place this code adds (from the text) is resolved by its own key
+    const baseResolve = tp.resolve; tp.resolve = (k) => (typeof k === 'string' && tp.byKey.has(k) ? k : baseResolve(k));
+    if (!tp.places.length) placesFromText(tp, source);
+    adoptUnderNamedFloors(tp, source);
+    nameNamelessRooms(tp, source);
+  }
+  const counted = tp ? attachToCountedGroups(tp, parsed.items, source) : null;
+  const spread = tp ? distributeEachWork(tp, counted ? counted.items : parsed.items, source) : null;
   const regionsFor = (key) => { const out = []; const seen = new Set(); for (let k = tp ? tp.resolve(key) : null; k && !seen.has(k); k = tp.byKey.get(k).parent) { seen.add(k); out.push(tp.regionOf(k)); } return out; };
   // pass 1: the lines and the evidence span each one really has in the user's text
   const drafts = [];
@@ -700,7 +709,7 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
   // in a smart EDIT the model sometimes returned the quote's own lines as new items ("הוסיפו הנחה של 5%" -> the two existing lines again).
   // A new line there must not repeat an existing line and must come from the request's own words. Creating a quote is unchanged.
   const requestWords = quote ? significantWords(source).map(stem) : [];
-  for (const raw of (spread ? spread.items : parsed.items)) {
+  for (const raw of (spread ? spread.items : counted ? counted.items : parsed.items)) {
     if (drafts.length >= (tp ? MAX_TREE_ITEMS : MAX_DRAFT_ITEMS)) break;
     if (!raw || typeof raw !== 'object') continue;
     const lineText = cleanText(raw.description, MAX_LINE_CHARS);
@@ -716,11 +725,11 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     drafts.push({ raw, lineText, span });
   }
   // 2026-11-12 (unified quote, spec 5): the places, checked against the user's own text (a count must be written there; else 1)
-  const places = tp ? tp.places : structure ? parsePlaces(parsed.places, source) : [];
+  let places = tp ? tp.places : structure ? parsePlaces(parsed.places, source) : [];
   const placeKeys = new Set(places.map((p) => p.key));
   const inSpan = (m, span) => span && m.start >= span.start && m.start < span.end;
   const usedPrices = new Set(); // Owner 2026-11-11 (finding 3): a written price belongs to one line only
-  const qtyAt = new Map(); const lineOf = new Map();
+  const qtyAt = new Map(); const lineOf = new Map(); const priceAt = new Map();
   // 2026-11-15 (C): the price of a line may be written right after its own words, in the rest of the same clause ("40 מטר לפי 200 שקל
   // למטר") - never inside another line's words
   const priceZone = (own, d) => {
@@ -737,7 +746,9 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     if (significantWords(between).length) return own;
     return rest ? { start: own.start, end } : own;
   };
-  const free = (span) => measures.map((m, i) => ({ m, i })).filter(({ m, i }) => m.kind === 'number' && !used.has(i) && inSpan(m, span));
+  // 2026-11-15: a number right before a plural place word ("משני חדרי השינה", "4 דירות", "two bedrooms") counts places - never a line's quantity
+  const placeCount = (m) => !m.unit && /^\s*-?\s*[הבלו]?(?:דירות|חדרי|חדרים|קומות|apartments|flats|rooms|bedrooms|bathrooms|floors)(?![A-Za-zא-ת])/i.test(source.slice(m.end));
+  const free = (span) => measures.map((m, i) => ({ m, i })).filter(({ m, i }) => m.kind === 'number' && !used.has(i) && inSpan(m, span) && !placeCount(m));
   const clauses = textClauses(source);
   const has = (words, w) => words.some((x) => sameWord(w, x));
   // Task 35 (F1): the part of a span that belongs to THIS line. A span of one clause is the line's own; a span covering several clauses is
@@ -750,7 +761,10 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     if (parts.length <= 1) return span;
     const spanWords = parts.flatMap((c) => c.words);
     const words = significantWords(lineText).map(stem).filter((w) => has(spanWords, w));
-    const own = words.length ? parts.filter((c) => words.every((w) => has(c.words, w))) : [];
+    // 2026-11-15: no word of the line found in its own words (a prefix-like first letter: "מזגן" read as "זגן") - the ONE clause of its own words
+    // that holds a number is its scope; several such clauses stay ambiguous
+    const withNumber = parts.filter((c) => free(c).length);
+    const own = words.length ? parts.filter((c) => words.every((w) => has(c.words, w))) : (withNumber.length === 1 ? withNumber : []);
     if (own.length !== 1) return null;
     // Owner console 2026-11-02 (typed: "מאשר את התוכנית לתיקון 4 התקלות בהצעה החכמה, שחרור עד הלייב"): a clause holding nothing but one measure, right beside this line's clause, is this line's quantity ("ריצוף חדש, 12 מטר מרובע")
     const at = parts.indexOf(own[0]);
@@ -758,7 +772,9 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
       const f = c && free(c);
       if (!f || f.length !== 1) return false;
       // 2026-11-15: the price written for that measure in the same clause ("40 מטר לפי 200 שקל למטר") does not make it another job
-      return !significantWords(withoutPrices(source.slice(c.start, f[0].m.start) + ' ' + source.slice(f[0].m.end, c.end))).length;
+      const words = significantWords(withoutPrices(source.slice(c.start, f[0].m.start) + ' ' + source.slice(f[0].m.end, c.end))).map(stem);
+      // 2026-11-15: words that name no work of any line ("בכל אחד משני חדרי השינה") only say where - the clause is still this line's measure
+      return !words.length || words.every((w) => PLACE_TALK.has(w));
     };
     if (!free(own[0]).length && measureOnly(parts[at + 1])) return { start: own[0].start, end: parts[at + 1].end };
     if (!free(own[0]).length && measureOnly(parts[at - 1])) return { start: parts[at - 1].start, end: own[0].end };
@@ -783,7 +799,8 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     // own = the word (stem) occurs inside this line's own span, prefix letters included ("חדר" in "ובחדר"); other = a word of another span
     const ownText = normFinals(fold(span?.text || ''));
     const otherWords = new Set(drafts.filter((o) => o !== d && o.span).flatMap((o) => significantWords(o.span.text).map(stem)));
-    const conflict = significantWords(lineText).map(stem).some((w) => otherWords.has(w) && !ownText.includes(w));
+    // 2026-11-15: a generic job word ("התקנה", "install", "replace") shared with another line is no conflict - only the line's own words are
+    const conflict = significantWords(lineText).map(stem).some((w) => otherWords.has(w) && !ownText.includes(w) && !GENERIC_WORDS.has(w));
     if (basis !== 'missing' && (!span || conflict)) { basis = 'missing'; gap = 'unverified'; }
     // the same evidence words appear more than once in the text -> which occurrence is meant cannot be proven
     if ((basis === 'stated' || basis === 'derived') && span.occurrences > 1) { basis = 'missing'; gap = 'ambiguous'; }
@@ -792,7 +809,9 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     if (basis === 'stated') {
       const pool = free(scope);
       const fit = pool.filter(({ m }) => fitsUnit(m, unit));
-      const cands = fit.length ? fit : pool; // a unit the model got wrong: the unit written in the text wins
+      let cands = fit.length ? fit : pool; // a unit the model got wrong: the unit written in the text wins
+      // 2026-11-15: several numbers in the clause - the one written right before the line's own place ("2 בסלון") is its quantity
+      if (cands.length > 1 && tp) { const pk = tp.resolve(typeof raw.place === 'string' ? raw.place.trim() : null); const pn = pk ? String(tp.byKey.get(pk)?.name || '') : ''; const near = cands.filter(({ m }) => numberBeforeName(source, m, pn)); if (near.length === 1) cands = near; }
       const hit = cands.length === 1 ? cands[0] : null;
       if (cands.length > 1) { basis = 'missing'; gap = 'ambiguous'; } else if (!hit || quantity == null || !sameNumber(hit.m.value, quantity)) {
         basis = 'missing'; gap = 'unverified';
@@ -840,7 +859,25 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     if (match && !catalogMatchesLine(match.name, `${lineText} ${span?.text || ''}`)) match = undefined; // the SAME product as THIS line, not another job
     let unitPrice = null;
     let priceSource = 'none';
-    if (match) {
+    // Owner 2026-11-15 (typed): a price the user WROTE or SAID for this line wins over the catalog price; without one, the catalog price.
+    // Only ONE price in the line's own words (or right after them), said per unit, for one piece, or for the whole job ("1200 ש״ח לכל העבודה"
+    // = one price, quantity 1) - a total of several pieces is never divided and two prices are never guessed between.
+    {
+      const own = priceZone(scope || span, d);
+      let prices = measures.map((m, i) => ({ m, i })).filter(({ m, i }) => m.kind === 'price' && !usedPrices.has(i) && inSpan(m, own));
+      // none in the line's own clause - the one price in the line's own words (its evidence: "..., 3500 ש״ח למזגן")
+      if (!prices.length && span) prices = measures.map((m, i) => ({ m, i })).filter(({ m, i }) => m.kind === 'price' && !usedPrices.has(i) && inSpan(m, span));
+      if (prices.length === 1 && prices[0].m.value >= 0 && prices[0].m.value <= 10000000) {
+        const p = prices[0];
+        const lump = LUMP_AFTER.test(source.slice(p.m.end)) || LUMP_BEFORE.test(source.slice(Math.max(0, p.m.start - 18), p.m.start));
+        if (lump && !p.m.perUnit && (quantity == null || quantity === 1)) { quantity = 1; unit = 'unit'; basis = 'implied_single'; missing = null; derivation = null; }
+        // "3500 ש״ח למזגן" / "$45 per outlet": per the line's own thing is per unit
+        const per = String(source.slice(p.m.end)).replace(PRICE_CURRENCY_AFTER, '').match(/^\s*(?:ל|per\s+(?:an?\s+)?)([א-תA-Za-z]+)/i);
+        const perOwn = !!per && (significantWords(lineText).map(stem).some((w) => sameWord(w, stem(normFinals(per[1].toLowerCase())))) || normFinals(lineText.toLowerCase()).includes(normFinals(per[1].toLowerCase())));
+        if (p.m.perUnit || perOwn || quantity === 1 || basis === 'implied_single') { unitPrice = round2(p.m.value); priceSource = 'description'; usedPrices.add(p.i); priceAt.set(d, p.i); }
+      }
+    }
+    if (match && priceSource !== 'description') {
       // 2026-11-12 (spec 5): the catalog's own price basis is the verified unit; none (every older item) = the unit in the name
       const priceUnit = CATALOG_BASIS_UNIT[match.basis] || catalogNameUnit(match.name);
       const lineIsCount = !unit || unit === 'unit';
@@ -848,19 +885,7 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
       if (unitVerified && Number.isFinite(match.price) && match.price >= 0) { unitPrice = match.price; priceSource = 'catalog'; }
       else if (!unitVerified) priceSource = 'catalog_unit_unverified';
     }
-    // Owner 2026-11-11 (finding 3, option ב): a price the user WROTE for this line (its own words: "120 למטר", "2500 ש״ח" for one piece) goes
-    // to the line, marked "from your description"; a catalog price wins; the model never returns a price. Only ONE price in the line's own
-    // words, said per unit or for a single piece - a total of several pieces is never divided and two prices are never guessed between.
-    if (priceSource !== 'catalog') {
-      const own = priceZone(scope || span, d);
-      const prices = measures.map((m, i) => ({ m, i })).filter(({ m, i }) => m.kind === 'price' && !usedPrices.has(i) && inSpan(m, own));
-      const single = quantity === 1 || basis === 'implied_single';
-      if (prices.length === 1 && (prices[0].m.perUnit || single) && prices[0].m.value >= 0 && prices[0].m.value <= 10000000) {
-        unitPrice = round2(prices[0].m.value);
-        priceSource = 'description';
-        usedPrices.add(prices[0].i);
-      }
-    }
+    // (Owner 2026-11-11 finding 3 - a written price goes to its line, marked "from your description" - is the block above; since 15/11 it wins)
     lineOf.set(d, items.length);
     items.push({
       description: lineText,
@@ -881,6 +906,8 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
   }
   // 2026-11-15 (D): one quantity written once in a sentence for two works of the same kind is the quantity of both
   if (tp) shareSentenceQuantity(drafts, items, { lineOf, qtyAt, measures, source });
+  sharePerUnitPrice(drafts, items, { lineOf, priceAt, measures, source });
+  if (tp) roomsFromEvidence(tp, items, isHebrew);
   // 2026-11-15 (B): a work verified once for "בכל דירה" is copied to every one of those places (the same quantity, unit, price, evidence)
   if (spread) { const out = []; drafts.forEach((d) => { const it = items[lineOf.get(d)]; if (!it) return; out.push(it); for (const k of (spread.copies.get(d.raw) || [])) if (out.length < MAX_TREE_RESULT_ITEMS) out.push({ ...it, place: k }); }); items.splice(0, items.length, ...out); }
   // release B: a request may change the quote without any new line ("add 2 sentences to the notes")
@@ -900,6 +927,7 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     .map((m) => m.text)
     .filter((t, i, all) => all.indexOf(t) === i)
     .slice(0, 6);
+  if (tp) places = tp.places; // + the rooms named by the works' own words (roomsFromEvidence)
   let outItems = items; let outPlaces = places; let overflow = 0;
   if (tp) ({ items: outItems, places: outPlaces, overflow } = expandPlaceCopies(places, items, isHebrew));
   return { ok: true, subject, items: outItems, questions, unassignedMeasures, changes,
@@ -950,18 +978,23 @@ export function distributeEachWork(tp, rawItems, source) {
   const src = String(source || '');
   const marks = [...src.matchAll(EACH_RE)].map((m) => ({ at: m.index, kind: EACH_KIND[String(m[1] || m[2] || m[3] || '').toLowerCase()] || null }));
   const items = Array.isArray(rawItems) ? rawItems : [];
-  if (!marks.length) return null;
+  if (!marks.length) return sameWordsGroups(tp, items, src);
   // groups: named sibling places of one kind, each a single place (count 1), 2 or more, written before the "each" words
   const byParent = new Map();
-  for (const p of tp.places) { if (p.count !== 1 || p.kind === 'floor' && !marks.some((m) => m.kind === 'floor')) continue; const g = `${p.parent || ''}|${p.kind}`; byParent.set(g, [...(byParent.get(g) || []), p]); }
+  const explicit = new Set(marks.map((m) => m.kind).filter(Boolean));
+  // "in each apartment" names the kind: every apartment of the text, on every floor; "in each one" - the places side by side
+  for (const p of tp.places) { if (p.count !== 1 || p.kind === 'floor' && !explicit.has('floor')) continue; const g = explicit.has(p.kind) ? `*|${p.kind}` : `${p.parent || ''}|${p.kind}`; byParent.set(g, [...(byParent.get(g) || []), p]); }
   const groups = [];
   for (const members of byParent.values()) {
     if (members.length < 2) continue;
     const kind = members[0].kind; const firstAt = Math.min(...members.map((p) => p.span.start));
-    const mark = marks.find((m) => m.at > firstAt && (!m.kind || m.kind === kind));
-    if (mark) groups.push({ kind, parent: members[0].parent || null, members: members.map((p) => p.key), at: mark.at });
+    // the "each" words after the places, or before them in the same sentence ("1 בכל אחד משני חדרי השינה")
+    const from = Math.max(-1, ...[...src.slice(0, firstAt).matchAll(/[.!?\n]/g)].map((x) => x.index));
+    const mark = marks.find((m) => m.at > from && (!m.kind || m.kind === kind));
+    const across = new Set(members.map((p) => p.parent || null)).size > 1;
+    if (mark) groups.push({ kind, parent: across ? null : members[0].parent || null, members: members.map((p) => p.key), at: mark.at });
   }
-  if (!groups.length) return null;
+  if (!groups.length) return sameWordsGroups(tp, items, src);
   const lineKey = (it) => `${wordsOf(it.description)}|${typeof it.room === 'string' ? it.room.trim() : ''}`;
   const where = (it) => tp.resolve(typeof it.place === 'string' ? it.place.trim() : null);
   const at = (it) => { const ev = String(it.evidence || '').trim(); return ev ? normFinals(fold(src)).indexOf(normFinals(fold(ev)).slice(0, 12)) : -1; };
@@ -969,10 +1002,16 @@ export function distributeEachWork(tp, rawItems, source) {
   for (const g of groups) {
     // the lines of the group's places, and the group's parent / top lines written after the "each" words, by their work
     // only the work written AFTER the "each" words (a place's own work written before them stays as it is - never merged)
-    const afterEach = (it) => at(it) > g.at || !String(it.evidence || '').trim();
+    // "each" words after the places: only the work written after them; "each" words before the places (same sentence): the work after the places
+    const firstMember = Math.min(...g.members.map((k) => tp.byKey.get(k).span.start));
+    const afterEach = (it) => at(it) > (g.at > firstMember ? g.at : firstMember) || !String(it.evidence || '').trim();
     // the group's places, or the group's parent / any place above it / the top ("בכל דירה" written for the whole floor or the whole quote)
     const above = (k) => { for (let p = g.parent; ; p = tp.byKey.get(p)?.parent || null) { if (p === k) return true; if (!p) return false; } };
     const mine = items.filter((it) => it && typeof it === 'object' && !drop.has(it) && (g.members.includes(where(it)) || above(where(it))) && afterEach(it));
+    // places that each already have their own, DIFFERENT work ("סלון: צביעה, מטבח: ריצוף") are not one group of the same work
+    const setOf = (k) => mine.filter((it) => where(it) === k).map(lineKey).sort().join('\n');
+    const filled = g.members.filter((k) => setOf(k));
+    if (filled.length >= 2 && new Set(filled.map(setOf)).size > 1) continue;
     const byWork = new Map();
     for (const it of mine) byWork.set(lineKey(it), [...(byWork.get(lineKey(it)) || []), it]);
     for (const lines of byWork.values()) {
@@ -983,7 +1022,46 @@ export function distributeEachWork(tp, rawItems, source) {
       copies.set(master, g.members.filter((k) => k !== first));
     }
   }
+  const rest = sameWordsGroups(tp, items.filter((it) => !drop.has(it)), src);
+  if (rest) { for (const [k, v] of rest.copies) copies.set(k, v); return { items: rest.items, copies }; }
   return { items: items.filter((it) => !drop.has(it)), copies };
+}
+// lines of one work with the SAME words of the text in sibling places of one kind ("1 בכל אחד משני חדרי השינה" given to each bedroom):
+// the model says those words hold for each of them - verified once, copied to each (never across different words)
+function sameWordsGroups(tp, items, src) {
+  const where = (it) => tp.resolve(typeof it.place === 'string' ? it.place.trim() : null);
+  const by = new Map();
+  for (const it of items) {
+    const ev = String(it?.evidence || '').trim(); const k = where(it); if (!ev || !k) continue;
+    const p = tp.byKey.get(k); const id = `${wordsOf(it.description)}|${normFinals(fold(ev))}|${p.kind}`;
+    by.set(id, [...(by.get(id) || []), it]);
+  }
+  const copies = new Map(); const drop = new Set();
+  for (const lines of by.values()) {
+    const places = [...new Set(lines.map(where))];
+    if (places.length < 2) continue;
+    // the words must occur ONCE in the text (the same words written for each place separately are each place's own)
+    const ev = normFinals(fold(String(lines[0].evidence).trim())); const text = normFinals(fold(src));
+    if (text.indexOf(ev) < 0 || text.indexOf(ev) !== text.lastIndexOf(ev)) continue;
+    const [master, ...others] = lines; copies.set(master, places.filter((k) => k !== where(master))); others.forEach((o) => drop.add(o));
+  }
+  return copies.size ? { items: items.filter((it) => !drop.has(it)), copies } : null;
+}
+// a price said once per the work's own thing ("3500 ש״ח למזגן") is the price of every line of that same work in its sentence that has none of its
+// own words (the catalog price gives way to it - Owner 2026-11-15)
+export function sharePerUnitPrice(drafts, items, { lineOf, priceAt, measures, source }) {
+  const src = String(source || '');
+  const sentenceOf = (pos) => { let s = 0; let e = src.length; for (const m of src.matchAll(/[.!?\n]/g)) { if (m.index < pos) s = m.index + 1; else { e = m.index; break; } } return { s, e }; };
+  for (const owner of drafts) {
+    if (!priceAt.has(owner)) continue; const ownerItem = items[lineOf.get(owner)]; const pm = measures[priceAt.get(owner)];
+    const { s, e } = sentenceOf(pm.start);
+    for (const d of drafts) {
+      const it = items[lineOf.get(d)]; if (d === owner || !it || !d.span || it.priceSource === 'description') continue;
+      if (d.span.start < s || d.span.start >= e || wordsOf(it.description) !== wordsOf(ownerItem.description)) continue;
+      if (measures.some((m) => m.kind === 'price' && m.start >= d.span.start && m.start < d.span.end)) continue;
+      Object.assign(it, { unitPrice: ownerItem.unitPrice, priceSource: 'description' });
+    }
+  }
 }
 // D: a line without a quantity whose sentence writes ONE measure with a unit, already the quantity of another line of the same work kind in
 // that sentence (a shared word or a unit the model gave alike), takes the same quantity and unit - the line shows the sentence it came from
@@ -1003,6 +1081,114 @@ export function shareSentenceQuantity(drafts, items, { lineOf, qtyAt, measures, 
     const modelUnit = DRAFT_UNITS.includes(d.raw.unit) ? d.raw.unit : null;
     if (!shared && modelUnit !== ownerItem.unit) continue;
     Object.assign(it, { quantity: ownerItem.quantity, unit: ownerItem.unit, quantityBasis: 'stated', missing: null, evidence: src.slice(Math.min(s, d.span.start), Math.max(e, d.span.end)).trim() });
+  }
+}
+// words that only say WHERE or HOW MANY places ("בכל אחד משני חדרי השינה", "in each of the two bedrooms") - never another job (2026-11-15)
+const PLACE_TALK = new Set(['כל', 'בכל', 'לכל', 'מכל', 'אחד', 'אחת', 'שני', 'שתי', 'שלוש', 'שלושה', 'ארבע', 'חדר', 'חדרי', 'חדרימ', 'דיר', 'דירות', 'קומ', 'קומות', 'שינ', 'הורימ', 'ילדימ', 'סלונ', 'מטבח', 'שירותימ', 'אמבטי', 'מרפסת', 'each', 'one', 'two', 'three', 'room', 'bedroom', 'bathroom', 'apartment', 'flat', 'floor', 'kitchen', 'living', 'the'].map((w) => stem(w)));
+// 2026-11-15 round 2 ----------------------------------------------------------------------------------------------
+// a price said for the whole job ("1200 ש״ח לכל העבודה", "$500 for the whole job", "total $500")
+const LUMP_AFTER = /^\s*(?:₪|ש["״'׳]?ח(?![א-ת])|שקל(?:ים)?(?![א-ת])|nis\b|ils\b|dollars?\b)?\s*(?:\+?\s*מע["״]מ\s*)?(?:,\s*)?(?:ל?כל\s+ה?(?:עבודה|עבודות|פרויקט|פרוייקט|דירה)(?![א-ת])|בסך\s+הכל|סה["״]כ|(?:for|on)\s+the\s+(?:whole|entire|full)\s+(?:job|project|work)\b|for\s+everything\b|in\s+total\b|total\b|lump[\s-]?sum\b)/i;
+const LUMP_BEFORE = /(?:בסך\s+הכל|סה["״]כ|total(?:\s+of)?|lump[\s-]?sum(?:\s+of)?)\s*[:-]?\s*[₪$€£]?\s*$/i;
+// the number written right before a place's name ("2 בסלון", "2 in the living room")
+function numberBeforeName(source, m, name) {
+  const w0 = significantWords(name).map(stem)[0]; if (!w0) return false;
+  const after = String(source).slice(m.end).match(/^\s*(?:in\s+(?:the\s+)?)?([א-תA-Za-z]+)/i); if (!after) return false;
+  const x = significantWords(after[1]).map(stem)[0] || stem(normFinals(after[1].toLowerCase()).replace(/^[והבלמש]{1,2}/, ''));
+  return !!x && sameWord(w0, x);
+}
+const evidenceAt = (src, it) => { const ev = String(it?.evidence || '').trim(); return ev ? normFinals(fold(src)).indexOf(normFinals(fold(ev)).slice(0, 12)) : -1; };
+// 1: the model returned no places although the text names them - named ("דירה 48", "apartment 1A", "Floor 2") when two or more of a kind,
+// or counted ("שלוש דירות זהות", "three identical apartments"); floors are nested by adoptUnderNamedFloors. Never a place the text does not name.
+const NAMED_HE = /(?:^|[^א-ת])(דיר(?:ה|ת)|חדר|קומ(?:ה|ת))\s+(?:מס(?:פר|['׳])?\s*)?(\d+[A-Za-zא-ת]?)(?![0-9])/g;
+const NAMED_EN = /\b(apartment|apt\.?|flat|unit|room|floor)\s+(?:no\.?\s*|#)?(\d+[A-Za-z]?|[A-Z]\d+)\b/gi;
+const KIND_OF = (w) => (/^דיר|^apartment|^apt|^flat|^unit/i.test(w) ? 'apartment' : /^חדר|^room/i.test(w) ? 'room' : 'floor');
+export function placesFromText(tp, source) {
+  const src = String(source || ''); const found = [];
+  for (const re of [NAMED_HE, NAMED_EN]) for (const m of src.matchAll(re)) { const text = m[0].replace(/^[^A-Za-zא-ת]+/, ''); const start = m.index + m[0].indexOf(text); found.push({ kind: KIND_OF(m[1]), name: text.replace(/\s+/g, ' ').trim(), start, end: start + text.length, count: 1 }); }
+  const byKind = (k) => found.filter((p) => p.kind === k && p.kind !== 'floor');
+  const named = found.filter((p) => p.kind === 'floor' || byKind(p.kind).length >= 2);
+  const same = /זהות|זהים|זהה|identical|the same|בכל\s+אח(?:ת|ד)|in\s+each|each\s+(?:one|apartment|flat|room)/i.test(src);
+  const counted = [];
+  for (const kind of ['apartment', 'room', 'floor']) for (let n = 2; n <= MAX_TREE_PLACE_COUNT; n += 1) {
+    if (!countWrittenFor(src, kind, n)) continue;
+    const noun = new RegExp(`[הבלו]?(?:${PLACE_PLURAL_WORDS[kind].map(escapeRe).join('|')})(?![A-Za-zא-ת])`, 'i'); const at = src.search(noun);
+    if (at >= 0) counted.push({ kind, name: '', start: at, end: at + (src.slice(at).match(noun) || [''])[0].length, count: n, identical: same ? 'yes' : 'unclear' });
+  }
+  const all = [...named, ...counted.filter((c) => !named.some((p) => p.kind === c.kind))].sort((a, b) => a.start - b.start);
+  if (!all.length || (!counted.length && named.filter((p) => p.kind !== 'floor').length < 2)) return;
+  const seen = new Set();
+  for (const [i, p] of all.entries()) {
+    const id = `${p.kind}|${wordsOf(p.name)}`; if (p.name && seen.has(id)) continue; seen.add(id);
+    const key = `tx${i + 1}`;
+    const place = { key, kind: p.kind, name: p.name, parent: null, span: { start: p.start, end: p.end, text: src.slice(p.start, p.end) }, count: p.count, identical: p.count > 1 ? p.identical : 'no' };
+    tp.byKey.set(key, place); tp.places = [...tp.places, place];
+  }
+}
+// 1: a counted group ("שלוש דירות זהות") takes the lines written after it that the model left at the top, or repeated once per copy
+export function attachToCountedGroups(tp, rawItems, source) {
+  const src = String(source || ''); const items = Array.isArray(rawItems) ? rawItems : [];
+  const groups = tp.places.filter((p) => p.count > 1);
+  if (!groups.length) return null;
+  const where = (it) => tp.resolve(typeof it.place === 'string' ? it.place.trim() : null);
+  const inside = (k, g) => { for (let p = k; p; p = tp.byKey.get(p)?.parent || null) if (p === g.key) return true; return false; };
+  const lineKey = (it) => `${wordsOf(it.description)}|${typeof it.room === 'string' ? it.room.trim() : ''}`;
+  const drop = new Set();
+  for (const g of groups) {
+    const mine = items.filter((it) => it && typeof it === 'object' && !drop.has(it) && ((where(it) === (g.parent || null) && (evidenceAt(src, it) >= g.span.start || !String(it.evidence || '').trim())) || where(it) === g.key));
+    const byWork = new Map(); for (const it of mine) byWork.set(lineKey(it), [...(byWork.get(lineKey(it)) || []), it]);
+    for (const lines of byWork.values()) {
+      const master = lines.find((it) => String(it.evidence || '').trim()) || lines[0];
+      if (!inside(where(master), g)) master.place = g.key;
+      for (const it of lines) if (it !== master) drop.add(it);
+    }
+  }
+  return { items: items.filter((it) => !drop.has(it)) };
+}
+// 4: rooms the model left without a name - named by the text's own words ("משני חדרי השינה" -> "חדר שינה 1" / "חדר שינה 2", "two
+// bedrooms" -> "Bedroom 1" / "Bedroom 2"); a counted room group gets the singular name (the copies are numbered)
+export function nameNamelessRooms(tp, source) {
+  const src = String(source || '');
+  const he = src.match(/חדרי\s+ה?([א-ת]+)/); const en = src.match(/\b(bed|bath|living|kids'?|guest)\s*rooms\b/i);
+  const singular = he ? `חדר ${normFinals(he[1]) === normFinals(he[1]) ? he[1] : he[1]}` : en ? `${en[1][0].toUpperCase()}${en[1].slice(1).toLowerCase()}${/bed|bath/i.test(en[1]) ? 'room' : ' room'}` : null;
+  if (!singular) return;
+  const byParent = new Map();
+  // nameless, or a name the model made of the bare word and a number ("חדר 1", "Room 2")
+  const generic = (n) => !n || /^(?:חדר|room)\s*\d*$/i.test(String(n).trim());
+  for (const p of tp.places) if (p.kind === 'room' && generic(p.name)) byParent.set(p.parent || '', [...(byParent.get(p.parent || '') || []), p]);
+  for (const list of byParent.values()) {
+    if (list.length === 1 && list[0].count > 1) { list[0].name = singular; continue; }
+    if (list.length >= 2 && list.every((p) => p.count === 1)) list.forEach((p, i) => { p.name = `${singular} ${i + 1}`; });
+  }
+}
+// 2: a work whose own words name a room of its place ("בסלון ריצוף 30 מ״ר", "פרקט בחדר השינה", "in the bedroom") goes into a room heading
+// inside that place (one per room name) - the room is never lost; a line already in a room, or with no place, stays
+const ROOM_IN_TEXT = [
+  [/(?:^|[^א-ת])[ובל]?[בל]?(?:ה)?(סלון)(?![א-ת])/, 'סלון'], [/(?:^|[^א-ת])[ובל]?[בל]?(?:ה)?(מטבח)(?![א-ת])/, 'מטבח'],
+  [/(?:^|[^א-ת])[ובל]?[בל]?(?:ה)?(שירותים)(?![א-ת])/, 'שירותים'], [/(?:^|[^א-ת])[ובל]?[בל]?(?:ה)?(אמבטיה)(?![א-ת])/, 'אמבטיה'],
+  [/(?:^|[^א-ת])[ובל]?[בל]?(?:ה)?(מרפסת)(?![א-ת])/, 'מרפסת'], [/(?:^|[^א-ת])[ובל]?[בל]?(?:ה)?חדר\s+ה?(שינה|הורים|ילדים|רחצה)(?![א-ת])/, (m) => `חדר ${m[1]}`],
+  [/\b(living\s+room)\b/i, 'Living room'], [/\b(kitchen)\b/i, 'Kitchen'], [/\b(bathroom)\b/i, 'Bathroom'], [/\b(bedroom)\b/i, 'Bedroom'], [/\b(balcony)\b/i, 'Balcony'],
+];
+export function roomsFromEvidence(tp, items) {
+  const made = new Map();
+  for (const it of items) {
+    const pk = it.place; const parent = pk ? tp.byKey.get(pk) : null;
+    if (!parent || parent.kind === 'room' || !it.evidence) continue;
+    const hits = ROOM_IN_TEXT.map(([re, name]) => { const m = String(it.evidence).match(re); return m ? (typeof name === 'function' ? name(m) : name) : null; }).filter(Boolean);
+    if (hits.length !== 1) continue; // none, or several rooms in one line's words - never guessed
+    const name = hits[0];
+    // the line's own name still says the room ("ריצוף סלון") - nothing is lost, it stays as it is
+    if (significantWords(name).map(stem).filter((w) => !GENERIC_WORDS.has(w)).every((w) => significantWords(it.description).map(stem).some((x) => sameWord(w, x)))) continue;
+    if (tp.places.some((p) => p.parent === pk && p.kind === 'room' && wordsOf(p.name) === wordsOf(name))) { it.place = tp.places.find((p) => p.parent === pk && p.kind === 'room' && wordsOf(p.name) === wordsOf(name)).key; it.room = null; continue; }
+    const id = `${pk}|${wordsOf(name)}`;
+    if (!made.has(id)) {
+      let key = `rm${made.size + 1}`; while (tp.byKey.has(key)) key = `${key}x`;
+      const room = { key, kind: 'room', name, parent: pk, span: null, count: 1, identical: 'no' };
+      tp.byKey.set(key, room);
+      const after = tp.places.reduce((at, p, i) => { for (let q = p.key; q; q = tp.byKey.get(q)?.parent || null) if (q === pk) return i; return at; }, tp.places.findIndex((p) => p.key === pk));
+      tp.places = [...tp.places.slice(0, after + 1), room, ...tp.places.slice(after + 1)];
+      made.set(id, key);
+    }
+    it.place = made.get(id); it.room = null;
   }
 }
 // 2026-11-12 (unified quote, spec 5) ---------------------------------------------------------------- places and rooms

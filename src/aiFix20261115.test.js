@@ -77,10 +77,10 @@ describe('the other structures - "in each" with rooms, English, counted identica
         line({ description: 'צביעה', evidence: 'צביעה 50 מ״ר', quantity: 50, unit: 'm2', quantityBasis: 'stated', place: 'a' })] });
     expect(rows(r).map((x) => x.slice(0, 3))).toEqual([['דירה 32', 'ריצוף', 20], ['דירה 33', 'ריצוף', 25], ['דירה 32', 'צביעה', 50], ['דירה 33', 'צביעה', 50]]);
   });
-  it('"שתי דירות זהות, בכל אחת" (counted) keeps today\'s answer: דירה 1 + דירה 2, the line in each', () => {
+  it('"שתי דירות זהות, בכל אחת" (counted): דירה 1 + דירה 2, the kitchen (written for the work) inside each, the line in each', () => {
     const r = P('שתי דירות זהות, בכל אחת ריצוף במטבח 12 מ״ר', { places: [pl('a', 'apartment', '', null, 'שתי דירות זהות', { count: 2, identical: 'yes' })],
       items: [line({ description: 'ריצוף', evidence: 'ריצוף במטבח 12 מ״ר', quantity: 12, unit: 'm2', quantityBasis: 'stated', place: 'a' })] });
-    expect(r.places.map((p) => p.name)).toEqual(['דירה 1', 'דירה 2']);
+    expect(r.places.map((p) => p.name)).toEqual(['דירה 1', 'מטבח', 'דירה 2', 'מטבח']);
     expect(r.items.map((it) => it.quantity)).toEqual([12, 12]);
   });
   it('named apartments without "each": nothing is copied, each keeps its own work', () => {
@@ -110,5 +110,75 @@ describe('the other structures - "in each" with rooms, English, counted identica
       line({ description: 'הרכבת ריצוף חדש', evidence: 'הרכבת ריצוף חדש לפי 400 שקל למטר', unit: 'm2' })] });
     expect(r.items[0].unitPrice).toBe(null);
     expect(r.items[1].unitPrice).toBe(400);
+  });
+});
+
+// 2026-11-15 round 2 (Owner typed "מאשר סבב תיקון שני ... לפי 7 הסעיפים" + the price decision): the model answers SEEN on LIVE in the 8 examples
+describe('round 2 - the answers the real model gave on LIVE', () => {
+  it('example 3: "שלוש דירות זהות, בכל אחת מטבח ושירותים" - the model gave no places and every line 3 times: 3 apartments, kitchen + toilets in each', () => {
+    const text = 'שלוש דירות זהות, בכל אחת מטבח ושירותים. במטבח ריצוף 12 מ״ר, בשירותים החלפת אסלה והחלפת אינטרפוץ.';
+    const three = (o) => [line(o), line({ ...o, evidence: '' }), line({ ...o, evidence: '' })];
+    const r = P(text, { places: [], items: [...three({ description: 'ריצוף', evidence: 'במטבח ריצוף 12 מ״ר', quantity: 12, unit: 'm2', quantityBasis: 'stated' }),
+      ...three({ description: 'החלפת אסלה', evidence: 'בשירותים החלפת אסלה', quantity: 1, unit: 'unit', quantityBasis: 'implied_single' }),
+      ...three({ description: 'החלפת אינטרפוץ', evidence: 'והחלפת אינטרפוץ', quantity: 1, unit: 'unit', quantityBasis: 'implied_single' })] });
+    expect(r.places.filter((p) => p.kind === 'apartment').map((p) => p.name)).toEqual(['דירה 1', 'דירה 2', 'דירה 3']);
+    expect(r.items).toHaveLength(9);
+    const apt = (it) => { let p = r.places.find((q) => q.key === it.place); while (p && p.kind !== 'apartment') p = r.places.find((q) => q.key === p.parent); return p?.name; };
+    expect(['דירה 1', 'דירה 2', 'דירה 3'].map((a) => r.items.filter((it) => apt(it) === a).map((it) => [it.description, it.quantity]))).toEqual(Array(3).fill([['ריצוף', 12], ['החלפת אסלה', 1], ['החלפת אינטרפוץ', 1]]));
+    expect(r.items.filter((it) => it.description === 'ריצוף').every((it) => r.places.find((p) => p.key === it.place).name === 'מטבח')).toBe(true);
+  });
+  it('example 4: rooms written for the works become headings inside דירה 7; "1200 ש״ח לכל העבודה" is one price for the whole job', () => {
+    const text = 'דירה 7: בסלון ריצוף 30 מ״ר לפי 150 ש״ח למטר, בחדר השינה פרקט 14 מ״ר לפי 220 ש״ח למטר. בנוסף פינוי פסולת 1200 ש״ח לכל העבודה.';
+    const r = P(text, { places: [pl('a', 'apartment', 'דירה 7', null, 'דירה 7')], items: [
+      line({ description: 'ריצוף', evidence: 'בסלון ריצוף 30 מ״ר', quantity: 30, unit: 'm2', quantityBasis: 'stated', place: 'a' }),
+      line({ description: 'פרקט', evidence: 'בחדר השינה פרקט 14 מ״ר', quantity: 14, unit: 'm2', quantityBasis: 'stated', place: 'a' }),
+      line({ description: 'פינוי פסולת', evidence: 'פינוי פסולת 1200 ש״ח לכל העבודה', place: 'a' })] });
+    expect(tree(r)).toEqual([['דירה 7', 'apartment', null], ['סלון', 'room', 'דירה 7'], ['חדר השינה', 'room', 'דירה 7']].map((x, i) => (i === 2 ? ['חדר שינה', 'room', 'דירה 7'] : x)));
+    expect(rows(r)).toEqual([['סלון', 'ריצוף', 30, 'm2', 150, 'description'], ['חדר שינה', 'פרקט', 14, 'm2', 220, 'description'], ['דירה 7', 'פינוי פסולת', 1, 'unit', 1200, 'description']]);
+  });
+  it('example 6: "2 בסלון ו-1 בכל אחד משני חדרי השינה, 3500 ש״ח למזגן" - חדר שינה 1/2, quantities 2/1/1, the written price wins over the catalog', () => {
+    const text = 'התקנת 4 מזגנים: 2 בסלון ו-1 בכל אחד משני חדרי השינה, 3500 ש״ח למזגן כולל צנרת.';
+    const catalog = [{ id: 'c1', name: 'התקנת מזגן', price: 1200 }];
+    const r = P(text, { places: [pl('s', 'room', 'סלון', null, 'סלון'), pl('r1', 'room', 'חדר 1', null, 'חדרי השינה'), pl('r2', 'room', 'חדר 2', null, 'חדרי השינה')], items: [
+      line({ description: 'התקנת מזגן', evidence: 'התקנת 4 מזגנים: 2 בסלון', quantity: 2, unit: 'unit', quantityBasis: 'stated', place: 's', catalogId: 'c1' }),
+      line({ description: 'התקנת מזגן', evidence: '1 בכל אחד משני חדרי השינה, 3500 ש״ח למזגן', quantity: 1, unit: 'unit', quantityBasis: 'stated', place: 'r1', catalogId: 'c1' }),
+      line({ description: 'התקנת מזגן', evidence: '1 בכל אחד משני חדרי השינה, 3500 ש״ח למזגן', quantity: 1, unit: 'unit', quantityBasis: 'stated', place: 'r2', catalogId: 'c1' })] }, true, catalog);
+    expect(r.places.map((p) => p.name)).toEqual(['סלון', 'חדר שינה 1', 'חדר שינה 2']);
+    expect(rows(r).map((x) => [x[0], x[2]])).toEqual([['סלון', 2], ['חדר שינה 1', 1], ['חדר שינה 2', 1]]);
+    expect(r.items.filter((it) => it.unitPrice === 3500 && it.priceSource === 'description').length).toBeGreaterThanOrEqual(2);
+  });
+  it('example 7 (EN): the model gave no places and every line 3 times - the floors and apartments from the text, both works in each apartment', () => {
+    const text = 'Two floors. Floor 1: apartment 1A and apartment 1B. Floor 2: apartment 2A. In each apartment replace 6 outlets at $45 each and paint 80 sq ft of walls at $3 per sq ft.';
+    const three = (o) => [line(o), line({ ...o, evidence: '' }), line({ ...o, evidence: '' })];
+    const r = P(text, { places: [], items: [...three({ description: 'Outlet replacement', evidence: 'replace 6 outlets at $45 each', quantity: 6, unit: 'unit', quantityBasis: 'stated' }),
+      ...three({ description: 'Wall painting', evidence: 'paint 80 sq ft of walls at $3 per sq ft', quantity: 80, unit: 'sq_ft', quantityBasis: 'stated' })] }, false);
+    expect(tree(r)).toEqual([['Floor 1', 'floor', null], ['apartment 1A', 'apartment', 'Floor 1'], ['apartment 1B', 'apartment', 'Floor 1'], ['Floor 2', 'floor', null], ['apartment 2A', 'apartment', 'Floor 2']]);
+    expect(sorted(r).filter((x) => x[1] === 'Outlet replacement').map((x) => [x[0], x[2], x[4]])).toEqual([['apartment 1A', 6, 45], ['apartment 1B', 6, 45], ['apartment 2A', 6, 45]]);
+    expect(sorted(r).filter((x) => x[1] === 'Wall painting').map((x) => [x[0], x[2], x[4]])).toEqual([['apartment 1A', 80, 3], ['apartment 1B', 80, 3], ['apartment 2A', 80, 3]]);
+  });
+  it('example 8 (EN): "Install quartz countertop" keeps its own 30 sq ft although "install" is also in another line', () => {
+    const text = 'Kitchen remodel: remove the old cabinets, install 12 linear ft of new cabinets at $250 per linear ft, and a quartz countertop of 30 sq ft at $70 per sq ft.';
+    const r = P(text, { places: [], items: [line({ description: 'Remove old cabinets', evidence: 'remove the old cabinets' }),
+      line({ description: 'Install new cabinets', evidence: 'install 12 linear ft of new cabinets', quantity: 12, unit: 'linear_ft', quantityBasis: 'stated' }),
+      line({ description: 'Install quartz countertop', evidence: 'a quartz countertop of 30 sq ft', quantity: 30, unit: 'sq_ft', quantityBasis: 'stated' })] }, false);
+    expect(rows(r).map((x) => [x[1], x[2], x[4]])).toEqual([['Remove old cabinets', null, null], ['Install new cabinets', 12, 250], ['Install quartz countertop', 30, 70]]);
+  });
+});
+
+describe('round 2 - "להוסיף לקטלוג?" and the diagnostics (source)', () => {
+  it('the review window asks to add a priced product that is not in the catalog; the ticked ones are saved on "Add to the quote"', async () => {
+    const fs = await import('node:fs');
+    const d = fs.readFileSync('src/components/AiQuoteDraftDialog.jsx', 'utf8');
+    expect(d).toContain("addToCatalog: 'להוסיף לקטלוג?'");
+    expect(d).toContain("addToCatalog: 'Add to the catalog?'");
+    expect(d).toContain("{typeof saveToCatalog === 'function' && !line.original.catalogName && line.unitPrice != null && (");
+    expect(d).toContain('await saveToCatalog({ name: String(l.description).trim(), price: l.unitPrice, method: methodOf(l.unit), international });');
+    expect(fs.readFileSync('src/pages/Dashboard.jsx', 'utf8')).toContain('saveToCatalog={saveQuoteRowToCatalog}');
+  });
+  it('the model\'s raw answer goes to the two test accounts only', async () => {
+    const fs = await import('node:fs');
+    const f = fs.readFileSync('supabase/functions/ai-quote-draft/index.ts', 'utf8');
+    expect(f).toContain("const DIAGNOSTIC_ACCOUNTS = ['tekangoisrael@gmail.com', 'tekangointernational@gmail.com'];");
+    expect(f).toContain('if (DIAGNOSTIC_ACCOUNTS.includes(userEmail))');
   });
 });
