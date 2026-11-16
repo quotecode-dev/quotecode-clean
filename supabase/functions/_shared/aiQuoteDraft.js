@@ -823,7 +823,18 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     let trusted = false;
     let scope = span;
     if (basis !== 'missing' && quantity != null) {
-      if (basis === 'implied_single' && quantity === 1 && (!unit || unit === 'unit')) { trusted = true; unit = 'unit'; }
+      if (basis === 'implied_single' && quantity === 1 && (!unit || unit === 'unit')) {
+        trusted = true; unit = 'unit';
+        // its quote is not word for word in the text - the longest end of it that is, once
+        if (!span) {
+          const ws = String(raw.evidence || '').trim().split(/\s+/);
+          for (let k = 1; k < ws.length - 1 && !span; k += 1) {
+            const tail = ws.slice(k).join(' '); if (significantWords(tail).length < 2) break;
+            const at = source.indexOf(tail);
+            if (at >= 0 && source.indexOf(tail, at + 1) < 0) { span = d.span = { start: at, end: at + tail.length, text: tail, occurrences: 1 }; scope = span; }
+          }
+        }
+      }
       // a derived quantity (4 × 2.5 = 10) keeps the strict unit check below - its number is not written in the text
       else if (basis === 'derived') { /* strict */ }
       else {
@@ -1003,9 +1014,20 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
   let outItems = items; let outPlaces = places; let overflow = 0;
   if (tp) ({ items: outItems, places: outPlaces, overflow } = expandPlaceCopies(places, items, isHebrew));
   // a place name said in words ("דירה ארבעים ושמונה", a voice transcription) is written with its number in digits ("דירה 48")
+  // Owner 2026-11-15 (option ב for names): a name the model shortened ("1A") is completed from the user's own text ("apartment 1A"); every
+  // place name starts with a capital letter ("Apartment 1A", "Kitchen") - in every language
+  const KIND_WORDS = 'apartment|flat|unit|floor|room|building|house|villa|דירה|דירת|קומה|קומת|חדר|בניין|יחידה';
+  const completeName = (name) => {
+    let t = String(name || '').trim(); if (!t) return t;
+    if (!new RegExp(`(?:^|\\s)(?:${KIND_WORDS})(?=\\s|$)`, 'iu').test(t)) {
+      const m = String(description || '').match(new RegExp(`(?:^|[^\\p{L}\\p{N}])[ובלה]?((?:${KIND_WORDS})\\s+${escapeRe(t)})(?![\\p{L}\\p{N}])`, 'iu'));
+      if (m) t = m[1].replace(/\s+/g, ' ');
+    }
+    return t.replace(/^[a-z]/, (ch) => ch.toUpperCase());
+  };
   const digitsIn = (name) => { let t = String(name || ''); for (const p of wordNumberPhrases(t).sort((a, b) => b.start - a.start)) t = `${t.slice(0, p.start)}${p.value}${t.slice(p.end)}`; return t; };
   return { ok: true, subject, items: outItems, questions, unassignedMeasures, changes,
-    ...(structure ? { places: tp ? outPlaces.map(({ span, ...p }) => ({ ...p, name: digitsIn(p.name), evidence: span ? span.text : '' })) : places } : {}),
+    ...(structure ? { places: tp ? outPlaces.map(({ span, ...p }) => ({ ...p, name: completeName(digitsIn(p.name)), evidence: span ? span.text : '' })) : places } : {}),
     ...(tp && overflow ? { overflow } : {}) };
 }
 
@@ -1304,8 +1326,19 @@ export function roomsFromEvidence(tp, items, source = '') {
     if (!parent || parent.kind === 'room' || !it.evidence) continue;
     let hits = ROOM_IN_TEXT.map(([re, name]) => { const m = String(it.evidence).match(re); return m ? (typeof name === 'function' ? name(m) : name) : null; }).filter(Boolean);
     // none in its own words: the room word written right before its quote (the quote found once in the text, nothing else between)
-    if (!hits.length && src) { const ev = String(it.evidence); const at = src.indexOf(ev); if (at > 0 && src.indexOf(ev, at + 1) < 0) { const pre = src.slice(Math.max(0, at - 24), at);
-      hits = ROOM_IN_TEXT.map(([re, name]) => { const m = pre.match(new RegExp(`${re.source}\\s*$`, re.flags)); return m ? (typeof name === 'function' ? name(m) : name) : null; }).filter(Boolean); } }
+    if (!hits.length && src) { const ev = String(it.evidence); const at = src.indexOf(ev); if (at > 0 && src.indexOf(ev, at + 1) < 0) {
+      // the text before the quote back to the last punctuation mark - a comma, a sentence end or a colon closes it; "ו" / "and" do not
+      // ("בשירותים החלפת אסלה ו" before "החלפת אינטרפוץ", "in the bathroom replace the toilet and " before "replace the mixer" - Hebrew = English)
+      let a0 = 0;
+      for (const mm of src.slice(0, at).matchAll(/[,;•\n]|[.!?:](?=\s|$)/g)) a0 = mm.index + 1;
+      const pre = src.slice(a0, at);
+      // a room that OPENS that part ("בשירותים ...", "in the bathroom ...") is the room of every work in it; a room written after a work
+      // ("ריצוף במטבח 12 מ״ר והחלפת אסלה") belongs to that work only
+      hits = ROOM_IN_TEXT.map(([re, name]) => {
+        const m = pre.match(re); if (!m) return null;
+        const lead = pre.slice(0, pre.indexOf(m[1], m.index)).replace(/[\s.,:;!?()"'״׳-]+/g, ' ').trim();
+        return /^(?:[ובלה]{0,3}|in|at|on|in the|at the|on the|the)$/i.test(lead) ? (typeof name === 'function' ? name(m) : name) : null;
+      }).filter(Boolean); } }
     if (hits.length !== 1) continue; // none, or several rooms in one line's words - never guessed
     const name = hits[0];
     // the line's own name still says the room ("ריצוף סלון") - nothing is lost, it stays as it is
