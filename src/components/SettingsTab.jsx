@@ -389,7 +389,9 @@ export default function SettingsTab({
               </select>
             </div>
           )}
-          <div id="pf-settings-business_phone">
+          {/* night task 2026-11-16 (law 49, found in the evidence): abroad the country-code chooser ("US / CA (+1)") is wider than Israel's
+              fixed "IL (+972)", so in a 180px column on a phone / tablet the number was cut - abroad the phone takes its own full row */}
+          <div id="pf-settings-business_phone" style={isLocalIsraeliBusiness ? undefined : { gridColumn: '1 / -1' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.8rem', fontWeight: '400', color: NEON.textSecondary, marginBottom: '3px' }}><Phone size={13} color={NEON.emerald} />{isHebrew ? 'טלפון העסק' : 'Business Phone'}</label>
             <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, overflow: 'hidden', boxSizing: 'border-box' }}>
               {isLocalIsraeliBusiness ? (
