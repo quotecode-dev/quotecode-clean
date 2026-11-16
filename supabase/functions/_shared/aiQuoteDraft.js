@@ -710,7 +710,11 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     // with those numbers in digits, and every place span is mapped back to the user's own words
     const dz = digitizePlaceNumbers(source);
     if (dz) for (const p of tp.places) if (p.span) p.span = dz.toNew(p.span);
-    if (!tp.places.length || garbled) placesFromText(tp, dz ? dz.text : source);
+    // Owner console 2026-11-16 (typed: "מאשר תיקון ההצעה החכמה כשהמודל מחזיר מקומות שלא בטקסט או שורות בלי מקום: קומות ודירות מהטקסט ושיוך
+    // השורות לפי "בכל דירה" ..."): when some of the model's places are not in the text (e.g. names written in another language), the text's
+    // own floors / apartments are added too (a place already kept is never doubled - it only gets the text's name when it has none)
+    const lost = Array.isArray(parsed.places) && parsed.places.filter((p) => p && PLACE_KINDS.includes(p.kind)).length > tp.places.length;
+    if (!tp.places.length || garbled || lost) placesFromText(tp, dz ? dz.text : source);
     adoptUnderNamedFloors(tp, dz ? dz.text : source);
     if (dz) for (const p of tp.places) if (p.span) p.span = dz.toOld(p.span);
     nameNamelessRooms(tp, source);
@@ -719,7 +723,11 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     const modelName = new Map((Array.isArray(parsed.places) ? parsed.places : []).filter((p) => p && typeof p.key === 'string').map((p) => [p.key.trim(), String(p.name || '')]));
     const keptResolve = tp.resolve;
     tp.resolve = (k) => { const r = keptResolve(k); if (typeof k !== 'string' || !k.trim() || tp.byKey.has(k.trim())) return r;
-      const n = wordsOf(modelName.get(k.trim()) || k); const hit = n ? tp.places.filter((p) => wordsOf(p.name) === n) : []; return hit.length === 1 ? hit[0].key : r; };
+      const n = wordsOf(modelName.get(k.trim()) || k); const hit = n ? tp.places.filter((p) => wordsOf(p.name) === n) : []; if (hit.length === 1) return hit[0].key;
+      // Owner 2026-11-16 (the same approval): the same place by its kind and number, in any language and in words or digits ("apartment 48",
+      // "apartment forty eight", "דירה 48" = "Apartment 48") - one match only
+      const ref = placeRef(modelName.get(k.trim()) || k); const same = ref ? tp.places.filter((p) => placeRef(p.name) === ref) : [];
+      return same.length === 1 ? same[0].key : r; };
   }
   const counted = tp ? attachToCountedGroups(tp, parsed.items, source) : null;
   const spread = tp ? distributeEachWork(tp, counted ? counted.items : parsed.items, source) : null;
@@ -1066,6 +1074,16 @@ export function safePlaceKeys(parsed) {
   if (!bad && !(parsed.items || []).some((it) => it && typeof it.place === 'string' && it.place.trim() && !map.has(it.place.trim()) && byName.has(wordsOf(it.place)))) return parsed;
   return { ...parsed, places: places.map((p) => (p && typeof p === 'object' ? { ...p, key: fix(p.key), parent: fix(p.parent) } : p)), items: (parsed.items || []).map((it) => (it && typeof it === 'object' ? { ...it, place: fix(it.place) } : it)) };
 }
+// a place's kind and number, the same in every language and in words or digits: "apartment forty eight" / "Apartment 48" / "דירה 48" ->
+// "apartment|48"; null when the name has no kind word or no number
+const PLACE_REF_KINDS = [[/(?:^|[^A-Za-zא-ת])[ובלה]?(?:דירה|דירת)(?![א-ת])|\b(?:apartment|flat|apt|unit)\b/i, 'apartment'], [/(?:^|[^A-Za-zא-ת])[ובלה]?(?:קומה|קומת)(?![א-ת])|\bfloor\b/i, 'floor'], [/(?:^|[^A-Za-zא-ת])[ובלה]?חדר(?![א-ת])|\broom\b/i, 'room']];
+export function placeRef(name) {
+  let t = String(name || '');
+  for (const p of wordNumberPhrases(t).sort((a, b) => b.start - a.start)) t = `${t.slice(0, p.start)}${p.value}${t.slice(p.end)}`;
+  const num = (t.match(/\d+[A-Za-zא-ת]?(?![A-Za-zא-ת])/) || [])[0];
+  const kind = (PLACE_REF_KINDS.find(([re]) => re.test(t)) || [])[1];
+  return kind && num ? `${kind}|${num.toLowerCase()}` : null;
+}
 // a whole number written in words right after a place word ("קומה עשרים וארבע", "דירה ארבעים ושמונה", "apartment forty eight") -> the same
 // text with that number in digits, and the maps of a span between the two texts (null when there is no such number)
 const PLACE_WORD_BEFORE = /(?:^|[^A-Za-zא-ת])(?:[ובלה]?(?:קומה|קומת|דירה|דירת|חדר|יחידה)|floor|apartment|flat|unit|room)(?:\s+(?:מס(?:פר|['׳])?|no\.?|number))?\s+$/i;
@@ -1294,6 +1312,9 @@ export function placesFromText(tp, source) {
   const seen = new Set();
   for (const [i, p] of all.entries()) {
     const id = `${p.kind}|${wordsOf(p.name)}`; if (p.name && seen.has(id)) continue; seen.add(id);
+    // a place already kept on the same words of the text (the model's own) is never doubled - it only takes the text's name when it has none
+    const twin = tp.places.find((q) => q.kind === p.kind && q.span && q.span.start < p.end && p.start < q.span.end);
+    if (twin) { if (!twin.name && p.name) twin.name = p.name; continue; }
     const key = `tx${i + 1}`;
     const floorKey = p.parentFloor != null ? [...tp.byKey.values()].find((q) => q.kind === 'floor' && q.span && q.span.start === p.parentFloor)?.key || null : null;
     const place = { key, kind: p.kind, name: p.name, parent: floorKey, span: { start: p.start, end: p.end, text: src.slice(p.start, p.end) }, count: p.count, identical: p.count > 1 ? (p.identical || 'unclear') : 'no' };
