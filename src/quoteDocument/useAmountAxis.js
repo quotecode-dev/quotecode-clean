@@ -151,7 +151,30 @@ export function syncQtyCentre(card) {
   }
 }
 
-export function syncAllAmountAxes(card) { syncUnitSlots(card); syncDecimalColumns(card); syncQtyCentre(card); syncMoneyBox(card); syncAmountAxis(card); }
+// night task 2026-11-16 (Owner typed, L-27, item 8): in Hebrew the "מחיר יחידה" header ends on its amounts' right edge too, as "Unit Price"
+// does in English and "סה״כ" does since 10/11 (the amounts' equal box starts at the cell's outer padding; the header gets that box's width
+// minus its own text as its outer padding, in em of its own size - so screen, native Print and the Direct PDF clone share it)
+export function syncPriceHead(card) {
+  if (!card) return;
+  const th = card.querySelector('.pq-commercial-table thead th.pq-th-price');
+  if (!th) return;
+  th.style.removeProperty('padding-left');
+  if (viewOf(th).getComputedStyle(th).direction !== 'rtl') return;
+  const td = card.querySelector('.pq-commercial-table tbody tr:not(.pq-section-subtotal-row) td.pq-td-price');
+  const money = td && td.querySelector('.pf-money');
+  const d = docOf(th);
+  if (!money || !d || typeof d.createRange !== 'function') return;
+  const r = d.createRange(); r.selectNodeContents(th);
+  const headW = r.getBoundingClientRect ? r.getBoundingClientRect().width : 0;
+  const boxW = money.getBoundingClientRect().width;
+  const padL = parseFloat(viewOf(td).getComputedStyle(td).paddingLeft) || 0;
+  const base = parseFloat(viewOf(th).getComputedStyle(th).paddingLeft) || 0;
+  const thFs = parseFloat(viewOf(th).getComputedStyle(th).fontSize) || 16;
+  const want = padL + boxW - headW;
+  if (headW > 0 && boxW > 0 && want > base) th.style.setProperty('padding-left', `${(want / thFs).toFixed(4)}em`, 'important');
+}
+
+export function syncAllAmountAxes(card) { syncUnitSlots(card); syncDecimalColumns(card); syncQtyCentre(card); syncPriceHead(card); syncMoneyBox(card); syncAmountAxis(card); }
 
 export function useAmountAxis(cardRef) {
   useLayoutEffect(() => {

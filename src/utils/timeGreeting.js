@@ -2,10 +2,11 @@
 // ONLY a time-of-day greeting next to the notification bell - no business name (the business is already in the logo). The hour is the
 // device's own current time, the same source as the header clock (IRON-DATE-001 untouched).
 // Owner 2026-11-11 (finding 20): English "Good night" is a goodbye, so the English night slot greets "Good evening"; Hebrew "לילה טוב" stays.
-// 05:00-11:59 morning · 12:00-16:59 afternoon · 17:00-20:59 evening · 21:00-04:59 night.
+// Owner console 2026-11-16 (typed release line: "\"ערב טוב\" בעברית עד חצות"): Hebrew "ערב טוב" until 23:59, "לילה טוב" only after midnight.
+// 05:00-11:59 morning · 12:00-16:59 afternoon · 17:00-23:59 evening · 00:00-04:59 night.
 export function timeGreeting(hour, isHebrew) {
   const h = Number(hour);
-  const slot = h >= 5 && h < 12 ? 'morning' : h >= 12 && h < 17 ? 'afternoon' : h >= 17 && h < 21 ? 'evening' : 'night';
+  const slot = h >= 5 && h < 12 ? 'morning' : h >= 12 && h < 17 ? 'afternoon' : h >= 17 && h < 24 ? 'evening' : 'night';
   const he = { morning: 'בוקר טוב', afternoon: 'צהריים טובים', evening: 'ערב טוב', night: 'לילה טוב' };
   const en = { morning: 'Good morning', afternoon: 'Good afternoon', evening: 'Good evening', night: 'Good evening' };
   return (isHebrew ? he : en)[slot];
