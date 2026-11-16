@@ -44,6 +44,23 @@ export async function createTemplate(client, userId, name, form, keep, built = n
   } catch (e) { return fail('network', e?.message); }
 }
 
+// Owner console 2026-11-16 (typed: "מאשר עריכת תבנית בחלון בחירת התבנית: שינוי שם, שינוי, מחיקה והוספה של שורות ושמירת התבנית ..."): the
+// owner's own template gets its new name and content (RLS: owner only, the explicit user_id filter is defence in depth; the database keeps
+// the owner and the creation time, refuses a duplicate name and any forbidden key)
+export async function updateTemplate(client, userId, id, name, content) {
+  if (!usable(client, userId) || !id) return fail('not_signed_in');
+  const n = normalizeTemplateName(name);
+  if (!n.ok) return fail('invalid', n.error);
+  const c = stripForbiddenKeys(content);
+  if (!c || c.schema !== TEMPLATE_SCHEMA || !Array.isArray(c.items) || c.items.length === 0) return fail('invalid', 'no_items');
+  try {
+    const { data, error } = await client.from('quote_templates').update({ name: n.value, content: c }).eq('id', id).eq('user_id', userId).select(TEMPLATE_COLUMNS).single();
+    if (error) return fromError(error);
+    if (!data || data.user_id !== userId) return fail('unknown', 'no persisted row returned');
+    return { ok: true, data: { ...data, content: readTemplateContent(data.content) } };
+  } catch (e) { return fail('network', e?.message); }
+}
+
 export async function deleteTemplate(client, userId, id) {
   if (!usable(client, userId) || !id) return fail('not_signed_in');
   try {
