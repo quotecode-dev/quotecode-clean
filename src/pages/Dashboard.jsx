@@ -357,18 +357,30 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // greeting - measured when it shows (its height differs by screen and width: the quote editor, Business settings, phone / desktop);
   // a band scrolled away puts it at the top. The CSS top stays the fallback.
   const [statusToastTop, setStatusToastTop] = useState(null);
+  // it follows the band while it shows: the screen can scroll or change under it (a save at the bottom of the form, then the saved
+  // screen at the top) - so it is placed again on every scroll / resize and every 300ms
   useLayoutEffect(() => {
-    if (!statusMsg.text || typeof document === 'undefined') return;
-    try {
-      const anchor = [...document.querySelectorAll('.dash-header-datetime, .dash-header-greeting')].find((e) => e.getBoundingClientRect().width > 0);
-      let band = null;
-      for (let el = anchor; el && el !== document.body; el = el.parentElement) {
-        const n = (getComputedStyle(el).backgroundColor.match(/[\d.]+/g) || []).map(Number);
-        if (n.length >= 3 && (n.length < 4 || n[3] > 0.5) && 0.299 * n[0] + 0.587 * n[1] + 0.114 * n[2] < 90) { band = el; break; }
-      }
-      const bottom = band ? band.getBoundingClientRect().bottom : null;
-      setStatusToastTop(bottom == null ? null : Math.round(Math.max(16, bottom + 8)));
-    } catch { setStatusToastTop(null); }
+    if (!statusMsg.text || typeof document === 'undefined' || typeof window === 'undefined') return undefined;
+    const place = () => {
+      try {
+        const anchor = [...document.querySelectorAll('.dash-header-datetime, .dash-header-greeting')].find((e) => e.getBoundingClientRect().width > 0);
+        let band = null;
+        for (let el = anchor; el && el !== document.body; el = el.parentElement) {
+          const n = (getComputedStyle(el).backgroundColor.match(/[\d.]+/g) || []).map(Number);
+          if (n.length >= 3 && (n.length < 4 || n[3] > 0.5) && 0.299 * n[0] + 0.587 * n[1] + 0.114 * n[2] < 90) { band = el; break; }
+        }
+        const bottom = band ? band.getBoundingClientRect().bottom : null;
+        const next = bottom == null ? null : Math.round(Math.max(16, bottom + 8));
+        setStatusToastTop((v) => (v === next ? v : next));
+      } catch { setStatusToastTop(null); }
+    };
+    place();
+    let raf = 0;
+    const onMove = () => { if (raf) return; raf = window.requestAnimationFrame(() => { raf = 0; place(); }); };
+    window.addEventListener('scroll', onMove, true);
+    window.addEventListener('resize', onMove);
+    const timer = window.setInterval(place, 300);
+    return () => { window.removeEventListener('scroll', onMove, true); window.removeEventListener('resize', onMove); window.clearInterval(timer); if (raf) window.cancelAnimationFrame(raf); };
   }, [statusMsg.text]);
   // חוק ברזל (תיקון בעלים - הודעת "התחברת בהצלחה"): ההודעה תפסה שורה
   // קבועה בפריסה (עד שנדרסה ע"י setStatusMsg הבא) ולא נעלמה מעצמה. במקום
