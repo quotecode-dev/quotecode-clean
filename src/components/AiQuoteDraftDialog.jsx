@@ -528,13 +528,16 @@ export default function AiQuoteDraftDialog({ isOpen, isHebrew, onClose, onApply,
                         {/* PRODUCT_TRUTH_DECORATIVE: a product with a price that is not in the catalog - asks whether to add it to the catalog (unticked; saved on "Add to the quote"; a product without a price is never saved to the catalog, as in the add form) */}
                         {/* Owner console 2026-11-16: the server is not sure the line is a catalog product - one yes / no question; without an answer the line is a new product */}
                         {line.original.catalogSuggestion && !line.original.catalogName && (
-                          <span role="group" aria-label={t.isThisProduct(line.original.catalogSuggestion.name)} data-testid="ai-quote-draft-catalog-question" style={{ display: 'inline-flex', alignItems: 'center', flexWrap: 'wrap', gap: '8px', fontSize: '0.8rem', fontWeight: 600, color: NEON.textPrimary }}>
+                          <span role="group" aria-label={t.isThisProduct(line.original.catalogSuggestion.name)} data-testid="ai-quote-draft-catalog-question" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', fontWeight: 600, color: NEON.textPrimary }}>
+                            {/* the question on its own line, the two answers always together under it (both languages, every width) */}
                             <span>{isHebrew ? <>האם זה המוצר „<bdi>{line.original.catalogSuggestion.name}</bdi>”?</> : <>Is this the product “<bdi>{line.original.catalogSuggestion.name}</bdi>”?</>}</span>
-                            {[[true, t.yes, 'yes'], [false, t.no, 'no']].map(([yes, label, key]) => (
-                              // PRODUCT_TRUTH_DECORATIVE: answers "is this the catalog product?" - yes links the line to it, no keeps it a new product
-                              <button key={key} type="button" data-testid={`ai-quote-draft-catalog-${key}`} aria-pressed={catAnswer.get(i) === key} onClick={() => answerCatalog(i, yes)}
-                                style={{ minHeight: '36px', minWidth: '56px', padding: '4px 14px', borderRadius: '8px', border: `1px solid ${catAnswer.get(i) === key ? NEON.teal || '#0F6672' : NEON.borderStrong}`, background: catAnswer.get(i) === key ? (NEON.tealSoft || '#E3F1F2') : 'transparent', color: NEON.textPrimary, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{label}</button>
-                            ))}
+                            <span style={{ display: 'inline-flex', flexWrap: 'nowrap', gap: '8px' }}>
+                              {[[true, t.yes, 'yes'], [false, t.no, 'no']].map(([yes, label, key]) => (
+                                // PRODUCT_TRUTH_DECORATIVE: answers "is this the catalog product?" - yes links the line to it, no keeps it a new product
+                                <button key={key} type="button" data-testid={`ai-quote-draft-catalog-${key}`} aria-pressed={catAnswer.get(i) === key} onClick={() => answerCatalog(i, yes)}
+                                  style={{ minHeight: '44px', minWidth: '64px', padding: '4px 16px', borderRadius: '8px', border: `1px solid ${catAnswer.get(i) === key ? NEON.teal || '#0F6672' : NEON.borderStrong}`, background: catAnswer.get(i) === key ? (NEON.tealSoft || '#E3F1F2') : 'transparent', color: NEON.textPrimary, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{label}</button>
+                              ))}
+                            </span>
                           </span>
                         )}
                         {typeof saveToCatalog === 'function' && !line.original.catalogName && !line.linkedName && line.unitPrice != null && (!line.original.catalogSuggestion || catAnswer.get(i) === 'no') && (
