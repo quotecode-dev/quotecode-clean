@@ -19,7 +19,6 @@ import { useBusinessCardProfile } from '../hooks/useBusinessCardProfile';
 import { REMINDERS_COPY } from '../utils/reminders';
 import { DIAL_CHOICES, businessDial, joinPhone } from '../utils/phoneDial';
 import MailLink from './MailLink';
-import { logoFieldText, nextLogoValue } from '../utils/logoFieldText';
 // Codex release 9 (Owner 2026-10-30, L-12 / L-15 / L-17): the owner's own consent to optional help emails
 import AccountOutreachPreferences from './AccountOutreachPreferences';
 
@@ -494,14 +493,10 @@ export default function SettingsTab({
             <ImageIcon size={13} color={NEON.violetLight} />{isHebrew ? 'כתובת תמונת לוגו (URL) או העלאת קובץ' : 'Logo Image URL or File Upload'} {!canUseAttachments && <span style={{ color: NEON.amber, fontSize: '0.75rem' }}>{isHebrew ? '(העלאת לוגו אינה זמינה בחשבון זה כרגע)' : '(Logo upload is not available on this account right now)'}</span>}
           </label>
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-            {/* Owner console 2026-11-16 (answer ב + the typed release line): a logo uploaded from a file is stored as its code ("data:image/png;base64,...",
-                thousands of characters) - the field shows only its short start "data:image/png…"; the stored value is unchanged. Typing a web
-                address (or clearing the field) replaces it; an edit inside the short code keeps the uploaded logo. */}
             <input
               type="url"
-              data-testid="settings-logo-url"
-              value={logoFieldText(bizLogoUrl)}
-              onChange={(e) => setBizLogoUrl(nextLogoValue(bizLogoUrl, e.target.value))}
+              value={bizLogoUrl}
+              onChange={(e) => setBizLogoUrl(e.target.value)}
               placeholder="https://example.com/logo.svg"
               // active plan system: an external URL cannot be bound to issued documents (no URL fetch); upload a file instead
               disabled={!canUseAttachments || logoImportRequired}

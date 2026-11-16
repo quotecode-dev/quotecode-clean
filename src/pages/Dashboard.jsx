@@ -47,7 +47,7 @@ import useBillingReturn, { markBillingDeparture } from '../hooks/useBillingRetur
 import HeaderPlanMedallion from '../components/HeaderPlanMedallion';
 import { accountStatus, statusMedallionModel, accountStatusSentence, freePeriodActive } from '../domain/subscriptions/subscriptionStatus';
 import { timeGreeting } from '../utils/timeGreeting';
-import { installPlaceholderSlide, installValueSlide } from '../utils/placeholderSlide';
+import { installPlaceholderSlide } from '../utils/placeholderSlide';
 import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
 import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
 import { decideCapability, outputPhaseOf, decideFree10Action, decideSmartPack } from '../../supabase/functions/_shared/subscriptionContract.ts';
@@ -270,8 +270,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const now = new Date();
   // night task 2026-11-16 (Owner typed, L-09, item 1): a sample text longer than its typing field slides inside it once, never cut
   useEffect(() => (typeof document !== 'undefined' ? installPlaceholderSlide(document.body) : undefined), []);
-  // Owner console 2026-11-16: a long value in any field slides too (never cut)
-  useEffect(() => (typeof document !== 'undefined' ? installValueSlide(document.body) : undefined), []);
 
   const [session, setSession] = useState(null);
   // Owner 2026-10-19 (typed L-17 approval): the voice-assistant announcement only where the browser can record (the microphone shows)

@@ -1125,7 +1125,7 @@ export default function QuoteForm({
                   )}
                   <span className="qt-summary-anchor">
                     {/* PRODUCT_TRUTH_DECORATIVE: opens / closes the quote summary (the amounts and VAT) */}
-                    <button type="button" className="sq-add-btn" dir={isHebrew ? 'rtl' : 'ltr'} aria-expanded={summaryOpen} data-testid="qt-summary-toggle" onClick={toggleSummary}><span className="qt-summary-tri" aria-hidden="true">{summaryOpen ? '▼' : (isHebrew ? '◀' : '▶')}</span>{isHebrew ? 'סיכום ההצעה' : 'Quote summary'}</button>
+                    <button type="button" className="sq-add-btn" aria-expanded={summaryOpen} data-testid="qt-summary-toggle" onClick={toggleSummary}><span className="qt-summary-tri" aria-hidden="true">{summaryOpen ? '▼' : (isHebrew ? '◀' : '▶')}</span>{isHebrew ? 'סיכום ההצעה' : 'Quote summary'}</button>
                     {summaryOpen && (
                       <div className="qt-summary-pop" data-testid="qt-summary-panel">
                         <section className="sq-summary" data-testid="sq-summary" dir={isHebrew ? 'rtl' : 'ltr'}>
