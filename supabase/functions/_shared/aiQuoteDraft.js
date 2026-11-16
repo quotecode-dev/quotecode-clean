@@ -705,8 +705,14 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     const garbled = tp.places.some((p) => /[,،]/.test(p.name || '') || (p.name || '').split(/\s+/).length >= 6) || (Array.isArray(parsed.places) && parsed.places.some((p) => p && typeof p.parent === 'string' && p.parent.trim() && !parsed.places.some((q) => q && q.key === p.parent)));
     // only the garbled places (and what is inside them) go - a clean place of the model ("חצר") stays; the text adds the rest
     if (garbled) { const bad = new Set(tp.places.filter((p) => /[,،]/.test(p.name || '') || (p.name || '').split(/\s+/).length >= 6).map((p) => p.key)); let grew = true; while (grew) { grew = false; for (const p of tp.places) if (!bad.has(p.key) && p.parent && bad.has(p.parent)) { bad.add(p.key); grew = true; } } if (Array.isArray(parsed.places) && parsed.places.some((p) => p && typeof p.parent === 'string' && p.parent.trim() && !parsed.places.some((q) => q && q.key === p.parent))) tp.places.forEach((p) => bad.add(p.key)); tp.places = tp.places.filter((p) => !bad.has(p.key)); for (const k of bad) tp.byKey.delete(k); }
-    if (!tp.places.length || garbled) placesFromText(tp, source);
-    adoptUnderNamedFloors(tp, source);
+    // Owner console 2026-11-16 (typed release line "... ומספרים במילים בהצעה החכמה ..."): a place number written in words ("קומה עשרים
+    // וארבע, דירה ארבעים ושמונה", a voice transcription) finds its floors / apartments in the text exactly as digits do - the text is read
+    // with those numbers in digits, and every place span is mapped back to the user's own words
+    const dz = digitizePlaceNumbers(source);
+    if (dz) for (const p of tp.places) if (p.span) p.span = dz.toNew(p.span);
+    if (!tp.places.length || garbled) placesFromText(tp, dz ? dz.text : source);
+    adoptUnderNamedFloors(tp, dz ? dz.text : source);
+    if (dz) for (const p of tp.places) if (p.span) p.span = dz.toOld(p.span);
     nameNamelessRooms(tp, source);
     // a place of the model that is not kept (its evidence is not in the text, e.g. written in another language) but the text names it under
     // another key (built from the text) - its lines go to that place, found by the same name (one match only)
@@ -1059,6 +1065,25 @@ export function safePlaceKeys(parsed) {
   const fix = (k) => (typeof k !== 'string' ? k : map.has(k.trim()) ? map.get(k.trim()) : byName.has(wordsOf(k)) ? byName.get(wordsOf(k)) : k);
   if (!bad && !(parsed.items || []).some((it) => it && typeof it.place === 'string' && it.place.trim() && !map.has(it.place.trim()) && byName.has(wordsOf(it.place)))) return parsed;
   return { ...parsed, places: places.map((p) => (p && typeof p === 'object' ? { ...p, key: fix(p.key), parent: fix(p.parent) } : p)), items: (parsed.items || []).map((it) => (it && typeof it === 'object' ? { ...it, place: fix(it.place) } : it)) };
+}
+// a whole number written in words right after a place word ("קומה עשרים וארבע", "דירה ארבעים ושמונה", "apartment forty eight") -> the same
+// text with that number in digits, and the maps of a span between the two texts (null when there is no such number)
+const PLACE_WORD_BEFORE = /(?:^|[^A-Za-zא-ת])(?:[ובלה]?(?:קומה|קומת|דירה|דירת|חדר|יחידה)|floor|apartment|flat|unit|room)(?:\s+(?:מס(?:פר|['׳])?|no\.?|number))?\s+$/i;
+export function digitizePlaceNumbers(source) {
+  const src = String(source || '');
+  const phrases = wordNumberPhrases(src).filter((p) => Number.isInteger(p.value) && PLACE_WORD_BEFORE.test(src.slice(Math.max(0, p.start - 24), p.start)));
+  if (!phrases.length) return null;
+  let text = ''; let last = 0; const parts = []; // { oldStart, oldEnd, newStart, newEnd } of each replaced phrase
+  for (const p of phrases) {
+    text += src.slice(last, p.start);
+    const d = String(p.value); parts.push({ oldStart: p.start, oldEnd: p.end, newStart: text.length, newEnd: text.length + d.length });
+    text += d; last = p.end;
+  }
+  text += src.slice(last);
+  const shift = (i, from, to) => { let delta = 0; for (const q of parts) { if (i >= q[`${from}End`]) delta += (q[`${to}End`] - q[`${to}Start`]) - (q[`${from}End`] - q[`${from}Start`]); else if (i > q[`${from}Start`]) return null; } return i + delta; };
+  const at = (i, from, to, edge) => { const v = shift(i, from, to); if (v != null) return v; const q = parts.find((x) => i > x[`${from}Start`] && i < x[`${from}End`]); return edge === 'start' ? shift(q[`${from}Start`], from, to) : shift(q[`${from}End`], from, to); };
+  const map = (span, from, to, out) => { const s = at(span.start, from, to, 'start'); const e = at(span.end, from, to, 'end'); return { ...span, start: s, end: e, text: out.slice(s, e) }; };
+  return { text, toNew: (span) => map(span, 'old', 'new', text), toOld: (span) => map(span, 'new', 'old', src) };
 }
 export function adoptUnderNamedFloors(tp, source) {
   const src = String(source || '');

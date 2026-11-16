@@ -36,7 +36,8 @@ describe('the runtime', () => {
   });
   it('the app installs it once for every typing field; the moving text is the field\'s own text-indent, reset on focus / input', () => {
     const d = read('pages/Dashboard.jsx');
-    expect(d).toContain("import { installPlaceholderSlide } from '../utils/placeholderSlide';");
+    // + 16/11 afternoon (Owner typed "... סלייד לטקסט ארוך בכל שדה במערכת ..."): the value slide comes from the same file
+    expect(d).toContain("import { installPlaceholderSlide, installValueSlide } from '../utils/placeholderSlide';");
     expect(d).toContain('useEffect(() => (typeof document !== \'undefined\' ? installPlaceholderSlide(document.body) : undefined), []);');
     const s = read('utils/placeholderSlide.js');
     expect(s).toContain("prefers-reduced-motion: reduce");
