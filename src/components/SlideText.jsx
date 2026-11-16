@@ -2,8 +2,7 @@ import { useLayoutEffect, useRef, useState } from 'react';
 
 // 2026-11-15 (Owner: a long name is shown as a slide, not cut; law 50 amendment of the same day): a text longer than its box moves inside it
 // (data-slide-text + a running animation - the cut-text scan does not count its own box); a short text stays still
-// `as` (default div): a span box can sit inside a button (the quote row name, Owner console 2026-11-16)
-export default function SlideText({ className, dir, title, children, as: Box = 'div' }) {
+export default function SlideText({ className, dir, title, children }) {
   const box = useRef(null);
   const inner = useRef(null);
   const [slide, setSlide] = useState(null); // { x: px, s: seconds }
@@ -20,9 +19,9 @@ export default function SlideText({ className, dir, title, children, as: Box = '
     return () => { if (ro) ro.disconnect(); };
   }, [children]);
   return (
-    <Box ref={box} className={className} dir={dir} title={title}>
+    <div ref={box} className={className} dir={dir} title={title}>
       <span ref={inner} className={slide ? 'pf-slide pf-slide--on' : 'pf-slide'} data-slide-text={slide ? '' : undefined}
         style={slide ? { '--pf-slide-x': `${slide.x}px`, animationDuration: `${slide.s}s` } : undefined}>{children}</span>
-    </Box>
+    </div>
   );
 }

@@ -354,31 +354,3 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
 
 /* 2026-11-15 (the demo's sbShow): no room above the circle -> the explanation opens below it */
 .qt-structure .qt-pop.qt-pop--below, .qt-pop.qt-pop--below { top: calc(100% + 8px); bottom: auto; }
-
-/* Owner console 2026-11-16 (typed release line, an approved difference from the demo's phone cards): a phone row is two lines -
-   the item, its quantity and its price on one line; under them the total at the end side (left in Hebrew, right in English) and the
-   actions button on the same line at the start side. A long item name stays on one line and slides inside its place (the 15/11 slide
-   rule); wider screens keep their layout, and there the name box never slides (it wraps as before). */
-.qt-row-name-box { display: block; }
-.qt-row-name-box > .pf-slide { white-space: normal; display: inline; }
-@media (max-width: 480px) {
-  .qt-rows tr.qt-row { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "desc qty price" "act sum sum"; align-items: center; gap: 2px 10px; }
-  .qt-rows tr.qt-row > td.qt-desc { grid-area: desc; min-width: 0; }
-  .qt-rows tr.qt-row > td:nth-child(2) { grid-area: qty; }
-  .qt-rows tr.qt-row > td:nth-child(3) { grid-area: price; }
-  .qt-rows tr.qt-row > td.qt-sum { grid-area: sum; justify-self: end; text-align: end; }
-  .qt-rows tr.qt-row > td.qt-act { grid-area: act; justify-self: start; text-align: start; }
-  /* the button now sits at the start side: its menu opens from there into the screen (never past the edge) */
-  .qt-rows tr.qt-row > td.qt-act .qt-menu { inset-inline-end: auto; inset-inline-start: 0; }
-  .qt-rows tr.qt-row > td[data-label]::before { content: none; }
-  .qt-rows tr.qt-row .qt-row-name { display: block; inline-size: 100%; min-width: 0; }
-  .qt-rows tr.qt-row .qt-row-name-box { overflow: hidden; white-space: nowrap; }
-  .qt-rows tr.qt-row .qt-row-name-box > .pf-slide { white-space: nowrap; display: inline-block; }
-  /* the slide itself (its motion lives with the sidebar's styles, which a phone does not show): back and forth, a pause at each end */
-  .qt-rows tr.qt-row .qt-row-name-box > .pf-slide--on { animation: qt-row-slide 8s ease-in-out infinite alternate; will-change: transform; }
-}
-@keyframes qt-row-slide { 0%, 18% { transform: translateX(0); } 82%, 100% { transform: translateX(var(--pf-slide-x, 0px)); } }
-/* reduced motion: nothing slides - the long name wraps inside its place instead (never cut) */
-@media (max-width: 480px) and (prefers-reduced-motion: reduce) {
-  .qt-rows tr.qt-row .qt-row-name-box, .qt-rows tr.qt-row .qt-row-name-box > .pf-slide { white-space: normal; overflow-wrap: anywhere; display: block; animation: none; }
-}

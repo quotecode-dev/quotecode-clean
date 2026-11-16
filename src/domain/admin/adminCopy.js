@@ -207,7 +207,7 @@ export const DIALOG_COPY = Object.freeze({
   },
   grant: {
     title: { he: 'הענקת מנוי לכל החיים', en: 'Grant Lifetime' },
-    body: { he: 'הענקת מנוי לכל החיים אינה חיוב כספי. רק מצב שאושר בשרת יוצג לאחר הפעולה.', en: 'Granting Lifetime is not a payment. Only the server-confirmed result will be displayed.' },
+    body: { he: 'הענקת LIFETIME אינה חיוב כספי. רק מצב שאושר בשרת יוצג לאחר הפעולה.', en: 'Granting Lifetime is not a payment. Only the server-confirmed result will be displayed.' },
     confirm: { he: 'הענקת מנוי לכל החיים', en: 'Grant Lifetime' },
     scope: [{ label: { he: 'חיוב כספי', en: 'Payment' }, value: { he: 'אין', en: 'None' } }],
   },

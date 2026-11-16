@@ -201,7 +201,7 @@ describe.each(PAGES)('%s public quote - document / action separation', (name, re
     const { container } = renderPage({ quoteData: data() });
     const empty = container.querySelector('.pq-card .pq-attachments');
     expect(empty).not.toBeNull();
-    expect(empty.querySelector('.pq-attachments-title').textContent).toContain(name === 'HE' ? 'קבצים ושרטוטים מצורפים להצעה:' : 'Attached Files & Drawings:');
+    expect(empty.querySelector('.pq-attachments-title').textContent).toContain(name === 'HE' ? 'קבצים ושרטוטים מצורפים להצעה:' : 'Attached Files & Documents:');
     // base container (ledger D17, cloud-fix3) - not the fine-ruled document note
     expect(empty.classList.contains('pq-doc-note')).toBe(false);
     expect(empty.querySelector('.pq-attachments-empty').textContent).toBe(name === 'HE' ? 'אין קובץ מצורף להצעה זו' : 'No attachment included with this quote.');

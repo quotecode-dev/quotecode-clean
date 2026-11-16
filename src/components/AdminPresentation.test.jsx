@@ -303,8 +303,7 @@ describe('Admin sources: no active legacy plan labels (static, comments stripped
             'מנוי לכל החיים', 'Lifetime subscription', 'ללא מנוי לכל החיים', 'No Lifetime subscription',
             // Owner console 2026-10-17 ("מאשר תיקון כל 16 הממצאים של קודקס", AV-03): the revoke dialog explains the revoke
             // Owner 2026-10-25 ("ביקשתי לשנות בכל המקומות"): no "not yet active" once the plan system is active
-            // night task 2026-11-16 (L-22, item 3): the Hebrew sentence names the subscription in Hebrew, as its title does
-            'ביטול מנוי לכל החיים: החשבון חוזר למצב שנקבע לפי נתוני החשבון והשרת (למשל מסלול החינם), ללא חיוב. מסלול או יתרה אינם נוצרים מהביטול.',
+            'ביטול LIFETIME: החשבון חוזר למצב שנקבע לפי נתוני החשבון והשרת (למשל מסלול החינם), ללא חיוב. מסלול או יתרה אינם נוצרים מהביטול.',
             'Revoking Lifetime: the account returns to the state its own data and the server give it (for example the Free plan), with no charge. Revoking creates no plan or balance.']
           : f === 'AdminSystemActivity.jsx'
             ? ['הענקת מנוי לכל החיים', 'Lifetime subscription granted', 'ביטול מנוי לכל החיים', 'Lifetime subscription revoked']

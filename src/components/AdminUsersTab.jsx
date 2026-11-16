@@ -77,7 +77,7 @@ export default function AdminUsersTab({
   // Codex verification AV-03 (2026-10-17): the revoke explains the revoke - the account returns to the state its own data and the server
   // give it, no charge, no promise of an entitlement that is not proven
   const revokeOnlyText = isHebrew
-    ? 'ביטול מנוי לכל החיים: החשבון חוזר למצב שנקבע לפי נתוני החשבון והשרת (למשל מסלול החינם), ללא חיוב. מסלול או יתרה אינם נוצרים מהביטול.'
+    ? 'ביטול LIFETIME: החשבון חוזר למצב שנקבע לפי נתוני החשבון והשרת (למשל מסלול החינם), ללא חיוב. מסלול או יתרה אינם נוצרים מהביטול.'
     : 'Revoking Lifetime: the account returns to the state its own data and the server give it (for example the Free plan), with no charge. Revoking creates no plan or balance.';
   // Night task 2026-10-16 (PLN-7): what the Lifetime switch really does today (2026-11-01: in the plan system - quotes without a limit,
   // SMART PACK, no payment page; a live standing order is not stopped from here)

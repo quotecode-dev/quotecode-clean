@@ -47,7 +47,6 @@ import useBillingReturn, { markBillingDeparture } from '../hooks/useBillingRetur
 import HeaderPlanMedallion from '../components/HeaderPlanMedallion';
 import { accountStatus, statusMedallionModel, accountStatusSentence, freePeriodActive } from '../domain/subscriptions/subscriptionStatus';
 import { timeGreeting } from '../utils/timeGreeting';
-import { installPlaceholderSlide } from '../utils/placeholderSlide';
 import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
 import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
 import { decideCapability, outputPhaseOf, decideFree10Action, decideSmartPack } from '../../supabase/functions/_shared/subscriptionContract.ts';
@@ -268,8 +267,6 @@ const NEW_CLIENT = Object.freeze({});
 // PRODUCT_TRUTH_CAPABILITY: dashboard_overview
 export default function Dashboard({ bundleIsHebrew } = {}) {
   const now = new Date();
-  // night task 2026-11-16 (Owner typed, L-09, item 1): a sample text longer than its typing field slides inside it once, never cut
-  useEffect(() => (typeof document !== 'undefined' ? installPlaceholderSlide(document.body) : undefined), []);
 
   const [session, setSession] = useState(null);
   // Owner 2026-10-19 (typed L-17 approval): the voice-assistant announcement only where the browser can record (the microphone shows)
@@ -353,35 +350,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const isHebrew = isHebrewEnv(bizCountry, session);
 
   const [statusMsg, setStatusMsg] = useState({ text: '', type: 'success' });
-  // night task 2026-11-16 (Owner typed, L-03 / L-04, item 4): the message sits UNDER the dark header band that holds the date / time /
-  // greeting - measured when it shows (its height differs by screen and width: the quote editor, Business settings, phone / desktop);
-  // a band scrolled away puts it at the top. The CSS top stays the fallback.
-  const [statusToastTop, setStatusToastTop] = useState(null);
-  // it follows the band while it shows: the screen can scroll or change under it (a save at the bottom of the form, then the saved
-  // screen at the top) - so it is placed again on every scroll / resize and every 300ms
-  useLayoutEffect(() => {
-    if (!statusMsg.text || typeof document === 'undefined' || typeof window === 'undefined') return undefined;
-    const place = () => {
-      try {
-        const anchor = [...document.querySelectorAll('.dash-header-datetime, .dash-header-greeting')].find((e) => e.getBoundingClientRect().width > 0);
-        let band = null;
-        for (let el = anchor; el && el !== document.body; el = el.parentElement) {
-          const n = (getComputedStyle(el).backgroundColor.match(/[\d.]+/g) || []).map(Number);
-          if (n.length >= 3 && (n.length < 4 || n[3] > 0.5) && 0.299 * n[0] + 0.587 * n[1] + 0.114 * n[2] < 90) { band = el; break; }
-        }
-        const bottom = band ? band.getBoundingClientRect().bottom : null;
-        const next = bottom == null ? null : Math.round(Math.max(16, bottom + 8));
-        setStatusToastTop((v) => (v === next ? v : next));
-      } catch { setStatusToastTop(null); }
-    };
-    place();
-    let raf = 0;
-    const onMove = () => { if (raf) return; raf = window.requestAnimationFrame(() => { raf = 0; place(); }); };
-    window.addEventListener('scroll', onMove, true);
-    window.addEventListener('resize', onMove);
-    const timer = window.setInterval(place, 300);
-    return () => { window.removeEventListener('scroll', onMove, true); window.removeEventListener('resize', onMove); window.clearInterval(timer); if (raf) window.cancelAnimationFrame(raf); };
-  }, [statusMsg.text]);
   // חוק ברזל (תיקון בעלים - הודעת "התחברת בהצלחה"): ההודעה תפסה שורה
   // קבועה בפריסה (עד שנדרסה ע"י setStatusMsg הבא) ולא נעלמה מעצמה. במקום
   // לבנות מנגנון התראות גלובלי חדש, נוסף כאן טיימר יחיד שמנקה אוטומטית כל
@@ -8298,9 +8266,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
            rule below 769px). */
         .dash-status-toast {
           position: fixed;
-          /* night task 2026-11-16 (Owner typed, L-03 / L-04, item 4): the message sits UNDER the header band (phone band ends at ~88px,
-             desktop at 68px) - it covered the clock in English on a computer and the date / greeting on a phone; still centred (L-23 #8) */
-          top: 96px;
+          top: 16px;
           left: 50%;
           transform: translateX(-50%);
           z-index: 99999;
@@ -8337,7 +8303,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           .dash-status-toast {
             /* Owner 2026-10-18 ("להחזיר את כל מה ששונה ללא אישור שלי") #8: centred over the workspace again - half of today's 178px sidebar */
             left: calc(50% ${isHebrew ? '- 89px' : '+ 89px'});
-            top: 76px;
           }
         }
         /* Desktop Header Removal task, §7 mount-scoping mechanism: hides
@@ -8540,7 +8505,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           aria-live="polite"
           className="dash-status-toast no-print"
           style={{
-            ...(statusToastTop != null ? { top: `${statusToastTop}px` } : {}),
             background: statusMsg.type === 'success' ? '#ffffff' : '#dc2626',
             color: statusMsg.type === 'success' ? NEON.violet : '#ffffff',
             border: statusMsg.type === 'success' ? `1px solid ${NEON.border}` : 'none',

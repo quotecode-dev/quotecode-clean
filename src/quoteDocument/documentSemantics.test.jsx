@@ -92,7 +92,7 @@ describe.each(PAGES)('$name quote document - recipient roles and prominence', (p
 });
 
 describe.each(PAGES)('$name quote document - attachments block always present (base c65f742, retro audit R-5)', (page) => {
-  const TITLE = { he: 'קבצים ושרטוטים מצורפים להצעה:', en: 'Attached Files & Drawings:' };
+  const TITLE = { he: 'קבצים ושרטוטים מצורפים להצעה:', en: 'Attached Files & Documents:' };
   const EMPTY = { he: 'אין קובץ מצורף להצעה זו', en: 'No attachment included with this quote.' };
   it.each(STYLES)('%s: no attachments => the block renders with the base title and the empty-state line, no links', (style) => {
     const { container } = renderDoc(page, style, {}, { attachments: [] });
