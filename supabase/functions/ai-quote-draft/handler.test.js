@@ -222,9 +222,7 @@ describe('ai-quote-draft handler: adversarial provider outcomes (synthetic)', ()
     expect(r.status).toBe(200);
     expect(body).not.toHaveProperty('total');
     expect(body).not.toHaveProperty('customer');
-    // 999 unknown; 7 = another product. Owner console 2026-11-16 (typed: "מאשר שהשרת יתאים בעצמו שורה לפריט בקטלוג כשהמודל לא בחר ..."): the
-    // server itself finds the catalog row that IS "רשת" (id 8) with the catalog's own price - never the injected price 1 or id 999
-    expect(body.items.map((i) => [i.catalogId, i.unitPrice, i.priceSource])).toEqual([[null, null, 'none'], [8, 80, 'catalog']]);
+    expect(body.items.map((i) => [i.catalogId, i.unitPrice, i.priceSource])).toEqual([[null, null, 'none'], [null, null, 'none']]); // 999 unknown; 7 = another product
     expect(JSON.stringify(body)).not.toContain('"price"');
   });
   it('an over-long description is refused before the model is called', async () => {

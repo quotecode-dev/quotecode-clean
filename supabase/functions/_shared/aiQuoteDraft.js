@@ -964,7 +964,10 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
       // "sure" also needs the same kind of work: a row named for installing is never surely a removal line ("Tile installation" / "Remove
       // existing tiles") - such a row is only asked about
       const sure = cat.filter((c) => catalogMatchesLine(c.name, text) && actionsAgree(c.name, lineText));
-      if (sure.length === 1) match = sure[0];
+      // Owner console 2026-11-16 (typed: "מאשר את התיקון (השרת מתאים לבד רק כשהמודל לא בחר; כשבחר שגוי - שאלת כן/לא) ..."): the server
+      // links on its own ONLY when the model chose no row; a model choice that was rejected as another product is never replaced
+      // silently - the user is asked about the closest row instead
+      if (sure.length === 1 && raw.catalogId == null) match = sure[0];
       else {
         const have = significantWords(text).map(stem);
         const score = (c) => productWords(c.name).filter((w) => have.some((x) => sameWord(w, x))).length;
