@@ -241,6 +241,74 @@ export function unitTemplatePriceQuestions(u, { currency, isLocal, clientType } 
   const basis = !u.priceBasis ? (quoteBasis ? 'unknown' : null) : (quoteBasis && u.priceBasis !== quoteBasis ? 'mismatch' : null);
   return { currency: currencyQ, basis };
 }
+// Owner console 2026-11-16 (typed: "מאשר עריכת תבנית בחלון בחירת התבנית: שינוי שם, שינוי, מחיקה והוספה של שורות ושמירת התבנית, כולל שינוי
+// ב-L-09, ושחרור עד הלייב"): a saved template is edited in its own window - the name and the rows (description, quantity, price; delete; add).
+// Everything else the template holds (the places, texts, design, currency, VAT basis, kind) stays exactly as it was saved.
+const editQuantityOf = (it) => (it?.pricing_unit && num(it.calculated_quantity) !== null ? num(it.calculated_quantity) : (num(it?.quantity) ?? 1));
+// the template's places in the order they are shown (a child right under its parent), with their depth; key '' = rows of no place
+export function templateEditGroups(content) {
+  const c = readTemplateContent(content);
+  if (!c) return [];
+  const sections = (Array.isArray(c.sections) ? c.sections : []).filter((s) => s && s.key && str(s.name).trim());
+  const known = new Set(sections.map((s) => s.key));
+  const kids = new Map();
+  for (const s of sections) { const p = s.parent_key && known.has(s.parent_key) && s.parent_key !== s.key ? s.parent_key : ''; kids.set(p, [...(kids.get(p) || []), s]); }
+  const out = []; const seen = new Set();
+  const walk = (p, depth) => { for (const s of kids.get(p) || []) { if (seen.has(s.key)) continue; seen.add(s.key); out.push({ key: s.key, name: str(s.name, 200).trim(), depth }); walk(s.key, depth + 1); } };
+  walk('', 0);
+  const items = Array.isArray(c.items) ? c.items : [];
+  if (!out.length || items.some((it) => !it?.section_key || !known.has(it.section_key))) out.unshift({ key: '', name: null, depth: 0 });
+  return out;
+}
+// the rows to edit: ref = the row's place in the stored list (null for a new row); quantity / price as typed text
+export function templateEditRows(content) {
+  const c = readTemplateContent(content);
+  if (!c) return [];
+  const known = new Set((Array.isArray(c.sections) ? c.sections : []).map((s) => s?.key).filter(Boolean));
+  return (Array.isArray(c.items) ? c.items : []).map((it, ref) => ({
+    ref, description: str(it?.description, 1000), quantity: String(editQuantityOf(it)), unit_price: num(it?.unit_price) !== null ? String(num(it.unit_price)) : '',
+    pricing_unit: it?.pricing_unit ? str(it.pricing_unit, 40) : null, section_key: it?.section_key && known.has(it.section_key) ? it.section_key : '',
+  })).filter((r) => r.description.trim());
+}
+// typed rows -> what is wrong with them (null = nothing): a row without a description, a quantity that is not above 0, a price that is not a number
+export function templateEditProblem(rows) {
+  const list = Array.isArray(rows) ? rows : [];
+  if (!list.length) return 'no_items';
+  if (list.some((r) => !str(r?.description).trim())) return 'row_no_description';
+  if (list.some((r) => { const q = num(r?.quantity); return q === null || q <= 0; })) return 'bad_quantity';
+  if (list.some((r) => { const t = String(r?.unit_price ?? '').trim(); return t !== '' && (num(t) === null || num(t) < 0); })) return 'bad_price';
+  return null;
+}
+// the stored template with the edited rows. A row keeps everything it had; a CHANGED quantity is the user's own number, so the sizes it was
+// measured from no longer apply to it (removed) - an unchanged row is byte-for-byte the row that was stored
+export function applyTemplateEdits(content, rows) {
+  const c = readTemplateContent(content);
+  if (!c) return null;
+  const src = Array.isArray(c.items) ? c.items : [];
+  const known = new Set((Array.isArray(c.sections) ? c.sections : []).map((s) => s?.key).filter(Boolean));
+  const isUnit = templateKind(c) === TEMPLATE_KIND_UNIT;
+  const items = (Array.isArray(rows) ? rows : []).filter((r) => str(r?.description).trim()).slice(0, TEMPLATE_MAX_ITEMS).map((r) => {
+    const orig = Number.isInteger(r.ref) && src[r.ref] ? src[r.ref] : null;
+    const line = orig ? { ...orig } : {};
+    line.description = str(r.description, 1000).trim();
+    const q = num(r.quantity); const qty = q !== null && q > 0 ? q : 1;
+    if (!orig || editQuantityOf(orig) !== qty) {
+      delete line.measurements;
+      if (line.pricing_unit || !Number.isInteger(qty)) {
+        // a fractional count is kept exactly, the way a saved quote keeps it (L-09: quantity 1 + the real amount as a manual quantity)
+        if (!line.pricing_unit) { line.pricing_unit = 'unit'; delete line.billing; }
+        line.quantity = Math.max(1, Math.round(qty)); line.calculated_quantity = qty;
+        if (isUnit) { line.quantity_source = 'manual'; line.calculation_method = 'manual'; }
+      } else { line.quantity = qty; delete line.calculated_quantity; delete line.quantity_source; delete line.calculation_method; }
+    }
+    const p = String(r.unit_price ?? '').trim() === '' ? null : num(r.unit_price);
+    if (p !== null && p >= 0) line.unit_price = p; else delete line.unit_price;
+    if (!orig) { const sk = r.section_key && known.has(r.section_key) ? r.section_key : (isUnit ? 's1' : null); if (sk) line.section_key = sk; }
+    return line;
+  });
+  return stripForbiddenKeys({ ...c, items });
+}
+
 // A unit template -> ONE new unit (count 1, a fresh key from newKey()) and its rows (no ids, no price link), ready to add to the open quote
 export function unitTemplateToRows(content, newKey) {
   const c = readTemplateContent(content);
