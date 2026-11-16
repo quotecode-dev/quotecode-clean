@@ -789,8 +789,8 @@ export default function QuoteTreeEditor({
               <tr key={i} className="qt-row" data-testid="qt-row">
                 <td className="qt-desc">
                   {it._localExample && <span className="qt-example" data-testid="quote-example-badge">{isHebrew ? 'דוגמה · לא נשמרת' : 'Example · not saved'}</span>}
-                  {/* PRODUCT_TRUTH_DECORATIVE: the row name - a click opens it for editing in place (as "עריכה"); on a phone a long name stays on
-                      one line and slides inside its place (Owner console 2026-11-16 + the law 50 slide rule of 15/11) */}
+                  {/* Owner console 2026-11-16: on a phone a long row name stays on one line and slides inside its place (law 50 slide rule of 15/11) */}
+                  {/* PRODUCT_TRUTH_DECORATIVE: the row name - a click opens it for editing in place (as "עריכה") */}
                   <button type="button" className="qt-row-name" onClick={() => startEdit(it)}><SlideText as="span" className="qt-row-name-box" title={it.description}>{it.description}</SlideText></button>
                   {fixed && <small className="qt-row-sub">{t.fixedSub}</small>}
                   {details && <small className="qt-row-sub qt-row-details">{details}</small>}
