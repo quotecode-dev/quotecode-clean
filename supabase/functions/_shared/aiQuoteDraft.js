@@ -1327,13 +1327,18 @@ export function roomsFromEvidence(tp, items, source = '') {
     let hits = ROOM_IN_TEXT.map(([re, name]) => { const m = String(it.evidence).match(re); return m ? (typeof name === 'function' ? name(m) : name) : null; }).filter(Boolean);
     // none in its own words: the room word written right before its quote (the quote found once in the text, nothing else between)
     if (!hits.length && src) { const ev = String(it.evidence); const at = src.indexOf(ev); if (at > 0 && src.indexOf(ev, at + 1) < 0) {
-      // the part of its clause before the quote, inside the same sentence ("בשירותים החלפת אסלה ו" before "החלפת אינטרפוץ")
-      const c = textClauses(src).find((x) => x.start <= at && at <= x.end); let a0 = c ? c.start : Math.max(0, at - 24);
-      for (const mm of src.slice(a0, at).matchAll(/[.!?:](?=\s)/g)) a0 = a0 + mm.index + 1;
+      // the text before the quote back to the last punctuation mark - a comma, a sentence end or a colon closes it; "ו" / "and" do not
+      // ("בשירותים החלפת אסלה ו" before "החלפת אינטרפוץ", "in the bathroom replace the toilet and " before "replace the mixer" - Hebrew = English)
+      let a0 = 0;
+      for (const mm of src.slice(0, at).matchAll(/[,;•\n]|[.!?:](?=\s|$)/g)) a0 = mm.index + 1;
       const pre = src.slice(a0, at);
-      // the LAST room named there
-      let best = null; for (const [re, name] of ROOM_IN_TEXT) for (const m of pre.matchAll(new RegExp(re.source, `${re.flags.replace('g', '')}g`))) if (!best || m.index > best.at) best = { at: m.index, name: typeof name === 'function' ? name(m) : name };
-      hits = best ? [best.name] : []; } }
+      // a room that OPENS that part ("בשירותים ...", "in the bathroom ...") is the room of every work in it; a room written after a work
+      // ("ריצוף במטבח 12 מ״ר והחלפת אסלה") belongs to that work only
+      hits = ROOM_IN_TEXT.map(([re, name]) => {
+        const m = pre.match(re); if (!m) return null;
+        const lead = pre.slice(0, pre.indexOf(m[1], m.index)).replace(/[\s.,:;!?()"'״׳-]+/g, ' ').trim();
+        return /^(?:[ובלה]{0,3}|in|at|on|in the|at the|on the|the)$/i.test(lead) ? (typeof name === 'function' ? name(m) : name) : null;
+      }).filter(Boolean); } }
     if (hits.length !== 1) continue; // none, or several rooms in one line's words - never guessed
     const name = hits[0];
     // the line's own name still says the room ("ריצוף סלון") - nothing is lost, it stays as it is

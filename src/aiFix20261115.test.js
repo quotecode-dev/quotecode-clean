@@ -208,7 +208,18 @@ describe('round 2 - the answers the real model gave on LIVE', () => {
         line({ description: 'החלפת אסלה', evidence: 'בשירותים החלפת אסלה', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', place }),
         line({ description: 'החלפת אינטרפוץ', evidence: 'והחלפת אינטרפוץ', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', place })]) });
     expect(tree(r)).toEqual([1, 2, 3].flatMap((n) => [[`דירה ${n}`, 'apartment', null], ['מטבח', 'room', `דירה ${n}`], ['שירותים', 'room', `דירה ${n}`]]));
-    expect(rows(r).map((x) => [x[0], x[1], x[2]])).toEqual([1, 2, 3].flatMap((n) => [['מטבח', 'ריצוף', 12], ['שירותים', 'החלפת אסלה', 1], ['שירותים', 'החלפת אינטרפוץ', 1]]));
+    expect(rows(r).map((x) => [x[0], x[1], x[2]])).toEqual([1, 2, 3].flatMap(() => [['מטבח', 'ריצוף', 12], ['שירותים', 'החלפת אסלה', 1], ['שירותים', 'החלפת אינטרפוץ', 1]]));
+  });
+  it('a room written AFTER a work ("ריצוף במטבח 12 מ״ר והחלפת אסלה") is that work\'s only; a room that opens the part ("in the bathroom replace the toilet and replace the mixer") is every work\'s - Hebrew = English', () => {
+    const he = P('שתי דירות זהות, בכל אחת ריצוף במטבח 12 מ״ר והחלפת אסלה', { places: [pl('a', 'apartment', '', null, 'שתי דירות זהות', { count: 2, identical: 'yes' })],
+      items: [line({ description: 'ריצוף במטבח', evidence: 'ריצוף במטבח 12 מ״ר', quantity: 12, unit: 'm2', quantityBasis: 'stated', place: 'a' }), line({ description: 'החלפת אסלה', evidence: 'והחלפת אסלה', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', place: 'a' })] });
+    expect(he.places.filter((p) => p.kind === 'room')).toEqual([]);
+    const en = P('Three identical apartments, in each a kitchen and a bathroom. In the kitchen flooring 12 m², in the bathroom replace the toilet and replace the mixer.', {
+      places: [1, 2, 3].map((n) => pl(`p${n}`, 'apartment', `Apartment ${n}`, null, 'Three identical apartments, in each a kitchen and a bathroom.', { identical: 'yes' })),
+      items: [1, 2, 3].flatMap((n) => [line({ description: 'Flooring', evidence: 'flooring 12 m²', quantity: 12, unit: 'm2', quantityBasis: 'stated', place: `p${n}` }),
+        line({ description: 'Toilet replacement', evidence: 'in the bathroom replace the toilet', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', place: `p${n}` }),
+        line({ description: 'Mixer replacement', evidence: 'in the bathroom replace the mixer', quantity: 1, unit: 'unit', quantityBasis: 'implied_single', place: `p${n}` })]) }, false);
+    expect(rows(en).map((x) => [x[0], x[1]])).toEqual([1, 2, 3].flatMap(() => [['Kitchen', 'Flooring'], ['Bathroom', 'Toilet replacement'], ['Bathroom', 'Mixer replacement']]));
   });
   // the site run on d9cefa1e (PR #218) - Owner chose option ב for names, and the night task 15-16/11
   it('site example 7: the model named the apartments "1A" (and its lines by that name) - the headings are "Apartment 1A" from the text', () => {
