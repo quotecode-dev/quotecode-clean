@@ -18,6 +18,8 @@ describe('the phone quote row (Owner 2026-11-16)', () => {
     expect(phone).toContain('grid-template-areas: "desc qty price" "act sum sum"');
     expect(phone).toMatch(/td\.qt-sum \{ grid-area: sum;[^}]*justify-self: end;/);
     expect(phone).toMatch(/td\.qt-act \{ grid-area: act;[^}]*justify-self: start;/);
+    // its menu opens from the start side into the screen
+    expect(phone).toContain('.qt-rows tr.qt-row > td.qt-act .qt-menu { inset-inline-end: auto; inset-inline-start: 0; }');
   });
   it('a long name stays on one line and slides (no wrap) - and wraps when motion is reduced', () => {
     expect(phone).toContain('.qt-rows tr.qt-row .qt-row-name-box { overflow: hidden; white-space: nowrap; }');

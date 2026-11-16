@@ -368,6 +368,8 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
   .qt-rows tr.qt-row > td:nth-child(3) { grid-area: price; }
   .qt-rows tr.qt-row > td.qt-sum { grid-area: sum; justify-self: end; text-align: end; }
   .qt-rows tr.qt-row > td.qt-act { grid-area: act; justify-self: start; text-align: start; }
+  /* the button now sits at the start side: its menu opens from there into the screen (never past the edge) */
+  .qt-rows tr.qt-row > td.qt-act .qt-menu { inset-inline-end: auto; inset-inline-start: 0; }
   .qt-rows tr.qt-row > td[data-label]::before { content: none; }
   .qt-rows tr.qt-row .qt-row-name { display: block; inline-size: 100%; min-width: 0; }
   .qt-rows tr.qt-row .qt-row-name-box { overflow: hidden; white-space: nowrap; }
