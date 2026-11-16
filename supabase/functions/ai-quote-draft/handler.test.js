@@ -75,7 +75,10 @@ describe('ai-quote-draft handler (synthetic, in-process)', () => {
       { description: 'חלון אלומיניום', quantity: 3, unit: 'unit', quantityBasis: 'stated', derivation: null, missing: null, evidence: 'החלפת 3 חלונות', unitPrice: 1450, catalogId: 7, catalogName: 'חלון אלומיניום 120×100', priceSource: 'catalog' },
       // Owner 2026-11-15 (option ב): the model's 3 is written in the text - it stands (the line is reviewed before it is added); its quote is
       // not in the text, and the words around that 3 are another work's line ("חלון אלומיניום") - never shown as this line's quote
-      { description: 'פירוק חלון ישן', quantity: 3, unit: 'unit', quantityBasis: 'stated', derivation: null, missing: null, evidence: null, unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none' },
+      // Owner console 2026-11-16 (typed: "מאשר שאלת כן/לא בהצעה החכמה כשההתאמה לקטלוג לא בטוחה ..."): "חלון" is shared with a catalog row
+      // but the row is not surely this product - not priced, not linked; the user is asked "האם זה המוצר ...?"
+      { description: 'פירוק חלון ישן', quantity: 3, unit: 'unit', quantityBasis: 'stated', derivation: null, missing: null, evidence: null, unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none',
+        catalogSuggestion: { id: 7, name: 'חלון אלומיניום 120×100', basis: null, unitPrice: 1450 } },
       { description: 'איטום', quantity: null, unit: 'unit', quantityBasis: 'missing', derivation: null, missing: 'unverified', evidence: 'בסלון', unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none' },
     ] });
     // tenant: both reads are scoped to the VERIFIED user and run with the caller's own JWT (RLS); nothing is written
@@ -219,7 +222,9 @@ describe('ai-quote-draft handler: adversarial provider outcomes (synthetic)', ()
     expect(r.status).toBe(200);
     expect(body).not.toHaveProperty('total');
     expect(body).not.toHaveProperty('customer');
-    expect(body.items.map((i) => [i.catalogId, i.unitPrice, i.priceSource])).toEqual([[null, null, 'none'], [null, null, 'none']]); // 999 unknown; 7 = another product
+    // 999 unknown; 7 = another product. Owner console 2026-11-16 (typed: "מאשר שהשרת יתאים בעצמו שורה לפריט בקטלוג כשהמודל לא בחר ..."): the
+    // server itself finds the catalog row that IS "רשת" (id 8) with the catalog's own price - never the injected price 1 or id 999
+    expect(body.items.map((i) => [i.catalogId, i.unitPrice, i.priceSource])).toEqual([[null, null, 'none'], [8, 80, 'catalog']]);
     expect(JSON.stringify(body)).not.toContain('"price"');
   });
   it('an over-long description is refused before the model is called', async () => {

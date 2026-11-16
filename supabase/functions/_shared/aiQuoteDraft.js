@@ -380,6 +380,15 @@ const GENERIC_WORDS = new Set(['עבוד', 'עבודת', 'תקנ', 'תקנת', '
 function productWords(name) {
   return significantWords(name).filter((w) => !/\d/.test(w)).map(stem).filter((w) => w.length >= 2 && !GENERIC_WORDS.has(w));
 }
+// Owner 2026-11-16 (the server matching the catalog itself): the kind of work a name says - installing, removing, replacing, repairing
+const actionOf = (w) => (/^install/.test(w) || w === 'תקנ' || w === 'תקנת' || /^רכב/.test(w) ? 'install'
+  : /^remov/.test(w) || /^פירוק/.test(w) || w === 'פרק' ? 'remove' : /^replac/.test(w) || /^חלפ/.test(w) ? 'replace' : /^repair/.test(w) || /^תיקונ/.test(w) ? 'repair' : null);
+const actionsOf = (text) => new Set(significantWords(text).map(stem).map(actionOf).filter(Boolean));
+// a row and a line agree on the work when either names none, or they share one
+function actionsAgree(catalogName, lineText) {
+  const a = actionsOf(catalogName); const b = actionsOf(lineText);
+  return !a.size || !b.size || [...a].some((x) => b.has(x));
+}
 // a catalog row matches a line only when EVERY specific word of the row's name is in the line or its own evidence span
 function catalogMatchesLine(catalogName, lineText) {
   const need = productWords(catalogName);
@@ -945,6 +954,26 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
     lineText = trimDanglingWords(stripRepeatedQuantity(lineText, quantity, unit)) || lineText;
     let match = raw.catalogId != null ? byId.get(String(raw.catalogId)) : undefined;
     if (match && !catalogMatchesLine(match.name, `${lineText} ${span?.text || ''}`)) match = undefined; // the SAME product as THIS line, not another job
+    // Owner console 2026-11-16 (typed: "מאשר שהשרת יתאים בעצמו שורה לפריט בקטלוג כשהמודל לא בחר, כדי שתיבת "להוסיף לקטלוג?" תהיה עקבית ..."):
+    // the model chose no row (or not this product) - the server looks itself: exactly ONE row whose specific words are all in the line is this
+    // product. Otherwise the closest row sharing a specific word is only a SUGGESTION - the user is asked "האם זה המוצר X?" (Owner, typed the
+    // same night: "מאשר שאלת כן/לא בהצעה החכמה כשההתאמה לקטלוג לא בטוחה ...")
+    let suggestion = null;
+    if (!match && byId.size) {
+      const text = `${lineText} ${span?.text || ''}`; const cat = [...byId.values()];
+      // "sure" also needs the same kind of work: a row named for installing is never surely a removal line ("Tile installation" / "Remove
+      // existing tiles") - such a row is only asked about
+      const sure = cat.filter((c) => catalogMatchesLine(c.name, text) && actionsAgree(c.name, lineText));
+      if (sure.length === 1) match = sure[0];
+      else {
+        const have = significantWords(text).map(stem);
+        const score = (c) => productWords(c.name).filter((w) => have.some((x) => sameWord(w, x))).length;
+        const ranked = (sure.length ? sure : cat).map((c) => ({ c, s: score(c) })).filter((x) => x.s > 0)
+          .sort((a, b) => b.s - a.s || Number(actionsAgree(b.c.name, lineText)) - Number(actionsAgree(a.c.name, lineText)) || productWords(a.c.name).length - productWords(b.c.name).length);
+        // not sure (several rows fit, or rows only partly fit): ask about the closest one (Owner: "אם הוא לא בטוח שישאל את המשתמש")
+        if (ranked.length) suggestion = ranked[0].c;
+      }
+    }
     let unitPrice = null;
     let priceSource = 'none';
     // Owner 2026-11-15 (typed): a price the user WROTE or SAID for this line wins over the catalog price; without one, the catalog price.
@@ -996,6 +1025,11 @@ export function parseDraftModelOutput(text, catalog, description = '', quote = n
       catalogId: match ? match.id : null,
       catalogName: match ? match.name : null,
       priceSource,
+      // the suggested row's price - only for this line's unit (the same check as a chosen row) and only when no price was written for it;
+      // "כן" uses it, a written price always stays
+      ...(suggestion ? { catalogSuggestion: { id: suggestion.id, name: suggestion.name, basis: suggestion.basis || null,
+        unitPrice: (() => { if (priceSource === 'description' || !Number.isFinite(suggestion.price) || suggestion.price < 0) return null;
+          const pu = CATALOG_BASIS_UNIT[suggestion.basis] || catalogNameUnit(suggestion.name); return (pu ? pu === unit : (!unit || unit === 'unit')) ? suggestion.price : null; })() } } : {}),
       ...(structure ? (tp ? (() => { const place = tp.resolve(typeof raw.place === 'string' ? raw.place.trim() : null);
         return { place, room: place && tp.byKey.get(place).kind === 'room' ? null : roomOf(raw.room, source) }; })()
         : { place: typeof raw.place === 'string' && placeKeys.has(raw.place) ? raw.place : null, room: roomOf(raw.room, source) }) : {}),
@@ -1570,6 +1604,11 @@ export function sanitizeDraftResponse(data) {
       catalogId: it?.catalogId ?? null,
       catalogName: typeof it?.catalogName === 'string' ? clip(it.catalogName, MAX_LINE_CHARS) : null,
       priceSource: ['catalog', 'none', 'catalog_unit_unverified', 'description'].includes(it?.priceSource) ? it.priceSource : 'none',
+      // Owner 2026-11-16: a catalog row the server is not sure about - the user answers "האם זה המוצר X?"
+      ...(it?.catalogSuggestion && (typeof it.catalogSuggestion.id === 'number' || (typeof it.catalogSuggestion.id === 'string' && it.catalogSuggestion.id)) && typeof it.catalogSuggestion.name === 'string' && it.catalogSuggestion.name.trim()
+        ? { catalogSuggestion: { id: it.catalogSuggestion.id, name: clip(it.catalogSuggestion.name.trim(), MAX_LINE_CHARS),
+          unitPrice: Number.isFinite(Number(it.catalogSuggestion.unitPrice)) && it.catalogSuggestion.unitPrice != null && Number(it.catalogSuggestion.unitPrice) >= 0 ? Number(it.catalogSuggestion.unitPrice) : null,
+          basis: typeof it.catalogSuggestion.basis === 'string' ? it.catalogSuggestion.basis : null } } : {}),
       ...(typeof it?.place === 'string' && it.place ? { place: clip(it.place, tree ? MAX_PLACE_KEY_CHARS : 8) } : {}),
       ...(typeof it?.room === 'string' && it.room.trim() ? { room: clip(it.room.trim(), 60) } : {}),
     };
