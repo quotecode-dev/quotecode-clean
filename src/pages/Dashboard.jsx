@@ -353,6 +353,23 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   const isHebrew = isHebrewEnv(bizCountry, session);
 
   const [statusMsg, setStatusMsg] = useState({ text: '', type: 'success' });
+  // night task 2026-11-16 (Owner typed, L-03 / L-04, item 4): the message sits UNDER the dark header band that holds the date / time /
+  // greeting - measured when it shows (its height differs by screen and width: the quote editor, Business settings, phone / desktop);
+  // a band scrolled away puts it at the top. The CSS top stays the fallback.
+  const [statusToastTop, setStatusToastTop] = useState(null);
+  useLayoutEffect(() => {
+    if (!statusMsg.text || typeof document === 'undefined') return;
+    try {
+      const anchor = [...document.querySelectorAll('.dash-header-datetime, .dash-header-greeting')].find((e) => e.getBoundingClientRect().width > 0);
+      let band = null;
+      for (let el = anchor; el && el !== document.body; el = el.parentElement) {
+        const n = (getComputedStyle(el).backgroundColor.match(/[\d.]+/g) || []).map(Number);
+        if (n.length >= 3 && (n.length < 4 || n[3] > 0.5) && 0.299 * n[0] + 0.587 * n[1] + 0.114 * n[2] < 90) { band = el; break; }
+      }
+      const bottom = band ? band.getBoundingClientRect().bottom : null;
+      setStatusToastTop(bottom == null ? null : Math.round(Math.max(16, bottom + 8)));
+    } catch { setStatusToastTop(null); }
+  }, [statusMsg.text]);
   // חוק ברזל (תיקון בעלים - הודעת "התחברת בהצלחה"): ההודעה תפסה שורה
   // קבועה בפריסה (עד שנדרסה ע"י setStatusMsg הבא) ולא נעלמה מעצמה. במקום
   // לבנות מנגנון התראות גלובלי חדש, נוסף כאן טיימר יחיד שמנקה אוטומטית כל
@@ -8511,6 +8528,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           aria-live="polite"
           className="dash-status-toast no-print"
           style={{
+            ...(statusToastTop != null ? { top: `${statusToastTop}px` } : {}),
             background: statusMsg.type === 'success' ? '#ffffff' : '#dc2626',
             color: statusMsg.type === 'success' ? NEON.violet : '#ffffff',
             border: statusMsg.type === 'success' ? `1px solid ${NEON.border}` : 'none',
