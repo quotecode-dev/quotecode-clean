@@ -264,8 +264,7 @@ describe('round 2 - "להוסיף לקטלוג?" and the diagnostics (source)', 
     const d = fs.readFileSync('src/components/AiQuoteDraftDialog.jsx', 'utf8');
     expect(d).toContain("addToCatalog: 'להוסיף לקטלוג?'");
     expect(d).toContain("addToCatalog: 'Add to the catalog?'");
-    // + 16/11 night (Owner typed "... לא משאיר מוצר חדש עם הצעה להוסיף לקטלוג ..."): a line with a catalog question offers it after "לא"
-    expect(d).toContain("{typeof saveToCatalog === 'function' && !line.original.catalogName && !line.linkedName && line.unitPrice != null && (!line.original.catalogSuggestion || catAnswer.get(i) === 'no') && (");
+    expect(d).toContain("{typeof saveToCatalog === 'function' && !line.original.catalogName && line.unitPrice != null && (");
     expect(d).toContain('await saveToCatalog({ name: String(l.description).trim(), price: l.unitPrice, method: methodOf(l.unit), international });');
     expect(fs.readFileSync('src/pages/Dashboard.jsx', 'utf8')).toContain('saveToCatalog={saveQuoteRowToCatalog}');
   });

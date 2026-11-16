@@ -75,10 +75,7 @@ describe('ai-quote-draft handler (synthetic, in-process)', () => {
       { description: 'חלון אלומיניום', quantity: 3, unit: 'unit', quantityBasis: 'stated', derivation: null, missing: null, evidence: 'החלפת 3 חלונות', unitPrice: 1450, catalogId: 7, catalogName: 'חלון אלומיניום 120×100', priceSource: 'catalog' },
       // Owner 2026-11-15 (option ב): the model's 3 is written in the text - it stands (the line is reviewed before it is added); its quote is
       // not in the text, and the words around that 3 are another work's line ("חלון אלומיניום") - never shown as this line's quote
-      // Owner console 2026-11-16 (typed: "מאשר שאלת כן/לא בהצעה החכמה כשההתאמה לקטלוג לא בטוחה ..."): "חלון" is shared with a catalog row
-      // but the row is not surely this product - not priced, not linked; the user is asked "האם זה המוצר ...?"
-      { description: 'פירוק חלון ישן', quantity: 3, unit: 'unit', quantityBasis: 'stated', derivation: null, missing: null, evidence: null, unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none',
-        catalogSuggestion: { id: 7, name: 'חלון אלומיניום 120×100', basis: null, unitPrice: 1450 } },
+      { description: 'פירוק חלון ישן', quantity: 3, unit: 'unit', quantityBasis: 'stated', derivation: null, missing: null, evidence: null, unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none' },
       { description: 'איטום', quantity: null, unit: 'unit', quantityBasis: 'missing', derivation: null, missing: 'unverified', evidence: 'בסלון', unitPrice: null, catalogId: null, catalogName: null, priceSource: 'none' },
     ] });
     // tenant: both reads are scoped to the VERIFIED user and run with the caller's own JWT (RLS); nothing is written
