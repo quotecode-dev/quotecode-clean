@@ -198,8 +198,13 @@ function TemplateEditor({ C, isHebrew, draft, setDraft, onSave, onCancel }) {
   const saving = draft.phase === 'saving';
   return (
     <form ref={rootRef} onSubmit={(e) => { e.preventDefault(); onSave(); }} data-testid="template-editor">
-      {/* a long place name slides inside its line (Owner 16/11: "למלל ארוך יש סלייד"); the .pf-slide motion itself is the app's shared rule */}
-      <style>{'.tk-tpl-group-name{display:block;overflow:hidden;white-space:nowrap}'}</style>
+      {/* a long place name slides inside its line (Owner 16/11: "למלל ארוך יש סלייד"). Its own rules: the app's shared .pf-slide rule lives
+          in the side menu, which a phone does not render (a local check at 390 found the name cut) */}
+      <style>{'.tk-tpl-group-name{display:block;overflow:hidden;white-space:nowrap}'
+        + '.tk-tpl-group-name>.pf-slide{display:inline-block;white-space:nowrap}'
+        + '.tk-tpl-group-name>.pf-slide--on{animation:tk-tpl-slide 8s ease-in-out infinite alternate;will-change:transform}'
+        + '@keyframes tk-tpl-slide{0%,18%{transform:translateX(0)}82%,100%{transform:translateX(var(--pf-slide-x,0px))}}'
+        + '@media (prefers-reduced-motion:reduce){.tk-tpl-group-name{white-space:normal}.tk-tpl-group-name>.pf-slide{animation:none;white-space:normal;display:inline;overflow-wrap:anywhere}}'}</style>
       <label htmlFor="template-edit-name" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>{C.name}</label>
       <input id="template-edit-name" data-testid="template-edit-name" value={draft.name} maxLength={TEMPLATE_NAME_MAX} onChange={(e) => edit({ name: e.target.value })} style={fieldStyle} />
       {groups.map((g) => {
