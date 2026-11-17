@@ -74,10 +74,10 @@ html {
 /* Nuclear global font enforcement (kept from the previous change, per
    explicit request) - !important on the universal selector beats every
    inline fontFamily set by any component, no exceptions. Rubik is listed
-   first; the system font is a genuine fallback only if the self-hosted font
+   first; Arial is a genuine fallback only if the self-hosted font
    somehow fails to parse/load, not the default. */
 *, body, html, button, input, select, textarea {
-  font-family: 'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif !important;
+  font-family: 'Rubik', Arial, sans-serif !important;
 }
 
 /* חוק ברזל (Owner Exact Typography Implementation task): חריגה יחידה,
@@ -91,7 +91,7 @@ html {
    כברירת מחדל גורפת. "ללא חריגות" של הכלל למעלה עדיין תקף לכל שאר
    הרכיבים באתר. */
 .pf-font-variable {
-  font-family: 'Rubik Variable', 'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif !important;
+  font-family: 'Rubik Variable', 'Rubik', Arial, sans-serif !important;
 }
 
 /* Global Money Numeric Alignment Rule (permanent product rule - see

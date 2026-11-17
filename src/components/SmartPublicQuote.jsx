@@ -188,7 +188,7 @@ export default function SmartPublicQuote() {
     // Owner 2026-11-10 (Hebrew/English sync): the loading line in the page's language, like the error screens below
     const en = typeof document !== 'undefined' && document.documentElement.lang === 'en';
     return (
-      <div dir={en ? 'ltr' : 'rtl'} lang={en ? 'en' : 'he'} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif" }}>
+      <div dir={en ? 'ltr' : 'rtl'} lang={en ? 'en' : 'he'} style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif' }}>
         <h2>{en ? 'Loading...' : 'טוען את הצעת המחיר...'}</h2>
       </div>
     );
@@ -197,7 +197,7 @@ export default function SmartPublicQuote() {
   if (state.status === 'unavailable') {
     const en = typeof document !== 'undefined' && document.documentElement.lang === 'en';
     return (
-      <div data-testid="public-quote-unavailable" dir={en ? 'ltr' : 'rtl'} lang={en ? 'en' : 'he'} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box', background: '#f7f8f6', color: '#10252b', fontFamily: "Rubik, system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif", textAlign: 'center', padding: '24px', gap: '12px' }}>
+      <div data-testid="public-quote-unavailable" dir={en ? 'ltr' : 'rtl'} lang={en ? 'en' : 'he'} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box', background: '#f7f8f6', color: '#10252b', fontFamily: 'Rubik, Segoe UI, Arial, Tahoma, sans-serif', textAlign: 'center', padding: '24px', gap: '12px' }}>
         <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#10252b' }}>{en ? 'The quote could not be loaded right now' : 'לא הצלחנו לטעון את הצעת המחיר כרגע'}</h1>
         <p style={{ margin: 0, fontSize: '1rem', color: '#3c4a52', maxWidth: '34rem', lineHeight: 1.5 }}>{en ? 'This is a temporary problem on our side. Please try again in a moment.' : 'זו תקלה זמנית אצלנו. נסו שוב בעוד רגע.'}</p>
         {/* PRODUCT_TRUTH_DECORATIVE: retries loading the public quote (no data change, no page reload) - night task R-19 */}
@@ -231,7 +231,7 @@ export default function SmartPublicQuote() {
       </div>
     );
     return (
-      <div data-testid="public-quote-not-found" dir={enOnly ? 'ltr' : 'rtl'} lang={enOnly ? 'en' : 'he'} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box', background: '#f7f8f6', color: '#10252b', fontFamily: "Rubik, system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif", textAlign: 'center', padding: '24px', gap: '28px' }}>
+      <div data-testid="public-quote-not-found" dir={enOnly ? 'ltr' : 'rtl'} lang={enOnly ? 'en' : 'he'} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box', background: '#f7f8f6', color: '#10252b', fontFamily: 'Rubik, Segoe UI, Arial, Tahoma, sans-serif', textAlign: 'center', padding: '24px', gap: '28px' }}>
         {enOnly ? en : [he, en]}
       </div>
     );
@@ -245,7 +245,7 @@ export default function SmartPublicQuote() {
   if (!quote.is_owner_viewing && state.dto.viewerIsOwner !== true && isUnfinishedSavedQuote(quote, state.dto.items)) {
     const en = !isLocalQuote;
     return (
-      <div data-testid="public-quote-updating" dir={en ? 'ltr' : 'rtl'} lang={en ? 'en' : 'he'} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box', background: '#f7f8f6', color: '#10252b', fontFamily: "Rubik, system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif", textAlign: 'center', padding: '24px', gap: '10px' }}>
+      <div data-testid="public-quote-updating" dir={en ? 'ltr' : 'rtl'} lang={en ? 'en' : 'he'} style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', minHeight: '100vh', boxSizing: 'border-box', background: '#f7f8f6', color: '#10252b', fontFamily: 'Rubik, Segoe UI, Arial, Tahoma, sans-serif', textAlign: 'center', padding: '24px', gap: '10px' }}>
         <h1 style={{ margin: 0, fontSize: '1.4rem', fontWeight: 800, color: '#10252b' }}>{en ? 'The business is updating this quote' : 'העסק מעדכן את ההצעה הזו'}</h1>
         <p style={{ margin: 0, fontSize: '1rem', color: '#3c4a52', maxWidth: '34rem', lineHeight: 1.5 }}>{en ? 'You will receive an updated link from them.' : 'תקבלו ממנו קישור מעודכן.'}</p>
       </div>

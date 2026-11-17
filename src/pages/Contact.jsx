@@ -104,7 +104,7 @@ export default function Contact({ isHebrew }) {
   };
 
   return (
-    <div ref={rootRef} dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: "'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif", background: '#090d16', minHeight: '100vh', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
+    <div ref={rootRef} dir={isHebrew ? 'rtl' : 'ltr'} style={{ fontFamily: "'Rubik', Arial, Segoe UI, Tahoma, sans-serif", background: '#090d16', minHeight: '100vh', color: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
       
       <style>{`
         .contact-card {

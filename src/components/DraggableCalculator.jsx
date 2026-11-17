@@ -225,7 +225,7 @@ export default function DraggableCalculator({ isOpen, onClose, isHebrew, currenc
         display: 'flex',
         flexDirection: 'column',
         overflow: 'hidden',
-        fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif",
+        fontFamily: 'system-ui, Arial, sans-serif',
         opacity: isDragging ? 0.95 : 1,
         transition: isDragging ? 'none' : 'box-shadow 0.2s',
         direction: 'ltr'

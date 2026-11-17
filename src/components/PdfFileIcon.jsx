@@ -31,7 +31,7 @@ export default function PdfFileIcon({ size = 24, strokeWidth = 1.75, color = 'cu
         textAnchor="middle"
         fontSize="6.2"
         fontWeight="800"
-        fontFamily="system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif"
+        fontFamily="Arial, sans-serif"
         stroke="none"
         fill={color}
       >

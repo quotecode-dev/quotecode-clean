@@ -1079,7 +1079,7 @@ export default function PublicQuoteEn({ quoteData, presentation = null, previewM
   const embeddedPreview = previewMode && !standalonePrint;
 
   return (
-    <div className={`pq-page${pdfGenerating ? ' pq-pdf-capturing' : ''}${embeddedPreview ? ' pq-preview' : ''}${previewMode && standalonePrint ? ' pq-standalone-preview' : ''}`} data-print-mode={printMode} data-pq-style={docStyle} dir="ltr" style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif", background: previewMode ? 'transparent' : '#f8fafc', /* ledger D25b: base page tone */ minHeight: previewMode ? 0 : '100vh', padding: previewMode ? 0 : '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
+    <div className={`pq-page${pdfGenerating ? ' pq-pdf-capturing' : ''}${embeddedPreview ? ' pq-preview' : ''}${previewMode && standalonePrint ? ' pq-standalone-preview' : ''}`} data-print-mode={printMode} data-pq-style={docStyle} dir="ltr" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: previewMode ? 'transparent' : '#f8fafc', /* ledger D25b: base page tone */ minHeight: previewMode ? 0 : '100vh', padding: previewMode ? 0 : '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
       <style>{`${PQ_SCREEN_CSS}${embeddedPreview ? '' : PQ_PRINT_CSS}`}</style>
       {/* Same A4-width screen paper as HE: 794px white paper + 18px decorative frame per side = 830px outer card. */}
       <div className="pq-column pq-card-desktop-width" style={{ width: '100%', maxWidth: '830px' }}>

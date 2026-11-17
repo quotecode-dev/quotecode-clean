@@ -45,13 +45,18 @@ export const NEON = {
 // הקבצים שכבר מייבאים את שניהם, אך שניהם מצביעים על אותו מחסנית
 // גופנים בדיוק.
 //
-// גופן המערכת של המכשיר מופיע כאן במפורש *לפני* מילת המפתח הגנרית sans-serif בכוונה: sans-serif גנרי
-// תלוי לחלוטין במכשיר, ובחלק ממכשירי Android/Chromebook ברירת המחדל לעברית היא גופן בשם "Alef". כשרוביק
-// לא נטען בזמן, הדפדפן עובר לגופן המערכת המודרני של המכשיר (system-ui / Segoe UI / San Francisco / Roboto) ולגופן
-// העברי של אנדרואיד (Noto Sans Hebrew) לפני ה-sans-serif הגנרי. בלי אריאל: חוק 46 (הבעלים 17/11: "מאשר החלפת אריאל
-// בגופן המערכת בכל המקומות ...").
-export const FONT_HE = "'Rubik', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif";
-export const FONT_EN = "'Rubik', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif";
+// Arial מופיע כאן במפורש *לפני* מילת המפתח הגנרית sans-serif בכוונה:
+// sans-serif גנרי אינו אומר לדפדפן איזה גופן ספציפי להציג - הרזולוציה
+// שלו תלויה לחלוטין במערכת ההפעלה/מכשיר, ובחלק ממכשירי Android/
+// Chromebook ברירת המחדל הזו ל-Hebrew היא ממש גופן בשם "Alef". ברגע
+// ש-Rubik לא נטען בזמן (רשת איטית/חסומה), הדפדפן מדלג על
+// -apple-system/BlinkMacSystemFont/Segoe UI (כל אחד מהם no-op במערכת
+// הפעלה אחרת) ומגיע ל-sans-serif הגנרי - וזו בדיוק הנקודה שבה גופן
+// לא-רצוי יכול "להתגנב" בלי שום קוד באפליקציה קרא לו בשמו. הוספת
+// Arial (זמין כמעט בכל מקום, עם כיסוי עברי סביר) לפני ה-sans-serif
+// הגנרי סוגרת את הפער הזה.
+export const FONT_HE = "'Rubik', Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+export const FONT_EN = "'Rubik', Arial, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
 
 // loadNeonFonts() קיים היה כאן בעבר וטען את Rubik דרך <link> ל-Google
 // Fonts שהוזרק בזמן ריצה מתוך useEffect - כלומר רק אחרי הציור הראשון
