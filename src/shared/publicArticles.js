@@ -41,13 +41,13 @@ export const ARTICLES = Object.freeze({
       intro: 'הצעת מחיר טובה היא לא רק מספר בסוף העמוד. היא מסמך שעונה מראש על השאלות של הלקוח, ומקלה עליו לאשר אותה. ריכזנו כאן את מה שחשוב באמת.',
       sections: [
         {
-          h: 'בקצרה: איך כותבים הצעת מחיר ב־5 צעדים',
+          h: 'בקצרה: איך כותבים הצעת מחיר ב־5 צעדים',
           list: [
             'רשמו את פרטי העסק ואת פרטי הלקוח, מספר הצעה ותאריך.',
             'פרטו כל עבודה בשורה משלה: תיאור, כמות, מחיר ליחידה וסכום.',
             'סכמו: סכום לפני מע״מ, מע״מ וסה״כ לתשלום.',
             'הוסיפו תוקף להצעה, תנאי תשלום ומה לא כלול.',
-            'שלחו עוד באותו יום, ובדקו אם הלקוח פתח את ההצעה.',
+            'שלחו עוד ביום הפגישה, ובדקו אם הלקוח פתח את ההצעה.',
           ],
         },
         {
@@ -79,7 +79,7 @@ export const ARTICLES = Object.freeze({
           h: 'מחיר ברור, בלי הפתעות',
           p: [
             'כתבו במפורש אם המחירים כוללים מע״מ. לקוח שמגלה תוספת רק בסוף מאבד אמון.',
-            'אם חלק מהמחיר תלוי במידות בשטח או בבחירה של הלקוח, כתבו איך הוא יחושב. למשל: "ריצוף: 140 ש״ח למ״ר, לפי מדידה סופית".',
+            'אם חלק מהמחיר תלוי במידות בשטח או בבחירה של הלקוח, כתבו איך הוא יחושב. למשל: "ריצוף: 140 ש״ח למ״ר, לפי מדידה סופית".',
           ],
         },
         {
@@ -100,12 +100,12 @@ export const ARTICLES = Object.freeze({
           h: 'דוגמה להצעת מחיר',
           p: ['הצעה לדוגמה של שיפוצניק לצביעת דירה (המספרים לדוגמה בלבד):'],
           list: [
-            'הצעה מס׳ 1024, בתוקף 30 יום.',
+            'הצעה מס׳ 1024, בתוקף 30 ימים.',
             'לכבוד: משפחת כהן.',
-            'צביעת קירות ותקרות: 180 מ״ר, לפי 22 ש״ח למ״ר. סכום: 3,960 ש״ח.',
-            'תיקון סדקים וטיח: מחיר קבוע 650 ש״ח.',
-            'כיסוי רצפות ופינוי בסיום: מחיר קבוע 300 ש״ח.',
-            'סכום לפני מע״מ: 4,910 ש״ח. מע״מ (18%): 883.80 ש״ח. סה״כ לתשלום: 5,793.80 ש״ח.',
+            'צביעת קירות ותקרות: 180 מ״ר, ב־22 ש״ח למ״ר. סכום: 3,960 ש״ח.',
+            'תיקון סדקים וטיח: מחיר קבוע 650 ש״ח.',
+            'כיסוי רצפות ופינוי בסיום: מחיר קבוע 300 ש״ח.',
+            'סכום לפני מע״מ: 4,910 ש״ח. מע״מ (18%): 883.80 ש״ח. סה״כ לתשלום: 5,793.80 ש״ח.',
             'תנאים: 30% מקדמה באישור, היתרה בסיום העבודה. לא כולל: תיקוני נגרות.',
           ],
         },
@@ -130,13 +130,13 @@ export const ARTICLES = Object.freeze({
       intro: 'A good quote is more than a number at the bottom of the page. It answers the client\'s questions in advance and makes it easy to say yes. Here is what makes the difference.',
       sections: [
         {
-          h: 'In short: how to write a quote in 5 steps',
+          h: 'In short: how to write a quote in 5 steps',
           list: [
             'Add your business details and the client\'s details, a quote number and a date.',
             'Give every job its own line: description, quantity, unit price and total.',
-            'Add it up: the total, and tax where it applies.',
+            'Add up the total, plus tax where it applies.',
             'Add how long the quote is valid, payment terms and what is not included.',
-            'Send it the same day, and check whether the client opened it.',
+            'Send it on the day of the meeting, and check whether the client opened it.',
           ],
         },
         {
@@ -187,11 +187,11 @@ export const ARTICLES = Object.freeze({
         },
         {
           h: 'A quote example',
-          p: ['An example quote from a painter for an apartment (the figures are an example only):'],
+          p: ['An example quote from a renovator for painting an apartment (the figures are an example only):'],
           list: [
             'Quote #1024, valid for 30 days.',
             'To: the Miller family.',
-            'Wall and ceiling painting: 180 m² at $4.50 per m². Total: $810.',
+            'Wall and ceiling painting: 180 m² at $4.50 per m². Amount: $810.',
             'Crack and plaster repairs: fixed price $150.',
             'Floor protection and clean-up: fixed price $70.',
             'Total: $1,030 (plus tax where it applies).',
@@ -231,7 +231,7 @@ export const ARTICLES = Object.freeze({
             'מגיעים לסיור בשטח ולוקחים מידות.',
             'מחלקים את העבודה לחדרים או לשלבים.',
             'מתמחרים כל שורה: מחיר קבוע, ליחידה, למטר רבוע או למטר אורך.',
-            'מוסיפים חומרים, מדיניות לתוספות ולוח תשלומים.',
+            'מוסיפים חומרים, איך מתמחרים תוספות, ולוח תשלומים.',
             'שולחים ללקוח קישור, והוא מאשר וחותם מהטלפון.',
           ],
         },
@@ -250,7 +250,7 @@ export const ARTICLES = Object.freeze({
         {
           h: 'חומרים: מי מספק, ובאיזו רמה',
           p: [
-            'כתבו אם החומרים כלולים במחיר או שהלקוח מספק אותם. אם הם כלולים, ציינו את הסוג או הדרגה, או מחיר מרבי לבחירת הלקוח. למשל: "אריחים עד 120 ש״ח למ״ר; מעבר לכך בתוספת תשלום".',
+            'כתבו אם החומרים כלולים במחיר או שהלקוח מספק אותם. אם הם כלולים, ציינו את הסוג או הדרגה, או מחיר מרבי לבחירת הלקוח. למשל: "אריחים עד 120 ש״ח למ״ר; מעבר לכך בתוספת תשלום".',
           ],
         },
         {
@@ -278,12 +278,12 @@ export const ARTICLES = Object.freeze({
           h: 'דוגמה: הצעת מחיר לשיפוץ חדר רחצה',
           p: ['כך יכולה להיראות הצעה מפורטת לשיפוץ חדר רחצה (המספרים לדוגמה בלבד):'],
           list: [
-            'הריסה ופינוי: מחיר קבוע 2,500 ש״ח.',
-            'אינסטלציה: מחיר קבוע 3,800 ש״ח.',
-            'איטום רצפה: 6 מ״ר, לפי 120 ש״ח למ״ר. סכום: 720 ש״ח.',
-            'ריצוף וחיפוי: 28 מ״ר, לפי 180 ש״ח למ״ר. סכום: 5,040 ש״ח.',
-            'התקנת כלים סניטריים: מחיר קבוע 1,900 ש״ח.',
-            'סכום לפני מע״מ: 13,960 ש״ח. מע״מ (18%): 2,512.80 ש״ח. סה״כ לתשלום: 16,472.80 ש״ח.',
+            'הריסה ופינוי: מחיר קבוע 2,500 ש״ח.',
+            'אינסטלציה: מחיר קבוע 3,800 ש״ח.',
+            'איטום רצפה: 6 מ״ר, ב־120 ש״ח למ״ר. סכום: 720 ש״ח.',
+            'ריצוף וחיפוי: 28 מ״ר, ב־180 ש״ח למ״ר. סכום: 5,040 ש״ח.',
+            'התקנת כלים סניטריים: מחיר קבוע 1,900 ש״ח.',
+            'סכום לפני מע״מ: 13,960 ש״ח. מע״מ (18%): 2,512.80 ש״ח. סה״כ לתשלום: 16,472.80 ש״ח.',
             'תשלומים: 30% בחתימה, 40% בסיום האינסטלציה ו־30% במסירה.',
           ],
         },
@@ -366,8 +366,8 @@ export const ARTICLES = Object.freeze({
           list: [
             'Demolition and disposal: fixed price $650.',
             'Plumbing: fixed price $1,000.',
-            'Floor waterproofing: 6 m² at $30 per m². Total: $180.',
-            'Flooring and wall tiling: 28 m² at $45 per m². Total: $1,260.',
+            'Floor waterproofing: 6 m² at $30 per m². Amount: $180.',
+            'Flooring and wall tiling: 28 m² at $45 per m². Amount: $1,260.',
             'Fixture installation: fixed price $500.',
             'Total: $3,590 (plus tax where it applies).',
             'Payments: 30% on signing, 40% after the plumbing and 30% on handover.',
@@ -421,14 +421,14 @@ export const ARTICLES = Object.freeze({
         {
           h: 'איך מחשבים שטח',
           p: [
-            'שטח = רוחב × גובה, במטרים. מידות בס״מ מחלקים ב־100. למשל, שטחו של חלון בגודל \u2066120 × 150\u2069 ס״מ הוא \u20661.2 × 1.5 = 1.8\u2069 מ״ר.',
-            'כשיש כמה מידות לאותו פריט, מחשבים כל אחת בנפרד ומחברים את התוצאות. למשל שלושה חלונות: \u2066120 × 150\u2069 (1.8 מ״ר), \u2066100 × 120\u2069 (1.2 מ״ר) ו־\u206680 × 100\u2069 (0.8 מ״ר). בסך הכול 3.8 מ״ר. במחיר של 450 ש״ח למ״ר (לדוגמה בלבד), הסכום הוא 1,710 ש״ח.',
+            'שטח = רוחב × גובה, במטרים. מידות בס״מ מחלקים ב־100. למשל, שטחו של חלון בגודל \u2066120 × 150\u2069 ס״מ הוא \u20661.2 × 1.5 = 1.8\u2069 מ״ר.',
+            'כשיש כמה מידות לאותו פריט, מחשבים כל אחת בנפרד ומחברים את התוצאות. למשל שלושה חלונות: \u2066120 × 150\u2069 (1.8 מ״ר), \u2066100 × 120\u2069 (1.2 מ״ר) ו־\u206680 × 100\u2069 (0.8 מ״ר). בסך הכול 3.8 מ״ר. במחיר של 450 ש״ח למ״ר (לדוגמה בלבד), הסכום הוא 1,710 ש״ח.',
           ],
         },
         {
           h: 'חישוב לפי מטר אורך',
           p: [
-            'כאן מחברים רק את האורכים. למשל, מעקה באורך 6.4 מטר, במחיר של 380 ש״ח למטר אורך (לדוגמה בלבד), עולה 2,432 ש״ח.',
+            'כאן מחברים רק את האורכים. למשל, מעקה באורך 6.4 מטר, במחיר של 380 ש״ח למטר אורך (לדוגמה בלבד), עולה 2,432 ש״ח.',
           ],
         },
         {
@@ -444,10 +444,10 @@ export const ARTICLES = Object.freeze({
           h: 'דוגמה: הצעת מחיר לחלונות ומעקה',
           p: ['כך נראית הצעה לפי מידות (המספרים לדוגמה בלבד):'],
           list: [
-            'חלונות אלומיניום: 3 מידות, בסך הכול 3.8 מ״ר, לפי 450 ש״ח למ״ר. סכום: 1,710 ש״ח.',
-            'מעקה: 6.4 מטר אורך, לפי 380 ש״ח למטר. סכום: 2,432 ש״ח.',
-            'התקנה: מחיר קבוע 600 ש״ח.',
-            'סכום לפני מע״מ: 4,742 ש״ח. מע״מ (18%): 853.56 ש״ח. סה״כ לתשלום: 5,595.56 ש״ח.',
+            'חלונות אלומיניום: 3 מידות, בסך הכול 3.8 מ״ר, ב־450 ש״ח למ״ר. סכום: 1,710 ש״ח.',
+            'מעקה: 6.4 מטר אורך, ב־380 ש״ח למטר. סכום: 2,432 ש״ח.',
+            'התקנה: מחיר קבוע 600 ש״ח.',
+            'סכום לפני מע״מ: 4,742 ש״ח. מע״מ (18%): 853.56 ש״ח. סה״כ לתשלום: 5,595.56 ש״ח.',
           ],
         },
         {
@@ -481,7 +481,7 @@ export const ARTICLES = Object.freeze({
             'Measure width and height, or length, on site.',
             'Choose for each item: per square meter, per linear meter, per unit or a fixed price.',
             'Enter the measurements, in centimeters or meters.',
-            'Add several sizes of the same item into one area.',
+            'Combine several sizes of the same item into one total area.',
             'Write the measurements in the quote and send it to the client.',
           ],
         },
@@ -496,14 +496,14 @@ export const ARTICLES = Object.freeze({
         {
           h: 'How to calculate area',
           p: [
-            'Area = width × height, in meters. Divide centimeter measurements by 100. For example, a 120 × 150 cm window is 1.2 × 1.5 = 1.8 m².',
-            'When one item has several sizes, calculate each one and add them up. For example, three windows: 120 × 150 (1.8 m²), 100 × 120 (1.2 m²) and 80 × 100 (0.8 m²) - 3.8 m² in total. At $95 per m² (an example only), the total is $361.',
+            'Area = width × height, in meters. Divide centimeter measurements by 100. For example, a 120 × 150 cm window is 1.2 × 1.5 = 1.8 m².',
+            'When one item has several sizes, calculate each one and add them up. For example, three windows: 120 × 150 (1.8 m²), 100 × 120 (1.2 m²) and 80 × 100 (0.8 m²) - 3.8 m² in total. At $95 per m² (an example only), the total is $361.',
           ],
         },
         {
           h: 'And linear meters?',
           p: [
-            'Here you add up lengths only. For example, a 6.4 m railing at $80 per linear meter (an example only) comes to $512.',
+            'Here you add up lengths only. For example, a 6.4 m railing at $80 per linear meter (an example only) comes to $512.',
           ],
         },
         {
@@ -519,8 +519,8 @@ export const ARTICLES = Object.freeze({
           h: 'Example: a windows and railing quote',
           p: ['This is how a measured quote looks (the figures are an example only):'],
           list: [
-            'Aluminum windows: 3 sizes, 3.8 m² in total, at $95 per m². Total: $361.',
-            'Railing: 6.4 linear meters at $80 per meter. Total: $512.',
+            'Aluminum windows: 3 sizes, 3.8 m² in total, at $95 per m². Amount: $361.',
+            'Railing: 6.4 linear meters at $80 per meter. Amount: $512.',
             'Installation: fixed price $140.',
             'Total: $1,013 (plus tax where it applies).',
           ],
@@ -555,8 +555,8 @@ export const ARTICLES = Object.freeze({
         {
           h: 'שלב 2: המרה לפי שער עדכני',
           p: [
-            'המירו לשקלים לפי השער של היום, לא לפי השער שזכרתם מהחודש שעבר. בדוגמה נשתמש בשער של 3.70 ש״ח לדולר (שער לדוגמה בלבד).',
-            'לפי שער זה, הזמנה של 2,000 דולר עולה 7,400 ש״ח.',
+            'המירו לשקלים לפי השער של היום, לא לפי השער שזכרתם מהחודש שעבר. בדוגמה נשתמש בשער של 3.70 ש״ח לדולר (שער לדוגמה בלבד).',
+            'לפי שער זה, הזמנה של 2,000 דולר עולה 7,400 ש״ח.',
           ],
         },
         {
