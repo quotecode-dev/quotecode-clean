@@ -72,7 +72,7 @@ export function buildVerifyUrl(supabaseUrl: string, tokenHash: string, verifyTyp
 function wrapEmail(isHebrew: boolean, bodyHtml: string, withLogo = false) {
   return `<!DOCTYPE html>
 <html dir="${isHebrew ? 'rtl' : 'ltr'}" lang="${isHebrew ? 'he' : 'en'}">
-<body dir="${isHebrew ? 'rtl' : 'ltr'}" style="margin:0;padding:0;background:#f8fafc;font-family:Arial,Segoe UI,sans-serif;">
+<body dir="${isHebrew ? 'rtl' : 'ltr'}" style="margin:0;padding:0;background:#f8fafc;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif;">
   <table role="presentation" dir="${isHebrew ? 'rtl' : 'ltr'}" width="100%" cellpadding="0" cellspacing="0" style="background:#f8fafc;padding:24px 0;">
     <tr>
       <td align="center">
@@ -80,8 +80,8 @@ function wrapEmail(isHebrew: boolean, bodyHtml: string, withLogo = false) {
           <tr>
             <td style="background:${HEADER_BG};padding:${withLogo ? '18px' : '20px'} 28px;" align="${isHebrew ? 'right' : 'left'}">
               ${withLogo
-                ? `<img src="${LOGO_URL}" alt="TEKANGO" width="152" height="32" style="display:block;border:0;outline:none;width:152px;height:32px;color:${FLOW_PURPLE};font-size:18px;font-weight:800;font-family:Arial,Segoe UI,sans-serif;">`
-                : `<span style="color:${FLOW_PURPLE};font-size:1.2rem;font-weight:800;letter-spacing:0.5px;font-family:Arial,Segoe UI,sans-serif;">TEKANGO</span>`}
+                ? `<img src="${LOGO_URL}" alt="TEKANGO" width="152" height="32" style="display:block;border:0;outline:none;width:152px;height:32px;color:${FLOW_PURPLE};font-size:18px;font-weight:800;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif;">`
+                : `<span style="color:${FLOW_PURPLE};font-size:1.2rem;font-weight:800;letter-spacing:0.5px;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif;">TEKANGO</span>`}
             </td>
           </tr>
           <tr>

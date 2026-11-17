@@ -55,7 +55,7 @@ serve(async (req)=>{
         ],
         subject: 'ברוכים הבאים ל-ProFlow! / Welcome to ProFlow!',
         html: `
-          <div dir="rtl" style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
+          <div dir="rtl" style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif; padding: 20px; color: #333;">
             <h2>שלום רב,</h2>
             <p>תודה שנרשמת למערכת הניהול והצעות המחיר <strong>ProFlow</strong>.</p>
             <p>החשבון שלך נוצר בהצלחה וכעת באפשרותך להתחיל לנהל את העסק שלך בצורה חכמה, מתקדמת וגלובלית.</p>

@@ -200,7 +200,7 @@ export default function App() {
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
           backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center',
-          alignItems: 'center', zIndex: 9999, direction: !isHebrew ? 'ltr' : 'rtl', fontFamily: "'Rubik', Arial, sans-serif"
+          alignItems: 'center', zIndex: 9999, direction: !isHebrew ? 'ltr' : 'rtl', fontFamily: "'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif"
         }}>
           <div style={{ background: '#fff', padding: '30px', borderRadius: '12px', width: '400px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', textAlign: 'center', position: 'relative' }}>
             {/* PRODUCT_TRUTH_DECORATIVE: closes the forgot-password modal in this unmounted, unreachable file (main.jsx renders only AppLocal/AppGlobal; no file imports src/App.jsx) */}
@@ -242,7 +242,7 @@ export default function App() {
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
           backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center',
-          alignItems: 'center', zIndex: 9999, direction: !isHebrew ? 'ltr' : 'rtl', fontFamily: "'Rubik', Arial, sans-serif"
+          alignItems: 'center', zIndex: 9999, direction: !isHebrew ? 'ltr' : 'rtl', fontFamily: "'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif"
         }}>
           <div style={{ background: '#fff', padding: '30px', borderRadius: '12px', width: '400px', boxShadow: '0 4px 20px rgba(0,0,0,0.2)', textAlign: 'center' }}>
             <h2 style={{ color: '#0f172a', marginBottom: '15px' }}>{!isHebrew ? 'Set New Password' : 'הגדרת סיסמה חדשה'}</h2>
