@@ -32,11 +32,28 @@ export const ARTICLES_INDEX = Object.freeze({
 export const ARTICLES = Object.freeze({
   'how-to-write-a-quote-clients-approve': {
     he: {
-      title: 'TEKANGO - איך כותבים הצעת מחיר שהלקוח מאשר',
-      description: 'מה חייב להופיע בהצעת מחיר, איך לכתוב פריטים ומחירים ברורים, תוקף ותנאים, ולמה כדאי לשלוח מהר ולעקוב אחרי ההצעה. מדריך מעשי לעסקים.',
+      // Owner 2026-11-17 (agents room, the promotion agent's approved task + the Owner's typed approval): a direct answer in 5 steps,
+      // who the guide is for, a full example; the title and description match the question "how to write a quote"
+      title: 'TEKANGO - איך כותבים הצעת מחיר: 5 צעדים ודוגמה מלאה',
+      description: 'איך כותבים הצעת מחיר שהלקוח מאשר: 5 צעדים פשוטים, מה חייב להופיע בהצעה, דוגמה מלאה עם סכומים ומע״מ, תוקף ותנאים. מדריך מעשי לעסקים ולעצמאים.',
       h1: 'איך כותבים הצעת מחיר שהלקוח מאשר',
+      modified: '2026-11-17',
       intro: 'הצעת מחיר טובה היא לא רק מספר בסוף העמוד. היא מסמך שעונה מראש על השאלות של הלקוח, ומקלה עליו לאשר אותה. ריכזנו כאן את מה שחשוב באמת.',
       sections: [
+        {
+          h: 'בקצרה: איך כותבים הצעת מחיר ב־5 צעדים',
+          list: [
+            'רשמו את פרטי העסק ואת פרטי הלקוח, מספר הצעה ותאריך.',
+            'פרטו כל עבודה בשורה משלה: תיאור, כמות, מחיר ליחידה וסכום.',
+            'סכמו: סכום לפני מע״מ, מע״מ וסה״כ לתשלום.',
+            'הוסיפו תוקף להצעה, תנאי תשלום ומה לא כלול.',
+            'שלחו עוד באותו יום, ובדקו אם הלקוח פתח את ההצעה.',
+          ],
+        },
+        {
+          h: 'למי המדריך מתאים',
+          p: ['לבעלי מקצוע ולעסקים קטנים שנותנים הצעות מחיר ללקוחות: קבלנים ושיפוצניקים, טכנאים, נותני שירותים ועצמאים. אם אתם מתלבטים מה לכתוב ואיך להציג את המחיר, זה המקום להתחיל.'],
+        },
         {
           h: 'מה חייב להופיע בהצעת מחיר',
           p: ['הצעה מסודרת חוסכת שאלות חוזרות ומשדרת מקצועיות. לפני השליחה, כדאי לוודא שיש בה:'],
@@ -80,6 +97,19 @@ export const ARTICLES = Object.freeze({
           ],
         },
         {
+          h: 'דוגמה להצעת מחיר',
+          p: ['הצעה לדוגמה של שיפוצניק לצביעת דירה (המספרים לדוגמה בלבד):'],
+          list: [
+            'הצעה מס׳ 1024, בתוקף 30 יום.',
+            'לכבוד: משפחת כהן.',
+            'צביעת קירות ותקרות: 180 מ״ר, לפי 22 ש״ח למ״ר. סכום: 3,960 ש״ח.',
+            'תיקון סדקים וטיח: מחיר קבוע 650 ש״ח.',
+            'כיסוי רצפות ופינוי בסיום: מחיר קבוע 300 ש״ח.',
+            'סכום לפני מע״מ: 4,910 ש״ח. מע״מ (18%): 883.80 ש״ח. סה״כ לתשלום: 5,793.80 ש״ח.',
+            'תנאים: 30% מקדמה באישור, היתרה בסיום העבודה. לא כולל: תיקוני נגרות.',
+          ],
+        },
+        {
           h: 'איך TEKANGO עוזרת',
           p: [
             'ב־TEKANGO בונים הצעת מחיר מסודרת עם פרטי העסק, פריטים, מע״מ ותוקף, ושולחים אותה ללקוח בוואטסאפ או במייל.',
@@ -93,11 +123,26 @@ export const ARTICLES = Object.freeze({
       ],
     },
     en: {
-      title: 'TEKANGO - How to Write a Quote Your Clients Approve',
-      description: 'What every quote must include, how to write clear line items and prices, validity and terms, and why sending fast and following up matters. A practical guide.',
+      title: 'TEKANGO - How to Write a Quote: 5 Steps and a Full Example',
+      description: 'How to write a quote clients approve: 5 simple steps, what every quote must include, a full example with line items and totals, validity and terms. A practical guide for small businesses.',
       h1: 'How to Write a Quote Your Clients Approve',
+      modified: '2026-11-17',
       intro: 'A good quote is more than a number at the bottom of the page. It answers the client\'s questions in advance and makes it easy to say yes. Here is what makes the difference.',
       sections: [
+        {
+          h: 'In short: how to write a quote in 5 steps',
+          list: [
+            'Add your business details and the client\'s details, a quote number and a date.',
+            'Give every job its own line: description, quantity, unit price and total.',
+            'Add it up: the total, and tax where it applies.',
+            'Add how long the quote is valid, payment terms and what is not included.',
+            'Send it the same day, and check whether the client opened it.',
+          ],
+        },
+        {
+          h: 'Who this guide is for',
+          p: ['Tradespeople and small businesses that send quotes to clients: contractors and renovators, technicians, service providers and freelancers. If you are not sure what to write or how to present the price, start here.'],
+        },
         {
           h: 'What every quote must include',
           p: ['A well-organized quote saves back-and-forth and looks professional. Before you send it, make sure it has:'],
@@ -141,6 +186,19 @@ export const ARTICLES = Object.freeze({
           ],
         },
         {
+          h: 'A quote example',
+          p: ['An example quote from a painter for an apartment (the figures are an example only):'],
+          list: [
+            'Quote #1024, valid for 30 days.',
+            'To: the Miller family.',
+            'Wall and ceiling painting: 180 m² at $4.50 per m². Total: $810.',
+            'Crack and plaster repairs: fixed price $150.',
+            'Floor protection and clean-up: fixed price $70.',
+            'Total: $1,030 (plus tax where it applies).',
+            'Terms: a 30% deposit on approval, the balance on completion. Not included: carpentry repairs.',
+          ],
+        },
+        {
           h: 'How TEKANGO helps',
           p: [
             'With TEKANGO you build a well-organized quote with your business details, line items, totals and a validity date, and send it to the client by WhatsApp or email.',
@@ -157,11 +215,26 @@ export const ARTICLES = Object.freeze({
 
   'renovation-contractor-quote': {
     he: {
-      title: 'TEKANGO - הצעת מחיר של קבלן שיפוצים: מה חייב להופיע בה',
-      description: 'איך בונים הצעת מחיר לשיפוץ: חלוקה לשלבים, חומרים, מידות וכמויות, תוספות וחריגים, לוח זמנים ותשלומים לפי שלבים. מדריך לקבלני שיפוצים.',
+      title: 'TEKANGO - הצעת מחיר לשיפוץ: מדריך לקבלנים, שלב אחר שלב ועם דוגמה',
+      description: 'איך קבלן שיפוצים בונה הצעת מחיר שלב אחר שלב: חלוקה לשלבים, מידות, חומרים, תוספות ותשלומים, עם דוגמה מלאה להצעה לשיפוץ חדר רחצה.',
       h1: 'הצעת מחיר של קבלן שיפוצים: מה חייב להופיע בה',
+      modified: '2026-11-17',
       intro: 'בשיפוצים כמעט תמיד יש הפתעות: קיר שמתגלה עקום, צנרת ישנה, לקוח שמשנה את דעתו. הצעת מחיר מפורטת היא הדרך הטובה ביותר למנוע ויכוחים ולהגן על הרווח.',
       sections: [
+        {
+          h: 'למי המדריך מתאים',
+          p: ['לקבלני שיפוצים ולשיפוצניקים שמתמחרים מטבחים, חדרי רחצה ודירות שלמות, ורוצים הצעה שהלקוח מבין ומאשר בלי ויכוחים.'],
+        },
+        {
+          h: 'איך בונים את ההצעה, שלב אחר שלב',
+          list: [
+            'מגיעים לסיור בשטח ולוקחים מידות.',
+            'מחלקים את העבודה לחדרים או לשלבים.',
+            'מתמחרים כל שורה: מחיר קבוע, ליחידה, למטר רבוע או למטר אורך.',
+            'מוסיפים חומרים, מדיניות לתוספות ולוח תשלומים.',
+            'שולחים ללקוח קישור, והוא מאשר וחותם מהטלפון.',
+          ],
+        },
         {
           h: 'לחלק את העבודה לשלבים',
           p: ['במקום שורה אחת של "שיפוץ אמבטיה", חלקו את ההצעה לשלבים ברורים. כך הלקוח מבין על מה הוא משלם, וקל לשנות שלב אחד בלי לשנות את כל ההצעה. למשל:'],
@@ -202,6 +275,19 @@ export const ARTICLES = Object.freeze({
           ],
         },
         {
+          h: 'דוגמה: הצעת מחיר לשיפוץ חדר רחצה',
+          p: ['כך יכולה להיראות הצעה מפורטת לשיפוץ חדר רחצה (המספרים לדוגמה בלבד):'],
+          list: [
+            'הריסה ופינוי: מחיר קבוע 2,500 ש״ח.',
+            'אינסטלציה: מחיר קבוע 3,800 ש״ח.',
+            'איטום רצפה: 6 מ״ר, לפי 120 ש״ח למ״ר. סכום: 720 ש״ח.',
+            'ריצוף וחיפוי: 28 מ״ר, לפי 180 ש״ח למ״ר. סכום: 5,040 ש״ח.',
+            'התקנת כלים סניטריים: מחיר קבוע 1,900 ש״ח.',
+            'סכום לפני מע״מ: 13,960 ש״ח. מע״מ (18%): 2,512.80 ש״ח. סה״כ לתשלום: 16,472.80 ש״ח.',
+            'תשלומים: 30% בחתימה, 40% בסיום האינסטלציה ו־30% במסירה.',
+          ],
+        },
+        {
           h: 'איך TEKANGO עוזרת',
           p: [
             'ב־TEKANGO אפשר לחלק את ההצעה לחדרים או לאזורים, ולתמחר כל פריט במחיר קבוע, ליחידה, למטר רבוע או למטר אורך.',
@@ -215,11 +301,26 @@ export const ARTICLES = Object.freeze({
       ],
     },
     en: {
-      title: 'TEKANGO - Renovation Contractor Quotes: What to Include',
-      description: 'How to build a renovation quote: break the job into stages, materials, measurements and quantities, changes and extras, and stage-based payments. A guide for contractors.',
+      title: 'TEKANGO - Renovation Quotes for Contractors: Step by Step, with an Example',
+      description: 'How a renovation contractor builds a quote step by step: stages, measurements, materials, extras and payments, with a full bathroom renovation example.',
       h1: 'Renovation Contractor Quotes: What to Include',
+      modified: '2026-11-17',
       intro: 'Renovations almost always bring surprises: a wall that turns out crooked, old pipes, a client who changes their mind. A detailed quote is the best way to prevent disputes and protect your margin.',
       sections: [
+        {
+          h: 'Who this guide is for',
+          p: ['Renovation contractors and remodelers who price kitchens, bathrooms and whole apartments, and want a quote the client understands and approves without arguments.'],
+        },
+        {
+          h: 'How the quote comes together, step by step',
+          list: [
+            'Visit the site and take measurements.',
+            'Split the job into rooms or stages.',
+            'Price every line: a fixed price, per unit, per square meter or per linear meter.',
+            'Add materials, how extras are handled and a payment schedule.',
+            'Send the client a link; they approve and sign from their phone.',
+          ],
+        },
         {
           h: 'Break the job into stages',
           p: ['Instead of a single line that says "bathroom renovation", split the quote into clear stages. The client understands what they pay for, and you can change one stage without reopening everything. For example:'],
@@ -260,6 +361,19 @@ export const ARTICLES = Object.freeze({
           ],
         },
         {
+          h: 'Example: a bathroom renovation quote',
+          p: ['This is how a detailed bathroom renovation quote can look (the figures are an example only):'],
+          list: [
+            'Demolition and disposal: fixed price $650.',
+            'Plumbing: fixed price $1,000.',
+            'Floor waterproofing: 6 m² at $30 per m². Total: $180.',
+            'Flooring and wall tiling: 28 m² at $45 per m². Total: $1,260.',
+            'Fixture installation: fixed price $500.',
+            'Total: $3,590 (plus tax where it applies).',
+            'Payments: 30% on signing, 40% after the plumbing and 30% on handover.',
+          ],
+        },
+        {
           h: 'How TEKANGO helps',
           p: [
             'In TEKANGO you can split a quote into sections and price each item as a fixed price, per unit, per square meter or per linear meter.',
@@ -276,11 +390,26 @@ export const ARTICLES = Object.freeze({
 
   'quote-by-measurements': {
     he: {
-      title: 'TEKANGO - הצעת מחיר לפי מידות: מטר רבוע ומטר אורך',
-      description: 'מתי מתמחרים לפי מטר רבוע ומתי לפי מטר אורך, איך מחשבים שטח מרוחב וגובה בס״מ, איך מחברים כמה מידות של אותו פריט, ואיך להציג את החישוב ללקוח.',
+      title: 'TEKANGO - הצעת מחיר לפי מטר רבוע ומטר אורך, עם דוגמה',
+      description: 'איך מתמחרים לפי מטר רבוע או מטר אורך: חישוב שטח מס״מ, חיבור כמה מידות לאותו פריט והצגת החישוב בהצעה, עם דוגמה מלאה להצעה לחלונות ומעקה.',
       h1: 'הצעת מחיר לפי מידות: מטר רבוע ומטר אורך',
+      modified: '2026-11-17',
       intro: 'בעבודות כמו חלונות, זכוכית, ריצוף, צבע, מעקות ופרגולות, המחיר נגזר מהמידות. כשהחישוב נכון וגלוי, הלקוח סומך על ההצעה, ואתם לא מפסידים כסף בגלל טעויות.',
       sections: [
+        {
+          h: 'למי המדריך מתאים',
+          p: ['לבעלי מקצוע שהמחיר שלהם נגזר מהמידות: אלומיניום וחלונות, זגגות, ריצוף, צבע, מעקות, פרגולות וחיפויים.'],
+        },
+        {
+          h: 'איך בונים הצעה לפי מידות, שלב אחר שלב',
+          list: [
+            'מודדים בשטח רוחב וגובה, או אורך.',
+            'בוחרים לכל פריט: מטר רבוע, מטר אורך, ליחידה או מחיר קבוע.',
+            'מזינים את המידות, בס״מ או במטרים.',
+            'מחברים כמה מידות של אותו פריט לשטח אחד.',
+            'כותבים את המידות בהצעה ושולחים ללקוח.',
+          ],
+        },
         {
           h: 'מטר רבוע או מטר אורך?',
           list: [
@@ -312,6 +441,16 @@ export const ARTICLES = Object.freeze({
           ],
         },
         {
+          h: 'דוגמה: הצעת מחיר לחלונות ומעקה',
+          p: ['כך נראית הצעה לפי מידות (המספרים לדוגמה בלבד):'],
+          list: [
+            'חלונות אלומיניום: 3 מידות, בסך הכול 3.8 מ״ר, לפי 450 ש״ח למ״ר. סכום: 1,710 ש״ח.',
+            'מעקה: 6.4 מטר אורך, לפי 380 ש״ח למטר. סכום: 2,432 ש״ח.',
+            'התקנה: מחיר קבוע 600 ש״ח.',
+            'סכום לפני מע״מ: 4,742 ש״ח. מע״מ (18%): 853.56 ש״ח. סה״כ לתשלום: 5,595.56 ש״ח.',
+          ],
+        },
+        {
           h: 'איך TEKANGO עוזרת',
           p: [
             'ב־TEKANGO בוחרים לכל פריט תמחור לפי מטר רבוע או לפי מטר אורך, ומזינים את המידות בס״מ או במטרים.',
@@ -322,14 +461,30 @@ export const ARTICLES = Object.freeze({
       related: [
         { href: '/he/tools/units', label: 'מחשבון המרת יחידות אורך: מטר, פיט, אינץ׳ ומייל' },
         { href: '/he/articles/renovation-contractor-quote', label: 'הצעת מחיר של קבלן שיפוצים' },
+        { href: '/he/articles/how-to-write-a-quote-clients-approve', label: 'איך כותבים הצעת מחיר שהלקוח מאשר' },
       ],
     },
     en: {
-      title: 'TEKANGO - Quoting by Measurements: Square Meters and Linear Meters',
-      description: 'When to price per square meter and when per linear meter, how to calculate area from width and height in centimeters, several sizes for one item, and how to show the math to the client.',
+      title: 'TEKANGO - Quoting by Square Meter and Linear Meter, with an Example',
+      description: 'How to price by square meter or linear meter: calculate area from centimeters, add several sizes for one item and show the math in the quote, with a full windows and railing example.',
       h1: 'Quoting by Measurements: Square Meters and Linear Meters',
+      modified: '2026-11-17',
       intro: 'For jobs like windows, glass, flooring, painting, railings and pergolas, the price comes from the measurements. When the calculation is right and visible, the client trusts the quote and you don\'t lose money on mistakes.',
       sections: [
+        {
+          h: 'Who this guide is for',
+          p: ['Tradespeople whose price comes from the measurements: windows and aluminum, glazing, flooring, painting, railings, pergolas and cladding.'],
+        },
+        {
+          h: 'How a measured quote comes together, step by step',
+          list: [
+            'Measure width and height, or length, on site.',
+            'Choose for each item: per square meter, per linear meter, per unit or a fixed price.',
+            'Enter the measurements, in centimeters or meters.',
+            'Add several sizes of the same item into one area.',
+            'Write the measurements in the quote and send it to the client.',
+          ],
+        },
         {
           h: 'Square meters or linear meters?',
           list: [
@@ -361,6 +516,16 @@ export const ARTICLES = Object.freeze({
           ],
         },
         {
+          h: 'Example: a windows and railing quote',
+          p: ['This is how a measured quote looks (the figures are an example only):'],
+          list: [
+            'Aluminum windows: 3 sizes, 3.8 m² in total, at $95 per m². Total: $361.',
+            'Railing: 6.4 linear meters at $80 per meter. Total: $512.',
+            'Installation: fixed price $140.',
+            'Total: $1,013 (plus tax where it applies).',
+          ],
+        },
+        {
           h: 'How TEKANGO helps',
           p: [
             'In TEKANGO you choose per-square-meter or per-linear-meter pricing for each item, and enter the measurements in centimeters or meters.',
@@ -371,6 +536,7 @@ export const ARTICLES = Object.freeze({
       related: [
         { href: '/en/tools/units', label: 'Length converter: meters, feet, inches and miles' },
         { href: '/en/articles/renovation-contractor-quote', label: 'Renovation contractor quotes' },
+        { href: '/en/articles/how-to-write-a-quote-clients-approve', label: 'How to write a quote your clients approve' },
       ],
     },
   },
