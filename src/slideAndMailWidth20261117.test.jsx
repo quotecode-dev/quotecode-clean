@@ -22,6 +22,27 @@ describe('(1) the desktop quote list: a long client name / quote title slides in
   });
 });
 
+// (3) Owner console 17/11, typed: "מאשר שינוי ב-L-19: שם לקוח ארוך בכרטיס ההצעה בטלפון זז בסלייד במקום שלוש נקודות, ושחרור עד הלייב"
+describe('(3) the phone / tablet quote card: a long client name slides at every width (L-19 change)', () => {
+  const q = src('src/components/QuotesTab.jsx');
+  const d = src('src/pages/Dashboard.jsx').split(String.fromCharCode(13)).join('');
+  it('the card name is a SlideText box that clips (no ellipsis) and keeps data-qh="client"', () => {
+    const card = q.slice(q.indexOf('className="quote-card"'));
+    const box = card.slice(card.indexOf('<SlideText'), card.indexOf('</SlideText>'));
+    expect(box).toContain('data-qh="client"');
+    expect(box).toContain("textOverflow: 'clip', whiteSpace: 'nowrap'");
+  });
+  it('the card slide rule sits OUTSIDE every width condition (a phone runs it too)', () => {
+    const style = d.slice(d.indexOf('<style>{`') + '<style>{`'.length, d.indexOf('`}</style>'));
+    const at = style.indexOf('.quote-card [data-qh="client"] > .pf-slide {');
+    expect(at).toBeGreaterThan(0);
+    let depth = 0; for (const ch of style.slice(0, at)) { if (ch === '{') depth += 1; else if (ch === '}') depth -= 1; }
+    expect(depth).toBe(0);
+    expect(style).toContain('.quote-card [data-qh="client"] > .pf-slide--on { animation: pf-card-slide-move');
+    expect(style).toMatch(/@keyframes pf-card-slide-move \{/);
+  });
+});
+
 describe('(2) the account / trial / subscription e-mails fit a phone: the card is fluid up to 480px', () => {
   for (const f of ['supabase/functions/auth-send-email-hook/emailContent.ts', 'supabase/functions/send-subscription-expiration-email/index.ts', 'supabase/functions/send-trial-expiration-email/reminderContent.ts']) {
     it(f, () => {
