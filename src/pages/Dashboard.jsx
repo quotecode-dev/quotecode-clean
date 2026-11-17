@@ -7875,6 +7875,9 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             white-space: nowrap;
             text-align: start;
           }
+          /* Owner console 17/11 (IRON-QH-LAYOUT-001 change): a long client name / quote title moves as a slide inside its cell (SlideText), no ellipsis */
+          .quote-modern-title,
+          .quote-modern-client-name { text-overflow: clip; }
           /* Owner R4: the whole quote number is always visible - never ellipsized/clipped (track floor sized for it) */
           .quote-modern-number {
             display: block;
