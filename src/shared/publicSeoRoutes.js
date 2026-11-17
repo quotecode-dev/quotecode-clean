@@ -220,7 +220,7 @@ export function articleSeoRoute(lang, slug, a, date) {
       description: a.description,
       inLanguage: lang,
       datePublished: date,
-      dateModified: a.modified || date, // an article updated later carries its own date (17/11: the promotion agent's approved tasks)
+      dateModified: date,
       author: { '@type': 'Organization', name: 'TEKANGO' },
       publisher: { '@type': 'Organization', name: 'TEKANGO' },
       mainEntityOfPage: `https://www.tekango.com${path}`,
