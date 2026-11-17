@@ -1696,14 +1696,17 @@ export default function QuotesTab({
                 <ChevronDown data-qh="action" size={19} strokeWidth={2.8} color="#0F6672" style={{ flexShrink: 0, marginTop: '1px', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                 <div style={{ flex: '1 1 auto', minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                    <span
+                    {/* Owner console 2026-11-17 (L-19 change, typed: "מאשר שינוי ב-L-19: שם לקוח ארוך בכרטיס ההצעה בטלפון זז בסלייד במקום
+                        שלוש נקודות, ושחרור עד הלייב"): one line as before, a long name moves inside its box instead of an ellipsis */}
+                    <SlideText
+                      as="span"
                       className="pf-font-variable"
-                      style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.8125rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto' }}
+                      style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.8125rem', minWidth: 0, overflow: 'hidden', textOverflow: 'clip', whiteSpace: 'nowrap', flex: '1 1 auto' }}
                       title={quote.clients?.company_name || 'N/A'}
                       data-qh="client"
                     >
                       {quote.clients?.company_name || 'N/A'}
-                    </span>
+                    </SlideText>
                     {/* Iron Numeric Typography: the amount lives in the protected
                         physical-axis slot (.pf-money-slot: fixed inline size,
                         LTR, right-aligned) so ones/tens/decimal positions share
