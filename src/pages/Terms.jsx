@@ -238,7 +238,7 @@ export default function Terms({ isHebrew }) {
       {/* Content */}
       <main style={{ flex: 1, padding: '40px 20px' }}>
         <div style={{ maxWidth: '850px', margin: '0 auto', background: '#111827', padding: '40px', borderRadius: '16px', border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 20px 40px -15px rgba(0,0,0,0.3)' }}>
-          <h1 style={{ fontSize: 'clamp(1.6rem, 6.5vw, 2.4rem)', fontWeight: '900', color: '#ffffff', marginBottom: '8px', letterSpacing: '-0.5px' }}>{/* Owner console 17/11 typed (L-14): "מאשר תיקון כותרת תנאי השימוש בעברית בטלפון כמו בפרטיות, כולל שינוי ב-L-14, ושחרור עד הלייב" - "(Terms of Service)" stays one piece when the title wraps, like the privacy title (12/11) */}{isHebrew ? <>תנאי שימוש <bdi dir="ltr" style={{ whiteSpace: 'nowrap' }}>(Terms of Service)</bdi></> : t.title}</h1>
+          <h1 style={{ fontSize: '2.4rem', fontWeight: '900', color: '#ffffff', marginBottom: '8px', letterSpacing: '-0.5px' }}>{t.title}</h1>
           <p style={{ color: '#64748b', fontSize: '0.95rem', marginBottom: '40px', fontWeight: '500' }}>{t.lastUpdated}</p>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
