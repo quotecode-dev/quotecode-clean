@@ -31,9 +31,12 @@ describe('mobile quote card: eye + view count in the middle (Owner 2026-10-16)',
     expect(quotesTab).toMatch(/n === 1 \? '1 view' : `\$\{n\} views`/);
   });
 
-  it('the client name in the card stays on one line and is cut with an ellipsis', () => {
+  // L-19 changed by the Owner (console 2026-11-17, typed: "מאשר שינוי ב-L-19: שם לקוח ארוך בכרטיס ההצעה בטלפון זז בסלייד במקום שלוש נקודות,
+  // ושחרור עד הלייב"): still one line, a long name slides inside its box (SlideText) instead of an ellipsis
+  it('the client name in the card stays on one line and a long name slides (no ellipsis)', () => {
     const name = card.slice(card.indexOf('className="pf-font-variable"'), card.indexOf('data-qh="client"'));
-    expect(name).toMatch(/overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap'/);
+    expect(card.slice(card.indexOf('className="pf-font-variable"') - 90, card.indexOf('className="pf-font-variable"'))).toMatch(/<SlideText\s+as="span"\s*$/);
+    expect(name).toMatch(/overflow: 'hidden', textOverflow: 'clip', whiteSpace: 'nowrap'/);
     expect(name).toMatch(/title=\{quote\.clients\?\.company_name/);
   });
 });
