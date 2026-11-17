@@ -80,7 +80,7 @@ export default function SiteAnalytics({ isHebrew, hostname = typeof window !== '
         // above the chat button (z-index 999999) and the update banner until the visitor chooses
         zIndex: 1000000,
         background: '#111827', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.14)', borderRadius: '12px', padding: '8px 12px',
-        boxShadow: '0 12px 32px rgba(0,0,0,0.45)', fontFamily: "'Rubik', Arial, sans-serif", fontSize: '0.8rem', boxSizing: 'border-box', textAlign: 'start' }}>
+        boxShadow: '0 12px 32px rgba(0,0,0,0.45)', fontFamily: "'Rubik', system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif", fontSize: '0.8rem', boxSizing: 'border-box', textAlign: 'start' }}>
       <p style={{ margin: 0, lineHeight: 1.4, flex: '1 1 260px', minWidth: 0 }}>
         {c.text}{' '}
         {/* PRODUCT_TRUTH_DECORATIVE: opens the Privacy Policy section on cookies (no state change) */}

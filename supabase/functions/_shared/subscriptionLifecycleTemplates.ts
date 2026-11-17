@@ -84,7 +84,7 @@ export function buildSubscriptionLifecycleEmail({ event, lang, planId, businessN
   const htmlCopy = copyFor(event as LifecycleEvent, lang, escapeHtml(plan), escapeHtml(raw));
   const html = `<!DOCTYPE html>
 <html dir="${dir}" lang="${lang}">
-<body style="margin:0;padding:24px;background:#f8fafc;font-family:Arial,Segoe UI,sans-serif;">
+<body style="margin:0;padding:24px;background:#f8fafc;font-family:system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif;">
   <div dir="${dir}" style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:12px;padding:28px;text-align:${lang === 'he' ? 'right' : 'left'};color:#1e293b;">
     <div style="font-weight:800;color:#6d28d9;margin-bottom:16px;">TEKANGO</div>
     ${htmlCopy.lines.map((l) => `<p style="font-size:0.95rem;line-height:1.6;margin:0 0 12px;">${l}</p>`).join('\n    ')}

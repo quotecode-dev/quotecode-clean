@@ -12,7 +12,7 @@
    index.css silently produced a build where every @font-face still
    pointed at a `./files/...` path that doesn't exist in dist/ at all
    (verified: zero font files were emitted, every one would 404 in
-   production, forcing the Arial fallback on every load - worse than the
+   production, forcing the system-font fallback on every load - worse than the
    Google Fonts version this replaced). Importing this file directly from
    main.jsx, completely outside Tailwind's processing, lets Vite's normal
    CSS pipeline handle it correctly - each font file gets copied to

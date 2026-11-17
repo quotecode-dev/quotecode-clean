@@ -71,7 +71,7 @@ export function buildQuoteEmail(o: {
     ? `<div style="text-align: center; margin-bottom: 20px;"><img src="${escapeHtml(o.logoUrl)}" alt="${biz}" style="max-height: 55px; object-fit: contain;" /></div>`
     : `<div style="text-align: center; margin-bottom: 20px; font-size: 1.5rem; font-weight: 900; color: #0f172a; letter-spacing: -0.5px;">${biz}</div>`;
   const html = o.hebrew ? `
-      <div dir="rtl" style="font-family: Arial, sans-serif; padding: 25px; color: #1e293b; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
+      <div dir="rtl" style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif; padding: 25px; color: #1e293b; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
         ${headerHtml}
         <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">שלום ${client},</h2>
         <p style="font-size: 1rem; line-height: 1.5;">${introHtml}</p>
@@ -87,7 +87,7 @@ export function buildQuoteEmail(o: {
         <p style="color: #64748b; font-size: 0.9rem; margin-top: 15px;">צוות ${biz}</p>
       </div>
     ` : `
-      <div dir="ltr" style="font-family: Arial, sans-serif; padding: 25px; color: #1e293b; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
+      <div dir="ltr" style="font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif; padding: 25px; color: #1e293b; max-width: 600px; margin: 0 auto; background: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px;">
         ${headerHtml}
         <h2 style="color: #0f172a; border-bottom: 2px solid #f1f5f9; padding-bottom: 10px;">Hello ${client},</h2>
         <p style="font-size: 1rem; line-height: 1.5;">${introHtml}</p>
