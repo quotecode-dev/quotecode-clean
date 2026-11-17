@@ -7875,9 +7875,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             white-space: nowrap;
             text-align: start;
           }
-          /* Owner console 17/11 (IRON-QH-LAYOUT-001 change): a long client name / quote title moves as a slide inside its cell (SlideText), no ellipsis */
-          .quote-modern-title,
-          .quote-modern-client-name { text-overflow: clip; }
           /* Owner R4: the whole quote number is always visible - never ellipsized/clipped (track floor sized for it) */
           .quote-modern-number {
             display: block;
@@ -8122,14 +8119,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             inset-inline-end: 0 !important;
             bottom: calc(100% + 8px) !important;
           }
-        }
-        /* Owner console 17/11 (L-19 change): the client name in the quote card slides at EVERY width (the shared .pf-slide rule above
-           lives in the desktop-only block, so the card carries its own copy) */
-        .quote-card [data-qh="client"] > .pf-slide { display: inline-block; white-space: nowrap; }
-        .quote-card [data-qh="client"] > .pf-slide--on { animation: pf-card-slide-move 8s ease-in-out infinite alternate; will-change: transform; }
-        @keyframes pf-card-slide-move { 0%, 18% { transform: translateX(0); } 82%, 100% { transform: translateX(var(--pf-slide-x, 0px)); } }
-        @media (prefers-reduced-motion: reduce) {
-          .quote-card [data-qh="client"] > .pf-slide, .quote-card [data-qh="client"] > .pf-slide--on { animation: none; white-space: normal; display: inline; }
         }
         /* IRON-MOBILE-WIDTH-001 (see src/index.css): the work screen is FLAT on mobile - no surface and no inline padding - so
            .dash-main-content's --pf-mobile-workspace-inset is the ONLY outer gutter and each primary card/surface carries the ONLY
