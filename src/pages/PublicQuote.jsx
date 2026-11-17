@@ -1284,7 +1284,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
   const embeddedPreview = previewMode && !standalonePrint;
 
   return (
-    <div className={`pq-page${pdfGenerating ? ' pq-pdf-capturing' : ''}${embeddedPreview ? ' pq-preview' : ''}${previewMode && standalonePrint ? ' pq-standalone-preview' : ''}`} data-print-mode={printMode} data-pq-style={docStyle} dir="rtl" style={{ fontFamily: 'Segoe UI, Arial, Tahoma, sans-serif', background: previewMode ? 'transparent' : '#f8fafc', /* ledger D25b: base page tone */ minHeight: previewMode ? 0 : '100vh', padding: previewMode ? 0 : '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
+    <div className={`pq-page${pdfGenerating ? ' pq-pdf-capturing' : ''}${embeddedPreview ? ' pq-preview' : ''}${previewMode && standalonePrint ? ' pq-standalone-preview' : ''}`} data-print-mode={printMode} data-pq-style={docStyle} dir="rtl" style={{ fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, 'Noto Sans Hebrew', 'Noto Sans', sans-serif", background: previewMode ? 'transparent' : '#f8fafc', /* ledger D25b: base page tone */ minHeight: previewMode ? 0 : '100vh', padding: previewMode ? 0 : '20px', display: 'flex', justifyContent: 'center', boxSizing: 'border-box' }}>
       <style>{`${PQ_SCREEN_CSS}${embeddedPreview ? '' : PQ_PRINT_CSS}`}</style>
       {/* Owner 2026-10-07: the on-screen white paper is A4-width at 96dpi (794px). The 18px decorative frame on
           each side makes the outer card 830px. Narrow viewports remain fluid. Print and Direct PDF remove the frame. */}
