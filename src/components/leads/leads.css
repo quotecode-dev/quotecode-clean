@@ -112,3 +112,7 @@
 @media (max-width: 1023px) { .ld-dgrid { grid-template-columns: 1fr; } }
 @media (max-width: 768px) { .ld-tbl { display: none; } .ld-cards { display: flex; } }
 @media (max-width: 480px) { .ld-dlg .ld-two { grid-template-columns: 1fr; } .ld-titlerow .ld-btnp { padding: 9px 11px; } }
+/* phone list: the static block's last row gives no bottom margin - the scroll body's own 12px top padding is the one gap (the demo's 12px) */
+.pf-screen > .ld-scope:has(+ .pf-screen-body) .ld-filters { margin-bottom: 0; }
+/* phone: the app's work area is 16px wider than the demo's; the entry-type row keeps the demo's width, so it wraps the same in both languages */
+@media (max-width: 480px) { .ld-types { max-width: calc(100% - 16px); } }
