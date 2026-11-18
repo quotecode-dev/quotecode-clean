@@ -14,6 +14,7 @@ import { askConfirm } from '../AppDialog';
 import { taskMarket, marketToday, marketClock, parseMarketDate, parseTimeText, shortTime, marketDatePattern } from '../../utils/manualTasks';
 import { createLead, setLeadStatus, scheduleFollowUp, completeFollowUp, listLeadEvents, addLeadEvent, LEAD_SOURCES, MANUAL_LEAD_STATUSES, LEAD_EVENT_KINDS } from '../../utils/leadsClient';
 import { LeadIcon, LeadEntryIcon, LeadBackIcon } from './LeadIcons';
+import SlideText from '../SlideText';
 import { marketInstant } from './useLeads';
 import './leads.css';
 
@@ -22,14 +23,9 @@ const ST = { new: ['חדשה', 'New', 'ld-st-new'], prog: ['בטיפול', 'In p
 const TY = { call: ['שיחה', 'Call'], meet: ['פגישה', 'Meeting'], msg: ['הודעה', 'Message'], note: ['הערה', 'Note'] };
 const pick = (pair, he) => pair[he ? 0 : 1];
 
+// a text longer than its box slides inside it (the app's SlideText: data-slide-text + a running animation - law 50 amendment 15/11)
 function Slide({ text, className = '', dir }) {
-  const ref = useRef(null);
-  useEffect(() => {
-    const s = ref.current; if (!s) return undefined;
-    const size = () => { const inner = s.firstElementChild; if (!inner) return; s.classList.remove('moving'); const over = inner.scrollWidth - s.clientWidth; if (over > 2) { s.classList.add('moving'); s.style.setProperty('--d', `${getComputedStyle(s).direction === 'rtl' ? over : -over}px`); } };
-    size(); window.addEventListener('resize', size); return () => window.removeEventListener('resize', size);
-  }, [text]);
-  return <span ref={ref} className={`ld-slide ${className}`} dir={dir}><span>{text}</span></span>;
+  return <SlideText as="span" className={`ld-slide ${className}`} dir={dir}>{text}</SlideText>;
 }
 
 const ltr = (s) => <bdi dir="ltr">{s}</bdi>;
