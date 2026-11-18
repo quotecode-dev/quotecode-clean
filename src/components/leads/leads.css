@@ -55,6 +55,9 @@
 .ld-card .ld-top .ld-slide { flex: 1 1 auto; }
 .ld-card .ld-bot { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
 .ld-slide { overflow: hidden; white-space: nowrap; min-width: 0; display: block; }
+.ld-slide.ld-inl { display: inline-block; max-width: 100%; vertical-align: bottom; }
+/* the details view on a phone: one scroll body with no top gap (the demo's back pill sits right under the app's own pill) */
+.pf-screen > .pf-screen-body.ld-flush { padding-top: 0; }
 .ld-slide > .pf-slide { display: inline-block; white-space: nowrap; }
 .ld-slide > .pf-slide--on { animation: ld-slide-move 7s ease-in-out infinite alternate; will-change: transform; }
 @keyframes ld-slide-move { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--pf-slide-x, 0px)); } }
@@ -98,7 +101,7 @@
 .ld-composer .ld-r { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
 
 .ld-overlay { position: fixed; inset: 0; background: rgba(23, 33, 41, .45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 1000; }
-.ld-dlg { background: #fff; border-radius: 12px; width: min(460px, 100%); max-height: calc(100dvh - 32px); overflow: auto; box-shadow: 0 20px 40px rgba(0, 0, 0, .2); padding: 18px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; }
+.ld-dlg { background: #fff; border-radius: 12px; width: min(520px, 100%); max-height: calc(100dvh - 32px); overflow: auto; box-shadow: 0 20px 40px rgba(0, 0, 0, .2); padding: 18px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; }
 .ld-dlg h3 { margin: 0; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
 .ld-dlg label { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; font-weight: 600; color: var(--ld-muted); }
 .ld-dlg input, .ld-dlg select { min-height: 44px; border: 1px solid var(--ld-headline); border-radius: 8px; padding: 8px 10px; color: var(--ld-ink); font-weight: 400; background: #fff; }

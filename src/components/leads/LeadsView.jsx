@@ -30,7 +30,7 @@ function Slide({ text, className = '', dir }) {
 
 const ltr = (s) => <bdi dir="ltr">{s}</bdi>;
 
-export default function LeadsView({ leadsApi, leadsState, tabs, isHebrew, onCountsHeader }) {
+export default function LeadsView({ leadsApi, leadsState, tabs, isHebrew, isMobileView = false }) {
   const he = isHebrew;
   const market = taskMarket(leadsApi?.isLocalIsraeliBusiness === true);
   const today = marketToday(market);
@@ -54,7 +54,7 @@ export default function LeadsView({ leadsApi, leadsState, tabs, isHebrew, onCoun
     return <span className={`ld-due${late ? ' late' : ''}`}>{late ? (he ? 'באיחור · ' : 'Overdue · ') : ''}{dt(f.due_date, f.due_time)}</span>;
   };
   const chip = (st) => <span className={`ld-chip ${ST[st]?.[2] || ''}`}>{pick(ST[st] || ST.new, he)}</span>;
-  const contact = (l) => (l.phone ? ltr(l.phone) : <Slide text={l.email || ''} dir="ltr" />);
+  const contact = (l) => (l.phone ? ltr(l.phone) : <Slide text={l.email || ''} dir="ltr" className="ld-inl" />);
 
   const visible = useMemo(() => {
     let ls = leads.slice();
@@ -82,76 +82,89 @@ export default function LeadsView({ leadsApi, leadsState, tabs, isHebrew, onCoun
     </div>
   );
 
-  return (
-    <div className="ld-scope pf-screen-body" dir={he ? 'rtl' : 'ltr'}>
-      {open ? (
+  const dir = he ? 'rtl' : 'ltr';
+  const extras = (
+    <>
+    {newOpen && <NewLeadDialog he={he} market={market} today={today} client={client} userId={userId} onClose={() => setNewOpen(false)}
+      onSaved={(lead, withFollowUp) => { put(lead); setNewOpen(false); setFilter('all'); say(withFollowUp ? (he ? 'הפנייה נשמרה. המעקב נוסף למשימות.' : 'Lead saved. The follow-up was added to Tasks.') : (he ? 'הפנייה נשמרה.' : 'Lead saved.')); }} />}
+    {toast ? <div className="ld-toast" role="status">{toast}</div> : null}
+    </>
+  );
+  // the same frame as the Clients list: on a computer the whole screen scrolls with the page; on a phone the static block (title, tabs,
+  // search, filters) stays and only the list scrolls (.pf-screen-body) - the details view scrolls as one body with no top gap
+  if (open) {
+    return (
+      <div className={`ld-scope${isMobileView ? ' pf-screen-body ld-flush' : ''}`} dir={dir}>
         <LeadDetails key={open.id} lead={open} he={he} market={market} today={today} client={client} userId={userId} put={put} say={say} dt={dt} chip={chip}
           onBack={() => setOpenId(null)} />
-      ) : (
-        <>
-          {header}
-          {tabs}
-          {typeof onCountsHeader === 'function' ? onCountsHeader() : null}
-          <div className="ld-search">
-            <div className="ld-in">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
-              <input data-testid="lead-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={he ? 'חיפוש לפי שם, טלפון, מייל או תוכן הפנייה' : 'Search name, phone, email or work needed'} aria-label={he ? 'חיפוש פניות' : 'Search leads'} />
-            </div>
-            <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={he ? 'סדר' : 'Order'} data-testid="lead-sort">
-              <option value="due">{he ? 'לפי המעקב הקרוב' : 'By next follow-up'}</option>
-              <option value="new">{he ? 'החדשות קודם' : 'Newest first'}</option>
-            </select>
+        {extras}
+      </div>
+    );
+  }
+  return (
+    <>
+      <div className="ld-scope" dir={dir}>
+        {header}
+        {tabs}
+        <div className="ld-search">
+          <div className="ld-in">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7" /><path d="m20 20-3.5-3.5" /></svg>
+            <input data-testid="lead-search" value={q} onChange={(e) => setQ(e.target.value)} placeholder={he ? 'חיפוש לפי שם, טלפון, מייל או תוכן הפנייה' : 'Search name, phone, email or work needed'} aria-label={he ? 'חיפוש פניות' : 'Search leads'} />
           </div>
-          <div className="ld-filters" role="group" aria-label={he ? 'מצב הפנייה' : 'Lead status'}>
-            {[['all', he ? 'כל המצבים' : 'All statuses'], ['new', pick(ST.new, he)], ['prog', pick(ST.prog, he)], ['sent', pick(ST.sent, he)], ['off', pick(ST.off, he)]].map(([k, label]) => (
-              // PRODUCT_TRUTH_DECORATIVE: filters the visible leads by status
-              <button key={k} type="button" className={filter === k ? 'on' : ''} aria-pressed={filter === k} onClick={() => setFilter(k)}>{label}</button>
-            ))}
-          </div>
-          {status !== 'ready' ? (
-            <p className="ld-hint" role="status">{he ? 'טוען את הפניות…' : 'Loading leads…'}</p>
-          ) : !leads.length ? (
-            <p className="ld-hint">{he ? 'עדיין אין פניות. לוחצים „פנייה חדשה” כדי לרשום את הראשונה.' : 'No leads yet. Click “New lead” to record the first one.'}</p>
-          ) : !visible.length ? (
-            <p className="ld-hint">{he ? 'לא נמצאו פניות שמתאימות לחיפוש.' : 'No matching leads.'}{' '}
-              {/* PRODUCT_TRUTH_DECORATIVE: clears the leads search and filter */}
-              <button type="button" className="ld-btnl" onClick={() => { setQ(''); setFilter('all'); }}>{he ? 'ניקוי החיפוש' : 'Clear search'}</button></p>
-          ) : (
-            <>
-              <table className="ld-tbl">
-                <thead><tr><th>{he ? 'שם' : 'Name'}</th><th>{he ? 'יצירת קשר' : 'Contact'}</th><th>{he ? 'מה צריך לבצע?' : 'Work needed'}</th><th>{he ? 'מצב' : 'Status'}</th><th>{he ? 'המעקב הבא' : 'Next follow-up'}</th></tr></thead>
-                <tbody>
-                  {visible.map((l) => (
-                    // PRODUCT_TRUTH_DECORATIVE: opens the lead details from its table row
-                    <tr key={l.id} className="ld-row" tabIndex={0} data-testid="lead-row" onClick={() => setOpenId(l.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenId(l.id); } }}>
-                      <td style={{ maxWidth: '200px' }}><Slide text={l.name} className="ld-nm" /><span className="ld-sub">{pick(SRC[l.source] || SRC.none, he)}</span></td>
-                      <td>{contact(l)}</td>
-                      <td style={{ maxWidth: '220px' }}>{l.need ? <Slide text={l.need} /> : null}</td>
-                      <td>{chip(l.status)}</td>
-                      <td>{dueHtml(l)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="ld-cards">
+          <select value={sort} onChange={(e) => setSort(e.target.value)} aria-label={he ? 'סדר' : 'Order'} data-testid="lead-sort">
+            <option value="due">{he ? 'לפי המעקב הקרוב' : 'By next follow-up'}</option>
+            <option value="new">{he ? 'החדשות קודם' : 'Newest first'}</option>
+          </select>
+        </div>
+        <div className="ld-filters" role="group" aria-label={he ? 'מצב הפנייה' : 'Lead status'}>
+          {[['all', he ? 'כל המצבים' : 'All statuses'], ['new', pick(ST.new, he)], ['prog', pick(ST.prog, he)], ['sent', pick(ST.sent, he)], ['off', pick(ST.off, he)]].map(([k, label]) => (
+            // PRODUCT_TRUTH_DECORATIVE: filters the visible leads by status
+            <button key={k} type="button" className={filter === k ? 'on' : ''} aria-pressed={filter === k} onClick={() => setFilter(k)}>{label}</button>
+          ))}
+        </div>
+      </div>
+      <div className={`ld-scope${isMobileView ? ' pf-screen-body' : ''}`} dir={dir}>
+        {status !== 'ready' ? (
+          <p className="ld-hint" role="status">{he ? 'טוען את הפניות…' : 'Loading leads…'}</p>
+        ) : !leads.length ? (
+          <p className="ld-hint">{he ? 'עדיין אין פניות. לוחצים „פנייה חדשה” כדי לרשום את הראשונה.' : 'No leads yet. Click “New lead” to record the first one.'}</p>
+        ) : !visible.length ? (
+          <p className="ld-hint">{he ? 'לא נמצאו פניות שמתאימות לחיפוש.' : 'No matching leads.'}{' '}
+            {/* PRODUCT_TRUTH_DECORATIVE: clears the leads search and filter */}
+            <button type="button" className="ld-btnl" onClick={() => { setQ(''); setFilter('all'); }}>{he ? 'ניקוי החיפוש' : 'Clear search'}</button></p>
+        ) : (
+          <>
+            <table className="ld-tbl">
+              <thead><tr><th>{he ? 'שם' : 'Name'}</th><th>{he ? 'יצירת קשר' : 'Contact'}</th><th>{he ? 'מה צריך לבצע?' : 'Work needed'}</th><th>{he ? 'מצב' : 'Status'}</th><th>{he ? 'המעקב הבא' : 'Next follow-up'}</th></tr></thead>
+              <tbody>
                 {visible.map((l) => (
-                  // PRODUCT_TRUTH_DECORATIVE: opens the lead details from its phone card
-                  <button key={l.id} type="button" className="ld-card" data-testid="lead-card" onClick={() => setOpenId(l.id)}>
-                    <span className="ld-top"><Slide text={l.name} className="ld-nm" />{chip(l.status)}</span>
-                    <span className="ld-sub">{contact(l)} · {pick(SRC[l.source] || SRC.none, he)}</span>
-                    {l.need ? <Slide text={l.need} className="ld-sub" /> : null}
-                    <span className="ld-bot">{dueHtml(l)}</span>
-                  </button>
+                  // PRODUCT_TRUTH_DECORATIVE: opens the lead details from its table row
+                  <tr key={l.id} className="ld-row" tabIndex={0} data-testid="lead-row" onClick={() => setOpenId(l.id)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpenId(l.id); } }}>
+                    <td style={{ maxWidth: '200px' }}><Slide text={l.name} className="ld-nm" /><span className="ld-sub">{pick(SRC[l.source] || SRC.none, he)}</span></td>
+                    <td>{contact(l)}</td>
+                    <td style={{ maxWidth: '220px' }}>{l.need ? <Slide text={l.need} /> : null}</td>
+                    <td>{chip(l.status)}</td>
+                    <td>{dueHtml(l)}</td>
+                  </tr>
                 ))}
-              </div>
-            </>
-          )}
-        </>
-      )}
-      {newOpen && <NewLeadDialog he={he} market={market} today={today} client={client} userId={userId} onClose={() => setNewOpen(false)}
-        onSaved={(lead, withFollowUp) => { put(lead); setNewOpen(false); setFilter('all'); say(withFollowUp ? (he ? 'הפנייה נשמרה. המעקב נוסף למשימות.' : 'Lead saved. The follow-up was added to Tasks.') : (he ? 'הפנייה נשמרה.' : 'Lead saved.')); }} />}
-      {toast ? <div className="ld-toast" role="status">{toast}</div> : null}
-    </div>
+              </tbody>
+            </table>
+            <div className="ld-cards">
+              {visible.map((l) => (
+                // PRODUCT_TRUTH_DECORATIVE: opens the lead details from its phone card
+                <button key={l.id} type="button" className="ld-card" data-testid="lead-card" onClick={() => setOpenId(l.id)}>
+                  <span className="ld-top"><Slide text={l.name} className="ld-nm" />{chip(l.status)}</span>
+                  <span className="ld-sub">{contact(l)} · {pick(SRC[l.source] || SRC.none, he)}</span>
+                  {l.need ? <Slide text={l.need} className="ld-sub" /> : null}
+                  <span className="ld-bot">{dueHtml(l)}</span>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {extras}
+      </div>
+    </>
   );
 }
 

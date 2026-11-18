@@ -305,7 +305,7 @@ export default function ClientsTab({
   if (leadsApi && screenTab === 'leads') {
     return (
       <div className="pf-screen pf-work-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
-        <LeadsView leadsApi={leadsApi} leadsState={leadsState} tabs={tabRow} isHebrew={isHebrew} />
+        <LeadsView leadsApi={leadsApi} leadsState={leadsState} tabs={tabRow} isHebrew={isHebrew} isMobileView={isMobileView} />
       </div>
     );
   }
