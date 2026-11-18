@@ -8,6 +8,8 @@ import { User, UserPlus, Pencil, Trash2, Hash, Mail, MapPin, StickyNote, Chevron
 import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, APP_FOCUS, RADIUS, SHADOW } from '../theme/neonTheme';
 import { formatAddress } from '../utils/addressFormat';
 import { formatShortDate } from '../utils/shortDate';
+import LeadsView from './leads/LeadsView';
+import { useLeads } from './leads/useLeads';
 
 // חוק ברזל (Consolidated Open UI Corrections task, §Clients Visual
 // Correction, Owner mid-task correction): ClientAvatar (מדליון-אות-ראשונה
@@ -72,8 +74,12 @@ export default function ClientsTab({
   onCreateClient,
   onExportClients = null,
   quotes = [],
-  isHebrew
+  isHebrew,
+  // Leads stage 1 (Owner 18/11): { client, userId, isLocalIsraeliBusiness } - when given, the screen shows the Clients | Leads tabs
+  leadsApi = null
 }) {
+  const [screenTab, setScreenTab] = useState('clients');
+  const leadsState = useLeads(leadsApi);
   // QA 2026-10-25 (C7): no search typed = the account has no clients yet - say how to add the first one
   const emptyText = clientSearchTerm.trim()
     ? (isHebrew ? 'לא נמצאו לקוחות התואמים את החיפוש.' : 'No clients found.')
@@ -279,6 +285,31 @@ export default function ClientsTab({
     );
   };
 
+  // Leads stage 1 (Owner console 2026-11-18, the approved demo of 18/11): a "פניות" / "Leads" tab INSIDE Clients - no new menu entry
+  // (decision 2 "א"); Clients stays the first, default tab and its whole list below is unchanged.
+  const tabRow = leadsApi ? (
+    <div className="ld-scope">
+      <div className="ld-tabs" role="tablist" aria-label={isHebrew ? 'לקוחות ופניות' : 'Clients and leads'}>
+        {/* PRODUCT_TRUTH_DECORATIVE: switches the Clients screen to its clients list */}
+        <button type="button" role="tab" aria-selected={screenTab === 'clients'} className={screenTab === 'clients' ? 'on' : ''} data-testid="clients-tab-clients" onClick={() => setScreenTab('clients')}>
+          {isHebrew ? 'לקוחות' : 'Clients'} <span className="ld-n">{safeClients.length}</span>
+        </button>
+        {/* PRODUCT_TRUTH_DECORATIVE: switches the Clients screen to its leads list */}
+        <button type="button" role="tab" aria-selected={screenTab === 'leads'} className={screenTab === 'leads' ? 'on' : ''} data-testid="clients-tab-leads" onClick={() => setScreenTab('leads')}>
+          {isHebrew ? 'פניות' : 'Leads'}{leadsState.status === 'ready' ? <> <span className="ld-n">{leadsState.leads.length}</span></> : null}
+        </button>
+      </div>
+    </div>
+  ) : null;
+
+  if (leadsApi && screenTab === 'leads') {
+    return (
+      <div className="pf-screen pf-work-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
+        <LeadsView leadsApi={leadsApi} leadsState={leadsState} tabs={tabRow} isHebrew={isHebrew} />
+      </div>
+    );
+  }
+
   return (
     <div className="pf-screen pf-work-screen" style={{ background: NEON.bgCard, padding: '18px', borderRadius: RADIUS.lg, border: 'none', boxShadow: SHADOW.sm }}>
       {/* Kept as the first child: a non-visual node between the static block and the
@@ -319,6 +350,8 @@ export default function ClientsTab({
           {isHebrew ? 'לקוח חדש' : 'New Client'}
         </button>
       </div>
+
+      {tabRow}
 
       {/* חוק ברזל (§G2): החיפוש עבר לשורה עצמאית משלו מתחת לכותרת (היה
           חולק שורה עם הכותרת) - "wide search below... the shared toolbar,"
