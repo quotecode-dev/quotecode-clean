@@ -778,9 +778,7 @@ export default function QuoteForm({
               }}
               style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', fontSize: '16px' }}>
               <option value="__new">{isHebrew ? '+ הוספת לקוח חדש' : '+ Add a new client'}</option>
-              {/* Owner console 2026-11-18, typed: "מאשר שינוי בנוסח רשימת הלקוחות מהדמו של 13/11: "רשימת הלקוחות" / "Client list", שחרור עד הלייב"
-                  - the longer wording was cut in the list at phone width in both languages */}
-              <option value="" disabled hidden>{isHebrew ? 'רשימת הלקוחות' : 'Client list'}</option>
+              <option value="" disabled hidden>{isHebrew ? 'אפשר לבחור לקוח קיים או למלא לקוח חדש למטה' : 'Pick a saved client or fill in a new one below'}</option>
               {[...clients].sort((a, b) => String(a.company_name || '').localeCompare(String(b.company_name || ''), isHebrew ? 'he' : 'en', { numeric: true, sensitivity: 'base' }))
                 .map((c) => <option key={c.id} value={String(c.id)}>{c.company_name}</option>)}
             </select>
