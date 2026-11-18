@@ -111,12 +111,19 @@ export function syncMoneyBox(card) {
   // 2026-11-12 (law 49): the same box in pixels, for an amount set in a smaller size (a group total row) - it keeps the one right edge
   card.style.setProperty('--pq-money-box-px', `${(boxN * tableFs).toFixed(2)}px`);
 
-  // Owner console 2026-11-18 (L-27 change, typed: "מאשר שינוי ב-L-27: טבלת הפריטים בדף הלקוח, בעברית ובאנגלית, 12 פיקסלים משני הקצוות כמו
-  // בתמונות, ושחרור עד הלייב" + "מאשר את גרסת 12 הפיקסלים ששומרת על חוק המספרים, כמו בתמונות, ושחרור עד הלייב"): the "סה״כ" / "Total"
-  // header sits 12px from the table's outer edge in both languages (quoteDocument.css) - it no longer takes the Hebrew box-width padding
-  // of 10/11. The amounts keep their one box / right edge / decimal axis (IRON-NUMERIC-001); an older inline padding is cleared.
+  // Owner console 2026-11-10 (the 13 items, L-27): in Hebrew the "סה״כ" header ends on the amounts' right edge, as "Total" does in English
+  // (the box starts at the outer edge, so the header gets the box's width minus its own text as its outer padding; em of its own size)
   const th = card.querySelector('.pq-commercial-table thead th.pq-th-total');
+  const td = card.querySelector('.pq-commercial-table tbody td.pq-td-total');
   if (th) th.style.removeProperty('padding-left');
+  if (th && viewOf(th).getComputedStyle(th).direction === 'rtl') {
+    const thFs = fsOf(th);
+    const headW = textWidth(th);
+    const padL = td ? (parseFloat(viewOf(td).getComputedStyle(td).paddingLeft) || 0) : (parseFloat(viewOf(th).getComputedStyle(th).paddingLeft) || 0);
+    const want = padL + boxN * tableFs - headW;
+    const base = parseFloat(viewOf(th).getComputedStyle(th).paddingLeft) || 0;
+    if (headW > 0 && want > base) th.style.setProperty('padding-left', `${(want / thFs).toFixed(4)}em`, 'important'); // the phone rule pins 3px !important
+  }
 }
 
 // Owner console 2026-11-10 (the 13 items, L-27): the unit label sits after the number (right in English, left in Hebrew), so the

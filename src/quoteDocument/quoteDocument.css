@@ -1807,24 +1807,6 @@
 /* the quantity number box is centred under its header on screen, on paper and in the Direct PDF (useAmountAxis.syncQtyCentre, em units) */
 
 
-/* Owner console 2026-11-18 (L-27 change, typed: "מאשר שינוי ב-L-27: טבלת הפריטים בדף הלקוח, בעברית ובאנגלית, 12 פיקסלים משני הקצוות כמו
-   בתמונות, ושחרור עד הלייב" + "מאשר את גרסת 12 הפיקסלים ששומרת על חוק המספרים, כמו בתמונות, ושחרור עד הלייב"): on the screen (and so in
-   the Direct PDF, which photographs the screen document) the item table keeps 12px from BOTH outer edges, Hebrew and English alike:
-   - the first cell of every row (description, group names, headers) 12px from the start edge (right in Hebrew, left in English);
-   - the amount column (header, item amounts, group totals) 12px from the end edge (left in Hebrew, right in English).
-   IRON-NUMERIC-001 stays: every amount keeps its one box with right-aligned digits - one right edge, one decimal axis - and the totals
-   follow the column's paddings (useAmountAxis.syncAmountAxis), so in Hebrew the widest amount of the box (the grand total) is the one
-   12px from the edge. The doubled classes outrank the phone rules (PublicQuote inline style, narrowItems.css). Native Print keeps its own
-   A4 rules. */
-@media screen {
-  .pq-page.pq-page[dir='ltr'] .pq-card.pq-card table.pq-commercial-table.pq-commercial-table tr > :first-child { padding-left: 12px !important; }
-  .pq-page.pq-page[dir='rtl'] .pq-card.pq-card table.pq-commercial-table.pq-commercial-table tr > :first-child { padding-right: 12px !important; }
-  .pq-page.pq-page[dir='ltr'] .pq-card.pq-card table.pq-commercial-table.pq-commercial-table th.pq-th-total,
-  .pq-page.pq-page[dir='ltr'] .pq-card.pq-card table.pq-commercial-table.pq-commercial-table td.pq-td-total { text-align: right !important; padding-right: 12px !important; }
-  .pq-page.pq-page[dir='rtl'] .pq-card.pq-card table.pq-commercial-table.pq-commercial-table th.pq-th-total,
-  .pq-page.pq-page[dir='rtl'] .pq-card.pq-card table.pq-commercial-table.pq-commercial-table td.pq-td-total { text-align: left !important; padding-left: 12px !important; }
-}
-
 /* ---------- header band: output modes ----------
    SCREEN = the black band (above). NATIVE PRINT and the DIRECT PDF = the SAME band geometry, WHITE with dark text (Owner 2026-10-18 "זה חייב להראות בדיוק כמו המסך רק מבלי להדפיס את ההדר בשחור")
    - no ink-heavy fill; the metadata cells become light boxes; only a real expired state keeps its warning colour. */
@@ -1921,4 +1903,3 @@
 }
 /* 2026-11-12 (the demo): the full / summary switch first, the one-time explanation under it ("the button above") */
 .pq-group-controls > .pq-group-help { order: 2; }
-
