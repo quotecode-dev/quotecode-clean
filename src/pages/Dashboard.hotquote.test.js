@@ -50,7 +50,13 @@ describe('Hot quote banner (source-level regression guard)', () => {
   // Owner updates 2026-10-09 (all devices): no flame and no "hot quote" title; ONE illustrated eye at the inline-start edge, then
   // "{clientName} viewed this quote {viewCount} times and still hasn't signed." with the REAL client name (no generic "the client").
   it('keeps ONE eye icon only (no Flame, no title), first at inline-start, then the real client name and the exact HE/EN sentence', () => {
-    const block = quotesTabSource.slice(quotesTabSource.indexOf('className="quote-hot-banner"'), quotesTabSource.indexOf('data-testid="quote-list-header"'));
+    // Owner console 2026-11-19 (L-25 / L-26, typed: "מאשר שינוי ב-L-25 וב-L-26: בטלפון ובטאבלט לאורך, שם או משימה ארוכים בפס ההודעה החמה מסתיימים
+    // בשלוש נקודות, ונגיעה בשורה פותחת בועה עם כל השורה, ואת שאר התוכנית"): the sentence is defined once (hotLine) - the computer line and the
+    // phone tap bubble show the same words; the block is that definition + the banner itself
+    const sentence = quotesTabSource.slice(quotesTabSource.indexOf('const hotLine = hotLead ? ('), quotesTabSource.indexOf('const stepLine = '));
+    expect(quotesTabSource).toContain('<span className="quote-hot-banner-text">{hotLine}</span>');
+    const block = sentence + quotesTabSource.slice(quotesTabSource.indexOf('className="quote-hot-banner"'), quotesTabSource.indexOf('data-testid="quote-list-header"'));
+    expect(sentence.length).toBeGreaterThan(100);
     expect(block).not.toMatch(/Flame|quote-hot-banner-label/);
     expect(block).not.toMatch(/הצעה חמה|Hot quote|הלקוח צפה|The client viewed/i);
     // ONE icon: the original illustrated TEKANGO eye (Owner: no Lucide / generic / pixel icon) at a legible 24px

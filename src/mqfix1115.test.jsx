@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import QuoteForm from './components/QuoteForm';
-import SlideText from './components/SlideText';
+import EllipsisText from './components/EllipsisText';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const read = (rel) => fs.readFileSync(path.join(here, '..', rel), 'utf8');
@@ -82,28 +82,44 @@ describe('4 · typing on a phone: the bottom bar and the calculator step aside',
   });
 });
 
-describe('5 · a long sidebar name / e-mail slides (Owner 15/11 + the law 50 amendment)', () => {
-  it('a text longer than its box gets data-slide-text and a distance by the direction; a short text stays still', () => {
-    const sw = vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockImplementation(function () { return this.classList && this.classList.contains('pf-slide') ? 300 : 0; });
+// 5 replaced by the Owner (console 2026-11-19, typed: "מאשר שלוש נקודות עם ריחוף במחשב ובועה בנגיעה בנייד בכל המקומות כמו בתמונות, ... ושחרור עד
+// הלייב" + the law 50 change "שם או טקסט ארוך שמסתיים בשלוש נקודות ומוצג במלואו בריחוף או בלחיצה אינו נחשב מילה חתוכה"): nothing slides any more
+describe('5 · a long sidebar name / e-mail ends with "…" and shows whole in the bubble (Owner 19/11)', () => {
+  const fire = (el, type, pointerType) => { const ev = new Event(type, { bubbles: true, cancelable: true }); ev.pointerType = pointerType; el.dispatchEvent(ev); };
+  it('a shortened text: a tap opens the bubble with the whole text and does not reach the card under it; a mouse hover shows it (the browser tooltip is muted by the inner empty title)', () => {
+    const sw = vi.spyOn(HTMLElement.prototype, 'scrollWidth', 'get').mockImplementation(function () { return this.classList && this.classList.contains('box') ? 300 : 0; });
     const cw = vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function () { return this.classList && this.classList.contains('box') ? 160 : 0; });
-    render(<div dir="rtl"><SlideText className="box" dir="rtl">עסק עם שם ארוך מאוד מאוד</SlideText></div>);
-    const span = document.querySelector('.pf-slide');
-    expect(span.hasAttribute('data-slide-text')).toBe(true);
-    expect(span.className).toContain('pf-slide--on');
-    expect(span.style.getPropertyValue('--pf-slide-x')).toBe('140px');
-    cleanup();
-    render(<SlideText className="box" dir="ltr">A very long English business name</SlideText>);
-    expect(document.querySelector('.pf-slide').style.getPropertyValue('--pf-slide-x')).toBe('-140px');
+    const onCard = vi.fn();
+    render(<div dir="rtl" onClick={onCard}><EllipsisText className="box" dir="rtl" text="עסק עם שם ארוך מאוד מאוד" /></div>);
+    const box = document.querySelector('.box');
+    expect(box.getAttribute('data-full-text')).toBe('עסק עם שם ארוך מאוד מאוד');
+    expect(box.getAttribute('title')).toBe('עסק עם שם ארוך מאוד מאוד');
+    act(() => { fire(box, 'pointerdown', 'touch'); box.click(); });
+    expect(screen.getByRole('tooltip').textContent).toBe('עסק עם שם ארוך מאוד מאוד');
+    expect(onCard).not.toHaveBeenCalled();
+    act(() => { fire(box, 'pointerdown', 'touch'); box.click(); });
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    act(() => { fire(box, 'pointerover', 'mouse'); });
+    expect(screen.getByRole('tooltip').textContent).toBe('עסק עם שם ארוך מאוד מאוד');
+    expect(box.getAttribute('title')).toBe('עסק עם שם ארוך מאוד מאוד');
+    expect(box.firstElementChild.getAttribute('title')).toBe('');
+    act(() => { fire(box, 'pointerout', 'mouse'); });
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    expect(box.getAttribute('title')).toBe('עסק עם שם ארוך מאוד מאוד');
     cleanup(); sw.mockRestore(); cw.mockRestore();
-    render(<SlideText className="box">Short</SlideText>);
-    expect(document.querySelector('.pf-slide').hasAttribute('data-slide-text')).toBe(false);
+    // a text that fits: no bubble, the tap reaches the card as before
+    const onCard2 = vi.fn();
+    render(<div onClick={onCard2}><EllipsisText className="box" text="Short" /></div>);
+    act(() => { fire(document.querySelector('.box'), 'pointerdown', 'touch'); document.querySelector('.box').click(); });
+    expect(screen.queryByRole('tooltip')).toBeNull();
+    expect(onCard2).toHaveBeenCalledTimes(1);
   });
-  it('the sidebar card uses it for the name and the e-mail, without an ellipsis; reduced motion wraps instead', () => {
+  it('the sidebar card uses it for the name and the e-mail; no slide rule is left', () => {
     const d = read('src/pages/Dashboard.jsx');
-    expect(d).toContain('<SlideText className="dash-sidebar-user-bizname"');
-    expect(d).toContain('<SlideText className="dash-sidebar-user-name"');
-    expect(d).not.toMatch(/\.dash-sidebar-user-(bizname|name) \{[^}]*text-overflow: ellipsis/);
-    expect(d).toContain('@media (prefers-reduced-motion: reduce)');
+    expect(d).toContain('<EllipsisText as="div" className="dash-sidebar-user-bizname"');
+    expect(d).toContain('<EllipsisText as="div" className="dash-sidebar-user-name" text={session.user.email}>');
+    expect(d).not.toContain('SlideText');
+    expect(d).not.toMatch(/\.pf-slide/);
   });
 });
 

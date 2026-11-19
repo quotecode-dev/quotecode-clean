@@ -164,6 +164,15 @@ html {
   direction: ltr;
   unicode-bidi: isolate;
 }
+/* Owner console 2026-11-19 (EllipsisText): a long name stays on one line and ends with "…"; the whole text shows in the system's small dark
+   bubble (the feature-lock tooltip style) on hover (computer) / tap (touch screen) */
+.pf-ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.pf-ell-num { display: inline-block; }
+.pf-ell-bubble { z-index: 2147483000; max-width: min(320px, calc(100vw - 32px)); box-sizing: border-box; padding: 6px 12px; border-radius: 6px;
+  background: #1f1b2e; color: #fff; font: 500 0.75rem/1.35 'Rubik Variable', 'Rubik', sans-serif; box-shadow: 0 4px 14px -4px rgba(15, 23, 42, 0.35);
+  white-space: normal; overflow-wrap: anywhere; pointer-events: none; text-align: start; }
+/* the hot banner line in the bubble: one colour on the dark bubble (Owner console 2026-11-19, L-25 / L-26) */
+.pf-ell-bubble .quote-hot-banner-name { color: inherit; background: transparent; font-weight: 700; }
 .pf-money-slot {
   display: inline-block;
   box-sizing: border-box;

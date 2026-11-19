@@ -907,7 +907,8 @@ describe.each([
       expect(client.contains(trigger)).toBe(false);
       expect(client.querySelector('button, svg, .quote-modern-chevron')).toBeNull();
       // the client cell holds only the name: nothing before it can leave a gap
-      expect([...client.children].map((c) => c.className)).toEqual(['quote-modern-client-name']);
+      // (Owner console 2026-11-19: the name box is the shared "…" + bubble box - EllipsisText adds pf-ell)
+      expect([...client.children].map((c) => c.className)).toEqual(['pf-ell quote-modern-client-name']);
       const number = row.querySelector(':scope > .quote-modern-number');
       expect(number.contains(trigger)).toBe(false);
       // Owner console 2026-10-26 (the quote-list approval, L-07): the number's only child is the link that opens the quote

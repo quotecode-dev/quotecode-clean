@@ -30,7 +30,7 @@ import { isUnfinishedSavedQuote } from '../utils/quoteCompleteness';
 import { formatQuoteFallback } from '../utils/quoteNumber';
 import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
 import { createPerPageMemo, settlePerPage } from './quotesPerPage';
-import SlideText from './SlideText';
+import EllipsisText from './EllipsisText';
 
 // חוק ברזל (Client Type Badge, Item 26 - עודכן לעיצוב הסופי לפי סבב תיקון
 // חזותי מהבעלים): מקור-האמת היחיד עדיין clients.client_type ('business'/
@@ -315,15 +315,29 @@ export default function QuotesTab({
     const host = body && body.closest('.quote-modern-list');
     if (!host || typeof document === 'undefined' || typeof document.createRange !== 'function') return undefined;
     let live = true;
+    // Owner console 2026-11-19 (IRON-QH-LAYOUT-001 change, typed: "... והעמודות הקבועות צרות לפי התוכן שלהן"): the fixed-content columns -
+    // quote number, status, views, date - take the width of their widest painted content on the list, header label included (+ the
+    // cell's own inline padding and 4px); the freed width goes to client and quote title (--qm-cols, Dashboard.jsx)
+    const painted = (el, withPad) => {
+      const r = document.createRange(); r.selectNodeContents(el);
+      const w = r.getBoundingClientRect ? r.getBoundingClientRect().width : 0;
+      if (!Number.isFinite(w) || w <= 0) return 0;
+      if (!withPad) return w;
+      const cs = getComputedStyle(el);
+      return w + (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0) + (parseFloat(cs.borderLeftWidth) || 0) + (parseFloat(cs.borderRightWidth) || 0);
+    };
     const measure = () => {
       if (!live) return;
       let max = 0;
-      host.querySelectorAll('.quote-modern-amount').forEach((el) => {
-        const r = document.createRange(); r.selectNodeContents(el);
-        const w = r.getBoundingClientRect ? r.getBoundingClientRect().width : 0;
-        if (Number.isFinite(w) && w > max) max = w;
-      });
+      host.querySelectorAll('.quote-modern-amount').forEach((el) => { const w = painted(el, false); if (w > max) max = w; });
       if (max > 0) host.style.setProperty('--qm-amt-w', `${Math.ceil(max) + 8}px`);
+      const head = host.querySelector('.quote-modern-head-row');
+      const heads = head ? [...head.children] : [];
+      [['--qm-num-w', '.quote-modern-number', 0], ['--qm-st-w', '.quote-modern-status', 3], ['--qm-vw-w', '.quote-modern-views', 4], ['--qm-dt-w', '.quote-modern-date', 5]].forEach(([v, sel, col]) => {
+        let m = heads[col] ? painted(heads[col], true) : 0;
+        host.querySelectorAll(sel).forEach((el) => { const w = painted(el, true); if (w > m) m = w; });
+        if (m > 0) host.style.setProperty(v, `${Math.ceil(m) + 4}px`);
+      });
     };
     measure();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure).catch(() => {});
@@ -541,6 +555,33 @@ export default function QuotesTab({
   const hotLead = stepLead?.kind === 'hot' ? stepLead : null;
   const otherStep = stepLead && stepLead.kind !== 'hot' ? stepLead : null;
   const NS = NEXT_STEP_COPY[isHebrew ? 'he' : 'en'];
+  // the banner's whole line - the computer / tablet sentence, and the phone tap bubble (Owner console 2026-11-19, L-25 / L-26)
+  // R-28 (night task 2026-10-16): the name is isolated - an English name ending in "." never jumps to the other side
+  const hotLine = hotLead ? (
+    <>
+      <mark className="quote-hot-banner-name"><bdi>{quotePartyLabel(hotLead.quote).text}</bdi></mark>
+      {isHebrew ? ' צפה בהצעה ' : ' viewed this quote '}
+      <bdi className="pf-num" dir="ltr">{Number(hotLead.quote.view_count || 0)}</bdi>
+      {isHebrew ? ' פעמים ועדיין לא חתם.' : ' times and still hasn’t signed.'}
+    </>
+  ) : null;
+  const stepLine = !otherStep ? null : otherStep.kind === 'task' ? (
+    <>
+      <strong>{NS.taskLead}</strong>
+      <bdi>{otherStep.task.title}</bdi>
+      {otherStep.today && otherStep.task.due_time
+        ? <>{NS.taskDueToday}<bdi className="pf-num" dir="ltr">{String(otherStep.task.due_time).slice(0, 5)}</bdi>{NS.end}</>
+        : <>{NS.taskDueOn}<bdi className="pf-num" dir="ltr">{formatShortDate(otherStep.task.due_date, dateMarket)}</bdi>{NS.end}</>}
+    </>
+  ) : (
+    <>
+      {quotePartyLabel(otherStep.quote).kind === 'number'
+        ? <>{NS.expiringNumberLead}<bdi className="pf-num" dir="ltr">{quotePartyLabel(otherStep.quote).text}</bdi></>
+        : <>{NS.expiringLead}<mark className="quote-hot-banner-name"><bdi>{quotePartyLabel(otherStep.quote).text}</bdi></mark></>}
+      {otherStep.daysLeft === 0 ? NS.expiringToday : otherStep.daysLeft === 1 ? NS.expiringTomorrow
+        : <>{NS.expiringInPre}<bdi className="pf-num" dir="ltr">{otherStep.daysLeft}</bdi>{NS.expiringInPost}</>}
+    </>
+  );
   const openStepTask = (taskId) => { window.dispatchEvent(new CustomEvent(BELL_SUBJECT_EVENT, { detail: { kind: 'task', taskId } })); };
   // the pages (see the state above): the sorted list cut into pages
   const hasHotLead = !!stepLead;
@@ -976,17 +1017,15 @@ export default function QuotesTab({
           >
             <TekangoEyeIcon size={24} className="quote-hot-banner-eye" />
           </button>
-          <span className="quote-hot-banner-text">
-            {/* R-28 (night task 2026-10-16): the name is isolated - an English name ending in "." never jumps to the other side */}
-            <mark className="quote-hot-banner-name"><bdi>{quotePartyLabel(hotLead.quote).text}</bdi></mark>
-            {isHebrew ? ' צפה בהצעה ' : ' viewed this quote '}
-            <bdi className="pf-num" dir="ltr">{Number(hotLead.quote.view_count || 0)}</bdi>
-            {isHebrew ? ' פעמים ועדיין לא חתם.' : ' times and still hasn’t signed.'}
-          </span>
+          <span className="quote-hot-banner-text">{hotLine}</span>
           {/* Owner 2026-10-19 (L-25 / L-26, "תתקן גם את ההצעה החמה! כמו שאמרת"): the phone line - only a long name shortens, the view
               count always stays visible; the full sentence above is the computer / tablet line */}
+          {/* Owner console 2026-11-19 (L-25 / L-26, typed: "מאשר שינוי ב-L-25 וב-L-26: בטלפון ובטאבלט לאורך, שם או משימה ארוכים בפס ההודעה החמה
+              מסתיימים בשלוש נקודות, ונגיעה בשורה פותחת בועה עם כל השורה"): a shortened name - a tap on the line opens the bubble with the
+              whole line (the computer sentence); the banner does not rotate while it is open */}
           <span className="qhb-short" data-testid="next-step-short" aria-hidden="true">
-            <mark className="quote-hot-banner-name qhb-short-name"><bdi>{quotePartyLabel(hotLead.quote).text}</bdi></mark>
+            <EllipsisText as="mark" plain tapLine className="quote-hot-banner-name qhb-short-name" text={quotePartyLabel(hotLead.quote).text}
+              bubble={hotLine} onBubble={setHotPaused} />
             <span className="qhb-short-rest">{NS.shortViewed(Number(hotLead.quote.view_count || 0))}</span>
           </span>
           {/* PRODUCT_TRUTH_DECORATIVE: the same "Open & track" as the eye button above, as a visible text button (Owner 2026-10-19) */}
@@ -1004,15 +1043,9 @@ export default function QuotesTab({
               <button type="button" className="quote-hot-banner-action" onClick={() => openStepTask(otherStep.task.id)} title={NS.viewTask} aria-label={NS.viewTask}>
                 <ClipboardList size={20} strokeWidth={2} aria-hidden="true" />
               </button>
-              <span className="quote-hot-banner-text">
-                <strong>{NS.taskLead}</strong>
-                <bdi>{otherStep.task.title}</bdi>
-                {otherStep.today && otherStep.task.due_time
-                  ? <>{NS.taskDueToday}<bdi className="pf-num" dir="ltr">{String(otherStep.task.due_time).slice(0, 5)}</bdi>{NS.end}</>
-                  : <>{NS.taskDueOn}<bdi className="pf-num" dir="ltr">{formatShortDate(otherStep.task.due_date, dateMarket)}</bdi>{NS.end}</>}
-              </span>
+              <span className="quote-hot-banner-text">{stepLine}</span>
               <span className="qhb-short" data-testid="next-step-short" aria-hidden="true">
-                <bdi className="qhb-short-name">{otherStep.task.title}</bdi>
+                <EllipsisText as="bdi" plain tapLine className="qhb-short-name" text={otherStep.task.title} bubble={stepLine} onBubble={setHotPaused} />
                 <span className="qhb-short-rest">{NS.shortOverdue}</span>
               </span>
               {/* PRODUCT_TRUTH_DECORATIVE: the same task opening as the icon button above, as a visible text button */}
@@ -1026,17 +1059,12 @@ export default function QuotesTab({
               <button type="button" className="quote-hot-banner-action" onClick={() => openHotQuote(otherStep.quote.id)} title={NS.openTrack} aria-label={NS.openTrack}>
                 <Clock size={20} strokeWidth={2} aria-hidden="true" />
               </button>
-              <span className="quote-hot-banner-text">
-                {quotePartyLabel(otherStep.quote).kind === 'number'
-                  ? <>{NS.expiringNumberLead}<bdi className="pf-num" dir="ltr">{quotePartyLabel(otherStep.quote).text}</bdi></>
-                  : <>{NS.expiringLead}<mark className="quote-hot-banner-name"><bdi>{quotePartyLabel(otherStep.quote).text}</bdi></mark></>}
-                {otherStep.daysLeft === 0 ? NS.expiringToday : otherStep.daysLeft === 1 ? NS.expiringTomorrow
-                  : <>{NS.expiringInPre}<bdi className="pf-num" dir="ltr">{otherStep.daysLeft}</bdi>{NS.expiringInPost}</>}
-              </span>
+              <span className="quote-hot-banner-text">{stepLine}</span>
               <span className="qhb-short" data-testid="next-step-short" aria-hidden="true">
                 {quotePartyLabel(otherStep.quote).kind === 'number'
-                  ? <bdi className="pf-num qhb-short-name" dir="ltr">{quotePartyLabel(otherStep.quote).text}</bdi>
-                  : <mark className="quote-hot-banner-name qhb-short-name"><bdi>{quotePartyLabel(otherStep.quote).text}</bdi></mark>}
+                  ? <EllipsisText as="bdi" plain tapLine className="pf-num qhb-short-name" dir="ltr" text={quotePartyLabel(otherStep.quote).text} bubble={stepLine} onBubble={setHotPaused} />
+                  : <EllipsisText as="mark" plain tapLine className="quote-hot-banner-name qhb-short-name" text={quotePartyLabel(otherStep.quote).text}
+                    bubble={stepLine} onBubble={setHotPaused} />}
                 <span className="qhb-short-rest">{otherStep.daysLeft === 0 ? NS.shortExpiresToday : otherStep.daysLeft === 1 ? NS.shortExpiresTomorrow : NS.shortExpiresIn(otherStep.daysLeft)}</span>
               </span>
               {/* PRODUCT_TRUTH_DECORATIVE: the same tracking opening as the icon button above, as a visible text button */}
@@ -1310,10 +1338,10 @@ export default function QuotesTab({
                       aria-label={`${isHebrew ? 'פתיחת הצעה' : 'Open quote'} ${displayQuoteNumber(quote)}`} style={QUOTE_NUMBER_LINK}>{displayQuoteNumber(quote)}</button>
                   </span>
                   <span className="quote-modern-client">
-                    <SlideText as="span" className="quote-modern-client-name" title={clientName}>{clientName}</SlideText>
+                    <EllipsisText className="quote-modern-client-name" text={clientName} />
                   </span>
-                  {/* Owner console 17/11 typed (IRON-QH-LAYOUT-001 change): "שינוי בחוק הפריסה של רשימת ההצעות: שם הלקוח וכותרת ההצעה בטבלה במחשב זזים בסלייד במקום שלוש נקודות, ושחרור עד הלייב" */}
-                  <SlideText as="span" className="quote-modern-title" title={subject}>{subject}</SlideText>
+                  {/* Owner console 19/11 typed (IRON-QH-LAYOUT-001 change): "שינוי בחוק הפריסה של רשימת ההצעות: שם הלקוח וכותרת ההצעה בטבלה במחשב מסתיימים בשלוש נקודות ומוצגים במלואם בריחוף, והעמודות הקבועות צרות לפי התוכן שלהן" */}
+                  <EllipsisText className="quote-modern-title" text={subject} />
                   <span className="quote-modern-status" data-status={row.badge.role} data-tone={tone} title={statusLabel}>{statusLabel}</span>
                   <span className="quote-modern-views pf-num" dir="ltr" title={`${Number(quote.view_count || 0)} ${isHebrew ? 'צפיות' : 'views'}`}>
                     {Number(quote.view_count || 0)}
@@ -1696,17 +1724,15 @@ export default function QuotesTab({
                 <ChevronDown data-qh="action" size={19} strokeWidth={2.8} color="#0F6672" style={{ flexShrink: 0, marginTop: '1px', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
                 <div style={{ flex: '1 1 auto', minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                    {/* Owner console 2026-11-17 (L-19 change, typed: "מאשר שינוי ב-L-19: שם לקוח ארוך בכרטיס ההצעה בטלפון זז בסלייד במקום
-                        שלוש נקודות, ושחרור עד הלייב"): one line as before, a long name moves inside its box instead of an ellipsis */}
-                    <SlideText
-                      as="span"
+                    {/* Owner console 2026-11-19 (L-19 change, typed: "מאשר שלוש נקודות עם ריחוף במחשב ובועה בנגיעה בנייד בכל המקומות כמו
+                        בתמונות, ... כולל שינוי ב-L-17 ו-L-19"): one line as before, a long name ends with "…"; a tap on it shows the whole
+                        name in a small bubble without opening the card */}
+                    <EllipsisText
                       className="pf-font-variable"
-                      style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.8125rem', minWidth: 0, overflow: 'hidden', textOverflow: 'clip', whiteSpace: 'nowrap', flex: '1 1 auto' }}
-                      title={quote.clients?.company_name || 'N/A'}
+                      style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.8125rem', flex: '1 1 auto' }}
+                      text={quote.clients?.company_name || 'N/A'}
                       data-qh="client"
-                    >
-                      {quote.clients?.company_name || 'N/A'}
-                    </SlideText>
+                    />
                     {/* Iron Numeric Typography: the amount lives in the protected
                         physical-axis slot (.pf-money-slot: fixed inline size,
                         LTR, right-aligned) so ones/tens/decimal positions share

@@ -9,6 +9,7 @@ import { APP as NEON, appHeadingTextStyle as neonGlowTextStyle, APP_STATUS, APP_
 import { formatAddress } from '../utils/addressFormat';
 import { formatShortDate } from '../utils/shortDate';
 import LeadsView from './leads/LeadsView';
+import EllipsisText from './EllipsisText';
 import { useLeads } from './leads/useLeads';
 
 // חוק ברזל (Consolidated Open UI Corrections task, §Clients Visual
@@ -515,25 +516,23 @@ export default function ClientsTab({
                     <span style={{ width: '62px', flexShrink: 0, display: 'flex', alignItems: 'center' }}>
                       <ClientTypeTextBadge clientType={client.client_type} isHebrew={isHebrew} />
                     </span>
-                    <span
+                    {/* Owner console 2026-11-19 (L-17 change, typed: "מאשר שלוש נקודות עם ריחוף במחשב ובועה בנגיעה בנייד בכל המקומות כמו
+                        בתמונות, ... כולל שינוי ב-L-17 ו-L-19"): a long name / e-mail ends with "…" and shows whole in the bubble on hover */}
+                    <EllipsisText
                       className="pf-font-variable"
-                      style={{ flex: '1 1 220px', minWidth: 0, fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.86rem', lineHeight: 1.2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
-                      title={client.company_name}
-                    >
-                      {client.company_name}
-                    </span>
+                      style={{ flex: '1 1 220px', fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.86rem', lineHeight: 1.2 }}
+                      text={client.company_name}
+                    />
                     {/* חוק ברזל (§G3 - contact-method fallback): טלפון כשקיים,
                         אחרת אימייל, אף פעם לא שניהם ואף פעם לא עמודה ריקה
                         שמורה כששניהם חסרים. */}
-                    <span style={{ width: '140px', flexShrink: 0, fontSize: '0.78rem', lineHeight: 1.2, color: NEON.textSecondary, direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {client.phone || client.email || ''}
-                    </span>
+                    <EllipsisText style={{ width: '140px', flexShrink: 0, fontSize: '0.78rem', lineHeight: 1.2, color: NEON.textSecondary, direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }}
+                      text={client.phone || client.email || ''} />
                     <span style={{ width: '70px', flexShrink: 0, fontSize: '0.78rem', lineHeight: 1.2, color: NEON.textSecondary, textAlign: isHebrew ? 'right' : 'left' }}>
                       {quoteCount}
                     </span>
-                    <span style={{ width: '90px', flexShrink: 0, fontSize: '0.75rem', lineHeight: 1.2, color: NEON.textMuted, textAlign: isHebrew ? 'right' : 'left', direction: 'ltr', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {latestQuote ? formatShortDate(latestQuote.created_at, (isHebrew ? 'Local' : 'International')) : ''}
-                    </span>
+                    <EllipsisText style={{ width: '90px', flexShrink: 0, fontSize: '0.75rem', lineHeight: 1.2, color: NEON.textMuted, textAlign: isHebrew ? 'right' : 'left', direction: 'ltr' }}
+                      text={latestQuote ? formatShortDate(latestQuote.created_at, (isHebrew ? 'Local' : 'International')) : ''} />
                   </button>
                   {/* חוק ברזל (§Clients Visual Correction, real defect found
                       +fixed): הריפוד היה padding:'... 48px' עם left פיזי
@@ -588,13 +587,12 @@ export default function ClientsTab({
                           name as one balanced group, not after the name. */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '7px' }}>
                         <ClientTypeTextBadge clientType={client.client_type} isHebrew={isHebrew} />
-                        <span
+                        {/* Owner console 2026-11-19 (L-17 change): a tap on a shortened name shows it whole in the bubble without opening the card */}
+                        <EllipsisText
                           className="pf-font-variable"
-                          style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.88rem', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '1 1 auto' }}
-                          title={client.company_name}
-                        >
-                          {client.company_name}
-                        </span>
+                          style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.88rem', flex: '1 1 auto' }}
+                          text={client.company_name}
+                        />
                         <span style={{ fontWeight: '600', color: NEON.textSecondary, fontSize: '0.75rem', whiteSpace: 'nowrap', flexShrink: 0 }}>
                           {isHebrew ? `הצעות: ${quoteCount}` : `${quoteCount} quote${quoteCount === 1 ? '' : 's'}`}
                         </span>
@@ -602,9 +600,7 @@ export default function ClientsTab({
                       {(client.phone || client.email || latestQuote) && (
                         <div style={{ marginTop: '3px', display: 'flex', justifyContent: 'space-between', gap: '8px', fontSize: '0.75rem', color: NEON.textMuted }}>
                           {(client.phone || client.email) && (
-                            <span style={{ direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                              {client.phone || client.email}
-                            </span>
+                            <EllipsisText style={{ direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} text={client.phone || client.email} />
                           )}
                           {latestQuote && (
                             <span style={{ direction: 'ltr', whiteSpace: 'nowrap', flexShrink: 0 }}>

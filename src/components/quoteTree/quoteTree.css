@@ -160,6 +160,10 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
 /* eye review round 2 (2026-11-13) */
 /* a heading name in a button keeps its number with it ("+ הוספת כותרת בתוך דירה 32") */
 .qt-actions bdi { white-space: nowrap; }
+/* Owner console 2026-11-19 (answer א: "שם המקום בכפתור יורד לשורה נוספת ונראה במלואו, כמו כותרת המקום שמעליו"): in "+ add a heading inside"
+   a long place name wraps inside the button instead of running past the screen; its last word stays with the one before it ("דירה 32") */
+.qt-actions [data-testid="qt-add-inside"] { max-inline-size: 100%; min-inline-size: 0; }
+.qt-actions .qt-add-inside-name { white-space: normal; overflow-wrap: anywhere; }
 /* the add row stays one row in both languages where it fits */
 .qt-actions .sq-add-btn { padding: 0 12px; }
 /* the edit of a row: its own small buttons are full 44px targets too */
@@ -208,6 +212,8 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
 .qt-sr { position: absolute !important; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
 .qt-row-name { display: inline; padding: 0; border: 0; background: transparent; color: #0f172a; font: inherit; font-weight: 600; text-align: start; cursor: pointer; overflow-wrap: anywhere; }
 .qt-row-name:hover, .qt-row-name:focus-visible { color: #0F6672; text-decoration: underline; }
+/* Owner console 2026-11-19 (the approved bubble pictures): a touch screen keeps no hover look after a tap - the tapped name stays plain */
+@media (hover: none) { .qt-row-name:hover:not(:focus-visible) { color: #0f172a; text-decoration: none; } }
 .qt-head-name { display: block; border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; color: #0b3d44; font-size: 1rem; text-align: start; cursor: pointer; }
 .qt-head-name[aria-pressed="true"] { color: #0F6672; }
 .qt-head--sel { background: #dcefef; }
@@ -357,10 +363,9 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
 
 /* Owner console 2026-11-16 (typed release line, an approved difference from the demo's phone cards): a phone row is two lines -
    the item, its quantity and its price on one line; under them the total at the end side (left in Hebrew, right in English) and the
-   actions button on the same line at the start side. A long item name stays on one line and slides inside its place (the 15/11 slide
-   rule); wider screens keep their layout, and there the name box never slides (it wraps as before). */
+   actions button on the same line at the start side. A long item name stays on one line and ends with "…" (Owner console 2026-11-19:
+   a tap shows it whole in the bubble - EllipsisText); wider screens keep their layout, and there the name wraps as before. */
 .qt-row-name-box { display: block; }
-.qt-row-name-box > .pf-slide { white-space: normal; display: inline; }
 @media (max-width: 480px) {
   .qt-rows tr.qt-row { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "desc qty price" "act sum sum"; align-items: center; gap: 2px 10px; }
   .qt-rows tr.qt-row > td.qt-desc { grid-area: desc; min-width: 0; }
@@ -372,13 +377,5 @@ html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden]
   .qt-rows tr.qt-row > td.qt-act .qt-menu { inset-inline-end: auto; inset-inline-start: 0; }
   .qt-rows tr.qt-row > td[data-label]::before { content: none; }
   .qt-rows tr.qt-row .qt-row-name { display: block; inline-size: 100%; min-width: 0; }
-  .qt-rows tr.qt-row .qt-row-name-box { overflow: hidden; white-space: nowrap; }
-  .qt-rows tr.qt-row .qt-row-name-box > .pf-slide { white-space: nowrap; display: inline-block; }
-  /* the slide itself (its motion lives with the sidebar's styles, which a phone does not show): back and forth, a pause at each end */
-  .qt-rows tr.qt-row .qt-row-name-box > .pf-slide--on { animation: qt-row-slide 8s ease-in-out infinite alternate; will-change: transform; }
-}
-@keyframes qt-row-slide { 0%, 18% { transform: translateX(0); } 82%, 100% { transform: translateX(var(--pf-slide-x, 0px)); } }
-/* reduced motion: nothing slides - the long name wraps inside its place instead (never cut) */
-@media (max-width: 480px) and (prefers-reduced-motion: reduce) {
-  .qt-rows tr.qt-row .qt-row-name-box, .qt-rows tr.qt-row .qt-row-name-box > .pf-slide { white-space: normal; overflow-wrap: anywhere; display: block; animation: none; }
+  .qt-rows tr.qt-row .qt-row-name-box { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
 }

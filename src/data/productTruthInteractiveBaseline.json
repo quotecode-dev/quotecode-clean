@@ -239,6 +239,10 @@
     "interactive": 3,
     "markers": 3
   },
+  "src/components/EllipsisText.jsx": {
+    "interactive": 0,
+    "markers": 1
+  },
   "src/components/EmailConfirmModal.jsx": {
     "interactive": 2,
     "markers": 2
@@ -410,10 +414,6 @@
   "src/components/SignOutModal.jsx": {
     "interactive": 2,
     "markers": 2
-  },
-  "src/components/SlideText.jsx": {
-    "interactive": 0,
-    "markers": 0
   },
   "src/components/SmartPackAddOnOffer.jsx": {
     "interactive": 2,
