@@ -1,0 +1,118 @@
+/* Leads stage 1 (Owner console 2026-11-18; the approved demo of 18/11, C:/tekango-ops/crm-demo/TEKANGO-demo-leads-2026-11-18.html): the
+   Clients | Leads tabs, the leads list (table on a computer, cards on a phone), the lead details, the contact log and the "new lead"
+   window - the demo's own measures and colours, scoped under .ld-* so nothing else in the app changes. Logical properties only (HE / EN
+   mirror). */
+.ld-scope { --ld-teal: #0f6672; --ld-teal-soft: #dceaeb; --ld-ink: #172129; --ld-muted: #5d6b70; --ld-faint: #8a979b; --ld-line: #e1e6e7;
+  --ld-headline: #d9e0e3; --ld-work: #f7f9fc; --ld-chip: #f3f5f4; --ld-amber: #b7791f; --ld-amber-soft: #fdf3e1; --ld-red: #b4232f;
+  --ld-green: #1f7a4d; --ld-green-soft: #e3f4ea; --ld-blue: #2457a6; --ld-blue-soft: #e6eefb; color: var(--ld-ink); }
+:where(.ld-scope) button { font: inherit; cursor: pointer; color: inherit; }
+:where(.ld-scope) :is(input, select, textarea) { font: inherit; color: var(--ld-ink); box-sizing: border-box; }
+.ld-nm { font-weight: 700; display: block; }
+
+.ld-titlerow { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.ld-titlerow h2 { margin: 0; font-size: 1.1rem; font-weight: 800; display: flex; align-items: center; gap: 8px; }
+.ld-titlerow .ld-count { font-size: .78rem; font-weight: 600; color: var(--ld-muted); }
+.ld-btnp { display: inline-flex; align-items: center; gap: 6px; background: var(--ld-teal); color: #fff !important; border: 0; border-radius: 8px; padding: 9px 14px; min-height: 40px; font-weight: 700; font-size: .82rem; }
+.ld-btns { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: var(--ld-ink); border: 1px solid var(--ld-headline); border-radius: 8px; padding: 8px 12px; min-height: 40px; font-weight: 600; font-size: .82rem; }
+.ld-btnl { background: none; border: 0; color: var(--ld-teal) !important; font-weight: 700; padding: 6px 4px; min-height: 40px; font-size: .82rem; }
+.ld-btnp:focus-visible, .ld-btns:focus-visible, .ld-btnl:focus-visible, .ld-tabs button:focus-visible, .ld-filters button:focus-visible, .ld-types button:focus-visible, .ld-card:focus-visible, .ld-tbl tr.ld-row:focus-visible { outline: 2px solid #efb75d; outline-offset: 2px; }
+
+.ld-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--ld-line); margin-bottom: 14px; }
+.ld-tabs button { background: none; border: 0; border-bottom: 3px solid transparent; padding: 8px 14px; min-height: 44px; font-weight: 700; color: var(--ld-muted); font-size: .92rem; display: flex; align-items: center; gap: 6px; }
+.ld-tabs button.on { color: var(--ld-ink); border-bottom-color: var(--ld-teal); }
+.ld-tabs .ld-n { background: var(--ld-chip); border-radius: 999px; padding: 0 8px; font-size: .75rem; color: var(--ld-muted); font-weight: 700; }
+.ld-tabs button.on .ld-n { background: var(--ld-teal-soft); color: var(--ld-teal); }
+
+.ld-search { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; }
+.ld-search .ld-in { position: relative; flex: 1 1 260px; min-width: 0; }
+.ld-search input { width: 100%; min-height: 44px; border: 1px solid var(--ld-headline); border-radius: 8px; padding-block: 8px; padding-inline: 32px 12px; font-size: .85rem; background: #fff; }
+.ld-search .ld-in svg { position: absolute; top: 50%; transform: translateY(-50%); inset-inline-start: 10px; color: var(--ld-faint); }
+.ld-search select { min-height: 44px; border: 1px solid var(--ld-headline); border-radius: 8px; padding: 0 10px; background: #fff; font-size: .85rem; }
+.ld-filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+.ld-filters button { border: 1px solid var(--ld-headline); background: #fff; border-radius: 999px; padding: 4px 12px; min-height: 40px; font-size: .8rem; font-weight: 600; color: var(--ld-muted); }
+.ld-filters button.on { background: var(--ld-teal); border-color: var(--ld-teal); color: #fff; }
+
+.ld-tbl { width: 100%; border-collapse: collapse; font-size: .85rem; table-layout: fixed; }
+.ld-tbl th:nth-child(1) { width: 25%; } .ld-tbl th:nth-child(2) { width: 18%; } .ld-tbl th:nth-child(3) { width: 21%; } .ld-tbl th:nth-child(4) { width: 17%; } .ld-tbl th:nth-child(5) { width: 19%; white-space: normal; }
+.ld-tbl th { font-size: .75rem; color: var(--ld-muted); font-weight: 700; text-align: start; padding: 8px 10px; border-bottom: 2px solid var(--ld-headline); white-space: nowrap; text-transform: uppercase; letter-spacing: .05em; }
+.ld-tbl td { padding: 10px; border-bottom: 1px solid var(--ld-line); vertical-align: middle; text-align: start; overflow: hidden; }
+.ld-tbl tr.ld-row { cursor: pointer; }
+.ld-tbl tr.ld-row:hover td { background: #fafcfc; }
+.ld-tbl .ld-due { white-space: normal; }
+.ld-sub { display: block; color: var(--ld-muted); font-size: .76rem; }
+.ld-chip { display: inline-flex; align-items: center; gap: 4px; border-radius: 999px; padding: 1px 9px; font-size: .74rem; font-weight: 700; white-space: nowrap; }
+.ld-st-new { background: var(--ld-blue-soft); color: var(--ld-blue); }
+.ld-st-prog { background: var(--ld-amber-soft); color: var(--ld-amber); }
+.ld-st-sent { background: var(--ld-teal-soft); color: var(--ld-teal); }
+.ld-st-signed { background: var(--ld-green-soft); color: var(--ld-green); }
+.ld-st-off { background: var(--ld-chip); color: var(--ld-muted); }
+.ld-due { font-size: .8rem; white-space: nowrap; }
+.ld-due.late { color: var(--ld-red); font-weight: 700; }
+.ld-due.none { color: var(--ld-faint); }
+.ld-cards { display: none; flex-direction: column; gap: 8px; }
+.ld-card { border: 1px solid var(--ld-line); border-radius: 10px; padding: 10px 12px; background: #fff; display: flex; flex-direction: column; gap: 4px; text-align: start; width: 100%; box-sizing: border-box; }
+.ld-card .ld-top { display: flex; justify-content: space-between; gap: 8px; align-items: center; }
+.ld-card .ld-top .ld-slide { flex: 1 1 auto; }
+.ld-card .ld-bot { display: flex; justify-content: space-between; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ld-slide { overflow: hidden; white-space: nowrap; min-width: 0; display: block; }
+.ld-slide.ld-inl { display: inline-block; max-width: 100%; vertical-align: bottom; }
+/* the details view on a phone: one scroll body with no top gap (the demo's back pill sits right under the app's own pill) */
+.pf-screen > .pf-screen-body.ld-flush { padding-top: 0; }
+.ld-slide > .pf-slide { display: inline-block; white-space: nowrap; }
+.ld-slide > .pf-slide--on { animation: ld-slide-move 7s ease-in-out infinite alternate; will-change: transform; }
+@keyframes ld-slide-move { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--pf-slide-x, 0px)); } }
+@media (prefers-reduced-motion: reduce) { .ld-slide > .pf-slide--on { animation: none; } .ld-slide, .ld-slide > .pf-slide { white-space: normal; } }
+.ld-hint { color: var(--ld-muted); font-size: .78rem; margin: 6px 0 0; }
+.ld-err { color: var(--ld-red); font-size: .8rem; font-weight: 600; margin: 0; }
+
+.ld-back { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--ld-headline); background: #fff; border-radius: 999px; padding: 6px 14px; min-height: 40px; font-weight: 700; font-size: .82rem; margin-bottom: 12px; }
+[dir='ltr'] .ld-back-ic { transform: scaleX(-1); }
+.ld-dgrid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: 14px; margin-bottom: 16px; }
+.ld-box { border: 1px solid var(--ld-line); border-radius: 10px; padding: 14px; min-width: 0; background: #fff; }
+.ld-box h3 { margin: 0 0 8px; font-size: .95rem; font-weight: 700; display: flex; align-items: center; gap: 8px; justify-content: space-between; flex-wrap: wrap; }
+.ld-who { font-size: 1.15rem; font-weight: 800; margin: 0 0 4px; }
+.ld-kv { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; font-size: .85rem; margin: 0; }
+.ld-kv dt { color: var(--ld-muted); }
+.ld-kv dd { margin: 0; min-width: 0; }
+.ld-kv a { color: var(--ld-teal); font-weight: 600; text-decoration: none; }
+.ld-need { background: var(--ld-work); border-radius: 8px; padding: 8px 10px; margin: 8px 0 0; font-size: .88rem; }
+.ld-fu { display: flex; flex-direction: column; gap: 8px; }
+.ld-fu .ld-when { font-weight: 800; font-size: 1rem; }
+.ld-fu .ld-when.late { color: var(--ld-red); }
+.ld-row2 { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ld-statussel { min-height: 40px; border: 1px solid var(--ld-headline); border-radius: 8px; padding: 0 8px; background: #fff; font-weight: 600; }
+.ld-inline-form { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ld-inline-form input { min-height: 40px; border: 1px solid var(--ld-headline); border-radius: 8px; padding: 0 10px; width: 9.5em; background: #fff; }
+.ld-inline-form input.ld-time { width: 6em; }
+
+.ld-tl { list-style: none; margin: 0; padding: 0; }
+.ld-tl li { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--ld-line); }
+.ld-tl li:last-child { border-bottom: 0; }
+.ld-tl .ld-ic { width: 28px; height: 28px; border-radius: 50%; display: grid; place-items: center; background: var(--ld-chip); color: var(--ld-ink); }
+.ld-tl .ld-meta { color: var(--ld-muted); font-size: .76rem; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.ld-tl .ld-meta b { color: var(--ld-ink); }
+.ld-tl .ld-txt { font-size: .88rem; margin-top: 2px; overflow-wrap: anywhere; }
+.ld-tl .ld-auto { font-size: .72rem; color: var(--ld-faint); }
+.ld-composer { border: 1px dashed var(--ld-headline); border-radius: 10px; padding: 10px; margin-bottom: 10px; display: flex; flex-direction: column; gap: 8px; }
+.ld-types { display: flex; gap: 6px; flex-wrap: wrap; }
+.ld-types button { border: 1px solid var(--ld-headline); background: #fff; border-radius: 999px; padding: 4px 12px; min-height: 40px; font-size: .8rem; font-weight: 600; display: inline-flex; align-items: center; gap: 4px; }
+.ld-types button.on { background: var(--ld-ink); border-color: var(--ld-ink); color: #fff; }
+.ld-composer textarea { width: 100%; min-height: 64px; border: 1px solid var(--ld-headline); border-radius: 8px; padding: 8px 10px; resize: vertical; background: #fff; }
+.ld-composer .ld-r { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-wrap: wrap; }
+
+.ld-overlay { position: fixed; inset: 0; background: rgba(23, 33, 41, .45); display: flex; align-items: center; justify-content: center; padding: 16px; z-index: 1000; }
+.ld-dlg { background: #fff; border-radius: 12px; width: min(520px, 100%); max-height: calc(100dvh - 32px); overflow: auto; box-shadow: 0 20px 40px rgba(0, 0, 0, .2); padding: 18px; display: flex; flex-direction: column; gap: 10px; box-sizing: border-box; }
+.ld-dlg h3 { margin: 0; font-size: 1.05rem; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+.ld-dlg label { display: flex; flex-direction: column; gap: 4px; font-size: .82rem; font-weight: 600; color: var(--ld-muted); }
+.ld-dlg input, .ld-dlg select { min-height: 44px; border: 1px solid var(--ld-headline); border-radius: 8px; padding: 8px 10px; color: var(--ld-ink); font-weight: 400; background: #fff; }
+.ld-dlg .ld-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ld-dlg .ld-acts { display: flex; gap: 8px; justify-content: flex-end; margin-top: 6px; }
+.ld-toast { position: fixed; inset-inline: 0; bottom: 84px; margin-inline: auto; width: max-content; max-width: calc(100% - 32px); background: var(--ld-ink); color: #fff; border-radius: 8px; padding: 10px 16px; font-size: .85rem; font-weight: 600; z-index: 1001; }
+
+@media (max-width: 1023px) { .ld-dgrid { grid-template-columns: 1fr; } }
+@media (max-width: 768px) { .ld-tbl { display: none; } .ld-cards { display: flex; } }
+@media (max-width: 480px) { .ld-dlg .ld-two { grid-template-columns: 1fr; } .ld-titlerow .ld-btnp { padding: 9px 11px; } }
+/* phone list: the static block's last row gives no bottom margin - the scroll body's own 12px top padding is the one gap (the demo's 12px) */
+.pf-screen > .ld-scope:has(+ .pf-screen-body) .ld-filters { margin-bottom: 0; }
+/* phone: the app's work area is 16px wider than the demo's; the entry-type row keeps the demo's width, so it wraps the same in both languages */
+@media (max-width: 480px) { .ld-types { max-width: calc(100% - 16px); } }

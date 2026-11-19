@@ -795,6 +795,12 @@
       "mode": "transaction",
       "replay": "required",
       "basis": "header: 'tekango-migration-contract: mode=transaction replay=required' (ADD COLUMN IF NOT EXISTS / named constraints added when missing / CREATE OR REPLACE / DROP TRIGGER IF EXISTS)"
+    },
+    "20261118100000_leads_stage1.sql": {
+      "sha256": "6d5c7ca1676cdfe0a549edc060d8b86f4f3dd1ca07b9663c4f72e2e9da7633ed",
+      "mode": "transaction",
+      "replay": "required",
+      "basis": "header: 'tekango-migration-contract: mode=transaction replay=required' (CREATE TABLE IF NOT EXISTS / CREATE INDEX IF NOT EXISTS / CREATE OR REPLACE / DROP TRIGGER IF EXISTS / DROP POLICY IF EXISTS)"
     }
   }
 }
