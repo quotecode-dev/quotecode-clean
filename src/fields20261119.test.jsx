@@ -91,3 +91,21 @@ describe('a long e-mail in the bubble never breaks inside a word', () => {
     expect(read('components/EllipsisText.jsx')).toContain("{bubbleContent ?? breakable(full)}");
   });
 });
+
+// the agent review of 19/11: the "choose an existing client" drop-down cut a long chosen name without "…"
+describe('a drop-down with a long chosen option', () => {
+  it('ends it with "…" before the arrow and shows the whole option on hover', () => {
+    expect(read('index.css')).toContain('select { text-overflow: ellipsis; }');
+    document.body.innerHTML = '<select><option value="a">The Rodriguez-Whitfield Family, 14 Herzl Street</option></select>';
+    const el = document.body.querySelector('select');
+    Object.defineProperty(el, 'clientWidth', { get: () => W });
+    expect(fieldHiddenText(el, window, measure)).toBe('The Rodriguez-Whitfield Family, 14 Herzl Street');
+    const off = installFieldBubble(document.body, window, measure);
+    over(el);
+    expect(document.querySelector('[data-testid="field-bubble"]').textContent).toBe('The Rodriguez-Whitfield Family, 14 Herzl Street');
+    off();
+    document.body.innerHTML = '<select><option>Short</option></select>';
+    const s2 = document.body.querySelector('select'); Object.defineProperty(s2, 'clientWidth', { get: () => W });
+    expect(fieldHiddenText(s2, window, measure)).toBeNull();
+  });
+});

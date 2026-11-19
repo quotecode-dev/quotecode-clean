@@ -24,13 +24,17 @@ export function textWidth(text, cs, doc) {
   } catch { return 0; }
 }
 
-/** the whole text a field hides - its value, else its sample text - or null when it fits (or the field is not a text field) */
+/** the whole text a field hides - its value, else its sample text; for a drop-down its chosen option - or null when it fits (or it is not a text field) */
 export function fieldHiddenText(el, win, measure = textWidth) {
-  if (!el || el.tagName !== 'INPUT' || !TYPES.has(String(el.getAttribute('type') || '').toLowerCase())) return null;
-  const text = String(el.value || el.placeholder || '');
+  if (!el) return null;
+  const select = el.tagName === 'SELECT';
+  if (!select && (el.tagName !== 'INPUT' || !TYPES.has(String(el.getAttribute('type') || '').toLowerCase()))) return null;
+  const text = select ? String((el.options && el.options[el.selectedIndex] && el.options[el.selectedIndex].text) || '').trim() : String(el.value || el.placeholder || '');
   if (!text) return null;
   const cs = win.getComputedStyle(el);
-  const avail = el.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0);
+  // (a native drop-down draws its arrow inside the box, outside the padding: about 20px)
+  const arrow = select && cs.appearance !== 'none' && cs.webkitAppearance !== 'none' ? 20 : 0;
+  const avail = el.clientWidth - (parseFloat(cs.paddingLeft) || 0) - (parseFloat(cs.paddingRight) || 0) - arrow;
   return avail > 0 && measure(text, cs, el.ownerDocument) > avail + 1 ? text : null;
 }
 
@@ -60,7 +64,7 @@ export function installFieldBubble(root, win = typeof window !== 'undefined' ? w
     const got = tip.getBoundingClientRect().left;
     if (Math.abs(got - want) > 0.5) tip.style.left = `${want + (want - got)}px`;
   };
-  const onOver = (e) => { if (e.pointerType && e.pointerType !== 'mouse') return; const el = e.target; if (el && el.tagName === 'INPUT') show(el); };
+  const onOver = (e) => { if (e.pointerType && e.pointerType !== 'mouse') return; const el = e.target; if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) show(el); };
   const onOut = (e) => { if (owner && e.target === owner) hide(); };
   const onKey = (e) => { if (e.key === 'Escape') hide(); };
   root.addEventListener('pointerover', onOver); root.addEventListener('pointerout', onOut);
