@@ -6,6 +6,11 @@
 const TYPES = new Set(['', 'text', 'search', 'email', 'tel', 'url']);
 
 let canvas = null;
+/** the text with a possible line break after . @ - _ / (an e-mail or an address never breaks inside a word) */
+export function appendBreakable(node, text, doc) {
+  for (const part of String(text).split(/(?<=[.@_/-])/)) { node.appendChild(doc.createTextNode(part)); node.appendChild(doc.createElement('wbr')); }
+}
+
 /** the drawn width of `text` in the field's own font */
 export function textWidth(text, cs, doc) {
   try {
@@ -43,7 +48,7 @@ export function installFieldBubble(root, win = typeof window !== 'undefined' ? w
     const r = el.getBoundingClientRect(); const cs = win.getComputedStyle(el); const rtl = cs.direction === 'rtl';
     tip = doc.createElement('div');
     tip.className = 'pf-ell-bubble'; tip.setAttribute('role', 'tooltip'); tip.setAttribute('data-testid', 'field-bubble'); tip.setAttribute('dir', rtl ? 'rtl' : 'ltr');
-    tip.textContent = text;
+    appendBreakable(tip, text, doc);
     const below = r.bottom + 6; const above = below + 40 > win.innerHeight;
     Object.assign(tip.style, { position: 'fixed', top: `${above ? r.top - 6 : below}px`, left: '8px', transform: above ? 'translateY(-100%)' : '' });
     doc.body.appendChild(tip);

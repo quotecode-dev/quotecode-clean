@@ -15,6 +15,11 @@ import { createPortal } from 'react-dom';
 // A number never shows in part: in a right-to-left line the "…" cuts from the left, so "הרצל 120" would read "הרצל 0…". Each number run is one
 // unbreakable inline box (.pf-ell-num) - it shows whole or is hidden behind the "…". The text itself (textContent) does not change.
 const NUM_RUN = /(\d[\d.,:/-]*\d|\d)/;
+// the bubble text with a possible line break after . @ - _ / (a long e-mail never breaks inside a word)
+function breakable(value) {
+  return String(value ?? '').split(/(?<=[.@_/-])/).map((p, i) => <span key={i}>{p}<wbr /></span>);
+}
+
 function ellipsisNumbers(value) {
   const parts = String(value ?? '').split(NUM_RUN);
   return parts.length === 1 ? parts[0] : parts.map((p, i) => (i % 2 === 1 ? <span key={i} className="pf-ell-num">{p}</span> : p));
@@ -106,7 +111,7 @@ export default function EllipsisText({ text, children, as: Box = 'span', classNa
       {bubble && typeof document !== 'undefined' && createPortal(
         <div ref={tip} id={tipId} role="tooltip" className="pf-ell-bubble" dir={bubble.rtl ? 'rtl' : 'ltr'} data-testid="ellipsis-bubble"
           style={{ position: 'fixed', top: bubble.top, left: 8, transform: bubble.above ? 'translateY(-100%)' : undefined }}>
-          {bubbleContent ?? full}
+          {bubbleContent ?? breakable(full)}
         </div>,
         document.body,
       )}

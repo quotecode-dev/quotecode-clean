@@ -44,7 +44,7 @@ describe('one shared "…" + bubble in every place that used to move (19/11)', (
     const css = read('index.css');
     expect(css).toMatch(/\.pf-ell-bubble \{[^}]*background: #1f1b2e; color: #fff;/);
     expect(css).toMatch(/\.pf-ell-bubble \{[^}]*border-radius: 6px;/);
-    expect(css).toMatch(/\.pf-ell-bubble \{[^}]*max-width: min\(320px, calc\(100vw - 32px\)\);/);
+    expect(css).toMatch(/\.pf-ell-bubble \{[^}]*max-width: min\(480px, calc\(100vw - 32px\)\);/); // widened 19/11 (fields1119: a long e-mail never breaks inside a word)
   });
 });
 

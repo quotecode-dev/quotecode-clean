@@ -73,3 +73,21 @@ describe('the hover bubble', () => {
     off();
   });
 });
+
+// the agent review of 19/11: a long e-mail in the bubble broke inside a word ("…gmail.co" / "m") - wider room, breaks only after . @ - _ /
+describe('a long e-mail in the bubble never breaks inside a word', () => {
+  it('the bubble has wider room and offers a break only after . @ - _ /', () => {
+    const css = read('index.css');
+    expect(css).toContain('.pf-ell-bubble { z-index: 2147483000; max-width: min(480px, calc(100vw - 32px));');
+    expect(css).toContain('white-space: normal; overflow-wrap: break-word; pointer-events: none; text-align: start; }');
+    const el = field('<input type="email" value="rodriguez.whitfield@gmail.com" />');
+    const off = installFieldBubble(document.body, window, measure);
+    over(el);
+    const tip = document.querySelector('[data-testid="field-bubble"]');
+    expect(tip.textContent).toBe('rodriguez.whitfield@gmail.com');
+    expect([...tip.childNodes].filter((n) => n.nodeType === 3).map((n) => n.textContent)).toEqual(['rodriguez.', 'whitfield@', 'gmail.', 'com']);
+    expect(tip.querySelectorAll('wbr').length).toBe(4);
+    off();
+    expect(read('components/EllipsisText.jsx')).toContain("{bubbleContent ?? breakable(full)}");
+  });
+});
