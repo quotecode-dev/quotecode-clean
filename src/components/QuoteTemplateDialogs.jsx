@@ -10,7 +10,7 @@ import { DEFAULT_TEMPLATE_KEEP, TEMPLATE_NAME_MAX, buildTemplateContent, templat
 import { createTemplate, deleteTemplate, listTemplates, updateTemplate } from '../utils/quoteTemplatesClient';
 import { getProfessionalUnitLabel } from '../utils/professionalQuoteItem';
 import { askConfirm } from './AppDialog';
-import SlideText from './SlideText';
+import EllipsisText from './EllipsisText';
 
 const COPY = {
   he: {
@@ -198,13 +198,8 @@ function TemplateEditor({ C, isHebrew, draft, setDraft, onSave, onCancel }) {
   const saving = draft.phase === 'saving';
   return (
     <form ref={rootRef} onSubmit={(e) => { e.preventDefault(); onSave(); }} data-testid="template-editor">
-      {/* a long place name slides inside its line (Owner 16/11: "למלל ארוך יש סלייד"). Its own rules: the app's shared .pf-slide rule lives
-          in the side menu, which a phone does not render (a local check at 390 found the name cut) */}
-      <style>{'.tk-tpl-group-name{display:block;overflow:hidden;white-space:nowrap}'
-        + '.tk-tpl-group-name>.pf-slide{display:inline-block;white-space:nowrap}'
-        + '.tk-tpl-group-name>.pf-slide--on{animation:tk-tpl-slide 8s ease-in-out infinite alternate;will-change:transform}'
-        + '@keyframes tk-tpl-slide{0%,18%{transform:translateX(0)}82%,100%{transform:translateX(var(--pf-slide-x,0px))}}'
-        + '@media (prefers-reduced-motion:reduce){.tk-tpl-group-name{white-space:normal}.tk-tpl-group-name>.pf-slide{animation:none;white-space:normal;display:inline;overflow-wrap:anywhere}}'}</style>
+      {/* Owner console 2026-11-19: a long place name ends with "…" and shows whole in the bubble on hover / tap (EllipsisText + .pf-ell) */}
+      <style>{'.tk-tpl-group-name{display:block}'}</style>
       <label htmlFor="template-edit-name" style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>{C.name}</label>
       <input id="template-edit-name" data-testid="template-edit-name" value={draft.name} maxLength={TEMPLATE_NAME_MAX} onChange={(e) => edit({ name: e.target.value })} style={fieldStyle} />
       {groups.map((g) => {
@@ -212,7 +207,7 @@ function TemplateEditor({ C, isHebrew, draft, setDraft, onSave, onCancel }) {
         return (
           <section key={g.key || '_whole'} data-testid="template-edit-group" style={{ marginTop: 14, paddingInlineStart: g.depth * 14 }}>
             <h3 style={{ margin: '0 0 6px', fontSize: '0.92rem', color: '#0F6672', minWidth: 0 }}>
-              <SlideText as="span" className="tk-tpl-group-name" title={g.name || C.wholeTemplate}>{g.name || C.wholeTemplate}</SlideText>
+              <EllipsisText className="tk-tpl-group-name" text={g.name || C.wholeTemplate} />
             </h3>
             {rows.map((r) => (
               <div key={r.uid} data-testid="template-edit-row" style={{ border: '1px solid #e2e8f0', borderRadius: 10, padding: 10, marginBottom: 8, background: '#f8fafc' }}>

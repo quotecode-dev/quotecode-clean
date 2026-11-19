@@ -3,7 +3,7 @@
 // ==============================================================================
 
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
-import SlideText from '../components/SlideText';
+import EllipsisText from '../components/EllipsisText';
 import { useSearchParams } from 'react-router-dom';
 import { supabase, rootRecoveryIntent, consumeRootRecoveryIntent, consumeRootSignupIntent, isLocalTestMode } from '../shared/supabase';
 import ProFlowLogo from '../components/ProFlowLogo';
@@ -7513,14 +7513,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             white-space: nowrap;
             text-align: start;
           }
-          /* 2026-11-15 (Owner: a long name slides): back and forth inside the card, a pause at each end */
-          .pf-slide { display: inline-block; white-space: nowrap; }
-          .pf-slide--on { animation: pf-slide-move 8s ease-in-out infinite alternate; will-change: transform; }
-          @keyframes pf-slide-move { 0%, 18% { transform: translateX(0); } 82%, 100% { transform: translateX(var(--pf-slide-x, 0px)); } }
-          @media (prefers-reduced-motion: reduce) {
-            .dash-sidebar-user-bizname, .dash-sidebar-user-name { white-space: normal; overflow-wrap: anywhere; }
-            .pf-slide, .pf-slide--on { animation: none; white-space: normal; display: inline; }
-          }
+          /* Owner console 2026-11-19: a long business name / e-mail ends with "…" and shows whole in the bubble on hover (EllipsisText) */
 
           .dash-main-content {
             padding: 0 22px 40px !important;
@@ -7827,7 +7820,11 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             /* ONE eight-track grid shared by the header row and every quote row (Owner R3): quote number, client, quote title,
                status, views, date, amount, action. Protected numeric/action tracks carry a px floor; client/title ellipsize. */
             /* Owner 2026-11-11 (finding 24, typed L-07 / L-29): the date track holds its painted words ("Yesterday, 23:59") - floor 64px -> 100px */
-            --qm-cols: minmax(84px, 72fr) minmax(0, 118fr) minmax(0, 104fr) minmax(136px, 104fr) minmax(68px, 64fr) minmax(100px, 104fr) minmax(max(88px, var(--qm-amt-w, 88px)), 96fr);
+            /* Owner console 2026-11-19 (IRON-QH-LAYOUT-001 change, typed: "... והעמודות הקבועות צרות לפי התוכן שלהן"): quote number, status, views and
+               date are as wide as their widest content on the list (QuotesTab measures --qm-num-w / --qm-st-w / --qm-vw-w / --qm-dt-w; the old
+               floors stay as the fallback before the first measure; the date keeps its 100px floor for "Yesterday, 23:59"); every freed pixel goes
+               to client (3 parts) and quote title (2 parts) */
+            --qm-cols: var(--qm-num-w, 84px) minmax(0, 3fr) minmax(0, 2fr) var(--qm-st-w, 136px) var(--qm-vw-w, 68px) max(100px, var(--qm-dt-w, 100px)) max(88px, var(--qm-amt-w, 88px));
             /* Owner 2026-11-12: the amount track is never narrower than the widest amount on the list (QuotesTab measures it: --qm-amt-w) */
             --qm-gap: 6px;
           }
@@ -7878,9 +7875,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             white-space: nowrap;
             text-align: start;
           }
-          /* Owner console 17/11 (IRON-QH-LAYOUT-001 change): a long client name / quote title moves as a slide inside its cell (SlideText), no ellipsis */
-          .quote-modern-title,
-          .quote-modern-client-name { text-overflow: clip; }
+          /* Owner console 19/11 (IRON-QH-LAYOUT-001 change): a long client name / quote title ends with "…" (the rule above) and shows whole in the
+             bubble on hover (EllipsisText) */
           /* Owner R4: the whole quote number is always visible - never ellipsized/clipped (track floor sized for it) */
           .quote-modern-number {
             display: block;
@@ -8126,14 +8122,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             bottom: calc(100% + 8px) !important;
           }
         }
-        /* Owner console 17/11 (L-19 change): the client name in the quote card slides at EVERY width (the shared .pf-slide rule above
-           lives in the desktop-only block, so the card carries its own copy) */
-        .quote-card [data-qh="client"] > .pf-slide { display: inline-block; white-space: nowrap; }
-        .quote-card [data-qh="client"] > .pf-slide--on { animation: pf-card-slide-move 8s ease-in-out infinite alternate; will-change: transform; }
-        @keyframes pf-card-slide-move { 0%, 18% { transform: translateX(0); } 82%, 100% { transform: translateX(var(--pf-slide-x, 0px)); } }
-        @media (prefers-reduced-motion: reduce) {
-          .quote-card [data-qh="client"] > .pf-slide, .quote-card [data-qh="client"] > .pf-slide--on { animation: none; white-space: normal; display: inline; }
-        }
+        /* Owner console 19/11 (L-19 change): the client name in the quote card ends with "…" at every width; a tap shows it whole in the
+           bubble (EllipsisText + the shared .pf-ell rule in index.css) */
         /* IRON-MOBILE-WIDTH-001 (see src/index.css): the work screen is FLAT on mobile - no surface and no inline padding - so
            .dash-main-content's --pf-mobile-workspace-inset is the ONLY outer gutter and each primary card/surface carries the ONLY
            inner one (--pf-mobile-surface-pad). The bottom-nav clearance below is VERTICAL only. */
@@ -8922,8 +8912,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                 onSignOut={() => setShowSignOutModal(true)}
               />
               <div className="dash-sidebar-user-text">
-                <SlideText className="dash-sidebar-user-bizname" dir={isHebrew ? 'rtl' : 'ltr'} title={bizName || ''}>{bizName || (isHebrew ? 'העסק שלי' : 'My Business')}</SlideText>
-                <SlideText className="dash-sidebar-user-name" title={session.user.email}><bdi dir="ltr">{session.user.email}</bdi></SlideText>
+                <EllipsisText as="div" className="dash-sidebar-user-bizname" dir={isHebrew ? 'rtl' : 'ltr'} text={bizName || (isHebrew ? 'העסק שלי' : 'My Business')} />
+                <EllipsisText as="div" className="dash-sidebar-user-name" text={session.user.email}><bdi dir="ltr">{session.user.email}</bdi></EllipsisText>
               </div>
             </div>
             {/* Owner console 2026-10-18, typed: "תחזיר רק מועל ע\"י": the quiet "Powered by TEKANGO" line under the business identity

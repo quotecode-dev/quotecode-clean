@@ -34,7 +34,10 @@ describe('Owner R5 leading-edge trigger and content alignment (CSS contract)', (
     expect(px(t, 'block-size')[0]).toBeGreaterThanOrEqual(24);
     expect(rule('.quote-modern-row')).toMatch(/position: relative;/);
     // still exactly seven tracks: the trigger takes none
-    expect(desktop.match(/--qm-cols: ([^;]+);/)[1].match(/minmax\([^)]*\)/g)).toHaveLength(7);
+    const tracks = []; let depth = 0; let cur = '';
+    for (const ch of desktop.match(/--qm-cols: ([^;]+);/)[1].trim()) { if (ch === '(') depth += 1; if (ch === ')') depth -= 1; if (ch === ' ' && depth === 0) { if (cur) tracks.push(cur); cur = ''; } else cur += ch; }
+    if (cur) tracks.push(cur);
+    expect(tracks).toHaveLength(7);
   });
 
   it('the trigger fits inside the row leading padding, so it can never shift the quote-number track', () => {

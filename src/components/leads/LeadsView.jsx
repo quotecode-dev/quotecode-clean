@@ -14,7 +14,7 @@ import { askConfirm } from '../AppDialog';
 import { taskMarket, marketToday, marketClock, parseMarketDate, parseTimeText, shortTime, marketDatePattern } from '../../utils/manualTasks';
 import { createLead, setLeadStatus, scheduleFollowUp, completeFollowUp, listLeadEvents, addLeadEvent, LEAD_SOURCES, MANUAL_LEAD_STATUSES, LEAD_EVENT_KINDS } from '../../utils/leadsClient';
 import { LeadIcon, LeadEntryIcon, LeadBackIcon } from './LeadIcons';
-import SlideText from '../SlideText';
+import EllipsisText from '../EllipsisText';
 import { marketInstant } from './useLeads';
 import './leads.css';
 
@@ -23,9 +23,10 @@ const ST = { new: ['חדשה', 'New', 'ld-st-new'], prog: ['בטיפול', 'In p
 const TY = { call: ['שיחה', 'Call'], meet: ['פגישה', 'Meeting'], msg: ['הודעה', 'Message'], note: ['הערה', 'Note'] };
 const pick = (pair, he) => pair[he ? 0 : 1];
 
-// a text longer than its box slides inside it (the app's SlideText: data-slide-text + a running animation - law 50 amendment 15/11)
+// Owner console 2026-11-19: a text longer than its box ends with "…" and shows whole in the bubble on hover / tap (EllipsisText - law 50
+// change of 19/11)
 function Slide({ text, className = '', dir }) {
-  return <SlideText as="span" className={`ld-slide ${className}`} dir={dir}>{text}</SlideText>;
+  return <EllipsisText className={`ld-slide ${className}`} dir={dir} text={text} />;
 }
 
 const ltr = (s) => <bdi dir="ltr">{s}</bdi>;
