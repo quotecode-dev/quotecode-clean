@@ -178,7 +178,7 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
   capability('clients', 'ניהול לקוחות', 'Client management',
     'הוספת לקוחות, עריכת הפרטים שלהם וצפייה בהם.',
     'Adding, editing, and viewing clients.',
-    { surfaces: ['clients_screen'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_clients', canonicalSources: ['src/components/ClientsTab.jsx', 'src/components/EditClientModal.jsx', 'src/components/leads/LeadsView.jsx'] }),
+    { surfaces: ['clients_screen'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_clients', canonicalSources: ['src/components/ClientsTab.jsx', 'src/components/EditClientModal.jsx'] }),
 
   capability('catalog', 'קטלוג שירותים', 'Services catalog',
     'ניהול קטלוג פריטים/שירותים לשימוש חוזר בהצעות מחיר. אפשר לצרף לפריט תמונה (כפתור התמונה בשורת הפריט); פריט עם תמונה מציג אותה כתמונה קטנה ליד השם, והיא מצטרפת לשורה בהצעה כשמוסיפים אותו.',

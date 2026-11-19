@@ -200,8 +200,8 @@
     "markers": 0
   },
   "src/components/ClientsTab.jsx": {
-    "interactive": 13,
-    "markers": 13
+    "interactive": 11,
+    "markers": 11
   },
   "src/components/CustomerQuoteItemRow.jsx": {
     "interactive": 2,
@@ -516,18 +516,6 @@
     "markers": 0
   },
   "src/components/landing/smartPackFacts.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/leads/LeadIcons.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/leads/LeadsView.jsx": {
-    "interactive": 17,
-    "markers": 18
-  },
-  "src/components/leads/useLeads.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -1136,10 +1124,6 @@
     "markers": 0
   },
   "src/utils/itemPrice.js": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/utils/leadsClient.js": {
     "interactive": 0,
     "markers": 0
   },

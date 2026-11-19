@@ -697,9 +697,6 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
   // השניים (כפי שהיה כאן בעבר) עלול לגרום למטבע/מע"מ סותרים - למשל עסק
   // "International" (0% מע"מ) שמקבל הצעות ב-ILS רק כי הדפדפן/מטמון שפתו עברית.
   const isLocalIsraeliBusiness = bizCountry === 'Local' || bizCountry === 'LCL';
-  // Leads stage 1 (Owner console 2026-11-18): the Leads tab's data path (one stable object per signed-in user and market)
-  const leadsUserId = session?.user?.id || null;
-  const leadsApi = useMemo(() => (leadsUserId ? { client: supabase, userId: leadsUserId, isLocalIsraeliBusiness } : null), [leadsUserId, isLocalIsraeliBusiness]);
 
   const upperCurr = (currency || '').toUpperCase();
   const sym = isLocalIsraeliBusiness ? '₪' : (upperCurr === 'EUR' ? '€' : upperCurr === 'GBP' ? '£' : '$');
@@ -9637,8 +9634,6 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               quotes={quotes}
               isHebrew={isHebrew}
               t={t}
-              // Leads stage 1 (Owner console 2026-11-18): the Leads tab inside Clients loads its own data (L-10: never in loadData)
-              leadsApi={leadsApi}
             />
           )}
 
