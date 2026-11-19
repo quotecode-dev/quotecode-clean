@@ -18,7 +18,6 @@ import LandingQuoteDocument from './LandingQuoteDocument';
 import QuoteStyleShowcase from './QuoteStyleShowcase';
 import LandingPlans from './LandingPlans';
 import SmartPackShowcase from './SmartPackShowcase';
-import HeroPhoneFilm from './HeroPhoneFilm';
 import SocialLinks from './SocialLinks';
 import { LANDING_CSS } from './landingStyles';
 import { useLauncherStepAside } from '../../hooks/useLauncherStepAside';
@@ -51,7 +50,6 @@ export default function LandingPage({
 }) {
   const isHe = lang === 'he';
   const rootRef = useRef(null);
-  const heroPhoneRef = useRef(null); // the original hero phone picture - the live screen film is laid on it (Owner 20/11, L-02)
   const ToolsIcon = copy.tools ? copy.tools.icon : null;
 
   // Owner 2026-11-05: the landing install band became actionable. The install event is already captured globally (main.jsx);
@@ -113,7 +111,6 @@ export default function LandingPage({
                   style={{ border: 0, font: 'inherit', cursor: 'pointer' }}>{copy.hero.motion.cta}<ArrowUpRight size={17} strokeWidth={2.2} aria-hidden="true" /></button>
               </div>
               <img
-                ref={heroPhoneRef}
                 className="tl-hero-sequence-phone"
                 src={isHe ? '/assets/landing/hero-phone-he.webp' : '/assets/landing/hero-phone-en.webp'}
                 width={isHe ? 809 : 920}
@@ -122,8 +119,6 @@ export default function LandingPage({
                 alt=""
                 aria-hidden="true"
               />
-              {/* Owner console 2026-11-20 (L-02): the real product on the phone screen, the picture itself unchanged */}
-              <HeroPhoneFilm lang={isHe ? 'he' : 'en'} phoneRef={heroPhoneRef} />
             </div>
 
             <div className="tl-hero-original">
