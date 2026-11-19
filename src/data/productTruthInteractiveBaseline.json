@@ -1095,10 +1095,6 @@
     "interactive": 0,
     "markers": 0
   },
-  "src/utils/fieldFullText.js": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/utils/financialEdit.js": {
     "interactive": 0,
     "markers": 0
@@ -1188,6 +1184,10 @@
     "markers": 0
   },
   "src/utils/phoneDisplay.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/placeholderSlide.js": {
     "interactive": 0,
     "markers": 0
   },

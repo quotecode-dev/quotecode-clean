@@ -1,10 +1,11 @@
 // Owner console 2026-11-16 (typed release line "מאשר שחרור תיקוני הבדיקה באתר על 220: משולש "סיכום ההצעה" בעברית בתחילת המילים, סלייד לטקסט
 // ארוך בכל שדה במערכת, "data:image/png…" בשדה הלוגו, ...").
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { logoFieldText, nextLogoValue } from './utils/logoFieldText';
+import { planValueSlide, installValueSlide } from './utils/placeholderSlide';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const read = (f) => fs.readFileSync(path.join(here, f), 'utf8');
@@ -37,12 +38,29 @@ describe('the logo field: a file\'s code shows as "data:image/png…"', () => {
   });
 });
 
-// replaced by the Owner (console 2026-11-19, typed "מאשר, כולל L-09, עד הלייב"): nothing moves in a field any more - a long value ends with "…"
-// and shows whole on hover (the guard lives in src/fields20261119.test.jsx)
-describe('a long value in a field no longer moves (Owner 19/11)', () => {
-  it('the app installs the hover bubble, not the slide', () => {
-    const d = read('pages/Dashboard.jsx');
-    expect(d).toContain('installFieldBubble(document.body)');
-    expect(d).not.toMatch(/installValueSlide|installPlaceholderSlide/);
+describe('a long value in any field slides (never cut)', () => {
+  afterEach(() => { document.body.innerHTML = ''; vi.restoreAllMocks(); vi.useRealTimers(); });
+  it('planValueSlide: only a value longer than its field', () => {
+    expect(planValueSlide(100, 200)).toBeNull();
+    expect(planValueSlide(300, 200)).toEqual({ over: 100, ms: 12000 });
+  });
+  it('a long value moves back and forth while the field is not edited; focus stops it; the app installs it', () => {
+    vi.useFakeTimers();
+    document.body.innerHTML = '<input type="email" value="tekangointernational@gmail.com" />';
+    const el = document.querySelector('input');
+    Object.defineProperty(el, 'offsetParent', { get: () => document.body });
+    Object.defineProperty(el, 'clientWidth', { get: () => 120 });
+    const anim = { cancel: vi.fn() }; el.animate = vi.fn(() => anim);
+    const ctx = { measureText: () => ({ width: 300 }) };
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(ctx);
+    const off = installValueSlide(document.body, window);
+    vi.advanceTimersByTime(300);
+    expect(el.animate).toHaveBeenCalledTimes(1);
+    const [, opts] = el.animate.mock.calls[0];
+    expect(opts).toMatchObject({ iterations: Infinity, direction: 'alternate' });
+    el.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    expect(anim.cancel).toHaveBeenCalled();
+    off();
+    expect(read('pages/Dashboard.jsx')).toContain('installValueSlide(document.body)');
   });
 });

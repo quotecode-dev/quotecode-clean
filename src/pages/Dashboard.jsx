@@ -47,7 +47,7 @@ import useBillingReturn, { markBillingDeparture } from '../hooks/useBillingRetur
 import HeaderPlanMedallion from '../components/HeaderPlanMedallion';
 import { accountStatus, statusMedallionModel, accountStatusSentence, freePeriodActive } from '../domain/subscriptions/subscriptionStatus';
 import { timeGreeting } from '../utils/timeGreeting';
-import { installFieldBubble } from '../utils/fieldFullText';
+import { installPlaceholderSlide, installValueSlide } from '../utils/placeholderSlide';
 import CapabilityUpgradeNotice from '../components/subscriptions/CapabilityUpgradeNotice';
 import { AccountSummaryContext } from '../domain/subscriptions/AccountSummaryContext';
 import { decideCapability, outputPhaseOf, decideFree10Action, decideSmartPack } from '../../supabase/functions/_shared/subscriptionContract.ts';
@@ -268,9 +268,10 @@ const NEW_CLIENT = Object.freeze({});
 // PRODUCT_TRUTH_CAPABILITY: dashboard_overview
 export default function Dashboard({ bundleIsHebrew } = {}) {
   const now = new Date();
-  // Owner console 2026-11-19 (typed "מאשר, כולל L-09, עד הלייב"): nothing moves in a field (the 16/11 slide is gone) - a long text ends with "…"
-  // at the field edge (index.css) and a mouse over it shows the whole text in the bubble; a click starts the normal editing
-  useEffect(() => (typeof document !== 'undefined' ? installFieldBubble(document.body) : undefined), []);
+  // night task 2026-11-16 (Owner typed, L-09, item 1): a sample text longer than its typing field slides inside it once, never cut
+  useEffect(() => (typeof document !== 'undefined' ? installPlaceholderSlide(document.body) : undefined), []);
+  // Owner console 2026-11-16: a long value in any field slides too (never cut)
+  useEffect(() => (typeof document !== 'undefined' ? installValueSlide(document.body) : undefined), []);
 
   const [session, setSession] = useState(null);
   // Owner 2026-10-19 (typed L-17 approval): the voice-assistant announcement only where the browser can record (the microphone shows)
