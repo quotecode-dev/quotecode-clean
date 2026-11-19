@@ -58,6 +58,10 @@
 .ld-slide.ld-inl { display: inline-block; max-width: 100%; vertical-align: bottom; }
 /* the details view on a phone: one scroll body with no top gap (the demo's back pill sits right under the app's own pill) */
 .pf-screen > .pf-screen-body.ld-flush { padding-top: 0; }
+.ld-slide > .pf-slide { display: inline-block; white-space: nowrap; }
+.ld-slide > .pf-slide--on { animation: ld-slide-move 7s ease-in-out infinite alternate; will-change: transform; }
+@keyframes ld-slide-move { 0%, 15% { transform: translateX(0); } 85%, 100% { transform: translateX(var(--pf-slide-x, 0px)); } }
+@media (prefers-reduced-motion: reduce) { .ld-slide > .pf-slide--on { animation: none; } .ld-slide, .ld-slide > .pf-slide { white-space: normal; } }
 .ld-hint { color: var(--ld-muted); font-size: .78rem; margin: 6px 0 0; }
 .ld-err { color: var(--ld-red); font-size: .8rem; font-weight: 600; margin: 0; }
 

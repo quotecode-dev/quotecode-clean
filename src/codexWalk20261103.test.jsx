@@ -67,10 +67,7 @@ describe('copy and wording', () => {
 
 describe('layout', () => {
   it('F05: the status track fits "Draft · ready to send"', () => {
-    // Owner console 2026-11-19 (IRON-QH-LAYOUT-001 change: "... והעמודות הקבועות צרות לפי התוכן שלהן"): the status track is the measured width of
-    // the widest status on the list (QuotesTab --qm-st-w), 136px before the first measure
-    expect(src('src/pages/Dashboard.jsx')).toContain('var(--qm-st-w, 136px) var(--qm-vw-w, 68px)');
-    expect(src('src/components/QuotesTab.jsx')).toContain("['--qm-st-w', '.quote-modern-status', 3]");
+    expect(src('src/pages/Dashboard.jsx')).toContain('minmax(136px, 104fr) minmax(68px, 64fr)');
   });
   it('F06: the header and the rows share one actions width', () => {
     expect(src('src/components/servicesCatalog.css')).toContain('min-width: var(--svc-actions-w, 0)');

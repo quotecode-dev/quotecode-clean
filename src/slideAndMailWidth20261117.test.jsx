@@ -7,39 +7,39 @@ import { resolve } from 'node:path';
 
 const src = (p) => readFileSync(resolve(p), 'utf8');
 
-// (1) and (3) replaced by the Owner (console 2026-11-19, typed: "שינוי בחוק הפריסה של רשימת ההצעות: שם הלקוח וכותרת ההצעה בטבלה במחשב מסתיימים
-// בשלוש נקודות ומוצגים במלואם בריחוף, והעמודות הקבועות צרות לפי התוכן שלהן" + "מאשר שלוש נקודות עם ריחוף במחשב ובועה בנגיעה בנייד בכל המקומות
-// כמו בתמונות, וצמצום העמודות ברשימת ההצעות, כולל שינוי ב-L-17 ו-L-19, ושחרור עד הלייב"): nothing moves any more - "…" + the whole text in a bubble
-describe('(1) the desktop quote list: a long client name / quote title ends with "…" and shows whole on hover (19/11)', () => {
+describe('(1) the desktop quote list: a long client name / quote title slides instead of an ellipsis', () => {
   const q = src('src/components/QuotesTab.jsx');
   const d = src('src/pages/Dashboard.jsx');
-  it('the client name and the quote title cells are EllipsisText boxes', () => {
-    expect(q).toContain('<EllipsisText className="quote-modern-client-name" text={clientName} />');
-    expect(q).toContain('<EllipsisText className="quote-modern-title" text={subject} />');
-    expect(q).not.toContain('SlideText');
+  it('the client name and the quote title cells are SlideText boxes', () => {
+    expect(q).toContain('<SlideText as="span" className="quote-modern-client-name" title={clientName}>{clientName}</SlideText>');
+    expect(q).toContain('<SlideText as="span" className="quote-modern-title" title={subject}>{subject}</SlideText>');
+    expect(q).not.toContain('<span className="quote-modern-client-name"');
     expect(q).not.toContain('<span className="quote-modern-title"');
   });
-  it('those two cells end with an ellipsis (no clip rule any more); the status cell keeps its rule', () => {
-    expect(d).not.toMatch(/\.quote-modern-title,\s*\.quote-modern-client-name \{ text-overflow: clip; \}/);
+  it('those two cells clip (the slide moves inside) - no ellipsis; the status cell keeps its rule', () => {
+    expect(d).toMatch(/\.quote-modern-title,\s*\.quote-modern-client-name \{ text-overflow: clip; \}/);
     expect(d).toMatch(/\.quote-modern-title,\s*\.quote-modern-status,\s*\.quote-modern-client-name \{[^}]*text-overflow: ellipsis;/);
   });
 });
 
-describe('(3) the phone / tablet quote card: a long client name ends with "…" and a tap shows it whole (L-19 change 19/11)', () => {
+// (3) Owner console 17/11, typed: "מאשר שינוי ב-L-19: שם לקוח ארוך בכרטיס ההצעה בטלפון זז בסלייד במקום שלוש נקודות, ושחרור עד הלייב"
+describe('(3) the phone / tablet quote card: a long client name slides at every width (L-19 change)', () => {
   const q = src('src/components/QuotesTab.jsx');
   const d = src('src/pages/Dashboard.jsx').split(String.fromCharCode(13)).join('');
-  it('the card name is an EllipsisText box (shared .pf-ell rule) and keeps data-qh="client"', () => {
+  it('the card name is a SlideText box that clips (no ellipsis) and keeps data-qh="client"', () => {
     const card = q.slice(q.indexOf('className="quote-card"'));
-    const box = card.slice(card.indexOf('<EllipsisText'), card.indexOf('/>', card.indexOf('<EllipsisText')));
+    const box = card.slice(card.indexOf('<SlideText'), card.indexOf('</SlideText>'));
     expect(box).toContain('data-qh="client"');
-    expect(box).toContain('text={quote.clients?.company_name');
-    expect(box).not.toContain("textOverflow: 'clip'");
+    expect(box).toContain("textOverflow: 'clip', whiteSpace: 'nowrap'");
   });
-  it('no slide rule is left anywhere (the card, the sidebar, the shared rule)', () => {
+  it('the card slide rule sits OUTSIDE every width condition (a phone runs it too)', () => {
     const style = d.slice(d.indexOf('<style>{`') + '<style>{`'.length, d.indexOf('`}</style>'));
-    expect(style).not.toContain('.pf-slide');
-    expect(d).not.toMatch(/@keyframes pf-(card-)?slide-move/);
-    expect(src('src/index.css')).toMatch(/\.pf-ell \{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; \}/);
+    const at = style.indexOf('.quote-card [data-qh="client"] > .pf-slide {');
+    expect(at).toBeGreaterThan(0);
+    let depth = 0; for (const ch of style.slice(0, at)) { if (ch === '{') depth += 1; else if (ch === '}') depth -= 1; }
+    expect(depth).toBe(0);
+    expect(style).toContain('.quote-card [data-qh="client"] > .pf-slide--on { animation: pf-card-slide-move');
+    expect(style).toMatch(/@keyframes pf-card-slide-move \{/);
   });
 });
 

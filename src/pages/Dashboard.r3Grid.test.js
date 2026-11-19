@@ -23,16 +23,10 @@ describe('Owner R3/R4 seven-column grid (R4: no Action column)', () => {
   it('declares exactly seven tracks once and both the header row and the quote row consume that same variable and gap', () => {
     const cols = desktop.match(/--qm-cols: ([^;]+);/);
     expect(cols).not.toBeNull();
-    // the tracks at nesting depth 0 (a track may hold var(...) / max(...) / minmax(...))
-    const tracks = []; let depth = 0; let cur = '';
-    for (const ch of cols[1].trim()) { if (ch === '(') depth += 1; if (ch === ')') depth -= 1; if (ch === ' ' && depth === 0) { if (cur) tracks.push(cur); cur = ''; } else cur += ch; }
-    if (cur) tracks.push(cur);
+    const tracks = cols[1].match(/minmax\([^)]*\)/g);
     expect(tracks).toHaveLength(7);
-    // R4 + Owner console 2026-11-19 (IRON-QH-LAYOUT-001 change): the quote-number track is the measured width of the widest full identifier
-    // (QuotesTab --qm-num-w, never narrower than the painted number), 84px before the first measure
-    expect(tracks[0]).toBe('var(--qm-num-w, 84px)');
-    expect(quotesTab).toMatch(/\['--qm-num-w', '\.quote-modern-number', 0\]/);
-    expect(tracks.slice(1, 3)).toEqual(['minmax(0, 3fr)', 'minmax(0, 2fr)']);
+    // R4: the quote-number track has a px floor wide enough for the full identifier (never ellipsized)
+    expect(Number(tracks[0].match(/minmax\((\d+)px/)[1])).toBeGreaterThanOrEqual(84);
     expect((desktop.match(/--qm-cols:/g) || [])).toHaveLength(1);
     for (const sel of ['.quote-modern-row', '.quote-modern-head-row']) {
       expect(rule(sel)).toMatch(/grid-template-columns: var\(--qm-cols\);/);
@@ -73,11 +67,8 @@ describe('Owner R3/R4 seven-column grid (R4: no Action column)', () => {
     expect(quotesTab).toMatch(/import \{[^}]*\bdisplayQuoteNumber\b[^}]*\} from '\.\.\/utils\/quoteListRows';/);
     expect(quotesTab).not.toMatch(/const displayQuoteNumber = /); // one definition only
     expect(quotesTab).not.toMatch(/>#\{formatQuoteFallback/);
-    // Owner console 2026-11-19: EllipsisText puts the whole text on title (hover) and data-full-text (bubble)
-    expect(quotesTab).toMatch(/className="quote-modern-title" text=\{subject\}/);
-    expect(quotesTab).toMatch(/className="quote-modern-client-name" text=\{clientName\}/);
-    const ell = norm(readFileSync(join(cwd(), 'src', 'components', 'EllipsisText.jsx'), 'utf8'));
-    expect(ell).toMatch(/title=\{full\} data-full-text=\{full\}/);
+    expect(quotesTab).toMatch(/className="quote-modern-title" title=\{subject\}/);
+    expect(quotesTab).toMatch(/title=\{clientName\}/);
   });
 });
 

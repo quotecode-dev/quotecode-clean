@@ -129,8 +129,7 @@ describe('approved dashboard QA fixes (source guards)', () => {
     expect(block).toMatch(/--qm-gap: 6px;/);
     // Owner 2026-11-12 (ones under ones for every amount): a long amount is no longer set smaller - the amount track grows to it
     expect(block).not.toMatch(/\.quote-modern-amount\.is-long \{ font-size/);
-    // Owner console 2026-11-19 (IRON-QH-LAYOUT-001 change: "... והעמודות הקבועות צרות לפי התוכן שלהן"): the amount track is exactly the widest amount
-    expect(block).toMatch(/ max\(88px, var\(--qm-amt-w, 88px\)\);/);
+    expect(block).toMatch(/minmax\(max\(88px, var\(--qm-amt-w, 88px\)\), 96fr\)/);
   });
 
   it('the header block stays fixed at 40px above the list and the new-quote popover is width-capped', () => {
