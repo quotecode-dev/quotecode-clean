@@ -109,3 +109,19 @@ describe('a drop-down with a long chosen option', () => {
     expect(fieldHiddenText(s2, window, measure)).toBeNull();
   });
 });
+
+// LIVE check of 19/11: a scroll right after the mouse came over the field closed the bubble for good
+describe('a scroll while the mouse is over the field', () => {
+  it('keeps the bubble (placed again with the field); a field no longer under the mouse closes it', () => {
+    const el = field('<input type="email" value="rodriguez.whitfield.renovations@gmail.com" />');
+    const off = installFieldBubble(document.body, window, measure);
+    over(el);
+    window.dispatchEvent(new Event('scroll'));
+    expect(document.querySelector('[data-testid="field-bubble"]').textContent).toBe('rodriguez.whitfield.renovations@gmail.com');
+    expect(document.querySelectorAll('[data-testid="field-bubble"]').length).toBe(1);
+    out(el);
+    window.dispatchEvent(new Event('scroll'));
+    expect(document.querySelector('[data-testid="field-bubble"]')).toBeNull();
+    off();
+  });
+});
