@@ -168,9 +168,16 @@ html {
    bubble (the feature-lock tooltip style) on hover (computer) / tap (touch screen) */
 .pf-ell { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 .pf-ell-num { display: inline-block; }
-.pf-ell-bubble { z-index: 2147483000; max-width: min(320px, calc(100vw - 32px)); box-sizing: border-box; padding: 6px 12px; border-radius: 6px;
+/* Owner console 2026-11-19 (typed "מאשר, כולל L-09, עד הלייב"): nothing moves in a field - a long text (a value or a sample text) shows its
+   start and ends with "…" at the field edge while the field is not being typed in; inside it the whole text scrolls as usual; a mouse over
+   it shows the whole text in the bubble (utils/fieldFullText.js) */
+input:not([type]):not(:focus), input[type="text"]:not(:focus), input[type="search"]:not(:focus), input[type="email"]:not(:focus), input[type="tel"]:not(:focus), input[type="url"]:not(:focus), input:placeholder-shown { text-overflow: ellipsis; }
+/* a drop-down shows the start of a long chosen option and ends it with "…" before its arrow (the same rule) */
+select { text-overflow: ellipsis; }
+.pf-ell-bubble { z-index: 2147483000; max-width: min(480px, calc(100vw - 32px)); box-sizing: border-box; padding: 6px 12px; border-radius: 6px;
   background: #1f1b2e; color: #fff; font: 500 0.75rem/1.35 'Rubik Variable', 'Rubik', sans-serif; box-shadow: 0 4px 14px -4px rgba(15, 23, 42, 0.35);
-  white-space: normal; overflow-wrap: anywhere; pointer-events: none; text-align: start; }
+  white-space: normal; overflow-wrap: break-word; pointer-events: none; text-align: start; }
+/* (a long e-mail / address in the bubble: wider room, and a line break only after . @ - _ / - never inside a word; Owner 19/11, law 50) */
 /* the hot banner line in the bubble: one colour on the dark bubble (Owner console 2026-11-19, L-25 / L-26) */
 .pf-ell-bubble .quote-hot-banner-name { color: inherit; background: transparent; font-weight: 700; }
 .pf-money-slot {
