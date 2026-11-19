@@ -168,6 +168,15 @@
   transform-origin: 55% 54%;
   animation: tl-hero-phone-phase 7.2s cubic-bezier(.18, .76, .2, 1) both;
 }
+/* Owner console 2026-11-20 (typed "מאשר את הטלפון החי בכרטיס הפתיחה כמו בסקיצה, כולל שינוי ב-L-02, ושחרור עד הלייב"): the live screen film on the
+   ORIGINAL phone picture (HeroPhoneFilm) - a layer exactly over the picture's drawn box, shown only while the film plays */
+.tl-hero-film { position: absolute; z-index: 4; pointer-events: none; opacity: 0; transition: opacity .35s ease; }
+.tl-hero-film.is-on { opacity: 1; }
+.tl-hero-film-nat { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.tl-hero-film-screen { position: absolute; inset: 0; }
+.tl-hero-film-video { position: absolute; left: 0; top: 0; max-width: none; transform-origin: 0 0; object-fit: fill; background: #fff; }
+.tl-hero-film-island { position: absolute; max-width: none; }
+@media (prefers-reduced-motion: reduce) { .tl-hero-film { display: none; } }
 @keyframes tl-hero-copy-phase {
   0% { opacity: 0; transform: translateY(calc(-50% + 18px)); }
   9%, 47% { opacity: 1; transform: translateY(-50%); }
