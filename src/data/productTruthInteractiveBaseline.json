@@ -467,6 +467,10 @@
     "interactive": 0,
     "markers": 0
   },
+  "src/components/landing/HeroPhoneFilm.jsx": {
+    "interactive": 0,
+    "markers": 0
+  },
   "src/components/landing/LandingHeader.jsx": {
     "interactive": 10,
     "markers": 10
@@ -494,6 +498,10 @@
   "src/components/landing/SocialLinks.jsx": {
     "interactive": 1,
     "markers": 1
+  },
+  "src/components/landing/heroFilm.js": {
+    "interactive": 0,
+    "markers": 0
   },
   "src/components/landing/landingPackageFacts.js": {
     "interactive": 0,
