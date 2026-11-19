@@ -64,21 +64,16 @@ export function installFieldBubble(root, win = typeof window !== 'undefined' ? w
     const got = tip.getBoundingClientRect().left;
     if (Math.abs(got - want) > 0.5) tip.style.left = `${want + (want - got)}px`;
   };
-  const onOver = (e) => { if (e.pointerType && e.pointerType !== 'mouse') return; const el = e.target; if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) { under = el; show(el); } };
-  const onOut = (e) => { if (e.target === under) under = null; if (owner && e.target === owner) hide(); };
+  const onOver = (e) => { if (e.pointerType && e.pointerType !== 'mouse') return; const el = e.target; if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) show(el); };
+  const onOut = (e) => { if (owner && e.target === owner) hide(); };
   const onKey = (e) => { if (e.key === 'Escape') hide(); };
-  // a scroll while the mouse is still over the field moves the bubble with it (LIVE check 19/11: a scroll right after the mouse came over
-  // the field closed the bubble, and it did not come back until the mouse left and returned); a field no longer under the mouse closes it
-  // (the mouse is tracked by its own over / out events - the browser's :hover is not yet updated when that first scroll arrives)
-  let under = null;
-  const onScroll = () => { if (!owner) return; const el = owner; hide(); if (under === el) show(el); };
   root.addEventListener('pointerover', onOver); root.addEventListener('pointerout', onOut);
   root.addEventListener('focusin', hide); root.addEventListener('input', hide); root.addEventListener('pointerdown', hide, true);
-  win.addEventListener('scroll', onScroll, true); win.addEventListener('resize', hide); doc.addEventListener('keydown', onKey);
+  win.addEventListener('scroll', hide, true); win.addEventListener('resize', hide); doc.addEventListener('keydown', onKey);
   return () => {
     hide();
     root.removeEventListener('pointerover', onOver); root.removeEventListener('pointerout', onOut);
     root.removeEventListener('focusin', hide); root.removeEventListener('input', hide); root.removeEventListener('pointerdown', hide, true);
-    win.removeEventListener('scroll', onScroll, true); win.removeEventListener('resize', hide); doc.removeEventListener('keydown', onKey);
+    win.removeEventListener('scroll', hide, true); win.removeEventListener('resize', hide); doc.removeEventListener('keydown', onKey);
   };
 }
