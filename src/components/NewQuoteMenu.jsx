@@ -115,7 +115,7 @@ export default function NewQuoteMenu({ isHebrew, variant = 'toolbar', onStandard
               {/* PRODUCT_TRUTH_DECORATIVE: start choice that hands off to one of the caller's existing create handlers (fill in / AI / file / template); no behaviour of its own */}
               {choices.map(({ id, Icon, label, hint }) => (
                 <button key={id} type="button" role="menuitem" data-choice={id} className="pf-newquote-item" onClick={() => choose(id)}>
-                  <Icon size={21} strokeWidth={1.6} aria-hidden="true" />
+                  <Icon size={19} strokeWidth={2} aria-hidden="true" />
                   <span className="pf-newquote-item-text">
                     <strong>{label}</strong>
                     <small>{hint}</small>

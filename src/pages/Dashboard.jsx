@@ -10052,7 +10052,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               onClick={() => { setShowMobileNewQuoteMenu(false); ({ standard: handleCreateNewQuoteClick, ai: handleCreateAiQuoteClick, file: handleCreateFileQuoteClick, structured: handleCreateStructuredQuoteClick, template: handleCreateTemplateQuoteClick })[id](); }}
               style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', width: '100%', boxSizing: 'border-box', minHeight: '48px', background: 'none', border: 'none', borderRadius: RADIUS.sm, padding: '10px 12px', color: NEON.textPrimary, cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left' }}
             >
-              <Icon size={18} strokeWidth={1.8} aria-hidden="true" style={{ flexShrink: 0, marginTop: '1px', color: NEON.violet }} />
+              <Icon size={19} strokeWidth={2} aria-hidden="true" style={{ flexShrink: 0, marginTop: '1px', color: NEON.violet }} />
               <span style={{ display: 'flex', flexDirection: 'column', gap: '2px', minWidth: 0 }}>
                 <strong style={{ fontSize: '0.86rem', fontWeight: '700' }}>{label}</strong>
                 <small style={{ fontSize: '0.74rem', color: NEON.textSecondary, lineHeight: 1.35 }}>{hint}</small>

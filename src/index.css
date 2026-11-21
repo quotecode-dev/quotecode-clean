@@ -843,3 +843,17 @@ html:has(.dash-app-shell) { scrollbar-gutter: auto; }
 /* the saved screen: the sketch's spacing under the arrow */
 .sq-saved--sketch .sq-saved-back { margin: 8px 0 6px !important; }
 .sq-saved--sketch .sq-saved-card { margin-top: 36px !important; }
+/* law 50 round 3 (the sketch): the header - the AI button in the middle of the free space, the tools 8px apart, the sketch's button size;
+   on a phone the date line small (stronger than the older phone rules) */
+.dash-header-row > .dash-header-ai-center { margin-inline: auto !important; }
+.dash-header-row > .dash-header-title, .dash-header-row > .dash-header-badge-desktop, .dash-header-row > .dash-header-badge-mobile { margin-inline: 0 !important; }
+.dash-header-row .dash-header-account, .dash-header-row .dash-header-badge-mobile { gap: 8px !important; }
+@media (min-width: 769px) { .dash-header-row .dash-header-ai-center .dash-header-ai-btn { height: 32px !important; min-height: 32px !important; padding-inline: 6px 12px !important; font-size: 12.5px !important; gap: 6px !important; } }
+@media (max-width: 768px) {
+  .dash-header-row .dash-header-ai-center .dash-header-ai-btn { height: 30px !important; font-size: 12px !important; }
+  .dash-upper-section .dash-header-row .dash-header-title { line-height: 1.2 !important; }
+  .dash-upper-section .dash-header-title .dash-header-datetime .dash-header-when, .dash-upper-section .dash-header-title .dash-header-datetime .dash-header-when * { font-size: 10px !important; font-weight: 400 !important; line-height: 1.2 !important; }
+}
+/* the sketch's work area keeps a thin scroll-bar gutter on the list and the saved screen (computer) */
+@media (min-width: 769px) { .dash-main-content:has(.quote-workspace, .sq-saved--sketch) { scrollbar-gutter: stable; scrollbar-width: thin; } }
+.sq-saved--sketch .sq-saved-icon { display: block; line-height: 0; }

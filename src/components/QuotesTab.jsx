@@ -17,7 +17,7 @@ import { formatShortDate } from '../utils/shortDate';
 import { relativeQuoteDay, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
 import { sortQuotes, normalizeSortField, firstItemDescription } from '../utils/quoteListSort';
 import NewQuoteMenu from './NewQuoteMenu';
-import { Download, User, Eye, Mail, MessageCircle, ChevronDown, FileText, Filter, Search, ClipboardList, Clock, Send } from 'lucide-react';
+import { User, Eye, Mail, MessageCircle, ChevronDown, FileText, Filter, Search, ClipboardList, Clock, Send } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import TekangoAiIcon from './TekangoAiIcon';
 import { SketchIcon } from './SketchIcons';
@@ -610,6 +610,7 @@ export default function QuotesTab({
     // the real geometry: rows that fit = (the list body's own height + the free space left under the work area, above the footer)
     // / one row's height. Skipped while a row is open (its details would make the page look full).
     // Owner 2026-10-29 (L-29): a measure that flips back and forth at the same window size settles on the smaller value (no flicker)
+    // (a list that moved - a notice above it shown or closed - is a changed list: its own memo; Owner 20/11, L-29 typed only as needed)
     const memo = createPerPageMemo();
     const measure = () => {
       const body = listBodyRef.current;
@@ -630,7 +631,7 @@ export default function QuotesTab({
       const link = ws.querySelector(':scope > .qs-a11y'); const before = link && link.previousElementSibling;
       const contentEnd = before ? before.getBoundingClientRect().bottom + (parseFloat(window.getComputedStyle(before).marginBottom) || 0) + link.getBoundingClientRect().height + (parseFloat(window.getComputedStyle(ws).paddingBottom) || 0) : ws.getBoundingClientRect().bottom;
       const free = Math.max(0, limit - contentEnd);
-      const n = settlePerPage(memo, `${window.innerWidth}x${window.innerHeight}`, Math.max(1, Math.floor((body.clientHeight + free + 0.5) / rowH)));
+      const n = settlePerPage(memo, `${window.innerWidth}x${window.innerHeight}@${Math.round(ws.getBoundingClientRect().top)}`, Math.max(1, Math.floor((body.clientHeight + free + 0.5) / rowH)));
       setPerPage((cur) => (cur === n ? cur : n));
     };
     measure();
@@ -1019,7 +1020,7 @@ export default function QuotesTab({
             title={isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}
             aria-label={isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}
           >
-            <Download size={17} strokeWidth={2} aria-hidden="true" />
+            <SketchIcon name="dl" size={17} />
           </button>
           {/* the new-quote button on wide screens; a phone / a tablet held upright has "חדש" in the bottom bar */}
           {onCreateQuote && !isMobileView && (
