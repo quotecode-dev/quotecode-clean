@@ -216,3 +216,5 @@ body .pf-newquote-backdrop .pf-newquote-item-text small { line-height: 1.45; }
   .dash-main-content .quote-workspace .qc-nm, .dash-main-content .quote-workspace .qc-amt { font-size: 14px; line-height: 1.45; }
   .dash-main-content .quote-workspace .qc-ln2 { font-size: 12px; line-height: 1.45; }
 }
+/* phone / tablet upright: the quiet link keeps clear of the bottom edge when the list runs past the screen (it never sits half under the bottom bar) */
+@media (max-width: 768px) { .qs-a11y { padding-top: 30px; } }
