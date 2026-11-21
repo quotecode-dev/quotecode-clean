@@ -559,24 +559,15 @@ select { text-overflow: ellipsis; }
 /* Owner console 2026-11-06 (release C, typed approval incl. L-14 / L-17): in the 560px smart quote / smart edit window a long title
    ("עריכה חכמה — הצעה A100703") + "צריכים עזרה? שאלו את העוזר החכם" pushed the Close 6px out of the window (sideways scroll, LIVE at
    720px). The title may wrap to a second line instead; above 600px only (the phone layout below is unchanged). */
-/* Owner console 2026-11-06 (release C, L-09): the floating Calculator button of the quote editor - above the windows that open over the
-   editor (z 10000), below the calculator itself; on a phone (the bottom bar, 768px and below) above the bottom bar */
-.pf-calc-fab { position: fixed; inset-inline-end: 18px; bottom: 24px; z-index: 10001; width: 52px; height: 52px; border-radius: 50%; border: none;
-  color: #fff; display: flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
-.pf-calc-fab:focus-visible { outline: 3px solid #0F6672; outline-offset: 3px; }
-@media (max-width: 768px) { .pf-calc-fab { bottom: calc(104px + env(safe-area-inset-bottom, 0px)); inset-inline-end: 14px; } }
-/* Owner console 2026-11-10 (the 13 items, L-09): room after the editor content, so at the end of the page the floating Calculator button
-   never covers the totals or the save buttons (the button stands 24-76px above the bottom; on a phone 104-156px, above the bottom bar) */
-.pf-editor-form { padding-bottom: 64px; }
-/* Owner 2026-11-11 (finding 23, typed L-09): the floating Calculator never covers content - it hides while any window is open over the
-   editor (the smart quote / smart edit, prices, templates, send ...), and on a phone the form keeps room under its last field */
-body:has([role="dialog"][aria-modal="true"]) .pf-calc-fab { display: none; }
+/* Owner console 2026-11-06 (release C, L-09) + 2026-11-20/21 (the simple-quotes sketch, typed L-09): the calculator is an icon of the header
+   (before the bell) on every screen - no floating button, so the editor needs no room kept for it */
+.dash-header-calc { background: none; border: 0; color: #ffffff; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 8px; padding: 0; cursor: pointer; flex: 0 0 36px; }
+.dash-header-calc:hover { background: rgba(255, 255, 255, 0.12); }
+.dash-header-calc:focus-visible { outline: 2px solid #efb75d; outline-offset: 1px; }
 /* Owner 2026-11-11 (finding 24): a "did you know?" tip never floats over an open window (send, plans, any dialog) */
 body:has([role="dialog"][aria-modal="true"]) .tk-tip { display: none; }
-@media (max-width: 768px) { .pf-editor-form { padding-bottom: 96px; } }
 /* Owner console 2026-11-10 (the 13 items): the dash of a row without an amount sits beside the row actions in Hebrew too */
 .qrows[dir='rtl'] .qrow-total.qrow-total-empty { text-align: left !important; }
-@media (max-width: 768px) { .pf-editor-form { padding-bottom: calc(96px + env(safe-area-inset-bottom, 0px)); } }
 .pf-modal-head--fit { grid-template-columns: minmax(0, 1fr) auto auto; }
 .pf-modal-head--fit .pf-modal-head-title-text { white-space: normal; overflow-wrap: anywhere; }
 @media (max-width: 360px) {
@@ -776,5 +767,37 @@ body:has([role="dialog"][aria-modal="true"]) .tk-tip { display: none; }
 [data-testid="catalog-new-name"], [data-testid="catalog-new-price"] { min-height: 44px; }
 
 /* 2026-11-15 (Owner video): on a phone, while a field has the keyboard, the bottom bar and the calculator button step aside */
-@media (max-width: 768px) { html.pf-typing .mobile-bottom-nav, html.pf-typing .pf-calc-fab { display: none !important; } }
+@media (max-width: 768px) { html.pf-typing .mobile-bottom-nav { display: none !important; } }
 @media (max-width: 768px) { html.pf-anchor, html.pf-anchor .dash-main-content { overflow-anchor: none; } }
+/* Owner console 2026-11-20/21 (the simple-quotes sketch, typed L-03 / L-04): inside the quote editor the phone header is one thin line -
+   the totals strip of the header (quotes / revenue) is not shown there (the list keeps its own overview line) */
+@media (max-width: 768px) { body:has(.pf-editor-form) .dash-header-stats { display: none !important; } }
+/* Owner console 2026-11-20/21 (the simple-quotes sketch, typed L-03 / L-04): on a phone and a tablet held upright the header is one navy
+   bar from edge to edge (no card, no rounded corners) - the same bar as the computer's, at least 48px high */
+@media (max-width: 768px) {
+  .dash-upper-section { margin: calc(-1 * var(--pf-mobile-workspace-inset, 6px)) calc(-1 * var(--pf-mobile-workspace-inset, 6px)) 10px !important; border: 0 !important;
+    border-radius: 0 !important; box-shadow: none !important; padding: 6px 10px !important; min-height: 48px; box-sizing: border-box; background: #11274a !important; }
+}
+/* 2026-11-20/21 (the simple-quotes sketch): the saved screen - the arrow at the start of the top line, then a green check, the sentence and
+   three buttons of 240px one under the other (no card) */
+.sq-saved.sq-saved--sketch { max-width: none; margin: 0; padding: 0; }
+.sq-saved--sketch .sq-saved-back { display: grid; place-items: center; inline-size: 36px; block-size: 36px; min-height: 36px; padding: 0; margin: 0 0 6px; border: 0; border-radius: 8px; background: none; color: #0f6672; cursor: pointer; }
+.sq-saved--sketch .sq-saved-card { max-width: 420px; margin: 30px auto; padding: 0; border: 0; background: none; box-shadow: none; display: flex; flex-direction: column; align-items: center; gap: 8px; text-align: center; }
+.sq-saved--sketch .sq-saved-icon { inline-size: auto; block-size: auto; background: none; color: #1f7a4d; border-radius: 0; }
+.sq-saved--sketch .sq-saved-card h2 { margin: 6px 0 8px; font-size: 19px; font-weight: 700; color: #172129; }
+.sq-saved--sketch .sq-saved-actions { flex-direction: column; align-items: center; gap: 8px; }
+.sq-saved--sketch .sq-saved-actions .sq-btn { inline-size: 240px; max-width: 240px; flex: none; min-height: 38px; border-radius: 8px; font-size: 13.5px; font-weight: 600; border-color: #d5dddf; }
+.sq-saved--sketch .sq-saved-actions .sq-btn--primary { border-color: #0f6672; }
+/* review round (21/11): the header's "date · time" reads date first in both languages (one LTR run, as in the sketch); on a phone the two
+   lines start at the start edge, the second line small and regular */
+.dash-header-datetime .dash-header-when { direction: ltr; unicode-bidi: isolate; }
+@media (max-width: 768px) {
+  .dash-header-title .dash-header-datetime { align-items: flex-start; text-align: start; }
+  .dash-header-title .dash-header-datetime .dash-header-mgreet { font-size: 12px; font-weight: 600; }
+  .dash-header-title .dash-header-datetime .dash-header-date, .dash-header-title .dash-header-datetime .dash-header-time, .dash-header-title .dash-header-datetime .dash-header-sep { font-size: 12px; font-weight: 400; opacity: 0.85; }
+}
+/* review round: the phone "חדש" start sheet is the sketch's centred window over the dimmed page */
+@media (max-width: 768px) {
+  .dash-mobile-newquote-menu { top: 50% !important; bottom: auto !important; transform: translateY(-50%); inset-inline: max(14px, calc(50% - 210px)) !important; border-radius: 12px !important; box-shadow: 0 18px 40px rgba(0,0,0,.25) !important; max-height: calc(100dvh - 28px); overflow-y: auto; }
+}
+@media (min-width: 769px) { .dash-header-datetime .dash-header-when { margin-inline-start: 0 !important; } }

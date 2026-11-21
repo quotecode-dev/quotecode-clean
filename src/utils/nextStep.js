@@ -90,7 +90,7 @@ export const NEXT_STEP_COPY = Object.freeze({
     emptyHint: 'An overdue task, a hot quote or a quote about to expire will appear here.',
     shortOpen: 'Open',
     shortView: 'View',
-    shortViewed: (n) => ` · viewed ${n} times, not signed`,
+    shortViewed: (n) => ` · Views: ${n}; not signed yet`,
     shortOverdue: ' · overdue',
     shortExpiresToday: ' · expires today',
     shortExpiresTomorrow: ' · expires tomorrow',

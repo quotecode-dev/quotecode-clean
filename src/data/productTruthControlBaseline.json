@@ -102,7 +102,7 @@
     "eb538f66570dbe79"
   ],
   "editor_calculator": [
-    "1a34cc94e27190fa"
+    "c9ba8df85072a90e"
   ],
   "expense_csv": [
     "f00625440502dacf"
@@ -127,8 +127,7 @@
     "ead68b8dad369132"
   ],
   "owner_whatsapp_share": [
-    "3fb02256d68527d4",
-    "7a4f909a55c77043",
+    "ad7f6d177e5de5ca",
     "c866db11f47bb73c"
   ],
   "public_call": [
@@ -141,11 +140,11 @@
     "eb2571c0ce7e2812"
   ],
   "public_quote_view": [
+    "04379417916a3266",
     "107e4acebb1f861f",
     "27343393805d2a28",
     "275a369c98fc253c",
     "6a771f49921c3d39",
-    "8cf760bdd9367799",
     "adcc0a59b052304c",
     "ed6e0f2e6583e158"
   ],
@@ -165,24 +164,18 @@
     "f39ae3231df3327e"
   ],
   "quote_csv": [
-    "2b356497dae34d7c"
+    "69b2c102780177ab"
   ],
   "quote_duplicate": [
-    "3fb02256d68527d4"
+    "ad7f6d177e5de5ca"
   ],
   "quote_edit": [
-    "254e798edf55c410"
+    "cd5e69d20713f594"
   ],
   "quote_email": [
-    "40fd643804d59c9f",
     "453439ef73788f4b",
+    "930e80d86defbc95",
     "b3b659c96f3d776e"
-  ],
-  "quote_history": [
-    "6091171d824ad148",
-    "69b2c102780177ab",
-    "8441d5c07f97d176",
-    "af5a6d854a8e9d9f"
   ],
   "quote_pdf": [
     "98c44c3f62e1b38c",

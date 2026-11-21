@@ -1,381 +1,341 @@
-/* 2026-11-13 (Owner: the manual quote of the 13/11 demo - structure, flow and proportions from the demo; colours, fonts and components stay
-   the system's: the same palette as .sq-* in src/index.css). Spacing: ~8 between fields, 4-6 label->field, 12-16 between groups. */
-.qt { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.qt-card { border: 1px solid #d6e3ea; border-radius: 16px; background: #ffffff; padding: 12px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
-.qt-structure { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-.qt-structure-btn { position: relative; display: flex; align-items: center; justify-content: center; gap: 6px; min-block-size: 48px; padding: 6px 40px;
-  border: 1px solid #b9dcdf; border-radius: 10px; background: #ffffff; color: #0b3d44; font: inherit; font-size: 0.92rem; font-weight: 700; cursor: pointer; text-align: center; }
-.qt-structure-btn[aria-pressed="true"] { border-color: #0F6672; background: #e8f4f5; }
-.qt-help { position: absolute; inset-inline-end: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;
-  border: 0; background: transparent; cursor: pointer; padding: 0; }
-/* a help circle beside a field label (the client step): in the row, its popover opens toward the inside */
-.qt-help-wrap { position: relative; display: inline-flex; flex: 0 0 auto; }
-.qt-help.qt-help--inline { position: static; transform: none; }
-.qt-help-wrap .qt-pop { inset-inline-start: auto; inset-inline-end: 0; }
-.sq-client-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-block-size: 44px; }
-.sq-client-label > label { font-size: 0.8rem; font-weight: 700; color: #0b3d44; }
-.qt-help > span { width: 23px; height: 23px; border-radius: 50%; border: 1.5px solid #0F6672; color: #0F6672; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; justify-content: center; background: #ffffff; }
-.qt-pop { position: absolute; z-index: 40; top: calc(100% + 6px); inset-inline-start: 0; inline-size: min(300px, calc(100vw - 32px)); padding: 10px 12px; border: 1px solid #d6e3ea;
-  border-radius: 10px; background: #ffffff; color: #334155; font-size: 0.84rem; font-weight: 500; line-height: 1.45; text-align: start; box-shadow: 0 12px 28px -10px rgba(15,23,42,0.35); }
-.qt-nav { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.qt-chip { min-block-size: 44px; padding: 0 14px; border: 1px solid #b9dcdf; border-radius: 10px; background: #ffffff; color: #0b3d44; font: inherit; font-size: 0.86rem; font-weight: 700; cursor: pointer; }
-.qt-chip[aria-current="true"] { border-color: #0F6672; background: #e8f4f5; }
-.qt-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.qt-link { min-block-size: 44px; padding: 0 6px; border: 0; background: transparent; color: #0F6672; font: inherit; font-size: 0.86rem; font-weight: 700; cursor: pointer; }
-.qt-form { border: 1px solid #b9dcdf; border-radius: 12px; background: #f6fbfb; padding: 10px; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.qt-form-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
-.qt-form-title { margin: 0; font-size: 0.9rem; font-weight: 700; color: #0b3d44; }
-.qt-to { font-size: 0.8rem; color: #0F6672; font-weight: 600; }
-/* the pricing list needs ~150px for its longest choice ("מחיר גלובלי", "Per work day") with the arrow - never cut */
-.qt-grid { display: grid; grid-template-columns: minmax(0, 2fr) 150px minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; }
+/* 2026-11-20/21 (Owner console, typed: the simple-quotes sketch TEKANGO-sketch-simple-quotes-2026-11-20 is the new approved demo of the quote
+   editor, HE + EN, every width; L-07 / L-09 / L-19 ... only as needed): the editor's look = the sketch C:/tekango-ops/demos/simple1120/src.html
+   (its CSS "editor", "the amount axis" and the <= 768 / 601-768 / <= 400 blocks, ported 1:1 to the product's class names).
+   IRON-NUMERIC-001: every amount of the work area (row prices, row sums, a section's total, the entry row's line total, the totals and the
+   bar's Grand Total) ends on ONE physical right edge - the sum column (--qt-sumw) of one shared grid, the same card insets in the bar. */
+.qe, .qt { --qt-ink: #172129; --qt-muted: #5d6b70; --qt-faint: #8a979b; --qt-line: #e3e8e9; --qt-line2: #d5dddf; --qt-teal: #0f6672; --qt-teal-d: #0b525c;
+  --qt-teal-soft: #e3eff0; --qt-chip: #f2f4f4; --qt-amber-soft: #fdf4e4; --qt-red: #b4232f; --qt-orange: #c2410c; --qt-entry: #f4f9f9;
+  /* the sum column: as wide as the widest amount shown (useMoneySlotSize), never narrower than the sketch's */
+  --qt-sumw: max(100px, var(--pf-money-slot-size, 100px)); }
+.qe { color: var(--qt-ink); font-size: 15px; line-height: 1.45; }
+.qe button, .qe input, .qe select, .qe textarea { font-family: inherit; }
+.qt { display: flex; flex-direction: column; min-width: 0; }
+
+/* ---------- generic (buttons, links, menus) ---------- */
+.qt-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 8px; padding: 0 14px; min-height: 38px; font-weight: 600; font-size: 13.5px;
+  border: 1px solid var(--qt-line2); background: #fff; color: var(--qt-ink); white-space: nowrap; cursor: pointer; font-family: inherit; }
+.qt-btn--p { background: var(--qt-teal); border-color: var(--qt-teal); color: #fff; }
+.qt-btn--sm { min-height: 32px; padding: 0 10px; font-size: 13px; }
+.qt-btn:disabled { opacity: .5; cursor: not-allowed; }
+.qt-link { background: none; border: 0; color: var(--qt-teal); font-weight: 600; font-size: 13px; padding: 6px 2px; min-height: 32px; cursor: pointer; font-family: inherit; }
+.qt-ib { background: none; border: 0; color: inherit; width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; padding: 0; cursor: pointer; }
+.qt-ib:hover { background: var(--qt-chip); }
+.qt-menu-wrap { position: relative; display: inline-block; }
+.qt-menu { position: absolute; z-index: 40; top: calc(100% + 4px); inset-inline-end: 0; min-width: 200px; background: #fff; border: 1px solid var(--qt-line2); border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(16,36,68,.18); padding: 6px; display: flex; flex-direction: column; }
+.qt-menu--up { top: auto; bottom: calc(100% + 4px); }
+.qt-menu button { display: flex; align-items: center; gap: 10px; background: none; border: 0; border-radius: 6px; padding: 0 10px; min-height: 40px; font-size: 14px; text-align: start;
+  white-space: nowrap; color: var(--qt-ink); cursor: pointer; font-family: inherit; }
+.qt-menu button:hover, .qt-menu button:focus-visible { background: var(--qt-chip); }
+.qt-menu button:disabled { opacity: .45; cursor: not-allowed; }
+.qt-menu .qt-menu-why { font-size: 11.5px; color: var(--qt-faint); margin-inline-start: auto; padding-inline-start: 10px; }
+.qt-menu hr { border: 0; border-top: 1px solid var(--qt-line); margin: 4px 0; }
+.qt-menu .qt-menu-del { color: var(--qt-red); }
+.qt-q { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--qt-teal); color: var(--qt-teal); background: #fff; font-size: 11px; font-weight: 700;
+  display: inline-grid; place-items: center; padding: 0; flex: 0 0 18px; position: relative; cursor: pointer; line-height: 1; font-family: inherit; }
+.qt-q::after { content: ''; position: absolute; inset: -12px; }
+.qt-helpbox, .qe-help { grid-column: 1 / -1; background: #eef6f7; border-radius: 8px; padding: 6px 10px; font-size: 12.5px; color: #22414a; }
+.qt-err, .qe-err { color: var(--qt-red); font-size: 12px; margin: 0; }
+.qt-chk { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; color: #33444b; }
+.qt-chk input { width: 16px; height: 16px; margin: 0; }
+.qt-missing { color: #9a3412; font-weight: 600; font-size: 12.5px; }
+.qt-example { display: inline-block; margin-inline-end: 6px; padding: 0 6px; border-radius: 6px; background: var(--qt-amber-soft); color: #6b4a12; font-size: 11px; font-weight: 700; }
+.qt-unnamed { color: #64748b; font-weight: 600; }
+
+/* ---------- the editor bar (ebar) and the structure line (eline) ---------- */
+.qe-ebar { display: flex; align-items: center; gap: 6px; margin: 0 0 10px; min-height: 40px; }
+.qe-back { color: var(--qt-teal); width: 36px; height: 36px; }
+.qe-ttl { flex: 1; min-width: 0; margin: 0; display: flex; gap: 6px; align-items: baseline; font-size: 17px; font-weight: 700; color: var(--qt-ink); line-height: 1.3; }
+.qe-ttl-t { flex: 0 0 auto; max-width: 60%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.qe-tsep { color: var(--qt-faint); font-weight: 400; }
+.qe-cname { background: none; border: 0; padding: 0; font: inherit; font-weight: 600; color: var(--qt-teal); min-width: 0; display: flex; cursor: pointer; }
+.qe-more { width: 38px; padding: 0; }
+.qe-menu { min-width: 230px; }
+.qt-eline { display: flex; align-items: center; gap: 6px 10px; flex-wrap: wrap; margin: -6px 0 8px; font-size: 13px; min-height: 30px; }
+.qt-slink { background: none; border: 0; padding: 0 2px; min-height: 30px; display: inline-flex; align-items: center; gap: 4px; color: var(--qt-muted); font-size: 13px; cursor: pointer; font-family: inherit; }
+.qt-slink b { color: var(--qt-teal); font-weight: 600; }
+.qt-smenu { min-width: 250px; inset-inline-end: auto; inset-inline-start: 0; }
+.qt-menu .qt-sopt { white-space: normal; align-items: flex-start; padding: 7px 10px; min-height: 0; }
+.qt-menu .qt-sopt span { display: flex; flex-direction: column; gap: 1px; }
+.qt-menu .qt-sopt b { font-weight: 600; }
+.qt-menu .qt-sopt small { font-size: 12px; color: var(--qt-muted); font-weight: 400; }
+.qt-menu .qt-sopt--on { background: var(--qt-teal-soft); }
+.qt-menu .qt-sopt--on b { color: var(--qt-teal-d); }
+.qt-vchip { border: 1px solid #e0a43a; background: var(--qt-amber-soft); color: #6b4a12; border-radius: 999px; padding: 0 9px; min-height: 24px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.qe .sq-vat-notice { margin: 0 0 8px; background: var(--qt-amber-soft); border: 0; border-inline-start: 3px solid #e0a43a; border-radius: 6px; padding: 6px 10px; font-size: 12.5px; color: #6b4a12; line-height: 1.45; }
+.qe .sq-vat-word { color: #9a3412; font-weight: 700; }
+
+/* ---------- the client step (the sketch's .step / .card / .f) ---------- */
+.qe-step { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
+.qe-step i { font-style: normal; width: 22px; height: 22px; border-radius: 50%; background: var(--qt-teal); color: #fff; font-size: 12px; font-weight: 700; display: grid; place-items: center; flex: 0 0 22px; }
+.qe-step h3 { margin: 0; font-size: 15px; font-weight: 700; color: var(--qt-ink); }
+.qe-step p { margin: 2px 0 0; font-size: 12.5px; color: var(--qt-muted); }
+.qe-card { box-shadow: none; }
+.qe-f { display: grid; grid-template-columns: 190px minmax(0, 1fr); align-items: center; gap: 6px 10px; margin-bottom: 8px; }
+.qe-f > label { font-size: 13px; font-weight: 600; color: #33444b; display: flex; align-items: center; gap: 4px; line-height: 1.25; }
+.qe-fc { min-width: 0; }
+.qe-f > .qe-err { grid-column: 2; }
+.qe-in { width: 100%; height: 40px; border: 1px solid var(--qt-line2); border-radius: 8px; padding: 0 10px; font-size: 16px; background: #fff; min-width: 0; box-sizing: border-box; color: var(--qt-ink); }
+select.qe-in { padding-inline-start: 8px; padding-inline-end: 22px; }
+.qe-ltr { direction: ltr; text-align: start; }
+[dir="rtl"] .qe-ltr { text-align: right; }
+.qe-ph { border: 1px solid var(--qt-line2); border-radius: 8px; overflow: hidden; background: #fff; }
+.qe-ph .qe-in { border: 0; border-radius: 0; text-align: left; flex: 1 1 auto; }
+.qe-ph-code { background: var(--qt-chip); padding: 0 8px; display: grid; place-items: center; font-size: 13px; font-weight: 600; border-inline-end: 1px solid var(--qt-line2); white-space: nowrap; flex: 0 0 auto; }
+[dir="rtl"] .qe-ph-code { border-inline-end: 0; border-inline-start: 1px solid var(--qt-line2); }
+.qe-addr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.qe-addr > :nth-child(1), .qe-addr > :nth-child(2) { grid-column: 1 / -1; }
+.qe-tog { display: flex; align-items: center; gap: 6px; background: none; border: 0; color: var(--qt-teal); font-weight: 600; font-size: 13px; padding: 6px 0; min-height: 36px; cursor: pointer; font-family: inherit; }
+.qe .sq-client-continue { display: flex; justify-content: flex-end; margin-top: 6px; }
+
+/* ---------- the table: column titles, rows, the entry row (the sketch's .items / .ih / .ir / .er) ---------- */
+.qt-items { --qt-cols: minmax(0, 1fr) 124px 90px 110px var(--qt-sumw) 36px; background: #fff; border: 1px solid var(--qt-line); border-radius: 10px; margin-bottom: 10px; }
+.qt-ih, .qt-ir, .qt-er { display: grid; grid-template-columns: var(--qt-cols); gap: 8px; align-items: center; padding: 0 10px; }
+.qt-ih { min-height: 28px; font-size: 12px; color: var(--qt-muted); font-weight: 600; border-bottom: 1px solid var(--qt-line); }
+.qt-ih > span { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.qt-ih > span:nth-child(3), .qt-ih > span:nth-child(4), .qt-ih > span:nth-child(5) { justify-content: right; }
+.qt-ir { min-height: 36px; font-size: 13.5px; border-bottom: 1px solid var(--qt-line); }
+.qt-ir:last-child { border-bottom: 0; }
+.qt-ir--edit { background: #fffbea; }
+.qt-ir-name { min-width: 0; }
+.qt-row-name { background: none; border: 0; padding: 0; min-height: 0; display: block; max-width: 100%; text-align: start; color: var(--qt-ink); font: inherit; font-weight: 600; cursor: pointer; }
+.qt-row-name-box { display: block; max-width: 100%; }
+.qt-ir-sub { display: none; }
+.qt-ir-u { font-size: 12.5px; color: var(--qt-muted); }
+.qt-ir-q { color: var(--qt-muted); }
+.qt-ir-q, .qt-ir-p, .qt-ir-s { text-align: right; white-space: nowrap; }
+.qt-ir-s { font-weight: 600; }
+.qt-ir .qt-menu-wrap { justify-self: center; }
+.qt-er { padding: 6px 10px; background: var(--qt-entry); border-top: 1px solid var(--qt-line); }
+.qt-items > .qt-er:first-child { border-top: 0; border-radius: 10px 10px 0 0; }
+.qt-er input, .qt-er select { width: 100%; height: 34px; border: 1px solid var(--qt-line2); border-radius: 7px; padding: 0 8px; font-size: 14px; background: #fff; min-width: 0; color: var(--qt-ink); box-sizing: border-box; min-block-size: 0; }
+.qt-er input:disabled { background: #f6f8f8; }
+.qt-er #qt-f-qty, .qt-er #qt-f-price { text-align: right; }
+.qt-ml { display: none; }
+.qt-catalog { position: relative; }
+.qt-catalog .qt-input { padding-inline-end: 28px; }
+.qt-catalog-arrow { position: absolute; inset-inline-end: 9px; top: 50%; transform: translateY(-50%); color: var(--qt-muted); pointer-events: none; display: grid; }
+.qt-catalog-list { position: absolute; top: calc(100% + 3px); inset-inline: 0; z-index: 45; background: #fff; border: 1px solid var(--qt-line2); border-radius: 10px; box-shadow: 0 10px 28px rgba(16,36,68,.18);
+  padding: 4px; max-height: 250px; overflow-y: auto; text-align: start; margin: 0; list-style: none; min-width: 220px; }
+.qt-catalog-list button { display: flex; justify-content: space-between; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 6px; background: none; font: inherit; font-size: 14px;
+  line-height: 1.3; text-align: start; cursor: pointer; color: var(--qt-ink); }
+.qt-catalog-list button:hover, .qt-catalog-list button:focus-visible { background: var(--qt-chip); }
+.qt-catalog-list .qt-catalog-new { color: var(--qt-teal); font-weight: 600; }
+.qt-catalog-price { color: var(--qt-muted); font-size: 12.5px; white-space: nowrap; }
+.qt-er-pa { display: grid; grid-column: span 2; grid-template-columns: var(--qt-sumw) 36px; gap: 8px; align-items: center; }
+.qt-er-pa > .qt-add, .qt-er-pa > .qt-msl { display: none; }
+.qt-lsc { text-align: right; white-space: nowrap; font-size: 13.5px; }
+.qt-lsum { font-weight: 600; color: var(--qt-orange); }
+.qt-lsum--set { color: var(--qt-ink); }
+.qt-ebot { display: flex; gap: 2px 14px; align-items: center; flex-wrap: wrap; padding: 0 10px 4px; background: var(--qt-entry); font-size: 12.5px; border-radius: 0 0 10px 10px; }
+.qt-ebot .qt-link { min-height: 28px; font-size: 12.5px; padding: 2px; }
+.qt-to { color: var(--qt-teal); font-weight: 600; display: flex; gap: 4px; min-width: 0; white-space: nowrap; }
+.qt-to .pf-ell { max-width: 240px; }
+.qt-add2 { margin-inline-start: auto; height: 32px; min-height: 32px; padding: 0 18px; margin-block: 4px; }
+.qt-tcard > .qt-helpbox, .qt-tcard > .qt-err { margin: 0; padding: 4px 10px; background: var(--qt-entry); border-radius: 0; }
+.qt-more { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 10px 8px; background: var(--qt-entry); border-radius: 0 0 10px 10px; }
+.qt-more .qt-input { height: 34px; min-block-size: 0; font-size: 14px; }
+.qt-more .qt-textarea { grid-column: 1 / -1; min-height: 56px; height: auto; font-size: 14px; padding: 6px 8px; resize: vertical; }
+.qt-more-l { grid-column: 1 / -1; font-size: 12px; font-weight: 600; color: #33444b; margin: 2px 0 -3px; }
+.qt-more .qt-toggle, .qt-more .qt-size { grid-column: 1 / -1; display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.qt-more .qt-size .qt-input { flex: 1 1 120px; width: auto; }
+.qt-tcard > .qt-ebot:last-child, .qt-tcard > .qt-more:last-child { border-radius: 0 0 10px 10px; }
+.qt-tcard > .qt-ebot:not(:last-child) { border-radius: 0; }
+
+/* ---------- sections (the sketch's .hb / .hh) ---------- */
+.qt-hb { margin-bottom: 6px; }
+.qt-hb .qt-hb { margin-inline-start: 10px; padding-inline-start: 8px; border-inline-start: 2px solid #d3e5e7; }
+.qt-hh { display: grid; grid-template-columns: 30px minmax(0, 1fr) 32px var(--qt-sumw) 36px; gap: 8px; align-items: center; background: #fff; border: 1px solid var(--qt-line); border-radius: 10px;
+  padding-inline-start: 4px; padding-inline-end: 10px; min-height: 42px; }
+.qt-hh--on { border-color: var(--qt-teal); border-inline-start: 3px solid var(--qt-teal); }
+.qt-tri { width: 30px; height: 30px; color: var(--qt-muted); }
+.qt-hn { min-width: 0; background: none; border: 0; padding: 0 2px; text-align: start; font-weight: 700; font-size: 14px; color: var(--qt-ink); min-height: 36px; display: flex; align-items: center; cursor: pointer; font-family: inherit; }
+.qt-hn .pf-ell { display: block; }
+.qt-addb { width: 32px; height: 32px; color: var(--qt-teal); }
+.qt-hs { font-weight: 600; font-size: 13.5px; white-space: nowrap; text-align: right; }
+.qt-hh .qt-menu-wrap { justify-self: center; }
+.qt-hh--ren { display: flex; gap: 6px; padding: 4px 6px; }
+.qt-hh--ren .qt-input { flex: 1; min-width: 0; height: 36px; min-block-size: 0; }
+.qt-hbody { padding-top: 6px; }
+.qt-hbody > .qt-items { margin-bottom: 6px; }
+.qt-addh { width: 100%; border-style: dashed; margin-bottom: 10px; color: var(--qt-teal); }
+.qt-addh-p { background: #fff; border: 1px solid var(--qt-teal); border-radius: 10px; padding: 10px; margin-bottom: 10px; }
+.qt-aq { display: block; font-weight: 700; font-size: 13.5px; margin-bottom: 8px; }
+.qt-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.qt-chips button { border: 1px solid var(--qt-line2); background: #fff; border-radius: 999px; padding: 0 12px; min-height: 32px; font-size: 13px; font-weight: 600; color: var(--qt-muted); cursor: pointer; font-family: inherit; }
+.qt-hcnt { width: 120px; height: 40px; border: 1px solid var(--qt-line2); border-radius: 8px; padding: 0 10px; font-size: 16px; box-sizing: border-box; }
+.qt-hnames { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px; }
+.qt-hnames input { height: 40px; border: 1px solid var(--qt-line2); border-radius: 8px; padding: 0 10px; font-size: 16px; min-width: 0; width: 100%; box-sizing: border-box; }
+.qt-hint { font-size: 12px; margin-top: 6px; color: var(--qt-muted); }
+.qt-addh-p .qt-err { margin-top: 4px; }
+.qt-hacts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.qt-wl { font-size: 12.5px; font-weight: 700; color: var(--qt-muted); margin: 2px 2px 4px; }
+.qt-addhere { font-size: 13px; margin-bottom: 8px; text-align: center; }
+.qt-strip { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 12.5px; color: #475569; margin-bottom: 6px; }
+
+/* ---------- the totals (totalsCard) ---------- */
+.qt-tots { margin-top: -2px; }
+.qt-tots .qt-ir { min-height: 30px; font-size: 13px; }
+.qt-trw > span:first-child { grid-column: span 4; color: #33444b; }
+.qt-tots .qt-gt { font-size: 15px; min-height: 40px; }
+.qt-tots .qt-gt > span:first-child { font-weight: 700; color: var(--qt-ink); }
+.qt-tots .qt-gt .qt-ir-s { font-weight: 800; }
+.qe-neg { color: var(--qt-red); }
+.qe-partial { display: block; font-size: 11.5px; font-weight: 700; color: var(--qt-red); }
+
+/* ---------- the extras (more quote details) ---------- */
+.qt-extras { background: #fff; border: 1px solid var(--qt-line); border-radius: 10px; margin-bottom: 10px; }
+.qt-extras-tg { width: 100%; display: flex; align-items: center; gap: 8px; background: none; border: 0; padding: 0 12px; min-height: 42px; font-weight: 600; font-size: 13.5px; color: var(--qt-teal); text-align: start; cursor: pointer; font-family: inherit; }
+.qt-xg { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; padding: 0 10px 10px; }
+.qt-xg button { border: 1px solid var(--qt-line2); background: #fff; border-radius: 8px; min-height: 38px; font-size: 13px; font-weight: 600; padding: 4px 8px; text-align: center; cursor: pointer; font-family: inherit; color: var(--qt-ink); }
+
+/* ---------- the bar (sbar): the total on the same axis as the rows (same width, same insets: 1px border + 10px padding) ---------- */
+/* the work screen is one column; the bar stays at the bottom of the work area also when the quote is short (the sketch: margin-top auto) */
+.qe .pf-editor-form { display: flex; flex-direction: column; }
+.qe .pf-editor-form > .sq-g-bar { margin-top: auto; }
+/* the editor fills the work area (its two layout wrappers stretch), so the bar stands at the bottom of the screen and the form scrolls above it */
+.qp-creator.qp-creator--stack:has(.qe), .qp-creator.qp-creator--stack:has(.qe) > .qp-creator-form { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.sq-g-bar { position: sticky; bottom: 0; z-index: 20; padding-top: 12px; }
+.qt-sbar { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) var(--qt-sumw) 36px; gap: 8px; align-items: center; padding: 8px 11px; background: #fff;
+  border-top: 1px solid var(--qt-line); box-shadow: 0 -4px 14px rgba(16,36,68,.07); }
+.qt-acts2 { display: flex; gap: 8px; align-items: center; min-width: 0; }
+.qt-tot { min-width: 0; background: none; border: 0; padding: 0; display: flex; flex-direction: column; line-height: 1.2; text-align: right; align-items: stretch; white-space: nowrap; cursor: pointer; font-family: inherit; color: var(--qt-ink); }
+.qt-tot small { font-size: 12px; color: var(--qt-muted); }
+.qt-tot b { font-size: 16px; font-weight: 700; }
+.qt-bar-warn { grid-column: 1 / -1; color: var(--qt-red); font-size: 12.5px; font-weight: 600; }
+.qt-status-slot { position: absolute; bottom: calc(100% + 12px); inset-inline: 0; display: flex; justify-content: center; pointer-events: none; }
+.qt-toast { pointer-events: auto; display: flex; align-items: center; gap: 2px; width: max-content; max-width: calc(100% - 28px); background: var(--qt-ink); color: #fff; border-radius: 10px;
+  padding: 8px 10px 8px 14px; font-size: 13px; text-align: start; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+[dir="rtl"] .qt-toast { padding: 8px 14px 8px 10px; }
+.qt-toast--error { background: #7f1d1d; }
+.qt-toast-undo { color: #9fe3ea; min-height: 24px; padding: 0 4px; }
+.qt-toast-x { width: 24px; height: 24px; color: #fff; margin-inline-start: 6px; }
+.qt-toast-x:hover { background: rgba(255,255,255,.12); }
+
+/* ---------- windows (summary, details, move a row) ---------- */
+.qt-ov { position: fixed; inset: 0; background: rgba(15,23,42,.45); z-index: 1000; display: flex; align-items: center; justify-content: center; padding: 14px; }
+.qt-dlg { background: #fff; border-radius: 12px; max-width: 420px; width: 100%; padding: 16px; box-shadow: 0 18px 40px rgba(0,0,0,.25); max-height: calc(100% - 8px); overflow: auto; box-sizing: border-box; color: var(--qt-ink); font-size: 14px; }
+.qt-dlg--wide { max-width: 620px; }
+.qt-dlg h3 { margin: 0 0 8px; font-size: 16px; }
+.qt-dlg-sub { color: var(--qt-muted); font-size: 13px; margin: 0 0 8px; }
+.qt-dlg-acts { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; margin-top: 12px; }
+.qt-mvl { display: flex; flex-direction: column; gap: 4px; }
+.qt-mvl button { border: 1px solid var(--qt-line2); background: #fff; border-radius: 8px; min-height: 40px; text-align: start; font-size: 14px; padding: 4px 10px; color: var(--qt-ink); cursor: pointer; font-family: inherit; }
+.qt-mvl button:disabled { background: var(--qt-chip); color: var(--qt-muted); cursor: default; }
+.qt-mvl small { font-size: 12px; }
+.qt-tgrid { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; align-items: baseline; }
+.qt-tgrid > .pf-money, .qt-tgrid-total > .pf-money { text-align: right; }
+.qt-tgrid .qt-tsep { grid-column: 1 / -1; border-top: 1px solid var(--qt-line); margin: 2px 0; }
+.qt-tgrid > .qe-partial { grid-column: 1 / -1; }
+.qt-tgrid-total { display: contents; }
+.qt-tgrid-total > * { font-weight: 700; font-size: 16px; }
+.qe-dfields { display: flex; flex-direction: column; gap: 8px; }
+
+/* the fields of the detail windows (kept from the 13/11 pages) */
 .qt-field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.qt-label { display: flex; align-items: center; gap: 4px; font-size: 0.78rem; font-weight: 700; color: #334155; min-height: 24px; }
-.qt-input, .qt-select { min-block-size: 44px; inline-size: 100%; min-width: 0; padding: 0 10px; border: 1px solid #c9d8df; border-radius: 8px; background: #ffffff; color: #0f172a; font: inherit; font-size: 16px; box-sizing: border-box; }
-.qt-add { min-block-size: 44px; padding: 0 16px; border: 0; border-radius: 10px; background: #0F6672; color: #ffffff; font: inherit; font-weight: 700; cursor: pointer; white-space: nowrap; }
-.qt-strip { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: center; font-size: 0.8rem; color: #475569; }
-.qt-strip .qt-link { min-block-size: 32px; font-size: 0.8rem; }
-.qt-note { font-size: 0.8rem; color: #9a3412; font-weight: 600; }
-.qt-head { display: flex; align-items: center; gap: 8px; min-block-size: 48px; padding-inline: 8px 0; border-radius: 10px; background: #f1f5f7; }
-.qt-head--sel { outline: 2px solid #0F6672; outline-offset: -2px; }
-.qt-tri { border: 0; background: transparent; color: #0b3d44; cursor: pointer; display: flex; align-items: center; justify-content: center; min-width: 44px; min-height: 44px; padding: 0; }
-.qt-tri--top { font-size: 1rem; }
-.qt-tri--sub { font-size: 0.78rem; }
-.qt-head-name { flex: 1; min-width: 0; font-weight: 700; color: #0b3d44; font-size: 0.95rem; overflow-wrap: anywhere; }
-/* the heading total sits on the axis of the row sums (same slot width, digits flush right), the menu in the actions column */
-.qt-head-total { flex: 0 0 112px; box-sizing: border-box; padding-inline: 6px; text-align: right; font-weight: 700; color: #0F6672; font-size: 0.86rem; white-space: nowrap; }
-.qt-head-menu { flex: 0 0 96px; display: flex; justify-content: flex-end; padding-inline-end: 6px; box-sizing: border-box; }
-.qt-menu-dots { display: none; }
-.qt-rows .qt-menu-btn { min-width: 88px; }
-.qt-menu-btn { min-width: 44px; min-height: 44px; border: 1px solid #d6e3ea; border-radius: 8px; background: #ffffff; color: #0b3d44; font: inherit; font-weight: 700; cursor: pointer; padding: 0 10px; }
-/* the row menu: wide enough for "העברה אל: דירה 32 ← חדר ילדים" on one line; a name never breaks in its middle */
-.qt-menu { position: absolute; z-index: 45; inset-inline-end: 0; top: calc(100% + 4px); min-width: 260px; max-inline-size: min(420px, calc(100vw - 32px)); inline-size: max-content; margin: 0; padding: 4px; list-style: none; border: 1px solid #d6e3ea; border-radius: 10px; background: #fff; box-shadow: 0 12px 28px -10px rgba(15,23,42,0.35); }
-.qt-menu button { display: block; inline-size: 100%; min-block-size: 44px; padding: 0 10px; border: 0; background: transparent; color: #0f172a; font: inherit; font-size: 0.86rem; text-align: start; cursor: pointer; border-radius: 8px; }
-.qt-menu button:hover, .qt-menu button:focus-visible { background: #e8f4f5; }
-.qt-menu bdi { white-space: nowrap; }
-.qt-body[hidden] { display: none; }
-.qt-body { display: flex; flex-direction: column; gap: 8px; padding-inline-start: 14px; border-inline-start: 2px solid #e2ecef; margin-inline-start: 8px; }
-.qt-rows { inline-size: 100%; border-collapse: collapse; font-size: 0.86rem; table-layout: fixed; }
-.qt-col-qty { inline-size: 96px; } .qt-col-price { inline-size: 112px; } .qt-col-sum { inline-size: 112px; } .qt-col-act { inline-size: 104px; }
-.qt-rows th { text-align: start; font-size: 0.76rem; color: #475569; font-weight: 700; padding: 4px 6px; border-bottom: 1px solid #e2ecef; }
-.qt-rows td { padding: 6px; border-bottom: 1px solid #eef3f5; vertical-align: middle; color: #0f172a; }
-/* quantity / price / sum: one physical right digit edge in both languages (IRON-NUMERIC) */
-.qt-rows .qt-num { white-space: nowrap; text-align: right; }
-.qt-rows .qt-sum { font-weight: 700; }
-.qt-rows .qt-act { text-align: end; }
-.qt-rows .qt-desc { overflow-wrap: anywhere; }
-.qt-missing { color: #9a3412; font-weight: 600; }
-.qt-example { display: block; inline-size: fit-content; margin-block-end: 2px; padding: 1px 8px; border-radius: 8px; background: #fff4e2; border: 1px solid #f1c27d; color: #8a4b00; font-size: 0.74rem; font-weight: 700; }
-.qt-undo { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 0.82rem; color: #334155; }
-/* the in-page steps of the 13/11 demo: "→ חזרה", the question as a title, one card, "חזרה ללא שמירה" under it */
-.qt-card[hidden] { display: none; }
-.qt-page { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
-.qt-page-back { align-self: flex-start; }
-.qt-page-title { margin: 0; font-size: 1.35rem; font-weight: 800; color: #0b3d44; overflow-wrap: anywhere; outline: none; }
-.qt-page-card { padding: 16px; gap: 12px; }
-.qt-page-stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.qt-page-label { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-block-size: 44px; }
-.qt-page-label > label { font-size: 0.86rem; font-weight: 700; color: #0b3d44; }
-.qt-page-hint { margin: 0; font-size: 0.8rem; color: #475569; }
-.qt-page-hr { inline-size: 100%; margin: 4px 0; border: 0; border-top: 1px solid #e2ecef; }
-.qt-page-foot { display: flex; }
-.qt-wide { inline-size: 100%; }
-.qt-option { inline-size: 100%; min-block-size: 46px; padding: 0 12px; border: 1px solid #d6e3ea; border-radius: 10px; background: #ffffff; color: #0b3d44; font: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer; }
-.qt-option:hover, .qt-option:focus-visible { background: #e8f4f5; }
-.qt-option--danger { color: #b91c1c; }
-.qt-quiet { min-block-size: 44px; padding: 0 14px; border: 1px solid #d6e3ea; border-radius: 10px; background: #ffffff; color: #0b3d44; font: inherit; font-size: 0.88rem; font-weight: 700; cursor: pointer; }
-.qt-kinds { display: flex; flex-wrap: wrap; gap: 8px; }
-/* the demo bar: the actions from the start edge (save, what the client sees, summary), the total at the END edge (left in HE, right in EN) */
-.qt-bar { position: sticky; bottom: 0; z-index: 20; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; padding: 10px 12px;
-  border: 1px solid #d6e3ea; border-radius: 14px; background: #ffffff; box-shadow: 0 -6px 18px -12px rgba(15,23,42,0.35); }
-.qt-bar-total { display: flex; flex-direction: column; align-items: flex-end; text-align: end; font-size: 0.78rem; color: #475569; }
-.qt-bar-warn { flex: 1 0 100%; order: 3; font-size: 0.78rem; font-weight: 600; color: #9a3412; }
-.qt-bar-total strong { font-size: 1.05rem; color: #0b3d44; white-space: nowrap; }
-.qt-bar-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
-.qt-bar .sq-save-btn { padding: 0 18px; white-space: nowrap; }
-.qt-catalog { position: relative; min-width: 0; }
-.qt-catalog-list { position: absolute; z-index: 35; inset-inline-start: 0; top: calc(100% + 4px); inline-size: max(100%, min(340px, calc(100vw - 48px))); box-sizing: border-box; max-block-size: 280px; /* at least its field; never past the screen */ overflow-y: auto;
-  margin: 0; padding: 4px; list-style: none; border: 1px solid #d6e3ea; border-radius: 10px; background: #fff; box-shadow: 0 12px 28px -10px rgba(15,23,42,0.35); }
-.qt-catalog-list li button { display: flex; justify-content: space-between; gap: 8px; inline-size: 100%; min-block-size: 44px; padding: 0 10px; border: 0; background: transparent; font: inherit; font-size: 0.86rem; color: #0f172a; cursor: pointer; text-align: start; border-radius: 8px; }
-.qt-catalog-list li button:hover, .qt-catalog-list li button:focus-visible { background: #e8f4f5; }
-.qt-catalog-new { color: #0F6672 !important; font-weight: 700; }
-.qt-catalog-price { flex: 0 0 auto; min-inline-size: 88px; text-align: right; color: #475569; }
-/* a number field keeps its digits LTR; in Hebrew its placeholder and digits sit on the start (right) edge like the label */
-.qt[dir='rtl'] .qt-input[dir='ltr'] { text-align: right; }
-/* the help of the last structure button opens toward the inside of the card */
-.qt-structure > div:last-child .qt-pop { inset-inline-start: auto; inset-inline-end: 0; }
-/* 2026-11-14 (eye check): on a wide screen the structure help opens ABOVE its button - it never covers the buttons of the row below (in
-   English the longer "From a saved template" sat under it); the phone keeps it in the flow (below) */
-@media (min-width: 768.02px) { .qt-structure .qt-pop { top: auto; bottom: calc(100% + 6px); } }
-@media (max-width: 767px) {
-  .qt-bar-total { order: -1; flex: 1 0 100%; flex-direction: row; justify-content: space-between; align-items: baseline; }
-}
-@media (max-width: 1023px) {
-  /* a tablet: the product on its own line, then pricing / quantity / price / add on one line */
-  .qt-grid { grid-template-columns: 150px minmax(0, 1fr) minmax(0, 1fr) auto; }
-  .qt-grid > .qt-field--product { grid-column: 1 / -1; }
-}
-@media (max-width: 600px) {
-  .qt-structure { grid-template-columns: minmax(0, 1fr); }
-  .qt-card { padding: 8px; }
-  .qt-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .qt-grid > .qt-field--unit { grid-column: 1 / -1; }
-  .qt-add { grid-column: 1 / -1; }
-  .qt-body { padding-inline-start: 8px; margin-inline-start: 4px; }
-  .qt-rows thead { display: none; }
-  .qt-rows, .qt-rows tbody { display: block; }
-  .qt-rows colgroup { display: none; }
-  .qt-rows tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 2px 8px; align-items: end; padding: 6px 0; border-bottom: 1px solid #eef3f5; }
-  .qt-rows td { border: 0; padding: 2px 4px; }
-  .qt-rows td.qt-desc { grid-column: 1 / -1; }
-  .qt-rows td[colspan] { grid-column: 1 / -1; }
-  /* each number says what it is on a phone (the table head is hidden) */
-  .qt-rows td[data-label]::before { content: attr(data-label); display: block; font-size: 0.7rem; font-weight: 600; color: #64748b; }
-  .qt-rows .qt-menu-btn { min-width: 44px; }
-  .qt-head-total { flex-basis: auto; }
-  .qt-head-menu { flex-basis: auto; }
-  .qt-menu-text { display: none; }
-  .qt-menu-dots { display: inline; }
-  .qt-page-title { font-size: 1.15rem; }
-  /* a phone: the help of a structure button opens in the flow under its button - it never covers the next button */
-  .qt-structure .qt-pop { position: static; display: block; margin-block-start: 6px; inline-size: auto; box-shadow: none; }
-}
-@media print { .qt-help, .qt-tri { display: none; } }
-/* 2026-11-13 (the 13/11 demo): the quote summary opens right above the bar, at its end edge near the total */
-.qt-bar { position: relative; }
-.qt-summary-pop { position: absolute; bottom: calc(100% + 8px); inset-inline-end: 0; inline-size: min(400px, 100%); max-block-size: min(70vh, 560px); overflow-y: auto; z-index: 30;
-  border-radius: 16px; box-shadow: 0 18px 40px -16px rgba(15,23,42,0.45); }
-.qt-summary-pop .sq-summary { margin: 0; }
-/* the edit of a row: its own fields in a framed area; every control at least 44px */
-.qt-rows td.qt-edit { padding: 10px; background: #f6fbfb; border: 1px solid #b9dcdf; border-radius: 12px; }
-.qt-rows td.qt-edit .qt-form-title { margin-block-end: 6px; }
-.qt-rows td.qt-edit input, .qt-rows td.qt-edit select, .qt-rows td.qt-edit button { min-block-size: 44px; }
-.qt-rows td.qt-edit .qrow-menu button { min-inline-size: 44px; }
-/* the bar stays at the bottom while the work scrolls: a field reached by Tab (or scrolled to) is never left under it, and on a phone /
-   portrait tablet the bar sits above the fixed bottom navigation (66px, the same inset .dash-main-content keeps) */
-html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden])) { scroll-padding-bottom: 220px; }
-@media (max-width: 768px) {
-  .sq-g-bar { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
-  html:has(.sq-g-bar:not([hidden])), .dash-main-content:has(.sq-g-bar:not([hidden])) { scroll-padding-bottom: 300px; }
-}
-/* eye review round 2 (2026-11-13) */
-/* a heading name in a button keeps its number with it ("+ הוספת כותרת בתוך דירה 32") */
-.qt-actions bdi { white-space: nowrap; }
-/* Owner console 2026-11-19 (answer א: "שם המקום בכפתור יורד לשורה נוספת ונראה במלואו, כמו כותרת המקום שמעליו"): in "+ add a heading inside"
-   a long place name wraps inside the button instead of running past the screen; its last word stays with the one before it ("דירה 32") */
-.qt-actions [data-testid="qt-add-inside"] { max-inline-size: 100%; min-inline-size: 0; }
-.qt-actions .qt-add-inside-name { white-space: normal; overflow-wrap: anywhere; }
-/* the add row stays one row in both languages where it fits */
-.qt-actions .sq-add-btn { padding: 0 12px; }
-/* the edit of a row: its own small buttons are full 44px targets too */
-.qt-rows td.qt-edit button { min-block-size: 44px !important; min-inline-size: 44px; }
-/* the summary amounts share one digit edge (the total row is a grid of its own) */
-.sq-summary .sq-summary-rows > .pf-money, .sq-summary .sq-summary-total > .pf-money { min-inline-size: 150px; }
-/* phone / portrait tablet: room after the bar, so pinned above the bottom navigation it never sits on the quote details */
-@media (max-width: 768px) { .sq-editor-grid { padding-block-end: 72px; } }
-/* eye review round 3: the three structure buttons on one line in both languages; the add row one row; triangles that read as triangles */
-.qt-structure-btn { padding-inline: 8px 38px; font-size: 0.85rem; }
-.qt-actions .sq-add-btn { font-size: 0.86rem; padding: 0 10px; }
-.qt-actions > .qt-link { font-size: 0.82rem; padding-inline: 2px; }
-.qt-tri--top { font-size: 1.2rem; }
-.qt-tri--sub { font-size: 0.95rem; }
-/* eye review round 3 (2026-11-13) */
-/* the add form's labels carry the demo's help circle at their end; the circle stays a 32px target so a narrow field keeps its label on one line */
-.qt-form .qt-label { justify-content: space-between; }
-.qt-form .qt-label > label { min-width: 0; }
-.qt-form .qt-label .qt-help--inline { width: 32px; height: 32px; margin-block: -4px; }
-.qt-row-sub { display: block; font-size: 0.74rem; color: #64748b; }
-@media (max-width: 600px) {
-  /* a phone: the catalog list is exactly its field - never past the screen */
-  .qt-catalog-list { inline-size: 100%; }
-  /* the "?" of a structure button stays on its button while its help opens under it */
-  .qt-structure .qt-help { top: 24px; }
-}
-.qt-rows td.qt-edit input, .qt-rows td.qt-edit select { min-block-size: 44px !important; }
-/* a computer: the price label ("מחיר ליחידה" + its "?") on one line in a nested heading's form too */
-@media (min-width: 1024px) {
-  .qt-grid { grid-template-columns: minmax(0, 1.6fr) 150px minmax(0, 0.9fr) minmax(0, 1.15fr) auto; }
-}
-@media (min-width: 1024px) {
-  .qt-grid { grid-template-columns: minmax(0, 1.75fr) 136px minmax(0, 0.9fr) minmax(0, 1.1fr) auto; }
-  /* a computer has no zoom-on-focus: 15px keeps every placeholder whole in a nested heading's form */
-  .qt-form .qt-input, .qt-form .qt-select { font-size: 15px; padding-inline: 8px; }
-}
-/* a phone: a customer detail's name and value one under the other - their placeholders are never cut */
-@media (max-width: 600px) { .qt-pair { flex-direction: column; } }
+.qt-page-label { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: #33444b; }
+.qt-input, .qt-select { min-block-size: 40px; inline-size: 100%; min-width: 0; padding: 0 10px; border: 1px solid var(--qt-line2); border-radius: 8px; background: #fff; color: #0f172a; font: inherit; font-size: 16px; box-sizing: border-box; }
+.qt-textarea { min-block-size: 88px; padding: 8px 10px; resize: vertical; line-height: 1.5; }
+.qt-note { font-size: 12.5px; color: #9a3412; font-weight: 600; }
+.qt-page-hint { margin: 0; font-size: 12.5px; color: #475569; }
+.qt-chip { min-block-size: 32px; padding: 0 12px; border: 1px solid var(--qt-line2); border-radius: 999px; background: #fff; color: var(--qt-ink); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; }
+.qt-chip[aria-pressed="true"] { border-color: var(--qt-teal); background: var(--qt-teal-soft); color: var(--qt-teal-d); }
+.sq-nowrap { white-space: nowrap; }
 
-/* ===== 2026-11-15 (Owner: "אני נותן לך ליישם דמו!!!") - the approved demo's layout rules, by window width (the app's 980px column and
-   sidebar match the demo frame one to one): one-row form from 951px; two columns up to 950px; rows as cards up to 950px; the structure
-   buttons stacked up to 700px; tighter up to 480px. Colours, fonts and components stay the system's. ===== */
-.qt-status { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 8px 10px; border-radius: 10px; background: #eef7f7; color: #0b3d44; font-size: 0.84rem; font-weight: 600; }
-.qt-status--error { background: #fff4ed; color: #9a3412; }
-.qt-status .qt-link { min-block-size: 32px; }
-.qt-sr { position: absolute !important; inline-size: 1px; block-size: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
-.qt-row-name { display: inline; padding: 0; border: 0; background: transparent; color: #0f172a; font: inherit; font-weight: 600; text-align: start; cursor: pointer; overflow-wrap: anywhere; }
-.qt-row-name:hover, .qt-row-name:focus-visible { color: #0F6672; text-decoration: underline; }
-/* Owner console 2026-11-19 (the approved bubble pictures): a touch screen keeps no hover look after a tap - the tapped name stays plain */
+/* the help circle with a popover (the detail windows, the schedule fields) */
+.qt-help { position: absolute; inset-inline-end: 0; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; border: 0; background: transparent; cursor: pointer; padding: 0; }
+.qt-help-wrap { position: relative; display: inline-flex; flex: 0 0 auto; }
+.qt-help.qt-help--inline { position: static; transform: none; width: 24px; height: 24px; }
+.qt-help-wrap .qt-pop { inset-inline-start: auto; inset-inline-end: 0; }
+.qt-help > span { width: 18px; height: 18px; border-radius: 50%; border: 1.5px solid var(--qt-teal, #0F6672); color: var(--qt-teal, #0F6672); font-size: 11px; font-weight: 700; display: flex; align-items: center; justify-content: center; background: #fff; }
+.qt-pop { position: absolute; z-index: 40; top: calc(100% + 6px); inset-inline-start: 0; inline-size: min(300px, calc(100vw - 32px)); padding: 10px 12px; border: 1px solid #d6e3ea;
+  border-radius: 10px; background: #fff; color: #334155; font-size: 0.84rem; font-weight: 500; line-height: 1.45; text-align: start; box-shadow: 0 12px 28px -10px rgba(15,23,42,0.35); }
+.qt-pop--below { top: calc(100% + 6px); bottom: auto; }
+
+/* ---------- phone and tablet portrait (<= 768) ---------- */
+@media (max-width: 768px) {
+  .qe, .qt { --qt-sumw: max(94px, var(--pf-money-slot-size, 94px)); }
+  .qt-er-pa { grid-column: 1 / -1; grid-template-columns: auto minmax(0, 1fr) var(--qt-sumw) 36px; align-items: center; }
+  .qt-er-pa > .qt-add, .qt-er-pa > .qt-msl { display: block; }
+  .qt-er-pa > .qt-msl { text-align: end; font-size: 12.5px; color: var(--qt-muted); }
+  .qt-add2 { display: none; }
+  .qt-trw > span:first-child { grid-column: auto; }
+  .qt-hh { grid-template-columns: 30px minmax(0, 1fr) var(--qt-sumw) 36px; }
+  .qt-hh .qt-addb { display: none; }
+  .qt-hb .qt-hb { margin-inline-start: 6px; padding-inline-start: 6px; }
+  .qt-ir { grid-template-columns: minmax(0, 1fr) var(--qt-sumw) 36px !important; padding: 6px 10px; }
+  .qt-ir .qt-ir-q, .qt-ir .qt-ir-p, .qt-ir .qt-ir-u { display: none; }
+  .qt-ir .qt-ir-sub { display: block; font-size: 12px; color: var(--qt-muted); }
+  .qt-ih { display: none; }
+  .qt-er { grid-template-columns: repeat(3, minmax(0, 1fr)); padding: 8px 10px; gap: 6px; }
+  .qt-er-pn { grid-column: 1 / -1; }
+  .qt-ml { display: flex; align-items: center; gap: 4px; font-size: 12px; font-weight: 600; color: #33444b; margin-bottom: 3px; white-space: nowrap; }
+  .qt-er input, .qt-er select { height: 40px; font-size: 16px; }
+  .qt-er .qt-add { height: 38px; min-height: 38px; padding: 0 26px; }
+  .qt-ebot { padding: 0 10px 6px; }
+  .qt-more .qt-input { height: 40px; font-size: 16px; }
+  .qt-more .qt-textarea { font-size: 16px; }
+  .qe-ttl { font-size: 16px; }
+  .qe-f { grid-template-columns: 116px minmax(0, 1fr); gap: 4px 8px; margin-bottom: 7px; }
+  .qe-f > label { font-size: 12.5px; }
+  .qe-card { padding: 10px !important; }
+  .qt-xg { grid-template-columns: 1fr 1fr; }
+  .qe-addr { grid-template-columns: 1fr; }
+  .qt-sbar { padding: 8px 11px; }
+  .qt-sbar .qt-btn { padding: 0 10px; }
+}
+@media (max-width: 400px) {
+  .qt-sbar .qt-lbl { display: none; }
+}
+/* tablet portrait (601-768): the desktop table and entry row */
+@media (min-width: 601px) and (max-width: 768px) {
+  .qe, .qt { --qt-sumw: max(96px, var(--pf-money-slot-size, 96px)); }
+  .qt-items { --qt-cols: minmax(0, 1fr) 128px 90px 104px var(--qt-sumw) 36px; }
+  .qt-er input, .qt-er select { padding: 0 6px; }
+  .qt-catalog .qt-input { padding-inline-end: 24px; }
+  .qt-catalog-arrow { inset-inline-end: 6px; }
+  .qt-ih { display: grid; }
+  .qt-ir { grid-template-columns: var(--qt-cols) !important; padding: 0 10px; min-height: 38px; }
+  .qt-ir .qt-ir-q, .qt-ir .qt-ir-p, .qt-ir .qt-ir-u { display: block; }
+  .qt-ir .qt-ir-sub { display: none; }
+  .qt-er { grid-template-columns: var(--qt-cols); padding: 6px 10px; gap: 8px; }
+  .qt-er-pn { grid-column: auto; }
+  .qt-ml { display: none; }
+  .qt-er-pa { grid-column: span 2; grid-template-columns: var(--qt-sumw) 36px; }
+  .qt-er-pa > .qt-add, .qt-er-pa > .qt-msl { display: none; }
+  .qt-add2 { display: inline-flex; }
+  .qt-er .qt-add { height: 40px; min-height: 40px; padding: 0 16px; }
+  .qt-trw > span:first-child { grid-column: span 4; }
+  .qt-hh { grid-template-columns: 30px minmax(0, 1fr) 32px var(--qt-sumw) 36px; }
+  .qt-hh .qt-addb { display: grid; }
+}
+.qt-ir-q .pf-num, .qt-ir-sub .pf-num { color: inherit; }
+/* the agents' review of 19/11: a tapped row name keeps its plain look on a touch screen */
 @media (hover: none) { .qt-row-name:hover:not(:focus-visible) { color: #0f172a; text-decoration: none; } }
-.qt-head-name { display: block; border: 0; background: transparent; padding: 0; font: inherit; font-weight: 700; color: #0b3d44; font-size: 1rem; text-align: start; cursor: pointer; }
-.qt-head-name[aria-pressed="true"] { color: #0F6672; }
-.qt-head--sel { background: #dcefef; }
-.qt-catalog-line { display: flex; flex-direction: column; gap: 2px; font-size: 0.82rem; color: #334155; }
-.qt-catalog-line small { color: #64748b; }
-.qt-catalog-price { min-inline-size: 0; white-space: nowrap; }
-/* the tools row: clear at the start edge, the sizes-and-details link in the middle, the line total at the end edge */
-/* the demo (.mp-entry-tools, its last rule): clear in the wide first column; the sizes disclosure and the line sum together at the end */
-.qt-tools { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 4px 12px; font-size: 0.8rem; color: #475569; }
-.qt-tools .qt-link { min-block-size: 32px; font-size: 0.8rem; }
-.qt-tools-clear { grid-column: 1; grid-row: 1; justify-self: start; }
-.qt-tools-more { grid-column: 2; grid-row: 1; }
-.qt-tools-sum { grid-column: 3; grid-row: 1; justify-self: end; white-space: nowrap; }
-.qt-more-body { display: flex; flex-direction: column; gap: 10px; padding-block-start: 6px; border-top: 1px solid #d6e3ea; }
-/* the demo's open disclosure: its title under the line, still the toggle */
-.qt-more-title { align-self: flex-start; min-block-size: 36px; padding: 0; border: 0; background: none; font: inherit; font-size: 0.82rem; font-weight: 600; color: #0b3d44; cursor: pointer; }
-.qt-more-body .qt-textarea { min-block-size: 96px; }
-.qt-measure { display: flex; flex-direction: column; gap: 8px; }
-.qt-toggle { display: flex; flex-wrap: wrap; gap: 8px; }
-.qt-toggle .qt-chip[aria-pressed="true"] { border-color: #0F6672; background: #e8f4f5; }
-.qt-measure-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; align-items: end; }
-.qt-textarea { min-block-size: 64px; padding-block: 8px; resize: vertical; line-height: 1.4; }
-.qt-form--edit { background: #ffffff; }
-.qt-rows td.qt-edit { padding: 0; background: transparent; border: 0; }
-/* ≥951px: the form in one row - product 2.2fr, pricing 110px, quantity .8fr, price 1fr, the button (the Owner's proportions, 13/11) */
-@media (min-width: 951px) {
-  .qt-grid { grid-template-columns: minmax(150px, 2.2fr) 110px minmax(70px, 0.8fr) minmax(95px, 1fr) auto; }
-  .qt-grid.qt-grid--noqty { grid-template-columns: minmax(150px, 2.2fr) 110px minmax(95px, 1.8fr) auto; }
-  .qt-form .qt-select { padding-inline: 6px; }
-}
-/* ≤950px: two columns - the product on its own row, pricing | quantity, price | the button; the rows as cards */
-@media (max-width: 950px) {
-  .qt-grid, .qt-grid.qt-grid--noqty { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .qt-grid > .qt-field--product { grid-column: 1 / -1; }
-  .qt-grid.qt-grid--noqty > .qt-add { grid-column: auto; }
-  .qt-rows thead { display: none; }
-  .qt-rows, .qt-rows tbody { display: block; }
-  .qt-rows colgroup { display: none; }
-  .qt-rows tr { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 2px 8px; align-items: end; padding: 8px 0; border-bottom: 1px solid #eef3f5; }
-  .qt-rows td { border: 0; padding: 2px 4px; }
-  .qt-rows td.qt-desc, .qt-rows td[colspan], .qt-rows td.qt-act { grid-column: 1 / -1; }
-  .qt-rows td.qt-act { text-align: end; }
-  .qt-rows td[data-label]::before { content: attr(data-label); display: block; font-size: 0.7rem; font-weight: 600; color: #64748b; }
-  .qt-rows .qt-num { text-align: start; }
-  .qt-measure-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .qt-measure-row > .qt-field:first-child { grid-column: 1 / -1; }
-}
-/* the structure buttons one per row up to 700px */
-@media (max-width: 700px) { .qt-structure { grid-template-columns: minmax(0, 1fr); } }
-/* ≤480px: tighter - product, then pricing, then quantity | price, then the button; rows in two columns with the sum on its own row */
-@media (max-width: 480px) {
-  .qt-card { padding: 9px; }
-  .qt-form { padding: 9px; }
-  .qt-body { padding-inline-start: 5px; margin-inline-start: 4px; }
-  .qt-grid, .qt-grid.qt-grid--noqty { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-  .qt-grid > .qt-field--unit, .qt-grid > .qt-add { grid-column: 1 / -1; }
-  .qt-grid.qt-grid--noqty > .qt-field--price { grid-column: 1 / -1; }
-  .qt-rows tr { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .qt-rows td.qt-sum { grid-column: 1 / -1; }
-  .qt-head-name { font-size: 14px; }
-  .qt-head-total { font-size: 12px; }
-  .qt-tools { grid-template-columns: minmax(0, 1fr) auto; }
-  .qt-tools-sum { grid-column: 2; grid-row: 1; justify-self: end; }
-  .qt-tools-more { grid-column: 1 / -1; grid-row: 2; justify-self: start; }
-  .qt-measure-row { grid-template-columns: minmax(0, 1fr); }
-}
-/* the structure help: above its button at every width (the demo), never in the flow */
-.qt-structure .qt-pop { position: absolute; top: auto; bottom: calc(100% + 8px); inline-size: min(300px, calc(100vw - 32px)); box-shadow: 0 12px 28px -10px rgba(15,23,42,0.35); margin: 0; }
-@media (max-width: 700px) { .qt-structure .qt-help { top: 50%; } }
-/* the demo's "פרטים נוספים להצעה (לא חובה)": a line under the work; open, its section buttons in two columns (one up to 768px) */
-.sq-extras { border-top: 1px solid #e2ecef; padding-block: 8px; }
-.sq-extras > summary { cursor: pointer; min-block-size: 44px; display: flex; align-items: center; gap: 6px; color: #0F6672; font-weight: 700; font-size: 0.92rem; list-style-position: inside; }
-.sq-extras-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; padding-block: 8px; }
-.sq-extras-btn { min-block-size: 48px; padding: 0 12px; border: 1px solid #d6e3ea; border-radius: 10px; background: #ffffff; color: #0b3d44; font: inherit; font-size: 0.9rem; font-weight: 700; cursor: pointer; text-align: start; }
-.sq-extras-btn:hover, .sq-extras-btn:focus-visible { background: #e8f4f5; }
-@media (max-width: 768px) { .sq-extras-grid { grid-template-columns: minmax(0, 1fr); } }
-.sq-details-page .qt-page-card { display: flex; flex-direction: column; gap: 12px; }
-.sq-label-text { font-size: 0.86rem; font-weight: 700; color: #0b3d44; }
-/* the demo's summary: opens UP from its own button, 310px wide, at the button's end edge (its start edge up to 768px) */
-.qt-summary-anchor { position: relative; display: inline-flex; }
-.qt-bar .qt-summary-pop { position: absolute; bottom: calc(100% + 8px); inset-inline-end: 0; inset-inline-start: auto; inline-size: min(310px, calc(100vw - 20px)); max-block-size: min(70vh, 480px); overflow-y: auto; z-index: 30;
-  border-radius: 14px; box-shadow: 0 18px 40px -16px rgba(15,23,42,0.45); }
-.qt-bar .qt-summary-pop .sq-summary { margin: 0; padding: 12px; }
-/* the demo's bar up to 768px: the total on its own row (label at the start, the amount at the end); save | what the client sees; the summary */
-@media (max-width: 768px) {
-  .qt-bar { flex-direction: column; align-items: stretch; }
-  .qt-bar-total { order: -1; flex-direction: row; justify-content: space-between; align-items: baseline; }
-  .qt-bar-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
-  .qt-bar-actions > .sq-save-btn, .qt-bar-actions > .sq-add-btn { inline-size: 100% !important; white-space: normal; }
-  .qt-bar-actions > .qt-summary-anchor { grid-column: 1 / -1; justify-self: start; }
-  .qt-bar .qt-summary-pop { inset-inline-start: 0; inset-inline-end: auto; }
-}
-
-/* 2026-11-15 (law 50/49 review of the demo match) */
-/* the demo: a thin line under the back / add row, before the work */
-.qt > .qt-card:not(.qt-page-card) > .qt-actions { padding-block-end: 10px; border-block-end: 1px solid #e2ecef; }
-/* the demo's disclosure triangle on "פרטים נוספים להצעה (לא חובה)" (closed points along the reading direction, open points down) */
-.sq-extras > summary { list-style: none; }
-.sq-extras > summary::-webkit-details-marker { display: none; }
-.sq-extras > summary::before { content: '◀'; font-size: 0.7em; }
-.sq-extras[dir='ltr'] > summary::before { content: '▶'; }
-.sq-extras[open] > summary::before { content: '▼'; }
-/* the same triangle on "סיכום ההצעה" */
-.qt-summary-tri { font-size: 0.7em; margin-inline-end: 6px; }
-/* the add steps: the demo's room before the step's button */
-.qt-page-stack > .qt-actions { margin-block-start: 16px; }
-@media (max-width: 480px) {
-  /* a form without a quantity (one price / by sizes): the add button takes the whole row on a phone too */
-  .qt-grid.qt-grid--noqty > .qt-add { grid-column: 1 / -1; }
-  /* the details page: "שמירת הפרטים" and "חזרה ללא שמירה" side by side in both languages (the demo) */
-  .sq-details-page .qt-actions { flex-wrap: nowrap; }
-  .sq-details-page .qt-actions > button { padding-inline: 10px; } /* natural width at the start (the demo) */
-}
-
-/* 2026-11-15 (law 49): on a phone the place chips and the kind chips are a little tighter, so three names / four kinds share one row in both languages */
-@media (max-width: 480px) {
-  .qt-nav .qt-chip, .qt-kinds .qt-chip { padding-inline: 10px; }
-  .qt-nav, .qt-kinds { gap: 6px; }
-}
-
-/* 2026-11-15 (law 49): the status line in its slot at the top of the editor page */
-.qt-status-slot:not(:empty) { margin-block-end: 10px; }
-/* one phone layout of the editor's action row in both languages: back at the start with "+ add <kind>" or the template beside it,
-   "+ add another kind" beside "from a template" (C9), a long button on its own full row */
-@media (max-width: 480px) {
-  .qt > .qt-card:not(.qt-page-card) > .qt-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-auto-flow: row dense; gap: 8px; align-items: center; }
-  .qt > .qt-card > .qt-actions > .qt-act-back { grid-column: 1; justify-self: start; }
-  .qt > .qt-card > .qt-actions > .qt-act-same, .qt > .qt-card > .qt-actions > .qt-act-tpl { grid-column: 2; }
-  .qt > .qt-card > .qt-actions > .qt-act-other { grid-column: 1; }
-  .qt > .qt-card > .qt-actions > .qt-act-first, .qt > .qt-card > .qt-actions > .qt-act-example { grid-column: 1 / -1; }
-  .qt > .qt-card > .qt-actions > .sq-add-btn { justify-self: start; } /* natural width at the start of its cell (the demo) */
-}
-
-/* 2026-11-15 (law 49/50 round 5) */
-.qt-status-slot:empty { display: none; }
-@media (max-width: 768px) {
-  .qt-bar-actions > .sq-add-btn, .qt-bar-actions > .sq-save-btn { justify-content: center; text-align: center; }
-}
-
-/* 2026-11-15 (law 49 round 6): the phone action-row buttons centre their words in both languages */
-@media (max-width: 480px) {
-  .qt > .qt-card > .qt-actions > .sq-add-btn { text-align: center; justify-content: center; }
-}
-
-/* 2026-11-15 (the demo's sbShow): no room above the circle -> the explanation opens below it */
-.qt-structure .qt-pop.qt-pop--below, .qt-pop.qt-pop--below { top: calc(100% + 8px); bottom: auto; }
-
-/* Owner console 2026-11-16 (typed release line, an approved difference from the demo's phone cards): a phone row is two lines -
-   the item, its quantity and its price on one line; under them the total at the end side (left in Hebrew, right in English) and the
-   actions button on the same line at the start side. A long item name stays on one line and ends with "…" (Owner console 2026-11-19:
-   a tap shows it whole in the bubble - EllipsisText); wider screens keep their layout, and there the name wraps as before. */
-.qt-row-name-box { display: block; }
-@media (max-width: 480px) {
-  .qt-rows tr.qt-row { grid-template-columns: minmax(0, 1fr) auto auto; grid-template-areas: "desc qty price" "act sum sum"; align-items: center; gap: 2px 10px; }
-  .qt-rows tr.qt-row > td.qt-desc { grid-area: desc; min-width: 0; }
-  .qt-rows tr.qt-row > td:nth-child(2) { grid-area: qty; }
-  .qt-rows tr.qt-row > td:nth-child(3) { grid-area: price; }
-  .qt-rows tr.qt-row > td.qt-sum { grid-area: sum; justify-self: end; text-align: end; }
-  .qt-rows tr.qt-row > td.qt-act { grid-area: act; justify-self: start; text-align: start; }
-  /* the button now sits at the start side: its menu opens from there into the screen (never past the edge) */
-  .qt-rows tr.qt-row > td.qt-act .qt-menu { inset-inline-end: auto; inset-inline-start: 0; }
-  .qt-rows tr.qt-row > td[data-label]::before { content: none; }
-  .qt-rows tr.qt-row .qt-row-name { display: block; inline-size: 100%; min-width: 0; }
-  .qt-rows tr.qt-row .qt-row-name-box { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }
-}
+/* review round (21/11, agents vs the sketch) */
+/* no reserved scroll-bar strip in the editor (the cards reach the title row's edge, as in the sketch) */
+.pf-screen.qe > .pf-editor-form { scrollbar-gutter: auto; scroll-padding-bottom: 120px; }
+/* the sketch's focus: a soft amber ring */
+.qe :focus-visible, .qe input:focus, .qe select:focus, .qe textarea:focus, .qt-ov :focus-visible { outline: 2px solid #efb75d; outline-offset: 1px; box-shadow: none; }
+/* window titles bold; the summary has no inner card */
+.qt-dlg h3 { font-weight: 700; }
+.qt-dlg .sq-summary { margin: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; }
+.qt-tgrid { justify-content: stretch; }
+/* the detail windows: the label beside its field (the sketch's .f, 120px) */
+.qe-dfields > .qt-field { display: grid; grid-template-columns: 120px minmax(0, 1fr); align-items: center; gap: 4px 10px; }
+.qe-dfields > .qt-field > :not(.qt-page-label) { grid-column: 2; }
+.qe-dfields > .qt-field > .qt-page-label { grid-column: 1; align-self: center; }
+@media (max-width: 400px) { .qe-dfields > .qt-field { grid-template-columns: 96px minmax(0, 1fr); } }
+/* the count of sections reads from the start side (as the sketch's field) */
+[dir="rtl"] .qt-hcnt { text-align: right; }
+/* the editor: the global footer keeps only the accessibility link (the sketch has no brand line under the bar) */
+body:has(.qe) .dash-footer-brand { display: none !important; }
+body:has(.qe) .dash-footer { border-top: 0 !important; padding-top: 2px !important; }
+/* the sketch: in the editor the accessibility link sits above the bar (the client step: at the bottom); the global footer is not shown */
+.qe-a11y { text-align: center; margin-top: 4px; }
+.qe-a11y .qt-link { color: var(--qt-muted); font-weight: 400; }
+.qe .pf-editor-form > .qe-a11y:last-child { margin-top: auto; padding-top: 14px; }
+body:has(.qe) .dash-footer { display: none !important; }
+/* the header: the greeting, a gap, then "date · time" */
+.dash-header-datetime .dash-header-mgreet { margin-inline-end: 6px; }
+@media (max-width: 600px) { .qe-dfields > .qt-field { display: flex; flex-direction: column; align-items: stretch; } }

@@ -40,15 +40,18 @@ describe('A1 / A6: the measured quote is one list (now the rows of the one quote
   it('an old internal measured entry opens the same rows: no rooms needed, rooms optional, area in the row', () => {
     const { unmount } = render(<QuoteForm {...props({ isMeasuredEntry: true, items: [{ ...blank, description: 'חלון', unit_price: '100' }] })} />);
     // 2026-11-13 (the 13/11 demo, typed L-09): the line is a read row; the add form's "חישוב" offers every billing
-    expect(screen.getAllByTestId('qt-row').map((r) => r.querySelector('.qt-desc').textContent)).toEqual(['חלון']);
+    expect(screen.getAllByTestId('qt-row').map((r) => r.querySelector('.qt-row-name').textContent)).toEqual(['חלון']);
     expect([...screen.getAllByTestId('qt-form')[0].querySelector('select').options].map((o) => o.textContent)).toEqual(['ליחידה', 'למ״ר', 'למטר', 'לשעה', 'ליום עבודה', 'לק״ג', 'מחיר גלובלי']);
     unmount();
     render(<Stateful isMeasuredEntry />);
-    // the three structure buttons replace the two add buttons; nothing is divided until the user chooses
-    expect(['qt-structure-simple', 'qt-structure-grouped', 'qt-structure-tiered'].map((id) => screen.getByTestId(id).textContent)).toEqual(['הצעה פשוטה', 'לפי דירות', 'קומות, דירות וחדרים']);
+    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-29 ... only as needed): one "מבנה:" menu with the three structures and their new names; nothing is divided until the user chooses
+    fireEvent.click(screen.getByTestId('qt-structure'));
+    expect(['qt-structure-simple', 'qt-structure-grouped', 'qt-structure-tiered'].map((id) => screen.getByTestId(id).querySelector('b').textContent)).toEqual(['הצעה פשוטה', 'מחולקת לחלקים', 'חלקים בתוך חלקים']);
     expect(screen.queryByText('הוספת היחידה הראשונה')).toBeNull();
     expect(screen.queryByText('לא משויך')).toBeNull();
     // Owner console 2026-11-08 (restore item 07): the local example is offered again while the quote has no real line
+    // Owner console 2026-11-20/21 (the simple-quotes sketch; typed L-07 / L-09 / L-19 only as needed): in the editor bar's "⋯" menu
+    fireEvent.click(screen.getByTestId('editor-more'));
     expect(screen.getByTestId('quote-show-example').textContent).toBe('הצגת דוגמה (לא נשמרת)');
   });
 
@@ -88,12 +91,14 @@ describe('plan section 3: client details and the VAT basis', () => {
   });
 
   // 2026-11-12 (the demo summary, Owner-approved): the VAT notice at the top says how the prices are meant (it replaced the summary line)
+  // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-29 ... only as needed): the notice is for a business client (amounts before VAT); a private client's totals say "מע״מ (18%) · כלול"
   it('the totals say how the prices are meant: business before VAT, private including VAT; nothing for International', () => {
     render(<QuoteForm {...props({ clientType: 'business' })} />);
     expect(screen.getByTestId('sq-vat-notice').textContent).toContain('ללא מע״מ');
     cleanup();
     render(<QuoteForm {...props({ clientType: 'private' })} />);
-    expect(screen.getByTestId('sq-vat-notice').textContent).toContain('כולל מע״מ');
+    expect(screen.queryByTestId('sq-vat-notice')).toBeNull();
+    expect(screen.getByTestId('sq-totals').textContent).toContain('מע״מ (18%) · כלול');
     cleanup();
     render(<QuoteForm {...props({ isHebrew: false, isLocalIsraeliBusiness: false, sym: '$', currency: 'USD' })} />);
     expect(screen.queryByTestId('sq-vat-notice')).toBeNull();

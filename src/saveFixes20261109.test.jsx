@@ -72,14 +72,15 @@ describe('2026-11-09 · tax ID required for a business client, with our own mess
 describe('2026-11-09 · the total beside the save button', () => {
   it('shows the same total as the summary, in both languages, in the bar with the save button', () => {
     render(<QuoteForm {...props({ isHebrew: true, sym: '₪' })} />);
+    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-29 ... only as needed): the bar's total (its words, "▴", the amount on the axis) opens the summary
     const bar = screen.getByTestId('qt-bar');
-    expect(bar.querySelector('.qt-bar-total').textContent).toBe('סה״כ לתשלום₪354.00'); // the demo label, no colon
+    expect(bar.querySelector('.qt-tot').textContent).toBe('סה״כ לתשלום ▴₪354.00');
     expect(bar.contains(screen.getByTestId('sq-save'))).toBe(true);
     fireEvent.click(screen.getByTestId('qt-summary-toggle'));
     expect(screen.getByTestId('sq-save-total').textContent).toBe('סה״כ לתשלום₪354.00');
     cleanup();
     render(<QuoteForm {...props()} />);
-    expect(screen.getByTestId('qt-bar').querySelector('.qt-bar-total').textContent).toBe('Total to pay$354.00');
+    expect(screen.getByTestId('qt-bar').querySelector('.qt-tot').textContent).toBe('Total ▴$354.00');
   });
 });
 

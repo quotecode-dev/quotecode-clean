@@ -8,7 +8,8 @@
 //    for reduced motion.
 import { useEffect, useRef, useState } from 'react';
 import { Mic, Sparkles, Check, AudioLines, WandSparkles, FileStack, FileUp } from 'lucide-react';
-import TekangoAiIcon from '../TekangoAiIcon';
+// Owner console 2026-11-20/21 (L-02 / L-11, law 45): the robot with the headset on the blue-teal tile (TekangoBotIcon): the smart chat card and the demo's answer bubble.
+import TekangoBotIcon from '../TekangoBotIcon';
 import CustomerTwinIcon from '../CustomerTwinIcon';
 import './smartPack.css';
 import { SMART_PACK_ENABLED } from './smartPackFacts';
@@ -70,7 +71,7 @@ export default function SmartPackShowcase({ copy, isHe, plansHref }) {
               <div className={`sp-wave${step === 1 ? ' is-on' : ''}`} aria-hidden="true">{Array.from({ length: 14 }, (_, i) => <i key={i} style={{ animationDelay: `${(i % 7) * 0.08}s` }} />)}</div>
               <div className={`sp-typing${step === 2 ? ' is-on' : ''}`} aria-hidden="true"><i /><i /><i /></div>
               <div className={`sp-bubble sp-bot${step >= 3 ? ' is-on' : ''}`}>
-                <TekangoAiIcon size={20} />
+                <TekangoBotIcon size={20} />
                 <span>{copy.demoAnswer}</span>
               </div>
             </div>
@@ -94,7 +95,7 @@ export default function SmartPackShowcase({ copy, isHe, plansHref }) {
               const brand = BRAND[f.icon];
               return (
                 <li key={f.title} className="sp-card" style={{ transitionDelay: `${0.12 + i * 0.09}s` }}>
-                  {brand === 'ai' ? <span className="sp-icon sp-icon-own" data-sp-icon="ai"><TekangoAiIcon size={48} /></span>
+                  {brand === 'ai' ? <span className="sp-icon sp-icon-own" data-sp-icon="ai"><TekangoBotIcon size={48} /></span>
                     : brand === 'twin' ? <span className="sp-icon" data-sp-icon="twin"><CustomerTwinIcon size={32} tone="light" /></span>
                       : <span className="sp-icon"><Icon size={22} strokeWidth={1.9} aria-hidden="true" /></span>}
                   <div>

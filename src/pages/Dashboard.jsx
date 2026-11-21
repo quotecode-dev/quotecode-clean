@@ -148,9 +148,11 @@ import {
   AlertTriangle, Shield, LogOut,
   PlusCircle,
   Accessibility as AccessibilityIcon,
-  MoreHorizontal
+  MoreHorizontal,
+  Calculator
 } from 'lucide-react';
-import TekangoAiIcon from '../components/TekangoAiIcon';
+import DraggableCalculator from '../components/DraggableCalculator';
+import TekangoBotIcon from '../components/TekangoBotIcon';
 // Owner console 2026-10-23: the daily tip ("הידעתם?") - one a day at most, chosen by where the user is
 import DailyTipCard from '../components/DailyTipCard';
 import { pickDailyTip, parseTipState, markTipShown, turnTipsOff, tipStorageKey, firstUnsentQuote, tipBellItems, tipQuoteLabel, DAILY_TIP_ACTION_EVENT } from '../utils/dailyTips';
@@ -231,35 +233,25 @@ function HeaderClock({ country, isHebrew }) {
     schedule();
     return () => clearTimeout(id);
   }, []);
-  // weekday NAME only (never a numeric date - that stays with formatShortDate, IRON-DATE-001)
-  const weekday = new Intl.DateTimeFormat(isHebrew ? 'he-IL' : 'en-GB', { weekday: 'long' }).format(now);
-  const time = now.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+  // Owner console 2026-11-20/21 (the simple-quotes sketch, typed L-03 / L-04): the greeting, then "date · time" - hours and minutes (the
+  // device clock still ticks on the second boundary, so the minute changes exactly on time); no weekday
+  const time = now.toLocaleTimeString(isHebrew ? 'he-IL' : 'en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
   return (
     <>
-      {/* Owner 2026-10-14: on phones the stacked block opens with the time-of-day greeting (in place of the date); desktop keeps the date */}
-      {/* the greeting enters with the approved animation again (dashHeaderGreetingEnter); keyed by its text, so a new part of the day
-          enters the same way */}
+      {/* the greeting enters with the approved animation (dashHeaderGreetingEnter); keyed by its text, so a new part of the day enters the same way */}
       <span key={timeGreeting(now.getHours(), isHebrew)} className="dash-header-mgreet dash-header-greeting-text">{timeGreeting(now.getHours(), isHebrew)}</span>
-      <span className="dash-header-weekday">{weekday}{', '}</span>
-      {/* IRON-DATE-001: live clock = the device's own current day, ordered by the ACCOUNT MARKET (unknown -> International). */}
-      <bdi dir="ltr" className="dash-header-date pf-num">{formatShortDate(deviceCalendarDate(now), resolveAdminMarket({ country }).market)}</bdi>
-      <span className="dash-header-sep" aria-hidden="true">|</span>
-      <bdi dir="ltr" className="dash-header-time pf-num">{time}</bdi>
+      <span className="dash-header-when">
+        {/* IRON-DATE-001: live clock = the device's own current day, ordered by the ACCOUNT MARKET (unknown -> International). */}
+        <bdi dir="ltr" className="dash-header-date pf-num">{formatShortDate(deviceCalendarDate(now), resolveAdminMarket({ country }).market)}</bdi>
+        <span className="dash-header-sep" aria-hidden="true">·</span>
+        <bdi dir="ltr" className="dash-header-time pf-num">{time}</bdi>
+      </span>
     </>
   );
 }
 
-// Owner 2026-10-14: the header greets by the time of day INSTEAD of showing the business name (refreshed every minute).
-function HeaderGreeting({ isHebrew }) {
-  const [now, setNow] = useState(() => new Date());
-  useEffect(() => {
-    const id = setInterval(() => setNow(new Date()), 60000);
-    return () => clearInterval(id);
-  }, []);
-  // Owner console 2026-10-18, typed: "1 - עם שניות", "2 - שיהיה מסונכרן בדיוק לפי שעון המחשב", "3 - להחזיר את האנימציה" #3: the greeting enters with the approved animation again
-  const text = timeGreeting(now.getHours(), isHebrew);
-  return <strong key={text} className="dash-header-greeting dash-header-greeting-text">{text}</strong>;
-}
+// Owner 2026-10-14: the header greets by the time of day INSTEAD of showing the business name; since 2026-11-20/21 (the simple-quotes sketch,
+// typed L-03 / L-04) the greeting opens the clock at the start of the header (HeaderClock) on every screen size.
 
 // The "new client" window's client: ONE stable empty object. A fresh {} on every Dashboard render re-ran the window's reset effect
 // and wiped what the user had typed whenever the Dashboard re-rendered (e.g. a realtime quote update) while the window was open.
@@ -631,9 +623,20 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       title={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
       aria-label={isHebrew ? 'פתיחת צ׳אט AI' : 'Open AI Chat'}
     >
-      {/* Owner console 2026-10-23 (L-02 / L-11, law 45): the TEKANGO AI tile (a glowing head with "AI") - replaces the 2026-10-10 robot. */}
-      <TekangoAiIcon size={22} />
+      {/* Owner console 2026-11-20/21 (L-02 / L-11, law 45): the robot with the headset on the blue-teal tile (TekangoBotIcon) - replaces the 2026-10-23 AI head tile. */}
+      <TekangoBotIcon size={22} />
       <span>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
+    </button>
+  );
+
+  // Owner console 2026-11-06 (release C, typed incl. L-09: "צריך לשים כפתור מחשבון - שיצוף תמיד ... בהכנת הצעה ובעריכת הצעה ובכל מקום
+  // שצריך מחשבון") + 2026-11-20/21 (the simple-quotes sketch, typed L-09): the calculator is an icon of the header, before the bell, on every
+  // screen; it opens the same calculator (for calculation only)
+  const [isCalcOpen, setIsCalcOpen] = useState(false);
+  // PRODUCT_TRUTH_CAPABILITY: editor_calculator
+  const renderHeaderCalcButton = () => (
+    <button type="button" className="dash-header-calc" data-testid="calc-fab" onClick={() => setIsCalcOpen(true)} aria-label={isHebrew ? 'מחשבון' : 'Calculator'} title={isHebrew ? 'מחשבון' : 'Calculator'}>
+      <Calculator size={19} strokeWidth={2} aria-hidden="true" />
     </button>
   );
 
@@ -1000,7 +1003,8 @@ export default function Dashboard({ bundleIsHebrew } = {}) {
       setQuoteSortDirection(quoteSortDirection === 'asc' ? 'desc' : 'asc');
     } else {
       setQuoteSortField(field);
-      setQuoteSortDirection('asc');
+      // Owner console 2026-11-20/21 (the simple-quotes sketch, typed L-29): a new column starts newest / highest first (descending)
+      setQuoteSortDirection('desc');
     }
   };
 
@@ -6167,8 +6171,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           white-space: nowrap;
         }
         /* weekday + separator exist for the one-line desktop header only (shown in the min-width:769px block) */
-        .dash-header-datetime .dash-header-weekday,
-        .dash-header-datetime .dash-header-sep { display: none; }
+        .dash-header-datetime .dash-header-when { display: block; white-space: nowrap; line-height: 1.15; }
+        .dash-header-datetime .dash-header-sep { display: inline; margin-inline: 0.3em; font-size: 0.7rem; opacity: 0.8; }
         /* Owner 2026-10-14: phones show the greeting on the top line, then the date, then the time (three compact lines, same slot) */
         .dash-header-datetime .dash-header-mgreet { font-size: 0.8rem; font-weight: 800; white-space: nowrap; line-height: 1.15; }
         .dash-header-datetime .dash-header-date { font-size: 0.7rem; font-weight: 700; line-height: 1.15; }
@@ -7560,10 +7564,10 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
             font-weight: 400;
             white-space: nowrap;
           }
-          .dash-header-datetime .dash-header-weekday { display: inline; }
-          .dash-header-datetime .dash-header-mgreet { display: none; }
+          .dash-header-datetime .dash-header-mgreet { display: inline-block; font-size: 13.5px; font-weight: 600; }
+          .dash-header-datetime .dash-header-when { display: inline; margin-inline-start: 6px; opacity: 0.8; }
           .dash-header-datetime .dash-header-date { display: inline; }
-          .dash-header-datetime .dash-header-sep { display: inline-block; margin-inline: 0.45em; }
+          .dash-header-datetime .dash-header-sep { display: inline-block; margin-inline: 0.3em; font-size: 13.5px; }
           .dash-header-datetime .dash-header-date,
           .dash-header-datetime .dash-header-time { font-size: 13.5px; font-weight: 400; opacity: 1; }
           .dash-header-badge-desktop {
@@ -9301,7 +9305,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                   <div className="dash-header-badge-desktop">
                     {/* One DOM order [business name, bell, avatar] mirrored by dir: the avatar is the outermost item in HE and EN. */}
                     <div className="dash-header-account">
-                      <HeaderGreeting isHebrew={isHebrew} />
+                      {renderHeaderCalcButton()}
                       {/* Task 20: the bell opens the notification center (same 18px footprint; badge and panel are out of flow). */}
                       <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellItemsWithTips} pinnedItems={bellPinnedItems} upgradeQuoteId={bellUpgradeQuoteId} />
                       {/* Owner 2026-10-14: the round plan medallion replaces the avatar circle (no sign-in provider ever set a picture) -
@@ -9319,6 +9323,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                   <div className="dash-header-badge-mobile" style={{ display: 'none', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                     {/* Task 20 (Owner console instruction 2026-10-09): the plans status indicator is removed from the mobile header and the
                         SAME notification bell takes its slot. The plans feature itself stays (Business settings › My subscription, Task 30). */}
+                    {renderHeaderCalcButton()}
                     <NotificationCenter client={supabase} userId={session?.user?.id} isHebrew={isHebrew} isLocalIsraeliBusiness={isLocalIsraeliBusiness} quotes={quotes} quotesReady={dataLoad.quotes === 'ok' || quotes.length > 0} quotesFresh={dataLoad.quotes === 'ok'} authUser={session?.user} announcements={bellItemsWithTips} pinnedItems={bellPinnedItems} upgradeQuoteId={bellUpgradeQuoteId} variant="mobile" />
                     {/* Owner 2026-10-14: the same round plan medallion as on desktop, outermost next to the bell */}
                     {!isSuperAdmin && (
@@ -9429,6 +9434,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
                 quoteSortField={quoteSortField}
                 quoteSortDirection={quoteSortDirection}
                 handleQuoteSort={handleQuoteSort}
+                setQuoteSort={(field, dir) => { setQuoteSortField(field); setQuoteSortDirection(dir); }}
                 handleExportQuotes={handleExportQuotes}
                 handleEditClick={handleEditClick}
                 onAiEdit={handleAiEditClick}
@@ -10057,7 +10063,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         <div
           className="no-print"
           onClick={() => setShowMobileNewQuoteMenu(false)}
-          style={{ position: 'fixed', inset: 0, zIndex: 9997, background: 'transparent' }}
+          style={{ position: 'fixed', inset: 0, zIndex: 9997, background: 'rgba(15, 23, 42, 0.45)' }}
           aria-hidden="true"
         />
       )}
@@ -10078,7 +10084,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           Quote נשאר בדיוק כפי שהיה - הכפתור הבולט, לא הוזז. Quotes/Clients/
           Finances נשארו יעדים ישירים ללא שינוי - שום התנהגות/handler/
           activeTab-target לא השתנו, רק ה-IA (מבנה-הניווט) עצמו. */}
-      {(
+      {/* Owner console 2026-11-20/21 (the simple-quotes sketch): no bottom bar while the quote editor is open - its own bar is at the bottom */}
+      {!showQuoteForm && (
       <div className="no-print mobile-bottom-nav" style={{ display: 'flex', position: 'fixed', bottom: 0, left: 0, width: '100%', background: NEON.bgElevated, color: NEON.textPrimary, justifyContent: 'space-around', padding: '5px 4px calc(5px + env(safe-area-inset-bottom, 0px))', zIndex: 9998, boxShadow: '0 -4px 16px -6px rgba(31,27,46,0.12)', borderTop: `1px solid ${NEON.border}`, boxSizing: 'border-box' }}>
         {navCapabilities
             .filter((cap) => cap.mobileGroup === 'bottom')
@@ -10120,6 +10127,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         )}
       </div>
       )}
+      {/* the one calculator (opened from the header icon) - for calculation only */}
+      <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
     </div>
     </AccountSummaryContext.Provider>
   );

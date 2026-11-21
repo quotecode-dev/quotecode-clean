@@ -14,7 +14,9 @@ describe('time-of-day greeting (Owner 2026-10-14: greeting only, no business nam
     const d = fs.readFileSync(path.join(path.dirname(fileURLToPath(import.meta.url)), '../pages/Dashboard.jsx'), 'utf8');
     const at = d.indexOf('<div className="dash-header-account">');
     const cluster = d.slice(at, at + 900);
-    expect(cluster).toContain('<HeaderGreeting isHebrew={isHebrew} />');
+    // Owner console 2026-11-20/21 (the simple-quotes sketch; typed L-03 / L-04 / L-19 / L-25 / L-26 only as needed): the greeting opens the clock (HeaderClock) at the start of the header on every width
+    expect(d).toContain('<span key={timeGreeting(now.getHours(), isHebrew)} className="dash-header-mgreet dash-header-greeting-text">{timeGreeting(now.getHours(), isHebrew)}</span>');
+    expect(cluster).not.toContain('<HeaderGreeting');
     expect(cluster).not.toMatch(/bizName/);
   });
 });
@@ -27,8 +29,10 @@ describe('phones (Owner 2026-10-14): the greeting tops the stacked header block 
     expect(d).not.toContain('.dash-header-datetime .dash-header-date { display: none; }');
     expect(d).toContain('.dash-header-datetime .dash-header-mgreet { font-size: 0.8rem; font-weight: 800; white-space: nowrap; line-height: 1.15; }');
     expect(d).toContain('.dash-header-datetime .dash-header-date { font-size: 0.7rem; font-weight: 700; line-height: 1.15; }');
-    expect(d).toContain('.dash-header-datetime .dash-header-mgreet { display: none; }');
+    // Owner console 2026-11-20/21 (the simple-quotes sketch; typed L-03 / L-04 / L-19 / L-25 / L-26 only as needed): the computer shows the greeting too, then "date · time" on the same line
+    expect(d).toContain('.dash-header-datetime .dash-header-mgreet { display: inline-block; font-size: 13.5px; font-weight: 600; }');
     expect(d).toContain('.dash-header-datetime .dash-header-date { display: inline; }');
+    expect(d).toContain('.dash-header-datetime .dash-header-when { display: block; white-space: nowrap; line-height: 1.15; }');
   });
   it('the mobile badge holds the bell then the medallion (not for the super admin)', () => {
     const at = d.indexOf('<div className="dash-header-badge-mobile"');

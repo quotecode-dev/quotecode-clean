@@ -185,6 +185,8 @@ describe('finding 5: a new unit opens with the cursor in its name', () => {
       toggleMeasurementPricingDriving: noop, addSpecificationRow: noop, handleSpecificationChange: noop, removeSpecificationRow: noop, onOpenPricingModal: noop,
       quoteFiles: [], setQuoteFiles: noop, allUserAttachments: [] });
     render(<QuoteForm {...make()} />);
+    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-14 / L-29 ... only as needed): the structure is chosen in the "Structure:" menu
+    fireEvent.click(screen.getByTestId('qt-structure'));
     fireEvent.click(screen.getByTestId('qt-structure-grouped'));
     fireEvent.click(screen.getByTestId('qt-add-first'));
     fireEvent.click(screen.getByTestId('qt-kind-apartment'));

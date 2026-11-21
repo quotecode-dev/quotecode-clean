@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, CirclePlus, Plus } from 'lucide-react';
+import { CirclePlus } from 'lucide-react';
 import { menuChoices, START_SENTENCE } from '../utils/newQuoteChoices';
 
 // One "New quote" entry used by the sidebar row and the quotes toolbar. It presents three plain-language ways to
@@ -100,10 +100,10 @@ export default function NewQuoteMenu({ isHebrew, variant = 'toolbar', onStandard
           <span>{isHebrew ? 'הצעה חדשה' : 'New quote'}</span>
         </button>
       ) : (
+        // Owner console 2026-11-20/21 (the simple-quotes sketch): the teal button with the plus in a circle; it opens the start window
         <button {...triggerProps} className="quote-primary-action">
-          <Plus size={19} strokeWidth={2.2} aria-hidden="true" />
+          <CirclePlus size={16} strokeWidth={2} aria-hidden="true" />
           <span>{isHebrew ? 'הצעת מחיר חדשה' : 'New quote'}</span>
-          <ChevronDown size={17} strokeWidth={2.2} aria-hidden="true" />
         </button>
       )}
       {open && pos && typeof document !== 'undefined' && createPortal(
