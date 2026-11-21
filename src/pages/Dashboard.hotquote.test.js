@@ -113,7 +113,7 @@ describe('Hot quote banner (source-level regression guard)', () => {
     expect(banner).toMatch(/min-height: 36px;/);
     expect(banner).toMatch(/background: #fff7ed;/);
     expect(banner).toMatch(/border: 1px solid #fed7aa;/);
-    expect(banner).toMatch(/padding-inline: 6px 6px;/);
+    expect(banner).toMatch(/padding-inline: 6px 10px;/);
     expect(banner).not.toMatch(/\b(left|right)\b|margin-left|margin-right|padding-left|padding-right/);
     expect(css).not.toMatch(/\.quote-hot-banner-(flame|label) \{/);
     expect(list).toContain('.dash-main-content .quote-workspace .quote-hot-banner .quote-hot-banner-text { flex: 1; min-width: 0; font-size: 13px; color: #7c2d12; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;');

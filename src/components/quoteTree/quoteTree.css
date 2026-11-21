@@ -374,3 +374,8 @@ body:has(.qt-menu, .qe-menu, [role="dialog"], [role="alertdialog"]) .qe .qt-stat
 .qt-menu .qt-sopt small { font-size: 12.4px; }
 /* law 50 round 3: the hint text in the fields is the sketch's (the browser's own grey) */
 .qe ::placeholder { color: #757575; opacity: 1; }
+/* law 50 final round: the editor's accessibility link right under the details (the sketch has no gap above it); the structure menu's
+   lines keep the sketch's height while its words keep the sketch's width */
+.qe-a11y { margin-top: 0 !important; }
+.qt-menu .qt-sopt b { line-height: 20.3px; }
+.qt-menu .qt-sopt small { line-height: 17.4px; }

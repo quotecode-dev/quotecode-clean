@@ -854,6 +854,21 @@ html:has(.dash-app-shell) { scrollbar-gutter: auto; }
   .dash-upper-section .dash-header-row .dash-header-title { line-height: 1.2 !important; }
   .dash-upper-section .dash-header-title .dash-header-datetime .dash-header-when, .dash-upper-section .dash-header-title .dash-header-datetime .dash-header-when * { font-size: 10px !important; font-weight: 400 !important; line-height: 1.2 !important; }
 }
-/* the sketch's work area keeps a thin scroll-bar gutter on the list and the saved screen (computer) */
-@media (min-width: 769px) { .dash-main-content:has(.quote-workspace, .sq-saved--sketch) { scrollbar-gutter: stable; scrollbar-width: thin; } }
+/* the sketch's work area on the list and the saved screen (computer): 16px at the start, 26px at the end (its scroll-bar gutter); the header
+   still runs edge to edge */
+@media (min-width: 769px) {
+  html body:has(.quote-workspace, .sq-saved--sketch) .dash-main-content { padding-inline: 16px 26px !important; }
+  html body:has(.quote-workspace, .sq-saved--sketch) .dash-main-content .dash-upper-section { margin-inline: -16px -26px !important; padding-inline: 16px !important; }
+}
 .sq-saved--sketch .sq-saved-icon { display: block; line-height: 0; }
+/* law 50 final round (the sketch) */
+/* the phone / tablet header: 48px, its line centred (an older rule gave it a 10px top padding) */
+@media (max-width: 768px) { html body .dash-main-content .dash-upper-section { padding: 0 10px !important; height: 48px !important; align-items: center !important; } }
+/* the bell's count sits at its end corner in Hebrew too (its group is laid out left to right) */
+html[dir="rtl"] [data-testid="header-bell-count"] { inset-inline-end: auto !important; right: auto !important; left: 2px !important; }
+/* the bottom bar: the sketch's 11.5px words and the button's own 1px 6px padding */
+@media (max-width: 768px) { html body .mobile-bottom-nav > button { padding: 1px 6px !important; font-size: 11.5px !important; } }
+/* the list and the saved screen end 20px above the bottom (computer) / 16px above the bottom bar (phone), as the sketch's work area */
+html body .dash-main-content .quote-workspace { margin-bottom: 0 !important; }
+@media (min-width: 769px) { html body:has(.quote-workspace, .sq-saved--sketch) .dash-main-content { padding-bottom: 20px !important; } }
+@media (max-width: 768px) { html body:has(.quote-workspace, .sq-saved--sketch) .dash-main-content { padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important; } }
