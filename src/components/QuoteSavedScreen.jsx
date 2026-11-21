@@ -3,7 +3,8 @@
 // 2026-11-20/21 (the simple-quotes sketch, typed L-15 only as needed): the sketch's look (a green check, the sentence, three buttons one
 // under the other) and its arrow - the arrow goes back to editing the same quote (the list stays one button below).
 import { useEffect, useRef } from 'react';
-import { ArrowLeft, ArrowRight, CircleCheck } from 'lucide-react';
+import { ArrowLeft, ArrowRight } from 'lucide-react';
+import { SketchIcon } from './SketchIcons';
 
 export default function QuoteSavedScreen({ isHebrew, onPreview, onEdit = null, onList }) {
   const headingRef = useRef(null);
@@ -16,7 +17,7 @@ export default function QuoteSavedScreen({ isHebrew, onPreview, onEdit = null, o
         {isHebrew ? <ArrowRight size={20} strokeWidth={2} aria-hidden="true" /> : <ArrowLeft size={20} strokeWidth={2} aria-hidden="true" />}
       </button>
       <div className="sq-saved-card">
-        <span className="sq-saved-icon" aria-hidden="true"><CircleCheck size={40} strokeWidth={2} /></span>
+        <span className="sq-saved-icon" aria-hidden="true"><SketchIcon name="checkCircle" size={40} /></span>
         <h2 id="sq-saved-title" ref={headingRef} tabIndex={-1}>{T('נשמרה. עדיין לא נשלחה.', 'Saved. Not sent yet.')}</h2>
         <div className="sq-saved-actions">
           {/* PRODUCT_TRUTH_DECORATIVE: opens the saved quote's customer page in a new tab (the same link as the eye in the quote list) */}

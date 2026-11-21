@@ -17,9 +17,10 @@ import { formatShortDate } from '../utils/shortDate';
 import { relativeQuoteDay, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
 import { sortQuotes, normalizeSortField, firstItemDescription } from '../utils/quoteListSort';
 import NewQuoteMenu from './NewQuoteMenu';
-import { Download, User, Eye, Mail, Pencil, Copy, MessageCircle, Trash2, ChevronDown, FileText, Filter, Search, ClipboardList, Clock, Send, MoreHorizontal } from 'lucide-react';
+import { Download, User, Eye, Mail, MessageCircle, ChevronDown, FileText, Filter, Search, ClipboardList, Clock, Send } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import TekangoAiIcon from './TekangoAiIcon';
+import { SketchIcon } from './SketchIcons';
 import PaidMarkIcon from './PaidMarkIcon';
 import { nextSteps, NEXT_STEP_COPY } from '../utils/nextStep';
 import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
@@ -624,7 +625,11 @@ export default function QuotesTab({
         const foot = main.querySelector('.dash-footer');
         if (foot) limit -= foot.getBoundingClientRect().height + (parseFloat(window.getComputedStyle(foot).marginTop) || 0);
       }
-      const free = Math.max(0, limit - ws.getBoundingClientRect().bottom);
+      // the list screen fills the work area (the sketch: its accessibility link sits at the bottom), so the free space is measured from the
+      // end of the list content (+ the link under it), the same value whether the screen fills or not
+      const link = ws.querySelector(':scope > .qs-a11y'); const before = link && link.previousElementSibling;
+      const contentEnd = before ? before.getBoundingClientRect().bottom + (parseFloat(window.getComputedStyle(before).marginBottom) || 0) + link.getBoundingClientRect().height + (parseFloat(window.getComputedStyle(ws).paddingBottom) || 0) : ws.getBoundingClientRect().bottom;
+      const free = Math.max(0, limit - contentEnd);
       const n = settlePerPage(memo, `${window.innerWidth}x${window.innerHeight}`, Math.max(1, Math.floor((body.clientHeight + free + 0.5) / rowH)));
       setPerPage((cur) => (cur === n ? cur : n));
     };
@@ -634,7 +639,10 @@ export default function QuotesTab({
     if (fonts && fonts.ready && typeof fonts.ready.then === 'function') fonts.ready.then(measure).catch(() => {});
     const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
     if (ro && screenRef.current) ro.observe(screenRef.current);
-    return () => { window.removeEventListener('resize', measure); if (ro) ro.disconnect(); };
+    // the list screen fills the work area, so its own size does not change with its rows - the list body is observed too
+    if (ro && listBodyRef.current) ro.observe(listBodyRef.current);
+    const raf = typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame(measure) : null;
+    return () => { window.removeEventListener('resize', measure); if (ro) ro.disconnect(); if (raf != null && typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(raf); };
   }, [useCards, rowsMeta.length, hasHotLead]);
   // the page bar under the list (desktop table and phone / tablet cards alike)
   const pager = rowsMeta.length > 0 ? (
@@ -786,7 +794,7 @@ export default function QuotesTab({
               onClick={() => onOpenCustomerTwin(quote)} />
           )}
           {/* PRODUCT_TRUTH_CAPABILITY: quote_duplicate */}
-          <RowMenuItem close={closeRowMenu} icon={<Copy size={17} strokeWidth={2} aria-hidden="true" />} label={isHebrew ? 'שכפול' : 'Duplicate'} testId="quote-duplicate"
+          <RowMenuItem close={closeRowMenu} icon={<SketchIcon name="copy" size={17} />} label={isHebrew ? 'שכפול' : 'Duplicate'} testId="quote-duplicate"
             onClick={() => handleProtectedAction(quote.id, 'duplicate', () => handleDuplicateQuote(quote))} />
           {typeof handleMarkQuotePaid === 'function' && canMarkQuotePaid(quote) && (
             // PRODUCT_TRUTH_DECORATIVE: marks an approved / signed quote as paid (the status only; asks first; collects no payment)
@@ -795,7 +803,7 @@ export default function QuotesTab({
           )}
           <hr />
           {/* PRODUCT_TRUTH_DECORATIVE: deletes a quote; per the registry's own header comment, quote deletion has no dedicated id among the 38 */}
-          <RowMenuItem close={closeRowMenu} icon={<Trash2 size={17} strokeWidth={2} aria-hidden="true" />} label={isHebrew ? 'מחיקה' : 'Delete'} testId="quote-delete" danger disabled={isLocked}
+          <RowMenuItem close={closeRowMenu} icon={<SketchIcon name="trash" size={17} />} label={isHebrew ? 'מחיקה' : 'Delete'} testId="quote-delete" danger disabled={isLocked}
             title={isLocked ? (isHebrew ? 'לא ניתן למחוק הצעה חתומה' : 'Cannot delete a signed quote') : undefined} why={isLocked ? lockWhy : null}
             onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })); }} />
         </>)}
@@ -814,7 +822,7 @@ export default function QuotesTab({
       <button type="button" className="qrow-btn" data-testid="quote-edit" disabled={isLocked}
         title={isLocked ? (isHebrew ? 'לא ניתן לערוך הצעה חתומה' : 'Cannot edit a signed quote') : undefined}
         onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote)); }}>
-        <Pencil size={15} strokeWidth={2} aria-hidden="true" /><span>{isHebrew ? 'עריכה' : 'Edit'}</span>
+        <SketchIcon name="pen" size={15} /><span>{isHebrew ? 'עריכה' : 'Edit'}</span>
       </button>
       {/* PRODUCT_TRUTH_DECORATIVE: opens the send choices of this quote (WhatsApp, e-mail, copy) */}
       <button type="button" className="qrow-btn qrow-btn--p" data-testid="quote-send-open" data-row-menu-trigger aria-haspopup="menu" aria-expanded={Boolean(rowMenu && rowMenu.kind === 'send' && rowMenu.id === quote.id)} onClick={openRowMenu('send', quote.id)}>
@@ -822,7 +830,7 @@ export default function QuotesTab({
       </button>
       {/* PRODUCT_TRUTH_DECORATIVE: opens the other actions of this quote */}
       <button type="button" className="qrow-btn qrow-btn--more" data-testid="quote-more-open" data-row-menu-trigger aria-haspopup="menu" aria-label={isHebrew ? 'עוד פעולות' : 'More actions'} aria-expanded={Boolean(rowMenu && rowMenu.kind === 'more' && rowMenu.id === quote.id)} onClick={openRowMenu('more', quote.id)}>
-        <MoreHorizontal size={17} strokeWidth={2} aria-hidden="true" />
+        <SketchIcon name="dots" size={17} />
       </button>
       {renderRowMenu(quote, isLocked)}
     </div>

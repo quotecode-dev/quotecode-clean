@@ -813,3 +813,33 @@ html:has(.dash-app-shell) { scrollbar-gutter: auto; }
 /* the bell is a plain 36px button with its count in the corner (its behaviour is not touched) */
 [data-testid="header-bell"] { width: 36px !important; height: 36px !important; border: 0 !important; border-radius: 8px !important; background: none !important; align-items: center !important; justify-content: center !important; }
 [data-testid="header-bell-count"] { top: 2px !important; inset-inline-end: 2px !important; }
+/* law 50 round 2 (the sketch; header L-02 / L-03 / L-04 and the bottom bar typed 21/11): the header line is the sketch's - the greeting 13px
+   bold, the date and time small and light; the AI button sits between the greeting and the tools (not on the header's middle) */
+.dash-header-datetime .dash-header-mgreet { font-size: 13px !important; font-weight: 600 !important; }
+.dash-header-datetime .dash-header-when, .dash-header-datetime .dash-header-when * { font-size: 10.8px !important; font-weight: 400 !important; color: #fff !important; opacity: .85; }
+.dash-header-row { justify-content: space-between !important; }
+.dash-header-row > .dash-header-title { order: 0; }
+.dash-header-row > .dash-header-ai-center { position: static !important; transform: none !important; height: auto !important; order: 1; flex: none; }
+.dash-header-row > .dash-header-badge-desktop, .dash-header-row > .dash-header-badge-mobile { order: 2; }
+@media (max-width: 768px) {
+  .dash-header-datetime .dash-header-mgreet { font-size: 12px !important; }
+  .dash-header-datetime .dash-header-when, .dash-header-datetime .dash-header-when * { font-size: 10px !important; }
+  .dash-header-badge-mobile .hpm { transform: scale(.8); }
+  body:has(.quote-workspace, .qe, .sq-saved--sketch) .dash-upper-section { margin-bottom: 0 !important; }
+}
+/* the sketch's work gutter on its screens (the list, the editor, the saved screen): 16px on a computer */
+@media (min-width: 769px) {
+  body:has(.quote-workspace, .qe, .sq-saved--sketch) .dash-main-content { padding-inline: 16px !important; }
+  body:has(.quote-workspace, .qe, .sq-saved--sketch) .dash-upper-section { margin-inline: -16px !important; padding-inline: 16px !important; }
+}
+.dash-main-content:has(.quote-workspace, .qe, .sq-saved--sketch) { background: #f6f8f8 !important; }
+/* the bottom bar of a phone / tablet held upright: the sketch's 19px icons, 56x46 buttons, the active one light teal, "New" teal */
+@media (max-width: 768px) {
+  .mobile-bottom-nav > button { min-width: 56px !important; min-height: 46px !important; border-radius: 10px !important; font-size: 11.5px !important; font-weight: 600 !important; justify-content: center !important; gap: 1px !important; }
+  .mobile-bottom-nav > button svg { width: 19px !important; height: 19px !important; }
+  .mobile-bottom-nav > button[data-active="true"] { background: #e3eff0 !important; color: #0b525c !important; }
+  .mobile-bottom-nav > button:last-child { background: #0f6672 !important; color: #fff !important; }
+}
+/* the saved screen: the sketch's spacing under the arrow */
+.sq-saved--sketch .sq-saved-back { margin: 8px 0 6px !important; }
+.sq-saved--sketch .sq-saved-card { margin-top: 36px !important; }

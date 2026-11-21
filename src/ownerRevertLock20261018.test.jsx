@@ -241,7 +241,8 @@ describe('#15 one name and one icon per screen', () => {
     expect(read('pages/Dashboard.jsx')).toContain("financesNav: isHebrew ? 'פיננסים' : 'Finances',");
   });
   it.each([
-    ['components/FinancesTab.jsx', '<ChartSquareIcon size={18}', 'ChartSquareIcon'],
+    // Owner console 2026-11-21 (the simple-quotes sketch; L-23 typed only as needed): the Finances icon is the sketch's chart, title and sidebar alike
+    ['components/FinancesTab.jsx', '<SketchChartIcon size={18}', 'SketchChartIcon'],
     ['components/ClientsTab.jsx', '<User size={18}', 'User'],
     ['components/ServicesCatalog.jsx', '<LayoutGrid size={18}', 'LayoutGrid'],
     ['components/StatisticsTab.jsx', '<BarChart3 size={18}', 'BarChart3'],

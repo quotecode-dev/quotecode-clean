@@ -5,7 +5,7 @@ import AddItemWizard from './AddItemWizard';
 import QuoteTreeEditor from './quoteTree/QuoteTreeEditor';
 import { structureOf } from './quoteTree/treeModel';
 import { HelpCircle } from './quoteTree/QuoteTreeEditor';
-import { Paperclip, X, AlertTriangle, ChevronDown, ArrowLeft, ArrowRight, MoreHorizontal, Pencil, LayoutTemplate, Eye } from 'lucide-react';
+import { Paperclip, X, AlertTriangle, ChevronDown, ArrowLeft, ArrowRight, Eye } from 'lucide-react';
 import EllipsisText from './EllipsisText';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import { APP as NEON, FONT_HE } from '../theme/neonTheme';
@@ -21,6 +21,7 @@ import { publishBlocker, resolveBlockers } from '../utils/aiHelpBlockers';
 import AiHelpButton from './AiHelpButton';
 import CapabilityUpgradeNotice from './subscriptions/CapabilityUpgradeNotice';
 import ServiceScheduleFields from './ServiceScheduleFields';
+import { SketchIcon } from './SketchIcons';
 import AddressSuggestInput from './AddressSuggestInput';
 import { askConfirm } from './AppDialog';
 
@@ -727,12 +728,12 @@ export default function QuoteForm({
           </h2>
           <span className="qt-menu-wrap" ref={barMenuRef}>
             {/* PRODUCT_TRUTH_DECORATIVE: the "more actions" menu of the editor bar */}
-            <button ref={barMenuBtn} type="button" className="qt-btn qt-btn--sm qe-more" aria-haspopup="menu" aria-expanded={barMenu} aria-label={isHebrew ? 'עוד פעולות' : 'More actions'} data-testid="editor-more" onClick={() => setBarMenu((v) => !v)}><MoreHorizontal size={17} strokeWidth={2} aria-hidden="true" /></button>
+            <button ref={barMenuBtn} type="button" className="qt-btn qt-btn--sm qe-more" aria-haspopup="menu" aria-expanded={barMenu} aria-label={isHebrew ? 'עוד פעולות' : 'More actions'} data-testid="editor-more" onClick={() => setBarMenu((v) => !v)}><SketchIcon name="dots" size={17} /></button>
             {barMenu && (
               <div className="qt-menu qe-menu" role="menu" aria-label={isHebrew ? 'עוד פעולות' : 'More actions'}>
                 {onEditor && (
                   // PRODUCT_TRUTH_DECORATIVE: goes back to the client step of the same quote (nothing is lost)
-                  <button type="button" role="menuitem" onClick={runMenu(() => { if (leaveOk()) onFlowStep('client'); })}><Pencil size={17} strokeWidth={2} aria-hidden="true" /><span className="qt-menu-label">{isHebrew ? 'עריכת הלקוח' : 'Edit client'}</span></button>
+                  <button type="button" role="menuitem" onClick={runMenu(() => { if (leaveOk()) onFlowStep('client'); })}><SketchIcon name="pen" size={17} /><span className="qt-menu-label">{isHebrew ? 'עריכת הלקוח' : 'Edit client'}</span></button>
                 )}
                 {typeof onOpenCustomerTwin === 'function' && (
                   // PRODUCT_TRUTH_DECORATIVE: opens the Customer Twin panel for the open draft (internal; changes nothing by itself)
@@ -743,7 +744,7 @@ export default function QuoteForm({
                 )}
                 {onWork && typeof onAddUnitFromTemplate === 'function' && (
                   // PRODUCT_TRUTH_DECORATIVE: "from a saved template" (stage 4) - opens the unit templates; one section with its rows is added
-                  <button type="button" role="menuitem" data-testid="unit-from-template" onClick={runMenu(onAddUnitFromTemplate)}><LayoutTemplate size={17} strokeWidth={2} aria-hidden="true" /><span className="qt-menu-label">{isHebrew ? 'מתבנית שמורה' : 'From a saved template'}</span></button>
+                  <button type="button" role="menuitem" data-testid="unit-from-template" onClick={runMenu(onAddUnitFromTemplate)}><SketchIcon name="tmpl" size={17} /><span className="qt-menu-label">{isHebrew ? 'מתבנית שמורה' : 'From a saved template'}</span></button>
                 )}
                 {onWork && !hasWork && (
                   // PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line to learn the row from (Owner restore item 07)

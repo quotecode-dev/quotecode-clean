@@ -109,6 +109,7 @@ import { resolveEditorAttachmentOpen } from '../utils/attachmentCompatPath';
 import QuotesTab from '../components/QuotesTab';
 import NewQuoteMenu from '../components/NewQuoteMenu';
 import QuoteSavedScreen from '../components/QuoteSavedScreen';
+import { SketchIcon } from '../components/SketchIcons';
 import { getQuoteViewLink } from '../utils/quoteListRows';
 import { menuChoices, START_SENTENCE } from '../utils/newQuoteChoices';
 import { SaveTemplateDialog, TemplatePickerDialog } from '../components/QuoteTemplateDialogs';
@@ -148,7 +149,6 @@ import {
   AlertTriangle, Shield, LogOut,
   PlusCircle,
   Accessibility as AccessibilityIcon,
-  MoreHorizontal,
   Calculator
 } from 'lucide-react';
 import DraggableCalculator from '../components/DraggableCalculator';
@@ -10096,7 +10096,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
               const isActive = id === 'main' ? (activeTab === 'main' && !showQuoteForm && !savedScreen) : activeTab === id; // the sketch: the saved screen marks no tab
               {/* PRODUCT_TRUTH_DECORATIVE: generic mobile bottom-nav button template rendered once per nav entry (main/clients/finances); each real destination is independently marked at its own screen - resolved by Claude after an agent flag */}
               return (
-                <button key={id} onClick={() => guardedNav(() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); })} style={{ background: isActive ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', whiteSpace: 'nowrap' }}>
+                <button key={id} data-active={isActive ? 'true' : undefined} onClick={() => guardedNav(() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); })} style={{ background: isActive ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', whiteSpace: 'nowrap' }}>
                   <TabIcon size={16} style={{ marginBottom: '1px' }} />
                   {label}
                 </button>
@@ -10112,7 +10112,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
           aria-expanded={showMobileMoreMenu}
           style={{ background: (showMobileMoreMenu || (isAdminMode || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab))) ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: (showMobileMoreMenu || (isAdminMode || navCapabilities.some((cap) => cap.mobileGroup === 'more' && cap.id === activeTab))) ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', whiteSpace: 'nowrap' }}
         >
-          <MoreHorizontal size={16} style={{ marginBottom: '1px' }} />
+          <SketchIcon name="dots" size={19} style={{ marginBottom: '1px' }} />
           {isHebrew ? 'עוד' : 'More'}
         </button>
         {/* חוק ברזל (Functional Parity Across Viewports task, 2026-09-08,

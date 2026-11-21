@@ -358,3 +358,14 @@ body:has(.qt-menu, .qe-menu, [role="dialog"], [role="alertdialog"]) .qe .qt-stat
 .qp-dialog.qp-dialog--sketch > p { font-size: 15px; line-height: 1.45 !important; }
 .qp-dialog.qp-dialog--sketch .qp-dialog-actions { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px !important; }
 .qp-dialog.qp-dialog--sketch .qp-btn { min-height: 38px !important; height: 38px; padding: 0 14px !important; border-radius: 8px !important; font-size: 13.5px !important; font-weight: 600; min-width: 0 !important; }
+/* law 50 round 2 (the sketch) */
+@media (min-width: 769px) { .qe { --qe-gut: 16px; } }
+.pf-screen.qe > .pf-editor-form { scrollbar-gutter: stable; scrollbar-width: thin; }
+/* the catalog list shows the product names only (the sketch) */
+.qt-catalog-price { display: none !important; }
+/* the summary window's lines in the sketch's size */
+.qt-dlg .qt-tgrid { font-size: 15px; }
+/* the structure menu: the option names bold as in the sketch */
+.qt-menu .qt-sopt b { font-weight: 700; }
+/* the save question on a phone: the same width as the other windows (14px from each side) */
+.qp-dialog.qp-dialog--sketch { width: calc(100vw - 28px) !important; }

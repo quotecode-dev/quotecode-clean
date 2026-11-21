@@ -12,7 +12,8 @@
 // The quantity starts EMPTY; "מחיר גלובלי" = one price for the row; an empty price is not 0 (unchanged).
 import { useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, MoreHorizontal, Pencil, Copy, ArrowUp, ArrowDown, CornerDownLeft, Trash2, Plus, PlusCircle, LayoutTemplate, X } from 'lucide-react';
+import { SketchIcon } from '../SketchIcons';
+import { ChevronDown, X } from 'lucide-react';
 import './quoteTree.css';
 import { buildQuoteItemFromEntry, rowEntry, isCountedMethod } from '../../utils/quoteItemEntry';
 import { askConfirm } from '../AppDialog';
@@ -525,15 +526,15 @@ export default function QuoteTreeEditor({
         <span className="qt-ir-s">{priceMissing ? <span className="qt-missing">{t.notPriced}</span> : money(lineTotal(it))}</span>
         <span className="qt-menu-wrap" ref={wrapRef('row', rk)}>
           {/* PRODUCT_TRUTH_DECORATIVE: the one actions menu of a row */}
-          <button type="button" className="qt-ib" aria-haspopup="menu" aria-expanded={open} aria-label={t.actions} data-testid="qt-row-actions" onClick={toggleMenu('row', rk)}><MoreHorizontal {...sizeOf(17)} /></button>
+          <button type="button" className="qt-ib" aria-haspopup="menu" aria-expanded={open} aria-label={t.actions} data-testid="qt-row-actions" onClick={toggleMenu('row', rk)}><SketchIcon name="dots" size={17} /></button>
           {open && <MenuList up={menu.up} label={t.actions} items={[
-            { label: t.edit, icon: <Pencil {...sizeOf(16)} />, onClick: run(() => startEdit(it)), testId: 'qt-row-edit' },
-            { label: t.duplicate, icon: <Copy {...sizeOf(16)} />, onClick: run(() => duplicateRow(i)), testId: 'qt-row-duplicate' },
-            { label: t.up, icon: <ArrowUp {...sizeOf(16)} />, onClick: run(() => moveRow(i, -1)), disabled: pos <= 0, testId: 'qt-row-up' },
-            { label: t.down, icon: <ArrowDown {...sizeOf(16)} />, onClick: run(() => moveRow(i, 1)), disabled: pos < 0 || pos >= g.length - 1, testId: 'qt-row-down' },
-            !simple && sections.length ? { label: t.moveToMenu, icon: <CornerDownLeft {...sizeOf(16)} />, onClick: run(() => setMoveSheet(i)), testId: 'qt-row-move' } : null,
+            { label: t.edit, icon: <SketchIcon name="pen" size={16} />, onClick: run(() => startEdit(it)), testId: 'qt-row-edit' },
+            { label: t.duplicate, icon: <SketchIcon name="copy" size={16} />, onClick: run(() => duplicateRow(i)), testId: 'qt-row-duplicate' },
+            { label: t.up, icon: <SketchIcon name="up" size={16} />, onClick: run(() => moveRow(i, -1)), disabled: pos <= 0, testId: 'qt-row-up' },
+            { label: t.down, icon: <SketchIcon name="down" size={16} />, onClick: run(() => moveRow(i, 1)), disabled: pos < 0 || pos >= g.length - 1, testId: 'qt-row-down' },
+            !simple && sections.length ? { label: t.moveToMenu, icon: <SketchIcon name="back" size={16} />, onClick: run(() => setMoveSheet(i)), testId: 'qt-row-move' } : null,
             '-',
-            { label: t.remove, icon: <Trash2 {...sizeOf(16)} />, onClick: run(() => removeRow(i)), danger: true, testId: 'qt-row-remove' },
+            { label: t.remove, icon: <SketchIcon name="trash" size={16} />, onClick: run(() => removeRow(i)), danger: true, testId: 'qt-row-remove' },
           ]} />}
         </span>
       </div>
@@ -696,10 +697,10 @@ export default function QuoteTreeEditor({
     const isReal = (it) => it && !isUntouchedPlaceholderItem(it) && !it._localExample;
     const canTemplate = onSaveHeadingTemplate && String(s.name || '').trim() && rowsOf(key).length && !kids.length;
     const items2 = [
-      { label: t.addHere, icon: <Plus {...sizeOf(16)} />, onClick: run(() => chooseTarget(key)), testId: 'qt-head-here' },
-      allowNest && depth < MAX_DEPTH - 1 && repeat < 2 ? { label: t.hInside, icon: <PlusCircle {...sizeOf(16)} />, testId: 'qt-add-inside', onClick: run(() => { expand(key); setAddPanel({ parent: key, step: 'kind', count: '1', names: [], err: '' }); }) } : null,
-      { label: t.hRename, icon: <Pencil {...sizeOf(16)} />, onClick: run(() => setRenaming({ key, value: String(s.name || '') })), testId: 'qt-head-rename' },
-      { label: t.hDup, icon: <Copy {...sizeOf(16)} />, testId: 'qt-head-duplicate', onClick: run(() => {
+      { label: t.addHere, icon: <SketchIcon name="plus" size={16} />, onClick: run(() => chooseTarget(key)), testId: 'qt-head-here' },
+      allowNest && depth < MAX_DEPTH - 1 && repeat < 2 ? { label: t.hInside, icon: <SketchIcon name="plusCircle" size={16} />, testId: 'qt-add-inside', onClick: run(() => { expand(key); setAddPanel({ parent: key, step: 'kind', count: '1', names: [], err: '' }); }) } : null,
+      { label: t.hRename, icon: <SketchIcon name="pen" size={16} />, onClick: run(() => setRenaming({ key, value: String(s.name || '') })), testId: 'qt-head-rename' },
+      { label: t.hDup, icon: <SketchIcon name="copy" size={16} />, testId: 'qt-head-duplicate', onClick: run(() => {
         const under = new Set(subtreeKeys(sections, key));
         if (locked(items.filter((it) => it && under.has(it.section_key)))) { onDuplicateLocked?.(); return; }
         const r = duplicateHeading(sections, items, key, isHebrew); done(t.msgHeadingCopied); setSections(r.sections); setItems(r.items);
@@ -707,9 +708,9 @@ export default function QuoteTreeEditor({
       }) },
       { label: t.hCopyFirst, icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1" /><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /></svg>, testId: 'unit-copy-first', disabled: isFirst, title: first ? first.name : undefined,
         onClick: run(() => { done(t.msgCopiedFirst); setItems(copyRowsFromFirst(sections, items, key, isReal)); }) },
-      canTemplate ? { label: t.hTmpl, icon: <LayoutTemplate {...sizeOf(16)} />, testId: 'qt-head-template', onClick: run(() => onSaveHeadingTemplate(s)) } : null,
+      canTemplate ? { label: t.hTmpl, icon: <SketchIcon name="tmpl" size={16} />, testId: 'qt-head-template', onClick: run(() => onSaveHeadingTemplate(s)) } : null,
       '-',
-      { label: t.hDel, icon: <Trash2 {...sizeOf(16)} />, danger: true, testId: 'qt-head-delete', onClick: run(() => {
+      { label: t.hDel, icon: <SketchIcon name="trash" size={16} />, danger: true, testId: 'qt-head-delete', onClick: run(() => {
         const r = removeHeadingWithContent(sections, items, key);
         done(t.msgHeadingDeleted); setSections(r.sections); setItems(r.items);
         if (target && !r.sections.some((x) => keyOf(x) === target)) setTarget(null);
@@ -744,11 +745,11 @@ export default function QuoteTreeEditor({
               {String(s.name || '').trim() ? <EllipsisText text={repeat > 1 ? `${s.name} × ${repeat}` : s.name} /> : <span className="qt-unnamed">{t.unnamed}</span>}
             </button>
             {/* PRODUCT_TRUTH_DECORATIVE: sends the entry row to this section (desktop and tablet) */}
-            <button type="button" className="qt-ib qt-addb" aria-label={t.addHereL(name)} onClick={() => chooseTarget(key)}><Plus {...sizeOf(17)} /></button>
+            <button type="button" className="qt-ib qt-addb" aria-label={t.addHereL(name)} onClick={() => chooseTarget(key)}><SketchIcon name="plus" size={17} /></button>
             <span className="qt-hs">{money(headingTotal(items, sections, key))}</span>
             <span className="qt-menu-wrap" ref={wrapRef('head', key)}>
               {/* PRODUCT_TRUTH_DECORATIVE: the actions menu of a section (add here / inside, rename, duplicate, copy, template, remove) */}
-              <button type="button" className="qt-ib" aria-haspopup="menu" aria-expanded={open} aria-label={t.hActs(name)} data-testid="qt-heading-actions" onClick={toggleMenu('head', key)}><MoreHorizontal {...sizeOf(17)} /></button>
+              <button type="button" className="qt-ib" aria-haspopup="menu" aria-expanded={open} aria-label={t.hActs(name)} data-testid="qt-heading-actions" onClick={toggleMenu('head', key)}><SketchIcon name="dots" size={17} /></button>
               {open && <MenuList up={menu.up} label={t.hActs(name)} items={items2} />}
             </span>
           </div>
@@ -819,7 +820,7 @@ export default function QuoteTreeEditor({
         {tops.map((s) => heading(s))}
         {addPanel && !addPanel.parent ? panel() : (
           // PRODUCT_TRUTH_DECORATIVE: adds the first / more sections of the quote (the kind, how many, the names)
-          <button type="button" className="qt-btn qt-addh" data-testid="qt-add-first" onClick={() => setAddPanel({ parent: null, step: 'kind', count: '1', names: [], err: '' })}><PlusCircle {...sizeOf(16)} />{t.hAddFirst}</button>
+          <button type="button" className="qt-btn qt-addh" data-testid="qt-add-first" onClick={() => setAddPanel({ parent: null, step: 'kind', count: '1', names: [], err: '' })}><SketchIcon name="plusCircle" size={16} />{t.hAddFirst}</button>
         )}
         {sections.length > 0 && (top.length > 0 || rootTarget) && <div className="qt-wl">{t.whole}</div>}
         {rootTarget ? card(top) : (<>

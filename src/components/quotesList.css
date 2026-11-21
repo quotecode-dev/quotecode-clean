@@ -197,3 +197,22 @@ body:has(.quote-workspace) .dash-footer, body:has(.sq-saved--sketch) .dash-foote
 /* the sketch: the list screen and the saved screen fill the work area, so their quiet accessibility link sits at its bottom */
 .dash-content-container > .quote-workspace:has(> .qs-a11y) { flex: 1 1 auto !important; }
 .dash-content-container > .sq-saved--sketch { flex: 1 1 auto; display: flex; flex-direction: column; }
+/* law 50 round 2 (the sketch) */
+.dash-main-content .quote-workspace .qlist-search { margin-bottom: 10px !important; }
+.dash-main-content .quote-workspace > .quote-modern-list { margin-top: 0 !important; }
+.dash-main-content .quote-workspace .quote-modern-head-row { min-height: 32px !important; height: 32px; box-sizing: border-box; }
+.dash-main-content .quote-workspace .quote-modern-date, .dash-main-content .quote-workspace .quote-modern-date *, .dash-main-content .quote-workspace .quote-modern-views, .dash-main-content .quote-workspace .quote-modern-views * { font-size: 13.5px !important; }
+.dash-main-content .quote-workspace .quote-modern-number, .dash-main-content .quote-workspace .quote-modern-number * { font-size: 12.5px !important; }
+.dash-main-content .quote-workspace .quote-modern-sort-arrow { margin-inline-start: 3px !important; }
+.dash-main-content .quote-workspace .quote-hot-banner .qhb-short-rest { font-weight: 400 !important; font-size: 13px !important; color: #7c2d12 !important; }
+.dash-main-content .quote-workspace .quote-modern-page-btn { border-color: #d5dddf !important; color: #0f6672 !important; background: #fff !important; }
+/* law 50 round 2: the start window's options and the phone cards in the sketch's line height (option 63px, card 57px) */
+body .pf-newquote-backdrop .pf-newquote-item-text { font-size: 15px; line-height: 1.45; }
+body .pf-newquote-backdrop .pf-newquote-item-text small { line-height: 1.45; }
+@media (max-width: 768px) {
+  .dash-mobile-newquote-menu > button > span { line-height: 1.45 !important; gap: 0 !important; }
+  .dash-mobile-newquote-menu > button strong, .dash-mobile-newquote-menu > button small { line-height: 1.45 !important; }
+  .dash-main-content .quote-workspace .qc-top { padding-block: 8px !important; line-height: 1.45; gap: 2px 10px; }
+  .dash-main-content .quote-workspace .qc-nm, .dash-main-content .quote-workspace .qc-amt { font-size: 14px; line-height: 1.45; }
+  .dash-main-content .quote-workspace .qc-ln2 { font-size: 12px; line-height: 1.45; }
+}
