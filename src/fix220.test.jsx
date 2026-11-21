@@ -13,7 +13,7 @@ describe('"סיכום ההצעה": the triangle at the start of the words in Heb
   it('the button has its own direction (Hebrew right-to-left, English left-to-right) and the triangle comes first', () => {
     const q = read('components/QuoteForm.jsx');
     // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-02 / L-03 / L-04 / L-07 / L-09 / L-11 / L-14 / L-15 / L-19 / L-23 / L-25 / L-26 / L-27 / L-29 only as needed): the summary opens from the total of the bar; the "▴" follows the words (the sketch)
-    expect(q).toContain('<small data-testid="qt-bar-total-label">{totalLabel} ▴</small>');
+    expect(q).toContain('<small data-testid="qt-bar-total-label">{barTotalLabel} ▴</small>');
     expect(q).toContain('data-testid="qt-summary-toggle" onClick={toggleSummary}>');
   });
 });

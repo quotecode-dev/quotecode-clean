@@ -597,12 +597,19 @@ describe('QuoteForm - the bottom bar, the summary and the quote details', () => 
     expect(screen.queryByTestId('sq-summary-counts')).toBeNull();
     expect(screen.getAllByTestId('sq-save')).toHaveLength(1);
   });
-  it('a work without a price makes the total "Partial total" in the bar and in the summary (the demo)', () => {
+  // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo): the bar says "Partial total" only while the quote has no
+  // line; the totals card and the summary always say "Total"
+  it('the bar says "Partial total" only while there is no line; the summary always says "Total" (the sketch)', () => {
+    const { unmount } = render(<QuoteForm {...baseProps({ items: [] })} />);
+    expect(screen.getByTestId('qt-bar-total-label')).toHaveTextContent('Partial total');
+    unmount();
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 's1', name: 'Apartment 1', kind: 'apartment' }],
       items: [makeItem({ description: 'Flooring', unit_price: '150', section_key: 's1' }), makeItem({ description: 'Windows', unit_price: '', section_key: 's1' })] })} />);
-    expect(screen.getByTestId('qt-bar-total-label')).toHaveTextContent('Partial total');
+    expect(screen.getByTestId('qt-bar-total-label')).toHaveTextContent('Total');
+    expect(screen.getByTestId('qt-bar-total-label').textContent).not.toContain('Partial');
     openSummary();
-    expect(screen.getByTestId('sq-save-total').textContent).toContain('Partial total');
+    expect(screen.getByTestId('sq-save-total').textContent).toContain('Total');
+    expect(screen.getByTestId('sq-save-total').textContent).not.toContain('Partial');
   });
   it('the details line opens the section buttons; each section is its own page; an edit has its status there', () => {
     render(<QuoteForm {...baseProps({ isHebrew: true, sym: '₪', editingQuoteId: 'q1', quoteStatus: 'Draft' })} />);

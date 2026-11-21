@@ -17,7 +17,7 @@ import { formatShortDate } from '../utils/shortDate';
 import { relativeQuoteDay, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
 import { sortQuotes, normalizeSortField, firstItemDescription } from '../utils/quoteListSort';
 import NewQuoteMenu from './NewQuoteMenu';
-import { Download, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, Search, ClipboardList, Clock, Send, MoreHorizontal } from 'lucide-react';
+import { Download, User, Eye, Mail, Pencil, Copy, MessageCircle, Trash2, ChevronDown, FileText, Filter, Search, ClipboardList, Clock, Send, MoreHorizontal } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import TekangoAiIcon from './TekangoAiIcon';
 import PaidMarkIcon from './PaidMarkIcon';
@@ -67,18 +67,9 @@ import EllipsisText from './EllipsisText';
 // (ר' ה-<th onClick={() => handleQuoteSort(...)}> למטה) - לא הומצא שדה
 // מיון נוסף כלשהו למובייל. "תיאור" (Description) לא ניתן-למיון גם
 // בדסקטופ (אין עליו onClick/handleQuoteSort כלל) ולכן גם לא מופיע כאן.
-const MOBILE_SORT_FIELDS = [
-  { value: 'id', he: 'מס׳ הצעה', en: 'Quote #' },
-  { value: 'client', he: 'שם לקוח', en: 'Client Name' },
-  { value: 'clientType', he: 'סוג לקוח', en: 'Client Type' },
-  { value: 'total', he: 'הסכום', en: 'Amount' },
-  { value: 'date', he: 'תאריך', en: 'Date' },
-  { value: 'status', he: 'מצב', en: 'Status' },
-  { value: 'views', he: 'צפיות', en: 'Views' },
-];
 
-// the sketch's "סינון ומיון" window: the sort fields as buttons - the sketch's three first (date, amount, client), then the rest of today's seven
-const SORT_CHIPS = ['date', 'total', 'client', 'id', 'status', 'views', 'clientType'].map((v) => MOBILE_SORT_FIELDS.find((f) => f.value === v));
+// the sketch's "סינון ומיון" window (Owner 20/11-21/11): three sort fields - date, amount, client (the column titles still sort by any column)
+const SORT_CHIPS = [{ value: 'date', he: 'תאריך', en: 'Date' }, { value: 'total', he: 'סכום', en: 'Amount' }, { value: 'client', he: 'לקוח', en: 'Client' }];
 
 // Task 16: every status chip carries its text label plus a small leading dot - color is never the only signal. The
 // dot is a CSS ::before glyph (`.pf-status-chip`, index.css) in the chip's own font: useQuoteHistoryGeometry measures
@@ -330,6 +321,12 @@ export default function QuotesTab({
     measure();
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure).catch(() => {});
     return () => { live = false; };
+  });
+  // the sketch: no reserved scroll-bar strip inside the card; when the list really scrolls, the titles move by the bar's width so the
+  // columns stay on one grid
+  useEffect(() => {
+    const b = listBodyRef.current; const host = b && b.closest('.quote-modern-list');
+    if (host) host.style.setProperty('--ql-sb', `${Math.max(0, b.offsetWidth - b.clientWidth)}px`);
   });
   // a search shows every match (never cut to 4)
   // The hot-quote banner opens the same tracking details panel as the hot row's "Open & track" action (open, never toggle closed).
@@ -690,9 +687,7 @@ export default function QuotesTab({
         {/* PRODUCT_TRUTH_DECORATIVE: sortable column header; sorts the quote list by its own column (a list-order UI affordance) */}
         <button type="button" className="quote-modern-head-btn" data-sort-key={key} onClick={() => handleQuoteSort(key)}>
           <span className="quote-modern-head-label">{label}</span>
-          {active && (quoteSortDirection === 'asc'
-            ? <ChevronUp size={12} strokeWidth={2.4} aria-hidden="true" data-sort-icon="asc" />
-            : <ChevronDown size={12} strokeWidth={2.4} aria-hidden="true" data-sort-icon="desc" />)}
+          {active && <span className="quote-modern-sort-arrow" aria-hidden="true" data-sort-icon={quoteSortDirection === 'asc' ? 'asc' : 'desc'}>{quoteSortDirection === 'asc' ? '↑' : '↓'}</span>}
         </button>
       </div>
     );
@@ -751,7 +746,9 @@ export default function QuotesTab({
   }, [rowMenu]);
   const openRowMenu = (kind, id) => (e) => {
     if (rowMenu && rowMenu.kind === kind && rowMenu.id === id) { setRowMenu(null); return; }
-    const r = e.currentTarget.getBoundingClientRect();
+    const btn = e.currentTarget.getBoundingClientRect();
+    const row = window.innerWidth <= 400 ? e.currentTarget.closest('.qrow-acts') : null;
+    const r = row ? { top: btn.top, bottom: btn.bottom, left: row.getBoundingClientRect().left, right: row.getBoundingClientRect().right } : btn;
     const up = window.innerHeight - r.bottom < 300 && r.top > 300;
     setRowMenu({ kind, id, up, top: up ? r.top - 4 : r.bottom + 4, right: document.documentElement.clientWidth - r.right, left: r.left });
   };
@@ -771,7 +768,7 @@ export default function QuotesTab({
           <RowMenuItem close={closeRowMenu} icon={<Mail size={17} strokeWidth={2} aria-hidden="true" />} label={isHebrew ? 'שליחה במייל' : 'Email'} testId="quote-email" onClick={() => setPendingEmailQuote(quote)} />
           {typeof copyQuoteMessage === 'function' && (
             // PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share
-            <RowMenuItem close={closeRowMenu} icon={<ClipboardCopy size={17} strokeWidth={2} aria-hidden="true" />} label={isHebrew ? 'העתקה' : 'Copy'} testId="quote-copy-message"
+            <RowMenuItem close={closeRowMenu} icon={<svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1" /><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /></svg>} label={isHebrew ? 'העתקה' : 'Copy'} testId="quote-copy-message"
               onClick={() => handleProtectedAction(quote.id, 'whatsapp', () => copyQuoteMessage(quote))} />
           )}
         </>) : (<>
@@ -1203,9 +1200,9 @@ export default function QuotesTab({
             );
           })}
           </div>
-          {pager}
         </div>
       )}
+      {!useCards && pager}
 
       {/* ============ DESKTOP: sharp light table ============ */}
       {/* חוק ברזל (Critical Signature Forensic Audit + Final Canonical Width
@@ -1569,6 +1566,10 @@ export default function QuotesTab({
       {pager}
       </>
       )}
+      <div className="qs-a11y">
+        {/* PRODUCT_TRUTH_DECORATIVE: opens the accessibility statement - the same window as the footer's own button (the sketch's quiet link) */}
+        <button type="button" onClick={() => document.querySelector('.dash-footer button')?.click()}>{isHebrew ? 'הצהרת נגישות' : 'Accessibility Statement'}</button>
+      </div>
     </div>
   );
 }

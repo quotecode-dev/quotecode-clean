@@ -5722,7 +5722,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         refreshAccountSummaryQuiet(); // Owner 2026-11-11 (finding 8): never a "not yet active" flash
       }
 
-      setStatusMsg({
+      // the sketch: a quote that did not reach the customer shows the saved screen, which says it was saved - no toast on top of it
+      if (reachedCustomer) setStatusMsg({
         // חוק ברזל (Quote Number Mobile/Surface Consistency, סבב זה):
         // slice(0,6) גולמי הוחלף ב-formatQuoteFallback הקנוני (8 תווים,
         // ומספר אמיתי אוטומטית אחרי migration) - editingOriginalQuote כבר
@@ -5755,6 +5756,8 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         ? { form: { items, sections, quoteStructureMode, quoteSubject, projectName, terms, warranty, notes, quotePresentation, currency, priceBasis: templatePriceBasis(isLocalIsraeliBusiness, clientType) },
           askPriceBasis: isLocalIsraeliBusiness === true && !templatePriceBasis(isLocalIsraeliBusiness, clientType) }
         : null;
+      // the sketch: the question is asked over the editor, before the saved screen
+      const keepAsTemplate = templateAsk ? await askConfirm(isHebrew ? 'האם לשמור הצעה זאת כתבנית?' : 'Save this quote as a template?', isHebrew, isHebrew ? { yes: 'כן', no: 'לא', sketch: true } : { yes: 'Yes', no: 'No', sketch: true }) : false;
       await quoteDraft.discard(); // the draft is removed only after ALL required save stages succeeded
       clearScope('editor'); // confirmed resolution: every save stage succeeded
       setEditingQuoteId(null);
@@ -5766,7 +5769,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       if (!reachedCustomer) setSavedScreen({ quoteId, link: getQuoteViewLink({ id: quoteId, tax_rate: isLocalIsraeliBusiness ? taxRate : 0, currency: isLocalIsraeliBusiness ? 'ILS' : currency }) });
       loadData(session.user.id, session.user.email);
       window.scrollTo({ top: 0, behavior: 'smooth' });
-      if (templateAsk && await askConfirm(isHebrew ? 'האם לשמור הצעה זאת כתבנית?' : 'Save this quote as a template?', isHebrew, isHebrew ? { yes: 'כן', no: 'לא' } : { yes: 'Yes', no: 'No' })) {
+      if (templateAsk && keepAsTemplate) {
         setTemplateDialog({ kind: 'save-saved', ...templateAsk });
       }
     } catch (err) {
@@ -10061,7 +10064,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
       {/* PRODUCT_TRUTH_DECORATIVE: invisible backdrop closing the mobile 'New' choices sheet on outside tap */}
       {showMobileNewQuoteMenu && (
         <div
-          className="no-print"
+          className="no-print dash-mobile-newquote-backdrop"
           onClick={() => setShowMobileNewQuoteMenu(false)}
           style={{ position: 'fixed', inset: 0, zIndex: 9997, background: 'rgba(15, 23, 42, 0.45)' }}
           aria-hidden="true"
@@ -10090,7 +10093,7 @@ ${isHebrew ? 'לשלוח את ההצעה שוב בכל זאת?' : 'Send the quot
         {navCapabilities
             .filter((cap) => cap.mobileGroup === 'bottom')
             .map(({ id, icon: TabIcon, label }) => {
-              const isActive = id === 'main' ? (activeTab === 'main' && !showQuoteForm) : activeTab === id;
+              const isActive = id === 'main' ? (activeTab === 'main' && !showQuoteForm && !savedScreen) : activeTab === id; // the sketch: the saved screen marks no tab
               {/* PRODUCT_TRUTH_DECORATIVE: generic mobile bottom-nav button template rendered once per nav entry (main/clients/finances); each real destination is independently marked at its own screen - resolved by Claude after an agent flag */}
               return (
                 <button key={id} onClick={() => guardedNav(() => { setActiveTab(id); setIsCreatingQuote(false); setEditingQuoteId(null); setShowMobileMoreMenu(false); })} style={{ background: isActive ? NEON.violetLighter : 'none', border: 'none', borderRadius: RADIUS.sm, padding: '4px 6px', color: isActive ? NEON.violet : NEON.textMuted, cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', fontWeight: '700', whiteSpace: 'nowrap' }}>

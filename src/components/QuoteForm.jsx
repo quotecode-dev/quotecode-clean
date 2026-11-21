@@ -5,7 +5,7 @@ import AddItemWizard from './AddItemWizard';
 import QuoteTreeEditor from './quoteTree/QuoteTreeEditor';
 import { structureOf } from './quoteTree/treeModel';
 import { HelpCircle } from './quoteTree/QuoteTreeEditor';
-import { Calendar, Paperclip, X, AlertTriangle, ChevronDown, ArrowLeft, ArrowRight, MoreHorizontal, Pencil, LayoutTemplate, Lightbulb, Eye } from 'lucide-react';
+import { Paperclip, X, AlertTriangle, ChevronDown, ArrowLeft, ArrowRight, MoreHorizontal, Pencil, LayoutTemplate, Eye } from 'lucide-react';
 import EllipsisText from './EllipsisText';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import { APP as NEON, FONT_HE } from '../theme/neonTheme';
@@ -198,7 +198,6 @@ export default function QuoteForm({
   const [city, setCity] = useState('');
   const [stateProv, setStateProv] = useState('');
   const [zipCode, setZipCode] = useState('');
-  const dateInputRef = useRef(null);
 
   // חוק ברזל (Professional Quotes Stage C, §158, Visible-but-Locked, §155.1.11):
   // אותו מודל-שדרוג קיים בדיוק (לא מודל חדש - "do NOT build a large reusable
@@ -430,11 +429,10 @@ export default function QuoteForm({
 
   // Owner 2026-10-15: the price step knows whether a real item exists, and a discount is a percentage between 0 and 100
   const realItemsNow = (items || []).filter((it) => it && !isUntouchedPlaceholderItem(it) && String(it.description || '').trim() !== '');
-  const missingPriceCount = realItemsNow.filter((it) => it.unit_price === '' || it.unit_price == null).length;
-  // the demo's "סכום חלקי": no work yet, a work without a price, a heading with nothing in it, or a value not stored yet
-  const emptyHeading = structureMode === 'divided' && (sections || []).some((sec) => { const k = sec.key ?? sec.id; return !realItemsNow.some((it) => it.section_key === k) && !(sections || []).some((x) => x.parent_key === k); });
-  const demoIncomplete = realItemsNow.length === 0 || missingPriceCount > 0 || emptyHeading || (items || []).some((it) => it && it._invalid);
-  const totalLabel = demoIncomplete ? (isHebrew ? 'סכום חלקי' : 'Partial total') : (isHebrew ? 'סה״כ לתשלום' : 'Total');
+  // the simple-quotes sketch (Owner 20/11-21/11): the totals card and the summary always say "סה״כ לתשלום"; the bar says "סכום חלקי" only
+  // while the quote has no line yet
+  const totalLabel = isHebrew ? 'סה״כ לתשלום' : 'Total';
+  const barTotalLabel = realItemsNow.length === 0 ? (isHebrew ? 'סכום חלקי' : 'Partial total') : totalLabel;
   useEffect(() => { if (!pendingRows.length) setBarBlock(false); }, [pendingRows.length]);
   // Owner console 2026-11-08 (restore item 07; body of 4f1592f2:src/components/QuoteForm.jsx 473-485): one synthetic example line, local
   // only (never saved: the save asks to remove it first; editing it turns it into an ordinary line of the user's own). 100 x 200 cm at 600
@@ -749,7 +747,7 @@ export default function QuoteForm({
                 )}
                 {onWork && !hasWork && (
                   // PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line to learn the row from (Owner restore item 07)
-                  <button type="button" role="menuitem" data-testid="quote-show-example" onClick={runMenu(addLocalExample)}><Lightbulb size={17} strokeWidth={2} aria-hidden="true" /><span className="qt-menu-label">{isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}</span></button>
+                  <button type="button" role="menuitem" data-testid="quote-show-example" onClick={runMenu(addLocalExample)}><svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></svg><span className="qt-menu-label">{isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}</span></button>
                 )}
                 <hr />
                 {/* PRODUCT_TRUTH_DECORATIVE: 'Cancel & Return' - closes the quote form via onCancel without saving */}
@@ -907,28 +905,19 @@ export default function QuoteForm({
               <section className="qe-dfields" data-testid="sq-details-page-card">
               {detailsPage === 'project' && (<>
                 <div className="qt-field">
-                  <div className="qt-page-label"><label htmlFor="sq-subject">{isHebrew ? 'נושא ההצעה' : 'Quote subject'}</label><HelpCircle inline testId="sq-help-subject" label={isHebrew ? 'הסבר: נושא ההצעה' : 'Explain: quote subject'} text={isHebrew ? 'כותרת קצרה שהלקוח יראה.' : 'A short title the customer sees.'} /></div>
-                  <input id="sq-subject" className="qt-input" type="text" value={quoteSubject || ''} onChange={(e) => setQuoteSubject(e.target.value)} />
+                  <div className="qt-page-label"><label htmlFor="sq-subject">{isHebrew ? 'כותרת ההצעה' : 'Quote title'}</label></div>
+                  <input id="sq-subject" className="qt-input" type="text" value={quoteSubject || ''} placeholder={isHebrew ? 'לשיפוץ הנכס (לדוגמה)' : 'e.g. Home renovation'} onChange={(e) => setQuoteSubject(e.target.value)} />
                 </div>
                 <div className="qt-field">
-                  <div className="qt-page-label"><label htmlFor="sq-project">{isHebrew ? 'שם הפרויקט' : 'Project name'}</label><HelpCircle inline testId="sq-help-project" label={isHebrew ? 'הסבר: שם הפרויקט' : 'Explain: project name'} text={isHebrew ? 'שם שיעזור לזהות את העבודה.' : 'A name that helps you recognise the job.'} /></div>
+                  <div className="qt-page-label"><label htmlFor="sq-project">{isHebrew ? 'שם הפרויקט' : 'Project name'}</label></div>
                   <input id="sq-project" className="qt-input" type="text" value={projectName || ''} onChange={(e) => setProjectName(e.target.value)} />
                 </div>
                 <div className="qt-field">
-                  <div className="qt-page-label"><label htmlFor="sq-valid-until">{isHebrew ? 'תוקף ההצעה' : 'Quote validity'} <span className="sq-nowrap">({isHebrew ? (isUS ? 'חודש/יום/שנה' : 'יום/חודש/שנה') : dateFormatLabel})</span></label><HelpCircle inline testId="sq-help-valid" label={isHebrew ? 'הסבר: תוקף ההצעה' : 'Explain: quote validity'} text={isHebrew ? 'עד איזה תאריך המחיר בהצעה תקף.' : 'Until which date the price in the quote is valid.'} /></div>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input id="sq-valid-until" className="qt-input" type="text" value={getDisplayDate(validUntil)} onChange={handleDisplayDateChange} placeholder={isHebrew ? (isUS ? 'חודש/יום/שנה' : 'יום/חודש/שנה') : dateFormatLabel} style={{ direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', ...(isHebrew ? { paddingLeft: '36px' } : { paddingRight: '36px' }) }} />
-                    <input type="date" ref={dateInputRef} value={validUntil} onChange={(e) => setValidUntil(e.target.value)} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} />
-                    {/* PRODUCT_TRUTH_DECORATIVE: opens the native date picker for the validity field */}
-                    <button type="button" aria-label={isHebrew ? 'פתיחת לוח השנה' : 'Open calendar'} onClick={() => { if (dateInputRef.current && typeof dateInputRef.current.showPicker === 'function') dateInputRef.current.showPicker(); else if (dateInputRef.current) dateInputRef.current.click(); }}
-                      style={{ position: 'absolute', insetInlineEnd: '6px', background: 'none', border: 'none', cursor: 'pointer', color: NEON.textMuted, padding: 0, display: 'flex', alignItems: 'center', minWidth: 32, minHeight: 32, justifyContent: 'center' }}>
-                      <Calendar size={16} strokeWidth={2} />
-                    </button>
-                  </div>
+                  <div className="qt-page-label"><label htmlFor="sq-valid-until">{isHebrew ? 'בתוקף עד' : 'Valid until'}</label></div>
+                  <input id="sq-valid-until" className="qt-input" type="text" value={getDisplayDate(validUntil)} onChange={handleDisplayDateChange} placeholder={isHebrew ? (isUS ? 'חודש/יום/שנה' : 'יום/חודש/שנה') : dateFormatLabel} style={{ direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
                   {validityExpired && <div data-testid="sq-validity-expired" role="status" style={{ marginTop: '4px', fontSize: '0.75rem', fontWeight: 600, color: '#9a3412' }}>{isHebrew ? 'תאריך התוקף עבר - הלקוח לא יוכל לחתום עד שתאריכו את התוקף.' : 'The validity date has passed - the customer cannot sign until you extend it.'}</div>}
                 </div>
                 {typeof setServiceSchedule === 'function' && <ServiceScheduleFields value={serviceSchedule} onChange={setServiceSchedule} state={serviceScheduleState} isHebrew={isHebrew} isUS={isUS} />}
-                <p className="qt-page-hint">{isHebrew ? <>מטבע ההצעה: <bdi dir="ltr">{currency} ({sym})</bdi> - לפי הגדרות העסק.</> : <>Quote currency: <bdi dir="ltr">{currency} ({sym})</bdi> - from the business settings.</>}</p>
               </>)}
               {detailsPage === 'notes' && (
                 <div className="qt-field">
@@ -1025,7 +1014,7 @@ export default function QuoteForm({
             </span>
             {/* PRODUCT_TRUTH_DECORATIVE: opens / closes the quote summary (the amounts and VAT) */}
             <button type="button" className="qt-tot" aria-label={isHebrew ? 'סיכום ההצעה' : 'Quote summary'} aria-expanded={summaryOpen} data-testid="qt-summary-toggle" onClick={toggleSummary}>
-              <small data-testid="qt-bar-total-label">{totalLabel} ▴</small><b>{money(totalAmount)}</b></button>
+              <small data-testid="qt-bar-total-label">{barTotalLabel} ▴</small><b>{money(totalAmount)}</b></button>
             <span />
             {barBlock && pendingRows.length > 0 && (
               <div className="qt-bar-warn" role="alert" data-testid="qt-bar-pending">{isHebrew ? 'השורה עדיין לא נוספה. לחצו ״הוספה״ או ״ניקוי השורה״ לפני המעבר.' : 'The row was not added yet. Click "Add" or "Clear" before moving on.'}</div>

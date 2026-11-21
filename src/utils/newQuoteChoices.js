@@ -1,4 +1,9 @@
-import { FileText, FileUp, LayoutTemplate, Sparkles } from 'lucide-react';
+import { createElement } from 'react';
+import { FileText, FileUp, LayoutTemplate } from 'lucide-react';
+
+// the simple-quotes sketch's sparkle (one four-point star), drawn in the same line as the other start icons
+const Sparkles = ({ size = 19, strokeWidth = 2, ...rest }) => createElement('svg', { width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth, strokeLinecap: 'round', strokeLinejoin: 'round', ...rest },
+  createElement('path', { d: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z' }));
 
 // The plain-language ways to start a quote (labels + one-line hints, HE/EN).
 // Owner console 2026-11-08 (design A, typed: "מאשר חלופה א׳ - שורות ישירות, כפתור אחד "הצעת מחיר" ..." + stage 2 incl. L-09 / L-23): the

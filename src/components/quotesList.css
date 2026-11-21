@@ -168,3 +168,32 @@ body .pf-newquote-backdrop .pf-newquote-item svg { inline-size: 19px; block-size
 body .pf-newquote-backdrop .pf-newquote-item-text strong { display: block; font-size: 14.5px; }
 body .pf-newquote-backdrop .pf-newquote-item-text small { font-size: 12.5px; color: #5d6b70; }
 body .pf-newquote-backdrop .pf-newquote-back { display: none !important; }
+/* law 50 round (the sketch, Owner 20/11-21/11) */
+.dash-main-content .quote-workspace .quote-modern-head, .dash-main-content .quote-workspace .quote-modern-body { scrollbar-gutter: auto !important; }
+.dash-main-content .quote-workspace .quote-modern-head-row { padding-inline-end: calc(12px + var(--ql-sb, 0px)); }
+.dash-main-content .quote-workspace .quote-modern-sort-arrow { margin-inline-start: 4px; }
+.dash-main-content .quote-workspace .quote-modern-number { font-size: 12.5px; }
+.dash-main-content .quote-workspace .quote-modern-date, .dash-main-content .quote-workspace .quote-modern-views { font-size: 13.5px; }
+.dash-main-content .quote-workspace > .quote-modern-pager { border: 0; background: none; display: flex; justify-content: center; gap: 10px; align-items: center; padding: 10px; font-size: 12.5px; color: var(--ql-muted); }
+@media (max-width: 768px) { .qrow-menu button, .qt-menu button { min-height: 40px !important; } }
+/* the sketch: the list and the saved screen end with a quiet accessibility link; the global footer is not shown there */
+body:has(.quote-workspace) .dash-footer, body:has(.sq-saved--sketch) .dash-footer { display: none !important; }
+.qs-a11y { text-align: center; margin-top: auto; padding-top: 14px; }
+.qs-a11y > button { background: none; border: 0; color: #5d6b70; font: inherit; font-size: 13px; font-weight: 400; padding: 6px 2px; min-height: 32px; cursor: pointer; }
+@media (min-width: 769px) { body:has(.quote-workspace) .dash-main-content, body:has(.sq-saved--sketch) .dash-main-content { padding-bottom: 20px !important; } }
+/* the phone start window: the same window as the computer's (the sketch), over the dimmed screen and the bottom bar */
+.dash-mobile-newquote-backdrop { z-index: 10000 !important; }
+@media (max-width: 768px) {
+  .dash-mobile-newquote-menu { z-index: 10001 !important; padding: 16px !important; gap: 0 !important; background: #fff !important; border: 0 !important; }
+  .dash-mobile-newquote-menu > strong { padding: 0 !important; margin: 0 0 8px; font-size: 16px !important; font-weight: 700 !important; color: #172129 !important; }
+  .dash-mobile-newquote-menu > span { padding: 0 !important; margin: 0 0 6px; font-size: 13px !important; color: #5d6b70 !important; line-height: 1.45 !important; }
+  .dash-mobile-newquote-menu > button { padding: 10px 6px !important; gap: 12px !important; min-height: 0 !important; border-radius: 8px !important; }
+  .dash-mobile-newquote-menu > button svg { width: 19px; height: 19px; margin-top: 2px !important; color: #0f6672 !important; }
+  .dash-mobile-newquote-menu > button strong { font-size: 14.5px !important; font-weight: 700 !important; }
+  .dash-mobile-newquote-menu > button small { font-size: 12.5px !important; color: #5d6b70 !important; line-height: 1.45 !important; }
+}
+/* the sketch: the new-quote button sits flush with the end edge (its wrapper is only as wide as the button) */
+.dash-main-content .quote-workspace .qlist-top .quote-workspace-controls .pf-newquote-menu { flex: none !important; }
+/* the sketch: the list screen and the saved screen fill the work area, so their quiet accessibility link sits at its bottom */
+.dash-content-container > .quote-workspace:has(> .qs-a11y) { flex: 1 1 auto !important; }
+.dash-content-container > .sq-saved--sketch { flex: 1 1 auto; display: flex; flex-direction: column; }

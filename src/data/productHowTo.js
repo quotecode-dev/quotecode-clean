@@ -1037,7 +1037,7 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: "קביעת תוקף להצעה",
       steps: [
         "בעורך ההצעה, מתחת לעבודות, לוחצים \"פרטים נוספים להצעה (לא חובה)\" ובוחרים \"פרויקט, כתובת ותוקף\".",
-        "בשדה \"תוקף ההצעה\" בוחרים את התאריך האחרון שבו הלקוח יכול לחתום, לוחצים \"שמירת הפרטים\" ואז \"שמירת ההצעה\".",
+        "בשדה \"בתוקף עד\" כותבים את התאריך האחרון שבו הלקוח יכול לחתום, לוחצים \"שמירת הפרטים\" ואז \"שמירת ההצעה\".",
         "אחרי התאריך הלקוח עדיין רואה את ההצעה, אבל אי אפשר לחתום עליה.",
       ],
     },
@@ -1045,12 +1045,12 @@ export const PRODUCT_HOW_TO = Object.freeze([
       task: "Setting how long a quote is valid",
       steps: [
         "In the quote editor, under the works, click \"More quote details (optional)\" and choose \"Project, address and validity\".",
-        "In \"Quote validity\" choose the last date the client can sign, click \"Save the details\" and then \"Save the quote\".",
+        "In \"Valid until\" type the last date the client can sign, click \"Save the details\" and then \"Save the quote\".",
         "After that date the client still sees the quote but can no longer sign it.",
       ],
     },
     evidence: [
-      { file: 'src/components/QuoteForm.jsx', labels: ["פרטים נוספים להצעה (לא חובה)","More quote details (optional)","פרויקט, כתובת ותוקף","Project, address and validity","תוקף ההצעה","Quote validity","שמירת הפרטים","Save the details","שמירת ההצעה","Save the quote"] },
+      { file: 'src/components/QuoteForm.jsx', labels: ["פרטים נוספים להצעה (לא חובה)","More quote details (optional)","פרויקט, כתובת ותוקף","Project, address and validity","בתוקף עד","Valid until","שמירת הפרטים","Save the details","שמירת ההצעה","Save the quote"] },
     ],
   },
   {

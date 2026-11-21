@@ -27,6 +27,10 @@ export default function QuoteSavedScreen({ isHebrew, onPreview, onEdit = null, o
           <button type="button" className="sq-btn" data-testid="quote-saved-list" onClick={onList}>{T('לרשימת ההצעות', 'Quote list')}</button>
         </div>
       </div>
+      <div className="qs-a11y">
+        {/* PRODUCT_TRUTH_DECORATIVE: opens the accessibility statement - the same window as the footer's own button (the sketch's quiet link) */}
+        <button type="button" onClick={() => document.querySelector('.dash-footer button')?.click()}>{isHebrew ? 'הצהרת נגישות' : 'Accessibility Statement'}</button>
+      </div>
     </section>
   );
 }

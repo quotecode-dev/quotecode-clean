@@ -801,3 +801,15 @@ body:has([role="dialog"][aria-modal="true"]) .tk-tip { display: none; }
   .dash-mobile-newquote-menu { top: 50% !important; bottom: auto !important; transform: translateY(-50%); inset-inline: max(14px, calc(50% - 210px)) !important; border-radius: 12px !important; box-shadow: 0 18px 40px rgba(0,0,0,.25) !important; max-height: calc(100dvh - 28px); overflow-y: auto; }
 }
 @media (min-width: 769px) { .dash-header-datetime .dash-header-when { margin-inline-start: 0 !important; } }
+/* law 50 round (the sketch, Owner 20/11-21/11; header L-02 / L-03 / L-04 typed 21/11): the dashboard page itself never scrolls (the shell is the
+   screen's height), so its right edge keeps no empty scroll-bar gutter; the header is 52px on a computer, 48px on a phone / tablet upright */
+html:has(.dash-app-shell) { scrollbar-gutter: auto; }
+@media (min-width: 769px) { .dash-upper-section { height: 52px !important; } }
+@media (max-width: 768px) {
+  .dash-upper-section { height: 48px !important; min-height: 48px !important; padding: 0 10px !important; }
+  .dash-header-title .dash-header-datetime .dash-header-when, .dash-header-title .dash-header-datetime .dash-header-when * { font-size: 12px !important; line-height: 1.2 !important; }
+  .dash-header-title .dash-header-datetime .dash-header-mgreet { line-height: 1.2 !important; }
+}
+/* the bell is a plain 36px button with its count in the corner (its behaviour is not touched) */
+[data-testid="header-bell"] { width: 36px !important; height: 36px !important; border: 0 !important; border-radius: 8px !important; background: none !important; align-items: center !important; justify-content: center !important; }
+[data-testid="header-bell-count"] { top: 2px !important; inset-inline-end: 2px !important; }

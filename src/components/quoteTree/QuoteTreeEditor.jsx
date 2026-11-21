@@ -12,7 +12,7 @@
 // The quantity starts EMPTY; "מחיר גלובלי" = one price for the row; an empty price is not 0 (unchanged).
 import { useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { ChevronDown, MoreHorizontal, Pencil, Copy, ArrowUp, ArrowDown, CornerDownLeft, Trash2, Plus, PlusCircle, ClipboardCopy, LayoutTemplate, X } from 'lucide-react';
+import { ChevronDown, MoreHorizontal, Pencil, Copy, ArrowUp, ArrowDown, CornerDownLeft, Trash2, Plus, PlusCircle, LayoutTemplate, X } from 'lucide-react';
 import './quoteTree.css';
 import { buildQuoteItemFromEntry, rowEntry, isCountedMethod } from '../../utils/quoteItemEntry';
 import { askConfirm } from '../AppDialog';
@@ -659,7 +659,7 @@ export default function QuoteTreeEditor({
         {a.step === 'names' && (<>
           <div className="qt-aq">{t.namesQ(a.kind, t.kinds1[a.kind])}</div>
           <div className="qt-hnames">{a.names.map((v, k) => (
-            <input key={k} data-testid={`qt-name-${k}`} autoFocus={k === 0} value={v} placeholder={t.namePh[a.kind]} aria-label={`${t.nameL} ${k + 1}`}
+            <input key={k} data-testid={`qt-name-${k}`} value={v} placeholder={t.namePh[a.kind]} aria-label={`${t.nameL} ${k + 1}`}
               onChange={(e) => setAddPanel({ ...a, names: a.names.map((x, j) => (j === k ? e.target.value : x)), err: '' })} />
           ))}</div>
           <div className="qt-hint">{t.namesHint}</div>
@@ -705,7 +705,7 @@ export default function QuoteTreeEditor({
         const r = duplicateHeading(sections, items, key, isHebrew); done(t.msgHeadingCopied); setSections(r.sections); setItems(r.items);
         const copy = r.sections.find((x) => keyOf(x) === r.copyKey); setRenaming({ key: r.copyKey, value: String(copy?.name || '') });
       }) },
-      { label: t.hCopyFirst, icon: <ClipboardCopy {...sizeOf(16)} />, testId: 'unit-copy-first', disabled: isFirst, title: first ? first.name : undefined,
+      { label: t.hCopyFirst, icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1" /><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /></svg>, testId: 'unit-copy-first', disabled: isFirst, title: first ? first.name : undefined,
         onClick: run(() => { done(t.msgCopiedFirst); setItems(copyRowsFromFirst(sections, items, key, isReal)); }) },
       canTemplate ? { label: t.hTmpl, icon: <LayoutTemplate {...sizeOf(16)} />, testId: 'qt-head-template', onClick: run(() => onSaveHeadingTemplate(s)) } : null,
       '-',
