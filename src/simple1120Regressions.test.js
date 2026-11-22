@@ -25,3 +25,10 @@ describe('simple1120 law-50 measured corrections', () => {
     expect(indexCss).toContain('@media (min-width: 769px) { html body .dash-main-content .dash-upper-section { padding-inline: 16px !important; } }');
   });
 });
+
+describe('simple1120: "To: Whole quote" spacing as the sketch', () => {
+  it('the whole-quote target is its own item, so the 4px gap of .qt-to separates it from "To:" (the sketch: two flex items)', () => {
+    const src = fs.readFileSync('src/components/quoteTree/QuoteTreeEditor.jsx', 'utf8');
+    expect(src).toContain('{toText === t.whole ? <span>{t.whole}</span> : <EllipsisText');
+  });
+});

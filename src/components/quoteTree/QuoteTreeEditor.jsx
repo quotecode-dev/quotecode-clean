@@ -590,7 +590,7 @@ export default function QuoteTreeEditor({
         {typedNew && !editItem && (
           <label className="qt-chk"><input type="checkbox" checked={f.toCatalog} onChange={(e) => set({ toCatalog: e.target.checked })} />{t.saveCatalog}</label>
         )}
-        <span className="qt-to" data-testid="qt-form-to">{t.to} {toText === t.whole ? t.whole : <EllipsisText dir={isHebrew ? 'rtl' : 'ltr'} text={toText} />}</span>
+        <span className="qt-to" data-testid="qt-form-to">{t.to} {toText === t.whole ? <span>{t.whole}</span> : <EllipsisText dir={isHebrew ? 'rtl' : 'ltr'} text={toText} />}</span>
         {/* PRODUCT_TRUTH_DECORATIVE: the same Add, in the line under the row (desktop and tablet) */}
         <button type="button" className="qt-btn qt-btn--p qt-add2" data-testid="qt-add2" onClick={submit}>{t.add}</button>
       </div>
