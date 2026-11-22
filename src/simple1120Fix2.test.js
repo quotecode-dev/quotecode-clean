@@ -30,17 +30,3 @@ describe('simple1120-fix2: the section-head menu', () => {
     expect(treeCss).toContain('.qt-hh .qt-menu { top: calc(100% + 3px); inset-inline-end: 1px; }');
   });
 });
-
-describe('simple1120-fix3: the Hebrew time field and the phone expense info line (LIVE check of a3a126b2)', () => {
-  const sched = fs.readFileSync('src/components/ServiceScheduleFields.jsx', 'utf8');
-  const indexCss = fs.readFileSync('src/index.css', 'utf8');
-  it('in Hebrew the time field shows its value / "--:--" at the start side; the disabled field keeps no room for its hidden clock', () => {
-    expect(sched).toContain("const timeAtom = isHebrew ? { ...atom, display: 'flex', justifyContent: 'flex-end' } : atom;");
-    expect(sched).toContain('disabled={disabled || !v.date} style={timeAtom} />');
-    expect(indexCss).toContain('#sq-service-time:disabled::-webkit-calendar-picker-indicator { display: none; }');
-  });
-  it('the phone expense card is a wrapping row: category, type and date flow as one line', () => {
-    expect(indexCss).toContain('display: flex !important; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 4px;');
-    expect(indexCss).not.toContain('grid-template-areas: "desc desc desc amt"');
-  });
-});

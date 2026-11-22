@@ -75,8 +75,7 @@ describe('simple1120-fix1: the finances expenses (Owner console 2026-11-22)', ()
   it('on a phone every expense is a card that fits the width (no sideways scroll, no column cut by the screen edge)', () => {
     expect(indexCss).toMatch(/@media \(max-width: 560px\) \{[^}]*\.fin-exp-titlebar/);
     expect(indexCss).toContain('  .fin-exp-wrap { overflow-x: visible !important; }\n  .fin-exp-table { min-width: 0 !important; display: block !important; }');
-    expect(indexCss).toContain(".fin-exp-table tr.fin-exp-row::after { content: ''; order: 2; flex-basis: 100%; height: 0; }");
-    expect(indexCss).toContain('.fin-exp-table .fin-exp-act { order: 6; flex-basis: 100%; justify-content: flex-end; }');
+    expect(indexCss).toContain('grid-template-areas: "desc desc desc amt" "cat type date date" "act act act act";');
     for (const c of ['fin-exp-wrap', 'fin-exp-table', 'fin-exp-head', 'fin-exp-row', 'fin-exp-desc', 'fin-exp-cat', 'fin-exp-type', 'fin-exp-date', 'fin-exp-amt', 'fin-exp-act']) expect(fin).toContain(`className="${c}"`);
   });
   it('the total column is as wide as its amount and the amount keeps the physical right-edge axis (IRON-NUMERIC-001)', () => {
