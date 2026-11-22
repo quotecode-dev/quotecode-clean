@@ -204,12 +204,14 @@ describe.each([
     expect(numbers.slice(0, 3)).toEqual(['A100740', 'A100739', 'A100738']);
   });
 
-  it('the toolbar Sort button toggles the direction of the CURRENT column and the header chevron follows', () => {
+  // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo of the list; typed L-07 / L-13 / L-14 / L-19 / L-23 / L-25 / L-26 / L-29 only as needed): the direction is chosen in the "סינון ומיון" window
+  it('the window\'s direction choice turns the CURRENT column around and the header chevron follows', () => {
     const onSort = vi.fn();
     const { container } = render(<Harness isHebrew={isHebrew} initialField="total" initialDirection="asc" onSort={onSort} />);
     showAll(isHebrew);
     expect(orderOf(container)).toEqual(ASC.amount);
-    fireEvent.click(screen.getByRole('button', { name: isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction' }));
+    fireEvent.click(screen.getByTestId('quote-filter-open'));
+    fireEvent.click(screen.getByTestId('quote-sort-direction').querySelector('[data-sort-dir="desc"]'));
     expect(onSort).toHaveBeenLastCalledWith('total');
     expect(orderOf(container)).toEqual([...ASC.amount].reverse());
     expect(columnOf('total')).toHaveAttribute('aria-sort', 'descending');
@@ -250,7 +252,8 @@ describe.each([
     expect(orderOf(container)).toEqual(ASC.client);
     expect(container.querySelectorAll('.quote-modern-item.is-hot')).toHaveLength(1);
     expect(container.querySelectorAll('.quote-modern-item')).toHaveLength(6);
-    expect(container.querySelector('[data-testid="quote-pager"]')).toBeNull(); // one page only
+    // the sketch: one page says "עמוד 1 מתוך 1" (no page buttons)
+    expect(container.querySelector('[data-testid="quote-pager"] [data-page]')).toBeNull();
   });
 
   it('the header buttons are keyboard operable (Enter/Space activate a native button)', () => {
@@ -270,8 +273,9 @@ describe.each([
 });
 
 describe.each([
-  ['Hebrew/RTL', true, ' צפה בהצעה ', ' פעמים ועדיין לא חתם.', 'פתיחה ומעקב', 'הצעה חמה', 'הלקוח'],
-  ['English/LTR', false, ' viewed this quote ', ' times and still hasn’t signed.', 'Open & track', 'Hot quote', 'The client'],
+  // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo of the list; typed L-07 / L-13 / L-14 / L-19 / L-23 / L-25 / L-26 / L-29 only as needed): the sketch's line ("<name> • צפיות: 9; טרם נחתמה"); the button says "פתיחה" and still opens the tracking (L-23 #4)
+  ['Hebrew/RTL', true, ' • צפיות: ', '; טרם נחתמה', 'פתיחה ומעקב', 'הצעה חמה', 'הלקוח'],
+  ['English/LTR', false, ' • Views: ', '; not signed yet', 'Open & track', 'Hot quote', 'The client'],
 ])('hot quote banner - %s', (_label, isHebrew, mid, tail, actionLabel, retiredTitle, genericClient) => {
   const hotList = () => [
     mk('a'),
@@ -382,7 +386,8 @@ describe('next-step banner (Owner 2026-10-19)', () => {
     const banner = screen.getByTestId('hot-quote-banner');
     expect(banner).toHaveAttribute('data-step-kind', 'expiring');
     expect(banner.querySelector('.quote-hot-banner-text').textContent).toBe('The quote for Client exp expires in 2 days and still isn’t signed.');
-    expect(within(banner).getByTestId('next-step-action').textContent).toBe('Open & track');
+    expect(within(banner).getByTestId('next-step-action').textContent).toBe('Open');
+    expect(within(banner).getByTestId('next-step-action').getAttribute('aria-label')).toBe('Open & track');
   });
 
   it('nothing due: the approved next-step empty copy', () => {

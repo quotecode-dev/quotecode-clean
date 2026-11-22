@@ -25,7 +25,8 @@ export default function ServiceScheduleFields({ value, onChange, state = 'ready'
   const v = { date: value?.date || '', time: value?.time || '' };
   const disabled = state !== 'ready';
   // IRON-DATE-001: the product's slash date, as in the validity field beside it (Codex spec item 5); typed digits are read as before
-  const formatLabel = isUS ? 'MM/DD/YYYY' : 'DD/MM/YYYY';
+  // in Hebrew the date order in words, as the validity field beside it (the simple-quotes sketch, Owner 20/11-21/11)
+  const formatLabel = isHebrew ? (isUS ? 'חודש/יום/שנה' : 'יום/חודש/שנה') : (isUS ? 'MM/DD/YYYY' : 'DD/MM/YYYY');
   const display = (iso) => {
     const p = String(iso || '').split('-');
     if (p.length !== 3) return iso || '';

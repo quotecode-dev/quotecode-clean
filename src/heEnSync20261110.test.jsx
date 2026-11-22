@@ -64,7 +64,8 @@ describe('the app copy says the same in both languages', () => {
   it('no emoji left in an English email message', () => expect(dash).not.toContain('❌ Invalid'));
   it('the editor, list, settings and AI dialog pairs', () => {
     // 2026-11-13 (the 13/11 demo client step): the client type label in both languages
-    expect(src('./components/QuoteForm.jsx')).toContain("{isHebrew ? 'סוג הלקוח' : 'Client type'}");
+    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / ... only as needed): the client type label beside its field (the sketch's row)
+    expect(src('./components/QuoteForm.jsx')).toContain("isHebrew ? 'סוג הלקוח' : 'Client type'");
     expect(src('./components/QuotesTab.jsx')).toContain("'The email address the quote was sent to does not exist'");
     expect(src('./components/SettingsTab.jsx')).toContain("'You can upload a file of up to 500 KB, in SVG, JPG or PNG format.'");
     expect(src('./components/AiQuoteDraftDialog.jsx')).toContain("generate: 'Create a draft with AI'");
@@ -79,9 +80,10 @@ describe('market, never the UI language', () => {
   it('the editor VAT rows follow the Israeli-business market only', () => {
     const qf = src('./components/QuoteForm.jsx');
     expect(qf).not.toContain('isLocalIsraeliBusiness && isHebrew');
-    // 2026-11-15 (the approved demo): the summary's four lines - the works, a discount, VAT (Israeli business only), the total
-    expect(qf).toContain("isHebrew ? 'סכום העבודות והמוצרים' : 'Works and products'");
-    expect(qf).toMatch(/\{isLocalIsraeliBusiness && \(<>\s*<span>\{clientType === 'private' \? \(isHebrew \? <>מתוכו מע״מ/);
+    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / ... only as needed): the totals of the sketch - subtotal, a discount, VAT (Israeli business only - the market, never the language), the total
+    expect(qf).toContain("['sub', isHebrew ? 'סכום ביניים' : 'Subtotal', money(subShown)]");
+    expect(qf).toContain("isLocalIsraeliBusiness ? ['vat', vatLabel, money(taxAmount)] : null");
+    expect(qf).toContain("{clientType === 'private' ? (isHebrew ? ' · כלול' : ' · included') : ''}");
     expect(qf).toContain("isLocalIsraeliBusiness && clientType === 'private' ? totalAmount + (Number(discountAmount) || 0) : subtotal");
   });
   it('the quote list before-VAT amount and tooltip follow the market', () => {

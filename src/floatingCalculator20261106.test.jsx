@@ -49,18 +49,19 @@ describe('dragging works with a finger (pointer events), not only a mouse', () =
   });
 });
 
-describe('the floating button in the quote editor', () => {
-  it('QuoteForm renders one floating Calculator button that opens the same calculator (no transfer to a field)', () => {
-    const src = readFileSync('src/components/QuoteForm.jsx', 'utf8');
-    expect(src.match(/className="pf-calc-fab"/g)).toHaveLength(1);
-    expect(src).toContain('<button type="button" className="pf-calc-fab" onClick={() => setIsCalcOpen(true)}');
-    expect(src).toContain("aria-label={isHebrew ? 'מחשבון' : 'Calculator'}");
-    // 2026-11-13 (the 13/11 demo, typed L-09): the work window is gone from the editor - the floating button is the one way to the calculator
-    expect(src).toContain('<DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)}');
+describe('the calculator button (Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-02 / L-03 / L-04 / L-07 / L-09 / L-11 / L-14 / L-15 / L-19 / L-23 / L-25 / L-26 / L-27 / L-29 only as needed): a header icon on every screen, the sketch)', () => {
+  it('the header renders one calculator button that opens the same calculator (no transfer to a field); the editor has no floating one', () => {
+    const dash = readFileSync('src/pages/Dashboard.jsx', 'utf8');
+    expect(dash).toContain('<button type="button" className="dash-header-calc" data-testid="calc-fab" onClick={() => setIsCalcOpen(true)}');
+    expect(dash).toContain("aria-label={isHebrew ? 'מחשבון' : 'Calculator'}");
+    expect(dash).toContain('<DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)}');
+    // the desktop and the phone header both carry it, before the bell
+    expect(dash.match(/\{renderHeaderCalcButton\(\)\}/g)).toHaveLength(2);
+    expect(readFileSync('src/components/QuoteForm.jsx', 'utf8')).not.toMatch(/pf-calc-fab|DraggableCalculator/);
   });
-  it('it floats above the windows that open over the editor (z 10000) and below the calculator; above the phone bottom bar', () => {
+  it('the icon is white on the navy header bar', () => {
     const css = readFileSync('src/index.css', 'utf8');
-    expect(css).toMatch(/\.pf-calc-fab \{ position: fixed; inset-inline-end: 18px; bottom: 24px; z-index: 10001;/);
-    expect(css).toMatch(/@media \(max-width: 768px\) \{ \.pf-calc-fab \{ bottom: calc\(104px/);
+    expect(css).toMatch(/\.dash-header-calc \{ background: none; border: 0; color: #ffffff;/);
+    expect(css).not.toMatch(/\.pf-calc-fab \{ position: fixed/);
   });
 });

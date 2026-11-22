@@ -89,9 +89,19 @@ function buildProps(isHebrew, quoteOverrides = {}, handlers = {}) {
 // The row's view count is wrapped in a bidi-isolated .pf-num atom, so its text is split across nodes: match by full textContent.
 const byFullText = (text) => screen.queryAllByText((_content, el) => el.textContent === text && !Array.from(el.children).some((c) => c.textContent === text));
 
-function expandFirstRow() {
+// Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo of the list; typed L-07 / L-13 / L-14 / L-19 / L-23 / L-25 / L-26 / L-29 only as needed): the open row shows "צפייה", "עריכה", "שליחה ▾" and "⋯" - the other actions (smart edit, improve, duplicate, paid, delete) are in "⋯"
+function expandFirstRow({ more = true } = {}) {
   const toggle = screen.getByLabelText(/הצגת פרטים נוספים|Show more details/);
   fireEvent.click(toggle);
+  if (more) fireEvent.click(screen.getByTestId('quote-more-open'));
+}
+// the words of every row action: the row itself, then its "שליחה ▾" and "⋯" menus
+function allActionText(panel) {
+  fireEvent.click(panel.querySelector('[data-testid="quote-send-open"]'));
+  const send = document.querySelector('[data-row-menu]').textContent;
+  fireEvent.click(panel.querySelector('[data-testid="quote-more-open"]'));
+  const more = document.querySelector('[data-row-menu]').textContent;
+  return panel.textContent + send + more;
 }
 
 describe.each([
@@ -232,7 +242,7 @@ describe.each([
 
     expect(screen.getAllByText('A very specific unique description string')).toHaveLength(2);
     expect(document.querySelector('.quote-modern-row .quote-modern-views').textContent).toBe('7');
-    expect(byFullText(isHebrew ? 'צפיות: 7' : '7 views')).toHaveLength(1);
+    // the views live in their own column (the sketch); the open row has the client type and the first item
     expect(screen.getByText(isHebrew ? 'לקוח עסקי' : 'Business Client')).toBeInTheDocument();
   });
 
@@ -288,7 +298,6 @@ describe.each([
     expandFirstRow();
 
     expect(document.querySelector('.quote-modern-row .quote-modern-views').textContent).toBe(String(viewCount));
-    expect(byFullText(isHebrew ? `צפיות: ${viewCount}` : `${viewCount} views`)).toHaveLength(1);
   });
 });
 
@@ -366,12 +375,10 @@ describe('QuotesTab mobile card (§6)', () => {
     const props = buildProps(isHebrew);
     render(<QuotesTab {...props} />);
 
-    const card = document.querySelector('.quote-card button');
-    const firstChild = card.firstElementChild;
-    // The chevron is an <svg> (lucide-react ChevronDown); the content div
-    // (name/amount/order/date/status) is a second, later child.
-    expect(firstChild.tagName.toLowerCase()).toBe('svg');
-    expect(card.querySelector('.pf-font-variable')).not.toBe(firstChild);
+    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo of the list; typed L-07 / L-13 / L-14 / L-19 / L-23 / L-25 / L-26 / L-29 only as needed): the whole card opens on a tap; the client name opens its first line at the start of the reading direction
+    const card = document.querySelector('.quote-card button.qc-top');
+    expect(card.firstElementChild.classList.contains('qc-nm')).toBe(true);
+    expect(card.querySelector('[data-testid="quote-card-amount"]')).toBeTruthy();
   });
 });
 
@@ -417,11 +424,11 @@ describe.each([
     const headerRow = screen.getByTestId('quote-list-header');
     expect(headerRow.children).toHaveLength(2);
     expect(headerRow.children[0].querySelector('h2')).not.toBeNull();
-    expect(headerRow.children[1].querySelector('input')).not.toBeNull();
-    // the status filter (base capability) still lists every status
-    const opts = [...headerRow.querySelectorAll('select option')].map((o) => o.value);
-    // night task 2026-10-16 (R-07, Owner-approved L-13 / L-14): the filter speaks the shown status labels
-    expect(opts).toEqual(['All', 'needs_sending', 'unfinished', 'sent', 'hot', 'expired', 'approved', 'paid']);
+    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo of the list; typed L-07 / L-13 / L-14 / L-19 / L-23 / L-25 / L-26 / L-29 only as needed): the search is the line under the overview; the status filter is in the "סינון ומיון" window
+    expect(document.querySelector('.qlist-search input')).not.toBeNull();
+    fireEvent.click(screen.getByTestId('quote-filter-open'));
+    const opts = [...screen.getByTestId('quote-filter-status').querySelectorAll('button')].map((o) => o.dataset.filter);
+    expect(opts).toEqual(['All', 'needs_sending', 'unfinished', 'sent', 'sent_not_viewed', 'sent_viewed', 'hot', 'approved', 'paid', 'expired']);
   });
   it('keeps overview totals stable when the visible list is filtered', () => {
     const props = buildProps(isHebrew);
@@ -477,8 +484,8 @@ describe.each([
     expect(controls.getAttribute('style')).toBeNull();
     expect(controls.hasAttribute('dir')).toBe(false);
     const kids = [...controls.children].map((c) => c.className.split(' ')[0]);
-    // Owner console 2026-10-18, typed: "את היצוא לאקסל למקם מימין למיון": the export is first, beside Sort
-    expect(kids).toEqual(['quote-export-compact', 'quote-sort-direction', 'quote-filter-control', 'quote-search-control', 'pf-newquote-menu']);
+    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo of the list; typed L-07 / L-13 / L-14 / L-19 / L-23 / L-25 / L-26 / L-29 only as needed): beside the title - the export icon, then "new quote" (the search and the filter window are the line under the overview)
+    expect(kids).toEqual(['quote-export-compact', 'pf-newquote-menu']);
     controls.querySelectorAll('[style]').forEach((el) => expect(el.getAttribute('style')).not.toMatch(/direction/));
   });
 
@@ -494,16 +501,17 @@ describe.each([
     const props = { ...buildProps(isHebrew), onCreateQuote: vi.fn() };
     render(<QuotesTab {...props} />);
     const search = screen.getByRole('textbox');
-    expect(search).toHaveAttribute('placeholder', isHebrew ? 'חיפוש' : 'Search');
+    expect(search).toHaveAttribute('placeholder', isHebrew ? 'חיפוש לפי שם לקוח או מספר הצעה…' : 'Search client or quote #...');
     expect(search).toHaveAttribute('aria-label', 'Search');
     fireEvent.change(search, { target: { value: 'abc' } });
     expect(props.setSearchTerm).toHaveBeenCalledWith('abc');
-    const sort = screen.getByRole('button', { name: isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction' });
-    expect(sort).toHaveTextContent(isHebrew ? 'מיון' : 'Sort');
-    fireEvent.click(sort);
+    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo of the list; typed L-07 / L-13 / L-14 / L-19 / L-23 / L-25 / L-26 / L-29 only as needed): "סינון ומיון" opens one window - the status, the sort field and its direction
+    const open = screen.getByRole('button', { name: isHebrew ? 'סינון ומיון' : 'Filter and sort' });
+    expect(open).toHaveTextContent(isHebrew ? 'סינון ומיון' : 'Filters');
+    fireEvent.click(open);
+    fireEvent.click(screen.getByTestId('quote-sort-direction').querySelector('[data-sort-dir="asc"]'));
     expect(props.handleQuoteSort).toHaveBeenCalledWith('date');
-    const select = screen.getByRole('combobox');
-    fireEvent.change(select, { target: { value: 'sent' } });
+    fireEvent.click(screen.getByTestId('quote-filter-status').querySelector('[data-filter="sent"]'));
     expect(props.setStatusFilter).toHaveBeenCalledWith('sent');
   });
 
@@ -848,7 +856,7 @@ describe.each([
     fireEvent.click(container.querySelector('.quote-modern-toggle'));
     const panel = container.querySelector('.quote-modern-detail');
     expect(panel.querySelector('.quote-modern-action')).toBeNull();
-    const text = panel.textContent;
+    const text = allActionText(panel);
     for (const label of isHebrew ? ['צפייה', 'עריכה', 'שכפול', 'וואטסאפ', 'שליחה במייל', 'מחיקה'] : ['View', 'Edit', 'Duplicate', 'WhatsApp', 'Email', 'Delete']) expect(text).toContain(label);
   });
 
@@ -932,7 +940,7 @@ describe.each([
     // Owner console 2026-11-06 (typed, L-07 / L-29): no "Open & track" primary button inside the open card of a hot quote
     expect(panel.querySelector('.quote-modern-action')).toBeNull();
     expect(panel.textContent).not.toContain(isHebrew ? 'פתיחה ומעקב' : 'Open & track');
-    for (const label of isHebrew ? ['צפייה', 'עריכה', 'שכפול', 'וואטסאפ', 'שליחה במייל', 'מחיקה'] : ['View', 'Edit', 'Duplicate', 'WhatsApp', 'Email', 'Delete']) expect(panel.textContent).toContain(label);
+    { const all = allActionText(panel); for (const label of isHebrew ? ['צפייה', 'עריכה', 'שכפול', 'וואטסאפ', 'שליחה במייל', 'מחיקה'] : ['View', 'Edit', 'Duplicate', 'WhatsApp', 'Email', 'Delete']) expect(all).toContain(label); }
     fireEvent.click(trigger);
     expect(trigger).toHaveAttribute('aria-expanded', 'false');
     expect(document.getElementById('quote-modern-detail-h')).toBeNull();

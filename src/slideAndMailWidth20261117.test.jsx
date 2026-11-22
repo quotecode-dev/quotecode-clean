@@ -29,10 +29,10 @@ describe('(3) the phone / tablet quote card: a long client name ends with "…" 
   const q = src('src/components/QuotesTab.jsx');
   const d = src('src/pages/Dashboard.jsx').split(String.fromCharCode(13)).join('');
   it('the card name is an EllipsisText box (shared .pf-ell rule) and keeps data-qh="client"', () => {
-    const card = q.slice(q.indexOf('className="quote-card"'));
+    const card = q.slice(q.indexOf('className={`quote-card qc'));
     const box = card.slice(card.indexOf('<EllipsisText'), card.indexOf('/>', card.indexOf('<EllipsisText')));
     expect(box).toContain('data-qh="client"');
-    expect(box).toContain('text={quote.clients?.company_name');
+    expect(box).toContain('text={clientName}');
     expect(box).not.toContain("textOverflow: 'clip'");
   });
   it('no slide rule is left anywhere (the card, the sidebar, the shared rule)', () => {

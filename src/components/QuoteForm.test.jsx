@@ -103,8 +103,11 @@ beforeEach(() => {
 // covered in src/components/quoteTree/*.test.*; these tests are the QuoteForm wiring and every behaviour kept from before.
 const openSummary = () => { if (!screen.queryByTestId('qt-summary-panel')) fireEvent.click(screen.getByTestId('qt-summary-toggle')); };
 // 2026-11-15 (the demo): a section of the quote details opens as its own page
-const openPage = (k) => fireEvent.click(screen.getByTestId(`sq-extra-${k}`));
-const rowNamed = (name) => screen.getAllByTestId('qt-row').find((r) => r.querySelector('.qt-desc')?.textContent.startsWith(name));
+// Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-15 / L-29 only as needed): the details open as windows from the buttons of "More quote details"; the structure is a menu; the rows are the sketch's
+const openPage = (k) => { if (!screen.queryByTestId(`sq-extra-${k}`)) fireEvent.click(screen.getByTestId('sq-more-details-toggle')); fireEvent.click(screen.getByTestId(`sq-extra-${k}`)); };
+const rowNamed = (name) => screen.getAllByTestId('qt-row').find((r) => r.querySelector('.qt-row-name')?.textContent.startsWith(name));
+const pickStructure = (k) => { fireEvent.click(screen.getByTestId('qt-structure')); fireEvent.click(screen.getByTestId(`qt-structure-${k}`)); };
+const structureChecked = (k) => { fireEvent.click(screen.getByTestId('qt-structure')); const v = screen.getByTestId(`qt-structure-${k}`).getAttribute('aria-checked'); fireEvent.click(screen.getByTestId('qt-structure')); return v; };
 function LiveForm({ initialSections = [], initialItems = [], extra = {} }) {
   const [items, setItems] = useStateLive(initialItems);
   const [sections, setSections] = useStateLive(initialSections);
@@ -117,7 +120,7 @@ describe('QuoteForm - every line is a read row of the new work area', () => {
   it('a line shows as a read row with its own total (edited only through "Actions" -> "Edit")', () => {
     render(<QuoteForm {...baseProps({ subtotal: 999, totalAmount: 999 })} />);
     const row = rowNamed('Aluminum window');
-    expect(row.querySelector('.qt-sum').textContent).toBe('$300.00');
+    expect(row.querySelector('.qt-ir-s').textContent).toBe('$300.00');
     expect(screen.queryByDisplayValue('Aluminum window')).toBeNull();
   });
   it('with no line at all the add form is open at the whole-quote level, with the local example offered', () => {
@@ -125,6 +128,7 @@ describe('QuoteForm - every line is a read row of the new work area', () => {
     const form = screen.getAllByTestId('qt-form')[0];
     expect(form.getAttribute('data-target')).toBe('root');
     expect(screen.getAllByTestId('qt-form-to')[0].textContent).toBe('To: Whole quote');
+    fireEvent.click(screen.getByTestId('editor-more'));
     expect(screen.getByTestId('quote-show-example')).toHaveTextContent('Show an example (not saved)');
     expect(screen.queryAllByTestId('qt-row')).toHaveLength(0);
   });
@@ -148,7 +152,7 @@ describe('QuoteForm - every line is a read row of the new work area', () => {
 describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
   it('SMART-QUOTE-02: an undecided (null) structure opens as a simple quote with the add form ready - no structure question', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [] })} />);
-    expect(screen.getByTestId('qt-structure-simple')).toHaveAttribute('aria-pressed', 'true');
+    expect(structureChecked('simple')).toBe('true');
     expect(screen.getAllByTestId('qt-form')).toHaveLength(1);
     expect(screen.queryByText('How would you like to structure this quote?')).toBeNull();
     expect(screen.queryByText(/Smart Quote/)).toBeNull();
@@ -156,9 +160,10 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
 
   it('the order of the screen: who -> what, then the demo\'s "More quote details" line and the bar', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: null, items: [] })} />);
-    const [s1, s2] = ['sq-step-1', 'sq-step-2'].map((id) => screen.getByTestId(id));
+    // the sketch: the work area follows the client fields directly (no second step title)
+    const [s1, s2] = [screen.getByTestId('sq-step-1'), screen.getByTestId('sq-editor-grid')];
     expect(s1).toHaveTextContent('Who is this quote for?');
-    expect(s2).toHaveTextContent('What goes in the quote?');
+    expect(screen.queryByTestId('sq-step-2')).toBeNull();
     const details = screen.getByTestId('sq-more-details-toggle');
     expect(details).toHaveTextContent('More quote details (optional)');
     expect(s1.compareDocumentPosition(s2) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -170,7 +175,7 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
     const setQuoteStructureMode = vi.fn();
     const setSections = vi.fn();
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'regular', setQuoteStructureMode, setSections })} />);
-    fireEvent.click(screen.getByTestId('qt-structure-grouped'));
+    pickStructure('grouped');
     fireEvent.click(screen.getByTestId('qt-add-first'));
     fireEvent.click(screen.getByTestId('qt-kind-apartment'));
     fireEvent.change(screen.getByTestId('qt-count'), { target: { value: '2' } });
@@ -214,7 +219,7 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
   it('a finished quote shows the normal save label and no unfinished notice', () => {
     render(<QuoteForm {...baseProps()} />);
     expect(screen.getByTestId('sq-save')).toHaveTextContent('Save the quote');
-    expect(screen.getByTestId('qt-bar-total-label')).toHaveTextContent('Total to pay');
+    expect(screen.getByTestId('qt-bar-total-label')).toHaveTextContent('Total ▴');
     expect(screen.queryByTestId('sq-save-draft-hint')).toBeNull();
   });
 
@@ -270,10 +275,10 @@ describe('QuoteForm - SMART-QUOTE child-simple first-use flow', () => {
 
   it('optional details are progressive: collapsed on a fresh quote, open when any optional value exists', () => {
     const { unmount } = render(<QuoteForm {...baseProps()} />);
-    expect(screen.getByTestId('sq-details').open).toBe(false);
+    expect(screen.getByTestId('sq-more-details-toggle').getAttribute('aria-expanded')).toBe('false');
     unmount();
     render(<QuoteForm {...baseProps({ projectName: 'Synthetic Tower' })} />);
-    expect(screen.getByTestId('sq-details').open).toBe(true);
+    expect(screen.getByTestId('sq-more-details-toggle').getAttribute('aria-expanded')).toBe('true');
   });
 
   it('OD-1 issuer path: a past validity date shows how to fix it (extend) without changing it', () => {
@@ -297,11 +302,13 @@ describe('QuoteForm - headings (apartments, floors, rooms) and their content', (
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33', kind: 'apartment' }],
       items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })] })} />);
     const heading = screen.getByTestId('qt-heading');
-    expect(heading.querySelector('.qt-head-name').textContent).toBe('Apartment 33');
-    expect(heading.querySelector('.qt-head-total').textContent).toBe('$100.00');
-    expect(within(heading).getByTestId('qt-form-to').textContent).toBe('To: Apartment 33');
+    expect(heading.querySelector('.qt-hn').textContent).toBe('Apartment 33');
+    expect(heading.querySelector('.qt-hs').textContent).toBe('$100.00');
     expect(within(heading).getAllByTestId('qt-row')).toHaveLength(1);
-    expect(screen.getByTestId('qt-add-same')).toHaveTextContent('+ Add an apartment');
+    // the sketch: ONE entry row; a click on the section's name sends it there ("To: Apartment 33")
+    fireEvent.click(heading.querySelector('.qt-hn'));
+    expect(within(screen.getByTestId('qt-heading')).getByTestId('qt-form-to').textContent).toBe('To: Apartment 33');
+    expect(screen.getByTestId('qt-add-first')).toHaveTextContent('Add a section: apartment, floor, room or other');
   });
 
   it('rows of no heading stay at the whole-quote level - never hidden', () => {
@@ -314,12 +321,13 @@ describe('QuoteForm - headings (apartments, floors, rooms) and their content', (
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided',
       sections: [{ key: 'a', name: 'Apartment 22', kind: 'apartment', sort_order: 0 }, { key: 'k', name: 'Kitchen', kind: 'room', parent_key: 'a', sort_order: 1 }],
       items: [makeItem({ description: 'Paint', unit_price: '40', section_key: 'a' }), makeItem({ description: 'Tiles', unit_price: '60', section_key: 'k' })] })} />);
-    expect(screen.getByTestId('qt-structure-tiered')).toHaveAttribute('aria-pressed', 'true');
+    expect(structureChecked('tiered')).toBe('true');
     const [apt, kitchen] = screen.getAllByTestId('qt-heading');
     expect(apt.contains(kitchen)).toBe(true);
     expect(kitchen.getAttribute('data-depth')).toBe('1');
-    expect(apt.querySelector('.qt-head-total').textContent).toBe('$100.00');
-    expect(within(kitchen).getByTestId('qt-form-to').textContent).toBe('To: Apartment 22 → Kitchen');
+    expect(apt.querySelector('.qt-hs').textContent).toBe('$100.00');
+    fireEvent.click(kitchen.querySelector('.qt-hn'));
+    expect(within(screen.getAllByTestId('qt-heading')[1]).getByTestId('qt-form-to').textContent).toBe('To: Apartment 22‎ → ‎Kitchen');
   });
 
   it('"Duplicate" copies the heading with everything in it right after it - new keys, no saved ids, each row price-linked to its copy (stage 3)', () => {
@@ -355,12 +363,12 @@ describe('QuoteForm - headings (apartments, floors, rooms) and their content', (
       initialItems={[makeItem({ description: 'Window', unit_price: '100', section_key: 'a' }), makeItem({ description: 'Tiles', unit_price: '10', section_key: 'k' }), makeItem({ description: 'Door', unit_price: '5', section_key: 'b' })]} />);
     const before = liveState;
     fireEvent.click(screen.getAllByTestId('qt-heading-actions')[0]);
-    expect(screen.getByTestId('qt-head-delete')).toHaveTextContent('Delete the apartment with its content');
+    expect(screen.getByTestId('qt-head-delete')).toHaveTextContent('Remove with its content');
     fireEvent.click(screen.getByTestId('qt-head-delete'));
     expect(liveState.sections.map((s) => s.name)).toEqual(['Apartment 34']);
     expect(liveState.items.map((it) => [it.description, it.section_key])).toEqual([['Door', 'b']]);
-    expect(screen.getByTestId('qt-undo')).toHaveTextContent('The place was removed with its content. You can undo it.');
-    fireEvent.click(within(screen.getByTestId('qt-undo')).getByRole('button', { name: 'Undo last action' }));
+    expect(screen.getByTestId('qt-undo')).toHaveTextContent('The section was removed with its content. You can undo.');
+    fireEvent.click(within(screen.getByTestId('qt-undo')).getByRole('button', { name: 'Undo the last action' }));
     expect(liveState.sections).toEqual(before.sections);
     expect(liveState.items).toEqual(before.items);
   });
@@ -368,7 +376,7 @@ describe('QuoteForm - headings (apartments, floors, rooms) and their content', (
   it('choosing "Simple quote" never removes a heading or a row', () => {
     const setSections = vi.fn(); const setItems = vi.fn();
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Apartment 33' }], items: [makeItem({ description: 'Window', unit_price: '100', section_key: 'sec1' })], setSections, setItems })} />);
-    fireEvent.click(screen.getByTestId('qt-structure-simple'));
+    pickStructure('simple');
     expect(setSections).not.toHaveBeenCalled();
     expect(setItems).not.toHaveBeenCalled();
     // the demo: the simple structure lists every row in one table (headings are kept, not shown)
@@ -378,18 +386,16 @@ describe('QuoteForm - headings (apartments, floors, rooms) and their content', (
 });
 
 describe('QuoteForm - the row menu', () => {
-  const red = 'rgb(185, 28, 28)';
-  it('"Actions" opens the row actions; only "Remove" is red', () => {
+  it('"Actions" opens the row actions of the sketch; only "Remove" is red', () => {
     render(<QuoteForm {...baseProps({ items: [makeItem({ description: 'A', unit_price: '1' }), makeItem({ description: 'B', unit_price: '1' })] })} />);
     fireEvent.click(screen.getAllByRole('button', { name: 'Actions' })[0]);
     const labels = screen.getAllByRole('menuitem').map((el) => el.textContent);
-    expect(labels).toEqual(['Edit', 'Duplicate', 'Remove']); // the demo: no up / down / move
-    const colors = screen.getAllByRole('menuitem').map((el) => ({ label: el.textContent, color: el.style.color }));
-    expect(colors.find((c) => c.label === 'Remove').color).toBe(red);
-    colors.filter((c) => c.label !== 'Remove').forEach((c) => expect(c.color).not.toBe(red));
+    expect(labels).toEqual(['Edit', 'Duplicate', 'Move up', 'Move down', 'Remove']);
+    const red = screen.getAllByRole('menuitem').filter((el) => el.classList.contains('qt-menu-del')).map((el) => el.textContent);
+    expect(red).toEqual(['Remove']);
   });
 
-  it('duplicate adds a copy at the end of its place (the demo), without its saved id', () => {
+  it('duplicate adds a copy right after the row (the sketch), without its saved id', () => {
     const setItems = vi.fn();
     const a = makeItem({ id: 'db1', description: 'A', unit_price: '5' });
     const b = makeItem({ description: 'B', unit_price: '1' });
@@ -397,7 +403,7 @@ describe('QuoteForm - the row menu', () => {
     fireEvent.click(screen.getAllByRole('button', { name: 'Actions' })[0]);
     fireEvent.click(screen.getByRole('menuitem', { name: 'Duplicate' }));
     const next = setItems.mock.calls[0][0]([a, b]);
-    expect(next.map((x) => x.description)).toEqual(['A', 'B', 'A']);
+    expect(next.map((x) => x.description)).toEqual(['A', 'A', 'B']); // the sketch: the copy right after its row
     expect(next[2].id).toBeUndefined();
   });
 
@@ -408,7 +414,7 @@ describe('QuoteForm - the row menu', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Actions' }));
     fireEvent.click(screen.getByRole('menuitem', { name: 'Remove' }));
     expect(screen.queryAllByTestId('qt-row')).toHaveLength(0);
-    fireEvent.click(screen.getByRole('button', { name: 'Undo last action' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Undo the last action' }));
     expect(screen.getAllByTestId('qt-row')).toHaveLength(1);
     unmount();
     render(<QuoteForm {...baseProps({ items: [makeItem({ description: 'A', unit_price: '1' }), makeItem({ description: 'B', unit_price: '1' })] })} />);
@@ -416,10 +422,11 @@ describe('QuoteForm - the row menu', () => {
     expect(screen.getByRole('menuitem', { name: 'Remove' })).toBeTruthy();
   });
 
-  it('the row menu has no move / up / down (the demo: Edit, Duplicate, Remove)', () => {
+  it('with sections the row menu also moves a row to another section (the sketch)', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', items: [makeItem({ description: 'A', unit_price: '1' }), makeItem({ description: 'B', unit_price: '1' })], sections: [{ key: 'sec1', name: 'Kitchen' }] })} />);
     fireEvent.click(screen.getAllByRole('button', { name: 'Actions' })[0]);
-    expect(screen.queryByRole('menuitem', { name: /Move to|Down|Up/ })).toBeNull();
+    expect(screen.getByRole('menuitem', { name: 'Move to another section' })).toBeTruthy();
+    expect(screen.getByRole('menuitem', { name: 'Move down' })).toBeTruthy();
   });
 
   it('duplicate is locked (the one capability notice) for a measured line without the reuse entitlement', () => {
@@ -462,8 +469,8 @@ describe('QuoteForm - Hebrew/RTL rows', () => {
   it('the work area reads in Hebrew with the shekel total', () => {
     render(<QuoteForm {...baseProps({ isHebrew: true, sym: '₪', isLocalIsraeliBusiness: true })} />);
     expect(screen.getByTestId('qt-editor').getAttribute('dir')).toBe('rtl');
-    expect(rowNamed('Aluminum window').querySelector('.qt-sum').textContent).toBe('₪300.00');
-    expect(screen.getByRole('button', { name: 'הוספה' })).toBeTruthy();
+    expect(rowNamed('Aluminum window').querySelector('.qt-ir-s').textContent).toBe('₪300.00');
+    expect(screen.getAllByRole('button', { name: 'הוספה' }).length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'פעולות' })).toBeTruthy();
   });
 });
@@ -533,20 +540,20 @@ describe('QuoteForm - identical copies of an older quote', () => {
   it('the heading shows "× N", the per-copy line and the total of all copies', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Type A', sort_order: 0, repeat_count: 12 }], items: [tiles()] })} />);
     const heading = screen.getByTestId('qt-heading');
-    expect(heading.querySelector('.qt-head-name').textContent).toBe('Type A × 12');
-    expect(heading.querySelector('.qt-head-total').textContent).toBe('$1200.00');
+    expect(heading.querySelector('.qt-hn').textContent).toBe('Type A × 12');
+    expect(heading.querySelector('.qt-hs').textContent).toBe('$1200.00');
     expect(screen.getByTestId('unit-per-copy').textContent).toMatch(/Per section: \$100\.00 · All sections: \$1200\.00/);
     expect(screen.getByTestId('unit-per-copy').textContent).toContain('The rows here are for one section');
     expect(screen.getByTestId('unit-applies-all').textContent).toBe('Edits apply to all 12 sections.');
   });
   it('at 1 nothing new is shown (no "× 1", no per-copy line), and a new quote never gets a count', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: 'Type A', sort_order: 0 }], items: [tiles()] })} />);
-    expect(screen.getByTestId('qt-heading').querySelector('.qt-head-name').textContent).toBe('Type A');
+    expect(screen.getByTestId('qt-heading').querySelector('.qt-hn').textContent).toBe('Type A');
     expect(screen.queryByTestId('unit-per-copy')).toBeNull();
     fireEvent.click(screen.getByTestId('qt-heading-actions'));
-    // the options page has no "how many times" field (Owner 2026-11-13, answer ב)
-    expect(screen.getByTestId('qt-heading-options').textContent).not.toMatch(/copies|separate|times/i);
-    expect(screen.getByTestId('qt-heading-options').querySelectorAll('input')).toHaveLength(1);
+    // the section menu has no "how many times" choice (Owner 2026-11-13, answer ב)
+    expect(screen.getByRole('menu').textContent).not.toMatch(/copies|separate|times/i);
+    expect(screen.getByRole('menu').querySelectorAll('input')).toHaveLength(0);
   });
 });
 
@@ -560,9 +567,8 @@ describe('QuoteForm - unit templates (stage 4)', () => {
     fireEvent.click(screen.getByTestId('qt-heading-actions'));
     fireEvent.click(screen.getByTestId('qt-head-template'));
     expect(onSaveUnitTemplate).toHaveBeenCalledWith(expect.objectContaining({ key: 'sec1', name: 'Type A' }));
-    // 2026-11-15 (the demo, C9): "From a saved template" stands beside "+ Add another kind" - at the whole quote only
-    expect(screen.queryByTestId('unit-from-template')).toBeNull();
-    fireEvent.click(screen.getByTestId('qt-nav-whole'));
+    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-15 / L-29 only as needed): "From a saved template" is in the editor bar's "⋯" menu
+    fireEvent.click(screen.getByTestId('editor-more'));
     fireEvent.click(screen.getByTestId('unit-from-template'));
     expect(onAddUnitFromTemplate).toHaveBeenCalledTimes(1);
   });
@@ -570,6 +576,7 @@ describe('QuoteForm - unit templates (stage 4)', () => {
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 'sec1', name: '', sort_order: 0 }], items: [], onSaveUnitTemplate: vi.fn() })} />);
     fireEvent.click(screen.getByTestId('qt-heading-actions'));
     expect(screen.queryByTestId('qt-head-template')).toBeNull();
+    fireEvent.click(screen.getByTestId('editor-more'));
     expect(screen.queryByTestId('unit-from-template')).toBeNull();
   });
 });
@@ -580,22 +587,29 @@ describe('QuoteForm - the bottom bar, the summary and the quote details', () => 
   it('the bar: the total with its label, the save, what the client sees and the summary; the summary has the demo\'s lines', () => {
     render(<QuoteForm {...baseProps({ presentationController: { openPreview: vi.fn() } })} />);
     const bar = screen.getByTestId('qt-bar');
-    expect(bar.querySelector('.qt-bar-total').textContent).toBe('Total to pay$300.00');
+    expect(bar.querySelector('.qt-tot').textContent).toBe('Total ▴$300.00');
     expect(within(bar).getByTestId('sq-save')).toBeTruthy();
     expect(within(bar).getByTestId('qt-summary-toggle')).toHaveAttribute('aria-expanded', 'false');
     expect(screen.queryByTestId('qt-summary-panel')).toBeNull();
     openSummary();
-    expect(screen.getByTestId('sq-summary').textContent).toContain('Works and products');
-    expect(screen.getByTestId('sq-save-total').textContent).toBe('Total to pay$300.00');
+    expect(screen.getByTestId('sq-summary').textContent).toContain('Subtotal');
+    expect(screen.getByTestId('sq-save-total').textContent).toBe('Total$300.00');
     expect(screen.queryByTestId('sq-summary-counts')).toBeNull();
     expect(screen.getAllByTestId('sq-save')).toHaveLength(1);
   });
-  it('a work without a price makes the total "Partial total" in the bar and in the summary (the demo)', () => {
+  // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo): the bar says "Partial total" only while the quote has no
+  // line; the totals card and the summary always say "Total"
+  it('the bar says "Partial total" only while there is no line; the summary always says "Total" (the sketch)', () => {
+    const { unmount } = render(<QuoteForm {...baseProps({ items: [] })} />);
+    expect(screen.getByTestId('qt-bar-total-label')).toHaveTextContent('Partial total');
+    unmount();
     render(<QuoteForm {...baseProps({ quoteStructureMode: 'divided', sections: [{ key: 's1', name: 'Apartment 1', kind: 'apartment' }],
       items: [makeItem({ description: 'Flooring', unit_price: '150', section_key: 's1' }), makeItem({ description: 'Windows', unit_price: '', section_key: 's1' })] })} />);
-    expect(screen.getByTestId('qt-bar-total-label')).toHaveTextContent('Partial total');
+    expect(screen.getByTestId('qt-bar-total-label')).toHaveTextContent('Total');
+    expect(screen.getByTestId('qt-bar-total-label').textContent).not.toContain('Partial');
     openSummary();
-    expect(screen.getByTestId('sq-save-total').textContent).toContain('Partial total');
+    expect(screen.getByTestId('sq-save-total').textContent).toContain('Total');
+    expect(screen.getByTestId('sq-save-total').textContent).not.toContain('Partial');
   });
   it('the details line opens the section buttons; each section is its own page; an edit has its status there', () => {
     render(<QuoteForm {...baseProps({ isHebrew: true, sym: '₪', editingQuoteId: 'q1', quoteStatus: 'Draft' })} />);
@@ -618,26 +632,26 @@ describe('QuoteForm - the bottom bar, the summary and the quote details', () => 
   it('"חזרה ללא שמירה" on a details page puts the values back as they were', () => {
     render(<NotesForm />);
     openPage('notes');
-    fireEvent.change(screen.getByLabelText('הערות לכל ההצעה'), { target: { value: 'New note' } });
-    expect(screen.getByLabelText('הערות לכל ההצעה').value).toBe('New note');
+    fireEvent.change(screen.getByLabelText('הערות לכל ההצעה', { selector: 'textarea' }), { target: { value: 'New note' } });
+    expect(screen.getByLabelText('הערות לכל ההצעה', { selector: 'textarea' }).value).toBe('New note');
     fireEvent.click(screen.getByTestId('sq-details-close'));
     expect(screen.queryByTestId('sq-details-page')).toBeNull();
     openPage('notes');
-    expect(screen.getByLabelText('הערות לכל ההצעה').value).toBe('Old note');
+    expect(screen.getByLabelText('הערות לכל ההצעה', { selector: 'textarea' }).value).toBe('Old note');
   });
   it('"→ חזרה" with an unsaved change stays on the page with the message; after "שמירת הפרטים" the change is kept', () => {
     render(<NotesForm />);
     openPage('notes');
-    fireEvent.change(screen.getByLabelText('הערות לכל ההצעה'), { target: { value: 'New note' } });
-    fireEvent.click(screen.getByTestId('sq-details-back'));
+    fireEvent.change(screen.getByLabelText('הערות לכל ההצעה', { selector: 'textarea' }), { target: { value: 'New note' } });
+    fireEvent.keyDown(document, { key: 'Escape' }); // the window's back (Escape / a click outside)
     expect(screen.getByTestId('sq-details-page')).toBeTruthy();
     expect(screen.getByTestId('sq-details-error').textContent).toBe('יש שינויים שטרם נשמרו. שמרו אותם, או לחצו ״חזרה ללא שמירה״.');
-    expect(screen.getByLabelText('הערות לכל ההצעה').value).toBe('New note');
+    expect(screen.getByLabelText('הערות לכל ההצעה', { selector: 'textarea' }).value).toBe('New note');
     fireEvent.click(screen.getByTestId('sq-details-save'));
     expect(screen.queryByTestId('sq-details-page')).toBeNull();
     openPage('notes');
-    expect(screen.getByLabelText('הערות לכל ההצעה').value).toBe('New note');
-    fireEvent.click(screen.getByTestId('sq-details-back'));
+    expect(screen.getByLabelText('הערות לכל ההצעה', { selector: 'textarea' }).value).toBe('New note');
+    fireEvent.keyDown(document, { key: 'Escape' }); // the window's back (Escape / a click outside)
     expect(screen.queryByTestId('sq-details-page')).toBeNull();
   });
 });

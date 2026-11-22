@@ -13,27 +13,22 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const css = fs.readFileSync(path.join(here, 'components/quoteTree/quoteTree.css'), 'utf8').split(String.fromCharCode(13, 10)).join(String.fromCharCode(10));
 const tree = fs.readFileSync(path.join(here, 'components/quoteTree/QuoteTreeEditor.jsx'), 'utf8');
 
-describe('the phone quote row (Owner 2026-11-16)', () => {
-  const phone = css.slice(css.indexOf('/* Owner console 2026-11-16'));
-  it('item, quantity and price on one line; the total under them at the end side, the actions at the start side', () => {
-    expect(phone).toContain('@media (max-width: 480px)');
-    expect(phone).toContain('grid-template-areas: "desc qty price" "act sum sum"');
-    expect(phone).toMatch(/td\.qt-sum \{ grid-area: sum;[^}]*justify-self: end;/);
-    expect(phone).toMatch(/td\.qt-act \{ grid-area: act;[^}]*justify-self: start;/);
-    // its menu opens from the start side into the screen
-    expect(phone).toContain('.qt-rows tr.qt-row > td.qt-act .qt-menu { inset-inline-end: auto; inset-inline-start: 0; }');
+// Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-23 / L-26 / L-29 ... only as needed): the row of the sketch - on a phone the name and "qty unit × price" under it, the sum on the amount axis and "⋯" beside it
+describe('the phone quote row (the sketch, 20/11)', () => {
+  const phone = css.slice(css.indexOf('@media (max-width: 768px) {'));
+  it('the name with its numbers under it; the sum on the axis; the actions in the last column', () => {
+    expect(phone).toContain('.qt-ir { grid-template-columns: minmax(0, 1fr) var(--qt-sumw) 36px !important; padding: 6px 10px; }');
+    expect(phone).toContain('.qt-ir .qt-ir-sub { display: block; font-size: 12px; color: var(--qt-muted); }');
+    expect(phone).toContain('.qt-ir .qt-ir-q, .qt-ir .qt-ir-p, .qt-ir .qt-ir-u { display: none; }');
   });
-  it('a long name stays on one line and ends with "…" on a phone (no slide, no wrap)', () => {
-    expect(phone).toContain('.qt-rows tr.qt-row .qt-row-name-box { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; min-width: 0; }');
-    expect(phone).not.toContain('pf-slide');
-    expect(tree).toContain('<EllipsisText plain className="qt-row-name-box" text={it.description} />');
-    expect(tree).toContain('<tr key={i} className="qt-row" data-testid="qt-row">');
+  it('a long name stays on one line and ends with "…" (the shared one-line rule, the whole name in the bubble); no slide', () => {
+    expect(css).not.toContain('pf-slide');
+    expect(tree).toContain('<EllipsisText className="qt-row-name-box" text={details ? `${it.description} · ${details}` : it.description} />');
+    expect(tree).toContain('data-testid="qt-row">');
   });
-  it('wider screens keep their layout: the phone rules sit only under 480px, the name wraps there as before', () => {
-    expect(phone).toContain('.qt-row-name-box { display: block; }');
-    const outside = phone.slice(0, phone.indexOf('@media (max-width: 480px)'));
-    expect(outside).not.toMatch(/grid-template-areas/);
-    expect(outside).not.toMatch(/text-overflow: ellipsis/);
+  it('a tablet held upright shows the computer table again (601-768px)', () => {
+    const tablet = css.slice(css.indexOf('@media (min-width: 601px) and (max-width: 768px) {'));
+    expect(tablet).toContain('.qt-ir { grid-template-columns: var(--qt-cols) !important; padding: 0 10px; min-height: 38px; }');
   });
   it('EllipsisText renders a span box by default (inside a button) and a div when asked; `plain` leaves the one-line rule to the caller', () => {
     const { container, rerender } = render(<EllipsisText className="b" text="x" />);

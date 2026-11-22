@@ -81,7 +81,7 @@ describe('every authenticated screen keeps a static block and an inner scroll bo
   for (const [name, file] of Object.entries(screens)) {
     it(`${name}: pf-screen + pf-screen-body`, () => {
       const src = read('src', 'components', file);
-      expect(src).toMatch(/className="pf-screen( pf-work-screen)?( quote-workspace)?"/);
+      expect(src).toMatch(/className="pf-screen( pf-work-screen)?( quote-workspace)?( qe)?"/); // qe: the editor of the sketch (20/11)
       expect(src).toMatch(/className="pf-screen-body|className="quote-modern-list pf-screen-body/);
     });
   }
@@ -91,7 +91,7 @@ describe('every authenticated screen keeps a static block and an inner scroll bo
     // IRON-QH-LAYOUT-001: the card branch renders on mobile OR when the desktop slots cannot fit (useCards = isMobileView || compact).
     const mobile = src.slice(src.search(/\{useCards && \(\s*<>/));
     expect(mobile.length).toBeGreaterThan(100);
-    expect(mobile).toMatch(/<div (ref={cardListRef} )?className="pf-screen-body" style=\{\{ display: 'flex', flexDirection: 'column', gap: '6px' \}\}>/);
+    expect(mobile).toMatch(/<div (ref={cardListRef} )?className="pf-screen-body( qcards)?" style=\{\{ display: 'flex', flexDirection: 'column', gap: '6px' \}\}>/);
   });
   it('Clients mobile list is the inner scroll body and no non-visual node separates the static block from it', () => {
     const src = read('src', 'components', 'ClientsTab.jsx');

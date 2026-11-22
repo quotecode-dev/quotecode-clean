@@ -1,13 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
+import { Fragment, useState, useEffect, useRef } from 'react';
 import { phonePlaceholder } from '../utils/phoneDisplay';
 import { businessDial, joinPhone } from '../utils/phoneDial';
-import DraggableCalculator from './DraggableCalculator';
 import AddItemWizard from './AddItemWizard';
-import QuoteRowsEditor from './QuoteRowsEditor';
 import QuoteTreeEditor from './quoteTree/QuoteTreeEditor';
-import { structureOf, pathOf } from './quoteTree/treeModel';
+import { structureOf } from './quoteTree/treeModel';
 import { HelpCircle } from './quoteTree/QuoteTreeEditor';
-import { Calculator, Calendar, Paperclip, X, AlertTriangle, ChevronDown, ArrowLeft, ArrowRight } from 'lucide-react';
+import { Paperclip, X, AlertTriangle, ChevronDown, ArrowLeft, ArrowRight, Eye } from 'lucide-react';
+import EllipsisText from './EllipsisText';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import { APP as NEON, FONT_HE } from '../theme/neonTheme';
 import QuotePresentationPanel from './quotePresentation/QuotePresentationPanel';
@@ -22,6 +21,7 @@ import { publishBlocker, resolveBlockers } from '../utils/aiHelpBlockers';
 import AiHelpButton from './AiHelpButton';
 import CapabilityUpgradeNotice from './subscriptions/CapabilityUpgradeNotice';
 import ServiceScheduleFields from './ServiceScheduleFields';
+import { SketchIcon } from './SketchIcons';
 import AddressSuggestInput from './AddressSuggestInput';
 import { askConfirm } from './AppDialog';
 
@@ -39,11 +39,11 @@ const TAX_ID_NOT_BLANK = String.raw`.*\S.*`;
 // SMART-QUOTE first-use flow: a numbered step label (1 who / 2 what / 3 price / 4 review & save).
 function StepHeading({ n, title, hint }) {
   return (
-    <div className="sq-step" data-testid={`sq-step-${n}`} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', margin: '6px 0 10px' }}>
-      <span aria-hidden="true" style={{ flexShrink: 0, width: '24px', height: '24px', borderRadius: '999px', background: NEON.violet, color: 'white', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.78rem' }}>{n}</span>
+    <div className="sq-step qe-step" data-testid={`sq-step-${n}`}>
+      <i aria-hidden="true">{n}</i>
       <div>
-        <h3 style={{ margin: 0, fontSize: '0.98rem', fontWeight: 800, color: NEON.textPrimary }}>{title}</h3>
-        {hint && <p style={{ margin: '2px 0 0', fontSize: '0.76rem', color: NEON.textSecondary, lineHeight: 1.4 }}>{hint}</p>}
+        <h3>{title}</h3>
+        {hint && <p>{hint}</p>}
       </div>
     </div>
   );
@@ -195,12 +195,10 @@ export default function QuoteForm({
     evs.forEach(([n, h]) => document.addEventListener(n, h, true));
     return () => { if (ro) ro.disconnect(); if (raf) cancelAnimationFrame(raf); evs.forEach(([n, h]) => document.removeEventListener(n, h, true)); clearTimeout(back); html.classList.remove('pf-typing'); html.classList.remove('pf-anchor'); };
   }, []);
-  const [isCalcOpen, setIsCalcOpen] = useState(false);
   const [street, setStreet] = useState('');
   const [city, setCity] = useState('');
   const [stateProv, setStateProv] = useState('');
   const [zipCode, setZipCode] = useState('');
-  const dateInputRef = useRef(null);
 
   // חוק ברזל (Professional Quotes Stage C, §158, Visible-but-Locked, §155.1.11):
   // אותו מודל-שדרוג קיים בדיוק (לא מודל חדש - "do NOT build a large reusable
@@ -232,7 +230,7 @@ export default function QuoteForm({
   }, [sections]);
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [pendingRows, setPendingRows] = useState([]);
-  const [editorPage, setEditorPage] = useState(false);
+  const [, setEditorPage] = useState(false);
   // the summary opens right above the bar (the 13/11 demo); Escape or a click outside the bar closes it
   const toggleSummary = () => setSummaryOpen((v) => !v);
   // 2026-11-15 (the demo): a section of the quote details opens as its own page; "שמירת הפרטים" keeps, "חזרה ללא שמירה" puts everything
@@ -264,13 +262,11 @@ export default function QuoteForm({
     design: isHebrew ? 'עיצוב והנפקת ההצעה' : 'Quote design and issuing', status: isHebrew ? 'מצב ההצעה' : 'Quote status' })[k] || '';
   useEffect(() => {
     if (!summaryOpen) return undefined;
-    const out = (e) => { if (!e.target.closest?.('[data-testid="qt-bar"]')) setSummaryOpen(false); };
+    const out = (e) => { if (!e.target.closest?.('[data-testid="qt-bar"], [data-testid="qt-summary-panel"]')) setSummaryOpen(false); };
     const esc = (e) => { if (e.key === 'Escape') setSummaryOpen(false); };
     document.addEventListener('pointerdown', out); document.addEventListener('keydown', esc);
     return () => { document.removeEventListener('pointerdown', out); document.removeEventListener('keydown', esc); };
   }, [summaryOpen]);
-  // the row editor names a heading by its whole path ("דירה 22 ← מטבח") - two kitchens never look the same
-  const pathSections = (sections || []).map((x) => ({ ...x, name: pathOf(sections || [], x.key ?? x.id).map((p) => p.name).join(isHebrew ? ' ← ' : ' → ') || x.name }));
   const isTermsWarrantyCustomized = terms !== (defaultTerms ?? '') || warranty !== (defaultWarranty ?? '');
   // חוק ברזל: "confirmation if doing so would overwrite custom text" - אם
   // הערכים הנוכחיים כבר זהים לברירת-המחדל, אין מה "לאבד" ואין צורך לחסום
@@ -434,11 +430,10 @@ export default function QuoteForm({
 
   // Owner 2026-10-15: the price step knows whether a real item exists, and a discount is a percentage between 0 and 100
   const realItemsNow = (items || []).filter((it) => it && !isUntouchedPlaceholderItem(it) && String(it.description || '').trim() !== '');
-  const missingPriceCount = realItemsNow.filter((it) => it.unit_price === '' || it.unit_price == null).length;
-  // the demo's "סכום חלקי": no work yet, a work without a price, a heading with nothing in it, or a value not stored yet
-  const emptyHeading = structureMode === 'divided' && (sections || []).some((sec) => { const k = sec.key ?? sec.id; return !realItemsNow.some((it) => it.section_key === k) && !(sections || []).some((x) => x.parent_key === k); });
-  const demoIncomplete = realItemsNow.length === 0 || missingPriceCount > 0 || emptyHeading || (items || []).some((it) => it && it._invalid);
-  const totalLabel = demoIncomplete ? (isHebrew ? 'סכום חלקי' : 'Partial total') : (isHebrew ? 'סה״כ לתשלום' : 'Total to pay');
+  // the simple-quotes sketch (Owner 20/11-21/11): the totals card and the summary always say "סה״כ לתשלום"; the bar says "סכום חלקי" only
+  // while the quote has no line yet
+  const totalLabel = isHebrew ? 'סה״כ לתשלום' : 'Total';
+  const barTotalLabel = realItemsNow.length === 0 ? (isHebrew ? 'סכום חלקי' : 'Partial total') : totalLabel;
   useEffect(() => { if (!pendingRows.length) setBarBlock(false); }, [pendingRows.length]);
   // Owner console 2026-11-08 (restore item 07; body of 4f1592f2:src/components/QuoteForm.jsx 473-485): one synthetic example line, local
   // only (never saved: the save asks to remove it first; editing it turns it into an ordinary line of the user's own). 100 x 200 cm at 600
@@ -463,13 +458,12 @@ export default function QuoteForm({
   // Owner 2026-11-11 (finding 5, option א; typed L-09): a business client's tax id is required in the Israeli (Local) market only - the
   // market decides, never the UI language; abroad it is marked optional and the quote saves without it
   const taxIdRequired = clientType === 'business' && isLocalIsraeliBusiness !== false;
-  // Owner console 2026-11-11 (typed: the two sentences, "ללא מע״מ" / "כולל מע״מ" bold and in another colour): the VAT notice at the top of
-  // the quote, Israel only, once the client type is chosen
-  const vatNotice = isLocalIsraeliBusiness && (clientType === 'business' || clientType === 'private') ? (
+  // Owner console 2026-11-11 (typed: "ללא מע״מ" bold and in another colour) + the sketch of 20/11 (typed L-09): the VAT notice of a BUSINESS
+  // client, Israel only (the market decides, never the language) - at the top of the client step; in the work screen behind the "ללא מע״מ" chip.
+  // A private client's prices include VAT: the totals say it ("מע״מ (18%) · כלול").
+  const vatNotice = isLocalIsraeliBusiness && clientType === 'business' ? (
     <div className="sq-vat-notice" data-testid="sq-vat-notice" data-client-type={clientType} role="status">
-      {clientType === 'business'
-        ? (isHebrew ? <>שימו לב: הסכומים ללקוח עסקי הינם <strong className="sq-vat-word">ללא מע״מ</strong>, והמע״מ יתווסף למחיר הסופי</> : <>Please note: amounts for business clients <strong className="sq-vat-word">exclude VAT</strong>. VAT will be added to the final price</>)
-        : (isHebrew ? <>שימו לב: המחיר ללקוח פרטי הינו <strong className="sq-vat-word">כולל מע״מ</strong>, ולא יתווסף מע״מ לסכום הכללי</> : <>Please note: prices for private clients <strong className="sq-vat-word">include VAT</strong>. No VAT will be added to the total</>)}
+      {isHebrew ? <>שימו לב: הסכומים ללקוח עסקי הינם <strong className="sq-vat-word">ללא מע״מ</strong>, והמע״מ יתווסף למחיר הסופי</> : <>Please note: amounts for business clients <strong className="sq-vat-word">exclude VAT</strong>. VAT will be added to the final price</>}
     </div>
   ) : null;
   // "שמירת הלקוח והמשך" of the client step (Owner 2026-11-13, answer 3 "א" - the demo button): the same required fields as a save (name,
@@ -589,28 +583,72 @@ export default function QuoteForm({
     }
   };
 
-  return (
-    <div className="pf-screen" style={{ background: 'transparent', padding: '4px 0 20px', borderRadius: 0, marginBottom: '20px', border: 'none', borderTop: editingQuoteId ? `3px solid ${NEON.violet}` : 'none', boxShadow: 'none', fontFamily: FONT_HE }}>
-      {/* V2 "boxes inside boxes" correction (Owner explicit): the outer form
-          canvas no longer carries its own border+shadow when creating a new
-          quote - every section already has its own card treatment (border+
-          shadow), so an outer box around all of them was a redundant second
-          frame. The one meaningful exception: editing an existing quote keeps
-          a clear signal (now a colored top accent bar instead of a full
-          boxed border, so it still reads instantly as "editing mode" without
-          reintroducing the double-box feeling for the common create-new
-          case). Padding reduced now that there's no outer frame competing
-          for visual weight with the section cards inside it. */}
-      <DraggableCalculator isOpen={isCalcOpen} onClose={() => setIsCalcOpen(false)} isHebrew={isHebrew} currency={currency} />
-      {/* Owner console 2026-11-06 (release C, typed approval incl. L-09: "צריך לשים כפתור מחשבון - שיצוף תמיד ... בהכנת הצעה ובעריכת
-          הצעה ובכל מקום שצריך מחשבון"): a floating Calculator button while the quote editor is open (new / edit, and above the smart quote
-          / smart edit and the price windows that open over it); it opens the same calculator, for calculation only. The small
-          "מחשבון" link stays - since 2026-11-12 next to the price in the work window (spec section 4). */}
-      {/* PRODUCT_TRUTH_CAPABILITY: editor_calculator */}
-      <button type="button" className="pf-calc-fab" onClick={() => setIsCalcOpen(true)} aria-label={isHebrew ? 'מחשבון' : 'Calculator'} title={isHebrew ? 'מחשבון' : 'Calculator'} data-testid="calc-fab" style={{ background: NEON.gradient, boxShadow: NEON.glow }}>
-        <Calculator size={24} strokeWidth={2.2} aria-hidden="true" />
-      </button>
+  // 2026-11-20/21 (Owner console, the simple-quotes sketch + L-07 / L-09 / L-15 / L-19 ...): the editor bar of the sketch (ebar) - the back
+  // arrow, the title with the client name (a tap goes to the client step) and one "⋯" menu (edit client, improve quote, from a saved
+  // template, show an example, cancel and back to the list)
+  const [barMenu, setBarMenu] = useState(false);
+  const barMenuRef = useRef(null);
+  const barMenuBtn = useRef(null);
+  useEffect(() => {
+    if (!barMenu) return undefined;
+    const out = (e) => { if (barMenuRef.current && !barMenuRef.current.contains(e.target)) setBarMenu(false); };
+    const esc = (e) => { if (e.key === 'Escape') { setBarMenu(false); barMenuBtn.current?.focus(); } };
+    document.addEventListener('pointerdown', out); document.addEventListener('keydown', esc);
+    return () => { document.removeEventListener('pointerdown', out); document.removeEventListener('keydown', esc); };
+  }, [barMenu]);
+  const [clientHelp, setClientHelp] = useState(null);
+  const [vatOpen, setVatOpen] = useState(false);
+  useEffect(() => {
+    if (!detailsPage) return undefined;
+    const esc = (e) => { if (e.key === 'Escape') backFromDetailsPage(); };
+    document.addEventListener('keydown', esc);
+    return () => document.removeEventListener('keydown', esc);
+  });
+  const onEditor = flowStep === 'editor' && typeof onFlowStep === 'function';
+  const onWork = flowStep !== 'client';
+  const titleText = editingQuoteId ? `${isHebrew ? 'עריכת הצעה ' : 'Edit quote '}${formatQuoteFallback({ id: editingQuoteId, quote_number: editingQuoteNumber })}` : (isHebrew ? 'הצעה חדשה' : 'New quote');
+  const hasWork = (items || []).some((it) => it && String(it.description || '').trim()) || (sections || []).length > 0;
+  const runMenu = (fn) => () => { setBarMenu(false); fn(); };
+  const leaveOk = () => { if (pendingRows.length) { setBarBlock(true); return false; } return true; };
+  // the sketch: the accessibility statement is a quiet link in the editor itself (the global footer gives way to the bar)
+  const a11yLink = (
+    <div className="qe-a11y">
+      {/* PRODUCT_TRUTH_DECORATIVE: opens the accessibility statement - the same window as the footer's own button */}
+      <button type="button" className="qt-link" onClick={() => document.querySelector('.dash-footer button')?.click()}>{isHebrew ? 'הצהרת נגישות' : 'Accessibility Statement'}</button>
+    </div>
+  );
+  const money = (v) => <span className="pf-money">{sym}{fmtMoney(v)}</span>;
+  // the client step: the sketch's field row (the label beside its field, "?" opens the explanation under the row)
+  const helpQ = (k, label, testId) => (
+    // PRODUCT_TRUTH_DECORATIVE: opens / closes the explanation of a client field
+    <button type="button" className="qt-q" aria-label={(isHebrew ? 'הסבר: ' : 'Explain: ') + label} aria-expanded={clientHelp === k} data-testid={testId} onClick={() => setClientHelp(clientHelp === k ? null : k)}>?</button>
+  );
+  const fieldRow = (k, label, htmlFor, control, { help = null, testId = null, after = null } = {}) => (
+    <div className="qe-f">
+      <label htmlFor={htmlFor}>{label}{help && helpQ(k, label.replace(/\s*\(.*\)$/, ''), testId)}</label>
+      <div className="qe-fc">{control}</div>
+      {help && clientHelp === k && <div className="qe-help" role="note">{help}</div>}
+      {after}
+    </div>
+  );
+  // the totals under the work, always shown (the sketch's totalsCard) - on the same amount axis as the rows (IRON-NUMERIC-001)
+  const subShown = isLocalIsraeliBusiness && clientType === 'private' ? totalAmount + (Number(discountAmount) || 0) : subtotal;
+  const showDiscount = discount > 0 || Math.round(Number(discountAmount) || 0) >= 1;
+  const discountLabel = discount > 0 ? <>{isHebrew ? 'הנחה' : 'Discount'} (<bdi dir="ltr" className="pf-num">{discount}%</bdi>)</> : (isHebrew ? 'הנחת עיגול' : 'Rounding discount');
+  const vatLabel = <>{isHebrew ? 'מע״מ' : 'VAT'} (<bdi dir="ltr" className="pf-num">18%</bdi>){clientType === 'private' ? (isHebrew ? ' · כלול' : ' · included') : ''}</>;
+  const totalRows = [
+    ['sub', isHebrew ? 'סכום ביניים' : 'Subtotal', money(subShown)],
+    showDiscount ? ['disc', discountLabel, <span key="d" className="pf-money qe-neg">-{sym}{fmtMoney(discountAmount)}</span>] : null,
+    isLocalIsraeliBusiness ? ['vat', vatLabel, money(taxAmount)] : null,
+  ].filter(Boolean);
+  const partialMark = (items || []).some((it) => it && it._invalid) && <span data-testid="sq-total-partial" className="qe-partial">{isHebrew ? 'הסכום עדיין חלקי' : 'Partial total'}</span>;
+  const vatChip = isLocalIsraeliBusiness && clientType === 'business' ? (
+    // PRODUCT_TRUTH_DECORATIVE: shows / hides the VAT notice of a business client (Israel)
+    <button type="button" className="qt-vchip" aria-expanded={vatOpen} data-testid="sq-vat-chip" onClick={() => setVatOpen((v) => !v)}>{isHebrew ? 'ללא מע״מ' : 'Excl. VAT'}</button>
+  ) : null;
 
+  return (
+    <div className="pf-screen qe" style={{ background: 'transparent', padding: 0, borderRadius: 0, marginBottom: 0, border: 'none', boxShadow: 'none', fontFamily: FONT_HE }} dir={isHebrew ? 'rtl' : 'ltr'}>
       <AddItemWizard
         isOpen={isAddWizardOpen}
         onClose={() => { setIsAddWizardOpen(false); setWizardResumeState(null); }}
@@ -669,372 +707,218 @@ export default function QuoteForm({
         </div>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', paddingBottom: '16px', borderBottom: `1px solid ${NEON.border}`, flexDirection: 'row', flexWrap: 'wrap', gap: '10px' }}>
-        <div>
-          <h2 style={{ marginTop: 0, fontSize: '1.3rem', fontWeight: '800', marginBottom: '4px', color: NEON.textPrimary }}>
-            {editingQuoteId
-              ? `${isHebrew ? 'עריכת הצעה ' : 'Editing Quote '}${formatQuoteFallback({ id: editingQuoteId, quote_number: editingQuoteNumber })}`
-              : (isHebrew ? 'יצירת הצעת מחיר חדשה' : 'Create New Quote')}
-          </h2>
-          <p style={{ color: NEON.textSecondary, margin: 0, fontSize: '0.82rem' }}>
-            {isHebrew ? 'הזינו את פרטי ההצעה ושמרו את השינויים' : 'Enter the quote details and save changes'}
-          </p>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center' }}>
-        {typeof onOpenCustomerTwin === 'function' && (
-          // PRODUCT_TRUTH_DECORATIVE: opens the Customer Twin panel for the open draft (internal; changes nothing by itself)
-          <button
-            type="button"
-            onClick={onOpenCustomerTwin}
-            data-testid="customer-twin-open"
-            // Owner 2026-10-24 (typed L-07, L-09, L-13, L-29): named "שיפור ההצעה", with what it does on hover
-            title={isHebrew ? 'מציע מה לשנות בהצעה כדי שתהיה ברורה ואטרקטיבית יותר בעיני הלקוח שלכם.' : 'Suggests what to change in the quote so it is clearer and more attractive to your customer.'}
-            style={{ background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
-          >
-            <CustomerTwinIcon size={20} />
-            {isHebrew ? 'שיפור ההצעה' : 'Improve quote'}
-          </button>
-        )}
-        {/* Owner 2026-10-25 (typed L-09 / L-15): Back keeps the draft on this device (asks only when there are unsaved changes) */}
-        {typeof onBack === 'function' && (
-          // PRODUCT_TRUTH_DECORATIVE: leaves the editor like the phone Back; the local draft is kept, nothing is deleted or saved to the server
-          <button type="button" onClick={flowStep === 'editor' && !editingQuoteId && typeof onFlowStep === 'function' ? () => onFlowStep('client') : onBack} data-testid="editor-back" title={isHebrew ? 'חזרה בלי למחוק: הטיוטה נשארת שמורה במכשיר הזה' : 'Back without deleting: the draft stays on this device'}
-            style={{ background: NEON.bgCard, color: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-            {isHebrew ? <ArrowRight size={15} aria-hidden="true" /> : <ArrowLeft size={15} aria-hidden="true" />}
-            {isHebrew ? 'חזרה' : 'Back'}
-          </button>
-        )}
-        {/* PRODUCT_TRUTH_DECORATIVE: 'Cancel & Return' button that closes the quote form via onCancel without saving */}
-        <button
-          type="button"
-          onClick={onCancel}
-          style={{ background: NEON.bgCard, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '8px 14px', borderRadius: '10px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem' }}
-        >
-          {isHebrew ? 'ביטול וחזרה לרשימה' : 'Cancel & Return'}
-        </button>
-        </div>
-      </div>
-
       <form id="pf-editor-form" className="pf-screen-body pf-editor-form" data-quote-form="editor" onSubmit={onSave} onInvalidCapture={(e) => { const code = INVALID_FIELD_BLOCKER[e.target?.dataset?.helpField]; if (code) publishBlocker(code, { scope: 'editor', stage: 'validating' }); }}>
-        {/* SMART-QUOTE (2026-09-22, Owner-locked first-use flow): 1 who is it for -> 2 what work/product -> 3 price -> 4 review & save
-            (preview/share/send follow from the saved quote). Professional capability (catalog, measured items, rooms/areas/units,
-            attachments, terms) is unchanged - optional parts are progressive, never removed. */}
-        {/* 2026-11-15 (the demo): the editor's status line ("השורה נוספה להצעה. ביטול הפעולה האחרונה") at the top of the page */}
-        {flowStep !== 'client' && <div className="qt-status-slot" data-testid="qt-status-slot" />}
-        {flowStep === 'editor' && typeof onFlowStep === 'function' ? (
-          <div hidden={editorPage || Boolean(detailsPage)}>
-            {/* 2026-11-12 (unified quote): the client is chosen first; here a short strip with one way back to the client step */}
-            {vatNotice}
-            <div className="sq-client-strip" data-testid="sq-client-strip">
-              <span><strong>{clientName}</strong><small>{clientType === 'business' ? (isHebrew ? 'לקוח עסקי' : 'Business client') : (isHebrew ? 'לקוח פרטי' : 'Private client')}</small></span>
+        <div className="qe-ebar">
+          {/* Owner 2026-10-25 (typed L-09 / L-15): Back keeps the draft on this device (asks only when there are unsaved changes); in the work
+              screen of a new quote it goes back to the client step (the sketch's arrow) */}
+          {typeof onBack === 'function' && (
+            // PRODUCT_TRUTH_DECORATIVE: leaves the editor like the phone Back; the local draft is kept, nothing is deleted or saved to the server
+            <button type="button" className="qt-ib qe-back" onClick={flowStep === 'editor' && !editingQuoteId && typeof onFlowStep === 'function' ? () => { if (leaveOk()) onFlowStep('client'); } : onBack} data-testid="editor-back"
+              aria-label={isHebrew ? 'חזרה' : 'Back'} title={isHebrew ? 'חזרה בלי למחוק: הטיוטה נשארת שמורה במכשיר הזה' : 'Back without deleting: the draft stays on this device'}>
+              {isHebrew ? <ArrowRight size={20} strokeWidth={2} aria-hidden="true" /> : <ArrowLeft size={20} strokeWidth={2} aria-hidden="true" />}
+            </button>
+          )}
+          <h2 className="qe-ttl">
+            <span className="qe-ttl-t">{titleText}</span>
+            {onEditor && String(clientName || '').trim() && (<>
+              <span className="qe-tsep" aria-hidden="true">·</span>
               {/* PRODUCT_TRUTH_DECORATIVE: goes back to the client step of the same quote (nothing is lost) */}
-              <button type="button" className="sq-client-strip-edit" onClick={() => onFlowStep('client')}>{isHebrew ? 'עריכת הלקוח' : 'Edit client'}</button>
-            </div>
-          </div>
-        ) : (<>
-        {/* 2026-11-15 (the demo): the client step's own "→ חזרה" above its question (the same as the header's Back) */}
-        {/* PRODUCT_TRUTH_DECORATIVE: leaves the client step like the header Back; nothing is deleted */}
-        {flowStep === 'client' && typeof onBack === 'function' && <button type="button" className="qt-link qt-page-back" data-testid="sq-client-back" onClick={onBack}>{isHebrew ? '→ חזרה' : '← Back'}</button>}
+              <button type="button" className="qe-cname" data-testid="sq-client-strip" aria-label={`${isHebrew ? 'עריכת הלקוח' : 'Edit client'}: ${clientName}`} onClick={() => { if (leaveOk()) onFlowStep('client'); }}><EllipsisText text={clientName} /></button>
+            </>)}
+          </h2>
+          <span className="qt-menu-wrap" ref={barMenuRef}>
+            {/* PRODUCT_TRUTH_DECORATIVE: the "more actions" menu of the editor bar */}
+            <button ref={barMenuBtn} type="button" className="qt-btn qt-btn--sm qe-more" aria-haspopup="menu" aria-expanded={barMenu} aria-label={isHebrew ? 'עוד פעולות' : 'More actions'} data-testid="editor-more" onClick={() => setBarMenu((v) => !v)}><SketchIcon name="dots" size={17} /></button>
+            {barMenu && (
+              <div className="qt-menu qe-menu" role="menu" aria-label={isHebrew ? 'עוד פעולות' : 'More actions'}>
+                {onEditor && (
+                  // PRODUCT_TRUTH_DECORATIVE: goes back to the client step of the same quote (nothing is lost)
+                  <button type="button" role="menuitem" onClick={runMenu(() => { if (leaveOk()) onFlowStep('client'); })}><SketchIcon name="pen" size={17} /><span className="qt-menu-label">{isHebrew ? 'עריכת הלקוח' : 'Edit client'}</span></button>
+                )}
+                {typeof onOpenCustomerTwin === 'function' && (
+                  // PRODUCT_TRUTH_DECORATIVE: opens the Customer Twin panel for the open draft (internal; changes nothing by itself)
+                  // Owner 2026-10-24 (typed L-07, L-09, L-13, L-29): named "שיפור ההצעה", with what it does on hover
+                  <button type="button" role="menuitem" data-testid="customer-twin-open" onClick={runMenu(onOpenCustomerTwin)}
+                    title={isHebrew ? 'מציע מה לשנות בהצעה כדי שתהיה ברורה ואטרקטיבית יותר בעיני הלקוח שלכם.' : 'Suggests what to change in the quote so it is clearer and more attractive to your customer.'}>
+                    <CustomerTwinIcon size={17} /><span className="qt-menu-label">{isHebrew ? 'שיפור ההצעה' : 'Improve quote'}</span></button>
+                )}
+                {onWork && typeof onAddUnitFromTemplate === 'function' && (
+                  // PRODUCT_TRUTH_DECORATIVE: "from a saved template" (stage 4) - opens the unit templates; one section with its rows is added
+                  <button type="button" role="menuitem" data-testid="unit-from-template" onClick={runMenu(onAddUnitFromTemplate)}><SketchIcon name="tmpl" size={17} /><span className="qt-menu-label">{isHebrew ? 'מתבנית שמורה' : 'From a saved template'}</span></button>
+                )}
+                {onWork && !hasWork && (
+                  // PRODUCT_TRUTH_DECORATIVE: adds ONE local, never-saved example line to learn the row from (Owner restore item 07)
+                  <button type="button" role="menuitem" data-testid="quote-show-example" onClick={runMenu(addLocalExample)}><svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z" /></svg><span className="qt-menu-label">{isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}</span></button>
+                )}
+                <hr />
+                {/* PRODUCT_TRUTH_DECORATIVE: 'Cancel & Return' - closes the quote form via onCancel without saving */}
+                <button type="button" role="menuitem" data-testid="editor-cancel" onClick={runMenu(onCancel)}><X size={17} strokeWidth={2} aria-hidden="true" /><span className="qt-menu-label">{isHebrew ? 'ביטול וחזרה לרשימה' : 'Cancel & Return'}</span></button>
+              </div>
+            )}
+          </span>
+        </div>
+        {/* SMART-QUOTE (2026-09-22, Owner-locked first-use flow): 1 who is it for -> 2 what work/product -> 3 price -> 4 review & save.
+            Professional capability (catalog, measured items, sections, attachments, terms) is unchanged. */}
+        {!onEditor && (<>
         <StepHeading n={1} title={isHebrew ? 'למי מכינים את ההצעה?' : 'Who is this quote for?'} />
-        {/* 2026-11-15 (Owner answer א): the VAT notice at the top of the client step, above the client fields - as in the editor */}
+        {/* Owner console 2026-11-11 (the two sentences) + the sketch (20/11): the VAT notice of a business client at the top of the client step, Israel only */}
         {vatNotice}
-        {/* V2 Visual Completion Pass: Client Details + Quote Details now sit
-            side-by-side (Image 1 reference) via the same auto-fit/minmax grid
-            pattern already used everywhere else in this file for field rows -
-            no new responsive mechanism, stacks to one column automatically
-            below ~660px total width.
-            חוק ברזל (Task H - mobile page-level horizontal overflow fix,
-            live-measured root cause): minmax(320px, 1fr) בלבד (בלי min())
-            אילץ track ברוחב 320px קבוע גם כשה-container הזמין צר יותר
-            (למשל 308px ב-viewport 320px, אחרי padding של dash-main-content) -
-            נמדד בפועל: gridTemplateColumns מחושב ל-"320px", clientWidth=308,
-            scrollWidth=320 - חריגה אמיתית של 12px שהתפשטה עד dash-app-shell
-            (שם נבלעה רק בגלל overflow-x:hidden הגנתי שכבר קיים שם, לא תוקן
-            כאן במקור). minmax(min(320px, 100%), 1fr) הוא אותו טור בדיוק בכל
-            רוחב שבו 320px נכנס בנוחות (מעל ~660px total width, שתי עמודות;
-            ומתחת לזה, עמודה אחת ברוחב 320px כרגיל) - רק כש-100% הזמין קטן
-            מ-320px, ה-min() קוצץ את המינימום לרוחב הזמין בפועל במקום לאלץ
-            חריגה. שאר ה-minmax grids בקובץ הזה (160px/140px/120px) לא נגעו -
-            נבדקו בפועל בכל 5 הרוחבים (320/360/375/390/430) ומעולם לא הגיעו
-            למינימום שלהם (רוחב זמין תמיד גדול מהמינימום), אז אינם צריכים
-            את אותו תיקון. */}
-        <div style={{ marginBottom: '14px' }}>
-        <div className="pf-m-surface" style={{ background: NEON.bgCard, border: `1px solid ${NEON.border}`, boxShadow: '0 1px 2px rgba(15,23,42,0.05)', borderRadius: '16px', padding: '16px' }}>
-        {/* 2026-11-13 (spec 3, the 13/11 demo): one field a row, each with its help circle; no card title (the question above names it) */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr)', gap: '8px', marginBottom: '12px' }}>
-          <div>
-            <div className="sq-client-label">
-              <label htmlFor="sq-client-existing">{isHebrew ? 'בחירת לקוח קיים (לא חובה)' : 'Choose an existing client (optional)'}</label>
-              <HelpCircle inline testId="sq-help-client-existing" label={isHebrew ? 'הסבר: בחירת לקוח קיים' : 'Explain: choose an existing client'}
-                text={isHebrew ? '״הוספת לקוח חדש״ נמצאת בראש הרשימה. אפשר גם לבחור לקוח שמור או למלא ישירות את השם והסוג למטה. לקוח חדש נשמר ברשימה בלחיצה על ״שמירת הלקוח והמשך״.' : '"Add a new client" is at the top of the list. You can also pick a saved client or fill in the name and type below. A new client joins the list when you click "Save the client and continue".'} />
-            </div>
-            {/* an existing client fills its details (no duplicate is made); "+ add a new client" empties a picked client's details for a new one */}
-            <select id="sq-client-existing" data-testid="sq-client-existing" value={matchedClient ? String(matchedClient.id) : (clientName.trim() ? '__new' : '')}
+        <div className="pf-m-surface qe-card" style={{ background: '#ffffff', border: '1px solid #e3e8e9', borderRadius: '10px', padding: '12px' }}>
+          {fieldRow('existing', isHebrew ? 'בחירת לקוח קיים (לא חובה)' : 'Choose an existing client (optional)', 'sq-client-existing', (
+            // an existing client fills its details (no duplicate is made); "+ add a new client" empties a picked client's details for a new one
+            <select id="sq-client-existing" data-testid="sq-client-existing" className="qe-in" value={matchedClient ? String(matchedClient.id) : (clientName.trim() ? '__new' : '')}
               onChange={(e) => {
                 const v = e.target.value;
                 if (v === '__new') { if (matchedClient) { setClientName(''); setClientEmail(''); setClientPhone(''); setClientTaxId(''); setClientAddress(''); } return; }
                 const c = clients.find((x) => String(x.id) === v);
                 if (c) handleClientSelect({ target: { value: c.company_name || '' } });
-              }}
-              style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', fontSize: '16px' }}>
+              }}>
               <option value="__new">{isHebrew ? '+ הוספת לקוח חדש' : '+ Add a new client'}</option>
-              {/* Owner console 2026-11-18, typed: "מאשר שינוי בנוסח רשימת הלקוחות מהדמו של 13/11: "רשימת הלקוחות" / "Client list", שחרור עד הלייב"
-                  - the longer wording was cut in the list at phone width in both languages */}
+              {/* Owner console 2026-11-18, typed: "רשימת הלקוחות" / "Client list" (the longer wording was cut at phone width) */}
               <option value="" disabled hidden>{isHebrew ? 'רשימת הלקוחות' : 'Client list'}</option>
               {[...clients].sort((a, b) => String(a.company_name || '').localeCompare(String(b.company_name || ''), isHebrew ? 'he' : 'en', { numeric: true, sensitivity: 'base' }))
                 .map((c) => <option key={c.id} value={String(c.id)}>{c.company_name}</option>)}
             </select>
-          </div>
-          <div>
-            <div className="sq-client-label">
-              <label htmlFor="sq-client-name">{t.clientName}</label>
-              <HelpCircle inline testId="sq-help-client-name" label={isHebrew ? 'הסבר: שם הלקוח' : 'Explain: client name'}
-                text={isHebrew ? 'הקלידו את שם הלקוח שיופיע בהצעת המחיר. אין צורך לבחור לקוח מהרשימה כדי להוסיף חדש.' : 'Type the client name that appears on the quote. There is no need to pick from the list to add a new one.'} />
-            </div>
-            <input
-              id="sq-client-name"
-              type="text"
-              value={clientName}
-              onChange={handleClientSelect}
-              placeholder={isHebrew ? 'הקלידו את שם הלקוח' : 'Type the client name'}
-              data-help-field="client_name"
-              required
-              style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }}
-            />
-          </div>
-          <div>
-            <div className="sq-client-label">
-              <label htmlFor="sq-client-type">{isHebrew ? 'סוג הלקוח' : 'Client type'}</label>
-              <HelpCircle inline testId="sq-help-client-type" label={isHebrew ? 'הסבר: סוג הלקוח' : 'Explain: client type'}
-                text={isHebrew ? 'לקוח פרטי הוא אדם או משפחה. לקוח עסקי הוא חברה או עוסק.' : 'A private client is a person or a family. A business client is a company or a self-employed business.'} />
-            </div>
-            <select
-              id="sq-client-type"
-              value={clientType}
-              onChange={(e) => setClientType(e.target.value)}
-              data-help-field="client_type"
-              required={!editingQuoteId}
-              style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, boxSizing: 'border-box', fontSize: '0.85rem' }}
-            >
+          ), { help: isHebrew ? '״הוספת לקוח חדש״ נמצאת בראש הרשימה. אפשר גם לבחור לקוח שמור או למלא ישירות את השם והסוג למטה. לקוח חדש נשמר ברשימה בלחיצה על ״שמירת הלקוח והמשך״.' : '"Add a new client" is at the top of the list. You can also pick a saved client or fill in the name and type below. A new client is saved to the list when you click "Save the client and continue".', testId: 'sq-help-client-existing' })}
+          {fieldRow('name', t.clientName, 'sq-client-name', (
+            <input id="sq-client-name" type="text" className="qe-in" value={clientName} onChange={handleClientSelect} placeholder={isHebrew ? 'הקלידו את שם הלקוח' : 'Type the client name'} data-help-field="client_name" required />
+          ), { help: isHebrew ? 'הקלידו את שם הלקוח שיופיע בהצעת המחיר. אין צורך לבחור לקוח מהרשימה כדי להוסיף חדש.' : 'Type the client name that appears on the quote. There is no need to pick from the list to add a new one.', testId: 'sq-help-client-name' })}
+          {fieldRow('type', isHebrew ? 'סוג הלקוח' : 'Client type', 'sq-client-type', (
+            <select id="sq-client-type" className="qe-in" value={clientType} onChange={(e) => setClientType(e.target.value)} data-help-field="client_type" required={!editingQuoteId}>
               <option value="" disabled>{isHebrew ? 'בחרו סוג לקוח' : 'Choose the client type'}</option>
               <option value="private">{isHebrew ? 'לקוח פרטי' : 'Private client'}</option>
               <option value="business">{isHebrew ? 'לקוח עסקי' : 'Business client'}</option>
             </select>
-          </div>
-          {/* a business client's number in the client fields (required in Israel only - never an Israeli id forced abroad); a private client's ID in the optional details */}
-          {(clientType === 'business' || showClientContact) && (
-          <div style={clientType === 'business' ? undefined : { order: 10 }}>
-            <div className="sq-client-label">
-              <label htmlFor="sq-client-tax-id">{clientType === 'business'
-                ? (isHebrew ? 'מספר עוסק מורשה / חברה' : 'Business / company number') + (taxIdRequired ? (isHebrew ? ' (חובה)' : ' (required)') : (isHebrew ? ' (לא חובה)' : ' (optional)'))
-                : (isHebrew ? 'ת״ז (לא חובה)' : 'ID (optional)')}</label>
-              {clientType === 'business' && <HelpCircle inline testId="sq-help-client-tax" label={isHebrew ? 'הסבר: מספר עוסק מורשה / חברה' : 'Explain: business / company number'}
-                text={taxIdRequired ? (isHebrew ? 'הקלידו את מספר העוסק המורשה או החברה של הלקוח. זהו שדה חובה ללקוח עסקי.' : 'Type the client\'s licensed dealer or company number. It is required for a business client.')
-                  : (isHebrew ? 'מספר העסק או החברה של הלקוח, אם יש. לא חובה.' : 'The client\'s business or company number, if there is one. Optional.')} />}
-            </div>
-            <input id="sq-client-tax-id" inputMode={clientType === 'business' && taxIdRequired ? 'numeric' : undefined}
+          ), { help: isHebrew ? 'לקוח פרטי הוא אדם או משפחה. לקוח עסקי הוא חברה או עוסק.' : 'A private client is a person or a family. A business client is a company or a self-employed business.', testId: 'sq-help-client-type' })}
+          {/* a business client's number (required in Israel only - never an Israeli id forced abroad); a private client's ID in the contact details */}
+          {(clientType === 'business' || showClientContact) && fieldRow('tax', clientType === 'business'
+            ? (isHebrew ? 'מספר עוסק מורשה / חברה' : 'Business / company number') + (taxIdRequired ? (isHebrew ? ' (חובה)' : ' (required)') : (isHebrew ? ' (לא חובה)' : ' (optional)'))
+            : (isHebrew ? 'ת״ז (לא חובה)' : 'ID (optional)'), 'sq-client-tax-id', (
+            <input id="sq-client-tax-id" className="qe-in qe-ltr" inputMode={clientType === 'business' && taxIdRequired ? 'numeric' : undefined}
               placeholder={clientType === 'business' ? (isHebrew ? 'הקלידו מספר עוסק מורשה או חברה' : 'Type the business or company number') : undefined} data-testid="sq-client-tax-id" type="text" value={clientTaxId}
               onChange={(e) => { setClientTaxId(e.target.value); if (taxIdMissing) setTaxIdMissing(false); }}
               onInvalid={(e) => { e.preventDefault(); setTaxIdMissing(true); e.target.scrollIntoView?.({ block: 'center', behavior: 'smooth' }); e.target.focus({ preventScroll: true }); }}
               required={taxIdRequired} aria-invalid={taxIdMissing && taxIdRequired ? true : undefined}
               pattern={taxIdRequired ? TAX_ID_NOT_BLANK : undefined}
               aria-describedby={taxIdMissing && taxIdRequired ? 'sq-client-tax-id-missing' : undefined}
-              style={{ width: '100%', padding: '11px 14px', border: `1px solid ${taxIdMissing && taxIdRequired ? NEON.red : NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
-            {taxIdMissing && taxIdRequired && (
-              <p id="sq-client-tax-id-missing" data-testid="sq-client-tax-id-missing" role="alert" style={{ margin: '4px 0 0', fontSize: '0.74rem', fontWeight: 700, color: NEON.red, lineHeight: 1.35 }}>
-                {isHebrew ? 'חסר מספר עוסק. ללקוח עסקי צריך למלא מספר עוסק מורשה או חברה.' : 'The business number is missing. A business client needs a business or company number.'}
-              </p>
-            )}
-          </div>
-          )}
+              style={taxIdMissing && taxIdRequired ? { borderColor: NEON.red } : undefined} />
+          ), { help: clientType === 'business' ? (taxIdRequired ? (isHebrew ? 'הקלידו את מספר העוסק המורשה או החברה של הלקוח. זהו שדה חובה ללקוח עסקי.' : 'Type the client\'s licensed dealer or company number. It is required for a business client.')
+            : (isHebrew ? 'מספר העסק או החברה של הלקוח, אם יש. לא חובה.' : 'The client\'s business or company number, if there is one. Optional.')) : null, testId: 'sq-help-client-tax',
+          after: taxIdMissing && taxIdRequired ? (
+            <p id="sq-client-tax-id-missing" data-testid="sq-client-tax-id-missing" role="alert" className="qe-err">
+              {isHebrew ? 'חסר מספר עוסק. ללקוח עסקי צריך למלא מספר עוסק מורשה או חברה.' : 'The business number is missing. A business client needs a business or company number.'}
+            </p>) : null })}
 
-          {/* Owner round 1 (2026-10-15, plan section 3): contact details and the attention contact are optional - one toggle, open by
-              itself when any of them already holds a value. The Tax ID stays visible: it is required for a business client. */}
+          {/* Owner round 1 (2026-10-15): contact details and the attention contact are optional - one toggle (folded by default, 2026-11-15) */}
           {/* PRODUCT_TRUTH_DECORATIVE: shows / hides the optional client contact fields (email, phone, attention contact) */}
-          <button type="button" data-testid="sq-client-contact-toggle" aria-expanded={showClientContact} onClick={() => setShowClientContact((v) => !v)}
-            style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: '6px', background: 'none', border: 'none', color: NEON.violetLight, fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', padding: '4px 0', minHeight: '36px', textAlign: isHebrew ? 'right' : 'left' }}>
+          <button type="button" className="qe-tog" data-testid="sq-client-contact-toggle" aria-expanded={showClientContact} onClick={() => setShowClientContact((v) => !v)}>
             {isHebrew ? 'פרטי קשר (לא חובה)' : 'Contact details (optional)'}
             <ChevronDown size={15} style={{ transform: showClientContact ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }} />
           </button>
-          {showClientContact && (
-          <>
-          <div>
-            <div className="sq-client-label">
-              <label htmlFor="sq-client-phone">{isHebrew ? 'טלפון' : 'Phone'}</label>
-              <HelpCircle inline testId="sq-help-client-phone" label={isHebrew ? 'הסבר: טלפון' : 'Explain: Phone'} text={isHebrew ? 'טלפון ליצירת קשר.' : 'A phone number to reach the client.'} />
-            </div>
-            {/* חוק ברזל (Stage 1B, תיקון-שורש): נמצא חי (סריקת scrollWidth
-                על כל אלמנט ב-392px) ש-scrollWidth=242 מול clientWidth=166 -
-                ה-input הפנימי (flex:1) לא הצטמצם מתחת לרוחב-התוכן הטבעי
-                שלו (ברירת-מחדל min-width:auto בפריט-flex), כך שהמכל כולו
-                נאלץ לרוחב-מינימלי גדול מהעמודה שהוקצתה לו ב-grid ההורה -
-                עם overflow:hidden זה לא הזליג לגלילת-עמוד, אבל כן קטע/דחס
-                את שדה-הטלפון בפועל. minWidth:0 על שני הרמות (המכל + ה-
-                input) הוא התיקון הסטנדרטי-הנכון לבעיית-flex הזו, לא עוד
-                overflow-hidden. */}
-            <div style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', border: `1px solid ${NEON.borderStrong}`, borderRadius: '8px', background: NEON.bgInput, overflow: 'hidden', boxSizing: 'border-box', minWidth: 0 }}>
-              <div style={{ background: NEON.bgCardAlt, padding: '7px 10px', fontSize: '0.8rem', color: NEON.textPrimary, fontWeight: '600', display: 'flex', alignItems: 'center', [isHebrew ? 'borderLeft' : 'borderRight']: `1px solid ${NEON.borderStrong}`, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                {/* Owner 2026-11-11 (findings 17 + 21): the code alone ("+1", "+972") so the number has room; the example follows the code */}
-                <bdi dir="ltr" title={defaultLabel}>{defaultDial}</bdi>
+          {showClientContact && (<>
+            {fieldRow('phone', isHebrew ? 'טלפון' : 'Phone', 'sq-client-phone', (
+              // Owner 2026-11-11 (findings 17 + 21): the code alone ("+1", "+972"); the number reads left to right in both languages (IRON numeric bidi)
+              <div className="qe-ph" style={{ display: 'flex', flexDirection: isHebrew ? 'row-reverse' : 'row', minWidth: 0 }}>
+                <span className="qe-ph-code"><bdi dir="ltr" title={defaultLabel}>{defaultDial}</bdi></span>
+                <input id="sq-client-phone" type="text" className="qe-in qe-ltr" value={localPhone} onChange={(e) => handleLocalPhoneChange(e.target.value)} placeholder={phonePlaceholder(defaultDial)} />
               </div>
-              <input
-                id="sq-client-phone"
-                type="text"
-                value={localPhone}
-                onChange={(e) => handleLocalPhoneChange(e.target.value)}
-                placeholder={phonePlaceholder(defaultDial)}
-                style={{ flex: '1 1 auto', minWidth: 0, minHeight: 44, padding: '7px 10px', border: 'none', outline: 'none', background: 'transparent', color: NEON.textPrimary, direction: 'ltr', textAlign: 'left', fontSize: '0.85rem' }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="sq-client-label">
-              <label htmlFor="sq-client-email">{isHebrew ? 'דוא״ל' : 'E-mail'}</label>
-              <HelpCircle inline testId="sq-help-client-email" label={isHebrew ? 'הסבר: דוא״ל' : 'Explain: E-mail'} text={isHebrew ? 'כתובת הדוא״ל של הלקוח.' : "The client's e-mail address."} />
-            </div>
-            <input id="sq-client-email" placeholder={isHebrew ? 'הקלידו כתובת דוא״ל' : 'Type an e-mail address'} type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', direction: 'ltr', textAlign: 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
-          </div>
-
-          <div style={{ gridColumn: '1 / -1' }}>
-            <div className="sq-client-label">
-              <label htmlFor="sq-client-address">{isHebrew ? 'כתובת' : 'Address'}</label>
-              <HelpCircle inline testId="sq-help-client-address" label={isHebrew ? 'הסבר: כתובת' : 'Explain: Address'} text={isHebrew ? 'הכתובת שתופיע בהצעה.' : 'The address shown on the quote.'} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '8px' }}>
-              {/* Israel address suggestions (Codex spec A13-A16): for an Israeli business the city comes first, so the street list can follow it. */}
-              {(() => {
-                const fieldStyle = { width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' };
-                const streetBlock = (
-                  <div key="street" style={{ gridColumn: 'span 2' }}>
-                    <AddressSuggestInput kind="street" enabled={isLocalIsraeliBusiness === true} isHebrew={isHebrew} cityText={city} value={street} onChange={(v) => handleAddressFieldChange(v, city, stateProv, zipCode)} inputProps={{ id: 'sq-client-address', type: 'text', 'data-testid': 'quote-address-street', 'aria-label': isHebrew ? 'רחוב ומספר' : 'Street Address', placeholder: isHebrew ? 'רחוב ומספר' : 'Street Address', style: fieldStyle }} />
-                  </div>
-                );
-                const cityBlock = (
-                  <div key="city">
-                    <AddressSuggestInput kind="city" enabled={isLocalIsraeliBusiness === true} isHebrew={isHebrew} value={city} onChange={(v) => handleAddressFieldChange(street, v, stateProv, zipCode)} inputProps={{ type: 'text', 'data-testid': 'quote-address-city', 'aria-label': isHebrew ? 'עיר' : 'City', placeholder: isHebrew ? 'עיר' : 'City', style: fieldStyle }} />
-                  </div>
-                );
-                // night task 2026-11-16 (Owner typed, L-07 / L-08 / L-09, item 2): the city comes first in every language and market - the same order in Hebrew and English (the Israel suggestions still need it)
-                return [cityBlock, streetBlock];
-              })()}
-              <div>
-                <input type="text" value={stateProv} onChange={(e) => handleAddressFieldChange(street, city, e.target.value, zipCode)} placeholder={isHebrew ? 'מדינה / מחוז' : 'State / Province'} aria-label={isHebrew ? 'מדינה / מחוז' : 'State / Province'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', textAlign: isHebrew ? 'right' : 'left' }} />
+            ), { help: isHebrew ? 'טלפון ליצירת קשר.' : 'A phone number to reach the client.', testId: 'sq-help-client-phone' })}
+            {fieldRow('email', isHebrew ? 'דוא״ל' : 'E-mail', 'sq-client-email', (
+              <input id="sq-client-email" className="qe-in qe-ltr" placeholder={isHebrew ? 'הקלידו כתובת דוא״ל' : 'Type an e-mail address'} type="email" value={clientEmail} onChange={(e) => setClientEmail(e.target.value)} />
+            ), { help: isHebrew ? 'כתובת הדוא״ל של הלקוח.' : "The client's e-mail address.", testId: 'sq-help-client-email' })}
+            {fieldRow('addr', isHebrew ? 'כתובת' : 'Address', 'sq-client-address', (
+              <div className="qe-addr">
+                {/* night task 2026-11-16 (Owner typed, L-07 / L-08 / L-09, item 2): the city comes first in every language and market (the Israel suggestions need it) */}
+                {(() => {
+                  const cityField = <AddressSuggestInput key="city" kind="city" enabled={isLocalIsraeliBusiness === true} isHebrew={isHebrew} value={city} onChange={(v) => handleAddressFieldChange(street, v, stateProv, zipCode)} inputProps={{ type: 'text', className: 'qe-in', 'data-testid': 'quote-address-city', 'aria-label': isHebrew ? 'עיר' : 'City', placeholder: isHebrew ? 'עיר' : 'City' }} />;
+                  const streetField = <AddressSuggestInput key="street" kind="street" enabled={isLocalIsraeliBusiness === true} isHebrew={isHebrew} cityText={city} value={street} onChange={(v) => handleAddressFieldChange(v, city, stateProv, zipCode)} inputProps={{ id: 'sq-client-address', type: 'text', className: 'qe-in', 'data-testid': 'quote-address-street', 'aria-label': isHebrew ? 'רחוב ומספר' : 'Street Address', placeholder: isHebrew ? 'רחוב ומספר' : 'Street Address' }} />;
+                  return [cityField, streetField];
+                })()}
+                <input type="text" className="qe-in" value={stateProv} onChange={(e) => handleAddressFieldChange(street, city, e.target.value, zipCode)} placeholder={isHebrew ? 'מדינה / מחוז' : 'State / Province'} aria-label={isHebrew ? 'מדינה / מחוז' : 'State / Province'} />
+                <input type="text" className="qe-in qe-ltr" value={zipCode} onChange={(e) => handleAddressFieldChange(street, city, stateProv, e.target.value)} placeholder={isHebrew ? 'מיקוד' : 'ZIP / Postal'} aria-label={isHebrew ? 'מיקוד' : 'ZIP / Postal'} />
               </div>
-              <div>
-                <input type="text" value={zipCode} onChange={(e) => handleAddressFieldChange(street, city, stateProv, e.target.value)} placeholder={isHebrew ? 'מיקוד (ZIP)' : 'ZIP / Postal'} aria-label={isHebrew ? 'מיקוד' : 'ZIP / Postal'} style={{ width: '100%', padding: '10px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem', direction: 'ltr', textAlign: 'left' }} />
-              </div>
+            ), { help: isHebrew ? 'הכתובת שתופיע בהצעה.' : 'The address that appears on the quote.', testId: 'sq-help-client-address' })}
+            {/* Item 18 - Attention Contact ("לידי"/"Attn"), quote-level: a historical quote keeps who it was addressed to */}
+            {fieldRow('attn', isHebrew ? 'לידי (איש קשר, לא חובה)' : 'Attn (contact, optional)', 'sq-client-attn', (
+              <input id="sq-client-attn" type="text" className="qe-in" value={attnName || ''} onChange={(e) => setAttnName(e.target.value)} placeholder={isHebrew ? 'לדוגמה: שמעון לוי' : 'e.g. John Smith'} />
+            ))}
+            {fieldRow('role', isHebrew ? 'תפקיד / תואר (לא חובה)' : 'Role / Title (optional)', 'sq-client-role', (
+              <input id="sq-client-role" type="text" className="qe-in" value={attnRole || ''} onChange={(e) => setAttnRole(e.target.value)} placeholder={isHebrew ? 'לדוגמה: מנהל פרויקטים' : 'e.g. Project Manager'} />
+            ))}
+          </>)}
+          {flowStep === 'client' && clientError && <p className="qe-err" role="alert" data-testid="sq-client-error">{clientError}</p>}
+          {flowStep === 'client' && (
+            <div className="sq-client-continue">
+              {/* PRODUCT_TRUTH_DECORATIVE: saves a new client to the client list (a chosen client is not duplicated) and continues to the work screen of the same quote */}
+              <button type="button" className="qt-btn qt-btn--p" data-testid="sq-client-continue" disabled={savingClient} onClick={continueFromClient}>{clientButtonText}</button>
             </div>
-          </div>
-
-          {/* Item 18 - Attention Contact ("לידי"/"Attn"), quote-level (not
-              client-level - a historical quote must keep showing who it was
-              addressed to even if the client's own contacts later change,
-              per the TODO's own explicit data principle). Both optional,
-              placed inside the same auto-wrapping grid as the fields above
-              so Mobile stacking is already handled for free - no extra
-              media query needed. */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'לידי (איש קשר, לא חובה)' : 'Attn (contact, optional)'}</label>
-            <input type="text" value={attnName || ''} onChange={(e) => setAttnName(e.target.value)} placeholder={isHebrew ? 'לדוגמה: שמעון לוי' : 'e.g. John Smith'} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
-          </div>
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: '600', color: NEON.textSecondary, marginBottom: '3px' }}>{isHebrew ? 'תפקיד / תואר (לא חובה)' : 'Role / Title (optional)'}</label>
-            <input type="text" value={attnRole || ''} onChange={(e) => setAttnRole(e.target.value)} placeholder={isHebrew ? 'לדוגמה: מנהל פרויקטים' : 'e.g. Project Manager'} style={{ width: '100%', padding: '11px 14px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '10px', boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.85rem' }} />
-          </div>
-          </>
           )}
         </div>
-        {flowStep === 'client' && clientError && <p className="qt-note" role="alert" data-testid="sq-client-error" style={{ margin: '0 0 8px' }}>{clientError}</p>}
-        {flowStep === 'client' && (
-          <div className="sq-client-continue">
-            {/* PRODUCT_TRUTH_DECORATIVE: saves a new client to the client list (a chosen client is not duplicated) and continues to the work screen of the same quote */}
-            <button type="button" className="sq-continue" data-testid="sq-client-continue" disabled={savingClient} onClick={continueFromClient}>{clientButtonText}</button>
-          </div>
-        )}
-        </div>
-        </div>
-
+        {a11yLink}
         </>)}
 
-        {flowStep === 'client' ? null : (<>
-        <div className="sq-editor-grid" data-testid="sq-editor-grid" style={detailsPage ? { gridTemplateAreas: '"details" "bar"' } : undefined}>{/* 2026-11-15: a details page leaves no empty rows (and gaps) above it */}
-        <div className="sq-g-head" hidden={editorPage || Boolean(detailsPage)}>
-        <StepHeading n={2} title={isHebrew ? 'מה מוסיפים להצעה?' : 'What goes in the quote?'} />
-        </div>
-        {/* 2026-11-13 (Owner, typed L-05 ... L-29 for the 13/11 spec; demo of 13/11): the work area - three structure buttons, a full add form
-            under every heading, the heading tree, read rows with one actions menu, the summary in a bar at the bottom */}
-        <div className="sq-g-work" hidden={Boolean(detailsPage)}>
+        {flowStep !== 'client' && (<>
+        <div className="sq-g-work" data-testid="sq-editor-grid">
           <QuoteTreeEditor isHebrew={isHebrew} international={isLocalIsraeliBusiness === false} items={items} setItems={setItems} sections={sections || []}
             setSections={(next) => { setSections(next); if ((next || []).length && structureMode !== 'divided') setQuoteStructureMode('divided'); if (!(next || []).length && structureMode === 'divided') setQuoteStructureMode('regular'); }}
             services={services} sym={sym} fmtMoney={fmtMoney} structure={treeStructure} onStructure={setTreeStructure}
-            onBackToClient={() => { if (typeof onFlowStep === 'function') onFlowStep('client'); }}
             onSaveToCatalog={onSaveToCatalog} onCatalogItemAdded={onCatalogItemAdded} recommendedMethod={recommendedPricingMethod}
-            onSaveHeadingTemplate={typeof onSaveUnitTemplate === 'function' ? onSaveUnitTemplate : null} onAddFromTemplate={typeof onAddUnitFromTemplate === 'function' ? onAddUnitFromTemplate : null}
-            onShowExample={addLocalExample}
+            onSaveHeadingTemplate={typeof onSaveUnitTemplate === 'function' ? onSaveUnitTemplate : null}
             canDuplicateRow={canDuplicateRow} onDuplicateLocked={() => setShowUpgradeConfirm('reuse')}
             keyStore={rowKeys.current} onPendingChange={setPendingRows} onPageChange={setEditorPage}
             canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
-            renderRowEditor={(i) => (
-              <QuoteRowsEditor recommendedMethod={recommendedPricingMethod} items={items} setItems={setItems} keyStore={rowKeys.current} services={services} sections={pathSections} isHebrew={isHebrew}
-                international={isLocalIsraeliBusiness === false} sym={sym} fmtMoney={fmtMoney} onCatalogItemAdded={onCatalogItemAdded}
-                canUseMeasured={canUseProfessionalQuotes !== false} onMeasuredLocked={() => setShowUpgradeConfirm('professional')}
-                canDuplicate={canDuplicateRow} onDuplicateLocked={() => setShowUpgradeConfirm('reuse')}
-                indices={[i]} showAdd={false} detailsOnlyMenu />
-            )} />
+            lineExtra={vatChip} />
+          {vatChip && vatOpen && vatNotice}
+          {/* the totals under the work, always shown (the sketch's totalsCard): the same columns as the rows, so every amount ends on one axis */}
+          <div className="qt-items qt-tots" aria-label={isHebrew ? 'סיכום ההצעה' : 'Quote summary'} data-testid="sq-totals">
+            {totalRows.map(([k, label, value]) => <div key={k} className="qt-ir qt-trw"><span>{label}</span><span className="qt-ir-s">{value}</span><span /></div>)}
+            <div className="qt-ir qt-trw qt-gt"><span>{totalLabel}{partialMark}</span><span className="qt-ir-s">{money(totalAmount)}</span><span /></div>
+          </div>
         </div>
 
-
-        {/* 2026-11-15 (Owner: "אני נותן לך ליישם דמו!!!"): the demo's "פרטים נוספים להצעה (לא חובה)" - a line under the work that opens the
-            section buttons; each button opens its own page ("→ חזרה", the fields, "שמירת הפרטים" / "חזרה ללא שמירה"). The system's own
-            capabilities that the demo has no place for (the quote design and its issuing; the status of a saved quote) are buttons in the
-            same grid - nothing is dropped. */}
-        <div className="sq-g-details" hidden={editorPage}>
-        {!detailsPage && (
-          <details className="sq-extras" data-testid="sq-details" dir={isHebrew ? 'rtl' : 'ltr'} open={showMoreDetails} onToggle={(e) => setShowMoreDetails(e.currentTarget.open)}>
-            <summary data-testid="sq-more-details-toggle">{isHebrew ? 'פרטים נוספים להצעה (לא חובה)' : 'More quote details (optional)'}</summary>
-            <div className="sq-extras-grid" data-testid="sq-more-details">
-              {[['project', isHebrew ? 'פרויקט, כתובת ותוקף' : 'Project, address and validity'], ['notes', isHebrew ? 'הערות לכל ההצעה' : 'Notes for the whole quote'],
-                ['terms', isHebrew ? 'תנאים ואחריות' : 'Terms and warranty'], ['discount', isHebrew ? 'הנחה' : 'Discount'], ['files', isHebrew ? 'קבצים ותמונות' : 'Files and images'],
-                ...(presentationController ? [['design', isHebrew ? 'עיצוב והנפקת ההצעה' : 'Quote design and issuing']] : []), ...(editingQuoteId ? [['status', isHebrew ? 'מצב ההצעה' : 'Quote status']] : [])]
-                .map(([k, label]) => (
-                  // PRODUCT_TRUTH_DECORATIVE: opens one section of the quote details as its own page (nothing changes until "שמירת הפרטים")
-                  <button key={k} type="button" className="sq-extras-btn" data-testid={`sq-extra-${k}`} onClick={() => openDetailsPage(k)}>{label}</button>
-                ))}
-            </div>
-          </details>
-        )}
+        {/* 2026-11-15 (the demo) + 20/11 (the sketch): "פרטים נוספים להצעה (לא חובה)" - a line that opens the section buttons; each opens its
+            own window (the fields, "שמירת הפרטים" / "חזרה ללא שמירה"). The quote design and its issuing and the status of a saved quote are
+            buttons in the same grid - nothing is dropped. */}
+        <div className="sq-g-details">
+          <div className="qt-extras" data-testid="sq-details" dir={isHebrew ? 'rtl' : 'ltr'}>
+            {/* PRODUCT_TRUTH_DECORATIVE: opens / closes the buttons of the quote details */}
+            <button type="button" className="qt-extras-tg" data-testid="sq-more-details-toggle" aria-expanded={showMoreDetails} onClick={() => setShowMoreDetails((v) => !v)}>
+              <ChevronDown size={15} aria-hidden="true" style={{ transform: showMoreDetails ? 'none' : `rotate(${isHebrew ? 90 : -90}deg)` }} />{isHebrew ? 'פרטים נוספים להצעה (לא חובה)' : 'More quote details (optional)'}
+            </button>
+            {showMoreDetails && (
+              <div className="qt-xg" data-testid="sq-more-details">
+                {[['project', isHebrew ? 'פרויקט, כתובת ותוקף' : 'Project, address and validity'], ['notes', isHebrew ? 'הערות לכל ההצעה' : 'Notes for the whole quote'],
+                  ['terms', isHebrew ? 'תנאים ואחריות' : 'Terms and warranty'], ['discount', isHebrew ? 'הנחה' : 'Discount'], ['files', isHebrew ? 'קבצים ותמונות' : 'Files and images'],
+                  ...(presentationController ? [['design', isHebrew ? 'עיצוב והנפקת ההצעה' : 'Quote design and issuing']] : []), ...(editingQuoteId ? [['status', isHebrew ? 'מצב ההצעה' : 'Quote status']] : [])]
+                  .map(([k, label]) => (
+                    // PRODUCT_TRUTH_DECORATIVE: opens one section of the quote details in its own window (nothing changes until "שמירת הפרטים")
+                    <button key={k} type="button" className="sq-extras-btn" data-testid={`sq-extra-${k}`} onClick={() => openDetailsPage(k)}>{label}</button>
+                  ))}
+              </div>
+            )}
+          </div>
+        </div>
         {detailsPage && (
-          <div className="qt-page sq-details-page" data-testid="sq-details-page" dir={isHebrew ? 'rtl' : 'ltr'}>
-            {/* PRODUCT_TRUTH_DECORATIVE: back to the quote - refused while something here is not saved */}
-            <button type="button" className="qt-link qt-page-back" data-testid="sq-details-back" onClick={backFromDetailsPage}>{isHebrew ? '→ חזרה' : '← Back'}</button>
-            {detailsError && <div className="qt-note" role="alert" data-testid="sq-details-error">{detailsError}</div>}
-            <h3 className="qt-page-title">{detailsTitle(detailsPage)}</h3>
-            <section className="qt-card qt-page-card" data-testid="sq-details-page-card">
+          <div className="qt-ov" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) backFromDetailsPage(); }}>
+            <div className={`qt-dlg sq-details-page${detailsPage === 'design' ? ' qt-dlg--wide' : ''}`} role="dialog" aria-modal="true" aria-label={detailsTitle(detailsPage)} data-testid="sq-details-page" dir={isHebrew ? 'rtl' : 'ltr'}>
+              <h3>{detailsTitle(detailsPage)}</h3>
+              {detailsError && <div className="qt-note" role="alert" data-testid="sq-details-error">{detailsError}</div>}
+              <section className="qe-dfields" data-testid="sq-details-page-card">
               {detailsPage === 'project' && (<>
                 <div className="qt-field">
-                  <div className="qt-page-label"><label htmlFor="sq-subject">{isHebrew ? 'נושא ההצעה' : 'Quote subject'}</label><HelpCircle inline testId="sq-help-subject" label={isHebrew ? 'הסבר: נושא ההצעה' : 'Explain: quote subject'} text={isHebrew ? 'כותרת קצרה שהלקוח יראה.' : 'A short title the customer sees.'} /></div>
-                  <input id="sq-subject" className="qt-input" type="text" value={quoteSubject || ''} onChange={(e) => setQuoteSubject(e.target.value)} />
+                  <div className="qt-page-label"><label htmlFor="sq-subject">{isHebrew ? 'כותרת ההצעה' : 'Quote title'}</label></div>
+                  <input id="sq-subject" className="qt-input" type="text" value={quoteSubject || ''} placeholder={isHebrew ? 'לשיפוץ הנכס (לדוגמה)' : 'e.g. Home renovation'} onChange={(e) => setQuoteSubject(e.target.value)} />
                 </div>
                 <div className="qt-field">
-                  <div className="qt-page-label"><label htmlFor="sq-project">{isHebrew ? 'שם הפרויקט' : 'Project name'}</label><HelpCircle inline testId="sq-help-project" label={isHebrew ? 'הסבר: שם הפרויקט' : 'Explain: project name'} text={isHebrew ? 'שם שיעזור לזהות את העבודה.' : 'A name that helps you recognise the job.'} /></div>
+                  <div className="qt-page-label"><label htmlFor="sq-project">{isHebrew ? 'שם הפרויקט' : 'Project name'}</label></div>
                   <input id="sq-project" className="qt-input" type="text" value={projectName || ''} onChange={(e) => setProjectName(e.target.value)} />
                 </div>
                 <div className="qt-field">
-                  <div className="qt-page-label"><label htmlFor="sq-valid-until">{isHebrew ? 'תוקף ההצעה' : 'Quote validity'} <span className="sq-nowrap">({dateFormatLabel})</span></label><HelpCircle inline testId="sq-help-valid" label={isHebrew ? 'הסבר: תוקף ההצעה' : 'Explain: quote validity'} text={isHebrew ? 'עד איזה תאריך המחיר בהצעה תקף.' : 'Until which date the price in the quote is valid.'} /></div>
-                  <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
-                    <input id="sq-valid-until" className="qt-input" type="text" value={getDisplayDate(validUntil)} onChange={handleDisplayDateChange} placeholder={dateFormatLabel} style={{ direction: 'ltr', textAlign: isHebrew ? 'right' : 'left', ...(isHebrew ? { paddingLeft: '36px' } : { paddingRight: '36px' }) }} />
-                    <input type="date" ref={dateInputRef} value={validUntil} onChange={(e) => setValidUntil(e.target.value)} style={{ position: 'absolute', opacity: 0, pointerEvents: 'none', width: 0, height: 0 }} />
-                    {/* PRODUCT_TRUTH_DECORATIVE: opens the native date picker for the validity field */}
-                    <button type="button" aria-label={isHebrew ? 'פתיחת לוח השנה' : 'Open calendar'} onClick={() => { if (dateInputRef.current && typeof dateInputRef.current.showPicker === 'function') dateInputRef.current.showPicker(); else if (dateInputRef.current) dateInputRef.current.click(); }}
-                      style={{ position: 'absolute', insetInlineEnd: '6px', background: 'none', border: 'none', cursor: 'pointer', color: NEON.textMuted, padding: 0, display: 'flex', alignItems: 'center', minWidth: 32, minHeight: 32, justifyContent: 'center' }}>
-                      <Calendar size={16} strokeWidth={2} />
-                    </button>
-                  </div>
+                  <div className="qt-page-label"><label htmlFor="sq-valid-until">{isHebrew ? 'בתוקף עד' : 'Valid until'}</label></div>
+                  <input id="sq-valid-until" className="qt-input" type="text" value={getDisplayDate(validUntil)} onChange={handleDisplayDateChange} placeholder={isHebrew ? (isUS ? 'חודש/יום/שנה' : 'יום/חודש/שנה') : dateFormatLabel} style={{ direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' }} />
                   {validityExpired && <div data-testid="sq-validity-expired" role="status" style={{ marginTop: '4px', fontSize: '0.75rem', fontWeight: 600, color: '#9a3412' }}>{isHebrew ? 'תאריך התוקף עבר - הלקוח לא יוכל לחתום עד שתאריכו את התוקף.' : 'The validity date has passed - the customer cannot sign until you extend it.'}</div>}
                 </div>
                 {typeof setServiceSchedule === 'function' && <ServiceScheduleFields value={serviceSchedule} onChange={setServiceSchedule} state={serviceScheduleState} isHebrew={isHebrew} isUS={isUS} />}
-                <p className="qt-page-hint">{isHebrew ? <>מטבע ההצעה: <bdi dir="ltr">{currency} ({sym})</bdi> - לפי הגדרות העסק.</> : <>Quote currency: <bdi dir="ltr">{currency} ({sym})</bdi> - from the business settings.</>}</p>
               </>)}
               {detailsPage === 'notes' && (
                 <div className="qt-field">
@@ -1065,7 +949,7 @@ export default function QuoteForm({
                 <div className="qt-field">
                   <div className="qt-page-label"><span className="sq-label-text">{isHebrew ? 'בחירת קבצים להצעה' : 'Choose files for the quote'}</span><HelpCircle inline testId="sq-help-files" label={isHebrew ? 'הסבר: קבצים' : 'Explain: files'} text={isHebrew ? 'קבצים ושרטוטים שיצורפו להצעה. עד 3 מגה לקובץ.' : 'Files and drawings attached to the quote. Up to 3 MB per file.'} /></div>
                   {canUseAttachments && <div style={{ fontSize: '0.75rem', color: NEON.textMuted, fontWeight: 600 }}>{isHebrew ? <>נפח פנוי להעלאת קבצים: <bdi dir="ltr">{`${remainingMb} MB`}</bdi></> : `Free space for attachments: ${remainingMb} MB`}</div>}
-                  <button type="button" className="sq-add-btn" style={{ alignSelf: 'flex-start' }} onClick={handleAttachmentClick}>
+                  <button type="button" className="qt-btn" style={{ alignSelf: 'flex-start' }} onClick={handleAttachmentClick}>
                     <Paperclip size={13} strokeWidth={2.5} /> {isHebrew ? <span>צירוף קובץ ללקוח (עד <bdi dir="ltr">3 MB</bdi>)</span> : 'Attach file for client (max 3 MB)'}
                   </button>
                   {(quoteFiles || []).length > 0 && (
@@ -1103,70 +987,60 @@ export default function QuoteForm({
                   </select>
                 </div>
               )}
-              <div className="qt-actions">
-                {/* PRODUCT_TRUTH_DECORATIVE: keeps what was changed on this page and returns to the quote */}
-                <button type="button" className="qt-add" data-testid="sq-details-save" onClick={saveDetailsPage}>{isHebrew ? 'שמירת הפרטים' : 'Save the details'}</button>
-                {/* PRODUCT_TRUTH_DECORATIVE: returns to the quote - everything changed on this page goes back to what it was (the demo: next to "שמירת הפרטים") */}
-                <button type="button" className="qt-quiet" data-testid="sq-details-close" onClick={closeDetailsNoSave}>{isHebrew ? 'חזרה ללא שמירה' : 'Back without saving'}</button>
+              </section>
+              <div className="qt-dlg-acts">
+                {/* PRODUCT_TRUTH_DECORATIVE: closes the window - everything changed in it goes back to what it was */}
+                <button type="button" className="qt-btn" data-testid="sq-details-close" onClick={closeDetailsNoSave}>{isHebrew ? 'חזרה ללא שמירה' : 'Back without saving'}</button>
+                {/* PRODUCT_TRUTH_DECORATIVE: keeps what was changed in this window and returns to the quote */}
+                <button type="button" className="qt-btn qt-btn--p" data-testid="sq-details-save" onClick={saveDetailsPage}>{isHebrew ? 'שמירת הפרטים' : 'Save the details'}</button>
               </div>
-            </section>
+            </div>
           </div>
         )}
-        </div>
-        {/* 2026-11-13 (Owner: a saved quote shows "עדכון ההצעה"); the demo's bar: save, what the client sees, the summary; the total at the end edge */}
-        <div className="sq-g-bar" hidden={editorPage || Boolean(detailsPage)}>
-              <div className="qt-bar" data-testid="qt-bar">
-                <div className="qt-bar-actions">
-                  {/* PRODUCT_TRUTH_DECORATIVE: the quote form's own submit button; the real create/edit distinction and capability markers live on the resolved onSave handler in Dashboard.jsx (quote_create/quote_edit) */}
-                  <button type="submit" data-testid="sq-save" className="sq-save-btn" style={{ inlineSize: 'auto', margin: 0 }} onClick={(e) => { if (pendingRows.length) { e.preventDefault(); setBarBlock(true); } }}>
-                    {isUnfinished ? (isHebrew ? 'שמירה כטיוטה לא גמורה' : 'Save unfinished draft') : editingQuoteId ? (isHebrew ? 'עדכון ההצעה' : 'Update the quote') : (isHebrew ? 'שמירת ההצעה' : 'Save the quote')}
-                  </button>
-                  {presentationController && typeof presentationController.openPreview === 'function' && (
-                    // PRODUCT_TRUTH_DECORATIVE: the preview only the user sees - what the client will see
-                    <button type="button" className="sq-add-btn" data-testid="qt-customer-view" onClick={() => { if (pendingRows.length) { setBarBlock(true); return; } presentationController.openPreview(); }}>{isHebrew ? 'כך הלקוח יראה' : 'Client view'}</button>
-                  )}
-                  <span className="qt-summary-anchor">
-                    {/* PRODUCT_TRUTH_DECORATIVE: opens / closes the quote summary (the amounts and VAT) */}
-                    <button type="button" className="sq-add-btn" dir={isHebrew ? 'rtl' : 'ltr'} aria-expanded={summaryOpen} data-testid="qt-summary-toggle" onClick={toggleSummary}><span className="qt-summary-tri" aria-hidden="true">{summaryOpen ? '▼' : (isHebrew ? '◀' : '▶')}</span>{isHebrew ? 'סיכום ההצעה' : 'Quote summary'}</button>
-                    {summaryOpen && (
-                      <div className="qt-summary-pop" data-testid="qt-summary-panel">
-                        <section className="sq-summary" data-testid="sq-summary" dir={isHebrew ? 'rtl' : 'ltr'}>
-                          {/* the demo's four lines: the works, a discount, VAT, the total ("סכום חלקי" while incomplete) - one amount column (IRON-NUMERIC-001) */}
-                          <div className="pf-money-row sq-summary-rows">
-                            <span>{isHebrew ? 'סכום העבודות והמוצרים' : 'Works and products'}</span>
-                            <span className="pf-money">{sym}{fmtMoney(isLocalIsraeliBusiness && clientType === 'private' ? totalAmount + (Number(discountAmount) || 0) : subtotal)}</span>
-                            {/* IRON-ILS-001 (2026-10-23): with no discount, the agorot moved to the discount show as a rounding discount once it changes the shown sum */}
-                            {(discount > 0 || Math.round(Number(discountAmount) || 0) >= 1) && (<>
-                              <span style={{ color: NEON.red }}>{discount > 0 ? (isHebrew ? <>הנחה <bdi dir="ltr" className="pf-num">{discount}%</bdi></> : <>Discount <bdi dir="ltr" className="pf-num">{discount}%</bdi></>) : (isHebrew ? 'הנחת עיגול' : 'Rounding discount')}</span>
-                              <span className="pf-money" style={{ color: NEON.red }}>-{sym}{fmtMoney(discountAmount)}</span>
-                            </>)}
-                            {isLocalIsraeliBusiness && (<>
-                              <span>{clientType === 'private' ? (isHebrew ? <>מתוכו מע״מ <bdi dir="ltr" className="pf-num">18%</bdi></> : <>Of it VAT <bdi dir="ltr" className="pf-num">18%</bdi></>) : (isHebrew ? <>מע״מ <bdi dir="ltr" className="pf-num">18%</bdi></> : <>VAT <bdi dir="ltr" className="pf-num">18%</bdi></>)}</span>
-                              <span className="pf-money">{sym}{fmtMoney(taxAmount)}</span>
-                            </>)}
-                            {/* G4 (Owner 2026-11-08, the clarity fixes B3): a row holding a value that is not stored yet is not in the total */}
-                            {(items || []).some((it) => it && it._invalid) && <span data-testid="sq-total-partial" style={{ gridColumn: '1 / -1', fontSize: '0.74rem', fontWeight: 700, color: NEON.red }}>{isHebrew ? 'הסכום עדיין חלקי' : 'Partial total'}</span>}
-                          </div>
-                          <div data-testid="sq-save-total" className="pf-money-row sq-summary-total">
-                            <span>{totalLabel}</span>
-                            <span className="pf-money">{sym}{fmtMoney(totalAmount)}</span>
-                          </div>
-                        </section>
-                      </div>
-                    )}
-                  </span>
-                </div>
-                <div className="qt-bar-total"><span data-testid="qt-bar-total-label">{totalLabel}</span><strong className="pf-money">{sym}{fmtMoney(totalAmount)}</strong></div>
-                {barBlock && pendingRows.length > 0 && (
-                  <div className="qt-bar-warn" role="alert" data-testid="qt-bar-pending">{isHebrew ? 'השורה עדיין לא נוספה. לחצו ״הוספה״ או ״ניקוי השורה״ לפני המעבר.' : 'The row was not added yet. Click "Add" or "Clear" before moving on.'}</div>
-                )}
-              </div>
-        </div>
-        </div>
 
-        {/* Task 16 retro ledger C03/C03b (2026-10-05): the submit label is the base t.generateSave / t.updateQuote again and the
-            extra hint line is gone (no approval source for either change). The Save Draft vs Issue capability itself is unchanged:
-            saving still never issues the quote; issuing stays the explicit panel action. */}
+        {a11yLink}
+        {/* the sketch's bar (sbar): save and what the client sees at the start; the total (its summary opens on a tap) ON the amount axis */}
+        <div className="sq-g-bar">
+          <div className="qt-sbar" data-testid="qt-bar">
+            <span className="qt-acts2">
+              {/* PRODUCT_TRUTH_DECORATIVE: the quote form's own submit button; the real create/edit distinction and capability markers live on the resolved onSave handler in Dashboard.jsx (quote_create/quote_edit) */}
+              <button type="submit" data-testid="sq-save" className="qt-btn qt-btn--p" onClick={(e) => { if (pendingRows.length) { e.preventDefault(); setBarBlock(true); } }}>
+                {isUnfinished ? (isHebrew ? 'שמירה כטיוטה לא גמורה' : 'Save unfinished draft') : editingQuoteId ? (isHebrew ? 'עדכון ההצעה' : 'Update the quote') : (isHebrew ? 'שמירת ההצעה' : 'Save the quote')}
+              </button>
+              {presentationController && typeof presentationController.openPreview === 'function' && (
+                // PRODUCT_TRUTH_DECORATIVE: the preview only the user sees - what the client will see
+                <button type="button" className="qt-btn" data-testid="qt-customer-view" aria-label={isHebrew ? 'כך הלקוח יראה' : 'Client view'} onClick={() => { if (pendingRows.length) { setBarBlock(true); return; } presentationController.openPreview(); }}>
+                  <Eye size={16} strokeWidth={2} aria-hidden="true" /><span className="qt-lbl">{isHebrew ? 'כך הלקוח יראה' : 'Client view'}</span></button>
+              )}
+            </span>
+            {/* PRODUCT_TRUTH_DECORATIVE: opens / closes the quote summary (the amounts and VAT) */}
+            <button type="button" className="qt-tot" aria-label={isHebrew ? 'סיכום ההצעה' : 'Quote summary'} aria-expanded={summaryOpen} data-testid="qt-summary-toggle" onClick={toggleSummary}>
+              <small data-testid="qt-bar-total-label">{barTotalLabel} ▴</small><b>{money(totalAmount)}</b></button>
+            <span />
+            {barBlock && pendingRows.length > 0 && (
+              <div className="qt-bar-warn" role="alert" data-testid="qt-bar-pending">{isHebrew ? 'השורה עדיין לא נוספה. לחצו ״הוספה״ או ״ניקוי השורה״ לפני המעבר.' : 'The row was not added yet. Click "Add" or "Clear" before moving on.'}</div>
+            )}
+            {/* the editor's message line (the sketch's toast: "השורה נוספה להצעה. ביטול הפעולה האחרונה") sits right above the bar */}
+            <div className="qt-status-slot" data-testid="qt-status-slot" />
+          </div>
+        </div>
+        {summaryOpen && (
+          <div className="qt-ov" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setSummaryOpen(false); }}>
+            <div className="qt-dlg" role="dialog" aria-modal="true" aria-label={isHebrew ? 'סיכום ההצעה' : 'Quote summary'} data-testid="qt-summary-panel">
+              <h3>{isHebrew ? 'סיכום ההצעה' : 'Quote summary'}</h3>
+              <section className="sq-summary" data-testid="sq-summary" dir={isHebrew ? 'rtl' : 'ltr'}>
+                {/* one amount column (IRON-NUMERIC-001): every amount ends on the same right edge */}
+                <div className="qt-tgrid">
+                  {totalRows.map(([k, label, value]) => <Fragment key={k}><span>{label}</span>{value}</Fragment>)}
+                  {partialMark}
+                  <span className="qt-tsep" />
+                  <div data-testid="sq-save-total" className="qt-tgrid-total"><span>{totalLabel}</span>{money(totalAmount)}</div>
+                </div>
+              </section>
+              <div className="qt-dlg-acts">{/* PRODUCT_TRUTH_DECORATIVE: closes the quote summary window */}<button type="button" className="qt-btn" onClick={() => setSummaryOpen(false)}>{isHebrew ? 'סגירה' : 'Close'}</button></div>
+            </div>
+          </div>
+        )}
         </>)}
       </form>
     </div>

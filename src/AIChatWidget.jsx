@@ -23,7 +23,7 @@ import { draftSnapshotDigest } from '../supabase/functions/_shared/quoteDraftSna
 import { CHAT_CONTRACT_VERSION } from './utils/aiChatContract';
 import { formatQuoteFallback } from './utils/quoteNumber';
 import AiChatIcon from './components/AiChatIcon';
-import TekangoAiIcon from './components/TekangoAiIcon';
+import TekangoBotIcon from './components/TekangoBotIcon';
 import { imageFromClipboard, imageFileToDataUrl, SCREENSHOT_COPY } from './utils/chatScreenshot';
 import { smartPackUsageText } from './utils/smartPackUsage';
 import { VOICE_COPY, VOICE_MODES, MAX_RECORD_SECONDS, readVoiceMode, saveVoiceMode, readVoiceDisclosed, saveVoiceDisclosed, pickRecorderMime, voiceSupported, blobToBase64, base64ToBlob, voiceRefusalOf } from './utils/voiceAssistant';
@@ -1200,7 +1200,8 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
             >
               {/* authenticated app (dashboard, region choice): the ONE canonical AI Chat icon (§51.15); public pages (the landing): the same TEKANGO
                   AI tile (Owner console 2026-10-23 (L-02 / L-11, law 45): the TEKANGO AI tile (a glowing head with "AI"); "להחליף גם בדפי הנחיתה") - it replaces the bubble + sparkle accent of the landing polish */}
-              {isDashboard ? <AiChatIcon size={20} rtl={isHebrew} /> : <TekangoAiIcon size={24} />}
+              {/* Owner console 2026-11-20/21 (L-02 / L-11, law 45): the robot with the headset on the blue-teal tile (TekangoBotIcon) */}
+              {isDashboard ? <AiChatIcon size={20} rtl={isHebrew} /> : <TekangoBotIcon size={24} />}
               <span className="ai-btn-text" style={{ whiteSpace: 'nowrap' }}>{isHebrew ? 'צ׳אט AI' : 'AI Chat'}</span>
             </button>
           )}
@@ -1241,7 +1242,8 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {/* Owner console 2026-10-23 (L-02 / L-11, law 45): the TEKANGO AI tile (a glowing head with "AI") */}
-                  <TekangoAiIcon size={30} />
+                  {/* Owner console 2026-11-20/21 (L-02 / L-11, law 45): the robot with the headset on the blue-teal tile (TekangoBotIcon) */}
+                  <TekangoBotIcon size={30} />
                   <div>
                     <div style={{ fontWeight: 'bold', fontSize: '0.9rem' }}>
                       {isHebrew

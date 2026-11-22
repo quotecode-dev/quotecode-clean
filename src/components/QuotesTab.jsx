@@ -4,6 +4,8 @@
 // ==========================================
 
 import { useState, useEffect, useLayoutEffect, useRef, Fragment } from 'react';
+import { createPortal } from 'react-dom';
+import './quotesList.css';
 import { MoneyValue, CurrencyTotals } from './NumericValue';
 import { totalsByQuoteCurrency, roundIlsListTotals } from '../utils/money';
 import { isHotQuote } from '../utils/quoteStatistics';
@@ -15,9 +17,10 @@ import { formatShortDate } from '../utils/shortDate';
 import { relativeQuoteDay, displayQuoteNumber, getQuoteViewLink, quotePartyLabel } from '../utils/quoteListRows';
 import { sortQuotes, normalizeSortField, firstItemDescription } from '../utils/quoteListSort';
 import NewQuoteMenu from './NewQuoteMenu';
-import { Download, Building2, User, Eye, Mail, Pencil, Copy, ClipboardCopy, MessageCircle, Trash2, ChevronDown, ChevronUp, FileText, Filter, X, ArrowUpDown, Search, ClipboardList, Clock } from 'lucide-react';
+import { User, Eye, Mail, MessageCircle, ChevronDown, FileText, Filter, Search, ClipboardList, Clock, Send } from 'lucide-react';
 import CustomerTwinIcon from './CustomerTwinIcon';
 import TekangoAiIcon from './TekangoAiIcon';
+import { SketchIcon } from './SketchIcons';
 import PaidMarkIcon from './PaidMarkIcon';
 import { nextSteps, NEXT_STEP_COPY } from '../utils/nextStep';
 import { listTasks, TASKS_CHANGED_EVENT } from '../utils/tasksClient';
@@ -65,51 +68,15 @@ import EllipsisText from './EllipsisText';
 // (ר' ה-<th onClick={() => handleQuoteSort(...)}> למטה) - לא הומצא שדה
 // מיון נוסף כלשהו למובייל. "תיאור" (Description) לא ניתן-למיון גם
 // בדסקטופ (אין עליו onClick/handleQuoteSort כלל) ולכן גם לא מופיע כאן.
-const MOBILE_SORT_FIELDS = [
-  { value: 'id', he: 'מס׳ הצעה', en: 'Quote #' },
-  { value: 'client', he: 'שם לקוח', en: 'Client Name' },
-  { value: 'clientType', he: 'סוג לקוח', en: 'Client Type' },
-  { value: 'total', he: 'הסכום', en: 'Amount' },
-  { value: 'date', he: 'תאריך', en: 'Date' },
-  { value: 'status', he: 'מצב', en: 'Status' },
-  { value: 'views', he: 'צפיות', en: 'Views' },
-];
 
-const CLIENT_TYPE_BADGE_SIZE = 24;
+// the sketch's "סינון ומיון" window (Owner 20/11-21/11): three sort fields - date, amount, client (the column titles still sort by any column)
+const SORT_CHIPS = [{ value: 'date', he: 'תאריך', en: 'Date' }, { value: 'total', he: 'סכום', en: 'Amount' }, { value: 'client', he: 'לקוח', en: 'Client' }];
+
 // Task 16: every status chip carries its text label plus a small leading dot - color is never the only signal. The
 // dot is a CSS ::before glyph (`.pf-status-chip`, index.css) in the chip's own font: useQuoteHistoryGeometry measures
 // `${STATUS_DOT} ${label}` (exactly what paints, IRON-QH-LAYOUT-001), while the chip's DOM text / innerText stays the
 // bare label (generated content is not part of innerText; its alt text is empty for assistive technology).
 const STATUS_DOT = '•';
-function ClientTypeBadge({ clientType, isHebrew }) {
-  if (clientType !== 'business' && clientType !== 'private') return null;
-  const isBusiness = clientType === 'business';
-  const Icon = isBusiness ? Building2 : User;
-  const tooltip = isBusiness
-    ? (isHebrew ? 'לקוח עסקי' : 'Business Client')
-    : (isHebrew ? 'לקוח פרטי' : 'Individual Client');
-  return (
-    <span
-      role="img"
-      aria-label={tooltip}
-      title={tooltip}
-      style={{
-        display: 'inline-flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: `${CLIENT_TYPE_BADGE_SIZE}px`,
-        height: `${CLIENT_TYPE_BADGE_SIZE}px`,
-        borderRadius: '999px',
-        background: NEON.violet,
-        color: NEON.textOnAccent,
-        flexShrink: 0,
-        boxSizing: 'border-box'
-      }}
-    >
-      <Icon size={14} strokeWidth={2} />
-    </span>
-  );
-}
 
 // Owner 2026-10-26: the quote number is a link that opens the quote - the same font, size and place; underlined to show it opens
 const QUOTE_NUMBER_LINK = Object.freeze({ background: 'none', border: 'none', padding: 0, margin: 0, font: 'inherit', color: 'inherit', cursor: 'pointer',
@@ -130,6 +97,17 @@ const rememberedListPage = { userId: null, page: 0 };
 const MOBILE_QUOTES_PER_PAGE = 20; // Owner 2026-10-18: "בנייד שזה יהיה כל 10 הצעות", then "כל 20"
 
 // PRODUCT_TRUTH_CAPABILITY: quote_history
+// one item of the open row's "שליחה ▾" / "⋯" menu (the action is the caller's, marked where the item is used)
+function RowMenuItem({ close, icon, label, onClick, disabled = false, title, danger = false, testId, why = null }) {
+  return (
+    <>
+      {/* PRODUCT_TRUTH_DECORATIVE: the item element of a row menu - it closes the menu and runs the action passed in (each use carries its own marker) */}
+      <button type="button" role="menuitem" className={danger ? 'qrow-menu-del' : undefined} disabled={disabled} title={title} data-testid={testId}
+        onClick={() => { close(); onClick(); }}>{icon}<span>{label}</span>{why && <span className="qrow-menu-why">{why}</span>}</button>
+    </>
+  );
+}
+
 export default function QuotesTab({
   quotes,
   allQuotes,
@@ -142,6 +120,8 @@ export default function QuotesTab({
   quoteSortField,
   quoteSortDirection,
   handleQuoteSort,
+  // the sketch's sort window sets the field and the direction at once (Dashboard); without it the toggle of the column titles is used
+  setQuoteSort: setQuoteSortProp = null,
   handleExportQuotes,
   handleEditClick,
   onAiEdit = null,
@@ -154,7 +134,7 @@ export default function QuotesTab({
   handleMarkQuotePaid = null,
   handleDeleteQuote,
   handleProtectedAction,
-  activeTooltip,
+  activeTooltip, // eslint-disable-line no-unused-vars -- 2026-11-20: the plan tooltips of the old chips are gone (Dashboard keeps it null)
   openDropdownId,
   isHebrew,
   isLocalIsraeliBusiness,
@@ -343,6 +323,12 @@ export default function QuotesTab({
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(measure).catch(() => {});
     return () => { live = false; };
   });
+  // the sketch: no reserved scroll-bar strip inside the card; when the list really scrolls, the titles move by the bar's width so the
+  // columns stay on one grid
+  useEffect(() => {
+    const b = listBodyRef.current; const host = b && b.closest('.quote-modern-list');
+    if (host) host.style.setProperty('--ql-sb', `${Math.max(0, b.offsetWidth - b.clientWidth)}px`);
+  });
   // a search shows every match (never cut to 4)
   // The hot-quote banner opens the same tracking details panel as the hot row's "Open & track" action (open, never toggle closed).
   const openTrackingFor = (quoteId) => {
@@ -434,7 +420,7 @@ export default function QuotesTab({
         : actionKind === 'view' ? (isHebrew ? 'צפייה' : 'View')
           : (isHebrew ? 'פתיחה' : 'Open');
 
-    return { quote, currentStatus, isDropdownOpen, isLocked, emailStatus, firstItemDesc, beforeVatAmount, quoteSym, badge, chip, isHot, tone, statusLabel, actionKind, actionLabel };
+    return { quote, currentStatus, isDropdownOpen, isLocked, emailStatus, firstItemDesc, beforeVatAmount, quoteSym, badge, chip, isHot, tone, statusLabel, actionKind, actionLabel, displayKey };
   });
 
   // Owner-approved quote-list-first direction (2026-10-08): derive the
@@ -560,9 +546,10 @@ export default function QuotesTab({
   const hotLine = hotLead ? (
     <>
       <mark className="quote-hot-banner-name"><bdi>{quotePartyLabel(hotLead.quote).text}</bdi></mark>
-      {isHebrew ? ' צפה בהצעה ' : ' viewed this quote '}
+      {/* Owner console 2026-11-20/21 (the simple-quotes sketch, typed L-19 / L-25 / L-26 only as needed): the sketch's one line */}
+      {isHebrew ? ' • צפיות: ' : ' • Views: '}
       <bdi className="pf-num" dir="ltr">{Number(hotLead.quote.view_count || 0)}</bdi>
-      {isHebrew ? ' פעמים ועדיין לא חתם.' : ' times and still hasn’t signed.'}
+      {isHebrew ? '; טרם נחתמה' : '; not signed yet'}
     </>
   ) : null;
   const stepLine = !otherStep ? null : otherStep.kind === 'task' ? (
@@ -623,6 +610,7 @@ export default function QuotesTab({
     // the real geometry: rows that fit = (the list body's own height + the free space left under the work area, above the footer)
     // / one row's height. Skipped while a row is open (its details would make the page look full).
     // Owner 2026-10-29 (L-29): a measure that flips back and forth at the same window size settles on the smaller value (no flicker)
+    // (a list that moved - a notice above it shown or closed - is a changed list: its own memo; Owner 20/11, L-29 typed only as needed)
     const memo = createPerPageMemo();
     const measure = () => {
       const body = listBodyRef.current;
@@ -638,8 +626,12 @@ export default function QuotesTab({
         const foot = main.querySelector('.dash-footer');
         if (foot) limit -= foot.getBoundingClientRect().height + (parseFloat(window.getComputedStyle(foot).marginTop) || 0);
       }
-      const free = Math.max(0, limit - ws.getBoundingClientRect().bottom);
-      const n = settlePerPage(memo, `${window.innerWidth}x${window.innerHeight}`, Math.max(1, Math.floor((body.clientHeight + free + 0.5) / rowH)));
+      // the list screen fills the work area (the sketch: its accessibility link sits at the bottom), so the free space is measured from the
+      // end of the list content (+ the link under it), the same value whether the screen fills or not
+      const link = ws.querySelector(':scope > .qs-a11y'); const before = link && link.previousElementSibling;
+      const contentEnd = before ? before.getBoundingClientRect().bottom + (parseFloat(window.getComputedStyle(before).marginBottom) || 0) + link.getBoundingClientRect().height + (parseFloat(window.getComputedStyle(ws).paddingBottom) || 0) : ws.getBoundingClientRect().bottom;
+      const free = Math.max(0, limit - contentEnd);
+      const n = settlePerPage(memo, `${window.innerWidth}x${window.innerHeight}@${Math.round(ws.getBoundingClientRect().top)}`, Math.max(1, Math.floor((body.clientHeight + free + 0.5) / rowH)));
       setPerPage((cur) => (cur === n ? cur : n));
     };
     measure();
@@ -648,22 +640,25 @@ export default function QuotesTab({
     if (fonts && fonts.ready && typeof fonts.ready.then === 'function') fonts.ready.then(measure).catch(() => {});
     const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(measure);
     if (ro && screenRef.current) ro.observe(screenRef.current);
-    return () => { window.removeEventListener('resize', measure); if (ro) ro.disconnect(); };
+    // the list screen fills the work area, so its own size does not change with its rows - the list body is observed too
+    if (ro && listBodyRef.current) ro.observe(listBodyRef.current);
+    const raf = typeof window.requestAnimationFrame === 'function' ? window.requestAnimationFrame(measure) : null;
+    return () => { window.removeEventListener('resize', measure); if (ro) ro.disconnect(); if (raf != null && typeof window.cancelAnimationFrame === 'function') window.cancelAnimationFrame(raf); };
   }, [useCards, rowsMeta.length, hasHotLead]);
   // the page bar under the list (desktop table and phone / tablet cards alike)
-  const pager = pageCount > 1 ? (
+  const pager = rowsMeta.length > 0 ? (
     <nav className="quote-modern-pager" data-testid="quote-pager" aria-label={isHebrew ? 'דפי הצעות המחיר' : 'Quote pages'}>
       {/* PRODUCT_TRUTH_DECORATIVE: shows the previous page of the quote list (list navigation) */}
-      <button type="button" className="quote-modern-page-btn" data-page="prev" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 0}>
+      {pageCount > 1 && <button type="button" className="quote-modern-page-btn" data-page="prev" onClick={() => goToPage(currentPage - 1)} disabled={currentPage === 0}>
         {isHebrew ? 'הדף הקודם' : 'Previous page'}
-      </button>
+      </button>}
       <span className="quote-modern-page-info" aria-live="polite">
         {isHebrew ? 'עמוד ' : 'Page '}<bdi className="pf-num">{currentPage + 1}</bdi>{isHebrew ? ' מתוך ' : ' of '}<bdi className="pf-num">{pageCount}</bdi>
       </span>
       {/* PRODUCT_TRUTH_DECORATIVE: shows the next page of the quote list (list navigation) */}
-      <button type="button" className="quote-modern-page-btn" data-page="next" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= pageCount - 1}>
+      {pageCount > 1 && <button type="button" className="quote-modern-page-btn" data-page="next" onClick={() => goToPage(currentPage + 1)} disabled={currentPage >= pageCount - 1}>
         {isHebrew ? 'הדף הבא' : 'Next page'}
-      </button>
+      </button>}
     </nav>
   ) : null;
   // the banner's hot quote: its page opens first, then its tracking details
@@ -680,6 +675,18 @@ export default function QuotesTab({
   // Sortable column headers of the desktop list. They share the row grid; each button sorts ITS OWN key (first click ascending,
   // next click descending - handleQuoteSort); the active one carries the direction chevron and aria-sort.
   const activeSortKey = normalizeSortField(quoteSortField);
+  // the sort window sets the field and its direction together (a new field keeps the direction chosen in the window)
+  const setQuoteSort = (field, dir) => {
+    if (typeof setQuoteSortProp === 'function') { setQuoteSortProp(field, dir); return; }
+    if (normalizeSortField(field) !== activeSortKey) handleQuoteSort(field); else if (dir !== quoteSortDirection) handleQuoteSort(field);
+  };
+  // the direction words follow the field: newest / oldest for the date, high / low for numbers, A-Z for words
+  const sortDirLabel = (dir) => {
+    const k = activeSortKey;
+    if (k === 'created_at' || k === 'date') return dir === 'desc' ? (isHebrew ? 'מהחדש לישן' : 'Newest first') : (isHebrew ? 'מהישן לחדש' : 'Oldest first');
+    if (k === 'total' || k === 'views' || k === 'id') return dir === 'desc' ? (isHebrew ? 'מהגבוה לנמוך' : 'Highest first') : (isHebrew ? 'מהנמוך לגבוה' : 'Lowest first');
+    return dir === 'asc' ? (isHebrew ? 'מא׳ עד ת׳' : 'A to Z') : (isHebrew ? 'מת׳ עד א׳' : 'Z to A');
+  };
   const sortHeader = (key, he, en) => {
     const active = activeSortKey === key;
     const ariaSort = active ? (quoteSortDirection === 'asc' ? 'ascending' : 'descending') : 'none';
@@ -689,9 +696,7 @@ export default function QuotesTab({
         {/* PRODUCT_TRUTH_DECORATIVE: sortable column header; sorts the quote list by its own column (a list-order UI affordance) */}
         <button type="button" className="quote-modern-head-btn" data-sort-key={key} onClick={() => handleQuoteSort(key)}>
           <span className="quote-modern-head-label">{label}</span>
-          {active && (quoteSortDirection === 'asc'
-            ? <ChevronUp size={12} strokeWidth={2.4} aria-hidden="true" data-sort-icon="asc" />
-            : <ChevronDown size={12} strokeWidth={2.4} aria-hidden="true" data-sort-icon="desc" />)}
+          {active && <span className="quote-modern-sort-arrow" aria-hidden="true" data-sort-icon={quoteSortDirection === 'asc' ? 'asc' : 'desc'}>{quoteSortDirection === 'asc' ? '↑' : '↓'}</span>}
         </button>
       </div>
     );
@@ -737,170 +742,100 @@ export default function QuotesTab({
   // אפור-שקט כמו כפתור Export CSV הקיים כבר ממש למעלה בקובץ הזה - לא צבע
   // חדש), Delete בלבד אדום. זהות/handler/entitlement-gating/tooltip/
   // aria-label של כל פעולה נשארו זהים לחלוטין - רק הצבע השתנה.
-  const renderInlineActions = (quote, isLocked) => {
-    // Owner console 2026-11-05 (typed, L-07 / L-29): "תקטין קצת את הכפתורים ב-10% בערך גם בנייד וגם המחשב" - the row-action chips are ~10%
-    // smaller so the new "עריכה חכמה" chip fits without adding a row (padding / font / gap / icon all reduced).
-    // Owner console 2026-11-06 (typed, L-07 / L-29): every row chip the exact same height - all icons at chipIcon (12) and a uniform 1px border
-    // (transparent where no colour is wanted) so the AI chips no longer tower over the rest. box-sizing keeps the 1px border out of the outer height.
-    // On a phone (<=768px) the chips are a touch tighter (padding / font / icon-text gap) so five fit per row and "מחיקה" shares the last row
-    // with others instead of sitting alone - verified by eye at 360 / 384 / 390 / 412 in both languages. Desktop is unchanged (all nine on one row).
-    // A fixed height makes every chip pixel-identical regardless of the tiny per-icon glyph-height differences (otherwise ~1px apart); the
-    // box-sizing + centered content keeps it from clipping the 12px icon or the text.
-    const chipBase = { border: '1px solid transparent', boxSizing: 'border-box', borderRadius: RADIUS.sm, height: isMobileView ? '44px' : '26px', /* Owner 2026-11-11 (finding 25, typed L-07 / L-29): a phone touch target is 44px */ padding: isMobileView ? '0 4px' : '0 8px', cursor: 'pointer', fontSize: isMobileView ? '0.58rem' : '0.62rem', fontWeight: '600', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: isMobileView ? '1px' : '4px', whiteSpace: 'nowrap' };
-    const chipIcon = 12;
-    const neutralChip = { background: NEON.bgCardAlt, color: NEON.textSecondary, border: `1px solid ${NEON.border}` };
-    const neutralIconColor = NEON.textSecondary;
-    return (
-      <div className="qt-chips" style={{ display: 'flex', flexWrap: 'wrap', gap: '2px' }}>
-        {/* PRODUCT_TRUTH_CAPABILITY: public_quote_view */}
-        <button
-          onClick={() => window.open(getQuoteViewLink(quote), '_blank')}
-          style={{ ...chipBase, background: NEON.violetLighter, color: NEON.violet }}
-        >
-          <Eye size={chipIcon} color={NEON.violet} strokeWidth={2.2} />
-          <span>{isHebrew ? 'צפייה' : 'View'}</span>
-        </button>
-
-        <span style={{ position: 'relative', display: 'inline-block' }}>
-          {/* PRODUCT_TRUTH_CAPABILITY: quote_edit */}
-          <button
-            disabled={isLocked}
-            title={isLocked ? (isHebrew ? 'לא ניתן לערוך הצעה חתומה' : 'Cannot edit a signed quote') : undefined}
-            onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote)); }}
-            style={{ ...chipBase, ...neutralChip, opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
-          >
-            <Pencil size={chipIcon} color={neutralIconColor} strokeWidth={2.2} />
-            <span>{isHebrew ? 'עריכה' : 'Edit'}</span>
-          </button>
-          {activeTooltip.quoteId === quote.id && activeTooltip.action === 'edit' && (
-            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: SHADOW.md }}>
-              {isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan'}
-            </div>
-          )}
-        </span>
-
-        {typeof handleMarkQuotePaid === 'function' && canMarkQuotePaid(quote) && (
-          // PRODUCT_TRUTH_DECORATIVE: marks an approved / signed quote as paid (the status only; asks first; collects no payment)
-          <button
-            type="button"
-            data-testid="quote-mark-paid"
-            onClick={() => handleMarkQuotePaid(quote, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })}
-            style={{ ...chipBase, background: APP_STATUS.paid.bg, color: APP_STATUS.paid.fg, border: `1px solid ${APP_STATUS.paid.border}` }}
-          >
-            <PaidMarkIcon size={chipIcon} />
-            <span>{isHebrew ? 'סימון כשולמה' : 'Mark as paid'}</span>
-          </button>
-        )}
-
-        {typeof onOpenCustomerTwin === 'function' && (
-          // PRODUCT_TRUTH_DECORATIVE: opens the Customer Twin panel of this saved quote (internal, read-only; changes nothing)
-          <button
-            type="button"
-            onClick={() => onOpenCustomerTwin(quote)}
-            data-testid="customer-twin-open-row"
-            // Owner 2026-10-24 (typed L-07, L-09, L-13, L-29): named "שיפור ההצעה", with what it does on hover
-            title={isHebrew ? 'מציע מה לשנות בהצעה כדי שתהיה ברורה ואטרקטיבית יותר בעיני הלקוח שלכם.' : 'Suggests what to change in the quote so it is clearer and more attractive to your customer.'}
-            style={{ ...chipBase, background: '#eef2ff', color: '#3730a3', border: '1px solid #c7d2fe' }}
-          >
-            <CustomerTwinIcon size={chipIcon} />
-            <span>{isHebrew ? 'שיפור ההצעה' : 'Improve quote'}</span>
-          </button>
-        )}
-
-        {typeof onAiEdit === 'function' && (
-          <span style={{ position: 'relative', display: 'inline-block' }}>
-            {/* Owner console 2026-11-05 (typed, L-07 / L-09 / L-29): "עריכה חכמה" on the quote row - opens THIS quote for editing with the
-                smart-quote AI dialog pointed at it. The AI mark (law 45) is the one unified TEKANGO AI icon, same as the smart-quote entry. */}
-            {/* PRODUCT_TRUTH_DECORATIVE: opens this quote for editing and the AI dialog; nothing in the quote changes until the user applies a drafted line */}
-            <button
-              type="button"
-              disabled={isLocked}
-              title={isLocked ? (isHebrew ? 'לא ניתן לערוך הצעה חתומה' : 'Cannot edit a signed quote') : (isHebrew ? 'עריכה חכמה: פותח את ההצעה הזו ומבקש מהבינה מה להוסיף או לשנות בה.' : 'Smart edit: opens this quote and asks the AI what to add or change in it.')}
-              onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'edit', () => onAiEdit(quote)); }}
-              data-testid="quote-ai-edit-row"
-              style={{ ...chipBase, background: '#0e7490', color: '#fff', opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
-            >
-              <TekangoAiIcon size={chipIcon} />
-              <span>{isHebrew ? 'עריכה חכמה' : 'Smart edit'}</span>
-            </button>
-          </span>
-        )}
-
-        <span style={{ position: 'relative', display: 'inline-block' }}>
-          {/* PRODUCT_TRUTH_CAPABILITY: quote_duplicate */}
-          <button
-            onClick={() => handleProtectedAction(quote.id, 'duplicate', () => handleDuplicateQuote(quote))}
-            style={{ ...chipBase, ...neutralChip }}
-          >
-            <Copy size={chipIcon} color={neutralIconColor} strokeWidth={2.2} />
-            <span>{isHebrew ? 'שכפול' : 'Duplicate'}</span>
-          </button>
-          {activeTooltip.quoteId === quote.id && activeTooltip.action === 'duplicate' && (
-            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: SHADOW.md }}>
-              {isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan'}
-            </div>
-          )}
-        </span>
-
-        <span style={{ position: 'relative', display: 'inline-block' }}>
+  // Owner console 2026-11-20/21 (the simple-quotes sketch, typed L-07 / L-13 / L-14 / L-23 / L-29 only as needed): the open row's actions are
+  // "צפייה", "עריכה", "שליחה ▾" (WhatsApp / e-mail / copy) and "⋯" (smart edit, improve quote, duplicate, mark as paid, delete). Every
+  // action keeps its own handler, gating and lock words exactly as before; the menus open in the page layer (never cut by the list's scroll).
+  const [rowMenu, setRowMenu] = useState(null); // { kind: 'send' | 'more', id, top, left, right, up }
+  useEffect(() => {
+    if (!rowMenu) return undefined;
+    const close = (e) => { if (e.type === 'keydown' && e.key !== 'Escape') return; if (e.type === 'pointerdown' && e.target.closest?.('[data-row-menu], [data-row-menu-trigger]')) return; setRowMenu(null); };
+    document.addEventListener('pointerdown', close); document.addEventListener('keydown', close);
+    window.addEventListener('resize', close); window.addEventListener('scroll', close, true);
+    return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', close); window.removeEventListener('resize', close); window.removeEventListener('scroll', close, true); };
+  }, [rowMenu]);
+  const openRowMenu = (kind, id) => (e) => {
+    if (rowMenu && rowMenu.kind === kind && rowMenu.id === id) { setRowMenu(null); return; }
+    const btn = e.currentTarget.getBoundingClientRect();
+    const row = window.innerWidth <= 400 ? e.currentTarget.closest('.qrow-acts') : null;
+    const r = row ? { top: btn.top, bottom: btn.bottom, left: row.getBoundingClientRect().left, right: row.getBoundingClientRect().right } : btn;
+    const up = window.innerHeight - r.bottom < 300 && r.top > 300;
+    setRowMenu({ kind, id, up, top: up ? r.top - 4 : r.bottom + 4, right: document.documentElement.clientWidth - r.right, left: r.left });
+  };
+  const closeRowMenu = () => setRowMenu(null);
+  const renderRowMenu = (quote, isLocked) => {
+    if (!rowMenu || rowMenu.id !== quote.id || typeof document === 'undefined') return null;
+    const style = { position: 'fixed', top: rowMenu.up ? undefined : rowMenu.top, bottom: rowMenu.up ? window.innerHeight - rowMenu.top : undefined,
+      ...(isHebrew ? { left: Math.max(8, rowMenu.left) } : { right: Math.max(8, rowMenu.right) }) };
+    const lockWhy = isHebrew ? 'הצעה חתומה' : 'Signed quote';
+    return createPortal(
+      <div className="qrow-menu" role="menu" data-row-menu dir={tableDir} style={style} aria-label={rowMenu.kind === 'send' ? (isHebrew ? 'שליחה' : 'Send') : (isHebrew ? 'עוד פעולות' : 'More actions')}>
+        {rowMenu.kind === 'send' ? (<>
           {/* PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share */}
-          <button
-            onClick={() => handleProtectedAction(quote.id, 'whatsapp', () => sendWhatsApp(quote))}
-            style={{ ...chipBase, ...neutralChip }}
-          >
-            <MessageCircle size={chipIcon} color={neutralIconColor} strokeWidth={2.2} />
-            <span>{isHebrew ? 'וואטסאפ' : 'WhatsApp'}</span>
-          </button>
-          {activeTooltip.quoteId === quote.id && activeTooltip.action === 'whatsapp' && (
-            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: SHADOW.md }}>
-              {isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan'}
-            </div>
+          <RowMenuItem close={closeRowMenu} icon={<MessageCircle size={17} strokeWidth={2} aria-hidden="true" />} label={isHebrew ? 'וואטסאפ' : 'WhatsApp'} testId="quote-whatsapp"
+            onClick={() => handleProtectedAction(quote.id, 'whatsapp', () => sendWhatsApp(quote))} />
+          {/* PRODUCT_TRUTH_CAPABILITY: quote_email */}
+          <RowMenuItem close={closeRowMenu} icon={<Mail size={17} strokeWidth={2} aria-hidden="true" />} label={isHebrew ? 'שליחה במייל' : 'Email'} testId="quote-email" onClick={() => setPendingEmailQuote(quote)} />
+          {typeof copyQuoteMessage === 'function' && (
+            // PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share
+            <RowMenuItem close={closeRowMenu} icon={<svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1" /><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /></svg>} label={isHebrew ? 'העתקה' : 'Copy'} testId="quote-copy-message"
+              onClick={() => handleProtectedAction(quote.id, 'whatsapp', () => copyQuoteMessage(quote))} />
           )}
-        </span>
-
-        {typeof copyQuoteMessage === 'function' && (
-          // PRODUCT_TRUTH_CAPABILITY: owner_whatsapp_share
-          <button
-            data-testid="quote-copy-message"
-            onClick={() => handleProtectedAction(quote.id, 'whatsapp', () => copyQuoteMessage(quote))}
-            style={{ ...chipBase, ...neutralChip }}
-          >
-            <ClipboardCopy size={chipIcon} color={neutralIconColor} strokeWidth={2.2} />
-            <span>{isHebrew ? 'העתקה' : 'Copy'}</span>
-          </button>
-        )}
-
-        {/* PRODUCT_TRUTH_CAPABILITY: quote_email */}
-        <button
-          onClick={() => setPendingEmailQuote(quote)}
-          style={{ ...chipBase, ...neutralChip }}
-        >
-          <Mail size={chipIcon} color={neutralIconColor} strokeWidth={2.2} />
-          <span>{isHebrew ? 'שליחה במייל' : 'Email'}</span>
-        </button>
-
-        {/* Owner console 2026-11-06 (typed, L-07 / L-29): phone delete chip may share a row - the forced phone-only break was removed so the
-            chips wrap naturally and "מחיקה" sits with the others instead of alone. */}
-        <span style={{ position: 'relative', display: 'inline-block' }}>
+        </>) : (<>
+          {typeof onAiEdit === 'function' && (
+            // PRODUCT_TRUTH_DECORATIVE: opens this quote for editing and the AI dialog; nothing in the quote changes until the user applies a drafted line
+            <RowMenuItem close={closeRowMenu} icon={<TekangoAiIcon size={17} />} label={isHebrew ? 'עריכה חכמה' : 'Smart edit'} testId="quote-ai-edit-row" disabled={isLocked} why={isLocked ? lockWhy : null}
+              title={isLocked ? (isHebrew ? 'לא ניתן לערוך הצעה חתומה' : 'Cannot edit a signed quote') : (isHebrew ? 'עריכה חכמה: פותח את ההצעה הזו ומבקש מהבינה מה להוסיף או לשנות בה.' : 'Smart edit: opens this quote and asks the AI what to add or change in it.')}
+              onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'edit', () => onAiEdit(quote)); }} />
+          )}
+          {typeof onOpenCustomerTwin === 'function' && (
+            // PRODUCT_TRUTH_DECORATIVE: opens the Customer Twin panel of this saved quote (internal, read-only; changes nothing)
+            // Owner 2026-10-24 (typed L-07, L-09, L-13, L-29): named "שיפור ההצעה", with what it does on hover
+            <RowMenuItem close={closeRowMenu} icon={<CustomerTwinIcon size={chipIcon} />} label={isHebrew ? 'שיפור ההצעה' : 'Improve quote'} testId="customer-twin-open-row"
+              title={isHebrew ? 'מציע מה לשנות בהצעה כדי שתהיה ברורה ואטרקטיבית יותר בעיני הלקוח שלכם.' : 'Suggests what to change in the quote so it is clearer and more attractive to your customer.'}
+              onClick={() => onOpenCustomerTwin(quote)} />
+          )}
+          {/* PRODUCT_TRUTH_CAPABILITY: quote_duplicate */}
+          <RowMenuItem close={closeRowMenu} icon={<SketchIcon name="copy" size={17} />} label={isHebrew ? 'שכפול' : 'Duplicate'} testId="quote-duplicate"
+            onClick={() => handleProtectedAction(quote.id, 'duplicate', () => handleDuplicateQuote(quote))} />
+          {typeof handleMarkQuotePaid === 'function' && canMarkQuotePaid(quote) && (
+            // PRODUCT_TRUTH_DECORATIVE: marks an approved / signed quote as paid (the status only; asks first; collects no payment)
+            <RowMenuItem close={closeRowMenu} icon={<PaidMarkIcon size={17} />} label={isHebrew ? 'סימון כשולמה' : 'Mark as paid'} testId="quote-mark-paid"
+              onClick={() => handleMarkQuotePaid(quote, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })} />
+          )}
+          <hr />
           {/* PRODUCT_TRUTH_DECORATIVE: deletes a quote; per the registry's own header comment, quote deletion has no dedicated id among the 38 */}
-          <button
-            disabled={isLocked}
-            title={isLocked ? (isHebrew ? 'לא ניתן למחוק הצעה חתומה' : 'Cannot delete a signed quote') : undefined}
-            onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })); }}
-            style={{ ...chipBase, background: isLocked ? NEON.bgCardAlt : APP_STATUS.error.bg, color: isLocked ? NEON.textMuted : NEON.red, border: isLocked ? `1px solid ${NEON.border}` : '1px solid transparent', opacity: isLocked ? 0.55 : 1, cursor: isLocked ? 'not-allowed' : 'pointer' }}
-          >
-            <Trash2 size={chipIcon} color={isLocked ? NEON.textMuted : NEON.red} strokeWidth={2.2} />
-            <span>{isHebrew ? 'מחיקה' : 'Delete'}</span>
-          </button>
-          {activeTooltip.quoteId === quote.id && activeTooltip.action === 'delete' && (
-            <div className="feature-lock-tooltip" style={{ position: 'absolute', top: '105%', [isHebrew ? 'right' : 'left']: 0, background: NEON.textPrimary, border: `1px solid ${NEON.borderStrong}`, color: '#fff', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', whiteSpace: 'nowrap', zIndex: 999999, boxShadow: SHADOW.md }}>
-              {isHebrew ? 'לא כלול במסלול הנוכחי' : 'Not included in the current plan'}
-            </div>
-          )}
-        </span>
-      </div>
+          <RowMenuItem close={closeRowMenu} icon={<SketchIcon name="trash" size={17} />} label={isHebrew ? 'מחיקה' : 'Delete'} testId="quote-delete" danger disabled={isLocked}
+            title={isLocked ? (isHebrew ? 'לא ניתן למחוק הצעה חתומה' : 'Cannot delete a signed quote') : undefined} why={isLocked ? lockWhy : null}
+            onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'delete', () => handleDeleteQuote(quote.id, { number: formatQuoteFallback(quote), clientName: quote.clients?.company_name })); }} />
+        </>)}
+      </div>,
+      document.body,
     );
   };
+  const chipIcon = 17;
+  const renderInlineActions = (quote, isLocked) => (
+    <div className="qrow-acts">
+      {/* PRODUCT_TRUTH_CAPABILITY: public_quote_view */}
+      <button type="button" className="qrow-btn" data-testid="quote-view" onClick={() => window.open(getQuoteViewLink(quote), '_blank')}>
+        <Eye size={15} strokeWidth={2} aria-hidden="true" /><span>{isHebrew ? 'צפייה' : 'View'}</span>
+      </button>
+      {/* PRODUCT_TRUTH_CAPABILITY: quote_edit */}
+      <button type="button" className="qrow-btn" data-testid="quote-edit" disabled={isLocked}
+        title={isLocked ? (isHebrew ? 'לא ניתן לערוך הצעה חתומה' : 'Cannot edit a signed quote') : undefined}
+        onClick={() => { if (!isLocked) handleProtectedAction(quote.id, 'edit', () => handleEditClick(quote)); }}>
+        <SketchIcon name="pen" size={15} /><span>{isHebrew ? 'עריכה' : 'Edit'}</span>
+      </button>
+      {/* PRODUCT_TRUTH_DECORATIVE: opens the send choices of this quote (WhatsApp, e-mail, copy) */}
+      <button type="button" className="qrow-btn qrow-btn--p" data-testid="quote-send-open" data-row-menu-trigger aria-haspopup="menu" aria-expanded={Boolean(rowMenu && rowMenu.kind === 'send' && rowMenu.id === quote.id)} onClick={openRowMenu('send', quote.id)}>
+        <Send size={15} strokeWidth={2} aria-hidden="true" /><span>{isHebrew ? 'שליחה' : 'Send'}</span><ChevronDown size={14} strokeWidth={2} aria-hidden="true" />
+      </button>
+      {/* PRODUCT_TRUTH_DECORATIVE: opens the other actions of this quote */}
+      <button type="button" className="qrow-btn qrow-btn--more" data-testid="quote-more-open" data-row-menu-trigger aria-haspopup="menu" aria-label={isHebrew ? 'עוד פעולות' : 'More actions'} aria-expanded={Boolean(rowMenu && rowMenu.kind === 'more' && rowMenu.id === quote.id)} onClick={openRowMenu('more', quote.id)}>
+        <SketchIcon name="dots" size={17} />
+      </button>
+      {renderRowMenu(quote, isLocked)}
+    </div>
+  );
 
   // חוק ברזל (Authenticated App Consolidation task, §4 - Secondary
   // Information): פאנל-הרחבה משותף לדסקטופ (colSpan <td> בתוך <tr> שני)
@@ -943,31 +878,19 @@ export default function QuotesTab({
           ? (isHebrew ? 'שליחת המייל נכשלה' : 'Email failed')
           : null;
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {/* Owner console 2026-11-05 / 2026-11-06 removed "פתיחה" and "פתיחה ומעקב" here; Owner console 2026-11-10 (typed: "מאשר הסרת הכפתור
-            הגדול מכרטיס הצעה פתוח ("צפייה" ו"המשך העריכה") בשתי השפות, כולל שינוי ב-L-07 ו-L-29, שחרור עד הלייב"): the open card has no big
-            status button at all - "צפייה" / "עריכה" are in the action row below; the quote number still opens the quote. */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px', fontSize: '0.78rem', color: NEON.textSecondary }}>
+      <div className="qrow-panel">
+        {/* Owner console 2026-11-10: the open card has no big status button; "צפייה" / "עריכה" are in the action row; the quote number opens the quote */}
+        <div className="qrow-meta">
           {clientTypeLabel && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-              <ClientTypeBadge clientType={clientType} isHebrew={isHebrew} />
-              {clientTypeLabel}
-            </span>
+            <span><User size={14} strokeWidth={2} aria-hidden="true" />{clientTypeLabel}</span>
           )}
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-            <Eye size={13} color={NEON.textMuted} strokeWidth={2} />
-            {isHebrew ? `צפיות: ${quote.view_count || 0}` : `${quote.view_count || 0} views`}
-          </span>
+          <span className="qrow-meta-first"><FileText size={14} strokeWidth={2} aria-hidden="true" /><EllipsisText text={firstItemDesc || (isHebrew ? 'אין תיאור פריט' : 'No item description')} /></span>
           {emailLabel && (
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <span>
               {renderEmailDot(quote, emailStatus)}
               {emailLabel}
             </span>
           )}
-        </div>
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', fontSize: '0.8rem', color: NEON.textSecondary }}>
-          <FileText size={14} color={NEON.textMuted} strokeWidth={2} style={{ flexShrink: 0, marginTop: '2px' }} />
-          <span>{firstItemDesc || (isHebrew ? 'אין תיאור פריט' : 'No item description')}</span>
         </div>
         {renderInlineActions(quote, isLocked)}
       </div>
@@ -1008,6 +931,7 @@ export default function QuotesTab({
       {hotLead && !searchActive && (
         <div className="quote-hot-banner" data-testid="hot-quote-banner" data-hot-quote-id={hotLead.quote.id} data-hot-count={hotRows.length}
           onMouseEnter={() => setHotPaused(true)} onMouseLeave={() => setHotPaused(false)} onFocus={() => setHotPaused(true)} onBlur={() => setHotPaused(false)}>
+          {/* PRODUCT_TRUTH_DECORATIVE: the banner's eye - opens the tracking details of the banner's quote (the banner's own handler) */}
           <button
             type="button"
             className="quote-hot-banner-action"
@@ -1030,7 +954,7 @@ export default function QuotesTab({
           </span>
           {/* PRODUCT_TRUTH_DECORATIVE: the same "Open & track" as the eye button above, as a visible text button (Owner 2026-10-19) */}
           <button type="button" className="quote-hot-banner-cta" data-testid="next-step-action" data-short={NS.shortOpen} aria-label={NS.openTrack} onClick={() => openHotQuote(hotLead.quote.id)}>
-            {NS.openTrack}
+            {NS.shortOpen}
           </button>
         </div>
       )}
@@ -1069,7 +993,7 @@ export default function QuotesTab({
               </span>
               {/* PRODUCT_TRUTH_DECORATIVE: the same tracking opening as the icon button above, as a visible text button */}
               <button type="button" className="quote-hot-banner-cta" data-testid="next-step-action" data-short={NS.shortOpen} aria-label={NS.openTrack} onClick={() => openHotQuote(otherStep.quote.id)}>
-                {NS.openTrack}
+                {NS.shortOpen}
               </button>
             </>
           )}
@@ -1078,104 +1002,42 @@ export default function QuotesTab({
       <div
         ref={headerRowRef}
         data-testid="quote-list-header"
-        className="quote-workspace-header"
+        className="quote-workspace-header qlist-top"
       >
         <div className="quote-workspace-heading">
-          {/* Approved 980px dashboard: plain title + one-line subtitle, no icon. */}
-          <div>
-            <h2 className="quote-workspace-title" style={{ ...neonGlowTextStyle }}>
-              {t.quotesNav || (isHebrew ? 'הצעות מחיר' : 'Quotes')}
-            </h2>
-            <p className="quote-workspace-subtitle">
-              {isHebrew ? 'כל ההצעות והפעולות במקום אחד' : 'All quotes and activity in one place'}
-            </p>
-          </div>
-          {useCards && (
-            /* PRODUCT_TRUTH_CAPABILITY: quote_csv */
-            <button
-              type="button"
-              className="quote-export-cards"
-              onClick={handleExportQuotes}
-              aria-label={isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}
-              title={isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}
-              style={{ background: NEON.bgCard, color: NEON.textSecondary, border: `1px solid ${NEON.borderStrong}`, padding: '7px 12px', borderRadius: RADIUS.sm, cursor: 'pointer', fontWeight: '600', fontSize: '0.8rem', display: 'flex', alignItems: 'center', gap: '6px' }}
-            >
-              <Download size={15} strokeWidth={2.5} aria-hidden="true" />
-              <span className="quote-export-cards-label">{isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}</span>
-            </button>
+          {/* the sketch: the title alone (the subtitle went away) */}
+          <h2 className="quote-workspace-title" style={{ ...neonGlowTextStyle }}>
+            {t.quotesNav || (isHebrew ? 'הצעות מחיר' : 'Quotes')}
+          </h2>
+        </div>
+        <div className="quote-workspace-controls">
+          {/* Owner console 2026-10-18 (#1, L-23): the export stays visible on every width - an icon beside the title (the sketch) */}
+          {/* PRODUCT_TRUTH_CAPABILITY: quote_csv */}
+          <button
+            type="button"
+            className="quote-export-compact"
+            onClick={handleExportQuotes}
+            title={isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}
+            aria-label={isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}
+          >
+            <SketchIcon name="dl" size={17} />
+          </button>
+          {/* the new-quote button on wide screens; a phone / a tablet held upright has "חדש" in the bottom bar */}
+          {onCreateQuote && !isMobileView && (
+            <NewQuoteMenu
+              isHebrew={isHebrew}
+              variant="toolbar"
+              onStandard={onCreateQuote}
+              onAi={onCreateAiQuote}
+              onStructured={onCreateStructuredQuote}
+              onTemplate={onCreateFromTemplate}
+              onFile={onCreateFileQuote}
+            />
           )}
         </div>
-
-        {/* Desktop toolbar. ONE DOM order - Export, Sort, Filter, Search, New quote - mirrored by the inherited dir (no direction
-            override, no row-reverse): HE renders New, Search, Filter, Sort, Export from the left; EN renders Export, Sort ... New from
-            the left. Visible labels are short; the long wording lives in aria-label. */}
-        {!useCards && (
-          <div className="quote-workspace-controls">
-            {/* PRODUCT_TRUTH_CAPABILITY: quote_csv. Owner console 2026-10-18, typed: "את היצוא לאקסל למקם מימין למיון" (L-26): the
-                FIRST control - beside Sort at the inline start (right of Sort in HE, mirrored left of it in EN). */}
-            <button
-              type="button"
-              className="quote-export-compact"
-              onClick={handleExportQuotes}
-              title={isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}
-              aria-label={isHebrew ? 'ייצוא לאקסל (CSV)' : 'Export CSV'}
-            >
-              <Download size={15} strokeWidth={2.2} />
-            </button>
-            <button
-              type="button"
-              className="quote-sort-direction"
-              onClick={() => handleQuoteSort(quoteSortField)}
-              title={isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction'}
-              aria-label={isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction'}
-            >
-              <ArrowUpDown size={18} strokeWidth={1.6} aria-hidden="true" />
-              <span>{isHebrew ? 'מיון' : 'Sort'}</span>
-            </button>
-            <label className="quote-filter-control" data-active={statusFilter !== 'All' ? 'true' : undefined}>
-              <Filter size={18} strokeWidth={1.6} aria-hidden="true" />
-              <span className="quote-filter-label">{isHebrew ? 'סינון' : 'Filter'}</span>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                aria-label={isHebrew ? 'סינון לפי מצב' : 'Filter by status'}
-              >
-                <option value="All">{t.filterStatus}</option>
-                {/* R-07: the filter speaks the shown status labels */}
-                {QUOTE_FILTER_OPTIONS.map((f) => <option key={f} value={f}>{quoteFilterLabel(f, isHebrew)}</option>)}
-              </select>
-            </label>
-            <label className="quote-search-control">
-              <Search size={18} strokeWidth={1.6} aria-hidden="true" />
-              <input
-                type="text"
-                placeholder={isHebrew ? 'חיפוש' : 'Search'}
-                aria-label={t.searchQuote}
-                title={t.searchQuote}
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </label>
-            {onCreateQuote && (
-              <NewQuoteMenu
-                isHebrew={isHebrew}
-                variant="toolbar"
-                onStandard={onCreateQuote}
-                onAi={onCreateAiQuote}
-                onStructured={onCreateStructuredQuote}
-                onTemplate={onCreateFromTemplate}
-                onFile={onCreateFileQuote}
-              />
-            )}
-          </div>
-        )}
-
       </div>
 
-      {/* Owner approval 2026-10-08 supersedes the earlier sketch-only R25
-          rollback. This compact overview uses real quote data and the
-          canonical money formatter, and wraps rather than creating another
-          horizontal scroll owner. */}
+      {/* Owner approval 2026-10-08: the overview uses real quote data and the canonical money formatter (one line in the sketch) */}
       <div data-testid="quote-overview" className={`quote-overview${overviewMulti ? ' quote-overview--multi' : ''}`}>
         {[
           { key: 'all', label: isHebrew ? 'הצעות' : 'Quotes', value: overviewQuotes.length },
@@ -1194,88 +1056,61 @@ export default function QuotesTab({
           <span className="quote-overview-label">{overviewMultiCurrency ? (isHebrew ? 'סה״כ לפי מטבע' : 'Total by currency') : (isHebrew ? 'סה״כ' : 'Total value')}</span>
         </div>
       </div>
-      {/* חוק ברזל (Authenticated UI Coherence task, Mobile Lists and
-          Controls): מובייל בלבד - החיפוש מקבל שורה מלאה-רוחב עצמאית
-          משלו ("Search receives a full-width usable row," הדרישה המפורשת
-          של המשימה), וסטטוס+מיון (שהיו שני פקדים נפרדים - select-סטטוס
-          כאן למעלה, select-מיון+כפתור-כיוון בשורה נפרדת למטה) אוחדו
-          לכפתור "Filters" קומפקטי יחיד שפותח sheet - "one compact Filters
-          control... equivalent accessible pattern." אותם state/handlers
-          בדיוק (statusFilter/setStatusFilter/quoteSortField/
-          quoteSortDirection/handleQuoteSort) - רק המיכל החזותי השתנה. */}
-      {useCards && (
-        <div style={{ marginBottom: '10px' }} dir={tableDir}>
-          <div style={{ display: 'flex', gap: '6px', width: '100%' }}>
-            <input
-              type="text"
-              placeholder={t.searchQuote}
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{ flex: '1 1 auto', minWidth: 0, padding: '8px 12px', border: `1px solid ${NEON.borderStrong}`, borderRadius: RADIUS.sm, boxSizing: 'border-box', textAlign: isHebrew ? 'right' : 'left', fontSize: '0.8rem', background: NEON.bgInput, color: NEON.textPrimary }}
-            />
-            {/* PRODUCT_TRUTH_DECORATIVE: opens/closes the mobile Filters sheet; a compact-view UI affordance */}
-            <button
-              type="button"
-              onClick={() => setShowMobileFilters(prev => !prev)}
-              aria-haspopup="true"
-              aria-expanded={showMobileFilters}
-              aria-label={isHebrew ? 'סינון ומיון' : 'Filter and sort'}
-              style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 12px', border: `1px solid ${statusFilter !== 'All' || showMobileFilters ? NEON.violet : NEON.borderStrong}`, borderRadius: RADIUS.sm, background: statusFilter !== 'All' ? NEON.violetLighter : NEON.bgInput, color: statusFilter !== 'All' ? NEON.violet : NEON.textSecondary, fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}
-            >
-              <Filter size={14} strokeWidth={2.2} />
-              {isHebrew ? 'סינון' : 'Filters'}
-            </button>
-          </div>
-          {showMobileFilters && (
-            <div style={{ marginTop: '8px', background: NEON.bgCardAlt, border: `1px solid ${NEON.border}`, borderRadius: RADIUS.sm, padding: '10px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <div>
-                <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{t.filterStatus}</span>
-                <select
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value)}
-                  style={{ width: '100%', padding: '7px 10px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '7px', background: NEON.bgInput, boxSizing: 'border-box', fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary }}
-                >
-                  <option value="All">{t.filterStatus}</option>
-                  {/* Owner 2026-10-18 #5: the phone sheet uses the same shown-status options as the desktop (R-07) */}
-                  {QUOTE_FILTER_OPTIONS.map((f) => <option key={f} value={f}>{quoteFilterLabel(f, isHebrew)}</option>)}
-                </select>
-              </div>
-              <div>
-                <span style={{ display: 'block', fontSize: '0.75rem', fontWeight: '700', color: NEON.textSecondary, marginBottom: '4px' }}>{isHebrew ? 'מיון' : 'Sort'}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <select
-                    value={quoteSortField}
-                    onChange={(e) => handleQuoteSort(e.target.value)}
-                    style={{ flex: '1 1 auto', minWidth: 0, padding: '5px 8px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '7px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '0.75rem', fontWeight: '600' }}
-                  >
-                    {MOBILE_SORT_FIELDS.map((f) => (
-                      <option key={f.value} value={f.value}>{isHebrew ? f.he : f.en}</option>
-                    ))}
-                  </select>
-                  {/* PRODUCT_TRUTH_DECORATIVE: toggles ascending/descending sort direction for the current mobile sort field */}
-                  <button
-                    type="button"
-                    onClick={() => handleQuoteSort(quoteSortField)}
-                    title={isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction'}
-                    aria-label={isHebrew ? 'החלפת כיוון המיון' : 'Toggle sort direction'}
-                    style={{ flexShrink: 0, background: NEON.gradient, color: 'white', border: 'none', width: '44px', height: '44px', borderRadius: '7px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '700', boxShadow: NEON.glowSoft }} /* Owner 2026-11-11 (finding 25): 44px */
-                  >
-                    {quoteSortDirection === 'asc' ? '▲' : '▼'}
-                  </button>
-                </div>
-              </div>
-              {/* PRODUCT_TRUTH_DECORATIVE: closes the mobile filters/sort panel */}
-              <button
-                type="button"
-                onClick={() => setShowMobileFilters(false)}
-                style={{ alignSelf: isHebrew ? 'flex-start' : 'flex-end', display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: NEON.textSecondary, fontSize: '0.75rem', fontWeight: '700', cursor: 'pointer', padding: '2px 4px' }}
-              >
-                <X size={12} strokeWidth={2.5} />
-                {isHebrew ? 'סגירה' : 'Close'}
-              </button>
+      {/* the sketch: one search line on every width - the search field and one "סינון ומיון" button that opens a window (status, sort, direction) */}
+      <div className="qlist-search" dir={tableDir}>
+        <label className="qlist-srch">
+          <Search size={16} strokeWidth={2} aria-hidden="true" />
+          <input
+            type="text"
+            placeholder={isHebrew ? 'חיפוש לפי שם לקוח או מספר הצעה…' : 'Search client or quote #...'}
+            aria-label={t.searchQuote}
+            title={t.searchQuote}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </label>
+        {/* PRODUCT_TRUTH_DECORATIVE: opens the filter and sort window of the list (the same status filter and sort as before) */}
+        <button type="button" className="qlist-filter-btn" data-testid="quote-filter-open" data-active={statusFilter !== 'All' ? 'true' : undefined}
+          onClick={() => setShowMobileFilters(true)} aria-haspopup="dialog" aria-expanded={showMobileFilters} aria-label={isHebrew ? 'סינון ומיון' : 'Filter and sort'}>
+          <Filter size={16} strokeWidth={2} aria-hidden="true" />
+          <span>{isHebrew ? 'סינון ומיון' : 'Filters'}</span>
+        </button>
+      </div>
+      {showMobileFilters && typeof document !== 'undefined' && createPortal(
+        <div className="qlist-ov" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setShowMobileFilters(false); }}>
+          <div className="qlist-dlg" role="dialog" aria-modal="true" aria-label={isHebrew ? 'סינון ומיון' : 'Filter and sort'} data-testid="quote-filter-sheet" dir={tableDir}
+            onKeyDown={(e) => { if (e.key === 'Escape') setShowMobileFilters(false); }}>
+            <h3>{isHebrew ? 'סינון ומיון' : 'Filter and sort'}</h3>
+            {/* Owner 2026-10-18 #5 (L-23): every width offers the same shown-status options (R-07); the sketch adds the two "sent" states */}
+            <div className="qlist-chips" role="group" aria-label={t.filterStatus} data-testid="quote-filter-status">
+              {['All', ...QUOTE_FILTER_OPTIONS.slice(0, 3), 'sent_not_viewed', 'sent_viewed', 'hot', 'approved', 'paid', 'expired'].filter((f) => f === 'All' || QUOTE_FILTER_OPTIONS.includes(f) || f.startsWith('sent_')).map((f) => (
+                // PRODUCT_TRUTH_DECORATIVE: shows only the quotes of this status (or all of them)
+                <button key={f} type="button" aria-pressed={statusFilter === f} data-filter={f} onClick={() => setStatusFilter(f)}>
+                  {f === 'All' ? (isHebrew ? 'כל המצבים' : 'All statuses') : quoteFilterLabel(f, isHebrew)}
+                </button>
+              ))}
             </div>
-          )}
-        </div>
+            <div className="qlist-dlg-l">{isHebrew ? 'מיון לפי' : 'Sort by'}</div>
+            <div className="qlist-chips" role="group" aria-label={isHebrew ? 'מיון לפי' : 'Sort by'} data-testid="quote-sort-field">
+              {SORT_CHIPS.map((f) => (
+                // PRODUCT_TRUTH_DECORATIVE: sorts the list by this field (the same sort as the column titles)
+                <button key={f.value} type="button" aria-pressed={activeSortKey === normalizeSortField(f.value)} data-sort-field={f.value}
+                  onClick={() => setQuoteSort(f.value, quoteSortDirection)}>{isHebrew ? f.he : f.en}</button>
+              ))}
+            </div>
+            <div className="qlist-chips" role="group" aria-label={isHebrew ? 'כיוון המיון' : 'Sort direction'} data-testid="quote-sort-direction">
+              {['desc', 'asc'].map((dir) => (
+                // PRODUCT_TRUTH_DECORATIVE: the direction of the sort
+                <button key={dir} type="button" aria-pressed={quoteSortDirection === dir} data-sort-dir={dir} onClick={() => setQuoteSort(quoteSortField, dir)}>{sortDirLabel(dir)}</button>
+              ))}
+            </div>
+            <div className="qlist-dlg-acts">
+              {/* PRODUCT_TRUTH_DECORATIVE: closes the filter and sort window (the choices stay) */}
+              <button type="button" className="qlist-btn-p" data-testid="quote-filter-close" onClick={() => setShowMobileFilters(false)}>{isHebrew ? 'הצגה' : 'Show'}</button>
+            </div>
+          </div>
+        </div>,
+        document.body,
       )}
 
       {!useCards && (
@@ -1317,7 +1152,8 @@ export default function QuotesTab({
               <div key={quote.id} className={`quote-modern-item${isHot ? ' is-hot' : ''}`} data-hot-quote={isHot ? 'true' : undefined}>
                 {/* Owner R3: one value per column, each directly under its own header. Client and title are separate
                     cells; status and views are separate cells; the view count appears only in the Views column. */}
-                <div className="quote-modern-row">
+                {/* PRODUCT_TRUTH_DECORATIVE: a click on the row opens / closes its details (the sketch); the toggle button inside does the same for the keyboard */}
+                <div className="quote-modern-row" onClick={(e) => { if (!e.target.closest('button')) toggleExpanded(quote.id); }}>
                   {/* Owner R5: the dropdown trigger is the row's outermost control at its structural leading edge (right in HE,
                       left in EN), outside the quote-number content. It is positioned in the row's leading padding, so it takes
                       no grid track (no Action column) and never shifts the quote number. It opens the dropdown that owns every
@@ -1342,7 +1178,7 @@ export default function QuotesTab({
                   </span>
                   {/* Owner console 19/11 typed (IRON-QH-LAYOUT-001 change): "שינוי בחוק הפריסה של רשימת ההצעות: שם הלקוח וכותרת ההצעה בטבלה במחשב מסתיימים בשלוש נקודות ומוצגים במלואם בריחוף, והעמודות הקבועות צרות לפי התוכן שלהן" */}
                   <EllipsisText className="quote-modern-title" text={subject} />
-                  <span className="quote-modern-status" data-status={row.badge.role} data-tone={tone} title={statusLabel}>{statusLabel}</span>
+                  <span className="quote-modern-status qlist-st" data-status={row.badge.role} data-status-key={row.displayKey} data-tone={tone} title={statusLabel}>{statusLabel}</span>
                   <span className="quote-modern-views pf-num" dir="ltr" title={`${Number(quote.view_count || 0)} ${isHebrew ? 'צפיות' : 'views'}`}>
                     {Number(quote.view_count || 0)}
                   </span>
@@ -1373,9 +1209,9 @@ export default function QuotesTab({
             );
           })}
           </div>
-          {pager}
         </div>
       )}
+      {!useCards && pager}
 
       {/* ============ DESKTOP: sharp light table ============ */}
       {/* חוק ברזל (Critical Signature Forensic Audit + Final Canonical Width
@@ -1670,18 +1506,11 @@ export default function QuotesTab({
           בשתי השפות ללא תנאי isHebrew נוסף כלשהו, כמו בכל שאר הקובץ. */}
       {useCards && (
       <>
-      {/* חוק ברזל (Authenticated UI Coherence task, Mobile Lists and
-          Controls): פקד-המיון הנפרד שהיה כאן (select+כפתור-כיוון, שורה
-          עצמאית מעל רשימת הכרטיסים) אוחד לתוך ה-"Filters" sheet הקומפקטי
-          החדש למעלה (ר' showMobileFilters) - אותם handleQuoteSort/
-          quoteSortField/quoteSortDirection בדיוק, רק המיקום החזותי השתנה.
-          יכולת-המיון עצמה (הרגרסיה שהמשימה הקודמת תיקנה) עדיין קיימת
-          במלואה, לא נסוגה. */}
-      {/* Responsive scroll contract: the card list is the screen's inner scroll body (same
-          .pf-screen-body owner as the desktop table) - title/search/filters above never scroll. */}
-      <div ref={cardListRef} className="pf-screen-body" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      {/* the sketch's cards: line 1 the client name and the amount (on the one amount axis), line 2 the number, the date, the views and the
+          status at the end; a tap opens the card (the same panel as the table). The card list is the screen's inner scroll body. */}
+      <div ref={cardListRef} className="pf-screen-body qcards" style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {rowsMeta.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '25px', color: NEON.textMuted, fontSize: '0.85rem' }}>
+          <div className="qlist-empty">
             {emptyListContent}
           </div>
         ) : (
@@ -1689,89 +1518,52 @@ export default function QuotesTab({
             const { quote, quoteSym, chip, statusLabel, isHot } = row;
             const isExpanded = expandedQuoteId === quote.id;
             const detailId = `quote-detail-mobile-${quote.id}`;
-            // חוק ברזל (Authenticated App Consolidation task, §6 Mobile
-            // Quote History): הכרטיס עצמו מתמצה עכשיו לחמשת השדות
-            // ה"PRIMARY" שהמשימה מפרטת - זהה בדיוק לרשימת הדסקטופ (Client
-            // Name/Order#/Amount/Status/Date) - Client Type/Views/Email/
-            // Description/Actions עברו ל-renderDetailPanel המשותף (אותה
-            // "פילוסופיית אינטראקציה" כמו הדסקטופ, לפי דרישת המשימה, גם אם
-            // ה-layout שונה: card מלא-לחיצה כאן, כפתור-חץ נקודתי בדסקטופ).
-            // ה-<button> העוטף את כל הכרטיס נותן מטרת-מגע גדולה+טבעית,
-            // ומקבל aria-expanded/aria-controls + הפעלת-מקלדת חינם (כפתור
-            // אמיתי, לא div עם onClick).
+            const clientName = quote.clients?.company_name || 'N/A';
             return (
-            <div key={quote.id} className="quote-card" data-hot-quote={isHot ? 'true' : undefined} style={{ background: isHot ? APP_STATUS.warning.bg : NEON.bgCard, border: `1px solid ${isHot ? APP_STATUS.warning.border : NEON.border}`, borderInlineStart: isHot ? `3px solid ${NEON.amber}` : undefined, borderRadius: RADIUS.sm, overflow: 'hidden' }} dir={tableDir}>
-              {/* OWNER CORRECTION (RTL/LTR Sidebar Position + Quote-Row Expand
-                  Control task): the chevron moved from the end of the card's
-                  own content to a dedicated leading element, first in DOM,
-                  before the primary Name/Amount/Order/Date/Status content -
-                  matching the desktop table's own corrected expand-control
-                  placement (now the first column) and the same "chevron at
-                  the beginning of the language's reading direction" rule.
-                  The button itself is now a flex row instead of a block, so
-                  under dir={tableDir} the chevron (first DOM child) lands at
-                  the card's true inline-start: physically RIGHT for Hebrew,
-                  physically LEFT for English. */}
-              {/* PRODUCT_TRUTH_DECORATIVE: expands/collapses a mobile quote card's detail panel */}
+            <div key={quote.id} className={`quote-card qc${isExpanded ? ' is-open' : ''}${isHot ? ' is-hot' : ''}`} data-hot-quote={isHot ? 'true' : undefined} dir={tableDir}>
+              {/* PRODUCT_TRUTH_DECORATIVE: expands/collapses a quote card's detail panel */}
               <button
                 type="button"
+                className="qc-top"
+                style={{ padding: '9px var(--pf-mobile-surface-pad, 10px)' }}
                 onClick={() => toggleExpanded(quote.id)}
                 aria-expanded={isExpanded}
                 aria-controls={detailId}
-                aria-label={isHebrew ? 'הצגת פרטים נוספים' : 'Show more details'}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', width: '100%', boxSizing: 'border-box', background: 'none', border: 'none', padding: '9px var(--pf-mobile-surface-pad, 10px)', cursor: 'pointer', textAlign: isHebrew ? 'right' : 'left', fontFamily: 'inherit' }}
+                aria-label={`${clientName}, ${isHebrew ? 'הצגת פרטים נוספים' : 'Show more details'}`}
               >
-                <ChevronDown data-qh="action" size={19} strokeWidth={2.8} color="#0F6672" style={{ flexShrink: 0, marginTop: '1px', transform: isExpanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }} />
-                <div style={{ flex: '1 1 auto', minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
-                    {/* Owner console 2026-11-19 (L-19 change, typed: "מאשר שלוש נקודות עם ריחוף במחשב ובועה בנגיעה בנייד בכל המקומות כמו
-                        בתמונות, ... כולל שינוי ב-L-17 ו-L-19"): one line as before, a long name ends with "…"; a tap on it shows the whole
-                        name in a small bubble without opening the card */}
-                    <EllipsisText
-                      className="pf-font-variable"
-                      style={{ fontFamily: "'Rubik Variable', 'Rubik', sans-serif", fontWeight: '500', color: NEON.textPrimary, fontSize: '0.8125rem', flex: '1 1 auto' }}
-                      text={quote.clients?.company_name || 'N/A'}
-                      data-qh="client"
-                    />
-                    {/* Iron Numeric Typography: the amount lives in the protected
-                        physical-axis slot (.pf-money-slot: fixed inline size,
-                        LTR, right-aligned) so ones/tens/decimal positions share
-                        one x axis on every card in HE/RTL and EN/LTR. */}
-                    <MoneyValue
-                      slot
-                      symbol={quoteSym}
-                      text={formatMoneyDisplay(quote.total, quote.currency)}
-                      data-testid="quote-card-amount"
-                      data-qh="amount"
-                      style={{ fontWeight: '500', color: NEON.textPrimary, fontSize: '0.875rem' }}
-                      title={isLocalIsraeliBusiness ? `${isHebrew ? 'לפני מע״מ' : 'Before VAT'}: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
-                    />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)', alignItems: 'center', gap: '8px', marginTop: '5px' }}>
-                    {/* Card meta line + status chip keep the 12px text floor on the base c65f742 line boxes (meta 16.8px, chip 15.6px
-                        + 2px padding = 19.6px): the card stays 65.4px tall like base, so phones/768/820 show base's visible card count.
-                        Owner console 2026-10-16: the view count (eye + number only) sits in the middle of this line. */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0, overflow: 'hidden', fontSize: '0.75rem', lineHeight: '16.8px', color: NEON.textMuted }}>
-                      <span data-qh="number" dir="ltr" style={{ fontWeight: '600', color: NEON.textPrimary, unicodeBidi: 'isolate', fontVariantNumeric: 'tabular-nums', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                        {/* PRODUCT_TRUTH_DECORATIVE: the quote number opens the quote (the row's own edit / view / tracking action) */}
-                        <button type="button" data-testid="quote-number-open" onClick={(e) => { e.stopPropagation(); openFromNumber(row); }}
-                      aria-label={`${isHebrew ? 'פתיחת הצעה' : 'Open quote'} ${displayQuoteNumber(quote)}`} style={QUOTE_NUMBER_LINK}>{displayQuoteNumber(quote)}</button>
-                      </span>
-                      <span aria-hidden="true" style={{ flexShrink: 0 }}>·</span>
-                      <span data-qh="date" style={{ direction: 'ltr', whiteSpace: 'nowrap', flexShrink: 0 }}>{formatShortDate(quote.created_at, dateMarket)}</span>
-                    </div>
-                    <span data-qh="views" role="img" aria-label={viewsLabel(quote.view_count)} title={viewsLabel(quote.view_count)} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '0.75rem', lineHeight: '16.8px', color: NEON.textMuted, whiteSpace: 'nowrap' }}>
-                      <Eye size={13} color={NEON.textMuted} strokeWidth={2} aria-hidden="true" />
+                {/* Owner console 2026-11-19 (L-19): one line, a long name ends with "…"; a tap on it shows the whole name in a small bubble */}
+                <EllipsisText className="qc-nm" text={clientName} data-qh="client" />
+                {/* Iron Numeric Typography: the amount lives in the protected physical-axis slot (one x axis on every card, HE and EN) */}
+                <MoneyValue
+                  slot
+                  className="qc-amt"
+                  symbol={quoteSym}
+                  text={formatMoneyDisplay(quote.total, quote.currency)}
+                  data-testid="quote-card-amount"
+                  data-qh="amount"
+                  title={isLocalIsraeliBusiness ? `${isHebrew ? 'לפני מע״מ' : 'Before VAT'}: ${quoteSym}${formatMoneyDisplay(row.beforeVatAmount, quote.currency)}` : undefined}
+                />
+                <span className="qc-r2">
+                  <span className="qc-ln2">
+                    <span data-qh="number" dir="ltr" className="qc-num">
+                      {/* PRODUCT_TRUTH_DECORATIVE: the quote number opens the quote (the row's own edit / view / tracking action) */}
+                      <button type="button" data-testid="quote-number-open" onClick={(e) => { e.stopPropagation(); openFromNumber(row); }}
+                        aria-label={`${isHebrew ? 'פתיחת הצעה' : 'Open quote'} ${displayQuoteNumber(quote)}`} style={QUOTE_NUMBER_LINK}>{displayQuoteNumber(quote)}</button>
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span data-qh="date" className="pf-num" dir="ltr">{formatShortDate(quote.created_at, dateMarket)}</span>
+                    <span data-qh="views" role="img" aria-label={viewsLabel(quote.view_count)} title={viewsLabel(quote.view_count)} className="qc-views">
+                      <Eye size={13} strokeWidth={2} aria-hidden="true" />
                       <bdi className="pf-num" dir="ltr">{Number(quote.view_count || 0)}</bdi>
                     </span>
-                    <span data-qh="status" data-status={chip.role} className="pf-status-chip" style={{ justifySelf: 'end', background: chip.bg, color: chip.color, boxShadow: `inset 0 0 0 1px ${chip.border}`, padding: '2px 7px', borderRadius: '999px', fontSize: '0.75rem', lineHeight: '15.6px', fontWeight: '700', whiteSpace: 'nowrap', flexShrink: 0 }}>
-                      {statusLabel}
-                    </span>
-                  </div>
-                </div>
+                  </span>
+                  <span data-qh="status" data-status={chip.role} data-status-key={row.displayKey} className="qlist-st">
+                    {statusLabel}
+                  </span>
+                </span>
               </button>
               {isExpanded && (
-                <div id={detailId} style={{ padding: '2px var(--pf-mobile-surface-pad, 10px) 12px', borderTop: `1px solid ${NEON.border}` }}>
+                <div id={detailId} className="qc-panel">
                   {renderDetailPanel(row, detailId)}
                 </div>
               )}
@@ -1783,6 +1575,10 @@ export default function QuotesTab({
       {pager}
       </>
       )}
+      <div className="qs-a11y">
+        {/* PRODUCT_TRUTH_DECORATIVE: opens the accessibility statement - the same window as the footer's own button (the sketch's quiet link) */}
+        <button type="button" onClick={() => document.querySelector('.dash-footer button')?.click()}>{isHebrew ? 'הצהרת נגישות' : 'Accessibility Statement'}</button>
+      </div>
     </div>
   );
 }

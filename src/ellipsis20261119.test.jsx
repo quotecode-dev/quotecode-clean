@@ -38,7 +38,7 @@ describe('one shared "…" + bubble in every place that used to move (19/11)', (
   it('the templates window, the leads and the quote editor use it', () => {
     expect(read('components/QuoteTemplateDialogs.jsx')).toContain('<EllipsisText className="tk-tpl-group-name" text={g.name || C.wholeTemplate} />');
     expect(read('components/leads/LeadsView.jsx')).toContain('<EllipsisText className={`ld-slide ${className}`} dir={dir} text={text} />');
-    expect(read('components/quoteTree/QuoteTreeEditor.jsx')).toContain('<EllipsisText plain className="qt-row-name-box" text={it.description} />');
+    expect(read('components/quoteTree/QuoteTreeEditor.jsx')).toContain('<EllipsisText className="qt-row-name-box" text={details ? `${it.description} · ${details}` : it.description} />');
   });
   it('the bubble is the system\'s small dark bubble (the feature-lock tooltip look)', () => {
     const css = read('index.css');
@@ -107,13 +107,12 @@ describe('the hot banner phone line: "…" and a tap on the line opens the whole
 
 // Owner console 2026-11-19, answer א: "שם המקום בכפתור יורד לשורה נוספת ונראה במלואו, כמו כותרת המקום שמעליו"
 describe('"+ add a heading inside": a long place name wraps inside the button (19/11, answer א)', () => {
-  it('the name may wrap, the button never runs past its row, the last word stays with the one before it', () => {
+  // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-14 / L-29 ... only as needed): "add a section inside" is an item of the section's "⋯" menu - a short fixed label, no place name in it (nothing to wrap)
+  it('the menu item says "הוספת חלק בתוך" / "Add a section inside" without the name', () => {
     const tree = read('components/quoteTree/QuoteTreeEditor.jsx');
-    expect(tree).toContain(`{t.addInsidePre}<bdi className="qt-add-inside-name">{String(s.name || '').replace(/ (\\S+)$/, '\\u00A0$1')}</bdi>`);
-    const css = read('components/quoteTree/quoteTree.css');
-    expect(css).toContain('.qt-actions [data-testid="qt-add-inside"] { max-inline-size: 100%; min-inline-size: 0; }');
-    expect(css).toContain('.qt-actions .qt-add-inside-name { white-space: normal; overflow-wrap: anywhere; }');
-    expect('דירה 32'.replace(/ (\S+)$/, '\u00A0$1')).toBe('דירה\u00A032');
+    expect(tree).toContain("hInside: 'הוספת חלק בתוך'");
+    expect(tree).toContain("hInside: 'Add a section inside'");
+    expect(tree).toContain("{ label: t.hInside, icon: <SketchIcon name=\"plusCircle\" size={16} />, testId: 'qt-add-inside',");
   });
 });
 

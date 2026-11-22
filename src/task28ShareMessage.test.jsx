@@ -126,9 +126,11 @@ describe('the copy message action in the rendered row (synthetic)', () => {
       activeTooltip={{ quoteId: null, action: null }} formatMoneyDisplay={(v) => Number(v).toFixed(2)} />);
     const buttons = screen.queryAllByTestId('quote-copy-message');
     if (!buttons.length) { // the actions live in the row's expandable panel
-      const toggle = document.querySelector('[aria-expanded="false"]');
+      const toggle = screen.getAllByLabelText(/הצגת פרטים נוספים|Show more details/)[0]; // the row's own opener (the filter button is aria-expanded too)
       if (toggle) fireEvent.click(toggle);
     }
+    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-14 / L-29 ... only as needed): "העתקה" is in the open row's "שליחה ▾" menu (WhatsApp / e-mail / copy)
+    if (!screen.queryAllByTestId('quote-copy-message').length) fireEvent.click(screen.getAllByTestId('quote-send-open')[0]);
     const btn = screen.getAllByTestId('quote-copy-message')[0];
     // Owner console 2026-11-05 (typed, L-07 / L-29): shortened to "העתקה" so all row chips (incl. Delete) fit on one row on desktop
     expect(btn.textContent).toBe('העתקה');

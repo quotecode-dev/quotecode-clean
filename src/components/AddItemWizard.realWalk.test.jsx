@@ -168,7 +168,8 @@ describe('finding 5: the small things', () => {
 
 // 2026-11-13 (the 13/11 demo): the names are typed in the add window itself - its first name field takes the cursor
 describe('finding 5: a new unit opens with the cursor in its name', () => {
-  it('the add window focuses the first name of the new headings', async () => {
+  // Owner console 2026-11-20/21 (the simple-quotes sketch): the names step opens with no field focused (the sketch's names step)
+  it('the names step of the add window opens with no name focused, each name with the example placeholder', async () => {
     let sections = [];
     const noop = () => {};
     const t = { clientEmail: 'Client email', clientName: 'Client name', clientPhone: 'Client phone', currency: 'Currency', description: 'Description', discount: 'Discount', generateSave: 'Generate & Save', quantity: 'Quantity', quoteItems: 'Quote Items', status: 'Status', subtotal: 'Subtotal', totalAmount: 'Total', totalPrice: 'Total price', unitPrice: 'Unit price', updateQuote: 'Update Quote', validUntil: 'Valid until', vat: 'VAT' };
@@ -185,14 +186,17 @@ describe('finding 5: a new unit opens with the cursor in its name', () => {
       toggleMeasurementPricingDriving: noop, addSpecificationRow: noop, handleSpecificationChange: noop, removeSpecificationRow: noop, onOpenPricingModal: noop,
       quoteFiles: [], setQuoteFiles: noop, allUserAttachments: [] });
     render(<QuoteForm {...make()} />);
+    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-14 / L-29 ... only as needed): the structure is chosen in the "Structure:" menu
+    fireEvent.click(screen.getByTestId('qt-structure'));
     fireEvent.click(screen.getByTestId('qt-structure-grouped'));
     fireEvent.click(screen.getByTestId('qt-add-first'));
     fireEvent.click(screen.getByTestId('qt-kind-apartment'));
     fireEvent.change(screen.getByTestId('qt-count'), { target: { value: '2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
-    await waitFor(() => expect(document.activeElement).toBe(screen.getByTestId('qt-name-0')));
+    await waitFor(() => expect(screen.getByTestId('qt-name-0')).toBeTruthy());
+    expect(document.activeElement).not.toBe(screen.getByTestId('qt-name-0'));
     // 2026-11-13 (the demo's names step): the example placeholder; an empty name still becomes a name in order
-    expect(document.activeElement.getAttribute('placeholder')).toBe('e.g. Apartment 33');
+    expect(screen.getByTestId('qt-name-0').getAttribute('placeholder')).toBe('e.g. Apartment 33');
   });
 });
 
