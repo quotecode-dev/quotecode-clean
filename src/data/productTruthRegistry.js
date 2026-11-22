@@ -166,8 +166,8 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['quote_editor'], operationType: 'mutate', aiMayNavigate: true, safeNavigationId: 'open_ai_quote', deterministicFactKeys: [], canonicalSources: ['src/components/QuoteForm.jsx', 'src/components/AiQuoteDraftDialog.jsx', 'src/components/QuoteFromFileDialog.jsx'] }), // Owner 2026-10-24 (typed L-14/L-17): the answer offers the button that opens it; Task 21: the AI-draft dialog of the AI smart-quote entry; night task 2026-10-16 (R-29): described as the menu offers it (ai-quote-draft was published with the new interface)
 
   capability('measured_quote', 'הצעת מחיר מקצועית/מדודה', 'Measured professional quote',
-    'מידות בהצעה (בעורך ההצעה, בטופס „מוסיפים עבודה או מוצר” ובשורות): לכל שורה בוחרים „חישוב” - ליחידה, למ״ר, למטר, לשעה, ליום עבודה, לק״ג או מחיר גלובלי. בשטח ובאורך כותבים כמות, או פותחים „מידות ופירוט נוסף” וכותבים אורך ורוחב (ואפשר „+ מידה נוספת”), והסכום מחושב מיד. בעריכת שורה המידות נכתבות במטר או בס״מ; בחשבון בינלאומי ברגל או באינץ׳, ומטר נשאר זמין - ואז המחיר לרגל רבועה / לרגל אורך, בלי המרה בין מטרים לרגל. אפשר לחלק את ההצעה (ב„מבנה:” - ״מחולקת לחלקים״ או ״חלקים בתוך חלקים״): כל דירה, קומה, חדר או נושא היא כותרת עם העבודות שלה, ואפשר כותרת בתוך כותרת - חדר בתוך דירה, דירה בתוך קומה - לא חובה.',
-    'Sizes in a quote (in the quote editor, in the "Add work or a product" form and in the rows): every row chooses its "Pricing" - per unit, per area, per length, per hour, per work day, per kg or a global price. For area and length type the quantity, or open "Sizes and details" and type the length and width ("+ Another size" adds one), and the total is calculated at once. When a row is edited the sizes are typed in m or cm; an international account measures in feet or inches, metres stay available, and prices per sq ft / linear ft - metres and feet are never converted into each other. The quote can be divided (in "Structure:" - "In sections" or "Sections within sections"): every apartment, floor, room or topic is a heading with its own work, and a heading can sit inside a heading - a room inside an apartment, an apartment inside a floor - optional.',
+    'מידות בהצעה (בעורך ההצעה, בטופס „מוסיפים עבודה או מוצר” ובשורות): לכל שורה בוחרים „חישוב” - ליחידה, למ״ר, למטר, לשעה, ליום עבודה, לק״ג או מחיר גלובלי. בשטח ובאורך כותבים כמות, או פותחים „מידות ופירוט נוסף” וכותבים אורך ורוחב (ואפשר „+ מידה נוספת”), והסכום מחושב מיד. בעריכת שורה המידות נכתבות במטר או בס״מ; בחשבון בינלאומי ברגל או באינץ׳, ומטר נשאר זמין - ואז המחיר לרגל רבועה / לרגל אורך, בלי המרה בין מטרים לרגל. אפשר לחלק את ההצעה (״לפי דירות״ או ״קומות, דירות וחדרים״): כל דירה, קומה, חדר או נושא היא כותרת עם העבודות שלה, ואפשר כותרת בתוך כותרת - חדר בתוך דירה, דירה בתוך קומה - לא חובה.',
+    'Sizes in a quote (in the quote editor, in the "Add work or a product" form and in the rows): every row chooses its "Pricing" - per unit, per area, per length, per hour, per work day, per kg or a global price. For area and length type the quantity, or open "Sizes and details" and type the length and width ("+ Another size" adds one), and the total is calculated at once. When a row is edited the sizes are typed in m or cm; an international account measures in feet or inches, metres stay available, and prices per sq ft / linear ft - metres and feet are never converted into each other. The quote can be divided ("By apartments" or "Floors, apartments, rooms"): every apartment, floor, room or topic is a heading with its own work, and a heading can sit inside a heading - a room inside an apartment, an apartment inside a floor - optional.',
     { surfaces: ['quote_editor'], operationType: 'mutate', subscriptionCapabilityId: 'professional_quote.use', canonicalSources: ['src/components/QuoteForm.jsx'] }),
 
   capability('professional_reuse', 'שימוש חוזר מקצועי בפריטים', 'Advanced professional item reuse',
@@ -206,12 +206,12 @@ export const PRODUCT_TRUTH_REGISTRY = Object.freeze([
     { surfaces: ['finances_screen'], canonicalSources: ['src/components/FinancesTab.jsx'] }),
 
   capability('editor_calculator', 'מחשבון בעורך ההצעה', 'In-editor calculator',
-    'מחשבון עם ארבע פעולות חשבון, שורש, אחוזים, שינוי סימן, זיכרון והמרת מטבע, שנפתח מסמל המחשבון בכותרת העליונה (ליד הפעמון) בכל מסך - גם בעורך ההצעה.',
-    'A calculator with arithmetic, square root, percent, sign change, memory, and currency conversion, opened from the calculator icon in the top header (next to the bell) on every screen - the quote editor too.',
+    'מחשבון עם ארבע פעולות חשבון, שורש, אחוזים, שינוי סימן, זיכרון והמרת מטבע, פתוח מתוך עורך ההצעה.',
+    'A calculator with arithmetic, square root, percent, sign change, memory, and currency conversion, opened from the quote editor.',
     {
       surfaces: ['quote_editor'], currencies: { role: 'conversion_only', values: ['USD', 'EUR', 'GBP', 'ILS'] },
       forbiddenClaimCodes: ['NO_LIVE_RATE_CLAIM_WITHOUT_TIMESTAMP', 'NO_CONVERSION_CURRENCY_AS_PAYMENT_CURRENCY'],
-      canonicalSources: ['src/components/DraggableCalculator.jsx', 'src/pages/Dashboard.jsx'],
+      canonicalSources: ['src/components/DraggableCalculator.jsx', 'src/components/QuoteForm.jsx'],
     }),
 
   capability('editor_currency_converter', 'המרת מטבע בעורך ההצעה', 'In-editor currency converter',

@@ -42,12 +42,12 @@ describe('app items', () => {
     expect(css).toContain('.qrows .qrow-line .qrow-menu-label { display: none; }');
     expect(css).toMatch(/grid-template-columns: minmax\(min\(140px, 20%\), 2fr\) minmax\(112px, 1fr\)/);
     const howTo = src('./data/productHowTo.js');
-    // Owner console 2026-11-20/21 (the simple-quotes sketch, typed L-09 / L-14): the rows and the sections have the sketch's three dots on
-    // every width - the chat says where they are
-    expect(howTo).toContain('ושלוש הנקודות שלה פותחות עריכה, שכפול, הזזה למעלה או למטה והסרה');
-    expect(howTo).toContain('and its three dots hold edit, duplicate, move up or down and remove');
-    expect(howTo).toContain('שלוש הנקודות של חלק פותחות:');
-    expect(howTo).toContain("A section's three dots hold:");
+    expect(howTo).toContain('בכפתור "פעולות לשורה" של השורה (בטלפון: שלוש הנקודות של השורה)');
+    expect(howTo).toContain('in the "Row actions" button of the row (on a phone: the three dots of the row)');
+    // 2026-11-12 (unified quote): the button is named by the chosen word (apartment / room / floor) - the chat says where it is
+    // 2026-11-13 (the demo's options page): the heading button is the "⋯" of the heading - the chat says where it is
+    expect(howTo.split('כפתור \\"⋯\\"').length - 1).toBeGreaterThanOrEqual(2);
+    expect(howTo.split('\\"⋯\\" button').length - 1).toBeGreaterThanOrEqual(2);
   });
   it('the 13 items (Owner console 2026-11-10, L-02 / L-09 / L-24 / L-27 / L-28): Hebrew and English show the same, clear things', () => {
     const doc = src('./quoteDocument/quoteDocument.css');
@@ -69,9 +69,7 @@ describe('app items', () => {
     expect(src('./components/landing/landing.css')).toContain('.tl-tools-copy > .tl-capability-icon { flex-shrink: 0; }');
     const qf = src('./components/QuoteForm.jsx');
     expect(qf).toContain('<form id="pf-editor-form" className="pf-screen-body pf-editor-form"'); // 10
-    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-02 / L-03 / L-04 / L-07 / L-09 / L-11 / L-14 / L-15 / L-19 / L-23 / L-25 / L-26 / L-27 / L-29 only as needed): the calculator is a header icon - the editor keeps no room for a floating button; its bar stands at the bottom
-    expect(src('./index.css')).not.toContain('.pf-editor-form { padding-bottom: 64px; }');
-    expect(src('./components/quoteTree/quoteTree.css')).toContain('.qe .pf-editor-form > .sq-g-bar { margin-top: auto; }');
+    expect(src('./index.css')).toContain('.pf-editor-form { padding-bottom: 64px; }');
     const land = src('./components/landing/landing.css'); // 11
     expect(land).toContain('@media (min-width: 768px) { .tl-tools { flex-wrap: nowrap; } .tl-tools > .tl-ghost { flex-shrink: 0; } }');
     expect(land).toContain('@media (max-width: 480px) { .tl-tools > .tl-ghost { font-size: 14px; padding-left: 12px; padding-right: 12px; } }');
@@ -91,10 +89,10 @@ describe('app items', () => {
     const qf = src('./components/quoteTree/QuoteTreeEditor.jsx');
     expect(qf).toContain('סכום ל{W}:');
     expect(qf).toContain('Per {w}:');
-    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-02 / L-03 / L-04 / L-07 / L-09 / L-11 / L-14 / L-15 / L-19 / L-23 / L-25 / L-26 / L-27 / L-29 only as needed): the section's "⋯" names itself for the section
-    expect(qf).toContain("hActs: (n) => `פעולות ל${n}`");
-    expect(qf).toContain('hActs: (n) => `Actions for ${n}`');
-    expect(qf).toContain('aria-label={t.hActs(name)}');
+    expect(qf).toContain("hMenu: (n) => `פעולות ל${n}`");
+    expect(qf).toContain('hMenu: (n) => `Actions for ${n}`');
+    // 2026-11-13 (the demo's options page): the heading button still names itself
+    expect(qf).toContain('aria-label={t.hMenu(');
   });
   it('finding 3: the editor locks the appearance only with the quote; the open customer page notices an appearance change', () => {
     expect(src('./components/quotePresentation/useQuotePresentationEditor.js')).toContain('const readOnly = !!server.locked;');

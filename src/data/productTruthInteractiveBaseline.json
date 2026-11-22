@@ -356,8 +356,8 @@
     "markers": 7
   },
   "src/components/QuoteForm.jsx": {
-    "interactive": 26,
-    "markers": 28
+    "interactive": 21,
+    "markers": 23
   },
   "src/components/QuoteFromFileDialog.jsx": {
     "interactive": 5,
@@ -372,16 +372,16 @@
     "markers": 19
   },
   "src/components/QuoteSavedScreen.jsx": {
-    "interactive": 5,
-    "markers": 5
+    "interactive": 4,
+    "markers": 4
   },
   "src/components/QuoteTemplateDialogs.jsx": {
     "interactive": 11,
     "markers": 12
   },
   "src/components/QuotesTab.jsx": {
-    "interactive": 28,
-    "markers": 43
+    "interactive": 33,
+    "markers": 36
   },
   "src/components/RemindersFirstSetupNotice.jsx": {
     "interactive": 1,
@@ -415,14 +415,6 @@
     "interactive": 2,
     "markers": 2
   },
-  "src/components/SketchChartIcon.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/SketchIcons.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
   "src/components/SmartPackAddOnOffer.jsx": {
     "interactive": 2,
     "markers": 3
@@ -444,10 +436,6 @@
     "markers": 20
   },
   "src/components/TekangoAiIcon.jsx": {
-    "interactive": 0,
-    "markers": 0
-  },
-  "src/components/TekangoBotIcon.jsx": {
     "interactive": 0,
     "markers": 0
   },
@@ -620,8 +608,8 @@
     "markers": 0
   },
   "src/components/quoteTree/QuoteTreeEditor.jsx": {
-    "interactive": 34,
-    "markers": 35
+    "interactive": 40,
+    "markers": 41
   },
   "src/components/quoteTree/treeModel.js": {
     "interactive": 0,
@@ -792,8 +780,8 @@
     "markers": 3
   },
   "src/pages/Dashboard.jsx": {
-    "interactive": 20,
-    "markers": 29
+    "interactive": 19,
+    "markers": 28
   },
   "src/pages/LandingGlobal.jsx": {
     "interactive": 1,

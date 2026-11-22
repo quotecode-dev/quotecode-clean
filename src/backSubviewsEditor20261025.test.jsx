@@ -48,8 +48,7 @@ describe('the wiring', () => {
   it('the editor: a Back that keeps the draft, next to the unchanged Cancel', () => {
     const q = src('src/components/QuoteForm.jsx');
     // 2026-11-12 (unified quote): on the work screen of a NEW quote the same Back goes one step back, to the client step
-    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-02 / L-03 / L-04 / L-07 / L-09 / L-11 / L-14 / L-15 / L-19 / L-23 / L-25 / L-26 / L-27 / L-29 only as needed): the editor bar's arrow keeps the same Back; "ביטול וחזרה לרשימה" is the last item of its "⋯" menu
-    expect(q).toContain(`<button type="button" className="qt-ib qe-back" onClick={flowStep === 'editor' && !editingQuoteId && typeof onFlowStep === 'function' ? () => { if (leaveOk()) onFlowStep('client'); } : onBack} data-testid="editor-back"`);
+    expect(q).toContain(`<button type="button" onClick={flowStep === 'editor' && !editingQuoteId && typeof onFlowStep === 'function' ? () => onFlowStep('client') : onBack} data-testid="editor-back"`);
     expect(q).toContain("{isHebrew ? 'ביטול וחזרה לרשימה' : 'Cancel & Return'}");
     expect(q.indexOf('data-testid="editor-back"')).toBeLessThan(q.indexOf("'ביטול וחזרה לרשימה'"));
   });

@@ -18,10 +18,9 @@ describe('L-23 the quote list, editor, catalog, finances (reverted behaviours)',
   const tab = read('components/QuotesTab.jsx');
   it('#1 the CSV export is visible on the desktop list (a compact 36px icon)', () => {
     // + L-26 ("את היצוא לאקסל למקם מימין למיון"): the first toolbar control, level with the 32px controls beside it
-    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-23 / L-26 / L-29 ... only as needed): the export stays visible on every width - a 38px icon beside the title, before "new quote" (the sketch)
-    expect(read('components/quotesList.css')).toContain('.dash-main-content .quote-workspace .qlist-top .quote-export-compact { display: grid; place-items: center; inline-size: 38px; block-size: 38px;');
+    expect(dash).toContain('.quote-export-compact { display: inline-flex; align-items: center; justify-content: center; inline-size: 32px; block-size: 32px;');
+    expect(tab.indexOf('className="quote-export-compact"')).toBeLessThan(tab.indexOf('className="quote-sort-direction"'));
     expect(tab.indexOf('<div className="quote-workspace-controls">')).toBeLessThan(tab.indexOf('className="quote-export-compact"'));
-    expect(tab.indexOf('className="quote-export-compact"')).toBeLessThan(tab.indexOf('<NewQuoteMenu'));
     expect(dash).not.toMatch(/\.quote-export-compact \{ display: none; \}/);
   });
   // #2 superseded by the Owner's own decision (2026-10-18, L-29): the list is in pages - desktop as many as fit, phone 20 a page
@@ -55,9 +54,7 @@ describe('L-23 the quote list, editor, catalog, finances (reverted behaviours)',
     expect(tab).toContain("if (q && typeof window !== 'undefined') window.open(getQuoteViewLink(q), '_blank');");
   });
   it('#5 the phone filter sheet uses the same shown-status options as the desktop', () => {
-    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-23 / L-26 / L-29 ... only as needed): ONE filter window for every width (the sketch's "סינון ומיון"), so the phone and the computer offer the same statuses
-    expect(tab).toContain("['All', ...QUOTE_FILTER_OPTIONS.slice(0, 3), 'sent_not_viewed', 'sent_viewed', 'hot', 'approved', 'paid', 'expired'].filter((f) => f === 'All' || QUOTE_FILTER_OPTIONS.includes(f) || f.startsWith('sent_')).map((f) => (");
-    expect(tab.match(/data-testid="quote-filter-sheet"/g)).toHaveLength(1);
+    expect(tab).toContain('{QUOTE_FILTER_OPTIONS.map((f) => <option key={f} value={f}>{quoteFilterLabel(f, isHebrew)}</option>)}');
   });
   it('#8 the save / error toast is centred over the workspace (half of the 178px sidebar)', () => {
     expect(dash).toContain("left: calc(50% ${isHebrew ? '- 89px' : '+ 89px'});");
@@ -241,8 +238,7 @@ describe('#15 one name and one icon per screen', () => {
     expect(read('pages/Dashboard.jsx')).toContain("financesNav: isHebrew ? 'פיננסים' : 'Finances',");
   });
   it.each([
-    // Owner console 2026-11-21 (the simple-quotes sketch; L-23 typed only as needed): the Finances icon is the sketch's chart, title and sidebar alike
-    ['components/FinancesTab.jsx', '<SketchChartIcon size={18}', 'SketchChartIcon'],
+    ['components/FinancesTab.jsx', '<ChartSquareIcon size={18}', 'ChartSquareIcon'],
     ['components/ClientsTab.jsx', '<User size={18}', 'User'],
     ['components/ServicesCatalog.jsx', '<LayoutGrid size={18}', 'LayoutGrid'],
     ['components/StatisticsTab.jsx', '<BarChart3 size={18}', 'BarChart3'],

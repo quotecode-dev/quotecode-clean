@@ -85,7 +85,7 @@ describe('QA report 2026-10-25: answers', () => {
   it('a "how" question gets the verified steps of the matching task (H1, H13, H21, H24)', () => {
     expect(howToStepsForCapability('business_settings', 'איך מוסיפים לוגו להצעה?', true, AI_FACTS.howTo)).toContain('העלאת קובץ');
     expect(howToStepsForCapability('quote_create', 'איך שומרים הצעה כתבנית?', true, AI_FACTS.howTo)).toContain('האם לשמור הצעה זאת כתבנית?'); // Owner 2026-11-13: asked on the first save
-    expect(howToStepsForCapability('quote_expiry', 'איך מגדירים תוקף להצעה?', true, AI_FACTS.howTo)).toContain('"בתוקף עד"'); // 2026-11-20/21 (the simple-quotes sketch is the approved demo; was 2026-11-15): the field's own label on the "פרויקט, כתובת ותוקף" page
+    expect(howToStepsForCapability('quote_expiry', 'איך מגדירים תוקף להצעה?', true, AI_FACTS.howTo)).toContain('"תוקף ההצעה"'); // 2026-11-15 (the approved demo): the field's own label on the "פרויקט, כתובת ותוקף" page
     expect(howToStepsForCapability('quote_pdf', 'How do I download a PDF?', false, AI_FACTS.howTo)).toContain('"Get PDF"');
     expect(howToStepsForCapability('quote_email', 'הלקוח לא קיבל את המייל', true, AI_FACTS.howTo)).toContain('ספאם');
     expect(howToStepsForCapability('public_call', 'how?', false, AI_FACTS.howTo)).toBe('');

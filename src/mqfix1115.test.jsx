@@ -72,8 +72,8 @@ describe('4 · typing on a phone: the bottom bar and the calculator step aside',
     expect(document.documentElement.classList.contains('pf-typing')).toBe(false);
     window.matchMedia = original;
   });
-  it('the CSS hides the bottom bar only on a phone while typing (Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-23 / L-26 / L-29 ... only as needed): no floating calculator any more)', () => {
-    expect(read('src/index.css')).toContain('@media (max-width: 768px) { html.pf-typing .mobile-bottom-nav { display: none !important; } }');
+  it('the CSS hides the bottom bar and the calculator button only on a phone while typing', () => {
+    expect(read('src/index.css')).toContain('@media (max-width: 768px) { html.pf-typing .mobile-bottom-nav, html.pf-typing .pf-calc-fab { display: none !important; } }');
     // the field keeps its place in the page content; the browser's own scroll anchoring is off while the user is in the form (one anchor)
     expect(read('src/index.css')).toContain('@media (max-width: 768px) { html.pf-anchor, html.pf-anchor .dash-main-content { overflow-anchor: none; } }');
     const qf = read('src/components/QuoteForm.jsx');
@@ -126,11 +126,10 @@ describe('5 · a long sidebar name / e-mail ends with "…" and shows whole in t
 describe('1 / 6 / 7 · remove the last row, no 20 limit, the help opens below when there is no room', () => {
   it('the editor source', () => {
     const tree = read('src/components/quoteTree/QuoteTreeEditor.jsx');
-    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-23 / L-26 / L-29 ... only as needed): every row's "⋯" has Remove (also the only row); undo brings it back
-    expect(tree).toContain("onClick: run(() => removeRow(i)), danger: true, testId: 'qt-row-remove'");
+    expect(tree).toContain('onRemove={() => removeRow(i)}');
     expect(tree).not.toMatch(/n <= 20/);
     expect(tree).not.toContain('max="20"');
     expect(tree).toContain("className={below ? 'qt-pop qt-pop--below' : 'qt-pop'}");
-    expect(read('src/components/quoteTree/quoteTree.css')).toContain('.qt-pop--below { top: calc(100% + 6px); bottom: auto; }');
+    expect(read('src/components/quoteTree/quoteTree.css')).toContain('.qt-structure .qt-pop.qt-pop--below, .qt-pop.qt-pop--below { top: calc(100% + 8px); bottom: auto; }');
   });
 });

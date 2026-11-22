@@ -66,8 +66,8 @@ function answer(id, value) {
   head.resolve(value);
 }
 
-export function askConfirm(text, isHebrew, { yes = null, no = null, danger = false, sketch = false } = {}) {
-  return open({ kind: 'confirm', text: String(text ?? ''), he: !!isHebrew, yes, no, danger, sketch }).then((v) => v === true);
+export function askConfirm(text, isHebrew, { yes = null, no = null, danger = false } = {}) {
+  return open({ kind: 'confirm', text: String(text ?? ''), he: !!isHebrew, yes, no, danger }).then((v) => v === true);
 }
 export function showNotice(text, isHebrew) {
   return open({ kind: 'notice', text: String(text ?? ''), he: !!isHebrew }).then(() => undefined);
@@ -145,7 +145,7 @@ function AppDialogHost() {
   return (
     <div className="qp-backdrop" style={{ zIndex: 2147483000 }} data-testid="app-dialog-backdrop"
       onMouseDown={(e) => { if (e.target === e.currentTarget) answer(item.id, safeValue); }}>
-      <div ref={dialogRef} className={item.sketch ? 'qp-dialog qp-root qp-dialog--sketch' : 'qp-dialog qp-root'} role={confirm ? 'alertdialog' : 'dialog'} aria-modal="true" aria-describedby={textId}
+      <div ref={dialogRef} className="qp-dialog qp-root" role={confirm ? 'alertdialog' : 'dialog'} aria-modal="true" aria-describedby={textId}
         aria-label={item.kind === 'copy' && item.title ? item.title : undefined}
         dir={item.he ? 'rtl' : 'ltr'} lang={item.he ? 'he' : 'en'} style={{ ...QP_VARS, textAlign: 'start' }} data-testid={`app-dialog-${item.kind}`}>
         <p id={textId} data-testid="app-dialog-text" style={{ margin: 0, whiteSpace: 'pre-line', lineHeight: 1.55, overflowWrap: 'anywhere' }}>

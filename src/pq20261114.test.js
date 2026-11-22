@@ -82,11 +82,11 @@ describe('L-25 change: the protected admin dialog action row on a phone', () => 
   });
 });
 
-// Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-23 / L-26 / L-29 ... only as needed): the three structure buttons became one "מבנה:" menu with an example line under each choice (no help bubble there)
-describe('the structure menu', () => {
-  it('each choice carries its example line; the menu opens under its link', () => {
+// 2026-11-14 (eye check): the structure help opens above its button on a wide screen (never over the row of buttons below it)
+describe('the structure help bubble position', () => {
+  it('above the button from 768px, in the flow on a phone', () => {
     const css = fs.readFileSync('src/components/quoteTree/quoteTree.css', 'utf8');
-    expect(css).toContain('.qt-menu .qt-sopt small { font-size: 12px; color: var(--qt-muted); font-weight: 400; }');
-    expect(css).toContain('.qt-smenu { min-width: 250px; inset-inline-end: auto; inset-inline-start: 0; }');
+    expect(css).toContain('@media (min-width: 768.02px) { .qt-structure .qt-pop { top: auto; bottom: calc(100% + 6px); } }');
+    expect(css).toContain('.qt-structure .qt-pop { position: static;');
   });
 });

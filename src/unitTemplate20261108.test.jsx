@@ -118,13 +118,11 @@ describe('the editor and the Dashboard wiring', () => {
   // 2026-11-13 (the 13/11 demo): the heading menu of the new work area; "from a saved template" once, beside the add buttons (rendered tests in QuoteForm.test.jsx)
   it('the heading menu offers "save as a template"; "from a saved template" is in the work area', () => {
     const tree = read('src/components/quoteTree/QuoteTreeEditor.jsx');
-    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-14 / L-29 ... only as needed): the section's "⋯" saves it as a template; "מתבנית שמורה" is in the editor bar's "⋯" menu (once)
-    expect(tree).toContain("hTmpl: 'שמירה כתבנית'");
-    expect(tree).toContain("hTmpl: 'Save as a template'");
+    expect(tree).toContain("saveTemplate: 'שמירה כתבנית', fromTemplate: 'מתבנית שמורה'");
+    expect(tree).toContain("saveTemplate: 'Save as a template', fromTemplate: 'From a template'"); // 2026-11-15: the short English word (law 49)
+    expect(tree.split('data-testid="unit-from-template"').length - 1).toBe(1);
     const f = read('src/components/QuoteForm.jsx');
-    expect(f.split('data-testid="unit-from-template"').length - 1).toBe(1);
-    expect(f).toContain("{isHebrew ? 'מתבנית שמורה' : 'From a saved template'}");
-    expect(f).toContain("onSaveHeadingTemplate={typeof onSaveUnitTemplate === 'function' ? onSaveUnitTemplate : null}");
+    expect(f).toContain("onSaveHeadingTemplate={typeof onSaveUnitTemplate === 'function' ? onSaveUnitTemplate : null} onAddFromTemplate={typeof onAddUnitFromTemplate === 'function' ? onAddUnitFromTemplate : null}");
   });
   it('the Dashboard adds ONE unit at the end, asks on another currency / VAT basis, never changes a chosen client type', () => {
     const d = read('src/pages/Dashboard.jsx');

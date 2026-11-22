@@ -68,10 +68,9 @@ describe('approved 980px shell (source guards)', () => {
   it('the header account cluster is [greeting, bell, plan medallion] in one DOM order (medallion outermost in both languages; Owner 2026-10-14: greeting instead of the business name, medallion instead of the avatar)', () => {
     const at = dashboard.indexOf('<div className="dash-header-account">');
     const cluster = dashboard.slice(at, at + 1400);
-    // Owner console 2026-11-20/21 (the simple-quotes sketch; typed L-03 / L-04 / L-19 / L-25 / L-26 only as needed): the greeting opens the clock at the start of the header; the cluster is [calculator, bell, plan medallion]
-    expect(cluster.indexOf('{renderHeaderCalcButton()}')).toBeGreaterThan(-1);
-    expect(cluster.indexOf('{renderHeaderCalcButton()}')).toBeLessThan(cluster.indexOf('<NotificationCenter'));
-    expect(cluster).not.toContain('<HeaderGreeting');
+    expect(cluster.indexOf('<HeaderGreeting isHebrew={isHebrew} />')).toBeGreaterThan(-1);
+    // Task 20: the bell is rendered by NotificationCenter (same 18px Bell icon, same slot) - the locked order is unchanged
+    expect(cluster.indexOf('<HeaderGreeting isHebrew={isHebrew} />')).toBeLessThan(cluster.indexOf('<NotificationCenter'));
     expect(cluster.indexOf('<NotificationCenter')).toBeLessThan(cluster.indexOf('<HeaderPlanMedallion'));
     const center = readFileSync(join(cwd(), 'src', 'components', 'NotificationCenter.jsx'), 'utf8');
     expect(center).toContain('<Bell size={18} strokeWidth={1.6} aria-hidden="true" />');
@@ -82,12 +81,10 @@ describe('approved 980px shell (source guards)', () => {
     const clock = dashboard.slice(dashboard.indexOf('function HeaderClock'), dashboard.indexOf('// PRODUCT_TRUTH_CAPABILITY: dashboard_overview'));
     // Owner console 2026-10-18, typed: "1 - עם שניות", "2 - שיהיה מסונכרן בדיוק לפי שעון המחשב", "3 - להחזיר את האנימציה": seconds, ticking on the device clock's second boundary
     expect(clock).toContain("const schedule = () => { id = setTimeout(() => { setNow(new Date()); schedule(); }, 1000 - (Date.now() % 1000) + 2); };");
-    // Owner console 2026-11-20/21 (the simple-quotes sketch; typed L-03 / L-04 / L-19 / L-25 / L-26 only as needed): hours and minutes (the minute changes exactly on time - the tick stays on the second boundary)
-    expect(clock).toContain("{ hour: '2-digit', minute: '2-digit', hour12: false }");
-    expect(clock).not.toContain("second: '2-digit'");
+    expect(clock).toContain("second: '2-digit'");
     expect(clock).toMatch(/<bdi dir="ltr" className="dash-header-date pf-num">/);
     expect(clock).toMatch(/<bdi dir="ltr" className="dash-header-time pf-num">/);
-    expect(clock).toMatch(/className="dash-header-sep" aria-hidden="true">·<\/span>/);
+    expect(clock).toMatch(/className="dash-header-sep" aria-hidden="true">\|<\/span>/);
   });
 
   it('the sidebar top is the static TEKANGO logo card, the nav is plain rows, and Sign out lives behind the identity gear', () => {

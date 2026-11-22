@@ -50,17 +50,14 @@ describe('canMarkQuotePaid - the same rule as guard_quote_immutability (20261025
 describe.each([['Hebrew', true, 'סימון כשולמה'], ['English', false, 'Mark as paid']])('Mark as paid in the actions row (%s)', (_l, isHebrew, label) => {
   it('an approved quote shows the button and hands the quote to the handler', () => {
     const { quote, handleMarkQuotePaid } = renderList(isHebrew);
-    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-14 / L-29 ... only as needed): "סימון כשולמה" is in the open row's "⋯" menu
-    fireEvent.click(screen.getByTestId('quote-more-open'));
-    expect(screen.getByTestId('quote-mark-paid').textContent).toBe(label);
-    expect(screen.getByTestId('quote-mark-paid').querySelector('[data-icon="tekango-paid"]')).toBeTruthy();
     fireEvent.click(screen.getByTestId('quote-mark-paid'));
-    expect(handleMarkQuotePaid).toHaveBeenCalledTimes(1); // law 45: the TEKANGO mark (checked above), never a stock icon
+    expect(screen.getByTestId('quote-mark-paid').textContent).toBe(label);
+    expect(screen.getByTestId('quote-mark-paid').querySelector('[data-icon="tekango-paid"]')).toBeTruthy(); // law 45: the TEKANGO mark, never a stock icon
+    expect(handleMarkQuotePaid).toHaveBeenCalledTimes(1);
     expect(handleMarkQuotePaid.mock.calls[0][0]).toMatchObject({ id: quote.id });
   });
   it('a signed quote shows it too; Edit and Delete stay disabled', () => {
     renderList(isHebrew, { signature: 'data:image/png;base64,AAAA' });
-    fireEvent.click(screen.getByTestId('quote-more-open'));
     expect(screen.getByTestId('quote-mark-paid')).toBeTruthy();
     expect(screen.getByText(isHebrew ? 'עריכה' : 'Edit').closest('button')).toBeDisabled();
     expect(screen.getByText(isHebrew ? 'מחיקה' : 'Delete').closest('button')).toBeDisabled();

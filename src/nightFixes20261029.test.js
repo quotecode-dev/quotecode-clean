@@ -27,9 +27,7 @@ describe('L-29: the rows-per-page measure settles (the flicker of 29/10)', () =>
   it('the quote list uses it, with a fresh memo for every list (an effect run)', () => {
     const q = src('src/components/QuotesTab.jsx');
     expect(q).toContain('const memo = createPerPageMemo();');
-    // Owner console 2026-11-20/21 (the simple-quotes sketch, L-29 typed only as needed): the memo is also keyed by the list's position - a
-    // notice shown or closed above the list is a changed list (its own memo), not an oscillation
-    expect(q).toContain('const n = settlePerPage(memo, `${window.innerWidth}x${window.innerHeight}@${Math.round(ws.getBoundingClientRect().top)}`, Math.max(1, Math.floor((body.clientHeight + free + 0.5) / rowH)));');
+    expect(q).toContain('const n = settlePerPage(memo, `${window.innerWidth}x${window.innerHeight}`, Math.max(1, Math.floor((body.clientHeight + free + 0.5) / rowH)));');
   });
 });
 

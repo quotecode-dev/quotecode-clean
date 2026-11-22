@@ -107,10 +107,9 @@ describe('Owner R3 list-only scroll ownership', () => {
     expect(headAt).toBeGreaterThan(-1);
     expect(bodyAt).toBeGreaterThan(headAt);
     expect(quotesTab.indexOf('className={`quote-modern-item')).toBeGreaterThan(bodyAt);
-    // Owner 2026-10-18: the page bar (previous / next) is outside the scroll body, so it never scrolls away; Owner console 2026-11-20/21
-    // (the simple-quotes sketch, typed L-23 / L-26 only as needed): it sits right under the table card (the sketch), not inside it
+    // Owner 2026-10-18: the page bar (previous / next) is outside the scroll body, inside the card, so it never scrolls away
     expect(quotesTab).toContain('className="quote-modern-pager"');
-    expect(quotesTab.indexOf('      {!useCards && pager}')).toBeGreaterThan(bodyAt);
+    expect(quotesTab.indexOf('          {pager}')).toBeGreaterThan(bodyAt);
   });
 
   it('header and body reserve the identical scrollbar gutter so header cells and row cells keep one x coordinate', () => {

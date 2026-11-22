@@ -5,7 +5,6 @@ import { render } from '@testing-library/react';
 import { readFileSync } from 'node:fs';
 import TekangoAiIcon from './TekangoAiIcon';
 import CustomerTwinIcon from './CustomerTwinIcon';
-import TekangoBotIcon from './TekangoBotIcon';
 
 describe('TEKANGO AI icons', () => {
   it('the AI chat icon: a tile and a head with drawn "AI" letters (no font, no question mark); inline SVG, decorative', () => {
@@ -14,16 +13,6 @@ describe('TEKANGO AI icons', () => {
     expect(svg.getAttribute('aria-hidden')).toBe('true');
     expect(svg.getAttribute('width')).toBe('22');
     expect(svg.querySelectorAll('[data-mark="ai"] path')).toHaveLength(3);
-    expect(container.querySelector('text, img, image')).toBeNull();
-  });
-  it('Owner 2026-11-20/21 (L-02 / L-11): the chat icon is the robot with the headset on the blue-teal tile; inline SVG, decorative', () => {
-    const { container } = render(<TekangoBotIcon size={22} />);
-    const svg = container.querySelector('svg[data-tekango-ai-icon="bot"]');
-    expect(svg.getAttribute('aria-hidden')).toBe('true');
-    expect(svg.getAttribute('width')).toBe('22');
-    expect(svg.querySelector('rect[rx="7"]').getAttribute('fill')).toMatch(/^url\(#tkbot-tile-/);
-    expect([...svg.querySelectorAll('stop')].map((s) => s.getAttribute('stop-color'))).toEqual(['#1e3a8a', '#0e7490']);
-    expect(svg.querySelectorAll('[data-mark="bot"] rect')).toHaveLength(3); // the head and the two ear cups
     expect(container.querySelector('text, img, image')).toBeNull();
   });
   it('the Customer Twin mark: two heads and a lens, two tones; light for a blue button', () => {
@@ -36,23 +25,18 @@ describe('TEKANGO AI icons', () => {
     expect(color.querySelector('circle[r="5.9"]')).toBeTruthy(); // the lens
   });
   it('several icons never share gradient / mask ids', () => {
-    const { container } = render(<><TekangoAiIcon /><TekangoAiIcon /><TekangoBotIcon /><TekangoBotIcon /><CustomerTwinIcon /><CustomerTwinIcon /></>);
+    const { container } = render(<><TekangoAiIcon /><TekangoAiIcon /><CustomerTwinIcon /><CustomerTwinIcon /></>);
     const ids = [...container.querySelectorAll('[id]')].map((e) => e.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
-  it('Owner 2026-11-20/21 (L-02 / L-11, landing): the robot is the chat icon everywhere - header, notifications, every "Ask AI", the chat window, the landing', () => {
-    expect(readFileSync('src/pages/Dashboard.jsx', 'utf8')).toMatch(/className="dash-header-ai-btn"[\s\S]{0,500}<TekangoBotIcon size=\{22\} \/>/);
-    expect(readFileSync('src/components/NotificationCenter.jsx', 'utf8')).toMatch(/data-testid="notification-welcome-ai"[\s\S]{0,600}<TekangoBotIcon size=\{16\} \/>/);
-    expect(readFileSync('src/components/AiChatIcon.jsx', 'utf8')).toMatch(/<TekangoBotIcon size=\{size \+ 2\} \/>/);
+  it('Owner 2026-10-23 (L-02 / L-11, landing): the AI tile is the chat icon everywhere - header, notifications, every "Ask AI", the chat window, the landing', () => {
+    expect(readFileSync('src/pages/Dashboard.jsx', 'utf8')).toMatch(/className="dash-header-ai-btn"[\s\S]{0,500}<TekangoAiIcon size=\{22\} \/>/);
+    expect(readFileSync('src/components/NotificationCenter.jsx', 'utf8')).toMatch(/data-testid="notification-welcome-ai"[\s\S]{0,600}<TekangoAiIcon size=\{16\} \/>/);
+    expect(readFileSync('src/components/AiChatIcon.jsx', 'utf8')).toMatch(/<TekangoAiIcon size=\{size \+ 2\} \/>/);
     const widget = readFileSync('src/AIChatWidget.jsx', 'utf8');
-    expect(widget).toContain('<TekangoBotIcon size={30} />');
-    expect(widget).toContain(': <TekangoBotIcon size={24} />');
+    expect(widget).toContain('<TekangoAiIcon size={30} />');
     const showcase = readFileSync('src/components/landing/SmartPackShowcase.jsx', 'utf8');
-    expect(showcase).toMatch(/<TekangoBotIcon size=\{48\} \/>/);
-    expect(showcase).toMatch(/<TekangoBotIcon size=\{20\} \/>/);
-    for (const f of ['src/pages/Dashboard.jsx', 'src/components/NotificationCenter.jsx', 'src/AIChatWidget.jsx', 'src/components/AiChatIcon.jsx', 'src/components/landing/SmartPackShowcase.jsx']) {
-      expect(readFileSync(f, 'utf8'), f).not.toMatch(/<TekangoAiIcon/);
-    }
+    expect(showcase).toMatch(/<TekangoAiIcon size=\{48\} \/>/);
     expect(showcase).toMatch(/<CustomerTwinIcon size=\{32\} tone="light" \/>/);
     for (const f of ['src/pages/Dashboard.jsx', 'src/components/NotificationCenter.jsx', 'src/AIChatWidget.jsx', 'src/components/AiChatIcon.jsx', 'src/components/landing/SmartPackShowcase.jsx']) {
       expect(readFileSync(f, 'utf8'), f).not.toMatch(/AiRobotIcon|BrainCircuit|ScanFace|MessageCircleMore|\bBot\b/);

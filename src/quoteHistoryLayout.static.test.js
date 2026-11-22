@@ -26,9 +26,7 @@ describe('IRON-QH-LAYOUT-001 static gate', () => {
     expect((qt.match(/padding: `11px \$\{QH_CELL_PAD\}px`/g) || []).length).toBeGreaterThanOrEqual(5);
   });
   it('both layouts tag the protected semantic slots', () => {
-    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-29 ... only as needed): the whole card opens on a tap (no separate expand control on the card), so "action" stays tagged in the table layout only
-    for (const k of ['client', 'number', 'amount', 'status', 'date']) expect((qt.match(new RegExp(`data-qh="${k}"`, 'g')) || []).length, k).toBeGreaterThanOrEqual(2);
-    expect((qt.match(/data-qh="action"/g) || []).length).toBeGreaterThanOrEqual(1);
+    for (const k of ['action', 'client', 'number', 'amount', 'status', 'date']) expect((qt.match(new RegExp(`data-qh="${k}"`, 'g')) || []).length, k).toBeGreaterThanOrEqual(2);
   });
   it('the deliberate responsive transition exists (cards when the slots cannot fit)', () => {
     // Owner R3: the measured-slot transition (qhCompact) is kept and extended by the eight-column minimum width (r3TooNarrow).
@@ -51,9 +49,8 @@ describe('Quote History tablet density parity', () => {
     expect(rule).not.toMatch(/border/);
     // table chip: 12px text on the base 13.44px line box; card chip 15.6px and card meta 16.8px line boxes (base 65.4px card)
     expect(qt).toMatch(/\.\.\.QH_CELL_STYLE\.status, lineHeight: '13\.44px'/);
-    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-29 ... only as needed): the card's second line is the sketch's (12px, one line, the status at its end)
-    const list = fs.readFileSync(path.join(SRC, 'components', 'quotesList.css'), 'utf8');
-    expect(list).toContain('.dash-main-content .quote-workspace .qc-ln2 { font-size: 12px; color: var(--ql-muted); display: flex; gap: 6px; align-items: center; min-width: 0; overflow: hidden; white-space: nowrap; }');
+    expect(qt).toMatch(/fontSize: '0\.75rem', lineHeight: '15\.6px', fontWeight: '700'/);
+    expect(qt).toMatch(/fontSize: '0\.75rem', lineHeight: '16\.8px', color: NEON\.textMuted/);
   });
 });
 

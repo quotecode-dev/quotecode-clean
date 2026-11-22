@@ -25,14 +25,12 @@ describe('07 · the local measurement example', () => {
     // 2026-11-13 (the 13/11 demo): the new work area offers the example while the quote has no real line and no heading; the example row
     // keeps its mark there and can always be removed
     const tree = read('src/components/quoteTree/QuoteTreeEditor.jsx');
-    // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-14 / L-29 ... only as needed): "הצגת דוגמה (לא נשמרת)" is in the editor bar's "⋯" menu while the quote has no line and no section
-    expect(src).toContain("{isHebrew ? 'הצגת דוגמה (לא נשמרת)' : 'Show an example (not saved)'}");
-    expect(src).toContain("const hasWork = (items || []).some((it) => it && String(it.description || '').trim()) || (sections || []).length > 0;");
-    expect(src).toContain('{onWork && !hasWork && (');
-    expect(tree).toContain("example: 'דוגמה · לא נשמרת'");
-    expect(tree).toContain("example: 'Example · not saved'");
-    expect(tree).toContain("onClick: run(() => removeRow(i)), danger: true"); // 2026-11-15 (answer א): every row - the example too - can be removed
-    expect(src).toContain("data-testid=\"quote-show-example\" onClick={runMenu(addLocalExample)}");
+    expect(tree).toContain("example: 'הצגת דוגמה (לא נשמרת)'");
+    expect(tree).toContain("example: 'Show an example (not saved)'");
+    expect(tree).toContain("onShowExample && !items.some((it) => it && String(it.description || '').trim()) && !sections.length");
+    expect(tree).toContain("{isHebrew ? 'דוגמה · לא נשמרת' : 'Example · not saved'}");
+    expect(tree).toContain('onRemove={() => removeRow(i)}'); // 2026-11-15 (answer א): every row - the example too - can be removed
+    expect(src).toContain('onShowExample={addLocalExample}');
     expect(src).toMatch(/measurements: \[\{ width: 1, height: 2, unit: 'm', calculated_area: 2, label: '', is_pricing_driving: true \}\], _localExample: true/);
     // the save still refuses the example (the existing guard)
     expect(read('src/pages/Dashboard.jsx')).toContain('if (items.some((it) => it && it._localExample)) {');

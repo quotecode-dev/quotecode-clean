@@ -4,13 +4,12 @@
 // IRON-ICON-001 (law 45; Owner console 2026-10-23, typed: "מאשר את הסמלים החדשים (חוק 45), ושינוי ב-L-02 וב-L-11: סמל הצ'אט בכותרת ובחלון
 // ההתראות יהיה הראש באריח עם AI" + "להחליף גם בדפי הנחיתה"): the drawing is the TEKANGO AI tile (a glowing head with "AI") - no longer a
 // generic chat bubble with a sparkle badge. The tile carries its own frame, so it is drawn a little larger than the old line glyph.
-// Owner console 2026-11-20/21 (L-02 / L-11, law 45): the robot with the headset on the blue-teal tile (TekangoBotIcon).
-import TekangoBotIcon from './TekangoBotIcon';
+import TekangoAiIcon from './TekangoAiIcon';
 
 export default function AiChatIcon({ size = 16 }) {
   return (
     <span aria-hidden="true" data-ai-chat-icon="canonical" style={{ display: 'inline-flex', flexShrink: 0 }}>
-      <TekangoBotIcon size={size + 2} />
+      <TekangoAiIcon size={size + 2} />
     </span>
   );
 }

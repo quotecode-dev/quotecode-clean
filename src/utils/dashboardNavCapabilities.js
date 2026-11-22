@@ -1,5 +1,5 @@
 import { Shield, FileText, User, Settings as SettingsIcon, LayoutGrid, BarChart3, ListChecks, CalendarDays } from 'lucide-react';
-import SketchChartIcon from '../components/SketchChartIcon';
+import ChartSquareIcon from '../components/ChartSquareIcon';
 
 // חוק ברזל (Functional Parity Across Viewports task, 2026-09-08 - root fix
 // for the Functional-Parity Root-Cause Audit): מקור-אמת יחיד לרשימת יעדי-
@@ -27,7 +27,7 @@ export function getDashboardNavCapabilities({ isSuperAdmin, t, isHebrew }) {
     { id: 'main', icon: FileText, label: t.quotesNav, role: 'any', mobileGroup: 'bottom' },
     { id: 'clients', icon: User, label: t.clientsNav, role: 'any', mobileGroup: 'bottom' },
     { id: 'catalog', icon: LayoutGrid, label: t.catalogNav, role: 'any', mobileGroup: 'more' },
-    { id: 'finances', icon: SketchChartIcon, label: t.financesNav, mobileLabel: isHebrew ? 'פיננסים' : 'Finances', role: 'any', mobileGroup: 'bottom' },
+    { id: 'finances', icon: ChartSquareIcon, label: t.financesNav, mobileLabel: isHebrew ? 'פיננסים' : 'Finances', role: 'any', mobileGroup: 'bottom' },
     // Task 17: quote statistics - desktop after Finances (approved order kept); mobile in More (approved bottom row kept)
     { id: 'statistics', icon: BarChart3, label: t.statisticsNav, role: 'any', mobileGroup: 'more' },
     // Task 18: durable manual tasks - desktop after Statistics (approved order kept); mobile in More (approved bottom row kept)

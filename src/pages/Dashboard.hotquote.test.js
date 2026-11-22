@@ -14,6 +14,11 @@ const dashboardSource = norm(readFileSync(join(here, 'Dashboard.jsx'), 'utf-8'))
 const quotesTabSource = norm(readFileSync(join(here, '..', 'components', 'QuotesTab.jsx'), 'utf-8'));
 const css = dashboardSource.replace(/\/\*[\s\S]*?\*\//g, '');
 
+const rule = (selector) => {
+  const idx = css.indexOf(`${selector} {`);
+  expect(idx, selector).toBeGreaterThan(-1);
+  return css.slice(idx, css.indexOf('}', idx));
+};
 
 describe('Hot quote banner (source-level regression guard)', () => {
   it('the dark header band holds no banner and the old rotation/eligibility copy in Dashboard is gone', () => {
@@ -64,12 +69,11 @@ describe('Hot quote banner (source-level regression guard)', () => {
     // the real client name, else the quote title, else its full number - ONE shared rule (quotePartyLabel, also the Statistics list)
     // night task 2026-10-16 (R-28): the name is bidi-isolated inside the mark
     expect(block).toMatch(/<mark className="quote-hot-banner-name"><bdi>\{quotePartyLabel\(hotLead\.quote\)\.text\}<\/bdi><\/mark>/);
-    // Owner console 2026-11-20/21 (the simple-quotes sketch; typed L-03 / L-04 / L-19 / L-25 / L-26 only as needed): the sketch's one line - "<name> • צפיות: 3; טרם נחתמה" / "<name> • Views: 3; not signed yet"
-    expect(block.indexOf('quote-hot-banner-name')).toBeLessThan(block.indexOf("' • צפיות: '"));
-    expect(block).toContain("' • צפיות: '");
-    expect(block).toContain("'; טרם נחתמה'");
-    expect(block).toContain("' • Views: '");
-    expect(block).toContain("'; not signed yet'");
+    expect(block.indexOf('quote-hot-banner-name')).toBeLessThan(block.indexOf("' צפה בהצעה '"));
+    expect(block).toContain("' צפה בהצעה '");
+    expect(block).toContain("' פעמים ועדיין לא חתם.'");
+    expect(block).toContain("' viewed this quote '");
+    expect(block).toContain("' times and still hasn’t signed.'");
     expect(block).toMatch(/<bdi className="pf-num" dir="ltr">/);
     expect(block).not.toMatch(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/u);
     // the flame and the hot title are gone from every quote-list surface (rows, legacy table, mobile cards)
@@ -104,21 +108,24 @@ describe('Hot quote banner (source-level regression guard)', () => {
     expect(css).not.toMatch(/\.quote-hot-banner-eye \{[^}]*animation/);
   });
 
-  // Owner console 2026-11-20/21 (the simple-quotes sketch, typed L-19 / L-25 / L-26 only as needed): the banner is the sketch's one thin line
-  // (36px, the light orange family, logical properties only); a long line ends with "…" and the whole line shows in the bubble (law 50 as
-  // amended 19/11 - the EllipsisText bubble of the phone line, the title of the computer line)
-  it('is the sketch\'s thin 36px line in the hot-orange family, styled with logical properties only; its words are never lost', () => {
-    const list = readFileSync(join(here, '..', 'components', 'quotesList.css'), 'utf8');
-    const banner = list.match(/\.dash-main-content \.quote-workspace \.quote-hot-banner \{([^}]*)\}/)[1];
-    expect(banner).toMatch(/min-height: 36px;/);
-    expect(banner).toMatch(/background: #fff7ed;/);
-    expect(banner).toMatch(/border: 1px solid #fed7aa;/);
-    expect(banner).toMatch(/padding-inline: 6px 10px;/);
+  it('is a compact 40px tinted bar in the hot-orange family, styled with logical properties only', () => {
+    const banner = rule('.quote-hot-banner');
+    expect(banner).toMatch(/min-height: 40px;/);
+    expect(banner).toMatch(/background: #fff4ed;/);
+    expect(banner).toMatch(/border: 1px solid #fdba74;/);
+    expect(banner).toMatch(/color: #9a3412;/);
+    // the eye button sits at inline-start (4px from the edge); the text gets the wider inline-end padding
+    expect(banner).toMatch(/padding-inline: 4px 12px;/);
     expect(banner).not.toMatch(/\b(left|right)\b|margin-left|margin-right|padding-left|padding-right/);
     expect(css).not.toMatch(/\.quote-hot-banner-(flame|label) \{/);
-    expect(list).toContain('.dash-main-content .quote-workspace .quote-hot-banner .quote-hot-banner-text { flex: 1; min-width: 0; font-size: 13px; color: #7c2d12; overflow: hidden; white-space: nowrap; text-overflow: ellipsis;');
-    // the phone line keeps the tap bubble with the whole line (EllipsisText tapLine)
-    expect(quotesTabSource).toMatch(/className="quote-hot-banner-name qhb-short-name" text=\{quotePartyLabel\(hotLead\.quote\)\.text\}\s*bubble=\{hotLine\}/);
+    // Owner correction 2026-10-09: the real name and the count stay readable - the text wraps, never ellipsized or clamped away
+    const text = rule('.quote-hot-banner-text');
+    expect(text).not.toMatch(/white-space: nowrap|text-overflow: ellipsis|line-clamp|overflow: hidden/);
+    expect(text).toMatch(/white-space: normal;/);
+    expect(text).toMatch(/overflow-wrap: anywhere;/);
+    // the vertical padding sits on the text, so a single-line alert keeps the unchanged bar height
+    expect(banner).toMatch(/padding-block: 0;/);
+    expect(text).toMatch(/padding-block: 2px;/);
   });
 
   it('the underlying eligibility rule (3+ views, not approved/paid) lives in ONE shared helper', () => {
