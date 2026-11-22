@@ -24,3 +24,9 @@ describe('simple1120-fix2: the row menu edge', () => {
     expect(treeCss).toContain('.qt-ir .qt-menu { inset-inline-end: -1px; }');
   });
 });
+
+describe('simple1120-fix2: the section-head menu', () => {
+  it('the section-head menu sits 1px higher and 1px in (as the sketch, no sliver of the head row above it)', () => {
+    expect(treeCss).toContain('.qt-hh .qt-menu { top: calc(100% + 3px); inset-inline-end: 1px; }');
+  });
+});

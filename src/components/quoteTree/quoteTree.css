@@ -157,6 +157,9 @@ select.qe-in { padding-inline-start: 8px; padding-inline-end: 22px; }
 .qt-addb { width: 32px; height: 32px; color: var(--qt-teal); }
 .qt-hs { font-weight: 600; font-size: 13.5px; white-space: nowrap; text-align: right; }
 .qt-hh .qt-menu-wrap { justify-self: center; }
+/* simple1120-fix2 (law 50, pixel-measured against the sketch): the section-head menu 1px higher and 1px in - no sliver of the head row
+   above it */
+.qt-hh .qt-menu { top: calc(100% + 3px); inset-inline-end: 1px; }
 .qt-hh--ren { display: flex; gap: 6px; padding: 4px 6px; }
 .qt-hh--ren .qt-input { flex: 1; min-width: 0; height: 36px; min-block-size: 0; }
 .qt-hbody { padding-top: 6px; }
