@@ -18,3 +18,9 @@ describe('simple1120-fix2', () => {
     expect(chat).not.toMatch(/isHebrew \? 'flex-start' : 'flex-end'/);
   });
 });
+
+describe('simple1120-fix2: the row menu edge', () => {
+  it('the row menu sits 1px further out (its edge on the button edge, as the sketch)', () => {
+    expect(treeCss).toContain('.qt-ir .qt-menu { inset-inline-end: -1px; }');
+  });
+});
