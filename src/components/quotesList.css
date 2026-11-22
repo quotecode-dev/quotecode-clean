@@ -259,3 +259,8 @@ body .pf-newquote-backdrop .pf-newquote-item-text { gap: 0 !important; }
 /* simple1120 regression fix: the "no urgent step" note keeps its whole text on every width (L-25 / L-26, Owner 2026-10-23: "it keeps its
    own text on the phone") - it wraps instead of ending in dots; the hot-quote line keeps its one line (its name has the dots + bubble) */
 .dash-main-content .quote-workspace .quote-hot-banner.quote-hot-banner--empty .quote-hot-banner-text { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }
+/* law 50 (measured): on a tablet / phone the hot banner's name is the sketch's 13px and the card's quote number 12.5px */
+@media (max-width: 768px) {
+  .dash-main-content .quote-workspace .quote-hot-banner .qhb-short-name { font-size: 13px !important; }
+  .dash-main-content .quote-workspace .qc-num { font-size: 12.5px !important; }
+}

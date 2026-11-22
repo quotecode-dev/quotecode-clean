@@ -370,8 +370,8 @@ body:has(.qt-menu, .qe-menu, [role="dialog"], [role="alertdialog"]) .qe .qt-stat
 /* the save question on a phone: the same width as the other windows (14px from each side) */
 .qp-dialog.qp-dialog--sketch { width: calc(100vw - 28px) !important; }
 /* the structure menu: the sketch draws its words about 3% wider - the same size here (the third example wraps as in the sketch) */
-.qt-menu .qt-sopt b { font-size: 14.5px; }
-.qt-menu .qt-sopt small { font-size: 12.4px; }
+.qt-menu .qt-sopt b { font-size: 14px; }
+.qt-menu .qt-sopt small { font-size: 12px; }
 /* law 50 round 3: the hint text in the fields is the sketch's (the browser's own grey) */
 .qe ::placeholder { color: #757575; opacity: 1; }
 /* law 50 final round: the editor's accessibility link right under the details (the sketch has no gap above it); the structure menu's
@@ -385,3 +385,7 @@ body:has(.qt-menu, .qe-menu, [role="dialog"], [role="alertdialog"]) .qe .qt-stat
    sketch's (its .work top padding with the edit bar's own offset) */
 .pf-screen.qe > .pf-editor-form { padding-top: 10px !important; }
 @media (max-width: 768px) { .pf-screen.qe > .pf-editor-form { padding-top: 6px !important; } }
+/* law 50 (measured, every text against the sketch with the sketch's normal letter spacing): the row name is the sketch's 13px; the
+   project window's labels 12.5px on a tablet / phone */
+.qe .qt-row-name { font-size: 13px; }
+@media (max-width: 768px) { .qe .qt-page-label { font-size: 12.5px; } }

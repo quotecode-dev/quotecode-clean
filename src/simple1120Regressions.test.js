@@ -8,7 +8,7 @@ const listCss = fs.readFileSync('src/components/quotesList.css', 'utf8');
 
 describe('simple1120 regressions', () => {
   it('outside the quote list / editor the phone header grows to hold the stats line', () => {
-    expect(indexCss).toContain('html body:not(:has(.pf-editor-form)) .dash-main-content .dash-upper-section:not([data-quotes-overview="true"]) { height: auto !important; min-height: 48px !important;');
+    expect(indexCss).toContain('html body:not(:has(.pf-editor-form)) .dash-main-content .dash-upper-section:not([data-quotes-overview="true"]) { height: auto !important; min-height: 48px !important; padding: 2px 10px 8px !important; }');
   });
   it('the empty next-step note wraps instead of ending in dots', () => {
     expect(listCss).toContain('.quote-hot-banner.quote-hot-banner--empty .quote-hot-banner-text { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }');
@@ -42,5 +42,19 @@ describe('simple1120: the sketch type and the saved screen strip (measured)', ()
   });
   it('the phone start window uses the sketch 13px / 12.5px', () => {
     expect(listCss).toContain('  .dash-mobile-newquote-menu > span { font-size: 13px !important; }\n  .dash-mobile-newquote-menu > button small { font-size: 12.5px !important; }');
+  });
+});
+
+describe('simple1120: every text at the sketch size (measured)', () => {
+  const treeCss = fs.readFileSync('src/components/quoteTree/quoteTree.css', 'utf8');
+  it('structure menu 14px / 12px, row name 13px, project labels 12.5px on a phone', () => {
+    expect(treeCss).toContain('.qt-menu .qt-sopt b { font-size: 14px; }');
+    expect(treeCss).toContain('.qt-menu .qt-sopt small { font-size: 12px; }');
+    expect(treeCss).toContain('.qe .qt-row-name { font-size: 13px; }');
+    expect(treeCss).toContain('@media (max-width: 768px) { .qe .qt-page-label { font-size: 12.5px; } }');
+  });
+  it('phone hot-banner name 13px and card number 12.5px', () => {
+    expect(listCss).toContain('.quote-hot-banner .qhb-short-name { font-size: 13px !important; }');
+    expect(listCss).toContain('.quote-workspace .qc-num { font-size: 12.5px !important; }');
   });
 });
