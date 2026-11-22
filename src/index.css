@@ -916,19 +916,23 @@ html body .dash-app-shell .dash-upper-section, html body .dash-app-shell aside, 
   .fin-exp-table { min-width: 0 !important; display: block !important; }
   .fin-exp-table .fin-exp-head { display: none !important; }
   .fin-exp-table tbody { display: flex !important; flex-direction: column; gap: 8px; }
+  /* a wrapping row, not a grid (LIVE check 2026-11-22: a long English category squeezed into a grid column and broke the info line):
+     line 1 the description and the amount slot, line 2 category · type · date flowing as one line, line 3 the buttons at the end */
   .fin-exp-table tr.fin-exp-row {
-    display: grid !important; grid-template-columns: auto auto minmax(0, 1fr) auto;
-    grid-template-areas: "desc desc desc amt" "cat type date date" "act act act act";
-    align-items: center; column-gap: 8px; row-gap: 4px;
+    display: flex !important; flex-wrap: wrap; align-items: center; column-gap: 8px; row-gap: 4px;
     border: 1px solid #D9E0E3 !important; border-radius: 8px; padding: 9px 10px;
   }
   .fin-exp-table tr.fin-exp-row > td { padding: 0 !important; width: auto !important; min-width: 0; }
-  .fin-exp-table .fin-exp-desc { grid-area: desc; overflow-wrap: anywhere; }
-  .fin-exp-table .fin-exp-amt { grid-area: amt; }
-  .fin-exp-table .fin-exp-cat { grid-area: cat; }
+  .fin-exp-table .fin-exp-desc { flex: 1 1 0; overflow-wrap: anywhere; }
+  .fin-exp-table .fin-exp-amt { flex: 0 0 auto; }
+  .fin-exp-table .fin-exp-cat { flex: 0 1 auto; flex-basis: auto; order: 3; }
   .fin-exp-table .fin-exp-cat::after { content: '·'; margin-inline-start: 8px; }
-  .fin-exp-table .fin-exp-type { grid-area: type; }
+  .fin-exp-table .fin-exp-type { flex: 0 0 auto; order: 4; }
   .fin-exp-table .fin-exp-type::after { content: '·'; margin-inline-start: 8px; }
-  .fin-exp-table .fin-exp-date { grid-area: date; }
-  .fin-exp-table .fin-exp-act { grid-area: act; justify-content: flex-end; }
+  .fin-exp-table .fin-exp-date { flex: 0 0 auto; order: 5; }
+  .fin-exp-table tr.fin-exp-row::after { content: ''; order: 2; flex-basis: 100%; height: 0; }
+  .fin-exp-table .fin-exp-act { order: 6; flex-basis: 100%; justify-content: flex-end; }
 }
+/* the disabled time field (no work date yet) keeps no room for its hidden clock - its '--:--' sits on the field's start edge in both
+   languages (law 49, LIVE check 2026-11-22) */
+#sq-service-time:disabled::-webkit-calendar-picker-indicator { display: none; }

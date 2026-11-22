@@ -45,6 +45,9 @@ export default function ServiceScheduleFields({ value, onChange, state = 'ready'
   const dateLabel = L(['תאריך העבודה (לא חובה)', 'Work date (optional)']);
   const timeLabel = L(['שעת הגעה (לא חובה)', 'Arrival time (optional)']);
   const atom = { direction: 'ltr', textAlign: isHebrew ? 'right' : 'left' };
+  // law 49 (LIVE check 2026-11-22): the native time field ignores text-align - in Hebrew its value / '--:--' sits at the start side
+  // (right) through flex-end, the digits still left to right (IRON-NUMERIC-001)
+  const timeAtom = isHebrew ? { ...atom, display: 'flex', justifyContent: 'flex-end' } : atom;
   return (
     <div data-testid="service-schedule" data-state={state} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
       <div className="qt-field">
@@ -72,7 +75,7 @@ export default function ServiceScheduleFields({ value, onChange, state = 'ready'
           <HelpCircle inline testId="sq-help-service-time" label={L(['הסבר: שעת הגעה', 'Explain: arrival time'])}
             text={L(['השעה המתוכננת להגעה. אפשר לבחור שעה אחרי שבוחרים תאריך.', 'The planned arrival time. You can choose a time after choosing a date.'])} />
         </div>
-        <input id="sq-service-time" data-testid="service-time" className="qt-input" type="time" step={60} value={v.time} onChange={(e) => onChange({ ...v, time: e.target.value })} disabled={disabled || !v.date} style={atom} />
+        <input id="sq-service-time" data-testid="service-time" className="qt-input" type="time" step={60} value={v.time} onChange={(e) => onChange({ ...v, time: e.target.value })} disabled={disabled || !v.date} style={timeAtom} />
       </div>
       {note && <div data-testid="service-schedule-note" role="status" style={{ fontSize: '0.75rem', fontWeight: 600, color: state === 'loading' ? '#64748b' : '#9a3412' }}>{L(note)}</div>}
     </div>
