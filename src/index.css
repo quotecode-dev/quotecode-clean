@@ -904,3 +904,29 @@ html body:has(.quote-workspace, .qe, .sq-saved--sketch) .dash-app-shell { letter
    screen, so the header's greeting, date and AI pill (and the side menu's names) stand in the same place on the quotes and on every other
    screen */
 html body .dash-app-shell .dash-upper-section, html body .dash-app-shell aside, html body .dash-app-shell .mobile-bottom-nav { letter-spacing: normal !important; }
+
+/* Owner console 2026-11-22 ("מאשר את תיקון טבלת ההוצאות בטלפון ... ושחרור עד הלייב"): on a phone the finances expenses table is a
+   list of cards that fit the width - no sideways scroll, no column cut by the screen edge. Line 1: the description and the amount
+   (the MoneyValue slot keeps IRON-NUMERIC-001's physical right-edge axis, the same column width on every card); line 2: category ·
+   type · date; line 3: edit / delete at the end. Tablet and computer keep the table. */
+@media (max-width: 560px) {
+  .fin-exp-wrap { overflow-x: visible !important; }
+  .fin-exp-table { min-width: 0 !important; display: block !important; }
+  .fin-exp-table .fin-exp-head { display: none !important; }
+  .fin-exp-table tbody { display: flex !important; flex-direction: column; gap: 8px; }
+  .fin-exp-table tr.fin-exp-row {
+    display: grid !important; grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "desc desc desc amt" "cat type date date" "act act act act";
+    align-items: center; column-gap: 8px; row-gap: 4px;
+    border: 1px solid #D9E0E3 !important; border-radius: 8px; padding: 9px 10px;
+  }
+  .fin-exp-table tr.fin-exp-row > td { padding: 0 !important; width: auto !important; min-width: 0; }
+  .fin-exp-table .fin-exp-desc { grid-area: desc; overflow-wrap: anywhere; }
+  .fin-exp-table .fin-exp-amt { grid-area: amt; }
+  .fin-exp-table .fin-exp-cat { grid-area: cat; }
+  .fin-exp-table .fin-exp-cat::after { content: '·'; margin-inline-start: 8px; }
+  .fin-exp-table .fin-exp-type { grid-area: type; }
+  .fin-exp-table .fin-exp-type::after { content: '·'; margin-inline-start: 8px; }
+  .fin-exp-table .fin-exp-date { grid-area: date; }
+  .fin-exp-table .fin-exp-act { grid-area: act; justify-content: flex-end; }
+}

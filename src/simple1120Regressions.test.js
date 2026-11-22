@@ -69,3 +69,16 @@ describe('simple1120: last measured corrections', () => {
     expect(treeCss).toContain('.qp-dialog.qp-dialog--sketch { flex: none !important; }');
   });
 });
+
+describe('simple1120-fix1: the finances expenses (Owner console 2026-11-22)', () => {
+  const fin = fs.readFileSync('src/components/FinancesTab.jsx', 'utf8');
+  it('on a phone every expense is a card that fits the width (no sideways scroll, no column cut by the screen edge)', () => {
+    expect(indexCss).toContain('@media (max-width: 560px) {\n  .fin-exp-wrap { overflow-x: visible !important; }\n  .fin-exp-table { min-width: 0 !important; display: block !important; }');
+    expect(indexCss).toContain('grid-template-areas: "desc desc desc amt" "cat type date date" "act act act act";');
+    for (const c of ['fin-exp-wrap', 'fin-exp-table', 'fin-exp-head', 'fin-exp-row', 'fin-exp-desc', 'fin-exp-cat', 'fin-exp-type', 'fin-exp-date', 'fin-exp-amt', 'fin-exp-act']) expect(fin).toContain(`className="${c}"`);
+  });
+  it('the total column is as wide as its amount and the amount keeps the physical right-edge axis (IRON-NUMERIC-001)', () => {
+    expect(fin).toContain("<th style={{ padding: '6px', textAlign: 'right', width: '1%', whiteSpace: 'nowrap' }}>{t.total}</th>");
+    expect(fin).toContain("<td className=\"fin-exp-amt\" style={{ padding: '8px 6px', textAlign: 'right', width: '1%', whiteSpace: 'nowrap' }}><MoneyValue slot symbol={sym}");
+  });
+});

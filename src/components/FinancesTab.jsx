@@ -300,32 +300,34 @@ export default function FinancesTab({
               </div>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '380px' }}>
-                <thead>
+            <div className="fin-exp-wrap" style={{ overflowX: 'auto' }}>
+              {/* Owner console 2026-11-22: on a phone every expense is a card that fits the width (no sideways scroll, no cut column); the total
+                column is as wide as its amount (IRON-NUMERIC-001 keeps the amount on the physical right-edge axis) - fin-exp-* in index.css */}
+              <table className="fin-exp-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '380px' }}>
+                <thead className="fin-exp-head">
                   <tr style={{ borderBottom: `2px solid ${NEON.border}`, color: NEON.textSecondary, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     <th style={{ padding: '6px' }}>{t.description}</th>
                     <th style={{ padding: '6px' }}>{isHebrew ? 'קטגוריה' : 'Category'}</th>
                     <th style={{ padding: '6px' }}>{isHebrew ? 'סוג' : 'Type'}</th>
                     <th style={{ padding: '6px' }}>{isHebrew ? 'תאריך' : 'Date'}</th>
-                    <th style={{ padding: '6px', textAlign: 'right' }}>{t.total}</th>
+                    <th style={{ padding: '6px', textAlign: 'right', width: '1%', whiteSpace: 'nowrap' }}>{t.total}</th>
                     <th style={{ padding: '6px' }}>{t.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredExpensesForReport.map((exp) => (
-                    <tr key={exp.id} style={{ borderBottom: `1px solid ${NEON.divider}`, fontSize: '0.8rem' }}>
-                      <td style={{ padding: '8px 6px', fontWeight: '400', color: NEON.textPrimary }}>{exp.description}</td>
-                      <td style={{ padding: '8px 6px', color: NEON.textSecondary }}>{exp.category}</td>
-                      <td style={{ padding: '8px 6px', color: NEON.textSecondary }}>
+                    <tr key={exp.id} className="fin-exp-row" style={{ borderBottom: `1px solid ${NEON.divider}`, fontSize: '0.8rem' }}>
+                      <td className="fin-exp-desc" style={{ padding: '8px 6px', fontWeight: '400', color: NEON.textPrimary }}>{exp.description}</td>
+                      <td className="fin-exp-cat" style={{ padding: '8px 6px', color: NEON.textSecondary }}>{exp.category}</td>
+                      <td className="fin-exp-type" style={{ padding: '8px 6px', color: NEON.textSecondary }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           {exp.is_recurring && <Repeat size={11} color={NEON.violetLight} />}
                           {exp.is_recurring ? (isHebrew ? 'קבועה' : 'Recurring') : (isHebrew ? 'חד פעמית' : 'One-time')}
                         </span>
                       </td>
-                      <td style={{ padding: '8px 6px', color: NEON.textSecondary }}><NumericValue data-date="expense">{formatShortDate(exp.expense_date, isHebrew ? 'Local' : 'International')}</NumericValue></td>
-                      <td style={{ padding: '8px 6px', textAlign: 'right' }}><MoneyValue slot symbol={sym} text={formatMoneyDisplay(exp.amount)} data-testid="expense-row-amount" style={{ color: NEON.red, fontWeight: '400' }} /></td>
-                      <td style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <td className="fin-exp-date" style={{ padding: '8px 6px', color: NEON.textSecondary }}><NumericValue data-date="expense">{formatShortDate(exp.expense_date, isHebrew ? 'Local' : 'International')}</NumericValue></td>
+                      <td className="fin-exp-amt" style={{ padding: '8px 6px', textAlign: 'right', width: '1%', whiteSpace: 'nowrap' }}><MoneyValue slot symbol={sym} text={formatMoneyDisplay(exp.amount)} data-testid="expense-row-amount" style={{ color: NEON.red, fontWeight: '400' }} /></td>
+                      <td className="fin-exp-act" style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
                         {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
                         <button
                           onClick={() => setEditingExpense(exp)}
