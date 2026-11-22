@@ -96,3 +96,11 @@ describe('simple1120-fix1: the finances phone screen is the same in Hebrew and E
     expect(fin).toContain('{...(phoneMonthTicks ? { ticks: phoneMonthTicks, interval: 0 } : {})}');
   });
 });
+
+describe('simple1120-fix1: the finances KPI amounts sit at the card start in both languages (law 49, Owner console 2026-11-22)', () => {
+  const fin = fs.readFileSync('src/components/FinancesTab.jsx', 'utf8');
+  it('the three money KPIs align to the start side (right in Hebrew, left in English)', () => {
+    expect(fin).toContain("const kpiStart = isHebrew ? 'right' : 'left';");
+    expect(fin.match(/className="pf-money pf-kpi-money" style=\{\{ fontSize: '1.25rem', fontWeight: '800', textAlign: kpiStart, /g)).toHaveLength(3);
+  });
+});

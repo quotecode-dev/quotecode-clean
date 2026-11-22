@@ -58,6 +58,7 @@ export default function FinancesTab({
     const mq = window.matchMedia(PHONE_Q); const on = () => setIsPhone(mq.matches); on();
     mq.addEventListener?.('change', on); return () => mq.removeEventListener?.('change', on);
   }, []);
+  const kpiStart = isHebrew ? 'right' : 'left';
   const phoneMonthTicks = isPhone && Array.isArray(chartData) ? chartData.filter((_, i) => (chartData.length - 1 - i) % 2 === 0).map((d) => d.name) : undefined;
 
   // QA 2026-10-25 (C1): the drawer closes only after the expense was saved - a failed save keeps it open with the typed values
@@ -141,6 +142,8 @@ export default function FinancesTab({
         </div>
       )}
 
+      {/* Owner console 2026-11-22 (law 49): a KPI amount (an LTR-isolated atom) sits at the card's start, under its label, as the count -
+          right in Hebrew, left in English; the figures and the symbol side stay as IRON-NUMERIC-001 */}
       <div className="pf-screen-body">
       {/* חוק ברזל (§I2): ארבעה כרטיסי-מדד עקביים, מבנה-כרטיס משותף אחד,
           צבע סמנטי בלבד (סגול=נייטרלי/מותג, ירוק=חיובי, אדום=שלילי). */}
@@ -151,18 +154,18 @@ export default function FinancesTab({
         </div>
         <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.emerald}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.emerald}` }}>
           <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><Wallet size={12} color={NEON.emerald} />{t.totalRevenue}</div>
-          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.emerald }}>
+          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', textAlign: kpiStart, color: NEON.emerald }}>
             <CurrencyTotals className={revenueMulti ? 'pf-kpi-currencies' : ''} totals={adminRevenueTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={accountCurrency} isHebrew={isHebrew} />
           </div>
         </div>
         <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.red}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.red}` }}>
           <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingDown size={12} color={NEON.red} />{t.totalExpenses}</div>
-          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.red }}>{sym}{formatMoneyDisplay(adminTotalExpenses)}</div>
+          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', textAlign: kpiStart, color: NEON.red }}>{sym}{formatMoneyDisplay(adminTotalExpenses)}</div>
         </div>
         <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${netProfitTone}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${netProfitTone}` }}>
           <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingUp size={12} color={netProfitTone} />{t.netProfit}</div>
           {netProfitComputable ? (
-            <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: netProfitTone }}>{sym}{formatMoneyDisplay(adminNetProfit)}</div>
+            <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', textAlign: kpiStart, color: netProfitTone }}>{sym}{formatMoneyDisplay(adminNetProfit)}</div>
           ) : (
             // IRON-MARKET-004: revenue spans several currencies (or a quote has no valid currency) - no conversion, so no number
             <div className="pf-kpi-money pf-kpi-money--na" data-net-profit="not-computable" style={{ fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary }}>
