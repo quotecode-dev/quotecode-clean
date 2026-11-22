@@ -79,8 +79,8 @@
 select.qe-in { padding-inline-start: 8px; padding-inline-end: 22px; }
 .qe-ltr { direction: ltr; text-align: start; }
 [dir="rtl"] .qe-ltr { text-align: right; }
-.qe-ph { border: 1px solid var(--qt-line2); border-radius: 8px; overflow: hidden; background: #fff; height: 40px; box-sizing: border-box; }
-.qe-ph .qe-in { border: 0; border-radius: 0; text-align: left; flex: 1 1 auto; height: 38px; }
+.qe-ph { border: 1px solid var(--qt-line2); border-radius: 8px; overflow: hidden; background: #fff; }
+.qe-ph .qe-in { border: 0; border-radius: 0; text-align: left; flex: 1 1 auto; }
 .qe-ph-code { background: var(--qt-chip); padding: 0 8px; display: grid; place-items: center; font-size: 13px; font-weight: 600; border-inline-end: 1px solid var(--qt-line2); white-space: nowrap; flex: 0 0 auto; }
 [dir="rtl"] .qe-ph-code { border-inline-end: 0; border-inline-start: 1px solid var(--qt-line2); }
 .qe-addr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
@@ -106,9 +106,6 @@ select.qe-in { padding-inline-start: 8px; padding-inline-end: 22px; }
 .qt-ir-q, .qt-ir-p, .qt-ir-s { text-align: right; white-space: nowrap; }
 .qt-ir-s { font-weight: 600; }
 .qt-ir .qt-menu-wrap { justify-self: center; }
-/* simple1120-fix2 (law 50, pixel-measured against the sketch): the row menu's outer edge lands 1px further out, on the button edge
-   behind it - no 1px sliver of the button beside the open menu */
-.qt-ir .qt-menu { inset-inline-end: -1px; }
 .qt-er { padding: 6px 10px; background: var(--qt-entry); border-top: 1px solid var(--qt-line); }
 .qt-items > .qt-er:first-child { border-top: 0; border-radius: 10px 10px 0 0; }
 .qt-er input, .qt-er select { width: 100%; height: 34px; border: 1px solid var(--qt-line2); border-radius: 7px; padding: 0 8px; font-size: 14px; background: #fff; min-width: 0; color: var(--qt-ink); box-sizing: border-box; min-block-size: 0; }
@@ -157,9 +154,6 @@ select.qe-in { padding-inline-start: 8px; padding-inline-end: 22px; }
 .qt-addb { width: 32px; height: 32px; color: var(--qt-teal); }
 .qt-hs { font-weight: 600; font-size: 13.5px; white-space: nowrap; text-align: right; }
 .qt-hh .qt-menu-wrap { justify-self: center; }
-/* simple1120-fix2 (law 50, pixel-measured against the sketch): the section-head menu 1px higher and 1px in - no sliver of the head row
-   above it */
-.qt-hh .qt-menu { top: calc(100% + 3px); inset-inline-end: 1px; }
 .qt-hh--ren { display: flex; gap: 6px; padding: 4px 6px; }
 .qt-hh--ren .qt-input { flex: 1; min-width: 0; height: 36px; min-block-size: 0; }
 .qt-hbody { padding-top: 6px; }

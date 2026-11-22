@@ -1421,7 +1421,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                           )}
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: msg.role === 'user' ? ('flex-end') : ('flex-start'), maxWidth: '85%' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: msg.role === 'user' ? (isHebrew ? 'flex-start' : 'flex-end') : (isHebrew ? 'flex-end' : 'flex-start'), maxWidth: '85%' }}>
                           <div style={{
                             background: msg.role === 'user' ? NEON.gradient : NEON.bgCard,
                             color: msg.role === 'user' ? 'white' : NEON.textPrimary,
@@ -1448,7 +1448,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                           </div>
                           {msg.role === 'assistant' && msg.spoken && voiceEnabled && (
                             /* PRODUCT_TRUTH_DECORATIVE: plays this answer aloud again */
-                            <button type="button" data-testid="ai-chat-replay" onClick={() => speakAnswer(msg.content)} aria-label={voiceCopy.replay} style={{ alignSelf: 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', padding: '0 2px', color: NEON.textSecondary, cursor: 'pointer', fontSize: '0.7rem' }}>
+                            <button type="button" data-testid="ai-chat-replay" onClick={() => speakAnswer(msg.content)} aria-label={voiceCopy.replay} style={{ alignSelf: isHebrew ? 'flex-end' : 'flex-start', display: 'inline-flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', padding: '0 2px', color: NEON.textSecondary, cursor: 'pointer', fontSize: '0.7rem' }}>
                               <Volume2 size={13} strokeWidth={2.2} aria-hidden="true" />{voiceCopy.replay}
                             </button>
                           )}
@@ -1461,7 +1461,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                               fontSize: '0.65rem',
                               color: NEON.textSecondary,
                               opacity: 0.75,
-                              alignSelf: msg.role === 'user' ? ('flex-end') : ('flex-start'),
+                              alignSelf: msg.role === 'user' ? (isHebrew ? 'flex-start' : 'flex-end') : (isHebrew ? 'flex-end' : 'flex-start'),
                               padding: '0 2px',
                             }}>
                               {messageTime}
@@ -1487,7 +1487,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                                 fontSize: '0.78rem',
                                 fontWeight: 'bold',
                                 cursor: 'pointer',
-                                alignSelf: 'flex-start',
+                                alignSelf: isHebrew ? 'flex-end' : 'flex-start',
                               }}
                             >
                               {getNavigationLabel(msg.navigationAction, isHebrew)}
@@ -1500,7 +1500,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                               data-testid="ai-chat-retry"
                               disabled={loading}
                               onClick={() => (msg.retryKind === 'analyze_draft' ? analyzeDraft(msg.retryText) : sendText(msg.retryText))}
-                              style={{ minHeight: '38px', padding: '6px 12px', borderRadius: '8px', border: `1px solid ${NEON.borderStrong}`, background: 'transparent', color: NEON.violetLighter, fontSize: '0.78rem', fontWeight: 'bold', cursor: 'pointer', alignSelf: 'flex-start' }}
+                              style={{ minHeight: '38px', padding: '6px 12px', borderRadius: '8px', border: `1px solid ${NEON.borderStrong}`, background: 'transparent', color: NEON.violetLighter, fontSize: '0.78rem', fontWeight: 'bold', cursor: 'pointer', alignSelf: isHebrew ? 'flex-end' : 'flex-start' }}
                             >
                               {isHebrew ? 'נסו שוב' : 'Try again'}
                             </button>
@@ -1693,12 +1693,12 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                     {/* Task 33: a chosen guided topic answers at once (what the assistant can do for it here, from the bounded facts it
                         already holds) and may offer one-click follow-ups that go through the normal send path - never a silent chip. */}
                     {guidedReply ? (
-                      <div data-testid="ai-guided-reply" data-intent={guidedIntent} style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: 'flex-start', maxWidth: '92%' }}>
+                      <div data-testid="ai-guided-reply" data-intent={guidedIntent} style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignSelf: isHebrew ? 'flex-end' : 'flex-start', maxWidth: '92%' }}>
                         <div role="status" style={{ background: NEON.bgCard, color: NEON.textPrimary, padding: '10px 14px', borderRadius: '12px', fontSize: '0.85rem', border: `1px solid ${NEON.border}`, lineHeight: '1.4', textAlign: isHebrew ? 'right' : 'left' }}>
                           {guidedReply.text}
                         </div>
                         {guidedReply.actions.length > 0 && (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: 'flex-start' }}>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', justifyContent: isHebrew ? 'flex-end' : 'flex-start' }}>
                             {/* PRODUCT_TRUTH_DECORATIVE: sends one guided follow-up question to the assistant through the normal chat send path */}
                             {guidedReply.actions.map((a) => (
                               <button key={a.id} type="button" data-testid="ai-guided-followup" data-action={a.kind || 'message'} disabled={loading} onClick={() => (a.kind === 'analyze_draft' ? analyzeDraft(a.message) : sendText(a.message))} style={guidedButtonStyle(false)}>
@@ -1820,7 +1820,7 @@ export default function AIChatWidget({ isHebrew = true, isDashboard = false, cur
                 )}
 
                 {loading && (
-                  <div style={{ alignSelf: 'flex-start', background: NEON.bgCard, padding: '8px 12px', borderRadius: '12px', fontSize: '0.8rem', color: NEON.textSecondary, border: `1px solid ${NEON.border}` }}>
+                  <div style={{ alignSelf: isHebrew ? 'flex-end' : 'flex-start', background: NEON.bgCard, padding: '8px 12px', borderRadius: '12px', fontSize: '0.8rem', color: NEON.textSecondary, border: `1px solid ${NEON.border}` }}>
                     {isHebrew ? 'מקליד תשובה…' : 'Typing...'}
                   </div>
                 )}
