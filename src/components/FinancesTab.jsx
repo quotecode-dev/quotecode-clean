@@ -2,7 +2,7 @@
 // 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (FinancesTab.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
 // ==============================================================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MoneyValue, NumericValue, CurrencyTotals } from './NumericValue';
 import SketchChartIcon from './SketchChartIcon';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -49,6 +49,16 @@ export default function FinancesTab({
   // ל-drawer שנפתח ע"י "הוסף הוצאה"/"Add Expense" ראשי אחד (סגול).
   // handleAddExpense (הקיים) עדיין מבצע את היצירה בפועל.
   const [showAddExpenseForm, setShowAddExpenseForm] = useState(false);
+  // Owner console 2026-11-22 (law 49): on a phone the chart names every second month, ending at the last one, in both languages (the
+  // automatic spacing picked 8 uneven Hebrew names against 6 English ones)
+  const PHONE_Q = '(max-width: 560px)';
+  const [isPhone, setIsPhone] = useState(() => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(PHONE_Q).matches);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mq = window.matchMedia(PHONE_Q); const on = () => setIsPhone(mq.matches); on();
+    mq.addEventListener?.('change', on); return () => mq.removeEventListener?.('change', on);
+  }, []);
+  const phoneMonthTicks = isPhone && Array.isArray(chartData) ? chartData.filter((_, i) => (chartData.length - 1 - i) % 2 === 0).map((d) => d.name) : undefined;
 
   // QA 2026-10-25 (C1): the drawer closes only after the expense was saved - a failed save keeps it open with the typed values
   const handleAddExpenseSubmit = (e) => {
@@ -176,7 +186,7 @@ export default function FinancesTab({
            <ResponsiveContainer width="100%" height="100%">
              <BarChart data={chartData} margin={{ top: 5, right: 15, left: 0, bottom: 20 }}>
                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={NEON.divider} />
-               <XAxis dataKey="name" stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 12 }} />
+               <XAxis dataKey="name" stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 12 }} {...(phoneMonthTicks ? { ticks: phoneMonthTicks, interval: 0 } : {})} />
                <YAxis width={78} stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 12 }} />
                <Tooltip
                  formatter={(value, _name, item) => {
@@ -204,7 +214,7 @@ export default function FinancesTab({
       <div className="pf-m-surface" style={{ background: NEON.bgCard, padding: '16px', borderRadius: '10px', border: `1px solid ${NEON.border}`, marginBottom: '16px' }}>
           {/* חוק ברזל (§I4): "הוסף הוצאה"/"Add Expense" סגול-ראשי; ייצוא-CSV
               נשאר משני-ניטרלי ולא שולט בשורה. */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <div className="fin-exp-titlebar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: '800', margin: 0, ...neonGlowTextStyle }}>{t.expensesManagement}</h2>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {/* PRODUCT_TRUTH_CAPABILITY: expense_csv */}
