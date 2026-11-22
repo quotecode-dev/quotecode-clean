@@ -217,7 +217,7 @@ body .pf-newquote-backdrop .pf-newquote-item-text small { line-height: 1.45; }
   .dash-main-content .quote-workspace .qc-ln2 { font-size: 12px; line-height: 1.45; }
 }
 /* phone / tablet upright: the quiet link keeps clear of the bottom edge when the list runs past the screen (it never sits half under the bottom bar) */
-@media (max-width: 768px) { .qs-a11y { padding-top: 46px; } }
+/* (the phone list keeps the sketch's 14px; its header stays at the top while the list scrolls, as the sketch's) */
 /* law 50 round 3 (the sketch) */
 /* the views and date columns stand on the right, as the sketch's (its title too) */
 .quote-modern-list[dir="ltr"] .quote-modern-head-views, .quote-modern-list[dir="ltr"] .quote-modern-head-created_at { justify-content: flex-end !important; text-align: right !important; }
@@ -240,4 +240,19 @@ body .pf-newquote-backdrop .pf-newquote-item-text small { line-height: 21.75px !
   .dash-mobile-newquote-menu > button strong { line-height: 21px !important; }
   .dash-mobile-newquote-menu > button small { line-height: 21.75px !important; }
   .dash-mobile-newquote-menu > span { line-height: 18.85px !important; }
+}
+/* law 50 last corrections, measured against the sketch (C:/tekango-ops/visual-evidence/simple1120/measure-sketch.mjs) */
+/* the table: the amount in the sketch's 13.5px / 600, ending on the row's 12px edge */
+.dash-main-content .quote-workspace .quote-modern-row > .quote-modern-amount, .dash-main-content .quote-workspace .quote-modern-row > .quote-modern-amount * { font-size: 13.5px !important; font-weight: 600; }
+.quote-modern-list[dir] .quote-modern-row > .quote-modern-amount { padding-left: 0 !important; padding-right: 0 !important; }
+/* the pager right under the table card */
+.dash-main-content .quote-workspace > .quote-modern-pager { margin: 0 !important; padding: 10px !important; line-height: 18.125px !important; }
+/* the start window (computer): the sketch's title and sentence lines, no gap between an option's name and its words */
+body .pf-newquote-backdrop .pf-newquote-title { line-height: 23.2px !important; }
+body .pf-newquote-backdrop .pf-newquote-sentence { line-height: 18.85px !important; }
+body .pf-newquote-backdrop .pf-newquote-item-text { gap: 0 !important; }
+/* the phone start window: the same words as wide as the sketch's (the phone renders these glyphs about 3% narrower) */
+@media (max-width: 768px) {
+  .dash-mobile-newquote-menu > span { font-size: 13.4px !important; }
+  .dash-mobile-newquote-menu > button small { font-size: 12.9px !important; }
 }

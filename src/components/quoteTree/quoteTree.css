@@ -379,3 +379,5 @@ body:has(.qt-menu, .qe-menu, [role="dialog"], [role="alertdialog"]) .qe .qt-stat
 .qe-a11y { margin-top: 0 !important; }
 .qt-menu .qt-sopt b { line-height: 20.3px; }
 .qt-menu .qt-sopt small { line-height: 17.4px; }
+/* the client step: its accessibility link sits at the bottom of the screen (the sketch); the items step keeps it right under the details */
+.qe .pf-editor-form > .qe-a11y:last-child { margin-top: auto !important; }

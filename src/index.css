@@ -872,3 +872,14 @@ html[dir="rtl"] [data-testid="header-bell-count"] { inset-inline-end: auto !impo
 html body .dash-main-content .quote-workspace { margin-bottom: 0 !important; }
 @media (min-width: 769px) { html body:has(.quote-workspace, .sq-saved--sketch) .dash-main-content { padding-bottom: 20px !important; } }
 @media (max-width: 768px) { html body:has(.quote-workspace, .sq-saved--sketch) .dash-main-content { padding-bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important; } }
+/* law 50 last corrections (measured): the work area of the list / saved screen ends 20px above the bottom on a computer (stronger than the
+   table layout's 8px rule); on a phone the list ends 16px above the bottom bar and its header stays at the top while the list scrolls (the
+   sketch's header never scrolls) */
+@media (min-width: 769px) { html body .dash-main-content.dash-main-content:has(.quote-workspace, .sq-saved--sketch) { padding-bottom: 20px !important; } }
+@media (max-width: 768px) {
+  html body .dash-main-content .quote-workspace.quote-workspace.pf-screen { padding-bottom: 0 !important; }
+  html body:has(.quote-workspace) .dash-main-content .dash-upper-section { position: sticky !important; top: -6px; z-index: 30; }
+}
+/* the saved screen: the sketch's rhythm (arrow, check, sentence) */
+.sq-saved--sketch .sq-saved-card h2 { margin-top: 2px !important; }
+@media (min-width: 769px) { .sq-saved--sketch .sq-saved-back { margin-top: 12px !important; } }
