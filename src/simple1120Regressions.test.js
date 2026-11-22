@@ -8,7 +8,7 @@ const listCss = fs.readFileSync('src/components/quotesList.css', 'utf8');
 
 describe('simple1120 regressions', () => {
   it('outside the quote list / editor the phone header grows to hold the stats line', () => {
-    expect(indexCss).toContain('html body:not(:has(.pf-editor-form)) .dash-main-content .dash-upper-section:not([data-quotes-overview="true"]) { height: auto !important; min-height: 48px !important; padding: 2px 10px 8px !important; }');
+    expect(indexCss).toContain('html body:not(:has(.pf-editor-form)) .dash-main-content .dash-upper-section:not([data-quotes-overview="true"]) { height: auto !important; min-height: 48px !important; padding: 2px 10px 8px !important; flex-shrink: 0 !important; }');
   });
   it('the empty next-step note wraps instead of ending in dots', () => {
     expect(listCss).toContain('.quote-hot-banner.quote-hot-banner--empty .quote-hot-banner-text { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }');

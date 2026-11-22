@@ -886,9 +886,10 @@ html body .dash-main-content .quote-workspace { margin-bottom: 0 !important; }
 /* simple1120 regression fix (found by the law-48 walk of the other screens): the 48px phone header is the sketch's header for the screens
    whose stats line is hidden (the quote list / saved screen = data-quotes-overview, the editor = .pf-editor-form). Every other screen keeps
    its stats line on the phone, as on LIVE (12cdeb00), so its header grows to hold that second line instead of letting it spill under the
-   header onto the content. */
+   header onto the content; flex-shrink 0: the header sits in a flex column - on a long page (real data) it shrank to its 48px floor and cut the
+   stats line on LIVE 9fb02860 at 390). */
 @media (max-width: 768px) {
-  html body:not(:has(.pf-editor-form)) .dash-main-content .dash-upper-section:not([data-quotes-overview="true"]) { height: auto !important; min-height: 48px !important; padding: 2px 10px 8px !important; }
+  html body:not(:has(.pf-editor-form)) .dash-main-content .dash-upper-section:not([data-quotes-overview="true"]) { height: auto !important; min-height: 48px !important; padding: 2px 10px 8px !important; flex-shrink: 0 !important; }
 }
 /* one header on every screen (computer): the sketch's 16px side padding - the other screens kept the older 28px / 22px and the header's
    contents jumped sideways when moving between the quotes and, e.g., the finances screen */
