@@ -886,9 +886,10 @@ html body .dash-main-content .quote-workspace { margin-bottom: 0 !important; }
 /* simple1120 regression fix (found by the law-48 walk of the other screens): the 48px phone header is the sketch's header for the screens
    whose stats line is hidden (the quote list / saved screen = data-quotes-overview, the editor = .pf-editor-form). Every other screen keeps
    its stats line on the phone, as on LIVE (12cdeb00), so its header grows to hold that second line instead of letting it spill under the
-   header onto the content. */
+   header onto the content; flex-shrink 0: the header sits in a flex column - on a long page (real data) it shrank to its 48px floor and cut the
+   stats line on LIVE 9fb02860 at 390). */
 @media (max-width: 768px) {
-  html body:not(:has(.pf-editor-form)) .dash-main-content .dash-upper-section:not([data-quotes-overview="true"]) { height: auto !important; min-height: 48px !important; padding: 2px 10px 8px !important; }
+  html body:not(:has(.pf-editor-form)) .dash-main-content .dash-upper-section:not([data-quotes-overview="true"]) { height: auto !important; min-height: 48px !important; padding: 2px 10px 8px !important; flex-shrink: 0 !important; }
 }
 /* one header on every screen (computer): the sketch's 16px side padding - the other screens kept the older 28px / 22px and the header's
    contents jumped sideways when moving between the quotes and, e.g., the finances screen */
@@ -903,3 +904,31 @@ html body:has(.quote-workspace, .qe, .sq-saved--sketch) .dash-app-shell { letter
    screen, so the header's greeting, date and AI pill (and the side menu's names) stand in the same place on the quotes and on every other
    screen */
 html body .dash-app-shell .dash-upper-section, html body .dash-app-shell aside, html body .dash-app-shell .mobile-bottom-nav { letter-spacing: normal !important; }
+
+/* Owner console 2026-11-22 ("מאשר את תיקון טבלת ההוצאות בטלפון ... ושחרור עד הלייב"): on a phone the finances expenses table is a
+   list of cards that fit the width - no sideways scroll, no column cut by the screen edge. Line 1: the description and the amount
+   (the MoneyValue slot keeps IRON-NUMERIC-001's physical right-edge axis, the same column width on every card); line 2: category ·
+   type · date; line 3: edit / delete at the end. Tablet and computer keep the table. */
+@media (max-width: 560px) {
+  /* law 49: the title on its own line and the two buttons under it, at the start, in both languages */
+  .fin-exp-titlebar { flex-direction: column !important; align-items: flex-start !important; }
+  .fin-exp-wrap { overflow-x: visible !important; }
+  .fin-exp-table { min-width: 0 !important; display: block !important; }
+  .fin-exp-table .fin-exp-head { display: none !important; }
+  .fin-exp-table tbody { display: flex !important; flex-direction: column; gap: 8px; }
+  .fin-exp-table tr.fin-exp-row {
+    display: grid !important; grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-areas: "desc desc desc amt" "cat type date date" "act act act act";
+    align-items: center; column-gap: 8px; row-gap: 4px;
+    border: 1px solid #D9E0E3 !important; border-radius: 8px; padding: 9px 10px;
+  }
+  .fin-exp-table tr.fin-exp-row > td { padding: 0 !important; width: auto !important; min-width: 0; }
+  .fin-exp-table .fin-exp-desc { grid-area: desc; overflow-wrap: anywhere; }
+  .fin-exp-table .fin-exp-amt { grid-area: amt; }
+  .fin-exp-table .fin-exp-cat { grid-area: cat; }
+  .fin-exp-table .fin-exp-cat::after { content: '·'; margin-inline-start: 8px; }
+  .fin-exp-table .fin-exp-type { grid-area: type; }
+  .fin-exp-table .fin-exp-type::after { content: '·'; margin-inline-start: 8px; }
+  .fin-exp-table .fin-exp-date { grid-area: date; }
+  .fin-exp-table .fin-exp-act { grid-area: act; justify-content: flex-end; }
+}

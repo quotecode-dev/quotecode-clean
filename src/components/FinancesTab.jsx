@@ -2,7 +2,7 @@
 // 🚨 PROFLOW HARD RULE: Strict dynamic routing, language enforcement & subscription limits (FinancesTab.jsx). Absolute ban on bypassing plan restrictions via URL manipulation.
 // ==============================================================================
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { MoneyValue, NumericValue, CurrencyTotals } from './NumericValue';
 import SketchChartIcon from './SketchChartIcon';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
@@ -49,6 +49,17 @@ export default function FinancesTab({
   // ל-drawer שנפתח ע"י "הוסף הוצאה"/"Add Expense" ראשי אחד (סגול).
   // handleAddExpense (הקיים) עדיין מבצע את היצירה בפועל.
   const [showAddExpenseForm, setShowAddExpenseForm] = useState(false);
+  // Owner console 2026-11-22 (law 49): on a phone the chart names every second month, ending at the last one, in both languages (the
+  // automatic spacing picked 8 uneven Hebrew names against 6 English ones)
+  const PHONE_Q = '(max-width: 560px)';
+  const [isPhone, setIsPhone] = useState(() => typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia(PHONE_Q).matches);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') return undefined;
+    const mq = window.matchMedia(PHONE_Q); const on = () => setIsPhone(mq.matches); on();
+    mq.addEventListener?.('change', on); return () => mq.removeEventListener?.('change', on);
+  }, []);
+  const kpiStart = isHebrew ? 'right' : 'left';
+  const phoneMonthTicks = isPhone && Array.isArray(chartData) ? chartData.filter((_, i) => (chartData.length - 1 - i) % 2 === 0).map((d) => d.name) : undefined;
 
   // QA 2026-10-25 (C1): the drawer closes only after the expense was saved - a failed save keeps it open with the typed values
   const handleAddExpenseSubmit = (e) => {
@@ -131,6 +142,8 @@ export default function FinancesTab({
         </div>
       )}
 
+      {/* Owner console 2026-11-22 (law 49): a KPI amount (an LTR-isolated atom) sits at the card's start, under its label, as the count -
+          right in Hebrew, left in English; the figures and the symbol side stay as IRON-NUMERIC-001 */}
       <div className="pf-screen-body">
       {/* חוק ברזל (§I2): ארבעה כרטיסי-מדד עקביים, מבנה-כרטיס משותף אחד,
           צבע סמנטי בלבד (סגול=נייטרלי/מותג, ירוק=חיובי, אדום=שלילי). */}
@@ -141,18 +154,18 @@ export default function FinancesTab({
         </div>
         <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.emerald}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.emerald}` }}>
           <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><Wallet size={12} color={NEON.emerald} />{t.totalRevenue}</div>
-          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.emerald }}>
+          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', textAlign: kpiStart, color: NEON.emerald }}>
             <CurrencyTotals className={revenueMulti ? 'pf-kpi-currencies' : ''} totals={adminRevenueTotals} formatMoneyDisplay={formatMoneyDisplay} emptyCurrency={accountCurrency} isHebrew={isHebrew} />
           </div>
         </div>
         <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${NEON.red}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${NEON.red}` }}>
           <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingDown size={12} color={NEON.red} />{t.totalExpenses}</div>
-          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: NEON.red }}>{sym}{formatMoneyDisplay(adminTotalExpenses)}</div>
+          <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', textAlign: kpiStart, color: NEON.red }}>{sym}{formatMoneyDisplay(adminTotalExpenses)}</div>
         </div>
         <div className="pf-m-surface pf-m-surface--accent pf-kpi-card" style={{ background: NEON.bgCard, padding: '14px', borderRadius: '10px', border: `1px solid ${NEON.border}`, borderRight: isHebrew ? `3px solid ${netProfitTone}` : 'none', borderLeft: isHebrew ? 'none' : `3px solid ${netProfitTone}` }}>
           <div style={{ fontSize: '0.75rem', color: NEON.textSecondary, fontWeight: '600', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '5px' }}><TrendingUp size={12} color={netProfitTone} />{t.netProfit}</div>
           {netProfitComputable ? (
-            <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', color: netProfitTone }}>{sym}{formatMoneyDisplay(adminNetProfit)}</div>
+            <div className="pf-money pf-kpi-money" style={{ fontSize: '1.25rem', fontWeight: '800', textAlign: kpiStart, color: netProfitTone }}>{sym}{formatMoneyDisplay(adminNetProfit)}</div>
           ) : (
             // IRON-MARKET-004: revenue spans several currencies (or a quote has no valid currency) - no conversion, so no number
             <div className="pf-kpi-money pf-kpi-money--na" data-net-profit="not-computable" style={{ fontSize: '0.8rem', fontWeight: '600', color: NEON.textSecondary }}>
@@ -176,7 +189,7 @@ export default function FinancesTab({
            <ResponsiveContainer width="100%" height="100%">
              <BarChart data={chartData} margin={{ top: 5, right: 15, left: 0, bottom: 20 }}>
                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={NEON.divider} />
-               <XAxis dataKey="name" stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 12 }} />
+               <XAxis dataKey="name" stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 12 }} {...(phoneMonthTicks ? { ticks: phoneMonthTicks, interval: 0 } : {})} />
                <YAxis width={78} stroke={NEON.textMuted} tick={{ fill: NEON.textMuted, fontSize: 12 }} />
                <Tooltip
                  formatter={(value, _name, item) => {
@@ -204,7 +217,7 @@ export default function FinancesTab({
       <div className="pf-m-surface" style={{ background: NEON.bgCard, padding: '16px', borderRadius: '10px', border: `1px solid ${NEON.border}`, marginBottom: '16px' }}>
           {/* חוק ברזל (§I4): "הוסף הוצאה"/"Add Expense" סגול-ראשי; ייצוא-CSV
               נשאר משני-ניטרלי ולא שולט בשורה. */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
+          <div className="fin-exp-titlebar" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', flexWrap: 'wrap', gap: '8px' }}>
             <h2 style={{ fontSize: '1rem', fontWeight: '800', margin: 0, ...neonGlowTextStyle }}>{t.expensesManagement}</h2>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               {/* PRODUCT_TRUTH_CAPABILITY: expense_csv */}
@@ -300,32 +313,34 @@ export default function FinancesTab({
               </div>
             </div>
           ) : (
-            <div style={{ overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '380px' }}>
-                <thead>
+            <div className="fin-exp-wrap" style={{ overflowX: 'auto' }}>
+              {/* Owner console 2026-11-22: on a phone every expense is a card that fits the width (no sideways scroll, no cut column); the total
+                column is as wide as its amount (IRON-NUMERIC-001 keeps the amount on the physical right-edge axis) - fin-exp-* in index.css */}
+              <table className="fin-exp-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: isHebrew ? 'right' : 'left', minWidth: '380px' }}>
+                <thead className="fin-exp-head">
                   <tr style={{ borderBottom: `2px solid ${NEON.border}`, color: NEON.textSecondary, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     <th style={{ padding: '6px' }}>{t.description}</th>
                     <th style={{ padding: '6px' }}>{isHebrew ? 'קטגוריה' : 'Category'}</th>
                     <th style={{ padding: '6px' }}>{isHebrew ? 'סוג' : 'Type'}</th>
                     <th style={{ padding: '6px' }}>{isHebrew ? 'תאריך' : 'Date'}</th>
-                    <th style={{ padding: '6px', textAlign: 'right' }}>{t.total}</th>
+                    <th style={{ padding: '6px', textAlign: 'right', width: '1%', whiteSpace: 'nowrap' }}>{t.total}</th>
                     <th style={{ padding: '6px' }}>{t.actions}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {filteredExpensesForReport.map((exp) => (
-                    <tr key={exp.id} style={{ borderBottom: `1px solid ${NEON.divider}`, fontSize: '0.8rem' }}>
-                      <td style={{ padding: '8px 6px', fontWeight: '400', color: NEON.textPrimary }}>{exp.description}</td>
-                      <td style={{ padding: '8px 6px', color: NEON.textSecondary }}>{exp.category}</td>
-                      <td style={{ padding: '8px 6px', color: NEON.textSecondary }}>
+                    <tr key={exp.id} className="fin-exp-row" style={{ borderBottom: `1px solid ${NEON.divider}`, fontSize: '0.8rem' }}>
+                      <td className="fin-exp-desc" style={{ padding: '8px 6px', fontWeight: '400', color: NEON.textPrimary }}>{exp.description}</td>
+                      <td className="fin-exp-cat" style={{ padding: '8px 6px', color: NEON.textSecondary }}>{exp.category}</td>
+                      <td className="fin-exp-type" style={{ padding: '8px 6px', color: NEON.textSecondary }}>
                         <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           {exp.is_recurring && <Repeat size={11} color={NEON.violetLight} />}
                           {exp.is_recurring ? (isHebrew ? 'קבועה' : 'Recurring') : (isHebrew ? 'חד פעמית' : 'One-time')}
                         </span>
                       </td>
-                      <td style={{ padding: '8px 6px', color: NEON.textSecondary }}><NumericValue data-date="expense">{formatShortDate(exp.expense_date, isHebrew ? 'Local' : 'International')}</NumericValue></td>
-                      <td style={{ padding: '8px 6px', textAlign: 'right' }}><MoneyValue slot symbol={sym} text={formatMoneyDisplay(exp.amount)} data-testid="expense-row-amount" style={{ color: NEON.red, fontWeight: '400' }} /></td>
-                      <td style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
+                      <td className="fin-exp-date" style={{ padding: '8px 6px', color: NEON.textSecondary }}><NumericValue data-date="expense">{formatShortDate(exp.expense_date, isHebrew ? 'Local' : 'International')}</NumericValue></td>
+                      <td className="fin-exp-amt" style={{ padding: '8px 6px', textAlign: 'right', width: '1%', whiteSpace: 'nowrap' }}><MoneyValue slot symbol={sym} text={formatMoneyDisplay(exp.amount)} data-testid="expense-row-amount" style={{ color: NEON.red, fontWeight: '400' }} /></td>
+                      <td className="fin-exp-act" style={{ padding: '8px 6px', display: 'flex', gap: '4px', alignItems: 'center' }}>
                         {/* PRODUCT_TRUTH_CAPABILITY: expenses */}
                         <button
                           onClick={() => setEditingExpense(exp)}
