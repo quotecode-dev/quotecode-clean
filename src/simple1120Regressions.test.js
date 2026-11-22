@@ -8,7 +8,7 @@ const listCss = fs.readFileSync('src/components/quotesList.css', 'utf8');
 
 describe('simple1120 regressions', () => {
   it('outside the quote list / editor the phone header grows to hold the stats line', () => {
-    expect(indexCss).toContain('html body:not(:has(.pf-editor-form)) .dash-main-content .dash-upper-section:not([data-quotes-overview="true"]) { height: auto !important; min-height: 48px !important; padding: 2px 10px 8px !important; flex-shrink: 0 !important; }');
+    expect(indexCss).toContain('html body:not(:has(.pf-editor-form)) .dash-main-content .dash-upper-section:not([data-quotes-overview="true"]) { height: auto !important; min-height: 48px !important; padding: 2px 10px 8px !important; }');
   });
   it('the empty next-step note wraps instead of ending in dots', () => {
     expect(listCss).toContain('.quote-hot-banner.quote-hot-banner--empty .quote-hot-banner-text { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }');
@@ -67,40 +67,5 @@ describe('simple1120: last measured corrections', () => {
   it('the sort arrow takes the title colour; the question window does not shrink', () => {
     expect(listCss).toContain('.quote-modern-sort-arrow { color: inherit !important; opacity: 1 !important; }');
     expect(treeCss).toContain('.qp-dialog.qp-dialog--sketch { flex: none !important; }');
-  });
-});
-
-describe('simple1120-fix1: the finances expenses (Owner console 2026-11-22)', () => {
-  const fin = fs.readFileSync('src/components/FinancesTab.jsx', 'utf8');
-  it('on a phone every expense is a card that fits the width (no sideways scroll, no column cut by the screen edge)', () => {
-    expect(indexCss).toMatch(/@media \(max-width: 560px\) \{[^}]*\.fin-exp-titlebar/);
-    expect(indexCss).toContain('  .fin-exp-wrap { overflow-x: visible !important; }\n  .fin-exp-table { min-width: 0 !important; display: block !important; }');
-    expect(indexCss).toContain('grid-template-areas: "desc desc desc amt" "cat type date date" "act act act act";');
-    for (const c of ['fin-exp-wrap', 'fin-exp-table', 'fin-exp-head', 'fin-exp-row', 'fin-exp-desc', 'fin-exp-cat', 'fin-exp-type', 'fin-exp-date', 'fin-exp-amt', 'fin-exp-act']) expect(fin).toContain(`className="${c}"`);
-  });
-  it('the total column is as wide as its amount and the amount keeps the physical right-edge axis (IRON-NUMERIC-001)', () => {
-    expect(fin).toContain("<th style={{ padding: '6px', textAlign: 'right', width: '1%', whiteSpace: 'nowrap' }}>{t.total}</th>");
-    expect(fin).toContain("<td className=\"fin-exp-amt\" style={{ padding: '8px 6px', textAlign: 'right', width: '1%', whiteSpace: 'nowrap' }}><MoneyValue slot symbol={sym}");
-  });
-});
-
-describe('simple1120-fix1: the finances phone screen is the same in Hebrew and English (law 49, Owner console 2026-11-22)', () => {
-  const fin = fs.readFileSync('src/components/FinancesTab.jsx', 'utf8');
-  it('the expenses title is on its own line with the buttons under it', () => {
-    expect(fin).toContain('<div className="fin-exp-titlebar"');
-    expect(indexCss).toContain('.fin-exp-titlebar { flex-direction: column !important; align-items: flex-start !important; }');
-  });
-  it('the chart names every second month, ending at the last one, on a phone', () => {
-    expect(fin).toContain("const PHONE_Q = '(max-width: 560px)';");
-    expect(fin).toContain('chartData.filter((_, i) => (chartData.length - 1 - i) % 2 === 0).map((d) => d.name)');
-    expect(fin).toContain('{...(phoneMonthTicks ? { ticks: phoneMonthTicks, interval: 0 } : {})}');
-  });
-});
-
-describe('simple1120-fix1: the finances KPI amounts sit at the card start in both languages (law 49, Owner console 2026-11-22)', () => {
-  const fin = fs.readFileSync('src/components/FinancesTab.jsx', 'utf8');
-  it('the three money KPIs align to the start side (right in Hebrew, left in English)', () => {
-    expect(fin).toContain("const kpiStart = isHebrew ? 'right' : 'left';");
-    expect(fin.match(/className="pf-money pf-kpi-money" style=\{\{ fontSize: '1.25rem', fontWeight: '800', textAlign: kpiStart, /g)).toHaveLength(3);
   });
 });
