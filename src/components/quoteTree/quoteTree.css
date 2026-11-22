@@ -389,3 +389,5 @@ body:has(.qt-menu, .qe-menu, [role="dialog"], [role="alertdialog"]) .qe .qt-stat
    project window's labels 12.5px on a tablet / phone */
 .qe .qt-row-name { font-size: 13px; }
 @media (max-width: 768px) { .qe .qt-page-label { font-size: 12.5px; } }
+/* law 50 (measured): the sketch's question window keeps its 14px side margin on a phone (the backdrop's padding made it shrink 2px a side) */
+.qp-dialog.qp-dialog--sketch { flex: none !important; }

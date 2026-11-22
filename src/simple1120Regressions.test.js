@@ -58,3 +58,14 @@ describe('simple1120: every text at the sketch size (measured)', () => {
     expect(listCss).toContain('.quote-workspace .qc-num { font-size: 12.5px !important; }');
   });
 });
+
+describe('simple1120: last measured corrections', () => {
+  const treeCss = fs.readFileSync('src/components/quoteTree/quoteTree.css', 'utf8');
+  it('the shell (header, side menu, bottom bar) keeps normal letter spacing on every screen', () => {
+    expect(indexCss).toContain('html body .dash-app-shell .dash-upper-section, html body .dash-app-shell aside, html body .dash-app-shell .mobile-bottom-nav { letter-spacing: normal !important; }');
+  });
+  it('the sort arrow takes the title colour; the question window does not shrink', () => {
+    expect(listCss).toContain('.quote-modern-sort-arrow { color: inherit !important; opacity: 1 !important; }');
+    expect(treeCss).toContain('.qp-dialog.qp-dialog--sketch { flex: none !important; }');
+  });
+});

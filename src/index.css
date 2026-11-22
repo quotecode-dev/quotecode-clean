@@ -899,3 +899,7 @@ html body:has(.quote-workspace, .qe, .sq-saved--sketch) .dash-app-shell { letter
 /* the saved screen on a tablet / phone: the sketch's work area keeps its 10px scroll-bar strip on the end side, so its block is centred
    5px toward the start */
 @media (max-width: 768px) { .sq-saved.sq-saved--sketch { padding-inline-end: 10px !important; } }
+/* law 50 (measured): the shared shell - the top header, the side menu and the bottom bar - keeps the sketch's normal letter spacing on every
+   screen, so the header's greeting, date and AI pill (and the side menu's names) stand in the same place on the quotes and on every other
+   screen */
+html body .dash-app-shell .dash-upper-section, html body .dash-app-shell aside, html body .dash-app-shell .mobile-bottom-nav { letter-spacing: normal !important; }

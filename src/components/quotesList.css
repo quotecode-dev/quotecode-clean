@@ -264,3 +264,5 @@ body .pf-newquote-backdrop .pf-newquote-item-text { gap: 0 !important; }
   .dash-main-content .quote-workspace .quote-hot-banner .qhb-short-name { font-size: 13px !important; }
   .dash-main-content .quote-workspace .qc-num { font-size: 12.5px !important; }
 }
+/* law 50 (measured): the active sort arrow in the column title's own colour, as the sketch's (it is part of the title there) */
+.dash-main-content .quote-workspace .quote-modern-sort-arrow { color: inherit !important; opacity: 1 !important; }
