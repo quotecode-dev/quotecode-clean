@@ -32,3 +32,15 @@ describe('simple1120: "To: Whole quote" spacing as the sketch', () => {
     expect(src).toContain('{toText === t.whole ? <span>{t.whole}</span> : <EllipsisText');
   });
 });
+
+describe('simple1120: the sketch type and the saved screen strip (measured)', () => {
+  it('the sketch screens use normal letter spacing (the shell keeps its -0.01em elsewhere)', () => {
+    expect(indexCss).toContain('html body:has(.quote-workspace, .qe, .sq-saved--sketch) .dash-app-shell { letter-spacing: normal !important; }');
+  });
+  it('the saved screen keeps the sketch 10px end strip on a tablet / phone', () => {
+    expect(indexCss).toContain('@media (max-width: 768px) { .sq-saved.sq-saved--sketch { padding-inline-end: 10px !important; } }');
+  });
+  it('the phone start window uses the sketch 13px / 12.5px', () => {
+    expect(listCss).toContain('  .dash-mobile-newquote-menu > span { font-size: 13px !important; }\n  .dash-mobile-newquote-menu > button small { font-size: 12.5px !important; }');
+  });
+});

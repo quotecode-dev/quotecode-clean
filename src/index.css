@@ -893,3 +893,9 @@ html body .dash-main-content .quote-workspace { margin-bottom: 0 !important; }
 /* one header on every screen (computer): the sketch's 16px side padding - the other screens kept the older 28px / 22px and the header's
    contents jumped sideways when moving between the quotes and, e.g., the finances screen */
 @media (min-width: 769px) { html body .dash-main-content .dash-upper-section { padding-inline: 16px !important; } }
+/* law 50 (measured): the sketch's type has normal letter spacing; the app shell's -0.01em (inherited as -0.16px on every label) made each
+   label of the sketch's screens about 1% narrower (long buttons 3-5px). Only the screens the sketch governs. */
+html body:has(.quote-workspace, .qe, .sq-saved--sketch) .dash-app-shell { letter-spacing: normal !important; }
+/* the saved screen on a tablet / phone: the sketch's work area keeps its 10px scroll-bar strip on the end side, so its block is centred
+   5px toward the start */
+@media (max-width: 768px) { .sq-saved.sq-saved--sketch { padding-inline-end: 10px !important; } }

@@ -251,10 +251,10 @@ body .pf-newquote-backdrop .pf-newquote-item-text small { line-height: 21.75px !
 body .pf-newquote-backdrop .pf-newquote-title { line-height: 23.2px !important; }
 body .pf-newquote-backdrop .pf-newquote-sentence { line-height: 18.85px !important; }
 body .pf-newquote-backdrop .pf-newquote-item-text { gap: 0 !important; }
-/* the phone start window: the same words as wide as the sketch's (the phone renders these glyphs about 3% narrower) */
+/* the phone start window: the sketch's 13px sentence and 12.5px option lines (with the sketch's normal letter spacing they are as wide as the sketch's) */
 @media (max-width: 768px) {
-  .dash-mobile-newquote-menu > span { font-size: 13.4px !important; }
-  .dash-mobile-newquote-menu > button small { font-size: 12.9px !important; }
+  .dash-mobile-newquote-menu > span { font-size: 13px !important; }
+  .dash-mobile-newquote-menu > button small { font-size: 12.5px !important; }
 }
 /* simple1120 regression fix: the "no urgent step" note keeps its whole text on every width (L-25 / L-26, Owner 2026-10-23: "it keeps its
    own text on the phone") - it wraps instead of ending in dots; the hot-quote line keeps its one line (its name has the dots + bubble) */
