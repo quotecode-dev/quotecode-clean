@@ -256,3 +256,6 @@ body .pf-newquote-backdrop .pf-newquote-item-text { gap: 0 !important; }
   .dash-mobile-newquote-menu > span { font-size: 13.4px !important; }
   .dash-mobile-newquote-menu > button small { font-size: 12.9px !important; }
 }
+/* simple1120 regression fix: the "no urgent step" note keeps its whole text on every width (L-25 / L-26, Owner 2026-10-23: "it keeps its
+   own text on the phone") - it wraps instead of ending in dots; the hot-quote line keeps its one line (its name has the dots + bubble) */
+.dash-main-content .quote-workspace .quote-hot-banner.quote-hot-banner--empty .quote-hot-banner-text { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }

@@ -883,3 +883,10 @@ html body .dash-main-content .quote-workspace { margin-bottom: 0 !important; }
 /* the saved screen: the sketch's rhythm (arrow, check, sentence) */
 .sq-saved--sketch .sq-saved-card h2 { margin-top: 2px !important; }
 @media (min-width: 769px) { .sq-saved--sketch .sq-saved-back { margin-top: 12px !important; } }
+/* simple1120 regression fix (found by the law-48 walk of the other screens): the 48px phone header is the sketch's header for the screens
+   whose stats line is hidden (the quote list / saved screen = data-quotes-overview, the editor = .pf-editor-form). Every other screen keeps
+   its stats line on the phone, as on LIVE (12cdeb00), so its header grows to hold that second line instead of letting it spill under the
+   header onto the content. */
+@media (max-width: 768px) {
+  html body:not(:has(.pf-editor-form)) .dash-main-content .dash-upper-section:not([data-quotes-overview="true"]) { height: auto !important; min-height: 48px !important; padding: 7px 10px 8px !important; }
+}
