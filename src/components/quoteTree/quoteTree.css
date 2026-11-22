@@ -79,8 +79,8 @@
 select.qe-in { padding-inline-start: 8px; padding-inline-end: 22px; }
 .qe-ltr { direction: ltr; text-align: start; }
 [dir="rtl"] .qe-ltr { text-align: right; }
-.qe-ph { border: 1px solid var(--qt-line2); border-radius: 8px; overflow: hidden; background: #fff; }
-.qe-ph .qe-in { border: 0; border-radius: 0; text-align: left; flex: 1 1 auto; }
+.qe-ph { border: 1px solid var(--qt-line2); border-radius: 8px; overflow: hidden; background: #fff; height: 40px; box-sizing: border-box; }
+.qe-ph .qe-in { border: 0; border-radius: 0; text-align: left; flex: 1 1 auto; height: 38px; }
 .qe-ph-code { background: var(--qt-chip); padding: 0 8px; display: grid; place-items: center; font-size: 13px; font-weight: 600; border-inline-end: 1px solid var(--qt-line2); white-space: nowrap; flex: 0 0 auto; }
 [dir="rtl"] .qe-ph-code { border-inline-end: 0; border-inline-start: 1px solid var(--qt-line2); }
 .qe-addr { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
