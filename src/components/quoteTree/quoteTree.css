@@ -381,3 +381,7 @@ body:has(.qt-menu, .qe-menu, [role="dialog"], [role="alertdialog"]) .qe .qt-stat
 .qt-menu .qt-sopt small { line-height: 17.4px; }
 /* the client step: its accessibility link sits at the bottom of the screen (the sketch); the items step keeps it right under the details */
 .qe .pf-editor-form > .qe-a11y:last-child { margin-top: auto !important; }
+/* law 50 (measured against the sketch): the editor's first row sits 10px under the header on a computer and 6px on a tablet / phone, as the
+   sketch's (its .work top padding with the edit bar's own offset) */
+.pf-screen.qe > .pf-editor-form { padding-top: 10px !important; }
+@media (max-width: 768px) { .pf-screen.qe > .pf-editor-form { padding-top: 6px !important; } }

@@ -14,3 +14,14 @@ describe('simple1120 regressions', () => {
     expect(listCss).toContain('.quote-hot-banner.quote-hot-banner--empty .quote-hot-banner-text { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; }');
   });
 });
+
+describe('simple1120 law-50 measured corrections', () => {
+  const treeCss = fs.readFileSync('src/components/quoteTree/quoteTree.css', 'utf8');
+  it('the editor starts 10px (computer) / 6px (phone) under the header, as the sketch', () => {
+    expect(treeCss).toContain('.pf-screen.qe > .pf-editor-form { padding-top: 10px !important; }');
+    expect(treeCss).toContain('@media (max-width: 768px) { .pf-screen.qe > .pf-editor-form { padding-top: 6px !important; } }');
+  });
+  it('the header keeps the same 16px side padding on every screen (computer)', () => {
+    expect(indexCss).toContain('@media (min-width: 769px) { html body .dash-main-content .dash-upper-section { padding-inline: 16px !important; } }');
+  });
+});
