@@ -148,8 +148,8 @@
     "markers": 0
   },
   "src/components/AiHelpButton.jsx": {
-    "interactive": 3,
-    "markers": 1
+    "interactive": 4,
+    "markers": 2
   },
   "src/components/AiModalHeader.jsx": {
     "interactive": 1,
@@ -356,12 +356,12 @@
     "markers": 7
   },
   "src/components/QuoteForm.jsx": {
-    "interactive": 26,
-    "markers": 28
+    "interactive": 29,
+    "markers": 31
   },
   "src/components/QuoteFromFileDialog.jsx": {
-    "interactive": 5,
-    "markers": 6
+    "interactive": 4,
+    "markers": 5
   },
   "src/components/QuotePrintModeModal.jsx": {
     "interactive": 3,
@@ -620,8 +620,8 @@
     "markers": 0
   },
   "src/components/quoteTree/QuoteTreeEditor.jsx": {
-    "interactive": 34,
-    "markers": 35
+    "interactive": 33,
+    "markers": 34
   },
   "src/components/quoteTree/treeModel.js": {
     "interactive": 0,
@@ -740,6 +740,10 @@
     "markers": 0
   },
   "src/hooks/useBusinessCardProfile.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/hooks/useCardStatusColumn.js": {
     "interactive": 0,
     "markers": 0
   },
@@ -1384,6 +1388,10 @@
     "markers": 0
   },
   "src/utils/shortDate.js": {
+    "interactive": 0,
+    "markers": 0
+  },
+  "src/utils/sizeIsolate.js": {
     "interactive": 0,
     "markers": 0
   },

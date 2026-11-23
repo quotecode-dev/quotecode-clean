@@ -10,7 +10,12 @@
 //     duplicate with content, copy the works of the first, save as a template, remove with content) - nothing opens as a page any more;
 //   - adding sections in the page: the kind, how many (up to 100), the names (an empty name = a name in order).
 // The quantity starts EMPTY; "מחיר גלובלי" = one price for the row; an empty price is not 0 (unchanged).
+// 2026-11-22 (the Owner-approved simplify sketch C:/tekango-ops/demos/simplify1122, override.js / override.css): no "Structure" menu (a quote
+// with sections is their tree); "מה להוסיף?" over the entry row with ONE worded add button; "+ עבודה" in words on every other section; adding
+// sections in one line (kind, how many, "Add" - names made in order); the quote-level line "מה להוסיף? להצעה כולה"; no message after an
+// addition; the column titles are the help buttons; "Remove the sections" is in the editor bar's "⋯" (QuoteForm, through treeActionsRef).
 import { useEffect, useMemo, useRef, useState, useLayoutEffect } from 'react';
+import { isolateSizes } from '../../utils/sizeIsolate';
 import { createPortal } from 'react-dom';
 import { SketchIcon } from '../SketchIcons';
 import { ChevronDown, X } from 'lucide-react';
@@ -32,6 +37,7 @@ const T = {
     sxSimple: 'למשל: חלון, צביעה והתקנה', sxGrouped: 'למשל: דירה 1, דירה 2, חצר', sxTiered: 'למשל: קומה 10 ← דירה 22 ← מטבח',
     help: 'הסבר', whole: 'כל ההצעה', back: 'חזרה', to: 'אל:',
     formTitle: 'מוסיפים עבודה או מוצר', product: 'חיפוש מוצר', pricing: 'חישוב', qty: 'כמות', price: 'מחיר ליחידה',
+    phProdS: 'בחרו מוצר', phNewS: 'שם המוצר', phQtyS: 'כמות', phPriceS: 'מחיר',
     productPh: 'בחרו מוצר מהקטלוג', newProduct: '+ הוספת מוצר חדש', newPh: 'הקלידו שם למוצר החדש', add: 'הוספה', clear: 'ניקוי השורה', more: 'מידות ופירוט נוסף',
     lineSum: 'סכום השורה:', notPriced: 'טרם תומחר', saveCatalog: 'לשמור גם בקטלוג', savedCatalog: 'השורה נוספה ונשמרה גם בקטלוג.',
     catalogDup: 'מוצר בשם הזה כבר קיים בקטלוג - לא נשמר שוב. השורה נוספה להצעה.', catalogNoPrice: 'מוצר בלי מחיר לא נשמר בקטלוג. השורה נוספה להצעה.',
@@ -51,7 +57,7 @@ const T = {
     undoLast: 'ביטול הפעולה האחרונה', closeMsg: 'סגירת ההודעה',
     colWork: 'העבודה / המוצר', colQty: 'כמות', colPrice: 'מחיר', colSum: 'סכום', actions: 'פעולות',
     edit: 'עריכה', duplicate: 'שכפול', remove: 'הסרה', up: 'הזזה למעלה', down: 'הזזה למטה', moveToMenu: 'העברה לחלק אחר', moveT: 'לאן להעביר את השורה?', here: 'כאן עכשיו', cancel: 'ביטול',
-    hAddFirst: 'הוספת חלק: דירה, קומה, חדר או נושא אחר', kindQ: 'מה מוסיפים להצעה?', kindQIn: (n) => `מה מוסיפים בתוך "${n}"?`,
+    hAddFirst: 'הוספת חלק: דירה, קומה, חדר או נושא אחר', kindQ: 'איזה חלק מוסיפים?', kindQIn: (n) => `איזה חלק מוסיפים בתוך "${n}"?`,
     kinds: { floor: 'קומה', apartment: 'דירה', room: 'חדר', section: 'נושא בשם אחר' }, kinds1: { floor: 'קומה', apartment: 'דירה', room: 'חדר', section: 'נושא' },
     plural: { floor: 'קומות', apartment: 'דירות', room: 'חדרים', section: 'נושאים' },
     countQ: (p) => `כמה ${p} להוסיף?`, countHint: (one) => `את השם או המספר של כל ${one} מקלידים בשלב הבא. אפשר להוסיף גם אחד.`,
@@ -66,12 +72,18 @@ const T = {
     helpPricing: 'בחרו על מה משלמים: יחידות, שטח, אורך, זמן, משקל או מחיר לכל העבודה.',
     helpQty: 'הקלידו כמות גדולה מאפס. לדוגמה: 2 יחידות.', helpPrice: 'מחיר עבור דרך החישוב שבחרתם. ריק = טרם תומחר; 0 = מחיר אפס.',
     example: 'דוגמה · לא נשמרת',
+    addQ: 'מה להוסיף?', toQuote: 'להצעה כולה', genWhole: 'עבודה כללית (לא בתוך חלק)', genL: 'עבודה כללית',
+    secSimple: '+ חלק: קומה, דירה, חדר', secInside: (n) => `+ חלק בתוך ${n}`, newSec: '+ חלק חדש', genWork: '+ עבודה כללית', wadd: '+ עבודה',
+    howMany: 'כמה', less: 'פחות אחד', more1: 'עוד אחד',
+    pickKind: 'בחרו מה מוסיפים: קומה, דירה, חדר או נושא בשם אחר.', willMake: (l) => `ייווצרו: ${l}. שינוי שם - בלחיצה על השם.`,
+    flattened: 'החלוקה לחלקים בוטלה. כל העבודות נשארו בהצעה.',
   },
   en: {
     structL: 'Structure:', simple: 'Simple quote', grouped: 'In sections', tiered: 'Sections within sections',
     sxSimple: 'e.g. Window, painting and installation', sxGrouped: 'e.g. Apartment 1, Apartment 2, Yard', sxTiered: 'e.g. Floor 10 → Apartment 22 → Kitchen',
     help: 'Explain', whole: 'Whole quote', back: 'Back', to: 'To:',
     formTitle: 'Add work or a product', product: 'Product search', pricing: 'Pricing', qty: 'Quantity', price: 'Unit price',
+    phProdS: 'Choose a product', phNewS: 'Product name', phQtyS: 'Qty', phPriceS: 'Price',
     productPh: 'Choose from the catalog', newProduct: '+ Add a new product', newPh: 'New product name', add: 'Add', clear: 'Clear', more: 'Sizes and details',
     lineSum: 'Line total:', notPriced: 'Not priced yet', saveCatalog: 'Also save to the catalog', savedCatalog: 'The row was added and saved to the catalog too.',
     catalogDup: 'A product with this name is already in the catalog - not saved again. The row was added to the quote.', catalogNoPrice: 'A product without a price is not saved to the catalog. The row was added to the quote.',
@@ -91,7 +103,7 @@ const T = {
     undoLast: 'Undo the last action', closeMsg: 'Close message',
     colWork: 'Work / product', colQty: 'Qty', colPrice: 'Price', colSum: 'Total', actions: 'Actions',
     edit: 'Edit', duplicate: 'Duplicate', remove: 'Remove', up: 'Move up', down: 'Move down', moveToMenu: 'Move to another section', moveT: 'Where should the row go?', here: 'here now', cancel: 'Cancel',
-    hAddFirst: 'Add a section: apartment, floor, room or other', kindQ: 'What goes into the quote?', kindQIn: (n) => `What goes inside "${n}"?`,
+    hAddFirst: 'Add a section: apartment, floor, room or other', kindQ: 'Which section do you add?', kindQIn: (n) => `Which section goes inside "${n}"?`,
     kinds: { floor: 'Floor', apartment: 'Apartment', room: 'Room', section: 'Other topic' }, kinds1: { floor: 'Floor', apartment: 'Apartment', room: 'Room', section: 'Topic' },
     plural: { floor: 'floors', apartment: 'apartments', room: 'rooms', section: 'topics' },
     countQ: (p) => `How many ${p} to add?`, countHint: (one) => `You type the name or number of each ${one.toLowerCase()} in the next step. You can add just one.`,
@@ -106,6 +118,11 @@ const T = {
     helpPricing: 'Choose what is paid for: units, area, length, time, weight or one price for the whole job.',
     helpQty: 'Type a quantity above zero. For example: 2 units.', helpPrice: 'The price for the pricing you chose. Empty = not priced yet; 0 = a zero price.',
     example: 'Example · not saved',
+    addQ: 'What to add?', toQuote: 'to the whole quote', genWhole: 'General work (not in a section)', genL: 'General work',
+    secSimple: '+ Section: floor, apartment, room', secInside: (n) => `+ Section inside ${n}`, newSec: '+ New section', genWork: '+ General work', wadd: '+ Work',
+    howMany: 'How many', less: 'One less', more1: 'One more',
+    pickKind: 'Choose what you add: a floor, apartment, room or another topic.', willMake: (l) => `This adds: ${l}. To rename, click the name.`,
+    flattened: 'The sections were removed. All the work stayed in the quote.',
   },
 };
 const METHODS = ['units', 'area', 'linear', 'hour', 'day', 'kg', 'fixed'];
@@ -159,12 +176,13 @@ export function HelpCircle({ text, label, inline = false, testId = 'qt-help' }) 
   );
 }
 
-/** the sketch's "?" beside a column title / a field label: it opens one explanation box under the entry row (helpBtn / helpBox) */
-function HelpDot({ k, label, t, help, setHelp }) {
+/** 2026-11-22 (the simplify sketch, item 7): a column title / a field label is itself the help button - dotted underline, the explanation on
+ *  hover (title) and in one box under the entry row on a click (the sketch's .hl) */
+function HelpTitle({ k, label, text, help, setHelp }) {
   return (
     // PRODUCT_TRUTH_DECORATIVE: opens / closes the explanation of a column of the entry row
-    <button type="button" className="qt-q" aria-label={`${t.help}: ${label}`} aria-expanded={help === k} data-testid={`qt-help-${k}`}
-      onClick={(e) => { e.stopPropagation(); setHelp(help === k ? null : k); }}>?</button>
+    <button type="button" className="qt-hl" title={text} aria-expanded={help === k} data-testid={`qt-help-${k}`}
+      onClick={(e) => { e.stopPropagation(); setHelp(help === k ? null : k); }}>{label}</button>
   );
 }
 
@@ -255,7 +273,10 @@ function formNumbers(f, international) {
 }
 
 export default function QuoteTreeEditor({
-  isHebrew, international, items, setItems, sections, setSections, services, sym, fmtMoney, structure, onStructure,
+  isHebrew, international, items, setItems, sections, setSections, services, sym, fmtMoney,
+  structure = null, // eslint-disable-line no-unused-vars -- 2026-11-22 (the simplify sketch): no structure choice; the sections decide
+  onStructure = null, // eslint-disable-line no-unused-vars -- kept for older callers
+  treeActionsRef = null, // 2026-11-22: the editor bar's "⋯" (QuoteForm) runs "Remove the sections" through it
   onBackToClient = null, // eslint-disable-line no-unused-vars -- 2026-11-20: the editor bar's arrow goes back to the client (QuoteForm)
   onSaveToCatalog, onCatalogItemAdded, recommendedMethod, bottomBar, onSaveHeadingTemplate = null,
   onAddFromTemplate = null, // eslint-disable-line no-unused-vars -- 2026-11-20: "מתבנית שמורה" is in the editor bar's "⋯" menu (QuoteForm)
@@ -266,13 +287,18 @@ export default function QuoteTreeEditor({
 }) {
   const t = T[isHebrew ? 'he' : 'en'];
   const methods = international ? METHODS_INTL : METHODS;
-  const simple = structure === 'simple';
-  const allowNest = structure === 'tiered';
+  // 2026-11-22 (the simplify sketch, item 2): a quote without sections is one table; with sections it is their tree (a section inside a section is
+  // always possible within the depth limit)
+  const simple = !(sections || []).length;
   const [target, setTarget] = useState(null); // the section the entry row adds to (null = the whole quote)
   const [collapsed, setCollapsed] = useState(() => new Set());
-  const [addPanel, setAddPanel] = useState(null); // { parent, step, kind, count, names, err }
+  const [addPanel, setAddPanel] = useState(null); // { parent, kind, count, sname, at: 'eq' | 'q', err }
   const [renaming, setRenaming] = useState(null); // { key, value }
   const [help, setHelp] = useState(null);
+  // the simplify sketch (Owner 22/11, fitPh): inside a section on a phone / tablet (or two levels deep anywhere) the entry fields show their
+  // short placeholders, so no word of a placeholder is ever cut - the same rule in Hebrew and English
+  const [narrow, setNarrow] = useState(() => typeof window !== 'undefined' && !!window.matchMedia && window.matchMedia('(max-width: 768px)').matches);
+  useEffect(() => { if (typeof window === 'undefined' || !window.matchMedia) return undefined; const mq = window.matchMedia('(max-width: 768px)'); const on = () => setNarrow(mq.matches); on(); mq.addEventListener?.('change', on); return () => mq.removeEventListener?.('change', on); }, []);
   const [moveSheet, setMoveSheet] = useState(null); // the row index to move
   const [menu, setMenu] = useState(null); // { type, id, up, btn }
   const menuRef = useRef(null);
@@ -365,7 +391,7 @@ export default function QuoteTreeEditor({
   const locked = (list) => typeof canDuplicateRow === 'function' && list.some((it) => it && !canDuplicateRow(it));
   const duplicateRow = (index) => {
     if (locked([items[index]])) { onDuplicateLocked?.(); return; }
-    done(t.msgCopied);
+    setStatus(null);
     setItems((prev) => { const c = { ...prev[index] }; delete c.id; delete c.price_link_id; return [...prev.slice(0, index + 1), c, ...prev.slice(index + 1)]; });
   };
   // up / down inside its own place (the sketch's grpOf)
@@ -376,7 +402,7 @@ export default function QuoteTreeEditor({
     setItems((prev) => { const next = prev.slice(); [next[index], next[j]] = [next[j], next[index]]; return next; });
   };
   const moveRowTo = (index, place) => {
-    done(t.msgMoved);
+    setStatus(null);
     setItems((prev) => { const row = { ...prev[index], section_key: place || null }; const rest = prev.filter((_, i) => i !== index); return insertAtEndOf(rest, place || null, row); });
     setMoveSheet(null);
   };
@@ -406,7 +432,7 @@ export default function QuoteTreeEditor({
     setTimeout(() => qtyRef.current?.focus({ preventScroll: true }), 0);
   };
   const submit = async () => {
-    const name = String(f.name).trim();
+    const name = isolateSizes(String(f.name).trim()); // a size keeps its order in a Hebrew line (Iron numeric / bidi)
     const { base, measured, fullSize, sizes, qtyNum, pp, priceNum, effQty, measureUnit } = nums;
     const anySize = (z) => String(z.w).trim() || String(z.h).trim();
     if (!name) { setFormErr(t.needName); nameRef.current?.focus(); return; }
@@ -438,16 +464,14 @@ export default function QuoteTreeEditor({
       if (Array.isArray(built.measurements) && built.measurements[0] && sizes[0]) built.measurements[0] = { ...built.measurements[0], label: sizes[0].name || '' };
       if (!simple) built.section_key = liveTarget || null;
       const rk = editing.rowKey;
-      done(t.msgUpdated);
+      setStatus(null);
       setItems((prev) => { const j = prev.findIndex((x) => x && store.map.get(x) === rk); if (j < 0) return prev; const next = prev.slice(); next[j] = built; store.map.set(built, rk); return next; });
       setEditing(null); setF(emptyForm(f.method));
       return;
     }
     const item = { ...buildQuoteItemFromEntry(entry), ...(f.method === 'fixed' || f.method === 'units' ? { _billing: f.method } : {}) };
     if (Array.isArray(item.measurements) && item.measurements[0] && sizes[0]) item.measurements[0] = { ...item.measurements[0], label: sizes[0].name || '' };
-    const before = { items, sections };
-    const restore = () => { setSections(before.sections); setItems(before.items); };
-    setStatus({ text: t.msgAdded, restore });
+    setStatus(null); // 2026-11-22 (the simplify sketch, item 6): no message after an addition
     setItems((prev) => insertAtEndOf((prev || []).filter((it) => !(it && it.description === '' && (it.unit_price === '' || it.unit_price == null) && !it.id && !it.pricing_unit)), place, item));
     if (f.catalogId && typeof onCatalogItemAdded === 'function') onCatalogItemAdded(f.catalogId, item);
     const toCatalog = f.toCatalog && f.isNew && typeof onSaveToCatalog === 'function';
@@ -455,37 +479,43 @@ export default function QuoteTreeEditor({
     setF(emptyForm(f.method));
     scrollToForm();
     if (!toCatalog) return;
-    if (priceNum == null) { setStatus((u) => ({ text: t.catalogNoPrice, restore: u && u.restore ? u.restore : null, after: u && u.after })); return; }
+    if (priceNum == null) { setStatus({ text: t.catalogNoPrice }); return; }
     let note;
     try {
       const r = await onSaveToCatalog({ name, price: priceNum, method: base, international: isFeetMethod(f.method, international) });
-      note = r && r.ok ? t.savedCatalog : (r && r.duplicate ? t.catalogDup : t.catalogFail);
+      note = r && r.ok ? null : (r && r.duplicate ? t.catalogDup : t.catalogFail);
     } catch { note = t.catalogFail; }
-    setStatus((u) => ({ text: note, restore: u && u.restore ? u.restore : null, after: u && u.after }));
+    if (note) setStatus({ text: note });
   };
 
+  // 2026-11-22 (the simplify sketch, item 3): kind + how many (1 to 100) + "Add"; empty names are numbered by treeModel.addHeadings ("דירה 1",
+  // "דירה 2"); "נושא בשם אחר" takes the typed name (numbered when more than one; " (2)" when the name is taken)
+  const clampCount = (v) => Math.max(1, Math.min(100, parseInt(v, 10) || 1));
+  const typedNames = (a, n) => {
+    if (a.kind !== 'section') return Array.from({ length: n }, () => '');
+    const base = String(a.sname || '').trim() || t.kinds1.section;
+    const taken = new Set(childrenOf(sections, a.parent ?? null).map((s) => String(s.name || '').trim().toLowerCase()));
+    return (n === 1 ? [base] : Array.from({ length: n }, (_, k) => `${base} ${k + 1}`)).map((nm) => {
+      let v = nm; let k = 2; while (taken.has(v.toLowerCase())) { v = `${nm} (${k})`; k += 1; } taken.add(v.toLowerCase()); return v;
+    });
+  };
+  const planHeadings = (a, n) => addHeadings(sections, { kind: a.kind, names: typedNames(a, n), parentKey: a.parent ?? null }, isHebrew);
+  const addHint = (a) => {
+    if (!a.kind) return t.pickKind;
+    const n = clampCount(a.count); const r = planHeadings(a, Math.min(n, 3));
+    const names = r.added.map((k) => r.sections.find((s) => keyOf(s) === k)?.name || '');
+    return t.willMake(names.join(', ') + (n > 3 ? ', …' : ''));
+  };
   const createHeadings = () => {
-    const a = addPanel; const pk = a.parent ?? null;
-    const { sections: next, added } = addHeadings(sections, { kind: a.kind, names: a.names, parentKey: pk }, isHebrew);
-    done(t.msgHeadingAdded);
+    const a = addPanel;
+    if (!a.kind) { setAddPanel({ ...a, err: t.pickKind }); return; }
+    const n = Number(String(a.count).trim());
+    if (!Number.isInteger(n) || n < 1) { setAddPanel({ ...a, err: t.countErr }); return; }
+    if (n > 100) { setAddPanel({ ...a, err: t.countMax }); return; }
+    const { sections: next, added } = planHeadings(a, n);
     setSections(next);
     setAddPanel(null);
-    if (simple) onStructure(pk ? 'tiered' : 'grouped');
-    if (added[0]) setTimeout(() => { setTarget(added[0]); setCollapsed((prev) => { const n = new Set(prev); pathOf(next, added[0]).forEach((x) => n.delete(keyOf(x))); return n; }); }, 0);
-  };
-  const addNext = () => {
-    const a = addPanel;
-    if (a.step === 'count') {
-      const n = Number(String(a.count).trim());
-      if (!/^\d+$/.test(String(a.count).trim()) || n < 1) { setAddPanel({ ...a, err: t.countErr }); return; }
-      if (n > 100) { setAddPanel({ ...a, err: t.countMax }); return; }
-      setAddPanel({ ...a, names: Array.from({ length: n }, (_, k) => a.names[k] || ''), step: 'names', err: '' });
-      return;
-    }
-    const sib = childrenOf(sections, a.parent ?? null).map((s) => String(s.name || '').trim().toLowerCase());
-    const typed = a.names.map((v) => String(v || '').trim().toLowerCase()).filter(Boolean);
-    if (new Set([...sib, ...typed]).size !== sib.length + typed.length) { setAddPanel({ ...a, err: t.namesDup }); return; }
-    createHeadings();
+    if (added[0]) setTimeout(() => { setTarget(added[0]); setCollapsed((prev) => { const s = new Set(prev); pathOf(next, added[0]).forEach((x) => s.delete(keyOf(x))); return s; }); scrollToForm(); }, 0);
   };
 
   // the untouched starter line of a new quote is never shown as a row (nothing typed yet - the entry row is where work starts)
@@ -547,30 +577,55 @@ export default function QuoteTreeEditor({
     && !services.some((s) => String(s.name || '').trim().toLowerCase() === String(f.name).trim().toLowerCase());
   const lineSumNode = <b className={`qt-lsum${nums.lineSum == null ? '' : ' qt-lsum--set'}`}>{nums.lineSum == null ? t.notPriced : <span className="pf-money">{sym}{fmtMoney(nums.lineSum)}</span>}</b>;
   const qtyDisabled = f.method === 'fixed' || (nums.measured && !f.known);
+  // ---------- "מה להוסיף?" over the entry row (2026-11-22, the simplify sketch item 4): where the row goes (small) and ONE add button ----------
+  const eqLine = () => {
+    const sec = !simple && liveTarget ? sections.find((x) => keyOf(x) === liveTarget) : null;
+    const path = simple ? '' : (sec ? pathNamesOf(liveTarget).map((n) => String(n || '').trim() || t.unnamed).join(pathSep) : t.genWhole);
+    const secName = sec ? (String(sec.name || '').trim() || t.unnamed) : '';
+    const inside = sec && depthOf(sections, liveTarget) < MAX_DEPTH - 1 && normalizeRepeatCount(sec.repeat_count) < 2;
+    return (
+      <div className="qt-eq" data-testid="qt-eq">
+        {path && <small className="qt-eqp" data-testid="qt-eq-path"><EllipsisText dir={isHebrew ? 'rtl' : 'ltr'} text={path} /></small>}
+        <div className="qt-eqr"><b>{t.addQ}</b>
+          {(!sec || inside) && (
+            <span className="qt-eqb">
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the one-line add of sections right under this line - nothing is added until "Add" */}
+              <button type="button" className="qt-btn qt-btn--sm qt-btn--acc" data-testid={sec ? 'qt-add-inside' : 'qt-add-first'} aria-expanded={Boolean(addPanel && addPanel.at !== 'q')}
+                onClick={() => openAdd(sec ? liveTarget : null, 'eq')}>{sec ? <EllipsisText text={t.secInside(secName)} /> : (simple ? t.secSimple : t.newSec)}</button>
+            </span>
+          )}
+        </div>
+      </div>
+    );
+  };
+  const deepPh = !simple && liveTarget ? depthOf(sections, liveTarget) + 1 : 0;
+  const shortPh = deepPh >= 2 || (narrow && deepPh >= 1);
   const entryRow = () => (
     <>
-      <div className="qt-er" role="group" aria-label={t.formTitle} data-testid={editItem ? 'qt-edit-form' : 'qt-form'} data-target={(simple ? null : target) || 'root'}>
+      {eqLine()}
+      {addPanel && addPanel.at !== 'q' && panel()}
+      <div className="qt-er" role="group" aria-label={t.formTitle} data-err={formErr ? (formErr === t.needName ? 'name' : formErr === t.needQty ? 'qty' : formErr === t.badPrice ? 'price' : '') : undefined} data-testid={editItem ? 'qt-edit-form' : 'qt-form'} data-target={(simple ? null : target) || 'root'}>
         <div className="qt-er-pn">
-          <label htmlFor="qt-f-name" className="qt-ml">{t.product}<HelpDot k="product" label={t.product} t={t} help={help} setHelp={setHelp} /></label>
+          <span className="qt-ml"><HelpTitle k="product" label={t.product} text={t.helpProduct} help={help} setHelp={setHelp} /></span>
           <CatalogField id="qt-f-name" inputRef={nameRef} value={f.name} services={services} t={t} isHebrew={isHebrew} sym={sym} fmtMoney={fmtMoney} international={international}
-            placeholder={f.isNew && !f.name ? t.newPh : t.productPh}
+            placeholder={f.isNew && !f.name ? (shortPh ? t.phNewS : t.newPh) : (shortPh ? t.phProdS : t.productPh)}
             onText={(v) => set({ name: v, catalogId: null, isNew: true })} onPick={pick} onNew={() => { set({ name: '', catalogId: null, isNew: true, toCatalog: true, qty: '', price: '' }); setTimeout(() => nameRef.current?.focus(), 0); }} />
         </div>
         <div className="qt-er-pu">
-          <label htmlFor="qt-f-unit" className="qt-ml">{t.pricing}<HelpDot k="pricing" label={t.pricing} t={t} help={help} setHelp={setHelp} /></label>
+          <span className="qt-ml"><HelpTitle k="pricing" label={t.pricing} text={t.helpPricing} help={help} setHelp={setHelp} /></span>
           <select id="qt-f-unit" className="qt-select" aria-label={t.pricing} value={f.method} onChange={(e) => changeMethod(e.target.value)}>
             {methods.map((mm) => <option key={mm} value={mm}>{t.units[copyKey(mm, international)]}</option>)}
           </select>
         </div>
         <div className="qt-er-pq">
-          <label htmlFor="qt-f-qty" className="qt-ml">{t.qty}<HelpDot k="qty" label={t.qty} t={t} help={help} setHelp={setHelp} /></label>
+          <span className="qt-ml"><HelpTitle k="qty" label={t.qty} text={t.helpQty} help={help} setHelp={setHelp} /></span>
           <input ref={qtyRef} id="qt-f-qty" className="qt-input pf-num" inputMode="decimal" dir="ltr" aria-label={t.qty} disabled={qtyDisabled}
             value={qtyDisabled && nums.measured && !f.known ? (nums.sizeQty ? String(Math.round(nums.sizeQty * 100) / 100) : '') : (f.method === 'fixed' ? '' : f.qty)}
-            placeholder={f.method === 'fixed' ? '1' : t.qtyPh[ck]} onChange={(e) => set({ qty: e.target.value })} />
+            placeholder={f.method === 'fixed' ? '1' : (shortPh ? t.phQtyS : t.qtyPh[ck])} onChange={(e) => set({ qty: e.target.value })} />
         </div>
         <div className="qt-er-pp">
-          <label htmlFor="qt-f-price" className="qt-ml">{t.price}<HelpDot k="price" label={t.price} t={t} help={help} setHelp={setHelp} /></label>
-          <input id="qt-f-price" className="qt-input pf-num" inputMode="decimal" dir="ltr" aria-label={t.price} value={f.price} placeholder={t.pricePh[ck]} onChange={(e) => set({ price: e.target.value })} />
+          <span className="qt-ml"><HelpTitle k="price" label={t.price} text={t.helpPrice} help={help} setHelp={setHelp} /></span>
+          <input id="qt-f-price" className="qt-input pf-num" inputMode="decimal" dir="ltr" aria-label={t.price} value={f.price} placeholder={shortPh ? t.phPriceS : t.pricePh[ck]} onChange={(e) => set({ price: e.target.value })} />
         </div>
         <div className="qt-er-pa">
           {/* PRODUCT_TRUTH_DECORATIVE: adds the row to the chosen section (in an edit, puts the same row back changed) */}
@@ -581,7 +636,6 @@ export default function QuoteTreeEditor({
         </div>
       </div>
       {helpBox}
-      {formErr && <div className="qt-err" role="alert" data-testid="qt-form-error">{formErr}</div>}
       <div className="qt-ebot">
         {/* PRODUCT_TRUTH_DECORATIVE: clears the entry row (in an edit, the row stays exactly as it was) */}
         <button type="button" className="qt-link" data-testid={editItem ? 'qt-edit-cancel' : 'qt-clear'} onClick={clearForm}>{t.clear}</button>
@@ -590,7 +644,7 @@ export default function QuoteTreeEditor({
         {typedNew && !editItem && (
           <label className="qt-chk"><input type="checkbox" checked={f.toCatalog} onChange={(e) => set({ toCatalog: e.target.checked })} />{t.saveCatalog}</label>
         )}
-        <span className="qt-to" data-testid="qt-form-to">{t.to} {toText === t.whole ? <span>{t.whole}</span> : <EllipsisText dir={isHebrew ? 'rtl' : 'ltr'} text={toText} />}</span>
+
         {/* PRODUCT_TRUTH_DECORATIVE: the same Add, in the line under the row (desktop and tablet) */}
         <button type="button" className="qt-btn qt-btn--p qt-add2" data-testid="qt-add2" onClick={submit}>{t.add}</button>
       </div>
@@ -619,18 +673,20 @@ export default function QuoteTreeEditor({
           <textarea id="qt-f-details" className="qt-input qt-textarea" value={f.details} placeholder={t.workDetailsPh} onChange={(e) => set({ details: e.target.value })} />
         </div>
       )}
+      {/* the simplify sketch (fix10): the error floats under the card's bottom line - never over "הוספה" or the links */}
+      {formErr && <div className="qt-err" role="alert" data-testid="qt-form-error" data-field={formErr === t.needName ? 'name' : formErr === t.needQty ? 'qty' : formErr === t.badPrice ? 'price' : undefined}>{formErr}</div>}
     </>
   );
   const colHead = (
     <div className="qt-ih">
-      <span>{t.colWork}<HelpDot k="product" label={t.product} t={t} help={help} setHelp={setHelp} /></span>
-      <span>{t.pricing}<HelpDot k="pricing" label={t.pricing} t={t} help={help} setHelp={setHelp} /></span>
-      <span>{t.colQty}<HelpDot k="qty" label={t.qty} t={t} help={help} setHelp={setHelp} /></span>
-      <span>{t.colPrice}<HelpDot k="price" label={t.price} t={t} help={help} setHelp={setHelp} /></span>
+      <span><HelpTitle k="product" label={t.colWork} text={t.helpProduct} help={help} setHelp={setHelp} /></span>
+      <span><HelpTitle k="pricing" label={t.pricing} text={t.helpPricing} help={help} setHelp={setHelp} /></span>
+      <span><HelpTitle k="qty" label={t.colQty} text={t.helpQty} help={help} setHelp={setHelp} /></span>
+      <span><HelpTitle k="price" label={t.colPrice} text={t.helpPrice} help={help} setHelp={setHelp} /></span>
       <span>{t.colSum}</span><span />
     </div>
   );
-  // one card: the column titles (with "?"), the rows and the entry row below them
+  // one card: the column titles (each one its own help button), the rows, "מה להוסיף?" and the entry row below them
   const card = (idx) => (
     <div className="qt-items qt-tcard" data-testid="qt-rows">{colHead}{idx.map((i) => rowLine(i))}{entryRow()}</div>
   );
@@ -638,46 +694,46 @@ export default function QuoteTreeEditor({
     <div className="qt-items" data-testid="qt-rows">{withHead && <div className="qt-ih"><span>{t.colWork}</span><span>{t.pricing}</span><span>{t.colQty}</span><span>{t.colPrice}</span><span>{t.colSum}</span><span /></div>}
       {idx.map((i) => rowLine(i))}</div>) : null);
 
-  // ---------- the add-sections panel (addHPanel) ----------
-  const kindsInside = (parentKind) => (parentKind === 'floor' ? ['apartment', 'room', 'section'] : parentKind === 'apartment' ? ['room', 'section'] : parentKind === 'room' ? ['section'] : ['floor', 'apartment', 'room', 'section']);
+  // ---------- the add-sections line (addHPanel, 2026-11-22 the simplify sketch item 3): kind, how many, "Add" in one line; every kind at every
+  // level; the hint says what will be made; an error shares the hint's cell (nothing moves) ----------
+  const KINDS = ['floor', 'apartment', 'room', 'section'];
+  const openAdd = (parent, at) => { setRenaming(null); if (parent) expand(parent); setAddPanel({ parent: parent || null, kind: null, count: '1', sname: '', at, err: '' }); };
   const panel = () => {
     const a = addPanel; const parent = a.parent ? sections.find((x) => keyOf(x) === a.parent) : null;
+    const q = parent ? t.kindQIn(String(parent.name || '').trim() || t.unnamed) : t.kindQ;
+    const pk = a.err === t.pickKind; const cur = a.err && !pk ? a.err : '';
+    const setCount = (v) => setAddPanel({ ...a, count: v, err: '' });
     return (
-      <div className="qt-addh-p" role="group" aria-label={t.hAddFirst} data-testid="qt-wizard">
-        {a.step === 'kind' && (<>
-          <div className="qt-aq">{parent ? t.kindQIn(parent.name || t.unnamed) : t.kindQ}</div>
-          <div className="qt-chips">{kindsInside(parent ? parent.kind || 'section' : null).map((k) => (
-            // PRODUCT_TRUTH_DECORATIVE: chooses the kind of the new sections (floor / apartment / room / other topic)
-            <button key={k} type="button" data-testid={`qt-kind-${k}`} onClick={() => setAddPanel({ ...a, kind: k, step: 'count', err: '' })}>{t.kinds[k]}</button>
+      <div className="qt-addh-p" role="group" aria-label={q} data-testid="qt-wizard">
+        <div className="qt-aq">{q}</div>
+        <div className="qt-arow">
+          <div className="qt-chips">{KINDS.map((k) => (
+            // PRODUCT_TRUTH_DECORATIVE: chooses the kind of the new sections (floor / apartment / room / another topic) - nothing is added until "Add"
+            <button key={k} type="button" className={a.kind === k ? 'qt-on' : undefined} aria-pressed={a.kind === k} data-testid={`qt-kind-${k}`}
+              onClick={() => { setAddPanel({ ...a, kind: k, err: '' }); if (k === 'section') setTimeout(() => rootRef.current?.querySelector('#qt-sname')?.focus({ preventScroll: true }), 0); }}>{t.kinds[k]}</button>
           ))}</div>
-        </>)}
-        {a.step === 'count' && (<>
-          <label className="qt-aq" htmlFor="qt-count">{t.countQ(t.plural[a.kind])}</label>
-          <input id="qt-count" className="qt-hcnt pf-num" inputMode="numeric" dir="ltr" data-testid="qt-count" autoFocus value={a.count} placeholder="1" onChange={(e) => setAddPanel({ ...a, count: e.target.value, err: '' })} />
-          <div className="qt-hint">{t.countHint(t.kinds1[a.kind])}</div>
-          {a.err && <div className="qt-err" role="alert">{a.err}</div>}
-        </>)}
-        {a.step === 'names' && (<>
-          <div className="qt-aq">{t.namesQ(a.kind, t.kinds1[a.kind])}</div>
-          <div className="qt-hnames">{a.names.map((v, k) => (
-            <input key={k} data-testid={`qt-name-${k}`} value={v} placeholder={t.namePh[a.kind]} aria-label={`${t.nameL} ${k + 1}`}
-              onChange={(e) => setAddPanel({ ...a, names: a.names.map((x, j) => (j === k ? e.target.value : x)), err: '' })} />
-          ))}</div>
-          <div className="qt-hint">{t.namesHint}</div>
-          {a.err && <div className="qt-err" role="alert" data-testid="qt-names-error">{a.err}</div>}
-        </>)}
+          <div className="qt-stp" role="group" aria-label={t.howMany}>
+            {/* PRODUCT_TRUTH_DECORATIVE: one less (never under 1) */}
+            <button type="button" className="qt-ib" aria-label={t.less} data-testid="qt-count-less" onClick={() => setCount(String(Math.max(1, (parseInt(a.count, 10) || 1) - 1)))}>−</button>
+            <input id="qt-count" className="pf-num" inputMode="numeric" dir="ltr" data-testid="qt-count" aria-label={t.howMany} value={a.count} onChange={(e) => setCount(e.target.value)} />
+            {/* PRODUCT_TRUTH_DECORATIVE: one more (never over 100) */}
+            <button type="button" className="qt-ib" aria-label={t.more1} data-testid="qt-count-more" onClick={() => setCount(String(Math.min(100, (parseInt(a.count, 10) || 0) + 1)))}>+</button>
+          </div>
+        </div>
+        {a.kind === 'section' && (
+          <input id="qt-sname" className="qt-snm" data-testid="qt-sname" value={a.sname} placeholder={t.namePh.section} aria-label={t.nameL} onChange={(e) => setAddPanel({ ...a, sname: e.target.value, err: '' })} />
+        )}
+        <div className="qt-hslot">
+          <div id="qt-h-hint" className={`qt-hint${pk ? ' qt-hint--bad' : ''}${cur ? ' qt-off' : ''}`} role={pk ? 'alert' : undefined} aria-hidden={cur ? true : undefined}>{addHint(a)}</div>
+          {[t.countErr, t.countMax].map((m) => (
+            <div key={m} className={`qt-err${cur === m ? '' : ' qt-off'}`} role={cur === m ? 'alert' : undefined} aria-hidden={cur === m ? undefined : true} data-testid={cur === m ? 'qt-count-error' : undefined}>{m}</div>
+          ))}
+        </div>
         <div className="qt-hacts">
-          {a.step === 'kind' ? (
-            // PRODUCT_TRUTH_DECORATIVE: closes the panel - nothing is added
-            <button type="button" className="qt-btn" data-testid="qt-page-close" onClick={() => setAddPanel(null)}>{t.closeNoSave}</button>
-          ) : (<>
-            {/* PRODUCT_TRUTH_DECORATIVE: checks the number and goes on to the names / adds the new sections to the quote */}
-            <button type="button" className="qt-btn qt-btn--p" data-testid={a.step === 'count' ? 'qt-count-next' : 'qt-wizard-create'} onClick={addNext}>{a.step === 'count' ? t.toNames : t.hCreate}</button>
-            {/* PRODUCT_TRUTH_DECORATIVE: back one step of the panel (what was typed is kept) */}
-            <button type="button" className="qt-btn" data-testid="qt-page-back" onClick={() => setAddPanel({ ...a, step: a.step === 'names' ? 'count' : 'kind', err: '' })}>{t.back}</button>
-            {/* PRODUCT_TRUTH_DECORATIVE: closes the panel - nothing is added */}
-            <button type="button" className="qt-link" data-testid="qt-page-close" onClick={() => setAddPanel(null)}>{t.closeNoSave}</button>
-          </>)}
+          {/* PRODUCT_TRUTH_DECORATIVE: adds the new sections to the quote (the entry row goes to the first of them) */}
+          <button type="button" className="qt-btn qt-btn--p" data-testid="qt-wizard-create" onClick={createHeadings}>{t.add}</button>
+          {/* PRODUCT_TRUTH_DECORATIVE: closes the line - nothing is added */}
+          <button type="button" className="qt-btn" data-testid="qt-page-close" onClick={() => setAddPanel(null)}>{t.cancel}</button>
         </div>
       </div>
     );
@@ -692,23 +748,23 @@ export default function QuoteTreeEditor({
     const repeat = normalizeRepeatCount(s.repeat_count);
     const name = String(s.name || '').trim() || t.unnamed;
     const open = isMenu('head', key);
+    const on = target === key; // the section you work on
     const first = firstSiblingOf(sections, key);
     const isFirst = !first || keyOf(first) === key;
     const isReal = (it) => it && !isUntouchedPlaceholderItem(it) && !it._localExample;
     const canTemplate = onSaveHeadingTemplate && String(s.name || '').trim() && rowsOf(key).length && !kids.length;
     const items2 = [
-      { label: t.addHere, icon: <SketchIcon name="plus" size={16} />, onClick: run(() => chooseTarget(key)), testId: 'qt-head-here' },
-      allowNest && depth < MAX_DEPTH - 1 && repeat < 2 ? { label: t.hInside, icon: <SketchIcon name="plusCircle" size={16} />, testId: 'qt-add-inside', onClick: run(() => { expand(key); setAddPanel({ parent: key, step: 'kind', count: '1', names: [], err: '' }); }) } : null,
+
       { label: t.hRename, icon: <SketchIcon name="pen" size={16} />, onClick: run(() => setRenaming({ key, value: String(s.name || '') })), testId: 'qt-head-rename' },
       { label: t.hDup, icon: <SketchIcon name="copy" size={16} />, testId: 'qt-head-duplicate', onClick: run(() => {
         const under = new Set(subtreeKeys(sections, key));
         if (locked(items.filter((it) => it && under.has(it.section_key)))) { onDuplicateLocked?.(); return; }
-        const r = duplicateHeading(sections, items, key, isHebrew); done(t.msgHeadingCopied); setSections(r.sections); setItems(r.items);
+        const r = duplicateHeading(sections, items, key, isHebrew); setStatus(null); setSections(r.sections); setItems(r.items);
         const copy = r.sections.find((x) => keyOf(x) === r.copyKey); setRenaming({ key: r.copyKey, value: String(copy?.name || '') });
       }) },
       { label: t.hCopyFirst, icon: <svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="8" y="3" width="8" height="4" rx="1" /><path d="M8 5H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2" /></svg>, testId: 'unit-copy-first', disabled: isFirst, title: first ? first.name : undefined,
         onClick: run(() => { done(t.msgCopiedFirst); setItems(copyRowsFromFirst(sections, items, key, isReal)); }) },
-      canTemplate ? { label: t.hTmpl, icon: <SketchIcon name="tmpl" size={16} />, testId: 'qt-head-template', onClick: run(() => onSaveHeadingTemplate(s)) } : null,
+      onSaveHeadingTemplate && normalizeRepeatCount(s.repeat_count) < 2 ? { label: t.hTmpl, icon: <SketchIcon name="tmpl" size={16} />, testId: 'qt-head-template', disabled: !canTemplate, onClick: run(() => onSaveHeadingTemplate(s)) } : null,
       '-',
       { label: t.hDel, icon: <SketchIcon name="trash" size={16} />, danger: true, testId: 'qt-head-delete', onClick: run(() => {
         const r = removeHeadingWithContent(sections, items, key);
@@ -720,7 +776,7 @@ export default function QuoteTreeEditor({
       const v = String(renaming.value || '').trim();
       if (!v) { setStatus({ text: t.needHName, error: true }); return; }
       if (childrenOf(sections, parentOf(sections, key)).some((x) => keyOf(x) !== key && String(x.name || '').trim().toLowerCase() === v.toLowerCase())) { setStatus({ text: t.namesDup, error: true }); return; }
-      done(t.msgNamesSaved); setSections(sections.map((x) => (keyOf(x) === key ? { ...x, name: v } : x))); setRenaming(null);
+      setStatus(null); setSections(sections.map((x) => (keyOf(x) === key ? { ...x, name: v } : x))); setRenaming(null);
     };
     const idx = rowsOf(key);
     return (
@@ -740,12 +796,15 @@ export default function QuoteTreeEditor({
             <button type="button" className="qt-ib qt-tri" aria-expanded={isOpen} aria-label={`${isOpen ? t.hClose : t.hOpen} ${name}`}
               onClick={() => { if (isOpen && liveTarget && pathOf(sections, liveTarget).some((x) => keyOf(x) === key)) setTarget(null); setCollapsed((prev) => { const n = new Set(prev); if (n.has(key)) n.delete(key); else n.add(key); return n; }); }}>
               <ChevronDown {...sizeOf(15)} style={{ transform: isOpen ? 'none' : `rotate(${isHebrew ? 90 : -90}deg)` }} /></button>
-            {/* PRODUCT_TRUTH_DECORATIVE: the section name - a click sends the entry row to this section */}
-            <button type="button" className="qt-hn" aria-pressed={target === key} onClick={() => chooseTarget(key)}>
+            {/* PRODUCT_TRUTH_DECORATIVE: the section name - a click makes it the section you work on; on that section a click renames it in place */}
+            <button type="button" className="qt-hn" aria-pressed={on} aria-label={on ? `${t.hRename}: ${name}` : undefined}
+              onClick={() => (on ? setRenaming({ key, value: String(s.name || '') }) : chooseTarget(key))}>
               {String(s.name || '').trim() ? <EllipsisText text={repeat > 1 ? `${s.name} × ${repeat}` : s.name} /> : <span className="qt-unnamed">{t.unnamed}</span>}
+              {on && <span className="qt-pen" aria-hidden="true"><SketchIcon name="pen" size={13} /></span>}
             </button>
-            {/* PRODUCT_TRUTH_DECORATIVE: sends the entry row to this section (desktop and tablet) */}
-            <button type="button" className="qt-ib qt-addb" aria-label={t.addHereL(name)} onClick={() => chooseTarget(key)}><SketchIcon name="plus" size={17} /></button>
+            {/* PRODUCT_TRUTH_DECORATIVE: "+ עבודה" - makes this the section you work on (on that section it is hidden but keeps its place) */}
+            <button type="button" className="qt-btn qt-btn--sm qt-btn--acc qt-wadd" aria-label={t.addHereL(name)} data-testid="qt-head-add" onClick={() => chooseTarget(key)}
+              {...(on ? { style: { visibility: 'hidden' }, tabIndex: -1, 'aria-hidden': true } : {})}>{t.wadd}</button>
             <span className="qt-hs">{money(headingTotal(items, sections, key))}</span>
             <span className="qt-menu-wrap" ref={wrapRef('head', key)}>
               {/* PRODUCT_TRUTH_DECORATIVE: the actions menu of a section (add here / inside, rename, duplicate, copy, template, remove) */}
@@ -772,8 +831,7 @@ export default function QuoteTreeEditor({
                 </div>
               );
             })()}
-            {addPanel && addPanel.parent === key && panel()}
-            {target === key ? card(idx) : rowsBlock(idx, false)}
+            {on ? card(idx) : rowsBlock(idx, false)}
             {kids.map((k) => heading(k))}
           </div>
         )}
@@ -781,12 +839,15 @@ export default function QuoteTreeEditor({
     );
   };
 
-  // ---------- the structure line (eline) ----------
-  const smOpen = isMenu('struct', 's');
-  const structs = [['simple', t.simple, t.sxSimple], ['grouped', t.grouped, t.sxGrouped], ['tiered', t.tiered, t.sxTiered]];
-  const structLabel = (structs.find((z) => z[0] === structure) || structs[0])[1];
   const top = rowsOf(null);
   const rootTarget = simple || !liveTarget;
+  // 2026-11-22 (the simplify sketch): "Remove the sections" (the editor bar's "⋯", QuoteForm) - every row stays, at the quote level; undo
+  const flatten = () => {
+    done(t.flattened);
+    setItems((prev) => (prev || []).map((it) => (it && it.section_key ? { ...it, section_key: null } : it)));
+    setSections([]); setTarget(null); setAddPanel(null); setRenaming(null); setMenu(null);
+  };
+  useEffect(() => { if (treeActionsRef) treeActionsRef.current = { flatten }; });
   const statusEl = status && (
     <div className={status.error ? 'qt-toast qt-toast--error' : 'qt-toast'} role={status.error ? 'alert' : 'status'} data-testid={status.error ? 'qt-block' : 'qt-undo'}>
       <span>{status.text}</span>
@@ -800,34 +861,22 @@ export default function QuoteTreeEditor({
   return (
     <div className="qt" ref={rootRef} dir={isHebrew ? 'rtl' : 'ltr'} data-testid="qt-editor" onKeyDown={(e) => { if (enterInField(e)) e.preventDefault(); }}>
       {statusSlot ? createPortal(statusEl, statusSlot) : statusEl}
-      <div className="qt-eline">
-        <span className="qt-menu-wrap" ref={wrapRef('struct', 's')}>
-          {/* PRODUCT_TRUTH_DECORATIVE: opens the structure menu of the quote (simple / in sections / sections within sections) */}
-          <button type="button" className="qt-slink" aria-haspopup="menu" aria-expanded={smOpen} data-testid="qt-structure" onClick={toggleMenu('struct', 's')}>{t.structL} <b>{structLabel}</b><ChevronDown {...sizeOf(14)} /></button>
-          {smOpen && (
-            <div className="qt-menu qt-smenu" role="menu" aria-label={t.structL}>
-              {structs.map(([k, label, sx]) => (
-                // PRODUCT_TRUTH_DECORATIVE: chooses the quote structure - nothing that was entered is removed
-                <button key={k} type="button" role="menuitemradio" aria-checked={structure === k} className={`qt-sopt${structure === k ? ' qt-sopt--on' : ''}`} data-testid={`qt-structure-${k}`}
-                  onClick={() => { setMenu(null); onStructure(k); setAddPanel(null); setRenaming(null); if (k === 'simple') setTarget(null); }}><span><b>{label}</b><small>{sx}</small></span></button>
-              ))}
-            </div>
-          )}
-        </span>
-        {lineExtra}
-      </div>
+      {lineExtra && <div className="qt-eline">{lineExtra}</div>}
       {simple ? card(flatRows()) : (<>
         {tops.map((s) => heading(s))}
-        {addPanel && !addPanel.parent ? panel() : (
-          // PRODUCT_TRUTH_DECORATIVE: adds the first / more sections of the quote (the kind, how many, the names)
-          <button type="button" className="qt-btn qt-addh" data-testid="qt-add-first" onClick={() => setAddPanel({ parent: null, step: 'kind', count: '1', names: [], err: '' })}><SketchIcon name="plusCircle" size={16} />{t.hAddFirst}</button>
-        )}
-        {sections.length > 0 && (top.length > 0 || rootTarget) && <div className="qt-wl">{t.whole}</div>}
-        {rootTarget ? card(top) : (<>
-          {rowsBlock(top, !sections.length)}
-          {/* PRODUCT_TRUTH_DECORATIVE: sends the entry row to the whole quote */}
-          <button type="button" className="qt-link qt-addhere" data-testid="qt-target-whole" onClick={() => chooseTarget(null)}>{t.addWhole}</button>
-        </>)}
+        {(rootTarget || top.length > 0) && <div className="qt-wl">{t.genL}</div>}
+        {rootTarget ? card(top) : rowsBlock(top, false)}
+        {addPanel && addPanel.at === 'q' ? panel() : (!rootTarget && (
+          // 2026-11-22 (the simplify sketch item 5): what to add to the whole quote
+          <div className="qt-qline" data-testid="qt-qline"><b>{t.addQ}</b><small>{t.toQuote}</small>
+            <span className="qt-qbtns">
+              {/* PRODUCT_TRUTH_DECORATIVE: opens the one-line add of sections in place of this line */}
+              <button type="button" className="qt-btn qt-btn--sm qt-btn--acc" data-testid="qt-add-first" onClick={() => openAdd(null, 'q')}>{t.newSec}</button>
+              {/* PRODUCT_TRUTH_DECORATIVE: sends the entry row to the general work (the whole quote, not in a section) */}
+              <button type="button" className="qt-btn qt-btn--sm qt-btn--acc" data-testid="qt-target-whole" onClick={() => chooseTarget(null)}>{t.genWork}</button>
+            </span>
+          </div>
+        ))}
       </>)}
       {moving && (
         <div className="qt-ov" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) setMoveSheet(null); }}>

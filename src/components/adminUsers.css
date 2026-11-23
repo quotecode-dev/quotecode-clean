@@ -10,14 +10,14 @@
 .admin-users-page * { box-sizing:border-box; }
 .admin-users-page button,.admin-users-page input,.admin-users-page select { font:inherit; }
 .admin-users-page button { cursor:pointer; }
-.admin-users-page button:focus-visible,.admin-users-page input:focus-visible,.admin-users-page select:focus-visible { outline:3px solid #0F6672; outline-offset:2px; }
+.admin-users-page button:focus-visible,.admin-users-page input:focus-visible,.admin-users-page select:focus-visible { outline:3px solid #102444; outline-offset:2px; }
 
 .admin-stat { flex:1 1 0; min-width:0; box-sizing:border-box; padding:8px 10px; border:1px solid #D9E0E3; background:#fff; border-radius:10px; display:flex; flex-direction:column; align-items:flex-start; gap:1px; }
 .admin-stat-label { display:flex; align-items:center; gap:7px; color:#65727A; font-size:11px; line-height:13px; min-height:13px; }
 .admin-stat-label svg { color:#0F6672; flex-shrink:0; }
 .admin-stat>strong { font-size:21px; line-height:1; }
 .admin-stat small,.admin-stat-link { font-size:10px; color:#606D75; }
-.admin-stat .admin-stat-link { border:0; background:none; padding:0; color:#0F6672; text-align:start; font-size:10px; }
+.admin-stat .admin-stat-link { border:0; background:none; padding:0; color:#102444; text-align:start; font-size:10px; }
 
 .admin-directory { background:#fff; border:1px solid #D9E0E3; border-radius:12px; padding:10px; }
 .admin-directory-toolbar { display:flex; align-items:center; justify-content:space-between; gap:14px; margin-bottom:8px; flex-wrap:wrap; }
@@ -118,7 +118,7 @@
 .admin-overview-row-meta { font-size:10px; color:#65727A; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .admin-overview-row-date { font-size:10px; color:#65727A; }
 .admin-overview-actions { display:flex; gap:8px; margin-top:10px; flex-wrap:wrap; }
-.admin-overview-quick-action { display:inline-flex; align-items:center; gap:6px; background:#fff; border:1px solid #D9E0E3; border-radius:8px; padding:8px 12px; font-size:12px; font-weight:600; color:#0F6672; }
+.admin-overview-quick-action { display:inline-flex; align-items:center; gap:6px; background:#fff; border:1px solid #D9E0E3; border-radius:8px; padding:8px 12px; font-size:12px; font-weight:600; color:#102444; }
 @media(max-width:1100px) { .admin-overview-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:700px) { .admin-overview-grid { grid-template-columns:1fr; } }
 
@@ -144,7 +144,7 @@
 
 /* Admin User Details (shell-preserving page, not a modal). */
 .admin-user-details { display:flex; flex-direction:column; gap:12px; }
-.admin-details-back { display:inline-flex; align-items:center; gap:6px; align-self:flex-start; background:none; border:0; color:#0F6672; font-size:12px; font-weight:600; padding:4px 0; }
+.admin-details-back { display:inline-flex; align-items:center; gap:6px; align-self:flex-start; background:none; border:0; color:#102444; font-size:12px; font-weight:600; padding:4px 0; }
 .admin-details-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
 .admin-details-card { background:#fff; border:1px solid #D9E0E3; border-radius:12px; padding:14px 16px; min-width:0; }
 .admin-details-card h3 { display:flex; align-items:center; gap:6px; margin:0 0 10px; font-size:13px; color:#172129; font-weight:700; }
@@ -153,7 +153,7 @@
 .admin-details-row span:first-child { color:#65727A; }
 .admin-details-row span:last-child { color:#172129; font-weight:600; text-align:end; overflow-wrap:anywhere; }
 .admin-details-advanced { margin-top:4px; }
-.admin-details-advanced summary { cursor:pointer; font-size:12px; font-weight:600; color:#0F6672; padding:6px 0; }
+.admin-details-advanced summary { cursor:pointer; font-size:12px; font-weight:600; color:#102444; padding:6px 0; }
 @media(max-width:850px) { .admin-details-grid { grid-template-columns:1fr; } }
 
 .admin-market-icon { display:inline-flex; align-items:center; justify-content:center; width:32px; height:28px; font-size:22px; color:#65727A; }
@@ -212,7 +212,7 @@
 .admin-inquiry-reply textarea { width:100%; box-sizing:border-box; border:1px solid #D9E0E3; border-radius:8px; padding:10px; font:inherit; font-size:14px; line-height:1.5; resize:vertical; min-height:140px; }
 .admin-inquiry-actions { display:flex; flex-wrap:wrap; gap:8px; }
 .admin-inquiry-actions button { display:inline-flex; align-items:center; gap:6px; border:1px solid #D9E0E3; background:#F3F5F4; color:#172129; padding:0 14px; border-radius:8px; font-size:13px; cursor:pointer; }
-.admin-inquiry-actions .admin-inquiry-primary { background:#0F6672; border-color:#0F6672; color:#fff; font-weight:700; }
+.admin-inquiry-actions .admin-inquiry-primary { background:#102444; border-color:#102444; color:#fff; font-weight:700; }
 .admin-inquiry-actions button:disabled { opacity:.55; cursor:default; }
 .admin-inquiry-toggles { display:flex; flex-direction:column; gap:10px; margin:14px 0 4px; }
 .admin-inquiry-toggle { display:flex; align-items:center; gap:10px; min-height:44px; padding:0 12px; border:1px solid #D9E0E3; border-radius:8px; background:#F3F5F4; font-size:13px; color:#172129; cursor:pointer; }
@@ -223,7 +223,7 @@
 /* Owner console 2026-10-20 (L-22 "צמצום תפריט הניהול לשני כפתורים ומסך מרכזי, ומשתמש מפקח עם מסך הרשאות מנהל"): the hub cards and the permissions screen. */
 .admin-hub-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:14px; padding:4px 0 16px; }
 .admin-hub-card { display:flex; align-items:center; gap:14px; min-height:92px; padding:16px; border:1px solid #D9E0E3; border-radius:14px; background:#fff; color:#172129; text-align:start; cursor:pointer; font:inherit; box-shadow:0 1px 2px rgba(23,33,41,.04); transition:border-color .15s ease, box-shadow .15s ease, transform .15s ease; }
-.admin-hub-card:hover, .admin-hub-card:focus-visible { border-color:#0F6672; box-shadow:0 6px 18px rgba(15,102,114,.12); transform:translateY(-1px); outline:none; }
+.admin-hub-card:hover, .admin-hub-card:focus-visible { border-color:#102444; box-shadow:0 6px 18px rgba(16, 36, 68,.12); transform:translateY(-1px); outline:none; }
 .admin-hub-icon { display:inline-flex; align-items:center; justify-content:center; inline-size:46px; block-size:46px; flex-shrink:0; border-radius:12px; background:linear-gradient(135deg, #E6F4F5, #F4F1FE); color:#0F6672; }
 .admin-hub-text { display:flex; flex-direction:column; gap:4px; min-width:0; flex:1 1 auto; }
 .admin-hub-text strong { display:inline-flex; align-items:center; font-size:15px; font-weight:800; }

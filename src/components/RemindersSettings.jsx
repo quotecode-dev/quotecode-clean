@@ -22,7 +22,7 @@ const css = `
 .pf-rem-card { background: ${NEON.bgCard}; border-radius: ${RADIUS.lg}; padding: 16px; box-shadow: ${SHADOW.sm}; }
 .pf-rem-modes { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin-top: 12px; }
 .pf-rem-mode { border: 1.5px solid ${NEON.border}; border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; background: ${NEON.bgCard}; text-align: start; font: inherit; color: inherit; min-height: 44px; }
-.pf-rem-mode[aria-checked="true"] { border-color: ${TEAL}; background: #E3F1F2; }
+.pf-rem-mode[aria-checked="true"] { border-color: ${NEON.button}; background: #e9edf3; }
 .pf-rem-mode.full { border-color: #B9A9EC; }
 .pf-rem-mode.full[aria-checked="true"] { border-color: ${VIOLET}; background: #F3F0FC; }
 .pf-rem-mode:disabled { cursor: not-allowed; opacity: .72; }
@@ -33,8 +33,8 @@ const css = `
 .pf-rem-tag { font-size: 0.68rem; font-weight: 700; border-radius: 999px; padding: 1px 8px; white-space: nowrap; }
 .pf-rem-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; border-radius: 9px; padding: 8px 14px; min-height: 40px; font-weight: 700; font-size: 0.8rem; border: 1px solid ${NEON.borderStrong}; background: ${NEON.bgCard}; color: ${NEON.textPrimary}; cursor: pointer; white-space: nowrap; font-family: inherit; }
 .pf-rem-btn:disabled { opacity: .55; cursor: not-allowed; }
-.pf-rem-btn.pri { background: ${TEAL}; border-color: ${TEAL}; color: #fff; }
-.pf-rem-btn.full { background: linear-gradient(135deg, ${VIOLET}, ${TEAL}); border: 0; color: #fff; }
+.pf-rem-btn.pri { background: ${NEON.button}; border-color: ${NEON.button}; color: #fff; }
+.pf-rem-btn.full { background: ${NEON.button}; border: 0; color: #fff; }
 .pf-rem-sel { border: 1px solid ${NEON.borderStrong}; border-radius: 8px; padding: 6px 8px; min-height: 36px; background: ${NEON.bgInput}; color: ${NEON.textPrimary}; font: inherit; font-size: 0.8rem; }
 .pf-rem-kv { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 10px 12px; align-items: start; }
 .pf-rem-kv dt { color: ${NEON.textSecondary}; font-size: 0.75rem; font-weight: 600; padding-top: 6px; }
@@ -43,7 +43,7 @@ const css = `
 .pf-rem-callout { border-radius: 10px; padding: 10px 12px; font-size: 0.78rem; line-height: 1.45; }
 .pf-rem-days { display: flex; flex-wrap: wrap; gap: 6px; }
 .pf-rem-day { min-width: 40px; min-height: 36px; border-radius: 8px; border: 1px solid ${NEON.borderStrong}; background: ${NEON.bgCard}; font: inherit; font-size: 0.78rem; font-weight: 700; cursor: pointer; color: ${NEON.textPrimary}; }
-.pf-rem-day[aria-pressed="true"] { background: ${TEAL}; border-color: ${TEAL}; color: #fff; }
+.pf-rem-day[aria-pressed="true"] { background: ${NEON.button}; border-color: ${NEON.button}; color: #fff; }
 .pf-rem-mail { border: 1px solid ${NEON.border}; border-radius: 12px; overflow: hidden; }
 .pf-rem-num { direction: ltr; unicode-bidi: isolate; font-variant-numeric: tabular-nums lining-nums; }
 @media (max-width: 900px) { .pf-rem-modes { grid-template-columns: minmax(0, 1fr); } .pf-rem-two { grid-template-columns: minmax(0, 1fr); } }
@@ -59,7 +59,7 @@ const css = `
 function Box({ checked, disabled, onChange, label }) {
   return (
     <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} aria-label={label}
-      style={{ width: 18, height: 18, margin: '2px 0 0', accentColor: TEAL, cursor: disabled ? 'not-allowed' : 'pointer' }} />
+      style={{ width: 18, height: 18, margin: '2px 0 0', accentColor: NEON.button, cursor: disabled ? 'not-allowed' : 'pointer' }} />
   );
 }
 
@@ -254,7 +254,7 @@ export default function RemindersSettings({ isHebrew, isLocalIsraeliBusiness, cl
             <button key={m} type="button" role="radio" aria-checked={draft.mode === m} disabled={locked} className={`pf-rem-mode${m === 'full' ? ' full' : ''}`}
               data-testid={`rem-mode-${m}`} onClick={() => (m === 'full' && draft.mode !== 'full' ? setConfirmFull(true) : set({ mode: m }))}>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 800, fontSize: '0.88rem', flexWrap: 'wrap' }}>
-                <span aria-hidden="true" style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${draft.mode === m ? (m === 'full' ? VIOLET : TEAL) : NEON.textMuted}`, background: draft.mode === m ? (m === 'full' ? VIOLET : TEAL) : 'transparent', boxShadow: draft.mode === m ? 'inset 0 0 0 3px #fff' : 'none', flex: 'none' }} />
+                <span aria-hidden="true" style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${draft.mode === m ? (m === 'full' ? VIOLET : NEON.button) : NEON.textMuted}`, background: draft.mode === m ? (m === 'full' ? VIOLET : NEON.button) : 'transparent', boxShadow: draft.mode === m ? 'inset 0 0 0 3px #fff' : 'none', flex: 'none' }} />
                 {C.modes[m]}
                 {C.modeTags[m] && <Tag tone={m === 'in_app' ? 'def' : 'opt'}>{C.modeTags[m]}</Tag>}
               </span>
@@ -343,7 +343,7 @@ export default function RemindersSettings({ isHebrew, isLocalIsraeliBusiness, cl
             </div>
             {/* PRODUCT_TRUTH_CAPABILITY: reminders_automation */}
             <button type="button" role="switch" aria-checked={draft.paused} aria-label={C.pauseTitle} disabled={locked} onClick={() => set({ paused: !draft.paused })} data-testid="rem-pause"
-              style={{ width: 44, height: 26, borderRadius: 999, border: 0, background: draft.paused ? TEAL : '#C9D1D4', position: 'relative', cursor: locked ? 'not-allowed' : 'pointer', flex: 'none' }}>
+              style={{ width: 44, height: 26, borderRadius: 999, border: 0, background: draft.paused ? NEON.button : '#C9D1D4', position: 'relative', cursor: locked ? 'not-allowed' : 'pointer', flex: 'none' }}>
               <span aria-hidden="true" style={{ position: 'absolute', top: 3, insetInlineStart: draft.paused ? 21 : 3, width: 20, height: 20, borderRadius: '50%', background: '#fff' }} />
             </button>
           </div>

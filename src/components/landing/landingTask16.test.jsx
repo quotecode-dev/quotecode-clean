@@ -299,8 +299,8 @@ describe('cloud-fix4 A14 - landing truth, base restores, light regions, base col
   });
 
   it('cloud-fix4b dark scope: selected tab / billing-cycle controls are the teal accent, never near-black --tl-dark', () => {
-    expect(rule(".tl-tab[aria-selected='true']")).toMatch(/background: var\(--tl-accent\)/);
-    expect(rule(".tl-cycle button[aria-pressed='true']")).toMatch(/background: var\(--tl-accent\)/);
+    expect(rule(".tl-tab[aria-selected='true']")).toMatch(/background: var\(--tl-btn\)/);
+    expect(rule(".tl-cycle button[aria-pressed='true']")).toMatch(/background: var\(--tl-btn\)/);
     expect(css.replace(/\/\*[\s\S]*?\*\//g, '')).not.toMatch(/background: var\(--tl-dark\)/);
   });
 

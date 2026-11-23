@@ -14,11 +14,22 @@ function openAiHelp(context = null) {
 }
 
 // PRODUCT_TRUTH_CAPABILITY: ai_chat
-export default function AiHelpButton({ isHebrew = false, long = false, header = false, style = null, testId = 'ai-help-in-context', context = null }) {
+export default function AiHelpButton({ isHebrew = false, long = false, header = false, link = false, style = null, testId = 'ai-help-in-context', context = null }) {
   const longLabel = isHebrew ? 'צריכים עזרה? שאלו את העוזר החכם' : 'Need help? Ask the smart assistant';
   const shortLabel = isHebrew ? 'שאלו את ה-AI' : 'Ask AI'; // 2026-11-14 (Owner "א"): as short as the English - the window title stays on one line
   const label = long ? longLabel : shortLabel;
   const accessible = isHebrew ? 'פתיחת הצ׳אט עם העוזר החכם לעזרה במסך הזה' : 'Ask AI - open the AI Chat about this screen';
+  // link variant (Owner 2026-11-22, the simplify sketch item 10 - AiModalHeader aiHelp="link", the AI smart quote and quote-from-file windows
+  // only): the same ONE assistant as a plain text link with the long label - no pill, no icon; the accessible name is the visible text
+  if (link) {
+    return (
+      // PRODUCT_TRUTH_CAPABILITY: ai_chat
+      <button type="button" className="pf-ai-help-link" data-testid={testId} aria-label={longLabel} title={accessible} dir={isHebrew ? 'rtl' : 'ltr'}
+        onClick={(e) => { e.stopPropagation(); openAiHelp(context); }} style={style || undefined}>
+        {longLabel}
+      </button>
+    );
+  }
   // header variant (AiModalHeader): the long label on desktop, the short one on mobile - chosen by CSS (.pf-ai-help-btn--header), so the
   // visible text always matches the space and is never dropped to icon-only
   if (header) {

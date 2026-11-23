@@ -59,7 +59,7 @@ export default function NotFound({ isHebrew }) {
           display: 'inline-flex',
           alignItems: 'center',
           gap: '8px',
-          background: NEON.violet || '#7c3aed',
+          background: '#102444',
           color: '#fff',
           borderRadius: '10px',
           padding: '12px 20px',

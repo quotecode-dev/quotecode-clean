@@ -14,7 +14,7 @@ const fmt = (ms, isHebrew) => {
 export function PendingDraftRow({ draft, isHebrew, dateMarket, onContinue, onDelete }) {
   if (!draft) return null;
   const when = formatDeviceShortDateTime(draft.updatedAt, dateMarket);
-  const btnStyle = (primary) => ({ minHeight: 44, padding: '0 14px', borderRadius: 8, border: primary ? 'none' : '1px solid #6ee7b7', background: primary ? '#0F6672' : '#fff', color: primary ? '#fff' : '#065f46', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' });
+  const btnStyle = (primary) => ({ minHeight: 44, padding: '0 14px', borderRadius: 8, border: primary ? 'none' : '1px solid #102444', background: primary ? '#102444' : '#fff', color: primary ? '#fff' : '#102444', fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' });
   return (
     <div role="status" data-testid="pending-draft-row" dir={isHebrew ? 'rtl' : 'ltr'}
       style={{ background: '#ecfdf5', border: '1px solid #6ee7b7', color: '#065f46', borderRadius: 10, padding: '8px 12px', marginBottom: 12, fontSize: '0.9rem', display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -47,7 +47,7 @@ export function DraftRecoveredBanner({ info, isHebrew, onDiscard, onDismiss }) {
       {/* 2026-11-15 (law 49): the two buttons stay together in both languages */}
       <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px', flex: '1 1 100%' }}>
       {/* PRODUCT_TRUTH_CAPABILITY: draft_recovery */}
-      <button type="button" onClick={onDiscard} style={{ background: 'white', color: '#065f46', border: '1px solid #6ee7b7', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', fontWeight: 600 }}>
+      <button type="button" onClick={onDiscard} style={{ background: 'white', color: '#102444', border: '1px solid #102444', borderRadius: '6px', padding: '6px 10px', cursor: 'pointer', fontWeight: 600 }}>
         {isHebrew ? 'מחיקת טיוטה' : 'Discard draft'}
       </button>
       {/* PRODUCT_TRUTH_DECORATIVE: x dismiss button only hides the recovered-draft banner; does not touch the draft itself */}

@@ -63,7 +63,7 @@ export async function readQuoteFileAllowance(supabase) {
   return fetchSmartPackUsage(supabase);
 }
 
-const norm = (s) => String(s || '').toLowerCase().replace(/[\s"'״׳`.,\-_/]+/g, ' ').trim();
+const norm = (s) => String(s || '').replace(/[⁦-⁩]/g, '').toLowerCase().replace(/[\s"'״׳`.,\-_/]+/g, ' ').trim();
 
 /** A catalog price only for an EXACT name match (after spacing / punctuation); anything looser stays empty for the owner to fill. */
 export function catalogPriceFor(description, catalog) {

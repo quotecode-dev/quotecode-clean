@@ -21,11 +21,11 @@ const CAL_CSS = `
   .pf-cal-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
   .pf-cal-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
   .pf-cal-btn { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-block-size: 32px; min-inline-size: 32px; padding-inline: 10px; border-radius: ${RADIUS.sm}; border: 1px solid ${NEON.borderStrong}; background: ${NEON.bgCard}; color: ${NEON.textPrimary}; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
-  .pf-cal-btn--today { border-color: ${NEON.violet}; color: ${NEON.violet}; }
+  .pf-cal-btn--today { border-color: ${NEON.button}; color: ${NEON.button}; }
   .pf-cal-period { font-size: 0.98rem; font-weight: 800; min-inline-size: 0; }
   .pf-cal-seg { display: inline-flex; border: 1px solid ${NEON.borderStrong}; border-radius: ${RADIUS.sm}; overflow: hidden; }
   .pf-cal-seg button { min-block-size: 32px; padding-inline: 12px; border: none; background: ${NEON.bgCard}; color: ${NEON.textSecondary}; font-size: 0.8rem; font-weight: 700; cursor: pointer; }
-  .pf-cal-seg button[aria-pressed="true"] { background: ${NEON.violet}; color: #fff; }
+  .pf-cal-seg button[aria-pressed="true"] { background: ${NEON.button}; color: #fff; }
   .pf-cal-layers { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-block: 10px; }
   .pf-cal-chip { display: inline-flex; align-items: center; gap: 6px; min-block-size: 28px; padding-inline: 10px; border-radius: 999px; border: 1px solid ${NEON.border}; background: ${NEON.bgCard}; color: ${NEON.textPrimary}; font-size: 0.76rem; font-weight: 600; cursor: pointer; }
   .pf-cal-chip[aria-pressed="false"] { opacity: 0.5; text-decoration: line-through; }

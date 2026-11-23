@@ -126,10 +126,10 @@
 @media (prefers-reduced-motion: reduce) { .sp-price strong, .sp-section.is-visible .sp-price strong { animation: none !important; background-position: 100% 0; } }
 .sp-section .sp-cta {
   display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 26px; border-radius: 14px; font-weight: 800; font-size: 1rem;
-  color: #fff; text-decoration: none; background: linear-gradient(90deg, var(--sp-violet), #9f67ff); box-shadow: 0 10px 30px rgba(124, 58, 237, 0.4);
+  color: #fff; text-decoration: none; background: #102444; box-shadow: 0 10px 30px rgba(16, 36, 68, 0.32); /* Owner 23/11: every button in the sidebar navy */
   transition: transform 0.2s, box-shadow 0.2s;
 }
-.sp-cta:hover { transform: translateY(-2px); box-shadow: 0 14px 36px rgba(124, 58, 237, 0.5); }
+.sp-cta:hover { transform: translateY(-2px); background: #0B1A33; box-shadow: 0 14px 36px rgba(16, 36, 68, 0.4); }
 .sp-cta:focus-visible { outline: 3px solid var(--sp-orange); outline-offset: 3px; }
 .sp-note { margin: 14px 0 0; text-align: center; font-size: 0.8rem; color: var(--sp-muted); }
 

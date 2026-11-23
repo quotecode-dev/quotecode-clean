@@ -45,7 +45,7 @@ function PayAction({ purchase, period, withAddOn, isHebrew }) {
       {/* PRODUCT_TRUTH_DECORATIVE: opens the PayPlus payment page of the SERVER attempt (package of the chosen period + the ticked SMART PACK line); rendered only while the server billing phase is on; the package opens only after a verified payment; a resumed renewal charges nothing on that page */}
       <button type="button" data-testid={resume ? 'plans-resume' : 'plans-pay'} disabled={purchase.busy}
         onClick={() => purchase.onPay(resume ? { billingPeriod: resume.period, smartPack: Boolean(withAddOn && resume.hadSmartPack), addAfter } : { billingPeriod: period, smartPack: withAddOn })}
-        style={{ minHeight: 44, borderRadius: 10, border: 'none', background: purchase.busy ? '#94a3b8' : '#0F6672', color: '#ffffff', fontWeight: 800,
+        style={{ minHeight: 44, borderRadius: 10, border: 'none', background: purchase.busy ? '#94a3b8' : '#102444', color: '#ffffff', fontWeight: 800,
           fontSize: '0.95rem', cursor: purchase.busy ? 'wait' : 'pointer' }}>
         {purchase.busy ? t.busy : resume ? t.resume : t.pay}
       </button>
@@ -85,7 +85,7 @@ function PriceBlock({ plan, isHebrew, purchase = null, onAddOnChange = null, ini
             {plan.prices.map((r) => (
               <label key={r.period} style={{ position: 'relative', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minHeight: 40, minWidth: 76,
                 padding: '0 12px', borderRadius: 7, fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', boxSizing: 'border-box',
-                background: period === r.period ? '#0F6672' : 'transparent', color: period === r.period ? '#ffffff' : '#1e293b' }}>
+                background: period === r.period ? '#102444' : 'transparent', color: period === r.period ? '#ffffff' : '#1e293b' }}>
                 {/* PRODUCT_TRUTH_DECORATIVE: chooses which billing period's price the offer card shows; no purchase, nothing stored */}
                 <input type="radio" name={`${uid}-period`} value={r.period} checked={period === r.period} onChange={() => setPeriod(r.period)} data-period={r.period}
                   style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', margin: 0, opacity: 0, cursor: 'pointer' }} />

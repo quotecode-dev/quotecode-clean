@@ -17,6 +17,8 @@ export const QP_VARS = Object.freeze({
   '--qp-accent-strong': APP.violetLight,
   '--qp-accent-soft': APP.violetLighter,
   '--qp-on-accent': APP.textOnAccent,
+  '--qp-btn': APP.button,
+  '--qp-btn-strong': APP.buttonHover,
   '--qp-text': APP.textPrimary,
   '--qp-text-2': APP.textSecondary,
   '--qp-muted': APP.textMuted,

@@ -55,7 +55,6 @@ describe('every SMART PACK window shows it', () => {
     await waitFor(() => expect(screen.getByTestId('quote-from-file-allowance').textContent).toBe('נשארו לכם 12% משימוש חכם פלוס החודש'));
     const f = new File([new Uint8Array(4)], 'q.pdf', { type: 'application/pdf' }); Object.defineProperty(f, 'size', { value: 1000 });
     fireEvent.change(screen.getByTestId('quote-from-file-input'), { target: { files: [f] } });
-    fireEvent.click(screen.getByTestId('quote-from-file-read'));
     expect(await screen.findByText('היתרה בחכם פלוס לחודש הזה לא מספיקה לפעולה הזו. היא מתחדשת בתחילת החודש הבא. בינתיים אפשר להמשיך ידנית.')).toBeTruthy();
   });
   it('the AI smart quote / smart edit: the line under the intro, read again after a draft; the used-up message', async () => {

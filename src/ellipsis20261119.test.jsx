@@ -112,7 +112,9 @@ describe('"+ add a heading inside": a long place name wraps inside the button (1
     const tree = read('components/quoteTree/QuoteTreeEditor.jsx');
     expect(tree).toContain("hInside: 'הוספת חלק בתוך'");
     expect(tree).toContain("hInside: 'Add a section inside'");
-    expect(tree).toContain("{ label: t.hInside, icon: <SketchIcon name=\"plusCircle\" size={16} />, testId: 'qt-add-inside',");
+    expect(tree).toContain("secInside: (n) => `+ חלק בתוך ${n}`");
+    expect(tree).toContain("secInside: (n) => `+ Section inside ${n}`");
+    expect(tree).toContain('<EllipsisText text={t.secInside(secName)} />');
   });
 });
 

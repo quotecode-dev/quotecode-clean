@@ -36,7 +36,7 @@ export default function InstallAppSheet({ steps, isHebrew, onClose, recommendChr
 
   const overlay = { position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 11000, padding: '16px', boxSizing: 'border-box' };
   const card = { background: NEON.bgCard, borderRadius: '16px', width: '100%', maxWidth: '400px', boxSizing: 'border-box', padding: '20px 18px 18px', boxShadow: '0 20px 60px -15px rgba(0,0,0,0.4)', textAlign: isHebrew ? 'right' : 'left' };
-  const num = { flexShrink: 0, width: '28px', height: '28px', borderRadius: '50%', background: NEON.gradient, color: '#fff', fontWeight: 800, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };
+  const num = { flexShrink: 0, width: '28px', height: '28px', borderRadius: '50%', background: NEON.violet, color: '#fff', fontWeight: 800, fontSize: '0.85rem', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' };
   const primaryBtn = { minHeight: '44px', width: '100%', padding: '0 16px', borderRadius: '10px', border: 'none', background: NEON.gradient, color: '#fff', fontWeight: 700, fontSize: '0.92rem', cursor: 'pointer', marginTop: '16px' };
 
   return (

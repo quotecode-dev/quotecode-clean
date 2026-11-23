@@ -57,7 +57,7 @@ export function AttachmentCompatOpen({ isHebrew, match, client = supabase, supab
       <p role="status" style={{ fontSize: '1.1rem', color: NEON.textSecondary, margin: 0, maxWidth: '480px' }}>{TEXT[state][lang]}</p>
       {/* PRODUCT_TRUTH_DECORATIVE: returns from the attachment-compatibility status view (MD-2 stale-tab file link) to the dashboard - navigation chrome, not a registry capability */}
       {state !== 'working' && (
-        <Link to="/dashboard" style={{ background: NEON.violet || '#7c3aed', color: '#fff', borderRadius: '10px', padding: '12px 20px', fontWeight: 700, textDecoration: 'none' }}>
+        <Link to="/dashboard" style={{ background: '#102444', color: '#fff', borderRadius: '10px', padding: '12px 20px', fontWeight: 700, textDecoration: 'none' }}>
           {TEXT.dashboard[lang]}
         </Link>
       )}

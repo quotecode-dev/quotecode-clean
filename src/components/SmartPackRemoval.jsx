@@ -11,7 +11,7 @@ import { loadSmartPackRemovalQuote, mailboxForCurrency, removeSmartPack, smartPa
 const moneyIn = (currency) => (minor) => `${currency === 'USD' ? '$' : '₪'}${formatMoneyForCurrency(minor / 100, currency)}`;
 const dateIn = (currency) => (iso) => formatShortDate(iso, currency === 'USD' ? 'International' : 'Local');
 const num = (text) => <bdi dir="ltr" style={{ fontVariantNumeric: 'tabular-nums' }}>{text}</bdi>;
-const linkBtn = { background: 'none', border: 'none', padding: 0, color: '#0F6672', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit', minHeight: 32 };
+const linkBtn = { background: 'none', border: 'none', padding: 0, color: '#102444', textDecoration: 'underline', cursor: 'pointer', fontSize: '0.82rem', fontFamily: 'inherit', minHeight: 32 };
 
 export default function SmartPackRemoval({ isHebrew, invoke, onDone }) {
   const he = isHebrew;

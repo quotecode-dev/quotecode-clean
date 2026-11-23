@@ -49,7 +49,7 @@ function Shell({ lang, children }) {
             type="button"
             data-testid="article-cta"
             onClick={() => navigate(`/dashboard?signup=true&lang=${lang}`)}
-            style={{ background: TOOLS.accent, color: '#ffffff', padding: '11px 22px', minHeight: '46px', borderRadius: '7px', fontWeight: 600, fontSize: '16px', border: `1px solid ${TOOLS.accent}`, cursor: 'pointer' }}
+            style={{ background: TOOLS.button, color: '#ffffff', padding: '11px 22px', minHeight: '46px', borderRadius: '7px', fontWeight: 600, fontSize: '16px', border: `1px solid ${TOOLS.button}`, cursor: 'pointer' }}
           >
             {t.cta}
           </button>

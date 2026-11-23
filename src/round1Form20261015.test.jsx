@@ -45,8 +45,7 @@ describe('A1 / A6: the measured quote is one list (now the rows of the one quote
     unmount();
     render(<Stateful isMeasuredEntry />);
     // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-29 ... only as needed): one "מבנה:" menu with the three structures and their new names; nothing is divided until the user chooses
-    fireEvent.click(screen.getByTestId('qt-structure'));
-    expect(['qt-structure-simple', 'qt-structure-grouped', 'qt-structure-tiered'].map((id) => screen.getByTestId(id).querySelector('b').textContent)).toEqual(['הצעה פשוטה', 'מחולקת לחלקים', 'חלקים בתוך חלקים']);
+    expect(screen.queryByTestId('qt-structure')).toBeNull(); expect(screen.getByTestId('qt-add-first').textContent).toBe('+ חלק: קומה, דירה, חדר');
     expect(screen.queryByText('הוספת היחידה הראשונה')).toBeNull();
     expect(screen.queryByText('לא משויך')).toBeNull();
     // Owner console 2026-11-08 (restore item 07): the local example is offered again while the quote has no real line
@@ -75,7 +74,9 @@ describe('plan section 3: client details and the VAT basis', () => {
     expect(screen.getByText('מספר עוסק מורשה / חברה (חובה)')).toBeTruthy();
     // Owner console 2026-11-11 (typed): the exact VAT notice for the chosen client type replaces the general sentence
     expect(screen.queryByTestId('sq-client-type-vat-help')).toBeNull();
-    expect(screen.getByTestId('sq-vat-notice').textContent).toBe('שימו לב: הסכומים ללקוח עסקי הינם ללא מע״מ, והמע״מ יתווסף למחיר הסופי');
+    expect(screen.getByTestId('sq-vat-business').textContent).toBe('שימו לב: הסכומים ללקוח עסקי הינם ללא מע״מ, והמע״מ יתווסף למחיר הסופי');
+    expect(screen.getByTestId('sq-vat-business').getAttribute('aria-hidden')).toBeNull();
+    expect(screen.getByTestId('sq-vat-private').getAttribute('aria-hidden')).toBe('true');
     fireEvent.click(screen.getByTestId('sq-client-contact-toggle'));
     expect(screen.getByPlaceholderText('לדוגמה: שמעון לוי')).toBeTruthy();
   });
@@ -94,14 +95,21 @@ describe('plan section 3: client details and the VAT basis', () => {
   // Owner console 2026-11-20/21 (the simple-quotes sketch is the approved demo; typed L-07 / L-09 / L-19 / L-29 ... only as needed): the notice is for a business client (amounts before VAT); a private client's totals say "מע״מ (18%) · כלול"
   it('the totals say how the prices are meant: business before VAT, private including VAT; nothing for International', () => {
     render(<QuoteForm {...props({ clientType: 'business' })} />);
-    expect(screen.getByTestId('sq-vat-notice').textContent).toContain('ללא מע״מ');
+    expect(screen.getByTestId('sq-vat-business').className).toBe('qe-vline');
+    expect(screen.getByTestId('sq-vat-private').className).toBe('qe-vline off');
     cleanup();
     render(<QuoteForm {...props({ clientType: 'private' })} />);
-    expect(screen.queryByTestId('sq-vat-notice')).toBeNull();
+    expect(screen.getByTestId('sq-vat-private').textContent).toBe('שימו לב: הסכומים ללקוח פרטי כוללים מע״מ, והמע״מ לא יתווסף למחיר הסופי');
+    expect(screen.getByTestId('sq-vat-private').className).toBe('qe-vline');
+    expect(screen.getByTestId('sq-vat-business').className).toBe('qe-vline off');
     expect(screen.getByTestId('sq-totals').textContent).toContain('מע״מ (18%) · כלול');
     cleanup();
+    render(<QuoteForm {...props({ clientType: 'private', isHebrew: false })} />); // Israeli market in English: the market decides
+    expect(screen.getByTestId('sq-vat-private').textContent).toBe('Note: amounts for a private client include VAT; VAT is not added to the final price.');
+    expect(screen.getByTestId('sq-vat-business').textContent).toBe('Please note: amounts for business clients exclude VAT. VAT will be added to the final price');
+    cleanup();
     render(<QuoteForm {...props({ isHebrew: false, isLocalIsraeliBusiness: false, sym: '$', currency: 'USD' })} />);
-    expect(screen.queryByTestId('sq-vat-notice')).toBeNull();
+    expect(screen.queryByTestId('sq-vat-line')).toBeNull();
     expect(screen.queryByTestId('sq-client-type-vat-help')).toBeNull();
   });
 });
@@ -125,7 +133,7 @@ describe('Owner 2026-10-15 (David): the price step points to the item, the disco
     render(<Stateful />);
     // 2026-11-13 (the 13/11 demo): the add form is open at the whole-quote level - its price field says what it is
     const form = screen.getAllByTestId('qt-form')[0];
-    expect(screen.getAllByTestId('qt-form-to')[0].textContent).toBe('אל: כל ההצעה');
+    expect(screen.queryByTestId('qt-form-to')).toBeNull(); expect(screen.getByTestId('qt-eq').textContent).toBe('מה להוסיף?+ חלק: קומה, דירה, חדר');
     expect(form.textContent).toContain('מחיר ליחידה');
     // 2026-11-15 (the approved demo): "פרטים נוספים להצעה (לא חובה)" -> "הנחה" opens the discount page
     fireEvent.click(screen.getByTestId('sq-more-details-toggle'));

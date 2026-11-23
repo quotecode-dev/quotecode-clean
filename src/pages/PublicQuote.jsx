@@ -8,7 +8,6 @@ import Toast from '../components/Toast';
 import { financialsMatchingStored } from '../utils/storedQuoteFinancials';
 import { formatAddress } from '../utils/addressFormat';
 import { formatMoney, formatWholeMoney } from '../utils/money';
-import { LIGHT } from '../theme/neonTheme';
 import { UserRound, Paperclip, Phone, Printer, MessageCircle, Loader2 } from 'lucide-react';
 import { QuoteMediaRail, QuoteMediaHero, QuoteItemThumb } from '../quoteDocument/QuoteMedia';
 import { mediaForItem } from '../quoteDocument/quoteMediaModel';
@@ -1060,7 +1059,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
         onClick={() => openPrintChooser('pdf')}
         disabled={pdfGenerating}
         className="pq-action-tile"
-        style={{ background: LIGHT.gradient, color: 'white', border: 'none', cursor: pdfGenerating ? 'wait' : 'pointer', opacity: pdfGenerating ? 0.75 : 1 }}
+        style={{ background: '#102444', color: 'white', border: 'none', cursor: pdfGenerating ? 'wait' : 'pointer', opacity: pdfGenerating ? 0.75 : 1 }}
       >
         {pdfGenerating ? <Loader2 size={26} strokeWidth={1.75} className="pq-spin" /> : <PdfFileIcon size={26} strokeWidth={1.75} />}
         <span>{pdfGenerating ? 'מפיק PDF…' : 'הורדה כ-PDF'}</span>
@@ -1080,7 +1079,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
         <a
           href={`tel:${bizPhone.replace(/[^\d+]/g, '')}`}
           className="pq-action-tile"
-          style={{ background: 'white', color: LIGHT.sky, border: `2px solid ${LIGHT.sky}`, textDecoration: 'none' }}
+          style={{ background: 'white', color: '#102444', border: `2px solid #102444`, textDecoration: 'none' }}
         >
           <Phone size={26} strokeWidth={1.75} />
           <span>התקשרו אלינו</span>
@@ -1092,7 +1091,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
           target="_blank"
           rel="noopener noreferrer"
           className="pq-action-tile"
-          style={{ background: 'white', color: LIGHT.emerald, border: `2px solid ${LIGHT.emerald}`, textDecoration: 'none' }}
+          style={{ background: 'white', color: '#102444', border: `2px solid #102444`, textDecoration: 'none' }}
         >
           <MessageCircle size={26} strokeWidth={1.75} />
           <span>וואטסאפ</span>
@@ -1209,7 +1208,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
           {/* PRODUCT_TRUTH_DECORATIVE: ends signature-drawing mode without submitting approval */}
           {/* Owner 2026-11-11 (finding 18 wording, finding 25 size; typed L-24): "סיום הציור" - it only ends the drawing, never the approval */}
           {isActive && (
-            <button type="button" onClick={deactivateSigning} style={{ background: LIGHT.violet, color: 'white', border: 'none', padding: '4px 14px', minHeight: 44, borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
+            <button type="button" onClick={deactivateSigning} style={{ background: '#102444', color: 'white', border: 'none', padding: '4px 14px', minHeight: 44, borderRadius: '6px', fontSize: '0.8rem', fontWeight: '700', cursor: 'pointer' }}>
               סיום הציור
             </button>
           )}
@@ -1219,7 +1218,7 @@ export default function PublicQuote({ quoteData, presentation = null, previewMod
         )}
         <div>
           {/* PRODUCT_TRUTH_CAPABILITY: public_quote_sign */}
-          <button onClick={handleApprove} style={{ background: hasSigned ? LIGHT.gradient : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? LIGHT.glow : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>אישור וחתימה על הצעת המחיר{'\u00a0'}✓</button>
+          <button onClick={handleApprove} style={{ background: hasSigned ? '#102444' : '#94a3b8', color: 'white', border: 'none', padding: '16px 36px', borderRadius: '12px', fontSize: '1.1rem', fontWeight: 'bold', cursor: hasSigned ? 'pointer' : 'not-allowed', boxShadow: hasSigned ? '0 8px 20px -8px rgba(16,36,68,0.35)' : 'none', maxWidth: '100%', boxSizing: 'border-box' }}>אישור וחתימה על הצעת המחיר{'\u00a0'}✓</button>
         </div>
       </div>
     );

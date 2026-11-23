@@ -7,6 +7,8 @@
 // comparison live only in this dialog's memory and are dropped on close. The file is never kept: not here, not in the draft store.
 // Customer details are never read from the file - the owner picks the client in the form, as always.
 import { useEffect, useRef, useState } from 'react';
+import EllipsisText from './EllipsisText';
+import { isolateSizes } from '../utils/sizeIsolate';
 import { X, FileUp, Check } from 'lucide-react';
 import AiModalHeader from './AiModalHeader';
 import { APP as NEON } from '../theme/neonTheme';
@@ -24,10 +26,10 @@ const COPY = {
   he: {
     title: 'הצעת מחיר מקובץ',
     intro: 'מעלים קובץ PDF או JPG של הצעה או רשימת עבודות. ה-AI קורא את השורות, הכמויות, המידות והמחירים, ואתם קובעים את המחירים שלכם.',
-    choose: 'בחרו קובץ', chosen: 'הקובץ שנבחר', read: 'קריאת הפרטים', reading: 'קוראים את הקובץ…', cancel: 'ביטול', manual: 'מילוי ידני',
+    choose: 'בחרו קובץ', chosen: 'הקובץ שנבחר', reading: 'קוראים את הקובץ…', cancel: 'ביטול', manual: 'מילוי ידני',
     small: 'הקובץ נשלח לספק ה-AI רק לקריאת הפרטים. אצלנו הקובץ לא נשמר ולא מצורף להצעה. הספק שומר עותק לזמן מוגבל, לפי התנאים שלו.',
     reviewTitle: 'בדיקת השורות', reviewHint: 'בדקו כל שורה ומלאו את המחיר שלכם. ללקוח יוצא רק המחיר שלכם; המחיר במסמך מוצג רק כאן.',
-    item: 'תיאור', qty: 'כמות', unit: 'יחידה', noUnit: 'ללא יחידה', docPrice: 'מחיר במסמך', docLineTotal: 'סה״כ השורה במסמך', ownPrice: 'המחיר שלכם',
+    item: 'תיאור', qty: 'כמות', unit: 'יחידה', noUnit: 'ללא יחידה', docPrice: 'מחיר במסמך', docLineTotal: 'סה״כ השורה במסמך', ownPrice: 'המחיר שלכם', unitPricePh: 'מחיר ליחידה',
     notRead: 'לא נקרא', fromCatalog: 'מהקטלוג שלכם',
     docTotal: 'סה״כ במסמך', ownTotal: 'סה״כ שלכם', gap: 'הפער',
     scopeIL: 'לשורות שנבחרו, לפני מע״מ והנחות', scopeIntl: 'לשורות שנבחרו, לפני הנחות ותוספות',
@@ -51,10 +53,10 @@ const COPY = {
   en: {
     title: 'Quote from a file',
     intro: 'Upload a PDF or JPG of a quote or job list. The AI reads the lines, quantities, dimensions and prices, and you set your own prices.',
-    choose: 'Choose a file', chosen: 'Chosen file', read: 'Read details', reading: 'Reading the file…', cancel: 'Cancel', manual: 'Fill in manually',
+    choose: 'Choose a file', chosen: 'Chosen file', reading: 'Reading the file…', cancel: 'Cancel', manual: 'Fill in manually',
     small: 'The file is sent to our AI provider only to read the details. We do not store the file or attach it to your quote. The provider keeps a copy for a limited time under its own terms.',
     reviewTitle: 'Review the lines', reviewHint: 'Check each line and fill in your price. Only your price goes to the customer; the document price is shown here only.',
-    item: 'Description', qty: 'Qty', unit: 'Unit', noUnit: 'No unit', docPrice: 'Price in the document', docLineTotal: 'Line total in the document', ownPrice: 'Your price',
+    item: 'Description', qty: 'Qty', unit: 'Unit', noUnit: 'No unit', docPrice: 'Price in the document', docLineTotal: 'Line total in the document', ownPrice: 'Your price', unitPricePh: 'Unit price',
     notRead: 'Not read', fromCatalog: 'From your catalog',
     docTotal: 'Document total', ownTotal: 'Your total', gap: 'Difference',
     scopeIL: 'Selected lines, before VAT and discounts', scopeIntl: 'Selected lines, before discounts and additional charges',
@@ -79,12 +81,12 @@ const COPY = {
 
 const inputBase = { boxSizing: 'border-box', padding: '7px 9px', border: `1px solid ${NEON.borderStrong}`, borderRadius: '7px', background: NEON.bgInput, color: NEON.textPrimary, fontSize: '16px', fontFamily: 'inherit' };
 const secondaryBtn = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '6px', minHeight: '44px', padding: '0 16px', borderRadius: '10px', border: `1px solid ${NEON.borderStrong}`, background: 'none', color: NEON.textPrimary, fontWeight: 700, fontSize: '0.9rem', cursor: 'pointer', fontFamily: 'inherit' };
-const primaryBtn = { ...secondaryBtn, border: 'none', background: NEON.violet, color: '#ffffff' };
+const primaryBtn = { ...secondaryBtn, border: 'none', background: NEON.button, color: '#ffffff' };
 
 const toRow = (line, catalog) => {
   const hit = catalogPriceFor(line.description, catalog);
   return {
-    description: line.description, quantityInput: line.quantity != null ? String(line.quantity) : '', unit: line.unit || null,
+    description: isolateSizes(line.description), quantityInput: line.quantity != null ? String(line.quantity) : '', unit: line.unit || null,
     docUnitPrice: line.unitPrice, docLineTotal: line.lineTotal,
     ownInput: hit ? String(hit.price) : '', catalogId: hit ? hit.catalogId : null, catalogPrice: hit ? hit.price : null,
   };
@@ -122,17 +124,11 @@ export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoney
   if (!isOpen) return null;
 
   const close = () => { requestSeq.current += 1; reset(); onClose(); };
-  const pick = (f) => {
-    setErrorCode(null);
-    const problem = f ? checkPickedFile(f) : null;
-    if (problem) { setFile(null); setErrorCode(problem); if (inputRef.current) inputRef.current.value = ''; return; }
-    setFile(f || null);
-  };
-  const read = async () => {
-    if (!file || phase === 'loading') return;
+  const read = async (picked) => {
+    if (!picked || phase === 'loading') return;
     const seq = ++requestSeq.current;
     setErrorCode(null); setPhase('loading');
-    const r = await readFile(file);
+    const r = await readFile(picked);
     if (seq !== requestSeq.current) return;  // closed meanwhile
     // Owner 2026-11-06: after a read the SMART PACK usage line is read again (the server meter, never the read's own counter)
     if (typeof readAllowance === 'function') Promise.resolve(readAllowance()).then((a) => { if (seq === requestSeq.current) setAllowance(a || null); });
@@ -142,8 +138,18 @@ export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoney
       const next = r.lines.map((l) => toRow(l, catalog));
       setRows(next); setSelected(next.map(() => true)); setPhase('review'); appliedRef.current = false;
     } else {
+      // the file is let go, so picking it (or another one) again starts a new read
+      setFile(null); if (inputRef.current) inputRef.current.value = '';
       setErrorCode(r?.status || 'failed'); setPhase('pick');
     }
+  };
+  const pick = (f) => {
+    setErrorCode(null);
+    const problem = f ? checkPickedFile(f) : null;
+    if (problem) { setFile(null); setErrorCode(problem); if (inputRef.current) inputRef.current.value = ''; return; }
+    setFile(f || null);
+    // Owner 2026-11-22 (the simplify sketch, item 11): reading starts right after a file that passes the check is picked - no "read" button
+    if (f) read(f);
   };
   const edit = (i, patch) => { setBlocked(null); setRows((all) => all.map((r, j) => (j === i ? { ...r, ...patch } : r))); };
   const chosenIdx = rows.map((_, i) => i).filter((i) => selected[i]);
@@ -188,7 +194,7 @@ export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoney
       style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.55)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '16px', boxSizing: 'border-box', outline: 'none' }}
       onKeyDown={(e) => { if (e.key === 'Escape') close(); }}>
       <div style={{ background: NEON.bgCard, borderRadius: '16px', width: '100%', maxWidth: '680px', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px -15px rgba(0,0,0,0.4)', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
-        <AiModalHeader className="pf-modal-head--bar" title={t.title} onClose={close} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="quote-from-file" />
+        <AiModalHeader className="pf-modal-head--bar pf-modal-head--ai" title={t.title} onClose={close} closeLabel={t.cancel} closeContent={<X size={20} />} isHebrew={isHebrew} testId="quote-from-file" aiHelp="link" />
         <div style={{ padding: '16px 18px 18px', display: 'flex', flexDirection: 'column', gap: '12px', textAlign: isHebrew ? 'right' : 'left' }}>
           {phase !== 'review' ? (
             <>
@@ -196,23 +202,21 @@ export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoney
               <input ref={inputRef} id="quote-from-file-input" type="file" accept=".pdf,.jpg,.jpeg,application/pdf,image/jpeg" data-testid="quote-from-file-input"
                 onChange={(e) => pick(e.target.files?.[0] || null)} style={{ display: 'none' }} />
               <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '10px' }}>
-                {/* PRODUCT_TRUTH_DECORATIVE: opens the device file picker (PDF / JPG only); nothing is sent until "read details" */}
+                {/* PRODUCT_TRUTH_DECORATIVE: opens the device file picker (PDF / JPG only); a file that passes the type and size check is read right away */}
                 <button type="button" onClick={() => inputRef.current?.click()} disabled={phase === 'loading'} style={secondaryBtn}>
                   <FileUp size={18} aria-hidden="true" />{t.choose}
                 </button>
-                {file && <span data-testid="quote-from-file-chosen" style={{ fontSize: '0.84rem', color: NEON.textPrimary, overflowWrap: 'anywhere' }}>{t.chosen}: <bdi>{file.name}</bdi> (<bdi dir="ltr">{fileSizeLabel(file.size)}</bdi>)</span>}
+                {/* nothing moves when a file is picked (Owner 22/11): the chosen file stays one line beside the button - a long name ends with three dots and shows in full on hover / tap (Owner 19/11) */}
+                {file && <EllipsisText data-testid="quote-from-file-chosen" text={`${t.chosen}: ⁨${file.name}⁩ (⁦${fileSizeLabel(file.size)}⁩)`} style={{ fontSize: '0.84rem', color: NEON.textPrimary, flex: '1 1 0', minWidth: 0 }} />}
               </div>
               <small data-testid="quote-from-file-small-print" style={{ fontSize: '0.72rem', color: NEON.textSecondary, lineHeight: 1.45 }}>{t.small}</small>
               {allowanceText && <div data-testid="quote-from-file-allowance" style={{ fontSize: '0.78rem', color: NEON.textSecondary }}>{allowanceText}</div>}
               {errorText && <div role="alert" data-testid="quote-from-file-error" style={{ color: NEON.red, fontSize: '0.82rem', lineHeight: 1.45 }}>{errorText}</div>}
-              {phase === 'loading' && <div role="status" aria-live="polite" style={{ fontSize: '0.84rem', color: NEON.textSecondary }}>{t.reading}</div>}
+              {/* the reading line keeps its place before the reading starts, so the window never grows under the click (Owner 22/11) */}
+              <div role={phase === 'loading' ? 'status' : undefined} aria-live="polite" aria-hidden={phase === 'loading' ? undefined : true} data-testid="quote-from-file-reading" style={{ fontSize: '0.84rem', color: NEON.textSecondary, visibility: phase === 'loading' ? 'visible' : 'hidden' }}>{t.reading}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', justifyContent: 'flex-end' }}>
                 {/* PRODUCT_TRUTH_DECORATIVE: closes the dialog and leaves the blank quote form for manual entry */}
                 <button type="button" onClick={close} style={secondaryBtn}>{t.manual}</button>
-                {/* PRODUCT_TRUTH_CAPABILITY: smart_quote */}
-                <button type="button" data-testid="quote-from-file-read" onClick={read} disabled={!file || phase === 'loading'} style={{ ...primaryBtn, opacity: !file || phase === 'loading' ? 0.6 : 1 }}>
-                  <Check size={16} aria-hidden="true" />{phase === 'loading' ? t.reading : t.read}
-                </button>
               </div>
               <span hidden data-max-bytes={MAX_FILE_BYTES} />
             </>
@@ -227,11 +231,11 @@ export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoney
                   const own = parseOwnPrice(r.ownInput);
                   const isBlocked = blocked?.index === i;
                   return (
-                    <li key={i} data-testid="quote-from-file-line" data-line-index={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', border: `1px solid ${isBlocked ? (NEON.amber || NEON.red) : selected[i] ? NEON.violetLight : NEON.border}`, borderRadius: '10px', background: selected[i] ? NEON.violetLighter : NEON.bgCardAlt, boxSizing: 'border-box' }}>
+                    <li key={i} data-testid="quote-from-file-line" data-line-index={i} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', padding: '10px 12px', border: `1px solid ${isBlocked ? (NEON.amber || NEON.red) : selected[i] ? NEON.button : NEON.border}`, borderRadius: '10px', background: selected[i] ? NEON.buttonTint : NEON.bgCardAlt, boxSizing: 'border-box' }}>
                       {/* PRODUCT_TRUTH_DECORATIVE: ticks / unticks one read line before it is added */}
                       <input type="checkbox" aria-label={r.description} checked={!!selected[i]} onChange={() => { setBlocked(null); setSelected((s) => s.map((v, j) => (j === i ? !v : v))); }} style={{ marginTop: '10px', width: '18px', height: '18px', flexShrink: 0 }} />
                       <span style={{ display: 'flex', flexDirection: 'column', gap: '8px', minWidth: 0, flex: '1 1 auto' }}>
-                        <input type="text" data-field="description" aria-label={t.item} value={r.description} maxLength={200} onChange={(e) => edit(i, { description: e.target.value })}
+                        <input type="text" data-field="description" aria-label={t.item} value={r.description} title={r.description || undefined} className="pf-ell-field" maxLength={200} onChange={(e) => edit(i, { description: e.target.value })}
                           style={{ ...inputBase, width: '100%', fontWeight: 700, textAlign: isHebrew ? 'right' : 'left' }} />
                         <span style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px 12px', fontSize: '0.78rem', color: NEON.textSecondary }}>
                           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>{t.qty}:
@@ -250,7 +254,7 @@ export default function QuoteFromFileDialog({ isOpen, isHebrew, sym, formatMoney
                             <bdi className="pf-money" dir="ltr" style={{ color: NEON.textPrimary, fontWeight: 600 }}>{docMoney(r.docUnitPrice != null ? r.docUnitPrice : r.docLineTotal)}</bdi>
                           </span>
                           <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', color: NEON.textPrimary, fontWeight: 700 }}>{t.ownPrice}:
-                            <input type="text" inputMode="decimal" dir="ltr" className="pf-num" data-field="own" aria-label={t.ownPrice} aria-invalid={isBlocked && blocked.field === 'own'} value={r.ownInput}
+                            <input type="text" inputMode="decimal" dir="ltr" className="pf-num pf-own-price" data-field="own" aria-label={t.ownPrice} aria-invalid={isBlocked && blocked.field === 'own'} value={r.ownInput} placeholder={t.unitPricePh}
                               onChange={(e) => edit(i, { ownInput: e.target.value })} style={{ ...inputBase, width: '110px', textAlign: 'left', borderColor: isBlocked && blocked.field === 'own' ? (NEON.amber || NEON.red) : NEON.borderStrong }} />
                           </label>
                           {r.catalogId != null && own === r.catalogPrice && <span style={{ fontSize: '0.74rem', color: NEON.textSecondary }}>{t.fromCatalog}</span>}
